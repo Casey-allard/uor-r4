@@ -91,8 +91,19 @@ decoded-smoke identities are respectively
 `blake3:343c961b06605f6ae9bb6160ac34a98224991715b706156349a8fd544b6dbb35`,
 `blake3:649d733a194469aa648101a873d9e2ee323266b18872ced412d1da2cc6a56635`,
 and `blake3:6930de3c07d30df4420bb68e60ea74531c8076516bcfef1c016240eddf1b9ca2`.
-#973 remains active for one independently frozen bounded-global contrast, then
-corpus induction; #954 remains blocked.
+The independently frozen bounded-global exact-spin contrast then stopped
+target-free at
+`RETAIN_CONVERSATION_ONLY_REDESIGN_BOUNDED_GLOBAL_EXACT_SPIN_RELATION`.
+Its detached carriers retained four references, three classes, one same-address
+reuse, distinct epochs/roots, one common lower artifact, and equal support/work,
+but `Pavel`/`helix` share one H4 root and `prism` is identity, so both swapped
+orders finish at the identical complete `-1`/fiber/torsion state. Real roles
+were `helix/helix`; permuted roles were `prism/prism`. Target loads were zero
+and decoded execution is `NOT_RUN`. Operator and census identities are
+`blake3:f6b36cdf3e6cf96e1e9a345980843ee9eaffd25f5b864d4b4ed45a30ae6f746f`
+and `blake3:6c0a9f89a29584a09d917ae427a494b53c06b76e56482f665870ae86c1cd130a`.
+#973 remains active for a newly frozen noncommuting relation/population repair;
+corpus induction is not authorized, and #954 remains blocked.
 Do not add a second #953 intervention or reuse the #983/#986 populations. The
 complete #973 Gate 0 record is
 [`docs/prior_sentence_count_radius_attention_973.md`](docs/prior_sentence_count_radius_attention_973.md).
@@ -100,13 +111,15 @@ The complete paragraph record is
 [`docs/paragraph_entity_spin_path_attention_973.md`](docs/paragraph_entity_spin_path_attention_973.md).
 The complete conversation record is
 [`docs/conversation_entity_spin_path_attention_973.md`](docs/conversation_entity_spin_path_attention_973.md).
+The complete bounded-global target-free negative record is
+[`docs/bounded_global_exact_spin_attention_973.md`](docs/bounded_global_exact_spin_attention_973.md).
 The complete #986 result and nonclaim boundary is
 [`docs/corpus_signed_transport_attention_986.md`](docs/corpus_signed_transport_attention_986.md).
 Terminology lives in
 `docs/transformerless/GLOSSARY.md`. Keep this file current when conventions
 change.
 
-## Capability-first baseline and geometric increment — #989/#953 established; #973 Gate 0, paragraph, and conversation retained
+## Capability-first baseline and geometric increment — #989/#953 established; #973 local/paragraph/conversation retained, first global relation negative
 
 Effective 2026-08-28, #989 established the deterministic source-free
 table-native lexical baseline at
@@ -142,8 +155,9 @@ Its independently frozen conversation slice then retained one construction-
 bound exact-descriptor cross-turn entity-role stored-spin path selector while
 all lower scopes and global state stayed fixed. These are not semantic,
 paraphrastic, natural-distribution, or general higher-scope evidence. One
-independently frozen bounded-global contrast is now next; corpus work remains
-subsequent. New H4, SpiralCore, harmonic, algebraic,
+independently frozen bounded-global exact-spin contrast then failed target-free
+because its swapped states commute. A new noncommuting relation/population
+repair is next; corpus work remains unauthorized. New H4, SpiralCore, harmonic, algebraic,
 placement, transport, scale, and later-stage work remains dormant unless its
 issue is exposed. See the
 [#989 evidence record](docs/source_free_table_baseline_989.md) and
@@ -151,7 +165,8 @@ issue is exposed. See the
 then the [#973 Gate 0 record](docs/prior_sentence_count_radius_attention_973.md)
 and [#973 paragraph record](docs/paragraph_entity_spin_path_attention_973.md),
 then the
-[#973 conversation record](docs/conversation_entity_spin_path_attention_973.md).
+[#973 conversation record](docs/conversation_entity_spin_path_attention_973.md)
+and [#973 bounded-global negative record](docs/bounded_global_exact_spin_attention_973.md).
 
 ## What this repo is
 
@@ -386,7 +401,8 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
   prior-prefix copy-attention mechanism, the frozen paragraph slice retained
   one exact-descriptor/entity-binding stored-phase path selector, and the
   frozen conversation slice retained one exact-descriptor cross-turn entity-
-  role stored-spin path selector. Bounded-global and corpus qualifications
+  role stored-spin path selector. The first bounded-global relation failed
+  target-free; a fresh relation/population repair and later corpus qualification
   remain active in that order, and #954 remains blocked behind #973.
   #954 and #955 own correctness and reasoning respectively.
   #962 owns durable multi-turn CLI/HTTP chat, persistence, isolation, and
@@ -394,7 +410,8 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
 - Sequence strictly from the current reset: working source-free table baseline
   (#989, established) → one matched geometric intervention (#953, accepted) →
   higher-scope attention (#973, Gate 0 plus bounded paragraph and conversation
-  slices retained; bounded-global then corpus qualification active) →
+  slices retained; first bounded-global relation negative, fresh repair then
+  corpus qualification active) →
   correctness/abstention → reasoning → optimization/purity/release. The older placement/transport
   sequence is retained as evidence, not an active implementation queue.
 - Kappa is canonical identity/serialization, never the tokenizer or semantic
@@ -418,14 +435,14 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
   descriptor/entity-binding stored-phase path selector, and its conversation
   slice adds only one construction-bound exact-descriptor cross-turn entity-
   role stored-spin path selector. They do not qualify a general entity,
-  paragraph, or conversation model. Only the remaining #973 subprobes may
-  qualify bounded-global state.
+  paragraph, or conversation model. The first global exact-spin relation failed
+  target-free; only a newly frozen #973 repair may qualify bounded-global state.
 - Keep **candidate admission** separate from **harmonic influence**. In #953,
   `PrimaryThenAdjacentSpinFallbackV1` uses I1/I2/ordered-sentence plus divisor
   as the primary admission tier. Adjacent-spin rows are always consulted and
   report physical presence truthfully, but admit candidates only when that tier
   is empty. Do not delete or disguise a physical adjacent-spin hit.
-  #973 may later apply one global-epoch/operator-bound result to every immutable
+  A newly frozen #973 repair may apply one global-epoch/operator-bound result to every immutable
   reference in the same exact signed-S3/Hopf/fiber/torsion class. Similar but
   non-identical states require a separately frozen finite relative-angular
   kernel built independently over exact classes. The existing adjacent-spin
@@ -459,7 +476,9 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
   witnesses. The retained paragraph selector emits its exact two-fact binding,
   stored-phase path, and matched-work witnesses. The retained conversation
   selector emits its cross-turn binding, lower/global-scope isolation, stored-
-  spin path, and matched-work witnesses; later hierarchy selections must emit
+  spin path, and matched-work witnesses. The first global relation emitted its
+  detached-carrier/exact-class census and commuting-fold negative; later
+  hierarchy selections must emit
   their corresponding scope coverage witness. Exact recall,
   grammatical generation,
   correctness, and reasoning remain separate gates.

@@ -1,13 +1,16 @@
 # ADR-0004: Define a bounded geometric-intelligence route hierarchy
 
 - **Status:** Accepted as an architectural definition and evaluation boundary;
-  amended 2026-08-28 after #953's repaired admission and placement preflight,
-  #983's independent 0/6 construction-transfer negative, and #986's
-  `UNAVAILABLE_FRAME_OR_POPULATION` feasibility terminal. #986 produced no
-  placement, link state, or selector; #953 remains parked pending a freshly
-  frozen population/frame successor. #973 remains blocked and later owns
-  paragraph, conversation, global exact-spin, and corpus-scale qualification.
-  Harmonic qualification additionally requires a bound basis/mode contract.
+  amended 2026-08-28 after B0/#989, the accepted matched #953 R4 table-tie
+  intervention, and #973's retained prior-prefix, paragraph, and conversation
+  mechanisms. #973's first bounded-global exact-spin relation stopped
+  target-free at
+  `RETAIN_CONVERSATION_ONLY_REDESIGN_BOUNDED_GLOBAL_EXACT_SPIN_RELATION`:
+  its detached snapshots and same-address class reuse were valid, but the
+  frozen swapped exact states commute to one identical complete fold. #973 is
+  active for a newly frozen noncommuting relation/population repair; corpus
+  induction is not authorized and #954 remains blocked. Harmonic qualification
+  additionally requires a bound basis/mode contract.
   Inference,
   correctness, and reasoning capability remain unproven.
 - **Date:** 2026-08-26
@@ -299,14 +302,22 @@ Consequently,
 “least energy” means least energy among admitted candidates unless an artifact
 explicitly scores the entire bounded union before admission.
 
-#969 qualified only its retained local S3 path cost. #953 continues to use that
-cost while repairing admission and keeps paragraph, conversation, global, and
-shared higher-scope operator action inert. After an accepted #953 loop, #973
-may qualify a global exact-spin overlay only under identical admitted support and work across
+#969 qualified only its retained local S3 path cost. The historical #953 path
+kept paragraph, conversation, global, and shared higher-scope action inert; the
+later accepted matched #953 R4 table-tie intervention exposed #973. #973 may
+qualify a global exact-spin overlay only under identical admitted support and work across
 real, identity-disabled, and deterministic class/operator-permuted arms. The
 real overlay must change the intended candidate and exact decoded output, while
 the disabled and permuted arms do not reproduce that predeclared effect. A
 changed shared-result trace or stored state alone is not attention.
+
+The first such #973 global overlay reached its target-free negative terminal.
+Both detached carriers had distinct epochs/roots and valid three-class/one-
+reuse populations, but `Pavel`/`helix` shared one H4 root and `prism` was the
+identity, so the swapped orders produced the same `-1`/fiber/torsion state and
+the same winner. Target data was not opened. This preserves the architectural
+overlay boundary while rejecting that relation/pair; any repair must establish
+noncommuting distinct exact folds before decoded or corpus work.
 
 For each already-admitted candidate `c`, the selector may clone the observed
 state, compute the deterministic provisional state
@@ -402,7 +413,9 @@ Delivery proceeds without skipping stages:
    unchanged after a fresh label-free preflight;
 6. in #973, qualify paragraph, conversation, and global influence through the
    accepted #953 loop, including the shared exact-spin operator overlay and
-   its matched disabled/permuted controls;
+   its matched disabled/permuted controls; paragraph and conversation are
+   retained, while the first global relation is negative and requires a newly
+   frozen noncommuting repair;
 7. within #973, after every required scope qualifies, activate a predeclared
    higher-scope/corpus-scale offline induction ladder with a frozen operator
    family and induction rule; assign every rung new artifact/operator identities

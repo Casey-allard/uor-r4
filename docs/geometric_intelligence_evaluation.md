@@ -31,9 +31,9 @@ emitted identical reports and artifacts. The binding record is
 This is an established statistical lexical prediction and bounded-decoding
 baseline, not semantics, attention, geometry, correctness, reasoning, chat,
 performance, or release evidence. Its exact artifact, corpus, support, decode,
-and work are frozen as the non-geometric reference for one later #953
-intervention. All unrelated geometric, attention, teacher, broad-QA, and
-release probes remain dormant; #973 remains blocked behind #953.
+and work were frozen as the non-geometric reference for the one later accepted
+#953 intervention. Unrelated geometric, teacher, broad-QA, and release probes
+remain dormant.
 
 Lexical ingestion, canonical serialization, registered-address membership,
 and rebuild witnesses are prerequisite plumbing, not inference. The delivery
@@ -64,8 +64,11 @@ selector or payload inversion and is now closed bounded negative evidence.
 #986 then closed `UNAVAILABLE_FRAME_OR_POPULATION` before placement because its
 exact population/codec commitment and complete lexical SpiralCore frame were
 unavailable. Gate 0, labels, selection, and #953 were `NOT_RUN`. The later
-established B0/#989 result now exposes one matched #953 intervention; #953
-continues to block #973 and #954, and #973 continues to block #954.
+established B0/#989 result exposed one matched #953 intervention, which has
+since been accepted. #973 then retained its bounded Gate 0, paragraph, and
+conversation mechanisms. Its first bounded-global exact-spin relation failed
+target-free because the frozen swapped states commute. #973 continues to block
+#954 while it owns a newly frozen relation/population repair.
 
 A negative result remains evidence about its declared mechanism and
 distribution. It does not erase a separately established storage, identity,
@@ -86,8 +89,8 @@ experiment nor a conditional issue number is automatically a serving consumer.
 0. **Source-free table baseline (B0/#989; established)** — construction-only
    integer lexical counts drove 22.261404% held-out top-1 versus 5.413561%
    unigram, exact decode, a bounded 16-unit continuation, and byte-identical
-   replay. Geometry was absent. The artifact is now the fixed reference for one
-   matched #953 intervention; all other later stages remain dormant or blocked.
+   replay. Geometry was absent. The artifact is the fixed reference used by the
+   one accepted matched #953 intervention; later stages remain sequenced.
 
 1. **Local route-attention mechanism (#969)** — natural schema-2 adjacency,
    causal ordered R4/S3 path state, retained prefix memory, and deterministic
@@ -818,7 +821,7 @@ it does not participate in admission. The existing adjacent-spin retrieval rows
 remain fallback/diagnostic data, not operator coefficients; any neighbor
 operator is compiled independently over exact classes and admitted candidates.
 
-The first global decision reuses one existing exact `shared_class_kappa` over
+The first global decision reused one existing exact `shared_class_kappa` over
 full signed S3 orientation, checked Hopf observation, fiber, and torsion.
 Hopf/S2 is not class identity by itself, and `q`/`-q` remain distinct. The
 fixture contains enough ordered global state to produce a witnessed
@@ -865,9 +868,27 @@ coefficients, quantization, and transition law before the prototype is called
 harmonic. #973 will freeze its own terminal literal before running this
 contract.
 
-A positive global subprobe cannot close #973. Paragraph and conversation still
-require their own matched load-bearing qualification through the accepted loop,
-or an explicit native revision of #973's scope and dependencies.
+A future positive global subprobe cannot close #973. Paragraph and conversation
+are retained, but corpus induction and final requalification still require
+their own frozen evidence or an explicit native scope revision.
+
+#### Observed bounded-global target-free terminal (2026-08-28)
+
+The first frozen global decision reached
+`RETAIN_CONVERSATION_ONLY_REDESIGN_BOUNDED_GLOBAL_EXACT_SPIN_RELATION` before
+target attachment. Its detached snapshot carriers had distinct epochs/roots,
+four references, three exact classes, and one same-address result reuse, while
+one byte-identical lower artifact and equal support/work were preserved. The
+operative relation was nevertheless identical: `Pavel` and `helix` map to
+`q=(1+i+j+k)/2`, `prism` maps to identity, and both `q*q*q*1` and `q*q*1*q`
+finish at the same complete `-1`/fiber/torsion state. Real roles were
+`helix/helix`; permuted roles were `prism/prism`. Target loads were zero and
+decoded evaluation is `NOT_RUN`. See the
+[#973 bounded-global record](bounded_global_exact_spin_attention_973.md).
+
+This is a relation/population falsification, not a global-attention result. A
+fresh #973 contract must establish noncommuting distinct exact folds and
+incompatible target-free winners before any decoded join or corpus induction.
 
 ## 4. Matched controls
 
@@ -922,12 +943,15 @@ natural support and work. Do not carry #969's last-only arm or the obsolete
 six-comparator I1 matrix forward. A single grammar-disabled diagnostic is
 allowed only to localize an already observed output defect.
 
-For #973's global exact-spin operator decision, run real, identity-disabled, and
-deterministic class/operator-permuted arms with identical admission and work.
+For #973's global exact-spin operator decisions, run real, identity-disabled,
+and deterministic class/operator-permuted arms with identical admission and work.
 At least two references share one exact class so reuse is exercised; a different
 exact class in the same current `SpinSector` checks that the operator is not
 aliasing the coarse Hopf-octant/torsion bucket. A one-unit registration-only
 global snapshot or an identity transition cannot qualify the operator.
+The first frozen pair satisfied the class/reuse population but failed this gate
+because both complete order folds were identical; its decoded arm remains
+`NOT_RUN`.
 
 A working decoded intervention records
 `PROCEED_TO_I1_WITH_CAUSAL_R4_PATH_ATTENTION`. This establishes only a

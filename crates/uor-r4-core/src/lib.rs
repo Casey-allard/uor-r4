@@ -7,6 +7,7 @@ use serde_json::Value;
 use std::collections::{BTreeMap, HashMap};
 use std::f64::consts::PI;
 
+pub mod bounded_global_exact_spin_attention;
 pub mod canonical_lexical_ingestion;
 pub mod cayley_dickson;
 pub mod construction_causal_return_attention;

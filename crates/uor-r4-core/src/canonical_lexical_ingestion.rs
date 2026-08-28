@@ -1539,6 +1539,55 @@ pub struct AttentionHierarchyView {
     pub global: String,
 }
 
+pub const GLOBAL_EXACT_SPIN_SNAPSHOT_VIEW_SCHEMA: u32 = 1;
+pub const GLOBAL_EXACT_SPIN_SNAPSHOT_VIEW_DOMAIN: &str = "uor-r4.global-exact-spin-snapshot-view/1";
+
+/// Read-only exact spin/torsion fields for one canonical lexical address.
+///
+/// This trace mirrors the complete [`SpinTorsionState`] without adding a new
+/// field to the canonical artifact or changing its serialized identity.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub struct SpinTorsionStateTrace {
+    pub s3_q30: [i32; 4],
+    pub hopf_q30: [i32; 3],
+    pub fiber_q29: i32,
+    pub torsion_q29: i32,
+}
+
+/// One immutable ordered reference in the bounded-global snapshot.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct GlobalExactSpinSnapshotEntry {
+    pub ordinal: u16,
+    pub entry_kappa: String,
+    pub lexical_unit_id: u32,
+    pub address_index: u16,
+    pub address_kappa: String,
+    pub payload_cid: String,
+    pub payload_bytes: Vec<u8>,
+    pub spin: SpinTorsionStateTrace,
+    pub shared_class_kappa: String,
+}
+
+/// Validated read-only view of the immutable bounded-global snapshot.
+///
+/// The view exposes exact reference, address, payload, and spin identities for
+/// operator compilation. It is derived from a transitively validated artifact
+/// and is deliberately absent from [`CanonicalRouteArtifact`]'s wire body, so
+/// requesting it cannot alter canonical artifact bytes or its manifest kappa.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct GlobalExactSpinSnapshotView {
+    pub schema: u32,
+    pub domain: String,
+    pub source_artifact_manifest_kappa: String,
+    pub identity_scope: String,
+    pub global_epoch: String,
+    pub snapshot_kappa: String,
+    pub snapshot_summary_kappa: String,
+    pub global_root_kappa: String,
+    pub global_exact_chain_kappa: String,
+    pub entries: Vec<GlobalExactSpinSnapshotEntry>,
+}
+
 pub const ATTENTION_CONSUMER_TRACE_SCHEMA: u32 = 1;
 pub const ATTENTION_CONSUMER_TRACE_DOMAIN: &str = "uor-r4.canonical-attention-consumer-trace/1";
 
@@ -2778,7 +2827,7 @@ fn icosian_coordinate_kappa(
     canonical_kappa(&canonical_json(&seed)?)
 }
 
-fn shared_class_kappa(spin: SpinTorsionState) -> Result<String, CanonicalLexicalError> {
+pub(crate) fn shared_class_kappa(spin: SpinTorsionState) -> Result<String, CanonicalLexicalError> {
     canonical_kappa(&canonical_json(&SpinClassKeyWire {
         schema: 1,
         domain: "uor-r4.exact-spin-torsion-class/1",
@@ -4539,6 +4588,92 @@ impl CanonicalRouteArtifact {
         };
         validate_input_shape(&input)?;
         Ok(input)
+    }
+
+    /// Resolve the bounded-global snapshot to its exact stored lexical
+    /// addresses, payloads, and full spin/torsion class identities.
+    ///
+    /// This is a derived consumer view only. The canonical artifact is fully
+    /// validated first, and neither its body nor its manifest identity is
+    /// mutated or reserialized.
+    pub fn global_exact_spin_snapshot_view(
+        &self,
+    ) -> Result<GlobalExactSpinSnapshotView, CanonicalLexicalError> {
+        self.validate_transitive()?;
+        let global_root = self
+            .node(&self.body.hierarchy_roots.global)
+            .ok_or_else(|| {
+                CanonicalLexicalError::Invalid(
+                    "bounded-global exact-spin view cannot resolve the global root".to_owned(),
+                )
+            })?;
+        if global_root.body.scope != "global"
+            || global_root.body.ordered_child_kind != "global-snapshot"
+            || global_root.body.ordered_child_kappa != self.body.global_snapshot.snapshot_kappa
+        {
+            return Err(CanonicalLexicalError::Invalid(
+                "bounded-global exact-spin view resolved an invalid global root".to_owned(),
+            ));
+        }
+
+        let mut entries = Vec::with_capacity(self.body.global_snapshot.ordered_units.len());
+        for binding in &self.body.global_snapshot.ordered_units {
+            let address = self
+                .lexical_route_address_unvalidated(binding.lexical_unit_id)?
+                .ok_or_else(|| {
+                    CanonicalLexicalError::Invalid(
+                        "bounded-global exact-spin entry has no registered address".to_owned(),
+                    )
+                })?;
+            let vocabulary_index = usize::try_from(binding.lexical_unit_id)
+                .map_err(|_| CanonicalLexicalError::ArithmeticOverflow)?;
+            let vocabulary = self.body.vocabulary.get(vocabulary_index).ok_or_else(|| {
+                CanonicalLexicalError::Invalid(
+                    "bounded-global exact-spin entry has no vocabulary binding".to_owned(),
+                )
+            })?;
+            let payload_bytes =
+                decode_hex(&vocabulary.surface_hex, "bounded-global exact-spin payload")?;
+            if vocabulary.unit_id != binding.lexical_unit_id
+                || vocabulary.payload_cid != address.payload_cid
+                || usize::from(binding.address_index) != vocabulary_index
+                || binding.address_kappa != address.canonical_kappa()?
+            {
+                return Err(CanonicalLexicalError::Invalid(
+                    "bounded-global exact-spin entry does not match its canonical registry"
+                        .to_owned(),
+                ));
+            }
+            entries.push(GlobalExactSpinSnapshotEntry {
+                ordinal: binding.ordinal,
+                entry_kappa: binding.entry_kappa.clone(),
+                lexical_unit_id: binding.lexical_unit_id,
+                address_index: binding.address_index,
+                address_kappa: binding.address_kappa.clone(),
+                payload_cid: vocabulary.payload_cid.clone(),
+                payload_bytes,
+                spin: SpinTorsionStateTrace {
+                    s3_q30: address.spin.s3.raw(),
+                    hopf_q30: address.spin.hopf.raw(),
+                    fiber_q29: address.spin.fiber.raw(),
+                    torsion_q29: address.spin.torsion.raw(),
+                },
+                shared_class_kappa: shared_class_kappa(address.spin)?,
+            });
+        }
+
+        Ok(GlobalExactSpinSnapshotView {
+            schema: GLOBAL_EXACT_SPIN_SNAPSHOT_VIEW_SCHEMA,
+            domain: GLOBAL_EXACT_SPIN_SNAPSHOT_VIEW_DOMAIN.to_owned(),
+            source_artifact_manifest_kappa: self.manifest_kappa.clone(),
+            identity_scope: self.body.provenance.identity_scope.clone(),
+            global_epoch: self.body.provenance.global_epoch.clone(),
+            snapshot_kappa: self.body.global_snapshot.snapshot_kappa.clone(),
+            snapshot_summary_kappa: self.body.global_snapshot.summary_kappa.clone(),
+            global_root_kappa: global_root.node_kappa.clone(),
+            global_exact_chain_kappa: global_root.body.exact_chain_kappa.clone(),
+            entries,
+        })
     }
 
     pub fn attention_hierarchy_view(&self) -> AttentionHierarchyView {
@@ -6652,4 +6787,53 @@ pub fn run_authorized_probe() -> Result<ProbeWitness, CanonicalLexicalError> {
         icosian_inverse_witnesses_exact,
         serving_boundary,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn global_exact_spin_snapshot_view_is_read_only() -> Result<(), CanonicalLexicalError> {
+        let global_snapshot_units = vec![b"memory".to_vec(), b"memory".to_vec(), b"route".to_vec()];
+        let input = ConversationInput {
+            identity_scope: "canonical-global-exact-spin-view-test".to_owned(),
+            global_epoch: canonical_global_epoch(&global_snapshot_units)?,
+            global_snapshot_units,
+            turns: vec![TurnInput {
+                turn_id: "turn-0001".to_owned(),
+                paragraphs: vec![ParagraphInput {
+                    sentences: vec![b"memory route.".to_vec()],
+                }],
+            }],
+        };
+        let codec = CanonicalLexicalCodec::compile(&input)?;
+        let artifact = CanonicalRouteArtifact::ingest(&codec, &input)?;
+        let bytes_before = artifact.canonical_bytes()?;
+        let manifest_before = artifact.manifest_kappa().to_owned();
+
+        let view = artifact.global_exact_spin_snapshot_view()?;
+
+        assert_eq!(view.schema, GLOBAL_EXACT_SPIN_SNAPSHOT_VIEW_SCHEMA);
+        assert_eq!(view.domain, GLOBAL_EXACT_SPIN_SNAPSHOT_VIEW_DOMAIN);
+        assert_eq!(view.source_artifact_manifest_kappa, manifest_before);
+        assert_eq!(view.global_epoch, input.global_epoch);
+        assert_eq!(view.snapshot_kappa, input.global_epoch);
+        assert_eq!(
+            view.global_root_kappa,
+            artifact.attention_hierarchy_view().global
+        );
+        assert_eq!(view.entries.len(), 3);
+        assert_ne!(view.entries[0].entry_kappa, view.entries[1].entry_kappa);
+        assert_eq!(view.entries[0].address_kappa, view.entries[1].address_kappa);
+        assert_eq!(view.entries[0].payload_cid, view.entries[1].payload_cid);
+        assert_eq!(view.entries[0].payload_bytes, b"memory");
+        assert_eq!(
+            view.entries[0].shared_class_kappa,
+            view.entries[1].shared_class_kappa
+        );
+        assert_eq!(artifact.manifest_kappa(), manifest_before);
+        assert_eq!(artifact.canonical_bytes()?, bytes_before);
+        Ok(())
+    }
 }

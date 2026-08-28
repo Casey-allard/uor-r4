@@ -98,11 +98,13 @@ The experiment must be able to change the next programme decision:
   held-out table top-1 versus 24,163/446,342 (5.413561%) unigram, a
   +16.847843-point uplift, with bounded exact decoding and byte-identical full
   replay. This is statistical lexical prediction, not semantics, attention,
-  geometry, correctness, reasoning, chat, or release evidence. Exactly one
-  later #953 intervention may use the frozen corpus, support, decode, table
-  artifact, and work budget; #973 remains blocked. Do not start another H4,
-  SpiralCore, harmonic, algebraic, placement, transport, higher-scope, or scale
-  probe. See the [#989 record](docs/source_free_table_baseline_989.md).
+  geometry, correctness, reasoning, chat, or release evidence. The one
+  permitted #953 intervention has since been accepted over this unchanged
+  reference. #973 retained bounded prior-prefix, paragraph, and conversation
+  mechanisms, then rejected its first bounded-global exact-spin relation at a
+  target-free commuting-fold gate. Do not start corpus/scale work until a
+  newly frozen noncommuting #973 repair qualifies. See the
+  [#989 record](docs/source_free_table_baseline_989.md).
 - **Preserve the GI evidence lineage.** GI-1 makes lexical/address state
   reversible;
   #952 found the reusable ordered-state defect; A1R/#967 repaired the fold but
@@ -137,16 +139,23 @@ The experiment must be able to change the next programme decision:
   corpus-scale codec/pair commitment and complete same-frame lexical
   Cl(0,6)/SpiralCore operator map were unavailable. Gate 0, labels, selection,
   and #953 were `NOT_RUN`. That pre-reset handoff left #953 parked pending a
-  fresh successor; the established B0/#989 result above supersedes that action.
-  A1Q-H/#973 and GI-4/#954 remain blocked, with GI-5/#955 downstream.
-- **Exercise the real route path only when reactivated.** When a later #953
-  issue activates the one matched intervention, geometry must
-  run before token choice and emit its admitted support and energy trace. Add a
-  global-context coverage witness only when #973 is eligible and active.
+  fresh successor; B0/#989 and the later accepted matched #953 intervention
+  supersede that action. A1Q-H/#973 is active: Gate 0, paragraph, and
+  conversation are retained, while its first bounded-global relation is
+  target-free negative at
+  `RETAIN_CONVERSATION_ONLY_REDESIGN_BOUNDED_GLOBAL_EXACT_SPIN_RELATION`.
+  #973 now owns one newly frozen noncommuting relation/population repair; GI-4/
+  #954 remains blocked, with GI-5/#955 downstream.
+- **Exercise the accepted route path.** #953 geometry runs before token choice
+  and emits admitted support and its fixed-point radius trace. A #973 global
+  repair must additionally emit detached lower/snapshot bindings, exact class
+  reuse, complete fold steps, and the target-free incompatibility gate before
+  any decoded target join.
 - **Use the smallest falsifier.** #989 began with its bounded natural lexical
-  fixture before the declared real corpus run. The one permitted #953
-  intervention must begin with its own bounded matched falsifier before any
-  broader data or mechanism work.
+  fixture before the declared real corpus run. #973's first global relation
+  correctly stopped on its two-case target-free commuting-fold falsifier. Its
+  repair must prove a distinct noncommuting exact relation before any broader
+  data, decoded target, neighbor operator, or corpus mechanism is activated.
 - **Parallelize deterministic corpus work.** Partition by content identity,
   use all available local workers with canonical ordered reductions, and
   compare independent multithreaded rebuilds. Do not launch a long experiment

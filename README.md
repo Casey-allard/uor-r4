@@ -14,7 +14,25 @@ local hardware. The project is testing whether language context, inference,
 and reasoning can emerge from routes through a canonical geometric memory. The
 target serving engine uses no Ollama, hosted model, or source-model weights.
 
-> **Current bounded attention result (2026-08-28):** #973 retains three narrow
+> **Current bounded-global result (2026-08-28):** #973's independently frozen
+> exact-spin contrast stopped at the target-free relation gate with
+> `RETAIN_CONVERSATION_ONLY_REDESIGN_BOUNDED_GLOBAL_EXACT_SPIN_RELATION`.
+> Both same-multiset snapshot carriers had distinct canonical epochs/roots,
+> four references, three exact classes, and one byte-identical same-address
+> class-result reuse, while sharing one byte-identical lower artifact and equal
+> admitted support/work. But `Pavel` and `helix` map to the same H4 root and
+> `prism` maps to identity, so both frozen orders produce the same complete
+> `-1` fold, fiber, torsion, real `helix` role, and permuted `prism` role. The
+> frozen incompatible-winner premise was false. Target loads were zero and the
+> decoded smoke is `NOT_RUN`. Operator and target-free census identities are
+> `blake3:f6b36cdf3e6cf96e1e9a345980843ee9eaffd25f5b864d4b4ed45a30ae6f746f`
+> and `blake3:6c0a9f89a29584a09d917ae427a494b53c06b76e56482f665870ae86c1cd130a`.
+> This rejects one frozen global relation, not geometry generally. #973 remains
+> open for a newly frozen noncommuting relation/population repair before corpus
+> induction; #954 remains blocked. See the
+> [bounded-global record](docs/bounded_global_exact_spin_attention_973.md).
+
+> **Current retained bounded attention result (2026-08-28):** #973 retains three narrow
 > mechanisms: Gate 0's exact-candidate prior-prefix copy mechanism, one
 > construction-bound exact-descriptor paragraph path selector, and now
 > `ConversationEntitySpinPathR4V1` at
@@ -37,8 +55,9 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > `blake3:343c961b06605f6ae9bb6160ac34a98224991715b706156349a8fd544b6dbb35`,
 > `blake3:649d733a194469aa648101a873d9e2ee323266b18872ced412d1da2cc6a56635`,
 > and `blake3:6930de3c07d30df4420bb68e60ea74531c8076516bcfef1c016240eddf1b9ca2`.
-> #973 stays open for one independently frozen bounded-global contrast, then
-> corpus induction; #954 remains blocked. See the
+> The subsequent independently frozen bounded-global contrast failed its
+> target-free relation gate. #973 stays open for a fresh bounded-global repair
+> before corpus induction; #954 remains blocked. See the
 > [conversation record](docs/conversation_entity_spin_path_attention_973.md).
 
 > **Current capability-first result (2026-08-28):** #953's frozen
@@ -83,8 +102,10 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > frozen paragraph slice retained one construction-bound exact-descriptor/
 > entity-binding stored-phase path selector, and its frozen conversation slice
 > retained one construction-bound exact-descriptor cross-turn entity-role path
-> selector, each with the narrow boundary above. Independent bounded-global,
-> then corpus qualification, remain.
+> selector, each with the narrow boundary above. The first independent bounded-
+> global exact-spin relation failed target-free because its swapped states
+> commute; a fresh relation/population repair, then corpus qualification,
+> remain.
 > #954 remains blocked behind #973. General higher-scope attention, correct
 > answers, and reasoning do not exist yet. The
 > dashboard is an interactive window into the research substrate, not a
@@ -286,13 +307,15 @@ accepted a separate fixed-point R4 table-tie intervention and closed #953 at
 its positive terminal. #973 Gate 0 has since retained one bounded prior-prefix
 copy mechanism. Its frozen paragraph and conversation slices retained one
 exact-descriptor/entity-binding path selector apiece at their respective
-scopes; bounded-global and corpus qualification remain active and #954 remains
-blocked.
+   scopes; the first bounded-global exact-spin relation failed target-free, so
+   a newly frozen noncommuting relation/population repair and corpus
+   qualification remain active while #954 stays blocked.
 See the [append-only #953 record](docs/local_geometric_generation_953.md).
 See the [accepted table-tie record](docs/source_free_table_geometric_intervention_953.md).
 See the [#973 Gate 0 record](docs/prior_sentence_count_radius_attention_973.md).
 See the [#973 paragraph record](docs/paragraph_entity_spin_path_attention_973.md).
 See the [#973 conversation record](docs/conversation_entity_spin_path_attention_973.md).
+See the [#973 bounded-global negative record](docs/bounded_global_exact_spin_attention_973.md).
 See the [#986 evidence record](docs/corpus_signed_transport_attention_986.md)
 for the exact feasibility boundary and deliberately unrun stages.
 Stored H4/Hopf/zeta/icosian and related route fields remain
@@ -376,11 +399,13 @@ not become substitutes for working intelligence:
    top-1, +4,242 correct choices over the unchanged table, a distinct bounded
    continuation, matched support and declared-work ledger, and byte-identical
    replay.
-3. **Continue higher-scope attention (#973)** — retain the positive Gate 0
+3. **Repair higher-scope attention (#973)** — retain the positive Gate 0
    exact-candidate prior-prefix mechanism and the bounded construction-bound
-   paragraph and conversation selectors. Run one independently frozen bounded-
-   global contrast next, followed only then by corpus induction. Historical
-   placement and transport probes remain evidence, not current work.
+   paragraph and conversation selectors. Preserve the first bounded-global
+   exact-spin contrast as a target-free negative: its frozen swapped states
+   commute. Freeze a noncommuting relation/population repair next; only a
+   positive bounded-global requalification may authorize corpus induction.
+   Historical placement and transport probes remain evidence, not current work.
 4. **Establish correctness** — relevance, contradiction handling, and honest
    abstention.
 5. **Establish reasoning** — bounded multi-step route composition.
@@ -396,8 +421,9 @@ The active dependency chain is tracked in
 the frozen table reference, #953 established one matched R4 tie intervention
 over it, and #973 retained one bounded prior-prefix copy mechanism plus bounded
 exact-descriptor/entity-binding path selectors at paragraph and conversation
-scope. Bounded-global and corpus work remain active; #954 remains blocked
-behind #973.
+scope. The first bounded-global relation is closed-negative within the still-open
+#973 track; its fresh repair and later corpus work remain active. #954 remains
+blocked behind #973.
 
 ## Find your way around
 
