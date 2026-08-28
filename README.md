@@ -21,9 +21,13 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > repaired the frozen agreement admission to exact `{still}` then `{run,runs}`
 > support under equal work, but the one permitted four-arm run chose `still run`
 > for both full-path prompts and `still runs` for both state-disabled prompts.
-> Deterministic replay preserved `REVISE_I1_GENERATOR_IN_PLACE`: the remaining
-> defect is candidate-relative representation/scoring, not admission or state
-> starvation. #953 remains open; #973 and #954 remain blocked.
+> The frozen `LocalSameObjectContextPlacementV1` preflight then reproduced 7/7
+> construction prototypes with zero class collisions and zero
+> padding-identity aliases, but real placement selected 0/2 intended candidates
+> while the same-artifact placement-permuted and order-shuffled controls selected
+> 2/2 and 1/2. Generation and replay were `NOT_RUN`; the terminal remains
+> `REVISE_I1_GENERATOR_IN_PLACE`. #953 awaits a newly frozen maintainer plan;
+> #973 and #954 remain blocked.
 > Higher-scope attention, correct answers, and reasoning do not exist yet. The
 > dashboard is an interactive window into the research substrate, not a
 > frontier model or a ChatGPT replacement.
@@ -171,10 +175,12 @@ and truthfully tracing adjacent-spin rows, which remained non-admitting until
 the primary tier was empty. The one permitted four-arm run produced `still run`
 for both full-path prompts and `still runs`
 for both state-disabled prompts, with deterministic replay. The terminal
-remains `REVISE_I1_GENERATOR_IN_PLACE`; the next bounded #953 action is local
-corpus-induced same-object, order-sensitive candidate-relative
-compatibility/placement, not immediate Poincare/Hopf/harmonic machinery. #953
-remains open; #973 and #954 remain blocked.
+remains `REVISE_I1_GENERATOR_IN_PLACE`. The first frozen local same-object,
+order-sensitive candidate-placement preflight then failed before generation or
+replay: real placement selected 0/2 intended candidates while its same-artifact cyclic
+placement control selected 2/2. #953 now awaits a newly frozen maintainer plan,
+not immediate Poincare/Hopf/harmonic machinery; #973 and #954 remain blocked.
+See the [append-only #953 record](docs/local_geometric_generation_953.md).
 Stored H4/Hopf/zeta/icosian and related route fields remain
 structural state, diagnostics, or controls unless the owning stage qualifies a
 specific term.

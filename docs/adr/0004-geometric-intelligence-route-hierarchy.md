@@ -382,15 +382,21 @@ Delivery proceeds without skipping stages:
 1. retain the ordered state from #967 and paired-H4 structural state from #970
    at their measured claim boundaries;
 2. retain the local causal R4/S3 path mechanism qualified by #969;
-3. in #953, repair tiered admission, rerun the frozen support gate, and only
-   then rerun the bounded decoded natural-generation contract;
+3. in #953, retain #981's tiered-admission policy and the completed tiny
+   construction-only, same-frame, candidate-conditioned context-placement
+   overlay's selection-blind hard stop under the same artifact, support, and
+   work: real placement resolved 0/2 intended candidates while the
+   placement-permuted and order-shuffled controls resolved 2/2 and 1/2.
+   Generation and replay were not run. Any later #953 attempt requires a newly
+   frozen native contract rather than a metric tweak or second representation
+   under this result;
 4. in #973, qualify paragraph, conversation, and global influence through the
    accepted #953 loop, including the shared exact-spin operator overlay and
    its matched disabled/permuted controls;
 5. within #973, after every required scope qualifies, activate a predeclared
-   offline corpus-induction ladder with a frozen operator family and induction
-   rule; assign every rung new artifact/operator identities and rerun the
-   bounded matched gate for every structural or placement epoch;
+   higher-scope/corpus-scale offline induction ladder with a frozen operator
+   family and induction rule; assign every rung new artifact/operator identities
+   and rerun the bounded matched gate for every structural or placement epoch;
 6. measure correctness and typed abstention in #954 on the frozen induced
    artifact that conforms to and binds the accepted #969/#953/#973 identities;
    and

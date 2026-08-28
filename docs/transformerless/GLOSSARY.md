@@ -184,9 +184,13 @@ one another.
 - **Geometric-intelligence sequence** — lexical ingestion, canonical
   serialization, and address membership are prerequisite plumbing. Delivery
   then proceeds in this order: one qualified local causal-path mechanism
-  (#969); one bounded decoded generation loop with repaired admission (#953);
-  paragraph/conversation/global exact-spin operator qualification through that
-  loop plus controlled corpus induction and final requalification (#973);
+  (#969); one bounded decoded generation loop with repaired admission plus an
+  accepted local construction-induced candidate-placement mechanism (#953).
+  The first frozen placement preflight failed, so #953 awaits a newly frozen
+  plan;
+  paragraph, conversation, and global exact-spin operator qualification through
+  that loop plus controlled higher-scope/corpus-scale induction and final
+  requalification (#973);
   correctness with abstention (#954); then bounded hypothetical-branch reasoning
   (#955).
   Evidence may not skip a stage or count prerequisite plumbing as inference.

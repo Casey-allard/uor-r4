@@ -118,10 +118,15 @@ run nevertheless chose `still run` for both full-path prompt orders; disabled
 selection chose `still runs` for both. Deterministic replay and the bounded
 runtime invariants passed, but the required incompatible full-path choices did
 not. #953 therefore remains at `REVISE_I1_GENERATOR_IN_PLACE`; the localized
-next hypothesis is bounded same-object, order-sensitive corpus-induced
-candidate-relative compatibility/placement within #953. #973 remains blocked
-and later owns paragraph, conversation, and global exact-spin operator
-qualification only through an accepted #953 loop. Calling that operator
+same-object, order-sensitive corpus-induced candidate-placement hypothesis was
+then frozen as `LocalSameObjectContextPlacementV1`. Its exact preflight
+reproduced all construction prototypes with zero class collisions, but real
+placement chose `run/runs` (0/2 intended) while the placement-permuted control
+chose `runs/run` (2/2). Generator execution and replay were `NOT_RUN`, so it did
+not qualify the placement hypothesis. #953 awaits a newly frozen maintainer
+plan; #973 remains blocked and later owns paragraph, conversation, and global
+exact-spin operator qualification only through an accepted #953 loop. Calling
+that operator
 harmonic additionally requires an artifact-bound basis/mode contract. #962
 separately owns product chat integration and persisted, identity-scoped hive
 memory.
@@ -622,9 +627,11 @@ Status: **#952 A1.0 terminal negative; #967 A1R `RETAIN_STATE_ONLY`; #970 A1P
 `RETAIN_H4_STATE_ONLY_ADVANCE_MULTICHANNEL_A1Q` closed through protected PR
 #972; #969 positive bounded mechanism result
 `PROCEED_TO_I1_WITH_CAUSAL_R4_PATH_ATTENTION`; #953 loop plumbing and tiered
-admission implemented, but the natural selector remains at
-`REVISE_I1_GENERATOR_IN_PLACE`; #953 is active for candidate-relative
-same-object/order-sensitive representation and #973 remains blocked**.
+admission implemented; its first frozen candidate-placement preflight then
+selected 0/2 intended candidates under real placement while the same-artifact
+placement-permuted control selected 2/2, and generator execution/replay were
+`NOT_RUN`. #953 remains at `REVISE_I1_GENERATOR_IN_PLACE` and awaits a newly
+frozen maintainer plan; #973 remains blocked**.
 
 The frozen A1.0 probe stopped before scorer implementation with
 `REDESIGN_ORDERED_ROUTE_SUMMARY`. Across three matched contrasts, all 21
@@ -884,12 +891,16 @@ source/provider closure, support/work equality, and byte-identical replay
 passed. The right full-path arm was correct, the left was wrong, and the two
 full-path decisive choices were not distinct. The record is
 `blake3:dfe03d4c56f7e5e9cf48d524f2f0b10482c4b3b85fae152dd29c64543caa0b79`.
-#953 remains `REVISE_I1_GENERATOR_IN_PLACE`; admission is repaired and the
-next bounded in-place hypothesis is a construction-only, same-object,
-order-sensitive candidate-relative compatibility/placement overlay under
-disabled, placement-permuted, and order-shuffled controls. Generic fixed Hopf
-or spectral proxy activity is not the missing decoded decision. Harmonic
-ranking and higher-scope work remain dormant; #973 remains blocked.
+#953 remains `REVISE_I1_GENERATOR_IN_PLACE`; admission is repaired. The frozen
+construction-only, same-object, order-sensitive candidate-placement overlay
+then reproduced 7/7 construction prototypes with zero class collisions and zero
+padding-identity aliases. Real placement selected 0/2 intended candidates,
+while the same-artifact placement-permuted and order-shuffled controls selected
+2/2 and 1/2. Full-history absence was not operative-representation anti-recall
+because decisive retained suffixes exactly recalled construction subhistories.
+Generator execution and replay were `NOT_RUN`. #953 awaits a newly frozen
+maintainer plan; harmonic ranking and higher-scope work remain dormant, and
+#973 remains blocked.
 
 ### GI-2 A1Q-H / #973 — paragraph, conversation, and global attention
 
@@ -941,14 +952,21 @@ A positive global subprobe cannot close #973. Paragraph and conversation still
 require their own matched load-bearing qualification through the accepted loop,
 or an explicit native revision of #973's scope and dependencies.
 
-#### #973 corpus-induction qualification and handoff to #954
+#### #973 higher-scope/corpus-scale induction qualification and handoff to #954
 
 Within #973, only after #953 is accepted and every required #973 higher-scope
 intervention qualifies, or an explicit native revision changes that scope, may
-the programme activate controlled offline corpus induction. This ladder and its
-final requalification are part of #973's definition of done and terminal; #973
-cannot close and #954 cannot start without them. This does not authorize
-expansion of the active #953 experiment.
+the programme activate controlled higher-scope/corpus-scale offline induction.
+This ladder and its final requalification are part of #973's definition of done
+and terminal; #973 cannot close and #954 cannot start without them. The one
+separation permitted inside #953 was a tiny construction-only, same-frame,
+candidate-conditioned context-placement overlay over already-admitted
+candidates followed by frozen label attachment. Its label-free,
+selection-blind raw census froze before expected continuations were attached.
+That first attempt failed before decoded generation or replay, and exact
+shorter-suffix recall showed that full-history disjointness was not
+operative-representation anti-recall. The result does not authorize broad
+corpus expansion, a metric sweep, or higher-scope induction inside #953.
 
 Freeze the document/conversation/task partitions before compiling rows or
 operator statistics. Construction data may supply causal
@@ -961,12 +979,13 @@ rung receives new artifact and operator kappas while serving still performs no
 corpus scan and loads no source tensors.
 
 Current prime-derived H4 leaves and procedural spin classes remain exact
-identity coordinates, not established semantic placement. If corpus induction
-changes placement, it must create a versioned overlay or rebuilt artifact with
-an inverse/provenance witness; it may not silently reinterpret immutable route
-or payload identity. Every new placement epoch or structural operator revision
-invalidates inherited #973 evidence and reruns the bounded matched #973 gate
-before scale evidence is read.
+identity coordinates, not established semantic placement. Any corpus-induced
+placement change, including #953's bounded local overlay and #973's later
+corpus-scale ladder, must create a versioned overlay or rebuilt artifact with an
+inverse/provenance witness; it may not silently reinterpret immutable route or
+payload identity. Every new placement epoch or structural operator revision
+invalidates inherited evidence at its owning gate and reruns that bounded
+matched gate before downstream evidence is read.
 
 Within each rung, real, scope-disabled, order-shuffled, and operator-permuted
 arms have identical candidate support and work. Coverage and support changes
@@ -979,7 +998,7 @@ do not reproduce that effect.
 
 ### GI-4 / #954 — correctness and abstention
 
-After source-free generation and #973's higher-scope plus corpus-induction
+After source-free generation and #973's higher-scope plus corpus-scale induction
 terminal, test whether a frozen corpus-induced artifact conforming to and
 binding the accepted #969/#953/#973 identities understands the input well
 enough to choose a correct answer. #954 does not

@@ -65,12 +65,13 @@ The stages are ordered because each later claim depends on the earlier one:
    checkable result. #952 is not the reasoning consumer.
 
 Within #973, after accepted #953 and every required #973 scope qualifies, or an
-explicit native revision changes that scope, run the separately frozen offline
-corpus-induction ladder and requalify its final artifact. The ladder is part of
-#973's terminal before #954; it is not a new serving-time corpus reader or a
-shortcut around the issue order. More rows, exact hits, or trace activity are
-capacity/recall results unless a candidate-relative effect transfers to the
-held-out anti-recall partition under matched controls.
+explicit native revision changes that scope, run the separately frozen
+higher-scope/corpus-scale offline induction ladder and requalify its final
+artifact. The ladder is part of #973's terminal before #954; it is not a new
+serving-time corpus reader or a shortcut around the issue order. More rows,
+exact hits, or trace activity are capacity/recall results unless a
+candidate-relative effect transfers to the held-out anti-recall partition under
+matched controls.
 
 #962 later integrates the accepted #969/#953/#973 path into product chat/memory.
 #964 binds the #970 → #969 → #953 → #973 stages in the
@@ -526,16 +527,21 @@ not distinct. Record:
 `blake3:dfe03d4c56f7e5e9cf48d524f2f0b10482c4b3b85fae152dd29c64543caa0b79`.
 The terminal remains `REVISE_I1_GENERATOR_IN_PLACE`.
 
-The next bounded in-place hypothesis changes only the compared representation:
-compile construction-only ordered predecessor histories with the same
-versioned noncommutative encoder as the live history, induce a candidate-
-conditioned exact placement/prototype, and rank already-admitted candidates in
-that same frame. Freeze admission/work and require a same-frame anti-vacuity
-guard, state-disabled, same-artifact placement-permuted, order-shuffled, and
-held-out anti-recall controls with ties abstaining. Historical self-match and
-corpus-placement records motivate operand comparability only; they do not
-establish this decoded effect. Generic fixed Hopf or spectral proxy activity is
-not the immediate mechanism. #953 remains open and #973 remains blocked.
+That next hypothesis was frozen and executed as
+`LocalSameObjectContextPlacementV1`. Each decisive history obtained `still`
+from causal singleton support before the `{run,runs}` query; no candidate was
+appended as an inference input. All controls reused the same overlay artifact,
+prompt support, admission, and work. The label-free, selection-blind raw census
+reproduced 7/7 construction trajectories with zero class collisions and zero
+padding-identity aliases. Real placement selected 0/2 intended candidates,
+while the placement-permuted and order-shuffled controls selected 2/2 and 1/2.
+Complete held-out histories were absent from construction, but the operative
+suffixes exactly recalled shorter construction subhistories, so the partition
+was not operative-representation anti-recall. Generator execution and replay
+were `NOT_RUN`. The corrected label-free input, raw-census, and label-attached
+outcome identities are bound in the
+[#953 record](local_geometric_generation_953.md). #953 awaits a newly frozen
+maintainer plan; #973 and downstream #954 remain blocked.
 
 ### A1Q-H/#973 exact-spin global operator prototype
 

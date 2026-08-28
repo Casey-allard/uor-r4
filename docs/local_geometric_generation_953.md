@@ -551,3 +551,139 @@ fuzz, formal proof, conformance, product QA, performance measurement, and
 release qualification were `NOT_RUN`. The protected merge queue remains the
 binding integration transport; its checks are not local product or research
 qualification evidence.
+
+## `LocalSameObjectContextPlacementV1` preflight hard stop — 2026-08-27
+
+This append-only revision executed the next frozen #953 mechanism contract. It
+did not modify `PrimaryThenAdjacentSpinFallbackV1`, the five frozen natural
+fixture identities, the repaired support record, the historical four-arm
+record, the #969 selector, or the schema-2 decoded generator. It added only a
+construction-derived overlay, a label-free preflight input, and a raw relation
+census that was both label-free and selection-blind.
+
+The frozen identities are:
+
+| Object | Identity / kappa |
+|---|---|
+| Placement policy | `uor-r4.local-same-object-context-placement/1` |
+| Placement-policy kappa | `blake3:e09af2db10f41efaf02b24e075a97fe42dc966834c43566689579763ba95b49c` |
+| Ordered encoder | `uor-r4.recent-suffix-ordered-h4-trajectory/1` |
+| Exact relation vector | `uor-r4.exact-recent-suffix-h4-shell-vector/1` |
+| Overlay artifact | `blake3:2be03c8acc1e97d1ba830805653ec1b16745065127ee1e00cb431b933a173ee1` |
+| Label-free preflight input | `blake3:ce5430048c3789e85e18ed17a80f10f79d317a66769ad8be0fd28224668eb72e` |
+| Raw label-free, selection-blind relation census | `blake3:50e67c087e1ec5e04aa47cf09d42e9b0857c15e4cafa07b1363d67faf96c6aeb` |
+| Label-attached preflight outcome | `blake3:d5e2f3614c8f1d3c6c629e2261ec42dc970fa5484982b2a86cb4f4b06b06a372` |
+
+The overlay binds schema, the placement and repaired-admission policies,
+manifest kappa and all four provenance CIDs, H4 root and multiplication-table
+kappas, width and occupancy-aware identity padding, suffix/comparison order,
+the four-prototype cap, exact candidate membership, causal witness provenance,
+and prototype coordinates. Its compiler consumed three artifact-bound rebuild
+witnesses containing seven within-witness predecessor-to-observed-next
+transitions. Those yielded five candidate classes and seven retained
+prototypes; the decisive `run` and `runs` candidates each had one prototype.
+All seven compiler trajectories reproduced through the online query encoder,
+all seven exact self-matches were coincident, and the complete typed
+construction inventory had zero cross-candidate class collisions and zero
+padding-identity aliases.
+
+The fixed carrier is the exact left-to-right ordered-H4 fold of recent suffix
+lengths 1, 2, 3, and 4, compared in that lexicographic order. The `run`
+predecessor has length three and occupancy `[true,true,true,false]`; its fourth
+slot is typed H4-identity padding with an explicit occupancy bit. The `runs`
+predecessor has length four and occupancy `[true,true,true,true]`. Live query
+histories use the same encoder and table. A manifest/table mismatch returns
+`UNAVAILABLE_FRAME_MISMATCH`.
+
+For each prompt, the preflight first ran the live repaired support query over
+the prompt history. Its causal singleton support supplied the observed `still`
+route, which was appended before the decisive `{run,runs}` query. `still` was
+not injected as a selector candidate: the raw census records two causal
+singleton-support observations and zero selector candidate-append inputs.
+
+The repaired admission contract remained exact on both prompt orders:
+
+| Step | Rows | Available | Examined/admitted | Union | Source counts `(I1,I2,IS,D,AS)` | Historical path work |
+|---:|---:|---:|---:|---|---|---:|
+| prompt to `still` | 7 | 8 | 3 / 3 | `{still}` | `(2,1,0,2,0)` | 5 keys / 5 comparisons |
+| after observed `still` | 7 | 11 | 6 / 6 | `{run,runs}` | each `(1,1,0,1,0)` | 6 keys / 12 comparisons |
+
+Every decisive placement arm performed two prototype evaluations and eight
+slot comparisons. Within each prompt, real, placement-permuted, and
+order-shuffled controls reused the same overlay artifact, causal history,
+support, admission, and work; only the predeclared prototype placement or
+construction order changed.
+
+The frozen real-placement inventory was:
+
+| Prompt | Candidate | Exact shell vector, suffix lengths 1→4 | Exact-slot mask |
+|---|---|---|---|
+| left | `run` | `Coincident, Coincident, Coincident, Degrees120` | `true,true,true,false` |
+| left | `runs` | `Coincident, Coincident, Orthogonal, Degrees120` | `true,true,false,false` |
+| right | `run` | `Coincident, Coincident, Orthogonal, Degrees108` | `true,true,false,false` |
+| right | `runs` | `Coincident, Coincident, Coincident, Coincident` | `true,true,true,true` |
+
+Both candidates tie on suffix lengths one (`still`) and two (`generally
+still`). The shortest-to-longest lexicographic contract therefore decides at
+length three: the left retained suffix exactly recalls `athletes generally
+still` and points to construction candidate `run`, while the right retained
+suffix exactly recalls `athlete generally still` and points to construction
+candidate `runs`. The controlling earlier subject is outside the decisive
+width. No complete six-route held-out history equals a construction
+predecessor, but that full-history anti-recall check is insufficient: the
+operative retained representation contains these exact shorter construction
+subhistories.
+
+Attaching the already-frozen expected continuations only after the relation
+census produced:
+
+| Placement/control | Left decisive relation | Right decisive relation | Intended matches |
+|---|---|---|---:|
+| real | `run` | `runs` | 0 / 2 |
+| canonical cyclic placement permutation | `runs` | `run` | 2 / 2 |
+| reversed construction order | `runs` | `runs` | 1 / 2 |
+
+This is clean separability with the wrong causal orientation, not an H4 class
+collision. The same-artifact placement-permuted control exactly reproduces the
+desired pair and therefore outperforms the real mechanism. The strict
+frozen-contract real-placement `strict_selection_ceiling` is `0/2`;
+`PASS_LOCAL_CONTEXT_PLACEMENT_PREFLIGHT` is `UNAVAILABLE`. Per the frozen
+contract, no selector or report-schema change was added; decoded generation and
+decoded replay were `NOT_RUN`, and no scalar,
+cost order, width, fixture, prototype cap, or second representation was tried.
+The terminal remains `REVISE_I1_GENERATOR_IN_PLACE`.
+
+The overlay, label-free preflight input, and raw selection-blind census use only
+canonical construction witnesses, immutable addresses, exact H4 tables, and
+observed query history. Expected-continuation, held-out-label,
+actual-future-route, source-tensor, teacher, provider, and candidate-append
+inputs are all zero. Canonical overlay bytes and the complete raw census
+reproduced byte-for-byte before expected continuations were attached to produce
+the separate label-attached outcome.
+
+Focused verification for this revision:
+
+- the exact raw relation-census freeze passed at
+  `blake3:50e67c087e1ec5e04aa47cf09d42e9b0857c15e4cafa07b1363d67faf96c6aeb`;
+- the exact label-attached hard-stop outcome passed at
+  `blake3:d5e2f3614c8f1d3c6c629e2261ec42dc970fa5484982b2a86cb4f4b06b06a372`;
+- the explicit historical-generator quarantine passed without constructing or
+  running the generator;
+- the focused #969 causal-path decoded regression retained record
+  `blake3:60360a9e22a56ea4af363e43f7103bb8104d015d58feb582d921fc17afaf207f`;
+- focused core/test compilation and changed-mechanism clippy passed after
+  excluding unchanged `origin/main` lint categories;
+- the exported WASM library check passed with existing warnings outside this
+  revision; and
+- formatting, claim wording, and diff-whitespace checks passed.
+
+Decoded #953 generation/replay, workspace-wide tests/clippy, no-std ladders,
+corpus/model/teacher work, generation canaries, BDD, Gate C, kappa
+reproduction, audit, fuzz, formal proof, conformance, product QA, performance,
+and release qualification were `NOT_RUN`.
+
+This result does not establish grammar, coherent generation, semantic
+placement, correctness, higher-scope attention, reasoning, performance
+advantage, formal closure, product readiness, or release readiness. #953 awaits
+a newly frozen maintainer plan inside its existing scope; #973 and #954 remain
+blocked, and no downstream issue is activated.

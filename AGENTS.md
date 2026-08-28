@@ -25,11 +25,14 @@ non-empty. The preflight recovered exact `{still}` then `{run,runs}` support
 under equal work. One permitted four-arm run produced left/full `still run`,
 right/full `still run`, and both state-disabled arms `still runs`, with
 deterministic replay, so the terminal remains `REVISE_I1_GENERATOR_IN_PLACE`.
-The remaining bounded defect is candidate-relative representation/scoring, not
-admission or state starvation. #953 remains open for local corpus-induced
-same-object, order-sensitive candidate-relative compatibility/placement; do
-not jump directly to Poincare/Hopf/harmonic machinery. #973 and #954 remain
-blocked, followed by #955 → #962–#965.
+The first frozen local same-object, order-sensitive candidate-placement
+preflight then reproduced 7/7 construction prototypes with zero class
+collisions, but real placement selected 0/2 intended candidates while the
+same-artifact placement-permuted control selected 2/2. Generation and replay
+were `NOT_RUN`. #953 awaits a newly frozen maintainer plan; do not add a second
+representation under the failed contract or jump directly to
+Poincare/Hopf/harmonic machinery. #973 and #954 remain blocked, followed by
+#955 → #962–#965.
 Terminology lives in
 `docs/transformerless/GLOSSARY.md`. Keep this file current when conventions
 change.
@@ -67,7 +70,8 @@ and transition law.
 
 Corpus scale follows mechanism qualification; it never substitutes for it.
 Within #973, after #953 and every required #973 scope qualify, a predeclared
-offline corpus ladder may compile causal prefix-to-observed-next-route examples,
+higher-scope/corpus-scale offline ladder may compile causal
+prefix-to-observed-next-route examples,
 multiscale summaries, versioned placement overlays that preserve immutable
 route/payload identity, and operator statistics into the source-free artifact.
 Freeze the operator family/schema, objective, scope semantics, neighborhood
@@ -239,9 +243,12 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
   for both state-disabled prompts, with deterministic replay. The terminal
   therefore remains `REVISE_I1_GENERATOR_IN_PLACE`, now localized to
   candidate-relative representation/scoring rather than admission or state
-  starvation. #953 stays open for a bounded local corpus-induced same-object,
-  order-sensitive compatibility/placement revision; #973 and #954 remain
-  blocked. #954 and #955 own correctness and reasoning respectively.
+  starvation. The first frozen local candidate-placement preflight then
+  reproduced 7/7 construction prototypes with zero class collisions, but real
+  placement selected 0/2 intended candidates while its same-artifact cyclic
+  placement control selected 2/2; generation and replay were `NOT_RUN`. #953
+  awaits a newly frozen maintainer plan, while #973 and #954 remain blocked.
+  #954 and #955 own correctness and reasoning respectively.
   #962 owns durable multi-turn CLI/HTTP chat, persistence, isolation, and
   hive-memory; #963–#965 then own optimization, formal closure, and release.
 - Sequence strictly: lexical/address plumbing → local route attention →
@@ -282,10 +289,21 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
   and state-disabled. #953's repaired natural agreement run carried full path
   and state-disabled arms under equal support/work: both full-path prompts chose
   `still run`, while both disabled prompts chose `still runs`. That deterministic
-  negative localizes the next revision to candidate-relative
-  representation/scoring; it does not qualify incompatible natural choices.
-  Do not add a construction/validation split, channel census, weight sweep,
-  control matrix, or higher-scope fixture to either bounded decision.
+  negative localized the next revision to candidate-relative
+  representation/scoring; it did not qualify incompatible natural choices.
+  Do not retroactively add a broad construction/validation programme, channel
+  census, weight sweep, control matrix, or higher-scope fixture to the completed
+  #969 smoke or #981 tiered-admission decision. The frozen #953 placement
+  revision permitted exactly one tiny pre-frozen construction/evaluation
+  separation: construction-only observed transitions compiled the overlay and
+  a label-free, selection-blind raw relation census froze before expected
+  continuations were attached; frozen evaluation labels could not tune it.
+  Full-history disjointness did not supply operative-representation anti-recall:
+  the decisive suffixes exactly recalled shorter construction subhistories. Its
+  exact preflight selected the opposite candidate on both prompts while the
+  placement-permuted control selected both intended candidates, so it stopped
+  before decoded generation or replay. That failure does not authorize a second
+  representation, a wider split, or broader scope under the same contract.
 - Teacher output may label or compare only after a source-free report freezes.
   It is never substituted for the product response.
 - Once #973 activates higher scopes, every hierarchy selection emits a

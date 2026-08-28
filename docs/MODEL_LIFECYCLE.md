@@ -28,10 +28,20 @@ universe, and report kappas are
 `blake3:2daacf538c022fab9580d1e124af6c18d0b06da04604fbc962a01bda57f08a98`,
 `blake3:dca725c0ec6060166bcd0023df956e1ff029661b5fa7800ccb9f20808712b796`,
 and `blake3:5f9239150dea8c0c27c4dfa6ad2e4d0068bc3d18afc127b315c0ec358ceddb3f`.
-#969 becomes the next A1Q multichannel full recursive-attention qualification
-only after protected #970 merge; #953 remains blocked by #969 and owns bounded
-library/CLI inference and generation using only A1Q-qualified semantic scoring
-terms. #962 separately owns durable
+#970 closed through protected PR #972. #969 then qualified one bounded causal
+R4/S3 path selector. #953 implemented the first decoded library/CLI loop and
+`PrimaryThenAdjacentSpinFallbackV1`; exact `{still}` then `{run,runs}` support
+was restored under equal work, but both full-path prompts selected `still run`
+while both state-disabled prompts selected `still runs`. The terminal remains
+`REVISE_I1_GENERATOR_IN_PLACE`. #953's tiny construction-only, same-frame
+`LocalSameObjectContextPlacementV1` overlay reproduced 7/7 construction
+prototypes with zero class collisions and zero padding-identity aliases, but
+real placement resolved `run/runs` (0/2 intended) while the
+placement-permuted control resolved `runs/run` (2/2). The preflight stopped
+before decoded generation or replay, so #953 has not qualified local
+construction-induced placement and awaits a newly frozen maintainer plan.
+Corpus-scale and higher-scope induction remain blocked in #973; #954 remains
+blocked downstream. #962 separately owns durable
 multi-turn CLI/HTTP chat, persisted conversation state, session/identity
 isolation, and identity-scoped hive memory.
 
@@ -49,8 +59,9 @@ canonical text/corpus
     -> incremental local/sentence/paragraph/conversation/global state
     -> associative noncommutative ordered-summary repair (#967, state only)
     -> paired-H4-derived exact R4-heatmap readout hard stop (#970, bounded negative)
-    -> complete recursive geometric-attention qualification (GI-2/#969)
-    -> bounded source-free library/CLI inference and generation (#953)
+    -> qualified local causal R4/S3 path mechanism (#969)
+    -> bounded decoded loop + tiered admission + failed local-placement preflight (#953)
+    -> higher-scope attention and corpus-scale induction (#973)
     -> correctness + typed abstention (#954)
     -> bounded reasoning (#955)
     -> durable isolated CLI/HTTP chat + persisted hive memory (#962)
@@ -62,8 +73,9 @@ addresses, spin/harmonic state, transported trajectory summaries, recursive
 scope identities, and rebuild witnesses. Corpus observations populate routes;
 they do not become serving weights. Kappa binds canonical identity and
 provenance. Factor/spin/harmonic coordinates provide structural/storage state
-and locality hypotheses; only terms qualified by A1Q/#969 may affect #953
-semantic ranking.
+and locality hypotheses. Only terms frozen by the active issue's pre-evidence
+contract may affect its experimental ranking; only positively qualified terms
+may pass downstream.
 
 The #952 A1.0 record is a representation-level negative result, not a failure
 of lexical inversion, candidate admission, H4 closure, Hopf state, or the value
@@ -79,8 +91,10 @@ the full `D` witness but are not scorer-key fields. Fixed-zeta phases,
 ordered n-lets, exact `phi` radial transport, and typed
 `sqrt(2) <-> 2i <-> [0,2]` adapters remain structural under
 `STRUCTURAL_BINDING_ONLY_NO_ZETA_NLET_TO_PHI_EXPONENT_RULE`, not semantic scorer
-inputs. #969 becomes the next multichannel qualification only after protected
-#970 merge.
+inputs. #970 and #969 are closed at their bounded claim scopes; neither result
+establishes semantics, and #953 remains the active generation issue after its
+first construction-induced placement preflight failed before generation or
+replay. Any next attempt requires a newly frozen maintainer plan.
 See the
 [#952 A1.0 record](recursive_geometric_attention_a1_952.md).
 
@@ -1371,17 +1385,18 @@ Passing `--cover` reuses the measured cover. It may be omitted to re-induce
 the default cover deterministically during scoring. For experiments, `cover`
 also accepts `--depths`, `--k0`, `--regions-budget`, and `--memory-budget`.
 
-**Current production boundary pending #962 after #969 and #953–#955.**
-#970 has bounded paired-H4-derived exact R4-heatmap readout evidence awaiting
-protected merge; #969 becomes the next multichannel full recursive-attention
-qualification only after that merge. #953 owns the
-bounded source-free library/CLI inference and generation engine; #962 owns its
-integration into durable multi-turn CLI/HTTP chat, persisted conversation
-state, session/identity isolation, and identity-scoped hive memory. Until that
-product stage, the public `ask`, `chat`, HTTP, library, and WASM production facades use
-`R4G1Runtime` as their sole ranked-candidate and token authority. D4 remains a
-token-free permit/widen/abstain policy. A production bundle must carry a
-schema-2 `release-bundle.json` and a content-bound, full-census
+**Current production boundary pending accepted #953 → #973 → #954 → #955
+before #962.** #970 and #969 are closed at their bounded claim scopes. #953 owns
+the bounded source-free library/CLI inference and generation engine, but has not
+qualified local construction-induced placement and awaits a newly frozen
+maintainer plan; #973 and #954 remain blocked.
+#962 owns integration into durable multi-turn CLI/HTTP chat, persisted
+conversation state, session/identity isolation, and
+identity-scoped hive memory. Until that product stage, the public `ask`, `chat`,
+HTTP, library, and WASM production facades use `R4G1Runtime` as their sole
+ranked-candidate and token authority. D4 remains a token-free
+permit/widen/abstain policy. A production bundle must carry a schema-2
+`release-bundle.json` and a content-bound, full-census
 `graph/deployed_quality_report.json`; legacy, missing, sampled, mismatched, or
 off-serving evidence is available only to explicitly named research loaders.
 There is no silent TLA/TLS1 fallback under the production profile.

@@ -20,7 +20,12 @@ terminated `REVISE_I1_GENERATOR_IN_PLACE`. Its
 support, but the one permitted four-arm run chose `still run` for both full
 paths and `still runs` for both state-disabled paths under equal work and
 deterministic replay. The terminal remains `REVISE_I1_GENERATOR_IN_PLACE`;
-#953 remains open and #973/#954 remain blocked)._
+#953's frozen `LocalSameObjectContextPlacementV1` preflight then reproduced all
+seven construction prototypes in the online frame with zero class collisions,
+but real placement resolved the two decisive candidates as `run/runs` (0/2
+intended) while the placement-permuted control resolved `runs/run` (2/2).
+Decoded generation and replay were `NOT_RUN`; #953 awaits a newly frozen
+maintainer plan and #973/#954 remain blocked)._
 
 > **Project priority:** build source-free geometric intelligence in which the
 > route is the data location. A pinned lexical codec supplies text boundaries;
@@ -42,11 +47,15 @@ deterministic replay. The terminal remains `REVISE_I1_GENERATOR_IN_PLACE`;
 > a new exact spin-relative relation or an explicit spin-to-H4 map; the existing
 > relative H4 witness is prime-derived route state.
 
-> **Corpus-induced attention direction:** the next #953 revision is a bounded
-> local corpus-induced same-object, order-sensitive candidate-relative
-> compatibility/placement mechanism; it does not activate Poincare, Hopf, or
-> harmonic machinery. Once #953 is accepted and every required #973 scope
-> qualifies, a separately frozen offline corpus
+> **Corpus-induced attention direction:** #953's first bounded local
+> corpus-induced same-object, order-sensitive candidate-placement preflight
+> failed before decoded generation or replay because its cyclic
+> placement-permuted control outperformed real placement. The result retains
+> this direction only as an unqualified hypothesis; it does not activate
+> Poincare, Hopf, or harmonic
+> machinery or authorize a second representation under the frozen contract.
+> Once #953 is accepted and every required #973 scope
+> qualifies, a separately frozen higher-scope/corpus-scale offline induction
 > ladder may compile causal prefix-to-observed-next-route examples, multiscale
 > route summaries, versioned placement overlays that preserve immutable
 > route/payload identity, and operator statistics. More rows, hits, or trace activity are
@@ -178,10 +187,12 @@ Native GitHub relationships are the source of truth:
    four-arm run produced left/full `still run`, right/full `still run`, and both
    state-disabled arms `still runs`, with deterministic replay. The terminal
    remains `REVISE_I1_GENERATOR_IN_PLACE`, now localized to candidate-relative
-   representation/scoring rather than admission or state starvation. #953
-   remains open for a bounded local corpus-induced same-object, order-sensitive
-   compatibility/placement revision. Harmonic influence remains dormant in
-   #953. See the
+   representation/scoring rather than admission or state starvation. The first
+   frozen construction-induced placement overlay reproduced its exact classes,
+   but real placement chose `run/runs` (0/2 intended) while the cyclic
+   placement-permuted control chose `runs/run` (2/2); generation therefore
+   remained `NOT_RUN`. #953 awaits a newly frozen maintainer plan inside its
+   existing scope. Harmonic influence remains dormant in #953. See the
    [#953 record](docs/local_geometric_generation_953.md).
 7. **GI-2 A1Q-H / #973 — higher-scope attention:** after accepted #969 and
    #953, test paragraph, conversation, and bounded global state through the
@@ -198,11 +209,12 @@ Native GitHub relationships are the source of truth:
    qualification or an explicit native scope revision. The operator is called
    harmonic only after its identity binds basis, mode order, coefficients,
    quantization, and transition law. After all bounded #973 scope gates are
-   positive, #973 activates a separately predeclared corpus-induction ladder as
-   part of its terminal and handoff to #954. Freeze the operator family,
-   objective, scope semantics, neighborhood contract, and induction rule; vary
-   only declared corpus-derived parameters under a new artifact/operator kappa
-   per rung, and rerun the bounded gate for every structural or placement epoch.
+   positive, #973 activates a separately predeclared higher-scope/corpus-scale
+   induction ladder as part of its terminal and handoff to #954. Freeze the
+   operator family, objective, scope semantics, neighborhood contract, and
+   induction rule; vary only declared corpus-derived parameters under a new
+   artifact/operator kappa per rung, and rerun the bounded gate for every
+   structural or placement epoch.
    Match support/work between controls within each rung, report support changes
    across rungs separately, and stop if scale only raises exact/backoff recall or
    table density.
@@ -234,10 +246,11 @@ protected PR #972 with its bounded heatmap-readout negative. #969's
 mechanism-first prototype reached its positive bounded terminal. #953's loop
 plumbing is implemented and tiered admission passed the frozen preflight, but
 the repaired natural agreement four-arm run made the same full-path choice for
-both prompts and preserved `REVISE_I1_GENERATOR_IN_PLACE`. #953 remains open
-for bounded local same-object, order-sensitive candidate-relative
-compatibility/placement induction; #973 and #954 remain blocked. The live chain
-is closed #970 → closed #969 → open #953 →
+both prompts and preserved `REVISE_I1_GENERATOR_IN_PLACE`. #953 awaits a newly
+frozen maintainer plan after its first bounded same-object placement preflight
+chose `run/runs` under real placement and `runs/run` under the cyclic
+placement-permuted control, so generation and replay stayed `NOT_RUN`; #973 and
+#954 remain blocked. The live chain is closed #970 → closed #969 → open #953 →
 blocked #973 → blocked #954 → #955 → #962–#965.
 Legacy tracker #949 is closed as
 superseded; #958 is retained directly under programme root #820 as GI-0
@@ -265,10 +278,15 @@ historical evidence and comparators.
   permitted four-arm run produced `still run` for both full-path prompts and
   `still runs` for both state-disabled prompts, with deterministic replay. The
   defect is now candidate-relative representation/scoring rather than
-  admission or state starvation. The next #953 action is a bounded local
-  corpus-induced same-object, order-sensitive candidate-relative
-  compatibility/placement revision, not immediate Poincare/Hopf/harmonic
-  machinery. #953 remains open; #973 and #954 remain blocked. See the
+  admission or state starvation. The frozen
+  `LocalSameObjectContextPlacementV1` census then reproduced seven of seven
+  construction prototypes with zero class collisions, but real placement chose
+  the opposite continuation on both decisive prompts while the cyclic
+  placement-permuted control chose both intended continuations. The hard gate
+  stopped before decoded generation or replay and does not authorize a second
+  representation under the same contract. #953 awaits a newly frozen maintainer
+  plan; Poincare/Hopf/harmonic machinery stays dormant, and #973/#954
+  remain blocked. See the
   [#953 record](docs/local_geometric_generation_953.md).
 
 ## Landed
@@ -388,8 +406,10 @@ historical evidence and comparators.
   implemented its decoded-loop plumbing while the tiered policy passed its
   frozen preflight. The repaired natural agreement run still made the same
   full-path choice for both prompts, so `REVISE_I1_GENERATOR_IN_PLACE` remains
-  active and #953 moves to a bounded local same-object, order-sensitive
-  candidate-relative compatibility/placement induction.
+  active. Its first bounded construction-induced placement preflight then
+  failed at a frozen-contract real-placement ceiling of 0/2 while the cyclic
+  placement-permuted control reached 2/2; generation and replay were `NOT_RUN`,
+  and #953 awaits a newly frozen maintainer plan.
   #973 and #954 are still blocked.
   Coherent product behavior, correctness, and reasoning remain unestablished.
   Historical canaries and pointwise results remain scoped evidence, not a

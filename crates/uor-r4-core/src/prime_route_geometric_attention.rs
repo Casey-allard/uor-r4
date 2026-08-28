@@ -37,6 +37,15 @@ pub const ATTENTION_MAX_CANDIDATE_ENTRIES_PER_QUERY: usize =
     ATTENTION_ROWS_PER_QUERY * MANIFEST_MAX_CANDIDATES_PER_ROW as usize;
 pub const PRIMARY_THEN_ADJACENT_SPIN_FALLBACK_V1_IDENTITY: &str =
     "uor-r4.attention-query-policy/primary-then-adjacent-spin-fallback-v1";
+pub const LOCAL_SAME_OBJECT_CONTEXT_PLACEMENT_V1_IDENTITY: &str =
+    "uor-r4.local-same-object-context-placement/1";
+pub const RECENT_SUFFIX_ORDERED_H4_TRAJECTORY_V1_IDENTITY: &str =
+    "uor-r4.recent-suffix-ordered-h4-trajectory/1";
+pub const EXACT_RECENT_SUFFIX_H4_SHELL_VECTOR_V1_IDENTITY: &str =
+    "uor-r4.exact-recent-suffix-h4-shell-vector/1";
+pub const LOCAL_CONTEXT_PLACEMENT_FRAME_MISMATCH: &str = "UNAVAILABLE_FRAME_MISMATCH";
+pub const LOCAL_CONTEXT_PLACEMENT_FRAME_WIDTH: usize = 4;
+pub const LOCAL_CONTEXT_PLACEMENT_MAX_PROTOTYPES_PER_CANDIDATE: usize = 4;
 /// #969's first local attention mechanism is deliberately bounded to the
 /// 2--8 lexical-unit loop named by the issue. The state keeps exact prefix
 /// products rather than a digest so every earlier route can participate in
@@ -344,6 +353,118 @@ pub struct PathLeaseAttentionTrace {
     pub tie: bool,
     pub abstained: bool,
     pub selected: Option<PathLeaseCandidateTrace>,
+}
+
+/// Frozen controls for #953's construction-only local context placement.
+/// Every control retains the admitted candidate set and the total number of
+/// prototype/trajectory comparisons.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum LocalContextPlacementControl {
+    RealPlacement,
+    PlacementPermuted,
+    OrderShuffled,
+}
+
+/// Four exact recent-suffix folds in the frozen comparison order: suffix
+/// lengths one through four. Missing older construction slots are the typed H4
+/// identity. `fold_states` are opaque table addresses; coordinates are exposed
+/// for an auditable, integer-only representation inventory.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LocalContextTrajectory {
+    fold_states: [OrderedH4FoldState; LOCAL_CONTEXT_PLACEMENT_FRAME_WIDTH],
+    /// True when the corresponding suffix length exists in the observed
+    /// history. The shell-vector contract still evaluates identity padding as
+    /// H4 identity; selection-blind callers retain this mask so a coincident
+    /// padded/populated relation can be detected and rejected as an alias.
+    pub populated: [bool; LOCAL_CONTEXT_PLACEMENT_FRAME_WIDTH],
+    pub suffix_states: [H4RootCoordinate; LOCAL_CONTEXT_PLACEMENT_FRAME_WIDTH],
+}
+
+/// One causal construction predecessor bound to the candidate observed
+/// immediately after it. The order-shuffled trajectory reverses the exact same
+/// predecessor multiset before applying the same encoder.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LocalContextPrototype {
+    pub sentence_id: String,
+    pub transition_ordinal: usize,
+    pub predecessor_history: Vec<GeometricAddress>,
+    pub predecessor_history_kappa: String,
+    pub trajectory: LocalContextTrajectory,
+    pub order_shuffled_trajectory: LocalContextTrajectory,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LocalContextCandidatePrototypeSet {
+    pub candidate: GeometricAddress,
+    pub prototypes: Vec<LocalContextPrototype>,
+}
+
+/// Exact lexicographic vector. Array ordering is the comparison contract: the
+/// most recent one-unit suffix is compared first, then lengths two, three, and
+/// four. No scalar sum or learned threshold is formed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+pub struct LocalContextPlacementCost {
+    pub suffix_shells: [H4S3AngularShell; LOCAL_CONTEXT_PLACEMENT_FRAME_WIDTH],
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LocalContextPrototypeRelation {
+    pub sentence_id: String,
+    pub transition_ordinal: usize,
+    pub predecessor_history_kappa: String,
+    pub prototype_trajectory: LocalContextTrajectory,
+    pub relative_states: [H4RootCoordinate; LOCAL_CONTEXT_PLACEMENT_FRAME_WIDTH],
+    pub cost: LocalContextPlacementCost,
+}
+
+/// Selection-blind relation inventory for one already-admitted candidate. It
+/// has no minimum, winner, address tiebreak, payload, or decoded-selection
+/// field.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LocalContextCandidateRelation {
+    pub candidate: GeometricAddress,
+    pub source_counts: AttentionSourceCounts,
+    pub prototype_source_candidate: GeometricAddress,
+    pub prototype_count: usize,
+    pub prototype_relations: Vec<LocalContextPrototypeRelation>,
+}
+
+/// Cheap #953 preflight instrument. It inventories same-frame relations and
+/// bounded work without choosing or decoding any candidate.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LocalContextPlacementRelationCensus {
+    pub manifest_kappa: String,
+    pub policy_identity: String,
+    pub policy_kappa: String,
+    pub overlay_kappa: String,
+    pub control: LocalContextPlacementControl,
+    pub live_trajectory: LocalContextTrajectory,
+    pub support: AttentionSupportTrace,
+    pub complete_candidate_membership: bool,
+    pub prototype_evaluations: usize,
+    pub trajectory_slot_comparisons: usize,
+    pub candidates: Vec<LocalContextCandidateRelation>,
+}
+
+/// Construction-only, same-frame candidate-conditioned placement overlay. It
+/// owns no admission rows and can compare only candidates already admitted by
+/// the caller's bound [`GeometricAttentionArtifact`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LocalSameObjectContextPlacementV1 {
+    schema: u32,
+    manifest_kappa: String,
+    tokenizer_cid: String,
+    corpus_cid: String,
+    compiler_cid: String,
+    cost_profile_cid: String,
+    h4_root_table_kappa: String,
+    multiplication_table_kappa: String,
+    policy_kappa: String,
+    overlay_kappa: String,
+    source_witnesses: usize,
+    source_transitions: usize,
+    prototype_sets: Vec<LocalContextCandidatePrototypeSet>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -1534,6 +1655,642 @@ impl GeometricAttentionArtifact {
             ))
         })
     }
+}
+
+impl LocalSameObjectContextPlacementV1 {
+    /// Compile the frozen construction-only candidate placement from the
+    /// manifest's bounded sentence witnesses. A predecessor never crosses a
+    /// witness boundary and never includes the candidate observed after it.
+    pub fn compile_from_manifest_witnesses(
+        manifest: &CompiledSpinManifest,
+        table: &H4BinaryIcosahedralClosure,
+    ) -> Result<Self, GeometricAttentionError> {
+        manifest.canonical_bytes()?;
+        validate_ordered_h4_table_exact(table).map_err(ordered_h4_error)?;
+        if manifest.rebuild_witnesses.len() > MANIFEST_MAX_REBUILD_WITNESSES {
+            return Err(GeometricAttentionError::Invalid(
+                "rebuild witness count exceeds the local placement ceiling".to_owned(),
+            ));
+        }
+
+        let mut grouped = BTreeMap::<GeometricAddress, Vec<LocalContextPrototype>>::new();
+        let mut source_transitions = 0usize;
+        for witness in &manifest.rebuild_witnesses {
+            for transition_ordinal in 1..witness.address_indices.len() {
+                if transition_ordinal > LOCAL_CONTEXT_PLACEMENT_FRAME_WIDTH {
+                    return Err(GeometricAttentionError::Invalid(
+                        LOCAL_CONTEXT_PLACEMENT_FRAME_MISMATCH.to_owned(),
+                    ));
+                }
+                let predecessor_history = witness.address_indices[..transition_ordinal]
+                    .iter()
+                    .map(|index| {
+                        manifest
+                            .addresses
+                            .get(usize::from(*index))
+                            .cloned()
+                            .ok_or_else(|| {
+                                GeometricAttentionError::Invalid(
+                                    "local placement predecessor index is out of range".to_owned(),
+                                )
+                            })
+                    })
+                    .collect::<Result<Vec<_>, _>>()?;
+                let candidate = manifest
+                    .addresses
+                    .get(usize::from(witness.address_indices[transition_ordinal]))
+                    .cloned()
+                    .ok_or_else(|| {
+                        GeometricAttentionError::Invalid(
+                            "local placement candidate index is out of range".to_owned(),
+                        )
+                    })?;
+                let trajectory = encode_recent_suffix_trajectory(&predecessor_history, table)?;
+                let mut reversed_history = predecessor_history.clone();
+                reversed_history.reverse();
+                let order_shuffled_trajectory =
+                    encode_recent_suffix_trajectory(&reversed_history, table)?;
+                let predecessor_history_kappa = local_context_history_kappa(
+                    &witness.sentence_id,
+                    transition_ordinal,
+                    &predecessor_history,
+                )?;
+                let prototypes = grouped.entry(candidate).or_default();
+                prototypes.push(LocalContextPrototype {
+                    sentence_id: witness.sentence_id.clone(),
+                    transition_ordinal,
+                    predecessor_history,
+                    predecessor_history_kappa,
+                    trajectory,
+                    order_shuffled_trajectory,
+                });
+                if prototypes.len() > LOCAL_CONTEXT_PLACEMENT_MAX_PROTOTYPES_PER_CANDIDATE {
+                    return Err(GeometricAttentionError::Invalid(format!(
+                        "local placement candidate exceeds its {}-prototype cap",
+                        LOCAL_CONTEXT_PLACEMENT_MAX_PROTOTYPES_PER_CANDIDATE
+                    )));
+                }
+                source_transitions = source_transitions
+                    .checked_add(1)
+                    .ok_or(GeometricAttentionError::ArithmeticOverflow)?;
+            }
+        }
+        if grouped.is_empty() {
+            return Err(GeometricAttentionError::Invalid(
+                "local placement requires at least one witnessed transition".to_owned(),
+            ));
+        }
+
+        let prototype_sets = grouped
+            .into_iter()
+            .map(|(candidate, mut prototypes)| {
+                prototypes.sort_by(|left, right| {
+                    (
+                        left.sentence_id.as_str(),
+                        left.transition_ordinal,
+                        left.predecessor_history_kappa.as_str(),
+                    )
+                        .cmp(&(
+                            right.sentence_id.as_str(),
+                            right.transition_ordinal,
+                            right.predecessor_history_kappa.as_str(),
+                        ))
+                });
+                LocalContextCandidatePrototypeSet {
+                    candidate,
+                    prototypes,
+                }
+            })
+            .collect::<Vec<_>>();
+        let policy_kappa = format!(
+            "blake3:{}",
+            blake3::hash(LOCAL_SAME_OBJECT_CONTEXT_PLACEMENT_V1_IDENTITY.as_bytes()).to_hex()
+        );
+        let mut overlay = Self {
+            schema: 1,
+            manifest_kappa: manifest.manifest_kappa.clone(),
+            tokenizer_cid: manifest.provenance.tokenizer_cid.clone(),
+            corpus_cid: manifest.provenance.corpus_cid.clone(),
+            compiler_cid: manifest.provenance.compiler_cid.clone(),
+            cost_profile_cid: manifest.provenance.cost_profile_cid.clone(),
+            h4_root_table_kappa: table.h4_root_table_kappa.clone(),
+            multiplication_table_kappa: table.multiplication_table_kappa.clone(),
+            policy_kappa,
+            overlay_kappa: String::new(),
+            source_witnesses: manifest.rebuild_witnesses.len(),
+            source_transitions,
+            prototype_sets,
+        };
+        let reproduced = overlay.reproduce_overlay_kappa()?;
+        overlay.overlay_kappa = reproduced;
+        Ok(overlay)
+    }
+
+    pub const fn schema(&self) -> u32 {
+        self.schema
+    }
+
+    pub const fn policy_identity(&self) -> &'static str {
+        LOCAL_SAME_OBJECT_CONTEXT_PLACEMENT_V1_IDENTITY
+    }
+
+    pub const fn encoder_identity(&self) -> &'static str {
+        RECENT_SUFFIX_ORDERED_H4_TRAJECTORY_V1_IDENTITY
+    }
+
+    pub const fn quantization_identity(&self) -> &'static str {
+        EXACT_RECENT_SUFFIX_H4_SHELL_VECTOR_V1_IDENTITY
+    }
+
+    pub fn policy_kappa(&self) -> &str {
+        &self.policy_kappa
+    }
+
+    pub fn overlay_kappa(&self) -> &str {
+        &self.overlay_kappa
+    }
+
+    pub fn manifest_kappa(&self) -> &str {
+        &self.manifest_kappa
+    }
+
+    pub fn h4_root_table_kappa(&self) -> &str {
+        &self.h4_root_table_kappa
+    }
+
+    pub fn multiplication_table_kappa(&self) -> &str {
+        &self.multiplication_table_kappa
+    }
+
+    pub fn prototype_sets(&self) -> &[LocalContextCandidatePrototypeSet] {
+        &self.prototype_sets
+    }
+
+    pub fn retained_prototypes(&self) -> usize {
+        self.prototype_sets
+            .iter()
+            .map(|set| set.prototypes.len())
+            .sum()
+    }
+
+    pub const fn source_witnesses(&self) -> usize {
+        self.source_witnesses
+    }
+
+    pub const fn source_transitions(&self) -> usize {
+        self.source_transitions
+    }
+
+    /// Canonical overlay bytes bind the final self-cleared kappa as well as
+    /// the full construction provenance and exact trajectory inventory.
+    pub fn canonical_bytes(&self) -> Result<Vec<u8>, GeometricAttentionError> {
+        local_context_json(&self.overlay_wire(
+            self.overlay_kappa.clone(),
+            self.source_witnesses,
+            self.source_transitions,
+        )?)
+    }
+
+    pub fn reproduce_overlay_kappa(&self) -> Result<String, GeometricAttentionError> {
+        self.reproduce_overlay_kappa_with_counts(self.source_witnesses, self.source_transitions)
+    }
+
+    /// Encode an observed-only query history in exactly the construction
+    /// frame. This API consults no continuation row, payload, label, or future
+    /// route.
+    pub fn encode_query_history(
+        &self,
+        attention: &GeometricAttentionArtifact,
+        history: &[GeometricAddress],
+        table: &H4BinaryIcosahedralClosure,
+    ) -> Result<LocalContextTrajectory, GeometricAttentionError> {
+        self.validate_frame_binding(attention, table)?;
+        if history.is_empty() || history.len() > LOCAL_PATH_ATTENTION_MAX_UNITS {
+            return Err(GeometricAttentionError::Invalid(format!(
+                "local context placement requires 1--{LOCAL_PATH_ATTENTION_MAX_UNITS} observed routes"
+            )));
+        }
+        // Reuse the production observed-address and manifest membership check;
+        // the resulting causal state is intentionally not retained here.
+        attention.causal_state_from_history(history)?;
+        encode_recent_suffix_trajectory(history, table)
+    }
+
+    /// Inventory exact candidate-relative relations over the unchanged
+    /// support-only union. It reports bounded costs but performs no selection,
+    /// payload inversion, append, rendering, or decoded generation.
+    pub fn relation_census_for_history(
+        &self,
+        attention: &GeometricAttentionArtifact,
+        history: &[GeometricAddress],
+        table: &H4BinaryIcosahedralClosure,
+        control: LocalContextPlacementControl,
+    ) -> Result<LocalContextPlacementRelationCensus, GeometricAttentionError> {
+        let live_trajectory = self.encode_query_history(attention, history, table)?;
+        let causal = attention.causal_state_from_history(history)?;
+        let support = attention.query_support_only(&causal)?;
+        if support.manifest_kappa != self.manifest_kappa
+            || support.query_policy.identity() != PRIMARY_THEN_ADJACENT_SPIN_FALLBACK_V1_IDENTITY
+            || support.query_policy_kappa != support.query_policy.identity_kappa()
+        {
+            return Err(GeometricAttentionError::Invalid(
+                LOCAL_CONTEXT_PLACEMENT_FRAME_MISMATCH.to_owned(),
+            ));
+        }
+
+        let mut admitted = support.candidates.clone();
+        admitted.sort_by(|left, right| left.next.cmp(&right.next));
+        if admitted.is_empty() {
+            return Err(GeometricAttentionError::Invalid(
+                "local context placement requires nonempty admitted support".to_owned(),
+            ));
+        }
+        let mut prototype_evaluations = 0usize;
+        let mut candidates = Vec::with_capacity(admitted.len());
+        for (candidate_index, candidate) in admitted.iter().enumerate() {
+            let prototype_source_candidate = match control {
+                LocalContextPlacementControl::PlacementPermuted => admitted
+                    [(candidate_index + 1) % admitted.len()]
+                .next
+                .clone(),
+                LocalContextPlacementControl::RealPlacement
+                | LocalContextPlacementControl::OrderShuffled => candidate.next.clone(),
+            };
+            let prototype_set =
+                self.prototype_set(&prototype_source_candidate)
+                    .ok_or_else(|| {
+                        GeometricAttentionError::Invalid(
+                            "admitted candidate has no bounded local context prototype".to_owned(),
+                        )
+                    })?;
+            let mut prototype_relations = Vec::new();
+            for prototype in &prototype_set.prototypes {
+                let prototype_trajectory = match control {
+                    LocalContextPlacementControl::OrderShuffled => {
+                        &prototype.order_shuffled_trajectory
+                    }
+                    LocalContextPlacementControl::RealPlacement
+                    | LocalContextPlacementControl::PlacementPermuted => &prototype.trajectory,
+                };
+                let (relative_states, cost) =
+                    local_context_relation(prototype_trajectory, &live_trajectory, table)?;
+                prototype_relations.push(LocalContextPrototypeRelation {
+                    sentence_id: prototype.sentence_id.clone(),
+                    transition_ordinal: prototype.transition_ordinal,
+                    predecessor_history_kappa: prototype.predecessor_history_kappa.clone(),
+                    prototype_trajectory: prototype_trajectory.clone(),
+                    relative_states,
+                    cost,
+                });
+                prototype_evaluations = prototype_evaluations
+                    .checked_add(1)
+                    .ok_or(GeometricAttentionError::ArithmeticOverflow)?;
+            }
+            candidates.push(LocalContextCandidateRelation {
+                candidate: candidate.next.clone(),
+                source_counts: candidate.source_counts,
+                prototype_source_candidate,
+                prototype_count: prototype_relations.len(),
+                prototype_relations,
+            });
+        }
+        let trajectory_slot_comparisons = prototype_evaluations
+            .checked_mul(LOCAL_CONTEXT_PLACEMENT_FRAME_WIDTH)
+            .ok_or(GeometricAttentionError::ArithmeticOverflow)?;
+        Ok(LocalContextPlacementRelationCensus {
+            manifest_kappa: self.manifest_kappa.clone(),
+            policy_identity: LOCAL_SAME_OBJECT_CONTEXT_PLACEMENT_V1_IDENTITY.to_owned(),
+            policy_kappa: self.policy_kappa.clone(),
+            overlay_kappa: self.overlay_kappa.clone(),
+            control,
+            live_trajectory,
+            support,
+            complete_candidate_membership: true,
+            prototype_evaluations,
+            trajectory_slot_comparisons,
+            candidates,
+        })
+    }
+
+    fn validate_frame_binding(
+        &self,
+        attention: &GeometricAttentionArtifact,
+        table: &H4BinaryIcosahedralClosure,
+    ) -> Result<(), GeometricAttentionError> {
+        if attention.manifest_kappa() != self.manifest_kappa
+            || table.h4_root_table_kappa != self.h4_root_table_kappa
+            || table.multiplication_table_kappa != self.multiplication_table_kappa
+        {
+            return Err(GeometricAttentionError::Invalid(
+                LOCAL_CONTEXT_PLACEMENT_FRAME_MISMATCH.to_owned(),
+            ));
+        }
+        validate_ordered_h4_table_exact(table).map_err(ordered_h4_error)
+    }
+
+    fn prototype_set(
+        &self,
+        candidate: &GeometricAddress,
+    ) -> Option<&LocalContextCandidatePrototypeSet> {
+        self.prototype_sets
+            .binary_search_by(|set| set.candidate.cmp(candidate))
+            .ok()
+            .and_then(|index| self.prototype_sets.get(index))
+    }
+
+    fn reproduce_overlay_kappa_with_counts(
+        &self,
+        source_witnesses: usize,
+        source_transitions: usize,
+    ) -> Result<String, GeometricAttentionError> {
+        let wire = self.overlay_wire(String::new(), source_witnesses, source_transitions)?;
+        let bytes = local_context_json(&wire)?;
+        Ok(format!("blake3:{}", blake3::hash(&bytes).to_hex()))
+    }
+
+    fn overlay_wire(
+        &self,
+        overlay_kappa: String,
+        source_witnesses: usize,
+        source_transitions: usize,
+    ) -> Result<LocalContextOverlayWire, GeometricAttentionError> {
+        let source_witnesses = u16::try_from(source_witnesses).map_err(|_| {
+            GeometricAttentionError::Invalid(
+                "local context source-witness count exceeds its wire width".to_owned(),
+            )
+        })?;
+        let source_transitions = u32::try_from(source_transitions).map_err(|_| {
+            GeometricAttentionError::Invalid(
+                "local context source-transition count exceeds its wire width".to_owned(),
+            )
+        })?;
+        let retained_candidates = u16::try_from(self.prototype_sets.len()).map_err(|_| {
+            GeometricAttentionError::Invalid(
+                "local context candidate count exceeds its wire width".to_owned(),
+            )
+        })?;
+        let retained_prototypes = u32::try_from(self.retained_prototypes()).map_err(|_| {
+            GeometricAttentionError::Invalid(
+                "local context prototype count exceeds its wire width".to_owned(),
+            )
+        })?;
+        let prototype_sets = self
+            .prototype_sets
+            .iter()
+            .map(|set| {
+                let candidate_address_kappa = set.candidate.canonical_kappa()?;
+                let prototypes = set
+                    .prototypes
+                    .iter()
+                    .map(|prototype| {
+                        let predecessor_address_kappas = prototype
+                            .predecessor_history
+                            .iter()
+                            .map(GeometricAddress::canonical_kappa)
+                            .collect::<Result<Vec<_>, _>>()?;
+                        Ok(LocalContextPrototypeWire {
+                            sentence_id: prototype.sentence_id.clone(),
+                            transition_ordinal: u16::try_from(prototype.transition_ordinal)
+                                .map_err(|_| {
+                                    PrimeRouteError::Invalid(
+                                        "local context transition ordinal exceeds its wire width"
+                                            .to_owned(),
+                                    )
+                                })?,
+                            predecessor_length: u8::try_from(prototype.predecessor_history.len())
+                                .map_err(|_| {
+                                PrimeRouteError::Invalid(
+                                    "local context predecessor length exceeds its wire width"
+                                        .to_owned(),
+                                )
+                            })?,
+                            predecessor_history_kappa: prototype.predecessor_history_kappa.clone(),
+                            predecessor_address_kappas,
+                            trajectory: LocalContextTrajectoryWire::from(&prototype.trajectory),
+                            order_shuffled_trajectory: LocalContextTrajectoryWire::from(
+                                &prototype.order_shuffled_trajectory,
+                            ),
+                        })
+                    })
+                    .collect::<Result<Vec<_>, PrimeRouteError>>()?;
+                Ok(LocalContextPrototypeSetWire {
+                    candidate_address_kappa,
+                    prototypes,
+                })
+            })
+            .collect::<Result<Vec<_>, PrimeRouteError>>()?;
+        Ok(LocalContextOverlayWire {
+            schema: self.schema,
+            domain: LOCAL_SAME_OBJECT_CONTEXT_PLACEMENT_V1_IDENTITY.to_owned(),
+            policy_identity: LOCAL_SAME_OBJECT_CONTEXT_PLACEMENT_V1_IDENTITY.to_owned(),
+            policy_kappa: self.policy_kappa.clone(),
+            admission_policy_identity: PRIMARY_THEN_ADJACENT_SPIN_FALLBACK_V1_IDENTITY.to_owned(),
+            admission_policy_kappa: AttentionQueryPolicy::PrimaryThenAdjacentSpinFallbackV1
+                .identity_kappa(),
+            encoder_identity: RECENT_SUFFIX_ORDERED_H4_TRAJECTORY_V1_IDENTITY.to_owned(),
+            quantization_identity: EXACT_RECENT_SUFFIX_H4_SHELL_VECTOR_V1_IDENTITY.to_owned(),
+            manifest_kappa: self.manifest_kappa.clone(),
+            tokenizer_cid: self.tokenizer_cid.clone(),
+            corpus_cid: self.corpus_cid.clone(),
+            compiler_cid: self.compiler_cid.clone(),
+            cost_profile_cid: self.cost_profile_cid.clone(),
+            h4_root_table_kappa: self.h4_root_table_kappa.clone(),
+            multiplication_table_kappa: self.multiplication_table_kappa.clone(),
+            frame_width: LOCAL_CONTEXT_PLACEMENT_FRAME_WIDTH as u8,
+            padding_contract: "typed-h4-identity-with-explicit-population-mask".to_owned(),
+            slot_order: "recent-suffix-lengths-1-2-3-4".to_owned(),
+            comparison_order: "lexicographic-shortest-suffix-first".to_owned(),
+            prototype_cap_per_candidate: LOCAL_CONTEXT_PLACEMENT_MAX_PROTOTYPES_PER_CANDIDATE as u8,
+            source_witnesses,
+            source_transitions,
+            retained_candidates,
+            retained_prototypes,
+            prototype_sets,
+            overlay_kappa,
+        })
+    }
+}
+
+#[derive(Serialize)]
+struct LocalContextHistoryWire {
+    domain: String,
+    sentence_id: String,
+    transition_ordinal: u16,
+    predecessor_address_kappas: Vec<String>,
+}
+
+#[derive(Serialize)]
+struct LocalContextTrajectoryWire {
+    populated: [bool; LOCAL_CONTEXT_PLACEMENT_FRAME_WIDTH],
+    suffix_states: [H4RootCoordinate; LOCAL_CONTEXT_PLACEMENT_FRAME_WIDTH],
+}
+
+impl From<&LocalContextTrajectory> for LocalContextTrajectoryWire {
+    fn from(trajectory: &LocalContextTrajectory) -> Self {
+        Self {
+            populated: trajectory.populated,
+            suffix_states: trajectory.suffix_states,
+        }
+    }
+}
+
+#[derive(Serialize)]
+struct LocalContextPrototypeWire {
+    sentence_id: String,
+    transition_ordinal: u16,
+    predecessor_length: u8,
+    predecessor_history_kappa: String,
+    predecessor_address_kappas: Vec<String>,
+    trajectory: LocalContextTrajectoryWire,
+    order_shuffled_trajectory: LocalContextTrajectoryWire,
+}
+
+#[derive(Serialize)]
+struct LocalContextPrototypeSetWire {
+    candidate_address_kappa: String,
+    prototypes: Vec<LocalContextPrototypeWire>,
+}
+
+#[derive(Serialize)]
+struct LocalContextOverlayWire {
+    schema: u32,
+    domain: String,
+    policy_identity: String,
+    policy_kappa: String,
+    admission_policy_identity: String,
+    admission_policy_kappa: String,
+    encoder_identity: String,
+    quantization_identity: String,
+    manifest_kappa: String,
+    tokenizer_cid: String,
+    corpus_cid: String,
+    compiler_cid: String,
+    cost_profile_cid: String,
+    h4_root_table_kappa: String,
+    multiplication_table_kappa: String,
+    frame_width: u8,
+    padding_contract: String,
+    slot_order: String,
+    comparison_order: String,
+    prototype_cap_per_candidate: u8,
+    source_witnesses: u16,
+    source_transitions: u32,
+    retained_candidates: u16,
+    retained_prototypes: u32,
+    prototype_sets: Vec<LocalContextPrototypeSetWire>,
+    overlay_kappa: String,
+}
+
+fn local_context_json<T: Serialize>(value: &T) -> Result<Vec<u8>, GeometricAttentionError> {
+    serde_json::to_vec(value).map_err(|error| {
+        GeometricAttentionError::Invalid(format!(
+            "local context placement serialization failed: {error}"
+        ))
+    })
+}
+
+fn local_context_history_kappa(
+    sentence_id: &str,
+    transition_ordinal: usize,
+    predecessor_history: &[GeometricAddress],
+) -> Result<String, GeometricAttentionError> {
+    let predecessor_address_kappas = predecessor_history
+        .iter()
+        .map(GeometricAddress::canonical_kappa)
+        .collect::<Result<Vec<_>, _>>()?;
+    let wire = LocalContextHistoryWire {
+        domain: "uor-r4.local-context-construction-predecessor/1".to_owned(),
+        sentence_id: sentence_id.to_owned(),
+        transition_ordinal: u16::try_from(transition_ordinal).map_err(|_| {
+            GeometricAttentionError::Invalid(
+                "local context transition ordinal exceeds its wire width".to_owned(),
+            )
+        })?,
+        predecessor_address_kappas,
+    };
+    let bytes = local_context_json(&wire)?;
+    Ok(format!("blake3:{}", blake3::hash(&bytes).to_hex()))
+}
+
+fn encode_recent_suffix_trajectory(
+    history: &[GeometricAddress],
+    table: &H4BinaryIcosahedralClosure,
+) -> Result<LocalContextTrajectory, GeometricAttentionError> {
+    validate_ordered_h4_table_exact(table).map_err(ordered_h4_error)?;
+    let identity = OrderedH4FoldState::identity(table).map_err(ordered_h4_error)?;
+    let mut fold_states = Vec::with_capacity(LOCAL_CONTEXT_PLACEMENT_FRAME_WIDTH);
+    let mut suffix_states = Vec::with_capacity(LOCAL_CONTEXT_PLACEMENT_FRAME_WIDTH);
+    let mut populated = [false; LOCAL_CONTEXT_PLACEMENT_FRAME_WIDTH];
+    for (suffix_offset, slot_populated) in populated.iter_mut().enumerate() {
+        let suffix_length = suffix_offset + 1;
+        let fold = if history.len() >= suffix_length {
+            *slot_populated = true;
+            history[history.len() - suffix_length..].iter().try_fold(
+                identity,
+                |fold, address| {
+                    let leaf =
+                        h4_leaf_state_for_address(address, table).map_err(ordered_h4_error)?;
+                    fold.compose(leaf, table).map_err(ordered_h4_error)
+                },
+            )?
+        } else {
+            identity
+        };
+        fold_states.push(fold);
+        suffix_states.push(fold.root_coordinate(table).map_err(ordered_h4_error)?);
+    }
+    let fold_states = fold_states.try_into().map_err(|_| {
+        GeometricAttentionError::Invalid(
+            "local context trajectory did not fill its frozen frame".to_owned(),
+        )
+    })?;
+    let suffix_states = suffix_states.try_into().map_err(|_| {
+        GeometricAttentionError::Invalid(
+            "local context trajectory coordinate frame is incomplete".to_owned(),
+        )
+    })?;
+    Ok(LocalContextTrajectory {
+        fold_states,
+        populated,
+        suffix_states,
+    })
+}
+
+fn local_context_relation(
+    prototype: &LocalContextTrajectory,
+    live: &LocalContextTrajectory,
+    table: &H4BinaryIcosahedralClosure,
+) -> Result<
+    (
+        [H4RootCoordinate; LOCAL_CONTEXT_PLACEMENT_FRAME_WIDTH],
+        LocalContextPlacementCost,
+    ),
+    GeometricAttentionError,
+> {
+    validate_ordered_h4_table_exact(table).map_err(ordered_h4_error)?;
+    let mut relative_states = Vec::with_capacity(LOCAL_CONTEXT_PLACEMENT_FRAME_WIDTH);
+    let mut suffix_shells = Vec::with_capacity(LOCAL_CONTEXT_PLACEMENT_FRAME_WIDTH);
+    for slot in 0..LOCAL_CONTEXT_PLACEMENT_FRAME_WIDTH {
+        let inverse = prototype.fold_states[slot]
+            .inverse(table)
+            .map_err(ordered_h4_error)?;
+        let relative = inverse
+            .compose(live.fold_states[slot], table)
+            .map_err(ordered_h4_error)?;
+        relative_states.push(relative.root_coordinate(table).map_err(ordered_h4_error)?);
+        suffix_shells.push(h4_s3_angular_shell(relative, table)?);
+    }
+    let relative_states = relative_states.try_into().map_err(|_| {
+        GeometricAttentionError::Invalid(
+            "local context relative-state frame is incomplete".to_owned(),
+        )
+    })?;
+    let suffix_shells = suffix_shells.try_into().map_err(|_| {
+        GeometricAttentionError::Invalid(
+            "local context shell-vector frame is incomplete".to_owned(),
+        )
+    })?;
+    Ok((relative_states, LocalContextPlacementCost { suffix_shells }))
 }
 
 /// Exact monotone class of the S3 great-circle distance from the identity.

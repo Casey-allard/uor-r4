@@ -31,9 +31,13 @@ assumptions, or objectives rather than measured results.
 > stopped at support admission under the old flat union. The versioned tiered
 > repair then restored exact `{still}` and `{run,runs}` primary support, but the
 > single four-arm run selected `still run` for both prompt orders instead of
-> the required incompatible choices. #953 remains active for a bounded
-> same-object, order-sensitive candidate-relative representation repair; #973
-> and #954 remain blocked. Legacy
+> the required incompatible choices. The frozen
+> `LocalSameObjectContextPlacementV1` preflight then reproduced 7/7 construction
+> prototypes with zero class collisions and zero padding-identity aliases, but
+> real placement selected 0/2 intended candidates while the same-artifact
+> placement-permuted and order-shuffled controls selected 2/2 and 1/2.
+> Generation and replay were `NOT_RUN`. #953 awaits a newly frozen maintainer
+> plan; #973 and #954 remain blocked. Legacy
 > tracker #949 is closed as superseded, and #958 is retained directly beneath
 > #820 as GI-0 foundation. Two
 > current-summary corrections remain important: **#784** found
@@ -207,6 +211,30 @@ assumptions, or objectives rather than measured results.
 > disabled, same-artifact placement-permuted, and order-shuffled controls.
 > Generic fixed Hopf or spectral proxy activity is not decoded causal evidence.
 > No second tuned experiment was run; #973 and #954 remain blocked.
+>
+> **#953 `LocalSameObjectContextPlacementV1` preflight hard stop,
+> 2026-08-27.** Each decisive history obtained `still` from the live causal
+> singleton-support query and appended that observed route; `still` was not
+> injected as a selector candidate. The label-free preflight input is
+> `blake3:ce5430048c3789e85e18ed17a80f10f79d317a66769ad8be0fd28224668eb72e`.
+> Its raw relation census was both label-free and selection-blind and froze as
+> `blake3:50e67c087e1ec5e04aa47cf09d42e9b0857c15e4cafa07b1363d67faf96c6aeb`
+> before expected continuations were attached. Every control reused the same
+> overlay artifact, repaired support, prompt history, and work budget; only the
+> predeclared placement or construction order changed. All 7/7 construction
+> trajectories reproduced online, with zero cross-candidate class collisions
+> and zero padding-identity aliases.
+>
+> Complete held-out histories were absent from construction, but the operative
+> retained suffixes exactly recalled shorter construction subhistories, so that
+> absence was not operative-representation anti-recall. After the raw census
+> froze, the label-attached outcome
+> `blake3:d5e2f3614c8f1d3c6c629e2261ec42dc970fa5484982b2a86cb4f4b06b06a372`
+> recorded real placement at 0/2 intended candidates, the cyclic
+> placement-permuted control at 2/2, and reversed construction order at 1/2.
+> Generator execution and replay were `NOT_RUN`. The terminal remains
+> `REVISE_I1_GENERATOR_IN_PLACE`; #953 awaits a newly frozen maintainer plan,
+> while #973 and #954 remain blocked.
 
 The current quality-baseline reconciliation is recorded by #933 and the
 [append-only #934 genealogy](canonical_quality_baseline_934.md). The historical
@@ -446,9 +474,12 @@ one causal ordered-S3 least-cost path mechanism with a matched two-unit decoded
 intervention. #953 now drives that selector through decoded-loop plumbing, but
 its relabel smoke did not qualify a natural grammar result. Tiered admission
 then restored the frozen agreement support, but the full path chose the same
-decisive candidate for both prompt orders. #953 remains active for a bounded
-same-object/order-sensitive candidate-relative representation repair and #973
-remains blocked. Dependable coherent text remains unestablished.
+decisive candidate for both prompt orders. The first frozen local
+candidate-placement preflight then reproduced its construction classes but
+selected 0/2 intended candidates under real placement while its same-artifact
+cyclic placement control selected 2/2; generator execution and replay were
+`NOT_RUN`. #953 awaits a newly frozen maintainer plan, and #973 remains blocked.
+Dependable coherent text remains unestablished.
 The final serving path has no source weights, transformer/self-attention, dense
 matrix intelligence, MoE, or sparse learned router. Compiler-side floating
 point remains allowed for witnessed chart construction; serving arithmetic is
@@ -993,9 +1024,12 @@ loop but records `REVISE_I1_GENERATOR_IN_PLACE` because the initial smoke is an
 exact lexical relabel of #969 rather than an incompatible natural contrast. Its
 next frozen agreement contrast first stopped at admission under the old flat
 union. Tiered admission subsequently restored its exact support, but the single
-four-arm selector run chose `still run` for both full-path prompt orders. #953
-remains open for bounded same-object, order-sensitive candidate-relative
-representation; #973 remains blocked by #953 and continues to block #954.
+four-arm selector run chose `still run` for both full-path prompt orders. The
+first frozen `LocalSameObjectContextPlacementV1` preflight then selected 0/2
+intended candidates under real placement, while its same-artifact
+placement-permuted and order-shuffled controls selected 2/2 and 1/2; generator
+execution and replay were `NOT_RUN`. #953 awaits a newly frozen maintainer plan;
+#973 remains blocked by #953 and continues to block #954.
 #955 invokes the eventual accepted
 #969/#953/#973/#954 path; #962 integrates that path into product chat with
 persisted identity-scoped hive memory. #963 retains measured cost; #964 binds

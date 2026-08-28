@@ -114,12 +114,14 @@ The experiment must be able to change the next programme decision:
   remained non-admitting until the primary tier was empty. The one permitted
   four-arm run produced `still run` for both full-path prompts
   and `still runs` for both state-disabled prompts, with deterministic replay.
-  The terminal remains `REVISE_I1_GENERATOR_IN_PLACE`, now localized to
-  candidate-relative representation/scoring rather than admission or state
-  starvation. #953 remains open for a bounded local corpus-induced same-object,
-  order-sensitive compatibility/placement revision; A1Q-H/#973 and GI-4/#954
-  remain blocked, with GI-5/#955 downstream. Do not promote the #953 plumbing
-  into their claims or jump directly to Poincare/Hopf/harmonic machinery.
+  The first frozen local same-object, order-sensitive candidate-placement
+  preflight then reproduced 7/7 construction prototypes with zero class
+  collisions, but real placement selected 0/2 intended candidates while the
+  same-artifact placement-permuted control selected 2/2. Generation and replay
+  were `NOT_RUN`; the terminal remains `REVISE_I1_GENERATOR_IN_PLACE`. #953
+  awaits a newly frozen maintainer plan, and the failed contract does not
+  authorize a second representation or immediate Poincare/Hopf/harmonic
+  machinery. A1Q-H/#973 and GI-4/#954 remain blocked, with GI-5/#955 downstream.
 - **Exercise the real route path.** Geometry must run before token choice and
   emit its admitted support and energy trace. Add a global-context coverage
   witness when the active issue, beginning with #973, activates higher scopes.
