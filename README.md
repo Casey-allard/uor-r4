@@ -15,6 +15,28 @@ and reasoning can emerge from routes through a canonical geometric memory. The
 target serving engine uses no Ollama, hosted model, or source-model weights.
 
 > **Current bounded-global result (2026-08-28):** #973's independently frozen
+> `BoundedGlobalNoncommutingExactSpinR4V2` reached
+> `RETAIN_BOUNDED_GLOBAL_NONCOMMUTING_EXACT_SPIN_ATTENTION_CONTINUE_CORPUS_INDUCTION`.
+> The canonical population repair witnesses exact stored-S3-to-H4
+> noncommutation, distinct nonidentity left-ordered folds, central Q29 phases,
+> same-address class-result reuse, and incompatible unique candidate-relative
+> winners under `C^-1*G` lexicographic least cost. With equal admitted support
+> and executed work, the decoded matrix was real 2/2, identity-disabled 1/2,
+> class/operator-permuted 0/2, and support-reversed real 2/2; support/work
+> mismatches were zero and exact period-plus-EOS termination was 6/6. The
+> target preimage was loaded once only after the target-free gate. Operator,
+> population-audit, target-free-census, and decoded-smoke identities are
+> `blake3:1cf08604fb4a1c545984f4cab41194e0ffcf1d7551b6e438ed57b49a0066a6e9`,
+> `blake3:16ebc6d36f01e4cb324d3c46fc059aca4ffea84ba467e860b55f983cd83f4a9c`,
+> `blake3:c3fb3568028f924fb12971c888193cc5780111a7af14503e240f39fbeb58dd4a`,
+> and `blake3:41207999bb088e3b5f186cce983951cc27c2962d34ef8046a0beae4754b44218`.
+> This establishes one bounded synthetic causal global geometric-attention
+> witness, not corpus induction, general semantics, reasoning, correctness, or
+> product readiness. #973 next independently freezes its corpus-induction gate;
+> #954 remains blocked. See the
+> [bounded-global record](docs/bounded_global_exact_spin_attention_973.md).
+
+> **Earlier bounded-global V1 negative (2026-08-28):** #973's independently frozen
 > exact-spin contrast stopped at the target-free relation gate with
 > `RETAIN_CONVERSATION_ONLY_REDESIGN_BOUNDED_GLOBAL_EXACT_SPIN_RELATION`.
 > Both same-multiset snapshot carriers had distinct canonical epochs/roots,
@@ -27,12 +49,13 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > decoded smoke is `NOT_RUN`. Operator and target-free census identities are
 > `blake3:f6b36cdf3e6cf96e1e9a345980843ee9eaffd25f5b864d4b4ed45a30ae6f746f`
 > and `blake3:6c0a9f89a29584a09d917ae427a494b53c06b76e56482f665870ae86c1cd130a`.
-> This rejects one frozen global relation, not geometry generally. #973 remains
-> open for a newly frozen noncommuting relation/population repair before corpus
-> induction; #954 remains blocked. See the
+> This rejected one frozen global relation, not geometry generally. The V1
+> result remains append-only history; V2 supplied the noncommuting repair and
+> advanced #973 to an independently frozen corpus-induction gate. See the
 > [bounded-global record](docs/bounded_global_exact_spin_attention_973.md).
 
-> **Current retained bounded attention result (2026-08-28):** #973 retains three narrow
+> **Retained conversation-scope result (2026-08-28):** Before the global V2
+> qualification, #973 retained three narrow
 > mechanisms: Gate 0's exact-candidate prior-prefix copy mechanism, one
 > construction-bound exact-descriptor paragraph path selector, and now
 > `ConversationEntitySpinPathR4V1` at
@@ -55,9 +78,9 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > `blake3:343c961b06605f6ae9bb6160ac34a98224991715b706156349a8fd544b6dbb35`,
 > `blake3:649d733a194469aa648101a873d9e2ee323266b18872ced412d1da2cc6a56635`,
 > and `blake3:6930de3c07d30df4420bb68e60ea74531c8076516bcfef1c016240eddf1b9ca2`.
-> The subsequent independently frozen bounded-global contrast failed its
-> target-free relation gate. #973 stays open for a fresh bounded-global repair
-> before corpus induction; #954 remains blocked. See the
+> The subsequent V1 bounded-global contrast failed its target-free relation
+> gate; the independently frozen V2 repair later passed its bounded decoded
+> contract. #973 now proceeds to corpus induction; #954 remains blocked. See the
 > [conversation record](docs/conversation_entity_spin_path_attention_973.md).
 
 > **Current capability-first result (2026-08-28):** #953's frozen
@@ -104,7 +127,8 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > retained one construction-bound exact-descriptor cross-turn entity-role path
 > selector, each with the narrow boundary above. The first independent bounded-
 > global exact-spin relation failed target-free because its swapped states
-> commute; a fresh relation/population repair, then corpus qualification,
+> commute; the independently frozen V2 repair then established one bounded
+> noncommuting global mechanism. Corpus induction and final requalification
 > remain.
 > #954 remains blocked behind #973. General higher-scope attention, correct
 > answers, and reasoning do not exist yet. The
@@ -307,15 +331,15 @@ accepted a separate fixed-point R4 table-tie intervention and closed #953 at
 its positive terminal. #973 Gate 0 has since retained one bounded prior-prefix
 copy mechanism. Its frozen paragraph and conversation slices retained one
 exact-descriptor/entity-binding path selector apiece at their respective
-   scopes; the first bounded-global exact-spin relation failed target-free, so
-   a newly frozen noncommuting relation/population repair and corpus
-   qualification remain active while #954 stays blocked.
+   scopes. The first bounded-global exact-spin relation failed target-free; its
+   independently frozen V2 noncommuting repair then passed the bounded decoded
+   contract. Corpus induction is now the next #973 gate while #954 stays blocked.
 See the [append-only #953 record](docs/local_geometric_generation_953.md).
 See the [accepted table-tie record](docs/source_free_table_geometric_intervention_953.md).
 See the [#973 Gate 0 record](docs/prior_sentence_count_radius_attention_973.md).
 See the [#973 paragraph record](docs/paragraph_entity_spin_path_attention_973.md).
 See the [#973 conversation record](docs/conversation_entity_spin_path_attention_973.md).
-See the [#973 bounded-global negative record](docs/bounded_global_exact_spin_attention_973.md).
+See the [append-only #973 bounded-global record](docs/bounded_global_exact_spin_attention_973.md).
 See the [#986 evidence record](docs/corpus_signed_transport_attention_986.md)
 for the exact feasibility boundary and deliberately unrun stages.
 Stored H4/Hopf/zeta/icosian and related route fields remain
@@ -399,12 +423,12 @@ not become substitutes for working intelligence:
    top-1, +4,242 correct choices over the unchanged table, a distinct bounded
    continuation, matched support and declared-work ledger, and byte-identical
    replay.
-3. **Repair higher-scope attention (#973)** — retain the positive Gate 0
+3. **Induce and requalify higher-scope attention (#973)** — retain the positive Gate 0
    exact-candidate prior-prefix mechanism and the bounded construction-bound
-   paragraph and conversation selectors. Preserve the first bounded-global
-   exact-spin contrast as a target-free negative: its frozen swapped states
-   commute. Freeze a noncommuting relation/population repair next; only a
-   positive bounded-global requalification may authorize corpus induction.
+   paragraph and conversation selectors. Preserve the first bounded-global V1
+   contrast as a target-free negative: its frozen swapped states commute.
+   Retain V2's positive bounded noncommuting exact-spin mechanism and freeze
+   the corpus-induction gate independently before any corpus outcome run.
    Historical placement and transport probes remain evidence, not current work.
 4. **Establish correctness** — relevance, contradiction handling, and honest
    abstention.
@@ -421,9 +445,10 @@ The active dependency chain is tracked in
 the frozen table reference, #953 established one matched R4 tie intervention
 over it, and #973 retained one bounded prior-prefix copy mechanism plus bounded
 exact-descriptor/entity-binding path selectors at paragraph and conversation
-scope. The first bounded-global relation is closed-negative within the still-open
-#973 track; its fresh repair and later corpus work remain active. #954 remains
-blocked behind #973.
+scope. Its first bounded-global relation remains closed-negative history; the
+independently frozen V2 repair passed its bounded contract. Corpus induction
+and final requalification remain active within #973. #954 remains blocked
+behind #973.
 
 ## Find your way around
 

@@ -376,6 +376,10 @@ fn target_free_global_census_rejects_the_commuting_exact_spin_relation() {
     let operator_bytes = operator.to_bytes().unwrap();
     assert!(operator_bytes.len() <= MAX_BOUNDED_GLOBAL_EXACT_SPIN_OPERATOR_BYTES);
     let operator_cid = operator.artifact_cid().unwrap();
+    assert_eq!(
+        operator_cid,
+        "blake3:f6b36cdf3e6cf96e1e9a345980843ee9eaffd25f5b864d4b4ed45a30ae6f746f"
+    );
 
     let table = SourceFreeTable::from_bytes(&table_bytes).unwrap();
     let base_overlay = MultiscaleCountRadiusR4V1::from_bytes(&table, &base_overlay_bytes).unwrap();

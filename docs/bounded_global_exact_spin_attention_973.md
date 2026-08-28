@@ -340,3 +340,147 @@ The next decision is a newly frozen target-free bounded-global relation/
 population repair that proves noncommuting distinct exact folds before any
 decoded target join. The public result is recorded in
 [the live issue](https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5456901633).
+
+## V2 noncommuting population repair — positive bounded result
+
+- **Date:** 2026-08-28
+- **Immutable contract:** [frozen on the live issue](https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5457282665)
+  before the V2 outcome-bearing run
+- **Mechanism:** `BoundedGlobalNoncommutingExactSpinR4V2`
+- **Outcome:** `RETAIN_BOUNDED_GLOBAL_NONCOMMUTING_EXACT_SPIN_ATTENTION_CONTINUE_CORPUS_INDUCTION`
+- **Target-free status:** passed before one target-preimage load
+- **Decoded status:** real `2/2`; identity-disabled `1/2`;
+  class/operator-permuted `0/2`; support-reversed real `2/2`
+- **Issue state:** #973 remains open for an independently frozen
+  corpus-induction gate; #954 remains blocked
+
+This addendum does not revise the V1 negative above. V1 correctly rejected its
+commuting `Pavel` population. V2 implements the next independently frozen
+repair: it canonically enumerates the available construction population before
+target attachment and accepts only the first population/permutation satisfying
+the paired target-free gates.
+
+### Canonical noncommuting witness and exact cost
+
+The enumeration first examined `.` and rejected its identity H4 state. It then
+selected duplicate `Lena`, pair indices `[0,2]`, and the one-transposition
+snapshot pair
+
+```text
+left:  [Lena, Lena,  helix, prism]
+right: [Lena, helix, Lena,  prism]
+```
+
+The two `Lena` references are one byte-identical lexical address and complete
+stored-spin class at distinct immutable ordinals, so the evaluation performs
+one class computation and one exact same-address reuse. The transposed
+operands are the exact canonical H4 states
+
+```text
+Lena  = i                 = [ 0, 2,  0,  0] / 2
+helix = (1+i+j+k)/2       = [ 1, 1,  1,  1] / 2
+i * helix                 = [-1, 1, -1,  1] / 2
+helix * i                 = [-1, 1,  1, -1] / 2
+```
+
+Thus the operative H4 products genuinely do not commute. The Q29 fiber and
+torsion phases are central additions, so they remain equal across the two
+operand products without erasing the H4 distinction. The complete left-ordered
+folds are distinct and nonidentity:
+
+```text
+left fold:  [-1,-1,-1,-1] / 2, fiber 102410010, torsion -9745662
+right fold: [-1,-1, 1, 1] / 2, fiber 102410010, torsion -9745662
+```
+
+Candidate spelling does not enter the score. It selects only the frozen
+construction prototype binding `bronze -> helix`, `teal -> prism`. For each
+candidate-relative prototype state `C` and global fold `G`, V2 computes
+`C^-1 * G` and the lexicographic least exact cost
+
+```text
+(H4S3AngularShell, circular_abs_q29(fiber), circular_abs_q29(torsion)).
+```
+
+The target-free costs and unique winners were:
+
+| Snapshot | Helix cost | Prism cost | Unique prototype/candidate winner |
+| --- | --- | --- | --- |
+| left | `(Antipodal, 61239177, 5831083)` | `(Degrees120, 55205017, 5262467)` | prism / ` teal` |
+| right | `(Orthogonal, 61239177, 5831083)` | `(Degrees120, 55205017, 5262467)` | helix / ` bronze` |
+
+The same-address reuse, direct `A*B != B*A` witness, distinct nonidentity
+complete folds, and incompatible strict candidate-relative winners all had to
+hold together. Any absent, tied, commuting, identity, mismatched, or
+non-reproducible condition fails closed before decoded target access.
+
+### Firewall, sealed target, and observed matrix
+
+The exact score kernel accepts only exact geometric state/cost values. A
+focused typed/source firewall covers the candidate-relative cost, exact cost,
+selection, and unique-winner functions and rejects forbidden scoring
+capabilities; its negative control injects a forbidden payload-score read and
+must be rejected. The zero forbidden-read trace is therefore a structural
+typed/source witness, **not** dynamic machine-instruction counting.
+
+The target-free census, canonical operator reload, population replay, paired
+hard gates, common lower artifact, equal admitted support/work, carrier
+separation, support reversal, and coherent relabel control all passed while the
+target-preimage load counter remained zero. Only then was the committed target
+preimage loaded exactly once:
+
+```text
+target commitment:
+  blake3:b7340c776e005c32316de793b332e3f218b1fad757c77044b0fa2e70fc308354
+target preimage loads before target-free gate: 0
+target preimage loads after target-free gate:  1
+```
+
+The decoded contrast was:
+
+| Arm | left | right | Correct |
+| --- | --- | --- | ---: |
+| real | ` teal.` | ` bronze.` | 2/2 |
+| identity disabled | ` bronze.` | ` bronze.` | 1/2 |
+| class/operator permuted | ` bronze.` | ` teal.` | 0/2 |
+| support-reversed real | ` teal.` | ` bronze.` | 2/2 |
+
+Support mismatches were `0`; executed-work mismatches were `0`; all six arm
+continuations produced an exact period token followed by EOS (`6/6`). Exact
+serialization/replay identities are:
+
+```text
+operator:
+  blake3:1cf08604fb4a1c545984f4cab41194e0ffcf1d7551b6e438ed57b49a0066a6e9
+population audit:
+  blake3:16ebc6d36f01e4cb324d3c46fc059aca4ffea84ba467e860b55f983cd83f4a9c
+target-free census:
+  blake3:c3fb3568028f924fb12971c888193cc5780111a7af14503e240f39fbeb58dd4a
+decoded smoke:
+  blake3:41207999bb088e3b5f186cce983951cc27c2962d34ef8046a0beae4754b44218
+```
+
+The focused debug test passed `1/1` in `47.67s`. Its multicore execution of
+independent artifact construction/reload work is an engineering efficiency
+detail, not attention evidence. No broader suite was needed to decide this
+frozen result.
+
+### Binding claim and next action
+
+The binding terminal is:
+
+```text
+RETAIN_BOUNDED_GLOBAL_NONCOMMUTING_EXACT_SPIN_ATTENTION_CONTINUE_CORPUS_INDUCTION
+```
+
+This establishes one bounded synthetic causal global geometric-attention
+witness using exact stored S3-to-H4 state, central Q29 phases, a left ordered
+fold, `C^-1*G` lexicographic least-cost routing, and same-address result reuse.
+It does **not** establish corpus induction, semantic or natural-distribution
+transfer, general/global recursive attention, broad coherence, correctness,
+reasoning, chat, performance or energy advantage, formal closure, or product
+readiness.
+
+The next action is to freeze #973's corpus-induction gate independently before
+any outcome-bearing corpus execution. #954 remains blocked until #973 completes
+that induction and final requalification.

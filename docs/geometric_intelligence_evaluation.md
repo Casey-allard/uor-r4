@@ -67,8 +67,10 @@ unavailable. Gate 0, labels, selection, and #953 were `NOT_RUN`. The later
 established B0/#989 result exposed one matched #953 intervention, which has
 since been accepted. #973 then retained its bounded Gate 0, paragraph, and
 conversation mechanisms. Its first bounded-global exact-spin relation failed
-target-free because the frozen swapped states commute. #973 continues to block
-#954 while it owns a newly frozen relation/population repair.
+target-free because the frozen swapped states commute. The independently
+frozen V2 repair then passed its bounded noncommuting decoded contract. #973
+continues to block #954 while it owns corpus induction and final
+requalification.
 
 A negative result remains evidence about its declared mechanism and
 distribution. It does not erase a separately established storage, identity,
@@ -812,7 +814,12 @@ outcome identities are bound in the
 append-only. #953's fixture, overlay, generator, and records remain untouched
 under #986; #973 and downstream #954 remain blocked.
 
-### A1Q-H/#973 exact-spin global operator prototype
+### A1Q-H/#973 exact-spin global operator qualification
+
+The V1 contract and negative below remain append-only evidence. The
+independently frozen V2 repair subsequently satisfied the bounded-global
+decision without changing V1. The current evaluation action is to freeze the
+corpus-induction gate independently before any corpus outcome-bearing run.
 
 #973 owns paragraph, conversation, and bounded-global influence only after the
 one #989-matched #953 intervention qualifies the decoded loop.
@@ -868,11 +875,11 @@ coefficients, quantization, and transition law before the prototype is called
 harmonic. #973 will freeze its own terminal literal before running this
 contract.
 
-A future positive global subprobe cannot close #973. Paragraph and conversation
-are retained, but corpus induction and final requalification still require
+The now-positive bounded V2 subprobe cannot close #973. Paragraph and
+conversation are retained, but corpus induction and final requalification still require
 their own frozen evidence or an explicit native scope revision.
 
-#### Observed bounded-global target-free terminal (2026-08-28)
+#### Observed bounded-global V1 target-free terminal (2026-08-28)
 
 The first frozen global decision reached
 `RETAIN_CONVERSATION_ONLY_REDESIGN_BOUNDED_GLOBAL_EXACT_SPIN_RELATION` before
@@ -886,9 +893,44 @@ finish at the same complete `-1`/fiber/torsion state. Real roles were
 decoded evaluation is `NOT_RUN`. See the
 [#973 bounded-global record](bounded_global_exact_spin_attention_973.md).
 
-This is a relation/population falsification, not a global-attention result. A
-fresh #973 contract must establish noncommuting distinct exact folds and
-incompatible target-free winners before any decoded join or corpus induction.
+This is a relation/population falsification, not a global-attention result. It
+remains V1 history; the independently frozen V2 repair below supplied the
+required noncommuting distinct folds and incompatible target-free winners.
+
+#### Observed bounded-global V2 positive terminal (2026-08-28)
+
+`BoundedGlobalNoncommutingExactSpinR4V2` canonically enumerated the
+construction population and selected the first pair jointly satisfying direct
+exact H4 `A*B != B*A`, distinct nonidentity complete left folds, central Q29
+phase composition, one same-address exact-class reuse, and incompatible strict
+candidate-relative winners under `C^-1*G` lexicographic least cost. The exact
+score path is protected by a typed/source firewall and an injected forbidden-
+read falsifier. Its zero forbidden-read trace is structural evidence, not
+dynamic instruction counting.
+
+The target-free gate completed with zero target loads. The committed target
+preimage
+`blake3:b7340c776e005c32316de793b332e3f218b1fad757c77044b0fa2e70fc308354`
+was then loaded exactly once. Real decoded behavior was 2/2,
+identity-disabled 1/2, class/operator-permuted 0/2, and support-reversed real
+2/2; support/work mismatches were zero and exact period-plus-EOS termination
+was 6/6. Exact replay identities are:
+
+```text
+operator:         blake3:1cf08604fb4a1c545984f4cab41194e0ffcf1d7551b6e438ed57b49a0066a6e9
+population audit: blake3:16ebc6d36f01e4cb324d3c46fc059aca4ffea84ba467e860b55f983cd83f4a9c
+target-free:      blake3:c3fb3568028f924fb12971c888193cc5780111a7af14503e240f39fbeb58dd4a
+decoded smoke:    blake3:41207999bb088e3b5f186cce983951cc27c2962d34ef8046a0beae4754b44218
+```
+
+The binding terminal is
+`RETAIN_BOUNDED_GLOBAL_NONCOMMUTING_EXACT_SPIN_ATTENTION_CONTINUE_CORPUS_INDUCTION`.
+This establishes one bounded synthetic causal global geometric-attention
+witness only. It does not establish corpus induction, semantic or natural
+transfer, general attention, correctness, reasoning, or product readiness.
+The next #973 decision is an independently frozen corpus-induction gate; #954
+remains blocked. See the
+[#973 bounded-global record](bounded_global_exact_spin_attention_973.md).
 
 ## 4. Matched controls
 

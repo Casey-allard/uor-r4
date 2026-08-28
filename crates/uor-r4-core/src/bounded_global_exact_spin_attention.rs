@@ -6,6 +6,8 @@
 //! torsion state; one query-specific result is evaluated per exact snapshot
 //! class and reused across repeated immutable references.
 
+use std::collections::BTreeMap;
+
 use serde::Serialize;
 
 use crate::canonical_lexical_ingestion::{
@@ -26,10 +28,17 @@ use crate::source_free_table::{
 const OPERATOR_MAGIC: [u8; 8] = *b"BGESP001";
 const OPERATOR_SCHEMA: u32 = 1;
 const OPERATOR_DOMAIN: &str = "uor-r4.bounded-global-exact-spin-left-fold/1";
+const NONCOMMUTING_OPERATOR_MAGIC: [u8; 8] = *b"BGESP002";
+const NONCOMMUTING_OPERATOR_SCHEMA: u32 = 2;
+const NONCOMMUTING_OPERATOR_DOMAIN: &str =
+    "uor-r4.bounded-global-noncommuting-exact-spin-left-fold/2";
 const SPIN_MAP_DOMAIN: &str = "uor-r4.canonical-s3-spin-to-h4/1";
 const SPIN_MAP_RULE_IDENTITY: &str = "exact-s3-q30-components-divisible-by-2^29; arithmetic-right-shift-29-to-scaled-zphi-rational-coefficients; phi-coefficients-zero; unique-coordinate-membership-in-canonical-120-root-h4-table; reject-nonmultiple-nonmember-and-alias; no-prime-hash-candidate-or-nearest-root-placement";
 const GRAMMAR_IDENTITY_BYTES: &[u8] = b"uor-r4 bounded global exact spin grammar/1\nconstruction=<ENTITY> bound the <ANCHOR> class.\\n\\nThe bounded global code is <CANDIDATE>.\nactive-query=The bounded global code is\nprototype-bindings=bronze->helix,teal->prism\nevaluation-snapshots=Pavel,Pavel,helix,prism|Pavel,Pavel,prism,helix\nevaluation-snapshots-are-not-fitting-inputs=true";
 const ROUTING_POLICY_IDENTITY: &str = "uor-r4 bounded global exact spin routing policy/1\nmap=exact-stored-s3-to-canonical-h4-membership; q30-to-h4-shift=29; phi-coefficients=0\nfold=left-to-right exact H4 product with wrapped Q29 fiber/torsion addition\nphase-law=canonical interval [-1686629713,1686629713) with modulus 3373259426\nclass-result=C^-1*G with the same wrapped phase law\ncache-key=global-root,global-epoch,operator,map,chart,root-and-product-inverse-table,exact-class\ncost=lexicographic(h4-s3-angular-shell,fiber-circular-abs-q29,torsion-circular-abs-q29)\nselection=unique-minimum-or-abstain\ncontrols=real,identity-disabled,class-operator-permuted\nidentity-disabled=compute-all-then-return-bound-953-fallback\nclass-operator-permuted=swap-two-prototype-class-results\nscore-firewall=no-token-id,payload,address,prime,digest,ordinal,spin-sector,adjacent-row-or-target-numeric-input";
+const NONCOMMUTING_GRAMMAR_IDENTITY_BYTES: &[u8] = b"uor-r4 bounded global noncommuting exact spin grammar/2\nconstruction=<ENTITY> bound the <ANCHOR> class.\\n\\nThe bounded global code is <CANDIDATE>.\nactive-query=The bounded global code is\nprototype-bindings=bronze->helix,teal->prism\nevaluation-snapshots=Lena,Lena,helix,prism|Lena,helix,Lena,prism\nevaluation-snapshots-are-not-fitting-inputs=true\nheldout-document-identities-are-evaluation-only=true";
+const NONCOMMUTING_ROUTING_POLICY_IDENTITY: &str = "uor-r4 bounded global noncommuting exact spin routing policy/2\nmap=exact-stored-s3-to-canonical-h4-membership; q30-to-h4-shift=29; phi-coefficients=0\nfold=left-to-right exact H4 product with wrapped Q29 fiber/torsion addition\nphase-law=canonical interval [-1686629713,1686629713) with modulus 3373259426; phase-factors-are-central\nclass-result=C^-1*G with the same wrapped phase law\nnoncommutation-gate=direct exact H4 A*B!=B*A plus distinct nonidentity complete folds\ncache-key=global-root,global-epoch,operator,map,chart,root-and-product-inverse-table,exact-class\ncost=lexicographic(h4-s3-angular-shell,fiber-circular-abs-q29,torsion-circular-abs-q29)\nselection=unique-minimum-or-abstain\ncontrols=real,identity-disabled,class-operator-permuted\nidentity-disabled=compute-all-then-return-bound-953-fallback\nclass-operator-permuted=swap-two-prototype-class-results\nscore-firewall=no-token-id,payload,address,prime,digest,ordinal,spin-sector,adjacent-row-or-target-numeric-input";
+const NONCOMMUTING_POPULATION_POLICY_IDENTITY: &str = "uor-r4 bounded global noncommuting population policy/1\npool=exact registered one-unit noncandidate nonanchor construction lexemes ordered by canonical lexical-unit-id\npool-surfaces=.,Lena,Pavel,The,bound,bounded,class,code,global,is,the\nmultiset=[D,D,helix,prism]\npermutations=unique lexicographic lexical-unit-id vectors\npairs=lexicographic left-index,right-index with left-index<right-index\nrequirements=same-exact-multiset,one-exact-transposition,three-exact-classes,one-same-address-reuse,direct-noncommutation,distinct-nonidentity-complete-folds,incompatible-unique-C^-1G-prototype-winners\nselection=first qualifying pair; no target,continuation,partition-digest,candidate-id,payload,prime,address-ordinal-or-class-digest input";
 const CONSTRUCTION_IDENTITY_SCOPE: &str = "issue-973/bounded-global-exact-spin-construction-v1";
 const HELD_OUT_IDENTITY_SCOPE: &str = "issue-973/bounded-global-exact-spin-heldout-v1";
 const ACTIVE_TURN_ID: &str = "active-turn-0001";
@@ -47,6 +56,12 @@ const FROZEN_CONSTRUCTION: [(&str, &[u8]); 2] = [
 ];
 const LEFT_SNAPSHOT: [&[u8]; 4] = [b"Pavel", b"Pavel", b"helix", b"prism"];
 const RIGHT_SNAPSHOT: [&[u8]; 4] = [b"Pavel", b"Pavel", b"prism", b"helix"];
+const NONCOMMUTING_LEFT_SNAPSHOT: [&[u8]; 4] = [b"Lena", b"Lena", b"helix", b"prism"];
+const NONCOMMUTING_RIGHT_SNAPSHOT: [&[u8]; 4] = [b"Lena", b"helix", b"Lena", b"prism"];
+const NONCOMMUTING_DUPLICATE_POOL: [&[u8]; 11] = [
+    b".", b"Lena", b"Pavel", b"The", b"bound", b"bounded", b"class", b"code", b"global", b"is",
+    b"the",
+];
 const PROTOTYPE_BINDINGS: [(&[u8], &[u8]); 2] = [(b"bronze", b"helix"), (b"teal", b"prism")];
 const PHASE_HALF_Q29: i64 = 1_686_629_713;
 const PHASE_MODULUS_Q29: i64 = 3_373_259_426;
@@ -185,6 +200,65 @@ pub struct BoundedGlobalExactSpinClassEvaluationTrace {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct BoundedGlobalNoncommutingPoolRowTrace {
+    pub duplicate_hex: String,
+    pub duplicate_lexical_unit_id: u32,
+    pub duplicate_address_kappa: String,
+    pub duplicate_class_kappa: String,
+    pub duplicate_state: BoundedGlobalExactSpinStateTrace,
+    pub direct_noncommutation: bool,
+    pub unique_permutations: u32,
+    pub permutation_pairs_examined: u32,
+    pub selected_pair_indices: Option<[u32; 2]>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct BoundedGlobalNoncommutingWitnessTrace {
+    pub left_operand_hex: String,
+    pub right_operand_hex: String,
+    pub left_operand: BoundedGlobalExactSpinStateTrace,
+    pub right_operand: BoundedGlobalExactSpinStateTrace,
+    pub left_then_right: BoundedGlobalExactSpinStateTrace,
+    pub right_then_left: BoundedGlobalExactSpinStateTrace,
+    pub products_distinct: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct BoundedGlobalNoncommutingCandidateCostTrace {
+    pub prototype_anchor_hex: String,
+    pub prototype_class_kappa: String,
+    pub relative_state: BoundedGlobalExactSpinStateTrace,
+    pub cost: BoundedGlobalExactSpinCost,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct BoundedGlobalNoncommutingPopulationAudit {
+    pub schema: u32,
+    pub domain: String,
+    pub population_policy_kappa: String,
+    pub duplicate_pool_hex: Vec<String>,
+    pub rows_examined: Vec<BoundedGlobalNoncommutingPoolRowTrace>,
+    pub selected_duplicate_hex: String,
+    pub selected_duplicate_lexical_unit_id: u32,
+    pub selected_duplicate_class_kappa: String,
+    pub selected_pair_indices: [u32; 2],
+    pub left_snapshot_hex: [String; 4],
+    pub right_snapshot_hex: [String; 4],
+    pub one_transposition: bool,
+    pub transposed_ordinals: [u16; 2],
+    pub noncommutation: BoundedGlobalNoncommutingWitnessTrace,
+    pub left_fold: BoundedGlobalExactSpinStateTrace,
+    pub right_fold: BoundedGlobalExactSpinStateTrace,
+    pub distinct_nonidentity_folds: bool,
+    pub complete_phase_totals_equal: bool,
+    pub left_candidate_costs: Vec<BoundedGlobalNoncommutingCandidateCostTrace>,
+    pub right_candidate_costs: Vec<BoundedGlobalNoncommutingCandidateCostTrace>,
+    pub left_winner_anchor_hex: String,
+    pub right_winner_anchor_hex: String,
+    pub incompatible_unique_winners: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct BoundedGlobalExactSpinCandidateEvidence {
     pub token: u32,
     pub count: u64,
@@ -224,6 +298,12 @@ pub struct BoundedGlobalExactSpinWork {
     pub final_choice_operations: u64,
 }
 
+/// Structural score-firewall witness.
+///
+/// The exact scorer and winner selectors accept only exact geometric state or
+/// exact costs; the focused #973 source invariant rejects forbidden score
+/// capabilities. These zero fields record that boundary in the prediction
+/// trace; they are not dynamic machine-instruction counters.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize)]
 pub struct BoundedGlobalExactSpinForbiddenReads {
     pub target_reads: u64,
@@ -327,6 +407,26 @@ pub struct MatchedBoundedGlobalExactSpinContinuation {
     pub real: Continuation,
     pub identity_disabled: Continuation,
     pub class_operator_permuted: Continuation,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatchedBoundedGlobalNoncommutingPairPrediction {
+    pub population_audit: BoundedGlobalNoncommutingPopulationAudit,
+    pub left: MatchedBoundedGlobalExactSpinPrediction,
+    pub right: MatchedBoundedGlobalExactSpinPrediction,
+    pub exact_fold_distinct: bool,
+    pub real_winners_incompatible: bool,
+    pub permuted_winners_incompatible: bool,
+    pub common_lower_artifact: bool,
+    pub support_matched_between_cases: bool,
+    pub work_matched_between_cases: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatchedBoundedGlobalNoncommutingPairContinuation {
+    pub first_pair: MatchedBoundedGlobalNoncommutingPairPrediction,
+    pub left: MatchedBoundedGlobalExactSpinContinuation,
+    pub right: MatchedBoundedGlobalExactSpinContinuation,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -447,6 +547,21 @@ pub struct BoundedGlobalExactSpinR4V1 {
     prototypes: Vec<CandidatePrototype>,
 }
 
+/// Versioned successor to the target-free V1 relation failure.
+///
+/// V2 reuses the exact construction-bound codec, address registry, stored-spin
+/// map, prototype bindings, and `C^-1 * G` least-cost relation. Its additional
+/// population audit proves that the two detached global carriers differ by an
+/// actual noncommuting stored-H4 transposition before either case may decode.
+#[derive(Debug, Clone)]
+pub struct BoundedGlobalNoncommutingExactSpinR4V2 {
+    core: BoundedGlobalExactSpinR4V1,
+    grammar_kappa: String,
+    routing_policy_kappa: String,
+    population_policy_kappa: String,
+    population_audit: BoundedGlobalNoncommutingPopulationAudit,
+}
+
 #[derive(Debug, Clone)]
 struct ArmEvaluation {
     entries: Vec<BoundedGlobalExactSpinSnapshotEntryTrace>,
@@ -464,6 +579,41 @@ struct ArmCandidateRow {
     relative_state: BoundedGlobalExactSpinStateTrace,
     measured_cost: BoundedGlobalExactSpinCost,
     ranking_cost: Option<BoundedGlobalExactSpinCost>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum SnapshotContract {
+    FrozenCommutingV1,
+    FrozenNoncommutingV2,
+}
+
+#[derive(Debug, Clone)]
+struct PopulationLexeme {
+    bytes: Vec<u8>,
+    lexical_unit_id: u32,
+    address_kappa: String,
+    class_kappa: String,
+    spin: SpinTorsionStateTrace,
+    state: ExactSpinState,
+}
+
+#[derive(Debug, Clone)]
+struct PopulationSelection {
+    duplicate: PopulationLexeme,
+    left_index: usize,
+    right_index: usize,
+    left_ids: [u32; 4],
+    right_ids: [u32; 4],
+    left_fold: ExactSpinState,
+    right_fold: ExactSpinState,
+    left_costs: [BoundedGlobalNoncommutingCandidateCostTrace; 2],
+    right_costs: [BoundedGlobalNoncommutingCandidateCostTrace; 2],
+    left_winner: usize,
+    right_winner: usize,
+    left_operand: PopulationLexeme,
+    right_operand: PopulationLexeme,
+    left_then_right: ExactSpinState,
+    right_then_left: ExactSpinState,
 }
 
 impl BoundedGlobalExactSpinR4V1 {
@@ -535,14 +685,14 @@ impl BoundedGlobalExactSpinR4V1 {
             }
             let unit_id = encoded_anchor.units[0].unit_id;
             let address = construction_artifact
-                .lexical_route_address(unit_id)?
+                .lexical_route_address_from_validated_artifact(unit_id)?
                 .ok_or_else(|| {
                     BoundedGlobalExactSpinError::Invalid(
                         "prototype anchor has no registered address".to_owned(),
                     )
                 })?;
             let value = construction_artifact
-                .lexical_route_value_for_address(&address)?
+                .lexical_route_value_for_address_from_validated_artifact(&address)?
                 .ok_or_else(|| {
                     BoundedGlobalExactSpinError::Invalid(
                         "prototype anchor address has no payload inversion".to_owned(),
@@ -559,11 +709,7 @@ impl BoundedGlobalExactSpinR4V1 {
                 candidate_bytes,
                 anchor_bytes: anchor.to_vec(),
                 anchor_lexical_unit_id: unit_id,
-                anchor_address_kappa: address.canonical_kappa().map_err(|error| {
-                    BoundedGlobalExactSpinError::Invalid(format!(
-                        "prototype anchor address kappa failed: {error}"
-                    ))
-                })?,
+                anchor_address_kappa: value.address_kappa,
                 anchor_payload_cid: address.payload_cid.clone(),
                 anchor_class_kappa: shared_class_kappa(address.spin)?,
                 anchor_address: address,
@@ -763,8 +909,12 @@ impl BoundedGlobalExactSpinR4V1 {
         global_snapshot_units: &[Vec<u8>],
     ) -> Result<CanonicalRouteArtifact, BoundedGlobalExactSpinError> {
         validate_active_query(active_query)?;
-        validate_snapshot_units(global_snapshot_units)?;
-        let input = observed_global_input(active_query, global_snapshot_units)?;
+        validate_snapshot_units_for(global_snapshot_units, SnapshotContract::FrozenCommutingV1)?;
+        let input = observed_global_input_for(
+            active_query,
+            global_snapshot_units,
+            SnapshotContract::FrozenCommutingV1,
+        )?;
         Ok(CanonicalRouteArtifact::ingest(&self.codec, &input)?)
     }
 
@@ -775,6 +925,29 @@ impl BoundedGlobalExactSpinR4V1 {
         base_artifact: &CanonicalRouteArtifact,
         snapshot_artifact: &CanonicalRouteArtifact,
         active_query: &[u8],
+    ) -> Result<MatchedBoundedGlobalExactSpinPrediction, BoundedGlobalExactSpinError> {
+        let operator_cid = self.artifact_cid()?;
+        self.predict_matched_for(
+            table,
+            base_overlay,
+            base_artifact,
+            snapshot_artifact,
+            active_query,
+            SnapshotContract::FrozenCommutingV1,
+            &operator_cid,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn predict_matched_for(
+        &self,
+        table: &SourceFreeTable,
+        base_overlay: &MultiscaleCountRadiusR4V1,
+        base_artifact: &CanonicalRouteArtifact,
+        snapshot_artifact: &CanonicalRouteArtifact,
+        active_query: &[u8],
+        snapshot_contract: SnapshotContract,
+        operator_cid: &str,
     ) -> Result<MatchedBoundedGlobalExactSpinPrediction, BoundedGlobalExactSpinError> {
         self.validate_binding(table, base_overlay)?;
         validate_active_query(active_query)?;
@@ -789,7 +962,11 @@ impl BoundedGlobalExactSpinR4V1 {
         }
         let snapshot_input = snapshot_artifact.reconstruct_input()?;
         if snapshot_input
-            != observed_global_input(active_query, &snapshot_input.global_snapshot_units)?
+            != observed_global_input_for(
+                active_query,
+                &snapshot_input.global_snapshot_units,
+                snapshot_contract,
+            )?
             || snapshot_artifact.codec_kappa() != self.codec.codec_kappa()
             || snapshot_artifact.vocabulary_kappa() != self.codec.vocabulary_kappa()
         {
@@ -797,7 +974,7 @@ impl BoundedGlobalExactSpinR4V1 {
                 "snapshot artifact is not an exact frozen global input".to_owned(),
             ));
         }
-        validate_snapshot_units(&snapshot_input.global_snapshot_units)?;
+        validate_snapshot_units_for(&snapshot_input.global_snapshot_units, snapshot_contract)?;
         let view = snapshot_artifact.global_exact_spin_snapshot_view()?;
         if view.global_epoch != snapshot_input.global_epoch
             || view.snapshot_kappa != snapshot_input.global_epoch
@@ -840,20 +1017,34 @@ impl BoundedGlobalExactSpinR4V1 {
             ));
         }
 
-        let real = self.evaluate_arm(&view, &local, BoundedGlobalExactSpinArm::Real, false)?;
+        let real = self.evaluate_arm(
+            &view,
+            &local,
+            BoundedGlobalExactSpinArm::Real,
+            false,
+            operator_cid,
+        )?;
         let disabled = self.evaluate_arm(
             &view,
             &local,
             BoundedGlobalExactSpinArm::IdentityDisabled,
             false,
+            operator_cid,
         )?;
         let permuted = self.evaluate_arm(
             &view,
             &local,
             BoundedGlobalExactSpinArm::ClassOperatorPermuted,
             false,
+            operator_cid,
         )?;
-        let reversed = self.evaluate_arm(&view, &local, BoundedGlobalExactSpinArm::Real, true)?;
+        let reversed = self.evaluate_arm(
+            &view,
+            &local,
+            BoundedGlobalExactSpinArm::Real,
+            true,
+            operator_cid,
+        )?;
 
         if real.entries != disabled.entries
             || real.entries != permuted.entries
@@ -940,7 +1131,7 @@ impl BoundedGlobalExactSpinR4V1 {
             global_epoch: view.global_epoch,
             global_snapshot_kappa: view.snapshot_kappa,
             global_root_kappa: view.global_root_kappa,
-            operator_cid: self.artifact_cid()?,
+            operator_cid: operator_cid.to_owned(),
             spin_map_kappa: self.spin_map_kappa.clone(),
             chart_profile_kappa: self.chart_profile_kappa.clone(),
             h4_root_table_kappa: self.h4_table.h4_root_table_kappa.clone(),
@@ -972,11 +1163,7 @@ impl BoundedGlobalExactSpinR4V1 {
         active_query: &[u8],
         max_units: usize,
     ) -> Result<MatchedBoundedGlobalExactSpinContinuation, BoundedGlobalExactSpinError> {
-        if max_units == 0 || max_units > MAX_CONTINUATION_UNITS {
-            return Err(BoundedGlobalExactSpinError::Invalid(format!(
-                "continuation bound must be 1..={MAX_CONTINUATION_UNITS}"
-            )));
-        }
+        validate_continuation_bound(max_units)?;
         let first_decision = self.predict_matched(
             table,
             base_overlay,
@@ -984,63 +1171,7 @@ impl BoundedGlobalExactSpinR4V1 {
             snapshot_artifact,
             active_query,
         )?;
-        if first_decision.operator_abstention.is_some()
-            || !first_decision.support_matched
-            || !first_decision.work_matched
-            || !first_decision.support_reversal_invariant
-            || !first_decision.coherent_relabel_equivariant
-            || first_decision.real.unique_minimum.is_none()
-            || first_decision
-                .class_operator_permuted
-                .unique_minimum
-                .is_none()
-            || first_decision.identity_disabled.unique_minimum.is_some()
-            || first_decision.forbidden_reads.total() != 0
-        {
-            return Err(BoundedGlobalExactSpinError::Invalid(
-                "bounded-global hard gate stopped before decoding".to_owned(),
-            ));
-        }
-        let mut initial_context = vec![BOS_TOKEN];
-        initial_context.extend(table.encode_text(active_query)?);
-        let mut real = ContinuationState::new(initial_context.clone());
-        let mut disabled = ContinuationState::new(initial_context.clone());
-        let mut permuted = ContinuationState::new(initial_context);
-        real.accept(first_decision.real.token);
-        disabled.accept(first_decision.identity_disabled.token);
-        permuted.accept(first_decision.class_operator_permuted.token);
-        while real.can_step(max_units)
-            || disabled.can_step(max_units)
-            || permuted.can_step(max_units)
-        {
-            if real.can_step(max_units) {
-                real.accept(
-                    table
-                        .predict_multiscale_count_radius(&real.context, base_overlay)?
-                        .geometric_token,
-                );
-            }
-            if disabled.can_step(max_units) {
-                disabled.accept(
-                    table
-                        .predict_multiscale_count_radius(&disabled.context, base_overlay)?
-                        .geometric_token,
-                );
-            }
-            if permuted.can_step(max_units) {
-                permuted.accept(
-                    table
-                        .predict_multiscale_count_radius(&permuted.context, base_overlay)?
-                        .geometric_token,
-                );
-            }
-        }
-        Ok(MatchedBoundedGlobalExactSpinContinuation {
-            first_decision,
-            real: real.finish(table)?,
-            identity_disabled: disabled.finish(table)?,
-            class_operator_permuted: permuted.finish(table)?,
-        })
+        continue_from_prediction(table, base_overlay, active_query, max_units, first_decision)
     }
 
     pub fn audit_hierarchy_pair(
@@ -1127,6 +1258,7 @@ impl BoundedGlobalExactSpinR4V1 {
         local: &MatchedGeometricPrediction,
         arm: BoundedGlobalExactSpinArm,
         reverse_support_iteration: bool,
+        operator_cid: &str,
     ) -> Result<ArmEvaluation, BoundedGlobalExactSpinError> {
         let mut work = WorkCounter::new(local.geometric_work);
         let mut entries = Vec::with_capacity(view.entries.len());
@@ -1216,11 +1348,10 @@ impl BoundedGlobalExactSpinR4V1 {
             ));
         }
 
-        let operator_cid = self.artifact_cid()?;
         let result_binding = ClassResultBinding {
             global_root_kappa: &view.global_root_kappa,
             global_epoch: &view.global_epoch,
-            operator_cid: &operator_cid,
+            operator_cid,
             spin_map_kappa: &self.spin_map_kappa,
             chart_profile_kappa: &self.chart_profile_kappa,
             table: &self.h4_table,
@@ -1228,24 +1359,18 @@ impl BoundedGlobalExactSpinR4V1 {
         let mut class_results = Vec::<ClassResult>::with_capacity(unique.len());
         let mut class_traces = Vec::with_capacity(unique.len());
         for class in unique {
-            let relative = class
-                .state
-                .inverse(&self.h4_table)?
-                .compose(fold, &self.h4_table)?;
+            let (relative, cost) =
+                candidate_relative_exact_cost(class.state, fold, &self.h4_table)?;
             work.h4_inverse_table_reads += 1;
             work.h4_product_table_reads += 1;
             work.phase_additions += 2;
-            let cost = exact_cost(relative, &self.h4_table)?;
             work.angular_shell_reads += 1;
             work.phase_distance_reads += 2;
             work.unique_class_evaluations += 1;
             work.class_result_applications += u64::try_from(class.reference_entry_kappas.len())
                 .map_err(|_| BoundedGlobalExactSpinError::ArithmeticOverflow)?;
-            let cold = class
-                .state
-                .inverse(&self.h4_table)?
-                .compose(fold, &self.h4_table)?;
-            let cold_cost = exact_cost(cold, &self.h4_table)?;
+            let (cold, cold_cost) =
+                candidate_relative_exact_cost(class.state, fold, &self.h4_table)?;
             work.h4_inverse_table_reads += 1;
             work.h4_product_table_reads += 1;
             work.phase_additions += 2;
@@ -1318,7 +1443,15 @@ impl BoundedGlobalExactSpinR4V1 {
             .iter()
             .map(|prototype| prototype.candidate_token)
             .collect::<Vec<_>>();
-        let selection = select_candidate_rows(&candidate_rows)?;
+        let measured_costs = candidate_rows
+            .iter()
+            .map(|row| row.measured_cost)
+            .collect::<Vec<_>>();
+        let ranked_tokens = candidate_rows
+            .iter()
+            .map(|row| row.token)
+            .collect::<Vec<_>>();
+        let selection = select_exact_costs(&measured_costs)?;
         work.cost_comparisons = work
             .cost_comparisons
             .checked_add(selection.comparisons)
@@ -1331,6 +1464,7 @@ impl BoundedGlobalExactSpinR4V1 {
             arm,
             local.geometric_token,
             selection,
+            &ranked_tokens,
             support_tokens,
             work.finish(),
         );
@@ -1343,6 +1477,518 @@ impl BoundedGlobalExactSpinR4V1 {
             decision,
         })
     }
+}
+
+impl BoundedGlobalNoncommutingExactSpinR4V2 {
+    pub fn compile(
+        table: &SourceFreeTable,
+        base_overlay: &MultiscaleCountRadiusR4V1,
+        construction: &[SourceDocument],
+    ) -> Result<Self, BoundedGlobalExactSpinError> {
+        let core = BoundedGlobalExactSpinR4V1::compile(table, base_overlay, construction)?;
+        let grammar_kappa = blake3_label(NONCOMMUTING_GRAMMAR_IDENTITY_BYTES);
+        let routing_policy_kappa = blake3_label(NONCOMMUTING_ROUTING_POLICY_IDENTITY.as_bytes());
+        let population_policy_kappa =
+            blake3_label(NONCOMMUTING_POPULATION_POLICY_IDENTITY.as_bytes());
+        let population_audit =
+            build_noncommuting_population_audit(&core, &population_policy_kappa)?;
+        let operator = Self {
+            core,
+            grammar_kappa,
+            routing_policy_kappa,
+            population_policy_kappa,
+            population_audit,
+        };
+        operator.validate_binding(table, base_overlay)?;
+        let audit = operator.population_audit()?;
+        if audit.left_snapshot_hex != NONCOMMUTING_LEFT_SNAPSHOT.map(hex::encode)
+            || audit.right_snapshot_hex != NONCOMMUTING_RIGHT_SNAPSHOT.map(hex::encode)
+            || !audit.noncommutation.products_distinct
+            || !audit.distinct_nonidentity_folds
+            || !audit.complete_phase_totals_equal
+            || !audit.incompatible_unique_winners
+            || !audit.one_transposition
+            || !frozen_noncommuting_population_matches(&audit)
+        {
+            return Err(BoundedGlobalExactSpinError::Invalid(
+                "canonical noncommuting population does not reproduce the frozen V2 pair"
+                    .to_owned(),
+            ));
+        }
+        if operator.to_bytes()?.len() > MAX_BOUNDED_GLOBAL_EXACT_SPIN_OPERATOR_BYTES {
+            return Err(BoundedGlobalExactSpinError::Invalid(
+                "bounded-global noncommuting operator exceeds its byte ceiling".to_owned(),
+            ));
+        }
+        Ok(operator)
+    }
+
+    pub fn from_bytes(
+        table: &SourceFreeTable,
+        base_overlay: &MultiscaleCountRadiusR4V1,
+        construction: &[SourceDocument],
+        bytes: &[u8],
+    ) -> Result<Self, BoundedGlobalExactSpinError> {
+        if bytes.len() > MAX_BOUNDED_GLOBAL_EXACT_SPIN_OPERATOR_BYTES {
+            return Err(BoundedGlobalExactSpinError::Invalid(
+                "bounded-global noncommuting operator exceeds its byte ceiling".to_owned(),
+            ));
+        }
+        if bytes.len() < NONCOMMUTING_OPERATOR_MAGIC.len()
+            || bytes[..NONCOMMUTING_OPERATOR_MAGIC.len()] != NONCOMMUTING_OPERATOR_MAGIC
+        {
+            return Err(BoundedGlobalExactSpinError::Invalid(
+                "bounded-global noncommuting operator magic is invalid".to_owned(),
+            ));
+        }
+        let expected = Self::compile(table, base_overlay, construction)?;
+        if expected.to_bytes()? != bytes {
+            return Err(BoundedGlobalExactSpinError::Invalid(
+                "bounded-global noncommuting operator is noncanonical or binding-drifted"
+                    .to_owned(),
+            ));
+        }
+        Ok(expected)
+    }
+
+    pub fn to_bytes(&self) -> Result<Vec<u8>, BoundedGlobalExactSpinError> {
+        let wire = NoncommutingOperatorWire {
+            schema: NONCOMMUTING_OPERATOR_SCHEMA,
+            domain: NONCOMMUTING_OPERATOR_DOMAIN,
+            table_artifact_cid: self.core.table_artifact_cid.clone(),
+            base_overlay_artifact_cid: self.core.base_overlay_artifact_cid.clone(),
+            construction_ids: self.core.construction_ids.clone(),
+            construction_text_cids: self
+                .core
+                .construction_text_cids
+                .iter()
+                .map(hex::encode)
+                .collect(),
+            codec_kappa: self.core.codec_kappa().to_owned(),
+            vocabulary_kappa: self.core.vocabulary_kappa().to_owned(),
+            route_manifest_kappa: self.core.route_manifest_kappa().to_owned(),
+            h4_root_table_kappa: self.core.h4_root_table_kappa().to_owned(),
+            h4_multiplication_table_kappa: self.core.h4_multiplication_table_kappa().to_owned(),
+            grammar_kappa: self.grammar_kappa.clone(),
+            routing_policy_kappa: self.routing_policy_kappa.clone(),
+            spin_map_kappa: self.core.spin_map_kappa().to_owned(),
+            chart_profile_kappa: self.core.chart_profile_kappa().to_owned(),
+            population_policy_kappa: self.population_policy_kappa.clone(),
+            construction_identity_scope: CONSTRUCTION_IDENTITY_SCOPE,
+            held_out_identity_scope: HELD_OUT_IDENTITY_SCOPE,
+            active_turn_id: ACTIVE_TURN_ID,
+            active_query_hex: hex::encode(ACTIVE_QUERY_BYTES),
+            construction_global_unit_hex: hex::encode(CONSTRUCTION_GLOBAL_UNIT),
+            duplicate_pool_hex: NONCOMMUTING_DUPLICATE_POOL.map(hex::encode),
+            left_snapshot_hex: NONCOMMUTING_LEFT_SNAPSHOT.map(hex::encode),
+            right_snapshot_hex: NONCOMMUTING_RIGHT_SNAPSHOT.map(hex::encode),
+            candidates: BOUNDED_GLOBAL_EXACT_SPIN_CANDIDATES,
+            snapshot_entries: BOUNDED_GLOBAL_EXACT_SPIN_ENTRIES,
+            snapshot_classes: BOUNDED_GLOBAL_EXACT_SPIN_CLASSES,
+            reuse_hits: BOUNDED_GLOBAL_EXACT_SPIN_REUSE_HITS,
+            max_query_bytes: MAX_BOUNDED_GLOBAL_EXACT_SPIN_QUERY_BYTES,
+            max_operator_bytes: MAX_BOUNDED_GLOBAL_EXACT_SPIN_OPERATOR_BYTES,
+            prototypes: self.core.prototype_traces()?,
+            population_audit: self.population_audit.clone(),
+        };
+        let payload = serde_json::to_vec(&wire)
+            .map_err(|error| BoundedGlobalExactSpinError::Serialization(error.to_string()))?;
+        let mut bytes = Vec::with_capacity(NONCOMMUTING_OPERATOR_MAGIC.len() + payload.len());
+        bytes.extend_from_slice(&NONCOMMUTING_OPERATOR_MAGIC);
+        bytes.extend_from_slice(&payload);
+        if bytes.len() > MAX_BOUNDED_GLOBAL_EXACT_SPIN_OPERATOR_BYTES {
+            return Err(BoundedGlobalExactSpinError::Invalid(
+                "bounded-global noncommuting operator exceeds its byte ceiling".to_owned(),
+            ));
+        }
+        Ok(bytes)
+    }
+
+    pub fn artifact_cid(&self) -> Result<String, BoundedGlobalExactSpinError> {
+        Ok(blake3_label(&self.to_bytes()?))
+    }
+
+    pub fn table_artifact_cid(&self) -> &str {
+        self.core.table_artifact_cid()
+    }
+
+    pub fn base_overlay_artifact_cid(&self) -> &str {
+        self.core.base_overlay_artifact_cid()
+    }
+
+    pub fn codec_kappa(&self) -> &str {
+        self.core.codec_kappa()
+    }
+
+    pub fn vocabulary_kappa(&self) -> &str {
+        self.core.vocabulary_kappa()
+    }
+
+    pub fn route_manifest_kappa(&self) -> &str {
+        self.core.route_manifest_kappa()
+    }
+
+    pub fn spin_map_kappa(&self) -> &str {
+        self.core.spin_map_kappa()
+    }
+
+    pub fn chart_profile_kappa(&self) -> &str {
+        self.core.chart_profile_kappa()
+    }
+
+    pub fn grammar_kappa(&self) -> &str {
+        &self.grammar_kappa
+    }
+
+    pub fn routing_policy_kappa(&self) -> &str {
+        &self.routing_policy_kappa
+    }
+
+    pub fn population_policy_kappa(&self) -> &str {
+        &self.population_policy_kappa
+    }
+
+    pub fn h4_root_table_kappa(&self) -> &str {
+        self.core.h4_root_table_kappa()
+    }
+
+    pub fn h4_multiplication_table_kappa(&self) -> &str {
+        self.core.h4_multiplication_table_kappa()
+    }
+
+    pub fn prototype_traces(
+        &self,
+    ) -> Result<Vec<BoundedGlobalExactSpinPrototypeTrace>, BoundedGlobalExactSpinError> {
+        self.core.prototype_traces()
+    }
+
+    pub fn population_audit(
+        &self,
+    ) -> Result<BoundedGlobalNoncommutingPopulationAudit, BoundedGlobalExactSpinError> {
+        Ok(self.population_audit.clone())
+    }
+
+    pub fn build_query_artifact(
+        &self,
+        active_query: &[u8],
+    ) -> Result<CanonicalRouteArtifact, BoundedGlobalExactSpinError> {
+        self.core.build_query_artifact(active_query)
+    }
+
+    pub fn build_snapshot_artifact(
+        &self,
+        active_query: &[u8],
+        global_snapshot_units: &[Vec<u8>],
+    ) -> Result<CanonicalRouteArtifact, BoundedGlobalExactSpinError> {
+        validate_active_query(active_query)?;
+        validate_snapshot_units_for(
+            global_snapshot_units,
+            SnapshotContract::FrozenNoncommutingV2,
+        )?;
+        let input = observed_global_input_for(
+            active_query,
+            global_snapshot_units,
+            SnapshotContract::FrozenNoncommutingV2,
+        )?;
+        Ok(CanonicalRouteArtifact::ingest(&self.core.codec, &input)?)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn predict_pair_matched(
+        &self,
+        table: &SourceFreeTable,
+        base_overlay: &MultiscaleCountRadiusR4V1,
+        base_artifact: &CanonicalRouteArtifact,
+        left_snapshot_artifact: &CanonicalRouteArtifact,
+        right_snapshot_artifact: &CanonicalRouteArtifact,
+        active_query: &[u8],
+    ) -> Result<MatchedBoundedGlobalNoncommutingPairPrediction, BoundedGlobalExactSpinError> {
+        self.validate_binding(table, base_overlay)?;
+        let population_audit = self.population_audit()?;
+        let operator_cid = self.artifact_cid()?;
+        let left = self.core.predict_matched_for(
+            table,
+            base_overlay,
+            base_artifact,
+            left_snapshot_artifact,
+            active_query,
+            SnapshotContract::FrozenNoncommutingV2,
+            &operator_cid,
+        )?;
+        let right = self.core.predict_matched_for(
+            table,
+            base_overlay,
+            base_artifact,
+            right_snapshot_artifact,
+            active_query,
+            SnapshotContract::FrozenNoncommutingV2,
+            &operator_cid,
+        )?;
+
+        let left_payloads = left
+            .snapshot_entries
+            .iter()
+            .map(|entry| entry.payload_hex.as_str())
+            .collect::<Vec<_>>();
+        let right_payloads = right
+            .snapshot_entries
+            .iter()
+            .map(|entry| entry.payload_hex.as_str())
+            .collect::<Vec<_>>();
+        let expected_left = NONCOMMUTING_LEFT_SNAPSHOT
+            .iter()
+            .map(hex::encode)
+            .collect::<Vec<_>>();
+        let expected_right = NONCOMMUTING_RIGHT_SNAPSHOT
+            .iter()
+            .map(hex::encode)
+            .collect::<Vec<_>>();
+        if left_payloads != expected_left.iter().map(String::as_str).collect::<Vec<_>>()
+            || right_payloads
+                != expected_right
+                    .iter()
+                    .map(String::as_str)
+                    .collect::<Vec<_>>()
+        {
+            return Err(BoundedGlobalExactSpinError::Invalid(
+                "paired global carriers are not in the canonical selected orientation".to_owned(),
+            ));
+        }
+
+        let left_winner =
+            self.candidate_token_for_anchor_hex(&population_audit.left_winner_anchor_hex)?;
+        let right_winner =
+            self.candidate_token_for_anchor_hex(&population_audit.right_winner_anchor_hex)?;
+        let left_permuted = self.other_candidate_token(left_winner)?;
+        let right_permuted = self.other_candidate_token(right_winner)?;
+        let exact_fold_distinct = left.global_result == population_audit.left_fold
+            && right.global_result == population_audit.right_fold
+            && left.global_result != right.global_result;
+        let real_winners_incompatible = left.real.token == left_winner
+            && right.real.token == right_winner
+            && left_winner != right_winner;
+        let permuted_winners_incompatible = left.class_operator_permuted.token == left_permuted
+            && right.class_operator_permuted.token == right_permuted
+            && left_permuted != right_permuted;
+        let common_lower_artifact =
+            left.base_lower_artifact_manifest_kappa == right.base_lower_artifact_manifest_kappa;
+        let support_matched_between_cases = left.real.support_tokens == right.real.support_tokens
+            && left.identity_disabled.support_tokens == right.identity_disabled.support_tokens
+            && left.class_operator_permuted.support_tokens
+                == right.class_operator_permuted.support_tokens;
+        let work_matched_between_cases = left.real.work == right.real.work
+            && left.identity_disabled.work == right.identity_disabled.work
+            && left.class_operator_permuted.work == right.class_operator_permuted.work;
+        let left_costs_reproduced =
+            prediction_reproduces_population_costs(&left, &population_audit.left_candidate_costs);
+        let right_costs_reproduced =
+            prediction_reproduces_population_costs(&right, &population_audit.right_candidate_costs);
+        let hard_gate = population_audit.noncommutation.products_distinct
+            && population_audit.distinct_nonidentity_folds
+            && population_audit.complete_phase_totals_equal
+            && population_audit.incompatible_unique_winners
+            && population_audit.one_transposition
+            && exact_fold_distinct
+            && real_winners_incompatible
+            && permuted_winners_incompatible
+            && common_lower_artifact
+            && support_matched_between_cases
+            && work_matched_between_cases
+            && left_costs_reproduced
+            && right_costs_reproduced
+            && left.source_snapshot_artifact_manifest_kappa
+                != right.source_snapshot_artifact_manifest_kappa
+            && left.global_epoch != right.global_epoch
+            && left.global_root_kappa != right.global_root_kappa
+            && left.identity_disabled.token == right.identity_disabled.token
+            && left.support_matched
+            && right.support_matched
+            && left.work_matched
+            && right.work_matched
+            && left.support_reversal_invariant
+            && right.support_reversal_invariant
+            && left.coherent_relabel_equivariant
+            && right.coherent_relabel_equivariant
+            && left.forbidden_reads.total() == 0
+            && right.forbidden_reads.total() == 0
+            && left.operator_abstention.is_none()
+            && right.operator_abstention.is_none()
+            && left.real.unique_minimum == Some(left.real.token)
+            && right.real.unique_minimum == Some(right.real.token)
+            && left.class_operator_permuted.unique_minimum
+                == Some(left.class_operator_permuted.token)
+            && right.class_operator_permuted.unique_minimum
+                == Some(right.class_operator_permuted.token)
+            && left.identity_disabled.unique_minimum.is_none()
+            && right.identity_disabled.unique_minimum.is_none();
+        if !hard_gate {
+            return Err(BoundedGlobalExactSpinError::Invalid(
+                "paired noncommuting exact-spin hard gate stopped before decoding".to_owned(),
+            ));
+        }
+
+        Ok(MatchedBoundedGlobalNoncommutingPairPrediction {
+            population_audit,
+            left,
+            right,
+            exact_fold_distinct,
+            real_winners_incompatible,
+            permuted_winners_incompatible,
+            common_lower_artifact,
+            support_matched_between_cases,
+            work_matched_between_cases,
+        })
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn continue_pair_matched(
+        &self,
+        table: &SourceFreeTable,
+        base_overlay: &MultiscaleCountRadiusR4V1,
+        base_artifact: &CanonicalRouteArtifact,
+        left_snapshot_artifact: &CanonicalRouteArtifact,
+        right_snapshot_artifact: &CanonicalRouteArtifact,
+        active_query: &[u8],
+        max_units: usize,
+    ) -> Result<MatchedBoundedGlobalNoncommutingPairContinuation, BoundedGlobalExactSpinError> {
+        validate_continuation_bound(max_units)?;
+        let first_pair = self.predict_pair_matched(
+            table,
+            base_overlay,
+            base_artifact,
+            left_snapshot_artifact,
+            right_snapshot_artifact,
+            active_query,
+        )?;
+        let left = continue_from_prediction(
+            table,
+            base_overlay,
+            active_query,
+            max_units,
+            first_pair.left.clone(),
+        )?;
+        let right = continue_from_prediction(
+            table,
+            base_overlay,
+            active_query,
+            max_units,
+            first_pair.right.clone(),
+        )?;
+        let continuations = [
+            &left.real,
+            &left.identity_disabled,
+            &left.class_operator_permuted,
+            &right.real,
+            &right.identity_disabled,
+            &right.class_operator_permuted,
+        ];
+        for continuation in continuations {
+            let exact_period = continuation.tokens.get(1).is_some_and(|token| {
+                table
+                    .decode_tokens(&[*token])
+                    .is_ok_and(|bytes| bytes == b".")
+            });
+            if continuation.stop != ContinuationStop::EndOfDocument
+                || continuation.tokens.len() != 2
+                || continuation.tokens[0] == continuation.tokens[1]
+                || !exact_period
+            {
+                return Err(BoundedGlobalExactSpinError::Invalid(
+                    "paired noncommuting exact-spin continuation did not append period and reach EOS"
+                        .to_owned(),
+                ));
+            }
+        }
+        Ok(MatchedBoundedGlobalNoncommutingPairContinuation {
+            first_pair,
+            left,
+            right,
+        })
+    }
+
+    fn validate_binding(
+        &self,
+        table: &SourceFreeTable,
+        base_overlay: &MultiscaleCountRadiusR4V1,
+    ) -> Result<(), BoundedGlobalExactSpinError> {
+        self.core.validate_binding(table, base_overlay)?;
+        if self.grammar_kappa != blake3_label(NONCOMMUTING_GRAMMAR_IDENTITY_BYTES)
+            || self.routing_policy_kappa
+                != blake3_label(NONCOMMUTING_ROUTING_POLICY_IDENTITY.as_bytes())
+            || self.population_policy_kappa
+                != blake3_label(NONCOMMUTING_POPULATION_POLICY_IDENTITY.as_bytes())
+        {
+            return Err(BoundedGlobalExactSpinError::Invalid(
+                "bounded-global noncommuting operator binding does not reproduce".to_owned(),
+            ));
+        }
+        Ok(())
+    }
+
+    fn candidate_token_for_anchor_hex(
+        &self,
+        anchor_hex: &str,
+    ) -> Result<u32, BoundedGlobalExactSpinError> {
+        self.core
+            .prototypes
+            .iter()
+            .find(|prototype| hex::encode(&prototype.anchor_bytes) == anchor_hex)
+            .map(|prototype| prototype.candidate_token)
+            .ok_or_else(|| {
+                BoundedGlobalExactSpinError::Invalid(
+                    "population audit winner is not a bound prototype anchor".to_owned(),
+                )
+            })
+    }
+
+    fn other_candidate_token(&self, token: u32) -> Result<u32, BoundedGlobalExactSpinError> {
+        let other = self
+            .core
+            .prototypes
+            .iter()
+            .filter(|prototype| prototype.candidate_token != token)
+            .map(|prototype| prototype.candidate_token)
+            .collect::<Vec<_>>();
+        if other.len() != 1 {
+            return Err(BoundedGlobalExactSpinError::Invalid(
+                "noncommuting permutation requires exactly one other candidate".to_owned(),
+            ));
+        }
+        Ok(other[0])
+    }
+}
+
+fn prediction_reproduces_population_costs(
+    prediction: &MatchedBoundedGlobalExactSpinPrediction,
+    expected: &[BoundedGlobalNoncommutingCandidateCostTrace],
+) -> bool {
+    if prediction.candidate_evidence.len() != BOUNDED_GLOBAL_EXACT_SPIN_CANDIDATES
+        || expected.len() != BOUNDED_GLOBAL_EXACT_SPIN_CANDIDATES
+    {
+        return false;
+    }
+    prediction.candidate_evidence.iter().all(|evidence| {
+        let Some(real) = expected
+            .iter()
+            .find(|row| row.prototype_anchor_hex == evidence.prototype_anchor_hex)
+        else {
+            return false;
+        };
+        let Some(permuted) = expected
+            .iter()
+            .find(|row| row.prototype_anchor_hex != evidence.prototype_anchor_hex)
+        else {
+            return false;
+        };
+        evidence.real_relative_state == real.relative_state
+            && evidence.real_measured_cost == real.cost
+            && evidence.real_ranking_cost == Some(real.cost)
+            && evidence.identity_disabled_measured_cost == real.cost
+            && evidence.identity_disabled_ranking_cost.is_none()
+            && evidence.permuted_relative_state == permuted.relative_state
+            && evidence.permuted_measured_cost == permuted.cost
+            && evidence.permuted_ranking_cost == Some(permuted.cost)
+    })
 }
 
 #[derive(Debug, Clone)]
@@ -1454,6 +2100,42 @@ struct OperatorWire {
 }
 
 #[derive(Serialize)]
+struct NoncommutingOperatorWire {
+    schema: u32,
+    domain: &'static str,
+    table_artifact_cid: String,
+    base_overlay_artifact_cid: String,
+    construction_ids: Vec<String>,
+    construction_text_cids: Vec<String>,
+    codec_kappa: String,
+    vocabulary_kappa: String,
+    route_manifest_kappa: String,
+    h4_root_table_kappa: String,
+    h4_multiplication_table_kappa: String,
+    grammar_kappa: String,
+    routing_policy_kappa: String,
+    spin_map_kappa: String,
+    chart_profile_kappa: String,
+    population_policy_kappa: String,
+    construction_identity_scope: &'static str,
+    held_out_identity_scope: &'static str,
+    active_turn_id: &'static str,
+    active_query_hex: String,
+    construction_global_unit_hex: String,
+    duplicate_pool_hex: [String; 11],
+    left_snapshot_hex: [String; 4],
+    right_snapshot_hex: [String; 4],
+    candidates: usize,
+    snapshot_entries: usize,
+    snapshot_classes: usize,
+    reuse_hits: u64,
+    max_query_bytes: usize,
+    max_operator_bytes: usize,
+    prototypes: Vec<BoundedGlobalExactSpinPrototypeTrace>,
+    population_audit: BoundedGlobalNoncommutingPopulationAudit,
+}
+
+#[derive(Serialize)]
 struct SpinMapWire {
     schema: u32,
     domain: &'static str,
@@ -1524,12 +2206,13 @@ fn construction_geometry_input(
     })
 }
 
-fn observed_global_input(
+fn observed_global_input_for(
     active_query: &[u8],
     global_snapshot_units: &[Vec<u8>],
+    contract: SnapshotContract,
 ) -> Result<ConversationInput, BoundedGlobalExactSpinError> {
     validate_active_query(active_query)?;
-    validate_snapshot_units(global_snapshot_units)?;
+    validate_snapshot_units_for(global_snapshot_units, contract)?;
     Ok(ConversationInput {
         identity_scope: HELD_OUT_IDENTITY_SCOPE.to_owned(),
         global_epoch: canonical_global_epoch(global_snapshot_units)?,
@@ -1572,9 +2255,18 @@ fn validate_active_query(active_query: &[u8]) -> Result<(), BoundedGlobalExactSp
     Ok(())
 }
 
-fn validate_snapshot_units(units: &[Vec<u8>]) -> Result<(), BoundedGlobalExactSpinError> {
-    let left = LEFT_SNAPSHOT.map(<[u8]>::to_vec).to_vec();
-    let right = RIGHT_SNAPSHOT.map(<[u8]>::to_vec).to_vec();
+fn validate_snapshot_units_for(
+    units: &[Vec<u8>],
+    contract: SnapshotContract,
+) -> Result<(), BoundedGlobalExactSpinError> {
+    let (left, right) = match contract {
+        SnapshotContract::FrozenCommutingV1 => (LEFT_SNAPSHOT, RIGHT_SNAPSHOT),
+        SnapshotContract::FrozenNoncommutingV2 => {
+            (NONCOMMUTING_LEFT_SNAPSHOT, NONCOMMUTING_RIGHT_SNAPSHOT)
+        }
+    };
+    let left = left.map(<[u8]>::to_vec).to_vec();
+    let right = right.map(<[u8]>::to_vec).to_vec();
     if units != left && units != right {
         return Err(BoundedGlobalExactSpinError::Invalid(
             "global snapshot differs from both frozen order controls".to_owned(),
@@ -1603,6 +2295,533 @@ fn exact_state_from_entry(
         fiber_q29: i64::from(entry.spin.fiber_q29),
         torsion_q29: i64::from(entry.spin.torsion_q29),
     })
+}
+
+fn build_noncommuting_population_audit(
+    core: &BoundedGlobalExactSpinR4V1,
+    population_policy_kappa: &str,
+) -> Result<BoundedGlobalNoncommutingPopulationAudit, BoundedGlobalExactSpinError> {
+    if population_policy_kappa != blake3_label(NONCOMMUTING_POPULATION_POLICY_IDENTITY.as_bytes()) {
+        return Err(BoundedGlobalExactSpinError::Invalid(
+            "noncommuting population policy identity does not reproduce".to_owned(),
+        ));
+    }
+
+    let helix = prototype_population_lexeme(core, b"helix")?;
+    let prism = prototype_population_lexeme(core, b"prism")?;
+    let mut pool = Vec::with_capacity(NONCOMMUTING_DUPLICATE_POOL.len());
+    for bytes in NONCOMMUTING_DUPLICATE_POOL {
+        if PROTOTYPE_BINDINGS
+            .iter()
+            .any(|(_, anchor)| *anchor == bytes)
+        {
+            return Err(BoundedGlobalExactSpinError::Invalid(
+                "noncommuting duplicate pool contains a prototype anchor".to_owned(),
+            ));
+        }
+        pool.push(resolve_population_lexeme(core, bytes)?);
+    }
+    if pool
+        .windows(2)
+        .any(|pair| pair[0].lexical_unit_id >= pair[1].lexical_unit_id)
+    {
+        return Err(BoundedGlobalExactSpinError::Invalid(
+            "noncommuting duplicate pool is not in canonical lexical-unit order".to_owned(),
+        ));
+    }
+
+    let mut lexemes = BTreeMap::<u32, PopulationLexeme>::new();
+    for lexeme in pool.iter().chain([&helix, &prism]) {
+        if lexemes
+            .insert(lexeme.lexical_unit_id, lexeme.clone())
+            .is_some()
+        {
+            return Err(BoundedGlobalExactSpinError::Invalid(
+                "noncommuting population lexeme IDs alias".to_owned(),
+            ));
+        }
+    }
+
+    let mut rows_examined = Vec::new();
+    let mut selected = None;
+    for duplicate in &pool {
+        let direct_noncommutation =
+            population_has_direct_noncommutation([duplicate, &helix, &prism], &core.h4_table)?;
+        let permutations = unique_permutations_4([
+            duplicate.lexical_unit_id,
+            duplicate.lexical_unit_id,
+            helix.lexical_unit_id,
+            prism.lexical_unit_id,
+        ]);
+        let mut pairs_examined = 0_u32;
+        let mut selected_pair_indices = None;
+
+        if duplicate.spin != helix.spin
+            && duplicate.spin != prism.spin
+            && helix.spin != prism.spin
+            && direct_noncommutation
+        {
+            'pairs: for left_index in 0..permutations.len() {
+                for right_index in left_index + 1..permutations.len() {
+                    pairs_examined = pairs_examined
+                        .checked_add(1)
+                        .ok_or(BoundedGlobalExactSpinError::ArithmeticOverflow)?;
+                    let left_ids = permutations[left_index];
+                    let right_ids = permutations[right_index];
+                    let Some(transposed_ordinals) = one_transposition(left_ids, right_ids) else {
+                        continue;
+                    };
+                    let left_operand = lexemes
+                        .get(&left_ids[usize::from(transposed_ordinals[0])])
+                        .ok_or_else(|| {
+                            BoundedGlobalExactSpinError::Invalid(
+                                "population transposition references an unknown left operand"
+                                    .to_owned(),
+                            )
+                        })?;
+                    let right_operand = lexemes
+                        .get(&left_ids[usize::from(transposed_ordinals[1])])
+                        .ok_or_else(|| {
+                            BoundedGlobalExactSpinError::Invalid(
+                                "population transposition references an unknown right operand"
+                                    .to_owned(),
+                            )
+                        })?;
+                    let left_then_right = left_operand
+                        .state
+                        .compose(right_operand.state, &core.h4_table)?;
+                    let right_then_left = right_operand
+                        .state
+                        .compose(left_operand.state, &core.h4_table)?;
+                    let identity = ExactSpinState::identity(&core.h4_table)?;
+                    if left_operand.state.h4 == identity.h4
+                        || right_operand.state.h4 == identity.h4
+                        || left_then_right.h4 == right_then_left.h4
+                    {
+                        continue;
+                    }
+                    let left_fold = fold_population_ids(left_ids, &lexemes, &core.h4_table)?;
+                    let right_fold = fold_population_ids(right_ids, &lexemes, &core.h4_table)?;
+                    if left_fold == identity || right_fold == identity || left_fold == right_fold {
+                        continue;
+                    }
+                    let left_costs = [
+                        population_candidate_cost(core, &core.prototypes, b"helix", left_fold)?,
+                        population_candidate_cost(core, &core.prototypes, b"prism", left_fold)?,
+                    ];
+                    let right_costs = [
+                        population_candidate_cost(core, &core.prototypes, b"helix", right_fold)?,
+                        population_candidate_cost(core, &core.prototypes, b"prism", right_fold)?,
+                    ];
+                    let Some(left_winner) =
+                        unique_exact_cost_winner(&[left_costs[0].cost, left_costs[1].cost])
+                    else {
+                        continue;
+                    };
+                    let Some(right_winner) =
+                        unique_exact_cost_winner(&[right_costs[0].cost, right_costs[1].cost])
+                    else {
+                        continue;
+                    };
+                    if left_winner == right_winner {
+                        continue;
+                    }
+                    selected_pair_indices = Some([
+                        u32::try_from(left_index)
+                            .map_err(|_| BoundedGlobalExactSpinError::ArithmeticOverflow)?,
+                        u32::try_from(right_index)
+                            .map_err(|_| BoundedGlobalExactSpinError::ArithmeticOverflow)?,
+                    ]);
+                    selected = Some(PopulationSelection {
+                        duplicate: duplicate.clone(),
+                        left_index,
+                        right_index,
+                        left_ids,
+                        right_ids,
+                        left_fold,
+                        right_fold,
+                        left_costs,
+                        right_costs,
+                        left_winner,
+                        right_winner,
+                        left_operand: left_operand.clone(),
+                        right_operand: right_operand.clone(),
+                        left_then_right,
+                        right_then_left,
+                    });
+                    break 'pairs;
+                }
+            }
+        }
+
+        rows_examined.push(BoundedGlobalNoncommutingPoolRowTrace {
+            duplicate_hex: hex::encode(&duplicate.bytes),
+            duplicate_lexical_unit_id: duplicate.lexical_unit_id,
+            duplicate_address_kappa: duplicate.address_kappa.clone(),
+            duplicate_class_kappa: duplicate.class_kappa.clone(),
+            duplicate_state: duplicate.state.trace(&core.h4_table)?,
+            direct_noncommutation,
+            unique_permutations: u32::try_from(permutations.len())
+                .map_err(|_| BoundedGlobalExactSpinError::ArithmeticOverflow)?,
+            permutation_pairs_examined: pairs_examined,
+            selected_pair_indices,
+        });
+        if selected.is_some() {
+            break;
+        }
+    }
+
+    let selected = selected.ok_or_else(|| {
+        BoundedGlobalExactSpinError::Invalid(
+            "canonical construction pool has no noncommuting exact-spin population".to_owned(),
+        )
+    })?;
+    let left_snapshot = population_ids_to_hex(selected.left_ids, &lexemes)?;
+    let right_snapshot = population_ids_to_hex(selected.right_ids, &lexemes)?;
+    let transposed_ordinals =
+        one_transposition(selected.left_ids, selected.right_ids).ok_or_else(|| {
+            BoundedGlobalExactSpinError::Invalid(
+                "selected noncommuting pair is not one exact transposition".to_owned(),
+            )
+        })?;
+    let left_winner_anchor_hex = selected.left_costs[selected.left_winner]
+        .prototype_anchor_hex
+        .clone();
+    let right_winner_anchor_hex = selected.right_costs[selected.right_winner]
+        .prototype_anchor_hex
+        .clone();
+
+    Ok(BoundedGlobalNoncommutingPopulationAudit {
+        schema: 1,
+        domain: "uor-r4.bounded-global-noncommuting-population-audit/1".to_owned(),
+        population_policy_kappa: population_policy_kappa.to_owned(),
+        duplicate_pool_hex: NONCOMMUTING_DUPLICATE_POOL.map(hex::encode).to_vec(),
+        rows_examined,
+        selected_duplicate_hex: hex::encode(&selected.duplicate.bytes),
+        selected_duplicate_lexical_unit_id: selected.duplicate.lexical_unit_id,
+        selected_duplicate_class_kappa: selected.duplicate.class_kappa,
+        selected_pair_indices: [
+            u32::try_from(selected.left_index)
+                .map_err(|_| BoundedGlobalExactSpinError::ArithmeticOverflow)?,
+            u32::try_from(selected.right_index)
+                .map_err(|_| BoundedGlobalExactSpinError::ArithmeticOverflow)?,
+        ],
+        left_snapshot_hex: left_snapshot,
+        right_snapshot_hex: right_snapshot,
+        one_transposition: true,
+        transposed_ordinals,
+        noncommutation: BoundedGlobalNoncommutingWitnessTrace {
+            left_operand_hex: hex::encode(&selected.left_operand.bytes),
+            right_operand_hex: hex::encode(&selected.right_operand.bytes),
+            left_operand: selected.left_operand.state.trace(&core.h4_table)?,
+            right_operand: selected.right_operand.state.trace(&core.h4_table)?,
+            left_then_right: selected.left_then_right.trace(&core.h4_table)?,
+            right_then_left: selected.right_then_left.trace(&core.h4_table)?,
+            products_distinct: selected.left_then_right.h4 != selected.right_then_left.h4,
+        },
+        left_fold: selected.left_fold.trace(&core.h4_table)?,
+        right_fold: selected.right_fold.trace(&core.h4_table)?,
+        distinct_nonidentity_folds: selected.left_fold != selected.right_fold
+            && selected.left_fold != ExactSpinState::identity(&core.h4_table)?
+            && selected.right_fold != ExactSpinState::identity(&core.h4_table)?,
+        complete_phase_totals_equal: selected.left_fold.fiber_q29 == selected.right_fold.fiber_q29
+            && selected.left_fold.torsion_q29 == selected.right_fold.torsion_q29,
+        left_candidate_costs: selected.left_costs.to_vec(),
+        right_candidate_costs: selected.right_costs.to_vec(),
+        left_winner_anchor_hex: left_winner_anchor_hex.clone(),
+        right_winner_anchor_hex: right_winner_anchor_hex.clone(),
+        incompatible_unique_winners: left_winner_anchor_hex != right_winner_anchor_hex,
+    })
+}
+
+fn frozen_noncommuting_population_matches(
+    audit: &BoundedGlobalNoncommutingPopulationAudit,
+) -> bool {
+    let state =
+        |scaled: [i64; 4], fiber_q29: i64, torsion_q29: i64| BoundedGlobalExactSpinStateTrace {
+            h4_coordinate: H4RootCoordinate {
+                scaled_zphi_quaternion: [
+                    [scaled[0], 0],
+                    [scaled[1], 0],
+                    [scaled[2], 0],
+                    [scaled[3], 0],
+                ],
+            },
+            fiber_q29,
+            torsion_q29,
+        };
+    let cost =
+        |angular_shell, fiber_distance_q29, torsion_distance_q29| BoundedGlobalExactSpinCost {
+            angular_shell,
+            fiber_distance_q29,
+            torsion_distance_q29,
+        };
+    let cost_matches = |row: &BoundedGlobalNoncommutingCandidateCostTrace,
+                        anchor: &[u8],
+                        relative_state: BoundedGlobalExactSpinStateTrace,
+                        expected_cost: BoundedGlobalExactSpinCost| {
+        row.prototype_anchor_hex == hex::encode(anchor)
+            && row.relative_state == relative_state
+            && row.cost == expected_cost
+    };
+
+    let left_costs_match = audit.left_candidate_costs.len() == 2
+        && cost_matches(
+            &audit.left_candidate_costs[0],
+            b"helix",
+            state([-2, 0, 0, 0], 61_239_177, -5_831_083),
+            cost(H4S3AngularShell::Antipodal, 61_239_177, 5_831_083),
+        )
+        && cost_matches(
+            &audit.left_candidate_costs[1],
+            b"prism",
+            state([-1, -1, -1, -1], 55_205_017, -5_262_467),
+            cost(H4S3AngularShell::Degrees120, 55_205_017, 5_262_467),
+        );
+    let right_costs_match = audit.right_candidate_costs.len() == 2
+        && cost_matches(
+            &audit.right_candidate_costs[0],
+            b"helix",
+            state([0, 0, 2, 0], 61_239_177, -5_831_083),
+            cost(H4S3AngularShell::Orthogonal, 61_239_177, 5_831_083),
+        )
+        && cost_matches(
+            &audit.right_candidate_costs[1],
+            b"prism",
+            state([-1, -1, 1, 1], 55_205_017, -5_262_467),
+            cost(H4S3AngularShell::Degrees120, 55_205_017, 5_262_467),
+        );
+    let rows_match = audit.rows_examined.len() == 2
+        && audit.rows_examined[0].duplicate_hex == hex::encode(b".")
+        && audit.rows_examined[0]
+            .duplicate_state
+            .h4_coordinate
+            .scaled_zphi_quaternion
+            == [[2, 0], [0, 0], [0, 0], [0, 0]]
+        && !audit.rows_examined[0].direct_noncommutation
+        && audit.rows_examined[0].selected_pair_indices.is_none()
+        && audit.rows_examined[1].duplicate_hex == hex::encode(b"Lena")
+        && audit.rows_examined[1].direct_noncommutation
+        && audit.rows_examined[1].selected_pair_indices == Some([0, 2]);
+
+    rows_match
+        && audit.selected_duplicate_hex == hex::encode(b"Lena")
+        && audit.selected_pair_indices == [0, 2]
+        && audit.left_snapshot_hex == NONCOMMUTING_LEFT_SNAPSHOT.map(hex::encode)
+        && audit.right_snapshot_hex == NONCOMMUTING_RIGHT_SNAPSHOT.map(hex::encode)
+        && audit.one_transposition
+        && audit.transposed_ordinals == [1, 2]
+        && audit.noncommutation.left_operand_hex == hex::encode(b"Lena")
+        && audit.noncommutation.right_operand_hex == hex::encode(b"helix")
+        && audit.noncommutation.left_operand == state([0, 2, 0, 0], 7_017_092, -673_944)
+        && audit.noncommutation.right_operand == state([1, 1, 1, 1], 41_170_833, -3_914_579)
+        && audit.noncommutation.left_then_right == state([-1, 1, -1, 1], 48_187_925, -4_588_523)
+        && audit.noncommutation.right_then_left == state([-1, 1, 1, -1], 48_187_925, -4_588_523)
+        && audit.noncommutation.products_distinct
+        && audit.left_fold == state([-1, -1, -1, -1], 102_410_010, -9_745_662)
+        && audit.right_fold == state([-1, -1, 1, 1], 102_410_010, -9_745_662)
+        && audit.distinct_nonidentity_folds
+        && audit.complete_phase_totals_equal
+        && left_costs_match
+        && right_costs_match
+        && audit.left_winner_anchor_hex == hex::encode(b"prism")
+        && audit.right_winner_anchor_hex == hex::encode(b"helix")
+        && audit.incompatible_unique_winners
+}
+
+fn resolve_population_lexeme(
+    core: &BoundedGlobalExactSpinR4V1,
+    bytes: &[u8],
+) -> Result<PopulationLexeme, BoundedGlobalExactSpinError> {
+    let encoded = core.codec.encode(0, 0, bytes)?;
+    if encoded.units.len() != 1 || !encoded.trailing_bytes.is_empty() {
+        return Err(BoundedGlobalExactSpinError::Invalid(
+            "population pool surface is not one exact canonical lexical unit".to_owned(),
+        ));
+    }
+    let lexical_unit_id = encoded.units[0].unit_id;
+    let address = core
+        .construction_artifact
+        .lexical_route_address_from_validated_artifact(lexical_unit_id)?
+        .ok_or_else(|| {
+            BoundedGlobalExactSpinError::Invalid(
+                "population pool surface has no registered address".to_owned(),
+            )
+        })?;
+    let value = core
+        .construction_artifact
+        .lexical_route_value_for_address_from_validated_artifact(&address)?
+        .ok_or_else(|| {
+            BoundedGlobalExactSpinError::Invalid(
+                "population pool address has no payload inversion".to_owned(),
+            )
+        })?;
+    if value.payload_bytes != bytes {
+        return Err(BoundedGlobalExactSpinError::Invalid(
+            "population pool address payload inversion mismatches".to_owned(),
+        ));
+    }
+    Ok(PopulationLexeme {
+        bytes: bytes.to_vec(),
+        lexical_unit_id,
+        address_kappa: value.address_kappa,
+        class_kappa: shared_class_kappa(address.spin)?,
+        spin: spin_trace(address.spin),
+        state: exact_state_from_address(&address, &core.h4_table)?,
+    })
+}
+
+fn prototype_population_lexeme(
+    core: &BoundedGlobalExactSpinR4V1,
+    anchor: &[u8],
+) -> Result<PopulationLexeme, BoundedGlobalExactSpinError> {
+    let prototype = core
+        .prototypes
+        .iter()
+        .find(|prototype| prototype.anchor_bytes == anchor)
+        .ok_or_else(|| {
+            BoundedGlobalExactSpinError::Invalid(
+                "noncommuting population omitted a prototype anchor".to_owned(),
+            )
+        })?;
+    Ok(PopulationLexeme {
+        bytes: prototype.anchor_bytes.clone(),
+        lexical_unit_id: prototype.anchor_lexical_unit_id,
+        address_kappa: prototype.anchor_address_kappa.clone(),
+        class_kappa: prototype.anchor_class_kappa.clone(),
+        spin: spin_trace(prototype.anchor_address.spin),
+        state: prototype.anchor_state,
+    })
+}
+
+fn population_has_direct_noncommutation(
+    factors: [&PopulationLexeme; 3],
+    table: &H4BinaryIcosahedralClosure,
+) -> Result<bool, BoundedGlobalExactSpinError> {
+    let identity = ExactSpinState::identity(table)?;
+    for left_index in 0..factors.len() {
+        for right_index in left_index + 1..factors.len() {
+            let left = factors[left_index].state;
+            let right = factors[right_index].state;
+            if left.h4 == identity.h4 || right.h4 == identity.h4 {
+                continue;
+            }
+            if left.compose(right, table)?.h4 != right.compose(left, table)?.h4 {
+                return Ok(true);
+            }
+        }
+    }
+    Ok(false)
+}
+
+fn unique_permutations_4(mut values: [u32; 4]) -> Vec<[u32; 4]> {
+    values.sort_unstable();
+    let mut permutations = vec![values];
+    while next_lexicographic_permutation(&mut values) {
+        permutations.push(values);
+    }
+    permutations
+}
+
+fn next_lexicographic_permutation(values: &mut [u32]) -> bool {
+    let Some(pivot) = (0..values.len().saturating_sub(1))
+        .rev()
+        .find(|index| values[*index] < values[index + 1])
+    else {
+        return false;
+    };
+    let Some(successor) = (pivot + 1..values.len())
+        .rev()
+        .find(|index| values[*index] > values[pivot])
+    else {
+        return false;
+    };
+    values.swap(pivot, successor);
+    values[pivot + 1..].reverse();
+    true
+}
+
+fn one_transposition(left: [u32; 4], right: [u32; 4]) -> Option<[u16; 2]> {
+    let changed = (0..left.len())
+        .filter(|index| left[*index] != right[*index])
+        .collect::<Vec<_>>();
+    if changed.len() != 2
+        || left[changed[0]] != right[changed[1]]
+        || left[changed[1]] != right[changed[0]]
+    {
+        return None;
+    }
+    Some([
+        u16::try_from(changed[0]).ok()?,
+        u16::try_from(changed[1]).ok()?,
+    ])
+}
+
+fn fold_population_ids(
+    ids: [u32; 4],
+    lexemes: &BTreeMap<u32, PopulationLexeme>,
+    table: &H4BinaryIcosahedralClosure,
+) -> Result<ExactSpinState, BoundedGlobalExactSpinError> {
+    let mut fold = ExactSpinState::identity(table)?;
+    for id in ids {
+        let state = lexemes.get(&id).ok_or_else(|| {
+            BoundedGlobalExactSpinError::Invalid(
+                "population permutation references an unknown lexical unit".to_owned(),
+            )
+        })?;
+        fold = fold.compose(state.state, table)?;
+    }
+    Ok(fold)
+}
+
+fn population_candidate_cost(
+    core: &BoundedGlobalExactSpinR4V1,
+    prototypes: &[CandidatePrototype],
+    anchor: &[u8],
+    fold: ExactSpinState,
+) -> Result<BoundedGlobalNoncommutingCandidateCostTrace, BoundedGlobalExactSpinError> {
+    let prototype = prototypes
+        .iter()
+        .find(|prototype| prototype.anchor_bytes == anchor)
+        .ok_or_else(|| {
+            BoundedGlobalExactSpinError::Invalid(
+                "population cost omitted one prototype anchor".to_owned(),
+            )
+        })?;
+    let (relative, cost) =
+        candidate_relative_exact_cost(prototype.anchor_state, fold, &core.h4_table)?;
+    Ok(BoundedGlobalNoncommutingCandidateCostTrace {
+        prototype_anchor_hex: hex::encode(&prototype.anchor_bytes),
+        prototype_class_kappa: prototype.anchor_class_kappa.clone(),
+        relative_state: relative.trace(&core.h4_table)?,
+        cost,
+    })
+}
+
+fn unique_exact_cost_winner(costs: &[BoundedGlobalExactSpinCost; 2]) -> Option<usize> {
+    match costs[0].cmp(&costs[1]) {
+        std::cmp::Ordering::Less => Some(0),
+        std::cmp::Ordering::Greater => Some(1),
+        std::cmp::Ordering::Equal => None,
+    }
+}
+
+fn population_ids_to_hex(
+    ids: [u32; 4],
+    lexemes: &BTreeMap<u32, PopulationLexeme>,
+) -> Result<[String; 4], BoundedGlobalExactSpinError> {
+    let values = ids.map(|id| {
+        lexemes
+            .get(&id)
+            .map(|lexeme| hex::encode(&lexeme.bytes))
+            .ok_or_else(|| {
+                BoundedGlobalExactSpinError::Invalid(
+                    "population selection references an unknown lexical unit".to_owned(),
+                )
+            })
+    });
+    let [first, second, third, fourth] = values;
+    Ok([first?, second?, third?, fourth?])
 }
 
 fn exact_s3_spin_to_h4(
@@ -1679,6 +2898,16 @@ fn spin_map_kappa(
     Ok(blake3_label(&bytes))
 }
 
+fn candidate_relative_exact_cost(
+    class_state: ExactSpinState,
+    global_state: ExactSpinState,
+    table: &H4BinaryIcosahedralClosure,
+) -> Result<(ExactSpinState, BoundedGlobalExactSpinCost), BoundedGlobalExactSpinError> {
+    let relative = class_state.inverse(table)?.compose(global_state, table)?;
+    let cost = exact_cost(relative, table)?;
+    Ok((relative, cost))
+}
+
 fn exact_cost(
     relative: ExactSpinState,
     table: &H4BinaryIcosahedralClosure,
@@ -1718,34 +2947,33 @@ impl ExactSpinState {
 
 #[derive(Debug, Clone, Copy)]
 struct SelectionOutcome {
-    unique_minimum: Option<u32>,
+    unique_minimum_index: Option<usize>,
     minimum_cost: Option<BoundedGlobalExactSpinCost>,
     comparisons: u64,
 }
 
-fn select_candidate_rows(
-    rows: &[ArmCandidateRow],
+fn select_exact_costs(
+    costs: &[BoundedGlobalExactSpinCost],
 ) -> Result<SelectionOutcome, BoundedGlobalExactSpinError> {
-    if rows.len() != BOUNDED_GLOBAL_EXACT_SPIN_CANDIDATES {
+    if costs.len() != BOUNDED_GLOBAL_EXACT_SPIN_CANDIDATES {
         return Err(BoundedGlobalExactSpinError::Invalid(
-            "bounded-global candidate row count differs from the frozen support".to_owned(),
+            "bounded-global exact-cost count differs from the frozen support".to_owned(),
         ));
     }
-    let mut minimum: Option<(u32, BoundedGlobalExactSpinCost)> = None;
+    let mut minimum: Option<(usize, BoundedGlobalExactSpinCost)> = None;
     let mut tied = false;
     let mut comparisons = 0_u64;
-    for row in rows {
+    for (index, cost) in costs.iter().copied().enumerate() {
         comparisons = comparisons
             .checked_add(1)
             .ok_or(BoundedGlobalExactSpinError::ArithmeticOverflow)?;
-        let cost = row.measured_cost;
         match minimum {
             None => {
-                minimum = Some((row.token, cost));
+                minimum = Some((index, cost));
                 tied = false;
             }
             Some((_, current)) if cost < current => {
-                minimum = Some((row.token, cost));
+                minimum = Some((index, cost));
                 tied = false;
             }
             Some((_, current)) if cost == current => tied = true,
@@ -1753,7 +2981,7 @@ fn select_candidate_rows(
         }
     }
     Ok(SelectionOutcome {
-        unique_minimum: (!tied).then_some(minimum.map(|value| value.0)).flatten(),
+        unique_minimum_index: (!tied).then_some(minimum.map(|value| value.0)).flatten(),
         minimum_cost: (!tied).then_some(minimum.map(|value| value.1)).flatten(),
         comparisons,
     })
@@ -1763,6 +2991,7 @@ fn decision_from_selection(
     arm: BoundedGlobalExactSpinArm,
     fallback: u32,
     selection: SelectionOutcome,
+    ranked_tokens: &[u32],
     support_tokens: Vec<u32>,
     work: BoundedGlobalExactSpinWork,
 ) -> BoundedGlobalExactSpinDecision {
@@ -1776,10 +3005,13 @@ fn decision_from_selection(
             work,
         };
     }
+    let unique_minimum = selection
+        .unique_minimum_index
+        .and_then(|index| ranked_tokens.get(index).copied());
     BoundedGlobalExactSpinDecision {
         arm,
-        token: selection.unique_minimum.unwrap_or(fallback),
-        unique_minimum: selection.unique_minimum,
+        token: unique_minimum.unwrap_or(fallback),
+        unique_minimum,
         minimum_cost: selection.minimum_cost,
         support_tokens,
         work,
@@ -1813,11 +3045,14 @@ fn coherent_relabel_equivariant(
             ..rows[1].clone()
         },
     ];
-    let selection = select_candidate_rows(&relabeled)?;
+    let measured_costs = [relabeled[0].measured_cost, relabeled[1].measured_cost];
+    let ranked_tokens = [relabeled[0].token, relabeled[1].token];
+    let selection = select_exact_costs(&measured_costs)?;
     let relabeled_decision = decision_from_selection(
         BoundedGlobalExactSpinArm::Real,
         tokens[1],
         selection,
+        &ranked_tokens,
         tokens.to_vec(),
         BoundedGlobalExactSpinWork {
             local: MultiscaleCountRadiusWork::default(),
@@ -1975,6 +3210,79 @@ fn contains_bytes(bytes: &[u8], needle: &[u8]) -> bool {
 
 fn blake3_label(bytes: &[u8]) -> String {
     format!("blake3:{}", blake3::hash(bytes).to_hex())
+}
+
+fn validate_continuation_bound(max_units: usize) -> Result<(), BoundedGlobalExactSpinError> {
+    if max_units == 0 || max_units > MAX_CONTINUATION_UNITS {
+        return Err(BoundedGlobalExactSpinError::Invalid(format!(
+            "continuation bound must be 1..={MAX_CONTINUATION_UNITS}"
+        )));
+    }
+    Ok(())
+}
+
+fn continue_from_prediction(
+    table: &SourceFreeTable,
+    base_overlay: &MultiscaleCountRadiusR4V1,
+    active_query: &[u8],
+    max_units: usize,
+    first_decision: MatchedBoundedGlobalExactSpinPrediction,
+) -> Result<MatchedBoundedGlobalExactSpinContinuation, BoundedGlobalExactSpinError> {
+    validate_continuation_bound(max_units)?;
+    if first_decision.operator_abstention.is_some()
+        || !first_decision.support_matched
+        || !first_decision.work_matched
+        || !first_decision.support_reversal_invariant
+        || !first_decision.coherent_relabel_equivariant
+        || first_decision.real.unique_minimum.is_none()
+        || first_decision
+            .class_operator_permuted
+            .unique_minimum
+            .is_none()
+        || first_decision.identity_disabled.unique_minimum.is_some()
+        || first_decision.forbidden_reads.total() != 0
+    {
+        return Err(BoundedGlobalExactSpinError::Invalid(
+            "bounded-global hard gate stopped before decoding".to_owned(),
+        ));
+    }
+    let mut initial_context = vec![BOS_TOKEN];
+    initial_context.extend(table.encode_text(active_query)?);
+    let mut real = ContinuationState::new(initial_context.clone());
+    let mut disabled = ContinuationState::new(initial_context.clone());
+    let mut permuted = ContinuationState::new(initial_context);
+    real.accept(first_decision.real.token);
+    disabled.accept(first_decision.identity_disabled.token);
+    permuted.accept(first_decision.class_operator_permuted.token);
+    while real.can_step(max_units) || disabled.can_step(max_units) || permuted.can_step(max_units) {
+        if real.can_step(max_units) {
+            real.accept(
+                table
+                    .predict_multiscale_count_radius(&real.context, base_overlay)?
+                    .geometric_token,
+            );
+        }
+        if disabled.can_step(max_units) {
+            disabled.accept(
+                table
+                    .predict_multiscale_count_radius(&disabled.context, base_overlay)?
+                    .geometric_token,
+            );
+        }
+        if permuted.can_step(max_units) {
+            permuted.accept(
+                table
+                    .predict_multiscale_count_radius(&permuted.context, base_overlay)?
+                    .geometric_token,
+            );
+        }
+    }
+    Ok(MatchedBoundedGlobalExactSpinContinuation {
+        first_decision,
+        real: real.finish(table)?,
+        identity_disabled: disabled.finish(table)?,
+        class_operator_permuted: permuted.finish(table)?,
+    })
 }
 
 #[derive(Debug, Clone)]

@@ -84,9 +84,10 @@ No second #953 formula, axis, prompt, corpus run, or representation is
 permitted. #973 has retained one bounded prior-prefix copy mechanism and one
 bounded construction-bound exact-descriptor selector at each of paragraph and
 conversation scope. Its first bounded-global exact-spin relation then failed
-target-free because the frozen swapped states commute. A newly frozen
-noncommuting relation/population repair and later corpus qualification remain
-active; #954 remains blocked. No new H4,
+target-free because the frozen swapped states commute. The independently
+frozen V2 repair subsequently retained one bounded noncommuting exact-spin
+mechanism. Corpus induction and final requalification remain active; #954
+remains blocked. No new H4,
 SpiralCore, harmonic, algebraic, placement, transport, or scale qualifier is
 eligible outside its exposed issue.
 
@@ -180,8 +181,9 @@ table-tie intervention. That intervention passed, and #973 has since retained
 one bounded prior-prefix copy mechanism at Gate 0 plus one bounded
 construction-bound exact-descriptor selector at each of paragraph and
 conversation scope. The first bounded-global exact-spin relation is now
-target-free negative; a fresh noncommuting relation/population repair and later
-corpus qualification continue to block #954. Calling a later
+preserved target-free negative history; the independently frozen V2 repair
+passed its bounded decoded contract. Corpus induction and final
+requalification continue to block #954. Calling a later
 #973 operator harmonic additionally requires an
 artifact-bound basis/mode contract. #962
 separately owns product chat integration and persisted, identity-scoped hive
@@ -746,9 +748,9 @@ population/frame unavailable terminal. B0/#989 then supplied the frozen
 reference for the accepted matched #953 intervention. #973 has since retained
 one bounded exact-candidate prior-prefix copy mechanism plus bounded
 construction-bound exact-descriptor paragraph and conversation selectors;
-the first bounded-global exact-spin relation failed target-free, and a fresh
-relation/population repair plus later corpus qualification continue to block
-#954**.
+the first bounded-global V1 relation failed target-free, while the independently
+frozen V2 noncommuting repair passed its bounded decoded contract. Corpus
+induction and final requalification continue to block #954**.
 
 The frozen A1.0 probe stopped before scorer implementation with
 `REDESIGN_ORDERED_ROUTE_SUMMARY`. Across three matched contrasts, all 21
@@ -1153,9 +1155,10 @@ The historical positive terminal was
 was `REVISE_I1_GENERATOR_IN_PLACE`. B0/#989 later permitted exactly one separate
 matched #953 intervention against its fixed table reference. That intervention
 is now accepted at the positive terminal after external replay adjudication.
-#973 has since retained only the bounded paragraph and conversation mechanisms
-recorded below. Its first bounded-global relation failed target-free, so
-bounded-global selection remains unqualified.
+#973 has since retained the bounded Gate 0, paragraph, conversation, and V2
+noncommuting global mechanisms recorded below. Its first bounded-global V1
+relation remains negative history; V2 qualified one bounded-global selection
+mechanism while leaving corpus induction open.
 Product CLI/HTTP chat integration, restart-persistent conversation state, and
 identity-scoped hive-memory lifecycle remain #962 scope.
 
@@ -1420,10 +1423,51 @@ See the
 [#973 bounded-global exact-spin record](bounded_global_exact_spin_attention_973.md).
 
 This preserves the paragraph/conversation results and the exact snapshot/
-reuse machinery, but it does not establish bounded-global attention. #973
-remains open and #954 remains blocked. The next decision is a newly frozen,
-target-free relation/population repair that proves noncommuting distinct exact
-folds before any decoded join. Corpus induction is not authorized.
+reuse machinery, but V1 did not establish bounded-global attention. Its
+negative remains append-only history. The independently frozen V2 repair below
+supersedes V1's forward action without changing that evidence.
+
+#### #973 bounded-global V2 positive — `BoundedGlobalNoncommutingExactSpinR4V2` (2026-08-28)
+
+Canonical construction-population enumeration rejected the identity `.` row
+and selected duplicate `Lena` with snapshots `[Lena,Lena,helix,prism]` and
+`[Lena,helix,Lena,prism]`. The transposed exact H4 operands satisfy
+`i*q != q*i`, where `q=(1+i+j+k)/2`; their left-ordered complete folds are
+distinct and nonidentity while the Q29 fiber/torsion phase additions remain
+central. One `Lena` class result is reused by two immutable same-address
+references.
+
+For each construction-bound candidate prototype `C`, the operator ranks the
+exact relation `C^-1*G` by lexicographic least
+`(H4S3AngularShell,fiber_distance_q29,torsion_distance_q29)` cost. This produced
+strict incompatible target-free winners: prism/`teal` for the left fold and
+helix/`bronze` for the right. Real decoded behavior was 2/2,
+identity-disabled 1/2, class/operator-permuted 0/2, and support-reversed real
+2/2. Support/work mismatches were zero and exact period-plus-EOS termination
+was 6/6. The target preimage was loaded exactly once, only after the target-free
+hard gate.
+
+The exact-score forbidden-read trace is a structural witness backed by a
+typed/source firewall and a forbidden-read injection falsifier; it is not a
+dynamic machine-instruction count. Exact replay identities are:
+
+```text
+operator:         blake3:1cf08604fb4a1c545984f4cab41194e0ffcf1d7551b6e438ed57b49a0066a6e9
+population audit: blake3:16ebc6d36f01e4cb324d3c46fc059aca4ffea84ba467e860b55f983cd83f4a9c
+target-free:      blake3:c3fb3568028f924fb12971c888193cc5780111a7af14503e240f39fbeb58dd4a
+decoded smoke:    blake3:41207999bb088e3b5f186cce983951cc27c2962d34ef8046a0beae4754b44218
+target commitment: blake3:b7340c776e005c32316de793b332e3f218b1fad757c77044b0fa2e70fc308354
+```
+
+The binding terminal is
+`RETAIN_BOUNDED_GLOBAL_NONCOMMUTING_EXACT_SPIN_ATTENTION_CONTINUE_CORPUS_INDUCTION`.
+This establishes one bounded synthetic causal global geometric-attention
+witness, not corpus induction, general semantics, correctness, reasoning, or
+product readiness. #973 next independently freezes its corpus-induction gate;
+#954 remains blocked. See the
+[#973 bounded-global exact-spin record](bounded_global_exact_spin_attention_973.md).
+
+##### Historical V1 repair direction, superseded by V2
 
 A fresh bounded-global qualification may use one exact-spin global operator
 prototype, not a larger channel census. Freeze a construction-independent global snapshot with
@@ -1468,17 +1512,18 @@ grammar, coherence, correctness, or reasoning. H4 group action alone is not a
 qualified spherical-harmonic field; fixed channels/modes and their transition
 law must be artifact-bound before that stronger description is earned.
 
-A future positive global subprobe cannot close #973. The bounded construction-bound
+A positive global subprobe cannot close #973. The bounded construction-bound
 paragraph and conversation slices are retained, but corpus-scale induction and
 final requalification remain required after the bounded-global decision, or an
 explicit native revision must change #973's scope and dependencies.
 
 #### #973 higher-scope/corpus-scale induction qualification and handoff to #954
 
-Within #973, only after the accepted bounded local selector and #953 qualify
-and every required #973 higher-scope intervention qualifies, or an explicit
-native revision changes that scope, may
-the programme activate controlled higher-scope/corpus-scale offline induction.
+The accepted bounded local selector, #953, and the required bounded #973
+higher-scope interventions now qualify at their declared narrow scopes. The
+next authorized action is to freeze the corpus-induction gate independently;
+only after that immutable contract exists may the programme execute controlled
+higher-scope/corpus-scale offline induction.
 This ladder and its final requalification are part of #973's definition of done
 and terminal; #973 cannot close and #954 cannot start without them. The one
 separation permitted inside #953 was a tiny construction-only, same-frame,
@@ -1642,8 +1687,9 @@ hours remains a hard kill ceiling, never an estimate.
   decoded-loop plumbing without qualifying natural grammar. The later, separate
   B0 table-tie intervention has qualified its bounded geometric increment and
   exposed #973. #973 has retained bounded paragraph and conversation
-  mechanisms; its first bounded-global relation failed target-free, and it
-  alone owns the newly frozen repair and remaining global qualification.
+  mechanisms; its first bounded-global V1 relation failed target-free, and its
+  independently frozen V2 repair retained one bounded noncommuting global
+  mechanism. It alone owns corpus induction and final requalification.
 - S3/R4 compute, Hopf S2/R3 observation, and an E8 action plane are distinct
   objects.
 - Exact recall, grammatical text, correct inference, and reasoning are separate

@@ -12,6 +12,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::num::{NonZeroU16, NonZeroUsize};
+use std::sync::OnceLock;
 
 use serde::{Deserialize, Serialize};
 
@@ -2155,6 +2156,11 @@ impl ClearProfileKappa for IcosianProfile {
 }
 
 fn fixed_h4_root_table() -> Result<H4RootTable, CanonicalLexicalError> {
+    static TABLE: OnceLock<Result<H4RootTable, CanonicalLexicalError>> = OnceLock::new();
+    TABLE.get_or_init(build_fixed_h4_root_table).clone()
+}
+
+fn build_fixed_h4_root_table() -> Result<H4RootTable, CanonicalLexicalError> {
     let zero = ZPhiWire { a: 0, b: 0 };
     let mut roots = BTreeSet::<[ZPhiWire; 4]>::new();
     for axis in 0..4 {
@@ -2391,6 +2397,15 @@ fn multiply_scaled_h4_roots(
 /// for S0's concrete scaled H4 root order.
 pub fn validate_h4_binary_icosahedral_closure(
 ) -> Result<H4BinaryIcosahedralClosure, CanonicalLexicalError> {
+    static CLOSURE: OnceLock<Result<H4BinaryIcosahedralClosure, CanonicalLexicalError>> =
+        OnceLock::new();
+    CLOSURE
+        .get_or_init(build_h4_binary_icosahedral_closure)
+        .clone()
+}
+
+fn build_h4_binary_icosahedral_closure() -> Result<H4BinaryIcosahedralClosure, CanonicalLexicalError>
+{
     let roots = fixed_h4_root_table()?;
     let root_count = roots.roots.len();
     if root_count != 120 || roots.roots.windows(2).any(|pair| pair[0] >= pair[1]) {

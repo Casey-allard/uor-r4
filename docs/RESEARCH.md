@@ -14,7 +14,31 @@ Measurements retain their pre-declared exit rule and durable issue/record
 reference; design targets remain explicitly labeled as definitions,
 assumptions, or objectives rather than measured results.
 
-> **Target-free #973 bounded-global negative, 2026-08-28.** The frozen
+> **Positive #973 bounded-global V2 result, 2026-08-28.** The independently
+> frozen `BoundedGlobalNoncommutingExactSpinR4V2` contract reached
+> `RETAIN_BOUNDED_GLOBAL_NONCOMMUTING_EXACT_SPIN_ATTENTION_CONTINUE_CORPUS_INDUCTION`.
+> Canonical label-free population enumeration selected one exact stored-S3-to-
+> H4 pair with `A*B != B*A`, distinct nonidentity complete left folds, central
+> Q29 phases, one same-address class-result reuse, and incompatible strict
+> prototype winners under candidate-relative `C^-1*G` lexicographic least cost.
+> The decoded matrix was real 2/2, identity-disabled 1/2,
+> class/operator-permuted 0/2, and support-reversed real 2/2; support/work
+> mismatches were zero and exact period-plus-EOS termination was 6/6. The target
+> preimage loaded once only after the target-free gate. The zero forbidden-read
+> trace is backed by a typed/source score firewall with a negative injection
+> control, not dynamic instruction counting. Operator, population-audit,
+> target-free-census, and decoded-smoke identities are
+> `blake3:1cf08604fb4a1c545984f4cab41194e0ffcf1d7551b6e438ed57b49a0066a6e9`,
+> `blake3:16ebc6d36f01e4cb324d3c46fc059aca4ffea84ba467e860b55f983cd83f4a9c`,
+> `blake3:c3fb3568028f924fb12971c888193cc5780111a7af14503e240f39fbeb58dd4a`,
+> and `blake3:41207999bb088e3b5f186cce983951cc27c2962d34ef8046a0beae4754b44218`.
+> This establishes one bounded synthetic causal global geometric-attention
+> witness only. Corpus induction, general semantics, correctness, reasoning,
+> and product readiness remain unestablished. #973 next freezes an independent
+> corpus-induction gate; #954 remains blocked. See the
+> [bounded-global record](bounded_global_exact_spin_attention_973.md).
+
+> **Earlier target-free #973 bounded-global V1 negative, 2026-08-28.** The frozen
 > `BoundedGlobalExactSpinLeftFoldR4V1` contrast stopped at
 > `RETAIN_CONVERSATION_ONLY_REDESIGN_BOUNDED_GLOBAL_EXACT_SPIN_RELATION`.
 > Detached left/right snapshot carriers reproduced distinct epochs and roots,
@@ -28,9 +52,9 @@ assumptions, or objectives rather than measured results.
 > target-free census identities are
 > `blake3:f6b36cdf3e6cf96e1e9a345980843ee9eaffd25f5b864d4b4ed45a30ae6f746f`
 > and `blake3:6c0a9f89a29584a09d917ae427a494b53c06b76e56482f665870ae86c1cd130a`.
-> The retained paragraph/conversation results remain valid, but bounded-global
-> attention and corpus induction remain unqualified. #973 stays open for a
-> newly frozen noncommuting relation/population repair; #954 remains blocked.
+> The retained paragraph/conversation results remain valid. This V1 negative
+> is append-only history; the independently frozen V2 repair above subsequently
+> qualified one bounded-global mechanism while leaving corpus induction open.
 > See the [bounded-global record](bounded_global_exact_spin_attention_973.md).
 
 > **Retained #973 conversation mechanism, 2026-08-28.** The independently
@@ -52,9 +76,9 @@ assumptions, or objectives rather than measured results.
 > `blake3:343c961b06605f6ae9bb6160ac34a98224991715b706156349a8fd544b6dbb35`,
 > `blake3:649d733a194469aa648101a873d9e2ee323266b18872ced412d1da2cc6a56635`,
 > and `blake3:6930de3c07d30df4420bb68e60ea74531c8076516bcfef1c016240eddf1b9ca2`.
-> The subsequent bounded-global contrast failed its target-free relation gate.
-> #973 remains open for a newly frozen relation/population repair before corpus
-> induction; #954 remains blocked. See the
+> The subsequent V1 bounded-global contrast failed its target-free relation
+> gate; the independently frozen V2 repair later passed its bounded decoded
+> contract. #973 now proceeds to corpus induction; #954 remains blocked. See the
 > [#973 conversation record](conversation_entity_spin_path_attention_973.md).
 
 > **Retained #973 paragraph mechanism, 2026-08-28.** The frozen two-case
@@ -78,9 +102,10 @@ assumptions, or objectives rather than measured results.
 > `blake3:515720686b96dbebc2f055f9a21d3f0684f76092018381c836b51abf47a4d197`,
 > and `blake3:0ba32e5fe26f1280ec2eef2b115023de52f2ef946882352311dcecc531d76a32`.
 > The subsequent independently frozen conversation-scope contrast has now
-> retained its bounded mechanism. The subsequent bounded-global relation failed
-> target-free. #973 remains open for its repair and later corpus induction;
-> #954 remains blocked.
+> retained its bounded mechanism. The subsequent bounded-global V1 relation
+> failed target-free; its independently frozen V2 repair later passed the
+> bounded decoded contract. Corpus induction remains inside #973; #954 remains
+> blocked.
 > See the [#973 paragraph record](paragraph_entity_spin_path_attention_973.md).
 
 > **Retained #973 Gate 0 mechanism, 2026-08-28.**
@@ -174,10 +199,10 @@ assumptions, or objectives rather than measured results.
 > its positive terminal; #973 has since retained one exact-candidate
 > prior-prefix copy mechanism plus bounded construction-bound exact-descriptor/
 > entity-binding path selectors at paragraph and conversation scope. The first
-> independently frozen bounded-global relation then failed target-free because
-> its swapped exact states commute. A fresh noncommuting relation/population
-> repair is next; corpus induction remains unauthorized. #954 remains blocked
-> behind #973.
+> independently frozen bounded-global V1 relation then failed target-free
+> because its swapped exact states commute. The independently frozen V2 repair
+> passed its bounded noncommuting decoded contract. Corpus induction is now the
+> next #973 gate; #954 remains blocked behind #973.
 > Legacy
 > tracker #949 is closed as superseded, and #958 is retained directly beneath
 > #820 as GI-0 foundation. Two
@@ -734,11 +759,11 @@ replay. External replay adjudication promoted the reports' pending verdict to
 `PROCEED_TO_A1Q_H_WITH_BOUNDED_SOURCE_FREE_GEOMETRIC_GENERATION`. #973 Gate 0
 then retained one exact-candidate prior-prefix copy mechanism, and its frozen
 paragraph and conversation slices retained construction-bound exact-descriptor/
-entity-binding path selectors at their respective scopes. These remain two-
-case synthetic results; the first independently frozen bounded-global relation
-failed target-free because its swapped exact states commute. A newly frozen
-noncommuting relation/population repair is next, and corpus induction remains
-unauthorized. Dependable broad coherent
+entity-binding path selectors at their respective scopes. The first
+independently frozen bounded-global V1 relation failed target-free because its
+swapped exact states commute; the independently frozen V2 repair then retained
+one bounded synthetic noncommuting exact-spin mechanism. Corpus induction and
+final requalification remain. Dependable broad coherent
 text remains unestablished.
 The final serving path has no source weights, transformer/self-attention, dense
 matrix intelligence, MoE, or sparse learned router. Compiler-side floating
@@ -1308,9 +1333,10 @@ External replay adjudication promoted the reports' pending verdict and #953
 closed at `PROCEED_TO_A1Q_H_WITH_BOUNDED_SOURCE_FREE_GEOMETRIC_GENERATION`.
 #973 has since retained one bounded exact-candidate prior-prefix copy mechanism
 plus bounded construction-bound exact-descriptor/entity-binding path selectors
-at paragraph and conversation scope. The first bounded-global relation is now
-target-free negative; a fresh bounded-global repair and later corpus
-qualification remain active in that order and continue to block #954.
+at paragraph and conversation scope. The first bounded-global V1 relation
+remains target-free negative history; its V2 noncommuting repair passed the
+bounded decoded contract. Corpus induction and final requalification remain
+active in that order and continue to block #954.
 #955 invokes that accepted selector/
 #953/#973/#954 consumer; #962 integrates the accepted selector/#953/#973 path
 into product chat with persisted identity-scoped hive memory. #963 retains
