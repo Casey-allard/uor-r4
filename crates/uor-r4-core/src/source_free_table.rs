@@ -1193,7 +1193,7 @@ impl SourceFreeTable {
         Ok(())
     }
 
-    fn is_fitted_lexical_token(&self, token: u32) -> bool {
+    pub(crate) fn is_fitted_lexical_token(&self, token: u32) -> bool {
         token.checked_sub(LEXICAL_TOKEN_BASE).is_some_and(|offset| {
             usize::try_from(offset)
                 .ok()

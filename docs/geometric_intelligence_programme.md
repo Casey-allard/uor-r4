@@ -81,7 +81,8 @@ This establishes a bounded source-free geometric increment over a statistical
 lexical baseline. It does not establish semantics, broad attention, general
 coherence, correctness, reasoning, chat, performance, or release readiness.
 No second #953 formula, axis, prompt, corpus run, or representation is
-permitted. #973 is next; #954 remains blocked behind it. No new H4,
+permitted. #973 Gate 0 has retained one bounded prior-prefix copy mechanism;
+required higher scopes remain active and #954 remains blocked. No new H4,
 SpiralCore, harmonic, algebraic, placement, transport, or scale qualifier is
 eligible outside its exposed issue.
 
@@ -171,8 +172,9 @@ frozen `CorpusSignedTransportV1` feasibility contract and stopped
 codec/pair commitment and a complete same-frame lexical SpiralCore frame were
 unavailable. Placement, Gate 0, labels, table/geometric arms, and #953 were
 `NOT_RUN`. The later B0/#989 reset limited #953 to one separate matched
-table-tie intervention. That intervention has now passed; #973 is next and
-continues to block #954. Calling the later
+table-tie intervention. That intervention passed, and #973 has since retained
+one bounded prior-prefix copy mechanism at Gate 0; required higher scopes
+remain active and continue to block #954. Calling a later
 #973 operator harmonic additionally requires an
 artifact-bound basis/mode contract. #962
 separately owns product chat integration and persisted, identity-scoped hive
@@ -686,7 +688,8 @@ points, +4,242 correct), held candidate support and its declared-work ledger
 equal at all teacher-forced positions and through the first decoded divergence,
 kept every structural source-closure counter at zero, emitted a distinct
 bounded valid UTF-8 continuation, and replayed table, overlay, and report bytes
-identically. This is the only accepted claim. #973 is next.
+identically. This is the only accepted #953 claim. #973 Gate 0 has since
+retained the separate bounded prior-prefix mechanism recorded below.
 
 The GI sections below preserve the completed evidence lineage and downstream
 dependency structure. They remain dormant or blocked except for the exposed
@@ -728,8 +731,9 @@ Status: **#952 A1.0 terminal negative; #967 A1R `RETAIN_STATE_ONLY`; #970 A1P
 construction-transferred candidate-conditioned local attention and stopped at
 0/6 transfer before selection and closed. #986 then closed at its pre-sealed
 population/frame unavailable terminal. B0/#989 then supplied the frozen
-reference for the accepted matched #953 intervention. #973 is now next and
-continues to block #954**.
+reference for the accepted matched #953 intervention. #973 Gate 0 has since
+retained one bounded exact-candidate prior-prefix copy mechanism; required
+higher scopes remain active and continue to block #954**.
 
 The frozen A1.0 probe stopped before scorer implementation with
 `REDESIGN_ORDERED_ROUTE_SUMMARY`. Across three matched contrasts, all 21
@@ -1214,20 +1218,38 @@ record is [here](source_free_table_geometric_intervention_953.md).
 
 This result does not rehabilitate the historical #953 selector, #983, or #986,
 and does not establish semantics, broad attention, general coherence,
-correctness, reasoning, or release readiness. #973 is now next. Neither a
+correctness, reasoning, or release readiness. It is the accepted local input
+to #973. Neither a
 failed experiment nor a conditional issue number is automatically a serving
 consumer.
 
 ### GI-2 A1Q-H / #973 — paragraph, conversation, and global attention
 
-With #953 accepted at its bounded source-free geometric terminal, test
+With #953 accepted at its bounded source-free geometric terminal, #973 tests
 paragraph, conversation, and bounded global state through the real decoded
-autoregressive loop. Before #973,
-those scopes may remain serialized and incrementally updated but cannot
-influence selection. #973 blocks #954.
+autoregressive loop. #973 blocks #954.
 
-Global qualification begins with one exact-spin global operator prototype, not
-a larger channel census. Freeze a construction-independent global snapshot with
+The first frozen Gate 0 built `PriorSentenceCountRadiusR4V1` over a separate
+two-document synthetic table and #953-formula overlay. Two target-free prompts
+had the same final ` asked` / ` for` frame, exact `{ coffee, tea }` tie,
+identical local coordinates, support, and declared work. The real
+prefix-before-final-period coordinate decoded ` tea.` / ` coffee.` (2/2);
+scope-disabled decoded ` coffee.` / ` coffee.` (1/2); candidate-permuted
+decoded ` coffee.` / ` tea.` (0/2). Support/work mismatches and structural
+source/future reads were zero, and the operator/census/smoke identities replayed
+exactly. The terminal is
+`RETAIN_GATE0_PRIOR_SENTENCE_ATTENTION_CONTINUE_PARAGRAPH_CONVERSATION`; see the
+[#973 Gate 0 record](prior_sentence_count_radius_attention_973.md).
+
+This retains one bounded exact-candidate prior-prefix lexical copy-attention
+mechanism. It does not establish semantic or anti-recall transfer, general
+paragraph/conversation/global attention, coherence, correctness, or reasoning.
+The next #973 decision is an independently frozen paragraph-scope contrast
+that cannot be solved by exact recurrence of the admitted candidate, followed
+by conversation scope only if that mechanism remains load-bearing.
+
+A later bounded-global qualification may use one exact-spin global operator
+prototype, not a larger channel census. Freeze a construction-independent global snapshot with
 enough ordered state to produce a witnessed non-identity transition, at least
 two immutable references in one exact spin class, and one different
 `shared_class_kappa` intentionally occupying the same current `SpinSector`.

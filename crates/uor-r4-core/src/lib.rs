@@ -10,6 +10,7 @@ use std::f64::consts::PI;
 pub mod canonical_lexical_ingestion;
 pub mod cayley_dickson;
 pub mod construction_causal_return_attention;
+pub mod higher_scope_geometric_attention;
 pub mod local_geometric_generation;
 pub mod prime_route_attention;
 pub mod prime_route_geometric_attention;

@@ -14,6 +14,21 @@ local hardware. The project is testing whether language context, inference,
 and reasoning can emerge from routes through a canonical geometric memory. The
 target serving engine uses no Ollama, hosted model, or source-model weights.
 
+> **Current bounded attention result (2026-08-28):** #973 Gate 0 retained
+> `PriorSentenceCountRadiusR4V1` at
+> `RETAIN_GATE0_PRIOR_SENTENCE_ATTENTION_CONTINUE_PARAGRAPH_CONVERSATION`.
+> Across two synthetic D3-partitioned histories with the same final
+> ` asked` / ` for` frame, exact `{ coffee, tea }` tie, local #953 coordinates,
+> support, and declared work, the real arm decoded ` tea.` / ` coffee.` (2/2),
+> scope-disabled decoded ` coffee.` / ` coffee.` (1/2), and
+> candidate-permuted decoded ` coffee.` / ` tea.` (0/2). Support/work
+> mismatches and source-closure counters were zero; operator, target-free
+> census, and decoded-smoke identities replayed exactly. This establishes one
+> bounded exact-candidate prior-prefix lexical copy-attention mechanism, not
+> semantic transfer or general paragraph/conversation/global attention. #973
+> remains open and #954 remains blocked. See the
+> [#973 Gate 0 record](docs/prior_sentence_count_radius_attention_973.md).
+
 > **Current capability-first result (2026-08-28):** #953's frozen
 > `MultiscaleCountRadiusR4V1` comparison is positive. Against #989's unchanged
 > 99,362/446,342 (22.261404%) table reference, the construction-only R4 tie
@@ -51,9 +66,11 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > operator map were unavailable. Placement, diffusion, Gate 0, calibration,
 > sealed labels, selection, and #953 were `NOT_RUN`. The later #989 table reset
 > supplied a working reference, and the one matched #953 R4 tie intervention
-> has now passed its held-out and decoded-output contract. #973 is the next
-> intelligence stage; #954 remains blocked behind it.
-> Higher-scope attention, correct answers, and reasoning do not exist yet. The
+> has now passed its held-out and decoded-output contract. #973 Gate 0 has also
+> retained one exact-candidate prior-prefix copy-attention mechanism; independent
+> non-copy paragraph, conversation, and bounded-global qualification remain.
+> #954 remains blocked behind #973. General higher-scope attention, correct
+> answers, and reasoning do not exist yet. The
 > dashboard is an interactive window into the research substrate, not a
 > frontier model or a ChatGPT replacement.
 
@@ -249,10 +266,12 @@ classes then transferred to 0/6 held-out decisions. #986's later local
 qualification stopped before geometry because neither its exact corpus/codec
 population nor a complete lexical Cl(0,6)/SpiralCore frame was available.
 #953's historical H4/placement fixtures remain untouched. The later B0 reset
-accepted a separate fixed-point R4 table-tie intervention and closes #953 at
-its positive terminal; #973 is next and #954 remains blocked behind it.
+accepted a separate fixed-point R4 table-tie intervention and closed #953 at
+its positive terminal. #973 Gate 0 has since retained one bounded prior-prefix
+copy mechanism; required higher scopes remain active and #954 remains blocked.
 See the [append-only #953 record](docs/local_geometric_generation_953.md).
 See the [accepted table-tie record](docs/source_free_table_geometric_intervention_953.md).
+See the [#973 Gate 0 record](docs/prior_sentence_count_radius_attention_973.md).
 See the [#986 evidence record](docs/corpus_signed_transport_attention_986.md)
 for the exact feasibility boundary and deliberately unrun stages.
 Stored H4/Hopf/zeta/icosian and related route fields remain
@@ -336,9 +355,10 @@ not become substitutes for working intelligence:
    top-1, +4,242 correct choices over the unchanged table, a distinct bounded
    continuation, matched support and declared-work ledger, and byte-identical
    replay.
-3. **Qualify higher-scope attention (#973)** — this is now the next
-   decision-bearing intelligence stage; historical placement and transport
-   probes remain evidence, not current work.
+3. **Continue higher-scope attention (#973)** — retain the positive Gate 0
+   exact-candidate prior-prefix mechanism, then run independently frozen
+   non-copy paragraph, conversation, and bounded-global qualifications.
+   Historical placement and transport probes remain evidence, not current work.
 4. **Establish correctness** — relevance, contradiction handling, and honest
    abstention.
 5. **Establish reasoning** — bounded multi-step route composition.
@@ -351,9 +371,10 @@ complete.
 
 The active dependency chain is tracked in
 [#820](https://github.com/UOR-Foundation/uor-r4/issues/820). #989 established
-the frozen table reference and #953 established one matched R4 tie
-intervention over it. After protected #953 closure, #973 is the next eligible
-stage; #954 remains blocked behind #973.
+the frozen table reference, #953 established one matched R4 tie intervention
+over it, and #973 Gate 0 retained one bounded prior-prefix copy mechanism.
+Required #973 higher-scope work remains active; #954 remains blocked behind
+#973.
 
 ## Find your way around
 

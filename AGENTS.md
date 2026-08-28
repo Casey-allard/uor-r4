@@ -48,16 +48,26 @@ zero candidate-support/declared-work-ledger mismatches and byte-identical
 replay. The external replay adjudication promoted each report's pending verdict
 to `PROCEED_TO_A1Q_H_WITH_BOUNDED_SOURCE_FREE_GEOMETRIC_GENERATION`. This does not
 rehabilitate the failed #983/#986 representations or establish semantics,
-attention, correctness, reasoning, chat, or release readiness. #973 is now the
-next eligible issue; #954 remains blocked behind it. Do not add a second #953
-intervention or reuse the #983/#986 populations. The complete #986 result and
-nonclaim boundary is
+attention, correctness, reasoning, chat, or release readiness. #973 Gate 0 then
+retained `PriorSentenceCountRadiusR4V1` at
+`RETAIN_GATE0_PRIOR_SENTENCE_ATTENTION_CONTINUE_PARAGRAPH_CONVERSATION`. On two
+synthetic D3-partitioned histories with identical local #953 evidence, its
+prefix-before-final-period coordinate made exact earlier-candidate state
+causally load-bearing: real decoded ` tea.` / ` coffee.` (2/2), scope-disabled
+decoded ` coffee.` / ` coffee.` (1/2), and candidate-permuted decoded
+` coffee.` / ` tea.` (0/2), with zero support/work mismatches and exact replay.
+This establishes only one bounded lexical copy-attention mechanism, not
+semantic or general paragraph/conversation/global attention. #973 remains
+active; #954 remains blocked behind it. Do not add a second #953 intervention
+or reuse the #983/#986 populations. The complete #973 Gate 0 record is
+[`docs/prior_sentence_count_radius_attention_973.md`](docs/prior_sentence_count_radius_attention_973.md).
+The complete #986 result and nonclaim boundary is
 [`docs/corpus_signed_transport_attention_986.md`](docs/corpus_signed_transport_attention_986.md).
 Terminology lives in
 `docs/transformerless/GLOSSARY.md`. Keep this file current when conventions
 change.
 
-## Capability-first baseline and geometric increment — #989/#953 established
+## Capability-first baseline and geometric increment — #989/#953 established; #973 Gate 0 retained
 
 Effective 2026-08-28, #989 established the deterministic source-free
 table-native lexical baseline at
@@ -85,11 +95,14 @@ This establishes a bounded source-free geometric increment over a statistical
 lexical baseline. It does not establish semantics, broad attention, general
 coherence, correctness, reasoning, chat, performance, or release readiness.
 The #989 table remains the frozen non-geometric reference; no second #953
-formula, axis, prompt, or corpus run is permitted. #973 is next. New H4,
+formula, axis, prompt, or corpus run is permitted. #973 Gate 0 has retained one
+exact-candidate prior-prefix copy mechanism; the independently frozen
+non-copy paragraph/conversation/global qualifications remain active. New H4,
 SpiralCore, harmonic, algebraic, placement, transport, scale, and later-stage
 work remains dormant unless its issue is exposed. See the
 [#989 evidence record](docs/source_free_table_baseline_989.md) and
-[#953 evidence record](docs/source_free_table_geometric_intervention_953.md).
+[#953 evidence record](docs/source_free_table_geometric_intervention_953.md),
+then the [#973 Gate 0 record](docs/prior_sentence_count_radius_attention_973.md).
 
 ## What this repo is
 
@@ -320,13 +333,16 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
   same-frame lexical SpiralCore operator map were unavailable. Placement,
   Gate 0, labels, selection, and the historical #953 path were `NOT_RUN`. The
   later B0/#989 reset and separate matched #953 table-tie intervention have
-  since passed. #973 is now next; #954 remains blocked behind it.
+  since passed. #973 Gate 0 has now retained one bounded exact-candidate
+  prior-prefix copy-attention mechanism; required higher-scope qualifications
+  remain active and #954 remains blocked behind #973.
   #954 and #955 own correctness and reasoning respectively.
   #962 owns durable multi-turn CLI/HTTP chat, persistence, isolation, and
   hive-memory; #963–#965 then own optimization, formal closure, and release.
 - Sequence strictly from the current reset: working source-free table baseline
   (#989, established) → one matched geometric intervention (#953, accepted) →
-  higher-scope attention (#973, next) → correctness/abstention → reasoning →
+  higher-scope attention (#973, Gate 0 retained; non-copy paragraph,
+  conversation, and bounded-global qualification active) → correctness/abstention → reasoning →
   optimization/purity/release. The older placement/transport
   sequence is retained as evidence, not an active implementation queue.
 - Kappa is canonical identity/serialization, never the tokenizer or semantic
@@ -345,8 +361,9 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
   decoded-loop plumbing and tiered admission, but its unchanged full-path
   choice did not establish natural grammar. The separate B0 table-tie
   intervention now establishes only its bounded geometric accuracy increment
-  and decoded comparison. That accepted result exposes #973; only #973 may
-  qualify paragraph, conversation, or global state.
+  and decoded comparison. #973 Gate 0 adds one exact-candidate prior-prefix
+  copy mechanism; only the remaining #973 subprobes may qualify non-copy
+  paragraph, conversation, or global state.
 - Keep **candidate admission** separate from **harmonic influence**. In #953,
   `PrimaryThenAdjacentSpinFallbackV1` uses I1/I2/ordered-sentence plus divisor
   as the primary admission tier. Adjacent-spin rows are always consulted and
@@ -382,8 +399,9 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
   representation, a wider split, or broader scope under the same contract.
 - Teacher output may label or compare only after a source-free report freezes.
   It is never substituted for the product response.
-- Once #973 activates higher scopes, every hierarchy selection emits a
-  global-context coverage witness. Exact recall, grammatical generation,
+- #973 Gate 0 selections emit their exact prefix-coverage and matched-work
+  witnesses; later hierarchy selections must emit their corresponding scope
+  coverage witness. Exact recall, grammatical generation,
   correctness, and reasoning remain separate gates.
 - Start with the smallest product artifact that can falsify the stage. A
   negative stops or redesigns it; it does not authorize a larger harness.

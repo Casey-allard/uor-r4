@@ -14,6 +14,24 @@ Measurements retain their pre-declared exit rule and durable issue/record
 reference; design targets remain explicitly labeled as definitions,
 assumptions, or objectives rather than measured results.
 
+> **Retained #973 Gate 0 mechanism, 2026-08-28.**
+> `PriorSentenceCountRadiusR4V1` reached
+> `RETAIN_GATE0_PRIOR_SENTENCE_ATTENTION_CONTINUE_PARAGRAPH_CONVERSATION`.
+> On two synthetic D3-partitioned histories with an identical final
+> ` asked` / ` for` frame, exact `{ coffee, tea }` max-count tie, #953 local
+> coordinates, support, and declared work, the prefix-before-final-period R4
+> coordinate made exact earlier-candidate state causally load-bearing. Real
+> decoded ` tea.` / ` coffee.` (2/2), scope-disabled decoded
+> ` coffee.` / ` coffee.` (1/2), and candidate-permuted decoded
+> ` coffee.` / ` tea.` (0/2). Support/work mismatches and teacher, provider,
+> source-weight, and future-unit reads were zero; artifact and report identities
+> replayed exactly. This establishes one bounded lexical copy-attention
+> mechanism, not semantic placement, natural-distribution transfer, general
+> paragraph/conversation/global attention, correctness, reasoning, coherence,
+> chat, performance, formal closure, or release readiness. #973 remains open;
+> #954 remains blocked. See the
+> [#973 Gate 0 record](prior_sentence_count_radius_attention_973.md).
+
 > **Accepted geometric increment, 2026-08-28 (#953).** The one frozen
 > `MultiscaleCountRadiusR4V1` comparison reached
 > `PROCEED_TO_A1Q_H_WITH_BOUNDED_SOURCE_FREE_GEOMETRIC_GENERATION`. Over the
@@ -29,8 +47,8 @@ assumptions, or objectives rather than measured results.
 > reports' pending verdict to the frozen positive terminal. This establishes
 > causal incremental value for this exact R4 evidence-radius tie intervention,
 > not semantic geometry, attention, correctness, reasoning, broad coherence, chat, performance, or
-> release readiness. #973 is the next intelligence stage after protected #953
-> closure. See the
+> release readiness. It is the accepted local input to the now-active #973
+> higher-scope stage. See the
 > [#953 table-tie evidence record](source_free_table_geometric_intervention_953.md).
 
 > **Established capability-first result, 2026-08-28 (#989).** #989 reached
@@ -83,8 +101,10 @@ assumptions, or objectives rather than measured results.
 > reproduced, but the exact corpus-scale codec/pair commitment and complete
 > same-frame lexical SpiralCore frame were unavailable. Placement, Gate 0,
 > labels, all arms, and #953 were `NOT_RUN`. The later B0/#989 reset and
-> accepted R4 table-tie result supersede that forward action: #953 may close at
-> its positive terminal, #973 is next, and #954 remains blocked behind #973.
+> accepted R4 table-tie result supersede that forward action: #953 closed at
+> its positive terminal; #973 Gate 0 has since retained one exact-candidate
+> prior-prefix copy mechanism, and required higher scopes remain active. #954
+> remains blocked behind #973.
 > Legacy
 > tracker #949 is closed as superseded, and #958 is retained directly beneath
 > #820 as GI-0 foundation. Two
@@ -1204,9 +1224,11 @@ or selection. Established B0/#989 then supplied the frozen reference for the
 one accepted #953 `MultiscaleCountRadiusR4V1` intervention: 103,604 versus
 99,362 held-out correct choices, a distinct bounded continuation, zero
 candidate-support/declared-work-ledger mismatches, and byte-identical replay.
-External replay adjudication promoted the reports' pending verdict, so #953 may
-close at `PROCEED_TO_A1Q_H_WITH_BOUNDED_SOURCE_FREE_GEOMETRIC_GENERATION`; #973 is next
-and continues to block #954. #955 invokes that accepted selector/
+External replay adjudication promoted the reports' pending verdict and #953
+closed at `PROCEED_TO_A1Q_H_WITH_BOUNDED_SOURCE_FREE_GEOMETRIC_GENERATION`.
+#973 Gate 0 has since retained one bounded exact-candidate prior-prefix copy
+mechanism; required higher scopes remain active and continue to block #954.
+#955 invokes that accepted selector/
 #953/#973/#954 consumer; #962 integrates the accepted selector/#953/#973 path
 into product chat with persisted identity-scoped hive memory. #963 retains
 measured cost; #964 binds evidence provenance #970 → #969 → #983 → #986 plus
