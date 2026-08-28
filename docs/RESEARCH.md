@@ -36,8 +36,16 @@ assumptions, or objectives rather than measured results.
 > prototypes with zero class collisions and zero padding-identity aliases, but
 > real placement selected 0/2 intended candidates while the same-artifact
 > placement-permuted and order-shuffled controls selected 2/2 and 1/2.
-> Generation and replay were `NOT_RUN`. #953 awaits a newly frozen maintainer
-> plan; #973 and #954 remain blocked. Legacy
+> Generation and replay were `NOT_RUN`. That known population is no longer an
+> independent discovery population. A1Q-L2/#983 then froze
+> `ConstructionCausalReturnV1` on a separate three-family, six-decision
+> construction/validation population. Its usable construction classes were
+> pure but covered 0/6 held-out decisions; the sealed strict ceiling was also
+> 0/6. It stopped `UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER` before any deployed
+> selector or payload inversion. #983 remains open negative evidence and
+> blocks parked, unassigned, untouched #953; #953 continues to block #973 and
+> #954; and #973 continues to block #954.
+> Legacy
 > tracker #949 is closed as superseded, and #958 is retained directly beneath
 > #820 as GI-0 foundation. Two
 > current-summary corrections remain important: **#784** found
@@ -58,9 +66,11 @@ assumptions, or objectives rather than measured results.
 > geometry reversible (GI-1/#961), repairs ordered state (GI-2 A1R/#967),
 > tests candidate-relative identifiability and one construction-derived readout
 > without assuming a replacement or placement defect (GI-2 A1P/#970), then
-> builds the first causal ordered-S3 path mechanism (#969), drives it through
-> the first bounded decoded loop (#953), qualifies higher scopes through that
-> loop (#973), and only then tests correctness (#954) and reasoning (#955).
+> builds the first causal ordered-S3 path mechanism (#969), qualifies one
+> independently construction-transferred candidate-conditioned local mechanism
+> (#983), applies it unchanged to the parked decoded loop (#953), qualifies
+> higher scopes through that loop (#973), and only then tests correctness (#954)
+> and reasoning (#955).
 > Other trajectory, hypersphere, winding/window, factor, resonance, and Hopf
 > channels remain future hypotheses rather than mandatory preflight. Source
 > weights are offline teachers only. See the
@@ -235,6 +245,40 @@ assumptions, or objectives rather than measured results.
 > Generator execution and replay were `NOT_RUN`. The terminal remains
 > `REVISE_I1_GENERATOR_IN_PLACE`; #953 awaits a newly frozen maintainer plan,
 > while #973 and #954 remain blocked.
+
+> **Forward-sequencing correction — A1Q-L2/#983, 2026-08-28.** The dated #953
+> outcomes above remain unchanged evidence, but their former immediate in-place
+> next action is superseded. Because #953's labels, geometry, and two failed
+> representations are known, another design judged there would risk post-hoc
+> fixture tuning. #953 is open, parked, unassigned, and untouched. #983 is the
+> child of #820 after closed #967/#970/#969 and the native blocker
+> before #953; #969 and #970 are its direct evidence-bearing predecessors.
+>
+> #983 froze one `ConstructionCausalReturnV1` mechanism over exact observed
+> prefix products and per-candidate hypothetical causal-return commutators. Its
+> fixed `R_min` class uses exact relation equality, shell, past-only lease age,
+> and multiplicity; only impure construction aliases promote to the complete
+> occupancy-tagged `R_full` word. Its independent population has three natural
+> candidate-pair families and six sealed matched decisions, with no `run/runs`,
+> #953 surface/witness, #970 population, candidate injection, or actual future
+> route.
+>
+> The label-free Gate 0 required same-frame reproduction, pure usable
+> construction classes, both candidate actions covered on all six decisions, a
+> strict 6/6 real ceiling, operative anti-recall, zero padding aliases, equal
+> support/work, and a real ceiling above every causal derangement before the
+> selector could run once. The observed construction coverage and sealed
+> strict ceiling were both 0/6, so the terminal is
+> `UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER`. No deployed selector, payload
+> inversion, or #953 generation ran. The raw census and sealed outcome are
+> recorded in
+> [`construction_causal_return_attention_983.md`](construction_causal_return_attention_983.md).
+> The predeclared positive terminal was
+> `PROCEED_TO_I1_WITH_CONSTRUCTION_TRANSFERRED_LOCAL_GEOMETRIC_ATTENTION`.
+> The negative result stops before selection and does not authorize a second
+> representation under the frozen contract. It does not establish
+> grammar, generation, correctness, knowledge, reasoning, higher-scope
+> attention, performance, product readiness, or release readiness.
 
 The current quality-baseline reconciliation is recorded by #933 and the
 [append-only #934 genealogy](canonical_quality_baseline_934.md). The historical
@@ -471,15 +515,20 @@ decisions, 14 exercised classes covered 10/12 validation decisions with a
 classes, so the gate stopped before scalar design. The old six labels remained
 diagnostic/falsification-only. #970 closed through PR #972. #969 then delivered
 one causal ordered-S3 least-cost path mechanism with a matched two-unit decoded
-intervention. #953 now drives that selector through decoded-loop plumbing, but
+intervention. #953 then drove that selector through decoded-loop plumbing, but
 its relabel smoke did not qualify a natural grammar result. Tiered admission
 then restored the frozen agreement support, but the full path chose the same
 decisive candidate for both prompt orders. The first frozen local
 candidate-placement preflight then reproduced its construction classes but
 selected 0/2 intended candidates under real placement while its same-artifact
 cyclic placement control selected 2/2; generator execution and replay were
-`NOT_RUN`. #953 awaits a newly frozen maintainer plan, and #973 remains blocked.
-Dependable coherent text remains unestablished.
+`NOT_RUN`. #983 then tested one independently frozen construction-transferred
+candidate-conditioned mechanism on a separate natural population. Its pure
+construction classes transferred to 0/6 held-out decisions and stopped
+`UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER` before deployed selection or payload
+decode. #953 remains an untouched parked integration regression while #983
+holds the negative evidence and the next representation decision; #973 remains
+blocked. Dependable coherent text remains unestablished.
 The final serving path has no source weights, transformer/self-attention, dense
 matrix intelligence, MoE, or sparse learned router. Compiler-side floating
 point remains allowed for witnessed chart construction; serving arithmetic is
@@ -558,13 +607,15 @@ four-coordinate semantic path. #958 then retained the source-free factorable
 route, canonical manifest, bounded lookup, and worker foundation while honestly
 leaving product attention and generation `NOT_RUN`.
 
-The active candidate is now deliberately narrower than the full stored state:
-natural schema-2 adjacency admits candidates; observed lexical routes compose
-an ordered unit-quaternion path on S3; retained prefix states form causal
-memory; and exact round-S3 closure plus lease age selects or abstains. The 120
-H4 roots provide an exact finite S3 codebook. Fixed-zeta, n-let, Hopf, radial,
-paired-H4/E8, and other trajectory/harmonic fields remain structural state or
-future hypotheses, not an omnibus score. The #952 A1.0 result showed that the current
+The #983 candidate was deliberately narrower than the full stored state.
+Natural schema-2 adjacency admits candidates; observed lexical routes compose
+an ordered unit-quaternion path on S3; and #983 evaluated exact past-only suffix
+transport independently for each already-admitted candidate through a frozen
+causal-return commutator. One construction-pure minimal relation class is used,
+with promotion only for impure construction aliases to the complete typed
+ordered word. The 120 H4 roots provide an exact finite S3 codebook. Fixed-zeta,
+n-let, Hopf, radial, paired-H4/E8, and other trajectory/harmonic fields remain
+structural state or future hypotheses, not an omnibus score. The #952 A1.0 result showed that the current
 additive/last-child summaries do not preserve earlier order even though the
 candidate and value path is reachable. #967 repaired ordered summaries but
 retained them as state only after shortest Cayley distance tied distinct states
@@ -572,11 +623,14 @@ on 6/6 queries. #970 then found that the paired-H4-derived exact R4-heatmap
 classes alias outcomes and that the construction-derived rule has a 0/6 strict
 transfer ceiling on the separate sealed validation fixture. It stopped without
 scalar search and closed through PR #972. #969 then built and smoke-tested the
-single local path mechanism; #953 now executes it in bounded source-free
-decode/render/append plumbing. Its tiered admission is exact on the frozen
-agreement witness, while its current identity-derived candidate placement still
-collapses the required order-sensitive choice. Structural presence does not
-qualify the other stored fields for ranking. Product chat and
+single local path mechanism. #983's usable construction classes were pure but
+transferred to 0/6 decisions on its independent three-family/six-decision
+population. It stopped before deployed selection or payload inversion. A
+separately authorized successor representation must qualify before the
+preserved #953 decode/render/append plumbing may run again. #953's tiered admission is exact on
+the frozen agreement witness, while its current identity-derived candidate
+placement still collapses the required order-sensitive choice. Structural
+presence does not qualify the other stored fields for ranking. Product chat and
 persisted hive memory remain GI-6/#962 responsibilities. The
 retained #951 negative
 checkpoint and exact population remain in
@@ -584,7 +638,7 @@ checkpoint and exact population remain in
 and the #958 boundary remains in
 [`prime_route_attention_qualification_958.md`](prime_route_attention_qualification_958.md).
 The older source-free table-native continuation/candidate and pointwise evidence
-remains useful to #953 as an offline substrate or comparator, not the product
+remains useful as an offline substrate or fixed count-only comparator, not the product
 sequencing authority. (As of #831, the one normative scorer for the
 historical deployed
 inference — the R4G1Runtime scoring path — is designated in
@@ -1028,12 +1082,17 @@ four-arm selector run chose `still run` for both full-path prompt orders. The
 first frozen `LocalSameObjectContextPlacementV1` preflight then selected 0/2
 intended candidates under real placement, while its same-artifact
 placement-permuted and order-shuffled controls selected 2/2 and 1/2; generator
-execution and replay were `NOT_RUN`. #953 awaits a newly frozen maintainer plan;
-#973 remains blocked by #953 and continues to block #954.
-#955 invokes the eventual accepted
-#969/#953/#973/#954 path; #962 integrates that path into product chat with
+execution and replay were `NOT_RUN`. #983 then froze
+`ConstructionCausalReturnV1` on an independent three-family/six-decision
+population. Its usable construction classes were pure, but structural coverage
+and the sealed strict ceiling were both 0/6. It stopped
+`UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER` before deployed selection, payload
+inversion, or #953 generation. #983 remains open negative evidence and blocks
+parked, unassigned, untouched #953; #953 continues to block
+#973/#954; #973 continues to block #954. #955 invokes the eventual accepted
+#969/#983/#953/#973/#954 path; #962 integrates that path into product chat with
 persisted identity-scoped hive memory. #963 retains measured cost; #964 binds
-the #970 → #969 → #953 → #973 path; #965 qualifies only that release path. The table
+the #970 → #969 → #983 → #953 → #973 path; #965 qualifies only that release path. The table
 below is retained as the historical mechanism ledger; rows that still use “open”
 in their original prose are not the live backlog. GitHub native issue state wins.
 

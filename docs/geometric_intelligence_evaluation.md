@@ -34,10 +34,15 @@ flat union. The versioned tiered repair then produced exact `{still}` and
 `{run,runs}` support with matched work and preserved #969's empty-primary
 fallback. The single permitted four-arm run still selected `still run` for both
 full-path prompt orders; state-disabled selected `still runs` for both. #953
-remains `REVISE_I1_GENERATOR_IN_PLACE` for bounded same-object, order-sensitive
-candidate-relative representation, and #973 remains blocked; paragraph,
-conversation, global, correctness, and reasoning qualification remain
-downstream.
+remains at the historical terminal `REVISE_I1_GENERATOR_IN_PLACE`, but its
+labels, geometry, and failed representations are now known. It is therefore a
+parked, unassigned integration regression, not an independent discovery
+population. #983 then tested `ConstructionCausalReturnV1` on a separate
+three-family, six-decision population. Its usable construction classes were
+pure but reached 0/6 held-out decisions; the sealed strict ceiling was also
+0/6. It stopped `UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER` before a deployed
+selector or payload inversion. #983 remains open negative evidence and blocks
+#953; #953 continues to block #973 and #954; and #973 continues to block #954.
 
 A negative result remains evidence about its declared mechanism and
 distribution. It does not erase a separately established storage, identity,
@@ -52,19 +57,24 @@ The stages are ordered because each later claim depends on the earlier one:
    causal ordered R4/S3 path state, retained prefix memory, and deterministic
    exact path closure change one decoded choice under matched natural support
    and group-comparison budgets.
-2. **Inference/generation (#953)** — the real decoder drives the accepted local
+2. **Construction-transfer gate (#983)** — one independently frozen
+   candidate-hypothetical causal-return mechanism had to transfer pure
+   construction-derived classes to six held-out natural choices under equal
+   support/work and causal derangements; the observed result was 0/6.
+3. **Inference/generation (#953)** — the real decoder drives the accepted local
    mechanism through one bounded provider-free autoregressive lexical loop on
    the evaluated library/CLI path.
-3. **Higher-scope attention (#973)** — paragraph, conversation, and bounded
+4. **Higher-scope attention (#973)** — paragraph, conversation, and bounded
    global state change selection through the accepted #953 decoded loop.
-4. **Correctness/abstention (#954)** — the accepted #969/#953/#973 path satisfies
+5. **Correctness/abstention (#954)** — the accepted #969/#983/#953/#973 path satisfies
    an independent oracle or constraint, and typed abstentions are explicit.
-5. **Reasoning (#955)** — every step invokes the accepted #969/#953/#973/#954
+6. **Reasoning (#955)** — every step invokes the accepted
+   #969/#983/#953/#973/#954
    consumer; novel multi-step tasks expose typed intermediate transitions,
    constraint preservation, alternative/counterfactual comparison, and a
    checkable result. #952 is not the reasoning consumer.
 
-Within #973, after accepted #953 and every required #973 scope qualifies, or an
+Within #973, after accepted #983/#953 and every required #973 scope qualifies, or an
 explicit native revision changes that scope, run the separately frozen
 higher-scope/corpus-scale offline induction ladder and requalify its final
 artifact. The ladder is part of #973's terminal before #954; it is not a new
@@ -73,8 +83,8 @@ exact hits, or trace activity are capacity/recall results unless a
 candidate-relative effect transfers to the held-out anti-recall partition under
 matched controls.
 
-#962 later integrates the accepted #969/#953/#973 path into product chat/memory.
-#964 binds the #970 → #969 → #953 → #973 stages in the
+#962 later integrates the accepted #969/#983/#953/#973 path into product chat/memory.
+#964 binds the #970 → #969 → #983 → #953 → #973 stages in the
 serving contract, and #965 qualifies only that exact release path.
 
 Passing an earlier stage never promotes a later claim. Codec coverage is not
@@ -400,12 +410,98 @@ The smoke has identical natural support and group-comparison budgets, exact
 payload decode, incremental state reproduction, and deterministic replay. A
 miss keeps #969 open for direct mechanism revision; it does not create another
 gate issue. Paragraph, conversation, and global work belongs to #973 after
-#953.
+#983 and #953. The accepted #969 result is identity-derived predecessor
+evidence for #983; it no longer directly authorizes work on #953.
+
+### A1Q-L2/#983 construction-transferred candidate-conditioned local attention
+
+The predeclared #983 contract froze exactly one past-only mechanism before
+implementation:
+
+```text
+P_0        = identity
+P_i        = P_(i-1) * L(x_i)
+S_i(H)     = P_i^-1 * P_t
+R_i(H,c)   = ((S_i * L(c)) * S_i^-1) * L(c)^-1,  0 <= i < t
+```
+
+For every already-admitted candidate, `ConstructionCausalReturnV1` retains exact
+signed-H4 relation equality, round-S3 shell, past-only lease age, relation
+multiplicity, and exact witnesses. `R_min` selects one populated event by shell
+ascending, multiplicity descending, then past-only lease age ascending. Only an
+impure construction `R_min` class promotes to `R_full`, the complete eight-slot
+occupancy-tagged ordered word. Unseen, impure, multiply mapped, malformed, or
+ambiguous classes abstain. Compiler and query must bind the same codec,
+manifest, address mapping, exact tables, policy, ceilings, class order, and
+occupancy rules or return `UNAVAILABLE_FRAME_MISMATCH`. No scalar, threshold,
+sign, shell order, placement, or width may be selected from validation outcomes.
+
+The frozen population is exactly three natural candidate-pair families
+(`is/are`, `has/have`, `was/were`), two construction transitions per candidate,
+and one sealed matched validation pair per family, for six held-out decisions.
+Each pair preserves token multiset, length, trailing-four suffix, exactly two
+naturally admitted candidates, support, and work while an earlier causal
+controller differs. Controlling validation lexemes are absent from their
+construction family. Complete histories, shared suffixes, ordered witnesses,
+and complete operative candidate-interaction prototypes do not cross the
+partition. `run/runs`, all #953 surfaces and witnesses, the #970 population,
+candidate injection, and actual future routes are forbidden.
+
+Gate 0 is label-free with respect to sealed validation outcomes. It freezes
+separate fixture/partition, codec/vocabulary, construction artifact, mechanism
+policy, validation input, raw census, construction-label join,
+validation-label join, and final outcome identities. Before selector execution
+it reports same-frame reproduction, natural support equality, complete
+`R_min`/`R_full` inventories, construction purity/promotion/coverage,
+construction-to-validation coverage, operative raw-history/suffix/route/
+representation overlap, populated/padded aliases, real/control ceilings, exact
+work, and zero source/provider/teacher/future-route inputs. Freeze the raw-census
+identity before the sealed validation-label join is loaded.
+
+Hard-stop unless every usable class is construction-pure, all six validation
+decisions have both candidate actions covered, the real strict ceiling is 6/6,
+operative prototype recall and populated/padded aliases are zero, the real
+ceiling strictly exceeds every causal derangement, and every arm preserves
+support and declared work. Failure is one of
+`UNAVAILABLE_FRAME_MISMATCH`, `UNAVAILABLE_NO_OPERATIVE_ANTI_RECALL`,
+`UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER`, or
+`REDESIGN_CANDIDATE_CONDITIONED_CAUSAL_RETURN_REPRESENTATION`; no selector,
+second representation, or replacement population then runs.
+
+Only a passing Gate 0 permits one frozen `SELECT`/`REJECT` run. A positive
+requires 6/6 held-out choices, no real tie/abstention, every causal negative
+strictly below real, coherent relabeling equivariance, exact incremental
+reproduction, byte-identical rebuild/outcome replay, exact payload inversion,
+source/provider absence, and no candidate injection or semantic tiebreak. Its
+only positive terminal is
+`PROCEED_TO_I1_WITH_CONSTRUCTION_TRANSFERRED_LOCAL_GEOMETRIC_ATTENTION`.
+It establishes only bounded, source-free, construction-transferred local
+geometric attention on this population. Decoded generation and all #953 work
+are `NOT_RUN`; positive protected delivery authorizes a later session to apply
+the algorithm unchanged to #953 after a new label-free preflight.
+
+**Observed #983 result, 2026-08-28.** The frozen construction artifact formed
+21 `R_min` and 24 `R_full` classes from 24 construction rows. Every usable
+class was pure, but the real arm structurally covered 0/6 held-out decisions.
+After the separately sealed validation-label join was attached, the offline
+no-class-splitting lookup also reached 0/6, with six abstentions; every one of
+the eleven causal controls and the count-only comparator was likewise 0/6.
+The raw census and sealed outcome identities are respectively
+`blake3:5e970efe79c13d38e02eab6ff60642d3d449ce9dc571af6425b16d0d94858017`
+and
+`blake3:58fba09dba1b9245cb62a73bf8e3ac153242dc0730e3df7586446aa2820d4587`.
+The binding terminal is `UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER`. The hard
+gate stopped before any deployed selector or payload inversion; #953
+generation was `NOT_RUN`. This is a negative for this frozen representation
+and placement, not a general rejection of H4, paired-H4/E8, trigonometric,
+prime/semiprime, or alternative corpus-induced candidate-relative mechanisms.
+See
+[`construction_causal_return_attention_983.md`](construction_causal_return_attention_983.md).
 
 ### I1/#953 bounded decoded generation contract
 
-#953 begins with a production vertical slice, not a qualification matrix. The
-implementation must execute this source-free loop through the reusable core and
+#953 owns the preserved production vertical slice, not a qualification matrix.
+Its implementation executes this source-free loop through the reusable core and
 an explicitly research-scoped CLI entrypoint:
 
 ```text
@@ -442,9 +538,11 @@ The positive gate requires all of the following:
   continuation.
 
 Stop on support drift, unequal work, an inert path intervention, decode failure,
-nondeterminism, a short cycle, or exceeding the eight-unit state bound. Do not
-respond with a comparator expansion, metric/weight sweep, larger fixture, or a
-new issue. Repair the exact seam directly within #953.
+nondeterminism, a short cycle, or exceeding the eight-unit state bound. The
+historical direct-repair rule produced the observed record below. It is now
+superseded for forward sequencing: another representation judged on the known
+#953 population would risk post-hoc fixture tuning, so #983 owns the independent
+mechanism qualification and #953 remains untouched.
 
 The implemented repair has one frozen admission policy. I1/last-one, I2/last-two,
 ordered-sentence, and divisor rows form the primary tier. With non-empty primary
@@ -464,8 +562,9 @@ The frozen terminals are:
 - `REVISE_I1_GENERATOR_IN_PLACE` — a valid run localizes a generator seam that
   must be repaired before #953 can close.
 
-Invalid or unavailable work leaves #953 open. A positive result qualifies only
-the #969 local path plus #953 decoded grammar/sentence loop. Paragraph,
+Invalid or unavailable work leaves #953 open. It is currently unassigned and
+blocked by #983. A later positive result qualifies only the #983 local path plus
+#953 decoded grammar/sentence loop. Paragraph,
 conversation, and global influence remain inert until #973; correctness,
 reasoning, product chat, optimization, formal closure, and release remain
 downstream.
@@ -495,7 +594,7 @@ contextual row misses, and neither prompt linguistically requires one admitted
 adverb over the other. The smoke therefore cannot satisfy the incompatible
 natural-choice or bounded-grammar clauses. The terminal is
 `REVISE_I1_GENERATOR_IN_PLACE`; #953 remains open and #973 remains blocked. The
-complete evidence and next in-place action are in the
+complete evidence and then-current in-place action are in the
 [#953 record](local_geometric_generation_953.md).
 
 The next frozen natural agreement contrast failed earlier, at the support-only
@@ -540,13 +639,15 @@ suffixes exactly recalled shorter construction subhistories, so the partition
 was not operative-representation anti-recall. Generator execution and replay
 were `NOT_RUN`. The corrected label-free input, raw-census, and label-attached
 outcome identities are bound in the
-[#953 record](local_geometric_generation_953.md). #953 awaits a newly frozen
-maintainer plan; #973 and downstream #954 remain blocked.
+[#953 record](local_geometric_generation_953.md). This observed chronology is
+append-only. #953's fixture, overlay, generator, and records remain untouched
+under #983; #973 and downstream #954 remain blocked.
 
 ### A1Q-H/#973 exact-spin global operator prototype
 
-#973 owns paragraph, conversation, and bounded-global influence after #953
-qualifies the decoded loop. Operator influence consumes #953-admitted support;
+#973 owns paragraph, conversation, and bounded-global influence after #983
+qualifies local construction transfer and #953 qualifies the decoded loop.
+Operator influence consumes #953-admitted support;
 it does not participate in admission. The existing adjacent-spin retrieval rows
 remain fallback/diagnostic data, not operator coefficients; any neighbor
 operator is compiled independently over exact classes and admitted candidates.
@@ -624,7 +725,23 @@ permutation matrix, or higher-scope fixture is part of this prototype decision.
 A control that sees future tokens, additional retrieval, or a larger candidate
 set is invalid.
 
-For #953, run exactly the full-path and state-disabled arms with identical
+For #983, every arm uses the same natural support and performs eight typed
+prefix slots, two candidate evaluations, two prototype/class slots per
+candidate, and the same table-operation shape per decision. The encoder
+declares two payload-inversion slots per decision, but Gate 0 performs none;
+payload inversion remains selector-only and was `NOT_RUN`. Occupancy-false
+padding is a typed identity no-op and may not alias an
+occupied identity result. Negative controls are state-disabled, last-only,
+order-shuffled history, causal-return/lease-disabled, construction
+content/current-pairing shuffle, candidate/prototype placement permutation,
+prime-placement permutation, exact-recall-only, content swap, construction-key
+shuffle, and incoherent candidate relabeling. Positive controls are coherent
+full-artifact candidate relabeling, exact incremental/full-history equality,
+and byte-identical rebuild/outcome replay. The separate count-only last-anchor
+comparator cannot admit candidates, rank geometric candidates, break ties,
+populate relation classes, or be described as attention.
+
+When #953 is later unblocked, run exactly the full-path and state-disabled arms with identical
 natural support and work. Do not carry #969's last-only arm or the obsolete
 six-comparator I1 matrix forward. A single grammar-disabled diagnostic is
 allowed only to localize an already observed output defect.
@@ -638,7 +755,8 @@ global snapshot or an identity transition cannot qualify the operator.
 
 A working decoded intervention records
 `PROCEED_TO_I1_WITH_CAUSAL_R4_PATH_ATTENTION`. This establishes only a
-load-bearing identity-derived mechanism and exposes #953 to try generation.
+load-bearing identity-derived mechanism. It is predecessor evidence for #983,
+not current permission to resume #953.
 
 The observed smoke uses `aa bb dd qq` versus `bb aa dd qq` with natural
 `{ll, rr}` support. Full retained path decodes `rr ll` versus `ll rr`; both first
@@ -673,6 +791,15 @@ An anti-recall slice excludes exact continuation hits and must contain novel
 ordered combinations or counterfactual constraints while retaining enough
 registered lexical coverage to make the geometry reachable. Randomly hiding a
 row after compiling from the same answer is an ablation, not held-out evidence.
+
+Full-history disjointness is insufficient. The exact operative representation
+must also exclude recalled construction suffixes, ordered route witnesses, raw
+prototypes, and complete candidate-interaction witnesses. Report every overlap
+at the actual retained width and class resolution. A shorter construction
+subhistory recalled by the decisive representation is recall even when the
+complete validation prompt is absent. #983 additionally requires controlling
+validation lexemes to be absent from their construction family and freezes its
+raw selection-blind census before sealed validation labels are attached.
 
 On this slice, exact hierarchy kappas must miss by construction while bounded
 overlapping summaries remain available. Report whether shared-prime factors,
@@ -823,16 +950,32 @@ Use these outcomes literally:
 - `PROCEED_TO_I1_WITH_CAUSAL_R4_PATH_ATTENTION` — #969's full causal path
   changes a matched naturally admitted decoded continuation while last-only and
   state-disabled are weaker under the same natural support and group-comparison
-  budget. It exposes #953 but establishes neither semantic intelligence nor
-  coherent generation.
+  budget. It is direct predecessor evidence for #983 but establishes neither
+  semantic intelligence nor coherent generation.
+- `PROCEED_TO_I1_WITH_CONSTRUCTION_TRANSFERRED_LOCAL_GEOMETRIC_ATTENTION` —
+  #983's frozen construction-derived selector transfers to all six held-out
+  natural choices with no real tie/abstention, every causal negative strictly
+  below real, equal support/work, exact replay/inversion, operative anti-recall,
+  and no source, provider, future route, candidate injection, or semantic
+  tiebreak. It authorizes only a later unchanged application to #953.
+- `UNAVAILABLE_FRAME_MISMATCH` — #983 compiler/query identities or exact frames
+  differ; stop before selection.
+- `UNAVAILABLE_NO_OPERATIVE_ANTI_RECALL` — #983's retained representation
+  recalls an operative construction prototype; stop before selection.
+- `UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER` — no usable construction-derived
+  rule reaches the held-out decisions; stop before selection.
+- `REDESIGN_CANDIDATE_CONDITIONED_CAUSAL_RETURN_REPRESENTATION` — #983's frozen
+  classes, transfer ceiling, padding, derangement, or equal-work gate fails;
+  retain the evidence and do not try a second representation in the issue.
 - `PROCEED_TO_A1Q_H_WITH_BOUNDED_SOURCE_FREE_GEOMETRIC_GENERATION` — #953's
   full causal path drives one bounded natural decoded loop under equal support
   and work, exact inversion, deterministic termination/replay, and the declared
   source-free boundary. It exposes #973 but establishes none of its higher-scope
   attention, correctness, or reasoning claims.
 - `REVISE_I1_GENERATOR_IN_PLACE` — a valid #953 smoke localizes a generator
-  defect; keep #953 open and repair that seam without expanding the benchmark
-  or creating a replacement issue.
+  defect. This remains #953's historical terminal, but its former immediate
+  in-place-repair action is superseded by #983 because the known population is
+  no longer independent. Keep #953 open, unassigned, blocked, and untouched.
 
 Never convert a missing fixture, empty denominator, skipped test, or unrelated
 green suite into `PASS`. Every report preserves artifact kappas, partition CIDs,

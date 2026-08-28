@@ -1932,6 +1932,7 @@ dependencies = [
  "hex",
  "libm",
  "proptest",
+ "rayon",
  "serde",
  "serde_json",
  "sha2",

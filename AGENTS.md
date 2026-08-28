@@ -29,10 +29,15 @@ The first frozen local same-object, order-sensitive candidate-placement
 preflight then reproduced 7/7 construction prototypes with zero class
 collisions, but real placement selected 0/2 intended candidates while the
 same-artifact placement-permuted control selected 2/2. Generation and replay
-were `NOT_RUN`. #953 awaits a newly frozen maintainer plan; do not add a second
-representation under the failed contract or jump directly to
-Poincare/Hopf/harmonic machinery. #973 and #954 remain blocked, followed by
-#955 → #962–#965.
+were `NOT_RUN`. #983 then froze `ConstructionCausalReturnV1` on an independent
+three-family, six-decision population. Its usable construction classes were
+pure, but construction coverage and the sealed strict ceiling were both 0/6.
+It stopped `UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER` before a deployed selector,
+payload inversion, or #953 generation. #983 remains open negative evidence and
+the home of the next representation decision; #953 remains parked, unassigned,
+untouched, and blocked. Do not add a second representation under the failed
+contract or jump directly to Poincare/Hopf/harmonic machinery. #973 and #954
+remain blocked, followed by #955 → #962–#965.
 Terminology lives in
 `docs/transformerless/GLOSSARY.md`. Keep this file current when conventions
 change.
@@ -247,7 +252,13 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
   reproduced 7/7 construction prototypes with zero class collisions, but real
   placement selected 0/2 intended candidates while its same-artifact cyclic
   placement control selected 2/2; generation and replay were `NOT_RUN`. #953
-  awaits a newly frozen maintainer plan, while #973 and #954 remain blocked.
+  was then blocked by #983, whose independently frozen
+  `ConstructionCausalReturnV1` produced pure usable construction classes but
+  transferred to 0/6 held-out decisions. #983 stopped
+  `UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER` before deployed selection, payload
+  inversion, or #953 generation. #983 remains open negative evidence and owns
+  the next representation decision; #953 stays parked and untouched, while
+  #973 and #954 remain blocked.
   #954 and #955 own correctness and reasoning respectively.
   #962 owns durable multi-turn CLI/HTTP chat, persistence, isolation, and
   hive-memory; #963–#965 then own optimization, formal closure, and release.

@@ -28,6 +28,7 @@ bench-internals = []
 [dev-dependencies]
 serde_json = "1.0"
 proptest = "1.4.0"
+rayon = "1.10.0"
 
 [[bench]]
 name = "transformerless_dot"

@@ -41,17 +41,18 @@ spin/torsion changes move the state; and a bounded least-cost lookup chooses the
 next route. The route must remain reconstructable and causally falsifiable.
 
 The programme is sequenced by capability: lexically reversible geometry first;
-one load-bearing local route-attention mechanism (#969); one bounded decoded
-loop with repaired admission (#953); paragraph, conversation, and global
-qualification through that loop (#973); then measured correctness and only then
-multi-step reasoning. A qualified local attention mechanism must exist before
-an output can be credited to geometric inference; later higher scopes remain
-separate claims.
+one identity-derived local route-attention mechanism (#969); one independently
+construction-transferred, candidate-conditioned local qualification (#983); one
+bounded decoded loop with repaired admission (#953); paragraph, conversation,
+and global qualification through that loop (#973); then measured correctness
+and only then multi-step reasoning. A qualified local attention mechanism must
+exist before an output can be credited to geometric inference; later higher
+scopes remain separate claims.
 
 Optimization, broad QA, formalization, and release certification follow a
 working decision-bearing product slice. They do not replace it.
 
-## Current truth through #953
+## Current truth and A1Q-L2 result
 
 #958 is foundation evidence, not abandonment of geometric intelligence. It
 retained the following source-free mechanisms:
@@ -123,11 +124,18 @@ then frozen as `LocalSameObjectContextPlacementV1`. Its exact preflight
 reproduced all construction prototypes with zero class collisions, but real
 placement chose `run/runs` (0/2 intended) while the placement-permuted control
 chose `runs/run` (2/2). Generator execution and replay were `NOT_RUN`, so it did
-not qualify the placement hypothesis. #953 awaits a newly frozen maintainer
-plan; #973 remains blocked and later owns paragraph, conversation, and global
-exact-spin operator qualification only through an accepted #953 loop. Calling
-that operator
-harmonic additionally requires an artifact-bound basis/mode contract. #962
+not qualify the placement hypothesis. Its labels, geometry, and two failed
+representation outcomes are now known, so #953 is a parked, unassigned,
+untouched integration regression rather than an independent discovery
+population. A1Q-L2/#983 tested `ConstructionCausalReturnV1` on a separate
+three-family, six-decision construction/validation population. Its pure
+construction classes transferred structurally on 0/6 decisions and the sealed
+strict ceiling was 0/6, so it stopped
+`UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER` before a deployed selector or payload
+inversion. #983 remains open negative evidence and blocks #953; #953 continues
+to block #973 and #954; and #973 continues to block #954. Calling the later
+#973 operator harmonic additionally requires an
+artifact-bound basis/mode contract. #962
 separately owns product chat integration and persisted, identity-scoped hive
 memory.
 
@@ -501,6 +509,30 @@ Exact candidate-cost ties abstain. The 120-root H4 table lowers the
 unit-quaternion states and composition exactly; it is a finite S3 codebook, not the
 semantic claim or the paired-H4/E8 storage construction.
 
+The #983 mechanism retained those exact observed-only prefix products and
+required construction transfer before #953 could be touched again. For every already
+admitted candidate `c` and earlier prefix `0 <= i < t`, it freezes:
+
+```text
+P(0)      = identity
+P(i)      = P(i-1) composed with route(x_i)
+S_i(H)    = P(i)^-1 composed with P(t)
+R_i(H,c)  = S_i composed with route(c) composed with S_i^-1 composed with route(c)^-1
+```
+
+`ConstructionCausalReturnV1` uses only past/current state; the actual next route,
+validation label, teacher output, provider text, and `i=t` trivial relation are
+unavailable. Its fixed `R_min` class combines exact signed-H4 relation equality,
+the declared round-S3 shell, past-only lease age, and relation multiplicity.
+`R_min` selects one populated event by shell ascending, relation multiplicity
+descending, then past-only lease age ascending. Only an impure construction
+`R_min` class promotes to `R_full`, the complete eight-slot occupancy-tagged
+ordered relation word with exact prefix/suffix/commutator witnesses. Unseen,
+impure, multiply mapped, malformed, or ambiguous classes abstain. Compiler and
+query must bind the same codec, manifest, address mapping, exact tables, policy,
+ceilings, class order, and occupancy rules or return
+`UNAVAILABLE_FRAME_MISMATCH`.
+
 The state hierarchy is:
 
 | Level | Bound causal context |
@@ -621,17 +653,16 @@ GI-1 does not generate text, add a CLI/chat caller, or claim attention. Its exit
 is deterministic lexical/address round-trip, complete hierarchy identity, and
 rebuildable paired-H4 state.
 
-### GI-2 / #952 → #967 A1R → #970 A1P → #969 A1Q-L — local route attention
+### GI-2 / #952 → #967 A1R → #970 A1P → #969 A1Q-L → #983 A1Q-L2 — local route attention
 
 Status: **#952 A1.0 terminal negative; #967 A1R `RETAIN_STATE_ONLY`; #970 A1P
 `RETAIN_H4_STATE_ONLY_ADVANCE_MULTICHANNEL_A1Q` closed through protected PR
 #972; #969 positive bounded mechanism result
-`PROCEED_TO_I1_WITH_CAUSAL_R4_PATH_ATTENTION`; #953 loop plumbing and tiered
-admission implemented; its first frozen candidate-placement preflight then
-selected 0/2 intended candidates under real placement while the same-artifact
-placement-permuted control selected 2/2, and generator execution/replay were
-`NOT_RUN`. #953 remains at `REVISE_I1_GENERATOR_IN_PLACE` and awaits a newly
-frozen maintainer plan; #973 remains blocked**.
+`PROCEED_TO_I1_WITH_CAUSAL_R4_PATH_ATTENTION`; #983 then independently tested
+construction-transferred candidate-conditioned local attention and stopped at
+0/6 transfer before selection. Parked, unassigned #953 remains untouched. #983
+blocks #953; #953 and #973 retain
+their downstream blocker edges**.
 
 The frozen A1.0 probe stopped before scorer implementation with
 `REDESIGN_ORDERED_ROUTE_SUMMARY`. Across three matched contrasts, all 21
@@ -784,8 +815,10 @@ replay. No construction/validation split, channel census, weight sweep, permutat
 matrix, sentence/higher-scope fixture, or broad corpus run belongs to this
 prototype decision. A miss keeps #969 open for direct mechanism revision. A
 working decoded intervention records
-`PROCEED_TO_I1_WITH_CAUSAL_R4_PATH_ATTENTION` and exposes #953 while claiming
-only a load-bearing identity-derived mechanism—not semantics or coherence.
+`PROCEED_TO_I1_WITH_CAUSAL_R4_PATH_ATTENTION` while claiming only a load-bearing
+identity-derived mechanism—not semantics or coherence. Historically that result
+exposed #953; after #953's known-population failures it is direct predecessor
+evidence for #983 rather than current permission to resume #953.
 
 The fixed smoke uses `aa bb dd qq` versus `bb aa dd qq`. Both queries preserve
 the same natural `{ll, rr}` support and group-comparison budget. Full retained
@@ -797,11 +830,83 @@ The canonical smoke record kappa is
 `blake3:60360a9e22a56ea4af363e43f7103bb8104d015d58feb582d921fc17afaf207f`;
 see the [#969 record](local_geometric_attention_969.md).
 
+### GI-2 A1Q-L2 / #983 — construction-transferred candidate-conditioned local attention
+
+#983 is the open negative-evidence child of #820 after closed #967/#970/#969
+and before parked #953; #969 and #970 are its direct evidence-bearing
+predecessors. It does not
+consume the #953 or #970 populations. Its independently frozen natural
+population contains exactly three candidate-pair families—`is/are`, `has/have`,
+and `was/were`—two construction transitions per candidate, and one sealed
+matched validation pair per family, for six held-out decisions. Each pair has
+the same token multiset, length, trailing-four suffix, natural two-candidate
+union, support, and work; its controlling validation lexemes are absent from
+the corresponding construction family. No complete validation history, shared
+suffix, ordered witness, operative candidate-interaction prototype, `run/runs`
+surface, #953 route witness, candidate injection, or actual future route may be
+available to selection.
+
+The label-free Gate 0 freezes separate fixture, codec, construction artifact,
+mechanism policy, validation input, raw census, label joins, and outcome
+identities. Before any selector it reports same-frame reproduction, natural
+support equality, complete `R_min`/`R_full` inventories, construction purity and
+promotion, construction-to-validation coverage, operative anti-recall,
+populated/padded aliases, real/control ceilings, exact work, and zero source/
+provider/teacher/future-route inputs. It hard-stops unless every usable class is
+construction-pure, all six decisions have both candidate actions covered, the
+real strict ceiling is 6/6, operative prototype recall and padding aliases are
+zero, the real ceiling strictly exceeds every causal derangement, and support/
+work are identical.
+
+Required causal controls include state-disabled, last-only, order-shuffled,
+causal-return/lease-disabled, construction pairing and key shuffles,
+candidate-prototype and prime-placement permutations, exact-recall-only,
+content swap, and incoherent relabeling. Complete pre-selector qualification-
+record relabeling,
+incremental/full-history equality, and byte-identical rebuild/replay are
+positive controls. A fixed count-only last-anchor comparator is reported
+separately and cannot admit, rank, break ties, populate geometric classes, or be
+called attention. Every arm preserves the same natural support and typed
+table-operation shape through occupancy-aware no-ops.
+
+Only a passing Gate 0 permits one frozen `SELECT`/`REJECT` run. Success requires
+6/6 held-out choices, no real tie or abstention, every causal negative below
+real, equivariant relabeling, exact incremental reproduction, byte-identical
+replay, exact payload inversion, and no source, provider, candidate injection,
+or semantic tiebreak. Its only positive terminal is
+`PROCEED_TO_I1_WITH_CONSTRUCTION_TRANSFERRED_LOCAL_GEOMETRIC_ATTENTION`.
+Frame mismatch, absent operative anti-recall, zero transfer, or representation
+failure records respectively `UNAVAILABLE_FRAME_MISMATCH`,
+`UNAVAILABLE_NO_OPERATIVE_ANTI_RECALL`,
+`UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER`, or
+`REDESIGN_CANDIDATE_CONDITIONED_CAUSAL_RETURN_REPRESENTATION` and stops before
+selection; no second representation or population runs in the issue. Positive
+protected delivery authorizes only a later session applying the algorithm
+unchanged to #953 after a new label-free preflight. #983 performs no decoded
+generation.
+
+The binding raw census
+`blake3:5e970efe79c13d38e02eab6ff60642d3d449ce9dc571af6425b16d0d94858017`
+compiled 21 exact `R_min` and 24 exact `R_full` construction classes. Two
+impure minimum classes promoted to pure rich subclasses, covering 4/24 rows;
+all usable classes were pure. Operative raw-history, trailing-four, ordered-
+route, and complete-representation overlaps were zero, as were populated/
+padded aliases. Complete pre-selector alpha-renaming, incremental/full
+reproduction, and two complete builds were exact under equal support and work.
+Nevertheless, construction-to-validation structural coverage was 0/6. After
+the separately sealed label join, the real, all eleven causal negatives, and
+the fixed count-only comparator were each 0/6. Outcome
+`blake3:58fba09dba1b9245cb62a73bf8e3ac153242dc0730e3df7586446aa2820d4587`
+therefore records `UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER`. Only offline
+coverage/ceiling lookups ran; the deployed selector, payload inversion, #953,
+and decoded generation were `NOT_RUN`. See the
+[#983 evidence record](construction_causal_return_attention_983.md).
+
 ### GI-3 / #953 — bounded source-free geometric generation loop
 
 #969 qualified only an identity-derived local causal path selector. It did not
-qualify semantics, sentence attention, grammar, or coherent language. #953 now
-owns the first decoded autoregressive vertical slice:
+qualify semantics, sentence attention, grammar, or coherent language. #953 owns
+the preserved first decoded autoregressive vertical slice:
 
 ```text
 prompt bytes -> canonical lexical routes -> natural schema-2 admission
@@ -810,15 +915,12 @@ prompt bytes -> canonical lexical routes -> natural schema-2 admission
              -> punctuation, abstention, or bounded-cap termination
 ```
 
-Implement one reusable core generator and one explicitly research-scoped CLI
-entrypoint before adding its focused smoke. Reuse the canonical lexical codec,
+The reusable core generator and explicitly research-scoped CLI entrypoint now
+exist. They reuse the canonical lexical codec,
 schema-2 admission, #969 causal-path state and selector, exact H4 table, exact
 route-to-payload inversion, and the typed append/abstain/EOS/cap loop shape.
-Add only artifact-bound prompt encoding, bounded natural lexical/grammar
-support, rendering, append, termination, and a compact causal trace. The
-construction corpus may provide bounded predecessor/successor or second-order
-support, but it may not store or select the requested exact full-history
-continuation.
+Their artifact-bound prompt encoding, bounded support, rendering, append,
+termination, and compact causal trace remain preserved.
 
 Freeze one tiny construction corpus, one matched natural prompt pair, one
 artifact identity, at most eight total observed lexical units including prompt
@@ -827,7 +929,8 @@ The prompts require incompatible natural choices while preserving the same
 candidate union and comparison budget at the decisive position. Compare only
 the full #969 causal path with state-disabled selection under identical natural
 support and work. A grammar-disabled arm is permitted only once, to localize an
-observed concrete defect.
+observed concrete defect. Those frozen requirements and outcomes remain
+historical; they do not authorize new mechanism design on this population.
 
 A positive requires distinct short bounded-grammatical outputs, exact inversion
 of every admitted and selected route, deterministic punctuation/abstention/cap
@@ -835,13 +938,15 @@ termination, byte-identical double execution, no period-1 through period-4
 cycle, and no provider, source weight, target row, future event, or exact
 full-history continuation. Support drift, unequal work, inert path influence,
 decode failure, nondeterminism, a short cycle, or an eight-unit bound violation
-stops the smoke and requires direct revision in #953 rather than another
-benchmark or issue.
+stopped the historical smoke. The earlier direct-revision instruction produced
+the preserved #953 evidence below. It is now superseded for forward sequencing
+by #983 because another representation judged on the known #953 population
+would risk post-hoc fixture tuning.
 
 The frozen positive terminal is
 `PROCEED_TO_A1Q_H_WITH_BOUNDED_SOURCE_FREE_GEOMETRIC_GENERATION`; direct repair
-is `REVISE_I1_GENERATOR_IN_PLACE`. Invalid or unavailable work leaves #953
-open. Paragraph, conversation, and global selection remain inert until #973.
+is `REVISE_I1_GENERATOR_IN_PLACE`. #953 remains open, unassigned, and blocked by
+#983. Paragraph, conversation, and global selection remain inert until #973.
 Product CLI/HTTP chat integration, restart-persistent conversation state, and
 identity-scoped hive-memory lifecycle remain #962 scope.
 
@@ -898,13 +1003,14 @@ padding-identity aliases. Real placement selected 0/2 intended candidates,
 while the same-artifact placement-permuted and order-shuffled controls selected
 2/2 and 1/2. Full-history absence was not operative-representation anti-recall
 because decisive retained suffixes exactly recalled construction subhistories.
-Generator execution and replay were `NOT_RUN`. #953 awaits a newly frozen
-maintainer plan; harmonic ranking and higher-scope work remain dormant, and
-#973 remains blocked.
+Generator execution and replay were `NOT_RUN`. This chronology remains
+append-only evidence. The fixture, overlay, generator, and records are untouched
+under #983. Only a later positive protected successor under #983 may be applied unchanged in a
+later #953 session after a new label-free preflight; #973 remains blocked.
 
 ### GI-2 A1Q-H / #973 — paragraph, conversation, and global attention
 
-After accepted #969 and accepted #953, qualify paragraph, conversation, and
+After accepted #983 and accepted #953, qualify paragraph, conversation, and
 bounded global state through the real decoded autoregressive loop. Before #973,
 those scopes may remain serialized and incrementally updated but cannot
 influence selection. #973 blocks #954.
@@ -942,7 +1048,8 @@ requires a new exact `SpinTorsionState` relative relation.
 
 The tiered #953 policy has removed the measured support contamination. This
 later direction would give #973 a causal locus for global influence only after
-#953 qualifies its decoded loop. It does not establish that
+#983 qualifies local construction transfer and #953 qualifies its decoded loop.
+It does not establish that
 the current procedural spin placement is semantic, nor does it establish broad
 grammar, coherence, correctness, or reasoning. H4 group action alone is not a
 qualified spherical-harmonic field; fixed channels/modes and their transition
@@ -954,7 +1061,7 @@ or an explicit native revision of #973's scope and dependencies.
 
 #### #973 higher-scope/corpus-scale induction qualification and handoff to #954
 
-Within #973, only after #953 is accepted and every required #973 higher-scope
+Within #973, only after #983 and #953 are accepted and every required #973 higher-scope
 intervention qualifies, or an explicit native revision changes that scope, may
 the programme activate controlled higher-scope/corpus-scale offline induction.
 This ladder and its final requalification are part of #973's definition of done
@@ -966,7 +1073,9 @@ selection-blind raw census froze before expected continuations were attached.
 That first attempt failed before decoded generation or replay, and exact
 shorter-suffix recall showed that full-history disjointness was not
 operative-representation anti-recall. The result does not authorize broad
-corpus expansion, a metric sweep, or higher-scope induction inside #953.
+corpus expansion, a metric sweep, higher-scope induction, or another discovery
+representation inside #953. #983 owns the intervening independent local
+qualification.
 
 Freeze the document/conversation/task partitions before compiling rows or
 operator statistics. Construction data may supply causal
@@ -1000,7 +1109,7 @@ do not reproduce that effect.
 
 After source-free generation and #973's higher-scope plus corpus-scale induction
 terminal, test whether a frozen corpus-induced artifact conforming to and
-binding the accepted #969/#953/#973 identities understands the input well
+binding the accepted #969/#983/#953/#973 identities understands the input well
 enough to choose a correct answer. #954 does not
 consume #952 as qualified attention, and its truth oracle or evaluation cases
 may not tune the compiled admission policy, placement, operator coefficients,
@@ -1016,7 +1125,7 @@ the product response.
 ### GI-5 / #955 — reasoning
 
 Reasoning begins only after correct one-step inference. Every step invokes the
-accepted #969/#953/#973/#954 consumer, not #952. Add bounded multi-step route
+accepted #969/#983/#953/#973/#954 consumer, not #952. Add bounded multi-step route
 composition with:
 
 - explicit goal and intermediate constraints;
@@ -1041,11 +1150,11 @@ intermediate constraints must change under the matched causal control.
 
 ### GI-6 / #962–#965 — product integration, serving purity, measured cost, and bounded release
 
-#962 integrates the accepted #969/#953/#973 path into
+#962 integrates the accepted #969/#983/#953/#973 path into
 durable multi-turn CLI/HTTP chat, persistent conversation state, session and
 identity isolation, and load-bearing identity-scoped hive memory across turns
 and restarts. #963 retains measured optimization. #964 freezes a serving
-contract that binds the #970 → #969 → #953 → #973 path; #965 activates release
+contract that binds the #970 → #969 → #983 → #953 → #973 path; #965 activates release
 evidence only for that exact
 path. These issues do not inherit an attention claim from #952. Later issues
 retain optimization, serving-kernel/formal closure, and release ownership.
@@ -1108,9 +1217,12 @@ hours remains a hard kill ceiling, never an estimate.
   serialization contract is the golden/Galois-coupled icosian pair
   `H4 ⊕ phi H4` with fixed basis, glue, and inverse witness.
 - Required structural/storage representation is not a semantic scoring term.
-  #969 establishes only its local path mechanism as load-bearing. #953 has
-  implemented decoded-loop plumbing but has not qualified a natural grammar
-  loop. Only an accepted #953 result can expose #973, and only #973 may qualify
+  #969 establishes only its identity-derived local path mechanism as
+  load-bearing. #983 tested one construction-transferred local geometric
+  mechanism on six held-out choices and stopped at 0/6 transfer before a
+  deployed selector. #953 has implemented decoded-loop plumbing but has not
+  qualified a natural grammar loop. Only a later accepted successor under #983
+  and an accepted #953 result can expose #973, and only #973 may qualify
   paragraph, conversation, or global state.
 - S3/R4 compute, Hopf S2/R3 observation, and an E8 action plane are distinct
   objects.

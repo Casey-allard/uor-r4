@@ -4192,6 +4192,20 @@ impl CanonicalRouteArtifact {
         self.lexical_route_address_unvalidated(lexical_unit_id)
     }
 
+    /// Resolve a bounded set of stable codec units after validating the
+    /// immutable parent registry once. This is the safe public batch form for
+    /// callers that need several exact addresses from the same artifact.
+    pub fn lexical_route_addresses(
+        &self,
+        lexical_unit_ids: &[u32],
+    ) -> Result<Vec<Option<GeometricAddress>>, CanonicalLexicalError> {
+        self.validate_transitive()?;
+        lexical_unit_ids
+            .iter()
+            .map(|unit_id| self.lexical_route_address_unvalidated(*unit_id))
+            .collect()
+    }
+
     /// Internal fixed-probe lookup after the immutable artifact has already
     /// crossed `validate_transitive`. This prevents one bounded candidate
     /// query from revalidating the complete artifact for every registry row.
