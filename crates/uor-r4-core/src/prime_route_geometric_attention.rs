@@ -35,6 +35,8 @@ pub const ATTENTION_MAX_SPIN_ROWS: usize = 8 * ATTENTION_TORSION_BINS as usize;
 pub const ATTENTION_MAX_PHASE_ATOMS: usize = MANIFEST_MAX_ADDRESSES;
 pub const ATTENTION_MAX_CANDIDATE_ENTRIES_PER_QUERY: usize =
     ATTENTION_ROWS_PER_QUERY * MANIFEST_MAX_CANDIDATES_PER_ROW as usize;
+pub const PRIMARY_THEN_ADJACENT_SPIN_FALLBACK_V1_IDENTITY: &str =
+    "uor-r4.attention-query-policy/primary-then-adjacent-spin-fallback-v1";
 /// #969's first local attention mechanism is deliberately bounded to the
 /// 2--8 lexical-unit loop named by the issue. The state keeps exact prefix
 /// products rather than a digest so every earlier route can participate in
@@ -122,10 +124,22 @@ pub enum AttentionRowKey {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AttentionRowRead {
+    pub slot_index: usize,
     pub source: AttentionRowSource,
     pub key: AttentionRowKey,
+    /// The declared key/slot was consulted, even when its candidate entries
+    /// were not examined under the active tier policy.
+    pub consulted: bool,
+    /// Backward-compatible physical-presence signal. This is never cleared to
+    /// represent an inactive fallback.
     pub hit: bool,
+    pub physical_row_present: bool,
+    /// This row participated as an active fallback row for this query.
+    pub fallback_active: bool,
+    /// Bounded physical entries in the row, whether active or not.
+    pub candidate_entries_available: usize,
     pub candidate_entries_examined: usize,
+    pub candidate_entries_admitted: usize,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -227,8 +241,13 @@ pub struct AttentionSupportCandidateTrace {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AttentionSupportTrace {
     pub manifest_kappa: String,
+    pub query_policy: AttentionQueryPolicy,
+    pub query_policy_kappa: String,
+    pub fallback_active: bool,
     pub rows_read: Vec<AttentionRowRead>,
+    pub candidate_entries_available: usize,
     pub candidate_entries_examined: usize,
+    pub candidate_entries_admitted: usize,
     pub candidate_entry_ceiling: usize,
     pub unique_candidates_before_ceiling: usize,
     pub candidate_ceiling: usize,
@@ -241,8 +260,13 @@ pub struct GeometricAttentionTrace {
     pub manifest_kappa: String,
     pub control: AttentionControl,
     pub geometry_intervention: AttentionGeometryIntervention,
+    pub query_policy: AttentionQueryPolicy,
+    pub query_policy_kappa: String,
+    pub fallback_active: bool,
     pub rows_read: Vec<AttentionRowRead>,
+    pub candidate_entries_available: usize,
     pub candidate_entries_examined: usize,
+    pub candidate_entries_admitted: usize,
     pub candidate_entry_ceiling: usize,
     pub unique_candidates_before_ceiling: usize,
     pub candidate_ceiling: usize,
@@ -336,6 +360,32 @@ pub struct GeometricAttentionLookupBounds {
     pub rows_per_query: usize,
     pub candidate_entries_per_query: usize,
     pub unique_candidates_after_ceiling: usize,
+}
+
+/// Versioned selection of the active candidate-support tier. This identity is
+/// independent of [`AttentionSupportAdmission`], which orders/truncates the
+/// candidates only after the active tier has been chosen.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AttentionQueryPolicy {
+    PrimaryThenAdjacentSpinFallbackV1,
+}
+
+impl AttentionQueryPolicy {
+    pub const fn identity(self) -> &'static str {
+        match self {
+            Self::PrimaryThenAdjacentSpinFallbackV1 => {
+                PRIMARY_THEN_ADJACENT_SPIN_FALLBACK_V1_IDENTITY
+            }
+        }
+    }
+
+    pub fn identity_kappa(self) -> String {
+        format!(
+            "blake3:{}",
+            blake3::hash(self.identity().as_bytes()).to_hex()
+        )
+    }
 }
 
 /// The common, geometry-independent admission rule applied when the bounded
@@ -849,10 +899,12 @@ impl GeometricAttentionArtifact {
 
     // BEGIN GEOMETRIC_ATTENTION_BOUNDED_LOOKUP
     /// Read and admit the bounded natural candidate support without evaluating
-    /// candidate energy or H4 path geometry. The frozen row keys, including
-    /// adjacent-spin admission rows, are still queried but only row/count data
-    /// is returned. This is the common support seam for geometric queries,
-    /// path-lease selection, and support-only preflight inspection.
+    /// candidate energy or H4 path geometry. I1, I2, ordered-sentence, and
+    /// divisor rows form the primary tier. All adjacent-spin keys remain
+    /// consulted and physically accounted for, but their entries are examined
+    /// and admitted only when the primary tier is empty. This is the common
+    /// support seam for geometric queries, path-lease selection, and
+    /// support-only preflight inspection.
     pub fn query_support_only(
         &self,
         state: &CausalAttentionState,
@@ -865,9 +917,11 @@ impl GeometricAttentionArtifact {
         let sentence_key = state.sentence_key()?;
 
         self.read_direct_row(
+            0,
             AttentionRowSource::LastOne,
             AttentionRowKey::LastOne(state.last.clone()),
             self.direct_indexes.last_one(&state.last),
+            true,
             &mut merged,
             &mut rows_read,
         )?;
@@ -883,34 +937,48 @@ impl GeometricAttentionArtifact {
             None => AttentionRowKey::LastTwoUnavailable,
         };
         self.read_direct_row(
+            1,
             AttentionRowSource::LastTwo,
             last_two_key,
             last_two_row,
+            state.previous.is_some(),
             &mut merged,
             &mut rows_read,
         )?;
         self.read_direct_row(
+            2,
             AttentionRowSource::OrderedSentence,
             AttentionRowKey::OrderedSentence(sentence_key.as_str().to_owned()),
             self.direct_indexes.sentence_precomputed(sentence_key),
+            true,
             &mut merged,
             &mut rows_read,
         )?;
 
         let divisor_row = self.divisor_rows.get(&state.last.atom);
         self.read_attention_row(
+            3,
             AttentionRowSource::Divisor,
             AttentionRowKey::Divisor(state.last.atom),
             divisor_row,
+            true,
+            false,
             &mut merged,
             &mut rows_read,
         )?;
 
-        for sector in adjacent_spin_sectors(spin_sector(&state.last)) {
+        let fallback_active = merged.is_empty();
+        for (offset, sector) in adjacent_spin_sectors(spin_sector(&state.last))
+            .into_iter()
+            .enumerate()
+        {
             self.read_attention_row(
+                4 + offset,
                 AttentionRowSource::AdjacentSpin,
                 AttentionRowKey::AdjacentSpin(sector),
                 self.spin_rows.get(&sector),
+                fallback_active,
+                fallback_active,
                 &mut merged,
                 &mut rows_read,
             )?;
@@ -921,14 +989,19 @@ impl GeometricAttentionArtifact {
                 "bounded lookup did not account for every declared row".to_owned(),
             ));
         }
-        let candidate_entries_examined = rows_read.iter().try_fold(0usize, |total, row| {
-            total
-                .checked_add(row.candidate_entries_examined)
-                .ok_or(GeometricAttentionError::ArithmeticOverflow)
-        })?;
+        let candidate_entries_available =
+            sum_row_entries(&rows_read, |row| row.candidate_entries_available)?;
+        let candidate_entries_examined =
+            sum_row_entries(&rows_read, |row| row.candidate_entries_examined)?;
+        let candidate_entries_admitted =
+            sum_row_entries(&rows_read, |row| row.candidate_entries_admitted)?;
         let bounds = self.lookup_bounds();
-        if candidate_entries_examined > bounds.candidate_entries_per_query
+        if candidate_entries_available > bounds.candidate_entries_per_query
+            || candidate_entries_examined > bounds.candidate_entries_per_query
+            || candidate_entries_admitted > bounds.candidate_entries_per_query
+            || candidate_entries_available > ATTENTION_MAX_CANDIDATE_ENTRIES_PER_QUERY
             || candidate_entries_examined > ATTENTION_MAX_CANDIDATE_ENTRIES_PER_QUERY
+            || candidate_entries_admitted > ATTENTION_MAX_CANDIDATE_ENTRIES_PER_QUERY
         {
             return Err(GeometricAttentionError::Invalid(
                 "lookup exceeded its declared candidate-entry ceiling".to_owned(),
@@ -959,8 +1032,14 @@ impl GeometricAttentionArtifact {
 
         Ok(AttentionSupportTrace {
             manifest_kappa: self.manifest_kappa.clone(),
+            query_policy: AttentionQueryPolicy::PrimaryThenAdjacentSpinFallbackV1,
+            query_policy_kappa: AttentionQueryPolicy::PrimaryThenAdjacentSpinFallbackV1
+                .identity_kappa(),
+            fallback_active,
             rows_read,
+            candidate_entries_available,
             candidate_entries_examined,
+            candidate_entries_admitted,
             candidate_entry_ceiling: bounds.candidate_entries_per_query,
             unique_candidates_before_ceiling,
             candidate_ceiling: bounds.unique_candidates_after_ceiling,
@@ -994,8 +1073,13 @@ impl GeometricAttentionArtifact {
     ) -> Result<GeometricAttentionTrace, GeometricAttentionError> {
         let AttentionSupportTrace {
             manifest_kappa,
+            query_policy,
+            query_policy_kappa,
+            fallback_active,
             rows_read,
+            candidate_entries_available,
             candidate_entries_examined,
+            candidate_entries_admitted,
             candidate_entry_ceiling,
             unique_candidates_before_ceiling,
             candidate_ceiling,
@@ -1051,8 +1135,13 @@ impl GeometricAttentionArtifact {
             manifest_kappa,
             control,
             geometry_intervention: intervention,
+            query_policy,
+            query_policy_kappa,
+            fallback_active,
             rows_read,
+            candidate_entries_available,
             candidate_entries_examined,
+            candidate_entries_admitted,
             candidate_entry_ceiling,
             unique_candidates_before_ceiling,
             candidate_ceiling,
@@ -1274,50 +1363,75 @@ impl GeometricAttentionArtifact {
 
     fn read_direct_row(
         &self,
+        slot_index: usize,
         source: AttentionRowSource,
         key: AttentionRowKey,
         row: Option<&CandidateRow>,
+        consulted: bool,
         merged: &mut BTreeMap<GeometricAddress, AttentionSourceCounts>,
         trace: &mut Vec<AttentionRowRead>,
     ) -> Result<(), GeometricAttentionError> {
         let entries = row.map_or(&[][..], CandidateRow::candidates);
         self.validate_row_entries(entries.len())?;
-        for candidate in entries {
-            merged
-                .entry(candidate.next.clone())
-                .or_default()
-                .add(source, candidate.count)?;
+        if consulted {
+            for candidate in entries {
+                merged
+                    .entry(candidate.next.clone())
+                    .or_default()
+                    .add(source, candidate.count)?;
+            }
         }
+        let candidate_entries_examined = if consulted { entries.len() } else { 0 };
+        let physical_row_present = row.is_some();
         trace.push(AttentionRowRead {
+            slot_index,
             source,
             key,
-            hit: row.is_some(),
-            candidate_entries_examined: entries.len(),
+            consulted,
+            hit: physical_row_present,
+            physical_row_present,
+            fallback_active: false,
+            candidate_entries_available: entries.len(),
+            candidate_entries_examined,
+            candidate_entries_admitted: candidate_entries_examined,
         });
         Ok(())
     }
 
     fn read_attention_row(
         &self,
+        slot_index: usize,
         source: AttentionRowSource,
         key: AttentionRowKey,
         row: Option<&AttentionRow>,
+        examine_and_admit: bool,
+        fallback_active: bool,
         merged: &mut BTreeMap<GeometricAddress, AttentionSourceCounts>,
         trace: &mut Vec<AttentionRowRead>,
     ) -> Result<(), GeometricAttentionError> {
         let entries = row.map_or(&[][..], |row| row.candidates.as_slice());
         self.validate_row_entries(entries.len())?;
-        for candidate in entries {
-            merged
-                .entry(candidate.next.clone())
-                .or_default()
-                .add(source, candidate.count)?;
+        if examine_and_admit {
+            for candidate in entries {
+                merged
+                    .entry(candidate.next.clone())
+                    .or_default()
+                    .add(source, candidate.count)?;
+            }
         }
+        let candidate_entries_examined = if examine_and_admit { entries.len() } else { 0 };
+        let physical_row_present = row.is_some();
         trace.push(AttentionRowRead {
+            slot_index,
             source,
             key,
-            hit: row.is_some(),
-            candidate_entries_examined: entries.len(),
+            consulted: true,
+            hit: physical_row_present,
+            physical_row_present,
+            fallback_active,
+            candidate_entries_available: entries.len(),
+            candidate_entries_examined,
+            candidate_entries_admitted: candidate_entries_examined,
         });
         Ok(())
     }
@@ -1457,6 +1571,17 @@ fn increment_count(count: &mut u32) -> Result<(), GeometricAttentionError> {
         .checked_add(1)
         .ok_or(GeometricAttentionError::ArithmeticOverflow)?;
     Ok(())
+}
+
+fn sum_row_entries(
+    rows: &[AttentionRowRead],
+    select: impl Fn(&AttentionRowRead) -> usize,
+) -> Result<usize, GeometricAttentionError> {
+    rows.iter().try_fold(0usize, |total, row| {
+        total
+            .checked_add(select(row))
+            .ok_or(GeometricAttentionError::ArithmeticOverflow)
+    })
 }
 
 fn finalize_rows<K: Ord>(

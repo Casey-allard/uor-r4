@@ -2,14 +2,14 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::num::{NonZeroU16, NonZeroUsize};
 
 use uor_r4_core::prime_route_attention::{
-    compile_spin_manifest, GeometricAddress, ManifestProvenance, PhaseQ29, PrimeAtom,
-    PrimeRegistry, RouteSentence, SemanticAtom, SpinTorsionState, UnitS3Q30, ZPhi, ZeroPowerBridge,
+    compile_spin_manifest, GeometricAddress, ManifestProvenance, PhaseQ29, PrimeRegistry,
+    RouteSentence, SemanticAtom, SpinTorsionState, UnitS3Q30, ZPhi, ZeroPowerBridge,
 };
 use uor_r4_core::prime_route_geometric_attention::{
-    AttentionCandidateTrace, AttentionControl, AttentionGeometryIntervention, AttentionRowKey,
-    AttentionRowSource, AttentionSupportAdmission, CausalAttentionState,
-    GeometricAttentionArtifact, ATTENTION_ADJACENT_SPIN_ROWS,
-    ATTENTION_MAX_CANDIDATE_ENTRIES_PER_QUERY, ATTENTION_ROWS_PER_QUERY, ATTENTION_ZETA_CHANNELS,
+    AttentionCandidateTrace, AttentionControl, AttentionGeometryIntervention, AttentionQueryPolicy,
+    AttentionRowKey, AttentionRowSource, CausalAttentionState, GeometricAttentionArtifact,
+    ATTENTION_ADJACENT_SPIN_ROWS, ATTENTION_MAX_CANDIDATE_ENTRIES_PER_QUERY,
+    ATTENTION_ROWS_PER_QUERY, ATTENTION_ZETA_CHANNELS,
 };
 
 fn label(seed: &str) -> String {
@@ -201,8 +201,20 @@ fn lookup_is_strictly_row_and_candidate_bounded() {
         .unwrap();
     let bounds = attention.lookup_bounds();
 
+    let policy = AttentionQueryPolicy::PrimaryThenAdjacentSpinFallbackV1;
+    assert_eq!(trace.query_policy, policy);
+    assert_eq!(trace.query_policy_kappa, policy.identity_kappa());
+    assert_eq!(trace.manifest_kappa, attention.manifest_kappa());
     assert_eq!(trace.rows_read.len(), ATTENTION_ROWS_PER_QUERY);
     assert_eq!(bounds.rows_per_query, ATTENTION_ROWS_PER_QUERY);
+    assert_eq!(
+        trace.candidate_entry_ceiling,
+        bounds.candidate_entries_per_query
+    );
+    assert_eq!(
+        trace.candidate_ceiling,
+        bounds.unique_candidates_after_ceiling
+    );
     assert_eq!(
         trace
             .rows_read
@@ -211,12 +223,43 @@ fn lookup_is_strictly_row_and_candidate_bounded() {
             .count(),
         ATTENTION_ADJACENT_SPIN_ROWS
     );
-    assert!(trace
-        .rows_read
-        .iter()
-        .all(|row| row.candidate_entries_examined <= 3));
+    assert!(trace.rows_read.iter().enumerate().all(|(slot_index, row)| {
+        row.slot_index == slot_index
+            && row.hit == row.physical_row_present
+            && row.candidate_entries_available <= 3
+            && row.candidate_entries_examined <= row.candidate_entries_available
+            && row.candidate_entries_admitted <= row.candidate_entries_examined
+    }));
+    assert_eq!(
+        trace.candidate_entries_available,
+        trace
+            .rows_read
+            .iter()
+            .map(|row| row.candidate_entries_available)
+            .sum::<usize>()
+    );
+    assert_eq!(
+        trace.candidate_entries_examined,
+        trace
+            .rows_read
+            .iter()
+            .map(|row| row.candidate_entries_examined)
+            .sum::<usize>()
+    );
+    assert_eq!(
+        trace.candidate_entries_admitted,
+        trace
+            .rows_read
+            .iter()
+            .map(|row| row.candidate_entries_admitted)
+            .sum::<usize>()
+    );
+    assert!(trace.candidate_entries_available <= bounds.candidate_entries_per_query);
     assert!(trace.candidate_entries_examined <= bounds.candidate_entries_per_query);
+    assert!(trace.candidate_entries_admitted <= bounds.candidate_entries_per_query);
+    assert!(trace.candidate_entries_available <= ATTENTION_MAX_CANDIDATE_ENTRIES_PER_QUERY);
     assert!(trace.candidate_entries_examined <= ATTENTION_MAX_CANDIDATE_ENTRIES_PER_QUERY);
+    assert!(trace.candidate_entries_admitted <= ATTENTION_MAX_CANDIDATE_ENTRIES_PER_QUERY);
     assert!(trace.candidates.len() <= bounds.unique_candidates_after_ceiling);
     assert_eq!(trace.geometry_evaluations, trace.candidates.len());
     assert_eq!(trace.selected.as_ref(), trace.candidates.first());
@@ -318,9 +361,9 @@ fn last_one_last_two_and_ordered_sentence_interventions_are_observable() {
         )
         .unwrap();
     assert!(candidate(&from_p, &routes.x).source_counts.last_one > 0);
-    assert_eq!(candidate(&from_p, &routes.y).source_counts.last_one, 0);
+    assert!(!support(&from_p).contains(&routes.y));
     assert!(candidate(&from_q, &routes.y).source_counts.last_one > 0);
-    assert_eq!(candidate(&from_q, &routes.x).source_counts.last_one, 0);
+    assert!(!support(&from_q).contains(&routes.x));
 
     let from_b_c = attention
         .query(

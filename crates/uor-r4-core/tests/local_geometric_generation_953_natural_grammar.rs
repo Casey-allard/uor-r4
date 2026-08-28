@@ -12,7 +12,9 @@ use uor_r4_core::local_geometric_generation::{
 };
 use uor_r4_core::prime_route_attention::GeometricAddress;
 use uor_r4_core::prime_route_geometric_attention::{
-    AttentionRowSource, AttentionSourceCounts, AttentionSupportTrace, GeometricAttentionArtifact,
+    AttentionQueryPolicy, AttentionRowKey, AttentionRowSource, AttentionSourceCounts,
+    AttentionSupportTrace, GeometricAttentionArtifact,
+    PRIMARY_THEN_ADJACENT_SPIN_FALLBACK_V1_IDENTITY,
 };
 
 const IDENTITY_SCOPE: &str = "issue-953/natural-agreement-v1";
@@ -75,13 +77,18 @@ const CONSTRUCTION_ARTIFACT_KAPPA: &str =
     "blake3:b222510ccc01ed3257c8b38b743ca771f5e60c87ebf12c565f92fadbbd00332d";
 const ATTENTION_MANIFEST_KAPPA: &str =
     "blake3:1c3baf432b9fdcf2f3d90014797a5cae5850c0acba2fda63e0d6b659d49562de";
-const SUPPORT_PREFLIGHT_RECORD_KAPPA: &str =
+const PRIOR_SUPPORT_PREFLIGHT_RECORD_KAPPA: &str =
     "blake3:70375921e267b5ceff2198f879356cfb42dd6907accc0c2b720fc8b89b59b271";
+const QUERY_POLICY_KAPPA: &str =
+    "blake3:18c514b74b7d3e0e8796d9834c74d84745f0eddc88be0ef87236474f97a83820";
+const REPAIRED_SUPPORT_PREFLIGHT_RECORD_KAPPA: &str =
+    "blake3:aab38fc513521cdd495bad74cc4a87754ec43ecdef5cb6e098b101412d3d7fe9";
 
-// A post-run evidence binding, never an input to selection. `None` is frozen
-// in the pre-selection checkpoint; the observed record kappa may replace it
-// after the single four-arm run and its byte-identical replay.
-const FOUR_ARM_RECORD_KAPPA: Option<&str> = None;
+// A post-run evidence binding, never an input to selection. This was `None` at
+// the pre-selection checkpoint and was replaced only after the single
+// four-arm run and its byte-identical replay.
+const FOUR_ARM_RECORD_KAPPA: Option<&str> =
+    Some("blake3:dfe03d4c56f7e5e9cf48d524f2f0b10482c4b3b85fae152dd29c64543caa0b79");
 
 struct FrozenBundle {
     codec: CanonicalLexicalCodec,
@@ -182,7 +189,7 @@ struct PreflightCandidate {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-struct PreflightStep {
+struct LegacyPreflightStep {
     observed_routes: usize,
     rows_queried: usize,
     candidate_entries: usize,
@@ -196,13 +203,13 @@ struct PreflightStep {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-struct PreflightArm {
+struct LegacyPreflightArm {
     prompt_bytes: Vec<u8>,
-    steps: Vec<PreflightStep>,
+    steps: Vec<LegacyPreflightStep>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-struct PreflightRecord {
+struct LegacyPreflightRecord {
     schema: u32,
     fixture_kappa: String,
     codec_kappa: String,
@@ -211,15 +218,150 @@ struct PreflightRecord {
     attention_manifest_kappa: String,
     registered_surfaces: usize,
     observed_routes_per_completed_arm: usize,
-    left: PreflightArm,
-    right: PreflightArm,
+    left: LegacyPreflightArm,
+    right: LegacyPreflightArm,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+enum PreflightRowSource {
+    LastOne,
+    LastTwo,
+    OrderedSentence,
+    Divisor,
+    AdjacentSpin,
+}
+
+impl From<AttentionRowSource> for PreflightRowSource {
+    fn from(source: AttentionRowSource) -> Self {
+        match source {
+            AttentionRowSource::LastOne => Self::LastOne,
+            AttentionRowSource::LastTwo => Self::LastTwo,
+            AttentionRowSource::OrderedSentence => Self::OrderedSentence,
+            AttentionRowSource::Divisor => Self::Divisor,
+            AttentionRowSource::AdjacentSpin => Self::AdjacentSpin,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+enum PreflightRowKey {
+    LastOne {
+        address_kappa: String,
+    },
+    LastTwo {
+        previous_address_kappa: String,
+        last_address_kappa: String,
+    },
+    LastTwoUnavailable,
+    OrderedSentence {
+        route_kappa: String,
+    },
+    Divisor {
+        prime: u32,
+    },
+    AdjacentSpin {
+        hopf_octant: u8,
+        torsion_bin: u8,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+struct RepairedPreflightRow {
+    slot_index: usize,
+    source: PreflightRowSource,
+    key: PreflightRowKey,
+    consulted: bool,
+    physical_row_present: bool,
+    fallback_active: bool,
+    candidate_entries_available: usize,
+    candidate_entries_examined: usize,
+    candidate_entries_admitted: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+struct RepairedPreflightStep {
+    observed_routes: usize,
+    query_policy: String,
+    query_policy_kappa: String,
+    fallback_active: bool,
+    rows: Vec<RepairedPreflightRow>,
+    candidate_entries_available: usize,
+    candidate_entries_examined: usize,
+    candidate_entries_admitted: usize,
+    candidate_entry_ceiling: usize,
+    unique_candidates_before_ceiling: usize,
+    candidate_ceiling: usize,
+    candidates: Vec<PreflightCandidate>,
+    keys_per_candidate: usize,
+    declared_h4_comparisons: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+struct RepairedPreflightArm {
+    prompt_bytes: Vec<u8>,
+    steps: Vec<RepairedPreflightStep>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+struct RepairedPreflightRecord {
+    schema: u32,
+    prior_support_record_kappa: String,
+    fixture_kappa: String,
+    codec_kappa: String,
+    vocabulary_kappa: String,
+    construction_artifact_kappa: String,
+    attention_manifest_kappa: String,
+    query_policy: String,
+    query_policy_kappa: String,
+    registered_surfaces: usize,
+    observed_routes_per_completed_arm: usize,
+    left: RepairedPreflightArm,
+    right: RepairedPreflightArm,
+}
+
+fn preflight_row(
+    row: &uor_r4_core::prime_route_geometric_attention::AttentionRowRead,
+) -> RepairedPreflightRow {
+    let key = match &row.key {
+        AttentionRowKey::LastOne(address) => PreflightRowKey::LastOne {
+            address_kappa: address.canonical_kappa().unwrap(),
+        },
+        AttentionRowKey::LastTwo { previous, last } => PreflightRowKey::LastTwo {
+            previous_address_kappa: previous.canonical_kappa().unwrap(),
+            last_address_kappa: last.canonical_kappa().unwrap(),
+        },
+        AttentionRowKey::LastTwoUnavailable => PreflightRowKey::LastTwoUnavailable,
+        AttentionRowKey::OrderedSentence(route_kappa) => PreflightRowKey::OrderedSentence {
+            route_kappa: route_kappa.clone(),
+        },
+        AttentionRowKey::Divisor(atom) => PreflightRowKey::Divisor {
+            prime: atom.value(),
+        },
+        AttentionRowKey::AdjacentSpin(sector) => PreflightRowKey::AdjacentSpin {
+            hopf_octant: sector.hopf_octant,
+            torsion_bin: sector.torsion_bin,
+        },
+    };
+    RepairedPreflightRow {
+        slot_index: row.slot_index,
+        source: row.source.into(),
+        key,
+        consulted: row.consulted,
+        physical_row_present: row.physical_row_present,
+        fallback_active: row.fallback_active,
+        candidate_entries_available: row.candidate_entries_available,
+        candidate_entries_examined: row.candidate_entries_examined,
+        candidate_entries_admitted: row.candidate_entries_admitted,
+    }
 }
 
 fn preflight_step(
     bundle: &FrozenBundle,
     observed_routes: usize,
     trace: AttentionSupportTrace,
-) -> PreflightStep {
+) -> RepairedPreflightStep {
     let mut candidates = trace
         .candidates
         .into_iter()
@@ -229,27 +371,26 @@ fn preflight_step(
         })
         .collect::<Vec<_>>();
     candidates.sort_by(|left, right| left.payload_bytes.cmp(&right.payload_bytes));
-    let adjacent_spin_rows_hit = trace
-        .rows_read
-        .iter()
-        .filter(|row| row.source == AttentionRowSource::AdjacentSpin && row.hit)
-        .count();
     let declared_h4_comparisons = candidates.len() * observed_routes;
-    PreflightStep {
+    RepairedPreflightStep {
         observed_routes,
-        rows_queried: trace.rows_read.len(),
-        candidate_entries: trace.candidate_entries_examined,
+        query_policy: trace.query_policy.identity().to_owned(),
+        query_policy_kappa: trace.query_policy_kappa,
+        fallback_active: trace.fallback_active,
+        rows: trace.rows_read.iter().map(preflight_row).collect(),
+        candidate_entries_available: trace.candidate_entries_available,
+        candidate_entries_examined: trace.candidate_entries_examined,
+        candidate_entries_admitted: trace.candidate_entries_admitted,
         candidate_entry_ceiling: trace.candidate_entry_ceiling,
         unique_candidates_before_ceiling: trace.unique_candidates_before_ceiling,
         candidate_ceiling: trace.candidate_ceiling,
         candidates,
-        adjacent_spin_rows_hit,
         keys_per_candidate: observed_routes,
         declared_h4_comparisons,
     }
 }
 
-fn preflight_arm(bundle: &FrozenBundle, prompt: &[u8]) -> PreflightArm {
+fn preflight_arm(bundle: &FrozenBundle, prompt: &[u8]) -> RepairedPreflightArm {
     let history = history_for_prompt(bundle, prompt);
     assert_eq!(history.len(), 5);
     let mut state = bundle
@@ -257,8 +398,8 @@ fn preflight_arm(bundle: &FrozenBundle, prompt: &[u8]) -> PreflightArm {
         .causal_state_from_history(&history)
         .unwrap();
 
-    // This method has no H4 table/cost input. The preflight projection below
-    // reads only row source/hit/count data and never inspects or logs row keys.
+    // This method has no H4 table, state, cost, or selection input. The
+    // projection records only bounded lookup keys, tier state, and support.
     let first = preflight_step(
         bundle,
         history.len(),
@@ -271,25 +412,55 @@ fn preflight_arm(bundle: &FrozenBundle, prompt: &[u8]) -> PreflightArm {
         history.len() + 1,
         bundle.attention.query_support_only(&state).unwrap(),
     );
-    PreflightArm {
+    RepairedPreflightArm {
         prompt_bytes: prompt.to_vec(),
         steps: vec![first, second],
     }
 }
 
-fn preflight_matches_frozen_contract(arm: &PreflightArm) -> bool {
+fn adjacent_rows(step: &RepairedPreflightStep) -> Vec<&RepairedPreflightRow> {
+    step.rows
+        .iter()
+        .filter(|row| row.source == PreflightRowSource::AdjacentSpin)
+        .collect()
+}
+
+fn preflight_matches_frozen_contract(arm: &RepairedPreflightArm) -> bool {
     let Some(first) = arm.steps.first() else {
         return false;
     };
     let Some(second) = arm.steps.get(1) else {
         return false;
     };
+    let first_adjacent = adjacent_rows(first);
+    let second_adjacent = adjacent_rows(second);
     arm.steps.len() == 2
         && first.observed_routes == 5
-        && first.rows_queried == 7
-        && first.candidate_entries == 3
+        && first.query_policy == PRIMARY_THEN_ADJACENT_SPIN_FALLBACK_V1_IDENTITY
+        && first.query_policy_kappa == QUERY_POLICY_KAPPA
+        && !first.fallback_active
+        && first.rows.len() == 7
+        && first.candidate_entries_available == 8
+        && first.candidate_entries_examined == 3
+        && first.candidate_entries_admitted == 3
         && first.unique_candidates_before_ceiling == 1
-        && first.adjacent_spin_rows_hit == 0
+        && first_adjacent.len() == 3
+        && first_adjacent
+            .iter()
+            .all(|row| row.consulted && !row.fallback_active)
+        && first_adjacent
+            .iter()
+            .filter(|row| row.physical_row_present)
+            .count()
+            == 1
+        && first_adjacent
+            .iter()
+            .map(|row| row.candidate_entries_available)
+            .sum::<usize>()
+            == 5
+        && first_adjacent
+            .iter()
+            .all(|row| row.candidate_entries_examined == 0 && row.candidate_entries_admitted == 0)
         && first.keys_per_candidate == 5
         && first.declared_h4_comparisons == 5
         && first.candidates
@@ -298,10 +469,31 @@ fn preflight_matches_frozen_contract(arm: &PreflightArm) -> bool {
                 source_counts: [2, 1, 0, 2, 0],
             }]
         && second.observed_routes == 6
-        && second.rows_queried == 7
-        && second.candidate_entries == 6
+        && second.query_policy == PRIMARY_THEN_ADJACENT_SPIN_FALLBACK_V1_IDENTITY
+        && second.query_policy_kappa == QUERY_POLICY_KAPPA
+        && !second.fallback_active
+        && second.rows.len() == 7
+        && second.candidate_entries_available == 11
+        && second.candidate_entries_examined == 6
+        && second.candidate_entries_admitted == 6
         && second.unique_candidates_before_ceiling == 2
-        && second.adjacent_spin_rows_hit == 0
+        && second_adjacent.len() == 3
+        && second_adjacent
+            .iter()
+            .all(|row| row.consulted && !row.fallback_active)
+        && second_adjacent
+            .iter()
+            .filter(|row| row.physical_row_present)
+            .count()
+            == 1
+        && second_adjacent
+            .iter()
+            .map(|row| row.candidate_entries_available)
+            .sum::<usize>()
+            == 5
+        && second_adjacent
+            .iter()
+            .all(|row| row.candidate_entries_examined == 0 && row.candidate_entries_admitted == 0)
         && second.keys_per_candidate == 6
         && second.declared_h4_comparisons == 12
         && second.candidates
@@ -317,77 +509,111 @@ fn preflight_matches_frozen_contract(arm: &PreflightArm) -> bool {
             ]
 }
 
-fn assert_observed_preflight(arm: &PreflightArm) {
-    assert_eq!(arm.steps.len(), 2);
-    let first = &arm.steps[0];
-    assert_eq!(first.observed_routes, 5);
-    assert_eq!(first.rows_queried, 7);
-    assert_eq!(first.candidate_entries, 8);
-    assert_eq!(first.unique_candidates_before_ceiling, 5);
-    assert_eq!(first.candidate_ceiling, 8);
-    assert_eq!(first.adjacent_spin_rows_hit, 1);
-    assert_eq!(first.keys_per_candidate, 5);
-    assert_eq!(first.declared_h4_comparisons, 25);
-    assert_eq!(
-        first.candidates,
-        vec![
-            PreflightCandidate {
-                payload_bytes: b"athlete".to_vec(),
-                source_counts: [0, 0, 0, 0, 1],
-            },
-            PreflightCandidate {
-                payload_bytes: b"generally".to_vec(),
-                source_counts: [0, 0, 0, 0, 2],
-            },
-            PreflightCandidate {
-                payload_bytes: b"run".to_vec(),
-                source_counts: [0, 0, 0, 0, 1],
-            },
-            PreflightCandidate {
-                payload_bytes: b"runs".to_vec(),
-                source_counts: [0, 0, 0, 0, 1],
-            },
-            PreflightCandidate {
-                payload_bytes: b"still".to_vec(),
-                source_counts: [2, 1, 0, 2, 2],
-            },
-        ]
-    );
+fn preflight_arms_have_equal_support_and_work(
+    left: &RepairedPreflightArm,
+    right: &RepairedPreflightArm,
+) -> bool {
+    left.steps.len() == right.steps.len()
+        && left.steps.iter().zip(&right.steps).all(|(left, right)| {
+            left.observed_routes == right.observed_routes
+                && left.query_policy == right.query_policy
+                && left.query_policy_kappa == right.query_policy_kappa
+                && left.fallback_active == right.fallback_active
+                && left.candidate_entries_available == right.candidate_entries_available
+                && left.candidate_entries_examined == right.candidate_entries_examined
+                && left.candidate_entries_admitted == right.candidate_entries_admitted
+                && left.candidate_entry_ceiling == right.candidate_entry_ceiling
+                && left.unique_candidates_before_ceiling == right.unique_candidates_before_ceiling
+                && left.candidate_ceiling == right.candidate_ceiling
+                && left.candidates == right.candidates
+                && left.keys_per_candidate == right.keys_per_candidate
+                && left.declared_h4_comparisons == right.declared_h4_comparisons
+                && left.rows.len() == right.rows.len()
+                && left.rows.iter().zip(&right.rows).all(|(left, right)| {
+                    left.slot_index == right.slot_index
+                        && left.source == right.source
+                        && left.consulted == right.consulted
+                        && left.physical_row_present == right.physical_row_present
+                        && left.fallback_active == right.fallback_active
+                        && left.candidate_entries_available == right.candidate_entries_available
+                        && left.candidate_entries_examined == right.candidate_entries_examined
+                        && left.candidate_entries_admitted == right.candidate_entries_admitted
+                })
+        })
+}
 
-    let second = &arm.steps[1];
-    assert_eq!(second.observed_routes, 6);
-    assert_eq!(second.rows_queried, 7);
-    assert_eq!(second.candidate_entries, 11);
-    assert_eq!(second.unique_candidates_before_ceiling, 5);
-    assert_eq!(second.candidate_ceiling, 8);
-    assert_eq!(second.adjacent_spin_rows_hit, 1);
-    assert_eq!(second.keys_per_candidate, 6);
-    assert_eq!(second.declared_h4_comparisons, 30);
-    assert_eq!(
-        second.candidates,
-        vec![
-            PreflightCandidate {
-                payload_bytes: b"athlete".to_vec(),
-                source_counts: [0, 0, 0, 0, 1],
+fn prior_support_preflight_arm(prompt: &[u8]) -> LegacyPreflightArm {
+    LegacyPreflightArm {
+        prompt_bytes: prompt.to_vec(),
+        steps: vec![
+            LegacyPreflightStep {
+                observed_routes: 5,
+                rows_queried: 7,
+                candidate_entries: 8,
+                candidate_entry_ceiling: 56,
+                unique_candidates_before_ceiling: 5,
+                candidate_ceiling: 8,
+                candidates: vec![
+                    PreflightCandidate {
+                        payload_bytes: b"athlete".to_vec(),
+                        source_counts: [0, 0, 0, 0, 1],
+                    },
+                    PreflightCandidate {
+                        payload_bytes: b"generally".to_vec(),
+                        source_counts: [0, 0, 0, 0, 2],
+                    },
+                    PreflightCandidate {
+                        payload_bytes: b"run".to_vec(),
+                        source_counts: [0, 0, 0, 0, 1],
+                    },
+                    PreflightCandidate {
+                        payload_bytes: b"runs".to_vec(),
+                        source_counts: [0, 0, 0, 0, 1],
+                    },
+                    PreflightCandidate {
+                        payload_bytes: b"still".to_vec(),
+                        source_counts: [2, 1, 0, 2, 2],
+                    },
+                ],
+                adjacent_spin_rows_hit: 1,
+                keys_per_candidate: 5,
+                declared_h4_comparisons: 25,
             },
-            PreflightCandidate {
-                payload_bytes: b"generally".to_vec(),
-                source_counts: [0, 0, 0, 0, 2],
+            LegacyPreflightStep {
+                observed_routes: 6,
+                rows_queried: 7,
+                candidate_entries: 11,
+                candidate_entry_ceiling: 56,
+                unique_candidates_before_ceiling: 5,
+                candidate_ceiling: 8,
+                candidates: vec![
+                    PreflightCandidate {
+                        payload_bytes: b"athlete".to_vec(),
+                        source_counts: [0, 0, 0, 0, 1],
+                    },
+                    PreflightCandidate {
+                        payload_bytes: b"generally".to_vec(),
+                        source_counts: [0, 0, 0, 0, 2],
+                    },
+                    PreflightCandidate {
+                        payload_bytes: b"run".to_vec(),
+                        source_counts: [1, 1, 0, 1, 1],
+                    },
+                    PreflightCandidate {
+                        payload_bytes: b"runs".to_vec(),
+                        source_counts: [1, 1, 0, 1, 1],
+                    },
+                    PreflightCandidate {
+                        payload_bytes: b"still".to_vec(),
+                        source_counts: [0, 0, 0, 0, 2],
+                    },
+                ],
+                adjacent_spin_rows_hit: 1,
+                keys_per_candidate: 6,
+                declared_h4_comparisons: 30,
             },
-            PreflightCandidate {
-                payload_bytes: b"run".to_vec(),
-                source_counts: [1, 1, 0, 1, 1],
-            },
-            PreflightCandidate {
-                payload_bytes: b"runs".to_vec(),
-                source_counts: [1, 1, 0, 1, 1],
-            },
-            PreflightCandidate {
-                payload_bytes: b"still".to_vec(),
-                source_counts: [0, 0, 0, 0, 2],
-            },
-        ]
-    );
+        ],
+    }
 }
 
 #[test]
@@ -424,20 +650,10 @@ fn freeze_natural_agreement_contract_and_identities() {
 }
 
 #[test]
-fn natural_agreement_support_preflight_records_admission_hard_stop() {
-    let bundle = frozen_bundle();
-    assert_eq!(fixture_kappa(), FIXTURE_KAPPA);
-    assert_eq!(bundle.codec.codec_kappa(), CODEC_KAPPA);
-    assert_eq!(bundle.codec.vocabulary_kappa(), VOCABULARY_KAPPA);
-    assert_eq!(
-        bundle.artifact.manifest_kappa(),
-        CONSTRUCTION_ARTIFACT_KAPPA
-    );
-    assert_eq!(bundle.attention.manifest_kappa(), ATTENTION_MANIFEST_KAPPA);
-
-    let left = preflight_arm(&bundle, LEFT_PROMPT);
-    let right = preflight_arm(&bundle, RIGHT_PROMPT);
-    let record = PreflightRecord {
+fn prior_natural_agreement_support_hard_stop_record_is_append_only() {
+    let left = prior_support_preflight_arm(LEFT_PROMPT);
+    let right = prior_support_preflight_arm(RIGHT_PROMPT);
+    let record = LegacyPreflightRecord {
         schema: 1,
         fixture_kappa: FIXTURE_KAPPA.to_owned(),
         codec_kappa: CODEC_KAPPA.to_owned(),
@@ -451,12 +667,57 @@ fn natural_agreement_support_preflight_records_admission_hard_stop() {
     };
     let bytes = serde_json::to_vec(&record).unwrap();
     let record_kappa = format!("blake3:{}", blake3::hash(&bytes).to_hex());
-    assert_eq!(record_kappa, SUPPORT_PREFLIGHT_RECORD_KAPPA);
-    assert!(!preflight_matches_frozen_contract(&record.left));
-    assert!(!preflight_matches_frozen_contract(&record.right));
-    assert_observed_preflight(&record.left);
-    assert_observed_preflight(&record.right);
+    assert_eq!(record_kappa, PRIOR_SUPPORT_PREFLIGHT_RECORD_KAPPA);
     assert_eq!(record.left.steps, record.right.steps);
+    assert_eq!(record.left.steps[0].candidate_entries, 8);
+    assert_eq!(record.left.steps[1].candidate_entries, 11);
+}
+
+#[test]
+fn natural_agreement_support_preflight_qualifies_tiered_admission() {
+    let bundle = frozen_bundle();
+    assert_eq!(fixture_kappa(), FIXTURE_KAPPA);
+    assert_eq!(bundle.codec.codec_kappa(), CODEC_KAPPA);
+    assert_eq!(bundle.codec.vocabulary_kappa(), VOCABULARY_KAPPA);
+    assert_eq!(
+        bundle.artifact.manifest_kappa(),
+        CONSTRUCTION_ARTIFACT_KAPPA
+    );
+    assert_eq!(bundle.attention.manifest_kappa(), ATTENTION_MANIFEST_KAPPA);
+
+    let left = preflight_arm(&bundle, LEFT_PROMPT);
+    let right = preflight_arm(&bundle, RIGHT_PROMPT);
+    assert_eq!(
+        AttentionQueryPolicy::PrimaryThenAdjacentSpinFallbackV1.identity(),
+        PRIMARY_THEN_ADJACENT_SPIN_FALLBACK_V1_IDENTITY
+    );
+    assert_eq!(
+        AttentionQueryPolicy::PrimaryThenAdjacentSpinFallbackV1.identity_kappa(),
+        QUERY_POLICY_KAPPA
+    );
+    assert!(preflight_matches_frozen_contract(&left));
+    assert!(preflight_matches_frozen_contract(&right));
+    assert!(preflight_arms_have_equal_support_and_work(&left, &right));
+
+    let record = RepairedPreflightRecord {
+        schema: 2,
+        prior_support_record_kappa: PRIOR_SUPPORT_PREFLIGHT_RECORD_KAPPA.to_owned(),
+        fixture_kappa: FIXTURE_KAPPA.to_owned(),
+        codec_kappa: CODEC_KAPPA.to_owned(),
+        vocabulary_kappa: VOCABULARY_KAPPA.to_owned(),
+        construction_artifact_kappa: CONSTRUCTION_ARTIFACT_KAPPA.to_owned(),
+        attention_manifest_kappa: ATTENTION_MANIFEST_KAPPA.to_owned(),
+        query_policy: PRIMARY_THEN_ADJACENT_SPIN_FALLBACK_V1_IDENTITY.to_owned(),
+        query_policy_kappa: QUERY_POLICY_KAPPA.to_owned(),
+        registered_surfaces: 8,
+        observed_routes_per_completed_arm: 7,
+        left,
+        right,
+    };
+    let bytes = serde_json::to_vec(&record).unwrap();
+    let record_kappa = format!("blake3:{}", blake3::hash(&bytes).to_hex());
+    println!("repaired_support_preflight_record_kappa={record_kappa}");
+    assert_eq!(record_kappa, REPAIRED_SUPPORT_PREFLIGHT_RECORD_KAPPA);
 }
 
 fn emitted_payloads(report: &LocalGeometricGenerationReport) -> Vec<Vec<u8>> {
@@ -471,10 +732,25 @@ fn emitted_payloads(report: &LocalGeometricGenerationReport) -> Vec<Vec<u8>> {
         .collect()
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct GenerationSupportSignature {
+    rows: usize,
+    query_policy: String,
+    query_policy_kappa: String,
+    fallback_active: bool,
+    candidate_entries_available: usize,
+    candidate_entries_examined: usize,
+    candidate_entries_admitted: usize,
+    unique_candidates_before_ceiling: usize,
+    memory_keys_per_candidate: usize,
+    path_geometry_evaluations: usize,
+    candidates: Vec<(Vec<u8>, [u32; 5])>,
+}
+
 fn support_signature(
     report: &LocalGeometricGenerationReport,
     step_index: usize,
-) -> Option<(usize, usize, usize, usize, usize, Vec<(Vec<u8>, [u32; 5])>)> {
+) -> Option<GenerationSupportSignature> {
     let step = report.steps.get(step_index)?;
     let mut candidates = step
         .candidates
@@ -494,14 +770,19 @@ fn support_signature(
         })
         .collect::<Vec<_>>();
     candidates.sort_by(|left, right| left.0.cmp(&right.0));
-    Some((
-        step.support_rows.len(),
-        step.candidate_entries_examined,
-        step.unique_candidates_before_ceiling,
-        step.memory_keys_per_candidate,
-        step.path_geometry_evaluations,
+    Some(GenerationSupportSignature {
+        rows: step.support_rows.len(),
+        query_policy: step.query_policy.clone(),
+        query_policy_kappa: step.query_policy_kappa.clone(),
+        fallback_active: step.fallback_active,
+        candidate_entries_available: step.candidate_entries_available,
+        candidate_entries_examined: step.candidate_entries_examined,
+        candidate_entries_admitted: step.candidate_entries_admitted,
+        unique_candidates_before_ceiling: step.unique_candidates_before_ceiling,
+        memory_keys_per_candidate: step.memory_keys_per_candidate,
+        path_geometry_evaluations: step.path_geometry_evaluations,
         candidates,
-    ))
+    })
 }
 
 fn exact_inversion_holds(
@@ -595,6 +876,9 @@ struct FourArmRecord<'a> {
     vocabulary_kappa: &'a str,
     construction_artifact_kappa: &'a str,
     attention_manifest_kappa: &'a str,
+    query_policy: &'a str,
+    query_policy_kappa: &'a str,
+    support_preflight_record_kappa: &'a str,
     frozen_left_expected: &'a [&'a [u8]],
     frozen_right_expected: &'a [&'a [u8]],
     terminal: &'a str,
@@ -605,7 +889,7 @@ struct FourArmRecord<'a> {
 }
 
 #[test]
-#[ignore = "NOT_RUN_SUPPORT_PREFLIGHT_HARD_STOP"]
+#[ignore = "explicit frozen four-arm evidence; excluded from routine QA"]
 fn natural_agreement_four_arm_witness() {
     let bundle = frozen_bundle();
 
@@ -617,7 +901,7 @@ fn natural_agreement_four_arm_witness() {
     assert!(
         preflight_matches_frozen_contract(&left_preflight)
             && preflight_matches_frozen_contract(&right_preflight)
-            && left_preflight.steps == right_preflight.steps,
+            && preflight_arms_have_equal_support_and_work(&left_preflight, &right_preflight),
         "NOT_RUN_SUPPORT_PREFLIGHT_HARD_STOP"
     );
 
@@ -744,13 +1028,30 @@ fn natural_agreement_four_arm_witness() {
         REVISION_TERMINAL
     };
 
+    // Freeze the observed negative branch. Admission is now exact, but the
+    // decisive full-path choice is still `run` for both prompt orders.
+    assert!(first_emissions_are_still);
+    assert!(!left_full_matches);
+    assert!(right_full_matches);
+    assert!(!full_choices_are_distinct);
+    assert!(disabled_prompt_inert);
+    assert!(support_and_work_match);
+    assert!(inversion_holds);
+    assert!(bounded_closure);
+    assert!(source_boundary);
+    assert!(replay_is_identical);
+    assert_eq!(terminal, REVISION_TERMINAL);
+
     let record = FourArmRecord {
-        schema: 1,
+        schema: 2,
         fixture_kappa: FIXTURE_KAPPA,
         codec_kappa: CODEC_KAPPA,
         vocabulary_kappa: VOCABULARY_KAPPA,
         construction_artifact_kappa: CONSTRUCTION_ARTIFACT_KAPPA,
         attention_manifest_kappa: ATTENTION_MANIFEST_KAPPA,
+        query_policy: PRIMARY_THEN_ADJACENT_SPIN_FALLBACK_V1_IDENTITY,
+        query_policy_kappa: QUERY_POLICY_KAPPA,
+        support_preflight_record_kappa: REPAIRED_SUPPORT_PREFLIGHT_RECORD_KAPPA,
         frozen_left_expected: LEFT_EXPECTED,
         frozen_right_expected: RIGHT_EXPECTED,
         terminal,

@@ -109,16 +109,22 @@ mechanism and a matched two-unit decoded smoke at
 `PROCEED_TO_I1_WITH_CAUSAL_R4_PATH_ATTENTION`. #953 implemented the first
 bounded provider-free decode/render/append loop, but its initial smoke was an
 exact rank-preserving lexical relabel of #969 and terminated
-`REVISE_I1_GENERATOR_IN_PLACE`. Its frozen natural agreement follow-up stopped
-at support admission before H4 selection because adjacent-spin fallback
-expanded exact direct-plus-divisor support to five candidates. #953 remains
-active after protected PR #978 for the smallest tiered-admission repair: direct
-I1/I2/ordered-sentence plus divisor form the primary tier, and adjacent-spin is
-an admitted fallback only when that tier is empty. #973 remains blocked and
-later owns paragraph, conversation, and global exact-spin operator
-qualification through an accepted #953 loop. Calling that operator harmonic
-additionally requires an artifact-bound basis/mode contract. #962 separately
-owns product chat integration and persisted, identity-scoped hive memory.
+`REVISE_I1_GENERATOR_IN_PLACE`. Its frozen natural agreement follow-up first
+stopped at support admission under the old flat union. The versioned
+`PrimaryThenAdjacentSpinFallbackV1` repair now reproduces exact `{still}` then
+`{run,runs}` support with matched work while retaining truthful adjacent-row
+presence and the #969 empty-primary fallback. The single permitted four-arm
+run nevertheless chose `still run` for both full-path prompt orders; disabled
+selection chose `still runs` for both. Deterministic replay and the bounded
+runtime invariants passed, but the required incompatible full-path choices did
+not. #953 therefore remains at `REVISE_I1_GENERATOR_IN_PLACE`; the localized
+next hypothesis is bounded same-object, order-sensitive corpus-induced
+candidate-relative compatibility/placement within #953. #973 remains blocked
+and later owns paragraph, conversation, and global exact-spin operator
+qualification only through an accepted #953 loop. Calling that operator
+harmonic additionally requires an artifact-bound basis/mode contract. #962
+separately owns product chat integration and persisted, identity-scoped hive
+memory.
 
 ## Architecture invariants
 
@@ -507,12 +513,14 @@ trajectory/harmonic structural summaries. #969 consumes only the local retained
 ordered-S3 path. Paragraph, conversation, and global state remain serialized
 and incrementally updated but inert for selection until #973.
 
-The next #953 revision uses typed admission precedence rather than one flat row
-union. I1/last-one, I2/last-two, ordered-sentence, and divisor rows form the
-primary tier. If that tier is non-empty, adjacent-spin rows may be consulted
-and reported but admit nothing. Only an empty primary tier activates bounded
-adjacent-spin fallback. Admission bounds and policy identity are explicit;
-exact path-cost ranking runs only over the admitted set.
+The #953 query uses typed admission precedence rather than one flat row union.
+I1/last-one, I2/last-two, ordered-sentence, and divisor rows form the primary
+tier. If that tier is non-empty, adjacent-spin rows are consulted and their
+physical availability is reported, but they are not examined or admitted.
+Only an empty primary tier activates bounded adjacent-spin fallback. Admission
+bounds and the versioned policy identity are explicit; exact path-cost ranking
+runs only over the admitted set. The frozen agreement preflight and the #969
+fallback regression both satisfy this contract.
 
 An exact kappa miss is not permission to treat a digest as semantic distance.
 The first mechanism does not combine an omnibus list of stored channels. Its
@@ -613,9 +621,10 @@ rebuildable paired-H4 state.
 Status: **#952 A1.0 terminal negative; #967 A1R `RETAIN_STATE_ONLY`; #970 A1P
 `RETAIN_H4_STATE_ONLY_ADVANCE_MULTICHANNEL_A1Q` closed through protected PR
 #972; #969 positive bounded mechanism result
-`PROCEED_TO_I1_WITH_CAUSAL_R4_PATH_ATTENTION`; #953 loop plumbing implemented
-but natural smoke at `REVISE_I1_GENERATOR_IN_PLACE`; #953 remains active and
-#973 remains blocked**.
+`PROCEED_TO_I1_WITH_CAUSAL_R4_PATH_ATTENTION`; #953 loop plumbing and tiered
+admission implemented, but the natural selector remains at
+`REVISE_I1_GENERATOR_IN_PLACE`; #953 is active for candidate-relative
+same-object/order-sensitive representation and #973 remains blocked**.
 
 The frozen A1.0 probe stopped before scorer implementation with
 `REDESIGN_ORDERED_ROUTE_SUMMARY`. Across three matched contrasts, all 21
@@ -858,15 +867,29 @@ other, the smoke cannot qualify grammar. #953 therefore records
 motivated agreement contrast was frozen before selection. Its support preflight
 found the intended direct candidates but an adjacent-spin fallback row expanded
 both steps to five candidates, so H4 selection and all four generator arms were
-`NOT_RUN_SUPPORT_PREFLIGHT_HARD_STOP`. #953 remains open for the smallest
-tiered admission repair: I1/I2/ordered-sentence plus divisor primary,
-adjacent-spin only when that tier is empty. The repaired trace must distinguish
-row consulted, physical row present, entries examined, fallback activation, and
-entries admitted. It must preserve the frozen corpus, surfaces, route placement,
-artifact identity,
-expected support, and work budget, then rerun the support-only preflight before
-any H4 selection. Harmonic ranking remains dormant in #953. #973 remains
-blocked.
+`NOT_RUN_SUPPORT_PREFLIGHT_HARD_STOP` under the old flat-union policy.
+
+The versioned tiered repair then preserved every frozen fixture identity and
+produced exact `{still}` then `{run,runs}` primary support with 3 then 6
+examined/admitted entries and 5 then 12 declared comparisons. All adjacent
+slots remained consulted and truthful; the one physical adjacent row exposed
+five available entries at both steps but examined/admitted zero while fallback
+was inactive. The #969 empty-primary fallback regression retained its original
+decoded result and record identity.
+
+After that gate passed, the only permitted natural four-arm experiment decoded
+`still run` for both full-path prompts and `still runs` for both state-disabled
+prompts. Exact inversion, append, bounded termination, no short cycle,
+source/provider closure, support/work equality, and byte-identical replay
+passed. The right full-path arm was correct, the left was wrong, and the two
+full-path decisive choices were not distinct. The record is
+`blake3:dfe03d4c56f7e5e9cf48d524f2f0b10482c4b3b85fae152dd29c64543caa0b79`.
+#953 remains `REVISE_I1_GENERATOR_IN_PLACE`; admission is repaired and the
+next bounded in-place hypothesis is a construction-only, same-object,
+order-sensitive candidate-relative compatibility/placement overlay under
+disabled, placement-permuted, and order-shuffled controls. Generic fixed Hopf
+or spectral proxy activity is not the missing decoded decision. Harmonic
+ranking and higher-scope work remain dormant; #973 remains blocked.
 
 ### GI-2 A1Q-H / #973 — paragraph, conversation, and global attention
 
@@ -906,8 +929,9 @@ than from `SpinTorsionState`; the existing relative H4 quaternion remains a
 route witness unless #973 binds an explicit spin-to-H4 map. Otherwise direction
 requires a new exact `SpinTorsionState` relative relation.
 
-This direction is intended to remove #953's observed support contamination and
-to give #973 a causal locus for global influence. It does not establish that
+The tiered #953 policy has removed the measured support contamination. This
+later direction would give #973 a causal locus for global influence only after
+#953 qualifies its decoded loop. It does not establish that
 the current procedural spin placement is semantic, nor does it establish broad
 grammar, coherence, correctness, or reasoning. H4 group action alone is not a
 qualified spherical-harmonic field; fixed channels/modes and their transition

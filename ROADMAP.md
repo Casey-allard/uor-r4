@@ -15,9 +15,12 @@ PR #972; #969 delivered one causal R4/S3 least-cost route-attention mechanism
 and matched two-unit decoded smoke at
 `PROCEED_TO_I1_WITH_CAUSAL_R4_PATH_ATTENTION`; #953 implemented the first
 bounded provider-free loop, but its exact rank-preserving relabel smoke
-terminated `REVISE_I1_GENERATOR_IN_PLACE`. Its frozen natural agreement
-follow-up then stopped at support admission before H4 selection; #953 remains
-active and #973 remains blocked)._
+terminated `REVISE_I1_GENERATOR_IN_PLACE`. Its
+`PrimaryThenAdjacentSpinFallbackV1` repair recovered exact natural agreement
+support, but the one permitted four-arm run chose `still run` for both full
+paths and `still runs` for both state-disabled paths under equal work and
+deterministic replay. The terminal remains `REVISE_I1_GENERATOR_IN_PLACE`;
+#953 remains open and #973/#954 remain blocked)._
 
 > **Project priority:** build source-free geometric intelligence in which the
 > route is the data location. A pinned lexical codec supplies text boundaries;
@@ -39,8 +42,11 @@ active and #973 remains blocked)._
 > a new exact spin-relative relation or an explicit spin-to-H4 map; the existing
 > relative H4 witness is prime-derived route state.
 
-> **Corpus-induced attention direction:** within #973, once #953 is accepted
-> and every required #973 scope qualifies, a separately frozen offline corpus
+> **Corpus-induced attention direction:** the next #953 revision is a bounded
+> local corpus-induced same-object, order-sensitive candidate-relative
+> compatibility/placement mechanism; it does not activate Poincare, Hopf, or
+> harmonic machinery. Once #953 is accepted and every required #973 scope
+> qualifies, a separately frozen offline corpus
 > ladder may compile causal prefix-to-observed-next-route examples, multiscale
 > route summaries, versioned placement overlays that preserve immutable
 > route/payload identity, and operator statistics. More rows, hits, or trace activity are
@@ -163,14 +169,19 @@ Native GitHub relationships are the source of truth:
    terminates `REVISE_I1_GENERATOR_IN_PLACE` at
    `blake3:f8738ae16585b5817108ad6c8bc1ec7aee93f9d5a6cacffaa3aa084bb643cf72`.
    The next independently motivated agreement contrast was frozen before
-   selection, but its support-only preflight admitted five candidates through
-   adjacent-spin fallback instead of exact `{still}` then `{run,runs}`. H4 and
-   all four generator arms were `NOT_RUN`. #953 remains active for the smallest
-   tiered admission repair: I1/I2/ordered-sentence plus divisor primary;
-   adjacent-spin traced but non-admitting when that tier is non-empty, and used
-   only as a bounded fallback when it is empty. Preserve PR #978's frozen
-   support witness and rerun that preflight before H4 selection. Harmonic
-   influence remains dormant in #953. See the
+   selection after unconditional adjacent-spin fallback expanded its support.
+   `PrimaryThenAdjacentSpinFallbackV1` repaired that admission:
+   I1/I2/ordered-sentence plus divisor form the primary tier; adjacent-spin is
+   always consulted and reports physical presence truthfully, but is
+   non-admitting when primary support is non-empty. The preflight recovered
+   exact `{still}` then `{run,runs}` support under equal work. The one permitted
+   four-arm run produced left/full `still run`, right/full `still run`, and both
+   state-disabled arms `still runs`, with deterministic replay. The terminal
+   remains `REVISE_I1_GENERATOR_IN_PLACE`, now localized to candidate-relative
+   representation/scoring rather than admission or state starvation. #953
+   remains open for a bounded local corpus-induced same-object, order-sensitive
+   compatibility/placement revision. Harmonic influence remains dormant in
+   #953. See the
    [#953 record](docs/local_geometric_generation_953.md).
 7. **GI-2 A1Q-H / #973 — higher-scope attention:** after accepted #969 and
    #953, test paragraph, conversation, and bounded global state through the
@@ -221,11 +232,13 @@ is closed. #952's terminal negative evidence is preserved in
 #967 is at terminal A1R delivery with `RETAIN_STATE_ONLY`. #970 closed through
 protected PR #972 with its bounded heatmap-readout negative. #969's
 mechanism-first prototype reached its positive bounded terminal. #953's loop
-plumbing is implemented, but its first smoke terminated
-`REVISE_I1_GENERATOR_IN_PLACE` and its frozen agreement follow-up stopped at
-support admission before H4 selection; #953 remains open and #973 remains
-blocked. The live chain is closed #970 → closed #969 → open #953 → blocked #973
-→ blocked #954 → #955 → #962–#965.
+plumbing is implemented and tiered admission passed the frozen preflight, but
+the repaired natural agreement four-arm run made the same full-path choice for
+both prompts and preserved `REVISE_I1_GENERATOR_IN_PLACE`. #953 remains open
+for bounded local same-object, order-sensitive candidate-relative
+compatibility/placement induction; #973 and #954 remain blocked. The live chain
+is closed #970 → closed #969 → open #953 →
+blocked #973 → blocked #954 → #955 → #962–#965.
 Legacy tracker #949 is closed as
 superseded; #958 is retained directly under programme root #820 as GI-0
 foundation.
@@ -243,15 +256,19 @@ historical evidence and comparators.
   short cycle, and deterministic replay. Its natural surfaces are nonetheless
   an exact rank-preserving relabel of #969, so it supplies no incompatible
   linguistic requirement and cannot qualify grammar or expose #973. The next
-  frozen agreement contrast found the direct `{still}` then `{run,runs}` rows,
-  but unconditional adjacent-spin fallback expanded both unions to five
-  candidates. Its four H4 arms were `NOT_RUN`; the next #953 action is the
-  smallest tiered admission repair—I1/I2/ordered-sentence plus divisor primary,
-  adjacent-spin visible in the trace but non-admitting while that tier is
-  non-empty, and adjacent-spin fallback only when it is empty. The frozen
-  PR #978 support gate reruns before H4 selection. This repair addresses the
-  observed support contamination; it does not yet exercise harmonic influence
-  or qualify grammar. See the
+  frozen agreement contrast first found direct `{still}` then `{run,runs}` rows
+  but was contaminated by unconditional adjacent-spin fallback.
+  `PrimaryThenAdjacentSpinFallbackV1` repaired the preflight exactly:
+  I1/I2/ordered-sentence plus divisor form the primary tier, while adjacent-spin
+  is always consulted and truthfully reports physical presence but remains
+  non-admitting until that tier is empty. Under equal support/work, the one
+  permitted four-arm run produced `still run` for both full-path prompts and
+  `still runs` for both state-disabled prompts, with deterministic replay. The
+  defect is now candidate-relative representation/scoring rather than
+  admission or state starvation. The next #953 action is a bounded local
+  corpus-induced same-object, order-sensitive candidate-relative
+  compatibility/placement revision, not immediate Poincare/Hopf/harmonic
+  machinery. #953 remains open; #973 and #954 remain blocked. See the
   [#953 record](docs/local_geometric_generation_953.md).
 
 ## Landed
@@ -368,9 +385,12 @@ historical evidence and comparators.
   repaired that representation but retained it as state only; #970 then found
   the bounded paired-H4-derived exact R4-heatmap readout non-identifiable on its
   frozen union. #969 then qualified one local causal selector, and #953 has
-  implemented its decoded-loop plumbing. The first #953 natural smoke was an
-  exact lexical relabel; its frozen agreement follow-up stopped at admission
-  before H4 selection and remains at direct revision. #973 is still blocked.
+  implemented its decoded-loop plumbing while the tiered policy passed its
+  frozen preflight. The repaired natural agreement run still made the same
+  full-path choice for both prompts, so `REVISE_I1_GENERATOR_IN_PLACE` remains
+  active and #953 moves to a bounded local same-object, order-sensitive
+  candidate-relative compatibility/placement induction.
+  #973 and #954 are still blocked.
   Coherent product behavior, correctness, and reasoning remain unestablished.
   Historical canaries and pointwise results remain scoped evidence, not a
   claim that the current product works. See

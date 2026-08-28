@@ -7,9 +7,13 @@ use uor_r4_core::canonical_lexical_ingestion::{
 use uor_r4_core::local_geometric_generation::{
     LocalGenerationControl, LocalGenerationRowSource, LocalGenerationSourceCounts,
     LocalGenerationStepTrace, LocalGenerationStopReason, LocalGeometricGenerationReport,
-    LocalGeometricGenerator,
+    LocalGeometricGenerator, LOCAL_GEOMETRIC_GENERATION_REPORT_DOMAIN,
+    LOCAL_GEOMETRIC_GENERATION_REPORT_SCHEMA,
 };
-use uor_r4_core::prime_route_geometric_attention::{H4S3AngularShell, PathLeaseCost};
+use uor_r4_core::prime_route_geometric_attention::{
+    AttentionQueryPolicy, H4S3AngularShell, PathLeaseCost,
+    PRIMARY_THEN_ADJACENT_SPIN_FALLBACK_V1_IDENTITY,
+};
 
 const REGISTERED_UNITS: [&str; 10] = [
     "active",
@@ -48,8 +52,12 @@ const CONSTRUCTION_ARTIFACT_KAPPA: &str =
 const ATTENTION_MANIFEST_KAPPA: &str =
     "blake3:55465770d59b8e27cc232e09511c59654b4c93acd074ee3f26652e4a03eb76d2";
 const CODEC_KAPPA: &str = "blake3:71aa5e35465be4da1847bbfdbb7a836a4a21194f289fd638b79b4bfe576c8c09";
-const SMOKE_RECORD_KAPPA: &str =
+const PRIOR_SMOKE_RECORD_KAPPA: &str =
     "blake3:f8738ae16585b5817108ad6c8bc1ec7aee93f9d5a6cacffaa3aa084bb643cf72";
+const QUERY_POLICY_KAPPA: &str =
+    "blake3:18c514b74b7d3e0e8796d9834c74d84745f0eddc88be0ef87236474f97a83820";
+const TIERED_POLICY_SMOKE_RECORD_KAPPA: &str =
+    "blake3:b0248e715d4eab726588f47bef5dc4bb330580096b9d2e3bd3de9162d267081c";
 
 fn conversation_input(scope: &str, sentences: &[&[&str]]) -> ConversationInput {
     let global_snapshot_units = vec![b"brave".to_vec()];
@@ -208,6 +216,13 @@ fn assert_exact_inversion(
 }
 
 fn assert_bounded_source_free_report(report: &LocalGeometricGenerationReport) {
+    assert_eq!(report.schema, LOCAL_GEOMETRIC_GENERATION_REPORT_SCHEMA);
+    assert_eq!(report.domain, LOCAL_GEOMETRIC_GENERATION_REPORT_DOMAIN);
+    assert_eq!(
+        report.query_policy,
+        PRIMARY_THEN_ADJACENT_SPIN_FALLBACK_V1_IDENTITY
+    );
+    assert_eq!(report.query_policy_kappa, QUERY_POLICY_KAPPA);
     assert_eq!(report.prompt_routes.len(), 4);
     assert_eq!(report.steps.len(), 2);
     assert_eq!(report.emitted_lexical_unit_ids.len(), 2);
@@ -236,8 +251,16 @@ fn assert_bounded_source_free_report(report: &LocalGeometricGenerationReport) {
     );
 
     for (step_index, step) in report.steps.iter().enumerate() {
+        assert_eq!(
+            step.query_policy,
+            PRIMARY_THEN_ADJACENT_SPIN_FALLBACK_V1_IDENTITY
+        );
+        assert_eq!(step.query_policy_kappa, QUERY_POLICY_KAPPA);
+        assert!(step.fallback_active);
         assert_eq!(step.support_rows.len(), 7);
+        assert_eq!(step.candidate_entries_available, 2);
         assert_eq!(step.candidate_entries_examined, 2);
+        assert_eq!(step.candidate_entries_admitted, 2);
         assert_eq!(step.unique_candidates_before_ceiling, 2);
         assert_eq!(step.memory_keys_per_candidate, 4 + step_index);
         assert_eq!(step.path_geometry_evaluations, 8 + 2 * step_index);
@@ -257,9 +280,42 @@ fn assert_bounded_source_free_report(report: &LocalGeometricGenerationReport) {
                     | LocalGenerationRowSource::LastTwo
                     | LocalGenerationRowSource::OrderedSentence
             ) {
-                assert!(!row.hit, "no exact I1/I2/IS continuation row may serve");
+                assert!(
+                    !row.physical_row_present,
+                    "no exact I1/I2/IS continuation row may serve"
+                );
             }
         }
+        let adjacent_rows = step
+            .support_rows
+            .iter()
+            .filter(|row| row.source == LocalGenerationRowSource::AdjacentSpin)
+            .collect::<Vec<_>>();
+        assert_eq!(adjacent_rows.len(), 3);
+        assert!(adjacent_rows
+            .iter()
+            .all(|row| row.consulted && row.fallback_active));
+        assert_eq!(
+            adjacent_rows
+                .iter()
+                .map(|row| row.candidate_entries_available)
+                .sum::<usize>(),
+            2
+        );
+        assert_eq!(
+            adjacent_rows
+                .iter()
+                .map(|row| row.candidate_entries_examined)
+                .sum::<usize>(),
+            2
+        );
+        assert_eq!(
+            adjacent_rows
+                .iter()
+                .map(|row| row.candidate_entries_admitted)
+                .sum::<usize>(),
+            2
+        );
         assert_eq!(
             support_signature(step),
             vec![
@@ -291,6 +347,10 @@ fn relabelled_natural_smoke_requires_generator_revision() {
         ATTENTION_MANIFEST_KAPPA
     );
     assert_eq!(artifact.codec_kappa(), CODEC_KAPPA);
+    assert_eq!(
+        AttentionQueryPolicy::PrimaryThenAdjacentSpinFallbackV1.identity_kappa(),
+        QUERY_POLICY_KAPPA
+    );
     let artifact_bytes = artifact.canonical_bytes().unwrap();
     let generator = LocalGeometricGenerator::from_canonical_bytes(&artifact_bytes).unwrap();
 
@@ -524,7 +584,7 @@ fn relabelled_natural_smoke_requires_generator_revision() {
     }
 
     let record = SmokeRecord {
-        schema: 1,
+        schema: 2,
         fixture_kappa: SMOKE_FIXTURE_KAPPA,
         terminal: REVISION_TERMINAL,
         left_full: &left_full,
@@ -534,5 +594,7 @@ fn relabelled_natural_smoke_requires_generator_revision() {
     };
     let record_bytes = serde_json::to_vec(&record).unwrap();
     let record_kappa = format!("blake3:{}", blake3::hash(&record_bytes).to_hex());
-    assert_eq!(record_kappa, SMOKE_RECORD_KAPPA);
+    println!("tiered_policy_relabel_smoke_record_kappa={record_kappa}");
+    assert_ne!(record_kappa, PRIOR_SMOKE_RECORD_KAPPA);
+    assert_eq!(record_kappa, TIERED_POLICY_SMOKE_RECORD_KAPPA);
 }

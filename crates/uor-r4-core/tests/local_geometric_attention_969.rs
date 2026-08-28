@@ -6,8 +6,9 @@ use uor_r4_core::canonical_lexical_ingestion::{
 };
 use uor_r4_core::prime_route_attention::GeometricAddress;
 use uor_r4_core::prime_route_geometric_attention::{
-    AttentionSourceCounts, GeometricAttentionArtifact, H4S3AngularShell, PathLeaseAttentionTrace,
-    PathLeaseControl, PathLeaseCost,
+    AttentionQueryPolicy, AttentionRowKey, AttentionRowSource, AttentionSourceCounts,
+    GeometricAttentionArtifact, H4S3AngularShell, PathLeaseAttentionTrace, PathLeaseControl,
+    PathLeaseCost, ATTENTION_ADJACENT_SPIN_ROWS, ATTENTION_ROWS_PER_QUERY,
 };
 
 const REGISTERED_TOKENS: [&str; 10] = ["aa", "bb", "cc", "dd", "gg", "ll", "qq", "rr", "uu", "vv"];
@@ -156,6 +157,76 @@ fn support_signature(
     signature
 }
 
+fn assert_adjacent_spin_fallback_contract(trace: &PathLeaseAttentionTrace) {
+    let support = &trace.support;
+    let policy = AttentionQueryPolicy::PrimaryThenAdjacentSpinFallbackV1;
+    assert_eq!(support.query_policy, policy);
+    assert_eq!(support.query_policy_kappa, policy.identity_kappa());
+    assert!(support.fallback_active);
+    assert_eq!(support.rows_read.len(), ATTENTION_ROWS_PER_QUERY);
+    assert_eq!(
+        support
+            .rows_read
+            .iter()
+            .map(|row| row.slot_index)
+            .collect::<Vec<_>>(),
+        (0..ATTENTION_ROWS_PER_QUERY).collect::<Vec<_>>()
+    );
+
+    let primary_rows =
+        &support.rows_read[..ATTENTION_ROWS_PER_QUERY - ATTENTION_ADJACENT_SPIN_ROWS];
+    assert!(primary_rows.iter().all(|row| {
+        row.source != AttentionRowSource::AdjacentSpin
+            && row.consulted
+            && !row.fallback_active
+            && row.candidate_entries_available == 0
+            && row.candidate_entries_examined == 0
+            && row.candidate_entries_admitted == 0
+    }));
+
+    let adjacent_rows =
+        &support.rows_read[ATTENTION_ROWS_PER_QUERY - ATTENTION_ADJACENT_SPIN_ROWS..];
+    assert_eq!(adjacent_rows.len(), ATTENTION_ADJACENT_SPIN_ROWS);
+    assert!(adjacent_rows.iter().all(|row| {
+        row.source == AttentionRowSource::AdjacentSpin
+            && matches!(&row.key, AttentionRowKey::AdjacentSpin(_))
+            && row.consulted
+            && row.fallback_active
+    }));
+    assert!(support
+        .rows_read
+        .iter()
+        .all(|row| row.hit == row.physical_row_present));
+
+    assert_eq!(support.candidate_entries_available, 2);
+    assert_eq!(support.candidate_entries_examined, 2);
+    assert_eq!(support.candidate_entries_admitted, 2);
+    assert_eq!(
+        support
+            .rows_read
+            .iter()
+            .map(|row| row.candidate_entries_available)
+            .sum::<usize>(),
+        2
+    );
+    assert_eq!(
+        support
+            .rows_read
+            .iter()
+            .map(|row| row.candidate_entries_examined)
+            .sum::<usize>(),
+        2
+    );
+    assert_eq!(
+        support
+            .rows_read
+            .iter()
+            .map(|row| row.candidate_entries_admitted)
+            .sum::<usize>(),
+        2
+    );
+}
+
 fn exercise_incremental_hierarchy(
     codec: &CanonicalLexicalCodec,
     history: &[&str],
@@ -269,8 +340,7 @@ fn run_smoke() -> SmokeRun {
         &right_disabled,
     ] {
         assert_eq!(support_signature(&construction, trace), expected_support);
-        assert_eq!(trace.support.rows_read.len(), 7);
-        assert_eq!(trace.support.candidate_entries_examined, 2);
+        assert_adjacent_spin_fallback_contract(trace);
         assert_eq!(trace.support.unique_candidates_before_ceiling, 2);
         assert_eq!(trace.candidates.len(), 2);
         assert_eq!(trace.memory_keys_per_candidate, 4);
@@ -375,8 +445,7 @@ fn run_smoke() -> SmokeRun {
         .unwrap();
     for trace in [&left_second_trace, &right_second_trace] {
         assert_eq!(support_signature(&construction, trace), expected_support);
-        assert_eq!(trace.support.rows_read.len(), 7);
-        assert_eq!(trace.support.candidate_entries_examined, 2);
+        assert_adjacent_spin_fallback_contract(trace);
         assert_eq!(trace.support.unique_candidates_before_ceiling, 2);
         assert_eq!(trace.candidates.len(), 2);
         assert_eq!(trace.memory_keys_per_candidate, 5);

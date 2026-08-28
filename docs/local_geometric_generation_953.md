@@ -381,3 +381,173 @@ coefficients, quantization, and transition law. It does not
 establish grammar, coherence, semantic spin placement, correctness, or
 reasoning. #953 remains open at `REVISE_I1_GENERATOR_IN_PLACE`, and #973 remains
 blocked.
+
+## Tiered-admission repair and frozen selector outcome — 2026-08-27
+
+This append-only revision implements the previously frozen admission seam as
+the versioned query policy
+`uor-r4.attention-query-policy/primary-then-adjacent-spin-fallback-v1`
+(`PrimaryThenAdjacentSpinFallbackV1`). Its policy kappa is
+`blake3:18c514b74b7d3e0e8796d9834c74d84745f0eddc88be0ef87236474f97a83820`.
+Within each active tier, selection remains
+`SourceBreadthThenTotalCountThenCanonicalAddress`; the admission policy and the
+within-tier ordering policy are separate identities.
+
+Slots 0–3 are the primary I1/last-one, I2/last-two, ordered-sentence, and
+divisor rows. Slots 4–6 are the adjacent-spin center, previous, and next rows.
+Every slot is consulted and reported in deterministic order. A non-empty
+primary tier leaves adjacent rows physically visible and reports their
+available entries, but marks fallback inactive and examines and admits zero of
+those entries. Only an empty primary tier activates adjacent-spin fallback.
+The schema-2 generation report and each row trace bind the query-policy
+identity and kappa, slot, source, key, consulted flag, physical-row presence,
+fallback state, and available/examined/admitted entry counts. The existing
+seven-row and candidate ceilings remain unchanged.
+
+The repair preserved all five frozen natural-agreement identities:
+
+| Frozen object | Kappa |
+|---|---|
+| Natural agreement fixture | `blake3:0e018c9bcd43a29ed6f043665b2646c9579dd31d881d331f198fb89543184259` |
+| Canonical lexical codec | `blake3:6db64540ef344562903e01adac102f7bcc96c65908d162b1deca9b83550b35ed` |
+| Canonical vocabulary | `blake3:3b74f7ace425c039b4eab751b400f2603d92baf4ccfc9f4b8ac9409446291b58` |
+| Natural construction artifact | `blake3:b222510ccc01ed3257c8b38b743ca771f5e60c87ebf12c565f92fadbbd00332d` |
+| Embedded/compiled attention manifest | `blake3:1c3baf432b9fdcf2f3d90014797a5cae5850c0acba2fda63e0d6b659d49562de` |
+
+The prior flat-union hard-stop record
+`blake3:70375921e267b5ceff2198f879356cfb42dd6907accc0c2b720fc8b89b59b271`
+remains historical evidence. The repaired selection-blind support record is
+`blake3:aab38fc513521cdd495bad74cc4a87754ec43ecdef5cb6e098b101412d3d7fe9`.
+
+| Step | Rows | Available | Examined/admitted | Candidate union | Per-candidate source counts `(I1,I2,IS,D,AS)` | Keys/candidate | Declared H4 comparisons |
+|---:|---:|---:|---:|---|---|---:|---:|
+| prompt to `still` | 7 | 8 | 3 / 3 | `{still}` | `still=(2,1,0,2,0)` | 5 | 5 |
+| after frozen append `still` | 7 | 11 | 6 / 6 | `{run,runs}` | each `(1,1,0,1,0)` | 6 | 12 |
+
+At both steps one adjacent-spin row was physically present with five available
+entries. All three adjacent slots were consulted, fallback was false, and their
+examined/admitted counts were zero. The two prompt orders had identical
+support and work after excluding the necessarily prompt-specific canonical row
+keys. Thus the repaired preflight passed exactly before H4 selection was
+opened.
+
+The directly implicated #969 empty-primary regression also passed. Its three
+adjacent rows activated under fallback, examined and admitted exactly two
+entries, preserved its causal decoded choices and counts, and retained record
+kappa
+`blake3:60360a9e22a56ea4af363e43f7103bb8104d015d58feb582d921fc17afaf207f`.
+
+The natural-agreement selector was then executed exactly once in the four
+frozen arms, followed only by the declared complete in-test replay:
+
+| Prompt/control | Decoded continuation |
+|---|---|
+| left / full path | `still run` |
+| right / full path | `still run` |
+| left / state disabled | `still runs` |
+| right / state disabled | `still runs` |
+
+Every arm emitted the shared first unit `still`. The right full-path arm matched
+its frozen continuation, but the left full-path arm did not; both full-path
+decisive choices were the same rather than incompatible. The disabled arms
+were prompt-inert. Support/work equality, exact address-to-payload inversion,
+append, two-unit cap termination, no period-1 through period-4 short cycle,
+source/provider closure, and byte-identical replay all passed. The frozen
+four-arm record kappa is
+`blake3:dfe03d4c56f7e5e9cf48d524f2f0b10482c4b3b85fae152dd29c64543caa0b79`.
+The separate schema-2 relabel regression is bound by
+`blake3:b0248e715d4eab726588f47bef5dc4bb330580096b9d2e3bd3de9162d267081c`;
+its earlier schema record
+`blake3:f8738ae16585b5817108ad6c8bc1ec7aee93f9d5a6cacffaa3aa084bb643cf72`
+remains historical.
+
+The terminal remains `REVISE_I1_GENERATOR_IN_PLACE`. Admission is no longer the
+defect, and the prompt-inert disabled control rules out candidate starvation as
+the explanation for the observed full-path collapse. The localized defect is
+that the current candidate-relative representation/scorer does not distinguish
+the two required same-object, order-sensitive agreement outcomes. No second
+tuned natural experiment was run.
+
+The next in-place #953 hypothesis is a bounded construction-only,
+corpus-induced, same-object and order-sensitive candidate-relative
+compatibility or placement overlay. It must freeze its representation,
+placement, partitions, quantization, provenance, policy identity, and kappa
+before evaluation; preserve the repaired candidate union and work; and compare
+real, disabled, same-artifact placement-permuted, and order-shuffled controls on
+held-out anti-recall histories. Historical same-object tests support this only
+as a hypothesis: exact self-match is a sanity anchor, while corpus-derived
+placement has shown selective proxy alignment without a decoded causal choice.
+Generic fixed Hopf routing, broad sector occupancy, and Poincare low-mode
+alignment do not establish the missing decision and are not the immediate
+repair. The original Markov/trigram generator, larger model/corpus runs, and
+higher-scope operator work remain dormant.
+
+The immediate operand mismatch is concrete. The current selector composes the
+live ordered fold with a candidate leaf assigned from the candidate prime modulo
+the fixed 120-root table; that identity-derived leaf is not a construction-
+induced representation of histories in which the same candidate occurred.
+The proposed local overlay instead encodes construction-only predecessor
+histories with the same versioned ordered encoder used at query time and binds
+each already-admitted candidate to one exact prototype or bounded prototype
+set. Equal exact costs abstain. A compiler/query same-frame pair must reproduce
+the same exact H4 state or report `UNAVAILABLE_FRAME_MISMATCH` before any
+quality verdict.
+
+The historical #486 same-object audit explains the guard but does not supply a
+decoder score. Routing-query self-match was chance, whereas placing both sides
+in the same content frame yielded identity self-similarity/top-1 of 1.0 and a
+shipped-probe top-1 of 0.8. On the bounded retrieval probe, content-query
+placement improved top-1/MRR/recall@20 from
+`0.6240/0.7179/0.9720` to `0.7840/0.8542/0.9900`; the exact identity result is
+tautological and retrieval is not generation. #490 retained routing state and
+changed only the comparison operand. #502's later `W=0` simplification added
+only 0.032 top-1 and 0.022 MRR at unchanged recall, below its historical 0.05
+bar. The frame-consistency audit also records a false zero caused by comparing
+rotated frames; same-frame operands restored cosine 1.0 and 1.327 separation.
+Those values are anti-vacuity/representation evidence, not promotion
+thresholds.
+
+Archived geometric evidence reinforces the boundary. Generic fixed Hopf
+routing was indistinguishable from placement-permuted or randomly permuted
+controls, including validation perplexities 164.54 versus 164.41 in a
+transformer experiment. Corpus-derived PPMI placement and selected four-
+dimensional subspaces later produced selective routing and low-frequency proxy
+alignment, including roughly 40–48% task-margin low-frequency improvement
+across four seeds, but no decoded causal choice; one preregistered shell gate
+was degenerate rather than passed. These records justify testing a frozen local
+candidate-context placement, not inserting Hopf/Poincare machinery or claiming
+semantic attention.
+
+#953 therefore remains open and assigned. The positive-only handoff to #973 is
+not activated; #973 and #954 remain blocked. This result establishes a
+versioned bounded admission policy and one negative decoded-loop witness only.
+It does not establish grammar, coherent generation, semantic placement,
+correctness, higher-scope attention, reasoning, performance advantage, formal
+closure, product readiness, or release readiness.
+
+### Focused verification for this revision
+
+The decision-bearing checks executed locally were:
+
+- the frozen natural-agreement identity, historical hard-stop, and repaired
+  support-preflight tests: 3 passed, with the explicit four-arm evidence test
+  ignored during routine replay;
+- the explicit natural four-arm witness: one permitted run passed and performed
+  its complete byte-identical replay internally;
+- the existing #953 relabel regression: passed with its schema-2 record pinned;
+- the #969 empty-primary adjacent-fallback and causal-path regression: 1 passed,
+  retaining its prior record;
+- the #958 policy identity, truthful row trace, bounds, and attention
+  regressions: 8 passed;
+- focused `uor-r4-core` all-target compilation: passed;
+- the root WASM library check required by the exported core change: passed with
+  existing warnings outside this revision;
+- formatting, changed-document claim wording, and diff-whitespace checks:
+  passed.
+
+Workspace-wide tests, strict workspace clippy, no-std ladders, corpus/model/
+teacher work, generation canaries, BDD, Gate C, kappa reproduction, cargo audit,
+fuzz, formal proof, conformance, product QA, performance measurement, and
+release qualification were `NOT_RUN`. The protected merge queue remains the
+binding integration transport; its checks are not local product or research
+qualification evidence.

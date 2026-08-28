@@ -17,15 +17,19 @@ route-attention mechanism and one matched two-unit decoded smoke at
 bounded provider-free decode/render/append loop, but its initial smoke was an
 exact rank-preserving lexical relabel of #969 and terminated
 `REVISE_I1_GENERATOR_IN_PLACE`: it did not supply incompatible natural choices
-or qualify grammar. A separately frozen natural agreement revision then stopped
-before H4 selection because adjacent-spin fallback expanded the exact direct
-plus divisor support to five candidates. #953 remains active for the smallest
-tiered admission repair: I1/I2/ordered-sentence plus divisor primary,
-adjacent-spin only when that tier is empty. Candidate admission and harmonic
-influence are separate contracts: spin similarity never widens non-empty
-primary support. #973 remains blocked and later owns a shared exact-spin global
-operator over already-admitted
-candidates, followed by #954–#955 → #962–#965.
+or qualify grammar. `PrimaryThenAdjacentSpinFallbackV1` then repaired the
+separately frozen natural agreement admission: I1/I2/ordered-sentence plus
+divisor form the primary tier; adjacent-spin rows are always consulted and
+report physical presence truthfully, but do not admit while primary support is
+non-empty. The preflight recovered exact `{still}` then `{run,runs}` support
+under equal work. One permitted four-arm run produced left/full `still run`,
+right/full `still run`, and both state-disabled arms `still runs`, with
+deterministic replay, so the terminal remains `REVISE_I1_GENERATOR_IN_PLACE`.
+The remaining bounded defect is candidate-relative representation/scoring, not
+admission or state starvation. #953 remains open for local corpus-induced
+same-object, order-sensitive candidate-relative compatibility/placement; do
+not jump directly to Poincare/Hopf/harmonic machinery. #973 and #954 remain
+blocked, followed by #955 → #962–#965.
 Terminology lives in
 `docs/transformerless/GLOSSARY.md`. Keep this file current when conventions
 change.
@@ -226,15 +230,18 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
   promote attention or generation. #970 closed through protected PR #972.
   #969 then delivered one causal R4/S3 least-cost route-attention mechanism and
   one matched decoded smoke. #953 has implemented a bounded source-free
-  library/CLI decode/render/append loop, but its rank-preserving relabel smoke
-  terminated `REVISE_I1_GENERATOR_IN_PLACE`. Its next frozen natural agreement
-  contrast stopped at support preflight when broad adjacent-spin fallback
-  contaminated non-empty direct-plus-divisor support; H4 selection was
-  `NOT_RUN`. #953 owns
-  the smallest tiered admission repair—direct plus divisor primary,
-  adjacent-spin only on an empty primary tier; #973 remains blocked and later
-  owns paragraph/conversation/global qualification. #954 and #955 own
-  correctness and reasoning.
+  library/CLI decode/render/append loop. Its rank-preserving relabel smoke
+  terminated `REVISE_I1_GENERATOR_IN_PLACE`; the later
+  `PrimaryThenAdjacentSpinFallbackV1` repair recovered exact `{still}` then
+  `{run,runs}` primary support under equal work while still consulting and
+  truthfully tracing non-admitting adjacent-spin rows. The one permitted
+  four-arm run produced `still run` for both full-path prompts and `still runs`
+  for both state-disabled prompts, with deterministic replay. The terminal
+  therefore remains `REVISE_I1_GENERATOR_IN_PLACE`, now localized to
+  candidate-relative representation/scoring rather than admission or state
+  starvation. #953 stays open for a bounded local corpus-induced same-object,
+  order-sensitive compatibility/placement revision; #973 and #954 remain
+  blocked. #954 and #955 own correctness and reasoning respectively.
   #962 owns durable multi-turn CLI/HTTP chat, persistence, isolation, and
   hive-memory; #963–#965 then own optimization, formal closure, and release.
 - Sequence strictly: lexical/address plumbing → local route attention →
@@ -253,13 +260,15 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
   shared-factor, and resonance terms remain storage fields, diagnostics, or
   future hypotheses. #969 establishes only its local ordered-S3 path mechanism
   as load-bearing. #953's current code establishes reusable decoded-loop
-  plumbing only; its relabelled smoke does not establish a natural grammar or
-  sentence loop. Only a later accepted #953 result can expose #973, and only
-  #973 may qualify paragraph, conversation, or global state.
+  plumbing and tiered admission on the frozen preflight only; the unchanged
+  full-path choice does not establish a natural grammar or sentence loop. Only
+  a later accepted #953 result can expose #973, and only #973 may qualify
+  paragraph, conversation, or global state.
 - Keep **candidate admission** separate from **harmonic influence**. In #953,
-  I1/I2/ordered-sentence plus divisor are the primary admission tier;
-  adjacent-spin rows remain visible in the trace but admit candidates only when
-  that tier is empty. Do not delete or disguise a physical adjacent-spin hit.
+  `PrimaryThenAdjacentSpinFallbackV1` uses I1/I2/ordered-sentence plus divisor
+  as the primary admission tier. Adjacent-spin rows are always consulted and
+  report physical presence truthfully, but admit candidates only when that tier
+  is empty. Do not delete or disguise a physical adjacent-spin hit.
   #973 may later apply one global-epoch/operator-bound result to every immutable
   reference in the same exact signed-S3/Hopf/fiber/torsion class. Similar but
   non-identical states require a separately frozen finite relative-angular
@@ -270,11 +279,13 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
   default, but global ordered-state behavior is tested on an independently
   frozen global-snapshot permutation rather than by mutating session history.
 - The completed #969 evidence compares exactly full retained path, last-only,
-  and state-disabled. #953's revision smoke carried forward full path and
-  state-disabled under identical support/work, but its exact rank-preserving
-  lexical relabel cannot qualify incompatible natural choices. Do not add a
-  construction/validation split, channel census, weight sweep, control matrix,
-  or higher-scope fixture to either bounded decision.
+  and state-disabled. #953's repaired natural agreement run carried full path
+  and state-disabled arms under equal support/work: both full-path prompts chose
+  `still run`, while both disabled prompts chose `still runs`. That deterministic
+  negative localizes the next revision to candidate-relative
+  representation/scoring; it does not qualify incompatible natural choices.
+  Do not add a construction/validation split, channel census, weight sweep,
+  control matrix, or higher-scope fixture to either bounded decision.
 - Teacher output may label or compare only after a source-free report freezes.
   It is never substituted for the product response.
 - Once #973 activates higher scopes, every hierarchy selection emits a

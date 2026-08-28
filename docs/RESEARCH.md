@@ -27,10 +27,13 @@ assumptions, or objectives rather than measured results.
 > `PROCEED_TO_I1_WITH_CAUSAL_R4_PATH_ATTENTION`. #953 then implemented the first
 > bounded provider-free decode/render/append loop, but its exact
 > rank-preserving lexical-relabel smoke terminated
-> `REVISE_I1_GENERATOR_IN_PLACE`. Its frozen natural agreement follow-up then
-> stopped at support admission before H4 selection because adjacent-spin
-> fallback expanded the exact direct-plus-divisor unions to five candidates.
-> #953 remains active; #973 and #954 remain blocked. Legacy
+> `REVISE_I1_GENERATOR_IN_PLACE`. Its frozen natural agreement follow-up first
+> stopped at support admission under the old flat union. The versioned tiered
+> repair then restored exact `{still}` and `{run,runs}` primary support, but the
+> single four-arm run selected `still run` for both prompt orders instead of
+> the required incompatible choices. #953 remains active for a bounded
+> same-object, order-sensitive candidate-relative representation repair; #973
+> and #954 remain blocked. Legacy
 > tracker #949 is closed as superseded, and #958 is retained directly beneath
 > #820 as GI-0 foundation. Two
 > current-summary corrections remain important: **#784** found
@@ -179,6 +182,31 @@ assumptions, or objectives rather than measured results.
 > The terminal remains `REVISE_I1_GENERATOR_IN_PLACE`; the localized next
 > hypothesis is a primary tier of direct plus divisor support, with
 > adjacent-spin rows only when that primary tier is empty.
+>
+> **#953 tiered admission and selector outcome, 2026-08-27.** The versioned
+> `PrimaryThenAdjacentSpinFallbackV1` policy preserved the five frozen fixture
+> identities and produced exact `{still}` then `{run,runs}` support. Seven rows
+> were consulted at each step; 8 then 11 entries were physically available,
+> while only 3 then 6 primary entries were examined and admitted. One adjacent
+> row remained physically present with five available entries, but fallback
+> was inactive and its examined/admitted counts were zero. Left/right support
+> and work matched. The repaired support record is
+> `blake3:aab38fc513521cdd495bad74cc4a87754ec43ecdef5cb6e098b101412d3d7fe9`;
+> #969's empty-primary adjacent fallback retained its prior record.
+>
+> The one permitted four-arm experiment decoded `still run` for both full-path
+> prompts and `still runs` for both state-disabled prompts. Exact inversion,
+> append, bounded termination, no short cycle, source/provider closure, equal
+> support/work, and byte-identical replay passed. The right full-path arm was
+> correct, the left was wrong, and the full-path decisive choices were equal.
+> Record kappa:
+> `blake3:dfe03d4c56f7e5e9cf48d524f2f0b10482c4b3b85fae152dd29c64543caa0b79`.
+> The terminal remains `REVISE_I1_GENERATOR_IN_PLACE`; admission is repaired,
+> and the localized next hypothesis is a construction-only, same-object,
+> order-sensitive candidate-relative compatibility/placement overlay under
+> disabled, same-artifact placement-permuted, and order-shuffled controls.
+> Generic fixed Hopf or spectral proxy activity is not decoded causal evidence.
+> No second tuned experiment was run; #973 and #954 remain blocked.
 
 The current quality-baseline reconciliation is recorded by #933 and the
 [append-only #934 genealogy](canonical_quality_baseline_934.md). The historical
@@ -416,8 +444,11 @@ classes, so the gate stopped before scalar design. The old six labels remained
 diagnostic/falsification-only. #970 closed through PR #972. #969 then delivered
 one causal ordered-S3 least-cost path mechanism with a matched two-unit decoded
 intervention. #953 now drives that selector through decoded-loop plumbing, but
-its relabel smoke did not qualify a natural grammar result. #953 remains active
-and #973 remains blocked. Dependable coherent text remains unestablished.
+its relabel smoke did not qualify a natural grammar result. Tiered admission
+then restored the frozen agreement support, but the full path chose the same
+decisive candidate for both prompt orders. #953 remains active for a bounded
+same-object/order-sensitive candidate-relative representation repair and #973
+remains blocked. Dependable coherent text remains unestablished.
 The final serving path has no source weights, transformer/self-attention, dense
 matrix intelligence, MoE, or sparse learned router. Compiler-side floating
 point remains allowed for witnessed chart construction; serving arithmetic is
@@ -511,9 +542,10 @@ classes alias outcomes and that the construction-derived rule has a 0/6 strict
 transfer ceiling on the separate sealed validation fixture. It stopped without
 scalar search and closed through PR #972. #969 then built and smoke-tested the
 single local path mechanism; #953 now executes it in bounded source-free
-decode/render/append plumbing, while its natural grammar witness remains at
-direct revision. Structural presence does not qualify the other stored fields
-for ranking. Product chat and
+decode/render/append plumbing. Its tiered admission is exact on the frozen
+agreement witness, while its current identity-derived candidate placement still
+collapses the required order-sensitive choice. Structural presence does not
+qualify the other stored fields for ranking. Product chat and
 persisted hive memory remain GI-6/#962 responsibilities. The
 retained #951 negative
 checkpoint and exact population remain in
@@ -959,10 +991,11 @@ first choices using non-identity retained prefixes. It records
 `PROCEED_TO_I1_WITH_CAUSAL_R4_PATH_ATTENTION`. #953 has implemented its core
 loop but records `REVISE_I1_GENERATOR_IN_PLACE` because the initial smoke is an
 exact lexical relabel of #969 rather than an incompatible natural contrast. Its
-next frozen agreement contrast stopped at admission before H4 selection when
-adjacent-spin fallback expanded exact direct-plus-divisor support to five
-candidates. #953 remains open; #973 remains blocked by #953 and continues to
-block #954.
+next frozen agreement contrast first stopped at admission under the old flat
+union. Tiered admission subsequently restored its exact support, but the single
+four-arm selector run chose `still run` for both full-path prompt orders. #953
+remains open for bounded same-object, order-sensitive candidate-relative
+representation; #973 remains blocked by #953 and continues to block #954.
 #955 invokes the eventual accepted
 #969/#953/#973/#954 path; #962 integrates that path into product chat with
 persisted identity-scoped hive memory. #963 retains measured cost; #964 binds

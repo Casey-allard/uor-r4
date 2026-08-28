@@ -17,9 +17,13 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > **Honest status:** the geometric storage/identity foundation, one bounded
 > causal R4/S3 path selector, and reusable provider-free decode/render/append
 > plumbing exist. The first #953 smoke was an exact lexical relabel of #969, so
-> it did not qualify a natural grammar loop. A frozen agreement follow-up then
-> stopped before H4 selection because broad fallback rows contaminated its exact
-> direct-plus-divisor support; #953 remains at direct revision.
+> it did not qualify a natural grammar loop. `PrimaryThenAdjacentSpinFallbackV1`
+> repaired the frozen agreement admission to exact `{still}` then `{run,runs}`
+> support under equal work, but the one permitted four-arm run chose `still run`
+> for both full-path prompts and `still runs` for both state-disabled prompts.
+> Deterministic replay preserved `REVISE_I1_GENERATOR_IN_PLACE`: the remaining
+> defect is candidate-relative representation/scoring, not admission or state
+> starvation. #953 remains open; #973 and #954 remain blocked.
 > Higher-scope attention, correct answers, and reasoning do not exist yet. The
 > dashboard is an interactive window into the research substrate, not a
 > frontier model or a ChatGPT replacement.
@@ -124,8 +128,9 @@ phases, ordered n-lets, exact `phi` radial transport, and the typed
 scorer inputs. It does not establish attention or generation, and #969 becomes
 the next stage only after protected #970 merge. #969 has since delivered one
 bounded causal path selector. #953 has driven it through real decoded-loop
-plumbing, but its first smoke was a rank-preserving relabel of #969 and did not
-qualify a natural grammar result.
+plumbing and tiered admission on the frozen preflight, but the natural agreement
+run made the same full-path choice for both prompts and did not qualify a
+natural grammar result.
 
 The ingestion witness maps two turns of text through the pinned lexical codec,
 prime/spin route state, canonical hierarchy manifest, strict reload, and exact
@@ -160,9 +165,16 @@ corrected paired-H4-derived exact R4-heatmap gate stopped at bounded readout
 identifiability without searching another scalar. #969 then qualified one local
 causal path selector, and #953 implemented the first bounded decoded
 library/CLI plumbing. Its relabelled smoke terminated
-`REVISE_I1_GENERATOR_IN_PLACE`; its frozen agreement follow-up stopped at
-support admission before H4 selection. #953 remains open and #973 remains
-blocked.
+`REVISE_I1_GENERATOR_IN_PLACE`. `PrimaryThenAdjacentSpinFallbackV1` then
+recovered exact `{still}` then `{run,runs}` primary support while consulting
+and truthfully tracing adjacent-spin rows, which remained non-admitting until
+the primary tier was empty. The one permitted four-arm run produced `still run`
+for both full-path prompts and `still runs`
+for both state-disabled prompts, with deterministic replay. The terminal
+remains `REVISE_I1_GENERATOR_IN_PLACE`; the next bounded #953 action is local
+corpus-induced same-object, order-sensitive candidate-relative
+compatibility/placement, not immediate Poincare/Hopf/harmonic machinery. #953
+remains open; #973 and #954 remain blocked.
 Stored H4/Hopf/zeta/icosian and related route fields remain
 structural state, diagnostics, or controls unless the owning stage qualifies a
 specific term.
@@ -254,8 +266,8 @@ complete.
 The active dependency chain is tracked in
 [#820](https://github.com/UOR-Foundation/uor-r4/issues/820). The immediate
 implementation stage is
-[#953](https://github.com/UOR-Foundation/uor-r4/issues/953); #973 remains
-blocked until #953 qualifies a genuinely natural decoded grammar loop.
+[#953](https://github.com/UOR-Foundation/uor-r4/issues/953). #973 and #954
+remain blocked downstream of #953; #954 also depends on #973.
 
 ## Find your way around
 

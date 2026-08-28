@@ -29,10 +29,13 @@ route-attention mechanism and one matched two-unit decoded smoke at
 `PROCEED_TO_I1_WITH_CAUSAL_R4_PATH_ATTENTION`. #953 implemented a bounded
 decoded-loop path, but its first smoke was an exact rank-preserving lexical
 relabel of #969 and terminated `REVISE_I1_GENERATOR_IN_PLACE`. Its frozen
-natural agreement follow-up stopped at support admission before H4 selection
-because adjacent-spin fallback expanded exact direct-plus-divisor support to
-five candidates. Protected PR #978 preserved that hard stop. #953 remains
-active for a tiered-admission repair, and #973 remains blocked; paragraph,
+natural agreement follow-up first stopped at support admission under the old
+flat union. The versioned tiered repair then produced exact `{still}` and
+`{run,runs}` support with matched work and preserved #969's empty-primary
+fallback. The single permitted four-arm run still selected `still run` for both
+full-path prompt orders; state-disabled selected `still runs` for both. #953
+remains `REVISE_I1_GENERATOR_IN_PLACE` for bounded same-object, order-sensitive
+candidate-relative representation, and #973 remains blocked; paragraph,
 conversation, global, correctness, and reasoning qualification remain
 downstream.
 
@@ -442,15 +445,15 @@ nondeterminism, a short cycle, or exceeding the eight-unit state bound. Do not
 respond with a comparator expansion, metric/weight sweep, larger fixture, or a
 new issue. Repair the exact seam directly within #953.
 
-The current repair has one frozen admission policy. I1/last-one, I2/last-two,
+The implemented repair has one frozen admission policy. I1/last-one, I2/last-two,
 ordered-sentence, and divisor rows form the primary tier. With non-empty primary
-support, adjacent-spin rows may be consulted and their physical entries counted
-but admit zero candidates. Only an empty primary tier activates bounded
-adjacent-spin fallback. The trace MUST bind the policy identity and distinguish
-row slot/key, consulted, physical-row-present, entries examined, fallback
-activated, and entries admitted. Preserve PR #978's frozen construction,
-surfaces, ordering, route placement, identities, expected support, and work;
-rerun only its selection-blind support preflight before exposing H4 selection.
+support, adjacent-spin rows are consulted and their physical entries counted
+but examined/admitted as zero. Only an empty primary tier activates bounded
+adjacent-spin fallback. The trace binds the policy identity and distinguishes
+row slot/key, consulted, physical-row-present, entries available/examined,
+fallback activated, and entries admitted. The repaired preflight preserved PR
+#978's frozen construction, surfaces, ordering, route placement, identities,
+expected support, and work before exposing H4 selection.
 
 The frozen terminals are:
 
@@ -502,7 +505,37 @@ to the same five candidates. The preflight record is
 H4 path costs, selector outputs, and all four generator arms are
 `NOT_RUN_SUPPORT_PREFLIGHT_HARD_STOP`; the localized repair is a primary
 direct-plus-divisor admission tier with adjacent-spin rows used only when that
-primary tier is empty.
+primary tier is empty. That statement remains the historical old-policy stop.
+
+The versioned `PrimaryThenAdjacentSpinFallbackV1` repair subsequently produced
+the exact frozen support. At the two steps, all seven slots were consulted; 8
+then 11 entries were physically available, while only 3 then 6 primary entries
+were examined and admitted. The physical adjacent row exposed five available
+entries at both steps but examined/admitted zero because fallback was inactive.
+The left/right candidate unions, source counts, keys, and comparison budgets
+matched. Repaired support record:
+`blake3:aab38fc513521cdd495bad74cc4a87754ec43ecdef5cb6e098b101412d3d7fe9`.
+The #969 regression also retained active adjacent fallback and its prior record.
+
+The one permitted four-arm run then decoded `still run` for both full-path
+prompts and `still runs` for both state-disabled prompts. Exact inversion,
+append, bounded termination, no short cycle, source/provider closure, matched
+support/work, and byte-identical replay passed. The right full-path arm matched
+its frozen continuation, the left did not, and the two full-path choices were
+not distinct. Record:
+`blake3:dfe03d4c56f7e5e9cf48d524f2f0b10482c4b3b85fae152dd29c64543caa0b79`.
+The terminal remains `REVISE_I1_GENERATOR_IN_PLACE`.
+
+The next bounded in-place hypothesis changes only the compared representation:
+compile construction-only ordered predecessor histories with the same
+versioned noncommutative encoder as the live history, induce a candidate-
+conditioned exact placement/prototype, and rank already-admitted candidates in
+that same frame. Freeze admission/work and require a same-frame anti-vacuity
+guard, state-disabled, same-artifact placement-permuted, order-shuffled, and
+held-out anti-recall controls with ties abstaining. Historical self-match and
+corpus-placement records motivate operand comparability only; they do not
+establish this decoded effect. Generic fixed Hopf or spectral proxy activity is
+not the immediate mechanism. #953 remains open and #973 remains blocked.
 
 ### A1Q-H/#973 exact-spin global operator prototype
 

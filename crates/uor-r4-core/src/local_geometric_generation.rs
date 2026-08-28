@@ -15,14 +15,15 @@ use crate::canonical_lexical_ingestion::{
 };
 use crate::prime_route_attention::{GeometricAddress, PrimeRouteError};
 use crate::prime_route_geometric_attention::{
-    AttentionRowKey, AttentionRowRead, AttentionRowSource, AttentionSourceCounts,
-    AttentionSupportAdmission, GeometricAttentionArtifact, GeometricAttentionError,
-    PathLeaseAttentionTrace, PathLeaseControl, PathLeaseCost, LOCAL_PATH_ATTENTION_MAX_UNITS,
+    AttentionQueryPolicy, AttentionRowKey, AttentionRowRead, AttentionRowSource,
+    AttentionSourceCounts, AttentionSupportAdmission, GeometricAttentionArtifact,
+    GeometricAttentionError, PathLeaseAttentionTrace, PathLeaseControl, PathLeaseCost,
+    LOCAL_PATH_ATTENTION_MAX_UNITS,
 };
 
-pub const LOCAL_GEOMETRIC_GENERATION_REPORT_SCHEMA: u32 = 1;
+pub const LOCAL_GEOMETRIC_GENERATION_REPORT_SCHEMA: u32 = 2;
 pub const LOCAL_GEOMETRIC_GENERATION_REPORT_DOMAIN: &str =
-    "uor-r4.local-geometric-generation-report/1";
+    "uor-r4.local-geometric-generation-report/2";
 pub const LOCAL_GEOMETRIC_GENERATION_MIN_PROMPT_UNITS: usize = 2;
 
 #[derive(Debug)]
@@ -151,10 +152,15 @@ pub enum LocalGenerationRowKey {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct LocalGenerationRowTrace {
+    pub slot_index: usize,
     pub source: LocalGenerationRowSource,
     pub key: LocalGenerationRowKey,
-    pub hit: bool,
+    pub consulted: bool,
+    pub physical_row_present: bool,
+    pub fallback_active: bool,
+    pub candidate_entries_available: usize,
     pub candidate_entries_examined: usize,
+    pub candidate_entries_admitted: usize,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize)]
@@ -220,9 +226,14 @@ pub struct LocalGenerationSelectionTrace {
 pub struct LocalGenerationStepTrace {
     pub step_index: usize,
     pub observed_routes_before: usize,
+    pub query_policy: String,
+    pub query_policy_kappa: String,
+    pub fallback_active: bool,
     pub support_admission: String,
     pub support_rows: Vec<LocalGenerationRowTrace>,
+    pub candidate_entries_available: usize,
     pub candidate_entries_examined: usize,
+    pub candidate_entries_admitted: usize,
     pub candidate_entry_ceiling: usize,
     pub unique_candidates_before_ceiling: usize,
     pub candidate_ceiling: usize,
@@ -274,6 +285,8 @@ pub struct LocalGeometricGenerationReport {
     pub codec_kappa: String,
     pub vocabulary_kappa: String,
     pub attention_manifest_kappa: String,
+    pub query_policy: String,
+    pub query_policy_kappa: String,
     pub h4_root_table_kappa: String,
     pub h4_multiplication_table_kappa: String,
     pub source_boundary: LocalGenerationSourceBoundary,
@@ -466,7 +479,9 @@ impl LocalGeometricGenerator {
                 })
                 .collect::<Result<Vec<_>, LocalGeometricGenerationError>>()?;
 
+            let candidate_entries_available = path_trace.support.candidate_entries_available;
             let candidate_entries_examined = path_trace.support.candidate_entries_examined;
+            let candidate_entries_admitted = path_trace.support.candidate_entries_admitted;
             let candidate_entry_ceiling = path_trace.support.candidate_entry_ceiling;
             let unique_candidates_before_ceiling =
                 path_trace.support.unique_candidates_before_ceiling;
@@ -522,7 +537,9 @@ impl LocalGeometricGenerator {
                 observed_routes_before,
                 &path_trace,
                 support_rows,
+                candidate_entries_available,
                 candidate_entries_examined,
+                candidate_entries_admitted,
                 candidate_entry_ceiling,
                 unique_candidates_before_ceiling,
                 candidate_ceiling,
@@ -559,6 +576,11 @@ impl LocalGeometricGenerator {
             codec_kappa: self.codec.codec_kappa().to_owned(),
             vocabulary_kappa: self.codec.vocabulary_kappa().to_owned(),
             attention_manifest_kappa: self.attention.manifest_kappa().to_owned(),
+            query_policy: query_policy_contract(
+                AttentionQueryPolicy::PrimaryThenAdjacentSpinFallbackV1,
+            ),
+            query_policy_kappa:
+                AttentionQueryPolicy::PrimaryThenAdjacentSpinFallbackV1.identity_kappa(),
             h4_root_table_kappa: self.h4_table.h4_root_table_kappa.clone(),
             h4_multiplication_table_kappa: self.h4_table.multiplication_table_kappa.clone(),
             source_boundary: LocalGenerationSourceBoundary {
@@ -680,10 +702,15 @@ fn row_trace(
         },
     };
     Ok(LocalGenerationRowTrace {
+        slot_index: row.slot_index,
         source: row.source.into(),
         key,
-        hit: row.hit,
+        consulted: row.consulted,
+        physical_row_present: row.physical_row_present,
+        fallback_active: row.fallback_active,
+        candidate_entries_available: row.candidate_entries_available,
         candidate_entries_examined: row.candidate_entries_examined,
+        candidate_entries_admitted: row.candidate_entries_admitted,
     })
 }
 
@@ -693,7 +720,9 @@ fn step_trace(
     observed_routes_before: usize,
     path_trace: &PathLeaseAttentionTrace,
     support_rows: Vec<LocalGenerationRowTrace>,
+    candidate_entries_available: usize,
     candidate_entries_examined: usize,
+    candidate_entries_admitted: usize,
     candidate_entry_ceiling: usize,
     unique_candidates_before_ceiling: usize,
     candidate_ceiling: usize,
@@ -711,9 +740,14 @@ fn step_trace(
     LocalGenerationStepTrace {
         step_index,
         observed_routes_before,
+        query_policy: query_policy_contract(path_trace.support.query_policy),
+        query_policy_kappa: path_trace.support.query_policy_kappa.clone(),
+        fallback_active: path_trace.support.fallback_active,
         support_admission: support_admission_contract(path_trace.support.support_admission),
         support_rows,
+        candidate_entries_available,
         candidate_entries_examined,
+        candidate_entries_admitted,
         candidate_entry_ceiling,
         unique_candidates_before_ceiling,
         candidate_ceiling,
@@ -807,6 +841,10 @@ fn support_admission_contract(admission: AttentionSupportAdmission) -> String {
             "source-breadth-then-total-count-then-canonical-address".to_owned()
         }
     }
+}
+
+fn query_policy_contract(policy: AttentionQueryPolicy) -> String {
+    policy.identity().to_owned()
 }
 
 /// Match the existing project gate: a period of one through four units is a
