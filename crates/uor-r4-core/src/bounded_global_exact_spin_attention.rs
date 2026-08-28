@@ -452,14 +452,53 @@ pub struct BoundedGlobalExactSpinHierarchyAudit {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct ExactSpinState {
+pub(crate) struct ExactSpinState {
     h4: OrderedH4FoldState,
     fiber_q29: i64,
     torsion_q29: i64,
 }
 
 impl ExactSpinState {
-    fn identity(table: &H4BinaryIcosahedralClosure) -> Result<Self, BoundedGlobalExactSpinError> {
+    pub(crate) fn from_parts(
+        h4: OrderedH4FoldState,
+        fiber_q29: i64,
+        torsion_q29: i64,
+        table: &H4BinaryIcosahedralClosure,
+    ) -> Result<Self, BoundedGlobalExactSpinError> {
+        h4.root_coordinate(table)?;
+        Ok(Self {
+            h4,
+            fiber_q29: wrap_phase_q29(fiber_q29),
+            torsion_q29: wrap_phase_q29(torsion_q29),
+        })
+    }
+
+    pub(crate) fn from_table_index_and_phases(
+        table_index: OpaqueH4TableIndex,
+        fiber_q29: i64,
+        torsion_q29: i64,
+        table: &H4BinaryIcosahedralClosure,
+    ) -> Result<Self, BoundedGlobalExactSpinError> {
+        let h4 = OrderedH4FoldState::from_table_index(table_index, table)?;
+        Self::from_parts(h4, fiber_q29, torsion_q29, table)
+    }
+
+    pub(crate) fn from_spin_trace(
+        spin: SpinTorsionStateTrace,
+        table: &H4BinaryIcosahedralClosure,
+    ) -> Result<Self, BoundedGlobalExactSpinError> {
+        let h4 = exact_s3_spin_to_h4(spin.s3_q30, table)?;
+        Self::from_parts(
+            h4,
+            i64::from(spin.fiber_q29),
+            i64::from(spin.torsion_q29),
+            table,
+        )
+    }
+
+    pub(crate) fn identity(
+        table: &H4BinaryIcosahedralClosure,
+    ) -> Result<Self, BoundedGlobalExactSpinError> {
         Ok(Self {
             h4: OrderedH4FoldState::identity(table)?,
             fiber_q29: 0,
@@ -467,7 +506,7 @@ impl ExactSpinState {
         })
     }
 
-    fn compose(
+    pub(crate) fn compose(
         self,
         right: Self,
         table: &H4BinaryIcosahedralClosure,
@@ -487,7 +526,7 @@ impl ExactSpinState {
         })
     }
 
-    fn inverse(
+    pub(crate) fn inverse(
         self,
         table: &H4BinaryIcosahedralClosure,
     ) -> Result<Self, BoundedGlobalExactSpinError> {
@@ -506,7 +545,7 @@ impl ExactSpinState {
         })
     }
 
-    fn trace(
+    pub(crate) fn trace(
         self,
         table: &H4BinaryIcosahedralClosure,
     ) -> Result<BoundedGlobalExactSpinStateTrace, BoundedGlobalExactSpinError> {
@@ -515,6 +554,32 @@ impl ExactSpinState {
             fiber_q29: self.fiber_q29,
             torsion_q29: self.torsion_q29,
         })
+    }
+
+    pub(crate) const fn table_index(self) -> OpaqueH4TableIndex {
+        self.h4.table_index()
+    }
+
+    pub(crate) fn root_coordinate(
+        self,
+        table: &H4BinaryIcosahedralClosure,
+    ) -> Result<H4RootCoordinate, BoundedGlobalExactSpinError> {
+        Ok(self.h4.root_coordinate(table)?)
+    }
+
+    pub(crate) const fn fiber_q29(self) -> i64 {
+        self.fiber_q29
+    }
+
+    pub(crate) const fn torsion_q29(self) -> i64 {
+        self.torsion_q29
+    }
+
+    pub(crate) fn root_real(
+        self,
+        table: &H4BinaryIcosahedralClosure,
+    ) -> Result<[i64; 2], BoundedGlobalExactSpinError> {
+        Ok(self.root_coordinate(table)?.scaled_zphi_quaternion[0])
     }
 }
 
@@ -2275,26 +2340,23 @@ fn validate_snapshot_units_for(
     Ok(())
 }
 
-fn exact_state_from_address(
+pub(crate) fn exact_state_from_address(
     address: &GeometricAddress,
     table: &H4BinaryIcosahedralClosure,
 ) -> Result<ExactSpinState, BoundedGlobalExactSpinError> {
-    Ok(ExactSpinState {
-        h4: exact_s3_spin_to_h4(address.spin.s3.raw(), table)?,
-        fiber_q29: i64::from(address.spin.fiber.raw()),
-        torsion_q29: i64::from(address.spin.torsion.raw()),
-    })
+    ExactSpinState::from_parts(
+        exact_s3_spin_to_h4(address.spin.s3.raw(), table)?,
+        i64::from(address.spin.fiber.raw()),
+        i64::from(address.spin.torsion.raw()),
+        table,
+    )
 }
 
-fn exact_state_from_entry(
+pub(crate) fn exact_state_from_entry(
     entry: &GlobalExactSpinSnapshotEntry,
     table: &H4BinaryIcosahedralClosure,
 ) -> Result<ExactSpinState, BoundedGlobalExactSpinError> {
-    Ok(ExactSpinState {
-        h4: exact_s3_spin_to_h4(entry.spin.s3_q30, table)?,
-        fiber_q29: i64::from(entry.spin.fiber_q29),
-        torsion_q29: i64::from(entry.spin.torsion_q29),
-    })
+    ExactSpinState::from_spin_trace(entry.spin, table)
 }
 
 fn build_noncommuting_population_audit(
@@ -2414,12 +2476,12 @@ fn build_noncommuting_population_audit(
                         population_candidate_cost(core, &core.prototypes, b"prism", right_fold)?,
                     ];
                     let Some(left_winner) =
-                        unique_exact_cost_winner(&[left_costs[0].cost, left_costs[1].cost])
+                        unique_exact_cost_winner(&[left_costs[0].cost, left_costs[1].cost])?
                     else {
                         continue;
                     };
                     let Some(right_winner) =
-                        unique_exact_cost_winner(&[right_costs[0].cost, right_costs[1].cost])
+                        unique_exact_cost_winner(&[right_costs[0].cost, right_costs[1].cost])?
                     else {
                         continue;
                     };
@@ -2762,16 +2824,17 @@ fn fold_population_ids(
     lexemes: &BTreeMap<u32, PopulationLexeme>,
     table: &H4BinaryIcosahedralClosure,
 ) -> Result<ExactSpinState, BoundedGlobalExactSpinError> {
-    let mut fold = ExactSpinState::identity(table)?;
-    for id in ids {
-        let state = lexemes.get(&id).ok_or_else(|| {
-            BoundedGlobalExactSpinError::Invalid(
-                "population permutation references an unknown lexical unit".to_owned(),
-            )
-        })?;
-        fold = fold.compose(state.state, table)?;
-    }
-    Ok(fold)
+    let states = ids
+        .into_iter()
+        .map(|id| {
+            lexemes.get(&id).map(|state| state.state).ok_or_else(|| {
+                BoundedGlobalExactSpinError::Invalid(
+                    "population permutation references an unknown lexical unit".to_owned(),
+                )
+            })
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    fold_exact_spin_states(states, table)
 }
 
 fn population_candidate_cost(
@@ -2798,12 +2861,10 @@ fn population_candidate_cost(
     })
 }
 
-fn unique_exact_cost_winner(costs: &[BoundedGlobalExactSpinCost; 2]) -> Option<usize> {
-    match costs[0].cmp(&costs[1]) {
-        std::cmp::Ordering::Less => Some(0),
-        std::cmp::Ordering::Greater => Some(1),
-        std::cmp::Ordering::Equal => None,
-    }
+fn unique_exact_cost_winner(
+    costs: &[BoundedGlobalExactSpinCost; 2],
+) -> Result<Option<usize>, BoundedGlobalExactSpinError> {
+    Ok(select_unique_minimum_exact_costs(costs)?.unique_minimum_index)
 }
 
 fn population_ids_to_hex(
@@ -2824,7 +2885,7 @@ fn population_ids_to_hex(
     Ok([first?, second?, third?, fourth?])
 }
 
-fn exact_s3_spin_to_h4(
+pub(crate) fn exact_s3_spin_to_h4(
     raw: [i32; 4],
     table: &H4BinaryIcosahedralClosure,
 ) -> Result<OrderedH4FoldState, BoundedGlobalExactSpinError> {
@@ -2898,7 +2959,18 @@ fn spin_map_kappa(
     Ok(blake3_label(&bytes))
 }
 
-fn candidate_relative_exact_cost(
+pub(crate) fn fold_exact_spin_states(
+    states: impl IntoIterator<Item = ExactSpinState>,
+    table: &H4BinaryIcosahedralClosure,
+) -> Result<ExactSpinState, BoundedGlobalExactSpinError> {
+    let mut fold = ExactSpinState::identity(table)?;
+    for state in states {
+        fold = fold.compose(state, table)?;
+    }
+    Ok(fold)
+}
+
+pub(crate) fn candidate_relative_exact_cost(
     class_state: ExactSpinState,
     global_state: ExactSpinState,
     table: &H4BinaryIcosahedralClosure,
@@ -2908,7 +2980,7 @@ fn candidate_relative_exact_cost(
     Ok((relative, cost))
 }
 
-fn exact_cost(
+pub(crate) fn exact_cost(
     relative: ExactSpinState,
     table: &H4BinaryIcosahedralClosure,
 ) -> Result<BoundedGlobalExactSpinCost, BoundedGlobalExactSpinError> {
@@ -2931,33 +3003,24 @@ fn exact_cost(
     };
     Ok(BoundedGlobalExactSpinCost {
         angular_shell,
-        fiber_distance_q29: relative.fiber_q29.unsigned_abs(),
-        torsion_distance_q29: relative.torsion_q29.unsigned_abs(),
+        fiber_distance_q29: circular_abs_q29(relative.fiber_q29),
+        torsion_distance_q29: circular_abs_q29(relative.torsion_q29),
     })
 }
 
-impl ExactSpinState {
-    fn root_real(
-        self,
-        table: &H4BinaryIcosahedralClosure,
-    ) -> Result<[i64; 2], BoundedGlobalExactSpinError> {
-        Ok(self.h4.root_coordinate(table)?.scaled_zphi_quaternion[0])
-    }
-}
-
 #[derive(Debug, Clone, Copy)]
-struct SelectionOutcome {
-    unique_minimum_index: Option<usize>,
-    minimum_cost: Option<BoundedGlobalExactSpinCost>,
-    comparisons: u64,
+pub(crate) struct SelectionOutcome {
+    pub(crate) unique_minimum_index: Option<usize>,
+    pub(crate) minimum_cost: Option<BoundedGlobalExactSpinCost>,
+    pub(crate) comparisons: u64,
 }
 
-fn select_exact_costs(
+pub(crate) fn select_unique_minimum_exact_costs(
     costs: &[BoundedGlobalExactSpinCost],
 ) -> Result<SelectionOutcome, BoundedGlobalExactSpinError> {
-    if costs.len() != BOUNDED_GLOBAL_EXACT_SPIN_CANDIDATES {
+    if costs.is_empty() {
         return Err(BoundedGlobalExactSpinError::Invalid(
-            "bounded-global exact-cost count differs from the frozen support".to_owned(),
+            "exact-spin cost selection requires nonempty support".to_owned(),
         ));
     }
     let mut minimum: Option<(usize, BoundedGlobalExactSpinCost)> = None;
@@ -2985,6 +3048,17 @@ fn select_exact_costs(
         minimum_cost: (!tied).then_some(minimum.map(|value| value.1)).flatten(),
         comparisons,
     })
+}
+
+fn select_exact_costs(
+    costs: &[BoundedGlobalExactSpinCost],
+) -> Result<SelectionOutcome, BoundedGlobalExactSpinError> {
+    if costs.len() != BOUNDED_GLOBAL_EXACT_SPIN_CANDIDATES {
+        return Err(BoundedGlobalExactSpinError::Invalid(
+            "bounded-global exact-cost count differs from the frozen support".to_owned(),
+        ));
+    }
+    select_unique_minimum_exact_costs(costs)
 }
 
 fn decision_from_selection(
@@ -3144,7 +3218,7 @@ fn spin_trace(spin: crate::prime_route_attention::SpinTorsionState) -> SpinTorsi
     }
 }
 
-fn wrap_phase_q29(mut value: i64) -> i64 {
+pub(crate) fn wrap_phase_q29(mut value: i64) -> i64 {
     while value >= PHASE_HALF_Q29 {
         value -= PHASE_MODULUS_Q29;
     }
@@ -3152,6 +3226,10 @@ fn wrap_phase_q29(mut value: i64) -> i64 {
         value += PHASE_MODULUS_Q29;
     }
     value
+}
+
+pub(crate) fn circular_abs_q29(value: i64) -> u64 {
+    wrap_phase_q29(value).unsigned_abs()
 }
 
 const HIERARCHY_LEVELS: [&str; 7] = [

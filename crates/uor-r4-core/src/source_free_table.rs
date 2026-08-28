@@ -243,6 +243,8 @@ pub struct MultiscaleCountRadiusR4V1 {
     table_artifact_hash: [u8; 32],
     bigram_rows: BTreeMap<u32, MultiscaleCountRadiusRow>,
     trigram_rows: BTreeMap<(u32, u32), MultiscaleCountRadiusRow>,
+    /// Derived cache only; it is deliberately absent from `SFTR4O01` bytes.
+    artifact_hash: [u8; 32],
 }
 
 impl MultiscaleCountRadiusR4V1 {
@@ -280,11 +282,14 @@ impl MultiscaleCountRadiusR4V1 {
                 );
             }
         }
-        Ok(Self {
+        let mut overlay = Self {
             table_artifact_hash: table.artifact_hash,
             bigram_rows,
             trigram_rows,
-        })
+            artifact_hash: [0; 32],
+        };
+        overlay.artifact_hash = *blake3::hash(&overlay.to_bytes()).as_bytes();
+        Ok(overlay)
     }
 
     pub fn table_artifact_cid(&self) -> String {
@@ -292,7 +297,7 @@ impl MultiscaleCountRadiusR4V1 {
     }
 
     pub fn artifact_cid(&self) -> String {
-        format!("blake3:{}", blake3::hash(&self.to_bytes()).to_hex())
+        format!("blake3:{}", hex::encode(self.artifact_hash))
     }
 
     pub fn stats(&self) -> MultiscaleCountRadiusStats {
@@ -402,6 +407,7 @@ impl MultiscaleCountRadiusR4V1 {
             table_artifact_hash,
             bigram_rows,
             trigram_rows,
+            artifact_hash: *blake3::hash(bytes).as_bytes(),
         };
         let expected = Self::compile(table)?;
         if overlay != expected || overlay.to_bytes() != bytes {
@@ -519,12 +525,12 @@ impl SourceFreeTable {
         self.construction_document_ids.len()
     }
 
-    /// Verify that an additive construction-bound operator was compiled from
-    /// the exact document-id and text-CID sets that produced this table.
-    pub(crate) fn is_bound_to_construction_documents(
-        &self,
-        construction: &[SourceDocument],
-    ) -> bool {
+    /// Verify that a construction-bound artifact or cache uses the exact
+    /// document-id and text-CID sets that produced this table.
+    ///
+    /// This is a read-only provenance check. It deliberately exposes neither
+    /// the stored identifiers nor the table's fitted distributions.
+    pub fn is_bound_to_construction_documents(&self, construction: &[SourceDocument]) -> bool {
         let ids = construction
             .iter()
             .map(|document| document.id.clone())
@@ -539,8 +545,58 @@ impl SourceFreeTable {
             && text_cids == self.construction_text_cids
     }
 
+    /// Check a target-blind D3 held-out population for strict provenance
+    /// separation from this table's construction set.
+    ///
+    /// This examines only document IDs and complete text CIDs. It does not
+    /// encode document text, inspect a next-route target, or score a row.
+    pub fn is_disjoint_d3_held_out_documents(&self, held_out: &[SourceDocument]) -> bool {
+        if held_out.is_empty() {
+            return false;
+        }
+        let mut seen_ids = BTreeSet::new();
+        let mut seen_text_cids = BTreeSet::new();
+        held_out.iter().all(|document| {
+            let text_cid = document.text_cid();
+            validate_document_id(&document.id).is_ok()
+                && d3_is_held_out(&document.id)
+                && !self.construction_document_ids.contains(&document.id)
+                && !self.construction_text_cids.contains(&text_cid)
+                && seen_ids.insert(document.id.clone())
+                && seen_text_cids.insert(text_cid)
+        })
+    }
+
+    /// Encode one source document as the exact stream used to compile and
+    /// evaluate this table: `BOS`, canonical lexical-or-byte units, then
+    /// `EOS`.
+    ///
+    /// The returned vector is an immutable observation of the table's codec;
+    /// it does not admit the document into construction or alter any counts.
+    pub fn encode_document_stream(
+        &self,
+        document: &SourceDocument,
+    ) -> Result<Vec<u32>, SourceFreeTableError> {
+        let encoded = self.encode_text(&document.text)?;
+        let mut stream = Vec::with_capacity(encoded.len().saturating_add(2));
+        stream.push(BOS_TOKEN);
+        stream.extend(encoded);
+        stream.push(EOS_TOKEN);
+        Ok(stream)
+    }
+
     pub fn lexical_piece_count(&self) -> usize {
         self.lexical_pieces.len()
+    }
+
+    /// Highest valid token identifier in this table's complete lexical token
+    /// namespace. `BOS`, `EOS`, and byte-fallback tokens occupy lower IDs.
+    pub fn maximum_token_id(&self) -> u32 {
+        self.piece_tokens
+            .values()
+            .next_back()
+            .copied()
+            .unwrap_or(LEXICAL_TOKEN_BASE - 1)
     }
 
     pub fn artifact_cid(&self) -> String {
@@ -1213,7 +1269,12 @@ impl SourceFreeTable {
         Ok(())
     }
 
-    pub(crate) fn is_fitted_lexical_token(&self, token: u32) -> bool {
+    /// Whether `token` names one construction-fitted lexical payload.
+    ///
+    /// Byte fallbacks, `BOS`, `EOS`, and out-of-range identifiers return
+    /// `false`. This is a read-only identity check and exposes no fitted
+    /// counts or mutable table state.
+    pub fn is_fitted_lexical_token(&self, token: u32) -> bool {
         token.checked_sub(LEXICAL_TOKEN_BASE).is_some_and(|offset| {
             usize::try_from(offset)
                 .ok()

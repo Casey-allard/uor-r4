@@ -1158,7 +1158,10 @@ is now accepted at the positive terminal after external replay adjudication.
 #973 has since retained the bounded Gate 0, paragraph, conversation, and V2
 noncommuting global mechanisms recorded below. Its first bounded-global V1
 relation remains negative history; V2 qualified one bounded-global selection
-mechanism while leaving corpus induction open.
+mechanism. The first independently frozen document-scope corpus-induced
+placement subsequently passed target-free qualification but failed its held-out
+promotion comparisons, leaving replacement placement and final
+requalification open.
 Product CLI/HTTP chat integration, restart-persistent conversation state, and
 identity-scoped hive-memory lifecycle remain #962 scope.
 
@@ -1463,8 +1466,9 @@ The binding terminal is
 `RETAIN_BOUNDED_GLOBAL_NONCOMMUTING_EXACT_SPIN_ATTENTION_CONTINUE_CORPUS_INDUCTION`.
 This establishes one bounded synthetic causal global geometric-attention
 witness, not corpus induction, general semantics, correctness, reasoning, or
-product readiness. #973 next independently freezes its corpus-induction gate;
-#954 remains blocked. See the
+product readiness. The subsequent first document-scope corpus-induced
+placement passed target-free but failed its held-out promotion gate; #973
+remains open and #954 remains blocked. See the
 [#973 bounded-global exact-spin record](bounded_global_exact_spin_attention_973.md).
 
 ##### Historical V1 repair direction, superseded by V2
@@ -1520,10 +1524,29 @@ explicit native revision must change #973's scope and dependencies.
 #### #973 higher-scope/corpus-scale induction qualification and handoff to #954
 
 The accepted bounded local selector, #953, and the required bounded #973
-higher-scope interventions now qualify at their declared narrow scopes. The
-next authorized action is to freeze the corpus-induction gate independently;
-only after that immutable contract exists may the programme execute controlled
-higher-scope/corpus-scale offline induction.
+higher-scope interventions qualify at their declared narrow scopes. The first
+independently frozen document-scope corpus-induction gate has now run and
+terminated
+`RETAIN_BOUNDED_GLOBAL_ONLY_REDESIGN_CORPUS_SPIN_PLACEMENT`. Its target-free
+gate found 36,533 operative anti-recall positions, zero support/work mismatch
+or forbidden reads, and one all-control decoded divergence. On 35,028
+operative construction-fitted targets, real componentwise Frechet placement
+scored 2,931 (8.367592%), below unchanged #953 at 4,281 (12.221651%),
+order-shuffled state at 2,934 (8.376156%), and operator-permuted prototypes at
+2,966 (8.467512%). All required position-level and document-blocked exact
+directional tests failed.
+
+This separates causal action from useful attention. The exact `2I x Z_M x
+Z_M` relation and `C^-1*G` least-cost route changed both selected tokens and a
+bounded decoded continuation, but its componentwise marginal-center placement
+did not transfer useful candidate preference. More scale is not the next
+action. #973 must independently freeze a new construction-only,
+candidate-relative discriminative placement objective in exact R4 state while
+preserving immutable route/payload identity, #953 admission and support,
+target-free anti-recall qualification, matched controls, and a single held-out
+join. See the
+[#973 corpus-induced document placement record](corpus_induced_document_spin_placement_973.md).
+
 This ladder and its final requalification are part of #973's definition of done
 and terminal; #973 cannot close and #954 cannot start without them. The one
 separation permitted inside #953 was a tiny construction-only, same-frame,
@@ -1689,7 +1712,9 @@ hours remains a hard kill ceiling, never an estimate.
   exposed #973. #973 has retained bounded paragraph and conversation
   mechanisms; its first bounded-global V1 relation failed target-free, and its
   independently frozen V2 repair retained one bounded noncommuting global
-  mechanism. It alone owns corpus induction and final requalification.
+  mechanism. Its first document-scope corpus-induced placement passed
+  target-free qualification but failed the held-out promotion gate. It alone
+  owns replacement placement and final requalification.
 - S3/R4 compute, Hopf S2/R3 observation, and an E8 action plane are distinct
   objects.
 - Exact recall, grammatical text, correct inference, and reasoning are separate

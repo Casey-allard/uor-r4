@@ -14,6 +14,34 @@ Measurements retain their pre-declared exit rule and durable issue/record
 reference; design targets remain explicitly labeled as definitions,
 assumptions, or objectives rather than measured results.
 
+> **Negative #973 document-scope corpus-induction result, 2026-08-28.** The
+> independently frozen `CorpusInducedDocumentSpinPlacementR4V1` target-free
+> gate passed with 36,533 operative anti-recall positions, zero support/work
+> mismatches or forbidden reads, and a frozen all-control decoded divergence.
+> After the one authorized held-out target-join traversal, 35,028 positions had
+> construction-fitted targets. Exact componentwise Frechet placement was
+> correct on 2,931 (8.367592%), versus 4,281 (12.221651%) for the unchanged
+> #953 fallback, 2,934 (8.376156%) for the order-shuffled state, and 2,966
+> (8.467512%) for permuted prototypes. Real lost to scope-disabled by 1,350
+> correct routes (-3.854060 pp); every required position-level and
+> document-blocked directional exact sign test failed. The operator therefore
+> terminated
+> `RETAIN_BOUNDED_GLOBAL_ONLY_REDESIGN_CORPUS_SPIN_PLACEMENT`. Its exact
+> geometry was causally active—the witness chose `I` where all controls chose
+> `The`, and their bounded continuations differed—but it was not useful
+> attention on the frozen held-out population. The operator, target-free
+> census, evaluation, and witness identities are
+> `blake3:6aa7edc027e6d26c2d6f924edbe55b835720bf0fa3e0a110a367a79b73b3d344`,
+> `blake3:e511415747c7d8ddec2723ee97ea8b32cd38dad6fd90511184ae80e2d0d79d10`,
+> `blake3:aebd4edb5ca2d5469c62615cb7f712c71953fa0d09d207686a247bcac460ec51`,
+> and `blake3:93cc3273990739639fa1fa699777868e396d3401342b20e175f528d48ac6de54`.
+> Retain bounded-global V2, keep #973 open and #954 blocked, and replace the
+> componentwise marginal-center objective with a separately frozen
+> candidate-relative discriminative exact-R4 placement objective before any
+> further scale or final requalification. Conversation and task scope for this
+> corpus operator are `NOT_RUN`. See the
+> [corpus-induced document placement record](corpus_induced_document_spin_placement_973.md).
+
 > **Positive #973 bounded-global V2 result, 2026-08-28.** The independently
 > frozen `BoundedGlobalNoncommutingExactSpinR4V2` contract reached
 > `RETAIN_BOUNDED_GLOBAL_NONCOMMUTING_EXACT_SPIN_ATTENTION_CONTINUE_CORPUS_INDUCTION`.
@@ -33,9 +61,10 @@ assumptions, or objectives rather than measured results.
 > `blake3:c3fb3568028f924fb12971c888193cc5780111a7af14503e240f39fbeb58dd4a`,
 > and `blake3:41207999bb088e3b5f186cce983951cc27c2962d34ef8046a0beae4754b44218`.
 > This establishes one bounded synthetic causal global geometric-attention
-> witness only. Corpus induction, general semantics, correctness, reasoning,
-> and product readiness remain unestablished. #973 next freezes an independent
-> corpus-induction gate; #954 remains blocked. See the
+> witness only. The subsequent first document-scope corpus-induced placement
+> rule failed its frozen held-out gate and is recorded above. General semantics,
+> correctness, reasoning, and product readiness remain unestablished; #973
+> remains open and #954 remains blocked. See the
 > [bounded-global record](bounded_global_exact_spin_attention_973.md).
 
 > **Earlier target-free #973 bounded-global V1 negative, 2026-08-28.** The frozen
@@ -54,7 +83,8 @@ assumptions, or objectives rather than measured results.
 > and `blake3:6c0a9f89a29584a09d917ae427a494b53c06b76e56482f665870ae86c1cd130a`.
 > The retained paragraph/conversation results remain valid. This V1 negative
 > is append-only history; the independently frozen V2 repair above subsequently
-> qualified one bounded-global mechanism while leaving corpus induction open.
+> qualified one bounded-global mechanism. The first subsequent document-scope
+> corpus placement failed its held-out promotion gate as recorded above.
 > See the [bounded-global record](bounded_global_exact_spin_attention_973.md).
 
 > **Retained #973 conversation mechanism, 2026-08-28.** The independently
@@ -78,7 +108,8 @@ assumptions, or objectives rather than measured results.
 > and `blake3:6930de3c07d30df4420bb68e60ea74531c8076516bcfef1c016240eddf1b9ca2`.
 > The subsequent V1 bounded-global contrast failed its target-free relation
 > gate; the independently frozen V2 repair later passed its bounded decoded
-> contract. #973 now proceeds to corpus induction; #954 remains blocked. See the
+> contract. The subsequent first document-scope corpus-induced placement failed
+> its held-out gate; #973 remains open and #954 remains blocked. See the
 > [#973 conversation record](conversation_entity_spin_path_attention_973.md).
 
 > **Retained #973 paragraph mechanism, 2026-08-28.** The frozen two-case
@@ -104,8 +135,9 @@ assumptions, or objectives rather than measured results.
 > The subsequent independently frozen conversation-scope contrast has now
 > retained its bounded mechanism. The subsequent bounded-global V1 relation
 > failed target-free; its independently frozen V2 repair later passed the
-> bounded decoded contract. Corpus induction remains inside #973; #954 remains
-> blocked.
+> bounded decoded contract. The subsequent first document-scope corpus-induced
+> placement failed its held-out gate. Its replacement and final requalification
+> remain inside #973; #954 remains blocked.
 > See the [#973 paragraph record](paragraph_entity_spin_path_attention_973.md).
 
 > **Retained #973 Gate 0 mechanism, 2026-08-28.**
@@ -201,8 +233,10 @@ assumptions, or objectives rather than measured results.
 > entity-binding path selectors at paragraph and conversation scope. The first
 > independently frozen bounded-global V1 relation then failed target-free
 > because its swapped exact states commute. The independently frozen V2 repair
-> passed its bounded noncommuting decoded contract. Corpus induction is now the
-> next #973 gate; #954 remains blocked behind #973.
+> passed its bounded noncommuting decoded contract. The first independently
+> frozen document-scope corpus-induced placement then passed target-free but
+> failed its held-out accuracy/control gate. #973 now requires a new placement
+> objective; #954 remains blocked behind #973.
 > Legacy
 > tracker #949 is closed as superseded, and #958 is retained directly beneath
 > #820 as GI-0 foundation. Two
@@ -762,8 +796,11 @@ paragraph and conversation slices retained construction-bound exact-descriptor/
 entity-binding path selectors at their respective scopes. The first
 independently frozen bounded-global V1 relation failed target-free because its
 swapped exact states commute; the independently frozen V2 repair then retained
-one bounded synthetic noncommuting exact-spin mechanism. Corpus induction and
-final requalification remain. Dependable broad coherent
+one bounded synthetic noncommuting exact-spin mechanism. The first
+document-scope corpus-induced componentwise Frechet placement then passed its
+target-free gate but failed every held-out promotion comparison, including a
+1,350-correct-route deficit to the unchanged #953 fallback. A replacement
+placement objective and final requalification remain. Dependable broad coherent
 text remains unestablished.
 The final serving path has no source weights, transformer/self-attention, dense
 matrix intelligence, MoE, or sparse learned router. Compiler-side floating
@@ -1335,8 +1372,10 @@ closed at `PROCEED_TO_A1Q_H_WITH_BOUNDED_SOURCE_FREE_GEOMETRIC_GENERATION`.
 plus bounded construction-bound exact-descriptor/entity-binding path selectors
 at paragraph and conversation scope. The first bounded-global V1 relation
 remains target-free negative history; its V2 noncommuting repair passed the
-bounded decoded contract. Corpus induction and final requalification remain
-active in that order and continue to block #954.
+bounded decoded contract. Its first document-scope corpus-induced placement
+passed target-free but failed the held-out promotion gate. A replacement
+placement objective and final requalification remain active in that order and
+continue to block #954.
 #955 invokes that accepted selector/
 #953/#973/#954 consumer; #962 integrates the accepted selector/#953/#973 path
 into product chat with persisted identity-scoped hive memory. #963 retains
