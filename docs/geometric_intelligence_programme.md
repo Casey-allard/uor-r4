@@ -82,9 +82,9 @@ lexical baseline. It does not establish semantics, broad attention, general
 coherence, correctness, reasoning, chat, performance, or release readiness.
 No second #953 formula, axis, prompt, corpus run, or representation is
 permitted. #973 has retained one bounded prior-prefix copy mechanism and one
-bounded construction-bound exact-descriptor paragraph selector; conversation,
-bounded-global, and corpus qualifications remain active and #954 remains
-blocked. No new H4,
+bounded construction-bound exact-descriptor selector at each of paragraph and
+conversation scope; bounded-global and corpus qualifications remain active and
+#954 remains blocked. No new H4,
 SpiralCore, harmonic, algebraic, placement, transport, or scale qualifier is
 eligible outside its exposed issue.
 
@@ -176,9 +176,9 @@ unavailable. Placement, Gate 0, labels, table/geometric arms, and #953 were
 `NOT_RUN`. The later B0/#989 reset limited #953 to one separate matched
 table-tie intervention. That intervention passed, and #973 has since retained
 one bounded prior-prefix copy mechanism at Gate 0 plus one bounded
-construction-bound exact-descriptor paragraph selector; conversation,
-bounded-global, and corpus qualifications remain active and continue to block
-#954. Calling a later
+construction-bound exact-descriptor selector at each of paragraph and
+conversation scope; bounded-global and corpus qualifications remain active and
+continue to block #954. Calling a later
 #973 operator harmonic additionally requires an
 artifact-bound basis/mode contract. #962
 separately owns product chat integration and persisted, identity-scoped hive
@@ -592,8 +592,10 @@ The state hierarchy is:
 
 Each level carries exact ordered route identity and may retain overlapping
 trajectory/harmonic structural summaries. #969 consumes only the local retained
-ordered-S3 path. Paragraph, conversation, and global state remain serialized
-and incrementally updated but inert for selection until #973.
+ordered-S3 path. Before #973, paragraph, conversation, and global state were
+serialized and incrementally updated but inert for selection. #973 has now
+retained only the two exact bounded paragraph/conversation mechanisms recorded
+below; global selection remains unqualified.
 
 The #953 query uses typed admission precedence rather than one flat row union.
 I1/last-one, I2/last-two, ordered-sentence, and divisor rows form the primary
@@ -608,7 +610,9 @@ An exact kappa miss is not permission to treat a digest as semantic distance.
 The first mechanism does not combine an omnibus list of stored channels. Its
 only ranking cost is exact round-S3 path closure with causal lease age; other
 trajectory, hypersphere, winding/window, projection, factor, resonance, Hopf,
-zeta, radial, and higher-scope terms remain future hypotheses.
+zeta, radial, and general higher-scope terms remain future hypotheses. The two
+exact bounded paragraph/conversation stored-spin paths retained by #973 are the
+only higher-scope exceptions.
 
 Required structural/storage representation and qualified semantic scoring are
 separate contracts. Unqualified Hopf, H4, zeta, icosian, SpiralCore,
@@ -693,8 +697,8 @@ equal at all teacher-forced positions and through the first decoded divergence,
 kept every structural source-closure counter at zero, emitted a distinct
 bounded valid UTF-8 continuation, and replayed table, overlay, and report bytes
 identically. This is the only accepted #953 claim. #973 has since retained the
-separate bounded prior-prefix mechanism and bounded construction-bound
-exact-descriptor paragraph selector recorded below.
+separate bounded prior-prefix mechanism plus bounded construction-bound exact-
+descriptor paragraph and conversation selectors recorded below.
 
 The GI sections below preserve the completed evidence lineage and downstream
 dependency structure. They remain dormant or blocked except for the exposed
@@ -737,9 +741,9 @@ construction-transferred candidate-conditioned local attention and stopped at
 0/6 transfer before selection and closed. #986 then closed at its pre-sealed
 population/frame unavailable terminal. B0/#989 then supplied the frozen
 reference for the accepted matched #953 intervention. #973 has since retained
-one bounded exact-candidate prior-prefix copy mechanism and one bounded
-construction-bound exact-descriptor paragraph selector; conversation,
-bounded-global, and corpus qualifications remain active and continue to block
+one bounded exact-candidate prior-prefix copy mechanism plus bounded
+construction-bound exact-descriptor paragraph and conversation selectors;
+bounded-global and corpus qualifications remain active and continue to block
 #954**.
 
 The frozen A1.0 probe stopped before scorer implementation with
@@ -1145,7 +1149,8 @@ The historical positive terminal was
 was `REVISE_I1_GENERATOR_IN_PLACE`. B0/#989 later permitted exactly one separate
 matched #953 intervention against its fixed table reference. That intervention
 is now accepted at the positive terminal after external replay adjudication.
-Paragraph, conversation, and global selection remain inert until #973.
+#973 has since retained only the bounded paragraph and conversation mechanisms
+recorded below; bounded-global selection remains unqualified.
 Product CLI/HTTP chat integration, restart-persistent conversation state, and
 identity-scoped hive-memory lifecycle remain #962 scope.
 
@@ -1311,11 +1316,77 @@ absence of admitted-candidate bytes, vocabulary-independent spin meaning, a
 general entity model, or general paragraph, conversation, or global
 attention. It also does not establish coherence, correctness, or reasoning.
 
+#973 remained open for the independently frozen conversation-scope contrast.
+That result is recorded next; #954 remained blocked.
+
+#### #973 conversation-scope result — `ConversationEntitySpinPathR4V1` (2026-08-28)
+
+Append-only update: the independently frozen conversation contrast has now
+run. `ConversationEntitySpinPathR4V1` preserved the two candidates admitted by
+the #953 table/overlay path and ranked only that fixed support with the
+artifact-bound lexicographic cost `(H4 angular shell, fiber distance, torsion
+distance)`. The held-out conversations had the same lexical multiset,
+immediately preceding completed turn, active turn, current-through-paragraph
+identities and ordered H4 states, global identity/ordered state/immutable
+snapshot/epoch, candidate support, and declared work. They differed only in
+the older entity-to-descriptor binding. Neither candidate occurred in either
+observed conversation, and `PriorSentenceCountRadiusR4V1` abstained. The
+decoded matrix was:
+
+| Arm | ID 45 | ID 48 | Frozen-target result |
+| --- | --- | --- | ---: |
+| real | ` silver.` | ` violet.` | 2/2 |
+| conversation-disabled | ` silver.` | ` silver.` | 1/2 |
+| cross-turn-binding-permuted | ` violet.` | ` silver.` | 0/2 |
+| parsed-binding-row-reversed | ` silver.` | ` violet.` | 2/2 |
+
+The row-reversal control changed only internal parsed-row iteration, not input
+bytes. Support and work mismatches were zero. Both real continuations emitted
+the selected unit and `.`, observed EOS, and terminated. The independently
+compiled hierarchy audit required exact equality below and above conversation
+scope and a distinct conversation identity; no hierarchy-audit or global field
+entered the score.
+
+The 11,775-byte operator is
+`blake3:343c961b06605f6ae9bb6160ac34a98224991715b706156349a8fd544b6dbb35`;
+the target-free census is
+`blake3:649d733a194469aa648101a873d9e2ee323266b18872ced412d1da2cc6a56635`;
+and the decoded smoke is
+`blake3:6930de3c07d30df4420bb68e60ea74531c8076516bcfef1c016240eddf1b9ca2`.
+Canonical serialization/reload, target-free replay, and decoded-report replay
+were byte-identical. Tampering, binding-byte drift, malformed scope inputs, and
+bound overruns failed closed. The complete contract, identity ledger, and
+claim boundary are in the
+[#973 conversation SpinTorsion-path record](conversation_entity_spin_path_attention_973.md).
+
+The recurrent prototype measured `(Coincident,0,0)` and the competitor was
+strictly larger in each real case. The complete lexicographic stored-spin path
+was therefore causally load-bearing under the matched controls. The execution
+did not emit or qualify which individual coordinate first separated the
+competitor, so it establishes no coordinate-specific H4-shell, fiber, or
+torsion claim. Candidate identity indexed only the construction prototype;
+candidate spin, address, prime, hash, and payload bytes were not score
+coordinates. The stored leaves still retain their upstream lexical unit-ID/
+prime provenance.
+
+The narrow retained claim is one bounded synthetic, construction-bound exact-
+descriptor cross-turn entity-role stored-spin path selector with a decoded
+non-candidate-copy consequence. The public expected continuations were frozen
+before execution, so this is execution-order separation, not blind or hidden-
+label evaluation. It does not establish semantic or paraphrastic transfer,
+natural/corpus transfer, anti-recall beyond candidate absence and full-history
+disjointness, a geometric advantage over direct non-geometric ordered binding
+lookup, intrinsic or prime/index-independent geometry, a general entity or
+conversation model, general conversation/global/recursive attention,
+coherence, correctness, or reasoning.
+
+The retained terminal is
+`RETAIN_CONVERSATION_ENTITY_SPIN_PATH_ATTENTION_CONTINUE_BOUNDED_GLOBAL`.
 #973 remains open and continues to block #954. Its next decision is one
-independently frozen conversation-scope contrast. Only if that result remains
-load-bearing may #973 proceed to the bounded-global and then corpus-scale
-induction qualifications below; #954 remains blocked until #973 reaches its
-declared terminal.
+independently frozen bounded-global exact-spin operator contrast. Only if the
+remaining bounded-global and later corpus-scale induction qualifications pass,
+or an explicit native revision changes #973's scope, may #973 reach its
+declared terminal and unblock #954.
 
 A later bounded-global qualification may use one exact-spin global operator
 prototype, not a larger channel census. Freeze a construction-independent global snapshot with
@@ -1343,9 +1414,9 @@ Before choosing a scalar readout, enumerate the transformed
 candidate-relative classes and stop if one retained class requires incompatible
 outcomes. The causal path, route, and final candidate score remain
 query-specific; share or precompute only the exact-class result. The retained
-paragraph slice now binds an explicit exact stored-S3-to-H4 map, but only for
-its frozen construction vocabulary, and every observed H4 shell tied. That map
-does not automatically qualify a global operator or erase the upstream
+paragraph and conversation slices bind explicit exact stored-S3-to-H4 maps,
+but only for their frozen construction vocabularies. Neither map automatically
+qualifies a global operator or erases the upstream
 unit-ID/prime provenance of `SpinTorsionState`. A global subprobe must bind the
 map's applicability and its own exact candidate-relative relation rather than
 falling back to the older prime-assigned route leaf or relative H4 witness.
@@ -1361,9 +1432,9 @@ qualified spherical-harmonic field; fixed channels/modes and their transition
 law must be artifact-bound before that stronger description is earned.
 
 A positive global subprobe cannot close #973. The bounded construction-bound
-paragraph slice is retained, but conversation still requires its own matched
-load-bearing qualification through the accepted loop before global scope, or
-an explicit native revision of #973's scope and dependencies.
+paragraph and conversation slices are retained, but corpus-scale induction and
+final requalification remain required after the bounded-global decision, or an
+explicit native revision must change #973's scope and dependencies.
 
 #### #973 higher-scope/corpus-scale induction qualification and handoff to #954
 
@@ -1533,7 +1604,8 @@ hours remains a hard kill ceiling, never an estimate.
   no table-native or geometric arm ran. The historical #953 path implemented
   decoded-loop plumbing without qualifying natural grammar. The later, separate
   B0 table-tie intervention has qualified its bounded geometric increment and
-  exposed #973. Only #973 may qualify paragraph, conversation, or global state.
+  exposed #973. #973 has retained bounded paragraph and conversation
+  mechanisms and alone owns the remaining bounded-global qualification.
 - S3/R4 compute, Hopf S2/R3 observation, and an E8 action plane are distinct
   objects.
 - Exact recall, grammatical text, correct inference, and reasoning are separate

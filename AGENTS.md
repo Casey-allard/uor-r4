@@ -76,20 +76,37 @@ decoded-smoke identities are respectively
 `blake3:9221efa7ad952e4890aae335970418b38ec93beb8cb4de65c5aa1d8c67f70afd`,
 `blake3:515720686b96dbebc2f055f9a21d3f0684f76092018381c836b51abf47a4d197`,
 and `blake3:0ba32e5fe26f1280ec2eef2b115023de52f2ef946882352311dcecc531d76a32`.
-#973 remains active for one independently frozen conversation-scope contrast,
-then bounded-global qualification and corpus induction; #954 remains blocked.
+#973 then retained `ConversationEntitySpinPathR4V1` at
+`RETAIN_CONVERSATION_ENTITY_SPIN_PATH_ATTENTION_CONTINUE_BOUNDED_GLOBAL`.
+With current-through-paragraph and global identities/ordered states fixed, only
+the older conversation binding changed. Its decoded matrix was real 2/2,
+conversation-disabled 1/2, cross-turn-binding-permuted 0/2, and parsed-binding-
+row-reversed 2/2, with zero support/work mismatches and exact target-free and
+decoded replay. The complete stored-spin lexicographic path was load-bearing;
+the run did not separately qualify an individual H4-shell, fiber, or torsion
+coordinate. This remains one bounded synthetic, construction-bound exact-
+descriptor cross-turn entity-role selector, not semantic, natural, general
+conversation, or global attention. The operator, target-free census, and
+decoded-smoke identities are respectively
+`blake3:343c961b06605f6ae9bb6160ac34a98224991715b706156349a8fd544b6dbb35`,
+`blake3:649d733a194469aa648101a873d9e2ee323266b18872ced412d1da2cc6a56635`,
+and `blake3:6930de3c07d30df4420bb68e60ea74531c8076516bcfef1c016240eddf1b9ca2`.
+#973 remains active for one independently frozen bounded-global contrast, then
+corpus induction; #954 remains blocked.
 Do not add a second #953 intervention or reuse the #983/#986 populations. The
 complete #973 Gate 0 record is
 [`docs/prior_sentence_count_radius_attention_973.md`](docs/prior_sentence_count_radius_attention_973.md).
 The complete paragraph record is
 [`docs/paragraph_entity_spin_path_attention_973.md`](docs/paragraph_entity_spin_path_attention_973.md).
+The complete conversation record is
+[`docs/conversation_entity_spin_path_attention_973.md`](docs/conversation_entity_spin_path_attention_973.md).
 The complete #986 result and nonclaim boundary is
 [`docs/corpus_signed_transport_attention_986.md`](docs/corpus_signed_transport_attention_986.md).
 Terminology lives in
 `docs/transformerless/GLOSSARY.md`. Keep this file current when conventions
 change.
 
-## Capability-first baseline and geometric increment — #989/#953 established; #973 Gate 0 and paragraph retained
+## Capability-first baseline and geometric increment — #989/#953 established; #973 Gate 0, paragraph, and conversation retained
 
 Effective 2026-08-28, #989 established the deterministic source-free
 table-native lexical baseline at
@@ -118,18 +135,23 @@ lexical baseline. It does not establish semantics, broad attention, general
 coherence, correctness, reasoning, chat, performance, or release readiness.
 The #989 table remains the frozen non-geometric reference; no second #953
 formula, axis, prompt, or corpus run is permitted. #973 Gate 0 has retained one
-exact-candidate prior-prefix copy mechanism. Its next frozen paragraph slice
+exact-candidate prior-prefix copy mechanism. Its frozen paragraph slice
 retained one construction-bound exact-descriptor/entity-binding stored-phase
-path selector with absent candidate tokens and unchanged #953 support/work. This is
-not semantic, paraphrastic, natural-distribution, or general paragraph evidence.
-One independently frozen conversation contrast is now next; bounded-global and
-corpus work remain subsequent. New H4, SpiralCore, harmonic, algebraic,
+path selector with absent candidate tokens and unchanged #953 support/work.
+Its independently frozen conversation slice then retained one construction-
+bound exact-descriptor cross-turn entity-role stored-spin path selector while
+all lower scopes and global state stayed fixed. These are not semantic,
+paraphrastic, natural-distribution, or general higher-scope evidence. One
+independently frozen bounded-global contrast is now next; corpus work remains
+subsequent. New H4, SpiralCore, harmonic, algebraic,
 placement, transport, scale, and later-stage work remains dormant unless its
 issue is exposed. See the
 [#989 evidence record](docs/source_free_table_baseline_989.md) and
 [#953 evidence record](docs/source_free_table_geometric_intervention_953.md),
 then the [#973 Gate 0 record](docs/prior_sentence_count_radius_attention_973.md)
-and [#973 paragraph record](docs/paragraph_entity_spin_path_attention_973.md).
+and [#973 paragraph record](docs/paragraph_entity_spin_path_attention_973.md),
+then the
+[#973 conversation record](docs/conversation_entity_spin_path_attention_973.md).
 
 ## What this repo is
 
@@ -361,17 +383,18 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
   Gate 0, labels, selection, and the historical #953 path were `NOT_RUN`. The
   later B0/#989 reset and separate matched #953 table-tie intervention have
   since passed. #973 Gate 0 has now retained one bounded exact-candidate
-  prior-prefix copy-attention mechanism, and the subsequent frozen paragraph
-  slice retained one exact-descriptor/entity-binding stored-phase path selector.
-  Conversation, bounded-global, and corpus qualifications remain active in
-  that order, and #954 remains blocked behind #973.
+  prior-prefix copy-attention mechanism, the frozen paragraph slice retained
+  one exact-descriptor/entity-binding stored-phase path selector, and the
+  frozen conversation slice retained one exact-descriptor cross-turn entity-
+  role stored-spin path selector. Bounded-global and corpus qualifications
+  remain active in that order, and #954 remains blocked behind #973.
   #954 and #955 own correctness and reasoning respectively.
   #962 owns durable multi-turn CLI/HTTP chat, persistence, isolation, and
   hive-memory; #963–#965 then own optimization, formal closure, and release.
 - Sequence strictly from the current reset: working source-free table baseline
   (#989, established) → one matched geometric intervention (#953, accepted) →
-  higher-scope attention (#973, Gate 0 and bounded paragraph slice retained;
-  conversation then bounded-global/corpus qualification active) →
+  higher-scope attention (#973, Gate 0 plus bounded paragraph and conversation
+  slices retained; bounded-global then corpus qualification active) →
   correctness/abstention → reasoning → optimization/purity/release. The older placement/transport
   sequence is retained as evidence, not an active implementation queue.
 - Kappa is canonical identity/serialization, never the tokenizer or semantic
@@ -391,10 +414,12 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
   choice did not establish natural grammar. The separate B0 table-tie
   intervention now establishes only its bounded geometric accuracy increment
   and decoded comparison. #973 Gate 0 adds one exact-candidate prior-prefix
-  copy mechanism. The next #973 slice adds only one construction-bound
-  exact-descriptor/entity-binding stored-phase path selector; it does not
-  qualify a general entity model or general paragraph state. Only the remaining
-  #973 subprobes may qualify conversation or bounded-global state.
+  copy mechanism. Its paragraph slice adds only one construction-bound exact-
+  descriptor/entity-binding stored-phase path selector, and its conversation
+  slice adds only one construction-bound exact-descriptor cross-turn entity-
+  role stored-spin path selector. They do not qualify a general entity,
+  paragraph, or conversation model. Only the remaining #973 subprobes may
+  qualify bounded-global state.
 - Keep **candidate admission** separate from **harmonic influence**. In #953,
   `PrimaryThenAdjacentSpinFallbackV1` uses I1/I2/ordered-sentence plus divisor
   as the primary admission tier. Adjacent-spin rows are always consulted and
@@ -432,8 +457,10 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
   It is never substituted for the product response.
 - #973 Gate 0 selections emit their exact prefix-coverage and matched-work
   witnesses. The retained paragraph selector emits its exact two-fact binding,
-  stored-phase path, and matched-work witnesses; later hierarchy selections
-  must emit their corresponding scope coverage witness. Exact recall,
+  stored-phase path, and matched-work witnesses. The retained conversation
+  selector emits its cross-turn binding, lower/global-scope isolation, stored-
+  spin path, and matched-work witnesses; later hierarchy selections must emit
+  their corresponding scope coverage witness. Exact recall,
   grammatical generation,
   correctness, and reasoning remain separate gates.
 - Start with the smallest product artifact that can falsify the stage. A
