@@ -440,6 +440,41 @@ Attention is a recursive route lookup, not a Q/K dot-product approximation.
 At step `t`, only observed state and declared persistent memory may enter the
 query. The actual future route is never an input.
 
+### Corpus-induced attention hypothesis
+
+The programme hypothesis is that attention-like geometric routing can emerge
+from exposure to large construction corpora only after a causal,
+candidate-relative receptive mechanism exists. Offline corpus induction may
+compile lawful transition support, ordered multiscale route summaries, exact
+operator tables, finite angular-neighbor relations, and candidate-relative
+costs into the source-free artifact. Corpus volume by itself only increases
+coverage, capacity, and recall density. It is not attention and does not show
+that attention emerged.
+
+The existing seven-level contract gives typed inputs for the current/proposed
+candidate relation, previous route, last-two routes, accumulated sentence,
+paragraph, conversation, and bounded global state. The committed observed state
+must not contain the proposed candidate. If #973 adds a longer recent-route ring
+or distinct open/last-closed sentence or paragraph snapshots, those are new
+versioned fields; they do not silently reinterpret `R2`, `RS`, or `RP`. For each
+lawfully admitted candidate `c`, one deterministic hypothetical next state is
+permitted:
+
+```text
+H_t                 = committed observed hierarchy before candidate c
+c                   = one route in Admit(H_t)
+R0_t(c)             = CandidateRelativeLocal(H_t, c)
+H_hat(t+1, c)       = Update(H_t, c)
+candidate_cost_t(c) = QualifiedCost(H_t, R0_t(c), H_hat(t+1, c))
+```
+
+`H_hat(t+1, c)` is derived only from the observed prefix, declared persistent
+state, and `c`; only the selected candidate is committed. It is a
+counterfactual next-route evaluation, not access to an observed future event,
+target continuation, evaluation answer, teacher output, or provider text.
+Competing multi-step rollouts, rollback, and branch comparison belong to #955
+after correctness, not to the one-step attention selector.
+
 The first mechanism is deliberately concrete:
 
 ```text
@@ -882,13 +917,52 @@ A positive global subprobe cannot close #973. Paragraph and conversation still
 require their own matched load-bearing qualification through the accepted loop,
 or an explicit native revision of #973's scope and dependencies.
 
+#### #973 corpus-induction qualification and handoff to #954
+
+Within #973, only after #953 is accepted and every required #973 higher-scope
+intervention qualifies, or an explicit native revision changes that scope, may
+the programme activate controlled offline corpus induction. This ladder and its
+final requalification are part of #973's definition of done and terminal; #973
+cannot close and #954 cannot start without them. This does not authorize
+expansion of the active #953 experiment.
+
+Freeze the document/conversation/task partitions before compiling rows or
+operator statistics. Construction data may supply causal
+prefix-to-observed-next-route examples; validation/test continuations and
+runtime future data may not tune compilation or inference. Before the ladder,
+freeze the operator family and schema, basis/mode order, objective,
+quantization, scope semantics, neighborhood contract, and induction rule. Only
+the declared corpus-derived statistics and coefficient values may vary. Each
+rung receives new artifact and operator kappas while serving still performs no
+corpus scan and loads no source tensors.
+
+Current prime-derived H4 leaves and procedural spin classes remain exact
+identity coordinates, not established semantic placement. If corpus induction
+changes placement, it must create a versioned overlay or rebuilt artifact with
+an inverse/provenance witness; it may not silently reinterpret immutable route
+or payload identity. Every new placement epoch or structural operator revision
+invalidates inherited #973 evidence and reruns the bounded matched #973 gate
+before scale evidence is read.
+
+Within each rung, real, scope-disabled, order-shuffled, and operator-permuted
+arms have identical candidate support and work. Coverage and support changes
+between rungs are reported separately as capacity/recall; an operator-only
+scaling question freezes admission across all rungs. Expansion stops if it
+merely raises exact/backoff hit rate, table density, or trace activity.
+Promotion to #954 requires the real arm to change the predeclared selected
+route and decoded output on held-out anti-recall cases while the matched controls
+do not reproduce that effect.
+
 ### GI-4 / #954 — correctness and abstention
 
-After source-free generation and #973 higher-scope qualification exist, test
-whether the accepted #969/#953/#973 path understands the input well enough to
-choose a correct answer. #954 does not consume #952 as qualified attention. Use
-held-out questions with answerable, unanswerable, contradictory, and
-context-dependent cases. Score correctness, relevance,
+After source-free generation and #973's higher-scope plus corpus-induction
+terminal, test whether a frozen corpus-induced artifact conforming to and
+binding the accepted #969/#953/#973 identities understands the input well
+enough to choose a correct answer. #954 does not
+consume #952 as qualified attention, and its truth oracle or evaluation cases
+may not tune the compiled admission policy, placement, operator coefficients,
+or candidate costs. Use held-out questions with answerable, unanswerable,
+contradictory, and context-dependent cases. Score correctness, relevance,
 calibration/abstention, constraint coverage, and causal dependence on the
 required route levels.
 
@@ -903,11 +977,21 @@ accepted #969/#953/#973/#954 consumer, not #952. Add bounded multi-step route
 composition with:
 
 - explicit goal and intermediate constraints;
-- branch creation and comparison;
+- branch creation and comparison from cloned accepted state;
 - reversible state updates;
 - closure, contradiction, or abstention tests;
 - a trace showing which route operation produced each intermediate; and
 - controls that break one required premise or route.
+
+Each branch is a hypothetical append of an already-admitted candidate and may
+be expanded only after the accepted consumer admits that candidate from the
+branch node's cloned state, under predeclared depth, width, visited-node,
+rollback, and tie/abstention ceilings. Actual future events, target continuations, evaluation
+answers, teacher outputs, and provider text remain unavailable. A one-step
+candidate projection is inference/selection, not reasoning; #955 must show that
+deeper branch comparison preserves constraints and changes the independently
+checkable conclusion against matched greedy, no-lookahead, and permuted-branch
+controls.
 
 A fluent rationale is not reasoning evidence. The selected conclusion and its
 intermediate constraints must change under the matched causal control.

@@ -140,6 +140,26 @@ one another.
   the existing coarse adjacent-spin retrieval rows and remains unqualified
   until a matched real/disabled/permuted intervention changes selection and
   output.
+- **Corpus-induced geometric attention** — the programme hypothesis that a
+  previously qualified causal, candidate-relative receptive mechanism can be
+  parameterized offline from larger construction corpora into bounded
+  transition support, multiscale summaries, versioned placement overlays that
+  preserve immutable route/payload identity, and operator tables. The operator
+  family/schema and induction rule freeze before scaling; every rung receives a
+  new artifact/operator identity, and structural or placement changes rerun the
+  bounded qualification. More rows, exact/backoff hits, or trace activity
+  establish only coverage/capacity/recall. Attention is credited only when a held-out
+  anti-recall choice depends on the induced geometric term under matched causal
+  controls. The serving path loads the compiled artifact; it does not scan the
+  corpus or load source tensors.
+- **Hypothetical next-route state** — the deterministic provisional state
+  `Update(S_t,c)` formed from observed state and one already-admitted candidate
+  `c`. It may be scored before committing the unique winner and is not an
+  observed future read. Actual future events, target continuations, evaluation
+  answers, teacher outputs, and provider text are forbidden inputs. One-step
+  projection is selection/inference; deeper bounded branch rollout belongs to
+  reasoning, where the accepted consumer admits candidates anew from each
+  cloned branch-node state.
 - **Coverage witness** — a bounded replay record showing which lexical units
   had registered addresses; which hierarchy rows were consulted and physically
   present; which entries were examined, admitted, or used only as influence;
@@ -165,8 +185,10 @@ one another.
   serialization, and address membership are prerequisite plumbing. Delivery
   then proceeds in this order: one qualified local causal-path mechanism
   (#969); one bounded decoded generation loop with repaired admission (#953);
-  paragraph/conversation/global exact-spin operator qualification through that loop
-  (#973); correctness with abstention (#954); then bounded reasoning (#955).
+  paragraph/conversation/global exact-spin operator qualification through that
+  loop plus controlled corpus induction and final requalification (#973);
+  correctness with abstention (#954); then bounded hypothetical-branch reasoning
+  (#955).
   Evidence may not skip a stage or count prerequisite plumbing as inference.
 - **Correctness** — agreement with an independent task oracle, executable
   constraint, cited source, or other predeclared ground truth, reported with

@@ -39,6 +39,18 @@ active and #973 remains blocked)._
 > a new exact spin-relative relation or an explicit spin-to-H4 map; the existing
 > relative H4 witness is prime-derived route state.
 
+> **Corpus-induced attention direction:** within #973, once #953 is accepted
+> and every required #973 scope qualifies, a separately frozen offline corpus
+> ladder may compile causal prefix-to-observed-next-route examples, multiscale
+> route summaries, versioned placement overlays that preserve immutable
+> route/payload identity, and operator statistics. More rows, hits, or trace activity are
+> recall/capacity, not attention. Promotion requires a held-out anti-recall
+> candidate-relative effect under matched controls and requalification of every
+> structural or placement epoch. A
+> one-step hypothetical append of each admitted candidate is lawful selection;
+> actual future/target data are forbidden, and deeper branch lookahead remains
+> #955 work after #954.
+
 > The goal is frontier-like useful capability on ordinary local hardware, but
 > that remains an unproven research target. Spherical harmonics are the working
 > picture for overlapping spin-state storage and transport; R4/S3 compute and
@@ -174,15 +186,28 @@ Native GitHub relationships are the source of truth:
    cannot close #973; paragraph and conversation still require matched
    qualification or an explicit native scope revision. The operator is called
    harmonic only after its identity binds basis, mode order, coefficients,
-   quantization, and transition law.
+   quantization, and transition law. After all bounded #973 scope gates are
+   positive, #973 activates a separately predeclared corpus-induction ladder as
+   part of its terminal and handoff to #954. Freeze the operator family,
+   objective, scope semantics, neighborhood contract, and induction rule; vary
+   only declared corpus-derived parameters under a new artifact/operator kappa
+   per rung, and rerun the bounded gate for every structural or placement epoch.
+   Match support/work between controls within each rung, report support changes
+   across rungs separately, and stop if scale only raises exact/backoff recall or
+   table density.
 8. **GI-4 / #954 — correctness and abstention:** test held-out answer
    correctness, relevance, abstention, and causal use of required context only
-   through the accepted #969/#953/#973 path. Teacher weights may label or
-   compare offline only after the source-free report freezes.
+   through a frozen corpus-induced artifact that conforms to and binds the
+   accepted #969/#953/#973 identities. Teacher weights may label or compare
+   offline only after the source-free report freezes, and the #954 oracle cannot
+   tune the artifact.
 9. **GI-5 / #955 — reasoning:** invoke the accepted #969/#953/#973/#954 consumer at
-   every bounded goal-directed route-composition step, with branch comparison,
-   intermediate constraints, and closure/contradiction controls. #952 is not a
-   qualified-attention consumer.
+   every bounded goal-directed route-composition step. Compare cloned
+   hypothetical candidate states admitted anew by the accepted consumer at each
+   cloned branch node, under declared depth, width, rollback, and work ceilings,
+   with branch, intermediate-constraint, and
+   closure/contradiction controls. Actual future routes and targets remain
+   unavailable. #952 is not a qualified-attention consumer.
 10. **GI-6 / #962–#965 — product, cost, formal closure, and release:** integrate
    the accepted #969/#953/#973 path into durable
    multi-turn CLI/HTTP chat, persistence, isolation, and hive-memory (#962);

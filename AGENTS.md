@@ -61,6 +61,22 @@ candidates, not candidate injection or a corpus broadcast. Call it harmonic
 only after its identity binds basis, mode order, coefficients, quantization,
 and transition law.
 
+Corpus scale follows mechanism qualification; it never substitutes for it.
+Within #973, after #953 and every required #973 scope qualify, a predeclared
+offline corpus ladder may compile causal prefix-to-observed-next-route examples,
+multiscale summaries, versioned placement overlays that preserve immutable
+route/payload identity, and operator statistics into the source-free artifact.
+Freeze the operator family/schema, objective, scope semantics, neighborhood
+contract, and induction rule; vary only declared parameter values under new
+artifact/operator identities, and rerun the bounded gate for every structural
+or placement epoch. Additional rows, hits, or trace activity are capacity/recall
+unless the real arm changes a held-out anti-recall choice and matched controls do
+not. A selector may provisionally append one candidate admitted from its cloned
+observed state, but actual future/target data never enter inference. Deeper
+hypothetical branches, rollback, and comparison belong to #955 after #954. Do
+not launch corpus expansion while the required scope gate is negative or
+blocked.
+
 Source weights are offline teachers/comparators only. The final serving path
 loads no source weights and contains no transformer/self-attention, dense
 matrix intelligence kernel, MoE, or sparse learned router. The learned

@@ -61,6 +61,14 @@ The stages are ordered because each later claim depends on the earlier one:
    constraint preservation, alternative/counterfactual comparison, and a
    checkable result. #952 is not the reasoning consumer.
 
+Within #973, after accepted #953 and every required #973 scope qualifies, or an
+explicit native revision changes that scope, run the separately frozen offline
+corpus-induction ladder and requalify its final artifact. The ladder is part of
+#973's terminal before #954; it is not a new serving-time corpus reader or a
+shortcut around the issue order. More rows, exact hits, or trace activity are
+capacity/recall results unless a candidate-relative effect transfers to the
+held-out anti-recall partition under matched controls.
+
 #962 later integrates the accepted #969/#953/#973 path into product chat/memory.
 #964 binds the #970 → #969 → #953 → #973 stages in the
 serving contract, and #965 qualifies only that exact release path.
@@ -562,8 +570,10 @@ same causal information and declared budget. At minimum report:
 
 - identical row types, row ceilings, candidate-entry ceilings, and output
   ceiling;
-- identical prefix, lexical coverage, hierarchy scopes, and absence of future
-  routes;
+- identical prefix, lexical coverage, hierarchy scopes, and absence of actual
+  future routes, events, target labels, teacher continuations, or provider text;
+- any one-step candidate projection derived deterministically from the same
+  observed state and already-admitted support;
 - identical compiler artifacts except for the named intervention;
 - candidate support before and after any common pre-geometric admission; and
 - work performed, not merely requested worker count.
@@ -639,6 +649,20 @@ admitted by an independent lawful row. That is an influence hypothesis, not
 candidate admission and not proof of anti-recall selection until the matched
 operator controls change the selected route and decoded output.
 
+Corpus scale receives the same treatment. A larger construction partition may
+compile more transition support, multiscale summaries, versioned placement
+overlays that preserve immutable route/payload identity, or operator statistics,
+but increased lookup density is not emergent attention.
+Construction may compile causal prefix-to-observed-next-route examples;
+validation/test continuations and runtime future data may not tune it.
+Within each corpus rung, real and control arms hold candidate support and work
+fixed: the real arm must change the predeclared route and decoded output, while
+scope-disabled, order-shuffled, and operator-permuted arms do not reproduce the
+effect. Coverage and support changes between rungs are reported separately as
+capacity/recall; an operator-only scale question freezes admission across all
+rungs. Exact recall, recombination, and anti-recall results remain separate at
+every corpus size.
+
 ## 6. Correctness and abstention
 
 Correctness requires an independent evaluator fixed before results are read:
@@ -682,6 +706,17 @@ if negative:              different next action
 if unavailable:           action without inventing a result
 stop conditions:          saturation, no reachability, bad ETA, errors, resource cap
 ```
+
+Corpus expansion uses a predeclared increasing, preferably log-spaced ladder
+rather than one immediate maximum-scale run. Document, conversation, and task
+splits freeze before route rows or operator statistics are constructed. The
+operator family/schema, basis and mode order, objective, quantization, scope
+semantics, neighborhood contract, and induction rule freeze before the ladder;
+only declared statistic/coefficient values vary under a new artifact/operator
+kappa per rung. A structural or placement-epoch change reruns the bounded #973
+qualification. The accepted small mechanism remains a regression at every rung,
+and expansion stops when the preceding rung cannot change the named decision or
+only improves exact/backoff coverage.
 
 Requested parallelism is not proven parallelism. Before a long run, a bounded
 canary must show positive assigned and completed work on every intended worker,

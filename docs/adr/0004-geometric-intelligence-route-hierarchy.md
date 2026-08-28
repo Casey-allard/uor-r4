@@ -306,9 +306,16 @@ real overlay must change the intended candidate and exact decoded output, while
 the disabled and permuted arms do not reproduce that predeclared effect. A
 changed shared-result trace or stored state alone is not attention.
 
-No learned dense full-prefix Q/K projection, future-route input, all-prefix
-scan, or corpus scan belongs to this route hierarchy. A different transitional
-decoder component may still exist, but its work cannot be attributed to this
+For each already-admitted candidate `c`, the selector may clone the observed
+state, compute the deterministic provisional state
+`S_hat(t+1,c) = Update(S_t,c)`, and score that candidate-relative state. Only
+the selected candidate is committed. This one-step projection is part of causal
+selection and does not constitute a future read.
+
+No learned dense full-prefix Q/K projection, observed future event/route,
+target label, teacher continuation, provider text, all-prefix scan, or corpus
+scan belongs to this route hierarchy. A different transitional decoder
+component may still exist, but its work cannot be attributed to this
 geometric-attention mechanism.
 
 ## 6. Coverage witness
@@ -380,8 +387,15 @@ Delivery proceeds without skipping stages:
 4. in #973, qualify paragraph, conversation, and global influence through the
    accepted #953 loop, including the shared exact-spin operator overlay and
    its matched disabled/permuted controls;
-5. measure correctness and typed abstention in #954; and
-6. measure bounded reasoning through novel multi-step state transitions in
+5. within #973, after every required scope qualifies, activate a predeclared
+   offline corpus-induction ladder with a frozen operator family and induction
+   rule; assign every rung new artifact/operator identities and rerun the
+   bounded matched gate for every structural or placement epoch;
+6. measure correctness and typed abstention in #954 on the frozen induced
+   artifact that conforms to and binds the accepted #969/#953/#973 identities;
+   and
+7. measure bounded reasoning through novel multi-step hypothetical state
+   transitions in
    #955.
 
 No generation score can substitute for incomplete attention scopes, and no
@@ -395,9 +409,15 @@ reasoning claim can precede correctness evidence.
   recomputed at every node.
 - Exact recall remains useful and measurable without being mislabeled
   attention.
+- Corpus scale may compile the qualified receptive mechanism, but additional
+  rows, hits, and trace activity remain capacity/recall until held-out
+  candidate-relative causal controls establish attention.
 - Exact-state sharing can apply one bound harmonic operation to every matching
   address reference without mutating the immutable artifact or enumerating the
   corpus.
+- A one-step hypothetical append is causal candidate evaluation; actual future
+  observations and target data remain forbidden, while deeper bounded branch
+  comparison is deferred to reasoning.
 - Causal admission cannot be contaminated merely because an unrelated
   continuation occupies a coarse neighboring spin bucket.
 - Unknown addresses fail closed; unseen ordered combinations may still be
