@@ -14,6 +14,25 @@ Measurements retain their pre-declared exit rule and durable issue/record
 reference; design targets remain explicitly labeled as definitions,
 assumptions, or objectives rather than measured results.
 
+> **Accepted geometric increment, 2026-08-28 (#953).** The one frozen
+> `MultiscaleCountRadiusR4V1` comparison reached
+> `PROCEED_TO_A1Q_H_WITH_BOUNDED_SOURCE_FREE_GEOMETRIC_GENERATION`. Over the
+> unchanged #989 corpus, codec, first-nonempty support, decoder, and shared
+> declared-work ledger, its construction-only fixed-point R4 radius changed only
+> active-count ties and raised held-out known-target top-1 from 99,362/446,342 (22.261404%)
+> to 103,604/446,342 (23.211797%), +4,242 correct choices and +0.950392
+> percentage points. Candidate-support and declared-work-ledger mismatches were
+> both zero. The fixed prompt
+> diverged at emitted unit 12 and produced 16 valid UTF-8 units without a
+> period-1/2 cycle. Two complete executions produced byte-identical base,
+> overlay, and report artifacts. That external byte comparison promoted the
+> reports' pending verdict to the frozen positive terminal. This establishes
+> causal incremental value for this exact R4 evidence-radius tie intervention,
+> not semantic geometry, attention, correctness, reasoning, broad coherence, chat, performance, or
+> release readiness. #973 is the next intelligence stage after protected #953
+> closure. See the
+> [#953 table-tie evidence record](source_free_table_geometric_intervention_953.md).
+
 > **Established capability-first result, 2026-08-28 (#989).** #989 reached
 > `ESTABLISH_TABLE_NATIVE_LEXICAL_BASELINE`. Its deterministic construction-only
 > table scored 99,362/446,342 (22.261404%) held-out top-1 versus
@@ -24,9 +43,9 @@ assumptions, or objectives rather than measured results.
 > The fixed prompt emitted 16 valid UTF-8 units without a period-1/2 cycle.
 > This establishes a statistical lexical prediction and exact-decoding
 > baseline, not semantics, coherent generation, attention, geometry,
-> correctness, reasoning, chat, performance, or release readiness. Freeze it as
-> the non-geometric reference for exactly one matched #953 intervention; #973
-> remains blocked. See the
+> correctness, reasoning, chat, performance, or release readiness. It remains
+> the frozen non-geometric reference used by the accepted #953 intervention.
+> See the
 > [#989 evidence record](source_free_table_baseline_989.md). This notice
 > supersedes forward-looking actions in the dated ledger below without
 > rewriting their measurements or terminals.
@@ -63,9 +82,9 @@ assumptions, or objectives rather than measured results.
 > #986 then closed `UNAVAILABLE_FRAME_OR_POPULATION`: its raw corpus
 > reproduced, but the exact corpus-scale codec/pair commitment and complete
 > same-frame lexical SpiralCore frame were unavailable. Placement, Gate 0,
-> labels, all arms, and #953 were `NOT_RUN`. The later established B0/#989
-> result now permits one matched #953 intervention; #953 continues to block
-> #973 and #954, and #973 continues to block #954.
+> labels, all arms, and #953 were `NOT_RUN`. The later B0/#989 reset and
+> accepted R4 table-tie result supersede that forward action: #953 may close at
+> its positive terminal, #973 is next, and #954 remains blocked behind #973.
 > Legacy
 > tracker #949 is closed as superseded, and #958 is retained directly beneath
 > #820 as GI-0 foundation. Two
@@ -613,10 +632,14 @@ cyclic placement control selected 2/2; generator execution and replay were
 candidate-conditioned mechanism on a separate natural population. Its pure
 construction classes transferred to 0/6 held-out decisions and stopped
 `UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER` before deployed selection or payload
-decode. #953 remains an untouched parked integration regression while #983
-holds closed negative evidence. #986 then closed at its unavailable population/
-frame boundary before geometry; #953 and #973 remain parked/blocked. Dependable
-coherent text remains unestablished.
+decode. Those historical #953 mechanisms remained negative and untouched
+through #986. The later B0/#989 reset supplied a frozen table reference, and
+the one permitted separate `MultiscaleCountRadiusR4V1` intervention then
+improved held-out top-1 by +0.950392 percentage points (+4,242 correct) with
+zero candidate-support/declared-work-ledger mismatches and byte-identical
+replay. External replay adjudication promoted the reports' pending verdict to
+`PROCEED_TO_A1Q_H_WITH_BOUNDED_SOURCE_FREE_GEOMETRIC_GENERATION`; #973 is now
+next. Dependable broad coherent text remains unestablished.
 The final serving path has no source weights, transformer/self-attention, dense
 matrix intelligence, MoE, or sparse learned router. Compiler-side floating
 point remains allowed for witnessed chart construction; serving arithmetic is
@@ -1177,10 +1200,13 @@ and the sealed strict ceiling were both 0/6. It stopped
 `UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER` before deployed selection, payload
 inversion, or #953 generation and is now closed bounded negative evidence.
 #986 also closed at `UNAVAILABLE_FRAME_OR_POPULATION` before placement, labels,
-or selection. Established B0/#989 now permits exactly one matched #953
-intervention; #953 continues to block #973/#954, and #973 continues to block
-#954. That intervention must use the frozen #989 table reference under its
-matched contract. #955 invokes that accepted selector/
+or selection. Established B0/#989 then supplied the frozen reference for the
+one accepted #953 `MultiscaleCountRadiusR4V1` intervention: 103,604 versus
+99,362 held-out correct choices, a distinct bounded continuation, zero
+candidate-support/declared-work-ledger mismatches, and byte-identical replay.
+External replay adjudication promoted the reports' pending verdict, so #953 may
+close at `PROCEED_TO_A1Q_H_WITH_BOUNDED_SOURCE_FREE_GEOMETRIC_GENERATION`; #973 is next
+and continues to block #954. #955 invokes that accepted selector/
 #953/#973/#954 consumer; #962 integrates the accepted selector/#953/#973 path
 into product chat with persisted identity-scoped hive memory. #963 retains
 measured cost; #964 binds evidence provenance #970 → #969 → #983 → #986 plus

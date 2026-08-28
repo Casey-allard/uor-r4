@@ -40,20 +40,24 @@ corpus-scale codec/three-way pair commitment existed, and the exact SpiralCore
 control still supplied no complete same-frame lexical `O(x)` map or
 compiler/query frame identity. #986 therefore closed
 `UNAVAILABLE_FRAME_OR_POPULATION` before placement, diffusion, Gate 0, labels,
-selection, or #953. #953 remains parked, unassigned, and untouched; it is not
-eligible merely because its completed native blocker is now closed. Do not add
-a second representation under #983/#986, reuse their populations, or resume
-#953. The pre-reset handoff called for a fresh population/frame successor; the
-capability-first section below supersedes that forward action with B0/#989. The
-completed evidence chain remains #983 → #986; downstream #953 → #973 → #954 →
-#955 → #962–#965 remains parked. The complete #986 result and nonclaim boundary
-is
+selection, or the historical #953 path. The later capability-first reset first
+established B0/#989 and then executed the one permitted matched #953
+intervention. `MultiscaleCountRadiusR4V1` improved held-out top-1 from
+22.261404% to 23.211797% (+0.950392 percentage points, +4,242 correct) with
+zero candidate-support/declared-work-ledger mismatches and byte-identical
+replay. The external replay adjudication promoted each report's pending verdict
+to `PROCEED_TO_A1Q_H_WITH_BOUNDED_SOURCE_FREE_GEOMETRIC_GENERATION`. This does not
+rehabilitate the failed #983/#986 representations or establish semantics,
+attention, correctness, reasoning, chat, or release readiness. #973 is now the
+next eligible issue; #954 remains blocked behind it. Do not add a second #953
+intervention or reuse the #983/#986 populations. The complete #986 result and
+nonclaim boundary is
 [`docs/corpus_signed_transport_attention_986.md`](docs/corpus_signed_transport_attention_986.md).
 Terminology lives in
 `docs/transformerless/GLOSSARY.md`. Keep this file current when conventions
 change.
 
-## Capability-first baseline — #989 established
+## Capability-first baseline and geometric increment — #989/#953 established
 
 Effective 2026-08-28, #989 established the deterministic source-free
 table-native lexical baseline at
@@ -64,14 +68,28 @@ artifact is frozen at
 `blake3:ccdc399731cb866a329be478467a434cda4e445813421e5d17c21ccc87288297`;
 two complete executions produced identical report bytes and artifacts.
 
-This is a statistical lexical baseline with bounded exact decoding, not
-semantics, attention, geometry, correctness, reasoning, chat, performance, or
-release evidence. Freeze the table artifact and permit exactly one later #953
-geometric intervention under the same corpus, support, decode, and work
-budget. #973 remains blocked behind #953. New H4, SpiralCore, harmonic,
-algebraic, placement, transport, higher-scope, and scale work remains dormant
-outside that one intervention. See the
-[#989 evidence record](docs/source_free_table_baseline_989.md).
+The one permitted matched #953 intervention is now accepted. Its separate
+24,250,680-byte overlay is frozen at
+`blake3:914126a311c3984d1482258a8f0a7fa2e34896540d502d19f1d9076fbd4a9b76`.
+Across the same held-out positions, it scored 103,604/446,342 (23.211797%), a
+net +4,242 correct and +0.950392 percentage points over #989. It changed 56,280
+known-target choices, with 6,753 geometry-correct versus 2,511 baseline-correct
+among those changes. Candidate support and the declared-work ledger matched at
+all 446,342 teacher-forced positions and through the first free-running
+divergence. The structural source-closure counters were all zero, and two
+complete executions produced identical table, overlay, and report bytes. The
+external byte comparison promoted the reports' pending verdict to the frozen
+positive terminal.
+
+This establishes a bounded source-free geometric increment over a statistical
+lexical baseline. It does not establish semantics, broad attention, general
+coherence, correctness, reasoning, chat, performance, or release readiness.
+The #989 table remains the frozen non-geometric reference; no second #953
+formula, axis, prompt, or corpus run is permitted. #973 is next. New H4,
+SpiralCore, harmonic, algebraic, placement, transport, scale, and later-stage
+work remains dormant unless its issue is exposed. See the
+[#989 evidence record](docs/source_free_table_baseline_989.md) and
+[#953 evidence record](docs/source_free_table_geometric_intervention_953.md).
 
 ## What this repo is
 
@@ -300,14 +318,15 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
   #986 then stopped `UNAVAILABLE_FRAME_OR_POPULATION`: its raw corpus
   reproduced, but the exact population/codec commitment and a complete
   same-frame lexical SpiralCore operator map were unavailable. Placement,
-  Gate 0, labels, selection, and #953 were `NOT_RUN`. #953 is now on hold behind
-  B0/#989; #973 and #954 remain blocked.
+  Gate 0, labels, selection, and the historical #953 path were `NOT_RUN`. The
+  later B0/#989 reset and separate matched #953 table-tie intervention have
+  since passed. #973 is now next; #954 remains blocked behind it.
   #954 and #955 own correctness and reasoning respectively.
   #962 owns durable multi-turn CLI/HTTP chat, persistence, isolation, and
   hive-memory; #963–#965 then own optimization, formal closure, and release.
 - Sequence strictly from the current reset: working source-free table baseline
-  (#989, established) → exactly one matched geometric intervention in #953 →
-  higher-scope attention (#973) → correctness/abstention → reasoning →
+  (#989, established) → one matched geometric intervention (#953, accepted) →
+  higher-scope attention (#973, next) → correctness/abstention → reasoning →
   optimization/purity/release. The older placement/transport
   sequence is retained as evidence, not an active implementation queue.
 - Kappa is canonical identity/serialization, never the tokenizer or semantic
@@ -322,11 +341,12 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
   SpiralCore, trajectory, hypersphere, winding/window, projection-energy,
   shared-factor, and resonance terms remain storage fields, diagnostics, or
   future hypotheses. #969 establishes only its local ordered-S3 path mechanism
-  as load-bearing. #953's current code establishes reusable decoded-loop
-  plumbing and tiered admission on the frozen preflight only; the unchanged
-  full-path choice does not establish a natural grammar or sentence loop. Only
-  a later accepted #953 result can expose #973, and only #973 may qualify
-  paragraph, conversation, or global state.
+  as load-bearing. #953's historical path code establishes reusable
+  decoded-loop plumbing and tiered admission, but its unchanged full-path
+  choice did not establish natural grammar. The separate B0 table-tie
+  intervention now establishes only its bounded geometric accuracy increment
+  and decoded comparison. That accepted result exposes #973; only #973 may
+  qualify paragraph, conversation, or global state.
 - Keep **candidate admission** separate from **harmonic influence**. In #953,
   `PrimaryThenAdjacentSpinFallbackV1` uses I1/I2/ordered-sentence plus divisor
   as the primary admission tier. Adjacent-spin rows are always consulted and

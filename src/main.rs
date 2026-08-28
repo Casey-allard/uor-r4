@@ -11,7 +11,8 @@ use uor_r4_core::local_geometric_generation::{
     LocalGenerationControl, LocalGenerationStopReason, LocalGeometricGenerator,
 };
 use uor_r4_core::source_free_table::{
-    d3_is_held_out, ContinuationStop, SourceDocument, SourceFreeTable,
+    d3_is_held_out, ContinuationStop, GeometricFirstDivergence, MultiscaleCountRadiusR4V1,
+    SourceDocument, SourceFreeTable,
 };
 use uor_r4_core::transformerless::hf_bpe::{resolve_source_tokenizer, TokenizerAdapterKey};
 use uor_r4_graph_cli as transformerless_command;
@@ -302,6 +303,14 @@ struct SourceFreeTableArgs {
     /// Optional destination for the deterministic packed table artifact.
     #[arg(long, value_name = "FILE")]
     artifact_out: Option<PathBuf>,
+
+    /// Enable the frozen #953 MultiscaleCountRadiusR4V1 matched comparison.
+    #[arg(long)]
+    geometric_intervention: bool,
+
+    /// Optional destination for the deterministic overlay bound to the table.
+    #[arg(long, value_name = "FILE", requires = "geometric_intervention")]
+    geometry_overlay_out: Option<PathBuf>,
 
     /// Emit the deterministic measurement report as JSON.
     #[arg(long)]
@@ -1367,6 +1376,22 @@ fn bounded_geometric_generate(args: &BoundedGeometricGenerateArgs) -> Result<(),
 const SOURCE_FREE_TABLE_REPORT_SCHEMA: &str = "uor-r4-source-free-table-report/1";
 const SOURCE_FREE_TABLE_POSITIVE: &str = "NUMERIC_BASELINE_GATE_MET_PENDING_REPLAY_BINDING";
 const SOURCE_FREE_TABLE_NEGATIVE: &str = "REPAIR_LEXICAL_REPRESENTATION_OR_COUNT_OBJECTIVE";
+const SOURCE_FREE_GEOMETRIC_REPORT_SCHEMA: &str =
+    "uor-r4-source-free-table-geometric-intervention-report/1";
+const SOURCE_FREE_GEOMETRIC_MECHANISM: &str = "MultiscaleCountRadiusR4V1";
+const SOURCE_FREE_GEOMETRIC_PENDING_REPLAY: &str = "PROCEED_TO_A1Q_H_PENDING_BYTE_IDENTICAL_REPLAY";
+const SOURCE_FREE_GEOMETRIC_NEGATIVE: &str = "RETAIN_TABLE_BASELINE_GEOMETRY_NO_INCREMENT";
+const SOURCE_FREE_FROZEN_CORPUS_CID: &str =
+    "blake3:194db0eebf2d49823ece01ee935447a0cc9edeaf018454ceea480ce7590132cf";
+const SOURCE_FREE_FROZEN_ARTIFACT_CID: &str =
+    "blake3:ccdc399731cb866a329be478467a434cda4e445813421e5d17c21ccc87288297";
+const SOURCE_FREE_FROZEN_DOCUMENTS: usize = 3_000;
+const SOURCE_FREE_FROZEN_CONSTRUCTION_DOCUMENTS: usize = 2_404;
+const SOURCE_FREE_FROZEN_HELD_OUT_DOCUMENTS: usize = 596;
+const SOURCE_FREE_FROZEN_KNOWN_TARGETS: u64 = 446_342;
+const SOURCE_FREE_FROZEN_BASELINE_CORRECT: u64 = 99_362;
+const SOURCE_FREE_FROZEN_PROMPT: &str = "The United States";
+const SOURCE_FREE_FROZEN_CONTINUATION_CAP: usize = 16;
 
 #[derive(Debug, Deserialize)]
 struct SourceFreeCorpusArticle {
@@ -1447,6 +1472,142 @@ struct SourceFreeTableEnvelope {
     report: SourceFreeTableReport,
 }
 
+#[derive(Debug, Serialize)]
+struct SourceFreeGeometricArtifactReport {
+    bytes: usize,
+    cid: String,
+}
+
+#[derive(Debug, Serialize)]
+struct SourceFreeGeometricOverlayStatsReport {
+    eligible_bigram_rows: u64,
+    eligible_trigram_rows: u64,
+    geometry_changed_bigram_rows: u64,
+    geometry_changed_trigram_rows: u64,
+    geometry_changed_rows: u64,
+}
+
+#[derive(Debug, Serialize)]
+struct SourceFreeGeometricContinuationReport {
+    prompt: String,
+    continuation_cap: usize,
+    emitted_units: usize,
+    tokens: Vec<u32>,
+    decoded_text: String,
+    stop: &'static str,
+}
+
+#[derive(Debug, Serialize)]
+struct SourceFreeGeometricClosureCounters {
+    teacher_calls: u64,
+    provider_calls: u64,
+    source_weight_reads: u64,
+    held_out_fit_reads: u64,
+}
+
+#[derive(Debug, Serialize)]
+struct SourceFreeGeometricCriteria {
+    frozen_corpus_cid: bool,
+    frozen_document_partition: bool,
+    frozen_known_target_positions: bool,
+    frozen_baseline_correct: bool,
+    frozen_table_artifact_cid: bool,
+    frozen_prompt_and_cap: bool,
+    overlay_round_trip_byte_identical: bool,
+    overlay_table_binding_matches_base: bool,
+    baseline_continuation_matches_unchanged_table: bool,
+    geometric_correct_strictly_greater_than_frozen_baseline: bool,
+    changed_choice_geometric_advantage: bool,
+    nonzero_reachable_ties: bool,
+    teacher_forced_support_identical: bool,
+    teacher_forced_work_identical: bool,
+    fixed_prompt_first_divergence: bool,
+    first_divergence_within_continuation_cap: bool,
+    pre_divergence_frame_identical: bool,
+    pre_divergence_work_identical: bool,
+    geometric_output_distinct: bool,
+    geometric_continuation_at_least_four_units: bool,
+    geometric_continuation_has_no_period_one_or_two_cycle: bool,
+    geometric_continuation_is_utf8: bool,
+    source_closure_counters_zero: bool,
+    external_byte_identical_replay_required: bool,
+}
+
+impl SourceFreeGeometricCriteria {
+    fn passes_before_replay(&self) -> bool {
+        self.frozen_corpus_cid
+            && self.frozen_document_partition
+            && self.frozen_known_target_positions
+            && self.frozen_baseline_correct
+            && self.frozen_table_artifact_cid
+            && self.frozen_prompt_and_cap
+            && self.overlay_round_trip_byte_identical
+            && self.overlay_table_binding_matches_base
+            && self.baseline_continuation_matches_unchanged_table
+            && self.geometric_correct_strictly_greater_than_frozen_baseline
+            && self.changed_choice_geometric_advantage
+            && self.nonzero_reachable_ties
+            && self.teacher_forced_support_identical
+            && self.teacher_forced_work_identical
+            && self.fixed_prompt_first_divergence
+            && self.first_divergence_within_continuation_cap
+            && self.pre_divergence_frame_identical
+            && self.pre_divergence_work_identical
+            && self.geometric_output_distinct
+            && self.geometric_continuation_at_least_four_units
+            && self.geometric_continuation_has_no_period_one_or_two_cycle
+            && self.geometric_continuation_is_utf8
+            && self.source_closure_counters_zero
+    }
+}
+
+#[derive(Debug, Serialize)]
+struct SourceFreeGeometricReport {
+    schema: &'static str,
+    decision: &'static str,
+    mechanism: &'static str,
+    capability: &'static str,
+    nonclaims: &'static str,
+    corpus_cid: String,
+    manifest_cid: String,
+    document_count: usize,
+    construction_documents: usize,
+    held_out_documents: usize,
+    unique_document_ids: usize,
+    lexical_routes: usize,
+    base_artifact: SourceFreeGeometricArtifactReport,
+    overlay_artifact: SourceFreeGeometricArtifactReport,
+    overlay_table_artifact_cid: String,
+    overlay_stats: SourceFreeGeometricOverlayStatsReport,
+    held_out_encoded_positions: u64,
+    held_out_known_target_positions: u64,
+    baseline_correct: u64,
+    geometric_correct: u64,
+    baseline_top1_percent: String,
+    geometric_top1_percent: String,
+    geometric_delta_percentage_points: String,
+    reachable_tie_positions: u64,
+    changed_choices: u64,
+    geometric_changed_correct: u64,
+    baseline_changed_correct: u64,
+    support_mismatches: u64,
+    work_mismatches: u64,
+    trigram_choices: u64,
+    bigram_choices: u64,
+    unigram_choices: u64,
+    baseline_continuation: SourceFreeGeometricContinuationReport,
+    geometric_continuation: SourceFreeGeometricContinuationReport,
+    first_divergence: Option<GeometricFirstDivergence>,
+    source_closure: SourceFreeGeometricClosureCounters,
+    criteria: SourceFreeGeometricCriteria,
+}
+
+#[derive(Debug, Serialize)]
+struct SourceFreeGeometricEnvelope {
+    report_payload_cid: String,
+    report: SourceFreeGeometricReport,
+}
+
 fn source_free_table(args: &SourceFreeTableArgs) -> Result<(), RunError> {
     let corpus_bytes = std::fs::read(&args.corpus).map_err(|error| {
         RunError::Command(format!(
@@ -1521,6 +1682,18 @@ fn source_free_table(args: &SourceFreeTableArgs) -> Result<(), RunError> {
 
     let table = SourceFreeTable::compile(&construction)
         .map_err(|error| RunError::Command(format!("compile source-free table: {error}")))?;
+    if args.geometric_intervention {
+        return source_free_table_geometric_intervention(
+            args,
+            corpus_cid,
+            &manifest_bytes,
+            manifest.article_count,
+            construction.len(),
+            &held_out,
+            unique_ids.len(),
+            table,
+        );
+    }
     let evaluation = table
         .evaluate_held_out(&held_out)
         .map_err(|error| RunError::Command(format!("evaluate source-free table: {error}")))?;
@@ -1651,6 +1824,285 @@ fn source_free_table(args: &SourceFreeTableArgs) -> Result<(), RunError> {
             envelope.report.continuation.decoded_text
         );
         println!("  artifact: {}", envelope.report.artifact_cid);
+        println!("  report: {}", envelope.report_payload_cid);
+    }
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+fn source_free_table_geometric_intervention(
+    args: &SourceFreeTableArgs,
+    corpus_cid: String,
+    manifest_bytes: &[u8],
+    document_count: usize,
+    construction_documents: usize,
+    held_out: &[SourceDocument],
+    unique_document_ids: usize,
+    compiled_table: SourceFreeTable,
+) -> Result<(), RunError> {
+    if args.artifact_out.as_ref().is_some_and(|base| {
+        args.geometry_overlay_out
+            .as_ref()
+            .is_some_and(|overlay| overlay == base)
+    }) {
+        return Err(RunError::Command(
+            "source-free table and geometric overlay outputs must be different files".to_owned(),
+        ));
+    }
+
+    let base_artifact_bytes = compiled_table.to_bytes();
+    let base_artifact_cid = format!("blake3:{}", blake3::hash(&base_artifact_bytes).to_hex());
+    let table = SourceFreeTable::from_bytes(&base_artifact_bytes)
+        .map_err(|error| RunError::Command(format!("reload source-free table: {error}")))?;
+    if table.artifact_cid() != base_artifact_cid {
+        return Err(RunError::Command(
+            "reloaded source-free table CID does not reproduce".to_owned(),
+        ));
+    }
+
+    let compiled_overlay = MultiscaleCountRadiusR4V1::compile(&table).map_err(|error| {
+        RunError::Command(format!(
+            "compile {SOURCE_FREE_GEOMETRIC_MECHANISM} overlay: {error}"
+        ))
+    })?;
+    let overlay_artifact_bytes = compiled_overlay.to_bytes();
+    let overlay_artifact_cid = format!("blake3:{}", blake3::hash(&overlay_artifact_bytes).to_hex());
+    let overlay = MultiscaleCountRadiusR4V1::from_bytes(&table, &overlay_artifact_bytes).map_err(
+        |error| {
+            RunError::Command(format!(
+                "reload {SOURCE_FREE_GEOMETRIC_MECHANISM} overlay: {error}"
+            ))
+        },
+    )?;
+    let overlay_round_trip_byte_identical = overlay.to_bytes() == overlay_artifact_bytes
+        && overlay.artifact_cid() == overlay_artifact_cid;
+    let overlay_table_artifact_cid = overlay.table_artifact_cid();
+    let overlay_table_binding_matches_base = overlay_table_artifact_cid == base_artifact_cid;
+    let overlay_stats = overlay.stats();
+
+    if let Some(path) = &args.artifact_out {
+        std::fs::write(path, &base_artifact_bytes).map_err(|error| {
+            RunError::Command(format!(
+                "write source-free table artifact {}: {error}",
+                path.display()
+            ))
+        })?;
+    }
+    if let Some(path) = &args.geometry_overlay_out {
+        std::fs::write(path, &overlay_artifact_bytes).map_err(|error| {
+            RunError::Command(format!(
+                "write {SOURCE_FREE_GEOMETRIC_MECHANISM} overlay {}: {error}",
+                path.display()
+            ))
+        })?;
+    }
+
+    let evaluation = table
+        .evaluate_held_out_multiscale_count_radius(&overlay, held_out)
+        .map_err(|error| {
+            RunError::Command(format!(
+                "evaluate {SOURCE_FREE_GEOMETRIC_MECHANISM} intervention: {error}"
+            ))
+        })?;
+    let continuation = table
+        .continue_text_multiscale_count_radius(
+            &overlay,
+            args.prompt.as_bytes(),
+            args.continuation_cap,
+        )
+        .map_err(|error| {
+            RunError::Command(format!(
+                "continue {SOURCE_FREE_GEOMETRIC_MECHANISM} intervention: {error}"
+            ))
+        })?;
+    let unchanged_continuation = table
+        .continue_text(args.prompt.as_bytes(), args.continuation_cap)
+        .map_err(|error| RunError::Command(format!("continue source-free table: {error}")))?;
+
+    let baseline_continuation_matches_unchanged_table =
+        continuation.baseline == unchanged_continuation;
+    let baseline_continuation_utf8 = String::from_utf8(continuation.baseline.decoded.clone())
+        .map_err(|error| {
+            RunError::Command(format!(
+                "source-free baseline continuation is not UTF-8: {error}"
+            ))
+        })?;
+    let geometric_continuation_utf8 = String::from_utf8(continuation.geometric.decoded.clone())
+        .map_err(|error| {
+            RunError::Command(format!(
+                "source-free geometric continuation is not UTF-8: {error}"
+            ))
+        })?;
+    let first_divergence = continuation.first_divergence.as_ref();
+    let source_closure = SourceFreeGeometricClosureCounters {
+        teacher_calls: evaluation.teacher_calls,
+        provider_calls: evaluation.provider_calls,
+        source_weight_reads: evaluation.source_weight_reads,
+        held_out_fit_reads: 0,
+    };
+    let source_closure_counters_zero = source_closure.teacher_calls == 0
+        && source_closure.provider_calls == 0
+        && source_closure.source_weight_reads == 0
+        && source_closure.held_out_fit_reads == 0;
+    let geometric_no_short_cycle = !matches!(
+        continuation.geometric.stop,
+        ContinuationStop::PeriodOneCycle | ContinuationStop::PeriodTwoCycle
+    );
+    let criteria = SourceFreeGeometricCriteria {
+        frozen_corpus_cid: corpus_cid == SOURCE_FREE_FROZEN_CORPUS_CID,
+        frozen_document_partition: document_count == SOURCE_FREE_FROZEN_DOCUMENTS
+            && construction_documents == SOURCE_FREE_FROZEN_CONSTRUCTION_DOCUMENTS
+            && held_out.len() == SOURCE_FREE_FROZEN_HELD_OUT_DOCUMENTS,
+        frozen_known_target_positions: evaluation.known_target_positions
+            == SOURCE_FREE_FROZEN_KNOWN_TARGETS,
+        frozen_baseline_correct: evaluation.baseline_correct == SOURCE_FREE_FROZEN_BASELINE_CORRECT,
+        frozen_table_artifact_cid: base_artifact_cid == SOURCE_FREE_FROZEN_ARTIFACT_CID,
+        frozen_prompt_and_cap: args.prompt == SOURCE_FREE_FROZEN_PROMPT
+            && args.continuation_cap == SOURCE_FREE_FROZEN_CONTINUATION_CAP,
+        overlay_round_trip_byte_identical,
+        overlay_table_binding_matches_base,
+        baseline_continuation_matches_unchanged_table,
+        geometric_correct_strictly_greater_than_frozen_baseline: evaluation.geometric_correct
+            > SOURCE_FREE_FROZEN_BASELINE_CORRECT,
+        changed_choice_geometric_advantage: evaluation.geometric_changed_correct
+            > evaluation.baseline_changed_correct,
+        nonzero_reachable_ties: evaluation.reachable_tie_positions > 0,
+        teacher_forced_support_identical: evaluation.support_mismatches == 0,
+        teacher_forced_work_identical: evaluation.work_mismatches == 0,
+        fixed_prompt_first_divergence: first_divergence.is_some(),
+        first_divergence_within_continuation_cap: first_divergence
+            .is_some_and(|witness| witness.unit_index < args.continuation_cap),
+        pre_divergence_frame_identical: first_divergence
+            .is_some_and(|witness| witness.support_matched),
+        pre_divergence_work_identical: first_divergence.is_some_and(|witness| witness.work_matched),
+        geometric_output_distinct: continuation.geometric.decoded != continuation.baseline.decoded,
+        geometric_continuation_at_least_four_units: continuation.geometric.tokens.len() >= 4,
+        geometric_continuation_has_no_period_one_or_two_cycle: geometric_no_short_cycle,
+        geometric_continuation_is_utf8: true,
+        source_closure_counters_zero,
+        external_byte_identical_replay_required: true,
+    };
+    let decision = if criteria.passes_before_replay() {
+        SOURCE_FREE_GEOMETRIC_PENDING_REPLAY
+    } else {
+        SOURCE_FREE_GEOMETRIC_NEGATIVE
+    };
+
+    let report = SourceFreeGeometricReport {
+        schema: SOURCE_FREE_GEOMETRIC_REPORT_SCHEMA,
+        decision,
+        mechanism: SOURCE_FREE_GEOMETRIC_MECHANISM,
+        capability: "construction-only fixed-point R4 radius tie intervention over the unchanged source-free lexical table",
+        nonclaims: "does not establish attention, semantics, correctness, reasoning, chat quality, performance superiority, formal closure, or release readiness",
+        corpus_cid,
+        manifest_cid: format!("blake3:{}", blake3::hash(manifest_bytes).to_hex()),
+        document_count,
+        construction_documents,
+        held_out_documents: held_out.len(),
+        unique_document_ids,
+        lexical_routes: table.lexical_piece_count(),
+        base_artifact: SourceFreeGeometricArtifactReport {
+            bytes: base_artifact_bytes.len(),
+            cid: base_artifact_cid,
+        },
+        overlay_artifact: SourceFreeGeometricArtifactReport {
+            bytes: overlay_artifact_bytes.len(),
+            cid: overlay_artifact_cid,
+        },
+        overlay_table_artifact_cid,
+        overlay_stats: SourceFreeGeometricOverlayStatsReport {
+            eligible_bigram_rows: overlay_stats.eligible_bigram_rows,
+            eligible_trigram_rows: overlay_stats.eligible_trigram_rows,
+            geometry_changed_bigram_rows: overlay_stats.geometry_changed_bigram_rows,
+            geometry_changed_trigram_rows: overlay_stats.geometry_changed_trigram_rows,
+            geometry_changed_rows: overlay_stats.geometry_changed_rows,
+        },
+        held_out_encoded_positions: evaluation.positions,
+        held_out_known_target_positions: evaluation.known_target_positions,
+        baseline_correct: evaluation.baseline_correct,
+        geometric_correct: evaluation.geometric_correct,
+        baseline_top1_percent: fixed_percent(
+            evaluation.baseline_correct,
+            evaluation.known_target_positions,
+        ),
+        geometric_top1_percent: fixed_percent(
+            evaluation.geometric_correct,
+            evaluation.known_target_positions,
+        ),
+        geometric_delta_percentage_points: fixed_percentage_point_difference(
+            evaluation.geometric_correct,
+            evaluation.baseline_correct,
+            evaluation.known_target_positions,
+        ),
+        reachable_tie_positions: evaluation.reachable_tie_positions,
+        changed_choices: evaluation.changed_choices,
+        geometric_changed_correct: evaluation.geometric_changed_correct,
+        baseline_changed_correct: evaluation.baseline_changed_correct,
+        support_mismatches: evaluation.support_mismatches,
+        work_mismatches: evaluation.work_mismatches,
+        trigram_choices: evaluation.trigram_choices,
+        bigram_choices: evaluation.bigram_choices,
+        unigram_choices: evaluation.unigram_choices,
+        baseline_continuation: SourceFreeGeometricContinuationReport {
+            prompt: args.prompt.clone(),
+            continuation_cap: args.continuation_cap,
+            emitted_units: continuation.baseline.tokens.len(),
+            tokens: continuation.baseline.tokens.clone(),
+            decoded_text: baseline_continuation_utf8,
+            stop: source_free_continuation_stop(continuation.baseline.stop),
+        },
+        geometric_continuation: SourceFreeGeometricContinuationReport {
+            prompt: args.prompt.clone(),
+            continuation_cap: args.continuation_cap,
+            emitted_units: continuation.geometric.tokens.len(),
+            tokens: continuation.geometric.tokens.clone(),
+            decoded_text: geometric_continuation_utf8,
+            stop: source_free_continuation_stop(continuation.geometric.stop),
+        },
+        first_divergence: continuation.first_divergence,
+        source_closure,
+        criteria,
+    };
+    let report_payload = serde_json::to_vec(&report).map_err(|error| {
+        RunError::Command(format!(
+            "serialize {SOURCE_FREE_GEOMETRIC_MECHANISM} report: {error}"
+        ))
+    })?;
+    let envelope = SourceFreeGeometricEnvelope {
+        report_payload_cid: format!("blake3:{}", blake3::hash(&report_payload).to_hex()),
+        report,
+    };
+
+    if args.json {
+        let mut bytes = serde_json::to_vec_pretty(&envelope).map_err(|error| {
+            RunError::Command(format!(
+                "serialize {SOURCE_FREE_GEOMETRIC_MECHANISM} report envelope: {error}"
+            ))
+        })?;
+        bytes.push(b'\n');
+        io::stdout().lock().write_all(&bytes)?;
+    } else {
+        println!("source-free geometric tie intervention");
+        println!("  decision: {}", envelope.report.decision);
+        println!(
+            "  held-out top-1: {}% geometric vs {}% baseline ({} pp)",
+            envelope.report.geometric_top1_percent,
+            envelope.report.baseline_top1_percent,
+            envelope.report.geometric_delta_percentage_points
+        );
+        println!(
+            "  baseline continuation: {}",
+            envelope.report.baseline_continuation.decoded_text
+        );
+        println!(
+            "  geometric continuation: {}",
+            envelope.report.geometric_continuation.decoded_text
+        );
+        println!("  base artifact: {}", envelope.report.base_artifact.cid);
+        println!(
+            "  geometric overlay: {}",
+            envelope.report.overlay_artifact.cid
+        );
         println!("  report: {}", envelope.report_payload_cid);
     }
     Ok(())
@@ -3432,6 +3884,35 @@ mod tests {
         assert_eq!(
             args.artifact_out,
             Some(PathBuf::from("/tmp/source-free-table.bin"))
+        );
+        assert!(!args.geometric_intervention);
+        assert_eq!(args.geometry_overlay_out, None);
+        assert!(args.json);
+
+        let cli = Cli::try_parse_from([
+            "r4",
+            "source-free-table",
+            "--corpus",
+            "/tmp/articles.jsonl",
+            "--prompt",
+            "The  United States",
+            "--continuation-cap",
+            "16",
+            "--artifact-out",
+            "/tmp/source-free-table.bin",
+            "--geometric-intervention",
+            "--geometry-overlay-out",
+            "/tmp/multiscale-count-radius-r4.bin",
+            "--json",
+        ])
+        .unwrap();
+        let Some(Command::SourceFreeTable(args)) = cli.command else {
+            panic!("expected source-free-table")
+        };
+        assert!(args.geometric_intervention);
+        assert_eq!(
+            args.geometry_overlay_out,
+            Some(PathBuf::from("/tmp/multiscale-count-radius-r4.bin"))
         );
         assert!(args.json);
     }

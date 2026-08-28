@@ -14,19 +14,22 @@ local hardware. The project is testing whether language context, inference,
 and reasoning can emerge from routes through a canonical geometric memory. The
 target serving engine uses no Ollama, hosted model, or source-model weights.
 
-> **Current capability-first result (2026-08-28):** #989 established the
-> deterministic source-free lexical table baseline. On 446,342 held-out known
-> targets it scored 22.261404% top-1 versus 5.413561% for unigram, a
-> +16.847843-point uplift. Two complete 3,000-document executions produced
-> identical reports and artifacts. The fixed prompt `The United States`
-> decoded 16 units as
-> `. It is the most important thing to do so.\n 1985 – The first people` and
-> stopped at the cap without a period-1/2 cycle. This is a statistical lexical
-> baseline, not semantics, attention, geometry, correctness, reasoning, chat,
-> or release evidence. Its artifact is now the fixed non-geometric reference
-> for exactly one later #953 intervention under matched corpus, support, decode,
-> and work; #973 remains blocked. See the
-> [#989 evidence record](docs/source_free_table_baseline_989.md).
+> **Current capability-first result (2026-08-28):** #953's frozen
+> `MultiscaleCountRadiusR4V1` comparison is positive. Against #989's unchanged
+> 99,362/446,342 (22.261404%) table reference, the construction-only R4 tie
+> overlay scored 103,604/446,342 (23.211797%), +4,242 correct choices and
+> +0.950392 percentage points. The declared-work ledger and candidate support
+> matched at all teacher-forced positions.
+> The fixed prompt still emitted 16 valid UTF-8 units, but geometry changed the
+> bounded continuation from the date-fragment branch to
+> `. It is the most important thing to do so. The first people to live`.
+> Two complete executions produced byte-identical base artifacts, overlays, and
+> reports; that external replay check promoted the reports' pending decision to
+> the frozen positive terminal. This establishes only causal incremental value
+> for the exact fixed-point R4 evidence-radius tie intervention over the frozen lexical
+> table; it is not attention, semantics, correctness, reasoning, chat, or
+> release evidence. See the
+> [#953 evidence record](docs/source_free_table_geometric_intervention_953.md).
 
 > **Honest status:** the geometric storage/identity foundation, one bounded
 > causal R4/S3 path selector, and reusable provider-free decode/render/append
@@ -46,9 +49,10 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > `UNAVAILABLE_FRAME_OR_POPULATION`: the pinned raw corpus reproduced, but its
 > exact #986 codec/pair commitment and a complete same-frame lexical SpiralCore
 > operator map were unavailable. Placement, diffusion, Gate 0, calibration,
-> sealed labels, selection, and #953 were `NOT_RUN`. The later established #989
-> result now permits one matched #953 intervention; #973 and #954 remain
-> blocked.
+> sealed labels, selection, and #953 were `NOT_RUN`. The later #989 table reset
+> supplied a working reference, and the one matched #953 R4 tie intervention
+> has now passed its held-out and decoded-output contract. #973 is the next
+> intelligence stage; #954 remains blocked behind it.
 > Higher-scope attention, correct answers, and reasoning do not exist yet. The
 > dashboard is an interactive window into the research substrate, not a
 > frontier model or a ChatGPT replacement.
@@ -99,6 +103,29 @@ unigram/bigram/trigram counts, evaluates held-out next-unit prediction, writes
 the deterministic packed artifact, and emits the exact decoded continuation.
 It is a statistical lexical baseline command, not an attention, semantic,
 correctness, chat, or release surface.
+
+To run the one frozen #953 comparison against that unchanged table baseline:
+
+```bash
+cargo run --bin r4 -- source-free-table \
+  --corpus /path/to/articles.jsonl \
+  --prompt "The United States" \
+  --continuation-cap 16 \
+  --artifact-out /path/to/source-free-table.bin \
+  --geometric-intervention \
+  --geometry-overlay-out /path/to/multiscale-count-radius-r4.bin \
+  --json
+```
+
+`--geometric-intervention` enables only the frozen
+`MultiscaleCountRadiusR4V1` tie-breaking overlay. Both arms retain the table's
+first nonempty row, maximum-count tie set, lexical codec, decoder, and shared
+declared-work ledger. The report compares held-out choices and both fixed-prompt
+continuations; `--geometry-overlay-out` writes the deterministic overlay bound
+to the base table artifact. The overlay is a bounded causal geometry experiment. Even a
+positive comparison does not establish attention, semantics, correctness,
+reasoning, chat quality, performance superiority, formal closure, or release
+readiness.
 
 To reproduce the bounded A1R associative ordered-summary decision:
 
@@ -221,8 +248,11 @@ placement control selected 2/2. #983's later independent construction-return
 classes then transferred to 0/6 held-out decisions. #986's later local
 qualification stopped before geometry because neither its exact corpus/codec
 population nor a complete lexical Cl(0,6)/SpiralCore frame was available.
-#953 remains untouched; #973 and #954 remain blocked.
+#953's historical H4/placement fixtures remain untouched. The later B0 reset
+accepted a separate fixed-point R4 table-tie intervention and closes #953 at
+its positive terminal; #973 is next and #954 remains blocked behind it.
 See the [append-only #953 record](docs/local_geometric_generation_953.md).
+See the [accepted table-tie record](docs/source_free_table_geometric_intervention_953.md).
 See the [#986 evidence record](docs/corpus_signed_transport_attention_986.md)
 for the exact feasibility boundary and deliberately unrun stages.
 Stored H4/Hopf/zeta/icosian and related route fields remain
@@ -302,12 +332,13 @@ not become substitutes for working intelligence:
    held-out top-1 versus 5.413561% unigram on 446,342 known targets, exact
    bounded decoding, and byte-identical replay. Preserve its artifact and claim
    boundary as a statistical lexical reference.
-2. **Compare one geometric intervention (#953)** — keep #989's corpus, support,
-   decode, and work fixed while exactly one geometric term competes against the
-   frozen table reference.
-3. **Qualify higher-scope attention (#973)** — only through an accepted #953
-   path; historical placement and transport probes remain evidence, not Now
-   work.
+2. **Retain the accepted R4 tie intervention (#953)** — 23.211797% held-out
+   top-1, +4,242 correct choices over the unchanged table, a distinct bounded
+   continuation, matched support and declared-work ledger, and byte-identical
+   replay.
+3. **Qualify higher-scope attention (#973)** — this is now the next
+   decision-bearing intelligence stage; historical placement and transport
+   probes remain evidence, not current work.
 4. **Establish correctness** — relevance, contradiction handling, and honest
    abstention.
 5. **Establish reasoning** — bounded multi-step route composition.
@@ -320,9 +351,9 @@ complete.
 
 The active dependency chain is tracked in
 [#820](https://github.com/UOR-Foundation/uor-r4/issues/820). #989 established
-the frozen table reference; exactly one matched #953 intervention is the only
-permitted local successor. #973 and #954 remain blocked downstream of #953,
-and #954 also depends on #973.
+the frozen table reference and #953 established one matched R4 tie
+intervention over it. After protected #953 closure, #973 is the next eligible
+stage; #954 remains blocked behind #973.
 
 ## Find your way around
 

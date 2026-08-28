@@ -51,7 +51,7 @@ correctness, and reasoning remain separate claims.
 Optimization, broad QA, formalization, and release certification follow a
 working decision-bearing product slice. They do not replace it.
 
-## Current capability-first delivery decision — #989
+## Current capability-first delivery decision — #953
 
 #989 reached `ESTABLISH_TABLE_NATIVE_LEXICAL_BASELINE`. On 446,342 held-out
 known-target positions, its deterministic construction-trained integer table
@@ -63,13 +63,27 @@ The fixed prompt emitted 16 valid UTF-8 units and stopped at the cap without a
 period-1/2 cycle. See the
 [#989 record](source_free_table_baseline_989.md).
 
-This establishes a statistical lexical baseline with bounded exact decoding,
-not semantics, attention, geometry, correctness, reasoning, chat, performance,
-or release readiness. Freeze the table engine as the non-geometric reference
-for exactly one #953 geometric intervention under the same corpus, support,
-decode, and work budget. #973 remains blocked behind #953. No new H4,
-SpiralCore, harmonic, algebraic, placement, transport, higher-scope, or scale
-qualifier is eligible outside that one comparison.
+That table remains the frozen non-geometric reference. The one permitted #953
+intervention, `MultiscaleCountRadiusR4V1`, is now accepted at
+`PROCEED_TO_A1Q_H_WITH_BOUNDED_SOURCE_FREE_GEOMETRIC_GENERATION`. Across the
+same 446,342 known-target positions it scored 103,604 (23.211797%), a net
++4,242 correct and +0.950392 percentage points over #989. The separate
+24,250,680-byte overlay is
+`blake3:914126a311c3984d1482258a8f0a7fa2e34896540d502d19f1d9076fbd4a9b76`.
+Candidate support and the declared-work ledger matched across all 446,342
+teacher-forced positions and through the first free-running divergence. The
+structural source-closure counters were zero, and two complete runs reproduced
+table, overlay, and report bytes exactly. External byte comparison promoted the
+reports' pending verdict to the frozen positive terminal.
+See the [#953 record](source_free_table_geometric_intervention_953.md).
+
+This establishes a bounded source-free geometric increment over a statistical
+lexical baseline. It does not establish semantics, broad attention, general
+coherence, correctness, reasoning, chat, performance, or release readiness.
+No second #953 formula, axis, prompt, corpus run, or representation is
+permitted. #973 is next; #954 remains blocked behind it. No new H4,
+SpiralCore, harmonic, algebraic, placement, transport, or scale qualifier is
+eligible outside its exposed issue.
 
 ## Current truth and post-A1Q-L2 decision
 
@@ -143,8 +157,8 @@ then frozen as `LocalSameObjectContextPlacementV1`. Its exact preflight
 reproduced all construction prototypes with zero class collisions, but real
 placement chose `run/runs` (0/2 intended) while the placement-permuted control
 chose `runs/run` (2/2). Generator execution and replay were `NOT_RUN`, so it did
-not qualify the placement hypothesis. Its labels, geometry, and two failed
-representation outcomes are now known, so #953 is a parked, unassigned,
+not qualify the placement hypothesis. At that point its labels, geometry, and
+two failed representation outcomes made the historical #953 path a parked,
 untouched integration regression rather than an independent discovery
 population. A1Q-L2/#983 tested `ConstructionCausalReturnV1` on a separate
 three-family, six-decision construction/validation population. Its pure
@@ -156,8 +170,9 @@ frozen `CorpusSignedTransportV1` feasibility contract and stopped
 `UNAVAILABLE_FRAME_OR_POPULATION`: the raw corpus reproduced, but its exact
 codec/pair commitment and a complete same-frame lexical SpiralCore frame were
 unavailable. Placement, Gate 0, labels, table/geometric arms, and #953 were
-`NOT_RUN`. The later B0/#989 result now limits #953 to one matched intervention;
-#953 continues to block #973 and #954, and #973 continues to block #954. Calling the later
+`NOT_RUN`. The later B0/#989 reset limited #953 to one separate matched
+table-tie intervention. That intervention has now passed; #973 is next and
+continues to block #954. Calling the later
 #973 operator harmonic additionally requires an
 artifact-bound basis/mode contract. #962
 separately owns product chat integration and persisted, identity-scoped hive
@@ -658,12 +673,24 @@ The deterministic construction-only lexical count tables scored 22.261404%
 held-out top-1 against 5.413561% unigram over 446,342 known targets, inverted
 selected payloads exactly, emitted a bounded 16-unit continuation, and replayed
 byte identically. Geometry was absent from B0. Preserve the table engine
-unchanged as the reference for exactly one later #953 geometric intervention
-under matched corpus, support, decode, and work.
+unchanged as the frozen reference used by the accepted #953 intervention.
+
+### B1 / #953 — matched source-free geometric intervention
+
+Status: **accepted at
+`PROCEED_TO_A1Q_H_WITH_BOUNDED_SOURCE_FREE_GEOMETRIC_GENERATION`**.
+
+`MultiscaleCountRadiusR4V1` changed only maximum-count trigram/bigram ties. It
+raised held-out top-1 from 22.261404% to 23.211797% (+0.950392 percentage
+points, +4,242 correct), held candidate support and its declared-work ledger
+equal at all teacher-forced positions and through the first decoded divergence,
+kept every structural source-closure counter at zero, emitted a distinct
+bounded valid UTF-8 continuation, and replayed table, overlay, and report bytes
+identically. This is the only accepted claim. #973 is next.
 
 The GI sections below preserve the completed evidence lineage and downstream
-dependency structure. They remain dormant, limited to the one #953 comparison,
-or blocked.
+dependency structure. They remain dormant or blocked except for the exposed
+#973 scope.
 
 ### GI-0 — retained foundation
 
@@ -700,9 +727,9 @@ Status: **#952 A1.0 terminal negative; #967 A1R `RETAIN_STATE_ONLY`; #970 A1P
 `PROCEED_TO_I1_WITH_CAUSAL_R4_PATH_ATTENTION`; #983 then independently tested
 construction-transferred candidate-conditioned local attention and stopped at
 0/6 transfer before selection and closed. #986 then closed at its pre-sealed
-population/frame unavailable terminal. Established B0/#989 now exposes exactly
-one matched #953 intervention; #953 and #973 retain their downstream blocker
-edges**.
+population/frame unavailable terminal. B0/#989 then supplied the frozen
+reference for the accepted matched #953 intervention. #973 is now next and
+continues to block #954**.
 
 The frozen A1.0 probe stopped before scorer implementation with
 `REDESIGN_ORDERED_ROUTE_SUMMARY`. Across three matched contrasts, all 21
@@ -1102,17 +1129,18 @@ the preserved #953 evidence below. #983's completed negative and #986's
 unavailable boundary first superseded that instruction; B0/#989 now supersedes
 their former fresh-population handoff for forward sequencing.
 
-The frozen positive terminal is
+The historical positive terminal was
 `PROCEED_TO_A1Q_H_WITH_BOUNDED_SOURCE_FREE_GEOMETRIC_GENERATION`; direct repair
-is `REVISE_I1_GENERATOR_IN_PLACE`. Established B0/#989 now permits exactly one
-matched #953 intervention against its fixed table reference. Paragraph,
-conversation, and global selection remain inert until #973.
+was `REVISE_I1_GENERATOR_IN_PLACE`. B0/#989 later permitted exactly one separate
+matched #953 intervention against its fixed table reference. That intervention
+is now accepted at the positive terminal after external replay adjudication.
+Paragraph, conversation, and global selection remain inert until #973.
 Product CLI/HTTP chat integration, restart-persistent conversation state, and
 identity-scoped hive-memory lifecycle remain #962 scope.
 
-A future positive at this stage could establish only that an independently
-qualified local semantic selector drives one #953-qualified decoded grammar/
-sentence loop.
+The accepted result establishes only the bounded fixed-point count-radius
+increment and decoded consequence recorded below. It does not qualify a local
+semantic selector or a natural grammar/sentence loop.
 #969, #983, and #986 remain evidence provenance as applicable. The result could
 not establish factual correctness, broad coherence, knowledge, reasoning,
 higher-scope attention, performance advantage, chat quality, formal closure,
@@ -1158,7 +1186,8 @@ source/provider closure, support/work equality, and byte-identical replay
 passed. The right full-path arm was correct, the left was wrong, and the two
 full-path decisive choices were not distinct. The record is
 `blake3:dfe03d4c56f7e5e9cf48d524f2f0b10482c4b3b85fae152dd29c64543caa0b79`.
-#953 remains `REVISE_I1_GENERATOR_IN_PLACE`; admission is repaired. The frozen
+At that point, #953 remained `REVISE_I1_GENERATOR_IN_PLACE`; admission was
+repaired. The frozen
 construction-only, same-object, order-sensitive candidate-placement overlay
 then reproduced 7/7 construction prototypes with zero class collisions and zero
 padding-identity aliases. Real placement selected 0/2 intended candidates,
@@ -1167,18 +1196,33 @@ while the same-artifact placement-permuted and order-shuffled controls selected
 because decisive retained suffixes exactly recalled construction subhistories.
 Generator execution and replay were `NOT_RUN`. This chronology remains
 append-only evidence. The fixture, overlay, generator, and records remained
-untouched through #986. The established #989 result now exposes one later #953
-intervention, with the table reference and matched
-corpus, support, decode, and work held fixed; #973 remains blocked. #983 and
-#986 remain evidence provenance; neither a
+untouched through #986. This chronology remains provenance. The later B0/#989
+reset froze a separate table reference, and #953 then executed exactly one
+matched intervention over its maximum-count ties. On 446,342 held-out known
+targets, `MultiscaleCountRadiusR4V1` improved 99,362/446,342 (22.261404%) to
+103,604/446,342 (23.211797%): +4,242 correct and +0.950392 percentage points.
+It changed 56,280 choices; among those, geometry was correct on 6,753 and the
+baseline on 2,511. Candidate-support and declared-work-ledger mismatches were
+zero, all structural source-closure counters were zero, and two full executions
+reproduced table, overlay, and report bytes exactly. The external byte
+comparison promoted the reports' pending verdict to the terminal below. The
+frozen prompt diverged at emitted unit 12 and ended
+with distinct 16-unit valid UTF-8 continuations without a period-1/2 cycle.
+The accepted terminal is
+`PROCEED_TO_A1Q_H_WITH_BOUNDED_SOURCE_FREE_GEOMETRIC_GENERATION`; the complete
+record is [here](source_free_table_geometric_intervention_953.md).
+
+This result does not rehabilitate the historical #953 selector, #983, or #986,
+and does not establish semantics, broad attention, general coherence,
+correctness, reasoning, or release readiness. #973 is now next. Neither a
 failed experiment nor a conditional issue number is automatically a serving
 consumer.
 
 ### GI-2 A1Q-H / #973 — paragraph, conversation, and global attention
 
-After the accepted local semantic selector and #953 qualify, test paragraph,
-conversation, and bounded global state through the real decoded autoregressive
-loop. Before #973,
+With #953 accepted at its bounded source-free geometric terminal, test
+paragraph, conversation, and bounded global state through the real decoded
+autoregressive loop. Before #973,
 those scopes may remain serialized and incrementally updated but cannot
 influence selection. #973 blocks #954.
 
@@ -1392,11 +1436,10 @@ hours remains a hard kill ceiling, never an estimate.
   mechanism on six held-out choices and stopped at 0/6 transfer before a
   deployed selector. #986 then stopped before placement because its exact
   population/codec commitment and lexical SpiralCore frame were unavailable;
-  no table-native or geometric arm ran. #953 has
-  implemented decoded-loop plumbing but has not qualified a natural grammar
-  loop. Only an accepted local semantic selector and an accepted #953 result can expose #973,
-  and only #973 may qualify
-  paragraph, conversation, or global state.
+  no table-native or geometric arm ran. The historical #953 path implemented
+  decoded-loop plumbing without qualifying natural grammar. The later, separate
+  B0 table-tie intervention has qualified its bounded geometric increment and
+  exposed #973. Only #973 may qualify paragraph, conversation, or global state.
 - S3/R4 compute, Hopf S2/R3 observation, and an E8 action plane are distinct
   objects.
 - Exact recall, grammatical text, correct inference, and reasoning are separate
