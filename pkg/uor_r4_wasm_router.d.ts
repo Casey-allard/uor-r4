@@ -209,21 +209,37 @@ export class UorR4Router {
     geometry_type: GeometryType;
 }
 
+/**
+ * Production-only graph generation facade. The same function body is
+ * native-testable and exported through `wasm-bindgen` on wasm32, so the WASM
+ * surface cannot drift behind an unexercised wrapper.
+ */
 export function generate_r4g1_response(prompt: string, max_tokens: number): string | undefined;
 
 export function init_wasm(): void;
 
 /**
- * #790 item 5: install a graph and its exact tokenizer into the wasm
- * runtime so the dashboard's r4g1/transformerless selections can
- * actually serve through [`generate_r4g1_response`] in static mode.
- * Previously that export was unreachable — no installer was exported
- * and neither frontend assigned the `wasm_module` global it is gated
- * on, so those selections silently took the geometric fallback. Throws
- * the installer's typed refusal (CID mismatch, malformed bytes) without
- * replacing a previously active bundle.
+ * Legacy compatibility installer. It accepts only graphs with both SKMX and
+ * PSIB absent. Lane-bearing artifacts must use the schema-2 production
+ * envelope below and can never activate through this weaker surface.
  */
 export function set_r4g1_bundle(graph: Uint8Array, tokenizer: Uint8Array): void;
+
+/**
+ * Verify and atomically install every required component of one schema-2
+ * production generation. Any missing, malformed, stale, or CID-mismatched
+ * component throws and leaves the previous generation untouched.
+ */
+export function set_r4g1_production_bundle(graph: Uint8Array, sections_absent_graph: Uint8Array, label_shuffled_graph: Uint8Array, signature_artifact: Uint8Array, tla_comparator_store: Uint8Array, tokenizer: Uint8Array, score_report: Uint8Array, compile_report: Uint8Array, deployed_quality_report: Uint8Array, cross_surface_parity: Uint8Array, witness_replay: Uint8Array, corpus_meta: Uint8Array, corpus_records: Uint8Array, tokenizer_adapter: Uint8Array, release_manifest: Uint8Array): void;
+
+/**
+ * #839 phase 1 (RF-30): the typed selective-prediction boundary export
+ * (spec §5, WASM row) — always a typed JSON value with the canonical
+ * labels, never a trap; see [`tless_uor::typed_r4g1_response`]. Both exports
+ * fail closed when only a legacy research bundle is installed; compatibility
+ * replay is deliberately not exposed as a production-like WASM answer.
+ */
+export function typed_r4g1_response(prompt: string, max_tokens: number): string;
 
 export function vsa_encode_event(subj: string, act: string, time: string, loc: string, space: string): Uint8Array;
 
@@ -237,6 +253,8 @@ export interface InitOutput {
     readonly memory: WebAssembly.Memory;
     readonly generate_r4g1_response: (a: number, b: number, c: number) => [number, number];
     readonly set_r4g1_bundle: (a: number, b: number, c: number, d: number) => [number, number];
+    readonly set_r4g1_production_bundle: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number, n: number, o: number, p: number, q: number, r: number, s: number, t: number, u: number, v: number, w: number, x: number, y: number, z: number, a1: number, b1: number, c1: number, d1: number) => [number, number];
+    readonly typed_r4g1_response: (a: number, b: number, c: number) => [number, number];
     readonly __wbg_get_uorr4router_geometry_type: (a: number) => number;
     readonly __wbg_set_uorr4router_geometry_type: (a: number, b: number) => void;
     readonly __wbg_uorr4router_free: (a: number, b: number) => void;

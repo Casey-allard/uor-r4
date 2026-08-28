@@ -540,6 +540,9 @@ export class UorR4Router {
 if (Symbol.dispose) UorR4Router.prototype[Symbol.dispose] = UorR4Router.prototype.free;
 
 /**
+ * Production-only graph generation facade. The same function body is
+ * native-testable and exported through `wasm-bindgen` on wasm32, so the WASM
+ * surface cannot drift behind an unexercised wrapper.
  * @param {string} prompt
  * @param {number} max_tokens
  * @returns {string | undefined}
@@ -561,14 +564,9 @@ export function init_wasm() {
 }
 
 /**
- * #790 item 5: install a graph and its exact tokenizer into the wasm
- * runtime so the dashboard's r4g1/transformerless selections can
- * actually serve through [`generate_r4g1_response`] in static mode.
- * Previously that export was unreachable — no installer was exported
- * and neither frontend assigned the `wasm_module` global it is gated
- * on, so those selections silently took the geometric fallback. Throws
- * the installer's typed refusal (CID mismatch, malformed bytes) without
- * replacing a previously active bundle.
+ * Legacy compatibility installer. It accepts only graphs with both SKMX and
+ * PSIB absent. Lane-bearing artifacts must use the schema-2 production
+ * envelope below and can never activate through this weaker surface.
  * @param {Uint8Array} graph
  * @param {Uint8Array} tokenizer
  */
@@ -580,6 +578,88 @@ export function set_r4g1_bundle(graph, tokenizer) {
     const ret = wasm.set_r4g1_bundle(ptr0, len0, ptr1, len1);
     if (ret[1]) {
         throw takeFromExternrefTable0(ret[0]);
+    }
+}
+
+/**
+ * Verify and atomically install every required component of one schema-2
+ * production generation. Any missing, malformed, stale, or CID-mismatched
+ * component throws and leaves the previous generation untouched.
+ * @param {Uint8Array} graph
+ * @param {Uint8Array} sections_absent_graph
+ * @param {Uint8Array} label_shuffled_graph
+ * @param {Uint8Array} signature_artifact
+ * @param {Uint8Array} tla_comparator_store
+ * @param {Uint8Array} tokenizer
+ * @param {Uint8Array} score_report
+ * @param {Uint8Array} compile_report
+ * @param {Uint8Array} deployed_quality_report
+ * @param {Uint8Array} cross_surface_parity
+ * @param {Uint8Array} witness_replay
+ * @param {Uint8Array} corpus_meta
+ * @param {Uint8Array} corpus_records
+ * @param {Uint8Array} tokenizer_adapter
+ * @param {Uint8Array} release_manifest
+ */
+export function set_r4g1_production_bundle(graph, sections_absent_graph, label_shuffled_graph, signature_artifact, tla_comparator_store, tokenizer, score_report, compile_report, deployed_quality_report, cross_surface_parity, witness_replay, corpus_meta, corpus_records, tokenizer_adapter, release_manifest) {
+    const ptr0 = passArray8ToWasm0(graph, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ptr1 = passArray8ToWasm0(sections_absent_graph, wasm.__wbindgen_malloc);
+    const len1 = WASM_VECTOR_LEN;
+    const ptr2 = passArray8ToWasm0(label_shuffled_graph, wasm.__wbindgen_malloc);
+    const len2 = WASM_VECTOR_LEN;
+    const ptr3 = passArray8ToWasm0(signature_artifact, wasm.__wbindgen_malloc);
+    const len3 = WASM_VECTOR_LEN;
+    const ptr4 = passArray8ToWasm0(tla_comparator_store, wasm.__wbindgen_malloc);
+    const len4 = WASM_VECTOR_LEN;
+    const ptr5 = passArray8ToWasm0(tokenizer, wasm.__wbindgen_malloc);
+    const len5 = WASM_VECTOR_LEN;
+    const ptr6 = passArray8ToWasm0(score_report, wasm.__wbindgen_malloc);
+    const len6 = WASM_VECTOR_LEN;
+    const ptr7 = passArray8ToWasm0(compile_report, wasm.__wbindgen_malloc);
+    const len7 = WASM_VECTOR_LEN;
+    const ptr8 = passArray8ToWasm0(deployed_quality_report, wasm.__wbindgen_malloc);
+    const len8 = WASM_VECTOR_LEN;
+    const ptr9 = passArray8ToWasm0(cross_surface_parity, wasm.__wbindgen_malloc);
+    const len9 = WASM_VECTOR_LEN;
+    const ptr10 = passArray8ToWasm0(witness_replay, wasm.__wbindgen_malloc);
+    const len10 = WASM_VECTOR_LEN;
+    const ptr11 = passArray8ToWasm0(corpus_meta, wasm.__wbindgen_malloc);
+    const len11 = WASM_VECTOR_LEN;
+    const ptr12 = passArray8ToWasm0(corpus_records, wasm.__wbindgen_malloc);
+    const len12 = WASM_VECTOR_LEN;
+    const ptr13 = passArray8ToWasm0(tokenizer_adapter, wasm.__wbindgen_malloc);
+    const len13 = WASM_VECTOR_LEN;
+    const ptr14 = passArray8ToWasm0(release_manifest, wasm.__wbindgen_malloc);
+    const len14 = WASM_VECTOR_LEN;
+    const ret = wasm.set_r4g1_production_bundle(ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3, ptr4, len4, ptr5, len5, ptr6, len6, ptr7, len7, ptr8, len8, ptr9, len9, ptr10, len10, ptr11, len11, ptr12, len12, ptr13, len13, ptr14, len14);
+    if (ret[1]) {
+        throw takeFromExternrefTable0(ret[0]);
+    }
+}
+
+/**
+ * #839 phase 1 (RF-30): the typed selective-prediction boundary export
+ * (spec §5, WASM row) — always a typed JSON value with the canonical
+ * labels, never a trap; see [`tless_uor::typed_r4g1_response`]. Both exports
+ * fail closed when only a legacy research bundle is installed; compatibility
+ * replay is deliberately not exposed as a production-like WASM answer.
+ * @param {string} prompt
+ * @param {number} max_tokens
+ * @returns {string}
+ */
+export function typed_r4g1_response(prompt, max_tokens) {
+    let deferred2_0;
+    let deferred2_1;
+    try {
+        const ptr0 = passStringToWasm0(prompt, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.typed_r4g1_response(ptr0, len0, max_tokens);
+        deferred2_0 = ret[0];
+        deferred2_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
     }
 }
 
