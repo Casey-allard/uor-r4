@@ -7,6 +7,8 @@ pub mod certify;
 pub mod compare;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod compiler_scaling;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod corpus_signed_transport_attention;
 #[cfg(feature = "fairness-provenance")]
 pub mod fairness_provenance;
 pub mod fmm;

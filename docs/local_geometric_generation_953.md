@@ -697,3 +697,17 @@ and untouched behind #986. Only a full-positive #986
 created by #986's table branch, may enter this decoded loop after a fresh
 label-free preflight. The known #953 population remains quarantined; this
 handoff authorizes no new representation, generation run, or replay inside it.
+
+## Post-#986 blocker state (2026-08-28)
+
+The prior handoff above records the live state when #986 opened. #986 has since
+closed at `UNAVAILABLE_FRAME_OR_POPULATION`: its raw corpus reproduced, but its
+exact codec/pair commitment and complete same-frame lexical SpiralCore operator
+map were unavailable. Placement, Gate 0, labels, selection, payload replay,
+and this #953 loop were `NOT_RUN`.
+
+#953 therefore remains open, unassigned, parked, and untouched. Closure of the
+historical native blocker does not authorize execution. Only a freshly frozen
+population/frame successor that independently qualifies an accepted local
+semantic selector may enter #953 in a later session after a new label-free
+preflight. No successor was created as part of #986.

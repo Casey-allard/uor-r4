@@ -121,13 +121,13 @@ The experiment must be able to change the next programme decision:
   were `NOT_RUN`; the terminal remains `REVISE_I1_GENERATOR_IN_PLACE`. A1Q-L2/
   #983 then formed pure construction classes on an independent population but
   transferred on 0/6 held-out decisions and closed
-  `UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER`. A1Q-L3/#986 is now the only local
-  qualification: first test CID-disjoint corpus-induced semantic placement and
-  a static self-plus-six harmonic link-state field, then ask whether signed
-  zero-sum Cl(0,6)/SpiralCore transport adds causal value over matched link/
-  distance controls and a table-native semantic-value comparator. #953 remains
-  parked, unassigned, untouched, and blocked. A1Q-H/#973 and GI-4/#954 remain
-  blocked, with GI-5/#955 downstream.
+  `UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER`. A1Q-L3/#986 then closed
+  `UNAVAILABLE_FRAME_OR_POPULATION`: its raw corpus reproduced, but the exact
+  corpus-scale codec/pair commitment and complete same-frame lexical
+  Cl(0,6)/SpiralCore operator map were unavailable. Gate 0, labels, selection,
+  and #953 were `NOT_RUN`. #953 remains parked, unassigned, and untouched until
+  a freshly frozen population/frame successor independently qualifies. A1Q-H/
+  #973 and GI-4/#954 remain blocked, with GI-5/#955 downstream.
 - **Exercise the real route path.** Geometry must run before token choice and
   emit its admitted support and energy trace. Add a global-context coverage
   witness when the active issue, beginning with #973, activates higher scopes.

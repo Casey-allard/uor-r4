@@ -42,8 +42,10 @@ three-family, six-decision population. Its usable construction classes were
 pure but reached 0/6 held-out decisions; the sealed strict ceiling was also
 0/6. It stopped `UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER` before a deployed
 selector or payload inversion and is now closed bounded negative evidence.
-#986 owns the fresh corpus-induced semantic-placement and signed-transport
-qualification and blocks untouched #953; #953 continues to block #973 and
+#986 then closed `UNAVAILABLE_FRAME_OR_POPULATION` before placement because its
+exact population/codec commitment and complete lexical SpiralCore frame were
+unavailable. Gate 0, labels, selection, and #953 were `NOT_RUN`. Untouched #953
+remains parked pending a freshly frozen population/frame successor and blocks #973 and
 #954; and #973 continues to block #954.
 
 A negative result remains evidence about its declared mechanism and
@@ -55,12 +57,10 @@ attention, inference, correctness, reasoning, or product readiness.
 
 The stages are ordered because each later claim depends on the earlier one:
 
-In this policy, the **accepted local semantic selector lineage** means either
-`CorpusSignedTransportV1` after #986 reaches its full positive terminal, or the
-separate table-value selector after #986 takes the table branch and that
-successor independently qualifies. #983 and #986 remain in evidence
-provenance; neither a failed experiment nor a conditional issue number is
-automatically a serving consumer.
+In this policy, the **accepted local semantic selector lineage** now means a
+freshly frozen successor that independently qualifies its complete local
+causal contract. #983 and #986 remain in evidence provenance; neither a failed
+experiment nor a conditional issue number is automatically a serving consumer.
 
 1. **Local route-attention mechanism (#969)** — natural schema-2 adjacency,
    causal ordered R4/S3 path state, retained prefix memory, and deterministic
@@ -623,6 +623,18 @@ re-freeze, retry, second representation, or #953 generation runs in #986. Any
 repair requires a freshly frozen successor. The complete contract is the
 [#986 plan](corpus_induced_signed_transport_attention_plan_986.md).
 
+**Observed #986 result, 2026-08-28.** The pinned raw corpus reproduced its
+content identity and 3,000-document census, but no source-free corpus-scale
+codec or exact induction/calibration/sealed pair commitment was available. The
+exact 64-state SpiralCore operator/table reproduced at control scope, while
+chart transport remained `NOT_ESTABLISHED` and no complete lexical `O(x)` or
+compiler/query frame identity existed. The prerequisite certificate
+`blake3:3fff541e4ac37193babaacd25227019fb401950ccdd936ab38ac46c6c2916337`
+therefore records `UNAVAILABLE_FRAME_OR_POPULATION` before placement. Gate 0,
+calibration, sealed labels, full/table/control arms, coverage, paired tests,
+payload replay, and #953 were `NOT_RUN`. See the
+[#986 evidence record](corpus_signed_transport_attention_986.md).
+
 ### I1/#953 bounded decoded generation contract
 
 #953 owns the preserved production vertical slice, not a qualification matrix.
@@ -667,8 +679,8 @@ nondeterminism, a short cycle, or exceeding the eight-unit state bound. The
 historical direct-repair rule produced the observed record below. It is now
 superseded for forward sequencing: another representation judged on the known
 #953 population would risk post-hoc fixture tuning. #983 supplied the completed
-independent negative; #986 now owns the fresh-population qualification and #953
-remains untouched.
+independent negative; #986 then supplied a completed unavailable population/
+frame result and #953 remains untouched.
 
 The implemented repair has one frozen admission policy. I1/last-one, I2/last-two,
 ordered-sentence, and divisor rows form the primary tier. With non-empty primary
@@ -689,9 +701,9 @@ The frozen terminals are:
   must be repaired before #953 can close.
 
 Invalid or unavailable work leaves #953 open. It is currently unassigned and
-blocked by #986. A later positive result qualifies only the full #986 mechanism
-or separately qualified table-value successor, plus #953's decoded grammar/
-sentence loop. Paragraph,
+parked pending a freshly frozen population/frame successor. A later positive
+result qualifies only that independently accepted selector plus #953's decoded
+grammar/sentence loop. Paragraph,
 conversation, and global influence remain inert until #973; correctness,
 reasoning, product chat, optimization, formal closure, and release remain
 downstream.
@@ -772,8 +784,8 @@ under #986; #973 and downstream #954 remain blocked.
 
 ### A1Q-H/#973 exact-spin global operator prototype
 
-#973 owns paragraph, conversation, and bounded-global influence after #986
-qualifies an accepted local selector path and #953 qualifies the decoded loop.
+#973 owns paragraph, conversation, and bounded-global influence after a fresh
+successor qualifies an accepted local selector path and #953 qualifies the decoded loop.
 Operator influence consumes #953-admitted support;
 it does not participate in admission. The existing adjacent-spin retrieval rows
 remain fallback/diagnostic data, not operator coefficients; any neighbor
@@ -1125,9 +1137,10 @@ Use these outcomes literally:
   attention, correctness, or reasoning claims.
 - `REVISE_I1_GENERATOR_IN_PLACE` — a valid #953 smoke localizes a generator
   defect. This remains #953's historical terminal, but its former immediate
-  in-place-repair action is superseded by completed-negative #983 and open #986
-  because the known population is no longer independent. Keep #953 open,
-  unassigned, blocked, and untouched.
+  in-place-repair action is superseded by completed-negative #983 and closed-
+  unavailable #986 because the known population is no longer independent. Keep
+  #953 open, unassigned, parked, and untouched pending a freshly frozen
+  successor.
 
 Never convert a missing fixture, empty denominator, skipped test, or unrelated
 green suite into `PASS`. Every report preserves artifact kappas, partition CIDs,

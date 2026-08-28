@@ -31,10 +31,13 @@ six-decision population. Its binding label-free census found pure construction
 classes but zero construction-to-validation transfer; the sealed outcome is
 `UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER` at 0/6. The deployed selector,
 payload inversion, decoded generation, and #953 were `NOT_RUN`. #983 remains
-closed as negative evidence. #986 now owns one fresh
-`CorpusSignedTransportV1` qualification, including the static self-plus-six
-`HarmonicLinkState7` field, and blocks parked, unassigned, untouched #953;
-#953 continues to block #973 and #954._
+closed as negative evidence. A1Q-L3/#986 then stopped
+`UNAVAILABLE_FRAME_OR_POPULATION`: the raw corpus reproduced, but no exact
+corpus-scale codec/three-way pair commitment or complete same-frame lexical
+SpiralCore operator map was available. Placement, diffusion, Gate 0, labels,
+selection, and #953 were `NOT_RUN`. #986 is closed; parked, unassigned,
+untouched #953 remains ineligible pending a freshly frozen population/frame
+successor and continues to block #973 and #954._
 
 > **Project priority:** build source-free geometric intelligence in which the
 > route is the data location. A pinned lexical codec supplies text boundaries;
@@ -68,13 +71,12 @@ closed as negative evidence. #986 now owns one fresh
 > construction classes, all usable classes pure, but zero structural transfer
 > and a 0/6 strict ceiling. It stopped `UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER`
 > before the deployed selector or payload inversion; #953 remained untouched.
-> That negative is now closed and preserved. #986 is the separate fresh
-> contract: corpus-induced placement/value must first transfer on a CID-disjoint
-> held-out split, then one signed zero-sum candidate-relative
-> Cl(0,6)/SpiralCore transport readout must beat matched placement, transport,
-> order, state, recall, and table-native value controls. If table value
-> transfers but geometry adds no causal uplift, geometry remains addressing and
-> transport rather than semantic scoring. Once #953 is accepted and every required #973 scope
+> That negative is now closed and preserved. #986 separately attempted the
+> frozen corpus-induced placement/value and signed-transport contract, but its
+> exact population and lexical SpiralCore frame were unavailable. It stopped
+> before placement or labels; no table or geometric arm transferred. A new
+> local attempt must freeze a population/frame successor rather than retry
+> #986. Once #953 is accepted and every required #973 scope
 > qualifies, a separately frozen higher-scope/corpus-scale offline induction
 > ladder may compile causal prefix-to-observed-next-route examples, multiscale
 > route summaries, versioned placement overlays that preserve immutable
@@ -105,10 +107,11 @@ closed as negative evidence. #986 now owns one fresh
 
 Native GitHub relationships are the source of truth:
 
-The current priority view is **Now:** #986 only; **Next:** #953 → #973 → #954;
-**Later:** #955 → #962 → #963 → #964 → #965. The full #986 mechanism,
-controls, thresholds, and branches are frozen in the
-[#986 plan](docs/corpus_induced_signed_transport_attention_plan_986.md).
+The current priority view is **Now:** freeze no implementation until a fresh
+population/frame successor is authored; **Parked:** #953 → #973 → #954;
+**Later:** #955 → #962 → #963 → #964 → #965. The completed #986 feasibility
+boundary is recorded in the
+[#986 evidence](docs/corpus_signed_transport_attention_986.md).
 
 1. **GI-0 — retain #958 foundation:** keep the schema-2 manifest, bounded route
    lookup, worker evidence, controls, and optional operator fixtures at their
@@ -229,7 +232,7 @@ controls, thresholds, and branches are frozen in the
    selector, payload inversion, decoded generation, and #953 were `NOT_RUN`.
    See the [#983 evidence record](docs/construction_causal_return_attention_983.md).
 7. **GI-2 A1Q-L3 / #986 — corpus-induced harmonic signed transport
-   qualification:** on a fresh document/CID-disjoint induction, calibration,
+   qualification (completed unavailable):** on a fresh document/CID-disjoint induction, calibration,
    and sealed-test split, compile deterministic causal co-occurrence/PPMI
    semantic placement over immutable lexical-route identities. Give each route
    one `HarmonicLinkState7` record—self plus up to six construction-derived PPMI
@@ -269,10 +272,21 @@ controls, thresholds, and branches are frozen in the
    No re-freeze, retry, or generation runs in #986. See the
    [#986 plan](docs/corpus_induced_signed_transport_attention_plan_986.md).
 
-   Downstream, **accepted local semantic selector** means either the full #986
-   mechanism after its positive terminal, or the separate table-value selector
-   after #986 takes that branch and its successor independently qualifies.
-   #983/#986 remain evidence provenance, not automatic serving consumers.
+   **Observed #986 result (2026-08-28):** raw corpus identity and the
+   3,000-document census reproduced, but no exact corpus-scale codec/three-way
+   pair commitment existed. The exact 64-state SpiralCore table also
+   reproduced, while cross-chart transport remained `NOT_ESTABLISHED` and no
+   lexical `O(x)` or compiler/query frame identity existed. The certificate
+   `blake3:3fff541e4ac37193babaacd25227019fb401950ccdd936ab38ac46c6c2916337`
+   therefore records `UNAVAILABLE_FRAME_OR_POPULATION`. Placement, diffusion,
+   Gate 0, calibration, sealed labels, all arms, replay, and #953 were
+   `NOT_RUN`. See the
+   [#986 evidence record](docs/corpus_signed_transport_attention_986.md).
+
+   Downstream, **accepted local semantic selector** now requires an independently
+   frozen successor that first repairs both population and frame availability
+   and then qualifies its own causal contract. #983/#986 remain evidence
+   provenance, not serving consumers.
 8. **GI-3 / #953 — bounded source-free geometric generation loop:** the
    accepted #969 path now drives reusable library/CLI plumbing from canonical
    prompt bytes through admission, exact inversion, rendering, append, and
@@ -297,9 +311,9 @@ controls, thresholds, and branches are frozen in the
    but real placement chose `run/runs` (0/2 intended) while the cyclic
    placement-permuted control chose `runs/run` (2/2); generation therefore
    remained `NOT_RUN`. #953 is now a parked, unassigned, untouched integration
-   regression. Only a full positive protected #986 terminal, or a separately
-   qualified table-value successor authorized by that branch, may be applied
-   there in a later session, unchanged and behind a new label-free preflight. Harmonic
+   regression. Only a newly frozen successor that independently qualifies a
+   local semantic selector may be applied there in a later session, unchanged
+   and behind a new label-free preflight. Harmonic
    influence remains dormant in #953. See the
    [#953 record](docs/local_geometric_generation_953.md).
 9. **GI-2 A1Q-H / #973 — higher-scope attention:** after the accepted local
@@ -358,11 +372,12 @@ mechanism-first prototype reached its positive bounded terminal. #953's loop
 plumbing and tiered admission remain preserved, but its known placement
 population is quarantined after 0/2 real versus 2/2 placement-permuted and
 decoded generation/replay `NOT_RUN`. #983 is closed bounded negative evidence
-after its independent Gate 0 transferred on 0/6 decisions. Fresh, unassigned
-#986 is the only open local qualification and the native blocker of parked,
-unassigned #953. The live chain is closed #967/#970/#969/#983 → open #986 →
-parked #953 → blocked #973 → blocked #954 → #955 → #962–#965. #953 continues
-to block #973 and #954; #973 continues to block #954.
+after its independent Gate 0 transferred on 0/6 decisions. #986 is also closed
+at its pre-sealed population/frame unavailable terminal. No local
+implementation issue is eligible until a fresh successor is frozen. The live
+sequence is closed #967/#970/#969/#983/#986 → parked #953 → blocked #973 →
+blocked #954 → #955 → #962–#965. #953 continues to block #973 and #954; #973
+continues to block #954.
 Legacy tracker #949 is closed as
 superseded; #958 is retained directly under programme root #820 as GI-0
 foundation.
@@ -373,15 +388,18 @@ historical evidence and comparators.
 
 ## Now
 
-- [ ] **#986 A1Q-L3 corpus-induced signed transport qualification** — the one
-  open successor to closed-negative #983. First qualify corpus-induced semantic
-  placement/value on the frozen CID-disjoint split. Only then test whether the
-  signed candidate-relative exact transport arm causally beats the matched
-  table-native semantic-value comparator and required controls. #986 is
-  intentionally unassigned until execution begins. No generation, higher
-  scope, corpus scale, zeta-zero calculation, or runtime lowering is in scope.
+- [ ] **Fresh population/frame successor — not yet authored.** Before any local
+  semantic selector can run, a new issue must freeze a source-free corpus-scale
+  codec plus exact three-way pair commitment and a complete same-frame lexical
+  SpiralCore operator map. Do not resume #986 or #953 to invent either contract.
 
 ## Completed negative
+
+- [x] **#986 A1Q-L3 corpus-induced signed transport qualification** — closed
+  `UNAVAILABLE_FRAME_OR_POPULATION`. The source corpus and finite SpiralCore
+  control reproduced, but the exact #986 population/codec commitment and
+  lexical operator frame were unavailable. Gate 0, labels, all selection arms,
+  replay, and #953 were `NOT_RUN`.
 
 - [x] **#983 A1Q-L2 construction-transferred candidate-conditioned geometric
   attention** — closed at `UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER`: pure usable
@@ -395,10 +413,10 @@ historical evidence and comparators.
 - [ ] **#953 bounded source-free geometric generation loop** — preserved at
   historical terminal `REVISE_I1_GENERATOR_IN_PLACE`, open and unassigned. Its
   fixture, placement overlay, decoded loop, and records remain untouched while
-  #986 is open. After a positive protected #986 terminal, or its explicit
-  table-value qualifier branch, a separate session may apply the accepted
-  algorithm unchanged to #953's preserved fixture, beginning with a new label-
-  free preflight. #953 continues to block #973 and #954.
+  no accepted semantic selector exists. Only a newly frozen successor that
+  independently qualifies a local semantic selector may later authorize a
+  separate #953 session beginning with a new label-free preflight. #953
+  continues to block #973 and #954.
 
 ## Landed
 
@@ -522,10 +540,10 @@ historical evidence and comparators.
   placement-permuted control reached 2/2; generation and replay were `NOT_RUN`.
   #983 then tested `ConstructionCausalReturnV1` on an independent natural
   population and stopped `UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER` at 0/6
-  before its deployed selector. Fresh #986 now owns the only local qualifier:
-  corpus-induced semantic value, a self-plus-six harmonic link-state field,
-  signed candidate-relative transport, and a table-native comparator on a new
-  matched sealed population. #953 remains an untouched parked integration
+  before its deployed selector. #986 then stopped
+  `UNAVAILABLE_FRAME_OR_POPULATION` before geometry because its exact
+  population/codec commitment and complete lexical SpiralCore frame were
+  unavailable. #953 remains an untouched parked integration
   regression; #973 and #954 are still blocked.
   Coherent product behavior, correctness, and reasoning remain unestablished.
   Historical canaries and pointwise results remain scoped evidence, not a

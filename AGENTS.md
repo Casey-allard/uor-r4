@@ -34,17 +34,20 @@ three-family, six-decision population. Its usable construction classes were
 pure, but construction coverage and the sealed strict ceiling were both 0/6.
 It stopped `UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER` before a deployed selector,
 payload inversion, or #953 generation. #983 is now closed as bounded negative
-evidence. Fresh native child #986 owns exactly one successor:
-`CorpusSignedTransportV1` first qualifies corpus-induced semantic placement and
-a static self-plus-six harmonic link-state field, then asks whether signed
-zero-sum Cl(0,6)/SpiralCore transport adds causal value beyond matched link/
-distance controls and a table-native semantic-value comparator. #953 remains parked,
-unassigned, untouched, and blocked by #986. Do not add a second representation
-under #983, reuse its population, or add Poincare/Hopf or other harmonic
-machinery beyond #986's exact frozen local contract. The current chain is
-closed #983 → #986 → #953 → #973 → #954,
-followed by #955 → #962–#965. The complete decision and nonclaim boundary is
-[`docs/corpus_induced_signed_transport_attention_plan_986.md`](docs/corpus_induced_signed_transport_attention_plan_986.md).
+evidence. #986 then executed the one frozen `CorpusSignedTransportV1`
+feasibility contract. The pinned raw corpus reproduced, but no exact
+corpus-scale codec/three-way pair commitment existed, and the exact SpiralCore
+control still supplied no complete same-frame lexical `O(x)` map or
+compiler/query frame identity. #986 therefore closed
+`UNAVAILABLE_FRAME_OR_POPULATION` before placement, diffusion, Gate 0, labels,
+selection, or #953. #953 remains parked, unassigned, and untouched; it is not
+eligible merely because its completed native blocker is now closed. Do not add
+a second representation under #983/#986, reuse their populations, or resume
+#953. A new local attempt first requires a freshly frozen population/frame
+successor issue. The completed evidence chain is #983 → #986; downstream
+#953 → #973 → #954 → #955 → #962–#965 remains parked. The complete #986 result
+and nonclaim boundary is
+[`docs/corpus_signed_transport_attention_986.md`](docs/corpus_signed_transport_attention_986.md).
 Terminology lives in
 `docs/transformerless/GLOSSARY.md`. Keep this file current when conventions
 change.
@@ -65,13 +68,12 @@ canonical decode/render/append loop. H4 is an exact finite S3 codebook here;
 `H4 ⊕ phi H4` / E8 remains structural storage and control rather than the
 attention score.
 
-#986 does not assume that identity geometry is semantic geometry. Its
-construction-only corpus artifact supplies semantic placement/value over
-immutable route identities. Exact ordered H4/Cl(0,6)/SpiralCore state supplies
-causal transport. One candidate-relative signed zero-sum radial/angular
-contrast is the attention candidate, and a table-native value-only arm is the
-required comparator. If geometry adds no causal uplift, retain it as
-addressing/transport and advance the simpler value engine honestly.
+#986 did not assume that identity geometry was semantic geometry. It stopped
+before constructing either semantic placement or the signed transport readout:
+the population commitment and complete lexical SpiralCore operator frame were
+unavailable. Its exact finite algebra remains addressing/transport/control
+substrate only. No table-value or geometric arm ran, so neither may be promoted
+from #986.
 
 The intended destination is frontier-like useful local intelligence without
 transformers, MoE/sparse learned routing, or dense matrix intelligence. That is
@@ -89,8 +91,8 @@ only after its identity binds basis, mode order, coefficients, quantization,
 and transition law.
 
 Corpus scale follows mechanism qualification; it never substitutes for it.
-#986 is one bounded local placement/transport qualification on a frozen
-CID-disjoint split, not the corpus-scale ladder. Within #973, after #953 and
+#986 was one bounded local placement/transport qualification, but it stopped
+before freezing its CID-disjoint split. Within #973, after #953 and
 every required #973 scope qualify, a predeclared
 higher-scope/corpus-scale offline ladder may compile causal
 prefix-to-observed-next-route examples,
@@ -274,10 +276,12 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
   transferred to 0/6 held-out decisions. #983 stopped
   `UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER` before deployed selection, payload
   inversion, or #953 generation and is now closed as bounded negative evidence.
-  #986 owns the fresh `CorpusSignedTransportV1` semantic-placement, static
-  self-plus-six harmonic link-state, and signed-transport qualification. #953
-  stays parked, unassigned, untouched, and
-  blocked by #986, while #973 and #954 remain blocked.
+  #986 then stopped `UNAVAILABLE_FRAME_OR_POPULATION`: its raw corpus
+  reproduced, but the exact population/codec commitment and a complete
+  same-frame lexical SpiralCore operator map were unavailable. Placement,
+  Gate 0, labels, selection, and #953 were `NOT_RUN`. #953 stays parked,
+  unassigned, and untouched pending a newly frozen population/frame successor;
+  #973 and #954 remain blocked.
   #954 and #955 own correctness and reasoning respectively.
   #962 owns durable multi-turn CLI/HTTP chat, persistence, isolation, and
   hive-memory; #963–#965 then own optimization, formal closure, and release.

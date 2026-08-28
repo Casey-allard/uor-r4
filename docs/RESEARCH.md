@@ -43,10 +43,12 @@ assumptions, or objectives rather than measured results.
 > pure but covered 0/6 held-out decisions; the sealed strict ceiling was also
 > 0/6. It stopped `UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER` before any deployed
 > selector or payload inversion and is now closed bounded negative evidence.
-> #986 owns the fresh CID-disjoint `CorpusSignedTransportV1` semantic-placement,
-> self-plus-six harmonic link-state, and signed-transport qualification and
-> blocks parked, unassigned, untouched
-> #953; #953 continues to block #973 and #954; and #973 continues to block #954.
+> #986 then closed `UNAVAILABLE_FRAME_OR_POPULATION`: its raw corpus
+> reproduced, but the exact corpus-scale codec/pair commitment and complete
+> same-frame lexical SpiralCore frame were unavailable. Placement, Gate 0,
+> labels, all arms, and #953 were `NOT_RUN`. Parked, unassigned, untouched #953
+> now awaits a freshly frozen population/frame successor; #953 continues to
+> block #973 and #954; and #973 continues to block #954.
 > Legacy
 > tracker #949 is closed as superseded, and #958 is retained directly beneath
 > #820 as GI-0 foundation. Two
@@ -289,8 +291,8 @@ assumptions, or objectives rather than measured results.
 > **Post-A1Q-L2 decision — A1Q-L3/#986, 2026-08-28.** #983 is closed as
 > completed bounded negative evidence. Its failed representation, population,
 > identities, and `NOT_RUN` selector/generation boundary remain unchanged.
-> Fresh #986 is the only open local qualification and now blocks untouched
-> #953.
+> #986 subsequently completed at its pre-sealed population/frame unavailable
+> terminal; untouched #953 remains parked.
 >
 > `CorpusSignedTransportV1` separates the missing semantic layer from exact
 > geometry. A source-free observation corpus induces a canonical causal
@@ -335,6 +337,18 @@ assumptions, or objectives rather than measured results.
 > algebra are permitted for qualification; base-256/integer/LUT lowering is
 > deferred until causal transfer. See the
 > [#986 plan](corpus_induced_signed_transport_attention_plan_986.md).
+>
+> **Observed A1Q-L3 result.** The raw corpus bytes and 3,000-document D3 census
+> reproduced, but no source-free corpus-scale codec or exact three-way pair
+> commitment existed. The finite 64-state SpiralCore table reproduced at
+> control scope, while cross-chart transport remained `NOT_ESTABLISHED` and no
+> complete lexical `O(x)` or compiler/query frame identity existed. Certificate
+> `blake3:3fff541e4ac37193babaacd25227019fb401950ccdd936ab38ac46c6c2916337`
+> records `UNAVAILABLE_FRAME_OR_POPULATION`. Placement, link state, diffusion,
+> Gate 0, calibration, sealed labels, full/table/control arms, payload replay,
+> and #953 were `NOT_RUN`. See the
+> [#986 evidence record](corpus_signed_transport_attention_986.md). Any repair
+> is a newly frozen successor, not a #986 retry.
 
 The current quality-baseline reconciliation is recorded by #933 and the
 [append-only #934 genealogy](canonical_quality_baseline_934.md). The historical
@@ -583,8 +597,8 @@ candidate-conditioned mechanism on a separate natural population. Its pure
 construction classes transferred to 0/6 held-out decisions and stopped
 `UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER` before deployed selection or payload
 decode. #953 remains an untouched parked integration regression while #983
-holds closed negative evidence. #986 now owns the fresh semantic-placement and
-signed-transport decision and blocks #953; #973 remains blocked. Dependable
+holds closed negative evidence. #986 then closed at its unavailable population/
+frame boundary before geometry; #953 and #973 remain parked/blocked. Dependable
 coherent text remains unestablished.
 The final serving path has no source weights, transformer/self-attention, dense
 matrix intelligence, MoE, or sparse learned router. Compiler-side floating
@@ -1145,11 +1159,11 @@ population. Its usable construction classes were pure, but structural coverage
 and the sealed strict ceiling were both 0/6. It stopped
 `UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER` before deployed selection, payload
 inversion, or #953 generation and is now closed bounded negative evidence.
-#986 owns the fresh `CorpusSignedTransportV1` qualifier and blocks parked,
-unassigned, untouched #953; #953 continues to block
-#973/#954; #973 continues to block #954. The eventual accepted local semantic
-selector is either a full-positive #986 mechanism or a separately qualified
-table-value successor authorized by #986. #955 invokes that accepted selector/
+#986 also closed at `UNAVAILABLE_FRAME_OR_POPULATION` before placement, labels,
+or selection. Parked, unassigned, untouched #953 awaits a freshly frozen
+population/frame successor; #953 continues to block #973/#954, and #973
+continues to block #954. Any eventual accepted local semantic selector must be
+independently qualified by that successor. #955 invokes that accepted selector/
 #953/#973/#954 consumer; #962 integrates the accepted selector/#953/#973 path
 into product chat with persisted identity-scoped hive memory. #963 retains
 measured cost; #964 binds evidence provenance #970 → #969 → #983 → #986 plus

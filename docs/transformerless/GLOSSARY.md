@@ -154,20 +154,20 @@ one another.
   corpus or load source tensors.
 - **Corpus-induced semantic placement** — a versioned compiler-side coordinate
   overlay learned only from past construction observations while preserving
-  immutable lexical-route, prime, CID, and payload identities. #986 freezes one
-  deterministic causal co-occurrence/PPMI rank-8 placement and tests held-out
-  document/CID transfer before any attention claim. A hash, prime index,
+  immutable lexical-route, prime, CID, and payload identities. #986 proposed one
+  deterministic causal co-occurrence/PPMI rank-8 placement but stopped before
+  construction because its population/frame prerequisites were unavailable. A hash, prime index,
   hexadecimal spelling, exact route key, or historical `%500` hive cell is an
   address, not semantic placement.
-- **HarmonicLinkState7** — #986's static per-route link-state record: the route
+- **HarmonicLinkState7** — #986's unconstructed static per-route link-state proposal: the route
   itself plus at most six construction-derived positive PPMI peers, with exact
   operator/phase identities and null slots. Six fixed half-restart Jacobi steps
   produce a candidate-rooted screened-harmonic reachability field used by the
-  transport arm. Seven is a bounded
+  transport arm. #986 emitted no such rows. Seven is a bounded
   center-plus-six stencil, not an OSPF implementation and not seven Euclidean
-  nearest neighbors. The record is semantic substrate, not attention; #986
-  compares it with link-disabled and distance-only controls.
-- **Signed transport attention candidate** — #986's proposed local readout.
+  nearest neighbors. The record is semantic substrate, not attention; #986's
+  frozen contract would have compared it with link-disabled and distance-only controls.
+- **Signed transport attention candidate** — #986's proposed but unexecuted local readout.
   Exact ordered Cl(0,6)/SpiralCore state transports a bounded causal history;
   each already-admitted candidate receives one transported value per retained
   history slot. Its radial/angular alignments are centered across those slots
@@ -215,8 +215,9 @@ one another.
 - **Geometric-intelligence sequence** — lexical ingestion, canonical
   serialization, and address membership are prerequisite plumbing. Delivery
   then proceeds in this order: one qualified local causal-path mechanism
-  (#969); one completed-negative construction-transfer probe (#983); one fresh
-  corpus-induced semantic-placement and signed-transport qualifier (#986); one
+  (#969); one completed-negative construction-transfer probe (#983); one
+  completed-unavailable corpus/frame qualifier (#986); one freshly frozen
+  population/frame successor (not yet authored); one
   bounded decoded generation loop with repaired admission (#953);
   paragraph, conversation, and global exact-spin operator qualification through
   that loop plus controlled higher-scope/corpus-scale induction and final

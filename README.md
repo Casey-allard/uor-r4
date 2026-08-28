@@ -28,12 +28,13 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > 2/2 and 1/2. Generation and replay were `NOT_RUN`; the terminal remains
 > `REVISE_I1_GENERATOR_IN_PLACE`. Independent #983 then formed pure
 > construction classes but transferred to 0/6 held-out decisions and closed at
-> `UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER` before selection. #986 now tests one
-> fresh `CorpusSignedTransportV1` contract: corpus-induced semantic placement
-> and a static self-plus-six harmonic link-state field first, then signed
-> zero-sum exact transport against link/distance controls and a table-native
-> value comparator. #953 remains parked, unassigned, untouched, and blocked; #973 and
-> #954 remain blocked.
+> `UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER` before selection. #986 then closed
+> `UNAVAILABLE_FRAME_OR_POPULATION`: the pinned raw corpus reproduced, but its
+> exact #986 codec/pair commitment and a complete same-frame lexical SpiralCore
+> operator map were unavailable. Placement, diffusion, Gate 0, calibration,
+> sealed labels, selection, and #953 were `NOT_RUN`. #953 remains parked,
+> unassigned, and untouched pending a newly frozen population/frame successor;
+> #973 and #954 remain blocked.
 > Higher-scope attention, correct answers, and reasoning do not exist yet. The
 > dashboard is an interactive window into the research substrate, not a
 > frontier model or a ChatGPT replacement.
@@ -185,13 +186,13 @@ remains `REVISE_I1_GENERATOR_IN_PLACE`. The first frozen local same-object,
 order-sensitive candidate-placement preflight then failed before generation or
 replay: real placement selected 0/2 intended candidates while its same-artifact cyclic
 placement control selected 2/2. #983's later independent construction-return
-classes then transferred to 0/6 held-out decisions. #986 is now the only local
-qualification: semantic placement must transfer before signed
-Cl(0,6)/SpiralCore transport may claim causal value over the matched
-table-native comparator. #953 remains untouched; #973 and #954 remain blocked.
+classes then transferred to 0/6 held-out decisions. #986's later local
+qualification stopped before geometry because neither its exact corpus/codec
+population nor a complete lexical Cl(0,6)/SpiralCore frame was available.
+#953 remains untouched; #973 and #954 remain blocked.
 See the [append-only #953 record](docs/local_geometric_generation_953.md).
-See the [current #986 plan](docs/corpus_induced_signed_transport_attention_plan_986.md)
-for the selected mechanism, controls, and decision branches.
+See the [#986 evidence record](docs/corpus_signed_transport_attention_986.md)
+for the exact feasibility boundary and deliberately unrun stages.
 Stored H4/Hopf/zeta/icosian and related route fields remain
 structural state, diagnostics, or controls unless the owning stage qualifies a
 specific term.
@@ -282,11 +283,10 @@ sequence so each new mechanism can become visible before the final engine is
 complete.
 
 The active dependency chain is tracked in
-[#820](https://github.com/UOR-Foundation/uor-r4/issues/820). The immediate
-implementation stage is
-[#986](https://github.com/UOR-Foundation/uor-r4/issues/986). #953 is parked
-behind #986; #973 and #954 remain blocked downstream of #953, and #954 also
-depends on #973.
+[#820](https://github.com/UOR-Foundation/uor-r4/issues/820). #986 is closed at
+its pre-sealed unavailable terminal. There is no eligible local implementation
+stage until a fresh population/frame successor is frozen. #953 remains parked;
+#973 and #954 remain blocked downstream of #953, and #954 also depends on #973.
 
 ## Find your way around
 

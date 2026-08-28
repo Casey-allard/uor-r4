@@ -1,7 +1,7 @@
 # Corpus-Induced Harmonic Signed Transport Attention Plan
 
-- **Status:** adopted direction; implementation and qualification are owned by
-  [#986](https://github.com/UOR-Foundation/uor-r4/issues/986)
+- **Status:** executed; [#986](https://github.com/UOR-Foundation/uor-r4/issues/986)
+  closed `UNAVAILABLE_FRAME_OR_POPULATION` before placement
 - **Programme authority:**
   [#820](https://github.com/UOR-Foundation/uor-r4/issues/820) and
   [Geometric Intelligence Programme](geometric_intelligence_programme.md)
@@ -382,3 +382,23 @@ generation, correctness, reasoning, performance, integer/multiply-free
 serving, an E8 identity theorem, a Riemann-hypothesis result, novelty,
 patentability, product chat, formal closure, or release readiness. Those claims
 remain separately gated in the native programme order.
+
+## Executed outcome — 2026-08-28
+
+#986 stopped at its frozen pre-sealed feasibility boundary. The pinned
+3,000-document raw corpus reproduced its declared content identity, but no
+source-free corpus-scale codec or exact induction/calibration/sealed pair
+commitment existed from which to freeze the required 16 plus 32 matched pairs.
+Separately, the exact SpiralCore operator/table reproduced at control scope,
+while the only six-prime chart still declared cross-chart transport
+`NOT_ESTABLISHED` and supplied no complete lexical-route `O(x)` binding or
+compiler/query frame identity.
+
+The prerequisite certificate is
+`blake3:3fff541e4ac37193babaacd25227019fb401950ccdd936ab38ac46c6c2916337`.
+Placement, link construction, diffusion, Gate 0, calibration, sealed labels,
+selection, payload replay, and #953 generation were `NOT_RUN`. The binding
+terminal is `UNAVAILABLE_FRAME_OR_POPULATION`. This closes the frozen plan;
+any repair requires a newly frozen population/frame successor rather than a
+retry or second representation in #986. See the
+[#986 evidence record](corpus_signed_transport_attention_986.md).

@@ -2,10 +2,10 @@
 
 - **Status:** Accepted as an architectural definition and evaluation boundary;
   amended 2026-08-28 after #953's repaired admission and placement preflight,
-  and #983's independent 0/6 construction-transfer negative. #986 now owns one
-  fresh corpus-induced semantic-placement, self-plus-six harmonic link-state,
-  and signed-transport qualification;
-  #953 remains parked and blocked. #973 remains blocked and later owns
+  #983's independent 0/6 construction-transfer negative, and #986's
+  `UNAVAILABLE_FRAME_OR_POPULATION` feasibility terminal. #986 produced no
+  placement, link state, or selector; #953 remains parked pending a freshly
+  frozen population/frame successor. #973 remains blocked and later owns
   paragraph, conversation, global exact-spin, and corpus-scale qualification.
   Harmonic qualification additionally requires a bound basis/mode contract.
   Inference,
@@ -386,12 +386,11 @@ Delivery proceeds without skipping stages:
 2. retain the local causal R4/S3 path mechanism qualified by #969;
 3. retain closed #983 at `UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER`; its pure
    construction classes covered 0/6 held-out decisions and no selector ran;
-4. in #986, first qualify construction-only corpus-induced semantic placement
-   and a static self-plus-six harmonic link-state field on a document/CID-
-   disjoint split, then test one candidate-relative signed zero-sum exact-
-   transport arm against matched link/distance/causal controls and a table-
-   native semantic-value comparator. A table-preferred result retains geometry
-   as addressing/transport rather than forcing it into semantic scoring;
+4. retain closed #986 at `UNAVAILABLE_FRAME_OR_POPULATION`: its pinned raw
+   corpus and finite SpiralCore control reproduced, but no exact three-way
+   population/codec commitment or complete same-frame lexical operator map
+   existed. Gate 0, labels, table/geometric arms, and #953 were not run. Any
+   replacement must be a freshly frozen population/frame successor;
 5. in #953, retain #981's tiered-admission policy and the completed tiny
    construction-only, same-frame, candidate-conditioned context-placement
    overlay's selection-blind hard stop under the same artifact, support, and
@@ -399,9 +398,8 @@ Delivery proceeds without skipping stages:
    placement-permuted and order-shuffled controls resolved 2/2 and 1/2.
    Generation and replay were not run. Any later #953 attempt requires a newly
    frozen native contract rather than a metric tweak or second representation
-   under this result. Apply only a full-positive #986 mechanism, or its
-   separately qualified table-value successor, unchanged after a fresh label-
-   free preflight;
+   under this result. Apply only a newly qualified successor mechanism,
+   unchanged after a fresh label-free preflight;
 6. in #973, qualify paragraph, conversation, and global influence through the
    accepted #953 loop, including the shared exact-spin operator overlay and
    its matched disabled/permuted controls;

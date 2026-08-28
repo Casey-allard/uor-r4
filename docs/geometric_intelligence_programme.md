@@ -133,12 +133,13 @@ three-family, six-decision construction/validation population. Its pure
 construction classes transferred structurally on 0/6 decisions and the sealed
 strict ceiling was 0/6, so it stopped
 `UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER` before a deployed selector or payload
-inversion. #983 is closed bounded negative evidence. #986 now owns exactly one
-fresh `CorpusSignedTransportV1` contract: construction-only corpus induction
-must first produce held-out semantic placement/value; only then may signed
-zero-sum Cl(0,6)/SpiralCore transport be credited if it causally beats a
-matched table-native value comparator and required controls. #986 blocks
-parked, unassigned, untouched #953; #953 continues to block #973 and #954; and
+inversion. #983 is closed bounded negative evidence. #986 then executed its one
+frozen `CorpusSignedTransportV1` feasibility contract and stopped
+`UNAVAILABLE_FRAME_OR_POPULATION`: the raw corpus reproduced, but its exact
+codec/pair commitment and a complete same-frame lexical SpiralCore frame were
+unavailable. Placement, Gate 0, labels, table/geometric arms, and #953 were
+`NOT_RUN`. Parked, unassigned, untouched #953 now awaits a freshly frozen
+population/frame successor; #953 continues to block #973 and #954; and
 #973 continues to block #954. Calling the later
 #973 operator harmonic additionally requires an
 artifact-bound basis/mode contract. #962
@@ -666,9 +667,9 @@ Status: **#952 A1.0 terminal negative; #967 A1R `RETAIN_STATE_ONLY`; #970 A1P
 #972; #969 positive bounded mechanism result
 `PROCEED_TO_I1_WITH_CAUSAL_R4_PATH_ATTENTION`; #983 then independently tested
 construction-transferred candidate-conditioned local attention and stopped at
-0/6 transfer before selection and closed. #986 is the fresh open semantic-
-placement and signed-transport qualifier. Parked, unassigned #953 remains
-untouched and blocked by #986; #953 and #973 retain
+0/6 transfer before selection and closed. #986 then closed at its pre-sealed
+population/frame unavailable terminal. Parked, unassigned #953 remains
+untouched pending a newly frozen successor; #953 and #973 retain
 their downstream blocker edges**.
 
 The frozen A1.0 probe stopped before scorer implementation with
@@ -840,7 +841,7 @@ see the [#969 record](local_geometric_attention_969.md).
 ### GI-2 A1Q-L2 / #983 — construction-transferred candidate-conditioned local attention
 
 #983 is a closed negative-evidence child of #820 after closed #967/#970/#969
-and before open #986 and parked #953; #969 and #970 are its direct evidence-bearing
+and before closed #986 and parked #953; #969 and #970 are its direct evidence-bearing
 predecessors. It does not
 consume the #953 or #970 populations. Its independently frozen natural
 population contains exactly three candidate-pair families—`is/are`, `has/have`,
@@ -911,9 +912,9 @@ and decoded generation were `NOT_RUN`. See the
 
 ### GI-2 A1Q-L3 / #986 — corpus-induced harmonic signed local transport
 
-#986 is the only open local qualification. It is blocked by completed-negative
-#983 and blocks parked #953. It does not reinterpret #983 or reuse the #953,
-#970, or #983 populations.
+#986 is a closed pre-sealed feasibility result after completed-negative #983
+and before parked #953. It did not reinterpret #983 or reuse the #953, #970,
+or #983 populations.
 
 `CorpusSignedTransportV1` separates semantic value from exact transport. A
 source-free observation corpus induces a deterministic directed causal
@@ -1014,6 +1015,20 @@ and must later reproduce the same decisions. The complete mechanism,
 thresholds, controls, related work, and nonclaims are frozen in the
 [#986 plan](corpus_induced_signed_transport_attention_plan_986.md).
 
+**Observed #986 result, 2026-08-28.** The raw corpus bytes and 3,000-document
+D3 census reproduced, but the repository had no source-free corpus-scale codec
+or exact induction/calibration/sealed pair commitment. The finite 64-state
+SpiralCore control/table also reproduced, while chart transport remained
+`NOT_ESTABLISHED` and no complete lexical `O(x)` or compiler/query frame
+identity existed. The prerequisite certificate
+`blake3:3fff541e4ac37193babaacd25227019fb401950ccdd936ab38ac46c6c2916337`
+therefore records `UNAVAILABLE_FRAME_OR_POPULATION`. Placement, link-state,
+diffusion, Gate 0, calibration, sealed labels, all full/table/control arms,
+payload replay, and #953 were `NOT_RUN`. The
+[#986 evidence record](corpus_signed_transport_attention_986.md) is the
+binding claim boundary. Any next local qualifier must be a freshly frozen
+population/frame successor; #986 does not retry.
+
 ### GI-3 / #953 — bounded source-free geometric generation loop
 
 #969 qualified only an identity-derived local causal path selector. It did not
@@ -1058,14 +1073,15 @@ fixture tuning.
 
 The frozen positive terminal is
 `PROCEED_TO_A1Q_H_WITH_BOUNDED_SOURCE_FREE_GEOMETRIC_GENERATION`; direct repair
-is `REVISE_I1_GENERATOR_IN_PLACE`. #953 remains open, unassigned, and blocked by
-#986. Paragraph, conversation, and global selection remain inert until #973.
+is `REVISE_I1_GENERATOR_IN_PLACE`. #953 remains open, unassigned, parked, and
+ineligible pending a newly frozen population/frame successor. Paragraph,
+conversation, and global selection remain inert until #973.
 Product CLI/HTTP chat integration, restart-persistent conversation state, and
 identity-scoped hive-memory lifecycle remain #962 scope.
 
-A future positive at this stage could establish only that the accepted local
-semantic selector—the full-positive #986 mechanism or its separately qualified
-table-value successor—drives one #953-qualified decoded grammar/sentence loop.
+A future positive at this stage could establish only that an independently
+qualified local semantic selector drives one #953-qualified decoded grammar/
+sentence loop.
 #969, #983, and #986 remain evidence provenance as applicable. The result could
 not establish factual correctness, broad coherence, knowledge, reasoning,
 higher-scope attention, performance advantage, chat quality, formal closure,
@@ -1119,12 +1135,11 @@ while the same-artifact placement-permuted and order-shuffled controls selected
 2/2 and 1/2. Full-history absence was not operative-representation anti-recall
 because decisive retained suffixes exactly recalled construction subhistories.
 Generator execution and replay were `NOT_RUN`. This chronology remains
-append-only evidence. The fixture, overlay, generator, and records are untouched
-under #986. Only a full positive protected #986 terminal, or a separately
-qualified table-value successor created by #986's table branch, may be applied
-unchanged in a later #953 session after a new label-free preflight; #973 remains
-blocked. The phrase **accepted local semantic selector** below means exactly one
-of those two outcomes. #983 and #986 remain evidence provenance; neither a
+append-only evidence. The fixture, overlay, generator, and records remained
+untouched through #986. Only a freshly frozen successor that independently
+qualifies its complete mechanism may be applied unchanged in a later #953
+session after a new label-free preflight; #973 remains blocked. #983 and #986
+remain evidence provenance; neither a
 failed experiment nor a conditional issue number is automatically a serving
 consumer.
 
@@ -1197,8 +1212,9 @@ That first attempt failed before decoded generation or replay, and exact
 shorter-suffix recall showed that full-history disjointness was not
 operative-representation anti-recall. The result does not authorize broad
 corpus expansion, a metric sweep, higher-scope induction, or another discovery
-representation inside #953. #986 owns the intervening independent local
-qualification; its bounded CID-disjoint corpus is not this later scale ladder.
+representation inside #953. Closed #986 owns the intervening unavailable
+population/frame evidence; any replacement is a fresh qualifier, not this
+later scale ladder.
 
 Freeze the document/conversation/task partitions before compiling rows or
 operator statistics. Construction data may supply causal
@@ -1343,9 +1359,9 @@ hours remains a hard kill ceiling, never an estimate.
   #969 establishes only its identity-derived local path mechanism as
   load-bearing. #983 tested one construction-transferred local geometric
   mechanism on six held-out choices and stopped at 0/6 transfer before a
-  deployed selector. #986 now tests corpus-induced semantic placement/value
-  plus bounded harmonic link state before signed exact transport and reports a
-  table-native comparator. #953 has
+  deployed selector. #986 then stopped before placement because its exact
+  population/codec commitment and lexical SpiralCore frame were unavailable;
+  no table-native or geometric arm ran. #953 has
   implemented decoded-loop plumbing but has not qualified a natural grammar
   loop. Only an accepted local semantic selector and an accepted #953 result can expose #973,
   and only #973 may qualify
