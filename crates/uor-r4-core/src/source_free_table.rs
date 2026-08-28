@@ -519,6 +519,26 @@ impl SourceFreeTable {
         self.construction_document_ids.len()
     }
 
+    /// Verify that an additive construction-bound operator was compiled from
+    /// the exact document-id and text-CID sets that produced this table.
+    pub(crate) fn is_bound_to_construction_documents(
+        &self,
+        construction: &[SourceDocument],
+    ) -> bool {
+        let ids = construction
+            .iter()
+            .map(|document| document.id.clone())
+            .collect::<BTreeSet<_>>();
+        let text_cids = construction
+            .iter()
+            .map(SourceDocument::text_cid)
+            .collect::<BTreeSet<_>>();
+        ids.len() == construction.len()
+            && text_cids.len() == construction.len()
+            && ids == self.construction_document_ids
+            && text_cids == self.construction_text_cids
+    }
+
     pub fn lexical_piece_count(&self) -> usize {
         self.lexical_pieces.len()
     }

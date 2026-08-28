@@ -14,6 +14,30 @@ Measurements retain their pre-declared exit rule and durable issue/record
 reference; design targets remain explicitly labeled as definitions,
 assumptions, or objectives rather than measured results.
 
+> **Retained #973 paragraph mechanism, 2026-08-28.** The frozen two-case
+> synthetic paragraph contract retained `ParagraphEntitySpinPathR4V1` at
+> `RETAIN_PARAGRAPH_ENTITY_SPIN_PATH_ATTENTION_CONTINUE_CONVERSATION`. This is
+> one construction-bound exact-descriptor/entity-binding stored-phase path
+> selector. Neither candidate token occurred in either observed
+> prompt, the prior-prefix copy operator abstained, and #953 support and
+> declared work were unchanged. The decoded matrix was real 2/2,
+> paragraph-disabled 1/2, entity-binding-permuted 0/2, and
+> parsed-fact-vector-reversed 2/2. All candidate-relative H4 shells were
+> `Coincident`; fiber was the first sufficient discriminator, while torsion was
+> retained and audited but did not decide the ranking. The stored state retains
+> its upstream lexical unit-ID/prime provenance; the new ranker adds no
+> prime/hash placement. This does not establish semantic or paraphrase
+> transfer, natural-distribution transfer, anti-recall beyond exact candidate
+> absence, prime/index-independent or intrinsic geometry, a general entity
+> model, or general paragraph, conversation, or global attention. The operator,
+> target-free census, and decoded-smoke identities are respectively
+> `blake3:9221efa7ad952e4890aae335970418b38ec93beb8cb4de65c5aa1d8c67f70afd`,
+> `blake3:515720686b96dbebc2f055f9a21d3f0684f76092018381c836b51abf47a4d197`,
+> and `blake3:0ba32e5fe26f1280ec2eef2b115023de52f2ef946882352311dcecc531d76a32`.
+> #973 remains open for one independently frozen conversation-scope contrast,
+> then bounded-global qualification and corpus induction; #954 remains blocked.
+> See the [#973 paragraph record](paragraph_entity_spin_path_attention_973.md).
+
 > **Retained #973 Gate 0 mechanism, 2026-08-28.**
 > `PriorSentenceCountRadiusR4V1` reached
 > `RETAIN_GATE0_PRIOR_SENTENCE_ATTENTION_CONTINUE_PARAGRAPH_CONVERSATION`.
@@ -102,9 +126,12 @@ assumptions, or objectives rather than measured results.
 > same-frame lexical SpiralCore frame were unavailable. Placement, Gate 0,
 > labels, all arms, and #953 were `NOT_RUN`. The later B0/#989 reset and
 > accepted R4 table-tie result supersede that forward action: #953 closed at
-> its positive terminal; #973 Gate 0 has since retained one exact-candidate
-> prior-prefix copy mechanism, and required higher scopes remain active. #954
-> remains blocked behind #973.
+> its positive terminal; #973 has since retained one exact-candidate
+> prior-prefix copy mechanism and one bounded construction-bound
+> exact-descriptor/entity-binding stored-phase path selector. One
+> independently frozen conversation contrast is next, followed by
+> bounded-global qualification and corpus induction. #954 remains blocked
+> behind #973.
 > Legacy
 > tracker #949 is closed as superseded, and #958 is retained directly beneath
 > #820 as GI-0 foundation. Two
@@ -658,8 +685,13 @@ the one permitted separate `MultiscaleCountRadiusR4V1` intervention then
 improved held-out top-1 by +0.950392 percentage points (+4,242 correct) with
 zero candidate-support/declared-work-ledger mismatches and byte-identical
 replay. External replay adjudication promoted the reports' pending verdict to
-`PROCEED_TO_A1Q_H_WITH_BOUNDED_SOURCE_FREE_GEOMETRIC_GENERATION`; #973 is now
-next. Dependable broad coherent text remains unestablished.
+`PROCEED_TO_A1Q_H_WITH_BOUNDED_SOURCE_FREE_GEOMETRIC_GENERATION`. #973 Gate 0
+then retained one exact-candidate prior-prefix copy mechanism, and its next
+frozen paragraph slice retained one construction-bound exact-descriptor/
+entity-binding stored-phase path selector. This remains a two-case synthetic result;
+one independently frozen conversation contrast is next, followed by
+bounded-global qualification and corpus induction. Dependable broad coherent
+text remains unestablished.
 The final serving path has no source weights, transformer/self-attention, dense
 matrix intelligence, MoE, or sparse learned router. Compiler-side floating
 point remains allowed for witnessed chart construction; serving arithmetic is
@@ -1226,8 +1258,10 @@ one accepted #953 `MultiscaleCountRadiusR4V1` intervention: 103,604 versus
 candidate-support/declared-work-ledger mismatches, and byte-identical replay.
 External replay adjudication promoted the reports' pending verdict and #953
 closed at `PROCEED_TO_A1Q_H_WITH_BOUNDED_SOURCE_FREE_GEOMETRIC_GENERATION`.
-#973 Gate 0 has since retained one bounded exact-candidate prior-prefix copy
-mechanism; required higher scopes remain active and continue to block #954.
+#973 has since retained one bounded exact-candidate prior-prefix copy mechanism
+and one bounded construction-bound exact-descriptor/entity-binding stored-phase
+path selector. Conversation, bounded-global, and corpus qualifications
+remain active in that order and continue to block #954.
 #955 invokes that accepted selector/
 #953/#973/#954 consumer; #962 integrates the accepted selector/#953/#973 path
 into product chat with persisted identity-scoped hive memory. #963 retains

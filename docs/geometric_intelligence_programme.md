@@ -81,8 +81,10 @@ This establishes a bounded source-free geometric increment over a statistical
 lexical baseline. It does not establish semantics, broad attention, general
 coherence, correctness, reasoning, chat, performance, or release readiness.
 No second #953 formula, axis, prompt, corpus run, or representation is
-permitted. #973 Gate 0 has retained one bounded prior-prefix copy mechanism;
-required higher scopes remain active and #954 remains blocked. No new H4,
+permitted. #973 has retained one bounded prior-prefix copy mechanism and one
+bounded construction-bound exact-descriptor paragraph selector; conversation,
+bounded-global, and corpus qualifications remain active and #954 remains
+blocked. No new H4,
 SpiralCore, harmonic, algebraic, placement, transport, or scale qualifier is
 eligible outside its exposed issue.
 
@@ -173,8 +175,10 @@ codec/pair commitment and a complete same-frame lexical SpiralCore frame were
 unavailable. Placement, Gate 0, labels, table/geometric arms, and #953 were
 `NOT_RUN`. The later B0/#989 reset limited #953 to one separate matched
 table-tie intervention. That intervention passed, and #973 has since retained
-one bounded prior-prefix copy mechanism at Gate 0; required higher scopes
-remain active and continue to block #954. Calling a later
+one bounded prior-prefix copy mechanism at Gate 0 plus one bounded
+construction-bound exact-descriptor paragraph selector; conversation,
+bounded-global, and corpus qualifications remain active and continue to block
+#954. Calling a later
 #973 operator harmonic additionally requires an
 artifact-bound basis/mode contract. #962
 separately owns product chat integration and persisted, identity-scoped hive
@@ -688,8 +692,9 @@ points, +4,242 correct), held candidate support and its declared-work ledger
 equal at all teacher-forced positions and through the first decoded divergence,
 kept every structural source-closure counter at zero, emitted a distinct
 bounded valid UTF-8 continuation, and replayed table, overlay, and report bytes
-identically. This is the only accepted #953 claim. #973 Gate 0 has since
-retained the separate bounded prior-prefix mechanism recorded below.
+identically. This is the only accepted #953 claim. #973 has since retained the
+separate bounded prior-prefix mechanism and bounded construction-bound
+exact-descriptor paragraph selector recorded below.
 
 The GI sections below preserve the completed evidence lineage and downstream
 dependency structure. They remain dormant or blocked except for the exposed
@@ -731,9 +736,11 @@ Status: **#952 A1.0 terminal negative; #967 A1R `RETAIN_STATE_ONLY`; #970 A1P
 construction-transferred candidate-conditioned local attention and stopped at
 0/6 transfer before selection and closed. #986 then closed at its pre-sealed
 population/frame unavailable terminal. B0/#989 then supplied the frozen
-reference for the accepted matched #953 intervention. #973 Gate 0 has since
-retained one bounded exact-candidate prior-prefix copy mechanism; required
-higher scopes remain active and continue to block #954**.
+reference for the accepted matched #953 intervention. #973 has since retained
+one bounded exact-candidate prior-prefix copy mechanism and one bounded
+construction-bound exact-descriptor paragraph selector; conversation,
+bounded-global, and corpus qualifications remain active and continue to block
+#954**.
 
 The frozen A1.0 probe stopped before scorer implementation with
 `REDESIGN_ORDERED_ROUTE_SUMMARY`. Across three matched contrasts, all 21
@@ -1248,6 +1255,68 @@ The next #973 decision is an independently frozen paragraph-scope contrast
 that cannot be solved by exact recurrence of the admitted candidate, followed
 by conversation scope only if that mechanism remains load-bearing.
 
+#### #973 paragraph-scope result — `ParagraphEntitySpinPathR4V1` (2026-08-28)
+
+Append-only update: the independently frozen paragraph-scope contrast named
+above has now run. `ParagraphEntitySpinPathR4V1` preserved the two candidates
+admitted by the #953 table/overlay path and ranked only that fixed support by a
+unique minimum of the artifact-bound lexicographic cost `(H4 angular shell,
+fiber distance, torsion distance)`. Support and declared query work matched
+across arms. Neither admitted candidate occurred in either held-out prompt.
+The decoded matrix was:
+
+| Arm | Striped binding | Dotted binding | Frozen-target result |
+| --- | --- | --- | --- |
+| real | ` amber.` | ` cobalt.` | 2/2 |
+| paragraph-disabled | ` amber.` | ` amber.` | 1/2 |
+| entity-binding-permuted | ` cobalt.` | ` amber.` | 0/2 |
+| parsed-fact-vector-reversed | ` amber.` | ` cobalt.` | 2/2 |
+
+The last control reversed the parsed fact vector while leaving the input bytes
+unchanged; it is not evidence of reversed-text equivariance. The evidence
+identities are operator
+`blake3:9221efa7ad952e4890aae335970418b38ec93beb8cb4de65c5aa1d8c67f70afd`,
+target-free census
+`blake3:515720686b96dbebc2f055f9a21d3f0684f76092018381c836b51abf47a4d197`,
+and decoded smoke
+`blake3:0ba32e5fe26f1280ec2eef2b115023de52f2ef946882352311dcecc531d76a32`.
+The complete contract, artifact ledger, and claim boundary are in the
+[#973 paragraph SpinTorsion-path record](paragraph_entity_spin_path_attention_973.md).
+
+The retained mechanism is exact descriptor recurrence with prototype-leaf
+reuse, not an induced semantic relation. In construction, the ` amber`
+prototype reused the stored lexical spin-path leaves for the `striped`
+descriptor and the ` cobalt` prototype reused those for `dotted`. At query
+time the typed entity equality resolved one of those same descriptors, and the
+operator folded the corresponding stored prototype leaves again. Thus the
+positive decoded consequence is not candidate copying from the held-out
+prompt, but it remains construction-bound exact descriptor reuse.
+
+All measured H4 angular shells were tied at `Coincident`. Fiber distance was
+the first and sufficient discriminant in both cases. Torsion was serialized,
+reloaded, measured, and audited, but no arm required it to resolve a fiber tie,
+so torsion is not independently qualified. The consumed `SpinTorsionState`
+also retains its upstream procedural provenance: `spin_for_binding` assigns
+S3 from `unit_id % 4` and derives fiber and torsion from prime/unit-id
+arithmetic. This ranker adds no prime, hash, modulo, candidate-derived, or
+nearest-root placement. Its explicit exact S3-to-H4 map consumes the stored S3
+raw coordinates and accepts only unique membership in the canonical 120-root
+table; that does not make the upstream placement intrinsically semantic.
+
+The narrow retained claim is therefore one bounded synthetic,
+construction-bound exact-descriptor/entity-binding spin-path selector with a
+decoded non-candidate-copy consequence. It does not establish semantic or
+paraphrastic transfer, natural-distribution transfer, anti-recall beyond the
+absence of admitted-candidate bytes, vocabulary-independent spin meaning, a
+general entity model, or general paragraph, conversation, or global
+attention. It also does not establish coherence, correctness, or reasoning.
+
+#973 remains open and continues to block #954. Its next decision is one
+independently frozen conversation-scope contrast. Only if that result remains
+load-bearing may #973 proceed to the bounded-global and then corpus-scale
+induction qualifications below; #954 remains blocked until #973 reaches its
+declared terminal.
+
 A later bounded-global qualification may use one exact-spin global operator
 prototype, not a larger channel census. Freeze a construction-independent global snapshot with
 enough ordered state to produce a witnessed non-identity transition, at least
@@ -1273,15 +1342,17 @@ separate subprobe.
 Before choosing a scalar readout, enumerate the transformed
 candidate-relative classes and stop if one retained class requires incompatible
 outcomes. The causal path, route, and final candidate score remain
-query-specific; share or precompute only the exact-class result. The current H4
-route leaf is assigned from the prime rather
-than from `SpinTorsionState`; the existing relative H4 quaternion remains a
-route witness unless #973 binds an explicit spin-to-H4 map. Otherwise direction
-requires a new exact `SpinTorsionState` relative relation.
+query-specific; share or precompute only the exact-class result. The retained
+paragraph slice now binds an explicit exact stored-S3-to-H4 map, but only for
+its frozen construction vocabulary, and every observed H4 shell tied. That map
+does not automatically qualify a global operator or erase the upstream
+unit-ID/prime provenance of `SpinTorsionState`. A global subprobe must bind the
+map's applicability and its own exact candidate-relative relation rather than
+falling back to the older prime-assigned route leaf or relative H4 witness.
 
 The tiered #953 policy has removed the measured support contamination. This
 later direction would give #973 a causal locus for global influence only after
-the accepted local semantic selector qualifies and #953 qualifies that path in
+the accepted bounded local selector qualifies and #953 qualifies that path in
 its decoded loop.
 It does not establish that
 the current procedural spin placement is semantic, nor does it establish broad
@@ -1289,13 +1360,14 @@ grammar, coherence, correctness, or reasoning. H4 group action alone is not a
 qualified spherical-harmonic field; fixed channels/modes and their transition
 law must be artifact-bound before that stronger description is earned.
 
-A positive global subprobe cannot close #973. Paragraph and conversation still
-require their own matched load-bearing qualification through the accepted loop,
-or an explicit native revision of #973's scope and dependencies.
+A positive global subprobe cannot close #973. The bounded construction-bound
+paragraph slice is retained, but conversation still requires its own matched
+load-bearing qualification through the accepted loop before global scope, or
+an explicit native revision of #973's scope and dependencies.
 
 #### #973 higher-scope/corpus-scale induction qualification and handoff to #954
 
-Within #973, only after the accepted local semantic selector and #953 qualify
+Within #973, only after the accepted bounded local selector and #953 qualify
 and every required #973 higher-scope intervention qualifies, or an explicit
 native revision changes that scope, may
 the programme activate controlled higher-scope/corpus-scale offline induction.
