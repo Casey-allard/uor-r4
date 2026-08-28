@@ -337,3 +337,14 @@ attention, inference, coherent generation, knowledge, correctness, reasoning,
 performance advantage, chat quality, or release readiness. #983 remains the
 home of the negative evidence and the next representation decision; #953
 remains blocked and unexercised by this gate.
+
+## Successor handoff (2026-08-28)
+
+The final sentence above records the ownership state at the time this
+append-only evidence closed. Live programme sequencing now preserves #983 as
+completed bounded negative evidence and assigns the next representation
+decision to fresh, unassigned #986. #986 tests corpus-induced semantic value, a
+static self-plus-six harmonic link-state field, and candidate-relative signed
+transport on a new CID-disjoint population; it is the native blocker of parked,
+untouched #953. No #983 class, population, label, or `NOT_RUN` operation is
+reinterpreted by that handoff.

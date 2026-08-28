@@ -42,9 +42,12 @@ These are the small set of living documents that define the present work:
    — the retained storage/recall substrate.
 3. [ADR-0004: recursive route hierarchy](adr/0004-geometric-intelligence-route-hierarchy.md)
    — attention scopes, geometric transport, and reconstruction requirements.
-4. [Geometric Intelligence Evaluation](geometric_intelligence_evaluation.md) —
+4. [Corpus-Induced Harmonic Signed Transport Plan](corpus_induced_signed_transport_attention_plan_986.md)
+   — the current post-#983 semantic-placement, self-plus-six link-state,
+   transport, comparator, and decision contract.
+5. [Geometric Intelligence Evaluation](geometric_intelligence_evaluation.md) —
    the minimal decision-bearing evidence policy.
-5. [Glossary](transformerless/GLOSSARY.md) and
+6. [Glossary](transformerless/GLOSSARY.md) and
    [formal vocabulary](formal_vocabulary.md) — shared language and disciplined
    claim types.
 
@@ -57,7 +60,8 @@ not reasoning.
 
 ```text
 reversible lexical geometry
-  → recursive geometric attention
+  → held-out corpus-induced semantic placement and harmonic link state
+  → candidate-relative signed geometric transport
   → coherent source-free generation
   → correctness and abstention
   → multi-step reasoning

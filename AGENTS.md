@@ -33,11 +33,18 @@ were `NOT_RUN`. #983 then froze `ConstructionCausalReturnV1` on an independent
 three-family, six-decision population. Its usable construction classes were
 pure, but construction coverage and the sealed strict ceiling were both 0/6.
 It stopped `UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER` before a deployed selector,
-payload inversion, or #953 generation. #983 remains open negative evidence and
-the home of the next representation decision; #953 remains parked, unassigned,
-untouched, and blocked. Do not add a second representation under the failed
-contract or jump directly to Poincare/Hopf/harmonic machinery. #973 and #954
-remain blocked, followed by #955 → #962–#965.
+payload inversion, or #953 generation. #983 is now closed as bounded negative
+evidence. Fresh native child #986 owns exactly one successor:
+`CorpusSignedTransportV1` first qualifies corpus-induced semantic placement and
+a static self-plus-six harmonic link-state field, then asks whether signed
+zero-sum Cl(0,6)/SpiralCore transport adds causal value beyond matched link/
+distance controls and a table-native semantic-value comparator. #953 remains parked,
+unassigned, untouched, and blocked by #986. Do not add a second representation
+under #983, reuse its population, or add Poincare/Hopf or other harmonic
+machinery beyond #986's exact frozen local contract. The current chain is
+closed #983 → #986 → #953 → #973 → #954,
+followed by #955 → #962–#965. The complete decision and nonclaim boundary is
+[`docs/corpus_induced_signed_transport_attention_plan_986.md`](docs/corpus_induced_signed_transport_attention_plan_986.md).
 Terminology lives in
 `docs/transformerless/GLOSSARY.md`. Keep this file current when conventions
 change.
@@ -58,6 +65,14 @@ canonical decode/render/append loop. H4 is an exact finite S3 codebook here;
 `H4 ⊕ phi H4` / E8 remains structural storage and control rather than the
 attention score.
 
+#986 does not assume that identity geometry is semantic geometry. Its
+construction-only corpus artifact supplies semantic placement/value over
+immutable route identities. Exact ordered H4/Cl(0,6)/SpiralCore state supplies
+causal transport. One candidate-relative signed zero-sum radial/angular
+contrast is the attention candidate, and a table-native value-only arm is the
+required comparator. If geometry adds no causal uplift, retain it as
+addressing/transport and advance the simpler value engine honestly.
+
 The intended destination is frontier-like useful local intelligence without
 transformers, MoE/sparse learned routing, or dense matrix intelligence. That is
 an aspirational research target, not a current capability claim. Spherical
@@ -74,7 +89,9 @@ only after its identity binds basis, mode order, coefficients, quantization,
 and transition law.
 
 Corpus scale follows mechanism qualification; it never substitutes for it.
-Within #973, after #953 and every required #973 scope qualify, a predeclared
+#986 is one bounded local placement/transport qualification on a frozen
+CID-disjoint split, not the corpus-scale ladder. Within #973, after #953 and
+every required #973 scope qualify, a predeclared
 higher-scope/corpus-scale offline ladder may compile causal
 prefix-to-observed-next-route examples,
 multiscale summaries, versioned placement overlays that preserve immutable
@@ -256,13 +273,16 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
   `ConstructionCausalReturnV1` produced pure usable construction classes but
   transferred to 0/6 held-out decisions. #983 stopped
   `UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER` before deployed selection, payload
-  inversion, or #953 generation. #983 remains open negative evidence and owns
-  the next representation decision; #953 stays parked and untouched, while
-  #973 and #954 remain blocked.
+  inversion, or #953 generation and is now closed as bounded negative evidence.
+  #986 owns the fresh `CorpusSignedTransportV1` semantic-placement, static
+  self-plus-six harmonic link-state, and signed-transport qualification. #953
+  stays parked, unassigned, untouched, and
+  blocked by #986, while #973 and #954 remain blocked.
   #954 and #955 own correctness and reasoning respectively.
   #962 owns durable multi-turn CLI/HTTP chat, persistence, isolation, and
   hive-memory; #963–#965 then own optimization, formal closure, and release.
-- Sequence strictly: lexical/address plumbing → local route attention →
+- Sequence strictly: lexical/address plumbing → bounded corpus semantic-
+  placement transfer → candidate-relative signed transport qualification →
   source-free grammatical inference/generation → higher-scope attention →
   correctness/abstention → reasoning → optimization/purity/release.
 - Kappa is canonical identity/serialization, never the tokenizer or semantic

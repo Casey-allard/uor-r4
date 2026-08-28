@@ -39,7 +39,13 @@ prototypes with zero class collisions and zero padding-identity aliases, but
 real placement resolved `run/runs` (0/2 intended) while the
 placement-permuted control resolved `runs/run` (2/2). The preflight stopped
 before decoded generation or replay, so #953 has not qualified local
-construction-induced placement and awaits a newly frozen maintainer plan.
+construction-induced placement. #983 then tested one independent
+`ConstructionCausalReturnV1` population: usable construction classes were
+pure, but structural coverage and the sealed strict ceiling were both 0/6. It
+closed `UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER` before selection. #986 now owns
+the fresh CID-disjoint `CorpusSignedTransportV1` placement/value, static
+self-plus-six harmonic link-state, and signed-transport qualification; #953 is
+parked, unassigned, untouched, and blocked.
 Corpus-scale and higher-scope induction remain blocked in #973; #954 remains
 blocked downstream. #962 separately owns durable
 multi-turn CLI/HTTP chat, persisted conversation state, session/identity
@@ -60,7 +66,9 @@ canonical text/corpus
     -> associative noncommutative ordered-summary repair (#967, state only)
     -> paired-H4-derived exact R4-heatmap readout hard stop (#970, bounded negative)
     -> qualified local causal R4/S3 path mechanism (#969)
-    -> bounded decoded loop + tiered admission + failed local-placement preflight (#953)
+    -> failed construction-return transfer (#983, bounded negative)
+    -> corpus-induced semantic placement + signed local transport qualification (#986)
+    -> bounded decoded loop + tiered admission + preserved failed preflights (#953)
     -> higher-scope attention and corpus-scale induction (#973)
     -> correctness + typed abstention (#954)
     -> bounded reasoning (#955)
@@ -92,9 +100,10 @@ ordered n-lets, exact `phi` radial transport, and typed
 `sqrt(2) <-> 2i <-> [0,2]` adapters remain structural under
 `STRUCTURAL_BINDING_ONLY_NO_ZETA_NLET_TO_PHI_EXPONENT_RULE`, not semantic scorer
 inputs. #970 and #969 are closed at their bounded claim scopes; neither result
-establishes semantics, and #953 remains the active generation issue after its
-first construction-induced placement preflight failed before generation or
-replay. Any next attempt requires a newly frozen maintainer plan.
+establishes semantics. #983's later construction-return representation also
+failed to transfer. #986, not #953, is the active qualification after those
+negative results; its complete frozen plan separates corpus value from exact
+transport. #953 remains the preserved integration regression.
 See the
 [#952 A1.0 record](recursive_geometric_attention_a1_952.md).
 
@@ -1385,11 +1394,14 @@ Passing `--cover` reuses the measured cover. It may be omitted to re-induce
 the default cover deterministically during scoring. For experiments, `cover`
 also accepts `--depths`, `--k0`, `--regions-budget`, and `--memory-budget`.
 
-**Current production boundary pending accepted #953 → #973 → #954 → #955
-before #962.** #970 and #969 are closed at their bounded claim scopes. #953 owns
-the bounded source-free library/CLI inference and generation engine, but has not
-qualified local construction-induced placement and awaits a newly frozen
-maintainer plan; #973 and #954 remain blocked.
+**Current production boundary pending an accepted local semantic selector →
+#953 → #973 → #954 → #955 before #962.** That selector is either a full-
+positive #986 mechanism or a separately qualified table-value successor
+authorized by #986. #970, #969, and #983 are closed at their bounded claim
+scopes. #986 owns semantic-placement, harmonic link-state, and signed-transport
+qualification. #953
+owns the preserved bounded source-free library/CLI inference and generation
+engine but remains untouched and blocked; #973 and #954 remain blocked.
 #962 owns integration into durable multi-turn CLI/HTTP chat, persisted
 conversation state, session/identity isolation, and
 identity-scoped hive memory. Until that product stage, the public `ask`, `chat`,

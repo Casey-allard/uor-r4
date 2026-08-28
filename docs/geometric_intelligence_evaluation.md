@@ -41,8 +41,10 @@ population. #983 then tested `ConstructionCausalReturnV1` on a separate
 three-family, six-decision population. Its usable construction classes were
 pure but reached 0/6 held-out decisions; the sealed strict ceiling was also
 0/6. It stopped `UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER` before a deployed
-selector or payload inversion. #983 remains open negative evidence and blocks
-#953; #953 continues to block #973 and #954; and #973 continues to block #954.
+selector or payload inversion and is now closed bounded negative evidence.
+#986 owns the fresh corpus-induced semantic-placement and signed-transport
+qualification and blocks untouched #953; #953 continues to block #973 and
+#954; and #973 continues to block #954.
 
 A negative result remains evidence about its declared mechanism and
 distribution. It does not erase a separately established storage, identity,
@@ -53,6 +55,13 @@ attention, inference, correctness, reasoning, or product readiness.
 
 The stages are ordered because each later claim depends on the earlier one:
 
+In this policy, the **accepted local semantic selector lineage** means either
+`CorpusSignedTransportV1` after #986 reaches its full positive terminal, or the
+separate table-value selector after #986 takes the table branch and that
+successor independently qualifies. #983 and #986 remain in evidence
+provenance; neither a failed experiment nor a conditional issue number is
+automatically a serving consumer.
+
 1. **Local route-attention mechanism (#969)** — natural schema-2 adjacency,
    causal ordered R4/S3 path state, retained prefix memory, and deterministic
    exact path closure change one decoded choice under matched natural support
@@ -61,21 +70,26 @@ The stages are ordered because each later claim depends on the earlier one:
    candidate-hypothetical causal-return mechanism had to transfer pure
    construction-derived classes to six held-out natural choices under equal
    support/work and causal derangements; the observed result was 0/6.
-3. **Inference/generation (#953)** — the real decoder drives the accepted local
-   mechanism through one bounded provider-free autoregressive lexical loop on
-   the evaluated library/CLI path.
-4. **Higher-scope attention (#973)** — paragraph, conversation, and bounded
+3. **Semantic-placement and signed-transport gate (#986)** — one CID-disjoint
+   source-free corpus placement must transfer before one candidate-relative
+   signed zero-sum exact transport arm may compete with a matched table-native
+   semantic-value comparator and causal controls.
+4. **Inference/generation (#953)** — the real decoder drives the accepted local
+   semantic selector through one bounded provider-free autoregressive lexical
+   loop on the evaluated library/CLI path.
+5. **Higher-scope attention (#973)** — paragraph, conversation, and bounded
    global state change selection through the accepted #953 decoded loop.
-5. **Correctness/abstention (#954)** — the accepted #969/#983/#953/#973 path satisfies
-   an independent oracle or constraint, and typed abstentions are explicit.
-6. **Reasoning (#955)** — every step invokes the accepted
-   #969/#983/#953/#973/#954
-   consumer; novel multi-step tasks expose typed intermediate transitions,
+6. **Correctness/abstention (#954)** — the accepted local semantic selector,
+   #953, and #973 path satisfies an independent oracle or constraint while its
+   #969/#983/#986 provenance remains bound and typed abstentions are explicit.
+7. **Reasoning (#955)** — every step invokes the accepted selector/
+   #953/#973/#954 consumer; novel multi-step tasks expose typed intermediate transitions,
    constraint preservation, alternative/counterfactual comparison, and a
    checkable result. #952 is not the reasoning consumer.
 
-Within #973, after accepted #983/#953 and every required #973 scope qualifies, or an
-explicit native revision changes that scope, run the separately frozen
+Within #973, after the accepted local semantic selector and #953 qualify, and
+every required #973 scope qualifies or an explicit native revision changes
+that scope, run the separately frozen
 higher-scope/corpus-scale offline induction ladder and requalify its final
 artifact. The ladder is part of #973's terminal before #954; it is not a new
 serving-time corpus reader or a shortcut around the issue order. More rows,
@@ -83,9 +97,10 @@ exact hits, or trace activity are capacity/recall results unless a
 candidate-relative effect transfers to the held-out anti-recall partition under
 matched controls.
 
-#962 later integrates the accepted #969/#983/#953/#973 path into product chat/memory.
-#964 binds the #970 → #969 → #983 → #953 → #973 stages in the
-serving contract, and #965 qualifies only that exact release path.
+#962 later integrates the accepted selector/#953/#973 path into product chat
+and memory. #964 binds evidence provenance #970 → #969 → #983 → #986, plus
+the actual accepted selector → #953 → #973 serving path; #965 qualifies only
+that exact release path.
 
 Passing an earlier stage never promotes a later claim. Codec coverage is not
 attention; exact recall is not geometric attention; partial local/sentence
@@ -409,9 +424,10 @@ bytes -> lexical routes -> admitted candidates -> frozen select/abstain
 The smoke has identical natural support and group-comparison budgets, exact
 payload decode, incremental state reproduction, and deterministic replay. A
 miss keeps #969 open for direct mechanism revision; it does not create another
-gate issue. Paragraph, conversation, and global work belongs to #973 after
-#983 and #953. The accepted #969 result is identity-derived predecessor
-evidence for #983; it no longer directly authorizes work on #953.
+gate issue. Paragraph, conversation, and global work belongs to #973 only after
+an accepted local semantic selector and #953 qualify. The accepted #969 result
+is identity-derived predecessor evidence for #983; it no longer directly
+authorizes work on #953.
 
 ### A1Q-L2/#983 construction-transferred candidate-conditioned local attention
 
@@ -498,6 +514,115 @@ prime/semiprime, or alternative corpus-induced candidate-relative mechanisms.
 See
 [`construction_causal_return_attention_983.md`](construction_causal_return_attention_983.md).
 
+### A1Q-L3/#986 corpus-induced harmonic signed transport qualification
+
+`CorpusSignedTransportV1` is the only authorized successor. It first asks
+whether construction-only corpus induction produces transferable semantic
+placement/value, including a static self-plus-six harmonic link-state record
+for every route, then whether exact ordered Cl(0,6)/SpiralCore transport adds a
+candidate-relative signed zero-sum causal effect beyond that value. The local
+link-state record and fixed candidate-rooted diffusion are construction
+substrate, not attention by themselves.
+
+Freeze by document/CID one induction partition, exactly 16 matched calibration
+pairs (32 decisions), and exactly 32 matched sealed-test pairs (64 decisions).
+Within each pair, candidates, length, multiset, last-two suffix, support, and
+work match while a predeclared earlier-order intervention differs. A separate
+split builder enumerates every eligible pair-CID tuple, applies the sealed
+incompatible-naturally-admitted-route predicate, sorts by the frozen partition/
+candidate-set/structure/decision-CID key, and greedily accepts a pair only when
+neither decision CID has already appeared before taking the first 16 or 32.
+It commits the pair IDs, intervention map, and sealed label join together. Pair
+IDs and intervention metadata exist only in the audit/statistics harness;
+placement, link/operator construction, diffusion, scoring, margin calibration,
+abstention, and selection receive histories and natural candidates only.
+Insufficient vertex-disjoint pairs are unavailable; the key and sample do not
+change. Every
+decision has a 4–8-unit history, 2–8 naturally admitted candidates,
+construction support for each placement, and no complete-history,
+trailing-four, ordered-route, operative-key, document/CID, or prior-fixture
+overlap. Validation inputs contain histories and candidates only. Use the
+pinned zeta list if referenced and never recalculate it. Construction and
+rebuilds are deterministic multithreaded content partitions with ordered
+reductions.
+
+Before any placement, link, harmonic, or score diagnostic, one immutable pre-
+geometry CID binds that population and sealed commitment, the implementation
+commit, formulas/quantization, operators, controls, thresholds, 32-pair
+randomization blocks, and exact work ledger. A Gate 0 miss is terminal; #986
+does not re-freeze or retry.
+
+Gate 0 loads no calibration/test labels. It binds corpus, split, codec,
+placement, `HarmonicLinkState7`, operator, policy, and work identities and
+requires 100% selected-history/candidate placement and link-state coverage,
+operative directed reachability for every decision/candidate pair (positive
+quantized `H_c^6` on at least one occupied history, nonzero occupied-history
+spread, and distinct field vectors for at least two candidates), nondegenerate
+`H^1`/`H^6` difference, nonzero `g(c)` spread, nondegenerate rank/score spread,
+unchanged natural support, operative
+anti-recall, populated/padded separation, same-frame reproduction, equal arm
+work, source closure, incremental/full equality, and two byte-identical
+multithreaded builds. Exact pre-label identities bind the PPMI smoothing/shift,
+window weights, factorization and degeneracy handling, basis/sign convention,
+radius map, PPMI and Euclidean-control peer selection/ties/nulls/weights, row
+normalization, fixed canonical-float restart/iteration, final-only `H^1`/`H^6`
+quantization, operator map, MAD-zero rule, balanced ternarization, and margin
+calibration. Any miss returns
+`UNAVAILABLE_FRAME_OR_POPULATION` before selection.
+
+Calibration fits exactly two abstention margins with one frozen deterministic
+rule and equal budget: `delta_F` on the unablated two-component full arm, shared
+by every geometric control, and `delta_T` on the unablated one-component table
+comparator, shared by its order/recall controls. Each family uses an ordered 33-
+position list: zero followed by one top-two gap per decision in CID order,
+retaining duplicate positions; it maximizes selected precision subject to
+24/32 coverage, then ties by more correct decisions and smaller margin. If no
+candidate meets the floor, zero freezes and that family cannot take its
+positive terminal. No control calibrates itself. Label-free `M_b` and `M_g`
+are computed once from canonically pooled unablated induction values and reused
+unchanged by the applicable arms; controls do not self-normalize. Both margins
+and their transcript freeze before one sealed test, which then
+compares the full arm with separate placement-only and link-only permutations,
+address-only placement/links, harmonic-link-disabled, matched weighted six-
+Euclidean-nearest, direct-link `H^1`, transport-disabled, order-deranged,
+last-only, state-disabled, candidate/operator-mapping-permuted, absolute-only,
+positive-only, and exact-recall/count controls,
+plus a table-native semantic-value comparator. All arms receive the same
+natural candidates, information, link slots, and declared work. Every control
+per candidate performs six canonical sweeps over every artifact route and six
+padded slots, then the same eight padded history/operator operations. Disabled
+and direct arms substitute their frozen value only at the scoring boundary.
+Abstention is incorrect.
+
+Let `U=(1/64) sum_j 1/|C_j|`. The positive geometric terminal requires
+calibration eligibility, coverage at least 48/64, accuracy at least `U+0.15`,
+and at least 7/64 advantage over
+every named placement, link, address, distance, direct-link, transport, order,
+last, state, operator-mapping, absolute-only, positive-only, and recall/count
+control. Each exact paired randomization test flips whole 32-pair IDs, not 64
+dependent decisions, and must give `p <= 0.05`. Both decisions must be correct
+in the sealed direction on at least 24/32
+predeclared pairs while last-only and state-disabled do not reproduce both
+correct decisions on those same pairs, and at least 4/64 advantage over the
+table comparator under the same exact 32-pair-blocked randomization test with
+`p <= 0.05`.
+Determinism, equivariance, work, and source boundaries must also pass. The table
+comparator transfers only if it is calibration-eligible and independently clears 48/64 coverage,
+`U+0.15`, and a 7/64 advantage over its order-deranged and recall/count
+controls under the same pair-blocked `p <= 0.05` test. Do not weaken a threshold after labels load.
+
+Precedence is exhaustive. Contamination returns `INVALID_CONTRACT`; a failed
+pre-sealed integrity/reachability gate returns
+`UNAVAILABLE_FRAME_OR_POPULATION`; otherwise, if the full arm passes, return
+`PROCEED_TO_I1_WITH_CORPUS_SIGNED_TRANSPORT_ATTENTION`. If corpus/table value
+independently transfers but the full arm does not, return
+`RETAIN_GEOMETRY_AS_TRANSPORT_ADVANCE_TABLE_VALUE_QUALIFIER`. If the full arm
+and table comparator both fail a valid sealed test, return
+`REDESIGN_CORPUS_OBJECTIVE_OR_PLACEMENT`. Every nonpositive result stops; no
+re-freeze, retry, second representation, or #953 generation runs in #986. Any
+repair requires a freshly frozen successor. The complete contract is the
+[#986 plan](corpus_induced_signed_transport_attention_plan_986.md).
+
 ### I1/#953 bounded decoded generation contract
 
 #953 owns the preserved production vertical slice, not a qualification matrix.
@@ -541,8 +666,9 @@ Stop on support drift, unequal work, an inert path intervention, decode failure,
 nondeterminism, a short cycle, or exceeding the eight-unit state bound. The
 historical direct-repair rule produced the observed record below. It is now
 superseded for forward sequencing: another representation judged on the known
-#953 population would risk post-hoc fixture tuning, so #983 owns the independent
-mechanism qualification and #953 remains untouched.
+#953 population would risk post-hoc fixture tuning. #983 supplied the completed
+independent negative; #986 now owns the fresh-population qualification and #953
+remains untouched.
 
 The implemented repair has one frozen admission policy. I1/last-one, I2/last-two,
 ordered-sentence, and divisor rows form the primary tier. With non-empty primary
@@ -563,8 +689,9 @@ The frozen terminals are:
   must be repaired before #953 can close.
 
 Invalid or unavailable work leaves #953 open. It is currently unassigned and
-blocked by #983. A later positive result qualifies only the #983 local path plus
-#953 decoded grammar/sentence loop. Paragraph,
+blocked by #986. A later positive result qualifies only the full #986 mechanism
+or separately qualified table-value successor, plus #953's decoded grammar/
+sentence loop. Paragraph,
 conversation, and global influence remain inert until #973; correctness,
 reasoning, product chat, optimization, formal closure, and release remain
 downstream.
@@ -641,12 +768,12 @@ were `NOT_RUN`. The corrected label-free input, raw-census, and label-attached
 outcome identities are bound in the
 [#953 record](local_geometric_generation_953.md). This observed chronology is
 append-only. #953's fixture, overlay, generator, and records remain untouched
-under #983; #973 and downstream #954 remain blocked.
+under #986; #973 and downstream #954 remain blocked.
 
 ### A1Q-H/#973 exact-spin global operator prototype
 
-#973 owns paragraph, conversation, and bounded-global influence after #983
-qualifies local construction transfer and #953 qualifies the decoded loop.
+#973 owns paragraph, conversation, and bounded-global influence after #986
+qualifies an accepted local selector path and #953 qualifies the decoded loop.
 Operator influence consumes #953-admitted support;
 it does not participate in admission. The existing adjacent-spin retrieval rows
 remain fallback/diagnostic data, not operator coefficients; any neighbor
@@ -740,6 +867,16 @@ full-artifact candidate relabeling, exact incremental/full-history equality,
 and byte-identical rebuild/outcome replay. The separate count-only last-anchor
 comparator cannot admit candidates, rank geometric candidates, break ties,
 populate relation classes, or be described as attention.
+
+For #986, every arm receives the same natural candidates, semantic-placement
+reads, causal slots, operator slots, and declared work. Required interventions
+are stratified placement permutation, address-only placement, identity
+transport, order derangement, last-only, state-disabled, candidate/operator
+permutation, absolute/positive-only weights, and recall/count-only lookup. The
+table-native semantic-value comparator receives the same candidates and work
+but no geometric transport. Two content-partitioned multithreaded builds,
+incremental/full equality, and coherent relabeling are positive controls. A
+single-worker long run is not an authorized reproducibility arm.
 
 When #953 is later unblocked, run exactly the full-path and state-disabled arms with identical
 natural support and work. Do not carry #969's last-only arm or the obsolete
@@ -967,6 +1104,20 @@ Use these outcomes literally:
 - `REDESIGN_CANDIDATE_CONDITIONED_CAUSAL_RETURN_REPRESENTATION` — #983's frozen
   classes, transfer ceiling, padding, derangement, or equal-work gate fails;
   retain the evidence and do not try a second representation in the issue.
+- `PROCEED_TO_I1_WITH_CORPUS_SIGNED_TRANSPORT_ATTENTION` — #986's corpus
+  placement transfers and its signed exact-transport arm clears every causal
+  threshold while beating the matched table-native value comparator by at
+  least 4/64. Apply only the frozen scoring semantics to #953 after a fresh
+  label-free preflight.
+- `RETAIN_GEOMETRY_AS_TRANSPORT_ADVANCE_TABLE_VALUE_QUALIFIER` — corpus/table
+  value transfers but signed transport supplies no predeclared causal uplift.
+  Retain exact geometry as address/transport and create one table-value
+  qualifier; do not call the table result geometric attention.
+- `REDESIGN_CORPUS_OBJECTIVE_OR_PLACEMENT` — #986's semantic placement fails
+  against its stratified permutation/address controls; stop before #953.
+- `UNAVAILABLE_FRAME_OR_POPULATION` — #986 cannot freeze a complete
+  CID-disjoint population, placement, frame, natural support, or equal-work
+  contract; stop before labels or selection.
 - `PROCEED_TO_A1Q_H_WITH_BOUNDED_SOURCE_FREE_GEOMETRIC_GENERATION` — #953's
   full causal path drives one bounded natural decoded loop under equal support
   and work, exact inversion, deterministic termination/replay, and the declared
@@ -974,8 +1125,9 @@ Use these outcomes literally:
   attention, correctness, or reasoning claims.
 - `REVISE_I1_GENERATOR_IN_PLACE` — a valid #953 smoke localizes a generator
   defect. This remains #953's historical terminal, but its former immediate
-  in-place-repair action is superseded by #983 because the known population is
-  no longer independent. Keep #953 open, unassigned, blocked, and untouched.
+  in-place-repair action is superseded by completed-negative #983 and open #986
+  because the known population is no longer independent. Keep #953 open,
+  unassigned, blocked, and untouched.
 
 Never convert a missing fixture, empty denominator, skipped test, or unrelated
 green suite into `PASS`. Every report preserves artifact kappas, partition CIDs,

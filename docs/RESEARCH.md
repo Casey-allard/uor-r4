@@ -42,9 +42,11 @@ assumptions, or objectives rather than measured results.
 > construction/validation population. Its usable construction classes were
 > pure but covered 0/6 held-out decisions; the sealed strict ceiling was also
 > 0/6. It stopped `UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER` before any deployed
-> selector or payload inversion. #983 remains open negative evidence and
-> blocks parked, unassigned, untouched #953; #953 continues to block #973 and
-> #954; and #973 continues to block #954.
+> selector or payload inversion and is now closed bounded negative evidence.
+> #986 owns the fresh CID-disjoint `CorpusSignedTransportV1` semantic-placement,
+> self-plus-six harmonic link-state, and signed-transport qualification and
+> blocks parked, unassigned, untouched
+> #953; #953 continues to block #973 and #954; and #973 continues to block #954.
 > Legacy
 > tracker #949 is closed as superseded, and #958 is retained directly beneath
 > #820 as GI-0 foundation. Two
@@ -66,9 +68,12 @@ assumptions, or objectives rather than measured results.
 > geometry reversible (GI-1/#961), repairs ordered state (GI-2 A1R/#967),
 > tests candidate-relative identifiability and one construction-derived readout
 > without assuming a replacement or placement defect (GI-2 A1P/#970), then
-> builds the first causal ordered-S3 path mechanism (#969), qualifies one
-> independently construction-transferred candidate-conditioned local mechanism
-> (#983), applies it unchanged to the parked decoded loop (#953), qualifies
+> builds the first causal ordered-S3 path mechanism (#969), records one
+> independently construction-transferred candidate-conditioned negative
+> (#983), qualifies corpus-induced semantic placement, bounded harmonic link
+> state, and signed exact transport
+> against a table-native value comparator (#986), applies an accepted path
+> unchanged to the parked decoded loop (#953), qualifies
 > higher scopes through that loop (#973), and only then tests correctness (#954)
 > and reasoning (#955).
 > Other trajectory, hypersphere, winding/window, factor, resonance, and Hopf
@@ -243,8 +248,9 @@ assumptions, or objectives rather than measured results.
 > recorded real placement at 0/2 intended candidates, the cyclic
 > placement-permuted control at 2/2, and reversed construction order at 1/2.
 > Generator execution and replay were `NOT_RUN`. The terminal remains
-> `REVISE_I1_GENERATOR_IN_PLACE`; #953 awaits a newly frozen maintainer plan,
-> while #973 and #954 remain blocked.
+> `REVISE_I1_GENERATOR_IN_PLACE`; at that point #953 awaited a newly frozen
+> maintainer plan. The A1Q-L3 correction below supersedes that ownership while
+> #973 and #954 remain blocked.
 
 > **Forward-sequencing correction — A1Q-L2/#983, 2026-08-28.** The dated #953
 > outcomes above remain unchanged evidence, but their former immediate in-place
@@ -279,6 +285,56 @@ assumptions, or objectives rather than measured results.
 > representation under the frozen contract. It does not establish
 > grammar, generation, correctness, knowledge, reasoning, higher-scope
 > attention, performance, product readiness, or release readiness.
+
+> **Post-A1Q-L2 decision — A1Q-L3/#986, 2026-08-28.** #983 is closed as
+> completed bounded negative evidence. Its failed representation, population,
+> identities, and `NOT_RUN` selector/generation boundary remain unchanged.
+> Fresh #986 is the only open local qualification and now blocks untouched
+> #953.
+>
+> `CorpusSignedTransportV1` separates the missing semantic layer from exact
+> geometry. A source-free observation corpus induces a canonical causal
+> co-occurrence/PPMI placement and table value over immutable route identities.
+> Each route also receives one static `HarmonicLinkState7` record: self plus up
+> to six directed construction-derived PPMI peers. A fixed candidate-rooted
+> screened-harmonic diffusion makes the resulting influence route-aware rather
+> than Euclidean-nearest-only; the rows and diffusion remain substrate, not
+> attention.
+> Existing exact H4/Cl(0,6)/SpiralCore state transports an eight-event causal
+> window. Every naturally admitted candidate receives one hypothetical
+> transported value per retained causal slot. Its frozen radial/angular
+> alignments are centered and balanced across those slots into exact zero-sum
+> `{-1,0,+1}` weights before candidate-frame aggregation. A table-native
+> semantic-value arm is the required comparator.
+>
+> The population is document/CID-disjoint across induction, 16 matched
+> calibration pairs, and 32 matched sealed-test pairs. Canonical greedy
+> selection makes the pairs vertex-disjoint, while pair/intervention metadata
+> remain confined to the audit/statistics harness; a separately committed
+> sealed join supplies the incompatible expected routes. Label-free Gate 0
+> requires complete placement/link-state, natural support, operative anti-
+> recall, frame/work equality,
+> source closure, incremental/full equality, and two byte-identical
+> multithreaded builds. Only then may one frozen rule calibrate a full/control-
+> family margin and a table-family margin on the same decisions, grid rule,
+> selective-precision objective, 24/32 coverage floor, and one-scalar budget;
+> label-free unablated induction normalization scales remain shared and no
+> control calibrates or normalizes itself. A single sealed test compares the
+> full arm with placement/link
+> permutation, address-only, harmonic-link-disabled, matched distance-only,
+> transport, order, last-only, state, operator, unsigned, recall, and count
+> controls. Any geometric uplift over the table comparator must also clear the
+> exact pair-blocked test.
+>
+> If signed transport supplies predeclared causal uplift beyond the table
+> comparator, its frozen semantics advance unchanged to #953. If corpus/table
+> value transfers without geometric uplift, geometry remains addressing and
+> transport and one table-value qualifier becomes the next decision. If
+> placement does not transfer, redesign the induction objective. Fixed zeta
+> ordinates are reused, never recalculated. Compiler-side float and richer Rust
+> algebra are permitted for qualification; base-256/integer/LUT lowering is
+> deferred until causal transfer. See the
+> [#986 plan](corpus_induced_signed_transport_attention_plan_986.md).
 
 The current quality-baseline reconciliation is recorded by #933 and the
 [append-only #934 genealogy](canonical_quality_baseline_934.md). The historical
@@ -527,8 +583,9 @@ candidate-conditioned mechanism on a separate natural population. Its pure
 construction classes transferred to 0/6 held-out decisions and stopped
 `UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER` before deployed selection or payload
 decode. #953 remains an untouched parked integration regression while #983
-holds the negative evidence and the next representation decision; #973 remains
-blocked. Dependable coherent text remains unestablished.
+holds closed negative evidence. #986 now owns the fresh semantic-placement and
+signed-transport decision and blocks #953; #973 remains blocked. Dependable
+coherent text remains unestablished.
 The final serving path has no source weights, transformer/self-attention, dense
 matrix intelligence, MoE, or sparse learned router. Compiler-side floating
 point remains allowed for witnessed chart construction; serving arithmetic is
@@ -1087,12 +1144,17 @@ execution and replay were `NOT_RUN`. #983 then froze
 population. Its usable construction classes were pure, but structural coverage
 and the sealed strict ceiling were both 0/6. It stopped
 `UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER` before deployed selection, payload
-inversion, or #953 generation. #983 remains open negative evidence and blocks
-parked, unassigned, untouched #953; #953 continues to block
-#973/#954; #973 continues to block #954. #955 invokes the eventual accepted
-#969/#983/#953/#973/#954 path; #962 integrates that path into product chat with
-persisted identity-scoped hive memory. #963 retains measured cost; #964 binds
-the #970 → #969 → #983 → #953 → #973 path; #965 qualifies only that release path. The table
+inversion, or #953 generation and is now closed bounded negative evidence.
+#986 owns the fresh `CorpusSignedTransportV1` qualifier and blocks parked,
+unassigned, untouched #953; #953 continues to block
+#973/#954; #973 continues to block #954. The eventual accepted local semantic
+selector is either a full-positive #986 mechanism or a separately qualified
+table-value successor authorized by #986. #955 invokes that accepted selector/
+#953/#973/#954 consumer; #962 integrates the accepted selector/#953/#973 path
+into product chat with persisted identity-scoped hive memory. #963 retains
+measured cost; #964 binds evidence provenance #970 → #969 → #983 → #986 plus
+the actual accepted selector → #953 → #973 path; #965 qualifies only that
+release path. The table
 below is retained as the historical mechanism ledger; rows that still use “open”
 in their original prose are not the live backlog. GitHub native issue state wins.
 

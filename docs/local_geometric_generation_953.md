@@ -687,3 +687,13 @@ placement, correctness, higher-scope attention, reasoning, performance
 advantage, formal closure, product readiness, or release readiness. #953 awaits
 a newly frozen maintainer plan inside its existing scope; #973 and #954 remain
 blocked, and no downstream issue is activated.
+
+## A1Q-L3 blocker handoff (2026-08-28)
+
+The final sentence above records the ownership state when this append-only #953
+evidence was written. Live sequencing now keeps #953 open, parked, unassigned,
+and untouched behind #986. Only a full-positive #986
+`CorpusSignedTransportV1`, or a separately qualified table-value successor
+created by #986's table branch, may enter this decoded loop after a fresh
+label-free preflight. The known #953 population remains quarantined; this
+handoff authorizes no new representation, generation run, or replay inside it.

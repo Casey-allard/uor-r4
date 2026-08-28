@@ -31,8 +31,10 @@ six-decision population. Its binding label-free census found pure construction
 classes but zero construction-to-validation transfer; the sealed outcome is
 `UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER` at 0/6. The deployed selector,
 payload inversion, decoded generation, and #953 were `NOT_RUN`. #983 remains
-open as negative evidence and blocks parked, unassigned #953; #953 continues
-to block #973 and #954)._
+closed as negative evidence. #986 now owns one fresh
+`CorpusSignedTransportV1` qualification, including the static self-plus-six
+`HarmonicLinkState7` field, and blocks parked, unassigned, untouched #953;
+#953 continues to block #973 and #954._
 
 > **Project priority:** build source-free geometric intelligence in which the
 > route is the data location. A pinned lexical codec supplies text boundaries;
@@ -66,8 +68,13 @@ to block #973 and #954)._
 > construction classes, all usable classes pure, but zero structural transfer
 > and a 0/6 strict ceiling. It stopped `UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER`
 > before the deployed selector or payload inversion; #953 remained untouched.
-> A new mechanism or semantic-placement direction now requires a separate
-> maintainer decision and fresh independent contract. Once #953 is accepted and every required #973 scope
+> That negative is now closed and preserved. #986 is the separate fresh
+> contract: corpus-induced placement/value must first transfer on a CID-disjoint
+> held-out split, then one signed zero-sum candidate-relative
+> Cl(0,6)/SpiralCore transport readout must beat matched placement, transport,
+> order, state, recall, and table-native value controls. If table value
+> transfers but geometry adds no causal uplift, geometry remains addressing and
+> transport rather than semantic scoring. Once #953 is accepted and every required #973 scope
 > qualifies, a separately frozen higher-scope/corpus-scale offline induction
 > ladder may compile causal prefix-to-observed-next-route examples, multiscale
 > route summaries, versioned placement overlays that preserve immutable
@@ -97,6 +104,11 @@ to block #973 and #954)._
 ## Next up (recommended sequencing)
 
 Native GitHub relationships are the source of truth:
+
+The current priority view is **Now:** #986 only; **Next:** #953 → #973 → #954;
+**Later:** #955 → #962 → #963 → #964 → #965. The full #986 mechanism,
+controls, thresholds, and branches are frozen in the
+[#986 plan](docs/corpus_induced_signed_transport_attention_plan_986.md).
 
 1. **GI-0 — retain #958 foundation:** keep the schema-2 manifest, bounded route
    lookup, worker evidence, controls, and optional operator fixtures at their
@@ -216,7 +228,52 @@ Native GitHub relationships are the source of truth:
    therefore records `UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER`. The deployed
    selector, payload inversion, decoded generation, and #953 were `NOT_RUN`.
    See the [#983 evidence record](docs/construction_causal_return_attention_983.md).
-7. **GI-3 / #953 — bounded source-free geometric generation loop:** the
+7. **GI-2 A1Q-L3 / #986 — corpus-induced harmonic signed transport
+   qualification:** on a fresh document/CID-disjoint induction, calibration,
+   and sealed-test split, compile deterministic causal co-occurrence/PPMI
+   semantic placement over immutable lexical-route identities. Give each route
+   one `HarmonicLinkState7` record—self plus up to six construction-derived PPMI
+   peers—and use six fixed half-restart Jacobi steps to create a candidate-
+   rooted screened-harmonic reachability field. This is static link-state
+   substrate, not attention by
+   itself. For each naturally admitted candidate, transport every retained
+   causal slot into that candidate frame, center its radial/angular alignments
+   across the route chain, and aggregate balanced zero-sum `{-1,0,+1}` slot
+   weights. Select only a unique maximum above its score-family calibration-
+   derived frozen margin.
+
+   The frozen population is 16 matched calibration pairs and 32 matched sealed
+   pairs. The audit-only, mechanism-hidden pair map holds candidate support,
+   length, multiset, last-two suffix, and work fixed under one earlier-order
+   intervention; a
+   separately committed sealed join supplies the incompatible expected routes.
+   All eligible pair CIDs are canonically sorted, then greedily filtered so no
+   decision CID appears in more than one of the first 16/32 pairs. Pair and
+   intervention metadata remain confined to the audit/statistics harness. An
+   immutable pre-geometry CID then binds the implementation, formulas,
+   shared label-free induction scales and the common equal-budget calibration
+   rule for one full/control-family margin plus one table-family margin,
+   controls, thresholds, pair blocks, and exact work ledger with no #986
+   re-freeze.
+   Gate 0 hard-stops unless placement/link-state, natural support, anti-recall,
+   frame, work, source closure, incremental reproduction, and two
+   multithreaded rebuilds pass exactly. One later sealed test compares the real
+   arm with separate placement/link permutations, address-only, link-disabled,
+   distance-only, direct-link, transport-disabled, order-deranged, last-only,
+   state-disabled, operator-permuted, absolute-only, positive-only, and recall/
+   count controls under a shared full-sweep work ledger. A table-native semantic-
+   value comparator decides whether geometry adds causal value; full-versus-
+   table uplift must also pass the same exact pair-blocked test.
+   Positive transport advances unchanged to #953; table-only transfer creates
+   one value qualifier; failed placement redesigns the induction objective.
+   No re-freeze, retry, or generation runs in #986. See the
+   [#986 plan](docs/corpus_induced_signed_transport_attention_plan_986.md).
+
+   Downstream, **accepted local semantic selector** means either the full #986
+   mechanism after its positive terminal, or the separate table-value selector
+   after #986 takes that branch and its successor independently qualifies.
+   #983/#986 remain evidence provenance, not automatic serving consumers.
+8. **GI-3 / #953 — bounded source-free geometric generation loop:** the
    accepted #969 path now drives reusable library/CLI plumbing from canonical
    prompt bytes through admission, exact inversion, rendering, append, and
    bounded termination. The first smoke decoded `slowly carefully` /
@@ -240,12 +297,14 @@ Native GitHub relationships are the source of truth:
    but real placement chose `run/runs` (0/2 intended) while the cyclic
    placement-permuted control chose `runs/run` (2/2); generation therefore
    remained `NOT_RUN`. #953 is now a parked, unassigned, untouched integration
-   regression. Only a later positive protected successor under #983 may be applied there in a
-   later session, unchanged and behind a new label-free preflight. Harmonic
+   regression. Only a full positive protected #986 terminal, or a separately
+   qualified table-value successor authorized by that branch, may be applied
+   there in a later session, unchanged and behind a new label-free preflight. Harmonic
    influence remains dormant in #953. See the
    [#953 record](docs/local_geometric_generation_953.md).
-8. **GI-2 A1Q-H / #973 — higher-scope attention:** after accepted #983 and
-   #953, test paragraph, conversation, and bounded global state through the
+9. **GI-2 A1Q-H / #973 — higher-scope attention:** after the accepted local
+   semantic selector and #953 qualify, test paragraph, conversation, and
+   bounded global state through the
    real decoded loop. The first global mechanism is a deterministic exact-spin
    operator prototype
    overlay bound by global root/epoch kappa, operator and chart/table
@@ -268,25 +327,26 @@ Native GitHub relationships are the source of truth:
    Match support/work between controls within each rung, report support changes
    across rungs separately, and stop if scale only raises exact/backoff recall or
    table density.
-9. **GI-4 / #954 — correctness and abstention:** test held-out answer
+10. **GI-4 / #954 — correctness and abstention:** test held-out answer
    correctness, relevance, abstention, and causal use of required context only
-   through a frozen corpus-induced artifact that conforms to and binds the
-   accepted #969/#983/#953/#973 identities. Teacher weights may label or compare
+   through the accepted selector/#953/#973 artifact while binding evidence
+   provenance #969 → #983 → #986. Teacher weights may label or compare
    offline only after the source-free report freezes, and the #954 oracle cannot
    tune the artifact.
-10. **GI-5 / #955 — reasoning:** invoke the accepted
-   #969/#983/#953/#973/#954 consumer at
+11. **GI-5 / #955 — reasoning:** invoke the accepted
+   selector/#953/#973/#954 consumer at
    every bounded goal-directed route-composition step. Compare cloned
    hypothetical candidate states admitted anew by the accepted consumer at each
    cloned branch node, under declared depth, width, rollback, and work ceilings,
    with branch, intermediate-constraint, and
    closure/contradiction controls. Actual future routes and targets remain
    unavailable. #952 is not a qualified-attention consumer.
-11. **GI-6 / #962–#965 — product, cost, formal closure, and release:** integrate
-   the accepted #969/#983/#953/#973 path into durable
+12. **GI-6 / #962–#965 — product, cost, formal closure, and release:** integrate
+   the accepted selector/#953/#973 path into durable
    multi-turn CLI/HTTP chat, persistence, isolation, and hive-memory (#962);
    optimize only the measured route-native bottleneck (#963); freeze a serving
-   contract that binds the #970 → #969 → #983 → #953 → #973 path (#964);
+   contract that binds evidence provenance #970 → #969 → #983 → #986 plus the
+   actual accepted selector → #953 → #973 path (#964);
    then activate only the release QA needed to qualify that exact path (#965).
 
 The live issue bodies and native dependencies now mirror this sequence. #961
@@ -297,11 +357,12 @@ protected PR #972 with its bounded heatmap-readout negative. #969's
 mechanism-first prototype reached its positive bounded terminal. #953's loop
 plumbing and tiered admission remain preserved, but its known placement
 population is quarantined after 0/2 real versus 2/2 placement-permuted and
-decoded generation/replay `NOT_RUN`. #983 is the open negative-evidence child
-of #820 and native blocker of parked, unassigned #953 after its independent
-Gate 0 transferred on 0/6 decisions. The live chain is closed #967/#970/
-#969 → open #983 → parked #953 → blocked #973 → blocked #954 → #955 →
-#962–#965. #953 continues to block #973 and #954; #973 continues to block #954.
+decoded generation/replay `NOT_RUN`. #983 is closed bounded negative evidence
+after its independent Gate 0 transferred on 0/6 decisions. Fresh, unassigned
+#986 is the only open local qualification and the native blocker of parked,
+unassigned #953. The live chain is closed #967/#970/#969/#983 → open #986 →
+parked #953 → blocked #973 → blocked #954 → #955 → #962–#965. #953 continues
+to block #973 and #954; #973 continues to block #954.
 Legacy tracker #949 is closed as
 superseded; #958 is retained directly under programme root #820 as GI-0
 foundation.
@@ -310,26 +371,34 @@ The old S5–S7 and F0 issues are closed not planned/not triggered. R4G1/TLA,
 XOR/popcount, W(3,3), proof, conformance, and release work remains preserved as
 historical evidence and comparators.
 
-## Open decision
+## Now
 
-- [ ] **#983 A1Q-L2 construction-transferred candidate-conditioned geometric
-  attention** — negative Gate 0 evidence is preserved at
-  `UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER`: pure usable construction classes,
-  exact controls, and zero operative recall did not transfer to any of six
-  held-out decisions. The deployed selector, payload inversion, and #953 were
-  `NOT_RUN`. #983 remains open and unassigned pending a maintainer choice
-  between a fresh semantic-placement experiment and retaining exact geometry
-  as addressing/transport around a separate table-native value engine. No
-  successor experiment is authorized implicitly.
+- [ ] **#986 A1Q-L3 corpus-induced signed transport qualification** — the one
+  open successor to closed-negative #983. First qualify corpus-induced semantic
+  placement/value on the frozen CID-disjoint split. Only then test whether the
+  signed candidate-relative exact transport arm causally beats the matched
+  table-native semantic-value comparator and required controls. #986 is
+  intentionally unassigned until execution begins. No generation, higher
+  scope, corpus scale, zeta-zero calculation, or runtime lowering is in scope.
+
+## Completed negative
+
+- [x] **#983 A1Q-L2 construction-transferred candidate-conditioned geometric
+  attention** — closed at `UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER`: pure usable
+  construction classes, exact controls, and zero operative recall did not
+  transfer to any of six held-out decisions. The deployed selector, payload
+  inversion, and #953 were `NOT_RUN`. Its successor handoff is #986; the failed
+  #983 representation and evidence remain unchanged.
 
 ## Parked
 
 - [ ] **#953 bounded source-free geometric generation loop** — preserved at
   historical terminal `REVISE_I1_GENERATOR_IN_PLACE`, open and unassigned. Its
   fixture, placement overlay, decoded loop, and records remain untouched while
-  #983 is open. After a later positive protected successor under #983, a separate session may
-  apply that algorithm unchanged to #953's preserved fixture, beginning with a
-  new label-free preflight. #953 continues to block #973 and #954.
+  #986 is open. After a positive protected #986 terminal, or its explicit
+  table-value qualifier branch, a separate session may apply the accepted
+  algorithm unchanged to #953's preserved fixture, beginning with a new label-
+  free preflight. #953 continues to block #973 and #954.
 
 ## Landed
 
@@ -453,7 +522,10 @@ historical evidence and comparators.
   placement-permuted control reached 2/2; generation and replay were `NOT_RUN`.
   #983 then tested `ConstructionCausalReturnV1` on an independent natural
   population and stopped `UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER` at 0/6
-  before its deployed selector. #953 remains an untouched parked integration
+  before its deployed selector. Fresh #986 now owns the only local qualifier:
+  corpus-induced semantic value, a self-plus-six harmonic link-state field,
+  signed candidate-relative transport, and a table-native comparator on a new
+  matched sealed population. #953 remains an untouched parked integration
   regression; #973 and #954 are still blocked.
   Coherent product behavior, correctness, and reasoning remain unestablished.
   Historical canaries and pointwise results remain scoped evidence, not a

@@ -1,15 +1,17 @@
 # ADR-0004: Define a bounded geometric-intelligence route hierarchy
 
 - **Status:** Accepted as an architectural definition and evaluation boundary;
-  amended 2026-08-27 after #969 qualified one local causal-path mechanism and
-  #953's natural-agreement revision stopped at support admission. #953 remains
-  open for a tiered-admission repair; #973 remains blocked and later owns
-  paragraph, conversation, and global exact-spin operator qualification.
+  amended 2026-08-28 after #953's repaired admission and placement preflight,
+  and #983's independent 0/6 construction-transfer negative. #986 now owns one
+  fresh corpus-induced semantic-placement, self-plus-six harmonic link-state,
+  and signed-transport qualification;
+  #953 remains parked and blocked. #973 remains blocked and later owns
+  paragraph, conversation, global exact-spin, and corpus-scale qualification.
   Harmonic qualification additionally requires a bound basis/mode contract.
   Inference,
   correctness, and reasoning capability remain unproven.
 - **Date:** 2026-08-26
-- **Last amended:** 2026-08-27
+- **Last amended:** 2026-08-28
 - **Builds on:** [ADR-0003](0003-fixed-zeta-prime-route-attention.md)
 - **Evaluation:**
   [Geometric Intelligence Evaluation](../geometric_intelligence_evaluation.md)
@@ -382,25 +384,35 @@ Delivery proceeds without skipping stages:
 1. retain the ordered state from #967 and paired-H4 structural state from #970
    at their measured claim boundaries;
 2. retain the local causal R4/S3 path mechanism qualified by #969;
-3. in #953, retain #981's tiered-admission policy and the completed tiny
+3. retain closed #983 at `UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER`; its pure
+   construction classes covered 0/6 held-out decisions and no selector ran;
+4. in #986, first qualify construction-only corpus-induced semantic placement
+   and a static self-plus-six harmonic link-state field on a document/CID-
+   disjoint split, then test one candidate-relative signed zero-sum exact-
+   transport arm against matched link/distance/causal controls and a table-
+   native semantic-value comparator. A table-preferred result retains geometry
+   as addressing/transport rather than forcing it into semantic scoring;
+5. in #953, retain #981's tiered-admission policy and the completed tiny
    construction-only, same-frame, candidate-conditioned context-placement
    overlay's selection-blind hard stop under the same artifact, support, and
    work: real placement resolved 0/2 intended candidates while the
    placement-permuted and order-shuffled controls resolved 2/2 and 1/2.
    Generation and replay were not run. Any later #953 attempt requires a newly
    frozen native contract rather than a metric tweak or second representation
-   under this result;
-4. in #973, qualify paragraph, conversation, and global influence through the
+   under this result. Apply only a full-positive #986 mechanism, or its
+   separately qualified table-value successor, unchanged after a fresh label-
+   free preflight;
+6. in #973, qualify paragraph, conversation, and global influence through the
    accepted #953 loop, including the shared exact-spin operator overlay and
    its matched disabled/permuted controls;
-5. within #973, after every required scope qualifies, activate a predeclared
+7. within #973, after every required scope qualifies, activate a predeclared
    higher-scope/corpus-scale offline induction ladder with a frozen operator
    family and induction rule; assign every rung new artifact/operator identities
    and rerun the bounded matched gate for every structural or placement epoch;
-6. measure correctness and typed abstention in #954 on the frozen induced
-   artifact that conforms to and binds the accepted #969/#953/#973 identities;
+8. measure correctness and typed abstention in #954 on the accepted selector/
+   #953/#973 artifact while binding evidence provenance #969 → #983 → #986;
    and
-7. measure bounded reasoning through novel multi-step hypothetical state
+9. measure bounded reasoning through novel multi-step hypothetical state
    transitions in
    #955.
 

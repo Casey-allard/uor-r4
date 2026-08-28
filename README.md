@@ -26,8 +26,14 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > padding-identity aliases, but real placement selected 0/2 intended candidates
 > while the same-artifact placement-permuted and order-shuffled controls selected
 > 2/2 and 1/2. Generation and replay were `NOT_RUN`; the terminal remains
-> `REVISE_I1_GENERATOR_IN_PLACE`. #953 awaits a newly frozen maintainer plan;
-> #973 and #954 remain blocked.
+> `REVISE_I1_GENERATOR_IN_PLACE`. Independent #983 then formed pure
+> construction classes but transferred to 0/6 held-out decisions and closed at
+> `UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER` before selection. #986 now tests one
+> fresh `CorpusSignedTransportV1` contract: corpus-induced semantic placement
+> and a static self-plus-six harmonic link-state field first, then signed
+> zero-sum exact transport against link/distance controls and a table-native
+> value comparator. #953 remains parked, unassigned, untouched, and blocked; #973 and
+> #954 remain blocked.
 > Higher-scope attention, correct answers, and reasoning do not exist yet. The
 > dashboard is an interactive window into the research substrate, not a
 > frontier model or a ChatGPT replacement.
@@ -178,9 +184,14 @@ for both state-disabled prompts, with deterministic replay. The terminal
 remains `REVISE_I1_GENERATOR_IN_PLACE`. The first frozen local same-object,
 order-sensitive candidate-placement preflight then failed before generation or
 replay: real placement selected 0/2 intended candidates while its same-artifact cyclic
-placement control selected 2/2. #953 now awaits a newly frozen maintainer plan,
-not immediate Poincare/Hopf/harmonic machinery; #973 and #954 remain blocked.
+placement control selected 2/2. #983's later independent construction-return
+classes then transferred to 0/6 held-out decisions. #986 is now the only local
+qualification: semantic placement must transfer before signed
+Cl(0,6)/SpiralCore transport may claim causal value over the matched
+table-native comparator. #953 remains untouched; #973 and #954 remain blocked.
 See the [append-only #953 record](docs/local_geometric_generation_953.md).
+See the [current #986 plan](docs/corpus_induced_signed_transport_attention_plan_986.md)
+for the selected mechanism, controls, and decision branches.
 Stored H4/Hopf/zeta/icosian and related route fields remain
 structural state, diagnostics, or controls unless the owning stage qualifies a
 specific term.
@@ -256,8 +267,9 @@ not become substitutes for working intelligence:
 
 1. **Make language reversible in geometry** — lexical codec, canonical route
    hierarchy, serialization, and reconstruction.
-2. **Build geometric attention** — current, previous, sentence, paragraph,
-   conversation, and global route context must causally affect selection.
+2. **Qualify semantic placement and local attention** — corpus-induced value
+   must transfer, then signed candidate-relative exact transport must causally
+   improve selection beyond matched controls and a table-native comparator.
 3. **Generate coherent text** — source-free grammar and next-route decoding.
 4. **Establish correctness** — relevance, contradiction handling, and honest
    abstention.
@@ -272,8 +284,9 @@ complete.
 The active dependency chain is tracked in
 [#820](https://github.com/UOR-Foundation/uor-r4/issues/820). The immediate
 implementation stage is
-[#953](https://github.com/UOR-Foundation/uor-r4/issues/953). #973 and #954
-remain blocked downstream of #953; #954 also depends on #973.
+[#986](https://github.com/UOR-Foundation/uor-r4/issues/986). #953 is parked
+behind #986; #973 and #954 remain blocked downstream of #953, and #954 also
+depends on #973.
 
 ## Find your way around
 

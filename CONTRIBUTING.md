@@ -118,15 +118,25 @@ The experiment must be able to change the next programme decision:
   preflight then reproduced 7/7 construction prototypes with zero class
   collisions, but real placement selected 0/2 intended candidates while the
   same-artifact placement-permuted control selected 2/2. Generation and replay
-  were `NOT_RUN`; the terminal remains `REVISE_I1_GENERATOR_IN_PLACE`. #953
-  awaits a newly frozen maintainer plan, and the failed contract does not
-  authorize a second representation or immediate Poincare/Hopf/harmonic
-  machinery. A1Q-H/#973 and GI-4/#954 remain blocked, with GI-5/#955 downstream.
+  were `NOT_RUN`; the terminal remains `REVISE_I1_GENERATOR_IN_PLACE`. A1Q-L2/
+  #983 then formed pure construction classes on an independent population but
+  transferred on 0/6 held-out decisions and closed
+  `UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER`. A1Q-L3/#986 is now the only local
+  qualification: first test CID-disjoint corpus-induced semantic placement and
+  a static self-plus-six harmonic link-state field, then ask whether signed
+  zero-sum Cl(0,6)/SpiralCore transport adds causal value over matched link/
+  distance controls and a table-native semantic-value comparator. #953 remains
+  parked, unassigned, untouched, and blocked. A1Q-H/#973 and GI-4/#954 remain
+  blocked, with GI-5/#955 downstream.
 - **Exercise the real route path.** Geometry must run before token choice and
   emit its admitted support and energy trace. Add a global-context coverage
   witness when the active issue, beginning with #973, activates higher scopes.
 - **Use the smallest falsifier.** Start with a bounded source-free route
   fixture, hierarchy intervention, or held-out continuation before adding data.
+- **Parallelize deterministic corpus work.** Partition by content identity,
+  use all available local workers with canonical ordered reductions, and
+  compare independent multithreaded rebuilds. Do not launch a long experiment
+  on one worker.
 - **Use non-degenerate anti-recall controls.** Run the active issue's
   predeclared matched controls under equal information and work budgets. The
   historical current-only, additive-summary, factor/count-only,

@@ -152,6 +152,37 @@ one another.
   anti-recall choice depends on the induced geometric term under matched causal
   controls. The serving path loads the compiled artifact; it does not scan the
   corpus or load source tensors.
+- **Corpus-induced semantic placement** — a versioned compiler-side coordinate
+  overlay learned only from past construction observations while preserving
+  immutable lexical-route, prime, CID, and payload identities. #986 freezes one
+  deterministic causal co-occurrence/PPMI rank-8 placement and tests held-out
+  document/CID transfer before any attention claim. A hash, prime index,
+  hexadecimal spelling, exact route key, or historical `%500` hive cell is an
+  address, not semantic placement.
+- **HarmonicLinkState7** — #986's static per-route link-state record: the route
+  itself plus at most six construction-derived positive PPMI peers, with exact
+  operator/phase identities and null slots. Six fixed half-restart Jacobi steps
+  produce a candidate-rooted screened-harmonic reachability field used by the
+  transport arm. Seven is a bounded
+  center-plus-six stencil, not an OSPF implementation and not seven Euclidean
+  nearest neighbors. The record is semantic substrate, not attention; #986
+  compares it with link-disabled and distance-only controls.
+- **Signed transport attention candidate** — #986's proposed local readout.
+  Exact ordered Cl(0,6)/SpiralCore state transports a bounded causal history;
+  each already-admitted candidate receives one transported value per retained
+  history slot. Its radial/angular alignments are centered across those slots
+  and balanced to exact zero-sum `{-1,0,+1}` weights before aggregation in the
+  candidate frame. Only a unique maximum above its score-family calibration-
+  derived frozen margin selects. It becomes geometric attention only if the
+  full arm causally beats matched placement/link/distance/transport/order/state
+  controls and
+  the table-native value comparator.
+- **Table-native semantic-value comparator** — a non-geometric candidate-value
+  engine compiled from the same source-free construction observations and
+  evaluated with the same natural candidates, information, and work as the
+  geometric arm. It is a decision comparator, not attention. If it transfers
+  without geometric uplift, the honest branch retains geometry for addressing
+  and transport and qualifies the table engine separately.
 - **Hypothetical next-route state** — the deterministic provisional state
   `Update(S_t,c)` formed from observed state and one already-admitted candidate
   `c`. It may be scored before committing the unique winner and is not an
@@ -184,10 +215,9 @@ one another.
 - **Geometric-intelligence sequence** — lexical ingestion, canonical
   serialization, and address membership are prerequisite plumbing. Delivery
   then proceeds in this order: one qualified local causal-path mechanism
-  (#969); one bounded decoded generation loop with repaired admission plus an
-  accepted local construction-induced candidate-placement mechanism (#953).
-  The first frozen placement preflight failed, so #953 awaits a newly frozen
-  plan;
+  (#969); one completed-negative construction-transfer probe (#983); one fresh
+  corpus-induced semantic-placement and signed-transport qualifier (#986); one
+  bounded decoded generation loop with repaired admission (#953);
   paragraph, conversation, and global exact-spin operator qualification through
   that loop plus controlled higher-scope/corpus-scale induction and final
   requalification (#973);
