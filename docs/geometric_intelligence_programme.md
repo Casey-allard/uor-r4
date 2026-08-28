@@ -40,18 +40,36 @@ the ordered route through those locations carries causal context; local
 spin/torsion changes move the state; and a bounded least-cost lookup chooses the
 next route. The route must remain reconstructable and causally falsifiable.
 
-The programme is sequenced by capability: lexically reversible geometry first;
-one identity-derived local route-attention mechanism (#969); one independently
-construction-transferred, candidate-conditioned negative (#983); one fresh
-corpus-induced semantic-placement and signed-transport qualification (#986);
-one bounded decoded loop with repaired admission (#953); paragraph,
-conversation, and global qualification through that loop (#973); then measured
-correctness and only then multi-step reasoning. Semantic placement, table value,
-exact transport, attention, generation, correctness, and reasoning are separate
-claims.
+The completed evidence lineage before the current reset is: lexically
+reversible geometry (#961); one identity-derived local route-attention
+mechanism (#969); one independently construction-transferred,
+candidate-conditioned negative (#983); and one unavailable corpus/frame
+feasibility boundary (#986). Those results remain provenance, not an active
+queue. Semantic placement, table value, exact transport, attention, generation,
+correctness, and reasoning remain separate claims.
 
 Optimization, broad QA, formalization, and release certification follow a
 working decision-bearing product slice. They do not replace it.
+
+## Current capability-first delivery decision — #989
+
+#989 reached `ESTABLISH_TABLE_NATIVE_LEXICAL_BASELINE`. On 446,342 held-out
+known-target positions, its deterministic construction-trained integer table
+scored 99,362 (22.261404%) versus 24,163 (5.413561%) for unigram, an uplift of
++16.847843 percentage points. Its 35,655,288-byte artifact is
+`blake3:ccdc399731cb866a329be478467a434cda4e445813421e5d17c21ccc87288297`.
+Two complete executions produced identical report bytes and packed artifacts.
+The fixed prompt emitted 16 valid UTF-8 units and stopped at the cap without a
+period-1/2 cycle. See the
+[#989 record](source_free_table_baseline_989.md).
+
+This establishes a statistical lexical baseline with bounded exact decoding,
+not semantics, attention, geometry, correctness, reasoning, chat, performance,
+or release readiness. Freeze the table engine as the non-geometric reference
+for exactly one #953 geometric intervention under the same corpus, support,
+decode, and work budget. #973 remains blocked behind #953. No new H4,
+SpiralCore, harmonic, algebraic, placement, transport, higher-scope, or scale
+qualifier is eligible outside that one comparison.
 
 ## Current truth and post-A1Q-L2 decision
 
@@ -138,9 +156,8 @@ frozen `CorpusSignedTransportV1` feasibility contract and stopped
 `UNAVAILABLE_FRAME_OR_POPULATION`: the raw corpus reproduced, but its exact
 codec/pair commitment and a complete same-frame lexical SpiralCore frame were
 unavailable. Placement, Gate 0, labels, table/geometric arms, and #953 were
-`NOT_RUN`. Parked, unassigned, untouched #953 now awaits a freshly frozen
-population/frame successor; #953 continues to block #973 and #954; and
-#973 continues to block #954. Calling the later
+`NOT_RUN`. The later B0/#989 result now limits #953 to one matched intervention;
+#953 continues to block #973 and #954, and #973 continues to block #954. Calling the later
 #973 operator harmonic additionally requires an
 artifact-bound basis/mode contract. #962
 separately owns product chat integration and persisted, identity-scoped hive
@@ -633,6 +650,21 @@ grammar from load-bearing geometry.
 
 ## Programme sequence
 
+### B0 / #989 — source-free table-native lexical baseline
+
+Status: **established at `ESTABLISH_TABLE_NATIVE_LEXICAL_BASELINE`**.
+
+The deterministic construction-only lexical count tables scored 22.261404%
+held-out top-1 against 5.413561% unigram over 446,342 known targets, inverted
+selected payloads exactly, emitted a bounded 16-unit continuation, and replayed
+byte identically. Geometry was absent from B0. Preserve the table engine
+unchanged as the reference for exactly one later #953 geometric intervention
+under matched corpus, support, decode, and work.
+
+The GI sections below preserve the completed evidence lineage and downstream
+dependency structure. They remain dormant, limited to the one #953 comparison,
+or blocked.
+
 ### GI-0 — retained foundation
 
 Status: **established within #958's declared source-free scope**.
@@ -668,9 +700,9 @@ Status: **#952 A1.0 terminal negative; #967 A1R `RETAIN_STATE_ONLY`; #970 A1P
 `PROCEED_TO_I1_WITH_CAUSAL_R4_PATH_ATTENTION`; #983 then independently tested
 construction-transferred candidate-conditioned local attention and stopped at
 0/6 transfer before selection and closed. #986 then closed at its pre-sealed
-population/frame unavailable terminal. Parked, unassigned #953 remains
-untouched pending a newly frozen successor; #953 and #973 retain
-their downstream blocker edges**.
+population/frame unavailable terminal. Established B0/#989 now exposes exactly
+one matched #953 intervention; #953 and #973 retain their downstream blocker
+edges**.
 
 The frozen A1.0 probe stopped before scorer implementation with
 `REDESIGN_ORDERED_ROUTE_SUMMARY`. Across three matched contrasts, all 21
@@ -1066,15 +1098,14 @@ cycle, and no provider, source weight, target row, future event, or exact
 full-history continuation. Support drift, unequal work, inert path influence,
 decode failure, nondeterminism, a short cycle, or an eight-unit bound violation
 stopped the historical smoke. The earlier direct-revision instruction produced
-the preserved #953 evidence below. It is now superseded for forward sequencing
-by #983's completed negative and #986's fresh-population qualification because
-another representation judged on the known #953 population would risk post-hoc
-fixture tuning.
+the preserved #953 evidence below. #983's completed negative and #986's
+unavailable boundary first superseded that instruction; B0/#989 now supersedes
+their former fresh-population handoff for forward sequencing.
 
 The frozen positive terminal is
 `PROCEED_TO_A1Q_H_WITH_BOUNDED_SOURCE_FREE_GEOMETRIC_GENERATION`; direct repair
-is `REVISE_I1_GENERATOR_IN_PLACE`. #953 remains open, unassigned, parked, and
-ineligible pending a newly frozen population/frame successor. Paragraph,
+is `REVISE_I1_GENERATOR_IN_PLACE`. Established B0/#989 now permits exactly one
+matched #953 intervention against its fixed table reference. Paragraph,
 conversation, and global selection remain inert until #973.
 Product CLI/HTTP chat integration, restart-persistent conversation state, and
 identity-scoped hive-memory lifecycle remain #962 scope.
@@ -1136,10 +1167,10 @@ while the same-artifact placement-permuted and order-shuffled controls selected
 because decisive retained suffixes exactly recalled construction subhistories.
 Generator execution and replay were `NOT_RUN`. This chronology remains
 append-only evidence. The fixture, overlay, generator, and records remained
-untouched through #986. Only a freshly frozen successor that independently
-qualifies its complete mechanism may be applied unchanged in a later #953
-session after a new label-free preflight; #973 remains blocked. #983 and #986
-remain evidence provenance; neither a
+untouched through #986. The established #989 result now exposes one later #953
+intervention, with the table reference and matched
+corpus, support, decode, and work held fixed; #973 remains blocked. #983 and
+#986 remain evidence provenance; neither a
 failed experiment nor a conditional issue number is automatically a serving
 consumer.
 

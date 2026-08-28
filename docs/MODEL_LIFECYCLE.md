@@ -5,6 +5,18 @@
 > lifecycle. Architecture and sequencing authority lives in the
 > [Geometric Intelligence Programme](geometric_intelligence_programme.md).
 
+> **Current capability-first result (2026-08-28):** #989 established the
+> deterministic source-free lexical table baseline at
+> `ESTABLISH_TABLE_NATIVE_LEXICAL_BASELINE`. It scored 22.261404% held-out
+> top-1 versus 5.413561% unigram over 446,342 known targets, decoded a bounded
+> 16-unit valid UTF-8 continuation, and replayed byte identically. Its
+> 35,655,288-byte artifact is frozen at
+> `blake3:ccdc399731cb866a329be478467a434cda4e445813421e5d17c21ccc87288297`.
+> This is a statistical lexical baseline, not semantics, attention, geometry,
+> correctness, reasoning, chat, or release evidence. Exactly one later #953
+> intervention may compare against it under matched conditions; #973 remains
+> blocked. See the [#989 record](source_free_table_baseline_989.md).
+
 **Current truth:** #958 retained canonical prime-route/spin manifests,
 bounded indexes, controls, and deterministic worker evidence as a
 storage/recall foundation. It did not establish full geometric attention,
@@ -45,8 +57,8 @@ pure, but structural coverage and the sealed strict ceiling were both 0/6. It
 closed `UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER` before selection. #986 then
 closed `UNAVAILABLE_FRAME_OR_POPULATION`: the raw corpus reproduced, but its
 exact codec/pair commitment and complete same-frame lexical SpiralCore frame
-were unavailable. Placement, Gate 0, labels, and #953 were `NOT_RUN`; #953 is
-parked, unassigned, and untouched pending a freshly frozen successor.
+were unavailable. Placement, Gate 0, labels, and #953 were `NOT_RUN`; the later
+established B0/#989 result now limits #953 to one matched intervention.
 Corpus-scale and higher-scope induction remain blocked in #973; #954 remains
 blocked downstream. #962 separately owns durable
 multi-turn CLI/HTTP chat, persisted conversation state, session/identity
@@ -69,8 +81,8 @@ canonical text/corpus
     -> qualified local causal R4/S3 path mechanism (#969)
     -> failed construction-return transfer (#983, bounded negative)
     -> unavailable corpus/frame feasibility boundary (#986, completed)
-    -> freshly frozen population/frame successor (not yet authored)
-    -> bounded decoded loop + tiered admission + preserved failed preflights (#953)
+    -> source-free table-native lexical baseline (#989, established)
+    -> exactly one matched geometric intervention using the frozen table reference (#953)
     -> higher-scope attention and corpus-scale induction (#973)
     -> correctness + typed abstention (#954)
     -> bounded reasoning (#955)
@@ -104,8 +116,9 @@ ordered n-lets, exact `phi` radial transport, and typed
 inputs. #970 and #969 are closed at their bounded claim scopes; neither result
 establishes semantics. #983's later construction-return representation also
 failed to transfer. #986 then stopped before geometry at its unavailable
-population/frame boundary. No active qualification now authorizes #953, which
-remains the preserved integration regression.
+population/frame boundary. The later established B0/#989 table reference now
+authorizes exactly one matched #953 intervention; #953 otherwise remains the
+preserved integration regression.
 See the
 [#952 A1.0 record](recursive_geometric_attention_a1_952.md).
 
@@ -1396,13 +1409,13 @@ Passing `--cover` reuses the measured cover. It may be omitted to re-induce
 the default cover deterministically during scoring. For experiments, `cover`
 also accepts `--depths`, `--k0`, `--regions-budget`, and `--memory-budget`.
 
-**Current production boundary pending an accepted local semantic selector →
-#953 → #973 → #954 → #955 before #962.** #986 closed before producing such a
-selector; a freshly frozen population/frame successor must qualify one
-independently. #970, #969, #983, and #986 are closed at their bounded claim
-scopes. #953
-owns the preserved bounded source-free library/CLI inference and generation
-engine but remains untouched and blocked; #973 and #954 remain blocked.
+**Current production boundary pending one matched #953 intervention against
+established #989 → #973 → #954 → #955 before #962.** #989 has qualified its
+source-free statistical lexical table baseline only. #970, #969, #983, and
+#986 remain closed at their bounded claim scopes. #953 owns the preserved
+bounded source-free library/CLI inference and generation engine; exactly one
+intervention against the frozen #989 reference is permitted. #973 and #954
+remain blocked.
 #962 owns integration into durable multi-turn CLI/HTTP chat, persisted
 conversation state, session/identity isolation, and
 identity-scoped hive memory. Until that product stage, the public `ask`, `chat`,

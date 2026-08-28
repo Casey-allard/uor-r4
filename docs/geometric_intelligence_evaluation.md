@@ -2,8 +2,9 @@
 
 - **Status:** Normative experiment policy; mechanisms remain dormant unless a
   named product decision activates the smallest relevant probe.
-- **Applies to:** geometric recall, geometric attention, inference,
-  correctness, bounded reasoning, and provider-free serving.
+- **Applies to:** source-free lexical prediction, geometric recall, geometric
+  attention, inference, correctness, bounded reasoning, and provider-free
+  serving.
 - **Architecture:** [ADR-0004](adr/0004-geometric-intelligence-route-hierarchy.md)
 - **Vocabulary:** [Formal Vocabulary](formal_vocabulary.md) and the
   [Glossary](transformerless/GLOSSARY.md)
@@ -15,6 +16,24 @@ accumulate indiscriminate gates, run every available test because it exists, or
 make an hours-long run the price of learning whether a mechanism is reachable.
 Experimental evaluations are dormant by default. Activate only the smallest
 probe whose possible outcomes cause different next actions.
+
+### Established product decision — B0/#989
+
+#989 returned `ESTABLISH_TABLE_NATIVE_LEXICAL_BASELINE`. The deterministic
+construction-trained table scored 99,362/446,342 (22.261404%) held-out top-1
+versus 24,163/446,342 (5.413561%) for unigram, a +16.847843 percentage-point
+uplift. Trigram, bigram, and unigram selection counts were 319,336, 108,738,
+and 18,268 respectively. The fixed prompt emitted 16 valid UTF-8 units, stopped
+at the cap, and did not enter a period-1/2 cycle. Two complete executions
+emitted identical reports and artifacts. The binding record is
+[#989](source_free_table_baseline_989.md).
+
+This is an established statistical lexical prediction and bounded-decoding
+baseline, not semantics, attention, geometry, correctness, reasoning, chat,
+performance, or release evidence. Its exact artifact, corpus, support, decode,
+and work are frozen as the non-geometric reference for one later #953
+intervention. All unrelated geometric, attention, teacher, broad-QA, and
+release probes remain dormant; #973 remains blocked behind #953.
 
 Lexical ingestion, canonical serialization, registered-address membership,
 and rebuild witnesses are prerequisite plumbing, not inference. The delivery
@@ -44,9 +63,9 @@ pure but reached 0/6 held-out decisions; the sealed strict ceiling was also
 selector or payload inversion and is now closed bounded negative evidence.
 #986 then closed `UNAVAILABLE_FRAME_OR_POPULATION` before placement because its
 exact population/codec commitment and complete lexical SpiralCore frame were
-unavailable. Gate 0, labels, selection, and #953 were `NOT_RUN`. Untouched #953
-remains parked pending a freshly frozen population/frame successor and blocks #973 and
-#954; and #973 continues to block #954.
+unavailable. Gate 0, labels, selection, and #953 were `NOT_RUN`. The later
+established B0/#989 result now exposes one matched #953 intervention; #953
+continues to block #973 and #954, and #973 continues to block #954.
 
 A negative result remains evidence about its declared mechanism and
 distribution. It does not erase a separately established storage, identity,
@@ -55,12 +74,20 @@ attention, inference, correctness, reasoning, or product readiness.
 
 ## 1. Evidence ladder and delivery order
 
-The stages are ordered because each later claim depends on the earlier one:
+The current ladder starts with the established B0/#989 reference. The older
+mechanism stages below remain as historical provenance and future
+dependencies; they are not a competing queue.
 
-In this policy, the **accepted local semantic selector lineage** now means a
-freshly frozen successor that independently qualifies its complete local
-causal contract. #983 and #986 remain in evidence provenance; neither a failed
+In this policy, the **accepted local semantic selector lineage** can resume only
+through the one permitted #953 intervention matched to the established #989
+reference. #983 and #986 remain in evidence provenance; neither a failed
 experiment nor a conditional issue number is automatically a serving consumer.
+
+0. **Source-free table baseline (B0/#989; established)** — construction-only
+   integer lexical counts drove 22.261404% held-out top-1 versus 5.413561%
+   unigram, exact decode, a bounded 16-unit continuation, and byte-identical
+   replay. Geometry was absent. The artifact is now the fixed reference for one
+   matched #953 intervention; all other later stages remain dormant or blocked.
 
 1. **Local route-attention mechanism (#969)** — natural schema-2 adjacency,
    causal ordered R4/S3 path state, retained prefix memory, and deterministic
@@ -700,9 +727,9 @@ The frozen terminals are:
 - `REVISE_I1_GENERATOR_IN_PLACE` — a valid run localizes a generator seam that
   must be repaired before #953 can close.
 
-Invalid or unavailable work leaves #953 open. It is currently unassigned and
-parked pending a freshly frozen population/frame successor. A later positive
-result qualifies only that independently accepted selector plus #953's decoded
+Invalid or unavailable work leaves #953 open. Established B0/#989 now permits
+one #953 intervention against its fixed table reference. A later positive #953
+result qualifies only that matched intervention plus #953's decoded
 grammar/sentence loop. Paragraph,
 conversation, and global influence remain inert until #973; correctness,
 reasoning, product chat, optimization, formal closure, and release remain
@@ -784,8 +811,8 @@ under #986; #973 and downstream #954 remain blocked.
 
 ### A1Q-H/#973 exact-spin global operator prototype
 
-#973 owns paragraph, conversation, and bounded-global influence after a fresh
-successor qualifies an accepted local selector path and #953 qualifies the decoded loop.
+#973 owns paragraph, conversation, and bounded-global influence only after the
+one #989-matched #953 intervention qualifies the decoded loop.
 Operator influence consumes #953-admitted support;
 it does not participate in admission. The existing adjacent-spin retrieval rows
 remain fallback/diagnostic data, not operator coefficients; any neighbor
@@ -1138,9 +1165,9 @@ Use these outcomes literally:
 - `REVISE_I1_GENERATOR_IN_PLACE` — a valid #953 smoke localizes a generator
   defect. This remains #953's historical terminal, but its former immediate
   in-place-repair action is superseded by completed-negative #983 and closed-
-  unavailable #986 because the known population is no longer independent. Keep
-  #953 open, unassigned, parked, and untouched pending a freshly frozen
-  successor.
+  unavailable #986 because the known population is no longer independent. The
+  established B0/#989 result supersedes their former fresh-successor handoff:
+  permit exactly one #953 intervention against the fixed table reference.
 
 Never convert a missing fixture, empty denominator, skipped test, or unrelated
 green suite into `PASS`. Every report preserves artifact kappas, partition CIDs,

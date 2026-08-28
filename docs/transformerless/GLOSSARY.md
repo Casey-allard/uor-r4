@@ -177,6 +177,17 @@ one another.
   full arm causally beats matched placement/link/distance/transport/order/state
   controls and
   the table-native value comparator.
+- **Source-free table-native lexical baseline (B0/#989)** — the established
+  deterministic non-geometric engine compiled only from construction-corpus
+  lexical observations, using integer context/count tables to predict held-out
+  next units, invert the selected payload exactly, and produce a bounded
+  continuation. #989 measured 22.261404% held-out top-1 versus 5.413561%
+  unigram on 446,342 known targets and reproduced its complete report and
+  artifact byte identically. It loads no teacher, provider, source weights, H4,
+  SpiralCore, harmonic, placement, transport, or attention mechanism. This is
+  a statistical lexical baseline, not semantics, attention, geometry,
+  correctness, reasoning, chat, or release evidence. Its frozen artifact is
+  the fixed comparator for one later matched #953 geometric intervention.
 - **Table-native semantic-value comparator** — a non-geometric candidate-value
   engine compiled from the same source-free construction observations and
   evaluated with the same natural candidates, information, and work as the
@@ -213,17 +224,15 @@ one another.
   state, and eventually decode bytes. Reachable attention is one input to
   inference; it is not coherent generation by itself.
 - **Geometric-intelligence sequence** — lexical ingestion, canonical
-  serialization, and address membership are prerequisite plumbing. Delivery
-  then proceeds in this order: one qualified local causal-path mechanism
-  (#969); one completed-negative construction-transfer probe (#983); one
-  completed-unavailable corpus/frame qualifier (#986); one freshly frozen
-  population/frame successor (not yet authored); one
-  bounded decoded generation loop with repaired admission (#953);
-  paragraph, conversation, and global exact-spin operator qualification through
-  that loop plus controlled higher-scope/corpus-scale induction and final
-  requalification (#973);
+  serialization, and address membership are prerequisite plumbing. The current
+  delivery order is the established source-free table-native lexical baseline
+  (B0/#989), then exactly one #953 geometric intervention under the same
+  corpus, support, decode, and work budget; paragraph, conversation, and
+  global exact-spin operator qualification through that loop plus controlled
+  higher-scope/corpus-scale induction and final requalification (#973);
   correctness with abstention (#954); then bounded hypothetical-branch reasoning
-  (#955).
+  (#955). #969, #983, and #986 remain evidence provenance rather than a
+  parallel implementation queue.
   Evidence may not skip a stage or count prerequisite plumbing as inference.
 - **Correctness** — agreement with an independent task oracle, executable
   constraint, cited source, or other predeclared ground truth, reported with

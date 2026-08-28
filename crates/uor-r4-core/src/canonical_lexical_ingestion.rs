@@ -830,6 +830,28 @@ fn segment_paragraph(bytes: &[u8]) -> Result<(Vec<RawSegment>, Vec<u8>), Canonic
     Ok((segments, bytes[boundary_start..].to_vec()))
 }
 
+/// Split UTF-8 text with the canonical lexical-run rule while making every
+/// returned piece independently decodable.
+///
+/// Each non-whitespace run owns the whitespace immediately before it. A
+/// trailing whitespace-only suffix is its own final piece. Concatenating the
+/// returned pieces therefore reproduces `bytes` exactly. This is the small,
+/// geometry-free segmentation surface used by the source-free table baseline;
+/// it deliberately reuses the codec's established Unicode boundary rule.
+pub fn canonical_lexical_piece_bytes(bytes: &[u8]) -> Result<Vec<Vec<u8>>, CanonicalLexicalError> {
+    let (segments, trailing) = segment_paragraph(bytes)?;
+    let mut pieces = Vec::with_capacity(segments.len() + usize::from(!trailing.is_empty()));
+    for segment in segments {
+        let mut piece = segment.leading;
+        piece.extend_from_slice(&segment.surface);
+        pieces.push(piece);
+    }
+    if !trailing.is_empty() {
+        pieces.push(trailing);
+    }
+    Ok(pieces)
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 struct ContentBlob {
     cid: String,

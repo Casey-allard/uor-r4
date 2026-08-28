@@ -93,7 +93,18 @@ Do not create a new test framework for routine confidence.
 
 The experiment must be able to change the next programme decision:
 
-- **Follow the GI sequence.** GI-1 makes lexical/address state reversible;
+- **Preserve the established B0 reference.** #989 reached
+  `ESTABLISH_TABLE_NATIVE_LEXICAL_BASELINE`: 99,362/446,342 (22.261404%)
+  held-out table top-1 versus 24,163/446,342 (5.413561%) unigram, a
+  +16.847843-point uplift, with bounded exact decoding and byte-identical full
+  replay. This is statistical lexical prediction, not semantics, attention,
+  geometry, correctness, reasoning, chat, or release evidence. Exactly one
+  later #953 intervention may use the frozen corpus, support, decode, table
+  artifact, and work budget; #973 remains blocked. Do not start another H4,
+  SpiralCore, harmonic, algebraic, placement, transport, higher-scope, or scale
+  probe. See the [#989 record](docs/source_free_table_baseline_989.md).
+- **Preserve the GI evidence lineage.** GI-1 makes lexical/address state
+  reversible;
   #952 found the reusable ordered-state defect; A1R/#967 repaired the fold but
   terminated `RETAIN_STATE_ONLY` after its scalar readout tied distinct
   candidate-relative states on 6/6 queries; A1P/#970's target-free paired-H4
@@ -125,14 +136,17 @@ The experiment must be able to change the next programme decision:
   `UNAVAILABLE_FRAME_OR_POPULATION`: its raw corpus reproduced, but the exact
   corpus-scale codec/pair commitment and complete same-frame lexical
   Cl(0,6)/SpiralCore operator map were unavailable. Gate 0, labels, selection,
-  and #953 were `NOT_RUN`. #953 remains parked, unassigned, and untouched until
-  a freshly frozen population/frame successor independently qualifies. A1Q-H/
-  #973 and GI-4/#954 remain blocked, with GI-5/#955 downstream.
-- **Exercise the real route path.** Geometry must run before token choice and
-  emit its admitted support and energy trace. Add a global-context coverage
-  witness when the active issue, beginning with #973, activates higher scopes.
-- **Use the smallest falsifier.** Start with a bounded source-free route
-  fixture, hierarchy intervention, or held-out continuation before adding data.
+  and #953 were `NOT_RUN`. That pre-reset handoff left #953 parked pending a
+  fresh successor; the established B0/#989 result above supersedes that action.
+  A1Q-H/#973 and GI-4/#954 remain blocked, with GI-5/#955 downstream.
+- **Exercise the real route path only when reactivated.** When a later #953
+  issue activates the one matched intervention, geometry must
+  run before token choice and emit its admitted support and energy trace. Add a
+  global-context coverage witness only when #973 is eligible and active.
+- **Use the smallest falsifier.** #989 began with its bounded natural lexical
+  fixture before the declared real corpus run. The one permitted #953
+  intervention must begin with its own bounded matched falsifier before any
+  broader data or mechanism work.
 - **Parallelize deterministic corpus work.** Partition by content identity,
   use all available local workers with canonical ordered reductions, and
   compare independent multithreaded rebuilds. Do not launch a long experiment

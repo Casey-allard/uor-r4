@@ -14,6 +14,20 @@ local hardware. The project is testing whether language context, inference,
 and reasoning can emerge from routes through a canonical geometric memory. The
 target serving engine uses no Ollama, hosted model, or source-model weights.
 
+> **Current capability-first result (2026-08-28):** #989 established the
+> deterministic source-free lexical table baseline. On 446,342 held-out known
+> targets it scored 22.261404% top-1 versus 5.413561% for unigram, a
+> +16.847843-point uplift. Two complete 3,000-document executions produced
+> identical reports and artifacts. The fixed prompt `The United States`
+> decoded 16 units as
+> `. It is the most important thing to do so.\n 1985 – The first people` and
+> stopped at the cap without a period-1/2 cycle. This is a statistical lexical
+> baseline, not semantics, attention, geometry, correctness, reasoning, chat,
+> or release evidence. Its artifact is now the fixed non-geometric reference
+> for exactly one later #953 intervention under matched corpus, support, decode,
+> and work; #973 remains blocked. See the
+> [#989 evidence record](docs/source_free_table_baseline_989.md).
+
 > **Honest status:** the geometric storage/identity foundation, one bounded
 > causal R4/S3 path selector, and reusable provider-free decode/render/append
 > plumbing exist. The first #953 smoke was an exact lexical relabel of #969, so
@@ -32,9 +46,9 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > `UNAVAILABLE_FRAME_OR_POPULATION`: the pinned raw corpus reproduced, but its
 > exact #986 codec/pair commitment and a complete same-frame lexical SpiralCore
 > operator map were unavailable. Placement, diffusion, Gate 0, calibration,
-> sealed labels, selection, and #953 were `NOT_RUN`. #953 remains parked,
-> unassigned, and untouched pending a newly frozen population/frame successor;
-> #973 and #954 remain blocked.
+> sealed labels, selection, and #953 were `NOT_RUN`. The later established #989
+> result now permits one matched #953 intervention; #973 and #954 remain
+> blocked.
 > Higher-scope attention, correct answers, and reasoning do not exist yet. The
 > dashboard is an interactive window into the research substrate, not a
 > frontier model or a ChatGPT replacement.
@@ -67,6 +81,24 @@ To run the one fixed canonical-ingestion witness:
 ```bash
 cargo run --bin r4 -- lexical-ingestion-witness
 ```
+
+To compile and evaluate the established #989 source-free lexical table path:
+
+```bash
+cargo run --bin r4 -- source-free-table \
+  --corpus /path/to/articles.jsonl \
+  --prompt "The United States" \
+  --continuation-cap 16 \
+  --artifact-out /path/to/source-free-table.bin \
+  --json
+```
+
+The corpus directory must also contain its pinned `manifest.json`. The command
+uses only the D3 construction partition for its vocabulary and integer
+unigram/bigram/trigram counts, evaluates held-out next-unit prediction, writes
+the deterministic packed artifact, and emits the exact decoded continuation.
+It is a statistical lexical baseline command, not an attention, semantic,
+correctness, chat, or release surface.
 
 To reproduce the bounded A1R associative ordered-summary decision:
 
@@ -266,12 +298,16 @@ the current product path and are not prerequisites for trying the dashboard.
 The programme is deliberately sequential so that infrastructure and testing do
 not become substitutes for working intelligence:
 
-1. **Make language reversible in geometry** — lexical codec, canonical route
-   hierarchy, serialization, and reconstruction.
-2. **Qualify semantic placement and local attention** — corpus-induced value
-   must transfer, then signed candidate-relative exact transport must causally
-   improve selection beyond matched controls and a table-native comparator.
-3. **Generate coherent text** — source-free grammar and next-route decoding.
+1. **Retain the established source-free table baseline (#989)** — 22.261404%
+   held-out top-1 versus 5.413561% unigram on 446,342 known targets, exact
+   bounded decoding, and byte-identical replay. Preserve its artifact and claim
+   boundary as a statistical lexical reference.
+2. **Compare one geometric intervention (#953)** — keep #989's corpus, support,
+   decode, and work fixed while exactly one geometric term competes against the
+   frozen table reference.
+3. **Qualify higher-scope attention (#973)** — only through an accepted #953
+   path; historical placement and transport probes remain evidence, not Now
+   work.
 4. **Establish correctness** — relevance, contradiction handling, and honest
    abstention.
 5. **Establish reasoning** — bounded multi-step route composition.
@@ -283,10 +319,10 @@ sequence so each new mechanism can become visible before the final engine is
 complete.
 
 The active dependency chain is tracked in
-[#820](https://github.com/UOR-Foundation/uor-r4/issues/820). #986 is closed at
-its pre-sealed unavailable terminal. There is no eligible local implementation
-stage until a fresh population/frame successor is frozen. #953 remains parked;
-#973 and #954 remain blocked downstream of #953, and #954 also depends on #973.
+[#820](https://github.com/UOR-Foundation/uor-r4/issues/820). #989 established
+the frozen table reference; exactly one matched #953 intervention is the only
+permitted local successor. #973 and #954 remain blocked downstream of #953,
+and #954 also depends on #973.
 
 ## Find your way around
 

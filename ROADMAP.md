@@ -36,8 +36,9 @@ closed as negative evidence. A1Q-L3/#986 then stopped
 corpus-scale codec/three-way pair commitment or complete same-frame lexical
 SpiralCore operator map was available. Placement, diffusion, Gate 0, labels,
 selection, and #953 were `NOT_RUN`. #986 is closed; parked, unassigned,
-untouched #953 remains ineligible pending a freshly frozen population/frame
-successor and continues to block #973 and #954._
+untouched #953 is now limited to one matched intervention against the
+established B0/#989 table baseline and continues to block #973 and #954. #989
+closed its frozen decision at `ESTABLISH_TABLE_NATIVE_LEXICAL_BASELINE`._
 
 > **Project priority:** build source-free geometric intelligence in which the
 > route is the data location. A pinned lexical codec supplies text boundaries;
@@ -76,7 +77,8 @@ successor and continues to block #973 and #954._
 > exact population and lexical SpiralCore frame were unavailable. It stopped
 > before placement or labels; no table or geometric arm transferred. A new
 > local attempt must freeze a population/frame successor rather than retry
-> #986. Once #953 is accepted and every required #973 scope
+> #986. That pre-reset handoff is retained as history; B0/#989 now supersedes
+> it. Once #953 is accepted and every required #973 scope
 > qualifies, a separately frozen higher-scope/corpus-scale offline induction
 > ladder may compile causal prefix-to-observed-next-route examples, multiscale
 > route summaries, versioned placement overlays that preserve immutable
@@ -107,10 +109,21 @@ successor and continues to block #973 and #954._
 
 Native GitHub relationships are the source of truth:
 
-The current priority view is **Now:** freeze no implementation until a fresh
-population/frame successor is authored; **Parked:** #953 → #973 → #954;
-**Later:** #955 → #962 → #963 → #964 → #965. The completed #986 feasibility
-boundary is recorded in the
+The current priority view is **Established baseline:** #989 at
+`ESTABLISH_TABLE_NATIVE_LEXICAL_BASELINE`; **Next permitted:** exactly one #953
+geometric intervention against that frozen reference; **Blocked:** #973 → #954;
+**Later:** #955 → #962 → #963 → #964 → #965.
+
+This capability-first reset supersedes the old forward action implied by the
+numbered evidence ladder below without rewriting that history. #989 scored
+99,362/446,342 (22.261404%) held-out top-1 versus 24,163/446,342 (5.413561%)
+for unigram, an uplift of +16.847843 percentage points, with byte-identical
+double execution. Freeze its non-geometric table engine, corpus, support,
+decode, and work budget. Do not start another attention, H4, SpiralCore,
+harmonic, algebraic, placement, transport, higher-scope, or scale probe outside
+the one matched #953 intervention. See the
+[#989 evidence](docs/source_free_table_baseline_989.md); the completed #986
+feasibility boundary remains in the
 [#986 evidence](docs/corpus_signed_transport_attention_986.md).
 
 1. **GI-0 — retain #958 foundation:** keep the schema-2 manifest, bounded route
@@ -310,10 +323,9 @@ boundary is recorded in the
    frozen construction-induced placement overlay reproduced its exact classes,
    but real placement chose `run/runs` (0/2 intended) while the cyclic
    placement-permuted control chose `runs/run` (2/2); generation therefore
-   remained `NOT_RUN`. #953 is now a parked, unassigned, untouched integration
-   regression. Only a newly frozen successor that independently qualifies a
-   local semantic selector may be applied there in a later session, unchanged
-   and behind a new label-free preflight. Harmonic
+   remained `NOT_RUN`. #953 is a preserved integration regression. Established
+   B0/#989 now permits exactly one later intervention against its frozen table
+   reference under matched corpus, support, decode, and work. Harmonic
    influence remains dormant in #953. See the
    [#953 record](docs/local_geometric_generation_953.md).
 9. **GI-2 A1Q-H / #973 — higher-scope attention:** after the accepted local
@@ -373,11 +385,10 @@ plumbing and tiered admission remain preserved, but its known placement
 population is quarantined after 0/2 real versus 2/2 placement-permuted and
 decoded generation/replay `NOT_RUN`. #983 is closed bounded negative evidence
 after its independent Gate 0 transferred on 0/6 decisions. #986 is also closed
-at its pre-sealed population/frame unavailable terminal. No local
-implementation issue is eligible until a fresh successor is frozen. The live
-sequence is closed #967/#970/#969/#983/#986 → parked #953 → blocked #973 →
-blocked #954 → #955 → #962–#965. #953 continues to block #973 and #954; #973
-continues to block #954.
+at its pre-sealed population/frame unavailable terminal. #989 has now
+established the frozen table reference. The live sequence is established #989
+→ exactly one matched #953 intervention → blocked #973 → blocked #954 → #955 →
+#962–#965. #953 continues to block #973 and #954; #973 continues to block #954.
 Legacy tracker #949 is closed as
 superseded; #958 is retained directly under programme root #820 as GI-0
 foundation.
@@ -386,12 +397,19 @@ The old S5–S7 and F0 issues are closed not planned/not triggered. R4G1/TLA,
 XOR/popcount, W(3,3), proof, conformance, and release work remains preserved as
 historical evidence and comparators.
 
-## Now
+## Established baseline and only permitted successor
 
-- [ ] **Fresh population/frame successor — not yet authored.** Before any local
-  semantic selector can run, a new issue must freeze a source-free corpus-scale
-  codec plus exact three-way pair commitment and a complete same-frame lexical
-  SpiralCore operator map. Do not resume #986 or #953 to invent either contract.
+- [x] **#989 B0 source-free table-native lexical baseline — established.** The
+  3,000-document D3 run produced 116,061 lexical routes and a 35,655,288-byte
+  artifact at
+  `blake3:ccdc399731cb866a329be478467a434cda4e445813421e5d17c21ccc87288297`.
+  Table top-1 was 22.261404% versus 5.413561% unigram, the fixed prompt emitted
+  16 valid UTF-8 units without a period-1/2 cycle, and full replay was byte
+  identical. This establishes statistical lexical prediction and decoding
+  only.
+- [ ] **#953 — exactly one matched geometric intervention.** Hold #989's
+  corpus, support, decode, table artifact, and work fixed. No broader geometry
+  or attention programme is eligible; #973 remains blocked.
 
 ## Completed negative
 
@@ -411,11 +429,9 @@ historical evidence and comparators.
 ## Parked
 
 - [ ] **#953 bounded source-free geometric generation loop** — preserved at
-  historical terminal `REVISE_I1_GENERATOR_IN_PLACE`, open and unassigned. Its
-  fixture, placement overlay, decoded loop, and records remain untouched while
-  no accepted semantic selector exists. Only a newly frozen successor that
-  independently qualifies a local semantic selector may later authorize a
-  separate #953 session beginning with a new label-free preflight. #953
+  historical terminal `REVISE_I1_GENERATOR_IN_PLACE`, open and unassigned.
+  Established B0/#989 authorizes exactly one intervention against its frozen
+  table reference under matched corpus, support, decode, and work. #953
   continues to block #973 and #954.
 
 ## Landed

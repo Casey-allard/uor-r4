@@ -14,6 +14,23 @@ Measurements retain their pre-declared exit rule and durable issue/record
 reference; design targets remain explicitly labeled as definitions,
 assumptions, or objectives rather than measured results.
 
+> **Established capability-first result, 2026-08-28 (#989).** #989 reached
+> `ESTABLISH_TABLE_NATIVE_LEXICAL_BASELINE`. Its deterministic construction-only
+> table scored 99,362/446,342 (22.261404%) held-out top-1 versus
+> 24,163/446,342 (5.413561%) for unigram, an uplift of +16.847843 percentage
+> points. The 35,655,288-byte artifact at
+> `blake3:ccdc399731cb866a329be478467a434cda4e445813421e5d17c21ccc87288297`
+> and the full report replayed byte identically across two complete executions.
+> The fixed prompt emitted 16 valid UTF-8 units without a period-1/2 cycle.
+> This establishes a statistical lexical prediction and exact-decoding
+> baseline, not semantics, coherent generation, attention, geometry,
+> correctness, reasoning, chat, performance, or release readiness. Freeze it as
+> the non-geometric reference for exactly one matched #953 intervention; #973
+> remains blocked. See the
+> [#989 evidence record](source_free_table_baseline_989.md). This notice
+> supersedes forward-looking actions in the dated ledger below without
+> rewriting their measurements or terminals.
+
 > **Forward sequencing** now lives in the
 > [Geometric Intelligence Programme](geometric_intelligence_programme.md).
 > The geometric causal decoder roadmap and S0–S7 completion plan are retained
@@ -46,9 +63,9 @@ assumptions, or objectives rather than measured results.
 > #986 then closed `UNAVAILABLE_FRAME_OR_POPULATION`: its raw corpus
 > reproduced, but the exact corpus-scale codec/pair commitment and complete
 > same-frame lexical SpiralCore frame were unavailable. Placement, Gate 0,
-> labels, all arms, and #953 were `NOT_RUN`. Parked, unassigned, untouched #953
-> now awaits a freshly frozen population/frame successor; #953 continues to
-> block #973 and #954; and #973 continues to block #954.
+> labels, all arms, and #953 were `NOT_RUN`. The later established B0/#989
+> result now permits one matched #953 intervention; #953 continues to block
+> #973 and #954, and #973 continues to block #954.
 > Legacy
 > tracker #949 is closed as superseded, and #958 is retained directly beneath
 > #820 as GI-0 foundation. Two
@@ -1160,10 +1177,10 @@ and the sealed strict ceiling were both 0/6. It stopped
 `UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER` before deployed selection, payload
 inversion, or #953 generation and is now closed bounded negative evidence.
 #986 also closed at `UNAVAILABLE_FRAME_OR_POPULATION` before placement, labels,
-or selection. Parked, unassigned, untouched #953 awaits a freshly frozen
-population/frame successor; #953 continues to block #973/#954, and #973
-continues to block #954. Any eventual accepted local semantic selector must be
-independently qualified by that successor. #955 invokes that accepted selector/
+or selection. Established B0/#989 now permits exactly one matched #953
+intervention; #953 continues to block #973/#954, and #973 continues to block
+#954. That intervention must use the frozen #989 table reference under its
+matched contract. #955 invokes that accepted selector/
 #953/#973/#954 consumer; #962 integrates the accepted selector/#953/#973 path
 into product chat with persisted identity-scoped hive memory. #963 retains
 measured cost; #964 binds evidence provenance #970 → #969 → #983 → #986 plus

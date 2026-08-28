@@ -43,14 +43,35 @@ compiler/query frame identity. #986 therefore closed
 selection, or #953. #953 remains parked, unassigned, and untouched; it is not
 eligible merely because its completed native blocker is now closed. Do not add
 a second representation under #983/#986, reuse their populations, or resume
-#953. A new local attempt first requires a freshly frozen population/frame
-successor issue. The completed evidence chain is #983 → #986; downstream
-#953 → #973 → #954 → #955 → #962–#965 remains parked. The complete #986 result
-and nonclaim boundary is
+#953. The pre-reset handoff called for a fresh population/frame successor; the
+capability-first section below supersedes that forward action with B0/#989. The
+completed evidence chain remains #983 → #986; downstream #953 → #973 → #954 →
+#955 → #962–#965 remains parked. The complete #986 result and nonclaim boundary
+is
 [`docs/corpus_signed_transport_attention_986.md`](docs/corpus_signed_transport_attention_986.md).
 Terminology lives in
 `docs/transformerless/GLOSSARY.md`. Keep this file current when conventions
 change.
+
+## Capability-first baseline — #989 established
+
+Effective 2026-08-28, #989 established the deterministic source-free
+table-native lexical baseline at
+`ESTABLISH_TABLE_NATIVE_LEXICAL_BASELINE`. Across 446,342 held-out known-target
+positions, the table scored 99,362 (22.261404%) versus 24,163 (5.413561%) for
+unigram, an uplift of +16.847843 percentage points. The 35,655,288-byte
+artifact is frozen at
+`blake3:ccdc399731cb866a329be478467a434cda4e445813421e5d17c21ccc87288297`;
+two complete executions produced identical report bytes and artifacts.
+
+This is a statistical lexical baseline with bounded exact decoding, not
+semantics, attention, geometry, correctness, reasoning, chat, performance, or
+release evidence. Freeze the table artifact and permit exactly one later #953
+geometric intervention under the same corpus, support, decode, and work
+budget. #973 remains blocked behind #953. New H4, SpiralCore, harmonic,
+algebraic, placement, transport, higher-scope, and scale work remains dormant
+outside that one intervention. See the
+[#989 evidence record](docs/source_free_table_baseline_989.md).
 
 ## What this repo is
 
@@ -279,16 +300,16 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
   #986 then stopped `UNAVAILABLE_FRAME_OR_POPULATION`: its raw corpus
   reproduced, but the exact population/codec commitment and a complete
   same-frame lexical SpiralCore operator map were unavailable. Placement,
-  Gate 0, labels, selection, and #953 were `NOT_RUN`. #953 stays parked,
-  unassigned, and untouched pending a newly frozen population/frame successor;
-  #973 and #954 remain blocked.
+  Gate 0, labels, selection, and #953 were `NOT_RUN`. #953 is now on hold behind
+  B0/#989; #973 and #954 remain blocked.
   #954 and #955 own correctness and reasoning respectively.
   #962 owns durable multi-turn CLI/HTTP chat, persistence, isolation, and
   hive-memory; #963–#965 then own optimization, formal closure, and release.
-- Sequence strictly: lexical/address plumbing → bounded corpus semantic-
-  placement transfer → candidate-relative signed transport qualification →
-  source-free grammatical inference/generation → higher-scope attention →
-  correctness/abstention → reasoning → optimization/purity/release.
+- Sequence strictly from the current reset: working source-free table baseline
+  (#989, established) → exactly one matched geometric intervention in #953 →
+  higher-scope attention (#973) → correctness/abstention → reasoning →
+  optimization/purity/release. The older placement/transport
+  sequence is retained as evidence, not an active implementation queue.
 - Kappa is canonical identity/serialization, never the tokenizer or semantic
   distance. The pinned lexical codec is provenance-bound but opens no weights.
 - Preserve the project shorthand `E8 = H4 x H4`. Its concrete implementation

@@ -15,6 +15,7 @@ pub mod prime_route_attention;
 pub mod prime_route_geometric_attention;
 pub mod recursive_geometric_attention;
 pub mod semantic;
+pub mod source_free_table;
 pub mod spiralcore_operator;
 pub mod transformerless;
 pub mod zeta_projection;

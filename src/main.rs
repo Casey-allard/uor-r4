@@ -1,4 +1,6 @@
 use clap::{Args, Parser, Subcommand, ValueEnum};
+use serde::{Deserialize, Serialize};
+use std::collections::BTreeSet;
 use std::fmt;
 use std::io::{self, BufRead, Write};
 use std::path::{Path, PathBuf};
@@ -7,6 +9,9 @@ use std::time::Duration;
 use uor_r4_api::{BundleCapability, UorMatmulProvenance};
 use uor_r4_core::local_geometric_generation::{
     LocalGenerationControl, LocalGenerationStopReason, LocalGeometricGenerator,
+};
+use uor_r4_core::source_free_table::{
+    d3_is_held_out, ContinuationStop, SourceDocument, SourceFreeTable,
 };
 use uor_r4_core::transformerless::hf_bpe::{resolve_source_tokenizer, TokenizerAdapterKey};
 use uor_r4_graph_cli as transformerless_command;
@@ -26,7 +31,7 @@ use uor_r4_wasm_router::tless_uor;
     name = "r4",
     version,
     about,
-    long_about = "Inspect the current geometric router or launch its local research dashboard.\n\nThe demo remains route-only. `bounded-geometric-generate` exercises the accepted #969 local selector through the bounded #953 decoded loop; it does not establish correctness, reasoning, higher-scope attention, product chat, or release readiness. Preserved compiler and certification commands remain available through `r4 research-tools`."
+    long_about = "Build the current source-free lexical table baseline or inspect the preserved geometric router.\n\n`source-free-table` is the active capability-first path: it learns construction-only integer lexical transition tables, measures held-out next-route choices, and emits bounded decoded text. It is a statistical lexical baseline, not semantics, attention, correctness, reasoning, product chat, or release readiness. Preserved compiler and certification commands remain available through `r4 research-tools`."
 )]
 struct Cli {
     /// Increase log verbosity (-v info, -vv debug, -vvv trace).
@@ -102,6 +107,8 @@ enum Command {
     Route(RouteArgs),
     /// Run the bounded #953 provider-free decoded geometric generation witness.
     BoundedGeometricGenerate(BoundedGeometricGenerateArgs),
+    /// Build and measure the #989 source-free lexical table baseline.
+    SourceFreeTable(SourceFreeTableArgs),
     /// Run the fixed S0 lexical/route-state round-trip witness without loading a model.
     LexicalIngestionWitness,
     /// Run the frozen A1.0 ordered-state/value-reachability gate without a scorer.
@@ -274,6 +281,29 @@ struct BoundedGeometricGenerateArgs {
     control: BoundedGeometricControl,
 
     /// Emit the generator's deterministic canonical JSON report.
+    #[arg(long)]
+    json: bool,
+}
+
+#[derive(Args, Debug)]
+struct SourceFreeTableArgs {
+    /// Pinned JSONL corpus: one object per line with `id` and UTF-8 `text`.
+    #[arg(long, value_name = "ARTICLES_JSONL")]
+    corpus: PathBuf,
+
+    /// Exact prompt bytes to continue through the fitted lexical tables.
+    #[arg(long, value_name = "PROMPT")]
+    prompt: String,
+
+    /// Hard maximum number of emitted continuation lexical units.
+    #[arg(long, value_name = "UNITS")]
+    continuation_cap: usize,
+
+    /// Optional destination for the deterministic packed table artifact.
+    #[arg(long, value_name = "FILE")]
+    artifact_out: Option<PathBuf>,
+
+    /// Emit the deterministic measurement report as JSON.
     #[arg(long)]
     json: bool,
 }
@@ -1334,6 +1364,330 @@ fn bounded_geometric_generate(args: &BoundedGeometricGenerateArgs) -> Result<(),
     Ok(())
 }
 
+const SOURCE_FREE_TABLE_REPORT_SCHEMA: &str = "uor-r4-source-free-table-report/1";
+const SOURCE_FREE_TABLE_POSITIVE: &str = "NUMERIC_BASELINE_GATE_MET_PENDING_REPLAY_BINDING";
+const SOURCE_FREE_TABLE_NEGATIVE: &str = "REPAIR_LEXICAL_REPRESENTATION_OR_COUNT_OBJECTIVE";
+
+#[derive(Debug, Deserialize)]
+struct SourceFreeCorpusArticle {
+    id: String,
+    text: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct SourceFreeCorpusManifest {
+    article_count: usize,
+    corpus_cid: String,
+}
+
+#[derive(Debug, Serialize)]
+struct SourceFreeClosureCounters {
+    teacher_calls: u64,
+    provider_calls: u64,
+    source_weight_reads: u64,
+    geometry_operations: u64,
+}
+
+#[derive(Debug, Serialize)]
+struct SourceFreeCriteria {
+    pinned_three_thousand_documents: bool,
+    at_least_one_hundred_thousand_known_targets: bool,
+    nonzero_context_coverage: bool,
+    at_least_five_percentage_point_uplift: bool,
+    continuation_at_least_four_units: bool,
+    continuation_has_no_period_one_or_two_cycle: bool,
+    continuation_is_utf8: bool,
+    external_byte_identical_replay_required: bool,
+}
+
+#[derive(Debug, Serialize)]
+struct SourceFreeContinuationReport {
+    prompt: String,
+    continuation_cap: usize,
+    emitted_units: usize,
+    decoded_text: String,
+    stop: &'static str,
+}
+
+#[derive(Debug, Serialize)]
+struct SourceFreeTableReport {
+    schema: &'static str,
+    decision: &'static str,
+    capability: &'static str,
+    nonclaims: &'static str,
+    corpus_cid: String,
+    manifest_cid: String,
+    document_count: usize,
+    construction_documents: usize,
+    held_out_documents: usize,
+    unique_document_ids: usize,
+    lexical_routes: usize,
+    artifact_bytes: usize,
+    artifact_cid: String,
+    held_out_encoded_positions: u64,
+    held_out_known_target_positions: u64,
+    table_correct: u64,
+    unigram_correct: u64,
+    table_top1_percent: String,
+    unigram_top1_percent: String,
+    uplift_percentage_points: String,
+    trigram_choices: u64,
+    bigram_choices: u64,
+    unigram_choices: u64,
+    changed_choices: u64,
+    changed_choice_correct: u64,
+    continuation: SourceFreeContinuationReport,
+    source_closure: SourceFreeClosureCounters,
+    criteria: SourceFreeCriteria,
+}
+
+#[derive(Debug, Serialize)]
+struct SourceFreeTableEnvelope {
+    report_payload_cid: String,
+    report: SourceFreeTableReport,
+}
+
+fn source_free_table(args: &SourceFreeTableArgs) -> Result<(), RunError> {
+    let corpus_bytes = std::fs::read(&args.corpus).map_err(|error| {
+        RunError::Command(format!(
+            "read source-free corpus {}: {error}",
+            args.corpus.display()
+        ))
+    })?;
+    let corpus_cid = format!("blake3:{}", blake3::hash(&corpus_bytes).to_hex());
+    let manifest_path = args
+        .corpus
+        .parent()
+        .unwrap_or_else(|| Path::new("."))
+        .join("manifest.json");
+    let manifest_bytes = std::fs::read(&manifest_path).map_err(|error| {
+        RunError::Command(format!(
+            "read source-free corpus manifest {}: {error}",
+            manifest_path.display()
+        ))
+    })?;
+    let manifest: SourceFreeCorpusManifest =
+        serde_json::from_slice(&manifest_bytes).map_err(|error| {
+            RunError::Command(format!(
+                "parse source-free corpus manifest {}: {error}",
+                manifest_path.display()
+            ))
+        })?;
+    if manifest.corpus_cid != corpus_cid {
+        return Err(RunError::Command(format!(
+            "corpus CID mismatch: manifest {} != actual {corpus_cid}",
+            manifest.corpus_cid
+        )));
+    }
+
+    let mut documents = Vec::new();
+    let mut unique_ids = BTreeSet::new();
+    let jsonl_line_count = corpus_bytes.split(|byte| *byte == b'\n').count();
+    for (line_index, line) in corpus_bytes.split(|byte| *byte == b'\n').enumerate() {
+        if line.is_empty() && line_index + 1 == jsonl_line_count {
+            continue;
+        }
+        if line.is_empty() {
+            return Err(RunError::Command(format!(
+                "empty JSONL row at line {}",
+                line_index + 1
+            )));
+        }
+        let article: SourceFreeCorpusArticle = serde_json::from_slice(line).map_err(|error| {
+            RunError::Command(format!(
+                "parse source-free corpus line {}: {error}",
+                line_index + 1
+            ))
+        })?;
+        if !unique_ids.insert(article.id.clone()) {
+            return Err(RunError::Command(format!(
+                "duplicate source-free corpus article id {}",
+                article.id
+            )));
+        }
+        documents.push(SourceDocument::new(article.id, article.text.into_bytes()));
+    }
+    if documents.len() != manifest.article_count {
+        return Err(RunError::Command(format!(
+            "manifest article_count {} != parsed document count {}",
+            manifest.article_count,
+            documents.len()
+        )));
+    }
+    documents.sort_by(|left, right| left.id.cmp(&right.id));
+    let (held_out, construction): (Vec<_>, Vec<_>) = documents
+        .into_iter()
+        .partition(|document| d3_is_held_out(&document.id));
+
+    let table = SourceFreeTable::compile(&construction)
+        .map_err(|error| RunError::Command(format!("compile source-free table: {error}")))?;
+    let evaluation = table
+        .evaluate_held_out(&held_out)
+        .map_err(|error| RunError::Command(format!("evaluate source-free table: {error}")))?;
+    let continuation = table
+        .continue_text(args.prompt.as_bytes(), args.continuation_cap)
+        .map_err(|error| RunError::Command(format!("continue source-free table: {error}")))?;
+    let continuation_utf8 = String::from_utf8(continuation.decoded.clone()).map_err(|error| {
+        RunError::Command(format!("source-free continuation is not UTF-8: {error}"))
+    })?;
+    let artifact_bytes = table.to_bytes();
+    let artifact_cid = format!("blake3:{}", blake3::hash(&artifact_bytes).to_hex());
+    if let Some(path) = &args.artifact_out {
+        std::fs::write(path, &artifact_bytes).map_err(|error| {
+            RunError::Command(format!(
+                "write source-free table artifact {}: {error}",
+                path.display()
+            ))
+        })?;
+    }
+
+    let no_short_cycle = !matches!(
+        continuation.stop,
+        ContinuationStop::PeriodOneCycle | ContinuationStop::PeriodTwoCycle
+    );
+    let context_choices = evaluation
+        .trigram_choices
+        .checked_add(evaluation.bigram_choices)
+        .ok_or_else(|| RunError::Command("context choice count overflow".to_owned()))?;
+    let five_point_uplift = u128::from(evaluation.table_correct) * 20
+        >= u128::from(evaluation.unigram_correct) * 20
+            + u128::from(evaluation.known_target_positions);
+    let criteria = SourceFreeCriteria {
+        pinned_three_thousand_documents: manifest.article_count == 3_000
+            && construction.len() + held_out.len() == 3_000,
+        at_least_one_hundred_thousand_known_targets: evaluation.known_target_positions >= 100_000,
+        nonzero_context_coverage: context_choices > 0,
+        at_least_five_percentage_point_uplift: five_point_uplift,
+        continuation_at_least_four_units: continuation.tokens.len() >= 4,
+        continuation_has_no_period_one_or_two_cycle: no_short_cycle,
+        continuation_is_utf8: true,
+        external_byte_identical_replay_required: true,
+    };
+    let numeric_gate_met = criteria.pinned_three_thousand_documents
+        && criteria.at_least_one_hundred_thousand_known_targets
+        && criteria.nonzero_context_coverage
+        && criteria.at_least_five_percentage_point_uplift
+        && criteria.continuation_at_least_four_units
+        && criteria.continuation_has_no_period_one_or_two_cycle;
+    let report = SourceFreeTableReport {
+        schema: SOURCE_FREE_TABLE_REPORT_SCHEMA,
+        decision: if numeric_gate_met {
+            SOURCE_FREE_TABLE_POSITIVE
+        } else {
+            SOURCE_FREE_TABLE_NEGATIVE
+        },
+        capability: "construction-trained source-free lexical table prediction and bounded decoding",
+        nonclaims: "does not establish semantics, attention, geometry, correctness, reasoning, chat quality, multiplication-free serving, performance superiority, or release readiness",
+        corpus_cid,
+        manifest_cid: format!("blake3:{}", blake3::hash(&manifest_bytes).to_hex()),
+        document_count: construction.len() + held_out.len(),
+        construction_documents: construction.len(),
+        held_out_documents: held_out.len(),
+        unique_document_ids: unique_ids.len(),
+        lexical_routes: table.lexical_piece_count(),
+        artifact_bytes: artifact_bytes.len(),
+        artifact_cid,
+        held_out_encoded_positions: evaluation.positions,
+        held_out_known_target_positions: evaluation.known_target_positions,
+        table_correct: evaluation.table_correct,
+        unigram_correct: evaluation.unigram_correct,
+        table_top1_percent: fixed_percent(
+            evaluation.table_correct,
+            evaluation.known_target_positions,
+        ),
+        unigram_top1_percent: fixed_percent(
+            evaluation.unigram_correct,
+            evaluation.known_target_positions,
+        ),
+        uplift_percentage_points: fixed_percentage_point_difference(
+            evaluation.table_correct,
+            evaluation.unigram_correct,
+            evaluation.known_target_positions,
+        ),
+        trigram_choices: evaluation.trigram_choices,
+        bigram_choices: evaluation.bigram_choices,
+        unigram_choices: evaluation.unigram_choices,
+        changed_choices: evaluation.changed_choices,
+        changed_choice_correct: evaluation.changed_choice_correct,
+        continuation: SourceFreeContinuationReport {
+            prompt: args.prompt.clone(),
+            continuation_cap: args.continuation_cap,
+            emitted_units: continuation.tokens.len(),
+            decoded_text: continuation_utf8,
+            stop: source_free_continuation_stop(continuation.stop),
+        },
+        source_closure: SourceFreeClosureCounters {
+            teacher_calls: 0,
+            provider_calls: 0,
+            source_weight_reads: 0,
+            geometry_operations: 0,
+        },
+        criteria,
+    };
+    let report_payload = serde_json::to_vec(&report)
+        .map_err(|error| RunError::Command(format!("serialize source-free report: {error}")))?;
+    let envelope = SourceFreeTableEnvelope {
+        report_payload_cid: format!("blake3:{}", blake3::hash(&report_payload).to_hex()),
+        report,
+    };
+
+    if args.json {
+        let mut bytes = serde_json::to_vec_pretty(&envelope).map_err(|error| {
+            RunError::Command(format!("serialize source-free report envelope: {error}"))
+        })?;
+        bytes.push(b'\n');
+        io::stdout().lock().write_all(&bytes)?;
+    } else {
+        println!("source-free lexical table baseline");
+        println!("  decision: {}", envelope.report.decision);
+        println!(
+            "  held-out top-1: {}% table vs {}% unigram ({} pp)",
+            envelope.report.table_top1_percent,
+            envelope.report.unigram_top1_percent,
+            envelope.report.uplift_percentage_points
+        );
+        println!(
+            "  continuation: {}",
+            envelope.report.continuation.decoded_text
+        );
+        println!("  artifact: {}", envelope.report.artifact_cid);
+        println!("  report: {}", envelope.report_payload_cid);
+    }
+    Ok(())
+}
+
+fn fixed_percent(numerator: u64, denominator: u64) -> String {
+    if denominator == 0 {
+        return "0.000000".to_owned();
+    }
+    let scaled = u128::from(numerator) * 100_000_000 / u128::from(denominator);
+    format!("{}.{:06}", scaled / 1_000_000, scaled % 1_000_000)
+}
+
+fn fixed_percentage_point_difference(table: u64, unigram: u64, denominator: u64) -> String {
+    if denominator == 0 {
+        return "0.000000".to_owned();
+    }
+    let difference = i128::from(table) - i128::from(unigram);
+    let scaled = difference * 100_000_000 / i128::from(denominator);
+    let sign = if scaled < 0 { "-" } else { "" };
+    let magnitude = scaled.unsigned_abs();
+    format!(
+        "{sign}{}.{:06}",
+        magnitude / 1_000_000,
+        magnitude % 1_000_000
+    )
+}
+
+fn source_free_continuation_stop(stop: ContinuationStop) -> &'static str {
+    match stop {
+        ContinuationStop::EndOfDocument => "end_of_document",
+        ContinuationStop::PeriodOneCycle => "period_one_cycle",
+        ContinuationStop::PeriodTwoCycle => "period_two_cycle",
+        ContinuationStop::Bound => "continuation_cap",
+    }
+}
+
 fn local_generation_stop_label(reason: LocalGenerationStopReason) -> String {
     match reason {
         LocalGenerationStopReason::Abstained { tie } => format!("abstained(tie={tie})"),
@@ -1346,10 +1700,11 @@ fn local_generation_stop_label(reason: LocalGenerationStopReason) -> String {
 }
 
 fn print_research_tools() {
-    println!("Active route-native mechanism command:");
-    println!("  bounded-geometric-generate");
+    println!("Active capability-first command:");
+    println!("  source-free-table");
     println!();
-    println!("Preserved research commands (not required for the geometric demo):");
+    println!("Preserved research commands (not required for the table baseline):");
+    println!("  bounded-geometric-generate");
     println!("  ask, chat, client, audit");
     println!("  compile, download, import, install-release, package-release-bundle");
     println!("  transformerless, graph, graph-compile, graph-observe");
@@ -1391,6 +1746,7 @@ fn run(cli: &Cli) -> Result<(), RunError> {
         }
         Some(Command::Route(args)) => route_demo(args),
         Some(Command::BoundedGeometricGenerate(args)) => bounded_geometric_generate(args),
+        Some(Command::SourceFreeTable(args)) => source_free_table(args),
         Some(Command::LexicalIngestionWitness) => {
             let witness = uor_r4_core::canonical_lexical_ingestion::run_authorized_probe()
                 .map_err(|error| RunError::Command(error.to_string()))?;
@@ -2999,6 +3355,7 @@ mod tests {
             "demo",
             "route",
             "serve",
+            "source-free-table",
             "bounded-geometric-generate",
             "lexical-ingestion-witness",
             "research-tools",
@@ -3047,6 +3404,35 @@ mod tests {
         assert_eq!(args.prompt, "active  agile athletes run");
         assert_eq!(args.continuation_cap, 2);
         assert_eq!(args.control, BoundedGeometricControl::StateDisabled);
+        assert!(args.json);
+    }
+
+    #[test]
+    fn parses_source_free_table_command_without_rewriting_prompt_bytes() {
+        let cli = Cli::try_parse_from([
+            "r4",
+            "source-free-table",
+            "--corpus",
+            "/tmp/articles.jsonl",
+            "--prompt",
+            "The  United States",
+            "--continuation-cap",
+            "16",
+            "--artifact-out",
+            "/tmp/source-free-table.bin",
+            "--json",
+        ])
+        .unwrap();
+        let Some(Command::SourceFreeTable(args)) = cli.command else {
+            panic!("expected source-free-table")
+        };
+        assert_eq!(args.corpus, PathBuf::from("/tmp/articles.jsonl"));
+        assert_eq!(args.prompt, "The  United States");
+        assert_eq!(args.continuation_cap, 16);
+        assert_eq!(
+            args.artifact_out,
+            Some(PathBuf::from("/tmp/source-free-table.bin"))
+        );
         assert!(args.json);
     }
 
