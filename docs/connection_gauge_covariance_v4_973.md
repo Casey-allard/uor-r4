@@ -298,3 +298,119 @@ merge by Phase III: reproduce both freezes, emit two byte-identical label-free
 prediction streams, open the nonce/preimage once, verify the commitment, and
 score once. Any mechanism, population, frame, control, threshold, or encoding
 repair after this point is V5 with a new population, never a V4 rerun.
+
+## Phase-III one-time reveal — 2026-08-29
+
+Phase II was protected by PR #1001 at
+`a567edd43ec4840c0bce495339c6416777c4c883`. From that exact merge, both
+Phase-I and Phase-II suites reproduced their frozen identities. An inert
+label-free runner then compiled the unchanged 16-document model twice and
+produced two byte-identical 168-record streams over the exact 24 cases and
+seven comparator bindings. Every trace passed the frozen score-gap,
+causal-work, finiteness, tangency, intervention-liveness, and main-arm
+numerical/decision-parity checks. The stream CID was published to #973 before
+the label nonce was opened:
+
+```text
+blake3:037f800b57c5f3d514629799be4a16709d81b1d79de1a3ff64009ace8b239a56
+```
+
+The selected-token masks in frozen case order were:
+
+```text
+H4 baseline           566655556655665566555566
+alternative tangent   566655556655665566555566
+plain fixed           566655556655665566555566
+current only          666666666666666666666666
+order shuffled        656656665556665566566555
+value permuted        556666666666556655666655
+source-gauge mismatch 655556555566555555655555
+```
+
+After publication, the nonce was opened once. The exact 24-row preimage had no
+missing, duplicate, or extra case IDs; every target was in `[5,6]`, every row
+matched the declared predecessor-binding rule, and the balance was `12/12`.
+Re-encoding it reproduced the Phase-II commitment exactly. Scoring then ran
+once by raw case ID, not by implicit row position.
+
+| Arm/control | Correct | Frozen gate | Result |
+| --- | ---: | ---: | --- |
+| H4-compatible | 13/24 | at least 18 | FAIL |
+| Alternative tangent | 13/24 | at least 18 | FAIL |
+| Plain fixed | 13/24 | at least 18 | FAIL |
+| Current only | 12/24 | at most 12 | PASS |
+| Order shuffled | 13/24; drop 0 | drop at least 6 | FAIL |
+| Value permuted | 12/24; drop 1 | drop at least 6 | FAIL |
+| Source-gauge mismatch | 11/24; drop 2 | drop at least 6 | FAIL |
+
+| Evidence identity | CID |
+| --- | --- |
+| Revealed label preimage | `blake3:ef0c916d1aadb7c6093139d8dc8e8b653f35bf917b3293bb3085140f261b76d6` |
+| Salted label commitment | `blake3:9773355914ed171f0d14950a4db554f5f543252804c703e8e0bbbbf17fe7b602` |
+| Canonical Phase-III result | `blake3:35fa3d708c799439c1ef5c5f8aa1fc837f8aafcfca087d7088ecb6d0260ffd1a` |
+
+The terminal is
+`FAIL_CONNECTION_GAUGE_COVARIANCE_V4_HELD_OUT_FUNCTIONAL_PARITY_STOP_BEFORE_PAIRED_H4_E8`.
+The complete machine-readable result and revealed commitment preimage are
+[`connection_gauge_covariance_v4_result_973.json`](connection_gauge_covariance_v4_result_973.json)
+and
+[`connection_gauge_covariance_v4_label_preimage_973.json`](connection_gauge_covariance_v4_label_preimage_973.json).
+
+### Interpretation and attention-only successor
+
+V4 established that the same learned local coefficients can express the
+ordinary softmax operator covariantly in H4-compatible, alternative-tangent,
+and fixed gauges. It did not establish that this one-layer token-local operator
+learned the held-out relation. The three main arms emitted the same mask at
+`13/24`, while destroying order, values, or source-gauge coherence removed at
+most two correct cases. The predictive effect is therefore not load-bearing
+attention on this population.
+
+The fixture asks for the token following an earlier query. V4 gives a position
+a key and value derived from that position's token. It has no explicit causal
+transition row whose key is the predecessor and whose value is the current
+token. A contextual Transformer can construct that relation in an earlier
+layer; this bounded one-head scaffold cannot assume it already exists.
+
+The sole active successor is therefore a fresh causal transition-binding
+softmax oracle, not E8, resonance, recurrence, scale, lowering, or a V4 retune.
+For each observed transition `x_(i-1) -> x_i`, V5 must store the
+predecessor-derived key and current-token value in one transported row; the
+final query reads those rows. It must compare separately trained
+H4-compatible, alternative-tangent, and plain arms against V4 token-local,
+predecessor-disabled/permuted, value-permuted, order-shuffled,
+source-gauge-mismatch, and current-only controls on a new independently frozen
+population. Ordinary held-out softmax variable binding must qualify before any
+other project mechanism advances.
+
+## Successor-direction update — 2026-08-29
+
+The V5 transition-binding paragraph above records the immediate diagnosis made
+at the V4 terminal. No V5 mechanism, population, prediction, or result was
+implemented or frozen. It is superseded for forward work by `HELM-D-R4`; every
+V4 byte, count, CID, terminal, and nonclaim remains unchanged.
+
+`HELM-D-R4` pins the official MIT HELM-D source at
+`7501deca8f413848bfef804be64ce874b72a3cd7`, audits the source-faithful
+architecture, freezes an ordinary decoder donor, and then preserves learned
+Q/K/V, stable causal softmax, value
+aggregation, and `W_o` while splitting heads into R4 blocks, encoding exact
+cumulative Spin/H4 local frames, transporting K/V into the query frame, and
+mapping the aggregate back before `W_o`. Its first gate is numerical and
+behavioral parity on separately frozen real causal-language next-token loss,
+top-1, and decoded output against the donor plus an equal-work source-frame-
+permuted control. Parity is not a
+geometry-advantage result. Only after it passes may #973 train an intrinsic R4
+distance/centroid operator; only a positive intrinsic result may authorize
+multi-resonance replacement and recurrence. Source weights, softmax, and dense
+all-prefix work remain offline oracles and establish no transformerless or
+serving claim.
+
+## HELM-D-R4 delivery update — 2026-08-29
+
+The successor has now reached the bounded
+`PASS_HELM_D_R4_GAUGE_SOFTMAX_FULL_DECODER_PARITY_ADVANCE_TO_INTRINSIC_R4`
+terminal. This changes no V4 byte, score, CID, threshold, or interpretation.
+See the append-only
+[`HELM-D-R4 result`](helm_d_r4_softmax_decoder_973.md). Intrinsic R4 attention,
+multi-resonance replacement, and recurrence/lowering remain `NOT_RUN`.

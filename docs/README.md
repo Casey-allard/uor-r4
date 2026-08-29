@@ -18,13 +18,26 @@ plain delta on its sealed synthetic smoke. The literal reference,
 of a raw-manifold-parameter mismatch; fresh equal-manifold-budget V3 returned full H4 3/12,
 plain 12/12, current-only 6/12, and an inference-time coherent alternative-
 connection swap 10/12; that alternative was not separately trained.
-`ConnectionGaugeCovarianceV4` Phase I has since passed construction-scale
-representation covariance. Its separate 24-case target-free population and
-salted label commitment are frozen in PR #1001 with zero validation
-predictions; protected merge and the one-time reveal are the active build.
-Softmax is an offline oracle. Only a qualified geometric oracle binds the full
+`ConnectionGaugeCovarianceV4` Phase I passed construction-scale representation
+covariance, but its protected 24-case reveal returned 13/24 for H4,
+alternative-tangent, and plain arms, with insufficient destructive-control
+drop. It did not establish held-out attention. The positive reference is now
+`HELM-D-R4`: pin HELM-D as the full-decoder architectural reference, then keep
+a frozen ordinary decoder's learned Q/K/V, stable softmax, value aggregation,
+and output projection
+unchanged while splitting heads into R4 blocks, binding exact cumulative
+Spin/H4 local frames, transporting K/V into the query frame, and mapping the
+aggregate back before `W_o`. Bounded numerical and behavioral parity now
+passes; the intrinsic R4 distance/centroid operator is the active build. Softmax
+is an offline oracle. Only a qualified geometric oracle binds the full
 paired-E8/fiber hierarchy and proceeds to the fiber-preserving multi-resonance
 sieve, bounded recurrence, and exact runtime lowering.
+
+Pinned-source provenance, ordinary-donor reproduction, transported-R4 parity,
+the frame-permutation control, and the causal audit now pass; see the
+[`HELM-D-R4` record](helm_d_r4_softmax_decoder_973.md). Upstream checkpoint
+parity, intrinsic R4 attention, resonance replacement, and recurrence/lowering
+remain `NOT_RUN`.
 
 ## Start here
 
@@ -53,9 +66,11 @@ These are the small set of living documents that define the present work:
 
 1. [Geometric Intelligence Programme](geometric_intelligence_programme.md) —
    goal, architecture, claim boundaries, and work order.
-2. [ADR-0005: direct geometric attention and recurrent lowering](adr/0005-predictive-geometric-connection-memory.md)
-   — the active reference operator, resonance replacement, recurrence, and
-   later lowering decision. The bounded
+2. [ADR-0005: HELM-D-R4 reference attention and recurrent lowering](adr/0005-predictive-geometric-connection-memory.md)
+   — the active reference/parity operator, intrinsic R4 successor, resonance
+   replacement, recurrence, and later lowering decision. The bounded
+   [HELM-D-R4 full-decoder result](helm_d_r4_softmax_decoder_973.md) closes the
+   first parity gate and authorizes the intrinsic R4 rung. The bounded
    [multi-resonance reuse audit](multi_resonance_attention_sieve_audit_973.md)
    distinguishes the implemented sin/cos and Spin substrate from the still
    unimplemented normalized attention sieve.
@@ -78,10 +93,11 @@ not reasoning.
 
 ```text
 reversible lexical geometry
-  → direct learned Q/K/V/O scaffold
-  → qualify the geometric connection/gauge on fresh data
+  → pin and audit the HELM-D full-decoder architecture
+  → preserve learned Q/K/V + ordinary causal softmax in R4/Spin frames
+  → establish numerical and real-language behavioral parity
+  → train intrinsic R4 distance + geometric centroid attention
   → bind paired-H4/E8 hierarchy and fiber/torsion
-  → causal H4-frame transport + softmax value aggregation (offline oracle)
   → fiber-preserving multi-resonance sieve replaces softmax
   → resonance modes factor into bounded geometric recurrence
   → exact H4/Q29/integer-table lowering
@@ -95,10 +111,11 @@ reversible lexical geometry
 
 The code scaffold implements only the H4/S3 portion of the direct reference,
 and its current mixed-gauge H4 parameterization is negative on equal-manifold-budget V3.
-`ConnectionGaugeCovarianceV4` Phase I is positive; its target-free held-out
-freeze is sealed in PR #1001, so protected merge/reveal is next. Binding the actual paired-E8 hierarchy, fiber, and
-torsion remains `NOT_IMPLEMENTED`; the diagram is the qualification sequence,
-not a claim that every arrow exists today.
+`ConnectionGaugeCovarianceV4` Phase I is positive for representation
+covariance, but its held-out attention result is terminal-negative at 13/24
+for all main arms. Binding the actual paired-E8 hierarchy, fiber, and torsion
+remains `NOT_IMPLEMENTED`; the diagram is the qualification sequence, not a
+claim that every arrow exists today.
 
 Only the first unblocked stage is active. Formalization, optimization, and
 large test programmes are supporting tools, not substitutes for reaching the

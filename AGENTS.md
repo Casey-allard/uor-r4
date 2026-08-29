@@ -14,13 +14,26 @@ inference-time coherent alternative-connection swap 10/12, key-isometry 7/12, or
 and value-permuted 8/12. Thus the direct learning/softmax/value path works, but
 the current mixed-gauge H4 parameterization/conditioning does not transfer and
 is not a geometric oracle; the exact group action itself remains algebraically
-valid. The immediate #973 substep is fresh, separately trained
-`ConnectionGaugeCovarianceV4` against the matched plain arm; paired-H4/E8 hierarchy,
-fiber, torsion, phase, and chart binding follows only after that seam qualifies.
-Only then may the normalized fiber-preserving multi-resonance sieve replace
-softmax, and only a resonance replacement that preserves the frozen oracle
-effect may be factored into `GeometricGatedDeltaRetentionR4V1`. Do not tune the
-revealed V2/V3 fixtures or scale #997's rejected componentwise-Frechet placement.
+valid. `ConnectionGaugeCovarianceV4` subsequently passed construction covariance
+but failed its protected held-out gate: all three main arms were 13/24 and the
+order/value/gauge destructive controls did not separate. V4 is frozen negative
+evidence and must not be retuned. The immediate #973 reference is `HELM-D-R4`,
+pinned to the official MIT HELM-D source at
+`7501deca8f413848bfef804be64ce874b72a3cd7`. First preserve the full learned
+causal Q/K/V, ordinary stable-softmax, value-aggregation, and output-projection
+path while splitting heads into R4 blocks, binding exact cumulative Spin/H4
+local frames, transporting K/V into the query frame, and mapping the result back
+before `W_o`. The first required positive now passes on the bounded held-out
+full-decoder run, including exact donor/R4 replay, a live frame-permutation
+control, and zero future reads. It is numerical and behavioral parity, not
+geometric advantage. #973 now trains an intrinsic R4 distance/centroid
+operator; only a positive there may authorize the
+normalized multi-resonance sieve and bounded recurrence. Do not tune the
+revealed V2/V3/V4 fixtures or scale #997's rejected componentwise-Frechet placement.
+The binding result is
+[`docs/helm_d_r4_softmax_decoder_973.md`](docs/helm_d_r4_softmax_decoder_973.md).
+Intrinsic R4, multi-resonance, and recurrent/lowering results remain `NOT_RUN`;
+implementation progress is not a result.
 The geometric causal decoder plan, prior S0–S7 completion plan, and
 graph-compiler implementation plan are retained as historical
 engineering/evidence records; none decides what is built next. Native GitHub
@@ -127,10 +140,11 @@ placement then passed target-free reachability but scored 2,931/35,028
 order-shuffled and operator-permuted controls. The terminal is
 `RETAIN_BOUNDED_GLOBAL_ONLY_REDESIGN_CORPUS_SPIN_PLACEMENT`. The bounded
 gated-delta core later trailed plain delta on its sealed smoke. Direct-attention
-V2 is non-promotable and equal-manifold-budget V3 isolated the connection/gauge seam. #973
-remains active only for ADR-0005's `ConnectionGaugeCovarianceV4` repair and,
-if it qualifies, paired-E8, resonance, and recurrent lowering; #954 remains
-blocked.
+V2 is non-promotable and equal-manifold-budget V3 isolated the connection/gauge
+seam. V4 preserved construction covariance but failed held-out functional
+binding. ADR-0005's `HELM-D-R4` reference/parity path subsequently passed. #973
+remains active for intrinsic R4 attention and, if it qualifies, resonance and recurrent
+lowering; #954 remains blocked.
 Do not add a second #953 intervention or reuse the #983/#986 populations. The
 complete #973 Gate 0 record is
 [`docs/prior_sentence_count_radius_attention_973.md`](docs/prior_sentence_count_radius_attention_973.md).
@@ -146,7 +160,7 @@ Terminology lives in
 `docs/transformerless/GLOSSARY.md`. Keep this file current when conventions
 change.
 
-## Capability-first baseline and geometric increment — #989/#953 established; #973 `ConnectionGaugeCovarianceV4` active
+## Capability-first baseline and geometric increment — #989/#953 established; #973 intrinsic R4 active
 
 Effective 2026-08-28, #989 established the deterministic source-free
 table-native lexical baseline at
@@ -196,10 +210,13 @@ then rejected as `NON_PROMOTABLE_BUDGET_MISMATCH`. Its fresh equal-manifold-budg
 returned full H4 3/12 against matched plain 12/12 and current-only 6/12; an
 inference-time coherent alternative-connection swap returned 10/12. The ordinary learning
 path is viable, but the current H4 parameter-gauge/conditioning seam is not.
-The only exposed successor is `ConnectionGaugeCovarianceV4` on fresh data.
-Actual paired-E8/hierarchy/fiber binding and its corpus-bound oracle gate follow
-only after that repair. A positive there proceeds to normalized multi-resonance
-replacement, then bounded recurrent factorization. New route families,
+V4 later preserved construction covariance but failed held-out functional
+binding and destructive-control separation. The exposed `HELM-D-R4`
+source-pinned full-decoder ordinary-softmax parity in transported R4/Spin frames
+now passes on bounded real causal language. The active successor is the trained
+intrinsic R4 distance/centroid operator; only a positive intrinsic
+operator proceeds to normalized multi-resonance replacement and bounded
+recurrent factorization. New route families,
 unqualified scale, exact lowering, and later-stage work remain dormant.
 See the
 [#989 evidence record](docs/source_free_table_baseline_989.md) and
@@ -454,9 +471,13 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
   and the bounded gated-delta core trailed plain delta. Direct-attention V2 was
   non-promotable; equal-manifold-budget V3 then rejected the current mixed-gauge
   H4 projection/connection/optimizer combination against a working plain path
-  and an inference-time coherent alternative-connection swap. The active order is connection/gauge
-  repair, explicit paired-E8/fiber/torsion binding, the corpus-bound direct
-  softmax oracle, normalized resonance replacement, then bounded recurrence.
+  and an inference-time coherent alternative-connection swap. V4 then passed
+  construction covariance but failed held-out functional binding. The active
+  order is pinned HELM-D architecture audit, frozen ordinary full-decoder
+  donor reproduction, gauge-equivalent
+  ordinary-softmax parity in transported R4/Spin frames, real next-token and
+  decoded-output parity, trained intrinsic R4 distance/centroid attention,
+  normalized resonance replacement, then bounded recurrence.
   #954 remains blocked behind #973.
   #954 and #955 own correctness and reasoning respectively.
   #962 owns durable multi-turn CLI/HTTP chat, persistence, isolation, and
@@ -464,8 +485,9 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
 - Sequence strictly from the current reset: working source-free table baseline
   (#989, established) → one matched geometric intervention (#953, accepted) →
   direct geometric attention (#973: retained bounded scope evidence → H4
-  scaffold negative → connection/gauge repair → paired-E8/fiber binding →
-  softmax oracle → normalized resonance replacement → bounded recurrence) →
+  scaffold/V4 held-out negatives → HELM-D-R4 full-decoder softmax parity →
+  trained intrinsic R4 distance/centroid attention → normalized resonance
+  replacement → bounded recurrence) →
   correctness/abstention → reasoning → optimization/purity/release. The older placement/transport
   sequence is retained as evidence, not an active implementation queue.
 - Kappa is canonical identity/serialization, never the tokenizer or semantic

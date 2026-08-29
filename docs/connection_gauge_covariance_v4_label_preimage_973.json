@@ -1,0 +1,31 @@
+{
+  "schema": "uor-r4.cgcv-v4.salted-label-preimage/1",
+  "validation_input_cid": "blake3:5a17c5526d866f2862b042750cb70f5183f6a8fc09ab53a067d79d28d1c989d1",
+  "nonce_hex": "dfaefdc5206053212c96a6333a5c569fa185efd0643a54eb31af68ec6ea40dd5",
+  "rows": [
+    { "case_id": "blake3:1a3d8f6b50f3dbf5b23572858b9e69c4bb7ee58318ce03ecd0d78f8f31844679", "target": 5 },
+    { "case_id": "blake3:fe99823d4f6c78d1e906a4690fad055eb48ac1eef34323862ff4b8f30e6db13c", "target": 6 },
+    { "case_id": "blake3:215cf21bd7ed218a7903f6285674fb7c54e83bb14490d624a215d5e670f36848", "target": 5 },
+    { "case_id": "blake3:3dbbb505382718dfe267670829df3cc4a28b0607c855b364fb17f062a8a000d7", "target": 6 },
+    { "case_id": "blake3:13f215def7d469a42abae814d3cbffdca0be193315dd582ce910860968b55586", "target": 5 },
+    { "case_id": "blake3:e5778dd9fbcdeb9a20892602ef49e5ea2f6c46690b2ff951adffbf377fa08a79", "target": 6 },
+    { "case_id": "blake3:c43b48eb2dfe758b9da850f0fb5ee21e6b750fcbdc89e650e9b3844fe989d63c", "target": 5 },
+    { "case_id": "blake3:d16ff997fdc4cdfad24e0aab1aa15f28093f96cab8b79995cc1301b8e10d0cbb", "target": 6 },
+    { "case_id": "blake3:e173d1b98d789493cb5c71db7689b35c76c8e383690f6132e344dd860da54860", "target": 5 },
+    { "case_id": "blake3:2fceb1c887b8f6faf412c94f5aebe0a7668fad11be6f83de1ddb30410e04374c", "target": 6 },
+    { "case_id": "blake3:b9557a9e58757b3411206813e8dec75a677d7a438af1947ef386a8f73ba768d6", "target": 5 },
+    { "case_id": "blake3:53153c2dd34b4473bfa483ba091645b8b5de3f296dcc79ca699cb01631a242aa", "target": 6 },
+    { "case_id": "blake3:f3a6625df4f281a5cef71f4e8020657ae61ec89d24e24bd1946c144a5d33b491", "target": 5 },
+    { "case_id": "blake3:ff92d321bb0497c13d5b28d978e2055dab20b02accb08888bea4119dcee5b6d0", "target": 6 },
+    { "case_id": "blake3:cb6c3aeaaedb0a696f08009f664cf8abae4e3b313ae3d7181711d28035211b42", "target": 5 },
+    { "case_id": "blake3:3753d93a9ff3bd9f1b2b6092307f68e3f7d9fc3436eed26f6c25788e59c52ab9", "target": 6 },
+    { "case_id": "blake3:67839ab0dc2ee3cf90fb3c1524eb77dd8fb7b0348d04730e191c7b104d640789", "target": 5 },
+    { "case_id": "blake3:b1846c2774efb974e6841abec35c37c240577deda45afb12b72afaed42b80b80", "target": 6 },
+    { "case_id": "blake3:95c68874f3c7fc81fc8cb0c082dbbee865f12046b0fd989a8390926d1452edba", "target": 5 },
+    { "case_id": "blake3:e00a31827260f55169d7ce998437588539a33c8c3ef6f804e3e45e6293591e7f", "target": 6 },
+    { "case_id": "blake3:a8e1c0288b571bb48bc2f04f3a5141586e79722bf86c30ad4cd9249051c64009", "target": 5 },
+    { "case_id": "blake3:e08e57eff49dfd07c89609edad36c4b1257cd4035ef4c9ac6f28374ed1062bf8", "target": 6 },
+    { "case_id": "blake3:64500c16993cf62b0a4e920f8fd171527fcdd978d488619f1f6f37d9cb3e51b5", "target": 5 },
+    { "case_id": "blake3:637591501c3d0d3909a9c734d092a5f70739c3360c833326a74f9452c4596999", "target": 6 }
+  ]
+}

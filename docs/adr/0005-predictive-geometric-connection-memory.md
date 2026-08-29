@@ -1,8 +1,8 @@
-# ADR-0005: Direct geometric attention, resonance replacement, and recurrent lowering
+# ADR-0005: HELM-D-R4 reference attention, intrinsic geometry, and recurrent lowering
 
-- **Status:** Accepted; V4 construction-scale representation covariance passed,
-  held-out qualification pending
-- **Date:** 2026-08-28
+- **Status:** Accepted; V4 is terminal-negative, `HELM-D-R4` parity passes,
+  and intrinsic R4 attention is active
+- **Date:** 2026-08-28; direction updated 2026-08-29
 - **Owner:** #973 under programme root #820
 - **Supersedes for forward work:** another fixed componentwise prototype or
   scale-only repair after the #997 negative
@@ -12,43 +12,58 @@
 - **Evaluation:**
   [Geometric Intelligence Evaluation](../geometric_intelligence_evaluation.md)
 - **Evidence:** [Research ledger](../RESEARCH.md)
+- **HELM-D source identity/license/hash audit:** `PASS_PINNED_SOURCE_PROVENANCE`
+  ([manifest](../../third_party/helm-d-reference/UPSTREAM.toml),
+  [audit boundary](../../third_party/helm-d-reference/README.md))
+- **Upstream HELM-D checkpoint/executable parity:** `NOT_RUN`
+- **Ordinary-donor deterministic reproduction:**
+  `PASS_BOUNDED_HELD_OUT_FULL_DECODER_REPLAY`
+- **Transported-R4 parity result:**
+  `PASS_HELM_D_R4_GAUGE_SOFTMAX_FULL_DECODER_PARITY_ADVANCE_TO_INTRINSIC_R4`
+  ([record](../helm_d_r4_softmax_decoder_973.md),
+  [machine result](../helm_d_r4_softmax_decoder_result_973.json))
+- **Intrinsic R4 attention result:** `NOT_RUN`
+- **Multi-resonance replacement result:** `NOT_RUN`
+- **Recurrent factorization/lowering result:** `NOT_RUN`
 
 ## Decision
 
-UOR-R4 will qualify the literal geometric analogue of ordinary causal
-attention before attempting to compress it. The reference mechanism is named
-`DirectCausalGeometricAttentionR4V1`. It learns separate query, key, value, and
-output roles; projects them into H4/S3 tangent frames; transports every causal
-key and value into the current query frame; applies stable causal softmax; and
-aggregates the transported values over the unchanged lawful support admitted by
-#953. The bounded H4-only scaffold is now implemented. Its V2 result is
-`NON_PROMOTABLE_BUDGET_MISMATCH`; fresh equal-manifold-budget V3 returned full H4 3/12
-against matched plain 12/12 and a coherent alternative tangent connection at
-10/12. Separately trained `ConnectionGaugeCovarianceV4` has now passed its
-construction-only mechanism/frame/gradient gate: the three main gauges each
-fit 16/16 with numerical and decision covariance, while current-only remained
-8/16. Its independent target-free Phase-II population and one-time reveal are
-the current action, not resonance or scale. The full qualification contract later consumes
-the existing paired-H4/E8 hierarchy trace. Paired-E8 hierarchy features, fiber,
-and torsion are `NOT_IMPLEMENTED` in the scaffold and cannot receive credit
-until the repaired connection is qualified and those inputs are explicitly
-bound.
+UOR-R4 will establish a complete bounded ordinary causal-attention reference in
+transported R4/Spin frames before training an intrinsic geometric attention
+operator or attempting to compress it. The positive reference mechanism is
+`HELM-D-R4`; the active successor is intrinsic R4 distance/centroid attention.
+Its architectural reference is the official MIT HELM-D source pinned at commit
+[`7501deca8f413848bfef804be64ce874b72a3cd7`](https://github.com/Graph-and-Geometric-Learning/helm/tree/7501deca8f413848bfef804be64ce874b72a3cd7).
 
-This dense O(T^2) operator is an offline scientific oracle, not the deployed
-architecture. Its purpose is to separate four questions that the first bounded
-recurrent experiment confounded: whether the representation can learn, whether
-geometric transport is useful, whether the weighting law works, and whether a
-bounded recurrent factorization preserves the function.
+The sequence is strict:
 
-After the direct reference qualifies, #973 replaces only its softmax weighting
-law with the planned multi-resonance design: a finite, artifact-bound
-spherical/hyperspherical mode expansion. The replacement must retain the S3
-fiber/torsion state; an S2/R3 Hopf direction alone is many-to-one and cannot
-represent the full R4 spin state. Those band-limited mode sums are then factored
-into `GeometricGatedDeltaRetentionR4V1` or a narrower bounded recurrent cell.
-Only an approximation that preserves the reference's frozen construction-
-validation effect proceeds
-to H4/Q29/ternary/integer-table lowering.
+1. bind and audit the pinned HELM-D dense-decoder architecture and exact source
+   semantics;
+2. reproduce a frozen ordinary full-decoder donor, then preserve every learned
+   Q/K/V, ordinary compatibility score, stable causal
+   softmax, linear value aggregation, and output projection while splitting
+   each head into R4 blocks, binding exact cumulative Spin/H4 local frames,
+   transporting K/V into the current query frame, and mapping the aggregate
+   back before unchanged `W_o`;
+3. require numerical and behavioral parity on separately frozen real causal
+   language using next-token loss, top-1, and exact decoded output; and
+4. only after parity, train an intrinsic R4 distance/centroid attention arm.
+
+The source-faithful HELM-D reference retains its declared Lorentz implementation:
+the code at the pin forms the invariant Lorentz-inner-product distance surrogate
+`2c + 2c<q,k>_L`, divides by a learned scale, applies ordinary causal softmax,
+and aggregates by a normalized Lorentz centroid. It does not compute an
+`arcosh` geodesic-distance square, and this ADR does not claim that it does.
+The later intrinsic R4 arm may declare a negative squared R4 distance and a
+geometric weighted centroid as its own separately trained operator.
+
+These dense O(T^2) paths are offline scientific oracles, not the deployed
+architecture. Source weights are permitted only as the frozen donor. Numerical
+parity is not geometric advantage, transformerless inference, or a serving
+claim. Only a positive intrinsic R4 result authorizes replacement of softmax by
+the planned multi-resonance design; only a positive replacement authorizes
+`GeometricGatedDeltaRetentionR4V1` or a narrower recurrent factorization and
+later H4/Q29/ternary/integer-table lowering.
 
 The deployed goal remains a local CPU engine with no Transformer, softmax
 all-pairs attention, mixture of experts, learned sparse expert router, Ollama,
@@ -89,11 +104,14 @@ state carriers, and transport. A fixed marginal center of identity-derived
 coordinates is rejected as semantic placement. The bounded recurrent negative
 does not isolate attention: it simultaneously changes representation, training,
 soft weighting, and compression. More documents or more rows cannot repair
-either ambiguity. The literal operator and plain learning control now work;
-the smallest decisive next experiment was `ConnectionGaugeCovarianceV4`, not a
-new representation family or resonance approximation. Its Phase-I preflight is
-positive; the smallest current decision is the separately committed target-free
-Phase-II population followed by one immutable held-out reveal.
+either ambiguity. The literal operator and plain learning control work. V4
+showed that its local coefficients could be represented covariantly on
+construction, but its protected one-time reveal returned 13/24 for all three
+main arms and at most a two-case loss under its destructive controls. That is a
+held-out functional negative, not an unavailable run. A hand-designed V5
+transition-binding fixture is not the active repair. The smallest current
+decision is the source-pinned `HELM-D-R4` full-decoder parity path on real causal
+language.
 
 ## Reference and lowering representation
 
@@ -116,7 +134,7 @@ cannot be interpreted as learned meaning. The paired-H4/E8 coordinate and
 hierarchy trace are inputs or initializers; the next-token objective must still
 learn these four predictive roles.
 
-### Direct causal geometric attention oracle
+### Historical one-head direct causal geometric-attention oracle
 
 For a current route frame `G_t` and prior frame `G_i`, V1 uses the declared
 orthogonal H4 frame connection
@@ -181,21 +199,82 @@ tangent vectors. Phase I passed all 120 H4 frames, 14,400 ordered connections,
 central-finite-difference gradients, live controls, and gauge-covariant logits,
 weights, scores, and update deltas. Its evidence root is
 `blake3:be3772f6d16ca2ae4e19559e4f44ebc60f389cadff2032b956fe12a31e1e725e`.
-No V4 validation input or label was used in Phase I. Phase II now binds a fresh
+No V4 validation input or label was used in Phase I. Phase II bound a fresh
 balanced 24-case population, disjoint by prefix input from construction, V2,
-and V3, plus a salted label commitment in PR #1001. No V4 prediction or
-scoring-label join has run. After protected merge, the main
-arms must fit 16/16 construction cases, agree numerically and in decisions, and
-reach at least 18/24 validation; current-only is capped at 12/24 and order,
-value, and gauge-mismatch controls must each trail by at least six decisions.
+and V3, plus a salted label commitment in PR #1001. The protected Phase-III
+one-time reveal reproduced every identity and then scored H4-compatible,
+alternative-tangent, and fixed-frame plain at 13/24 each. Current-only was
+12/24; order-shuffled, value-permuted, and source-gauge-mismatch were 13/24,
+12/24, and 11/24. Terminal:
+`FAIL_CONNECTION_GAUGE_COVARIANCE_V4_HELD_OUT_FUNCTIONAL_PARITY_STOP_BEFORE_PAIRED_H4_E8`.
 
-This rung tests representational covariance, not geometric advantage. Its
-construction half has passed; paired-E8/fiber binding begins only after the
-held-out reveal also passes.
+This rung established construction-scale representational covariance, not
+held-out attention or geometric advantage. V4 remains append-only negative
+evidence and will not be retuned or rerun.
+
+### Pinned HELM-D architectural reference
+
+`HELM-D-R4` binds the source repository, commit, license, architecture/config,
+and source-faithful attention/centroid semantics before any R4 substitution.
+This audit is a hard gate. It does not require or inherit the upstream gated
+checkpoint. A source-identity or semantic mismatch stops; it is not evidence
+about R4 geometry.
+
+The pin is a research reference. No upstream checkpoint, paper metric, learned
+weight, tokenizer mapping, Transformer block, or mixture-of-curvature/expert
+claim is inherited merely by naming or reading the source.
+
+### Gauge-equivalent R4/Spin ordinary-softmax reference
+
+For head block `b` at causal query position `i` and donor position `j <= i`, let
+`F_i^b` and `F_j^b` be exact cumulative Spin/H4 orthogonal model-frame bases.
+The compiler-side vector action is floating point. Model coordinates are
+encoded locally by transpose, so the declared frame transport is
+
+```text
+P_(j -> i)^b = transpose(F_i^b) * F_j^b
+qhat_i^b     = transpose(F_i^b) q_i^b
+khat_j^b     = transpose(F_j^b) k_j^b
+vhat_j^b     = transpose(F_j^b) v_j^b
+```
+
+The parity reference transports both K and V into the query frame:
+
+```text
+kbar_(j -> i)^b = P_(j -> i)^b khat_j^b
+vbar_(j -> i)^b = P_(j -> i)^b vhat_j^b
+logit(i,j)       = ordinary_compatibility(qhat_i, kbar_(j -> i))
+alpha(i,*)       = stable_causal_softmax(logit(i,*))
+rhat_i           = sum_(j<=i) alpha(i,j) vbar_(j -> i)
+r_i              = F_i rhat_i
+output_i          = W_o r_i
+```
+
+The frozen ordinary donor binds its source weights, configuration, tokenizer,
+and causal-language population. Every learned Q/K/V and `W_o`, causal mask,
+compatibility scale, softmax,
+aggregation order, and decoder operation remains unchanged. Frames and
+transport are a declared gauge representation whose expected positive is
+numerical and behavioral parity, not predictive advantage. Transport overhead
+is reported explicitly.
+
+### Trained intrinsic R4 successor
+
+Only after the gauge-equivalent reference qualifies may #973 vary the attention
+geometry. Its separately frozen intrinsic arm may use
+
+```text
+logit_R4(i,j) = -d_R4(qhat_i, kbar_(j -> i))^2 / tau
+rhat_i        = GeometricWeightedCentroid({vbar_(j -> i)}, alpha(i,*))
+```
+
+The exact R4 distance, chart, centroid algorithm, tolerance, failure behavior,
+and training objective must be artifact-bound. This is an R4 objective, not a
+claim about the pinned upstream HELM-D logit implementation.
 
 ### Multi-resonance replacement
 
-After the softmax oracle qualifies, freeze its data, roles, transport, support,
+After the trained intrinsic R4 softmax oracle qualifies, freeze its data, roles, transport, support,
 and outputs and vary only the weighting law. The target positive kernel is
 
 ```text
@@ -315,41 +394,36 @@ update and O(|A_t|) per decision under fixed bank capacity. No all-prefix
 attention matrix, corpus scan, unbounded prompt replay, or candidate injection
 is permitted.
 
-## What qualifies direct geometric attention
+## What qualifies `HELM-D-R4`
 
-The dense reference earns a geometry-specific claim only if all of the
-following are causally necessary under identical support, equal stored-
-parameter and raw-manifold budgets for the matched main arms, and an explicit
-operation ledger. Current-only is deliberately lower functional rank because
-it removes history:
+The first bounded implementation is complete only if:
 
-- both transported Q/K/V/O and equal-raw-manifold-budget plain Euclidean
-  attention lower construction-validation next-token loss and improve or
-  preserve top-1 versus frozen #953;
-- transported geometry is non-inferior to plain attention under a predeclared
-  paired margin, establishing that the geometric representation can carry the
-  same attention function;
-- a separately trained coherent tangent-frame connection determines whether
-  the failure is specific to the H4 left action;
-- tangent/norm-preserving key isometry, order-shuffled, and value-permuted
-  controls lose the effect;
-- current-token-only loses the effect;
-- disabling the paired-H4/E8 input loses any claimed E8/H4 contribution;
-- a strict causal audit reports zero future-position reads; and
-- two compiles and inference replays reproduce exactly.
+- the official HELM-D source commit, MIT license, architecture, and
+  source-faithful semantics are bound;
+- the frozen ordinary donor configuration, data/tokenizer identities, source
+  weights, and outputs reproduce under predeclared numerical tolerances;
+- ordinary-donor and R4-frame arms hold learned Q/K/V and `W_o`, parameter budget,
+  training data/updates, causal support, decoding, and aggregation order fixed;
+- every R4 block has a bound exact cumulative Spin/H4 frame and both K and V are
+  transported into the query frame before comparison or aggregation;
+- the gauge-equivalent R4-frame arm reaches the predeclared numerical parity
+  tolerance and retains real held-out next-token loss, top-1, and exact decoded
+  behavior against matched donor/plain controls;
+- the causal audit reports zero future reads, transport work is reported
+  separately, and replay reproduces; and
+- the equal-work source-frame-permuted intervention breaks numerical parity,
+  proving that the R4 transport seam was exercised rather than bypassed; and
+- failure of ordinary-donor parity or language-behavior retention terminates before
+  intrinsic distance, centroid, resonance, recurrence, or scale work.
 
-The H4-only scaffold's `GeometricSeedDisabled` arm tests only the learned H4
-seed initialization while retaining tangent projection and H4 connection. It
-is not a geometry-disabled or paired-E8-disabled control. The latter becomes
-mandatory only when the actual paired hierarchy trace is bound.
-
-Strict improvement over plain attention is a separate geometry-specific
-predictive-advantage result, not required for functional parity. If plain
-attention works but geometric attention falls outside the non-inferiority
-margin, the learning/data path is viable but the geometric input/connection
-seam is not qualified. If neither attention arm beats #953, revise the
-representation or causal objective before tuning recurrence, resonance bands,
-route families, or corpus scale.
+Parity establishes only that the exact R4/Spin gauge representation can carry
+the donor's ordinary attention function. It is not geometric predictive
+advantage. The separately trained intrinsic R4 distance/centroid arm must then
+retain or improve the same real-language behavior against the frozen donor,
+gauge-equivalent reference, and equal-budget Euclidean/plain controls. Strict
+improvement is the only geometry-specific advantage claim. Neither parity nor
+intrinsic success establishes correctness, reasoning, coherence, chat,
+efficiency, transformerless serving, or release readiness.
 
 ## Parked fixed-route diagnostic: `PredictiveConnectionRetentionGate0V1`
 
@@ -371,7 +445,7 @@ mechanism and is no longer in the active dependency chain.
 
 ## Resonance, recurrence, and held-out promotion
 
-Only a qualified dense geometric reference authorizes the resonance
+Only a qualified trained intrinsic R4 reference authorizes the resonance
 replacement. Freeze its construction split, parameters, support, transport,
 and evaluation before changing softmax. The multi-resonance arm must preserve
 the reference's direction on loss/top-1 and remain weaker under mode,
@@ -404,10 +478,13 @@ lowering, or product readiness.
 
 | Result | Required next action |
 |---|---|
-| Direct geometric attention beats #953, is non-inferior to plain attention, and beats destructive controls | Freeze it as the geometric oracle and replace only softmax with the fiber-preserving multi-resonance sieve. |
-| Direct geometric attention strictly beats plain attention | Record the stronger geometry-specific predictive advantage; follow the same resonance-replacement path. |
-| Plain attention beats #953 but geometry falls outside the parity margin | Retain plain attention as a learning-path control; redesign only E8/H4 input, tangent projection, or frame transport. |
-| Neither direct attention arm beats #953 | Do not tune recurrence or scale. Revisit representation, training objective, or support binding. |
+| Pinned HELM-D source identity/semantics do not reproduce | Stop at the architecture audit; do not infer an R4 result. |
+| Frozen ordinary donor does not reproduce | Stop at donor/reference parity; do not infer an R4 result. |
+| Gauge-equivalent R4/Spin arm misses numerical or real-language behavioral parity | Stop before intrinsic geometry; repair only frame/block/transport/map-back integration. |
+| Gauge-equivalent R4/Spin arm reaches parity | Freeze it as the ordinary-softmax R4 reference; this is not geometric advantage. Train the separately bound intrinsic R4 distance/centroid arm. |
+| Intrinsic R4 attention retains behavior but does not beat matched controls | Freeze functional parity without an advantage claim; the predeclared gate decides whether resonance work has value. |
+| Intrinsic R4 attention strictly improves over matched controls and survives destructive controls | Record the geometry-specific result and replace only softmax with the fiber-preserving multi-resonance sieve. |
+| Intrinsic R4 attention loses the reference effect | Do not tune recurrence or scale. Revise only its distance, centroid, transport, or training seam. |
 | Multi-resonance preserves the direct reference construction-validation effect | Freeze the band/mode/fiber contract and factor its accumulated modes into bounded recurrence. |
 | Multi-resonance loses the effect | Revise the weighting/kernel approximation without changing the qualified Q/K/V/O reference. |
 | Recurrent factorization preserves the resonance/reference effect and passes D3 | Freeze exact/table lowering and requalify the bounded #973 scopes. |
@@ -419,6 +496,10 @@ lowering, or product readiness.
 This design combines ideas whose published results do not themselves prove a
 UOR implementation:
 
+- [HELM: Hyperbolic Large Language Models via Mixture-of-Curvature Experts](https://arxiv.org/abs/2505.24722)
+  and the pinned MIT source motivate the dense causal geometric donor. Their
+  paper/checkpoint results do not establish `HELM-D-R4`, UOR transport, or a
+  transformerless serving path.
 - [Gated Delta Networks](https://arxiv.org/abs/2412.06464) motivates combining
   adaptive forgetting with targeted delta updates.
 - [Retentive Network](https://arxiv.org/abs/2307.08621) and

@@ -470,6 +470,263 @@ impl State {
     }
 }
 
+/// One private full-decoder state plus an injected coordinate transport for
+/// ordinary dense causal attention.
+///
+/// The transport is intentionally type-erased at this boundary so
+/// `uor-r4-core` can implement the object-safe trait without making this
+/// source-model crate depend on the core crate. Construct sessions through
+/// [`HuggingFaceLlamaOracle::new_causal_attention_transport_session`].
+pub struct CausalAttentionTransportSession {
+    state: State,
+    transport: Box<dyn attention::CausalAttentionTransport>,
+    selected_layers: Vec<bool>,
+    scratch: CausalAttentionTransportScratch,
+    audit: attention::CausalAttentionTransportAudit,
+    source_cid: String,
+    next_position: usize,
+}
+
+impl CausalAttentionTransportSession {
+    /// Stable identity of the injected transport implementation and policy.
+    pub fn policy_identity(&self) -> &str {
+        self.transport.policy_identity()
+    }
+
+    /// Current implementation health. A failed status is also surfaced by
+    /// the public step API before any logits are copied to the caller.
+    pub fn transport_status(&self) -> Result<(), String> {
+        self.transport.status()
+    }
+
+    /// Deterministic implementation-owned evidence, when the injected
+    /// transport supplies a geometry-specific audit snapshot.
+    pub fn transport_implementation_evidence(&self) -> Result<Option<String>, String> {
+        self.transport.implementation_evidence()
+    }
+
+    /// Decoder-owned proof that the hook was exercised over the full causal
+    /// prefix and never requested a future position.
+    pub fn audit(&self) -> attention::CausalAttentionTransportAudit {
+        self.audit
+    }
+
+    /// Clear counters without changing model, KV-cache, or transport state.
+    pub fn clear_audit(&mut self) {
+        self.audit = attention::CausalAttentionTransportAudit::default();
+    }
+
+    /// Deterministic identity of the retained residual, KV-cache, and logits.
+    pub fn persistent_state_cid(&self) -> String {
+        self.state.persistent_state_cid()
+    }
+
+    /// Maximum position count owned by this private sequence state.
+    pub fn sequence_capacity(&self) -> usize {
+        self.state.sequence_capacity()
+    }
+
+    /// Number of decoder layers whose attention uses the injected transport.
+    pub fn selected_layer_count(&self) -> usize {
+        self.selected_layers
+            .iter()
+            .filter(|selected| **selected)
+            .count()
+    }
+
+    /// Whether one zero-based decoder layer uses the injected transport.
+    pub fn layer_is_selected(&self, layer: usize) -> bool {
+        self.selected_layers.get(layer).copied().unwrap_or(false)
+    }
+
+    /// Reset the source state, transport state, causal cursor, and audit for a
+    /// fresh independent sequence.
+    pub fn reset(&mut self) {
+        self.state.reset();
+        self.transport.reset();
+        self.scratch.clear();
+        self.audit = attention::CausalAttentionTransportAudit::default();
+        self.next_position = 0;
+    }
+}
+
+struct CausalAttentionTransportScratch {
+    query: Vec<f32>,
+    keys: Vec<f32>,
+    values: Vec<f32>,
+    aggregate: Vec<f32>,
+}
+
+impl CausalAttentionTransportScratch {
+    fn new(
+        head_size: usize,
+        sequence_capacity: usize,
+    ) -> Result<Self, attention::CausalAttentionTransportError> {
+        let cache_words = head_size
+            .checked_mul(sequence_capacity)
+            .ok_or(attention::CausalAttentionTransportError::ArithmeticOverflow)?;
+        Ok(Self {
+            query: vec![0.0; head_size],
+            keys: vec![0.0; cache_words],
+            values: vec![0.0; cache_words],
+            aggregate: vec![0.0; head_size],
+        })
+    }
+
+    fn clear(&mut self) {
+        self.query.fill(0.0);
+        self.keys.fill(0.0);
+        self.values.fill(0.0);
+        self.aggregate.fill(0.0);
+    }
+}
+
+struct CausalAttentionLayerOverride<'a> {
+    transport: &'a mut dyn attention::CausalAttentionTransport,
+    scratch: &'a mut CausalAttentionTransportScratch,
+    audit: &'a mut attention::CausalAttentionTransportAudit,
+}
+
+fn causal_attention_layer_mask(
+    selection: attention::CausalAttentionLayerSelection,
+    layer_count: usize,
+) -> Result<Vec<bool>, attention::CausalAttentionTransportError> {
+    use attention::{CausalAttentionLayerSelection as Selection, CausalAttentionTransportError};
+
+    if layer_count == 0 {
+        return Err(CausalAttentionTransportError::EmptyLayerSelection);
+    }
+    match selection {
+        Selection::All => Ok(vec![true; layer_count]),
+        Selection::Selected(layers) => {
+            if layers.is_empty() {
+                return Err(CausalAttentionTransportError::EmptyLayerSelection);
+            }
+            let mut selected = vec![false; layer_count];
+            for layer in layers {
+                if layer >= layer_count {
+                    return Err(CausalAttentionTransportError::LayerOutOfRange {
+                        requested: layer,
+                        layers: layer_count,
+                    });
+                }
+                if selected[layer] {
+                    return Err(CausalAttentionTransportError::DuplicateLayer(layer));
+                }
+                selected[layer] = true;
+            }
+            Ok(selected)
+        }
+    }
+}
+
+fn require_healthy_causal_attention_transport(
+    transport: &dyn attention::CausalAttentionTransport,
+) -> Result<(), attention::CausalAttentionTransportError> {
+    let policy_identity = transport.policy_identity().to_owned();
+    transport.status().map_err(
+        |reason| attention::CausalAttentionTransportError::TransportFault {
+            policy_identity,
+            reason,
+        },
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn apply_full_prefix_causal_attention_transport(
+    causal: &mut CausalAttentionLayerOverride<'_>,
+    layer: usize,
+    query_position: usize,
+    query_heads: usize,
+    head_size: usize,
+    kv_mul: usize,
+    sequence_capacity: usize,
+    kv_stride: usize,
+    queries: &[f32],
+    keys: &[f32],
+    values: &[f32],
+    attention_weights: &mut [f32],
+    output: &mut [f32],
+    canonical_math: bool,
+) {
+    causal.audit.layers = causal.audit.layers.saturating_add(1);
+    let prefix_len = query_position + 1;
+    let prefix_words = prefix_len * head_size;
+
+    for head in 0..query_heads {
+        causal.audit.heads = causal.audit.heads.saturating_add(1);
+        let head_context = attention::CausalAttentionHeadContext {
+            layer,
+            head,
+            query_position,
+        };
+        let query = &queries[head * head_size..(head + 1) * head_size];
+        causal
+            .transport
+            .transform_query(head_context, query, &mut causal.scratch.query);
+        causal.audit.query_transforms = causal.audit.query_transforms.saturating_add(1);
+
+        let kv_head_offset = (head / kv_mul) * head_size;
+        for source_position in 0..prefix_len {
+            let source_context = attention::CausalAttentionSourceContext {
+                layer,
+                head,
+                query_position,
+                source_position,
+            };
+            let source_start = source_position * kv_stride + kv_head_offset;
+            let source_end = source_start + head_size;
+            let transformed_start = source_position * head_size;
+            let transformed_end = transformed_start + head_size;
+            causal.transport.transport_key(
+                source_context,
+                &keys[source_start..source_end],
+                &mut causal.scratch.keys[transformed_start..transformed_end],
+            );
+            causal.transport.transport_value(
+                source_context,
+                &values[source_start..source_end],
+                &mut causal.scratch.values[transformed_start..transformed_end],
+            );
+            causal.audit.key_transports = causal.audit.key_transports.saturating_add(1);
+            causal.audit.value_transports = causal.audit.value_transports.saturating_add(1);
+            if source_position > query_position {
+                causal.audit.future_reads = causal.audit.future_reads.saturating_add(1);
+            }
+            causal.audit.maximum_source_position = Some(
+                causal
+                    .audit
+                    .maximum_source_position
+                    .map_or(source_position, |maximum| maximum.max(source_position)),
+            );
+        }
+
+        let attention =
+            &mut attention_weights[head * sequence_capacity..head * sequence_capacity + prefix_len];
+        attention::standard_head_attention_weights(
+            attention,
+            &causal.scratch.query,
+            &causal.scratch.keys[..prefix_words],
+            0,
+            head_size,
+            canonical_math,
+        );
+        attention::head_attention_value_aggregate(
+            &mut causal.scratch.aggregate,
+            attention,
+            &causal.scratch.values[..prefix_words],
+            0,
+            head_size,
+        );
+        causal.transport.output_to_model_frame(
+            head_context,
+            &causal.scratch.aggregate,
+            &mut output[head * head_size..(head + 1) * head_size],
+        );
+        causal.audit.output_transforms = causal.audit.output_transforms.saturating_add(1);
+    }
+}
+
 #[inline]
 pub(crate) fn sqrtf(value: f32, canonical: bool) -> f32 {
     if canonical {
@@ -949,12 +1206,82 @@ impl Llama {
             if layer == runtime.target_layer()
                 && runtime.intervention() != geometric_decoder::GeometryIntervention::Disabled
             {
-                self.layer_forward_with_geometry(st, layer, pos, fast_matmul, Some(runtime), None);
+                self.layer_forward_with_geometry(
+                    st,
+                    layer,
+                    pos,
+                    fast_matmul,
+                    Some(runtime),
+                    None,
+                    None,
+                );
             } else {
                 self.layer_forward(st, layer, pos, fast_matmul);
             }
         }
         self.finish_forward(st, fast_matmul);
+        self.exact_executor.complete_forward(1);
+    }
+
+    /// Advance one independent session whose selected layers retain the
+    /// ordinary dense attention contract while expressing Q/K/V through an
+    /// injected query-local coordinate transport.
+    fn forward_causal_attention_transport(
+        &self,
+        session: &mut CausalAttentionTransportSession,
+        token: usize,
+        pos: usize,
+        fast_matmul: bool,
+    ) {
+        let _forward_guard = self
+            .forward_gate
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        debug_assert!(pos < session.state.sequence_capacity);
+        debug_assert!(token < self.cfg.vocab);
+
+        let CausalAttentionTransportSession {
+            state,
+            transport,
+            selected_layers,
+            scratch,
+            audit,
+            ..
+        } = session;
+        transport.begin_position(token, pos);
+        audit.positions = audit.positions.saturating_add(1);
+        audit.maximum_query_position = Some(
+            audit
+                .maximum_query_position
+                .map_or(pos, |maximum| maximum.max(pos)),
+        );
+
+        self.exact_executor.begin_forward(1);
+        let dim = self.cfg.dim;
+        state
+            .x
+            .copy_from_slice(&self.w[self.emb + token * dim..self.emb + (token + 1) * dim]);
+        for (layer, selected) in selected_layers.iter().copied().enumerate() {
+            if selected {
+                let mut causal_attention = CausalAttentionLayerOverride {
+                    transport: transport.as_mut(),
+                    scratch,
+                    audit,
+                };
+                self.layer_forward_with_geometry(
+                    state,
+                    layer,
+                    pos,
+                    fast_matmul,
+                    None,
+                    None,
+                    Some(&mut causal_attention),
+                );
+            } else {
+                self.layer_forward(state, layer, pos, fast_matmul);
+            }
+        }
+        self.finish_forward(state, fast_matmul);
         self.exact_executor.complete_forward(1);
     }
 
@@ -983,7 +1310,15 @@ impl Llama {
         st.x.copy_from_slice(&self.w[self.emb + token * dim..self.emb + (token + 1) * dim]);
         for layer in 0..self.cfg.n_layers {
             if layer == target_layer {
-                self.layer_forward_with_geometry(st, layer, pos, fast_matmul, None, Some(capture));
+                self.layer_forward_with_geometry(
+                    st,
+                    layer,
+                    pos,
+                    fast_matmul,
+                    None,
+                    Some(capture),
+                    None,
+                );
             } else {
                 self.layer_forward(st, layer, pos, fast_matmul);
             }
@@ -1105,11 +1440,12 @@ impl Llama {
     /// executor path. Operation order and arithmetic are unchanged from the
     /// original in-line loop body.
     fn layer_forward(&self, st: &mut State, l: usize, pos: usize, fast_matmul: bool) {
-        self.layer_forward_with_geometry(st, l, pos, fast_matmul, None, None);
+        self.layer_forward_with_geometry(st, l, pos, fast_matmul, None, None, None);
     }
 
     /// Shared transformer-layer body.  `geometry = Some` replaces only this
     /// layer's source-attention seam; the residual/MLP stack stays identical.
+    #[allow(clippy::too_many_arguments)]
     fn layer_forward_with_geometry(
         &self,
         st: &mut State,
@@ -1118,6 +1454,7 @@ impl Llama {
         fast_matmul: bool,
         geometry: Option<&mut geometric_decoder::GeometricRuntime>,
         mut source_capture: Option<&mut geometric_training::SourceLayerCapture>,
+        causal_attention: Option<&mut CausalAttentionLayerOverride<'_>>,
     ) {
         let c = &self.cfg;
         let (dim, hid) = (c.dim, c.hidden);
@@ -1220,43 +1557,65 @@ impl Llama {
                     }
                 }
 
-                // Source multihead attention.  This branch is never entered
-                // at the treatment layer.
-                for h in 0..c.n_heads {
-                    let q = &st.q[h * head_size..(h + 1) * head_size];
-                    let att =
-                        &mut st.att[h * st.sequence_capacity..h * st.sequence_capacity + pos + 1];
-                    let kv_head_offset = (h / kv_mul) * head_size;
+                // Source multihead attention. The injected path retains the
+                // same complete causal prefix and standard stable softmax; it
+                // changes only the coordinate frame in which Q·K and the
+                // dense value aggregate are evaluated.
+                if let Some(causal_attention) = causal_attention {
+                    apply_full_prefix_causal_attention_transport(
+                        causal_attention,
+                        l,
+                        pos,
+                        c.n_heads,
+                        head_size,
+                        kv_mul,
+                        st.sequence_capacity,
+                        kv_dim,
+                        &st.q,
+                        &st.key_cache[loff..],
+                        &st.value_cache[loff..],
+                        &mut st.att,
+                        &mut st.xb,
+                        self.canonical_math,
+                    );
+                } else {
+                    for h in 0..c.n_heads {
+                        let q = &st.q[h * head_size..(h + 1) * head_size];
+                        let att = &mut st.att
+                            [h * st.sequence_capacity..h * st.sequence_capacity + pos + 1];
+                        let kv_head_offset = (h / kv_mul) * head_size;
 
-                    if c.r4_attention {
-                        attention::experimental_r4_head_attention_weights(
+                        if c.r4_attention {
+                            attention::experimental_r4_head_attention_weights(
+                                att,
+                                q,
+                                &st.key_cache[loff..],
+                                kv_head_offset,
+                                kv_dim,
+                                self.canonical_math,
+                            );
+                        } else {
+                            attention::standard_head_attention_weights(
+                                att,
+                                q,
+                                &st.key_cache[loff..],
+                                kv_head_offset,
+                                kv_dim,
+                                self.canonical_math,
+                            );
+                        }
+
+                        let att =
+                            &st.att[h * st.sequence_capacity..h * st.sequence_capacity + pos + 1];
+                        let xb = &mut st.xb[h * head_size..(h + 1) * head_size];
+                        attention::head_attention_value_aggregate(
+                            xb,
                             att,
-                            q,
-                            &st.key_cache[loff..],
+                            &st.value_cache[loff..],
                             kv_head_offset,
                             kv_dim,
-                            self.canonical_math,
-                        );
-                    } else {
-                        attention::standard_head_attention_weights(
-                            att,
-                            q,
-                            &st.key_cache[loff..],
-                            kv_head_offset,
-                            kv_dim,
-                            self.canonical_math,
                         );
                     }
-
-                    let att = &st.att[h * st.sequence_capacity..h * st.sequence_capacity + pos + 1];
-                    let xb = &mut st.xb[h * head_size..(h + 1) * head_size];
-                    attention::head_attention_value_aggregate(
-                        xb,
-                        att,
-                        &st.value_cache[loff..],
-                        kv_head_offset,
-                        kv_dim,
-                    );
                 }
 
                 matmul(
@@ -3286,6 +3645,99 @@ impl HuggingFaceLlamaOracle {
         State::new_bounded(&self.model.cfg, sequence_capacity)
     }
 
+    /// Construct an independent full decoder whose selected attention layers
+    /// use an injected coordinate transport over every causal source.
+    ///
+    /// The source checkpoint continues to own Q/K/V and Wo, RoPE, stable
+    /// softmax, residual/FFN blocks, and the LM head. The session fails closed
+    /// unless each head is a non-zero exact sequence of four-lane R4 blocks.
+    pub fn new_causal_attention_transport_session(
+        &self,
+        mut transport: Box<dyn attention::CausalAttentionTransport>,
+        selection: attention::CausalAttentionLayerSelection,
+        sequence_capacity: usize,
+    ) -> Result<CausalAttentionTransportSession, attention::CausalAttentionTransportError> {
+        use attention::CausalAttentionTransportError as Error;
+
+        let config = &self.model.cfg;
+        if config.n_heads == 0 || config.dim == 0 || !config.dim.is_multiple_of(config.n_heads) {
+            return Err(Error::InvalidHeadLayout {
+                dimension: config.dim,
+                heads: config.n_heads,
+            });
+        }
+        if config.n_kv_heads == 0 || !config.n_heads.is_multiple_of(config.n_kv_heads) {
+            return Err(Error::InvalidGroupedQueryLayout {
+                query_heads: config.n_heads,
+                kv_heads: config.n_kv_heads,
+            });
+        }
+        let head_size = config.dim / config.n_heads;
+        if head_size == 0 || !head_size.is_multiple_of(4) {
+            return Err(Error::HeadSizeNotDivisibleByFour { head_size });
+        }
+        let selected_layers = causal_attention_layer_mask(selection, config.n_layers)?;
+        let state = State::new_bounded(config, sequence_capacity)
+            .map_err(|error| Error::SequenceCapacity(error.to_string()))?;
+        let scratch = CausalAttentionTransportScratch::new(head_size, sequence_capacity)?;
+        transport.reset();
+        require_healthy_causal_attention_transport(transport.as_ref())?;
+        Ok(CausalAttentionTransportSession {
+            state,
+            transport,
+            selected_layers,
+            scratch,
+            audit: attention::CausalAttentionTransportAudit::default(),
+            source_cid: self.kappa.clone(),
+            next_position: 0,
+        })
+    }
+
+    /// Advance one full-prefix causal attention transport session by exactly
+    /// one token and copy its ordinary source-model logits to `logits`.
+    ///
+    /// Positions are deliberately sequential: cumulative geometric frames
+    /// and the source KV cache must admit the same causal history.
+    pub fn step_causal_attention_transport(
+        &self,
+        session: &mut CausalAttentionTransportSession,
+        token: usize,
+        position: usize,
+        logits: &mut [f32],
+    ) -> Result<(), attention::CausalAttentionTransportError> {
+        use attention::CausalAttentionTransportError as Error;
+
+        if session.source_cid != self.kappa {
+            return Err(Error::SourceBindingMismatch);
+        }
+        require_healthy_causal_attention_transport(session.transport.as_ref())?;
+        if token >= self.model.cfg.vocab {
+            return Err(Error::TokenOutOfRange(token));
+        }
+        let capacity = session.state.sequence_capacity();
+        if position >= capacity {
+            return Err(Error::PositionOutOfRange { position, capacity });
+        }
+        if position != session.next_position {
+            return Err(Error::PositionOutOfOrder {
+                requested: position,
+                expected: session.next_position,
+            });
+        }
+        if logits.len() != self.model.cfg.vocab {
+            return Err(Error::LogitShape {
+                requested: logits.len(),
+                expected: self.model.cfg.vocab,
+            });
+        }
+        self.model
+            .forward_causal_attention_transport(session, token, position, self.fast_matmul);
+        require_healthy_causal_attention_transport(session.transport.as_ref())?;
+        logits.copy_from_slice(&session.state.logits);
+        session.next_position = position + 1;
+        Ok(())
+    }
+
     /// Construct one independent experimental decoder arm.  Persistent
     /// memory must already carry the exact tokenizer and deterministic
     /// adapter identity; both are revalidated here against the checkpoint.
@@ -4772,6 +5224,244 @@ mod tests {
             },
         )
         .expect("valid geometry context")
+    }
+
+    #[derive(Default)]
+    struct IdentityCausalAttentionTransport;
+
+    impl attention::CausalAttentionTransport for IdentityCausalAttentionTransport {
+        fn policy_identity(&self) -> &str {
+            "identity-full-prefix-control/1"
+        }
+
+        fn begin_position(&mut self, _token: usize, _position: usize) {}
+
+        fn transform_query(
+            &mut self,
+            _context: attention::CausalAttentionHeadContext,
+            input: &[f32],
+            output: &mut [f32],
+        ) {
+            output.copy_from_slice(input);
+        }
+
+        fn transport_key(
+            &mut self,
+            _context: attention::CausalAttentionSourceContext,
+            input: &[f32],
+            output: &mut [f32],
+        ) {
+            output.copy_from_slice(input);
+        }
+
+        fn transport_value(
+            &mut self,
+            _context: attention::CausalAttentionSourceContext,
+            input: &[f32],
+            output: &mut [f32],
+        ) {
+            output.copy_from_slice(input);
+        }
+
+        fn output_to_model_frame(
+            &mut self,
+            _context: attention::CausalAttentionHeadContext,
+            input: &[f32],
+            output: &mut [f32],
+        ) {
+            output.copy_from_slice(input);
+        }
+    }
+
+    #[derive(Default)]
+    struct FaultingCausalAttentionTransport {
+        faulted: bool,
+    }
+
+    impl attention::CausalAttentionTransport for FaultingCausalAttentionTransport {
+        fn reset(&mut self) {
+            self.faulted = false;
+        }
+
+        fn policy_identity(&self) -> &str {
+            "faulting-full-prefix-control/1"
+        }
+
+        fn status(&self) -> Result<(), String> {
+            if self.faulted {
+                Err("injected transport fault".to_owned())
+            } else {
+                Ok(())
+            }
+        }
+
+        fn begin_position(&mut self, _token: usize, _position: usize) {}
+
+        fn transform_query(
+            &mut self,
+            _context: attention::CausalAttentionHeadContext,
+            input: &[f32],
+            output: &mut [f32],
+        ) {
+            output.copy_from_slice(input);
+        }
+
+        fn transport_key(
+            &mut self,
+            _context: attention::CausalAttentionSourceContext,
+            input: &[f32],
+            output: &mut [f32],
+        ) {
+            output.copy_from_slice(input);
+        }
+
+        fn transport_value(
+            &mut self,
+            _context: attention::CausalAttentionSourceContext,
+            input: &[f32],
+            output: &mut [f32],
+        ) {
+            output.copy_from_slice(input);
+        }
+
+        fn output_to_model_frame(
+            &mut self,
+            _context: attention::CausalAttentionHeadContext,
+            input: &[f32],
+            output: &mut [f32],
+        ) {
+            output.copy_from_slice(input);
+            self.faulted = true;
+        }
+    }
+
+    #[test]
+    fn causal_attention_transport_preserves_full_decoder_and_audits_dense_prefix() {
+        let oracle = tiny_geometric_oracle();
+        let mut plain = oracle.new_state_bounded(6).expect("plain bounded state");
+        let mut transported = oracle
+            .new_causal_attention_transport_session(
+                Box::new(IdentityCausalAttentionTransport),
+                attention::CausalAttentionLayerSelection::All,
+                6,
+            )
+            .expect("identity transport session");
+        assert_eq!(
+            transported.policy_identity(),
+            "identity-full-prefix-control/1"
+        );
+        assert_eq!(transported.selected_layer_count(), oracle.cfg().n_layers);
+        assert!(transported.layer_is_selected(0));
+        assert!(transported.layer_is_selected(1));
+
+        let mut plain_logits = vec![0.0; oracle.cfg().vocab];
+        let mut transported_logits = vec![0.0; oracle.cfg().vocab];
+        for (position, token) in [1usize, 3, 5].into_iter().enumerate() {
+            oracle
+                .step_state(&mut plain, token, position, &mut plain_logits)
+                .expect("ordinary decoder step");
+            oracle
+                .step_causal_attention_transport(
+                    &mut transported,
+                    token,
+                    position,
+                    &mut transported_logits,
+                )
+                .expect("transported decoder step");
+            assert_eq!(
+                plain_logits
+                    .iter()
+                    .map(|value| value.to_bits())
+                    .collect::<Vec<_>>(),
+                transported_logits
+                    .iter()
+                    .map(|value| value.to_bits())
+                    .collect::<Vec<_>>()
+            );
+        }
+        assert_eq!(
+            plain.persistent_state_cid(),
+            transported.persistent_state_cid()
+        );
+
+        let audit = transported.audit();
+        assert_eq!(audit.positions, 3);
+        assert_eq!(audit.layers, 6);
+        assert_eq!(audit.heads, 12);
+        assert_eq!(audit.query_transforms, 12);
+        assert_eq!(audit.key_transports, 24);
+        assert_eq!(audit.value_transports, 24);
+        assert_eq!(audit.output_transforms, 12);
+        assert_eq!(audit.future_reads, 0);
+        assert_eq!(audit.maximum_query_position, Some(2));
+        assert_eq!(audit.maximum_source_position, Some(2));
+    }
+
+    #[test]
+    fn causal_attention_transport_fails_closed_on_shape_order_and_health() {
+        use attention::{
+            CausalAttentionLayerSelection as Selection, CausalAttentionTransportError,
+        };
+
+        let mut invalid_shape = tiny_geometric_oracle();
+        invalid_shape.model.cfg.n_heads = 4;
+        invalid_shape.model.cfg.n_kv_heads = 4;
+        let shape_error = invalid_shape.new_causal_attention_transport_session(
+            Box::new(IdentityCausalAttentionTransport),
+            Selection::All,
+            4,
+        );
+        assert!(matches!(
+            shape_error,
+            Err(CausalAttentionTransportError::HeadSizeNotDivisibleByFour { head_size: 2 })
+        ));
+
+        let oracle = tiny_geometric_oracle();
+        let layer_error = oracle.new_causal_attention_transport_session(
+            Box::new(IdentityCausalAttentionTransport),
+            Selection::Selected(vec![oracle.cfg().n_layers]),
+            4,
+        );
+        assert!(matches!(
+            layer_error,
+            Err(CausalAttentionTransportError::LayerOutOfRange {
+                requested: 2,
+                layers: 2
+            })
+        ));
+
+        let mut session = oracle
+            .new_causal_attention_transport_session(
+                Box::new(FaultingCausalAttentionTransport::default()),
+                Selection::Selected(vec![0]),
+                4,
+            )
+            .expect("fault probe session");
+        let mut logits = vec![123.0; oracle.cfg().vocab];
+        let health_error = oracle.step_causal_attention_transport(&mut session, 1, 0, &mut logits);
+        assert!(matches!(
+            health_error,
+            Err(CausalAttentionTransportError::TransportFault {
+                ref policy_identity,
+                ref reason,
+            }) if policy_identity == "faulting-full-prefix-control/1"
+                && reason == "injected transport fault"
+        ));
+        assert!(logits
+            .iter()
+            .all(|value| value.to_bits() == 123.0f32.to_bits()));
+        assert!(session.transport_status().is_err());
+        session.reset();
+        assert_eq!(session.transport_status(), Ok(()));
+
+        let order_error = oracle.step_causal_attention_transport(&mut session, 1, 1, &mut logits);
+        assert!(matches!(
+            order_error,
+            Err(CausalAttentionTransportError::PositionOutOfOrder {
+                requested: 1,
+                expected: 0
+            })
+        ));
     }
 
     #[test]

@@ -14,7 +14,42 @@ Measurements retain their pre-declared exit rule and durable issue/record
 reference; design targets remain explicitly labeled as definitions,
 assumptions, or objectives rather than measured results.
 
-> **Current forward decision after direct-attention V3
+> **Current forward decision after the V4 one-time reveal
+> (2026-08-29).** `ConnectionGaugeCovarianceV4` preserved construction-scale
+> representation covariance but failed held-out functional binding. H4,
+> alternative-tangent, and plain main arms each scored 13/24; current-only was
+> 12/24; order-shuffled, value-permuted, and source-gauge-mismatch controls were
+> 13/24, 12/24, and 11/24. The sealed commitment, causal/work audits, geometry
+> identities, and byte replay passed, so the terminal is a clean negative rather
+> than `UNAVAILABLE`. V4 is frozen and will not be tuned or rerun.
+>
+> The positive #973 reference is `HELM-D-R4`; the active successor is intrinsic
+> R4 distance/centroid attention. The official MIT HELM-D source
+> is pinned at `7501deca8f413848bfef804be64ce874b72a3cd7` as an offline architectural
+> reference. Its source-faithful semantics are pinned, and the frozen ordinary
+> full-decoder donor preserves every learned
+> Q/K/V, stable-softmax, value-aggregation,
+> and output-projection operation while splitting heads into R4 blocks, encoding
+> exact cumulative Spin/H4 local frames, transporting K/V into the query frame,
+> and mapping the aggregate back before unchanged `W_o`. The first positive is
+> numerical and behavioral parity on frozen real causal-language next-token
+> loss, top-1, and decoded output against the donor, with an equal-work
+> frame-permuted destructive control. That bounded parity now qualifies; it is
+> not a geometry-advantage result. #973 now trains intrinsic R4
+> distance/centroid attention; only a positive intrinsic
+> result may authorize multi-resonance replacement and bounded recurrence.
+> Source weights, dense all-prefix work, and softmax are offline scientific
+> oracles only and establish no transformerless or serving claim.
+>
+> **Measured evidence status:** HELM-D pinned-source provenance `PASS`;
+> ordinary-donor reproduction `PASS`; transported-R4 parity, destructive
+> control, and causal audit `PASS` on the bounded full-decoder run; upstream
+> checkpoint parity `NOT_RUN`; intrinsic R4 attention `NOT_RUN`;
+> multi-resonance replacement `NOT_RUN`; recurrent factorization/lowering
+> `NOT_RUN`. See the
+> [`HELM-D-R4` record](helm_d_r4_softmax_decoder_973.md).
+
+> **Prior forward decision after direct-attention V3
 > (2026-08-28).** Preserve exact R4/spin routes as identity, causal state, frame,
 > transport, and provenance; reject the assumption that a fixed componentwise
 > center of those identity coordinates is semantic placement. The bounded
@@ -84,6 +119,17 @@ assumptions, or objectives rather than measured results.
 > labels integrity-sealed; labels remain unrevealed, while predictions, scores,
 > paired E8, resonance, recurrence, and lowering remain `NOT_RUN`.
 > See the [V4 record](connection_gauge_covariance_v4_973.md).
+
+> **Connection-gauge V4 Phase-III result, 2026-08-29.** The protected one-time
+> reveal reproduced the Phase-I and Phase-II identities, emitted two identical
+> 168-record prediction streams, and matched the salted label commitment before
+> one scoring traversal. H4-compatible, alternative-tangent, and plain-fixed
+> each scored 13/24; current-only scored 12/24; order-shuffled, value-permuted,
+> and source-gauge-mismatch scored 13/24, 12/24, and 11/24. Terminal:
+> `FAIL_CONNECTION_GAUGE_COVARIANCE_V4_HELD_OUT_FUNCTIONAL_PARITY_STOP_BEFORE_PAIRED_H4_E8`.
+> This retains construction covariance but does not establish held-out causal
+> attention, H4 advantage, paired E8, resonance, recurrence, or lowering. The
+> complete append-only evidence remains in the [V4 record](connection_gauge_covariance_v4_973.md).
 
 > **Bounded gated-delta core result, 2026-08-28.** The construction-only core
 > compiled separate K/V/Q placements, four multirate last-context banks, H4
@@ -324,11 +370,15 @@ assumptions, or objectives rather than measured results.
 > frozen document-scope corpus-induced placement then passed target-free but
 > failed its held-out accuracy/control gate. The later bounded gated-delta core
 > also trailed plain delta, and the direct H4 scaffold's fresh V3 then scored
-> 3/12 versus plain 12/12. `ConnectionGaugeCovarianceV4` Phase I subsequently
-> passed; #973 has frozen its independent target-free Phase-II population and
-> salted commitment in PR #1001. Protected merge/reveal is next.
-> Paired-E8/fiber binding, the corpus oracle, resonance replacement, and bounded
-> recurrence remain later conditional stages. #954 remains blocked behind #973.
+> 3/12 versus plain 12/12. `ConnectionGaugeCovarianceV4` subsequently passed
+> construction covariance but failed held-out functional binding at 13/24 for
+> all main arms, with insufficient destructive-control separation. The
+> `HELM-D-R4` pinned-source audit, frozen ordinary-donor reproduction, and
+> gauge-equivalent full-decoder ordinary-softmax parity in transported R4/Spin
+> frames now pass on the bounded real causal-language run. The current #973
+> action is intrinsic R4 distance/centroid attention; resonance replacement and
+> bounded recurrence remain later conditional stages. #954 remains blocked
+> behind #973.
 > Legacy
 > tracker #949 is closed as superseded, and #958 is retained directly beneath
 > #820 as GI-0 foundation. Two

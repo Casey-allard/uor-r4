@@ -110,11 +110,14 @@ The experiment must be able to change the next programme decision:
   also stronger. The bounded gated-delta core later trailed plain delta.
   Direct-attention V2 is non-promotable because its comparators had fewer
   raw-manifold degrees of freedom; equal-manifold-budget V3 returned full H4 3/12 versus plain
-  12/12 and isolated the connection/gauge seam. Do not tune any revealed
-  fixture. Run fresh separately trained `ConnectionGaugeCovarianceV4`, explicit
-  paired-E8/fiber binding, the corpus-bound softmax oracle, normalized resonance
-  replacement, and bounded recurrence in that order before any protected
-  held-out join. See the
+  12/12 and isolated the connection/gauge seam. V4 then passed construction
+  covariance but failed held-out functional binding at 13/24 for every main
+  arm, with insufficient destructive-control separation. Do not tune any
+  revealed fixture. Run the pinned HELM-D architecture audit, frozen ordinary
+  full-decoder donor, gauge-equivalent
+  ordinary-softmax parity in transported R4/Spin frames, real next-token and
+  decoded-output parity, trained intrinsic R4 distance/centroid attention,
+  normalized resonance replacement, and bounded recurrence in that order. See the
   [#989 record](docs/source_free_table_baseline_989.md).
 - **Preserve the GI evidence lineage.** GI-1 makes lexical/address state
   reversible;
@@ -157,28 +160,33 @@ The experiment must be able to change the next programme decision:
   `RETAIN_BOUNDED_GLOBAL_ONLY_REDESIGN_CORPUS_SPIN_PLACEMENT`. Its first bounded
   transported gated-delta core was also weaker than plain delta on its sealed
   construction fixture. The literal causal Q/K/V/O scaffold now exists, but
-  equal-manifold-budget V3 rejected its current H4 parameterization while matched plain
-  attention worked. #973 owns `ConnectionGaugeCovarianceV4`; recurrent
-  factorization follows only after a geometric reference and its resonance
-  replacement qualify. GI-4/#954 remains blocked, with GI-5/#955 downstream.
+  equal-manifold-budget V3 rejected its current H4 parameterization while matched
+  plain attention worked. V4 preserved construction covariance but failed its
+  held-out function/control gates. #973's `HELM-D-R4` full-decoder softmax
+  parity now passes; intrinsic R4 distance/centroid training is active, and
+  recurrent factorization follows only after the intrinsic reference and its
+  resonance replacement qualify. GI-4/#954 remains blocked, with GI-5/#955 downstream.
 - **Exercise the accepted route path.** #953 geometry runs before token choice
   and emits admitted support and its fixed-point radius trace. The current #973
-  reference must hold support fixed, freeze train/validation before outcomes,
-  and compare separately trained geometric connections with equal-raw-manifold-budget ordinary
-  dense attention and geometry-destroying controls. Transport overhead is
-  measured explicitly; it is not hidden under an equal-work claim.
-- **Use the smallest falsifier.** `DirectCausalGeometricAttentionR4V1` is one
-  head over a bounded causal prefix: learned Q/K/V/O, H4-frame transport,
-  stable softmax, and transported value aggregation. If neither it nor the
-  matched plain arm beats #953, repair representation/objective before
-  recurrence. If plain works and geometry falls outside a predeclared
-  non-inferiority margin, repair only the geometric input/connection seam.
-  Strict improvement over plain is an advantage claim, not the parity gate.
-  The current code scaffold is H4-only and its mixed-gauge H4 representation/
-  optimizer combination is negative on V3; the exact group action remains
-  algebraically valid, and actual paired-E8 hierarchy/fiber/torsion binding remains
-  `NOT_IMPLEMENTED`. Factor into resonance and gated-delta retention only after
+  reference must freeze train/validation before outcomes and hold source model,
+  learned Q/K/V and `W_o`, causal support, training updates, raw parameter
+  budget, decoding, and work fixed across the donor and R4-frame arms. The
+  source-frame-permuted arm is an equal-work destructive intervention.
+  Transport overhead is measured explicitly; it is not hidden under an
+  equal-work claim.
+- **Use the smallest falsifier.** `HELM-D-R4` first requires donor/reference
+  parity, then splits every learned head into R4 blocks, encodes exact cumulative
+  Spin/H4 frames, transports K/V to the query frame, applies unchanged ordinary
+  stable softmax and value aggregation, maps back, and applies unchanged `W_o`.
+  That gate now passes, including deterministic donor/R4 replay, zero future
+  reads, and a frame-permutation liveness control. Parity is not geometric
+  advantage. Actual paired-E8 hierarchy/
+  fiber/torsion binding remains `NOT_IMPLEMENTED`. Factor into intrinsic R4
+  distance/centroid attention, resonance, and gated-delta retention only after
   a repaired dense geometric reference works.
+  Pinned-source provenance, donor reproduction, and transported-R4 parity are
+  recorded in `docs/helm_d_r4_softmax_decoder_973.md`. Intrinsic R4, resonance,
+  and recurrence evidence remain `NOT_RUN`.
 - **Parallelize deterministic corpus work.** Partition by content identity,
   use all available local workers with canonical ordered reductions, and
   compare independent multithreaded rebuilds. Do not launch a long experiment

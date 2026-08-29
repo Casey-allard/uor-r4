@@ -1,0 +1,206 @@
+schema_version = 1
+audited_at = "2026-08-29"
+purpose = "Pinned provenance for an attributed compact HELM-D dense causal geometric-attention reference"
+vendored_source = false
+vendored_checkpoint = false
+
+[upstream]
+repository = "https://github.com/Graph-and-Geometric-Learning/helm"
+branch_at_audit = "main"
+commit = "7501deca8f413848bfef804be64ce874b72a3cd7"
+tree = "6a7d7d5557f05a7d3071a1babcc7aef4e4cb1228"
+source_license = "MIT"
+license_path = "LICENSE"
+license_sha256 = "3245ddf8abfb168a91adccbca29709f47cef3716d397b4f732fbe663a7057ff0"
+
+[paper]
+title = "HELM: Hyperbolic Large Language Models via Mixture-of-Curvature Experts"
+url = "https://arxiv.org/abs/2505.24722"
+version = "v2"
+license = "CC-BY-4.0"
+
+[checkpoint]
+record_url = "https://zenodo.org/records/18729608"
+doi = "10.5281/zenodo.18729608"
+concept_doi = "10.5281/zenodo.18729607"
+filename = "HELM_D_120M"
+content_url = "https://zenodo.org/api/records/18729608/files/HELM_D_120M/content"
+size_bytes = 1382138650
+checksum_algorithm = "md5"
+checksum = "cc099b79cfbead5ee217a550eab228a1"
+license = "CC-BY-4.0"
+format = "PyTorch ZIP checkpoint"
+archive_prefix_observed = "LLaMA115M_Epoch0_Step2186"
+vendored = false
+inspection = "Metadata and bounded archive-prefix inspection only; checkpoint bytes were not retained or executed"
+
+[tokenizer]
+repository = "https://huggingface.co/meta-llama/Llama-3.1-8B"
+identifier = "meta-llama/Llama-3.1-8B"
+vocabulary_size = 128256
+license = "Llama-3.1-Community-License"
+gated = true
+vendored = false
+
+[reference_architecture]
+name = "HELM-D"
+arch = "L6_W390_A6"
+layers = 6
+width = 390
+heads = 6
+spatial_dimensions_per_head = 64
+context_length = 2048
+parameter_count_derived = 114770249
+curvature_c = 1.0
+attention_score = "(2*c + 2*c*lorentz_inner(q,k)) / learned_scale + learned_bias"
+normalizer = "causal softmax"
+value_aggregation = "normalized Lorentz centroid"
+
+[portability]
+upstream_python = "3.10"
+upstream_torch = "2.6.0+cu124"
+upstream_geoopt = "0.5.0"
+upstream_training_hardware = "four CUDA GPUs with Accelerate and bf16"
+apple_silicon_recipe_compatible = false
+mps_complex_rope_qualified = false
+
+[evaluation_drift]
+strict_checkpoint_load = false
+root_embedding_has_unused_add_pos_parameter = true
+evaluation_embedding_has_unused_add_pos_parameter = false
+root_clamp_floor = 0.0001
+evaluation_clamp_floor = 0.00000001
+checkpoint_parity_claimed = false
+
+[[source_files]]
+variant = "training_tree"
+path = "helm/modules/helm_d.py"
+sha256 = "ebc06f7d86cca74970babd008c318364f422731e0b7ad0ff08fe5bf2e891bd5c"
+role = "dense causal decoder and complex RoPE precomputation"
+
+[[source_files]]
+variant = "training_tree"
+path = "helm/hypercore/nn/attention/lorentz_former_conv.py"
+sha256 = "ec8b08a916eb3afcaff154a5c414f6a34accb9e43dc371cdd28d10a566a35a3e"
+role = "Q/K/V projection, causal softmax, and Lorentz centroid attention"
+
+[[source_files]]
+variant = "training_tree"
+path = "helm/hypercore/nn/attention/lorentz_word_emb.py"
+sha256 = "7d5acc05413c68180ddbd5e6ff7d7c171fd417bbadaa0beffc3d69cdd083b1b6"
+role = "Lorentz token embeddings"
+
+[[source_files]]
+variant = "training_tree"
+path = "helm/hypercore/models/lorentz_feedforward.py"
+sha256 = "81a031aabf2025769c3f0f2c810388f4aafc298843542f35ab1b57bf540efa46"
+role = "Lorentz SwiGLU feed-forward block"
+
+[[source_files]]
+variant = "training_tree"
+path = "helm/hypercore/nn/linear/lorentz_linear.py"
+sha256 = "cccec6a1b3add4da4359d81654ccef7bf30199f27243565e1a1cb0e6c7df7cdd"
+role = "Lorentz linear projection"
+
+[[source_files]]
+variant = "training_tree"
+path = "helm/hypercore/nn/conv/conv_util_layers.py"
+sha256 = "defb455532292c7205c12d28d9325cc164318ae1bcff2e58fae2a9c08ad3b77a"
+role = "Lorentz residual and RMS normalization definitions"
+
+[[source_files]]
+variant = "training_tree"
+path = "helm/hypercore/manifolds/lorentzian.py"
+sha256 = "ae42b23368fae983eb88e5843d24de1c04941d0142b8be999b6fff9b7c15f6ff"
+role = "Lorentz manifold wrapper, inner product, centroid, and initialization"
+
+[[source_files]]
+variant = "training_tree"
+path = "helm/hypercore/manifolds/lmath.py"
+sha256 = "094e4586f61e34ccef261bbada7ca392c3a90614b1e4cd07ae9247f6b58e9321"
+role = "Lorentz tensor mathematics"
+
+[[source_files]]
+variant = "training_tree"
+path = "helm/hypercore/manifolds/utils.py"
+sha256 = "a67e96731867a552d4ea9968ca8be5ace3d658f61964ebd98ae42a4f28895dfd"
+role = "manifold numerical helpers"
+
+[[source_files]]
+variant = "training_tree"
+path = "helm/hypercore/utils/math_utils.py"
+sha256 = "c66c8975550bb890171b134ae83cc8ac822de67c1a35f8e32c045ddd3429e5e1"
+role = "autograd inverse hyperbolic helpers"
+
+[[source_files]]
+variant = "evaluation_tree"
+path = "lm-evaluation-harness/lm_eval/models/helm.py"
+sha256 = "f5f8c44110ee5927f0c7d72555f53b998c431fc3138382678ea020598a3d3779"
+role = "official HELM-D checkpoint adapter and multiple-choice scorer"
+
+[[source_files]]
+variant = "evaluation_tree"
+path = "lm-evaluation-harness/lm_eval/models/helm_module/helm_d.py"
+sha256 = "4ea5edc4ac9e3e3f4df52558b6394164e71e36a7f6683f8bb148bcc96d83467a"
+role = "evaluation-private dense decoder copy"
+
+[[source_files]]
+variant = "evaluation_tree"
+path = "lm-evaluation-harness/lm_eval/models/hypercore/nn/attention/lorentz_former_conv.py"
+sha256 = "ec8b08a916eb3afcaff154a5c414f6a34accb9e43dc371cdd28d10a566a35a3e"
+role = "evaluation-private attention copy"
+
+[[source_files]]
+variant = "evaluation_tree"
+path = "lm-evaluation-harness/lm_eval/models/hypercore/nn/attention/lorentz_word_emb.py"
+sha256 = "e5afeb5d444795106e7799af9e635abf01c1403bbbec1348e10d697475babe3d"
+role = "evaluation-private embedding copy without the unused add_pos parameter"
+
+[[source_files]]
+variant = "evaluation_tree"
+path = "lm-evaluation-harness/lm_eval/models/hypercore/models/lorentz_feedforward.py"
+sha256 = "81a031aabf2025769c3f0f2c810388f4aafc298843542f35ab1b57bf540efa46"
+role = "evaluation-private feed-forward copy"
+
+[[source_files]]
+variant = "evaluation_tree"
+path = "lm-evaluation-harness/lm_eval/models/hypercore/nn/linear/lorentz_linear.py"
+sha256 = "cccec6a1b3add4da4359d81654ccef7bf30199f27243565e1a1cb0e6c7df7cdd"
+role = "evaluation-private linear projection copy"
+
+[[source_files]]
+variant = "evaluation_tree"
+path = "lm-evaluation-harness/lm_eval/models/hypercore/nn/conv/conv_util_layers.py"
+sha256 = "d78712bd27f4c168159ee85a626f2b3e5b24dd50d67b7c2ec4c478b96534ed48"
+role = "evaluation-private residual and normalization copy with different clamp floors"
+
+[[source_files]]
+variant = "evaluation_tree"
+path = "lm-evaluation-harness/lm_eval/models/hypercore/manifolds/lorentzian.py"
+sha256 = "71b2be91b1980f83671f069aa662626798ffd8599fce67d30c6cc9b587acf9da"
+role = "evaluation-private Lorentz wrapper copy with CRLF line endings"
+
+[[source_files]]
+variant = "evaluation_tree"
+path = "lm-evaluation-harness/lm_eval/models/hypercore/manifolds/lmath.py"
+sha256 = "c8a5ca04714f85a4b18148d150c74bed8f11a1c3777a9c62979cd7bc0b3ac2a3"
+role = "evaluation-private Lorentz mathematics copy with CRLF line endings"
+
+[[source_files]]
+variant = "evaluation_tree"
+path = "lm-evaluation-harness/lm_eval/models/hypercore/manifolds/utils.py"
+sha256 = "c69f456d72856e227445bb3d6a6d97059a4c498c3379f43c8ed98368c194c681"
+role = "evaluation-private manifold helpers with CRLF line endings"
+
+[[source_files]]
+variant = "evaluation_tree"
+path = "lm-evaluation-harness/lm_eval/models/hypercore/utils/math_utils.py"
+sha256 = "7d9392650149bd8064defd8d94b985831da7caab13f5ffc6ec4931e88a3fd506"
+role = "evaluation-private inverse hyperbolic helpers"
+
+[secondary_license]
+path = "lm-evaluation-harness/LICENSE.md"
+license = "MIT"
+copyright = "Copyright (c) 2020 EleutherAI"
+sha256 = "a806e42547620dffbc2ec0333322c8b3523b4af11e059be14ef81aa5b1ae021f"
+applies_when = "Copying any source from the bundled lm-evaluation-harness tree"

@@ -160,7 +160,22 @@ substituted for one another.
   non-promotable because of a raw-manifold-parameter mismatch. Equal-manifold-budget V3
   returned full H4 3/12 versus plain 12/12 and an inference-time coherent
   alternative-connection swap 10/12, so the current H4 representation/
-  optimizer combination is not a qualified oracle.
+  optimizer combination is not a qualified oracle. V4 later preserved
+  construction covariance but failed held-out functional binding at 13/24 for
+  every main arm. These are retained historical comparators.
+- **`HELM-D-R4`** — #973's positive bounded full-decoder reference path. It pins the
+  official MIT HELM-D source at
+  `7501deca8f413848bfef804be64ce874b72a3cd7`, audits its full-decoder geometry,
+  then freezes an ordinary decoder donor and preserves its learned Q/K/V,
+  stable causal softmax, linear value
+  aggregation, and `W_o` while splitting heads into R4 blocks, binding exact
+  cumulative Spin/H4 local frames, transporting K/V into the query frame, and
+  mapping the aggregate back before `W_o`. Its bounded numerical and
+  real-language behavioral parity, replay, destructive control, and causal
+  audit pass; this is not geometric advantage. A separately trained intrinsic
+  R4 distance/centroid arm is now authorized. Upstream checkpoint parity,
+  intrinsic attention, resonance replacement, and recurrence/lowering evidence
+  remain `NOT_RUN`. See `helm_d_r4_softmax_decoder_973.md`.
 - **H4 frame connection** — the exact object is the relative H4 group element;
   the current compiler-side f64 matrix represents its left-quaternion action
   and is numerically orthogonal under the tested finite-group law. It does not
@@ -292,9 +307,12 @@ substituted for one another.
   (B0/#989), then exactly one #953 geometric intervention under the same
   corpus, support, decode, and work budget; paragraph, conversation, and
   global exact-spin operator qualification through that loop, followed by the
-  ADR-0005 direct Q/K/V/O scaffold, `ConnectionGaugeCovarianceV4`, paired-E8/fiber
-  binding, fiber-preserving multi-resonance replacement, bounded recurrent
-  factorization, and final requalification
+  ADR-0005 historical direct Q/K/V/O/V4 evidence, pinned HELM-D architecture,
+  frozen ordinary donor,
+  gauge-equivalent full-decoder ordinary softmax in transported R4/Spin frames,
+  real next-token and decoded-output parity, trained intrinsic R4
+  distance/centroid attention, fiber-preserving multi-resonance replacement,
+  bounded recurrent factorization, and final requalification
   (#973);
   correctness with abstention (#954); then bounded hypothetical-branch reasoning
   (#955). #969, #983, and #986 remain evidence provenance rather than a

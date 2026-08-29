@@ -28,20 +28,32 @@ literal offline operator defined by
 Q/K/V/O roles, tangent projection, causal transport, stable softmax, and
 transported value aggregation. V2 is non-promotable; equal-manifold-budget V3 returned full
 H4 3/12 versus plain 12/12 and an inference-time coherent alternative-connection
-swap 10/12. `ConnectionGaugeCovarianceV4` Phase I has since passed its
-construction/frame/gradient contract; its separate target-free held-out
-population and salted commitment are frozen in PR #1001, with protected merge
-and the one-time reveal active.
-Softmax does not enter serving. A qualified geometric reference next binds the
-paired hierarchy and freezes a fiber-preserving multi-resonance weighting
-law, factors its band-limited modes into bounded recurrence, and only then
-lowers to exact H4/Q29/integer tables. Validation,
+swap 10/12. `ConnectionGaugeCovarianceV4` subsequently passed construction
+covariance but failed its protected held-out gate: every main arm scored 13/24
+and its destructive controls did not separate. V4 is frozen negative evidence.
+The positive `HELM-D-R4` reference pins and audits the official HELM-D architecture,
+reproduces a frozen ordinary bounded decoder, then preserves learned Q/K/V, stable
+softmax, value aggregation, and `W_o` while splitting heads into R4 blocks,
+binding exact cumulative Spin/H4 frames, transporting K/V to the query frame,
+and mapping back before `W_o`. Real causal-language numerical and behavioral
+parity is required before any trained intrinsic R4 distance/centroid operator.
+Softmax does not enter serving. A qualified intrinsic geometric reference next
+freezes a fiber-preserving multi-resonance weighting law, factors its
+band-limited modes into bounded recurrence, and only then lowers to exact
+H4/Q29/integer tables. Validation,
 test, and inference remain strictly causal and cannot fit on their future
 tokens. Compiler-side floating point and multiplication are allowed to prove
 the representation before exact quantized/table lowering. No working general
 geometric attention, coherent chat, correctness, or reasoning claim follows
 until the new mechanism beats #953 and matched non-geometric, current-only,
 order-shuffled, key-isometry, and value-permuted controls on held-out evidence.
+
+Measured status for the new lifecycle is explicit: HELM-D pinned-source
+provenance `PASS`; ordinary-donor reproduction `PASS`; transported-R4 parity,
+frame-permutation liveness, and causal audit `PASS` on the bounded held-out
+full-decoder run; upstream checkpoint parity `NOT_RUN`; intrinsic R4 attention
+`NOT_RUN`; resonance replacement `NOT_RUN`; recurrence and exact lowering
+`NOT_RUN`. See [`helm_d_r4_softmax_decoder_973.md`](helm_d_r4_softmax_decoder_973.md).
 
 ## Current route-native target lifecycle
 
@@ -64,9 +76,13 @@ canonical text/corpus
     -> matched geometric table intervention (#953, established)
     -> bounded higher-scope mechanisms and rejected marginal-center placement (#973)
     -> H4-only direct Q/K/V/O scaffold (V2 invalid, equal-manifold-budget V3 negative)
-    -> separately trained ConnectionGaugeCovarianceV4
+    -> ConnectionGaugeCovarianceV4 construction positive / held-out negative
+    -> pinned HELM-D full-decoder architecture audit
+    -> frozen ordinary donor reproduction
+    -> gauge-equivalent ordinary softmax in exact R4/Spin frames
+    -> real next-token loss/top-1 and decoded-output parity
+    -> trained intrinsic R4 distance + geometric centroid attention
     -> actual paired-H4/E8 hierarchy + fiber/torsion binding
-    -> causal H4-frame transport + softmax aggregation (offline only)
     -> fiber-preserving multi-resonance replacement under matched controls
     -> bounded recurrent factorization with key-specific update
     -> protected held-out qualification
@@ -1400,8 +1416,12 @@ also accepts `--depths`, `--k0`, `--regions-budget`, and `--memory-budget`.
 replacement are still experimental and off-serving.** #989 and #953 are frozen
 comparators; #969 and the narrow #973 mechanisms retain only their measured
 scopes; #973's first document-scale placement and first bounded gated-delta
-comparison are negative. The next build must qualify the ADR-0005 direct
-Q/K/V/O, transport, causal weighting, and value-aggregation reference before
+comparison and V4 held-out functional binding are negative. ADR-0005's pinned
+HELM-D provenance, frozen ordinary donor, and full-decoder gauge-equivalent
+ordinary-softmax parity in transported R4/Spin frames now qualify on bounded
+real causal language. The next build is intrinsic R4 distance/centroid attention,
+and must qualify that intrinsic
+reference before
 correctness (#954), reasoning (#955), durable chat/memory integration (#962),
 optimization, lowering, or release work can inherit it.
 

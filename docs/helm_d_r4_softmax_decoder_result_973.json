@@ -1,0 +1,319 @@
+{
+  "result_cid": "blake3:05eaad210198fbe39a0645c25b0c890c55d5f3d3dd8a1710472e976a637e2a07",
+  "result": {
+    "schema": "uor-r4.helm-d-r4-softmax-decoder/1",
+    "issue": 973,
+    "terminal": "PASS_HELM_D_R4_GAUGE_SOFTMAX_FULL_DECODER_PARITY_ADVANCE_TO_INTRINSIC_R4",
+    "helm_d_upstream_commit": "7501deca8f413848bfef804be64ce874b72a3cd7",
+    "helm_d_role": "pinned architectural and causal-geometric-attention source; no checkpoint parity claimed",
+    "donor_source_cid": "blake3:12d2cd8a877ef2cdcf785b3d4d1f373e0419074cc884aeaff06fc059686a5ba5",
+    "corpus_cid": "blake3:194db0eebf2d49823ece01ee935447a0cc9edeaf018454ceea480ce7590132cf",
+    "held_out_document_id": "12",
+    "held_out_document_title": "Autonomous communities of Spain",
+    "evaluated_next_token_positions": 3,
+    "generated_tokens": 2,
+    "worker_policy": "available_parallelism:8",
+    "model_shape": {
+      "dimension": 576,
+      "layers": 30,
+      "query_heads": 9,
+      "kv_heads": 3,
+      "head_size": 64,
+      "vocabulary": 49152
+    },
+    "tolerances": {
+      "logit_absolute": 0.02,
+      "logit_relative": 0.001,
+      "mean_absolute_logit": 0.002,
+      "next_token_loss": 0.002,
+      "control_minimum_max_logit_delta": 0.02
+    },
+    "ordinary_donor": {
+      "position_metrics": [
+        {
+          "position": 0,
+          "observed_token": 23516,
+          "target_token": 27446,
+          "top1_token": 28,
+          "target_loss_nats": 15.911109861857618
+        },
+        {
+          "position": 1,
+          "observed_token": 27446,
+          "target_token": 488,
+          "top1_token": 3095,
+          "target_loss_nats": 4.065214176749194
+        },
+        {
+          "position": 2,
+          "observed_token": 488,
+          "target_token": 2429,
+          "top1_token": 28,
+          "target_loss_nats": 10.690158176621761
+        }
+      ],
+      "generated_tokens": [
+        28,
+        284
+      ],
+      "decoded": ", and",
+      "logits_cid": "blake3:daed98ad32533c9c24e319cf4de09483fed7c971f93871492b25143f9d0934d6",
+      "state_cid": "blake3:fed20d0e706cd2a00b52ce98e834bb9b7435da8e95541af2fd01a82ae8fedb3a",
+      "audit": null,
+      "policy_identity": null,
+      "implementation_evidence": null
+    },
+    "ordinary_donor_replay": {
+      "position_metrics": [
+        {
+          "position": 0,
+          "observed_token": 23516,
+          "target_token": 27446,
+          "top1_token": 28,
+          "target_loss_nats": 15.911109861857618
+        },
+        {
+          "position": 1,
+          "observed_token": 27446,
+          "target_token": 488,
+          "top1_token": 3095,
+          "target_loss_nats": 4.065214176749194
+        },
+        {
+          "position": 2,
+          "observed_token": 488,
+          "target_token": 2429,
+          "top1_token": 28,
+          "target_loss_nats": 10.690158176621761
+        }
+      ],
+      "generated_tokens": [
+        28,
+        284
+      ],
+      "decoded": ", and",
+      "logits_cid": "blake3:daed98ad32533c9c24e319cf4de09483fed7c971f93871492b25143f9d0934d6",
+      "state_cid": "blake3:fed20d0e706cd2a00b52ce98e834bb9b7435da8e95541af2fd01a82ae8fedb3a",
+      "audit": null,
+      "policy_identity": null,
+      "implementation_evidence": null
+    },
+    "coherent_r4_spin": {
+      "position_metrics": [
+        {
+          "position": 0,
+          "observed_token": 23516,
+          "target_token": 27446,
+          "top1_token": 28,
+          "target_loss_nats": 15.911109861857618
+        },
+        {
+          "position": 1,
+          "observed_token": 27446,
+          "target_token": 488,
+          "top1_token": 3095,
+          "target_loss_nats": 4.065215199034974
+        },
+        {
+          "position": 2,
+          "observed_token": 488,
+          "target_token": 2429,
+          "top1_token": 28,
+          "target_loss_nats": 10.690159094313792
+        }
+      ],
+      "generated_tokens": [
+        28,
+        284
+      ],
+      "decoded": ", and",
+      "logits_cid": "blake3:6eb2e2bf77fe6b4bd77da839e10ac7ad358397006395f976cf2008811241d57c",
+      "state_cid": "blake3:41d41084f54dfbb9f6ddb69eea1fc56fab6f9ca2a0190997b7af0f6dd0b27196",
+      "audit": {
+        "positions": 4,
+        "layers": 120,
+        "heads": 1080,
+        "query_transforms": 1080,
+        "key_transports": 2700,
+        "value_transports": 2700,
+        "output_transforms": 1080,
+        "future_reads": 0,
+        "maximum_query_position": 3,
+        "maximum_source_position": 3
+      },
+      "policy_identity": "schema=helm-d-r4-gauge-softmax/1\nscope=offline-full-prefix-causal-softmax-oracle\nhead-layout=complete-consecutive-R4-blocks\nframe=exact-cumulative-UOR-Spin-H4-left-quaternion\nencode=F_position_transpose-times-model-vector\ntransport=P_source_to_query=F_query_transpose-times-F_source\ntransported-state=every-causal-key-and-value\nscore=unchanged-scaled-dot-product-in-query-gauge\nselector=unchanged-stable-causal-softmax\naggregate=unchanged-weighted-value-sum-in-query-gauge\ndecode=F_query-times-query-gauge-output-before-Wo\ncontrol=source-frame-permuted-with-identical-shape-and-work\nexpected=ordinary-attention-numerical-and-behavioral-parity\nnot-claimed=geometry-advantage,intrinsic-distance,transformerless-serving,softmax-removal,source-free-language-model",
+      "implementation_evidence": {
+        "schema": "uor-r4.r4-spin-transport-evidence/1",
+        "policy_identity": "schema=helm-d-r4-gauge-softmax/1\nscope=offline-full-prefix-causal-softmax-oracle\nhead-layout=complete-consecutive-R4-blocks\nframe=exact-cumulative-UOR-Spin-H4-left-quaternion\nencode=F_position_transpose-times-model-vector\ntransport=P_source_to_query=F_query_transpose-times-F_source\ntransported-state=every-causal-key-and-value\nscore=unchanged-scaled-dot-product-in-query-gauge\nselector=unchanged-stable-causal-softmax\naggregate=unchanged-weighted-value-sum-in-query-gauge\ndecode=F_query-times-query-gauge-output-before-Wo\ncontrol=source-frame-permuted-with-identical-shape-and-work\nexpected=ordinary-attention-numerical-and-behavioral-parity\nnot-claimed=geometry-advantage,intrinsic-distance,transformerless-serving,softmax-removal,source-free-language-model",
+        "intervention": "coherent",
+        "frame_table_offsets": [
+          119,
+          118,
+          118,
+          118
+        ],
+        "audit": {
+          "positions_prepared": 4,
+          "r4_blocks_encoded": 103680,
+          "key_blocks_transported": 43200,
+          "value_blocks_transported": 43200,
+          "output_blocks_decoded": 17280,
+          "future_position_reads": 0,
+          "source_frame_permutations": 0
+        }
+      }
+    },
+    "coherent_replay": {
+      "position_metrics": [
+        {
+          "position": 0,
+          "observed_token": 23516,
+          "target_token": 27446,
+          "top1_token": 28,
+          "target_loss_nats": 15.911109861857618
+        },
+        {
+          "position": 1,
+          "observed_token": 27446,
+          "target_token": 488,
+          "top1_token": 3095,
+          "target_loss_nats": 4.065215199034974
+        },
+        {
+          "position": 2,
+          "observed_token": 488,
+          "target_token": 2429,
+          "top1_token": 28,
+          "target_loss_nats": 10.690159094313792
+        }
+      ],
+      "generated_tokens": [
+        28,
+        284
+      ],
+      "decoded": ", and",
+      "logits_cid": "blake3:6eb2e2bf77fe6b4bd77da839e10ac7ad358397006395f976cf2008811241d57c",
+      "state_cid": "blake3:41d41084f54dfbb9f6ddb69eea1fc56fab6f9ca2a0190997b7af0f6dd0b27196",
+      "audit": {
+        "positions": 4,
+        "layers": 120,
+        "heads": 1080,
+        "query_transforms": 1080,
+        "key_transports": 2700,
+        "value_transports": 2700,
+        "output_transforms": 1080,
+        "future_reads": 0,
+        "maximum_query_position": 3,
+        "maximum_source_position": 3
+      },
+      "policy_identity": "schema=helm-d-r4-gauge-softmax/1\nscope=offline-full-prefix-causal-softmax-oracle\nhead-layout=complete-consecutive-R4-blocks\nframe=exact-cumulative-UOR-Spin-H4-left-quaternion\nencode=F_position_transpose-times-model-vector\ntransport=P_source_to_query=F_query_transpose-times-F_source\ntransported-state=every-causal-key-and-value\nscore=unchanged-scaled-dot-product-in-query-gauge\nselector=unchanged-stable-causal-softmax\naggregate=unchanged-weighted-value-sum-in-query-gauge\ndecode=F_query-times-query-gauge-output-before-Wo\ncontrol=source-frame-permuted-with-identical-shape-and-work\nexpected=ordinary-attention-numerical-and-behavioral-parity\nnot-claimed=geometry-advantage,intrinsic-distance,transformerless-serving,softmax-removal,source-free-language-model",
+      "implementation_evidence": {
+        "schema": "uor-r4.r4-spin-transport-evidence/1",
+        "policy_identity": "schema=helm-d-r4-gauge-softmax/1\nscope=offline-full-prefix-causal-softmax-oracle\nhead-layout=complete-consecutive-R4-blocks\nframe=exact-cumulative-UOR-Spin-H4-left-quaternion\nencode=F_position_transpose-times-model-vector\ntransport=P_source_to_query=F_query_transpose-times-F_source\ntransported-state=every-causal-key-and-value\nscore=unchanged-scaled-dot-product-in-query-gauge\nselector=unchanged-stable-causal-softmax\naggregate=unchanged-weighted-value-sum-in-query-gauge\ndecode=F_query-times-query-gauge-output-before-Wo\ncontrol=source-frame-permuted-with-identical-shape-and-work\nexpected=ordinary-attention-numerical-and-behavioral-parity\nnot-claimed=geometry-advantage,intrinsic-distance,transformerless-serving,softmax-removal,source-free-language-model",
+        "intervention": "coherent",
+        "frame_table_offsets": [
+          119,
+          118,
+          118,
+          118
+        ],
+        "audit": {
+          "positions_prepared": 4,
+          "r4_blocks_encoded": 103680,
+          "key_blocks_transported": 43200,
+          "value_blocks_transported": 43200,
+          "output_blocks_decoded": 17280,
+          "future_position_reads": 0,
+          "source_frame_permutations": 0
+        }
+      }
+    },
+    "source_frame_permuted": {
+      "position_metrics": [
+        {
+          "position": 0,
+          "observed_token": 23516,
+          "target_token": 27446,
+          "top1_token": 28,
+          "target_loss_nats": 15.911109861857618
+        },
+        {
+          "position": 1,
+          "observed_token": 27446,
+          "target_token": 488,
+          "top1_token": 216,
+          "target_loss_nats": 8.02391772849056
+        },
+        {
+          "position": 2,
+          "observed_token": 488,
+          "target_token": 2429,
+          "top1_token": 75,
+          "target_loss_nats": 15.888771777915267
+        }
+      ],
+      "generated_tokens": [
+        75,
+        75
+      ],
+      "decoded": "[[",
+      "logits_cid": "blake3:57f467776e4f8ec9910787841de40c2c22dada8811879b2ed422cf7eb0091b8c",
+      "state_cid": "blake3:b7aa5b1f47ccbfdb1c6ac2c9272db5470645135f8d9968f13bf48edef3cbbf2f",
+      "audit": {
+        "positions": 4,
+        "layers": 120,
+        "heads": 1080,
+        "query_transforms": 1080,
+        "key_transports": 2700,
+        "value_transports": 2700,
+        "output_transforms": 1080,
+        "future_reads": 0,
+        "maximum_query_position": 3,
+        "maximum_source_position": 3
+      },
+      "policy_identity": "schema=helm-d-r4-gauge-softmax/1\nscope=offline-full-prefix-causal-softmax-oracle\nhead-layout=complete-consecutive-R4-blocks\nframe=exact-cumulative-UOR-Spin-H4-left-quaternion\nencode=F_position_transpose-times-model-vector\ntransport=P_source_to_query=F_query_transpose-times-F_source\ntransported-state=every-causal-key-and-value\nscore=unchanged-scaled-dot-product-in-query-gauge\nselector=unchanged-stable-causal-softmax\naggregate=unchanged-weighted-value-sum-in-query-gauge\ndecode=F_query-times-query-gauge-output-before-Wo\ncontrol=source-frame-permuted-with-identical-shape-and-work\nexpected=ordinary-attention-numerical-and-behavioral-parity\nnot-claimed=geometry-advantage,intrinsic-distance,transformerless-serving,softmax-removal,source-free-language-model",
+      "implementation_evidence": {
+        "schema": "uor-r4.r4-spin-transport-evidence/1",
+        "policy_identity": "schema=helm-d-r4-gauge-softmax/1\nscope=offline-full-prefix-causal-softmax-oracle\nhead-layout=complete-consecutive-R4-blocks\nframe=exact-cumulative-UOR-Spin-H4-left-quaternion\nencode=F_position_transpose-times-model-vector\ntransport=P_source_to_query=F_query_transpose-times-F_source\ntransported-state=every-causal-key-and-value\nscore=unchanged-scaled-dot-product-in-query-gauge\nselector=unchanged-stable-causal-softmax\naggregate=unchanged-weighted-value-sum-in-query-gauge\ndecode=F_query-times-query-gauge-output-before-Wo\ncontrol=source-frame-permuted-with-identical-shape-and-work\nexpected=ordinary-attention-numerical-and-behavioral-parity\nnot-claimed=geometry-advantage,intrinsic-distance,transformerless-serving,softmax-removal,source-free-language-model",
+        "intervention": "source_frame_permuted",
+        "frame_table_offsets": [
+          119,
+          118,
+          118,
+          102
+        ],
+        "audit": {
+          "positions_prepared": 4,
+          "r4_blocks_encoded": 103680,
+          "key_blocks_transported": 43200,
+          "value_blocks_transported": 43200,
+          "output_blocks_decoded": 17280,
+          "future_position_reads": 0,
+          "source_frame_permutations": 77760
+        }
+      }
+    },
+    "coherent_vs_donor": {
+      "maximum_absolute": 0.00001049041748046875,
+      "mean_absolute": 2.2742100540540378e-6,
+      "compared_logits": 196608,
+      "every_logit_within_absolute_plus_relative_tolerance": true
+    },
+    "donor_replay_exact": true,
+    "replay_exact": true,
+    "all_teacher_forced_top1_equal": true,
+    "all_teacher_forced_loss_within_tolerance": true,
+    "decoded_continuation_equal": true,
+    "control_maximum_absolute_logit_delta": 23.08442449569702,
+    "control_changed_attention_function": true,
+    "causal_audit_exact": true,
+    "r4_implementation_evidence_exact": true,
+    "nonclaims": [
+      "not an R4 predictive advantage",
+      "not intrinsic R4 distance or centroid attention",
+      "not softmax removal",
+      "not transformerless or source-free serving",
+      "not a correctness, reasoning, scale, or release claim"
+    ]
+  }
+}

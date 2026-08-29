@@ -7,15 +7,19 @@ identity-scoped memory, prime-overlap retrieval, resonance, Hopf state, and
 session geometry are inputs to the active route-native architecture. Its
 historical Markov generator, retrieval ranker, and dashboard demonstrations do
 not implement candidate-conditioned language attention or establish source-free
-coherent generation. The immediate build is a construction-validation Gate 0
-over current, previous, last-two, and full-prefix exact-route relations. A
-positive authorizes the predictive geometric connection memory over candidate,
-sentence, paragraph, conversation, and global route state: separate learned
-keys/values/queries, exact
-R4/Spin parallel transport, controlled multiscale forgetting, key-specific
-update, and candidate-relative readout. See
+coherent generation. The immediate #973 build is the offline `HELM-D-R4`
+reference: preserve a frozen ordinary donor's learned Q/K/V, causal softmax,
+value aggregation, and `W_o` while representing head blocks in exact cumulative
+R4/Spin frames and transporting K/V into the query frame. Numerical and real-
+language behavioral parity now passes in `uor-r4-core`; intrinsic R4
+distance/centroid is next. This router supplies substrate and
+visualization only; it is not the donor decoder or attention implementation. See
 [ADR-0005](../../docs/adr/0005-predictive-geometric-connection-memory.md) and the
 [Geometric Intelligence Programme](../../docs/geometric_intelligence_programme.md).
+The binding parity record is
+[`docs/helm_d_r4_softmax_decoder_973.md`](../../docs/helm_d_r4_softmax_decoder_973.md).
+This router contributes no result to that record; intrinsic R4, resonance,
+recurrence, and serving work remain `NOT_RUN` here.
 
 `UorR4Router` embeds words as 512-dimensional zeta-zero vectors, routes a
 rolling "brain state" to one of 16 scale windows by norm, indexes sentences
@@ -25,9 +29,9 @@ transitions). It ships thought-stream visualization for the browser dashboard
 (`index.html`, `geometric_prime_router_webapp.html` at the repo root).
 
 The active [geometric intelligence programme](../../docs/geometric_intelligence_programme.md)
-reuses the identity state, content-bearing memory, retrieval, R⁴/Hopf math,
-persistence, and turn writeback as substrate. The predictive memory is a new
-causal consumer of that state; it does not promote the Markov generator or
+may reuse the identity state, content-bearing memory, retrieval, R⁴/Hopf math,
+persistence, and turn writeback as substrate after its owning gates. It does not
+promote the Markov generator or
 existing retrieval score as attention, and it removes hash-derived thought
 streams from intelligence-critical token selection.
 

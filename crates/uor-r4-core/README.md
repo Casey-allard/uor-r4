@@ -17,12 +17,23 @@ non-promotable because of a raw-manifold-parameter mismatch. Fresh equal-manifol
 returned full H4 3/12, matched plain 12/12, current-only 6/12, and an
 inference-time coherent alternative-connection swap 10/12. The active build in
 [ADR-0005](../../docs/adr/0005-predictive-geometric-connection-memory.md) is
-therefore separately trained `ConnectionGaugeCovarianceV4`. Actual paired-E8/fiber
-binding follows only after that seam qualifies; the planned normalized multi-
-resonance sieve then replaces softmax and factors its mode sums into bounded
-recurrence. None is yet a language mechanism. The
+now `HELM-D-R4`: V4 preserved construction covariance but failed held-out
+functional binding, so #973 pins the HELM-D architecture, freezes an ordinary
+decoder donor, and builds full-decoder gauge-equivalent softmax in exact
+cumulative R4/Spin frames. Learned
+Q/K/V, value aggregation, and `W_o` remain unchanged; K/V transport to the
+query frame and map-back now retain bounded numerical and real-language behavior,
+with exact replay, zero future reads, and a live frame-permutation control.
+A trained intrinsic R4 distance/centroid operator is now the active rung, followed
+conditionally by the multi-resonance sieve and bounded recurrence. None is yet
+a serving or transformerless language mechanism. The
 authoritative sequence is the
 [Geometric Intelligence Programme](../../docs/geometric_intelligence_programme.md).
+HELM-D pinned-source provenance, donor reproduction, and transported-R4 parity
+are `PASS`; see
+[`docs/helm_d_r4_softmax_decoder_973.md`](../../docs/helm_d_r4_softmax_decoder_973.md).
+Upstream checkpoint parity, the intrinsic arm, resonance replacement, and
+recurrence/lowering evidence remain `NOT_RUN`.
 
 This crate also preserves the earlier teacher-compiled TLA/R4G1 engine as a
 research lane. That engine established useful artifact, deterministic-runtime,

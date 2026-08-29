@@ -73,34 +73,42 @@ representation, weighting, training, and recurrent compression.
 
 The one-head `DirectCausalGeometricAttentionR4V1` scaffold now exists: learned
 Q/K/V/O, S3 tangent projection, causal transport, stable softmax, and
-transported value aggregation. V2 is `NON_PROMOTABLE_BUDGET_MISMATCH`. Fresh
-equal-manifold-budget V3 returned full H4 3/12, plain 12/12, current-only 6/12,
-and an inference-time coherent alternative-connection swap 10/12. The
-separately trained V4 H4, coherent tangent-frame, and plain arms have since
-passed their construction/frame/gradient Phase I. #973 has now frozen the
-target-free held-out population and salted commitment in PR #1001 before one reveal,
-with order-shuffled, value-permuted, gauge-mismatch, and current-only controls.
-The qualified dense arms must eventually beat #953 and geometry
-must be non-inferior to plain; strict improvement is a separate advantage
-claim. Support stays identical; transport overhead is measured explicitly
-rather than called equal work. Binding the actual paired-E8 hierarchy, fiber,
-and torsion—and then adding a paired-E8-disabled control—remains
-`NOT_IMPLEMENTED` until the connection/gauge seam qualifies.
+transported value aggregation. V2 is `NON_PROMOTABLE_BUDGET_MISMATCH`; V3
+returned full H4 3/12 against plain 12/12. `ConnectionGaugeCovarianceV4` then
+passed construction-scale frame/gradient covariance but failed its protected
+held-out function: H4, alternative-tangent, and plain were each 13/24, while
+order/value/gauge destructive controls retained nearly all performance. V4 is
+frozen negative evidence and is not retuned.
 
-The repair is `ConnectionGaugeCovarianceV4`: explicit three-coefficient local
-placements, H4-compatible and deterministic tangent bases, a fixed-frame plain
-arm, and separately owned but identically initialized training. Its algebraic
-and finite-difference gauge/gradient Phase I passed; a separately committed
-target-free 24-case prefix-input-disjoint population and salted commitment are
-now sealed in PR #1001. Protected merge and the one-time reveal are next. This tests whether dense attention is represented
-covariantly in R4 tangent frames; it does not test geometric advantage.
-Softmax is not the target runtime. A positive freezes this reference,
-then replaces only its weighting law with the multi-resonance sieve using
-S3/SU(2), or S2 plus bound fiber/torsion, modes. Only a resonance replacement
-that preserves the frozen construction-validation effect is factored into
-bounded recurrent banks
-and later H4/Q29/integer tables. This is the architecture in
+The repair is `HELM-D-R4`. Pin the official MIT HELM-D source at
+`7501deca8f413848bfef804be64ce874b72a3cd7` and audit its bounded dense-decoder
+architecture and operator semantics. The source-faithful HELM-D reference keeps its own declared
+Lorentz logits, learned scale, ordinary causal softmax, and normalized Lorentz
+centroid; do not describe the upstream implementation as computing an `arcosh`
+geodesic-distance square. The first UOR operator is deliberately simpler and
+gauge-equivalent: preserve every learned Q/K/V, ordinary compatibility score,
+stable softmax, linear value aggregation, and `W_o`; split heads into R4 blocks;
+encode exact cumulative Spin/H4 local frames; transport K/V into the query
+frame; map the aggregate back; then apply unchanged `W_o`.
+
+This first gate asks only for numerical and behavioral parity on separately
+frozen real causal language: next-token loss, top-1, and exact decoded output
+against the donor and equal-budget plain controls. Transport overhead is
+reported rather than hidden under equal work. Parity is not a geometry-specific
+advantage. That bounded parity gate now passes, so #973 trains an intrinsic R4 operator using a
+declared R4 distance and geometric weighted centroid. Only a positive intrinsic
+operator authorizes the multi-resonance sieve; only a positive sieve authorizes
+bounded recurrent factorization and later H4/Q29/integer tables. Softmax, source
+weights, dense all-prefix work, and the donor decoder are offline scientific
+oracles, not the serving architecture. This is the architecture in
 [ADR-0005](adr/0005-predictive-geometric-connection-memory.md).
+
+The measured evidence ledger now records `PASS` for HELM-D pinned-source
+provenance, ordinary-donor deterministic reproduction, transported-R4 parity,
+the source-frame-permuted liveness control, and the zero-future-read audit. See
+[`helm_d_r4_softmax_decoder_973.md`](helm_d_r4_softmax_decoder_973.md).
+Upstream checkpoint parity, intrinsic R4 attention, resonance replacement, and
+bounded recurrence/lowering remain `NOT_RUN`.
 
 ## Current capability-first delivery decision — #953
 
@@ -238,9 +246,10 @@ construction-bound exact-descriptor selector at each of paragraph and
   preserved target-free negative history; the independently frozen V2 repair
   passed its bounded decoded contract. Later document-placement, gated-delta,
   and direct-attention V3 results were negative. `ConnectionGaugeCovarianceV4`
-  Phase I is positive; its held-out input freeze is sealed in PR #1001 and
-  protected merge/reveal is the current blocker.
-  Paired-E8/corpus qualification follows only after that passes. Calling a later
+  preserved construction covariance but failed held-out functional binding.
+  `HELM-D-R4` architecture audit, ordinary donor reproduction, and
+  gauge-equivalent full-decoder softmax parity on real causal language now
+  pass. Intrinsic R4 attention is the active rung. Calling a later
 #973 operator harmonic additionally requires an
 artifact-bound basis/mode contract. #962
 separately owns product chat integration and persisted, identity-scoped hive
@@ -1604,18 +1613,24 @@ and 98/112. `DirectCausalGeometricAttentionR4V1` then implemented literal
 causal Q/K/V/O, tangent projection, softmax weighting, and transported value
 aggregation. Its V2 evidence is non-promotable; equal-manifold-budget V3 isolated a failing
 H4 connection against a working plain arm and a strong coherent-tangent
-diagnostic. `ConnectionGaugeCovarianceV4` Phase I subsequently passed; #973 has
-frozen its independent target-free held-out population and salted commitment
-in PR #1001, preserving immutable
-route/payload identity and #953 admission/support. No reference result
-alone may advance to the D3 join. A later positive must first bind the paired
-hierarchy and survive fiber-preserving multi-resonance replacement and bounded
-recurrent factorization under matched destructive controls.
+  diagnostic. `ConnectionGaugeCovarianceV4` subsequently passed construction
+  covariance but failed held-out functional binding. #973 now pins the HELM-D
+  architecture, freezes an ordinary decoder donor, and now passes full-decoder
+  gauge-equivalent ordinary-softmax parity in exact R4/Spin frames on bounded
+  real causal language. No parity result alone may
+  advance to the D3 join. A later positive must first survive trained intrinsic
+  R4 distance/centroid attention, fiber-preserving multi-resonance replacement,
+  and bounded recurrent factorization under matched destructive controls.
 See ADR-0005 and the
 [#973 corpus-induced document placement record](corpus_induced_document_spin_placement_973.md).
 
 This ladder and its final requalification are part of #973's definition of done
-and terminal; #973 cannot close and #954 cannot start without them. The one
+and terminal; #973 cannot close and #954 cannot start without them. The HELM-D
+source provenance, frozen ordinary donor, and R4-frame ordinary-softmax path
+now satisfy the bounded parity rung: numerical/behavioral parity, causal reads,
+transport work, replay, and a destructive frame control are recorded. The
+current intrinsic R4 rung must retain that effect before resonance, recurrence,
+or scale. The one
 separation permitted inside #953 was a tiny construction-only, same-frame,
 candidate-conditioned context-placement overlay over already-admitted
 candidates followed by frozen label attachment. Its label-free,

@@ -1,0 +1,113 @@
+{
+  "schema": "uor-r4.cgcv-v4.phase-iii-result/1",
+  "issue": 973,
+  "phase_i_protected_merge": "b054197acb92e3dd23d88d81bd859379ea8fac67",
+  "phase_ii_protected_merge": "a567edd43ec4840c0bce495339c6416777c4c883",
+  "prelabel_freeze_cid": "blake3:170419cfcf80b2b0e48cc74faff13c9791dd9106045a1ff59a82efe4f6b205aa",
+  "validation_input_cid": "blake3:5a17c5526d866f2862b042750cb70f5183f6a8fc09ab53a067d79d28d1c989d1",
+  "prediction_stream_cid": "blake3:037f800b57c5f3d514629799be4a16709d81b1d79de1a3ff64009ace8b239a56",
+  "label_preimage_cid": "blake3:ef0c916d1aadb7c6093139d8dc8e8b653f35bf917b3293bb3085140f261b76d6",
+  "salted_label_commitment_cid": "blake3:9773355914ed171f0d14950a4db554f5f543252804c703e8e0bbbbf17fe7b602",
+  "canonical_result_cid": "blake3:35fa3d708c799439c1ef5c5f8aa1fc837f8aafcfca087d7088ecb6d0260ffd1a",
+  "chronology": {
+    "prediction_stream_published_before_reveal": true,
+    "decision_prediction_runs": 1,
+    "byte_identical_logging_replays": 1,
+    "independent_streams_per_prediction_run": 2,
+    "scoring_traversals": 1,
+    "nonce_opens": 1
+  },
+  "population": {
+    "case_count": 24,
+    "support": [5, 6],
+    "target_balance": { "5": 12, "6": 12 },
+    "unique_case_ids": true,
+    "exact_frozen_order": true,
+    "structural_binding_verified": true
+  },
+  "thresholds": {
+    "minimum_main_correct": 18,
+    "maximum_current_only_correct": 12,
+    "minimum_control_drop": 6,
+    "minimum_absolute_score_gap": 1e-8
+  },
+  "arms": [
+    {
+      "name": "baseline",
+      "binding": "h4_compatible/none",
+      "selected_token_mask": "566655556655665566555566",
+      "correct": 13,
+      "required": ">=18",
+      "pass": false
+    },
+    {
+      "name": "alternative",
+      "binding": "alternative_tangent/none",
+      "selected_token_mask": "566655556655665566555566",
+      "correct": 13,
+      "required": ">=18",
+      "pass": false
+    },
+    {
+      "name": "plain",
+      "binding": "plain_fixed/none",
+      "selected_token_mask": "566655556655665566555566",
+      "correct": 13,
+      "required": ">=18",
+      "pass": false
+    },
+    {
+      "name": "current_only",
+      "binding": "current_token_only/none",
+      "selected_token_mask": "666666666666666666666666",
+      "correct": 12,
+      "required": "<=12",
+      "pass": true
+    },
+    {
+      "name": "order_shuffled",
+      "binding": "h4_compatible/order_shuffled",
+      "selected_token_mask": "656656665556665566566555",
+      "correct": 13,
+      "drop_from_h4": 0,
+      "required": "drop>=6",
+      "pass": false
+    },
+    {
+      "name": "value_permuted",
+      "binding": "h4_compatible/value_permuted",
+      "selected_token_mask": "556666666666556655666655",
+      "correct": 12,
+      "drop_from_h4": 1,
+      "required": "drop>=6",
+      "pass": false
+    },
+    {
+      "name": "source_gauge_mismatch",
+      "binding": "h4_compatible/source_gauge_mismatched",
+      "selected_token_mask": "655556555566555555655555",
+      "correct": 11,
+      "drop_from_h4": 2,
+      "required": "drop>=6",
+      "pass": false
+    }
+  ],
+  "gates": {
+    "phase_i_freeze_reproduced": true,
+    "phase_ii_freeze_reproduced": true,
+    "commitment_verified": true,
+    "byte_identical_prediction_replay": true,
+    "all_168_score_gaps_pass": true,
+    "main_numerical_and_decision_parity": true,
+    "causal_work_finite_tangent_audit": true,
+    "future_token_reads": 0,
+    "intervention_liveness": true,
+    "main_accuracy_gate": false,
+    "current_only_gate": true,
+    "control_drop_gate": false
+  },
+  "verdict": "negative",
+  "terminal": "FAIL_CONNECTION_GAUGE_COVARIANCE_V4_HELD_OUT_FUNCTIONAL_PARITY_STOP_BEFORE_PAIRED_H4_E8",
+  "claim_boundary": "V4 preserves construction-scale representation covariance but does not establish held-out causal variable binding, an H4 advantage, geometric attention, or readiness for paired H4/E8, resonance, recurrence, lowering, or generation.",
+  "next_decision": "Do not retune V4. Define V5 on a new independently frozen population with an explicit causal predecessor-to-current transition representation, and qualify that ordinary softmax attention mechanism before any geometry-native softmax replacement."
+}

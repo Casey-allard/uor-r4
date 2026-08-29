@@ -311,3 +311,14 @@ the then-current #973 work was ADR-0005
 subsequently passed; its target-free held-out freeze is sealed in PR #1001, so
 protected merge/reveal is the current 2026-08-29 action following the negative gated-delta smoke and direct-attention
 V3 result (geometric `3/12`, fixed-tangent plain `12/12`).
+
+## Successor direction (2026-08-29)
+
+V4 subsequently completed terminal-negative at `13/24`, without adequate
+separation from its destructive controls. V4 will not be rerun or retuned. The
+HELM-D-R4 became the full-decoder, gauge-equivalent ordinary-causal-softmax
+reference with R4/Spin frame transport. Its parity gate now passes; the verdict
+and scope are authoritative only in the
+[HELM-D-R4 result](helm_d_r4_softmax_decoder_result_973.json). The active #973
+successor is intrinsic R4 distance and normalized-centroid attention, followed
+conditionally by multi-resonance replacement and recurrent lowering.

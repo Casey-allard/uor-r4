@@ -102,6 +102,206 @@
 
 use serde::{Deserialize, Serialize};
 
+/// Layers whose ordinary full-prefix causal attention is expressed through an
+/// injected coordinate transport.
+///
+/// `All` is the reference geometric-attention configuration. `Selected` is a
+/// bounded diagnostic surface: every named layer still executes the complete
+/// learned Q/K/V -> RoPE -> causal softmax -> value aggregate -> Wo contract;
+/// only the coordinate transport around its score/value aggregate is added.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum CausalAttentionLayerSelection {
+    /// Transport attention at every decoder layer.
+    All,
+    /// Transport attention at exactly these zero-based decoder layers.
+    Selected(Vec<usize>),
+}
+
+/// Immutable coordinates identifying one query head at one causal position.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct CausalAttentionHeadContext {
+    /// Zero-based decoder layer.
+    pub layer: usize,
+    /// Zero-based query-head index.
+    pub head: usize,
+    /// Current causal query position.
+    pub query_position: usize,
+}
+
+/// Immutable coordinates identifying one cached source vector consumed by a
+/// query head.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct CausalAttentionSourceContext {
+    /// Zero-based decoder layer.
+    pub layer: usize,
+    /// Zero-based query-head index. Grouped-query selection has already
+    /// selected the corresponding KV head before this hook is called.
+    pub head: usize,
+    /// Current causal query position.
+    pub query_position: usize,
+    /// Cached key/value position, always in `0..=query_position`.
+    pub source_position: usize,
+}
+
+/// Object-safe coordinate-transport seam around ordinary dense causal
+/// attention.
+///
+/// The decoder retains ownership of learned Q/K/V and Wo projections, RoPE,
+/// the complete causal prefix, score scaling, stable softmax, value
+/// aggregation, residuals, FFN, final norm, and the LM head. Implementations
+/// only express each projected head in a query-local frame:
+///
+/// 1. [`transform_query`](Self::transform_query) maps the current query;
+/// 2. [`transport_key`](Self::transport_key) and
+///    [`transport_value`](Self::transport_value) map every admitted cached
+///    source from its frame to the query frame; and
+/// 3. [`output_to_model_frame`](Self::output_to_model_frame) maps the dense
+///    aggregate back before the unchanged Wo projection.
+///
+/// All input and output slices have the model's complete head width. The
+/// session constructor requires that width to be a non-zero multiple of four,
+/// so an R4/Spin implementation can process `chunks_exact(4)` without dropping
+/// remainder lanes. Implementations must fill every output lane and must not
+/// retain any borrowed slice.
+pub trait CausalAttentionTransport: Send {
+    /// Reset implementation-owned causal state for a fresh sequence.
+    fn reset(&mut self) {}
+
+    /// Stable implementation/policy identity recorded with decoder evidence.
+    fn policy_identity(&self) -> &str {
+        "unspecified-causal-attention-transport"
+    }
+
+    /// Deterministic implementation-owned evidence for a completed probe.
+    ///
+    /// The source decoder intentionally does not know an implementation's
+    /// geometry-specific audit type. Implementations may therefore return a
+    /// canonical JSON object whose schema is owned by that implementation.
+    /// Decision-bearing callers record and validate it alongside the generic
+    /// decoder audit. A transport without additional evidence returns `None`.
+    fn implementation_evidence(&self) -> Result<Option<String>, String> {
+        Ok(None)
+    }
+
+    /// Current implementation health. A transport that handles an internal
+    /// arithmetic or frame failure without panicking records it here; the
+    /// public decoder step then fails closed and withholds logits.
+    fn status(&self) -> Result<(), String> {
+        Ok(())
+    }
+
+    /// Admit the current token once, before any selected layer processes it.
+    fn begin_position(&mut self, token: usize, position: usize);
+
+    /// Express a post-RoPE query in its query-local frame.
+    fn transform_query(
+        &mut self,
+        context: CausalAttentionHeadContext,
+        input: &[f32],
+        output: &mut [f32],
+    );
+
+    /// Transport one post-RoPE cached key into the query-local frame.
+    fn transport_key(
+        &mut self,
+        context: CausalAttentionSourceContext,
+        input: &[f32],
+        output: &mut [f32],
+    );
+
+    /// Transport one cached value into the query-local frame.
+    fn transport_value(
+        &mut self,
+        context: CausalAttentionSourceContext,
+        input: &[f32],
+        output: &mut [f32],
+    );
+
+    /// Return a query-frame value aggregate to the model frame before Wo.
+    fn output_to_model_frame(
+        &mut self,
+        context: CausalAttentionHeadContext,
+        input: &[f32],
+        output: &mut [f32],
+    );
+}
+
+/// Decoder-owned evidence that the injected transport remained dense and
+/// causal. Counts saturate instead of wrapping during unusually long probes.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct CausalAttentionTransportAudit {
+    /// Successfully started causal positions.
+    pub positions: u64,
+    /// Selected decoder-layer invocations.
+    pub layers: u64,
+    /// Query-head invocations across selected layers.
+    pub heads: u64,
+    /// Query vectors passed through `transform_query`.
+    pub query_transforms: u64,
+    /// Full-width cached keys passed through `transport_key`.
+    pub key_transports: u64,
+    /// Full-width cached values passed through `transport_value`.
+    pub value_transports: u64,
+    /// Dense head aggregates passed through `output_to_model_frame`.
+    pub output_transforms: u64,
+    /// Calls whose source position exceeded the current query position. A
+    /// conforming decoder run keeps this exactly zero.
+    pub future_reads: u64,
+    /// Largest query position observed, or `None` before the first step.
+    pub maximum_query_position: Option<usize>,
+    /// Largest source position consumed, or `None` before the first head.
+    pub maximum_source_position: Option<usize>,
+}
+
+/// Focused failures at the full-prefix transport-session boundary.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum CausalAttentionTransportError {
+    /// The source model's query-head layout is internally inconsistent.
+    InvalidHeadLayout { dimension: usize, heads: usize },
+    /// The grouped-query KV-head layout is internally inconsistent.
+    InvalidGroupedQueryLayout { query_heads: usize, kv_heads: usize },
+    /// An R4 transport requires complete four-lane blocks.
+    HeadSizeNotDivisibleByFour { head_size: usize },
+    /// A selected-layer request named no layer.
+    EmptyLayerSelection,
+    /// A selected layer does not exist in the source decoder.
+    LayerOutOfRange { requested: usize, layers: usize },
+    /// A selected layer was named more than once.
+    DuplicateLayer(usize),
+    /// The bounded source-state allocation was refused.
+    SequenceCapacity(String),
+    /// Scratch-size arithmetic overflowed before allocation.
+    ArithmeticOverflow,
+    /// A session constructed for another source checkpoint was supplied.
+    SourceBindingMismatch,
+    /// The injected transport reported an internal fault. The decoder state
+    /// may have advanced, but no logits are returned; reset the session before
+    /// attempting another sequence.
+    TransportFault {
+        policy_identity: String,
+        reason: String,
+    },
+    /// The token is outside the source vocabulary.
+    TokenOutOfRange(usize),
+    /// The requested position exceeds this session's bounded state.
+    PositionOutOfRange { position: usize, capacity: usize },
+    /// Causal transport positions must be advanced in exact sequence order.
+    PositionOutOfOrder { requested: usize, expected: usize },
+    /// The caller-provided logit buffer does not match the source vocabulary.
+    LogitShape { requested: usize, expected: usize },
+}
+
+impl std::fmt::Display for CausalAttentionTransportError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            formatter,
+            "causal attention transport unavailable: {self:?}"
+        )
+    }
+}
+
+impl std::error::Error for CausalAttentionTransportError {}
+
 /// Stable arithmetic-era token shared by the three current source-attention
 /// records. It names the correctly-rounded f32 result contract and its two
 /// execution owners without freezing the particular conservative error-bound

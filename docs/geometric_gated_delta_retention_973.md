@@ -229,3 +229,14 @@ separate target-free held-out population and salted commitment in PR #1001
 before paired-E8 binding,
 multi-resonance replacement, or another recurrent experiment. The
 multi-resonance sieve remains `NOT_RUN`.
+
+## Successor direction (2026-08-29)
+
+V4 subsequently completed terminal-negative at `13/24`, without adequate
+separation from its destructive controls. V4 will not be rerun or retuned. The
+HELM-D-R4 became the full-decoder, gauge-equivalent ordinary-causal-softmax
+reference with R4/Spin frame transport. Its parity gate now passes; the verdict
+and scope are authoritative only in the
+[HELM-D-R4 result](helm_d_r4_softmax_decoder_result_973.json). The active #973
+successor is intrinsic R4 distance and normalized-centroid attention, followed
+conditionally by multi-resonance replacement and recurrent lowering.

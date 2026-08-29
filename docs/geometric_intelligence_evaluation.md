@@ -19,7 +19,7 @@ make an hours-long run the price of learning whether a mechanism is reachable.
 Experimental evaluations are dormant by default. Activate only the smallest
 probe whose possible outcomes cause different next actions.
 
-### Active decision — direct geometric-attention reference/#973
+### Active decision — intrinsic R4 attention/#973
 
 PR #997 proved reachability but rejected its componentwise-Frechet placement:
 real 2,931/35,028 (8.367592%), unchanged #953 4,281/35,028 (12.221651%),
@@ -31,47 +31,51 @@ is `NO_ADVANTAGE_ON_THIS_FIXTURE`; held-out corpus, autonomous decode, and exact
 lowering remain `NOT_RUN`.
 
 The literal one-head `DirectCausalGeometricAttentionR4V1` scaffold now exists.
-Its V2 result is `NON_PROMOTABLE_BUDGET_MISMATCH`. Fresh equal-manifold-budget V3 returned
-full H4 3/12, matched plain 12/12, current-only 6/12, and an inference-time
-coherent alternative-connection swap 10/12. Thus Q/K/V/O learning, stable softmax, and transported
-value aggregation are reachable, but the current mixed-gauge H4 representation/optimizer combination
-does not transfer. The separately trained connection/gauge comparison has now
-passed its construction/frame/gradient Phase I. Its separate target-free
-held-out input freeze and salted commitment are now bound in PR #1001; the
-immediate decision is protected merge followed by one-time reveal. The
-#989/#953 corpus, support, decoder, and work remain frozen for the later full
-qualification. Paired-H4/E8 hierarchy, fiber, and torsion binding is
-`NOT_IMPLEMENTED` and cannot support a claim.
+Its V2 result is `NON_PROMOTABLE_BUDGET_MISMATCH`; V3 returned full H4 3/12
+against matched plain 12/12. `ConnectionGaugeCovarianceV4` then passed its
+construction/frame/gradient gate but failed held-out functional binding: all
+three main arms scored 13/24 and order/value/gauge destructive controls retained
+nearly all performance. V4 is frozen negative evidence.
 
-`ConnectionGaugeCovarianceV4` uses explicit three-coefficient local Q/K/V/O
-placements and separately trains H4-compatible, deterministic tangent-basis,
-and fixed-frame plain arms from identical initialization. Before labels, it
-has exhausted all 120 H4 frames and 14,400 ordered pairs, matched analytical
-and central-finite-difference gradients, and reproduced gauge-covariant logits,
-weights, scores, and updates on construction.
-Its fresh 24-case prefix-input-disjoint gate requires 16/16 construction fit,
-at least 18/24 validation for all main arms, numerical/decision parity,
-current-only at most 12/24, and at least a six-decision loss for order, value,
-and deliberate gauge-mismatch controls. V4 Phase I is `PASS`; Phase-II inputs
-are frozen with labels sealed, while predictions, scores, and the held-out
-verdict remain `NOT_RUN`.
+The positive reference is `HELM-D-R4`; intrinsic R4 distance/centroid attention
+is now active. The reference pins and audits the official MIT HELM-D
+source at `7501deca8f413848bfef804be64ce874b72a3cd7` as the architectural
+reference. The source-faithful HELM-D implementation uses its declared
+Lorentz inner-product distance surrogate
+`2c + 2c<q,k>_L`, learned scale, ordinary causal softmax, and normalized Lorentz
+centroid; it is not described as computing `arcosh` geodesic distance squared.
+Then freeze an ordinary full-decoder donor and build one gauge-equivalent
+R4/Spin arm: retain all learned Q/K/V and `W_o`, ordinary compatibility, stable
+softmax, and linear value aggregation; split heads into R4 blocks; encode exact cumulative Spin/H4 local
+frames; transport every causal K/V block into the query frame; map the result
+back before unchanged `W_o`.
 
-Both the full and equal-raw-manifold-budget plain Euclidean arms must lower construction-
-validation next-token loss and improve or preserve top-1 versus frozen #953.
-The geometric arm must be non-inferior to plain under a predeclared paired
-margin. The separately trained coherent tangent-frame comparator plus
-key-isometry, order-shuffled, value-permuted, geometric-seed-disabled, and
-current-token-only arms must isolate the claimed effect.
-Support must match; H4 transport overhead must be reported explicitly rather
-than hidden under an equal-work claim. Future reads must be zero, and two
-compiles/inference runs must replay deterministically. Strictly beating plain is a stronger
-geometry-specific advantage result, not the functional-parity requirement.
+Freeze a bounded real causal-language train/validation contract before outcomes.
+The ordinary donor and R4-frame arm hold source weights, learned parameters,
+updates, causal support, decoding, and raw parameter budget fixed. Report
+transport overhead separately. The first gate requires ordinary-donor/reference
+parity, zero future reads, deterministic replay, and numerical plus behavioral
+parity on next-token loss, top-1, and exact decoded output. Its equal-work
+source-frame-permuted intervention must break parity so a bypassed transport
+seam cannot pass. Failure of donor parity or failure to retain language behavior
+is the falsifier and stops before intrinsic R4 training. A parity positive is
+not geometric advantage.
 
-A direct positive freezes the oracle and activates the fiber-preserving
-multi-resonance replacement. Softmax is not a serving candidate. The resonance
-arm must preserve the oracle's decision under fixed Q/K/V/O and transport
-before bounded recurrent factorization is attempted. Neither a direct nor a
-resonance-only result closes #973 or unblocks #954.
+That first gate is now positive. Pinned source provenance, ordinary-donor
+replay, transported-R4 numerical/behavioral parity, the destructive control,
+and the causal ledger passed on the bounded held-out run. See the
+[`HELM-D-R4 record`](helm_d_r4_softmax_decoder_973.md) and
+[`machine result`](helm_d_r4_softmax_decoder_result_973.json). Upstream HELM-D
+checkpoint parity, intrinsic R4 attention, multi-resonance replacement, and
+recurrence/lowering remain `NOT_RUN`.
+
+Only after parity may #973 train an intrinsic R4 distance/centroid operator.
+That separately frozen arm must compare against the donor, gauge-equivalent
+R4-frame reference, and equal-budget Euclidean/plain controls. Only a positive
+intrinsic result activates fiber-preserving multi-resonance replacement; only a
+positive replacement activates bounded recurrent factorization. Softmax, dense
+all-prefix work, and source weights remain offline oracles. None of these alone
+closes #973 or unblocks #954.
 
 ### Established product decision — B0/#989
 
@@ -877,10 +881,11 @@ under #986; #973 and downstream #954 remain blocked.
 The V1 contract and negative below remain append-only evidence. The
 independently frozen V2 repair subsequently satisfied the bounded-global
 decision without changing V1. Later corpus-placement, gated-delta, and direct
-V3 results were negative. `ConnectionGaugeCovarianceV4` Phase I subsequently
-passed. Its fresh target-free held-out freeze and salted commitment are sealed
-in PR #1001; protected merge/reveal is the current evaluation action, while
-paired-E8 and corpus qualification remain conditional successors.
+V3 results were negative. `ConnectionGaugeCovarianceV4` subsequently passed
+construction covariance but failed held-out functional binding. `HELM-D-R4`
+architecture audit, ordinary-donor reproduction, and full-decoder R4/Spin
+softmax parity then passed. Intrinsic R4 attention is the current evaluation
+action; resonance and recurrent lowering remain conditional successors.
 
 #973 owns paragraph, conversation, and bounded-global influence only after the
 one #989-matched #953 intervention qualifies the decoded loop.
@@ -990,12 +995,13 @@ The binding terminal is
 This establishes one bounded synthetic causal global geometric-attention
 witness only. It does not establish corpus induction, semantic or natural
 transfer, general attention, correctness, reasoning, or product readiness.
-That next corpus-induction gate is now completed negative in PR #997. The
-current #973 decision is ADR-0005's protected target-free V4 reveal inside
-the literal transported Q/K/V/O reference, following the positive
-`ConnectionGaugeCovarianceV4` Phase I and the sealed PR #1001 Phase-II freeze,
-and followed only on held-out success by paired-E8 binding,
-multi-resonance, and recurrent lowering; #954 remains blocked. See the
+That next corpus-induction gate is now completed negative in PR #997. V4 later
+preserved construction covariance but failed held-out functional binding. The
+ADR-0005's pinned HELM-D provenance, frozen ordinary donor, and full-decoder
+gauge-equivalent ordinary-softmax parity in transported R4/Spin frames now
+pass. The current #973 decision is intrinsic R4 distance/centroid attention,
+followed conditionally by multi-resonance and recurrent lowering; #954 remains
+blocked. See the
 [#973 bounded-global record](bounded_global_exact_spin_attention_973.md).
 
 ## 4. Matched controls

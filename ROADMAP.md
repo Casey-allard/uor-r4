@@ -7,7 +7,7 @@ The earlier
 preserved #948–#958 sequencing record. Measured, refuted, and frozen research
 remains in [docs/RESEARCH.md](docs/RESEARCH.md).
 
-_Last reviewed: 2026-08-28 (#961 reversible S0 landed; #952 A1.0 stopped at
+_Last reviewed: 2026-08-29 (#961 reversible S0 landed; #952 A1.0 stopped at
 `REDESIGN_ORDERED_ROUTE_SUMMARY`; #967 A1R terminated `RETAIN_STATE_ONLY`;
 #970 A1P produced the bounded paired-H4-derived exact R4-heatmap result
 `RETAIN_H4_STATE_ONLY_ADVANCE_MULTICHANNEL_A1Q` and closed through protected
@@ -41,9 +41,16 @@ the table baseline, and the one matched #953 intervention closed positive.
 mechanisms. Its first document-scope corpus-induced placement passed target-free
 qualification but scored 2,931/35,028 versus 4,281/35,028 for unchanged #953;
 it terminated `RETAIN_BOUNDED_GLOBAL_ONLY_REDESIGN_CORPUS_SPIN_PLACEMENT`.
-#973 is active on direct-attention `ConnectionGaugeCovarianceV4` and continues
-to block #954. Its current contract is
-[ADR-0005](docs/adr/0005-predictive-geometric-connection-memory.md)._
+#973's `ConnectionGaugeCovarianceV4` construction gate passed, but its protected
+held-out reveal was terminal-negative at 13/24 for all main arms with
+insufficient destructive-control separation. #973's `HELM-D-R4` bounded
+full-decoder parity subsequently passed, including deterministic donor/R4
+replay, a live frame-permutation control, and zero future reads. #973 is now
+active on intrinsic R4 distance/centroid attention and continues to block #954.
+Its current contract is
+[ADR-0005](docs/adr/0005-predictive-geometric-connection-memory.md), with the
+binding reference result in
+[`helm_d_r4_softmax_decoder_973.md`](docs/helm_d_r4_softmax_decoder_973.md)._
 
 > **Project priority:** build source-free geometric intelligence in which the
 > route is the data location. A pinned lexical codec supplies text boundaries;
@@ -56,13 +63,15 @@ to block #954. Its current contract is
 > MoE, or sparse learned router.
 
 > **Current mechanism:** R4/spin routes remain immutable address, state, and
-> transport. #973 now has the literal learned Q/K/V/O, tangent-projected,
-> causal-softmax scaffold. Equal-manifold-budget V3 returned full H4 3/12 versus matched
-> plain 12/12 and an inference-time coherent alternative-connection swap 10/12,
-> isolating the current H4 representation/gauge/optimizer seam. Softmax and dense all-prefix work are allowed
-> only in this offline oracle. After a fresh separately trained connection
-> repair and actual paired-E8/fiber binding qualify, the multi-resonance sieve
-> must replace
+> transport. #973 now pins the official HELM-D architectural reference and
+> gauge-lifts a frozen ordinary full decoder into R4/Spin frames. Every
+> learned Q/K/V and value-aggregation operation remains unchanged; heads split
+> into R4 blocks, exact cumulative Spin/H4 frames transport K/V to the query
+> frame, and the result maps back before unchanged `W_o`. Numerical and real-
+> language behavioral parity now passes; this is not geometric advantage. A
+> trained intrinsic R4 distance/centroid operator is the active rung. Softmax
+> and dense all-prefix work are allowed only in this offline
+> oracle. After that operator qualifies, the multi-resonance sieve must replace
 > the weighting law while retaining S3 fiber/torsion; its band-limited mode
 > sums are then factored into bounded gated-delta recurrence and lowered to
 > exact H4/Q29/table operations. The frozen D3 targets remain closed until the
@@ -131,8 +140,9 @@ Native GitHub relationships are the source of truth:
 
 The current priority view is **Established:** #989 table baseline and accepted
 #953 bounded source-free geometric generation; **Negative:** first document
-placement, bounded gated-delta, and direct-attention V3 H4 combination;
-**Active:** #973 `ConnectionGaugeCovarianceV4`; **Blocked:** #954; **Later:**
+placement, bounded gated-delta, direct-attention V3, and held-out V4 functional
+binding; **Positive reference:** #973 `HELM-D-R4`; **Active:** #973 intrinsic
+R4 distance/centroid; **Blocked:** #954; **Later:**
 #955 → #962 → #963 → #964 → #965.
 
 This capability-first reset supersedes the old forward action implied by the
@@ -141,9 +151,11 @@ numbered evidence ladder below without rewriting that history. #989 scored
 for unigram, an uplift of +16.847843 percentage points, with byte-identical
 double execution. Its non-geometric table engine, corpus, support, decode, and
 work budget remain the frozen reference inherited by accepted #953 and active
-#973. Do not broaden scale or tune a revealed fixture; run the fresh ADR-0005
-V4 connection/gauge covariance gate first. Paired-E8 binding, corpus
-qualification, resonance, and recurrence follow only if it qualifies. See the
+#973. Do not broaden scale or tune a revealed fixture; ADR-0005's pinned
+HELM-D architecture audit, ordinary donor reproduction, and R4/Spin
+full-decoder softmax-parity gate now pass. Intrinsic R4 distance/centroid
+attention is next; resonance and recurrence follow only
+if their preceding gates qualify. See the
 [#989 evidence](docs/source_free_table_baseline_989.md); the completed #986
 feasibility boundary remains in the
 [#986 evidence](docs/corpus_signed_transport_attention_986.md).
@@ -413,8 +425,9 @@ decoded generation/replay `NOT_RUN`. #983 is closed bounded negative evidence
 after its independent Gate 0 transferred on 0/6 decisions. #986 is also closed
 at its pre-sealed population/frame unavailable terminal. #989 established the
 frozen table reference; the later matched #953 intervention closed positive.
-The live sequence is established #989 → accepted #953 → active #973 direct
-geometric attention → resonance/recurrent lowering → blocked #954 → #955 →
+The live sequence is established #989 → accepted #953 → positive #973
+`HELM-D-R4` softmax parity → active intrinsic R4 attention → resonance/recurrent
+lowering → blocked #954 → #955 →
 #962–#965. #973 continues to
 block #954.
 Legacy tracker #949 is closed as
@@ -460,12 +473,16 @@ historical evidence and comparators.
 
 - [ ] **#973 direct geometric attention and bounded lowering** — retain the
   bounded positives, #997 placement negative, bounded gated-delta negative, V2
-  budget invalidation, and equal-manifold-budget V3 mixed-gauge H4
-  representation/optimizer negative. The active
-  mechanism is fresh separately trained `ConnectionGaugeCovarianceV4` inside the
-  learned Q/K/V/O `DirectCausalGeometricAttentionR4V1` contract. A qualified
-  geometric oracle is replaced by the fiber-preserving multi-resonance sieve
-  and only then by bounded recurrence. #954 remains blocked.
+  budget invalidation, equal-manifold-budget V3 mixed-gauge H4 negative, and
+  V4's held-out 13/24 functional/control negative. The positive reference is
+  `HELM-D-R4`: the pinned HELM-D provenance and frozen ordinary
+  full-decoder donor, preserve learned
+  Q/K/V, ordinary stable softmax, value aggregation, and `W_o` while transporting
+  R4-block K/V through exact cumulative Spin/H4 frames, and require numerical
+  plus real-language behavioral parity now pass. The active mechanism is
+  trained intrinsic R4 distance/centroid attention; only a positive intrinsic oracle is replaced by
+  the fiber-preserving multi-resonance sieve and then bounded recurrence. #954
+  remains blocked.
 
 ## Landed
 
