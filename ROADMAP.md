@@ -41,7 +41,9 @@ the table baseline, and the one matched #953 intervention closed positive.
 mechanisms. Its first document-scope corpus-induced placement passed target-free
 qualification but scored 2,931/35,028 versus 4,281/35,028 for unchanged #953;
 it terminated `RETAIN_BOUNDED_GLOBAL_ONLY_REDESIGN_CORPUS_SPIN_PLACEMENT`.
-#973 is active on replacement placement and continues to block #954._
+#973 is active on predictive geometric connection-retention and continues to
+block #954. Its current contract is
+[ADR-0005](docs/adr/0005-predictive-geometric-connection-memory.md)._
 
 > **Project priority:** build source-free geometric intelligence in which the
 > route is the data location. A pinned lexical codec supplies text boundaries;
@@ -52,6 +54,15 @@ it terminated `RETAIN_BOUNDED_GLOBAL_ONLY_REDESIGN_CORPUS_SPIN_PLACEMENT`.
 > global context choose output. Source weights are offline teachers only. The
 > final serving path contains no transformer, dense matrix intelligence kernel,
 > MoE, or sparse learned router.
+
+> **Current mechanism:** R4/spin routes remain immutable address, state, and
+> transport. Predictive meaning is learned separately from causal construction
+> prefix-to-next-route examples through key/value/query placements, connection-
+> transported multiscale retention, gated delta writes, and candidate-relative
+> readout over frozen #953 support. The failed #997 componentwise center is not
+> scaled or tuned. Gate P0 must first beat #953, matched plain recurrence, and
+> state/order/transport controls on construction-validation documents; only
+> then may the frozen D3 held-out targets be joined once.
 
 > **Admission/influence split:** exact causal/index rows decide which routes are
 > lawful candidates. Harmonic/neighbor influence may transform the state used
@@ -115,9 +126,9 @@ it terminated `RETAIN_BOUNDED_GLOBAL_ONLY_REDESIGN_CORPUS_SPIN_PLACEMENT`.
 Native GitHub relationships are the source of truth:
 
 The current priority view is **Established:** #989 table baseline and accepted
-#953 bounded source-free geometric generation; **Active:** #973 replacement
-corpus spin placement after the first document-scope rule failed; **Blocked:**
-#954; **Later:** #955 → #962 → #963 → #964 → #965.
+#953 bounded source-free geometric generation; **Active:** #973 predictive
+connection-retention after the first document-scope placement failed;
+**Blocked:** #954; **Later:** #955 → #962 → #963 → #964 → #965.
 
 This capability-first reset supersedes the old forward action implied by the
 numbered evidence ladder below without rewriting that history. #989 scored
@@ -125,8 +136,8 @@ numbered evidence ladder below without rewriting that history. #989 scored
 for unigram, an uplift of +16.847843 percentage points, with byte-identical
 double execution. Its non-geometric table engine, corpus, support, decode, and
 work budget remain the frozen reference inherited by accepted #953 and active
-#973. Do not broaden scale while #973's placement objective is the measured
-failure. See the
+#973. Do not broaden scale or tune the measured-failed placement; run the
+ADR-0005 construction-validation gate first. See the
 [#989 evidence](docs/source_free_table_baseline_989.md); the completed #986
 feasibility boundary remains in the
 [#986 evidence](docs/corpus_signed_transport_attention_986.md).
@@ -343,14 +354,17 @@ feasibility boundary remains in the
    2,934/35,028, and operator-permuted was 2,966/35,028. Retain bounded-global
    V2 and reject the componentwise Frechet placement.
 
-   The next #973 rung freezes a new construction-only, candidate-relative
-   discriminative placement objective in exact R4 state. It preserves immutable
-   route/payload identity, #953 admission/support, `C^-1*G` least-cost routing,
-   target-free anti-recall qualification, equal-work controls, and one held-out
-   target join. Every structural or placement epoch receives a new kappa and
-   reruns its owning gate. More documents, table density, or trace activity are
-   capacity, not attention. #973 cannot close and #954 cannot begin until a
-   replacement passes and the final #973 requalification succeeds.
+   The next #973 rung is `PredictiveConnectionRetentionR4V1`: one construction-
+   only candidate-relative memory with separate key/value/query placements,
+   exact-frame connection transport, four bounded retention horizons, gated
+   delta writes, and one held-out target join after a binding construction-
+   validation Gate P0. It preserves immutable route/payload identity and #953
+   admission/support. Full geometry must beat #953, matched plain recurrence,
+   state-disabled, last-only, order-shuffled, and transport-permuted controls.
+   Every learned epoch receives a new kappa and reruns its owning gate. More
+   documents, table density, or trace activity are capacity, not attention.
+   #973 cannot close and #954 cannot begin until a replacement passes and the
+   final #973 requalification succeeds.
 10. **GI-4 / #954 — correctness and abstention:** test held-out answer
    correctness, relevance, abstention, and causal use of required context only
    through the accepted selector/#953/#973 artifact while binding evidence
@@ -428,10 +442,11 @@ historical evidence and comparators.
 
 ## Active
 
-- [ ] **#973 corpus-induced geometric attention** — retain its bounded positive
-  mechanisms and the first document-scope placement as negative evidence. The
-  active action is a separately frozen candidate-relative discriminative exact-
-  R4 placement objective; #954 remains blocked.
+- [ ] **#973 predictive geometric connection-retention** — retain its bounded
+  positive mechanisms and the first document-scope placement as negative
+  evidence. The active action is the Gate-P0-first
+  `PredictiveConnectionRetentionR4V1` contract in ADR-0005; #954 remains
+  blocked.
 
 ## Landed
 
@@ -562,8 +577,8 @@ historical evidence and comparators.
   unavailable. B0/#989 and the later accepted #953 intervention then exposed
   #973. Its bounded paragraph, conversation, and V2 global mechanisms are
   retained; its first document-scope corpus placement passed target-free but
-  failed held-out promotion, so replacement placement is active and #954 is
-  still blocked.
+  failed held-out promotion, so predictive connection-retention Gate 0 is
+  active and #954 is still blocked.
   Coherent product behavior, correctness, and reasoning remain unestablished.
   Historical canaries and pointwise results remain scoped evidence, not a
   claim that the current product works. See

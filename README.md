@@ -14,7 +14,24 @@ local hardware. The project is testing whether language context, inference,
 and reasoning can emerge from routes through a canonical geometric memory. The
 target serving engine uses no Ollama, hosted model, or source-model weights.
 
-> **Current bounded-global result (2026-08-28):** #973's independently frozen
+> **Primary direction after PR #997 (2026-08-28):** routing, exact R4/spin
+> state, least-cost selection, and multiscale hierarchy remain the geometric
+> substrate, but routing is not being equated with attention. The first natural
+> document-scale componentwise-Frechet placement was causally active and still
+> harmful: 8.367592% versus frozen #953 at 12.221651%, with its shuffled and
+> operator-permuted controls also slightly stronger. #973 therefore owns one
+> bounded successor, `PredictiveConnectionRetentionR4V1`: construction-trained
+> separate key/value/query placements, exact-frame connection transport,
+> controlled multiscale forgetting and delta writes, and candidate-relative
+> readout over unchanged #953 support. A construction-validation Gate P0 runs
+> before held-out labels are opened. Geometry earns promotion only if the full
+> cell beats #953, a matched plain recurrence, and state/order/transport
+> ablations, then reproduces on held-out next-route loss/top-1 and decoded
+> output. Exact/table lowering comes only after that result. See
+> [ADR-0005](docs/adr/0005-predictive-geometric-connection-memory.md) and the
+> [Geometric Intelligence Programme](docs/geometric_intelligence_programme.md).
+
+> **Retained bounded-global evidence (2026-08-28):** #973's independently frozen
 > `BoundedGlobalNoncommutingExactSpinR4V2` reached
 > `RETAIN_BOUNDED_GLOBAL_NONCOMMUTING_EXACT_SPIN_ATTENTION_CONTINUE_CORPUS_INDUCTION`.
 > The canonical population repair witnesses exact stored-S3-to-H4
@@ -83,7 +100,7 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > contract. #973 now proceeds to corpus induction; #954 remains blocked. See the
 > [conversation record](docs/conversation_entity_spin_path_attention_973.md).
 
-> **Current capability-first result (2026-08-28):** #953's frozen
+> **Accepted capability-first evidence (2026-08-28):** #953's frozen
 > `MultiscaleCountRadiusR4V1` comparison is positive. Against #989's unchanged
 > 99,362/446,342 (22.261404%) table reference, the construction-only R4 tie
 > overlay scored 103,604/446,342 (23.211797%), +4,242 correct choices and
@@ -100,7 +117,7 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > release evidence. See the
 > [#953 evidence record](docs/source_free_table_geometric_intervention_953.md).
 
-> **Honest status:** the geometric storage/identity foundation, one bounded
+> **Evidence boundary before the predictive-memory reset:** the geometric storage/identity foundation, one bounded
 > causal R4/S3 path selector, and reusable provider-free decode/render/append
 > plumbing exist. The first #953 smoke was an exact lexical relabel of #969, so
 > it did not qualify a natural grammar loop. `PrimaryThenAdjacentSpinFallbackV1`
@@ -423,13 +440,14 @@ not become substitutes for working intelligence:
    top-1, +4,242 correct choices over the unchanged table, a distinct bounded
    continuation, matched support and declared-work ledger, and byte-identical
    replay.
-3. **Induce and requalify higher-scope attention (#973)** — retain the positive Gate 0
-   exact-candidate prior-prefix mechanism and the bounded construction-bound
-   paragraph and conversation selectors. Preserve the first bounded-global V1
-   contrast as a target-free negative: its frozen swapped states commute.
-   Retain V2's positive bounded noncommuting exact-spin mechanism and freeze
-   the corpus-induction gate independently before any corpus outcome run.
-   Historical placement and transport probes remain evidence, not current work.
+3. **Build predictive geometric connection memory (#973)** — preserve the
+   bounded synthetic scope witnesses and PR #997's natural placement negative.
+   Gate `PredictiveConnectionRetentionR4V1` first on construction-validation:
+   separate predictive keys/values/queries, connection transport, multiscale
+   retained state, controlled forgetting/delta writes, and a candidate-relative
+   read over unchanged #953 support. Open the frozen D3 held-out join only if
+   the full cell beats #953, matched plain recurrence, and every geometry-
+   destroying control. Do not scale the rejected componentwise center.
 4. **Establish correctness** — relevance, contradiction handling, and honest
    abstention.
 5. **Establish reasoning** — bounded multi-step route composition.
@@ -446,9 +464,10 @@ the frozen table reference, #953 established one matched R4 tie intervention
 over it, and #973 retained one bounded prior-prefix copy mechanism plus bounded
 exact-descriptor/entity-binding path selectors at paragraph and conversation
 scope. Its first bounded-global relation remains closed-negative history; the
-independently frozen V2 repair passed its bounded contract. Corpus induction
-and final requalification remain active within #973. #954 remains blocked
-behind #973.
+independently frozen V2 repair passed its bounded contract; and PR #997 rejected
+the first natural componentwise placement. Predictive connection-retention and
+final requalification are active within #973. #954 remains blocked behind
+#973. The exact contract is [ADR-0005](docs/adr/0005-predictive-geometric-connection-memory.md).
 
 ## Find your way around
 

@@ -6,10 +6,12 @@ body:
     attributes:
       value: |
         Product-decision research intake. Current sequencing lives in
-        `docs/geometric_causal_decoder_plan.md`. Start with the smallest
-        falsifier, prove product-path reachability, compare a non-degenerate
-        geometry null, and include student-prefix output when generation is in
-        scope. Required fields define the smallest decision-bearing falsifier.
+        `docs/geometric_intelligence_programme.md`; the active mechanism is
+        defined in `docs/adr/0005-predictive-geometric-connection-memory.md`.
+        Start with the smallest falsifier, prove causal-path reachability,
+        compare non-degenerate geometry and equal-size non-geometric controls,
+        and include student-prefix output when generation is in scope. Required
+        fields define the smallest decision-bearing falsifier.
         The reachability arithmetic, cost, and durable record fields below are
         mandatory only for a run measured in hours; small operator probes may
         leave them blank and keep their evidence in the owning issue/PR.
@@ -18,8 +20,8 @@ body:
     id: parent
     attributes:
       label: Parent tracker / stage
-      description: Native #949 child whose next decision this experiment can change.
-      placeholder: "#951 — G1"
+      description: Native #820 child whose next decision this experiment can change.
+      placeholder: "#820 / <active predictive-memory child>"
     validations:
       required: true
   - type: textarea
@@ -33,7 +35,7 @@ body:
     id: product-reachability
     attributes:
       label: Real token-path reachability
-      description: Identify the CLI/HTTP/operator call path and the cheap observation proving this mechanism executes before token selection and can change support or logits.
+      description: Identify the compiler/operator/CLI path and the cheap observation proving this mechanism executes before token selection and can change candidate-relative scores or decoded choice.
     validations:
       required: true
   - type: textarea
@@ -47,7 +49,7 @@ body:
     id: pinned-identities
     attributes:
       label: Pinned identities
-      description: Pin the smallest relevant source, tokenizer, checkpoint, prompt/split, geometry, decode, and report identities. Give CIDs/κ where they already exist; do not build an identity framework for a smoke test.
+      description: Pin the smallest relevant corpus split, lexical codec, construction artifact/checkpoint, geometry, decode, and report identities. Name a source/teacher only when the experiment actually uses one. Give CIDs/κ where they already exist; do not build an identity framework for a smoke test.
       placeholder: |
         corpus: <name / CID>
         teacher: <HF repo @ pinned revision>

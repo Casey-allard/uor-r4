@@ -6,65 +6,57 @@
 > The transformerless table/graph design and proof documents describe the
 > historical filing-cabinet system retained later in this explainer.
 
-Right now, R⁴ has built a careful geometric address book. It can turn known
-pieces of text into prime-number locations, attach a spinning state and a
-checkable receipt, and look up stored routes with bounded work. It cannot yet
-use that machinery alone to hold a real conversation. The old fluent path used
-another language model; the new programme must replace that missing part.
+Right now, R⁴ has built a careful geometric address book and some working
+pieces of geometric memory. It can turn text into prime-number locations,
+attach spinning state and a checkable receipt, remember ordered paths, and use
+one small geometric rule to improve a real next-piece-of-text table. It cannot
+yet use that machinery alone to hold a dependable conversation. The old fluent
+path used another language model; the new programme must learn the missing
+language behavior without putting that model in the serving path.
 
-The current plan treats a sentence like a path through a field of waves on a
-sphere:
+The current plan treats a sentence as a path that writes to and reads from a
+small bank of transported geometric memories:
 
 ```text
 your text
    -> reversible word pieces
    -> prime locations + spinning/harmonic state
-   -> local route
-   -> sentence route
-   -> paragraph route
-   -> conversation route
-   -> bounded global route
-   -> choose the next route
+   -> remember what just happened, what happened a little while ago,
+      and the longer sentence/conversation path
+   -> carry those memories into the current geometric frame
+   -> forget stale information and overwrite a matching memory when needed
+   -> ask each lawful next piece how well it fits the remembered state
+   -> choose the lowest-cost next route
    -> turn that route back into text
 ```
 
-The work is deliberately ordered. #961 made arbitrary text reversible and
-kept all five route levels up to date. #952 found that its reusable summaries
-forgot earlier order. #967 repaired that memory and produced different shapes
-for the two possible next pieces, but its one-number ruler assigned both the
-same distance in all six trials. It therefore kept the state without claiming
-attention. #967 established only that the one-number ruler failed; it did not
-establish a placement defect. #970 then kept a paired-H4 witness—both H4 shapes
-for each candidate—combined them in their fixed order, and read an exact R4
-heatmap instead of inventing another ruler. Its complete check covered all
-14,400 ordered shape
-pairs: 120 relative shapes became 45 heatmap kinds, including 480 typed-null
-pairs that must abstain. On the 36 fixed candidate decisions, eight of 14
-heatmap classes still meant conflicting answers and no construction rule made a
-strict choice on any of the six validation histories. The result therefore
-retains the paired shape and stops before readout or placement. This says only
-that this exact heatmap cannot identify the frozen answer rule; it does not say
-the geometry is useless.
+The work already learned three important lessons. First, the whole ordered path
+can matter: #969 changed a decoded choice when only earlier route order changed.
+Second, geometry can help natural text: #953 improved the frozen table by 4,242
+held-out choices. Third, a geometric rule can be active and still be wrong:
+#973's first document-scale placement changed output but scored 8.367592%, below
+the unchanged #953 fallback at 12.221651% and below both broken-geometry
+controls.
 
-The heatmap keeps exact golden-number arithmetic: `sin=+1` or `-1` with
-`cos=0` maps to bit 1, while `sin=0` with `cos=+1` or `-1` maps to bit 0, and
-the sign remains attached. Histories and candidate support are prepared before
-answers are attached, and even/odd order is recomputed from each history. Zeta
-phases, ordered prime groups, golden-radius moves, and typed chart conversion
-remain structural ingredients; the project has not supplied a rule turning a
-zeta/prime group into a golden-shell exponent.
+That negative exposed the design mistake. A prime number or fixed H4 point is a
+great address, but English meaning does not appear merely because a word was
+given that address. During construction, the system must learn which geometric
+memory to write, what value to store, how quickly to forget it, and how a
+possible next word should read it. During validation and use, it sees only the
+past and the possible next piece—never the real future answer.
 
-#970 remains active until this corrected result lands through the protected
-merge path, so #969 is still blocked. After that delivery, #969 must prove that
-multiple channels, not a memorized answer, actually change what the system
-attends to. Only after that does #953 build the bounded source-free next-word
-loop; durable chat belongs to #962. Correct answers (#954) and multi-step
-reasoning (#955) come later. A pretty route or a readable stored sentence does
-not skip those steps.
-
-The system is allowed to keep a shape because it stores or reconstructs the
-route without letting that shape vote on the next word. A1Q/#969 must earn that
-semantic vote with matched evidence first.
+The active design is called
+[predictive geometric connection memory](../adr/0005-predictive-geometric-connection-memory.md).
+It keeps prime, zeta, H4, and route hierarchy as the map and transport frame;
+language examples teach the memory what distinctions predict the next piece.
+The first build is a small stop test: before making the whole memory, it checks
+whether the four exact route views can learn the right distinction on untouched
+construction examples. Only after that test—and then the full memory—beats the
+unchanged table and fair non-geometric,
+order-shuffled, state-disabled, and transport-permuted controls can it advance
+to broad generation, correct answers (#954), reasoning (#955), and durable chat
+(#962). A beautiful shape or a readable stored sentence does not skip those
+steps.
 
 The preserved earlier system below had two robot helpers. One is a **filing
 cabinet robot**, one is a **librarian with a magic map**. Their receipts and
@@ -244,7 +236,8 @@ robot, but everything it says fits in your pocket and comes with proof. The
 librarian is a **dreamer** — its maps are beautiful and some of its magic
 rulers are just for show, but its receipts are real. Those older robots taught
 the project how to store, locate, and witness data. The unfinished job is the
-new one: make the complete geometric route decide what matters, produce the
-next piece of language without an outside model, check whether the answer is
-right, and only then reason. That is what the current programme means by
-geometric intelligence.
+new one: train a small geometric memory to bind, carry, retain, overwrite, and
+read the parts of the route that predict what comes next; then compile that
+memory into the exact local engine, generate without an outside model, check
+whether the answer is right, and only then reason. That is what the current
+programme means by geometric intelligence.

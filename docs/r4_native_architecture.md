@@ -6,9 +6,11 @@
 - **Claim language:** per `docs/formal_vocabulary.md`. Measured statements
   cite their issue records; everything else is design intent, not evidence.
 - **Current authority:** [Geometric Intelligence Programme](geometric_intelligence_programme.md).
-  Its route-native spherical-harmonic/spin hierarchy carries forward relevant
-  evidence without adopting this document's anchor-infill or hybrid serving
-  sequence. No source-free chat capability follows from this record.
+  [ADR-0005](adr/0005-predictive-geometric-connection-memory.md) defines the
+  current predictive connection-memory mechanism. It carries forward relevant
+  route/harmonic evidence without adopting this document's anchor-infill or
+  hybrid serving sequence. No source-free chat capability follows from this
+  record.
 
 ## 1. Purpose
 

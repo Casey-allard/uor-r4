@@ -4,6 +4,8 @@
 invariants, the κ re-pin procedure, long-run discipline. Read it before your
 first change. The current architecture and issue order live in the
 [Geometric Intelligence Programme](docs/geometric_intelligence_programme.md).
+The active #973 mechanism and its stop-first construction gate are frozen in
+[ADR-0005](docs/adr/0005-predictive-geometric-connection-memory.md).
 This file is the short version.
 
 ## The loop
@@ -101,9 +103,11 @@ The experiment must be able to change the next programme decision:
   geometry, correctness, reasoning, chat, or release evidence. The one
   permitted #953 intervention has since been accepted over this unchanged
   reference. #973 retained bounded prior-prefix, paragraph, and conversation
-  mechanisms, then rejected its first bounded-global exact-spin relation at a
-  target-free commuting-fold gate. Do not start corpus/scale work until a
-  newly frozen noncommuting #973 repair qualifies. See the
+  mechanisms, retained a repaired bounded-global exact-spin witness, and then
+  rejected the first natural componentwise-Frechet document placement: real
+  8.367592% versus unchanged #953 12.221651%, with shuffled/permuted controls
+  also stronger. Do not scale or retune that placement. Run ADR-0005 Gate 0
+  before any held-out join. See the
   [#989 record](docs/source_free_table_baseline_989.md).
 - **Preserve the GI evidence lineage.** GI-1 makes lexical/address state
   reversible;
@@ -140,22 +144,22 @@ The experiment must be able to change the next programme decision:
   Cl(0,6)/SpiralCore operator map were unavailable. Gate 0, labels, selection,
   and #953 were `NOT_RUN`. That pre-reset handoff left #953 parked pending a
   fresh successor; B0/#989 and the later accepted matched #953 intervention
-  supersede that action. A1Q-H/#973 is active: Gate 0, paragraph, and
-  conversation are retained, while its first bounded-global relation is
-  target-free negative at
-  `RETAIN_CONVERSATION_ONLY_REDESIGN_BOUNDED_GLOBAL_EXACT_SPIN_RELATION`.
-  #973 now owns one newly frozen noncommuting relation/population repair; GI-4/
-  #954 remains blocked, with GI-5/#955 downstream.
+  supersede that action. A1Q-H/#973 is active: bounded Gate 0, paragraph,
+  conversation, and repaired noncommuting-global witnesses are retained; the
+  first natural document placement is negative at
+  `RETAIN_BOUNDED_GLOBAL_ONLY_REDESIGN_CORPUS_SPIN_PLACEMENT`. #973 now owns
+  only `PredictiveConnectionRetentionGate0V1`; GI-4/#954 remains blocked, with
+  GI-5/#955 downstream.
 - **Exercise the accepted route path.** #953 geometry runs before token choice
-  and emits admitted support and its fixed-point radius trace. A #973 global
-  repair must additionally emit detached lower/snapshot bindings, exact class
-  reuse, complete fold steps, and the target-free incompatibility gate before
-  any decoded target join.
-- **Use the smallest falsifier.** #989 began with its bounded natural lexical
-  fixture before the declared real corpus run. #973's first global relation
-  correctly stopped on its two-case target-free commuting-fold falsifier. Its
-  repair must prove a distinct noncommuting exact relation before any broader
-  data, decoded target, neighbor operator, or corpus mechanism is activated.
+  and emits admitted support and its fixed-point radius trace. The current #973
+  Gate 0 must hold that support/work fixed, freeze its artifact before target
+  attachment, and show construction-validation transfer against matched plain
+  recurrence plus state/order/transport controls.
+- **Use the smallest falsifier.** `PredictiveConnectionRetentionGate0V1`
+  first asks whether fixed current/previous/last-two/full-prefix exact-route
+  features carry construction-transferred discriminative signal. A failure
+  stops before full recurrent banks, exact lowering, or the 596-document D3
+  held-out target join.
 - **Parallelize deterministic corpus work.** Partition by content identity,
   use all available local workers with canonical ordered reductions, and
   compare independent multithreaded rebuilds. Do not launch a long experiment

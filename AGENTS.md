@@ -3,6 +3,15 @@
 Guidance for agents (human or otherwise) working in this repository.
 **Post-#958 intelligence architecture and sequencing are authoritative in
 [`docs/geometric_intelligence_programme.md`](docs/geometric_intelligence_programme.md).**
+The active mechanism contract is
+[`ADR-0005`](docs/adr/0005-predictive-geometric-connection-memory.md): preserve
+R4/spin routes as immutable identity, state, and transport; learn separate
+predictive key/value/query roles from construction-only causal next-route
+examples; and gate `PredictiveConnectionRetentionR4V1` on construction-
+validation before attaching held-out targets. Do not scale or retune #997's
+rejected componentwise-Frechet placement. A geometry claim additionally
+requires the full cell to beat a matched plain recurrence and state/order/
+transport permutations under equal #953 support and work.
 The geometric causal decoder plan, prior S0–S7 completion plan, and
 graph-compiler implementation plan are retained as historical
 engineering/evidence records; none decides what is built next. Native GitHub
@@ -91,7 +100,7 @@ decoded-smoke identities are respectively
 `blake3:343c961b06605f6ae9bb6160ac34a98224991715b706156349a8fd544b6dbb35`,
 `blake3:649d733a194469aa648101a873d9e2ee323266b18872ced412d1da2cc6a56635`,
 and `blake3:6930de3c07d30df4420bb68e60ea74531c8076516bcfef1c016240eddf1b9ca2`.
-The independently frozen bounded-global exact-spin contrast then stopped
+The first independently frozen bounded-global exact-spin contrast stopped
 target-free at
 `RETAIN_CONVERSATION_ONLY_REDESIGN_BOUNDED_GLOBAL_EXACT_SPIN_RELATION`.
 Its detached carriers retained four references, three classes, one same-address
@@ -102,8 +111,14 @@ were `helix/helix`; permuted roles were `prism/prism`. Target loads were zero
 and decoded execution is `NOT_RUN`. Operator and census identities are
 `blake3:f6b36cdf3e6cf96e1e9a345980843ee9eaffd25f5b864d4b4ed45a30ae6f746f`
 and `blake3:6c0a9f89a29584a09d917ae427a494b53c06b76e56482f665870ae86c1cd130a`.
-#973 remains active for a newly frozen noncommuting relation/population repair;
-corpus induction is not authorized, and #954 remains blocked.
+#973's independently frozen V2 repair subsequently retained one bounded
+noncommuting exact-spin mechanism. Its first natural document-scale corpus
+placement then passed target-free reachability but scored 2,931/35,028
+(8.367592%), below unchanged #953 at 4,281/35,028 (12.221651%) and below both
+order-shuffled and operator-permuted controls. The terminal is
+`RETAIN_BOUNDED_GLOBAL_ONLY_REDESIGN_CORPUS_SPIN_PLACEMENT`. #973 remains
+active only for the ADR-0005 predictive connection-retention successor; #954
+remains blocked.
 Do not add a second #953 intervention or reuse the #983/#986 populations. The
 complete #973 Gate 0 record is
 [`docs/prior_sentence_count_radius_attention_973.md`](docs/prior_sentence_count_radius_attention_973.md).
@@ -119,7 +134,7 @@ Terminology lives in
 `docs/transformerless/GLOSSARY.md`. Keep this file current when conventions
 change.
 
-## Capability-first baseline and geometric increment — #989/#953 established; #973 local/paragraph/conversation retained, first global relation negative
+## Capability-first baseline and geometric increment — #989/#953 established; #973 predictive connection-retention active
 
 Effective 2026-08-28, #989 established the deterministic source-free
 table-native lexical baseline at
@@ -156,10 +171,11 @@ bound exact-descriptor cross-turn entity-role stored-spin path selector while
 all lower scopes and global state stayed fixed. These are not semantic,
 paraphrastic, natural-distribution, or general higher-scope evidence. One
 independently frozen bounded-global exact-spin contrast then failed target-free
-because its swapped states commute. A new noncommuting relation/population
-repair is next; corpus work remains unauthorized. New H4, SpiralCore, harmonic, algebraic,
-placement, transport, scale, and later-stage work remains dormant unless its
-issue is exposed. See the
+because its swapped states commute. V2 repaired that exact relation and
+retained a bounded synthetic mechanism. PR #997 then rejected the first natural
+componentwise-Frechet document placement against #953 and both destructive
+controls. The only exposed successor is ADR-0005 Gate 0; new H4, SpiralCore,
+harmonic, algebraic, scale, and later-stage work remains dormant. See the
 [#989 evidence record](docs/source_free_table_baseline_989.md) and
 [#953 evidence record](docs/source_free_table_geometric_intervention_953.md),
 then the [#973 Gate 0 record](docs/prior_sentence_count_radius_attention_973.md)
@@ -208,12 +224,11 @@ and transition law.
 
 Corpus scale follows mechanism qualification; it never substitutes for it.
 #986 was one bounded local placement/transport qualification, but it stopped
-before freezing its CID-disjoint split. Within #973, after #953 and
-every required #973 scope qualify, a predeclared
-higher-scope/corpus-scale offline ladder may compile causal
-prefix-to-observed-next-route examples,
-multiscale summaries, versioned placement overlays that preserve immutable
-route/payload identity, and operator statistics into the source-free artifact.
+before freezing its CID-disjoint split. Within #973, the current Gate 0 first
+tests construction-transferred predictive signal using causal prefix-to-
+observed-next-route examples, multiscale exact-route features, and a versioned
+readout that preserves immutable route/payload identity. Only a Gate-0 positive
+authorizes the full connection-retention cell or a held-out D3 join.
 Freeze the operator family/schema, objective, scope semantics, neighborhood
 contract, and induction rule; vary only declared parameter values under new
 artifact/operator identities, and rerun the bounded gate for every structural

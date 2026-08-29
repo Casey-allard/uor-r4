@@ -385,3 +385,23 @@ such a replacement independently passes its own frozen gate.
 Conversation scope and task scope remain `NOT_RUN` for this corpus-induced
 operator. General semantic attention, coherence, correctness, reasoning,
 performance or energy advantage, and product readiness remain unestablished.
+
+## Forward disposition after architecture review (2026-08-28)
+
+The result and terminal above are unchanged. The phrase "discriminative
+placement objective" is now made concrete by
+[ADR-0005](adr/0005-predictive-geometric-connection-memory.md), which
+supersedes this record only for forward work.
+
+The immediate action is `PredictiveConnectionRetentionGate0V1`, not another
+componentwise center and not the full recurrent cell. It tests whether current,
+previous, ordered last-two, and complete-prefix exact-route relations support a
+construction-transferred candidate-discriminative integer readout under frozen
+#953 support/work. A deterministic fit/construction-validation split runs
+before the protected D3 held-out targets are opened. Only a Gate-0 positive may
+authorize full key/value/query placement, connection-transported multiscale
+retention, gated delta writes, exact lowering, or final #973 requalification.
+
+This disposition preserves every #997 byte, count, metric, and nonclaim. It
+narrows the next experiment because the failed marginal-center objective was
+already operative at sufficient population scale.

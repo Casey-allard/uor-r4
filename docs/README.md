@@ -4,13 +4,19 @@ This is the map for understanding the repository without having to reconstruct
 its history first.
 
 R⁴ is currently pursuing one programme: a local, source-free language agent
-whose attention, inference, and reasoning are performed by geometric routing
-and lookup rather than a transformer, MoE, sparse learned router, or dense
-learned matrix engine in the serving path.
+whose predictive state, memory, inference, and reasoning are performed by
+geometric recurrence and routing rather than a transformer, MoE, sparse learned
+router, or dense learned matrix engine in the serving path.
 
-The goal is real. Its success remains unproven. The current implementation is a
-storage/recall and route-query foundation, not a working geometric language
-model.
+The goal is real. Its success remains unproven. The current implementation has
+a storage/recall and route-query foundation, one bounded causal path mechanism,
+one corpus-scale geometric increment, and several narrow higher-scope
+mechanisms. It is not yet a working geometric language model. The active build
+is `PredictiveConnectionRetentionGate0V1`, which must first establish
+construction-transferred signal in fixed exact-route features. A positive
+authorizes the full predictive geometric connection memory: separately induced
+key/value/query state, exact R4/Spin transport, controlled multiscale
+forgetting, and candidate-relative readout.
 
 ## Start here
 
@@ -19,7 +25,8 @@ Choose the shortest path that matches what you need:
 - **Understand the project:** read the
   [Geometric Intelligence Programme](geometric_intelligence_programme.md).
 - **Understand the current geometric mechanism:** read
-  [ADR-0004](adr/0004-geometric-intelligence-route-hierarchy.md), then use the
+  [ADR-0005](adr/0005-predictive-geometric-connection-memory.md), then
+  [ADR-0004](adr/0004-geometric-intelligence-route-hierarchy.md), and use the
   [glossary](transformerless/GLOSSARY.md) for unfamiliar terms.
 - **Contribute to the active build:** start from live issue
   [#820](https://github.com/UOR-Foundation/uor-r4/issues/820) and take only the
@@ -38,13 +45,12 @@ These are the small set of living documents that define the present work:
 
 1. [Geometric Intelligence Programme](geometric_intelligence_programme.md) —
    goal, architecture, claim boundaries, and work order.
-2. [ADR-0003: fixed-zeta prime routes](adr/0003-fixed-zeta-prime-route-attention.md)
+2. [ADR-0005: predictive geometric connection memory](adr/0005-predictive-geometric-connection-memory.md)
+   — the active Gate 0, representation, recurrence, and later lowering decision.
+3. [ADR-0003: fixed-zeta prime routes](adr/0003-fixed-zeta-prime-route-attention.md)
    — the retained storage/recall substrate.
-3. [ADR-0004: recursive route hierarchy](adr/0004-geometric-intelligence-route-hierarchy.md)
+4. [ADR-0004: recursive route hierarchy](adr/0004-geometric-intelligence-route-hierarchy.md)
    — attention scopes, geometric transport, and reconstruction requirements.
-4. [Corpus-Induced Harmonic Signed Transport Plan](corpus_induced_signed_transport_attention_plan_986.md)
-   — the current post-#983 semantic-placement, self-plus-six link-state,
-   transport, comparator, and decision contract.
 5. [Geometric Intelligence Evaluation](geometric_intelligence_evaluation.md) —
    the minimal decision-bearing evidence policy.
 6. [Glossary](transformerless/GLOSSARY.md) and
@@ -60,8 +66,11 @@ not reasoning.
 
 ```text
 reversible lexical geometry
-  → held-out corpus-induced semantic placement and harmonic link state
-  → candidate-relative signed geometric transport
+  → Gate 0: construction-transferred discriminative exact-route signal
+  → if positive, predictive key/value/query state
+  → exact R4/Spin parallel transport
+  → controlled short/medium/long geometric retention
+  → candidate-relative readout against matched table and recurrent controls
   → coherent source-free generation
   → correctness and abstention
   → multi-step reasoning

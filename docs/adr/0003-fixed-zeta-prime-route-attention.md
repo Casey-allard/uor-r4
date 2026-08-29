@@ -5,19 +5,13 @@
   (`RETAIN_STORAGE_RECALL_ONLY`; see the
   [qualification record](../prime_route_attention_qualification_958.md))
 - **Date:** 2026-08-26
-- **Current attention-stage result:**
-  [#952](https://github.com/UOR-Foundation/uor-r4/issues/952) reached
-  `REDESIGN_ORDERED_ROUTE_SUMMARY`. [#967](https://github.com/UOR-Foundation/uor-r4/issues/967)
-  repaired A1R ordered state and exercised its bounded candidate-relative
-  scalar scorer but terminated `RETAIN_STATE_ONLY`; the full A1Q recursive
-  attention scorer remains unimplemented and unqualified.
-  [#970](https://github.com/UOR-Foundation/uor-r4/issues/970) has a corrected
-  local paired-H4-derived exact R4-heatmap result pending protected delivery.
-  Eight of its 14 exercised heatmap classes alias incompatible outcomes and
-  construction transfer is 0/6, so it retains the paired state as structural
-  evidence and stops before readout or placement. #970 remains active until
-  that result merges; [#969](https://github.com/UOR-Foundation/uor-r4/issues/969)
-  remains blocked and continues to own A1Q multi-channel qualification.
+- **Current attention-stage result:** this ADR's route identities and state
+  remain substrate. #969 retained one bounded causal local path mechanism;
+  #973 retained bounded synthetic higher-scope witnesses; PR #997 rejected a
+  natural componentwise-Frechet placement. Forward predictive semantics now
+  live in [ADR-0005](0005-predictive-geometric-connection-memory.md). Exact
+  prime/zeta/R4/spin coordinates supply address, frame, state, and transport;
+  they are not presumed semantic before the ADR-0005 controls qualify them.
 - **Decision owner:** representation redesign
   [#958](https://github.com/UOR-Foundation/uor-r4/issues/958)
 - **Programme tracker:**
@@ -374,9 +368,9 @@ evidence that geometric reasoning exists.
 
 ## Current implementation status
 
-ADR-0003 remains the normative target. The current #958 code is deliberately a
-source-free substrate and does not establish geometric attention or product
-behavior.
+ADR-0003 remains the normative route substrate. ADR-0005 is the current
+predictive mechanism target. The #958 code does not by itself establish
+geometric attention or product behavior.
 
 ### #952 A1.0 qualification update (2026-08-27)
 

@@ -6,6 +6,8 @@
   attention, inference, correctness, bounded reasoning, and provider-free
   serving.
 - **Architecture:** [ADR-0004](adr/0004-geometric-intelligence-route-hierarchy.md)
+- **Active mechanism:**
+  [ADR-0005](adr/0005-predictive-geometric-connection-memory.md)
 - **Vocabulary:** [Formal Vocabulary](formal_vocabulary.md) and the
   [Glossary](transformerless/GLOSSARY.md)
 
@@ -16,6 +18,36 @@ accumulate indiscriminate gates, run every available test because it exists, or
 make an hours-long run the price of learning whether a mechanism is reachable.
 Experimental evaluations are dormant by default. Activate only the smallest
 probe whose possible outcomes cause different next actions.
+
+### Active decision — predictive connection-retention Gate 0/#973
+
+PR #997 proved reachability but rejected its componentwise-Frechet placement:
+real 2,931/35,028 (8.367592%), unchanged #953 4,281/35,028 (12.221651%),
+order-shuffled 2,934/35,028, and operator-permuted 2,966/35,028. The active
+question is therefore narrower than another full corpus run: do fixed current,
+previous, last-two, and complete-prefix exact-route relations carry
+construction-transferred discriminative next-route signal?
+
+`PredictiveConnectionRetentionGate0V1` splits the 2,404 D3 construction
+documents deterministically into fit and untouched construction-validation
+sets. It fits candidate-specific integer readouts only on causal prefix-to-
+observed-next-route events within unchanged #953 support. The validation target
+is unavailable during compile and query and joins only after the frozen
+artifact and target-free census exist.
+
+Gate 0 proceeds only if at least 1,024 operative validation positions exist and
+the real arm exceeds inner #953 by at least 0.25 percentage points while also
+beating matched plain recurrence, state-disabled, last-only, earlier-order-
+shuffled, and transport/readout-permuted controls at both position and exact
+document-blocked paired direction. Support/work must match, forbidden reads
+must be zero, and two compiles must reproduce byte-identical artifacts.
+
+Pass returns `PROCEED_TO_GEOMETRIC_GATED_DELTA_RETENTION_V1` and authorizes the
+full four-bank predictive connection-retention prototype. Fail returns
+`REJECT_FIXED_ROUTE_FEATURES_REVISE_PREDICTIVE_STATE` and leaves the frozen D3
+held-out targets unopened. An insufficient or unavailable population returns
+`UNAVAILABLE_CONSTRUCTION_VALIDATION_POPULATION`. None of these bounded Gate-0
+results closes #973 or unblocks #954.
 
 ### Established product decision — B0/#989
 
@@ -68,9 +100,9 @@ established B0/#989 result exposed one matched #953 intervention, which has
 since been accepted. #973 then retained its bounded Gate 0, paragraph, and
 conversation mechanisms. Its first bounded-global exact-spin relation failed
 target-free because the frozen swapped states commute. The independently
-frozen V2 repair then passed its bounded noncommuting decoded contract. #973
-continues to block #954 while it owns corpus induction and final
-requalification.
+frozen V2 repair then passed its bounded noncommuting decoded contract. PR #997
+then rejected the first natural document placement. #973 continues to block
+#954 while it owns predictive connection-retention and final requalification.
 
 A negative result remains evidence about its declared mechanism and
 distribution. It does not erase a separately established storage, identity,
@@ -876,8 +908,9 @@ harmonic. #973 will freeze its own terminal literal before running this
 contract.
 
 The now-positive bounded V2 subprobe cannot close #973. Paragraph and
-conversation are retained, but corpus induction and final requalification still require
-their own frozen evidence or an explicit native scope revision.
+conversation are retained, but predictive connection-retention and final
+requalification still require their own frozen evidence or an explicit native
+scope revision.
 
 #### Observed bounded-global V1 target-free terminal (2026-08-28)
 
@@ -928,8 +961,8 @@ The binding terminal is
 This establishes one bounded synthetic causal global geometric-attention
 witness only. It does not establish corpus induction, semantic or natural
 transfer, general attention, correctness, reasoning, or product readiness.
-The next #973 decision is an independently frozen corpus-induction gate; #954
-remains blocked. See the
+That next corpus-induction gate is now completed negative in PR #997. The
+current #973 decision is ADR-0005 Gate 0; #954 remains blocked. See the
 [#973 bounded-global record](bounded_global_exact_spin_attention_973.md).
 
 ## 4. Matched controls

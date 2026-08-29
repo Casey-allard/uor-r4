@@ -183,3 +183,8 @@ wasm, BDD, teacher/model paths, no-std ladders, Gate C, kappa reproduction,
 audit, fuzz, conformance, corpus-scale, product, performance, formal, and
 release qualification are `NOT_RUN` unless a later activated check is
 explicitly recorded here.
+
+## Forward-action update (2026-08-28)
+
+This bounded result remains unchanged. Its then-next sequencing is complete;
+current #973 work is ADR-0005 `PredictiveConnectionRetentionGate0V1`.

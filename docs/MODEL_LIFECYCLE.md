@@ -5,64 +5,36 @@
 > lifecycle. Architecture and sequencing authority lives in the
 > [Geometric Intelligence Programme](geometric_intelligence_programme.md).
 
-> **Current capability-first result (2026-08-28):** #989 established the
-> deterministic source-free lexical table baseline at
-> `ESTABLISH_TABLE_NATIVE_LEXICAL_BASELINE`. It scored 22.261404% held-out
-> top-1 versus 5.413561% unigram over 446,342 known targets, decoded a bounded
-> 16-unit valid UTF-8 continuation, and replayed byte identically. Its
-> 35,655,288-byte artifact is frozen at
-> `blake3:ccdc399731cb866a329be478467a434cda4e445813421e5d17c21ccc87288297`.
-> This is a statistical lexical baseline, not semantics, attention, geometry,
-> correctness, reasoning, chat, or release evidence. Exactly one later #953
-> intervention may compare against it under matched conditions; #973 remains
-> blocked. See the [#989 record](source_free_table_baseline_989.md).
+> **Current evidence and direction (2026-08-28):** #989 established the frozen
+> source-free table reference at 22.261404% held-out top-1 versus 5.413561%
+> unigram. The accepted #953 `MultiscaleCountRadiusR4V1` intervention raised the
+> same measure to 23.211797% (+4,242 correct) with equal candidate support/work
+> and byte-identical replay. #969 separately established one bounded causal
+> ordered-path mechanism. #973 retained narrow sentence, paragraph,
+> conversation, and bounded-global mechanisms, but its first document-scale
+> `CorpusInducedDocumentSpinPlacementR4V1` scored 8.367592%, below unchanged
+> #953 at 12.221651% and both geometry-destroying controls. That placement is
+> rejected; adding documents or another marginal-center formula is not the next
+> action.
 
-**Current truth:** #958 retained canonical prime-route/spin manifests,
-bounded indexes, controls, and deterministic worker evidence as a
-storage/recall foundation. It did not establish full geometric attention,
-source-free inference, or working source-free chat. #961 is closed and now
-supplies reversible lexical geometry, payload inversion, and the canonical
-incremental hierarchy identities. The frozen #952 A1.0 probe terminated as
-`REDESIGN_ORDERED_ROUTE_SUMMARY` before scorer implementation: the natural
-candidate/value path was reachable, but the additive/last-child hierarchy
-summaries erased earlier causal order. #967's narrow A1R delivery repaired the
-ordered state but terminated `RETAIN_STATE_ONLY` when shortest Cayley distance
-collapsed distinct candidate-relative states to the same energy on 6/6
-queries. #970's corrected target-free construction/validation preflight then
-enumerated 120×120 = 14,400 paired-H4 operands as 120 relative rows, 45 exact
-signed `(1,i)` R4-heatmap classes, and 480 typed-null pairs. Across 36 decisions
-it exercised 14 classes, had pure 12/12 construction coverage, covered 10/12
-validation decisions with a 10/12 no-class-splitting oracle ceiling,
-transferred 0/6 queries, and found eight incompatible classes. It terminated
-the bounded heatmap-readout question as
-`RETAIN_H4_STATE_ONLY_ADVANCE_MULTICHANNEL_A1Q` before scalar search. Contract,
-universe, and report kappas are
-`blake3:2daacf538c022fab9580d1e124af6c18d0b06da04604fbc962a01bda57f08a98`,
-`blake3:dca725c0ec6060166bcd0023df956e1ff029661b5fa7800ccb9f20808712b796`,
-and `blake3:5f9239150dea8c0c27c4dfa6ad2e4d0068bc3d18afc127b315c0ec358ceddb3f`.
-#970 closed through protected PR #972. #969 then qualified one bounded causal
-R4/S3 path selector. #953 implemented the first decoded library/CLI loop and
-`PrimaryThenAdjacentSpinFallbackV1`; exact `{still}` then `{run,runs}` support
-was restored under equal work, but both full-path prompts selected `still run`
-while both state-disabled prompts selected `still runs`. The terminal remains
-`REVISE_I1_GENERATOR_IN_PLACE`. #953's tiny construction-only, same-frame
-`LocalSameObjectContextPlacementV1` overlay reproduced 7/7 construction
-prototypes with zero class collisions and zero padding-identity aliases, but
-real placement resolved `run/runs` (0/2 intended) while the
-placement-permuted control resolved `runs/run` (2/2). The preflight stopped
-before decoded generation or replay, so #953 has not qualified local
-construction-induced placement. #983 then tested one independent
-`ConstructionCausalReturnV1` population: usable construction classes were
-pure, but structural coverage and the sealed strict ceiling were both 0/6. It
-closed `UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER` before selection. #986 then
-closed `UNAVAILABLE_FRAME_OR_POPULATION`: the raw corpus reproduced, but its
-exact codec/pair commitment and complete same-frame lexical SpiralCore frame
-were unavailable. Placement, Gate 0, labels, and #953 were `NOT_RUN`; the later
-established B0/#989 result now limits #953 to one matched intervention.
-Corpus-scale and higher-scope induction remain blocked in #973; #954 remains
-blocked downstream. #962 separately owns durable
-multi-turn CLI/HTTP chat, persisted conversation state, session/identity
-isolation, and identity-scoped hive memory.
+**Current truth:** prime/zeta/H4 state, reversible payloads, route hierarchy,
+ordered prefix state, bounded admission, exact transport controls, and
+source-free decoding are usable substrate. They do not make immutable identity
+coordinates semantic. The active implementation is ADR-0005's
+`PredictiveConnectionRetentionGate0V1`: it must first establish that fixed
+current/previous/last-two/full-prefix exact-route relations transfer a
+candidate-discriminative signal on untouched construction-validation
+documents. A positive authorizes the full predictive geometric connection
+memory defined by
+[ADR-0005](adr/0005-predictive-geometric-connection-memory.md): separate keys,
+values, and queries; exact R4/Spin transport; gated short, medium, and long
+retention; key-specific overwrite; and candidate-relative readout. Validation,
+test, and inference remain strictly causal and cannot fit on their future
+tokens. Compiler-side floating point and multiplication are allowed to prove
+the representation before exact quantized/table lowering. No working general
+geometric attention, coherent chat, correctness, or reasoning claim follows
+until the new mechanism beats #953 and matched non-geometric, state-disabled,
+order-shuffled, and transport-permuted controls on held-out evidence.
 
 ## Current route-native target lifecycle
 
@@ -82,8 +54,14 @@ canonical text/corpus
     -> failed construction-return transfer (#983, bounded negative)
     -> unavailable corpus/frame feasibility boundary (#986, completed)
     -> source-free table-native lexical baseline (#989, established)
-    -> exactly one matched geometric intervention using the frozen table reference (#953)
-    -> higher-scope attention and corpus-scale induction (#973)
+    -> matched geometric table intervention (#953, established)
+    -> bounded higher-scope mechanisms and rejected marginal-center placement (#973)
+    -> Gate 0 construction-validation of fixed exact-route features
+    -> only if positive: construction-trained key/value/query placement
+    -> exact frame-to-frame R4/Spin parallel transport
+    -> gated multiscale retention with key-specific update
+    -> candidate-relative next-route readout under matched controls
+    -> optional exact integer/table lowering only after held-out qualification
     -> correctness + typed abstention (#954)
     -> bounded reasoning (#955)
     -> durable isolated CLI/HTTP chat + persisted hive memory (#962)
@@ -92,12 +70,12 @@ canonical text/corpus
 
 The manifest stores or references canonical lexical payloads, factorable route
 addresses, spin/harmonic state, transported trajectory summaries, recursive
-scope identities, and rebuild witnesses. Corpus observations populate routes;
-they do not become serving weights. Kappa binds canonical identity and
-provenance. Factor/spin/harmonic coordinates provide structural/storage state
-and locality hypotheses. Only terms frozen by the active issue's pre-evidence
-contract may affect its experimental ranking; only positively qualified terms
-may pass downstream.
+scope identities, and rebuild witnesses. Construction observations may train
+or induce a versioned predictive-memory overlay; validation/test outcomes do
+not. The resulting parameters are compiled serving data, not source-model
+weights or runtime future reads. Kappa binds canonical identity and provenance.
+Prime/zeta/H4 coordinates remain address/frame/transport structure unless a
+matched held-out intervention qualifies their predictive contribution.
 
 The #952 A1.0 record is a representation-level negative result, not a failure
 of lexical inversion, candidate admission, H4 closure, Hopf state, or the value
@@ -115,10 +93,10 @@ ordered n-lets, exact `phi` radial transport, and typed
 `STRUCTURAL_BINDING_ONLY_NO_ZETA_NLET_TO_PHI_EXPONENT_RULE`, not semantic scorer
 inputs. #970 and #969 are closed at their bounded claim scopes; neither result
 establishes semantics. #983's later construction-return representation also
-failed to transfer. #986 then stopped before geometry at its unavailable
-population/frame boundary. The later established B0/#989 table reference now
-authorizes exactly one matched #953 intervention; #953 otherwise remains the
-preserved integration regression.
+failed to transfer. #986 then closed before geometry at its unavailable
+population/frame boundary. The later B0/#989 table reference authorized one
+matched #953 intervention; that intervention is now complete and frozen as the
+accepted geometric comparator described above.
 See the
 [#952 A1.0 record](recursive_geometric_attention_a1_952.md).
 
@@ -1409,23 +1387,22 @@ Passing `--cover` reuses the measured cover. It may be omitted to re-induce
 the default cover deterministically during scoring. For experiments, `cover`
 also accepts `--depths`, `--k0`, `--regions-budget`, and `--memory-budget`.
 
-**Current production boundary pending one matched #953 intervention against
-established #989 → #973 → #954 → #955 before #962.** #989 has qualified its
-source-free statistical lexical table baseline only. #970, #969, #983, and
-#986 remain closed at their bounded claim scopes. #953 owns the preserved
-bounded source-free library/CLI inference and generation engine; exactly one
-intervention against the frozen #989 reference is permitted. #973 and #954
-remain blocked.
-#962 owns integration into durable multi-turn CLI/HTTP chat, persisted
-conversation state, session/identity isolation, and
-identity-scoped hive memory. Until that product stage, the public `ask`, `chat`,
-HTTP, library, and WASM production facades use `R4G1Runtime` as their sole
-ranked-candidate and token authority. D4 remains a token-free
-permit/widen/abstain policy. A production bundle must carry a schema-2
-`release-bundle.json` and a content-bound, full-census
-`graph/deployed_quality_report.json`; legacy, missing, sampled, mismatched, or
-off-serving evidence is available only to explicitly named research loaders.
-There is no silent TLA/TLS1 fallback under the production profile.
+**Current production boundary: predictive geometric connection memory is still
+experimental and off-serving.** #989 and #953 are frozen comparators; #969 and
+the narrow #973 mechanisms retain only their measured scopes; #973's first
+document-scale placement is negative. The next build must qualify the
+ADR-0005 key/value, transport, retention, and candidate-readout mechanism before
+correctness (#954), reasoning (#955), durable chat/memory integration (#962),
+optimization, lowering, or release work can inherit it.
+
+Until an explicit product promotion, the public `ask`, `chat`, HTTP, library,
+and WASM production facades use `R4G1Runtime` as their sole ranked-candidate and
+token authority. D4 remains a token-free permit/widen/abstain policy. A
+production bundle must carry a schema-2 `release-bundle.json` and a content-
+bound, full-census `graph/deployed_quality_report.json`; legacy, missing,
+sampled, mismatched, or off-serving evidence is available only to explicitly
+named research loaders. There is no silent TLA/TLS1 fallback under the
+production profile.
 
 The native HTTP server resolves `graph/score.r4g1` beside
 `tless_artifacts.bin` (or an explicit `--r4g1-artifact`) and captures all

@@ -8,6 +8,8 @@
 - **Supersedes for forward sequencing:**
   [Geometric Causal Decoder Roadmap](geometric_causal_decoder_plan.md)
 - **Historical measurements:** [Research ledger](RESEARCH.md)
+- **Current mechanism:**
+  [ADR-0005 predictive geometric connection memory](adr/0005-predictive-geometric-connection-memory.md)
 
 ## Purpose
 
@@ -51,6 +53,34 @@ correctness, and reasoning remain separate claims.
 Optimization, broad QA, formalization, and release certification follow a
 working decision-bearing product slice. They do not replace it.
 
+## Primary direction after the first natural #973 induction result
+
+PR #997 separated causal geometric action from useful prediction. Its exact
+`2I x Z_M x Z_M` state and `C^-1*G` readout were operative, but the
+componentwise-Frechet placement scored 2,931/35,028 (8.367592%), below frozen
+#953 at 4,281/35,028 (12.221651%), order-shuffled at 2,934/35,028, and
+operator-permuted at 2,966/35,028. More rows or documents cannot repair that
+objective.
+
+The programme therefore preserves prime/zeta/R4/S3/H4 routes as immutable
+identity, causal state, frame, transport, and provenance, while learning
+predictive roles separately. The immediate #973 action is
+`PredictiveConnectionRetentionGate0V1`: a construction-only discriminative
+readout over current, previous, last-two, and complete-prefix exact route
+states. It holds the #989/#953 corpus, support, decoder, and declared work
+fixed, and uses an untouched construction-validation split before any D3
+held-out target join.
+
+Gate 0 must beat frozen #953, a matched plain recurrent comparator,
+state-disabled, last-only, earlier-order-shuffled, and transport/readout-
+permuted controls. A positive authorizes the full
+`PredictiveConnectionRetentionR4V1` cell: separate learned key/value/query
+placements, exact-frame connection transport, four bounded retention horizons,
+controlled forgetting and targeted delta writes, and candidate-relative
+readout over already-admitted support. A negative stops before recurrent-bank
+training, scale, exact lowering, or held-out D3 evaluation. This is the
+architecture in [ADR-0005](adr/0005-predictive-geometric-connection-memory.md).
+
 ## Current capability-first delivery decision — #953
 
 #989 reached `ESTABLISH_TABLE_NATIVE_LEXICAL_BASELINE`. On 446,342 held-out
@@ -86,8 +116,9 @@ bounded construction-bound exact-descriptor selector at each of paragraph and
 conversation scope. Its first bounded-global exact-spin relation then failed
 target-free because the frozen swapped states commute. The independently
 frozen V2 repair subsequently retained one bounded noncommuting exact-spin
-mechanism. Corpus induction and final requalification remain active; #954
-remains blocked. No new H4,
+mechanism. PR #997 then rejected the first natural componentwise placement.
+Predictive connection-retention Gate 0 and final requalification remain
+active; #954 remains blocked. No new H4,
 SpiralCore, harmonic, algebraic, placement, transport, or scale qualifier is
 eligible outside its exposed issue.
 
@@ -1160,7 +1191,7 @@ noncommuting global mechanisms recorded below. Its first bounded-global V1
 relation remains negative history; V2 qualified one bounded-global selection
 mechanism. The first independently frozen document-scope corpus-induced
 placement subsequently passed target-free qualification but failed its held-out
-promotion comparisons, leaving replacement placement and final
+promotion comparisons, leaving predictive connection-retention Gate 0 and final
 requalification open.
 Product CLI/HTTP chat integration, restart-persistent conversation state, and
 identity-scoped hive-memory lifecycle remain #962 scope.
@@ -1540,11 +1571,12 @@ This separates causal action from useful attention. The exact `2I x Z_M x
 Z_M` relation and `C^-1*G` least-cost route changed both selected tokens and a
 bounded decoded continuation, but its componentwise marginal-center placement
 did not transfer useful candidate preference. More scale is not the next
-action. #973 must independently freeze a new construction-only,
-candidate-relative discriminative placement objective in exact R4 state while
-preserving immutable route/payload identity, #953 admission and support,
-target-free anti-recall qualification, matched controls, and a single held-out
-join. See the
+action. #973 must first execute `PredictiveConnectionRetentionGate0V1`, a
+construction-only candidate-discriminative readout over current, previous,
+last-two, and complete-prefix exact R4/spin state while preserving immutable
+route/payload identity and #953 admission/support. Only a Gate-0 positive may
+advance to the full connection-retention cell or the single held-out D3 join.
+See ADR-0005 and the
 [#973 corpus-induced document placement record](corpus_induced_document_spin_placement_973.md).
 
 This ladder and its final requalification are part of #973's definition of done
@@ -1714,7 +1746,7 @@ hours remains a hard kill ceiling, never an estimate.
   independently frozen V2 repair retained one bounded noncommuting global
   mechanism. Its first document-scope corpus-induced placement passed
   target-free qualification but failed the held-out promotion gate. It alone
-  owns replacement placement and final requalification.
+  owns predictive connection-retention and final requalification.
 - S3/R4 compute, Hopf S2/R3 observation, and an E8 action plane are distinct
   objects.
 - Exact recall, grammatical text, correct inference, and reasoning are separate

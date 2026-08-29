@@ -14,6 +14,21 @@ Measurements retain their pre-declared exit rule and durable issue/record
 reference; design targets remain explicitly labeled as definitions,
 assumptions, or objectives rather than measured results.
 
+> **Current forward decision after #997 (2026-08-28).** Preserve exact R4/spin
+> routes as identity, causal state, frame, transport, and provenance; reject the
+> assumption that a fixed componentwise center of those identity coordinates is
+> semantic placement. The only active #973 action is
+> `PredictiveConnectionRetentionGate0V1`, the stop-first prerequisite for
+> `PredictiveConnectionRetentionR4V1`. It learns a construction-only
+> candidate-discriminative readout over current, previous, last-two, and
+> complete-prefix exact-route states, while holding #953 support/work fixed.
+> An untouched construction-validation split must beat #953, matched plain
+> recurrence, state-disabled, last-only, order-shuffled, and transport/readout-
+> permuted controls before the 596-document D3 held-out targets are opened.
+> More scale, route density, coordinate families, or exact lowering are not the
+> next action. The architecture and outcome branches are frozen in
+> [ADR-0005](adr/0005-predictive-geometric-connection-memory.md).
+
 > **Negative #973 document-scope corpus-induction result, 2026-08-28.** The
 > independently frozen `CorpusInducedDocumentSpinPlacementR4V1` target-free
 > gate passed with 36,533 operative anti-recall positions, zero support/work
@@ -36,9 +51,9 @@ assumptions, or objectives rather than measured results.
 > `blake3:aebd4edb5ca2d5469c62615cb7f712c71953fa0d09d207686a247bcac460ec51`,
 > and `blake3:93cc3273990739639fa1fa699777868e396d3401342b20e175f528d48ac6de54`.
 > Retain bounded-global V2, keep #973 open and #954 blocked, and replace the
-> componentwise marginal-center objective with a separately frozen
-> candidate-relative discriminative exact-R4 placement objective before any
-> further scale or final requalification. Conversation and task scope for this
+> componentwise marginal-center objective with the ADR-0005 predictive
+> connection-retention Gate 0 before any further scale or final
+> requalification. Conversation and task scope for this
 > corpus operator are `NOT_RUN`. See the
 > [corpus-induced document placement record](corpus_induced_document_spin_placement_973.md).
 
@@ -800,8 +815,10 @@ one bounded synthetic noncommuting exact-spin mechanism. The first
 document-scope corpus-induced componentwise Frechet placement then passed its
 target-free gate but failed every held-out promotion comparison, including a
 1,350-correct-route deficit to the unchanged #953 fallback. A replacement
-placement objective and final requalification remain. Dependable broad coherent
-text remains unestablished.
+predictive connection-retention Gate 0 and final requalification remain. The
+full recurrent cell is authorized only if fixed exact-route features first
+transfer on construction-validation data. Dependable broad coherent text
+remains unestablished.
 The final serving path has no source weights, transformer/self-attention, dense
 matrix intelligence, MoE, or sparse learned router. Compiler-side floating
 point remains allowed for witnessed chart construction; serving arithmetic is
@@ -1374,8 +1391,8 @@ at paragraph and conversation scope. The first bounded-global V1 relation
 remains target-free negative history; its V2 noncommuting repair passed the
 bounded decoded contract. Its first document-scope corpus-induced placement
 passed target-free but failed the held-out promotion gate. A replacement
-placement objective and final requalification remain active in that order and
-continue to block #954.
+predictive connection-retention Gate 0 and final requalification remain active
+in that order and continue to block #954.
 #955 invokes that accepted selector/
 #953/#973/#954 consumer; #962 integrates the accepted selector/#953/#973 path
 into product chat with persisted identity-scoped hive memory. #963 retains

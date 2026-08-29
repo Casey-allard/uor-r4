@@ -3,13 +3,19 @@
 The shared mathematics and route-native substrate for UOR-R4’s research toward
 a transformerless local AI engine.
 
-**Current status.** The active path is the fixed-zeta prime-route foundation:
-`prime_route_attention`, `prime_route_geometric_attention`, and
-`spiralcore_operator`. It provides canonical prime/semiprime routes, spin and
-torsion state, Hopf projection with a retained fiber, golden-radial structure,
-and the initial recursive geometric-attention operators. It is foundation—not
-yet a source-free language model, coherent chat engine, correctness system, or
-reasoning engine. The authoritative sequence is the
+**Current status.** `prime_route_attention`,
+`prime_route_geometric_attention`, and `spiralcore_operator` provide canonical
+prime/semiprime routes, spin and torsion state, Hopf projection with a retained
+fiber, golden-radial structure, exact transport controls, and bounded route
+operators. They are the retained address/frame/transport substrate, not a
+semantic language model. The active build is the stop-first
+`PredictiveConnectionRetentionGate0V1` in
+[ADR-0005](../../docs/adr/0005-predictive-geometric-connection-memory.md):
+construction-validation of candidate-discriminative current/previous/last-two/
+full-prefix exact-route relations. A positive authorizes learned keys/values/
+queries, exact R4/Spin transport, multiscale retention, key-specific delta
+updates, and candidate-relative readout. Neither is yet qualified. The
+authoritative sequence is the
 [Geometric Intelligence Programme](../../docs/geometric_intelligence_programme.md).
 
 This crate also preserves the earlier teacher-compiled TLA/R4G1 engine as a
@@ -22,10 +28,12 @@ The crate therefore hosts three related bodies of work:
 1. **The R⁴ math layer** (`src/lib.rs`, `src/zeta_zeros.rs`): zeta-zero
    embeddings, Hopf coordinates, prime/QIMC identity, and state metrics used by
    the geometric router (`uor-r4-router`).
-2. **The prime-route substrate** (`src/prime_route_attention.rs`,
+2. **The prime-route and predictive-memory substrate**
+   (`src/prime_route_attention.rs`,
    `src/prime_route_geometric_attention.rs`, `src/spiralcore_operator.rs`):
-   canonical route identities and recursive geometric state operators used by
-   the active programme.
+   canonical route identities, recursive geometric state operators, and the
+   construction seams reused by the active Gate 0 and connection-memory
+   programme.
 3. **The historical transformerless engine** (`src/transformerless/`): cross-compiles a
    pinned Hugging Face teacher into a multiplication-free, table-native
    inference artifact (TLA3-TLA7 containers; TLA7 is the default emission), plus the integer-only

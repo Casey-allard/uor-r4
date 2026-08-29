@@ -5,11 +5,16 @@ The R⁴ geometric memory/router and manifold dashboard backend.
 **Research component, not a complete chat engine.** Its stored trajectories,
 identity-scoped memory, prime-overlap retrieval, resonance, Hopf state, and
 session geometry are inputs to the active route-native architecture. Its
-historical Markov generator and dashboard demonstrations do not establish
-source-free coherent generation. The active goal is recursive geometric
-attention over current, candidate, previous, last-two, sentence, paragraph,
-conversation, and global routes, followed by inference, correctness, and
-reasoning. See the
+historical Markov generator, retrieval ranker, and dashboard demonstrations do
+not implement candidate-conditioned language attention or establish source-free
+coherent generation. The immediate build is a construction-validation Gate 0
+over current, previous, last-two, and full-prefix exact-route relations. A
+positive authorizes the predictive geometric connection memory over candidate,
+sentence, paragraph, conversation, and global route state: separate learned
+keys/values/queries, exact
+R4/Spin parallel transport, controlled multiscale forgetting, key-specific
+update, and candidate-relative readout. See
+[ADR-0005](../../docs/adr/0005-predictive-geometric-connection-memory.md) and the
 [Geometric Intelligence Programme](../../docs/geometric_intelligence_programme.md).
 
 `UorR4Router` embeds words as 512-dimensional zeta-zero vectors, routes a
@@ -21,8 +26,10 @@ transitions). It ships thought-stream visualization for the browser dashboard
 
 The active [geometric intelligence programme](../../docs/geometric_intelligence_programme.md)
 reuses the identity state, content-bearing memory, retrieval, R⁴/Hopf math,
-persistence, and turn writeback. It replaces the Markov generator and removes
-hash-derived thought streams from intelligence-critical token selection.
+persistence, and turn writeback as substrate. The predictive memory is a new
+causal consumer of that state; it does not promote the Markov generator or
+existing retrieval score as attention, and it removes hash-derived thought
+streams from intelligence-critical token selection.
 
 ## ⚠ Retrieval ranking: read this before touching `retrieve_geometric_resonance`
 
@@ -62,8 +69,10 @@ weight alone does *not* give a cosine ranking.
 ## Status and relationship to the graph compiler
 
 This crate is **f64, floating-point, and allocates freely by design**. That is
-allowed in the active decoder lane. Its memory/router state is now an active
-product input; its word-Markov generator remains a baseline being replaced.
+allowed in the experimental compiler/research lane. Its memory/router state is
+an input candidate for the new connection-memory prototype; it is not yet a
+promoted product input. Its word-Markov generator remains a historical
+baseline being replaced.
 The historical TLA/R4G1 crates retain their separate multiplication-free and
 allocation-free runtime contracts.
 

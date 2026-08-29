@@ -1,21 +1,16 @@
 # ADR-0004: Define a bounded geometric-intelligence route hierarchy
 
-- **Status:** Accepted as an architectural definition and evaluation boundary;
-  amended 2026-08-28 after B0/#989, the accepted matched #953 R4 table-tie
-  intervention, and #973's retained prior-prefix, paragraph, and conversation
-  mechanisms. #973's first bounded-global exact-spin relation stopped
-  target-free at
-  `RETAIN_CONVERSATION_ONLY_REDESIGN_BOUNDED_GLOBAL_EXACT_SPIN_RELATION`:
-  its detached snapshots and same-address class reuse were valid, but the
-  frozen swapped exact states commute to one identical complete fold. #973 is
-  active for a newly frozen noncommuting relation/population repair; corpus
-  induction is not authorized and #954 remains blocked. Harmonic qualification
-  additionally requires a bound basis/mode contract.
-  Inference,
-  correctness, and reasoning capability remain unproven.
+- **Status:** Accepted as the hierarchy, identity, and transport boundary;
+  predictive semantics and forward mechanism selection now live in
+  [ADR-0005](0005-predictive-geometric-connection-memory.md). #973 retained a
+  repaired bounded noncommuting global witness, then PR #997 rejected its first
+  natural componentwise-Frechet placement (8.367592% versus unchanged #953 at
+  12.221651%). The hierarchy remains structural input to predictive connection
+  memory; it is not itself semantic attention. #954 remains blocked.
 - **Date:** 2026-08-26
 - **Last amended:** 2026-08-28
 - **Builds on:** [ADR-0003](0003-fixed-zeta-prime-route-attention.md)
+- **Extended by:** [ADR-0005](0005-predictive-geometric-connection-memory.md)
 - **Evaluation:**
   [Geometric Intelligence Evaluation](../geometric_intelligence_evaluation.md)
 - **Terminology:** [Glossary](../transformerless/GLOSSARY.md) and

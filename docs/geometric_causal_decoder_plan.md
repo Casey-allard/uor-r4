@@ -3,6 +3,9 @@
 - **Status:** Historical #948–#958 sequencing record. Superseded for forward
   work by the
   [Geometric Intelligence Programme](geometric_intelligence_programme.md).
+  The current predictive-memory architecture is
+  [ADR-0005](adr/0005-predictive-geometric-connection-memory.md); the body below
+  is not its implementation plan.
 - **Adopted:** 2026-08-25 through GitHub programme root
   [#820](https://github.com/UOR-Foundation/uor-r4/issues/820) and roadmap reset
   [#948](https://github.com/UOR-Foundation/uor-r4/issues/948).

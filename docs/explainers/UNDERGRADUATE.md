@@ -11,9 +11,10 @@
 
 ## The current frame
 
-The active project asks whether a route-native geometric system can supply
-attention, inference, correctness, and reasoning without serving a transformer,
-MoE, sparse learned router, or dense matrix intelligence kernel:
+The active project asks whether predictive geometric state and associative
+memory can supply the function of attention, inference, correctness, and
+reasoning without serving a transformer, MoE, sparse learned router, or dense
+matrix intelligence kernel:
 
 ```
 bytes -> pinned reversible lexical codec
@@ -22,50 +23,62 @@ bytes -> pinned reversible lexical codec
       -> R4/S3 spin + S2/R3 Hopf observation + retained torsion
       -> Z[phi] radial shell + witnessed paired-H4/E8 coordinate
       -> local/sentence/paragraph/conversation/global route state
-      -> bounded least-cost geometric attention
+      -> construction-trained geometric key/value state
+      -> exact R4/Spin parallel transport into the current frame
+      -> gated short/medium/long retention + key-specific overwrite
+      -> candidate-relative geometric readout
       -> source-free next-route inference and lexical decoding
 ```
 
 Kappa binds exact canonical identity; it is not a similarity metric. Prime
 factor overlap, ordered n-lets, fixed-zeta phase, spin/Hopf/torsion transport,
 golden radial state, the paired-H4/E8 construction, and transported trajectory
-summaries supply the declared locality. Higher route scopes update
-incrementally rather than scanning the full prefix or corpus at every token.
+summaries supply address, frame, transport, and locality structure. They are not
+assumed to encode linguistic meaning. Higher route scopes and a fixed bank of
+retention timescales update incrementally rather than scanning the full prefix
+or corpus at every token.
 
-The sequence is capability-ordered: #961 supplied reversible lexical geometry
-and complete hierarchy state; #952 exposed an order-erasing reusable summary;
-A1R/#967 repaired that representation but terminated `RETAIN_STATE_ONLY` when
-shortest Cayley distance mapped distinct candidate-relative states to equal
-energy on 6/6 queries. The corrected A1P/#970 probe retains the ordered pair
-`X=C(H,c)`, `Y=C(P_c,c)` and forms `D=X*Y^-1`. For
-`D=(q0+q1 i+q2 j+q3 k)/2`, it keys equality by the exact signed R4 heatmap
-`(q0/2, q1/2, q0^2/4, chirality, cosine polarity, chart status)` in `Z[phi]`,
-not by one H4 operand or an opaque table offset. The endpoint translation is
-`sin=+/-1, cos=0 -> 1` and `sin=0, cos=+/-1 -> 0`, with orientation retained;
-non-landmarks remain exact and `q0=q1=0` is a typed-null abstention.
+The corrected design separates the operations that earlier prototypes
+conflated. For route frame `P_t`, transported memory is
 
-The exhaustive target-free structural census covered 14,400/14,400 ordered
-pairs, all 120 relative roots, 45 heatmap classes, and 480 typed-null pairs. The
-36 fixture decisions produced 14 classes: construction covered 12/12, validation
-coverage was 10/12, the no-class-splitting ceiling was 10/12, strict transfer
-was 0/6, and eight classes carried incompatible outcomes. S4 parity was derived
-from each history before labels were joined. Contract, universe, and report
-kappas are respectively
-`blake3:2daacf538c022fab9580d1e124af6c18d0b06da04604fbc962a01bda57f08a98`,
-`blake3:dca725c0ec6060166bcd0023df956e1ff029661b5fa7800ccb9f20808712b796`,
-and
-`blake3:5f9239150dea8c0c27c4dfa6ad2e4d0068bc3d18afc127b315c0ec358ceddb3f`.
+```text
+Sbar_(t-1) = P_(t-1 -> t) S_(t-1) P_(t-1 -> t)^-1
+S_t        = retain_t(Sbar_(t-1))
+             + write_t(key_t, value_t, Sbar_(t-1))
+score(c)   = candidate_readout(S_t, route(c))
+```
 
-This is a readout-identifiability negative only. Fixed-zeta phases, ordered
-n-lets, golden `phi` radial maps, and the typed Euclidean/complex/Riemannian
-adapter remain structurally bound, but no zeta/n-let-to-`phi` shell-exponent
-rule is established. #970 remains active until protected merge and #969 remains
-blocked until then. After delivery, A1Q/#969 must establish recursive geometric
-attention at every scope under anti-recall matched controls. #953 can
-then build provider-free grammatical generation from only A1Q-qualified
-semantic terms; #954 measures correctness and typed abstention; #955 begins
-reasoning. #958 is retained storage/recall foundation, not proof of attention.
-There is no working source-free chat path yet.
+Construction-only next-token outcomes may fit the key, value, retention, write,
+and readout parameters. Validation, test, and runtime receive only the observed
+prefix, persistent memory, and a hypothetical already-admitted candidate; they
+never receive the actual future token. Compiler-side floating point and
+multiplication are allowed while testing the representation. Exact H4/Q29/
+integer-table lowering is a later equivalence decision, not a prerequisite for
+discovering whether the memory predicts language.
+
+The evidence motivating this pivot is mixed but useful. #969 established that
+an ordered retained path can causally change decoded selection. #989 established
+a 22.261404% source-free table baseline, and #953's single R4 tie intervention
+raised it to 23.211797% (+4,242 held-out choices) under equal support/work. #973
+then established narrow synthetic higher-scope mechanisms, but its first
+document-scale componentwise Frechet placement scored 8.367592%, below unchanged
+#953 at 12.221651%, order-shuffled at 8.376156%, and operator-permuted at
+8.467512%. The operator was active but its semantic placement objective was
+wrong.
+
+Accordingly, the project is no longer asking immutable prime/H4 coordinates to
+invent semantics. It uses them as exact identity and transport while a
+next-token objective induces predictive equivalence and associative memory. The
+immediate Gate 0 first tests a deterministic discriminative readout over four
+fixed exact-route taps on an untouched construction-validation split. Only a
+positive authorizes the full recurrent key/value memory. That full qualifying
+experiment must beat #953 and an equal-size plain recurrent
+cell, state-disabled, order-shuffled, and transport-permuted controls on held-out
+loss/choice, then produce a bounded autonomous continuation. Only a positive
+result advances to exact lowering, correctness (#954), reasoning (#955), and
+durable chat (#962). The complete decision is
+[ADR-0005](../adr/0005-predictive-geometric-connection-memory.md). There is no
+working source-free chat path yet.
 
 The sections below explain the historical table/graph system retained as a
 comparator and runtime reference. Its measurements are not the current

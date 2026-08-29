@@ -1,9 +1,12 @@
 # Glossary — R⁴ Geometric Decoder and Historical Graph Runtime
 
-Originally the Phase 0 graph-compiler glossary; expanded by #948 for the active
-[geometric causal decoder](../geometric_causal_decoder_plan.md). Decoder terms
-and graph terms name different execution lanes and must not be substituted for
-one another.
+Originally the Phase 0 graph-compiler glossary; expanded by #948 for the now-
+historical [geometric causal decoder](../geometric_causal_decoder_plan.md).
+Current sequencing lives in the
+[Geometric Intelligence Programme](../geometric_intelligence_programme.md),
+and the active #973 mechanism is [ADR-0005](../adr/0005-predictive-geometric-connection-memory.md).
+Decoder terms and graph terms name different execution lanes and must not be
+substituted for one another.
 
 ## Active geometric-decoder terms
 
@@ -140,6 +143,29 @@ one another.
   the existing coarse adjacent-spin retrieval rows and remains unqualified
   until a matched real/disabled/permuted intervention changes selection and
   output.
+- **Predictive connection memory** — the ADR-0005 mechanism family that keeps
+  fixed-capacity causal state in R4/spin charts, moves it into the current frame
+  through a declared connection transport, forgets or overwrites associations
+  through bounded gates and delta writes, and reads only candidates admitted
+  by the frozen lower path. It is a research hypothesis until held-out
+  predictive value disappears under matched state/order/transport ablations.
+- **Predictive key/value/query placement** — three separate compiler-learned
+  roles layered over an immutable route/payload address. A key addresses a
+  retained association, a value is written as predictive content, and a query
+  reads one already-admitted candidate. They receive versioned artifact and
+  provenance identities and never silently reinterpret a prime, digest, token
+  rank, spin leaf, or payload CID as learned meaning.
+- **`PredictiveConnectionRetentionGate0V1`** — #973's stop-first
+  construction-validation probe. It asks whether current, previous, ordered
+  last-two, and complete-prefix exact-route relations support a deterministic
+  candidate-discriminative readout under unchanged #953 support/work. It is not
+  the full recurrent/gated-delta cell. A positive authorizes that build; a
+  negative leaves the protected D3 held-out targets unopened.
+- **Matched plain recurrence** — an equal-information, equal-support, equal-
+  budget non-geometric recurrent/delta comparator. A gain shared with this arm
+  is predictive recurrence evidence, not geometry-specific evidence. Geometry
+  is credited only when connection transport and geometric placement add value
+  beyond it and their permutations lose that value.
 - **Corpus-induced geometric attention** — the programme hypothesis that a
   previously qualified causal, candidate-relative receptive mechanism can be
   parameterized offline from larger construction corpora into bounded
@@ -228,8 +254,9 @@ one another.
   delivery order is the established source-free table-native lexical baseline
   (B0/#989), then exactly one #953 geometric intervention under the same
   corpus, support, decode, and work budget; paragraph, conversation, and
-  global exact-spin operator qualification through that loop plus controlled
-  higher-scope/corpus-scale induction and final requalification (#973);
+  global exact-spin operator qualification through that loop, followed by the
+  ADR-0005 predictive connection-retention Gate 0, any authorized full cell,
+  and final requalification (#973);
   correctness with abstention (#954); then bounded hypothetical-branch reasoning
   (#955). #969, #983, and #986 remain evidence provenance rather than a
   parallel implementation queue.

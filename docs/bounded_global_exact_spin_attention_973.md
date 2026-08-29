@@ -484,3 +484,11 @@ readiness.
 The next action is to freeze #973's corpus-induction gate independently before
 any outcome-bearing corpus execution. #954 remains blocked until #973 completes
 that induction and final requalification.
+
+### Forward-action update after PR #997 (2026-08-28)
+
+The independently frozen corpus-induction gate referenced above is complete.
+It rejected `CorpusInducedDocumentSpinPlacementR4V1` while preserving this V2
+bounded-global result. Current forward work is ADR-0005
+`PredictiveConnectionRetentionGate0V1`; this dated update changes no V2 claim
+or evidence identity.

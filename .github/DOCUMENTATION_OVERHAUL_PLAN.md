@@ -11,7 +11,9 @@
 > and is **no longer authoritative**. For current architecture and direction see
 > [`README.md`](../README.md), [`AGENTS.md`](../AGENTS.md),
 > [`docs/RESEARCH.md`](../docs/RESEARCH.md), and the
-> [`Geometric Causal Decoder Roadmap`](../docs/geometric_causal_decoder_plan.md).
+> [`Geometric Intelligence Programme`](../docs/geometric_intelligence_programme.md)
+> with
+> [`ADR-0005`](../docs/adr/0005-predictive-geometric-connection-memory.md).
 >
 > **Live-assertion corrections** (the "Ground-Truth Architectural Findings" in §2 are
 > point-in-time; some have since drifted — the history below is not rewritten):

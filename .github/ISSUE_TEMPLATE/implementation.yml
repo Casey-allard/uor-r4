@@ -6,8 +6,10 @@ body:
     attributes:
       value: |
         Scoped implementation intake. Current sequencing lives in
-        `docs/geometric_causal_decoder_plan.md`. Experimental decoder work ends
-        in a runnable vertical result and uses focused verification. Add the
+        `docs/geometric_intelligence_programme.md`; the active mechanism is
+        defined in `docs/adr/0005-predictive-geometric-connection-memory.md`.
+        Experimental memory/decoder work ends in a runnable vertical result and
+        uses focused verification. Add the
         `model/ids.toml` → Gherkin → test → implementation → generated
         `CONFORMANCE.md` sequence only when an issue actually promotes a
         conformance/release capability. `CONFORMANCE.md` is never hand-edited.
@@ -15,8 +17,8 @@ body:
     id: parent
     attributes:
       label: Parent tracker / stage
-      description: Native parent. Active decoder work names its #949 child; documentation, administration, and frozen-lane maintenance name their actual owner.
-      placeholder: "#949 / #950 — G0, or #940 — CI administration"
+      description: Native parent. Active intelligence work names its current #820 child; documentation, administration, and frozen-lane maintenance name their actual owner.
+      placeholder: "#820 / <active child>, or #940 — CI administration"
     validations:
       required: true
   - type: textarea
@@ -33,7 +35,7 @@ body:
       description: The surface this work changes. Evidence outside this scope is not credited as a deployed-serving result.
       options:
         - Documentation / governance
-        - Experimental geometric decoder (active, off-serving)
+        - Experimental predictive geometric memory (active, off-serving)
         - Reference / exploratory (out of the migration path)
         - Offline / compiler
         - Certifier / measurement (never participates in inference)
@@ -104,7 +106,7 @@ body:
     id: documentation
     attributes:
       label: Documentation reconciliation
-      description: Which of the geometric decoder plan, README, ROADMAP, RESEARCH, MODEL_LIFECYCLE, CONFIGURATION, ledger, and per-issue records this updates. Records are append-only; live summaries are reconciled.
+      description: Which of the geometric intelligence programme, ADR-0005, README, ROADMAP, RESEARCH, MODEL_LIFECYCLE, CONFIGURATION, glossary, ledger, and per-issue records this updates. Records are append-only; live summaries are reconciled.
     validations:
       required: true
   - type: dropdown
