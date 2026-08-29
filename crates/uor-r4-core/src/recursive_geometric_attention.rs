@@ -2771,6 +2771,8 @@ fn a1r_candidate_predecessors(
     Ok(predecessors)
 }
 
+// The explicit frozen artifacts are part of the incremental-replay audit.
+#[allow(clippy::too_many_arguments)]
 fn a1r_incremental_check(
     contrast_id: &str,
     side: &str,
@@ -2818,6 +2820,7 @@ struct A1RAnchoredCandidate {
 }
 
 #[derive(Debug, Clone)]
+#[allow(clippy::large_enum_variant)]
 enum A1RControlMode {
     Geometry(OrderedH4FoldState),
     LegacyAdditive(A10AttentionLevelNonDigest),
@@ -4177,9 +4180,9 @@ fn candidate_support_signature(path: &A10CandidatePath) -> Vec<(String, A10Sourc
     signature
 }
 
-fn a1r_candidate_origin_signature(
-    path: &A10CandidatePath,
-) -> Vec<(String, String, Vec<u8>, A10SourceCounts, Vec<String>)> {
+type A1RCandidateOriginSignature = (String, String, Vec<u8>, A10SourceCounts, Vec<String>);
+
+fn a1r_candidate_origin_signature(path: &A10CandidatePath) -> Vec<A1RCandidateOriginSignature> {
     let mut signature = path
         .candidates
         .iter()

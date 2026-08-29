@@ -4,8 +4,8 @@
 invariants, the κ re-pin procedure, long-run discipline. Read it before your
 first change. The current architecture and issue order live in the
 [Geometric Intelligence Programme](docs/geometric_intelligence_programme.md).
-The active #973 dense geometric-attention reference and recurrent-factorization
-sequence are frozen in
+The active #973 dense geometric-attention reference, learned-manifold successor,
+and downstream gate sequence are frozen in
 [ADR-0005](docs/adr/0005-predictive-geometric-connection-memory.md).
 This file is the short version.
 
@@ -113,11 +113,13 @@ The experiment must be able to change the next programme decision:
   12/12 and isolated the connection/gauge seam. V4 then passed construction
   covariance but failed held-out functional binding at 13/24 for every main
   arm, with insufficient destructive-control separation. Do not tune any
-  revealed fixture. Run the pinned HELM-D architecture audit, frozen ordinary
-  full-decoder donor, gauge-equivalent
-  ordinary-softmax parity in transported R4/Spin frames, real next-token and
-  decoded-output parity, trained intrinsic R4 distance/centroid attention,
-  normalized resonance replacement, and bounded recurrence in that order. See the
+  revealed fixture. The pinned HELM-D architecture audit, frozen ordinary
+  full-decoder donor, and gauge-equivalent ordinary-softmax parity in transported
+  R4/Spin frames now pass. Intrinsic Lorentz V1 attempt 02 stopped unavailable
+  before D3 on its covariance audit, with diagnostic NLL worse than donor and
+  flat. Work next only on the fresh construction-only source-faithful HELM-D
+  learned-manifold Q/K/V successor with declared Lorentz score/scale/bias and a
+  stable equivariant centroid against an equal-capacity Euclidean arm. See the
   [#989 record](docs/source_free_table_baseline_989.md).
 - **Preserve the GI evidence lineage.** GI-1 makes lexical/address state
   reversible;
@@ -163,30 +165,36 @@ The experiment must be able to change the next programme decision:
   equal-manifold-budget V3 rejected its current H4 parameterization while matched
   plain attention worked. V4 preserved construction covariance but failed its
   held-out function/control gates. #973's `HELM-D-R4` full-decoder softmax
-  parity now passes; intrinsic R4 distance/centroid training is active, and
-  recurrent factorization follows only after the intrinsic reference and its
-  resonance replacement qualify. GI-4/#954 remains blocked, with GI-5/#955 downstream.
+  parity now passes. Intrinsic Lorentz V1 attempt 02 is unavailable before D3;
+  the source-faithful learned-manifold construction successor is active.
+  Resonance, recurrent factorization, exact lowering, and GI-4/#954 remain
+  blocked, with GI-5/#955 downstream.
 - **Exercise the accepted route path.** #953 geometry runs before token choice
   and emits admitted support and its fixed-point radius trace. The current #973
-  reference must freeze train/validation before outcomes and hold source model,
-  learned Q/K/V and `W_o`, causal support, training updates, raw parameter
-  budget, decoding, and work fixed across the donor and R4-frame arms. The
-  source-frame-permuted arm is an equal-work destructive intervention.
-  Transport overhead is measured explicitly; it is not hidden under an
-  equal-work claim.
+  successor must freeze construction/validation before outcomes, remain
+  source-faithful to HELM-D learned Q/K/V and `W_o`, declare every Lorentz
+  score/scale/bias and centroid operation, and hold causal support, training
+  updates, raw parameter budget, decoding, and work fixed against an
+  equal-capacity Euclidean arm. Transport overhead is measured explicitly; it
+  is not hidden under an equal-work claim.
 - **Use the smallest falsifier.** `HELM-D-R4` first requires donor/reference
   parity, then splits every learned head into R4 blocks, encodes exact cumulative
   Spin/H4 frames, transports K/V to the query frame, applies unchanged ordinary
   stable softmax and value aggregation, maps back, and applies unchanged `W_o`.
   That gate now passes, including deterministic donor/R4 replay, zero future
   reads, and a frame-permutation liveness control. Parity is not geometric
-  advantage. Actual paired-E8 hierarchy/
-  fiber/torsion binding remains `NOT_IMPLEMENTED`. Factor into intrinsic R4
-  distance/centroid attention, resonance, and gated-delta retention only after
-  a repaired dense geometric reference works.
+  advantage. Intrinsic Lorentz V1 attempt 02 failed its construction covariance
+  audit (`9.121400701417315e-08` versus `1e-08`) and therefore terminated
+  unavailable with D3 sealed; its curved NLL was diagnostically worse than donor
+  and flat. Actual paired-E8 hierarchy/fiber/torsion binding remains
+  `NOT_IMPLEMENTED`. The smallest next falsifier is the fresh source-faithful
+  learned-manifold Q/K/V construction gate, including declared Lorentz
+  score/scale/bias, a stable equivariant centroid, and an equal-capacity
+  Euclidean control.
   Pinned-source provenance, donor reproduction, and transported-R4 parity are
-  recorded in `docs/helm_d_r4_softmax_decoder_973.md`. Intrinsic R4, resonance,
-  and recurrence evidence remain `NOT_RUN`.
+  recorded in `docs/helm_d_r4_softmax_decoder_973.md`; the V1 outcome is in
+  `docs/intrinsic_lorentz_r4_attention_973.md`. Resonance, recurrence, exact
+  lowering, and #954 remain blocked.
 - **Parallelize deterministic corpus work.** Partition by content identity,
   use all available local workers with canonical ordered reductions, and
   compare independent multithreaded rebuilds. Do not launch a long experiment

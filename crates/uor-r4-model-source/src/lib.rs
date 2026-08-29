@@ -703,20 +703,18 @@ fn apply_full_prefix_causal_attention_transport(
 
         let attention =
             &mut attention_weights[head * sequence_capacity..head * sequence_capacity + prefix_len];
-        attention::standard_head_attention_weights(
-            attention,
+        causal.transport.score_and_normalize(
+            head_context,
             &causal.scratch.query,
             &causal.scratch.keys[..prefix_words],
-            0,
-            head_size,
+            attention,
             canonical_math,
         );
-        attention::head_attention_value_aggregate(
-            &mut causal.scratch.aggregate,
+        causal.transport.weighted_value_centroid(
+            head_context,
             attention,
             &causal.scratch.values[..prefix_words],
-            0,
-            head_size,
+            &mut causal.scratch.aggregate,
         );
         causal.transport.output_to_model_frame(
             head_context,
@@ -1224,8 +1222,9 @@ impl Llama {
     }
 
     /// Advance one independent session whose selected layers retain the
-    /// ordinary dense attention contract while expressing Q/K/V through an
-    /// injected query-local coordinate transport.
+    /// checkpoint's Q/K/V, RoPE, output projection, and surrounding decoder
+    /// while an injected query-local operator transports coordinates and may
+    /// replace the row score/normalization/value centroid.
     fn forward_causal_attention_transport(
         &self,
         session: &mut CausalAttentionTransportSession,
@@ -1557,10 +1556,11 @@ impl Llama {
                     }
                 }
 
-                // Source multihead attention. The injected path retains the
-                // same complete causal prefix and standard stable softmax; it
-                // changes only the coordinate frame in which Q·K and the
-                // dense value aggregate are evaluated.
+                // Source multihead attention. The injected path is presented
+                // the same complete causal prefix. Its default row hooks retain
+                // standard stable softmax and the linear value aggregate;
+                // implementation-owned evidence binds any replacement score
+                // or geometric centroid.
                 if let Some(causal_attention) = causal_attention {
                     apply_full_prefix_causal_attention_transport(
                         causal_attention,
@@ -3648,9 +3648,12 @@ impl HuggingFaceLlamaOracle {
     /// Construct an independent full decoder whose selected attention layers
     /// use an injected coordinate transport over every causal source.
     ///
-    /// The source checkpoint continues to own Q/K/V and Wo, RoPE, stable
-    /// softmax, residual/FFN blocks, and the LM head. The session fails closed
-    /// unless each head is a non-zero exact sequence of four-lane R4 blocks.
+    /// The source checkpoint continues to own Q/K/V and Wo, RoPE,
+    /// residual/FFN blocks, and the LM head. Default row hooks retain its
+    /// stable softmax and linear value aggregate; an implementation may
+    /// replace those two operations and must bind that policy in its evidence.
+    /// The session fails closed unless each head is a non-zero exact sequence
+    /// of four-lane R4 blocks.
     pub fn new_causal_attention_transport_session(
         &self,
         mut transport: Box<dyn attention::CausalAttentionTransport>,
@@ -3693,8 +3696,8 @@ impl HuggingFaceLlamaOracle {
         })
     }
 
-    /// Advance one full-prefix causal attention transport session by exactly
-    /// one token and copy its ordinary source-model logits to `logits`.
+    /// Advance one full-prefix causal attention operator session by exactly
+    /// one token and copy its resulting full-decoder logits to `logits`.
     ///
     /// Positions are deliberately sequential: cumulative geometric frames
     /// and the source KV cache must admit the same causal history.
@@ -5335,6 +5338,97 @@ mod tests {
         }
     }
 
+    struct ReplacingCausalAttentionOperator {
+        score_calls: std::sync::Arc<std::sync::atomic::AtomicUsize>,
+        centroid_calls: std::sync::Arc<std::sync::atomic::AtomicUsize>,
+    }
+
+    impl attention::CausalAttentionTransport for ReplacingCausalAttentionOperator {
+        fn policy_identity(&self) -> &str {
+            "replacing-causal-attention-operator/1"
+        }
+
+        fn begin_position(&mut self, _token: usize, _position: usize) {}
+
+        fn transform_query(
+            &mut self,
+            _context: attention::CausalAttentionHeadContext,
+            input: &[f32],
+            output: &mut [f32],
+        ) {
+            output.copy_from_slice(input);
+        }
+
+        fn transport_key(
+            &mut self,
+            _context: attention::CausalAttentionSourceContext,
+            input: &[f32],
+            output: &mut [f32],
+        ) {
+            output.copy_from_slice(input);
+        }
+
+        fn transport_value(
+            &mut self,
+            _context: attention::CausalAttentionSourceContext,
+            input: &[f32],
+            output: &mut [f32],
+        ) {
+            output.copy_from_slice(input);
+        }
+
+        fn score_and_normalize(
+            &mut self,
+            _context: attention::CausalAttentionHeadContext,
+            query: &[f32],
+            packed_keys: &[f32],
+            output_weights: &mut [f32],
+            _canonical_math: bool,
+        ) {
+            use std::sync::atomic::Ordering;
+
+            assert_eq!(packed_keys.len(), output_weights.len() * query.len());
+            self.score_calls.fetch_add(1, Ordering::Relaxed);
+            output_weights.fill(0.0);
+            *output_weights
+                .last_mut()
+                .expect("the causal prefix is nonempty") = 1.0;
+        }
+
+        fn weighted_value_centroid(
+            &mut self,
+            _context: attention::CausalAttentionHeadContext,
+            weights: &[f32],
+            packed_values: &[f32],
+            output: &mut [f32],
+        ) {
+            use std::sync::atomic::Ordering;
+
+            assert_eq!(packed_values.len(), weights.len() * output.len());
+            self.centroid_calls.fetch_add(1, Ordering::Relaxed);
+            let output_width = output.len();
+            attention::head_attention_value_aggregate(
+                output,
+                weights,
+                packed_values,
+                0,
+                output_width,
+            );
+            for coordinate in output {
+                *coordinate = -*coordinate;
+            }
+        }
+
+        fn output_to_model_frame(
+            &mut self,
+            _context: attention::CausalAttentionHeadContext,
+            input: &[f32],
+            output: &mut [f32],
+        ) {
+            output.copy_from_slice(input);
+        }
+    }
+
     #[test]
     fn causal_attention_transport_preserves_full_decoder_and_audits_dense_prefix() {
         let oracle = tiny_geometric_oracle();
@@ -5395,6 +5489,54 @@ mod tests {
         assert_eq!(audit.future_reads, 0);
         assert_eq!(audit.maximum_query_position, Some(2));
         assert_eq!(audit.maximum_source_position, Some(2));
+    }
+
+    #[test]
+    fn causal_attention_operator_hooks_are_invoked_and_change_decoder_behavior() {
+        use std::sync::atomic::Ordering;
+
+        let oracle = tiny_geometric_oracle();
+        let mut plain = oracle.new_state_bounded(6).expect("plain bounded state");
+        let score_calls = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let centroid_calls = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let mut replaced = oracle
+            .new_causal_attention_transport_session(
+                Box::new(ReplacingCausalAttentionOperator {
+                    score_calls: score_calls.clone(),
+                    centroid_calls: centroid_calls.clone(),
+                }),
+                attention::CausalAttentionLayerSelection::All,
+                6,
+            )
+            .expect("replacement attention session");
+        let mut plain_logits = vec![0.0; oracle.cfg().vocab];
+        let mut replaced_logits = vec![0.0; oracle.cfg().vocab];
+        for (position, token) in [1usize, 3, 5].into_iter().enumerate() {
+            oracle
+                .step_state(&mut plain, token, position, &mut plain_logits)
+                .expect("ordinary decoder step");
+            oracle
+                .step_causal_attention_transport(
+                    &mut replaced,
+                    token,
+                    position,
+                    &mut replaced_logits,
+                )
+                .expect("replacement attention step");
+        }
+
+        let expected_calls = 3 * oracle.cfg().n_layers * oracle.cfg().n_heads;
+        assert_eq!(score_calls.load(Ordering::Relaxed), expected_calls);
+        assert_eq!(centroid_calls.load(Ordering::Relaxed), expected_calls);
+        assert!(plain_logits
+            .iter()
+            .zip(&replaced_logits)
+            .any(|(plain, replaced)| plain.to_bits() != replaced.to_bits()));
+        assert_ne!(
+            plain.persistent_state_cid(),
+            replaced.persistent_state_cid()
+        );
+        assert_eq!(replaced.audit().future_reads, 0);
     }
 
     #[test]

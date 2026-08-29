@@ -1,0 +1,95 @@
+{
+  "schema": "uor-r4.intrinsic-lorentz-r4-attention-result-summary/1",
+  "issue": 973,
+  "attempt": 2,
+  "mechanism": "IntrinsicLorentzR4AttentionV1",
+  "implementation_revision": "a348d7ec31f75524906a39cc04327bbcbdd47a56",
+  "terminal": "UNAVAILABLE_INTRINSIC_LORENTZ_R4_STOP_BEFORE_HELD_OUT",
+  "terminal_reason": "construction-validation geometry evidence audit failed before D3 reveal",
+  "full_result": {
+    "embedded_result_cid": "blake3:da2a63323d6211b8d581e5a4ed75d788eb919ff0f210d2e3beb8a749ee1bc64f",
+    "file_blake3": "blake3:3f8ba48d9830eca0636df37eafa8af167475005970e77f5af6f3bec20d191518",
+    "file_bytes": 525754,
+    "canonical_filename": "result.attempt-02-checkpoint-float-roundtrip.json"
+  },
+  "fit_checkpoint": {
+    "declared_cid": "blake3:0372ae31b6464c4967c07b70f7d4bd3cea437c971c34e16ab1b8048630144dc2",
+    "file_blake3": "blake3:fcb6f4d14586c634bdbf8e531afeda3b5f2649151b1da40f2714efe3af1b36bb",
+    "file_bytes": 468429
+  },
+  "frozen_inputs": {
+    "partition_cid": "blake3:cad3dfd17159fdacc5c40e38753109c11764117e3c960f42b9b198d5731272a1",
+    "manifest_cid": "blake3:964c643e9ffcfdb64bacfcaf04e74fa02923e242a7bf965c89619f8626365c55",
+    "tokenizer_cid": "blake3:70af0cb08bbcd3b323d3387ca1d7d33da39873820604d183711e8e99f9903fc1"
+  },
+  "construction_validation": {
+    "scored_positions": 32,
+    "donor": {
+      "mean_nll_nats": 2.6513639557648623,
+      "top1_hits": 14,
+      "top8_hits": 24
+    },
+    "curved": {
+      "mean_nll_nats": 3.9044978436394797,
+      "top1_hits": 8,
+      "top8_hits": 20
+    },
+    "flat": {
+      "mean_nll_nats": 3.6955705255518287,
+      "top1_hits": 9,
+      "top8_hits": 19
+    },
+    "curved_minus_donor_nll": 1.2531338878746174,
+    "curved_minus_flat_nll": 0.20892731808765097,
+    "maximum_curved_vs_flat_attention_delta": 0.988744561560452,
+    "frozen_validation_margin_nats": 0.05,
+    "passed": false
+  },
+  "geometry_preflight": {
+    "exercised_blocks": 1728000,
+    "maximum_hyperboloid_residual": 8.526512829121202e-14,
+    "maximum_distance_invariance_delta": 5.5261351050717167e-14,
+    "maximum_barycenter_covariance_delta": 9.121400701417315e-8,
+    "maximum_barycenter_covariance_delta_limit": 1e-8,
+    "minimum_timelike_denominator_squared": 1.000000000089752,
+    "maximum_softmax_sum_delta": 4.272442311048508e-8,
+    "helm_d_golden_reproduced": true,
+    "passed": false
+  },
+  "integrity": {
+    "parameter_replay_exact": true,
+    "fit_report_replay_exact": true,
+    "fit_work_and_shape_valid": true,
+    "trace_matches_donor_decoder": true,
+    "zero_faults_and_future_reads": true,
+    "requested_workers": 8,
+    "effective_workers": 8,
+    "maximum_active_workers": 8
+  },
+  "fit_diagnostics": {
+    "curved_row_centered_objective": 415554.66305666673,
+    "flat_row_centered_objective": 347686.69506399677,
+    "curved_parameter_cid": "blake3:238de0268004ef1de78aa37d6a4e7797de33247f8f8118ad5d21ba1312a14f81",
+    "flat_parameter_cid": "blake3:18a93f6b0f5ec4502f4fb239c97a0ace79887ea5f607287565642ba54f327132"
+  },
+  "heldout": {
+    "opened": false,
+    "report": null,
+    "reveal_marker_cid": null,
+    "reveal_marker_present": false
+  },
+  "operational": {
+    "trace_and_fit_seconds": 894.843674625,
+    "validation_seconds": 904.6910635,
+    "heldout_seconds": null,
+    "total_seconds": 1800.35884825,
+    "deadline_exceeded": false
+  },
+  "claim_boundary": {
+    "ordinary_r4_softmax_attention_predecessor": "PASS",
+    "intrinsic_geometric_attention": "NOT_ESTABLISHED",
+    "heldout_intrinsic_verdict": "NOT_RUN",
+    "multi_resonance": "BLOCKED",
+    "recurrence_and_exact_lowering": "BLOCKED"
+  }
+}

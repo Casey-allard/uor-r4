@@ -1840,9 +1840,11 @@ fn parse_construction_document(
     })
 }
 
+type ConstructionDocumentSlices<'a> = (&'a [u8], &'a [u8], &'a [u8]);
+
 fn split_construction_document(
     text: &[u8],
-) -> Result<(&[u8], &[u8], &[u8]), ConversationEntitySpinPathError> {
+) -> Result<ConstructionDocumentSlices<'_>, ConversationEntitySpinPathError> {
     let (binding, rest) = split_once_bytes(text, b"\n\n").ok_or_else(|| {
         ConversationEntitySpinPathError::Invalid(
             "construction document lacks the first completed-turn boundary".to_owned(),

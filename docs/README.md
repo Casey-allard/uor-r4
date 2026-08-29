@@ -28,16 +28,23 @@ and output projection
 unchanged while splitting heads into R4 blocks, binding exact cumulative
 Spin/H4 local frames, transporting K/V into the query frame, and mapping the
 aggregate back before `W_o`. Bounded numerical and behavioral parity now
-passes; the intrinsic R4 distance/centroid operator is the active build. Softmax
-is an offline oracle. Only a qualified geometric oracle binds the full
-paired-E8/fiber hierarchy and proceeds to the fiber-preserving multi-resonance
-sieve, bounded recurrence, and exact runtime lowering.
+passes, establishing ordinary softmax attention in R4/Spin frames. Intrinsic
+Lorentz V1 attempt 02 then stopped
+`UNAVAILABLE_INTRINSIC_LORENTZ_R4_STOP_BEFORE_HELD_OUT`: barycenter covariance
+was `9.121400701417315e-08` against the frozen `1e-08` ceiling, diagnostic curved
+NLL was worse than donor and flat, and D3 remained sealed. The active build is a
+fresh construction-only source-faithful HELM-D learned-manifold Q/K/V mechanism
+with declared Lorentz score/scale/bias and a stable equivariant centroid against
+an equal-capacity Euclidean arm. Softmax remains an offline oracle.
+Multi-resonance, recurrence, exact lowering, and #954 stay blocked until a
+qualified geometric oracle exists.
 
 Pinned-source provenance, ordinary-donor reproduction, transported-R4 parity,
 the frame-permutation control, and the causal audit now pass; see the
 [`HELM-D-R4` record](helm_d_r4_softmax_decoder_973.md). Upstream checkpoint
-parity, intrinsic R4 attention, resonance replacement, and recurrence/lowering
-remain `NOT_RUN`.
+parity remains `NOT_RUN`; the intrinsic V1 outcome is recorded in the
+[intrinsic Lorentz R4 record](intrinsic_lorentz_r4_attention_973.md). Resonance
+replacement, recurrence, exact lowering, and #954 remain blocked.
 
 ## Start here
 
@@ -67,10 +74,13 @@ These are the small set of living documents that define the present work:
 1. [Geometric Intelligence Programme](geometric_intelligence_programme.md) —
    goal, architecture, claim boundaries, and work order.
 2. [ADR-0005: HELM-D-R4 reference attention and recurrent lowering](adr/0005-predictive-geometric-connection-memory.md)
-   — the active reference/parity operator, intrinsic R4 successor, resonance
-   replacement, recurrence, and later lowering decision. The bounded
+   — the positive reference/parity operator, active learned-manifold successor,
+   resonance replacement, recurrence, and later lowering decision. The bounded
    [HELM-D-R4 full-decoder result](helm_d_r4_softmax_decoder_973.md) closes the
-   first parity gate and authorizes the intrinsic R4 rung. The bounded
+   first parity gate. The
+   [intrinsic Lorentz V1 record](intrinsic_lorentz_r4_attention_973.md) preserves
+   the attempt-02 construction-unavailable terminal and sealed D3 boundary. The
+   bounded
    [multi-resonance reuse audit](multi_resonance_attention_sieve_audit_973.md)
    distinguishes the implemented sin/cos and Spin substrate from the still
    unimplemented normalized attention sieve.
@@ -96,7 +106,10 @@ reversible lexical geometry
   → pin and audit the HELM-D full-decoder architecture
   → preserve learned Q/K/V + ordinary causal softmax in R4/Spin frames
   → establish numerical and real-language behavioral parity
-  → train intrinsic R4 distance + geometric centroid attention
+  → preserve intrinsic Lorentz V1 construction-unavailable evidence with D3 sealed
+  → construction-only source-faithful learned-manifold Q/K/V
+  → declared Lorentz score/scale/bias + stable equivariant centroid
+  → equal-capacity Euclidean control
   → bind paired-H4/E8 hierarchy and fiber/torsion
   → fiber-preserving multi-resonance sieve replaces softmax
   → resonance modes factor into bounded geometric recurrence

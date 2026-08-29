@@ -102,13 +102,13 @@
 
 use serde::{Deserialize, Serialize};
 
-/// Layers whose ordinary full-prefix causal attention is expressed through an
-/// injected coordinate transport.
+/// Layers whose full-prefix causal attention is expressed through an injected
+/// coordinate transport and row operator.
 ///
 /// `All` is the reference geometric-attention configuration. `Selected` is a
-/// bounded diagnostic surface: every named layer still executes the complete
-/// learned Q/K/V -> RoPE -> causal softmax -> value aggregate -> Wo contract;
-/// only the coordinate transport around its score/value aggregate is added.
+/// bounded diagnostic surface: every named layer retains learned Q/K/V, RoPE,
+/// the complete prefix, and Wo. Default hooks retain ordinary softmax and the
+/// linear value aggregate; a declared implementation may replace them.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum CausalAttentionLayerSelection {
     /// Transport attention at every decoder layer.
@@ -143,19 +143,26 @@ pub struct CausalAttentionSourceContext {
     pub source_position: usize,
 }
 
-/// Object-safe coordinate-transport seam around ordinary dense causal
-/// attention.
+/// Object-safe coordinate-transport and attention-operator seam around dense
+/// causal attention.
 ///
 /// The decoder retains ownership of learned Q/K/V and Wo projections, RoPE,
-/// the complete causal prefix, score scaling, stable softmax, value
-/// aggregation, residuals, FFN, final norm, and the LM head. Implementations
-/// only express each projected head in a query-local frame:
+/// the complete causal prefix, residuals, FFN, final norm, and the LM head.
+/// The default score/normalization and value-aggregation hooks preserve the
+/// ordinary scaled-dot-product, stable-softmax, linear-value operator exactly.
+/// Implementations may instead declare an intrinsic compatibility function or
+/// geometric weighted centroid while retaining every surrounding decoder
+/// operation:
 ///
 /// 1. [`transform_query`](Self::transform_query) maps the current query;
 /// 2. [`transport_key`](Self::transport_key) and
 ///    [`transport_value`](Self::transport_value) map every admitted cached
-///    source from its frame to the query frame; and
-/// 3. [`output_to_model_frame`](Self::output_to_model_frame) maps the dense
+///    source from its frame to the query frame;
+/// 3. [`score_and_normalize`](Self::score_and_normalize) assigns normalized
+///    weights over the complete packed causal prefix;
+/// 4. [`weighted_value_centroid`](Self::weighted_value_centroid) aggregates
+///    the packed query-frame values; and
+/// 5. [`output_to_model_frame`](Self::output_to_model_frame) maps the dense
 ///    aggregate back before the unchanged Wo projection.
 ///
 /// All input and output slices have the model's complete head width. The
@@ -217,6 +224,46 @@ pub trait CausalAttentionTransport: Send {
         output: &mut [f32],
     );
 
+    /// Score and normalize the complete causal prefix in the query frame.
+    ///
+    /// `packed_keys` contains one consecutive `query.len()`-wide row per
+    /// source position, in causal order, and `output_weights` contains one
+    /// slot per row. The default is the current ordinary scaled-dot-product
+    /// plus stable softmax with the packed row stride.
+    fn score_and_normalize(
+        &mut self,
+        _context: CausalAttentionHeadContext,
+        query: &[f32],
+        packed_keys: &[f32],
+        output_weights: &mut [f32],
+        canonical_math: bool,
+    ) {
+        standard_head_attention_weights(
+            output_weights,
+            query,
+            packed_keys,
+            0,
+            query.len(),
+            canonical_math,
+        );
+    }
+
+    /// Aggregate or geometrically center the weighted query-frame values.
+    ///
+    /// `packed_values` contains one consecutive `output.len()`-wide row per
+    /// causal weight. The default is the current correctly-rounded linear
+    /// weighted-value aggregate with the packed row stride.
+    fn weighted_value_centroid(
+        &mut self,
+        _context: CausalAttentionHeadContext,
+        weights: &[f32],
+        packed_values: &[f32],
+        output: &mut [f32],
+    ) {
+        let output_width = output.len();
+        head_attention_value_aggregate(output, weights, packed_values, 0, output_width);
+    }
+
     /// Return a query-frame value aggregate to the model frame before Wo.
     fn output_to_model_frame(
         &mut self,
@@ -226,8 +273,12 @@ pub trait CausalAttentionTransport: Send {
     );
 }
 
-/// Decoder-owned evidence that the injected transport remained dense and
-/// causal. Counts saturate instead of wrapping during unusually long probes.
+/// Decoder-owned evidence that the injected operator was presented every
+/// vector in the complete causal prefix. This ledger proves decoder-side
+/// support and causal ordering; an implementation that replaces the default
+/// row hooks must separately attest which presented sources it actually
+/// scored and aggregated. Counts saturate instead of wrapping during unusually
+/// long probes.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct CausalAttentionTransportAudit {
     /// Successfully started causal positions.
@@ -242,14 +293,14 @@ pub struct CausalAttentionTransportAudit {
     pub key_transports: u64,
     /// Full-width cached values passed through `transport_value`.
     pub value_transports: u64,
-    /// Dense head aggregates passed through `output_to_model_frame`.
+    /// Head aggregates passed through `output_to_model_frame`.
     pub output_transforms: u64,
     /// Calls whose source position exceeded the current query position. A
     /// conforming decoder run keeps this exactly zero.
     pub future_reads: u64,
     /// Largest query position observed, or `None` before the first step.
     pub maximum_query_position: Option<usize>,
-    /// Largest source position consumed, or `None` before the first head.
+    /// Largest source position presented, or `None` before the first head.
     pub maximum_source_position: Option<usize>,
 }
 

@@ -172,10 +172,14 @@ substituted for one another.
   cumulative Spin/H4 local frames, transporting K/V into the query frame, and
   mapping the aggregate back before `W_o`. Its bounded numerical and
   real-language behavioral parity, replay, destructive control, and causal
-  audit pass; this is not geometric advantage. A separately trained intrinsic
-  R4 distance/centroid arm is now authorized. Upstream checkpoint parity,
-  intrinsic attention, resonance replacement, and recurrence/lowering evidence
-  remain `NOT_RUN`. See `helm_d_r4_softmax_decoder_973.md`.
+  audit pass; this is not geometric advantage. The first separately trained
+  intrinsic R4 distance/centroid attempt reached construction validation but
+  stopped unavailable before D3 on covariance, so intrinsic attention remains
+  unestablished. The active successor is a fresh source-faithful HELM-D
+  learned-manifold construction qualifier. Upstream checkpoint parity,
+  resonance replacement, and recurrence/lowering evidence remain `NOT_RUN`.
+  See `helm_d_r4_softmax_decoder_973.md` and
+  `intrinsic_lorentz_r4_attention_973.md`.
 - **H4 frame connection** — the exact object is the relative H4 group element;
   the current compiler-side f64 matrix represents its left-quaternion action
   and is numerically orthogonal under the tested finite-group law. It does not
@@ -310,8 +314,9 @@ substituted for one another.
   ADR-0005 historical direct Q/K/V/O/V4 evidence, pinned HELM-D architecture,
   frozen ordinary donor,
   gauge-equivalent full-decoder ordinary softmax in transported R4/Spin frames,
-  real next-token and decoded-output parity, trained intrinsic R4
-  distance/centroid attention, fiber-preserving multi-resonance replacement,
+  real next-token and decoded-output parity, a source-faithful learned-manifold
+  intrinsic R4 construction qualifier after V1 stopped unavailable before D3,
+  fiber-preserving multi-resonance replacement,
   bounded recurrent factorization, and final requalification
   (#973);
   correctness with abstention (#954); then bounded hypothetical-branch reasoning

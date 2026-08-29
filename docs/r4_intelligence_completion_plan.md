@@ -6,6 +6,9 @@
   The current direct-attention, multi-resonance, and recurrent-lowering
   architecture is
   [ADR-0005](adr/0005-predictive-geometric-connection-memory.md).
+  Ordinary softmax attention now passes on the bounded R4/Spin full-decoder
+  reference; intrinsic V1 is unavailable before D3, and ADR-0005's
+  source-faithful learned-manifold successor is the active construction seam.
   The intermediate
   [Geometric Causal Decoder Roadmap](geometric_causal_decoder_plan.md) records
   the superseded #948-#958 sequence.

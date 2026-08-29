@@ -435,8 +435,8 @@ impl GeometricRuntime {
                 mixer.source_width,
                 true,
             );
-            for lane in 0..R4_COORDINATE_WIDTH {
-                key[lane] += mixer.parameters.key_bias[lane]
+            for (lane, key_lane) in key.iter_mut().enumerate() {
+                *key_lane += mixer.parameters.key_bias[lane]
                     + 0.25 * span.r4_coordinates[lane]
                     + 0.01 * ((span_index + lane) as f32 + 1.0).sin();
             }

@@ -1822,6 +1822,8 @@ fn set_arm_equalities_from_serialized_reports(
         class_lookup_shape_values(record) == class_lookup_shape_values(real);
 }
 
+// The constructor mirrors the frozen arm-record schema field for field.
+#[allow(clippy::too_many_arguments)]
 fn gate0_arm_record(
     name: &'static str,
     negative_control: Option<ConstructionCausalReturnNegativeControl>,

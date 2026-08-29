@@ -218,13 +218,13 @@ mod witnesses {
         // shifts for the same conversion) and the median split. The query
         // path is division- and multiplication-free.
         let expected_allowed = vec![
-            "vp_tree.rs: line 79: let proto_start = \
+            "vp_tree.rs: line 82: let proto_start = \
              (prototype_word_start as usize).checked_mul(8)?; "
                 .to_string(),
-            "vp_tree.rs: line 80: let mask_start = \
+            "vp_tree.rs: line 83: let mask_start = \
              (node.mask_word_start as usize).checked_mul(8)?; "
                 .to_string(),
-            "vp_tree.rs: line 170: let split = distances.len() / 2; ".to_string(),
+            "vp_tree.rs: line 173: let split = distances.len() / 2; ".to_string(),
         ];
         assert_eq!(
             allowed, expected_allowed,

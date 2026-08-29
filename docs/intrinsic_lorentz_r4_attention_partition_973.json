@@ -1,0 +1,312 @@
+{
+  "manifest_cid": "blake3:964c643e9ffcfdb64bacfcaf04e74fa02923e242a7bf965c89619f8626365c55",
+  "manifest": {
+    "schema": "uor-r4.intrinsic-lorentz-r4-attention-partition/1",
+    "issue": 973,
+    "selection_policy": "blake3(domain-nul-utf8-id); D3; eligible>=17; 16-fit/4-validation/8-heldout; exclude-id-12",
+    "corpus_cid": "blake3:194db0eebf2d49823ece01ee935447a0cc9edeaf018454ceea480ce7590132cf",
+    "corpus_documents": 3000,
+    "donor_source_cid": "blake3:12d2cd8a877ef2cdcf785b3d4d1f373e0419074cc884aeaff06fc059686a5ba5",
+    "tokenizer_cid": "blake3:70af0cb08bbcd3b323d3387ca1d7d33da39873820604d183711e8e99f9903fc1",
+    "required_tokens_per_document": 17,
+    "input_positions": 16,
+    "scored_positions": [
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15
+    ],
+    "construction_fit": [
+      {
+        "id": "3466",
+        "title": "Portugal",
+        "selection_digest": "blake3:0122d9c676880279b5f4afd7a0ba85dda317688a3e2526ad73a0f41741f1dc2b",
+        "token_cid": "blake3:34074413258651bf661079eca91cd54c85f11956932633d6ad1c33a60a68b7fb",
+        "input_cid": "blake3:9125197e5bfd3dc9b28a12fb26a86ed64b59491d19f708d22b945e82ca999aea",
+        "target_cid": "blake3:e147dbf7899bd3ec5ef7dbd30f4b6ac7bf1e38ad230749852645c833e261c3c2",
+        "corpus_byte_offset": 3374907,
+        "corpus_byte_length": 4537
+      },
+      {
+        "id": "4326",
+        "title": "Denial",
+        "selection_digest": "blake3:01304da95aff2b853790bf6730596ae3c8bfd21c014237fc461f41f9daa90cd8",
+        "token_cid": "blake3:3a1ad758b59f2755ccbac0154205c216c4e32864c661a387a8a9fe45cc29e4c8",
+        "input_cid": "blake3:6826ac63e3c18d89d127383cf100899de7712fcb218165af9f79dfb2091b8ad9",
+        "target_cid": "blake3:4471ce2325bc66a5d733b421377d1be09e708003f775b7187638a82e63640c77",
+        "corpus_byte_offset": 4772981,
+        "corpus_byte_length": 890
+      },
+      {
+        "id": "8548",
+        "title": "War communism",
+        "selection_digest": "blake3:015500fc6acce53adeb62de5bde9bdc57c6514a6cc0c78e3eec2b356581d6bb2",
+        "token_cid": "blake3:8ad5e57c0ab5573c0d9611a541136b6930ca27a9932a369ab59a504a59bfa9d3",
+        "input_cid": "blake3:afd8e2b7e0024e2c3bbfc349f88be0a133c295245f13710ebb9151d3ed294485",
+        "target_cid": "blake3:6377511b076af143a8f13276f97fa55c54b66d3f6725866494dabb039018ea62",
+        "corpus_byte_offset": 10905136,
+        "corpus_byte_length": 1029
+      },
+      {
+        "id": "7796",
+        "title": "Thomas Dolby",
+        "selection_digest": "blake3:017c6cfa67cf9d60c6da51d3b4c89dcefa4f0afcdafdc2517947d2de603736c9",
+        "token_cid": "blake3:0340a436a07742610f381e159f1e464fbd907d5342325effc62483dabc8c2e64",
+        "input_cid": "blake3:a74694e7b0361260d80e27da59f83d72bbb60bc82b440677af0a354d8c0e8e7c",
+        "target_cid": "blake3:171c960943e6de32eb29b072fb64083a8a1217f9a6c30b60271c2b11779e60cb",
+        "corpus_byte_offset": 9641415,
+        "corpus_byte_length": 699
+      },
+      {
+        "id": "7636",
+        "title": "Court",
+        "selection_digest": "blake3:018ccc5ff7fd09982a626b65fd70ef8cb363bbd9446d6d2a92c3d1fc9f98525c",
+        "token_cid": "blake3:5daad608814227e8c076e27025dfe602e54313dfe7b87282170ab8b463d9c4c2",
+        "input_cid": "blake3:56ef6ab07ff840a111857a497907e0627c5232f0159e21ee38f0aa3b3fd1e601",
+        "target_cid": "blake3:3fc30de0f935e060ccfabbb184323b0f1a9bbe4448fd1c3b9b381d2ed3fbb39f",
+        "corpus_byte_offset": 9191555,
+        "corpus_byte_length": 1124
+      },
+      {
+        "id": "7554",
+        "title": "January 8",
+        "selection_digest": "blake3:019660cb8b2c1f73c6b92cd7ed0c80e1fa134c24e965601f9df01520ed4ac6aa",
+        "token_cid": "blake3:5e53504af807d0c623ead7d04527a676f67554687c0e1f1056d972b8be22dc43",
+        "input_cid": "blake3:cdac8ec5c38aa55f9eac5a962e37b860b3fff28d23464b99c519be5080708e78",
+        "target_cid": "blake3:675039460855f0a8ee8eed585602bbde3c814e9fc229e7b6650b199a0ea2d839",
+        "corpus_byte_offset": 8980908,
+        "corpus_byte_length": 18948
+      },
+      {
+        "id": "431",
+        "title": "Provinces and territories of Canada",
+        "selection_digest": "blake3:01c31f83f69827dc208b1fa591197db08012ddcce6632bbf321c6481535071e7",
+        "token_cid": "blake3:4d22512dd00afa07e2b73321ebd93ec602eee2bae93d2052df81ba6737b3f2ad",
+        "input_cid": "blake3:37aaa8420b69eda4a7c7e447e6600d54435d4496dbb669675904c457c86e56ea",
+        "target_cid": "blake3:35780e69641979f20175678afe18f859a1d20a3a486bf8600d69703d2a530a41",
+        "corpus_byte_offset": 968557,
+        "corpus_byte_length": 1161
+      },
+      {
+        "id": "7593",
+        "title": "Michael Moore",
+        "selection_digest": "blake3:01c44d18facdab6c048b8d8c03775995a0651dcaedb10c7daa4e8781bfde70cc",
+        "token_cid": "blake3:06858f58e4140ef19106bf02dc3844121f2a970d8fca6b83c0f76f9fa9217517",
+        "input_cid": "blake3:735a58f97d8046446019727feedb66dfffe1d9ae3a3450d2b8c75fd4d380aae5",
+        "target_cid": "blake3:947f678043fe7f381af23f5ab6d58c27b6a4de46cb402e866ef79ec166fb807e",
+        "corpus_byte_offset": 9097136,
+        "corpus_byte_length": 3227
+      },
+      {
+        "id": "453",
+        "title": "Political divisions of China",
+        "selection_digest": "blake3:01ce0147589a913d956dca0ee3b6e3ced5921b6e4ff858443296842dba671740",
+        "token_cid": "blake3:8fc8139b6d4ddbd65768bbb3cd687bf7ed6026a19b68a40390f7867ed9b40743",
+        "input_cid": "blake3:d8c37ef20742ad04d6d2de3b99aa036e55da015649378cd4cd2ef936ccdf5429",
+        "target_cid": "blake3:f9827d0841fdce0d3cfe1e5673bf80a51c9c9072499e421b8d00918dd74d1de8",
+        "corpus_byte_offset": 991272,
+        "corpus_byte_length": 2291
+      },
+      {
+        "id": "7905",
+        "title": "Zookeeper",
+        "selection_digest": "blake3:01d4e2ef1cbbbd119399edc5a35a09d8afd03bc230d1344d3343377d1bc6ba90",
+        "token_cid": "blake3:ebbc9d317b6673d349ddc41082b8982b89fe6dea52faa3edca4ce4fc2ce53f92",
+        "input_cid": "blake3:0468406058f3c059fa70629f607efc7da7b5973ad68329ae209d52fbcae1da7f",
+        "target_cid": "blake3:94d2c2525dc7519175c5df394ba1f454497897602deb5485bfdae3e818114291",
+        "corpus_byte_offset": 9907898,
+        "corpus_byte_length": 1028
+      },
+      {
+        "id": "9148",
+        "title": "Minerva (automobile)",
+        "selection_digest": "blake3:01d9b47814ac05e991131390a4b5ab2c5d1883578310b35cf3f0d5b6997bc979",
+        "token_cid": "blake3:734870e952ea2914a0907542b875562a069b0b7d5fe00d3d542b198412cd422f",
+        "input_cid": "blake3:3d36bedb0ced9f95d0326d43b1b6926bcf781a746a002eefd220d8119cef621d",
+        "target_cid": "blake3:16b240cce7e7ca8f91a7bfe411c22911850f1bfe0327b18b4f439c4cce27d149",
+        "corpus_byte_offset": 12067191,
+        "corpus_byte_length": 2086
+      },
+      {
+        "id": "3890",
+        "title": "Bolus",
+        "selection_digest": "blake3:01ee06156b41b92b9f706f58c31cdaa4b237db4facca247273d9a8120c1e9dcd",
+        "token_cid": "blake3:3912ed129704ef156b10ab075a628a5aabb517d9369b0103a0d95487e7b2509f",
+        "input_cid": "blake3:2e745bd28216424a02475ecc2dbca965496545f6a19afec7a46d69deba8360bd",
+        "target_cid": "blake3:d2f7e98f2ca55425cbd725f66948824ef0887f7319b6e5094e9818cda661dc18",
+        "corpus_byte_offset": 4048363,
+        "corpus_byte_length": 436
+      },
+      {
+        "id": "195",
+        "title": "Devil",
+        "selection_digest": "blake3:02196ecf048e6940af670720fb24d894b7e2d1057f2acf6901b0120ee33d72fe",
+        "token_cid": "blake3:3f518f762bc87623b706f93a3b42a12157ab5bdd1ce064c3bdd7183881973f81",
+        "input_cid": "blake3:73781877347ddec406621384acc0d6b51678d3ed9fce836993f7834896082408",
+        "target_cid": "blake3:d4102891dec412d693e04ed79b98596bb46959e27daaaa9a88dc02002bcb165e",
+        "corpus_byte_offset": 463426,
+        "corpus_byte_length": 4015
+      },
+      {
+        "id": "310",
+        "title": "Google",
+        "selection_digest": "blake3:021cd2ef2646287c7f27d4179111b5fd84e398700c0645e3809eaee921387af9",
+        "token_cid": "blake3:b62847f9303e98e49f687022af294bc5d740df3ee8ba6ba44330aa5df7ec1bd0",
+        "input_cid": "blake3:e6b63c9838c3629f8f93a127c0b5f12635b9bbd09311e3728ace4f50165c0251",
+        "target_cid": "blake3:80ddefdc17114964524fbb93ce1c0561085ec72591abd58846e6501710836fe8",
+        "corpus_byte_offset": 698956,
+        "corpus_byte_length": 6485
+      },
+      {
+        "id": "358",
+        "title": "Home page",
+        "selection_digest": "blake3:02aaf318c7b72f8baa5f6dc1a557f86bc85edc915b2dcbad44017bc38015e27c",
+        "token_cid": "blake3:f60df9214b9bc9f18473af0f1badf1d085976d3bd1c7d30bb1072233ce896cbd",
+        "input_cid": "blake3:e8dd727070571368f8b6a5d3a97037ddeb60dc3db443264314e0e2b83c4934b6",
+        "target_cid": "blake3:85b03977a649f9737ac73df10b043239f203bab18cc8a0bb106fb33b3f6788e4",
+        "corpus_byte_offset": 776962,
+        "corpus_byte_length": 1231
+      },
+      {
+        "id": "309",
+        "title": "God's eye view",
+        "selection_digest": "blake3:02afc9c27686dfb1d40af2e691b890248156771363e6f8df4beb0361b59e846b",
+        "token_cid": "blake3:37511ab7851061c9a0aff28ec3a1aaae3a712c8c9821cf5fe10b1c1d4fc0537f",
+        "input_cid": "blake3:f8bdf744d6e7fa1dc6bf2f4e023892ed0dca4ec5cb3d4c1c9c530ebc466a2282",
+        "target_cid": "blake3:40d1667d7d3ae7eb38acffd44bf2627d5a0e908ca0c9ff89c5b07cb66a30630b",
+        "corpus_byte_offset": 697617,
+        "corpus_byte_length": 1339
+      }
+    ],
+    "construction_validation": [
+      {
+        "id": "9252",
+        "title": "Relativity",
+        "selection_digest": "blake3:001a845e04c724136b08e9e447173f677e983a822a6cd5527c21d5f63e0810ae",
+        "token_cid": "blake3:62fd123d522c074c8626694b4761f458f790c9fb0054555a30dd2268e4d58d71",
+        "input_cid": "blake3:db19ab0ba2ab5c2167ae66bf7b82e566713f016f448be99c131a076f615da1d3",
+        "target_cid": "blake3:2ffc547d462a001129f5fdff645886018839e78f35d4b7a79e5d1badf13f42f7",
+        "corpus_byte_offset": 12262665,
+        "corpus_byte_length": 456
+      },
+      {
+        "id": "9438",
+        "title": "Demand",
+        "selection_digest": "blake3:002573b234b6e0269181b4ad1ad89c4e712ebd60b81c9de09dfbd5951b7a4fbb",
+        "token_cid": "blake3:c89453a4a3a8b0cd4681499e671d383296e855d50d26b5bc3c6ec7039363596b",
+        "input_cid": "blake3:2425006c613f16e0213b23bf49ab1814fab3d40574ba73bc93d6ea2c7fb31ba6",
+        "target_cid": "blake3:44e50dc9cbddbcd6bb3a9a5c92532e3ed808609a02d9ad4ebfb88da0389df782",
+        "corpus_byte_offset": 12518918,
+        "corpus_byte_length": 1097
+      },
+      {
+        "id": "3762",
+        "title": "Cricket",
+        "selection_digest": "blake3:00269ad10550f2951f66ffd0be51c56af4d3f1310485e44926764ed3cb8c12d7",
+        "token_cid": "blake3:fb8cbf2a089ff6d92d6752b22ae3fd61e19ba2fbdf715303e2145934db6f6da4",
+        "input_cid": "blake3:fb5b802f7c49b8835bb64deff3b0d6f1bc9d840ea053a9102e8b41026d82434c",
+        "target_cid": "blake3:d547dddad9e1055d6176cf718708319aeb4d7b91975b8ea84b7fa63b3b7ce21b",
+        "corpus_byte_offset": 3848769,
+        "corpus_byte_length": 9747
+      },
+      {
+        "id": "7328",
+        "title": "Enid Blyton",
+        "selection_digest": "blake3:0027bee70af51fd3531951344e726bec5b5e303de65a8ca125d965a5f6d383b9",
+        "token_cid": "blake3:96726b1185ca9b0b5d2d416b46981a7f60e54f68f3eaaa4394e3cbc9dc4ad586",
+        "input_cid": "blake3:14cb7125d88e37fe3e99ea6929ee6dd5b507b6ea76acc4468c71d98a86c0fa99",
+        "target_cid": "blake3:bd21b9ca8798f796fdad76932e3cf651829e999f57bb6f3f2d5511988aa25dd2",
+        "corpus_byte_offset": 8473653,
+        "corpus_byte_length": 2520
+      }
+    ],
+    "d3_heldout": [
+      {
+        "id": "4586",
+        "title": "1621",
+        "selection_digest": "blake3:0077e3cc7a373fcb39d56863fa49094312ef2cde34e214a74d126ef1b6918581",
+        "token_cid": "blake3:1e0d4cb0731bc41d3cfe0045c6946d81612865674513e96e7cdfa5316a9dc720",
+        "input_cid": "blake3:5253d445d0136356b2e0a976442c014227b9a9848c8f0d23328d9ad15d697e06",
+        "target_cid": "blake3:63604fe193bc17205b2420c8a28e33da049f392f8b3be3d7353e89f86c6570cd",
+        "corpus_byte_offset": 5289719,
+        "corpus_byte_length": 712
+      },
+      {
+        "id": "6617",
+        "title": "Province",
+        "selection_digest": "blake3:00f28ae7e22200e257f41d2db9f8b1182bfd329c90c7e8c7a731961ff3130276",
+        "token_cid": "blake3:6f7c51502211f013e90088ddab745642aa5f78ca3c6e1ec8880c8c636e636163",
+        "input_cid": "blake3:3da062ddf6a7666c11010c4ac043b9457d612572c6096f81b87d79de9d8b7fd2",
+        "target_cid": "blake3:8c25d90aab60537acdbc0b19c5047aa70aed7d01af9a0091753649904ea7b1b8",
+        "corpus_byte_offset": 7938023,
+        "corpus_byte_length": 1059
+      },
+      {
+        "id": "8561",
+        "title": "Belfast",
+        "selection_digest": "blake3:013e326807d5571ccd21e5246ffe221bf13f865b25209b7fb4d84288f6fae047",
+        "token_cid": "blake3:b8a76f403fcfc18812675d43dea84726a6ae7d2091898f102c7a50de91284535",
+        "input_cid": "blake3:c2e660d64e49fa40222afec296b67aa908a8e2f18124c1e923b4936b3b4b698a",
+        "target_cid": "blake3:1abb113853defed1540db4a7fe06f47f0156d7080bf1fc0e329222b5ef9afda3",
+        "corpus_byte_offset": 10913423,
+        "corpus_byte_length": 484
+      },
+      {
+        "id": "4964",
+        "title": "Homer",
+        "selection_digest": "blake3:01554cde857a0baeed7608bb3aeba2f5a42f0b641b58dab4329f35a25f1e95c3",
+        "token_cid": "blake3:82f753044b950a1866977faa6c28aadfdabfa18d26fc428335af9cc70ca6998f",
+        "input_cid": "blake3:627c455a8d2ebcf6fbf306bf4078b3d4d6dae14a873295a2c8e4aa3921df90bd",
+        "target_cid": "blake3:da7296ef2e59e627d0b0d703a9d903691dc5e8ac17b9f19f484e19438ce45b1b",
+        "corpus_byte_offset": 5863483,
+        "corpus_byte_length": 2309
+      },
+      {
+        "id": "6828",
+        "title": "Quark",
+        "selection_digest": "blake3:0222cedbbf76ff7253591ff66bc3106a31a3bb09b2ced3a23efeef0827e05d6b",
+        "token_cid": "blake3:6d11055165d07c8ef8ec3e56a5faa261ead0f8c3281f5f3db2c806603269bd82",
+        "input_cid": "blake3:6b9a7086af394d63da65c522ae7a1cf8c51f5c76310be78dea10d593ba73831f",
+        "target_cid": "blake3:455ea178f1fff837d8f18695a4bdfebfe69b7db9deb396cd807a0629b868bbad",
+        "corpus_byte_offset": 8169726,
+        "corpus_byte_length": 3210
+      },
+      {
+        "id": "8152",
+        "title": "Tunnel",
+        "selection_digest": "blake3:0233a8e1adc4f482a93060e8af3918440ae6b00ef4d8fe32cdf047d1cedff0ff",
+        "token_cid": "blake3:ad64def664f37ebe199945c57b10de4f3f11605cc5882eec9e183a98ae8247b8",
+        "input_cid": "blake3:975430a889791da2f568243598c26b048cc97b1190f3e6b8ff62e5e4085c4466",
+        "target_cid": "blake3:b244f9a12af3e8a8f236e8dec8bc1f8415f5a6d69ce937b5cfd63cc412bd9ef6",
+        "corpus_byte_offset": 10180597,
+        "corpus_byte_length": 3324
+      },
+      {
+        "id": "4700",
+        "title": "Fixed-wing aircraft",
+        "selection_digest": "blake3:0235e34a4e370852f37048c2b98927d99b4c2565ae4cc0ea83ac32548d2a1e5b",
+        "token_cid": "blake3:b929c63c8a4d47954b84a085b3372691c63005d48b5108bdc76ca5af7471922d",
+        "input_cid": "blake3:5886d29342c89967d9be3d844fd48941c9a9424106609026aae2ad518369e396",
+        "target_cid": "blake3:801d0949d93fdc0391fce98f1f5bc3f8e6d6b9de19ce76084a59094bde4327e5",
+        "corpus_byte_offset": 5504856,
+        "corpus_byte_length": 3015
+      },
+      {
+        "id": "8639",
+        "title": "Socks (disambiguation)",
+        "selection_digest": "blake3:027c0a79eceab55124f67c378c55b5f81b501720d27bf325e6c05bb69763de0b",
+        "token_cid": "blake3:0445be6594374663bc5a13431b13444321e7f4179cb7f39327a4b3f9fdda3eef",
+        "input_cid": "blake3:4fa98c7fc3e7213dce69a6dfcaa30e4aec5d9e7e4dad0493e6005f1b557b9522",
+        "target_cid": "blake3:f588cf9d76c473cfc51484a33a53b27571a085f1288c967ce6f74efa9f28a85f",
+        "corpus_byte_offset": 11022937,
+        "corpus_byte_length": 422
+      }
+    ],
+    "d3_target_commitment_cid": "blake3:5543e39457c6a990eb1d2de0e4eddf724467750cfe54297a7c81614c0e65c2da",
+    "partition_cid": "blake3:cad3dfd17159fdacc5c40e38753109c11764117e3c960f42b9b198d5731272a1"
+  }
+}

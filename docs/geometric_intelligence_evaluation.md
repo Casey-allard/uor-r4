@@ -19,7 +19,7 @@ make an hours-long run the price of learning whether a mechanism is reachable.
 Experimental evaluations are dormant by default. Activate only the smallest
 probe whose possible outcomes cause different next actions.
 
-### Active decision — intrinsic R4 attention/#973
+### Active decision — source-faithful intrinsic R4 attention/#973
 
 PR #997 proved reachability but rejected its componentwise-Frechet placement:
 real 2,931/35,028 (8.367592%), unchanged #953 4,281/35,028 (12.221651%),
@@ -37,8 +37,9 @@ construction/frame/gradient gate but failed held-out functional binding: all
 three main arms scored 13/24 and order/value/gauge destructive controls retained
 nearly all performance. V4 is frozen negative evidence.
 
-The positive reference is `HELM-D-R4`; intrinsic R4 distance/centroid attention
-is now active. The reference pins and audits the official MIT HELM-D
+The positive reference is `HELM-D-R4`; this establishes preliminary ordinary
+softmax attention on a bounded full decoder in coherent R4/Spin frames. The
+reference pins and audits the official MIT HELM-D
 source at `7501deca8f413848bfef804be64ce874b72a3cd7` as the architectural
 reference. The source-faithful HELM-D implementation uses its declared
 Lorentz inner-product distance surrogate
@@ -66,11 +67,16 @@ replay, transported-R4 numerical/behavioral parity, the destructive control,
 and the causal ledger passed on the bounded held-out run. See the
 [`HELM-D-R4 record`](helm_d_r4_softmax_decoder_973.md) and
 [`machine result`](helm_d_r4_softmax_decoder_result_973.json). Upstream HELM-D
-checkpoint parity, intrinsic R4 attention, multi-resonance replacement, and
-recurrence/lowering remain `NOT_RUN`.
+checkpoint parity remains `NOT_RUN`. `IntrinsicLorentzR4AttentionV1` attempt 02
+reached construction validation and stopped unavailable before D3 because its
+barycenter-covariance audit missed the frozen ceiling. Its diagnostic NLL also
+trailed donor and flat R4. Intrinsic attention is therefore not established;
+multi-resonance replacement and recurrence/lowering remain blocked.
 
-Only after parity may #973 train an intrinsic R4 distance/centroid operator.
-That separately frozen arm must compare against the donor, gauge-equivalent
+The next #973 construction-only freeze copies HELM-D's manifold-valued learned
+Q/K/V projections, declared Lorentz-inner-product score with learned
+scale/bias, and a stable equivariant centroid. That separately frozen arm must
+compare against the donor, gauge-equivalent
 R4-frame reference, and equal-budget Euclidean/plain controls. Only a positive
 intrinsic result activates fiber-preserving multi-resonance replacement; only a
 positive replacement activates bounded recurrent factorization. Softmax, dense
@@ -884,8 +890,10 @@ decision without changing V1. Later corpus-placement, gated-delta, and direct
 V3 results were negative. `ConnectionGaugeCovarianceV4` subsequently passed
 construction covariance but failed held-out functional binding. `HELM-D-R4`
 architecture audit, ordinary-donor reproduction, and full-decoder R4/Spin
-softmax parity then passed. Intrinsic R4 attention is the current evaluation
-action; resonance and recurrent lowering remain conditional successors.
+softmax parity then passed. Intrinsic V1 is unavailable before D3; the current
+evaluation action is its fresh source-faithful learned-manifold construction
+qualifier. Resonance and recurrent lowering remain blocked conditional
+successors.
 
 #973 owns paragraph, conversation, and bounded-global influence only after the
 one #989-matched #953 intervention qualifies the decoded loop.
@@ -999,7 +1007,8 @@ That next corpus-induction gate is now completed negative in PR #997. V4 later
 preserved construction covariance but failed held-out functional binding. The
 ADR-0005's pinned HELM-D provenance, frozen ordinary donor, and full-decoder
 gauge-equivalent ordinary-softmax parity in transported R4/Spin frames now
-pass. The current #973 decision is intrinsic R4 distance/centroid attention,
+pass. Intrinsic V1 is unavailable before D3; the current #973 decision is its
+source-faithful learned-manifold construction successor,
 followed conditionally by multi-resonance and recurrent lowering; #954 remains
 blocked. See the
 [#973 bounded-global record](bounded_global_exact_spin_attention_973.md).

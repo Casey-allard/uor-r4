@@ -15,25 +15,34 @@ plain delta. `DirectCausalGeometricAttentionR4V1` now implements the literal
 offline Q/K/V/O, tangent-projected causal-softmax operator. Its V2 result is
 non-promotable because of a raw-manifold-parameter mismatch. Fresh equal-manifold-budget V3
 returned full H4 3/12, matched plain 12/12, current-only 6/12, and an
-inference-time coherent alternative-connection swap 10/12. The active build in
+inference-time coherent alternative-connection swap 10/12. The current
+reference in
 [ADR-0005](../../docs/adr/0005-predictive-geometric-connection-memory.md) is
-now `HELM-D-R4`: V4 preserved construction covariance but failed held-out
+`HELM-D-R4`: V4 preserved construction covariance but failed held-out
 functional binding, so #973 pins the HELM-D architecture, freezes an ordinary
 decoder donor, and builds full-decoder gauge-equivalent softmax in exact
 cumulative R4/Spin frames. Learned
 Q/K/V, value aggregation, and `W_o` remain unchanged; K/V transport to the
 query frame and map-back now retain bounded numerical and real-language behavior,
 with exact replay, zero future reads, and a live frame-permutation control.
-A trained intrinsic R4 distance/centroid operator is now the active rung, followed
-conditionally by the multi-resonance sieve and bounded recurrence. None is yet
-a serving or transformerless language mechanism. The
+This ordinary softmax reference is `PASS`. Intrinsic Lorentz V1 attempt 02 then
+stopped `UNAVAILABLE_INTRINSIC_LORENTZ_R4_STOP_BEFORE_HELD_OUT` because its
+construction barycenter covariance was `9.121400701417315e-08` against the
+frozen `1e-08` ceiling; diagnostic curved NLL was worse than donor and flat, and
+D3 remained sealed. The active rung is a fresh construction-only,
+source-faithful HELM-D learned-manifold Q/K/V mechanism with declared Lorentz
+score/scale/bias and a stable equivariant centroid against an equal-capacity
+Euclidean arm. It is not yet a serving or transformerless language mechanism.
+The
 authoritative sequence is the
 [Geometric Intelligence Programme](../../docs/geometric_intelligence_programme.md).
 HELM-D pinned-source provenance, donor reproduction, and transported-R4 parity
 are `PASS`; see
 [`docs/helm_d_r4_softmax_decoder_973.md`](../../docs/helm_d_r4_softmax_decoder_973.md).
-Upstream checkpoint parity, the intrinsic arm, resonance replacement, and
-recurrence/lowering evidence remain `NOT_RUN`.
+The intrinsic V1 record is
+[`docs/intrinsic_lorentz_r4_attention_973.md`](../../docs/intrinsic_lorentz_r4_attention_973.md).
+Upstream checkpoint parity remains `NOT_RUN`; resonance replacement,
+recurrence, exact lowering, and #954 remain blocked.
 
 This crate also preserves the earlier teacher-compiled TLA/R4G1 engine as a
 research lane. That engine established useful artifact, deterministic-runtime,

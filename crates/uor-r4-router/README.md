@@ -7,19 +7,26 @@ identity-scoped memory, prime-overlap retrieval, resonance, Hopf state, and
 session geometry are inputs to the active route-native architecture. Its
 historical Markov generator, retrieval ranker, and dashboard demonstrations do
 not implement candidate-conditioned language attention or establish source-free
-coherent generation. The immediate #973 build is the offline `HELM-D-R4`
-reference: preserve a frozen ordinary donor's learned Q/K/V, causal softmax,
-value aggregation, and `W_o` while representing head blocks in exact cumulative
-R4/Spin frames and transporting K/V into the query frame. Numerical and real-
-language behavioral parity now passes in `uor-r4-core`; intrinsic R4
-distance/centroid is next. This router supplies substrate and
+coherent generation. The #973 offline `HELM-D-R4` reference preserves a frozen
+ordinary donor's learned Q/K/V, causal softmax, value aggregation, and `W_o`
+while representing head blocks in exact cumulative R4/Spin frames and
+transporting K/V into the query frame. Numerical and real-language behavioral
+parity now passes in `uor-r4-core`, establishing ordinary softmax attention in
+R4/Spin frames. Intrinsic Lorentz V1 attempt 02 stopped unavailable before D3
+on its construction covariance audit, with diagnostic NLL worse than donor and
+flat. The active successor is a fresh construction-only source-faithful HELM-D
+learned-manifold Q/K/V mechanism with declared Lorentz score/scale/bias and a
+stable equivariant centroid against an equal-capacity Euclidean arm. This router
+supplies substrate and
 visualization only; it is not the donor decoder or attention implementation. See
 [ADR-0005](../../docs/adr/0005-predictive-geometric-connection-memory.md) and the
 [Geometric Intelligence Programme](../../docs/geometric_intelligence_programme.md).
 The binding parity record is
 [`docs/helm_d_r4_softmax_decoder_973.md`](../../docs/helm_d_r4_softmax_decoder_973.md).
-This router contributes no result to that record; intrinsic R4, resonance,
-recurrence, and serving work remain `NOT_RUN` here.
+The V1 result is recorded in
+[`docs/intrinsic_lorentz_r4_attention_973.md`](../../docs/intrinsic_lorentz_r4_attention_973.md).
+This router contributes no result to either record; resonance, recurrence,
+exact lowering, #954, and serving work remain blocked here.
 
 `UorR4Router` embeds words as 512-dimensional zeta-zero vectors, routes a
 rolling "brain state" to one of 16 scale windows by norm, indexes sentences

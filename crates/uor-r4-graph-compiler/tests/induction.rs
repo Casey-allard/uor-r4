@@ -1440,16 +1440,16 @@ fn trajectory_signatures_match_production_prefixes_and_reset_per_story() {
         hidden: None,
     };
     let signatures = cover::trajectory_signatures(&corpus);
-    for position in 0..4 {
+    for (position, signature) in signatures.iter().enumerate().take(4) {
         assert_eq!(
-            signatures[position],
-            TokenHistorySignature::from_tokens(&corpus.input[..=position]).signature()
+            signature,
+            &TokenHistorySignature::from_tokens(&corpus.input[..=position]).signature()
         );
     }
-    for position in 4..7 {
+    for (position, signature) in signatures.iter().enumerate().take(7).skip(4) {
         assert_eq!(
-            signatures[position],
-            TokenHistorySignature::from_tokens(&corpus.input[4..=position]).signature()
+            signature,
+            &TokenHistorySignature::from_tokens(&corpus.input[4..=position]).signature()
         );
     }
     assert_eq!(

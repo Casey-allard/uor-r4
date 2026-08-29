@@ -1,7 +1,8 @@
 # ADR-0005: HELM-D-R4 reference attention, intrinsic geometry, and recurrent lowering
 
 - **Status:** Accepted; V4 is terminal-negative, `HELM-D-R4` parity passes,
-  and intrinsic R4 attention is active
+  intrinsic R4 V1 attempt 02 stopped unavailable before D3, and the active
+  successor is a source-faithful learned-manifold HELM-D construction copy
 - **Date:** 2026-08-28; direction updated 2026-08-29
 - **Owner:** #973 under programme root #820
 - **Supersedes for forward work:** another fixed componentwise prototype or
@@ -22,7 +23,12 @@
   `PASS_HELM_D_R4_GAUGE_SOFTMAX_FULL_DECODER_PARITY_ADVANCE_TO_INTRINSIC_R4`
   ([record](../helm_d_r4_softmax_decoder_973.md),
   [machine result](../helm_d_r4_softmax_decoder_result_973.json))
-- **Intrinsic R4 attention result:** `NOT_RUN`
+- **Intrinsic R4 attention result:** attempt 01 `UNAVAILABLE_PRE_REVEAL` from
+  checkpoint JSON round-trip identity; attempt 02
+  `UNAVAILABLE_INTRINSIC_LORENTZ_R4_STOP_BEFORE_HELD_OUT` from the frozen
+  covariance audit, with D3 still sealed
+  ([record](../intrinsic_lorentz_r4_attention_973.md),
+  [summary](../intrinsic_lorentz_r4_attention_attempt_02_summary_973.json))
 - **Multi-resonance replacement result:** `NOT_RUN`
 - **Recurrent factorization/lowering result:** `NOT_RUN`
 
@@ -31,7 +37,9 @@
 UOR-R4 will establish a complete bounded ordinary causal-attention reference in
 transported R4/Spin frames before training an intrinsic geometric attention
 operator or attempting to compress it. The positive reference mechanism is
-`HELM-D-R4`; the active successor is intrinsic R4 distance/centroid attention.
+`HELM-D-R4`. The first intrinsic R4 distance/centroid attempt did not qualify;
+the active successor is a source-faithful learned-manifold HELM-D construction
+copy.
 Its architectural reference is the official MIT HELM-D source pinned at commit
 [`7501deca8f413848bfef804be64ce874b72a3cd7`](https://github.com/Graph-and-Geometric-Learning/helm/tree/7501deca8f413848bfef804be64ce874b72a3cd7).
 
@@ -47,7 +55,11 @@ The sequence is strict:
    back before unchanged `W_o`;
 3. require numerical and behavioral parity on separately frozen real causal
    language using next-token loss, top-1, and exact decoded output; and
-4. only after parity, train an intrinsic R4 distance/centroid attention arm.
+4. only after parity, qualify a trained intrinsic R4 attention arm; V1's
+   coefficient-only `acosh^2`/centroid construction stopped unavailable before
+   D3, so the next freeze copies HELM-D's learned manifold Q/K/V, declared
+   Lorentz-inner-product score, learned scale/bias, and stable equivariant
+   centroid against an equal-capacity Euclidean arm.
 
 The source-faithful HELM-D reference retains its declared Lorentz implementation:
 the code at the pin forms the invariant Lorentz-inner-product distance surrogate
@@ -272,6 +284,16 @@ The exact R4 distance, chart, centroid algorithm, tolerance, failure behavior,
 and training objective must be artifact-bound. This is an R4 objective, not a
 claim about the pinned upstream HELM-D logit implementation.
 
+V1 implemented this objective with sixteen product-H4 blocks, an `acosh^2`
+score, normalized Lorentz centroid, and coefficient-only construction fit.
+Attempt 02 reached construction validation but its covariance audit measured
+`9.121400701417315e-8` against the frozen `1e-8` ceiling, so its terminal is
+`UNAVAILABLE` and D3 remains `NOT_RUN`. Its diagnostic NLL was also
+`1.2531338878746174` above donor and `0.20892731808765097` above flat R4,
+making a tolerance-only rerun decisionless. The next freeze therefore copies
+the upstream learned-manifold attention seam more faithfully and must pass a
+fresh non-D3 construction validation before any reveal.
+
 ### Multi-resonance replacement
 
 After the trained intrinsic R4 softmax oracle qualifies, freeze its data, roles, transport, support,
@@ -418,9 +440,10 @@ The first bounded implementation is complete only if:
 
 Parity establishes only that the exact R4/Spin gauge representation can carry
 the donor's ordinary attention function. It is not geometric predictive
-advantage. The separately trained intrinsic R4 distance/centroid arm must then
-retain or improve the same real-language behavior against the frozen donor,
-gauge-equivalent reference, and equal-budget Euclidean/plain controls. Strict
+advantage. V1's separately trained intrinsic R4 distance/centroid arm did not
+produce admissible evidence before D3. Its source-faithful learned-manifold
+successor must retain or improve the same real-language behavior against the
+frozen donor, gauge-equivalent reference, and equal-budget Euclidean/plain controls. Strict
 improvement is the only geometry-specific advantage claim. Neither parity nor
 intrinsic success establishes correctness, reasoning, coherence, chat,
 efficiency, transformerless serving, or release readiness.
@@ -484,6 +507,7 @@ lowering, or product readiness.
 | Gauge-equivalent R4/Spin arm reaches parity | Freeze it as the ordinary-softmax R4 reference; this is not geometric advantage. Train the separately bound intrinsic R4 distance/centroid arm. |
 | Intrinsic R4 attention retains behavior but does not beat matched controls | Freeze functional parity without an advantage claim; the predeclared gate decides whether resonance work has value. |
 | Intrinsic R4 attention strictly improves over matched controls and survives destructive controls | Record the geometry-specific result and replace only softmax with the fiber-preserving multi-resonance sieve. |
+| Intrinsic R4 evidence audit is invalid before D3 | Preserve `UNAVAILABLE`, keep D3 sealed, and repair the exact numerical/representation seam under a new construction-only freeze; do not infer a held-out metric result. |
 | Intrinsic R4 attention loses the reference effect | Do not tune recurrence or scale. Revise only its distance, centroid, transport, or training seam. |
 | Multi-resonance preserves the direct reference construction-validation effect | Freeze the band/mode/fiber contract and factor its accumulated modes into bounded recurrence. |
 | Multi-resonance loses the effect | Revise the weighting/kernel approximation without changing the qualified Q/K/V/O reference. |

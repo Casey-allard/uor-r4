@@ -95,8 +95,13 @@ This first gate asks only for numerical and behavioral parity on separately
 frozen real causal language: next-token loss, top-1, and exact decoded output
 against the donor and equal-budget plain controls. Transport overhead is
 reported rather than hidden under equal work. Parity is not a geometry-specific
-advantage. That bounded parity gate now passes, so #973 trains an intrinsic R4 operator using a
-declared R4 distance and geometric weighted centroid. Only a positive intrinsic
+advantage. That bounded parity gate now passes. The first intrinsic R4 operator
+used a declared `acosh^2` distance, normalized Lorentz centroid, and
+coefficient-only fit. Attempt 02 reached construction validation but stopped
+unavailable before D3 because barycenter covariance missed its frozen bound;
+its diagnostic NLL also trailed donor and flat R4. #973 therefore advances only
+to a fresh construction-only, source-faithful HELM-D learned-manifold
+Q/K/V/scale/centroid copy with an equal-capacity Euclidean arm. Only a positive intrinsic
 operator authorizes the multi-resonance sieve; only a positive sieve authorizes
 bounded recurrent factorization and later H4/Q29/integer tables. Softmax, source
 weights, dense all-prefix work, and the donor decoder are offline scientific
@@ -107,8 +112,13 @@ The measured evidence ledger now records `PASS` for HELM-D pinned-source
 provenance, ordinary-donor deterministic reproduction, transported-R4 parity,
 the source-frame-permuted liveness control, and the zero-future-read audit. See
 [`helm_d_r4_softmax_decoder_973.md`](helm_d_r4_softmax_decoder_973.md).
-Upstream checkpoint parity, intrinsic R4 attention, resonance replacement, and
-bounded recurrence/lowering remain `NOT_RUN`.
+Upstream checkpoint parity remains `NOT_RUN`. Intrinsic R4 attempt 01 stopped
+`UNAVAILABLE_PRE_REVEAL` on a checkpoint JSON round-trip defect without opening
+D3; attempt 02 reached construction validation and stopped
+`UNAVAILABLE_INTRINSIC_LORENTZ_R4_STOP_BEFORE_HELD_OUT` on its covariance
+audit. D3 remains sealed. Resonance replacement
+and bounded recurrence/lowering remain `NOT_RUN`. See the
+[intrinsic R4 record](intrinsic_lorentz_r4_attention_973.md).
 
 ## Current capability-first delivery decision — #953
 
@@ -147,8 +157,10 @@ target-free because the frozen swapped states commute. The independently
 frozen V2 repair subsequently retained one bounded noncommuting exact-spin
 mechanism. PR #997 then rejected the first natural componentwise placement,
 and the first bounded gated-delta core trailed its plain-delta comparator. The
-direct geometric-attention oracle, multi-resonance replacement, recurrent
-factorization, and final requalification remain active; #954 remains blocked.
+ordinary R4/Spin softmax oracle remains qualified. Intrinsic V1 is unavailable
+before D3; only the fresh source-faithful learned-manifold construction
+qualifier is active. Multi-resonance, recurrent factorization, final
+requalification, and #954 remain blocked.
 No new H4,
 SpiralCore, harmonic, algebraic, placement, transport, or scale qualifier is
 eligible outside its exposed issue.
@@ -249,7 +261,8 @@ construction-bound exact-descriptor selector at each of paragraph and
   preserved construction covariance but failed held-out functional binding.
   `HELM-D-R4` architecture audit, ordinary donor reproduction, and
   gauge-equivalent full-decoder softmax parity on real causal language now
-  pass. Intrinsic R4 attention is the active rung. Calling a later
+  pass. Intrinsic V1 is unavailable before D3; the source-faithful
+  learned-manifold construction qualifier is the active rung. Calling a later
 #973 operator harmonic additionally requires an
 artifact-bound basis/mode contract. #962
 separately owns product chat integration and persisted, identity-scoped hive
@@ -1629,7 +1642,7 @@ and terminal; #973 cannot close and #954 cannot start without them. The HELM-D
 source provenance, frozen ordinary donor, and R4-frame ordinary-softmax path
 now satisfy the bounded parity rung: numerical/behavioral parity, causal reads,
 transport work, replay, and a destructive frame control are recorded. The
-current intrinsic R4 rung must retain that effect before resonance, recurrence,
+  source-faithful learned-manifold successor must retain that effect before resonance, recurrence,
 or scale. The one
 separation permitted inside #953 was a tiny construction-only, same-frame,
 candidate-conditioned context-placement overlay over already-admitted

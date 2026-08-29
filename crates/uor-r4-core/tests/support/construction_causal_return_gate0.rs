@@ -54,6 +54,7 @@ impl std::error::Error for Gate0ClassMapError {}
 /// same two typed class reads and therefore cannot silently gain a shortcut.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
+#[allow(clippy::large_enum_variant)]
 pub enum Gate0RepresentationKeys {
     Geometric {
         r_min: ConstructionCausalReturnClassEvent,
@@ -287,6 +288,7 @@ enum ExactRecallResolution {
 /// shape even when a representation is unavailable or a second slot is a
 /// typed no-op.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[allow(clippy::large_enum_variant)]
 enum Gate0ClassSlotKey {
     Minimum(ConstructionCausalReturnClassEvent),
     Rich {

@@ -1482,6 +1482,9 @@ impl GeometricAttentionArtifact {
         self.validate_observed_address(&state.last)
     }
 
+    // Keeping the row evidence fields explicit makes the audit record harder
+    // to mis-bind than an opaque mutable context would be.
+    #[allow(clippy::too_many_arguments)]
     fn read_direct_row(
         &self,
         slot_index: usize,
@@ -1519,6 +1522,8 @@ impl GeometricAttentionArtifact {
         Ok(())
     }
 
+    // Direct arguments mirror the independently audited row-read fields.
+    #[allow(clippy::too_many_arguments)]
     fn read_attention_row(
         &self,
         slot_index: usize,

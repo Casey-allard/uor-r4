@@ -372,11 +372,12 @@ pub fn run_geometric_spike(
     let mut router = UorR4Router::new(0.5);
     let mut treatment = Vec::with_capacity(1);
     let mut reachability = None;
-    for (index, ((prompt, rendered), input)) in FROZEN_PROMPTS
+    if let Some((index, ((prompt, rendered), input))) = FROZEN_PROMPTS
         .iter()
         .zip(rendered_prompts.iter())
         .zip(encoded_prompts.iter())
         .enumerate()
+        .next()
     {
         let prompt_id = format!("G0-P{}", index + 1);
         let prompt_tokens = tokenizer.encode(prompt);
@@ -437,7 +438,6 @@ pub fn run_geometric_spike(
         // G0 establishes an active, causal, bounded layer seam and one real
         // product rollout.  Fitted five-prompt treatment quality belongs to
         // G1 (#951), after this structural gate has promoted.
-        break;
     }
     let reachability = reachability.ok_or_else(|| {
         GeometricSpikeError::Gate("controlled coordinate probe was not executed".to_owned())

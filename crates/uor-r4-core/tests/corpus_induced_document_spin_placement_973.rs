@@ -639,8 +639,10 @@ fn exact_score_source_and_counter_firewall_rejects_injected_leaks() {
     .expect_err("an injected target score input must fail the source firewall");
     assert!(injected_source_error.contains("target"));
 
-    let mut injected_counter = CorpusInducedDocumentSpinForbiddenReads::default();
-    injected_counter.teacher_calls = 1;
+    let injected_counter = CorpusInducedDocumentSpinForbiddenReads {
+        teacher_calls: 1,
+        ..CorpusInducedDocumentSpinForbiddenReads::default()
+    };
     let injected_counter_error =
         enforce_exact_score_firewall(PLACEMENT_SOURCE, EXACT_KERNEL_SOURCE, injected_counter)
             .expect_err("an injected forbidden-read counter must fail the typed firewall");

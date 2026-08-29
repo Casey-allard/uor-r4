@@ -1,0 +1,497 @@
+{
+  "schema": "uor-r4.intrinsic-lorentz-r4-attention-contract/1",
+  "issue": 973,
+  "programme_root_issue": 820,
+  "contract_revision": "IntrinsicLorentzR4AttentionV1",
+  "status": "NOT_RUN",
+  "result": "NOT_RUN",
+  "append_only_record": true,
+  "base_revision": "f1ab400827bd226f6af97138a63628cfd49af115",
+  "predecessor": {
+    "name": "HELM-D-R4 full-decoder softmax parity",
+    "pull_request": 1002,
+    "status": "PASS",
+    "result_cid": "blake3:05eaad210198fbe39a0645c25b0c890c55d5f3d3dd8a1710472e976a637e2a07",
+    "donor_cid": "blake3:12d2cd8a877ef2cdcf785b3d4d1f373e0419074cc884aeaff06fc059686a5ba5",
+    "claim_boundary": "Gauge-equivalent coherent R4/Spin softmax attention parity only; no intrinsic-curvature advantage was established."
+  },
+  "question": "Can product-H^4 attention over transported four-lane R4 blocks retain the frozen donor and beat a separately fitted equal-budget flat-R4 distance and centroid control on document-disjoint causal next-token loss while both destructive controls lose?",
+  "architecture_decision": {
+    "status": "FROZEN_PRE_RUN",
+    "chosen": {
+      "name": "product H^4 over sixteen R4 blocks",
+      "manifold_symbol": "(H^4)^16",
+      "meaning": "Sixteen ordered unit-radius four-dimensional hyperbolic Lorentz factors, one per four-spatial-lane R4 block in each 64-lane head.",
+      "is_h4_coxeter_or_binary_icosahedral_group": false,
+      "transport_lift": "The existing spatial R in SO(4) lifts to diag(1,R) in every Lorentz factor.",
+      "tradeoffs": [
+        "Non-flat and native to the existing sixteen R4 blocks.",
+        "Preserves the already qualified UOR Spin/H4 spatial frame substrate.",
+        "Adds compiler-side sqrt, acosh, and timelike-domain failure modes.",
+        "Retains ordinary stable causal softmax and therefore makes no deployed-efficiency claim."
+      ]
+    },
+    "alternatives": [
+      {
+        "name": "ambient flat R4 squared distance and arithmetic centroid",
+        "decision": "REQUIRED_MATCHED_CONTROL",
+        "reason": "Ambient Euclidean R4 is the plain flat baseline and receives the same 32 fitted scalars per layer and query head."
+      },
+      {
+        "name": "S3 geodesic distance and spherical mean",
+        "decision": "DEFERRED",
+        "reason": "It is R4-block-native but discards or separately models radial magnitude and introduces antipodal and chart singularities."
+      },
+      {
+        "name": "full-head H^64",
+        "decision": "REJECTED_FOR_THIS_RUNG",
+        "reason": "It is not R4-block-native, abandons the sixteen registered block actions, and introduces unsupported cross-block geometry."
+      }
+    ],
+    "consequences": [
+      "Only a strict curved-over-flat result can support a bounded curvature-specific claim.",
+      "A curved and flat tie can retain functional geometric attention but cannot authorize resonance.",
+      "Any non-finite lift, invalid distance, non-timelike centroid, or transport fault fails closed without a flat fallback.",
+      "A negative may revise only the distance, barycenter, transport, or construction-fitting seam before a new frozen contract."
+    ]
+  },
+  "frozen_decoder_contract": {
+    "model_width": 576,
+    "layers": 30,
+    "query_heads": 9,
+    "key_value_heads": 3,
+    "head_width": 64,
+    "r4_blocks_per_head": 16,
+    "vocabulary_size": 49152,
+    "preserved": [
+      "learned donor Q projection",
+      "learned donor K projection",
+      "learned donor V projection",
+      "RoPE",
+      "GQA mapping",
+      "complete causal prefix",
+      "ordinary stable causal softmax",
+      "learned donor W_o",
+      "residual and FFN stack",
+      "final normalization",
+      "LM head",
+      "tokenizer",
+      "greedy decode rule"
+    ],
+    "forbidden": [
+      "top-k source selection",
+      "future-position reads",
+      "selected-layer or selected-head subsets",
+      "donor-weight changes",
+      "held-out calibration"
+    ]
+  },
+  "operators": {
+    "curved": {
+      "name": "IntrinsicLorentzR4AttentionV1",
+      "radius": 1.0,
+      "lift": "Phi(x)=(sqrt(1+norm2(x)),x)",
+      "inner_product": "lorentz(X,Y)=-X0*Y0+dot(X_spatial,Y_spatial)",
+      "roundoff_clamp": "z=max(1,-lorentz(Q,K))",
+      "block_feature": "-acosh(z)^2",
+      "head_logit": "sum_b metric_coefficient[b]*block_feature[b]",
+      "weighting": "ordinary stable full-prefix causal softmax using pinned libm f64 exp with normalized weights rounded to the live f32 seam",
+      "value_aggregate": "S_b=sum_j alpha_j*Phi(vbar_jb); M_b=S_b/sqrt(-lorentz(S_b,S_b)); read_b=output_scale[b]*spatial(M_b)",
+      "value_aggregate_name": "normalized Lorentz barycenter",
+      "is_karcher_or_frechet_mean_claimed": false,
+      "minimum_timelike_denominator_squared": 1e-12,
+      "fault_policy": "FAIL_CLOSED_NO_FALLBACK"
+    },
+    "flat": {
+      "name": "FlatR4DistanceAttentionV1",
+      "block_feature": "-norm2(qhat_b-kbar_b)",
+      "head_logit": "sum_b metric_coefficient[b]*block_feature[b]",
+      "weighting": "ordinary stable full-prefix causal softmax using pinned libm f64 exp with normalized weights rounded to the live f32 seam",
+      "value_aggregate": "read_b=output_scale[b]*sum_j alpha_j*vbar_jb",
+      "fault_policy": "FAIL_CLOSED"
+    }
+  },
+  "construction_fit": {
+    "status": "NOT_RUN",
+    "donor_weights_changed": false,
+    "independently_fit_arms": [
+      "intrinsic_lorentz_r4",
+      "flat_r4_distance"
+    ],
+    "parameters_per_layer_query_head": {
+      "nonnegative_block_metric_coefficients": 16,
+      "positive_block_output_scales": 16,
+      "total": 32
+    },
+    "parameters_per_arm": 8640,
+    "metric_fit": {
+      "target": "row-centered libm-log of frozen-donor live-f32 causal attention weights",
+      "features": "independently row-centered sixteen block-distance feature columns",
+      "solver": "fixed-order cyclic coordinate nonnegative least squares",
+      "initial_coefficients": 0.0,
+      "complete_sweeps": 128,
+      "coordinate_order": "layer ascending, query head ascending, block 0 through 15",
+      "accumulator": "ordered f64",
+      "ridge_denominator_lambda": 1e-6,
+      "coefficient_clamp": "max(0,candidate)",
+      "early_stop": false
+    },
+    "output_scale_fit": {
+      "solver": "one-pass positive ridge regression after metric fitting",
+      "coordinate_contract": "Both the arm barycenter x and donor linear aggregate y are expressed in the same query frame before regression.",
+      "formula": "max(1e-6,dot(x,y)/(dot(x,x)+1e-6))",
+      "accumulator_order": "document, position, lane",
+      "accumulator": "ordered f64",
+      "iterative_refit": false
+    },
+    "extra_parameters_forbidden": [
+      "bias",
+      "temperature",
+      "adapter",
+      "learned curvature",
+      "projection",
+      "candidate feature",
+      "validation-selected sweep count"
+    ],
+    "immutable_checkpoint_before_validation": {
+      "exclusive_create": true,
+      "readback_required": true,
+      "full_parameters_per_arm": true,
+      "primary_fit_reports_and_objectives": true,
+      "primary_and_replay_cids": true,
+      "implementation_revision_and_source_cids": true,
+      "exact_executor_source_cid": true,
+      "executed_binary_cid": true,
+      "revision_must_resolve_to_commit_with_identical_bound_sources": true,
+      "revision_must_equal_clean_tracked_head": true,
+      "compiled_contract_and_partition_byte_cids": true,
+      "validation_materialization_before_verified_checkpoint": "FORBIDDEN",
+      "pre_validation_resume_policy": "RELOAD_EXACT_CHECKPOINT_WITHOUT_REFIT"
+    }
+  },
+  "population": {
+    "name": "SimpleWiki",
+    "raw_corpus_cid": "blake3:194db0eebf2d49823ece01ee935447a0cc9edeaf018454ceea480ce7590132cf",
+    "raw_document_count": 3000,
+    "tokenizer_cid": "blake3:70af0cb08bbcd3b323d3387ca1d7d33da39873820604d183711e8e99f9903fc1",
+    "tokenizer_cid_status": "FROZEN_PRE_FIT",
+    "encoded_document_text": "title + newline + newline + text",
+    "minimum_encoded_tokens": 17,
+    "selection_digest": "BLAKE3(UTF8('uor-r4.intrinsic-lorentz-r4-attention/1') || 0x00 || UTF8(id))",
+    "sort_key": "complete selection digest bytes ascending, then UTF8 id bytes ascending",
+    "d3_held_out_rule": "BLAKE3(UTF8(id))[0] mod 5 == 0",
+    "selection_policy_status": "FROZEN_PRE_RUN",
+    "exact_selection_status": "FROZEN_PRE_FIT_COMMITMENT_ONLY",
+    "partition_manifest_path": "docs/intrinsic_lorentz_r4_attention_partition_973.json",
+    "partition_manifest_schema": "uor-r4.intrinsic-lorentz-r4-attention-partition/1",
+    "partition_manifest_inner_compact_json_cid": "blake3:964c643e9ffcfdb64bacfcaf04e74fa02923e242a7bf965c89619f8626365c55",
+    "partitions": {
+      "construction_fit": {
+        "documents": 16,
+        "membership": "non-D3 and selection_digest(id)[0] mod 5 != 0",
+        "take": "first 16 eligible by frozen sort key",
+        "exact_ids": [
+          "3466", "4326", "8548", "7796", "7636", "7554", "431", "7593",
+          "453", "7905", "9148", "3890", "195", "310", "358", "309"
+        ],
+        "exact_input_token_cids": "BOUND_IN_COMMITMENT_ONLY_PARTITION_MANIFEST"
+      },
+      "construction_validation": {
+        "documents": 4,
+        "membership": "non-D3 and selection_digest(id)[0] mod 5 == 0",
+        "take": "first 4 eligible by frozen sort key",
+        "exact_ids": ["9252", "9438", "3762", "7328"],
+        "exact_input_token_cids": "BOUND_IN_COMMITMENT_ONLY_PARTITION_MANIFEST"
+      },
+      "final_d3_held_out": {
+        "documents": 8,
+        "membership": "D3 held out",
+        "excluded_document_ids": [
+          "12"
+        ],
+        "excluded_reason": "Document 12 was the PR #1002 parity document.",
+        "take": "first 8 eligible by frozen sort key after exclusion",
+        "exact_ids": ["4586", "6617", "8561", "4964", "6828", "8152", "4700", "8639"],
+        "exact_input_token_cids": "BOUND_IN_COMMITMENT_ONLY_PARTITION_MANIFEST",
+        "target_commitment_cid": "blake3:5543e39457c6a990eb1d2de0e4eddf724467750cfe54297a7c81614c0e65c2da",
+        "raw_tokens_serialized": false,
+        "read_before_construction_validation_pass": "FORBIDDEN"
+      }
+    },
+    "overlap_allowed": false,
+    "causal_input_positions": {
+      "first": 0,
+      "last": 15,
+      "count_per_document": 16
+    },
+    "scored_query_positions": {
+      "first": 8,
+      "last": 15,
+      "count_per_document": 8,
+      "target_token_offset": 1
+    },
+    "scored_position_denominators": {
+      "construction_fit": 128,
+      "construction_validation": 32,
+      "final_d3_held_out": 64
+    },
+    "identities_required_before_final_held_out": [
+      "tokenizer CID",
+      "all selected document IDs and titles",
+      "all selected encoded-input token CIDs",
+      "held-out target commitment CID",
+      "partition manifest CID",
+      "implementation source and arithmetic revision",
+      "curved and flat parameter artifact CIDs",
+      "construction objective and replay CIDs"
+    ],
+    "partition_manifest_cid": "blake3:cad3dfd17159fdacc5c40e38753109c11764117e3c960f42b9b198d5731272a1"
+  },
+  "arms": [
+    {
+      "id": "ordinary_donor",
+      "role": "frozen language reference",
+      "fit_parameters": 0,
+      "intervention": "ordinary donor dot score and linear value aggregate"
+    },
+    {
+      "id": "gauge_r4_reference",
+      "role": "frozen transported reference",
+      "fit_parameters": 0,
+      "intervention": "PR #1002 gauge-equivalent coherent R4/Spin dot score and linear aggregate"
+    },
+    {
+      "id": "intrinsic_lorentz_r4",
+      "role": "curved treatment",
+      "fit_parameters": 8640,
+      "intervention": "product-H^4 distance and normalized Lorentz barycenter"
+    },
+    {
+      "id": "flat_r4_distance",
+      "role": "equal-budget learned control",
+      "fit_parameters": 8640,
+      "intervention": "flat squared R4 distance and arithmetic centroid"
+    },
+    {
+      "id": "source_frame_permuted",
+      "role": "geometry-destroying control",
+      "fit_parameters": 0,
+      "artifact": "reuse intrinsic_lorentz_r4",
+      "intervention": "At query i assign source-frame identities by j -> (j+1) mod (i+1), preserving query frame, K/V content, source positions, causal support, and work.",
+      "refit": false
+    },
+    {
+      "id": "value_permuted",
+      "role": "binding-destroying control",
+      "fit_parameters": 0,
+      "artifact": "reuse intrinsic_lorentz_r4",
+      "intervention": "After scoring assign transported values by j -> (j+1) mod (i+1), preserving keys, weights, source positions, causal support, and work.",
+      "refit": false
+    }
+  ],
+  "cheap_gate": {
+    "must_pass_before_final_d3_held_out": true,
+    "status": "NOT_RUN",
+    "checks": {
+      "pinned_lorentz_golden_fixture_reproduces": "NOT_RUN",
+      "positive_unit_hyperboloid_absolute_tolerance": 1e-9,
+      "lorentz_squared_distance_invariance_absolute_tolerance": 1e-9,
+      "normalized_barycenter_covariance_absolute_tolerance": 1e-8,
+      "softmax_row_sum_absolute_tolerance": 1e-6,
+      "minimum_timelike_denominator_squared": 1e-12,
+      "fit_parameter_count_per_arm": 8640,
+      "fit_unique_causal_rows_per_invocation": 34560,
+      "fit_unique_source_pairs_per_invocation": 432000,
+      "fit_geometric_row_evaluations_per_invocation": 69120,
+      "fit_geometric_source_pair_evaluations_per_invocation": 864000,
+      "fit_feature_block_evaluations_per_invocation": 13824000,
+      "fit_centroid_source_block_evaluations_per_invocation": 6912000,
+      "fit_output_scale_lane_accumulations_per_invocation": 2211840,
+      "fit_artifact_and_report_replay": "BYTE_IDENTICAL_REQUIRED",
+      "construction_validation_curved_minus_donor_nll_max_nats_per_token": 0.05,
+      "construction_validation_curved_minus_flat_nll_max_nats_per_token": 0.05,
+      "metric_live_reference_arm": "flat_r4_distance",
+      "metric_live_max_attention_weight_delta_min": 0.0001,
+      "future_reads_required": 0,
+      "transport_faults_required": 0,
+      "equal_causal_support_and_row_counts_required": true,
+      "equal_arithmetic_work_claimed": false,
+      "curved_and_flat_arithmetic_reported_separately": true
+    },
+    "on_failure": {
+      "valid_metric_or_nll_miss_terminal": "FAIL_INTRINSIC_LORENTZ_R4_CONSTRUCTION_VALIDATION_STOP_BEFORE_HELD_OUT",
+      "missing_or_invalid_evidence_terminal": "UNAVAILABLE_INTRINSIC_LORENTZ_R4_STOP_BEFORE_HELD_OUT",
+      "final_d3_status": "NOT_RUN"
+    }
+  },
+  "final_evaluation": {
+    "status": "NOT_RUN",
+    "documents": 8,
+    "scored_positions": 64,
+    "metrics": [
+      "full-vocabulary target NLL in nats per token",
+      "perplexity",
+      "top-1 accuracy",
+      "top-8 accuracy",
+      "paired per-position NLL difference",
+      "paired per-document mean NLL difference",
+      "donor-logit KL divergence",
+      "maximum and mean absolute logit difference",
+      "attention-weight difference",
+      "coefficient activity",
+      "barycenter timelike margin and faults",
+      "intervention counts",
+      "causal and transport work"
+    ],
+    "positive_thresholds": {
+      "curved_minus_donor_nll_max_nats_per_token": 0.02,
+      "curved_minus_gauge_nll_max_nats_per_token": 0.02,
+      "curved_top1_loss_vs_donor_max_count": 1,
+      "curved_top1_loss_vs_gauge_max_count": 1,
+      "top1_denominator": 64,
+      "flat_minus_curved_nll_min_nats_per_token": 0.01,
+      "curved_better_than_flat_document_means_min": 7,
+      "document_count": 8,
+      "curved_top1_at_least_flat": true,
+      "source_frame_permuted_minus_curved_nll_min_nats_per_token": 0.02,
+      "curved_better_than_source_frame_permuted_document_means_min": 7,
+      "value_permuted_minus_curved_nll_min_nats_per_token": 0.02,
+      "curved_better_than_value_permuted_document_means_min": 7,
+      "threshold_comparisons_use_unrounded_values": true
+    },
+    "integrity_requirements": {
+      "future_reads": 0,
+      "faults": 0,
+      "exact_support": true,
+      "matched_parameter_fit_and_operator_row_counts": true,
+      "equal_arithmetic_work_claimed": false,
+      "curved_and_flat_arithmetic_reported_separately": true,
+      "live_intervention_counts": true,
+      "fit_artifact_and_report_replay": "BYTE_IDENTICAL_REQUIRED",
+      "curved_arm_and_decode_replay": "BYTE_IDENTICAL_REQUIRED",
+      "scientific_result_payload_cid": "DETERMINISTIC_REQUIRED",
+      "operational_telemetry_inside_scientific_hash": false
+    },
+    "decode": {
+      "status": "NOT_RUN",
+      "source": "first frozen held-out document after its 16-token prefix",
+      "rule": "deterministic greedy",
+      "new_tokens": 8,
+      "valid_utf8_required": true,
+      "byte_identical_replay_required": true,
+      "period_1_cycle_allowed": false,
+      "period_2_cycle_allowed": false,
+      "subjective_coherence_threshold": false
+    }
+  },
+  "work_contract": {
+    "cheap_gate_first": true,
+    "workers": 8,
+    "expected_wall_minutes_min": 45,
+    "expected_wall_minutes_max": 70,
+    "cooperative_deadline_minutes": 75,
+    "external_process_watchdog_minutes": 75,
+    "per_sixteen_position_document_per_full_prefix_arm": {
+      "query_head_calls": 4320,
+      "output_head_calls": 4320,
+      "key_source_calls": 36720,
+      "value_source_calls": 36720
+    },
+    "eight_final_documents_per_full_prefix_arm": {
+      "query_head_calls": 34560,
+      "output_head_calls": 34560,
+      "key_source_calls": 293760,
+      "value_source_calls": 293760
+    },
+    "execution": "Require TLESS_CANONICAL_DETERMINISTIC=1; donor trace capture and full-decoder arms use eight fixed workers; fit/replay passes and all scientific reductions use fixed-order serial iteration.",
+    "work_mismatch_policy": "INVALID_EVIDENCE"
+  },
+  "evidence_persistence": {
+    "ledger_scope": "one canonical directory keyed only by the frozen partition CID",
+    "canonical_root": "/Users/casey.allard/uor-r4/.uor-models/research/issue-973-intrinsic-lorentz-r4",
+    "canonical_result_name": "result.json",
+    "caller_selected_output_filename_allowed": false,
+    "exclusive_partition_process_lock_held_through_terminal_publication": true,
+    "publication": "fully sync a same-directory temporary file, then atomically hard-link it to the final name with no clobber",
+    "partial_final_evidence_file_possible": false,
+    "marker_and_terminal_content_addressing": "BLAKE3 of recursively key-sorted compact JSON for D3 reveal-marker and terminal result/failure payloads; checkpoint and fit-report identities retain their declared struct-order encodings",
+    "post_reveal_startup_reconciliation": "If the reveal marker exists without a terminal whose actual canonical payload CID, schema, issue, manifest CID, partition CID, reveal-marker CID, and held-out shape all verify, emit INVALID_INTRINSIC_LORENTZ_R4_POST_REVEAL_EVIDENCE without reopening D3; only PASS, RETAIN, final FAIL, or INVALID_POST_REVEAL are legal beside the marker.",
+    "published_reveal_is_post_reveal_even_if_temporary_cleanup_or_directory_sync_reports_failure": true,
+    "post_reveal_reconciliation_is_no_clobber_and_restart_idempotent": true,
+    "fit_checkpoint_written_and_verified_before_validation_materialization": true,
+    "d3_reveal_marker_written_before_heldout_access": true,
+    "result_and_reveal_existing_refuse_refit_or_overwrite": true,
+    "exclusive_create_writes": [
+      "fit checkpoint",
+      "D3 reveal marker",
+      "terminal result or failure"
+    ],
+    "scientific_result_hash_includes": [
+      "implementation identity",
+      "fit checkpoint CID",
+      "full curved and flat parameters",
+      "fit reports and validation evidence",
+      "heldout metrics, controls, and deterministic decode when admitted"
+    ],
+    "operational_telemetry_outside_scientific_hash": [
+      "execution preparation",
+      "execution snapshot",
+      "fit checkpoint resume status",
+      "wall-clock timing"
+    ]
+  },
+  "terminals": {
+    "positive": {
+      "id": "PASS_INTRINSIC_LORENTZ_R4_ADVANCE_TO_MULTI_RESONANCE",
+      "condition": "Every final positive threshold and integrity requirement passes.",
+      "consequence": "Freeze the curved softmax oracle and authorize only a bounded matched multi-resonance weighting replacement."
+    },
+    "functional_parity_without_curvature_advantage": {
+      "id": "RETAIN_INTRINSIC_FUNCTIONAL_PARITY_NO_CURVATURE_ADVANTAGE_STOP_BEFORE_RESONANCE",
+      "condition": "Curved retains donor and gauge behavior but misses strict curved-over-flat or destructive-control separation.",
+      "consequence": "Preserve functional intrinsic attention without a curvature-advantage claim; resonance remains blocked."
+    },
+    "construction_validation_negative": {
+      "id": "FAIL_INTRINSIC_LORENTZ_R4_CONSTRUCTION_VALIDATION_STOP_BEFORE_HELD_OUT",
+      "condition": "A valid fitted curved arm misses the frozen construction-validation NLL or metric-liveness gate.",
+      "consequence": "Preserve the negative, leave final D3 NOT_RUN, and revise only distance, barycenter, transport, or construction fitting under a new freeze."
+    },
+    "negative": {
+      "id": "FAIL_INTRINSIC_LORENTZ_R4_REVISE_DISTANCE_CENTROID_OR_TRAINING_SEAM",
+      "condition": "A complete, publishable revealed run misses donor or gauge retention or deterministic replay/decode integrity.",
+      "consequence": "Revise only distance, barycenter, transport, or construction fitting under a new frozen contract."
+    },
+    "unavailable": {
+      "id": "UNAVAILABLE_INTRINSIC_LORENTZ_R4_STOP_BEFORE_HELD_OUT",
+      "condition": "Required corpus, tokenizer, frame, fit, audit, or cheap-gate evidence is unavailable or invalid.",
+      "consequence": "Leave final held-out NOT_RUN and make no metric inference."
+    },
+    "invalid_post_reveal": {
+      "id": "INVALID_INTRINSIC_LORENTZ_R4_POST_REVEAL_EVIDENCE",
+      "condition": "Any execution error, timeout, attention/transport fault, causal or work-contract violation, or incomplete result occurs after D3 admission.",
+      "consequence": "Record heldout_opened=true and reject the revealed run as invalid evidence; never relabel it as stopped before held-out or infer a metric verdict."
+    }
+  },
+  "current_evidence_ledger": {
+    "architecture_decision": "FROZEN_PRE_RUN",
+    "selection_policy": "FROZEN_PRE_RUN",
+    "selected_ids_and_content_identities": "FROZEN_PRE_FIT_COMMITMENT_ONLY",
+    "lorentz_invariance_and_numerics": "NOT_RUN",
+    "curved_fit": "NOT_RUN",
+    "flat_fit": "NOT_RUN",
+    "construction_validation": "NOT_RUN",
+    "final_d3_held_out": "NOT_RUN",
+    "autonomous_decode": "NOT_RUN",
+    "terminal_result": "NOT_RUN",
+    "multi_resonance": "NOT_RUN_BLOCKED",
+    "recurrent_factorization": "NOT_RUN_BLOCKED",
+    "exact_lowering": "NOT_RUN_BLOCKED",
+    "issue_954": "BLOCKED",
+    "downstream_capability_stages": "BLOCKED"
+  },
+  "nonclaims": [
+    "This pre-run contract establishes no intrinsic-attention result.",
+    "A later positive would be bounded to this frozen population, decoder, and operator.",
+    "No softmax removal, subquadratic inference, transformerless serving, broad language quality, correctness, reasoning, energy advantage, E8 semantics, chat, or release-readiness claim is authorized."
+  ]
+}

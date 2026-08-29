@@ -17,22 +17,28 @@ is not a geometric oracle; the exact group action itself remains algebraically
 valid. `ConnectionGaugeCovarianceV4` subsequently passed construction covariance
 but failed its protected held-out gate: all three main arms were 13/24 and the
 order/value/gauge destructive controls did not separate. V4 is frozen negative
-evidence and must not be retuned. The immediate #973 reference is `HELM-D-R4`,
-pinned to the official MIT HELM-D source at
-`7501deca8f413848bfef804be64ce874b72a3cd7`. First preserve the full learned
-causal Q/K/V, ordinary stable-softmax, value-aggregation, and output-projection
-path while splitting heads into R4 blocks, binding exact cumulative Spin/H4
-local frames, transporting K/V into the query frame, and mapping the result back
-before `W_o`. The first required positive now passes on the bounded held-out
-full-decoder run, including exact donor/R4 replay, a live frame-permutation
-control, and zero future reads. It is numerical and behavioral parity, not
-geometric advantage. #973 now trains an intrinsic R4 distance/centroid
-operator; only a positive there may authorize the
-normalized multi-resonance sieve and bounded recurrence. Do not tune the
-revealed V2/V3/V4 fixtures or scale #997's rejected componentwise-Frechet placement.
-The binding result is
-[`docs/helm_d_r4_softmax_decoder_973.md`](docs/helm_d_r4_softmax_decoder_973.md).
-Intrinsic R4, multi-resonance, and recurrent/lowering results remain `NOT_RUN`;
+evidence and must not be retuned. The #973 reference is `HELM-D-R4`, pinned to
+the official MIT HELM-D source at
+`7501deca8f413848bfef804be64ce874b72a3cd7`. Its bounded full-decoder run
+preserves learned causal Q/K/V, ordinary stable softmax, value aggregation, and
+`W_o` while transporting R4 blocks through exact cumulative Spin/H4 frames. It
+passes exact donor/R4 replay, real-language behavioral parity, a live
+frame-permutation control, and zero future reads. This establishes ordinary
+softmax attention in R4/Spin frames, not geometric advantage.
+`IntrinsicLorentzR4AttentionV1` attempt 02 subsequently stopped
+`UNAVAILABLE_INTRINSIC_LORENTZ_R4_STOP_BEFORE_HELD_OUT`: its construction
+barycenter-covariance audit measured `9.121400701417315e-08` against the frozen
+`1e-08` ceiling, while diagnostic curved NLL was worse than both donor and flat.
+D3 remained sealed. The active successor is a fresh construction-only,
+source-faithful HELM-D learned-manifold Q/K/V mechanism with a declared Lorentz
+score/scale/bias and stable equivariant centroid, compared with an
+equal-capacity Euclidean arm. Do not tune the revealed V2/V3/V4 fixtures, relax
+the V1 covariance bound, or scale #997's rejected componentwise-Frechet
+placement. The binding records are
+[`docs/helm_d_r4_softmax_decoder_973.md`](docs/helm_d_r4_softmax_decoder_973.md)
+and
+[`docs/intrinsic_lorentz_r4_attention_973.md`](docs/intrinsic_lorentz_r4_attention_973.md).
+Multi-resonance, recurrence, exact lowering, and #954 remain blocked;
 implementation progress is not a result.
 The geometric causal decoder plan, prior S0–S7 completion plan, and
 graph-compiler implementation plan are retained as historical
@@ -142,9 +148,11 @@ order-shuffled and operator-permuted controls. The terminal is
 gated-delta core later trailed plain delta on its sealed smoke. Direct-attention
 V2 is non-promotable and equal-manifold-budget V3 isolated the connection/gauge
 seam. V4 preserved construction covariance but failed held-out functional
-binding. ADR-0005's `HELM-D-R4` reference/parity path subsequently passed. #973
-remains active for intrinsic R4 attention and, if it qualifies, resonance and recurrent
-lowering; #954 remains blocked.
+binding. ADR-0005's `HELM-D-R4` reference/parity path subsequently passed.
+Intrinsic V1 attempt 02 stopped unavailable before D3 on its covariance audit.
+#973 is now active only on the fresh construction-only source-faithful HELM-D
+learned-manifold successor; resonance, recurrent lowering, and #954 remain
+blocked.
 Do not add a second #953 intervention or reuse the #983/#986 populations. The
 complete #973 Gate 0 record is
 [`docs/prior_sentence_count_radius_attention_973.md`](docs/prior_sentence_count_radius_attention_973.md).
@@ -160,7 +168,7 @@ Terminology lives in
 `docs/transformerless/GLOSSARY.md`. Keep this file current when conventions
 change.
 
-## Capability-first baseline and geometric increment — #989/#953 established; #973 intrinsic R4 active
+## Capability-first baseline and geometric increment — #989/#953 established; #973 learned-manifold successor active
 
 Effective 2026-08-28, #989 established the deterministic source-free
 table-native lexical baseline at
@@ -213,11 +221,15 @@ path is viable, but the current H4 parameter-gauge/conditioning seam is not.
 V4 later preserved construction covariance but failed held-out functional
 binding and destructive-control separation. The exposed `HELM-D-R4`
 source-pinned full-decoder ordinary-softmax parity in transported R4/Spin frames
-now passes on bounded real causal language. The active successor is the trained
-intrinsic R4 distance/centroid operator; only a positive intrinsic
-operator proceeds to normalized multi-resonance replacement and bounded
-recurrent factorization. New route families,
-unqualified scale, exact lowering, and later-stage work remain dormant.
+now passes on bounded real causal language. Intrinsic Lorentz V1 attempt 02
+reached construction validation but stopped unavailable before D3 because its
+barycenter covariance exceeded the frozen ceiling; its curved NLL was also
+diagnostically worse than donor and equal-capacity flat. The active successor
+retains source-faithful HELM-D Q/K/V, learns the manifold maps, declares the
+Lorentz score/scale/bias and stable equivariant centroid, and compares against
+an equal-capacity Euclidean arm on construction only. New route families,
+resonance, recurrence, unqualified scale, exact lowering, #954, and later-stage
+work remain dormant.
 See the
 [#989 evidence record](docs/source_free_table_baseline_989.md) and
 [#953 evidence record](docs/source_free_table_geometric_intervention_953.md),
@@ -267,18 +279,19 @@ and transition law.
 
 Corpus scale follows mechanism qualification; it never substitutes for it.
 #986 was one bounded local placement/transport qualification, but it stopped
-before freezing its CID-disjoint split. Within #973, the bounded direct
-reference now mirrors ordinary inclusive causal attention with learned Q/K/V/O,
-causal all-prefix logits, H4 frame transport, stable softmax, and transported
-value aggregation. Compare full geometric and equal-raw-manifold-budget fixed-3D plain
-attention with coherent alternative-connection, tangent-isometry, order,
-value, separately trained seed-disabled, and current-token controls. The first
-smoke is H4-only; actual paired-E8 hierarchy, fiber, and torsion binding remains
-`NOT_IMPLEMENTED`, as does a paired-E8-disabled control. Transport overhead is
-reported explicitly rather than called equal work. The recurrent gated-delta core remains an
-explicit compression candidate and negative baseline; it is not promoted until
-it reproduces a qualified dense reference. No bounded reference result alone
-authorizes the held-out D3 join.
+before freezing its CID-disjoint split. Within #973, `HELM-D-R4` now establishes
+ordinary inclusive causal attention with learned Q/K/V/O, causal all-prefix
+logits, R4/Spin frame transport, stable softmax, and transported value
+aggregation. Intrinsic Lorentz V1 did not clear construction validation and
+never opened D3. The active successor must remain source-faithful to HELM-D
+while learning its manifold Q/K/V maps and declaring the Lorentz score, scale,
+bias, and stable equivariant centroid; compare it only with an equal-capacity
+Euclidean mechanism under the same causal support and work. Actual paired-E8
+hierarchy, fiber, and torsion binding remains `NOT_IMPLEMENTED`. Transport
+overhead is reported explicitly rather than called equal work. The recurrent
+gated-delta core remains an explicit compression candidate and negative
+baseline; it is not promoted until it reproduces a qualified dense reference.
+No construction result alone authorizes the held-out D3 join.
 Freeze the operator family/schema, objective, scope semantics, neighborhood
 contract, and induction rule; vary only declared parameter values under new
 artifact/operator identities, and rerun the bounded gate for every structural
@@ -472,12 +485,14 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
   non-promotable; equal-manifold-budget V3 then rejected the current mixed-gauge
   H4 projection/connection/optimizer combination against a working plain path
   and an inference-time coherent alternative-connection swap. V4 then passed
-  construction covariance but failed held-out functional binding. The active
-  order is pinned HELM-D architecture audit, frozen ordinary full-decoder
-  donor reproduction, gauge-equivalent
-  ordinary-softmax parity in transported R4/Spin frames, real next-token and
-  decoded-output parity, trained intrinsic R4 distance/centroid attention,
-  normalized resonance replacement, then bounded recurrence.
+  construction covariance but failed held-out functional binding. `HELM-D-R4`
+  ordinary-softmax parity in transported R4/Spin frames subsequently passed.
+  Intrinsic Lorentz V1 attempt 02 stopped unavailable before D3 on covariance,
+  with diagnostic NLL worse than donor and flat. The active step is the fresh
+  construction-only source-faithful HELM-D learned-manifold Q/K/V successor with
+  declared Lorentz score/scale/bias and stable equivariant centroid against an
+  equal-capacity Euclidean arm. Resonance replacement and bounded recurrence
+  remain later gates, not current work.
   #954 remains blocked behind #973.
   #954 and #955 own correctness and reasoning respectively.
   #962 owns durable multi-turn CLI/HTTP chat, persistence, isolation, and
@@ -486,8 +501,9 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
   (#989, established) → one matched geometric intervention (#953, accepted) →
   direct geometric attention (#973: retained bounded scope evidence → H4
   scaffold/V4 held-out negatives → HELM-D-R4 full-decoder softmax parity →
-  trained intrinsic R4 distance/centroid attention → normalized resonance
-  replacement → bounded recurrence) →
+  intrinsic Lorentz V1 construction-unavailable → fresh source-faithful
+  learned-manifold Q/K/V construction gate → normalized resonance replacement
+  → bounded recurrence) →
   correctness/abstention → reasoning → optimization/purity/release. The older placement/transport
   sequence is retained as evidence, not an active implementation queue.
 - Kappa is canonical identity/serialization, never the tokenizer or semantic

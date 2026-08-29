@@ -23,8 +23,9 @@ assumptions, or objectives rather than measured results.
 > identities, and byte replay passed, so the terminal is a clean negative rather
 > than `UNAVAILABLE`. V4 is frozen and will not be tuned or rerun.
 >
-> The positive #973 reference is `HELM-D-R4`; the active successor is intrinsic
-> R4 distance/centroid attention. The official MIT HELM-D source
+> The positive #973 reference is `HELM-D-R4`; preliminary ordinary softmax
+> attention is therefore established on the bounded decoder in coherent
+> R4/Spin frames. The official MIT HELM-D source
 > is pinned at `7501deca8f413848bfef804be64ce874b72a3cd7` as an offline architectural
 > reference. Its source-faithful semantics are pinned, and the frozen ordinary
 > full-decoder donor preserves every learned
@@ -35,8 +36,13 @@ assumptions, or objectives rather than measured results.
 > numerical and behavioral parity on frozen real causal-language next-token
 > loss, top-1, and decoded output against the donor, with an equal-work
 > frame-permuted destructive control. That bounded parity now qualifies; it is
-> not a geometry-advantage result. #973 now trains intrinsic R4
-> distance/centroid attention; only a positive intrinsic
+> not a geometry-advantage result. The first coefficient-only intrinsic
+> distance/centroid attempt reached construction validation but stopped
+> unavailable before D3 on a barycenter-covariance audit; its diagnostic loss
+> was also worse than donor and flat R4. The active successor is a fresh
+> construction-only copy of HELM-D's learned manifold Q/K/V, declared
+> Lorentz-inner-product score, learned scale/bias, and stable equivariant
+> centroid against an equal-capacity Euclidean arm. Only a positive intrinsic
 > result may authorize multi-resonance replacement and bounded recurrence.
 > Source weights, dense all-prefix work, and softmax are offline scientific
 > oracles only and establish no transformerless or serving claim.
@@ -44,10 +50,13 @@ assumptions, or objectives rather than measured results.
 > **Measured evidence status:** HELM-D pinned-source provenance `PASS`;
 > ordinary-donor reproduction `PASS`; transported-R4 parity, destructive
 > control, and causal audit `PASS` on the bounded full-decoder run; upstream
-> checkpoint parity `NOT_RUN`; intrinsic R4 attention `NOT_RUN`;
-> multi-resonance replacement `NOT_RUN`; recurrent factorization/lowering
-> `NOT_RUN`. See the
-> [`HELM-D-R4` record](helm_d_r4_softmax_decoder_973.md).
+> checkpoint parity `NOT_RUN`; intrinsic R4 attempt 01
+> `UNAVAILABLE_PRE_REVEAL` from a checkpoint JSON round-trip defect; attempt 02
+> `UNAVAILABLE_INTRINSIC_LORENTZ_R4_STOP_BEFORE_HELD_OUT` from its covariance
+> audit, with D3 still sealed; multi-resonance replacement `NOT_RUN`; recurrent
+> factorization/lowering `NOT_RUN`. See the
+> [`HELM-D-R4` record](helm_d_r4_softmax_decoder_973.md) and the
+> [intrinsic R4 record](intrinsic_lorentz_r4_attention_973.md).
 
 > **Prior forward decision after direct-attention V3
 > (2026-08-28).** Preserve exact R4/spin routes as identity, causal state, frame,
@@ -375,8 +384,10 @@ assumptions, or objectives rather than measured results.
 > all main arms, with insufficient destructive-control separation. The
 > `HELM-D-R4` pinned-source audit, frozen ordinary-donor reproduction, and
 > gauge-equivalent full-decoder ordinary-softmax parity in transported R4/Spin
-> frames now pass on the bounded real causal-language run. The current #973
-> action is intrinsic R4 distance/centroid attention; resonance replacement and
+> frames now pass on the bounded real causal-language run. Intrinsic V1 stopped
+> unavailable before D3 and its construction diagnostics trailed donor and flat
+> R4. The current #973 action is a source-faithful learned-manifold HELM-D
+> construction qualifier; resonance replacement and
 > bounded recurrence remain later conditional stages. #954 remains blocked
 > behind #973.
 > Legacy
@@ -1518,9 +1529,11 @@ at paragraph and conversation scope. The first bounded-global V1 relation
 remains target-free negative history; its V2 noncommuting repair passed the
 bounded decoded contract. Its first document-scope corpus-induced placement
 passed target-free but failed the held-out promotion gate. The first bounded
-gated-delta core also trailed plain delta. Direct transported Q/K/V/O attention,
-multi-resonance replacement, recurrent factorization, and final
-requalification remain active and continue to block #954.
+gated-delta core also trailed plain delta. Ordinary transported Q/K/V/O softmax
+attention is now the bounded qualified reference. Intrinsic V1 is unavailable
+before D3; only its fresh source-faithful learned-manifold construction
+qualifier is active. Multi-resonance replacement, recurrent factorization,
+final requalification, and #954 remain blocked.
 #955 invokes that accepted selector/
 #953/#973/#954 consumer; #962 integrates the accepted selector/#953/#973 path
 into product chat with persisted identity-scoped hive memory. #963 retains

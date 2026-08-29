@@ -51,10 +51,18 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > `1.049041748046875e-5` / `2.2742100540540378e-6`; donor and R4 replay were
 > exact; the source-frame-permuted control decoded `[[` with a `23.0844`
 > maximum-logit shift; and 2,700 key plus 2,700 value transports read no future
-> position. This is numerical and behavioral parity on a bounded real-language
-> run, not a geometric advantage. #973 may now train an intrinsic R4
-> distance/centroid version. Paired E8, resonance, recurrence, lowering, scale,
-> and generation remain blocked until attention itself passes. Softmax is a research oracle,
+> position. This establishes preliminary ordinary softmax attention on a
+> bounded real-language decoder in coherent R4/Spin frames; it is not a
+> curvature-specific advantage. `IntrinsicLorentzR4AttentionV1` attempt 02 then
+> completed construction fitting and validation but stopped unavailable before
+> D3: Lorentz-barycenter covariance was `9.1214e-8` against the frozen `1e-8`
+> ceiling. Its construction diagnostics were also materially worse than donor
+> and flat R4, so there is no tolerance-only rerun and no intrinsic-attention
+> claim. The next construction-only freeze copies HELM-D more faithfully with
+> learned manifold-valued Q/K/V, its declared Lorentz-inner-product score, and
+> a stable equivariant centroid against an equal-capacity Euclidean arm.
+> Paired E8, resonance, recurrence, lowering, scale, and generation remain
+> blocked. Softmax is a research oracle,
 > not the serving design. After the geometric oracle qualifies, its
 > weighting law is replaced by the positive normalized multi-resonance sieve,
 > whose mode sums are factored into bounded recurrent state and finally lowered
@@ -69,7 +77,12 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > **HELM-D-R4 measured evidence status:** pinned-source provenance `PASS`;
 > ordinary-donor reproduction `PASS`; transported-R4 parity and destructive
 > control `PASS`; upstream HELM-D checkpoint parity `NOT_RUN`; intrinsic R4
-> attention `NOT_RUN`; multi-resonance replacement and recurrence `NOT_RUN`.
+> attention attempt 01 `UNAVAILABLE_PRE_REVEAL` from a checkpoint JSON
+> round-trip defect; attempt 02 reached construction validation and terminated
+> `UNAVAILABLE_INTRINSIC_LORENTZ_R4_STOP_BEFORE_HELD_OUT` on its covariance
+> audit. D3 remains sealed and `NOT_RUN`. Multi-resonance replacement and
+> recurrence remain blocked. See the
+> [intrinsic R4 record](docs/intrinsic_lorentz_r4_attention_973.md).
 
 > **Retained bounded-global evidence (2026-08-28):** #973's independently frozen
 > `BoundedGlobalNoncommutingExactSpinR4V2` reached
@@ -92,8 +105,9 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > product readiness. Corpus induction was this result's contemporaneous next
 > step; `ConnectionGaugeCovarianceV4` later preserved construction covariance
 > but failed its held-out attention and control-separation gates. `HELM-D-R4`
-> full-decoder softmax parity subsequently passed; intrinsic R4
-> distance/centroid attention is now the only active successor. #954
+> full-decoder softmax parity subsequently passed; intrinsic V1 stopped
+> unavailable before D3, and the source-faithful learned-manifold qualifier is
+> now the only active successor. #954
 > remains blocked. See the
 > [bounded-global record](docs/bounded_global_exact_spin_attention_973.md).
 
@@ -148,8 +162,9 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > the direct reference has since run and V3 is negative. #973's
 > `ConnectionGaugeCovarianceV4` construction/frame preflight is positive, but
 > its independently frozen held-out reveal is negative at 13/24 for every main
-> arm. The `HELM-D-R4` full-decoder softmax parity qualifier now passes; the
-> intrinsic R4 distance/centroid arm is next. #954 remains
+> arm. The `HELM-D-R4` full-decoder softmax parity qualifier now passes;
+> intrinsic V1 is unavailable before D3, and its source-faithful learned-map
+> construction successor is next. #954 remains
 > blocked. See the
 > [conversation record](docs/conversation_entity_spin_path_attention_973.md).
 
@@ -202,7 +217,8 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > were negative. `ConnectionGaugeCovarianceV4` retained construction-scale
 > representation covariance but failed held-out attention and control
 > separation. `HELM-D-R4` full-decoder gauge-equivalent ordinary softmax now
-> passes; the intrinsic R4 distance/centroid arm is current.
+> passes; intrinsic V1 stopped before D3, and the current seam is a
+> source-faithful learned-manifold construction qualifier.
 > #954 remains blocked behind #973. General higher-scope attention, correct
 > answers, and reasoning do not exist yet. The
 > dashboard is an interactive window into the research substrate, not a
@@ -510,7 +526,12 @@ not become substitutes for working intelligence:
    transporting every causal K/V pair into the query frame, and mapping the
    aggregate back before `W_o`. Require numerical/behavioral parity first on
    frozen real next-token loss, top-1, and decoded output against equal-budget
-   plain controls. Only then train the intrinsic R4 distance/centroid operator.
+   plain controls. The first coefficient-only `acosh^2`/centroid intrinsic arm
+   stopped unavailable at construction covariance and was diagnostically worse
+   than donor and flat R4. Next copy the pinned HELM-D learned manifold Q/K/V,
+   Lorentz-inner-product score, learned scale/bias, and stable equivariant
+   centroid under a fresh construction-only freeze and equal-capacity flat
+   control.
    Bind actual paired-E8/fiber/torsion inputs only after attention qualifies.
    Then replace softmax with the multi-resonance sieve,
    retaining the full S3 fiber/torsion state, and then factor the mode sums into
@@ -544,8 +565,10 @@ because that arm was swapped at inference time rather than trained separately.
 Connection/gauge Phase I is positive within #973, but its protected Phase-III
 held-out reveal is negative: every main arm scored 13/24 and the destructive
 controls failed to separate. `HELM-D-R4` source-pinned full-decoder softmax
-parity in transported R4/Spin frames now passes. The only active successor is
-the trained intrinsic R4 distance/centroid operator. Multi-resonance
+parity in transported R4/Spin frames now passes. The first intrinsic
+distance/centroid V1 attempt is unavailable before D3 and does not establish
+intrinsic attention. The only active successor is a source-faithful HELM-D
+learned-manifold construction qualifier with a matched Euclidean arm. Multi-resonance
 replacement and recurrent factorization remain gated behind a held-out
 geometric attention oracle.
 #954 remains blocked behind #973. The exact contract is

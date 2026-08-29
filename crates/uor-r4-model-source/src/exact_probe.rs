@@ -532,6 +532,7 @@ fn exact_executor_contract_components() -> Vec<(&'static str, &'static [u8])> {
         workspace_component!("crates/uor-r4-core/src/corpus_induced_spin_placement.rs"),
         workspace_component!("crates/uor-r4-core/src/direct_causal_geometric_attention.rs"),
         workspace_component!("crates/uor-r4-core/src/geometric_gated_delta_retention.rs"),
+        workspace_component!("crates/uor-r4-core/src/helm_d_r4_attention.rs"),
         workspace_component!("crates/uor-r4-core/src/higher_scope_geometric_attention.rs"),
         workspace_component!("crates/uor-r4-core/src/lib.rs"),
         workspace_component!("crates/uor-r4-core/src/local_geometric_generation.rs"),

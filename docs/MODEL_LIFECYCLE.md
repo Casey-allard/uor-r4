@@ -5,7 +5,7 @@
 > lifecycle. Architecture and sequencing authority lives in the
 > [Geometric Intelligence Programme](geometric_intelligence_programme.md).
 
-> **Current evidence and direction (2026-08-28):** #989 established the frozen
+> **Current evidence and direction (2026-08-29):** #989 established the frozen
 > source-free table reference at 22.261404% held-out top-1 versus 5.413561%
 > unigram. The accepted #953 `MultiscaleCountRadiusR4V1` intervention raised the
 > same measure to 23.211797% (+4,242 correct) with equal candidate support/work
@@ -36,11 +36,16 @@ reproduces a frozen ordinary bounded decoder, then preserves learned Q/K/V, stab
 softmax, value aggregation, and `W_o` while splitting heads into R4 blocks,
 binding exact cumulative Spin/H4 frames, transporting K/V to the query frame,
 and mapping back before `W_o`. Real causal-language numerical and behavioral
-parity is required before any trained intrinsic R4 distance/centroid operator.
-Softmax does not enter serving. A qualified intrinsic geometric reference next
-freezes a fiber-preserving multi-resonance weighting law, factors its
-band-limited modes into bounded recurrence, and only then lowers to exact
-H4/Q29/integer tables. Validation,
+parity now passes, establishing ordinary softmax attention in R4/Spin frames.
+Intrinsic Lorentz V1 attempt 02 subsequently stopped
+`UNAVAILABLE_INTRINSIC_LORENTZ_R4_STOP_BEFORE_HELD_OUT`: its construction
+barycenter covariance was `9.121400701417315e-08` against the frozen `1e-08`
+ceiling, diagnostic curved NLL was worse than donor and flat, and D3 remained
+sealed. The active successor is a fresh construction-only source-faithful
+HELM-D learned-manifold Q/K/V mechanism with declared Lorentz score/scale/bias
+and a stable equivariant centroid against an equal-capacity Euclidean arm.
+Softmax does not enter serving. Multi-resonance, bounded recurrence, exact
+H4/Q29/integer-table lowering, and #954 remain blocked. Validation,
 test, and inference remain strictly causal and cannot fit on their future
 tokens. Compiler-side floating point and multiplication are allowed to prove
 the representation before exact quantized/table lowering. No working general
@@ -52,8 +57,10 @@ Measured status for the new lifecycle is explicit: HELM-D pinned-source
 provenance `PASS`; ordinary-donor reproduction `PASS`; transported-R4 parity,
 frame-permutation liveness, and causal audit `PASS` on the bounded held-out
 full-decoder run; upstream checkpoint parity `NOT_RUN`; intrinsic R4 attention
-`NOT_RUN`; resonance replacement `NOT_RUN`; recurrence and exact lowering
-`NOT_RUN`. See [`helm_d_r4_softmax_decoder_973.md`](helm_d_r4_softmax_decoder_973.md).
+V1 attempt 02 `UNAVAILABLE` before D3; resonance replacement `NOT_RUN` and
+blocked; recurrence, exact lowering, and #954 blocked. See
+[`helm_d_r4_softmax_decoder_973.md`](helm_d_r4_softmax_decoder_973.md) and
+[`intrinsic_lorentz_r4_attention_973.md`](intrinsic_lorentz_r4_attention_973.md).
 
 ## Current route-native target lifecycle
 
@@ -81,7 +88,10 @@ canonical text/corpus
     -> frozen ordinary donor reproduction
     -> gauge-equivalent ordinary softmax in exact R4/Spin frames
     -> real next-token loss/top-1 and decoded-output parity
-    -> trained intrinsic R4 distance + geometric centroid attention
+    -> intrinsic Lorentz V1 construction-unavailable, D3 sealed
+    -> source-faithful HELM-D learned-manifold Q/K/V construction successor
+    -> declared Lorentz score/scale/bias + stable equivariant centroid
+    -> equal-capacity Euclidean control
     -> actual paired-H4/E8 hierarchy + fiber/torsion binding
     -> fiber-preserving multi-resonance replacement under matched controls
     -> bounded recurrent factorization with key-specific update
@@ -1419,9 +1429,12 @@ scopes; #973's first document-scale placement and first bounded gated-delta
 comparison and V4 held-out functional binding are negative. ADR-0005's pinned
 HELM-D provenance, frozen ordinary donor, and full-decoder gauge-equivalent
 ordinary-softmax parity in transported R4/Spin frames now qualify on bounded
-real causal language. The next build is intrinsic R4 distance/centroid attention,
-and must qualify that intrinsic
-reference before
+real causal language. Intrinsic Lorentz V1 attempt 02 stopped unavailable before
+D3 on construction covariance, with diagnostic curved NLL worse than donor and
+flat. The next build is the fresh construction-only source-faithful HELM-D
+learned-manifold Q/K/V successor with declared Lorentz score/scale/bias and a
+stable equivariant centroid against an equal-capacity Euclidean arm. It must
+qualify before
 correctness (#954), reasoning (#955), durable chat/memory integration (#962),
 optimization, lowering, or release work can inherit it.
 

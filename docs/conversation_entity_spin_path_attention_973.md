@@ -501,3 +501,20 @@ and scope are authoritative only in the
 [HELM-D-R4 result](helm_d_r4_softmax_decoder_result_973.json). The active #973
 successor is intrinsic R4 distance and normalized-centroid attention, followed
 conditionally by multi-resonance replacement and recurrent lowering.
+
+## Attempt 02 successor update — 2026-08-29
+
+This record's bounded evidence and the `HELM-D-R4` gauge-equivalent ordinary-
+softmax PASS remain unchanged. The separately trained intrinsic Lorentz-R4
+successor stopped before D3 at
+`UNAVAILABLE_INTRINSIC_LORENTZ_R4_STOP_BEFORE_HELD_OUT` (result CID
+`blake3:da2a63323d6211b8d581e5a4ed75d788eb919ff0f210d2e3beb8a749ee1bc64f`):
+normalized-barycenter covariance was `9.1214e-8` against the frozen `1e-8`
+limit, and construction-validation NLL was diagnostically worse than the donor
+by `1.2531` and the matched flat control by `0.20893` nats/token. No reveal
+marker or held-out result exists. No Attempt 03 is authorized under this freeze;
+any further intrinsic work must be a newly frozen, source-faithful
+learned-manifold successor. Multi-resonance, recurrence, lowering, scale, and
+#954 remain blocked. See the
+[owning intrinsic record](intrinsic_lorentz_r4_attention_973.md) and the
+[compact result summary](intrinsic_lorentz_r4_attention_attempt_02_summary_973.json).

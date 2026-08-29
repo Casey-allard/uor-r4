@@ -67,6 +67,227 @@ pub const HELM_D_R4_GAUGE_SOFTMAX_POLICY: &str = concat!(
     "softmax-removal,source-free-language-model"
 );
 
+/// Product-Hyperbolic-4 attention over transported four-lane R4 blocks.
+///
+/// `Lorentz` is the decision arm: every R4 block is the spatial chart of a
+/// unit-radius four-dimensional Lorentz manifold. `Flat` has the same
+/// parameter shape, causal support, and row-count budget, but uses squared
+/// Euclidean distance and an arithmetic weighted centroid. Its cheaper
+/// arithmetic is reported separately. It is the curvature-destroying learned
+/// control, not a geometric-advantage claim.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum IntrinsicR4AttentionMetric {
+    Lorentz,
+    Flat,
+}
+
+/// Equal-arithmetic interventions within one intrinsic R4 metric arm.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum IntrinsicR4AttentionIntervention {
+    Coherent,
+    SourceFramePermuted,
+    ValuePermuted,
+}
+
+/// Compiler-fitted parameters shared by the curved and flat arms.
+///
+/// Parameters are laid out in `(layer, head, R4 block)` order. A score row is
+/// the sum of each block's non-positive distance feature times its nonnegative
+/// coefficient. Each output centroid block is multiplied by its corresponding
+/// positive output scale. Keeping the two vectors the same length makes it
+/// impossible for the Lorentz arm to obtain extra placement capacity merely
+/// by changing metric.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct IntrinsicLorentzR4AttentionParameters {
+    layers: usize,
+    heads: usize,
+    blocks_per_head: usize,
+    score_coefficients: Vec<f64>,
+    output_block_scales: Vec<f64>,
+}
+
+impl IntrinsicLorentzR4AttentionParameters {
+    pub fn new(
+        layers: usize,
+        heads: usize,
+        blocks_per_head: usize,
+        score_coefficients: Vec<f64>,
+        output_block_scales: Vec<f64>,
+    ) -> Result<Self, HelmDR4AttentionError> {
+        let parameters = Self {
+            layers,
+            heads,
+            blocks_per_head,
+            score_coefficients,
+            output_block_scales,
+        };
+        parameters.validate()?;
+        Ok(parameters)
+    }
+
+    pub fn uniform(
+        layers: usize,
+        heads: usize,
+        blocks_per_head: usize,
+        score_coefficient: f64,
+        output_block_scale: f64,
+    ) -> Result<Self, HelmDR4AttentionError> {
+        let parameter_count = Self::parameter_count(layers, heads, blocks_per_head)?;
+        Self::new(
+            layers,
+            heads,
+            blocks_per_head,
+            vec![score_coefficient; parameter_count],
+            vec![output_block_scale; parameter_count],
+        )
+    }
+
+    pub const fn layers(&self) -> usize {
+        self.layers
+    }
+
+    pub const fn heads(&self) -> usize {
+        self.heads
+    }
+
+    pub const fn blocks_per_head(&self) -> usize {
+        self.blocks_per_head
+    }
+
+    pub fn score_coefficients(&self) -> &[f64] {
+        &self.score_coefficients
+    }
+
+    pub fn output_block_scales(&self) -> &[f64] {
+        &self.output_block_scales
+    }
+
+    pub fn score_coefficient(
+        &self,
+        layer: usize,
+        head: usize,
+        block: usize,
+    ) -> Result<f64, HelmDR4AttentionError> {
+        self.score_coefficients
+            .get(self.index(layer, head, block)?)
+            .copied()
+            .ok_or_else(|| {
+                HelmDR4AttentionError::Invalid(
+                    "intrinsic R4 score coefficient is unavailable".to_owned(),
+                )
+            })
+    }
+
+    pub fn output_block_scale(
+        &self,
+        layer: usize,
+        head: usize,
+        block: usize,
+    ) -> Result<f64, HelmDR4AttentionError> {
+        self.output_block_scales
+            .get(self.index(layer, head, block)?)
+            .copied()
+            .ok_or_else(|| {
+                HelmDR4AttentionError::Invalid(
+                    "intrinsic R4 output block scale is unavailable".to_owned(),
+                )
+            })
+    }
+
+    pub fn validate(&self) -> Result<(), HelmDR4AttentionError> {
+        let expected = Self::parameter_count(self.layers, self.heads, self.blocks_per_head)?;
+        if self.score_coefficients.len() != expected || self.output_block_scales.len() != expected {
+            return Err(HelmDR4AttentionError::Invalid(format!(
+                "intrinsic R4 parameter shape mismatch: expected {expected}, score={}, output={}",
+                self.score_coefficients.len(),
+                self.output_block_scales.len()
+            )));
+        }
+        if self
+            .score_coefficients
+            .iter()
+            .any(|value| !value.is_finite() || *value < 0.0)
+        {
+            return Err(HelmDR4AttentionError::Invalid(
+                "intrinsic R4 score coefficients must be finite and nonnegative".to_owned(),
+            ));
+        }
+        if self
+            .output_block_scales
+            .iter()
+            .any(|value| !value.is_finite() || *value <= 0.0)
+        {
+            return Err(HelmDR4AttentionError::Invalid(
+                "intrinsic R4 output scales must be finite and positive".to_owned(),
+            ));
+        }
+        Ok(())
+    }
+
+    fn parameter_count(
+        layers: usize,
+        heads: usize,
+        blocks_per_head: usize,
+    ) -> Result<usize, HelmDR4AttentionError> {
+        if layers == 0 || heads == 0 || blocks_per_head == 0 {
+            return Err(HelmDR4AttentionError::Invalid(
+                "intrinsic R4 parameter dimensions must be positive".to_owned(),
+            ));
+        }
+        layers
+            .checked_mul(heads)
+            .and_then(|count| count.checked_mul(blocks_per_head))
+            .ok_or_else(|| {
+                HelmDR4AttentionError::Invalid(
+                    "intrinsic R4 parameter dimensions overflow usize".to_owned(),
+                )
+            })
+    }
+
+    fn index(
+        &self,
+        layer: usize,
+        head: usize,
+        block: usize,
+    ) -> Result<usize, HelmDR4AttentionError> {
+        if layer >= self.layers || head >= self.heads || block >= self.blocks_per_head {
+            return Err(HelmDR4AttentionError::Invalid(format!(
+                "intrinsic R4 parameter index ({layer},{head},{block}) exceeds shape ({},{},{})",
+                self.layers, self.heads, self.blocks_per_head
+            )));
+        }
+        Ok((layer * self.heads + head) * self.blocks_per_head + block)
+    }
+}
+
+pub const INTRINSIC_LORENTZ_R4_ATTENTION_POLICY: &str = concat!(
+    "schema=intrinsic-lorentz-r4-attention/1\n",
+    "manifold=product-of-unit-radius-hyperbolic-4-blocks\n",
+    "feature=negative-square-acosh-of-negative-lorentz-inner\n",
+    "domain=fail-below-one-minus-1e-12-clamp-only-roundoff-to-one\n",
+    "arithmetic=pinned-libm-f64-sqrt-log1p-exp-with-f32-weight-quantization\n",
+    "selector=stable-causal-softmax\n",
+    "aggregate=normalized-lorentz-barycenter-per-r4-block\n",
+    "transport=exact-cumulative-uor-spin-h4-query-frame\n",
+    "parameters=nonnegative-score-coefficients-and-positive-output-scales\n",
+    "not-claimed=karcher-mean,source-free,softmax-free,transformerless"
+);
+
+pub const INTRINSIC_FLAT_R4_ATTENTION_POLICY: &str = concat!(
+    "schema=intrinsic-flat-r4-control/1\n",
+    "manifold=flat-r4-blocks\n",
+    "feature=negative-squared-euclidean-distance\n",
+    "arithmetic=ordered-f64-feature-and-pinned-libm-f64-softmax-exp-with-f32-weight-quantization\n",
+    "selector=stable-causal-softmax\n",
+    "aggregate=arithmetic-weighted-centroid-per-r4-block\n",
+    "transport=exact-cumulative-uor-spin-h4-query-frame\n",
+    "parameters=same-shape-as-intrinsic-lorentz-r4-attention\n",
+    "claim=equal-capacity-curvature-destroying-control"
+);
+
 type Vector4 = [f64; R4_WIDTH];
 type Matrix4 = [[f64; R4_WIDTH]; R4_WIDTH];
 
@@ -235,6 +456,7 @@ pub struct R4SpinFrameAtlas {
     exact_route_table: H4BinaryIcosahedralClosure,
     exact_route_leaves: Vec<ExactSpinState>,
     frames: Vec<Option<ExactSpinState>>,
+    frame_matrices: Vec<Option<Matrix4>>,
     tokens: Vec<Option<u32>>,
     next_position: usize,
     audit: R4SpinTransportAudit,
@@ -259,6 +481,7 @@ impl R4SpinFrameAtlas {
             exact_route_table,
             exact_route_leaves,
             frames: vec![None; sequence_capacity],
+            frame_matrices: vec![None; sequence_capacity],
             tokens: vec![None; sequence_capacity],
             next_position: 0,
             audit: R4SpinTransportAudit::default(),
@@ -283,6 +506,7 @@ impl R4SpinFrameAtlas {
 
     pub fn reset(&mut self) {
         self.frames.fill(None);
+        self.frame_matrices.fill(None);
         self.tokens.fill(None);
         self.next_position = 0;
         self.audit = R4SpinTransportAudit::default();
@@ -321,7 +545,9 @@ impl R4SpinFrameAtlas {
                 .compose(leaf, &self.exact_route_table)
                 .map_err(|error| HelmDR4AttentionError::ExactRoute(error.to_string()))?
         };
+        let frame_matrix = h4_left_quaternion_matrix(frame, &self.exact_route_table)?;
         self.frames[position] = Some(frame);
+        self.frame_matrices[position] = Some(frame_matrix);
         self.tokens[position] = Some(token);
         self.next_position += 1;
         self.audit.positions_prepared = self.audit.positions_prepared.saturating_add(1);
@@ -412,7 +638,15 @@ impl R4SpinFrameAtlas {
     }
 
     fn frame_matrix(&self, position: usize) -> Result<Matrix4, HelmDR4AttentionError> {
-        h4_left_quaternion_matrix(self.frame(position)?, &self.exact_route_table)
+        let _ = self.frame(position)?;
+        self.frame_matrices
+            .get(position)
+            .and_then(|matrix| *matrix)
+            .ok_or_else(|| {
+                HelmDR4AttentionError::Invalid(format!(
+                    "R4 attention frame matrix {position} is unavailable"
+                ))
+            })
     }
 }
 
@@ -707,6 +941,814 @@ impl CausalAttentionTransport for R4SpinCausalAttentionTransport {
     }
 }
 
+type LorentzVector5 = [f64; R4_WIDTH + 1];
+
+/// Pure per-block compatibility feature used by the deterministic fitter and
+/// by [`IntrinsicR4CausalAttentionTransport`]. The returned value is always
+/// non-positive: zero means identical points.
+pub fn intrinsic_r4_score_feature(
+    metric: IntrinsicR4AttentionMetric,
+    query: [f64; R4_WIDTH],
+    key: [f64; R4_WIDTH],
+) -> Result<f64, HelmDR4AttentionError> {
+    intrinsic_r4_score_feature_with_clamp(metric, query, key).map(|(feature, _)| feature)
+}
+
+/// Pure geometric weighted centroid used by the deterministic fitter and the
+/// live intrinsic attention row. The Lorentz arm returns the spatial chart of
+/// a normalized future-sheet Lorentz barycenter; it is deliberately not named
+/// or claimed as the iterative Karcher/Fréchet mean.
+pub fn intrinsic_r4_weighted_centroid(
+    metric: IntrinsicR4AttentionMetric,
+    values: &[[f64; R4_WIDTH]],
+    weights: &[f64],
+) -> Result<[f64; R4_WIDTH], HelmDR4AttentionError> {
+    if values.is_empty() || values.len() != weights.len() {
+        return Err(HelmDR4AttentionError::Invalid(
+            "intrinsic R4 centroid values and weights must be nonempty and aligned".to_owned(),
+        ));
+    }
+    if values
+        .iter()
+        .flatten()
+        .chain(weights)
+        .any(|value| !value.is_finite())
+        || weights.iter().any(|weight| *weight < 0.0)
+    {
+        return Err(HelmDR4AttentionError::Invalid(
+            "intrinsic R4 centroid inputs must be finite with nonnegative weights".to_owned(),
+        ));
+    }
+    let weight_sum = weights.iter().sum::<f64>();
+    if !weight_sum.is_finite() || weight_sum <= EPSILON {
+        return Err(HelmDR4AttentionError::Arithmetic(
+            "intrinsic R4 centroid weight sum is not positive and finite".to_owned(),
+        ));
+    }
+
+    match metric {
+        IntrinsicR4AttentionMetric::Flat => {
+            let mut centroid = [0.0; R4_WIDTH];
+            for (value, weight) in values.iter().zip(weights) {
+                let normalized_weight = *weight / weight_sum;
+                for (coordinate, source) in centroid.iter_mut().zip(value) {
+                    *coordinate += normalized_weight * *source;
+                }
+            }
+            if centroid.iter().any(|coordinate| !coordinate.is_finite()) {
+                return Err(HelmDR4AttentionError::Arithmetic(
+                    "flat R4 centroid is non-finite".to_owned(),
+                ));
+            }
+            Ok(centroid)
+        }
+        IntrinsicR4AttentionMetric::Lorentz => {
+            let mut average = [0.0; R4_WIDTH + 1];
+            for (value, weight) in values.iter().zip(weights) {
+                let projected = intrinsic_lorentz_r4_project(*value)?;
+                let normalized_weight = *weight / weight_sum;
+                for (coordinate, source) in average.iter_mut().zip(projected) {
+                    *coordinate += normalized_weight * source;
+                }
+            }
+            intrinsic_lorentz_r4_normalize_barycenter(average)
+        }
+    }
+}
+
+fn intrinsic_lorentz_r4_project(
+    spatial: [f64; R4_WIDTH],
+) -> Result<LorentzVector5, HelmDR4AttentionError> {
+    if spatial.iter().any(|coordinate| !coordinate.is_finite()) {
+        return Err(HelmDR4AttentionError::Invalid(
+            "Lorentz R4 spatial coordinates must be finite".to_owned(),
+        ));
+    }
+    let spatial_norm_squared = spatial
+        .iter()
+        .map(|coordinate| coordinate * coordinate)
+        .sum::<f64>();
+    let time = libm::sqrt(1.0 + spatial_norm_squared);
+    if !time.is_finite() {
+        return Err(HelmDR4AttentionError::Arithmetic(
+            "Lorentz R4 projection is non-finite".to_owned(),
+        ));
+    }
+    Ok([time, spatial[0], spatial[1], spatial[2], spatial[3]])
+}
+
+fn intrinsic_lorentz_r4_normalize_barycenter(
+    average: LorentzVector5,
+) -> Result<Vector4, HelmDR4AttentionError> {
+    let spatial_norm_squared = average[1..]
+        .iter()
+        .map(|coordinate| coordinate * coordinate)
+        .sum::<f64>();
+    let timelike_norm_squared = average[0] * average[0] - spatial_norm_squared;
+    if !timelike_norm_squared.is_finite() || timelike_norm_squared < EPSILON {
+        return Err(HelmDR4AttentionError::Arithmetic(
+            "Lorentz R4 barycenter is not future timelike".to_owned(),
+        ));
+    }
+    let normalization = libm::sqrt(timelike_norm_squared).recip();
+    let normalized_time = average[0] * normalization;
+    let mut centroid = [0.0; R4_WIDTH];
+    for (target, source) in centroid.iter_mut().zip(&average[1..]) {
+        *target = *source * normalization;
+    }
+    if !normalized_time.is_finite()
+        || normalized_time <= 0.0
+        || centroid.iter().any(|coordinate| !coordinate.is_finite())
+    {
+        return Err(HelmDR4AttentionError::Arithmetic(
+            "normalized Lorentz R4 barycenter is invalid".to_owned(),
+        ));
+    }
+    let normalized_spatial_norm_squared = centroid
+        .iter()
+        .map(|coordinate| coordinate * coordinate)
+        .sum::<f64>();
+    let residual =
+        (-normalized_time * normalized_time + normalized_spatial_norm_squared + 1.0).abs();
+    let residual_scale = 1.0 + normalized_time * normalized_time + normalized_spatial_norm_squared;
+    if !residual.is_finite() || residual > 1.0e-9 * residual_scale {
+        return Err(HelmDR4AttentionError::Arithmetic(format!(
+            "normalized Lorentz R4 barycenter residual {residual} exceeds tolerance"
+        )));
+    }
+    Ok(centroid)
+}
+
+fn intrinsic_r4_score_feature_with_clamp(
+    metric: IntrinsicR4AttentionMetric,
+    query: [f64; R4_WIDTH],
+    key: [f64; R4_WIDTH],
+) -> Result<(f64, bool), HelmDR4AttentionError> {
+    if query
+        .iter()
+        .chain(&key)
+        .any(|coordinate| !coordinate.is_finite())
+    {
+        return Err(HelmDR4AttentionError::Invalid(
+            "intrinsic R4 compatibility coordinates must be finite".to_owned(),
+        ));
+    }
+    let (feature, clamped) = match metric {
+        IntrinsicR4AttentionMetric::Flat => {
+            let squared_distance = query
+                .iter()
+                .zip(key)
+                .map(|(left, right)| {
+                    let difference = *left - right;
+                    difference * difference
+                })
+                .sum::<f64>();
+            (-squared_distance, false)
+        }
+        IntrinsicR4AttentionMetric::Lorentz => {
+            let query = intrinsic_lorentz_r4_project(query)?;
+            let key = intrinsic_lorentz_r4_project(key)?;
+            let negative_inner = query[0] * key[0]
+                - query[1..]
+                    .iter()
+                    .zip(&key[1..])
+                    .map(|(left, right)| left * right)
+                    .sum::<f64>();
+            if !negative_inner.is_finite() {
+                return Err(HelmDR4AttentionError::Arithmetic(
+                    "Lorentz R4 compatibility inner product is non-finite".to_owned(),
+                ));
+            }
+            if negative_inner < 1.0 - 1.0e-12 {
+                return Err(HelmDR4AttentionError::Arithmetic(format!(
+                    "Lorentz R4 compatibility domain violation: {negative_inner}"
+                )));
+            }
+            let clamped = negative_inner < 1.0;
+            let delta = negative_inner.max(1.0) - 1.0;
+            // `acosh(1 + delta)` in a form that remains accurate near the
+            // identity and avoids squaring a very large `delta` directly.
+            let root = libm::sqrt(delta) * libm::sqrt(delta + 2.0);
+            let distance = libm::log1p(delta + root);
+            (-distance * distance, clamped)
+        }
+    };
+    if !feature.is_finite() || feature > 1.0e-12 {
+        return Err(HelmDR4AttentionError::Arithmetic(
+            "intrinsic R4 compatibility feature is invalid".to_owned(),
+        ));
+    }
+    Ok((feature.min(0.0), clamped))
+}
+
+/// Apply the exact stable-softmax arithmetic used by the live intrinsic R4
+/// attention row.
+///
+/// The input logits are replaced by their shifted `libm::exp` values and the
+/// normalized weights are deliberately rounded to `f32`, matching the model
+/// attention seam. Compiler-side fitters use this helper so their value
+/// aggregation cannot silently optimize a higher-precision selector than the
+/// one evaluated by the live decoder.
+pub fn intrinsic_stable_softmax_into(
+    logits: &mut [f64],
+    output_weights: &mut [f32],
+) -> Result<(), HelmDR4AttentionError> {
+    if logits.is_empty()
+        || logits.len() != output_weights.len()
+        || logits.iter().any(|value| !value.is_finite())
+    {
+        return Err(HelmDR4AttentionError::Arithmetic(
+            "intrinsic R4 softmax logits are empty, misaligned, or non-finite".to_owned(),
+        ));
+    }
+    let maximum = logits.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+    for logit in logits.iter_mut() {
+        *logit = libm::exp(*logit - maximum);
+    }
+    let denominator = logits.iter().sum::<f64>();
+    if !denominator.is_finite() || denominator <= 0.0 {
+        return Err(HelmDR4AttentionError::Arithmetic(
+            "intrinsic R4 softmax denominator is invalid".to_owned(),
+        ));
+    }
+    for (output, weight) in output_weights.iter_mut().zip(logits) {
+        *output = (*weight / denominator) as f32;
+        if !output.is_finite() {
+            return Err(HelmDR4AttentionError::Arithmetic(
+                "intrinsic R4 softmax overflowed f32".to_owned(),
+            ));
+        }
+    }
+    Ok(())
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct IntrinsicR4AttentionAudit {
+    pub score_rows: u64,
+    pub compatibility_pairs: u64,
+    pub score_blocks: u64,
+    pub centroid_rows: u64,
+    pub centroid_source_pairs: u64,
+    pub centroid_blocks: u64,
+    pub lorentz_domain_clamps: u64,
+    pub value_permutations: u64,
+    pub arithmetic_failures: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct IntrinsicR4AttentionEvidence {
+    pub schema: String,
+    pub policy_identity: String,
+    pub parameter_identity: String,
+    pub metric: IntrinsicR4AttentionMetric,
+    pub intervention: IntrinsicR4AttentionIntervention,
+    pub frame_table_offsets: Vec<u16>,
+    pub transport_audit: R4SpinTransportAudit,
+    pub intrinsic_audit: IntrinsicR4AttentionAudit,
+}
+
+/// Dense compiler-side intrinsic attention over product-Hyperbolic-4 blocks.
+///
+/// This implementation deliberately reuses [`R4SpinFrameAtlas`] rather than
+/// introducing a second route/frame definition. It remains an O(T^2) floating
+/// softmax oracle; recurrence and exact runtime lowering are later decisions.
+#[derive(Debug, Clone)]
+pub struct IntrinsicR4CausalAttentionTransport {
+    atlas: R4SpinFrameAtlas,
+    parameters: IntrinsicLorentzR4AttentionParameters,
+    metric: IntrinsicR4AttentionMetric,
+    intervention: IntrinsicR4AttentionIntervention,
+    audit: IntrinsicR4AttentionAudit,
+    logit_scratch: Vec<f64>,
+    fault: Option<String>,
+}
+
+impl IntrinsicR4CausalAttentionTransport {
+    pub fn new(
+        maximum_token_id: u32,
+        sequence_capacity: usize,
+        parameters: IntrinsicLorentzR4AttentionParameters,
+        metric: IntrinsicR4AttentionMetric,
+        intervention: IntrinsicR4AttentionIntervention,
+    ) -> Result<Self, HelmDR4AttentionError> {
+        parameters.validate()?;
+        Ok(Self {
+            atlas: R4SpinFrameAtlas::new(maximum_token_id, sequence_capacity)?,
+            parameters,
+            metric,
+            intervention,
+            audit: IntrinsicR4AttentionAudit::default(),
+            logit_scratch: vec![0.0; sequence_capacity],
+            fault: None,
+        })
+    }
+
+    pub const fn metric(&self) -> IntrinsicR4AttentionMetric {
+        self.metric
+    }
+
+    pub const fn intervention(&self) -> IntrinsicR4AttentionIntervention {
+        self.intervention
+    }
+
+    pub fn parameters(&self) -> &IntrinsicLorentzR4AttentionParameters {
+        &self.parameters
+    }
+
+    pub const fn intrinsic_audit(&self) -> IntrinsicR4AttentionAudit {
+        self.audit
+    }
+
+    pub const fn transport_audit(&self) -> R4SpinTransportAudit {
+        self.atlas.audit()
+    }
+
+    pub fn fault(&self) -> Option<&str> {
+        self.fault.as_deref()
+    }
+
+    pub fn policy_identity(&self) -> &'static str {
+        match self.metric {
+            IntrinsicR4AttentionMetric::Lorentz => INTRINSIC_LORENTZ_R4_ATTENTION_POLICY,
+            IntrinsicR4AttentionMetric::Flat => INTRINSIC_FLAT_R4_ATTENTION_POLICY,
+        }
+    }
+
+    pub fn parameter_identity(&self) -> Result<String, HelmDR4AttentionError> {
+        let bytes = serde_json::to_vec(&self.parameters)
+            .map_err(|error| HelmDR4AttentionError::Invalid(error.to_string()))?;
+        Ok(format!("blake3:{}", blake3::hash(&bytes).to_hex()))
+    }
+
+    pub fn evidence_snapshot(&self) -> Result<IntrinsicR4AttentionEvidence, HelmDR4AttentionError> {
+        let frame_table_offsets = (0..self.atlas.next_position())
+            .map(|position| self.atlas.frame_table_offset(position))
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(IntrinsicR4AttentionEvidence {
+            schema: "uor-r4.intrinsic-r4-attention-evidence/1".to_owned(),
+            policy_identity: self.policy_identity().to_owned(),
+            parameter_identity: self.parameter_identity()?,
+            metric: self.metric,
+            intervention: self.intervention,
+            frame_table_offsets,
+            transport_audit: self.atlas.audit(),
+            intrinsic_audit: self.audit,
+        })
+    }
+
+    fn transport_intervention(&self) -> R4SpinTransportIntervention {
+        match self.intervention {
+            IntrinsicR4AttentionIntervention::SourceFramePermuted => {
+                R4SpinTransportIntervention::SourceFramePermuted
+            }
+            IntrinsicR4AttentionIntervention::Coherent
+            | IntrinsicR4AttentionIntervention::ValuePermuted => {
+                R4SpinTransportIntervention::Coherent
+            }
+        }
+    }
+
+    fn record_fault(&mut self, reason: impl Into<String>) {
+        if self.fault.is_none() {
+            self.audit.arithmetic_failures = self.audit.arithmetic_failures.saturating_add(1);
+            self.fault = Some(reason.into());
+        }
+    }
+
+    fn fail_and_copy(&mut self, reason: impl Into<String>, input: &[f32], output: &mut [f32]) {
+        self.record_fault(reason);
+        output.fill(0.0);
+        for (target, source) in output.iter_mut().zip(input) {
+            *target = *source;
+        }
+    }
+
+    fn valid_block_slices(&mut self, input: &[f32], output: &mut [f32]) -> bool {
+        if input.len() == output.len()
+            && !input.is_empty()
+            && input.len().is_multiple_of(R4_WIDTH)
+            && input.len() / R4_WIDTH == self.parameters.blocks_per_head()
+        {
+            true
+        } else {
+            self.fail_and_copy(
+                format!(
+                    "intrinsic R4 transport requires {} complete four-lane blocks; input={}, output={}",
+                    self.parameters.blocks_per_head(),
+                    input.len(),
+                    output.len()
+                ),
+                input,
+                output,
+            );
+            false
+        }
+    }
+
+    fn read_block(input: &[f32], offset: usize) -> Vector4 {
+        [
+            f64::from(input[offset]),
+            f64::from(input[offset + 1]),
+            f64::from(input[offset + 2]),
+            f64::from(input[offset + 3]),
+        ]
+    }
+
+    fn write_block(output: &mut [f32], offset: usize, block: Vector4) -> bool {
+        for (target, source) in output[offset..offset + R4_WIDTH].iter_mut().zip(block) {
+            *target = source as f32;
+            if !target.is_finite() {
+                return false;
+            }
+        }
+        true
+    }
+
+    fn score_row(
+        &mut self,
+        context: CausalAttentionHeadContext,
+        query: &[f32],
+        packed_keys: &[f32],
+        output_weights: &mut [f32],
+    ) -> Result<(), HelmDR4AttentionError> {
+        let head_width = query.len();
+        if head_width == 0
+            || !head_width.is_multiple_of(R4_WIDTH)
+            || head_width / R4_WIDTH != self.parameters.blocks_per_head()
+            || output_weights.is_empty()
+            || output_weights.len() > self.logit_scratch.len()
+            || output_weights.len().checked_mul(head_width) != Some(packed_keys.len())
+        {
+            return Err(HelmDR4AttentionError::Invalid(
+                "intrinsic R4 score row has inconsistent query/key/weight shapes".to_owned(),
+            ));
+        }
+        for (key_index, packed_key) in packed_keys.chunks_exact(head_width).enumerate() {
+            let mut logit = 0.0;
+            for block in 0..self.parameters.blocks_per_head() {
+                let offset = block * R4_WIDTH;
+                let (feature, clamped) = intrinsic_r4_score_feature_with_clamp(
+                    self.metric,
+                    Self::read_block(query, offset),
+                    Self::read_block(packed_key, offset),
+                )?;
+                let coefficient =
+                    self.parameters
+                        .score_coefficient(context.layer, context.head, block)?;
+                logit += coefficient * feature;
+                self.audit.score_blocks = self.audit.score_blocks.saturating_add(1);
+                if clamped {
+                    self.audit.lorentz_domain_clamps =
+                        self.audit.lorentz_domain_clamps.saturating_add(1);
+                }
+            }
+            if !logit.is_finite() {
+                return Err(HelmDR4AttentionError::Arithmetic(
+                    "intrinsic R4 row logit is non-finite".to_owned(),
+                ));
+            }
+            self.logit_scratch[key_index] = logit;
+            self.audit.compatibility_pairs = self.audit.compatibility_pairs.saturating_add(1);
+        }
+        intrinsic_stable_softmax_into(
+            &mut self.logit_scratch[..output_weights.len()],
+            output_weights,
+        )?;
+        self.audit.score_rows = self.audit.score_rows.saturating_add(1);
+        Ok(())
+    }
+
+    fn centroid_row(
+        &mut self,
+        context: CausalAttentionHeadContext,
+        weights: &[f32],
+        packed_values: &[f32],
+        output: &mut [f32],
+    ) -> Result<(), HelmDR4AttentionError> {
+        let head_width = output.len();
+        if head_width == 0
+            || !head_width.is_multiple_of(R4_WIDTH)
+            || head_width / R4_WIDTH != self.parameters.blocks_per_head()
+            || weights.is_empty()
+            || weights.len().checked_mul(head_width) != Some(packed_values.len())
+        {
+            return Err(HelmDR4AttentionError::Invalid(
+                "intrinsic R4 centroid row has inconsistent weight/value/output shapes".to_owned(),
+            ));
+        }
+        let mut weight_sum = 0.0;
+        for weight in weights {
+            let weight = f64::from(*weight);
+            if !weight.is_finite() || weight < 0.0 {
+                return Err(HelmDR4AttentionError::Invalid(
+                    "intrinsic R4 centroid weights must be finite and nonnegative".to_owned(),
+                ));
+            }
+            weight_sum += weight;
+        }
+        if !weight_sum.is_finite() || weight_sum <= EPSILON {
+            return Err(HelmDR4AttentionError::Arithmetic(
+                "intrinsic R4 centroid weight sum is not positive and finite".to_owned(),
+            ));
+        }
+        for block in 0..self.parameters.blocks_per_head() {
+            let block_offset = block * R4_WIDTH;
+            let mut flat_average = [0.0; R4_WIDTH];
+            let mut lorentz_average = [0.0; R4_WIDTH + 1];
+            for weight_index in 0..weights.len() {
+                let value_index = match self.intervention {
+                    IntrinsicR4AttentionIntervention::ValuePermuted if weights.len() > 1 => {
+                        self.audit.value_permutations =
+                            self.audit.value_permutations.saturating_add(1);
+                        (weight_index + 1) % weights.len()
+                    }
+                    _ => weight_index,
+                };
+                let value =
+                    Self::read_block(packed_values, value_index * head_width + block_offset);
+                let normalized_weight = f64::from(weights[weight_index]) / weight_sum;
+                match self.metric {
+                    IntrinsicR4AttentionMetric::Flat => {
+                        if value.iter().any(|coordinate| !coordinate.is_finite()) {
+                            return Err(HelmDR4AttentionError::Invalid(
+                                "flat R4 centroid coordinates must be finite".to_owned(),
+                            ));
+                        }
+                        for (coordinate, source) in flat_average.iter_mut().zip(value) {
+                            *coordinate += normalized_weight * source;
+                        }
+                    }
+                    IntrinsicR4AttentionMetric::Lorentz => {
+                        let projected = intrinsic_lorentz_r4_project(value)?;
+                        for (coordinate, source) in lorentz_average.iter_mut().zip(projected) {
+                            *coordinate += normalized_weight * source;
+                        }
+                    }
+                }
+            }
+            let mut centroid = match self.metric {
+                IntrinsicR4AttentionMetric::Flat => {
+                    if flat_average
+                        .iter()
+                        .any(|coordinate| !coordinate.is_finite())
+                    {
+                        return Err(HelmDR4AttentionError::Arithmetic(
+                            "flat R4 centroid is non-finite".to_owned(),
+                        ));
+                    }
+                    flat_average
+                }
+                IntrinsicR4AttentionMetric::Lorentz => {
+                    intrinsic_lorentz_r4_normalize_barycenter(lorentz_average)?
+                }
+            };
+            let scale = self
+                .parameters
+                .output_block_scale(context.layer, context.head, block)?;
+            for coordinate in &mut centroid {
+                *coordinate *= scale;
+            }
+            if !Self::write_block(output, block_offset, centroid) {
+                return Err(HelmDR4AttentionError::Arithmetic(
+                    "intrinsic R4 centroid overflowed f32".to_owned(),
+                ));
+            }
+            self.audit.centroid_blocks = self.audit.centroid_blocks.saturating_add(1);
+        }
+        self.audit.centroid_source_pairs = self
+            .audit
+            .centroid_source_pairs
+            .saturating_add(u64::try_from(weights.len()).unwrap_or(u64::MAX));
+        self.audit.centroid_rows = self.audit.centroid_rows.saturating_add(1);
+        Ok(())
+    }
+}
+
+impl CausalAttentionTransport for IntrinsicR4CausalAttentionTransport {
+    fn reset(&mut self) {
+        self.atlas.reset();
+        self.audit = IntrinsicR4AttentionAudit::default();
+        self.fault = None;
+    }
+
+    fn policy_identity(&self) -> &str {
+        IntrinsicR4CausalAttentionTransport::policy_identity(self)
+    }
+
+    fn implementation_evidence(&self) -> Result<Option<String>, String> {
+        self.evidence_snapshot()
+            .and_then(|evidence| {
+                serde_json::to_string(&evidence)
+                    .map_err(|error| HelmDR4AttentionError::Invalid(error.to_string()))
+            })
+            .map(Some)
+            .map_err(|error| error.to_string())
+    }
+
+    fn status(&self) -> Result<(), String> {
+        match &self.fault {
+            Some(reason) => Err(reason.clone()),
+            None => Ok(()),
+        }
+    }
+
+    fn begin_position(&mut self, token: usize, position: usize) {
+        let result = u32::try_from(token)
+            .map_err(|_| {
+                HelmDR4AttentionError::Invalid(
+                    "decoder token does not fit the UOR u32 namespace".to_owned(),
+                )
+            })
+            .and_then(|token| self.atlas.begin_position(token, position));
+        if let Err(error) = result {
+            self.record_fault(error.to_string());
+        }
+    }
+
+    fn transform_query(
+        &mut self,
+        context: CausalAttentionHeadContext,
+        input: &[f32],
+        output: &mut [f32],
+    ) {
+        if self.fault.is_some() || !self.valid_block_slices(input, output) {
+            if self.fault.is_some() {
+                self.fail_and_copy("intrinsic R4 transport is already faulted", input, output);
+            }
+            return;
+        }
+        for offset in (0..input.len()).step_by(R4_WIDTH) {
+            let encoded = self
+                .atlas
+                .encode_model_block(context.query_position, Self::read_block(input, offset));
+            match encoded {
+                Ok(block) if Self::write_block(output, offset, block) => {}
+                Ok(_) => {
+                    self.fail_and_copy("intrinsic R4 query encoding overflowed f32", input, output);
+                    return;
+                }
+                Err(error) => {
+                    self.fail_and_copy(error.to_string(), input, output);
+                    return;
+                }
+            }
+        }
+    }
+
+    fn transport_key(
+        &mut self,
+        context: CausalAttentionSourceContext,
+        input: &[f32],
+        output: &mut [f32],
+    ) {
+        if self.fault.is_some() || !self.valid_block_slices(input, output) {
+            if self.fault.is_some() {
+                self.fail_and_copy("intrinsic R4 transport is already faulted", input, output);
+            }
+            return;
+        }
+        let intervention = self.transport_intervention();
+        for offset in (0..input.len()).step_by(R4_WIDTH) {
+            let result = self
+                .atlas
+                .encode_model_block(context.source_position, Self::read_block(input, offset))
+                .and_then(|local| {
+                    self.atlas.transport_local_block(
+                        context.source_position,
+                        context.query_position,
+                        local,
+                        intervention,
+                        false,
+                    )
+                });
+            match result {
+                Ok(block) if Self::write_block(output, offset, block) => {}
+                Ok(_) => {
+                    self.fail_and_copy("intrinsic R4 key transport overflowed f32", input, output);
+                    return;
+                }
+                Err(error) => {
+                    self.fail_and_copy(error.to_string(), input, output);
+                    return;
+                }
+            }
+        }
+    }
+
+    fn transport_value(
+        &mut self,
+        context: CausalAttentionSourceContext,
+        input: &[f32],
+        output: &mut [f32],
+    ) {
+        if self.fault.is_some() || !self.valid_block_slices(input, output) {
+            if self.fault.is_some() {
+                self.fail_and_copy("intrinsic R4 transport is already faulted", input, output);
+            }
+            return;
+        }
+        let intervention = self.transport_intervention();
+        for offset in (0..input.len()).step_by(R4_WIDTH) {
+            let result = self
+                .atlas
+                .encode_model_block(context.source_position, Self::read_block(input, offset))
+                .and_then(|local| {
+                    self.atlas.transport_local_block(
+                        context.source_position,
+                        context.query_position,
+                        local,
+                        intervention,
+                        true,
+                    )
+                });
+            match result {
+                Ok(block) if Self::write_block(output, offset, block) => {}
+                Ok(_) => {
+                    self.fail_and_copy(
+                        "intrinsic R4 value transport overflowed f32",
+                        input,
+                        output,
+                    );
+                    return;
+                }
+                Err(error) => {
+                    self.fail_and_copy(error.to_string(), input, output);
+                    return;
+                }
+            }
+        }
+    }
+
+    fn output_to_model_frame(
+        &mut self,
+        context: CausalAttentionHeadContext,
+        input: &[f32],
+        output: &mut [f32],
+    ) {
+        if self.fault.is_some() || !self.valid_block_slices(input, output) {
+            if self.fault.is_some() {
+                self.fail_and_copy("intrinsic R4 transport is already faulted", input, output);
+            }
+            return;
+        }
+        for offset in (0..input.len()).step_by(R4_WIDTH) {
+            let decoded = self
+                .atlas
+                .decode_query_block(context.query_position, Self::read_block(input, offset));
+            match decoded {
+                Ok(block) if Self::write_block(output, offset, block) => {}
+                Ok(_) => {
+                    self.fail_and_copy(
+                        "intrinsic R4 output decoding overflowed f32",
+                        input,
+                        output,
+                    );
+                    return;
+                }
+                Err(error) => {
+                    self.fail_and_copy(error.to_string(), input, output);
+                    return;
+                }
+            }
+        }
+    }
+
+    fn score_and_normalize(
+        &mut self,
+        context: CausalAttentionHeadContext,
+        query: &[f32],
+        packed_keys: &[f32],
+        output_weights: &mut [f32],
+        _canonical_math: bool,
+    ) {
+        if self.fault.is_some() {
+            output_weights.fill(0.0);
+            return;
+        }
+        if let Err(error) = self.score_row(context, query, packed_keys, output_weights) {
+            output_weights.fill(0.0);
+            self.record_fault(error.to_string());
+        }
+    }
+
+    fn weighted_value_centroid(
+        &mut self,
+        context: CausalAttentionHeadContext,
+        weights: &[f32],
+        packed_values: &[f32],
+        output: &mut [f32],
+    ) {
+        if self.fault.is_some() {
+            output.fill(0.0);
+            return;
+        }
+        if let Err(error) = self.centroid_row(context, weights, packed_values, output) {
+            output.fill(0.0);
+            self.record_fault(error.to_string());
+        }
+    }
+}
+
 fn lorentz_project(spatial: &[f64], curvature: f64) -> Result<Vec<f64>, HelmDR4AttentionError> {
     let spatial_norm_squared = spatial.iter().map(|value| value * value).sum::<f64>();
     let time = (spatial_norm_squared + curvature).sqrt();
@@ -948,5 +1990,303 @@ mod tests {
             .expect("permuted transport");
         assert!((dot(query, key) - dot(query_local, permuted)).abs() > 1.0e-6);
         assert_eq!(atlas.audit().source_frame_permutations, 1);
+    }
+
+    #[test]
+    fn cached_frame_matrix_is_bit_identical_to_direct_reconstruction() {
+        let mut atlas = R4SpinFrameAtlas::new(32, 4).expect("frame atlas");
+        for (position, token) in [5, 9, 2, 17].into_iter().enumerate() {
+            atlas.begin_position(token, position).expect("causal frame");
+            let cached = atlas.frame_matrix(position).expect("cached frame matrix");
+            let direct = h4_left_quaternion_matrix(
+                atlas.frame(position).expect("exact frame"),
+                &atlas.exact_route_table,
+            )
+            .expect("direct frame matrix");
+            assert_eq!(cached, direct);
+        }
+        atlas.reset();
+        assert!(atlas.frame_matrix(0).is_err());
+    }
+
+    #[test]
+    fn intrinsic_distance_has_identity_symmetry_and_nonnegativity() {
+        let left = [0.25, -0.5, 0.75, 0.125];
+        let right = [-0.4, 0.2, 0.6, -0.3];
+        for metric in [
+            IntrinsicR4AttentionMetric::Lorentz,
+            IntrinsicR4AttentionMetric::Flat,
+        ] {
+            let identity = intrinsic_r4_score_feature(metric, left, left).expect("identity");
+            let forward = intrinsic_r4_score_feature(metric, left, right).expect("forward");
+            let reverse = intrinsic_r4_score_feature(metric, right, left).expect("reverse");
+            assert!(identity.abs() <= 1.0e-12);
+            assert!(forward <= 0.0);
+            assert!((forward - reverse).abs() <= 1.0e-12);
+            assert!(-forward >= 0.0);
+        }
+    }
+
+    #[test]
+    fn lorentz_distance_and_centroid_are_so4_equivariant() {
+        fn rotate(vector: Vector4) -> Vector4 {
+            [-vector[1], vector[0], -vector[3], vector[2]]
+        }
+
+        let query = [0.25, -0.5, 0.75, 0.125];
+        let key = [-0.4, 0.2, 0.6, -0.3];
+        let feature = intrinsic_r4_score_feature(IntrinsicR4AttentionMetric::Lorentz, query, key)
+            .expect("Lorentz feature");
+        let rotated_feature = intrinsic_r4_score_feature(
+            IntrinsicR4AttentionMetric::Lorentz,
+            rotate(query),
+            rotate(key),
+        )
+        .expect("rotated Lorentz feature");
+        assert!((feature - rotated_feature).abs() <= 1.0e-12);
+
+        let values = [
+            [0.7, 0.1, -0.2, 0.55],
+            [-0.3, 0.8, 0.4, -0.1],
+            [0.2, -0.6, 0.1, 0.45],
+        ];
+        let rotated_values = values.map(rotate);
+        let weights = [0.2, 0.3, 0.5];
+        let centroid =
+            intrinsic_r4_weighted_centroid(IntrinsicR4AttentionMetric::Lorentz, &values, &weights)
+                .expect("Lorentz centroid");
+        let rotated_centroid = intrinsic_r4_weighted_centroid(
+            IntrinsicR4AttentionMetric::Lorentz,
+            &rotated_values,
+            &weights,
+        )
+        .expect("rotated Lorentz centroid");
+        for (actual, expected) in rotated_centroid.into_iter().zip(rotate(centroid)) {
+            assert!((actual - expected).abs() <= 1.0e-12);
+        }
+    }
+
+    #[test]
+    fn lorentz_barycenter_respects_a_one_hot_weight() {
+        let values = [
+            [0.7, 0.1, -0.2, 0.55],
+            [-0.3, 0.8, 0.4, -0.1],
+            [0.2, -0.6, 0.1, 0.45],
+        ];
+        let centroid = intrinsic_r4_weighted_centroid(
+            IntrinsicR4AttentionMetric::Lorentz,
+            &values,
+            &[0.0, 1.0, 0.0],
+        )
+        .expect("one-hot Lorentz centroid");
+        for (actual, expected) in centroid.into_iter().zip(values[1]) {
+            assert!((actual - expected).abs() <= 1.0e-12);
+        }
+    }
+
+    #[test]
+    fn lorentz_barycenter_accepts_the_frozen_timelike_floor() {
+        let boundary_time = libm::sqrt(EPSILON);
+        assert_eq!(boundary_time * boundary_time, EPSILON);
+        let boundary =
+            intrinsic_lorentz_r4_normalize_barycenter([boundary_time, 0.0, 0.0, 0.0, 0.0])
+                .expect("the frozen timelike floor is inclusive");
+        assert_eq!(boundary, [0.0; R4_WIDTH]);
+
+        assert!(intrinsic_lorentz_r4_normalize_barycenter([
+            boundary_time * 0.5,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+        ])
+        .is_err());
+    }
+
+    #[test]
+    fn intrinsic_softmax_exposes_the_live_f32_weight_boundary() {
+        let mut logits = [0.0, -1.0, -2.0];
+        let mut weights = [0.0f32; 3];
+        intrinsic_stable_softmax_into(&mut logits, &mut weights).expect("intrinsic softmax");
+
+        let maximum = 0.0f64;
+        let denominator = [0.0f64, -1.0, -2.0]
+            .into_iter()
+            .map(|logit| libm::exp(logit - maximum))
+            .sum::<f64>();
+        for (actual, logit) in weights.into_iter().zip([0.0f64, -1.0, -2.0]) {
+            assert_eq!(actual, (libm::exp(logit - maximum) / denominator) as f32);
+        }
+        assert!(logits.iter().all(|value| value.is_finite() && *value > 0.0));
+    }
+
+    #[test]
+    fn flat_control_is_squared_distance_and_arithmetic_centroid() {
+        let left = [1.0, 2.0, 3.0, 4.0];
+        let right = [2.0, 0.0, 5.0, 1.0];
+        let feature = intrinsic_r4_score_feature(IntrinsicR4AttentionMetric::Flat, left, right)
+            .expect("flat feature");
+        assert_eq!(feature, -18.0);
+
+        let centroid = intrinsic_r4_weighted_centroid(
+            IntrinsicR4AttentionMetric::Flat,
+            &[left, right],
+            &[1.0, 3.0],
+        )
+        .expect("flat centroid");
+        let expected = [1.75, 0.5, 4.5, 1.75];
+        for (actual, expected) in centroid.into_iter().zip(expected) {
+            assert!((actual - expected).abs() <= 1.0e-15);
+        }
+    }
+
+    #[test]
+    fn intrinsic_destructive_controls_are_live() {
+        let parameters =
+            IntrinsicLorentzR4AttentionParameters::uniform(1, 1, 1, 1.0, 1.0).expect("parameters");
+        let mut coherent = IntrinsicR4CausalAttentionTransport::new(
+            32,
+            3,
+            parameters.clone(),
+            IntrinsicR4AttentionMetric::Lorentz,
+            IntrinsicR4AttentionIntervention::Coherent,
+        )
+        .expect("coherent transport");
+        let mut source_permuted = IntrinsicR4CausalAttentionTransport::new(
+            32,
+            3,
+            parameters.clone(),
+            IntrinsicR4AttentionMetric::Lorentz,
+            IntrinsicR4AttentionIntervention::SourceFramePermuted,
+        )
+        .expect("source-permuted transport");
+        for (position, token) in [5, 9, 2].into_iter().enumerate() {
+            CausalAttentionTransport::begin_position(&mut coherent, token, position);
+            CausalAttentionTransport::begin_position(&mut source_permuted, token, position);
+        }
+        let context = CausalAttentionSourceContext {
+            layer: 0,
+            head: 0,
+            query_position: 2,
+            source_position: 0,
+        };
+        let key = [-0.4_f32, 0.2, 0.6, -0.3];
+        let mut coherent_key = [0.0; R4_WIDTH];
+        let mut permuted_key = [0.0; R4_WIDTH];
+        coherent.transport_key(context, &key, &mut coherent_key);
+        source_permuted.transport_key(context, &key, &mut permuted_key);
+        assert_ne!(coherent_key, permuted_key);
+        assert!(source_permuted.transport_audit().source_frame_permutations > 0);
+
+        let mut value_permuted = IntrinsicR4CausalAttentionTransport::new(
+            32,
+            1,
+            parameters,
+            IntrinsicR4AttentionMetric::Lorentz,
+            IntrinsicR4AttentionIntervention::ValuePermuted,
+        )
+        .expect("value-permuted transport");
+        let head_context = CausalAttentionHeadContext {
+            layer: 0,
+            head: 0,
+            query_position: 1,
+        };
+        let weights = [0.8_f32, 0.2];
+        let packed_values = [0.7_f32, 0.1, -0.2, 0.55, -0.3, 0.8, 0.4, -0.1];
+        let mut coherent_centroid = [0.0; R4_WIDTH];
+        let mut permuted_centroid = [0.0; R4_WIDTH];
+        coherent
+            .centroid_row(
+                head_context,
+                &weights,
+                &packed_values,
+                &mut coherent_centroid,
+            )
+            .expect("coherent centroid");
+        value_permuted
+            .centroid_row(
+                head_context,
+                &weights,
+                &packed_values,
+                &mut permuted_centroid,
+            )
+            .expect("permuted centroid");
+        assert_ne!(coherent_centroid, permuted_centroid);
+        assert_eq!(value_permuted.intrinsic_audit().value_permutations, 2);
+        assert_eq!(value_permuted.intrinsic_audit().centroid_source_pairs, 2);
+    }
+
+    #[test]
+    fn intrinsic_parameters_allow_zero_scores_and_reject_invalid_values() {
+        assert!(IntrinsicLorentzR4AttentionParameters::uniform(0, 1, 1, 1.0, 1.0).is_err());
+        assert!(
+            IntrinsicLorentzR4AttentionParameters::new(1, 1, 2, vec![1.0], vec![1.0, 1.0]).is_err()
+        );
+        assert!(IntrinsicLorentzR4AttentionParameters::uniform(1, 1, 1, 0.0, 1.0).is_ok());
+        assert!(IntrinsicLorentzR4AttentionParameters::uniform(1, 1, 1, -1.0, 1.0).is_err());
+        assert!(IntrinsicLorentzR4AttentionParameters::uniform(1, 1, 1, 1.0, 0.0).is_err());
+        assert!(IntrinsicLorentzR4AttentionParameters::uniform(1, 1, 1, 1.0, f64::NAN).is_err());
+    }
+
+    #[test]
+    fn intrinsic_operator_binds_policy_evidence_and_fails_closed() {
+        let parameters =
+            IntrinsicLorentzR4AttentionParameters::uniform(1, 1, 1, 1.0, 1.0).expect("parameters");
+        let mut operator = IntrinsicR4CausalAttentionTransport::new(
+            32,
+            2,
+            parameters,
+            IntrinsicR4AttentionMetric::Lorentz,
+            IntrinsicR4AttentionIntervention::Coherent,
+        )
+        .expect("operator");
+        assert_eq!(
+            CausalAttentionTransport::policy_identity(&operator),
+            INTRINSIC_LORENTZ_R4_ATTENTION_POLICY
+        );
+        assert!(CausalAttentionTransport::implementation_evidence(&operator)
+            .expect("evidence")
+            .is_some());
+
+        let context = CausalAttentionHeadContext {
+            layer: 0,
+            head: 0,
+            query_position: 0,
+        };
+        let scratch_pointer = operator.logit_scratch.as_ptr();
+        let mut weights = [0.0_f32; 2];
+        operator.score_and_normalize(
+            context,
+            &[0.1, 0.2, 0.3, 0.4],
+            &[0.1, 0.2, 0.3, 0.4, -0.4, 0.2, 0.6, -0.3],
+            &mut weights,
+            true,
+        );
+        assert!(CausalAttentionTransport::status(&operator).is_ok());
+        assert_eq!(operator.logit_scratch.as_ptr(), scratch_pointer);
+        assert!((weights.iter().sum::<f32>() - 1.0).abs() <= f32::EPSILON);
+
+        let packed_values = [1.0_f32, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0];
+        let mut centroid = [0.0_f32; R4_WIDTH];
+        operator.weighted_value_centroid(context, &weights, &packed_values, &mut centroid);
+        let expected = intrinsic_r4_weighted_centroid(
+            IntrinsicR4AttentionMetric::Lorentz,
+            &[[1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0]],
+            &[f64::from(weights[0]), f64::from(weights[1])],
+        )
+        .expect("pure Lorentz centroid");
+        for (actual, expected) in centroid.into_iter().zip(expected) {
+            assert!((f64::from(actual) - expected).abs() <= 1.0e-7);
+        }
+        assert_eq!(operator.logit_scratch.as_ptr(), scratch_pointer);
+        assert_eq!(operator.intrinsic_audit().score_rows, 1);
+        assert_eq!(operator.intrinsic_audit().compatibility_pairs, 2);
+        assert_eq!(operator.intrinsic_audit().centroid_rows, 1);
+        assert_eq!(operator.intrinsic_audit().centroid_source_pairs, 2);
+
+        let mut no_weights = [];
+        operator.score_and_normalize(context, &[0.1, 0.2, 0.3, 0.4], &[], &mut no_weights, true);
+        assert!(CausalAttentionTransport::status(&operator).is_err());
+        assert_eq!(operator.intrinsic_audit().arithmetic_failures, 1);
     }
 }

@@ -49,6 +49,9 @@ impl VpTree {
     }
 
     /// Build the independent full-trajectory index for flagged regions.
+    // The standalone VP-tree benchmark includes this module without the
+    // trajectory consumer that uses this constructor in the runtime.
+    #[allow(dead_code)]
     pub(crate) fn from_trajectory_graph(view: &GraphView<'_>) -> Option<Self> {
         Self::from_graph_lane(view, true)
     }
@@ -227,6 +230,8 @@ impl VpTree {
         distances[position] = distance;
     }
 
+    // Fixed-capacity scratch stays explicit on this no_std, allocation-free path.
+    #[allow(clippy::too_many_arguments)]
     fn search_node(
         &self,
         tree_index: u32,

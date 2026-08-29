@@ -640,15 +640,14 @@ pub fn cl06_finite_composition_table() -> Result<Cl06FiniteCompositionTable, Spi
     let mut inverse_indexes = [0u8; CL06_FINITE_GROUP_ORDER];
     for (state, inverse_index) in inverse_indexes.iter_mut().enumerate() {
         let mut inverse = None;
-        for candidate in 0..CL06_FINITE_GROUP_ORDER {
-            if usize::from(composition_indexes[state][candidate]) == identity
+        for (candidate, forward_index) in composition_indexes[state].iter().copied().enumerate() {
+            if usize::from(forward_index) == identity
                 && usize::from(composition_indexes[candidate][state]) == identity
+                && inverse.replace(candidate as u8).is_some()
             {
-                if inverse.replace(candidate as u8).is_some() {
-                    return Err(SpiralCoreOperatorError::Invariant(format!(
-                        "state {state} has multiple two-sided inverses"
-                    )));
-                }
+                return Err(SpiralCoreOperatorError::Invariant(format!(
+                    "state {state} has multiple two-sided inverses"
+                )));
             }
         }
         *inverse_index = inverse.ok_or_else(|| {
