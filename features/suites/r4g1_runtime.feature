@@ -1,6 +1,6 @@
 @status:enforced
-Feature: R4G1 runtime selection and fallback policy
-  The browser actively tests R4G1 and must never silently fall back.
+Feature: Strict R4G1 server selection and browser research-demo policy
+  The server defaults to R4G1 without fallback; the browser defaults to the geometric research demo while keeping R4G1 explicit.
 
   @RF-23 @build
   Scenario: select R4G1 when no engine was saved
@@ -15,8 +15,8 @@ Feature: R4G1 runtime selection and fallback policy
     Then the selected engine is Legacy TLA/TLS
 
   @RF-23 @build
-  Scenario: show R4G1 as the active browser option
-    Then the browser UI selects R4G1 and does not offer automatic fallback
+  Scenario: show the geometric research demo as the active browser option
+    Then the browser UI selects the geometric research demo, keeps R4G1 unselected, and does not offer automatic fallback
 
   @RF-23 @build
   Scenario: fail explicitly when R4G1 is unavailable

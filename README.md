@@ -14,20 +14,33 @@ local hardware. The project is testing whether language context, inference,
 and reasoning can emerge from routes through a canonical geometric memory. The
 target serving engine uses no Ollama, hosted model, or source-model weights.
 
-> **Primary direction after PR #997 (2026-08-28):** routing, exact R4/spin
+> **Primary direction after the equal-manifold-budget direct-attention V3 reveal (2026-08-28):** routing, exact R4/spin
 > state, least-cost selection, and multiscale hierarchy remain the geometric
 > substrate, but routing is not being equated with attention. The first natural
 > document-scale componentwise-Frechet placement was causally active and still
 > harmful: 8.367592% versus frozen #953 at 12.221651%, with its shuffled and
-> operator-permuted controls also slightly stronger. #973 therefore owns one
-> bounded successor, `PredictiveConnectionRetentionR4V1`: construction-trained
-> separate key/value/query placements, exact-frame connection transport,
-> controlled multiscale forgetting and delta writes, and candidate-relative
-> readout over unchanged #953 support. A construction-validation Gate P0 runs
-> before held-out labels are opened. Geometry earns promotion only if the full
-> cell beats #953, a matched plain recurrence, and state/order/transport
-> ablations, then reproduces on held-out next-route loss/top-1 and decoded
-> output. Exact/table lowering comes only after that result. See
+> operator-permuted controls also slightly stronger. The first bounded
+> `GeometricGatedDeltaRetentionR4V1` core then passed structural checks but was
+> weaker than plain delta on its sealed synthetic fixture (16/28 versus 23/28
+> next-token; 55/112 versus 98/112 association wins). Direct-attention V2 then
+> appeared positive but is preserved as `NON_PROMOTABLE_BUDGET_MISMATCH`: its
+> plain/current comparators had fewer effective degrees of freedom. The fresh,
+> pre-reveal-kappa-bound 12-case V3 corrected every arm to normalized R4
+> parameters. Full H4 scored 3/12, matched plain attention 12/12,
+> current-token-only 6/12, and an inference-time coherent alternative-connection
+> swap 10/12; that alternative was not separately trained.
+> The direct learning/softmax/value path therefore works, but the current
+> mixed-gauge H4 projection/connection/optimizer combination does not transfer;
+> the exact H4 group action itself remains algebraically valid. The immediate rung is a
+> separately trained `ConnectionGaugeCovarianceV4` on fresh data; actual paired-E8
+> hierarchy/fiber/torsion binding and the frozen #953 corpus oracle follow only
+> after that seam qualifies. Softmax is a research oracle, not the serving
+> design. After the geometric oracle qualifies, its
+> weighting law is replaced by the positive normalized multi-resonance sieve,
+> whose mode sums are factored into bounded recurrent state and finally lowered
+> to H4/Q29/integer tables. See the
+> [direct-attention record](docs/direct_causal_geometric_attention_973.md), the
+> [resonance audit](docs/multi_resonance_attention_sieve_audit_973.md),
 > [ADR-0005](docs/adr/0005-predictive-geometric-connection-memory.md) and the
 > [Geometric Intelligence Programme](docs/geometric_intelligence_programme.md).
 
@@ -49,8 +62,9 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > and `blake3:41207999bb088e3b5f186cce983951cc27c2962d34ef8046a0beae4754b44218`.
 > This establishes one bounded synthetic causal global geometric-attention
 > witness, not corpus induction, general semantics, reasoning, correctness, or
-> product readiness. #973 next independently freezes its corpus-induction gate;
-> #954 remains blocked. See the
+> product readiness. Corpus induction was this result's contemporaneous next
+> step; the current active rung is `ConnectionGaugeCovarianceV4`, with paired-E8
+> and corpus qualification later. #954 remains blocked. See the
 > [bounded-global record](docs/bounded_global_exact_spin_attention_973.md).
 
 > **Earlier bounded-global V1 negative (2026-08-28):** #973's independently frozen
@@ -68,7 +82,8 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > and `blake3:6c0a9f89a29584a09d917ae427a494b53c06b76e56482f665870ae86c1cd130a`.
 > This rejected one frozen global relation, not geometry generally. The V1
 > result remains append-only history; V2 supplied the noncommuting repair and
-> advanced #973 to an independently frozen corpus-induction gate. See the
+> historically advanced #973 to a corpus-induction gate. Later negative results
+> supersede that action; `ConnectionGaugeCovarianceV4` is current. See the
 > [bounded-global record](docs/bounded_global_exact_spin_attention_973.md).
 
 > **Retained conversation-scope result (2026-08-28):** Before the global V2
@@ -97,7 +112,9 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > and `blake3:6930de3c07d30df4420bb68e60ea74531c8076516bcfef1c016240eddf1b9ca2`.
 > The subsequent V1 bounded-global contrast failed its target-free relation
 > gate; the independently frozen V2 repair later passed its bounded decoded
-> contract. #973 now proceeds to corpus induction; #954 remains blocked. See the
+> contract. Later corpus placement and bounded recurrence results were negative;
+> the direct reference has since run and V3 is negative. #973 now runs
+> `ConnectionGaugeCovarianceV4`; #954 remains blocked. See the
 > [conversation record](docs/conversation_entity_spin_path_attention_973.md).
 
 > **Accepted capability-first evidence (2026-08-28):** #953's frozen
@@ -145,8 +162,8 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > selector, each with the narrow boundary above. The first independent bounded-
 > global exact-spin relation failed target-free because its swapped states
 > commute; the independently frozen V2 repair then established one bounded
-> noncommuting global mechanism. Corpus induction and final requalification
-> remain.
+> noncommuting global mechanism. Later corpus-placement and recurrent results
+> were negative; the current active rung is `ConnectionGaugeCovarianceV4`.
 > #954 remains blocked behind #973. General higher-scope attention, correct
 > answers, and reasoning do not exist yet. The
 > dashboard is an interactive window into the research substrate, not a
@@ -350,7 +367,10 @@ copy mechanism. Its frozen paragraph and conversation slices retained one
 exact-descriptor/entity-binding path selector apiece at their respective
    scopes. The first bounded-global exact-spin relation failed target-free; its
    independently frozen V2 noncommuting repair then passed the bounded decoded
-   contract. Corpus induction is now the next #973 gate while #954 stays blocked.
+   contract. The first natural corpus placement later failed in PR #997, and
+   the first bounded gated-delta core trailed plain delta on its sealed smoke.
+   #973 now owns the direct transported Q/K/V/O oracle, multi-resonance
+   replacement, and recurrent factorization while #954 stays blocked.
 See the [append-only #953 record](docs/local_geometric_generation_953.md).
 See the [accepted table-tie record](docs/source_free_table_geometric_intervention_953.md).
 See the [#973 Gate 0 record](docs/prior_sentence_count_radius_attention_973.md).
@@ -440,14 +460,18 @@ not become substitutes for working intelligence:
    top-1, +4,242 correct choices over the unchanged table, a distinct bounded
    continuation, matched support and declared-work ledger, and byte-identical
    replay.
-3. **Build predictive geometric connection memory (#973)** — preserve the
-   bounded synthetic scope witnesses and PR #997's natural placement negative.
-   Gate `PredictiveConnectionRetentionR4V1` first on construction-validation:
-   separate predictive keys/values/queries, connection transport, multiscale
-   retained state, controlled forgetting/delta writes, and a candidate-relative
-   read over unchanged #953 support. Open the frozen D3 held-out join only if
-   the full cell beats #953, matched plain recurrence, and every geometry-
-   destroying control. Do not scale the rejected componentwise center.
+3. **Establish and compress geometric attention (#973)** — retain the literal
+   causal Q/K/V/O scaffold and its matched plain positive, but repair the failed
+   H4 connection/gauge seam on fresh data. Compare separately trained full H4,
+   coherent tangent-frame, and plain arms with key-isometry, order-shuffled,
+   value-permuted, geometric-seed-disabled, and current-token-only controls.
+   Bind actual paired-E8/fiber/torsion inputs and their disabled arm only after
+   the connection qualifies. Then replace softmax with the multi-resonance sieve,
+   retaining the full S3 fiber/torsion state, and then factor the mode sums into
+   `GeometricGatedDeltaRetentionR4V1`. Only an approximation that retains the
+   frozen construction-validation effect advances toward the protected D3 join;
+   exact/table lowering follows the qualified recurrent path. Do not
+   scale the rejected componentwise center.
 4. **Establish correctness** — relevance, contradiction handling, and honest
    abstention.
 5. **Establish reasoning** — bounded multi-step route composition.
@@ -465,9 +489,16 @@ over it, and #973 retained one bounded prior-prefix copy mechanism plus bounded
 exact-descriptor/entity-binding path selectors at paragraph and conversation
 scope. Its first bounded-global relation remains closed-negative history; the
 independently frozen V2 repair passed its bounded contract; and PR #997 rejected
-the first natural componentwise placement. Predictive connection-retention and
-final requalification are active within #973. #954 remains blocked behind
-#973. The exact contract is [ADR-0005](docs/adr/0005-predictive-geometric-connection-memory.md).
+the first natural componentwise placement. A bounded gated-delta core is
+structurally implemented but negative against plain delta on its sealed smoke.
+Direct-attention V2 is non-promotable; its equal-manifold-budget V3 rejects the
+tested mixed-gauge H4 projection/connection/optimizer combination against a
+working plain arm. Its `10/12` alternative-connection score is diagnostic only
+because that arm was swapped at inference time rather than trained separately.
+Connection/gauge repair is active within #973; multi-resonance
+replacement and recurrent factorization remain gated behind the geometric
+oracle. #954 remains blocked behind #973. The exact contract is
+[ADR-0005](docs/adr/0005-predictive-geometric-connection-memory.md).
 
 ## Find your way around
 

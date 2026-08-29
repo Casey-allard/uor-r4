@@ -489,6 +489,17 @@ that induction and final requalification.
 
 The independently frozen corpus-induction gate referenced above is complete.
 It rejected `CorpusInducedDocumentSpinPlacementR4V1` while preserving this V2
-bounded-global result. Current forward work is ADR-0005
+bounded-global result. The then-current forward work was ADR-0005
 `PredictiveConnectionRetentionGate0V1`; this dated update changes no V2 claim
 or evidence identity.
+
+### Current sequencing update (2026-08-29)
+
+The gated-delta smoke and direct-attention V3 experiment that followed are now
+complete. V3 established the dense fixed-tangent learning path (`12/12`) but
+rejected the tested mixed-gauge H4 projection/connection/optimizer combination
+(`3/12`). The active #973 action is `ConnectionGaugeCovarianceV4`, with
+explicit local coordinates and separately trained connection arms. Paired-E8,
+corpus, resonance-sieve, recurrent-factorization, and exact-lowering work stay
+conditional on that gate. This changes no bounded-global claim or evidence
+identity above.

@@ -13,6 +13,8 @@ pub mod cayley_dickson;
 pub mod construction_causal_return_attention;
 pub mod conversation_entity_spin_path_attention;
 pub mod corpus_induced_spin_placement;
+pub mod direct_causal_geometric_attention;
+pub mod geometric_gated_delta_retention;
 pub mod higher_scope_geometric_attention;
 pub mod local_geometric_generation;
 pub mod paragraph_entity_spin_path_attention;

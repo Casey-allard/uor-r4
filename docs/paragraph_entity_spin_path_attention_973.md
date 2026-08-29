@@ -306,4 +306,7 @@ formal, and release qualification are `NOT_RUN`.
 ## Forward-action update (2026-08-28)
 
 This bounded result remains unchanged. Its then-next sequencing is complete;
-current #973 work is ADR-0005 `PredictiveConnectionRetentionGate0V1`.
+the then-current #973 work was ADR-0005
+`PredictiveConnectionRetentionGate0V1`. The current 2026-08-29 action is
+`ConnectionGaugeCovarianceV4`, following the negative gated-delta smoke and
+the direct-attention V3 result (geometric `3/12`, fixed-tangent plain `12/12`).

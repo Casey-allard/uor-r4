@@ -8,13 +8,19 @@ a transformerless local AI engine.
 prime/semiprime routes, spin and torsion state, Hopf projection with a retained
 fiber, golden-radial structure, exact transport controls, and bounded route
 operators. They are the retained address/frame/transport substrate, not a
-semantic language model. The active build is the stop-first
-`PredictiveConnectionRetentionGate0V1` in
-[ADR-0005](../../docs/adr/0005-predictive-geometric-connection-memory.md):
-construction-validation of candidate-discriminative current/previous/last-two/
-full-prefix exact-route relations. A positive authorizes learned keys/values/
-queries, exact R4/Spin transport, multiscale retention, key-specific delta
-updates, and candidate-relative readout. Neither is yet qualified. The
+semantic language model. The bounded `GeometricGatedDeltaRetentionR4V1` core
+now implements separate learned K/V/Q, H4-frame transport, four retained banks,
+and candidate-relative readout, but its sealed synthetic smoke was weaker than
+plain delta. `DirectCausalGeometricAttentionR4V1` now implements the literal
+offline Q/K/V/O, tangent-projected causal-softmax operator. Its V2 result is
+non-promotable because of a raw-manifold-parameter mismatch. Fresh equal-manifold-budget V3
+returned full H4 3/12, matched plain 12/12, current-only 6/12, and an
+inference-time coherent alternative-connection swap 10/12. The active build in
+[ADR-0005](../../docs/adr/0005-predictive-geometric-connection-memory.md) is
+therefore separately trained `ConnectionGaugeCovarianceV4`. Actual paired-E8/fiber
+binding follows only after that seam qualifies; the planned normalized multi-
+resonance sieve then replaces softmax and factors its mode sums into bounded
+recurrence. None is yet a language mechanism. The
 authoritative sequence is the
 [Geometric Intelligence Programme](../../docs/geometric_intelligence_programme.md).
 
@@ -28,12 +34,12 @@ The crate therefore hosts three related bodies of work:
 1. **The R⁴ math layer** (`src/lib.rs`, `src/zeta_zeros.rs`): zeta-zero
    embeddings, Hopf coordinates, prime/QIMC identity, and state metrics used by
    the geometric router (`uor-r4-router`).
-2. **The prime-route and predictive-memory substrate**
+2. **The prime-route and geometric-attention substrate**
    (`src/prime_route_attention.rs`,
    `src/prime_route_geometric_attention.rs`, `src/spiralcore_operator.rs`):
-   canonical route identities, recursive geometric state operators, and the
-   construction seams reused by the active Gate 0 and connection-memory
-   programme.
+   canonical route identities, recursive geometric state operators, direct
+   attention reference, bounded gated-delta candidate, and the construction
+   seams reused by the active #973 programme.
 3. **The historical transformerless engine** (`src/transformerless/`): cross-compiles a
    pinned Hugging Face teacher into a multiplication-free, table-native
    inference artifact (TLA3-TLA7 containers; TLA7 is the default emission), plus the integer-only

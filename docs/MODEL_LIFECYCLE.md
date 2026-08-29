@@ -20,21 +20,26 @@
 **Current truth:** prime/zeta/H4 state, reversible payloads, route hierarchy,
 ordered prefix state, bounded admission, exact transport controls, and
 source-free decoding are usable substrate. They do not make immutable identity
-coordinates semantic. The active implementation is ADR-0005's
-`PredictiveConnectionRetentionGate0V1`: it must first establish that fixed
-current/previous/last-two/full-prefix exact-route relations transfer a
-candidate-discriminative signal on untouched construction-validation
-documents. A positive authorizes the full predictive geometric connection
-memory defined by
-[ADR-0005](adr/0005-predictive-geometric-connection-memory.md): separate keys,
-values, and queries; exact R4/Spin transport; gated short, medium, and long
-retention; key-specific overwrite; and candidate-relative readout. Validation,
+coordinates semantic. The first bounded ADR-0005 gated-delta core is now a
+structural reference and negative comparator: it trailed plain delta on its
+sealed synthetic smoke. `DirectCausalGeometricAttentionR4V1` now implements the
+literal offline operator defined by
+[ADR-0005](adr/0005-predictive-geometric-connection-memory.md): separate
+Q/K/V/O roles, tangent projection, causal transport, stable softmax, and
+transported value aggregation. V2 is non-promotable; equal-manifold-budget V3 returned full
+H4 3/12 versus plain 12/12 and an inference-time coherent alternative-connection
+swap 10/12. The
+active implementation is `ConnectionGaugeCovarianceV4` on fresh data.
+Softmax does not enter serving. A qualified geometric reference next binds the
+paired hierarchy and freezes a fiber-preserving multi-resonance weighting
+law, factors its band-limited modes into bounded recurrence, and only then
+lowers to exact H4/Q29/integer tables. Validation,
 test, and inference remain strictly causal and cannot fit on their future
 tokens. Compiler-side floating point and multiplication are allowed to prove
 the representation before exact quantized/table lowering. No working general
 geometric attention, coherent chat, correctness, or reasoning claim follows
-until the new mechanism beats #953 and matched non-geometric, state-disabled,
-order-shuffled, and transport-permuted controls on held-out evidence.
+until the new mechanism beats #953 and matched non-geometric, current-only,
+order-shuffled, key-isometry, and value-permuted controls on held-out evidence.
 
 ## Current route-native target lifecycle
 
@@ -56,12 +61,14 @@ canonical text/corpus
     -> source-free table-native lexical baseline (#989, established)
     -> matched geometric table intervention (#953, established)
     -> bounded higher-scope mechanisms and rejected marginal-center placement (#973)
-    -> Gate 0 construction-validation of fixed exact-route features
-    -> only if positive: construction-trained key/value/query placement
-    -> exact frame-to-frame R4/Spin parallel transport
-    -> gated multiscale retention with key-specific update
-    -> candidate-relative next-route readout under matched controls
-    -> optional exact integer/table lowering only after held-out qualification
+    -> H4-only direct Q/K/V/O scaffold (V2 invalid, equal-manifold-budget V3 negative)
+    -> separately trained ConnectionGaugeCovarianceV4
+    -> actual paired-H4/E8 hierarchy + fiber/torsion binding
+    -> causal H4-frame transport + softmax aggregation (offline only)
+    -> fiber-preserving multi-resonance replacement under matched controls
+    -> bounded recurrent factorization with key-specific update
+    -> protected held-out qualification
+    -> exact H4/Q29/integer-table lowering
     -> correctness + typed abstention (#954)
     -> bounded reasoning (#955)
     -> durable isolated CLI/HTTP chat + persisted hive memory (#962)
@@ -1387,11 +1394,12 @@ Passing `--cover` reuses the measured cover. It may be omitted to re-induce
 the default cover deterministically during scoring. For experiments, `cover`
 also accepts `--depths`, `--k0`, `--regions-budget`, and `--memory-budget`.
 
-**Current production boundary: predictive geometric connection memory is still
-experimental and off-serving.** #989 and #953 are frozen comparators; #969 and
-the narrow #973 mechanisms retain only their measured scopes; #973's first
-document-scale placement is negative. The next build must qualify the
-ADR-0005 key/value, transport, retention, and candidate-readout mechanism before
+**Current production boundary: direct geometric attention and its bounded
+replacement are still experimental and off-serving.** #989 and #953 are frozen
+comparators; #969 and the narrow #973 mechanisms retain only their measured
+scopes; #973's first document-scale placement and first bounded gated-delta
+comparison are negative. The next build must qualify the ADR-0005 direct
+Q/K/V/O, transport, causal weighting, and value-aggregation reference before
 correctness (#954), reasoning (#955), durable chat/memory integration (#962),
 optimization, lowering, or release work can inherit it.
 

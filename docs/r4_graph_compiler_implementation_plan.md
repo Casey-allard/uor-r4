@@ -5,9 +5,10 @@
 > and preserves its phases, work items, proof obligations, and acceptance
 > gates. The active architecture and work order are in the
 > [Geometric Intelligence Programme](geometric_intelligence_programme.md).
-> The route-native sequence begins with #961 lexical geometry and #952 recursive
-> attention; graph work resumes only through a trigger recorded by that
-> programme.
+> The current route-native sequence is #973's direct geometric-attention
+> reference, fiber-preserving multi-resonance replacement, and bounded
+> recurrent lowering; graph work resumes only through a trigger recorded by
+> that programme.
 
 Status: historical engineering plan (2026-07-21); not an active commitment
 Source of record: `docs/r4_holographic_graph_compiler_implementation_plan.pdf` (sections §1–§33 referenced throughout as "PDF §n")

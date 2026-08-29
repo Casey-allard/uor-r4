@@ -393,8 +393,8 @@ placement objective" is now made concrete by
 [ADR-0005](adr/0005-predictive-geometric-connection-memory.md), which
 supersedes this record only for forward work.
 
-The immediate action is `PredictiveConnectionRetentionGate0V1`, not another
-componentwise center and not the full recurrent cell. It tests whether current,
+The then-immediate action was `PredictiveConnectionRetentionGate0V1`, not
+another componentwise center and not the full recurrent cell. It tested whether current,
 previous, ordered last-two, and complete-prefix exact-route relations support a
 construction-transferred candidate-discriminative integer readout under frozen
 #953 support/work. A deterministic fit/construction-validation split runs
@@ -405,3 +405,15 @@ retention, gated delta writes, exact lowering, or final #973 requalification.
 This disposition preserves every #997 byte, count, metric, and nonclaim. It
 narrows the next experiment because the failed marginal-center objective was
 already operative at sufficient population scale.
+
+## Current sequencing update (2026-08-29)
+
+The gated-delta smoke and direct-attention V3 experiment are now complete. The
+gated-delta cell did not beat its matched plain recurrent control. Direct V3
+then established the dense fixed-tangent Q/K/V/O path (`12/12`) but rejected
+the tested mixed-gauge H4 projection/connection/optimizer combination (`3/12`).
+The active #973 action is `ConnectionGaugeCovarianceV4`: use explicit local
+coordinates and train H4, alternative tangent, and fixed-tangent arms
+separately. Paired-E8, corpus, resonance-sieve, recurrent-factorization, and
+exact-lowering work remain conditional on that result. This update changes no
+#997 evidence or terminal above.

@@ -11,12 +11,17 @@ router, or dense learned matrix engine in the serving path.
 The goal is real. Its success remains unproven. The current implementation has
 a storage/recall and route-query foundation, one bounded causal path mechanism,
 one corpus-scale geometric increment, and several narrow higher-scope
-mechanisms. It is not yet a working geometric language model. The active build
-is `PredictiveConnectionRetentionGate0V1`, which must first establish
-construction-transferred signal in fixed exact-route features. A positive
-authorizes the full predictive geometric connection memory: separately induced
-key/value/query state, exact R4/Spin transport, controlled multiscale
-forgetting, and candidate-relative readout.
+mechanisms. It is not yet a working geometric language model. The first bounded
+transported gated-delta core is structurally implemented but was weaker than
+plain delta on its sealed synthetic smoke. The literal reference,
+`DirectCausalGeometricAttentionR4V1`, now exists. V2 is non-promotable because
+of a raw-manifold-parameter mismatch; fresh equal-manifold-budget V3 returned full H4 3/12,
+plain 12/12, current-only 6/12, and an inference-time coherent alternative-
+connection swap 10/12; that alternative was not separately trained.
+The active build is therefore `ConnectionGaugeCovarianceV4` on fresh data.
+Softmax is an offline oracle. Only a qualified geometric oracle binds the full
+paired-E8/fiber hierarchy and proceeds to the fiber-preserving multi-resonance
+sieve, bounded recurrence, and exact runtime lowering.
 
 ## Start here
 
@@ -45,8 +50,12 @@ These are the small set of living documents that define the present work:
 
 1. [Geometric Intelligence Programme](geometric_intelligence_programme.md) —
    goal, architecture, claim boundaries, and work order.
-2. [ADR-0005: predictive geometric connection memory](adr/0005-predictive-geometric-connection-memory.md)
-   — the active Gate 0, representation, recurrence, and later lowering decision.
+2. [ADR-0005: direct geometric attention and recurrent lowering](adr/0005-predictive-geometric-connection-memory.md)
+   — the active reference operator, resonance replacement, recurrence, and
+   later lowering decision. The bounded
+   [multi-resonance reuse audit](multi_resonance_attention_sieve_audit_973.md)
+   distinguishes the implemented sin/cos and Spin substrate from the still
+   unimplemented normalized attention sieve.
 3. [ADR-0003: fixed-zeta prime routes](adr/0003-fixed-zeta-prime-route-attention.md)
    — the retained storage/recall substrate.
 4. [ADR-0004: recursive route hierarchy](adr/0004-geometric-intelligence-route-hierarchy.md)
@@ -66,11 +75,13 @@ not reasoning.
 
 ```text
 reversible lexical geometry
-  → Gate 0: construction-transferred discriminative exact-route signal
-  → if positive, predictive key/value/query state
-  → exact R4/Spin parallel transport
-  → controlled short/medium/long geometric retention
-  → candidate-relative readout against matched table and recurrent controls
+  → direct learned Q/K/V/O scaffold
+  → qualify the geometric connection/gauge on fresh data
+  → bind paired-H4/E8 hierarchy and fiber/torsion
+  → causal H4-frame transport + softmax value aggregation (offline oracle)
+  → fiber-preserving multi-resonance sieve replaces softmax
+  → resonance modes factor into bounded geometric recurrence
+  → exact H4/Q29/integer-table lowering
   → coherent source-free generation
   → correctness and abstention
   → multi-step reasoning
@@ -78,6 +89,12 @@ reversible lexical geometry
   → measured optimization
   → release QA
 ```
+
+The code scaffold implements only the H4/S3 portion of the direct reference,
+and its current mixed-gauge H4 parameterization is negative on equal-manifold-budget V3. The
+`ConnectionGaugeCovarianceV4` is next. Binding the actual paired-E8 hierarchy, fiber, and
+torsion remains `NOT_IMPLEMENTED`; the diagram is the qualification sequence,
+not a claim that every arrow exists today.
 
 Only the first unblocked stage is active. Formalization, optimization, and
 large test programmes are supporting tools, not substitutes for reaching the

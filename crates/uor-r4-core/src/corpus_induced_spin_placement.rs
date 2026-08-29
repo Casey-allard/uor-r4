@@ -2231,7 +2231,7 @@ fn anti_recall_kappa(
     Ok(format!("blake3:{}", hasher.finalize().to_hex()))
 }
 
-fn compile_identity_leaves(
+pub(crate) fn compile_identity_leaves(
     max_token_id: u32,
     table: &H4BinaryIcosahedralClosure,
 ) -> Result<Vec<ExactSpinState>, CorpusInducedDocumentSpinError> {
@@ -2765,7 +2765,7 @@ fn shell_rank(shell: H4S3AngularShell) -> u8 {
     }
 }
 
-fn leaf_for_token(
+pub(crate) fn leaf_for_token(
     leaves: &[ExactSpinState],
     token: u32,
 ) -> Result<ExactSpinState, CorpusInducedDocumentSpinError> {

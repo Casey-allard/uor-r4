@@ -1658,134 +1658,6 @@ impl GeometricAttentionArtifact {
 }
 
 impl LocalSameObjectContextPlacementV1 {
-    /// Compile the frozen construction-only candidate placement from the
-    /// manifest's bounded sentence witnesses. A predecessor never crosses a
-    /// witness boundary and never includes the candidate observed after it.
-    pub fn compile_from_manifest_witnesses(
-        manifest: &CompiledSpinManifest,
-        table: &H4BinaryIcosahedralClosure,
-    ) -> Result<Self, GeometricAttentionError> {
-        manifest.canonical_bytes()?;
-        validate_ordered_h4_table_exact(table).map_err(ordered_h4_error)?;
-        if manifest.rebuild_witnesses.len() > MANIFEST_MAX_REBUILD_WITNESSES {
-            return Err(GeometricAttentionError::Invalid(
-                "rebuild witness count exceeds the local placement ceiling".to_owned(),
-            ));
-        }
-
-        let mut grouped = BTreeMap::<GeometricAddress, Vec<LocalContextPrototype>>::new();
-        let mut source_transitions = 0usize;
-        for witness in &manifest.rebuild_witnesses {
-            for transition_ordinal in 1..witness.address_indices.len() {
-                if transition_ordinal > LOCAL_CONTEXT_PLACEMENT_FRAME_WIDTH {
-                    return Err(GeometricAttentionError::Invalid(
-                        LOCAL_CONTEXT_PLACEMENT_FRAME_MISMATCH.to_owned(),
-                    ));
-                }
-                let predecessor_history = witness.address_indices[..transition_ordinal]
-                    .iter()
-                    .map(|index| {
-                        manifest
-                            .addresses
-                            .get(usize::from(*index))
-                            .cloned()
-                            .ok_or_else(|| {
-                                GeometricAttentionError::Invalid(
-                                    "local placement predecessor index is out of range".to_owned(),
-                                )
-                            })
-                    })
-                    .collect::<Result<Vec<_>, _>>()?;
-                let candidate = manifest
-                    .addresses
-                    .get(usize::from(witness.address_indices[transition_ordinal]))
-                    .cloned()
-                    .ok_or_else(|| {
-                        GeometricAttentionError::Invalid(
-                            "local placement candidate index is out of range".to_owned(),
-                        )
-                    })?;
-                let trajectory = encode_recent_suffix_trajectory(&predecessor_history, table)?;
-                let mut reversed_history = predecessor_history.clone();
-                reversed_history.reverse();
-                let order_shuffled_trajectory =
-                    encode_recent_suffix_trajectory(&reversed_history, table)?;
-                let predecessor_history_kappa = local_context_history_kappa(
-                    &witness.sentence_id,
-                    transition_ordinal,
-                    &predecessor_history,
-                )?;
-                let prototypes = grouped.entry(candidate).or_default();
-                prototypes.push(LocalContextPrototype {
-                    sentence_id: witness.sentence_id.clone(),
-                    transition_ordinal,
-                    predecessor_history,
-                    predecessor_history_kappa,
-                    trajectory,
-                    order_shuffled_trajectory,
-                });
-                if prototypes.len() > LOCAL_CONTEXT_PLACEMENT_MAX_PROTOTYPES_PER_CANDIDATE {
-                    return Err(GeometricAttentionError::Invalid(format!(
-                        "local placement candidate exceeds its {}-prototype cap",
-                        LOCAL_CONTEXT_PLACEMENT_MAX_PROTOTYPES_PER_CANDIDATE
-                    )));
-                }
-                source_transitions = source_transitions
-                    .checked_add(1)
-                    .ok_or(GeometricAttentionError::ArithmeticOverflow)?;
-            }
-        }
-        if grouped.is_empty() {
-            return Err(GeometricAttentionError::Invalid(
-                "local placement requires at least one witnessed transition".to_owned(),
-            ));
-        }
-
-        let prototype_sets = grouped
-            .into_iter()
-            .map(|(candidate, mut prototypes)| {
-                prototypes.sort_by(|left, right| {
-                    (
-                        left.sentence_id.as_str(),
-                        left.transition_ordinal,
-                        left.predecessor_history_kappa.as_str(),
-                    )
-                        .cmp(&(
-                            right.sentence_id.as_str(),
-                            right.transition_ordinal,
-                            right.predecessor_history_kappa.as_str(),
-                        ))
-                });
-                LocalContextCandidatePrototypeSet {
-                    candidate,
-                    prototypes,
-                }
-            })
-            .collect::<Vec<_>>();
-        let policy_kappa = format!(
-            "blake3:{}",
-            blake3::hash(LOCAL_SAME_OBJECT_CONTEXT_PLACEMENT_V1_IDENTITY.as_bytes()).to_hex()
-        );
-        let mut overlay = Self {
-            schema: 1,
-            manifest_kappa: manifest.manifest_kappa.clone(),
-            tokenizer_cid: manifest.provenance.tokenizer_cid.clone(),
-            corpus_cid: manifest.provenance.corpus_cid.clone(),
-            compiler_cid: manifest.provenance.compiler_cid.clone(),
-            cost_profile_cid: manifest.provenance.cost_profile_cid.clone(),
-            h4_root_table_kappa: table.h4_root_table_kappa.clone(),
-            multiplication_table_kappa: table.multiplication_table_kappa.clone(),
-            policy_kappa,
-            overlay_kappa: String::new(),
-            source_witnesses: manifest.rebuild_witnesses.len(),
-            source_transitions,
-            prototype_sets,
-        };
-        let reproduced = overlay.reproduce_overlay_kappa()?;
-        overlay.overlay_kappa = reproduced;
-        Ok(overlay)
-    }
-
     pub const fn schema(&self) -> u32 {
         self.schema
     }
@@ -2532,3 +2404,133 @@ fn compare_candidates(
     }
 }
 // END GEOMETRIC_ATTENTION_BOUNDED_LOOKUP
+
+impl LocalSameObjectContextPlacementV1 {
+    /// Compile the frozen construction-only candidate placement from the
+    /// manifest's bounded sentence witnesses. A predecessor never crosses a
+    /// witness boundary and never includes the candidate observed after it.
+    pub fn compile_from_manifest_witnesses(
+        manifest: &CompiledSpinManifest,
+        table: &H4BinaryIcosahedralClosure,
+    ) -> Result<Self, GeometricAttentionError> {
+        manifest.canonical_bytes()?;
+        validate_ordered_h4_table_exact(table).map_err(ordered_h4_error)?;
+        if manifest.rebuild_witnesses.len() > MANIFEST_MAX_REBUILD_WITNESSES {
+            return Err(GeometricAttentionError::Invalid(
+                "rebuild witness count exceeds the local placement ceiling".to_owned(),
+            ));
+        }
+
+        let mut grouped = BTreeMap::<GeometricAddress, Vec<LocalContextPrototype>>::new();
+        let mut source_transitions = 0usize;
+        for witness in &manifest.rebuild_witnesses {
+            for transition_ordinal in 1..witness.address_indices.len() {
+                if transition_ordinal > LOCAL_CONTEXT_PLACEMENT_FRAME_WIDTH {
+                    return Err(GeometricAttentionError::Invalid(
+                        LOCAL_CONTEXT_PLACEMENT_FRAME_MISMATCH.to_owned(),
+                    ));
+                }
+                let predecessor_history = witness.address_indices[..transition_ordinal]
+                    .iter()
+                    .map(|index| {
+                        manifest
+                            .addresses
+                            .get(usize::from(*index))
+                            .cloned()
+                            .ok_or_else(|| {
+                                GeometricAttentionError::Invalid(
+                                    "local placement predecessor index is out of range".to_owned(),
+                                )
+                            })
+                    })
+                    .collect::<Result<Vec<_>, _>>()?;
+                let candidate = manifest
+                    .addresses
+                    .get(usize::from(witness.address_indices[transition_ordinal]))
+                    .cloned()
+                    .ok_or_else(|| {
+                        GeometricAttentionError::Invalid(
+                            "local placement candidate index is out of range".to_owned(),
+                        )
+                    })?;
+                let trajectory = encode_recent_suffix_trajectory(&predecessor_history, table)?;
+                let mut reversed_history = predecessor_history.clone();
+                reversed_history.reverse();
+                let order_shuffled_trajectory =
+                    encode_recent_suffix_trajectory(&reversed_history, table)?;
+                let predecessor_history_kappa = local_context_history_kappa(
+                    &witness.sentence_id,
+                    transition_ordinal,
+                    &predecessor_history,
+                )?;
+                let prototypes = grouped.entry(candidate).or_default();
+                prototypes.push(LocalContextPrototype {
+                    sentence_id: witness.sentence_id.clone(),
+                    transition_ordinal,
+                    predecessor_history,
+                    predecessor_history_kappa,
+                    trajectory,
+                    order_shuffled_trajectory,
+                });
+                if prototypes.len() > LOCAL_CONTEXT_PLACEMENT_MAX_PROTOTYPES_PER_CANDIDATE {
+                    return Err(GeometricAttentionError::Invalid(format!(
+                        "local placement candidate exceeds its {}-prototype cap",
+                        LOCAL_CONTEXT_PLACEMENT_MAX_PROTOTYPES_PER_CANDIDATE
+                    )));
+                }
+                source_transitions = source_transitions
+                    .checked_add(1)
+                    .ok_or(GeometricAttentionError::ArithmeticOverflow)?;
+            }
+        }
+        if grouped.is_empty() {
+            return Err(GeometricAttentionError::Invalid(
+                "local placement requires at least one witnessed transition".to_owned(),
+            ));
+        }
+
+        let prototype_sets = grouped
+            .into_iter()
+            .map(|(candidate, mut prototypes)| {
+                prototypes.sort_by(|left, right| {
+                    (
+                        left.sentence_id.as_str(),
+                        left.transition_ordinal,
+                        left.predecessor_history_kappa.as_str(),
+                    )
+                        .cmp(&(
+                            right.sentence_id.as_str(),
+                            right.transition_ordinal,
+                            right.predecessor_history_kappa.as_str(),
+                        ))
+                });
+                LocalContextCandidatePrototypeSet {
+                    candidate,
+                    prototypes,
+                }
+            })
+            .collect::<Vec<_>>();
+        let policy_kappa = format!(
+            "blake3:{}",
+            blake3::hash(LOCAL_SAME_OBJECT_CONTEXT_PLACEMENT_V1_IDENTITY.as_bytes()).to_hex()
+        );
+        let mut overlay = Self {
+            schema: 1,
+            manifest_kappa: manifest.manifest_kappa.clone(),
+            tokenizer_cid: manifest.provenance.tokenizer_cid.clone(),
+            corpus_cid: manifest.provenance.corpus_cid.clone(),
+            compiler_cid: manifest.provenance.compiler_cid.clone(),
+            cost_profile_cid: manifest.provenance.cost_profile_cid.clone(),
+            h4_root_table_kappa: table.h4_root_table_kappa.clone(),
+            multiplication_table_kappa: table.multiplication_table_kappa.clone(),
+            policy_kappa,
+            overlay_kappa: String::new(),
+            source_witnesses: manifest.rebuild_witnesses.len(),
+            source_transitions,
+            prototype_sets,
+        };
+        let reproduced = overlay.reproduce_overlay_kappa()?;
+        overlay.overlay_kappa = reproduced;
+        Ok(overlay)
+    }
+}

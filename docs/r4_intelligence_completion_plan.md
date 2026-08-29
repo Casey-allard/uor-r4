@@ -3,7 +3,8 @@
 - **Status:** Historical S0–S7 programme and evidence record. Superseded for
   current sequencing by the
   [Geometric Intelligence Programme](geometric_intelligence_programme.md).
-  The current predictive-memory architecture is
+  The current direct-attention, multi-resonance, and recurrent-lowering
+  architecture is
   [ADR-0005](adr/0005-predictive-geometric-connection-memory.md).
   The intermediate
   [Geometric Causal Decoder Roadmap](geometric_causal_decoder_plan.md) records

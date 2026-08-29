@@ -41,8 +41,8 @@ the table baseline, and the one matched #953 intervention closed positive.
 mechanisms. Its first document-scope corpus-induced placement passed target-free
 qualification but scored 2,931/35,028 versus 4,281/35,028 for unchanged #953;
 it terminated `RETAIN_BOUNDED_GLOBAL_ONLY_REDESIGN_CORPUS_SPIN_PLACEMENT`.
-#973 is active on predictive geometric connection-retention and continues to
-block #954. Its current contract is
+#973 is active on direct-attention `ConnectionGaugeCovarianceV4` and continues
+to block #954. Its current contract is
 [ADR-0005](docs/adr/0005-predictive-geometric-connection-memory.md)._
 
 > **Project priority:** build source-free geometric intelligence in which the
@@ -56,13 +56,17 @@ block #954. Its current contract is
 > MoE, or sparse learned router.
 
 > **Current mechanism:** R4/spin routes remain immutable address, state, and
-> transport. Predictive meaning is learned separately from causal construction
-> prefix-to-next-route examples through key/value/query placements, connection-
-> transported multiscale retention, gated delta writes, and candidate-relative
-> readout over frozen #953 support. The failed #997 componentwise center is not
-> scaled or tuned. Gate P0 must first beat #953, matched plain recurrence, and
-> state/order/transport controls on construction-validation documents; only
-> then may the frozen D3 held-out targets be joined once.
+> transport. #973 now has the literal learned Q/K/V/O, tangent-projected,
+> causal-softmax scaffold. Equal-manifold-budget V3 returned full H4 3/12 versus matched
+> plain 12/12 and an inference-time coherent alternative-connection swap 10/12,
+> isolating the current H4 representation/gauge/optimizer seam. Softmax and dense all-prefix work are allowed
+> only in this offline oracle. After a fresh separately trained connection
+> repair and actual paired-E8/fiber binding qualify, the multi-resonance sieve
+> must replace
+> the weighting law while retaining S3 fiber/torsion; its band-limited mode
+> sums are then factored into bounded gated-delta recurrence and lowered to
+> exact H4/Q29/table operations. The frozen D3 targets remain closed until the
+> reference and its compressed replacement both qualify.
 
 > **Admission/influence split:** exact causal/index rows decide which routes are
 > lawful candidates. Harmonic/neighbor influence may transform the state used
@@ -126,9 +130,10 @@ block #954. Its current contract is
 Native GitHub relationships are the source of truth:
 
 The current priority view is **Established:** #989 table baseline and accepted
-#953 bounded source-free geometric generation; **Active:** #973 predictive
-connection-retention after the first document-scope placement failed;
-**Blocked:** #954; **Later:** #955 → #962 → #963 → #964 → #965.
+#953 bounded source-free geometric generation; **Negative:** first document
+placement, bounded gated-delta, and direct-attention V3 H4 combination;
+**Active:** #973 `ConnectionGaugeCovarianceV4`; **Blocked:** #954; **Later:**
+#955 → #962 → #963 → #964 → #965.
 
 This capability-first reset supersedes the old forward action implied by the
 numbered evidence ladder below without rewriting that history. #989 scored
@@ -136,8 +141,9 @@ numbered evidence ladder below without rewriting that history. #989 scored
 for unigram, an uplift of +16.847843 percentage points, with byte-identical
 double execution. Its non-geometric table engine, corpus, support, decode, and
 work budget remain the frozen reference inherited by accepted #953 and active
-#973. Do not broaden scale or tune the measured-failed placement; run the
-ADR-0005 construction-validation gate first. See the
+#973. Do not broaden scale or tune a revealed fixture; run the fresh ADR-0005
+V4 connection/gauge covariance gate first. Paired-E8 binding, corpus
+qualification, resonance, and recurrence follow only if it qualifies. See the
 [#989 evidence](docs/source_free_table_baseline_989.md); the completed #986
 feasibility boundary remains in the
 [#986 evidence](docs/corpus_signed_transport_attention_986.md).
@@ -354,13 +360,21 @@ feasibility boundary remains in the
    2,934/35,028, and operator-permuted was 2,966/35,028. Retain bounded-global
    V2 and reject the componentwise Frechet placement.
 
-   The next #973 rung is `PredictiveConnectionRetentionR4V1`: one construction-
-   only candidate-relative memory with separate key/value/query placements,
-   exact-frame connection transport, four bounded retention horizons, gated
-   delta writes, and one held-out target join after a binding construction-
-   validation Gate P0. It preserves immutable route/payload identity and #953
-   admission/support. Full geometry must beat #953, matched plain recurrence,
-   state-disabled, last-only, order-shuffled, and transport-permuted controls.
+   The first bounded `GeometricGatedDeltaRetentionR4V1` core passed its
+   structural smoke but did not beat plain delta on the sealed synthetic
+   fixture: 16/28 versus 23/28 next-token and 55/112 versus 98/112 association
+   wins. This is a factorization/learning negative, not a direct-attention
+   falsifier. The one-head `DirectCausalGeometricAttentionR4V1` scaffold now
+   exists. V2 is `NON_PROMOTABLE_BUDGET_MISMATCH`; fresh equal-manifold-budget V3 returned
+   full H4 3/12, plain 12/12, current-only 6/12, and an inference-time alternative-
+   connection swap 10/12. The next rung separately trains the declared H4 and coherent tangent-
+   frame connections against plain on fresh data, with key-isometry,
+   order-shuffled, value-permuted, seed-disabled, and current-only controls.
+   Only a repaired connection may bind actual paired-E8 hierarchy/fiber/torsion
+   and run the corpus oracle. A positive then replaces softmax with the fiber-
+   preserving multi-resonance sieve and measures recurrent-factorization loss.
+   Paired-E8 binding and its disabled control remain `NOT_IMPLEMENTED`.
+   Transport overhead is reported explicitly.
    Every learned epoch receives a new kappa and reruns its owning gate. More
    documents, table density, or trace activity are capacity, not attention.
    #973 cannot close and #954 cannot begin until a replacement passes and the
@@ -399,8 +413,10 @@ decoded generation/replay `NOT_RUN`. #983 is closed bounded negative evidence
 after its independent Gate 0 transferred on 0/6 decisions. #986 is also closed
 at its pre-sealed population/frame unavailable terminal. #989 established the
 frozen table reference; the later matched #953 intervention closed positive.
-The live sequence is established #989 → accepted #953 → active #973 replacement
-placement → blocked #954 → #955 → #962–#965. #973 continues to block #954.
+The live sequence is established #989 → accepted #953 → active #973 direct
+geometric attention → resonance/recurrent lowering → blocked #954 → #955 →
+#962–#965. #973 continues to
+block #954.
 Legacy tracker #949 is closed as
 superseded; #958 is retained directly under programme root #820 as GI-0
 foundation.
@@ -442,11 +458,14 @@ historical evidence and comparators.
 
 ## Active
 
-- [ ] **#973 predictive geometric connection-retention** — retain its bounded
-  positive mechanisms and the first document-scope placement as negative
-  evidence. The active action is the Gate-P0-first
-  `PredictiveConnectionRetentionR4V1` contract in ADR-0005; #954 remains
-  blocked.
+- [ ] **#973 direct geometric attention and bounded lowering** — retain the
+  bounded positives, #997 placement negative, bounded gated-delta negative, V2
+  budget invalidation, and equal-manifold-budget V3 mixed-gauge H4
+  representation/optimizer negative. The active
+  mechanism is fresh separately trained `ConnectionGaugeCovarianceV4` inside the
+  learned Q/K/V/O `DirectCausalGeometricAttentionR4V1` contract. A qualified
+  geometric oracle is replaced by the fiber-preserving multi-resonance sieve
+  and only then by bounded recurrence. #954 remains blocked.
 
 ## Landed
 
@@ -577,8 +596,9 @@ historical evidence and comparators.
   unavailable. B0/#989 and the later accepted #953 intervention then exposed
   #973. Its bounded paragraph, conversation, and V2 global mechanisms are
   retained; its first document-scope corpus placement passed target-free but
-  failed held-out promotion, so predictive connection-retention Gate 0 is
-  active and #954 is still blocked.
+  failed held-out promotion. The bounded gated-delta core then trailed plain
+  delta on its sealed smoke, so the direct geometric-attention oracle is active
+  and #954 is still blocked.
   Coherent product behavior, correctness, and reasoning remain unestablished.
   Historical canaries and pointwise results remain scoped evidence, not a
   claim that the current product works. See

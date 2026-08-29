@@ -64,22 +64,41 @@ objective.
 
 The programme therefore preserves prime/zeta/R4/S3/H4 routes as immutable
 identity, causal state, frame, transport, and provenance, while learning
-predictive roles separately. The immediate #973 action is
-`PredictiveConnectionRetentionGate0V1`: a construction-only discriminative
-readout over current, previous, last-two, and complete-prefix exact route
-states. It holds the #989/#953 corpus, support, decoder, and declared work
-fixed, and uses an untouched construction-validation split before any D3
-held-out target join.
+predictive roles separately. The exact paired-H4/E8 hierarchy is already
+serialized and replayable, but has not yet been bound into a qualified ordinary
+causal Q/K/V attention operator. The first bounded transported gated-delta core
+passed its structural smoke and still trailed plain delta: 16/28 versus 23/28
+next-token and 55/112 versus 98/112 association wins. That negative confounds
+representation, weighting, training, and recurrent compression.
 
-Gate 0 must beat frozen #953, a matched plain recurrent comparator,
-state-disabled, last-only, earlier-order-shuffled, and transport/readout-
-permuted controls. A positive authorizes the full
-`PredictiveConnectionRetentionR4V1` cell: separate learned key/value/query
-placements, exact-frame connection transport, four bounded retention horizons,
-controlled forgetting and targeted delta writes, and candidate-relative
-readout over already-admitted support. A negative stops before recurrent-bank
-training, scale, exact lowering, or held-out D3 evaluation. This is the
-architecture in [ADR-0005](adr/0005-predictive-geometric-connection-memory.md).
+The one-head `DirectCausalGeometricAttentionR4V1` scaffold now exists: learned
+Q/K/V/O, S3 tangent projection, causal transport, stable softmax, and
+transported value aggregation. V2 is `NON_PROMOTABLE_BUDGET_MISMATCH`. Fresh
+equal-manifold-budget V3 returned full H4 3/12, plain 12/12, current-only 6/12,
+and an inference-time coherent alternative-connection swap 10/12. The immediate
+#973 build therefore separately
+trains the H4 and coherent tangent-frame connections against plain on fresh
+data, with key-isometry, order-shuffled, value-permuted, seed-disabled, and
+current-only controls. Both dense arms must eventually beat #953 and geometry
+must be non-inferior to plain; strict improvement is a separate advantage
+claim. Support stays identical; transport overhead is measured explicitly
+rather than called equal work. Binding the actual paired-E8 hierarchy, fiber,
+and torsion—and then adding a paired-E8-disabled control—remains
+`NOT_IMPLEMENTED` until the connection/gauge seam qualifies.
+
+The repair is `ConnectionGaugeCovarianceV4`: explicit three-coefficient local
+placements, H4-compatible and deterministic tangent bases, a fixed-frame plain
+arm, and separately owned but identically initialized training. Algebraic and
+finite-difference gauge/gradient preflight precedes one fresh 24-case
+prefix-input-disjoint reveal. This tests whether dense attention is represented
+covariantly in R4 tangent frames; it does not test geometric advantage.
+Softmax is not the target runtime. A positive freezes this reference,
+then replaces only its weighting law with the multi-resonance sieve using
+S3/SU(2), or S2 plus bound fiber/torsion, modes. Only a resonance replacement
+that preserves the frozen construction-validation effect is factored into
+bounded recurrent banks
+and later H4/Q29/integer tables. This is the architecture in
+[ADR-0005](adr/0005-predictive-geometric-connection-memory.md).
 
 ## Current capability-first delivery decision — #953
 
@@ -116,9 +135,11 @@ bounded construction-bound exact-descriptor selector at each of paragraph and
 conversation scope. Its first bounded-global exact-spin relation then failed
 target-free because the frozen swapped states commute. The independently
 frozen V2 repair subsequently retained one bounded noncommuting exact-spin
-mechanism. PR #997 then rejected the first natural componentwise placement.
-Predictive connection-retention Gate 0 and final requalification remain
-active; #954 remains blocked. No new H4,
+mechanism. PR #997 then rejected the first natural componentwise placement,
+and the first bounded gated-delta core trailed its plain-delta comparator. The
+direct geometric-attention oracle, multi-resonance replacement, recurrent
+factorization, and final requalification remain active; #954 remains blocked.
+No new H4,
 SpiralCore, harmonic, algebraic, placement, transport, or scale qualifier is
 eligible outside its exposed issue.
 
@@ -211,10 +232,12 @@ unavailable. Placement, Gate 0, labels, table/geometric arms, and #953 were
 table-tie intervention. That intervention passed, and #973 has since retained
 one bounded prior-prefix copy mechanism at Gate 0 plus one bounded
 construction-bound exact-descriptor selector at each of paragraph and
-conversation scope. The first bounded-global exact-spin relation is now
-preserved target-free negative history; the independently frozen V2 repair
-passed its bounded decoded contract. Corpus induction and final
-requalification continue to block #954. Calling a later
+  conversation scope. The first bounded-global exact-spin relation is now
+  preserved target-free negative history; the independently frozen V2 repair
+  passed its bounded decoded contract. Later document-placement, gated-delta,
+  and direct-attention V3 results were negative. The current blocker is
+  `ConnectionGaugeCovarianceV4`; paired-E8/corpus qualification follows only
+  after it passes. Calling a later
 #973 operator harmonic additionally requires an
 artifact-bound basis/mode contract. #962
 separately owns product chat integration and persisted, identity-scoped hive
@@ -1191,7 +1214,8 @@ noncommuting global mechanisms recorded below. Its first bounded-global V1
 relation remains negative history; V2 qualified one bounded-global selection
 mechanism. The first independently frozen document-scope corpus-induced
 placement subsequently passed target-free qualification but failed its held-out
-promotion comparisons, leaving predictive connection-retention Gate 0 and final
+promotion comparisons. The bounded gated-delta core later trailed plain delta,
+leaving direct geometric attention, resonance/recurrent lowering, and final
 requalification open.
 Product CLI/HTTP chat integration, restart-persistent conversation state, and
 identity-scoped hive-memory lifecycle remain #962 scope.
@@ -1571,11 +1595,17 @@ This separates causal action from useful attention. The exact `2I x Z_M x
 Z_M` relation and `C^-1*G` least-cost route changed both selected tokens and a
 bounded decoded continuation, but its componentwise marginal-center placement
 did not transfer useful candidate preference. More scale is not the next
-action. #973 must first execute `PredictiveConnectionRetentionGate0V1`, a
-construction-only candidate-discriminative readout over current, previous,
-last-two, and complete-prefix exact R4/spin state while preserving immutable
-route/payload identity and #953 admission/support. Only a Gate-0 positive may
-advance to the full connection-retention cell or the single held-out D3 join.
+action. The first bounded `GeometricGatedDeltaRetentionR4V1` smoke subsequently
+scored 16/28 next-token and 55/112 association wins versus plain delta at 23/28
+and 98/112. `DirectCausalGeometricAttentionR4V1` then implemented literal
+causal Q/K/V/O, tangent projection, softmax weighting, and transported value
+aggregation. Its V2 evidence is non-promotable; equal-manifold-budget V3 isolated a failing
+H4 connection against a working plain arm and a strong coherent-tangent
+diagnostic. #973 therefore runs `ConnectionGaugeCovarianceV4` first, preserving
+immutable route/payload identity and #953 admission/support. No reference result
+alone may advance to the D3 join. A later positive must first bind the paired
+hierarchy and survive fiber-preserving multi-resonance replacement and bounded
+recurrent factorization under matched destructive controls.
 See ADR-0005 and the
 [#973 corpus-induced document placement record](corpus_induced_document_spin_placement_973.md).
 
@@ -1606,9 +1636,10 @@ corpus scan and loads no source tensors.
 Current prime-derived H4 leaves and procedural spin classes remain exact
 identity coordinates, not established semantic placement. Any corpus-induced
 placement change, including #953's bounded local overlay and #973's later
-corpus-scale ladder, must create a versioned overlay or rebuilt artifact with an
-inverse/provenance witness; it may not silently reinterpret immutable route or
-payload identity. Every new placement epoch or structural operator revision
+corpus-scale ladder, must create a versioned overlay or rebuilt artifact with a
+provenance identity and, only where reversibility is claimed, an inverse
+witness; it may not silently reinterpret immutable route or payload identity.
+Every new placement epoch or structural operator revision
 invalidates inherited evidence at its owning gate and reruns that bounded
 matched gate before downstream evidence is read.
 
@@ -1745,8 +1776,10 @@ hours remains a hard kill ceiling, never an estimate.
   mechanisms; its first bounded-global V1 relation failed target-free, and its
   independently frozen V2 repair retained one bounded noncommuting global
   mechanism. Its first document-scope corpus-induced placement passed
-  target-free qualification but failed the held-out promotion gate. It alone
-  owns predictive connection-retention and final requalification.
+  target-free qualification but failed the held-out promotion gate. The first
+  bounded gated-delta core also trailed plain delta. #973 alone owns the direct
+  geometric-attention oracle, resonance/recurrent lowering, and final
+  requalification.
 - S3/R4 compute, Hopf S2/R3 observation, and an E8 action plane are distinct
   objects.
 - Exact recall, grammatical text, correct inference, and reasoning are separate

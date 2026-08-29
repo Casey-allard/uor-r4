@@ -149,18 +149,55 @@ substituted for one another.
   through bounded gates and delta writes, and reads only candidates admitted
   by the frozen lower path. It is a research hypothesis until held-out
   predictive value disappears under matched state/order/transport ablations.
+- **`DirectCausalGeometricAttentionR4V1`** — #973's offline gold-standard
+  reference for the literal attention function: learned Q/K/V/O roles, local
+  S3 tangent projection, causal H4-frame transport of every prior key and
+  value, stable softmax, transported value aggregation, and candidate-relative
+  output scoring over unchanged admitted support. Its dense O(T^2) work and
+  softmax are permitted only in compiler-side research; they are not the target
+  runtime. It is one bounded attention kernel, not multi-head attention or a
+  full block with residual, normalization, FFN/MLP, or stacking. V2 is
+  non-promotable because of a raw-manifold-parameter mismatch. Equal-manifold-budget V3
+  returned full H4 3/12 versus plain 12/12 and an inference-time coherent
+  alternative-connection swap 10/12, so the current H4 representation/
+  optimizer combination is not a qualified oracle.
+- **H4 frame connection** — the exact object is the relative H4 group element;
+  the current compiler-side f64 matrix represents its left-quaternion action
+  and is numerically orthogonal under the tested finite-group law. It does not
+  carry the paired-E8 companion or an independent fiber/torsion phase. It is not
+  called Levi-Civita or shortest-geodesic parallel transport without a separate
+  proof. Equal-manifold-budget direct-attention V3 rejected this particular connection on
+  its frozen synthetic population; its finite-group correctness remains intact.
+- **Multi-resonance attention sieve** — the post-reference replacement for
+  softmax. It expands query/key compatibility in a finite artifact-bound set of
+  spherical or hyperspherical modes so value-weighted numerator modes and
+  normalization-denominator modes can be updated recurrently. The approximation
+  must bind pointwise positivity, an exact normalization law, a weight or
+  denominator floor, and kernel/decision error; adding epsilon only after the
+  denominator is summed is not exact normalization. S2/R3 modes must retain the
+  bound S3 fiber/torsion phase, or use an S3/SU(2) basis; a Hopf direction alone
+  is not the full R4 spin state. Tan is chart-local with a pole-switch contract,
+  not a global harmonic basis.
+- **`GeometricGatedDeltaRetentionR4V1`** — the bounded recurrent-factorization
+  candidate with separate K/V/Q roles, H4 frame transport, multirate retained
+  banks, delta overwrite, and candidate-relative readout. Its first sealed
+  synthetic smoke passed structural checks but showed no advantage over plain
+  delta; corpus qualification, decoding, and exact lowering remain `NOT_RUN`.
 - **Predictive key/value/query placement** — three separate compiler-learned
   roles layered over an immutable route/payload address. A key addresses a
   retained association, a value is written as predictive content, and a query
   reads one already-admitted candidate. They receive versioned artifact and
   provenance identities and never silently reinterpret a prime, digest, token
   rank, spin leaf, or payload CID as learned meaning.
-- **`PredictiveConnectionRetentionGate0V1`** — #973's stop-first
-  construction-validation probe. It asks whether current, previous, ordered
+- **`PredictiveConnectionRetentionGate0V1`** — a parked construction-validation
+  fixed-route-feature diagnostic. It asks whether current, previous, ordered
   last-two, and complete-prefix exact-route relations support a deterministic
   candidate-discriminative readout under unchanged #953 support/work. It is not
-  the full recurrent/gated-delta cell. A positive authorizes that build; a
-  negative leaves the protected D3 held-out targets unopened.
+  the full recurrent/gated-delta cell. Positive retains that channel as an
+  input, residual, or initializer; negative drops it; unavailable makes no
+  fixed-route claim. Its ignored corpus run remains `NOT_RUN`; it is not in the
+  active dependency chain because it cannot establish the literal attention
+  operation. The protected D3 join remains blocked.
 - **Matched plain recurrence** — an equal-information, equal-support, equal-
   budget non-geometric recurrent/delta comparator. A gain shared with this arm
   is predictive recurrence evidence, not geometry-specific evidence. Geometry
@@ -255,8 +292,10 @@ substituted for one another.
   (B0/#989), then exactly one #953 geometric intervention under the same
   corpus, support, decode, and work budget; paragraph, conversation, and
   global exact-spin operator qualification through that loop, followed by the
-  ADR-0005 predictive connection-retention Gate 0, any authorized full cell,
-  and final requalification (#973);
+  ADR-0005 direct Q/K/V/O scaffold, `ConnectionGaugeCovarianceV4`, paired-E8/fiber
+  binding, fiber-preserving multi-resonance replacement, bounded recurrent
+  factorization, and final requalification
+  (#973);
   correctness with abstention (#954); then bounded hypothetical-branch reasoning
   (#955). #969, #983, and #986 remain evidence provenance rather than a
   parallel implementation queue.

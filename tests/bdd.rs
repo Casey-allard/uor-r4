@@ -313,10 +313,14 @@ fn selected_engine_is_legacy(w: &mut R4g1World) {
     assert_eq!(w.selected_engine, Some("transformerless"));
 }
 
-#[then("the browser UI selects R4G1 and does not offer automatic fallback")]
-fn browser_selects_r4g1(_w: &mut R4g1World) {
+#[then(
+    "the browser UI selects the geometric research demo, keeps R4G1 unselected, and does not offer automatic fallback"
+)]
+fn browser_selects_geometric_demo(_w: &mut R4g1World) {
     let source = include_str!("../index.html");
-    assert!(source.contains(r#"<option value="r4g1" selected>"#));
+    assert!(source.contains(r#"<option value="geometric" selected>"#));
+    assert!(source.contains(r#"<option value="r4g1">"#));
+    assert!(!source.contains(r#"<option value="r4g1" selected>"#));
     assert!(!source.contains("Auto: R4G1 → Legacy TLA/TLS"));
 }
 

@@ -4,7 +4,8 @@
 invariants, the κ re-pin procedure, long-run discipline. Read it before your
 first change. The current architecture and issue order live in the
 [Geometric Intelligence Programme](docs/geometric_intelligence_programme.md).
-The active #973 mechanism and its stop-first construction gate are frozen in
+The active #973 dense geometric-attention reference and recurrent-factorization
+sequence are frozen in
 [ADR-0005](docs/adr/0005-predictive-geometric-connection-memory.md).
 This file is the short version.
 
@@ -106,8 +107,14 @@ The experiment must be able to change the next programme decision:
   mechanisms, retained a repaired bounded-global exact-spin witness, and then
   rejected the first natural componentwise-Frechet document placement: real
   8.367592% versus unchanged #953 12.221651%, with shuffled/permuted controls
-  also stronger. Do not scale or retune that placement. Run ADR-0005 Gate 0
-  before any held-out join. See the
+  also stronger. The bounded gated-delta core later trailed plain delta.
+  Direct-attention V2 is non-promotable because its comparators had fewer
+  raw-manifold degrees of freedom; equal-manifold-budget V3 returned full H4 3/12 versus plain
+  12/12 and isolated the connection/gauge seam. Do not tune any revealed
+  fixture. Run fresh separately trained `ConnectionGaugeCovarianceV4`, explicit
+  paired-E8/fiber binding, the corpus-bound softmax oracle, normalized resonance
+  replacement, and bounded recurrence in that order before any protected
+  held-out join. See the
   [#989 record](docs/source_free_table_baseline_989.md).
 - **Preserve the GI evidence lineage.** GI-1 makes lexical/address state
   reversible;
@@ -147,19 +154,31 @@ The experiment must be able to change the next programme decision:
   supersede that action. A1Q-H/#973 is active: bounded Gate 0, paragraph,
   conversation, and repaired noncommuting-global witnesses are retained; the
   first natural document placement is negative at
-  `RETAIN_BOUNDED_GLOBAL_ONLY_REDESIGN_CORPUS_SPIN_PLACEMENT`. #973 now owns
-  only `PredictiveConnectionRetentionGate0V1`; GI-4/#954 remains blocked, with
-  GI-5/#955 downstream.
+  `RETAIN_BOUNDED_GLOBAL_ONLY_REDESIGN_CORPUS_SPIN_PLACEMENT`. Its first bounded
+  transported gated-delta core was also weaker than plain delta on its sealed
+  construction fixture. The literal causal Q/K/V/O scaffold now exists, but
+  equal-manifold-budget V3 rejected its current H4 parameterization while matched plain
+  attention worked. #973 owns `ConnectionGaugeCovarianceV4`; recurrent
+  factorization follows only after a geometric reference and its resonance
+  replacement qualify. GI-4/#954 remains blocked, with GI-5/#955 downstream.
 - **Exercise the accepted route path.** #953 geometry runs before token choice
   and emits admitted support and its fixed-point radius trace. The current #973
-  Gate 0 must hold that support/work fixed, freeze its artifact before target
-  attachment, and show construction-validation transfer against matched plain
-  recurrence plus state/order/transport controls.
-- **Use the smallest falsifier.** `PredictiveConnectionRetentionGate0V1`
-  first asks whether fixed current/previous/last-two/full-prefix exact-route
-  features carry construction-transferred discriminative signal. A failure
-  stops before full recurrent banks, exact lowering, or the 596-document D3
-  held-out target join.
+  reference must hold support fixed, freeze train/validation before outcomes,
+  and compare separately trained geometric connections with equal-raw-manifold-budget ordinary
+  dense attention and geometry-destroying controls. Transport overhead is
+  measured explicitly; it is not hidden under an equal-work claim.
+- **Use the smallest falsifier.** `DirectCausalGeometricAttentionR4V1` is one
+  head over a bounded causal prefix: learned Q/K/V/O, H4-frame transport,
+  stable softmax, and transported value aggregation. If neither it nor the
+  matched plain arm beats #953, repair representation/objective before
+  recurrence. If plain works and geometry falls outside a predeclared
+  non-inferiority margin, repair only the geometric input/connection seam.
+  Strict improvement over plain is an advantage claim, not the parity gate.
+  The current code scaffold is H4-only and its mixed-gauge H4 representation/
+  optimizer combination is negative on V3; the exact group action remains
+  algebraically valid, and actual paired-E8 hierarchy/fiber/torsion binding remains
+  `NOT_IMPLEMENTED`. Factor into resonance and gated-delta retention only after
+  a repaired dense geometric reference works.
 - **Parallelize deterministic corpus work.** Partition by content identity,
   use all available local workers with canonical ordered reductions, and
   compare independent multithreaded rebuilds. Do not launch a long experiment

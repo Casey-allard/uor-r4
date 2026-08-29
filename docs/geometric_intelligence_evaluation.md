@@ -19,35 +19,54 @@ make an hours-long run the price of learning whether a mechanism is reachable.
 Experimental evaluations are dormant by default. Activate only the smallest
 probe whose possible outcomes cause different next actions.
 
-### Active decision — predictive connection-retention Gate 0/#973
+### Active decision — direct geometric-attention reference/#973
 
 PR #997 proved reachability but rejected its componentwise-Frechet placement:
 real 2,931/35,028 (8.367592%), unchanged #953 4,281/35,028 (12.221651%),
-order-shuffled 2,934/35,028, and operator-permuted 2,966/35,028. The active
-question is therefore narrower than another full corpus run: do fixed current,
-previous, last-two, and complete-prefix exact-route relations carry
-construction-transferred discriminative next-route signal?
+order-shuffled 2,934/35,028, and operator-permuted 2,966/35,028. The first
+bounded `GeometricGatedDeltaRetentionR4V1` core then passed structural checks
+but did not beat plain delta on its sealed synthetic construction fixture:
+16/28 versus 23/28 next-token and 55/112 versus 98/112 association wins. This
+is `NO_ADVANTAGE_ON_THIS_FIXTURE`; held-out corpus, autonomous decode, and exact
+lowering remain `NOT_RUN`.
 
-`PredictiveConnectionRetentionGate0V1` splits the 2,404 D3 construction
-documents deterministically into fit and untouched construction-validation
-sets. It fits candidate-specific integer readouts only on causal prefix-to-
-observed-next-route events within unchanged #953 support. The validation target
-is unavailable during compile and query and joins only after the frozen
-artifact and target-free census exist.
+The literal one-head `DirectCausalGeometricAttentionR4V1` scaffold now exists.
+Its V2 result is `NON_PROMOTABLE_BUDGET_MISMATCH`. Fresh equal-manifold-budget V3 returned
+full H4 3/12, matched plain 12/12, current-only 6/12, and an inference-time
+coherent alternative-connection swap 10/12. Thus Q/K/V/O learning, stable softmax, and transported
+value aggregation are reachable, but the current mixed-gauge H4 representation/optimizer combination
+does not transfer. The immediate decision is a separately trained
+connection/gauge comparison on a fresh construction/validation split. The
+#989/#953 corpus, support, decoder, and work remain frozen for the later full
+qualification. Paired-H4/E8 hierarchy, fiber, and torsion binding is
+`NOT_IMPLEMENTED` and cannot support a claim.
 
-Gate 0 proceeds only if at least 1,024 operative validation positions exist and
-the real arm exceeds inner #953 by at least 0.25 percentage points while also
-beating matched plain recurrence, state-disabled, last-only, earlier-order-
-shuffled, and transport/readout-permuted controls at both position and exact
-document-blocked paired direction. Support/work must match, forbidden reads
-must be zero, and two compiles must reproduce byte-identical artifacts.
+`ConnectionGaugeCovarianceV4` uses explicit three-coefficient local Q/K/V/O
+placements and separately trains H4-compatible, deterministic tangent-basis,
+and fixed-frame plain arms from identical initialization. Before labels, it
+must exhaust all 120 H4 frames, match analytical and central-finite-difference
+gradients, and reproduce gauge-covariant logits, weights, scores, and updates.
+Its fresh 24-case prefix-input-disjoint gate requires 16/16 construction fit,
+at least 18/24 validation for all main arms, numerical/decision parity,
+current-only at most 12/24, and at least a six-decision loss for order, value,
+and deliberate gauge-mismatch controls. V4 remains `NOT_RUN`.
 
-Pass returns `PROCEED_TO_GEOMETRIC_GATED_DELTA_RETENTION_V1` and authorizes the
-full four-bank predictive connection-retention prototype. Fail returns
-`REJECT_FIXED_ROUTE_FEATURES_REVISE_PREDICTIVE_STATE` and leaves the frozen D3
-held-out targets unopened. An insufficient or unavailable population returns
-`UNAVAILABLE_CONSTRUCTION_VALIDATION_POPULATION`. None of these bounded Gate-0
-results closes #973 or unblocks #954.
+Both the full and equal-raw-manifold-budget plain Euclidean arms must lower construction-
+validation next-token loss and improve or preserve top-1 versus frozen #953.
+The geometric arm must be non-inferior to plain under a predeclared paired
+margin. The separately trained coherent tangent-frame comparator plus
+key-isometry, order-shuffled, value-permuted, geometric-seed-disabled, and
+current-token-only arms must isolate the claimed effect.
+Support must match; H4 transport overhead must be reported explicitly rather
+than hidden under an equal-work claim. Future reads must be zero, and two
+compiles/inference runs must replay deterministically. Strictly beating plain is a stronger
+geometry-specific advantage result, not the functional-parity requirement.
+
+A direct positive freezes the oracle and activates the fiber-preserving
+multi-resonance replacement. Softmax is not a serving candidate. The resonance
+arm must preserve the oracle's decision under fixed Q/K/V/O and transport
+before bounded recurrent factorization is attempted. Neither a direct nor a
+resonance-only result closes #973 or unblocks #954.
 
 ### Established product decision — B0/#989
 
@@ -101,8 +120,10 @@ since been accepted. #973 then retained its bounded Gate 0, paragraph, and
 conversation mechanisms. Its first bounded-global exact-spin relation failed
 target-free because the frozen swapped states commute. The independently
 frozen V2 repair then passed its bounded noncommuting decoded contract. PR #997
-then rejected the first natural document placement. #973 continues to block
-#954 while it owns predictive connection-retention and final requalification.
+then rejected the first natural document placement. Its first bounded
+gated-delta core later trailed plain delta. #973 continues to block #954 while
+it owns the direct geometric-attention reference, resonance/recurrent lowering,
+and final requalification.
 
 A negative result remains evidence about its declared mechanism and
 distribution. It does not erase a separately established storage, identity,
@@ -850,8 +871,10 @@ under #986; #973 and downstream #954 remain blocked.
 
 The V1 contract and negative below remain append-only evidence. The
 independently frozen V2 repair subsequently satisfied the bounded-global
-decision without changing V1. The current evaluation action is to freeze the
-corpus-induction gate independently before any corpus outcome-bearing run.
+decision without changing V1. Later corpus-placement, gated-delta, and direct
+V3 results were negative. The current evaluation action is fresh
+`ConnectionGaugeCovarianceV4`; paired-E8 and corpus qualification remain
+conditional successors.
 
 #973 owns paragraph, conversation, and bounded-global influence only after the
 one #989-matched #953 intervention qualifies the decoded loop.
@@ -908,9 +931,9 @@ harmonic. #973 will freeze its own terminal literal before running this
 contract.
 
 The now-positive bounded V2 subprobe cannot close #973. Paragraph and
-conversation are retained, but predictive connection-retention and final
-requalification still require their own frozen evidence or an explicit native
-scope revision.
+conversation are retained, but the direct geometric-attention reference,
+resonance/recurrent lowering, and final requalification still require their own
+frozen evidence or an explicit native scope revision.
 
 #### Observed bounded-global V1 target-free terminal (2026-08-28)
 
@@ -962,7 +985,9 @@ This establishes one bounded synthetic causal global geometric-attention
 witness only. It does not establish corpus induction, semantic or natural
 transfer, general attention, correctness, reasoning, or product readiness.
 That next corpus-induction gate is now completed negative in PR #997. The
-current #973 decision is ADR-0005 Gate 0; #954 remains blocked. See the
+current #973 decision is ADR-0005's `ConnectionGaugeCovarianceV4` inside the literal
+transported Q/K/V/O reference, followed only on success by paired-E8 binding,
+multi-resonance, and recurrent lowering; #954 remains blocked. See the
 [#973 bounded-global record](bounded_global_exact_spin_attention_973.md).
 
 ## 4. Matched controls

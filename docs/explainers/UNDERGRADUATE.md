@@ -23,9 +23,10 @@ bytes -> pinned reversible lexical codec
       -> R4/S3 spin + S2/R3 Hopf observation + retained torsion
       -> Z[phi] radial shell + witnessed paired-H4/E8 coordinate
       -> local/sentence/paragraph/conversation/global route state
-      -> construction-trained geometric key/value state
-      -> exact R4/Spin parallel transport into the current frame
-      -> gated short/medium/long retention + key-specific overwrite
+      -> construction-trained geometric query/key/value/output roles
+      -> causal transport of earlier keys/values into the current frame
+      -> direct value aggregation (offline attention reference)
+      -> factored recurrent positive-feature sieve (target runtime)
       -> candidate-relative geometric readout
       -> source-free next-route inference and lexical decoding
 ```
@@ -34,19 +35,32 @@ Kappa binds exact canonical identity; it is not a similarity metric. Prime
 factor overlap, ordered n-lets, fixed-zeta phase, spin/Hopf/torsion transport,
 golden radial state, the paired-H4/E8 construction, and transported trajectory
 summaries supply address, frame, transport, and locality structure. They are not
-assumed to encode linguistic meaning. Higher route scopes and a fixed bank of
-retention timescales update incrementally rather than scanning the full prefix
-or corpus at every token.
+assumed to encode linguistic meaning. The direct reference temporarily scans a
+bounded causal prefix to establish the target function. Its later resonance and
+recurrent forms update fixed mode/state banks incrementally rather than scanning
+the full prefix or corpus at every token.
 
-The corrected design separates the operations that earlier prototypes
-conflated. For route frame `P_t`, transported memory is
+The corrected design first mirrors ordinary attention in geometric frames. For
+route frame `G_t`, it computes
 
 ```text
-Sbar_(t-1) = P_(t-1 -> t) S_(t-1) P_(t-1 -> t)^-1
-S_t        = retain_t(Sbar_(t-1))
-             + write_t(key_t, value_t, Sbar_(t-1))
-score(c)   = candidate_readout(S_t, route(c))
+logit(t,i) = <query_t, Transport(i -> t, key_i)> / sqrt(d)
+weight(t)  = causal_softmax(logit(t,0..t))
+read_t     = sum_i weight(t,i) Transport(i -> t, value_i)
+score(c)   = <Transport(candidate -> t, output_c), read_t>
 ```
+
+That dense softmax operator is only an offline gold standard. Once it works,
+the multi-resonance sieve replaces the weights with band-limited S3/SU(2), or
+S2-plus-bound-fiber, modes whose sums can be retained recurrently. Using only
+the R3 Hopf direction would lose the S3 fiber and incorrectly merge distinct
+R4 spin states.
+
+There are two different three-dimensional objects here. `T_G S3` is the local
+R3-like tangent space anchored at a full S3 basepoint `G`; trigonometric work
+there retains that anchor and therefore the full spin frame. The Hopf image is
+an S2 direction embedded in R3 and is many-to-one. R3 tangent trigonometry is
+safe when the S3 basepoint/fiber remains bound; discarding it is the lossy step.
 
 Construction-only next-token outcomes may fit the key, value, retention, write,
 and readout parameters. Validation, test, and runtime receive only the observed
@@ -67,16 +81,19 @@ document-scale componentwise Frechet placement scored 8.367592%, below unchanged
 wrong.
 
 Accordingly, the project is no longer asking immutable prime/H4 coordinates to
-invent semantics. It uses them as exact identity and transport while a
-next-token objective induces predictive equivalence and associative memory. The
-immediate Gate 0 first tests a deterministic discriminative readout over four
-fixed exact-route taps on an untouched construction-validation split. Only a
-positive authorizes the full recurrent key/value memory. That full qualifying
-experiment must beat #953 and an equal-size plain recurrent
-cell, state-disabled, order-shuffled, and transport-permuted controls on held-out
-loss/choice, then produce a bounded autonomous continuation. Only a positive
-result advances to exact lowering, correctness (#954), reasoning (#955), and
-durable chat (#962). The complete decision is
+invent semantics. It uses them as exact identity, geometric input, and frame
+transport while a next-token objective learns Q/K/V/O roles. The first bounded
+gated-delta core passed structural tests but trailed plain delta. The literal
+direct-attention scaffold now exists, but its apparent V2 positive had an
+raw-manifold-parameter mismatch. Fresh equal-manifold-budget V3 returned H4 3/12, plain 12/12,
+current-only 6/12, and an inference-time coherent alternative-connection swap
+10/12. The attention learning path works; the current mixed-gauge H4
+representation/optimizer combination does not. The immediate
+experiment separately trains the connection/gauge alternatives on fresh data.
+A positive then binds paired-E8/fiber state and advances to normalized multi-
+resonance replacement, bounded recurrent factorization, held-out generation,
+and only then exact lowering, correctness (#954), reasoning (#955), and durable
+chat (#962). The complete decision is
 [ADR-0005](../adr/0005-predictive-geometric-connection-memory.md). There is no
 working source-free chat path yet.
 

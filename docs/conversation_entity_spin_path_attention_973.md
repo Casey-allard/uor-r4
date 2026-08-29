@@ -475,4 +475,16 @@ check boundary.
 ## Forward-action update (2026-08-28)
 
 This bounded result remains unchanged. Its then-next sequencing is complete;
-current #973 work is ADR-0005 `PredictiveConnectionRetentionGate0V1`.
+the then-current #973 work was ADR-0005
+`PredictiveConnectionRetentionGate0V1`.
+
+## Current sequencing update (2026-08-29)
+
+The intervening gated-delta smoke and direct-attention V3 experiment are now
+complete. The gated-delta cell showed no advantage on its bounded fixture, and
+the equal-manifold-budget direct-attention result was geometric `3/12` versus
+plain fixed-tangent `12/12`. The active #973 action is therefore
+`ConnectionGaugeCovarianceV4`: qualify separately trained H4, alternative
+tangent, and fixed-tangent arms under explicit local coordinates before any
+paired-E8, corpus, resonance-sieve, recurrent-factorization, or exact-lowering
+work. This update changes no earlier conversation-scope evidence or identity.
