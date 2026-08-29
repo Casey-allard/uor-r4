@@ -228,3 +228,73 @@ This positive establishes construction-scale representation covariance for the
 ordinary softmax attention oracle. It is not the 24-case V4 held-out result and
 does not authorize paired E8, resonance replacement, recurrence, lowering, or
 generation yet.
+
+## Phase-II target-free freeze — 2026-08-29
+
+Status: `PHASE_II_INPUT_FREEZE_PASS_PENDING_PROTECTED_MERGE`. Phase I was
+protected by PR #1000 at
+`b054197acb92e3dd23d88d81bd859379ea8fac67`. The first append-only Phase-II
+commit, `c9c3b13ca7c1d346b5c4b3a5d624907b7f765461`, published only the
+executable generator checkpoint. An independent review reproduced its NUL
+domain tags, little-endian length/token encodings, complete 65,536-counter
+order, tie rules, first-12 scan, mate involution, dynamic antichain, and exact
+16/8/12 legacy forbidden rows. It imports no V4 model type and cannot reach a
+compile or prediction path. The protected seed was executed at that checkpoint;
+only policy-declared aggregate invariants were observed, not the selected
+population bytes.
+
+The second Phase-II commit freezes the generated target-free manifest. The
+selected order is the accepted-pair order and, within each pair, unswapped then
+mate. Its accepted counters are:
+
+```text
+30149, 53145, 27994, 21913, 21781, 64005,
+53150, 46433, 44855, 31599, 62881, 20555
+```
+
+All 24 prefixes are unique 13-token rows, end in query token `1`, contain one
+earlier query binding, and form an antichain with every other selected row and
+all 36 construction/V2/V3 rows. Every matched pair has one unchanged token
+multiset under the `5 <-> 6` involution. The aggregate structural balance is
+`12/12`; per-case labels and the 32-byte nonce are not published. Prefixes and
+case IDs are target-free fields, although the synthetic binding rule makes the
+target logically inferable. This is therefore public non-adaptation evidence,
+not a claim of blind evaluation.
+
+| Field | Phase-II value |
+| --- | --- |
+| Generator policy CID | `blake3:73b4233b0b91ba85ffb6cd8c3d86132a954e4fbda5c7ec57510cc30bd9fb5dca` |
+| Base forbidden-prefix root | `blake3:877707eff60857b9c790cfb0e8a2a5a12bbcadb51d3448c9bd7119d5b86b6c42` |
+| Ordered validation-prefix root | `blake3:a3321b13d808d553d7588997f8fb7951be33e254724d45a1223460dd775a3ad8` |
+| Complete validation-input CID | `blake3:5a17c5526d866f2862b042750cb70f5183f6a8fc09ab53a067d79d28d1c989d1` |
+| Salted label commitment | `blake3:9773355914ed171f0d14950a4db554f5f543252804c703e8e0bbbbf17fe7b602` |
+| Pre-label freeze CID | `blake3:170419cfcf80b2b0e48cc74faff13c9791dd9106045a1ff59a82efe4f6b205aa` |
+| Pair / case / aggregate balance | `12 / 24 / 12:12` |
+| Validation predictions / scoring-label joins | `0 / 0` |
+| Labels / nonce / scores / verdict | `SEALED / SEALED / NOT_RUN / NOT_RUN` |
+
+The commitment steward handled the structurally determined label preimage once
+only to calculate the integrity commitment. No scoring/evaluation join occurred.
+The nonce is held outside the repository and is not present in source, GitHub,
+test output, or CI. The pre-label root binds the Phase-I identities, both legacy
+input identities, forbidden/prefix/input roots, the salted commitment, counts,
+zero-call declarations, and the literal status
+`inputs=FROZEN;labels=SEALED;predictions=NOT_RUN;scores=NOT_RUN`. The protected
+Phase-II commit additionally binds the frozen comparator mapping: order,
+value, and source-gauge-mismatch controls use H4-compatible attention;
+current-only uses its separately trained current-only arm.
+
+Reproduce the only Phase-II decision-bearing test with:
+
+```bash
+cargo test -p uor-r4-core \
+  --test connection_gauge_covariance_v4_target_free_973 \
+  --offline -- --nocapture
+```
+
+Observed before commit: `1 passed; 0 failed` in 0.49 seconds. The next and only
+authorized action is protected merge of this exact freeze, followed from that
+merge by Phase III: reproduce both freezes, emit two byte-identical label-free
+prediction streams, open the nonce/preimage once, verify the commitment, and
+score once. Any mechanism, population, frame, control, threshold, or encoding
+repair after this point is V5 with a new population, never a V4 rerun.

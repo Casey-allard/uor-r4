@@ -181,9 +181,10 @@ tangent vectors. Phase I passed all 120 H4 frames, 14,400 ordered connections,
 central-finite-difference gradients, live controls, and gauge-covariant logits,
 weights, scores, and update deltas. Its evidence root is
 `blake3:be3772f6d16ca2ae4e19559e4f44ebc60f389cadff2032b956fe12a31e1e725e`.
-No V4 validation input or label was used. Phase II now freezes a fresh balanced
-24-case population disjoint by prefix input from construction, V2, and V3 in a
-separate public commit. The main
+No V4 validation input or label was used in Phase I. Phase II now binds a fresh
+balanced 24-case population, disjoint by prefix input from construction, V2,
+and V3, plus a salted label commitment in PR #1001. No V4 prediction or
+scoring-label join has run. After protected merge, the main
 arms must fit 16/16 construction cases, agree numerically and in decisions, and
 reach at least 18/24 validation; current-only is capped at 12/24 and order,
 value, and gauge-mismatch controls must each trail by at least six decisions.

@@ -34,9 +34,9 @@ assumptions, or objectives rather than measured results.
 > H4-compatible, alternative-tangent, and fixed-frame arms each fit 16/16 with
 > numerical/decision covariance, while current-only stayed at 8/16. The exact
 > 120-frame/14,400-connection, gradient, control, causal-input, and replay gates
-> passed. V4 validation inputs and labels remain `NOT_RUN`; #973 now freezes
-> the target-free 24-case Phase-II population in a separate public commit before
-> one reveal. The scaffold remains H4/S3-only; actual paired-H4/E8 hierarchy, fiber, and torsion binding is
+> passed. #973's target-free 24-case Phase-II population and salted label
+> commitment are now frozen in PR #1001 with zero validation predictions and
+> scoring joins; protected merge precedes one reveal. The scaffold remains H4/S3-only; actual paired-H4/E8 hierarchy, fiber, and torsion binding is
 > `NOT_IMPLEMENTED` and follows only after the connection qualifies. Softmax is
 > an offline oracle, not the serving path. A later positive
 > freezes that function, replaces only its weights with the fiber-preserving
@@ -80,8 +80,9 @@ assumptions, or objectives rather than measured results.
 > The evidence root is
 > `blake3:be3772f6d16ca2ae4e19559e4f44ebc60f389cadff2032b956fe12a31e1e725e`.
 > This is positive representation-covariance evidence on construction only,
-> not the held-out V4 verdict or an H4 advantage. Validation inputs, labels,
-> predictions, paired E8, resonance, recurrence, and lowering remain `NOT_RUN`.
+> not the held-out V4 verdict or an H4 advantage. Phase-II inputs are frozen and
+> labels integrity-sealed; labels remain unrevealed, while predictions, scores,
+> paired E8, resonance, recurrence, and lowering remain `NOT_RUN`.
 > See the [V4 record](connection_gauge_covariance_v4_973.md).
 
 > **Bounded gated-delta core result, 2026-08-28.** The construction-only core
@@ -324,7 +325,8 @@ assumptions, or objectives rather than measured results.
 > failed its held-out accuracy/control gate. The later bounded gated-delta core
 > also trailed plain delta, and the direct H4 scaffold's fresh V3 then scored
 > 3/12 versus plain 12/12. `ConnectionGaugeCovarianceV4` Phase I subsequently
-> passed; #973 now freezes its independent target-free Phase-II population.
+> passed; #973 has frozen its independent target-free Phase-II population and
+> salted commitment in PR #1001. Protected merge/reveal is next.
 > Paired-E8/fiber binding, the corpus oracle, resonance replacement, and bounded
 > recurrence remain later conditional stages. #954 remains blocked behind #973.
 > Legacy

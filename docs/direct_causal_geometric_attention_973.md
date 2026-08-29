@@ -258,8 +258,9 @@ fit 16/16 with numerical and decision covariance; current-only fit 8/16. The
 live-control audit, causal boundary, and byte replay all passed. The complete
 preflight evidence root is
 `blake3:be3772f6d16ca2ae4e19559e4f44ebc60f389cadff2032b956fe12a31e1e725e`.
-V4 validation inputs, labels, and predictions remain `NOT_RUN`; see the
-[V4 record](connection_gauge_covariance_v4_973.md).
+V4 Phase-II target-free inputs and a salted label commitment are now frozen in
+PR #1001. Labels remain sealed, and predictions/scores remain `NOT_RUN`; see
+the [V4 record](connection_gauge_covariance_v4_973.md).
 
 Phase I implemented and froze this contract:
 

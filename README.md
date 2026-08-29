@@ -36,9 +36,10 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > positive: H4-compatible, alternative-tangent, and fixed-frame plain arms each
 > fit 16/16 with numerical/decision covariance; current-only remained 8/16; all
 > 120 frames, 14,400 ordered connections, analytical gradients, live controls,
-> causal reads, and byte replay passed. V4 validation inputs and labels do not
-> yet exist. The immediate action is the independently committed Phase-II
-> target-free 24-case input freeze, followed by one immutable reveal. Actual
+> causal reads, and byte replay passed. The independent Phase-II freeze now
+> binds 12 matched pairs/24 target-free prefixes, a `12/12` aggregate balance,
+> and a salted label commitment with zero validation predictions or scoring
+> joins. It awaits protected merge in PR #1001 before one immutable reveal. Actual
 > paired-E8 hierarchy/fiber/torsion binding and the frozen #953 corpus oracle
 > follow only after that held-out seam qualifies. Softmax is a research oracle, not the serving
 > design. After the geometric oracle qualifies, its
@@ -71,7 +72,8 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > witness, not corpus induction, general semantics, reasoning, correctness, or
 > product readiness. Corpus induction was this result's contemporaneous next
 > step; `ConnectionGaugeCovarianceV4` has passed its construction-only Phase I
-> and awaits the separately frozen target-free Phase-II population, with
+> and now has a separately frozen target-free Phase-II population awaiting
+> protected merge and one-time reveal, with
 > paired-E8 and corpus qualification later. #954 remains blocked. See the
 > [bounded-global record](docs/bounded_global_exact_spin_attention_973.md).
 
@@ -91,7 +93,8 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > This rejected one frozen global relation, not geometry generally. The V1
 > result remains append-only history; V2 supplied the noncommuting repair and
 > historically advanced #973 to a corpus-induction gate. Later negative results
-> supersede that action; `ConnectionGaugeCovarianceV4` Phase II is current. See the
+> supersede that action; `ConnectionGaugeCovarianceV4` Phase II is frozen in
+> PR #1001 and its protected merge/reveal is current. See the
 > [bounded-global record](docs/bounded_global_exact_spin_attention_973.md).
 
 > **Retained conversation-scope result (2026-08-28):** Before the global V2
@@ -123,7 +126,8 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > contract. Later corpus placement and bounded recurrence results were negative;
 > the direct reference has since run and V3 is negative. #973's
 > `ConnectionGaugeCovarianceV4` construction/frame preflight is positive; its
-> target-free held-out freeze is next. #954 remains blocked. See the
+> target-free held-out freeze is now sealed in PR #1001; protected merge and
+> reveal are next. #954 remains blocked. See the
 > [conversation record](docs/conversation_entity_spin_path_attention_973.md).
 
 > **Accepted capability-first evidence (2026-08-28):** #953's frozen
@@ -173,7 +177,8 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > commute; the independently frozen V2 repair then established one bounded
 > noncommuting global mechanism. Later corpus-placement and recurrent results
 > were negative; `ConnectionGaugeCovarianceV4` has passed Phase I and its
-> independent target-free Phase-II freeze is the current active rung.
+> independent target-free Phase-II freeze is sealed in PR #1001. Protected
+> merge and the one-time reveal are the current active rung.
 > #954 remains blocked behind #973. General higher-scope attention, correct
 > answers, and reasoning do not exist yet. The
 > dashboard is an interactive window into the research substrate, not a
@@ -472,8 +477,9 @@ not become substitutes for working intelligence:
    replay.
 3. **Establish and compress geometric attention (#973)** — retain the literal
    causal Q/K/V/O scaffold and the now-positive V4 construction-scale
-   connection-gauge covariance result. Freeze its target-free 24-case Phase-II
-   inputs in a separate public commit, then reveal once and require the three
+   connection-gauge covariance result. Its target-free 24-case Phase-II inputs
+   and salted label commitment are now frozen in a separate public PR; protect
+   that freeze, then reveal once and require the three
    trained gauges to retain held-out parity while current-only, order, value,
    and gauge-mismatch controls fail as declared. Bind actual paired-E8/fiber/
    torsion inputs and their disabled arm only after that connection result
@@ -507,7 +513,8 @@ tested mixed-gauge H4 projection/connection/optimizer combination against a
 working plain arm. Its `10/12` alternative-connection score is diagnostic only
 because that arm was swapped at inference time rather than trained separately.
 Connection/gauge Phase I is positive within #973; the separate target-free
-Phase-II population freeze is active. Multi-resonance replacement and
+Phase-II population and salted commitment are frozen in PR #1001 with no
+validation prediction. Protected merge and one-time reveal are active. Multi-resonance replacement and
 recurrent factorization remain gated behind the held-out geometric oracle.
 #954 remains blocked behind #973. The exact contract is
 [ADR-0005](docs/adr/0005-predictive-geometric-connection-memory.md).

@@ -21,8 +21,9 @@ The correct next use of this work is conditional. Direct-attention V2 is
 non-promotable, and fresh equal-manifold-budget V3 rejected the current mixed-gauge H4
 connection at 3/12 while plain attention reached 12/12 and an inference-time
 coherent alternative-connection swap reached 10/12. `ConnectionGaugeCovarianceV4`
-Phase I subsequently passed; first freeze and reveal its independent held-out
-population, then bind the actual paired-H4/E8 hierarchy and
+Phase I subsequently passed, and its independent 24-case target-free population
+plus salted commitment are frozen in PR #1001. Protect that freeze and reveal
+once, then bind the actual paired-H4/E8 hierarchy and
 fiber/torsion state. Only after that oracle qualifies may its Q/K/V/O roles,
 connection, causal mask, support, and outputs be frozen while replacing only
 the normalized weighting law with a finite positive resonance kernel. Sin/cos

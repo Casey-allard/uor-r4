@@ -36,8 +36,9 @@ full H4 3/12, matched plain 12/12, current-only 6/12, and an inference-time
 coherent alternative-connection swap 10/12. Thus Q/K/V/O learning, stable softmax, and transported
 value aggregation are reachable, but the current mixed-gauge H4 representation/optimizer combination
 does not transfer. The separately trained connection/gauge comparison has now
-passed its construction/frame/gradient Phase I. The immediate decision is its
-separate target-free held-out input freeze and one-time reveal. The
+passed its construction/frame/gradient Phase I. Its separate target-free
+held-out input freeze and salted commitment are now bound in PR #1001; the
+immediate decision is protected merge followed by one-time reveal. The
 #989/#953 corpus, support, decoder, and work remain frozen for the later full
 qualification. Paired-H4/E8 hierarchy, fiber, and torsion binding is
 `NOT_IMPLEMENTED` and cannot support a claim.
@@ -51,8 +52,9 @@ weights, scores, and updates on construction.
 Its fresh 24-case prefix-input-disjoint gate requires 16/16 construction fit,
 at least 18/24 validation for all main arms, numerical/decision parity,
 current-only at most 12/24, and at least a six-decision loss for order, value,
-and deliberate gauge-mismatch controls. V4 Phase I is `PASS`; its held-out
-inputs, labels, predictions, and verdict remain `NOT_RUN`.
+and deliberate gauge-mismatch controls. V4 Phase I is `PASS`; Phase-II inputs
+are frozen with labels sealed, while predictions, scores, and the held-out
+verdict remain `NOT_RUN`.
 
 Both the full and equal-raw-manifold-budget plain Euclidean arms must lower construction-
 validation next-token loss and improve or preserve top-1 versus frozen #953.
@@ -876,8 +878,9 @@ The V1 contract and negative below remain append-only evidence. The
 independently frozen V2 repair subsequently satisfied the bounded-global
 decision without changing V1. Later corpus-placement, gated-delta, and direct
 V3 results were negative. `ConnectionGaugeCovarianceV4` Phase I subsequently
-passed. The current evaluation action is its fresh target-free held-out
-freeze/reveal; paired-E8 and corpus qualification remain conditional successors.
+passed. Its fresh target-free held-out freeze and salted commitment are sealed
+in PR #1001; protected merge/reveal is the current evaluation action, while
+paired-E8 and corpus qualification remain conditional successors.
 
 #973 owns paragraph, conversation, and bounded-global influence only after the
 one #989-matched #953 intervention qualifies the decoded loop.
@@ -988,9 +991,10 @@ This establishes one bounded synthetic causal global geometric-attention
 witness only. It does not establish corpus induction, semantic or natural
 transfer, general attention, correctness, reasoning, or product readiness.
 That next corpus-induction gate is now completed negative in PR #997. The
-current #973 decision is ADR-0005's target-free V4 held-out freeze/reveal inside
+current #973 decision is ADR-0005's protected target-free V4 reveal inside
 the literal transported Q/K/V/O reference, following the positive
-`ConnectionGaugeCovarianceV4` Phase I and followed only on held-out success by paired-E8 binding,
+`ConnectionGaugeCovarianceV4` Phase I and the sealed PR #1001 Phase-II freeze,
+and followed only on held-out success by paired-E8 binding,
 multi-resonance, and recurrent lowering; #954 remains blocked. See the
 [#973 bounded-global record](bounded_global_exact_spin_attention_973.md).
 

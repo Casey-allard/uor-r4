@@ -500,7 +500,8 @@ complete. V3 established the dense fixed-tangent learning path (`12/12`) but
 rejected the tested mixed-gauge H4 projection/connection/optimizer combination
 (`3/12`). `ConnectionGaugeCovarianceV4` Phase I subsequently passed with
 explicit local coordinates and separately trained connection arms. Its
-target-free held-out freeze/reveal is the active #973 action. Paired-E8,
+target-free held-out freeze is sealed in PR #1001; protected merge/reveal is
+the active #973 action. Paired-E8,
 corpus, resonance-sieve, recurrent-factorization, and exact-lowering work stay
 conditional on that gate. This changes no bounded-global claim or evidence
 identity above.

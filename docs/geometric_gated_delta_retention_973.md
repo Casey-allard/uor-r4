@@ -224,7 +224,8 @@ connection 10/12. The binding V3 verdict is
 `FAIL_EQUAL_DOF_H4_DIRECT_ATTENTION_NOT_LOAD_BEARING_ON_FRESH_V3`.
 
 This does not revise the recurrent counts above. `ConnectionGaugeCovarianceV4`
-Phase I subsequently passed construction covariance; #973 now freezes its
-separate target-free held-out population before paired-E8 binding,
+Phase I subsequently passed construction covariance; #973 has frozen its
+separate target-free held-out population and salted commitment in PR #1001
+before paired-E8 binding,
 multi-resonance replacement, or another recurrent experiment. The
 multi-resonance sieve remains `NOT_RUN`.

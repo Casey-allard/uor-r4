@@ -19,8 +19,9 @@ of a raw-manifold-parameter mismatch; fresh equal-manifold-budget V3 returned fu
 plain 12/12, current-only 6/12, and an inference-time coherent alternative-
 connection swap 10/12; that alternative was not separately trained.
 `ConnectionGaugeCovarianceV4` Phase I has since passed construction-scale
-representation covariance. The active build is its separate target-free
-held-out population freeze and one-time reveal.
+representation covariance. Its separate 24-case target-free population and
+salted label commitment are frozen in PR #1001 with zero validation
+predictions; protected merge and the one-time reveal are the active build.
 Softmax is an offline oracle. Only a qualified geometric oracle binds the full
 paired-E8/fiber hierarchy and proceeds to the fiber-preserving multi-resonance
 sieve, bounded recurrence, and exact runtime lowering.
@@ -95,7 +96,7 @@ reversible lexical geometry
 The code scaffold implements only the H4/S3 portion of the direct reference,
 and its current mixed-gauge H4 parameterization is negative on equal-manifold-budget V3.
 `ConnectionGaugeCovarianceV4` Phase I is positive; its target-free held-out
-freeze/reveal is next. Binding the actual paired-E8 hierarchy, fiber, and
+freeze is sealed in PR #1001, so protected merge/reveal is next. Binding the actual paired-E8 hierarchy, fiber, and
 torsion remains `NOT_IMPLEMENTED`; the diagram is the qualification sequence,
 not a claim that every arrow exists today.
 

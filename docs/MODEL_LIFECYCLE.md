@@ -29,8 +29,9 @@ Q/K/V/O roles, tangent projection, causal transport, stable softmax, and
 transported value aggregation. V2 is non-promotable; equal-manifold-budget V3 returned full
 H4 3/12 versus plain 12/12 and an inference-time coherent alternative-connection
 swap 10/12. `ConnectionGaugeCovarianceV4` Phase I has since passed its
-construction/frame/gradient contract; the active work is its separate
-target-free held-out population freeze and one-time reveal.
+construction/frame/gradient contract; its separate target-free held-out
+population and salted commitment are frozen in PR #1001, with protected merge
+and the one-time reveal active.
 Softmax does not enter serving. A qualified geometric reference next binds the
 paired hierarchy and freezes a fiber-preserving multi-resonance weighting
 law, factors its band-limited modes into bounded recurrence, and only then

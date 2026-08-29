@@ -414,7 +414,8 @@ then established the dense fixed-tangent Q/K/V/O path (`12/12`) but rejected
 the tested mixed-gauge H4 projection/connection/optimizer combination (`3/12`).
 `ConnectionGaugeCovarianceV4` Phase I subsequently passed with explicit local
 coordinates and separately trained H4, alternative tangent, and fixed-tangent
-arms. Its target-free held-out freeze/reveal is the active #973 action.
+arms. Its target-free held-out freeze and salted commitment are sealed in PR
+#1001; protected merge/reveal is the active #973 action.
 Paired-E8, corpus, resonance-sieve, recurrent-factorization, and
 exact-lowering work remain conditional on that result. This update changes no
 #997 evidence or terminal above.
