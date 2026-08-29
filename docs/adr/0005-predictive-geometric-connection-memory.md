@@ -1,7 +1,7 @@
 # ADR-0005: Direct geometric attention, resonance replacement, and recurrent lowering
 
-- **Status:** Accepted as the current #973 research direction; unqualified as a
-  language mechanism
+- **Status:** Accepted; V4 construction-scale representation covariance passed,
+  held-out qualification pending
 - **Date:** 2026-08-28
 - **Owner:** #973 under programme root #820
 - **Supersedes for forward work:** another fixed componentwise prototype or
@@ -24,8 +24,11 @@ aggregates the transported values over the unchanged lawful support admitted by
 #953. The bounded H4-only scaffold is now implemented. Its V2 result is
 `NON_PROMOTABLE_BUDGET_MISMATCH`; fresh equal-manifold-budget V3 returned full H4 3/12
 against matched plain 12/12 and a coherent alternative tangent connection at
-10/12. The current action is therefore separately trained
-`ConnectionGaugeCovarianceV4`, not resonance or scale. The full qualification contract later consumes
+10/12. Separately trained `ConnectionGaugeCovarianceV4` has now passed its
+construction-only mechanism/frame/gradient gate: the three main gauges each
+fit 16/16 with numerical and decision covariance, while current-only remained
+8/16. Its independent target-free Phase-II population and one-time reveal are
+the current action, not resonance or scale. The full qualification contract later consumes
 the existing paired-H4/E8 hierarchy trace. Paired-E8 hierarchy features, fiber,
 and torsion are `NOT_IMPLEMENTED` in the scaffold and cannot receive credit
 until the repaired connection is qualified and those inputs are explicitly
@@ -87,8 +90,10 @@ coordinates is rejected as semantic placement. The bounded recurrent negative
 does not isolate attention: it simultaneously changes representation, training,
 soft weighting, and compression. More documents or more rows cannot repair
 either ambiguity. The literal operator and plain learning control now work;
-the smallest decisive next experiment is `ConnectionGaugeCovarianceV4`, not a
-new representation family or resonance approximation.
+the smallest decisive next experiment was `ConnectionGaugeCovarianceV4`, not a
+new representation family or resonance approximation. Its Phase-I preflight is
+positive; the smallest current decision is the separately committed target-free
+Phase-II population followed by one immutable held-out reveal.
 
 ## Reference and lowering representation
 
@@ -157,7 +162,7 @@ gauge and conditioning seam:
 - V3's 10/12 `AlternativeConnection` was an inference-time transport swap over
   the full arm's trained placements, not a separately trained connection arm.
 
-The next mechanism version is `ConnectionGaugeCovarianceV4`. It stores one
+The repaired mechanism version is `ConnectionGaugeCovarianceV4`. It stores one
 explicit three-coefficient local vector for each Q/K/V/O role and compares
 three separately trained, identically initialized arms:
 
@@ -166,20 +171,26 @@ B_H(g) = [g*i, g*j, g*k]                 # H4-compatible local frame
 B_A(g) = deterministic_tangent_basis(g)  # coherent alternative frame
 B_P(g) = fixed_frame                     # ordinary plain comparator
 P_c(s -> d) = B_c(d) * transpose(B_c(s))
+C_c(s -> d) = d * transpose(s) + P_c(s -> d)
 x_s = B_c(s) * theta
 ```
 
-For the H4 frame, this endpoint-basis connection must reproduce the existing
-left action on tangent vectors. Before labels, V4 exhaustively checks all 120
-H4 frames, central-finite-difference gradients, and gauge-covariant logits,
-weights, scores, and update deltas. It then freezes a fresh balanced 24-case
-population disjoint by prefix input from construction, V2, and V3. The main
+`P` is the rank-three tangent transport; `C` is its full orthogonal extension.
+For the H4 frame, `C` reproduces the existing left action and `P` agrees on
+tangent vectors. Phase I passed all 120 H4 frames, 14,400 ordered connections,
+central-finite-difference gradients, live controls, and gauge-covariant logits,
+weights, scores, and update deltas. Its evidence root is
+`blake3:be3772f6d16ca2ae4e19559e4f44ebc60f389cadff2032b956fe12a31e1e725e`.
+No V4 validation input or label was used. Phase II now freezes a fresh balanced
+24-case population disjoint by prefix input from construction, V2, and V3 in a
+separate public commit. The main
 arms must fit 16/16 construction cases, agree numerically and in decisions, and
 reach at least 18/24 validation; current-only is capped at 12/24 and order,
 value, and gauge-mismatch controls must each trail by at least six decisions.
 
-This rung tests representational covariance, not geometric advantage. Paired-
-E8/fiber binding begins only after it passes.
+This rung tests representational covariance, not geometric advantage. Its
+construction half has passed; paired-E8/fiber binding begins only after the
+held-out reveal also passes.
 
 ### Multi-resonance replacement
 

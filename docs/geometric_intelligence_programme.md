@@ -75,11 +75,12 @@ The one-head `DirectCausalGeometricAttentionR4V1` scaffold now exists: learned
 Q/K/V/O, S3 tangent projection, causal transport, stable softmax, and
 transported value aggregation. V2 is `NON_PROMOTABLE_BUDGET_MISMATCH`. Fresh
 equal-manifold-budget V3 returned full H4 3/12, plain 12/12, current-only 6/12,
-and an inference-time coherent alternative-connection swap 10/12. The immediate
-#973 build therefore separately
-trains the H4 and coherent tangent-frame connections against plain on fresh
-data, with key-isometry, order-shuffled, value-permuted, seed-disabled, and
-current-only controls. Both dense arms must eventually beat #953 and geometry
+and an inference-time coherent alternative-connection swap 10/12. The
+separately trained V4 H4, coherent tangent-frame, and plain arms have since
+passed their construction/frame/gradient Phase I. #973 now freezes the
+target-free held-out population in a separate public commit before one reveal,
+with order-shuffled, value-permuted, gauge-mismatch, and current-only controls.
+The qualified dense arms must eventually beat #953 and geometry
 must be non-inferior to plain; strict improvement is a separate advantage
 claim. Support stays identical; transport overhead is measured explicitly
 rather than called equal work. Binding the actual paired-E8 hierarchy, fiber,
@@ -88,9 +89,10 @@ and torsion—and then adding a paired-E8-disabled control—remains
 
 The repair is `ConnectionGaugeCovarianceV4`: explicit three-coefficient local
 placements, H4-compatible and deterministic tangent bases, a fixed-frame plain
-arm, and separately owned but identically initialized training. Algebraic and
-finite-difference gauge/gradient preflight precedes one fresh 24-case
-prefix-input-disjoint reveal. This tests whether dense attention is represented
+arm, and separately owned but identically initialized training. Its algebraic
+and finite-difference gauge/gradient Phase I passed; a separately committed
+target-free 24-case prefix-input-disjoint population and one-time reveal are
+next. This tests whether dense attention is represented
 covariantly in R4 tangent frames; it does not test geometric advantage.
 Softmax is not the target runtime. A positive freezes this reference,
 then replaces only its weighting law with the multi-resonance sieve using
@@ -235,9 +237,9 @@ construction-bound exact-descriptor selector at each of paragraph and
   conversation scope. The first bounded-global exact-spin relation is now
   preserved target-free negative history; the independently frozen V2 repair
   passed its bounded decoded contract. Later document-placement, gated-delta,
-  and direct-attention V3 results were negative. The current blocker is
-  `ConnectionGaugeCovarianceV4`; paired-E8/corpus qualification follows only
-  after it passes. Calling a later
+  and direct-attention V3 results were negative. `ConnectionGaugeCovarianceV4`
+  Phase I is positive; its held-out input freeze/reveal is the current blocker.
+  Paired-E8/corpus qualification follows only after that passes. Calling a later
 #973 operator harmonic additionally requires an
 artifact-bound basis/mode contract. #962
 separately owns product chat integration and persisted, identity-scoped hive
@@ -1601,8 +1603,9 @@ and 98/112. `DirectCausalGeometricAttentionR4V1` then implemented literal
 causal Q/K/V/O, tangent projection, softmax weighting, and transported value
 aggregation. Its V2 evidence is non-promotable; equal-manifold-budget V3 isolated a failing
 H4 connection against a working plain arm and a strong coherent-tangent
-diagnostic. #973 therefore runs `ConnectionGaugeCovarianceV4` first, preserving
-immutable route/payload identity and #953 admission/support. No reference result
+diagnostic. `ConnectionGaugeCovarianceV4` Phase I subsequently passed; #973 now
+freezes its independent target-free held-out population, preserving immutable
+route/payload identity and #953 admission/support. No reference result
 alone may advance to the D3 join. A later positive must first bind the paired
 hierarchy and survive fiber-preserving multi-resonance replacement and bounded
 recurrent factorization under matched destructive controls.

@@ -28,8 +28,9 @@ literal offline operator defined by
 Q/K/V/O roles, tangent projection, causal transport, stable softmax, and
 transported value aggregation. V2 is non-promotable; equal-manifold-budget V3 returned full
 H4 3/12 versus plain 12/12 and an inference-time coherent alternative-connection
-swap 10/12. The
-active implementation is `ConnectionGaugeCovarianceV4` on fresh data.
+swap 10/12. `ConnectionGaugeCovarianceV4` Phase I has since passed its
+construction/frame/gradient contract; the active work is its separate
+target-free held-out population freeze and one-time reveal.
 Softmax does not enter serving. A qualified geometric reference next binds the
 paired hierarchy and freezes a fiber-preserving multi-resonance weighting
 law, factors its band-limited modes into bounded recurrence, and only then

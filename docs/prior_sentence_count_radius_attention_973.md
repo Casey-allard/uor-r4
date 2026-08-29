@@ -188,6 +188,7 @@ explicitly recorded here.
 
 This bounded result remains unchanged. Its then-next sequencing is complete;
 the then-current #973 work was ADR-0005
-`PredictiveConnectionRetentionGate0V1`. The current 2026-08-29 action is
-`ConnectionGaugeCovarianceV4`, following the negative gated-delta smoke and
-the direct-attention V3 result (geometric `3/12`, fixed-tangent plain `12/12`).
+`PredictiveConnectionRetentionGate0V1`. `ConnectionGaugeCovarianceV4` Phase I
+subsequently passed; its target-free held-out freeze/reveal is the current
+2026-08-29 action following the negative gated-delta smoke and direct-attention
+V3 result (geometric `3/12`, fixed-tangent plain `12/12`).

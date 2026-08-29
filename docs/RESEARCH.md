@@ -29,15 +29,21 @@ assumptions, or objectives rather than measured results.
 > aggregation. V2 is `NON_PROMOTABLE_BUDGET_MISMATCH`. Its fresh equal-manifold-budget V3
 > returned full H4 3/12, matched plain 12/12, current-only 6/12, and an
 > inference-time coherent alternative-connection swap 10/12. The learning/softmax/value path works; the
-> current mixed-gauge parameterization does not transfer. #973 therefore runs
-> only `ConnectionGaugeCovarianceV4` on fresh data. The scaffold remains H4/S3-
-> only; actual paired-H4/E8 hierarchy, fiber, and torsion binding is
+> current mixed-gauge parameterization does not transfer. The construction-only
+> Phase I of `ConnectionGaugeCovarianceV4` is now positive: separately trained
+> H4-compatible, alternative-tangent, and fixed-frame arms each fit 16/16 with
+> numerical/decision covariance, while current-only stayed at 8/16. The exact
+> 120-frame/14,400-connection, gradient, control, causal-input, and replay gates
+> passed. V4 validation inputs and labels remain `NOT_RUN`; #973 now freezes
+> the target-free 24-case Phase-II population in a separate public commit before
+> one reveal. The scaffold remains H4/S3-only; actual paired-H4/E8 hierarchy, fiber, and torsion binding is
 > `NOT_IMPLEMENTED` and follows only after the connection qualifies. Softmax is
 > an offline oracle, not the serving path. A later positive
 > freezes that function, replaces only its weights with the fiber-preserving
 > multi-resonance sieve, then factors the band-limited mode sums into bounded
 > recurrence. More scale, route families, or exact lowering are not the next
 > action. The architecture and outcome branches are frozen in
+> [V4 record](connection_gauge_covariance_v4_973.md) and
 > [ADR-0005](adr/0005-predictive-geometric-connection-memory.md). The focused
 > [reuse audit](multi_resonance_attention_sieve_audit_973.md) confirms that the
 > repository contains fixed-point Spin/fiber state and historical sin/cos and
@@ -60,6 +66,23 @@ assumptions, or objectives rather than measured results.
 > not dense attention, softmax, all R4 tangent connections, or the planned
 > resonance kernel. See the
 > [direct-attention record](direct_causal_geometric_attention_973.md).
+
+> **Connection-gauge V4 Phase-I result, 2026-08-29.** The new artifact stores
+> unconstrained local three-coordinate Q/K/V/O parameters and separately trains
+> H4-compatible, oriented alternative-tangent, fixed-frame plain, and
+> current-only arms from one common initialization. H4/alternative/plain each
+> fit 16/16 construction cases; current-only fit 8/16. All main-arm decisions,
+> logits, weights, scores, analytical gradients, and proposed update deltas were
+> covariant within the frozen tolerances. All 120 exact frames and 14,400
+> ordered source/destination pairs passed direct tangent and full-connection
+> identities; 39 active Q/K/V/O coordinates passed central differences; order,
+> value, and gauge-mismatch controls were live; and causal/replay checks passed.
+> The evidence root is
+> `blake3:be3772f6d16ca2ae4e19559e4f44ebc60f389cadff2032b956fe12a31e1e725e`.
+> This is positive representation-covariance evidence on construction only,
+> not the held-out V4 verdict or an H4 advantage. Validation inputs, labels,
+> predictions, paired E8, resonance, recurrence, and lowering remain `NOT_RUN`.
+> See the [V4 record](connection_gauge_covariance_v4_973.md).
 
 > **Bounded gated-delta core result, 2026-08-28.** The construction-only core
 > compiled separate K/V/Q placements, four multirate last-context banks, H4
@@ -300,8 +323,9 @@ assumptions, or objectives rather than measured results.
 > frozen document-scope corpus-induced placement then passed target-free but
 > failed its held-out accuracy/control gate. The later bounded gated-delta core
 > also trailed plain delta, and the direct H4 scaffold's fresh V3 then scored
-> 3/12 versus plain 12/12. #973 now runs `ConnectionGaugeCovarianceV4` first;
-> paired-E8/fiber binding, the corpus oracle, resonance replacement, and bounded
+> 3/12 versus plain 12/12. `ConnectionGaugeCovarianceV4` Phase I subsequently
+> passed; #973 now freezes its independent target-free Phase-II population.
+> Paired-E8/fiber binding, the corpus oracle, resonance replacement, and bounded
 > recurrence remain later conditional stages. #954 remains blocked behind #973.
 > Legacy
 > tracker #949 is closed as superseded, and #958 is retained directly beneath

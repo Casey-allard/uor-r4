@@ -248,10 +248,20 @@ and is not a global harmonic basis. Compiler-side sin/cos may later lower to
 Q29/H4 lookup tables; no transcendental function is authorized in the deployed
 kernel.
 
-## Next decision gate
+## V4 Phase-I result and next decision gate
 
-V3 and its labels are quarantined from all further mechanism choices. The next
-bounded rung is `ConnectionGaugeCovarianceV4`, not paired-E8 or resonance:
+V3 and its labels are quarantined from all further mechanism choices.
+`ConnectionGaugeCovarianceV4` has now passed its construction-only Phase-I
+preflight. H4-compatible, alternative-tangent, and fixed-frame plain arms each
+fit 16/16 with numerical and decision covariance; current-only fit 8/16. The
+120-frame/14,400-pair connection audit, 39-coordinate finite-difference audit,
+live-control audit, causal boundary, and byte replay all passed. The complete
+preflight evidence root is
+`blake3:be3772f6d16ca2ae4e19559e4f44ebc60f389cadff2032b956fe12a31e1e725e`.
+V4 validation inputs, labels, and predictions remain `NOT_RUN`; see the
+[V4 record](connection_gauge_covariance_v4_973.md).
+
+Phase I implemented and froze this contract:
 
 1. parameterize every Q/K/V/O placement by the same explicit local
    three-coefficient vector rather than a normalized ambient-R4 vector followed
@@ -259,22 +269,28 @@ bounded rung is `ConnectionGaugeCovarianceV4`, not paired-E8 or resonance:
 2. compare the H4-compatible frame `B_H(g) = [g*i, g*j, g*k]`, the existing
    deterministic Gram-Schmidt tangent frame, and one fixed-frame plain arm;
    train all three separately from identical coefficient initialization;
-3. prove over all 120 H4 frames that base mapping, orthogonality, tangency, and
-   composition hold, compare analytical Q/K/V/O gradients with central finite
-   differences, and require gauge-covariant logits, weights, scores, and update
-   deltas before any validation label is opened;
+3. distinguish the rank-three tangent transport
+   `P(d <- s) = B(d) B(s)^T` from its full orthogonal extension
+   `C(d <- s) = d s^T + P(d <- s)`, then prove over all 120 H4 frames that
+   `P` maps tangent bases and composes on tangent vectors while `C` maps the
+   source base to the destination base, is orthogonal, and composes; compare
+   analytical Q/K/V/O gradients with central finite differences, and require
+   gauge-covariant logits, weights, scores, and update deltas before any
+   validation label is opened;
 4. retain current-only, order-shuffled, value-permuted, and deliberately gauge-
    mismatched controls. The V3 `AlternativeConnection` was an inference-time
    transport swap over the full arm's weights, not a separately trained arm;
-5. freeze one balanced 24-case V4 population whose prefix inputs are disjoint
-   from construction, V2, and V3. Keep support, 80 epochs, learning rate,
+5. after the Phase-I protected merge, freeze one balanced 24-case V4 population
+   in a separate input-only commit whose prefix inputs are disjoint from
+   construction, V2, and V3. Keep support, 80 epochs, learning rate,
    temperature, and causal mask unchanged; and
 6. require 16/16 construction fit for all three main arms, numerical/decision
    parity between them, at least 18/24 fresh validation, current-only at most
    12/24, each binding/gauge-destroying control at least six decisions lower,
    zero future reads, and byte-identical replay.
 
-If all three main arms agree and pass, V3 isolated a parameter-gauge/
+The immediate action is item 5 followed by one immutable reveal. If all three
+main arms agree and pass held-out, V3 isolated a parameter-gauge/
 conditioning defect and #973 may bind real `AttentionLevelTrace` paired-H4/E8,
 hierarchy, S3/Hopf, fiber/torsion, phase, and chart inputs with a matched
 paired-E8-disabled arm. If the alternative passes but H4 still fails, audit
@@ -298,21 +314,31 @@ cargo test -p uor-r4-core --lib direct_causal_geometric_attention \
 cargo test -p uor-r4-core \
   --test direct_causal_geometric_attention_973 \
   --offline --no-fail-fast -- --nocapture
+
+cargo test -p uor-r4-core \
+  --test connection_gauge_covariance_v4_973 \
+  --offline --no-fail-fast -- --nocapture
 ```
 
 Observed focused results after the V3 correction: 6/6 unit tests and 7/7
 integration tests passed. The integration suite passes by reproducing and
 asserting the frozen negative verdict; a green harness is not a positive
-research result.
+research result. The separate V4 Phase-I suite passed 8/8; that is positive
+construction-scale representation-covariance evidence, not the V4 held-out
+verdict.
 
 ## Claim boundary
 
-This smoke does not establish an H4-connection advantage, paired-E8 attention,
+The V4 Phase-I preflight establishes that ordinary one-head softmax attention
+can be expressed covariantly in the tested local R3 gauges on the 16
+construction bindings. It does not establish an H4-connection advantage,
+held-out V4 transfer, paired-E8 attention,
 hierarchy/fiber/torsion attention, #953 corpus value, natural-language transfer,
 multi-head attention, a residual/norm/FFN block, resonance replacement, bounded
 recurrence, autonomous generation, exact/table runtime legality, correctness,
 reasoning, chat, CPU or energy advantage, formal proof, product readiness, or
-release readiness. It establishes one deterministic, causal, compiler-side,
-one-head H4/S3 direct-attention implementation, an equal-raw-manifold-budget plain attention
-positive control, and a frozen negative result for the current H4
-projection/connection/optimization combination.
+release readiness. The record retains V3's frozen mixed-gauge negative and adds
+V4's positive construction-scale proof that the same learned local
+coefficients, ordinary attention operator, and proposed updates are covariant
+under H4-compatible and alternative tangent frames and match the fixed-frame
+plain comparator within the frozen numerical tolerances.

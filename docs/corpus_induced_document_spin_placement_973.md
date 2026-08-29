@@ -412,8 +412,9 @@ The gated-delta smoke and direct-attention V3 experiment are now complete. The
 gated-delta cell did not beat its matched plain recurrent control. Direct V3
 then established the dense fixed-tangent Q/K/V/O path (`12/12`) but rejected
 the tested mixed-gauge H4 projection/connection/optimizer combination (`3/12`).
-The active #973 action is `ConnectionGaugeCovarianceV4`: use explicit local
-coordinates and train H4, alternative tangent, and fixed-tangent arms
-separately. Paired-E8, corpus, resonance-sieve, recurrent-factorization, and
+`ConnectionGaugeCovarianceV4` Phase I subsequently passed with explicit local
+coordinates and separately trained H4, alternative tangent, and fixed-tangent
+arms. Its target-free held-out freeze/reveal is the active #973 action.
+Paired-E8, corpus, resonance-sieve, recurrent-factorization, and
 exact-lowering work remain conditional on that result. This update changes no
 #997 evidence or terminal above.

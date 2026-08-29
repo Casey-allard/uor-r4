@@ -483,8 +483,9 @@ the then-current #973 work was ADR-0005
 The intervening gated-delta smoke and direct-attention V3 experiment are now
 complete. The gated-delta cell showed no advantage on its bounded fixture, and
 the equal-manifold-budget direct-attention result was geometric `3/12` versus
-plain fixed-tangent `12/12`. The active #973 action is therefore
-`ConnectionGaugeCovarianceV4`: qualify separately trained H4, alternative
-tangent, and fixed-tangent arms under explicit local coordinates before any
+plain fixed-tangent `12/12`. `ConnectionGaugeCovarianceV4` Phase I has since
+qualified separately trained H4, alternative-tangent, and fixed-tangent arms
+under explicit local coordinates. Its target-free held-out freeze/reveal is the
+active #973 action before any
 paired-E8, corpus, resonance-sieve, recurrent-factorization, or exact-lowering
 work. This update changes no earlier conversation-scope evidence or identity.

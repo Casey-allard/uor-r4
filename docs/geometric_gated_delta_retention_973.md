@@ -223,7 +223,8 @@ matched plain 12/12, current-only 6/12, and a coherent alternative tangent
 connection 10/12. The binding V3 verdict is
 `FAIL_EQUAL_DOF_H4_DIRECT_ATTENTION_NOT_LOAD_BEARING_ON_FRESH_V3`.
 
-This does not revise the recurrent counts above. It changes the next action:
-#973 now runs `ConnectionGaugeCovarianceV4` on fresh data before paired-E8
-binding, multi-resonance replacement, or another recurrent experiment. The
+This does not revise the recurrent counts above. `ConnectionGaugeCovarianceV4`
+Phase I subsequently passed construction covariance; #973 now freezes its
+separate target-free held-out population before paired-E8 binding,
+multi-resonance replacement, or another recurrent experiment. The
 multi-resonance sieve remains `NOT_RUN`.
