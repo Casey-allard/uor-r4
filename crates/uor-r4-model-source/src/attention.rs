@@ -143,26 +143,100 @@ pub struct CausalAttentionSourceContext {
     pub source_position: usize,
 }
 
+/// Immutable layer-level coordinates for an optional learned projection after
+/// the checkpoint's dense Q/K/V matmuls and before RoPE rotates Q and K.
+///
+/// The hook receives every query head and the current grouped-query K/V rows in
+/// their canonical model coordinates. Implementations can therefore apply one
+/// declared learned projection before positional or geometric frame actions
+/// without taking ownership of the checkpoint matmuls themselves.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct CausalAttentionProjectionContext {
+    /// Zero-based decoder layer.
+    pub layer: usize,
+    /// Current causal position.
+    pub query_position: usize,
+    /// Number of query heads packed in the mutable query slice.
+    pub query_heads: usize,
+    /// Number of grouped-query key/value heads packed in each K/V slice.
+    pub key_value_heads: usize,
+    /// Number of scalar lanes in each query or key/value head.
+    pub head_size: usize,
+}
+
+/// Decoder-owned census for the optional pre-RoPE learned-projection seam.
+///
+/// This is separate from [`CausalAttentionTransportAudit`] so existing
+/// full-prefix transport evidence remains wire-compatible while a construction
+/// experiment can prove that every selected layer received exactly one complete
+/// projected Q/K/V tuple.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct CausalAttentionProjectionAudit {
+    /// Layer-level hook invocations.
+    pub hook_calls: u64,
+    /// Query-head vectors presented across all hook invocations.
+    pub query_vectors: u64,
+    /// Key-head vectors presented across all hook invocations.
+    pub key_vectors: u64,
+    /// Value-head vectors presented across all hook invocations.
+    pub value_vectors: u64,
+    /// Scalar query lanes presented across all hook invocations.
+    pub query_lanes: u64,
+    /// Scalar key lanes presented across all hook invocations.
+    pub key_lanes: u64,
+    /// Scalar value lanes presented across all hook invocations.
+    pub value_lanes: u64,
+}
+
+impl CausalAttentionProjectionAudit {
+    pub(crate) fn record(
+        &mut self,
+        context: CausalAttentionProjectionContext,
+        query_lanes: usize,
+        key_lanes: usize,
+        value_lanes: usize,
+    ) {
+        self.hook_calls = self.hook_calls.saturating_add(1);
+        self.query_vectors = self
+            .query_vectors
+            .saturating_add(context.query_heads as u64);
+        self.key_vectors = self
+            .key_vectors
+            .saturating_add(context.key_value_heads as u64);
+        self.value_vectors = self
+            .value_vectors
+            .saturating_add(context.key_value_heads as u64);
+        self.query_lanes = self.query_lanes.saturating_add(query_lanes as u64);
+        self.key_lanes = self.key_lanes.saturating_add(key_lanes as u64);
+        self.value_lanes = self.value_lanes.saturating_add(value_lanes as u64);
+    }
+}
+
 /// Object-safe coordinate-transport and attention-operator seam around dense
 /// causal attention.
 ///
-/// The decoder retains ownership of learned Q/K/V and Wo projections, RoPE,
-/// the complete causal prefix, residuals, FFN, final norm, and the LM head.
+/// The decoder retains ownership of the checkpoint's dense Q/K/V and Wo
+/// projections, RoPE, the complete causal prefix, residuals, FFN, final norm,
+/// and the LM head. An implementation may mutate the freshly projected Q/K/V
+/// tuple exactly once before RoPE through
+/// [`transform_projected_qkv_before_rope`](Self::transform_projected_qkv_before_rope).
 /// The default score/normalization and value-aggregation hooks preserve the
 /// ordinary scaled-dot-product, stable-softmax, linear-value operator exactly.
 /// Implementations may instead declare an intrinsic compatibility function or
 /// geometric weighted centroid while retaining every surrounding decoder
 /// operation:
 ///
-/// 1. [`transform_query`](Self::transform_query) maps the current query;
-/// 2. [`transport_key`](Self::transport_key) and
+/// 1. [`transform_projected_qkv_before_rope`](Self::transform_projected_qkv_before_rope)
+///    may apply one learned layer-level projection before RoPE;
+/// 2. [`transform_query`](Self::transform_query) maps the current post-RoPE query;
+/// 3. [`transport_key`](Self::transport_key) and
 ///    [`transport_value`](Self::transport_value) map every admitted cached
 ///    source from its frame to the query frame;
-/// 3. [`score_and_normalize`](Self::score_and_normalize) assigns normalized
+/// 4. [`score_and_normalize`](Self::score_and_normalize) assigns normalized
 ///    weights over the complete packed causal prefix;
-/// 4. [`weighted_value_centroid`](Self::weighted_value_centroid) aggregates
+/// 5. [`weighted_value_centroid`](Self::weighted_value_centroid) aggregates
 ///    the packed query-frame values; and
-/// 5. [`output_to_model_frame`](Self::output_to_model_frame) maps the dense
+/// 6. [`output_to_model_frame`](Self::output_to_model_frame) maps the dense
 ///    aggregate back before the unchanged Wo projection.
 ///
 /// All input and output slices have the model's complete head width. The
@@ -199,6 +273,24 @@ pub trait CausalAttentionTransport: Send {
 
     /// Admit the current token once, before any selected layer processes it.
     fn begin_position(&mut self, token: usize, position: usize);
+
+    /// Optionally mutate one complete checkpoint-projected Q/K/V tuple before
+    /// positional rotation.
+    ///
+    /// The default is an exact no-op. The query slice packs every query head;
+    /// key and value pack only the current position's grouped-query K/V heads.
+    /// Slice lengths are fixed by `context` and cannot be changed. An
+    /// implementation that detects an invalid parameter or arithmetic state
+    /// records that failure in [`status`](Self::status); the existing public
+    /// step boundary then withholds logits and returns a transport fault.
+    fn transform_projected_qkv_before_rope(
+        &mut self,
+        _context: CausalAttentionProjectionContext,
+        _query: &mut [f32],
+        _key: &mut [f32],
+        _value: &mut [f32],
+    ) {
+    }
 
     /// Express a post-RoPE query in its query-local frame.
     fn transform_query(

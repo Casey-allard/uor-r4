@@ -23,7 +23,8 @@ use crate::canonical_lexical_ingestion::{
 };
 use crate::corpus_induced_spin_placement::{compile_identity_leaves, leaf_for_token};
 use uor_r4_model_source::attention::{
-    CausalAttentionHeadContext, CausalAttentionSourceContext, CausalAttentionTransport,
+    CausalAttentionHeadContext, CausalAttentionProjectionContext, CausalAttentionSourceContext,
+    CausalAttentionTransport,
 };
 
 const R4_WIDTH: usize = 4;
@@ -1749,6 +1750,1246 @@ impl CausalAttentionTransport for IntrinsicR4CausalAttentionTransport {
     }
 }
 
+/// The construction qualifier copied from HELM-D's dense Lorentz attention.
+///
+/// Both arms own the same learned R4-block affine adapters. `Lorentz` changes
+/// only the compatibility relation and value centroid; `Euclidean` is the
+/// equal-capacity curvature-destroying control.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum HelmDLearnedManifoldMetric {
+    Lorentz,
+    Euclidean,
+}
+
+/// Equal-shape interventions used to test whether coherent R4 transport and
+/// value binding are causally responsible for an observed construction gain.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum HelmDLearnedManifoldIntervention {
+    Coherent,
+    SourceFramePermuted,
+    ValuePermuted,
+    OrderKeyShuffled,
+}
+
+/// One compact learned affine map over a canonical four-lane R4 block.
+///
+/// HELM-D upstream uses unrestricted dense Q/K/V maps. This block-diagonal
+/// adapter is UOR's explicitly bounded construction parameterization over the
+/// donor-projected Q/K/V; it is not a checkpoint-parity claim.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct R4AffineAdapter {
+    pub matrix: Matrix4,
+    pub bias: Vector4,
+}
+
+impl R4AffineAdapter {
+    pub const fn identity() -> Self {
+        Self {
+            matrix: [
+                [1.0, 0.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0, 0.0],
+                [0.0, 0.0, 1.0, 0.0],
+                [0.0, 0.0, 0.0, 1.0],
+            ],
+            bias: [0.0; R4_WIDTH],
+        }
+    }
+
+    pub fn apply(self, input: Vector4) -> Result<Vector4, HelmDR4AttentionError> {
+        let mut output = checked_matrix_vector(self.matrix, input, "learned R4 affine adapter")?;
+        for (coordinate, bias) in output.iter_mut().zip(self.bias) {
+            *coordinate += bias;
+        }
+        if output.iter().any(|coordinate| !coordinate.is_finite()) {
+            return Err(HelmDR4AttentionError::Arithmetic(
+                "learned R4 affine adapter produced a non-finite coordinate".to_owned(),
+            ));
+        }
+        Ok(output)
+    }
+
+    fn validate(self) -> Result<(), HelmDR4AttentionError> {
+        if self
+            .matrix
+            .iter()
+            .flatten()
+            .chain(&self.bias)
+            .any(|value| !value.is_finite())
+        {
+            return Err(HelmDR4AttentionError::Invalid(
+                "learned R4 affine adapter parameters must be finite".to_owned(),
+            ));
+        }
+        Ok(())
+    }
+}
+
+/// Matched learned parameters for the construction-only HELM-D qualifier.
+///
+/// Query adapters follow query heads; key and value adapters follow the
+/// checkpoint's grouped-query K/V heads. Each layer also owns the one positive
+/// scale and uniform bias appearing in the pinned upstream attention logit.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct HelmDLearnedManifoldParameters {
+    layers: usize,
+    query_heads: usize,
+    key_value_heads: usize,
+    blocks_per_head: usize,
+    query_adapters: Vec<R4AffineAdapter>,
+    key_adapters: Vec<R4AffineAdapter>,
+    value_adapters: Vec<R4AffineAdapter>,
+    learned_scales: Vec<f64>,
+    learned_biases: Vec<f64>,
+}
+
+#[derive(Debug, Clone, Copy)]
+enum LearnedProjectionRole {
+    Query,
+    Key,
+    Value,
+}
+
+impl HelmDLearnedManifoldParameters {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        layers: usize,
+        query_heads: usize,
+        key_value_heads: usize,
+        blocks_per_head: usize,
+        query_adapters: Vec<R4AffineAdapter>,
+        key_adapters: Vec<R4AffineAdapter>,
+        value_adapters: Vec<R4AffineAdapter>,
+        learned_scales: Vec<f64>,
+        learned_biases: Vec<f64>,
+    ) -> Result<Self, HelmDR4AttentionError> {
+        let parameters = Self {
+            layers,
+            query_heads,
+            key_value_heads,
+            blocks_per_head,
+            query_adapters,
+            key_adapters,
+            value_adapters,
+            learned_scales,
+            learned_biases,
+        };
+        parameters.validate()?;
+        Ok(parameters)
+    }
+
+    pub fn identity(
+        layers: usize,
+        query_heads: usize,
+        key_value_heads: usize,
+        blocks_per_head: usize,
+        initial_scale: f64,
+    ) -> Result<Self, HelmDR4AttentionError> {
+        let query_count = Self::adapter_count(layers, query_heads, blocks_per_head)?;
+        let key_value_count = Self::adapter_count(layers, key_value_heads, blocks_per_head)?;
+        Self::new(
+            layers,
+            query_heads,
+            key_value_heads,
+            blocks_per_head,
+            vec![R4AffineAdapter::identity(); query_count],
+            vec![R4AffineAdapter::identity(); key_value_count],
+            vec![R4AffineAdapter::identity(); key_value_count],
+            vec![initial_scale; layers],
+            vec![0.0; layers],
+        )
+    }
+
+    pub const fn layers(&self) -> usize {
+        self.layers
+    }
+
+    pub const fn query_heads(&self) -> usize {
+        self.query_heads
+    }
+
+    pub const fn key_value_heads(&self) -> usize {
+        self.key_value_heads
+    }
+
+    pub const fn blocks_per_head(&self) -> usize {
+        self.blocks_per_head
+    }
+
+    pub const fn head_width(&self) -> usize {
+        self.blocks_per_head * R4_WIDTH
+    }
+
+    /// Total scalar capacity, including each 4x4 matrix, four-vector bias,
+    /// and the scale/bias pair per layer.
+    pub fn scalar_parameter_count(&self) -> Result<usize, HelmDR4AttentionError> {
+        let adapters = self
+            .query_adapters
+            .len()
+            .checked_add(self.key_adapters.len())
+            .and_then(|count| count.checked_add(self.value_adapters.len()))
+            .ok_or_else(|| {
+                HelmDR4AttentionError::Invalid(
+                    "learned-manifold adapter count overflows usize".to_owned(),
+                )
+            })?;
+        adapters
+            .checked_mul(R4_WIDTH * R4_WIDTH + R4_WIDTH)
+            .and_then(|count| count.checked_add(self.layers.checked_mul(2)?))
+            .ok_or_else(|| {
+                HelmDR4AttentionError::Invalid(
+                    "learned-manifold scalar parameter count overflows usize".to_owned(),
+                )
+            })
+    }
+
+    /// Versioned, architecture-independent identity of the ordered learned
+    /// parameter stream used by both checkpoints and live operator evidence.
+    pub fn parameter_identity(&self) -> Result<String, HelmDR4AttentionError> {
+        self.validate()?;
+        let mut hasher = blake3::Hasher::new();
+        hasher.update(b"uor-r4.helm-d-learned-manifold-parameters/2\0");
+        for dimension in [
+            self.layers,
+            self.query_heads,
+            self.key_value_heads,
+            self.blocks_per_head,
+        ] {
+            let dimension = u64::try_from(dimension).map_err(|_| {
+                HelmDR4AttentionError::Invalid(
+                    "learned-manifold parameter dimension exceeds u64".to_owned(),
+                )
+            })?;
+            hasher.update(&dimension.to_le_bytes());
+        }
+        for (role, adapters) in [
+            (b"query".as_slice(), self.query_adapters.as_slice()),
+            (b"key".as_slice(), self.key_adapters.as_slice()),
+            (b"value".as_slice(), self.value_adapters.as_slice()),
+        ] {
+            hasher.update(role);
+            let count = u64::try_from(adapters.len()).map_err(|_| {
+                HelmDR4AttentionError::Invalid(
+                    "learned-manifold adapter count exceeds u64".to_owned(),
+                )
+            })?;
+            hasher.update(&count.to_le_bytes());
+            for adapter in adapters {
+                for value in adapter.matrix.iter().flatten().chain(&adapter.bias) {
+                    hasher.update(&value.to_bits().to_le_bytes());
+                }
+            }
+        }
+        hasher.update(b"scale");
+        for value in &self.learned_scales {
+            hasher.update(&value.to_bits().to_le_bytes());
+        }
+        hasher.update(b"bias");
+        for value in &self.learned_biases {
+            hasher.update(&value.to_bits().to_le_bytes());
+        }
+        Ok(format!("blake3:{}", hasher.finalize().to_hex()))
+    }
+
+    pub fn query_adapters(&self) -> &[R4AffineAdapter] {
+        &self.query_adapters
+    }
+
+    pub fn query_adapters_mut(&mut self) -> &mut [R4AffineAdapter] {
+        &mut self.query_adapters
+    }
+
+    pub fn key_adapters(&self) -> &[R4AffineAdapter] {
+        &self.key_adapters
+    }
+
+    pub fn key_adapters_mut(&mut self) -> &mut [R4AffineAdapter] {
+        &mut self.key_adapters
+    }
+
+    pub fn value_adapters(&self) -> &[R4AffineAdapter] {
+        &self.value_adapters
+    }
+
+    pub fn value_adapters_mut(&mut self) -> &mut [R4AffineAdapter] {
+        &mut self.value_adapters
+    }
+
+    pub fn learned_scales(&self) -> &[f64] {
+        &self.learned_scales
+    }
+
+    pub fn learned_scales_mut(&mut self) -> &mut [f64] {
+        &mut self.learned_scales
+    }
+
+    pub fn learned_biases(&self) -> &[f64] {
+        &self.learned_biases
+    }
+
+    pub fn learned_biases_mut(&mut self) -> &mut [f64] {
+        &mut self.learned_biases
+    }
+
+    pub fn learned_scale(&self, layer: usize) -> Result<f64, HelmDR4AttentionError> {
+        self.learned_scales.get(layer).copied().ok_or_else(|| {
+            HelmDR4AttentionError::Invalid(format!(
+                "learned-manifold scale layer {layer} exceeds {} layers",
+                self.layers
+            ))
+        })
+    }
+
+    pub fn learned_bias(&self, layer: usize) -> Result<f64, HelmDR4AttentionError> {
+        self.learned_biases.get(layer).copied().ok_or_else(|| {
+            HelmDR4AttentionError::Invalid(format!(
+                "learned-manifold bias layer {layer} exceeds {} layers",
+                self.layers
+            ))
+        })
+    }
+
+    pub fn validate(&self) -> Result<(), HelmDR4AttentionError> {
+        if self.layers == 0
+            || self.query_heads == 0
+            || self.key_value_heads == 0
+            || self.blocks_per_head == 0
+            || !self.query_heads.is_multiple_of(self.key_value_heads)
+        {
+            return Err(HelmDR4AttentionError::Invalid(
+                "learned-manifold dimensions must be positive with query heads divisible by KV heads"
+                    .to_owned(),
+            ));
+        }
+        let expected_query =
+            Self::adapter_count(self.layers, self.query_heads, self.blocks_per_head)?;
+        let expected_key_value =
+            Self::adapter_count(self.layers, self.key_value_heads, self.blocks_per_head)?;
+        if self.query_adapters.len() != expected_query
+            || self.key_adapters.len() != expected_key_value
+            || self.value_adapters.len() != expected_key_value
+            || self.learned_scales.len() != self.layers
+            || self.learned_biases.len() != self.layers
+        {
+            return Err(HelmDR4AttentionError::Invalid(format!(
+                "learned-manifold parameter shape mismatch: q={} (expected {expected_query}), k={}, v={} (expected {expected_key_value}), scales={}, biases={}, layers={}",
+                self.query_adapters.len(),
+                self.key_adapters.len(),
+                self.value_adapters.len(),
+                self.learned_scales.len(),
+                self.learned_biases.len(),
+                self.layers
+            )));
+        }
+        for adapter in self
+            .query_adapters
+            .iter()
+            .chain(&self.key_adapters)
+            .chain(&self.value_adapters)
+        {
+            adapter.validate()?;
+        }
+        if self
+            .learned_scales
+            .iter()
+            .any(|scale| !scale.is_finite() || *scale <= 0.0)
+            || self.learned_biases.iter().any(|bias| !bias.is_finite())
+        {
+            return Err(HelmDR4AttentionError::Invalid(
+                "learned-manifold scales must be finite and positive and biases finite".to_owned(),
+            ));
+        }
+        Ok(())
+    }
+
+    fn adapter_count(
+        layers: usize,
+        heads: usize,
+        blocks_per_head: usize,
+    ) -> Result<usize, HelmDR4AttentionError> {
+        if layers == 0 || heads == 0 || blocks_per_head == 0 {
+            return Err(HelmDR4AttentionError::Invalid(
+                "learned-manifold adapter dimensions must be positive".to_owned(),
+            ));
+        }
+        layers
+            .checked_mul(heads)
+            .and_then(|count| count.checked_mul(blocks_per_head))
+            .ok_or_else(|| {
+                HelmDR4AttentionError::Invalid(
+                    "learned-manifold adapter dimensions overflow usize".to_owned(),
+                )
+            })
+    }
+
+    fn adapter(
+        &self,
+        role: LearnedProjectionRole,
+        layer: usize,
+        head: usize,
+        block: usize,
+    ) -> Result<R4AffineAdapter, HelmDR4AttentionError> {
+        let (heads, adapters, label) = match role {
+            LearnedProjectionRole::Query => (self.query_heads, &self.query_adapters, "query"),
+            LearnedProjectionRole::Key => (self.key_value_heads, &self.key_adapters, "key"),
+            LearnedProjectionRole::Value => (self.key_value_heads, &self.value_adapters, "value"),
+        };
+        if layer >= self.layers || head >= heads || block >= self.blocks_per_head {
+            return Err(HelmDR4AttentionError::Invalid(format!(
+                "learned-manifold {label} adapter index ({layer},{head},{block}) exceeds ({},{heads},{})",
+                self.layers, self.blocks_per_head
+            )));
+        }
+        let index = (layer * heads + head) * self.blocks_per_head + block;
+        adapters.get(index).copied().ok_or_else(|| {
+            HelmDR4AttentionError::Invalid(format!(
+                "learned-manifold {label} adapter index is unavailable"
+            ))
+        })
+    }
+}
+
+pub const HELM_D_LEARNED_LORENTZ_R4_CONSTRUCTION_POLICY: &str = concat!(
+    "schema=helm-d-learned-manifold-r4-construction/2\n",
+    "upstream=Graph-and-Geometric-Learning/helm@7501deca8f413848bfef804be64ce874b72a3cd7\n",
+    "projection=learned-block-diagonal-r4-affine-adapter-over-donor-qkv-before-rope\n",
+    "position=unchanged-donor-rope-on-query-and-key\n",
+    "manifold=one-unit-lorentz-h64-point-per-64-spatial-lane-head\n",
+    "score=(2+2*lorentz-inner)/learned-layer-scale+uniform-bias\n",
+    "selector=stable-complete-prefix-causal-softmax\n",
+    "aggregate=full-head-normalized-lorentz-centroid\n",
+    "storage=sixteen-r4-blocks-per-head\n",
+    "transport=coherent-exact-cumulative-spin-h4-query-frame\n",
+    "output=unchanged-frozen-donor-wo\n",
+    "numerical-adaptation=compensated-f64-sums-and-fail-closed-future-timelike-normalization\n",
+    "not-claimed=full-dense-qkv,checkpoint-parity,paper-result-inheritance,softmax-free,source-free,transformerless-serving"
+);
+
+pub const HELM_D_LEARNED_EUCLIDEAN_R4_CONTROL_POLICY: &str = concat!(
+    "schema=helm-d-learned-manifold-r4-euclidean-control/2\n",
+    "projection=identical-learned-block-diagonal-r4-affine-capacity\n",
+    "position=unchanged-donor-rope-on-query-and-key\n",
+    "score=negative-full-head-squared-euclidean-distance/learned-layer-scale+uniform-bias\n",
+    "selector=identical-stable-complete-prefix-causal-softmax\n",
+    "aggregate=full-head-arithmetic-centroid\n",
+    "storage-and-transport=identical-r4-block-layout-and-coherent-spin-h4-query-frame\n",
+    "output=unchanged-frozen-donor-wo\n",
+    "claim=equal-capacity-curvature-destroying-control"
+);
+
+/// Pure full-head logit used by both the fitter and the live decoder seam.
+pub fn helm_d_learned_manifold_logit(
+    metric: HelmDLearnedManifoldMetric,
+    query: &[f64],
+    key: &[f64],
+    learned_scale: f64,
+    bias: f64,
+) -> Result<f64, HelmDR4AttentionError> {
+    if query.is_empty()
+        || query.len() != key.len()
+        || query.iter().chain(key).any(|value| !value.is_finite())
+        || !learned_scale.is_finite()
+        || learned_scale <= 0.0
+        || !bias.is_finite()
+    {
+        return Err(HelmDR4AttentionError::Invalid(
+            "learned-manifold logit inputs are empty, misaligned, non-finite, or have invalid scale"
+                .to_owned(),
+        ));
+    }
+    let numerator = match metric {
+        HelmDLearnedManifoldMetric::Lorentz => {
+            let query_norm_squared = compensated_square_sum(query)?;
+            let key_norm_squared = compensated_square_sum(key)?;
+            let query_time = libm::sqrt(1.0 + query_norm_squared);
+            let key_time = libm::sqrt(1.0 + key_norm_squared);
+            let dot = compensated_dot(query, key)?;
+            2.0 + 2.0 * (-query_time * key_time + dot)
+        }
+        HelmDLearnedManifoldMetric::Euclidean => {
+            let differences = query
+                .iter()
+                .zip(key)
+                .map(|(left, right)| *left - *right)
+                .collect::<Vec<_>>();
+            -compensated_square_sum(&differences)?
+        }
+    };
+    let logit = numerator / learned_scale + bias;
+    if !logit.is_finite() {
+        return Err(HelmDR4AttentionError::Arithmetic(
+            "learned-manifold logit is non-finite".to_owned(),
+        ));
+    }
+    Ok(logit)
+}
+
+/// Pure whole-head aggregate. Lorentz values are lifted as one H^D point,
+/// never as an independent product of H4 blocks.
+pub fn helm_d_learned_manifold_centroid(
+    metric: HelmDLearnedManifoldMetric,
+    values: &[Vec<f64>],
+    weights: &[f64],
+) -> Result<Vec<f64>, HelmDR4AttentionError> {
+    if values.is_empty()
+        || values.len() != weights.len()
+        || values[0].is_empty()
+        || values.iter().any(|value| {
+            value.len() != values[0].len() || value.iter().any(|coordinate| !coordinate.is_finite())
+        })
+        || weights
+            .iter()
+            .any(|weight| !weight.is_finite() || *weight < 0.0)
+    {
+        return Err(HelmDR4AttentionError::Invalid(
+            "learned-manifold centroid values/weights are empty, misaligned, or non-finite"
+                .to_owned(),
+        ));
+    }
+    let weight_sum = compensated_sum(weights)?;
+    if weight_sum <= EPSILON {
+        return Err(HelmDR4AttentionError::Arithmetic(
+            "learned-manifold centroid weight sum is not positive".to_owned(),
+        ));
+    }
+    let width = values[0].len();
+    let mut spatial_sum = vec![0.0; width];
+    let mut spatial_correction = vec![0.0; width];
+    let mut time_sum = 0.0;
+    let mut time_correction = 0.0;
+    for (value, weight) in values.iter().zip(weights) {
+        let normalized_weight = *weight / weight_sum;
+        for ((sum, correction), coordinate) in spatial_sum
+            .iter_mut()
+            .zip(&mut spatial_correction)
+            .zip(value)
+        {
+            compensated_add(sum, correction, normalized_weight * *coordinate);
+        }
+        if metric == HelmDLearnedManifoldMetric::Lorentz {
+            let time = libm::sqrt(1.0 + compensated_square_sum(value)?);
+            compensated_add(
+                &mut time_sum,
+                &mut time_correction,
+                normalized_weight * time,
+            );
+        }
+    }
+    for (sum, correction) in spatial_sum.iter_mut().zip(spatial_correction) {
+        *sum += correction;
+    }
+    time_sum += time_correction;
+    if spatial_sum.iter().any(|coordinate| !coordinate.is_finite()) {
+        return Err(HelmDR4AttentionError::Arithmetic(
+            "learned-manifold centroid spatial sum is non-finite".to_owned(),
+        ));
+    }
+    if metric == HelmDLearnedManifoldMetric::Euclidean {
+        return Ok(spatial_sum);
+    }
+
+    let spatial_norm = libm::sqrt(compensated_square_sum(&spatial_sum)?);
+    let lower = time_sum - spatial_norm;
+    let upper = time_sum + spatial_norm;
+    let timelike_norm_squared = lower * upper;
+    if !time_sum.is_finite()
+        || !spatial_norm.is_finite()
+        || lower <= 0.0
+        || !timelike_norm_squared.is_finite()
+        || timelike_norm_squared <= EPSILON
+    {
+        return Err(HelmDR4AttentionError::Arithmetic(
+            "learned-manifold Lorentz centroid is not future timelike".to_owned(),
+        ));
+    }
+    let normalization = libm::sqrt(timelike_norm_squared).recip();
+    for coordinate in &mut spatial_sum {
+        *coordinate *= normalization;
+    }
+    let normalized_time = time_sum * normalization;
+    let residual =
+        (-normalized_time * normalized_time + compensated_square_sum(&spatial_sum)? + 1.0).abs();
+    let residual_scale =
+        1.0 + normalized_time * normalized_time + compensated_square_sum(&spatial_sum)?;
+    if spatial_sum.iter().any(|coordinate| !coordinate.is_finite())
+        || !normalized_time.is_finite()
+        || normalized_time <= 0.0
+        || !residual.is_finite()
+        || residual > 1.0e-9 * residual_scale
+    {
+        return Err(HelmDR4AttentionError::Arithmetic(format!(
+            "learned-manifold Lorentz centroid residual {residual} exceeds tolerance"
+        )));
+    }
+    Ok(spatial_sum)
+}
+
+fn compensated_add(sum: &mut f64, correction: &mut f64, value: f64) {
+    let next = *sum + value;
+    if sum.abs() >= value.abs() {
+        *correction += (*sum - next) + value;
+    } else {
+        *correction += (value - next) + *sum;
+    }
+    *sum = next;
+}
+
+fn compensated_sum(values: &[f64]) -> Result<f64, HelmDR4AttentionError> {
+    let mut sum = 0.0;
+    let mut correction = 0.0;
+    for value in values {
+        compensated_add(&mut sum, &mut correction, *value);
+    }
+    let total = sum + correction;
+    if !total.is_finite() {
+        return Err(HelmDR4AttentionError::Arithmetic(
+            "compensated sum is non-finite".to_owned(),
+        ));
+    }
+    Ok(total)
+}
+
+fn compensated_square_sum(values: &[f64]) -> Result<f64, HelmDR4AttentionError> {
+    let squares = values.iter().map(|value| value * value).collect::<Vec<_>>();
+    compensated_sum(&squares)
+}
+
+fn compensated_dot(left: &[f64], right: &[f64]) -> Result<f64, HelmDR4AttentionError> {
+    let products = left
+        .iter()
+        .zip(right)
+        .map(|(left, right)| left * right)
+        .collect::<Vec<_>>();
+    compensated_sum(&products)
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct HelmDLearnedManifoldAudit {
+    pub projection_tuples: u64,
+    pub projected_query_lanes: u64,
+    pub projected_key_lanes: u64,
+    pub projected_value_lanes: u64,
+    pub score_rows: u64,
+    pub compatibility_pairs: u64,
+    pub centroid_rows: u64,
+    pub centroid_source_pairs: u64,
+    pub source_frame_permutations: u64,
+    pub value_permutations: u64,
+    pub order_key_permutations: u64,
+    pub arithmetic_failures: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct HelmDLearnedManifoldEvidence {
+    pub schema: String,
+    pub policy_identity: String,
+    pub parameter_identity: String,
+    pub scalar_parameter_count: usize,
+    pub metric: HelmDLearnedManifoldMetric,
+    pub intervention: HelmDLearnedManifoldIntervention,
+    pub frame_table_offsets: Vec<u16>,
+    pub transport_audit: R4SpinTransportAudit,
+    pub learned_manifold_audit: HelmDLearnedManifoldAudit,
+}
+
+/// Live compiler-side construction operator retaining the donor decoder,
+/// ordinary complete-prefix causal softmax, RoPE, and Wo around a copied
+/// HELM-D Lorentz score/centroid core.
+#[derive(Debug, Clone)]
+pub struct HelmDLearnedManifoldR4Transport {
+    atlas: R4SpinFrameAtlas,
+    parameters: HelmDLearnedManifoldParameters,
+    metric: HelmDLearnedManifoldMetric,
+    intervention: HelmDLearnedManifoldIntervention,
+    audit: HelmDLearnedManifoldAudit,
+    logit_scratch: Vec<f64>,
+    fault: Option<String>,
+}
+
+impl HelmDLearnedManifoldR4Transport {
+    pub fn new(
+        maximum_token_id: u32,
+        sequence_capacity: usize,
+        parameters: HelmDLearnedManifoldParameters,
+        metric: HelmDLearnedManifoldMetric,
+        intervention: HelmDLearnedManifoldIntervention,
+    ) -> Result<Self, HelmDR4AttentionError> {
+        parameters.validate()?;
+        Ok(Self {
+            atlas: R4SpinFrameAtlas::new(maximum_token_id, sequence_capacity)?,
+            parameters,
+            metric,
+            intervention,
+            audit: HelmDLearnedManifoldAudit::default(),
+            logit_scratch: vec![0.0; sequence_capacity],
+            fault: None,
+        })
+    }
+
+    pub fn parameters(&self) -> &HelmDLearnedManifoldParameters {
+        &self.parameters
+    }
+
+    pub const fn metric(&self) -> HelmDLearnedManifoldMetric {
+        self.metric
+    }
+
+    pub const fn intervention(&self) -> HelmDLearnedManifoldIntervention {
+        self.intervention
+    }
+
+    pub const fn audit(&self) -> HelmDLearnedManifoldAudit {
+        self.audit
+    }
+
+    pub const fn transport_audit(&self) -> R4SpinTransportAudit {
+        self.atlas.audit()
+    }
+
+    pub fn fault(&self) -> Option<&str> {
+        self.fault.as_deref()
+    }
+
+    pub fn policy_identity(&self) -> &'static str {
+        match self.metric {
+            HelmDLearnedManifoldMetric::Lorentz => HELM_D_LEARNED_LORENTZ_R4_CONSTRUCTION_POLICY,
+            HelmDLearnedManifoldMetric::Euclidean => HELM_D_LEARNED_EUCLIDEAN_R4_CONTROL_POLICY,
+        }
+    }
+
+    pub fn parameter_identity(&self) -> Result<String, HelmDR4AttentionError> {
+        self.parameters.parameter_identity()
+    }
+
+    pub fn evidence_snapshot(&self) -> Result<HelmDLearnedManifoldEvidence, HelmDR4AttentionError> {
+        let frame_table_offsets = (0..self.atlas.next_position())
+            .map(|position| self.atlas.frame_table_offset(position))
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(HelmDLearnedManifoldEvidence {
+            schema: "uor-r4.helm-d-learned-manifold-r4-evidence/2".to_owned(),
+            policy_identity: self.policy_identity().to_owned(),
+            parameter_identity: self.parameter_identity()?,
+            scalar_parameter_count: self.parameters.scalar_parameter_count()?,
+            metric: self.metric,
+            intervention: self.intervention,
+            frame_table_offsets,
+            transport_audit: self.atlas.audit(),
+            learned_manifold_audit: self.audit,
+        })
+    }
+
+    fn transport_intervention(&self) -> R4SpinTransportIntervention {
+        match self.intervention {
+            HelmDLearnedManifoldIntervention::SourceFramePermuted => {
+                R4SpinTransportIntervention::SourceFramePermuted
+            }
+            HelmDLearnedManifoldIntervention::Coherent
+            | HelmDLearnedManifoldIntervention::ValuePermuted
+            | HelmDLearnedManifoldIntervention::OrderKeyShuffled => {
+                R4SpinTransportIntervention::Coherent
+            }
+        }
+    }
+
+    fn record_fault(&mut self, reason: impl Into<String>) {
+        if self.fault.is_none() {
+            self.audit.arithmetic_failures = self.audit.arithmetic_failures.saturating_add(1);
+            self.fault = Some(reason.into());
+        }
+    }
+
+    fn fail_and_copy(&mut self, reason: impl Into<String>, input: &[f32], output: &mut [f32]) {
+        self.record_fault(reason);
+        output.fill(0.0);
+        for (target, source) in output.iter_mut().zip(input) {
+            *target = *source;
+        }
+    }
+
+    fn read_block(input: &[f32], offset: usize) -> Vector4 {
+        [
+            f64::from(input[offset]),
+            f64::from(input[offset + 1]),
+            f64::from(input[offset + 2]),
+            f64::from(input[offset + 3]),
+        ]
+    }
+
+    fn write_block(output: &mut [f32], offset: usize, block: Vector4) -> bool {
+        for (target, source) in output[offset..offset + R4_WIDTH].iter_mut().zip(block) {
+            *target = source as f32;
+            if !target.is_finite() {
+                return false;
+            }
+        }
+        true
+    }
+
+    fn valid_head_slices(&mut self, input: &[f32], output: &mut [f32]) -> bool {
+        if input.len() == self.parameters.head_width() && output.len() == input.len() {
+            true
+        } else {
+            self.fail_and_copy(
+                format!(
+                    "learned-manifold transport requires one {}-lane head; input={}, output={}",
+                    self.parameters.head_width(),
+                    input.len(),
+                    output.len()
+                ),
+                input,
+                output,
+            );
+            false
+        }
+    }
+
+    fn apply_projection_role(
+        &self,
+        role: LearnedProjectionRole,
+        context: CausalAttentionProjectionContext,
+        vectors: &mut [f32],
+    ) -> Result<(), HelmDR4AttentionError> {
+        let heads = match role {
+            LearnedProjectionRole::Query => context.query_heads,
+            LearnedProjectionRole::Key | LearnedProjectionRole::Value => context.key_value_heads,
+        };
+        if context.layer >= self.parameters.layers()
+            || context.query_heads != self.parameters.query_heads()
+            || context.key_value_heads != self.parameters.key_value_heads()
+            || context.head_size != self.parameters.head_width()
+            || heads
+                .checked_mul(context.head_size)
+                .filter(|expected| *expected == vectors.len())
+                .is_none()
+        {
+            return Err(HelmDR4AttentionError::Invalid(
+                "learned-manifold pre-RoPE projection shape differs from frozen parameters"
+                    .to_owned(),
+            ));
+        }
+        for head in 0..heads {
+            let head_offset = head * context.head_size;
+            for block in 0..self.parameters.blocks_per_head() {
+                let offset = head_offset + block * R4_WIDTH;
+                let adapter = self.parameters.adapter(role, context.layer, head, block)?;
+                let output = adapter.apply(Self::read_block(vectors, offset))?;
+                if !Self::write_block(vectors, offset, output) {
+                    return Err(HelmDR4AttentionError::Arithmetic(
+                        "learned-manifold pre-RoPE projection overflowed f32".to_owned(),
+                    ));
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn score_row(
+        &mut self,
+        context: CausalAttentionHeadContext,
+        query: &[f32],
+        packed_keys: &[f32],
+        output_weights: &mut [f32],
+    ) -> Result<(), HelmDR4AttentionError> {
+        let width = self.parameters.head_width();
+        if query.len() != width
+            || context.head >= self.parameters.query_heads()
+            || output_weights.is_empty()
+            || output_weights.len() > self.logit_scratch.len()
+            || output_weights.len().checked_mul(width) != Some(packed_keys.len())
+        {
+            return Err(HelmDR4AttentionError::Invalid(
+                "learned-manifold score row has inconsistent shapes".to_owned(),
+            ));
+        }
+        let query = query
+            .iter()
+            .map(|value| f64::from(*value))
+            .collect::<Vec<_>>();
+        let scale = self.parameters.learned_scale(context.layer)?;
+        let bias = self.parameters.learned_bias(context.layer)?;
+        for source in 0..output_weights.len() {
+            let key_source = match self.intervention {
+                HelmDLearnedManifoldIntervention::OrderKeyShuffled if output_weights.len() > 1 => {
+                    self.audit.order_key_permutations =
+                        self.audit.order_key_permutations.saturating_add(1);
+                    (source + 1) % output_weights.len()
+                }
+                _ => source,
+            };
+            let key = &packed_keys[key_source * width..(key_source + 1) * width];
+            let key = key
+                .iter()
+                .map(|value| f64::from(*value))
+                .collect::<Vec<_>>();
+            self.logit_scratch[source] =
+                helm_d_learned_manifold_logit(self.metric, &query, &key, scale, bias)?;
+            self.audit.compatibility_pairs = self.audit.compatibility_pairs.saturating_add(1);
+        }
+        intrinsic_stable_softmax_into(
+            &mut self.logit_scratch[..output_weights.len()],
+            output_weights,
+        )?;
+        self.audit.score_rows = self.audit.score_rows.saturating_add(1);
+        Ok(())
+    }
+
+    fn centroid_row(
+        &mut self,
+        weights: &[f32],
+        packed_values: &[f32],
+        output: &mut [f32],
+    ) -> Result<(), HelmDR4AttentionError> {
+        let width = self.parameters.head_width();
+        if output.len() != width
+            || weights.is_empty()
+            || weights.len().checked_mul(width) != Some(packed_values.len())
+        {
+            return Err(HelmDR4AttentionError::Invalid(
+                "learned-manifold centroid row has inconsistent shapes".to_owned(),
+            ));
+        }
+        let mut values = Vec::with_capacity(weights.len());
+        for source in 0..weights.len() {
+            let value_source = match self.intervention {
+                HelmDLearnedManifoldIntervention::ValuePermuted if weights.len() > 1 => {
+                    self.audit.value_permutations = self.audit.value_permutations.saturating_add(1);
+                    (source + 1) % weights.len()
+                }
+                _ => source,
+            };
+            values.push(
+                packed_values[value_source * width..(value_source + 1) * width]
+                    .iter()
+                    .map(|value| f64::from(*value))
+                    .collect::<Vec<_>>(),
+            );
+        }
+        let weights = weights
+            .iter()
+            .map(|weight| f64::from(*weight))
+            .collect::<Vec<_>>();
+        let centroid = helm_d_learned_manifold_centroid(self.metric, &values, &weights)?;
+        for (target, source) in output.iter_mut().zip(centroid) {
+            *target = source as f32;
+            if !target.is_finite() {
+                return Err(HelmDR4AttentionError::Arithmetic(
+                    "learned-manifold centroid overflowed f32".to_owned(),
+                ));
+            }
+        }
+        self.audit.centroid_source_pairs = self
+            .audit
+            .centroid_source_pairs
+            .saturating_add(u64::try_from(weights.len()).unwrap_or(u64::MAX));
+        self.audit.centroid_rows = self.audit.centroid_rows.saturating_add(1);
+        Ok(())
+    }
+}
+
+impl CausalAttentionTransport for HelmDLearnedManifoldR4Transport {
+    fn reset(&mut self) {
+        self.atlas.reset();
+        self.audit = HelmDLearnedManifoldAudit::default();
+        self.fault = None;
+    }
+
+    fn policy_identity(&self) -> &str {
+        HelmDLearnedManifoldR4Transport::policy_identity(self)
+    }
+
+    fn implementation_evidence(&self) -> Result<Option<String>, String> {
+        self.evidence_snapshot()
+            .and_then(|evidence| {
+                serde_json::to_string(&evidence)
+                    .map_err(|error| HelmDR4AttentionError::Invalid(error.to_string()))
+            })
+            .map(Some)
+            .map_err(|error| error.to_string())
+    }
+
+    fn status(&self) -> Result<(), String> {
+        match &self.fault {
+            Some(reason) => Err(reason.clone()),
+            None => Ok(()),
+        }
+    }
+
+    fn begin_position(&mut self, token: usize, position: usize) {
+        let result = u32::try_from(token)
+            .map_err(|_| {
+                HelmDR4AttentionError::Invalid(
+                    "decoder token does not fit the UOR u32 namespace".to_owned(),
+                )
+            })
+            .and_then(|token| self.atlas.begin_position(token, position));
+        if let Err(error) = result {
+            self.record_fault(error.to_string());
+        }
+    }
+
+    fn transform_projected_qkv_before_rope(
+        &mut self,
+        context: CausalAttentionProjectionContext,
+        query: &mut [f32],
+        key: &mut [f32],
+        value: &mut [f32],
+    ) {
+        if self.fault.is_some() {
+            return;
+        }
+        let result = self
+            .apply_projection_role(LearnedProjectionRole::Query, context, query)
+            .and_then(|()| self.apply_projection_role(LearnedProjectionRole::Key, context, key))
+            .and_then(|()| {
+                self.apply_projection_role(LearnedProjectionRole::Value, context, value)
+            });
+        match result {
+            Ok(()) => {
+                self.audit.projection_tuples = self.audit.projection_tuples.saturating_add(1);
+                self.audit.projected_query_lanes = self
+                    .audit
+                    .projected_query_lanes
+                    .saturating_add(u64::try_from(query.len()).unwrap_or(u64::MAX));
+                self.audit.projected_key_lanes = self
+                    .audit
+                    .projected_key_lanes
+                    .saturating_add(u64::try_from(key.len()).unwrap_or(u64::MAX));
+                self.audit.projected_value_lanes = self
+                    .audit
+                    .projected_value_lanes
+                    .saturating_add(u64::try_from(value.len()).unwrap_or(u64::MAX));
+            }
+            Err(error) => self.record_fault(error.to_string()),
+        }
+    }
+
+    fn transform_query(
+        &mut self,
+        context: CausalAttentionHeadContext,
+        input: &[f32],
+        output: &mut [f32],
+    ) {
+        if self.fault.is_some() || !self.valid_head_slices(input, output) {
+            if self.fault.is_some() {
+                self.fail_and_copy(
+                    "learned-manifold transport is already faulted",
+                    input,
+                    output,
+                );
+            }
+            return;
+        }
+        for offset in (0..input.len()).step_by(R4_WIDTH) {
+            let encoded = self
+                .atlas
+                .encode_model_block(context.query_position, Self::read_block(input, offset));
+            match encoded {
+                Ok(block) if Self::write_block(output, offset, block) => {}
+                Ok(_) => {
+                    self.fail_and_copy(
+                        "learned-manifold query encoding overflowed f32",
+                        input,
+                        output,
+                    );
+                    return;
+                }
+                Err(error) => {
+                    self.fail_and_copy(error.to_string(), input, output);
+                    return;
+                }
+            }
+        }
+    }
+
+    fn transport_key(
+        &mut self,
+        context: CausalAttentionSourceContext,
+        input: &[f32],
+        output: &mut [f32],
+    ) {
+        if self.fault.is_some() || !self.valid_head_slices(input, output) {
+            if self.fault.is_some() {
+                self.fail_and_copy(
+                    "learned-manifold transport is already faulted",
+                    input,
+                    output,
+                );
+            }
+            return;
+        }
+        let intervention = self.transport_intervention();
+        for offset in (0..input.len()).step_by(R4_WIDTH) {
+            let result = self
+                .atlas
+                .encode_model_block(context.source_position, Self::read_block(input, offset))
+                .and_then(|local| {
+                    self.atlas.transport_local_block(
+                        context.source_position,
+                        context.query_position,
+                        local,
+                        intervention,
+                        false,
+                    )
+                });
+            match result {
+                Ok(block) if Self::write_block(output, offset, block) => {}
+                Ok(_) => {
+                    self.fail_and_copy(
+                        "learned-manifold key transport overflowed f32",
+                        input,
+                        output,
+                    );
+                    return;
+                }
+                Err(error) => {
+                    self.fail_and_copy(error.to_string(), input, output);
+                    return;
+                }
+            }
+        }
+        if intervention == R4SpinTransportIntervention::SourceFramePermuted
+            && context.query_position != 0
+        {
+            self.audit.source_frame_permutations = self
+                .audit
+                .source_frame_permutations
+                .saturating_add(u64::try_from(input.len() / R4_WIDTH).unwrap_or(u64::MAX));
+        }
+    }
+
+    fn transport_value(
+        &mut self,
+        context: CausalAttentionSourceContext,
+        input: &[f32],
+        output: &mut [f32],
+    ) {
+        if self.fault.is_some() || !self.valid_head_slices(input, output) {
+            if self.fault.is_some() {
+                self.fail_and_copy(
+                    "learned-manifold transport is already faulted",
+                    input,
+                    output,
+                );
+            }
+            return;
+        }
+        let intervention = self.transport_intervention();
+        for offset in (0..input.len()).step_by(R4_WIDTH) {
+            let result = self
+                .atlas
+                .encode_model_block(context.source_position, Self::read_block(input, offset))
+                .and_then(|local| {
+                    self.atlas.transport_local_block(
+                        context.source_position,
+                        context.query_position,
+                        local,
+                        intervention,
+                        true,
+                    )
+                });
+            match result {
+                Ok(block) if Self::write_block(output, offset, block) => {}
+                Ok(_) => {
+                    self.fail_and_copy(
+                        "learned-manifold value transport overflowed f32",
+                        input,
+                        output,
+                    );
+                    return;
+                }
+                Err(error) => {
+                    self.fail_and_copy(error.to_string(), input, output);
+                    return;
+                }
+            }
+        }
+        if intervention == R4SpinTransportIntervention::SourceFramePermuted
+            && context.query_position != 0
+        {
+            self.audit.source_frame_permutations = self
+                .audit
+                .source_frame_permutations
+                .saturating_add(u64::try_from(input.len() / R4_WIDTH).unwrap_or(u64::MAX));
+        }
+    }
+
+    fn output_to_model_frame(
+        &mut self,
+        context: CausalAttentionHeadContext,
+        input: &[f32],
+        output: &mut [f32],
+    ) {
+        if self.fault.is_some() || !self.valid_head_slices(input, output) {
+            if self.fault.is_some() {
+                self.fail_and_copy(
+                    "learned-manifold transport is already faulted",
+                    input,
+                    output,
+                );
+            }
+            return;
+        }
+        for offset in (0..input.len()).step_by(R4_WIDTH) {
+            let decoded = self
+                .atlas
+                .decode_query_block(context.query_position, Self::read_block(input, offset));
+            match decoded {
+                Ok(block) if Self::write_block(output, offset, block) => {}
+                Ok(_) => {
+                    self.fail_and_copy(
+                        "learned-manifold output decoding overflowed f32",
+                        input,
+                        output,
+                    );
+                    return;
+                }
+                Err(error) => {
+                    self.fail_and_copy(error.to_string(), input, output);
+                    return;
+                }
+            }
+        }
+    }
+
+    fn score_and_normalize(
+        &mut self,
+        context: CausalAttentionHeadContext,
+        query: &[f32],
+        packed_keys: &[f32],
+        output_weights: &mut [f32],
+        _canonical_math: bool,
+    ) {
+        if self.fault.is_some() {
+            output_weights.fill(0.0);
+            return;
+        }
+        if let Err(error) = self.score_row(context, query, packed_keys, output_weights) {
+            output_weights.fill(0.0);
+            self.record_fault(error.to_string());
+        }
+    }
+
+    fn weighted_value_centroid(
+        &mut self,
+        _context: CausalAttentionHeadContext,
+        weights: &[f32],
+        packed_values: &[f32],
+        output: &mut [f32],
+    ) {
+        if self.fault.is_some() {
+            output.fill(0.0);
+            return;
+        }
+        if let Err(error) = self.centroid_row(weights, packed_values, output) {
+            output.fill(0.0);
+            self.record_fault(error.to_string());
+        }
+    }
+}
+
 fn lorentz_project(spatial: &[f64], curvature: f64) -> Result<Vec<f64>, HelmDR4AttentionError> {
     let spatial_norm_squared = spatial.iter().map(|value| value * value).sum::<f64>();
     let time = (spatial_norm_squared + curvature).sqrt();
@@ -2288,5 +3529,355 @@ mod tests {
         operator.score_and_normalize(context, &[0.1, 0.2, 0.3, 0.4], &[], &mut no_weights, true);
         assert!(CausalAttentionTransport::status(&operator).is_err());
         assert_eq!(operator.intrinsic_audit().arithmetic_failures, 1);
+    }
+
+    #[test]
+    fn helm_d_learned_manifold_r4_construction_has_the_frozen_matched_capacity() {
+        let parameters =
+            HelmDLearnedManifoldParameters::identity(30, 9, 3, 16, 24.0).expect("parameters");
+        assert_eq!(parameters.head_width(), 64);
+        assert_eq!(parameters.scalar_parameter_count().expect("count"), 144_060);
+        assert_eq!(parameters.query_adapters().len(), 30 * 9 * 16);
+        assert_eq!(parameters.key_adapters().len(), 30 * 3 * 16);
+        assert_eq!(parameters.value_adapters().len(), 30 * 3 * 16);
+
+        let lorentz = HelmDLearnedManifoldR4Transport::new(
+            32,
+            2,
+            parameters.clone(),
+            HelmDLearnedManifoldMetric::Lorentz,
+            HelmDLearnedManifoldIntervention::Coherent,
+        )
+        .expect("Lorentz arm");
+        let euclidean = HelmDLearnedManifoldR4Transport::new(
+            32,
+            2,
+            parameters,
+            HelmDLearnedManifoldMetric::Euclidean,
+            HelmDLearnedManifoldIntervention::Coherent,
+        )
+        .expect("Euclidean arm");
+        assert_eq!(
+            lorentz
+                .parameters()
+                .scalar_parameter_count()
+                .expect("Lorentz count"),
+            euclidean
+                .parameters()
+                .scalar_parameter_count()
+                .expect("Euclidean count")
+        );
+    }
+
+    #[test]
+    fn helm_d_learned_manifold_r4_construction_identity_projection_is_exact() {
+        let parameters =
+            HelmDLearnedManifoldParameters::identity(1, 9, 3, 16, 24.0).expect("parameters");
+        let mut operator = HelmDLearnedManifoldR4Transport::new(
+            64,
+            2,
+            parameters,
+            HelmDLearnedManifoldMetric::Lorentz,
+            HelmDLearnedManifoldIntervention::Coherent,
+        )
+        .expect("operator");
+        let mut query = (0..576)
+            .map(|index| (index as f32 - 288.0) / 1024.0)
+            .collect::<Vec<_>>();
+        let mut key = (0..192)
+            .map(|index| (index as f32 - 96.0) / 512.0)
+            .collect::<Vec<_>>();
+        let mut value = (0..192)
+            .map(|index| (96.0 - index as f32) / 768.0)
+            .collect::<Vec<_>>();
+        let expected = (query.clone(), key.clone(), value.clone());
+        CausalAttentionTransport::transform_projected_qkv_before_rope(
+            &mut operator,
+            CausalAttentionProjectionContext {
+                layer: 0,
+                query_position: 0,
+                query_heads: 9,
+                key_value_heads: 3,
+                head_size: 64,
+            },
+            &mut query,
+            &mut key,
+            &mut value,
+        );
+        assert_eq!((query, key, value), expected);
+        assert_eq!(operator.audit().projection_tuples, 1);
+        assert_eq!(operator.audit().projected_query_lanes, 576);
+        assert_eq!(operator.audit().projected_key_lanes, 192);
+        assert_eq!(operator.audit().projected_value_lanes, 192);
+        assert!(CausalAttentionTransport::status(&operator).is_ok());
+    }
+
+    #[test]
+    fn helm_d_learned_manifold_r4_construction_matches_the_upstream_h64_row() {
+        let query = (0..64)
+            .map(|index| ((index as f64 + 1.0) * 0.03125).sin() * 0.4)
+            .collect::<Vec<_>>();
+        let keys = (0..3)
+            .map(|source| {
+                (0..64)
+                    .map(|index| ((index + source * 7) as f64 * 0.023).cos() * 0.35)
+                    .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>();
+        let values = (0..3)
+            .map(|source| {
+                (0..64)
+                    .map(|index| ((index * 3 + source * 11) as f64 * 0.017).sin() * 0.25)
+                    .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>();
+        let scale = 7.25;
+        let bias = -0.375;
+        let reference = helm_d_lorentz_causal_row(
+            &query,
+            &keys,
+            &values,
+            HelmDLorentzReferenceConfig {
+                curvature: 1.0,
+                learned_scale: scale,
+                bias,
+            },
+        )
+        .expect("upstream row");
+        for (source, key) in keys.iter().enumerate() {
+            let actual = helm_d_learned_manifold_logit(
+                HelmDLearnedManifoldMetric::Lorentz,
+                &query,
+                key,
+                scale,
+                bias,
+            )
+            .expect("full-head logit");
+            assert!((actual - reference.logits[source]).abs() <= 1.0e-12);
+        }
+        let centroid = helm_d_learned_manifold_centroid(
+            HelmDLearnedManifoldMetric::Lorentz,
+            &values,
+            &reference.weights,
+        )
+        .expect("full-head centroid");
+        for (actual, expected) in centroid.iter().zip(&reference.centroid[1..]) {
+            assert!((*actual - *expected).abs() <= 1.0e-12);
+        }
+        let time = libm::sqrt(1.0 + compensated_square_sum(&centroid).expect("norm"));
+        let residual =
+            (-time * time + compensated_square_sum(&centroid).expect("normalized norm") + 1.0)
+                .abs();
+        assert!(residual <= 1.0e-12);
+    }
+
+    #[test]
+    fn helm_d_learned_manifold_r4_construction_is_covariant_and_mismatch_is_live() {
+        fn model_vector(seed: usize) -> Vec<f64> {
+            (0..64)
+                .map(|lane| ((seed * 17 + lane * 5) as f64 * 0.019).sin() * 0.3)
+                .collect()
+        }
+        fn encode(atlas: &mut R4SpinFrameAtlas, position: usize, vector: &[f64]) -> Vec<f64> {
+            let mut output = Vec::with_capacity(vector.len());
+            for block in vector.chunks_exact(R4_WIDTH) {
+                output.extend_from_slice(
+                    &atlas
+                        .encode_model_block(position, [block[0], block[1], block[2], block[3]])
+                        .expect("encode"),
+                );
+            }
+            output
+        }
+        fn transport(
+            atlas: &mut R4SpinFrameAtlas,
+            source: usize,
+            query: usize,
+            vector: &[f64],
+            intervention: R4SpinTransportIntervention,
+            value: bool,
+        ) -> Vec<f64> {
+            let mut output = Vec::with_capacity(vector.len());
+            for block in vector.chunks_exact(R4_WIDTH) {
+                let local = atlas
+                    .encode_model_block(source, [block[0], block[1], block[2], block[3]])
+                    .expect("source encode");
+                output.extend_from_slice(
+                    &atlas
+                        .transport_local_block(source, query, local, intervention, value)
+                        .expect("transport"),
+                );
+            }
+            output
+        }
+        fn decode(atlas: &mut R4SpinFrameAtlas, position: usize, vector: &[f64]) -> Vec<f64> {
+            let mut output = Vec::with_capacity(vector.len());
+            for block in vector.chunks_exact(R4_WIDTH) {
+                output.extend_from_slice(
+                    &atlas
+                        .decode_query_block(position, [block[0], block[1], block[2], block[3]])
+                        .expect("decode"),
+                );
+            }
+            output
+        }
+
+        let mut atlas = R4SpinFrameAtlas::new(64, 3).expect("atlas");
+        for (position, token) in [5, 11, 23].into_iter().enumerate() {
+            atlas.begin_position(token, position).expect("position");
+        }
+        let query = model_vector(3);
+        let keys = [model_vector(7), model_vector(13), model_vector(19)];
+        let values = [model_vector(29), model_vector(31), model_vector(37)];
+        let query_gauge = encode(&mut atlas, 2, &query);
+        let keys_gauge = keys
+            .iter()
+            .enumerate()
+            .map(|(source, key)| {
+                transport(
+                    &mut atlas,
+                    source,
+                    2,
+                    key,
+                    R4SpinTransportIntervention::Coherent,
+                    false,
+                )
+            })
+            .collect::<Vec<_>>();
+        let values_gauge = values
+            .iter()
+            .enumerate()
+            .map(|(source, value)| {
+                transport(
+                    &mut atlas,
+                    source,
+                    2,
+                    value,
+                    R4SpinTransportIntervention::Coherent,
+                    true,
+                )
+            })
+            .collect::<Vec<_>>();
+        let model_logits = keys
+            .iter()
+            .map(|key| {
+                helm_d_learned_manifold_logit(
+                    HelmDLearnedManifoldMetric::Lorentz,
+                    &query,
+                    key,
+                    24.0,
+                    0.0,
+                )
+                .expect("model logit")
+            })
+            .collect::<Vec<_>>();
+        let gauge_logits = keys_gauge
+            .iter()
+            .map(|key| {
+                helm_d_learned_manifold_logit(
+                    HelmDLearnedManifoldMetric::Lorentz,
+                    &query_gauge,
+                    key,
+                    24.0,
+                    0.0,
+                )
+                .expect("gauge logit")
+            })
+            .collect::<Vec<_>>();
+        for (model, gauge) in model_logits.iter().zip(&gauge_logits) {
+            assert!((*model - *gauge).abs() <= 1.0e-12);
+        }
+        let weights = stable_softmax(&model_logits).expect("weights");
+        let model_centroid = helm_d_learned_manifold_centroid(
+            HelmDLearnedManifoldMetric::Lorentz,
+            &values,
+            &weights,
+        )
+        .expect("model centroid");
+        let gauge_centroid = helm_d_learned_manifold_centroid(
+            HelmDLearnedManifoldMetric::Lorentz,
+            &values_gauge,
+            &weights,
+        )
+        .expect("gauge centroid");
+        let decoded = decode(&mut atlas, 2, &gauge_centroid);
+        let maximum_error = decoded
+            .iter()
+            .zip(&model_centroid)
+            .map(|(left, right)| (*left - *right).abs())
+            .fold(0.0, f64::max);
+        assert!(maximum_error <= 1.0e-8, "covariance error {maximum_error}");
+
+        let mismatched = transport(
+            &mut atlas,
+            0,
+            2,
+            &keys[0],
+            R4SpinTransportIntervention::SourceFramePermuted,
+            false,
+        );
+        let mismatch_logit = helm_d_learned_manifold_logit(
+            HelmDLearnedManifoldMetric::Lorentz,
+            &query_gauge,
+            &mismatched,
+            24.0,
+            0.0,
+        )
+        .expect("mismatch logit");
+        assert!((mismatch_logit - model_logits[0]).abs() > 1.0e-6);
+    }
+
+    #[test]
+    fn helm_d_learned_manifold_r4_construction_rejects_invalid_parameters() {
+        let mut parameters =
+            HelmDLearnedManifoldParameters::identity(1, 9, 3, 16, 24.0).expect("parameters");
+        parameters.learned_scales_mut()[0] = 0.0;
+        assert!(parameters.validate().is_err());
+
+        let mut parameters =
+            HelmDLearnedManifoldParameters::identity(1, 9, 3, 16, 24.0).expect("parameters");
+        parameters.query_adapters_mut()[0].matrix[0][0] = f64::NAN;
+        assert!(parameters.validate().is_err());
+        assert!(HelmDLearnedManifoldParameters::identity(1, 8, 3, 16, 24.0).is_err());
+    }
+
+    #[test]
+    fn helm_d_learned_manifold_r4_construction_order_key_control_is_live() {
+        let parameters =
+            HelmDLearnedManifoldParameters::identity(1, 1, 1, 16, 24.0).expect("parameters");
+        let mut coherent = HelmDLearnedManifoldR4Transport::new(
+            32,
+            3,
+            parameters.clone(),
+            HelmDLearnedManifoldMetric::Lorentz,
+            HelmDLearnedManifoldIntervention::Coherent,
+        )
+        .expect("coherent");
+        let mut shuffled = HelmDLearnedManifoldR4Transport::new(
+            32,
+            3,
+            parameters,
+            HelmDLearnedManifoldMetric::Lorentz,
+            HelmDLearnedManifoldIntervention::OrderKeyShuffled,
+        )
+        .expect("shuffled");
+        let query = (0..64)
+            .map(|lane| (lane as f32 * 0.013).sin())
+            .collect::<Vec<_>>();
+        let packed_keys = (0..3)
+            .flat_map(|source| (0..64).map(move |lane| ((source * 19 + lane) as f32 * 0.021).cos()))
+            .collect::<Vec<_>>();
+        let context = CausalAttentionHeadContext {
+            layer: 0,
+            head: 0,
+            query_position: 2,
+        };
+        let mut coherent_weights = [0.0_f32; 3];
+        let mut shuffled_weights = [0.0_f32; 3];
+        coherent.score_and_normalize(context, &query, &packed_keys, &mut coherent_weights, true);
+        shuffled.score_and_normalize(context, &query, &packed_keys, &mut shuffled_weights, true);
+        assert_ne!(coherent_weights, shuffled_weights);
+        assert_eq!(shuffled.audit().order_key_permutations, 3);
+        assert!(CausalAttentionTransport::status(&shuffled).is_ok());
     }
 }

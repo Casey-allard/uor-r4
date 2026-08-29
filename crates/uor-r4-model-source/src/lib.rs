@@ -483,6 +483,7 @@ pub struct CausalAttentionTransportSession {
     selected_layers: Vec<bool>,
     scratch: CausalAttentionTransportScratch,
     audit: attention::CausalAttentionTransportAudit,
+    pre_rope_projection_audit: attention::CausalAttentionProjectionAudit,
     source_cid: String,
     next_position: usize,
 }
@@ -511,9 +512,16 @@ impl CausalAttentionTransportSession {
         self.audit
     }
 
+    /// Decoder-owned proof that the optional learned Q/K/V projection hook was
+    /// invoked once per selected layer and received complete projected vectors.
+    pub fn pre_rope_projection_audit(&self) -> attention::CausalAttentionProjectionAudit {
+        self.pre_rope_projection_audit
+    }
+
     /// Clear counters without changing model, KV-cache, or transport state.
     pub fn clear_audit(&mut self) {
         self.audit = attention::CausalAttentionTransportAudit::default();
+        self.pre_rope_projection_audit = attention::CausalAttentionProjectionAudit::default();
     }
 
     /// Deterministic identity of the retained residual, KV-cache, and logits.
@@ -546,6 +554,7 @@ impl CausalAttentionTransportSession {
         self.transport.reset();
         self.scratch.clear();
         self.audit = attention::CausalAttentionTransportAudit::default();
+        self.pre_rope_projection_audit = attention::CausalAttentionProjectionAudit::default();
         self.next_position = 0;
     }
 }
@@ -585,6 +594,7 @@ struct CausalAttentionLayerOverride<'a> {
     transport: &'a mut dyn attention::CausalAttentionTransport,
     scratch: &'a mut CausalAttentionTransportScratch,
     audit: &'a mut attention::CausalAttentionTransportAudit,
+    pre_rope_projection_audit: &'a mut attention::CausalAttentionProjectionAudit,
 }
 
 fn causal_attention_layer_mask(
@@ -1245,6 +1255,7 @@ impl Llama {
             selected_layers,
             scratch,
             audit,
+            pre_rope_projection_audit,
             ..
         } = session;
         transport.begin_position(token, pos);
@@ -1266,6 +1277,7 @@ impl Llama {
                     transport: transport.as_mut(),
                     scratch,
                     audit,
+                    pre_rope_projection_audit,
                 };
                 self.layer_forward_with_geometry(
                     state,
@@ -1453,7 +1465,7 @@ impl Llama {
         fast_matmul: bool,
         geometry: Option<&mut geometric_decoder::GeometricRuntime>,
         mut source_capture: Option<&mut geometric_training::SourceLayerCapture>,
-        causal_attention: Option<&mut CausalAttentionLayerOverride<'_>>,
+        mut causal_attention: Option<&mut CausalAttentionLayerOverride<'_>>,
     ) {
         let c = &self.cfg;
         let (dim, hid) = (c.dim, c.hidden);
@@ -1516,6 +1528,24 @@ impl Llama {
                         dim,
                         fast_matmul,
                     );
+                }
+
+                if let Some(causal_attention) = causal_attention.as_deref_mut() {
+                    let context = attention::CausalAttentionProjectionContext {
+                        layer: l,
+                        query_position: pos,
+                        query_heads: c.n_heads,
+                        key_value_heads: c.n_kv_heads,
+                        head_size,
+                    };
+                    let key = &mut st.key_cache[loff + pos * kv_dim..loff + (pos + 1) * kv_dim];
+                    let value = &mut st.value_cache[loff + pos * kv_dim..loff + (pos + 1) * kv_dim];
+                    causal_attention
+                        .transport
+                        .transform_projected_qkv_before_rope(context, &mut st.q, key, value);
+                    causal_attention
+                        .pre_rope_projection_audit
+                        .record(context, dim, kv_dim, kv_dim);
                 }
 
                 // RoPE: converted llama2.c checkpoints interleave pairs; native
@@ -3691,6 +3721,7 @@ impl HuggingFaceLlamaOracle {
             selected_layers,
             scratch,
             audit: attention::CausalAttentionTransportAudit::default(),
+            pre_rope_projection_audit: attention::CausalAttentionProjectionAudit::default(),
             source_cid: self.kappa.clone(),
             next_position: 0,
         })
@@ -5276,6 +5307,100 @@ mod tests {
         }
     }
 
+    #[derive(Debug, Default)]
+    struct PreRopeProjectionObservations {
+        contexts: Vec<attention::CausalAttentionProjectionContext>,
+        query_at_position_one: Option<[u32; 2]>,
+        key_at_position_one: Option<[u32; 2]>,
+        value_at_position_one: Option<[u32; 2]>,
+    }
+
+    struct PreRopeProjectionProbe {
+        observations: std::sync::Arc<std::sync::Mutex<PreRopeProjectionObservations>>,
+    }
+
+    impl attention::CausalAttentionTransport for PreRopeProjectionProbe {
+        fn policy_identity(&self) -> &str {
+            "pre-rope-projection-probe/1"
+        }
+
+        fn begin_position(&mut self, _token: usize, _position: usize) {}
+
+        fn transform_projected_qkv_before_rope(
+            &mut self,
+            context: attention::CausalAttentionProjectionContext,
+            query: &mut [f32],
+            key: &mut [f32],
+            value: &mut [f32],
+        ) {
+            self.observations
+                .lock()
+                .expect("projection observations lock")
+                .contexts
+                .push(context);
+            query.fill(0.0);
+            key.fill(0.0);
+            value.fill(0.0);
+            query[0] = 1.0;
+            key[0] = 1.0;
+            value[0] = 3.0;
+        }
+
+        fn transform_query(
+            &mut self,
+            context: attention::CausalAttentionHeadContext,
+            input: &[f32],
+            output: &mut [f32],
+        ) {
+            if context.query_position == 1 && context.head == 0 {
+                self.observations
+                    .lock()
+                    .expect("query observations lock")
+                    .query_at_position_one = Some([input[0].to_bits(), input[1].to_bits()]);
+            }
+            output.copy_from_slice(input);
+        }
+
+        fn transport_key(
+            &mut self,
+            context: attention::CausalAttentionSourceContext,
+            input: &[f32],
+            output: &mut [f32],
+        ) {
+            if context.query_position == 1 && context.source_position == 1 && context.head == 0 {
+                self.observations
+                    .lock()
+                    .expect("key observations lock")
+                    .key_at_position_one = Some([input[0].to_bits(), input[1].to_bits()]);
+            }
+            output.copy_from_slice(input);
+        }
+
+        fn transport_value(
+            &mut self,
+            context: attention::CausalAttentionSourceContext,
+            input: &[f32],
+            output: &mut [f32],
+        ) {
+            if context.query_position == 1 && context.source_position == 1 && context.head == 0 {
+                self.observations
+                    .lock()
+                    .expect("value observations lock")
+                    .value_at_position_one = Some([input[0].to_bits(), input[1].to_bits()]);
+            }
+            output.copy_from_slice(input);
+        }
+
+        fn output_to_model_frame(
+            &mut self,
+            _context: attention::CausalAttentionHeadContext,
+            input: &[f32],
+            output: &mut [f32],
+        ) {
+            output.copy_from_slice(input);
+        }
+    }
+
     #[derive(Default)]
     struct FaultingCausalAttentionTransport {
         faulted: bool,
@@ -5299,6 +5424,16 @@ mod tests {
         }
 
         fn begin_position(&mut self, _token: usize, _position: usize) {}
+
+        fn transform_projected_qkv_before_rope(
+            &mut self,
+            _context: attention::CausalAttentionProjectionContext,
+            _query: &mut [f32],
+            _key: &mut [f32],
+            _value: &mut [f32],
+        ) {
+            self.faulted = true;
+        }
 
         fn transform_query(
             &mut self,
@@ -5334,7 +5469,6 @@ mod tests {
             output: &mut [f32],
         ) {
             output.copy_from_slice(input);
-            self.faulted = true;
         }
     }
 
@@ -5489,6 +5623,96 @@ mod tests {
         assert_eq!(audit.future_reads, 0);
         assert_eq!(audit.maximum_query_position, Some(2));
         assert_eq!(audit.maximum_source_position, Some(2));
+
+        let projection_audit = transported.pre_rope_projection_audit();
+        assert_eq!(projection_audit.hook_calls, 6);
+        assert_eq!(projection_audit.query_vectors, 12);
+        assert_eq!(projection_audit.key_vectors, 12);
+        assert_eq!(projection_audit.value_vectors, 12);
+        assert_eq!(projection_audit.query_lanes, 48);
+        assert_eq!(projection_audit.key_lanes, 48);
+        assert_eq!(projection_audit.value_lanes, 48);
+    }
+
+    #[test]
+    fn pre_rope_projection_hook_runs_once_per_layer_before_rope() {
+        let oracle = tiny_geometric_oracle();
+        let head_size = oracle.cfg().dim / oracle.cfg().n_heads;
+        let first_angle = head_size / 2;
+        let expected_query_key = [
+            oracle.model.rope_cos[first_angle].to_bits(),
+            oracle.model.rope_sin[first_angle].to_bits(),
+        ];
+        let observations = std::sync::Arc::new(std::sync::Mutex::new(
+            PreRopeProjectionObservations::default(),
+        ));
+        let mut session = oracle
+            .new_causal_attention_transport_session(
+                Box::new(PreRopeProjectionProbe {
+                    observations: observations.clone(),
+                }),
+                attention::CausalAttentionLayerSelection::All,
+                4,
+            )
+            .expect("pre-RoPE projection session");
+        let mut logits = vec![0.0; oracle.cfg().vocab];
+        for (position, token) in [1usize, 3].into_iter().enumerate() {
+            oracle
+                .step_causal_attention_transport(&mut session, token, position, &mut logits)
+                .expect("pre-RoPE projection step");
+        }
+
+        let observations = observations.lock().expect("projection observations lock");
+        assert_eq!(
+            observations.contexts,
+            vec![
+                attention::CausalAttentionProjectionContext {
+                    layer: 0,
+                    query_position: 0,
+                    query_heads: 2,
+                    key_value_heads: 2,
+                    head_size: 4,
+                },
+                attention::CausalAttentionProjectionContext {
+                    layer: 1,
+                    query_position: 0,
+                    query_heads: 2,
+                    key_value_heads: 2,
+                    head_size: 4,
+                },
+                attention::CausalAttentionProjectionContext {
+                    layer: 0,
+                    query_position: 1,
+                    query_heads: 2,
+                    key_value_heads: 2,
+                    head_size: 4,
+                },
+                attention::CausalAttentionProjectionContext {
+                    layer: 1,
+                    query_position: 1,
+                    query_heads: 2,
+                    key_value_heads: 2,
+                    head_size: 4,
+                },
+            ]
+        );
+        assert_eq!(observations.query_at_position_one, Some(expected_query_key));
+        assert_eq!(observations.key_at_position_one, Some(expected_query_key));
+        assert_eq!(
+            observations.value_at_position_one,
+            Some([3.0f32.to_bits(), 0.0f32.to_bits()])
+        );
+        drop(observations);
+
+        let projection_audit = session.pre_rope_projection_audit();
+        assert_eq!(projection_audit.hook_calls, 4);
+        assert_eq!(projection_audit.query_vectors, 8);
+        assert_eq!(projection_audit.key_vectors, 8);
+        assert_eq!(projection_audit.value_vectors, 8);
+        assert_eq!(projection_audit.query_lanes, 32);
+        assert_eq!(projection_audit.key_lanes, 32);
+        assert_eq!(projection_audit.value_lanes, 32);
+        assert_eq!(session.audit().future_reads, 0);
     }
 
     #[test]
@@ -5593,8 +5817,10 @@ mod tests {
             .iter()
             .all(|value| value.to_bits() == 123.0f32.to_bits()));
         assert!(session.transport_status().is_err());
+        assert_eq!(session.pre_rope_projection_audit().hook_calls, 1);
         session.reset();
         assert_eq!(session.transport_status(), Ok(()));
+        assert_eq!(session.pre_rope_projection_audit().hook_calls, 0);
 
         let order_error = oracle.step_causal_attention_transport(&mut session, 1, 1, &mut logits);
         assert!(matches!(

@@ -157,10 +157,12 @@ target-free because the frozen swapped states commute. The independently
 frozen V2 repair subsequently retained one bounded noncommuting exact-spin
 mechanism. PR #997 then rejected the first natural componentwise placement,
 and the first bounded gated-delta core trailed its plain-delta comparator. The
-ordinary R4/Spin softmax oracle remains qualified. Intrinsic V1 is unavailable
-before D3; only the fresh source-faithful learned-manifold construction
-qualifier is active. Multi-resonance, recurrent factorization, final
-requalification, and #954 remain blocked.
+ordinary R4/Spin softmax oracle remains qualified. Intrinsic V1 is closed
+unavailable before D3. The single active successor is the fresh, non-D3,
+construction-only
+[`HelmDLearnedManifoldR4ConstructionV2`](helm_d_learned_manifold_r4_construction_973.md)
+qualifier; it is not an Intrinsic V1 attempt 03. Multi-resonance, recurrent
+factorization, final requalification, D3, and #954 remain blocked.
 No new H4,
 SpiralCore, harmonic, algebraic, placement, transport, or scale qualifier is
 eligible outside its exposed issue.
@@ -261,8 +263,10 @@ construction-bound exact-descriptor selector at each of paragraph and
   preserved construction covariance but failed held-out functional binding.
   `HELM-D-R4` architecture audit, ordinary donor reproduction, and
   gauge-equivalent full-decoder softmax parity on real causal language now
-  pass. Intrinsic V1 is unavailable before D3; the source-faithful
-  learned-manifold construction qualifier is the active rung. Calling a later
+  pass. Intrinsic V1 is closed unavailable before D3. The only active rung is
+  the fresh, non-D3, construction-only
+  [`HelmDLearnedManifoldR4ConstructionV2`](helm_d_learned_manifold_r4_construction_973.md)
+  qualifier. Calling a later
 #973 operator harmonic additionally requires an
 artifact-bound basis/mode contract. #962
 separately owns product chat integration and persisted, identity-scoped hive

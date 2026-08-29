@@ -1,0 +1,311 @@
+{
+  "manifest_cid": "blake3:359b3270aaa0d3ac157280c9206ad820d18ee93932e0530552ebbb7935ac6410",
+  "manifest": {
+    "schema": "uor-r4.helm-d-learned-manifold-r4-construction-partition/2",
+    "issue": 973,
+    "selection_policy": "BLAKE3(domain-nul-UTF8(id)); exclude reserved digest class, id 12, and every predecessor id/input CID; eligible encoded length >=17; sort complete digest then UTF8 id; first 16 fit, next 8 validation; commit id/title CID/input CID/byte span only",
+    "selection_policy_cid": "blake3:69e96d1969425d6579936a537dae9d8660948ca86226bf6061df1cf807a220cd",
+    "corpus_cid": "blake3:194db0eebf2d49823ece01ee935447a0cc9edeaf018454ceea480ce7590132cf",
+    "corpus_documents": 3000,
+    "donor_cid": "blake3:12d2cd8a877ef2cdcf785b3d4d1f373e0419074cc884aeaff06fc059686a5ba5",
+    "tokenizer_cid": "blake3:70af0cb08bbcd3b323d3387ca1d7d33da39873820604d183711e8e99f9903fc1",
+    "upstream_source_commit": "7501deca8f413848bfef804be64ce874b72a3cd7",
+    "required_tokens_per_document": 17,
+    "input_positions": 16,
+    "scored_positions": [
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15
+    ],
+    "exclusions": {
+      "predecessor_partition_cid": "blake3:cad3dfd17159fdacc5c40e38753109c11764117e3c960f42b9b198d5731272a1",
+      "document_ids": [
+        "195",
+        "309",
+        "310",
+        "3466",
+        "358",
+        "3762",
+        "3890",
+        "431",
+        "4326",
+        "453",
+        "4586",
+        "4700",
+        "4964",
+        "6617",
+        "6828",
+        "7328",
+        "7554",
+        "7593",
+        "7636",
+        "7796",
+        "7905",
+        "8152",
+        "8548",
+        "8561",
+        "8639",
+        "9148",
+        "9252",
+        "9438"
+      ],
+      "input_cids": [
+        "blake3:0468406058f3c059fa70629f607efc7da7b5973ad68329ae209d52fbcae1da7f",
+        "blake3:14cb7125d88e37fe3e99ea6929ee6dd5b507b6ea76acc4468c71d98a86c0fa99",
+        "blake3:2425006c613f16e0213b23bf49ab1814fab3d40574ba73bc93d6ea2c7fb31ba6",
+        "blake3:2e745bd28216424a02475ecc2dbca965496545f6a19afec7a46d69deba8360bd",
+        "blake3:37aaa8420b69eda4a7c7e447e6600d54435d4496dbb669675904c457c86e56ea",
+        "blake3:3d36bedb0ced9f95d0326d43b1b6926bcf781a746a002eefd220d8119cef621d",
+        "blake3:3da062ddf6a7666c11010c4ac043b9457d612572c6096f81b87d79de9d8b7fd2",
+        "blake3:4fa98c7fc3e7213dce69a6dfcaa30e4aec5d9e7e4dad0493e6005f1b557b9522",
+        "blake3:5253d445d0136356b2e0a976442c014227b9a9848c8f0d23328d9ad15d697e06",
+        "blake3:56ef6ab07ff840a111857a497907e0627c5232f0159e21ee38f0aa3b3fd1e601",
+        "blake3:5886d29342c89967d9be3d844fd48941c9a9424106609026aae2ad518369e396",
+        "blake3:627c455a8d2ebcf6fbf306bf4078b3d4d6dae14a873295a2c8e4aa3921df90bd",
+        "blake3:6826ac63e3c18d89d127383cf100899de7712fcb218165af9f79dfb2091b8ad9",
+        "blake3:6b9a7086af394d63da65c522ae7a1cf8c51f5c76310be78dea10d593ba73831f",
+        "blake3:735a58f97d8046446019727feedb66dfffe1d9ae3a3450d2b8c75fd4d380aae5",
+        "blake3:73781877347ddec406621384acc0d6b51678d3ed9fce836993f7834896082408",
+        "blake3:9125197e5bfd3dc9b28a12fb26a86ed64b59491d19f708d22b945e82ca999aea",
+        "blake3:975430a889791da2f568243598c26b048cc97b1190f3e6b8ff62e5e4085c4466",
+        "blake3:a74694e7b0361260d80e27da59f83d72bbb60bc82b440677af0a354d8c0e8e7c",
+        "blake3:afd8e2b7e0024e2c3bbfc349f88be0a133c295245f13710ebb9151d3ed294485",
+        "blake3:c2e660d64e49fa40222afec296b67aa908a8e2f18124c1e923b4936b3b4b698a",
+        "blake3:cdac8ec5c38aa55f9eac5a962e37b860b3fff28d23464b99c519be5080708e78",
+        "blake3:d8c37ef20742ad04d6d2de3b99aa036e55da015649378cd4cd2ef936ccdf5429",
+        "blake3:db19ab0ba2ab5c2167ae66bf7b82e566713f016f448be99c131a076f615da1d3",
+        "blake3:e6b63c9838c3629f8f93a127c0b5f12635b9bbd09311e3728ace4f50165c0251",
+        "blake3:e8dd727070571368f8b6a5d3a97037ddeb60dc3db443264314e0e2b83c4934b6",
+        "blake3:f8bdf744d6e7fa1dc6bf2f4e023892ed0dca4ec5cb3d4c1c9c530ebc466a2282",
+        "blake3:fb5b802f7c49b8835bb64deff3b0d6f1bc9d840ea053a9102e8b41026d82434c"
+      ],
+      "exclusion_cid": "blake3:3f058230e39253b6f66add5a2a4de57c231299bce4a68d09d1c17be54a735bf1"
+    },
+    "construction_fit": [
+      {
+        "id": "8503",
+        "selection_digest": "blake3:0008014e44c6637ec256cf8245aca6a62781cd08725177b17b6d561e5876b11e",
+        "title_cid": "blake3:7991ccb782360ce7537deaa1723aab8317b8a59b9cc4e10fd03f93e296eb0263",
+        "input_cid": "blake3:b4560cd48b6c2c7572d286f5efaaa0571ec4e3ea42c1341a7bd00f3dd9464bd8",
+        "predecessor_domain_input_cid": "blake3:b203322b7f195ab7571f3565a0ddd6a28909c8fafadbadffcf43aa4e3dc03827",
+        "corpus_byte_offset": 10825224,
+        "corpus_byte_length": 1197
+      },
+      {
+        "id": "7754",
+        "selection_digest": "blake3:0046603cd6b277d4f9a984438424eb268980a525401d18b9d971e511810e5f4a",
+        "title_cid": "blake3:95cfcdd9cd7715789fb2ffda641f63ff44a4f04a8a4158f31d7926970c30c0a8",
+        "input_cid": "blake3:7af885edd623f53d2065635afb082a9732f05f2f39431e7c135a54e66b134f9c",
+        "predecessor_domain_input_cid": "blake3:f331aaf0014ceb8a04d2b45f762d80d532f19fd6336fa68d0be21d455527502b",
+        "corpus_byte_offset": 9496008,
+        "corpus_byte_length": 1086
+      },
+      {
+        "id": "3956",
+        "selection_digest": "blake3:00558af0d311c481348f3e9fc78c2d9bbe149633c33f5ffbd9a98811c0e7099a",
+        "title_cid": "blake3:a6722cadd8ec4fd7bd68b59635cdc9518ad7e329c6afbe33d44104461967b2a9",
+        "input_cid": "blake3:f7a6482e9beb83901c3a8092ff9ae0c08c215dda1deceba7733f683a772c0552",
+        "predecessor_domain_input_cid": "blake3:5e68e449303ed2e88918960c35c348aa446232ec4e1a13331470752f06965d66",
+        "corpus_byte_offset": 4183397,
+        "corpus_byte_length": 17409
+      },
+      {
+        "id": "7315",
+        "selection_digest": "blake3:006df1fbd0f2f0bd5b9965b46bac0e73225476eb2e6eefa2816bacfd306ded7a",
+        "title_cid": "blake3:e4a83c31b370c3075509957466604b0255dd58425aa3b85ce57fcfe1537dd26c",
+        "input_cid": "blake3:dc334c67f5b4022b683e84a2d5a8c8347750165c8da260a3666e2d219102597b",
+        "predecessor_domain_input_cid": "blake3:d99026eaa6cfba15317412ad91593b55715f7df3c700ebed0d512b97f3a959ab",
+        "corpus_byte_offset": 8436785,
+        "corpus_byte_length": 1519
+      },
+      {
+        "id": "476",
+        "selection_digest": "blake3:0076bcd0b6e85a4aa5ef876bf6363bd902ea0b8193c1c4ef8c8be15098be8106",
+        "title_cid": "blake3:a2131ed774e29410edd38ab63ba6a2bdafd7323bad036a6c5419173fd996babd",
+        "input_cid": "blake3:62bba3331d5ad505d75a38a820b5da9bf354fc4a0405e408b3fa0eee11ef7ace",
+        "predecessor_domain_input_cid": "blake3:2b8c271b0406ef2330fdcc5d99f8b6fa4ce0334dcb8d8c2236e8a7e8b2aec24b",
+        "corpus_byte_offset": 1085159,
+        "corpus_byte_length": 1352
+      },
+      {
+        "id": "4749",
+        "selection_digest": "blake3:00a4b7db92a4df422fded3b5a1e6dc828f619deebb51676aa7e6392fabd7ecc4",
+        "title_cid": "blake3:da5d706f4da35540c08b4b4a4e3f98c1849c49d88e5fed02e76a6d114bcf7975",
+        "input_cid": "blake3:5b3abcde79a7a8b2edbca2d25a69db7141313e280d42c88510b0ec7e09db73f8",
+        "predecessor_domain_input_cid": "blake3:8485f4615d3ffa505e88f2df07e8e62f89d1ba1d962114f6006acffdf4489982",
+        "corpus_byte_offset": 5580260,
+        "corpus_byte_length": 1612
+      },
+      {
+        "id": "7525",
+        "selection_digest": "blake3:0115315a2fdf4b6e9e2da30b5d300f4a1ce3c910db1d854abf15498ad58ab246",
+        "title_cid": "blake3:1165e45ec950931ed30b82af016cd42330ac0720cc1ef54383b313fa0fa4b11d",
+        "input_cid": "blake3:4ab1b0712f755e36203ae25fd9326e1924b029c5ecf292340b1277e0ac084f6a",
+        "predecessor_domain_input_cid": "blake3:6dacaf7d48ea628e3ee69cf1cd1e7a3603d0dcd90c27583685509eafeaf3a4b3",
+        "corpus_byte_offset": 8897913,
+        "corpus_byte_length": 794
+      },
+      {
+        "id": "8141",
+        "selection_digest": "blake3:0126b24eea399f2300343561243208b3d61373c6031e11ab9eb90ae4acfa990a",
+        "title_cid": "blake3:d42998794eeb2d830bc9ffbeadeff6c11ae3a5070ffff3e486b7fce87a62ce09",
+        "input_cid": "blake3:db6342f7efd03b0d20daca8d73154a498e417f6981dad055288684a2d0fe3456",
+        "predecessor_domain_input_cid": "blake3:4bae000e5f2539d47c547bce0cd96e16a8ee9b7ae3e88ca92fb94e6c3962a4fd",
+        "corpus_byte_offset": 10164833,
+        "corpus_byte_length": 1587
+      },
+      {
+        "id": "6309",
+        "selection_digest": "blake3:0135dd498a61d4b4d4797e18ed4262fcfc47924c152ee9abe971ac543717f259",
+        "title_cid": "blake3:abc23fed761959f5882a3476dad28d3e0de1bdc9c98c0d10b731f8976321b73c",
+        "input_cid": "blake3:721a1531d9ab32c9906c7f9c910453291ecb5130ae3aa27c0b18632d63986189",
+        "predecessor_domain_input_cid": "blake3:a53e72da50e6c6d4a2fed4cdbaa0b2829b45710c8c925dc4263d27240b93a098",
+        "corpus_byte_offset": 7590491,
+        "corpus_byte_length": 4356
+      },
+      {
+        "id": "271",
+        "selection_digest": "blake3:01587ee1807234339b30172e461bab048ccf4cce9175ceeee2febc5067d4f9a6",
+        "title_cid": "blake3:20829979fb32a71d829cb7979c35df19d6c1968d8f7b1d801e2d2507b3bc35d5",
+        "input_cid": "blake3:8426180a40a5479d46c2d469d77a67c337ca029dd11b0aa5fb57bb32ceb660b4",
+        "predecessor_domain_input_cid": "blake3:cc1ba8e47f8aa888204ad3482a23b68510488cdc749b337019d61f8953c3dd78",
+        "corpus_byte_offset": 601058,
+        "corpus_byte_length": 1004
+      },
+      {
+        "id": "6749",
+        "selection_digest": "blake3:0159e1da228da75aa2f8713cad069377ae86568f83fdb83f1a93ed28c33918f4",
+        "title_cid": "blake3:ff8d692c190bc3448163121be243317a4611b90ffe67b3da6960980218bac882",
+        "input_cid": "blake3:03cf55adc3a1974893b5c193b1c15deeb6e1029accbb89cd5baa840d526602dc",
+        "predecessor_domain_input_cid": "blake3:b6d79455da66ef58a17158405c5cc44e389877026d9c85dbf0585cf4194d4103",
+        "corpus_byte_offset": 8068537,
+        "corpus_byte_length": 700
+      },
+      {
+        "id": "7604",
+        "selection_digest": "blake3:017178c1c489a347613831d80e686265d62bf644e70551df9afe0c10418e4d26",
+        "title_cid": "blake3:dacc45d1e86b26b1014b1669fb9af33c5960f36ebdccede42def96d2210d97c1",
+        "input_cid": "blake3:55542030f71a839c4ced97dba7e4dbb86c1839d40c25fcd50fbb4d6d28853c4a",
+        "predecessor_domain_input_cid": "blake3:2c3a93ff1c79cdde88fcbe0756b43c0e1931eeac4d62c00e61ebbf79be59f069",
+        "corpus_byte_offset": 9120278,
+        "corpus_byte_length": 4016
+      },
+      {
+        "id": "8384",
+        "selection_digest": "blake3:018c8c4410ea18b3dacf8b641d444adc4af9a54ea439ee71e16354ed94135abd",
+        "title_cid": "blake3:c994763be41660a29e86919c153d94f3f41c61f8a14a94a8b2c0e976f347f83c",
+        "input_cid": "blake3:ea4853fc4dfb25cfc8a47dc35886f18165cadcbe5ef14660fdf063d459086a21",
+        "predecessor_domain_input_cid": "blake3:d00ac696da20877bab8ca7bda1b39abe6ea47bab2c7dd0d2e4aec95512b75889",
+        "corpus_byte_offset": 10582764,
+        "corpus_byte_length": 9702
+      },
+      {
+        "id": "7183",
+        "selection_digest": "blake3:0195ebeaf7015ab0443e27685f01c4790239014f5ea0db1bdef9ef3e7aa9a03a",
+        "title_cid": "blake3:b32e7c3d9a31c36a8ac9d3d951024aa4e40b5727f3ac646778cf7891e3e3ffc0",
+        "input_cid": "blake3:ebba94afb83ed82ee4480f8f8a77280a1c5aec492b7c906a48992e204e83a9bd",
+        "predecessor_domain_input_cid": "blake3:d986014ea7a49effb1b0957725652f8a21e3b53a2fa81cceb6f46ef2a14a9347",
+        "corpus_byte_offset": 8347073,
+        "corpus_byte_length": 6953
+      },
+      {
+        "id": "3621",
+        "selection_digest": "blake3:01abda7fa27af86c07f8dc330f808564dbeaee166f97ad516c9f730638b138b6",
+        "title_cid": "blake3:29b8d0080106e773dfa4788a4ec80b2a264f6fc551f053f37dc191b569d19443",
+        "input_cid": "blake3:35e6e52c36cd38bb80736b1cd9fc27492ee5d875a9bf76c789d2e13126fe2b27",
+        "predecessor_domain_input_cid": "blake3:5a2dc3b2f435679587f7442591f5d08284f336d8219d5a959bfea624e4e293e8",
+        "corpus_byte_offset": 3648081,
+        "corpus_byte_length": 1413
+      },
+      {
+        "id": "3799",
+        "selection_digest": "blake3:01b11418c62adf984bfd3c2c0c5edc70ecf2b632c6b5d31db077d23c9f826f72",
+        "title_cid": "blake3:c1015cb2e6a439fb2ac179db0230f161946ef493fbb5d5073a25f9bc7323f24a",
+        "input_cid": "blake3:61a8fa836018d7b62bb5123ce5222e846418443c2a00dcffbb07a5962ec1992d",
+        "predecessor_domain_input_cid": "blake3:67dbce2aad00647fb4be353b7f0e438bf4345d4d34c1cecddda80aaeaf2d8040",
+        "corpus_byte_offset": 3958869,
+        "corpus_byte_length": 1201
+      }
+    ],
+    "construction_validation": [
+      {
+        "id": "5950",
+        "selection_digest": "blake3:01b454f5b4e05d4f6f85af0381cd4e08ae4482988a94bbf24a07e40010c4bcbb",
+        "title_cid": "blake3:09a935f334fef2e82e066b37db034ae6dbaaed74c37c64d6a480a2629d669c9a",
+        "input_cid": "blake3:d97f3577626d9f642154a339d93f55bb803af7ea3d94a767a79046fc3615ae84",
+        "predecessor_domain_input_cid": "blake3:8a5c681add053d7e7866262264feb28ae6f4f834d462d7a88a10b01542e35c4a",
+        "corpus_byte_offset": 7237069,
+        "corpus_byte_length": 1529
+      },
+      {
+        "id": "8341",
+        "selection_digest": "blake3:01b6cd36db2d8b1176a94a7dc4e93731476a4ca9198bd555cb4d24a87fffeb89",
+        "title_cid": "blake3:4751f999c3f5782b3e5b3d64b3a17e7750baa7abede4d247acda07685e2e606c",
+        "input_cid": "blake3:5184fe2516c56f7dc95309bd9a28cdfa1669b3e73b07a9954095196a4ee9152d",
+        "predecessor_domain_input_cid": "blake3:40db5ccbd0ee092e447055994c6b7d353f4ea779fd80651371d2ab270b91fbbb",
+        "corpus_byte_offset": 10431476,
+        "corpus_byte_length": 21082
+      },
+      {
+        "id": "3326",
+        "selection_digest": "blake3:01d59506372acd33806c8b9437ca7b554845713d95234f8027aa13599ece5608",
+        "title_cid": "blake3:e2d0aa631007ebb5662b3139fd967e17ce90c5a0e767ae726c3e5509407f1a14",
+        "input_cid": "blake3:926be58d296fd204087d78ec962b0914dfec7665376c80e1788df22f9525ef4d",
+        "predecessor_domain_input_cid": "blake3:9902af92531ba1493b48c3c9bf0b12630e97e53750c7874eee09cba94517517b",
+        "corpus_byte_offset": 3128460,
+        "corpus_byte_length": 1152
+      },
+      {
+        "id": "448",
+        "selection_digest": "blake3:01da8bdd3b46db78c06fbc1ed195d66aad7361757291a19a686f2dfde83a2824",
+        "title_cid": "blake3:21a8a69d8acda632c334e9c71ce887bbea282807452609cae6fa06b6be27c5e9",
+        "input_cid": "blake3:87358c297f8842e714797e266c5db7cd3faaae5c97e0b7267bd5dab21c0e1f19",
+        "predecessor_domain_input_cid": "blake3:75f22c927202553701aade915be6b3768e7db19757e72614a283a640258e67dc",
+        "corpus_byte_offset": 988408,
+        "corpus_byte_length": 1041
+      },
+      {
+        "id": "4470",
+        "selection_digest": "blake3:01eab55fcb4b6dcba1ad6f441a15e857b33b6f167d8325145399fba0f670e2e8",
+        "title_cid": "blake3:1ef2dfbb033861d89aea87c14821f319b149e93dcb479addc4b9c25848e4c761",
+        "input_cid": "blake3:36b2656b2d5078e64fdac9dc1d9e97a93d828475705ffa2e00d2ef204e91ef73",
+        "predecessor_domain_input_cid": "blake3:462eaef242bf123c391a31ca0d3d7b32ae20e8fb887bb54ddbd0e260a568fc62",
+        "corpus_byte_offset": 5107065,
+        "corpus_byte_length": 2086
+      },
+      {
+        "id": "5577",
+        "selection_digest": "blake3:01f0e8fae294bfc1cc39f436b2b3f0344046f1ff70eabeb07b758d0c311bd9c0",
+        "title_cid": "blake3:207b843916c282ef994772c640533ad8870c7642f58e0c953721129fef7260cc",
+        "input_cid": "blake3:3f7bec83584d973148804d698331797953a54dc672c9575576db70b13b9e3416",
+        "predecessor_domain_input_cid": "blake3:f5b126d70ec23292a0a499ed0070180254a1baf4b25c4075d2f932d120820327",
+        "corpus_byte_offset": 6871406,
+        "corpus_byte_length": 1381
+      },
+      {
+        "id": "9407",
+        "selection_digest": "blake3:01f7284b46cd45fb21182f169cbc8807904c27f7597d6232edc45de9852c85dc",
+        "title_cid": "blake3:669d89c6d2d4f63e11085af7b18317c4ea5e92a3db2439c9ee9d758f9e4f494c",
+        "input_cid": "blake3:6a26fd97bab9087ca8639d41438b2aac0d96156a76f014cf2d48bd2965d3e8fa",
+        "predecessor_domain_input_cid": "blake3:4453b197c5903956aa6f2e6510bce033716dbcc04c4bec64ea8437ff6c7611e7",
+        "corpus_byte_offset": 12481644,
+        "corpus_byte_length": 438
+      },
+      {
+        "id": "3596",
+        "selection_digest": "blake3:01fa2a4f460e4cc918adfc367ea3f2e06a800a181bda704970f58c176988eadf",
+        "title_cid": "blake3:bb5f593ac08bae20441eb3f18b47de31c68d37fcaa2ba0f08795cf7b0042798e",
+        "input_cid": "blake3:d8cdbf53891de9b26cc05828ded6cf48f703d363fdebf599e918cb4cb7081e7d",
+        "predecessor_domain_input_cid": "blake3:692dbade5dff72428c33cd6dbaec1a2e355617b6e6f2b91df1e275cd98167320",
+        "corpus_byte_offset": 3585614,
+        "corpus_byte_length": 3568
+      }
+    ],
+    "partition_cid": "blake3:5c5a7dab9d7a0fbc9d176faafd49b42094ef89138cc32699dfc1b4fe937d1bde"
+  }
+}

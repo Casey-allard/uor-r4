@@ -890,10 +890,11 @@ decision without changing V1. Later corpus-placement, gated-delta, and direct
 V3 results were negative. `ConnectionGaugeCovarianceV4` subsequently passed
 construction covariance but failed held-out functional binding. `HELM-D-R4`
 architecture audit, ordinary-donor reproduction, and full-decoder R4/Spin
-softmax parity then passed. Intrinsic V1 is unavailable before D3; the current
-evaluation action is its fresh source-faithful learned-manifold construction
-qualifier. Resonance and recurrent lowering remain blocked conditional
-successors.
+softmax parity then passed. Intrinsic V1 is closed unavailable before D3. The
+single current evaluation action is the fresh, non-D3, construction-only
+[`HelmDLearnedManifoldR4ConstructionV2`](helm_d_learned_manifold_r4_construction_973.md)
+qualifier; it is not an Intrinsic V1 attempt 03. D3, resonance, and recurrent
+lowering remain blocked conditional successors.
 
 #973 owns paragraph, conversation, and bounded-global influence only after the
 one #989-matched #953 intervention qualifies the decoded loop.

@@ -1530,10 +1530,13 @@ remains target-free negative history; its V2 noncommuting repair passed the
 bounded decoded contract. Its first document-scope corpus-induced placement
 passed target-free but failed the held-out promotion gate. The first bounded
 gated-delta core also trailed plain delta. Ordinary transported Q/K/V/O softmax
-attention is now the bounded qualified reference. Intrinsic V1 is unavailable
-before D3; only its fresh source-faithful learned-manifold construction
-qualifier is active. Multi-resonance replacement, recurrent factorization,
-final requalification, and #954 remain blocked.
+attention is now the bounded qualified reference. Intrinsic V1 is closed
+unavailable before D3. The only active successor is the fresh, non-D3,
+construction-only
+[`HelmDLearnedManifoldR4ConstructionV2`](helm_d_learned_manifold_r4_construction_973.md)
+qualifier; it is not an Intrinsic V1 attempt 03. D3, multi-resonance
+replacement, recurrent factorization, final requalification, and #954 remain
+blocked.
 #955 invokes that accepted selector/
 #953/#973/#954 consumer; #962 integrates the accepted selector/#953/#973 path
 into product chat with persisted identity-scoped hive memory. #963 retains
