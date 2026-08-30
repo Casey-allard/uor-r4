@@ -19,7 +19,7 @@ make an hours-long run the price of learning whether a mechanism is reachable.
 Experimental evaluations are dormant by default. Activate only the smallest
 probe whose possible outcomes cause different next actions.
 
-### Active decision — opt-in native R4SoftmaxReferenceGeneratorV1 HTTP/dashboard bridge/#973
+### Active decision — proposed R4SoftmaxTeacherTraceV1 and source-free trace compiler/#973
 
 PR #997 proved reachability but rejected its componentwise-Frechet placement:
 real 2,931/35,028 (8.367592%), unchanged #953 4,281/35,028 (12.221651%),
@@ -67,7 +67,9 @@ replay, transported-R4 numerical/behavioral parity, the destructive control,
 and the causal ledger passed on the bounded held-out run. See the
 [`HELM-D-R4 record`](helm_d_r4_softmax_decoder_973.md) and
 [`machine result`](helm_d_r4_softmax_decoder_result_973.json). Upstream HELM-D
-checkpoint parity remains `NOT_RUN`. `IntrinsicLorentzR4AttentionV1` attempt 02
+checkpoint parity remains `NOT_RUN`; no HELM checkpoint or code executed in the
+UOR generation or bridge gates, and no upstream result is inherited.
+`IntrinsicLorentzR4AttentionV1` attempt 02
 reached construction validation and stopped unavailable before D3 because its
 barycenter-covariance audit missed the frozen ceiling. Its diagnostic NLL also
 trailed donor and flat R4. Intrinsic attention is therefore not established;
@@ -79,8 +81,8 @@ baseline. Intrinsic score/readout, multi-resonance replacement,
 recurrence/lowering, and D3 are parked or `NOT_RUN`.
 
 The provider-free autonomous `R4SoftmaxReferenceGeneratorV1` (`HELM-D-R4`)
-native CLI gate now passes using the credited
-HELM attention seam and UOR's pinned SmolLM2 `HuggingFaceLlamaOracle` for
+native CLI gate now passes with HELM-D credited only as the MIT architectural
+reference and UOR's pinned SmolLM2 `HuggingFaceLlamaOracle` for
 embeddings, RoPE, residual/RMSNorm, MLP, final normalization, and the
 language-model head. It produced 4/5 frozen quality in both passes, 5/5 exact
 replay after deleting timing, all 30 layers with exact causal/projection/R4
@@ -88,11 +90,28 @@ audits and zero future reads, and reproduced the source donor for P1 through
 EOS and P2-P5 for all 32 retained tokens. Its terminal is
 `PASS_R4_SOFTMAX_REFERENCE_GENERATION_ADVANCE_NATIVE_PRODUCT_BRIDGE`. This reference remains
 transformer-compatible and `f32`/multiply/alloc/source-weight backed—not
-table-native, multiply-free, or transformerless. The next gate is one explicit
-opt-in native HTTP/dashboard integration of the exact same policy, with no
-default-engine change. Optimize or qualify latency only as needed for one real
-end-to-end prompt. Tag, release, hosted promotion, and static-WASM evidence
-remain ineligible. None of this alone closes #973 or unblocks #954. See the
+table-native, multiply-free, or transformerless. One dedicated opt-in,
+loopback-only native HTTP endpoint for the exact same policy now also passes:
+its frozen eight-token prompt matches the CLI token sequence, decision CID, and
+state CID, all 30 layers retain exact audits, and future reads remain zero.
+Dashboard wiring/static native-readiness and WASM-isolation checks pass, while
+browser interaction/E2E is `NOT_RUN`; the default engine is unchanged. See the
+[`bridge record`](r4_softmax_reference_http_bridge_973.md) and
+[`structured result`](r4_softmax_reference_http_bridge_result_973.json).
+
+The next gate is the proposed, not-yet-implemented
+`R4SoftmaxTeacherTraceV1` and trace compiler. It must record only
+construction-side, causal layerwise token, Q/K/V, attention, value, and logit
+traces from the exact qualified reference, bind their source and policy
+identities, and then compile the first source-free student/attention-state
+artifact. The decision metrics are decoded-token agreement and next-token loss
+against the reference, with a causal-input audit and a matched non-geometric
+student/control. A positive advances the source-free artifact; a negative
+repairs the trace representation or compiler. Intrinsic/readout, resonance,
+softmax replacement, recurrence, and exact lowering stay parked until this
+baseline exists. Tag, release, hosted promotion, general-generation/reasoning,
+and static-WASM evidence remain ineligible. None of this alone closes #973 or
+unblocks #954. See the
 [`generation record`](r4_softmax_reference_generation_973.md) and
 [`compact aggregate`](r4_softmax_reference_generation_attempt_01_result_973.json).
 
@@ -151,8 +170,13 @@ frozen V2 repair then passed its bounded noncommuting decoded contract. PR #997
 then rejected the first natural document placement. Its first bounded
 gated-delta core later trailed plain delta. #973 continues to block #954 while
 it owns the accepted ordinary-attention reference, the qualified provider-free
-autonomous generation gate, and the active opt-in native bridge. Intrinsic/readout, resonance/recurrent lowering,
-and final requalification are parked.
+autonomous generation gate, the qualified dedicated opt-in loopback-only native
+HTTP endpoint, and checked dashboard wiring/static native-readiness and WASM
+isolation. Browser
+interaction/E2E remains `NOT_RUN`. The proposed
+`R4SoftmaxTeacherTraceV1`/source-free trace compiler is
+active. Intrinsic/readout, resonance/recurrent lowering, and final
+requalification are parked.
 
 A negative result remains evidence about its declared mechanism and
 distribution. It does not erase a separately established storage, identity,
@@ -912,8 +936,12 @@ failed retention and matched parity while its controls established sensitivity
 only. The 8/8-contract attempt stopped at its two-document preflight and
 rejected tangent readout. Provider-free autonomous
 `R4SoftmaxReferenceGeneratorV1` (`HELM-D-R4`) generation now passes. The single
-current evaluation action is its explicit opt-in native HTTP/dashboard bridge,
-with no default-engine change. D3 remains `NOT_RUN`; intrinsic/readout,
+dedicated opt-in, loopback-only native HTTP endpoint also passes the frozen
+eight-token CLI-parity canary, with no default-engine change. Dashboard
+wiring/static native-readiness and WASM-isolation checks pass; browser
+interaction/E2E is `NOT_RUN`. The single current
+evaluation action is the proposed `R4SoftmaxTeacherTraceV1`/source-free trace
+compiler. D3 remains `NOT_RUN`; intrinsic/readout,
 resonance, and recurrent lowering are parked.
 
 #973 owns paragraph, conversation, and bounded-global influence only after the
@@ -972,7 +1000,10 @@ contract.
 
 The now-positive bounded V2 subprobe cannot close #973. Paragraph and
 conversation are retained. The ordinary attention reference is now accepted;
-provider-free autonomous generation now passes and its opt-in native bridge is
+provider-free autonomous generation and its dedicated opt-in, loopback-only
+native HTTP endpoint now pass. Dashboard wiring/static native-readiness and
+WASM-isolation checks pass; browser interaction/E2E is `NOT_RUN`. The
+proposed `R4SoftmaxTeacherTraceV1`/source-free trace compiler is
 active, while intrinsic/readout,
 resonance/recurrent lowering, and final requalification are parked.
 
@@ -1035,8 +1066,11 @@ Its controls established sensitivity, but learned Lorentz failed retention and
 matched parity. The 8/8-contract attempt stopped at its two-document preflight
 and rejected tangent readout.
 Provider-free autonomous `R4SoftmaxReferenceGeneratorV1` (`HELM-D-R4`)
-generation now passes. The current #973 decision is its explicit opt-in native
-HTTP/dashboard bridge; intrinsic/readout,
+generation now passes, and its explicit opt-in, loopback-only native
+HTTP endpoint passes the frozen eight-token CLI-parity canary. Dashboard
+wiring/static native-readiness and WASM-isolation checks pass; browser
+interaction/E2E is `NOT_RUN`. The current #973 decision is the proposed construction-only
+`R4SoftmaxTeacherTraceV1`/source-free trace compiler; intrinsic/readout,
 multi-resonance, and recurrent lowering are
 parked. D3 remains `NOT_RUN` and #954 remains blocked. See the
 [#973 bounded-global record](bounded_global_exact_spin_attention_973.md).

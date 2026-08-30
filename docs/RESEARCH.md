@@ -32,7 +32,7 @@ assumptions, or objectives rather than measured results.
 > geometric decoder stack. UOR's existing pinned SmolLM2
 > `HuggingFaceLlamaOracle` supplies embeddings, RoPE, residual/RMSNorm, MLP,
 > final normalization, and the language-model head. No HELM checkpoint or
-> generation code executed in this gate. The released HELM generation/cache
+> upstream generation code was executed in this gate. The released HELM generation/cache
 > path is incomplete. Its checkpoint and full geometric
 > decoder remain an optional external baseline behind a separate tokenizer and
 > license gate, and are not directly an R4-block runtime; no vendoring or
@@ -67,21 +67,31 @@ assumptions, or objectives rather than measured results.
 > work-ledger gates passed. Ordinary dot-product/stable-softmax causal attention
 > in coherent R4/Spin frames is now the accepted current baseline. Intrinsic
 > score/readout, resonance, softmax replacement, recurrence, and exact lowering
-> are parked. Provider-free autonomous `R4SoftmaxReferenceGeneratorV1`
+> are parked. Provider-free-at-execution, source-backed native CPU
+> `R4SoftmaxReferenceGeneratorV1`
 > (`HELM-D-R4`) generation now passes with the credited
 > attention seam and UOR's pinned SmolLM2 `HuggingFaceLlamaOracle` decoder path,
 > CLI/evidence path: 4/5 frozen quality in both passes, 5/5 exact replay after
 > deleting timing, all 30 layers with exact causal/projection/R4 audits and zero
 > future reads, and donor reproduction (P1 through EOS; P2-P5 all 32 tokens).
 > The terminal is
-> `PASS_R4_SOFTMAX_REFERENCE_GENERATION_ADVANCE_NATIVE_PRODUCT_BRIDGE`. This reference is transformer-
-> compatible and `f32`/multiply/alloc/source-weight backed—not a table-native,
-> multiply-free, transformerless serving claim. The sole next action is an
-> explicit opt-in native HTTP/dashboard bridge of the exact same policy, with
-> no default-engine change; latency is qualified only as needed for one real
-> end-to-end prompt. No release, tag, hosted promotion, or static-WASM claim is
-> authorized. See the [generation record](r4_softmax_reference_generation_973.md)
-> and [compact aggregate](r4_softmax_reference_generation_attempt_01_result_973.json).
+> `PASS_R4_SOFTMAX_REFERENCE_GENERATION_ADVANCE_NATIVE_PRODUCT_BRIDGE`. Its
+> explicit opt-in, loopback-only dedicated native HTTP endpoint then passed the
+> frozen eight-token sunlight canary with the same token sequence, decoded text,
+> decision CID, persistent-state CID, all-30-layer exact audits, and zero future
+> reads as the CLI. Dashboard wiring, native-readiness gating, and static/WASM
+> isolation checks passed; browser interaction/E2E is `NOT_RUN`. The feature is
+> disabled by default and does not change the default engine. This reference is transformer-compatible and
+> `f32`/multiply/alloc/source-weight backed—not source-free, table-native,
+> multiply-free, transformerless, browser-WASM, release, or frontier evidence.
+> The sole next action is construction-only layerwise
+> token/Q/K/V/attention/value/logit trace capture from this exact behavioral
+> oracle followed by compilation and evaluation of the first source-free
+> student/attention-state artifact. Resonance substitutes and product/release
+> promotion remain parked until that passes. See the
+> [generation record](r4_softmax_reference_generation_973.md),
+> [compact aggregate](r4_softmax_reference_generation_attempt_01_result_973.json),
+> and [native bridge record](r4_softmax_reference_http_bridge_973.md).
 >
 > **Measured evidence status:** HELM-D pinned-source provenance `PASS`;
 > ordinary-donor reproduction `PASS`; transported-R4 parity, destructive
@@ -97,6 +107,9 @@ assumptions, or objectives rather than measured results.
 > localization attempt 01 terminal
 > `REJECT_TANGENT_READOUT_SELECT_SCORE_PREFLIGHT`, result CID
 > `blake3:79792c1a6e38733fd3eb925e364c87308ce26e02bea951f338466ab93481b374`;
+> dedicated native HTTP endpoint canary `PASS` with exact CLI token/text,
+> decision/state-CID, all-layer-audit, and causal-read parity; dashboard
+> wiring/readiness plus static/WASM isolation `PASS`; browser E2E `NOT_RUN`;
 > D3 `NOT_RUN`; multi-resonance replacement `NOT_RUN` and parked; recurrent
 > factorization/lowering `NOT_RUN` and parked. See the
 > [`HELM-D-R4` record](helm_d_r4_softmax_decoder_973.md) and the
@@ -438,8 +451,11 @@ assumptions, or objectives rather than measured results.
 > and destructive-control sensitivity passed. The 8/8-contract attempt stopped
 > at its two-document preflight and rejected tangent readout. Provider-free
 > autonomous `R4SoftmaxReferenceGeneratorV1` (`HELM-D-R4`) generation now
-> passes. The current #973 action is its explicit opt-in native HTTP/dashboard
-> bridge with the
+> passes. Its explicit opt-in, loopback-only dedicated native HTTP endpoint
+> subsequently passed exact CLI canary parity; dashboard wiring/readiness and
+> static/WASM-isolation checks passed while browser E2E remains `NOT_RUN`. The
+> current #973 action is construction-only trace capture and source-free
+> student/attention-state compilation using the
 > credited HELM attention seam and UOR's pinned SmolLM2
 > `HuggingFaceLlamaOracle` decoder path. Intrinsic/readout,
 > resonance replacement, and bounded recurrence are parked. D3 remains
@@ -1008,9 +1024,13 @@ document-scope corpus-induced componentwise Frechet placement then passed its
 target-free gate but failed every held-out promotion comparison, including a
 1,350-correct-route deficit to the unchanged #953 fallback. The first bounded
 transported gated-delta core then trailed plain delta on its sealed smoke. The
-ordinary direct attention reference is now accepted. Provider-free autonomous
-`R4SoftmaxReferenceGeneratorV1` (`HELM-D-R4`) generation now passes; its
-explicit opt-in native HTTP/dashboard bridge is active;
+ordinary direct attention reference is now accepted. Provider-free-at-execution,
+source-backed `R4SoftmaxReferenceGeneratorV1` (`HELM-D-R4`) generation and its
+explicit opt-in, loopback-only dedicated native HTTP endpoint now pass;
+dashboard wiring/readiness and static/WASM-isolation checks pass while browser
+E2E is `NOT_RUN`;
+construction-only layerwise trace capture and compilation/evaluation of a first
+source-free student/attention-state artifact are active;
 fiber-preserving multi-resonance
 replacement, recurrent factorization, and final requalification are parked.
 Dependable broad coherent text remains unestablished.
@@ -1593,12 +1613,15 @@ unavailable before D3. The source-faithful
 qualifier is now a valid non-D3 construction-validation negative: learned
 Lorentz failed retention and matched parity, while its controls established
 sensitivity only. The 8/8-contract attempt stopped at its two-document
-preflight and rejected tangent readout. Provider-free autonomous
-`R4SoftmaxReferenceGeneratorV1` (`HELM-D-R4`) generation now passes with the
+preflight and rejected tangent readout. Provider-free-at-execution,
+source-backed `R4SoftmaxReferenceGeneratorV1` (`HELM-D-R4`) generation now passes with the
 credited attention seam and UOR's pinned SmolLM2 `HuggingFaceLlamaOracle`
-decoder path. The only active successor is its explicit opt-in native
-HTTP/dashboard bridge, with no default-engine change. Intrinsic/readout, multi-resonance replacement,
-recurrent factorization, and final requalification are parked. D3 remains
+decoder path. Its explicit opt-in, loopback-only dedicated native HTTP endpoint
+also passes without changing the default engine. Dashboard wiring/readiness and
+static/WASM-isolation checks pass; browser E2E is `NOT_RUN`. The only active successor is
+construction-only layerwise trace capture and compilation/evaluation of a
+first source-free student/attention-state artifact. Intrinsic/readout,
+multi-resonance replacement, recurrent factorization, and final requalification are parked. D3 remains
 `NOT_RUN`; #954 remains blocked.
 #955 invokes that accepted selector/
 #953/#973/#954 consumer; #962 integrates the accepted selector/#953/#973 path

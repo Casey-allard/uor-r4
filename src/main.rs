@@ -123,7 +123,7 @@ enum Command {
     /// List preserved compiler, serving, and certification commands.
     ResearchTools,
     /// Run the full artifact-discovering historical HTTP server.
-    Serve,
+    Serve(ServeArgs),
     /// Ask one question using the local transformerless library directly.
     #[command(hide = true)]
     Ask(AskArgs),
@@ -719,6 +719,19 @@ struct R4SoftmaxGenerateArgs {
 }
 
 #[derive(Args, Debug)]
+struct ServeArgs {
+    /// Explicitly expose the local-only native R4/Spin softmax reference route.
+    #[arg(long)]
+    enable_r4_softmax_reference: bool,
+    /// Exact local pinned source snapshot used only by the opt-in reference route.
+    #[arg(long, requires = "enable_r4_softmax_reference")]
+    r4_softmax_source: Option<PathBuf>,
+    /// Operator-owned projection workers (defaults to up to 8, capped by process parallelism).
+    #[arg(long, requires = "enable_r4_softmax_reference")]
+    r4_softmax_workers: Option<usize>,
+}
+
+#[derive(Args, Debug)]
 struct GeometricMixerQualificationArgs {
     /// Exact local Hugging Face source snapshot. Required for fitting; ignored
     /// by source-free preflight and review finalization modes.
@@ -787,6 +800,7 @@ impl Cli {
             tless_corpus_meta: self.tless_corpus_meta.clone(),
             tless_corpus_recs: self.tless_corpus_recs.clone(),
             geometric_demo: false,
+            r4_softmax_reference: None,
         }
     }
 
@@ -797,6 +811,25 @@ impl Cli {
             tokenizer: self.tless_tokenizer.clone(),
         });
     }
+}
+
+fn resolve_r4_softmax_reference_workers(
+    requested: Option<usize>,
+) -> Result<std::num::NonZeroUsize, String> {
+    let available = std::thread::available_parallelism()
+        .map(std::num::NonZeroUsize::get)
+        .unwrap_or(1);
+    let workers =
+        requested.unwrap_or(server::R4_SOFTMAX_REFERENCE_HTTP_DEFAULT_WORKERS.min(available));
+    let workers = std::num::NonZeroUsize::new(workers)
+        .ok_or_else(|| "--r4-softmax-workers must be greater than zero".to_owned())?;
+    if workers.get() > available {
+        return Err(format!(
+            "--r4-softmax-workers={} exceeds the {available} workers available to this process",
+            workers.get()
+        ));
+    }
+    Ok(workers)
 }
 
 trait Chat {
@@ -2504,8 +2537,24 @@ fn run(cli: &Cli) -> Result<(), RunError> {
         Some(Command::GraphObserve { args }) => uor_r4_graph_compiler::observe(args)
             .map_err(|error| RunError::Command(error.to_string())),
         Some(Command::Audit(args)) => audit_command(&args.log_file),
-        Some(Command::Serve) => {
-            server::run_server(Arc::new(cli.server_config()));
+        Some(Command::Serve(args)) => {
+            let mut config = cli.server_config();
+            if args.enable_r4_softmax_reference {
+                let workers = resolve_r4_softmax_reference_workers(args.r4_softmax_workers)
+                    .map_err(RunError::Command)?;
+                config.r4_softmax_reference = Some(server::R4SoftmaxReferenceHttpConfig {
+                    source: args.r4_softmax_source.clone().unwrap_or_else(|| {
+                        PathBuf::from(".uor-models/sources/smollm2-135m-instruct")
+                    }),
+                    workers,
+                });
+            }
+            server::validate_r4_softmax_reference_http_startup(
+                &config.host,
+                config.r4_softmax_reference.as_ref(),
+            )
+            .map_err(RunError::Command)?;
+            server::run_server(Arc::new(config));
             Ok(())
         }
     }
@@ -4018,6 +4067,39 @@ mod tests {
     }
 
     #[test]
+    fn serve_keeps_r4_softmax_reference_disabled_unless_explicitly_enabled() {
+        let cli = Cli::try_parse_from(["r4", "serve"]).unwrap();
+        let Some(Command::Serve(args)) = cli.command else {
+            panic!("expected serve")
+        };
+        assert!(!args.enable_r4_softmax_reference);
+        assert!(args.r4_softmax_source.is_none());
+        assert!(args.r4_softmax_workers.is_none());
+
+        let cli = Cli::try_parse_from([
+            "r4",
+            "serve",
+            "--enable-r4-softmax-reference",
+            "--r4-softmax-source",
+            "/models/smollm2",
+            "--r4-softmax-workers",
+            "8",
+        ])
+        .unwrap();
+        let Some(Command::Serve(args)) = cli.command else {
+            panic!("expected serve")
+        };
+        assert!(args.enable_r4_softmax_reference);
+        assert_eq!(
+            args.r4_softmax_source,
+            Some(PathBuf::from("/models/smollm2"))
+        );
+        assert_eq!(args.r4_softmax_workers, Some(8));
+
+        assert!(Cli::try_parse_from(["r4", "serve", "--r4-softmax-workers", "8"]).is_err());
+    }
+
+    #[test]
     fn bounded_geometric_generate_labels_every_typed_stop() {
         assert_eq!(
             local_generation_stop_label(LocalGenerationStopReason::Abstained { tie: false }),
@@ -4182,6 +4264,18 @@ mod tests {
             "1",
         ])
         .is_err());
+
+        let available = std::thread::available_parallelism()
+            .map(std::num::NonZeroUsize::get)
+            .unwrap_or(1);
+        assert_eq!(
+            super::resolve_r4_softmax_reference_workers(None)
+                .expect("bounded default")
+                .get(),
+            super::server::R4_SOFTMAX_REFERENCE_HTTP_DEFAULT_WORKERS.min(available)
+        );
+        assert!(super::resolve_r4_softmax_reference_workers(Some(0)).is_err());
+        assert!(super::resolve_r4_softmax_reference_workers(Some(available + 1)).is_err());
     }
 
     #[test]

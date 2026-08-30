@@ -18,18 +18,33 @@
   `R4SoftmaxReferenceGeneratorV1` (`HELM-D-R4`) native CLI generation now
   passes at 4/5 frozen quality in both passes, 5/5 exact replay after deleting
   timing, exact all-layer audits with zero future reads, and donor
-  reproduction. The sole active step is an explicit opt-in native
-  HTTP/dashboard bridge of that exact policy, with no default-engine change;
-  qualify latency only as needed for one real end-to-end prompt.
+  reproduction. Its dedicated opt-in, loopback-only native HTTP endpoint now
+  also passes one frozen eight-token prompt with exact CLI token, decision-CID,
+  and state-CID parity, exact audits across all 30 layers, and zero future
+  reads. Dashboard wiring/static native-readiness and WASM-isolation checks
+  pass, while browser interaction/E2E is `NOT_RUN`; the default engine remains
+  unchanged.
+  The sole active step is the proposed, not-yet-implemented
+  `R4SoftmaxTeacherTraceV1` and trace compiler: capture construction-only
+  layerwise token/QKV/attention/value/logit traces from the exact reference,
+  then compile and evaluate the first source-free student/attention-state
+  artifact against decoded tokens and next-token loss.
   Intrinsic/readout, resonance, softmax replacement,
   recurrence, and lowering are parked. D3 remains `NOT_RUN`; #954 remains
   blocked. No tag, release, hosted promotion, or static-WASM claim is
   authorized. See the
   [generation record](r4_softmax_reference_generation_973.md) and
-  [compact aggregate](r4_softmax_reference_generation_attempt_01_result_973.json).
+  [compact aggregate](r4_softmax_reference_generation_attempt_01_result_973.json),
+  plus the [native endpoint/dashboard-wiring record](r4_softmax_reference_http_bridge_973.md) and
+  [structured result](r4_softmax_reference_http_bridge_result_973.json).
   The intermediate
   [Geometric Causal Decoder Roadmap](geometric_causal_decoder_plan.md) records
   the superseded #948-#958 sequence.
+- **HELM-D boundary:** The official MIT source at
+  `7501deca8f413848bfef804be64ce874b72a3cd7` is an architectural reference
+  only. No HELM checkpoint or code executed in the UOR generator or bridge
+  gates, and no upstream result is inherited. The executed reference remains
+  UOR's pinned SmolLM2 `HuggingFaceLlamaOracle` path.
 - **Historical source of record:** The closed S0–S7 issues beneath #820. Where
   this document and the current GitHub hierarchy disagree, the current
   hierarchy and Geometric Intelligence Programme win.

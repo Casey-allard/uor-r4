@@ -167,11 +167,12 @@ substituted for one another.
   attention reference and qualified provider-free native generator path. It pins the
   official MIT HELM-D source at
   `7501deca8f413848bfef804be64ce874b72a3cd7`, audits its full-decoder geometry,
-  and credits/adapts HELM's attention seam and provenance. It does not port
-  HELM's remaining geometric decoder stack: UOR's existing pinned SmolLM2
+  and credits it as an architectural reference only. It does not port HELM's
+  decoder stack: UOR's existing pinned SmolLM2
   `HuggingFaceLlamaOracle` supplies embeddings, RoPE, residual/RMSNorm, MLP,
-  final normalization, and the language-model head. No HELM checkpoint or
-  generation code executed in this gate. Released HELM generation/cache is
+  final normalization, and the language-model head. No HELM checkpoint or code
+  executed in the UOR generation or bridge gates, and no upstream result is
+  inherited. Released HELM generation/cache is
   incomplete. Its checkpoint and full geometric decoder
   remain an optional external baseline behind a separate tokenizer and license
   gate, and are not directly an R4-block runtime. The reference then freezes an ordinary
@@ -194,14 +195,29 @@ substituted for one another.
   `R4SoftmaxReferenceGeneratorV1` (`HELM-D-R4`) native CLI generation passes at
   4/5 frozen quality in both passes, 5/5 exact replay after deleting timing,
   exact all-layer audits with zero future reads, and donor reproduction. Its
-  explicit opt-in native HTTP/dashboard bridge is active, with no default-
-  engine change. It remains Transformer-compatible
+  dedicated opt-in, loopback-only native HTTP endpoint also passes the frozen
+  eight-token canary with exact CLI token, decision-CID, and state-CID parity,
+  all 30 layers audited exactly, and zero future reads. Dashboard wiring/static
+  native-readiness and WASM-isolation checks pass; browser
+  interaction/E2E is `NOT_RUN`. The default engine is unchanged. It remains Transformer-compatible
   and source-weight backed. Upstream checkpoint parity, resonance replacement,
   and recurrence/lowering evidence remain `NOT_RUN`.
   See `helm_d_r4_softmax_decoder_973.md`,
   `r4_softmax_reference_generation_973.md`, and
   `r4_softmax_reference_generation_attempt_01_result_973.json`, plus
+  `r4_softmax_reference_http_bridge_973.md` and
   `helm_d_learned_manifold_r4_construction_973.md`.
+- **`R4SoftmaxTeacherTraceV1` / `R4SoftmaxTraceCompilerV1` (proposed)** —
+  #973's next construction-only source-free compilation rung. The proposed
+  trace binds layerwise token, Q/K/V, attention, value, and logit states from
+  the exact qualified reference. The proposed compiler then emits a first
+  source-free student/attention-state artifact for decoded-token agreement and
+  next-token-loss comparison, with strict causal-input and matched-control
+  audits. Neither component is implemented or run. This rung does not establish
+  transformerless inference, geometry advantage, general generation,
+  correctness, reasoning, release, or WASM capability. Intrinsic/readout,
+  resonance, softmax replacement, recurrence, and exact lowering remain behind
+  this baseline.
 - **H4 frame connection** — the exact object is the relative H4 group element;
   the current compiler-side f64 matrix represents its left-quaternion action
   and is numerically orthogonal under the tested finite-group law. It does not
@@ -341,7 +357,11 @@ substituted for one another.
   the two-document tangent-readout preflight rejection within the 8/8
   localization contract, qualified provider-free autonomous
   `R4SoftmaxReferenceGeneratorV1` (`HELM-D-R4`) generation, and its explicit
-  opt-in native HTTP/dashboard bridge. Intrinsic/readout,
+  opt-in, loopback-only native HTTP endpoint plus passing dashboard
+  wiring/static native-readiness and WASM-isolation checks (browser
+  interaction/E2E `NOT_RUN`), followed by the proposed
+  `R4SoftmaxTeacherTraceV1`/source-free trace compiler and first student
+  comparison. Intrinsic/readout,
   fiber-preserving multi-resonance replacement,
   bounded recurrent factorization, and final requalification are parked
   (#973);

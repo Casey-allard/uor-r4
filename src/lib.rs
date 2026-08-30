@@ -270,4 +270,18 @@ mod facade_smoke_tests {
             );
         }
     }
+
+    #[test]
+    fn static_wasm_cannot_masquerade_as_the_native_r4_softmax_reference() {
+        let dashboard = include_str!("../index.html");
+        let worker = include_str!("../r4_worker.js");
+        assert!(dashboard.contains("id=\"r4SoftmaxReferenceOption\" hidden disabled"));
+        assert!(dashboard.contains("serverR4SoftmaxReferenceReady = !localWasmMode"));
+        assert!(dashboard.contains(
+            "The R4/Spin softmax reference is native-only and was not exposed by this static/WASM session"
+        ));
+        assert!(dashboard.contains("fetch(\"/uor/v1/r4-softmax-reference/generate\""));
+        assert!(dashboard.contains("referenceRequest ? \"R4/Spin Softmax Reference\" : null"));
+        assert!(!worker.contains("r4-softmax-reference"));
+    }
 }

@@ -5,9 +5,12 @@
   stopped at its two-document preflight and rejected tangent readout.
   Intrinsic/readout, resonance, softmax replacement,
   recurrence, and lowering are parked. Provider-free autonomous
-  `R4SoftmaxReferenceGeneratorV1` (`HELM-D-R4`) generation now passes; its
-  explicit opt-in native HTTP/dashboard bridge is the sole active successor,
-  with no default-engine change
+  `R4SoftmaxReferenceGeneratorV1` (`HELM-D-R4`) generation now passes, and its
+  dedicated opt-in, loopback-only native HTTP endpoint passes exact eight-token
+  CLI parity. Dashboard wiring/static native-readiness and WASM-isolation
+  checks pass; browser interaction/E2E is `NOT_RUN`. The proposed
+  `R4SoftmaxTeacherTraceV1` and
+  source-free trace compiler are the sole active successor
 - **Date:** 2026-08-28; direction updated 2026-08-30
 - **Owner:** #973 under programme root #820
 - **Supersedes for forward work:** another fixed componentwise prototype or
@@ -57,6 +60,14 @@
   `PASS_R4_SOFTMAX_REFERENCE_GENERATION_ADVANCE_NATIVE_PRODUCT_BRIDGE`
   ([record](../r4_softmax_reference_generation_973.md),
   [compact aggregate](../r4_softmax_reference_generation_attempt_01_result_973.json))
+- **Native HTTP endpoint result:** exact frozen eight-token CLI token,
+  decision-CID, and state-CID parity; all 30 layers audited exactly; zero future
+  reads; dedicated, explicit opt-in and loopback-only; no default-engine change
+  ([record](../r4_softmax_reference_http_bridge_973.md),
+  [structured result](../r4_softmax_reference_http_bridge_result_973.json))
+- **Dashboard integration result:** wiring/static native-readiness and
+  WASM-isolation checks `PASS`; browser interaction/E2E `NOT_RUN`
+- **Proposed source-free trace/compiler result:** `NOT_IMPLEMENTED`, `NOT_RUN`
 
 ## Decision
 
@@ -67,18 +78,24 @@ failed retention and matched parity; and the 8/8-contract localization attempt
 stopped at its two-document preflight and rejected tangent readout. Those results are preserved. Intrinsic score/readout,
 resonance, softmax replacement, recurrence, and exact lowering are now parked.
 Provider-free autonomous `R4SoftmaxReferenceGeneratorV1` (`HELM-D-R4`)
-generation now passes. It retains the
-credited HELM attention seam and uses UOR's existing pinned SmolLM2
+generation now passes. It retains the HELM-D architectural citation and uses
+UOR's existing pinned SmolLM2
 `HuggingFaceLlamaOracle` for embeddings, RoPE, residual/RMSNorm, MLP, final
-normalization, and the language-model head. The sole active successor is an
-explicit opt-in native HTTP/dashboard bridge of the exact same policy, with no
-default-engine change. Latency is optimized or qualified only as needed for
-one real end-to-end prompt; no tag, release, hosted promotion, or static-WASM
-claim is authorized.
+normalization, and the language-model head. Its dedicated opt-in, loopback-only
+native HTTP endpoint now passes the frozen eight-token CLI-parity canary,
+without changing the default engine. Dashboard wiring/static native-readiness
+and WASM-isolation checks pass; browser interaction/E2E is `NOT_RUN`. The sole
+active successor is the proposed, not-yet-implemented
+`R4SoftmaxTeacherTraceV1` and trace compiler: construction-only layerwise
+token/QKV/attention/value/logit traces from the exact reference, followed by the
+first source-free student/attention-state artifact comparison on decoded tokens
+and next-token loss. No tag, release, hosted promotion, or static-WASM claim is
+authorized.
 Its architectural reference is the official MIT HELM-D source pinned at commit
 [`7501deca8f413848bfef804be64ce874b72a3cd7`](https://github.com/Graph-and-Geometric-Learning/helm/tree/7501deca8f413848bfef804be64ce874b72a3cd7).
-The active generator credits and adapts HELM's attention seam and provenance;
-it does not port HELM's remaining geometric decoder stack. The released HELM
+The active generator credits HELM-D as an architectural reference only; it does
+not port HELM's decoder stack. No HELM checkpoint or code executed in the UOR
+generator or bridge gates, and no upstream result is inherited. The released HELM
 generation/cache path is incomplete. Its checkpoint and full geometric decoder
 remain an optional external baseline behind a separate tokenizer and license
 gate, and are not directly an R4-block runtime. This ADR does not authorize
@@ -97,12 +114,18 @@ The current sequence is strict:
 3. preserve the qualified numerical/behavioral parity result and the subsequent
    intrinsic/learned-manifold/localization negatives; and
 4. retain the qualified provider-free autonomous
-   `R4SoftmaxReferenceGeneratorV1` around the credited HELM attention seam and
-   UOR's pinned SmolLM2 `HuggingFaceLlamaOracle` decoder path, then bridge that
-   exact policy only through an explicit opt-in native HTTP/dashboard path,
-   without changing the default engine.
+   `R4SoftmaxReferenceGeneratorV1` with the HELM-D architectural citation and
+   UOR's pinned SmolLM2 `HuggingFaceLlamaOracle` decoder path, then preserve the
+   exact dedicated opt-in, loopback-only native HTTP endpoint result without
+   changing the default engine, while retaining the passing dashboard
+   wiring/static native-readiness and WASM-isolation checks and the browser-E2E
+   `NOT_RUN` boundary; and
+5. build the proposed `R4SoftmaxTeacherTraceV1`/trace compiler from
+   construction-only layerwise reference traces, then compare the first
+   source-free student/attention-state artifact against decoded tokens and
+   next-token loss before any intrinsic or resonance replacement resumes.
 
-### Qualified gate and active native bridge
+### Qualified native endpoint, checked dashboard wiring, and active source-free trace rung
 
 The bounded CLI/evidence path now passes. `R4SoftmaxReferenceGeneratorV1` reuses the qualified
 transported R4/Spin attention and UOR's existing pinned SmolLM2
@@ -121,14 +144,25 @@ step, complete component provenance, exact replay, and a declared work ledger.
 The frozen run passed 4/5 decoded quality in both passes, 5/5 exact replay
 after deleting timing, all 30 layers with exact causal/projection/R4 audits and
 zero future reads, and donor reproduction (P1 through EOS; P2-P5 all 32
-tokens). Failure in the next opt-in native bridge repairs only the UOR oracle
-integration or decode loop; it does not reactivate intrinsic score/readout or
-replace softmax.
+tokens). The subsequent dedicated opt-in, loopback-only native HTTP endpoint
+passed one frozen eight-token prompt with exact CLI token, decision-CID, and
+state-CID parity, all 30 layers audited exactly, and zero future reads. It left
+the default engine unchanged. Dashboard wiring/static native-readiness and
+WASM-isolation checks pass; browser interaction/E2E is `NOT_RUN`.
 
-A positive establishes a provider-free, local, transformer-compatible
-`R4SoftmaxReferenceGeneratorV1` (`HELM-D-R4`) reference generator. It does not establish source-free, table-native,
-multiply-free, transformerless, correct, reasoning-capable, efficient, or
-release-ready intelligence.
+`R4SoftmaxTeacherTraceV1` and its trace compiler are proposed names, not an
+implemented capability. Their construction side may read the exact reference's
+layerwise token, Q/K/V, attention, value, and logit states. Their evaluation
+side must compare a source-free student/attention-state artifact on decoded
+tokens and next-token loss while auditing causal inputs. A negative repairs the
+trace representation or compiler; it does not reactivate intrinsic score/readout
+or replace softmax.
+
+A positive trace/compiler rung establishes only a first source-free
+student/attention-state baseline at its frozen decoded-token agreement,
+next-token-loss, causal-input, and matched-control scope. It does not establish
+table-native or multiply-free execution, a transformerless architecture,
+geometry advantage, correctness, reasoning, efficiency, or release readiness.
 
 The source-faithful HELM-D reference retains its declared Lorentz implementation:
 the code at the pin forms the invariant Lorentz-inner-product distance surrogate
@@ -154,7 +188,7 @@ hosted provider, or source weights. Compiler-side fitting may use floating
 point, multiplication, allocation, and parallel reduction. None of that work is
 credited to the deployed kernel. Exact/table/ternary lowering remains the
 destination, but it is not current work unless the maintainer reactivates the
-parked lane after autonomous reference generation.
+parked lane after the source-free trace/student baseline is established.
 
 ## Why the direction changed
 
@@ -585,7 +619,7 @@ lowering, or product readiness.
 
 | Result | Required next action |
 |---|---|
-| Qualified provider-free `R4SoftmaxReferenceGeneratorV1` native generation plus accepted ordinary R4/Spin softmax baseline | Integrate the exact qualified policy only through an explicit opt-in native HTTP/dashboard path, with no default-engine change. Qualify latency only as needed for one real end-to-end prompt. Keep intrinsic/readout, resonance, softmax replacement, recurrence, lowering, release, and static-WASM promotion parked. |
+| Qualified provider-free `R4SoftmaxReferenceGeneratorV1` generation; exact dedicated loopback HTTP/CLI parity; passing dashboard wiring/static native-readiness and WASM-isolation checks; browser interaction/E2E `NOT_RUN`; accepted ordinary R4/Spin softmax baseline | Build the proposed construction-only `R4SoftmaxTeacherTraceV1` and trace compiler, then compare the first source-free student/attention-state artifact against decoded tokens and next-token loss. Keep intrinsic/readout, resonance, softmax replacement, recurrence, lowering, release, and static-WASM promotion parked. |
 
 ## Outcome amendment — 2026-08-30 (EDT)
 
@@ -608,6 +642,33 @@ authorized action is the explicit opt-in native bridge above; no tag, release,
 or static-web promotion is authorized. See the
 [generation record](../r4_softmax_reference_generation_973.md) and
 [compact aggregate](../r4_softmax_reference_generation_attempt_01_result_973.json).
+
+## Native bridge outcome and trace-rung amendment — 2026-08-30 (EDT)
+
+The next action recorded in the outcome amendment above has now completed at
+its exact declared scope. The dedicated opt-in, loopback-only native HTTP
+endpoint matched the CLI on all eight generated token IDs, decision CID, and
+persistent state CID for the frozen prompt. All 30 layers retained exact
+causal, projection, and R4 audits; future reads were zero. The default engine
+was unchanged. Dashboard wiring/static native-readiness and WASM-isolation
+checks passed; browser interaction/E2E was `NOT_RUN`. See the
+[bridge record](../r4_softmax_reference_http_bridge_973.md) and
+[structured result](../r4_softmax_reference_http_bridge_result_973.json).
+
+This establishes only an operator-access path to the already qualified
+source-weight-backed reference. It does not establish source-free,
+transformerless, geometry-advantaged, general-generation, reasoning, release,
+hosted, or WASM capability. HELM-D remains an MIT architectural reference only
+at `7501deca8f413848bfef804be64ce874b72a3cd7`; no HELM checkpoint or code
+executed and no upstream result is inherited.
+
+The active successor is the proposed, not-yet-implemented
+`R4SoftmaxTeacherTraceV1` and trace compiler. It will record construction-only
+layerwise token/QKV/attention/value/logit traces from the exact reference, then
+compile and evaluate a first source-free student/attention-state artifact on
+decoded-token agreement and next-token loss. Intrinsic/readout, resonance,
+softmax replacement, recurrence, and exact lowering remain behind that
+baseline.
 
 ## Historical intrinsic/replacement outcome branches — parked
 

@@ -1,0 +1,98 @@
+{
+  "schema": "uor-r4.r4-softmax-reference-http-bridge-result/1",
+  "issue": 973,
+  "evidence_date": "2026-08-30",
+  "base_commit": "184bdb939ec8b14ba16c87de749b51735fecd960",
+  "evidence_status": "PASS",
+  "terminal": "PASS_R4_SOFTMAX_REFERENCE_HTTP_BRIDGE",
+  "claim_scope": "exact loopback HTTP reachability for the already-qualified source-backed R4/Spin causal-softmax reference generator, plus static native-dashboard wiring and isolation evidence",
+  "transport": {
+    "method": "POST",
+    "endpoint": "/uor/v1/r4-softmax-reference/generate",
+    "http_status": 200,
+    "curl_total_seconds": 183.876699,
+    "enabled_by_default": false,
+    "loopback_only": true,
+    "single_flight": true,
+    "static_wasm": false,
+    "dashboard_wiring_static_checks": true,
+    "browser_interaction_e2e": "NOT_RUN",
+    "request_max_tokens": 8,
+    "operator_workers": 8,
+    "response_scrubbed_prompt": true,
+    "response_scrubbed_source_path": true,
+    "error_responses_scrubbed_internal_paths": true
+  },
+  "reference": {
+    "schema": "uor-r4.r4-softmax-reference-http/1",
+    "generator": "R4SoftmaxReferenceGeneratorV1",
+    "helm_d_upstream_commit": "7501deca8f413848bfef804be64ce874b72a3cd7",
+    "helm_d_role": "credited MIT-licensed architectural reference; no HELM checkpoint or paper-result inheritance",
+    "source": {
+      "repository": "HuggingFaceTB/SmolLM2-135M-Instruct",
+      "revision": "7e27bd9f95328f0f3b08261d1252705110c806f8",
+      "weights_cid": "blake3:12d2cd8a877ef2cdcf785b3d4d1f373e0419074cc884aeaff06fc059686a5ba5",
+      "tokenizer_cid": "blake3:944d1262d516abd56a8156dd3058a73a1bf3dc19419527592d854d162f288073"
+    },
+    "model_shape": {
+      "dimension": 576,
+      "hidden_dimension": 1536,
+      "layers": 30,
+      "query_heads": 9,
+      "key_value_heads": 3,
+      "head_size": 64,
+      "vocabulary": 49152,
+      "sequence_capacity": 48
+    },
+    "input_tokens": 40,
+    "generated_token_ids": [34246, 737, 8118, 288, 11205, 19173, 28, 253],
+    "response_text": "Plants need sunlight to undergo photosynthesis, a",
+    "stop_reason": "maximum_new_tokens",
+    "decision_cid": "blake3:e1843e45e62ab9c5872a26e808e43449841350aaef7c848d80a5a5ef9fbabbd2",
+    "persistent_state_cid": "blake3:438436331a5030cb04438eb791baed8313b245e0fc2de4943bf20a034a5feacd",
+    "attention_transport_cid": "blake3:80ab8728579f65423be19286c32649c1000af463c4d4801b16eaa97222901a54",
+    "audit": {
+      "selected_layer_count": 30,
+      "positions_executed": 47,
+      "causal_audit_exact": true,
+      "projection_audit_exact": true,
+      "r4_audit_exact": true,
+      "all_layers_selected": true,
+      "zero_future_reads": true,
+      "future_reads": 0,
+      "key_transports": 304560,
+      "value_transports": 304560,
+      "r4_blocks_encoded": 9948960,
+      "key_blocks_transported": 4872960,
+      "value_blocks_transported": 4872960,
+      "output_blocks_decoded": 203040
+    },
+    "execution": {
+      "requested_workers": 8,
+      "effective_workers": 8,
+      "maximum_active_workers": 8,
+      "forward_calls": 47,
+      "multiworker_forward_calls": 47
+    },
+    "timing": {
+      "source_load_seconds": 0.579597833,
+      "generation_seconds": 183.197990375,
+      "total_seconds": 183.867798542
+    }
+  },
+  "cli_parity": {
+    "response_text_exact": true,
+    "generated_token_ids_exact": true,
+    "decision_cid_exact": true,
+    "persistent_state_cid_exact": true,
+    "audit_flags_exact": true
+  },
+  "next_action": "propose construction-only layerwise token/QKV/attention/value/logit teacher traces from this exact behavioral oracle, then compile and evaluate the first source-free student or attention-state artifact",
+  "nonclaims": [
+    "not source-free or transformerless; the full pinned source decoder executes",
+    "not multiplication-free, no_std, allocation-free, browser-WASM, or compiled-runtime inference",
+    "does not establish geometry advantage or replace dot-product/softmax",
+    "one decoded sample does not establish general text quality, meaning, reasoning, or release readiness",
+    "does not execute a HELM checkpoint or inherit HELM paper results"
+  ]
+}

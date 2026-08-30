@@ -7,7 +7,8 @@ first change. The authoritative issue order lives in the
 with architecture and claim boundaries in the
 [Geometric Intelligence Programme](docs/geometric_intelligence_programme.md).
 The accepted #973 attention reference, completed learned-manifold/localization
-results, parked intrinsic-replacement lane, and autonomous-generation gate are frozen in
+results, parked intrinsic-replacement lane, autonomous-generation gate, and
+native bridge result are frozen in
 [ADR-0005](docs/adr/0005-predictive-geometric-connection-memory.md).
 This file is the short version.
 
@@ -115,23 +116,34 @@ The experiment must be able to change the next programme decision:
   12/12 and isolated the connection/gauge seam. V4 then passed construction
   covariance but failed held-out functional binding at 13/24 for every main
   arm, with insufficient destructive-control separation. Do not tune any
-  revealed fixture. The pinned HELM-D architecture audit, frozen ordinary
-  full-decoder donor, and gauge-equivalent ordinary-softmax parity in transported
-  R4/Spin frames now pass. Intrinsic Lorentz V1 attempt 02 stopped unavailable
+  revealed fixture. The pinned HELM-D architecture audit uses the official MIT
+  source at `7501deca8f413848bfef804be64ce874b72a3cd7` only as a credited
+  architectural reference; no HELM checkpoint or upstream generation code was
+  executed. The frozen ordinary full-decoder donor and gauge-equivalent
+  ordinary-softmax parity in transported R4/Spin frames now pass. Intrinsic
+  Lorentz V1 attempt 02 stopped unavailable
   before D3 on its covariance audit, with diagnostic NLL worse than donor and
   flat. The subsequent source-faithful learned-manifold V2 run was valid but
   negative: learned-Lorentz NLL `7.710618` failed donor retention
   (`3.667626`) and matched Euclidean parity (`4.483154`), although all three
   destructive controls separated. The 8/8-contract attempt stopped at its
   two-document preflight and rejected tangent readout (pooled normalized audit-MSE ratio
-  `1.0643688804269025`). Provider-free autonomous
-  `R4SoftmaxReferenceGeneratorV1` (`HELM-D-R4`) generation now passes using the credited
-  HELM attention seam and UOR's pinned SmolLM2 `HuggingFaceLlamaOracle` for
+  `1.0643688804269025`). Provider-free-at-execution, source-backed native CPU
+  `R4SoftmaxReferenceGeneratorV1` (`HELM-D-R4`) generation now passes using the
+  credited HELM attention seam and UOR's pinned SmolLM2
+  `HuggingFaceLlamaOracle` for
   embeddings, RoPE, residual/RMSNorm, MLP, final normalization, and the
   language-model head: 4/5 quality in both passes, 5/5 exact replay after
   deleting timing, exact all-layer audits with zero future reads, and donor
-  reproduction. Work next only on an explicit opt-in native HTTP/dashboard
-  bridge of that exact policy, without changing the default engine.
+  reproduction. Its explicit opt-in, loopback-only dedicated native HTTP
+  endpoint now passes the frozen eight-token canary with the same token sequence,
+  decoded text, decision CID, persistent-state CID, all-30-layer exact audits,
+  and zero future reads as the CLI. Dashboard wiring, native-readiness gating,
+  and static/WASM isolation checks pass; browser interaction/E2E is `NOT_RUN`.
+  The feature is disabled by default and does not change the default engine.
+  Work next only on construction-only layerwise
+  trace capture from this exact behavioral oracle and compilation/evaluation of
+  the first source-free student/attention-state artifact.
   See the
   [#989 record](docs/source_free_table_baseline_989.md).
 - **Preserve the GI evidence lineage.** GI-1 makes lexical/address state
@@ -182,19 +194,22 @@ The experiment must be able to change the next programme decision:
   the source-faithful learned-manifold V2 attempt is a valid non-D3
   construction-validation negative. Its 8/8-contract localization attempt
   stopped at the two-document preflight and rejected tangent readout.
-  Provider-free autonomous `R4SoftmaxReferenceGeneratorV1` (`HELM-D-R4`)
-  generation now passes. Its explicit opt-in native HTTP/dashboard bridge is
-  active. Intrinsic/readout, resonance, recurrent factorization,
-  and exact lowering are parked; GI-4/#954 remains blocked, with GI-5/#955
-  downstream.
+  Provider-free-at-execution, source-backed
+  `R4SoftmaxReferenceGeneratorV1` (`HELM-D-R4`) generation and its explicit
+  opt-in, loopback-only dedicated native HTTP endpoint now pass. Dashboard
+  wiring/readiness and static/WASM-isolation checks pass; browser E2E is
+  `NOT_RUN`. Construction-only
+  trace capture and source-free student/attention-state compilation are active.
+  Intrinsic/readout, resonance, recurrent factorization, and exact lowering are
+  parked; GI-4/#954 remains blocked, with GI-5/#955 downstream.
 - **Exercise the accepted route path.** #953 geometry runs before token choice
   and emits admitted support and its fixed-point radius trace. The completed
   #973 localization kept its frozen split, trace identity, score-paired common
   tensors, separate score/aggregate metrics, and exact work ledgers; it rejected
   tangent readout. The qualified autonomous-generation gate used actual causal
   R4/Spin transport and reports its provider, weight, decode, cache, and replay
-  provenance explicitly. The bridge must preserve that exact policy and
-  provenance.
+  provenance explicitly. The bridge preserves that exact policy and provenance;
+  the trace/compiler rung must preserve them too.
 - **Use the smallest falsifier.** `HELM-D-R4` first requires donor/reference
   parity, then splits every learned head into R4 blocks, encodes exact cumulative
   Spin/H4 frames, transports K/V to the query frame, applies unchanged ordinary
@@ -208,12 +223,16 @@ The experiment must be able to change the next programme decision:
   retention and matched Euclidean parity while all destructive interventions
   separated. The 8/8-contract attempt stopped at its two-document preflight,
   rejected tangent readout, and retained score only as a future parked seam. Actual paired-E8 hierarchy/
-  fiber/torsion binding remains `NOT_IMPLEMENTED`. The smallest next falsifier
-  was provider-free autonomous `R4SoftmaxReferenceGeneratorV1` (`HELM-D-R4`)
+  fiber/torsion binding remains `NOT_IMPLEMENTED`. The prior smallest falsifier
+  was provider-free-at-execution, source-backed
+  `R4SoftmaxReferenceGeneratorV1` (`HELM-D-R4`)
   generation with the credited HELM attention seam and UOR's pinned SmolLM2
-  `HuggingFaceLlamaOracle` decoder path; that gate now passes. The smallest
-  current falsifier is one opt-in native HTTP/dashboard prompt through the
-  identical policy, with latency qualification only as required.
+  `HuggingFaceLlamaOracle` decoder path; that gate now passes. The opt-in,
+  loopback-only dedicated native HTTP canary through the identical policy also
+  passes. Dashboard wiring/readiness and static/WASM-isolation checks pass;
+  browser E2E is `NOT_RUN`. The smallest current falsifier is whether construction-only layerwise
+  traces from that oracle can compile a first source-free
+  student/attention-state artifact that meets its frozen behavioral comparison.
   Pinned-source provenance, donor reproduction, and transported-R4 parity are
   recorded in `docs/helm_d_r4_softmax_decoder_973.md`; V1 and V2 outcomes are in
   `docs/intrinsic_lorentz_r4_attention_973.md` and
@@ -225,7 +244,9 @@ The experiment must be able to change the next programme decision:
   release readiness, or a static-WASM decoder.
   See the
   [generation record](docs/r4_softmax_reference_generation_973.md) and
-  [compact aggregate](docs/r4_softmax_reference_generation_attempt_01_result_973.json).
+  [compact aggregate](docs/r4_softmax_reference_generation_attempt_01_result_973.json),
+  then the
+  [native bridge result](docs/r4_softmax_reference_http_bridge_973.md).
 - **Parallelize deterministic corpus work.** Partition by content identity,
   use all available local workers with canonical ordered reductions, and
   compare independent multithreaded rebuilds. Do not launch a long experiment

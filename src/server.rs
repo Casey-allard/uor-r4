@@ -9,6 +9,7 @@ use std::cell::Cell;
 use std::fs;
 use std::io::{prelude::*, BufReader};
 use std::net::{TcpListener, TcpStream};
+use std::num::NonZeroUsize;
 use std::path::{Path, PathBuf};
 use std::sync::{
     atomic::{AtomicU64, Ordering},
@@ -31,6 +32,12 @@ use uor_r4_router::fallback::{
     run_cascade, CascadeOutcome, EngineStatus, TierFn, TierOutcome, TierResult,
 };
 
+use crate::geometric_decoder::{validate_source, PINNED_SOURCE_REVISION};
+use crate::r4_softmax_reference_generation::{
+    run_r4_softmax_reference_generation, AttentionAuditEvidence, CausalAttentionAuditRecord,
+    GenerationStopReason, ModelShape, ProjectionAuditRecord, R4SoftmaxReferenceGenerationError,
+    R4SoftmaxReferenceGenerationReport, R4SoftmaxReferenceGeneratorConfig, TimingReport,
+};
 use crate::release_bundle_loader;
 
 // The browser-triggered build must have enough teacher evidence and graph
@@ -54,6 +61,25 @@ const R4G1_SCORE_EXCT_TOP_X: &str = "128";
 // the report must explicitly use the same-corpus TLA comparison.
 const R4G1_SCORE_QUALITY_PROFILE: &str = "relative_tla";
 
+const R4_SOFTMAX_REFERENCE_HTTP_PATH: &str = "/uor/v1/r4-softmax-reference/generate";
+const R4_SOFTMAX_REFERENCE_HTTP_SCHEMA: &str = "uor-r4.r4-softmax-reference-http/1";
+const R4_SOFTMAX_REFERENCE_HTTP_DEFAULT_MAX_TOKENS: usize = 8;
+const R4_SOFTMAX_REFERENCE_HTTP_MAX_TOKENS: usize = 32;
+const R4_SOFTMAX_REFERENCE_HTTP_MAX_BODY_BYTES: usize = 16 * 1024;
+/// Frozen single-request worker default established by the native canary.
+pub const R4_SOFTMAX_REFERENCE_HTTP_DEFAULT_WORKERS: usize = 8;
+
+/// Explicit native-server opt-in for the source-backed R4/Spin reference.
+///
+/// This is deliberately separate from every default serving engine and from
+/// the static dashboard/WASM path. The fixed worker count is operator-owned;
+/// request bodies cannot change it.
+#[derive(Debug, Clone)]
+pub struct R4SoftmaxReferenceHttpConfig {
+    pub source: PathBuf,
+    pub workers: NonZeroUsize,
+}
+
 /// Configuration supplied by the executable to the reusable HTTP server.
 #[derive(Debug, Clone)]
 pub struct ServerConfig {
@@ -69,11 +95,120 @@ pub struct ServerConfig {
     /// Bounded newcomer surface: geometric routing/retrieval only. This skips
     /// teacher and compiled-bundle discovery and never starts a compile.
     pub geometric_demo: bool,
+    /// `None` keeps the source-backed R4/Spin reference endpoint absent.
+    pub r4_softmax_reference: Option<R4SoftmaxReferenceHttpConfig>,
 }
 
 pub use uor_r4_api::{InferenceRequest, InferenceResponse, InferenceWitness};
 
 type ChatPayload = InferenceRequest;
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct R4SoftmaxReferenceHttpRequest {
+    prompt: String,
+    #[serde(default)]
+    max_tokens: Option<usize>,
+}
+
+#[derive(Debug)]
+struct ValidatedR4SoftmaxReferenceHttpRequest {
+    prompt: String,
+    max_tokens: usize,
+}
+
+#[derive(Debug, serde::Serialize)]
+struct R4SoftmaxReferenceHttpSource {
+    repository: String,
+    revision: String,
+    weights_cid: String,
+    tokenizer_cid: String,
+}
+
+#[derive(Debug, serde::Serialize)]
+struct R4SoftmaxReferenceHttpAudit {
+    selected_layer_count: usize,
+    positions_executed: usize,
+    causal: CausalAttentionAuditRecord,
+    projection: ProjectionAuditRecord,
+    r4: uor_r4_core::helm_d_r4_attention::R4SpinTransportAudit,
+    r4_frame_count: usize,
+    causal_audit_exact: bool,
+    projection_audit_exact: bool,
+    r4_audit_exact: bool,
+    all_layers_selected: bool,
+    zero_future_reads: bool,
+}
+
+#[derive(Debug, serde::Serialize)]
+struct R4SoftmaxReferenceHttpResponse {
+    schema: &'static str,
+    generator: String,
+    helm_d_upstream_commit: String,
+    helm_d_role: String,
+    claim_scope: String,
+    source: R4SoftmaxReferenceHttpSource,
+    model_shape: ModelShape,
+    input_tokens: usize,
+    generated_token_ids: Vec<u32>,
+    response_text: String,
+    stop_reason: GenerationStopReason,
+    decision_cid: String,
+    persistent_state_cid: String,
+    attention_transport_cid: String,
+    audit: R4SoftmaxReferenceHttpAudit,
+    execution: uor_r4_model_source::TeacherExecutionSnapshot,
+    timing: TimingReport,
+    nonclaims: Vec<String>,
+}
+
+impl From<R4SoftmaxReferenceGenerationReport> for R4SoftmaxReferenceHttpResponse {
+    fn from(report: R4SoftmaxReferenceGenerationReport) -> Self {
+        Self {
+            schema: R4_SOFTMAX_REFERENCE_HTTP_SCHEMA,
+            generator: report.policy.generator,
+            helm_d_upstream_commit: report.policy.helm_d_upstream_commit,
+            helm_d_role: report.policy.helm_d_role,
+            claim_scope: report.claim_scope,
+            source: R4SoftmaxReferenceHttpSource {
+                repository: report.source.repository,
+                revision: report.source.revision,
+                weights_cid: report.source.weights_cid,
+                tokenizer_cid: report.source.tokenizer_cid,
+            },
+            model_shape: report.model_shape,
+            input_tokens: report.prompt_token_ids.len(),
+            generated_token_ids: report.transcript.generated_token_ids,
+            response_text: report.transcript.response_text,
+            stop_reason: report.stop_reason,
+            decision_cid: report.decision_cid,
+            persistent_state_cid: report.persistent_state_cid,
+            attention_transport_cid: report.policy.attention_transport_cid,
+            audit: compact_r4_softmax_reference_http_audit(&report.audit),
+            execution: report.execution,
+            timing: report.timing,
+            nonclaims: report.nonclaims,
+        }
+    }
+}
+
+fn compact_r4_softmax_reference_http_audit(
+    audit: &AttentionAuditEvidence,
+) -> R4SoftmaxReferenceHttpAudit {
+    R4SoftmaxReferenceHttpAudit {
+        selected_layer_count: audit.selected_layer_count,
+        positions_executed: audit.positions_executed,
+        causal: audit.observed_causal,
+        projection: audit.observed_projection,
+        r4: audit.r4_implementation.audit,
+        r4_frame_count: audit.r4_implementation.frame_table_offsets.len(),
+        causal_audit_exact: audit.causal_audit_exact,
+        projection_audit_exact: audit.projection_audit_exact,
+        r4_audit_exact: audit.r4_audit_exact,
+        all_layers_selected: audit.all_layers_selected,
+        zero_future_reads: audit.zero_future_reads,
+    }
+}
 
 fn startup_source_candidates(last_model_name: &str) -> Vec<PathBuf> {
     let mut candidates = Vec::with_capacity(4);
@@ -385,6 +520,7 @@ enum SourceCacheOperationKind {
     #[allow(dead_code)] // The retired dashboard compiler was the sole compile reservation caller.
     Compile,
     Reload,
+    R4SoftmaxReferenceGeneration,
 }
 
 impl SourceCacheOperationKind {
@@ -393,6 +529,7 @@ impl SourceCacheOperationKind {
             Self::Download => "download",
             Self::Compile => "compile",
             Self::Reload => "reload",
+            Self::R4SoftmaxReferenceGeneration => "R4 softmax reference generation",
         }
     }
 }
@@ -414,11 +551,12 @@ type SharedSourceCacheOperations = Arc<Mutex<SourceCacheOperationState>>;
 
 /// One process-wide mutation/read reservation for the immutable source cache.
 ///
-/// Downloads publish source directories, while compilation and reload hold
-/// borrowed teacher/tokenizer files open. Serializing these three operations
-/// prevents an HTTP download from replacing bytes after provenance validation
-/// but before the final serving tuple is installed. The server rejects a
-/// conflicting request immediately instead of making an unbounded HTTP wait.
+/// Downloads publish source directories, while compilation, reload, and the
+/// reference generator hold borrowed teacher/tokenizer files open. Serializing
+/// these operations prevents an HTTP download from replacing bytes after
+/// provenance validation but before the final serving tuple is installed. The
+/// server rejects a conflicting request immediately instead of making an
+/// unbounded HTTP wait.
 struct SourceCacheReservation {
     state: SharedSourceCacheOperations,
     id: u64,
@@ -462,6 +600,241 @@ fn try_reserve_source_cache_operation(
         id,
         armed: true,
     })
+}
+
+/// Validate the explicit bridge configuration without loading model weights.
+/// The request path repeats this preflight under the source-cache reservation,
+/// and the generator remains the final authority for tokenizer/weight CIDs.
+pub fn validate_r4_softmax_reference_http_startup(
+    host: &str,
+    config: Option<&R4SoftmaxReferenceHttpConfig>,
+) -> Result<(), String> {
+    let Some(config) = config else {
+        return Ok(());
+    };
+    if !r4_softmax_reference_loopback_host(host) {
+        return Err(
+            "the R4 softmax reference HTTP bridge is local-only; bind to localhost, 127.0.0.1, or ::1"
+                .to_owned(),
+        );
+    }
+    validate_r4_softmax_reference_source_preflight(&config.source)
+}
+
+fn r4_softmax_reference_loopback_host(host: &str) -> bool {
+    if host.eq_ignore_ascii_case("localhost") {
+        return true;
+    }
+    let unbracketed = host
+        .strip_prefix('[')
+        .and_then(|value| value.strip_suffix(']'))
+        .unwrap_or(host);
+    unbracketed
+        .parse::<std::net::IpAddr>()
+        .is_ok_and(|address| address.is_loopback())
+}
+
+fn validate_r4_softmax_reference_source_preflight(source: &Path) -> Result<(), String> {
+    validate_source(source, PINNED_SOURCE_REVISION).map_err(|error| error.to_string())
+}
+
+fn is_r4_softmax_reference_http_path(path: &str) -> bool {
+    path == R4_SOFTMAX_REFERENCE_HTTP_PATH
+}
+
+fn parse_r4_softmax_reference_http_request(
+    body: &[u8],
+) -> Result<ValidatedR4SoftmaxReferenceHttpRequest, String> {
+    if body.len() > R4_SOFTMAX_REFERENCE_HTTP_MAX_BODY_BYTES {
+        return Err(format!(
+            "request body exceeds the {}-byte R4 softmax reference limit",
+            R4_SOFTMAX_REFERENCE_HTTP_MAX_BODY_BYTES
+        ));
+    }
+    let request: R4SoftmaxReferenceHttpRequest =
+        serde_json::from_slice(body).map_err(|error| format!("invalid request body: {error}"))?;
+    if request.prompt.is_empty() {
+        return Err("prompt must not be empty".to_owned());
+    }
+    let max_tokens = request
+        .max_tokens
+        .unwrap_or(R4_SOFTMAX_REFERENCE_HTTP_DEFAULT_MAX_TOKENS);
+    if max_tokens == 0 || max_tokens > R4_SOFTMAX_REFERENCE_HTTP_MAX_TOKENS {
+        return Err(format!(
+            "max_tokens must be in 1..={R4_SOFTMAX_REFERENCE_HTTP_MAX_TOKENS}"
+        ));
+    }
+    Ok(ValidatedR4SoftmaxReferenceHttpRequest {
+        prompt: request.prompt,
+        max_tokens,
+    })
+}
+
+fn r4_softmax_reference_http_error(
+    status: u16,
+    code: &'static str,
+    message: impl Into<String>,
+) -> (u16, serde_json::Value) {
+    (
+        status,
+        serde_json::json!({
+            "error": {
+                "type": "r4_softmax_reference_error",
+                "code": code,
+                "message": message.into(),
+            }
+        }),
+    )
+}
+
+fn r4_softmax_reference_generation_error(
+    error: R4SoftmaxReferenceGenerationError,
+) -> (u16, serde_json::Value) {
+    let (status, message) = match &error {
+        R4SoftmaxReferenceGenerationError::InvalidRequest(_) => {
+            (400, "the reference generation request was rejected")
+        }
+        R4SoftmaxReferenceGenerationError::InvalidSource(_)
+        | R4SoftmaxReferenceGenerationError::Tokenizer(_)
+        | R4SoftmaxReferenceGenerationError::Source(_)
+        | R4SoftmaxReferenceGenerationError::Io(_) => {
+            (503, "the pinned reference source is unavailable")
+        }
+        R4SoftmaxReferenceGenerationError::Attention(_)
+        | R4SoftmaxReferenceGenerationError::Audit(_) => {
+            (500, "reference generation failed its internal audit")
+        }
+    };
+    tracing::error!(error = %error, status, "R4 softmax reference generation failed");
+    r4_softmax_reference_http_error(status, "generation_failed", message)
+}
+
+fn execute_r4_softmax_reference_http_request<P, F>(
+    bridge: Option<&R4SoftmaxReferenceHttpConfig>,
+    body: &[u8],
+    source_cache_operations: &SharedSourceCacheOperations,
+    preflight: P,
+    runner: F,
+) -> (u16, serde_json::Value)
+where
+    P: FnOnce(&Path) -> Result<(), String>,
+    F: FnOnce(
+        &R4SoftmaxReferenceGeneratorConfig,
+    ) -> Result<R4SoftmaxReferenceHttpResponse, R4SoftmaxReferenceGenerationError>,
+{
+    let Some(bridge) = bridge else {
+        return r4_softmax_reference_http_error(
+            404,
+            "bridge_disabled",
+            "the native R4 softmax reference bridge was not enabled at server startup",
+        );
+    };
+    let request = match parse_r4_softmax_reference_http_request(body) {
+        Ok(request) => request,
+        Err(error) => return r4_softmax_reference_http_error(400, "invalid_request", error),
+    };
+    let _reservation = match try_reserve_source_cache_operation(
+        source_cache_operations,
+        SourceCacheOperationKind::R4SoftmaxReferenceGeneration,
+        bridge.source.display().to_string(),
+    ) {
+        Ok(reservation) => reservation,
+        Err(error) => {
+            tracing::warn!(error = %error, "R4 softmax reference source-cache reservation failed");
+            return r4_softmax_reference_http_error(
+                409,
+                "bridge_busy",
+                "another source-cache operation or reference generation is already active",
+            );
+        }
+    };
+    if let Err(error) = preflight(&bridge.source) {
+        tracing::warn!(
+            error = %error,
+            source = %bridge.source.display(),
+            "R4 softmax reference source preflight failed"
+        );
+        return r4_softmax_reference_http_error(
+            503,
+            "source_unavailable",
+            "the pinned reference source is unavailable",
+        );
+    }
+    let config = R4SoftmaxReferenceGeneratorConfig {
+        source: bridge.source.clone(),
+        source_revision: PINNED_SOURCE_REVISION.to_owned(),
+        prompt: request.prompt,
+        max_new_tokens: request.max_tokens,
+        workers: bridge.workers,
+    };
+    let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| runner(&config)));
+    match outcome {
+        Err(payload) => {
+            tracing::error!(
+                panic = %panic_payload_message(&*payload),
+                "R4 softmax reference generation panicked"
+            );
+            r4_softmax_reference_http_error(
+                500,
+                "generation_panicked",
+                "R4 softmax reference generation failed unexpectedly",
+            )
+        }
+        Ok(Err(error)) => r4_softmax_reference_generation_error(error),
+        Ok(Ok(response)) => match serde_json::to_value(response) {
+            Ok(body) => (200, body),
+            Err(error) => {
+                tracing::error!(error = %error, "R4 softmax reference response serialization failed");
+                r4_softmax_reference_http_error(
+                    500,
+                    "response_serialization_failed",
+                    "the reference response could not be serialized",
+                )
+            }
+        },
+    }
+}
+
+fn r4_softmax_reference_http_status(cli: &ServerConfig) -> serde_json::Value {
+    let Some(config) = cli.r4_softmax_reference.as_ref() else {
+        return serde_json::json!({
+            "enabled": false,
+            "source_preflight_ready": false,
+            "static_wasm": false,
+        });
+    };
+    serde_json::json!({
+        "enabled": true,
+        "source_preflight_ready": validate_r4_softmax_reference_source_preflight(&config.source).is_ok(),
+        "endpoint": R4_SOFTMAX_REFERENCE_HTTP_PATH,
+        "default_max_tokens": R4_SOFTMAX_REFERENCE_HTTP_DEFAULT_MAX_TOKENS,
+        "maximum_max_tokens": R4_SOFTMAX_REFERENCE_HTTP_MAX_TOKENS,
+        "workers": config.workers.get(),
+        "static_wasm": false,
+    })
+}
+
+fn r4_softmax_reference_allowed_origin(cli: &ServerConfig) -> String {
+    r4_softmax_reference_allowed_origin_for(&cli.host, cli.port)
+}
+
+fn r4_softmax_reference_allowed_origin_for(host: &str, port: u16) -> String {
+    let host = host.trim();
+    let unbracketed = host
+        .strip_prefix('[')
+        .and_then(|value| value.strip_suffix(']'))
+        .unwrap_or(host);
+    let authority_host = if host.eq_ignore_ascii_case("localhost") {
+        "localhost".to_owned()
+    } else if let Ok(address) = unbracketed.parse::<std::net::IpAddr>() {
+        match address {
+            std::net::IpAddr::V4(address) => address.to_string(),
+            std::net::IpAddr::V6(address) => format!("[{address}]"),
+        }
+    } else {
+        host.to_ascii_lowercase()
+    };
+    format!("http://{authority_host}:{port}")
 }
 
 impl HuggingFaceDownloadStatus {
@@ -650,6 +1023,12 @@ fn get_window_theme(win_idx: usize) -> &'static str {
 
 /// Run the HTTP server with configuration supplied by the caller.
 pub fn run_server(cli: Arc<ServerConfig>) {
+    if let Err(error) =
+        validate_r4_softmax_reference_http_startup(&cli.host, cli.r4_softmax_reference.as_ref())
+    {
+        tracing::error!(error = %error, "refusing invalid R4 softmax reference server configuration");
+        return;
+    }
     tracing::info!(
         host = %cli.host,
         port = cli.port,
@@ -15508,6 +15887,7 @@ fn handle_connection(
     }
 
     let mut content_length = 0;
+    let mut request_origin = None;
     loop {
         let mut line = String::new();
         if buf_reader.read_line(&mut line).is_err() {
@@ -15523,12 +15903,71 @@ fn handle_connection(
                     content_length = len;
                 }
             }
+        } else if lower.starts_with("origin:") {
+            request_origin = line
+                .split_once(':')
+                .map(|(_, value)| value.trim().to_owned());
         }
+    }
+
+    if is_r4_softmax_reference_http_path(clean_path)
+        && content_length > R4_SOFTMAX_REFERENCE_HTTP_MAX_BODY_BYTES
+    {
+        let (_, body) = r4_softmax_reference_http_error(
+            413,
+            "request_too_large",
+            format!(
+                "request body exceeds the {}-byte R4 softmax reference limit",
+                R4_SOFTMAX_REFERENCE_HTTP_MAX_BODY_BYTES
+            ),
+        );
+        send_json_response(stream, 413, &body.to_string());
+        return;
     }
 
     let mut body = vec![0; content_length];
     if content_length > 0 && buf_reader.read_exact(&mut body).is_err() {
         send_json_response(stream, 400, "{\"error\":\"Error reading body\"}");
+        return;
+    }
+
+    // Explicit local native reference endpoint. It is not part of the default
+    // engine cascade, the OpenAI-compatible routes, or the static/WASM app.
+    if is_r4_softmax_reference_http_path(clean_path) {
+        if method != "POST" {
+            let (_, body) = r4_softmax_reference_http_error(
+                405,
+                "method_not_allowed",
+                "the R4 softmax reference endpoint accepts POST only",
+            );
+            send_json_response(stream, 405, &body.to_string());
+            return;
+        }
+        if let Some(origin) = request_origin.as_deref() {
+            let allowed = r4_softmax_reference_allowed_origin(&cli);
+            if origin != allowed {
+                let (_, body) = r4_softmax_reference_http_error(
+                    403,
+                    "origin_forbidden",
+                    format!(
+                        "browser Origin {origin:?} does not match the local server origin {allowed:?}"
+                    ),
+                );
+                send_json_response(stream, 403, &body.to_string());
+                return;
+            }
+        }
+        let (status, response) = execute_r4_softmax_reference_http_request(
+            cli.r4_softmax_reference.as_ref(),
+            &body,
+            &source_cache_operations,
+            validate_r4_softmax_reference_source_preflight,
+            |config| {
+                run_r4_softmax_reference_generation(config)
+                    .map(R4SoftmaxReferenceHttpResponse::from)
+            },
+        );
+        send_json_response(stream, status, &response.to_string());
         return;
     }
 
@@ -17834,6 +18273,7 @@ fn handle_connection(
             "glove_loaded": false,
             "otel_available": false,
             "r4g1_ready": r4g1_ready,
+            "r4_softmax_reference": r4_softmax_reference_http_status(&cli),
             "research_demo": cli.geometric_demo,
             "model_format": if cli.geometric_demo {
                 "geometric router research demo"
@@ -18547,9 +18987,12 @@ fn send_json_response_ext(
         200 => "OK",
         202 => "ACCEPTED",
         400 => "BAD REQUEST",
+        403 => "FORBIDDEN",
         404 => "NOT FOUND",
+        405 => "METHOD NOT ALLOWED",
         409 => "CONFLICT",
         410 => "GONE",
+        413 => "PAYLOAD TOO LARGE",
         500 => "INTERNAL SERVER ERROR",
         502 => "BAD GATEWAY",
         503 => "SERVICE UNAVAILABLE",
@@ -26131,13 +26574,306 @@ mod tests {
     }
 
     #[test]
-    fn source_cache_reservation_closes_download_compile_and_reload_races() {
-        use super::SourceCacheOperationKind::{Compile, Download, Reload};
+    fn source_cache_reservation_closes_download_compile_reload_and_reference_races() {
+        use super::SourceCacheOperationKind::{
+            Compile, Download, R4SoftmaxReferenceGeneration, Reload,
+        };
 
         assert_source_cache_reservation_conflict(Compile, Download);
         assert_source_cache_reservation_conflict(Download, Compile);
         assert_source_cache_reservation_conflict(Reload, Download);
         assert_source_cache_reservation_conflict(Download, Reload);
+        assert_source_cache_reservation_conflict(R4SoftmaxReferenceGeneration, Download);
+        assert_source_cache_reservation_conflict(Download, R4SoftmaxReferenceGeneration);
+        assert_source_cache_reservation_conflict(R4SoftmaxReferenceGeneration, Reload);
+        assert_source_cache_reservation_conflict(
+            R4SoftmaxReferenceGeneration,
+            R4SoftmaxReferenceGeneration,
+        );
+    }
+
+    fn r4_softmax_reference_http_test_response() -> super::R4SoftmaxReferenceHttpResponse {
+        super::R4SoftmaxReferenceHttpResponse {
+            schema: super::R4_SOFTMAX_REFERENCE_HTTP_SCHEMA,
+            generator: crate::r4_softmax_reference_generation::POLICY_SCHEMA.to_owned(),
+            helm_d_upstream_commit: uor_r4_core::helm_d_r4_attention::HELM_D_UPSTREAM_COMMIT
+                .to_owned(),
+            helm_d_role: "credited MIT architectural reference; no HELM checkpoint executed"
+                .to_owned(),
+            claim_scope: "bounded source-backed reference generation".to_owned(),
+            source: super::R4SoftmaxReferenceHttpSource {
+                repository: "HuggingFaceTB/SmolLM2-135M-Instruct".to_owned(),
+                revision: crate::geometric_decoder::PINNED_SOURCE_REVISION.to_owned(),
+                weights_cid: "weights-cid".to_owned(),
+                tokenizer_cid: "tokenizer-cid".to_owned(),
+            },
+            model_shape: crate::r4_softmax_reference_generation::ModelShape {
+                dimension: 576,
+                hidden_dimension: 1_536,
+                layers: 30,
+                query_heads: 9,
+                key_value_heads: 3,
+                head_size: 64,
+                vocabulary: 49_152,
+                sequence_capacity: 16,
+            },
+            input_tokens: 8,
+            generated_token_ids: vec![1, 2],
+            response_text: "bounded response".to_owned(),
+            stop_reason:
+                crate::r4_softmax_reference_generation::GenerationStopReason::MaximumNewTokens,
+            decision_cid: "decision-cid".to_owned(),
+            persistent_state_cid: "state-cid".to_owned(),
+            attention_transport_cid: "transport-cid".to_owned(),
+            audit: super::R4SoftmaxReferenceHttpAudit {
+                selected_layer_count: 30,
+                positions_executed: 10,
+                causal: crate::r4_softmax_reference_generation::CausalAttentionAuditRecord {
+                    positions: 10,
+                    layers: 300,
+                    heads: 2_700,
+                    query_transforms: 300,
+                    key_transports: 1_650,
+                    value_transports: 1_650,
+                    output_transforms: 300,
+                    future_reads: 0,
+                    maximum_query_position: Some(9),
+                    maximum_source_position: Some(9),
+                },
+                projection: crate::r4_softmax_reference_generation::ProjectionAuditRecord {
+                    hook_calls: 300,
+                    query_vectors: 2_700,
+                    key_vectors: 900,
+                    value_vectors: 900,
+                    query_lanes: 172_800,
+                    key_lanes: 57_600,
+                    value_lanes: 57_600,
+                },
+                r4: uor_r4_core::helm_d_r4_attention::R4SpinTransportAudit {
+                    positions_prepared: 10,
+                    r4_blocks_encoded: 20,
+                    key_blocks_transported: 30,
+                    value_blocks_transported: 30,
+                    output_blocks_decoded: 20,
+                    future_position_reads: 0,
+                    source_frame_permutations: 0,
+                },
+                r4_frame_count: 120,
+                causal_audit_exact: true,
+                projection_audit_exact: true,
+                r4_audit_exact: true,
+                all_layers_selected: true,
+                zero_future_reads: true,
+            },
+            execution: uor_r4_model_source::TeacherExecutionSnapshot {
+                requested_workers: 7,
+                effective_workers: 7,
+                ..Default::default()
+            },
+            timing: crate::r4_softmax_reference_generation::TimingReport {
+                source_load_seconds: 1.0,
+                generation_seconds: 2.0,
+                total_seconds: 3.0,
+            },
+            nonclaims: vec!["not the final transformerless runtime".to_owned()],
+        }
+    }
+
+    #[test]
+    fn r4_softmax_reference_http_parser_is_strict_exact_and_bounded() {
+        let defaulted = super::parse_r4_softmax_reference_http_request(
+            br#"{"prompt":"  preserve exact prompt  "}"#,
+        )
+        .expect("default request");
+        assert_eq!(defaulted.prompt, "  preserve exact prompt  ");
+        assert_eq!(
+            defaulted.max_tokens,
+            super::R4_SOFTMAX_REFERENCE_HTTP_DEFAULT_MAX_TOKENS
+        );
+
+        let maximum = super::parse_r4_softmax_reference_http_request(
+            br#"{"prompt":"bounded","max_tokens":32}"#,
+        )
+        .expect("maximum request");
+        assert_eq!(
+            maximum.max_tokens,
+            super::R4_SOFTMAX_REFERENCE_HTTP_MAX_TOKENS
+        );
+
+        for invalid in [
+            br#"{"prompt":""}"#.as_slice(),
+            br#"{"prompt":"x","max_tokens":0}"#.as_slice(),
+            br#"{"prompt":"x","max_tokens":33}"#.as_slice(),
+            br#"{"prompt":"x","workers":8}"#.as_slice(),
+            br#"{"prompt":"x","source":"/tmp/model"}"#.as_slice(),
+        ] {
+            assert!(
+                super::parse_r4_softmax_reference_http_request(invalid).is_err(),
+                "accepted invalid request: {}",
+                String::from_utf8_lossy(invalid)
+            );
+        }
+        let oversized = vec![b' '; super::R4_SOFTMAX_REFERENCE_HTTP_MAX_BODY_BYTES + 1];
+        assert!(super::parse_r4_softmax_reference_http_request(&oversized).is_err());
+
+        assert!(super::is_r4_softmax_reference_http_path(
+            super::R4_SOFTMAX_REFERENCE_HTTP_PATH
+        ));
+        assert!(!super::is_r4_softmax_reference_http_path(
+            "/uor/v1/r4-softmax-reference"
+        ));
+        assert!(!super::is_r4_softmax_reference_http_path(
+            "/v1/chat/completions"
+        ));
+    }
+
+    #[test]
+    fn r4_softmax_reference_http_enablement_is_loopback_only() {
+        for host in [
+            "localhost",
+            "LOCALHOST",
+            "127.0.0.1",
+            "127.9.8.7",
+            "::1",
+            "[::1]",
+        ] {
+            assert!(super::r4_softmax_reference_loopback_host(host), "{host}");
+        }
+        for host in ["0.0.0.0", "192.168.1.2", "example.test", "::"] {
+            assert!(!super::r4_softmax_reference_loopback_host(host), "{host}");
+        }
+        assert!(super::validate_r4_softmax_reference_http_startup("0.0.0.0", None).is_ok());
+
+        let bridge = super::R4SoftmaxReferenceHttpConfig {
+            source: "/definitely/not/a/model".into(),
+            workers: std::num::NonZeroUsize::new(4).expect("nonzero"),
+        };
+        let error = super::validate_r4_softmax_reference_http_startup("0.0.0.0", Some(&bridge))
+            .expect_err("enabled bridge cannot bind remotely");
+        assert!(error.contains("local-only"), "{error}");
+
+        assert_eq!(
+            super::r4_softmax_reference_allowed_origin_for("LOCALHOST", 8000),
+            "http://localhost:8000"
+        );
+        assert_eq!(
+            super::r4_softmax_reference_allowed_origin_for("[0:0:0:0:0:0:0:1]", 8000),
+            "http://[::1]:8000"
+        );
+    }
+
+    #[test]
+    fn r4_softmax_reference_http_success_is_scrubbed_and_operator_bounded() {
+        let operations = std::sync::Arc::new(std::sync::Mutex::new(
+            super::SourceCacheOperationState::default(),
+        ));
+        let bridge = super::R4SoftmaxReferenceHttpConfig {
+            source: "/private/operator/model-source".into(),
+            workers: std::num::NonZeroUsize::new(7).expect("nonzero"),
+        };
+        let (status, body) = super::execute_r4_softmax_reference_http_request(
+            Some(&bridge),
+            br#"{"prompt":"exact prompt","max_tokens":9}"#,
+            &operations,
+            |_| Ok(()),
+            |config| {
+                assert_eq!(config.source, bridge.source);
+                assert_eq!(
+                    config.source_revision,
+                    crate::geometric_decoder::PINNED_SOURCE_REVISION
+                );
+                assert_eq!(config.prompt, "exact prompt");
+                assert_eq!(config.max_new_tokens, 9);
+                assert_eq!(config.workers.get(), 7);
+                Ok(r4_softmax_reference_http_test_response())
+            },
+        );
+        assert_eq!(status, 200);
+        assert_eq!(body["response_text"], "bounded response");
+        assert_eq!(
+            body["helm_d_upstream_commit"],
+            uor_r4_core::helm_d_r4_attention::HELM_D_UPSTREAM_COMMIT
+        );
+        assert_eq!(body["audit"]["zero_future_reads"], true);
+        assert_eq!(body["execution"]["requested_workers"], 7);
+        assert!(body["source"].get("source_path").is_none());
+        assert!(body.get("rendered_prompt").is_none());
+        let encoded = body.to_string();
+        assert!(!encoded.contains("/private/operator/model-source"));
+        assert!(!encoded.contains("exact prompt"));
+        assert!(operations.lock().expect("operation state").active.is_none());
+    }
+
+    #[test]
+    fn r4_softmax_reference_http_is_single_flight_and_releases_after_failure_or_panic() {
+        let operations = std::sync::Arc::new(std::sync::Mutex::new(
+            super::SourceCacheOperationState::default(),
+        ));
+        let bridge = super::R4SoftmaxReferenceHttpConfig {
+            source: "/private/operator/model-source".into(),
+            workers: std::num::NonZeroUsize::new(4).expect("nonzero"),
+        };
+        let held = super::try_reserve_source_cache_operation(
+            &operations,
+            super::SourceCacheOperationKind::R4SoftmaxReferenceGeneration,
+            "first request",
+        )
+        .expect("first reservation");
+        let (status, body) = super::execute_r4_softmax_reference_http_request(
+            Some(&bridge),
+            br#"{"prompt":"second request"}"#,
+            &operations,
+            |_| panic!("preflight must not run while busy"),
+            |_| panic!("runner must not run while busy"),
+        );
+        assert_eq!(status, 409);
+        assert_eq!(body["error"]["code"], "bridge_busy");
+        assert!(!body.to_string().contains("/private/operator/model-source"));
+        drop(held);
+
+        let (status, body) = super::execute_r4_softmax_reference_http_request(
+            Some(&bridge),
+            br#"{"prompt":"preflight failure"}"#,
+            &operations,
+            |_| Err("/private/operator/model-source is incomplete".to_owned()),
+            |_| panic!("runner must not run after failed preflight"),
+        );
+        assert_eq!(status, 503);
+        assert_eq!(body["error"]["code"], "source_unavailable");
+        assert!(!body.to_string().contains("/private/operator/model-source"));
+        assert!(operations.lock().expect("operation state").active.is_none());
+
+        let (status, body) = super::execute_r4_softmax_reference_http_request(
+            Some(&bridge),
+            br#"{"prompt":"generation failure"}"#,
+            &operations,
+            |_| Ok(()),
+            |_| {
+                Err(
+                    crate::r4_softmax_reference_generation::R4SoftmaxReferenceGenerationError::InvalidSource(
+                        "/private/operator/model-source/model.safetensors is unavailable".to_owned(),
+                    ),
+                )
+            },
+        );
+        assert_eq!(status, 503);
+        assert_eq!(body["error"]["code"], "generation_failed");
+        assert!(!body.to_string().contains("/private/operator/model-source"));
+        assert!(operations.lock().expect("operation state").active.is_none());
+
+        let (status, body) = super::execute_r4_softmax_reference_http_request(
+            Some(&bridge),
+            br#"{"prompt":"panic containment"}"#,
+            &operations,
+            |_| Ok(()),
+            |_| panic!("synthetic runner panic"),
+        );
+        assert_eq!(status, 500);
+        assert_eq!(body["error"]["code"], "generation_panicked");
+        assert!(!body["error"]["message"]
+            .as_str()
+            .is_some_and(|message| message.contains("synthetic runner panic")));
+        assert!(operations.lock().expect("operation state").active.is_none());
     }
 
     #[test]
@@ -28786,6 +29522,7 @@ mod tests {
             tless_corpus_meta: None,
             tless_corpus_recs: None,
             geometric_demo: false,
+            r4_softmax_reference: None,
         });
 
         client.write_all(request.as_bytes()).expect("send request");
@@ -28829,6 +29566,54 @@ mod tests {
                 body.len()
             ),
         )
+    }
+
+    #[test]
+    fn r4_softmax_reference_http_route_fails_closed_before_model_work() {
+        let (status, response) = g4_post(
+            super::R4_SOFTMAX_REFERENCE_HTTP_PATH,
+            r#"{"prompt":"disabled"}"#,
+        );
+        assert!(status.contains("404 NOT FOUND"), "{status}: {response}");
+        assert!(response.contains(r#""code":"bridge_disabled""#));
+
+        let (status, response) = g4_drive(&format!(
+            "GET {} HTTP/1.1\r\nHost: localhost\r\n\r\n",
+            super::R4_SOFTMAX_REFERENCE_HTTP_PATH
+        ));
+        assert!(
+            status.contains("405 METHOD NOT ALLOWED"),
+            "{status}: {response}"
+        );
+        assert!(response.contains(r#""code":"method_not_allowed""#));
+
+        let body = r#"{"prompt":"browser"}"#;
+        let (status, response) = g4_drive(&format!(
+            "POST {} HTTP/1.1\r\nHost: localhost\r\nOrigin: https://foreign.example\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{body}",
+            super::R4_SOFTMAX_REFERENCE_HTTP_PATH,
+            body.len()
+        ));
+        assert!(status.contains("403 FORBIDDEN"), "{status}: {response}");
+        assert!(response.contains(r#""code":"origin_forbidden""#));
+
+        let (status, response) = g4_drive(&format!(
+            "POST {} HTTP/1.1\r\nHost: localhost\r\nOrigin: http://127.0.0.1:0\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{body}",
+            super::R4_SOFTMAX_REFERENCE_HTTP_PATH,
+            body.len()
+        ));
+        assert!(status.contains("404 NOT FOUND"), "{status}: {response}");
+        assert!(response.contains(r#""code":"bridge_disabled""#));
+
+        let (status, response) = g4_drive(&format!(
+            "POST {} HTTP/1.1\r\nHost: localhost\r\nContent-Length: {}\r\n\r\n",
+            super::R4_SOFTMAX_REFERENCE_HTTP_PATH,
+            super::R4_SOFTMAX_REFERENCE_HTTP_MAX_BODY_BYTES + 1
+        ));
+        assert!(
+            status.contains("413 PAYLOAD TOO LARGE"),
+            "{status}: {response}"
+        );
+        assert!(response.contains(r#""code":"request_too_large""#));
     }
 
     #[test]
