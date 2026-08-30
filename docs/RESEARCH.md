@@ -39,11 +39,18 @@ assumptions, or objectives rather than measured results.
 > not a geometry-advantage result. The first coefficient-only intrinsic
 > distance/centroid attempt reached construction validation but stopped
 > unavailable before D3 on a barycenter-covariance audit; its diagnostic loss
-> was also worse than donor and flat R4. The active successor is a fresh
-> construction-only copy of HELM-D's learned manifold Q/K/V, declared
-> Lorentz-inner-product score, learned scale/bias, and stable equivariant
-> centroid against an equal-capacity Euclidean arm. Only a positive intrinsic
-> result may authorize multi-resonance replacement and bounded recurrence.
+> was also worse than donor and flat R4. The source-faithful learned-manifold V2
+> successor then completed one valid non-D3 construction-validation run and
+> terminated
+> `FAIL_HELM_D_MANIFOLD_CONSTRUCTION_REVISE_PROJECTION_SCORE_CENTROID_OR_TRAINING`.
+> Donor/gauge parity, deterministic replay, exact causal work, and all three
+> destructive-control separations passed, but learned-Lorentz NLL
+> `7.71061809923296` failed donor retention (`3.667626465210025`) and matched
+> learned-Euclidean parity (`4.483153905078387`). The controls establish
+> sensitivity only, not useful Lorentz attention or curvature advantage. The
+> sole next action is a separately frozen cheap 8/8 score-by-readout
+> [construction audit](helm_d_score_centroid_localization_973.md) within the
+> learned-manifold seam.
 > Source weights, dense all-prefix work, and softmax are offline scientific
 > oracles only and establish no transformerless or serving claim.
 >
@@ -53,10 +60,16 @@ assumptions, or objectives rather than measured results.
 > checkpoint parity `NOT_RUN`; intrinsic R4 attempt 01
 > `UNAVAILABLE_PRE_REVEAL` from a checkpoint JSON round-trip defect; attempt 02
 > `UNAVAILABLE_INTRINSIC_LORENTZ_R4_STOP_BEFORE_HELD_OUT` from its covariance
-> audit, with D3 still sealed; multi-resonance replacement `NOT_RUN`; recurrent
+> audit, with D3 still sealed; learned-manifold V2 attempt 01
+> `UNAVAILABLE_HELM_D_MANIFOLD_CONSTRUCTION_EVIDENCE` before validation;
+> learned-manifold V2 attempt 02 the valid non-D3 construction-validation
+> negative above, with result CID
+> `blake3:9144913380c6ebdeebb5848138bc8e6642c1e7020d8e7a097aa3cd73cb829020`;
+> D3 `NOT_RUN`; multi-resonance replacement `NOT_RUN`; recurrent
 > factorization/lowering `NOT_RUN`. See the
 > [`HELM-D-R4` record](helm_d_r4_softmax_decoder_973.md) and the
-> [intrinsic R4 record](intrinsic_lorentz_r4_attention_973.md).
+> [intrinsic R4 record](intrinsic_lorentz_r4_attention_973.md), then the
+> [learned-manifold construction record](helm_d_learned_manifold_r4_construction_973.md).
 
 > **Prior forward decision after direct-attention V3
 > (2026-08-28).** Preserve exact R4/spin routes as identity, causal state, frame,
@@ -386,10 +399,13 @@ assumptions, or objectives rather than measured results.
 > gauge-equivalent full-decoder ordinary-softmax parity in transported R4/Spin
 > frames now pass on the bounded real causal-language run. Intrinsic V1 stopped
 > unavailable before D3 and its construction diagnostics trailed donor and flat
-> R4. The current #973 action is a source-faithful learned-manifold HELM-D
-> construction qualifier; resonance replacement and
-> bounded recurrence remain later conditional stages. #954 remains blocked
-> behind #973.
+> R4. Source-faithful learned-manifold V2 then produced a valid non-D3
+> construction-validation negative: its Lorentz arm failed donor retention and
+> matched Euclidean parity even though replay, causal work, donor/gauge parity,
+> and destructive-control sensitivity passed. The current #973 action is only a
+> separately frozen cheap 8/8 score-by-readout construction audit within that
+> learned-manifold seam. D3 remains `NOT_RUN`; resonance replacement and bounded
+> recurrence remain later conditional stages. #954 remains blocked behind #973.
 > Legacy
 > tracker #949 is closed as superseded, and #958 is retained directly beneath
 > #820 as GI-0 foundation. Two
@@ -1530,13 +1546,15 @@ remains target-free negative history; its V2 noncommuting repair passed the
 bounded decoded contract. Its first document-scope corpus-induced placement
 passed target-free but failed the held-out promotion gate. The first bounded
 gated-delta core also trailed plain delta. Ordinary transported Q/K/V/O softmax
-attention is now the bounded qualified reference. Intrinsic V1 is closed
-unavailable before D3. The only active successor is the fresh, non-D3,
-construction-only
+attention remains the bounded qualified reference. Intrinsic V1 is closed
+unavailable before D3. The source-faithful
 [`HelmDLearnedManifoldR4ConstructionV2`](helm_d_learned_manifold_r4_construction_973.md)
-qualifier; it is not an Intrinsic V1 attempt 03. D3, multi-resonance
-replacement, recurrent factorization, final requalification, and #954 remain
-blocked.
+qualifier is now a valid non-D3 construction-validation negative: learned
+Lorentz failed retention and matched parity, while its controls established
+sensitivity only. The only active successor is a separately frozen cheap 8/8
+score-by-readout construction audit within that learned-manifold seam. D3
+remains `NOT_RUN`; multi-resonance replacement, recurrent factorization, final
+requalification, and #954 remain blocked.
 #955 invokes that accepted selector/
 #953/#973/#954 consumer; #962 integrates the accepted selector/#953/#973 path
 into product chat with persisted identity-scoped hive memory. #963 retains

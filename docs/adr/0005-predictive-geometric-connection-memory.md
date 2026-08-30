@@ -1,8 +1,10 @@
 # ADR-0005: HELM-D-R4 reference attention, intrinsic geometry, and recurrent lowering
 
-- **Status:** Accepted; V4 is terminal-negative, `HELM-D-R4` parity passes,
-  intrinsic R4 V1 attempt 02 stopped unavailable before D3, and the active
-  successor is a source-faithful learned-manifold HELM-D construction copy
+- **Status:** Accepted; V4 is terminal-negative, `HELM-D-R4` parity remains
+  qualified, intrinsic R4 V1 attempt 02 stopped unavailable before D3, and
+  source-faithful learned-manifold V2 is a valid non-D3
+  construction-validation negative. The sole active successor is a separately
+  frozen cheap 8/8 score-by-readout construction audit within that seam
 - **Date:** 2026-08-28; direction updated 2026-08-29
 - **Owner:** #973 under programme root #820
 - **Supersedes for forward work:** another fixed componentwise prototype or
@@ -29,6 +31,17 @@
   covariance audit, with D3 still sealed
   ([record](../intrinsic_lorentz_r4_attention_973.md),
   [summary](../intrinsic_lorentz_r4_attention_attempt_02_summary_973.json))
+- **Source-faithful learned-manifold construction result:** attempt 01
+  `UNAVAILABLE_HELM_D_MANIFOLD_CONSTRUCTION_EVIDENCE` before validation;
+  attempt 02
+  `FAIL_HELM_D_MANIFOLD_CONSTRUCTION_REVISE_PROJECTION_SCORE_CENTROID_OR_TRAINING`,
+  a valid non-D3 construction-validation negative. Donor/gauge parity and all
+  three destructive-control separations passed, but learned Lorentz failed
+  donor retention and matched Euclidean parity; the controls establish
+  sensitivity only
+  ([record](../helm_d_learned_manifold_r4_construction_973.md),
+  [machine result](../helm_d_learned_manifold_r4_construction_attempt_02_result_973.json),
+  [next localization](../helm_d_score_centroid_localization_973.md))
 - **Multi-resonance replacement result:** `NOT_RUN`
 - **Recurrent factorization/lowering result:** `NOT_RUN`
 
@@ -38,8 +51,10 @@ UOR-R4 will establish a complete bounded ordinary causal-attention reference in
 transported R4/Spin frames before training an intrinsic geometric attention
 operator or attempting to compress it. The positive reference mechanism is
 `HELM-D-R4`. The first intrinsic R4 distance/centroid attempt did not qualify;
-the active successor is a source-faithful learned-manifold HELM-D construction
-copy.
+the source-faithful learned-manifold V2 copy then failed retention and matched
+parity on valid non-D3 construction validation. The sole active successor is a
+separately frozen cheap 8/8 score-by-readout construction audit within that
+learned-manifold seam.
 Its architectural reference is the official MIT HELM-D source pinned at commit
 [`7501deca8f413848bfef804be64ce874b72a3cd7`](https://github.com/Graph-and-Geometric-Learning/helm/tree/7501deca8f413848bfef804be64ce874b72a3cd7).
 
@@ -290,9 +305,17 @@ Attempt 02 reached construction validation but its covariance audit measured
 `9.121400701417315e-8` against the frozen `1e-8` ceiling, so its terminal is
 `UNAVAILABLE` and D3 remains `NOT_RUN`. Its diagnostic NLL was also
 `1.2531338878746174` above donor and `0.20892731808765097` above flat R4,
-making a tolerance-only rerun decisionless. The next freeze therefore copies
-the upstream learned-manifold attention seam more faithfully and must pass a
-fresh non-D3 construction validation before any reveal.
+making a tolerance-only rerun decisionless. The next freeze therefore copied
+the upstream learned-manifold attention seam more faithfully. Its valid non-D3
+construction-validation result was
+`FAIL_HELM_D_MANIFOLD_CONSTRUCTION_REVISE_PROJECTION_SCORE_CENTROID_OR_TRAINING`:
+learned-Lorentz NLL `7.71061809923296` failed donor retention
+(`3.667626465210025`) and matched learned-Euclidean parity
+(`4.483153905078387`). Donor/gauge parity, replay, causal work, and all three
+destructive-control separations passed, so the controls establish that the seam
+was exercised but not that the Lorentz operator was useful. D3 remains
+`NOT_RUN`. The sole next action is a separately frozen cheap 8/8
+score-by-readout construction audit within that learned-manifold seam.
 
 ### Multi-resonance replacement
 
@@ -441,10 +464,12 @@ The first bounded implementation is complete only if:
 Parity establishes only that the exact R4/Spin gauge representation can carry
 the donor's ordinary attention function. It is not geometric predictive
 advantage. V1's separately trained intrinsic R4 distance/centroid arm did not
-produce admissible evidence before D3. Its source-faithful learned-manifold
-successor must retain or improve the same real-language behavior against the
-frozen donor, gauge-equivalent reference, and equal-budget Euclidean/plain controls. Strict
-improvement is the only geometry-specific advantage claim. Neither parity nor
+produce admissible evidence before D3. Its source-faithful learned-manifold V2
+successor then failed to retain the donor or match its Euclidean control on
+valid non-D3 construction validation, even though destructive controls
+established sensitivity. The separately frozen cheap 8/8 score-by-readout
+construction audit is the only active repair. Strict improvement remains the
+only geometry-specific advantage claim. Neither parity nor
 intrinsic success establishes correctness, reasoning, coherence, chat,
 efficiency, transformerless serving, or release readiness.
 

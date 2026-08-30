@@ -13,18 +13,19 @@ while representing head blocks in exact cumulative R4/Spin frames and
 transporting K/V into the query frame. Numerical and real-language behavioral
 parity now passes in `uor-r4-core`, establishing ordinary softmax attention in
 R4/Spin frames. Intrinsic Lorentz V1 attempt 02 stopped unavailable before D3
-on its construction covariance audit, with diagnostic NLL worse than donor and
-flat. The active successor is a fresh construction-only source-faithful HELM-D
-learned-manifold Q/K/V mechanism with declared Lorentz score/scale/bias and a
-stable equivariant centroid against an equal-capacity Euclidean arm. This router
+on its construction covariance audit. Learned-manifold V2 later completed as a
+valid non-D3 construction-validation negative: learned Lorentz failed donor
+retention and matched Euclidean parity although all destructive controls
+separated. The active successor is the frozen 8/8 score-by-readout localization;
+this router
 supplies substrate and
 visualization only; it is not the donor decoder or attention implementation. See
 [ADR-0005](../../docs/adr/0005-predictive-geometric-connection-memory.md) and the
 [Geometric Intelligence Programme](../../docs/geometric_intelligence_programme.md).
 The binding parity record is
 [`docs/helm_d_r4_softmax_decoder_973.md`](../../docs/helm_d_r4_softmax_decoder_973.md).
-The V1 result is recorded in
-[`docs/intrinsic_lorentz_r4_attention_973.md`](../../docs/intrinsic_lorentz_r4_attention_973.md).
+The V2 result is recorded in
+[`docs/helm_d_learned_manifold_r4_construction_973.md`](../../docs/helm_d_learned_manifold_r4_construction_973.md).
 This router contributes no result to either record; resonance, recurrence,
 exact lowering, #954, and serving work remain blocked here.
 

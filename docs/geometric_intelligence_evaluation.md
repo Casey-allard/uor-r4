@@ -890,11 +890,15 @@ decision without changing V1. Later corpus-placement, gated-delta, and direct
 V3 results were negative. `ConnectionGaugeCovarianceV4` subsequently passed
 construction covariance but failed held-out functional binding. `HELM-D-R4`
 architecture audit, ordinary-donor reproduction, and full-decoder R4/Spin
-softmax parity then passed. Intrinsic V1 is closed unavailable before D3. The
-single current evaluation action is the fresh, non-D3, construction-only
+softmax parity then passed and remains qualified. Intrinsic V1 is closed
+unavailable before D3. Source-faithful
 [`HelmDLearnedManifoldR4ConstructionV2`](helm_d_learned_manifold_r4_construction_973.md)
-qualifier; it is not an Intrinsic V1 attempt 03. D3, resonance, and recurrent
-lowering remain blocked conditional successors.
+then completed a valid non-D3 construction-validation negative: learned Lorentz
+failed retention and matched parity while its controls established sensitivity
+only. The single current evaluation action is a separately frozen cheap 8/8
+score-by-readout construction audit within that learned-manifold seam. D3
+remains `NOT_RUN`; resonance and recurrent lowering remain blocked conditional
+successors.
 
 #973 owns paragraph, conversation, and bounded-global influence only after the
 one #989-matched #953 intervention qualifies the decoded loop.
@@ -1007,10 +1011,13 @@ transfer, general attention, correctness, reasoning, or product readiness.
 That next corpus-induction gate is now completed negative in PR #997. V4 later
 preserved construction covariance but failed held-out functional binding. The
 ADR-0005's pinned HELM-D provenance, frozen ordinary donor, and full-decoder
-gauge-equivalent ordinary-softmax parity in transported R4/Spin frames now
-pass. Intrinsic V1 is unavailable before D3; the current #973 decision is its
-source-faithful learned-manifold construction successor,
-followed conditionally by multi-resonance and recurrent lowering; #954 remains
+gauge-equivalent ordinary-softmax parity in transported R4/Spin frames remain
+qualified. Intrinsic V1 is unavailable before D3; source-faithful
+learned-manifold V2 is now a valid non-D3 construction-validation negative.
+Its controls established sensitivity, but learned Lorentz failed retention and
+matched parity. The current #973 decision is only a separately frozen cheap 8/8
+score-by-readout construction audit within that seam, followed conditionally
+by multi-resonance and recurrent lowering; D3 remains `NOT_RUN` and #954 remains
 blocked. See the
 [#973 bounded-global record](bounded_global_exact_spin_attention_973.md).
 

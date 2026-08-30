@@ -32,11 +32,16 @@ passes, establishing ordinary softmax attention in R4/Spin frames. Intrinsic
 Lorentz V1 attempt 02 then stopped
 `UNAVAILABLE_INTRINSIC_LORENTZ_R4_STOP_BEFORE_HELD_OUT`: barycenter covariance
 was `9.121400701417315e-08` against the frozen `1e-08` ceiling, diagnostic curved
-NLL was worse than donor and flat, and D3 remained sealed. The active build is a
-fresh construction-only source-faithful HELM-D learned-manifold Q/K/V mechanism
-with declared Lorentz score/scale/bias and a stable equivariant centroid against
-an equal-capacity Euclidean arm. Softmax remains an offline oracle.
-Multi-resonance, recurrence, exact lowering, and #954 stay blocked until a
+NLL was worse than donor and flat, and D3 remained sealed. Source-faithful
+learned-manifold V2 then completed one valid non-D3 construction-validation run
+at
+`FAIL_HELM_D_MANIFOLD_CONSTRUCTION_REVISE_PROJECTION_SCORE_CENTROID_OR_TRAINING`.
+Donor/gauge parity, replay, causal work, and all three destructive controls
+passed, but learned Lorentz failed donor retention and matched Euclidean parity;
+the controls establish sensitivity only. The sole active build is a separately
+frozen cheap 8/8 score-by-readout construction audit within that
+learned-manifold seam. Softmax remains an offline oracle. D3 remains `NOT_RUN`;
+multi-resonance, recurrence, exact lowering, and #954 stay blocked until a
 qualified geometric oracle exists.
 
 Pinned-source provenance, ordinary-donor reproduction, transported-R4 parity,
@@ -64,33 +69,41 @@ Choose the shortest path that matches what you need:
 - **Run the existing interface:** return to the root
   [README](../README.md#try-the-project).
 
-If an older roadmap disagrees with the current programme or live GitHub
-dependency graph, the current programme and live dependency graph win.
+If an older roadmap disagrees with the R4 Intelligence Completion Plan or live
+GitHub dependency graph, the completion plan and live dependency graph win.
 
 ## Current authority
 
 These are the small set of living documents that define the present work:
 
-1. [Geometric Intelligence Programme](geometric_intelligence_programme.md) —
-   goal, architecture, claim boundaries, and work order.
-2. [ADR-0005: HELM-D-R4 reference attention and recurrent lowering](adr/0005-predictive-geometric-connection-memory.md)
-   — the positive reference/parity operator, active learned-manifold successor,
-   resonance replacement, recurrence, and later lowering decision. The bounded
+1. [R4 Intelligence Completion Plan](r4_intelligence_completion_plan.md) —
+   authoritative post-v0.1 work order and readable mirror of programme root
+   #820.
+2. [Geometric Intelligence Programme](geometric_intelligence_programme.md) —
+   goal, architecture, and claim boundaries.
+3. [ADR-0005: HELM-D-R4 reference attention and recurrent lowering](adr/0005-predictive-geometric-connection-memory.md)
+   — the positive reference/parity operator, learned-manifold V2 negative,
+   active score-by-readout audit, resonance replacement, recurrence, and later
+   lowering decision. The bounded
    [HELM-D-R4 full-decoder result](helm_d_r4_softmax_decoder_973.md) closes the
    first parity gate. The
    [intrinsic Lorentz V1 record](intrinsic_lorentz_r4_attention_973.md) preserves
-   the attempt-02 construction-unavailable terminal and sealed D3 boundary. The
-   bounded
+   its unavailable boundary, while the
+   [learned-manifold V2 record](helm_d_learned_manifold_r4_construction_973.md)
+   and frozen
+   [score-by-readout localization](helm_d_score_centroid_localization_973.md)
+   define the current evidence and next action.
+   The bounded
    [multi-resonance reuse audit](multi_resonance_attention_sieve_audit_973.md)
    distinguishes the implemented sin/cos and Spin substrate from the still
    unimplemented normalized attention sieve.
-3. [ADR-0003: fixed-zeta prime routes](adr/0003-fixed-zeta-prime-route-attention.md)
+4. [ADR-0003: fixed-zeta prime routes](adr/0003-fixed-zeta-prime-route-attention.md)
    — the retained storage/recall substrate.
-4. [ADR-0004: recursive route hierarchy](adr/0004-geometric-intelligence-route-hierarchy.md)
+5. [ADR-0004: recursive route hierarchy](adr/0004-geometric-intelligence-route-hierarchy.md)
    — attention scopes, geometric transport, and reconstruction requirements.
-5. [Geometric Intelligence Evaluation](geometric_intelligence_evaluation.md) —
+6. [Geometric Intelligence Evaluation](geometric_intelligence_evaluation.md) —
    the minimal decision-bearing evidence policy.
-6. [Glossary](transformerless/GLOSSARY.md) and
+7. [Glossary](transformerless/GLOSSARY.md) and
    [formal vocabulary](formal_vocabulary.md) — shared language and disciplined
    claim types.
 
@@ -107,9 +120,8 @@ reversible lexical geometry
   → preserve learned Q/K/V + ordinary causal softmax in R4/Spin frames
   → establish numerical and real-language behavioral parity
   → preserve intrinsic Lorentz V1 construction-unavailable evidence with D3 sealed
-  → construction-only source-faithful learned-manifold Q/K/V
-  → declared Lorentz score/scale/bias + stable equivariant centroid
-  → equal-capacity Euclidean control
+  → preserve learned-manifold V2 valid non-D3 construction-validation negative
+  → separately freeze a cheap 8/8 score-by-readout construction audit
   → bind paired-H4/E8 hierarchy and fiber/torsion
   → fiber-preserving multi-resonance sieve replaces softmax
   → resonance modes factor into bounded geometric recurrence
@@ -166,8 +178,8 @@ For exact definitions, use the [formal vocabulary](formal_vocabulary.md).
 
 ## Documentation maintenance
 
-Keep the root README approachable. Put architecture here under the current
-programme, and put exact measurements in the research ledger and their named
+Keep the root README approachable. Put sequencing in the completion plan,
+architecture here under the current programme, and exact measurements in the research ledger and their named
 records. Preserve historical evidence; add a clear superseded or historical
 banner when old present-tense language could confuse readers.
 

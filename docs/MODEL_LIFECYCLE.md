@@ -2,7 +2,9 @@
 
 > **Status:** living lifecycle map. The route-native target comes first; the
 > source-model, TLA, and R4G1 material below is a preserved runtime/reference
-> lifecycle. Architecture and sequencing authority lives in the
+> lifecycle. Post-v0.1 sequencing authority lives in the
+> [R4 Intelligence Completion Plan](r4_intelligence_completion_plan.md);
+> architecture and claim boundaries live in the
 > [Geometric Intelligence Programme](geometric_intelligence_programme.md).
 
 > **Current evidence and direction (2026-08-29):** #989 established the frozen
@@ -41,9 +43,14 @@ Intrinsic Lorentz V1 attempt 02 subsequently stopped
 `UNAVAILABLE_INTRINSIC_LORENTZ_R4_STOP_BEFORE_HELD_OUT`: its construction
 barycenter covariance was `9.121400701417315e-08` against the frozen `1e-08`
 ceiling, diagnostic curved NLL was worse than donor and flat, and D3 remained
-sealed. The active successor is a fresh construction-only source-faithful
-HELM-D learned-manifold Q/K/V mechanism with declared Lorentz score/scale/bias
-and a stable equivariant centroid against an equal-capacity Euclidean arm.
+sealed. The subsequent source-faithful learned-manifold V2 run completed as a
+valid non-D3 construction-validation negative: learned-Lorentz NLL `7.710618`
+failed donor retention and matched Euclidean parity, although every destructive
+control separated. The active successor is one separately frozen 8/8
+construction audit crossing Lorentz/Euclidean score with
+normalized-Lorentz/tangent value readout. Every arm uses identical captured
+donor traces and identity values; Q/K/temperature are shared within each
+score-paired readout.
 Softmax does not enter serving. Multi-resonance, bounded recurrence, exact
 H4/Q29/integer-table lowering, and #954 remain blocked. Validation,
 test, and inference remain strictly causal and cannot fit on their future
@@ -57,10 +64,11 @@ Measured status for the new lifecycle is explicit: HELM-D pinned-source
 provenance `PASS`; ordinary-donor reproduction `PASS`; transported-R4 parity,
 frame-permutation liveness, and causal audit `PASS` on the bounded held-out
 full-decoder run; upstream checkpoint parity `NOT_RUN`; intrinsic R4 attention
-V1 attempt 02 `UNAVAILABLE` before D3; resonance replacement `NOT_RUN` and
-blocked; recurrence, exact lowering, and #954 blocked. See
+V1 attempt 02 `UNAVAILABLE` before D3; learned-manifold V2 valid negative; D3
+`NOT_RUN`; resonance replacement `NOT_RUN` and blocked; recurrence, exact
+lowering, and #954 blocked. See
 [`helm_d_r4_softmax_decoder_973.md`](helm_d_r4_softmax_decoder_973.md) and
-[`intrinsic_lorentz_r4_attention_973.md`](intrinsic_lorentz_r4_attention_973.md).
+[`helm_d_learned_manifold_r4_construction_973.md`](helm_d_learned_manifold_r4_construction_973.md).
 
 ## Current route-native target lifecycle
 
@@ -89,9 +97,9 @@ canonical text/corpus
     -> gauge-equivalent ordinary softmax in exact R4/Spin frames
     -> real next-token loss/top-1 and decoded-output parity
     -> intrinsic Lorentz V1 construction-unavailable, D3 sealed
-    -> source-faithful HELM-D learned-manifold Q/K/V construction successor
-    -> declared Lorentz score/scale/bias + stable equivariant centroid
-    -> equal-capacity Euclidean control
+    -> source-faithful HELM-D learned-manifold V2 construction-validation negative, D3 sealed
+    -> 8/8 Lorentz/Euclidean score x normalized/tangent readout localization
+    -> exactly one evidence-selected learned-manifold seam repair
     -> actual paired-H4/E8 hierarchy + fiber/torsion binding
     -> fiber-preserving multi-resonance replacement under matched controls
     -> bounded recurrent factorization with key-specific update
@@ -1431,10 +1439,12 @@ HELM-D provenance, frozen ordinary donor, and full-decoder gauge-equivalent
 ordinary-softmax parity in transported R4/Spin frames now qualify on bounded
 real causal language. Intrinsic Lorentz V1 attempt 02 stopped unavailable before
 D3 on construction covariance, with diagnostic curved NLL worse than donor and
-flat. The next build is the fresh construction-only source-faithful HELM-D
-learned-manifold Q/K/V successor with declared Lorentz score/scale/bias and a
-stable equivariant centroid against an equal-capacity Euclidean arm. It must
-qualify before
+  flat. Learned-manifold V2 then completed as a valid non-D3
+  construction-validation negative: its learned-Lorentz arm failed donor
+  retention and matched Euclidean parity while all three destructive controls
+  separated. The next build is only the frozen 8/8 score-by-readout
+  localization; it must select exactly one repair seam before another full
+  qualifier can run. The repaired mechanism must qualify before
 correctness (#954), reasoning (#955), durable chat/memory integration (#962),
 optimization, lowering, or release work can inherit it.
 

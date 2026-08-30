@@ -691,3 +691,14 @@ fresh non-D3 construction validation, pass covariance without relaxing the
 frozen mathematical bound, and retain donor behavior before any D3 reveal.
 Multi-resonance, recurrence, exact lowering, scale, #954, correctness,
 reasoning, and product claims remain blocked.
+
+### Learned-manifold V2 outcome and current successor
+
+The source-faithful V2 successor completed a valid non-D3
+construction-validation run. Donor/gauge parity and all destructive-control
+separations passed, but learned Lorentz failed donor retention and matched
+Euclidean parity; the controls establish sensitivity only. The sole current
+#973 action is the frozen 8/8
+[score-by-readout localization](helm_d_score_centroid_localization_973.md).
+D3 remains `NOT_RUN`; resonance, recurrence, lowering, scale, and #954 remain
+blocked.

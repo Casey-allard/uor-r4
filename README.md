@@ -58,9 +58,18 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > D3: Lorentz-barycenter covariance was `9.1214e-8` against the frozen `1e-8`
 > ceiling. Its construction diagnostics were also materially worse than donor
 > and flat R4, so there is no tolerance-only rerun and no intrinsic-attention
-> claim. The next construction-only freeze copies HELM-D more faithfully with
-> learned manifold-valued Q/K/V, its declared Lorentz-inner-product score, and
-> a stable equivariant centroid against an equal-capacity Euclidean arm.
+> claim. The source-faithful `HelmDLearnedManifoldR4ConstructionV2` qualifier
+> then completed its repaired 120-frame preflight, fitting, checkpoint, and
+> 64-position non-D3 construction validation. It returned the valid terminal
+> `FAIL_HELM_D_MANIFOLD_CONSTRUCTION_REVISE_PROJECTION_SCORE_CENTROID_OR_TRAINING`:
+> donor/gauge NLL was `3.667626`/`3.667626`, Euclidean was `4.483154`, and
+> Lorentz was `7.710618`. All three destructive Lorentz controls were worse
+> (`8.871399`–`9.466637`), establishing intervention sensitivity but not useful
+> learned geometric attention; functional retention and matched parity failed.
+> The next action is the frozen 8/8
+> [score-by-readout localization](docs/helm_d_score_centroid_localization_973.md):
+> Lorentz/Euclidean score crossed with normalized-Lorentz/tangent value readout
+> before changing exactly one of projection, score, centroid, or fitting.
 > Paired E8, resonance, recurrence, lowering, scale, and generation remain
 > blocked. Softmax is a research oracle,
 > not the serving design. After the geometric oracle qualifies, its
@@ -80,9 +89,15 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > attention attempt 01 `UNAVAILABLE_PRE_REVEAL` from a checkpoint JSON
 > round-trip defect; attempt 02 reached construction validation and terminated
 > `UNAVAILABLE_INTRINSIC_LORENTZ_R4_STOP_BEFORE_HELD_OUT` on its covariance
-> audit. D3 remains sealed and `NOT_RUN`. Multi-resonance replacement and
-> recurrence remain blocked. See the
-> [intrinsic R4 record](docs/intrinsic_lorentz_r4_attention_973.md).
+> audit. The subsequent learned-manifold V2 Attempt 02 is a valid non-D3
+> construction-validation negative: Lorentz NLL `7.710618`, Euclidean
+> `4.483154`, donor
+> `3.667626`; all destructive controls separated, all replays passed, causal
+> reads were zero, and D3 is `NOT_RUN`. Result CID
+> `blake3:9144913380c6ebdeebb5848138bc8e6642c1e7020d8e7a097aa3cd73cb829020`.
+> Multi-resonance replacement and recurrence remain blocked. See the
+> [intrinsic R4 record](docs/intrinsic_lorentz_r4_attention_973.md) and
+> [learned-manifold record](docs/helm_d_learned_manifold_r4_construction_973.md).
 
 > **Retained bounded-global evidence (2026-08-28):** #973's independently frozen
 > `BoundedGlobalNoncommutingExactSpinR4V2` reached
@@ -106,8 +121,9 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > step; `ConnectionGaugeCovarianceV4` later preserved construction covariance
 > but failed its held-out attention and control-separation gates. `HELM-D-R4`
 > full-decoder softmax parity subsequently passed; intrinsic V1 stopped
-> unavailable before D3, and the source-faithful learned-manifold qualifier is
-> now the only active successor. #954
+> unavailable before D3; the source-faithful learned-manifold qualifier later
+> completed with a valid functional-retention/parity negative. Its sole active
+> successor is the 8/8 score-by-readout localization. #954
 > remains blocked. See the
 > [bounded-global record](docs/bounded_global_exact_spin_attention_973.md).
 
@@ -164,7 +180,8 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > its independently frozen held-out reveal is negative at 13/24 for every main
 > arm. The `HELM-D-R4` full-decoder softmax parity qualifier now passes;
 > intrinsic V1 is unavailable before D3, and its source-faithful learned-map
-> construction successor is next. #954 remains
+> successor is now a valid negative. The frozen 8/8 score-by-readout
+> localization is next. #954 remains
 > blocked. See the
 > [conversation record](docs/conversation_entity_spin_path_attention_973.md).
 
@@ -217,8 +234,9 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > were negative. `ConnectionGaugeCovarianceV4` retained construction-scale
 > representation covariance but failed held-out attention and control
 > separation. `HELM-D-R4` full-decoder gauge-equivalent ordinary softmax now
-> passes; intrinsic V1 stopped before D3, and the current seam is a
-> source-faithful learned-manifold construction qualifier.
+> passes; intrinsic V1 stopped before D3, and the source-faithful
+> learned-manifold qualifier is a valid non-D3 construction-validation negative.
+> The current seam is its frozen 8/8 score-by-readout localization.
 > #954 remains blocked behind #973. General higher-scope attention, correct
 > answers, and reasoning do not exist yet. The
 > dashboard is an interactive window into the research substrate, not a
@@ -528,10 +546,12 @@ not become substitutes for working intelligence:
    frozen real next-token loss, top-1, and decoded output against equal-budget
    plain controls. The first coefficient-only `acosh^2`/centroid intrinsic arm
    stopped unavailable at construction covariance and was diagnostically worse
-   than donor and flat R4. Next copy the pinned HELM-D learned manifold Q/K/V,
-   Lorentz-inner-product score, learned scale/bias, and stable equivariant
-   centroid under a fresh construction-only freeze and equal-capacity flat
-   control.
+   than donor and flat R4. The next source-faithful learned-manifold qualifier
+   completed validly but failed functional retention and matched parity:
+   Lorentz NLL `7.710618`, Euclidean `4.483154`, donor `3.667626`, while all
+   geometry-destroying controls were worse than coherent Lorentz. Run one
+   frozen 8/8 construction audit that isolates score from readout, then
+   revise exactly the identified projection/score/centroid/fitter seam.
    Bind actual paired-E8/fiber/torsion inputs only after attention qualifies.
    Then replace softmax with the multi-resonance sieve,
    retaining the full S3 fiber/torsion state, and then factor the mode sums into
@@ -566,9 +586,11 @@ Connection/gauge Phase I is positive within #973, but its protected Phase-III
 held-out reveal is negative: every main arm scored 13/24 and the destructive
 controls failed to separate. `HELM-D-R4` source-pinned full-decoder softmax
 parity in transported R4/Spin frames now passes. The first intrinsic
-distance/centroid V1 attempt is unavailable before D3 and does not establish
-intrinsic attention. The only active successor is a source-faithful HELM-D
-learned-manifold construction qualifier with a matched Euclidean arm. Multi-resonance
+distance/centroid V1 attempt is unavailable before D3. The following
+source-faithful HELM-D learned-manifold construction qualifier completed as a
+valid functional-retention/parity negative despite clear destructive-control
+separation. The only active successor is its frozen 8/8 score-by-readout
+construction audit. Multi-resonance
 replacement and recurrent factorization remain gated behind a held-out
 geometric attention oracle.
 #954 remains blocked behind #973. The exact contract is
@@ -584,8 +606,10 @@ geometric attention oracle.
 - `docs/` — current programme, mathematical decisions, evidence, and archive.
 
 Start with the [documentation guide](docs/README.md). The
-[Geometric Intelligence Programme](docs/geometric_intelligence_programme.md)
-is the architecture and sequencing authority. Historical records remain
+[R4 Intelligence Completion Plan](docs/r4_intelligence_completion_plan.md) is
+the post-v0.1 sequencing authority and readable mirror of programme root #820;
+the [Geometric Intelligence Programme](docs/geometric_intelligence_programme.md)
+defines its architecture and claim boundaries. Historical records remain
 available through the documentation guide without dominating the front door.
 
 ## Contributing

@@ -1,14 +1,20 @@
 # R4 Intelligence Completion Plan
 
-- **Status:** Historical S0–S7 programme and evidence record. Superseded for
-  current sequencing by the
-  [Geometric Intelligence Programme](geometric_intelligence_programme.md).
+- **Status:** Authoritative for post-v0.1 intelligence sequencing and the
+  readable mirror of programme root #820 (stages S0–S7 plus cross-cutting F0).
+  The [Geometric Intelligence Programme](geometric_intelligence_programme.md)
+  is its current architecture and claim-boundary companion.
   The current direct-attention, multi-resonance, and recurrent-lowering
   architecture is
   [ADR-0005](adr/0005-predictive-geometric-connection-memory.md).
-  Ordinary softmax attention now passes on the bounded R4/Spin full-decoder
-  reference; intrinsic V1 is unavailable before D3, and ADR-0005's
-  source-faithful learned-manifold successor is the active construction seam.
+  Ordinary softmax attention remains qualified on the bounded R4/Spin
+  full-decoder reference. Source-faithful learned-manifold V2 is now a valid
+  non-D3 construction-validation negative: learned Lorentz failed retention and
+  matched parity, while its controls established sensitivity only. D3 remains
+  `NOT_RUN`; ADR-0005's sole active construction step is a separately frozen
+  cheap 8/8
+  [score-by-readout audit](helm_d_score_centroid_localization_973.md) within that
+  learned-manifold seam.
   The intermediate
   [Geometric Causal Decoder Roadmap](geometric_causal_decoder_plan.md) records
   the superseded #948-#958 sequence.

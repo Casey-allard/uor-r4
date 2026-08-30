@@ -174,12 +174,14 @@ substituted for one another.
   real-language behavioral parity, replay, destructive control, and causal
   audit pass; this is not geometric advantage. The first separately trained
   intrinsic R4 distance/centroid attempt reached construction validation but
-  stopped unavailable before D3 on covariance, so intrinsic attention remains
-  unestablished. The active successor is a fresh source-faithful HELM-D
-  learned-manifold construction qualifier. Upstream checkpoint parity,
+  stopped unavailable before D3 on covariance. Source-faithful learned-manifold
+  V2 then completed a valid non-D3 construction-validation run but failed donor
+  retention and matched Euclidean parity; destructive-control separation proves
+  intervention sensitivity only. Intrinsic attention remains unestablished.
+  The active successor is a frozen 8/8 score-by-readout localization. Upstream checkpoint parity,
   resonance replacement, and recurrence/lowering evidence remain `NOT_RUN`.
   See `helm_d_r4_softmax_decoder_973.md` and
-  `intrinsic_lorentz_r4_attention_973.md`.
+  `helm_d_learned_manifold_r4_construction_973.md`.
 - **H4 frame connection** — the exact object is the relative H4 group element;
   the current compiler-side f64 matrix represents its left-quaternion action
   and is numerically orthogonal under the tested finite-group law. It does not

@@ -123,3 +123,14 @@ learned-manifold successor. Multi-resonance, recurrence, lowering, scale, and
 #954 remain blocked. See the
 [owning intrinsic record](intrinsic_lorentz_r4_attention_973.md) and the
 [compact result summary](intrinsic_lorentz_r4_attention_attempt_02_summary_973.json).
+
+## Learned-manifold V2 outcome and current successor — 2026-08-29
+
+Source-faithful learned-manifold V2 completed a valid non-D3
+construction-validation run. Donor/gauge parity and all destructive-control
+separations passed, but learned Lorentz failed donor retention and matched
+Euclidean parity; the controls establish sensitivity only. The sole current
+#973 action is the frozen 8/8
+[score-by-readout localization](helm_d_score_centroid_localization_973.md).
+D3 remains `NOT_RUN`; resonance, recurrence, lowering, scale, and #954 remain
+blocked.

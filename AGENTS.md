@@ -1,8 +1,11 @@
 # AGENTS.md — uor-r4
 
 Guidance for agents (human or otherwise) working in this repository.
-**Post-#958 intelligence architecture and sequencing are authoritative in
-[`docs/geometric_intelligence_programme.md`](docs/geometric_intelligence_programme.md).**
+**Post-v0.1 intelligence sequencing is authoritative in
+[`docs/r4_intelligence_completion_plan.md`](docs/r4_intelligence_completion_plan.md),
+the readable mirror of programme root #820.** The
+[`Geometric Intelligence Programme`](docs/geometric_intelligence_programme.md)
+is the current architecture and claim-boundary companion.
 The active mechanism contract is
 [`ADR-0005`](docs/adr/0005-predictive-geometric-connection-memory.md). The
 H4-only `DirectCausalGeometricAttentionR4V1` scaffold now exists, but its first
@@ -29,15 +32,22 @@ softmax attention in R4/Spin frames, not geometric advantage.
 `UNAVAILABLE_INTRINSIC_LORENTZ_R4_STOP_BEFORE_HELD_OUT`: its construction
 barycenter-covariance audit measured `9.121400701417315e-08` against the frozen
 `1e-08` ceiling, while diagnostic curved NLL was worse than both donor and flat.
-D3 remained sealed. The active successor is a fresh construction-only,
-source-faithful HELM-D learned-manifold Q/K/V mechanism with a declared Lorentz
-score/scale/bias and stable equivariant centroid, compared with an
-equal-capacity Euclidean arm. Do not tune the revealed V2/V3/V4 fixtures, relax
-the V1 covariance bound, or scale #997's rejected componentwise-Frechet
-placement. The binding records are
+D3 remained sealed. Source-faithful learned-manifold V2 then completed one valid
+non-D3 construction-validation run at
+`FAIL_HELM_D_MANIFOLD_CONSTRUCTION_REVISE_PROJECTION_SCORE_CENTROID_OR_TRAINING`.
+Donor/gauge parity, deterministic replay, exact causal work, and all three
+destructive-control separations passed, but learned-Lorentz NLL
+`7.71061809923296` failed donor retention (`3.667626465210025`) and matched
+learned-Euclidean parity (`4.483153905078387`). The controls establish
+sensitivity only, not useful Lorentz attention. The sole active successor is a
+separately frozen cheap 8/8 score-by-readout construction audit within that
+learned-manifold seam. Do not tune the revealed V2/V3/V4 or learned-manifold
+fixtures, relax the V1 covariance bound, or scale #997's rejected
+componentwise-Frechet placement. The binding records are
 [`docs/helm_d_r4_softmax_decoder_973.md`](docs/helm_d_r4_softmax_decoder_973.md)
-and
-[`docs/intrinsic_lorentz_r4_attention_973.md`](docs/intrinsic_lorentz_r4_attention_973.md).
+and the current
+[`score-by-readout localization`](docs/helm_d_score_centroid_localization_973.md);
+the V1 and V2 negative records remain linked from there.
 Multi-resonance, recurrence, exact lowering, and #954 remain blocked;
 implementation progress is not a result.
 The geometric causal decoder plan, prior S0–S7 completion plan, and
@@ -148,11 +158,14 @@ order-shuffled and operator-permuted controls. The terminal is
 gated-delta core later trailed plain delta on its sealed smoke. Direct-attention
 V2 is non-promotable and equal-manifold-budget V3 isolated the connection/gauge
 seam. V4 preserved construction covariance but failed held-out functional
-binding. ADR-0005's `HELM-D-R4` reference/parity path subsequently passed.
-Intrinsic V1 attempt 02 stopped unavailable before D3 on its covariance audit.
-#973 is now active only on the fresh construction-only source-faithful HELM-D
-learned-manifold successor; resonance, recurrent lowering, and #954 remain
-blocked.
+binding. ADR-0005's `HELM-D-R4` reference/parity path subsequently passed and
+remains qualified. Intrinsic V1 attempt 02 stopped unavailable before D3 on its
+covariance audit. Source-faithful learned-manifold V2 then produced a valid
+non-D3 construction-validation negative: learned Lorentz failed retention and
+matched parity, while its controls established sensitivity only. #973 is now
+active only on a separately frozen cheap 8/8 score-by-readout construction
+audit within that learned-manifold seam; D3 remains `NOT_RUN`, and resonance,
+recurrent lowering, and #954 remain blocked.
 Do not add a second #953 intervention or reuse the #983/#986 populations. The
 complete #973 Gate 0 record is
 [`docs/prior_sentence_count_radius_attention_973.md`](docs/prior_sentence_count_radius_attention_973.md).
@@ -168,7 +181,7 @@ Terminology lives in
 `docs/transformerless/GLOSSARY.md`. Keep this file current when conventions
 change.
 
-## Capability-first baseline and geometric increment — #989/#953 established; #973 learned-manifold successor active
+## Capability-first baseline and geometric increment — #989/#953 established; #973 score-by-readout audit active
 
 Effective 2026-08-28, #989 established the deterministic source-free
 table-native lexical baseline at
@@ -221,15 +234,17 @@ path is viable, but the current H4 parameter-gauge/conditioning seam is not.
 V4 later preserved construction covariance but failed held-out functional
 binding and destructive-control separation. The exposed `HELM-D-R4`
 source-pinned full-decoder ordinary-softmax parity in transported R4/Spin frames
-now passes on bounded real causal language. Intrinsic Lorentz V1 attempt 02
+remains qualified on bounded real causal language. Intrinsic Lorentz V1 attempt 02
 reached construction validation but stopped unavailable before D3 because its
 barycenter covariance exceeded the frozen ceiling; its curved NLL was also
-diagnostically worse than donor and equal-capacity flat. The active successor
-retains source-faithful HELM-D Q/K/V, learns the manifold maps, declares the
-Lorentz score/scale/bias and stable equivariant centroid, and compares against
-an equal-capacity Euclidean arm on construction only. New route families,
-resonance, recurrence, unqualified scale, exact lowering, #954, and later-stage
-work remain dormant.
+diagnostically worse than donor and equal-capacity flat. Source-faithful
+learned-manifold V2 then completed a valid non-D3 construction-validation
+negative: learned Lorentz failed retention and matched parity, although its
+controls established sensitivity. The active successor is only a separately
+frozen cheap 8/8 score-by-readout construction audit within that
+learned-manifold seam. D3 remains `NOT_RUN`. New route families, resonance,
+recurrence, unqualified scale, exact lowering, #954, and later-stage work remain
+dormant.
 See the
 [#989 evidence record](docs/source_free_table_baseline_989.md) and
 [#953 evidence record](docs/source_free_table_geometric_intervention_953.md),
@@ -283,10 +298,11 @@ before freezing its CID-disjoint split. Within #973, `HELM-D-R4` now establishes
 ordinary inclusive causal attention with learned Q/K/V/O, causal all-prefix
 logits, R4/Spin frame transport, stable softmax, and transported value
 aggregation. Intrinsic Lorentz V1 did not clear construction validation and
-never opened D3. The active successor must remain source-faithful to HELM-D
-while learning its manifold Q/K/V maps and declaring the Lorentz score, scale,
-bias, and stable equivariant centroid; compare it only with an equal-capacity
-Euclidean mechanism under the same causal support and work. Actual paired-E8
+never opened D3. Source-faithful learned-manifold V2 then failed donor retention
+and matched Euclidean parity on valid non-D3 construction validation, while its
+controls established sensitivity only. The active successor is a separately
+frozen cheap 8/8 score-by-readout construction audit within that
+learned-manifold seam. Actual paired-E8
 hierarchy, fiber, and torsion binding remains `NOT_IMPLEMENTED`. Transport
 overhead is reported explicitly rather than called equal work. The recurrent
 gated-delta core remains an explicit compression candidate and negative
@@ -333,8 +349,9 @@ sequencing path.
 
 Documentation entry points, in the order a newcomer should read them:
 `README.md` (what it is, quickstart, CLI/HTTP/config reference) →
-`docs/geometric_intelligence_programme.md` (current architecture, sequencing,
-and claim boundaries) → `CONTRIBUTING.md` (the short form of this file) → this
+`docs/r4_intelligence_completion_plan.md` (authoritative sequencing) →
+`docs/geometric_intelligence_programme.md` (architecture and claim boundaries)
+→ `CONTRIBUTING.md` (the short form of this file) → this
 file (the full operating manual) → `docs/RESEARCH.md` (what is measured, closed
 and open) →
 `docs/MODEL_LIFECYCLE.md` (active decoder and historical compile lanes) →
@@ -486,13 +503,15 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
   H4 projection/connection/optimizer combination against a working plain path
   and an inference-time coherent alternative-connection swap. V4 then passed
   construction covariance but failed held-out functional binding. `HELM-D-R4`
-  ordinary-softmax parity in transported R4/Spin frames subsequently passed.
-  Intrinsic Lorentz V1 attempt 02 stopped unavailable before D3 on covariance,
-  with diagnostic NLL worse than donor and flat. The active step is the fresh
-  construction-only source-faithful HELM-D learned-manifold Q/K/V successor with
-  declared Lorentz score/scale/bias and stable equivariant centroid against an
-  equal-capacity Euclidean arm. Resonance replacement and bounded recurrence
-  remain later gates, not current work.
+  ordinary-softmax parity in transported R4/Spin frames subsequently passed and
+  remains qualified. Intrinsic Lorentz V1 attempt 02 stopped unavailable before
+  D3 on covariance, with diagnostic NLL worse than donor and flat.
+  Source-faithful learned-manifold V2 then produced a valid non-D3
+  construction-validation negative: learned Lorentz failed retention and
+  matched parity, while its controls established sensitivity only. The active
+  step is a separately frozen cheap 8/8 score-by-readout construction audit
+  within that learned-manifold seam. D3 remains `NOT_RUN`; resonance replacement
+  and bounded recurrence remain later gates, not current work.
   #954 remains blocked behind #973.
   #954 and #955 own correctness and reasoning respectively.
   #962 owns durable multi-turn CLI/HTTP chat, persistence, isolation, and
@@ -501,9 +520,10 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
   (#989, established) → one matched geometric intervention (#953, accepted) →
   direct geometric attention (#973: retained bounded scope evidence → H4
   scaffold/V4 held-out negatives → HELM-D-R4 full-decoder softmax parity →
-  intrinsic Lorentz V1 construction-unavailable → fresh source-faithful
-  learned-manifold Q/K/V construction gate → normalized resonance replacement
-  → bounded recurrence) →
+  intrinsic Lorentz V1 construction-unavailable → valid non-D3
+  learned-manifold V2 construction-validation negative → separately frozen
+  cheap 8/8 score-by-readout construction audit → normalized resonance
+  replacement → bounded recurrence) →
   correctness/abstention → reasoning → optimization/purity/release. The older placement/transport
   sequence is retained as evidence, not an active implementation queue.
 - Kappa is canonical identity/serialization, never the tokenizer or semantic

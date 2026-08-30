@@ -448,3 +448,66 @@ The population, model, operator, fitter, thresholds, decision branches, and
 validation seal remain unchanged. Requiring all 120 frames to be naturally
 token-reachable would instead change the leaf-assignment mechanism and is not
 authorized by this repair.
+
+### 2026-08-29 attempt 02: valid non-D3 construction-validation negative
+
+Attempt 02 ran the unchanged learned-manifold decision from protected `main`
+revision `c6b86b8f8dc5ea9e4e2c5567ae7d95ffecd8de73` after the synthetic census
+repair. It completed fitting, the exclusive checkpoint gate, sealed
+construction validation, all seven paired arm replays, and result
+serialization. Its exact machine result is preserved byte-for-byte in
+[`helm_d_learned_manifold_r4_construction_attempt_02_result_973.json`](helm_d_learned_manifold_r4_construction_attempt_02_result_973.json).
+The fitted, pre-validation checkpoint that the result binds is likewise
+preserved byte-for-byte in
+[`helm_d_learned_manifold_r4_construction_attempt_02_checkpoint_973.json`](helm_d_learned_manifold_r4_construction_attempt_02_checkpoint_973.json),
+so its self-CID and fitted-state evidence remain independently resolvable.
+
+- terminal:
+  `FAIL_HELM_D_MANIFOLD_CONSTRUCTION_REVISE_PROJECTION_SCORE_CENTROID_OR_TRAINING`;
+- result self-CID:
+  `blake3:9144913380c6ebdeebb5848138bc8e6642c1e7020d8e7a097aa3cd73cb829020`;
+- checkpoint CID:
+  `blake3:dd04bfc1cf15e5dd2c6c8be5afa363ecb452386f54632cd120bce56018444789`;
+- donor/gauge NLL: `3.667626465210025` / `3.6676262753190825`,
+  with `64/64` matching top-1 decisions and `24/64` correct for each;
+- learned Lorentz/Euclidean NLL: `7.71061809923296` /
+  `4.483153905078387`, with `4/64` / `16/64` top-1;
+- source-frame/value/order-key destructive-control NLL: `9.466636672578746`,
+  `8.871399423137143`, and `8.899143537484154`;
+- functional retention: `false`; matched learned parity: `false`; Lorentz
+  advantage: `false`;
+- every destructive control separated: `true`; all-arm replay and exact causal
+  work: `true`;
+- registered H4 frames: `120`; source-frame intervention live: `true`;
+- construction validation materialized after the exclusive checkpoint: `true`;
+  D3: `NOT_RUN`; and
+- total wall time: `9330.169033208` seconds, of which validation consumed
+  `6755.550671083` seconds.
+
+The frozen canary's `740.3849466346668`-second extrapolation and this record's
+two-hour cost ceiling were falsified by the completed run. The canary sampled
+fitting but did not model the fourteen serial full-decoder validation/replay
+passes; future run contracts must price that phase separately before launch.
+The result serializes CIDs for scored logits rather than every raw logit, so its
+logit-delta and relative-bound scalars remain harness-attested even though the
+result, checkpoint, replay, provenance, and causal-work identities are public.
+
+This is a valid non-D3 construction-validation negative, not another
+unavailable run.
+The ordinary donor and exact coherent R4/Spin gauge path remain functionally
+equivalent. The coherent Lorentz arm also beats every geometry-destroying
+control by more than one nat/token, so its frame, value, and order dependence
+is measurable in this tested operator. That sensitivity does not establish
+useful learned geometric attention. The arm fails the binding objective because
+it loses
+`4.042991634022935` nats/token against the donor and
+`3.227464194154573` against the matched Euclidean arm.
+
+The frozen negative branch is binding. The next action is the separately frozen
+[`HelmDScoreCentroidLocalizationR4V1`](helm_d_score_centroid_localization_973.md),
+which crosses Lorentz/Euclidean score with normalized-Lorentz/tangent readout
+on an 8/8 split of the existing construction-fit documents before selecting a
+repair to projection, score, centroid, or fitting. No new corpus volume, route
+family, dimension, E8 expansion,
+multi-resonance replacement, recurrence, exact lowering, D3 reveal, #954 work,
+generation, correctness, or reasoning claim is authorized.
