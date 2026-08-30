@@ -31,6 +31,7 @@ pub const PINNED_SOURCE_CID: &str =
     "blake3:12d2cd8a877ef2cdcf785b3d4d1f373e0419074cc884aeaff06fc059686a5ba5";
 pub const PINNED_TOKENIZER_CID: &str =
     "blake3:944d1262d516abd56a8156dd3058a73a1bf3dc19419527592d854d162f288073";
+pub const PINNED_BOS_TOKEN_ID: u32 = 1;
 pub const PINNED_EOS_TOKEN_ID: u32 = 2;
 pub const GENERATED_TOKENS: usize = 32;
 /// G0 keeps the coherent substrate from the first 29 source layers and proves

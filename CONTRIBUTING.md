@@ -10,6 +10,17 @@ The accepted #973 attention reference, completed learned-manifold/localization
 results, parked intrinsic-replacement lane, autonomous-generation gate, and
 native bridge result are frozen in
 [ADR-0005](docs/adr/0005-predictive-geometric-connection-memory.md).
+The current handoff is the
+[`R4SoftmaxTraceStudentV1` record](docs/r4_softmax_trace_student_973.md): ordinary
+causal R4/Spin Q/K/V plus stable softmax is established as the equivalence
+baseline; the source-free Q16 suffix student shows bounded distillation but
+loops autonomously. Contribute next only to `R4SoftmaxTraceStateStudentV1`,
+which compiles construction traces into recurrent source-free R4/Spin state and
+must beat frozen suffix/plain-recurrent/transport-permuted controls. Offline
+teacher/compiler floats, matrix operations, and softmax are permitted; deployed
+runtime remains exact and source-free. Hosted Pages is currently a static,
+WASM-offline surface without a functioning chat backend/artifact lowering, not
+product evidence or the active research gate.
 This file is the short version.
 
 ## The loop
@@ -139,11 +150,11 @@ The experiment must be able to change the next programme decision:
   endpoint now passes the frozen eight-token canary with the same token sequence,
   decoded text, decision CID, persistent-state CID, all-30-layer exact audits,
   and zero future reads as the CLI. Dashboard wiring, native-readiness gating,
-  and static/WASM isolation checks pass; browser interaction/E2E is `NOT_RUN`.
-  The feature is disabled by default and does not change the default engine.
-  Work next only on construction-only layerwise
-  trace capture from this exact behavioral oracle and compilation/evaluation of
-  the first source-free student/attention-state artifact.
+  and static/WASM isolation checks pass, but hosted Pages remains static/offline
+  without a functioning chat backend/artifact lowering. The feature is disabled
+  by default and does not change the default engine. The Q16 suffix trace
+  student is complete with bounded distillation but looping output. Work next
+  only on `R4SoftmaxTraceStateStudentV1`.
   See the
   [#989 record](docs/source_free_table_baseline_989.md).
 - **Preserve the GI evidence lineage.** GI-1 makes lexical/address state
@@ -197,11 +208,12 @@ The experiment must be able to change the next programme decision:
   Provider-free-at-execution, source-backed
   `R4SoftmaxReferenceGeneratorV1` (`HELM-D-R4`) generation and its explicit
   opt-in, loopback-only dedicated native HTTP endpoint now pass. Dashboard
-  wiring/readiness and static/WASM-isolation checks pass; browser E2E is
-  `NOT_RUN`. Construction-only
-  trace capture and source-free student/attention-state compilation are active.
-  Intrinsic/readout, resonance, recurrent factorization, and exact lowering are
-  parked; GI-4/#954 remains blocked, with GI-5/#955 downstream.
+  wiring/readiness and static/WASM-isolation checks pass, but hosted Pages is
+  static/offline without a functioning chat backend/artifact lowering. The Q16
+  suffix trace student is complete and `R4SoftmaxTraceStateStudentV1` is active.
+  Intrinsic/readout alternatives, resonance-based softmax replacement,
+  full-model recurrent lowering, and exact deployment are parked; GI-4/#954
+  remains blocked, with GI-5/#955 downstream.
 - **Exercise the accepted route path.** #953 geometry runs before token choice
   and emits admitted support and its fixed-point radius trace. The completed
   #973 localization kept its frozen split, trace identity, score-paired common
@@ -229,16 +241,18 @@ The experiment must be able to change the next programme decision:
   generation with the credited HELM attention seam and UOR's pinned SmolLM2
   `HuggingFaceLlamaOracle` decoder path; that gate now passes. The opt-in,
   loopback-only dedicated native HTTP canary through the identical policy also
-  passes. Dashboard wiring/readiness and static/WASM-isolation checks pass;
-  browser E2E is `NOT_RUN`. The smallest current falsifier is whether construction-only layerwise
-  traces from that oracle can compile a first source-free
-  student/attention-state artifact that meets its frozen behavioral comparison.
+  passes. Dashboard wiring/readiness and static/WASM-isolation checks pass, but
+  hosted Pages is static/offline without a functioning chat backend/artifact
+  lowering. The smallest current falsifier is whether
+  `R4SoftmaxTraceStateStudentV1` can compile construction traces into recurrent
+  source-free R4/Spin state that beats its frozen controls without looping.
   Pinned-source provenance, donor reproduction, and transported-R4 parity are
   recorded in `docs/helm_d_r4_softmax_decoder_973.md`; V1 and V2 outcomes are in
   `docs/intrinsic_lorentz_r4_attention_973.md` and
   `docs/helm_d_learned_manifold_r4_construction_973.md`, with localization in
-  `docs/helm_d_score_centroid_localization_973.md`. Intrinsic/readout,
-  resonance, recurrence, and exact lowering are parked; #954 remains blocked.
+  `docs/helm_d_score_centroid_localization_973.md`. Intrinsic/readout
+  alternatives, resonance-based softmax replacement, full-model recurrent
+  lowering, and exact deployment are parked; #954 remains blocked.
   The PASS does not establish geometry advantage, softmax removal,
   source-free/table-native serving, correctness, reasoning, frontier quality,
   release readiness, or a static-WASM decoder.

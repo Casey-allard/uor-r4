@@ -19,7 +19,7 @@ make an hours-long run the price of learning whether a mechanism is reachable.
 Experimental evaluations are dormant by default. Activate only the smallest
 probe whose possible outcomes cause different next actions.
 
-### Active decision — proposed R4SoftmaxTeacherTraceV1 and source-free trace compiler/#973
+### Active decision — R4SoftmaxTraceStateStudentV1/#973
 
 PR #997 proved reachability but rejected its componentwise-Frechet placement:
 real 2,931/35,028 (8.367592%), unchanged #953 4,281/35,028 (12.221651%),
@@ -77,8 +77,8 @@ learned-manifold V2 then failed retention and matched parity. The 8/8-contract
 score/readout attempt stopped at its two-document preflight and rejected
 tangent readout (pooled normalized audit-MSE ratio `1.0643688804269025`). Ordinary dot-product/stable-
 softmax causal attention in coherent R4/Spin frames is now the accepted
-baseline. Intrinsic score/readout, multi-resonance replacement,
-recurrence/lowering, and D3 are parked or `NOT_RUN`.
+baseline. Intrinsic score/readout alternatives, multi-resonance replacement,
+whole-decoder recurrent lowering, and D3 are parked or `NOT_RUN`.
 
 The provider-free autonomous `R4SoftmaxReferenceGeneratorV1` (`HELM-D-R4`)
 native CLI gate now passes with HELM-D credited only as the MIT architectural
@@ -94,24 +94,34 @@ table-native, multiply-free, or transformerless. One dedicated opt-in,
 loopback-only native HTTP endpoint for the exact same policy now also passes:
 its frozen eight-token prompt matches the CLI token sequence, decision CID, and
 state CID, all 30 layers retain exact audits, and future reads remain zero.
-Dashboard wiring/static native-readiness and WASM-isolation checks pass, while
-browser interaction/E2E is `NOT_RUN`; the default engine is unchanged. See the
+Dashboard wiring/static native-readiness and WASM-isolation checks pass, but the
+hosted Pages deployment is static, currently reports WASM offline, and has no
+functioning chat backend or compiled-artifact lowering; the default engine is
+unchanged. See the
 [`bridge record`](r4_softmax_reference_http_bridge_973.md) and
 [`structured result`](r4_softmax_reference_http_bridge_result_973.json).
 
-The next gate is the proposed, not-yet-implemented
-`R4SoftmaxTeacherTraceV1` and trace compiler. It must record only
-construction-side, causal layerwise token, Q/K/V, attention, value, and logit
-traces from the exact qualified reference, bind their source and policy
-identities, and then compile the first source-free student/attention-state
-artifact. The decision metrics are decoded-token agreement and next-token loss
-against the reference, with a causal-input audit and a matched non-geometric
-student/control. A positive advances the source-free artifact; a negative
-repairs the trace representation or compiler. Intrinsic/readout, resonance,
-softmax replacement, recurrence, and exact lowering stay parked until this
-baseline exists. Tag, release, hosted promotion, general-generation/reasoning,
-and static-WASM evidence remain ineligible. None of this alone closes #973 or
-unblocks #954. See the
+`R4SoftmaxTeacherTraceV1` and `R4SoftmaxTraceStudentV1` have now completed that
+first trace/compiler gate. The source-free Q16 suffix artifact shows bounded
+distillation against its count and document-permuted controls, but its
+autonomous continuation loops. This result is not geometric attention,
+coherent generation, correctness, general-purpose inference, or reasoning. See the
+[`trace-student record`](r4_softmax_trace_student_973.md).
+
+The next gate is `R4SoftmaxTraceStateStudentV1`. It may fit/codebook only
+construction traces. Its runtime must read only prior compiled state, observed
+token IDs, and independently available canonical R4/Spin addresses/frames—no
+held-out Q/K/V or source trace. Compare frozen suffix, plain-recurrent,
+geometric state, and transport-permuted arms. A positive must beat the frozen
+held-out decision/loss thresholds and both controls, lose its effect under the
+geometry-destroying intervention, replay exactly with zero source access, and
+avoid period-1/2 loops. A negative repairs or retires the recurrent state
+representation before scale. Offline floats, matrix operations, and softmax are
+allowed at the teacher/compiler boundary; the deployed destination remains
+exact, integer/table-native, and source-free. Intrinsic/readout, resonance,
+softmax replacement, and exact lowering stay parked until this gate passes.
+Tag, release, hosted promotion, general-generation/reasoning, and static-WASM
+evidence remain ineligible. None of this alone closes #973 or unblocks #954. See the
 [`generation record`](r4_softmax_reference_generation_973.md) and
 [`compact aggregate`](r4_softmax_reference_generation_attempt_01_result_973.json).
 
@@ -172,10 +182,11 @@ gated-delta core later trailed plain delta. #973 continues to block #954 while
 it owns the accepted ordinary-attention reference, the qualified provider-free
 autonomous generation gate, the qualified dedicated opt-in loopback-only native
 HTTP endpoint, and checked dashboard wiring/static native-readiness and WASM
-isolation. Browser
-interaction/E2E remains `NOT_RUN`. The proposed
-`R4SoftmaxTeacherTraceV1`/source-free trace compiler is
-active. Intrinsic/readout, resonance/recurrent lowering, and final
+isolation. Hosted Pages remains static/offline without a functioning chat
+backend/artifact lowering. The source-free Q16 suffix trace student is complete
+with bounded distillation but looping autonomous output;
+`R4SoftmaxTraceStateStudentV1` is active. Intrinsic/readout,
+resonance/recurrent lowering, and final
 requalification are parked.
 
 A negative result remains evidence about its declared mechanism and
@@ -938,11 +949,13 @@ rejected tangent readout. Provider-free autonomous
 `R4SoftmaxReferenceGeneratorV1` (`HELM-D-R4`) generation now passes. The single
 dedicated opt-in, loopback-only native HTTP endpoint also passes the frozen
 eight-token CLI-parity canary, with no default-engine change. Dashboard
-wiring/static native-readiness and WASM-isolation checks pass; browser
-interaction/E2E is `NOT_RUN`. The single current
-evaluation action is the proposed `R4SoftmaxTeacherTraceV1`/source-free trace
-compiler. D3 remains `NOT_RUN`; intrinsic/readout,
-resonance, and recurrent lowering are parked.
+wiring/static native-readiness and WASM-isolation checks pass; hosted Pages is
+static/offline without a functioning chat backend/artifact lowering. The
+source-free Q16 suffix trace student is complete with bounded distillation but
+looping output. The single current evaluation action is
+`R4SoftmaxTraceStateStudentV1`. D3 remains `NOT_RUN`; intrinsic/readout
+alternatives, resonance-based softmax replacement, whole-decoder recurrent
+lowering, and exact deployment are parked.
 
 #973 owns paragraph, conversation, and bounded-global influence only after the
 one #989-matched #953 intervention qualifies the decoded loop.
@@ -1002,10 +1015,12 @@ The now-positive bounded V2 subprobe cannot close #973. Paragraph and
 conversation are retained. The ordinary attention reference is now accepted;
 provider-free autonomous generation and its dedicated opt-in, loopback-only
 native HTTP endpoint now pass. Dashboard wiring/static native-readiness and
-WASM-isolation checks pass; browser interaction/E2E is `NOT_RUN`. The
-proposed `R4SoftmaxTeacherTraceV1`/source-free trace compiler is
-active, while intrinsic/readout,
-resonance/recurrent lowering, and final requalification are parked.
+WASM-isolation checks pass; hosted Pages is static/offline without a functioning
+chat backend/artifact lowering. The source-free Q16 suffix trace student is
+complete with bounded distillation but looping output.
+`R4SoftmaxTraceStateStudentV1` is active, while intrinsic/readout alternatives,
+resonance-based softmax replacement, whole-decoder recurrent lowering, and
+final requalification are parked.
 
 #### Observed bounded-global V1 target-free terminal (2026-08-28)
 
@@ -1068,9 +1083,11 @@ and rejected tangent readout.
 Provider-free autonomous `R4SoftmaxReferenceGeneratorV1` (`HELM-D-R4`)
 generation now passes, and its explicit opt-in, loopback-only native
 HTTP endpoint passes the frozen eight-token CLI-parity canary. Dashboard
-wiring/static native-readiness and WASM-isolation checks pass; browser
-interaction/E2E is `NOT_RUN`. The current #973 decision is the proposed construction-only
-`R4SoftmaxTeacherTraceV1`/source-free trace compiler; intrinsic/readout,
+wiring/static native-readiness and WASM-isolation checks pass; hosted Pages is
+static/offline without a functioning chat backend/artifact lowering. The
+source-free Q16 suffix trace student is complete with bounded distillation but
+looping output. The current #973 decision is
+`R4SoftmaxTraceStateStudentV1`; intrinsic/readout,
 multi-resonance, and recurrent lowering are
 parked. D3 remains `NOT_RUN` and #954 remains blocked. See the
 [#973 bounded-global record](bounded_global_exact_spin_attention_973.md).

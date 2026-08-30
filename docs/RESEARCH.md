@@ -80,18 +80,28 @@ assumptions, or objectives rather than measured results.
 > frozen eight-token sunlight canary with the same token sequence, decoded text,
 > decision CID, persistent-state CID, all-30-layer exact audits, and zero future
 > reads as the CLI. Dashboard wiring, native-readiness gating, and static/WASM
-> isolation checks passed; browser interaction/E2E is `NOT_RUN`. The feature is
-> disabled by default and does not change the default engine. This reference is transformer-compatible and
+> isolation checks passed, but the hosted Pages deployment is static, currently
+> reports WASM offline, and has no functioning chat backend or compiled-artifact
+> lowering. The feature is disabled by default and does not change the default
+> engine. This reference is transformer-compatible and
 > `f32`/multiply/alloc/source-weight backed—not source-free, table-native,
 > multiply-free, transformerless, browser-WASM, release, or frontier evidence.
-> The sole next action is construction-only layerwise
-> token/Q/K/V/attention/value/logit trace capture from this exact behavioral
-> oracle followed by compilation and evaluation of the first source-free
-> student/attention-state artifact. Resonance substitutes and product/release
-> promotion remain parked until that passes. See the
+> `R4SoftmaxTeacherTraceV1` and `R4SoftmaxTraceStudentV1` then completed the first
+> trace/compiler rung. The source-free Q16 suffix student shows bounded
+> distillation against its count and document-permuted controls, but autonomous
+> decoding loops. This does not establish geometric attention, coherent
+> generation, correctness, general-purpose inference, or reasoning. The sole next action is
+> `R4SoftmaxTraceStateStudentV1`: compile construction traces into causal
+> recurrent R4/Spin state and beat frozen suffix, plain-recurrent, and
+> transport-permuted controls under exact replay, zero source access, a
+> destructive-control effect, and a non-looping decode. Offline floats, matrix
+> operations, and softmax remain allowed at the teacher/compiler boundary; the
+> deployed destination remains exact and source-free. Resonance substitutes and
+> product/release promotion remain parked until that passes. See the
 > [generation record](r4_softmax_reference_generation_973.md),
 > [compact aggregate](r4_softmax_reference_generation_attempt_01_result_973.json),
-> and [native bridge record](r4_softmax_reference_http_bridge_973.md).
+> [native bridge record](r4_softmax_reference_http_bridge_973.md), and
+> [trace-student record](r4_softmax_trace_student_973.md).
 >
 > **Measured evidence status:** HELM-D pinned-source provenance `PASS`;
 > ordinary-donor reproduction `PASS`; transported-R4 parity, destructive
@@ -109,9 +119,12 @@ assumptions, or objectives rather than measured results.
 > `blake3:79792c1a6e38733fd3eb925e364c87308ce26e02bea951f338466ab93481b374`;
 > dedicated native HTTP endpoint canary `PASS` with exact CLI token/text,
 > decision/state-CID, all-layer-audit, and causal-read parity; dashboard
-> wiring/readiness plus static/WASM isolation `PASS`; browser E2E `NOT_RUN`;
-> D3 `NOT_RUN`; multi-resonance replacement `NOT_RUN` and parked; recurrent
-> factorization/lowering `NOT_RUN` and parked. See the
+> wiring/readiness plus static/WASM isolation `PASS`; hosted Pages static/offline
+> without a functioning chat backend/artifact lowering;
+> source-free Q16 suffix trace student bounded distillation with looping decode;
+> `R4SoftmaxTraceStateStudentV1` active;
+> D3 `NOT_RUN`; multi-resonance replacement `NOT_RUN` and parked; whole-decoder
+> recurrent factorization/lowering `NOT_RUN` and parked. See the
 > [`HELM-D-R4` record](helm_d_r4_softmax_decoder_973.md) and the
 > [intrinsic R4 record](intrinsic_lorentz_r4_attention_973.md), then the
 > [learned-manifold construction record](helm_d_learned_manifold_r4_construction_973.md)
@@ -453,12 +466,14 @@ assumptions, or objectives rather than measured results.
 > autonomous `R4SoftmaxReferenceGeneratorV1` (`HELM-D-R4`) generation now
 > passes. Its explicit opt-in, loopback-only dedicated native HTTP endpoint
 > subsequently passed exact CLI canary parity; dashboard wiring/readiness and
-> static/WASM-isolation checks passed while browser E2E remains `NOT_RUN`. The
-> current #973 action is construction-only trace capture and source-free
-> student/attention-state compilation using the
-> credited HELM attention seam and UOR's pinned SmolLM2
-> `HuggingFaceLlamaOracle` decoder path. Intrinsic/readout,
-> resonance replacement, and bounded recurrence are parked. D3 remains
+> static/WASM-isolation checks passed while hosted Pages remains static/offline
+> without a functioning chat backend/artifact lowering. The first source-free
+> Q16 suffix trace student now provides bounded distillation evidence but loops
+> autonomously. The current #973 action is
+> `R4SoftmaxTraceStateStudentV1`, compiling construction traces into recurrent
+> R4/Spin state without source access. Intrinsic/readout alternatives,
+> resonance-based softmax replacement, whole-decoder recurrent lowering, and
+> exact deployment are parked. D3 remains
 > `NOT_RUN`; #954 remains blocked behind #973.
 > Legacy
 > tracker #949 is closed as superseded, and #958 is retained directly beneath
@@ -1027,12 +1042,13 @@ transported gated-delta core then trailed plain delta on its sealed smoke. The
 ordinary direct attention reference is now accepted. Provider-free-at-execution,
 source-backed `R4SoftmaxReferenceGeneratorV1` (`HELM-D-R4`) generation and its
 explicit opt-in, loopback-only dedicated native HTTP endpoint now pass;
-dashboard wiring/readiness and static/WASM-isolation checks pass while browser
-E2E is `NOT_RUN`;
-construction-only layerwise trace capture and compilation/evaluation of a first
-source-free student/attention-state artifact are active;
-fiber-preserving multi-resonance
-replacement, recurrent factorization, and final requalification are parked.
+dashboard wiring/readiness and static/WASM-isolation checks pass while hosted
+Pages remains static/offline without a working chat backend/artifact lowering.
+The construction-only trace compiler and source-free Q16 suffix student are now
+complete with bounded distillation but looping autonomous output;
+`R4SoftmaxTraceStateStudentV1` is active;
+fiber-preserving multi-resonance replacement, whole-decoder recurrent
+factorization, and final requalification are parked.
 Dependable broad coherent text remains unestablished.
 The final serving path has no source weights, transformer/self-attention, dense
 matrix intelligence, MoE, or sparse learned router. Compiler-side floating
@@ -1614,14 +1630,17 @@ qualifier is now a valid non-D3 construction-validation negative: learned
 Lorentz failed retention and matched parity, while its controls established
 sensitivity only. The 8/8-contract attempt stopped at its two-document
 preflight and rejected tangent readout. Provider-free-at-execution,
-source-backed `R4SoftmaxReferenceGeneratorV1` (`HELM-D-R4`) generation now passes with the
+source-backed `R4SoftmaxReferenceGeneratorV1` (`HELM-D-R4`) generation now
+passes with the
 credited attention seam and UOR's pinned SmolLM2 `HuggingFaceLlamaOracle`
 decoder path. Its explicit opt-in, loopback-only dedicated native HTTP endpoint
 also passes without changing the default engine. Dashboard wiring/readiness and
-static/WASM-isolation checks pass; browser E2E is `NOT_RUN`. The only active successor is
-construction-only layerwise trace capture and compilation/evaluation of a
-first source-free student/attention-state artifact. Intrinsic/readout,
-multi-resonance replacement, recurrent factorization, and final requalification are parked. D3 remains
+static/WASM-isolation checks pass, but hosted Pages remains static/offline
+without a functioning chat backend/artifact lowering. The Q16 suffix trace
+student is complete with bounded distillation but looping autonomous output.
+The only active successor is `R4SoftmaxTraceStateStudentV1`. Intrinsic/readout
+alternatives, multi-resonance replacement, whole-decoder recurrent
+factorization, and final requalification are parked. D3 remains
 `NOT_RUN`; #954 remains blocked.
 #955 invokes that accepted selector/
 #953/#973/#954 consumer; #962 integrates the accepted selector/#953/#973 path

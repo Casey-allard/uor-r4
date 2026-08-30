@@ -612,7 +612,7 @@ fn source_max_position_embeddings(
     })
 }
 
-fn model_shape(
+pub(crate) fn model_shape(
     oracle: &HuggingFaceLlamaOracle,
     sequence_capacity: usize,
 ) -> Result<ModelShape, R4SoftmaxReferenceGenerationError> {
@@ -634,7 +634,7 @@ fn model_shape(
     })
 }
 
-fn expected_causal_audit(
+pub(crate) fn expected_causal_audit(
     positions: usize,
     shape: &ModelShape,
 ) -> Result<CausalAttentionAuditRecord, R4SoftmaxReferenceGenerationError> {
@@ -667,7 +667,7 @@ fn expected_causal_audit(
     })
 }
 
-fn expected_projection_audit(
+pub(crate) fn expected_projection_audit(
     positions: usize,
     shape: &ModelShape,
 ) -> Result<ProjectionAuditRecord, R4SoftmaxReferenceGenerationError> {
@@ -690,7 +690,7 @@ fn expected_projection_audit(
     })
 }
 
-fn expected_r4_audit(
+pub(crate) fn expected_r4_audit(
     positions: usize,
     shape: &ModelShape,
 ) -> Result<R4SpinTransportAudit, R4SoftmaxReferenceGenerationError> {

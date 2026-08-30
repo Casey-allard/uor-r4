@@ -1,0 +1,8032 @@
+{
+  "schema": "uor-r4.r4-softmax-trace-student-result/1",
+  "issue": 973,
+  "claim_scope": "held-out comparison of a frozen source-free suffix student against equal-support count and document-permuted controls",
+  "implementation_revision": "3cbeab64ba40f4445f878741b87ec6a487fcee00",
+  "evaluation_preflight": {
+    "schema": "uor-r4.r4-softmax-trace-student-preflight/1",
+    "issue": 973,
+    "trace_policy": "R4SoftmaxTeacherTraceV1",
+    "compiler_policy": "R4SoftmaxTraceCompilerV1",
+    "source_revision": "7e27bd9f95328f0f3b08261d1252705110c806f8",
+    "tokenizer_cid": "blake3:944d1262d516abd56a8156dd3058a73a1bf3dc19419527592d854d162f288073",
+    "maximum_suffix_depth": 4,
+    "attention_support": 8,
+    "logit_support": 32,
+    "construction_positions": 38,
+    "held_out_positions": 57,
+    "source_forward_positions": 95,
+    "documents": [
+      {
+        "id": "14",
+        "partition": "construction",
+        "text_cid": "blake3:d52e5fe5f843fce27449bbcb39788644a35a43e5ce92995245b8b540cdca37a0",
+        "target_tokens": 8
+      },
+      {
+        "id": "657",
+        "partition": "construction",
+        "text_cid": "blake3:82cdb1cb22ab43b63704fd802da88f01539d073193d901047a86d410c8df9adb",
+        "target_tokens": 8
+      },
+      {
+        "id": "4579",
+        "partition": "construction",
+        "text_cid": "blake3:078512d6513a0191bcec17628d6d5cc3252f3cc610d4d9af064048660c920400",
+        "target_tokens": 10
+      },
+      {
+        "id": "5121",
+        "partition": "construction",
+        "text_cid": "blake3:455a5edc9a353f4d57f4d665637d367d350b740e62646cd04c135baf4d20e9e2",
+        "target_tokens": 12
+      },
+      {
+        "id": "13",
+        "partition": "held_out",
+        "text_cid": "blake3:8afb2aa96f18a3a6eaf7cf4d721b16add2e3eb051b004ec974259ccf34bf5a67",
+        "target_tokens": 57
+      }
+    ],
+    "reachability": {
+      "held_out_positions": 57,
+      "positions_with_nonzero_suffix": 10,
+      "non_bos_positions_with_nonzero_suffix": 9,
+      "positions_with_depth_two_or_more": 2,
+      "positions_with_depth_three_or_more": 1,
+      "longest_depth_histogram": [
+        47,
+        8,
+        1,
+        1,
+        0
+      ]
+    },
+    "frozen_shape_exact": true,
+    "construction_held_out_text_cids_disjoint": true,
+    "construction_partition_valid": true,
+    "held_out_partition_valid": true,
+    "proceed_to_source_trace": true,
+    "decision": "PROCEED_TO_BOUNDED_R4_SOFTMAX_TRACE",
+    "preflight_cid": "blake3:f48916d2789d026b88a03a40ec20cb326b12e29debff541dfb9b00a43915b2b7"
+  },
+  "construction_freeze_cid": "blake3:bb19fc6f6976aca6dfd8c67c470fd1fb70a1e1e74763800fdcb635f135325df7",
+  "artifact_cid_before_reveal": "blake3:e3b48b8bd113bf71be2fe9ecb64257b4eb1516303966d9d6c2c5cbe9d46adfac",
+  "artifact_cid_after_reveal": "blake3:e3b48b8bd113bf71be2fe9ecb64257b4eb1516303966d9d6c2c5cbe9d46adfac",
+  "artifact_unchanged_across_reveal": true,
+  "held_out_document": {
+    "id": "13",
+    "partition": "held_out",
+    "text_cid": "blake3:8afb2aa96f18a3a6eaf7cf4d721b16add2e3eb051b004ec974259ccf34bf5a67",
+    "target_tokens": 57
+  },
+  "held_out_trace_cid": "blake3:c93c290c11ecae1b2479109c3604bd365e5fa3d34ed2637208f8917a03312bdb",
+  "held_out_judge_sequence": {
+    "document_id": "13",
+    "input_tokens": [
+      1,
+      2219,
+      276,
+      8948,
+      2164,
+      28702,
+      492,
+      19698,
+      426,
+      12086,
+      365,
+      21253,
+      28,
+      216,
+      34,
+      35,
+      4019,
+      216,
+      33,
+      41,
+      33,
+      34,
+      816,
+      6684,
+      686,
+      683,
+      28,
+      22349,
+      9550,
+      28,
+      216,
+      39,
+      4019,
+      216,
+      33,
+      41,
+      37,
+      36,
+      25,
+      436,
+      354,
+      2321,
+      23078,
+      284,
+      2583,
+      8201,
+      30,
+      909,
+      436,
+      3988,
+      281,
+      42093,
+      81,
+      717,
+      1121,
+      28,
+      4528
+    ],
+    "actual_next_tokens": [
+      2219,
+      276,
+      8948,
+      2164,
+      28702,
+      492,
+      19698,
+      426,
+      12086,
+      365,
+      21253,
+      28,
+      216,
+      34,
+      35,
+      4019,
+      216,
+      33,
+      41,
+      33,
+      34,
+      816,
+      6684,
+      686,
+      683,
+      28,
+      22349,
+      9550,
+      28,
+      216,
+      39,
+      4019,
+      216,
+      33,
+      41,
+      37,
+      36,
+      25,
+      436,
+      354,
+      2321,
+      23078,
+      284,
+      2583,
+      8201,
+      30,
+      909,
+      436,
+      3988,
+      281,
+      42093,
+      81,
+      717,
+      1121,
+      28,
+      4528,
+      30
+    ],
+    "teacher_top_distributions": [
+      {
+        "entries": [
+          {
+            "token": 28,
+            "probability_q16": 7831
+          },
+          {
+            "token": 198,
+            "probability_q16": 7636
+          },
+          {
+            "token": 260,
+            "probability_q16": 6303
+          },
+          {
+            "token": 30,
+            "probability_q16": 4899
+          },
+          {
+            "token": 284,
+            "probability_q16": 3570
+          },
+          {
+            "token": 282,
+            "probability_q16": 3457
+          },
+          {
+            "token": 288,
+            "probability_q16": 3405
+          },
+          {
+            "token": 33,
+            "probability_q16": 2775
+          },
+          {
+            "token": 253,
+            "probability_q16": 2398
+          },
+          {
+            "token": 314,
+            "probability_q16": 1745
+          },
+          {
+            "token": 216,
+            "probability_q16": 1533
+          },
+          {
+            "token": 29,
+            "probability_q16": 1507
+          },
+          {
+            "token": 346,
+            "probability_q16": 1413
+          },
+          {
+            "token": 34,
+            "probability_q16": 1401
+          },
+          {
+            "token": 338,
+            "probability_q16": 1375
+          },
+          {
+            "token": 281,
+            "probability_q16": 1366
+          },
+          {
+            "token": 357,
+            "probability_q16": 1275
+          },
+          {
+            "token": 79,
+            "probability_q16": 1179
+          },
+          {
+            "token": 327,
+            "probability_q16": 1024
+          },
+          {
+            "token": 351,
+            "probability_q16": 958
+          },
+          {
+            "token": 355,
+            "probability_q16": 876
+          },
+          {
+            "token": 359,
+            "probability_q16": 843
+          },
+          {
+            "token": 42,
+            "probability_q16": 813
+          },
+          {
+            "token": 1116,
+            "probability_q16": 727
+          },
+          {
+            "token": 347,
+            "probability_q16": 699
+          },
+          {
+            "token": 24,
+            "probability_q16": 694
+          },
+          {
+            "token": 469,
+            "probability_q16": 679
+          },
+          {
+            "token": 35,
+            "probability_q16": 670
+          },
+          {
+            "token": 506,
+            "probability_q16": 631
+          },
+          {
+            "token": 457,
+            "probability_q16": 624
+          },
+          {
+            "token": 451,
+            "probability_q16": 616
+          },
+          {
+            "token": 476,
+            "probability_q16": 613
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 198,
+            "probability_q16": 7687
+          },
+          {
+            "token": 29,
+            "probability_q16": 7207
+          },
+          {
+            "token": 28,
+            "probability_q16": 6965
+          },
+          {
+            "token": 30,
+            "probability_q16": 4595
+          },
+          {
+            "token": 216,
+            "probability_q16": 3113
+          },
+          {
+            "token": 43,
+            "probability_q16": 2552
+          },
+          {
+            "token": 25,
+            "probability_q16": 2516
+          },
+          {
+            "token": 51,
+            "probability_q16": 2102
+          },
+          {
+            "token": 731,
+            "probability_q16": 1852
+          },
+          {
+            "token": 94,
+            "probability_q16": 1669
+          },
+          {
+            "token": 1232,
+            "probability_q16": 1601
+          },
+          {
+            "token": 61,
+            "probability_q16": 1581
+          },
+          {
+            "token": 64,
+            "probability_q16": 1438
+          },
+          {
+            "token": 93,
+            "probability_q16": 1426
+          },
+          {
+            "token": 472,
+            "probability_q16": 1401
+          },
+          {
+            "token": 365,
+            "probability_q16": 1391
+          },
+          {
+            "token": 68,
+            "probability_q16": 1385
+          },
+          {
+            "token": 42,
+            "probability_q16": 1216
+          },
+          {
+            "token": 70,
+            "probability_q16": 1188
+          },
+          {
+            "token": 24,
+            "probability_q16": 1186
+          },
+          {
+            "token": 79,
+            "probability_q16": 1113
+          },
+          {
+            "token": 33,
+            "probability_q16": 1111
+          },
+          {
+            "token": 59,
+            "probability_q16": 1098
+          },
+          {
+            "token": 63,
+            "probability_q16": 979
+          },
+          {
+            "token": 49,
+            "probability_q16": 967
+          },
+          {
+            "token": 90,
+            "probability_q16": 959
+          },
+          {
+            "token": 923,
+            "probability_q16": 921
+          },
+          {
+            "token": 83,
+            "probability_q16": 902
+          },
+          {
+            "token": 1672,
+            "probability_q16": 866
+          },
+          {
+            "token": 27,
+            "probability_q16": 854
+          },
+          {
+            "token": 54,
+            "probability_q16": 850
+          },
+          {
+            "token": 284,
+            "probability_q16": 844
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 198,
+            "probability_q16": 14586
+          },
+          {
+            "token": 28,
+            "probability_q16": 5176
+          },
+          {
+            "token": 506,
+            "probability_q16": 4021
+          },
+          {
+            "token": 625,
+            "probability_q16": 2218
+          },
+          {
+            "token": 334,
+            "probability_q16": 2146
+          },
+          {
+            "token": 42,
+            "probability_q16": 2082
+          },
+          {
+            "token": 422,
+            "probability_q16": 1943
+          },
+          {
+            "token": 452,
+            "probability_q16": 1922
+          },
+          {
+            "token": 408,
+            "probability_q16": 1857
+          },
+          {
+            "token": 30,
+            "probability_q16": 1840
+          },
+          {
+            "token": 365,
+            "probability_q16": 1691
+          },
+          {
+            "token": 372,
+            "probability_q16": 1645
+          },
+          {
+            "token": 6423,
+            "probability_q16": 1608
+          },
+          {
+            "token": 13097,
+            "probability_q16": 1509
+          },
+          {
+            "token": 50,
+            "probability_q16": 1502
+          },
+          {
+            "token": 4139,
+            "probability_q16": 1442
+          },
+          {
+            "token": 389,
+            "probability_q16": 1375
+          },
+          {
+            "token": 19684,
+            "probability_q16": 1369
+          },
+          {
+            "token": 2405,
+            "probability_q16": 1305
+          },
+          {
+            "token": 659,
+            "probability_q16": 1297
+          },
+          {
+            "token": 340,
+            "probability_q16": 1285
+          },
+          {
+            "token": 33,
+            "probability_q16": 1227
+          },
+          {
+            "token": 312,
+            "probability_q16": 1195
+          },
+          {
+            "token": 51,
+            "probability_q16": 1172
+          },
+          {
+            "token": 216,
+            "probability_q16": 1153
+          },
+          {
+            "token": 377,
+            "probability_q16": 1119
+          },
+          {
+            "token": 525,
+            "probability_q16": 1030
+          },
+          {
+            "token": 11712,
+            "probability_q16": 999
+          },
+          {
+            "token": 21791,
+            "probability_q16": 985
+          },
+          {
+            "token": 25,
+            "probability_q16": 985
+          },
+          {
+            "token": 530,
+            "probability_q16": 932
+          },
+          {
+            "token": 731,
+            "probability_q16": 919
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 271,
+            "probability_q16": 28564
+          },
+          {
+            "token": 2164,
+            "probability_q16": 16393
+          },
+          {
+            "token": 21049,
+            "probability_q16": 7272
+          },
+          {
+            "token": 519,
+            "probability_q16": 2532
+          },
+          {
+            "token": 370,
+            "probability_q16": 2113
+          },
+          {
+            "token": 4272,
+            "probability_q16": 2027
+          },
+          {
+            "token": 20218,
+            "probability_q16": 1890
+          },
+          {
+            "token": 89,
+            "probability_q16": 1738
+          },
+          {
+            "token": 1153,
+            "probability_q16": 427
+          },
+          {
+            "token": 2554,
+            "probability_q16": 299
+          },
+          {
+            "token": 30165,
+            "probability_q16": 247
+          },
+          {
+            "token": 198,
+            "probability_q16": 199
+          },
+          {
+            "token": 315,
+            "probability_q16": 186
+          },
+          {
+            "token": 24275,
+            "probability_q16": 141
+          },
+          {
+            "token": 258,
+            "probability_q16": 128
+          },
+          {
+            "token": 341,
+            "probability_q16": 126
+          },
+          {
+            "token": 5271,
+            "probability_q16": 116
+          },
+          {
+            "token": 376,
+            "probability_q16": 101
+          },
+          {
+            "token": 672,
+            "probability_q16": 98
+          },
+          {
+            "token": 36449,
+            "probability_q16": 86
+          },
+          {
+            "token": 461,
+            "probability_q16": 85
+          },
+          {
+            "token": 28,
+            "probability_q16": 85
+          },
+          {
+            "token": 105,
+            "probability_q16": 80
+          },
+          {
+            "token": 41129,
+            "probability_q16": 76
+          },
+          {
+            "token": 2292,
+            "probability_q16": 72
+          },
+          {
+            "token": 2034,
+            "probability_q16": 71
+          },
+          {
+            "token": 522,
+            "probability_q16": 68
+          },
+          {
+            "token": 485,
+            "probability_q16": 65
+          },
+          {
+            "token": 11303,
+            "probability_q16": 65
+          },
+          {
+            "token": 279,
+            "probability_q16": 62
+          },
+          {
+            "token": 35316,
+            "probability_q16": 62
+          },
+          {
+            "token": 45111,
+            "probability_q16": 61
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 198,
+            "probability_q16": 20751
+          },
+          {
+            "token": 28,
+            "probability_q16": 10877
+          },
+          {
+            "token": 365,
+            "probability_q16": 6757
+          },
+          {
+            "token": 731,
+            "probability_q16": 2831
+          },
+          {
+            "token": 216,
+            "probability_q16": 2591
+          },
+          {
+            "token": 506,
+            "probability_q16": 2514
+          },
+          {
+            "token": 42,
+            "probability_q16": 2231
+          },
+          {
+            "token": 314,
+            "probability_q16": 1794
+          },
+          {
+            "token": 1137,
+            "probability_q16": 1344
+          },
+          {
+            "token": 31,
+            "probability_q16": 1250
+          },
+          {
+            "token": 30,
+            "probability_q16": 1114
+          },
+          {
+            "token": 2504,
+            "probability_q16": 1061
+          },
+          {
+            "token": 2272,
+            "probability_q16": 841
+          },
+          {
+            "token": 284,
+            "probability_q16": 839
+          },
+          {
+            "token": 436,
+            "probability_q16": 765
+          },
+          {
+            "token": 553,
+            "probability_q16": 718
+          },
+          {
+            "token": 1116,
+            "probability_q16": 686
+          },
+          {
+            "token": 34230,
+            "probability_q16": 653
+          },
+          {
+            "token": 816,
+            "probability_q16": 587
+          },
+          {
+            "token": 417,
+            "probability_q16": 571
+          },
+          {
+            "token": 335,
+            "probability_q16": 557
+          },
+          {
+            "token": 1673,
+            "probability_q16": 531
+          },
+          {
+            "token": 29,
+            "probability_q16": 527
+          },
+          {
+            "token": 9095,
+            "probability_q16": 498
+          },
+          {
+            "token": 13559,
+            "probability_q16": 483
+          },
+          {
+            "token": 1004,
+            "probability_q16": 467
+          },
+          {
+            "token": 1921,
+            "probability_q16": 418
+          },
+          {
+            "token": 472,
+            "probability_q16": 316
+          },
+          {
+            "token": 4150,
+            "probability_q16": 286
+          },
+          {
+            "token": 327,
+            "probability_q16": 246
+          },
+          {
+            "token": 282,
+            "probability_q16": 218
+          },
+          {
+            "token": 281,
+            "probability_q16": 213
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 28,
+            "probability_q16": 11131
+          },
+          {
+            "token": 198,
+            "probability_q16": 9878
+          },
+          {
+            "token": 365,
+            "probability_q16": 8422
+          },
+          {
+            "token": 436,
+            "probability_q16": 6144
+          },
+          {
+            "token": 16082,
+            "probability_q16": 4134
+          },
+          {
+            "token": 314,
+            "probability_q16": 4128
+          },
+          {
+            "token": 506,
+            "probability_q16": 3604
+          },
+          {
+            "token": 28702,
+            "probability_q16": 2242
+          },
+          {
+            "token": 42,
+            "probability_q16": 1899
+          },
+          {
+            "token": 216,
+            "probability_q16": 1331
+          },
+          {
+            "token": 30,
+            "probability_q16": 1318
+          },
+          {
+            "token": 284,
+            "probability_q16": 1193
+          },
+          {
+            "token": 731,
+            "probability_q16": 976
+          },
+          {
+            "token": 1638,
+            "probability_q16": 956
+          },
+          {
+            "token": 27513,
+            "probability_q16": 855
+          },
+          {
+            "token": 417,
+            "probability_q16": 626
+          },
+          {
+            "token": 553,
+            "probability_q16": 533
+          },
+          {
+            "token": 816,
+            "probability_q16": 529
+          },
+          {
+            "token": 3774,
+            "probability_q16": 528
+          },
+          {
+            "token": 3056,
+            "probability_q16": 516
+          },
+          {
+            "token": 29,
+            "probability_q16": 465
+          },
+          {
+            "token": 26435,
+            "probability_q16": 461
+          },
+          {
+            "token": 1137,
+            "probability_q16": 436
+          },
+          {
+            "token": 1135,
+            "probability_q16": 429
+          },
+          {
+            "token": 15033,
+            "probability_q16": 419
+          },
+          {
+            "token": 281,
+            "probability_q16": 366
+          },
+          {
+            "token": 11547,
+            "probability_q16": 355
+          },
+          {
+            "token": 335,
+            "probability_q16": 352
+          },
+          {
+            "token": 4242,
+            "probability_q16": 351
+          },
+          {
+            "token": 6785,
+            "probability_q16": 347
+          },
+          {
+            "token": 4150,
+            "probability_q16": 314
+          },
+          {
+            "token": 1116,
+            "probability_q16": 297
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 19698,
+            "probability_q16": 62326
+          },
+          {
+            "token": 30,
+            "probability_q16": 859
+          },
+          {
+            "token": 6690,
+            "probability_q16": 598
+          },
+          {
+            "token": 3333,
+            "probability_q16": 310
+          },
+          {
+            "token": 23,
+            "probability_q16": 155
+          },
+          {
+            "token": 7149,
+            "probability_q16": 109
+          },
+          {
+            "token": 7770,
+            "probability_q16": 91
+          },
+          {
+            "token": 1221,
+            "probability_q16": 86
+          },
+          {
+            "token": 53,
+            "probability_q16": 82
+          },
+          {
+            "token": 317,
+            "probability_q16": 75
+          },
+          {
+            "token": 8076,
+            "probability_q16": 64
+          },
+          {
+            "token": 5799,
+            "probability_q16": 54
+          },
+          {
+            "token": 936,
+            "probability_q16": 49
+          },
+          {
+            "token": 28845,
+            "probability_q16": 46
+          },
+          {
+            "token": 1425,
+            "probability_q16": 46
+          },
+          {
+            "token": 29,
+            "probability_q16": 45
+          },
+          {
+            "token": 11718,
+            "probability_q16": 44
+          },
+          {
+            "token": 2111,
+            "probability_q16": 44
+          },
+          {
+            "token": 20369,
+            "probability_q16": 43
+          },
+          {
+            "token": 5335,
+            "probability_q16": 40
+          },
+          {
+            "token": 5137,
+            "probability_q16": 40
+          },
+          {
+            "token": 55,
+            "probability_q16": 38
+          },
+          {
+            "token": 69,
+            "probability_q16": 37
+          },
+          {
+            "token": 6831,
+            "probability_q16": 33
+          },
+          {
+            "token": 1106,
+            "probability_q16": 31
+          },
+          {
+            "token": 417,
+            "probability_q16": 30
+          },
+          {
+            "token": 20107,
+            "probability_q16": 29
+          },
+          {
+            "token": 4226,
+            "probability_q16": 28
+          },
+          {
+            "token": 1018,
+            "probability_q16": 27
+          },
+          {
+            "token": 814,
+            "probability_q16": 26
+          },
+          {
+            "token": 14234,
+            "probability_q16": 25
+          },
+          {
+            "token": 3127,
+            "probability_q16": 25
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 365,
+            "probability_q16": 26109
+          },
+          {
+            "token": 28,
+            "probability_q16": 11842
+          },
+          {
+            "token": 216,
+            "probability_q16": 11008
+          },
+          {
+            "token": 198,
+            "probability_q16": 5006
+          },
+          {
+            "token": 30,
+            "probability_q16": 1271
+          },
+          {
+            "token": 314,
+            "probability_q16": 1227
+          },
+          {
+            "token": 436,
+            "probability_q16": 1187
+          },
+          {
+            "token": 33,
+            "probability_q16": 1013
+          },
+          {
+            "token": 24,
+            "probability_q16": 760
+          },
+          {
+            "token": 18930,
+            "probability_q16": 640
+          },
+          {
+            "token": 2504,
+            "probability_q16": 554
+          },
+          {
+            "token": 281,
+            "probability_q16": 374
+          },
+          {
+            "token": 731,
+            "probability_q16": 353
+          },
+          {
+            "token": 42,
+            "probability_q16": 350
+          },
+          {
+            "token": 426,
+            "probability_q16": 321
+          },
+          {
+            "token": 339,
+            "probability_q16": 307
+          },
+          {
+            "token": 372,
+            "probability_q16": 305
+          },
+          {
+            "token": 17852,
+            "probability_q16": 244
+          },
+          {
+            "token": 43,
+            "probability_q16": 243
+          },
+          {
+            "token": 85,
+            "probability_q16": 235
+          },
+          {
+            "token": 933,
+            "probability_q16": 221
+          },
+          {
+            "token": 389,
+            "probability_q16": 214
+          },
+          {
+            "token": 637,
+            "probability_q16": 201
+          },
+          {
+            "token": 284,
+            "probability_q16": 195
+          },
+          {
+            "token": 34,
+            "probability_q16": 194
+          },
+          {
+            "token": 1116,
+            "probability_q16": 190
+          },
+          {
+            "token": 50,
+            "probability_q16": 173
+          },
+          {
+            "token": 422,
+            "probability_q16": 172
+          },
+          {
+            "token": 265,
+            "probability_q16": 166
+          },
+          {
+            "token": 53,
+            "probability_q16": 165
+          },
+          {
+            "token": 29,
+            "probability_q16": 153
+          },
+          {
+            "token": 530,
+            "probability_q16": 142
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 12086,
+            "probability_q16": 53850
+          },
+          {
+            "token": 4545,
+            "probability_q16": 4230
+          },
+          {
+            "token": 30,
+            "probability_q16": 644
+          },
+          {
+            "token": 5826,
+            "probability_q16": 551
+          },
+          {
+            "token": 65,
+            "probability_q16": 496
+          },
+          {
+            "token": 8970,
+            "probability_q16": 489
+          },
+          {
+            "token": 4105,
+            "probability_q16": 419
+          },
+          {
+            "token": 7770,
+            "probability_q16": 379
+          },
+          {
+            "token": 19912,
+            "probability_q16": 360
+          },
+          {
+            "token": 33,
+            "probability_q16": 347
+          },
+          {
+            "token": 6690,
+            "probability_q16": 332
+          },
+          {
+            "token": 3127,
+            "probability_q16": 320
+          },
+          {
+            "token": 8076,
+            "probability_q16": 299
+          },
+          {
+            "token": 13885,
+            "probability_q16": 286
+          },
+          {
+            "token": 3144,
+            "probability_q16": 254
+          },
+          {
+            "token": 14192,
+            "probability_q16": 233
+          },
+          {
+            "token": 14618,
+            "probability_q16": 217
+          },
+          {
+            "token": 34,
+            "probability_q16": 186
+          },
+          {
+            "token": 3256,
+            "probability_q16": 171
+          },
+          {
+            "token": 5497,
+            "probability_q16": 165
+          },
+          {
+            "token": 31853,
+            "probability_q16": 136
+          },
+          {
+            "token": 5135,
+            "probability_q16": 125
+          },
+          {
+            "token": 8157,
+            "probability_q16": 119
+          },
+          {
+            "token": 5247,
+            "probability_q16": 118
+          },
+          {
+            "token": 32,
+            "probability_q16": 116
+          },
+          {
+            "token": 50,
+            "probability_q16": 109
+          },
+          {
+            "token": 59,
+            "probability_q16": 107
+          },
+          {
+            "token": 2721,
+            "probability_q16": 107
+          },
+          {
+            "token": 54,
+            "probability_q16": 104
+          },
+          {
+            "token": 2211,
+            "probability_q16": 93
+          },
+          {
+            "token": 6886,
+            "probability_q16": 88
+          },
+          {
+            "token": 6998,
+            "probability_q16": 85
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 365,
+            "probability_q16": 16567
+          },
+          {
+            "token": 28,
+            "probability_q16": 9848
+          },
+          {
+            "token": 198,
+            "probability_q16": 9751
+          },
+          {
+            "token": 216,
+            "probability_q16": 9492
+          },
+          {
+            "token": 436,
+            "probability_q16": 2452
+          },
+          {
+            "token": 426,
+            "probability_q16": 2014
+          },
+          {
+            "token": 314,
+            "probability_q16": 1630
+          },
+          {
+            "token": 25754,
+            "probability_q16": 1550
+          },
+          {
+            "token": 30,
+            "probability_q16": 1051
+          },
+          {
+            "token": 1606,
+            "probability_q16": 983
+          },
+          {
+            "token": 312,
+            "probability_q16": 912
+          },
+          {
+            "token": 284,
+            "probability_q16": 796
+          },
+          {
+            "token": 731,
+            "probability_q16": 730
+          },
+          {
+            "token": 372,
+            "probability_q16": 722
+          },
+          {
+            "token": 377,
+            "probability_q16": 571
+          },
+          {
+            "token": 422,
+            "probability_q16": 558
+          },
+          {
+            "token": 281,
+            "probability_q16": 547
+          },
+          {
+            "token": 1116,
+            "probability_q16": 485
+          },
+          {
+            "token": 27513,
+            "probability_q16": 482
+          },
+          {
+            "token": 42,
+            "probability_q16": 441
+          },
+          {
+            "token": 339,
+            "probability_q16": 424
+          },
+          {
+            "token": 2504,
+            "probability_q16": 421
+          },
+          {
+            "token": 273,
+            "probability_q16": 402
+          },
+          {
+            "token": 28702,
+            "probability_q16": 397
+          },
+          {
+            "token": 414,
+            "probability_q16": 327
+          },
+          {
+            "token": 24,
+            "probability_q16": 323
+          },
+          {
+            "token": 43,
+            "probability_q16": 289
+          },
+          {
+            "token": 428,
+            "probability_q16": 289
+          },
+          {
+            "token": 553,
+            "probability_q16": 287
+          },
+          {
+            "token": 452,
+            "probability_q16": 285
+          },
+          {
+            "token": 4664,
+            "probability_q16": 256
+          },
+          {
+            "token": 340,
+            "probability_q16": 253
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 33,
+            "probability_q16": 28748
+          },
+          {
+            "token": 34,
+            "probability_q16": 7544
+          },
+          {
+            "token": 6862,
+            "probability_q16": 6724
+          },
+          {
+            "token": 50,
+            "probability_q16": 2231
+          },
+          {
+            "token": 82,
+            "probability_q16": 1477
+          },
+          {
+            "token": 216,
+            "probability_q16": 1442
+          },
+          {
+            "token": 19172,
+            "probability_q16": 1357
+          },
+          {
+            "token": 16242,
+            "probability_q16": 1330
+          },
+          {
+            "token": 35,
+            "probability_q16": 1016
+          },
+          {
+            "token": 67,
+            "probability_q16": 991
+          },
+          {
+            "token": 18564,
+            "probability_q16": 952
+          },
+          {
+            "token": 19861,
+            "probability_q16": 851
+          },
+          {
+            "token": 54,
+            "probability_q16": 829
+          },
+          {
+            "token": 20251,
+            "probability_q16": 747
+          },
+          {
+            "token": 37,
+            "probability_q16": 666
+          },
+          {
+            "token": 17411,
+            "probability_q16": 590
+          },
+          {
+            "token": 84,
+            "probability_q16": 584
+          },
+          {
+            "token": 56,
+            "probability_q16": 579
+          },
+          {
+            "token": 3065,
+            "probability_q16": 557
+          },
+          {
+            "token": 66,
+            "probability_q16": 549
+          },
+          {
+            "token": 45324,
+            "probability_q16": 524
+          },
+          {
+            "token": 52,
+            "probability_q16": 522
+          },
+          {
+            "token": 16732,
+            "probability_q16": 513
+          },
+          {
+            "token": 21528,
+            "probability_q16": 501
+          },
+          {
+            "token": 9389,
+            "probability_q16": 492
+          },
+          {
+            "token": 51,
+            "probability_q16": 485
+          },
+          {
+            "token": 40,
+            "probability_q16": 475
+          },
+          {
+            "token": 17393,
+            "probability_q16": 462
+          },
+          {
+            "token": 39,
+            "probability_q16": 459
+          },
+          {
+            "token": 19306,
+            "probability_q16": 448
+          },
+          {
+            "token": 68,
+            "probability_q16": 448
+          },
+          {
+            "token": 99,
+            "probability_q16": 442
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 25,
+            "probability_q16": 21433
+          },
+          {
+            "token": 28,
+            "probability_q16": 20619
+          },
+          {
+            "token": 216,
+            "probability_q16": 6675
+          },
+          {
+            "token": 643,
+            "probability_q16": 5998
+          },
+          {
+            "token": 42,
+            "probability_q16": 3972
+          },
+          {
+            "token": 595,
+            "probability_q16": 1106
+          },
+          {
+            "token": 284,
+            "probability_q16": 794
+          },
+          {
+            "token": 731,
+            "probability_q16": 617
+          },
+          {
+            "token": 1577,
+            "probability_q16": 569
+          },
+          {
+            "token": 2481,
+            "probability_q16": 497
+          },
+          {
+            "token": 43,
+            "probability_q16": 480
+          },
+          {
+            "token": 365,
+            "probability_q16": 384
+          },
+          {
+            "token": 816,
+            "probability_q16": 322
+          },
+          {
+            "token": 29,
+            "probability_q16": 261
+          },
+          {
+            "token": 727,
+            "probability_q16": 245
+          },
+          {
+            "token": 14502,
+            "probability_q16": 162
+          },
+          {
+            "token": 4664,
+            "probability_q16": 140
+          },
+          {
+            "token": 259,
+            "probability_q16": 124
+          },
+          {
+            "token": 1456,
+            "probability_q16": 123
+          },
+          {
+            "token": 3297,
+            "probability_q16": 122
+          },
+          {
+            "token": 5646,
+            "probability_q16": 102
+          },
+          {
+            "token": 4258,
+            "probability_q16": 95
+          },
+          {
+            "token": 1638,
+            "probability_q16": 93
+          },
+          {
+            "token": 31,
+            "probability_q16": 91
+          },
+          {
+            "token": 2321,
+            "probability_q16": 85
+          },
+          {
+            "token": 492,
+            "probability_q16": 79
+          },
+          {
+            "token": 3988,
+            "probability_q16": 69
+          },
+          {
+            "token": 334,
+            "probability_q16": 62
+          },
+          {
+            "token": 12993,
+            "probability_q16": 59
+          },
+          {
+            "token": 8032,
+            "probability_q16": 53
+          },
+          {
+            "token": 2504,
+            "probability_q16": 52
+          },
+          {
+            "token": 2938,
+            "probability_q16": 52
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 216,
+            "probability_q16": 40086
+          },
+          {
+            "token": 4664,
+            "probability_q16": 9985
+          },
+          {
+            "token": 3996,
+            "probability_q16": 6166
+          },
+          {
+            "token": 4124,
+            "probability_q16": 1062
+          },
+          {
+            "token": 514,
+            "probability_q16": 710
+          },
+          {
+            "token": 4053,
+            "probability_q16": 646
+          },
+          {
+            "token": 2405,
+            "probability_q16": 554
+          },
+          {
+            "token": 4745,
+            "probability_q16": 538
+          },
+          {
+            "token": 3903,
+            "probability_q16": 494
+          },
+          {
+            "token": 4019,
+            "probability_q16": 457
+          },
+          {
+            "token": 1797,
+            "probability_q16": 455
+          },
+          {
+            "token": 4451,
+            "probability_q16": 436
+          },
+          {
+            "token": 4448,
+            "probability_q16": 382
+          },
+          {
+            "token": 4185,
+            "probability_q16": 308
+          },
+          {
+            "token": 4450,
+            "probability_q16": 291
+          },
+          {
+            "token": 4004,
+            "probability_q16": 279
+          },
+          {
+            "token": 2938,
+            "probability_q16": 262
+          },
+          {
+            "token": 4645,
+            "probability_q16": 229
+          },
+          {
+            "token": 4528,
+            "probability_q16": 202
+          },
+          {
+            "token": 8526,
+            "probability_q16": 195
+          },
+          {
+            "token": 5096,
+            "probability_q16": 182
+          },
+          {
+            "token": 9291,
+            "probability_q16": 177
+          },
+          {
+            "token": 428,
+            "probability_q16": 166
+          },
+          {
+            "token": 340,
+            "probability_q16": 161
+          },
+          {
+            "token": 3567,
+            "probability_q16": 151
+          },
+          {
+            "token": 7108,
+            "probability_q16": 147
+          },
+          {
+            "token": 3857,
+            "probability_q16": 143
+          },
+          {
+            "token": 4617,
+            "probability_q16": 141
+          },
+          {
+            "token": 33,
+            "probability_q16": 138
+          },
+          {
+            "token": 422,
+            "probability_q16": 132
+          },
+          {
+            "token": 1606,
+            "probability_q16": 130
+          },
+          {
+            "token": 6069,
+            "probability_q16": 130
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 33,
+            "probability_q16": 57301
+          },
+          {
+            "token": 34,
+            "probability_q16": 6118
+          },
+          {
+            "token": 35,
+            "probability_q16": 543
+          },
+          {
+            "token": 37,
+            "probability_q16": 372
+          },
+          {
+            "token": 36,
+            "probability_q16": 243
+          },
+          {
+            "token": 32,
+            "probability_q16": 227
+          },
+          {
+            "token": 39,
+            "probability_q16": 199
+          },
+          {
+            "token": 40,
+            "probability_q16": 192
+          },
+          {
+            "token": 38,
+            "probability_q16": 165
+          },
+          {
+            "token": 41,
+            "probability_q16": 113
+          },
+          {
+            "token": 4664,
+            "probability_q16": 6
+          },
+          {
+            "token": 40275,
+            "probability_q16": 5
+          },
+          {
+            "token": 15442,
+            "probability_q16": 5
+          },
+          {
+            "token": 186,
+            "probability_q16": 4
+          },
+          {
+            "token": 198,
+            "probability_q16": 4
+          },
+          {
+            "token": 4528,
+            "probability_q16": 3
+          },
+          {
+            "token": 3996,
+            "probability_q16": 3
+          },
+          {
+            "token": 19133,
+            "probability_q16": 3
+          },
+          {
+            "token": 365,
+            "probability_q16": 3
+          },
+          {
+            "token": 321,
+            "probability_q16": 2
+          },
+          {
+            "token": 2405,
+            "probability_q16": 2
+          },
+          {
+            "token": 25249,
+            "probability_q16": 2
+          },
+          {
+            "token": 43183,
+            "probability_q16": 2
+          },
+          {
+            "token": 731,
+            "probability_q16": 2
+          },
+          {
+            "token": 4450,
+            "probability_q16": 2
+          },
+          {
+            "token": 4019,
+            "probability_q16": 2
+          },
+          {
+            "token": 166,
+            "probability_q16": 2
+          },
+          {
+            "token": 4004,
+            "probability_q16": 2
+          },
+          {
+            "token": 9558,
+            "probability_q16": 2
+          },
+          {
+            "token": 514,
+            "probability_q16": 2
+          },
+          {
+            "token": 4617,
+            "probability_q16": 2
+          },
+          {
+            "token": 7108,
+            "probability_q16": 2
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 32,
+            "probability_q16": 51129
+          },
+          {
+            "token": 33,
+            "probability_q16": 2324
+          },
+          {
+            "token": 36,
+            "probability_q16": 2201
+          },
+          {
+            "token": 35,
+            "probability_q16": 1636
+          },
+          {
+            "token": 37,
+            "probability_q16": 1439
+          },
+          {
+            "token": 39,
+            "probability_q16": 1291
+          },
+          {
+            "token": 38,
+            "probability_q16": 1162
+          },
+          {
+            "token": 41,
+            "probability_q16": 1090
+          },
+          {
+            "token": 40,
+            "probability_q16": 1031
+          },
+          {
+            "token": 34,
+            "probability_q16": 1025
+          },
+          {
+            "token": 268,
+            "probability_q16": 343
+          },
+          {
+            "token": 5096,
+            "probability_q16": 93
+          },
+          {
+            "token": 4124,
+            "probability_q16": 89
+          },
+          {
+            "token": 4450,
+            "probability_q16": 86
+          },
+          {
+            "token": 4451,
+            "probability_q16": 73
+          },
+          {
+            "token": 4185,
+            "probability_q16": 61
+          },
+          {
+            "token": 4745,
+            "probability_q16": 59
+          },
+          {
+            "token": 2405,
+            "probability_q16": 54
+          },
+          {
+            "token": 4019,
+            "probability_q16": 52
+          },
+          {
+            "token": 3903,
+            "probability_q16": 52
+          },
+          {
+            "token": 4645,
+            "probability_q16": 51
+          },
+          {
+            "token": 4448,
+            "probability_q16": 41
+          },
+          {
+            "token": 4053,
+            "probability_q16": 30
+          },
+          {
+            "token": 29,
+            "probability_q16": 24
+          },
+          {
+            "token": 216,
+            "probability_q16": 21
+          },
+          {
+            "token": 4532,
+            "probability_q16": 16
+          },
+          {
+            "token": 84,
+            "probability_q16": 14
+          },
+          {
+            "token": 31,
+            "probability_q16": 13
+          },
+          {
+            "token": 25,
+            "probability_q16": 11
+          },
+          {
+            "token": 6069,
+            "probability_q16": 10
+          },
+          {
+            "token": 3567,
+            "probability_q16": 8
+          },
+          {
+            "token": 22301,
+            "probability_q16": 6
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 7212,
+            "probability_q16": 8232
+          },
+          {
+            "token": 2405,
+            "probability_q16": 8012
+          },
+          {
+            "token": 4185,
+            "probability_q16": 5494
+          },
+          {
+            "token": 4451,
+            "probability_q16": 4885
+          },
+          {
+            "token": 4019,
+            "probability_q16": 4305
+          },
+          {
+            "token": 4645,
+            "probability_q16": 3528
+          },
+          {
+            "token": 4124,
+            "probability_q16": 3410
+          },
+          {
+            "token": 4450,
+            "probability_q16": 3274
+          },
+          {
+            "token": 5096,
+            "probability_q16": 2851
+          },
+          {
+            "token": 4053,
+            "probability_q16": 2832
+          },
+          {
+            "token": 4448,
+            "probability_q16": 2511
+          },
+          {
+            "token": 4745,
+            "probability_q16": 2471
+          },
+          {
+            "token": 3903,
+            "probability_q16": 2209
+          },
+          {
+            "token": 29,
+            "probability_q16": 1657
+          },
+          {
+            "token": 31,
+            "probability_q16": 1316
+          },
+          {
+            "token": 216,
+            "probability_q16": 1194
+          },
+          {
+            "token": 3627,
+            "probability_q16": 1004
+          },
+          {
+            "token": 25,
+            "probability_q16": 740
+          },
+          {
+            "token": 30,
+            "probability_q16": 726
+          },
+          {
+            "token": 28,
+            "probability_q16": 603
+          },
+          {
+            "token": 1494,
+            "probability_q16": 552
+          },
+          {
+            "token": 12355,
+            "probability_q16": 455
+          },
+          {
+            "token": 4532,
+            "probability_q16": 390
+          },
+          {
+            "token": 268,
+            "probability_q16": 389
+          },
+          {
+            "token": 731,
+            "probability_q16": 377
+          },
+          {
+            "token": 22301,
+            "probability_q16": 343
+          },
+          {
+            "token": 3567,
+            "probability_q16": 323
+          },
+          {
+            "token": 6069,
+            "probability_q16": 320
+          },
+          {
+            "token": 12899,
+            "probability_q16": 301
+          },
+          {
+            "token": 2828,
+            "probability_q16": 287
+          },
+          {
+            "token": 42,
+            "probability_q16": 280
+          },
+          {
+            "token": 9505,
+            "probability_q16": 264
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 216,
+            "probability_q16": 64417
+          },
+          {
+            "token": 816,
+            "probability_q16": 434
+          },
+          {
+            "token": 28,
+            "probability_q16": 243
+          },
+          {
+            "token": 731,
+            "probability_q16": 187
+          },
+          {
+            "token": 288,
+            "probability_q16": 45
+          },
+          {
+            "token": 25,
+            "probability_q16": 24
+          },
+          {
+            "token": 256,
+            "probability_q16": 22
+          },
+          {
+            "token": 29,
+            "probability_q16": 19
+          },
+          {
+            "token": 1494,
+            "probability_q16": 18
+          },
+          {
+            "token": 595,
+            "probability_q16": 13
+          },
+          {
+            "token": 15442,
+            "probability_q16": 12
+          },
+          {
+            "token": 637,
+            "probability_q16": 11
+          },
+          {
+            "token": 933,
+            "probability_q16": 9
+          },
+          {
+            "token": 643,
+            "probability_q16": 9
+          },
+          {
+            "token": 2481,
+            "probability_q16": 7
+          },
+          {
+            "token": 43,
+            "probability_q16": 6
+          },
+          {
+            "token": 365,
+            "probability_q16": 5
+          },
+          {
+            "token": 1265,
+            "probability_q16": 5
+          },
+          {
+            "token": 3009,
+            "probability_q16": 5
+          },
+          {
+            "token": 30,
+            "probability_q16": 5
+          },
+          {
+            "token": 42,
+            "probability_q16": 5
+          },
+          {
+            "token": 198,
+            "probability_q16": 5
+          },
+          {
+            "token": 1577,
+            "probability_q16": 4
+          },
+          {
+            "token": 33,
+            "probability_q16": 4
+          },
+          {
+            "token": 2272,
+            "probability_q16": 3
+          },
+          {
+            "token": 3351,
+            "probability_q16": 3
+          },
+          {
+            "token": 1841,
+            "probability_q16": 3
+          },
+          {
+            "token": 3297,
+            "probability_q16": 3
+          },
+          {
+            "token": 1673,
+            "probability_q16": 3
+          },
+          {
+            "token": 1551,
+            "probability_q16": 2
+          },
+          {
+            "token": 31,
+            "probability_q16": 2
+          },
+          {
+            "token": 2504,
+            "probability_q16": 2
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 33,
+            "probability_q16": 64965
+          },
+          {
+            "token": 34,
+            "probability_q16": 533
+          },
+          {
+            "token": 35,
+            "probability_q16": 3
+          },
+          {
+            "token": 36,
+            "probability_q16": 2
+          },
+          {
+            "token": 41,
+            "probability_q16": 2
+          },
+          {
+            "token": 37,
+            "probability_q16": 2
+          },
+          {
+            "token": 216,
+            "probability_q16": 2
+          },
+          {
+            "token": 38,
+            "probability_q16": 2
+          },
+          {
+            "token": 32,
+            "probability_q16": 1
+          },
+          {
+            "token": 365,
+            "probability_q16": 1
+          },
+          {
+            "token": 39,
+            "probability_q16": 1
+          },
+          {
+            "token": 40,
+            "probability_q16": 1
+          },
+          {
+            "token": 933,
+            "probability_q16": 1
+          },
+          {
+            "token": 19133,
+            "probability_q16": 1
+          },
+          {
+            "token": 186,
+            "probability_q16": 1
+          },
+          {
+            "token": 731,
+            "probability_q16": 1
+          },
+          {
+            "token": 198,
+            "probability_q16": 1
+          },
+          {
+            "token": 15442,
+            "probability_q16": 1
+          },
+          {
+            "token": 321,
+            "probability_q16": 1
+          },
+          {
+            "token": 1673,
+            "probability_q16": 1
+          },
+          {
+            "token": 43183,
+            "probability_q16": 1
+          },
+          {
+            "token": 16738,
+            "probability_q16": 1
+          },
+          {
+            "token": 265,
+            "probability_q16": 1
+          },
+          {
+            "token": 3297,
+            "probability_q16": 1
+          },
+          {
+            "token": 530,
+            "probability_q16": 1
+          },
+          {
+            "token": 1672,
+            "probability_q16": 1
+          },
+          {
+            "token": 2481,
+            "probability_q16": 1
+          },
+          {
+            "token": 40776,
+            "probability_q16": 1
+          },
+          {
+            "token": 256,
+            "probability_q16": 1
+          },
+          {
+            "token": 2260,
+            "probability_q16": 1
+          },
+          {
+            "token": 11181,
+            "probability_q16": 1
+          },
+          {
+            "token": 7538,
+            "probability_q16": 1
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 41,
+            "probability_q16": 64922
+          },
+          {
+            "token": 40,
+            "probability_q16": 429
+          },
+          {
+            "token": 33,
+            "probability_q16": 49
+          },
+          {
+            "token": 39,
+            "probability_q16": 25
+          },
+          {
+            "token": 32,
+            "probability_q16": 24
+          },
+          {
+            "token": 38,
+            "probability_q16": 20
+          },
+          {
+            "token": 37,
+            "probability_q16": 18
+          },
+          {
+            "token": 36,
+            "probability_q16": 11
+          },
+          {
+            "token": 34,
+            "probability_q16": 8
+          },
+          {
+            "token": 35,
+            "probability_q16": 5
+          },
+          {
+            "token": 216,
+            "probability_q16": 2
+          },
+          {
+            "token": 25,
+            "probability_q16": 2
+          },
+          {
+            "token": 60,
+            "probability_q16": 1
+          },
+          {
+            "token": 4450,
+            "probability_q16": 1
+          },
+          {
+            "token": 302,
+            "probability_q16": 1
+          },
+          {
+            "token": 595,
+            "probability_q16": 1
+          },
+          {
+            "token": 643,
+            "probability_q16": 1
+          },
+          {
+            "token": 53,
+            "probability_q16": 1
+          },
+          {
+            "token": 4124,
+            "probability_q16": 1
+          },
+          {
+            "token": 4019,
+            "probability_q16": 1
+          },
+          {
+            "token": 4053,
+            "probability_q16": 1
+          },
+          {
+            "token": 31,
+            "probability_q16": 1
+          },
+          {
+            "token": 4258,
+            "probability_q16": 1
+          },
+          {
+            "token": 4745,
+            "probability_q16": 1
+          },
+          {
+            "token": 4451,
+            "probability_q16": 1
+          },
+          {
+            "token": 4448,
+            "probability_q16": 1
+          },
+          {
+            "token": 29,
+            "probability_q16": 1
+          },
+          {
+            "token": 22052,
+            "probability_q16": 1
+          },
+          {
+            "token": 3903,
+            "probability_q16": 1
+          },
+          {
+            "token": 28,
+            "probability_q16": 1
+          },
+          {
+            "token": 3423,
+            "probability_q16": 1
+          },
+          {
+            "token": 11957,
+            "probability_q16": 1
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 33,
+            "probability_q16": 50357
+          },
+          {
+            "token": 34,
+            "probability_q16": 11521
+          },
+          {
+            "token": 35,
+            "probability_q16": 1013
+          },
+          {
+            "token": 32,
+            "probability_q16": 862
+          },
+          {
+            "token": 36,
+            "probability_q16": 707
+          },
+          {
+            "token": 41,
+            "probability_q16": 296
+          },
+          {
+            "token": 40,
+            "probability_q16": 245
+          },
+          {
+            "token": 38,
+            "probability_q16": 186
+          },
+          {
+            "token": 37,
+            "probability_q16": 179
+          },
+          {
+            "token": 39,
+            "probability_q16": 142
+          },
+          {
+            "token": 295,
+            "probability_q16": 2
+          },
+          {
+            "token": 373,
+            "probability_q16": 2
+          },
+          {
+            "token": 816,
+            "probability_q16": 2
+          },
+          {
+            "token": 4124,
+            "probability_q16": 2
+          },
+          {
+            "token": 4450,
+            "probability_q16": 2
+          },
+          {
+            "token": 28,
+            "probability_q16": 1
+          },
+          {
+            "token": 5096,
+            "probability_q16": 1
+          },
+          {
+            "token": 731,
+            "probability_q16": 1
+          },
+          {
+            "token": 904,
+            "probability_q16": 1
+          },
+          {
+            "token": 4019,
+            "probability_q16": 1
+          },
+          {
+            "token": 30,
+            "probability_q16": 1
+          },
+          {
+            "token": 8866,
+            "probability_q16": 1
+          },
+          {
+            "token": 4451,
+            "probability_q16": 1
+          },
+          {
+            "token": 4185,
+            "probability_q16": 1
+          },
+          {
+            "token": 4264,
+            "probability_q16": 1
+          },
+          {
+            "token": 42,
+            "probability_q16": 1
+          },
+          {
+            "token": 260,
+            "probability_q16": 1
+          },
+          {
+            "token": 530,
+            "probability_q16": 1
+          },
+          {
+            "token": 4645,
+            "probability_q16": 1
+          },
+          {
+            "token": 365,
+            "probability_q16": 1
+          },
+          {
+            "token": 1672,
+            "probability_q16": 1
+          },
+          {
+            "token": 3903,
+            "probability_q16": 1
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 34,
+            "probability_q16": 33277
+          },
+          {
+            "token": 33,
+            "probability_q16": 27669
+          },
+          {
+            "token": 35,
+            "probability_q16": 2400
+          },
+          {
+            "token": 36,
+            "probability_q16": 774
+          },
+          {
+            "token": 32,
+            "probability_q16": 344
+          },
+          {
+            "token": 38,
+            "probability_q16": 314
+          },
+          {
+            "token": 41,
+            "probability_q16": 307
+          },
+          {
+            "token": 40,
+            "probability_q16": 234
+          },
+          {
+            "token": 39,
+            "probability_q16": 142
+          },
+          {
+            "token": 37,
+            "probability_q16": 52
+          },
+          {
+            "token": 28,
+            "probability_q16": 1
+          },
+          {
+            "token": 216,
+            "probability_q16": 1
+          },
+          {
+            "token": 450,
+            "probability_q16": 1
+          },
+          {
+            "token": 42,
+            "probability_q16": 1
+          },
+          {
+            "token": 21,
+            "probability_q16": 1
+          },
+          {
+            "token": 1004,
+            "probability_q16": 1
+          },
+          {
+            "token": 43,
+            "probability_q16": 1
+          },
+          {
+            "token": 334,
+            "probability_q16": 1
+          },
+          {
+            "token": 2471,
+            "probability_q16": 1
+          },
+          {
+            "token": 284,
+            "probability_q16": 1
+          },
+          {
+            "token": 25,
+            "probability_q16": 1
+          },
+          {
+            "token": 377,
+            "probability_q16": 1
+          },
+          {
+            "token": 442,
+            "probability_q16": 1
+          },
+          {
+            "token": 30,
+            "probability_q16": 1
+          },
+          {
+            "token": 365,
+            "probability_q16": 1
+          },
+          {
+            "token": 79,
+            "probability_q16": 1
+          },
+          {
+            "token": 29,
+            "probability_q16": 1
+          },
+          {
+            "token": 78,
+            "probability_q16": 1
+          },
+          {
+            "token": 472,
+            "probability_q16": 1
+          },
+          {
+            "token": 2601,
+            "probability_q16": 1
+          },
+          {
+            "token": 8866,
+            "probability_q16": 1
+          },
+          {
+            "token": 718,
+            "probability_q16": 1
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 816,
+            "probability_q16": 25450
+          },
+          {
+            "token": 731,
+            "probability_q16": 16764
+          },
+          {
+            "token": 3009,
+            "probability_q16": 4221
+          },
+          {
+            "token": 15442,
+            "probability_q16": 2814
+          },
+          {
+            "token": 216,
+            "probability_q16": 2555
+          },
+          {
+            "token": 256,
+            "probability_q16": 2362
+          },
+          {
+            "token": 33,
+            "probability_q16": 2267
+          },
+          {
+            "token": 25,
+            "probability_q16": 1890
+          },
+          {
+            "token": 1265,
+            "probability_q16": 1292
+          },
+          {
+            "token": 1494,
+            "probability_q16": 1103
+          },
+          {
+            "token": 1841,
+            "probability_q16": 852
+          },
+          {
+            "token": 28,
+            "probability_q16": 622
+          },
+          {
+            "token": 29,
+            "probability_q16": 554
+          },
+          {
+            "token": 643,
+            "probability_q16": 264
+          },
+          {
+            "token": 198,
+            "probability_q16": 244
+          },
+          {
+            "token": 595,
+            "probability_q16": 242
+          },
+          {
+            "token": 423,
+            "probability_q16": 239
+          },
+          {
+            "token": 34,
+            "probability_q16": 193
+          },
+          {
+            "token": 30,
+            "probability_q16": 157
+          },
+          {
+            "token": 333,
+            "probability_q16": 155
+          },
+          {
+            "token": 42,
+            "probability_q16": 155
+          },
+          {
+            "token": 933,
+            "probability_q16": 132
+          },
+          {
+            "token": 197,
+            "probability_q16": 127
+          },
+          {
+            "token": 43,
+            "probability_q16": 126
+          },
+          {
+            "token": 75,
+            "probability_q16": 122
+          },
+          {
+            "token": 2272,
+            "probability_q16": 106
+          },
+          {
+            "token": 1292,
+            "probability_q16": 102
+          },
+          {
+            "token": 321,
+            "probability_q16": 96
+          },
+          {
+            "token": 3351,
+            "probability_q16": 95
+          },
+          {
+            "token": 1577,
+            "probability_q16": 87
+          },
+          {
+            "token": 2504,
+            "probability_q16": 79
+          },
+          {
+            "token": 24,
+            "probability_q16": 68
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 216,
+            "probability_q16": 58938
+          },
+          {
+            "token": 4645,
+            "probability_q16": 606
+          },
+          {
+            "token": 33,
+            "probability_q16": 563
+          },
+          {
+            "token": 4528,
+            "probability_q16": 477
+          },
+          {
+            "token": 34,
+            "probability_q16": 381
+          },
+          {
+            "token": 4745,
+            "probability_q16": 364
+          },
+          {
+            "token": 4448,
+            "probability_q16": 320
+          },
+          {
+            "token": 4019,
+            "probability_q16": 310
+          },
+          {
+            "token": 2405,
+            "probability_q16": 300
+          },
+          {
+            "token": 4450,
+            "probability_q16": 287
+          },
+          {
+            "token": 3903,
+            "probability_q16": 266
+          },
+          {
+            "token": 21754,
+            "probability_q16": 254
+          },
+          {
+            "token": 4185,
+            "probability_q16": 249
+          },
+          {
+            "token": 4451,
+            "probability_q16": 248
+          },
+          {
+            "token": 5096,
+            "probability_q16": 234
+          },
+          {
+            "token": 1315,
+            "probability_q16": 213
+          },
+          {
+            "token": 4053,
+            "probability_q16": 186
+          },
+          {
+            "token": 4124,
+            "probability_q16": 186
+          },
+          {
+            "token": 35,
+            "probability_q16": 155
+          },
+          {
+            "token": 9558,
+            "probability_q16": 120
+          },
+          {
+            "token": 37072,
+            "probability_q16": 103
+          },
+          {
+            "token": 45323,
+            "probability_q16": 97
+          },
+          {
+            "token": 23315,
+            "probability_q16": 95
+          },
+          {
+            "token": 15442,
+            "probability_q16": 82
+          },
+          {
+            "token": 8526,
+            "probability_q16": 73
+          },
+          {
+            "token": 23972,
+            "probability_q16": 71
+          },
+          {
+            "token": 28250,
+            "probability_q16": 67
+          },
+          {
+            "token": 32655,
+            "probability_q16": 63
+          },
+          {
+            "token": 22710,
+            "probability_q16": 62
+          },
+          {
+            "token": 36,
+            "probability_q16": 61
+          },
+          {
+            "token": 22231,
+            "probability_q16": 57
+          },
+          {
+            "token": 42307,
+            "probability_q16": 47
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 849,
+            "probability_q16": 46240
+          },
+          {
+            "token": 318,
+            "probability_q16": 3103
+          },
+          {
+            "token": 271,
+            "probability_q16": 2344
+          },
+          {
+            "token": 83,
+            "probability_q16": 1891
+          },
+          {
+            "token": 2797,
+            "probability_q16": 1709
+          },
+          {
+            "token": 5908,
+            "probability_q16": 1540
+          },
+          {
+            "token": 91,
+            "probability_q16": 1417
+          },
+          {
+            "token": 4215,
+            "probability_q16": 1032
+          },
+          {
+            "token": 538,
+            "probability_q16": 929
+          },
+          {
+            "token": 686,
+            "probability_q16": 786
+          },
+          {
+            "token": 25759,
+            "probability_q16": 674
+          },
+          {
+            "token": 1491,
+            "probability_q16": 583
+          },
+          {
+            "token": 86,
+            "probability_q16": 536
+          },
+          {
+            "token": 873,
+            "probability_q16": 282
+          },
+          {
+            "token": 373,
+            "probability_q16": 266
+          },
+          {
+            "token": 487,
+            "probability_q16": 184
+          },
+          {
+            "token": 266,
+            "probability_q16": 181
+          },
+          {
+            "token": 342,
+            "probability_q16": 175
+          },
+          {
+            "token": 3088,
+            "probability_q16": 149
+          },
+          {
+            "token": 2344,
+            "probability_q16": 149
+          },
+          {
+            "token": 26094,
+            "probability_q16": 148
+          },
+          {
+            "token": 268,
+            "probability_q16": 132
+          },
+          {
+            "token": 561,
+            "probability_q16": 126
+          },
+          {
+            "token": 2971,
+            "probability_q16": 117
+          },
+          {
+            "token": 8186,
+            "probability_q16": 115
+          },
+          {
+            "token": 36147,
+            "probability_q16": 113
+          },
+          {
+            "token": 11052,
+            "probability_q16": 108
+          },
+          {
+            "token": 3135,
+            "probability_q16": 108
+          },
+          {
+            "token": 396,
+            "probability_q16": 104
+          },
+          {
+            "token": 92,
+            "probability_q16": 100
+          },
+          {
+            "token": 14950,
+            "probability_q16": 98
+          },
+          {
+            "token": 6838,
+            "probability_q16": 96
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 12420,
+            "probability_q16": 30043
+          },
+          {
+            "token": 5629,
+            "probability_q16": 11941
+          },
+          {
+            "token": 683,
+            "probability_q16": 4124
+          },
+          {
+            "token": 39225,
+            "probability_q16": 3394
+          },
+          {
+            "token": 2916,
+            "probability_q16": 2557
+          },
+          {
+            "token": 132,
+            "probability_q16": 2031
+          },
+          {
+            "token": 9454,
+            "probability_q16": 1856
+          },
+          {
+            "token": 4256,
+            "probability_q16": 1266
+          },
+          {
+            "token": 10901,
+            "probability_q16": 1079
+          },
+          {
+            "token": 18916,
+            "probability_q16": 663
+          },
+          {
+            "token": 4205,
+            "probability_q16": 564
+          },
+          {
+            "token": 1717,
+            "probability_q16": 509
+          },
+          {
+            "token": 4385,
+            "probability_q16": 472
+          },
+          {
+            "token": 88,
+            "probability_q16": 451
+          },
+          {
+            "token": 10788,
+            "probability_q16": 419
+          },
+          {
+            "token": 2292,
+            "probability_q16": 377
+          },
+          {
+            "token": 3143,
+            "probability_q16": 375
+          },
+          {
+            "token": 1881,
+            "probability_q16": 359
+          },
+          {
+            "token": 35479,
+            "probability_q16": 352
+          },
+          {
+            "token": 7135,
+            "probability_q16": 330
+          },
+          {
+            "token": 19480,
+            "probability_q16": 294
+          },
+          {
+            "token": 7502,
+            "probability_q16": 277
+          },
+          {
+            "token": 21879,
+            "probability_q16": 271
+          },
+          {
+            "token": 305,
+            "probability_q16": 213
+          },
+          {
+            "token": 91,
+            "probability_q16": 183
+          },
+          {
+            "token": 1864,
+            "probability_q16": 179
+          },
+          {
+            "token": 7216,
+            "probability_q16": 172
+          },
+          {
+            "token": 734,
+            "probability_q16": 168
+          },
+          {
+            "token": 28,
+            "probability_q16": 163
+          },
+          {
+            "token": 528,
+            "probability_q16": 159
+          },
+          {
+            "token": 33660,
+            "probability_q16": 147
+          },
+          {
+            "token": 43817,
+            "probability_q16": 147
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 28,
+            "probability_q16": 59643
+          },
+          {
+            "token": 281,
+            "probability_q16": 738
+          },
+          {
+            "token": 284,
+            "probability_q16": 581
+          },
+          {
+            "token": 29,
+            "probability_q16": 567
+          },
+          {
+            "token": 21225,
+            "probability_q16": 422
+          },
+          {
+            "token": 8899,
+            "probability_q16": 254
+          },
+          {
+            "token": 365,
+            "probability_q16": 211
+          },
+          {
+            "token": 1494,
+            "probability_q16": 204
+          },
+          {
+            "token": 28785,
+            "probability_q16": 202
+          },
+          {
+            "token": 335,
+            "probability_q16": 188
+          },
+          {
+            "token": 4206,
+            "probability_q16": 184
+          },
+          {
+            "token": 492,
+            "probability_q16": 182
+          },
+          {
+            "token": 99,
+            "probability_q16": 175
+          },
+          {
+            "token": 1638,
+            "probability_q16": 164
+          },
+          {
+            "token": 216,
+            "probability_q16": 164
+          },
+          {
+            "token": 452,
+            "probability_q16": 160
+          },
+          {
+            "token": 4392,
+            "probability_q16": 138
+          },
+          {
+            "token": 14887,
+            "probability_q16": 133
+          },
+          {
+            "token": 4910,
+            "probability_q16": 128
+          },
+          {
+            "token": 35479,
+            "probability_q16": 127
+          },
+          {
+            "token": 3056,
+            "probability_q16": 120
+          },
+          {
+            "token": 8673,
+            "probability_q16": 97
+          },
+          {
+            "token": 8501,
+            "probability_q16": 87
+          },
+          {
+            "token": 8923,
+            "probability_q16": 87
+          },
+          {
+            "token": 1456,
+            "probability_q16": 81
+          },
+          {
+            "token": 20537,
+            "probability_q16": 80
+          },
+          {
+            "token": 23586,
+            "probability_q16": 76
+          },
+          {
+            "token": 7933,
+            "probability_q16": 71
+          },
+          {
+            "token": 8815,
+            "probability_q16": 71
+          },
+          {
+            "token": 41722,
+            "probability_q16": 67
+          },
+          {
+            "token": 422,
+            "probability_q16": 67
+          },
+          {
+            "token": 8504,
+            "probability_q16": 66
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 6684,
+            "probability_q16": 21522
+          },
+          {
+            "token": 41722,
+            "probability_q16": 9748
+          },
+          {
+            "token": 216,
+            "probability_q16": 7801
+          },
+          {
+            "token": 3689,
+            "probability_q16": 2440
+          },
+          {
+            "token": 6079,
+            "probability_q16": 2271
+          },
+          {
+            "token": 22349,
+            "probability_q16": 2134
+          },
+          {
+            "token": 422,
+            "probability_q16": 1769
+          },
+          {
+            "token": 21489,
+            "probability_q16": 1583
+          },
+          {
+            "token": 29059,
+            "probability_q16": 1170
+          },
+          {
+            "token": 34185,
+            "probability_q16": 1156
+          },
+          {
+            "token": 35939,
+            "probability_q16": 1143
+          },
+          {
+            "token": 4664,
+            "probability_q16": 1002
+          },
+          {
+            "token": 48669,
+            "probability_q16": 1001
+          },
+          {
+            "token": 32655,
+            "probability_q16": 891
+          },
+          {
+            "token": 45064,
+            "probability_q16": 755
+          },
+          {
+            "token": 3996,
+            "probability_q16": 727
+          },
+          {
+            "token": 45660,
+            "probability_q16": 683
+          },
+          {
+            "token": 4365,
+            "probability_q16": 663
+          },
+          {
+            "token": 8526,
+            "probability_q16": 662
+          },
+          {
+            "token": 23331,
+            "probability_q16": 651
+          },
+          {
+            "token": 38426,
+            "probability_q16": 642
+          },
+          {
+            "token": 408,
+            "probability_q16": 618
+          },
+          {
+            "token": 42235,
+            "probability_q16": 591
+          },
+          {
+            "token": 2582,
+            "probability_q16": 574
+          },
+          {
+            "token": 37036,
+            "probability_q16": 568
+          },
+          {
+            "token": 5784,
+            "probability_q16": 541
+          },
+          {
+            "token": 37201,
+            "probability_q16": 466
+          },
+          {
+            "token": 2287,
+            "probability_q16": 406
+          },
+          {
+            "token": 340,
+            "probability_q16": 360
+          },
+          {
+            "token": 11360,
+            "probability_q16": 360
+          },
+          {
+            "token": 407,
+            "probability_q16": 337
+          },
+          {
+            "token": 1541,
+            "probability_q16": 300
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 9550,
+            "probability_q16": 65414
+          },
+          {
+            "token": 4256,
+            "probability_q16": 41
+          },
+          {
+            "token": 103,
+            "probability_q16": 10
+          },
+          {
+            "token": 88,
+            "probability_q16": 8
+          },
+          {
+            "token": 22821,
+            "probability_q16": 7
+          },
+          {
+            "token": 301,
+            "probability_q16": 7
+          },
+          {
+            "token": 5544,
+            "probability_q16": 6
+          },
+          {
+            "token": 2074,
+            "probability_q16": 4
+          },
+          {
+            "token": 299,
+            "probability_q16": 3
+          },
+          {
+            "token": 10901,
+            "probability_q16": 3
+          },
+          {
+            "token": 5629,
+            "probability_q16": 3
+          },
+          {
+            "token": 14268,
+            "probability_q16": 3
+          },
+          {
+            "token": 25475,
+            "probability_q16": 2
+          },
+          {
+            "token": 1651,
+            "probability_q16": 2
+          },
+          {
+            "token": 2292,
+            "probability_q16": 2
+          },
+          {
+            "token": 609,
+            "probability_q16": 2
+          },
+          {
+            "token": 1018,
+            "probability_q16": 2
+          },
+          {
+            "token": 36774,
+            "probability_q16": 2
+          },
+          {
+            "token": 94,
+            "probability_q16": 1
+          },
+          {
+            "token": 18034,
+            "probability_q16": 1
+          },
+          {
+            "token": 3552,
+            "probability_q16": 1
+          },
+          {
+            "token": 30,
+            "probability_q16": 1
+          },
+          {
+            "token": 7502,
+            "probability_q16": 1
+          },
+          {
+            "token": 8467,
+            "probability_q16": 1
+          },
+          {
+            "token": 91,
+            "probability_q16": 1
+          },
+          {
+            "token": 29044,
+            "probability_q16": 1
+          },
+          {
+            "token": 1560,
+            "probability_q16": 1
+          },
+          {
+            "token": 5333,
+            "probability_q16": 1
+          },
+          {
+            "token": 32006,
+            "probability_q16": 1
+          },
+          {
+            "token": 15052,
+            "probability_q16": 1
+          },
+          {
+            "token": 873,
+            "probability_q16": 1
+          },
+          {
+            "token": 4045,
+            "probability_q16": 1
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 28,
+            "probability_q16": 63141
+          },
+          {
+            "token": 216,
+            "probability_q16": 1210
+          },
+          {
+            "token": 284,
+            "probability_q16": 263
+          },
+          {
+            "token": 3297,
+            "probability_q16": 183
+          },
+          {
+            "token": 365,
+            "probability_q16": 116
+          },
+          {
+            "token": 281,
+            "probability_q16": 81
+          },
+          {
+            "token": 25,
+            "probability_q16": 79
+          },
+          {
+            "token": 816,
+            "probability_q16": 75
+          },
+          {
+            "token": 335,
+            "probability_q16": 69
+          },
+          {
+            "token": 4664,
+            "probability_q16": 35
+          },
+          {
+            "token": 11276,
+            "probability_q16": 21
+          },
+          {
+            "token": 1456,
+            "probability_q16": 18
+          },
+          {
+            "token": 4392,
+            "probability_q16": 17
+          },
+          {
+            "token": 1494,
+            "probability_q16": 17
+          },
+          {
+            "token": 2481,
+            "probability_q16": 17
+          },
+          {
+            "token": 731,
+            "probability_q16": 16
+          },
+          {
+            "token": 933,
+            "probability_q16": 16
+          },
+          {
+            "token": 595,
+            "probability_q16": 16
+          },
+          {
+            "token": 15442,
+            "probability_q16": 14
+          },
+          {
+            "token": 643,
+            "probability_q16": 14
+          },
+          {
+            "token": 429,
+            "probability_q16": 12
+          },
+          {
+            "token": 4365,
+            "probability_q16": 12
+          },
+          {
+            "token": 3689,
+            "probability_q16": 11
+          },
+          {
+            "token": 43,
+            "probability_q16": 10
+          },
+          {
+            "token": 1673,
+            "probability_q16": 10
+          },
+          {
+            "token": 422,
+            "probability_q16": 10
+          },
+          {
+            "token": 452,
+            "probability_q16": 10
+          },
+          {
+            "token": 42,
+            "probability_q16": 9
+          },
+          {
+            "token": 1797,
+            "probability_q16": 9
+          },
+          {
+            "token": 29,
+            "probability_q16": 8
+          },
+          {
+            "token": 340,
+            "probability_q16": 8
+          },
+          {
+            "token": 8882,
+            "probability_q16": 8
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 216,
+            "probability_q16": 42241
+          },
+          {
+            "token": 6684,
+            "probability_q16": 13235
+          },
+          {
+            "token": 3996,
+            "probability_q16": 1969
+          },
+          {
+            "token": 4664,
+            "probability_q16": 1242
+          },
+          {
+            "token": 22349,
+            "probability_q16": 995
+          },
+          {
+            "token": 422,
+            "probability_q16": 853
+          },
+          {
+            "token": 3689,
+            "probability_q16": 699
+          },
+          {
+            "token": 41722,
+            "probability_q16": 653
+          },
+          {
+            "token": 408,
+            "probability_q16": 433
+          },
+          {
+            "token": 32655,
+            "probability_q16": 397
+          },
+          {
+            "token": 6079,
+            "probability_q16": 243
+          },
+          {
+            "token": 340,
+            "probability_q16": 212
+          },
+          {
+            "token": 21489,
+            "probability_q16": 209
+          },
+          {
+            "token": 34185,
+            "probability_q16": 208
+          },
+          {
+            "token": 48669,
+            "probability_q16": 194
+          },
+          {
+            "token": 514,
+            "probability_q16": 164
+          },
+          {
+            "token": 407,
+            "probability_q16": 153
+          },
+          {
+            "token": 38426,
+            "probability_q16": 151
+          },
+          {
+            "token": 4365,
+            "probability_q16": 121
+          },
+          {
+            "token": 3903,
+            "probability_q16": 111
+          },
+          {
+            "token": 15442,
+            "probability_q16": 109
+          },
+          {
+            "token": 4528,
+            "probability_q16": 105
+          },
+          {
+            "token": 1797,
+            "probability_q16": 103
+          },
+          {
+            "token": 4448,
+            "probability_q16": 103
+          },
+          {
+            "token": 2405,
+            "probability_q16": 99
+          },
+          {
+            "token": 1541,
+            "probability_q16": 89
+          },
+          {
+            "token": 45064,
+            "probability_q16": 81
+          },
+          {
+            "token": 20700,
+            "probability_q16": 79
+          },
+          {
+            "token": 2582,
+            "probability_q16": 75
+          },
+          {
+            "token": 35939,
+            "probability_q16": 72
+          },
+          {
+            "token": 265,
+            "probability_q16": 69
+          },
+          {
+            "token": 42235,
+            "probability_q16": 68
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 33,
+            "probability_q16": 23886
+          },
+          {
+            "token": 34,
+            "probability_q16": 22962
+          },
+          {
+            "token": 35,
+            "probability_q16": 5686
+          },
+          {
+            "token": 40,
+            "probability_q16": 2463
+          },
+          {
+            "token": 36,
+            "probability_q16": 2281
+          },
+          {
+            "token": 37,
+            "probability_q16": 2147
+          },
+          {
+            "token": 41,
+            "probability_q16": 2128
+          },
+          {
+            "token": 38,
+            "probability_q16": 1972
+          },
+          {
+            "token": 39,
+            "probability_q16": 1909
+          },
+          {
+            "token": 32,
+            "probability_q16": 68
+          },
+          {
+            "token": 15442,
+            "probability_q16": 5
+          },
+          {
+            "token": 216,
+            "probability_q16": 4
+          },
+          {
+            "token": 198,
+            "probability_q16": 2
+          },
+          {
+            "token": 321,
+            "probability_q16": 2
+          },
+          {
+            "token": 365,
+            "probability_q16": 2
+          },
+          {
+            "token": 2405,
+            "probability_q16": 2
+          },
+          {
+            "token": 4019,
+            "probability_q16": 1
+          },
+          {
+            "token": 4185,
+            "probability_q16": 1
+          },
+          {
+            "token": 5096,
+            "probability_q16": 1
+          },
+          {
+            "token": 4450,
+            "probability_q16": 1
+          },
+          {
+            "token": 4645,
+            "probability_q16": 1
+          },
+          {
+            "token": 16738,
+            "probability_q16": 1
+          },
+          {
+            "token": 3903,
+            "probability_q16": 1
+          },
+          {
+            "token": 4745,
+            "probability_q16": 1
+          },
+          {
+            "token": 422,
+            "probability_q16": 1
+          },
+          {
+            "token": 1494,
+            "probability_q16": 1
+          },
+          {
+            "token": 4448,
+            "probability_q16": 1
+          },
+          {
+            "token": 4124,
+            "probability_q16": 1
+          },
+          {
+            "token": 4451,
+            "probability_q16": 1
+          },
+          {
+            "token": 284,
+            "probability_q16": 1
+          },
+          {
+            "token": 514,
+            "probability_q16": 1
+          },
+          {
+            "token": 450,
+            "probability_q16": 1
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 4019,
+            "probability_q16": 8512
+          },
+          {
+            "token": 4124,
+            "probability_q16": 6848
+          },
+          {
+            "token": 4451,
+            "probability_q16": 6836
+          },
+          {
+            "token": 4185,
+            "probability_q16": 6357
+          },
+          {
+            "token": 4745,
+            "probability_q16": 6172
+          },
+          {
+            "token": 4448,
+            "probability_q16": 5523
+          },
+          {
+            "token": 2405,
+            "probability_q16": 4608
+          },
+          {
+            "token": 4645,
+            "probability_q16": 4393
+          },
+          {
+            "token": 4053,
+            "probability_q16": 4300
+          },
+          {
+            "token": 5096,
+            "probability_q16": 4299
+          },
+          {
+            "token": 3903,
+            "probability_q16": 3916
+          },
+          {
+            "token": 4450,
+            "probability_q16": 3255
+          },
+          {
+            "token": 373,
+            "probability_q16": 175
+          },
+          {
+            "token": 15442,
+            "probability_q16": 77
+          },
+          {
+            "token": 32,
+            "probability_q16": 29
+          },
+          {
+            "token": 40,
+            "probability_q16": 25
+          },
+          {
+            "token": 1494,
+            "probability_q16": 22
+          },
+          {
+            "token": 41,
+            "probability_q16": 22
+          },
+          {
+            "token": 816,
+            "probability_q16": 18
+          },
+          {
+            "token": 33,
+            "probability_q16": 17
+          },
+          {
+            "token": 216,
+            "probability_q16": 15
+          },
+          {
+            "token": 36,
+            "probability_q16": 14
+          },
+          {
+            "token": 31,
+            "probability_q16": 13
+          },
+          {
+            "token": 34,
+            "probability_q16": 12
+          },
+          {
+            "token": 37,
+            "probability_q16": 12
+          },
+          {
+            "token": 38,
+            "probability_q16": 11
+          },
+          {
+            "token": 39,
+            "probability_q16": 11
+          },
+          {
+            "token": 35,
+            "probability_q16": 11
+          },
+          {
+            "token": 12355,
+            "probability_q16": 9
+          },
+          {
+            "token": 12899,
+            "probability_q16": 8
+          },
+          {
+            "token": 3627,
+            "probability_q16": 8
+          },
+          {
+            "token": 4532,
+            "probability_q16": 7
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 216,
+            "probability_q16": 65467
+          },
+          {
+            "token": 28,
+            "probability_q16": 26
+          },
+          {
+            "token": 256,
+            "probability_q16": 4
+          },
+          {
+            "token": 816,
+            "probability_q16": 3
+          },
+          {
+            "token": 933,
+            "probability_q16": 3
+          },
+          {
+            "token": 15442,
+            "probability_q16": 2
+          },
+          {
+            "token": 198,
+            "probability_q16": 2
+          },
+          {
+            "token": 25,
+            "probability_q16": 2
+          },
+          {
+            "token": 33,
+            "probability_q16": 2
+          },
+          {
+            "token": 365,
+            "probability_q16": 2
+          },
+          {
+            "token": 3297,
+            "probability_q16": 1
+          },
+          {
+            "token": 1551,
+            "probability_q16": 1
+          },
+          {
+            "token": 2481,
+            "probability_q16": 1
+          },
+          {
+            "token": 1673,
+            "probability_q16": 1
+          },
+          {
+            "token": 3351,
+            "probability_q16": 1
+          },
+          {
+            "token": 2272,
+            "probability_q16": 1
+          },
+          {
+            "token": 5548,
+            "probability_q16": 1
+          },
+          {
+            "token": 34,
+            "probability_q16": 1
+          },
+          {
+            "token": 321,
+            "probability_q16": 1
+          },
+          {
+            "token": 595,
+            "probability_q16": 1
+          },
+          {
+            "token": 731,
+            "probability_q16": 1
+          },
+          {
+            "token": 4185,
+            "probability_q16": 1
+          },
+          {
+            "token": 1456,
+            "probability_q16": 1
+          },
+          {
+            "token": 355,
+            "probability_q16": 1
+          },
+          {
+            "token": 284,
+            "probability_q16": 1
+          },
+          {
+            "token": 2829,
+            "probability_q16": 1
+          },
+          {
+            "token": 4450,
+            "probability_q16": 1
+          },
+          {
+            "token": 459,
+            "probability_q16": 1
+          },
+          {
+            "token": 333,
+            "probability_q16": 1
+          },
+          {
+            "token": 4451,
+            "probability_q16": 1
+          },
+          {
+            "token": 643,
+            "probability_q16": 1
+          },
+          {
+            "token": 1841,
+            "probability_q16": 1
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 33,
+            "probability_q16": 37768
+          },
+          {
+            "token": 34,
+            "probability_q16": 27731
+          },
+          {
+            "token": 35,
+            "probability_q16": 3
+          },
+          {
+            "token": 41,
+            "probability_q16": 2
+          },
+          {
+            "token": 40,
+            "probability_q16": 2
+          },
+          {
+            "token": 216,
+            "probability_q16": 2
+          },
+          {
+            "token": 36,
+            "probability_q16": 2
+          },
+          {
+            "token": 37,
+            "probability_q16": 1
+          },
+          {
+            "token": 38,
+            "probability_q16": 1
+          },
+          {
+            "token": 39,
+            "probability_q16": 1
+          },
+          {
+            "token": 19133,
+            "probability_q16": 1
+          },
+          {
+            "token": 365,
+            "probability_q16": 1
+          },
+          {
+            "token": 198,
+            "probability_q16": 1
+          },
+          {
+            "token": 933,
+            "probability_q16": 1
+          },
+          {
+            "token": 32,
+            "probability_q16": 1
+          },
+          {
+            "token": 3297,
+            "probability_q16": 1
+          },
+          {
+            "token": 15442,
+            "probability_q16": 1
+          },
+          {
+            "token": 1673,
+            "probability_q16": 1
+          },
+          {
+            "token": 28,
+            "probability_q16": 1
+          },
+          {
+            "token": 1004,
+            "probability_q16": 1
+          },
+          {
+            "token": 637,
+            "probability_q16": 1
+          },
+          {
+            "token": 2481,
+            "probability_q16": 1
+          },
+          {
+            "token": 321,
+            "probability_q16": 1
+          },
+          {
+            "token": 530,
+            "probability_q16": 1
+          },
+          {
+            "token": 11181,
+            "probability_q16": 1
+          },
+          {
+            "token": 8866,
+            "probability_q16": 1
+          },
+          {
+            "token": 2026,
+            "probability_q16": 1
+          },
+          {
+            "token": 7827,
+            "probability_q16": 1
+          },
+          {
+            "token": 327,
+            "probability_q16": 1
+          },
+          {
+            "token": 10262,
+            "probability_q16": 1
+          },
+          {
+            "token": 4563,
+            "probability_q16": 1
+          },
+          {
+            "token": 4450,
+            "probability_q16": 1
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 41,
+            "probability_q16": 65497
+          },
+          {
+            "token": 40,
+            "probability_q16": 6
+          },
+          {
+            "token": 38,
+            "probability_q16": 2
+          },
+          {
+            "token": 39,
+            "probability_q16": 2
+          },
+          {
+            "token": 37,
+            "probability_q16": 1
+          },
+          {
+            "token": 33,
+            "probability_q16": 1
+          },
+          {
+            "token": 34,
+            "probability_q16": 1
+          },
+          {
+            "token": 36,
+            "probability_q16": 1
+          },
+          {
+            "token": 32,
+            "probability_q16": 1
+          },
+          {
+            "token": 35,
+            "probability_q16": 1
+          },
+          {
+            "token": 4450,
+            "probability_q16": 1
+          },
+          {
+            "token": 302,
+            "probability_q16": 1
+          },
+          {
+            "token": 4124,
+            "probability_q16": 1
+          },
+          {
+            "token": 4019,
+            "probability_q16": 1
+          },
+          {
+            "token": 28,
+            "probability_q16": 1
+          },
+          {
+            "token": 216,
+            "probability_q16": 1
+          },
+          {
+            "token": 25,
+            "probability_q16": 1
+          },
+          {
+            "token": 2405,
+            "probability_q16": 1
+          },
+          {
+            "token": 4745,
+            "probability_q16": 1
+          },
+          {
+            "token": 4448,
+            "probability_q16": 1
+          },
+          {
+            "token": 3903,
+            "probability_q16": 1
+          },
+          {
+            "token": 5096,
+            "probability_q16": 1
+          },
+          {
+            "token": 4451,
+            "probability_q16": 1
+          },
+          {
+            "token": 4645,
+            "probability_q16": 1
+          },
+          {
+            "token": 198,
+            "probability_q16": 1
+          },
+          {
+            "token": 1117,
+            "probability_q16": 1
+          },
+          {
+            "token": 30,
+            "probability_q16": 1
+          },
+          {
+            "token": 643,
+            "probability_q16": 1
+          },
+          {
+            "token": 4185,
+            "probability_q16": 1
+          },
+          {
+            "token": 595,
+            "probability_q16": 1
+          },
+          {
+            "token": 2089,
+            "probability_q16": 1
+          },
+          {
+            "token": 4053,
+            "probability_q16": 1
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 41,
+            "probability_q16": 28702
+          },
+          {
+            "token": 40,
+            "probability_q16": 14889
+          },
+          {
+            "token": 39,
+            "probability_q16": 6384
+          },
+          {
+            "token": 37,
+            "probability_q16": 6350
+          },
+          {
+            "token": 38,
+            "probability_q16": 5703
+          },
+          {
+            "token": 36,
+            "probability_q16": 2090
+          },
+          {
+            "token": 35,
+            "probability_q16": 536
+          },
+          {
+            "token": 33,
+            "probability_q16": 468
+          },
+          {
+            "token": 34,
+            "probability_q16": 375
+          },
+          {
+            "token": 32,
+            "probability_q16": 9
+          },
+          {
+            "token": 4450,
+            "probability_q16": 2
+          },
+          {
+            "token": 5096,
+            "probability_q16": 2
+          },
+          {
+            "token": 25,
+            "probability_q16": 2
+          },
+          {
+            "token": 4124,
+            "probability_q16": 2
+          },
+          {
+            "token": 198,
+            "probability_q16": 2
+          },
+          {
+            "token": 42,
+            "probability_q16": 2
+          },
+          {
+            "token": 4451,
+            "probability_q16": 2
+          },
+          {
+            "token": 4019,
+            "probability_q16": 1
+          },
+          {
+            "token": 28,
+            "probability_q16": 1
+          },
+          {
+            "token": 4645,
+            "probability_q16": 1
+          },
+          {
+            "token": 4185,
+            "probability_q16": 1
+          },
+          {
+            "token": 4745,
+            "probability_q16": 1
+          },
+          {
+            "token": 4448,
+            "probability_q16": 1
+          },
+          {
+            "token": 2405,
+            "probability_q16": 1
+          },
+          {
+            "token": 4053,
+            "probability_q16": 1
+          },
+          {
+            "token": 29,
+            "probability_q16": 1
+          },
+          {
+            "token": 3903,
+            "probability_q16": 1
+          },
+          {
+            "token": 339,
+            "probability_q16": 1
+          },
+          {
+            "token": 11181,
+            "probability_q16": 1
+          },
+          {
+            "token": 334,
+            "probability_q16": 1
+          },
+          {
+            "token": 37387,
+            "probability_q16": 1
+          },
+          {
+            "token": 365,
+            "probability_q16": 1
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 36,
+            "probability_q16": 30499
+          },
+          {
+            "token": 34,
+            "probability_q16": 14910
+          },
+          {
+            "token": 39,
+            "probability_q16": 10172
+          },
+          {
+            "token": 38,
+            "probability_q16": 3506
+          },
+          {
+            "token": 32,
+            "probability_q16": 2246
+          },
+          {
+            "token": 40,
+            "probability_q16": 1632
+          },
+          {
+            "token": 35,
+            "probability_q16": 1073
+          },
+          {
+            "token": 37,
+            "probability_q16": 745
+          },
+          {
+            "token": 41,
+            "probability_q16": 509
+          },
+          {
+            "token": 33,
+            "probability_q16": 205
+          },
+          {
+            "token": 25,
+            "probability_q16": 5
+          },
+          {
+            "token": 216,
+            "probability_q16": 4
+          },
+          {
+            "token": 29,
+            "probability_q16": 3
+          },
+          {
+            "token": 446,
+            "probability_q16": 2
+          },
+          {
+            "token": 595,
+            "probability_q16": 2
+          },
+          {
+            "token": 30,
+            "probability_q16": 2
+          },
+          {
+            "token": 727,
+            "probability_q16": 2
+          },
+          {
+            "token": 28,
+            "probability_q16": 2
+          },
+          {
+            "token": 198,
+            "probability_q16": 2
+          },
+          {
+            "token": 1292,
+            "probability_q16": 2
+          },
+          {
+            "token": 365,
+            "probability_q16": 1
+          },
+          {
+            "token": 4124,
+            "probability_q16": 1
+          },
+          {
+            "token": 2677,
+            "probability_q16": 1
+          },
+          {
+            "token": 4185,
+            "probability_q16": 1
+          },
+          {
+            "token": 2481,
+            "probability_q16": 1
+          },
+          {
+            "token": 1000,
+            "probability_q16": 1
+          },
+          {
+            "token": 42,
+            "probability_q16": 1
+          },
+          {
+            "token": 4451,
+            "probability_q16": 1
+          },
+          {
+            "token": 4645,
+            "probability_q16": 1
+          },
+          {
+            "token": 0,
+            "probability_q16": 1
+          },
+          {
+            "token": 643,
+            "probability_q16": 1
+          },
+          {
+            "token": 4019,
+            "probability_q16": 1
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 25,
+            "probability_q16": 55910
+          },
+          {
+            "token": 643,
+            "probability_q16": 4689
+          },
+          {
+            "token": 595,
+            "probability_q16": 2705
+          },
+          {
+            "token": 12993,
+            "probability_q16": 416
+          },
+          {
+            "token": 4258,
+            "probability_q16": 396
+          },
+          {
+            "token": 28,
+            "probability_q16": 333
+          },
+          {
+            "token": 727,
+            "probability_q16": 198
+          },
+          {
+            "token": 816,
+            "probability_q16": 148
+          },
+          {
+            "token": 2481,
+            "probability_q16": 108
+          },
+          {
+            "token": 25628,
+            "probability_q16": 96
+          },
+          {
+            "token": 1292,
+            "probability_q16": 76
+          },
+          {
+            "token": 13096,
+            "probability_q16": 68
+          },
+          {
+            "token": 731,
+            "probability_q16": 68
+          },
+          {
+            "token": 2272,
+            "probability_q16": 53
+          },
+          {
+            "token": 31,
+            "probability_q16": 39
+          },
+          {
+            "token": 43,
+            "probability_q16": 38
+          },
+          {
+            "token": 28392,
+            "probability_q16": 22
+          },
+          {
+            "token": 365,
+            "probability_q16": 21
+          },
+          {
+            "token": 9756,
+            "probability_q16": 16
+          },
+          {
+            "token": 14502,
+            "probability_q16": 15
+          },
+          {
+            "token": 15723,
+            "probability_q16": 14
+          },
+          {
+            "token": 9614,
+            "probability_q16": 13
+          },
+          {
+            "token": 30,
+            "probability_q16": 13
+          },
+          {
+            "token": 355,
+            "probability_q16": 11
+          },
+          {
+            "token": 14487,
+            "probability_q16": 11
+          },
+          {
+            "token": 15442,
+            "probability_q16": 10
+          },
+          {
+            "token": 284,
+            "probability_q16": 9
+          },
+          {
+            "token": 2504,
+            "probability_q16": 9
+          },
+          {
+            "token": 29925,
+            "probability_q16": 9
+          },
+          {
+            "token": 933,
+            "probability_q16": 8
+          },
+          {
+            "token": 2677,
+            "probability_q16": 7
+          },
+          {
+            "token": 216,
+            "probability_q16": 6
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 436,
+            "probability_q16": 50778
+          },
+          {
+            "token": 365,
+            "probability_q16": 3400
+          },
+          {
+            "token": 3988,
+            "probability_q16": 2057
+          },
+          {
+            "token": 198,
+            "probability_q16": 1747
+          },
+          {
+            "token": 314,
+            "probability_q16": 1695
+          },
+          {
+            "token": 284,
+            "probability_q16": 630
+          },
+          {
+            "token": 731,
+            "probability_q16": 554
+          },
+          {
+            "token": 216,
+            "probability_q16": 469
+          },
+          {
+            "token": 2938,
+            "probability_q16": 399
+          },
+          {
+            "token": 355,
+            "probability_q16": 319
+          },
+          {
+            "token": 933,
+            "probability_q16": 281
+          },
+          {
+            "token": 27513,
+            "probability_q16": 281
+          },
+          {
+            "token": 3297,
+            "probability_q16": 251
+          },
+          {
+            "token": 28702,
+            "probability_q16": 232
+          },
+          {
+            "token": 1673,
+            "probability_q16": 230
+          },
+          {
+            "token": 816,
+            "probability_q16": 212
+          },
+          {
+            "token": 13580,
+            "probability_q16": 210
+          },
+          {
+            "token": 1116,
+            "probability_q16": 174
+          },
+          {
+            "token": 5019,
+            "probability_q16": 166
+          },
+          {
+            "token": 4147,
+            "probability_q16": 166
+          },
+          {
+            "token": 459,
+            "probability_q16": 146
+          },
+          {
+            "token": 10591,
+            "probability_q16": 124
+          },
+          {
+            "token": 617,
+            "probability_q16": 123
+          },
+          {
+            "token": 8957,
+            "probability_q16": 120
+          },
+          {
+            "token": 1343,
+            "probability_q16": 120
+          },
+          {
+            "token": 2163,
+            "probability_q16": 109
+          },
+          {
+            "token": 597,
+            "probability_q16": 102
+          },
+          {
+            "token": 253,
+            "probability_q16": 93
+          },
+          {
+            "token": 1841,
+            "probability_q16": 88
+          },
+          {
+            "token": 2321,
+            "probability_q16": 87
+          },
+          {
+            "token": 330,
+            "probability_q16": 87
+          },
+          {
+            "token": 378,
+            "probability_q16": 85
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 354,
+            "probability_q16": 33656
+          },
+          {
+            "token": 253,
+            "probability_q16": 28665
+          },
+          {
+            "token": 260,
+            "probability_q16": 1915
+          },
+          {
+            "token": 3988,
+            "probability_q16": 384
+          },
+          {
+            "token": 582,
+            "probability_q16": 295
+          },
+          {
+            "token": 2938,
+            "probability_q16": 229
+          },
+          {
+            "token": 2321,
+            "probability_q16": 98
+          },
+          {
+            "token": 1343,
+            "probability_q16": 40
+          },
+          {
+            "token": 8957,
+            "probability_q16": 30
+          },
+          {
+            "token": 1372,
+            "probability_q16": 19
+          },
+          {
+            "token": 5679,
+            "probability_q16": 19
+          },
+          {
+            "token": 597,
+            "probability_q16": 18
+          },
+          {
+            "token": 281,
+            "probability_q16": 17
+          },
+          {
+            "token": 4889,
+            "probability_q16": 15
+          },
+          {
+            "token": 12090,
+            "probability_q16": 14
+          },
+          {
+            "token": 1450,
+            "probability_q16": 13
+          },
+          {
+            "token": 3996,
+            "probability_q16": 11
+          },
+          {
+            "token": 14104,
+            "probability_q16": 10
+          },
+          {
+            "token": 768,
+            "probability_q16": 10
+          },
+          {
+            "token": 28,
+            "probability_q16": 9
+          },
+          {
+            "token": 21130,
+            "probability_q16": 7
+          },
+          {
+            "token": 4664,
+            "probability_q16": 7
+          },
+          {
+            "token": 1062,
+            "probability_q16": 7
+          },
+          {
+            "token": 284,
+            "probability_q16": 6
+          },
+          {
+            "token": 6785,
+            "probability_q16": 6
+          },
+          {
+            "token": 1673,
+            "probability_q16": 5
+          },
+          {
+            "token": 4535,
+            "probability_q16": 5
+          },
+          {
+            "token": 857,
+            "probability_q16": 5
+          },
+          {
+            "token": 8335,
+            "probability_q16": 5
+          },
+          {
+            "token": 1797,
+            "probability_q16": 5
+          },
+          {
+            "token": 1547,
+            "probability_q16": 5
+          },
+          {
+            "token": 21036,
+            "probability_q16": 5
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 2321,
+            "probability_q16": 51425
+          },
+          {
+            "token": 1547,
+            "probability_q16": 8164
+          },
+          {
+            "token": 8335,
+            "probability_q16": 1892
+          },
+          {
+            "token": 6948,
+            "probability_q16": 716
+          },
+          {
+            "token": 2938,
+            "probability_q16": 487
+          },
+          {
+            "token": 10776,
+            "probability_q16": 441
+          },
+          {
+            "token": 1584,
+            "probability_q16": 307
+          },
+          {
+            "token": 216,
+            "probability_q16": 177
+          },
+          {
+            "token": 4072,
+            "probability_q16": 168
+          },
+          {
+            "token": 3530,
+            "probability_q16": 156
+          },
+          {
+            "token": 9594,
+            "probability_q16": 152
+          },
+          {
+            "token": 5464,
+            "probability_q16": 149
+          },
+          {
+            "token": 21036,
+            "probability_q16": 145
+          },
+          {
+            "token": 30204,
+            "probability_q16": 139
+          },
+          {
+            "token": 8526,
+            "probability_q16": 118
+          },
+          {
+            "token": 3996,
+            "probability_q16": 102
+          },
+          {
+            "token": 19600,
+            "probability_q16": 92
+          },
+          {
+            "token": 30895,
+            "probability_q16": 81
+          },
+          {
+            "token": 16194,
+            "probability_q16": 70
+          },
+          {
+            "token": 11183,
+            "probability_q16": 61
+          },
+          {
+            "token": 1070,
+            "probability_q16": 58
+          },
+          {
+            "token": 7710,
+            "probability_q16": 54
+          },
+          {
+            "token": 3866,
+            "probability_q16": 48
+          },
+          {
+            "token": 5646,
+            "probability_q16": 46
+          },
+          {
+            "token": 11832,
+            "probability_q16": 44
+          },
+          {
+            "token": 339,
+            "probability_q16": 44
+          },
+          {
+            "token": 4674,
+            "probability_q16": 40
+          },
+          {
+            "token": 13031,
+            "probability_q16": 35
+          },
+          {
+            "token": 21337,
+            "probability_q16": 32
+          },
+          {
+            "token": 6544,
+            "probability_q16": 32
+          },
+          {
+            "token": 5635,
+            "probability_q16": 30
+          },
+          {
+            "token": 15442,
+            "probability_q16": 30
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 23078,
+            "probability_q16": 50329
+          },
+          {
+            "token": 21130,
+            "probability_q16": 2253
+          },
+          {
+            "token": 22879,
+            "probability_q16": 1542
+          },
+          {
+            "token": 8437,
+            "probability_q16": 1377
+          },
+          {
+            "token": 27319,
+            "probability_q16": 1039
+          },
+          {
+            "token": 29,
+            "probability_q16": 1008
+          },
+          {
+            "token": 2583,
+            "probability_q16": 903
+          },
+          {
+            "token": 1993,
+            "probability_q16": 885
+          },
+          {
+            "token": 15701,
+            "probability_q16": 767
+          },
+          {
+            "token": 8229,
+            "probability_q16": 479
+          },
+          {
+            "token": 7631,
+            "probability_q16": 467
+          },
+          {
+            "token": 10776,
+            "probability_q16": 454
+          },
+          {
+            "token": 4072,
+            "probability_q16": 454
+          },
+          {
+            "token": 5464,
+            "probability_q16": 370
+          },
+          {
+            "token": 15409,
+            "probability_q16": 349
+          },
+          {
+            "token": 7132,
+            "probability_q16": 311
+          },
+          {
+            "token": 1632,
+            "probability_q16": 270
+          },
+          {
+            "token": 4535,
+            "probability_q16": 255
+          },
+          {
+            "token": 284,
+            "probability_q16": 250
+          },
+          {
+            "token": 9450,
+            "probability_q16": 216
+          },
+          {
+            "token": 6530,
+            "probability_q16": 212
+          },
+          {
+            "token": 14820,
+            "probability_q16": 169
+          },
+          {
+            "token": 28702,
+            "probability_q16": 144
+          },
+          {
+            "token": 3181,
+            "probability_q16": 140
+          },
+          {
+            "token": 9191,
+            "probability_q16": 132
+          },
+          {
+            "token": 21036,
+            "probability_q16": 127
+          },
+          {
+            "token": 12873,
+            "probability_q16": 118
+          },
+          {
+            "token": 3352,
+            "probability_q16": 117
+          },
+          {
+            "token": 5289,
+            "probability_q16": 105
+          },
+          {
+            "token": 5646,
+            "probability_q16": 103
+          },
+          {
+            "token": 18603,
+            "probability_q16": 102
+          },
+          {
+            "token": 9115,
+            "probability_q16": 88
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 284,
+            "probability_q16": 25769
+          },
+          {
+            "token": 28,
+            "probability_q16": 22212
+          },
+          {
+            "token": 617,
+            "probability_q16": 10214
+          },
+          {
+            "token": 30,
+            "probability_q16": 3842
+          },
+          {
+            "token": 3988,
+            "probability_q16": 610
+          },
+          {
+            "token": 1343,
+            "probability_q16": 539
+          },
+          {
+            "token": 282,
+            "probability_q16": 461
+          },
+          {
+            "token": 3449,
+            "probability_q16": 265
+          },
+          {
+            "token": 418,
+            "probability_q16": 205
+          },
+          {
+            "token": 1891,
+            "probability_q16": 181
+          },
+          {
+            "token": 1450,
+            "probability_q16": 158
+          },
+          {
+            "token": 281,
+            "probability_q16": 149
+          },
+          {
+            "token": 43,
+            "probability_q16": 140
+          },
+          {
+            "token": 365,
+            "probability_q16": 110
+          },
+          {
+            "token": 351,
+            "probability_q16": 105
+          },
+          {
+            "token": 768,
+            "probability_q16": 89
+          },
+          {
+            "token": 429,
+            "probability_q16": 70
+          },
+          {
+            "token": 14104,
+            "probability_q16": 48
+          },
+          {
+            "token": 4248,
+            "probability_q16": 43
+          },
+          {
+            "token": 29,
+            "probability_q16": 41
+          },
+          {
+            "token": 31,
+            "probability_q16": 40
+          },
+          {
+            "token": 1673,
+            "probability_q16": 35
+          },
+          {
+            "token": 1456,
+            "probability_q16": 27
+          },
+          {
+            "token": 288,
+            "probability_q16": 24
+          },
+          {
+            "token": 19452,
+            "probability_q16": 24
+          },
+          {
+            "token": 3297,
+            "probability_q16": 22
+          },
+          {
+            "token": 2500,
+            "probability_q16": 22
+          },
+          {
+            "token": 981,
+            "probability_q16": 22
+          },
+          {
+            "token": 12090,
+            "probability_q16": 19
+          },
+          {
+            "token": 327,
+            "probability_q16": 17
+          },
+          {
+            "token": 5332,
+            "probability_q16": 17
+          },
+          {
+            "token": 3358,
+            "probability_q16": 15
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 2583,
+            "probability_q16": 31692
+          },
+          {
+            "token": 1993,
+            "probability_q16": 9239
+          },
+          {
+            "token": 260,
+            "probability_q16": 4326
+          },
+          {
+            "token": 21130,
+            "probability_q16": 3649
+          },
+          {
+            "token": 8437,
+            "probability_q16": 2625
+          },
+          {
+            "token": 28702,
+            "probability_q16": 1725
+          },
+          {
+            "token": 21036,
+            "probability_q16": 1506
+          },
+          {
+            "token": 13447,
+            "probability_q16": 1207
+          },
+          {
+            "token": 253,
+            "probability_q16": 753
+          },
+          {
+            "token": 6416,
+            "probability_q16": 743
+          },
+          {
+            "token": 19699,
+            "probability_q16": 682
+          },
+          {
+            "token": 8229,
+            "probability_q16": 621
+          },
+          {
+            "token": 9450,
+            "probability_q16": 618
+          },
+          {
+            "token": 15409,
+            "probability_q16": 613
+          },
+          {
+            "token": 27513,
+            "probability_q16": 537
+          },
+          {
+            "token": 22879,
+            "probability_q16": 493
+          },
+          {
+            "token": 10776,
+            "probability_q16": 471
+          },
+          {
+            "token": 5646,
+            "probability_q16": 440
+          },
+          {
+            "token": 15762,
+            "probability_q16": 424
+          },
+          {
+            "token": 4535,
+            "probability_q16": 401
+          },
+          {
+            "token": 6318,
+            "probability_q16": 353
+          },
+          {
+            "token": 5464,
+            "probability_q16": 335
+          },
+          {
+            "token": 13109,
+            "probability_q16": 292
+          },
+          {
+            "token": 3181,
+            "probability_q16": 291
+          },
+          {
+            "token": 23078,
+            "probability_q16": 255
+          },
+          {
+            "token": 6535,
+            "probability_q16": 216
+          },
+          {
+            "token": 4072,
+            "probability_q16": 196
+          },
+          {
+            "token": 8631,
+            "probability_q16": 174
+          },
+          {
+            "token": 27774,
+            "probability_q16": 171
+          },
+          {
+            "token": 5347,
+            "probability_q16": 167
+          },
+          {
+            "token": 15701,
+            "probability_q16": 161
+          },
+          {
+            "token": 11396,
+            "probability_q16": 159
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 8201,
+            "probability_q16": 52559
+          },
+          {
+            "token": 2092,
+            "probability_q16": 8072
+          },
+          {
+            "token": 27774,
+            "probability_q16": 1765
+          },
+          {
+            "token": 19699,
+            "probability_q16": 1178
+          },
+          {
+            "token": 10776,
+            "probability_q16": 514
+          },
+          {
+            "token": 21130,
+            "probability_q16": 477
+          },
+          {
+            "token": 21036,
+            "probability_q16": 133
+          },
+          {
+            "token": 30,
+            "probability_q16": 130
+          },
+          {
+            "token": 28,
+            "probability_q16": 79
+          },
+          {
+            "token": 46505,
+            "probability_q16": 73
+          },
+          {
+            "token": 12873,
+            "probability_q16": 73
+          },
+          {
+            "token": 35352,
+            "probability_q16": 64
+          },
+          {
+            "token": 12012,
+            "probability_q16": 56
+          },
+          {
+            "token": 29,
+            "probability_q16": 55
+          },
+          {
+            "token": 4507,
+            "probability_q16": 34
+          },
+          {
+            "token": 10828,
+            "probability_q16": 26
+          },
+          {
+            "token": 15762,
+            "probability_q16": 26
+          },
+          {
+            "token": 617,
+            "probability_q16": 22
+          },
+          {
+            "token": 9491,
+            "probability_q16": 20
+          },
+          {
+            "token": 4535,
+            "probability_q16": 19
+          },
+          {
+            "token": 267,
+            "probability_q16": 18
+          },
+          {
+            "token": 1578,
+            "probability_q16": 15
+          },
+          {
+            "token": 18641,
+            "probability_q16": 15
+          },
+          {
+            "token": 1734,
+            "probability_q16": 14
+          },
+          {
+            "token": 420,
+            "probability_q16": 14
+          },
+          {
+            "token": 939,
+            "probability_q16": 14
+          },
+          {
+            "token": 284,
+            "probability_q16": 13
+          },
+          {
+            "token": 8748,
+            "probability_q16": 12
+          },
+          {
+            "token": 15291,
+            "probability_q16": 12
+          },
+          {
+            "token": 33408,
+            "probability_q16": 12
+          },
+          {
+            "token": 23078,
+            "probability_q16": 11
+          },
+          {
+            "token": 2907,
+            "probability_q16": 10
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 617,
+            "probability_q16": 23090
+          },
+          {
+            "token": 30,
+            "probability_q16": 22084
+          },
+          {
+            "token": 28,
+            "probability_q16": 8938
+          },
+          {
+            "token": 3988,
+            "probability_q16": 2466
+          },
+          {
+            "token": 1450,
+            "probability_q16": 2284
+          },
+          {
+            "token": 1343,
+            "probability_q16": 1025
+          },
+          {
+            "token": 284,
+            "probability_q16": 949
+          },
+          {
+            "token": 3449,
+            "probability_q16": 728
+          },
+          {
+            "token": 351,
+            "probability_q16": 468
+          },
+          {
+            "token": 43,
+            "probability_q16": 424
+          },
+          {
+            "token": 768,
+            "probability_q16": 364
+          },
+          {
+            "token": 282,
+            "probability_q16": 290
+          },
+          {
+            "token": 14104,
+            "probability_q16": 285
+          },
+          {
+            "token": 418,
+            "probability_q16": 211
+          },
+          {
+            "token": 365,
+            "probability_q16": 209
+          },
+          {
+            "token": 429,
+            "probability_q16": 204
+          },
+          {
+            "token": 1673,
+            "probability_q16": 203
+          },
+          {
+            "token": 4248,
+            "probability_q16": 152
+          },
+          {
+            "token": 18334,
+            "probability_q16": 147
+          },
+          {
+            "token": 281,
+            "probability_q16": 143
+          },
+          {
+            "token": 1891,
+            "probability_q16": 127
+          },
+          {
+            "token": 3358,
+            "probability_q16": 118
+          },
+          {
+            "token": 4889,
+            "probability_q16": 93
+          },
+          {
+            "token": 2500,
+            "probability_q16": 92
+          },
+          {
+            "token": 981,
+            "probability_q16": 82
+          },
+          {
+            "token": 19452,
+            "probability_q16": 79
+          },
+          {
+            "token": 5337,
+            "probability_q16": 66
+          },
+          {
+            "token": 1129,
+            "probability_q16": 50
+          },
+          {
+            "token": 338,
+            "probability_q16": 45
+          },
+          {
+            "token": 933,
+            "probability_q16": 41
+          },
+          {
+            "token": 597,
+            "probability_q16": 39
+          },
+          {
+            "token": 12090,
+            "probability_q16": 39
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 909,
+            "probability_q16": 37764
+          },
+          {
+            "token": 28702,
+            "probability_q16": 9436
+          },
+          {
+            "token": 198,
+            "probability_q16": 5304
+          },
+          {
+            "token": 2736,
+            "probability_q16": 3427
+          },
+          {
+            "token": 330,
+            "probability_q16": 1548
+          },
+          {
+            "token": 19080,
+            "probability_q16": 1205
+          },
+          {
+            "token": 533,
+            "probability_q16": 1057
+          },
+          {
+            "token": 1032,
+            "probability_q16": 782
+          },
+          {
+            "token": 1929,
+            "probability_q16": 688
+          },
+          {
+            "token": 378,
+            "probability_q16": 578
+          },
+          {
+            "token": 3897,
+            "probability_q16": 326
+          },
+          {
+            "token": 1814,
+            "probability_q16": 304
+          },
+          {
+            "token": 1117,
+            "probability_q16": 294
+          },
+          {
+            "token": 2550,
+            "probability_q16": 285
+          },
+          {
+            "token": 21017,
+            "probability_q16": 270
+          },
+          {
+            "token": 3681,
+            "probability_q16": 266
+          },
+          {
+            "token": 1116,
+            "probability_q16": 258
+          },
+          {
+            "token": 13835,
+            "probability_q16": 255
+          },
+          {
+            "token": 216,
+            "probability_q16": 194
+          },
+          {
+            "token": 312,
+            "probability_q16": 188
+          },
+          {
+            "token": 7049,
+            "probability_q16": 152
+          },
+          {
+            "token": 25212,
+            "probability_q16": 123
+          },
+          {
+            "token": 2445,
+            "probability_q16": 100
+          },
+          {
+            "token": 3488,
+            "probability_q16": 97
+          },
+          {
+            "token": 2306,
+            "probability_q16": 93
+          },
+          {
+            "token": 24517,
+            "probability_q16": 86
+          },
+          {
+            "token": 1068,
+            "probability_q16": 84
+          },
+          {
+            "token": 3300,
+            "probability_q16": 80
+          },
+          {
+            "token": 365,
+            "probability_q16": 78
+          },
+          {
+            "token": 3483,
+            "probability_q16": 73
+          },
+          {
+            "token": 43003,
+            "probability_q16": 71
+          },
+          {
+            "token": 1963,
+            "probability_q16": 69
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 436,
+            "probability_q16": 27616
+          },
+          {
+            "token": 314,
+            "probability_q16": 19853
+          },
+          {
+            "token": 1135,
+            "probability_q16": 2133
+          },
+          {
+            "token": 4147,
+            "probability_q16": 1900
+          },
+          {
+            "token": 3656,
+            "probability_q16": 1742
+          },
+          {
+            "token": 5019,
+            "probability_q16": 1712
+          },
+          {
+            "token": 6030,
+            "probability_q16": 958
+          },
+          {
+            "token": 11420,
+            "probability_q16": 927
+          },
+          {
+            "token": 11396,
+            "probability_q16": 920
+          },
+          {
+            "token": 2452,
+            "probability_q16": 724
+          },
+          {
+            "token": 7238,
+            "probability_q16": 631
+          },
+          {
+            "token": 19286,
+            "probability_q16": 587
+          },
+          {
+            "token": 2163,
+            "probability_q16": 471
+          },
+          {
+            "token": 4944,
+            "probability_q16": 468
+          },
+          {
+            "token": 597,
+            "probability_q16": 455
+          },
+          {
+            "token": 5309,
+            "probability_q16": 405
+          },
+          {
+            "token": 3408,
+            "probability_q16": 384
+          },
+          {
+            "token": 761,
+            "probability_q16": 373
+          },
+          {
+            "token": 4858,
+            "probability_q16": 327
+          },
+          {
+            "token": 4957,
+            "probability_q16": 325
+          },
+          {
+            "token": 2585,
+            "probability_q16": 321
+          },
+          {
+            "token": 2724,
+            "probability_q16": 275
+          },
+          {
+            "token": 2587,
+            "probability_q16": 269
+          },
+          {
+            "token": 553,
+            "probability_q16": 258
+          },
+          {
+            "token": 3763,
+            "probability_q16": 234
+          },
+          {
+            "token": 4242,
+            "probability_q16": 225
+          },
+          {
+            "token": 7498,
+            "probability_q16": 210
+          },
+          {
+            "token": 857,
+            "probability_q16": 200
+          },
+          {
+            "token": 1250,
+            "probability_q16": 179
+          },
+          {
+            "token": 31053,
+            "probability_q16": 161
+          },
+          {
+            "token": 7844,
+            "probability_q16": 146
+          },
+          {
+            "token": 31652,
+            "probability_q16": 146
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 3988,
+            "probability_q16": 22592
+          },
+          {
+            "token": 260,
+            "probability_q16": 14088
+          },
+          {
+            "token": 253,
+            "probability_q16": 11985
+          },
+          {
+            "token": 582,
+            "probability_q16": 5014
+          },
+          {
+            "token": 354,
+            "probability_q16": 2536
+          },
+          {
+            "token": 12090,
+            "probability_q16": 2134
+          },
+          {
+            "token": 597,
+            "probability_q16": 1855
+          },
+          {
+            "token": 1343,
+            "probability_q16": 1208
+          },
+          {
+            "token": 9951,
+            "probability_q16": 744
+          },
+          {
+            "token": 1450,
+            "probability_q16": 599
+          },
+          {
+            "token": 12311,
+            "probability_q16": 372
+          },
+          {
+            "token": 768,
+            "probability_q16": 210
+          },
+          {
+            "token": 1486,
+            "probability_q16": 175
+          },
+          {
+            "token": 9069,
+            "probability_q16": 168
+          },
+          {
+            "token": 857,
+            "probability_q16": 148
+          },
+          {
+            "token": 31026,
+            "probability_q16": 145
+          },
+          {
+            "token": 5334,
+            "probability_q16": 125
+          },
+          {
+            "token": 1891,
+            "probability_q16": 125
+          },
+          {
+            "token": 4889,
+            "probability_q16": 116
+          },
+          {
+            "token": 418,
+            "probability_q16": 116
+          },
+          {
+            "token": 599,
+            "probability_q16": 103
+          },
+          {
+            "token": 7553,
+            "probability_q16": 99
+          },
+          {
+            "token": 6785,
+            "probability_q16": 99
+          },
+          {
+            "token": 5932,
+            "probability_q16": 98
+          },
+          {
+            "token": 28,
+            "probability_q16": 97
+          },
+          {
+            "token": 15749,
+            "probability_q16": 96
+          },
+          {
+            "token": 41188,
+            "probability_q16": 91
+          },
+          {
+            "token": 3358,
+            "probability_q16": 91
+          },
+          {
+            "token": 1062,
+            "probability_q16": 86
+          },
+          {
+            "token": 1836,
+            "probability_q16": 76
+          },
+          {
+            "token": 2755,
+            "probability_q16": 74
+          },
+          {
+            "token": 4535,
+            "probability_q16": 70
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 281,
+            "probability_q16": 29408
+          },
+          {
+            "token": 335,
+            "probability_q16": 18730
+          },
+          {
+            "token": 618,
+            "probability_q16": 3468
+          },
+          {
+            "token": 288,
+            "probability_q16": 2748
+          },
+          {
+            "token": 418,
+            "probability_q16": 2221
+          },
+          {
+            "token": 284,
+            "probability_q16": 1555
+          },
+          {
+            "token": 347,
+            "probability_q16": 1193
+          },
+          {
+            "token": 7778,
+            "probability_q16": 813
+          },
+          {
+            "token": 7288,
+            "probability_q16": 454
+          },
+          {
+            "token": 2322,
+            "probability_q16": 448
+          },
+          {
+            "token": 4967,
+            "probability_q16": 443
+          },
+          {
+            "token": 14338,
+            "probability_q16": 403
+          },
+          {
+            "token": 216,
+            "probability_q16": 382
+          },
+          {
+            "token": 7262,
+            "probability_q16": 268
+          },
+          {
+            "token": 13706,
+            "probability_q16": 242
+          },
+          {
+            "token": 5874,
+            "probability_q16": 234
+          },
+          {
+            "token": 18660,
+            "probability_q16": 218
+          },
+          {
+            "token": 260,
+            "probability_q16": 213
+          },
+          {
+            "token": 2141,
+            "probability_q16": 212
+          },
+          {
+            "token": 476,
+            "probability_q16": 198
+          },
+          {
+            "token": 5259,
+            "probability_q16": 190
+          },
+          {
+            "token": 8957,
+            "probability_q16": 187
+          },
+          {
+            "token": 18587,
+            "probability_q16": 166
+          },
+          {
+            "token": 4053,
+            "probability_q16": 158
+          },
+          {
+            "token": 16782,
+            "probability_q16": 133
+          },
+          {
+            "token": 9446,
+            "probability_q16": 131
+          },
+          {
+            "token": 414,
+            "probability_q16": 127
+          },
+          {
+            "token": 6356,
+            "probability_q16": 126
+          },
+          {
+            "token": 426,
+            "probability_q16": 122
+          },
+          {
+            "token": 28,
+            "probability_q16": 116
+          },
+          {
+            "token": 4448,
+            "probability_q16": 114
+          },
+          {
+            "token": 12502,
+            "probability_q16": 114
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 216,
+            "probability_q16": 15392
+          },
+          {
+            "token": 4528,
+            "probability_q16": 14158
+          },
+          {
+            "token": 6684,
+            "probability_q16": 2738
+          },
+          {
+            "token": 23315,
+            "probability_q16": 2728
+          },
+          {
+            "token": 6334,
+            "probability_q16": 2327
+          },
+          {
+            "token": 625,
+            "probability_q16": 2249
+          },
+          {
+            "token": 377,
+            "probability_q16": 2048
+          },
+          {
+            "token": 8526,
+            "probability_q16": 1947
+          },
+          {
+            "token": 408,
+            "probability_q16": 1508
+          },
+          {
+            "token": 389,
+            "probability_q16": 1457
+          },
+          {
+            "token": 9558,
+            "probability_q16": 1370
+          },
+          {
+            "token": 22710,
+            "probability_q16": 1352
+          },
+          {
+            "token": 38743,
+            "probability_q16": 1347
+          },
+          {
+            "token": 260,
+            "probability_q16": 1162
+          },
+          {
+            "token": 11026,
+            "probability_q16": 1128
+          },
+          {
+            "token": 15292,
+            "probability_q16": 993
+          },
+          {
+            "token": 334,
+            "probability_q16": 972
+          },
+          {
+            "token": 422,
+            "probability_q16": 854
+          },
+          {
+            "token": 340,
+            "probability_q16": 850
+          },
+          {
+            "token": 5683,
+            "probability_q16": 809
+          },
+          {
+            "token": 4365,
+            "probability_q16": 801
+          },
+          {
+            "token": 1541,
+            "probability_q16": 797
+          },
+          {
+            "token": 452,
+            "probability_q16": 739
+          },
+          {
+            "token": 31808,
+            "probability_q16": 717
+          },
+          {
+            "token": 9643,
+            "probability_q16": 704
+          },
+          {
+            "token": 450,
+            "probability_q16": 677
+          },
+          {
+            "token": 2405,
+            "probability_q16": 677
+          },
+          {
+            "token": 1315,
+            "probability_q16": 643
+          },
+          {
+            "token": 40986,
+            "probability_q16": 605
+          },
+          {
+            "token": 659,
+            "probability_q16": 600
+          },
+          {
+            "token": 4290,
+            "probability_q16": 594
+          },
+          {
+            "token": 3689,
+            "probability_q16": 592
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 6854,
+            "probability_q16": 56938
+          },
+          {
+            "token": 81,
+            "probability_q16": 3677
+          },
+          {
+            "token": 264,
+            "probability_q16": 2591
+          },
+          {
+            "token": 94,
+            "probability_q16": 240
+          },
+          {
+            "token": 292,
+            "probability_q16": 169
+          },
+          {
+            "token": 4157,
+            "probability_q16": 167
+          },
+          {
+            "token": 266,
+            "probability_q16": 163
+          },
+          {
+            "token": 14717,
+            "probability_q16": 136
+          },
+          {
+            "token": 88,
+            "probability_q16": 130
+          },
+          {
+            "token": 2292,
+            "probability_q16": 128
+          },
+          {
+            "token": 15413,
+            "probability_q16": 114
+          },
+          {
+            "token": 1433,
+            "probability_q16": 111
+          },
+          {
+            "token": 35870,
+            "probability_q16": 77
+          },
+          {
+            "token": 395,
+            "probability_q16": 75
+          },
+          {
+            "token": 12006,
+            "probability_q16": 66
+          },
+          {
+            "token": 290,
+            "probability_q16": 62
+          },
+          {
+            "token": 361,
+            "probability_q16": 59
+          },
+          {
+            "token": 833,
+            "probability_q16": 56
+          },
+          {
+            "token": 735,
+            "probability_q16": 53
+          },
+          {
+            "token": 2074,
+            "probability_q16": 52
+          },
+          {
+            "token": 23629,
+            "probability_q16": 51
+          },
+          {
+            "token": 17528,
+            "probability_q16": 50
+          },
+          {
+            "token": 7216,
+            "probability_q16": 46
+          },
+          {
+            "token": 8186,
+            "probability_q16": 43
+          },
+          {
+            "token": 3592,
+            "probability_q16": 40
+          },
+          {
+            "token": 22829,
+            "probability_q16": 38
+          },
+          {
+            "token": 11302,
+            "probability_q16": 38
+          },
+          {
+            "token": 19501,
+            "probability_q16": 37
+          },
+          {
+            "token": 30165,
+            "probability_q16": 34
+          },
+          {
+            "token": 10885,
+            "probability_q16": 32
+          },
+          {
+            "token": 5559,
+            "probability_q16": 32
+          },
+          {
+            "token": 23676,
+            "probability_q16": 30
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 717,
+            "probability_q16": 63764
+          },
+          {
+            "token": 26873,
+            "probability_q16": 424
+          },
+          {
+            "token": 70,
+            "probability_q16": 264
+          },
+          {
+            "token": 1046,
+            "probability_q16": 195
+          },
+          {
+            "token": 22381,
+            "probability_q16": 179
+          },
+          {
+            "token": 3210,
+            "probability_q16": 138
+          },
+          {
+            "token": 28776,
+            "probability_q16": 84
+          },
+          {
+            "token": 677,
+            "probability_q16": 81
+          },
+          {
+            "token": 28,
+            "probability_q16": 39
+          },
+          {
+            "token": 42522,
+            "probability_q16": 34
+          },
+          {
+            "token": 386,
+            "probability_q16": 28
+          },
+          {
+            "token": 25944,
+            "probability_q16": 28
+          },
+          {
+            "token": 525,
+            "probability_q16": 21
+          },
+          {
+            "token": 34990,
+            "probability_q16": 18
+          },
+          {
+            "token": 8923,
+            "probability_q16": 18
+          },
+          {
+            "token": 3837,
+            "probability_q16": 17
+          },
+          {
+            "token": 25041,
+            "probability_q16": 17
+          },
+          {
+            "token": 5559,
+            "probability_q16": 16
+          },
+          {
+            "token": 9769,
+            "probability_q16": 16
+          },
+          {
+            "token": 15491,
+            "probability_q16": 15
+          },
+          {
+            "token": 43,
+            "probability_q16": 15
+          },
+          {
+            "token": 15442,
+            "probability_q16": 14
+          },
+          {
+            "token": 13309,
+            "probability_q16": 13
+          },
+          {
+            "token": 28764,
+            "probability_q16": 12
+          },
+          {
+            "token": 39991,
+            "probability_q16": 12
+          },
+          {
+            "token": 7933,
+            "probability_q16": 12
+          },
+          {
+            "token": 284,
+            "probability_q16": 11
+          },
+          {
+            "token": 6560,
+            "probability_q16": 11
+          },
+          {
+            "token": 17644,
+            "probability_q16": 10
+          },
+          {
+            "token": 14887,
+            "probability_q16": 10
+          },
+          {
+            "token": 16331,
+            "probability_q16": 10
+          },
+          {
+            "token": 7216,
+            "probability_q16": 9
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 1121,
+            "probability_q16": 65080
+          },
+          {
+            "token": 3255,
+            "probability_q16": 177
+          },
+          {
+            "token": 478,
+            "probability_q16": 144
+          },
+          {
+            "token": 3285,
+            "probability_q16": 13
+          },
+          {
+            "token": 323,
+            "probability_q16": 13
+          },
+          {
+            "token": 3173,
+            "probability_q16": 10
+          },
+          {
+            "token": 881,
+            "probability_q16": 8
+          },
+          {
+            "token": 2407,
+            "probability_q16": 8
+          },
+          {
+            "token": 11735,
+            "probability_q16": 7
+          },
+          {
+            "token": 270,
+            "probability_q16": 7
+          },
+          {
+            "token": 17134,
+            "probability_q16": 7
+          },
+          {
+            "token": 518,
+            "probability_q16": 5
+          },
+          {
+            "token": 13659,
+            "probability_q16": 4
+          },
+          {
+            "token": 13981,
+            "probability_q16": 4
+          },
+          {
+            "token": 2002,
+            "probability_q16": 4
+          },
+          {
+            "token": 994,
+            "probability_q16": 4
+          },
+          {
+            "token": 318,
+            "probability_q16": 4
+          },
+          {
+            "token": 3852,
+            "probability_q16": 4
+          },
+          {
+            "token": 9194,
+            "probability_q16": 3
+          },
+          {
+            "token": 2716,
+            "probability_q16": 3
+          },
+          {
+            "token": 2295,
+            "probability_q16": 3
+          },
+          {
+            "token": 5620,
+            "probability_q16": 3
+          },
+          {
+            "token": 9331,
+            "probability_q16": 2
+          },
+          {
+            "token": 636,
+            "probability_q16": 2
+          },
+          {
+            "token": 912,
+            "probability_q16": 2
+          },
+          {
+            "token": 1518,
+            "probability_q16": 2
+          },
+          {
+            "token": 454,
+            "probability_q16": 2
+          },
+          {
+            "token": 1738,
+            "probability_q16": 2
+          },
+          {
+            "token": 507,
+            "probability_q16": 2
+          },
+          {
+            "token": 36958,
+            "probability_q16": 2
+          },
+          {
+            "token": 374,
+            "probability_q16": 2
+          },
+          {
+            "token": 86,
+            "probability_q16": 2
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 28,
+            "probability_q16": 56663
+          },
+          {
+            "token": 281,
+            "probability_q16": 2554
+          },
+          {
+            "token": 365,
+            "probability_q16": 1380
+          },
+          {
+            "token": 284,
+            "probability_q16": 1247
+          },
+          {
+            "token": 2141,
+            "probability_q16": 1037
+          },
+          {
+            "token": 288,
+            "probability_q16": 932
+          },
+          {
+            "token": 335,
+            "probability_q16": 317
+          },
+          {
+            "token": 30,
+            "probability_q16": 296
+          },
+          {
+            "token": 3297,
+            "probability_q16": 152
+          },
+          {
+            "token": 418,
+            "probability_q16": 134
+          },
+          {
+            "token": 282,
+            "probability_q16": 125
+          },
+          {
+            "token": 3689,
+            "probability_q16": 76
+          },
+          {
+            "token": 4365,
+            "probability_q16": 66
+          },
+          {
+            "token": 4699,
+            "probability_q16": 62
+          },
+          {
+            "token": 43,
+            "probability_q16": 54
+          },
+          {
+            "token": 564,
+            "probability_q16": 48
+          },
+          {
+            "token": 351,
+            "probability_q16": 47
+          },
+          {
+            "token": 29625,
+            "probability_q16": 45
+          },
+          {
+            "token": 4528,
+            "probability_q16": 37
+          },
+          {
+            "token": 6560,
+            "probability_q16": 34
+          },
+          {
+            "token": 8882,
+            "probability_q16": 23
+          },
+          {
+            "token": 347,
+            "probability_q16": 22
+          },
+          {
+            "token": 533,
+            "probability_q16": 20
+          },
+          {
+            "token": 731,
+            "probability_q16": 20
+          },
+          {
+            "token": 1673,
+            "probability_q16": 19
+          },
+          {
+            "token": 3996,
+            "probability_q16": 19
+          },
+          {
+            "token": 6973,
+            "probability_q16": 19
+          },
+          {
+            "token": 2838,
+            "probability_q16": 18
+          },
+          {
+            "token": 29,
+            "probability_q16": 18
+          },
+          {
+            "token": 4664,
+            "probability_q16": 18
+          },
+          {
+            "token": 355,
+            "probability_q16": 17
+          },
+          {
+            "token": 42,
+            "probability_q16": 16
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 22349,
+            "probability_q16": 15331
+          },
+          {
+            "token": 48669,
+            "probability_q16": 8396
+          },
+          {
+            "token": 37173,
+            "probability_q16": 6226
+          },
+          {
+            "token": 29625,
+            "probability_q16": 5749
+          },
+          {
+            "token": 6079,
+            "probability_q16": 2643
+          },
+          {
+            "token": 2141,
+            "probability_q16": 2186
+          },
+          {
+            "token": 21489,
+            "probability_q16": 1921
+          },
+          {
+            "token": 41722,
+            "probability_q16": 1894
+          },
+          {
+            "token": 32655,
+            "probability_q16": 1876
+          },
+          {
+            "token": 4528,
+            "probability_q16": 1628
+          },
+          {
+            "token": 3996,
+            "probability_q16": 1517
+          },
+          {
+            "token": 3689,
+            "probability_q16": 1284
+          },
+          {
+            "token": 29059,
+            "probability_q16": 1253
+          },
+          {
+            "token": 42235,
+            "probability_q16": 1231
+          },
+          {
+            "token": 11097,
+            "probability_q16": 1005
+          },
+          {
+            "token": 20700,
+            "probability_q16": 984
+          },
+          {
+            "token": 34185,
+            "probability_q16": 978
+          },
+          {
+            "token": 5784,
+            "probability_q16": 825
+          },
+          {
+            "token": 42307,
+            "probability_q16": 770
+          },
+          {
+            "token": 9643,
+            "probability_q16": 707
+          },
+          {
+            "token": 4365,
+            "probability_q16": 707
+          },
+          {
+            "token": 422,
+            "probability_q16": 703
+          },
+          {
+            "token": 6684,
+            "probability_q16": 687
+          },
+          {
+            "token": 23331,
+            "probability_q16": 679
+          },
+          {
+            "token": 38426,
+            "probability_q16": 655
+          },
+          {
+            "token": 45064,
+            "probability_q16": 635
+          },
+          {
+            "token": 23315,
+            "probability_q16": 576
+          },
+          {
+            "token": 37861,
+            "probability_q16": 540
+          },
+          {
+            "token": 35939,
+            "probability_q16": 515
+          },
+          {
+            "token": 8526,
+            "probability_q16": 506
+          },
+          {
+            "token": 11360,
+            "probability_q16": 484
+          },
+          {
+            "token": 281,
+            "probability_q16": 444
+          }
+        ]
+      },
+      {
+        "entries": [
+          {
+            "token": 28,
+            "probability_q16": 46696
+          },
+          {
+            "token": 30,
+            "probability_q16": 6963
+          },
+          {
+            "token": 288,
+            "probability_q16": 2975
+          },
+          {
+            "token": 284,
+            "probability_q16": 2804
+          },
+          {
+            "token": 43,
+            "probability_q16": 2484
+          },
+          {
+            "token": 365,
+            "probability_q16": 1727
+          },
+          {
+            "token": 335,
+            "probability_q16": 367
+          },
+          {
+            "token": 281,
+            "probability_q16": 320
+          },
+          {
+            "token": 564,
+            "probability_q16": 200
+          },
+          {
+            "token": 618,
+            "probability_q16": 135
+          },
+          {
+            "token": 21225,
+            "probability_q16": 124
+          },
+          {
+            "token": 1673,
+            "probability_q16": 117
+          },
+          {
+            "token": 347,
+            "probability_q16": 89
+          },
+          {
+            "token": 4392,
+            "probability_q16": 70
+          },
+          {
+            "token": 216,
+            "probability_q16": 56
+          },
+          {
+            "token": 837,
+            "probability_q16": 49
+          },
+          {
+            "token": 1092,
+            "probability_q16": 47
+          },
+          {
+            "token": 3297,
+            "probability_q16": 44
+          },
+          {
+            "token": 1980,
+            "probability_q16": 40
+          },
+          {
+            "token": 506,
+            "probability_q16": 32
+          },
+          {
+            "token": 1265,
+            "probability_q16": 26
+          },
+          {
+            "token": 18334,
+            "probability_q16": 21
+          },
+          {
+            "token": 981,
+            "probability_q16": 20
+          },
+          {
+            "token": 25620,
+            "probability_q16": 18
+          },
+          {
+            "token": 3996,
+            "probability_q16": 17
+          },
+          {
+            "token": 418,
+            "probability_q16": 17
+          },
+          {
+            "token": 351,
+            "probability_q16": 14
+          },
+          {
+            "token": 46530,
+            "probability_q16": 13
+          },
+          {
+            "token": 10522,
+            "probability_q16": 13
+          },
+          {
+            "token": 731,
+            "probability_q16": 13
+          },
+          {
+            "token": 2141,
+            "probability_q16": 12
+          },
+          {
+            "token": 46312,
+            "probability_q16": 12
+          }
+        ]
+      }
+    ]
+  },
+  "held_out_audit": {
+    "selected_layer_count": 30,
+    "positions_executed": 57,
+    "observed_causal": {
+      "positions": 57,
+      "layers": 1710,
+      "heads": 15390,
+      "query_transforms": 15390,
+      "key_transports": 446310,
+      "value_transports": 446310,
+      "output_transforms": 15390,
+      "future_reads": 0,
+      "maximum_query_position": 56,
+      "maximum_source_position": 56
+    },
+    "expected_causal": {
+      "positions": 57,
+      "layers": 1710,
+      "heads": 15390,
+      "query_transforms": 15390,
+      "key_transports": 446310,
+      "value_transports": 446310,
+      "output_transforms": 15390,
+      "future_reads": 0,
+      "maximum_query_position": 56,
+      "maximum_source_position": 56
+    },
+    "causal_audit_exact": true,
+    "observed_projection": {
+      "hook_calls": 1710,
+      "query_vectors": 15390,
+      "key_vectors": 5130,
+      "value_vectors": 5130,
+      "query_lanes": 984960,
+      "key_lanes": 328320,
+      "value_lanes": 328320
+    },
+    "expected_projection": {
+      "hook_calls": 1710,
+      "query_vectors": 15390,
+      "key_vectors": 5130,
+      "value_vectors": 5130,
+      "query_lanes": 984960,
+      "key_lanes": 328320,
+      "value_lanes": 328320
+    },
+    "projection_audit_exact": true,
+    "r4_implementation": {
+      "schema": "uor-r4.r4-spin-transport-evidence/1",
+      "policy_identity": "schema=helm-d-r4-gauge-softmax/1\nscope=offline-full-prefix-causal-softmax-oracle\nhead-layout=complete-consecutive-R4-blocks\nframe=exact-cumulative-UOR-Spin-H4-left-quaternion\nencode=F_position_transpose-times-model-vector\ntransport=P_source_to_query=F_query_transpose-times-F_source\ntransported-state=every-causal-key-and-value\nscore=unchanged-scaled-dot-product-in-query-gauge\nselector=unchanged-stable-causal-softmax\naggregate=unchanged-weighted-value-sum-in-query-gauge\ndecode=F_query-times-query-gauge-output-before-Wo\ncontrol=source-frame-permuted-with-identical-shape-and-work\nexpected=ordinary-attention-numerical-and-behavioral-parity\nnot-claimed=geometry-advantage,intrinsic-distance,transformerless-serving,softmax-removal,source-free-language-model",
+      "intervention": "coherent",
+      "frame_table_offsets": [
+        74,
+        118,
+        118,
+        118,
+        118,
+        20,
+        20,
+        0,
+        1,
+        99,
+        116,
+        20,
+        20,
+        20,
+        0,
+        18,
+        116,
+        116,
+        20,
+        3,
+        99,
+        119,
+        119,
+        119,
+        118,
+        102,
+        102,
+        117,
+        74,
+        74,
+        74,
+        118,
+        102,
+        102,
+        117,
+        17,
+        2,
+        2,
+        102,
+        102,
+        61,
+        59,
+        115,
+        115,
+        117,
+        17,
+        58,
+        60,
+        60,
+        60,
+        61,
+        59,
+        58,
+        60,
+        61,
+        61,
+        61
+      ],
+      "audit": {
+        "positions_prepared": 57,
+        "r4_blocks_encoded": 14528160,
+        "key_blocks_transported": 7140960,
+        "value_blocks_transported": 7140960,
+        "output_blocks_decoded": 246240,
+        "future_position_reads": 0,
+        "source_frame_permutations": 0
+      }
+    },
+    "expected_r4": {
+      "positions_prepared": 57,
+      "r4_blocks_encoded": 14528160,
+      "key_blocks_transported": 7140960,
+      "value_blocks_transported": 7140960,
+      "output_blocks_decoded": 246240,
+      "future_position_reads": 0,
+      "source_frame_permutations": 0
+    },
+    "r4_audit_exact": true,
+    "zero_future_reads": true,
+    "all_layers_selected": true
+  },
+  "source_execution_after_held_out_trace": {
+    "observer_epoch": 0,
+    "requested_workers": 8,
+    "effective_workers": 8,
+    "active_workers": 0,
+    "max_active_workers": 8,
+    "forward_max_active_workers": 8,
+    "multiworker_forward_calls": 57,
+    "forward_calls": 57,
+    "streams_started": 57,
+    "streams_completed": 57,
+    "active_streams": 0,
+    "max_active_streams": 1,
+    "matrix_calls": 12027,
+    "batched_matrix_calls": 0,
+    "max_matrix_batch_width": 0,
+    "tiles_completed": 384864,
+    "output_cells_completed": 11666304,
+    "scalar_terms_completed": 7665352704,
+    "workspace_growth_events": 32,
+    "workspace_growth_bytes": 393216
+  },
+  "held_out_evaluation": {
+    "teacher_distilled": {
+      "positions": 57,
+      "row_covered_positions": 57,
+      "nonzero_suffix_positions": 10,
+      "suffix_depth_histogram": [
+        47,
+        8,
+        1,
+        1,
+        0
+      ],
+      "actual_token_covered_positions": 17,
+      "teacher_mass_total_q16": 3735495,
+      "teacher_mass_covered_q16": 1327607,
+      "teacher_top1_agreements": 8,
+      "actual_token_top1_correct": 5,
+      "teacher_cross_entropy_nats": null,
+      "covered_teacher_cross_entropy_nats": 2.7180540931192274
+    },
+    "observed_count": {
+      "positions": 57,
+      "row_covered_positions": 57,
+      "nonzero_suffix_positions": 10,
+      "suffix_depth_histogram": [
+        47,
+        8,
+        1,
+        1,
+        0
+      ],
+      "actual_token_covered_positions": 17,
+      "teacher_mass_total_q16": 3735495,
+      "teacher_mass_covered_q16": 1327607,
+      "teacher_top1_agreements": 6,
+      "actual_token_top1_correct": 5,
+      "teacher_cross_entropy_nats": null,
+      "covered_teacher_cross_entropy_nats": 7.473034175741985
+    },
+    "document_permuted_control": {
+      "positions": 57,
+      "row_covered_positions": 57,
+      "nonzero_suffix_positions": 10,
+      "suffix_depth_histogram": [
+        47,
+        8,
+        1,
+        1,
+        0
+      ],
+      "actual_token_covered_positions": 17,
+      "teacher_mass_total_q16": 3735495,
+      "teacher_mass_covered_q16": 1327607,
+      "teacher_top1_agreements": 6,
+      "actual_token_top1_correct": 4,
+      "teacher_cross_entropy_nats": null,
+      "covered_teacher_cross_entropy_nats": 3.277220497705827
+    }
+  },
+  "context_bearing_evaluation": {
+    "excluded_shared_bos_positions": 1,
+    "teacher_distilled": {
+      "positions": 9,
+      "teacher_mass_covered_q16": 422875,
+      "teacher_top1_agreements": 3,
+      "actual_next_top1_correct": 2,
+      "covered_teacher_cross_entropy_nats": 2.660721076003211
+    },
+    "observed_count": {
+      "positions": 9,
+      "teacher_mass_covered_q16": 422875,
+      "teacher_top1_agreements": 2,
+      "actual_next_top1_correct": 2,
+      "covered_teacher_cross_entropy_nats": 9.678894354210692
+    },
+    "document_permuted_control": {
+      "positions": 9,
+      "teacher_mass_covered_q16": 422875,
+      "teacher_top1_agreements": 1,
+      "actual_next_top1_correct": 1,
+      "covered_teacher_cross_entropy_nats": 4.342019002334558
+    }
+  },
+  "continuation": {
+    "prompt": "He was born",
+    "prompt_token_ids": [
+      3681,
+      436,
+      3988
+    ],
+    "generated_token_ids": [
+      281,
+      216,
+      28,
+      9291,
+      28,
+      9291,
+      28,
+      9291,
+      28,
+      9291,
+      28,
+      9291,
+      28,
+      9291,
+      28,
+      9291
+    ],
+    "decoded_text": " in , Scotland, Scotland, Scotland, Scotland, Scotland, Scotland, Scotland",
+    "replay_token_ids": [
+      281,
+      216,
+      28,
+      9291,
+      28,
+      9291,
+      28,
+      9291,
+      28,
+      9291,
+      28,
+      9291,
+      28,
+      9291,
+      28,
+      9291
+    ],
+    "replay_exact": true,
+    "source_execution_unchanged": true
+  },
+  "distilled_beats_count_cross_entropy": true,
+  "distilled_beats_count_teacher_top1": true,
+  "distilled_actual_top1_not_worse": true,
+  "permuted_control_loses_cross_entropy": true,
+  "permuted_control_loses_teacher_top1": true,
+  "exact_replay": true,
+  "zero_runtime_source_forwards": true,
+  "terminal": "PASS_SOURCE_FREE_TRACE_STUDENT_ADVANCE_GEOMETRIC_STATE_COMPILER",
+  "reveal_seconds": 204.6753085,
+  "result_cid": "blake3:e48b4172e02fc84eef9e00024ac6602b790d8230026a979d2f71c552ddca0cd4",
+  "nonclaims": [
+    "A positive result establishes only bounded source-free trace distillation, not geometric advantage.",
+    "The frozen corpus has only nine non-BOS context-bearing held-out positions; it cannot establish general generation or reasoning.",
+    "Held-out document 13 plaintext and token targets were known to the tokenizer-only reachability preflight; only its teacher outputs were held back until after artifact freeze. This is construction-disjoint, teacher-output-held-back transfer, not blind unseen-text generalization.",
+    "The student runtime is integer/table based, but no production R4G1, WASM, or multiplication-free release claim is made here."
+  ]
+}

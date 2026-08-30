@@ -207,17 +207,24 @@ substituted for one another.
   `r4_softmax_reference_generation_attempt_01_result_973.json`, plus
   `r4_softmax_reference_http_bridge_973.md` and
   `helm_d_learned_manifold_r4_construction_973.md`.
-- **`R4SoftmaxTeacherTraceV1` / `R4SoftmaxTraceCompilerV1` (proposed)** —
-  #973's next construction-only source-free compilation rung. The proposed
-  trace binds layerwise token, Q/K/V, attention, value, and logit states from
-  the exact qualified reference. The proposed compiler then emits a first
-  source-free student/attention-state artifact for decoded-token agreement and
-  next-token-loss comparison, with strict causal-input and matched-control
-  audits. Neither component is implemented or run. This rung does not establish
-  transformerless inference, geometry advantage, general generation,
-  correctness, reasoning, release, or WASM capability. Intrinsic/readout,
-  resonance, softmax replacement, recurrence, and exact lowering remain behind
-  this baseline.
+- **`R4SoftmaxTeacherTraceV1` / `R4SoftmaxTraceCompilerV1`** — #973's completed
+  construction-only trace and first source-free compilation rung. The trace
+  captures layerwise token, Q/K/V, top causal attention support, weighted
+  aggregate, decoded output, and logit state from the exact qualified
+  reference. The first compiler emits matched Q16 teacher-distilled,
+  observed-count, and document-permuted suffix arms. It passed its bounded
+  loss/top-1/control/replay/source-call gate, but the decoded continuation
+  collapsed into a `, Scotland` cycle and the student does not consume
+  geometric trace state. It therefore establishes deterministic bounded
+  source-free distillation, not geometry advantage, coherent generation,
+  reasoning, release, or WASM capability. See
+  `docs/r4_softmax_trace_student_973.md`.
+- **`R4SoftmaxTraceStateStudentV1` (proposed)** — the active #973 successor:
+  compile a bounded causal state transition and readout from the captured
+  query-gauge Q, transported K/V support, weighted aggregate, and decoded
+  model-frame output. It must beat the established suffix artifact and an
+  equal-budget non-geometric recurrent cell while losing its advantage under
+  transport/state permutation. It is `NOT_IMPLEMENTED` and `NOT_RUN`.
 - **H4 frame connection** — the exact object is the relative H4 group element;
   the current compiler-side f64 matrix represents its left-quaternion action
   and is numerically orthogonal under the tested finite-group law. It does not
@@ -359,11 +366,12 @@ substituted for one another.
   `R4SoftmaxReferenceGeneratorV1` (`HELM-D-R4`) generation, and its explicit
   opt-in, loopback-only native HTTP endpoint plus passing dashboard
   wiring/static native-readiness and WASM-isolation checks (browser
-  interaction/E2E `NOT_RUN`), followed by the proposed
-  `R4SoftmaxTeacherTraceV1`/source-free trace compiler and first student
-  comparison. Intrinsic/readout,
+  interaction/E2E `NOT_RUN`), followed by the completed
+  `R4SoftmaxTeacherTraceV1`/source-free suffix-student comparison and its
+  decoded-cycle boundary. The active successor is
+  `R4SoftmaxTraceStateStudentV1`. Intrinsic/readout,
   fiber-preserving multi-resonance replacement,
-  bounded recurrent factorization, and final requalification are parked
+  whole-decoder recurrent factorization, and final requalification are parked
   (#973);
   correctness with abstention (#954); then bounded hypothetical-branch reasoning
   (#955). #969, #983, and #986 remain evidence provenance rather than a

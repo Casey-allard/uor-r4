@@ -22,21 +22,30 @@
   also passes one frozen eight-token prompt with exact CLI token, decision-CID,
   and state-CID parity, exact audits across all 30 layers, and zero future
   reads. Dashboard wiring/static native-readiness and WASM-isolation checks
-  pass, while browser interaction/E2E is `NOT_RUN`; the default engine remains
-  unchanged.
-  The sole active step is the proposed, not-yet-implemented
-  `R4SoftmaxTeacherTraceV1` and trace compiler: capture construction-only
-  layerwise token/QKV/attention/value/logit traces from the exact reference,
-  then compile and evaluate the first source-free student/attention-state
-  artifact against decoded tokens and next-token loss.
-  Intrinsic/readout, resonance, softmax replacement,
-  recurrence, and lowering are parked. D3 remains `NOT_RUN`; #954 remains
+  pass, but the hosted Pages deployment is static, currently reports WASM
+  offline, and has no functioning chat backend or compiled-artifact lowering;
+  the default engine remains unchanged.
+  `R4SoftmaxTeacherTraceV1` and `R4SoftmaxTraceStudentV1` have completed the first
+  trace/compiler step. The source-free Q16 suffix artifact shows bounded
+  distillation against count and document-permuted controls, but its autonomous
+  continuation loops; this is not geometric attention, coherent generation,
+  correctness, general-purpose inference, or reasoning. The sole active step is
+  `R4SoftmaxTraceStateStudentV1`: compile construction traces into causal
+  source-free recurrent R4/Spin state and beat frozen suffix, plain-recurrent,
+  and transport-permuted controls on held-out decisions/loss, exact replay,
+  zero source access, destructive-control separation, and non-looping decode.
+  Offline teacher/compiler floats, matrix operations, and softmax are permitted
+  while proving the mechanism; the deployed destination remains exact,
+  integer/table-native, and source-free.
+  Intrinsic/readout alternatives, resonance-based softmax replacement,
+  full-model recurrent lowering, and exact deployment are parked. D3 remains `NOT_RUN`; #954 remains
   blocked. No tag, release, hosted promotion, or static-WASM claim is
   authorized. See the
   [generation record](r4_softmax_reference_generation_973.md) and
   [compact aggregate](r4_softmax_reference_generation_attempt_01_result_973.json),
   plus the [native endpoint/dashboard-wiring record](r4_softmax_reference_http_bridge_973.md) and
-  [structured result](r4_softmax_reference_http_bridge_result_973.json).
+  [structured result](r4_softmax_reference_http_bridge_result_973.json), then
+  the [trace-student record](r4_softmax_trace_student_973.md).
   The intermediate
   [Geometric Causal Decoder Roadmap](geometric_causal_decoder_plan.md) records
   the superseded #948-#958 sequence.

@@ -539,6 +539,7 @@ fn exact_executor_contract_components() -> Vec<(&'static str, &'static [u8])> {
         workspace_component!("crates/uor-r4-core/src/paragraph_entity_spin_path_attention.rs"),
         workspace_component!("crates/uor-r4-core/src/prime_route_attention.rs"),
         workspace_component!("crates/uor-r4-core/src/prime_route_geometric_attention.rs"),
+        workspace_component!("crates/uor-r4-core/src/r4_softmax_trace_student.rs"),
         workspace_component!("crates/uor-r4-core/src/recursive_geometric_attention.rs"),
         workspace_component!("crates/uor-r4-core/src/semantic/manifest.rs"),
         workspace_component!("crates/uor-r4-core/src/semantic/merkle.rs"),

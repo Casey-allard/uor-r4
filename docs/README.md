@@ -66,14 +66,24 @@ explicit opt-in, loopback-only dedicated native HTTP endpoint now passes the
 frozen eight-token sunlight canary with the same token sequence, decoded text,
 decision CID, persistent-state CID, all-30-layer exact audits, and zero future
 reads as the CLI. Dashboard wiring, native-readiness gating, and static/WASM
-isolation checks pass; browser interaction/E2E is `NOT_RUN`. The feature is
-disabled by default and does not change the default engine. This reference remains transformer-compatible and
+isolation checks pass, but the hosted Pages deployment is static, currently
+reports WASM offline, and has no functioning chat backend or compiled-artifact
+lowering. The feature is disabled by default and does not change the default
+engine. This reference remains transformer-compatible and
 `f32`/multiply/alloc/source-weight backed—not source-free, table-native,
-multiply-free, transformerless, or a browser-WASM decoder. The next primary
-rung is construction-only layerwise token/Q/K/V/attention/value/logit trace
-capture from this exact behavioral oracle, followed by compilation and
-evaluation of the first source-free student/attention-state artifact. Do not
-resume resonance substitutes or promote a product/release until that passes.
+multiply-free, transformerless, or a browser-WASM decoder.
+`R4SoftmaxTeacherTraceV1` and `R4SoftmaxTraceStudentV1` then completed the first
+construction-trace/compiler rung. The source-free Q16 suffix artifact shows a
+bounded distillation effect against count and document-permuted controls, but
+its autonomous continuation loops. It does not establish geometric attention,
+coherent generation, correctness, general-purpose inference, or reasoning. The active rung is
+`R4SoftmaxTraceStateStudentV1`: compile construction traces into causal
+source-free recurrent R4/Spin state and beat frozen suffix, plain-recurrent, and
+transport-permuted controls on held-out decisions/loss, exact replay, zero
+source access, a destructive-control effect, and non-looping decode. Offline
+teacher/compiler floats, matrix operations, and softmax are allowed for this
+mechanism proof; deployed runtime remains exact and source-free. Do not resume
+resonance substitutes or promote a product/release until that passes.
 No tag, release, hosted promotion, or static-WASM claim is authorized. D3
 remains `NOT_RUN`; #973 remains open and #954 remains blocked.
 
@@ -81,13 +91,16 @@ Pinned-source provenance, ordinary-donor reproduction, transported-R4 parity,
 the frame-permutation control, and the causal audit now pass; see the
 [`HELM-D-R4` record](helm_d_r4_softmax_decoder_973.md). Upstream checkpoint
 parity remains `NOT_RUN`; the intrinsic V1 outcome is recorded in the
-[intrinsic Lorentz R4 record](intrinsic_lorentz_r4_attention_973.md). Resonance
-replacement, recurrence, and exact lowering are parked; #954 remains blocked.
+[intrinsic Lorentz R4 record](intrinsic_lorentz_r4_attention_973.md). Resonance-
+based softmax replacement, full-model recurrent lowering, and exact deployment
+are parked; #954 remains blocked.
 The binding autonomous-generation evidence is the
 [generation record](r4_softmax_reference_generation_973.md) and
 [compact attempt-01 aggregate](r4_softmax_reference_generation_attempt_01_result_973.json).
 The endpoint and dashboard-wiring result is recorded in
-[the native bridge record](r4_softmax_reference_http_bridge_973.md).
+[the native bridge record](r4_softmax_reference_http_bridge_973.md). The bounded
+suffix-distillation result and its nonclaim boundary are recorded in the
+[trace-student record](r4_softmax_trace_student_973.md).
 
 ## Start here
 
@@ -136,8 +149,10 @@ cargo run --release --offline --bin r4 -- \
 
 The dashboard reveals the source-backed reference only after the native server
 reports it ready. Static/WASM mode rejects it; the default engine and `/api/chat`
-remain unchanged. Those wiring/readiness and isolation checks pass; browser
-interaction/E2E remains `NOT_RUN`.
+remain unchanged. The hosted Pages build is therefore a static visualization,
+currently reports WASM offline, and cannot provide chat without a backend or a
+lowered compiled artifact. Its failure is a separate integration boundary, not
+evidence against or a replacement for the active state-student gate.
 
 ## Current authority
 
@@ -166,9 +181,11 @@ These are the small set of living documents that define the present work:
    [compact aggregate](r4_softmax_reference_generation_attempt_01_result_973.json)
    bind the generation PASS; the
    [native bridge record](r4_softmax_reference_http_bridge_973.md) binds the
-   subsequent endpoint CLI-parity canary; browser E2E is `NOT_RUN`.
-   Construction-only oracle traces and the first
-   source-free student/attention-state artifact are next.
+   subsequent endpoint CLI-parity canary. The hosted Pages build remains static
+   and lacks a working chat backend/artifact lowering. The
+   [trace-student record](r4_softmax_trace_student_973.md) binds the completed
+   source-free Q16 suffix distillation and its looping-output nonclaim boundary;
+   `R4SoftmaxTraceStateStudentV1` is next.
    The bounded
    [multi-resonance reuse audit](multi_resonance_attention_sieve_audit_973.md)
    distinguishes the implemented sin/cos and Spin substrate from the still
@@ -201,10 +218,11 @@ reversible lexical geometry
   → accept ordinary dot-product/stable-softmax attention in coherent R4/Spin frames
   → qualify provider-free-at-execution, source-backed R4SoftmaxReferenceGeneratorV1 (HELM-D-R4) native CLI generation [PASS]
   → verify the opt-in, loopback-only dedicated native HTTP endpoint; no default-engine change [PASS]
-  → dashboard wiring/readiness + static/WASM isolation [PASS]; browser E2E [NOT_RUN]
-  → capture construction-only layerwise oracle traces
-  → compile and evaluate the first source-free student/attention-state artifact
-  → park intrinsic/readout, resonance, softmax replacement, recurrence, and lowering
+  → dashboard wiring/readiness + static/WASM isolation [PASS]; hosted Pages has no working chat backend/artifact lowering
+  → capture construction-only layerwise oracle traces [COMPLETE]
+  → compile/evaluate source-free Q16 suffix trace student [BOUNDED DISTILLATION; LOOPING OUTPUT]
+  → compile/evaluate R4SoftmaxTraceStateStudentV1 recurrent R4/Spin state [ACTIVE]
+  → park intrinsic/readout alternatives, resonance-based softmax replacement, full-model recurrent lowering, and exact deployment
   → correctness and abstention
   → multi-step reasoning
   → chat / CLI / WASM product integration

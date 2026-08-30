@@ -112,6 +112,8 @@ enum Command {
     SourceFreeTable(SourceFreeTableArgs),
     /// Generate bounded text through all-layer R4/Spin causal softmax.
     R4SoftmaxGenerate(R4SoftmaxGenerateArgs),
+    /// Compile and score the first source-free student of R4/Spin softmax traces.
+    R4SoftmaxTraceStudent(R4SoftmaxTraceStudentArgs),
     /// Run the fixed S0 lexical/route-state round-trip witness without loading a model.
     LexicalIngestionWitness,
     /// Run the frozen A1.0 ordered-state/value-reachability gate without a scorer.
@@ -716,6 +718,52 @@ struct R4SoftmaxGenerateArgs {
     /// Optional path for the complete source/policy/token/audit JSON report.
     #[arg(long)]
     json_output: Option<PathBuf>,
+}
+
+#[derive(Args, Debug)]
+struct R4SoftmaxTraceStudentArgs {
+    /// Exact local pinned Hugging Face source snapshot; no network fallback.
+    #[arg(long, default_value = ".uor-models/sources/smollm2-135m-instruct")]
+    source: PathBuf,
+    /// Full Hugging Face source commit bound by the snapshot cache tree.
+    #[arg(
+        long,
+        default_value = uor_r4_wasm_router::geometric_decoder::PINNED_SOURCE_REVISION
+    )]
+    source_revision: String,
+    /// Exact 40-character uor-r4 Git commit that built this evidence command.
+    #[arg(long, default_value = "UNBOUND")]
+    implementation_revision: String,
+    /// Fixed exact output-row workers for the source decoder projections.
+    #[arg(long, default_value_t = 8)]
+    workers: usize,
+    /// Stop after tokenizer-only partition and suffix-reachability arithmetic.
+    #[arg(long, conflicts_with = "reveal")]
+    preflight_only: bool,
+    /// Reveal the held-out document against an already frozen construction artifact.
+    #[arg(long)]
+    reveal: bool,
+    /// Frozen source-free student artifact.
+    #[arg(
+        long,
+        default_value = ".uor-models/research/issue-973/r4-softmax-trace-student-v1.bin"
+    )]
+    artifact_output: PathBuf,
+    /// Construction-only R4 attention teacher trace.
+    #[arg(
+        long,
+        default_value = ".uor-models/research/issue-973/r4-softmax-teacher-trace-v1.bin"
+    )]
+    trace_output: PathBuf,
+    /// Construction-only freeze manifest binding trace and artifact CIDs.
+    #[arg(
+        long,
+        default_value = ".uor-models/research/issue-973/r4-softmax-trace-freeze-v1.json"
+    )]
+    freeze_output: PathBuf,
+    /// Decision-bearing held-out result and replay audit.
+    #[arg(long, default_value = "docs/r4_softmax_trace_student_973_raw.json")]
+    result_output: PathBuf,
 }
 
 #[derive(Args, Debug)]
@@ -2284,6 +2332,49 @@ fn run(cli: &Cli) -> Result<(), RunError> {
             }
             println!("{}", report.transcript.response_text);
             Ok(())
+        }
+        Some(Command::R4SoftmaxTraceStudent(args)) => {
+            let workers = std::num::NonZeroUsize::new(args.workers).ok_or_else(|| {
+                RunError::Command("--workers must be greater than zero".to_owned())
+            })?;
+            let config =
+                uor_r4_wasm_router::r4_softmax_trace_experiment::R4SoftmaxTraceExperimentConfig {
+                    source: args.source.clone(),
+                    source_revision: args.source_revision.clone(),
+                    implementation_revision: args.implementation_revision.clone(),
+                    workers,
+                    artifact_output: args.artifact_output.clone(),
+                    trace_output: args.trace_output.clone(),
+                    freeze_output: args.freeze_output.clone(),
+                    result_output: args.result_output.clone(),
+                };
+            if args.preflight_only {
+                let report = uor_r4_wasm_router::r4_softmax_trace_experiment::preflight(&config)
+                    .map_err(|error| RunError::Command(error.to_string()))?;
+                let rendered = serde_json::to_string_pretty(&report).map_err(|error| {
+                    RunError::Command(format!("serialize R4 softmax trace preflight: {error}"))
+                })?;
+                println!("{rendered}");
+                Ok(())
+            } else if args.reveal {
+                let result =
+                    uor_r4_wasm_router::r4_softmax_trace_experiment::reveal_held_out(&config)
+                        .map_err(|error| RunError::Command(error.to_string()))?;
+                let rendered = serde_json::to_string_pretty(&result).map_err(|error| {
+                    RunError::Command(format!("serialize R4 softmax trace result: {error}"))
+                })?;
+                println!("{rendered}");
+                Ok(())
+            } else {
+                let freeze =
+                    uor_r4_wasm_router::r4_softmax_trace_experiment::compile_construction(&config)
+                        .map_err(|error| RunError::Command(error.to_string()))?;
+                let rendered = serde_json::to_string_pretty(&freeze).map_err(|error| {
+                    RunError::Command(format!("serialize R4 softmax trace freeze: {error}"))
+                })?;
+                println!("{rendered}");
+                Ok(())
+            }
         }
         Some(Command::LexicalIngestionWitness) => {
             let witness = uor_r4_core::canonical_lexical_ingestion::run_authorized_probe()
@@ -3912,6 +4003,7 @@ mod tests {
             "source-free-table",
             "bounded-geometric-generate",
             "r4-softmax-generate",
+            "r4-softmax-trace-student",
             "lexical-ingestion-witness",
             "research-tools",
         ] {
@@ -4064,6 +4156,46 @@ mod tests {
         );
         assert_eq!(args.workers, 4);
         assert!(args.json_output.is_none());
+    }
+
+    #[test]
+    fn parses_r4_softmax_trace_student_preflight() {
+        let cli = Cli::try_parse_from([
+            "r4",
+            "r4-softmax-trace-student",
+            "--source",
+            "/models/smollm2",
+            "--workers",
+            "6",
+            "--implementation-revision",
+            "0123456789abcdef0123456789abcdef01234567",
+            "--preflight-only",
+            "--artifact-output",
+            "/tmp/student.bin",
+            "--trace-output",
+            "/tmp/trace.bin",
+            "--result-output",
+            "/tmp/result.json",
+        ])
+        .unwrap();
+        let Some(Command::R4SoftmaxTraceStudent(args)) = cli.command else {
+            panic!("expected r4-softmax-trace-student")
+        };
+        assert_eq!(args.source, PathBuf::from("/models/smollm2"));
+        assert_eq!(args.workers, 6);
+        assert_eq!(
+            args.implementation_revision,
+            "0123456789abcdef0123456789abcdef01234567"
+        );
+        assert!(args.preflight_only);
+        assert!(!args.reveal);
+        assert_eq!(args.artifact_output, PathBuf::from("/tmp/student.bin"));
+        assert_eq!(args.trace_output, PathBuf::from("/tmp/trace.bin"));
+        assert_eq!(
+            args.freeze_output,
+            PathBuf::from(".uor-models/research/issue-973/r4-softmax-trace-freeze-v1.json")
+        );
+        assert_eq!(args.result_output, PathBuf::from("/tmp/result.json"));
     }
 
     #[test]

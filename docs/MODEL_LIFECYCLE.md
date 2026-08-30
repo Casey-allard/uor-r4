@@ -69,20 +69,26 @@ donor reproduction. Its explicit opt-in, loopback-only dedicated native HTTP
 endpoint now passes the frozen eight-token sunlight canary with the same token
 sequence, decoded text, decision CID, persistent-state CID, all-30-layer exact
 audits, and zero future reads as the CLI. Dashboard wiring, native-readiness
-gating, and static/WASM isolation checks pass; browser interaction/E2E is
-`NOT_RUN`. The feature is disabled by default and does not change the default
-engine. The active successor is construction-only layerwise
-token/Q/K/V/attention/value/logit trace capture from this exact behavioral
-oracle, followed by compilation and evaluation of the first source-free
-student/attention-state artifact. This reference remains transformer-compatible
+gating, and static/WASM isolation checks pass, but the hosted Pages deployment
+is static, currently reports WASM offline, and has no functioning chat backend
+or compiled-artifact lowering. The feature is disabled by default and does not
+change the default engine. `R4SoftmaxTeacherTraceV1` and
+`R4SoftmaxTraceStudentV1` then completed the first trace/compiler rung. The
+source-free Q16 suffix artifact shows bounded distillation against count and
+document-permuted controls, but autonomous decoding loops. The active successor
+is `R4SoftmaxTraceStateStudentV1`: compile construction traces into causal
+source-free recurrent R4/Spin state and beat frozen suffix, plain-recurrent, and
+transport-permuted controls under strict held-out, causal, exact-replay,
+zero-source, destructive-control, and non-looping-decode gates. This reference remains transformer-compatible
 and `f32`/multiply/alloc/source-weight backed; it is not source-free,
 table-native, multiply-free, transformerless, browser-WASM, release, or
 frontier-model evidence.
-Intrinsic/readout, multi-resonance, softmax replacement, bounded recurrence,
-and exact H4/Q29/integer-table lowering are parked; #954 remains blocked. Validation,
+Intrinsic/readout alternatives, multi-resonance softmax replacement, full-model
+recurrent lowering, and exact H4/Q29/integer-table deployment are parked; #954
+remains blocked. Validation,
 test, and inference remain strictly causal and cannot fit on their future
-tokens. Compiler-side floating point and multiplication are allowed to prove
-the representation before exact quantized/table lowering. No source-free
+tokens. Compiler-side floating point, matrix operations, and softmax are allowed
+to prove the representation before exact quantized/table lowering. No source-free
 general geometric attention, coherent chat, correctness, or reasoning claim
 follows until a compiled artifact meets its frozen oracle behavioral/loss
 comparison and matched controls; #953 remains a separate retained comparator.
@@ -93,10 +99,11 @@ frame-permutation liveness, and causal audit `PASS` on the bounded held-out
 full-decoder run; upstream checkpoint parity `NOT_RUN`; intrinsic R4 attention
 V1 attempt 02 `UNAVAILABLE` before D3; learned-manifold V2 valid negative;
 localization terminal `REJECT_TANGENT_READOUT_SELECT_SCORE_PREFLIGHT`; D3
-`NOT_RUN`; resonance replacement `NOT_RUN` and parked; recurrence and exact
-lowering parked; #954 blocked. See
+`NOT_RUN`; resonance replacement `NOT_RUN` and parked; full-model recurrent and
+exact lowering parked; #954 blocked. See
 [`helm_d_r4_softmax_decoder_973.md`](helm_d_r4_softmax_decoder_973.md) and
-[`helm_d_learned_manifold_r4_construction_973.md`](helm_d_learned_manifold_r4_construction_973.md).
+[`helm_d_learned_manifold_r4_construction_973.md`](helm_d_learned_manifold_r4_construction_973.md),
+then [`r4_softmax_trace_student_973.md`](r4_softmax_trace_student_973.md).
 
 ## Current route-native target lifecycle
 
@@ -130,10 +137,11 @@ canonical text/corpus
     -> ordinary dot-product/stable-softmax attention accepted in coherent R4/Spin frames
     -> provider-free-at-execution, source-backed R4SoftmaxReferenceGeneratorV1 (HELM-D-R4) native CLI generation [PASS]
     -> explicit opt-in, loopback-only dedicated native HTTP endpoint, exact same policy, no default-engine change [PASS]
-    -> dashboard wiring/readiness + static/WASM isolation [PASS], browser E2E [NOT_RUN]
-    -> construction-only layerwise oracle traces
-    -> first source-free student/attention-state compilation and evaluation
-    -> intrinsic/readout, paired-E8, resonance, replacement, recurrence, and lowering parked
+    -> dashboard wiring/readiness + static/WASM isolation [PASS], hosted Pages static/offline without chat backend/artifact lowering
+    -> construction-only layerwise oracle traces [COMPLETE]
+    -> source-free Q16 suffix trace student [BOUNDED DISTILLATION; LOOPING OUTPUT]
+    -> R4SoftmaxTraceStateStudentV1 recurrent R4/Spin state [ACTIVE]
+    -> intrinsic/readout alternatives, paired-E8, resonance replacement, full-model recurrent lowering, and exact deployment parked
     -> correctness + typed abstention (#954)
     -> bounded reasoning (#955)
     -> durable isolated CLI/HTTP chat + persisted hive memory (#962)
@@ -1479,10 +1487,11 @@ D3 on construction covariance, with diagnostic curved NLL worse than donor and
   decoder path. Its explicit opt-in, loopback-only dedicated native HTTP endpoint
   also passes the frozen eight-token CLI-parity canary without changing the
   default engine. Dashboard wiring/readiness and static/WASM-isolation checks
-  pass; browser E2E is `NOT_RUN`. #973 remains open and correctness (#954), reasoning (#955),
-  and durable chat/memory integration (#962) remain blocked. The next primary
-  rung is construction-only layerwise trace capture and compilation/evaluation
-  of a first source-free student/attention-state artifact. Resonance substitutes,
+  pass, but hosted Pages remains static/offline without a functioning chat
+  backend/artifact lowering. #973 remains open and correctness (#954), reasoning
+  (#955), and durable chat/memory integration (#962) remain blocked. The Q16
+  suffix trace student is complete with bounded distillation but looping output.
+  The next primary rung is `R4SoftmaxTraceStateStudentV1`. Resonance substitutes,
   optimization, and release work remain parked until that passes. Lowering does
   not otherwise reactivate automatically on a generation positive.
 
@@ -1520,8 +1529,9 @@ unchanged. The bridge is disabled by default, loopback-only, native CPU only,
 single-flight, and capped at 32 generated tokens. Static/WASM builds reject it.
 The frozen eight-token canary matched the CLI token sequence, decoded text,
 decision CID, persistent-state CID, all-30-layer audits, and zero-future-read
-audit. Dashboard wiring/readiness and isolation checks pass; browser
-interaction/E2E remains `NOT_RUN`. See the
+audit. Dashboard wiring/readiness and isolation checks pass, but hosted Pages is
+a static visualization that currently reports WASM offline and cannot provide
+chat without a native backend or a lowered compiled artifact. See the
 [`native bridge record`](r4_softmax_reference_http_bridge_973.md).
 
 Until an explicit product promotion, the public `ask`, `chat`, default HTTP,
@@ -1548,6 +1558,9 @@ complete envelope.
 Static WASM deployments cannot run the compiler. They may install an already
 emitted production envelope; an incomplete static bundle leaves the explicit
 geometric fallback active instead of granting the graph production status.
+The current hosted Pages bundle has no installed source-free state-student
+artifact and no chat backend, so its offline/non-working chat surface is not
+attention, generation, inference, or reasoning evidence.
 
 The native dashboard also exposes **Download Hugging Face Weights**. Its input
 defaults to the pinned `owner/repository@commit` from

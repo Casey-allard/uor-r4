@@ -1,0 +1,435 @@
+{
+  "schema": "uor-r4.r4-softmax-trace-student-freeze/1",
+  "issue": 973,
+  "claim_scope": "construction-only R4/Spin softmax trace and deterministic source-free Q16 suffix student",
+  "implementation_revision": "3cbeab64ba40f4445f878741b87ec6a487fcee00",
+  "source_revision": "7e27bd9f95328f0f3b08261d1252705110c806f8",
+  "source_cid": "blake3:12d2cd8a877ef2cdcf785b3d4d1f373e0419074cc884aeaff06fc059686a5ba5",
+  "tokenizer_cid": "blake3:944d1262d516abd56a8156dd3058a73a1bf3dc19419527592d854d162f288073",
+  "attention_policy": "schema=helm-d-r4-gauge-softmax/1\nscope=offline-full-prefix-causal-softmax-oracle\nhead-layout=complete-consecutive-R4-blocks\nframe=exact-cumulative-UOR-Spin-H4-left-quaternion\nencode=F_position_transpose-times-model-vector\ntransport=P_source_to_query=F_query_transpose-times-F_source\ntransported-state=every-causal-key-and-value\nscore=unchanged-scaled-dot-product-in-query-gauge\nselector=unchanged-stable-causal-softmax\naggregate=unchanged-weighted-value-sum-in-query-gauge\ndecode=F_query-times-query-gauge-output-before-Wo\ncontrol=source-frame-permuted-with-identical-shape-and-work\nexpected=ordinary-attention-numerical-and-behavioral-parity\nnot-claimed=geometry-advantage,intrinsic-distance,transformerless-serving,softmax-removal,source-free-language-model",
+  "attention_policy_cid": "blake3:80ab8728579f65423be19286c32649c1000af463c4d4801b16eaa97222901a54",
+  "construction_manifest_cid": "blake3:d3aa26f40171651fb808c2f53c11a493507fecca6591ad2379765627a2fd46f3",
+  "construction_documents": [
+    {
+      "id": "14",
+      "partition": "construction",
+      "text_cid": "blake3:d52e5fe5f843fce27449bbcb39788644a35a43e5ce92995245b8b540cdca37a0",
+      "target_tokens": 8
+    },
+    {
+      "id": "657",
+      "partition": "construction",
+      "text_cid": "blake3:82cdb1cb22ab43b63704fd802da88f01539d073193d901047a86d410c8df9adb",
+      "target_tokens": 8
+    },
+    {
+      "id": "4579",
+      "partition": "construction",
+      "text_cid": "blake3:078512d6513a0191bcec17628d6d5cc3252f3cc610d4d9af064048660c920400",
+      "target_tokens": 10
+    },
+    {
+      "id": "5121",
+      "partition": "construction",
+      "text_cid": "blake3:455a5edc9a353f4d57f4d665637d367d350b740e62646cd04c135baf4d20e9e2",
+      "target_tokens": 12
+    }
+  ],
+  "construction_positions": 38,
+  "trace_bundle_cid": "blake3:2de2affeff0be3dee3cc8fcd88bd83c5f049f81390870a3c78eea485c0fd62eb",
+  "trace_bundle_bytes": 45205493,
+  "document_trace_cids": [
+    "blake3:62bb33d4605914541443bea0c972990031a0821449e932e19a929db1369f2960",
+    "blake3:4a31dec9c955c5bca5513673cb0fa5c2fe3b7eb93f27a177838142abd00b4704",
+    "blake3:3a51132fd40387f0e0f55e1fd50a7bfc05b8f1376e6fe877d63f9ab60bfd45ad",
+    "blake3:bc47e6f862978effb616da762f935cbcc97b71631bb2cd6c650a6e6be1e91efc"
+  ],
+  "artifact_cid": "blake3:e3b48b8bd113bf71be2fe9ecb64257b4eb1516303966d9d6c2c5cbe9d46adfac",
+  "artifact_bytes": 39648,
+  "artifact_construction_digest": "blake3:a72301803e81ebce6360e3a5136eb2587a25bb0a1314ce2ecf3a9907011fb1cd",
+  "artifact_rows": 97,
+  "artifact_rows_by_depth": [
+    1,
+    21,
+    26,
+    25,
+    24
+  ],
+  "artifact_reload_bytes_exact": true,
+  "artifact_reload_cid_exact": true,
+  "construction_audits": [
+    {
+      "selected_layer_count": 30,
+      "positions_executed": 8,
+      "observed_causal": {
+        "positions": 8,
+        "layers": 240,
+        "heads": 2160,
+        "query_transforms": 2160,
+        "key_transports": 9720,
+        "value_transports": 9720,
+        "output_transforms": 2160,
+        "future_reads": 0,
+        "maximum_query_position": 7,
+        "maximum_source_position": 7
+      },
+      "expected_causal": {
+        "positions": 8,
+        "layers": 240,
+        "heads": 2160,
+        "query_transforms": 2160,
+        "key_transports": 9720,
+        "value_transports": 9720,
+        "output_transforms": 2160,
+        "future_reads": 0,
+        "maximum_query_position": 7,
+        "maximum_source_position": 7
+      },
+      "causal_audit_exact": true,
+      "observed_projection": {
+        "hook_calls": 240,
+        "query_vectors": 2160,
+        "key_vectors": 720,
+        "value_vectors": 720,
+        "query_lanes": 138240,
+        "key_lanes": 46080,
+        "value_lanes": 46080
+      },
+      "expected_projection": {
+        "hook_calls": 240,
+        "query_vectors": 2160,
+        "key_vectors": 720,
+        "value_vectors": 720,
+        "query_lanes": 138240,
+        "key_lanes": 46080,
+        "value_lanes": 46080
+      },
+      "projection_audit_exact": true,
+      "r4_implementation": {
+        "schema": "uor-r4.r4-spin-transport-evidence/1",
+        "policy_identity": "schema=helm-d-r4-gauge-softmax/1\nscope=offline-full-prefix-causal-softmax-oracle\nhead-layout=complete-consecutive-R4-blocks\nframe=exact-cumulative-UOR-Spin-H4-left-quaternion\nencode=F_position_transpose-times-model-vector\ntransport=P_source_to_query=F_query_transpose-times-F_source\ntransported-state=every-causal-key-and-value\nscore=unchanged-scaled-dot-product-in-query-gauge\nselector=unchanged-stable-causal-softmax\naggregate=unchanged-weighted-value-sum-in-query-gauge\ndecode=F_query-times-query-gauge-output-before-Wo\ncontrol=source-frame-permuted-with-identical-shape-and-work\nexpected=ordinary-attention-numerical-and-behavioral-parity\nnot-claimed=geometry-advantage,intrinsic-distance,transformerless-serving,softmax-removal,source-free-language-model",
+        "intervention": "coherent",
+        "frame_table_offsets": [
+          74,
+          0,
+          0,
+          0,
+          45,
+          1,
+          1,
+          1
+        ],
+        "audit": {
+          "positions_prepared": 8,
+          "r4_blocks_encoded": 345600,
+          "key_blocks_transported": 155520,
+          "value_blocks_transported": 155520,
+          "output_blocks_decoded": 34560,
+          "future_position_reads": 0,
+          "source_frame_permutations": 0
+        }
+      },
+      "expected_r4": {
+        "positions_prepared": 8,
+        "r4_blocks_encoded": 345600,
+        "key_blocks_transported": 155520,
+        "value_blocks_transported": 155520,
+        "output_blocks_decoded": 34560,
+        "future_position_reads": 0,
+        "source_frame_permutations": 0
+      },
+      "r4_audit_exact": true,
+      "zero_future_reads": true,
+      "all_layers_selected": true
+    },
+    {
+      "selected_layer_count": 30,
+      "positions_executed": 8,
+      "observed_causal": {
+        "positions": 8,
+        "layers": 240,
+        "heads": 2160,
+        "query_transforms": 2160,
+        "key_transports": 9720,
+        "value_transports": 9720,
+        "output_transforms": 2160,
+        "future_reads": 0,
+        "maximum_query_position": 7,
+        "maximum_source_position": 7
+      },
+      "expected_causal": {
+        "positions": 8,
+        "layers": 240,
+        "heads": 2160,
+        "query_transforms": 2160,
+        "key_transports": 9720,
+        "value_transports": 9720,
+        "output_transforms": 2160,
+        "future_reads": 0,
+        "maximum_query_position": 7,
+        "maximum_source_position": 7
+      },
+      "causal_audit_exact": true,
+      "observed_projection": {
+        "hook_calls": 240,
+        "query_vectors": 2160,
+        "key_vectors": 720,
+        "value_vectors": 720,
+        "query_lanes": 138240,
+        "key_lanes": 46080,
+        "value_lanes": 46080
+      },
+      "expected_projection": {
+        "hook_calls": 240,
+        "query_vectors": 2160,
+        "key_vectors": 720,
+        "value_vectors": 720,
+        "query_lanes": 138240,
+        "key_lanes": 46080,
+        "value_lanes": 46080
+      },
+      "projection_audit_exact": true,
+      "r4_implementation": {
+        "schema": "uor-r4.r4-spin-transport-evidence/1",
+        "policy_identity": "schema=helm-d-r4-gauge-softmax/1\nscope=offline-full-prefix-causal-softmax-oracle\nhead-layout=complete-consecutive-R4-blocks\nframe=exact-cumulative-UOR-Spin-H4-left-quaternion\nencode=F_position_transpose-times-model-vector\ntransport=P_source_to_query=F_query_transpose-times-F_source\ntransported-state=every-causal-key-and-value\nscore=unchanged-scaled-dot-product-in-query-gauge\nselector=unchanged-stable-causal-softmax\naggregate=unchanged-weighted-value-sum-in-query-gauge\ndecode=F_query-times-query-gauge-output-before-Wo\ncontrol=source-frame-permuted-with-identical-shape-and-work\nexpected=ordinary-attention-numerical-and-behavioral-parity\nnot-claimed=geometry-advantage,intrinsic-distance,transformerless-serving,softmax-removal,source-free-language-model",
+        "intervention": "coherent",
+        "frame_table_offsets": [
+          74,
+          0,
+          0,
+          0,
+          45,
+          45,
+          45,
+          119
+        ],
+        "audit": {
+          "positions_prepared": 8,
+          "r4_blocks_encoded": 345600,
+          "key_blocks_transported": 155520,
+          "value_blocks_transported": 155520,
+          "output_blocks_decoded": 34560,
+          "future_position_reads": 0,
+          "source_frame_permutations": 0
+        }
+      },
+      "expected_r4": {
+        "positions_prepared": 8,
+        "r4_blocks_encoded": 345600,
+        "key_blocks_transported": 155520,
+        "value_blocks_transported": 155520,
+        "output_blocks_decoded": 34560,
+        "future_position_reads": 0,
+        "source_frame_permutations": 0
+      },
+      "r4_audit_exact": true,
+      "zero_future_reads": true,
+      "all_layers_selected": true
+    },
+    {
+      "selected_layer_count": 30,
+      "positions_executed": 10,
+      "observed_causal": {
+        "positions": 10,
+        "layers": 300,
+        "heads": 2700,
+        "query_transforms": 2700,
+        "key_transports": 14850,
+        "value_transports": 14850,
+        "output_transforms": 2700,
+        "future_reads": 0,
+        "maximum_query_position": 9,
+        "maximum_source_position": 9
+      },
+      "expected_causal": {
+        "positions": 10,
+        "layers": 300,
+        "heads": 2700,
+        "query_transforms": 2700,
+        "key_transports": 14850,
+        "value_transports": 14850,
+        "output_transforms": 2700,
+        "future_reads": 0,
+        "maximum_query_position": 9,
+        "maximum_source_position": 9
+      },
+      "causal_audit_exact": true,
+      "observed_projection": {
+        "hook_calls": 300,
+        "query_vectors": 2700,
+        "key_vectors": 900,
+        "value_vectors": 900,
+        "query_lanes": 172800,
+        "key_lanes": 57600,
+        "value_lanes": 57600
+      },
+      "expected_projection": {
+        "hook_calls": 300,
+        "query_vectors": 2700,
+        "key_vectors": 900,
+        "value_vectors": 900,
+        "query_lanes": 172800,
+        "key_lanes": 57600,
+        "value_lanes": 57600
+      },
+      "projection_audit_exact": true,
+      "r4_implementation": {
+        "schema": "uor-r4.r4-spin-transport-evidence/1",
+        "policy_identity": "schema=helm-d-r4-gauge-softmax/1\nscope=offline-full-prefix-causal-softmax-oracle\nhead-layout=complete-consecutive-R4-blocks\nframe=exact-cumulative-UOR-Spin-H4-left-quaternion\nencode=F_position_transpose-times-model-vector\ntransport=P_source_to_query=F_query_transpose-times-F_source\ntransported-state=every-causal-key-and-value\nscore=unchanged-scaled-dot-product-in-query-gauge\nselector=unchanged-stable-causal-softmax\naggregate=unchanged-weighted-value-sum-in-query-gauge\ndecode=F_query-times-query-gauge-output-before-Wo\ncontrol=source-frame-permuted-with-identical-shape-and-work\nexpected=ordinary-attention-numerical-and-behavioral-parity\nnot-claimed=geometry-advantage,intrinsic-distance,transformerless-serving,softmax-removal,source-free-language-model",
+        "intervention": "coherent",
+        "frame_table_offsets": [
+          74,
+          0,
+          1,
+          100,
+          100,
+          100,
+          118,
+          20,
+          20,
+          60
+        ],
+        "audit": {
+          "positions_prepared": 10,
+          "r4_blocks_encoded": 518400,
+          "key_blocks_transported": 237600,
+          "value_blocks_transported": 237600,
+          "output_blocks_decoded": 43200,
+          "future_position_reads": 0,
+          "source_frame_permutations": 0
+        }
+      },
+      "expected_r4": {
+        "positions_prepared": 10,
+        "r4_blocks_encoded": 518400,
+        "key_blocks_transported": 237600,
+        "value_blocks_transported": 237600,
+        "output_blocks_decoded": 43200,
+        "future_position_reads": 0,
+        "source_frame_permutations": 0
+      },
+      "r4_audit_exact": true,
+      "zero_future_reads": true,
+      "all_layers_selected": true
+    },
+    {
+      "selected_layer_count": 30,
+      "positions_executed": 12,
+      "observed_causal": {
+        "positions": 12,
+        "layers": 360,
+        "heads": 3240,
+        "query_transforms": 3240,
+        "key_transports": 21060,
+        "value_transports": 21060,
+        "output_transforms": 3240,
+        "future_reads": 0,
+        "maximum_query_position": 11,
+        "maximum_source_position": 11
+      },
+      "expected_causal": {
+        "positions": 12,
+        "layers": 360,
+        "heads": 3240,
+        "query_transforms": 3240,
+        "key_transports": 21060,
+        "value_transports": 21060,
+        "output_transforms": 3240,
+        "future_reads": 0,
+        "maximum_query_position": 11,
+        "maximum_source_position": 11
+      },
+      "causal_audit_exact": true,
+      "observed_projection": {
+        "hook_calls": 360,
+        "query_vectors": 3240,
+        "key_vectors": 1080,
+        "value_vectors": 1080,
+        "query_lanes": 207360,
+        "key_lanes": 69120,
+        "value_lanes": 69120
+      },
+      "expected_projection": {
+        "hook_calls": 360,
+        "query_vectors": 3240,
+        "key_vectors": 1080,
+        "value_vectors": 1080,
+        "query_lanes": 207360,
+        "key_lanes": 69120,
+        "value_lanes": 69120
+      },
+      "projection_audit_exact": true,
+      "r4_implementation": {
+        "schema": "uor-r4.r4-spin-transport-evidence/1",
+        "policy_identity": "schema=helm-d-r4-gauge-softmax/1\nscope=offline-full-prefix-causal-softmax-oracle\nhead-layout=complete-consecutive-R4-blocks\nframe=exact-cumulative-UOR-Spin-H4-left-quaternion\nencode=F_position_transpose-times-model-vector\ntransport=P_source_to_query=F_query_transpose-times-F_source\ntransported-state=every-causal-key-and-value\nscore=unchanged-scaled-dot-product-in-query-gauge\nselector=unchanged-stable-causal-softmax\naggregate=unchanged-weighted-value-sum-in-query-gauge\ndecode=F_query-times-query-gauge-output-before-Wo\ncontrol=source-frame-permuted-with-identical-shape-and-work\nexpected=ordinary-attention-numerical-and-behavioral-parity\nnot-claimed=geometry-advantage,intrinsic-distance,transformerless-serving,softmax-removal,source-free-language-model",
+        "intervention": "coherent",
+        "frame_table_offsets": [
+          74,
+          0,
+          0,
+          0,
+          45,
+          119,
+          118,
+          19,
+          19,
+          1,
+          99,
+          119
+        ],
+        "audit": {
+          "positions_prepared": 12,
+          "r4_blocks_encoded": 725760,
+          "key_blocks_transported": 336960,
+          "value_blocks_transported": 336960,
+          "output_blocks_decoded": 51840,
+          "future_position_reads": 0,
+          "source_frame_permutations": 0
+        }
+      },
+      "expected_r4": {
+        "positions_prepared": 12,
+        "r4_blocks_encoded": 725760,
+        "key_blocks_transported": 336960,
+        "value_blocks_transported": 336960,
+        "output_blocks_decoded": 51840,
+        "future_position_reads": 0,
+        "source_frame_permutations": 0
+      },
+      "r4_audit_exact": true,
+      "zero_future_reads": true,
+      "all_layers_selected": true
+    }
+  ],
+  "source_execution": {
+    "observer_epoch": 0,
+    "requested_workers": 8,
+    "effective_workers": 8,
+    "active_workers": 0,
+    "max_active_workers": 8,
+    "forward_max_active_workers": 8,
+    "multiworker_forward_calls": 38,
+    "forward_calls": 38,
+    "streams_started": 38,
+    "streams_completed": 38,
+    "active_streams": 0,
+    "max_active_streams": 1,
+    "matrix_calls": 8018,
+    "batched_matrix_calls": 0,
+    "max_matrix_batch_width": 0,
+    "tiles_completed": 256576,
+    "output_cells_completed": 7777536,
+    "scalar_terms_completed": 5110235136,
+    "workspace_growth_events": 32,
+    "workspace_growth_bytes": 393216
+  },
+  "held_out_teacher_scored": false,
+  "held_out_identity_bound_into_artifact": false,
+  "compile_seconds": 145.165836292,
+  "freeze_cid": "blake3:bb19fc6f6976aca6dfd8c67c470fd1fb70a1e1e74763800fdcb635f135325df7",
+  "nonclaims": [
+    "No held-out teacher output, held-out text identity, or evaluation-preflight CID entered the artifact compiler.",
+    "This suffix student is a geometry-free source-free baseline compiled from a geometry-qualified teacher; it is not yet geometric attention-state inference.",
+    "This construction result does not establish coherent generation, reasoning, softmax removal, or deployed WASM readiness."
+  ]
+}

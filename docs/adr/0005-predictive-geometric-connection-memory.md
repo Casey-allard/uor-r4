@@ -3,14 +3,15 @@
 - **Status:** Accepted; ordinary dot-product/stable-softmax causal attention in
   coherent R4/Spin frames is the current baseline. The localization attempt
   stopped at its two-document preflight and rejected tangent readout.
-  Intrinsic/readout, resonance, softmax replacement,
-  recurrence, and lowering are parked. Provider-free autonomous
+  Intrinsic/readout alternatives, resonance-based softmax replacement,
+  full-model recurrent lowering, and exact deployment are parked. Provider-free autonomous
   `R4SoftmaxReferenceGeneratorV1` (`HELM-D-R4`) generation now passes, and its
   dedicated opt-in, loopback-only native HTTP endpoint passes exact eight-token
   CLI parity. Dashboard wiring/static native-readiness and WASM-isolation
-  checks pass; browser interaction/E2E is `NOT_RUN`. The proposed
-  `R4SoftmaxTeacherTraceV1` and
-  source-free trace compiler are the sole active successor
+  checks pass; browser interaction/E2E is `NOT_RUN`.
+  `R4SoftmaxTeacherTraceV1` and the first source-free suffix compiler now pass
+  their bounded distillation gate, while decoded continuation remains
+  incoherent. `R4SoftmaxTraceStateStudentV1` is the sole active successor
 - **Date:** 2026-08-28; direction updated 2026-08-30
 - **Owner:** #973 under programme root #820
 - **Supersedes for forward work:** another fixed componentwise prototype or
@@ -67,7 +68,11 @@
   [structured result](../r4_softmax_reference_http_bridge_result_973.json))
 - **Dashboard integration result:** wiring/static native-readiness and
   WASM-isolation checks `PASS`; browser interaction/E2E `NOT_RUN`
-- **Proposed source-free trace/compiler result:** `NOT_IMPLEMENTED`, `NOT_RUN`
+- **Source-free trace/compiler result:**
+  `PASS_SOURCE_FREE_TRACE_STUDENT_ADVANCE_GEOMETRIC_STATE_COMPILER`
+  ([record](../r4_softmax_trace_student_973.md),
+  [structured result](../r4_softmax_trace_student_973_raw.json)); decoded
+  continuation repeats `, Scotland` and is not coherent generation
 
 ## Decision
 
@@ -75,8 +80,8 @@ UOR-R4 accepts ordinary dot-product/stable-softmax causal attention in coherent
 R4/Spin frames as its current attention baseline. The first intrinsic R4
 distance/centroid attempt did not qualify; source-faithful learned-manifold V2
 failed retention and matched parity; and the 8/8-contract localization attempt
-stopped at its two-document preflight and rejected tangent readout. Those results are preserved. Intrinsic score/readout,
-resonance, softmax replacement, recurrence, and exact lowering are now parked.
+stopped at its two-document preflight and rejected tangent readout. Those results are preserved. Intrinsic score/readout alternatives,
+resonance-based softmax replacement, full-model recurrent lowering, and exact deployment are now parked.
 Provider-free autonomous `R4SoftmaxReferenceGeneratorV1` (`HELM-D-R4`)
 generation now passes. It retains the HELM-D architectural citation and uses
 UOR's existing pinned SmolLM2
@@ -84,13 +89,15 @@ UOR's existing pinned SmolLM2
 normalization, and the language-model head. Its dedicated opt-in, loopback-only
 native HTTP endpoint now passes the frozen eight-token CLI-parity canary,
 without changing the default engine. Dashboard wiring/static native-readiness
-and WASM-isolation checks pass; browser interaction/E2E is `NOT_RUN`. The sole
-active successor is the proposed, not-yet-implemented
-`R4SoftmaxTeacherTraceV1` and trace compiler: construction-only layerwise
-token/QKV/attention/value/logit traces from the exact reference, followed by the
-first source-free student/attention-state artifact comparison on decoded tokens
-and next-token loss. No tag, release, hosted promotion, or static-WASM claim is
-authorized.
+and WASM-isolation checks pass; browser interaction/E2E is `NOT_RUN`.
+`R4SoftmaxTeacherTraceV1` and its first source-free Q16 suffix compiler now pass
+at the frozen distillation/control/replay scope. Their autonomous continuation
+loops on `, Scotland`, and the student does not consume the geometric trace
+state. The sole active successor is the proposed
+`R4SoftmaxTraceStateStudentV1`, which must compile a causal transition and
+readout from the captured R4/Spin Q/K/V/aggregate state and beat matched suffix,
+non-geometric recurrent, and state-permuted controls. No tag, release, hosted
+promotion, or static-WASM claim is authorized.
 Its architectural reference is the official MIT HELM-D source pinned at commit
 [`7501deca8f413848bfef804be64ce874b72a3cd7`](https://github.com/Graph-and-Geometric-Learning/helm/tree/7501deca8f413848bfef804be64ce874b72a3cd7).
 The active generator credits HELM-D as an architectural reference only; it does
@@ -619,7 +626,7 @@ lowering, or product readiness.
 
 | Result | Required next action |
 |---|---|
-| Qualified provider-free `R4SoftmaxReferenceGeneratorV1` generation; exact dedicated loopback HTTP/CLI parity; passing dashboard wiring/static native-readiness and WASM-isolation checks; browser interaction/E2E `NOT_RUN`; accepted ordinary R4/Spin softmax baseline | Build the proposed construction-only `R4SoftmaxTeacherTraceV1` and trace compiler, then compare the first source-free student/attention-state artifact against decoded tokens and next-token loss. Keep intrinsic/readout, resonance, softmax replacement, recurrence, lowering, release, and static-WASM promotion parked. |
+| Source-free Q16 suffix trace student passes its bounded distillation/control/replay gate but enters a short decoded cycle | Build `R4SoftmaxTraceStateStudentV1`: first add fail-closed trace/bundle reload and tamper coverage, then compile construction traces into a causal recurrent R4/Spin state and compare it with frozen suffix, equal-budget plain recurrent, and transport/state-permuted controls. Keep intrinsic/readout alternatives, resonance-based softmax replacement, full-model recurrent lowering, exact deployment, release, and static-WASM promotion parked. |
 
 ## Outcome amendment — 2026-08-30 (EDT)
 
