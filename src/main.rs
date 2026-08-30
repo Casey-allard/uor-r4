@@ -120,6 +120,8 @@ enum Command {
     R4SoftmaxTraceStateSeal(R4SoftmaxTraceStateSealArgs),
     /// Reveal the frozen #1010 judge against an immutable #1011 state seal.
     R4SoftmaxTraceStateReveal(R4SoftmaxTraceStateRevealArgs),
+    /// Localize construction-trace signal loss across the four frozen #1012 boundaries.
+    R4SoftmaxTraceObservability(R4SoftmaxTraceObservabilityArgs),
     /// Run the fixed S0 lexical/route-state round-trip witness without loading a model.
     LexicalIngestionWitness,
     /// Run the frozen A1.0 ordered-state/value-reachability gate without a scorer.
@@ -852,6 +854,31 @@ struct R4SoftmaxTraceStateRevealArgs {
     #[arg(
         long,
         default_value = "docs/r4_softmax_trace_state_student_1011_raw.json"
+    )]
+    result_output: PathBuf,
+}
+
+#[derive(Args, Debug)]
+struct R4SoftmaxTraceObservabilityArgs {
+    /// Exact 40-character uor-r4 Git commit that built this evidence command.
+    #[arg(long)]
+    implementation_revision: String,
+    /// Frozen four-document R4/Spin construction trace bundle from #1010.
+    #[arg(
+        long,
+        default_value = ".uor-models/research/issue-973/r4-softmax-teacher-trace-v1.bin"
+    )]
+    trace_bundle: PathBuf,
+    /// Frozen #1010 construction manifest that binds the trace and teacher policy.
+    #[arg(
+        long,
+        default_value = ".uor-models/research/issue-973/r4-softmax-trace-freeze-v1.json"
+    )]
+    predecessor_freeze: PathBuf,
+    /// Construction-only four-fold observability result.
+    #[arg(
+        long,
+        default_value = "docs/r4_softmax_trace_observability_1012_raw.json"
     )]
     result_output: PathBuf,
 }
@@ -2516,6 +2543,25 @@ fn run(cli: &Cli) -> Result<(), RunError> {
             println!("{rendered}");
             Ok(())
         }
+        Some(Command::R4SoftmaxTraceObservability(args)) => {
+            let result =
+                uor_r4_wasm_router::r4_softmax_trace_observability_experiment::run_observability(
+                    &uor_r4_wasm_router::r4_softmax_trace_observability_experiment::R4SoftmaxTraceObservabilityConfig {
+                        implementation_revision: args.implementation_revision.clone(),
+                        trace_bundle: args.trace_bundle.clone(),
+                        predecessor_freeze: args.predecessor_freeze.clone(),
+                        result_output: args.result_output.clone(),
+                    },
+                )
+                .map_err(|error| RunError::Command(error.to_string()))?;
+            let rendered = serde_json::to_string_pretty(&result).map_err(|error| {
+                RunError::Command(format!(
+                    "serialize R4 softmax trace observability result: {error}"
+                ))
+            })?;
+            println!("{rendered}");
+            Ok(())
+        }
         Some(Command::LexicalIngestionWitness) => {
             let witness = uor_r4_core::canonical_lexical_ingestion::run_authorized_probe()
                 .map_err(|error| RunError::Command(error.to_string()))?;
@@ -4147,6 +4193,7 @@ mod tests {
             "r4-softmax-trace-state-compile",
             "r4-softmax-trace-state-seal",
             "r4-softmax-trace-state-reveal",
+            "r4-softmax-trace-observability",
             "lexical-ingestion-witness",
             "research-tools",
         ] {
@@ -4436,6 +4483,46 @@ mod tests {
             "/tmp/forbidden.bin",
         ])
         .is_err());
+    }
+
+    #[test]
+    fn parses_strict_r4_softmax_trace_observability_command() {
+        let revision = "0123456789abcdef0123456789abcdef01234567";
+        let cli = Cli::try_parse_from([
+            "r4",
+            "r4-softmax-trace-observability",
+            "--implementation-revision",
+            revision,
+            "--trace-bundle",
+            "/tmp/construction.bin",
+            "--predecessor-freeze",
+            "/tmp/predecessor.json",
+            "--result-output",
+            "/tmp/result.json",
+        ])
+        .unwrap();
+        let Some(Command::R4SoftmaxTraceObservability(args)) = cli.command else {
+            panic!("expected R4 softmax trace observability")
+        };
+        assert_eq!(args.implementation_revision, revision);
+        assert_eq!(args.trace_bundle, PathBuf::from("/tmp/construction.bin"));
+        assert_eq!(
+            args.predecessor_freeze,
+            PathBuf::from("/tmp/predecessor.json")
+        );
+        assert_eq!(args.result_output, PathBuf::from("/tmp/result.json"));
+
+        for forbidden in ["--source", "--judge", "--fold", "--state-artifact"] {
+            assert!(Cli::try_parse_from([
+                "r4",
+                "r4-softmax-trace-observability",
+                "--implementation-revision",
+                revision,
+                forbidden,
+                "/tmp/forbidden",
+            ])
+            .is_err());
+        }
     }
 
     #[test]

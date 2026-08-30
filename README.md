@@ -31,21 +31,34 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > Exact replay and the zero-source/future-read audit passed, so this is a
 > representation failure rather than an execution-integrity failure.
 >
-> The next bounded action is
-> [#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012), a
-> construction-only, leave-one-document-out observability audit across the
-> full final-layer trace, its fixed 576-to-4
-> signed reduction, token-derived recurrent features, and residual readout. It
-> must localize where predictive signal is lost before any new state dimension,
-> corpus scale, exact lowering, resonance substitute, WASM promotion, or release
-> work. Document 13 has now been revealed and cannot promote a repaired model.
+> [#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012) is now measured
+> at `INSUFFICIENT_SUPPORT_COVERAGE`: aggregate primary coverage was
+> `0.6202622204224402`, but the minimum held-document fold covered only
+> `0.3469116829611222`, below the frozen 50% floor. Boundary attribution is
+> therefore forbidden. On the covered rows, the full current-step Q/K/V probe
+> was also `0.0003463194386417179` nats worse than the suffix baseline with the
+> required direction in `0/4` folds; both retained `14/26` teacher-top-1 and
+> `6/26` actual-next top-1. The label-rotation control separated by
+> `1.3807454322642605` nats in `4/4`, so the instrument was sensitive but did
+> not demonstrate useful gain over suffix. Exact replay and zero source-model,
+> future, or document-13 reads passed.
+>
+> The project will not expand support or build another observability ladder for
+> this bounded current-step trace-distillation path. The next deliverable is a
+> directly trained end-to-end causal softmax attention mechanism in R4
+> coordinates on a fresh untouched split, including autonomous decoded
+> generation under [#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014).
+> This pivot does not claim that all trace distillation or attention
+> is impossible. See the
+> [#1012 measured record](docs/r4_softmax_trace_observability_1012.md).
 >
 > The hosted GitHub Pages surface is currently a static visualization that
 > reports WASM offline and has no functioning chat backend or compiled-artifact
 > lowering. It is not a product proof and does not change the active research
 > gate. No tag, release, hosted-chat, coherent-generation, correctness, or
 > reasoning claim is authorized. See the
-> [state-student result](docs/r4_softmax_trace_state_student_1011.md).
+> [state-student result](docs/r4_softmax_trace_state_student_1011.md) and the
+> [#1012 measured record](docs/r4_softmax_trace_observability_1012.md).
 
 > **Prior #973 evidence chain leading to this checkpoint (2026-08-30):** routing, exact R4/spin
 > state, least-cost selection, and multiscale hierarchy remain the geometric
@@ -148,7 +161,11 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > bounded distillation effect, but its autonomous text looped. The subsequent
 > `R4SoftmaxTraceStateStudentV1` recurrent rung also stopped: its minute CE
 > change was not decision-bearing or materially geometry-dependent, and the
-> same loop remained. A construction-only observability audit is next.
+> same loop remained. The subsequent construction-only observability audit
+> completed at `INSUFFICIENT_SUPPORT_COVERAGE` and cannot attribute a boundary.
+> The next deliverable directly trains end-to-end causal softmax attention in
+> R4 coordinates on a fresh untouched split and includes autonomous decoded
+> generation under [#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014).
 > Intrinsic/readout substitution, resonance, softmax replacement, scale, and
 > product promotion remain parked. No tag, release, hosted
 > promotion, or browser-WASM claim is authorized. See the
@@ -213,8 +230,11 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > subsequently passed without changing the default engine. Dashboard
 > wiring/readiness and static/WASM-isolation checks passed; browser E2E remains
 > `NOT_RUN`. The trace-capture/Q16 suffix-student successor later completed with
-> bounded source-free distillation but looping output. The active successor is
-> `R4SoftmaxTraceStateStudentV1`; #954 remains blocked.
+> bounded source-free distillation but looping output. Its recurrent state
+> successor failed promotion, and the following #1012 observability audit
+> completed at `INSUFFICIENT_SUPPORT_COVERAGE`. Direct end-to-end causal softmax
+> attention training in R4 coordinates on a fresh untouched split is next;
+> #954 remains blocked.
 > See the
 > [bounded-global record](docs/bounded_global_exact_spin_attention_973.md).
 
@@ -601,8 +621,12 @@ exact-descriptor/entity-binding path selector apiece at their respective
    offline, and has no working chat backend/artifact lowering. The Q16 suffix
    trace student completed with bounded distillation but looping output; its
    recurrent `R4SoftmaxTraceStateStudentV1` successor then failed to produce a
-   material or selection-bearing effect. A construction-only observability
-   audit is next and #954 stays blocked.
+   material or selection-bearing effect. The subsequent construction-only
+   observability audit completed at `INSUFFICIENT_SUPPORT_COVERAGE` and cannot
+   attribute a boundary. The next mechanism is direct end-to-end causal softmax
+   attention training in R4 coordinates on a fresh untouched split, with
+   autonomous decoded generation under
+   [#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014); #954 stays blocked.
 See the [append-only #953 record](docs/local_geometric_generation_953.md).
 See the [accepted table-tie record](docs/source_free_table_geometric_intervention_953.md).
 See the [#973 Gate 0 record](docs/prior_sentence_count_radius_attention_973.md).
@@ -734,8 +758,12 @@ not become substitutes for working intelligence:
    That trace/compiler rung produced `R4SoftmaxTraceStudentV1`, and the next
    recurrent `R4SoftmaxTraceStateStudentV1` rung completed with exact causal
    execution but no material control separation, no changed decision, and the
-   same loop. Next localize signal loss at the full-trace, signed-reduction,
-   state-feature, and readout boundaries using construction-only folds.
+   same loop. Its #1012 full-trace/signed-reduction/state/readout audit then
+   completed at `INSUFFICIENT_SUPPORT_COVERAGE`; it cannot localize signal loss
+   and will not be expanded or repeated. Next directly train end-to-end causal
+   softmax attention in R4 coordinates on a fresh untouched split and require
+   autonomous decoded generation in that deliverable under
+   [#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014).
    Do not resume resonance substitutes or promote a product/release. This intermediate
    reference is transformer-compatible, `f32`/multiply/alloc and source-weight
    backed—not table-native, multiply-free, or transformerless. No tag, release,
@@ -783,8 +811,12 @@ static/WASM-isolation checks pass, but the hosted Pages deployment is static,
 currently reports WASM offline, and lacks a working chat backend/artifact
 lowering. The source-free Q16 suffix trace student is complete and boundedly
 positive but loops; `R4SoftmaxTraceStateStudentV1` also completed and failed
-its material, decision, and cycle gates. The active successor is a bounded
-construction-only observability audit.
+its material, decision, and cycle gates. The bounded construction-only
+observability audit then completed at `INSUFFICIENT_SUPPORT_COVERAGE`; no
+boundary attribution follows. The active successor is direct end-to-end causal
+softmax attention training in R4 coordinates on a fresh untouched split, with
+autonomous decoded generation in the same deliverable under
+[#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014).
 #954 remains blocked behind #973. The exact contract is
 [ADR-0005](docs/adr/0005-predictive-geometric-connection-memory.md).
 

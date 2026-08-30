@@ -35,6 +35,7 @@ pub const R4_SOFTMAX_TRACE_STATE_BYTES: usize = 278;
 pub const R4_SOFTMAX_TRACE_STATE_PARAMETER_VALUES_PER_ARM: usize = 120;
 pub const R4_SOFTMAX_TRACE_STATE_FITTED_VALUES_PER_ARM: usize = 112;
 pub const R4_SOFTMAX_TRACE_STATE_PARAMETER_BYTES_PER_ARM: usize = 480;
+pub const R4_SOFTMAX_TRACE_STATE_READOUT_FEATURES: usize = 64;
 pub const R4_SOFTMAX_TRACE_STATE_RHO: [f32; 4] = [0.10, 0.55, 0.90, 0.985];
 pub const R4_SOFTMAX_TRACE_STATE_ETA: [f32; 4] = [1.00, 0.55, 0.20, 0.060];
 
@@ -705,6 +706,29 @@ pub struct R4SoftmaxTraceStatePrediction {
     pub state_checksum: String,
 }
 
+/// One candidate's read-only view of the existing recurrent readout.
+///
+/// This is compiler-side observability only. It exposes the natural feature
+/// tensor and exact logit decomposition already used by the runtime; it does
+/// not add a new score, parameter, or runtime input.
+#[derive(Debug, Clone, PartialEq)]
+pub struct R4SoftmaxTraceStateDiagnosticCandidate {
+    pub token: u32,
+    pub readout_features: [f32; R4_SOFTMAX_TRACE_STATE_READOUT_FEATURES],
+    pub base_logit: f32,
+    pub residual_logit: f32,
+    pub total_logit: f32,
+}
+
+/// Immutable diagnostic snapshot of one already-observed recurrent state.
+#[derive(Debug, Clone, PartialEq)]
+pub struct R4SoftmaxTraceStateDiagnosticSnapshot {
+    pub arm: R4SoftmaxTraceStateArm,
+    pub suffix_depth: u8,
+    pub state_checksum: String,
+    pub candidates: Vec<R4SoftmaxTraceStateDiagnosticCandidate>,
+}
+
 #[derive(Debug, Clone)]
 pub struct R4SoftmaxTraceStateRuntime {
     artifact: R4SoftmaxTraceStateStudentArtifact,
@@ -760,6 +784,87 @@ impl R4SoftmaxTraceStateRuntime {
 
     pub fn audit(&self) -> R4SoftmaxTraceStateRuntimeAudit {
         self.audit
+    }
+
+    /// Inspect the current recurrent readout without changing state or
+    /// provenance counters.
+    ///
+    /// The runtime must already have consumed at least one observation. The
+    /// candidate support, base logits, 64-value features, residual logits, and
+    /// total logits are reconstructed from that immutable current state using
+    /// the exact existing mechanism.
+    pub fn diagnostic_readout_snapshot(
+        &self,
+    ) -> Result<R4SoftmaxTraceStateDiagnosticSnapshot, R4SoftmaxTraceStateStudentError> {
+        let parameters = match self.arm {
+            R4SoftmaxTraceStateArm::PlainRecurrent => &self.artifact.plain,
+            R4SoftmaxTraceStateArm::GeometricRecurrent
+            | R4SoftmaxTraceStateArm::TransportPermutedControl => &self.artifact.geometric,
+            R4SoftmaxTraceStateArm::Suffix => {
+                return Err(R4SoftmaxTraceStateStudentError::Invalid(
+                    "state-student diagnostic snapshot requires a recurrent arm".to_owned(),
+                ));
+            }
+        };
+        if self.state.observation_count == 0 {
+            return Err(R4SoftmaxTraceStateStudentError::Invalid(
+                "state-student diagnostic snapshot requires an observed state".to_owned(),
+            ));
+        }
+        self.state
+            .validate_for_artifact(self.artifact.maximum_token_id)?;
+        let current_frame = self.frames[usize::from(self.state.frame_table_offset)];
+        let observed_token = self.state.token_ring[3];
+        let model_key = matrix_vector(&parameters.key_map, deterministic_token_r4(observed_token));
+        let geometric = matches!(
+            self.arm,
+            R4SoftmaxTraceStateArm::GeometricRecurrent
+                | R4SoftmaxTraceStateArm::TransportPermutedControl
+        );
+        let key = normalize_or_axis(if geometric {
+            encode(current_frame, model_key)?
+        } else {
+            model_key
+        });
+        let current_frame = geometric.then_some(current_frame);
+        let suffix_distribution = self.artifact.suffix.runtime().distribution(
+            &self.state.history(),
+            R4SoftmaxTraceStudentArm::TeacherDistilled,
+        )?;
+        let weights = flattened_readout_weights(parameters);
+        let mut candidates = Vec::with_capacity(suffix_distribution.scores.len());
+        for score in suffix_distribution.scores {
+            let base_logit = (f32::from(score.weight_q16) / f32::from(R4_SOFTMAX_TRACE_Q16_TOTAL))
+                .max(f32::MIN_POSITIVE)
+                .ln();
+            let readout_features = readout_features(
+                &self.state.banks,
+                parameters,
+                key,
+                score.token,
+                current_frame,
+            )?;
+            let residual_logit = dot64(weights, readout_features);
+            let total_logit = base_logit + residual_logit;
+            if !total_logit.is_finite() {
+                return Err(R4SoftmaxTraceStateStudentError::Invalid(
+                    "state-student diagnostic snapshot produced a non-finite logit".to_owned(),
+                ));
+            }
+            candidates.push(R4SoftmaxTraceStateDiagnosticCandidate {
+                token: score.token,
+                readout_features,
+                base_logit,
+                residual_logit,
+                total_logit,
+            });
+        }
+        Ok(R4SoftmaxTraceStateDiagnosticSnapshot {
+            arm: self.arm,
+            suffix_depth: suffix_distribution.suffix_depth,
+            state_checksum: self.state.checksum(),
+            candidates,
+        })
     }
 
     /// Consume one causal observation and predict the following token.
@@ -1336,7 +1441,14 @@ fn recurrent_score(
         candidate_token,
         current_frame,
     )?;
-    let mut weights = [0.0; 64];
+    let weights = flattened_readout_weights(parameters);
+    Ok(dot64(weights, features))
+}
+
+fn flattened_readout_weights(
+    parameters: &R4SoftmaxTraceStateParameters,
+) -> [f32; R4_SOFTMAX_TRACE_STATE_READOUT_FEATURES] {
+    let mut weights = [0.0; R4_SOFTMAX_TRACE_STATE_READOUT_FEATURES];
     for bank in 0..4 {
         for row in 0..4 {
             for column in 0..4 {
@@ -1344,7 +1456,7 @@ fn recurrent_score(
             }
         }
     }
-    Ok(dot64(weights, features))
+    weights
 }
 
 fn fit_digest(
@@ -1783,6 +1895,85 @@ mod tests {
         let mut noncanonical_initial = R4SoftmaxTraceState::default();
         noncanonical_initial.banks[0][0][0] = 1.0;
         assert!(R4SoftmaxTraceState::from_bytes(&noncanonical_initial.to_bytes()).is_err());
+    }
+
+    #[test]
+    fn diagnostic_snapshot_is_exact_and_read_only_for_all_recurrent_arms() {
+        let (suffix, fit) = fixture();
+        let artifact = compile_r4_softmax_trace_state_student(
+            R4SoftmaxTraceStateFitConfig {
+                maximum_token_id: 10,
+            },
+            &suffix,
+            &fit,
+        )
+        .expect("compile");
+
+        for arm in [
+            R4SoftmaxTraceStateArm::PlainRecurrent,
+            R4SoftmaxTraceStateArm::GeometricRecurrent,
+            R4SoftmaxTraceStateArm::TransportPermutedControl,
+        ] {
+            let mut runtime = artifact.runtime(arm).expect("runtime");
+            assert!(runtime.diagnostic_readout_snapshot().is_err());
+            runtime.observe_and_predict(1, 1).expect("first prediction");
+            let prediction = runtime
+                .observe_and_predict(2, 2)
+                .expect("second prediction");
+            let state_before = runtime.state().to_bytes();
+            let audit_before = runtime.audit();
+
+            let snapshot = runtime
+                .diagnostic_readout_snapshot()
+                .expect("diagnostic snapshot");
+            assert_eq!(
+                snapshot,
+                runtime
+                    .diagnostic_readout_snapshot()
+                    .expect("replayed diagnostic snapshot")
+            );
+            assert_eq!(runtime.state().to_bytes(), state_before);
+            assert_eq!(runtime.audit(), audit_before);
+            assert_eq!(snapshot.arm, arm);
+            assert_eq!(snapshot.suffix_depth, prediction.suffix_depth);
+            assert_eq!(snapshot.state_checksum, prediction.state_checksum);
+            assert_eq!(snapshot.candidates.len(), prediction.candidates.len());
+
+            let parameters = if arm == R4SoftmaxTraceStateArm::PlainRecurrent {
+                artifact.plain_parameters()
+            } else {
+                artifact.geometric_parameters()
+            };
+            let weights = flattened_readout_weights(parameters);
+            for (diagnostic, predicted) in snapshot.candidates.iter().zip(&prediction.candidates) {
+                assert_eq!(diagnostic.token, predicted.token);
+                assert_eq!(
+                    diagnostic.readout_features.len(),
+                    R4_SOFTMAX_TRACE_STATE_READOUT_FEATURES
+                );
+                assert!(diagnostic
+                    .readout_features
+                    .iter()
+                    .all(|value| value.is_finite()));
+                assert_eq!(
+                    diagnostic.residual_logit.to_bits(),
+                    dot64(weights, diagnostic.readout_features).to_bits()
+                );
+                assert_eq!(
+                    diagnostic.total_logit.to_bits(),
+                    (diagnostic.base_logit + diagnostic.residual_logit).to_bits()
+                );
+                assert_eq!(diagnostic.total_logit.to_bits(), predicted.logit.to_bits());
+            }
+        }
+
+        let mut suffix_runtime = artifact
+            .runtime(R4SoftmaxTraceStateArm::Suffix)
+            .expect("suffix runtime");
+        suffix_runtime
+            .observe_and_predict(2, 2)
+            .expect("suffix prediction");
+        assert!(suffix_runtime.diagnostic_readout_snapshot().is_err());
     }
 
     #[test]

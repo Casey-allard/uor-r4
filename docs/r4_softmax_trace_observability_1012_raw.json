@@ -1,0 +1,3275 @@
+{
+  "schema": "uor-r4.r4-softmax-trace-observability-result/1",
+  "issue": 1012,
+  "implementation_revision": "3ef7af9860baf55fbe43a9b5207c60fd3a737564",
+  "predecessor_freeze_cid": "blake3:bb19fc6f6976aca6dfd8c67c470fd1fb70a1e1e74763800fdcb635f135325df7",
+  "construction_trace_bundle_cid": "blake3:2de2affeff0be3dee3cc8fcd88bd83c5f049f81390870a3c78eea485c0fd62eb",
+  "construction_trace_bundle_bytes": 45205493,
+  "construction_document_trace_cids": [
+    "blake3:62bb33d4605914541443bea0c972990031a0821449e932e19a929db1369f2960",
+    "blake3:4a31dec9c955c5bca5513673cb0fa5c2fe3b7eb93f27a177838142abd00b4704",
+    "blake3:3a51132fd40387f0e0f55e1fd50a7bfc05b8f1376e6fe877d63f9ab60bfd45ad",
+    "blake3:bc47e6f862978effb616da762f935cbcc97b71631bb2cd6c650a6e6be1e91efc"
+  ],
+  "input_audit": {
+    "trace_bundle_reads": 1,
+    "predecessor_freeze_reads": 1,
+    "source_model_reads": 0,
+    "source_model_forwards": 0,
+    "held_out_document_13_reads": 0,
+    "canonical_bundle_reload_exact": true,
+    "nested_document_cids_exact": true,
+    "document_order_exact": true,
+    "construction_only": true
+  },
+  "probe_contract": {
+    "weights": 64,
+    "bias": false,
+    "regularization": "1/1024",
+    "steps": 512,
+    "initial_rate": "1/16",
+    "maximum_backtracks_per_step": 16,
+    "full_batch": true,
+    "candidate_conditioned_sketch": true,
+    "support_cap": 32,
+    "fit_loss_weighting": "raw covered Q16 mass normalized globally; targets renormalized within each row",
+    "headline_loss_weighting": "raw covered Q16 mass, normalized after aggregation",
+    "paired_loss_weighting": "equal held positions after per-row covered-Q16 renormalization",
+    "feature_standardization": "train-only per-lane uncentered RMS; same scales applied to held rows",
+    "feature_standardization_epsilon": "1e-12",
+    "signed_projection": "one BLAKE3 XOF per boundary/candidate/width; one canonical u64 mask per source; bit j is output-lane j sign; divide by sqrt(width)"
+  },
+  "primary_event_count": 26,
+  "secondary_event_count": 34,
+  "folds": [
+    {
+      "manifest": {
+        "ordinal": 0,
+        "held_out_document_id": "14",
+        "held_out_document_trace_cid": "blake3:62bb33d4605914541443bea0c972990031a0821449e932e19a929db1369f2960",
+        "training_document_ids": [
+          "657",
+          "4579",
+          "5121"
+        ],
+        "training_document_trace_cids": [
+          "blake3:4a31dec9c955c5bca5513673cb0fa5c2fe3b7eb93f27a177838142abd00b4704",
+          "blake3:3a51132fd40387f0e0f55e1fd50a7bfc05b8f1376e6fe877d63f9ab60bfd45ad",
+          "blake3:bc47e6f862978effb616da762f935cbcc97b71631bb2cd6c650a6e6be1e91efc"
+        ],
+        "training_positions": 30,
+        "training_non_bos_events": 27,
+        "primary_exact_prefix_novel_events": 7,
+        "secondary_non_bos_events": 7,
+        "fold_input_cid": "blake3:ddf4e6edaf43f6f7b262940ab5f0f4a09fdec818603a010bb37d37c17b0976bc",
+        "support_artifact_cid": "blake3:0441200c95def5a672cdd5401d66ef822f026a43aa9de6b3e382fd2812ef24e5",
+        "state_artifact_cid": "blake3:2f1284a752b8c51ddbe4ce86a08a1855c6347645fc688521bdd77799916c628d",
+        "training_support_cid": "blake3:e9562313f438e4022c362475b49c328317a9476a57be02d32d5061f7e4283832",
+        "label_control_mapping_cid": "blake3:7598917eba4a3ff641a4806e56ccacec4177d94467878359b4bc893d44e748d4",
+        "label_control_mass_audit": {
+          "rows": 27,
+          "original_covered_mass_q16": 1673659,
+          "permuted_covered_mass_q16": 1673659,
+          "mass_preserved_exactly": true,
+          "invalid_support_rows": 0,
+          "unchanged_label_rows": 0
+        },
+        "training_fit_identity_cid": "blake3:f3273d73d848476d8c59470fa7ea1c80549ddcf56c3024bf5359f8433b019d33",
+        "held_label_substitution_fit_identity_exact": true,
+        "held_label_substitution_mutated_events": 7,
+        "held_labels_original_cid": "blake3:c4c8593cf4ef01f60a9b7088be1774b1bb021dfc72d068b9adc37fe6be01e6d0",
+        "held_labels_substituted_cid": "blake3:711610f00b66bc57fbfb1f26890edfbc9aede142346b456b2ec6e26f40819dd2",
+        "held_out_events_used_for_fit": 0,
+        "state_resets": 12
+      },
+      "diagnostic_boundaries": [
+        {
+          "boundary": "full_final_layer_qkv_signed_sketch",
+          "feature_audit": {
+            "raw_width": 1728,
+            "probe_width": 64,
+            "fitted_weights": 64,
+            "bias": false,
+            "candidate_feature_rows": 864,
+            "unique_feature_rows": 736,
+            "exact_collision_rows": 128,
+            "zero_overlap_rows": 0,
+            "active_lanes": 64,
+            "numerical_rank": 64,
+            "total_variance": 63.879363680727685,
+            "all_finite": true,
+            "target_blind_preprocessing": true,
+            "feature_cid": "blake3:666f0ec56a1415974975e446c391ab2e119766f3a0d1f448b66ecba4abef135f",
+            "standardization_stats_cid": "blake3:399e3508d6563dcb850f8561467e9df7103ad50d5cd7cc2d5002a256f2b68d7c",
+            "train_only_unit_rms_standardization": true,
+            "standardized_unit_rms_lanes": 64
+          },
+          "fitted_weight_cid": "blake3:8ed8b8da7e38424b08c537fa53d85e8046f7fcbb5e963fe2a057c24bc93d2fb9",
+          "label_permuted_weight_cid": "blake3:f1d3b92c8187222932065fd9ae58ae03403d684419da7179f5bb2e3b5b346f20",
+          "label_control_mapping_cid": "blake3:7598917eba4a3ff641a4806e56ccacec4177d94467878359b4bc893d44e748d4",
+          "label_permuted_training_rows_changed": 27,
+          "optimizer_backtracks": 0,
+          "label_permuted_optimizer_backtracks": 0,
+          "primary": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 346839,
+            "covered_mass_fraction": 0.7560605565183272,
+            "covered_teacher_cross_entropy_nats": 2.036720266423304,
+            "teacher_top1_agreements": 5,
+            "actual_next_top1_correct": 2
+          },
+          "primary_label_permuted": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 346839,
+            "covered_mass_fraction": 0.7560605565183272,
+            "covered_teacher_cross_entropy_nats": 3.1755752206521715,
+            "teacher_top1_agreements": 2,
+            "actual_next_top1_correct": 1
+          },
+          "primary_paired": {
+            "positions": 7,
+            "candidate_loss_delta_control_minus_real_nats": 1.5268701749619962,
+            "real_wins": 7,
+            "control_wins": 0,
+            "ties": 0,
+            "exact_two_sided_sign_p": 0.015625
+          },
+          "secondary": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 346839,
+            "covered_mass_fraction": 0.7560605565183272,
+            "covered_teacher_cross_entropy_nats": 2.036720266423304,
+            "teacher_top1_agreements": 5,
+            "actual_next_top1_correct": 2
+          },
+          "secondary_label_permuted": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 346839,
+            "covered_mass_fraction": 0.7560605565183272,
+            "covered_teacher_cross_entropy_nats": 3.1755752206521715,
+            "teacher_top1_agreements": 2,
+            "actual_next_top1_correct": 1
+          },
+          "secondary_paired": {
+            "positions": 7,
+            "candidate_loss_delta_control_minus_real_nats": 1.5268701749619962,
+            "real_wins": 7,
+            "control_wins": 0,
+            "ties": 0,
+            "exact_two_sided_sign_p": 0.015625
+          }
+        },
+        {
+          "boundary": "signed_576_to_4_qkv_sketch",
+          "feature_audit": {
+            "raw_width": 12,
+            "probe_width": 64,
+            "fitted_weights": 64,
+            "bias": false,
+            "candidate_feature_rows": 864,
+            "unique_feature_rows": 736,
+            "exact_collision_rows": 128,
+            "zero_overlap_rows": 0,
+            "active_lanes": 64,
+            "numerical_rank": 64,
+            "total_variance": 63.8943229586288,
+            "all_finite": true,
+            "target_blind_preprocessing": true,
+            "feature_cid": "blake3:ea1ec94a97de1246e43628d40670d129e1e99b91ceb2fb7500a08bf1cc72541f",
+            "standardization_stats_cid": "blake3:3f14f7605fa048816f2e2a838dceca5260e5d99fac274d0878d26fe0de31e114",
+            "train_only_unit_rms_standardization": true,
+            "standardized_unit_rms_lanes": 64
+          },
+          "fitted_weight_cid": "blake3:0550a102017211d484cce53f9e538793d431f1a8db550ab6aa42cfcbc24d8941",
+          "label_permuted_weight_cid": "blake3:d8679f470016c1ef5cbbceb276eca06142e9a153559535096f34cca5aa8aec17",
+          "label_control_mapping_cid": "blake3:7598917eba4a3ff641a4806e56ccacec4177d94467878359b4bc893d44e748d4",
+          "label_permuted_training_rows_changed": 27,
+          "optimizer_backtracks": 0,
+          "label_permuted_optimizer_backtracks": 0,
+          "primary": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 346839,
+            "covered_mass_fraction": 0.7560605565183272,
+            "covered_teacher_cross_entropy_nats": 2.03665751096745,
+            "teacher_top1_agreements": 5,
+            "actual_next_top1_correct": 2
+          },
+          "primary_label_permuted": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 346839,
+            "covered_mass_fraction": 0.7560605565183272,
+            "covered_teacher_cross_entropy_nats": 4.090246037348552,
+            "teacher_top1_agreements": 0,
+            "actual_next_top1_correct": 0
+          },
+          "primary_paired": {
+            "positions": 7,
+            "candidate_loss_delta_control_minus_real_nats": 1.9141325227694257,
+            "real_wins": 7,
+            "control_wins": 0,
+            "ties": 0,
+            "exact_two_sided_sign_p": 0.015625
+          },
+          "secondary": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 346839,
+            "covered_mass_fraction": 0.7560605565183272,
+            "covered_teacher_cross_entropy_nats": 2.03665751096745,
+            "teacher_top1_agreements": 5,
+            "actual_next_top1_correct": 2
+          },
+          "secondary_label_permuted": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 346839,
+            "covered_mass_fraction": 0.7560605565183272,
+            "covered_teacher_cross_entropy_nats": 4.090246037348552,
+            "teacher_top1_agreements": 0,
+            "actual_next_top1_correct": 0
+          },
+          "secondary_paired": {
+            "positions": 7,
+            "candidate_loss_delta_control_minus_real_nats": 1.9141325227694257,
+            "real_wins": 7,
+            "control_wins": 0,
+            "ties": 0,
+            "exact_two_sided_sign_p": 0.015625
+          }
+        },
+        {
+          "boundary": "plain_natural_state_tensor",
+          "feature_audit": {
+            "raw_width": 64,
+            "probe_width": 64,
+            "fitted_weights": 64,
+            "bias": false,
+            "candidate_feature_rows": 864,
+            "unique_feature_rows": 736,
+            "exact_collision_rows": 128,
+            "zero_overlap_rows": 0,
+            "active_lanes": 64,
+            "numerical_rank": 64,
+            "total_variance": 63.86972772429206,
+            "all_finite": true,
+            "target_blind_preprocessing": true,
+            "feature_cid": "blake3:92776d5a95903c30484dfbf1d4bd5bc745b59ca17fdafbb63cbd7d518a0ffe00",
+            "standardization_stats_cid": "blake3:f873522ac6ce2339ca19ff3ade96b923e32c91f2957ab6a408f3aad2be3cbca8",
+            "train_only_unit_rms_standardization": true,
+            "standardized_unit_rms_lanes": 64
+          },
+          "fitted_weight_cid": "blake3:a038034b8cb49b5a4570984b9852273b610da5068e4fd47e0c530fdea7cdbae2",
+          "label_permuted_weight_cid": "blake3:00db791adf984e6fcee4011c55c7fa7f7946816775bd3b98981e84eec5a110b8",
+          "label_control_mapping_cid": "blake3:7598917eba4a3ff641a4806e56ccacec4177d94467878359b4bc893d44e748d4",
+          "label_permuted_training_rows_changed": 27,
+          "optimizer_backtracks": 0,
+          "label_permuted_optimizer_backtracks": 0,
+          "primary": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 346839,
+            "covered_mass_fraction": 0.7560605565183272,
+            "covered_teacher_cross_entropy_nats": 2.036243637694004,
+            "teacher_top1_agreements": 5,
+            "actual_next_top1_correct": 2
+          },
+          "primary_label_permuted": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 346839,
+            "covered_mass_fraction": 0.7560605565183272,
+            "covered_teacher_cross_entropy_nats": 2.367315350653439,
+            "teacher_top1_agreements": 3,
+            "actual_next_top1_correct": 0
+          },
+          "primary_paired": {
+            "positions": 7,
+            "candidate_loss_delta_control_minus_real_nats": 0.3505530173121883,
+            "real_wins": 6,
+            "control_wins": 1,
+            "ties": 0,
+            "exact_two_sided_sign_p": 0.125
+          },
+          "secondary": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 346839,
+            "covered_mass_fraction": 0.7560605565183272,
+            "covered_teacher_cross_entropy_nats": 2.036243637694004,
+            "teacher_top1_agreements": 5,
+            "actual_next_top1_correct": 2
+          },
+          "secondary_label_permuted": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 346839,
+            "covered_mass_fraction": 0.7560605565183272,
+            "covered_teacher_cross_entropy_nats": 2.367315350653439,
+            "teacher_top1_agreements": 3,
+            "actual_next_top1_correct": 0
+          },
+          "secondary_paired": {
+            "positions": 7,
+            "candidate_loss_delta_control_minus_real_nats": 0.3505530173121883,
+            "real_wins": 6,
+            "control_wins": 1,
+            "ties": 0,
+            "exact_two_sided_sign_p": 0.125
+          }
+        },
+        {
+          "boundary": "geometric_natural_state_tensor",
+          "feature_audit": {
+            "raw_width": 64,
+            "probe_width": 64,
+            "fitted_weights": 64,
+            "bias": false,
+            "candidate_feature_rows": 864,
+            "unique_feature_rows": 736,
+            "exact_collision_rows": 128,
+            "zero_overlap_rows": 0,
+            "active_lanes": 64,
+            "numerical_rank": 64,
+            "total_variance": 63.80928261078714,
+            "all_finite": true,
+            "target_blind_preprocessing": true,
+            "feature_cid": "blake3:4f9611b1e62b010bf322a7f96f507dfe522d999e2c073ab172069180de82efd5",
+            "standardization_stats_cid": "blake3:30b68f4ed1cc3666af23f5936b9e0840b52c5af9289e996b62c26967308879cf",
+            "train_only_unit_rms_standardization": true,
+            "standardized_unit_rms_lanes": 64
+          },
+          "fitted_weight_cid": "blake3:9c533aad63e9143f58754fce74998754e316122ce475d8a07f760a4bbdef5b7a",
+          "label_permuted_weight_cid": "blake3:2798687b9297859c06eeccac8051387c5aeda4a3bd551db63f6a4887951d622d",
+          "label_control_mapping_cid": "blake3:7598917eba4a3ff641a4806e56ccacec4177d94467878359b4bc893d44e748d4",
+          "label_permuted_training_rows_changed": 27,
+          "optimizer_backtracks": 0,
+          "label_permuted_optimizer_backtracks": 0,
+          "primary": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 346839,
+            "covered_mass_fraction": 0.7560605565183272,
+            "covered_teacher_cross_entropy_nats": 2.0373673251791042,
+            "teacher_top1_agreements": 5,
+            "actual_next_top1_correct": 2
+          },
+          "primary_label_permuted": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 346839,
+            "covered_mass_fraction": 0.7560605565183272,
+            "covered_teacher_cross_entropy_nats": 9.469098241133272,
+            "teacher_top1_agreements": 1,
+            "actual_next_top1_correct": 0
+          },
+          "primary_paired": {
+            "positions": 7,
+            "candidate_loss_delta_control_minus_real_nats": 6.259841988419815,
+            "real_wins": 7,
+            "control_wins": 0,
+            "ties": 0,
+            "exact_two_sided_sign_p": 0.015625
+          },
+          "secondary": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 346839,
+            "covered_mass_fraction": 0.7560605565183272,
+            "covered_teacher_cross_entropy_nats": 2.0373673251791042,
+            "teacher_top1_agreements": 5,
+            "actual_next_top1_correct": 2
+          },
+          "secondary_label_permuted": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 346839,
+            "covered_mass_fraction": 0.7560605565183272,
+            "covered_teacher_cross_entropy_nats": 9.469098241133272,
+            "teacher_top1_agreements": 1,
+            "actual_next_top1_correct": 0
+          },
+          "secondary_paired": {
+            "positions": 7,
+            "candidate_loss_delta_control_minus_real_nats": 6.259841988419815,
+            "real_wins": 7,
+            "control_wins": 0,
+            "ties": 0,
+            "exact_two_sided_sign_p": 0.015625
+          }
+        },
+        {
+          "boundary": "transport_permuted_natural_state_tensor",
+          "feature_audit": {
+            "raw_width": 64,
+            "probe_width": 64,
+            "fitted_weights": 64,
+            "bias": false,
+            "candidate_feature_rows": 864,
+            "unique_feature_rows": 736,
+            "exact_collision_rows": 128,
+            "zero_overlap_rows": 0,
+            "active_lanes": 64,
+            "numerical_rank": 64,
+            "total_variance": 63.857586599235574,
+            "all_finite": true,
+            "target_blind_preprocessing": true,
+            "feature_cid": "blake3:5e55859d61a5d78ed5b983d3f8644fca074053bce9eda05a06137d6dfee5ae46",
+            "standardization_stats_cid": "blake3:7c754fd16ed324d4ceb8223a52c5f0e1ffcae762e6331c5ccddede8577e6c115",
+            "train_only_unit_rms_standardization": true,
+            "standardized_unit_rms_lanes": 64
+          },
+          "fitted_weight_cid": "blake3:6d13af477c301dde9c737019e71860bd09292265a3b68a20b18a1c5530b8a788",
+          "label_permuted_weight_cid": "blake3:36f640aff9e18d2aab7ea93344d25d9327aa92ff62daa0c03473a3e685387826",
+          "label_control_mapping_cid": "blake3:7598917eba4a3ff641a4806e56ccacec4177d94467878359b4bc893d44e748d4",
+          "label_permuted_training_rows_changed": 27,
+          "optimizer_backtracks": 0,
+          "label_permuted_optimizer_backtracks": 0,
+          "primary": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 346839,
+            "covered_mass_fraction": 0.7560605565183272,
+            "covered_teacher_cross_entropy_nats": 2.0372367853179107,
+            "teacher_top1_agreements": 5,
+            "actual_next_top1_correct": 2
+          },
+          "primary_label_permuted": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 346839,
+            "covered_mass_fraction": 0.7560605565183272,
+            "covered_teacher_cross_entropy_nats": 11.618924235000941,
+            "teacher_top1_agreements": 0,
+            "actual_next_top1_correct": 0
+          },
+          "primary_paired": {
+            "positions": 7,
+            "candidate_loss_delta_control_minus_real_nats": 8.466101524909774,
+            "real_wins": 7,
+            "control_wins": 0,
+            "ties": 0,
+            "exact_two_sided_sign_p": 0.015625
+          },
+          "secondary": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 346839,
+            "covered_mass_fraction": 0.7560605565183272,
+            "covered_teacher_cross_entropy_nats": 2.0372367853179107,
+            "teacher_top1_agreements": 5,
+            "actual_next_top1_correct": 2
+          },
+          "secondary_label_permuted": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 346839,
+            "covered_mass_fraction": 0.7560605565183272,
+            "covered_teacher_cross_entropy_nats": 11.618924235000941,
+            "teacher_top1_agreements": 0,
+            "actual_next_top1_correct": 0
+          },
+          "secondary_paired": {
+            "positions": 7,
+            "candidate_loss_delta_control_minus_real_nats": 8.466101524909774,
+            "real_wins": 7,
+            "control_wins": 0,
+            "ties": 0,
+            "exact_two_sided_sign_p": 0.015625
+          }
+        }
+      ],
+      "exact_boundaries": [
+        {
+          "boundary": "suffix_exact_base_logits",
+          "fitted_parameter_values": 0,
+          "actual_alpha": "0",
+          "primary": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 346839,
+            "covered_mass_fraction": 0.7560605565183272,
+            "covered_teacher_cross_entropy_nats": 2.0364044695567745,
+            "teacher_top1_agreements": 5,
+            "actual_next_top1_correct": 2
+          },
+          "secondary": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 346839,
+            "covered_mass_fraction": 0.7560605565183272,
+            "covered_teacher_cross_entropy_nats": 2.0364044695567745,
+            "teacher_top1_agreements": 5,
+            "actual_next_top1_correct": 2
+          },
+          "residual_scale_diagnostic": null
+        },
+        {
+          "boundary": "plain_exact_base_plus_residual_logits",
+          "fitted_parameter_values": 112,
+          "actual_alpha": "1",
+          "primary": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 346839,
+            "covered_mass_fraction": 0.7560605565183272,
+            "covered_teacher_cross_entropy_nats": 2.0363886001002007,
+            "teacher_top1_agreements": 5,
+            "actual_next_top1_correct": 2
+          },
+          "secondary": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 346839,
+            "covered_mass_fraction": 0.7560605565183272,
+            "covered_teacher_cross_entropy_nats": 2.0363886001002007,
+            "teacher_top1_agreements": 5,
+            "actual_next_top1_correct": 2
+          },
+          "residual_scale_diagnostic": {
+            "trials": [
+              {
+                "alpha": "0",
+                "training_covered_teacher_cross_entropy_nats": 1.589349781101521
+              },
+              {
+                "alpha": "1/16",
+                "training_covered_teacher_cross_entropy_nats": 1.5893497745101153
+              },
+              {
+                "alpha": "1/8",
+                "training_covered_teacher_cross_entropy_nats": 1.5893497681881121
+              },
+              {
+                "alpha": "1/4",
+                "training_covered_teacher_cross_entropy_nats": 1.5893497563973693
+              },
+              {
+                "alpha": "1/2",
+                "training_covered_teacher_cross_entropy_nats": 1.5893497361014752
+              },
+              {
+                "alpha": "1",
+                "training_covered_teacher_cross_entropy_nats": 1.5893497087679493
+              },
+              {
+                "alpha": "2",
+                "training_covered_teacher_cross_entropy_nats": 1.5893497070851477
+              },
+              {
+                "alpha": "4",
+                "training_covered_teacher_cross_entropy_nats": 1.5893499155407762
+              },
+              {
+                "alpha": "8",
+                "training_covered_teacher_cross_entropy_nats": 1.5893511787839967
+              },
+              {
+                "alpha": "16",
+                "training_covered_teacher_cross_entropy_nats": 1.5893570832176789
+              }
+            ],
+            "selected_alpha": "2",
+            "selection_uses_training_only": true,
+            "deterministic_tie_break_prefers_smaller_alpha": true,
+            "selected_primary": {
+              "positions": 7,
+              "teacher_mass_covered_q16": 346839,
+              "covered_mass_fraction": 0.7560605565183272,
+              "covered_teacher_cross_entropy_nats": 2.036372814016606,
+              "teacher_top1_agreements": 5,
+              "actual_next_top1_correct": 2
+            },
+            "selected_secondary": {
+              "positions": 7,
+              "teacher_mass_covered_q16": 346839,
+              "covered_mass_fraction": 0.7560605565183272,
+              "covered_teacher_cross_entropy_nats": 2.036372814016606,
+              "teacher_top1_agreements": 5,
+              "actual_next_top1_correct": 2
+            }
+          }
+        },
+        {
+          "boundary": "geometric_exact_base_plus_residual_logits",
+          "fitted_parameter_values": 112,
+          "actual_alpha": "1",
+          "primary": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 346839,
+            "covered_mass_fraction": 0.7560605565183272,
+            "covered_teacher_cross_entropy_nats": 2.036870511968061,
+            "teacher_top1_agreements": 5,
+            "actual_next_top1_correct": 2
+          },
+          "secondary": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 346839,
+            "covered_mass_fraction": 0.7560605565183272,
+            "covered_teacher_cross_entropy_nats": 2.036870511968061,
+            "teacher_top1_agreements": 5,
+            "actual_next_top1_correct": 2
+          },
+          "residual_scale_diagnostic": {
+            "trials": [
+              {
+                "alpha": "0",
+                "training_covered_teacher_cross_entropy_nats": 1.589349781101521
+              },
+              {
+                "alpha": "1/16",
+                "training_covered_teacher_cross_entropy_nats": 1.5893497639331657
+              },
+              {
+                "alpha": "1/8",
+                "training_covered_teacher_cross_entropy_nats": 1.5893497476673457
+              },
+              {
+                "alpha": "1/4",
+                "training_covered_teacher_cross_entropy_nats": 1.589349717812371
+              },
+              {
+                "alpha": "1/2",
+                "training_covered_teacher_cross_entropy_nats": 1.589349668833257
+              },
+              {
+                "alpha": "1",
+                "training_covered_teacher_cross_entropy_nats": 1.5893496137147103
+              },
+              {
+                "alpha": "2",
+                "training_covered_teacher_cross_entropy_nats": 1.5893496746092384
+              },
+              {
+                "alpha": "4",
+                "training_covered_teacher_cross_entropy_nats": 1.589350478025757
+              },
+              {
+                "alpha": "8",
+                "training_covered_teacher_cross_entropy_nats": 1.5893547896114608
+              },
+              {
+                "alpha": "16",
+                "training_covered_teacher_cross_entropy_nats": 1.5893740669052776
+              }
+            ],
+            "selected_alpha": "1",
+            "selection_uses_training_only": true,
+            "deterministic_tie_break_prefers_smaller_alpha": true,
+            "selected_primary": {
+              "positions": 7,
+              "teacher_mass_covered_q16": 346839,
+              "covered_mass_fraction": 0.7560605565183272,
+              "covered_teacher_cross_entropy_nats": 2.036870511968061,
+              "teacher_top1_agreements": 5,
+              "actual_next_top1_correct": 2
+            },
+            "selected_secondary": {
+              "positions": 7,
+              "teacher_mass_covered_q16": 346839,
+              "covered_mass_fraction": 0.7560605565183272,
+              "covered_teacher_cross_entropy_nats": 2.036870511968061,
+              "teacher_top1_agreements": 5,
+              "actual_next_top1_correct": 2
+            }
+          }
+        },
+        {
+          "boundary": "transport_permuted_exact_base_plus_residual_logits",
+          "fitted_parameter_values": 112,
+          "actual_alpha": "1",
+          "primary": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 346839,
+            "covered_mass_fraction": 0.7560605565183272,
+            "covered_teacher_cross_entropy_nats": 2.036728186442525,
+            "teacher_top1_agreements": 5,
+            "actual_next_top1_correct": 2
+          },
+          "secondary": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 346839,
+            "covered_mass_fraction": 0.7560605565183272,
+            "covered_teacher_cross_entropy_nats": 2.036728186442525,
+            "teacher_top1_agreements": 5,
+            "actual_next_top1_correct": 2
+          },
+          "residual_scale_diagnostic": {
+            "trials": [
+              {
+                "alpha": "0",
+                "training_covered_teacher_cross_entropy_nats": 1.589349781101521
+              },
+              {
+                "alpha": "1/16",
+                "training_covered_teacher_cross_entropy_nats": 1.5893497710218212
+              },
+              {
+                "alpha": "1/8",
+                "training_covered_teacher_cross_entropy_nats": 1.5893497620365935
+              },
+              {
+                "alpha": "1/4",
+                "training_covered_teacher_cross_entropy_nats": 1.5893497473944678
+              },
+              {
+                "alpha": "1/2",
+                "training_covered_teacher_cross_entropy_nats": 1.5893497313675173
+              },
+              {
+                "alpha": "1",
+                "training_covered_teacher_cross_entropy_nats": 1.5893497523334583
+              },
+              {
+                "alpha": "2",
+                "training_covered_teacher_cross_entropy_nats": 1.5893500062115509
+              },
+              {
+                "alpha": "4",
+                "training_covered_teacher_cross_entropy_nats": 1.589351360589415
+              },
+              {
+                "alpha": "8",
+                "training_covered_teacher_cross_entropy_nats": 1.5893574471096814
+              },
+              {
+                "alpha": "16",
+                "training_covered_teacher_cross_entropy_nats": 1.5893830627021803
+              }
+            ],
+            "selected_alpha": "1/2",
+            "selection_uses_training_only": true,
+            "deterministic_tie_break_prefers_smaller_alpha": true,
+            "selected_primary": {
+              "positions": 7,
+              "teacher_mass_covered_q16": 346839,
+              "covered_mass_fraction": 0.7560605565183272,
+              "covered_teacher_cross_entropy_nats": 2.036566105710972,
+              "teacher_top1_agreements": 5,
+              "actual_next_top1_correct": 2
+            },
+            "selected_secondary": {
+              "positions": 7,
+              "teacher_mass_covered_q16": 346839,
+              "covered_mass_fraction": 0.7560605565183272,
+              "covered_teacher_cross_entropy_nats": 2.036566105710972,
+              "teacher_top1_agreements": 5,
+              "actual_next_top1_correct": 2
+            }
+          }
+        }
+      ],
+      "candidate_support_cid": "blake3:0f920f701d8bc2aa51cd8f7520c51b4db02c78b4ebbc12a0eef5c4077279ebc8",
+      "candidate_support_rows": 38,
+      "candidate_support_maximum": 32,
+      "candidate_support_train_only": true,
+      "runtime_source_reads": 0,
+      "runtime_future_reads": 0
+    },
+    {
+      "manifest": {
+        "ordinal": 1,
+        "held_out_document_id": "657",
+        "held_out_document_trace_cid": "blake3:4a31dec9c955c5bca5513673cb0fa5c2fe3b7eb93f27a177838142abd00b4704",
+        "training_document_ids": [
+          "14",
+          "4579",
+          "5121"
+        ],
+        "training_document_trace_cids": [
+          "blake3:62bb33d4605914541443bea0c972990031a0821449e932e19a929db1369f2960",
+          "blake3:3a51132fd40387f0e0f55e1fd50a7bfc05b8f1376e6fe877d63f9ab60bfd45ad",
+          "blake3:bc47e6f862978effb616da762f935cbcc97b71631bb2cd6c650a6e6be1e91efc"
+        ],
+        "training_positions": 30,
+        "training_non_bos_events": 27,
+        "primary_exact_prefix_novel_events": 3,
+        "secondary_non_bos_events": 7,
+        "fold_input_cid": "blake3:eb4c8da981a141f007dd43536f3e067a1fe2729e48157f1de589261a34877e7c",
+        "support_artifact_cid": "blake3:8fbd8c1f2b88e4a444653394cc4fe8422cc97d28d9682c3e1898a5de308d4314",
+        "state_artifact_cid": "blake3:2ee914d6990de49cfcbd0da4f304c38913217eaaadaff5c0ac7e2a3de292fecd",
+        "training_support_cid": "blake3:9635d4cc251a184c0cc4da9b548c03210ba123b75380f510e0cd72a91ab50728",
+        "label_control_mapping_cid": "blake3:c8e8e9e82cfaccbfc0b105d79e6e86703790b1f60604977cb5304f1f828d1c87",
+        "label_control_mass_audit": {
+          "rows": 27,
+          "original_covered_mass_q16": 1666946,
+          "permuted_covered_mass_q16": 1666946,
+          "mass_preserved_exactly": true,
+          "invalid_support_rows": 0,
+          "unchanged_label_rows": 0
+        },
+        "training_fit_identity_cid": "blake3:5899eca3203a5c17fe702044e914ce6b8311a6e30b9cf25bbf895dfe63de68c4",
+        "held_label_substitution_fit_identity_exact": true,
+        "held_label_substitution_mutated_events": 7,
+        "held_labels_original_cid": "blake3:a3080d36f60e8c14b3b68ae54f265d2085a775e45dcdc1e86cee92f43d66ab6d",
+        "held_labels_substituted_cid": "blake3:7ef7693ba80c258c8803e96788a976a664acb3478b647eccd1d647e0839b2c62",
+        "held_out_events_used_for_fit": 0,
+        "state_resets": 12
+      },
+      "diagnostic_boundaries": [
+        {
+          "boundary": "full_final_layer_qkv_signed_sketch",
+          "feature_audit": {
+            "raw_width": 1728,
+            "probe_width": 64,
+            "fitted_weights": 64,
+            "bias": false,
+            "candidate_feature_rows": 864,
+            "unique_feature_rows": 864,
+            "exact_collision_rows": 0,
+            "zero_overlap_rows": 0,
+            "active_lanes": 64,
+            "numerical_rank": 64,
+            "total_variance": 63.89076925830775,
+            "all_finite": true,
+            "target_blind_preprocessing": true,
+            "feature_cid": "blake3:82aeba6b7360fbf095e5daa24a7f5bf40777a0c9cc28c39b72a36323e96bfeb6",
+            "standardization_stats_cid": "blake3:339fc233cbc2f7f17655205889d0c92a416e750f572dc8beda236dc4e668e3f5",
+            "train_only_unit_rms_standardization": true,
+            "standardized_unit_rms_lanes": 64
+          },
+          "fitted_weight_cid": "blake3:ff8510eb329ce836c0bb56cc73568fbcf9fbf892c4b8034cd75a56fbad6b8592",
+          "label_permuted_weight_cid": "blake3:813fdf645cb6b301ec7ed6aef96a678ef4a43c7bbf1f50c429eff903ec205a2c",
+          "label_control_mapping_cid": "blake3:c8e8e9e82cfaccbfc0b105d79e6e86703790b1f60604977cb5304f1f828d1c87",
+          "label_permuted_training_rows_changed": 27,
+          "optimizer_backtracks": 0,
+          "label_permuted_optimizer_backtracks": 0,
+          "primary": {
+            "positions": 3,
+            "teacher_mass_covered_q16": 129417,
+            "covered_mass_fraction": 0.6582589456015869,
+            "covered_teacher_cross_entropy_nats": 2.5296340935176427,
+            "teacher_top1_agreements": 2,
+            "actual_next_top1_correct": 1
+          },
+          "primary_label_permuted": {
+            "positions": 3,
+            "teacher_mass_covered_q16": 129417,
+            "covered_mass_fraction": 0.6582589456015869,
+            "covered_teacher_cross_entropy_nats": 3.5267084508235844,
+            "teacher_top1_agreements": 1,
+            "actual_next_top1_correct": 1
+          },
+          "primary_paired": {
+            "positions": 3,
+            "candidate_loss_delta_control_minus_real_nats": 1.1574880818996163,
+            "real_wins": 2,
+            "control_wins": 1,
+            "ties": 0,
+            "exact_two_sided_sign_p": 1.0
+          },
+          "secondary": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 356854,
+            "covered_mass_fraction": 0.7778918571319579,
+            "covered_teacher_cross_entropy_nats": 2.0152587787697347,
+            "teacher_top1_agreements": 6,
+            "actual_next_top1_correct": 2
+          },
+          "secondary_label_permuted": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 356854,
+            "covered_mass_fraction": 0.7778918571319579,
+            "covered_teacher_cross_entropy_nats": 2.880782480529873,
+            "teacher_top1_agreements": 1,
+            "actual_next_top1_correct": 1
+          },
+          "secondary_paired": {
+            "positions": 7,
+            "candidate_loss_delta_control_minus_real_nats": 0.9550222777006699,
+            "real_wins": 6,
+            "control_wins": 1,
+            "ties": 0,
+            "exact_two_sided_sign_p": 0.125
+          }
+        },
+        {
+          "boundary": "signed_576_to_4_qkv_sketch",
+          "feature_audit": {
+            "raw_width": 12,
+            "probe_width": 64,
+            "fitted_weights": 64,
+            "bias": false,
+            "candidate_feature_rows": 864,
+            "unique_feature_rows": 864,
+            "exact_collision_rows": 0,
+            "zero_overlap_rows": 0,
+            "active_lanes": 64,
+            "numerical_rank": 64,
+            "total_variance": 63.889636389715804,
+            "all_finite": true,
+            "target_blind_preprocessing": true,
+            "feature_cid": "blake3:47db0146c7d7ffb7a065a255b6f6a7aac810c8adc2a728ca41086bcbc6501f84",
+            "standardization_stats_cid": "blake3:0ee0f7da7a1f810391c883103828df19809517c19c722de07c2b58d513f041f0",
+            "train_only_unit_rms_standardization": true,
+            "standardized_unit_rms_lanes": 64
+          },
+          "fitted_weight_cid": "blake3:6565f99a1e1c36a5032f34e6540cabe86d85370890518684f21eaf29f880bf68",
+          "label_permuted_weight_cid": "blake3:eadece7244b5ac625d721bc6dd13caea255c4ba651c46767eb17d083a53cc8cc",
+          "label_control_mapping_cid": "blake3:c8e8e9e82cfaccbfc0b105d79e6e86703790b1f60604977cb5304f1f828d1c87",
+          "label_permuted_training_rows_changed": 27,
+          "optimizer_backtracks": 0,
+          "label_permuted_optimizer_backtracks": 0,
+          "primary": {
+            "positions": 3,
+            "teacher_mass_covered_q16": 129417,
+            "covered_mass_fraction": 0.6582589456015869,
+            "covered_teacher_cross_entropy_nats": 2.5303014724525585,
+            "teacher_top1_agreements": 2,
+            "actual_next_top1_correct": 1
+          },
+          "primary_label_permuted": {
+            "positions": 3,
+            "teacher_mass_covered_q16": 129417,
+            "covered_mass_fraction": 0.6582589456015869,
+            "covered_teacher_cross_entropy_nats": 4.985332153052491,
+            "teacher_top1_agreements": 0,
+            "actual_next_top1_correct": 1
+          },
+          "primary_paired": {
+            "positions": 3,
+            "candidate_loss_delta_control_minus_real_nats": 2.454611262979403,
+            "real_wins": 3,
+            "control_wins": 0,
+            "ties": 0,
+            "exact_two_sided_sign_p": 0.25
+          },
+          "secondary": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 356854,
+            "covered_mass_fraction": 0.7778918571319579,
+            "covered_teacher_cross_entropy_nats": 2.0155005803700816,
+            "teacher_top1_agreements": 6,
+            "actual_next_top1_correct": 2
+          },
+          "secondary_label_permuted": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 356854,
+            "covered_mass_fraction": 0.7778918571319579,
+            "covered_teacher_cross_entropy_nats": 3.508451547836846,
+            "teacher_top1_agreements": 2,
+            "actual_next_top1_correct": 1
+          },
+          "secondary_paired": {
+            "positions": 7,
+            "candidate_loss_delta_control_minus_real_nats": 1.5925609381428543,
+            "real_wins": 7,
+            "control_wins": 0,
+            "ties": 0,
+            "exact_two_sided_sign_p": 0.015625
+          }
+        },
+        {
+          "boundary": "plain_natural_state_tensor",
+          "feature_audit": {
+            "raw_width": 64,
+            "probe_width": 64,
+            "fitted_weights": 64,
+            "bias": false,
+            "candidate_feature_rows": 864,
+            "unique_feature_rows": 864,
+            "exact_collision_rows": 0,
+            "zero_overlap_rows": 0,
+            "active_lanes": 64,
+            "numerical_rank": 64,
+            "total_variance": 63.81850895524179,
+            "all_finite": true,
+            "target_blind_preprocessing": true,
+            "feature_cid": "blake3:7eca230aeb91e9468ac4137da6064354c04168d9e5e5576bf70414535cd6f8e8",
+            "standardization_stats_cid": "blake3:2dea4f8a7e3119d26935f0c9c408dbdcebbd8336297cfd585291e7e644798d9f",
+            "train_only_unit_rms_standardization": true,
+            "standardized_unit_rms_lanes": 64
+          },
+          "fitted_weight_cid": "blake3:adde25bbcabdae67a433a8e263830313fd75a4da5b2799be2477396bcd8f9895",
+          "label_permuted_weight_cid": "blake3:309a7424cf1368fe7ec7a4f1ea5175f96d55b70f093c3989b7c86dfba261e0ab",
+          "label_control_mapping_cid": "blake3:c8e8e9e82cfaccbfc0b105d79e6e86703790b1f60604977cb5304f1f828d1c87",
+          "label_permuted_training_rows_changed": 27,
+          "optimizer_backtracks": 0,
+          "label_permuted_optimizer_backtracks": 0,
+          "primary": {
+            "positions": 3,
+            "teacher_mass_covered_q16": 129417,
+            "covered_mass_fraction": 0.6582589456015869,
+            "covered_teacher_cross_entropy_nats": 2.529248469191067,
+            "teacher_top1_agreements": 2,
+            "actual_next_top1_correct": 1
+          },
+          "primary_label_permuted": {
+            "positions": 3,
+            "teacher_mass_covered_q16": 129417,
+            "covered_mass_fraction": 0.6582589456015869,
+            "covered_teacher_cross_entropy_nats": 3.107309843115354,
+            "teacher_top1_agreements": 0,
+            "actual_next_top1_correct": 0
+          },
+          "primary_paired": {
+            "positions": 3,
+            "candidate_loss_delta_control_minus_real_nats": 0.5672393026637575,
+            "real_wins": 3,
+            "control_wins": 0,
+            "ties": 0,
+            "exact_two_sided_sign_p": 0.25
+          },
+          "secondary": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 356854,
+            "covered_mass_fraction": 0.7778918571319579,
+            "covered_teacher_cross_entropy_nats": 2.0151188093550907,
+            "teacher_top1_agreements": 6,
+            "actual_next_top1_correct": 2
+          },
+          "secondary_label_permuted": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 356854,
+            "covered_mass_fraction": 0.7778918571319579,
+            "covered_teacher_cross_entropy_nats": 2.368145078101185,
+            "teacher_top1_agreements": 1,
+            "actual_next_top1_correct": 0
+          },
+          "secondary_paired": {
+            "positions": 7,
+            "candidate_loss_delta_control_minus_real_nats": 0.369096109415691,
+            "real_wins": 7,
+            "control_wins": 0,
+            "ties": 0,
+            "exact_two_sided_sign_p": 0.015625
+          }
+        },
+        {
+          "boundary": "geometric_natural_state_tensor",
+          "feature_audit": {
+            "raw_width": 64,
+            "probe_width": 64,
+            "fitted_weights": 64,
+            "bias": false,
+            "candidate_feature_rows": 864,
+            "unique_feature_rows": 864,
+            "exact_collision_rows": 0,
+            "zero_overlap_rows": 0,
+            "active_lanes": 64,
+            "numerical_rank": 64,
+            "total_variance": 63.83828550089488,
+            "all_finite": true,
+            "target_blind_preprocessing": true,
+            "feature_cid": "blake3:169138adcaab61a2b988962031dd1d069b08350d64718667506a655d45eba865",
+            "standardization_stats_cid": "blake3:7af8dbc8a80299b71c16cd64d34cc54226da9857628df1bcbc3afc4fa4a37275",
+            "train_only_unit_rms_standardization": true,
+            "standardized_unit_rms_lanes": 64
+          },
+          "fitted_weight_cid": "blake3:a69bed39a595af52e15b304707d513dc085bf81ac824a4bc70bf36d575007a73",
+          "label_permuted_weight_cid": "blake3:f0eefac7f1761a889b66760d3d0ba792a85bc782bc17c688c5742150df0acf52",
+          "label_control_mapping_cid": "blake3:c8e8e9e82cfaccbfc0b105d79e6e86703790b1f60604977cb5304f1f828d1c87",
+          "label_permuted_training_rows_changed": 27,
+          "optimizer_backtracks": 0,
+          "label_permuted_optimizer_backtracks": 0,
+          "primary": {
+            "positions": 3,
+            "teacher_mass_covered_q16": 129417,
+            "covered_mass_fraction": 0.6582589456015869,
+            "covered_teacher_cross_entropy_nats": 2.5293999350795113,
+            "teacher_top1_agreements": 2,
+            "actual_next_top1_correct": 1
+          },
+          "primary_label_permuted": {
+            "positions": 3,
+            "teacher_mass_covered_q16": 129417,
+            "covered_mass_fraction": 0.6582589456015869,
+            "covered_teacher_cross_entropy_nats": 6.956433123195262,
+            "teacher_top1_agreements": 1,
+            "actual_next_top1_correct": 0
+          },
+          "primary_paired": {
+            "positions": 3,
+            "candidate_loss_delta_control_minus_real_nats": 5.086472551489722,
+            "real_wins": 2,
+            "control_wins": 1,
+            "ties": 0,
+            "exact_two_sided_sign_p": 1.0
+          },
+          "secondary": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 356854,
+            "covered_mass_fraction": 0.7778918571319579,
+            "covered_teacher_cross_entropy_nats": 2.0151737757140817,
+            "teacher_top1_agreements": 6,
+            "actual_next_top1_correct": 2
+          },
+          "secondary_label_permuted": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 356854,
+            "covered_mass_fraction": 0.7778918571319579,
+            "covered_teacher_cross_entropy_nats": 3.8720056004097096,
+            "teacher_top1_agreements": 2,
+            "actual_next_top1_correct": 0
+          },
+          "secondary_paired": {
+            "positions": 7,
+            "candidate_loss_delta_control_minus_real_nats": 2.4021457206132624,
+            "real_wins": 6,
+            "control_wins": 1,
+            "ties": 0,
+            "exact_two_sided_sign_p": 0.125
+          }
+        },
+        {
+          "boundary": "transport_permuted_natural_state_tensor",
+          "feature_audit": {
+            "raw_width": 64,
+            "probe_width": 64,
+            "fitted_weights": 64,
+            "bias": false,
+            "candidate_feature_rows": 864,
+            "unique_feature_rows": 864,
+            "exact_collision_rows": 0,
+            "zero_overlap_rows": 0,
+            "active_lanes": 64,
+            "numerical_rank": 64,
+            "total_variance": 63.8625202949827,
+            "all_finite": true,
+            "target_blind_preprocessing": true,
+            "feature_cid": "blake3:43a869d170db0cf7846f252bd8e7966ae2e08c502ed945f4075b567e9eb73e61",
+            "standardization_stats_cid": "blake3:6bf393f77993f6e1df116dfd857e916b9d8e672ba05d7c2f1a1b1b62be61368f",
+            "train_only_unit_rms_standardization": true,
+            "standardized_unit_rms_lanes": 64
+          },
+          "fitted_weight_cid": "blake3:928d2c5a294b9a0f89d207d6ec5a2bfd50d4e660c8cfc5ded176f5fbb88de099",
+          "label_permuted_weight_cid": "blake3:a5cccf0a194837417a788c922b54fc77a800302ccbbaad07845ed09ce7a18934",
+          "label_control_mapping_cid": "blake3:c8e8e9e82cfaccbfc0b105d79e6e86703790b1f60604977cb5304f1f828d1c87",
+          "label_permuted_training_rows_changed": 27,
+          "optimizer_backtracks": 0,
+          "label_permuted_optimizer_backtracks": 0,
+          "primary": {
+            "positions": 3,
+            "teacher_mass_covered_q16": 129417,
+            "covered_mass_fraction": 0.6582589456015869,
+            "covered_teacher_cross_entropy_nats": 2.529427221301456,
+            "teacher_top1_agreements": 2,
+            "actual_next_top1_correct": 1
+          },
+          "primary_label_permuted": {
+            "positions": 3,
+            "teacher_mass_covered_q16": 129417,
+            "covered_mass_fraction": 0.6582589456015869,
+            "covered_teacher_cross_entropy_nats": 3.0911624282411534,
+            "teacher_top1_agreements": 2,
+            "actual_next_top1_correct": 1
+          },
+          "primary_paired": {
+            "positions": 3,
+            "candidate_loss_delta_control_minus_real_nats": 0.4280671470291216,
+            "real_wins": 3,
+            "control_wins": 0,
+            "ties": 0,
+            "exact_two_sided_sign_p": 0.25
+          },
+          "secondary": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 356854,
+            "covered_mass_fraction": 0.7778918571319579,
+            "covered_teacher_cross_entropy_nats": 2.0151836887180905,
+            "teacher_top1_agreements": 6,
+            "actual_next_top1_correct": 2
+          },
+          "secondary_label_permuted": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 356854,
+            "covered_mass_fraction": 0.7778918571319579,
+            "covered_teacher_cross_entropy_nats": 2.4326496944650864,
+            "teacher_top1_agreements": 3,
+            "actual_next_top1_correct": 1
+          },
+          "secondary_paired": {
+            "positions": 7,
+            "candidate_loss_delta_control_minus_real_nats": 0.37610799339223133,
+            "real_wins": 7,
+            "control_wins": 0,
+            "ties": 0,
+            "exact_two_sided_sign_p": 0.015625
+          }
+        }
+      ],
+      "exact_boundaries": [
+        {
+          "boundary": "suffix_exact_base_logits",
+          "fitted_parameter_values": 0,
+          "actual_alpha": "0",
+          "primary": {
+            "positions": 3,
+            "teacher_mass_covered_q16": 129417,
+            "covered_mass_fraction": 0.6582589456015869,
+            "covered_teacher_cross_entropy_nats": 2.5294155912781697,
+            "teacher_top1_agreements": 2,
+            "actual_next_top1_correct": 1
+          },
+          "secondary": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 356854,
+            "covered_mass_fraction": 0.7778918571319579,
+            "covered_teacher_cross_entropy_nats": 2.015179449373798,
+            "teacher_top1_agreements": 6,
+            "actual_next_top1_correct": 2
+          },
+          "residual_scale_diagnostic": null
+        },
+        {
+          "boundary": "plain_exact_base_plus_residual_logits",
+          "fitted_parameter_values": 112,
+          "actual_alpha": "1",
+          "primary": {
+            "positions": 3,
+            "teacher_mass_covered_q16": 129417,
+            "covered_mass_fraction": 0.6582589456015869,
+            "covered_teacher_cross_entropy_nats": 2.5293626819936716,
+            "teacher_top1_agreements": 2,
+            "actual_next_top1_correct": 1
+          },
+          "secondary": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 356854,
+            "covered_mass_fraction": 0.7778918571319579,
+            "covered_teacher_cross_entropy_nats": 2.0151602523086543,
+            "teacher_top1_agreements": 6,
+            "actual_next_top1_correct": 2
+          },
+          "residual_scale_diagnostic": {
+            "trials": [
+              {
+                "alpha": "0",
+                "training_covered_teacher_cross_entropy_nats": 1.5288647779167066
+              },
+              {
+                "alpha": "1/16",
+                "training_covered_teacher_cross_entropy_nats": 1.5288647743959551
+              },
+              {
+                "alpha": "1/8",
+                "training_covered_teacher_cross_entropy_nats": 1.5288647710268968
+              },
+              {
+                "alpha": "1/4",
+                "training_covered_teacher_cross_entropy_nats": 1.5288647647020084
+              },
+              {
+                "alpha": "1/2",
+                "training_covered_teacher_cross_entropy_nats": 1.5288647537972977
+              },
+              {
+                "alpha": "1",
+                "training_covered_teacher_cross_entropy_nats": 1.528864738901577
+              },
+              {
+                "alpha": "2",
+                "training_covered_teacher_cross_entropy_nats": 1.5288647367483512
+              },
+              {
+                "alpha": "4",
+                "training_covered_teacher_cross_entropy_nats": 1.528864843090745
+              },
+              {
+                "alpha": "8",
+                "training_covered_teacher_cross_entropy_nats": 1.528865498072823
+              },
+              {
+                "alpha": "16",
+                "training_covered_teacher_cross_entropy_nats": 1.5288685762273186
+              }
+            ],
+            "selected_alpha": "2",
+            "selection_uses_training_only": true,
+            "deterministic_tie_break_prefers_smaller_alpha": true,
+            "selected_primary": {
+              "positions": 3,
+              "teacher_mass_covered_q16": 129417,
+              "covered_mass_fraction": 0.6582589456015869,
+              "covered_teacher_cross_entropy_nats": 2.529309811081635,
+              "teacher_top1_agreements": 2,
+              "actual_next_top1_correct": 1
+            },
+            "selected_secondary": {
+              "positions": 7,
+              "teacher_mass_covered_q16": 356854,
+              "covered_mass_fraction": 0.7778918571319579,
+              "covered_teacher_cross_entropy_nats": 2.0151411067164604,
+              "teacher_top1_agreements": 6,
+              "actual_next_top1_correct": 2
+            }
+          }
+        },
+        {
+          "boundary": "geometric_exact_base_plus_residual_logits",
+          "fitted_parameter_values": 112,
+          "actual_alpha": "1",
+          "primary": {
+            "positions": 3,
+            "teacher_mass_covered_q16": 129417,
+            "covered_mass_fraction": 0.6582589456015869,
+            "covered_teacher_cross_entropy_nats": 2.5293773131412602,
+            "teacher_top1_agreements": 2,
+            "actual_next_top1_correct": 1
+          },
+          "secondary": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 356854,
+            "covered_mass_fraction": 0.7778918571319579,
+            "covered_teacher_cross_entropy_nats": 2.0151655755901694,
+            "teacher_top1_agreements": 6,
+            "actual_next_top1_correct": 2
+          },
+          "residual_scale_diagnostic": {
+            "trials": [
+              {
+                "alpha": "0",
+                "training_covered_teacher_cross_entropy_nats": 1.5288647779167066
+              },
+              {
+                "alpha": "1/16",
+                "training_covered_teacher_cross_entropy_nats": 1.528864765397134
+              },
+              {
+                "alpha": "1/8",
+                "training_covered_teacher_cross_entropy_nats": 1.5288647533922919
+              },
+              {
+                "alpha": "1/4",
+                "training_covered_teacher_cross_entropy_nats": 1.5288647309644336
+              },
+              {
+                "alpha": "1/2",
+                "training_covered_teacher_cross_entropy_nats": 1.5288646923572877
+              },
+              {
+                "alpha": "1",
+                "training_covered_teacher_cross_entropy_nats": 1.5288646401861894
+              },
+              {
+                "alpha": "2",
+                "training_covered_teacher_cross_entropy_nats": 1.5288646357999582
+              },
+              {
+                "alpha": "4",
+                "training_covered_teacher_cross_entropy_nats": 1.5288650255720109
+              },
+              {
+                "alpha": "8",
+                "training_covered_teacher_cross_entropy_nats": 1.5288673888785258
+              },
+              {
+                "alpha": "16",
+                "training_covered_teacher_cross_entropy_nats": 1.5288783709959561
+              }
+            ],
+            "selected_alpha": "2",
+            "selection_uses_training_only": true,
+            "deterministic_tie_break_prefers_smaller_alpha": true,
+            "selected_primary": {
+              "positions": 3,
+              "teacher_mass_covered_q16": 129417,
+              "covered_mass_fraction": 0.6582589456015869,
+              "covered_teacher_cross_entropy_nats": 2.529339157022725,
+              "teacher_top1_agreements": 2,
+              "actual_next_top1_correct": 1
+            },
+            "selected_secondary": {
+              "positions": 7,
+              "teacher_mass_covered_q16": 356854,
+              "covered_mass_fraction": 0.7778918571319579,
+              "covered_teacher_cross_entropy_nats": 2.015151793631133,
+              "teacher_top1_agreements": 6,
+              "actual_next_top1_correct": 2
+            }
+          }
+        },
+        {
+          "boundary": "transport_permuted_exact_base_plus_residual_logits",
+          "fitted_parameter_values": 112,
+          "actual_alpha": "1",
+          "primary": {
+            "positions": 3,
+            "teacher_mass_covered_q16": 129417,
+            "covered_mass_fraction": 0.6582589456015869,
+            "covered_teacher_cross_entropy_nats": 2.5294355484827604,
+            "teacher_top1_agreements": 2,
+            "actual_next_top1_correct": 1
+          },
+          "secondary": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 356854,
+            "covered_mass_fraction": 0.7778918571319579,
+            "covered_teacher_cross_entropy_nats": 2.0151867220670567,
+            "teacher_top1_agreements": 6,
+            "actual_next_top1_correct": 2
+          },
+          "residual_scale_diagnostic": {
+            "trials": [
+              {
+                "alpha": "0",
+                "training_covered_teacher_cross_entropy_nats": 1.5288647779167066
+              },
+              {
+                "alpha": "1/16",
+                "training_covered_teacher_cross_entropy_nats": 1.5288647700567732
+              },
+              {
+                "alpha": "1/8",
+                "training_covered_teacher_cross_entropy_nats": 1.528864763284016
+              },
+              {
+                "alpha": "1/4",
+                "training_covered_teacher_cross_entropy_nats": 1.52886475293738
+              },
+              {
+                "alpha": "1/2",
+                "training_covered_teacher_cross_entropy_nats": 1.5288647451224229
+              },
+              {
+                "alpha": "1",
+                "training_covered_teacher_cross_entropy_nats": 1.5288647809741256
+              },
+              {
+                "alpha": "2",
+                "training_covered_teacher_cross_entropy_nats": 1.5288650585307724
+              },
+              {
+                "alpha": "4",
+                "training_covered_teacher_cross_entropy_nats": 1.5288664362473363
+              },
+              {
+                "alpha": "8",
+                "training_covered_teacher_cross_entropy_nats": 1.528872476461328
+              },
+              {
+                "alpha": "16",
+                "training_covered_teacher_cross_entropy_nats": 1.5288976496477418
+              }
+            ],
+            "selected_alpha": "1/2",
+            "selection_uses_training_only": true,
+            "deterministic_tie_break_prefers_smaller_alpha": true,
+            "selected_primary": {
+              "positions": 3,
+              "teacher_mass_covered_q16": 129417,
+              "covered_mass_fraction": 0.6582589456015869,
+              "covered_teacher_cross_entropy_nats": 2.529425566744089,
+              "teacher_top1_agreements": 2,
+              "actual_next_top1_correct": 1
+            },
+            "selected_secondary": {
+              "positions": 7,
+              "teacher_mass_covered_q16": 356854,
+              "covered_mass_fraction": 0.7778918571319579,
+              "covered_teacher_cross_entropy_nats": 2.015183073908727,
+              "teacher_top1_agreements": 6,
+              "actual_next_top1_correct": 2
+            }
+          }
+        }
+      ],
+      "candidate_support_cid": "blake3:f11146f970800e043a332835a462046868e3b1d1ab214c3d8c4d6573fb24c34c",
+      "candidate_support_rows": 38,
+      "candidate_support_maximum": 32,
+      "candidate_support_train_only": true,
+      "runtime_source_reads": 0,
+      "runtime_future_reads": 0
+    },
+    {
+      "manifest": {
+        "ordinal": 2,
+        "held_out_document_id": "4579",
+        "held_out_document_trace_cid": "blake3:3a51132fd40387f0e0f55e1fd50a7bfc05b8f1376e6fe877d63f9ab60bfd45ad",
+        "training_document_ids": [
+          "14",
+          "657",
+          "5121"
+        ],
+        "training_document_trace_cids": [
+          "blake3:62bb33d4605914541443bea0c972990031a0821449e932e19a929db1369f2960",
+          "blake3:4a31dec9c955c5bca5513673cb0fa5c2fe3b7eb93f27a177838142abd00b4704",
+          "blake3:bc47e6f862978effb616da762f935cbcc97b71631bb2cd6c650a6e6be1e91efc"
+        ],
+        "training_positions": 28,
+        "training_non_bos_events": 25,
+        "primary_exact_prefix_novel_events": 9,
+        "secondary_non_bos_events": 9,
+        "fold_input_cid": "blake3:b1ff043405d6b6774c6c27eff2d28d8a1d92ec056ef7594e89cf61f60a6520e8",
+        "support_artifact_cid": "blake3:c1a53cc0859a524c13b4a444ffc6ebb8bc464ceb5e5e45db96075c0db1b17046",
+        "state_artifact_cid": "blake3:f655f798bc771cc144bd8c87bfba13760f5adac256069304e88794f59e8a14af",
+        "training_support_cid": "blake3:459ecdad93811b7af5833eb906c65ae3a26806ca7906d4013cdf5b9e1b022824",
+        "label_control_mapping_cid": "blake3:db309b3b1a82ca0f1e273f89c4465c7dfc7e41d20b1194f7f78db37bcfe0ae58",
+        "label_control_mass_audit": {
+          "rows": 25,
+          "original_covered_mass_q16": 1578371,
+          "permuted_covered_mass_q16": 1578371,
+          "mass_preserved_exactly": true,
+          "invalid_support_rows": 0,
+          "unchanged_label_rows": 0
+        },
+        "training_fit_identity_cid": "blake3:6dedd1292a1d10891b8c162e690aeeff9cecac91f0827444ca0fe772da1dd02a",
+        "held_label_substitution_fit_identity_exact": true,
+        "held_label_substitution_mutated_events": 9,
+        "held_labels_original_cid": "blake3:01283616396366139f3a2fbcfb9fa9bf5bfcbc1bd39db1316d003d5926e999db",
+        "held_labels_substituted_cid": "blake3:c0a33d2c8c9afad4a723172c968cb20444ca2f240560856dd53b1b57c8914644",
+        "held_out_events_used_for_fit": 0,
+        "state_resets": 12
+      },
+      "diagnostic_boundaries": [
+        {
+          "boundary": "full_final_layer_qkv_signed_sketch",
+          "feature_audit": {
+            "raw_width": 1728,
+            "probe_width": 64,
+            "fitted_weights": 64,
+            "bias": false,
+            "candidate_feature_rows": 800,
+            "unique_feature_rows": 672,
+            "exact_collision_rows": 128,
+            "zero_overlap_rows": 0,
+            "active_lanes": 64,
+            "numerical_rank": 64,
+            "total_variance": 63.79811386983663,
+            "all_finite": true,
+            "target_blind_preprocessing": true,
+            "feature_cid": "blake3:df8467b416aec69421197d2c986bd6b8672778d4d93504b15cf0b6b04e3fdfb6",
+            "standardization_stats_cid": "blake3:b1733a42f0dcd9c9651e2eabef6768337e32c7340cd36cee95ca9f178cceeb87",
+            "train_only_unit_rms_standardization": true,
+            "standardized_unit_rms_lanes": 64
+          },
+          "fitted_weight_cid": "blake3:f61c594079375ba1a2666558bfa8669de16625d2c4aaaec76cc50bf74060924e",
+          "label_permuted_weight_cid": "blake3:300dcc6c5b3ce9265bfb0099b9e685684c26680a55dca0d9639c6f97dd548cbb",
+          "label_control_mapping_cid": "blake3:db309b3b1a82ca0f1e273f89c4465c7dfc7e41d20b1194f7f78db37bcfe0ae58",
+          "label_permuted_training_rows_changed": 25,
+          "optimizer_backtracks": 0,
+          "label_permuted_optimizer_backtracks": 0,
+          "primary": {
+            "positions": 9,
+            "teacher_mass_covered_q16": 421471,
+            "covered_mass_fraction": 0.7145816908691709,
+            "covered_teacher_cross_entropy_nats": 2.1227035047749014,
+            "teacher_top1_agreements": 5,
+            "actual_next_top1_correct": 2
+          },
+          "primary_label_permuted": {
+            "positions": 9,
+            "teacher_mass_covered_q16": 421471,
+            "covered_mass_fraction": 0.7145816908691709,
+            "covered_teacher_cross_entropy_nats": 3.842750947416715,
+            "teacher_top1_agreements": 3,
+            "actual_next_top1_correct": 1
+          },
+          "primary_paired": {
+            "positions": 9,
+            "candidate_loss_delta_control_minus_real_nats": 2.478423145220086,
+            "real_wins": 9,
+            "control_wins": 0,
+            "ties": 0,
+            "exact_two_sided_sign_p": 0.00390625
+          },
+          "secondary": {
+            "positions": 9,
+            "teacher_mass_covered_q16": 421471,
+            "covered_mass_fraction": 0.7145816908691709,
+            "covered_teacher_cross_entropy_nats": 2.1227035047749014,
+            "teacher_top1_agreements": 5,
+            "actual_next_top1_correct": 2
+          },
+          "secondary_label_permuted": {
+            "positions": 9,
+            "teacher_mass_covered_q16": 421471,
+            "covered_mass_fraction": 0.7145816908691709,
+            "covered_teacher_cross_entropy_nats": 3.842750947416715,
+            "teacher_top1_agreements": 3,
+            "actual_next_top1_correct": 1
+          },
+          "secondary_paired": {
+            "positions": 9,
+            "candidate_loss_delta_control_minus_real_nats": 2.478423145220086,
+            "real_wins": 9,
+            "control_wins": 0,
+            "ties": 0,
+            "exact_two_sided_sign_p": 0.00390625
+          }
+        },
+        {
+          "boundary": "signed_576_to_4_qkv_sketch",
+          "feature_audit": {
+            "raw_width": 12,
+            "probe_width": 64,
+            "fitted_weights": 64,
+            "bias": false,
+            "candidate_feature_rows": 800,
+            "unique_feature_rows": 672,
+            "exact_collision_rows": 128,
+            "zero_overlap_rows": 0,
+            "active_lanes": 64,
+            "numerical_rank": 64,
+            "total_variance": 63.82121028086748,
+            "all_finite": true,
+            "target_blind_preprocessing": true,
+            "feature_cid": "blake3:584580d44f7bf2e2926217cc2a07cd4437c662e1635e702c9413fdb4af6f0cdd",
+            "standardization_stats_cid": "blake3:14bf9846144ef251a37fd7f0201d21be04aba8890302bc77b716da4b1984654e",
+            "train_only_unit_rms_standardization": true,
+            "standardized_unit_rms_lanes": 64
+          },
+          "fitted_weight_cid": "blake3:2d8fa69f28eeb024d2664913e00bbdb641938347b747f069f1705391c0641ba2",
+          "label_permuted_weight_cid": "blake3:fe5ae4a8cbea8d91305484442c6b459eee03b055cbb15362fd6e6ab8072c3e2d",
+          "label_control_mapping_cid": "blake3:db309b3b1a82ca0f1e273f89c4465c7dfc7e41d20b1194f7f78db37bcfe0ae58",
+          "label_permuted_training_rows_changed": 25,
+          "optimizer_backtracks": 0,
+          "label_permuted_optimizer_backtracks": 0,
+          "primary": {
+            "positions": 9,
+            "teacher_mass_covered_q16": 421471,
+            "covered_mass_fraction": 0.7145816908691709,
+            "covered_teacher_cross_entropy_nats": 2.1225741912288236,
+            "teacher_top1_agreements": 5,
+            "actual_next_top1_correct": 2
+          },
+          "primary_label_permuted": {
+            "positions": 9,
+            "teacher_mass_covered_q16": 421471,
+            "covered_mass_fraction": 0.7145816908691709,
+            "covered_teacher_cross_entropy_nats": 4.830629599646015,
+            "teacher_top1_agreements": 1,
+            "actual_next_top1_correct": 0
+          },
+          "primary_paired": {
+            "positions": 9,
+            "candidate_loss_delta_control_minus_real_nats": 3.164416515455251,
+            "real_wins": 9,
+            "control_wins": 0,
+            "ties": 0,
+            "exact_two_sided_sign_p": 0.00390625
+          },
+          "secondary": {
+            "positions": 9,
+            "teacher_mass_covered_q16": 421471,
+            "covered_mass_fraction": 0.7145816908691709,
+            "covered_teacher_cross_entropy_nats": 2.1225741912288236,
+            "teacher_top1_agreements": 5,
+            "actual_next_top1_correct": 2
+          },
+          "secondary_label_permuted": {
+            "positions": 9,
+            "teacher_mass_covered_q16": 421471,
+            "covered_mass_fraction": 0.7145816908691709,
+            "covered_teacher_cross_entropy_nats": 4.830629599646015,
+            "teacher_top1_agreements": 1,
+            "actual_next_top1_correct": 0
+          },
+          "secondary_paired": {
+            "positions": 9,
+            "candidate_loss_delta_control_minus_real_nats": 3.164416515455251,
+            "real_wins": 9,
+            "control_wins": 0,
+            "ties": 0,
+            "exact_two_sided_sign_p": 0.00390625
+          }
+        },
+        {
+          "boundary": "plain_natural_state_tensor",
+          "feature_audit": {
+            "raw_width": 64,
+            "probe_width": 64,
+            "fitted_weights": 64,
+            "bias": false,
+            "candidate_feature_rows": 800,
+            "unique_feature_rows": 672,
+            "exact_collision_rows": 128,
+            "zero_overlap_rows": 0,
+            "active_lanes": 64,
+            "numerical_rank": 64,
+            "total_variance": 63.83314954745916,
+            "all_finite": true,
+            "target_blind_preprocessing": true,
+            "feature_cid": "blake3:aca7c8205ee2e663c2ece45b411296a590a54c9bc57f3660862e01cd6c220fe0",
+            "standardization_stats_cid": "blake3:5691ba45d17cd0fe1d27d74ff0d8723ace069af76f60527c64acb5488721bfa2",
+            "train_only_unit_rms_standardization": true,
+            "standardized_unit_rms_lanes": 64
+          },
+          "fitted_weight_cid": "blake3:98698cb5fba25336df27a08544922a2bbff5f9f79eeaccea1b31653a4f4db0a6",
+          "label_permuted_weight_cid": "blake3:9c05097ffb3f0253bbcee24e4e04eeecee7ff2c33df0ee0b7b122302ce009a5d",
+          "label_control_mapping_cid": "blake3:db309b3b1a82ca0f1e273f89c4465c7dfc7e41d20b1194f7f78db37bcfe0ae58",
+          "label_permuted_training_rows_changed": 25,
+          "optimizer_backtracks": 0,
+          "label_permuted_optimizer_backtracks": 0,
+          "primary": {
+            "positions": 9,
+            "teacher_mass_covered_q16": 421471,
+            "covered_mass_fraction": 0.7145816908691709,
+            "covered_teacher_cross_entropy_nats": 2.122086073383219,
+            "teacher_top1_agreements": 5,
+            "actual_next_top1_correct": 2
+          },
+          "primary_label_permuted": {
+            "positions": 9,
+            "teacher_mass_covered_q16": 421471,
+            "covered_mass_fraction": 0.7145816908691709,
+            "covered_teacher_cross_entropy_nats": 2.958964784198277,
+            "teacher_top1_agreements": 2,
+            "actual_next_top1_correct": 0
+          },
+          "primary_paired": {
+            "positions": 9,
+            "candidate_loss_delta_control_minus_real_nats": 1.0523654839221346,
+            "real_wins": 8,
+            "control_wins": 1,
+            "ties": 0,
+            "exact_two_sided_sign_p": 0.0390625
+          },
+          "secondary": {
+            "positions": 9,
+            "teacher_mass_covered_q16": 421471,
+            "covered_mass_fraction": 0.7145816908691709,
+            "covered_teacher_cross_entropy_nats": 2.122086073383219,
+            "teacher_top1_agreements": 5,
+            "actual_next_top1_correct": 2
+          },
+          "secondary_label_permuted": {
+            "positions": 9,
+            "teacher_mass_covered_q16": 421471,
+            "covered_mass_fraction": 0.7145816908691709,
+            "covered_teacher_cross_entropy_nats": 2.958964784198277,
+            "teacher_top1_agreements": 2,
+            "actual_next_top1_correct": 0
+          },
+          "secondary_paired": {
+            "positions": 9,
+            "candidate_loss_delta_control_minus_real_nats": 1.0523654839221346,
+            "real_wins": 8,
+            "control_wins": 1,
+            "ties": 0,
+            "exact_two_sided_sign_p": 0.0390625
+          }
+        },
+        {
+          "boundary": "geometric_natural_state_tensor",
+          "feature_audit": {
+            "raw_width": 64,
+            "probe_width": 64,
+            "fitted_weights": 64,
+            "bias": false,
+            "candidate_feature_rows": 800,
+            "unique_feature_rows": 672,
+            "exact_collision_rows": 128,
+            "zero_overlap_rows": 0,
+            "active_lanes": 64,
+            "numerical_rank": 64,
+            "total_variance": 63.84747428247343,
+            "all_finite": true,
+            "target_blind_preprocessing": true,
+            "feature_cid": "blake3:eb8e74712d41582e3ca161f1c2426c3111732c4b3e530e40caaa406b18bc28e1",
+            "standardization_stats_cid": "blake3:a489cff107d2b758808ac36dbf6a20314a9e10deea979a2195cce359f10ada8d",
+            "train_only_unit_rms_standardization": true,
+            "standardized_unit_rms_lanes": 64
+          },
+          "fitted_weight_cid": "blake3:12ddde6d9e16801fcee7dc67bfb6c8d22582db302b518737b88703bf6960bd43",
+          "label_permuted_weight_cid": "blake3:6282cda2e78a663d9c40f724a816fcfa2331041f64199b0300cfb3d821025d73",
+          "label_control_mapping_cid": "blake3:db309b3b1a82ca0f1e273f89c4465c7dfc7e41d20b1194f7f78db37bcfe0ae58",
+          "label_permuted_training_rows_changed": 25,
+          "optimizer_backtracks": 0,
+          "label_permuted_optimizer_backtracks": 0,
+          "primary": {
+            "positions": 9,
+            "teacher_mass_covered_q16": 421471,
+            "covered_mass_fraction": 0.7145816908691709,
+            "covered_teacher_cross_entropy_nats": 2.122778293883361,
+            "teacher_top1_agreements": 5,
+            "actual_next_top1_correct": 2
+          },
+          "primary_label_permuted": {
+            "positions": 9,
+            "teacher_mass_covered_q16": 421471,
+            "covered_mass_fraction": 0.7145816908691709,
+            "covered_teacher_cross_entropy_nats": 4.192085437949242,
+            "teacher_top1_agreements": 1,
+            "actual_next_top1_correct": 0
+          },
+          "primary_paired": {
+            "positions": 9,
+            "candidate_loss_delta_control_minus_real_nats": 2.693100359880161,
+            "real_wins": 9,
+            "control_wins": 0,
+            "ties": 0,
+            "exact_two_sided_sign_p": 0.00390625
+          },
+          "secondary": {
+            "positions": 9,
+            "teacher_mass_covered_q16": 421471,
+            "covered_mass_fraction": 0.7145816908691709,
+            "covered_teacher_cross_entropy_nats": 2.122778293883361,
+            "teacher_top1_agreements": 5,
+            "actual_next_top1_correct": 2
+          },
+          "secondary_label_permuted": {
+            "positions": 9,
+            "teacher_mass_covered_q16": 421471,
+            "covered_mass_fraction": 0.7145816908691709,
+            "covered_teacher_cross_entropy_nats": 4.192085437949242,
+            "teacher_top1_agreements": 1,
+            "actual_next_top1_correct": 0
+          },
+          "secondary_paired": {
+            "positions": 9,
+            "candidate_loss_delta_control_minus_real_nats": 2.693100359880161,
+            "real_wins": 9,
+            "control_wins": 0,
+            "ties": 0,
+            "exact_two_sided_sign_p": 0.00390625
+          }
+        },
+        {
+          "boundary": "transport_permuted_natural_state_tensor",
+          "feature_audit": {
+            "raw_width": 64,
+            "probe_width": 64,
+            "fitted_weights": 64,
+            "bias": false,
+            "candidate_feature_rows": 800,
+            "unique_feature_rows": 672,
+            "exact_collision_rows": 128,
+            "zero_overlap_rows": 0,
+            "active_lanes": 64,
+            "numerical_rank": 64,
+            "total_variance": 63.807098178876295,
+            "all_finite": true,
+            "target_blind_preprocessing": true,
+            "feature_cid": "blake3:3a50ebed6b5c4a80898855035a23a8becf8de2ba2528fc8952889171cb0999ef",
+            "standardization_stats_cid": "blake3:32e7ef195c1f13765c92744ed838860b49294c868e9169d40c14312824ab2df9",
+            "train_only_unit_rms_standardization": true,
+            "standardized_unit_rms_lanes": 64
+          },
+          "fitted_weight_cid": "blake3:1738b4b87f8ab6a807b92eccf4825789b689996bee0848113744b2f56bff071e",
+          "label_permuted_weight_cid": "blake3:1092b6bca3a3c392da423ab49acf142cd9c14de8115e6fdf076e9f71009726f0",
+          "label_control_mapping_cid": "blake3:db309b3b1a82ca0f1e273f89c4465c7dfc7e41d20b1194f7f78db37bcfe0ae58",
+          "label_permuted_training_rows_changed": 25,
+          "optimizer_backtracks": 0,
+          "label_permuted_optimizer_backtracks": 0,
+          "primary": {
+            "positions": 9,
+            "teacher_mass_covered_q16": 421471,
+            "covered_mass_fraction": 0.7145816908691709,
+            "covered_teacher_cross_entropy_nats": 2.1222231260057955,
+            "teacher_top1_agreements": 5,
+            "actual_next_top1_correct": 2
+          },
+          "primary_label_permuted": {
+            "positions": 9,
+            "teacher_mass_covered_q16": 421471,
+            "covered_mass_fraction": 0.7145816908691709,
+            "covered_teacher_cross_entropy_nats": 7.474308536200675,
+            "teacher_top1_agreements": 0,
+            "actual_next_top1_correct": 0
+          },
+          "primary_paired": {
+            "positions": 9,
+            "candidate_loss_delta_control_minus_real_nats": 6.424811716955632,
+            "real_wins": 8,
+            "control_wins": 1,
+            "ties": 0,
+            "exact_two_sided_sign_p": 0.0390625
+          },
+          "secondary": {
+            "positions": 9,
+            "teacher_mass_covered_q16": 421471,
+            "covered_mass_fraction": 0.7145816908691709,
+            "covered_teacher_cross_entropy_nats": 2.1222231260057955,
+            "teacher_top1_agreements": 5,
+            "actual_next_top1_correct": 2
+          },
+          "secondary_label_permuted": {
+            "positions": 9,
+            "teacher_mass_covered_q16": 421471,
+            "covered_mass_fraction": 0.7145816908691709,
+            "covered_teacher_cross_entropy_nats": 7.474308536200675,
+            "teacher_top1_agreements": 0,
+            "actual_next_top1_correct": 0
+          },
+          "secondary_paired": {
+            "positions": 9,
+            "candidate_loss_delta_control_minus_real_nats": 6.424811716955632,
+            "real_wins": 8,
+            "control_wins": 1,
+            "ties": 0,
+            "exact_two_sided_sign_p": 0.0390625
+          }
+        }
+      ],
+      "exact_boundaries": [
+        {
+          "boundary": "suffix_exact_base_logits",
+          "fitted_parameter_values": 0,
+          "actual_alpha": "0",
+          "primary": {
+            "positions": 9,
+            "teacher_mass_covered_q16": 421471,
+            "covered_mass_fraction": 0.7145816908691709,
+            "covered_teacher_cross_entropy_nats": 2.1222666548078206,
+            "teacher_top1_agreements": 5,
+            "actual_next_top1_correct": 2
+          },
+          "secondary": {
+            "positions": 9,
+            "teacher_mass_covered_q16": 421471,
+            "covered_mass_fraction": 0.7145816908691709,
+            "covered_teacher_cross_entropy_nats": 2.1222666548078206,
+            "teacher_top1_agreements": 5,
+            "actual_next_top1_correct": 2
+          },
+          "residual_scale_diagnostic": null
+        },
+        {
+          "boundary": "plain_exact_base_plus_residual_logits",
+          "fitted_parameter_values": 112,
+          "actual_alpha": "1",
+          "primary": {
+            "positions": 9,
+            "teacher_mass_covered_q16": 421471,
+            "covered_mass_fraction": 0.7145816908691709,
+            "covered_teacher_cross_entropy_nats": 2.122201928860089,
+            "teacher_top1_agreements": 5,
+            "actual_next_top1_correct": 2
+          },
+          "secondary": {
+            "positions": 9,
+            "teacher_mass_covered_q16": 421471,
+            "covered_mass_fraction": 0.7145816908691709,
+            "covered_teacher_cross_entropy_nats": 2.122201928860089,
+            "teacher_top1_agreements": 5,
+            "actual_next_top1_correct": 2
+          },
+          "residual_scale_diagnostic": {
+            "trials": [
+              {
+                "alpha": "0",
+                "training_covered_teacher_cross_entropy_nats": 1.6454653596055637
+              },
+              {
+                "alpha": "1/16",
+                "training_covered_teacher_cross_entropy_nats": 1.6454653557302097
+              },
+              {
+                "alpha": "1/8",
+                "training_covered_teacher_cross_entropy_nats": 1.645465351993607
+              },
+              {
+                "alpha": "1/4",
+                "training_covered_teacher_cross_entropy_nats": 1.64546534495675
+              },
+              {
+                "alpha": "1/2",
+                "training_covered_teacher_cross_entropy_nats": 1.6454653326191018
+              },
+              {
+                "alpha": "1",
+                "training_covered_teacher_cross_entropy_nats": 1.6454653148902467
+              },
+              {
+                "alpha": "2",
+                "training_covered_teacher_cross_entropy_nats": 1.6454653071424123
+              },
+              {
+                "alpha": "4",
+                "training_covered_teacher_cross_entropy_nats": 1.64546540254421
+              },
+              {
+                "alpha": "8",
+                "training_covered_teacher_cross_entropy_nats": 1.6454660367741452
+              },
+              {
+                "alpha": "16",
+                "training_covered_teacher_cross_entropy_nats": 1.645469077829862
+              }
+            ],
+            "selected_alpha": "2",
+            "selection_uses_training_only": true,
+            "deterministic_tie_break_prefers_smaller_alpha": true,
+            "selected_primary": {
+              "positions": 9,
+              "teacher_mass_covered_q16": 421471,
+              "covered_mass_fraction": 0.7145816908691709,
+              "covered_teacher_cross_entropy_nats": 2.1221372726445416,
+              "teacher_top1_agreements": 5,
+              "actual_next_top1_correct": 2
+            },
+            "selected_secondary": {
+              "positions": 9,
+              "teacher_mass_covered_q16": 421471,
+              "covered_mass_fraction": 0.7145816908691709,
+              "covered_teacher_cross_entropy_nats": 2.1221372726445416,
+              "teacher_top1_agreements": 5,
+              "actual_next_top1_correct": 2
+            }
+          }
+        },
+        {
+          "boundary": "geometric_exact_base_plus_residual_logits",
+          "fitted_parameter_values": 112,
+          "actual_alpha": "1",
+          "primary": {
+            "positions": 9,
+            "teacher_mass_covered_q16": 421471,
+            "covered_mass_fraction": 0.7145816908691709,
+            "covered_teacher_cross_entropy_nats": 2.1221155403307463,
+            "teacher_top1_agreements": 5,
+            "actual_next_top1_correct": 2
+          },
+          "secondary": {
+            "positions": 9,
+            "teacher_mass_covered_q16": 421471,
+            "covered_mass_fraction": 0.7145816908691709,
+            "covered_teacher_cross_entropy_nats": 2.1221155403307463,
+            "teacher_top1_agreements": 5,
+            "actual_next_top1_correct": 2
+          },
+          "residual_scale_diagnostic": {
+            "trials": [
+              {
+                "alpha": "0",
+                "training_covered_teacher_cross_entropy_nats": 1.6454653596055637
+              },
+              {
+                "alpha": "1/16",
+                "training_covered_teacher_cross_entropy_nats": 1.645465337131471
+              },
+              {
+                "alpha": "1/8",
+                "training_covered_teacher_cross_entropy_nats": 1.6454653155871173
+              },
+              {
+                "alpha": "1/4",
+                "training_covered_teacher_cross_entropy_nats": 1.6454652752692487
+              },
+              {
+                "alpha": "1/2",
+                "training_covered_teacher_cross_entropy_nats": 1.6454652057974262
+              },
+              {
+                "alpha": "1",
+                "training_covered_teacher_cross_entropy_nats": 1.6454651111534142
+              },
+              {
+                "alpha": "2",
+                "training_covered_teacher_cross_entropy_nats": 1.6454650978032548
+              },
+              {
+                "alpha": "4",
+                "training_covered_teacher_cross_entropy_nats": 1.645465763910273
+              },
+              {
+                "alpha": "8",
+                "training_covered_teacher_cross_entropy_nats": 1.6454697841960486
+              },
+              {
+                "alpha": "16",
+                "training_covered_teacher_cross_entropy_nats": 1.6454879663307922
+              }
+            ],
+            "selected_alpha": "2",
+            "selection_uses_training_only": true,
+            "deterministic_tie_break_prefers_smaller_alpha": true,
+            "selected_primary": {
+              "positions": 9,
+              "teacher_mass_covered_q16": 421471,
+              "covered_mass_fraction": 0.7145816908691709,
+              "covered_teacher_cross_entropy_nats": 2.1219658495191522,
+              "teacher_top1_agreements": 5,
+              "actual_next_top1_correct": 2
+            },
+            "selected_secondary": {
+              "positions": 9,
+              "teacher_mass_covered_q16": 421471,
+              "covered_mass_fraction": 0.7145816908691709,
+              "covered_teacher_cross_entropy_nats": 2.1219658495191522,
+              "teacher_top1_agreements": 5,
+              "actual_next_top1_correct": 2
+            }
+          }
+        },
+        {
+          "boundary": "transport_permuted_exact_base_plus_residual_logits",
+          "fitted_parameter_values": 112,
+          "actual_alpha": "1",
+          "primary": {
+            "positions": 9,
+            "teacher_mass_covered_q16": 421471,
+            "covered_mass_fraction": 0.7145816908691709,
+            "covered_teacher_cross_entropy_nats": 2.121998711817171,
+            "teacher_top1_agreements": 5,
+            "actual_next_top1_correct": 2
+          },
+          "secondary": {
+            "positions": 9,
+            "teacher_mass_covered_q16": 421471,
+            "covered_mass_fraction": 0.7145816908691709,
+            "covered_teacher_cross_entropy_nats": 2.121998711817171,
+            "teacher_top1_agreements": 5,
+            "actual_next_top1_correct": 2
+          },
+          "residual_scale_diagnostic": {
+            "trials": [
+              {
+                "alpha": "0",
+                "training_covered_teacher_cross_entropy_nats": 1.6454653596055637
+              },
+              {
+                "alpha": "1/16",
+                "training_covered_teacher_cross_entropy_nats": 1.645465346460926
+              },
+              {
+                "alpha": "1/8",
+                "training_covered_teacher_cross_entropy_nats": 1.6454653350416386
+              },
+              {
+                "alpha": "1/4",
+                "training_covered_teacher_cross_entropy_nats": 1.6454653173670835
+              },
+              {
+                "alpha": "1/2",
+                "training_covered_teacher_cross_entropy_nats": 1.6454653027177155
+              },
+              {
+                "alpha": "1",
+                "training_covered_teacher_cross_entropy_nats": 1.645465356171253
+              },
+              {
+                "alpha": "2",
+                "training_covered_teacher_cross_entropy_nats": 1.6454657936821877
+              },
+              {
+                "alpha": "4",
+                "training_covered_teacher_cross_entropy_nats": 1.6454679886302446
+              },
+              {
+                "alpha": "8",
+                "training_covered_teacher_cross_entropy_nats": 1.645477638424226
+              },
+              {
+                "alpha": "16",
+                "training_covered_teacher_cross_entropy_nats": 1.6455178258221634
+              }
+            ],
+            "selected_alpha": "1/2",
+            "selection_uses_training_only": true,
+            "deterministic_tie_break_prefers_smaller_alpha": true,
+            "selected_primary": {
+              "positions": 9,
+              "teacher_mass_covered_q16": 421471,
+              "covered_mass_fraction": 0.7145816908691709,
+              "covered_teacher_cross_entropy_nats": 2.122132397522039,
+              "teacher_top1_agreements": 5,
+              "actual_next_top1_correct": 2
+            },
+            "selected_secondary": {
+              "positions": 9,
+              "teacher_mass_covered_q16": 421471,
+              "covered_mass_fraction": 0.7145816908691709,
+              "covered_teacher_cross_entropy_nats": 2.122132397522039,
+              "teacher_top1_agreements": 5,
+              "actual_next_top1_correct": 2
+            }
+          }
+        }
+      ],
+      "candidate_support_cid": "blake3:8518106a78e2e3454cf8b5d130c88108afba7852bc67760c9f0f5801414f0175",
+      "candidate_support_rows": 38,
+      "candidate_support_maximum": 32,
+      "candidate_support_train_only": true,
+      "runtime_source_reads": 0,
+      "runtime_future_reads": 0
+    },
+    {
+      "manifest": {
+        "ordinal": 3,
+        "held_out_document_id": "5121",
+        "held_out_document_trace_cid": "blake3:bc47e6f862978effb616da762f935cbcc97b71631bb2cd6c650a6e6be1e91efc",
+        "training_document_ids": [
+          "14",
+          "657",
+          "4579"
+        ],
+        "training_document_trace_cids": [
+          "blake3:62bb33d4605914541443bea0c972990031a0821449e932e19a929db1369f2960",
+          "blake3:4a31dec9c955c5bca5513673cb0fa5c2fe3b7eb93f27a177838142abd00b4704",
+          "blake3:3a51132fd40387f0e0f55e1fd50a7bfc05b8f1376e6fe877d63f9ab60bfd45ad"
+        ],
+        "training_positions": 26,
+        "training_non_bos_events": 23,
+        "primary_exact_prefix_novel_events": 7,
+        "secondary_non_bos_events": 11,
+        "fold_input_cid": "blake3:b649d2bf6a0b72953a621ce6568fad2f170e3fd56e9f8428f1a33a66123d6d2f",
+        "support_artifact_cid": "blake3:4f71b96ef05d3aad3db328de57f5928e1a2d5b9ed6ec48714e97999e7e711749",
+        "state_artifact_cid": "blake3:396615dbff2fd6d5a63073b6c1cb2b218cd2f75e3b7fe937b6dadd1f709070e8",
+        "training_support_cid": "blake3:a1a8b59d520b523f3b81c59855c0a02ef529bfa82d570a7d5d74d3c071fff213",
+        "label_control_mapping_cid": "blake3:6e4d2b406c62557aaf904a0ec550cb78d40c35b35e9053b9aede10795d436cea",
+        "label_control_mass_audit": {
+          "rows": 23,
+          "original_covered_mass_q16": 1431615,
+          "permuted_covered_mass_q16": 1431615,
+          "mass_preserved_exactly": true,
+          "invalid_support_rows": 0,
+          "unchanged_label_rows": 0
+        },
+        "training_fit_identity_cid": "blake3:bd0d012b7f5e2c4886e6ab6210f7c83b6a9d6ab2e65b115b6376768be0a3f0d1",
+        "held_label_substitution_fit_identity_exact": true,
+        "held_label_substitution_mutated_events": 11,
+        "held_labels_original_cid": "blake3:758c68b41727ed5a5ad5c664ed2b4eb8af99c7216d55373a952090414a52c2e1",
+        "held_labels_substituted_cid": "blake3:bc3101df35696babe6119115c941f5c6621c66a46262a7674c8edd41704aae79",
+        "held_out_events_used_for_fit": 0,
+        "state_resets": 12
+      },
+      "diagnostic_boundaries": [
+        {
+          "boundary": "full_final_layer_qkv_signed_sketch",
+          "feature_audit": {
+            "raw_width": 1728,
+            "probe_width": 64,
+            "fitted_weights": 64,
+            "bias": false,
+            "candidate_feature_rows": 736,
+            "unique_feature_rows": 736,
+            "exact_collision_rows": 0,
+            "zero_overlap_rows": 0,
+            "active_lanes": 64,
+            "numerical_rank": 64,
+            "total_variance": 63.83848101918323,
+            "all_finite": true,
+            "target_blind_preprocessing": true,
+            "feature_cid": "blake3:933ca5dabf80a7d500bb5056eb1bd01a6b29ce8fe662499765fc47d1bdb97e57",
+            "standardization_stats_cid": "blake3:4a788f905483746fe4950d080a4d16f6b73062e89c970cb90982a2eef7e58af3",
+            "train_only_unit_rms_standardization": true,
+            "standardized_unit_rms_lanes": 64
+          },
+          "fitted_weight_cid": "blake3:bf6f45e1bc8bb04a5b485472e2f667b6e089848f38a6d8eb5774dcfa69a55ee5",
+          "label_permuted_weight_cid": "blake3:cd6c9f903cd2759aadc01acf8eb65bc3e4108b03a1108c9c04ba384d725602e4",
+          "label_control_mapping_cid": "blake3:6e4d2b406c62557aaf904a0ec550cb78d40c35b35e9053b9aede10795d436cea",
+          "label_permuted_training_rows_changed": 23,
+          "optimizer_backtracks": 0,
+          "label_permuted_optimizer_backtracks": 0,
+          "primary": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 159144,
+            "covered_mass_fraction": 0.3469116829611222,
+            "covered_teacher_cross_entropy_nats": 2.5948443699422996,
+            "teacher_top1_agreements": 2,
+            "actual_next_top1_correct": 1
+          },
+          "primary_label_permuted": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 159144,
+            "covered_mass_fraction": 0.3469116829611222,
+            "covered_teacher_cross_entropy_nats": 3.916176022254826,
+            "teacher_top1_agreements": 1,
+            "actual_next_top1_correct": 1
+          },
+          "primary_paired": {
+            "positions": 7,
+            "candidate_loss_delta_control_minus_real_nats": 1.7747290067674906,
+            "real_wins": 6,
+            "control_wins": 1,
+            "ties": 0,
+            "exact_two_sided_sign_p": 0.125
+          },
+          "secondary": {
+            "positions": 11,
+            "teacher_mass_covered_q16": 409861,
+            "covered_mass_fraction": 0.5685525430547175,
+            "covered_teacher_cross_entropy_nats": 2.29618080912825,
+            "teacher_top1_agreements": 6,
+            "actual_next_top1_correct": 2
+          },
+          "secondary_label_permuted": {
+            "positions": 11,
+            "teacher_mass_covered_q16": 409861,
+            "covered_mass_fraction": 0.5685525430547175,
+            "covered_teacher_cross_entropy_nats": 3.5874885831160075,
+            "teacher_top1_agreements": 1,
+            "actual_next_top1_correct": 1
+          },
+          "secondary_paired": {
+            "positions": 11,
+            "candidate_loss_delta_control_minus_real_nats": 1.6028292481414632,
+            "real_wins": 10,
+            "control_wins": 1,
+            "ties": 0,
+            "exact_two_sided_sign_p": 0.01171875
+          }
+        },
+        {
+          "boundary": "signed_576_to_4_qkv_sketch",
+          "feature_audit": {
+            "raw_width": 12,
+            "probe_width": 64,
+            "fitted_weights": 64,
+            "bias": false,
+            "candidate_feature_rows": 736,
+            "unique_feature_rows": 736,
+            "exact_collision_rows": 0,
+            "zero_overlap_rows": 0,
+            "active_lanes": 64,
+            "numerical_rank": 64,
+            "total_variance": 63.85501855695175,
+            "all_finite": true,
+            "target_blind_preprocessing": true,
+            "feature_cid": "blake3:3e0cfecdbe5024caffb46a2a6348c06e5bdb2da0aa6b27457eb3d97f82edfcc7",
+            "standardization_stats_cid": "blake3:ddd14e8a128b273c7ed9e0d20987253a1f31dc5141f0f97e5fe6c46aa3220682",
+            "train_only_unit_rms_standardization": true,
+            "standardized_unit_rms_lanes": 64
+          },
+          "fitted_weight_cid": "blake3:c62dd60f82896d11633dbf744d012aedb45ee8b8563e2a90ae93b842879f9fd0",
+          "label_permuted_weight_cid": "blake3:c3013a77adbecebdd87f05dd06f65098025fbd938518d1a09ba6ffbc381d689f",
+          "label_control_mapping_cid": "blake3:6e4d2b406c62557aaf904a0ec550cb78d40c35b35e9053b9aede10795d436cea",
+          "label_permuted_training_rows_changed": 23,
+          "optimizer_backtracks": 0,
+          "label_permuted_optimizer_backtracks": 0,
+          "primary": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 159144,
+            "covered_mass_fraction": 0.3469116829611222,
+            "covered_teacher_cross_entropy_nats": 2.5948899661299394,
+            "teacher_top1_agreements": 2,
+            "actual_next_top1_correct": 1
+          },
+          "primary_label_permuted": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 159144,
+            "covered_mass_fraction": 0.3469116829611222,
+            "covered_teacher_cross_entropy_nats": 5.187609761812907,
+            "teacher_top1_agreements": 1,
+            "actual_next_top1_correct": 0
+          },
+          "primary_paired": {
+            "positions": 7,
+            "candidate_loss_delta_control_minus_real_nats": 4.006545130136016,
+            "real_wins": 6,
+            "control_wins": 1,
+            "ties": 0,
+            "exact_two_sided_sign_p": 0.125
+          },
+          "secondary": {
+            "positions": 11,
+            "teacher_mass_covered_q16": 409861,
+            "covered_mass_fraction": 0.5685525430547175,
+            "covered_teacher_cross_entropy_nats": 2.2961985100113878,
+            "teacher_top1_agreements": 6,
+            "actual_next_top1_correct": 2
+          },
+          "secondary_label_permuted": {
+            "positions": 11,
+            "teacher_mass_covered_q16": 409861,
+            "covered_mass_fraction": 0.5685525430547175,
+            "covered_teacher_cross_entropy_nats": 3.8862543456587235,
+            "teacher_top1_agreements": 2,
+            "actual_next_top1_correct": 1
+          },
+          "secondary_paired": {
+            "positions": 11,
+            "candidate_loss_delta_control_minus_real_nats": 2.8983724671363027,
+            "real_wins": 10,
+            "control_wins": 1,
+            "ties": 0,
+            "exact_two_sided_sign_p": 0.01171875
+          }
+        },
+        {
+          "boundary": "plain_natural_state_tensor",
+          "feature_audit": {
+            "raw_width": 64,
+            "probe_width": 64,
+            "fitted_weights": 64,
+            "bias": false,
+            "candidate_feature_rows": 736,
+            "unique_feature_rows": 736,
+            "exact_collision_rows": 0,
+            "zero_overlap_rows": 0,
+            "active_lanes": 64,
+            "numerical_rank": 64,
+            "total_variance": 63.916331133598554,
+            "all_finite": true,
+            "target_blind_preprocessing": true,
+            "feature_cid": "blake3:b863c90c6fca7b2c928522d869162a6c1f50a1ea04239265d77a0b9dadf89705",
+            "standardization_stats_cid": "blake3:d66313ac6d011ba43b49a3a7459afa262f328ad760cd0f88e464e36b81c95bb2",
+            "train_only_unit_rms_standardization": true,
+            "standardized_unit_rms_lanes": 64
+          },
+          "fitted_weight_cid": "blake3:b02df718cabcd1f4331836e52b1180bea1930d239471b909d2796f12b0fa958c",
+          "label_permuted_weight_cid": "blake3:b8f91dde5007a6a689498afcc2dd404f4c1b6ee834a7b4201bf7e68ab6948152",
+          "label_control_mapping_cid": "blake3:6e4d2b406c62557aaf904a0ec550cb78d40c35b35e9053b9aede10795d436cea",
+          "label_permuted_training_rows_changed": 23,
+          "optimizer_backtracks": 0,
+          "label_permuted_optimizer_backtracks": 0,
+          "primary": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 159144,
+            "covered_mass_fraction": 0.3469116829611222,
+            "covered_teacher_cross_entropy_nats": 2.595072300059654,
+            "teacher_top1_agreements": 2,
+            "actual_next_top1_correct": 1
+          },
+          "primary_label_permuted": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 159144,
+            "covered_mass_fraction": 0.3469116829611222,
+            "covered_teacher_cross_entropy_nats": 2.6025096773919243,
+            "teacher_top1_agreements": 1,
+            "actual_next_top1_correct": 0
+          },
+          "primary_paired": {
+            "positions": 7,
+            "candidate_loss_delta_control_minus_real_nats": 0.2975170127135982,
+            "real_wins": 4,
+            "control_wins": 3,
+            "ties": 0,
+            "exact_two_sided_sign_p": 1.0
+          },
+          "secondary": {
+            "positions": 11,
+            "teacher_mass_covered_q16": 409861,
+            "covered_mass_fraction": 0.5685525430547175,
+            "covered_teacher_cross_entropy_nats": 2.2962693625574673,
+            "teacher_top1_agreements": 6,
+            "actual_next_top1_correct": 2
+          },
+          "secondary_label_permuted": {
+            "positions": 11,
+            "teacher_mass_covered_q16": 409861,
+            "covered_mass_fraction": 0.5685525430547175,
+            "covered_teacher_cross_entropy_nats": 2.396205798520357,
+            "teacher_top1_agreements": 3,
+            "actual_next_top1_correct": 0
+          },
+          "secondary_paired": {
+            "positions": 11,
+            "candidate_loss_delta_control_minus_real_nats": 0.24633170085552678,
+            "real_wins": 8,
+            "control_wins": 3,
+            "ties": 0,
+            "exact_two_sided_sign_p": 0.2265625
+          }
+        },
+        {
+          "boundary": "geometric_natural_state_tensor",
+          "feature_audit": {
+            "raw_width": 64,
+            "probe_width": 64,
+            "fitted_weights": 64,
+            "bias": false,
+            "candidate_feature_rows": 736,
+            "unique_feature_rows": 736,
+            "exact_collision_rows": 0,
+            "zero_overlap_rows": 0,
+            "active_lanes": 64,
+            "numerical_rank": 64,
+            "total_variance": 63.95158681047944,
+            "all_finite": true,
+            "target_blind_preprocessing": true,
+            "feature_cid": "blake3:d80a9ccc570fbc1faf37f55347691234af122c2ac094d2db5298275bd3253827",
+            "standardization_stats_cid": "blake3:0083cd5aa2d03b30373bddee7d4fcb3ab898dbade3996f6d3f63e21efdca8f74",
+            "train_only_unit_rms_standardization": true,
+            "standardized_unit_rms_lanes": 64
+          },
+          "fitted_weight_cid": "blake3:4b269d580389130a9e43a3358d7935cd7dbf816601158db2c08bad916a3b93b6",
+          "label_permuted_weight_cid": "blake3:e67bbcb080f66e6b0761f3dfa84adb2a0bc7d764f99c4024dfa75e2105917681",
+          "label_control_mapping_cid": "blake3:6e4d2b406c62557aaf904a0ec550cb78d40c35b35e9053b9aede10795d436cea",
+          "label_permuted_training_rows_changed": 23,
+          "optimizer_backtracks": 0,
+          "label_permuted_optimizer_backtracks": 0,
+          "primary": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 159144,
+            "covered_mass_fraction": 0.3469116829611222,
+            "covered_teacher_cross_entropy_nats": 2.5952406239896617,
+            "teacher_top1_agreements": 2,
+            "actual_next_top1_correct": 1
+          },
+          "primary_label_permuted": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 159144,
+            "covered_mass_fraction": 0.3469116829611222,
+            "covered_teacher_cross_entropy_nats": 4.71563664910959,
+            "teacher_top1_agreements": 1,
+            "actual_next_top1_correct": 0
+          },
+          "primary_paired": {
+            "positions": 7,
+            "candidate_loss_delta_control_minus_real_nats": 1.5696632738981602,
+            "real_wins": 5,
+            "control_wins": 2,
+            "ties": 0,
+            "exact_two_sided_sign_p": 0.453125
+          },
+          "secondary": {
+            "positions": 11,
+            "teacher_mass_covered_q16": 409861,
+            "covered_mass_fraction": 0.5685525430547175,
+            "covered_teacher_cross_entropy_nats": 2.296334715339367,
+            "teacher_top1_agreements": 6,
+            "actual_next_top1_correct": 2
+          },
+          "secondary_label_permuted": {
+            "positions": 11,
+            "teacher_mass_covered_q16": 409861,
+            "covered_mass_fraction": 0.5685525430547175,
+            "covered_teacher_cross_entropy_nats": 3.213903170432742,
+            "teacher_top1_agreements": 5,
+            "actual_next_top1_correct": 1
+          },
+          "secondary_paired": {
+            "positions": 11,
+            "candidate_loss_delta_control_minus_real_nats": 1.0540984880971358,
+            "real_wins": 9,
+            "control_wins": 2,
+            "ties": 0,
+            "exact_two_sided_sign_p": 0.0654296875
+          }
+        },
+        {
+          "boundary": "transport_permuted_natural_state_tensor",
+          "feature_audit": {
+            "raw_width": 64,
+            "probe_width": 64,
+            "fitted_weights": 64,
+            "bias": false,
+            "candidate_feature_rows": 736,
+            "unique_feature_rows": 736,
+            "exact_collision_rows": 0,
+            "zero_overlap_rows": 0,
+            "active_lanes": 64,
+            "numerical_rank": 64,
+            "total_variance": 63.97012922412813,
+            "all_finite": true,
+            "target_blind_preprocessing": true,
+            "feature_cid": "blake3:ea51f4e048ee503e27b66a3a0efce8e5ac252925f5bec53b589e8b5ecb3f62b9",
+            "standardization_stats_cid": "blake3:7ff4f261cca2085c2b0c4b869cf7c162dcf42fb58f814415437186c5d8a5f24b",
+            "train_only_unit_rms_standardization": true,
+            "standardized_unit_rms_lanes": 64
+          },
+          "fitted_weight_cid": "blake3:d60e76ed76a5af23db3621077fd70ac56b1addba5f69e47aa655bfae7e1745de",
+          "label_permuted_weight_cid": "blake3:34d5d8f2f0bb0823e573acb521c815892862b1b19d039e13f5673823e925bfe9",
+          "label_control_mapping_cid": "blake3:6e4d2b406c62557aaf904a0ec550cb78d40c35b35e9053b9aede10795d436cea",
+          "label_permuted_training_rows_changed": 23,
+          "optimizer_backtracks": 0,
+          "label_permuted_optimizer_backtracks": 0,
+          "primary": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 159144,
+            "covered_mass_fraction": 0.3469116829611222,
+            "covered_teacher_cross_entropy_nats": 2.5948613447916946,
+            "teacher_top1_agreements": 2,
+            "actual_next_top1_correct": 1
+          },
+          "primary_label_permuted": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 159144,
+            "covered_mass_fraction": 0.3469116829611222,
+            "covered_teacher_cross_entropy_nats": 3.498068818008254,
+            "teacher_top1_agreements": 1,
+            "actual_next_top1_correct": 1
+          },
+          "primary_paired": {
+            "positions": 7,
+            "candidate_loss_delta_control_minus_real_nats": 0.9145366639665438,
+            "real_wins": 5,
+            "control_wins": 2,
+            "ties": 0,
+            "exact_two_sided_sign_p": 0.453125
+          },
+          "secondary": {
+            "positions": 11,
+            "teacher_mass_covered_q16": 409861,
+            "covered_mass_fraction": 0.5685525430547175,
+            "covered_teacher_cross_entropy_nats": 2.296187460928187,
+            "teacher_top1_agreements": 6,
+            "actual_next_top1_correct": 2
+          },
+          "secondary_label_permuted": {
+            "positions": 11,
+            "teacher_mass_covered_q16": 409861,
+            "covered_mass_fraction": 0.5685525430547175,
+            "covered_teacher_cross_entropy_nats": 2.768416137149668,
+            "teacher_top1_agreements": 4,
+            "actual_next_top1_correct": 2
+          },
+          "secondary_paired": {
+            "positions": 11,
+            "candidate_loss_delta_control_minus_real_nats": 0.6530273293526356,
+            "real_wins": 9,
+            "control_wins": 2,
+            "ties": 0,
+            "exact_two_sided_sign_p": 0.0654296875
+          }
+        }
+      ],
+      "exact_boundaries": [
+        {
+          "boundary": "suffix_exact_base_logits",
+          "fitted_parameter_values": 0,
+          "actual_alpha": "0",
+          "primary": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 159144,
+            "covered_mass_fraction": 0.3469116829611222,
+            "covered_teacher_cross_entropy_nats": 2.59456734532783,
+            "teacher_top1_agreements": 2,
+            "actual_next_top1_correct": 1
+          },
+          "secondary": {
+            "positions": 11,
+            "teacher_mass_covered_q16": 409861,
+            "covered_mass_fraction": 0.5685525430547175,
+            "covered_teacher_cross_entropy_nats": 2.2960733116540464,
+            "teacher_top1_agreements": 6,
+            "actual_next_top1_correct": 2
+          },
+          "residual_scale_diagnostic": null
+        },
+        {
+          "boundary": "plain_exact_base_plus_residual_logits",
+          "fitted_parameter_values": 112,
+          "actual_alpha": "1",
+          "primary": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 159144,
+            "covered_mass_fraction": 0.3469116829611222,
+            "covered_teacher_cross_entropy_nats": 2.5949528744224315,
+            "teacher_top1_agreements": 2,
+            "actual_next_top1_correct": 1
+          },
+          "secondary": {
+            "positions": 11,
+            "teacher_mass_covered_q16": 409861,
+            "covered_mass_fraction": 0.5685525430547175,
+            "covered_teacher_cross_entropy_nats": 2.296223010361149,
+            "teacher_top1_agreements": 6,
+            "actual_next_top1_correct": 2
+          },
+          "residual_scale_diagnostic": {
+            "trials": [
+              {
+                "alpha": "0",
+                "training_covered_teacher_cross_entropy_nats": 1.7554307052018712
+              },
+              {
+                "alpha": "1/16",
+                "training_covered_teacher_cross_entropy_nats": 1.7554306959714403
+              },
+              {
+                "alpha": "1/8",
+                "training_covered_teacher_cross_entropy_nats": 1.7554306872834506
+              },
+              {
+                "alpha": "1/4",
+                "training_covered_teacher_cross_entropy_nats": 1.7554306715185073
+              },
+              {
+                "alpha": "1/2",
+                "training_covered_teacher_cross_entropy_nats": 1.7554306464868417
+              },
+              {
+                "alpha": "1",
+                "training_covered_teacher_cross_entropy_nats": 1.7554306223670408
+              },
+              {
+                "alpha": "2",
+                "training_covered_teacher_cross_entropy_nats": 1.755430677865287
+              },
+              {
+                "alpha": "4",
+                "training_covered_teacher_cross_entropy_nats": 1.7554312034824806
+              },
+              {
+                "alpha": "8",
+                "training_covered_teacher_cross_entropy_nats": 1.7554339107378365
+              },
+              {
+                "alpha": "16",
+                "training_covered_teacher_cross_entropy_nats": 1.7554459294766696
+              }
+            ],
+            "selected_alpha": "1",
+            "selection_uses_training_only": true,
+            "deterministic_tie_break_prefers_smaller_alpha": true,
+            "selected_primary": {
+              "positions": 7,
+              "teacher_mass_covered_q16": 159144,
+              "covered_mass_fraction": 0.3469116829611222,
+              "covered_teacher_cross_entropy_nats": 2.5949528744224315,
+              "teacher_top1_agreements": 2,
+              "actual_next_top1_correct": 1
+            },
+            "selected_secondary": {
+              "positions": 11,
+              "teacher_mass_covered_q16": 409861,
+              "covered_mass_fraction": 0.5685525430547175,
+              "covered_teacher_cross_entropy_nats": 2.296223010361149,
+              "teacher_top1_agreements": 6,
+              "actual_next_top1_correct": 2
+            }
+          }
+        },
+        {
+          "boundary": "geometric_exact_base_plus_residual_logits",
+          "fitted_parameter_values": 112,
+          "actual_alpha": "1",
+          "primary": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 159144,
+            "covered_mass_fraction": 0.3469116829611222,
+            "covered_teacher_cross_entropy_nats": 2.5948074091851563,
+            "teacher_top1_agreements": 2,
+            "actual_next_top1_correct": 1
+          },
+          "secondary": {
+            "positions": 11,
+            "teacher_mass_covered_q16": 409861,
+            "covered_mass_fraction": 0.5685525430547175,
+            "covered_teacher_cross_entropy_nats": 2.2961665260411457,
+            "teacher_top1_agreements": 6,
+            "actual_next_top1_correct": 2
+          },
+          "residual_scale_diagnostic": {
+            "trials": [
+              {
+                "alpha": "0",
+                "training_covered_teacher_cross_entropy_nats": 1.7554307052018712
+              },
+              {
+                "alpha": "1/16",
+                "training_covered_teacher_cross_entropy_nats": 1.7554306959318402
+              },
+              {
+                "alpha": "1/8",
+                "training_covered_teacher_cross_entropy_nats": 1.7554306871598229
+              },
+              {
+                "alpha": "1/4",
+                "training_covered_teacher_cross_entropy_nats": 1.7554306711357515
+              },
+              {
+                "alpha": "1/2",
+                "training_covered_teacher_cross_entropy_nats": 1.75543064510813
+              },
+              {
+                "alpha": "1",
+                "training_covered_teacher_cross_entropy_nats": 1.7554306171684653
+              },
+              {
+                "alpha": "2",
+                "training_covered_teacher_cross_entropy_nats": 1.7554306576835768
+              },
+              {
+                "alpha": "4",
+                "training_covered_teacher_cross_entropy_nats": 1.755431124126816
+              },
+              {
+                "alpha": "8",
+                "training_covered_teacher_cross_entropy_nats": 1.755433596110398
+              },
+              {
+                "alpha": "16",
+                "training_covered_teacher_cross_entropy_nats": 1.7554446779736945
+              }
+            ],
+            "selected_alpha": "1",
+            "selection_uses_training_only": true,
+            "deterministic_tie_break_prefers_smaller_alpha": true,
+            "selected_primary": {
+              "positions": 7,
+              "teacher_mass_covered_q16": 159144,
+              "covered_mass_fraction": 0.3469116829611222,
+              "covered_teacher_cross_entropy_nats": 2.5948074091851563,
+              "teacher_top1_agreements": 2,
+              "actual_next_top1_correct": 1
+            },
+            "selected_secondary": {
+              "positions": 11,
+              "teacher_mass_covered_q16": 409861,
+              "covered_mass_fraction": 0.5685525430547175,
+              "covered_teacher_cross_entropy_nats": 2.2961665260411457,
+              "teacher_top1_agreements": 6,
+              "actual_next_top1_correct": 2
+            }
+          }
+        },
+        {
+          "boundary": "transport_permuted_exact_base_plus_residual_logits",
+          "fitted_parameter_values": 112,
+          "actual_alpha": "1",
+          "primary": {
+            "positions": 7,
+            "teacher_mass_covered_q16": 159144,
+            "covered_mass_fraction": 0.3469116829611222,
+            "covered_teacher_cross_entropy_nats": 2.594708563069209,
+            "teacher_top1_agreements": 2,
+            "actual_next_top1_correct": 1
+          },
+          "secondary": {
+            "positions": 11,
+            "teacher_mass_covered_q16": 409861,
+            "covered_mass_fraction": 0.5685525430547175,
+            "covered_teacher_cross_entropy_nats": 2.2961281493374655,
+            "teacher_top1_agreements": 6,
+            "actual_next_top1_correct": 2
+          },
+          "residual_scale_diagnostic": {
+            "trials": [
+              {
+                "alpha": "0",
+                "training_covered_teacher_cross_entropy_nats": 1.7554307052018712
+              },
+              {
+                "alpha": "1/16",
+                "training_covered_teacher_cross_entropy_nats": 1.7554306997409752
+              },
+              {
+                "alpha": "1/8",
+                "training_covered_teacher_cross_entropy_nats": 1.7554306946101492
+              },
+              {
+                "alpha": "1/4",
+                "training_covered_teacher_cross_entropy_nats": 1.755430685346213
+              },
+              {
+                "alpha": "1/2",
+                "training_covered_teacher_cross_entropy_nats": 1.7554306708568523
+              },
+              {
+                "alpha": "1",
+                "training_covered_teacher_cross_entropy_nats": 1.755430657916322
+              },
+              {
+                "alpha": "2",
+                "training_covered_teacher_cross_entropy_nats": 1.7554306962609874
+              },
+              {
+                "alpha": "4",
+                "training_covered_teacher_cross_entropy_nats": 1.755431029701899
+              },
+              {
+                "alpha": "8",
+                "training_covered_teacher_cross_entropy_nats": 1.7554327228101114
+              },
+              {
+                "alpha": "16",
+                "training_covered_teacher_cross_entropy_nats": 1.7554402075503583
+              }
+            ],
+            "selected_alpha": "1",
+            "selection_uses_training_only": true,
+            "deterministic_tie_break_prefers_smaller_alpha": true,
+            "selected_primary": {
+              "positions": 7,
+              "teacher_mass_covered_q16": 159144,
+              "covered_mass_fraction": 0.3469116829611222,
+              "covered_teacher_cross_entropy_nats": 2.594708563069209,
+              "teacher_top1_agreements": 2,
+              "actual_next_top1_correct": 1
+            },
+            "selected_secondary": {
+              "positions": 11,
+              "teacher_mass_covered_q16": 409861,
+              "covered_mass_fraction": 0.5685525430547175,
+              "covered_teacher_cross_entropy_nats": 2.2961281493374655,
+              "teacher_top1_agreements": 6,
+              "actual_next_top1_correct": 2
+            }
+          }
+        }
+      ],
+      "candidate_support_cid": "blake3:adb520ab3e3c4020f144aa181f418ea9fde02530cac8fb1f18d3ea5fe12b1e1f",
+      "candidate_support_rows": 38,
+      "candidate_support_maximum": 32,
+      "candidate_support_train_only": true,
+      "runtime_source_reads": 0,
+      "runtime_future_reads": 0
+    }
+  ],
+  "aggregate_diagnostic_boundaries": [
+    {
+      "boundary": "full_final_layer_qkv_signed_sketch",
+      "primary": {
+        "positions": 26,
+        "teacher_mass_covered_q16": 1056871,
+        "covered_mass_fraction": 0.6202622204224402,
+        "covered_teacher_cross_entropy_nats": 2.215410922655504,
+        "teacher_top1_agreements": 14,
+        "actual_next_top1_correct": 6
+      },
+      "primary_label_permuted": {
+        "positions": 26,
+        "teacher_mass_covered_q16": 1056871,
+        "covered_mass_fraction": 0.6202622204224402,
+        "covered_teacher_cross_entropy_nats": 3.5961563549197644,
+        "teacher_top1_agreements": 7,
+        "actual_next_top1_correct": 4
+      },
+      "primary_paired": {
+        "positions": 26,
+        "candidate_loss_delta_control_minus_real_nats": 1.8803641086456164,
+        "real_wins": 24,
+        "control_wins": 2,
+        "ties": 0,
+        "exact_two_sided_sign_p": 0.00001049041748046875
+      },
+      "secondary": {
+        "positions": 34,
+        "teacher_mass_covered_q16": 1535025,
+        "covered_mass_fraction": 0.6889111790287183,
+        "covered_teacher_cross_entropy_nats": 2.1246169334025073,
+        "teacher_top1_agreements": 22,
+        "actual_next_top1_correct": 8
+      },
+      "secondary_label_permuted": {
+        "positions": 34,
+        "teacher_mass_covered_q16": 1535025,
+        "covered_mass_fraction": 0.6889111790287183,
+        "covered_teacher_cross_entropy_nats": 3.40021291378705,
+        "teacher_top1_agreements": 7,
+        "actual_next_top1_correct": 4
+      },
+      "secondary_paired": {
+        "positions": 34,
+        "candidate_loss_delta_control_minus_real_nats": 1.6855934472110452,
+        "real_wins": 32,
+        "control_wins": 2,
+        "ties": 0,
+        "exact_two_sided_sign_p": 6.938353180885315e-8
+      }
+    },
+    {
+      "boundary": "signed_576_to_4_qkv_sketch",
+      "primary": {
+        "positions": 26,
+        "teacher_mass_covered_q16": 1056871,
+        "covered_mass_fraction": 0.6202622204224402,
+        "covered_teacher_cross_entropy_nats": 2.215427347167269,
+        "teacher_top1_agreements": 14,
+        "actual_next_top1_correct": 6
+      },
+      "primary_label_permuted": {
+        "positions": 26,
+        "teacher_mass_covered_q16": 1056871,
+        "covered_mass_fraction": 0.6202622204224402,
+        "covered_teacher_cross_entropy_nats": 4.66035195641274,
+        "teacher_top1_agreements": 2,
+        "actual_next_top1_correct": 1
+      },
+      "primary_paired": {
+        "positions": 26,
+        "candidate_loss_delta_control_minus_real_nats": 2.9726279230143677,
+        "real_wins": 25,
+        "control_wins": 1,
+        "ties": 0,
+        "exact_two_sided_sign_p": 8.046627044677734e-7
+      },
+      "secondary": {
+        "positions": 34,
+        "teacher_mass_covered_q16": 1535025,
+        "covered_mass_fraction": 0.6889111790287183,
+        "covered_teacher_cross_entropy_nats": 2.124628187174154,
+        "teacher_top1_agreements": 22,
+        "actual_next_top1_correct": 8
+      },
+      "secondary_label_permuted": {
+        "positions": 34,
+        "teacher_mass_covered_q16": 1535025,
+        "covered_mass_fraction": 0.6889111790287183,
+        "covered_teacher_cross_entropy_nats": 4.1038134195587315,
+        "teacher_top1_agreements": 5,
+        "actual_next_top1_correct": 2
+      },
+      "secondary_paired": {
+        "positions": 34,
+        "candidate_loss_delta_control_minus_real_nats": 2.4973147059994867,
+        "real_wins": 33,
+        "control_wins": 1,
+        "ties": 0,
+        "exact_two_sided_sign_p": 4.0745362639427185e-9
+      }
+    },
+    {
+      "boundary": "plain_natural_state_tensor",
+      "primary": {
+        "positions": 26,
+        "teacher_mass_covered_q16": 1056871,
+        "covered_mass_fraction": 0.6202622204224402,
+        "covered_teacher_cross_entropy_nats": 2.2149953795184496,
+        "teacher_top1_agreements": 14,
+        "actual_next_top1_correct": 6
+      },
+      "primary_label_permuted": {
+        "positions": 26,
+        "teacher_mass_covered_q16": 1056871,
+        "covered_mass_fraction": 0.6202622204224402,
+        "covered_teacher_cross_entropy_nats": 2.7292901910748237,
+        "teacher_top1_agreements": 6,
+        "actual_next_top1_correct": 0
+      },
+      "primary_paired": {
+        "positions": 26,
+        "candidate_loss_delta_control_minus_real_nats": 0.6042114412873457,
+        "real_wins": 21,
+        "control_wins": 5,
+        "ties": 0,
+        "exact_two_sided_sign_p": 0.002493917942047119
+      },
+      "secondary": {
+        "positions": 34,
+        "teacher_mass_covered_q16": 1535025,
+        "covered_mass_fraction": 0.6889111790287183,
+        "covered_teacher_cross_entropy_nats": 2.1243308162992895,
+        "teacher_top1_agreements": 22,
+        "actual_next_top1_correct": 8
+      },
+      "secondary_label_permuted": {
+        "positions": 34,
+        "teacher_mass_covered_q16": 1535025,
+        "covered_mass_fraction": 0.6889111790287183,
+        "covered_teacher_cross_entropy_nats": 2.5376710372496816,
+        "teacher_top1_agreements": 9,
+        "actual_next_top1_correct": 0
+      },
+      "secondary_paired": {
+        "positions": 34,
+        "candidate_loss_delta_control_minus_real_nats": 0.5064259397589753,
+        "real_wins": 29,
+        "control_wins": 5,
+        "ties": 0,
+        "exact_two_sided_sign_p": 0.000038558151572942734
+      }
+    },
+    {
+      "boundary": "geometric_natural_state_tensor",
+      "primary": {
+        "positions": 26,
+        "teacher_mass_covered_q16": 1056871,
+        "covered_mass_fraction": 0.6202622204224402,
+        "covered_teacher_cross_entropy_nats": 2.215684091304904,
+        "teacher_top1_agreements": 14,
+        "actual_next_top1_correct": 6
+      },
+      "primary_label_permuted": {
+        "positions": 26,
+        "teacher_mass_covered_q16": 1056871,
+        "covered_mass_fraction": 0.6202622204224402,
+        "covered_teacher_cross_entropy_nats": 6.341210034966221,
+        "teacher_top1_agreements": 4,
+        "actual_next_top1_correct": 0
+      },
+      "primary_paired": {
+        "positions": 26,
+        "candidate_loss_delta_control_minus_real_nats": 3.627071451139094,
+        "real_wins": 23,
+        "control_wins": 3,
+        "ties": 0,
+        "exact_two_sided_sign_p": 0.00008797645568847656
+      },
+      "secondary": {
+        "positions": 34,
+        "teacher_mass_covered_q16": 1535025,
+        "covered_mass_fraction": 0.6889111790287183,
+        "covered_teacher_cross_entropy_nats": 2.124805004036736,
+        "teacher_top1_agreements": 22,
+        "actual_next_top1_correct": 8
+      },
+      "secondary_label_permuted": {
+        "positions": 34,
+        "teacher_mass_covered_q16": 1535025,
+        "covered_mass_fraction": 0.6889111790287183,
+        "covered_teacher_cross_entropy_nats": 5.0488358563148275,
+        "teacher_top1_agreements": 9,
+        "actual_next_top1_correct": 1
+      },
+      "secondary_paired": {
+        "positions": 34,
+        "candidate_loss_delta_control_minus_real_nats": 2.8372617815065144,
+        "real_wins": 31,
+        "control_wins": 3,
+        "ties": 0,
+        "exact_two_sided_sign_p": 7.660128176212311e-7
+      }
+    },
+    {
+      "boundary": "transport_permuted_natural_state_tensor",
+      "primary": {
+        "positions": 26,
+        "teacher_mass_covered_q16": 1056871,
+        "covered_mass_fraction": 0.6202622204224402,
+        "covered_teacher_cross_entropy_nats": 2.2153660844874796,
+        "teacher_top1_agreements": 14,
+        "actual_next_top1_correct": 6
+      },
+      "primary_label_permuted": {
+        "positions": 26,
+        "teacher_mass_covered_q16": 1056871,
+        "covered_mass_fraction": 0.6202622204224402,
+        "covered_teacher_cross_entropy_nats": 7.698996365453605,
+        "teacher_top1_agreements": 3,
+        "actual_next_top1_correct": 2
+      },
+      "primary_paired": {
+        "positions": 26,
+        "candidate_loss_delta_control_minus_real_nats": 4.798922085223934,
+        "real_wins": 23,
+        "control_wins": 3,
+        "ties": 0,
+        "exact_two_sided_sign_p": 0.00008797645568847656
+      },
+      "secondary": {
+        "positions": 34,
+        "teacher_mass_covered_q16": 1535025,
+        "covered_mass_fraction": 0.6889111790287183,
+        "covered_teacher_cross_entropy_nats": 2.124586063094061,
+        "teacher_top1_agreements": 22,
+        "actual_next_top1_correct": 8
+      },
+      "secondary_label_permuted": {
+        "positions": 34,
+        "teacher_mass_covered_q16": 1535025,
+        "covered_mass_fraction": 0.6889111790287183,
+        "covered_teacher_cross_entropy_nats": 5.982226306582283,
+        "teacher_top1_agreements": 7,
+        "actual_next_top1_correct": 3
+      },
+      "secondary_paired": {
+        "positions": 34,
+        "candidate_loss_delta_control_minus_real_nats": 3.732413903046874,
+        "real_wins": 31,
+        "control_wins": 3,
+        "ties": 0,
+        "exact_two_sided_sign_p": 7.660128176212311e-7
+      }
+    }
+  ],
+  "aggregate_exact_boundaries": [
+    {
+      "boundary": "suffix_exact_base_logits",
+      "primary": {
+        "positions": 26,
+        "teacher_mass_covered_q16": 1056871,
+        "covered_mass_fraction": 0.6202622204224402,
+        "covered_teacher_cross_entropy_nats": 2.215064603216862,
+        "teacher_top1_agreements": 14,
+        "actual_next_top1_correct": 6
+      },
+      "secondary": {
+        "positions": 34,
+        "teacher_mass_covered_q16": 1535025,
+        "covered_mass_fraction": 0.6889111790287183,
+        "covered_teacher_cross_entropy_nats": 2.1243784888844064,
+        "teacher_top1_agreements": 22,
+        "actual_next_top1_correct": 8
+      }
+    },
+    {
+      "boundary": "plain_exact_base_plus_residual_logits",
+      "primary": {
+        "positions": 26,
+        "teacher_mass_covered_q16": 1056871,
+        "covered_mass_fraction": 0.6202622204224402,
+        "covered_teacher_cross_entropy_nats": 2.215085157310024,
+        "teacher_top1_agreements": 14,
+        "actual_next_top1_correct": 6
+      },
+      "secondary": {
+        "positions": 34,
+        "teacher_mass_covered_q16": 1535025,
+        "covered_mass_fraction": 0.6889111790287183,
+        "covered_teacher_cross_entropy_nats": 2.1243926390486982,
+        "teacher_top1_agreements": 22,
+        "actual_next_top1_correct": 8
+      }
+    },
+    {
+      "boundary": "geometric_exact_base_plus_residual_logits",
+      "primary": {
+        "positions": 26,
+        "teacher_mass_covered_q16": 1056871,
+        "covered_mass_fraction": 0.6202622204224402,
+        "covered_teacher_cross_entropy_nats": 2.2151887453259627,
+        "teacher_top1_agreements": 14,
+        "actual_next_top1_correct": 6
+      },
+      "secondary": {
+        "positions": 34,
+        "teacher_mass_covered_q16": 1535025,
+        "covered_mass_fraction": 0.6889111790287183,
+        "covered_teacher_cross_entropy_nats": 2.1244639632843993,
+        "teacher_top1_agreements": 22,
+        "actual_next_top1_correct": 8
+      }
+    },
+    {
+      "boundary": "transport_permuted_exact_base_plus_residual_logits",
+      "primary": {
+        "positions": 26,
+        "teacher_mass_covered_q16": 1056871,
+        "covered_mass_fraction": 0.6202622204224402,
+        "covered_teacher_cross_entropy_nats": 2.215087694207631,
+        "teacher_top1_agreements": 14,
+        "actual_next_top1_correct": 6
+      },
+      "secondary": {
+        "positions": 34,
+        "teacher_mass_covered_q16": 1535025,
+        "covered_mass_fraction": 0.6889111790287183,
+        "covered_teacher_cross_entropy_nats": 2.1243943964808096,
+        "teacher_top1_agreements": 22,
+        "actual_next_top1_correct": 8
+      }
+    }
+  ],
+  "decision_audit": {
+    "aggregate_primary_coverage_fraction": 0.6202622204224402,
+    "minimum_primary_fold_coverage_fraction": 0.3469116829611222,
+    "support_coverage_sufficient": false,
+    "full_improvement_vs_suffix": {
+      "comparison": "suffix_ce_minus_full_trace_ce",
+      "aggregate_delta_nats": -0.0003463194386417179,
+      "directional_folds": 0,
+      "required_delta_nats": 0.1,
+      "required_directional_folds": 3,
+      "material_and_stable": false
+    },
+    "full_improvement_vs_label_control": {
+      "comparison": "label_control_ce_minus_full_trace_ce",
+      "aggregate_delta_nats": 1.3807454322642605,
+      "directional_folds": 4,
+      "required_delta_nats": 0.1,
+      "required_directional_folds": 3,
+      "material_and_stable": true
+    },
+    "reduction_or_projection_loss_vs_full": {
+      "comparison": "reduction_or_projection_ce_minus_full_trace_ce",
+      "aggregate_delta_nats": 0.000016424511765311678,
+      "directional_folds": 2,
+      "required_delta_nats": 0.1,
+      "required_directional_folds": 3,
+      "material_and_stable": false
+    },
+    "geometric_state_loss_vs_reduced": {
+      "comparison": "geometric_state_ce_minus_signed_reduction_ce",
+      "aggregate_delta_nats": 0.0002567441376348789,
+      "directional_folds": 3,
+      "required_delta_nats": 0.1,
+      "required_directional_folds": 3,
+      "material_and_stable": false
+    },
+    "current_readout_loss_vs_geometric_probe": {
+      "comparison": "current_geometric_readout_ce_minus_geometric_probe_ce",
+      "aggregate_delta_nats": -0.0004953459789414083,
+      "directional_folds": 0,
+      "required_delta_nats": 0.1,
+      "required_directional_folds": 3,
+      "material_and_stable": false
+    }
+  },
+  "work_ledger": {
+    "logical_folds": 4,
+    "execution_passes": 2,
+    "replay_passes": 1,
+    "fold_executions": 8,
+    "suffix_compiles": 8,
+    "state_compiles": 8,
+    "probe_fits": 160,
+    "probe_steps": 81920,
+    "probe_backtracks": 0,
+    "probe_objective_evaluations": 163840,
+    "held_label_substitution_audits": 8,
+    "training_event_fit_incidences": 4080,
+    "training_alpha_score_row_evaluations": 12240,
+    "primary_score_row_evaluations": 1768,
+    "secondary_score_row_evaluations": 2312,
+    "state_observations": 912,
+    "state_resets": 96
+  },
+  "exact_replay": true,
+  "terminal": "INSUFFICIENT_SUPPORT_COVERAGE",
+  "next_action": "Stop boundary attribution: matched train-only support covers less than half of recorded primary Q16 mass in aggregate or in at least one fold.",
+  "result_cid": "blake3:11f890def300cdafd689ef7cbfcf28e46b693e669a46edfa7431c672582db4a2",
+  "nonclaims": [
+    "This is a four-document construction-only observability diagnostic, not held-out model promotion.",
+    "Revealed document 13 is excluded and cannot qualify any repair.",
+    "No result here establishes coherent generation, reasoning, scale, exact lowering, WASM, or release readiness.",
+    "Boundary-specific signed projections remain fixed but do not eliminate all cross-boundary sketch-variance confounding."
+  ]
+}

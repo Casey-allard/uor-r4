@@ -78,9 +78,21 @@ source-free Q16 suffix artifact shows bounded distillation against count and
 document-permuted controls, but autonomous decoding loops. Its recurrent
 `R4SoftmaxTraceStateStudentV1` successor completed with exact causal replay but
 failed its decision, material destructive-control, and non-looping gates. The
-active successor is [#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012),
-a construction-only observability audit across the full
-trace, fixed signed reduction, recurrent features, and readout. This reference remains transformer-compatible
+subsequent [#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012)
+observability run completed at `INSUFFICIENT_SUPPORT_COVERAGE`: aggregate
+primary coverage was `0.6202622204224402`, but the minimum held-document fold
+covered only `0.3469116829611222`, below the frozen 50% floor. It cannot assign
+signal loss to a boundary. On the covered rows the full current-step Q/K/V
+probe was `0.0003463194386417179` nats worse than suffix with the required
+direction in `0/4`; its fixed label control separated by
+`1.3807454322642605` nats in `4/4`. Exact replay and zero source-model,
+future, and document-13 reads passed. The project will not expand support or
+build another observability ladder for this path. The active successor is
+direct end-to-end causal softmax attention training in R4 coordinates on a
+fresh untouched split, with autonomous decoded generation in the same
+deliverable, under [#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014).
+This stops one bounded current-step trace-distillation path, not
+all trace distillation or attention. The reference remains transformer-compatible
 and `f32`/multiply/alloc/source-weight backed; it is not source-free,
 table-native, multiply-free, transformerless, browser-WASM, release, or
 frontier-model evidence.
@@ -100,11 +112,16 @@ frame-permutation liveness, and causal audit `PASS` on the bounded held-out
 full-decoder run; upstream checkpoint parity `NOT_RUN`; intrinsic R4 attention
 V1 attempt 02 `UNAVAILABLE` before D3; learned-manifold V2 valid negative;
 localization terminal `REJECT_TANGENT_READOUT_SELECT_SCORE_PREFLIGHT`; D3
-`NOT_RUN`; resonance replacement `NOT_RUN` and parked; full-model recurrent and
+`NOT_RUN`; #1012 terminal `INSUFFICIENT_SUPPORT_COVERAGE`, result CID
+`blake3:11f890def300cdafd689ef7cbfcf28e46b693e669a46edfa7431c672582db4a2`;
+direct end-to-end causal-softmax R4 training plus autonomous decoded generation
+next under [#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014);
+resonance replacement `NOT_RUN` and parked; full-model recurrent and
 exact lowering parked; #954 blocked. See
 [`helm_d_r4_softmax_decoder_973.md`](helm_d_r4_softmax_decoder_973.md) and
 [`helm_d_learned_manifold_r4_construction_973.md`](helm_d_learned_manifold_r4_construction_973.md),
-then [`r4_softmax_trace_student_973.md`](r4_softmax_trace_student_973.md).
+then [`r4_softmax_trace_student_973.md`](r4_softmax_trace_student_973.md) and
+[`r4_softmax_trace_observability_1012.md`](r4_softmax_trace_observability_1012.md).
 
 ## Current route-native target lifecycle
 
@@ -142,7 +159,8 @@ canonical text/corpus
     -> construction-only layerwise oracle traces [COMPLETE]
     -> source-free Q16 suffix trace student [BOUNDED DISTILLATION; LOOPING OUTPUT]
     -> R4SoftmaxTraceStateStudentV1 recurrent R4/Spin state [COMPLETE; FAIL PROMOTION]
-    -> construction-only trace/state observability audit [NEXT]
+    -> construction-only trace/state observability audit [COMPLETE; INSUFFICIENT SUPPORT]
+    -> direct end-to-end causal softmax attention training in R4 coordinates on a fresh untouched split, including autonomous decoded generation [#1014; NEXT]
     -> intrinsic/readout alternatives, paired-E8, resonance replacement, full-model recurrent lowering, and exact deployment parked
     -> correctness + typed abstention (#954)
     -> bounded reasoning (#955)
@@ -1495,11 +1513,16 @@ D3 on construction covariance, with diagnostic curved NLL worse than donor and
   suffix trace student is complete with bounded distillation but looping output.
   Its recurrent `R4SoftmaxTraceStateStudentV1` successor failed promotion with
   no decision change, no material geometry-control effect, and the same loop.
-  The next primary rung is
-  [#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012), a
-  construction-only observability audit. Resonance
-  substitutes, optimization, and release work remain parked. Lowering does
-  not otherwise reactivate automatically on a generation positive.
+  [#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012) then completed
+  its construction-only observability audit at
+  `INSUFFICIENT_SUPPORT_COVERAGE`; no boundary attribution is licensed, and
+  neither support expansion nor another observability ladder follows. The next
+  primary rung directly trains end-to-end causal softmax attention in R4
+  coordinates on a fresh untouched split and must include autonomous decoded
+  generation under [#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014).
+  Resonance substitutes, unrelated optimization, and release work
+  remain parked. Lowering does not otherwise reactivate automatically on a
+  generation positive.
 
 The qualified native reference can be invoked against the already-local pinned
 snapshot without a provider or network fallback:

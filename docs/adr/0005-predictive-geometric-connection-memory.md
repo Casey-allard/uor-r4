@@ -12,10 +12,14 @@
   `R4SoftmaxTeacherTraceV1` and the first source-free suffix compiler now pass
   their bounded distillation gate, while decoded continuation remains
   incoherent. `R4SoftmaxTraceStateStudentV1` completed negative at its frozen
-  state/control gate. The sole active successor is the construction-only,
-  leave-one-document-out trace-state observability ladder in
-  [#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012), the native
-  child/blocker of #973.
+  state/control gate. The subsequent construction-only trace-state
+  observability ladder in
+  [#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012) completed at
+  `INSUFFICIENT_SUPPORT_COVERAGE` and cannot attribute a boundary. It will not
+  be expanded or repeated. The active successor,
+  [#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014), directly trains
+  end-to-end causal-softmax attention in R4 coordinates on a fresh untouched
+  split and must include autonomous decoding.
 - **Date:** 2026-08-28; direction updated 2026-08-30
 - **Owner:** #973 under programme root #820
 - **Supersedes for forward work:** another fixed componentwise prototype or
@@ -106,11 +110,15 @@ loops on `, Scotland`, and the student does not consume the geometric trace
 state. `R4SoftmaxTraceStateStudentV1` subsequently compiled that causal state
 transition and readout, but completed negative: its tiny CE movement was below
 the frozen control threshold, no top-1 decision changed, and its decoded output
-retained the same short cycle. The active successor is one construction-only,
+retained the same short cycle. The subsequent construction-only,
 leave-one-document-out observability ladder in
-[#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012), the native
-child/blocker of #973, across the full trace, 4D reduction, recurrent features,
-and residual readout boundaries. No tag,
+[#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012) completed at
+`INSUFFICIENT_SUPPORT_COVERAGE`; its per-fold support gate forbids boundary
+attribution. Support expansion and another localization ladder are not the next
+step. The active successor is
+[#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014): direct end-to-end
+causal-softmax attention training in R4 coordinates on a fresh untouched split
+with autonomous decoded generation. No tag,
 release, hosted promotion, or static-WASM claim is authorized.
 Its architectural reference is the official MIT HELM-D source pinned at commit
 [`7501deca8f413848bfef804be64ce874b72a3cd7`](https://github.com/Graph-and-Geometric-Learning/helm/tree/7501deca8f413848bfef804be64ce874b72a3cd7).
@@ -145,11 +153,14 @@ The current sequence is strict:
    suffix-student result, then preserve the completed negative
    `R4SoftmaxTraceStateStudentV1` comparison against suffix, equal-budget plain
    recurrence, and transport permutation; and
-6. run [#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012), one
-   construction-only, leave-one-document-out observability audit at the full
-   final-layer trace, fixed 576-to-4 reduction, token-derived recurrent feature,
-   and fitted residual-readout boundaries before changing only the first
-   boundary that loses transfer.
+6. preserve [#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012) as a
+   completed construction-only observability result at
+   `INSUFFICIENT_SUPPORT_COVERAGE`, with no licensed boundary attribution and no
+   support-expansion/localization retry; and
+7. execute [#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014):
+   directly train end-to-end causal-softmax attention in R4 coordinates on a
+   fresh untouched split and require autonomous decoded generation in the same
+   deliverable.
 
 ### Qualified native endpoint and completed source-free trace rungs
 
@@ -748,8 +759,9 @@ not ordinary R4/Spin softmax attention. See the
 [authoritative record](../r4_softmax_trace_state_student_1011.md) and
 [structured result](../r4_softmax_trace_state_student_1011_raw.json).
 
-The next action is [#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012),
-the native child/blocker of #973: one construction-only,
+The next action at #1011 close was
+[#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012), the native
+child/blocker of #973: one construction-only,
 leave-one-document-out observability audit using the same teacher-relative
 candidate loss at four boundaries:
 
@@ -767,6 +779,22 @@ distillation and train the recurrent cell end to end under a new independently
 frozen holdout. Revealed document 13 cannot promote a repaired mechanism
 again. Corpus scale, added state dimensions, exact lowering, resonance, WASM,
 release, correctness, and reasoning claims remain parked.
+
+#1012 subsequently completed at `INSUFFICIENT_SUPPORT_COVERAGE`. Aggregate
+primary coverage was `0.6202622204224402`, but the minimum fold covered only
+`0.3469116829611222`, below the frozen 50% floor, so none of the boundary
+branches above is licensed. On the covered rows full Q/K/V CE was
+`2.215410922655504` versus suffix `2.215064603216862`; the required improvement
+direction appeared in `0/4` folds. The fixed label control separated by
+`1.3807454322642605` nats in `4/4`, and exact replay plus zero
+source/document-13 reads passed. The project will not expand support or run
+another localization ladder. It advances to direct end-to-end causal-softmax
+attention training in R4 coordinates on a fresh untouched split with autonomous
+decoded generation under
+[#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014). This stops the
+bounded current-step trace-distillation
+path, not all trace distillation or attention. See the
+[#1012 record](../r4_softmax_trace_observability_1012.md).
 
 ## Historical intrinsic/replacement outcome branches — parked
 

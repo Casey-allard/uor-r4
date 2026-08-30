@@ -154,14 +154,21 @@ not an integrity failure or a falsification of the established ordinary
 R4/Spin softmax reference. The frozen result CID is
 `blake3:dc04a8a8b21750799db2d451c8237d1e62cf90ffa74561fb54272b1e9704c824`.
 
-The sole next rung is
-[#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012), one
-construction-only, leave-one-document-out observability audit across the full
-ordered final-layer Q/K/V trace, the fixed
-576-to-4 signed reduction, token-derived role maps/recurrent features, and the
-residual readout/logit scale. It must localize the first boundary that loses
-teacher-relative candidate signal before any representation repair. The
-already-revealed document 13 cannot promote a repaired mechanism again.
+[#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012) subsequently
+completed its construction-only, leave-one-document-out observability audit at
+`INSUFFICIENT_SUPPORT_COVERAGE`. Aggregate primary coverage was
+`0.6202622204224402`, but the minimum fold covered only
+`0.3469116829611222`, below the frozen 50% floor, so it cannot localize a failed
+boundary. On the covered rows full Q/K/V CE was `2.215410922655504` versus
+suffix `2.215064603216862`, with the required direction in `0/4`; the fixed
+label control separated by `1.3807454322642605` nats in `4/4`. Exact replay and
+zero source/document-13 reads passed. No support expansion or additional
+localization ladder follows. The sole next rung directly trains end-to-end
+causal-softmax attention in R4 coordinates on a fresh untouched split and
+requires autonomous decoded generation under
+[#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014). This stops the bounded current-step
+trace-distillation path, not all trace distillation or attention. The
+already-revealed document 13 cannot promote the new mechanism.
 Offline floats, matrix operations, and softmax remain allowed at the
 teacher/compiler boundary; the deployed destination remains exact,
 integer/table-native, and source-free. Intrinsic/readout substitution,
@@ -1362,7 +1369,11 @@ WASM-isolation checks pass while hosted Pages remains static/offline without a
 functioning chat backend/artifact lowering; the Q16 suffix trace student is
 complete with bounded distillation but looping output;
 `R4SoftmaxTraceStateStudentV1` is complete with `FAIL_PROMOTION`; the
-construction-only leave-one-document-out observability audit is active;
+construction-only leave-one-document-out observability audit completed at
+`INSUFFICIENT_SUPPORT_COVERAGE` without boundary attribution; direct end-to-end
+causal-softmax attention training in R4 coordinates on a fresh untouched split,
+including autonomous decoded generation, is active under
+[#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014);
 intrinsic/readout, new state dimensions, corpus scale, resonance/recurrent
 lowering, and final requalification are parked.
 Product CLI/HTTP chat integration, restart-persistent conversation state, and

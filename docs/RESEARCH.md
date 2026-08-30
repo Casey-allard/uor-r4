@@ -93,18 +93,31 @@ assumptions, or objectives rather than measured results.
 > source-free replay but no changed top-1 decision, no material
 > transport-control margin, and the same period-two loop. This does not
 > establish geometric attention, coherent generation, correctness,
-> general-purpose inference, or reasoning. The sole next action is
-> [#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012), a
-> construction-only observability audit across full trace, fixed signed
-> reduction, recurrent features, and residual readout. Offline floats, matrix
-> operations, and softmax remain allowed at the teacher/compiler boundary; the
-> deployed destination remains exact and source-free. Resonance substitutes,
-> scale, and product/release promotion remain parked. See the
+> general-purpose inference, or reasoning.
+> [#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012) then completed
+> at `INSUFFICIENT_SUPPORT_COVERAGE`: aggregate primary coverage was
+> `0.6202622204224402`, but one held-document fold covered only
+> `0.3469116829611222`, below the frozen 50% floor, so no boundary attribution
+> is licensed. On the covered rows, the full current-step Q/K/V probe was
+> `0.0003463194386417179` nats worse than suffix with direction `0/4` and
+> unchanged `14/26` teacher and `6/26` actual-next top-1. Its fixed label
+> control separated by `1.3807454322642605` nats in `4/4`; exact replay and the
+> zero-source/document-13 audit passed. The project will not expand that support
+> or build another observability ladder. The sole next action is direct
+> end-to-end causal softmax attention training in R4 coordinates on a fresh
+> untouched split, with autonomous decoded generation in the same deliverable,
+> under [#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014).
+> This stops the bounded current-step trace-distillation path, not all trace
+> distillation or attention. Offline floats, matrix operations, and softmax
+> remain allowed while establishing the mechanism; the deployed destination
+> remains exact and source-free. Resonance substitutes, scale, and
+> product/release promotion remain parked. See the
 > [generation record](r4_softmax_reference_generation_973.md),
 > [compact aggregate](r4_softmax_reference_generation_attempt_01_result_973.json),
 > [native bridge record](r4_softmax_reference_http_bridge_973.md), and
-> [trace-student record](r4_softmax_trace_student_973.md), and
-> [state-student record](r4_softmax_trace_state_student_1011.md).
+> [trace-student record](r4_softmax_trace_student_973.md),
+> [state-student record](r4_softmax_trace_state_student_1011.md), and
+> [#1012 observability record](r4_softmax_trace_observability_1012.md).
 >
 > **Measured evidence status:** HELM-D pinned-source provenance `PASS`;
 > ordinary-donor reproduction `PASS`; transported-R4 parity, destructive
@@ -126,7 +139,12 @@ assumptions, or objectives rather than measured results.
 > without a functioning chat backend/artifact lowering;
 > source-free Q16 suffix trace student bounded distillation with looping decode;
 > `R4SoftmaxTraceStateStudentV1` complete with `FAIL_PROMOTION`;
-> construction-only trace/state observability audit next;
+> #1012 trace/state observability complete with
+> `INSUFFICIENT_SUPPORT_COVERAGE`, exact replay, and result CID
+> `blake3:11f890def300cdafd689ef7cbfcf28e46b693e669a46edfa7431c672582db4a2`;
+> direct end-to-end causal-softmax R4 training on a fresh split, including
+> autonomous decoded generation, next under
+> [#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014);
 > D3 `NOT_RUN`; multi-resonance replacement `NOT_RUN` and parked; whole-decoder
 > recurrent factorization/lowering `NOT_RUN` and parked. See the
 > [`HELM-D-R4` record](helm_d_r4_softmax_decoder_973.md) and the
@@ -474,9 +492,12 @@ assumptions, or objectives rather than measured results.
 > without a functioning chat backend/artifact lowering. The first source-free
 > Q16 suffix trace student now provides bounded distillation evidence but loops
 > autonomously. `R4SoftmaxTraceStateStudentV1` also completed and failed its
-> material, decision, and cycle gates. The current #973 action is a
-> construction-only observability audit that localizes loss across the full
-> trace, signed reduction, recurrent features, and readout. Intrinsic/readout alternatives,
+> material, decision, and cycle gates. The subsequent #1012 construction-only
+> observability audit completed at `INSUFFICIENT_SUPPORT_COVERAGE` and cannot
+> localize loss. The current #973 action directly trains end-to-end causal
+> softmax attention in R4 coordinates on a fresh untouched split and includes
+> autonomous decoded generation under
+> [#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014). Intrinsic/readout alternatives,
 > resonance-based softmax replacement, whole-decoder recurrent lowering, and
 > exact deployment are parked. D3 remains
 > `NOT_RUN`; #954 remains blocked behind #973.
@@ -1051,8 +1072,12 @@ dashboard wiring/readiness and static/WASM-isolation checks pass while hosted
 Pages remains static/offline without a working chat backend/artifact lowering.
 The construction-only trace compiler and source-free Q16 suffix student are now
 complete with bounded distillation but looping autonomous output;
-`R4SoftmaxTraceStateStudentV1` completed with `FAIL_PROMOTION`; a
-construction-only observability audit is active;
+`R4SoftmaxTraceStateStudentV1` completed with `FAIL_PROMOTION`; the #1012
+construction-only observability audit completed with
+`INSUFFICIENT_SUPPORT_COVERAGE`; direct end-to-end causal softmax attention
+training in R4 coordinates on a fresh untouched split, including autonomous
+decoded generation, is active under
+[#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014);
 fiber-preserving multi-resonance replacement, whole-decoder recurrent
 factorization, and final requalification are parked.
 Dependable broad coherent text remains unestablished.
@@ -1644,12 +1669,16 @@ also passes without changing the default engine. Dashboard wiring/readiness and
 static/WASM-isolation checks pass, but hosted Pages remains static/offline
 without a functioning chat backend/artifact lowering. The Q16 suffix trace
 student is complete with bounded distillation but looping autonomous output.
-Its recurrent state successor failed promotion. The only active successor is
-[#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012), a
-construction-only observability audit. Intrinsic/readout
-alternatives, multi-resonance replacement, whole-decoder recurrent
-factorization, and final requalification are parked. D3 remains
-`NOT_RUN`; #954 remains blocked.
+Its recurrent state successor failed promotion. The subsequent
+[#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012) observability run
+completed at `INSUFFICIENT_SUPPORT_COVERAGE`; it cannot attribute a failed
+boundary and the project will not expand its support or repeat that diagnostic
+ladder. The active successor is direct end-to-end causal softmax attention
+training in R4 coordinates on a fresh untouched split, with autonomous decoded
+generation as part of the deliverable, under
+[#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014). Intrinsic/readout alternatives,
+multi-resonance replacement, whole-decoder recurrent factorization, and final
+requalification are parked. D3 remains `NOT_RUN`; #954 remains blocked.
 #955 invokes that accepted selector/
 #953/#973/#954 consumer; #962 integrates the accepted selector/#953/#973 path
 into product chat with persisted identity-scoped hive memory. #963 retains

@@ -32,11 +32,23 @@
   correctness, general-purpose inference, or reasoning.
   `R4SoftmaxTraceStateStudentV1` subsequently completed with exact source-free
   execution but no changed top-1 decision, no material destructive-control
-  separation, and the same period-two loop. The sole active step is now
-  [#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012), a
-  construction-only observability audit across full trace, fixed signed
-  reduction, recurrent features, and readout calibration. The already-revealed
-  document 13 cannot promote a repaired model.
+  separation, and the same period-two loop.
+  [#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012) then completed
+  the construction-only observability audit at
+  `INSUFFICIENT_SUPPORT_COVERAGE`: aggregate primary coverage was
+  `0.6202622204224402`, but the minimum fold covered only
+  `0.3469116829611222`, so its frozen 50% gate forbids boundary attribution.
+  The measured full current-step Q/K/V probe was
+  `0.0003463194386417179` nats worse than suffix in `0/4` folds, while the
+  fixed label control separated by `1.3807454322642605` nats in `4/4`. Exact
+  replay and zero source/document-13 reads passed. The project will not expand
+  this support or build another observability ladder. The sole active step is
+  direct end-to-end causal softmax attention training in R4 coordinates on a
+  fresh untouched split, and autonomous decoded generation is part of that
+  deliverable under [#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014).
+  This stops the bounded current-step trace-distillation path, not
+  all trace distillation or attention. The already-revealed document 13 cannot
+  promote the new mechanism.
   Offline teacher/compiler floats, matrix operations, and softmax are permitted
   while proving a replacement mechanism; the deployed destination remains
   exact, integer/table-native, and source-free.
@@ -48,7 +60,8 @@
   [compact aggregate](r4_softmax_reference_generation_attempt_01_result_973.json),
   plus the [native endpoint/dashboard-wiring record](r4_softmax_reference_http_bridge_973.md) and
   [structured result](r4_softmax_reference_http_bridge_result_973.json), then
-  the [trace-student record](r4_softmax_trace_student_973.md).
+  the [trace-student record](r4_softmax_trace_student_973.md) and
+  [#1012 observability record](r4_softmax_trace_observability_1012.md).
   The intermediate
   [Geometric Causal Decoder Roadmap](geometric_causal_decoder_plan.md) records
   the superseded #948-#958 sequence.

@@ -325,10 +325,10 @@ This result falsifies the current 4D signed-reduction/token-derived state cell
 at the declared gate. It does not falsify ordinary R4/Spin softmax attention,
 which remains the established teacher/reference mechanism.
 
-## Next decision
+## Then-next decision and subsequent result
 
-Do not add corpus scale, state dimensions, exact lowering, resonance, WASM, or
-release work. Run
+At #1011 close, the frozen direction was not to add corpus scale, state
+dimensions, exact lowering, resonance, WASM, or release work. It instead ran
 [#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012), one
 construction-only, leave-one-document-out observability audit that measures
 the same teacher-relative candidate loss at four explicit boundaries:
@@ -346,3 +346,18 @@ repair readout calibration. If even full traces do not transfer, stop trace
 distillation and train the recurrent cell end-to-end under a new independently
 frozen holdout. The already-revealed document 13 cannot promote a repaired
 mechanism again.
+
+#1012 subsequently completed at `INSUFFICIENT_SUPPORT_COVERAGE`: aggregate
+primary coverage was `0.6202622204224402`, but the minimum fold covered only
+`0.3469116829611222`, below its frozen 50% floor, so no boundary attribution is
+licensed. On the covered rows, the full Q/K/V probe returned CE
+`2.215410922655504` versus suffix `2.215064603216862`, with the required
+direction in `0/4`; the fixed label control separated by
+`1.3807454322642605` nats in `4/4`. Exact replay and zero
+source/document-13 reads passed. The project will not expand support or run
+another localization ladder. The active direction directly trains end-to-end
+causal-softmax attention in R4 coordinates on a fresh untouched split and
+includes autonomous decoded generation under
+[#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014). This stops the bounded current-step
+trace-distillation path, not all trace distillation or attention. See the
+[#1012 record](r4_softmax_trace_observability_1012.md).

@@ -244,9 +244,9 @@ substituted for one another.
   The result falsifies this 4D signed-reduction/token-derived cell, not
   ordinary R4/Spin softmax attention. See the
   [authoritative #1011 record](../r4_softmax_trace_state_student_1011.md).
-- **Trace-state observability ladder** — the active construction-only
+- **Trace-state observability ladder** — the completed construction-only
   [#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012) successor to
-  the #1011 negative and native child/blocker of #973. A
+  the #1011 negative. A
   leave-one-document-out audit measures the
   same teacher-relative candidate loss at four boundaries: full ordered
   final-layer Q/K/V trace blocks; the fixed 576-to-4 signed reduction;
@@ -254,9 +254,20 @@ substituted for one another.
   residual readout/logit scale. The first boundary that loses transfer selects
   only the corresponding repair: structured per-head/multiscale reduction,
   context-conditioned K/V induction, or readout calibration. Failure of even
-  the full traces stops trace distillation and moves to end-to-end recurrent
-  training under a new independently frozen holdout. Revealed document 13
-  cannot promote a repaired mechanism again.
+  the full traces would have stopped trace distillation and moved to end-to-end
+  training under a new independently frozen holdout. The measured terminal was
+  `INSUFFICIENT_SUPPORT_COVERAGE`: aggregate primary coverage
+  `0.6202622204224402`, minimum fold `0.3469116829611222`, so no boundary
+  attribution is licensed. The full probe also did not improve on suffix on the
+  covered rows (`suffix - full = -0.0003463194386417179`, direction `0/4`),
+  while the label control separated by `1.3807454322642605` nats in `4/4`.
+  Exact replay and zero source/document-13 reads passed. The ladder will not be
+  expanded or repeated. Active work is
+  [#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014): direct
+  end-to-end causal-softmax R4 attention training on a fresh untouched split
+  with autonomous decoding. This stops the
+  bounded current-step trace-distillation path, not all trace distillation or
+  attention. Revealed document 13 cannot promote the new mechanism.
 - **H4 frame connection** — the exact object is the relative H4 group element;
   the current compiler-side f64 matrix represents its left-quaternion action
   and is numerically orthogonal under the tested finite-group law. It does not
@@ -401,10 +412,12 @@ substituted for one another.
   interaction/E2E `NOT_RUN`), followed by the completed
   `R4SoftmaxTeacherTraceV1`/source-free suffix-student comparison and its
   decoded-cycle boundary, then the completed negative
-  `R4SoftmaxTraceStateStudentV1` comparison. The active successor is the
-  construction-only
+  `R4SoftmaxTraceStateStudentV1` comparison, then the completed
   [#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012) trace-state
-  observability ladder, the native child/blocker of #973. Intrinsic/readout,
+  observability ladder at `INSUFFICIENT_SUPPORT_COVERAGE`. The active successor
+  is [#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014): direct
+  end-to-end causal-softmax attention training in R4 coordinates on a fresh
+  untouched split with autonomous decoded generation. Intrinsic/readout,
   fiber-preserving multi-resonance replacement,
   whole-decoder recurrent factorization, and final requalification are parked
   (#973);
@@ -475,9 +488,12 @@ At implementation revision
 Its artifact and protocol identities, exact matched-arm metrics, causal and
 replay integrity, and decoded-cycle boundary are recorded in the term above
 and the [authoritative #1011 record](../r4_softmax_trace_state_student_1011.md).
-The active work is the construction-only trace-state observability ladder in
-[#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012), the native
-child/blocker of #973;
+The subsequent construction-only trace-state observability ladder in
+[#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012) completed at
+`INSUFFICIENT_SUPPORT_COVERAGE` without boundary attribution and will not be
+expanded or repeated. Active work is direct end-to-end causal-softmax attention
+training in R4 coordinates on a fresh untouched split with autonomous decoding
+under [#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014);
 corpus scale, added state dimensions, exact lowering, resonance, WASM, release,
 correctness, and reasoning claims remain parked.
 

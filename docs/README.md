@@ -80,12 +80,21 @@ completed with exact source-free execution but failed promotion: its geometric
 CE change was minute, no top-1 decision changed, the permuted-control margin was
 not material, and the same period-two loop remained. This does not establish
 geometric attention, coherent generation, correctness, general-purpose
-inference, or reasoning. The next rung is
-[#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012), a
-construction-only observability audit across full trace, signed reduction,
-recurrent features, and readout.
-Do not add scale, resonance substitutes, exact lowering, or product/release
-work until the signal-loss boundary is localized.
+inference, or reasoning. [#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012)
+then completed at `INSUFFICIENT_SUPPORT_COVERAGE`: aggregate primary coverage
+was `0.6202622204224402`, while the minimum fold covered only
+`0.3469116829611222`, below the frozen 50% floor. It therefore cannot localize
+a signal-loss boundary. On its covered rows the full current-step Q/K/V probe
+was `0.0003463194386417179` nats worse than suffix in `0/4` directional folds,
+with unchanged `14/26` teacher and `6/26` actual-next top-1 counts. The fixed
+label control separated by `1.3807454322642605` nats in `4/4`; exact replay and
+the zero-source/document-13 audit passed. The project will not expand this
+support or build another observability ladder. The next deliverable is direct
+end-to-end causal softmax attention training in R4 coordinates on a fresh
+untouched split, including autonomous decoded generation, under
+[#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014). This stops one
+bounded current-step trace-distillation path, not all trace distillation or
+attention.
 No tag, release, hosted promotion, or static-WASM claim is authorized. D3
 remains `NOT_RUN`; #973 remains open and #954 remains blocked.
 
@@ -102,7 +111,9 @@ The binding autonomous-generation evidence is the
 The endpoint and dashboard-wiring result is recorded in
 [the native bridge record](r4_softmax_reference_http_bridge_973.md). The bounded
 suffix-distillation result and its nonclaim boundary are recorded in the
-[trace-student record](r4_softmax_trace_student_973.md).
+[trace-student record](r4_softmax_trace_student_973.md); the terminal
+observability result and direct-training pivot are recorded in the
+[#1012 record](r4_softmax_trace_observability_1012.md).
 
 ## Start here
 
@@ -188,7 +199,9 @@ These are the small set of living documents that define the present work:
    [trace-student record](r4_softmax_trace_student_973.md) binds the completed
    source-free Q16 suffix distillation and its looping-output nonclaim boundary;
    the [state-student record](r4_softmax_trace_state_student_1011.md) binds the
-   subsequent recurrent negative and observability-audit direction.
+   subsequent recurrent negative, and the
+   [#1012 observability record](r4_softmax_trace_observability_1012.md) binds the
+   insufficient-support terminal and direct end-to-end training direction.
    The bounded
    [multi-resonance reuse audit](multi_resonance_attention_sieve_audit_973.md)
    distinguishes the implemented sin/cos and Spin substrate from the still
@@ -225,7 +238,8 @@ reversible lexical geometry
   → capture construction-only layerwise oracle traces [COMPLETE]
   → compile/evaluate source-free Q16 suffix trace student [BOUNDED DISTILLATION; LOOPING OUTPUT]
   → compile/evaluate R4SoftmaxTraceStateStudentV1 recurrent R4/Spin state [COMPLETE; FAIL PROMOTION]
-  → localize signal loss across full trace, signed reduction, recurrent features, and readout [NEXT]
+  → audit signal loss across full trace, signed reduction, recurrent features, and readout [COMPLETE; INSUFFICIENT SUPPORT]
+  → directly train end-to-end causal softmax attention in R4 coordinates on a fresh untouched split; require autonomous decoded generation [#1014; NEXT]
   → park intrinsic/readout alternatives, resonance-based softmax replacement, full-model recurrent lowering, and exact deployment
   → correctness and abstention
   → multi-step reasoning
