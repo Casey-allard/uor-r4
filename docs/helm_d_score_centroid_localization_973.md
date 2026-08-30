@@ -1,6 +1,6 @@
 # HELM-D R4 score-by-readout localization — issue #973
 
-- **Status:** frozen design; implementation and run `NOT_RUN`
+- **Status:** frozen executable contract; decision run `NOT_RUN`
 - **Mechanism:** `HelmDScoreCentroidLocalizationR4V1`
 - **Question:** did learned-manifold V2 fail primarily because of its
   Lorentz compatibility score, its normalized Lorentz value centroid, or both?
@@ -139,3 +139,87 @@ cost estimate:         about 4 minutes fail-fast; 34-36 minutes attention-only;
 The implementation must use a separate score-metric enum and centroid-policy
 enum. It must not encode tangent readout by pretending that Lorentz scores are
 Euclidean geometry.
+
+The protected runner is
+[`scripts/run_helm_d_score_centroid_localization_973.sh`](../scripts/run_helm_d_score_centroid_localization_973.sh).
+It compiles one test binary from a clean tracked revision. That protected
+binary first runs the exact target-commitment freezer and keeps its locally held
+one-token CIDs only in the local evidence cache; it then runs the exact decision
+test, which must match any admitted decoder target to that commitment. These
+CIDs are commitments, not hiding: their small token space is enumerable. Their
+scientific seal comes from creating them only after the protected code revision
+is immutable and never publishing them in Git before that revision executes.
+The runner writes exclusive evidence paths and applies the independent
+80-minute decision-process watchdog. No unfiltered ignored-test launch is
+authorized.
+
+## Pre-execution clarification — 2026-08-30
+
+This append-only clarification resolves implementation choices that were not
+fully specified above. It is part of the frozen contract and precedes every
+execution result.
+
+- The two-document hard gate uses the untouched initialization: identity Q, K,
+  and V adapters, layer scale `24`, and uniform bias `+0.0`. It performs no fit.
+  Only after that gate passes may the remaining 14 construction documents be
+  captured and the two declared 8-document score fits begin.
+- The reported Lorentz denominator is the pre-normalization future-timelike
+  norm `sqrt(t_sum^2 - ||x_sum||^2)`. It must be finite and at least
+  `1 - 1e-12`. Its reciprocal readout multiplier is reported separately and
+  must be finite and positive.
+- Query and key radial norms use deterministic nearest-rank `p0`, `p50`, `p95`,
+  and `p100` summaries. Query samples span every evaluated score row; key
+  samples span every evaluated causal source pair. Fit and audit populations
+  are reported separately.
+- Replay has three separately reported scopes: two byte-identical refits of the
+  two logical score bundles, byte-identical attention-level metric replay, and,
+  when admitted, full-decoder replay for `L-M` and `L-T`.
+- If `L-T` passes the eight-document aggregate-MSE criterion but misses the
+  paired decoder-NLL improvement, the terminal is `REVISE_PROJECTION_OR_FITTER`.
+  The fixed-curvature terminal remains available only when tangent readout
+  misses the audit-level criterion and the frozen Euclidean score criterion
+  passes.
+- For donor aggregate `d` and learned readout `r` of width `D`, normalized
+  aggregate MSE is
+  `sum_l (r_l - d_l)^2 / (D * max(||d||_2, 1)^2)`, matching the predecessor
+  fitter's measurement while excluding it from the new CE-only score fit.
+
+The exact full-decoder forward ledger is also frozen. Donor trace capture uses
+two forwards per token (ordinary plus traced): `64` forwards on a two-document
+preflight rejection and `512` forwards after all 16 documents are captured.
+An admitted paired decoder comparison adds `512` forwards (`2` arms times
+primary/replay times `8` documents times `16` positions), for `1,024` total.
+The release build is outside the run allowance; the exact decision process is
+independently capped at 80 minutes.
+
+Offline fitting and attention-level metrics use the canonical model-frame
+gauge, as the predecessor fitter did. This is the gauge-fixed form of the
+transported calculation, not a claim that an atlas transport ledger executed
+for every offline row. Equivalence is a hard gate: both normalized and tangent
+readouts must pass the exhaustive 120-frame covariance census, and the natural
+token-derived `[5, 9, 2]` atlas path must keep the coherent/permuted transport
+intervention live. If the decoder stage is admitted, it separately executes and
+audits exact token-derived Spin/H4 transport on every causal Q/K/V row.
+
+The protected runner first invokes the same compiled test executable to freeze
+locally held article-span, 17-token, and one-token target CIDs for only the eight
+localization-audit documents. That artifact binds the generator's contract,
+source, executable, and protected Git revision. It remains in the local
+evidence cache because a one-token CID has a small brute-forceable preimage
+space; it is not committed to Git. The decision requires the exact same
+implementation identity before tracing, seals the artifact and manifest CIDs
+in the attention checkpoint, and verifies every committed article span and
+materialized target only after that checkpoint admits the decoder. It reports
+the source population as
+`MANIFEST_ONLY_WITH_COMMITTED_TARGET_SPANS_VERIFIED`; it does not falsely claim
+a live whole-corpus hash. Neither process reads the eight V2 validation spans or
+D3.
+
+The locally held target manifest binds the freezer's complete localization
+implementation identity (contract, predecessor, compiled source, executable,
+Git revision, and clean-tree status). The decision requires that identity to
+equal its own before any donor trace begins. Corpus verification at this seal is
+`MANIFEST_ONLY_WITH_COMMITTED_TARGET_SPANS_VERIFIED`: the freezer commits the
+exact article-span byte CID for each of the eight audit documents, and the
+admitted decoder recomputes all eight span CIDs. This deliberately does not
+whole-hash or open excluded V2-validation or D3 corpus spans.

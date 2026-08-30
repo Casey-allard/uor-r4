@@ -19,12 +19,14 @@ use std::time::Instant;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use uor_r4_core::helm_d_r4_attention::{
     canonical_registered_h4_spin_frames, helm_d_learned_manifold_centroid,
-    helm_d_learned_manifold_logit, helm_d_lorentz_causal_row, HelmDLearnedManifoldEvidence,
-    HelmDLearnedManifoldIntervention, HelmDLearnedManifoldMetric, HelmDLearnedManifoldParameters,
-    HelmDLearnedManifoldR4Transport, HelmDLorentzReferenceConfig, R4AffineAdapter,
+    helm_d_learned_manifold_logit, helm_d_learned_manifold_value_readout,
+    helm_d_lorentz_causal_row, HelmDLearnedManifoldEvidence, HelmDLearnedManifoldIntervention,
+    HelmDLearnedManifoldMetric, HelmDLearnedManifoldParameters, HelmDLearnedManifoldR4Transport,
+    HelmDLearnedManifoldValueReadout, HelmDLorentzReferenceConfig, R4AffineAdapter,
     R4SpinCausalAttentionTransport, R4SpinFrameAtlas, R4SpinTransportEvidence,
-    R4SpinTransportIntervention, HELM_D_LEARNED_EUCLIDEAN_R4_CONTROL_POLICY,
-    HELM_D_LEARNED_LORENTZ_R4_CONSTRUCTION_POLICY, HELM_D_R4_GAUGE_SOFTMAX_POLICY,
+    R4SpinTransportIntervention, HELM_D_LEARNED_EUCLIDEAN_LORENTZ_CENTROID_R4_LOCALIZATION_POLICY,
+    HELM_D_LEARNED_EUCLIDEAN_R4_CONTROL_POLICY, HELM_D_LEARNED_LORENTZ_R4_CONSTRUCTION_POLICY,
+    HELM_D_LEARNED_LORENTZ_TANGENT_R4_LOCALIZATION_POLICY, HELM_D_R4_GAUGE_SOFTMAX_POLICY,
     HELM_D_UPSTREAM_COMMIT,
 };
 use uor_r4_core::transformerless::scenarios::Tokenizer;
@@ -46,6 +48,11 @@ const PARTITION_OUTPUT_ENV: &str = "UOR_R4_973_HELM_D_MANIFOLD_PARTITION_OUTPUT"
 const PARTITION_ENV: &str = "UOR_R4_973_HELM_D_MANIFOLD_PARTITION";
 const CHECKPOINT_ENV: &str = "UOR_R4_973_HELM_D_MANIFOLD_CHECKPOINT";
 const RESULT_OUTPUT_ENV: &str = "UOR_R4_973_HELM_D_MANIFOLD_OUTPUT";
+const LOCALIZATION_PARTITION_ENV: &str = "UOR_R4_973_SCORE_CENTROID_PARTITION";
+const LOCALIZATION_CHECKPOINT_ENV: &str = "UOR_R4_973_SCORE_CENTROID_CHECKPOINT";
+const LOCALIZATION_OUTPUT_ENV: &str = "UOR_R4_973_SCORE_CENTROID_OUTPUT";
+const LOCALIZATION_TARGET_OUTPUT_ENV: &str = "UOR_R4_973_SCORE_CENTROID_TARGET_COMMITMENT_OUTPUT";
+const LOCALIZATION_TARGET_ENV: &str = "UOR_R4_973_SCORE_CENTROID_TARGET_COMMITMENT";
 const CANONICAL_DETERMINISTIC_ENV: &str = "TLESS_CANONICAL_DETERMINISTIC";
 
 const DEFAULT_MODEL: &str = "/Users/casey.allard/uor-r4/.uor-models/sources/smollm2-135m-instruct";
@@ -68,6 +75,10 @@ const SCORE_START: usize = 8;
 const SCORE_POSITIONS: usize = 8;
 const SHARDS: usize = 8;
 const ADAM_STEPS: usize = 128;
+const LOCALIZATION_ADAM_STEPS: usize = 32;
+const LOCALIZATION_FIT_DOCUMENTS: usize = 8;
+const LOCALIZATION_AUDIT_DOCUMENTS: usize = 8;
+const LOCALIZATION_PREFLIGHT_DOCUMENTS: usize = 2;
 const LEARNING_RATE: f64 = 1.0e-3;
 const ADAM_BETA1: f64 = 0.9;
 const ADAM_BETA2: f64 = 0.999;
@@ -86,17 +97,54 @@ const PARAMETER_SCALARS: usize = 144_060;
 const PARTITION_SCHEMA: &str = "uor-r4.helm-d-learned-manifold-r4-construction-partition/2";
 const CHECKPOINT_SCHEMA: &str = "uor-r4.helm-d-learned-manifold-r4-construction-checkpoint/2";
 const RESULT_SCHEMA: &str = "uor-r4.helm-d-learned-manifold-r4-construction-result/2";
+const LOCALIZATION_CHECKPOINT_SCHEMA: &str =
+    "uor-r4.helm-d-score-centroid-localization-r4-checkpoint/1";
+const LOCALIZATION_RESULT_SCHEMA: &str = "uor-r4.helm-d-score-centroid-localization-r4-result/1";
+const LOCALIZATION_TARGET_CORPUS_STATUS: &str =
+    "MANIFEST_ONLY_WITH_COMMITTED_TARGET_SPANS_VERIFIED";
+const LOCALIZATION_PARTITION_CID: &str =
+    "blake3:5c5a7dab9d7a0fbc9d176faafd49b42094ef89138cc32699dfc1b4fe937d1bde";
+const LOCALIZATION_PREDECESSOR_RESULT_CID: &str =
+    "blake3:9144913380c6ebdeebb5848138bc8e6642c1e7020d8e7a097aa3cd73cb829020";
+const LOCALIZATION_PREDECESSOR_CHECKPOINT_CID: &str =
+    "blake3:dd04bfc1cf15e5dd2c6c8be5afa363ecb452386f54632cd120bce56018444789";
+const LOCALIZATION_PREDECESSOR_MANIFEST_CID: &str =
+    "blake3:359b3270aaa0d3ac157280c9206ad820d18ee93932e0530552ebbb7935ac6410";
+
+const LOCALIZATION_FIT_IDS: [&str; LOCALIZATION_FIT_DOCUMENTS] = [
+    "8503", "7754", "3956", "7315", "476", "4749", "7525", "8141",
+];
+const LOCALIZATION_AUDIT_IDS: [&str; LOCALIZATION_AUDIT_DOCUMENTS] = [
+    "6309", "271", "6749", "7604", "8384", "7183", "3621", "3799",
+];
 
 const PASS_TERMINAL: &str = "PASS_HELM_D_LEARNED_MANIFOLD_R4_CONSTRUCTION_AUTHORIZE_HELDOUT_FREEZE";
 const RETAIN_TERMINAL: &str = "RETAIN_HELM_D_MANIFOLD_FUNCTIONAL_PARITY_NO_CURVATURE_ADVANTAGE";
 const FAIL_TERMINAL: &str =
     "FAIL_HELM_D_MANIFOLD_CONSTRUCTION_REVISE_PROJECTION_SCORE_CENTROID_OR_TRAINING";
 const UNAVAILABLE_TERMINAL: &str = "UNAVAILABLE_HELM_D_MANIFOLD_CONSTRUCTION_EVIDENCE";
+const LOCALIZATION_SELECT_TANGENT_TERMINAL: &str =
+    "SELECT_TANGENT_VALUE_READOUT_FOR_FRESH_CONSTRUCTION";
+const LOCALIZATION_REJECT_TANGENT_PREFLIGHT_TERMINAL: &str =
+    "REJECT_TANGENT_READOUT_SELECT_SCORE_PREFLIGHT";
+const LOCALIZATION_SELECT_SCORE_TERMINAL: &str = "SELECT_FIXED_CURVATURE_SCORE_CONTINUATION";
+const LOCALIZATION_REVISE_TERMINAL: &str = "REVISE_PROJECTION_OR_FITTER";
+const LOCALIZATION_UNAVAILABLE_TERMINAL: &str = "UNAVAILABLE_OPERATOR_LOCALIZATION_EVIDENCE";
 
 const COMPILED_CONTRACT: &[u8] =
     include_bytes!("../../../docs/helm_d_learned_manifold_r4_construction_973.md");
+const COMPILED_LOCALIZATION_CONTRACT: &[u8] =
+    include_bytes!("../../../docs/helm_d_score_centroid_localization_973.md");
+const COMPILED_LOCALIZATION_RUNNER: &[u8] =
+    include_bytes!("../../../scripts/run_helm_d_score_centroid_localization_973.sh");
 const COMPILED_PREDECESSOR_PARTITION: &[u8] =
     include_bytes!("../../../docs/intrinsic_lorentz_r4_attention_partition_973.json");
+const COMPILED_PREDECESSOR_RESULT: &[u8] = include_bytes!(
+    "../../../docs/helm_d_learned_manifold_r4_construction_attempt_02_result_973.json"
+);
+const COMPILED_PREDECESSOR_CHECKPOINT: &[u8] = include_bytes!(
+    "../../../docs/helm_d_learned_manifold_r4_construction_attempt_02_checkpoint_973.json"
+);
 const COMPILED_CORE_SOURCE: &[u8] = include_bytes!("../src/helm_d_r4_attention.rs");
 const COMPILED_HARNESS_SOURCE: &[u8] =
     include_bytes!("helm_d_learned_manifold_r4_construction_973.rs");
@@ -2826,6 +2874,11 @@ enum ArmSpec<'a> {
         metric: HelmDLearnedManifoldMetric,
         intervention: HelmDLearnedManifoldIntervention,
     },
+    Localized {
+        parameters: &'a HelmDLearnedManifoldParameters,
+        metric: HelmDLearnedManifoldMetric,
+        value_readout: HelmDLearnedManifoldValueReadout,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -2979,11 +3032,26 @@ fn validate_learned_evidence(
     actual_policy: &str,
     expected_parameter_identity: &str,
     metric: HelmDLearnedManifoldMetric,
+    value_readout: HelmDLearnedManifoldValueReadout,
     intervention: HelmDLearnedManifoldIntervention,
 ) -> TestResult {
-    let expected_policy = match metric {
-        HelmDLearnedManifoldMetric::Lorentz => HELM_D_LEARNED_LORENTZ_R4_CONSTRUCTION_POLICY,
-        HelmDLearnedManifoldMetric::Euclidean => HELM_D_LEARNED_EUCLIDEAN_R4_CONTROL_POLICY,
+    let expected_policy = match (metric, value_readout) {
+        (
+            HelmDLearnedManifoldMetric::Lorentz,
+            HelmDLearnedManifoldValueReadout::NormalizedLorentzCentroid,
+        ) => HELM_D_LEARNED_LORENTZ_R4_CONSTRUCTION_POLICY,
+        (
+            HelmDLearnedManifoldMetric::Euclidean,
+            HelmDLearnedManifoldValueReadout::TransportedTangentArithmeticSum,
+        ) => HELM_D_LEARNED_EUCLIDEAN_R4_CONTROL_POLICY,
+        (
+            HelmDLearnedManifoldMetric::Lorentz,
+            HelmDLearnedManifoldValueReadout::TransportedTangentArithmeticSum,
+        ) => HELM_D_LEARNED_LORENTZ_TANGENT_R4_LOCALIZATION_POLICY,
+        (
+            HelmDLearnedManifoldMetric::Euclidean,
+            HelmDLearnedManifoldValueReadout::NormalizedLorentzCentroid,
+        ) => HELM_D_LEARNED_EUCLIDEAN_LORENTZ_CENTROID_R4_LOCALIZATION_POLICY,
     };
     let head_rows = u64::try_from(INPUT_POSITIONS * EXPECTED_LAYERS * EXPECTED_QUERY_HEADS)?;
     let source_pairs = expected_transport_source_pairs();
@@ -3012,6 +3080,8 @@ fn validate_learned_evidence(
         || evidence.parameter_identity != expected_parameter_identity
         || evidence.scalar_parameter_count != PARAMETER_SCALARS
         || evidence.metric != metric
+        || evidence.value_readout
+            != (value_readout != metric.default_value_readout()).then_some(value_readout)
         || evidence.intervention != intervention
         || evidence.frame_table_offsets.len() != INPUT_POSITIONS
         || evidence
@@ -3111,10 +3181,12 @@ fn run_arm_once(
     let mut evidence = Vec::new();
     let mut observed_policy = match spec {
         ArmSpec::Donor => Some("smollm2-135m-ordinary-causal-softmax".to_owned()),
-        ArmSpec::Gauge | ArmSpec::Learned { .. } => None,
+        ArmSpec::Gauge | ArmSpec::Learned { .. } | ArmSpec::Localized { .. } => None,
     };
     let expected_parameter_identity = match spec {
-        ArmSpec::Learned { parameters, .. } => Some(public_parameter_identity(parameters)?),
+        ArmSpec::Learned { parameters, .. } | ArmSpec::Localized { parameters, .. } => {
+            Some(public_parameter_identity(parameters)?)
+        }
         ArmSpec::Donor | ArmSpec::Gauge => None,
     };
     for document in documents {
@@ -3233,7 +3305,64 @@ fn run_arm_once(
                         .as_deref()
                         .ok_or("learned arm parameter identity is unavailable")?,
                     metric,
+                    metric.default_value_readout(),
                     intervention,
+                )?;
+                evidence.push(serde_json::to_value(parsed)?);
+            }
+            ArmSpec::Localized {
+                parameters,
+                metric,
+                value_readout,
+            } => {
+                let transport = HelmDLearnedManifoldR4Transport::new_with_value_readout(
+                    maximum_token_id,
+                    INPUT_POSITIONS,
+                    parameters.clone(),
+                    metric,
+                    value_readout,
+                    HelmDLearnedManifoldIntervention::Coherent,
+                )?;
+                let mut session = oracle.new_causal_attention_transport_session(
+                    Box::new(transport),
+                    CausalAttentionLayerSelection::All,
+                    INPUT_POSITIONS,
+                )?;
+                let actual_policy = session.policy_identity().to_owned();
+                bind_actual_policy(&mut observed_policy, &actual_policy)?;
+                for position in 0..INPUT_POSITIONS {
+                    oracle.step_causal_attention_transport(
+                        &mut session,
+                        document.tokens[position] as usize,
+                        position,
+                        &mut logits,
+                    )?;
+                    if position >= SCORE_START {
+                        let target = document.tokens[position + 1] as usize;
+                        target_reads += 1;
+                        nll_sum += next_token_nll(&logits, target)?;
+                        let top1 = argmax(&logits)?;
+                        top1_correct += usize::from(top1 == target);
+                        top1_tokens.push(top1);
+                        scored_logits.push(logits.clone());
+                    }
+                }
+                session.transport_status()?;
+                decoder_audits.push(session.audit().into());
+                projection_audits.push(session.pre_rope_projection_audit().into());
+                let value = session
+                    .transport_implementation_evidence()?
+                    .ok_or("localized learned arm omitted implementation evidence")?;
+                let parsed: HelmDLearnedManifoldEvidence = serde_json::from_str(&value)?;
+                validate_learned_evidence(
+                    &parsed,
+                    &actual_policy,
+                    expected_parameter_identity
+                        .as_deref()
+                        .ok_or("localized learned arm parameter identity is unavailable")?,
+                    metric,
+                    value_readout,
+                    HelmDLearnedManifoldIntervention::Coherent,
                 )?;
                 evidence.push(serde_json::to_value(parsed)?);
             }
@@ -4063,6 +4192,2936 @@ fn run_helm_d_learned_manifold_r4_construction(
     let result_cid = write_result(result_path, &payload)?;
     eprintln!(
         "HELM-D learned-manifold construction terminal={} result_cid={result_cid}",
+        payload.terminal
+    );
+    Ok(())
+}
+
+// -------------------------------------------------------------------------
+// Frozen score-by-readout localization (HelmDScoreCentroidLocalizationR4V1)
+// -------------------------------------------------------------------------
+
+const LOCALIZATION_TRAINABLE_PARAMETER_SCALARS: usize = 115_230;
+const LOCALIZATION_FROZEN_PARAMETER_SCALARS: usize = 28_830;
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct LocalizationTargetCommitment {
+    document_id: String,
+    input_cid: String,
+    article_span_bytes_cid: String,
+    input_plus_target_cid: String,
+    target_cid: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct LocalizationTargetManifest {
+    schema: String,
+    issue: u32,
+    partition_cid: String,
+    corpus_cid: String,
+    corpus_verification_status: String,
+    tokenizer_cid: String,
+    generator_implementation: LocalizationImplementationIdentity,
+    document_ids: Vec<String>,
+    commitments: Vec<LocalizationTargetCommitment>,
+    manifest_cid: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct LocalizationTargetEnvelope {
+    artifact_cid: String,
+    manifest: LocalizationTargetManifest,
+}
+
+fn localization_target_manifest_cid(manifest: &LocalizationTargetManifest) -> TestResult<String> {
+    let mut commitment = manifest.clone();
+    commitment.manifest_cid.clear();
+    canonical_json_cid(&commitment)
+}
+
+fn committed_corpus_span_bytes_cid(
+    corpus_path: &Path,
+    commitment: &FrozenDocumentCommitment,
+) -> TestResult<String> {
+    let mut corpus = fs::File::open(corpus_path)?;
+    let corpus_len = corpus.metadata()?.len();
+    let end = commitment
+        .corpus_byte_offset
+        .checked_add(commitment.corpus_byte_length)
+        .filter(|end| commitment.corpus_byte_length > 0 && *end <= corpus_len)
+        .ok_or("committed target corpus span is invalid")?;
+    let mut bytes = vec![0_u8; usize::try_from(commitment.corpus_byte_length)?];
+    corpus.seek(SeekFrom::Start(commitment.corpus_byte_offset))?;
+    corpus.read_exact(&mut bytes)?;
+    if corpus.stream_position()? != end {
+        return Err("committed target corpus span ended at the wrong offset".into());
+    }
+    Ok(cid_bytes(&bytes))
+}
+
+fn validate_localization_target_envelope(
+    envelope: &LocalizationTargetEnvelope,
+    partition: &FrozenPartition,
+    implementation: &LocalizationImplementationIdentity,
+) -> TestResult {
+    let expected_ids = LOCALIZATION_AUDIT_IDS.map(str::to_owned).to_vec();
+    if envelope.manifest.schema != "uor-r4.helm-d-score-centroid-localization-target-commitments/1"
+        || envelope.manifest.issue != 973
+        || envelope.manifest.partition_cid != LOCALIZATION_PARTITION_CID
+        || envelope.manifest.partition_cid != partition.partition_cid
+        || envelope.manifest.corpus_cid != CORPUS_CID
+        || envelope.manifest.corpus_verification_status != LOCALIZATION_TARGET_CORPUS_STATUS
+        || envelope.manifest.tokenizer_cid != partition.tokenizer_cid
+        || &envelope.manifest.generator_implementation != implementation
+        || envelope.manifest.document_ids != expected_ids
+        || envelope.manifest.commitments.len() != LOCALIZATION_AUDIT_DOCUMENTS
+        || envelope.manifest.manifest_cid != localization_target_manifest_cid(&envelope.manifest)?
+        || envelope.artifact_cid != canonical_json_cid(&envelope.manifest)?
+    {
+        return Err("localization target commitment envelope header is invalid".into());
+    }
+    for (commitment, partition_document) in envelope
+        .manifest
+        .commitments
+        .iter()
+        .zip(&partition.construction_fit[LOCALIZATION_FIT_DOCUMENTS..])
+    {
+        if commitment.document_id != partition_document.id
+            || commitment.input_cid != partition_document.input_cid
+            || !commitment.article_span_bytes_cid.starts_with("blake3:")
+            || !commitment.input_plus_target_cid.starts_with("blake3:")
+            || !commitment.target_cid.starts_with("blake3:")
+        {
+            return Err("localization target commitment does not bind its audit input".into());
+        }
+    }
+    Ok(())
+}
+
+fn validate_localization_materialized_targets(
+    documents: &[FrozenDocument],
+    envelope: &LocalizationTargetEnvelope,
+    corpus_path: &Path,
+    partition: &FrozenPartition,
+) -> TestResult {
+    if documents.len() != LOCALIZATION_AUDIT_DOCUMENTS
+        || documents.len() != envelope.manifest.commitments.len()
+        || documents.len() != partition.construction_fit[LOCALIZATION_FIT_DOCUMENTS..].len()
+    {
+        return Err("materialized localization target count differs from its commitment".into());
+    }
+    for ((document, commitment), partition_document) in documents
+        .iter()
+        .zip(&envelope.manifest.commitments)
+        .zip(&partition.construction_fit[LOCALIZATION_FIT_DOCUMENTS..])
+    {
+        if document.id != commitment.document_id
+            || document.tokens.len() != REQUIRED_TOKENS
+            || committed_corpus_span_bytes_cid(corpus_path, partition_document)?
+                != commitment.article_span_bytes_cid
+            || token_cid(
+                b"uor-r4.helm-d-score-centroid-localization.input-plus-target/1",
+                &document.tokens,
+            ) != commitment.input_plus_target_cid
+            || token_cid(
+                b"uor-r4.helm-d-score-centroid-localization.target/1",
+                &document.tokens[INPUT_POSITIONS..REQUIRED_TOKENS],
+            ) != commitment.target_cid
+        {
+            return Err(format!(
+                "materialized decoder target for {} differs from the post-freeze commitment",
+                document.id
+            )
+            .into());
+        }
+    }
+    Ok(())
+}
+
+#[test]
+#[ignore = "freezes locally held target commitments for the eight localization-audit documents"]
+fn freeze_helm_d_score_centroid_localization_r4_v1_targets() -> TestResult {
+    let output = required_path_from_env(LOCALIZATION_TARGET_OUTPUT_ENV)?;
+    let partition_path = required_path_from_env(LOCALIZATION_PARTITION_ENV)?;
+    let partition_envelope = parse_partition(&fs::read(partition_path)?)?;
+    let partition = &partition_envelope.manifest;
+    if partition.partition_cid != LOCALIZATION_PARTITION_CID {
+        return Err("target freeze received the wrong construction partition".into());
+    }
+    let tokenizer_path = path_from_env(TOKENIZER_ENV, DEFAULT_TOKENIZER);
+    let corpus_path = path_from_env(CORPUS_ENV, DEFAULT_CORPUS);
+    verify_corpus_manifest(&corpus_path)?;
+    if file_cid(&tokenizer_path)? != partition.tokenizer_cid {
+        return Err("target freeze tokenizer differs from the partition".into());
+    }
+    let implementation = localization_implementation_identity()?;
+    let tokenizer = Tokenizer::try_load(tokenizer_path)?;
+    let documents = materialize_documents(
+        &corpus_path,
+        &tokenizer,
+        &partition.construction_fit[LOCALIZATION_FIT_DOCUMENTS..],
+        true,
+    )?;
+    let commitments = documents
+        .iter()
+        .zip(&partition.construction_fit[LOCALIZATION_FIT_DOCUMENTS..])
+        .map(|(document, partition_document)| {
+            Ok(LocalizationTargetCommitment {
+                document_id: document.id.clone(),
+                input_cid: partition_document.input_cid.clone(),
+                article_span_bytes_cid: committed_corpus_span_bytes_cid(
+                    &corpus_path,
+                    partition_document,
+                )?,
+                input_plus_target_cid: token_cid(
+                    b"uor-r4.helm-d-score-centroid-localization.input-plus-target/1",
+                    &document.tokens,
+                ),
+                target_cid: token_cid(
+                    b"uor-r4.helm-d-score-centroid-localization.target/1",
+                    &document.tokens[INPUT_POSITIONS..REQUIRED_TOKENS],
+                ),
+            })
+        })
+        .collect::<TestResult<Vec<_>>>()?;
+    let mut manifest = LocalizationTargetManifest {
+        schema: "uor-r4.helm-d-score-centroid-localization-target-commitments/1".to_owned(),
+        issue: 973,
+        partition_cid: partition.partition_cid.clone(),
+        corpus_cid: CORPUS_CID.to_owned(),
+        corpus_verification_status: LOCALIZATION_TARGET_CORPUS_STATUS.to_owned(),
+        tokenizer_cid: partition.tokenizer_cid.clone(),
+        generator_implementation: implementation.clone(),
+        document_ids: LOCALIZATION_AUDIT_IDS.map(str::to_owned).to_vec(),
+        commitments,
+        manifest_cid: String::new(),
+    };
+    manifest.manifest_cid = localization_target_manifest_cid(&manifest)?;
+    let envelope = LocalizationTargetEnvelope {
+        artifact_cid: canonical_json_cid(&manifest)?,
+        manifest,
+    };
+    validate_localization_target_envelope(&envelope, partition, &implementation)?;
+    write_pretty_json_exclusive(&output, &envelope)?;
+    eprintln!(
+        "HELM-D score-centroid target commitments artifact_cid={}",
+        envelope.artifact_cid
+    );
+    Ok(())
+}
+
+fn localization_parameters_are_frozen(parameters: &HelmDLearnedManifoldParameters) -> bool {
+    parameters
+        .value_adapters()
+        .iter()
+        .all(|adapter| *adapter == R4AffineAdapter::identity())
+        && parameters
+            .learned_biases()
+            .iter()
+            .all(|bias| bias.to_bits() == 0)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn evaluate_localization_ce_row(
+    parameters: &HelmDLearnedManifoldParameters,
+    metric: HelmDLearnedManifoldMetric,
+    document: &CapturedDocument,
+    layer: usize,
+    head: usize,
+    position: usize,
+    rope_theta: f32,
+    rope_interleaved: bool,
+    gradient: &mut ParameterGradient,
+) -> TestResult<(f64, u64)> {
+    if !localization_parameters_are_frozen(parameters) {
+        return Err("localization value adapters or uniform biases escaped their freeze".into());
+    }
+    let projection = &document.projections[position][layer];
+    let query_input = &projection.query[head * HEAD_WIDTH..(head + 1) * HEAD_WIDTH];
+    let mut query = apply_adapters(
+        parameters.query_adapters(),
+        layer,
+        head,
+        EXPECTED_QUERY_HEADS,
+        query_input,
+    )?;
+    apply_rope_f64(&mut query, position, rope_theta, rope_interleaved);
+
+    let kv_head = head / (EXPECTED_QUERY_HEADS / EXPECTED_KV_HEADS);
+    let mut keys = Vec::with_capacity(position + 1);
+    let mut key_inputs = Vec::with_capacity(position + 1);
+    for source in 0..=position {
+        let source_projection = &document.projections[source][layer];
+        let key_input =
+            source_projection.key[kv_head * HEAD_WIDTH..(kv_head + 1) * HEAD_WIDTH].to_vec();
+        let mut key = apply_adapters(
+            parameters.key_adapters(),
+            layer,
+            kv_head,
+            EXPECTED_KV_HEADS,
+            &key_input,
+        )?;
+        apply_rope_f64(&mut key, source, rope_theta, rope_interleaved);
+        key_inputs.push(key_input);
+        keys.push(key);
+    }
+
+    let scale = parameters.learned_scale(layer)?;
+    let mut numerators = Vec::with_capacity(position + 1);
+    let mut query_numerator_gradients = Vec::with_capacity(position + 1);
+    let mut key_numerator_gradients = Vec::with_capacity(position + 1);
+    let mut logits = Vec::with_capacity(position + 1);
+    for key in &keys {
+        let (numerator, query_gradient, key_gradient) =
+            score_numerator_and_gradients(metric, &query, key)?;
+        let public_logit = helm_d_learned_manifold_logit(metric, &query, key, scale, 0.0)?;
+        let logit = numerator / scale;
+        if (public_logit - logit).abs() > 1.0e-12 {
+            return Err("localization analytic score drifted from the public operator".into());
+        }
+        numerators.push(numerator);
+        query_numerator_gradients.push(query_gradient);
+        key_numerator_gradients.push(key_gradient);
+        logits.push(logit);
+    }
+    let weights = stable_softmax_f64(&logits)?;
+    let donor_weights = document.heads[position][layer][head]
+        .donor_weights
+        .iter()
+        .map(|weight| f64::from(*weight))
+        .collect::<Vec<_>>();
+    let donor_weight_sum = donor_weights.iter().sum::<f64>();
+    let cross_entropy = donor_weights
+        .iter()
+        .zip(&weights)
+        .map(|(donor, learned)| -*donor * libm::log(*learned))
+        .sum::<f64>();
+    let mut query_post_gradient = vec![0.0; HEAD_WIDTH];
+    for source in 0..=position {
+        let logit_gradient = weights[source] * donor_weight_sum - donor_weights[source];
+        for lane in 0..HEAD_WIDTH {
+            query_post_gradient[lane] +=
+                logit_gradient * query_numerator_gradients[source][lane] / scale;
+        }
+        let key_post_gradient = key_numerator_gradients[source]
+            .iter()
+            .map(|gradient| logit_gradient * gradient / scale)
+            .collect::<Vec<_>>();
+        let key_adapter_gradient =
+            rope_gradient_to_input(&key_post_gradient, source, rope_theta, rope_interleaved);
+        let key_base = adapter_index(layer, kv_head, 0, EXPECTED_KV_HEADS);
+        for block in 0..BLOCKS_PER_HEAD {
+            accumulate_adapter_gradient(
+                &mut gradient.key[key_base + block],
+                &key_inputs[source],
+                &key_adapter_gradient,
+                block,
+            );
+        }
+        gradient.scale[layer] += logit_gradient * -numerators[source] / (scale * scale);
+    }
+    let query_adapter_gradient =
+        rope_gradient_to_input(&query_post_gradient, position, rope_theta, rope_interleaved);
+    let query_base = adapter_index(layer, head, 0, EXPECTED_QUERY_HEADS);
+    for block in 0..BLOCKS_PER_HEAD {
+        accumulate_adapter_gradient(
+            &mut gradient.query[query_base + block],
+            query_input,
+            &query_adapter_gradient,
+            block,
+        );
+    }
+    if !cross_entropy.is_finite() || !gradient.all_finite() {
+        return Err("localization CE objective or gradient is non-finite".into());
+    }
+    Ok((cross_entropy, u64::try_from(position + 1)?))
+}
+
+#[allow(clippy::too_many_arguments)]
+fn evaluate_localization_ce_shard(
+    parameters: &HelmDLearnedManifoldParameters,
+    metric: HelmDLearnedManifoldMetric,
+    documents: &[CapturedDocument],
+    document_limit: usize,
+    shard: usize,
+    rope_theta: f32,
+    rope_interleaved: bool,
+) -> TestResult<ShardEvaluation> {
+    let mut evaluation = ShardEvaluation {
+        loss: 0.0,
+        rows: 0,
+        source_pairs: 0,
+        gradient: ParameterGradient::zero(parameters),
+    };
+    for layer in 0..EXPECTED_LAYERS {
+        for head in 0..EXPECTED_QUERY_HEADS {
+            for position in SCORE_START..INPUT_POSITIONS {
+                for (document_index, document) in documents[..document_limit].iter().enumerate() {
+                    let ordinal = (((document_index * EXPECTED_LAYERS + layer)
+                        * EXPECTED_QUERY_HEADS
+                        + head)
+                        * SCORE_POSITIONS)
+                        + (position - SCORE_START);
+                    if ordinal % SHARDS != shard {
+                        continue;
+                    }
+                    let (loss, source_pairs) = evaluate_localization_ce_row(
+                        parameters,
+                        metric,
+                        document,
+                        layer,
+                        head,
+                        position,
+                        rope_theta,
+                        rope_interleaved,
+                        &mut evaluation.gradient,
+                    )?;
+                    evaluation.loss += loss;
+                    evaluation.rows += 1;
+                    evaluation.source_pairs += source_pairs;
+                }
+            }
+        }
+    }
+    Ok(evaluation)
+}
+
+fn localization_ridge_objective_and_gradient(
+    parameters: &HelmDLearnedManifoldParameters,
+    gradient: &mut ParameterGradient,
+) -> f64 {
+    let mut objective = 0.0;
+    for (adapters, gradients) in [
+        (parameters.query_adapters(), &mut gradient.query),
+        (parameters.key_adapters(), &mut gradient.key),
+    ] {
+        for (adapter, target) in adapters.iter().zip(gradients.iter_mut()) {
+            for row in 0..R4_WIDTH {
+                for column in 0..R4_WIDTH {
+                    let expected = if row == column { 1.0 } else { 0.0 };
+                    let difference = adapter.matrix[row][column] - expected;
+                    objective += RIDGE * difference * difference;
+                    target.matrix[row][column] += 2.0 * RIDGE * difference;
+                }
+                objective += RIDGE * adapter.bias[row] * adapter.bias[row];
+                target.bias[row] += 2.0 * RIDGE * adapter.bias[row];
+            }
+        }
+    }
+    objective
+}
+
+fn localization_frozen_gradient_is_zero(gradient: &ParameterGradient) -> bool {
+    gradient.value.iter().all(|adapter| {
+        adapter
+            .matrix
+            .iter()
+            .flatten()
+            .chain(&adapter.bias)
+            .all(|value| value.to_bits() == 0)
+    }) && gradient.bias.iter().all(|value| value.to_bits() == 0)
+}
+
+fn evaluate_localization_ce_dataset(
+    parameters: &HelmDLearnedManifoldParameters,
+    metric: HelmDLearnedManifoldMetric,
+    documents: &[CapturedDocument],
+    document_limit: usize,
+    rope_theta: f32,
+    rope_interleaved: bool,
+) -> TestResult<DatasetEvaluation> {
+    if document_limit == 0 || document_limit > documents.len() {
+        return Err("localization dataset document limit is invalid".into());
+    }
+    let shards = std::thread::scope(|scope| {
+        let mut handles = Vec::with_capacity(SHARDS);
+        for shard in 0..SHARDS {
+            handles.push(scope.spawn(move || {
+                evaluate_localization_ce_shard(
+                    parameters,
+                    metric,
+                    documents,
+                    document_limit,
+                    shard,
+                    rope_theta,
+                    rope_interleaved,
+                )
+            }));
+        }
+        handles
+            .into_iter()
+            .map(|handle| handle.join().map_err(|_| "localization shard panicked")?)
+            .collect::<TestResult<Vec<_>>>()
+    })?;
+    let mut loss = 0.0;
+    let mut rows = 0_u64;
+    let mut gradient = ParameterGradient::zero(parameters);
+    let mut rows_per_shard = Vec::with_capacity(SHARDS);
+    let mut source_pairs_per_shard = Vec::with_capacity(SHARDS);
+    for shard in &shards {
+        loss += shard.loss;
+        rows += shard.rows;
+        gradient.add_assign(&shard.gradient);
+        rows_per_shard.push(shard.rows);
+        source_pairs_per_shard.push(shard.source_pairs);
+    }
+    let expected_rows =
+        u64::try_from(document_limit * SCORE_POSITIONS * EXPECTED_LAYERS * EXPECTED_QUERY_HEADS)?;
+    if rows != expected_rows || rows_per_shard.contains(&0) {
+        return Err("localization eight-shard work ledger is incomplete".into());
+    }
+    let reciprocal_rows = 1.0 / rows as f64;
+    loss *= reciprocal_rows;
+    gradient.scale_by(reciprocal_rows);
+    loss += localization_ridge_objective_and_gradient(parameters, &mut gradient);
+    if !loss.is_finite()
+        || !gradient.all_finite()
+        || !localization_frozen_gradient_is_zero(&gradient)
+    {
+        return Err("localization reduced CE gradient changed a frozen parameter".into());
+    }
+    Ok(DatasetEvaluation {
+        objective: loss,
+        gradient,
+        rows_per_shard,
+        source_pairs_per_shard,
+    })
+}
+
+fn localization_adam_step(
+    parameters: &mut HelmDLearnedManifoldParameters,
+    gradient: &ParameterGradient,
+    first: &mut ParameterGradient,
+    second: &mut ParameterGradient,
+    step: usize,
+) -> TestResult {
+    fn update_adapters(
+        adapters: &mut [R4AffineAdapter],
+        gradients: &[AffineGradient],
+        first: &mut [AffineGradient],
+        second: &mut [AffineGradient],
+        step: usize,
+    ) {
+        for (((adapter, gradient), first), second) in
+            adapters.iter_mut().zip(gradients).zip(first).zip(second)
+        {
+            for row in 0..R4_WIDTH {
+                for column in 0..R4_WIDTH {
+                    update_scalar(
+                        &mut adapter.matrix[row][column],
+                        gradient.matrix[row][column],
+                        &mut first.matrix[row][column],
+                        &mut second.matrix[row][column],
+                        step,
+                    );
+                }
+                update_scalar(
+                    &mut adapter.bias[row],
+                    gradient.bias[row],
+                    &mut first.bias[row],
+                    &mut second.bias[row],
+                    step,
+                );
+            }
+        }
+    }
+    if !localization_frozen_gradient_is_zero(gradient) {
+        return Err("localization optimizer received a nonzero frozen gradient".into());
+    }
+    update_adapters(
+        parameters.query_adapters_mut(),
+        &gradient.query,
+        &mut first.query,
+        &mut second.query,
+        step,
+    );
+    update_adapters(
+        parameters.key_adapters_mut(),
+        &gradient.key,
+        &mut first.key,
+        &mut second.key,
+        step,
+    );
+    for layer in 0..parameters.layers() {
+        update_scalar(
+            &mut parameters.learned_scales_mut()[layer],
+            gradient.scale[layer],
+            &mut first.scale[layer],
+            &mut second.scale[layer],
+            step,
+        );
+        parameters.learned_scales_mut()[layer] =
+            parameters.learned_scales()[layer].max(SCALE_FLOOR);
+    }
+    if !localization_parameters_are_frozen(parameters) {
+        return Err("localization optimizer mutated value adapters or uniform biases".into());
+    }
+    parameters.validate()?;
+    Ok(())
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+struct LocalizationFitReport {
+    schema: String,
+    metric: HelmDLearnedManifoldMetric,
+    objective: String,
+    optimizer: String,
+    steps: usize,
+    workers: usize,
+    fit_documents: usize,
+    fit_rows: u64,
+    initial_objective: f64,
+    final_objective: f64,
+    total_parameter_scalars: usize,
+    trainable_parameter_scalars: usize,
+    frozen_parameter_scalars: usize,
+    value_adapters_identity: bool,
+    uniform_bias_zero: bool,
+    parameter_cid: String,
+    donor_trace_cid: String,
+    gradient_audit: GradientAudit,
+    gradient_audit_cid: String,
+    work: WorkLedger,
+    report_cid: String,
+}
+
+fn localization_fit_report_cid(report: &LocalizationFitReport) -> TestResult<String> {
+    let mut commitment = report.clone();
+    commitment.report_cid.clear();
+    canonical_json_cid(&commitment)
+}
+
+#[derive(Clone, Debug)]
+struct LocalizationFittedScore {
+    parameters: HelmDLearnedManifoldParameters,
+    parameter_bytes: Vec<u8>,
+    report: LocalizationFitReport,
+}
+
+fn fit_localization_score(
+    metric: HelmDLearnedManifoldMetric,
+    documents: &[CapturedDocument],
+    document_limit: usize,
+    rope_theta: f32,
+    rope_interleaved: bool,
+) -> TestResult<LocalizationFittedScore> {
+    let mut parameters = HelmDLearnedManifoldParameters::identity(
+        EXPECTED_LAYERS,
+        EXPECTED_QUERY_HEADS,
+        EXPECTED_KV_HEADS,
+        BLOCKS_PER_HEAD,
+        INITIAL_SCALE,
+    )?;
+    if parameters.scalar_parameter_count()? != PARAMETER_SCALARS
+        || PARAMETER_SCALARS
+            != LOCALIZATION_TRAINABLE_PARAMETER_SCALARS + LOCALIZATION_FROZEN_PARAMETER_SCALARS
+        || !localization_parameters_are_frozen(&parameters)
+    {
+        return Err("localization parameter capacity or freeze differs from contract".into());
+    }
+    let initial = evaluate_localization_ce_dataset(
+        &parameters,
+        metric,
+        documents,
+        document_limit,
+        rope_theta,
+        rope_interleaved,
+    )?;
+    let mut first = ParameterGradient::zero(&parameters);
+    let mut second = ParameterGradient::zero(&parameters);
+    let rows_per_shard = initial.rows_per_shard.clone();
+    let source_pairs_per_shard = initial.source_pairs_per_shard.clone();
+    let (initial_gradient_cid, mut maximum_absolute_gradient) =
+        evaluation_gradient_identity(&initial, "localization-initial-diagnostic", 0);
+    let mut ordered_evaluation_cids = vec![initial_gradient_cid];
+    for step in 1..=LOCALIZATION_ADAM_STEPS {
+        let evaluation = evaluate_localization_ce_dataset(
+            &parameters,
+            metric,
+            documents,
+            document_limit,
+            rope_theta,
+            rope_interleaved,
+        )?;
+        if evaluation.rows_per_shard != rows_per_shard
+            || evaluation.source_pairs_per_shard != source_pairs_per_shard
+        {
+            return Err("localization deterministic shard schedule changed during fitting".into());
+        }
+        let (gradient_cid, maximum) =
+            evaluation_gradient_identity(&evaluation, "localization-optimizer-step", step);
+        ordered_evaluation_cids.push(gradient_cid);
+        maximum_absolute_gradient = maximum_absolute_gradient.max(maximum);
+        localization_adam_step(
+            &mut parameters,
+            &evaluation.gradient,
+            &mut first,
+            &mut second,
+            step,
+        )?;
+    }
+    let final_evaluation = evaluate_localization_ce_dataset(
+        &parameters,
+        metric,
+        documents,
+        document_limit,
+        rope_theta,
+        rope_interleaved,
+    )?;
+    if final_evaluation.rows_per_shard != rows_per_shard
+        || final_evaluation.source_pairs_per_shard != source_pairs_per_shard
+    {
+        return Err("localization deterministic shard schedule changed at final evaluation".into());
+    }
+    let (final_gradient_cid, final_maximum) = evaluation_gradient_identity(
+        &final_evaluation,
+        "localization-final-diagnostic",
+        LOCALIZATION_ADAM_STEPS + 1,
+    );
+    ordered_evaluation_cids.push(final_gradient_cid);
+    maximum_absolute_gradient = maximum_absolute_gradient.max(final_maximum);
+    let parameter_bytes = canonical_json_bytes(&parameters)?;
+    let parameter_cid = public_parameter_identity(&parameters)?;
+    let rows_per_evaluation = rows_per_shard.iter().sum::<u64>();
+    let source_pairs_per_evaluation = source_pairs_per_shard.iter().sum::<u64>();
+    let evaluations = LOCALIZATION_ADAM_STEPS + 2;
+    let gradient_audit = GradientAudit {
+        schema: "uor-r4.helm-d-score-centroid-localization-gradient-audit/1".to_owned(),
+        gradient_evaluations: evaluations,
+        optimizer_gradient_evaluations: LOCALIZATION_ADAM_STEPS,
+        diagnostic_gradient_evaluations: 2,
+        maximum_absolute_gradient,
+        ordered_evaluation_cids,
+    };
+    let gradient_audit_cid = canonical_json_cid(&gradient_audit)?;
+    let mut report = LocalizationFitReport {
+        schema: "uor-r4.helm-d-score-centroid-localization-fit/1".to_owned(),
+        metric,
+        objective: "donor-attention-cross-entropy-plus-qk-only-ridge".to_owned(),
+        optimizer: format!(
+            "full-batch-f64-adam(lr={LEARNING_RATE},beta1={ADAM_BETA1},beta2={ADAM_BETA2},epsilon={ADAM_EPSILON},ridge={RIDGE},scale_floor={SCALE_FLOOR})"
+        ),
+        steps: LOCALIZATION_ADAM_STEPS,
+        workers: SHARDS,
+        fit_documents: document_limit,
+        fit_rows: rows_per_evaluation,
+        initial_objective: initial.objective,
+        final_objective: final_evaluation.objective,
+        total_parameter_scalars: PARAMETER_SCALARS,
+        trainable_parameter_scalars: LOCALIZATION_TRAINABLE_PARAMETER_SCALARS,
+        frozen_parameter_scalars: LOCALIZATION_FROZEN_PARAMETER_SCALARS,
+        value_adapters_identity: localization_parameters_are_frozen(&parameters),
+        uniform_bias_zero: parameters
+            .learned_biases()
+            .iter()
+            .all(|bias| bias.to_bits() == 0),
+        parameter_cid,
+        donor_trace_cid: aggregate_trace_cid(&documents[..document_limit]),
+        gradient_audit,
+        gradient_audit_cid,
+        work: WorkLedger {
+            workers: SHARDS,
+            full_batch_steps: LOCALIZATION_ADAM_STEPS,
+            full_batch_evaluations: evaluations,
+            rows_per_shard_per_evaluation: rows_per_shard,
+            source_pairs_per_shard_per_evaluation: source_pairs_per_shard,
+            total_row_evaluations: rows_per_evaluation.saturating_mul(evaluations as u64),
+            total_source_pair_evaluations: source_pairs_per_evaluation
+                .saturating_mul(evaluations as u64),
+        },
+        report_cid: String::new(),
+    };
+    report.report_cid = localization_fit_report_cid(&report)?;
+    Ok(LocalizationFittedScore {
+        parameters,
+        parameter_bytes,
+        report,
+    })
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+struct LocalizationQuantiles {
+    p0: f64,
+    p50: f64,
+    p95: f64,
+    p100: f64,
+}
+
+fn localization_quantiles(mut values: Vec<f64>) -> TestResult<LocalizationQuantiles> {
+    if values.is_empty() || values.iter().any(|value| !value.is_finite()) {
+        return Err("localization quantiles require finite nonempty values".into());
+    }
+    values.sort_by(f64::total_cmp);
+    let nearest_rank = |percent: usize| -> usize {
+        percent
+            .saturating_mul(values.len())
+            .div_ceil(100)
+            .saturating_sub(1)
+    };
+    Ok(LocalizationQuantiles {
+        p0: values[0],
+        p50: values[nearest_rank(50)],
+        p95: values[nearest_rank(95)],
+        p100: values[values.len() - 1],
+    })
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+struct LocalizationAttentionArmReport {
+    name: String,
+    metric: HelmDLearnedManifoldMetric,
+    value_readout: HelmDLearnedManifoldValueReadout,
+    rows: u64,
+    source_pairs: u64,
+    donor_attention_cross_entropy: f64,
+    normalized_aggregate_mse: f64,
+    mean_attention_entropy: f64,
+    query_radial_norm_quantiles: LocalizationQuantiles,
+    key_radial_norm_quantiles: LocalizationQuantiles,
+    lorentz_denominator_quantiles: Option<LocalizationQuantiles>,
+    lorentz_reciprocal_multiplier_quantiles: Option<LocalizationQuantiles>,
+    logits_cid: String,
+    weights_cid: String,
+}
+
+struct LocalizationArmAccumulator {
+    name: &'static str,
+    metric: HelmDLearnedManifoldMetric,
+    value_readout: HelmDLearnedManifoldValueReadout,
+    rows: u64,
+    source_pairs: u64,
+    cross_entropy_sum: f64,
+    aggregate_mse_sum: f64,
+    entropy_sum: f64,
+    query_radial_norms: Vec<f64>,
+    key_radial_norms: Vec<f64>,
+    normalization_factors: Vec<f64>,
+    reciprocal_multipliers: Vec<f64>,
+    logits_hasher: blake3::Hasher,
+    weights_hasher: blake3::Hasher,
+}
+
+impl LocalizationArmAccumulator {
+    fn new(
+        name: &'static str,
+        metric: HelmDLearnedManifoldMetric,
+        value_readout: HelmDLearnedManifoldValueReadout,
+    ) -> Self {
+        let mut logits_hasher = blake3::Hasher::new();
+        logits_hasher.update(b"uor-r4.helm-d-score-centroid-localization.logits/1\0");
+        let mut weights_hasher = blake3::Hasher::new();
+        weights_hasher.update(b"uor-r4.helm-d-score-centroid-localization.weights/1\0");
+        Self {
+            name,
+            metric,
+            value_readout,
+            rows: 0,
+            source_pairs: 0,
+            cross_entropy_sum: 0.0,
+            aggregate_mse_sum: 0.0,
+            entropy_sum: 0.0,
+            query_radial_norms: Vec::new(),
+            key_radial_norms: Vec::new(),
+            normalization_factors: Vec::new(),
+            reciprocal_multipliers: Vec::new(),
+            logits_hasher,
+            weights_hasher,
+        }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn push(
+        &mut self,
+        logits: &[f64],
+        weights: &[f64],
+        cross_entropy: f64,
+        aggregate_mse: f64,
+        query_norm: f64,
+        key_norms: &[f64],
+        normalization_factor: Option<f64>,
+    ) -> TestResult {
+        if !cross_entropy.is_finite()
+            || !aggregate_mse.is_finite()
+            || !query_norm.is_finite()
+            || key_norms.iter().any(|value| !value.is_finite())
+            || normalization_factor.is_some_and(|value| !value.is_finite())
+        {
+            return Err("localization attention metric is non-finite".into());
+        }
+        self.rows = self.rows.saturating_add(1);
+        self.source_pairs = self
+            .source_pairs
+            .saturating_add(u64::try_from(weights.len())?);
+        self.cross_entropy_sum += cross_entropy;
+        self.aggregate_mse_sum += aggregate_mse;
+        self.entropy_sum += weights
+            .iter()
+            .filter(|weight| **weight > 0.0)
+            .map(|weight| -*weight * libm::log(*weight))
+            .sum::<f64>();
+        self.query_radial_norms.push(query_norm);
+        self.key_radial_norms.extend_from_slice(key_norms);
+        if let Some(factor) = normalization_factor {
+            self.normalization_factors.push(factor);
+            self.reciprocal_multipliers.push(factor.recip());
+        }
+        self.logits_hasher
+            .update(&u64::try_from(logits.len())?.to_le_bytes());
+        self.weights_hasher
+            .update(&u64::try_from(weights.len())?.to_le_bytes());
+        for value in logits {
+            self.logits_hasher.update(&value.to_bits().to_le_bytes());
+        }
+        for value in weights {
+            self.weights_hasher.update(&value.to_bits().to_le_bytes());
+        }
+        Ok(())
+    }
+
+    fn finish(self) -> TestResult<LocalizationAttentionArmReport> {
+        if self.rows == 0
+            || self.query_radial_norms.len() != usize::try_from(self.rows)?
+            || (self.value_readout == HelmDLearnedManifoldValueReadout::NormalizedLorentzCentroid
+                && self.normalization_factors.len() != usize::try_from(self.rows)?)
+            || (self.value_readout
+                == HelmDLearnedManifoldValueReadout::TransportedTangentArithmeticSum
+                && !self.normalization_factors.is_empty())
+            || self.normalization_factors.len() != self.reciprocal_multipliers.len()
+        {
+            return Err("localization attention accumulator is incomplete".into());
+        }
+        let reciprocal_rows = 1.0 / self.rows as f64;
+        let (normalization, reciprocal) = if self.normalization_factors.is_empty() {
+            (None, None)
+        } else {
+            (
+                Some(localization_quantiles(self.normalization_factors)?),
+                Some(localization_quantiles(self.reciprocal_multipliers)?),
+            )
+        };
+        Ok(LocalizationAttentionArmReport {
+            name: self.name.to_owned(),
+            metric: self.metric,
+            value_readout: self.value_readout,
+            rows: self.rows,
+            source_pairs: self.source_pairs,
+            donor_attention_cross_entropy: self.cross_entropy_sum * reciprocal_rows,
+            normalized_aggregate_mse: self.aggregate_mse_sum * reciprocal_rows,
+            mean_attention_entropy: self.entropy_sum * reciprocal_rows,
+            query_radial_norm_quantiles: localization_quantiles(self.query_radial_norms)?,
+            key_radial_norm_quantiles: localization_quantiles(self.key_radial_norms)?,
+            lorentz_denominator_quantiles: normalization,
+            lorentz_reciprocal_multiplier_quantiles: reciprocal,
+            logits_cid: format!("blake3:{}", self.logits_hasher.finalize().to_hex()),
+            weights_cid: format!("blake3:{}", self.weights_hasher.finalize().to_hex()),
+        })
+    }
+}
+
+struct LocalizationRow {
+    query: Vec<f64>,
+    keys: Vec<Vec<f64>>,
+    values: Vec<Vec<f64>>,
+    logits: Vec<f64>,
+    weights: Vec<f64>,
+    cross_entropy: f64,
+}
+
+#[allow(clippy::too_many_arguments)]
+fn localization_attention_row(
+    parameters: &HelmDLearnedManifoldParameters,
+    metric: HelmDLearnedManifoldMetric,
+    document: &CapturedDocument,
+    layer: usize,
+    head: usize,
+    position: usize,
+    rope_theta: f32,
+    rope_interleaved: bool,
+) -> TestResult<LocalizationRow> {
+    if !localization_parameters_are_frozen(parameters) {
+        return Err("localization attention evaluation observed an unfrozen value or bias".into());
+    }
+    let projection = &document.projections[position][layer];
+    let query_input = &projection.query[head * HEAD_WIDTH..(head + 1) * HEAD_WIDTH];
+    let mut query = apply_adapters(
+        parameters.query_adapters(),
+        layer,
+        head,
+        EXPECTED_QUERY_HEADS,
+        query_input,
+    )?;
+    apply_rope_f64(&mut query, position, rope_theta, rope_interleaved);
+    let kv_head = head / (EXPECTED_QUERY_HEADS / EXPECTED_KV_HEADS);
+    let mut keys = Vec::with_capacity(position + 1);
+    let mut values = Vec::with_capacity(position + 1);
+    for source in 0..=position {
+        let source_projection = &document.projections[source][layer];
+        let key_input = &source_projection.key[kv_head * HEAD_WIDTH..(kv_head + 1) * HEAD_WIDTH];
+        let value_input =
+            &source_projection.value[kv_head * HEAD_WIDTH..(kv_head + 1) * HEAD_WIDTH];
+        let mut key = apply_adapters(
+            parameters.key_adapters(),
+            layer,
+            kv_head,
+            EXPECTED_KV_HEADS,
+            key_input,
+        )?;
+        apply_rope_f64(&mut key, source, rope_theta, rope_interleaved);
+        let value = apply_adapters(
+            parameters.value_adapters(),
+            layer,
+            kv_head,
+            EXPECTED_KV_HEADS,
+            value_input,
+        )?;
+        keys.push(key);
+        values.push(value);
+    }
+    let scale = parameters.learned_scale(layer)?;
+    let logits = keys
+        .iter()
+        .map(|key| helm_d_learned_manifold_logit(metric, &query, key, scale, 0.0))
+        .collect::<Result<Vec<_>, _>>()?;
+    let weights = stable_softmax_f64(&logits)?;
+    let donor_weights = &document.heads[position][layer][head].donor_weights;
+    let cross_entropy = donor_weights
+        .iter()
+        .zip(&weights)
+        .map(|(donor, learned)| -f64::from(*donor) * libm::log(*learned))
+        .sum::<f64>();
+    Ok(LocalizationRow {
+        query,
+        keys,
+        values,
+        logits,
+        weights,
+        cross_entropy,
+    })
+}
+
+fn localization_normalization_factor(values: &[Vec<f64>], weights: &[f64]) -> TestResult<f64> {
+    fn compensated_add(sum: &mut f64, correction: &mut f64, value: f64) {
+        let next = *sum + value;
+        if sum.abs() >= value.abs() {
+            *correction += (*sum - next) + value;
+        } else {
+            *correction += (value - next) + *sum;
+        }
+        *sum = next;
+    }
+    fn compensated_sum(values: impl IntoIterator<Item = f64>) -> f64 {
+        let mut sum = 0.0;
+        let mut correction = 0.0;
+        for value in values {
+            compensated_add(&mut sum, &mut correction, value);
+        }
+        sum + correction
+    }
+    let weight_sum = compensated_sum(weights.iter().copied());
+    if !weight_sum.is_finite() || weight_sum <= 0.0 {
+        return Err("localization normalization received invalid weights".into());
+    }
+    let mut time_sum = 0.0;
+    let mut time_correction = 0.0;
+    let mut spatial_sum = vec![0.0; HEAD_WIDTH];
+    let mut spatial_correction = vec![0.0; HEAD_WIDTH];
+    for (weight, value) in weights.iter().zip(values) {
+        let normalized_weight = *weight / weight_sum;
+        let time = libm::sqrt(1.0 + compensated_sum(value.iter().map(|lane| lane * lane)));
+        compensated_add(
+            &mut time_sum,
+            &mut time_correction,
+            normalized_weight * time,
+        );
+        for ((target, correction), coordinate) in spatial_sum
+            .iter_mut()
+            .zip(&mut spatial_correction)
+            .zip(value)
+        {
+            compensated_add(target, correction, normalized_weight * *coordinate);
+        }
+    }
+    time_sum += time_correction;
+    for (target, correction) in spatial_sum.iter_mut().zip(spatial_correction) {
+        *target += correction;
+    }
+    let spatial_norm = libm::sqrt(compensated_sum(spatial_sum.iter().map(|lane| lane * lane)));
+    let factor = libm::sqrt((time_sum - spatial_norm) * (time_sum + spatial_norm));
+    if !factor.is_finite() || factor < 1.0 - 1.0e-12 {
+        return Err(
+            format!("Lorentz normalization factor {factor} is below the frozen bound").into(),
+        );
+    }
+    Ok(factor)
+}
+
+fn localization_normalized_aggregate_mse(learned: &[f64], donor: &[f32]) -> TestResult<f64> {
+    if learned.len() != HEAD_WIDTH || donor.len() != HEAD_WIDTH {
+        return Err("localization aggregate MSE shape mismatch".into());
+    }
+    let donor_norm = libm::sqrt(
+        donor
+            .iter()
+            .map(|value| f64::from(*value) * f64::from(*value))
+            .sum::<f64>(),
+    );
+    let normalization = donor_norm.max(1.0);
+    Ok(learned
+        .iter()
+        .zip(donor)
+        .map(|(left, right)| {
+            let difference = *left - f64::from(*right);
+            difference * difference / (normalization * normalization)
+        })
+        .sum::<f64>()
+        / HEAD_WIDTH as f64)
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+struct LocalizationAttentionDocumentReport {
+    document_id: String,
+    lorentz_normalized: LocalizationAttentionArmReport,
+    lorentz_tangent: LocalizationAttentionArmReport,
+    euclidean_normalized: LocalizationAttentionArmReport,
+    euclidean_tangent: LocalizationAttentionArmReport,
+    lorentz_score_pair_bit_identical: bool,
+    euclidean_score_pair_bit_identical: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+struct LocalizationAttentionWork {
+    documents: usize,
+    rows_per_document: u64,
+    source_pairs_per_document: u64,
+    total_rows_per_arm: u64,
+    total_source_pairs_per_arm: u64,
+    future_position_reads: u64,
+    target_as_input_reads: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+struct LocalizationAttentionEvaluation {
+    schema: String,
+    offline_evaluation_frame: String,
+    offline_atlas_transport_status: String,
+    documents: Vec<LocalizationAttentionDocumentReport>,
+    pooled: Vec<LocalizationAttentionArmReport>,
+    score_paired_logits_and_weights_bit_identical: bool,
+    all_normalization_factors_at_least_one_minus_tolerance: bool,
+    work: LocalizationAttentionWork,
+    replay_identical: bool,
+    evaluation_cid: String,
+}
+
+fn localization_attention_evaluation_cid(
+    evaluation: &LocalizationAttentionEvaluation,
+) -> TestResult<String> {
+    let mut commitment = evaluation.clone();
+    commitment.evaluation_cid.clear();
+    canonical_json_cid(&commitment)
+}
+
+fn push_localization_row(
+    accumulator: &mut LocalizationArmAccumulator,
+    row: &LocalizationRow,
+    readout: HelmDLearnedManifoldValueReadout,
+    donor_aggregate: &[f32],
+) -> TestResult {
+    let aggregate = helm_d_learned_manifold_value_readout(readout, &row.values, &row.weights)?;
+    let aggregate_mse = localization_normalized_aggregate_mse(&aggregate, donor_aggregate)?;
+    let query_norm = libm::sqrt(row.query.iter().map(|lane| lane * lane).sum::<f64>());
+    let key_norms = row
+        .keys
+        .iter()
+        .map(|key| libm::sqrt(key.iter().map(|lane| lane * lane).sum::<f64>()))
+        .collect::<Vec<_>>();
+    let normalization_factor = (readout
+        == HelmDLearnedManifoldValueReadout::NormalizedLorentzCentroid)
+        .then(|| localization_normalization_factor(&row.values, &row.weights))
+        .transpose()?;
+    accumulator.push(
+        &row.logits,
+        &row.weights,
+        row.cross_entropy,
+        aggregate_mse,
+        query_norm,
+        &key_norms,
+        normalization_factor,
+    )
+}
+
+fn evaluate_localization_attention_once(
+    documents: &[CapturedDocument],
+    lorentz_parameters: &HelmDLearnedManifoldParameters,
+    euclidean_parameters: &HelmDLearnedManifoldParameters,
+    rope_theta: f32,
+    rope_interleaved: bool,
+) -> TestResult<LocalizationAttentionEvaluation> {
+    if documents.is_empty() {
+        return Err("localization attention evaluation requires documents".into());
+    }
+    let mut pooled_lm = LocalizationArmAccumulator::new(
+        "L-M",
+        HelmDLearnedManifoldMetric::Lorentz,
+        HelmDLearnedManifoldValueReadout::NormalizedLorentzCentroid,
+    );
+    let mut pooled_lt = LocalizationArmAccumulator::new(
+        "L-T",
+        HelmDLearnedManifoldMetric::Lorentz,
+        HelmDLearnedManifoldValueReadout::TransportedTangentArithmeticSum,
+    );
+    let mut pooled_em = LocalizationArmAccumulator::new(
+        "E-M",
+        HelmDLearnedManifoldMetric::Euclidean,
+        HelmDLearnedManifoldValueReadout::NormalizedLorentzCentroid,
+    );
+    let mut pooled_et = LocalizationArmAccumulator::new(
+        "E-T",
+        HelmDLearnedManifoldMetric::Euclidean,
+        HelmDLearnedManifoldValueReadout::TransportedTangentArithmeticSum,
+    );
+    let mut document_reports = Vec::with_capacity(documents.len());
+    let mut all_pairs_identical = true;
+    let mut future_position_reads = 0_u64;
+    for document in documents {
+        if document.document.tokens.len() != INPUT_POSITIONS
+            || document.decoder_audit.future_reads != 0
+        {
+            return Err("localization attention capture is not strict causal input".into());
+        }
+        future_position_reads =
+            future_position_reads.saturating_add(document.decoder_audit.future_reads);
+        let mut document_lm = LocalizationArmAccumulator::new(
+            "L-M",
+            HelmDLearnedManifoldMetric::Lorentz,
+            HelmDLearnedManifoldValueReadout::NormalizedLorentzCentroid,
+        );
+        let mut document_lt = LocalizationArmAccumulator::new(
+            "L-T",
+            HelmDLearnedManifoldMetric::Lorentz,
+            HelmDLearnedManifoldValueReadout::TransportedTangentArithmeticSum,
+        );
+        let mut document_em = LocalizationArmAccumulator::new(
+            "E-M",
+            HelmDLearnedManifoldMetric::Euclidean,
+            HelmDLearnedManifoldValueReadout::NormalizedLorentzCentroid,
+        );
+        let mut document_et = LocalizationArmAccumulator::new(
+            "E-T",
+            HelmDLearnedManifoldMetric::Euclidean,
+            HelmDLearnedManifoldValueReadout::TransportedTangentArithmeticSum,
+        );
+        let mut lorentz_identical = true;
+        let mut euclidean_identical = true;
+        for layer in 0..EXPECTED_LAYERS {
+            for head in 0..EXPECTED_QUERY_HEADS {
+                for position in SCORE_START..INPUT_POSITIONS {
+                    let lorentz_first = localization_attention_row(
+                        lorentz_parameters,
+                        HelmDLearnedManifoldMetric::Lorentz,
+                        document,
+                        layer,
+                        head,
+                        position,
+                        rope_theta,
+                        rope_interleaved,
+                    )?;
+                    let lorentz_second = localization_attention_row(
+                        lorentz_parameters,
+                        HelmDLearnedManifoldMetric::Lorentz,
+                        document,
+                        layer,
+                        head,
+                        position,
+                        rope_theta,
+                        rope_interleaved,
+                    )?;
+                    let euclidean_first = localization_attention_row(
+                        euclidean_parameters,
+                        HelmDLearnedManifoldMetric::Euclidean,
+                        document,
+                        layer,
+                        head,
+                        position,
+                        rope_theta,
+                        rope_interleaved,
+                    )?;
+                    let euclidean_second = localization_attention_row(
+                        euclidean_parameters,
+                        HelmDLearnedManifoldMetric::Euclidean,
+                        document,
+                        layer,
+                        head,
+                        position,
+                        rope_theta,
+                        rope_interleaved,
+                    )?;
+                    lorentz_identical &= lorentz_first
+                        .logits
+                        .iter()
+                        .zip(&lorentz_second.logits)
+                        .all(|(left, right)| left.to_bits() == right.to_bits())
+                        && lorentz_first
+                            .weights
+                            .iter()
+                            .zip(&lorentz_second.weights)
+                            .all(|(left, right)| left.to_bits() == right.to_bits());
+                    euclidean_identical &= euclidean_first
+                        .logits
+                        .iter()
+                        .zip(&euclidean_second.logits)
+                        .all(|(left, right)| left.to_bits() == right.to_bits())
+                        && euclidean_first
+                            .weights
+                            .iter()
+                            .zip(&euclidean_second.weights)
+                            .all(|(left, right)| left.to_bits() == right.to_bits());
+                    let donor_aggregate = &document.heads[position][layer][head].donor_aggregate;
+                    for accumulator in [&mut document_lm, &mut pooled_lm] {
+                        push_localization_row(
+                            accumulator,
+                            &lorentz_first,
+                            HelmDLearnedManifoldValueReadout::NormalizedLorentzCentroid,
+                            donor_aggregate,
+                        )?;
+                    }
+                    for accumulator in [&mut document_lt, &mut pooled_lt] {
+                        push_localization_row(
+                            accumulator,
+                            &lorentz_second,
+                            HelmDLearnedManifoldValueReadout::TransportedTangentArithmeticSum,
+                            donor_aggregate,
+                        )?;
+                    }
+                    for accumulator in [&mut document_em, &mut pooled_em] {
+                        push_localization_row(
+                            accumulator,
+                            &euclidean_first,
+                            HelmDLearnedManifoldValueReadout::NormalizedLorentzCentroid,
+                            donor_aggregate,
+                        )?;
+                    }
+                    for accumulator in [&mut document_et, &mut pooled_et] {
+                        push_localization_row(
+                            accumulator,
+                            &euclidean_second,
+                            HelmDLearnedManifoldValueReadout::TransportedTangentArithmeticSum,
+                            donor_aggregate,
+                        )?;
+                    }
+                }
+            }
+        }
+        let lorentz_normalized = document_lm.finish()?;
+        let lorentz_tangent = document_lt.finish()?;
+        let euclidean_normalized = document_em.finish()?;
+        let euclidean_tangent = document_et.finish()?;
+        lorentz_identical &= lorentz_normalized.logits_cid == lorentz_tangent.logits_cid
+            && lorentz_normalized.weights_cid == lorentz_tangent.weights_cid;
+        euclidean_identical &= euclidean_normalized.logits_cid == euclidean_tangent.logits_cid
+            && euclidean_normalized.weights_cid == euclidean_tangent.weights_cid;
+        all_pairs_identical &= lorentz_identical && euclidean_identical;
+        document_reports.push(LocalizationAttentionDocumentReport {
+            document_id: document.document.id.clone(),
+            lorentz_normalized,
+            lorentz_tangent,
+            euclidean_normalized,
+            euclidean_tangent,
+            lorentz_score_pair_bit_identical: lorentz_identical,
+            euclidean_score_pair_bit_identical: euclidean_identical,
+        });
+    }
+    let pooled = vec![
+        pooled_lm.finish()?,
+        pooled_lt.finish()?,
+        pooled_em.finish()?,
+        pooled_et.finish()?,
+    ];
+    all_pairs_identical &= pooled[0].logits_cid == pooled[1].logits_cid
+        && pooled[0].weights_cid == pooled[1].weights_cid
+        && pooled[2].logits_cid == pooled[3].logits_cid
+        && pooled[2].weights_cid == pooled[3].weights_cid;
+    let expected_rows_per_document =
+        u64::try_from(SCORE_POSITIONS * EXPECTED_LAYERS * EXPECTED_QUERY_HEADS)?;
+    let expected_source_pairs_per_document = u64::try_from(
+        EXPECTED_LAYERS
+            * EXPECTED_QUERY_HEADS
+            * ((SCORE_START + 1)..=INPUT_POSITIONS).sum::<usize>(),
+    )?;
+    let total_rows = expected_rows_per_document.saturating_mul(documents.len() as u64);
+    let total_pairs = expected_source_pairs_per_document.saturating_mul(documents.len() as u64);
+    if pooled
+        .iter()
+        .any(|arm| arm.rows != total_rows || arm.source_pairs != total_pairs)
+    {
+        return Err("localization attention work does not match the exact ledger".into());
+    }
+    let normalization_factors_valid = pooled.iter().all(|arm| {
+        arm.lorentz_denominator_quantiles
+            .as_ref()
+            .is_none_or(|quantiles| quantiles.p0 >= 1.0 - 1.0e-12)
+            && arm
+                .lorentz_reciprocal_multiplier_quantiles
+                .as_ref()
+                .is_none_or(|quantiles| quantiles.p0.is_finite() && quantiles.p0 > 0.0)
+    });
+    let mut evaluation = LocalizationAttentionEvaluation {
+        schema: "uor-r4.helm-d-score-centroid-localization-attention-evaluation/1".to_owned(),
+        offline_evaluation_frame: "canonical_model_frame_gauge_equivalent".to_owned(),
+        offline_atlas_transport_status: "NOT_EXECUTED_COVARIANCE_REDUCED".to_owned(),
+        documents: document_reports,
+        pooled,
+        score_paired_logits_and_weights_bit_identical: all_pairs_identical,
+        all_normalization_factors_at_least_one_minus_tolerance: normalization_factors_valid,
+        work: LocalizationAttentionWork {
+            documents: documents.len(),
+            rows_per_document: expected_rows_per_document,
+            source_pairs_per_document: expected_source_pairs_per_document,
+            total_rows_per_arm: total_rows,
+            total_source_pairs_per_arm: total_pairs,
+            future_position_reads,
+            target_as_input_reads: 0,
+        },
+        replay_identical: false,
+        evaluation_cid: String::new(),
+    };
+    evaluation.evaluation_cid = localization_attention_evaluation_cid(&evaluation)?;
+    Ok(evaluation)
+}
+
+fn evaluate_localization_attention(
+    documents: &[CapturedDocument],
+    lorentz_parameters: &HelmDLearnedManifoldParameters,
+    euclidean_parameters: &HelmDLearnedManifoldParameters,
+    rope_theta: f32,
+    rope_interleaved: bool,
+) -> TestResult<LocalizationAttentionEvaluation> {
+    let mut first = evaluate_localization_attention_once(
+        documents,
+        lorentz_parameters,
+        euclidean_parameters,
+        rope_theta,
+        rope_interleaved,
+    )?;
+    let second = evaluate_localization_attention_once(
+        documents,
+        lorentz_parameters,
+        euclidean_parameters,
+        rope_theta,
+        rope_interleaved,
+    )?;
+    first.replay_identical = {
+        let mut expected = first.clone();
+        expected.replay_identical = false;
+        expected.evaluation_cid = localization_attention_evaluation_cid(&expected)?;
+        expected == second
+    };
+    first.evaluation_cid = localization_attention_evaluation_cid(&first)?;
+    if !first.replay_identical {
+        return Err("localization attention evaluation replay is not byte-identical".into());
+    }
+    Ok(first)
+}
+
+fn localization_tangent_registered_frame_covariance() -> TestResult<(usize, f64)> {
+    let frames = canonical_registered_h4_spin_frames()?;
+    if frames.len() != 120 {
+        return Err("localization tangent covariance did not enumerate 120 H4 frames".into());
+    }
+    let values = [
+        (0..HEAD_WIDTH)
+            .map(|lane| (lane as f64 - 13.0) / 43.0)
+            .collect::<Vec<_>>(),
+        (0..HEAD_WIDTH)
+            .map(|lane| (19.0 - lane as f64) / 47.0)
+            .collect::<Vec<_>>(),
+        (0..HEAD_WIDTH)
+            .map(|lane| (lane as f64 - 29.0) / 53.0)
+            .collect::<Vec<_>>(),
+    ];
+    let weights = [0.2, 0.3, 0.5];
+    let baseline = helm_d_learned_manifold_value_readout(
+        HelmDLearnedManifoldValueReadout::TransportedTangentArithmeticSum,
+        &values,
+        &weights,
+    )?;
+    let mut maximum_error = 0.0_f64;
+    for frame in frames.iter().copied() {
+        let encoded = values
+            .iter()
+            .map(|value| {
+                let mut output = Vec::with_capacity(HEAD_WIDTH);
+                for block in value.chunks_exact(R4_WIDTH) {
+                    output.extend_from_slice(
+                        &frame.encode_model_block([block[0], block[1], block[2], block[3]])?,
+                    );
+                }
+                Ok(output)
+            })
+            .collect::<TestResult<Vec<_>>>()?;
+        let tangent = helm_d_learned_manifold_value_readout(
+            HelmDLearnedManifoldValueReadout::TransportedTangentArithmeticSum,
+            &encoded,
+            &weights,
+        )?;
+        let mut decoded = Vec::with_capacity(HEAD_WIDTH);
+        for block in tangent.chunks_exact(R4_WIDTH) {
+            decoded.extend_from_slice(
+                &frame.decode_local_block([block[0], block[1], block[2], block[3]])?,
+            );
+        }
+        maximum_error = maximum_error.max(
+            baseline
+                .iter()
+                .zip(decoded)
+                .map(|(left, right)| (*left - right).abs())
+                .fold(0.0, f64::max),
+        );
+    }
+    if maximum_error > 1.0e-8 {
+        return Err("tangent value readout exceeds the 120-frame covariance tolerance".into());
+    }
+    Ok((frames.len(), maximum_error))
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+struct LocalizationMixedCovarianceReport {
+    registered_frames: usize,
+    lorentz_score_maximum_error: f64,
+    lorentz_weight_maximum_error: f64,
+    euclidean_score_maximum_error: f64,
+    euclidean_weight_maximum_error: f64,
+    lorentz_normalized_readout_maximum_error: f64,
+    lorentz_tangent_readout_maximum_error: f64,
+    euclidean_normalized_readout_maximum_error: f64,
+    euclidean_tangent_readout_maximum_error: f64,
+}
+
+fn localization_mixed_registered_frame_covariance() -> TestResult<LocalizationMixedCovarianceReport>
+{
+    let frames = canonical_registered_h4_spin_frames()?;
+    if frames.len() != 120 {
+        return Err("mixed localization covariance did not enumerate 120 H4 frames".into());
+    }
+    let query = (0..HEAD_WIDTH)
+        .map(|lane| (lane as f64 - 31.5) / 37.0)
+        .collect::<Vec<_>>();
+    let keys = [
+        (0..HEAD_WIDTH)
+            .map(|lane| (lane as f64 - 17.0) / 41.0)
+            .collect::<Vec<_>>(),
+        (0..HEAD_WIDTH)
+            .map(|lane| (23.0 - lane as f64) / 43.0)
+            .collect::<Vec<_>>(),
+    ];
+    let values = [
+        (0..HEAD_WIDTH)
+            .map(|lane| (lane as f64 - 7.0) / 47.0)
+            .collect::<Vec<_>>(),
+        (0..HEAD_WIDTH)
+            .map(|lane| (11.0 - lane as f64) / 53.0)
+            .collect::<Vec<_>>(),
+    ];
+    let mut report = LocalizationMixedCovarianceReport {
+        registered_frames: frames.len(),
+        lorentz_score_maximum_error: 0.0,
+        lorentz_weight_maximum_error: 0.0,
+        euclidean_score_maximum_error: 0.0,
+        euclidean_weight_maximum_error: 0.0,
+        lorentz_normalized_readout_maximum_error: 0.0,
+        lorentz_tangent_readout_maximum_error: 0.0,
+        euclidean_normalized_readout_maximum_error: 0.0,
+        euclidean_tangent_readout_maximum_error: 0.0,
+    };
+    for metric in [
+        HelmDLearnedManifoldMetric::Lorentz,
+        HelmDLearnedManifoldMetric::Euclidean,
+    ] {
+        let baseline_logits = keys
+            .iter()
+            .map(|key| helm_d_learned_manifold_logit(metric, &query, key, 2.5, -0.125))
+            .collect::<Result<Vec<_>, _>>()?;
+        let baseline_weights = stable_softmax_f64(&baseline_logits)?;
+        let baseline_normalized = helm_d_learned_manifold_value_readout(
+            HelmDLearnedManifoldValueReadout::NormalizedLorentzCentroid,
+            &values,
+            &baseline_weights,
+        )?;
+        let baseline_tangent = helm_d_learned_manifold_value_readout(
+            HelmDLearnedManifoldValueReadout::TransportedTangentArithmeticSum,
+            &values,
+            &baseline_weights,
+        )?;
+        for frame in frames.iter().copied() {
+            let encode = |vector: &[f64]| -> TestResult<Vec<f64>> {
+                let mut output = Vec::with_capacity(HEAD_WIDTH);
+                for block in vector.chunks_exact(R4_WIDTH) {
+                    output.extend_from_slice(
+                        &frame.encode_model_block([block[0], block[1], block[2], block[3]])?,
+                    );
+                }
+                Ok(output)
+            };
+            let encoded_query = encode(&query)?;
+            let encoded_keys = keys
+                .iter()
+                .map(|key| encode(key))
+                .collect::<TestResult<Vec<_>>>()?;
+            let encoded_values = values
+                .iter()
+                .map(|value| encode(value))
+                .collect::<TestResult<Vec<_>>>()?;
+            let encoded_logits = encoded_keys
+                .iter()
+                .map(|key| helm_d_learned_manifold_logit(metric, &encoded_query, key, 2.5, -0.125))
+                .collect::<Result<Vec<_>, _>>()?;
+            let encoded_weights = stable_softmax_f64(&encoded_logits)?;
+            let score_error = baseline_logits
+                .iter()
+                .zip(&encoded_logits)
+                .map(|(left, right)| (*left - *right).abs())
+                .fold(0.0, f64::max);
+            let weight_error = baseline_weights
+                .iter()
+                .zip(&encoded_weights)
+                .map(|(left, right)| (*left - *right).abs())
+                .fold(0.0, f64::max);
+            let encoded_normalized = helm_d_learned_manifold_value_readout(
+                HelmDLearnedManifoldValueReadout::NormalizedLorentzCentroid,
+                &encoded_values,
+                &encoded_weights,
+            )?;
+            let encoded_tangent = helm_d_learned_manifold_value_readout(
+                HelmDLearnedManifoldValueReadout::TransportedTangentArithmeticSum,
+                &encoded_values,
+                &encoded_weights,
+            )?;
+            let decode = |vector: &[f64]| -> TestResult<Vec<f64>> {
+                let mut output = Vec::with_capacity(HEAD_WIDTH);
+                for block in vector.chunks_exact(R4_WIDTH) {
+                    output.extend_from_slice(
+                        &frame.decode_local_block([block[0], block[1], block[2], block[3]])?,
+                    );
+                }
+                Ok(output)
+            };
+            let decoded_normalized = decode(&encoded_normalized)?;
+            let decoded_tangent = decode(&encoded_tangent)?;
+            let normalized_error = baseline_normalized
+                .iter()
+                .zip(decoded_normalized)
+                .map(|(left, right)| (*left - right).abs())
+                .fold(0.0, f64::max);
+            let tangent_error = baseline_tangent
+                .iter()
+                .zip(decoded_tangent)
+                .map(|(left, right)| (*left - right).abs())
+                .fold(0.0, f64::max);
+            match metric {
+                HelmDLearnedManifoldMetric::Lorentz => {
+                    report.lorentz_score_maximum_error =
+                        report.lorentz_score_maximum_error.max(score_error);
+                    report.lorentz_weight_maximum_error =
+                        report.lorentz_weight_maximum_error.max(weight_error);
+                    report.lorentz_normalized_readout_maximum_error = report
+                        .lorentz_normalized_readout_maximum_error
+                        .max(normalized_error);
+                    report.lorentz_tangent_readout_maximum_error = report
+                        .lorentz_tangent_readout_maximum_error
+                        .max(tangent_error);
+                }
+                HelmDLearnedManifoldMetric::Euclidean => {
+                    report.euclidean_score_maximum_error =
+                        report.euclidean_score_maximum_error.max(score_error);
+                    report.euclidean_weight_maximum_error =
+                        report.euclidean_weight_maximum_error.max(weight_error);
+                    report.euclidean_normalized_readout_maximum_error = report
+                        .euclidean_normalized_readout_maximum_error
+                        .max(normalized_error);
+                    report.euclidean_tangent_readout_maximum_error = report
+                        .euclidean_tangent_readout_maximum_error
+                        .max(tangent_error);
+                }
+            }
+        }
+    }
+    if [
+        report.lorentz_score_maximum_error,
+        report.lorentz_weight_maximum_error,
+        report.euclidean_score_maximum_error,
+        report.euclidean_weight_maximum_error,
+        report.lorentz_normalized_readout_maximum_error,
+        report.lorentz_tangent_readout_maximum_error,
+        report.euclidean_normalized_readout_maximum_error,
+        report.euclidean_tangent_readout_maximum_error,
+    ]
+    .iter()
+    .any(|error| !error.is_finite() || *error > 1.0e-8)
+    {
+        return Err("one score/readout pair exceeds the 120-frame covariance tolerance".into());
+    }
+    Ok(report)
+}
+
+fn localization_lm_lt_mse_passes(
+    evaluation: &LocalizationAttentionEvaluation,
+    require_pooled_ten_percent: bool,
+) -> TestResult<bool> {
+    let per_document = evaluation.documents.iter().all(|document| {
+        localization_document_mse_passes(
+            require_pooled_ten_percent,
+            document.lorentz_normalized.normalized_aggregate_mse,
+            document.lorentz_tangent.normalized_aggregate_mse,
+        )
+    });
+    let pooled_lm = evaluation
+        .pooled
+        .iter()
+        .find(|arm| arm.name == "L-M")
+        .ok_or("localization pooled L-M report is missing")?;
+    let pooled_lt = evaluation
+        .pooled
+        .iter()
+        .find(|arm| arm.name == "L-T")
+        .ok_or("localization pooled L-T report is missing")?;
+    Ok(per_document
+        && (!require_pooled_ten_percent
+            || pooled_lt.normalized_aggregate_mse <= 0.9 * pooled_lm.normalized_aggregate_mse))
+}
+
+fn localization_document_mse_passes(full_audit: bool, normalized: f64, tangent: f64) -> bool {
+    if full_audit {
+        tangent < normalized
+    } else {
+        tangent <= 0.9 * normalized
+    }
+}
+
+fn localization_euclidean_score_passes(
+    evaluation: &LocalizationAttentionEvaluation,
+) -> TestResult<bool> {
+    let per_document = evaluation.documents.iter().all(|document| {
+        document.euclidean_normalized.donor_attention_cross_entropy
+            <= document.lorentz_normalized.donor_attention_cross_entropy - 0.01
+    });
+    let pooled_l = evaluation
+        .pooled
+        .iter()
+        .find(|arm| arm.name == "L-M")
+        .ok_or("localization pooled L-M report is missing")?;
+    let pooled_e = evaluation
+        .pooled
+        .iter()
+        .find(|arm| arm.name == "E-M")
+        .ok_or("localization pooled E-M report is missing")?;
+    Ok(per_document
+        && pooled_e.donor_attention_cross_entropy <= pooled_l.donor_attention_cross_entropy - 0.01)
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+struct LocalizationPreflightReport {
+    schema: String,
+    document_ids: Vec<String>,
+    untouched_parameter_cid: String,
+    identity_qkv: bool,
+    layer_scale: f64,
+    uniform_bias: f64,
+    registered_frames: usize,
+    normalized_centroid_covariance_maximum_error: f64,
+    tangent_covariance_maximum_error: f64,
+    mixed_score_readout_covariance: LocalizationMixedCovarianceReport,
+    natural_atlas_source_permutation_live: bool,
+    identity_projection_ordering_compared_lanes: u64,
+    attention: LocalizationAttentionEvaluation,
+    tangent_mse_ten_percent_better_on_each_document: bool,
+    infrastructure_passed: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+struct LocalizationForwardLedger {
+    preflight_trace_forwards: u64,
+    complete_trace_forwards: u64,
+    paired_decoder_forwards: u64,
+    total_forwards: u64,
+    baseline_forward_calls: u64,
+    measured_forward_calls: u64,
+    measured_streams_started: u64,
+    measured_streams_completed: u64,
+    measured_multiworker_forward_calls: u64,
+    requested_workers: usize,
+    effective_workers: usize,
+    maximum_active_workers: usize,
+    active_workers_at_snapshot: usize,
+    active_streams_at_snapshot: usize,
+}
+
+fn localization_forward_ledger(
+    baseline: TeacherExecutionSnapshot,
+    current: TeacherExecutionSnapshot,
+    complete_trace_forwards: u64,
+    paired_decoder_forwards: u64,
+) -> TestResult<LocalizationForwardLedger> {
+    let measured_forward_calls = current
+        .forward_calls
+        .checked_sub(baseline.forward_calls)
+        .ok_or("localization forward counter moved backwards")?;
+    let measured_streams_started = current
+        .streams_started
+        .checked_sub(baseline.streams_started)
+        .ok_or("localization started-stream counter moved backwards")?;
+    let measured_streams_completed = current
+        .streams_completed
+        .checked_sub(baseline.streams_completed)
+        .ok_or("localization completed-stream counter moved backwards")?;
+    let measured_multiworker_forward_calls = current
+        .multiworker_forward_calls
+        .checked_sub(baseline.multiworker_forward_calls)
+        .ok_or("localization multiworker-forward counter moved backwards")?;
+    let expected_total = complete_trace_forwards.saturating_add(paired_decoder_forwards);
+    if measured_forward_calls != expected_total
+        || measured_streams_started != expected_total
+        || measured_streams_completed != expected_total
+        || measured_multiworker_forward_calls != expected_total
+        || current.requested_workers != SHARDS
+        || current.effective_workers != SHARDS
+        || current.max_active_workers < 2
+        || current.forward_max_active_workers < 2
+        || current.active_workers != 0
+        || current.active_streams != 0
+    {
+        return Err("measured exact-forward counters differ from the frozen ledger".into());
+    }
+    Ok(LocalizationForwardLedger {
+        preflight_trace_forwards: 64,
+        complete_trace_forwards,
+        paired_decoder_forwards,
+        total_forwards: expected_total,
+        baseline_forward_calls: baseline.forward_calls,
+        measured_forward_calls,
+        measured_streams_started,
+        measured_streams_completed,
+        measured_multiworker_forward_calls,
+        requested_workers: current.requested_workers,
+        effective_workers: current.effective_workers,
+        maximum_active_workers: current.max_active_workers,
+        active_workers_at_snapshot: current.active_workers,
+        active_streams_at_snapshot: current.active_streams,
+    })
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+struct LocalizationFitReplayReport {
+    lorentz_primary_parameter_cid: String,
+    lorentz_replay_parameter_cid: String,
+    euclidean_primary_parameter_cid: String,
+    euclidean_replay_parameter_cid: String,
+    lorentz_primary_report_cid: String,
+    lorentz_replay_report_cid: String,
+    euclidean_primary_report_cid: String,
+    euclidean_replay_report_cid: String,
+    lorentz_parameter_bytes_identical: bool,
+    euclidean_parameter_bytes_identical: bool,
+    lorentz_report_identical: bool,
+    euclidean_report_identical: bool,
+    replay_cid: String,
+}
+
+fn localization_fit_replay_cid(report: &LocalizationFitReplayReport) -> TestResult<String> {
+    let mut commitment = report.clone();
+    commitment.replay_cid.clear();
+    canonical_json_cid(&commitment)
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+struct LocalizationPredecessorIdentity {
+    result_bytes_cid: String,
+    result_self_cid: String,
+    checkpoint_bytes_cid: String,
+    checkpoint_self_cid: String,
+    partition_cid: String,
+    manifest_cid: String,
+}
+
+fn localization_predecessor_identity() -> TestResult<LocalizationPredecessorIdentity> {
+    let mut result: serde_json::Value = serde_json::from_slice(COMPILED_PREDECESSOR_RESULT)?;
+    let result_claimed = result
+        .get("result_cid")
+        .and_then(serde_json::Value::as_str)
+        .ok_or("predecessor result omitted result_cid")?
+        .to_owned();
+    let result_checkpoint_cid = result
+        .get("checkpoint_cid")
+        .and_then(serde_json::Value::as_str)
+        .ok_or("predecessor result omitted checkpoint_cid")?
+        .to_owned();
+    let result_partition_cid = result
+        .get("partition_cid")
+        .and_then(serde_json::Value::as_str)
+        .ok_or("predecessor result omitted partition_cid")?
+        .to_owned();
+    *result
+        .get_mut("result_cid")
+        .ok_or("predecessor result_cid is unavailable")? = serde_json::Value::String(String::new());
+    let result_self_cid = canonical_json_cid(&result)?;
+    let checkpoint: serde_json::Value = serde_json::from_slice(COMPILED_PREDECESSOR_CHECKPOINT)?;
+    let checkpoint_claimed = checkpoint
+        .get("checkpoint_cid")
+        .and_then(serde_json::Value::as_str)
+        .ok_or("predecessor checkpoint omitted checkpoint_cid")?
+        .to_owned();
+    let checkpoint_payload = checkpoint
+        .get("checkpoint")
+        .ok_or("predecessor checkpoint omitted payload")?;
+    let checkpoint_self_cid = canonical_json_cid(checkpoint_payload)?;
+    let checkpoint_partition_cid = checkpoint_payload
+        .get("partition_cid")
+        .and_then(serde_json::Value::as_str)
+        .ok_or("predecessor checkpoint payload omitted partition_cid")?
+        .to_owned();
+    let checkpoint_manifest_cid = checkpoint_payload
+        .get("manifest_cid")
+        .and_then(serde_json::Value::as_str)
+        .ok_or("predecessor checkpoint payload omitted manifest_cid")?
+        .to_owned();
+    if result_claimed != result_self_cid
+        || result_self_cid != LOCALIZATION_PREDECESSOR_RESULT_CID
+        || checkpoint_claimed != checkpoint_self_cid
+        || checkpoint_self_cid != LOCALIZATION_PREDECESSOR_CHECKPOINT_CID
+        || result_checkpoint_cid != checkpoint_claimed
+        || result_partition_cid != checkpoint_partition_cid
+        || checkpoint_partition_cid != LOCALIZATION_PARTITION_CID
+        || checkpoint_manifest_cid != LOCALIZATION_PREDECESSOR_MANIFEST_CID
+    {
+        return Err("predecessor result/checkpoint self-CID no longer resolves".into());
+    }
+    Ok(LocalizationPredecessorIdentity {
+        result_bytes_cid: cid_bytes(COMPILED_PREDECESSOR_RESULT),
+        result_self_cid,
+        checkpoint_bytes_cid: cid_bytes(COMPILED_PREDECESSOR_CHECKPOINT),
+        checkpoint_self_cid,
+        partition_cid: checkpoint_partition_cid,
+        manifest_cid: checkpoint_manifest_cid,
+    })
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+struct LocalizationImplementationIdentity {
+    contract_cid: String,
+    predecessor_partition_cid: String,
+    predecessor: LocalizationPredecessorIdentity,
+    implementation_source_cid: String,
+    executable_cid: String,
+    git_revision: String,
+    git_tracked_tree_clean: bool,
+}
+
+fn localization_implementation_identity() -> TestResult<LocalizationImplementationIdentity> {
+    let mut source = blake3::Hasher::new();
+    source.update(b"uor-r4.helm-d-score-centroid-localization.implementation/1\0");
+    for bytes in [
+        COMPILED_LOCALIZATION_CONTRACT,
+        COMPILED_LOCALIZATION_RUNNER,
+        COMPILED_CORE_SOURCE,
+        COMPILED_HARNESS_SOURCE,
+        COMPILED_MODEL_ATTENTION_SOURCE,
+        COMPILED_MODEL_SOURCE,
+    ] {
+        source.update(&u64::try_from(bytes.len())?.to_le_bytes());
+        source.update(bytes);
+    }
+    Ok(LocalizationImplementationIdentity {
+        contract_cid: cid_bytes(COMPILED_LOCALIZATION_CONTRACT),
+        predecessor_partition_cid: LOCALIZATION_PARTITION_CID.to_owned(),
+        predecessor: localization_predecessor_identity()?,
+        implementation_source_cid: format!("blake3:{}", source.finalize().to_hex()),
+        executable_cid: file_cid(&env::current_exe()?)?,
+        git_revision: verified_git_revision()?,
+        git_tracked_tree_clean: true,
+    })
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+struct LocalizationCheckpoint {
+    schema: String,
+    issue: u32,
+    phase: String,
+    contract_cid: String,
+    population_cid: String,
+    partition_cid: String,
+    manifest_cid: String,
+    donor_cid: String,
+    tokenizer_cid: String,
+    target_commitment_artifact_cid: String,
+    target_commitment_manifest_cid: String,
+    upstream_source_commit: String,
+    implementation: LocalizationImplementationIdentity,
+    exact_workers: usize,
+    execution_preparation: TeacherExecutionPreparation,
+    preflight: LocalizationPreflightReport,
+    score_fit_document_ids: Vec<String>,
+    localization_audit_document_ids: Vec<String>,
+    lorentz_parameters: Option<HelmDLearnedManifoldParameters>,
+    lorentz_fit_report: Option<LocalizationFitReport>,
+    euclidean_parameters: Option<HelmDLearnedManifoldParameters>,
+    euclidean_fit_report: Option<LocalizationFitReport>,
+    fit_replay: Option<LocalizationFitReplayReport>,
+    fit_population_attention: Option<LocalizationAttentionEvaluation>,
+    audit_population_attention: Option<LocalizationAttentionEvaluation>,
+    forward_ledger: LocalizationForwardLedger,
+    target_materialized: bool,
+    d3_status: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+struct LocalizationCheckpointEnvelope {
+    checkpoint_cid: String,
+    checkpoint: LocalizationCheckpoint,
+}
+
+fn write_localization_checkpoint(
+    path: &Path,
+    checkpoint: LocalizationCheckpoint,
+) -> TestResult<LocalizationCheckpointEnvelope> {
+    let full = checkpoint.phase == "full_attention_audit";
+    let optional_full_fields = [
+        checkpoint.lorentz_parameters.is_some(),
+        checkpoint.lorentz_fit_report.is_some(),
+        checkpoint.euclidean_parameters.is_some(),
+        checkpoint.euclidean_fit_report.is_some(),
+        checkpoint.fit_replay.is_some(),
+        checkpoint.fit_population_attention.is_some(),
+        checkpoint.audit_population_attention.is_some(),
+    ];
+    if checkpoint.schema != LOCALIZATION_CHECKPOINT_SCHEMA
+        || checkpoint.issue != 973
+        || !matches!(
+            checkpoint.phase.as_str(),
+            "preflight_rejected" | "full_attention_audit"
+        )
+        || checkpoint.contract_cid != checkpoint.implementation.contract_cid
+        || checkpoint.population_cid != CORPUS_CID
+        || checkpoint.partition_cid != LOCALIZATION_PARTITION_CID
+        || checkpoint.donor_cid != DONOR_CID
+        || checkpoint.upstream_source_commit != HELM_D_UPSTREAM_COMMIT
+        || !checkpoint
+            .target_commitment_artifact_cid
+            .starts_with("blake3:")
+        || !checkpoint
+            .target_commitment_manifest_cid
+            .starts_with("blake3:")
+        || checkpoint.exact_workers != SHARDS
+        || checkpoint.target_materialized
+        || checkpoint.d3_status != "NOT_RUN"
+        || !checkpoint.preflight.infrastructure_passed
+        || checkpoint.preflight.attention.offline_evaluation_frame
+            != "canonical_model_frame_gauge_equivalent"
+        || checkpoint
+            .preflight
+            .attention
+            .offline_atlas_transport_status
+            != "NOT_EXECUTED_COVARIANCE_REDUCED"
+        || checkpoint
+            .preflight
+            .mixed_score_readout_covariance
+            .registered_frames
+            != 120
+        || !checkpoint.preflight.natural_atlas_source_permutation_live
+        || [
+            checkpoint
+                .preflight
+                .mixed_score_readout_covariance
+                .lorentz_score_maximum_error,
+            checkpoint
+                .preflight
+                .mixed_score_readout_covariance
+                .lorentz_weight_maximum_error,
+            checkpoint
+                .preflight
+                .mixed_score_readout_covariance
+                .euclidean_score_maximum_error,
+            checkpoint
+                .preflight
+                .mixed_score_readout_covariance
+                .euclidean_weight_maximum_error,
+            checkpoint
+                .preflight
+                .mixed_score_readout_covariance
+                .lorentz_normalized_readout_maximum_error,
+            checkpoint
+                .preflight
+                .mixed_score_readout_covariance
+                .lorentz_tangent_readout_maximum_error,
+            checkpoint
+                .preflight
+                .mixed_score_readout_covariance
+                .euclidean_normalized_readout_maximum_error,
+            checkpoint
+                .preflight
+                .mixed_score_readout_covariance
+                .euclidean_tangent_readout_maximum_error,
+        ]
+        .iter()
+        .any(|error| !error.is_finite() || *error > 1.0e-8)
+        || checkpoint.forward_ledger.preflight_trace_forwards != 64
+        || checkpoint.forward_ledger.paired_decoder_forwards != 0
+        || checkpoint.forward_ledger.total_forwards
+            != checkpoint.forward_ledger.complete_trace_forwards
+        || checkpoint.forward_ledger.measured_forward_calls
+            != checkpoint.forward_ledger.total_forwards
+        || checkpoint.forward_ledger.measured_streams_started
+            != checkpoint.forward_ledger.total_forwards
+        || checkpoint.forward_ledger.measured_streams_completed
+            != checkpoint.forward_ledger.total_forwards
+        || checkpoint.forward_ledger.measured_multiworker_forward_calls
+            != checkpoint.forward_ledger.total_forwards
+        || checkpoint.forward_ledger.requested_workers != SHARDS
+        || checkpoint.forward_ledger.effective_workers != SHARDS
+        || checkpoint.forward_ledger.maximum_active_workers < 2
+        || checkpoint.forward_ledger.active_workers_at_snapshot != 0
+        || checkpoint.forward_ledger.active_streams_at_snapshot != 0
+        || optional_full_fields.iter().any(|present| *present != full)
+        || checkpoint
+            .preflight
+            .tangent_mse_ten_percent_better_on_each_document
+            != full
+        || (full
+            && (checkpoint.score_fit_document_ids
+                != LOCALIZATION_FIT_IDS.map(str::to_owned).to_vec()
+                || checkpoint.localization_audit_document_ids
+                    != LOCALIZATION_AUDIT_IDS.map(str::to_owned).to_vec()
+                || checkpoint.forward_ledger.complete_trace_forwards != 512))
+        || (!full
+            && (!checkpoint.score_fit_document_ids.is_empty()
+                || !checkpoint.localization_audit_document_ids.is_empty()
+                || checkpoint.forward_ledger.complete_trace_forwards != 64))
+    {
+        return Err("localization checkpoint violates its frozen phase contract".into());
+    }
+    if full {
+        let lorentz = checkpoint
+            .lorentz_parameters
+            .as_ref()
+            .ok_or("full checkpoint omitted Lorentz parameters")?;
+        let euclidean = checkpoint
+            .euclidean_parameters
+            .as_ref()
+            .ok_or("full checkpoint omitted Euclidean parameters")?;
+        let lorentz_report = checkpoint
+            .lorentz_fit_report
+            .as_ref()
+            .ok_or("full checkpoint omitted Lorentz fit report")?;
+        let euclidean_report = checkpoint
+            .euclidean_fit_report
+            .as_ref()
+            .ok_or("full checkpoint omitted Euclidean fit report")?;
+        validate_localization_fit_report(
+            lorentz_report,
+            lorentz,
+            HelmDLearnedManifoldMetric::Lorentz,
+        )?;
+        validate_localization_fit_report(
+            euclidean_report,
+            euclidean,
+            HelmDLearnedManifoldMetric::Euclidean,
+        )?;
+        let replay = checkpoint
+            .fit_replay
+            .as_ref()
+            .ok_or("full checkpoint omitted fit replay")?;
+        if !replay.lorentz_parameter_bytes_identical
+            || !replay.euclidean_parameter_bytes_identical
+            || !replay.lorentz_report_identical
+            || !replay.euclidean_report_identical
+            || replay.replay_cid != localization_fit_replay_cid(replay)?
+            || replay.lorentz_primary_parameter_cid != lorentz_report.parameter_cid
+            || replay.euclidean_primary_parameter_cid != euclidean_report.parameter_cid
+            || replay.lorentz_primary_parameter_cid != replay.lorentz_replay_parameter_cid
+            || replay.euclidean_primary_parameter_cid != replay.euclidean_replay_parameter_cid
+            || replay.lorentz_primary_report_cid != lorentz_report.report_cid
+            || replay.euclidean_primary_report_cid != euclidean_report.report_cid
+            || replay.lorentz_primary_report_cid != replay.lorentz_replay_report_cid
+            || replay.euclidean_primary_report_cid != replay.euclidean_replay_report_cid
+            || !checkpoint
+                .fit_population_attention
+                .as_ref()
+                .is_some_and(|evaluation| {
+                    evaluation.replay_identical
+                        && evaluation.offline_evaluation_frame
+                            == "canonical_model_frame_gauge_equivalent"
+                        && evaluation.offline_atlas_transport_status
+                            == "NOT_EXECUTED_COVARIANCE_REDUCED"
+                })
+            || !checkpoint
+                .audit_population_attention
+                .as_ref()
+                .is_some_and(|evaluation| {
+                    evaluation.replay_identical
+                        && evaluation.offline_evaluation_frame
+                            == "canonical_model_frame_gauge_equivalent"
+                        && evaluation.offline_atlas_transport_status
+                            == "NOT_EXECUTED_COVARIANCE_REDUCED"
+                })
+        {
+            return Err("localization checkpoint replay evidence is incomplete".into());
+        }
+    }
+    let envelope = LocalizationCheckpointEnvelope {
+        checkpoint_cid: canonical_json_cid(&checkpoint)?,
+        checkpoint,
+    };
+    write_pretty_json_exclusive(path, &envelope)?;
+    let readback: LocalizationCheckpointEnvelope = serde_json::from_slice(&fs::read(path)?)?;
+    if readback != envelope
+        || readback.checkpoint_cid != canonical_json_cid(&readback.checkpoint)?
+        || canonical_json_bytes(&readback)? != canonical_json_bytes(&envelope)?
+    {
+        return Err("localization checkpoint readback is not byte-identical".into());
+    }
+    Ok(readback)
+}
+
+fn validate_localization_fit_report(
+    report: &LocalizationFitReport,
+    parameters: &HelmDLearnedManifoldParameters,
+    metric: HelmDLearnedManifoldMetric,
+) -> TestResult {
+    let rows = u64::try_from(
+        LOCALIZATION_FIT_DOCUMENTS * SCORE_POSITIONS * EXPECTED_LAYERS * EXPECTED_QUERY_HEADS,
+    )?;
+    let pairs = u64::try_from(
+        LOCALIZATION_FIT_DOCUMENTS
+            * EXPECTED_LAYERS
+            * EXPECTED_QUERY_HEADS
+            * ((SCORE_START + 1)..=INPUT_POSITIONS).sum::<usize>(),
+    )?;
+    let evaluations = LOCALIZATION_ADAM_STEPS + 2;
+    if report.schema != "uor-r4.helm-d-score-centroid-localization-fit/1"
+        || report.metric != metric
+        || report.objective != "donor-attention-cross-entropy-plus-qk-only-ridge"
+        || report.steps != LOCALIZATION_ADAM_STEPS
+        || report.workers != SHARDS
+        || report.fit_documents != LOCALIZATION_FIT_DOCUMENTS
+        || report.fit_rows != rows
+        || !report.initial_objective.is_finite()
+        || !report.final_objective.is_finite()
+        || report.total_parameter_scalars != PARAMETER_SCALARS
+        || report.trainable_parameter_scalars != LOCALIZATION_TRAINABLE_PARAMETER_SCALARS
+        || report.frozen_parameter_scalars != LOCALIZATION_FROZEN_PARAMETER_SCALARS
+        || !report.value_adapters_identity
+        || !report.uniform_bias_zero
+        || !localization_parameters_are_frozen(parameters)
+        || report.parameter_cid != public_parameter_identity(parameters)?
+        || report.gradient_audit.schema
+            != "uor-r4.helm-d-score-centroid-localization-gradient-audit/1"
+        || report.gradient_audit.gradient_evaluations != evaluations
+        || report.gradient_audit.optimizer_gradient_evaluations != LOCALIZATION_ADAM_STEPS
+        || report.gradient_audit.diagnostic_gradient_evaluations != 2
+        || report.gradient_audit.ordered_evaluation_cids.len() != evaluations
+        || report.gradient_audit_cid != canonical_json_cid(&report.gradient_audit)?
+        || report.work.workers != SHARDS
+        || report.work.full_batch_steps != LOCALIZATION_ADAM_STEPS
+        || report.work.full_batch_evaluations != evaluations
+        || report
+            .work
+            .rows_per_shard_per_evaluation
+            .iter()
+            .sum::<u64>()
+            != rows
+        || report
+            .work
+            .source_pairs_per_shard_per_evaluation
+            .iter()
+            .sum::<u64>()
+            != pairs
+        || report.work.total_row_evaluations != rows.saturating_mul(evaluations as u64)
+        || report.work.total_source_pair_evaluations != pairs.saturating_mul(evaluations as u64)
+        || report.report_cid != localization_fit_report_cid(report)?
+    {
+        return Err("localization fit report fails its exact work/freeze schema".into());
+    }
+    Ok(())
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+struct LocalizationDecoderComparison {
+    lorentz_normalized: ArmReport,
+    lorentz_tangent: ArmReport,
+    tangent_minus_normalized_nll: f64,
+    tangent_nll_improves_by_at_least_005: bool,
+    exact_causal_work: bool,
+    replay_identical: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+struct LocalizationTiming {
+    preflight_trace_seconds: f64,
+    preflight_evaluation_seconds: f64,
+    remaining_trace_seconds: f64,
+    fit_and_replay_seconds: f64,
+    attention_evaluation_seconds: f64,
+    decoder_seconds: f64,
+    total_seconds: f64,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+struct LocalizationResultPayload {
+    schema: String,
+    issue: u32,
+    terminal: String,
+    partition_cid: String,
+    checkpoint_cid: String,
+    target_commitment_artifact_cid: String,
+    implementation: LocalizationImplementationIdentity,
+    preflight: LocalizationPreflightReport,
+    fit_population_attention: Option<LocalizationAttentionEvaluation>,
+    audit_population_attention: Option<LocalizationAttentionEvaluation>,
+    decoder: Option<LocalizationDecoderComparison>,
+    forward_ledger: LocalizationForwardLedger,
+    execution_snapshot: TeacherExecutionSnapshot,
+    timing: LocalizationTiming,
+    audit_targets_materialized_after_checkpoint: bool,
+    v2_validation_status: String,
+    d3_status: String,
+    result_cid: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+struct LocalizationUnavailablePayload {
+    schema: String,
+    issue: u32,
+    terminal: String,
+    reason: String,
+    checkpoint_exists: bool,
+    audit_targets_materialized: bool,
+    v2_validation_status: String,
+    d3_status: String,
+    result_cid: String,
+}
+
+impl SelfCommittedResult for LocalizationResultPayload {
+    fn result_cid(&self) -> &str {
+        &self.result_cid
+    }
+
+    fn result_cid_mut(&mut self) -> &mut String {
+        &mut self.result_cid
+    }
+}
+
+impl SelfCommittedResult for LocalizationUnavailablePayload {
+    fn result_cid(&self) -> &str {
+        &self.result_cid
+    }
+
+    fn result_cid_mut(&mut self) -> &mut String {
+        &mut self.result_cid
+    }
+}
+
+fn write_localization_unavailable(
+    path: &Path,
+    reason: &str,
+    checkpoint_exists: bool,
+    audit_targets_materialized: bool,
+) -> TestResult<String> {
+    let mut payload = LocalizationUnavailablePayload {
+        schema: LOCALIZATION_RESULT_SCHEMA.to_owned(),
+        issue: 973,
+        terminal: LOCALIZATION_UNAVAILABLE_TERMINAL.to_owned(),
+        reason: reason.to_owned(),
+        checkpoint_exists,
+        audit_targets_materialized,
+        v2_validation_status: "NOT_OPENED_OR_RESCORED".to_owned(),
+        d3_status: "NOT_RUN".to_owned(),
+        result_cid: String::new(),
+    };
+    payload.result_cid = result_payload_cid(&payload)?;
+    write_result(path, &payload)
+}
+
+fn localization_terminal_for(
+    preflight_tangent_passed: bool,
+    audit_tangent_passed: Option<bool>,
+    euclidean_score_passed: Option<bool>,
+    decoder_tangent_passed: Option<bool>,
+) -> &'static str {
+    if !preflight_tangent_passed {
+        return LOCALIZATION_REJECT_TANGENT_PREFLIGHT_TERMINAL;
+    }
+    match (
+        audit_tangent_passed,
+        euclidean_score_passed,
+        decoder_tangent_passed,
+    ) {
+        (Some(true), _, Some(true)) => LOCALIZATION_SELECT_TANGENT_TERMINAL,
+        (Some(false), Some(true), None) => LOCALIZATION_SELECT_SCORE_TERMINAL,
+        (Some(_), Some(_), _) => LOCALIZATION_REVISE_TERMINAL,
+        _ => LOCALIZATION_UNAVAILABLE_TERMINAL,
+    }
+}
+
+#[test]
+fn helm_d_score_centroid_localization_r4_v1_schema_and_decisions_are_pinned() -> TestResult {
+    if LOCALIZATION_CHECKPOINT_SCHEMA != "uor-r4.helm-d-score-centroid-localization-r4-checkpoint/1"
+        || LOCALIZATION_RESULT_SCHEMA != "uor-r4.helm-d-score-centroid-localization-r4-result/1"
+        || LOCALIZATION_FIT_IDS.len() != 8
+        || LOCALIZATION_AUDIT_IDS.len() != 8
+        || LOCALIZATION_FIT_IDS
+            .iter()
+            .any(|id| LOCALIZATION_AUDIT_IDS.contains(id))
+        || localization_terminal_for(false, None, None, None)
+            != LOCALIZATION_REJECT_TANGENT_PREFLIGHT_TERMINAL
+        || localization_terminal_for(true, Some(true), Some(true), Some(true))
+            != LOCALIZATION_SELECT_TANGENT_TERMINAL
+        || localization_terminal_for(true, Some(false), Some(true), None)
+            != LOCALIZATION_SELECT_SCORE_TERMINAL
+        || localization_terminal_for(true, Some(true), Some(true), Some(false))
+            != LOCALIZATION_REVISE_TERMINAL
+        || localization_document_mse_passes(true, 1.0, 1.0)
+        || !localization_document_mse_passes(true, 1.0, 1.0 - f64::EPSILON)
+        || !localization_document_mse_passes(false, 1.0, 0.9)
+        || localization_document_mse_passes(false, 1.0, 0.9 + f64::EPSILON)
+    {
+        return Err("localization schema or exclusive terminal mapping drifted".into());
+    }
+    let quantiles = localization_quantiles((1..=20).map(|value| value as f64).collect())?;
+    if quantiles
+        != (LocalizationQuantiles {
+            p0: 1.0,
+            p50: 10.0,
+            p95: 19.0,
+            p100: 20.0,
+        })
+    {
+        return Err("nearest-rank localization quantiles drifted".into());
+    }
+    Ok(())
+}
+
+#[test]
+fn helm_d_score_centroid_localization_r4_v1_predecessor_and_covariance_are_sealed() -> TestResult {
+    let predecessor = localization_predecessor_identity()?;
+    let (frames, tangent_error) = localization_tangent_registered_frame_covariance()?;
+    let mixed = localization_mixed_registered_frame_covariance()?;
+    if predecessor.result_self_cid != LOCALIZATION_PREDECESSOR_RESULT_CID
+        || predecessor.checkpoint_self_cid != LOCALIZATION_PREDECESSOR_CHECKPOINT_CID
+        || frames != 120
+        || mixed.registered_frames != 120
+        || tangent_error > 1.0e-8
+    {
+        return Err("localization predecessor or tangent covariance seal drifted".into());
+    }
+    Ok(())
+}
+
+#[test]
+#[ignore = "runs the frozen two-document gate and admitted 8/8 score-readout localization"]
+fn helm_d_score_centroid_localization_r4_v1_decision() -> TestResult {
+    let result_path = required_path_from_env(LOCALIZATION_OUTPUT_ENV)?;
+    let checkpoint_path = required_path_from_env(LOCALIZATION_CHECKPOINT_ENV)?;
+    let mut audit_targets_materialized = false;
+    match run_helm_d_score_centroid_localization_r4_v1(
+        &result_path,
+        &checkpoint_path,
+        &mut audit_targets_materialized,
+    ) {
+        Ok(()) => Ok(()),
+        Err(error) => {
+            if !result_path.exists() {
+                let _ = write_localization_unavailable(
+                    &result_path,
+                    &error.to_string(),
+                    checkpoint_path.is_file(),
+                    audit_targets_materialized,
+                );
+            }
+            Err(error)
+        }
+    }
+}
+
+fn run_helm_d_score_centroid_localization_r4_v1(
+    result_path: &Path,
+    checkpoint_path: &Path,
+    audit_targets_materialized: &mut bool,
+) -> TestResult {
+    let total_started = Instant::now();
+    if env::var(CANONICAL_DETERMINISTIC_ENV).as_deref() != Ok("1") {
+        return Err(format!("{CANONICAL_DETERMINISTIC_ENV}=1 is required").into());
+    }
+    if result_path.exists() || checkpoint_path.exists() {
+        return Err("exclusive localization result or checkpoint path already exists".into());
+    }
+    let partition_path = required_path_from_env(LOCALIZATION_PARTITION_ENV)?;
+    let partition_envelope = parse_partition(&fs::read(partition_path)?)?;
+    let partition = &partition_envelope.manifest;
+    let implementation = localization_implementation_identity()?;
+    let target_commitment_path = required_path_from_env(LOCALIZATION_TARGET_ENV)?;
+    let target_envelope: LocalizationTargetEnvelope =
+        serde_json::from_slice(&fs::read(target_commitment_path)?)?;
+    validate_localization_target_envelope(&target_envelope, partition, &implementation)?;
+    let fit_ids = partition.construction_fit[..LOCALIZATION_FIT_DOCUMENTS]
+        .iter()
+        .map(|document| document.id.as_str())
+        .collect::<Vec<_>>();
+    let audit_ids = partition.construction_fit
+        [LOCALIZATION_FIT_DOCUMENTS..LOCALIZATION_FIT_DOCUMENTS + LOCALIZATION_AUDIT_DOCUMENTS]
+        .iter()
+        .map(|document| document.id.as_str())
+        .collect::<Vec<_>>();
+    if partition.partition_cid != LOCALIZATION_PARTITION_CID
+        || fit_ids != LOCALIZATION_FIT_IDS
+        || audit_ids != LOCALIZATION_AUDIT_IDS
+    {
+        return Err(
+            "localization partition does not expose the frozen 8/8 construction split".into(),
+        );
+    }
+    let tokenizer_path = path_from_env(TOKENIZER_ENV, DEFAULT_TOKENIZER);
+    let corpus_path = path_from_env(CORPUS_ENV, DEFAULT_CORPUS);
+    let model_path = path_from_env(MODEL_ENV, DEFAULT_MODEL);
+    verify_corpus_manifest(&corpus_path)?;
+    if file_cid(&tokenizer_path)? != partition.tokenizer_cid {
+        return Err("localization tokenizer identity differs from the frozen partition".into());
+    }
+    let tokenizer = Tokenizer::try_load(&tokenizer_path)?;
+    let workers = NonZeroUsize::new(SHARDS).ok_or("eight workers must be nonzero")?;
+    let oracle = HuggingFaceLlamaOracle::load_with_execution(
+        &model_path,
+        TeacherExecutionConfig::fixed_workers(workers),
+    )?;
+    if oracle.source_cid() != DONOR_CID || oracle.source_cid() != partition.donor_cid {
+        return Err("localization donor identity differs from the frozen partition".into());
+    }
+    let config = oracle.cfg();
+    if config.n_layers != EXPECTED_LAYERS
+        || config.n_heads != EXPECTED_QUERY_HEADS
+        || config.n_kv_heads != EXPECTED_KV_HEADS
+        || config.dim / config.n_heads != HEAD_WIDTH
+        || config.r4_attention
+        || config.seq_len < INPUT_POSITIONS
+    {
+        return Err("localization donor geometry differs from the frozen operator".into());
+    }
+    let rope_theta = config.rope_theta;
+    let rope_interleaved = config.rope_interleaved;
+    let maximum_token_id = u32::try_from(config.vocab.checked_sub(1).ok_or("empty vocab")?)?;
+    let preparation = oracle.prepare_exact_execution(1)?;
+    if preparation.workers_observed != SHARDS || !preparation.backend_exercised {
+        return Err("localization exact eight-worker donor preparation was not exercised".into());
+    }
+    let execution_baseline = oracle.execution_snapshot();
+    let preflight_trace_started = Instant::now();
+    let preflight_documents = materialize_documents(
+        &corpus_path,
+        &tokenizer,
+        &partition.construction_fit[..LOCALIZATION_PREFLIGHT_DOCUMENTS],
+        false,
+    )?;
+    let mut captures = capture_fit_documents(&oracle, &preflight_documents)?;
+    let preflight_trace_seconds = preflight_trace_started.elapsed().as_secs_f64();
+    let preflight_evaluation_started = Instant::now();
+    let untouched = HelmDLearnedManifoldParameters::identity(
+        EXPECTED_LAYERS,
+        EXPECTED_QUERY_HEADS,
+        EXPECTED_KV_HEADS,
+        BLOCKS_PER_HEAD,
+        INITIAL_SCALE,
+    )?;
+    if !localization_parameters_are_frozen(&untouched)
+        || untouched
+            .query_adapters()
+            .iter()
+            .chain(untouched.key_adapters())
+            .any(|adapter| *adapter != R4AffineAdapter::identity())
+        || untouched
+            .learned_scales()
+            .iter()
+            .any(|scale| scale.to_bits() != INITIAL_SCALE.to_bits())
+    {
+        return Err("localization preflight initialization is not untouched".into());
+    }
+    let preflight_attention = evaluate_localization_attention(
+        &captures,
+        &untouched,
+        &untouched,
+        rope_theta,
+        rope_interleaved,
+    )?;
+    let (registered_frames, _, _, _, normalized_covariance, natural_atlas_liveness) =
+        registered_frame_covariance_preflight(maximum_token_id)?;
+    let (tangent_frames, tangent_covariance) = localization_tangent_registered_frame_covariance()?;
+    let mixed_covariance = localization_mixed_registered_frame_covariance()?;
+    let compared_lanes =
+        identity_projection_ordering_preflight(&captures, rope_theta, rope_interleaved)?;
+    let preflight_tangent_passed = localization_lm_lt_mse_passes(&preflight_attention, false)?;
+    let preflight_infrastructure = preflight_attention
+        .score_paired_logits_and_weights_bit_identical
+        && preflight_attention.all_normalization_factors_at_least_one_minus_tolerance
+        && preflight_attention.replay_identical
+        && preflight_attention.work.future_position_reads == 0
+        && preflight_attention.work.target_as_input_reads == 0
+        && registered_frames == 120
+        && tangent_frames == 120
+        && mixed_covariance.registered_frames == 120
+        && natural_atlas_liveness
+        && normalized_covariance <= 1.0e-8
+        && tangent_covariance <= 1.0e-8;
+    if !preflight_infrastructure {
+        return Err(
+            "localization preflight identity/covariance/causal/work/replay gate failed".into(),
+        );
+    }
+    let preflight = LocalizationPreflightReport {
+        schema: "uor-r4.helm-d-score-centroid-localization-preflight/1".to_owned(),
+        document_ids: LOCALIZATION_FIT_IDS[..LOCALIZATION_PREFLIGHT_DOCUMENTS]
+            .iter()
+            .map(ToString::to_string)
+            .collect(),
+        untouched_parameter_cid: public_parameter_identity(&untouched)?,
+        identity_qkv: true,
+        layer_scale: INITIAL_SCALE,
+        uniform_bias: 0.0,
+        registered_frames,
+        normalized_centroid_covariance_maximum_error: normalized_covariance,
+        tangent_covariance_maximum_error: tangent_covariance,
+        mixed_score_readout_covariance: mixed_covariance,
+        natural_atlas_source_permutation_live: natural_atlas_liveness,
+        identity_projection_ordering_compared_lanes: compared_lanes,
+        attention: preflight_attention,
+        tangent_mse_ten_percent_better_on_each_document: preflight_tangent_passed,
+        infrastructure_passed: true,
+    };
+    let preflight_evaluation_seconds = preflight_evaluation_started.elapsed().as_secs_f64();
+
+    if !preflight_tangent_passed {
+        let execution_snapshot = oracle.execution_snapshot();
+        let forward_ledger =
+            localization_forward_ledger(execution_baseline, execution_snapshot, 64, 0)?;
+        let checkpoint = write_localization_checkpoint(
+            checkpoint_path,
+            LocalizationCheckpoint {
+                schema: LOCALIZATION_CHECKPOINT_SCHEMA.to_owned(),
+                issue: 973,
+                phase: "preflight_rejected".to_owned(),
+                contract_cid: implementation.contract_cid.clone(),
+                population_cid: CORPUS_CID.to_owned(),
+                partition_cid: partition.partition_cid.clone(),
+                manifest_cid: partition_envelope.manifest_cid.clone(),
+                donor_cid: DONOR_CID.to_owned(),
+                tokenizer_cid: partition.tokenizer_cid.clone(),
+                target_commitment_artifact_cid: target_envelope.artifact_cid.clone(),
+                target_commitment_manifest_cid: target_envelope.manifest.manifest_cid.clone(),
+                upstream_source_commit: HELM_D_UPSTREAM_COMMIT.to_owned(),
+                implementation: implementation.clone(),
+                exact_workers: SHARDS,
+                execution_preparation: preparation,
+                preflight: preflight.clone(),
+                score_fit_document_ids: Vec::new(),
+                localization_audit_document_ids: Vec::new(),
+                lorentz_parameters: None,
+                lorentz_fit_report: None,
+                euclidean_parameters: None,
+                euclidean_fit_report: None,
+                fit_replay: None,
+                fit_population_attention: None,
+                audit_population_attention: None,
+                forward_ledger: forward_ledger.clone(),
+                target_materialized: false,
+                d3_status: "NOT_RUN".to_owned(),
+            },
+        )?;
+        let mut payload = LocalizationResultPayload {
+            schema: LOCALIZATION_RESULT_SCHEMA.to_owned(),
+            issue: 973,
+            terminal: LOCALIZATION_REJECT_TANGENT_PREFLIGHT_TERMINAL.to_owned(),
+            partition_cid: partition.partition_cid.clone(),
+            checkpoint_cid: checkpoint.checkpoint_cid,
+            target_commitment_artifact_cid: target_envelope.artifact_cid.clone(),
+            implementation,
+            preflight,
+            fit_population_attention: None,
+            audit_population_attention: None,
+            decoder: None,
+            forward_ledger,
+            execution_snapshot,
+            timing: LocalizationTiming {
+                preflight_trace_seconds,
+                preflight_evaluation_seconds,
+                remaining_trace_seconds: 0.0,
+                fit_and_replay_seconds: 0.0,
+                attention_evaluation_seconds: 0.0,
+                decoder_seconds: 0.0,
+                total_seconds: total_started.elapsed().as_secs_f64(),
+            },
+            audit_targets_materialized_after_checkpoint: false,
+            v2_validation_status: "NOT_OPENED_OR_RESCORED".to_owned(),
+            d3_status: "NOT_RUN".to_owned(),
+            result_cid: String::new(),
+        };
+        payload.result_cid = result_payload_cid(&payload)?;
+        let result_cid = write_result(result_path, &payload)?;
+        eprintln!(
+            "HELM-D score-centroid localization terminal={} result_cid={result_cid}",
+            payload.terminal
+        );
+        return Ok(());
+    }
+
+    let remaining_trace_started = Instant::now();
+    let remaining_documents = materialize_documents(
+        &corpus_path,
+        &tokenizer,
+        &partition.construction_fit[LOCALIZATION_PREFLIGHT_DOCUMENTS..],
+        false,
+    )?;
+    captures.extend(capture_fit_documents(&oracle, &remaining_documents)?);
+    if captures.len() != FIT_DOCUMENTS
+        || captures
+            .iter()
+            .map(|capture| capture.document.id.as_str())
+            .collect::<Vec<_>>()
+            != partition
+                .construction_fit
+                .iter()
+                .map(|document| document.id.as_str())
+                .collect::<Vec<_>>()
+    {
+        return Err("localization complete trace order differs from the frozen split".into());
+    }
+    let remaining_trace_seconds = remaining_trace_started.elapsed().as_secs_f64();
+    let fit_started = Instant::now();
+    let lorentz = fit_localization_score(
+        HelmDLearnedManifoldMetric::Lorentz,
+        &captures[..LOCALIZATION_FIT_DOCUMENTS],
+        LOCALIZATION_FIT_DOCUMENTS,
+        rope_theta,
+        rope_interleaved,
+    )?;
+    let euclidean = fit_localization_score(
+        HelmDLearnedManifoldMetric::Euclidean,
+        &captures[..LOCALIZATION_FIT_DOCUMENTS],
+        LOCALIZATION_FIT_DOCUMENTS,
+        rope_theta,
+        rope_interleaved,
+    )?;
+    let lorentz_replay = fit_localization_score(
+        HelmDLearnedManifoldMetric::Lorentz,
+        &captures[..LOCALIZATION_FIT_DOCUMENTS],
+        LOCALIZATION_FIT_DOCUMENTS,
+        rope_theta,
+        rope_interleaved,
+    )?;
+    let euclidean_replay = fit_localization_score(
+        HelmDLearnedManifoldMetric::Euclidean,
+        &captures[..LOCALIZATION_FIT_DOCUMENTS],
+        LOCALIZATION_FIT_DOCUMENTS,
+        rope_theta,
+        rope_interleaved,
+    )?;
+    let mut fit_replay = LocalizationFitReplayReport {
+        lorentz_primary_parameter_cid: lorentz.report.parameter_cid.clone(),
+        lorentz_replay_parameter_cid: lorentz_replay.report.parameter_cid.clone(),
+        euclidean_primary_parameter_cid: euclidean.report.parameter_cid.clone(),
+        euclidean_replay_parameter_cid: euclidean_replay.report.parameter_cid.clone(),
+        lorentz_primary_report_cid: lorentz.report.report_cid.clone(),
+        lorentz_replay_report_cid: lorentz_replay.report.report_cid.clone(),
+        euclidean_primary_report_cid: euclidean.report.report_cid.clone(),
+        euclidean_replay_report_cid: euclidean_replay.report.report_cid.clone(),
+        lorentz_parameter_bytes_identical: lorentz.parameter_bytes
+            == lorentz_replay.parameter_bytes,
+        euclidean_parameter_bytes_identical: euclidean.parameter_bytes
+            == euclidean_replay.parameter_bytes,
+        lorentz_report_identical: lorentz.report == lorentz_replay.report,
+        euclidean_report_identical: euclidean.report == euclidean_replay.report,
+        replay_cid: String::new(),
+    };
+    fit_replay.replay_cid = localization_fit_replay_cid(&fit_replay)?;
+    if !fit_replay.lorentz_parameter_bytes_identical
+        || !fit_replay.euclidean_parameter_bytes_identical
+        || !fit_replay.lorentz_report_identical
+        || !fit_replay.euclidean_report_identical
+    {
+        return Err("localization score refits are not byte-identical".into());
+    }
+    let fit_and_replay_seconds = fit_started.elapsed().as_secs_f64();
+    let attention_started = Instant::now();
+    let fit_population_attention = evaluate_localization_attention(
+        &captures[..LOCALIZATION_FIT_DOCUMENTS],
+        &lorentz.parameters,
+        &euclidean.parameters,
+        rope_theta,
+        rope_interleaved,
+    )?;
+    let audit_population_attention = evaluate_localization_attention(
+        &captures[LOCALIZATION_FIT_DOCUMENTS..],
+        &lorentz.parameters,
+        &euclidean.parameters,
+        rope_theta,
+        rope_interleaved,
+    )?;
+    if !fit_population_attention.score_paired_logits_and_weights_bit_identical
+        || !audit_population_attention.score_paired_logits_and_weights_bit_identical
+        || !fit_population_attention.all_normalization_factors_at_least_one_minus_tolerance
+        || !audit_population_attention.all_normalization_factors_at_least_one_minus_tolerance
+        || fit_population_attention.work.future_position_reads != 0
+        || audit_population_attention.work.future_position_reads != 0
+    {
+        return Err("localization full attention identity/normalization/causal gate failed".into());
+    }
+    let attention_evaluation_seconds = attention_started.elapsed().as_secs_f64();
+    let audit_tangent_passed = localization_lm_lt_mse_passes(&audit_population_attention, true)?;
+    let euclidean_score_passed = localization_euclidean_score_passes(&audit_population_attention)?;
+    let full_forward_ledger =
+        localization_forward_ledger(execution_baseline, oracle.execution_snapshot(), 512, 0)?;
+    let checkpoint = write_localization_checkpoint(
+        checkpoint_path,
+        LocalizationCheckpoint {
+            schema: LOCALIZATION_CHECKPOINT_SCHEMA.to_owned(),
+            issue: 973,
+            phase: "full_attention_audit".to_owned(),
+            contract_cid: implementation.contract_cid.clone(),
+            population_cid: CORPUS_CID.to_owned(),
+            partition_cid: partition.partition_cid.clone(),
+            manifest_cid: partition_envelope.manifest_cid.clone(),
+            donor_cid: DONOR_CID.to_owned(),
+            tokenizer_cid: partition.tokenizer_cid.clone(),
+            target_commitment_artifact_cid: target_envelope.artifact_cid.clone(),
+            target_commitment_manifest_cid: target_envelope.manifest.manifest_cid.clone(),
+            upstream_source_commit: HELM_D_UPSTREAM_COMMIT.to_owned(),
+            implementation: implementation.clone(),
+            exact_workers: SHARDS,
+            execution_preparation: preparation,
+            preflight: preflight.clone(),
+            score_fit_document_ids: LOCALIZATION_FIT_IDS.map(str::to_owned).to_vec(),
+            localization_audit_document_ids: LOCALIZATION_AUDIT_IDS.map(str::to_owned).to_vec(),
+            lorentz_parameters: Some(lorentz.parameters.clone()),
+            lorentz_fit_report: Some(lorentz.report),
+            euclidean_parameters: Some(euclidean.parameters.clone()),
+            euclidean_fit_report: Some(euclidean.report),
+            fit_replay: Some(fit_replay),
+            fit_population_attention: Some(fit_population_attention.clone()),
+            audit_population_attention: Some(audit_population_attention.clone()),
+            forward_ledger: full_forward_ledger.clone(),
+            target_materialized: false,
+            d3_status: "NOT_RUN".to_owned(),
+        },
+    )?;
+
+    let mut decoder = None;
+    let mut decoder_seconds = 0.0;
+    let terminal = if audit_tangent_passed {
+        let decoder_started = Instant::now();
+        *audit_targets_materialized = true;
+        let audit_documents = materialize_documents(
+            &corpus_path,
+            &tokenizer,
+            &partition.construction_fit[LOCALIZATION_FIT_DOCUMENTS..],
+            true,
+        )?;
+        validate_localization_materialized_targets(
+            &audit_documents,
+            &target_envelope,
+            &corpus_path,
+            partition,
+        )?;
+        let lm = run_arm(
+            &oracle,
+            &tokenizer,
+            &audit_documents,
+            ArmSpec::Localized {
+                parameters: checkpoint
+                    .checkpoint
+                    .lorentz_parameters
+                    .as_ref()
+                    .ok_or("checkpoint omitted admitted Lorentz parameters")?,
+                metric: HelmDLearnedManifoldMetric::Lorentz,
+                value_readout: HelmDLearnedManifoldValueReadout::NormalizedLorentzCentroid,
+            },
+            "localization_l_m",
+        )?;
+        let lt = run_arm(
+            &oracle,
+            &tokenizer,
+            &audit_documents,
+            ArmSpec::Localized {
+                parameters: checkpoint
+                    .checkpoint
+                    .lorentz_parameters
+                    .as_ref()
+                    .ok_or("checkpoint omitted admitted Lorentz parameters")?,
+                metric: HelmDLearnedManifoldMetric::Lorentz,
+                value_readout: HelmDLearnedManifoldValueReadout::TransportedTangentArithmeticSum,
+            },
+            "localization_l_t",
+        )?;
+        let exact_causal_work = audit_is_exact(&lm.report) && audit_is_exact(&lt.report);
+        let replay_identical = lm.report.replay_identical && lt.report.replay_identical;
+        if !exact_causal_work || !replay_identical {
+            return Err("localization paired decoder causal work or replay failed".into());
+        }
+        let nll_delta = lt.report.mean_next_token_nll - lm.report.mean_next_token_nll;
+        let decoder_passed = nll_delta <= -0.05;
+        decoder = Some(LocalizationDecoderComparison {
+            lorentz_normalized: lm.report,
+            lorentz_tangent: lt.report,
+            tangent_minus_normalized_nll: nll_delta,
+            tangent_nll_improves_by_at_least_005: decoder_passed,
+            exact_causal_work,
+            replay_identical,
+        });
+        decoder_seconds = decoder_started.elapsed().as_secs_f64();
+        localization_terminal_for(
+            true,
+            Some(true),
+            Some(euclidean_score_passed),
+            Some(decoder_passed),
+        )
+    } else {
+        localization_terminal_for(true, Some(false), Some(euclidean_score_passed), None)
+    };
+    let execution_snapshot = oracle.execution_snapshot();
+    let forward_ledger = localization_forward_ledger(
+        execution_baseline,
+        execution_snapshot,
+        512,
+        if decoder.is_some() { 512 } else { 0 },
+    )?;
+    let mut payload = LocalizationResultPayload {
+        schema: LOCALIZATION_RESULT_SCHEMA.to_owned(),
+        issue: 973,
+        terminal: terminal.to_owned(),
+        partition_cid: partition.partition_cid.clone(),
+        checkpoint_cid: checkpoint.checkpoint_cid,
+        target_commitment_artifact_cid: target_envelope.artifact_cid,
+        implementation,
+        preflight,
+        fit_population_attention: Some(fit_population_attention),
+        audit_population_attention: Some(audit_population_attention),
+        decoder,
+        forward_ledger,
+        execution_snapshot,
+        timing: LocalizationTiming {
+            preflight_trace_seconds,
+            preflight_evaluation_seconds,
+            remaining_trace_seconds,
+            fit_and_replay_seconds,
+            attention_evaluation_seconds,
+            decoder_seconds,
+            total_seconds: total_started.elapsed().as_secs_f64(),
+        },
+        audit_targets_materialized_after_checkpoint: *audit_targets_materialized,
+        v2_validation_status: "NOT_OPENED_OR_RESCORED".to_owned(),
+        d3_status: "NOT_RUN".to_owned(),
+        result_cid: String::new(),
+    };
+    payload.result_cid = result_payload_cid(&payload)?;
+    let result_cid = write_result(result_path, &payload)?;
+    eprintln!(
+        "HELM-D score-centroid localization terminal={} result_cid={result_cid}",
         payload.terminal
     );
     Ok(())

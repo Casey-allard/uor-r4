@@ -1813,16 +1813,42 @@ impl CausalAttentionTransport for IntrinsicR4CausalAttentionTransport {
     }
 }
 
-/// The construction qualifier copied from HELM-D's dense Lorentz attention.
+/// The score relation used by the construction qualifier copied from HELM-D's
+/// dense Lorentz attention.
 ///
-/// Both arms own the same learned R4-block affine adapters. `Lorentz` changes
-/// only the compatibility relation and value centroid; `Euclidean` is the
-/// equal-capacity curvature-destroying control.
+/// Both score arms own the same learned R4-block affine adapter capacity.
+/// Value aggregation is selected independently by
+/// [`HelmDLearnedManifoldValueReadout`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum HelmDLearnedManifoldMetric {
     Lorentz,
     Euclidean,
+}
+
+impl HelmDLearnedManifoldMetric {
+    /// The value readout historically coupled to this score metric.
+    ///
+    /// This preserves the original construction and equal-capacity control
+    /// behavior for callers that use [`HelmDLearnedManifoldR4Transport::new`].
+    pub const fn default_value_readout(self) -> HelmDLearnedManifoldValueReadout {
+        match self {
+            Self::Lorentz => HelmDLearnedManifoldValueReadout::NormalizedLorentzCentroid,
+            Self::Euclidean => HelmDLearnedManifoldValueReadout::TransportedTangentArithmeticSum,
+        }
+    }
+}
+
+/// Value aggregation policy, independent from the learned-manifold score.
+///
+/// Both policies consume values after exact transport into the query frame.
+/// The tangent policy therefore remains a geometric, gauge-covariant value
+/// readout; it only omits the full-head hyperboloid lift and renormalization.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum HelmDLearnedManifoldValueReadout {
+    NormalizedLorentzCentroid,
+    TransportedTangentArithmeticSum,
 }
 
 /// Equal-shape interventions used to test whether coherent R4 transport and
@@ -2243,6 +2269,32 @@ pub const HELM_D_LEARNED_EUCLIDEAN_R4_CONTROL_POLICY: &str = concat!(
     "claim=equal-capacity-curvature-destroying-control"
 );
 
+pub const HELM_D_LEARNED_LORENTZ_TANGENT_R4_LOCALIZATION_POLICY: &str = concat!(
+    "schema=helm-d-learned-manifold-r4-score-readout-localization/1\n",
+    "projection=learned-block-diagonal-r4-affine-adapter-over-donor-qkv-before-rope\n",
+    "position=unchanged-donor-rope-on-query-and-key\n",
+    "score=(2+2*lorentz-inner)/learned-layer-scale+uniform-bias\n",
+    "selector=stable-complete-prefix-causal-softmax\n",
+    "aggregate=transported-tangent-arithmetic-sum\n",
+    "storage=sixteen-r4-blocks-per-head\n",
+    "transport=coherent-exact-cumulative-spin-h4-query-frame\n",
+    "output=unchanged-frozen-donor-wo\n",
+    "claim=construction-only-score-readout-localization"
+);
+
+pub const HELM_D_LEARNED_EUCLIDEAN_LORENTZ_CENTROID_R4_LOCALIZATION_POLICY: &str = concat!(
+    "schema=helm-d-learned-manifold-r4-score-readout-localization/1\n",
+    "projection=learned-block-diagonal-r4-affine-adapter-over-donor-qkv-before-rope\n",
+    "position=unchanged-donor-rope-on-query-and-key\n",
+    "score=negative-full-head-squared-euclidean-distance/learned-layer-scale+uniform-bias\n",
+    "selector=stable-complete-prefix-causal-softmax\n",
+    "aggregate=full-head-normalized-lorentz-centroid\n",
+    "storage=sixteen-r4-blocks-per-head\n",
+    "transport=coherent-exact-cumulative-spin-h4-query-frame\n",
+    "output=unchanged-frozen-donor-wo\n",
+    "claim=construction-only-score-readout-localization"
+);
+
 /// Pure full-head logit used by both the fitter and the live decoder seam.
 pub fn helm_d_learned_manifold_logit(
     metric: HelmDLearnedManifoldMetric,
@@ -2290,10 +2342,28 @@ pub fn helm_d_learned_manifold_logit(
     Ok(logit)
 }
 
-/// Pure whole-head aggregate. Lorentz values are lifted as one H^D point,
-/// never as an independent product of H4 blocks.
+/// Historical metric-coupled whole-head aggregate.
+///
+/// New construction-localization code should call
+/// [`helm_d_learned_manifold_value_readout`] with an explicit value policy.
+/// This wrapper preserves the original Lorentz-centroid and Euclidean-sum
+/// behavior for the frozen attempt-02 integration harness.
 pub fn helm_d_learned_manifold_centroid(
     metric: HelmDLearnedManifoldMetric,
+    values: &[Vec<f64>],
+    weights: &[f64],
+) -> Result<Vec<f64>, HelmDR4AttentionError> {
+    helm_d_learned_manifold_value_readout(metric.default_value_readout(), values, weights)
+}
+
+/// Pure whole-head value readout, selected independently from the score.
+///
+/// `NormalizedLorentzCentroid` lifts the complete head as one H^D point,
+/// never as an independent product of H4 blocks. Values supplied to
+/// `TransportedTangentArithmeticSum` are already in the common query frame,
+/// so their compensated weighted sum is gauge covariant.
+pub fn helm_d_learned_manifold_value_readout(
+    readout: HelmDLearnedManifoldValueReadout,
     values: &[Vec<f64>],
     weights: &[f64],
 ) -> Result<Vec<f64>, HelmDR4AttentionError> {
@@ -2332,7 +2402,7 @@ pub fn helm_d_learned_manifold_centroid(
         {
             compensated_add(sum, correction, normalized_weight * *coordinate);
         }
-        if metric == HelmDLearnedManifoldMetric::Lorentz {
+        if readout == HelmDLearnedManifoldValueReadout::NormalizedLorentzCentroid {
             let time = libm::sqrt(1.0 + compensated_square_sum(value)?);
             compensated_add(
                 &mut time_sum,
@@ -2350,7 +2420,7 @@ pub fn helm_d_learned_manifold_centroid(
             "learned-manifold centroid spatial sum is non-finite".to_owned(),
         ));
     }
-    if metric == HelmDLearnedManifoldMetric::Euclidean {
+    if readout == HelmDLearnedManifoldValueReadout::TransportedTangentArithmeticSum {
         return Ok(spatial_sum);
     }
 
@@ -2452,6 +2522,8 @@ pub struct HelmDLearnedManifoldEvidence {
     pub parameter_identity: String,
     pub scalar_parameter_count: usize,
     pub metric: HelmDLearnedManifoldMetric,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub value_readout: Option<HelmDLearnedManifoldValueReadout>,
     pub intervention: HelmDLearnedManifoldIntervention,
     pub frame_table_offsets: Vec<u16>,
     pub transport_audit: R4SpinTransportAudit,
@@ -2466,6 +2538,7 @@ pub struct HelmDLearnedManifoldR4Transport {
     atlas: R4SpinFrameAtlas,
     parameters: HelmDLearnedManifoldParameters,
     metric: HelmDLearnedManifoldMetric,
+    value_readout: HelmDLearnedManifoldValueReadout,
     intervention: HelmDLearnedManifoldIntervention,
     audit: HelmDLearnedManifoldAudit,
     logit_scratch: Vec<f64>,
@@ -2480,11 +2553,32 @@ impl HelmDLearnedManifoldR4Transport {
         metric: HelmDLearnedManifoldMetric,
         intervention: HelmDLearnedManifoldIntervention,
     ) -> Result<Self, HelmDR4AttentionError> {
+        Self::new_with_value_readout(
+            maximum_token_id,
+            sequence_capacity,
+            parameters,
+            metric,
+            metric.default_value_readout(),
+            intervention,
+        )
+    }
+
+    /// Constructs a learned-manifold transport with independently selected
+    /// score and transported-value readout policies.
+    pub fn new_with_value_readout(
+        maximum_token_id: u32,
+        sequence_capacity: usize,
+        parameters: HelmDLearnedManifoldParameters,
+        metric: HelmDLearnedManifoldMetric,
+        value_readout: HelmDLearnedManifoldValueReadout,
+        intervention: HelmDLearnedManifoldIntervention,
+    ) -> Result<Self, HelmDR4AttentionError> {
         parameters.validate()?;
         Ok(Self {
             atlas: R4SpinFrameAtlas::new(maximum_token_id, sequence_capacity)?,
             parameters,
             metric,
+            value_readout,
             intervention,
             audit: HelmDLearnedManifoldAudit::default(),
             logit_scratch: vec![0.0; sequence_capacity],
@@ -2498,6 +2592,10 @@ impl HelmDLearnedManifoldR4Transport {
 
     pub const fn metric(&self) -> HelmDLearnedManifoldMetric {
         self.metric
+    }
+
+    pub const fn value_readout(&self) -> HelmDLearnedManifoldValueReadout {
+        self.value_readout
     }
 
     pub const fn intervention(&self) -> HelmDLearnedManifoldIntervention {
@@ -2517,9 +2615,23 @@ impl HelmDLearnedManifoldR4Transport {
     }
 
     pub fn policy_identity(&self) -> &'static str {
-        match self.metric {
-            HelmDLearnedManifoldMetric::Lorentz => HELM_D_LEARNED_LORENTZ_R4_CONSTRUCTION_POLICY,
-            HelmDLearnedManifoldMetric::Euclidean => HELM_D_LEARNED_EUCLIDEAN_R4_CONTROL_POLICY,
+        match (self.metric, self.value_readout) {
+            (
+                HelmDLearnedManifoldMetric::Lorentz,
+                HelmDLearnedManifoldValueReadout::NormalizedLorentzCentroid,
+            ) => HELM_D_LEARNED_LORENTZ_R4_CONSTRUCTION_POLICY,
+            (
+                HelmDLearnedManifoldMetric::Euclidean,
+                HelmDLearnedManifoldValueReadout::TransportedTangentArithmeticSum,
+            ) => HELM_D_LEARNED_EUCLIDEAN_R4_CONTROL_POLICY,
+            (
+                HelmDLearnedManifoldMetric::Lorentz,
+                HelmDLearnedManifoldValueReadout::TransportedTangentArithmeticSum,
+            ) => HELM_D_LEARNED_LORENTZ_TANGENT_R4_LOCALIZATION_POLICY,
+            (
+                HelmDLearnedManifoldMetric::Euclidean,
+                HelmDLearnedManifoldValueReadout::NormalizedLorentzCentroid,
+            ) => HELM_D_LEARNED_EUCLIDEAN_LORENTZ_CENTROID_R4_LOCALIZATION_POLICY,
         }
     }
 
@@ -2537,6 +2649,8 @@ impl HelmDLearnedManifoldR4Transport {
             parameter_identity: self.parameter_identity()?,
             scalar_parameter_count: self.parameters.scalar_parameter_count()?,
             metric: self.metric,
+            value_readout: (self.value_readout != self.metric.default_value_readout())
+                .then_some(self.value_readout),
             intervention: self.intervention,
             frame_table_offsets,
             transport_audit: self.atlas.audit(),
@@ -2734,7 +2848,8 @@ impl HelmDLearnedManifoldR4Transport {
             .iter()
             .map(|weight| f64::from(*weight))
             .collect::<Vec<_>>();
-        let centroid = helm_d_learned_manifold_centroid(self.metric, &values, &weights)?;
+        let centroid =
+            helm_d_learned_manifold_value_readout(self.value_readout, &values, &weights)?;
         for (target, source) in output.iter_mut().zip(centroid) {
             *target = source as f32;
             if !target.is_finite() {
@@ -3696,6 +3811,151 @@ mod tests {
                 .scalar_parameter_count()
                 .expect("Euclidean count")
         );
+        assert_eq!(
+            lorentz.value_readout(),
+            HelmDLearnedManifoldValueReadout::NormalizedLorentzCentroid
+        );
+        assert_eq!(
+            euclidean.value_readout(),
+            HelmDLearnedManifoldValueReadout::TransportedTangentArithmeticSum
+        );
+        assert_eq!(
+            lorentz.policy_identity(),
+            HELM_D_LEARNED_LORENTZ_R4_CONSTRUCTION_POLICY
+        );
+        assert_eq!(
+            euclidean.policy_identity(),
+            HELM_D_LEARNED_EUCLIDEAN_R4_CONTROL_POLICY
+        );
+        let lorentz_evidence = serde_json::to_string(
+            &lorentz
+                .evidence_snapshot()
+                .expect("legacy Lorentz evidence"),
+        )
+        .expect("serialize legacy Lorentz evidence");
+        let euclidean_evidence = serde_json::to_string(
+            &euclidean
+                .evidence_snapshot()
+                .expect("legacy Euclidean evidence"),
+        )
+        .expect("serialize legacy Euclidean evidence");
+        assert!(!lorentz_evidence.contains("value_readout"));
+        assert!(!euclidean_evidence.contains("value_readout"));
+    }
+
+    #[test]
+    fn helm_d_learned_manifold_value_readout_is_independent_from_score_metric() {
+        let values = vec![vec![1.0, 0.0], vec![0.0, 1.0]];
+        let weights = [0.5, 0.5];
+        let normalized = helm_d_learned_manifold_value_readout(
+            HelmDLearnedManifoldValueReadout::NormalizedLorentzCentroid,
+            &values,
+            &weights,
+        )
+        .expect("normalized Lorentz centroid");
+        let tangent = helm_d_learned_manifold_value_readout(
+            HelmDLearnedManifoldValueReadout::TransportedTangentArithmeticSum,
+            &values,
+            &weights,
+        )
+        .expect("transported tangent sum");
+
+        assert_eq!(tangent, vec![0.5, 0.5]);
+        assert_ne!(normalized, tangent);
+        assert_eq!(
+            normalized,
+            helm_d_learned_manifold_centroid(
+                HelmDLearnedManifoldMetric::Lorentz,
+                &values,
+                &weights,
+            )
+            .expect("legacy Lorentz centroid")
+        );
+        assert_eq!(
+            tangent,
+            helm_d_learned_manifold_centroid(
+                HelmDLearnedManifoldMetric::Euclidean,
+                &values,
+                &weights,
+            )
+            .expect("legacy Euclidean centroid")
+        );
+    }
+
+    #[test]
+    fn helm_d_learned_manifold_mixed_readout_preserves_scores_and_changes_values() {
+        let parameters =
+            HelmDLearnedManifoldParameters::identity(1, 1, 1, 16, 24.0).expect("parameters");
+        let mut manifold = HelmDLearnedManifoldR4Transport::new_with_value_readout(
+            32,
+            2,
+            parameters.clone(),
+            HelmDLearnedManifoldMetric::Lorentz,
+            HelmDLearnedManifoldValueReadout::NormalizedLorentzCentroid,
+            HelmDLearnedManifoldIntervention::Coherent,
+        )
+        .expect("manifold readout");
+        let mut tangent = HelmDLearnedManifoldR4Transport::new_with_value_readout(
+            32,
+            2,
+            parameters,
+            HelmDLearnedManifoldMetric::Lorentz,
+            HelmDLearnedManifoldValueReadout::TransportedTangentArithmeticSum,
+            HelmDLearnedManifoldIntervention::Coherent,
+        )
+        .expect("tangent readout");
+        let context = CausalAttentionHeadContext {
+            layer: 0,
+            head: 0,
+            query_position: 1,
+        };
+        let query = (0..64)
+            .map(|lane| (lane as f32 - 31.0) / 128.0)
+            .collect::<Vec<_>>();
+        let packed_keys = (0..2)
+            .flat_map(|source| (0..64).map(move |lane| ((source * 64 + lane) as f32 - 48.0) / 96.0))
+            .collect::<Vec<_>>();
+        let mut manifold_weights = [0.0_f32; 2];
+        let mut tangent_weights = [0.0_f32; 2];
+        manifold.score_and_normalize(context, &query, &packed_keys, &mut manifold_weights, true);
+        tangent.score_and_normalize(context, &query, &packed_keys, &mut tangent_weights, true);
+        assert_eq!(manifold_weights, tangent_weights);
+
+        let mut packed_values = vec![0.0_f32; 2 * 64];
+        packed_values[0] = 1.0;
+        packed_values[64 + 1] = 1.0;
+        let mut manifold_output = [0.0_f32; 64];
+        let mut tangent_output = [0.0_f32; 64];
+        manifold.weighted_value_centroid(
+            context,
+            &manifold_weights,
+            &packed_values,
+            &mut manifold_output,
+        );
+        tangent.weighted_value_centroid(
+            context,
+            &tangent_weights,
+            &packed_values,
+            &mut tangent_output,
+        );
+        assert_ne!(manifold_output, tangent_output);
+        assert_eq!(tangent_output[0], tangent_weights[0]);
+        assert_eq!(tangent_output[1], tangent_weights[1]);
+        assert!(tangent_output[2..]
+            .iter()
+            .all(|coordinate| *coordinate == 0.0));
+
+        assert_eq!(
+            tangent.policy_identity(),
+            HELM_D_LEARNED_LORENTZ_TANGENT_R4_LOCALIZATION_POLICY
+        );
+        let evidence = tangent.evidence_snapshot().expect("mixed-arm evidence");
+        assert_eq!(
+            evidence.value_readout,
+            Some(HelmDLearnedManifoldValueReadout::TransportedTangentArithmeticSum)
+        );
+        assert!(CausalAttentionTransport::status(&manifold).is_ok());
+        assert!(CausalAttentionTransport::status(&tangent).is_ok());
     }
 
     #[test]
