@@ -1,0 +1,10 @@
+{
+  "schema": "uor-r4.helm-d-learned-manifold-r4-construction-result/2",
+  "issue": 973,
+  "terminal": "UNAVAILABLE_HELM_D_MANIFOLD_CONSTRUCTION_EVIDENCE",
+  "reason": "only 12 of 120 registered H4 frames were reachable",
+  "validation_materialized": false,
+  "checkpoint_exists": false,
+  "d3_status": "NOT_RUN",
+  "result_cid": "blake3:34adff54bd6ce7986f3e03bf8cc579c02441582d14db28ddd062f74236bc82a3"
+}

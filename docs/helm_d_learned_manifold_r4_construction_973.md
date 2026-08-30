@@ -413,3 +413,38 @@ execution. Its tracked envelope is
 The learned fit, validation materialization, D3, and decision terminal remain
 `NOT_RUN`. The implementation base revision and executable identity will be
 bound only after protected delivery of this contract and freezer.
+
+### 2026-08-29 attempt 01: unavailable synthetic-census implementation
+
+Attempt 01 launched from protected `main` revision
+`40d2c94259d34e153923835faf180b51130eac20` and stopped in the construction
+preflight before the fitter, checkpoint gate, or validation materializer. Its
+exact result is preserved in
+[`helm_d_learned_manifold_r4_construction_attempt_01_result_973.json`](helm_d_learned_manifold_r4_construction_attempt_01_result_973.json).
+
+- terminal: `UNAVAILABLE_HELM_D_MANIFOLD_CONSTRUCTION_EVIDENCE`;
+- reason: `only 12 of 120 registered H4 frames were reachable`;
+- result self-CID:
+  `blake3:34adff54bd6ce7986f3e03bf8cc579c02441582d14db28ddd062f74236bc82a3`;
+- construction validation materialized: `false`;
+- checkpoint exists: `false`; and
+- D3: `NOT_RUN`.
+
+This is an unavailable evidence attempt, not a learned-manifold, population,
+or attention result. The synthetic census implementation tried to discover all
+120 registered frames through one cumulative `token = position` atlas walk.
+The frozen lexical leaf map assigns only four Hurwitz-unit roots, whose full
+closure is the 24-state binary-tetrahedral subgroup; that particular periodic
+walk visits exactly 12 states. It therefore cannot enumerate the 120-state
+binary-icosahedral registry required by the synthetic covariance census.
+
+The frozen contract already declares the applicable action: repair the
+evidence/preflight without reading validation. Attempt 02 may replace only the
+synthetic census enumerator with direct canonical registry enumeration and
+exercise source-frame-permutation liveness on a separate real causal atlas.
+That registry-wide gate runs before the expensive donor-trace capture and its
+result is carried into the unchanged combined preflight.
+The population, model, operator, fitter, thresholds, decision branches, and
+validation seal remain unchanged. Requiring all 120 frames to be naturally
+token-reachable would instead change the leaf-assignment mechanism and is not
+authorized by this repair.

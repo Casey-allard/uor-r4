@@ -19,7 +19,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::bounded_global_exact_spin_attention::ExactSpinState;
 use crate::canonical_lexical_ingestion::{
-    validate_h4_binary_icosahedral_closure, H4BinaryIcosahedralClosure,
+    validate_h4_binary_icosahedral_closure, H4BinaryIcosahedralClosure, OpaqueH4TableIndex,
 };
 use crate::corpus_induced_spin_placement::{compile_identity_leaves, leaf_for_token};
 use uor_r4_model_source::attention::{
@@ -448,6 +448,69 @@ pub struct R4SpinTransportEvidence {
     pub intervention: R4SpinTransportIntervention,
     pub frame_table_offsets: Vec<u16>,
     pub audit: R4SpinTransportAudit,
+}
+
+/// One immutable frame from the complete canonical 120-root H4 registry.
+///
+/// This structural census is deliberately independent of the causal token-leaf
+/// map. The latter may occupy a strict subgroup while the covariance preflight
+/// still has to exercise every exact registered H4 frame.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct R4RegisteredSpinFrame {
+    h4_table_offset: u16,
+    frame_matrix: Matrix4,
+}
+
+impl R4RegisteredSpinFrame {
+    /// Opaque canonical table address for this exact H4 frame.
+    pub const fn h4_table_offset(self) -> u16 {
+        self.h4_table_offset
+    }
+
+    /// Encode one model-space R4 block into this registered local gauge.
+    pub fn encode_model_block(self, model: Vector4) -> Result<Vector4, HelmDR4AttentionError> {
+        checked_matrix_vector(
+            transpose(self.frame_matrix),
+            model,
+            "registered H4 gauge encoding",
+        )
+    }
+
+    /// Decode one local R4 block from this registered gauge into model space.
+    pub fn decode_local_block(self, local: Vector4) -> Result<Vector4, HelmDR4AttentionError> {
+        checked_matrix_vector(self.frame_matrix, local, "registered H4 gauge decoding")
+    }
+}
+
+/// Enumerate every exact H4 frame in the canonical registered table order.
+///
+/// The returned sequence is the structural registry `0..120`, not a claim that
+/// all frames are reachable through the separately frozen token-leaf mapping.
+pub fn canonical_registered_h4_spin_frames(
+) -> Result<Vec<R4RegisteredSpinFrame>, HelmDR4AttentionError> {
+    let table = validate_h4_binary_icosahedral_closure()
+        .map_err(|error| HelmDR4AttentionError::ExactRoute(error.to_string()))?;
+    let mut frames = Vec::with_capacity(table.root_count);
+    for offset in 0..table.root_count {
+        let h4_table_offset = u16::try_from(offset).map_err(|_| {
+            HelmDR4AttentionError::Arithmetic(
+                "registered H4 frame offset does not fit u16".to_owned(),
+            )
+        })?;
+        let index =
+            OpaqueH4TableIndex::from_table_offset(h4_table_offset, &table).ok_or_else(|| {
+                HelmDR4AttentionError::ExactRoute(
+                    "registered H4 frame offset is outside the exact table".to_owned(),
+                )
+            })?;
+        let state = ExactSpinState::from_table_index_and_phases(index, 0, 0, &table)
+            .map_err(|error| HelmDR4AttentionError::ExactRoute(error.to_string()))?;
+        frames.push(R4RegisteredSpinFrame {
+            h4_table_offset,
+            frame_matrix: h4_left_quaternion_matrix(state, &table)?,
+        });
+    }
+    Ok(frames)
 }
 
 /// Exact cumulative Spin/H4 frames for one causal decoder session.
@@ -3248,6 +3311,72 @@ mod tests {
         }
         atlas.reset();
         assert!(atlas.frame_matrix(0).is_err());
+    }
+
+    #[test]
+    fn helm_d_learned_manifold_r4_construction_registered_frame_census_is_exact_and_complete() {
+        let frames = canonical_registered_h4_spin_frames().expect("registered H4 frame census");
+        assert_eq!(frames.len(), 120);
+        assert_eq!(
+            frames
+                .iter()
+                .map(|frame| frame.h4_table_offset())
+                .collect::<Vec<_>>(),
+            (0_u16..120).collect::<Vec<_>>()
+        );
+
+        let model = [0.25, -0.5, 0.75, 0.125];
+        for frame in frames {
+            let local = frame
+                .encode_model_block(model)
+                .expect("registered-frame encoding");
+            let decoded = frame
+                .decode_local_block(local)
+                .expect("registered-frame decoding");
+            for (actual, expected) in decoded.into_iter().zip(model) {
+                assert!((actual - expected).abs() <= 1.0e-10);
+            }
+        }
+    }
+
+    #[test]
+    fn helm_d_learned_manifold_r4_construction_token_leaf_basis_is_strict_24_element_subgroup() {
+        let table = validate_h4_binary_icosahedral_closure().expect("exact H4 closure");
+        let leaves = compile_identity_leaves(480, &table).expect("frozen token leaves");
+        let generator_offsets = (1_usize..=4)
+            .map(|token| leaves[token].table_index().table_offset())
+            .collect::<Vec<_>>();
+        assert_eq!(generator_offsets, [74, 118, 101, 119]);
+
+        let mut subgroup = std::collections::BTreeSet::from([table.identity_index]);
+        loop {
+            let before = subgroup.len();
+            let reached = subgroup.iter().copied().collect::<Vec<_>>();
+            for left in reached {
+                for right in &generator_offsets {
+                    subgroup.insert(
+                        table
+                            .product_index(left, *right)
+                            .expect("exact H4 subgroup product"),
+                    );
+                }
+            }
+            if subgroup.len() == before {
+                break;
+            }
+        }
+        assert_eq!(subgroup.len(), 24);
+        assert!(subgroup.len() < table.root_count);
+
+        let mut cumulative = table.identity_index;
+        let mut monotone_scan = std::collections::BTreeSet::new();
+        for leaf in &leaves {
+            cumulative = table
+                .product_index(cumulative, leaf.table_index().table_offset())
+                .expect("exact cumulative token-frame product");
+            monotone_scan.insert(cumulative);
+        }
+        assert_eq!(monotone_scan.len(), 12);
     }
 
     #[test]

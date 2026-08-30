@@ -18,10 +18,11 @@ use std::time::Instant;
 
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use uor_r4_core::helm_d_r4_attention::{
-    helm_d_learned_manifold_centroid, helm_d_learned_manifold_logit, helm_d_lorentz_causal_row,
-    HelmDLearnedManifoldEvidence, HelmDLearnedManifoldIntervention, HelmDLearnedManifoldMetric,
-    HelmDLearnedManifoldParameters, HelmDLearnedManifoldR4Transport, HelmDLorentzReferenceConfig,
-    R4AffineAdapter, R4SpinCausalAttentionTransport, R4SpinFrameAtlas, R4SpinTransportEvidence,
+    canonical_registered_h4_spin_frames, helm_d_learned_manifold_centroid,
+    helm_d_learned_manifold_logit, helm_d_lorentz_causal_row, HelmDLearnedManifoldEvidence,
+    HelmDLearnedManifoldIntervention, HelmDLearnedManifoldMetric, HelmDLearnedManifoldParameters,
+    HelmDLearnedManifoldR4Transport, HelmDLorentzReferenceConfig, R4AffineAdapter,
+    R4SpinCausalAttentionTransport, R4SpinFrameAtlas, R4SpinTransportEvidence,
     R4SpinTransportIntervention, HELM_D_LEARNED_EUCLIDEAN_R4_CONTROL_POLICY,
     HELM_D_LEARNED_LORENTZ_R4_CONSTRUCTION_POLICY, HELM_D_R4_GAUGE_SOFTMAX_POLICY,
     HELM_D_UPSTREAM_COMMIT,
@@ -2256,25 +2257,14 @@ fn hyperboloid_residual(spatial: &[f64]) -> f64 {
 fn registered_frame_covariance_preflight(
     maximum_token_id: u32,
 ) -> TestResult<(usize, f64, f64, f64, f64, bool)> {
-    let capacity = usize::try_from(maximum_token_id)? + 1;
-    let mut atlas = R4SpinFrameAtlas::new(maximum_token_id, capacity)?;
-    let mut frames = BTreeMap::new();
-    for token in 0..=maximum_token_id {
-        let position = usize::try_from(token)?;
-        atlas.begin_position(token, position)?;
-        frames
-            .entry(atlas.frame_table_offset(position)?)
-            .or_insert(position);
-        if frames.len() == 120 {
-            break;
-        }
-    }
-    if frames.len() != 120 {
-        return Err(format!(
-            "only {} of 120 registered H4 frames were reachable",
-            frames.len()
-        )
-        .into());
+    let frames = canonical_registered_h4_spin_frames()?;
+    if frames.len() != 120
+        || frames
+            .iter()
+            .enumerate()
+            .any(|(offset, frame)| usize::from(frame.h4_table_offset()) != offset)
+    {
+        return Err("canonical H4 registry did not enumerate all 120 frames in table order".into());
     }
     let query = (0..HEAD_WIDTH)
         .map(|lane| (lane as f64 - 31.5) / 37.0)
@@ -2317,12 +2307,12 @@ fn registered_frame_covariance_preflight(
     let mut maximum_weight = 0.0_f64;
     let mut maximum_centroid = 0.0_f64;
     let mut maximum_output = 0.0_f64;
-    for position in frames.values().copied() {
-        let mut encode = |vector: &[f64]| -> TestResult<Vec<f64>> {
+    for frame in &frames {
+        let encode = |vector: &[f64]| -> TestResult<Vec<f64>> {
             let mut encoded = Vec::with_capacity(HEAD_WIDTH);
             for block in vector.chunks_exact(R4_WIDTH) {
                 let block = [block[0], block[1], block[2], block[3]];
-                encoded.extend_from_slice(&atlas.encode_model_block(position, block)?);
+                encoded.extend_from_slice(&frame.encode_model_block(block)?);
             }
             Ok(encoded)
         };
@@ -2356,7 +2346,7 @@ fn registered_frame_covariance_preflight(
         let mut decoded = Vec::with_capacity(HEAD_WIDTH);
         for block in encoded_centroid.chunks_exact(R4_WIDTH) {
             decoded.extend_from_slice(
-                &atlas.decode_query_block(position, [block[0], block[1], block[2], block[3]])?,
+                &frame.decode_local_block([block[0], block[1], block[2], block[3]])?,
             );
         }
         maximum_score = maximum_score.max(
@@ -2391,20 +2381,16 @@ fn registered_frame_covariance_preflight(
     {
         return Err("registered-frame Lorentz covariance exceeds the frozen bound".into());
     }
-    let mut reached_frames = frames
-        .iter()
-        .map(|(offset, position)| (*position, *offset))
-        .collect::<Vec<_>>();
-    reached_frames.sort_unstable();
-    let (source_position, source_offset) = reached_frames[0];
-    let (query_position, query_offset) = reached_frames
-        .iter()
-        .copied()
-        .find(|(position, offset)| *position > source_position && *offset != source_offset)
-        .ok_or("two causally ordered distinct frames are unavailable")?;
-    if source_position >= query_position || source_offset == query_offset {
-        return Err("frame-permutation liveness pair is not causally ordered and distinct".into());
+
+    // The exhaustive covariance census above is deliberately synthetic. Keep
+    // destructive-control liveness on a separate, naturally reached causal
+    // atlas so direct registry enumeration cannot make the intervention live.
+    let mut atlas = R4SpinFrameAtlas::new(maximum_token_id, 3)?;
+    for (position, token) in [5, 9, 2].into_iter().enumerate() {
+        atlas.begin_position(token, position)?;
     }
+    let source_position = 0;
+    let query_position = 2;
     let block = [0.25, -0.5, 0.75, 0.125];
     let local = atlas.encode_model_block(source_position, block)?;
     let coherent = atlas.transport_local_block(
@@ -2440,16 +2426,16 @@ fn registered_frame_covariance_preflight(
 
 fn construction_preflight(
     captures: &[CapturedDocument],
-    maximum_token_id: u32,
     rope_theta: f32,
     rope_interleaved: bool,
+    registered_frame_preflight: (usize, f64, f64, f64, f64, bool),
 ) -> TestResult<GeometryPreflight> {
     let golden_maximum_error = pinned_golden_preflight()?;
     let finite_difference_maximum_error = finite_difference_gradient_preflight()?;
     let identity_ordering_compared_lanes =
         identity_projection_ordering_preflight(captures, rope_theta, rope_interleaved)?;
     let (registered_frames, score, weight, centroid, output, source_frame_permutation_live) =
-        registered_frame_covariance_preflight(maximum_token_id)?;
+        registered_frame_preflight;
     Ok(GeometryPreflight {
         golden_maximum_error,
         finite_difference_maximum_error,
@@ -3679,6 +3665,22 @@ fn helm_d_learned_manifold_r4_construction_golden_operator_is_pinned() -> TestRe
 }
 
 #[test]
+fn helm_d_learned_manifold_r4_construction_registered_frame_preflight_passes() -> TestResult {
+    let (frames, score, weight, residual, centroid, permutation_live) =
+        registered_frame_covariance_preflight(9)?;
+    if frames != 120
+        || score > 1.0e-8
+        || weight > 1.0e-8
+        || residual > 1.0e-8
+        || centroid > 1.0e-8
+        || !permutation_live
+    {
+        return Err("repaired registered-frame covariance/liveness preflight failed".into());
+    }
+    Ok(())
+}
+
+#[test]
 fn helm_d_learned_manifold_r4_construction_public_identities_and_work_counts_are_pinned(
 ) -> TestResult {
     let parameters = HelmDLearnedManifoldParameters::identity(
@@ -3810,6 +3812,12 @@ fn run_helm_d_learned_manifold_r4_construction(
     let rope_theta = config.rope_theta;
     let rope_interleaved = config.rope_interleaved;
     let maximum_token_id = u32::try_from(config.vocab.checked_sub(1).ok_or("empty vocab")?)?;
+    // This registry-wide structural gate is independent of donor traces. Run
+    // it before the expensive construction-fit capture and carry its result
+    // forward so a static census defect cannot consume the fit-trace budget.
+    let registered_frame_started = Instant::now();
+    let registered_frame_preflight = registered_frame_covariance_preflight(maximum_token_id)?;
+    let registered_frame_preflight_seconds = registered_frame_started.elapsed().as_secs_f64();
     let preparation = oracle.prepare_exact_execution(1)?;
     if preparation.workers_observed != SHARDS || !preparation.backend_exercised {
         return Err("exact eight-worker donor preparation was not exercised".into());
@@ -3829,10 +3837,15 @@ fn run_helm_d_learned_manifold_r4_construction(
     let fit_trace_seconds = fit_trace_started.elapsed().as_secs_f64();
 
     let preflight_started = Instant::now();
-    let preflight =
-        construction_preflight(&captures, maximum_token_id, rope_theta, rope_interleaved)?;
+    let preflight = construction_preflight(
+        &captures,
+        rope_theta,
+        rope_interleaved,
+        registered_frame_preflight,
+    )?;
     let canary = objective_canary(&captures, rope_theta, rope_interleaved)?;
-    let preflight_and_canary_seconds = preflight_started.elapsed().as_secs_f64();
+    let preflight_and_canary_seconds =
+        registered_frame_preflight_seconds + preflight_started.elapsed().as_secs_f64();
 
     let fit_started = Instant::now();
     let lorentz = fit_arm(
