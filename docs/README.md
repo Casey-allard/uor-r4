@@ -75,15 +75,17 @@ multiply-free, transformerless, or a browser-WASM decoder.
 `R4SoftmaxTeacherTraceV1` and `R4SoftmaxTraceStudentV1` then completed the first
 construction-trace/compiler rung. The source-free Q16 suffix artifact shows a
 bounded distillation effect against count and document-permuted controls, but
-its autonomous continuation loops. It does not establish geometric attention,
-coherent generation, correctness, general-purpose inference, or reasoning. The active rung is
-`R4SoftmaxTraceStateStudentV1`: compile construction traces into causal
-source-free recurrent R4/Spin state and beat frozen suffix, plain-recurrent, and
-transport-permuted controls on held-out decisions/loss, exact replay, zero
-source access, a destructive-control effect, and non-looping decode. Offline
-teacher/compiler floats, matrix operations, and softmax are allowed for this
-mechanism proof; deployed runtime remains exact and source-free. Do not resume
-resonance substitutes or promote a product/release until that passes.
+its autonomous continuation loops. `R4SoftmaxTraceStateStudentV1` then
+completed with exact source-free execution but failed promotion: its geometric
+CE change was minute, no top-1 decision changed, the permuted-control margin was
+not material, and the same period-two loop remained. This does not establish
+geometric attention, coherent generation, correctness, general-purpose
+inference, or reasoning. The next rung is
+[#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012), a
+construction-only observability audit across full trace, signed reduction,
+recurrent features, and readout.
+Do not add scale, resonance substitutes, exact lowering, or product/release
+work until the signal-loss boundary is localized.
 No tag, release, hosted promotion, or static-WASM claim is authorized. D3
 remains `NOT_RUN`; #973 remains open and #954 remains blocked.
 
@@ -185,7 +187,8 @@ These are the small set of living documents that define the present work:
    and lacks a working chat backend/artifact lowering. The
    [trace-student record](r4_softmax_trace_student_973.md) binds the completed
    source-free Q16 suffix distillation and its looping-output nonclaim boundary;
-   `R4SoftmaxTraceStateStudentV1` is next.
+   the [state-student record](r4_softmax_trace_state_student_1011.md) binds the
+   subsequent recurrent negative and observability-audit direction.
    The bounded
    [multi-resonance reuse audit](multi_resonance_attention_sieve_audit_973.md)
    distinguishes the implemented sin/cos and Spin substrate from the still
@@ -221,7 +224,8 @@ reversible lexical geometry
   → dashboard wiring/readiness + static/WASM isolation [PASS]; hosted Pages has no working chat backend/artifact lowering
   → capture construction-only layerwise oracle traces [COMPLETE]
   → compile/evaluate source-free Q16 suffix trace student [BOUNDED DISTILLATION; LOOPING OUTPUT]
-  → compile/evaluate R4SoftmaxTraceStateStudentV1 recurrent R4/Spin state [ACTIVE]
+  → compile/evaluate R4SoftmaxTraceStateStudentV1 recurrent R4/Spin state [COMPLETE; FAIL PROMOTION]
+  → localize signal loss across full trace, signed reduction, recurrent features, and readout [NEXT]
   → park intrinsic/readout alternatives, resonance-based softmax replacement, full-model recurrent lowering, and exact deployment
   → correctness and abstention
   → multi-step reasoning

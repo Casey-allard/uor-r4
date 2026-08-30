@@ -21,6 +21,7 @@ pub mod local_geometric_generation;
 pub mod paragraph_entity_spin_path_attention;
 pub mod prime_route_attention;
 pub mod prime_route_geometric_attention;
+pub mod r4_softmax_trace_state_student;
 pub mod r4_softmax_trace_student;
 pub mod recursive_geometric_attention;
 pub mod semantic;

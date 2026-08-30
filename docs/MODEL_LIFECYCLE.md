@@ -75,11 +75,12 @@ or compiled-artifact lowering. The feature is disabled by default and does not
 change the default engine. `R4SoftmaxTeacherTraceV1` and
 `R4SoftmaxTraceStudentV1` then completed the first trace/compiler rung. The
 source-free Q16 suffix artifact shows bounded distillation against count and
-document-permuted controls, but autonomous decoding loops. The active successor
-is `R4SoftmaxTraceStateStudentV1`: compile construction traces into causal
-source-free recurrent R4/Spin state and beat frozen suffix, plain-recurrent, and
-transport-permuted controls under strict held-out, causal, exact-replay,
-zero-source, destructive-control, and non-looping-decode gates. This reference remains transformer-compatible
+document-permuted controls, but autonomous decoding loops. Its recurrent
+`R4SoftmaxTraceStateStudentV1` successor completed with exact causal replay but
+failed its decision, material destructive-control, and non-looping gates. The
+active successor is [#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012),
+a construction-only observability audit across the full
+trace, fixed signed reduction, recurrent features, and readout. This reference remains transformer-compatible
 and `f32`/multiply/alloc/source-weight backed; it is not source-free,
 table-native, multiply-free, transformerless, browser-WASM, release, or
 frontier-model evidence.
@@ -140,7 +141,8 @@ canonical text/corpus
     -> dashboard wiring/readiness + static/WASM isolation [PASS], hosted Pages static/offline without chat backend/artifact lowering
     -> construction-only layerwise oracle traces [COMPLETE]
     -> source-free Q16 suffix trace student [BOUNDED DISTILLATION; LOOPING OUTPUT]
-    -> R4SoftmaxTraceStateStudentV1 recurrent R4/Spin state [ACTIVE]
+    -> R4SoftmaxTraceStateStudentV1 recurrent R4/Spin state [COMPLETE; FAIL PROMOTION]
+    -> construction-only trace/state observability audit [NEXT]
     -> intrinsic/readout alternatives, paired-E8, resonance replacement, full-model recurrent lowering, and exact deployment parked
     -> correctness + typed abstention (#954)
     -> bounded reasoning (#955)
@@ -1491,8 +1493,12 @@ D3 on construction covariance, with diagnostic curved NLL worse than donor and
   backend/artifact lowering. #973 remains open and correctness (#954), reasoning
   (#955), and durable chat/memory integration (#962) remain blocked. The Q16
   suffix trace student is complete with bounded distillation but looping output.
-  The next primary rung is `R4SoftmaxTraceStateStudentV1`. Resonance substitutes,
-  optimization, and release work remain parked until that passes. Lowering does
+  Its recurrent `R4SoftmaxTraceStateStudentV1` successor failed promotion with
+  no decision change, no material geometry-control effect, and the same loop.
+  The next primary rung is
+  [#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012), a
+  construction-only observability audit. Resonance
+  substitutes, optimization, and release work remain parked. Lowering does
   not otherwise reactivate automatically on a generation positive.
 
 The qualified native reference can be invoked against the already-local pinned

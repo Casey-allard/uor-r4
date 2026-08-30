@@ -11,7 +11,11 @@
   checks pass; browser interaction/E2E is `NOT_RUN`.
   `R4SoftmaxTeacherTraceV1` and the first source-free suffix compiler now pass
   their bounded distillation gate, while decoded continuation remains
-  incoherent. `R4SoftmaxTraceStateStudentV1` is the sole active successor
+  incoherent. `R4SoftmaxTraceStateStudentV1` completed negative at its frozen
+  state/control gate. The sole active successor is the construction-only,
+  leave-one-document-out trace-state observability ladder in
+  [#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012), the native
+  child/blocker of #973.
 - **Date:** 2026-08-28; direction updated 2026-08-30
 - **Owner:** #973 under programme root #820
 - **Supersedes for forward work:** another fixed componentwise prototype or
@@ -73,6 +77,12 @@
   ([record](../r4_softmax_trace_student_973.md),
   [structured result](../r4_softmax_trace_student_973_raw.json)); decoded
   continuation repeats `, Scotland` and is not coherent generation
+- **Source-free geometric state-student result:**
+  `STOP_R4_SOFTMAX_TRACE_STATE_STUDENT_REPAIR_OR_RETIRE_REPRESENTATION`
+  ([record](../r4_softmax_trace_state_student_1011.md),
+  [structured result](../r4_softmax_trace_state_student_1011_raw.json)); exact
+  matched-arm metrics and artifact identities are bound in the current outcome
+  amendment below
 
 ## Decision
 
@@ -90,14 +100,18 @@ normalization, and the language-model head. Its dedicated opt-in, loopback-only
 native HTTP endpoint now passes the frozen eight-token CLI-parity canary,
 without changing the default engine. Dashboard wiring/static native-readiness
 and WASM-isolation checks pass; browser interaction/E2E is `NOT_RUN`.
-`R4SoftmaxTeacherTraceV1` and its first source-free Q16 suffix compiler now pass
+`R4SoftmaxTeacherTraceV1` and its first source-free Q16 suffix compiler pass
 at the frozen distillation/control/replay scope. Their autonomous continuation
 loops on `, Scotland`, and the student does not consume the geometric trace
-state. The sole active successor is the proposed
-`R4SoftmaxTraceStateStudentV1`, which must compile a causal transition and
-readout from the captured R4/Spin Q/K/V/aggregate state and beat matched suffix,
-non-geometric recurrent, and state-permuted controls. No tag, release, hosted
-promotion, or static-WASM claim is authorized.
+state. `R4SoftmaxTraceStateStudentV1` subsequently compiled that causal state
+transition and readout, but completed negative: its tiny CE movement was below
+the frozen control threshold, no top-1 decision changed, and its decoded output
+retained the same short cycle. The active successor is one construction-only,
+leave-one-document-out observability ladder in
+[#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012), the native
+child/blocker of #973, across the full trace, 4D reduction, recurrent features,
+and residual readout boundaries. No tag,
+release, hosted promotion, or static-WASM claim is authorized.
 Its architectural reference is the official MIT HELM-D source pinned at commit
 [`7501deca8f413848bfef804be64ce874b72a3cd7`](https://github.com/Graph-and-Geometric-Learning/helm/tree/7501deca8f413848bfef804be64ce874b72a3cd7).
 The active generator credits HELM-D as an architectural reference only; it does
@@ -127,12 +141,17 @@ The current sequence is strict:
    changing the default engine, while retaining the passing dashboard
    wiring/static native-readiness and WASM-isolation checks and the browser-E2E
    `NOT_RUN` boundary; and
-5. build the proposed `R4SoftmaxTeacherTraceV1`/trace compiler from
-   construction-only layerwise reference traces, then compare the first
-   source-free student/attention-state artifact against decoded tokens and
-   next-token loss before any intrinsic or resonance replacement resumes.
+5. retain the completed `R4SoftmaxTeacherTraceV1`/trace compiler and source-free
+   suffix-student result, then preserve the completed negative
+   `R4SoftmaxTraceStateStudentV1` comparison against suffix, equal-budget plain
+   recurrence, and transport permutation; and
+6. run [#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012), one
+   construction-only, leave-one-document-out observability audit at the full
+   final-layer trace, fixed 576-to-4 reduction, token-derived recurrent feature,
+   and fitted residual-readout boundaries before changing only the first
+   boundary that loses transfer.
 
-### Qualified native endpoint, checked dashboard wiring, and active source-free trace rung
+### Qualified native endpoint and completed source-free trace rungs
 
 The bounded CLI/evidence path now passes. `R4SoftmaxReferenceGeneratorV1` reuses the qualified
 transported R4/Spin attention and UOR's existing pinned SmolLM2
@@ -157,19 +176,22 @@ state-CID parity, all 30 layers audited exactly, and zero future reads. It left
 the default engine unchanged. Dashboard wiring/static native-readiness and
 WASM-isolation checks pass; browser interaction/E2E is `NOT_RUN`.
 
-`R4SoftmaxTeacherTraceV1` and its trace compiler are proposed names, not an
-implemented capability. Their construction side may read the exact reference's
-layerwise token, Q/K/V, attention, value, and logit states. Their evaluation
-side must compare a source-free student/attention-state artifact on decoded
-tokens and next-token loss while auditing causal inputs. A negative repairs the
-trace representation or compiler; it does not reactivate intrinsic score/readout
-or replace softmax.
+`R4SoftmaxTeacherTraceV1` and its first trace compiler are completed bounded
+capabilities. Their construction side read the exact reference's layerwise
+token, Q/K/V, attention, value, and logit states; the source-free suffix student
+passed its frozen loss/top-1/control/replay/source-call gate but retained the
+short decoded cycle. `R4SoftmaxTraceStateStudentV1` then evaluated a causal
+geometric state artifact against matched suffix, plain recurrent, and
+transport-permuted arms. It completed negative without material loss or top-1
+separation. A negative repairs or retires the tested state representation; it
+does not reactivate intrinsic score/readout or replace softmax.
 
-A positive trace/compiler rung establishes only a first source-free
-student/attention-state baseline at its frozen decoded-token agreement,
-next-token-loss, causal-input, and matched-control scope. It does not establish
-table-native or multiply-free execution, a transformerless architecture,
-geometry advantage, correctness, reasoning, efficiency, or release readiness.
+These completed trace/compiler rungs establish only deterministic bounded
+source-free distillation and one valid negative state representation at their
+frozen decoded-token, next-token-loss, causal-input, and matched-control scopes.
+They do not establish table-native or multiply-free execution, a
+transformerless architecture, geometry advantage, correctness, reasoning,
+efficiency, or release readiness.
 
 The source-faithful HELM-D reference retains its declared Lorentz implementation:
 the code at the pin forms the invariant Lorentz-inner-product distance surrogate
@@ -622,7 +644,11 @@ reasoning, general coherence, chat, performance advantage, exact runtime
 lowering, or product readiness.
 #954 stays blocked until the complete #973 hierarchy terminal is earned.
 
-## Current outcome branch
+## Historical state-student launch branch
+
+This row records the decision that launched #1011 after the suffix-student
+result. It is preserved as history and superseded by the completed #1011
+outcome amendment below.
 
 | Result | Required next action |
 |---|---|
@@ -676,6 +702,71 @@ compile and evaluate a first source-free student/attention-state artifact on
 decoded-token agreement and next-token loss. Intrinsic/readout, resonance,
 softmax replacement, recurrence, and exact lowering remain behind that
 baseline.
+
+This paragraph records the then-current bridge decision. The trace compiler
+and subsequent state-student work completed later on 2026-08-30 and supersede
+it for forward sequencing.
+
+## R4 state-student outcome and observability amendment — 2026-08-30 (EDT)
+
+At implementation revision
+`25569057f2d770dd2ffb0f10b6d2af0a985a6bd4`, #1011 compiled a 40,692-byte
+state artifact with CID
+`blake3:b617fc38e7bef1cdea76991f6e5e7cc653118451d63bcbd595f8ffd7e247ae7b`.
+The construction freeze, source-free seal, and structured result CIDs were,
+respectively,
+`blake3:67cf67bb46b94cf5644b8dde286e89adb7e49159b3749790dffb500d8047fedb`,
+`blake3:64587526f7883ab046e884a28b6af7e9e89818c9ead2039f8c995de7fb483060`,
+and `blake3:dc04a8a8b21750799db2d451c8237d1e62cf90ffa74561fb54272b1e9704c824`.
+
+Every arm covered the same nine context positions and `422,875` Q16 teacher
+mass:
+
+| Arm | Covered CE (nats) | Teacher top-1 | Actual-next top-1 |
+|---|---:|---:|---:|
+| Frozen suffix | 2.660721032 | 3/9 | 2/9 |
+| Plain recurrent | 2.660770919 | 3/9 | 2/9 |
+| Geometric recurrent | 2.660705367 | 3/9 | 2/9 |
+| Transport-permuted | 2.660729215 | 3/9 | 2/9 |
+
+The geometric arm improved CE by only `0.000015665` nats over suffix and
+`0.000023848` over the permuted control, below the frozen `0.10`-nat threshold.
+No teacher or actual-next top-1 decision changed, and the permuted control lost
+no top-1 decision. All nine geometric states and distributions differed from
+their permuted counterparts, but the differences were not selection-bearing.
+All four arms emitted the same token IDs
+`[281, 216, 28, 9291, 28, 9291, 28, 9291, 28, 9291, 28, 9291, 28, 9291, 28, 9291]`,
+which decode to ` in , Scotland, Scotland, Scotland, Scotland, Scotland,
+Scotland, Scotland`. Exact replay passed; every forbidden runtime counter was
+zero; the geometric ledger contained 57 observations and 56 transports; the
+permuted ledger added exactly 56 permutations.
+
+The binding terminal is
+`STOP_R4_SOFTMAX_TRACE_STATE_STUDENT_REPAIR_OR_RETIRE_REPRESENTATION`. It
+falsifies the current 4D signed-reduction/token-derived state cell at this gate,
+not ordinary R4/Spin softmax attention. See the
+[authoritative record](../r4_softmax_trace_state_student_1011.md) and
+[structured result](../r4_softmax_trace_state_student_1011_raw.json).
+
+The next action is [#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012),
+the native child/blocker of #973: one construction-only,
+leave-one-document-out observability audit using the same teacher-relative
+candidate loss at four boundaries:
+
+1. full ordered final-layer Q/K/V trace blocks;
+2. the fixed 576-to-4 signed reduction;
+3. token-derived role maps and recurrent state features; and
+4. the fitted residual readout/logit scale.
+
+If full traces transfer but the reduction does not, replace only the reduction
+with a structured per-head/multiscale geometric representation. If the
+reduction transfers but the state features do not, repair context-conditioned
+K/V induction. If the state transfers but the logits remain inert, repair
+readout calibration. If even the full traces do not transfer, stop trace
+distillation and train the recurrent cell end to end under a new independently
+frozen holdout. Revealed document 13 cannot promote a repaired mechanism
+again. Corpus scale, added state dimensions, exact lowering, resonance, WASM,
+release, correctness, and reasoning claims remain parked.
 
 ## Historical intrinsic/replacement outcome branches — parked
 

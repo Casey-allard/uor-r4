@@ -23,22 +23,29 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > entered a repetition loop. That result is not geometric attention, coherent
 > generation, correctness, general-purpose inference, or reasoning.
 >
-> The active rung is `R4SoftmaxTraceStateStudentV1`: compile construction traces
-> into recurrent R4/Spin state whose prediction path reads only prior compiled
-> state, observed token IDs, and independently available canonical addresses and
-> frames. It must beat the frozen suffix, plain-recurrent, and
-> transport-permuted controls on held-out next-token decisions/loss, preserve a
-> geometry-destroying control effect, replay exactly without source weights, and
-> avoid period-1/2 decoding loops. Offline teacher/compiler work may use floats,
-> matrix operations, and softmax while establishing the mechanism; the deployed
-> destination remains exact, integer/table-native, and source-free.
+> `R4SoftmaxTraceStateStudentV1` is now complete and negative at its frozen
+> promotion gate. Its geometric arm moved covered CE only from `2.660721032` to
+> `2.660705367`, changed no teacher or actual-next top-1 decision, separated
+> from the transport-permuted control by only `0.000023848` nats versus the
+> required `0.10`, and produced the identical period-two `, Scotland` loop.
+> Exact replay and the zero-source/future-read audit passed, so this is a
+> representation failure rather than an execution-integrity failure.
+>
+> The next bounded action is
+> [#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012), a
+> construction-only, leave-one-document-out observability audit across the
+> full final-layer trace, its fixed 576-to-4
+> signed reduction, token-derived recurrent features, and residual readout. It
+> must localize where predictive signal is lost before any new state dimension,
+> corpus scale, exact lowering, resonance substitute, WASM promotion, or release
+> work. Document 13 has now been revealed and cannot promote a repaired model.
 >
 > The hosted GitHub Pages surface is currently a static visualization that
 > reports WASM offline and has no functioning chat backend or compiled-artifact
 > lowering. It is not a product proof and does not change the active research
 > gate. No tag, release, hosted-chat, coherent-generation, correctness, or
 > reasoning claim is authorized. See the
-> [trace-student record](docs/r4_softmax_trace_student_973.md).
+> [state-student result](docs/r4_softmax_trace_state_student_1011.md).
 
 > **Prior #973 evidence chain leading to this checkpoint (2026-08-30):** routing, exact R4/spin
 > state, least-cost selection, and multiscale hierarchy remain the geometric
@@ -138,11 +145,12 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > result. #973 remains open and #954 remains blocked. That next rung is now
 > complete: `R4SoftmaxTeacherTraceV1` supplied construction traces and
 > `R4SoftmaxTraceStudentV1` compiled a source-free Q16 suffix artifact with a
-> bounded distillation effect, but its autonomous text looped. The active
-> `R4SoftmaxTraceStateStudentV1` rung must turn construction traces into causal
-> recurrent R4/Spin state and beat its frozen controls without source access.
-> Intrinsic/readout, resonance, softmax replacement, and product promotion
-> remain parked until that artifact passes. No tag, release, hosted
+> bounded distillation effect, but its autonomous text looped. The subsequent
+> `R4SoftmaxTraceStateStudentV1` recurrent rung also stopped: its minute CE
+> change was not decision-bearing or materially geometry-dependent, and the
+> same loop remained. A construction-only observability audit is next.
+> Intrinsic/readout substitution, resonance, softmax replacement, scale, and
+> product promotion remain parked. No tag, release, hosted
 > promotion, or browser-WASM claim is authorized. See the
 > [V4 connection-gauge record](docs/connection_gauge_covariance_v4_973.md), the
 > [direct-attention history](docs/direct_causal_geometric_attention_973.md), the
@@ -333,8 +341,9 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > frozen eight-token CLI-parity canary without changing the default engine.
 > Dashboard wiring/readiness and static/WASM-isolation checks pass; browser E2E
 > is `NOT_RUN`. The
-> current gate is `R4SoftmaxTraceStateStudentV1`, following a bounded positive
-> source-free suffix-distillation result whose autonomous output still looped.
+> current gate is a construction-only trace/state observability audit after
+> `R4SoftmaxTraceStateStudentV1` failed its decision, control-separation, and
+> continuation gates.
 > #954 remains blocked behind #973. General higher-scope attention, correct
 > answers, and reasoning do not exist yet. The
 > dashboard is an interactive window into the research substrate, not a
@@ -590,8 +599,10 @@ exact-descriptor/entity-binding path selector apiece at their respective
    HTTP endpoint now pass. Dashboard wiring/readiness and static/WASM-isolation
    checks pass; the hosted Pages surface is static, currently reports WASM
    offline, and has no working chat backend/artifact lowering. The Q16 suffix
-   trace student completed with bounded distillation but looping output;
-   `R4SoftmaxTraceStateStudentV1` is next and #954 stays blocked.
+   trace student completed with bounded distillation but looping output; its
+   recurrent `R4SoftmaxTraceStateStudentV1` successor then failed to produce a
+   material or selection-bearing effect. A construction-only observability
+   audit is next and #954 stays blocked.
 See the [append-only #953 record](docs/local_geometric_generation_953.md).
 See the [accepted table-tie record](docs/source_free_table_geometric_intervention_953.md).
 See the [#973 Gate 0 record](docs/prior_sentence_count_radius_attention_973.md).
@@ -720,13 +731,12 @@ not become substitutes for working intelligence:
    all-layer-audit, and causal-read parity, without changing the default engine.
    Dashboard wiring/readiness and static/WASM-isolation checks pass; browser
    interaction/E2E is `NOT_RUN`.
-   That trace/compiler rung has now produced `R4SoftmaxTraceStudentV1`: a
-   source-free Q16 suffix artifact with bounded distillation but looping
-   autonomous output. Next compile those construction traces into the causal
-   recurrent R4/Spin state of `R4SoftmaxTraceStateStudentV1` and compare it with
-   frozen suffix, plain-recurrent, and transport-permuted controls.
-   Do not resume resonance substitutes or promote a product/release until that
-   artifact passes its frozen comparison. This intermediate
+   That trace/compiler rung produced `R4SoftmaxTraceStudentV1`, and the next
+   recurrent `R4SoftmaxTraceStateStudentV1` rung completed with exact causal
+   execution but no material control separation, no changed decision, and the
+   same loop. Next localize signal loss at the full-trace, signed-reduction,
+   state-feature, and readout boundaries using construction-only folds.
+   Do not resume resonance substitutes or promote a product/release. This intermediate
    reference is transformer-compatible, `f32`/multiply/alloc and source-weight
    backed—not table-native, multiply-free, or transformerless. No tag, release,
    static web, or browser-WASM claim follows from the result.
@@ -772,8 +782,9 @@ with no default-engine change. Dashboard wiring/readiness and
 static/WASM-isolation checks pass, but the hosted Pages deployment is static,
 currently reports WASM offline, and lacks a working chat backend/artifact
 lowering. The source-free Q16 suffix trace student is complete and boundedly
-positive but loops. The only active successor is
-`R4SoftmaxTraceStateStudentV1`.
+positive but loops; `R4SoftmaxTraceStateStudentV1` also completed and failed
+its material, decision, and cycle gates. The active successor is a bounded
+construction-only observability audit.
 #954 remains blocked behind #973. The exact contract is
 [ADR-0005](docs/adr/0005-predictive-geometric-connection-memory.md).
 

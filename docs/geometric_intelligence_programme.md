@@ -139,16 +139,36 @@ functioning chat backend or compiled-artifact lowering.
 trace/compiler rung. The source-free Q16 suffix artifact shows bounded
 distillation against count and document-permuted controls, but autonomous
 decoding loops. This is not geometric attention, coherent generation,
-correctness, general-purpose inference, or reasoning. The next primary rung is
-`R4SoftmaxTraceStateStudentV1`: compile construction traces into source-free
-recurrent R4/Spin state and beat frozen suffix, plain-recurrent, and
-transport-permuted controls under strict held-out, causal, replay, zero-source,
-destructive-control, and non-looping-decode gates. Offline floats, matrix
-operations, and softmax are allowed at the teacher/compiler boundary; deployed
-runtime remains exact, integer/table-native, and source-free. Intrinsic/readout,
-multi-resonance replacement, bounded recurrence, and H4/Q29/integer lowering
-are parked. The reference is transformer-compatible and `f32`/multiply/alloc/
-source-weight backed, not the final serving architecture. The binding
+correctness, general-purpose inference, or reasoning.
+`R4SoftmaxTraceStateStudentV1` subsequently completed its three sealed phases
+and stopped
+`STOP_R4_SOFTMAX_TRACE_STATE_STUDENT_REPAIR_OR_RETIRE_REPRESENTATION`. On the
+same nine positions, geometric covered CE was `2.660705367` versus
+`2.660721032` for the frozen suffix, `2.660770919` for plain recurrent, and
+`2.660729215` for transport-permuted; every arm remained at teacher top-1
+`3/9` and actual-next top-1 `2/9`. The geometric-to-permuted margin was only
+`0.000023848` nats against the frozen `0.10` requirement, and all arms retained
+the same period-two continuation. Artifact reload, causal replay, zero-source
+execution, and work ledgers passed, so this is a representation/readout failure,
+not an integrity failure or a falsification of the established ordinary
+R4/Spin softmax reference. The frozen result CID is
+`blake3:dc04a8a8b21750799db2d451c8237d1e62cf90ffa74561fb54272b1e9704c824`.
+
+The sole next rung is
+[#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012), one
+construction-only, leave-one-document-out observability audit across the full
+ordered final-layer Q/K/V trace, the fixed
+576-to-4 signed reduction, token-derived role maps/recurrent features, and the
+residual readout/logit scale. It must localize the first boundary that loses
+teacher-relative candidate signal before any representation repair. The
+already-revealed document 13 cannot promote a repaired mechanism again.
+Offline floats, matrix operations, and softmax remain allowed at the
+teacher/compiler boundary; the deployed destination remains exact,
+integer/table-native, and source-free. Intrinsic/readout substitution,
+multi-resonance replacement, new state dimensions, corpus scale, bounded
+recurrence/lowering, and H4/Q29/integer lowering are parked. The reference is
+transformer-compatible and `f32`/multiply/alloc/source-weight backed, not the
+final serving architecture. The binding
 architecture is in
 [ADR-0005](adr/0005-predictive-geometric-connection-memory.md); the PASS is in
 the [generation record](r4_softmax_reference_generation_973.md) and
@@ -157,7 +177,11 @@ The endpoint/dashboard-wiring checkpoint is in
 [its evidence record](r4_softmax_reference_http_bridge_973.md) and
 [structured result](r4_softmax_reference_http_bridge_result_973.json). The
 bounded suffix-distillation result and looping-output boundary are in the
-[trace-student record](r4_softmax_trace_student_973.md).
+[trace-student record](r4_softmax_trace_student_973.md). The recurrent negative,
+its exact metrics, and the observability successor are in the
+[`R4SoftmaxTraceStateStudentV1` record](r4_softmax_trace_state_student_1011.md)
+and
+[`structured result`](r4_softmax_trace_state_student_1011_raw.json).
 
 The measured evidence ledger now records `PASS` for HELM-D pinned-source
 provenance, ordinary-donor deterministic reproduction, transported-R4 parity,
@@ -228,10 +252,13 @@ HTTP endpoint also passes exact eight-token CLI parity, with no default-engine
 change. Dashboard wiring/static native-readiness and WASM-isolation checks
 pass, while hosted Pages remains static/offline without a functioning chat
 backend/artifact lowering. The source-free Q16 suffix trace student is complete
-with bounded distillation but looping output. The single active successor is
-`R4SoftmaxTraceStateStudentV1`. Intrinsic/readout, multi-resonance,
-recurrent factorization, and final
-requalification are parked; D3 remains `NOT_RUN` and #954 remains blocked.
+with bounded distillation but looping output. Its recurrent
+`R4SoftmaxTraceStateStudentV1` successor is complete and failed promotion: no
+top-1 decision changed, geometry-control separation was not material, and the
+same period-two loop remained. The single active successor is the
+construction-only leave-one-document-out observability audit. Intrinsic/readout,
+multi-resonance, new state dimensions, corpus scale, recurrent lowering, and
+final requalification are parked; D3 remains `NOT_RUN` and #954 remains blocked.
 No new H4,
 SpiralCore, harmonic, algebraic, placement, transport, or scale qualifier is
 eligible outside its exposed issue.
@@ -343,10 +370,12 @@ construction-bound exact-descriptor selector at each of paragraph and
   Dashboard wiring/static native-readiness and WASM-isolation checks pass;
   hosted Pages remains static/offline without a functioning chat backend or
   artifact lowering. The Q16 suffix trace student is complete with bounded
-  distillation but looping output. The only active rung is
-  `R4SoftmaxTraceStateStudentV1`; intrinsic/readout alternatives,
-  resonance-based softmax replacement, whole-decoder recurrent lowering, and
-  exact deployment are parked. Calling a later
+  distillation but looping output. `R4SoftmaxTraceStateStudentV1` is also
+  complete and failed its decision, material-control, and non-looping gates.
+  The only active rung is the construction-only leave-one-document-out
+  observability audit; intrinsic/readout alternatives, resonance-based softmax
+  replacement, new state dimensions, corpus scale, whole-decoder recurrent
+  lowering, and exact deployment are parked. Calling a later
 #973 operator harmonic additionally requires an
 artifact-bound basis/mode contract. #962
 separately owns product chat integration and persisted, identity-scoped hive
@@ -1332,9 +1361,10 @@ eight-token CLI parity; dashboard wiring/static native-readiness and
 WASM-isolation checks pass while hosted Pages remains static/offline without a
 functioning chat backend/artifact lowering; the Q16 suffix trace student is
 complete with bounded distillation but looping output;
-`R4SoftmaxTraceStateStudentV1` is active;
-intrinsic/readout, resonance/recurrent lowering, and
-final requalification are parked.
+`R4SoftmaxTraceStateStudentV1` is complete with `FAIL_PROMOTION`; the
+construction-only leave-one-document-out observability audit is active;
+intrinsic/readout, new state dimensions, corpus scale, resonance/recurrent
+lowering, and final requalification are parked.
 Product CLI/HTTP chat integration, restart-persistent conversation state, and
 identity-scoped hive-memory lifecycle remain #962 scope.
 
@@ -1734,7 +1764,10 @@ H4 connection against a working plain arm and a strong coherent-tangent
   WASM-isolation checks pass; hosted Pages remains static/offline without a
   functioning chat backend/artifact lowering. The Q16 suffix trace student is
   complete with bounded distillation but looping output;
-  `R4SoftmaxTraceStateStudentV1` is the next primary rung.
+  `R4SoftmaxTraceStateStudentV1` then completed and failed promotion without a
+  changed top-1 decision, material geometry-control separation, or a repaired
+  continuation. The construction-only leave-one-document-out observability
+  audit is the next primary rung.
 See ADR-0005 and the
 [#973 corpus-induced document placement record](corpus_induced_document_spin_placement_973.md).
 
@@ -1752,10 +1785,12 @@ HTTP endpoint also passes exact eight-token CLI parity, all-layer audits, and
 zero future reads. Dashboard wiring/static native-readiness and WASM-isolation
 checks pass; hosted Pages remains static/offline without a functioning chat
 backend/artifact lowering. The Q16 suffix trace student is complete with
-bounded distillation but looping output. The sole next step is
-`R4SoftmaxTraceStateStudentV1`; intrinsic/readout alternatives,
-resonance-based softmax replacement, whole-decoder recurrent lowering, and scale
-are parked, while D3 remains `NOT_RUN`. The one
+bounded distillation but looping output. Its recurrent state successor is
+complete and failed promotion. The sole next step is the construction-only
+leave-one-document-out observability audit; intrinsic/readout alternatives,
+resonance-based softmax replacement, new state dimensions, corpus scale,
+whole-decoder recurrent lowering, and exact deployment are parked, while D3
+remains `NOT_RUN`. The one
 separation permitted inside #953 was a tiny construction-only, same-frame,
 candidate-conditioned context-placement overlay over already-admitted
 candidates followed by frozen label attachment. Its label-free,
@@ -1929,9 +1964,11 @@ hours remains a hard kill ceiling, never an estimate.
   Pages remains static/offline without a functioning chat backend/artifact
   lowering;
   it has completed the Q16 suffix trace student with bounded distillation but
-  looping output and next owns `R4SoftmaxTraceStateStudentV1`;
-  intrinsic/readout, resonance/recurrent lowering, and final requalification
-  are parked.
+  looping output; its `R4SoftmaxTraceStateStudentV1` successor is complete and
+  failed promotion; and it next owns only the construction-only
+  leave-one-document-out observability audit;
+  intrinsic/readout, new state dimensions, corpus scale, resonance/recurrent
+  lowering, and final requalification are parked.
 - S3/R4 compute, Hopf S2/R3 observation, and an E8 action plane are distinct
   objects.
 - Exact recall, grammatical text, correct inference, and reasoning are separate

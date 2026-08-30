@@ -1,0 +1,45 @@
+{
+  "schema": "uor-r4.r4-softmax-trace-state-freeze/1",
+  "issue": 1011,
+  "implementation_revision": "25569057f2d770dd2ffb0f10b6d2af0a985a6bd4",
+  "predecessor_freeze_cid": "blake3:bb19fc6f6976aca6dfd8c67c470fd1fb70a1e1e74763800fdcb635f135325df7",
+  "predecessor_result_cid_expected_at_reveal": "blake3:e48b4172e02fc84eef9e00024ac6602b790d8230026a979d2f71c552ddca0cd4",
+  "construction_trace_bundle_cid": "blake3:2de2affeff0be3dee3cc8fcd88bd83c5f049f81390870a3c78eea485c0fd62eb",
+  "construction_trace_bundle_bytes": 45205493,
+  "construction_document_trace_cids": [
+    "blake3:62bb33d4605914541443bea0c972990031a0821449e932e19a929db1369f2960",
+    "blake3:4a31dec9c955c5bca5513673cb0fa5c2fe3b7eb93f27a177838142abd00b4704",
+    "blake3:3a51132fd40387f0e0f55e1fd50a7bfc05b8f1376e6fe877d63f9ab60bfd45ad",
+    "blake3:bc47e6f862978effb616da762f935cbcc97b71631bb2cd6c650a6e6be1e91efc"
+  ],
+  "suffix_artifact_cid": "blake3:e3b48b8bd113bf71be2fe9ecb64257b4eb1516303966d9d6c2c5cbe9d46adfac",
+  "suffix_artifact_bytes": 39648,
+  "state_artifact_cid": "blake3:b617fc38e7bef1cdea76991f6e5e7cc653118451d63bcbd595f8ffd7e247ae7b",
+  "state_artifact_bytes": 40692,
+  "state_artifact_payload_bytes_before_headers": 40608,
+  "construction_digest": "blake3:c30af1d0e75ad4b9fb6c3df365084479a1ce95614dfbca4744a0b74aa0d87b1c",
+  "construction_documents": 4,
+  "construction_positions": 38,
+  "runtime_state_bytes_per_arm": 278,
+  "parameter_values_per_fitted_arm": 120,
+  "fitted_parameter_values_per_arm": 112,
+  "parameter_bytes_per_fitted_arm": 480,
+  "deterministic_compile_bytes_exact": true,
+  "deterministic_compile_cid_exact": true,
+  "artifact_reload_bytes_exact": true,
+  "artifact_reload_cid_exact": true,
+  "compiler_input_audit": {
+    "construction_trace_bundle_reads": 1,
+    "predecessor_freeze_reads": 1,
+    "suffix_artifact_reads": 1,
+    "source_model_reads": 0,
+    "held_out_causal_input_reads": 0,
+    "judge_reads": 0
+  },
+  "compile_seconds": 9.662692958000001,
+  "freeze_cid": "blake3:67cf67bb46b94cf5644b8dde286e89adb7e49159b3749790dffb500d8047fedb",
+  "nonclaims": [
+    "This construction-only fit does not establish held-out quality, coherent generation, reasoning, or exact deployed lowering.",
+    "No source checkpoint or held-out judge is accepted by this command."
+  ]
+}

@@ -89,19 +89,22 @@ assumptions, or objectives rather than measured results.
 > `R4SoftmaxTeacherTraceV1` and `R4SoftmaxTraceStudentV1` then completed the first
 > trace/compiler rung. The source-free Q16 suffix student shows bounded
 > distillation against its count and document-permuted controls, but autonomous
-> decoding loops. This does not establish geometric attention, coherent
-> generation, correctness, general-purpose inference, or reasoning. The sole next action is
-> `R4SoftmaxTraceStateStudentV1`: compile construction traces into causal
-> recurrent R4/Spin state and beat frozen suffix, plain-recurrent, and
-> transport-permuted controls under exact replay, zero source access, a
-> destructive-control effect, and a non-looping decode. Offline floats, matrix
+> decoding loops. `R4SoftmaxTraceStateStudentV1` then completed with exact
+> source-free replay but no changed top-1 decision, no material
+> transport-control margin, and the same period-two loop. This does not
+> establish geometric attention, coherent generation, correctness,
+> general-purpose inference, or reasoning. The sole next action is
+> [#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012), a
+> construction-only observability audit across full trace, fixed signed
+> reduction, recurrent features, and residual readout. Offline floats, matrix
 > operations, and softmax remain allowed at the teacher/compiler boundary; the
-> deployed destination remains exact and source-free. Resonance substitutes and
-> product/release promotion remain parked until that passes. See the
+> deployed destination remains exact and source-free. Resonance substitutes,
+> scale, and product/release promotion remain parked. See the
 > [generation record](r4_softmax_reference_generation_973.md),
 > [compact aggregate](r4_softmax_reference_generation_attempt_01_result_973.json),
 > [native bridge record](r4_softmax_reference_http_bridge_973.md), and
-> [trace-student record](r4_softmax_trace_student_973.md).
+> [trace-student record](r4_softmax_trace_student_973.md), and
+> [state-student record](r4_softmax_trace_state_student_1011.md).
 >
 > **Measured evidence status:** HELM-D pinned-source provenance `PASS`;
 > ordinary-donor reproduction `PASS`; transported-R4 parity, destructive
@@ -122,7 +125,8 @@ assumptions, or objectives rather than measured results.
 > wiring/readiness plus static/WASM isolation `PASS`; hosted Pages static/offline
 > without a functioning chat backend/artifact lowering;
 > source-free Q16 suffix trace student bounded distillation with looping decode;
-> `R4SoftmaxTraceStateStudentV1` active;
+> `R4SoftmaxTraceStateStudentV1` complete with `FAIL_PROMOTION`;
+> construction-only trace/state observability audit next;
 > D3 `NOT_RUN`; multi-resonance replacement `NOT_RUN` and parked; whole-decoder
 > recurrent factorization/lowering `NOT_RUN` and parked. See the
 > [`HELM-D-R4` record](helm_d_r4_softmax_decoder_973.md) and the
@@ -469,9 +473,10 @@ assumptions, or objectives rather than measured results.
 > static/WASM-isolation checks passed while hosted Pages remains static/offline
 > without a functioning chat backend/artifact lowering. The first source-free
 > Q16 suffix trace student now provides bounded distillation evidence but loops
-> autonomously. The current #973 action is
-> `R4SoftmaxTraceStateStudentV1`, compiling construction traces into recurrent
-> R4/Spin state without source access. Intrinsic/readout alternatives,
+> autonomously. `R4SoftmaxTraceStateStudentV1` also completed and failed its
+> material, decision, and cycle gates. The current #973 action is a
+> construction-only observability audit that localizes loss across the full
+> trace, signed reduction, recurrent features, and readout. Intrinsic/readout alternatives,
 > resonance-based softmax replacement, whole-decoder recurrent lowering, and
 > exact deployment are parked. D3 remains
 > `NOT_RUN`; #954 remains blocked behind #973.
@@ -1046,7 +1051,8 @@ dashboard wiring/readiness and static/WASM-isolation checks pass while hosted
 Pages remains static/offline without a working chat backend/artifact lowering.
 The construction-only trace compiler and source-free Q16 suffix student are now
 complete with bounded distillation but looping autonomous output;
-`R4SoftmaxTraceStateStudentV1` is active;
+`R4SoftmaxTraceStateStudentV1` completed with `FAIL_PROMOTION`; a
+construction-only observability audit is active;
 fiber-preserving multi-resonance replacement, whole-decoder recurrent
 factorization, and final requalification are parked.
 Dependable broad coherent text remains unestablished.
@@ -1638,7 +1644,9 @@ also passes without changing the default engine. Dashboard wiring/readiness and
 static/WASM-isolation checks pass, but hosted Pages remains static/offline
 without a functioning chat backend/artifact lowering. The Q16 suffix trace
 student is complete with bounded distillation but looping autonomous output.
-The only active successor is `R4SoftmaxTraceStateStudentV1`. Intrinsic/readout
+Its recurrent state successor failed promotion. The only active successor is
+[#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012), a
+construction-only observability audit. Intrinsic/readout
 alternatives, multi-resonance replacement, whole-decoder recurrent
 factorization, and final requalification are parked. D3 remains
 `NOT_RUN`; #954 remains blocked.

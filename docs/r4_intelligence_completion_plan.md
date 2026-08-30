@@ -29,14 +29,17 @@
   trace/compiler step. The source-free Q16 suffix artifact shows bounded
   distillation against count and document-permuted controls, but its autonomous
   continuation loops; this is not geometric attention, coherent generation,
-  correctness, general-purpose inference, or reasoning. The sole active step is
-  `R4SoftmaxTraceStateStudentV1`: compile construction traces into causal
-  source-free recurrent R4/Spin state and beat frozen suffix, plain-recurrent,
-  and transport-permuted controls on held-out decisions/loss, exact replay,
-  zero source access, destructive-control separation, and non-looping decode.
+  correctness, general-purpose inference, or reasoning.
+  `R4SoftmaxTraceStateStudentV1` subsequently completed with exact source-free
+  execution but no changed top-1 decision, no material destructive-control
+  separation, and the same period-two loop. The sole active step is now
+  [#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012), a
+  construction-only observability audit across full trace, fixed signed
+  reduction, recurrent features, and readout calibration. The already-revealed
+  document 13 cannot promote a repaired model.
   Offline teacher/compiler floats, matrix operations, and softmax are permitted
-  while proving the mechanism; the deployed destination remains exact,
-  integer/table-native, and source-free.
+  while proving a replacement mechanism; the deployed destination remains
+  exact, integer/table-native, and source-free.
   Intrinsic/readout alternatives, resonance-based softmax replacement,
   full-model recurrent lowering, and exact deployment are parked. D3 remains `NOT_RUN`; #954 remains
   blocked. No tag, release, hosted promotion, or static-WASM claim is

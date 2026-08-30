@@ -19,7 +19,7 @@ make an hours-long run the price of learning whether a mechanism is reachable.
 Experimental evaluations are dormant by default. Activate only the smallest
 probe whose possible outcomes cause different next actions.
 
-### Active decision — R4SoftmaxTraceStateStudentV1/#973
+### Active decision — construction-only trace/state observability/#973
 
 PR #997 proved reachability but rejected its componentwise-Frechet placement:
 real 2,931/35,028 (8.367592%), unchanged #953 4,281/35,028 (12.221651%),
@@ -108,20 +108,58 @@ autonomous continuation loops. This result is not geometric attention,
 coherent generation, correctness, general-purpose inference, or reasoning. See the
 [`trace-student record`](r4_softmax_trace_student_973.md).
 
-The next gate is `R4SoftmaxTraceStateStudentV1`. It may fit/codebook only
-construction traces. Its runtime must read only prior compiled state, observed
-token IDs, and independently available canonical R4/Spin addresses/frames—no
-held-out Q/K/V or source trace. Compare frozen suffix, plain-recurrent,
-geometric state, and transport-permuted arms. A positive must beat the frozen
-held-out decision/loss thresholds and both controls, lose its effect under the
-geometry-destroying intervention, replay exactly with zero source access, and
-avoid period-1/2 loops. A negative repairs or retires the recurrent state
-representation before scale. Offline floats, matrix operations, and softmax are
-allowed at the teacher/compiler boundary; the deployed destination remains
-exact, integer/table-native, and source-free. Intrinsic/readout, resonance,
-softmax replacement, and exact lowering stay parked until this gate passes.
-Tag, release, hosted promotion, general-generation/reasoning, and static-WASM
-evidence remain ineligible. None of this alone closes #973 or unblocks #954. See the
+`R4SoftmaxTraceStateStudentV1` then completed its three sealed phases and
+stopped
+`STOP_R4_SOFTMAX_TRACE_STATE_STUDENT_REPAIR_OR_RETIRE_REPRESENTATION`. Every
+arm covered the same `422,875` Q16 teacher mass on the same nine positions:
+
+| Arm | Covered CE (nats) | Teacher top-1 | Actual-next top-1 |
+|---|---:|---:|---:|
+| Frozen suffix | 2.660721032 | 3/9 | 2/9 |
+| Plain recurrent | 2.660770919 | 3/9 | 2/9 |
+| Geometric recurrent | 2.660705367 | 3/9 | 2/9 |
+| Transport-permuted | 2.660729215 | 3/9 | 2/9 |
+
+The geometric-to-permuted CE margin was only `0.000023848` nats against the
+frozen `0.10` materiality requirement. No teacher or actual-next top-1 decision
+changed, and every arm retained the same period-two `, Scotland` continuation.
+Exact artifact reload, causal replay, zero-source execution, input provenance,
+and matched work ledgers passed. This is a valid negative for the frozen 4D
+signed-reduction/token-derived state representation, not a failure of execution
+integrity and not a falsification of ordinary R4/Spin softmax attention. The
+state artifact is
+`blake3:b617fc38e7bef1cdea76991f6e5e7cc653118451d63bcbd595f8ffd7e247ae7b`;
+the construction freeze is
+`blake3:67cf67bb46b94cf5644b8dde286e89adb7e49159b3749790dffb500d8047fedb`;
+the source-free seal is
+`blake3:64587526f7883ab046e884a28b6af7e9e89818c9ead2039f8c995de7fb483060`;
+and the result is
+`blake3:dc04a8a8b21750799db2d451c8237d1e62cf90ffa74561fb54272b1e9704c824`.
+The complete evidence is recorded in the
+[`state-student record`](r4_softmax_trace_state_student_1011.md) and
+[`structured result`](r4_softmax_trace_state_student_1011_raw.json).
+
+The sole next gate is
+[#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012), one
+construction-only, leave-one-document-out observability audit measuring the
+same teacher-relative candidate loss at four
+explicit boundaries: the full ordered final-layer Q/K/V trace blocks; the fixed
+576-to-4 signed reduction; the token-derived role maps and recurrent state
+features; and the fitted residual readout/logit scale. The result selects only
+the first failed boundary: replace the reduction if full traces transfer but
+the reduction does not; repair context-conditioned role induction if the
+reduction transfers but state features do not; repair readout calibration if
+state features transfer but logits remain inert; or stop trace distillation and
+train under a fresh independently frozen holdout if even full traces fail.
+Document 13 is already revealed and cannot promote a repaired mechanism again.
+
+Offline floats, matrix operations, and softmax remain allowed at the
+teacher/compiler boundary; the deployed destination remains exact,
+integer/table-native, and source-free. Intrinsic/readout substitution,
+resonance, new state dimensions, corpus scale, softmax replacement, exact
+lowering, tag/release, hosted promotion, general-generation/reasoning, and
+static-WASM evidence remain ineligible. None of this alone closes #973 or
+unblocks #954. See the
 [`generation record`](r4_softmax_reference_generation_973.md) and
 [`compact aggregate`](r4_softmax_reference_generation_attempt_01_result_973.json).
 
@@ -185,9 +223,10 @@ HTTP endpoint, and checked dashboard wiring/static native-readiness and WASM
 isolation. Hosted Pages remains static/offline without a functioning chat
 backend/artifact lowering. The source-free Q16 suffix trace student is complete
 with bounded distillation but looping autonomous output;
-`R4SoftmaxTraceStateStudentV1` is active. Intrinsic/readout,
-resonance/recurrent lowering, and final
-requalification are parked.
+`R4SoftmaxTraceStateStudentV1` is complete with `FAIL_PROMOTION`. The
+construction-only leave-one-document-out observability audit is active.
+Intrinsic/readout, new state dimensions, corpus scale, resonance/recurrent
+lowering, and final requalification are parked.
 
 A negative result remains evidence about its declared mechanism and
 distribution. It does not erase a separately established storage, identity,
@@ -952,10 +991,12 @@ eight-token CLI-parity canary, with no default-engine change. Dashboard
 wiring/static native-readiness and WASM-isolation checks pass; hosted Pages is
 static/offline without a functioning chat backend/artifact lowering. The
 source-free Q16 suffix trace student is complete with bounded distillation but
-looping output. The single current evaluation action is
-`R4SoftmaxTraceStateStudentV1`. D3 remains `NOT_RUN`; intrinsic/readout
-alternatives, resonance-based softmax replacement, whole-decoder recurrent
-lowering, and exact deployment are parked.
+looping output. Its recurrent state successor is complete and failed
+promotion. The single current evaluation action is the construction-only
+leave-one-document-out observability audit. D3 remains `NOT_RUN`;
+intrinsic/readout alternatives, new state dimensions, corpus scale,
+resonance-based softmax replacement, whole-decoder recurrent lowering, and
+exact deployment are parked.
 
 #973 owns paragraph, conversation, and bounded-global influence only after the
 one #989-matched #953 intervention qualifies the decoded loop.
@@ -1018,7 +1059,9 @@ native HTTP endpoint now pass. Dashboard wiring/static native-readiness and
 WASM-isolation checks pass; hosted Pages is static/offline without a functioning
 chat backend/artifact lowering. The source-free Q16 suffix trace student is
 complete with bounded distillation but looping output.
-`R4SoftmaxTraceStateStudentV1` is active, while intrinsic/readout alternatives,
+`R4SoftmaxTraceStateStudentV1` is complete with `FAIL_PROMOTION`; the
+construction-only leave-one-document-out observability audit is active, while
+intrinsic/readout alternatives, new state dimensions, corpus scale,
 resonance-based softmax replacement, whole-decoder recurrent lowering, and
 final requalification are parked.
 
@@ -1086,10 +1129,11 @@ HTTP endpoint passes the frozen eight-token CLI-parity canary. Dashboard
 wiring/static native-readiness and WASM-isolation checks pass; hosted Pages is
 static/offline without a functioning chat backend/artifact lowering. The
 source-free Q16 suffix trace student is complete with bounded distillation but
-looping output. The current #973 decision is
-`R4SoftmaxTraceStateStudentV1`; intrinsic/readout,
-multi-resonance, and recurrent lowering are
-parked. D3 remains `NOT_RUN` and #954 remains blocked. See the
+looping output. Its recurrent state successor is complete and failed promotion.
+The current #973 decision is the construction-only leave-one-document-out
+observability audit; intrinsic/readout, new state dimensions, corpus scale,
+multi-resonance, and recurrent lowering are parked. D3 remains `NOT_RUN` and
+#954 remains blocked. See the
 [#973 bounded-global record](bounded_global_exact_spin_attention_973.md).
 
 ## 4. Matched controls

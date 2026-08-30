@@ -26,7 +26,7 @@ use uor_r4_core::r4_softmax_trace_student::{
 };
 use uor_r4_core::source_free_table::d3_is_held_out;
 use uor_r4_core::transformerless::hf_bpe::HfBpeTokenizer;
-use uor_r4_model_source::attention::CausalAttentionLayerSelection;
+use uor_r4_model_source::attention::{CausalAttentionLayerSelection, CausalAttentionTransport};
 use uor_r4_model_source::{
     CausalAttentionTransportSession, HuggingFaceLlamaOracle, TeacherExecutionConfig,
     TeacherExecutionSnapshot, TeacherOracle,
@@ -41,8 +41,8 @@ use crate::r4_softmax_reference_generation::{
     AttentionAuditEvidence, CausalAttentionAuditRecord, ModelShape, ProjectionAuditRecord,
 };
 use crate::r4_softmax_teacher_trace::{
-    R4SoftmaxTeacherTrace, R4SoftmaxTeacherTraceBounds, R4SoftmaxTeacherTraceIdentity,
-    TracingR4SpinTransport,
+    R4SoftmaxTeacherTrace, R4SoftmaxTeacherTraceBounds, R4SoftmaxTeacherTraceBundle,
+    R4SoftmaxTeacherTraceIdentity, TracingR4SpinTransport,
 };
 
 pub const PREFLIGHT_SCHEMA: &str = "uor-r4.r4-softmax-trace-student-preflight/1";
@@ -520,16 +520,17 @@ pub fn compile_construction(
         .iter()
         .map(|outcome| outcome.trace.clone())
         .collect::<Vec<_>>();
-    let trace_bundle = canonical_trace_bundle(&traces)?;
-    let trace_bundle_cid = bytes_cid(&trace_bundle);
-    let document_trace_cids = traces
-        .iter()
-        .map(|trace| {
-            trace
-                .trace_cid()
-                .map_err(|error| R4SoftmaxTraceExperimentError::Trace(error.to_string()))
-        })
-        .collect::<Result<Vec<_>, _>>()?;
+    let typed_trace_bundle = R4SoftmaxTeacherTraceBundle::new(traces)
+        .map_err(|error| R4SoftmaxTraceExperimentError::Trace(error.to_string()))?;
+    let trace_bundle = typed_trace_bundle
+        .canonical_bytes()
+        .map_err(|error| R4SoftmaxTraceExperimentError::Trace(error.to_string()))?;
+    let trace_bundle_cid = typed_trace_bundle
+        .bundle_cid()
+        .map_err(|error| R4SoftmaxTraceExperimentError::Trace(error.to_string()))?;
+    let document_trace_cids = typed_trace_bundle
+        .document_trace_cids()
+        .map_err(|error| R4SoftmaxTraceExperimentError::Trace(error.to_string()))?;
     let sequences = outcomes
         .iter()
         .map(|outcome| outcome.sequence.clone())
@@ -1034,7 +1035,7 @@ fn audit_session(
     })
 }
 
-fn teacher_distribution(
+pub(crate) fn teacher_distribution(
     logits: &crate::r4_softmax_teacher_trace::R4SoftmaxLogitTrace,
 ) -> Result<TeacherTopDistributionQ16, R4SoftmaxTraceExperimentError> {
     if logits.top_logits.len() != LOGIT_SUPPORT {
@@ -1117,38 +1118,6 @@ fn teacher_distribution(
         .collect::<Result<Vec<_>, R4SoftmaxTraceExperimentError>>()?;
     TeacherTopDistributionQ16::new(entries)
         .map_err(|error| R4SoftmaxTraceExperimentError::Student(error.to_string()))
-}
-
-fn canonical_trace_bundle(
-    traces: &[R4SoftmaxTeacherTrace],
-) -> Result<Vec<u8>, R4SoftmaxTraceExperimentError> {
-    let mut bytes = Vec::new();
-    bytes.extend_from_slice(b"R4STB001");
-    bytes.extend_from_slice(
-        &u32::try_from(traces.len())
-            .map_err(|_| {
-                R4SoftmaxTraceExperimentError::Trace(
-                    "trace bundle document count exceeds u32".to_owned(),
-                )
-            })?
-            .to_le_bytes(),
-    );
-    for trace in traces {
-        let trace_bytes = trace
-            .canonical_bytes()
-            .map_err(|error| R4SoftmaxTraceExperimentError::Trace(error.to_string()))?;
-        bytes.extend_from_slice(
-            &u64::try_from(trace_bytes.len())
-                .map_err(|_| {
-                    R4SoftmaxTraceExperimentError::Trace(
-                        "trace document bytes exceed u64".to_owned(),
-                    )
-                })?
-                .to_le_bytes(),
-        );
-        bytes.extend_from_slice(&trace_bytes);
-    }
-    Ok(bytes)
 }
 
 #[derive(Default)]
@@ -1377,12 +1346,131 @@ fn validate_freeze(
         ));
     }
     let trace_bundle = fs::read(&config.trace_output)?;
-    if trace_bundle.len() != freeze.trace_bundle_bytes
-        || bytes_cid(&trace_bundle) != freeze.trace_bundle_cid
+    if trace_bundle.len() != freeze.trace_bundle_bytes {
+        return Err(R4SoftmaxTraceExperimentError::Trace(
+            "construction trace bundle byte length changed after freeze".to_owned(),
+        ));
+    }
+    let typed_trace_bundle = R4SoftmaxTeacherTraceBundle::from_bytes_with_expected_cids(
+        &trace_bundle,
+        &freeze.trace_bundle_cid,
+        &freeze.document_trace_cids,
+    )
+    .map_err(|error| R4SoftmaxTraceExperimentError::Trace(error.to_string()))?;
+    validate_loaded_trace_bundle(
+        &typed_trace_bundle,
+        &construction,
+        tokenizer.vocab_size(),
+        &freeze.construction_manifest_cid,
+        &freeze.construction_audits,
+    )?;
+    Ok(())
+}
+
+fn validate_loaded_trace_bundle(
+    bundle: &R4SoftmaxTeacherTraceBundle,
+    construction: &[TokenizedDocument],
+    vocabulary: usize,
+    construction_manifest_cid: &str,
+    construction_audits: &[AttentionAuditEvidence],
+) -> Result<(), R4SoftmaxTraceExperimentError> {
+    if bundle.traces().len() != construction.len()
+        || construction_audits.len() != construction.len()
     {
         return Err(R4SoftmaxTraceExperimentError::Trace(
-            "construction trace bundle changed after freeze".to_owned(),
+            "construction trace bundle census does not match the frozen manifest".to_owned(),
         ));
+    }
+    let maximum_token_id = u32::try_from(vocabulary.checked_sub(1).ok_or_else(|| {
+        R4SoftmaxTraceExperimentError::Trace(
+            "construction tokenizer vocabulary is empty".to_owned(),
+        )
+    })?)
+    .map_err(|_| {
+        R4SoftmaxTraceExperimentError::Trace(
+            "construction tokenizer vocabulary exceeds the u32 namespace".to_owned(),
+        )
+    })?;
+    let maximum_positions = construction
+        .iter()
+        .map(|document| document.targets.len())
+        .max()
+        .ok_or_else(|| {
+            R4SoftmaxTraceExperimentError::Trace("construction trace manifest is empty".to_owned())
+        })?;
+
+    for ((trace, document), audit) in bundle
+        .traces()
+        .iter()
+        .zip(construction)
+        .zip(construction_audits)
+    {
+        let expected_text_cid = text_cid(&document.text);
+        if trace.identity.source_cid != PINNED_SOURCE_CID
+            || trace.identity.tokenizer_cid != PINNED_TOKENIZER_CID
+            || trace.identity.attention_policy_cid != policy_cid()
+            || trace.identity.corpus_cid != construction_manifest_cid
+            || trace.identity.construction_partition_id != "D3-construction/14-657-4579-5121"
+            || trace.identity.document_id != document.id
+            || trace.identity.document_text_cid != expected_text_cid
+            || trace.bounds.maximum_positions != maximum_positions
+            || trace.bounds.vocabulary != vocabulary
+            || trace.bounds.layers != audit.selected_layer_count
+            || trace.positions.len() != document.targets.len()
+        {
+            return Err(R4SoftmaxTraceExperimentError::Trace(format!(
+                "trace document {} does not match its frozen manifest identity or shape",
+                document.id
+            )));
+        }
+
+        let mut frame_oracle = R4SpinCausalAttentionTransport::new(
+            maximum_token_id,
+            document.inputs.len(),
+            R4SpinTransportIntervention::Coherent,
+        )
+        .map_err(|error| R4SoftmaxTraceExperimentError::Trace(error.to_string()))?;
+        let mut trace_frame_offsets = Vec::with_capacity(document.inputs.len());
+        for (position, ((trace_position, &input_token), &target_token)) in trace
+            .positions
+            .iter()
+            .zip(&document.inputs)
+            .zip(&document.targets)
+            .enumerate()
+        {
+            if trace_position.position as usize != position
+                || trace_position.input_token != input_token
+                || trace_position.logits.target_token != target_token
+            {
+                return Err(R4SoftmaxTraceExperimentError::Trace(format!(
+                    "trace document {} token row {position} does not match the frozen manifest",
+                    document.id
+                )));
+            }
+            CausalAttentionTransport::begin_position(
+                &mut frame_oracle,
+                input_token as usize,
+                position,
+            );
+            CausalAttentionTransport::status(&frame_oracle)
+                .map_err(R4SoftmaxTraceExperimentError::Trace)?;
+            let expected_frame = frame_oracle
+                .frame_table_offset(position)
+                .map_err(|error| R4SoftmaxTraceExperimentError::Trace(error.to_string()))?;
+            if trace_position.frame_table_offset != expected_frame {
+                return Err(R4SoftmaxTraceExperimentError::Trace(format!(
+                    "trace document {} frame row {position} is {}, expected {expected_frame}",
+                    document.id, trace_position.frame_table_offset
+                )));
+            }
+            trace_frame_offsets.push(trace_position.frame_table_offset);
+        }
+        if trace_frame_offsets != audit.r4_implementation.frame_table_offsets {
+            return Err(R4SoftmaxTraceExperimentError::Trace(format!(
+                "trace document {} frame addresses do not match the frozen transport audit",
+                document.id
+            )));
+        }
     }
     Ok(())
 }

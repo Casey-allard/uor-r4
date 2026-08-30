@@ -12,7 +12,7 @@
 //! source-free runtime, replace softmax, or establish a geometric advantage.
 
 use std::cmp::Ordering;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 use std::sync::{Arc, Mutex, MutexGuard};
 
@@ -25,8 +25,10 @@ use uor_r4_model_source::attention::{
 pub const R4_SOFTMAX_TEACHER_TRACE_SCHEMA: &str = "R4SoftmaxTeacherTraceV1";
 pub const R4_SOFTMAX_TEACHER_TRACE_MAGIC: [u8; 8] = *b"R4STTR01";
 pub const R4_SOFTMAX_TEACHER_TRACE_VERSION: u32 = 1;
+pub const R4_SOFTMAX_TEACHER_TRACE_BUNDLE_MAGIC: [u8; 8] = *b"R4STB001";
 pub const R4_SOFTMAX_TRACE_SUPPORT_CAP: usize = 8;
 pub const R4_SOFTMAX_TRACE_LOGIT_CAP: usize = 32;
+pub const R4_SOFTMAX_TRACE_FRAME_COUNT: u16 = 120;
 
 /// Immutable construction/source identity bound into the trace bytes.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -208,6 +210,14 @@ pub struct R4SoftmaxTeacherTrace {
 }
 
 impl R4SoftmaxTeacherTrace {
+    /// Decode one canonical trace document.
+    ///
+    /// This is the conventional artifact-loader spelling; it is intentionally
+    /// identical to [`Self::from_canonical_bytes`].
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, R4SoftmaxTeacherTraceError> {
+        Self::from_canonical_bytes(bytes)
+    }
+
     pub fn validate(&self) -> Result<(), R4SoftmaxTeacherTraceError> {
         validate_identity(&self.identity)?;
         self.bounds.validate()?;
@@ -307,6 +317,207 @@ impl R4SoftmaxTeacherTrace {
             "blake3:{}",
             blake3::hash(&self.canonical_bytes()?).to_hex()
         ))
+    }
+
+    /// Fail-closed decoder for one canonical trace document.
+    pub fn from_canonical_bytes(bytes: &[u8]) -> Result<Self, R4SoftmaxTeacherTraceError> {
+        let trace = parse_canonical_trace(bytes)?;
+        trace.validate()?;
+        if trace.canonical_bytes()?.as_slice() != bytes {
+            return Err(R4SoftmaxTeacherTraceError::Invalid(
+                "teacher trace bytes are not canonical".to_owned(),
+            ));
+        }
+        Ok(trace)
+    }
+
+    /// Decode one canonical document and bind it to an independently frozen
+    /// content identity. Canonical decoding alone cannot detect a valid finite
+    /// bit-pattern substitution, so callers crossing a freeze boundary must
+    /// use this method (or perform an equivalent CID check).
+    pub fn from_canonical_bytes_with_expected_cid(
+        bytes: &[u8],
+        expected_cid: &str,
+    ) -> Result<Self, R4SoftmaxTeacherTraceError> {
+        require_bytes_cid(bytes, expected_cid, "teacher trace")?;
+        Self::from_canonical_bytes(bytes)
+    }
+
+    /// Decode one canonical document and require its frozen content identity.
+    pub fn from_bytes_with_expected_cid(
+        bytes: &[u8],
+        expected_cid: &str,
+    ) -> Result<Self, R4SoftmaxTeacherTraceError> {
+        Self::from_canonical_bytes_with_expected_cid(bytes, expected_cid)
+    }
+}
+
+/// Canonical ordered envelope of construction trace documents.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct R4SoftmaxTeacherTraceBundle {
+    traces: Vec<R4SoftmaxTeacherTrace>,
+}
+
+impl R4SoftmaxTeacherTraceBundle {
+    pub fn new(traces: Vec<R4SoftmaxTeacherTrace>) -> Result<Self, R4SoftmaxTeacherTraceError> {
+        let bundle = Self { traces };
+        bundle.validate()?;
+        Ok(bundle)
+    }
+
+    pub fn traces(&self) -> &[R4SoftmaxTeacherTrace] {
+        &self.traces
+    }
+
+    pub fn validate(&self) -> Result<(), R4SoftmaxTeacherTraceError> {
+        if self.traces.is_empty() {
+            return Err(R4SoftmaxTeacherTraceError::Invalid(
+                "teacher trace bundle is empty".to_owned(),
+            ));
+        }
+        u32::try_from(self.traces.len()).map_err(|_| {
+            R4SoftmaxTeacherTraceError::Invalid(
+                "teacher trace bundle document count exceeds u32".to_owned(),
+            )
+        })?;
+        let first = &self.traces[0];
+        let mut document_ids = BTreeSet::new();
+        let mut document_text_cids = BTreeSet::new();
+        for trace in &self.traces {
+            trace.validate()?;
+            if trace.bounds.layers != first.bounds.layers
+                || trace.bounds.query_heads != first.bounds.query_heads
+                || trace.bounds.key_value_heads != first.bounds.key_value_heads
+                || trace.bounds.head_size != first.bounds.head_size
+                || trace.bounds.vocabulary != first.bounds.vocabulary
+                || trace.identity.source_cid != first.identity.source_cid
+                || trace.identity.tokenizer_cid != first.identity.tokenizer_cid
+                || trace.identity.attention_policy_cid != first.identity.attention_policy_cid
+                || trace.identity.corpus_cid != first.identity.corpus_cid
+                || trace.identity.construction_partition_id
+                    != first.identity.construction_partition_id
+            {
+                return Err(R4SoftmaxTeacherTraceError::Invalid(
+                    "teacher trace bundle mixes incompatible construction identities or shapes"
+                        .to_owned(),
+                ));
+            }
+            if !document_ids.insert(trace.identity.document_id.as_str())
+                || !document_text_cids.insert(trace.identity.document_text_cid.as_str())
+            {
+                return Err(R4SoftmaxTeacherTraceError::Invalid(
+                    "teacher trace bundle contains a duplicate document identity".to_owned(),
+                ));
+            }
+        }
+        Ok(())
+    }
+
+    pub fn canonical_bytes(&self) -> Result<Vec<u8>, R4SoftmaxTeacherTraceError> {
+        self.validate()?;
+        let mut bytes = Vec::new();
+        bytes.extend_from_slice(&R4_SOFTMAX_TEACHER_TRACE_BUNDLE_MAGIC);
+        push_usize(&mut bytes, self.traces.len())?;
+        for trace in &self.traces {
+            let trace_bytes = trace.canonical_bytes()?;
+            let length = u64::try_from(trace_bytes.len()).map_err(|_| {
+                R4SoftmaxTeacherTraceError::Invalid(
+                    "teacher trace document byte length exceeds u64".to_owned(),
+                )
+            })?;
+            bytes.extend_from_slice(&length.to_le_bytes());
+            bytes.extend_from_slice(&trace_bytes);
+        }
+        Ok(bytes)
+    }
+
+    pub fn from_canonical_bytes(bytes: &[u8]) -> Result<Self, R4SoftmaxTeacherTraceError> {
+        let mut cursor = TraceCursor::new(bytes);
+        if cursor.take(8, "bundle magic")? != R4_SOFTMAX_TEACHER_TRACE_BUNDLE_MAGIC {
+            return Err(R4SoftmaxTeacherTraceError::Invalid(
+                "teacher trace bundle magic is invalid".to_owned(),
+            ));
+        }
+        let document_count = cursor.count("bundle document")?;
+        if document_count == 0 || document_count > cursor.remaining() / 8 {
+            return Err(R4SoftmaxTeacherTraceError::Invalid(
+                "teacher trace bundle document count is invalid".to_owned(),
+            ));
+        }
+        let mut traces = Vec::new();
+        for _ in 0..document_count {
+            let length = usize::try_from(cursor.u64("trace document length")?).map_err(|_| {
+                R4SoftmaxTeacherTraceError::Invalid(
+                    "teacher trace document length exceeds this host".to_owned(),
+                )
+            })?;
+            if length == 0 {
+                return Err(R4SoftmaxTeacherTraceError::Invalid(
+                    "teacher trace bundle contains an empty document".to_owned(),
+                ));
+            }
+            let trace_bytes = cursor.take(length, "trace document")?;
+            traces.push(R4SoftmaxTeacherTrace::from_canonical_bytes(trace_bytes)?);
+        }
+        if !cursor.is_finished() {
+            return Err(R4SoftmaxTeacherTraceError::Invalid(
+                "teacher trace bundle has trailing bytes".to_owned(),
+            ));
+        }
+        let bundle = Self::new(traces)?;
+        if bundle.canonical_bytes()?.as_slice() != bytes {
+            return Err(R4SoftmaxTeacherTraceError::Invalid(
+                "teacher trace bundle bytes are not canonical".to_owned(),
+            ));
+        }
+        Ok(bundle)
+    }
+
+    /// Decode one canonical ordered trace bundle.
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, R4SoftmaxTeacherTraceError> {
+        Self::from_canonical_bytes(bytes)
+    }
+
+    pub fn from_canonical_bytes_with_expected_cids(
+        bytes: &[u8],
+        expected_bundle_cid: &str,
+        expected_document_cids: &[String],
+    ) -> Result<Self, R4SoftmaxTeacherTraceError> {
+        require_bytes_cid(bytes, expected_bundle_cid, "teacher trace bundle")?;
+        let bundle = Self::from_canonical_bytes(bytes)?;
+        let actual_document_cids = bundle.document_trace_cids()?;
+        if actual_document_cids != expected_document_cids {
+            return Err(R4SoftmaxTeacherTraceError::Invalid(
+                "teacher trace bundle document CIDs do not match the frozen ordered identities"
+                    .to_owned(),
+            ));
+        }
+        Ok(bundle)
+    }
+
+    /// Decode an ordered bundle and bind both its envelope and nested document
+    /// order to independently frozen content identities.
+    pub fn from_bytes_with_expected_cids(
+        bytes: &[u8],
+        expected_bundle_cid: &str,
+        expected_document_cids: &[String],
+    ) -> Result<Self, R4SoftmaxTeacherTraceError> {
+        Self::from_canonical_bytes_with_expected_cids(
+            bytes,
+            expected_bundle_cid,
+            expected_document_cids,
+        )
+    }
+
+    pub fn bundle_cid(&self) -> Result<String, R4SoftmaxTeacherTraceError> {
+        Ok(bytes_cid(&self.canonical_bytes()?))
+    }
+
+    pub fn document_trace_cids(&self) -> Result<Vec<String>, R4SoftmaxTeacherTraceError> {
+        self.traces
+            .iter()
+            .map(R4SoftmaxTeacherTrace::trace_cid)
+            .collect()
     }
 }
 
@@ -1085,6 +1296,283 @@ impl fmt::Display for R4SoftmaxTeacherTraceError {
 
 impl std::error::Error for R4SoftmaxTeacherTraceError {}
 
+fn parse_canonical_trace(
+    bytes: &[u8],
+) -> Result<R4SoftmaxTeacherTrace, R4SoftmaxTeacherTraceError> {
+    let mut cursor = TraceCursor::new(bytes);
+    if cursor.take(8, "trace magic")? != R4_SOFTMAX_TEACHER_TRACE_MAGIC {
+        return Err(R4SoftmaxTeacherTraceError::Invalid(
+            "teacher trace magic is invalid".to_owned(),
+        ));
+    }
+    if cursor.u32("trace version")? != R4_SOFTMAX_TEACHER_TRACE_VERSION {
+        return Err(R4SoftmaxTeacherTraceError::Invalid(
+            "teacher trace version is unsupported".to_owned(),
+        ));
+    }
+    if cursor.string("trace schema")? != R4_SOFTMAX_TEACHER_TRACE_SCHEMA {
+        return Err(R4SoftmaxTeacherTraceError::Invalid(
+            "teacher trace schema is unsupported".to_owned(),
+        ));
+    }
+    let identity = R4SoftmaxTeacherTraceIdentity {
+        source_cid: cursor.string("source CID")?,
+        tokenizer_cid: cursor.string("tokenizer CID")?,
+        attention_policy_cid: cursor.string("attention policy CID")?,
+        corpus_cid: cursor.string("corpus CID")?,
+        construction_partition_id: cursor.string("construction partition id")?,
+        document_id: cursor.string("document id")?,
+        document_text_cid: cursor.string("document text CID")?,
+    };
+    let bounds = R4SoftmaxTeacherTraceBounds {
+        maximum_positions: cursor.count("maximum positions")?,
+        layers: cursor.count("layer bound")?,
+        query_heads: cursor.count("query-head bound")?,
+        key_value_heads: cursor.count("key/value-head bound")?,
+        head_size: cursor.count("head-size bound")?,
+        vocabulary: cursor.count("vocabulary bound")?,
+    };
+    bounds.validate()?;
+    if cursor.count("support cap")? != R4_SOFTMAX_TRACE_SUPPORT_CAP
+        || cursor.count("logit cap")? != R4_SOFTMAX_TRACE_LOGIT_CAP
+    {
+        return Err(R4SoftmaxTeacherTraceError::Invalid(
+            "teacher trace support or logit cap is unsupported".to_owned(),
+        ));
+    }
+    let position_count = cursor.count("position")?;
+    if position_count == 0 || position_count > bounds.maximum_positions {
+        return Err(R4SoftmaxTeacherTraceError::Invalid(
+            "teacher trace position count exceeds its declared bound or is empty".to_owned(),
+        ));
+    }
+    let query_width = bounds.query_width()?;
+    let key_value_width = bounds.key_value_width()?;
+    let mut positions = Vec::new();
+    for expected_position in 0..position_count {
+        let position = cursor.u32("position ordinal")?;
+        if position as usize != expected_position {
+            return Err(R4SoftmaxTeacherTraceError::Invalid(format!(
+                "teacher trace position {position} appears at ordinal {expected_position}"
+            )));
+        }
+        let input_token = cursor.u32("input token")?;
+        let frame_table_offset = cursor.u16("frame table offset")?;
+        cursor.expect_count(bounds.layers, "position layer")?;
+        let mut layers = Vec::new();
+        for expected_layer in 0..bounds.layers {
+            let layer = cursor.u32("layer ordinal")?;
+            if layer as usize != expected_layer {
+                return Err(R4SoftmaxTeacherTraceError::Invalid(format!(
+                    "teacher trace layer {layer} appears at ordinal {expected_layer}"
+                )));
+            }
+            let projected_qkv = ProjectedQkvTrace {
+                query_bits: cursor.bits(query_width, "projected query")?,
+                key_bits: cursor.bits(key_value_width, "projected key")?,
+                value_bits: cursor.bits(key_value_width, "projected value")?,
+            };
+            cursor.expect_count(bounds.query_heads, "layer head")?;
+            let mut heads = Vec::new();
+            for expected_head in 0..bounds.query_heads {
+                let head = cursor.u32("head ordinal")?;
+                if head as usize != expected_head {
+                    return Err(R4SoftmaxTeacherTraceError::Invalid(format!(
+                        "teacher trace head {head} appears at ordinal {expected_head}"
+                    )));
+                }
+                let query_gauge_bits = cursor.bits(bounds.head_size, "query-gauge query")?;
+                let current_key_query_gauge_bits =
+                    cursor.bits(bounds.head_size, "current query-gauge key")?;
+                let current_value_query_gauge_bits =
+                    cursor.bits(bounds.head_size, "current query-gauge value")?;
+                let expected_support = R4_SOFTMAX_TRACE_SUPPORT_CAP.min(expected_position + 1);
+                cursor.expect_count(expected_support, "attention support")?;
+                let mut top_support = Vec::new();
+                for _ in 0..expected_support {
+                    top_support.push(R4SoftmaxTraceSupport {
+                        source_position: cursor.u32("support source position")?,
+                        weight_bits: cursor.u32("support weight")?,
+                        transported_key_bits: cursor
+                            .bits(bounds.head_size, "support transported key")?,
+                        transported_value_bits: cursor
+                            .bits(bounds.head_size, "support transported value")?,
+                    });
+                }
+                heads.push(R4SoftmaxHeadTrace {
+                    head,
+                    query_gauge_bits,
+                    current_key_query_gauge_bits,
+                    current_value_query_gauge_bits,
+                    top_support,
+                    weighted_value_aggregate_query_gauge_bits: cursor
+                        .bits(bounds.head_size, "query-gauge weighted aggregate")?,
+                    decoded_output_model_frame_bits: cursor
+                        .bits(bounds.head_size, "decoded model-frame output")?,
+                });
+            }
+            layers.push(R4SoftmaxLayerTrace {
+                layer,
+                projected_qkv,
+                heads,
+            });
+        }
+        let target_token = cursor.u32("target token")?;
+        let target_logit_bits = cursor.u32("target logit")?;
+        let maximum_logit_bits = cursor.u32("maximum logit")?;
+        let logsumexp_bits = cursor.u64("logsumexp")?;
+        let target_nll_bits = cursor.u64("target NLL")?;
+        let expected_logits = R4_SOFTMAX_TRACE_LOGIT_CAP.min(bounds.vocabulary);
+        cursor.expect_count(expected_logits, "ranked logit")?;
+        let mut top_logits = Vec::new();
+        for _ in 0..expected_logits {
+            top_logits.push(R4SoftmaxRankedLogit {
+                token: cursor.u32("ranked-logit token")?,
+                logit_bits: cursor.u32("ranked logit")?,
+            });
+        }
+        positions.push(R4SoftmaxPositionTrace {
+            position,
+            input_token,
+            frame_table_offset,
+            layers,
+            logits: R4SoftmaxLogitTrace {
+                target_token,
+                target_logit_bits,
+                maximum_logit_bits,
+                logsumexp_bits,
+                target_nll_bits,
+                top_logits,
+            },
+        });
+    }
+    if !cursor.is_finished() {
+        return Err(R4SoftmaxTeacherTraceError::Invalid(
+            "teacher trace has trailing bytes".to_owned(),
+        ));
+    }
+    Ok(R4SoftmaxTeacherTrace {
+        identity,
+        bounds,
+        positions,
+    })
+}
+
+fn bytes_cid(bytes: &[u8]) -> String {
+    format!("blake3:{}", blake3::hash(bytes).to_hex())
+}
+
+fn require_bytes_cid(
+    bytes: &[u8],
+    expected_cid: &str,
+    label: &str,
+) -> Result<(), R4SoftmaxTeacherTraceError> {
+    let actual_cid = bytes_cid(bytes);
+    if actual_cid != expected_cid {
+        return Err(R4SoftmaxTeacherTraceError::Invalid(format!(
+            "{label} CID mismatch: expected {expected_cid}, computed {actual_cid}"
+        )));
+    }
+    Ok(())
+}
+
+struct TraceCursor<'a> {
+    bytes: &'a [u8],
+    offset: usize,
+}
+
+impl<'a> TraceCursor<'a> {
+    fn new(bytes: &'a [u8]) -> Self {
+        Self { bytes, offset: 0 }
+    }
+
+    fn take(&mut self, length: usize, label: &str) -> Result<&'a [u8], R4SoftmaxTeacherTraceError> {
+        let end = self.offset.checked_add(length).ok_or_else(|| {
+            R4SoftmaxTeacherTraceError::Invalid(format!("teacher trace {label} offset overflowed"))
+        })?;
+        let value = self.bytes.get(self.offset..end).ok_or_else(|| {
+            R4SoftmaxTeacherTraceError::Invalid(format!(
+                "teacher trace is truncated while reading {label}"
+            ))
+        })?;
+        self.offset = end;
+        Ok(value)
+    }
+
+    fn u16(&mut self, label: &str) -> Result<u16, R4SoftmaxTeacherTraceError> {
+        let bytes = self.take(2, label)?;
+        Ok(u16::from_le_bytes([bytes[0], bytes[1]]))
+    }
+
+    fn u32(&mut self, label: &str) -> Result<u32, R4SoftmaxTeacherTraceError> {
+        let bytes = self.take(4, label)?;
+        Ok(u32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]))
+    }
+
+    fn u64(&mut self, label: &str) -> Result<u64, R4SoftmaxTeacherTraceError> {
+        let bytes = self.take(8, label)?;
+        Ok(u64::from_le_bytes([
+            bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
+        ]))
+    }
+
+    fn count(&mut self, label: &str) -> Result<usize, R4SoftmaxTeacherTraceError> {
+        usize::try_from(self.u32(label)?).map_err(|_| {
+            R4SoftmaxTeacherTraceError::Invalid(format!(
+                "teacher trace {label} count exceeds this host"
+            ))
+        })
+    }
+
+    fn expect_count(
+        &mut self,
+        expected: usize,
+        label: &str,
+    ) -> Result<(), R4SoftmaxTeacherTraceError> {
+        let actual = self.count(label)?;
+        if actual != expected {
+            return Err(R4SoftmaxTeacherTraceError::Invalid(format!(
+                "teacher trace {label} count is {actual}; {expected} required"
+            )));
+        }
+        Ok(())
+    }
+
+    fn string(&mut self, label: &str) -> Result<String, R4SoftmaxTeacherTraceError> {
+        let length = self.count(label)?;
+        let bytes = self.take(length, label)?;
+        std::str::from_utf8(bytes).map(str::to_owned).map_err(|_| {
+            R4SoftmaxTeacherTraceError::Invalid(format!("teacher trace {label} is not valid UTF-8"))
+        })
+    }
+
+    fn bits(
+        &mut self,
+        expected: usize,
+        label: &str,
+    ) -> Result<Vec<u32>, R4SoftmaxTeacherTraceError> {
+        self.expect_count(expected, label)?;
+        let byte_length = expected.checked_mul(4).ok_or_else(|| {
+            R4SoftmaxTeacherTraceError::Invalid(format!(
+                "teacher trace {label} byte length overflowed"
+            ))
+        })?;
+        let bytes = self.take(byte_length, label)?;
+        Ok(bytes
+            .chunks_exact(4)
+            .map(|chunk| u32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]))
+            .collect())
+    }
+
+    fn remaining(&self) -> usize {
+        self.bytes.len() - self.offset
+    }
+
+    fn is_finished(&self) -> bool {
+        self.offset == self.bytes.len()
+    }
+}
+
 fn finalize_layers(
     pending: &PendingPositionTrace,
     bounds: R4SoftmaxTeacherTraceBounds,
@@ -1384,6 +1872,12 @@ fn validate_position(
             "position {expected_position} contains a token outside the vocabulary"
         )));
     }
+    if position.frame_table_offset >= R4_SOFTMAX_TRACE_FRAME_COUNT {
+        return Err(R4SoftmaxTeacherTraceError::Invalid(format!(
+            "position {expected_position} frame offset {} is outside the canonical H4 registry",
+            position.frame_table_offset
+        )));
+    }
     if position.layers.len() != bounds.layers {
         return Err(R4SoftmaxTeacherTraceError::Invalid(format!(
             "position {expected_position} has {} layers; {} required",
@@ -1448,6 +1942,8 @@ fn validate_position(
                     head.top_support.len()
                 )));
             }
+            let mut support_positions = BTreeSet::new();
+            let mut retained_weight_sum = 0.0_f64;
             for (index, support) in head.top_support.iter().enumerate() {
                 if support.source_position as usize > expected_position {
                     return Err(R4SoftmaxTeacherTraceError::Invalid(format!(
@@ -1456,9 +1952,15 @@ fn validate_position(
                     )));
                 }
                 let weight = support.weight();
-                if !weight.is_finite() || weight < 0.0 {
+                if !weight.is_finite() || !(0.0..=1.0).contains(&weight) {
                     return Err(R4SoftmaxTeacherTraceError::Invalid(
-                        "support weight is negative or non-finite".to_owned(),
+                        "support weight is outside [0,1] or non-finite".to_owned(),
+                    ));
+                }
+                retained_weight_sum += f64::from(weight);
+                if !support_positions.insert(support.source_position) {
+                    return Err(R4SoftmaxTeacherTraceError::Invalid(
+                        "attention support contains a duplicate source position".to_owned(),
                     ));
                 }
                 validate_bits(
@@ -1483,6 +1985,13 @@ fn validate_position(
                         ));
                     }
                 }
+            }
+            if expected_position < R4_SOFTMAX_TRACE_SUPPORT_CAP
+                && (retained_weight_sum - 1.0).abs() > 1.0e-5
+            {
+                return Err(R4SoftmaxTeacherTraceError::Invalid(
+                    "complete attention support does not normalize to one".to_owned(),
+                ));
             }
         }
     }
@@ -1516,10 +2025,16 @@ fn validate_logits(
             logits.top_logits.len()
         )));
     }
+    let mut ranked_tokens = BTreeSet::new();
     for (index, ranked) in logits.top_logits.iter().copied().enumerate() {
         if ranked.token as usize >= vocabulary || !ranked.logit().is_finite() {
             return Err(R4SoftmaxTeacherTraceError::Invalid(
                 "ranked logit is outside the vocabulary or non-finite".to_owned(),
+            ));
+        }
+        if !ranked_tokens.insert(ranked.token) {
+            return Err(R4SoftmaxTeacherTraceError::Invalid(
+                "top logits contain a duplicate token".to_owned(),
             ));
         }
         if index > 0 && ranked_logit_before(ranked, logits.top_logits[index - 1]) {
@@ -1532,6 +2047,17 @@ fn validate_logits(
         return Err(R4SoftmaxTeacherTraceError::Invalid(
             "maximum logit does not match the first ranked logit".to_owned(),
         ));
+    }
+    if let Some(ranked_target) = logits
+        .top_logits
+        .iter()
+        .find(|ranked| ranked.token == logits.target_token)
+    {
+        if ranked_target.logit_bits != logits.target_logit_bits {
+            return Err(R4SoftmaxTeacherTraceError::Invalid(
+                "target logit does not match its ranked-logit row".to_owned(),
+            ));
+        }
     }
     Ok(())
 }
@@ -1709,6 +2235,52 @@ mod tests {
             .expect("seal trace position");
     }
 
+    fn small_trace() -> R4SoftmaxTeacherTrace {
+        let (mut transport, handle) = new_transport();
+        drive_position_zero(
+            &mut transport,
+            &handle,
+            &[0.0, 0.5, 2.0, -1.0, 1.0, 0.25, -0.25, 0.75],
+        );
+        handle.snapshot().expect("complete small trace")
+    }
+
+    fn read_u32_at(bytes: &[u8], offset: usize) -> usize {
+        u32::from_le_bytes(bytes[offset..offset + 4].try_into().expect("u32 bytes")) as usize
+    }
+
+    fn string_payload(bytes: &[u8], offset: &mut usize) -> (usize, usize) {
+        let length = read_u32_at(bytes, *offset);
+        *offset += 4;
+        let start = *offset;
+        *offset += length;
+        (start, *offset)
+    }
+
+    fn trace_identity_layout(bytes: &[u8]) -> (Vec<(usize, usize)>, usize) {
+        let mut offset = 12;
+        let _schema = string_payload(bytes, &mut offset);
+        let identity = (0..7)
+            .map(|_| string_payload(bytes, &mut offset))
+            .collect::<Vec<_>>();
+        (identity, offset)
+    }
+
+    fn write_u32_at(bytes: &mut [u8], offset: usize, value: u32) {
+        bytes[offset..offset + 4].copy_from_slice(&value.to_le_bytes());
+    }
+
+    fn second_trace(first: &R4SoftmaxTeacherTrace) -> R4SoftmaxTeacherTrace {
+        let mut second = first.clone();
+        second.identity.document_id = "657".to_owned();
+        second.identity.document_text_cid = "blake3:second-text".to_owned();
+        // Real construction documents have different token lengths. The
+        // bundle requires a shared model shape, not an identical sequence cap.
+        second.bounds.maximum_positions = 2;
+        second.validate().expect("valid second document");
+        second
+    }
+
     #[test]
     fn direct_hooks_capture_complete_bounded_trace_and_canonical_identity() {
         let (mut transport, handle) = new_transport();
@@ -1737,6 +2309,206 @@ mod tests {
         assert_eq!(first, replay);
         assert_eq!(trace.trace_cid().unwrap(), handle.trace_cid().unwrap());
         assert_eq!(&first[..8], &R4_SOFTMAX_TEACHER_TRACE_MAGIC);
+    }
+
+    #[test]
+    fn canonical_document_loader_roundtrips_and_rejects_every_truncation() {
+        let trace = small_trace();
+        let bytes = trace.canonical_bytes().expect("canonical trace");
+        let decoded = R4SoftmaxTeacherTrace::from_bytes(&bytes).expect("decode canonical trace");
+        assert_eq!(decoded, trace);
+        assert_eq!(decoded.canonical_bytes().unwrap(), bytes);
+
+        for end in 0..bytes.len() {
+            assert!(
+                R4SoftmaxTeacherTrace::from_bytes(&bytes[..end]).is_err(),
+                "truncation at byte {end} was accepted"
+            );
+        }
+        let mut trailing = bytes;
+        trailing.push(0);
+        assert!(R4SoftmaxTeacherTrace::from_bytes(&trailing).is_err());
+    }
+
+    #[test]
+    fn canonical_document_loader_rejects_bad_headers_utf8_and_counts() {
+        let bytes = small_trace().canonical_bytes().unwrap();
+
+        let mut bad_magic = bytes.clone();
+        bad_magic[0] ^= 1;
+        assert!(R4SoftmaxTeacherTrace::from_bytes(&bad_magic).is_err());
+
+        let mut bad_version = bytes.clone();
+        write_u32_at(&mut bad_version, 8, R4_SOFTMAX_TEACHER_TRACE_VERSION + 1);
+        assert!(R4SoftmaxTeacherTrace::from_bytes(&bad_version).is_err());
+
+        let schema_start = 16;
+        let mut bad_schema = bytes.clone();
+        bad_schema[schema_start] ^= 1;
+        assert!(R4SoftmaxTeacherTrace::from_bytes(&bad_schema).is_err());
+
+        let (identity_ranges, bounds_offset) = trace_identity_layout(&bytes);
+        let mut bad_utf8 = bytes.clone();
+        bad_utf8[identity_ranges[0].0] = 0xff;
+        assert!(R4SoftmaxTeacherTrace::from_bytes(&bad_utf8).is_err());
+
+        let mut impossible_string_count = bytes.clone();
+        write_u32_at(&mut impossible_string_count, 12, u32::MAX);
+        assert!(R4SoftmaxTeacherTrace::from_bytes(&impossible_string_count).is_err());
+
+        let position_count_offset = bounds_offset + 8 * 4;
+        let mut impossible_position_count = bytes.clone();
+        write_u32_at(
+            &mut impossible_position_count,
+            position_count_offset,
+            u32::MAX,
+        );
+        assert!(R4SoftmaxTeacherTrace::from_bytes(&impossible_position_count).is_err());
+
+        let first_query_count_offset = position_count_offset + 4 + 4 + 4 + 2 + 4 + 4;
+        let mut wrong_vector_count = bytes;
+        write_u32_at(&mut wrong_vector_count, first_query_count_offset, 0);
+        assert!(R4SoftmaxTeacherTrace::from_bytes(&wrong_vector_count).is_err());
+    }
+
+    #[test]
+    fn expected_document_cid_detects_valid_canonical_substitution() {
+        let trace = small_trace();
+        let bytes = trace.canonical_bytes().unwrap();
+        let expected_cid = trace.trace_cid().unwrap();
+        let (identity_ranges, _) = trace_identity_layout(&bytes);
+        let document_id = identity_ranges[5];
+        let mut substituted = bytes;
+        substituted[document_id.1 - 1] = b'5';
+
+        let decoded = R4SoftmaxTeacherTrace::from_bytes(&substituted)
+            .expect("same-length identity substitution remains canonical");
+        assert_eq!(decoded.identity.document_id, "15");
+        assert!(
+            R4SoftmaxTeacherTrace::from_bytes_with_expected_cid(&substituted, &expected_cid)
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn canonical_bundle_loader_roundtrips_and_rejects_every_truncation() {
+        let first = small_trace();
+        let second = second_trace(&first);
+        let legacy_documents = [
+            first.canonical_bytes().unwrap(),
+            second.canonical_bytes().unwrap(),
+        ];
+        let mut legacy_bytes = Vec::new();
+        legacy_bytes.extend_from_slice(b"R4STB001");
+        legacy_bytes.extend_from_slice(&2_u32.to_le_bytes());
+        for document in &legacy_documents {
+            legacy_bytes.extend_from_slice(
+                &u64::try_from(document.len())
+                    .expect("small document length")
+                    .to_le_bytes(),
+            );
+            legacy_bytes.extend_from_slice(document);
+        }
+        let bundle = R4SoftmaxTeacherTraceBundle::new(vec![first, second]).unwrap();
+        let bytes = bundle.canonical_bytes().unwrap();
+        assert_eq!(
+            bytes, legacy_bytes,
+            "typed bundling changed the frozen envelope"
+        );
+        let decoded = R4SoftmaxTeacherTraceBundle::from_bytes(&bytes).unwrap();
+        assert_eq!(decoded, bundle);
+        assert_eq!(decoded.canonical_bytes().unwrap(), bytes);
+
+        for end in 0..bytes.len() {
+            assert!(
+                R4SoftmaxTeacherTraceBundle::from_bytes(&bytes[..end]).is_err(),
+                "bundle truncation at byte {end} was accepted"
+            );
+        }
+        let mut trailing = bytes;
+        trailing.push(0);
+        assert!(R4SoftmaxTeacherTraceBundle::from_bytes(&trailing).is_err());
+    }
+
+    #[test]
+    fn canonical_bundle_loader_rejects_bad_envelope_counts_and_nested_bytes() {
+        let first = small_trace();
+        let second = second_trace(&first);
+        let bytes = R4SoftmaxTeacherTraceBundle::new(vec![first, second])
+            .unwrap()
+            .canonical_bytes()
+            .unwrap();
+
+        let mut bad_magic = bytes.clone();
+        bad_magic[0] ^= 1;
+        assert!(R4SoftmaxTeacherTraceBundle::from_bytes(&bad_magic).is_err());
+
+        let mut zero_count = bytes.clone();
+        write_u32_at(&mut zero_count, 8, 0);
+        assert!(R4SoftmaxTeacherTraceBundle::from_bytes(&zero_count).is_err());
+
+        let mut impossible_count = bytes.clone();
+        write_u32_at(&mut impossible_count, 8, u32::MAX);
+        assert!(R4SoftmaxTeacherTraceBundle::from_bytes(&impossible_count).is_err());
+
+        let mut zero_length = bytes.clone();
+        zero_length[12..20].copy_from_slice(&0_u64.to_le_bytes());
+        assert!(R4SoftmaxTeacherTraceBundle::from_bytes(&zero_length).is_err());
+
+        let mut impossible_length = bytes.clone();
+        impossible_length[12..20].copy_from_slice(&u64::MAX.to_le_bytes());
+        assert!(R4SoftmaxTeacherTraceBundle::from_bytes(&impossible_length).is_err());
+
+        let mut bad_nested_magic = bytes;
+        bad_nested_magic[20] ^= 1;
+        assert!(R4SoftmaxTeacherTraceBundle::from_bytes(&bad_nested_magic).is_err());
+    }
+
+    #[test]
+    fn bundle_cids_are_ordered_and_duplicate_document_identities_fail() {
+        let first = small_trace();
+        let second = second_trace(&first);
+        let bundle = R4SoftmaxTeacherTraceBundle::new(vec![first.clone(), second.clone()]).unwrap();
+        let bytes = bundle.canonical_bytes().unwrap();
+        let bundle_cid = bundle.bundle_cid().unwrap();
+        let document_cids = bundle.document_trace_cids().unwrap();
+        assert!(R4SoftmaxTeacherTraceBundle::from_bytes_with_expected_cids(
+            &bytes,
+            &bundle_cid,
+            &document_cids
+        )
+        .is_ok());
+
+        let mut reversed_cids = document_cids.clone();
+        reversed_cids.reverse();
+        assert!(R4SoftmaxTeacherTraceBundle::from_bytes_with_expected_cids(
+            &bytes,
+            &bundle_cid,
+            &reversed_cids
+        )
+        .is_err());
+
+        let reordered = R4SoftmaxTeacherTraceBundle::new(vec![second.clone(), first.clone()])
+            .expect("order is part of the envelope, not bundle validity");
+        let reordered_bytes = reordered.canonical_bytes().unwrap();
+        assert!(R4SoftmaxTeacherTraceBundle::from_bytes_with_expected_cids(
+            &reordered_bytes,
+            &reordered.bundle_cid().unwrap(),
+            &document_cids
+        )
+        .is_err());
+
+        assert!(R4SoftmaxTeacherTraceBundle::new(vec![first.clone(), first]).is_err());
+        let mut duplicate_text = second;
+        duplicate_text.identity.document_text_cid = trace_identity_text_cid(&bundle);
+        assert!(
+            R4SoftmaxTeacherTraceBundle::new(vec![bundle.traces()[0].clone(), duplicate_text])
+                .is_err()
+        );
+    }
+
+    fn trace_identity_text_cid(bundle: &R4SoftmaxTeacherTraceBundle) -> String {
+        bundle.traces()[0].identity.document_text_cid.clone()
     }
 
     #[test]

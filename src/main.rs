@@ -114,6 +114,12 @@ enum Command {
     R4SoftmaxGenerate(R4SoftmaxGenerateArgs),
     /// Compile and score the first source-free student of R4/Spin softmax traces.
     R4SoftmaxTraceStudent(R4SoftmaxTraceStudentArgs),
+    /// Compile the #1011 recurrent state artifact from frozen construction inputs only.
+    R4SoftmaxTraceStateCompile(R4SoftmaxTraceStateCompileArgs),
+    /// Seal all #1011 state arms from causal token inputs only.
+    R4SoftmaxTraceStateSeal(R4SoftmaxTraceStateSealArgs),
+    /// Reveal the frozen #1010 judge against an immutable #1011 state seal.
+    R4SoftmaxTraceStateReveal(R4SoftmaxTraceStateRevealArgs),
     /// Run the fixed S0 lexical/route-state round-trip witness without loading a model.
     LexicalIngestionWitness,
     /// Run the frozen A1.0 ordered-state/value-reachability gate without a scorer.
@@ -763,6 +769,90 @@ struct R4SoftmaxTraceStudentArgs {
     freeze_output: PathBuf,
     /// Decision-bearing held-out result and replay audit.
     #[arg(long, default_value = "docs/r4_softmax_trace_student_973_raw.json")]
+    result_output: PathBuf,
+}
+
+#[derive(Args, Debug)]
+struct R4SoftmaxTraceStateCompileArgs {
+    /// Exact 40-character uor-r4 Git commit that built this evidence command.
+    #[arg(long)]
+    implementation_revision: String,
+    /// Frozen four-document R4/Spin teacher trace bundle from #1010.
+    #[arg(
+        long,
+        default_value = ".uor-models/research/issue-973/r4-softmax-teacher-trace-v1.bin"
+    )]
+    trace_bundle: PathBuf,
+    /// Frozen predecessor construction manifest from #1010.
+    #[arg(
+        long,
+        default_value = ".uor-models/research/issue-973/r4-softmax-trace-freeze-v1.json"
+    )]
+    predecessor_freeze: PathBuf,
+    /// Frozen source-free suffix artifact from #1010.
+    #[arg(
+        long,
+        default_value = ".uor-models/research/issue-973/r4-softmax-trace-student-v1.bin"
+    )]
+    suffix_artifact: PathBuf,
+    /// Compiled recurrent state artifact output.
+    #[arg(
+        long,
+        default_value = ".uor-models/research/issue-1011/r4-softmax-trace-state-student-v1.bin"
+    )]
+    artifact_output: PathBuf,
+    /// Construction-only state freeze output.
+    #[arg(
+        long,
+        default_value = ".uor-models/research/issue-1011/r4-softmax-trace-state-freeze-v1.json"
+    )]
+    freeze_output: PathBuf,
+}
+
+#[derive(Args, Debug)]
+struct R4SoftmaxTraceStateSealArgs {
+    /// Frozen recurrent state artifact; no source checkpoint is accepted.
+    #[arg(
+        long,
+        default_value = ".uor-models/research/issue-1011/r4-softmax-trace-state-student-v1.bin"
+    )]
+    artifact: PathBuf,
+    /// Phase-1 provenance freeze binding the exact artifact CID and construction inputs.
+    #[arg(
+        long,
+        default_value = ".uor-models/research/issue-1011/r4-softmax-trace-state-freeze-v1.json"
+    )]
+    freeze: PathBuf,
+    /// Frozen held-out causal token inputs containing no labels or teacher rows.
+    #[arg(
+        long,
+        default_value = "docs/r4_softmax_trace_state_causal_input_1011.json"
+    )]
+    causal_input: PathBuf,
+    /// Immutable prediction/state/provenance seal output.
+    #[arg(
+        long,
+        default_value = ".uor-models/research/issue-1011/r4-softmax-trace-state-seal-v1.json"
+    )]
+    seal_output: PathBuf,
+}
+
+#[derive(Args, Debug)]
+struct R4SoftmaxTraceStateRevealArgs {
+    /// Immutable source-free seal produced before judge reveal.
+    #[arg(
+        long,
+        default_value = ".uor-models/research/issue-1011/r4-softmax-trace-state-seal-v1.json"
+    )]
+    seal: PathBuf,
+    /// Frozen #1010 held-out judge JSON, hard-bound by its result CID.
+    #[arg(long, default_value = "docs/r4_softmax_trace_student_973_raw.json")]
+    judge: PathBuf,
+    /// Decision-bearing #1011 result output.
+    #[arg(
+        long,
+        default_value = "docs/r4_softmax_trace_state_student_1011_raw.json"
+    )]
     result_output: PathBuf,
 }
 
@@ -2375,6 +2465,56 @@ fn run(cli: &Cli) -> Result<(), RunError> {
                 println!("{rendered}");
                 Ok(())
             }
+        }
+        Some(Command::R4SoftmaxTraceStateCompile(args)) => {
+            let freeze =
+                uor_r4_wasm_router::r4_softmax_trace_state_experiment::compile_construction(
+                    &uor_r4_wasm_router::r4_softmax_trace_state_experiment::R4SoftmaxTraceStateCompileConfig {
+                        implementation_revision: args.implementation_revision.clone(),
+                        trace_bundle: args.trace_bundle.clone(),
+                        predecessor_freeze: args.predecessor_freeze.clone(),
+                        suffix_artifact: args.suffix_artifact.clone(),
+                        artifact_output: args.artifact_output.clone(),
+                        freeze_output: args.freeze_output.clone(),
+                    },
+                )
+                .map_err(|error| RunError::Command(error.to_string()))?;
+            let rendered = serde_json::to_string_pretty(&freeze).map_err(|error| {
+                RunError::Command(format!("serialize R4 softmax trace state freeze: {error}"))
+            })?;
+            println!("{rendered}");
+            Ok(())
+        }
+        Some(Command::R4SoftmaxTraceStateSeal(args)) => {
+            let seal = uor_r4_wasm_router::r4_softmax_trace_state_experiment::seal_source_free(
+                &uor_r4_wasm_router::r4_softmax_trace_state_experiment::R4SoftmaxTraceStateSealConfig {
+                    artifact: args.artifact.clone(),
+                    freeze: args.freeze.clone(),
+                    causal_input: args.causal_input.clone(),
+                    seal_output: args.seal_output.clone(),
+                },
+            )
+            .map_err(|error| RunError::Command(error.to_string()))?;
+            let rendered = serde_json::to_string_pretty(&seal).map_err(|error| {
+                RunError::Command(format!("serialize R4 softmax trace state seal: {error}"))
+            })?;
+            println!("{rendered}");
+            Ok(())
+        }
+        Some(Command::R4SoftmaxTraceStateReveal(args)) => {
+            let result = uor_r4_wasm_router::r4_softmax_trace_state_experiment::reveal(
+                &uor_r4_wasm_router::r4_softmax_trace_state_experiment::R4SoftmaxTraceStateRevealConfig {
+                    seal: args.seal.clone(),
+                    judge: args.judge.clone(),
+                    result_output: args.result_output.clone(),
+                },
+            )
+            .map_err(|error| RunError::Command(error.to_string()))?;
+            let rendered = serde_json::to_string_pretty(&result).map_err(|error| {
+                RunError::Command(format!("serialize R4 softmax trace state result: {error}"))
+            })?;
+            println!("{rendered}");
+            Ok(())
         }
         Some(Command::LexicalIngestionWitness) => {
             let witness = uor_r4_core::canonical_lexical_ingestion::run_authorized_probe()
@@ -4004,6 +4144,9 @@ mod tests {
             "bounded-geometric-generate",
             "r4-softmax-generate",
             "r4-softmax-trace-student",
+            "r4-softmax-trace-state-compile",
+            "r4-softmax-trace-state-seal",
+            "r4-softmax-trace-state-reveal",
             "lexical-ingestion-witness",
             "research-tools",
         ] {
@@ -4196,6 +4339,103 @@ mod tests {
             PathBuf::from(".uor-models/research/issue-973/r4-softmax-trace-freeze-v1.json")
         );
         assert_eq!(args.result_output, PathBuf::from("/tmp/result.json"));
+    }
+
+    #[test]
+    fn parses_three_strict_r4_softmax_trace_state_phases() {
+        let revision = "0123456789abcdef0123456789abcdef01234567";
+        let cli = Cli::try_parse_from([
+            "r4",
+            "r4-softmax-trace-state-compile",
+            "--implementation-revision",
+            revision,
+            "--trace-bundle",
+            "/tmp/construction.bin",
+            "--predecessor-freeze",
+            "/tmp/predecessor.json",
+            "--suffix-artifact",
+            "/tmp/suffix.bin",
+            "--artifact-output",
+            "/tmp/state.bin",
+            "--freeze-output",
+            "/tmp/state-freeze.json",
+        ])
+        .unwrap();
+        let Some(Command::R4SoftmaxTraceStateCompile(args)) = cli.command else {
+            panic!("expected state compile")
+        };
+        assert_eq!(args.implementation_revision, revision);
+        assert_eq!(args.trace_bundle, PathBuf::from("/tmp/construction.bin"));
+        assert_eq!(
+            args.predecessor_freeze,
+            PathBuf::from("/tmp/predecessor.json")
+        );
+        assert_eq!(args.suffix_artifact, PathBuf::from("/tmp/suffix.bin"));
+        assert_eq!(args.artifact_output, PathBuf::from("/tmp/state.bin"));
+        assert_eq!(args.freeze_output, PathBuf::from("/tmp/state-freeze.json"));
+
+        let cli = Cli::try_parse_from([
+            "r4",
+            "r4-softmax-trace-state-seal",
+            "--artifact",
+            "/tmp/state.bin",
+            "--freeze",
+            "/tmp/state-freeze.json",
+            "--causal-input",
+            "/tmp/causal.json",
+            "--seal-output",
+            "/tmp/seal.json",
+        ])
+        .unwrap();
+        let Some(Command::R4SoftmaxTraceStateSeal(args)) = cli.command else {
+            panic!("expected state seal")
+        };
+        assert_eq!(args.artifact, PathBuf::from("/tmp/state.bin"));
+        assert_eq!(args.freeze, PathBuf::from("/tmp/state-freeze.json"));
+        assert_eq!(args.causal_input, PathBuf::from("/tmp/causal.json"));
+        assert_eq!(args.seal_output, PathBuf::from("/tmp/seal.json"));
+
+        let cli = Cli::try_parse_from([
+            "r4",
+            "r4-softmax-trace-state-reveal",
+            "--seal",
+            "/tmp/seal.json",
+            "--judge",
+            "/tmp/judge.json",
+            "--result-output",
+            "/tmp/result.json",
+        ])
+        .unwrap();
+        let Some(Command::R4SoftmaxTraceStateReveal(args)) = cli.command else {
+            panic!("expected state reveal")
+        };
+        assert_eq!(args.seal, PathBuf::from("/tmp/seal.json"));
+        assert_eq!(args.judge, PathBuf::from("/tmp/judge.json"));
+        assert_eq!(args.result_output, PathBuf::from("/tmp/result.json"));
+
+        assert!(Cli::try_parse_from([
+            "r4",
+            "r4-softmax-trace-state-compile",
+            "--implementation-revision",
+            revision,
+            "--source",
+            "/models/forbidden",
+        ])
+        .is_err());
+        assert!(Cli::try_parse_from([
+            "r4",
+            "r4-softmax-trace-state-seal",
+            "--judge",
+            "/tmp/forbidden.json",
+        ])
+        .is_err());
+        assert!(Cli::try_parse_from([
+            "r4",
+            "r4-softmax-trace-state-reveal",
+            "--artifact",
+            "/tmp/forbidden.bin",
+        ])
+        .is_err());
     }
 
     #[test]
