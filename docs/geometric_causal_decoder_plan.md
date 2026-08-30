@@ -3,10 +3,14 @@
 - **Status:** Historical #948–#958 sequencing record. Superseded for forward
   work by the
   [Geometric Intelligence Programme](geometric_intelligence_programme.md).
-  The current direct-attention, multi-resonance, and recurrent-lowering
-  architecture is
+  The current accepted ordinary-attention baseline, qualified provider-free
+  autonomous reference generator, explicit opt-in native bridge, and parked
+  intrinsic/replacement architecture are
+  in
   [ADR-0005](adr/0005-predictive-geometric-connection-memory.md); the body below
-  is not its implementation plan.
+  is not its implementation plan. The qualified gate is bound by the
+  [generation record](r4_softmax_reference_generation_973.md) and
+  [compact aggregate](r4_softmax_reference_generation_attempt_01_result_973.json).
 - **Adopted:** 2026-08-25 through GitHub programme root
   [#820](https://github.com/UOR-Foundation/uor-r4/issues/820) and roadmap reset
   [#948](https://github.com/UOR-Foundation/uor-r4/issues/948).

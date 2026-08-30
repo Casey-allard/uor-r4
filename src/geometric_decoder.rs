@@ -31,6 +31,7 @@ pub const PINNED_SOURCE_CID: &str =
     "blake3:12d2cd8a877ef2cdcf785b3d4d1f373e0419074cc884aeaff06fc059686a5ba5";
 pub const PINNED_TOKENIZER_CID: &str =
     "blake3:944d1262d516abd56a8156dd3058a73a1bf3dc19419527592d854d162f288073";
+pub const PINNED_EOS_TOKEN_ID: u32 = 2;
 pub const GENERATED_TOKENS: usize = 32;
 /// G0 keeps the coherent substrate from the first 29 source layers and proves
 /// one attention-free geometric seam at the final layer. Earlier-layer fitting
@@ -1047,8 +1048,9 @@ pub(crate) fn transcript(
     input_tokens: usize,
     generated_token_ids: Vec<u32>,
 ) -> RolloutTranscript {
-    let eos = 2u32;
-    let first_eos_offset = generated_token_ids.iter().position(|&token| token == eos);
+    let first_eos_offset = generated_token_ids
+        .iter()
+        .position(|&token| is_eos_token(token));
     let response_end = first_eos_offset.unwrap_or(generated_token_ids.len());
     let response_ids = &generated_token_ids[..response_end];
     let raw_bytes = tokenizer.decode_bytes(&generated_token_ids);
@@ -1079,6 +1081,10 @@ pub fn short_cycle_period(tokens: &[u32]) -> Option<usize> {
         }
     }
     None
+}
+
+pub(crate) const fn is_eos_token(token: u32) -> bool {
+    token == PINNED_EOS_TOKEN_ID
 }
 
 pub(crate) fn greedy_token(logits: &[f32]) -> Result<u32, GeometricSpikeError> {
@@ -1160,7 +1166,7 @@ pub(crate) fn validate_source(source: &Path, revision: &str) -> Result<(), Geome
     Ok(())
 }
 
-fn read_chat_template(source: &Path) -> Result<String, GeometricSpikeError> {
+pub(crate) fn read_chat_template(source: &Path) -> Result<String, GeometricSpikeError> {
     let bytes = std::fs::read(source.join("tokenizer_config.json"))?;
     let value: serde_json::Value = serde_json::from_slice(&bytes).map_err(|error| {
         GeometricSpikeError::Tokenizer(format!("tokenizer_config.json: {error}"))
@@ -1209,5 +1215,11 @@ mod tests {
         assert_eq!(short_cycle_period(&[1, 2, 3, 4, 4, 4]), Some(1));
         assert_eq!(short_cycle_period(&[9, 1, 2, 1, 2, 1, 2]), Some(2));
         assert_eq!(short_cycle_period(&[1, 2, 3, 4, 5, 6]), None);
+    }
+
+    #[test]
+    fn pinned_eos_helper_matches_the_source_contract() {
+        assert!(is_eos_token(PINNED_EOS_TOKEN_ID));
+        assert!(!is_eos_token(0));
     }
 }

@@ -163,10 +163,19 @@ substituted for one another.
   optimizer combination is not a qualified oracle. V4 later preserved
   construction covariance but failed held-out functional binding at 13/24 for
   every main arm. These are retained historical comparators.
-- **`HELM-D-R4`** — #973's positive bounded full-decoder reference path. It pins the
+- **`HELM-D-R4` / `R4SoftmaxReferenceGeneratorV1`** — #973's positive bounded
+  attention reference and qualified provider-free native generator path. It pins the
   official MIT HELM-D source at
   `7501deca8f413848bfef804be64ce874b72a3cd7`, audits its full-decoder geometry,
-  then freezes an ordinary decoder donor and preserves its learned Q/K/V,
+  and credits/adapts HELM's attention seam and provenance. It does not port
+  HELM's remaining geometric decoder stack: UOR's existing pinned SmolLM2
+  `HuggingFaceLlamaOracle` supplies embeddings, RoPE, residual/RMSNorm, MLP,
+  final normalization, and the language-model head. No HELM checkpoint or
+  generation code executed in this gate. Released HELM generation/cache is
+  incomplete. Its checkpoint and full geometric decoder
+  remain an optional external baseline behind a separate tokenizer and license
+  gate, and are not directly an R4-block runtime. The reference then freezes an ordinary
+  decoder donor and preserves its learned Q/K/V,
   stable causal softmax, linear value
   aggregation, and `W_o` while splitting heads into R4 blocks, binding exact
   cumulative Spin/H4 local frames, transporting K/V into the query frame, and
@@ -177,10 +186,21 @@ substituted for one another.
   stopped unavailable before D3 on covariance. Source-faithful learned-manifold
   V2 then completed a valid non-D3 construction-validation run but failed donor
   retention and matched Euclidean parity; destructive-control separation proves
-  intervention sensitivity only. Intrinsic attention remains unestablished.
-  The active successor is a frozen 8/8 score-by-readout localization. Upstream checkpoint parity,
-  resonance replacement, and recurrence/lowering evidence remain `NOT_RUN`.
-  See `helm_d_r4_softmax_decoder_973.md` and
+  intervention sensitivity only. The 8/8-contract localization attempt stopped
+  at its two-document preflight and rejected tangent readout. Intrinsic
+  attention remains unestablished and parked.
+  Ordinary dot-product/stable-softmax attention in coherent R4/Spin frames is
+  the accepted baseline. Provider-free autonomous
+  `R4SoftmaxReferenceGeneratorV1` (`HELM-D-R4`) native CLI generation passes at
+  4/5 frozen quality in both passes, 5/5 exact replay after deleting timing,
+  exact all-layer audits with zero future reads, and donor reproduction. Its
+  explicit opt-in native HTTP/dashboard bridge is active, with no default-
+  engine change. It remains Transformer-compatible
+  and source-weight backed. Upstream checkpoint parity, resonance replacement,
+  and recurrence/lowering evidence remain `NOT_RUN`.
+  See `helm_d_r4_softmax_decoder_973.md`,
+  `r4_softmax_reference_generation_973.md`, and
+  `r4_softmax_reference_generation_attempt_01_result_973.json`, plus
   `helm_d_learned_manifold_r4_construction_973.md`.
 - **H4 frame connection** — the exact object is the relative H4 group element;
   the current compiler-side f64 matrix represents its left-quaternion action
@@ -189,7 +209,7 @@ substituted for one another.
   called Levi-Civita or shortest-geodesic parallel transport without a separate
   proof. Equal-manifold-budget direct-attention V3 rejected this particular connection on
   its frozen synthetic population; its finite-group correctness remains intact.
-- **Multi-resonance attention sieve** — the post-reference replacement for
+- **Multi-resonance attention sieve** — a parked post-reference replacement for
   softmax. It expands query/key compatibility in a finite artifact-bound set of
   spherical or hyperspherical modes so value-weighted numerator modes and
   normalization-denominator modes can be updated recurrently. The approximation
@@ -318,8 +338,12 @@ substituted for one another.
   gauge-equivalent full-decoder ordinary softmax in transported R4/Spin frames,
   real next-token and decoded-output parity, a source-faithful learned-manifold
   intrinsic R4 construction qualifier after V1 stopped unavailable before D3,
+  the two-document tangent-readout preflight rejection within the 8/8
+  localization contract, qualified provider-free autonomous
+  `R4SoftmaxReferenceGeneratorV1` (`HELM-D-R4`) generation, and its explicit
+  opt-in native HTTP/dashboard bridge. Intrinsic/readout,
   fiber-preserving multi-resonance replacement,
-  bounded recurrent factorization, and final requalification
+  bounded recurrent factorization, and final requalification are parked
   (#973);
   correctness with abstention (#954); then bounded hypothetical-branch reasoning
   (#955). #969, #983, and #986 remain evidence provenance rather than a

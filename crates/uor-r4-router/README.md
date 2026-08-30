@@ -16,8 +16,12 @@ R4/Spin frames. Intrinsic Lorentz V1 attempt 02 stopped unavailable before D3
 on its construction covariance audit. Learned-manifold V2 later completed as a
 valid non-D3 construction-validation negative: learned Lorentz failed donor
 retention and matched Euclidean parity although all destructive controls
-separated. The active successor is the frozen 8/8 score-by-readout localization;
-this router
+separated. The 8/8-contract localization attempt stopped at its two-document
+preflight and rejected tangent readout. Ordinary
+dot-product/stable-softmax causal attention in coherent R4/Spin frames is the
+accepted baseline. Provider-free autonomous
+`R4SoftmaxReferenceGeneratorV1` (`HELM-D-R4`) native CLI generation now passes,
+and its explicit opt-in native HTTP/dashboard bridge is active. This router
 supplies substrate and
 visualization only; it is not the donor decoder or attention implementation. See
 [ADR-0005](../../docs/adr/0005-predictive-geometric-connection-memory.md) and the
@@ -26,8 +30,15 @@ The binding parity record is
 [`docs/helm_d_r4_softmax_decoder_973.md`](../../docs/helm_d_r4_softmax_decoder_973.md).
 The V2 result is recorded in
 [`docs/helm_d_learned_manifold_r4_construction_973.md`](../../docs/helm_d_learned_manifold_r4_construction_973.md).
-This router contributes no result to either record; resonance, recurrence,
-exact lowering, #954, and serving work remain blocked here.
+The localization result is recorded in
+[`docs/helm_d_score_centroid_localization_973.md`](../../docs/helm_d_score_centroid_localization_973.md).
+The generator PASS is recorded in
+[`docs/r4_softmax_reference_generation_973.md`](../../docs/r4_softmax_reference_generation_973.md)
+with its
+[`compact aggregate`](../../docs/r4_softmax_reference_generation_attempt_01_result_973.json).
+This router contributes no result to those records; intrinsic/readout,
+resonance, recurrence, and exact lowering are parked, while #954 and serving
+work remain blocked here.
 
 `UorR4Router` embeds words as 512-dimensional zeta-zero vectors, routes a
 rolling "brain state" to one of 16 scale windows by norm, indexes sentences

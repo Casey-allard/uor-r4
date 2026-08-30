@@ -29,10 +29,20 @@ This ordinary softmax reference is `PASS`. Intrinsic Lorentz V1 attempt 02 then
 stopped `UNAVAILABLE_INTRINSIC_LORENTZ_R4_STOP_BEFORE_HELD_OUT` because its
 construction barycenter covariance was `9.121400701417315e-08` against the
 frozen `1e-08` ceiling; diagnostic curved NLL was worse than donor and flat, and
-D3 remained sealed. The active rung is a fresh construction-only,
-source-faithful HELM-D learned-manifold Q/K/V mechanism with declared Lorentz
-score/scale/bias and a stable equivariant centroid against an equal-capacity
-Euclidean arm. It is not yet a serving or transformerless language mechanism.
+D3 remained sealed. Source-faithful learned-manifold V2 then failed donor
+retention and matched Euclidean parity, and the 8/8-contract localization
+attempt stopped at its two-document preflight and rejected tangent readout.
+Ordinary dot-product/stable-softmax causal attention
+in coherent R4/Spin frames is the accepted baseline. Provider-free autonomous
+`R4SoftmaxReferenceGeneratorV1` (`HELM-D-R4`) native CLI generation now passes
+using the credited HELM attention seam and UOR's pinned SmolLM2
+`HuggingFaceLlamaOracle` for embeddings, RoPE, residual/RMSNorm, MLP, final
+normalization, and the language-model head. The active rung is its explicit
+opt-in native HTTP/dashboard bridge, with no default-engine change.
+It remains transformer-compatible and `f32`/multiply/alloc/source-weight
+backed—not yet a table-native, multiply-free, or transformerless serving
+mechanism. Intrinsic/readout, resonance, replacement, recurrence, and lowering
+are parked.
 The
 authoritative sequence is the
 [Geometric Intelligence Programme](../../docs/geometric_intelligence_programme.md).
@@ -41,8 +51,14 @@ are `PASS`; see
 [`docs/helm_d_r4_softmax_decoder_973.md`](../../docs/helm_d_r4_softmax_decoder_973.md).
 The intrinsic V1 record is
 [`docs/intrinsic_lorentz_r4_attention_973.md`](../../docs/intrinsic_lorentz_r4_attention_973.md).
-Upstream checkpoint parity remains `NOT_RUN`; resonance replacement,
-recurrence, exact lowering, and #954 remain blocked.
+The localization preflight-result record is
+[`docs/helm_d_score_centroid_localization_973.md`](../../docs/helm_d_score_centroid_localization_973.md).
+The binding generator result and compact aggregate are
+[`docs/r4_softmax_reference_generation_973.md`](../../docs/r4_softmax_reference_generation_973.md)
+and
+[`docs/r4_softmax_reference_generation_attempt_01_result_973.json`](../../docs/r4_softmax_reference_generation_attempt_01_result_973.json).
+Upstream checkpoint parity remains `NOT_RUN`; intrinsic/readout, resonance
+replacement, recurrence, and exact lowering are parked; #954 remains blocked.
 
 This crate also preserves the earlier teacher-compiled TLA/R4G1 engine as a
 research lane. That engine established useful artifact, deterministic-runtime,
@@ -59,7 +75,7 @@ The crate therefore hosts three related bodies of work:
    `src/prime_route_geometric_attention.rs`, `src/spiralcore_operator.rs`):
    canonical route identities, recursive geometric state operators, direct
    attention reference, bounded gated-delta candidate, and the construction
-   seams reused by the active #973 programme.
+   seams reused by the current #973 programme.
 3. **The historical transformerless engine** (`src/transformerless/`): cross-compiles a
    pinned Hugging Face teacher into a multiplication-free, table-native
    inference artifact (TLA3-TLA7 containers; TLA7 is the default emission), plus the integer-only

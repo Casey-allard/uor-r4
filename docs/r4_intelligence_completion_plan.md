@@ -4,17 +4,29 @@
   readable mirror of programme root #820 (stages S0–S7 plus cross-cutting F0).
   The [Geometric Intelligence Programme](geometric_intelligence_programme.md)
   is its current architecture and claim-boundary companion.
-  The current direct-attention, multi-resonance, and recurrent-lowering
-  architecture is
+  The current accepted-attention, autonomous-reference-generation, and parked
+  replacement architecture is
   [ADR-0005](adr/0005-predictive-geometric-connection-memory.md).
   Ordinary softmax attention remains qualified on the bounded R4/Spin
   full-decoder reference. Source-faithful learned-manifold V2 is now a valid
   non-D3 construction-validation negative: learned Lorentz failed retention and
-  matched parity, while its controls established sensitivity only. D3 remains
-  `NOT_RUN`; ADR-0005's sole active construction step is a separately frozen
-  cheap 8/8
-  [score-by-readout audit](helm_d_score_centroid_localization_973.md) within that
-  learned-manifold seam.
+  matched parity, while its controls established sensitivity only. The 8/8
+  [score/readout localization](helm_d_score_centroid_localization_973.md)
+  contract stopped at its two-document preflight and rejected tangent readout.
+  Ordinary dot-product/stable-softmax causal attention in coherent R4/Spin
+  frames is the accepted baseline. Provider-free autonomous
+  `R4SoftmaxReferenceGeneratorV1` (`HELM-D-R4`) native CLI generation now
+  passes at 4/5 frozen quality in both passes, 5/5 exact replay after deleting
+  timing, exact all-layer audits with zero future reads, and donor
+  reproduction. The sole active step is an explicit opt-in native
+  HTTP/dashboard bridge of that exact policy, with no default-engine change;
+  qualify latency only as needed for one real end-to-end prompt.
+  Intrinsic/readout, resonance, softmax replacement,
+  recurrence, and lowering are parked. D3 remains `NOT_RUN`; #954 remains
+  blocked. No tag, release, hosted promotion, or static-WASM claim is
+  authorized. See the
+  [generation record](r4_softmax_reference_generation_973.md) and
+  [compact aggregate](r4_softmax_reference_generation_attempt_01_result_973.json).
   The intermediate
   [Geometric Causal Decoder Roadmap](geometric_causal_decoder_plan.md) records
   the superseded #948-#958 sequence.

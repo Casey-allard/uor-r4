@@ -110,6 +110,8 @@ enum Command {
     BoundedGeometricGenerate(BoundedGeometricGenerateArgs),
     /// Build and measure the #989 source-free lexical table baseline.
     SourceFreeTable(SourceFreeTableArgs),
+    /// Generate bounded text through all-layer R4/Spin causal softmax.
+    R4SoftmaxGenerate(R4SoftmaxGenerateArgs),
     /// Run the fixed S0 lexical/route-state round-trip witness without loading a model.
     LexicalIngestionWitness,
     /// Run the frozen A1.0 ordered-state/value-reachability gate without a scorer.
@@ -686,6 +688,34 @@ struct GeometricDecoderSpikeArgs {
     /// report; all source/decode bindings are revalidated before repair.
     #[arg(long)]
     control_report: Option<PathBuf>,
+}
+
+#[derive(Args, Debug)]
+struct R4SoftmaxGenerateArgs {
+    /// Exact local pinned Hugging Face source snapshot; no network fallback.
+    #[arg(long, default_value = ".uor-models/sources/smollm2-135m-instruct")]
+    source: PathBuf,
+    /// Full Hugging Face source commit bound by the snapshot cache tree.
+    #[arg(
+        long,
+        default_value = uor_r4_wasm_router::geometric_decoder::PINNED_SOURCE_REVISION
+    )]
+    source_revision: String,
+    /// Exact user prompt; the pinned source chat template is applied once.
+    #[arg(long)]
+    prompt: String,
+    /// Maximum generated tokens (1..=128); EOS or a short cycle may stop sooner.
+    #[arg(
+        long,
+        default_value_t = uor_r4_wasm_router::r4_softmax_reference_generation::DEFAULT_MAX_NEW_TOKENS
+    )]
+    max_tokens: usize,
+    /// Fixed exact output-row workers for the source decoder projections.
+    #[arg(long, default_value_t = 4)]
+    workers: usize,
+    /// Optional path for the complete source/policy/token/audit JSON report.
+    #[arg(long)]
+    json_output: Option<PathBuf>,
 }
 
 #[derive(Args, Debug)]
@@ -2199,6 +2229,29 @@ fn run(cli: &Cli) -> Result<(), RunError> {
         Some(Command::Route(args)) => route_demo(args),
         Some(Command::BoundedGeometricGenerate(args)) => bounded_geometric_generate(args),
         Some(Command::SourceFreeTable(args)) => source_free_table(args),
+        Some(Command::R4SoftmaxGenerate(args)) => {
+            let workers = std::num::NonZeroUsize::new(args.workers).ok_or_else(|| {
+                RunError::Command("--workers must be greater than zero".to_owned())
+            })?;
+            let report = uor_r4_wasm_router::r4_softmax_reference_generation::run_r4_softmax_reference_generation(
+                &uor_r4_wasm_router::r4_softmax_reference_generation::R4SoftmaxReferenceGeneratorConfig {
+                    source: args.source.clone(),
+                    source_revision: args.source_revision.clone(),
+                    prompt: args.prompt.clone(),
+                    max_new_tokens: args.max_tokens,
+                    workers,
+                },
+            )
+            .map_err(|error| RunError::Command(error.to_string()))?;
+            if let Some(path) = &args.json_output {
+                uor_r4_wasm_router::r4_softmax_reference_generation::write_json_report(
+                    path, &report,
+                )
+                .map_err(|error| RunError::Command(error.to_string()))?;
+            }
+            println!("{}", report.transcript.response_text);
+            Ok(())
+        }
         Some(Command::LexicalIngestionWitness) => {
             let witness = uor_r4_core::canonical_lexical_ingestion::run_authorized_probe()
                 .map_err(|error| RunError::Command(error.to_string()))?;
@@ -3809,6 +3862,7 @@ mod tests {
             "serve",
             "source-free-table",
             "bounded-geometric-generate",
+            "r4-softmax-generate",
             "lexical-ingestion-witness",
             "research-tools",
         ] {
@@ -3915,6 +3969,52 @@ mod tests {
             Some(PathBuf::from("/tmp/multiscale-count-radius-r4.bin"))
         );
         assert!(args.json);
+    }
+
+    #[test]
+    fn parses_r4_softmax_generate_without_rewriting_prompt_bytes() {
+        let cli = Cli::try_parse_from([
+            "r4",
+            "r4-softmax-generate",
+            "--source",
+            "/models/smollm2",
+            "--prompt",
+            "Explain  R4 attention.",
+            "--max-tokens",
+            "8",
+            "--workers",
+            "6",
+            "--json-output",
+            "/tmp/r4-softmax.json",
+        ])
+        .unwrap();
+        let Some(Command::R4SoftmaxGenerate(args)) = cli.command else {
+            panic!("expected r4-softmax-generate")
+        };
+        assert_eq!(args.source, PathBuf::from("/models/smollm2"));
+        assert_eq!(args.prompt, "Explain  R4 attention.");
+        assert_eq!(args.max_tokens, 8);
+        assert_eq!(args.workers, 6);
+        assert_eq!(
+            args.json_output,
+            Some(PathBuf::from("/tmp/r4-softmax.json"))
+        );
+
+        let cli = Cli::try_parse_from(["r4", "r4-softmax-generate", "--prompt", "Use defaults."])
+            .unwrap();
+        let Some(Command::R4SoftmaxGenerate(args)) = cli.command else {
+            panic!("expected r4-softmax-generate")
+        };
+        assert_eq!(
+            args.source,
+            PathBuf::from(".uor-models/sources/smollm2-135m-instruct")
+        );
+        assert_eq!(
+            args.max_tokens,
+            uor_r4_wasm_router::r4_softmax_reference_generation::DEFAULT_MAX_NEW_TOKENS
+        );
+        assert_eq!(args.workers, 4);
+        assert!(args.json_output.is_none());
     }
 
     #[test]

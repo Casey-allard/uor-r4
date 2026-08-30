@@ -1,6 +1,7 @@
 # HELM-D R4 score-by-readout localization — issue #973
 
-- **Status:** frozen executable contract; decision run `NOT_RUN`
+- **Status:** protected Attempt 01 completed at the frozen two-document gate;
+  tangent readout rejected, full fit/audit/decoder `NOT_RUN`
 - **Mechanism:** `HelmDScoreCentroidLocalizationR4V1`
 - **Question:** did learned-manifold V2 fail primarily because of its
   Lorentz compatibility score, its normalized Lorentz value centroid, or both?
@@ -223,3 +224,107 @@ equal its own before any donor trace begins. Corpus verification at this seal is
 exact article-span byte CID for each of the eight audit documents, and the
 admitted decoder recomputes all eight span CIDs. This deliberately does not
 whole-hash or open excluded V2-validation or D3 corpus spans.
+
+## Protected Attempt 01 result — 2026-08-30
+
+Protected revision `df6e2dcba0222937ff76d594c5c64a596d987855`
+completed the protected Rust decision process in `240.710735834` seconds and returned
+`REJECT_TANGENT_READOUT_SELECT_SCORE_PREFLIGHT`. The canonical
+[result](helm_d_score_centroid_localization_attempt_01_result_973.json) has
+self-CID
+`blake3:79792c1a6e38733fd3eb925e364c87308ce26e02bea951f338466ab93481b374`
+and whole-file BLAKE3
+`blake3:3f06d830881188d22773a33fc674db0a946c9b3fa22d35e9e53a9779ba91c991`.
+The canonical
+[checkpoint](helm_d_score_centroid_localization_attempt_01_checkpoint_973.json)
+has self-CID
+`blake3:295a7169efc2df38eaa41b709de09f9a80f113e25cfb607c94f0daa8b60ded95`
+and whole-file BLAKE3
+`blake3:e526e2fdb26db76218c899babb051c8b19f20b6454a2305056bd2611e4a5234e`.
+
+The tangent value sum was worse than the normalized Lorentz centroid on both
+untouched-parameter preflight documents:
+
+| Document | `L-M` MSE | `L-T` MSE | `L-T / L-M` |
+|---|---:|---:|---:|
+| `8503` | `0.012593831676260036` | `0.013843444958107425` | `1.0992242324631802` |
+| `7754` | `0.010149136616958938` | `0.010363462741730613` | `1.0211176706808283` |
+| pooled | `0.0113714841466095` | `0.012103453849919024` | `1.0643688804269025` |
+
+The identity-initialized Euclidean score had lower donor-attention
+cross-entropy on both documents: `3.9376110596365828` versus
+`5.127463072729906`, then `3.4064847623667713` versus
+`4.3762953128527595`. That is diagnostic evidence selecting the score seam;
+it is not a Euclidean-score qualification because this gate performed no fit
+and used only two documents.
+
+All infrastructure gates passed: both score-paired arm pairs had bit-identical
+logits and weights, all four score/readout combinations passed the 120-frame
+covariance census, the natural atlas permutation remained live, replay was
+exact, and future/target-as-input reads were zero. The work ledger reports the
+exact expected `64` teacher forwards with eight effective workers.
+
+The preflight checkpoint prevented the remaining 14 traces, both 32-step
+fits, the 8/8 audit, and paired decoder from running. Audit targets were not
+materialized after checkpoint, V2 validation is
+`NOT_OPENED_OR_RESCORED`, and D3 remains `NOT_RUN`. This result rejects the
+tangent-readout hypothesis on the frozen gate; it does not reject normalized
+geometric aggregation or the established ordinary causal-softmax R4/Spin
+reference.
+
+Under the frozen terminal, the only mechanism-level successor would have been a
+separately protected score-only preflight.
+It must keep normalized-Lorentz value aggregation, exact R4/Spin transport,
+ordinary complete-prefix causal softmax, the frozen construction-only source
+boundary, and equal work. It may localize the radial/time contribution between
+the Euclidean limit and unit-curvature Lorentz score, but it may not reopen
+tangent readout, V2 validation, D3, resonance, recurrence, scale, generation,
+correctness, reasoning, or #954.
+
+## Superseding maintainer direction — 2026-08-30
+
+The score-only continuation is parked rather than active. Ordinary
+dot-product, stable-softmax causal attention in coherent R4/Spin frames is the
+accepted reference baseline. Intrinsic score/readout work, the score-radius
+preflight, resonance, recurrent factorization, and softmax replacement remain
+preserved research contracts but are not the current work queue.
+
+The active #973 gate is now provider-free autonomous
+`R4SoftmaxReferenceGeneratorV1` (`HELM-D-R4`) generation: retain the credited
+HELM attention seam and use UOR's pinned SmolLM2 `HuggingFaceLlamaOracle` for
+embeddings, RoPE, residual/RMSNorm, MLP, final normalization, and the
+language-model head, first through a CLI with replayable next-token and
+decoded-text evidence. Provider-free does not mean
+source-free or transformerless. This reference may use transformer-compatible
+decoder structure, f32 arithmetic, multiplication, allocation, and source
+weights; it is not table-native or a deployed geometry-native runtime. Web,
+WASM, optimization, and release work remain blocked until coherent autonomous
+generation passes its own frozen causal/replay gate.
+
+## Generator qualification supersession — 2026-08-30
+
+The bounded [`R4SoftmaxReferenceGeneratorV1` qualification](r4_softmax_reference_generation_973.md)
+is now **PASS** at
+`PASS_R4_SOFTMAX_REFERENCE_GENERATION_ADVANCE_NATIVE_PRODUCT_BRIDGE`: its
+eight-token canary replayed exactly, the frozen five-prompt smoke passed at
+4/5 in both passes, and all 5/5 run pairs replayed exactly after deleting only
+timing. All 30 layers were selected; every recorded causal, projection, and R4
+audit was exact with zero future reads. The source donor matched P1 through EOS
+and P2-P5 for all 32 retained tokens. The
+[compact aggregate](r4_softmax_reference_generation_attempt_01_result_973.json)
+binds the outputs, CIDs, audits, timings, provenance, and nonclaims.
+
+This supersedes only the active-next-action wording above, not this record's
+historical outcome. HELM is the credited MIT architectural reference pinned at
+`7501deca8f413848bfef804be64ce874b72a3cd7`; no HELM checkpoint or generation
+code executed. The executed stack is UOR's pinned SmolLM2
+`HuggingFaceLlamaOracle`. The result is a source-weight-backed `f32`/matmul,
+Transformer-compatible ordinary dot-product/stable-softmax reference in
+coherent R4/Spin frames. It does not establish geometry advantage, softmax
+removal, source-free/table-native or transformerless inference, general
+quality, correctness, reasoning, frontier capability, browser-WASM operation,
+or release readiness. #973 remains open and #954 remains blocked. The next
+authorized step is an **explicit opt-in native HTTP/dashboard bridge** for this
+exact policy, with no default-engine change and latency qualification only as
+needed for one real end-to-end prompt. It remains separate from tag/release,
+hosted-page promotion, and static-WASM work.

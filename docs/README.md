@@ -28,7 +28,18 @@ and output projection
 unchanged while splitting heads into R4 blocks, binding exact cumulative
 Spin/H4 local frames, transporting K/V into the query frame, and mapping the
 aggregate back before `W_o`. Bounded numerical and behavioral parity now
-passes, establishing ordinary softmax attention in R4/Spin frames. Intrinsic
+passes, establishing ordinary softmax attention in R4/Spin frames. HELM-D is
+MIT licensed and pinned at
+`7501deca8f413848bfef804be64ce874b72a3cd7`. The qualified
+`R4SoftmaxReferenceGeneratorV1` credits and adapts HELM's attention seam and
+provenance; it does not port HELM's remaining geometric decoder stack. UOR's
+existing pinned SmolLM2 `HuggingFaceLlamaOracle` supplies embeddings, RoPE,
+residual/RMSNorm, MLP, final normalization, and the language-model head. The
+No HELM checkpoint or generation code executed in this gate. The released HELM
+generation/cache path is incomplete. Its checkpoint and full
+geometric decoder remain an optional external baseline behind a separate
+tokenizer and license gate, and are not directly an R4-block runtime.
+Intrinsic
 Lorentz V1 attempt 02 then stopped
 `UNAVAILABLE_INTRINSIC_LORENTZ_R4_STOP_BEFORE_HELD_OUT`: barycenter covariance
 was `9.121400701417315e-08` against the frozen `1e-08` ceiling, diagnostic curved
@@ -38,18 +49,35 @@ at
 `FAIL_HELM_D_MANIFOLD_CONSTRUCTION_REVISE_PROJECTION_SCORE_CENTROID_OR_TRAINING`.
 Donor/gauge parity, replay, causal work, and all three destructive controls
 passed, but learned Lorentz failed donor retention and matched Euclidean parity;
-the controls establish sensitivity only. The sole active build is a separately
-frozen cheap 8/8 score-by-readout construction audit within that
-learned-manifold seam. Softmax remains an offline oracle. D3 remains `NOT_RUN`;
-multi-resonance, recurrence, exact lowering, and #954 stay blocked until a
-qualified geometric oracle exists.
+the controls establish sensitivity only. The 8/8-contract localization attempt
+stopped at its two-document preflight and returned
+`REJECT_TANGENT_READOUT_SELECT_SCORE_PREFLIGHT`; tangent readout increased
+normalized audit MSE on both documents. Ordinary dot-product/stable-softmax
+causal attention in coherent R4/Spin frames is now the accepted baseline.
+Intrinsic score/readout, resonance, softmax replacement, recurrence, and exact
+lowering are parked. The provider-free autonomous
+`R4SoftmaxReferenceGeneratorV1` (`HELM-D-R4`) generation gate passes using the credited
+attention seam and UOR's pinned SmolLM2 `HuggingFaceLlamaOracle` decoder path,
+CLI/evidence path. It passed 4/5 frozen quality in both passes, 5/5 exact
+replay after deleting timing, all 30 layers with exact causal/projection/R4
+audits and zero future reads, and source-donor reproduction. Its terminal is
+`PASS_R4_SOFTMAX_REFERENCE_GENERATION_ADVANCE_NATIVE_PRODUCT_BRIDGE`. This reference
+remains transformer-compatible and `f32`/multiply/alloc/source-weight backed;
+the next bounded action is an explicit opt-in native HTTP/dashboard bridge of
+the exact same policy, with no default-engine change. Latency is optimized or
+qualified only as needed for one real end-to-end prompt. No tag, release,
+hosted promotion, or static-WASM claim is authorized. D3 remains `NOT_RUN`;
+#973 remains open and #954 remains blocked.
 
 Pinned-source provenance, ordinary-donor reproduction, transported-R4 parity,
 the frame-permutation control, and the causal audit now pass; see the
 [`HELM-D-R4` record](helm_d_r4_softmax_decoder_973.md). Upstream checkpoint
 parity remains `NOT_RUN`; the intrinsic V1 outcome is recorded in the
 [intrinsic Lorentz R4 record](intrinsic_lorentz_r4_attention_973.md). Resonance
-replacement, recurrence, exact lowering, and #954 remain blocked.
+replacement, recurrence, and exact lowering are parked; #954 remains blocked.
+The binding autonomous-generation evidence is the
+[generation record](r4_softmax_reference_generation_973.md) and
+[compact attempt-01 aggregate](r4_softmax_reference_generation_attempt_01_result_973.json).
 
 ## Start here
 
@@ -72,6 +100,20 @@ Choose the shortest path that matches what you need:
 If an older roadmap disagrees with the R4 Intelligence Completion Plan or live
 GitHub dependency graph, the completion plan and live dependency graph win.
 
+The qualified native source-reference CLI requires the already-local pinned
+SmolLM2 snapshot:
+
+```bash
+cargo run --release --offline --bin r4 -- r4-softmax-generate \
+  --source .uor-models/sources/smollm2-135m-instruct \
+  --prompt "Explain in three short sentences why plants need sunlight." \
+  --max-tokens 32 --workers 4 \
+  --json-output /tmp/r4-softmax-reference.json
+```
+
+It has no provider or network fallback and is not the source-free/table-native
+runtime or a browser-WASM decoder.
+
 ## Current authority
 
 These are the small set of living documents that define the present work:
@@ -81,18 +123,21 @@ These are the small set of living documents that define the present work:
    #820.
 2. [Geometric Intelligence Programme](geometric_intelligence_programme.md) —
    goal, architecture, and claim boundaries.
-3. [ADR-0005: HELM-D-R4 reference attention and recurrent lowering](adr/0005-predictive-geometric-connection-memory.md)
+3. [ADR-0005: HELM-D-R4 reference attention and autonomous generation](adr/0005-predictive-geometric-connection-memory.md)
    — the positive reference/parity operator, learned-manifold V2 negative,
-   active score-by-readout audit, resonance replacement, recurrence, and later
-   lowering decision. The bounded
+   localization preflight rejection, accepted ordinary-attention baseline,
+   qualified autonomous-generation gate, native-bridge successor, and parked replacement research. The bounded
    [HELM-D-R4 full-decoder result](helm_d_r4_softmax_decoder_973.md) closes the
    first parity gate. The
    [intrinsic Lorentz V1 record](intrinsic_lorentz_r4_attention_973.md) preserves
    its unavailable boundary, while the
    [learned-manifold V2 record](helm_d_learned_manifold_r4_construction_973.md)
-   and frozen
+   and completed
    [score-by-readout localization](helm_d_score_centroid_localization_973.md)
-   define the current evidence and next action.
+   define the prior evidence. The
+   [generation record](r4_softmax_reference_generation_973.md) and
+   [compact aggregate](r4_softmax_reference_generation_attempt_01_result_973.json)
+   bind the PASS; its explicit opt-in native HTTP/dashboard bridge is the next action.
    The bounded
    [multi-resonance reuse audit](multi_resonance_attention_sieve_audit_973.md)
    distinguishes the implemented sin/cos and Spin substrate from the still
@@ -121,12 +166,11 @@ reversible lexical geometry
   → establish numerical and real-language behavioral parity
   → preserve intrinsic Lorentz V1 construction-unavailable evidence with D3 sealed
   → preserve learned-manifold V2 valid non-D3 construction-validation negative
-  → separately freeze a cheap 8/8 score-by-readout construction audit
-  → bind paired-H4/E8 hierarchy and fiber/torsion
-  → fiber-preserving multi-resonance sieve replaces softmax
-  → resonance modes factor into bounded geometric recurrence
-  → exact H4/Q29/integer-table lowering
-  → coherent source-free generation
+  → preserve the two-document preflight rejection within the 8/8 localization contract
+  → accept ordinary dot-product/stable-softmax attention in coherent R4/Spin frames
+  → qualify provider-free autonomous R4SoftmaxReferenceGeneratorV1 (HELM-D-R4) native CLI generation [PASS]
+  → explicit opt-in native HTTP/dashboard bridge of the same policy; no default-engine change
+  → park intrinsic/readout, resonance, softmax replacement, recurrence, and lowering
   → correctness and abstention
   → multi-step reasoning
   → chat / CLI / WASM product integration

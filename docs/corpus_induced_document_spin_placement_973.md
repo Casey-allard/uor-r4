@@ -458,3 +458,46 @@ Euclidean parity; the controls establish sensitivity only. The sole current
 [score-by-readout localization](helm_d_score_centroid_localization_973.md).
 D3 remains `NOT_RUN`; resonance, recurrence, lowering, scale, and #954 remain
 blocked.
+
+## Score/readout outcome and superseding direction — 2026-08-30
+
+Protected score-by-readout Attempt 01 returned
+`REJECT_TANGENT_READOUT_SELECT_SCORE_PREFLIGHT`: tangent aggregation was worse
+on both untouched-parameter preflight documents; the lower flat-score
+cross-entropy was diagnostic only. The maintainer has parked intrinsic
+score/readout, score-radius, resonance, recurrent, and softmax-replacement
+research. The accepted baseline is ordinary dot-product/stable-softmax causal
+attention in coherent R4/Spin frames. The active #973 gate is provider-free
+autonomous `R4SoftmaxReferenceGeneratorV1` (`HELM-D-R4`) generation with the
+credited HELM attention seam and UOR's pinned SmolLM2
+`HuggingFaceLlamaOracle` decoder path, CLI and replayable evidence first. It remains transformer-compatible,
+f32/source-weight-backed, and not source-free, table-native, multiply-free, or
+transformerless; web and release work wait for coherent generation.
+
+## Generator qualification supersession — 2026-08-30
+
+The bounded [`R4SoftmaxReferenceGeneratorV1` qualification](r4_softmax_reference_generation_973.md)
+is now **PASS** at
+`PASS_R4_SOFTMAX_REFERENCE_GENERATION_ADVANCE_NATIVE_PRODUCT_BRIDGE`: its
+eight-token canary replayed exactly, the frozen five-prompt smoke passed at
+4/5 in both passes, and all 5/5 run pairs replayed exactly after deleting only
+timing. All 30 layers were selected; every recorded causal, projection, and R4
+audit was exact with zero future reads. The source donor matched P1 through EOS
+and P2-P5 for all 32 retained tokens. The
+[compact aggregate](r4_softmax_reference_generation_attempt_01_result_973.json)
+binds the outputs, CIDs, audits, timings, provenance, and nonclaims.
+
+This supersedes only the active-next-action wording above, not this record's
+historical outcome. HELM is the credited MIT architectural reference pinned at
+`7501deca8f413848bfef804be64ce874b72a3cd7`; no HELM checkpoint or generation
+code executed. The executed stack is UOR's pinned SmolLM2
+`HuggingFaceLlamaOracle`. The result is a source-weight-backed `f32`/matmul,
+Transformer-compatible ordinary dot-product/stable-softmax reference in
+coherent R4/Spin frames. It does not establish geometry advantage, softmax
+removal, source-free/table-native or transformerless inference, general
+quality, correctness, reasoning, frontier capability, browser-WASM operation,
+or release readiness. #973 remains open and #954 remains blocked. The next
+authorized step is an **explicit opt-in native HTTP/dashboard bridge** for this
+exact policy, with no default-engine change and latency qualification only as
+needed for one real end-to-end prompt. It remains separate from tag/release,
+hosted-page promotion, and static-WASM work.

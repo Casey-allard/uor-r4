@@ -1,0 +1,503 @@
+{
+  "checkpoint_cid": "blake3:295a7169efc2df38eaa41b709de09f9a80f113e25cfb607c94f0daa8b60ded95",
+  "checkpoint": {
+    "schema": "uor-r4.helm-d-score-centroid-localization-r4-checkpoint/1",
+    "issue": 973,
+    "phase": "preflight_rejected",
+    "contract_cid": "blake3:efe65be0801672c30d8da49d864192a90e7efc09c4962fc02ec09b6bec4ebdd5",
+    "population_cid": "blake3:194db0eebf2d49823ece01ee935447a0cc9edeaf018454ceea480ce7590132cf",
+    "partition_cid": "blake3:5c5a7dab9d7a0fbc9d176faafd49b42094ef89138cc32699dfc1b4fe937d1bde",
+    "manifest_cid": "blake3:359b3270aaa0d3ac157280c9206ad820d18ee93932e0530552ebbb7935ac6410",
+    "donor_cid": "blake3:12d2cd8a877ef2cdcf785b3d4d1f373e0419074cc884aeaff06fc059686a5ba5",
+    "tokenizer_cid": "blake3:70af0cb08bbcd3b323d3387ca1d7d33da39873820604d183711e8e99f9903fc1",
+    "target_commitment_artifact_cid": "blake3:5e6c9d43bd3e9e0ea8cdf27d5ea79bbe8623a028fcb5b182c2cff197a8467f55",
+    "target_commitment_manifest_cid": "blake3:a39c73ef096c541415b6b1a915352042f29cce481eae4c6ecc794018c6d28b2c",
+    "upstream_source_commit": "7501deca8f413848bfef804be64ce874b72a3cd7",
+    "implementation": {
+      "contract_cid": "blake3:efe65be0801672c30d8da49d864192a90e7efc09c4962fc02ec09b6bec4ebdd5",
+      "predecessor_partition_cid": "blake3:5c5a7dab9d7a0fbc9d176faafd49b42094ef89138cc32699dfc1b4fe937d1bde",
+      "predecessor": {
+        "result_bytes_cid": "blake3:5ae9d5021275f75498fc033e905cf8b6a3acf35f2cbc350f53e9e99e2506e264",
+        "result_self_cid": "blake3:9144913380c6ebdeebb5848138bc8e6642c1e7020d8e7a097aa3cd73cb829020",
+        "checkpoint_bytes_cid": "blake3:beb8e07d5d6304c4dccf60043d9048e21dc0363e123296d8da654a0cdaea1259",
+        "checkpoint_self_cid": "blake3:dd04bfc1cf15e5dd2c6c8be5afa363ecb452386f54632cd120bce56018444789",
+        "partition_cid": "blake3:5c5a7dab9d7a0fbc9d176faafd49b42094ef89138cc32699dfc1b4fe937d1bde",
+        "manifest_cid": "blake3:359b3270aaa0d3ac157280c9206ad820d18ee93932e0530552ebbb7935ac6410"
+      },
+      "implementation_source_cid": "blake3:2cb7b46f17c47cc0d50e3be57be797c867488c21673fa17ff1dbc941398f5af9",
+      "executable_cid": "blake3:6d17e7dd6d70bf8b83dc513329fa160f972505b725aa32040f015288971a4da4",
+      "git_revision": "df6e2dcba0222937ff76d594c5c64a596d987855",
+      "git_tracked_tree_clean": true
+    },
+    "exact_workers": 8,
+    "execution_preparation": {
+      "elapsed_seconds": 0.000308541,
+      "workers_observed": 8,
+      "batch_width": 1,
+      "backend_exercised": true,
+      "workspace_capacity_bytes": 820224,
+      "workspace_growth_events": 29,
+      "workspace_growth_bytes": 820224
+    },
+    "preflight": {
+      "schema": "uor-r4.helm-d-score-centroid-localization-preflight/1",
+      "document_ids": [
+        "8503",
+        "7754"
+      ],
+      "untouched_parameter_cid": "blake3:f3378493319f6fa5a043051d6a50240d088998396b486559a758280c9aad4827",
+      "identity_qkv": true,
+      "layer_scale": 24.0,
+      "uniform_bias": 0.0,
+      "registered_frames": 120,
+      "normalized_centroid_covariance_maximum_error": 4.440892098500626e-16,
+      "tangent_covariance_maximum_error": 1.6653345369377348e-16,
+      "mixed_score_readout_covariance": {
+        "registered_frames": 120,
+        "lorentz_score_maximum_error": 3.552713678800501e-15,
+        "lorentz_weight_maximum_error": 7.858215819253763e-24,
+        "euclidean_score_maximum_error": 3.552713678800501e-15,
+        "euclidean_weight_maximum_error": 8.68539643180679e-24,
+        "lorentz_normalized_readout_maximum_error": 4.440892098500626e-16,
+        "lorentz_tangent_readout_maximum_error": 4.440892098500626e-16,
+        "euclidean_normalized_readout_maximum_error": 4.440892098500626e-16,
+        "euclidean_tangent_readout_maximum_error": 4.440892098500626e-16
+      },
+      "natural_atlas_source_permutation_live": true,
+      "identity_projection_ordering_compared_lanes": 1658880,
+      "attention": {
+        "schema": "uor-r4.helm-d-score-centroid-localization-attention-evaluation/1",
+        "offline_evaluation_frame": "canonical_model_frame_gauge_equivalent",
+        "offline_atlas_transport_status": "NOT_EXECUTED_COVARIANCE_REDUCED",
+        "documents": [
+          {
+            "document_id": "8503",
+            "lorentz_normalized": {
+              "name": "L-M",
+              "metric": "lorentz",
+              "value_readout": "normalized_lorentz_centroid",
+              "rows": 2160,
+              "source_pairs": 27000,
+              "donor_attention_cross_entropy": 5.127463072729906,
+              "normalized_aggregate_mse": 0.012593831676260036,
+              "mean_attention_entropy": 0.19975701477172614,
+              "query_radial_norm_quantiles": {
+                "p0": 4.987804607366688,
+                "p50": 14.41927973844761,
+                "p95": 19.299789621310577,
+                "p100": 23.998762574228824
+              },
+              "key_radial_norm_quantiles": {
+                "p0": 2.4590573159549685,
+                "p50": 15.82654431077086,
+                "p95": 20.757346502070906,
+                "p100": 27.035808288355767
+              },
+              "lorentz_denominator_quantiles": {
+                "p0": 1.0000000000000024,
+                "p50": 1.0002212288230221,
+                "p95": 2.0146837421899284,
+                "p100": 4.33033757076556
+              },
+              "lorentz_reciprocal_multiplier_quantiles": {
+                "p0": 0.23092887879020713,
+                "p50": 0.9997783083636531,
+                "p95": 0.9999999643323302,
+                "p100": 0.9999999999999976
+              },
+              "logits_cid": "blake3:13119b7ce36dc4de3bf1af94874223af29550177175dad57980d622b0c86254a",
+              "weights_cid": "blake3:409c8ec7e9ee4b6a9e245dda0d291ec38a21b59c098b270cfa7583547300e419"
+            },
+            "lorentz_tangent": {
+              "name": "L-T",
+              "metric": "lorentz",
+              "value_readout": "transported_tangent_arithmetic_sum",
+              "rows": 2160,
+              "source_pairs": 27000,
+              "donor_attention_cross_entropy": 5.127463072729906,
+              "normalized_aggregate_mse": 0.013843444958107425,
+              "mean_attention_entropy": 0.19975701477172614,
+              "query_radial_norm_quantiles": {
+                "p0": 4.987804607366688,
+                "p50": 14.41927973844761,
+                "p95": 19.299789621310577,
+                "p100": 23.998762574228824
+              },
+              "key_radial_norm_quantiles": {
+                "p0": 2.4590573159549685,
+                "p50": 15.82654431077086,
+                "p95": 20.757346502070906,
+                "p100": 27.035808288355767
+              },
+              "lorentz_denominator_quantiles": null,
+              "lorentz_reciprocal_multiplier_quantiles": null,
+              "logits_cid": "blake3:13119b7ce36dc4de3bf1af94874223af29550177175dad57980d622b0c86254a",
+              "weights_cid": "blake3:409c8ec7e9ee4b6a9e245dda0d291ec38a21b59c098b270cfa7583547300e419"
+            },
+            "euclidean_normalized": {
+              "name": "E-M",
+              "metric": "euclidean",
+              "value_readout": "normalized_lorentz_centroid",
+              "rows": 2160,
+              "source_pairs": 27000,
+              "donor_attention_cross_entropy": 3.9376110596365828,
+              "normalized_aggregate_mse": 0.012646901704387285,
+              "mean_attention_entropy": 0.1847686213027043,
+              "query_radial_norm_quantiles": {
+                "p0": 4.987804607366688,
+                "p50": 14.41927973844761,
+                "p95": 19.299789621310577,
+                "p100": 23.998762574228824
+              },
+              "key_radial_norm_quantiles": {
+                "p0": 2.4590573159549685,
+                "p50": 15.82654431077086,
+                "p95": 20.757346502070906,
+                "p100": 27.035808288355767
+              },
+              "lorentz_denominator_quantiles": {
+                "p0": 1.0000000000999338,
+                "p50": 1.0052962703585089,
+                "p95": 1.928052347892119,
+                "p100": 3.996013266364401
+              },
+              "lorentz_reciprocal_multiplier_quantiles": {
+                "p0": 0.25024941944444706,
+                "p50": 0.9946817705303799,
+                "p95": 0.9999362884640076,
+                "p100": 0.9999999999000662
+              },
+              "logits_cid": "blake3:96289e027dc21214ace936b6f881462cfc462bf1a76ed44e284a93da8d2fe11e",
+              "weights_cid": "blake3:c3676e9368cb75a680bfc9a3bb21e043019e0d946e7b8f7b1b939eb1c2df10d7"
+            },
+            "euclidean_tangent": {
+              "name": "E-T",
+              "metric": "euclidean",
+              "value_readout": "transported_tangent_arithmetic_sum",
+              "rows": 2160,
+              "source_pairs": 27000,
+              "donor_attention_cross_entropy": 3.9376110596365828,
+              "normalized_aggregate_mse": 0.015103531619430977,
+              "mean_attention_entropy": 0.1847686213027043,
+              "query_radial_norm_quantiles": {
+                "p0": 4.987804607366688,
+                "p50": 14.41927973844761,
+                "p95": 19.299789621310577,
+                "p100": 23.998762574228824
+              },
+              "key_radial_norm_quantiles": {
+                "p0": 2.4590573159549685,
+                "p50": 15.82654431077086,
+                "p95": 20.757346502070906,
+                "p100": 27.035808288355767
+              },
+              "lorentz_denominator_quantiles": null,
+              "lorentz_reciprocal_multiplier_quantiles": null,
+              "logits_cid": "blake3:96289e027dc21214ace936b6f881462cfc462bf1a76ed44e284a93da8d2fe11e",
+              "weights_cid": "blake3:c3676e9368cb75a680bfc9a3bb21e043019e0d946e7b8f7b1b939eb1c2df10d7"
+            },
+            "lorentz_score_pair_bit_identical": true,
+            "euclidean_score_pair_bit_identical": true
+          },
+          {
+            "document_id": "7754",
+            "lorentz_normalized": {
+              "name": "L-M",
+              "metric": "lorentz",
+              "value_readout": "normalized_lorentz_centroid",
+              "rows": 2160,
+              "source_pairs": 27000,
+              "donor_attention_cross_entropy": 4.3762953128527595,
+              "normalized_aggregate_mse": 0.010149136616958938,
+              "mean_attention_entropy": 0.4027376891287713,
+              "query_radial_norm_quantiles": {
+                "p0": 4.235137746658481,
+                "p50": 13.947164585446279,
+                "p95": 19.906488413132376,
+                "p100": 25.88597009635887
+              },
+              "key_radial_norm_quantiles": {
+                "p0": 2.414467648224177,
+                "p50": 15.520450740854637,
+                "p95": 20.70403919205309,
+                "p100": 28.93769120061691
+              },
+              "lorentz_denominator_quantiles": {
+                "p0": 1.0000000000045002,
+                "p50": 1.0013962165856345,
+                "p95": 1.828741100490136,
+                "p100": 3.2517450546493305
+              },
+              "lorentz_reciprocal_multiplier_quantiles": {
+                "p0": 0.3075271840792698,
+                "p50": 0.9986040277429613,
+                "p95": 0.9999999639840942,
+                "p100": 0.9999999999954998
+              },
+              "logits_cid": "blake3:ba4f0a611399432f2c944820531272c20f13417e812eb83abe288beedd1de21a",
+              "weights_cid": "blake3:b2a90932904703fb35f5adc8b34a0aa9fd86b200c77cb953dc967657e7acac3e"
+            },
+            "lorentz_tangent": {
+              "name": "L-T",
+              "metric": "lorentz",
+              "value_readout": "transported_tangent_arithmetic_sum",
+              "rows": 2160,
+              "source_pairs": 27000,
+              "donor_attention_cross_entropy": 4.3762953128527595,
+              "normalized_aggregate_mse": 0.010363462741730613,
+              "mean_attention_entropy": 0.4027376891287713,
+              "query_radial_norm_quantiles": {
+                "p0": 4.235137746658481,
+                "p50": 13.947164585446279,
+                "p95": 19.906488413132376,
+                "p100": 25.88597009635887
+              },
+              "key_radial_norm_quantiles": {
+                "p0": 2.414467648224177,
+                "p50": 15.520450740854637,
+                "p95": 20.70403919205309,
+                "p100": 28.93769120061691
+              },
+              "lorentz_denominator_quantiles": null,
+              "lorentz_reciprocal_multiplier_quantiles": null,
+              "logits_cid": "blake3:ba4f0a611399432f2c944820531272c20f13417e812eb83abe288beedd1de21a",
+              "weights_cid": "blake3:b2a90932904703fb35f5adc8b34a0aa9fd86b200c77cb953dc967657e7acac3e"
+            },
+            "euclidean_normalized": {
+              "name": "E-M",
+              "metric": "euclidean",
+              "value_readout": "normalized_lorentz_centroid",
+              "rows": 2160,
+              "source_pairs": 27000,
+              "donor_attention_cross_entropy": 3.4064847623667713,
+              "normalized_aggregate_mse": 0.010037296632400175,
+              "mean_attention_entropy": 0.3999206346217547,
+              "query_radial_norm_quantiles": {
+                "p0": 4.235137746658481,
+                "p50": 13.947164585446279,
+                "p95": 19.906488413132376,
+                "p100": 25.88597009635887
+              },
+              "key_radial_norm_quantiles": {
+                "p0": 2.414467648224177,
+                "p50": 15.520450740854637,
+                "p95": 20.70403919205309,
+                "p100": 28.93769120061691
+              },
+              "lorentz_denominator_quantiles": {
+                "p0": 1.0000000327438383,
+                "p50": 1.023955238168855,
+                "p95": 1.695658568418859,
+                "p100": 2.9066771604224986
+              },
+              "lorentz_reciprocal_multiplier_quantiles": {
+                "p0": 0.344035455198143,
+                "p50": 0.9765442237862448,
+                "p95": 0.9999363999435628,
+                "p100": 0.9999999672561628
+              },
+              "logits_cid": "blake3:94948d5f52b98ab7e4308ae7230d3eb615ca5a3aaa7350779a0d942871b8486b",
+              "weights_cid": "blake3:6602907fa7afee13b6534394ea004d4f6ab4583d3831cb00430e58619a7210b9"
+            },
+            "euclidean_tangent": {
+              "name": "E-T",
+              "metric": "euclidean",
+              "value_readout": "transported_tangent_arithmetic_sum",
+              "rows": 2160,
+              "source_pairs": 27000,
+              "donor_attention_cross_entropy": 3.4064847623667713,
+              "normalized_aggregate_mse": 0.01050677452722888,
+              "mean_attention_entropy": 0.3999206346217547,
+              "query_radial_norm_quantiles": {
+                "p0": 4.235137746658481,
+                "p50": 13.947164585446279,
+                "p95": 19.906488413132376,
+                "p100": 25.88597009635887
+              },
+              "key_radial_norm_quantiles": {
+                "p0": 2.414467648224177,
+                "p50": 15.520450740854637,
+                "p95": 20.70403919205309,
+                "p100": 28.93769120061691
+              },
+              "lorentz_denominator_quantiles": null,
+              "lorentz_reciprocal_multiplier_quantiles": null,
+              "logits_cid": "blake3:94948d5f52b98ab7e4308ae7230d3eb615ca5a3aaa7350779a0d942871b8486b",
+              "weights_cid": "blake3:6602907fa7afee13b6534394ea004d4f6ab4583d3831cb00430e58619a7210b9"
+            },
+            "lorentz_score_pair_bit_identical": true,
+            "euclidean_score_pair_bit_identical": true
+          }
+        ],
+        "pooled": [
+          {
+            "name": "L-M",
+            "metric": "lorentz",
+            "value_readout": "normalized_lorentz_centroid",
+            "rows": 4320,
+            "source_pairs": 54000,
+            "donor_attention_cross_entropy": 4.751879192791329,
+            "normalized_aggregate_mse": 0.0113714841466095,
+            "mean_attention_entropy": 0.30124735195024677,
+            "query_radial_norm_quantiles": {
+              "p0": 4.235137746658481,
+              "p50": 14.18400239053336,
+              "p95": 19.541338981351974,
+              "p100": 25.88597009635887
+            },
+            "key_radial_norm_quantiles": {
+              "p0": 2.414467648224177,
+              "p50": 15.675111943027494,
+              "p95": 20.757346502070906,
+              "p100": 28.93769120061691
+            },
+            "lorentz_denominator_quantiles": {
+              "p0": 1.0000000000000024,
+              "p50": 1.0005157207501312,
+              "p95": 1.9302969604589242,
+              "p100": 4.33033757076556
+            },
+            "lorentz_reciprocal_multiplier_quantiles": {
+              "p0": 0.23092887879020713,
+              "p50": 0.9994795837485604,
+              "p95": 0.9999999643323302,
+              "p100": 0.9999999999999976
+            },
+            "logits_cid": "blake3:1de06418f7774f11c690e4dac6f72f383b3519e664046034e5434071e2af69ff",
+            "weights_cid": "blake3:9842f6d6c52eae6a19c59e62da1f9f22c506ffb67dc6cf1da39b29332a851d52"
+          },
+          {
+            "name": "L-T",
+            "metric": "lorentz",
+            "value_readout": "transported_tangent_arithmetic_sum",
+            "rows": 4320,
+            "source_pairs": 54000,
+            "donor_attention_cross_entropy": 4.751879192791329,
+            "normalized_aggregate_mse": 0.012103453849919024,
+            "mean_attention_entropy": 0.30124735195024677,
+            "query_radial_norm_quantiles": {
+              "p0": 4.235137746658481,
+              "p50": 14.18400239053336,
+              "p95": 19.541338981351974,
+              "p100": 25.88597009635887
+            },
+            "key_radial_norm_quantiles": {
+              "p0": 2.414467648224177,
+              "p50": 15.675111943027494,
+              "p95": 20.757346502070906,
+              "p100": 28.93769120061691
+            },
+            "lorentz_denominator_quantiles": null,
+            "lorentz_reciprocal_multiplier_quantiles": null,
+            "logits_cid": "blake3:1de06418f7774f11c690e4dac6f72f383b3519e664046034e5434071e2af69ff",
+            "weights_cid": "blake3:9842f6d6c52eae6a19c59e62da1f9f22c506ffb67dc6cf1da39b29332a851d52"
+          },
+          {
+            "name": "E-M",
+            "metric": "euclidean",
+            "value_readout": "normalized_lorentz_centroid",
+            "rows": 4320,
+            "source_pairs": 54000,
+            "donor_attention_cross_entropy": 3.672047911001678,
+            "normalized_aggregate_mse": 0.011342099168393727,
+            "mean_attention_entropy": 0.2923446279622293,
+            "query_radial_norm_quantiles": {
+              "p0": 4.235137746658481,
+              "p50": 14.18400239053336,
+              "p95": 19.541338981351974,
+              "p100": 25.88597009635887
+            },
+            "key_radial_norm_quantiles": {
+              "p0": 2.414467648224177,
+              "p50": 15.675111943027494,
+              "p95": 20.757346502070906,
+              "p100": 28.93769120061691
+            },
+            "lorentz_denominator_quantiles": {
+              "p0": 1.0000000000999338,
+              "p50": 1.0093589099396767,
+              "p95": 1.8208927663892582,
+              "p100": 3.996013266364401
+            },
+            "lorentz_reciprocal_multiplier_quantiles": {
+              "p0": 0.25024941944444706,
+              "p50": 0.9906909114309461,
+              "p95": 0.9999363999435628,
+              "p100": 0.9999999999000662
+            },
+            "logits_cid": "blake3:bbfd25aadd8d56f534214e84124188e9dc0c6512e74682f10b30aa5d24d310d3",
+            "weights_cid": "blake3:64b03bc5d00d70f0618257c8bc6da6360919450bf43bdb0cbd0d83f9050e0001"
+          },
+          {
+            "name": "E-T",
+            "metric": "euclidean",
+            "value_readout": "transported_tangent_arithmetic_sum",
+            "rows": 4320,
+            "source_pairs": 54000,
+            "donor_attention_cross_entropy": 3.672047911001678,
+            "normalized_aggregate_mse": 0.012805153073329927,
+            "mean_attention_entropy": 0.2923446279622293,
+            "query_radial_norm_quantiles": {
+              "p0": 4.235137746658481,
+              "p50": 14.18400239053336,
+              "p95": 19.541338981351974,
+              "p100": 25.88597009635887
+            },
+            "key_radial_norm_quantiles": {
+              "p0": 2.414467648224177,
+              "p50": 15.675111943027494,
+              "p95": 20.757346502070906,
+              "p100": 28.93769120061691
+            },
+            "lorentz_denominator_quantiles": null,
+            "lorentz_reciprocal_multiplier_quantiles": null,
+            "logits_cid": "blake3:bbfd25aadd8d56f534214e84124188e9dc0c6512e74682f10b30aa5d24d310d3",
+            "weights_cid": "blake3:64b03bc5d00d70f0618257c8bc6da6360919450bf43bdb0cbd0d83f9050e0001"
+          }
+        ],
+        "score_paired_logits_and_weights_bit_identical": true,
+        "all_normalization_factors_at_least_one_minus_tolerance": true,
+        "work": {
+          "documents": 2,
+          "rows_per_document": 2160,
+          "source_pairs_per_document": 27000,
+          "total_rows_per_arm": 4320,
+          "total_source_pairs_per_arm": 54000,
+          "future_position_reads": 0,
+          "target_as_input_reads": 0
+        },
+        "replay_identical": true,
+        "evaluation_cid": "blake3:949f802ad3c06e98b0bace4fcd0f4e5de1a031f25e52ff664f7cbf2a01c42eb7"
+      },
+      "tangent_mse_ten_percent_better_on_each_document": false,
+      "infrastructure_passed": true
+    },
+    "score_fit_document_ids": [],
+    "localization_audit_document_ids": [],
+    "lorentz_parameters": null,
+    "lorentz_fit_report": null,
+    "euclidean_parameters": null,
+    "euclidean_fit_report": null,
+    "fit_replay": null,
+    "fit_population_attention": null,
+    "audit_population_attention": null,
+    "forward_ledger": {
+      "preflight_trace_forwards": 64,
+      "complete_trace_forwards": 64,
+      "paired_decoder_forwards": 0,
+      "total_forwards": 64,
+      "baseline_forward_calls": 0,
+      "measured_forward_calls": 64,
+      "measured_streams_started": 64,
+      "measured_streams_completed": 64,
+      "measured_multiworker_forward_calls": 64,
+      "requested_workers": 8,
+      "effective_workers": 8,
+      "maximum_active_workers": 8,
+      "active_workers_at_snapshot": 0,
+      "active_streams_at_snapshot": 0
+    },
+    "target_materialized": false,
+    "d3_status": "NOT_RUN"
+  }
+}
