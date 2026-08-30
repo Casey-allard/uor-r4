@@ -16,7 +16,31 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 
 > **Current attention-to-intelligence checkpoint (2026-08-30):** ordinary
 > learned causal Q/K/V attention with stable softmax is established as the
-> equivalence baseline in coherent R4/Spin frames. The completed
+> equivalence baseline in coherent R4/Spin frames. The directly trained
+> 7,155,360-parameter [#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014)
+> model now supplies the binding intervention evidence: enabled sealed-test
+> NLL was `2.127407277216677`, while zeroing every attention output after
+> `W_o` and before the residual raised it to `4.804799838144271`, a
+> `2.6773925609275944`-nat penalty versus the frozen `0.10` minimum. Final
+> enabled and attention-off Python/Rust top-1 matched with maximum logit deltas
+> `0.00000762939453125` and `0.00001239776611328125`, both inside `0.005`,
+> while all six layers passed exact causal/R4 audits with zero future reads.
+> This establishes load-bearing ordinary causal attention at the declared
+> learned R4/Spin scope; it is not a geometry-advantage result.
+>
+> The same frozen campaign failed its full language-quality Definition of Done:
+> enabled NLL exceeded the `1.50` ceiling and subject-or-scene retention was
+> `3/5`, below `4/5`. All five outputs were valid UTF-8, avoided period-one
+> through period-four loops, and replayed exactly. The campaign closes negative
+> without rerun or tuning. Dependable coherent generation remains unresolved;
+> the next step is [#1017](https://github.com/UOR-Foundation/uor-r4/issues/1017),
+> one separately frozen quality-capacity rung that reuses the
+> exact attention and Rust execution path rather than another attention
+> diagnostic or geometry substitute. See the
+> [#1014 record](docs/r4_softmax_end_to_end_attention_1014.md) and
+> [structured aggregate](docs/r4_softmax_end_to_end_attention_1014_raw.json).
+>
+> The completed
 > `R4SoftmaxTraceStudentV1` then compiled construction-side teacher traces into
 > a source-free Q16 suffix artifact and showed bounded distillation relative to
 > its count and document-permuted controls. Its autonomous continuation still
@@ -44,12 +68,9 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > future, or document-13 reads passed.
 >
 > The project will not expand support or build another observability ladder for
-> this bounded current-step trace-distillation path. The next deliverable is a
-> directly trained end-to-end causal softmax attention mechanism in R4
-> coordinates on a fresh untouched split, including autonomous decoded
-> generation under [#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014).
-> This pivot does not claim that all trace distillation or attention
-> is impossible. See the
+> this bounded current-step trace-distillation path. #1014 has now executed the
+> direct-learning pivot and separates the established attention mechanism from
+> the still-negative quality gate. See the
 > [#1012 measured record](docs/r4_softmax_trace_observability_1012.md).
 >
 > The hosted GitHub Pages surface is currently a static visualization that
@@ -57,8 +78,9 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > lowering. It is not a product proof and does not change the active research
 > gate. No tag, release, hosted-chat, coherent-generation, correctness, or
 > reasoning claim is authorized. See the
-> [state-student result](docs/r4_softmax_trace_state_student_1011.md) and the
-> [#1012 measured record](docs/r4_softmax_trace_observability_1012.md).
+> [state-student result](docs/r4_softmax_trace_state_student_1011.md), the
+> [#1012 measured record](docs/r4_softmax_trace_observability_1012.md), and the
+> [#1014 result](docs/r4_softmax_end_to_end_attention_1014.md).
 
 > **Prior #973 evidence chain leading to this checkpoint (2026-08-30):** routing, exact R4/spin
 > state, least-cost selection, and multiscale hierarchy remain the geometric
@@ -163,9 +185,12 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > change was not decision-bearing or materially geometry-dependent, and the
 > same loop remained. The subsequent construction-only observability audit
 > completed at `INSUFFICIENT_SUPPORT_COVERAGE` and cannot attribute a boundary.
-> The next deliverable directly trains end-to-end causal softmax attention in
-> R4 coordinates on a fresh untouched split and includes autonomous decoded
-> generation under [#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014).
+> #1014 then directly trained the end-to-end R4/Spin causal-softmax model. Its
+> `2.6773925609275944`-nat attention-off penalty and two-arm Rust parity
+> establish load-bearing ordinary attention, while enabled NLL `2.127407` and
+> subject/scene retention `3/5` fail the frozen quality DoD. That campaign is
+> closed to rerun or tuning; the next rung changes only learning capacity while
+> reusing the qualified mechanism and runtime evidence path.
 > Intrinsic/readout substitution, resonance, softmax replacement, scale, and
 > product promotion remain parked. No tag, release, hosted
 > promotion, or browser-WASM claim is authorized. See the
@@ -177,6 +202,7 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > [generation result](docs/r4_softmax_reference_generation_973.md), the
 > [compact attempt-01 aggregate](docs/r4_softmax_reference_generation_attempt_01_result_973.json),
 > [native bridge result](docs/r4_softmax_reference_http_bridge_973.md),
+> [#1014 end-to-end result](docs/r4_softmax_end_to_end_attention_1014.md),
 > [ADR-0005](docs/adr/0005-predictive-geometric-connection-memory.md) and the
 > [Geometric Intelligence Programme](docs/geometric_intelligence_programme.md).
 >
@@ -232,9 +258,11 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > `NOT_RUN`. The trace-capture/Q16 suffix-student successor later completed with
 > bounded source-free distillation but looping output. Its recurrent state
 > successor failed promotion, and the following #1012 observability audit
-> completed at `INSUFFICIENT_SUPPORT_COVERAGE`. Direct end-to-end causal softmax
-> attention training in R4 coordinates on a fresh untouched split is next;
-> #954 remains blocked.
+> completed at `INSUFFICIENT_SUPPORT_COVERAGE`. #1014 subsequently established
+> load-bearing ordinary causal attention through its `2.677393`-nat
+> attention-off intervention and Rust parity, but failed its full quality DoD
+> at enabled NLL `2.127407` and subject/scene retention `3/5`. It closes
+> negative; a separate quality-capacity rung is next. #954 remains blocked.
 > See the
 > [bounded-global record](docs/bounded_global_exact_spin_attention_973.md).
 
@@ -623,10 +651,12 @@ exact-descriptor/entity-binding path selector apiece at their respective
    recurrent `R4SoftmaxTraceStateStudentV1` successor then failed to produce a
    material or selection-bearing effect. The subsequent construction-only
    observability audit completed at `INSUFFICIENT_SUPPORT_COVERAGE` and cannot
-   attribute a boundary. The next mechanism is direct end-to-end causal softmax
-   attention training in R4 coordinates on a fresh untouched split, with
-   autonomous decoded generation under
-   [#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014); #954 stays blocked.
+   attribute a boundary. #1014 then directly trained the frozen R4/Spin
+   causal-softmax model: its `2.677393`-nat attention-off penalty and two-arm
+   Rust parity establish attention, but enabled NLL `2.127407` and
+   subject/scene retention `3/5` fail its quality DoD. Close that exact campaign
+   without tuning; a separate quality-capacity rung that reuses the mechanism
+   is next. #954 stays blocked.
 See the [append-only #953 record](docs/local_geometric_generation_953.md).
 See the [accepted table-tie record](docs/source_free_table_geometric_intervention_953.md).
 See the [#973 Gate 0 record](docs/prior_sentence_count_radius_attention_973.md).
@@ -760,10 +790,11 @@ not become substitutes for working intelligence:
    execution but no material control separation, no changed decision, and the
    same loop. Its #1012 full-trace/signed-reduction/state/readout audit then
    completed at `INSUFFICIENT_SUPPORT_COVERAGE`; it cannot localize signal loss
-   and will not be expanded or repeated. Next directly train end-to-end causal
-   softmax attention in R4 coordinates on a fresh untouched split and require
-   autonomous decoded generation in that deliverable under
-   [#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014).
+   and will not be expanded or repeated. #1014 then established load-bearing
+   ordinary causal attention with a `2.677393`-nat attention-off penalty and
+   exact Rust parity, but failed its complete quality gate at enabled NLL
+   `2.127407` and prompt retention `3/5`. Close that campaign without rerun or
+   tuning; next freeze one quality-capacity rung over the same mechanism.
    Do not resume resonance substitutes or promote a product/release. This intermediate
    reference is transformer-compatible, `f32`/multiply/alloc and source-weight
    backed—not table-native, multiply-free, or transformerless. No tag, release,
@@ -813,10 +844,12 @@ lowering. The source-free Q16 suffix trace student is complete and boundedly
 positive but loops; `R4SoftmaxTraceStateStudentV1` also completed and failed
 its material, decision, and cycle gates. The bounded construction-only
 observability audit then completed at `INSUFFICIENT_SUPPORT_COVERAGE`; no
-boundary attribution follows. The active successor is direct end-to-end causal
-softmax attention training in R4 coordinates on a fresh untouched split, with
-autonomous decoded generation in the same deliverable under
-[#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014).
+boundary attribution follows. #1014 subsequently established load-bearing
+ordinary causal attention in the trained R4/Spin path through a `2.677393`-nat
+attention-off penalty and exact Rust parity. Its full quality DoD is negative:
+enabled NLL `2.127407` exceeded `1.50`, and subject/scene retention was `3/5`
+versus `4/5`. Close that exact campaign and advance only to a separately frozen
+quality-capacity rung over the same attention/runtime path.
 #954 remains blocked behind #973. The exact contract is
 [ADR-0005](docs/adr/0005-predictive-geometric-connection-memory.md).
 

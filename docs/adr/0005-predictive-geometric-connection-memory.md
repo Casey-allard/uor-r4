@@ -16,10 +16,15 @@
   observability ladder in
   [#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012) completed at
   `INSUFFICIENT_SUPPORT_COVERAGE` and cannot attribute a boundary. It will not
-  be expanded or repeated. The active successor,
-  [#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014), directly trains
-  end-to-end causal-softmax attention in R4 coordinates on a fresh untouched
-  split and must include autonomous decoding.
+  be expanded or repeated.
+  [#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014) then established
+  load-bearing ordinary causal attention in a directly trained R4/Spin model:
+  attention-off worsened sealed NLL by `2.6773925609275944` nats and both Rust
+  policy arms matched Python. Its complete language-quality DoD is negative at
+  enabled NLL `2.127407277216677` and prompt retention `3/5`. Close that exact
+  campaign without rerun or tuning. The active successor is
+  [#1017](https://github.com/UOR-Foundation/uor-r4/issues/1017), one independently
+  frozen quality-capacity rung over the same mechanism.
 - **Date:** 2026-08-28; direction updated 2026-08-30
 - **Owner:** #973 under programme root #820
 - **Supersedes for forward work:** another fixed componentwise prototype or
@@ -87,6 +92,13 @@
   [structured result](../r4_softmax_trace_state_student_1011_raw.json)); exact
   matched-arm metrics and artifact identities are bound in the current outcome
   amendment below
+- **Directly trained end-to-end attention result:** ordinary causal attention
+  `PASS` at the learned-intervention scope; full language-quality DoD `FAIL`.
+  Enabled sealed NLL `2.127407277216677`; attention-off NLL
+  `4.804799838144271`; penalty `2.6773925609275944`; two-arm Rust parity
+  `PASS`; exact seeded replay `5/5`; subject/scene retention `3/5`
+  ([record](../r4_softmax_end_to_end_attention_1014.md),
+  [structured aggregate](../r4_softmax_end_to_end_attention_1014_raw.json))
 
 ## Decision
 
@@ -115,10 +127,13 @@ leave-one-document-out observability ladder in
 [#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012) completed at
 `INSUFFICIENT_SUPPORT_COVERAGE`; its per-fold support gate forbids boundary
 attribution. Support expansion and another localization ladder are not the next
-step. The active successor is
-[#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014): direct end-to-end
-causal-softmax attention training in R4 coordinates on a fresh untouched split
-with autonomous decoded generation. No tag,
+step. #1014 then completed the direct end-to-end rung: attention-off worsened
+sealed NLL by `2.6773925609275944` nats and the Rust enabled/off policies
+matched Python, establishing load-bearing ordinary causal attention at that
+learned R4/Spin scope. Its full quality DoD failed because enabled NLL was
+`2.127407277216677 > 1.50` and subject/scene retention was `3/5 < 4/5`.
+Close the exact campaign without rerun or tuning. The active successor is one
+separately frozen quality-capacity rung over the unchanged mechanism. No tag,
 release, hosted promotion, or static-WASM claim is authorized.
 Its architectural reference is the official MIT HELM-D source pinned at commit
 [`7501deca8f413848bfef804be64ce874b72a3cd7`](https://github.com/Graph-and-Geometric-Learning/helm/tree/7501deca8f413848bfef804be64ce874b72a3cd7).
@@ -160,7 +175,11 @@ The current sequence is strict:
 7. execute [#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014):
    directly train end-to-end causal-softmax attention in R4 coordinates on a
    fresh untouched split and require autonomous decoded generation in the same
-   deliverable.
+   deliverable; **completed** with attention established at the intervention
+   scope and the full language-quality DoD negative; and
+8. freeze one quality-capacity rung that reuses #1014's exact attention,
+   population discipline, Rust generation, intervention, and replay path while
+   changing only model or training capacity.
 
 ### Qualified native endpoint and completed source-free trace rungs
 
@@ -790,11 +809,38 @@ direction appeared in `0/4` folds. The fixed label control separated by
 source/document-13 reads passed. The project will not expand support or run
 another localization ladder. It advances to direct end-to-end causal-softmax
 attention training in R4 coordinates on a fresh untouched split with autonomous
-decoded generation under
-[#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014). This stops the
-bounded current-step trace-distillation
-path, not all trace distillation or attention. See the
-[#1012 record](../r4_softmax_trace_observability_1012.md).
+decoded generation under #1014. That campaign is now complete. Enabled
+sealed-test NLL was `2.127407277216677`, and the attention-off NLL was
+`4.804799838144271`, a `2.6773925609275944`-nat penalty versus the frozen
+`0.10` minimum. The final enabled and attention-off Rust arms preserved Python
+top-1 within the `0.005` logit tolerance, all six layers passed exact R4/causal
+audits, and all five seeded reports replayed exactly. Prompt subject/scene
+retention was `3/5`, below the frozen `4/5` gate. This establishes ordinary
+causal attention as load-bearing at the declared learned R4/Spin scope while
+closing the full #1014 quality DoD negative. Do not rerun or tune the campaign.
+See the [#1012 record](../r4_softmax_trace_observability_1012.md) and the
+[#1014 record](../r4_softmax_end_to_end_attention_1014.md).
+
+### #1014 outcome amendment — attention established, quality unresolved
+
+The attention claim and the quality verdict are deliberately separate:
+
+| Criterion | Frozen threshold | Result | Verdict |
+|---|---:|---:|---|
+| Enabled sealed-test NLL | `<= 1.50` | `2.127407277216677` | **FAIL** |
+| Attention-off penalty | `>= 0.10` | `2.6773925609275944` | **PASS** |
+| Final Python/Rust parity | same top-1; max delta `<= 0.005` | enabled `0.00000762939453125`; off `0.00001239776611328125` | **PASS** |
+| Coherent R4/Spin execution | all six layers; exact causal/R4 work; zero future reads | exact | **PASS** |
+| Prompt subject/scene | `>= 4/5` | `3/5` | **FAIL** |
+| Decode/replay | UTF-8; no period-1..4 loop; exact reload | `5/5` | **PASS** |
+
+The full issue result is therefore negative, but the attention mechanism is no
+longer ambiguous. The next mechanism-building action is a separate
+quality-capacity rung over the same attention/runtime path. It must not reopen
+folds, probes, transport permutations, alternative attention architectures,
+intrinsic geometry, resonance, or exact lowering. The
+[#1014 structured aggregate](../r4_softmax_end_to_end_attention_1014_raw.json)
+binds the five exact outputs, rubric grades, CIDs, audits, and replay results.
 
 ## Historical intrinsic/replacement outcome branches — parked
 

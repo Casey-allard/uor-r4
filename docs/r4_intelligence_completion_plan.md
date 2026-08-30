@@ -42,13 +42,22 @@
   `0.0003463194386417179` nats worse than suffix in `0/4` folds, while the
   fixed label control separated by `1.3807454322642605` nats in `4/4`. Exact
   replay and zero source/document-13 reads passed. The project will not expand
-  this support or build another observability ladder. The sole active step is
-  direct end-to-end causal softmax attention training in R4 coordinates on a
-  fresh untouched split, and autonomous decoded generation is part of that
-  deliverable under [#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014).
-  This stops the bounded current-step trace-distillation path, not
-  all trace distillation or attention. The already-revealed document 13 cannot
-  promote the new mechanism.
+  this support or build another observability ladder.
+  [#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014) has now
+  completed the direct end-to-end step. Enabled sealed-test NLL was
+  `2.127407277216677`; the exact attention-off intervention raised it to
+  `4.804799838144271`, a `2.6773925609275944`-nat penalty versus the frozen
+  `0.10` floor. Enabled/off Python-Rust top-1 matched within `0.005`, all six
+  layers passed exact causal/R4 audits, and all five seeded generations
+  replayed exactly. Ordinary causal attention is therefore established as
+  load-bearing at this learned R4/Spin scope. The complete quality DoD is
+  negative because enabled NLL exceeded `1.50` and subject/scene retention was
+  `3/5`, below `4/5`. Close the exact campaign without rerun or tuning.
+  The sole active step is now
+  [#1017](https://github.com/UOR-Foundation/uor-r4/issues/1017), one separately
+  frozen quality-capacity rung that
+  reuses this attention and Rust execution path; it is not another attention
+  diagnostic, geometry comparator, or softmax replacement.
   Offline teacher/compiler floats, matrix operations, and softmax are permitted
   while proving a replacement mechanism; the deployed destination remains
   exact, integer/table-native, and source-free.
@@ -61,7 +70,8 @@
   plus the [native endpoint/dashboard-wiring record](r4_softmax_reference_http_bridge_973.md) and
   [structured result](r4_softmax_reference_http_bridge_result_973.json), then
   the [trace-student record](r4_softmax_trace_student_973.md) and
-  [#1012 observability record](r4_softmax_trace_observability_1012.md).
+  [#1012 observability record](r4_softmax_trace_observability_1012.md), followed
+  by the [#1014 end-to-end result](r4_softmax_end_to_end_attention_1014.md).
   The intermediate
   [Geometric Causal Decoder Roadmap](geometric_causal_decoder_plan.md) records
   the superseded #948-#958 sequence.

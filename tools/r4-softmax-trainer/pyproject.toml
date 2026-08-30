@@ -1,0 +1,27 @@
+[build-system]
+requires = ["hatchling==1.27.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "uor-r4-softmax-trainer"
+version = "0.1.0"
+description = "Bounded #1014 TinyStories causal-softmax reference trainer"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+license = { text = "MIT" }
+dependencies = [
+  "blake3==1.0.5",
+  "numpy==2.5.2",
+  "safetensors==0.5.3",
+  "tokenizers==0.21.2",
+  "torch==2.7.1",
+]
+
+[project.scripts]
+r4-softmax-trainer = "r4_softmax_trainer.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/r4_softmax_trainer"]
+
+[tool.uv]
+package = true

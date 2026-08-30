@@ -262,12 +262,13 @@ substituted for one another.
   covered rows (`suffix - full = -0.0003463194386417179`, direction `0/4`),
   while the label control separated by `1.3807454322642605` nats in `4/4`.
   Exact replay and zero source/document-13 reads passed. The ladder will not be
-  expanded or repeated. Active work is
-  [#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014): direct
-  end-to-end causal-softmax R4 attention training on a fresh untouched split
-  with autonomous decoding. This stops the
-  bounded current-step trace-distillation path, not all trace distillation or
-  attention. Revealed document 13 cannot promote the new mechanism.
+  expanded or repeated. #1014 subsequently established load-bearing ordinary
+  causal attention at the learned R4/Spin scope: attention-off worsened sealed
+  NLL by `2.6773925609275944` nats and both Rust policy arms matched Python.
+  Its full quality DoD failed at enabled NLL `2.127407277216677` and prompt
+  retention `3/5`. The exact campaign closes without rerun or tuning; active
+  work is [#1017](https://github.com/UOR-Foundation/uor-r4/issues/1017), one
+  separately frozen quality-capacity rung over the same mechanism.
 - **H4 frame connection** — the exact object is the relative H4 group element;
   the current compiler-side f64 matrix represents its left-quaternion action
   and is numerically orthogonal under the tested finite-group law. It does not
@@ -414,10 +415,10 @@ substituted for one another.
   decoded-cycle boundary, then the completed negative
   `R4SoftmaxTraceStateStudentV1` comparison, then the completed
   [#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012) trace-state
-  observability ladder at `INSUFFICIENT_SUPPORT_COVERAGE`. The active successor
-  is [#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014): direct
-  end-to-end causal-softmax attention training in R4 coordinates on a fresh
-  untouched split with autonomous decoded generation. Intrinsic/readout,
+  observability ladder at `INSUFFICIENT_SUPPORT_COVERAGE`, then the completed
+  #1014 end-to-end campaign: attention intervention and Rust parity `PASS`,
+  complete quality DoD `FAIL`. The active successor is a separately frozen
+  quality-capacity rung over the unchanged mechanism. Intrinsic/readout,
   fiber-preserving multi-resonance replacement,
   whole-decoder recurrent factorization, and final requalification are parked
   (#973);
@@ -491,10 +492,11 @@ and the [authoritative #1011 record](../r4_softmax_trace_state_student_1011.md).
 The subsequent construction-only trace-state observability ladder in
 [#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012) completed at
 `INSUFFICIENT_SUPPORT_COVERAGE` without boundary attribution and will not be
-expanded or repeated. Active work is direct end-to-end causal-softmax attention
-training in R4 coordinates on a fresh untouched split with autonomous decoding
-under [#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014);
-corpus scale, added state dimensions, exact lowering, resonance, WASM, release,
+expanded or repeated. #1014 subsequently established load-bearing ordinary
+causal attention with a `2.677393`-nat attention-off penalty and exact Rust
+parity, but failed its full quality DoD at enabled NLL `2.127407` and prompt
+retention `3/5`. Active work is one separately frozen quality-capacity rung
+over the unchanged mechanism; exact lowering, resonance, WASM, release,
 correctness, and reasoning claims remain parked.
 
 ## Core roles

@@ -87,12 +87,14 @@ probe was `0.0003463194386417179` nats worse than suffix with the required
 direction in `0/4`; its fixed label control separated by
 `1.3807454322642605` nats in `4/4`. Exact replay and zero source-model,
 future, and document-13 reads passed. The project will not expand support or
-build another observability ladder for this path. The active successor is
-direct end-to-end causal softmax attention training in R4 coordinates on a
-fresh untouched split, with autonomous decoded generation in the same
-deliverable, under [#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014).
-This stops one bounded current-step trace-distillation path, not
-all trace distillation or attention. The reference remains transformer-compatible
+build another observability ladder for this path. #1014 subsequently
+established load-bearing ordinary causal attention in the learned R4/Spin path:
+attention-off worsened sealed NLL by `2.6773925609275944` nats and both Rust
+policy arms matched Python. Its complete quality DoD failed at enabled NLL
+`2.127407277216677` and subject/scene retention `3/5`. Close the exact campaign
+without rerun or tuning. The active successor is
+[#1017](https://github.com/UOR-Foundation/uor-r4/issues/1017), one separately
+frozen quality-capacity rung over the same mechanism. The reference remains transformer-compatible
 and `f32`/multiply/alloc/source-weight backed; it is not source-free,
 table-native, multiply-free, transformerless, browser-WASM, release, or
 frontier-model evidence.
@@ -114,8 +116,9 @@ V1 attempt 02 `UNAVAILABLE` before D3; learned-manifold V2 valid negative;
 localization terminal `REJECT_TANGENT_READOUT_SELECT_SCORE_PREFLIGHT`; D3
 `NOT_RUN`; #1012 terminal `INSUFFICIENT_SUPPORT_COVERAGE`, result CID
 `blake3:11f890def300cdafd689ef7cbfcf28e46b693e669a46edfa7431c672582db4a2`;
-direct end-to-end causal-softmax R4 training plus autonomous decoded generation
-next under [#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014);
+#1014 direct end-to-end training complete with attention-off intervention
+`PASS` (`2.6773925609275944` nats), two-arm Rust parity `PASS`, full quality DoD
+`FAIL` (enabled NLL `2.127407277216677`, prompt retention `3/5`);
 resonance replacement `NOT_RUN` and parked; full-model recurrent and
 exact lowering parked; #954 blocked. See
 [`helm_d_r4_softmax_decoder_973.md`](helm_d_r4_softmax_decoder_973.md) and
@@ -160,7 +163,8 @@ canonical text/corpus
     -> source-free Q16 suffix trace student [BOUNDED DISTILLATION; LOOPING OUTPUT]
     -> R4SoftmaxTraceStateStudentV1 recurrent R4/Spin state [COMPLETE; FAIL PROMOTION]
     -> construction-only trace/state observability audit [COMPLETE; INSUFFICIENT SUPPORT]
-    -> direct end-to-end causal softmax attention training in R4 coordinates on a fresh untouched split, including autonomous decoded generation [#1014; NEXT]
+    -> direct end-to-end causal softmax attention in learned R4/Spin coordinates [#1014; ATTENTION PASS, FULL QUALITY DOD FAIL]
+    -> separately frozen quality-capacity rung over the unchanged mechanism [NEXT]
     -> intrinsic/readout alternatives, paired-E8, resonance replacement, full-model recurrent lowering, and exact deployment parked
     -> correctness + typed abstention (#954)
     -> bounded reasoning (#955)
@@ -1516,10 +1520,12 @@ D3 on construction covariance, with diagnostic curved NLL worse than donor and
   [#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012) then completed
   its construction-only observability audit at
   `INSUFFICIENT_SUPPORT_COVERAGE`; no boundary attribution is licensed, and
-  neither support expansion nor another observability ladder follows. The next
-  primary rung directly trains end-to-end causal softmax attention in R4
-  coordinates on a fresh untouched split and must include autonomous decoded
-  generation under [#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014).
+  neither support expansion nor another observability ladder follows. #1014
+  subsequently established load-bearing ordinary causal attention through a
+  `2.677393`-nat attention-off penalty and exact Rust parity, but failed the
+  complete quality DoD at enabled NLL `2.127407` and prompt retention `3/5`.
+  The next primary rung is one separately frozen quality-capacity step over the
+  unchanged attention and Rust execution path.
   Resonance substitutes, unrelated optimization, and release work
   remain parked. Lowering does not otherwise reactivate automatically on a
   generation positive.

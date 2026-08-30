@@ -484,8 +484,120 @@ pub struct CausalAttentionTransportSession {
     scratch: CausalAttentionTransportScratch,
     audit: attention::CausalAttentionTransportAudit,
     pre_rope_projection_audit: attention::CausalAttentionProjectionAudit,
+    output_policy_audit: CausalAttentionOutputPolicyAudit,
     source_cid: String,
     next_position: usize,
+}
+
+/// Decoder-owned policy for the learned attention output after the checkpoint's
+/// `W_o` projection and immediately before residual addition.
+///
+/// This seam deliberately receives only the projected attention output. It
+/// cannot rewrite Q/K/V, causal support, softmax weights, or the value
+/// aggregate. The ordinary #973 path remains the default.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum CausalAttentionOutputPolicy {
+    /// Add the learned post-`W_o` attention output to the residual unchanged.
+    #[default]
+    Enabled,
+    /// Zero the learned post-`W_o` attention output before residual addition.
+    ZeroPostWoBeforeResidual,
+}
+
+impl CausalAttentionOutputPolicy {
+    /// Stable identity for manifests and decoded-run evidence.
+    pub const fn identity(self) -> &'static str {
+        match self {
+            Self::Enabled => "causal-attention-output-enabled/1",
+            Self::ZeroPostWoBeforeResidual => {
+                "causal-attention-output-zero-post-wo-before-residual/1"
+            }
+        }
+    }
+}
+
+/// Decoder-owned census for the post-`W_o`, pre-residual output policy.
+///
+/// A complete run has one application per selected layer and causal position.
+/// The per-layer counts prove coverage, while the existing transport and
+/// projection audits prove that Q/K/V, softmax/value aggregation, and causal
+/// source traversal still executed before this isolated output seam.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CausalAttentionOutputPolicyAudit {
+    /// Policy bound when the session was constructed.
+    pub policy: CausalAttentionOutputPolicy,
+    /// Total selected layer-position applications.
+    pub applications: u64,
+    /// Applications that retained the learned attention output.
+    pub enabled_applications: u64,
+    /// Applications that zeroed the learned attention output.
+    pub zeroed_applications: u64,
+    /// Post-`W_o` scalar lanes presented to the policy.
+    pub output_lanes: u64,
+    /// Nonzero post-`W_o` lanes observed before the policy.
+    pub nonzero_lanes_before_policy: u64,
+    /// Nonzero lanes remaining immediately before residual addition.
+    pub nonzero_lanes_after_policy: u64,
+    /// Application count for every zero-based decoder layer.
+    pub applications_by_layer: Vec<u64>,
+    /// Largest causal query position presented to the policy.
+    pub maximum_query_position: Option<usize>,
+}
+
+impl CausalAttentionOutputPolicyAudit {
+    fn new(policy: CausalAttentionOutputPolicy, layer_count: usize) -> Self {
+        Self {
+            policy,
+            applications: 0,
+            enabled_applications: 0,
+            zeroed_applications: 0,
+            output_lanes: 0,
+            nonzero_lanes_before_policy: 0,
+            nonzero_lanes_after_policy: 0,
+            applications_by_layer: vec![0; layer_count],
+            maximum_query_position: None,
+        }
+    }
+
+    fn clear(&mut self) {
+        self.applications = 0;
+        self.enabled_applications = 0;
+        self.zeroed_applications = 0;
+        self.output_lanes = 0;
+        self.nonzero_lanes_before_policy = 0;
+        self.nonzero_lanes_after_policy = 0;
+        self.applications_by_layer.fill(0);
+        self.maximum_query_position = None;
+    }
+
+    fn apply(&mut self, layer: usize, query_position: usize, output: &mut [f32]) {
+        self.applications = self.applications.saturating_add(1);
+        self.applications_by_layer[layer] = self.applications_by_layer[layer].saturating_add(1);
+        self.maximum_query_position = Some(
+            self.maximum_query_position
+                .map_or(query_position, |maximum| maximum.max(query_position)),
+        );
+        self.output_lanes = self
+            .output_lanes
+            .saturating_add(u64::try_from(output.len()).unwrap_or(u64::MAX));
+        self.nonzero_lanes_before_policy = self.nonzero_lanes_before_policy.saturating_add(
+            u64::try_from(output.iter().filter(|&&value| value != 0.0).count()).unwrap_or(u64::MAX),
+        );
+
+        match self.policy {
+            CausalAttentionOutputPolicy::Enabled => {
+                self.enabled_applications = self.enabled_applications.saturating_add(1);
+            }
+            CausalAttentionOutputPolicy::ZeroPostWoBeforeResidual => {
+                output.fill(0.0);
+                self.zeroed_applications = self.zeroed_applications.saturating_add(1);
+            }
+        }
+
+        self.nonzero_lanes_after_policy = self.nonzero_lanes_after_policy.saturating_add(
+            u64::try_from(output.iter().filter(|&&value| value != 0.0).count()).unwrap_or(u64::MAX),
+        );
+    }
 }
 
 impl CausalAttentionTransportSession {
@@ -518,10 +630,22 @@ impl CausalAttentionTransportSession {
         self.pre_rope_projection_audit
     }
 
+    /// Post-`W_o`, pre-residual output policy bound to this session.
+    pub fn output_policy(&self) -> CausalAttentionOutputPolicy {
+        self.output_policy_audit.policy
+    }
+
+    /// Decoder-owned evidence that the output policy covered every selected
+    /// layer-position exactly once.
+    pub fn output_policy_audit(&self) -> CausalAttentionOutputPolicyAudit {
+        self.output_policy_audit.clone()
+    }
+
     /// Clear counters without changing model, KV-cache, or transport state.
     pub fn clear_audit(&mut self) {
         self.audit = attention::CausalAttentionTransportAudit::default();
         self.pre_rope_projection_audit = attention::CausalAttentionProjectionAudit::default();
+        self.output_policy_audit.clear();
     }
 
     /// Deterministic identity of the retained residual, KV-cache, and logits.
@@ -555,6 +679,7 @@ impl CausalAttentionTransportSession {
         self.scratch.clear();
         self.audit = attention::CausalAttentionTransportAudit::default();
         self.pre_rope_projection_audit = attention::CausalAttentionProjectionAudit::default();
+        self.output_policy_audit.clear();
         self.next_position = 0;
     }
 }
@@ -595,6 +720,7 @@ struct CausalAttentionLayerOverride<'a> {
     scratch: &'a mut CausalAttentionTransportScratch,
     audit: &'a mut attention::CausalAttentionTransportAudit,
     pre_rope_projection_audit: &'a mut attention::CausalAttentionProjectionAudit,
+    output_policy_audit: &'a mut CausalAttentionOutputPolicyAudit,
 }
 
 fn causal_attention_layer_mask(
@@ -1256,6 +1382,7 @@ impl Llama {
             scratch,
             audit,
             pre_rope_projection_audit,
+            output_policy_audit,
             ..
         } = session;
         transport.begin_position(token, pos);
@@ -1278,6 +1405,7 @@ impl Llama {
                     scratch,
                     audit,
                     pre_rope_projection_audit,
+                    output_policy_audit,
                 };
                 self.layer_forward_with_geometry(
                     state,
@@ -1591,7 +1719,7 @@ impl Llama {
                 // standard stable softmax and the linear value aggregate;
                 // implementation-owned evidence binds any replacement score
                 // or geometric centroid.
-                if let Some(causal_attention) = causal_attention {
+                if let Some(causal_attention) = causal_attention.as_deref_mut() {
                     apply_full_prefix_causal_attention_transport(
                         causal_attention,
                         l,
@@ -1681,6 +1809,11 @@ impl Llama {
                             *mean += *weight / c.n_heads as f32;
                         }
                     }
+                }
+                if let Some(causal_attention) = causal_attention {
+                    causal_attention
+                        .output_policy_audit
+                        .apply(l, pos, &mut st.xb2);
                 }
             }
             for i in 0..dim {
@@ -3686,9 +3819,32 @@ impl HuggingFaceLlamaOracle {
     /// of four-lane R4 blocks.
     pub fn new_causal_attention_transport_session(
         &self,
+        transport: Box<dyn attention::CausalAttentionTransport>,
+        selection: attention::CausalAttentionLayerSelection,
+        sequence_capacity: usize,
+    ) -> Result<CausalAttentionTransportSession, attention::CausalAttentionTransportError> {
+        self.new_causal_attention_transport_session_with_output_policy(
+            transport,
+            selection,
+            sequence_capacity,
+            CausalAttentionOutputPolicy::Enabled,
+        )
+    }
+
+    /// Construct an independent full decoder with an explicit post-`W_o`,
+    /// pre-residual attention-output policy.
+    ///
+    /// [`CausalAttentionOutputPolicy::Enabled`] is the ordinary #973 behavior.
+    /// [`CausalAttentionOutputPolicy::ZeroPostWoBeforeResidual`] is the sole
+    /// #1014 attention-off intervention: Q/K/V projection, RoPE, complete-prefix
+    /// scoring, stable softmax, value aggregation, coordinate output transport,
+    /// and `W_o` all execute before the output is zeroed.
+    pub fn new_causal_attention_transport_session_with_output_policy(
+        &self,
         mut transport: Box<dyn attention::CausalAttentionTransport>,
         selection: attention::CausalAttentionLayerSelection,
         sequence_capacity: usize,
+        output_policy: CausalAttentionOutputPolicy,
     ) -> Result<CausalAttentionTransportSession, attention::CausalAttentionTransportError> {
         use attention::CausalAttentionTransportError as Error;
 
@@ -3722,6 +3878,10 @@ impl HuggingFaceLlamaOracle {
             scratch,
             audit: attention::CausalAttentionTransportAudit::default(),
             pre_rope_projection_audit: attention::CausalAttentionProjectionAudit::default(),
+            output_policy_audit: CausalAttentionOutputPolicyAudit::new(
+                output_policy,
+                config.n_layers,
+            ),
             source_cid: self.kappa.clone(),
             next_position: 0,
         })
@@ -5578,6 +5738,14 @@ mod tests {
             transported.policy_identity(),
             "identity-full-prefix-control/1"
         );
+        assert_eq!(
+            transported.output_policy(),
+            CausalAttentionOutputPolicy::Enabled
+        );
+        assert_eq!(
+            transported.output_policy().identity(),
+            "causal-attention-output-enabled/1"
+        );
         assert_eq!(transported.selected_layer_count(), oracle.cfg().n_layers);
         assert!(transported.layer_is_selected(0));
         assert!(transported.layer_is_selected(1));
@@ -5632,6 +5800,171 @@ mod tests {
         assert_eq!(projection_audit.query_lanes, 48);
         assert_eq!(projection_audit.key_lanes, 48);
         assert_eq!(projection_audit.value_lanes, 48);
+
+        let output_audit = transported.output_policy_audit();
+        assert_eq!(output_audit.policy, CausalAttentionOutputPolicy::Enabled);
+        assert_eq!(output_audit.applications, 6);
+        assert_eq!(output_audit.enabled_applications, 6);
+        assert_eq!(output_audit.zeroed_applications, 0);
+        assert_eq!(output_audit.output_lanes, 48);
+        assert!(output_audit.nonzero_lanes_before_policy > 0);
+        assert_eq!(
+            output_audit.nonzero_lanes_before_policy,
+            output_audit.nonzero_lanes_after_policy
+        );
+        assert_eq!(output_audit.applications_by_layer, vec![3, 3]);
+        assert_eq!(output_audit.maximum_query_position, Some(2));
+    }
+
+    #[test]
+    fn causal_attention_output_policy_zeroes_only_post_wo_before_residual() {
+        let oracle = tiny_geometric_oracle();
+        let selected_layer = oracle.cfg().n_layers - 1;
+        let selection = || attention::CausalAttentionLayerSelection::Selected(vec![selected_layer]);
+        let mut enabled = oracle
+            .new_causal_attention_transport_session_with_output_policy(
+                Box::new(IdentityCausalAttentionTransport),
+                selection(),
+                6,
+                CausalAttentionOutputPolicy::Enabled,
+            )
+            .expect("explicit enabled session");
+        let mut zeroed = oracle
+            .new_causal_attention_transport_session_with_output_policy(
+                Box::new(IdentityCausalAttentionTransport),
+                selection(),
+                6,
+                CausalAttentionOutputPolicy::ZeroPostWoBeforeResidual,
+            )
+            .expect("attention-off session");
+        assert_eq!(
+            zeroed.output_policy().identity(),
+            "causal-attention-output-zero-post-wo-before-residual/1"
+        );
+
+        let mut enabled_logits = vec![0.0; oracle.cfg().vocab];
+        let mut zeroed_logits = vec![0.0; oracle.cfg().vocab];
+        for (position, token) in [1usize, 3, 5].into_iter().enumerate() {
+            oracle
+                .step_causal_attention_transport(&mut enabled, token, position, &mut enabled_logits)
+                .expect("enabled attention step");
+            oracle
+                .step_causal_attention_transport(&mut zeroed, token, position, &mut zeroed_logits)
+                .expect("attention-off step");
+
+            // Selecting the final layer makes the intervention causally last:
+            // all Q/K/V caches and stable-softmax rows must therefore remain
+            // bit-identical while only the post-Wo residual contribution
+            // changes.
+            assert_eq!(
+                enabled
+                    .state
+                    .q
+                    .iter()
+                    .map(|value| value.to_bits())
+                    .collect::<Vec<_>>(),
+                zeroed
+                    .state
+                    .q
+                    .iter()
+                    .map(|value| value.to_bits())
+                    .collect::<Vec<_>>()
+            );
+            assert_eq!(
+                enabled
+                    .state
+                    .key_cache
+                    .iter()
+                    .map(|value| value.to_bits())
+                    .collect::<Vec<_>>(),
+                zeroed
+                    .state
+                    .key_cache
+                    .iter()
+                    .map(|value| value.to_bits())
+                    .collect::<Vec<_>>()
+            );
+            assert_eq!(
+                enabled
+                    .state
+                    .value_cache
+                    .iter()
+                    .map(|value| value.to_bits())
+                    .collect::<Vec<_>>(),
+                zeroed
+                    .state
+                    .value_cache
+                    .iter()
+                    .map(|value| value.to_bits())
+                    .collect::<Vec<_>>()
+            );
+            assert_eq!(
+                enabled
+                    .state
+                    .att
+                    .iter()
+                    .map(|value| value.to_bits())
+                    .collect::<Vec<_>>(),
+                zeroed
+                    .state
+                    .att
+                    .iter()
+                    .map(|value| value.to_bits())
+                    .collect::<Vec<_>>()
+            );
+        }
+
+        assert!(enabled_logits
+            .iter()
+            .zip(&zeroed_logits)
+            .any(|(left, right)| left.to_bits() != right.to_bits()));
+        assert_ne!(
+            enabled.persistent_state_cid(),
+            zeroed.persistent_state_cid()
+        );
+        assert_eq!(enabled.audit(), zeroed.audit());
+        assert_eq!(
+            enabled.pre_rope_projection_audit(),
+            zeroed.pre_rope_projection_audit()
+        );
+        assert_eq!(zeroed.audit().future_reads, 0);
+
+        let enabled_audit = enabled.output_policy_audit();
+        assert_eq!(enabled_audit.applications, 3);
+        assert_eq!(enabled_audit.enabled_applications, 3);
+        assert_eq!(enabled_audit.zeroed_applications, 0);
+        assert_eq!(enabled_audit.applications_by_layer, vec![0, 3]);
+        assert_eq!(
+            enabled_audit.nonzero_lanes_before_policy,
+            enabled_audit.nonzero_lanes_after_policy
+        );
+
+        let zeroed_audit = zeroed.output_policy_audit();
+        assert_eq!(
+            zeroed_audit.policy,
+            CausalAttentionOutputPolicy::ZeroPostWoBeforeResidual
+        );
+        assert_eq!(zeroed_audit.applications, 3);
+        assert_eq!(zeroed_audit.enabled_applications, 0);
+        assert_eq!(zeroed_audit.zeroed_applications, 3);
+        assert_eq!(zeroed_audit.output_lanes, 24);
+        assert!(zeroed_audit.nonzero_lanes_before_policy > 0);
+        assert_eq!(zeroed_audit.nonzero_lanes_after_policy, 0);
+        assert_eq!(zeroed_audit.applications_by_layer, vec![0, 3]);
+        assert_eq!(zeroed_audit.maximum_query_position, Some(2));
+
+        zeroed.reset();
+        assert_eq!(
+            zeroed.output_policy(),
+            CausalAttentionOutputPolicy::ZeroPostWoBeforeResidual
+        );
+        assert_eq!(
+            zeroed.output_policy_audit(),
+            CausalAttentionOutputPolicyAudit::new(
+                CausalAttentionOutputPolicy::ZeroPostWoBeforeResidual,
+                oracle.cfg().n_layers,
+            )
+        );
     }
 
     #[test]

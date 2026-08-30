@@ -161,12 +161,21 @@ licensed. On the covered rows the full Q/K/V probe returned CE
 improvement direction in `0/4`; the fixed label control separated by
 `1.3807454322642605` nats in `4/4`. Exact replay and zero
 source/document-13 reads passed. Support will not be expanded and another
-localization ladder will not run. The active evaluation is direct end-to-end
-causal-softmax attention training in R4 coordinates on a fresh untouched split,
-including autonomous decoded generation under
-[#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014). This stops the bounded current-step
-trace-distillation path, not all trace distillation or attention. See the
-[#1012 record](r4_softmax_trace_observability_1012.md).
+localization ladder will not run.
+[#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014) subsequently
+completed the direct end-to-end evaluation. Enabled sealed-test NLL was
+`2.127407277216677`; zeroing every attention output after `W_o` and before the
+residual raised NLL to `4.804799838144271`. The
+`2.6773925609275944`-nat intervention passes the `0.10` attention rule, and
+two-arm Rust parity plus exact six-layer causal/R4 audits pass. Ordinary causal
+attention is established as load-bearing at this learned R4/Spin scope. The
+full quality DoD fails because enabled NLL exceeds `1.50` and subject/scene
+retention is `3/5` rather than `4/5`; seeded replay is exact `5/5`. Close this
+campaign without rerun or tuning. The active evaluation is
+[#1017](https://github.com/UOR-Foundation/uor-r4/issues/1017), one separately
+frozen quality-capacity rung over the same mechanism, not another attention
+diagnostic. See the [#1012 record](r4_softmax_trace_observability_1012.md) and
+[#1014 record](r4_softmax_end_to_end_attention_1014.md).
 
 Offline floats, matrix operations, and softmax remain allowed at the
 teacher/compiler boundary; the deployed destination remains exact,
@@ -1013,11 +1022,12 @@ source-free Q16 suffix trace student is complete with bounded distillation but
 looping output. Its recurrent state successor is complete and failed
 promotion. The construction-only leave-one-document-out observability audit
 then completed at `INSUFFICIENT_SUPPORT_COVERAGE` without boundary attribution.
-The single current evaluation action is direct end-to-end causal-softmax
-attention training in R4 coordinates on a fresh untouched split with autonomous
-decoded generation under
-[#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014). D3 remains `NOT_RUN`;
-intrinsic/readout alternatives, new state dimensions, corpus scale,
+The #1014 end-to-end campaign then established load-bearing ordinary causal
+attention through a `2.677393`-nat attention-off penalty and exact Rust parity,
+but its enabled NLL `2.127407` and subject/scene retention `3/5` failed the full
+quality DoD. The single current evaluation action is a separately frozen
+quality-capacity rung over that exact mechanism. D3 remains `NOT_RUN`;
+intrinsic/readout alternatives,
 resonance-based softmax replacement, whole-decoder recurrent lowering, and
 exact deployment are parked.
 
@@ -1084,11 +1094,12 @@ chat backend/artifact lowering. The source-free Q16 suffix trace student is
 complete with bounded distillation but looping output.
 `R4SoftmaxTraceStateStudentV1` is complete with `FAIL_PROMOTION`; the
 construction-only leave-one-document-out observability audit completed at
-`INSUFFICIENT_SUPPORT_COVERAGE` without boundary attribution; direct end-to-end
-causal-softmax attention training in R4 coordinates on a fresh untouched split,
-including autonomous decoded generation, is active under
-[#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014), while
-intrinsic/readout alternatives, new state dimensions, corpus scale,
+`INSUFFICIENT_SUPPORT_COVERAGE` without boundary attribution; #1014 then
+established load-bearing ordinary causal attention through its
+`2.677393`-nat attention-off intervention and exact Rust parity, while failing
+its complete quality DoD at enabled NLL `2.127407` and prompt retention `3/5`.
+One separately frozen quality-capacity rung over that unchanged mechanism is
+active, while intrinsic/readout alternatives,
 resonance-based softmax replacement, whole-decoder recurrent lowering, and
 final requalification are parked.
 
@@ -1159,10 +1170,11 @@ source-free Q16 suffix trace student is complete with bounded distillation but
 looping output. Its recurrent state successor is complete and failed promotion.
 The construction-only leave-one-document-out observability audit subsequently
 completed at `INSUFFICIENT_SUPPORT_COVERAGE` without boundary attribution. The
-current #973 decision is direct end-to-end causal-softmax attention training in
-R4 coordinates on a fresh untouched split with autonomous decoded generation;
-[#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014) owns that work;
-intrinsic/readout, new state dimensions, corpus scale,
+subsequent #1014 campaign established load-bearing ordinary causal attention
+through a `2.677393`-nat attention-off penalty and exact Rust parity, but failed
+its full quality DoD at enabled NLL `2.127407` and prompt retention `3/5`. The
+current #973 decision is one separately frozen quality-capacity rung over that
+unchanged mechanism; intrinsic/readout,
 multi-resonance, and recurrent lowering are parked. D3 remains `NOT_RUN` and
 #954 remains blocked. See the
 [#973 bounded-global record](bounded_global_exact_spin_attention_973.md).

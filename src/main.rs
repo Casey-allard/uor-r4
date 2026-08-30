@@ -112,6 +112,10 @@ enum Command {
     SourceFreeTable(SourceFreeTableArgs),
     /// Generate bounded text through all-layer R4/Spin causal softmax.
     R4SoftmaxGenerate(R4SoftmaxGenerateArgs),
+    /// Generate from a conformant local Llama checkpoint through all-layer R4/Spin causal softmax.
+    R4SoftmaxLocalGenerate(R4SoftmaxLocalGenerateArgs),
+    /// Qualify a frozen #1014 export against Python logits under enabled and attention-off policies.
+    R4SoftmaxLocalQualify(R4SoftmaxLocalQualifyArgs),
     /// Compile and score the first source-free student of R4/Spin softmax traces.
     R4SoftmaxTraceStudent(R4SoftmaxTraceStudentArgs),
     /// Compile the #1011 recurrent state artifact from frozen construction inputs only.
@@ -726,6 +730,73 @@ struct R4SoftmaxGenerateArgs {
     /// Optional path for the complete source/policy/token/audit JSON report.
     #[arg(long)]
     json_output: Option<PathBuf>,
+}
+
+fn parse_r4_softmax_local_max_new_tokens(value: &str) -> Result<usize, String> {
+    let parsed = value
+        .parse::<usize>()
+        .map_err(|_| "must be an integer in 1..=128".to_owned())?;
+    if (1..=128).contains(&parsed) {
+        Ok(parsed)
+    } else {
+        Err("must be in 1..=128".to_owned())
+    }
+}
+
+#[derive(Args, Debug)]
+struct R4SoftmaxLocalGenerateArgs {
+    /// Conformant local Hugging Face Llama checkpoint directory; no network fallback.
+    #[arg(long)]
+    model: PathBuf,
+    /// Exact raw prompt; checkpoint BOS is prepended once and no chat template is applied.
+    #[arg(long)]
+    prompt: String,
+    /// Maximum generated tokens (1..=128); EOS or a short cycle may stop sooner.
+    #[arg(
+        long,
+        default_value_t = uor_r4_wasm_router::r4_softmax_local_generation::DEFAULT_MAX_NEW_TOKENS,
+        value_parser = parse_r4_softmax_local_max_new_tokens
+    )]
+    max_new_tokens: usize,
+    /// Isolated control: zero post-Wo attention output before residual addition.
+    #[arg(long, default_value_t = false)]
+    attention_off: bool,
+    /// Stable seed for the versioned temperature-0.8/top-k-40 sampler; omit for greedy.
+    #[arg(long)]
+    seed: Option<u64>,
+    /// Optional path for the complete checkpoint/policy/token/audit JSON report.
+    #[arg(long)]
+    json_output: Option<PathBuf>,
+}
+
+#[derive(Args, Debug)]
+struct R4SoftmaxLocalQualifyArgs {
+    /// Frozen #1014 Hugging Face export directory.
+    #[arg(long)]
+    model: PathBuf,
+    /// Explicit two-arm Python 32-token prefix fixture.
+    #[arg(long)]
+    python_prefix_logits: PathBuf,
+    /// Optional final sealed-reveal manifest; omitted for the pre-campaign smoke export gate.
+    #[arg(long)]
+    reveal_manifest: Option<PathBuf>,
+    /// Fixed exact output-row workers for source projections.
+    #[arg(long, default_value_t = 4, value_parser = parse_positive_workers)]
+    workers: usize,
+    /// Required durable qualification report path.
+    #[arg(long)]
+    json_output: PathBuf,
+}
+
+fn parse_positive_workers(value: &str) -> Result<usize, String> {
+    let parsed = value
+        .parse::<usize>()
+        .map_err(|_| "must be a positive integer".to_owned())?;
+    if parsed == 0 {
+        Err("must be greater than zero".to_owned())
+    } else {
+        Ok(parsed)
+    }
 }
 
 #[derive(Args, Debug)]
@@ -2448,6 +2519,58 @@ fn run(cli: &Cli) -> Result<(), RunError> {
                 .map_err(|error| RunError::Command(error.to_string()))?;
             }
             println!("{}", report.transcript.response_text);
+            Ok(())
+        }
+        Some(Command::R4SoftmaxLocalGenerate(args)) => {
+            let workers = std::num::NonZeroUsize::new(
+                uor_r4_wasm_router::r4_softmax_local_generation::DEFAULT_WORKERS,
+            )
+            .ok_or_else(|| RunError::Command("local generator worker count is zero".to_owned()))?;
+            let report = uor_r4_wasm_router::r4_softmax_local_generation::run_r4_softmax_local_generation(
+                &uor_r4_wasm_router::r4_softmax_local_generation::R4SoftmaxLocalGeneratorConfig {
+                    model: args.model.clone(),
+                    prompt: args.prompt.clone(),
+                    max_new_tokens: args.max_new_tokens,
+                    workers,
+                    attention_off: args.attention_off,
+                    seed: args.seed,
+                },
+            )
+            .map_err(|error| RunError::Command(error.to_string()))?;
+            if let Some(path) = &args.json_output {
+                uor_r4_wasm_router::r4_softmax_local_generation::write_json_report(path, &report)
+                    .map_err(|error| RunError::Command(error.to_string()))?;
+            }
+            println!("{}", report.transcript.response_text);
+            Ok(())
+        }
+        Some(Command::R4SoftmaxLocalQualify(args)) => {
+            let workers = std::num::NonZeroUsize::new(args.workers).ok_or_else(|| {
+                RunError::Command("--workers must be greater than zero".to_owned())
+            })?;
+            let report = uor_r4_wasm_router::r4_softmax_local_generation::run_r4_softmax_local_qualification(
+                &uor_r4_wasm_router::r4_softmax_local_generation::R4SoftmaxLocalQualificationConfig {
+                    model: args.model.clone(),
+                    python_prefix_logits: args.python_prefix_logits.clone(),
+                    reveal_manifest: args.reveal_manifest.clone(),
+                    workers,
+                },
+            )
+            .map_err(|error| RunError::Command(error.to_string()))?;
+            uor_r4_wasm_router::r4_softmax_local_generation::write_qualification_json_report(
+                &args.json_output,
+                &report,
+            )
+            .map_err(|error| RunError::Command(error.to_string()))?;
+            println!(
+                "qualification_passed={} enabled_max_abs={} attention_off_max_abs={} report={}",
+                report.qualification_passed,
+                report.enabled_prefix_parity.maximum_absolute_logit_delta,
+                report
+                    .attention_off_prefix_parity
+                    .maximum_absolute_logit_delta,
+                args.json_output.display()
+            );
             Ok(())
         }
         Some(Command::R4SoftmaxTraceStudent(args)) => {
@@ -4189,6 +4312,8 @@ mod tests {
             "source-free-table",
             "bounded-geometric-generate",
             "r4-softmax-generate",
+            "r4-softmax-local-generate",
+            "r4-softmax-local-qualify",
             "r4-softmax-trace-student",
             "r4-softmax-trace-state-compile",
             "r4-softmax-trace-state-seal",
@@ -4346,6 +4471,115 @@ mod tests {
         );
         assert_eq!(args.workers, 4);
         assert!(args.json_output.is_none());
+    }
+
+    #[test]
+    fn parses_r4_softmax_local_generate_strictly_without_rewriting_prompt_bytes() {
+        let cli = Cli::try_parse_from([
+            "r4",
+            "r4-softmax-local-generate",
+            "--model",
+            "/models/issue-1014",
+            "--prompt",
+            "Once  upon a time",
+            "--max-new-tokens",
+            "128",
+            "--json-output",
+            "/tmp/r4-softmax-local.json",
+        ])
+        .expect("parse local generator");
+        let Some(Command::R4SoftmaxLocalGenerate(args)) = cli.command else {
+            panic!("expected r4-softmax-local-generate")
+        };
+        assert_eq!(args.model, PathBuf::from("/models/issue-1014"));
+        assert_eq!(args.prompt, "Once  upon a time");
+        assert_eq!(args.max_new_tokens, 128);
+        assert!(!args.attention_off);
+        assert!(args.seed.is_none());
+        assert_eq!(
+            args.json_output,
+            Some(PathBuf::from("/tmp/r4-softmax-local.json"))
+        );
+
+        assert!(Cli::try_parse_from([
+            "r4",
+            "r4-softmax-local-generate",
+            "--model",
+            "/models/issue-1014",
+            "--prompt",
+            "x",
+            "--max-new-tokens",
+            "0",
+        ])
+        .is_err());
+        assert!(Cli::try_parse_from([
+            "r4",
+            "r4-softmax-local-generate",
+            "--source",
+            "/models/issue-1014",
+            "--prompt",
+            "x",
+        ])
+        .is_err());
+
+        let cli = Cli::try_parse_from([
+            "r4",
+            "r4-softmax-local-generate",
+            "--model",
+            "/models/issue-1014",
+            "--prompt",
+            "x",
+            "--attention-off",
+            "--seed",
+            "1014",
+        ])
+        .expect("parse explicit attention-off control");
+        let Some(Command::R4SoftmaxLocalGenerate(args)) = cli.command else {
+            panic!("expected r4-softmax-local-generate")
+        };
+        assert!(args.attention_off);
+        assert_eq!(args.seed, Some(1014));
+    }
+
+    #[test]
+    fn parses_r4_softmax_local_qualify_with_explicit_evidence_only() {
+        let cli = Cli::try_parse_from([
+            "r4",
+            "r4-softmax-local-qualify",
+            "--model",
+            "/research/export",
+            "--python-prefix-logits",
+            "/research/reveal/python-prefix-logits.json",
+            "--reveal-manifest",
+            "/research/reveal/reveal-manifest.json",
+            "--workers",
+            "4",
+            "--json-output",
+            "/research/reveal/rust-qualification.json",
+        ])
+        .expect("parse strict local qualifier");
+        let Some(Command::R4SoftmaxLocalQualify(args)) = cli.command else {
+            panic!("expected r4-softmax-local-qualify")
+        };
+        assert_eq!(args.model, PathBuf::from("/research/export"));
+        assert_eq!(args.workers, 4);
+        assert_eq!(
+            args.reveal_manifest,
+            Some(PathBuf::from("/research/reveal/reveal-manifest.json"))
+        );
+        assert!(Cli::try_parse_from([
+            "r4",
+            "r4-softmax-local-qualify",
+            "--model",
+            "/research/export",
+            "--python-prefix-logits",
+            "/research/prefix.json",
+            "--workers",
+            "0",
+            "--json-output",
+            "/research/result.json",
+        ])
+        .is_err());
     }
 
     #[test]
