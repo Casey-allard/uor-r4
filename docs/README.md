@@ -92,9 +92,17 @@ the zero-source/document-13 audit passed. The project will not expand this
 support or build another observability ladder. The next deliverable is direct
 end-to-end causal softmax attention training in R4 coordinates on a fresh
 untouched split, including autonomous decoded generation, under
-[#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014). This stops one
-bounded current-step trace-distillation path, not all trace distillation or
-attention.
+[#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014). That campaign
+established load-bearing attention but failed its complete quality DoD. Its
+single exposure-only successor, [#1017](https://github.com/UOR-Foundation/uor-r4/issues/1017),
+has now completed at `149,995,520` cumulative tokens. Enabled Rust parity,
+all-layer causal/R4 audits, `5/5` subject-or-scene retention, and `5/5` exact
+normalized replay passed; fresh sealed NLL `1.5727521962806827` failed the
+strict `<1.50` criterion. The result is negative solely on NLL. No more
+7.15M-parameter exposure or learning-rate tuning follows; the next action is
+one predeclared parameter-capacity increase over the same mechanism. See the
+[#1017 record](r4_softmax_quality_capacity_continuation_1017.md). This stops one
+bounded model-capacity rung, not ordinary attention.
 No tag, release, hosted promotion, or static-WASM claim is authorized. D3
 remains `NOT_RUN`; #973 remains open and #954 remains blocked.
 
@@ -201,7 +209,12 @@ These are the small set of living documents that define the present work:
    the [state-student record](r4_softmax_trace_state_student_1011.md) binds the
    subsequent recurrent negative, and the
    [#1012 observability record](r4_softmax_trace_observability_1012.md) binds the
-   insufficient-support terminal and direct end-to-end training direction.
+   insufficient-support terminal and direct end-to-end training direction. The
+   [#1014 record](r4_softmax_end_to_end_attention_1014.md) binds the positive
+   attention intervention and negative first quality gate; the
+   [#1017 record](r4_softmax_quality_capacity_continuation_1017.md) binds the
+   completed NLL-only-negative continuation and the parameter-capacity next
+   direction.
    The bounded
    [multi-resonance reuse audit](multi_resonance_attention_sieve_audit_973.md)
    distinguishes the implemented sin/cos and Spin substrate from the still
@@ -239,7 +252,9 @@ reversible lexical geometry
   → compile/evaluate source-free Q16 suffix trace student [BOUNDED DISTILLATION; LOOPING OUTPUT]
   → compile/evaluate R4SoftmaxTraceStateStudentV1 recurrent R4/Spin state [COMPLETE; FAIL PROMOTION]
   → audit signal loss across full trace, signed reduction, recurrent features, and readout [COMPLETE; INSUFFICIENT SUPPORT]
-  → directly train end-to-end causal softmax attention in R4 coordinates on a fresh untouched split; require autonomous decoded generation [#1014; NEXT]
+  → directly train end-to-end causal softmax attention in R4 coordinates [#1014; ATTENTION PASS, FULL QUALITY DOD FAIL]
+  → continue the unchanged 7.15M model to 149,995,520 tokens [#1017; NLL-ONLY FAIL, RETENTION/PARITY/REPLAY PASS]
+  → freeze one predeclared parameter-capacity increase over the same attention and Rust path [NEXT]
   → park intrinsic/readout alternatives, resonance-based softmax replacement, full-model recurrent lowering, and exact deployment
   → correctness and abstention
   → multi-step reasoning
@@ -256,7 +271,8 @@ for all main arms. Binding the actual paired-E8 hierarchy, fiber, and torsion
 remains `NOT_IMPLEMENTED`; the diagram is the qualification sequence, not a
 claim that every arrow exists today.
 
-Only the first unblocked stage is active. Formalization, optimization, and
+Only the first unblocked stage is eligible to become active after its issue and
+contract are frozen. Formalization, optimization, and
 large test programmes are supporting tools, not substitutes for reaching the
 next observable behavior.
 

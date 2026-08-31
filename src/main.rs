@@ -771,10 +771,10 @@ struct R4SoftmaxLocalGenerateArgs {
 
 #[derive(Args, Debug)]
 struct R4SoftmaxLocalQualifyArgs {
-    /// Frozen #1014 Hugging Face export directory.
+    /// Frozen local Hugging Face export directory.
     #[arg(long)]
     model: PathBuf,
-    /// Explicit two-arm Python 32-token prefix fixture.
+    /// Explicit Python 32-token prefix fixture.
     #[arg(long)]
     python_prefix_logits: PathBuf,
     /// Optional final sealed-reveal manifest; omitted for the pre-campaign smoke export gate.
@@ -783,6 +783,9 @@ struct R4SoftmaxLocalQualifyArgs {
     /// Fixed exact output-row workers for source projections.
     #[arg(long, default_value_t = 4, value_parser = parse_positive_workers)]
     workers: usize,
+    /// Run only the enabled arm for the frozen #1017 quality continuation.
+    #[arg(long, default_value_t = false)]
+    enabled_only: bool,
     /// Required durable qualification report path.
     #[arg(long)]
     json_output: PathBuf,
@@ -2554,6 +2557,7 @@ fn run(cli: &Cli) -> Result<(), RunError> {
                     python_prefix_logits: args.python_prefix_logits.clone(),
                     reveal_manifest: args.reveal_manifest.clone(),
                     workers,
+                    enabled_only: args.enabled_only,
                 },
             )
             .map_err(|error| RunError::Command(error.to_string()))?;
@@ -2562,13 +2566,16 @@ fn run(cli: &Cli) -> Result<(), RunError> {
                 &report,
             )
             .map_err(|error| RunError::Command(error.to_string()))?;
+            let attention_off = report
+                .attention_off_prefix_parity
+                .as_ref()
+                .map(|parity| parity.maximum_absolute_logit_delta.to_string())
+                .unwrap_or_else(|| "NOT_RUN".to_owned());
             println!(
                 "qualification_passed={} enabled_max_abs={} attention_off_max_abs={} report={}",
                 report.qualification_passed,
                 report.enabled_prefix_parity.maximum_absolute_logit_delta,
-                report
-                    .attention_off_prefix_parity
-                    .maximum_absolute_logit_delta,
+                attention_off,
                 args.json_output.display()
             );
             Ok(())
@@ -4563,6 +4570,7 @@ mod tests {
         };
         assert_eq!(args.model, PathBuf::from("/research/export"));
         assert_eq!(args.workers, 4);
+        assert!(!args.enabled_only);
         assert_eq!(
             args.reveal_manifest,
             Some(PathBuf::from("/research/reveal/reveal-manifest.json"))
@@ -4580,6 +4588,23 @@ mod tests {
             "/research/result.json",
         ])
         .is_err());
+        let enabled = Cli::try_parse_from([
+            "r4",
+            "r4-softmax-local-qualify",
+            "--model",
+            "/research/export",
+            "--python-prefix-logits",
+            "/research/dev-prefix.json",
+            "--enabled-only",
+            "--json-output",
+            "/research/enabled-qualification.json",
+        ])
+        .expect("parse enabled-only continuation qualifier");
+        let Some(Command::R4SoftmaxLocalQualify(args)) = enabled.command else {
+            panic!("expected r4-softmax-local-qualify")
+        };
+        assert!(args.enabled_only);
+        assert!(args.reveal_manifest.is_none());
     }
 
     #[test]

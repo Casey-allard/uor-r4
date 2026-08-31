@@ -120,11 +120,18 @@ assumptions, or objectives rather than measured results.
 > The complete #1014 quality DoD is negative: enabled NLL exceeded `1.50`, and
 > subject-or-scene retention was `3/5` versus the required `4/5`. All outputs
 > were UTF-8, had no period-one-through-four loop, and replayed exactly `5/5`.
-> Close the exact campaign without rerun or tuning. The next action is
-> [#1017](https://github.com/UOR-Foundation/uor-r4/issues/1017), one independently
-> frozen quality-capacity rung that reuses the exact qualified
-> attention and Rust path; it is not another attention diagnostic, intrinsic
-> geometry comparison, or softmax substitute. Offline floats, matrix
+> Close the exact campaign without rerun or tuning.
+> [#1017](https://github.com/UOR-Foundation/uor-r4/issues/1017), its one
+> independently frozen exposure continuation, has now completed at
+> `149,995,520` cumulative tokens. Selection chose development NLL
+> `1.580241072373312`; enabled-only Rust parity passed with identical top-1 and
+> maximum logit delta `0.0000057220458984375`; all six layers and causal/external
+> audits passed. The one-time sealed NLL was `1.5727521962806827`, failing the
+> strict `<1.50` gate, while prompt retention and exact normalized replay both
+> passed `5/5`. The complete #1017 result is negative solely on NLL. Freeze it
+> without rerun, further 7.15M exposure, or learning-rate tuning. The next action
+> is one predeclared parameter-capacity increase over the same qualified
+> attention and Rust path. Offline floats, matrix
 > operations, and softmax remain allowed while establishing language quality;
 > the deployed destination remains exact and source-free. Resonance substitutes
 > and product/release promotion remain parked. See the
@@ -134,7 +141,8 @@ assumptions, or objectives rather than measured results.
 > [trace-student record](r4_softmax_trace_student_973.md),
 > [state-student record](r4_softmax_trace_state_student_1011.md),
 > [#1012 observability record](r4_softmax_trace_observability_1012.md), and
-> [#1014 end-to-end record](r4_softmax_end_to_end_attention_1014.md).
+> [#1014 end-to-end record](r4_softmax_end_to_end_attention_1014.md), then the
+> [#1017 continuation record](r4_softmax_quality_capacity_continuation_1017.md).
 >
 > **Measured evidence status:** HELM-D pinned-source provenance `PASS`;
 > ordinary-donor reproduction `PASS`; transported-R4 parity, destructive
@@ -163,6 +171,10 @@ assumptions, or objectives rather than measured results.
 > intervention `PASS` (`2.6773925609275944` nats), two-arm Rust parity `PASS`,
 > enabled sealed NLL `FAIL` (`2.127407277216677 > 1.50`), prompt retention
 > `FAIL` (`3/5 < 4/5`), and exact seeded replay `5/5`;
+> #1017 exposure continuation complete at `149,995,520` cumulative tokens with
+> enabled Rust parity `PASS`, all-layer causal/R4/external audits `PASS`, sealed
+> NLL `FAIL` (`1.5727521962806827 > 1.50`), prompt retention `PASS` (`5/5`), and
+> normalized seeded replay `PASS` (`5/5`); overall NLL-only negative;
 > D3 `NOT_RUN`; multi-resonance replacement `NOT_RUN` and parked; whole-decoder
 > recurrent factorization/lowering `NOT_RUN` and parked. See the
 > [`HELM-D-R4` record](helm_d_r4_softmax_decoder_973.md) and the
@@ -516,8 +528,11 @@ assumptions, or objectives rather than measured results.
 > attention in the learned R4/Spin path through a `2.677393`-nat attention-off
 > penalty and exact two-arm Rust parity, but failed its full quality DoD at
 > enabled NLL `2.127407` and subject/scene retention `3/5`. Close the exact
-> campaign; the current #973 action is one separately frozen quality-capacity
-> rung over that unchanged mechanism. Intrinsic/readout alternatives,
+> campaign. #1017's separately frozen continuation then passed retention `5/5`,
+> enabled parity, all mechanical gates, and replay, but failed solely on sealed
+> NLL `1.5727521962806827`. The recommended next #973 action is to specify one
+> predeclared parameter-capacity increase over that unchanged mechanism.
+> Intrinsic/readout alternatives,
 > resonance-based softmax replacement, whole-decoder recurrent lowering, and
 > exact deployment are parked. D3 remains
 > `NOT_RUN`; #954 remains blocked behind #973.
@@ -1097,8 +1112,9 @@ construction-only observability audit completed with
 `INSUFFICIENT_SUPPORT_COVERAGE`; #1014 then established load-bearing ordinary
 causal attention through a `2.677393`-nat attention-off penalty and exact Rust
 parity, while failing its complete quality DoD at enabled NLL `2.127407` and
-subject/scene retention `3/5`. The next rung changes only learning capacity
-over that frozen mechanism;
+subject/scene retention `3/5`. #1017's one exposure continuation then improved
+retention to `5/5` but failed solely on NLL `1.5727521962806827`. The next rung
+changes parameter capacity under a new frozen contract over that mechanism;
 fiber-preserving multi-resonance replacement, whole-decoder recurrent
 factorization, and final requalification are parked.
 Dependable broad coherent text remains unestablished.
@@ -1698,8 +1714,10 @@ ladder. #1014 subsequently established load-bearing ordinary causal attention
 at its declared learned R4/Spin scope through the `2.677393`-nat attention-off
 intervention and exact Rust parity, but its enabled NLL `2.127407` and
 subject/scene retention `3/5` failed the complete quality DoD. Close that exact
-campaign without rerun or tuning; the active successor is a separately frozen
-quality-capacity rung over the unchanged mechanism. Intrinsic/readout alternatives,
+campaign without rerun or tuning. #1017's separately frozen continuation then
+closed NLL-only negative at `1.5727521962806827` with retention `5/5` and all
+other gates passing. The next action is to specify one predeclared parameter-capacity
+increase over the unchanged mechanism. Intrinsic/readout alternatives,
 multi-resonance replacement, whole-decoder recurrent factorization, and final
 requalification are parked. D3 remains `NOT_RUN`; #954 remains blocked.
 #955 invokes that accepted selector/

@@ -1,4 +1,4 @@
-"""Repository-local default paths for untracked #1014 bulk artifacts."""
+"""Repository-local default paths for untracked training artifacts."""
 
 from __future__ import annotations
 
@@ -18,3 +18,6 @@ def repository_root(start: Path | None = None) -> Path:
 def default_research_root() -> Path:
     return repository_root() / ".uor-models" / "research" / "issue-1014"
 
+
+def default_continuation_root() -> Path:
+    return repository_root() / ".uor-models" / "research" / "issue-1017"

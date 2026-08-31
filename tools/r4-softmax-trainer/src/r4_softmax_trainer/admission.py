@@ -69,6 +69,9 @@ _SMOKE_REUSE_INVARIANT_PATHS = {
 _POST_SMOKE_LIFECYCLE_PATHS = {
     "src/r4_softmax_trainer/admission.py",
     "src/r4_softmax_trainer/cli.py",
+    "src/r4_softmax_trainer/continuation.py",
+    "src/r4_softmax_trainer/continuation_data.py",
+    "src/r4_softmax_trainer/finalize.py",
     "src/r4_softmax_trainer/train.py",
 }
 

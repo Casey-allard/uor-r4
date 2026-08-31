@@ -174,11 +174,15 @@ seeded generations replayed exactly. Ordinary causal attention is established
 as load-bearing at this learned R4/Spin scope. The full language-quality DoD
 is negative because enabled NLL exceeded `1.50` and prompt subject/scene
 retention was `3/5`, below `4/5`. Close that exact campaign without rerun or
-tuning. The sole next rung is
-[#1017](https://github.com/UOR-Foundation/uor-r4/issues/1017), one separately
-frozen quality-capacity step that
-reuses the mechanism and Rust path, not another attention diagnostic or
-geometry substitute.
+tuning. [#1017](https://github.com/UOR-Foundation/uor-r4/issues/1017), its one
+separately frozen exposure continuation, then reached `149,995,520` cumulative
+tokens. Enabled Rust parity, all-layer causal/R4 audits, subject-or-scene
+retention `5/5`, and normalized replay `5/5` passed. Fresh sealed NLL
+`1.5727521962806827` failed the strict `<1.50` criterion, making the overall
+result negative solely on NLL. Freeze it without rerun, further 7.15M exposure,
+or learning-rate tuning. The sole next rung is one predeclared
+parameter-capacity increase that reuses the mechanism and Rust path, not another
+attention diagnostic or geometry substitute.
 Offline floats, matrix operations, and softmax remain allowed at the
 teacher/compiler boundary; the deployed destination remains exact,
 integer/table-native, and source-free. Intrinsic/readout substitution,
@@ -191,7 +195,8 @@ architecture is in
 the [generation record](r4_softmax_reference_generation_973.md) and
 [compact aggregate](r4_softmax_reference_generation_attempt_01_result_973.json),
 and the learned intervention/quality boundary is in the
-[#1014 record](r4_softmax_end_to_end_attention_1014.md).
+[#1014 record](r4_softmax_end_to_end_attention_1014.md); the completed successor
+is in the [#1017 record](r4_softmax_quality_capacity_continuation_1017.md).
 The endpoint/dashboard-wiring checkpoint is in
 [its evidence record](r4_softmax_reference_http_bridge_973.md) and
 [structured result](r4_softmax_reference_http_bridge_result_973.json). The
@@ -278,8 +283,10 @@ same period-two loop remained. The subsequent construction-only observability
 audit stopped at insufficient support. #1014 then established load-bearing
 ordinary causal attention through a `2.677393`-nat attention-off penalty and
 exact Rust parity, but failed its full quality DoD at enabled NLL `2.127407`
-and subject/scene retention `3/5`. The single active successor is a separately
-frozen quality-capacity rung over the unchanged mechanism. Intrinsic/readout,
+and subject/scene retention `3/5`. #1017's single exposure continuation then
+passed retention `5/5`, parity, all mechanical gates, and replay, but failed
+solely on NLL `1.5727521962806827`. The single next action is to specify one
+predeclared parameter-capacity increase over the unchanged mechanism. Intrinsic/readout,
 multi-resonance, recurrent lowering, and final requalification are parked;
 D3 remains `NOT_RUN` and #954 remains blocked.
 No new H4,
@@ -1390,8 +1397,11 @@ construction-only leave-one-document-out observability audit completed at
 established load-bearing ordinary causal attention through a `2.677393`-nat
 attention-off intervention and exact Rust parity, while its full quality DoD
 failed at enabled NLL `2.127407` and subject/scene retention `3/5`. Close that
-exact frozen campaign; one quality-capacity rung over the unchanged mechanism
-is active. Intrinsic/readout, resonance/recurrent lowering, and final
+exact frozen campaign. #1017's exposure continuation then closed NLL-only
+negative at `1.5727521962806827`, with retention `5/5` and all other gates
+passing. One predeclared parameter-capacity increase over the unchanged
+mechanism is the recommended next issue, but is not yet active.
+Intrinsic/readout, resonance/recurrent lowering, and final
 requalification are parked.
 Product CLI/HTTP chat integration, restart-persistent conversation state, and
 identity-scoped hive-memory lifecycle remain #962 scope.
@@ -1814,8 +1824,11 @@ zero future reads. Dashboard wiring/static native-readiness and WASM-isolation
 checks pass; hosted Pages remains static/offline without a functioning chat
 backend/artifact lowering. The Q16 suffix trace student is complete with
 bounded distillation but looping output. Its recurrent state successor is
-complete and failed promotion. The sole next step is the construction-only
-leave-one-document-out observability audit; intrinsic/readout alternatives,
+complete and failed promotion. The construction-only observability audit then
+closed at insufficient support; #1014 established load-bearing attention; and
+#1017 completed NLL-only negative at `1.5727521962806827` after passing
+retention, parity, audits, and replay. The sole next step is one predeclared
+parameter-capacity increase over the same attention/Rust path; intrinsic/readout alternatives,
 resonance-based softmax replacement, new state dimensions, corpus scale,
 whole-decoder recurrent lowering, and exact deployment are parked, while D3
 remains `NOT_RUN`. The one

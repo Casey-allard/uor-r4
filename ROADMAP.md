@@ -9,7 +9,7 @@ The earlier
 preserved #948–#958 sequencing record. Measured, refuted, and frozen research
 remains in [docs/RESEARCH.md](docs/RESEARCH.md).
 
-_Last reviewed: 2026-08-30 (#961 reversible S0 landed; #952 A1.0 stopped at
+_Last reviewed: 2026-08-31 (#961 reversible S0 landed; #952 A1.0 stopped at
 `REDESIGN_ORDERED_ROUTE_SUMMARY`; #967 A1R terminated `RETAIN_STATE_ONLY`;
 #970 A1P produced the bounded paired-H4-derived exact R4-heatmap result
 `RETAIN_H4_STATE_ONLY_ADVANCE_MULTICHANNEL_A1Q` and closed through protected
@@ -75,11 +75,16 @@ chat backend or compiled-artifact lowering; the default engine remains
 unchanged. `R4SoftmaxTeacherTraceV1` and `R4SoftmaxTraceStudentV1` have now
 completed the first trace/compiler rung. The source-free Q16 suffix artifact
 shows bounded distillation against its count and document-permuted controls,
-but its autonomous continuation loops. The next primary rung is
-`R4SoftmaxTraceStateStudentV1`: compile construction traces into source-free
-recurrent R4/Spin state and beat the frozen suffix, plain-recurrent, and
-transport-permuted controls on held-out loss/decisions, exact replay, zero
-source access, and non-looping decode.
+but its autonomous continuation loops. `R4SoftmaxTraceStateStudentV1` then
+failed promotion and #1012 stopped at insufficient support. #1014 subsequently
+established load-bearing ordinary causal attention while failing its full
+quality DoD. #1017 completed the one authorized continuation to
+`149,995,520` cumulative tokens: enabled Rust parity, all six R4/Spin layers,
+causal/external audits, `5/5` subject-or-scene retention, and `5/5` normalized
+replay passed, but fresh sealed NLL `1.5727521962806827` failed the strict
+`<1.50` criterion. The result is negative solely on NLL. The next primary rung
+is one predeclared parameter-capacity increase over the same attention and Rust
+path; further 7.15M exposure and learning-rate tuning are prohibited.
 D3 remains `NOT_RUN`, and #973 continues to block #954. Its current contract is
 [ADR-0005](docs/adr/0005-predictive-geometric-connection-memory.md), with the
 binding reference result in
@@ -92,6 +97,8 @@ The native endpoint/dashboard-wiring checkpoint is in
 and its [structured result](docs/r4_softmax_reference_http_bridge_result_973.json)._
 The bounded source-free suffix-distillation result and looping-output boundary
 are in [`r4_softmax_trace_student_973.md`](docs/r4_softmax_trace_student_973.md)._
+The completed continuation and its NLL-only negative are in
+[`r4_softmax_quality_capacity_continuation_1017.md`](docs/r4_softmax_quality_capacity_continuation_1017.md)._
 
 > **Project priority:** build source-free geometric intelligence in which the
 > route is the data location. A pinned lexical codec supplies text boundaries;
@@ -224,8 +231,11 @@ and its dedicated opt-in loopback-only HTTP endpoint with exact eight-token CLI
 parity; dashboard wiring/static native-readiness and WASM-isolation checks also
 pass, while the hosted static Pages surface currently has no working chat
 backend/artifact lowering; **Completed bounded step:** source-free Q16 suffix
-trace distillation, with looping autonomous output; **Active:**
-`R4SoftmaxTraceStateStudentV1`; **Parked:** intrinsic score/readout alternatives,
+trace distillation, with looping autonomous output, state-student and
+observability negatives, #1014 attention qualification, and #1017's NLL-only
+quality-capacity negative; **Next:** specify one predeclared parameter-capacity
+increase over the same attention/Rust path; **Parked:** further 7.15M exposure
+or LR tuning, intrinsic score/readout alternatives,
 resonance-based softmax replacement, full-model recurrent lowering, and exact
 deployment; **Blocked:** D3 and #954; **Later:**
 #955 → #962 → #963 → #964 → #965.
@@ -248,9 +258,12 @@ dedicated loopback HTTP endpoint also passes at its frozen eight-token scope;
 dashboard wiring/static native-readiness and WASM-isolation checks pass, while
 the hosted static Pages surface has no working chat backend/artifact lowering.
 The first construction-trace/Q16 suffix student is complete with bounded
-distillation and looping output. The active next action is
-`R4SoftmaxTraceStateStudentV1`, evaluated against frozen suffix,
-plain-recurrent, and transport-permuted controls.
+distillation and looping output; its state and observability successors are
+complete negatives. #1014 established load-bearing attention. #1017 then
+completed the one exposure continuation with NLL `1.5727521962806827` (FAIL),
+retention `5/5` (PASS), enabled parity, all mechanical gates, and exact replay.
+The next action is to specify a predeclared parameter-capacity increase, not more
+exposure or LR tuning of the same 7.15M model.
 Intrinsic/resonance/replacement work is
 parked; D3 remains `NOT_RUN`. See the
 [#989 evidence](docs/source_free_table_baseline_989.md); the completed #986
@@ -501,10 +514,12 @@ feasibility boundary remains in the
    Dashboard wiring/static native-readiness and WASM-isolation checks pass; the
    hosted Pages deployment remains a static, non-working chat surface without
    artifact lowering. The first construction-trace/Q16 suffix student completed
-   with bounded distillation but looping output. Build next only
-   `R4SoftmaxTraceStateStudentV1`, then compare it with the frozen suffix,
-   plain-recurrent, and transport-permuted controls on decoded tokens and
-   held-out next-token loss.
+   with bounded distillation but looping output; the state student and #1012
+   observability successor then closed negative. #1014 established load-bearing
+   ordinary attention. #1017's fixed continuation reached `149,995,520` tokens
+   and passed retention `5/5`, parity, audits, and replay, but failed only the
+   strict NLL gate at `1.5727521962806827`. Build next only one predeclared
+   parameter-capacity increase over the same qualified mechanism and Rust path.
    Intrinsic score/readout alternatives, paired-E8, resonance-based softmax
    replacement, and exact deployment are parked; #954 remains blocked. Every learned epoch receives a
    new kappa and reruns its owning
@@ -595,10 +610,9 @@ historical evidence and comparators.
   inversion, and #953 were `NOT_RUN`. Its successor handoff is #986; the failed
   #983 representation and evidence remain unchanged.
 
-## Active
+## Next proposed
 
-- [ ] **#973 source-free trace compilation after qualified native endpoint and
-  dashboard wiring** — retain the
+- [ ] **Proposed #973 parameter-capacity successor after #1017's NLL-only negative** — retain the
   bounded positives, #997 placement negative, bounded gated-delta negative, V2
   budget invalidation, equal-manifold-budget V3 mixed-gauge H4 negative, and
   V4's held-out 13/24 functional/control negative. The positive attention
@@ -624,10 +638,13 @@ historical evidence and comparators.
   Dashboard wiring/static native-readiness and WASM-isolation checks pass, but
   hosted Pages currently has no working chat backend/artifact lowering.
   `R4SoftmaxTeacherTraceV1` and the source-free Q16 suffix student are complete:
-  bounded distillation is positive, autonomous generation still loops. The next
-  work is `R4SoftmaxTraceStateStudentV1`, using construction traces to compile a
-  causal recurrent R4/Spin state and comparing it with frozen suffix,
-  plain-recurrent, and transport-permuted controls. Intrinsic score/readout
+  bounded distillation is positive, autonomous generation still loops; the
+  state-student and observability successors closed negative. #1014 established
+  load-bearing ordinary attention. #1017 then completed at `149,995,520`
+  cumulative tokens with NLL `1.5727521962806827` as its sole failed gate and
+  retention/parity/audits/replay passing. The next work is one independently
+  frozen parameter-capacity increase over the same attention and Rust path. Do
+  not extend exposure or tune learning rate on the 7.15M checkpoint. Intrinsic score/readout
   alternatives, resonance-based softmax replacement, full-model recurrent
   lowering, and exact deployment are parked. D3 remains `NOT_RUN`; #954 remains blocked.
 
@@ -773,7 +790,10 @@ historical evidence and comparators.
   WASM-isolation checks pass while hosted Pages remains static/offline without
   a functioning chat backend/artifact lowering; the source-free Q16 suffix
   trace student is complete with bounded distillation but looping output;
-  `R4SoftmaxTraceStateStudentV1` is active; intrinsic score/readout alternatives,
+  the state student and observability audit closed negative; #1014 established
+  load-bearing attention; and #1017 closed NLL-only negative after passing
+  retention, parity, audits, and replay. One predeclared parameter-capacity
+  increase is next; intrinsic score/readout alternatives,
   resonance-based softmax replacement, full-model recurrent lowering, and exact
   deployment are parked. D3 remains `NOT_RUN`; #954 remains blocked.
   Coherent product behavior, correctness, and reasoning remain unestablished.

@@ -171,11 +171,17 @@ two-arm Rust parity plus exact six-layer causal/R4 audits pass. Ordinary causal
 attention is established as load-bearing at this learned R4/Spin scope. The
 full quality DoD fails because enabled NLL exceeds `1.50` and subject/scene
 retention is `3/5` rather than `4/5`; seeded replay is exact `5/5`. Close this
-campaign without rerun or tuning. The active evaluation is
-[#1017](https://github.com/UOR-Foundation/uor-r4/issues/1017), one separately
-frozen quality-capacity rung over the same mechanism, not another attention
-diagnostic. See the [#1012 record](r4_softmax_trace_observability_1012.md) and
-[#1014 record](r4_softmax_end_to_end_attention_1014.md).
+campaign without rerun or tuning. [#1017](https://github.com/UOR-Foundation/uor-r4/issues/1017)
+then completed its one separately frozen exposure continuation at
+`149,995,520` cumulative tokens. Enabled Rust parity, all mechanical gates,
+subject-or-scene retention `5/5`, and normalized replay `5/5` passed; fresh
+sealed NLL `1.5727521962806827` failed the strict `<1.50` gate. Its overall
+verdict is negative solely on NLL. The next evaluation to specify is one predeclared
+parameter-capacity increase over the same mechanism, not another attention
+diagnostic or more 7.15M exposure/LR tuning. See the
+[#1012 record](r4_softmax_trace_observability_1012.md),
+[#1014 record](r4_softmax_end_to_end_attention_1014.md), and
+[#1017 record](r4_softmax_quality_capacity_continuation_1017.md).
 
 Offline floats, matrix operations, and softmax remain allowed at the
 teacher/compiler boundary; the deployed destination remains exact,
@@ -1025,8 +1031,10 @@ then completed at `INSUFFICIENT_SUPPORT_COVERAGE` without boundary attribution.
 The #1014 end-to-end campaign then established load-bearing ordinary causal
 attention through a `2.677393`-nat attention-off penalty and exact Rust parity,
 but its enabled NLL `2.127407` and subject/scene retention `3/5` failed the full
-quality DoD. The single current evaluation action is a separately frozen
-quality-capacity rung over that exact mechanism. D3 remains `NOT_RUN`;
+quality DoD. #1017's separately frozen continuation then passed retention
+`5/5`, parity, audits, and replay, but failed solely on NLL
+`1.5727521962806827`. The recommended next evaluation action is to specify one
+predeclared parameter-capacity increase over that exact mechanism. D3 remains `NOT_RUN`;
 intrinsic/readout alternatives,
 resonance-based softmax replacement, whole-decoder recurrent lowering, and
 exact deployment are parked.
@@ -1098,8 +1106,11 @@ construction-only leave-one-document-out observability audit completed at
 established load-bearing ordinary causal attention through its
 `2.677393`-nat attention-off intervention and exact Rust parity, while failing
 its complete quality DoD at enabled NLL `2.127407` and prompt retention `3/5`.
-One separately frozen quality-capacity rung over that unchanged mechanism is
-active, while intrinsic/readout alternatives,
+#1017's separate continuation then closed NLL-only negative at
+`1.5727521962806827`, with retention `5/5` and all other gates passing. One
+predeclared parameter-capacity increase over that unchanged mechanism is the
+recommended next issue, but is not yet active,
+while intrinsic/readout alternatives,
 resonance-based softmax replacement, whole-decoder recurrent lowering, and
 final requalification are parked.
 
@@ -1173,8 +1184,10 @@ completed at `INSUFFICIENT_SUPPORT_COVERAGE` without boundary attribution. The
 subsequent #1014 campaign established load-bearing ordinary causal attention
 through a `2.677393`-nat attention-off penalty and exact Rust parity, but failed
 its full quality DoD at enabled NLL `2.127407` and prompt retention `3/5`. The
-current #973 decision is one separately frozen quality-capacity rung over that
-unchanged mechanism; intrinsic/readout,
+subsequent #1017 continuation failed solely on NLL `1.5727521962806827` while
+retention, parity, audits, and replay passed. The current #973 decision is one
+predeclared parameter-capacity increase over that unchanged mechanism;
+intrinsic/readout,
 multi-resonance, and recurrent lowering are parked. D3 remains `NOT_RUN` and
 #954 remains blocked. See the
 [#973 bounded-global record](bounded_global_exact_spin_attention_973.md).

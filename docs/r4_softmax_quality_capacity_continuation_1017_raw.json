@@ -1,0 +1,250 @@
+{
+  "schema": "uor-r4-research/r4-softmax-quality-capacity-continuation-1017/1",
+  "issue": 1017,
+  "evidence_date": "2026-08-31",
+  "evidence_status": "FROZEN_COMPLETE",
+  "terminal": "FAIL_ENABLED_NLL",
+  "claim_scope": "frozen #1017 enabled-attention NLL plus five autonomous all-layer R4/Spin Rust continuations and exact deterministic replays",
+  "record_conclusion": "The fixed 7.15M-parameter continuation improved held-out NLL and passed all Rust parity, causal R4/Spin, generation, replay, UTF-8, and short-cycle gates, including 5/5 subject-or-scene retention. It nevertheless failed the predeclared complete DoD solely because sealed NLL 1.5727521962806827 was not below 1.50.",
+  "implementation": {
+    "base_main_revision": "4b21f9af37bbe4918413cf52b3f9fc905dad58dd",
+    "continuation_lifecycle_revision": "29a86b4c56b81638732ebd5bcc9d913b3ae6110d",
+    "finalizer_revision": "1303847d",
+    "execution_host": "Apple M1",
+    "training_device": "mps",
+    "rust_generation_workers": 4
+  },
+  "provenance": {
+    "continuation_training_result_cid": "blake3:7d8e859d30729971c6428a11fdbc4db07890c663a13a1425ae9998efad56ef69",
+    "run_contract_cid": "blake3:d18e3451def0a926d49aa5288c88325f526353635221a8015aa1b6fca808338c",
+    "selection_manifest_cid": "blake3:bf5cc50367232d1c22f5531388bd65bc1e8e18578efb536e02d2c61bdabf3f4a",
+    "selected_checkpoint_cid": "blake3:a712911974ea9229943d2d6651cee0c72461479e28a4c45fb93b55d06f031998",
+    "export_manifest_cid": "blake3:77d5735ccfb4f2ac8a89f2f42a7ad8663b96770ea23a0b4bfae87b3daea7d8f3",
+    "weights_cid": "blake3:c5bf31aa97a567b3aaad4461ce2fac9cebc12b0a38becb6d02d21b43b493bf5d",
+    "tokenizer_cid": "blake3:3f42bcfce7728512076549c63b88387e13c8156fe35c0f91d9b112439f3739cc",
+    "enabled_parity_admission_manifest_cid": "blake3:f0a6a4fc396c919d8f848c9cd7da9cfedecc6ece51b83582fb019f6ab85c8909",
+    "reveal_opened_result_cid": "blake3:13d4b52008a39a1725553cb0bbce5848d68bf784d9aa09c386600d4e70788a37",
+    "reveal_result_cid": "blake3:84eb315adab2dbcc4c8811d4ede96ab531b66f8720b7c299b16bbe9e04bfd0b5",
+    "reveal_manifest_cid": "blake3:599497e087a3662e805498ca5a04085034e25e5a5e26850b2c4e8441a96d75e8",
+    "final_result_cid": "blake3:0dbd94a279b6cd898e0d69667dcc1457c9dddba6061e6ff1d8c222c93793d46c",
+    "final_manifest_cid": "blake3:a53870f17837592cad7ce87d83abe7315c12181bccf0026e8035424fda783bfa",
+    "final_tree_cid": "blake3:19e2abf0ae4448c61ca093de341f6d4f137094491134be957d003f095cb9d448",
+    "human_rubric_cid": "blake3:22de86b5cf04191934df16cd3d5e24f24f3777c3d438bd2e9e9d4722f129c13e"
+  },
+  "training": {
+    "inherited_train_tokens": 29999104,
+    "continuation_train_tokens": 119996416,
+    "cumulative_train_tokens": 149995520,
+    "parameters": 7155360,
+    "cumulative_tokens_per_parameter": 20.962679725408645,
+    "continuation_optimizer_steps": 7324,
+    "selected_checkpoint_continuation_step": 7324,
+    "selected_checkpoint_cumulative_step": 9155,
+    "selected_development_loss": 1.580241072373312,
+    "elapsed_continuation_seconds": 16328.239799583098,
+    "attention_off_executions": 0,
+    "sealed_confirmation_status_at_selection": "UNOPENED"
+  },
+  "rust_enabled_parity": {
+    "passed": true,
+    "python_top1_token_id": 448,
+    "rust_top1_token_id": 448,
+    "identical_top1": true,
+    "maximum_absolute_logit_delta": 0.0000057220458984375,
+    "maximum_absolute_logit_delta_limit": 0.005,
+    "all_six_layers_selected": true,
+    "causal_audits_exact": 1,
+    "projection_audits_exact": 1,
+    "r4_audits_exact": 1,
+    "output_policy_audits_exact": 1,
+    "future_reads": 0,
+    "provider_calls": 0,
+    "ollama_calls": 0,
+    "prior_trace_reads": 0,
+    "attention_off_executions": 0,
+    "qualification_decision_cid": "blake3:5bc79e85fb8427152bcc87a2dd63ff08a0f9a453e5d0ae63161a0b32792312d6",
+    "qualification_report_cid": "blake3:5a86c3d279fdcfced7280e86a584170e5c38f12097e97d4da98714ebafd12459",
+    "admission_manifest_cid": "blake3:f0a6a4fc396c919d8f848c9cd7da9cfedecc6ece51b83582fb019f6ab85c8909"
+  },
+  "sealed_reveal": {
+    "terminal": "FAIL_ENABLED_NLL",
+    "enabled_sealed_test_loss": 1.5727521962806827,
+    "strict_loss_ceiling": 1.5,
+    "loss_passed": false,
+    "prior_1014_enabled_sealed_test_loss": 2.127407277216677,
+    "absolute_nll_improvement_from_1014": 0.5546550809359942,
+    "relative_nll_improvement_fraction_from_1014": 0.26071880399960784,
+    "scored_next_tokens": 249856,
+    "prompt_token_ids": 120,
+    "total_revealed_test_token_ids": 250000,
+    "attention_off_executions": 0,
+    "reveal_result_cid": "blake3:84eb315adab2dbcc4c8811d4ede96ab531b66f8720b7c299b16bbe9e04bfd0b5",
+    "reveal_manifest_cid": "blake3:599497e087a3662e805498ca5a04085034e25e5a5e26850b2c4e8441a96d75e8"
+  },
+  "autonomous_generation": {
+    "owner": "Rust all-layer coherent R4/Spin local generator",
+    "policy": "r4-local-top-k-q32-splitmix64/1;temperature=0.8;top-k=40;rank=logit-desc-token-asc",
+    "maximum_new_tokens": 128,
+    "seeds": [
+      2014,
+      2015,
+      2016,
+      2017,
+      2018
+    ],
+    "rubric": "retain the prompt subject or scene",
+    "required_passes": 4,
+    "observed_passes": 5,
+    "rubric_passed": true,
+    "prior_1014_observed_passes": 3,
+    "all_utf8_and_nonlooping": true,
+    "all_replays_exact": true,
+    "all_six_layer_causal_projection_r4_output_policy_audits_exact": true,
+    "all_external_source_reads_zero": true,
+    "human_rubric_cid": "blake3:22de86b5cf04191934df16cd3d5e24f24f3777c3d438bd2e9e9d4722f129c13e",
+    "prompts": [
+      {
+        "core_cids": {
+          "audit_cid": "blake3:674ffc49b37ca5995ab543341737302b96f9bf77abe6a9cdb981a570100e6b20",
+          "decision_cid": "blake3:088ae72b6665a73130b9ba00b6ed87dfdb67171dffceaad6ba3fe9c45c1bb434",
+          "generation_policy_cid": "blake3:d64125624feb997d650aa3b8663ae7ca479e2a895daeedd94de0df04880b63fe",
+          "output_cid": "blake3:9ab213547f5fd2cfed507c7bdb29c27ed80d217a4b315095d2265384d82f1ef6"
+        },
+        "generated_tokens": 74,
+        "index": 0,
+        "nonlooping": true,
+        "primary_path": "generations/prompt-0-seed-2014.json",
+        "primary_report_cid": "blake3:c50b79ae9b56acdffd04ecce724758a52b1d46e3de1787e566261ee3c3667844",
+        "prompt_text": "Once upon a time, there was a mommy and daddy playing with their 3-year-old son. Mommy",
+        "replay_path": "generations/replay/prompt-0-seed-2014.json",
+        "replay_report_cid": "blake3:0b1271e233ff421224861878087fc3418d9b3038739481e5a4ac22f4fa2ee12d",
+        "response_text": "said, \"Let's go for a ride!\"\nThey worked in a small lake and put on their helmets. The sun shone so brightly and the sun was brighter.\nOut of the lake, Mommy and daddy had so much fun that they didn't hear. The sun was shining brightly, and they smiled at mommy and daddy.",
+        "rubric_decision": "PASS",
+        "rubric_reason": "The response retains Mommy and daddy as its central subjects and continues their shared family outing.",
+        "seed": 2014,
+        "stop_reason": "eos",
+        "story_cid": "blake3:000272da1d524963f9965109510d8529709b389d80815078e83f1c53ac696bf3"
+      },
+      {
+        "core_cids": {
+          "audit_cid": "blake3:e61e65ead322904d5ea8b41e9b02d86e1ec2aac1ee95997fd2a04828b2836e66",
+          "decision_cid": "blake3:4337062f8c6a238bc9f17f18d12ca446eff5e7b200f2dfe74155f3a8e4c27acd",
+          "generation_policy_cid": "blake3:73fcc10d9df974814b64d6bea080e4bdce5a8f12b9d3b03679a31c4a7c01e2a7",
+          "output_cid": "blake3:077550a4269ba38b6ed650ef5bc33f1c971f646a7e782f3e9c3cb59bf24e21b3"
+        },
+        "generated_tokens": 128,
+        "index": 1,
+        "nonlooping": true,
+        "primary_path": "generations/prompt-1-seed-2015.json",
+        "primary_report_cid": "blake3:8072bfb78ae72101fda6900422a4b25ae9ae82f0c1073b0c9c7e22c450ab006c",
+        "prompt_text": "Once upon a time, there was a mighty lion walking through the jungle. He was looking for his friends, and he",
+        "replay_path": "generations/replay/prompt-1-seed-2015.json",
+        "replay_report_cid": "blake3:2c1cfd6a553c81d1bad1a6f5e4e92671f7ab653491143b3aa06f229599604c6c",
+        "response_text": "soon spotted them. He was so brave and he decided to take a walk to the meadow. \nBut then, something strange happened. The monkey noticed a little mouse holding a leaf and it was also biting water! The lion was so excited. He wanted to take the leaf, so he carefully grabbed it and tried to take it away from the mouse.\nThe mouse was so scared, but he tried to pull on the leaf. But he was too heavy! He pulled and tugged until the leaf did not move.\nIt was really a fierce lion. The lion had brought it to the mouse and he couldn't help",
+        "rubric_decision": "PASS",
+        "rubric_reason": "The response retains the lion as an active central subject despite introducing a monkey, mouse, and meadow.",
+        "seed": 2015,
+        "stop_reason": "maximum_new_tokens",
+        "story_cid": "blake3:0002c6820c016981b3621b54c0e2f18f7c9ad5cde09be614592301a620e20988"
+      },
+      {
+        "core_cids": {
+          "audit_cid": "blake3:fcd662aef351edbc5d021c98a9f38156218ba662e0f96e130474d1512d8bc2e2",
+          "decision_cid": "blake3:14828ac98ab0dedf106cfddd4703cf8efc187aa8161e12613d06372eaf6586b1",
+          "generation_policy_cid": "blake3:b1f8800aab555bc230939f17f4a4538c7aaca853787fec2c82cabb88c3ee0e48",
+          "output_cid": "blake3:7c931c42d9b2b4cc43668b151cffb25bcefb743cc90f90adadd258cff4682402"
+        },
+        "generated_tokens": 124,
+        "index": 2,
+        "nonlooping": true,
+        "primary_path": "generations/prompt-2-seed-2016.json",
+        "primary_report_cid": "blake3:63651ab2142e4df2fbfe0d2cb4413710b1284509dfa84c921a20f6181475144d",
+        "prompt_text": "Once there was a pink goose. She was very pretty. The goose liked to eat grass, corn and bugs. One",
+        "replay_path": "generations/replay/prompt-2-seed-2016.json",
+        "replay_report_cid": "blake3:1adfc2056d85a6b7d762eaef8a547f0186541e9509c296ca60cfdca8f910effe",
+        "response_text": "day, the goose was eating grass and was eating grass.\nA little girl came up to the goose and said, \"Hello, pink goose. Would you like some help?\" The pink goose smiled and said, \"Yes, please! I'm so hungry.\"\nThe little girl gave the goose some food and asked, \"Can we have some of this yummy food?\" The goose thought for a moment and then said, \"Yes, we can have some of my own food.\"\nThe little girl was very happy. She ate the food and played with the pink goose. They were this best friends.",
+        "rubric_decision": "PASS",
+        "rubric_reason": "The response repeatedly retains the pink goose and continues the prompt's grass and food scene.",
+        "seed": 2016,
+        "stop_reason": "eos",
+        "story_cid": "blake3:00036e360a675dfa525138bd1375e3965f57d36345f50f221ccaed083f5c43cb"
+      },
+      {
+        "core_cids": {
+          "audit_cid": "blake3:2b300ce90fb092e82d7fd9a48ead03014edf8ce06d07f8715699603c6498a966",
+          "decision_cid": "blake3:14e87f57c42f02b75429f0bead7ef87ebd462afb7b40bfaa58c6136f4a49e86f",
+          "generation_policy_cid": "blake3:b0aa2bacda56825d0623dc44ba445cad4196527daf6fa451b61e92c4a479fa6c",
+          "output_cid": "blake3:d3072fbe0ed15b982c837991caf6c86e9768f4e1f56481dd264393850c8995a4"
+        },
+        "generated_tokens": 128,
+        "index": 3,
+        "nonlooping": true,
+        "primary_path": "generations/prompt-3-seed-2017.json",
+        "primary_report_cid": "blake3:5447e69c815f5dd3fb2f23caa7c1dee7ea4f5f6819fc40cf820121fb77caa4ec",
+        "prompt_text": "One day, a boy named Tim wanted to ride his bike. He loved to ride up the big hill near his house",
+        "replay_path": "generations/replay/prompt-3-seed-2017.json",
+        "replay_report_cid": "blake3:dc5aef05ef427c436b8325f517b4db6e2e44d03b5437b97bd2dbac5256ffba6b",
+        "response_text": ". His bike was very special. He could ride up and down fast.\nTim's mom said, \"Tim, let's go for a ride on the big hill!\" Tim was excited. He put on his helmet and ran to the hill. He got on his bike, and they went down the hill together.\nAt the top, they saw a big hill. The ground was very deep. Tim saw a little bird on the hill. He asked the bird, \"Do you want to ride my bike with me?\" The bird said, \"Yes, I do!\" So, Tim and the bird the bird flew down and sat",
+        "rubric_decision": "PASS",
+        "rubric_reason": "The response retains Tim, his bike, the big hill, and the riding scene throughout.",
+        "seed": 2017,
+        "stop_reason": "maximum_new_tokens",
+        "story_cid": "blake3:00042fc3d212c3dbd2801d6a9bfbe51bdc30a2e97ce15f49ce537c72a7eb57ac"
+      },
+      {
+        "core_cids": {
+          "audit_cid": "blake3:8af3b47fae80be20c55ee65c87a6bbdb42b39b909dad38e6ecc8c14f8c71cd52",
+          "decision_cid": "blake3:95bfb6d30d920ad7916b5ff11e9fbb8d91153b271d88183d8259b8ea3f0bc33e",
+          "generation_policy_cid": "blake3:739d302373eccc9f903f0c8cadf56ec633b5385e65b5efbaa16c332ae54ca7ab",
+          "output_cid": "blake3:740bbafe59f30598c78e49e952be38e5f612551da675f768e3f4441c83489f3e"
+        },
+        "generated_tokens": 128,
+        "index": 4,
+        "nonlooping": true,
+        "primary_path": "generations/prompt-4-seed-2018.json",
+        "primary_report_cid": "blake3:8bafb7d2b85148659549387027f6308bf59ac6691e3076f3710473ad23ede1af",
+        "prompt_text": "One day, there was a small and modest train. Inside the train were two friends - Lily and Dave. They",
+        "replay_path": "generations/replay/prompt-4-seed-2018.json",
+        "replay_report_cid": "blake3:1592eb7d4362dc55229bb73a3cd8e31487831eabfa4c1afe8797a39c6558db6b",
+        "response_text": "had been exploring a big hill, so they decided to go for a swim together.\nThey went over an old, row of trees and a river. They were so happy to explore the world. Suddenly, they heard a loud noise. It was a large, hairy bear. Lily was scared, but she was also curious. She wanted to get closer to the bear, but she was afraid of the bear.\n\"Don't worry, mister,\" Lily said. \"We can keep you safe at the top of the hill. We can stay here and be safe!\"\nThe bear nodded and said, \"Okay, I",
+        "rubric_decision": "PASS",
+        "rubric_reason": "The response retains Lily, one of the prompt's named friends, as a central subject in a continuing exploration scene, although Dave and the train drop out.",
+        "seed": 2018,
+        "stop_reason": "maximum_new_tokens",
+        "story_cid": "blake3:0004586ddfce6012b8e733752f6f051ea0e7d5675ca47e0e83d2f7dcd998e139"
+      }
+    ]
+  },
+  "definition_of_done": {
+    "all_outputs_utf8_and_without_period_1_to_4_short_cycle": true,
+    "all_replays_equal_excluding_timing_with_identical_core_cids": true,
+    "all_reports_bind_checkpoint_tokenizer_weights_prompt_seed_sampler": true,
+    "all_reports_exact_six_layer_causal_projection_r4_output_policy": true,
+    "all_reports_external_source_reads_zero": true,
+    "at_least_four_of_five_human_rubric_pass": true,
+    "exactly_five_primary_and_five_replay_reports": true,
+    "overall_pass": false,
+    "sealed_enabled_nll_below_1_50": false
+  },
+  "failed_gates": [
+    "ENABLED_NLL"
+  ],
+  "direction": {
+    "accepted_attention_state": "Ordinary scaled-dot-product stable-softmax attention remains established and load-bearing in coherent R4/Spin frames.",
+    "current_campaign": "Freeze #1017 negative without rerun, learning-rate tuning, or further 7.15M-parameter exposure extension.",
+    "next_action": "Specify one predeclared parameter-capacity increase using the same qualified attention, split, evaluation, and Rust generation path; use external training hardware only if the selected capacity cannot be trained efficiently on this host.",
+    "parked_until_quality_baseline": [
+      "multi-resonance or trigonometric softmax replacement",
+      "intrinsic geometry substitution",
+      "full-model recurrent lowering",
+      "exact table-native deployment",
+      "product or release promotion"
+    ]
+  },
+  "nonclaims": [
+    "This result does not establish a geometry advantage over ordinary coordinates.",
+    "The floating-point checkpoint path is not transformerless, multiplication-free, allocation-free, table-native, or the deployed exact runtime.",
+    "Five bounded TinyStories subject-or-scene passes do not establish reasoning, instruction following, chat quality, broad language modeling, scaling, WASM readiness, release readiness, or frontier capability.",
+    "The failed 1.50 NLL threshold rejects this exact frozen 7.15M-parameter capacity campaign; it does not falsify the already-established load-bearing ordinary causal attention mechanism."
+  ]
+}

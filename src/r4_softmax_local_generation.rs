@@ -42,6 +42,10 @@ pub const MAX_NEW_TOKENS: usize = 128;
 pub const DEFAULT_WORKERS: usize = 4;
 pub const QUALIFICATION_REPORT_SCHEMA: &str = "uor-r4.r4-softmax-local-qualification/1";
 pub const PYTHON_PREFIX_LOGITS_SCHEMA: &str = "uor-r4.r4-softmax-python-prefix-logits/1";
+pub const ENABLED_ONLY_QUALIFICATION_REPORT_SCHEMA: &str =
+    "uor-r4.r4-softmax-local-enabled-qualification/1";
+pub const PYTHON_ENABLED_PREFIX_LOGITS_SCHEMA: &str =
+    "uor-r4.r4-softmax-python-enabled-prefix-logits/1";
 pub const PREFIX_PARITY_TOKENS: usize = 32;
 pub const SEEDED_SAMPLER_POLICY: &str =
     "r4-local-top-k-q32-splitmix64/1;temperature=0.8;top-k=40;rank=logit-desc-token-asc";
@@ -63,6 +67,9 @@ pub struct R4SoftmaxLocalQualificationConfig {
     pub python_prefix_logits: PathBuf,
     pub reveal_manifest: Option<PathBuf>,
     pub workers: NonZeroUsize,
+    /// Execute only the ordinary enabled path. This is the frozen #1017
+    /// quality-continuation gate; #1014 already closed the attention-off arm.
+    pub enabled_only: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -168,7 +175,7 @@ pub struct PythonPrefixLogitsReference {
     pub prefix_token_ids: Vec<u32>,
     pub maximum_absolute_logit_delta_limit: f64,
     pub enabled: PythonPrefixArmReference,
-    pub attention_off: PythonPrefixArmReference,
+    pub attention_off: Option<PythonPrefixArmReference>,
     pub result_cid: String,
 }
 
@@ -262,9 +269,12 @@ pub struct R4SoftmaxLocalQualificationReport {
     pub model_shape: ModelShape,
     pub evaluation_input: QualificationInputBinding,
     pub enabled: QualificationArmResult,
-    pub attention_off: QualificationArmResult,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub attention_off: Option<QualificationArmResult>,
     pub enabled_prefix_parity: PrefixParityEvidence,
-    pub attention_off_prefix_parity: PrefixParityEvidence,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub attention_off_prefix_parity: Option<PrefixParityEvidence>,
+    pub attention_off_executions: u64,
     pub qualification_passed: bool,
     pub source_read_audit: SourceReadAudit,
     pub execution: TeacherExecutionSnapshot,
@@ -856,7 +866,7 @@ pub fn run_r4_softmax_local_qualification(
                 "invalid Python prefix reference: {error}"
             ))
         })?;
-    validate_python_prefix_reference_envelope(&python_reference)?;
+    validate_python_prefix_reference_envelope(&python_reference, config.enabled_only)?;
 
     let tokenizer = HfBpeTokenizer::from_dir(&config.model)
         .map_err(|error| R4SoftmaxLocalGenerationError::Tokenizer(error.to_string()))?;
@@ -934,25 +944,43 @@ pub fn run_r4_softmax_local_qualification(
         maximum_token,
         CausalAttentionOutputPolicy::Enabled,
     )?;
-    let attention_off_execution = run_qualification_arm(
-        &oracle,
-        &python_reference.prefix_token_ids,
-        &shape,
-        maximum_token,
-        CausalAttentionOutputPolicy::ZeroPostWoBeforeResidual,
-    )?;
+    let attention_off_execution = if config.enabled_only {
+        None
+    } else {
+        Some(run_qualification_arm(
+            &oracle,
+            &python_reference.prefix_token_ids,
+            &shape,
+            maximum_token,
+            CausalAttentionOutputPolicy::ZeroPostWoBeforeResidual,
+        )?)
+    };
     let generation_seconds = qualification_started.elapsed().as_secs_f64();
     let enabled_prefix_parity = prefix_parity_evidence(
         CausalAttentionOutputPolicy::Enabled,
         python_reference.enabled,
         enabled_execution.prefix_logits,
     )?;
-    let attention_off_prefix_parity = prefix_parity_evidence(
-        CausalAttentionOutputPolicy::ZeroPostWoBeforeResidual,
+    let attention_off_prefix_parity = match (
         python_reference.attention_off,
-        attention_off_execution.prefix_logits,
-    )?;
-    let qualification_passed = enabled_prefix_parity.passed && attention_off_prefix_parity.passed;
+        attention_off_execution.as_ref(),
+    ) {
+        (Some(reference), Some(execution)) => Some(prefix_parity_evidence(
+            CausalAttentionOutputPolicy::ZeroPostWoBeforeResidual,
+            reference,
+            execution.prefix_logits.clone(),
+        )?),
+        (None, None) => None,
+        _ => {
+            return Err(R4SoftmaxLocalGenerationError::InvalidCheckpoint(
+                "Python and Rust qualification arm sets differ".to_owned(),
+            ));
+        }
+    };
+    let qualification_passed = enabled_prefix_parity.passed
+        && attention_off_prefix_parity
+            .as_ref()
+            .is_none_or(|parity| parity.passed);
 
     let after = checkpoint_tree_binding(&config.model)?;
     if before != after {
@@ -980,7 +1008,8 @@ pub fn run_r4_softmax_local_qualification(
         checkpoint_tree_file_reads: checkpoint_file_reads,
         tokenizer_loads: 1,
         oracle_loads: 1,
-        local_checkpoint_forward_steps: (PREFIX_PARITY_TOKENS as u64) * 2,
+        local_checkpoint_forward_steps: (PREFIX_PARITY_TOKENS as u64)
+            * if config.enabled_only { 1 } else { 2 },
         provider_calls: 0,
         ollama_calls: 0,
         prior_trace_reads: 0,
@@ -1040,19 +1069,32 @@ pub fn run_r4_softmax_local_qualification(
         sources_unchanged_across_execution: true,
     };
     let enabled = enabled_execution.result;
-    let attention_off = attention_off_execution.result;
+    let attention_off = attention_off_execution.map(|execution| execution.result);
+    let decision_evidence = QualificationDecisionEvidence {
+        enabled: &enabled,
+        attention_off: attention_off.as_ref(),
+        enabled_parity: &enabled_prefix_parity,
+        attention_off_parity: attention_off_prefix_parity.as_ref(),
+    };
     let decision_cid = qualification_decision_cid(
+        if config.enabled_only {
+            ENABLED_ONLY_QUALIFICATION_REPORT_SCHEMA
+        } else {
+            QUALIFICATION_REPORT_SCHEMA
+        },
         &checkpoint,
         &provenance,
         &evaluation_input,
-        &enabled,
-        &attention_off,
-        &enabled_prefix_parity,
-        &attention_off_prefix_parity,
+        &decision_evidence,
     )?;
     Ok(R4SoftmaxLocalQualificationReport {
-        schema: QUALIFICATION_REPORT_SCHEMA.to_owned(),
-        issue: 1014,
+        schema: if config.enabled_only {
+            ENABLED_ONLY_QUALIFICATION_REPORT_SCHEMA
+        } else {
+            QUALIFICATION_REPORT_SCHEMA
+        }
+        .to_owned(),
+        issue: if config.enabled_only { 1017 } else { 1014 },
         decision_cid,
         checkpoint,
         provenance,
@@ -1062,6 +1104,7 @@ pub fn run_r4_softmax_local_qualification(
         attention_off,
         enabled_prefix_parity,
         attention_off_prefix_parity,
+        attention_off_executions: if config.enabled_only { 0 } else { 1 },
         qualification_passed,
         source_read_audit,
         execution: oracle.execution_snapshot(),
@@ -1071,7 +1114,7 @@ pub fn run_r4_softmax_local_qualification(
             total_seconds: total_started.elapsed().as_secs_f64(),
         },
         nonclaims: vec![
-            "This 32-token exporter/loader gate does not substitute for the Python MPS full sealed-test NLL comparison.".to_owned(),
+            "This 32-token exporter/loader gate does not substitute for the Python MPS full sealed-test NLL evaluation.".to_owned(),
             "Passing parity establishes faithful Rust loading and R4 execution of the trained checkpoint, not geometric advantage.".to_owned(),
             "This floating-point checkpoint path is not the multiplication-free deployed runtime.".to_owned(),
         ],
@@ -1459,8 +1502,14 @@ fn verify_export_provenance(
 
 fn validate_python_prefix_reference_envelope(
     reference: &PythonPrefixLogitsReference,
+    enabled_only: bool,
 ) -> Result<(), R4SoftmaxLocalGenerationError> {
-    if reference.schema != PYTHON_PREFIX_LOGITS_SCHEMA {
+    let expected_schema = if enabled_only {
+        PYTHON_ENABLED_PREFIX_LOGITS_SCHEMA
+    } else {
+        PYTHON_PREFIX_LOGITS_SCHEMA
+    };
+    if reference.schema != expected_schema {
         return Err(R4SoftmaxLocalGenerationError::InvalidCheckpoint(format!(
             "unexpected Python prefix schema {}",
             reference.schema
@@ -1479,10 +1528,21 @@ fn validate_python_prefix_reference_envelope(
             reference.maximum_absolute_logit_delta_limit
         )));
     }
-    for (label, arm) in [
-        ("enabled", &reference.enabled),
-        ("attention_off", &reference.attention_off),
-    ] {
+    if enabled_only && reference.attention_off.is_some() {
+        return Err(R4SoftmaxLocalGenerationError::InvalidCheckpoint(
+            "enabled-only Python prefix must not carry an attention-off arm".to_owned(),
+        ));
+    }
+    if !enabled_only && reference.attention_off.is_none() {
+        return Err(R4SoftmaxLocalGenerationError::InvalidCheckpoint(
+            "two-arm Python prefix must carry an attention-off arm".to_owned(),
+        ));
+    }
+    let mut arms = vec![("enabled", &reference.enabled)];
+    if let Some(attention_off) = reference.attention_off.as_ref() {
+        arms.push(("attention_off", attention_off));
+    }
+    for (label, arm) in arms {
         if arm.logits.len() != 4096 || arm.logits.iter().any(|value| !value.is_finite()) {
             return Err(R4SoftmaxLocalGenerationError::InvalidCheckpoint(format!(
                 "Python {label} logits must be 4096 finite values"
@@ -1834,17 +1894,22 @@ fn prefix_parity_evidence(
     })
 }
 
+struct QualificationDecisionEvidence<'a> {
+    enabled: &'a QualificationArmResult,
+    attention_off: Option<&'a QualificationArmResult>,
+    enabled_parity: &'a PrefixParityEvidence,
+    attention_off_parity: Option<&'a PrefixParityEvidence>,
+}
+
 fn qualification_decision_cid(
+    schema: &str,
     checkpoint: &LocalCheckpointBinding,
     provenance: &QualificationProvenance,
     input: &QualificationInputBinding,
-    enabled: &QualificationArmResult,
-    attention_off: &QualificationArmResult,
-    enabled_parity: &PrefixParityEvidence,
-    attention_off_parity: &PrefixParityEvidence,
+    evidence: &QualificationDecisionEvidence<'_>,
 ) -> Result<String, R4SoftmaxLocalGenerationError> {
     cid_serializable(&serde_json::json!({
-        "schema": QUALIFICATION_REPORT_SCHEMA,
+        "schema": schema,
         "checkpoint_tree_cid": checkpoint.checkpoint_tree_cid,
         "weights_cid": checkpoint.weights_cid,
         "provenance": provenance,
@@ -1852,10 +1917,10 @@ fn qualification_decision_cid(
         "python_prefix_logits_cid": input.python_prefix_logits_cid,
         "python_prefix_result_cid": input.python_prefix_result_cid,
         "prefix_token_ids": input.prefix_token_ids,
-        "enabled": enabled,
-        "attention_off": attention_off,
-        "enabled_parity": enabled_parity,
-        "attention_off_parity": attention_off_parity,
+        "enabled": evidence.enabled,
+        "attention_off": evidence.attention_off,
+        "enabled_parity": evidence.enabled_parity,
+        "attention_off_parity": evidence.attention_off_parity,
     }))
 }
 
@@ -2036,6 +2101,128 @@ mod tests {
     }
 
     #[test]
+    fn qualification_decision_refactor_preserves_both_arm_mode_cids() {
+        let checkpoint = LocalCheckpointBinding {
+            model_path: "model".to_owned(),
+            checkpoint_tree_cid: raw_cid(b"tree"),
+            config_cid: raw_cid(b"config"),
+            tokenizer_cid: raw_cid(b"tokenizer"),
+            weights_cid: raw_cid(b"weights"),
+            weights_cid_scope: "model.safetensors".to_owned(),
+            files: Vec::new(),
+            tokenizer: TokenizerAdapter::default(),
+            bos_token_id: 0,
+            eos_token_id: 1,
+            exact_backend: ExactBackendReport {
+                arithmetic_owner: "uor-matmul".to_owned(),
+                std_runtime_detection_enabled: true,
+                target_arch: "test".to_owned(),
+                target_os: "test".to_owned(),
+                uor_matmul_revision: "test".to_owned(),
+                available_backends: vec!["test".to_owned()],
+                selected_backend: None,
+                selection_status: "not exposed".to_owned(),
+            },
+        };
+        let provenance = QualificationProvenance {
+            export_manifest_cid: raw_cid(b"export-manifest"),
+            export_tree_cid: raw_cid(b"export-tree"),
+            dataset_manifest_cid: raw_cid(b"dataset"),
+            training_view_manifest_cid: raw_cid(b"training-view"),
+            split_policy_cid: raw_cid(b"split"),
+            run_contract_cid: raw_cid(b"contract"),
+            training_result_cid: raw_cid(b"training-result"),
+            selected_checkpoint_cid: raw_cid(b"selected-checkpoint"),
+            config_cid: checkpoint.config_cid.clone(),
+            tokenizer_cid: checkpoint.tokenizer_cid.clone(),
+            weights_cid: checkpoint.weights_cid.clone(),
+            reveal_manifest_cid: Some(raw_cid(b"reveal-manifest")),
+            reveal_tree_cid: Some(raw_cid(b"reveal-tree")),
+        };
+        let input = QualificationInputBinding {
+            token_store_cid: raw_cid(b"token-store"),
+            python_prefix_logits_path: "prefix.json".to_owned(),
+            python_prefix_logits_cid: raw_cid(b"prefix-logits"),
+            python_prefix_result_cid: raw_cid(b"prefix-result"),
+            prefix_token_ids: vec![0, 1, 2],
+            sources_unchanged_across_execution: true,
+        };
+        let arm = QualificationArmResult {
+            attention_output_policy: "enabled".to_owned(),
+            policy_cid: raw_cid(b"policy"),
+            top1_token_id: 2,
+            output_cid: raw_cid(b"output"),
+            audit_cid: raw_cid(b"audit"),
+            audit: QualificationArmAudit {
+                sessions: 1,
+                positions_per_session: 3,
+                total_positions: 3,
+                selected_layer_count: 1,
+                all_layers_selected: true,
+                causal_audits_exact: 1,
+                projection_audits_exact: 1,
+                r4_audits_exact: 1,
+                output_policy_audits_exact: 1,
+                future_reads: 0,
+                output_policy_applications: 3,
+                enabled_applications: 3,
+                zeroed_applications: 0,
+                output_lanes: 12,
+                nonzero_lanes_before_policy: 12,
+                nonzero_lanes_after_policy: 12,
+                applications_by_layer: vec![3],
+                state_ledger_cid: raw_cid(b"ledger"),
+            },
+        };
+        let parity = PrefixParityEvidence {
+            attention_output_policy: "enabled".to_owned(),
+            python_top1_token_id: 2,
+            rust_top1_token_id: 2,
+            identical_top1: true,
+            maximum_absolute_logit_delta: 0.0,
+            maximum_absolute_logit_delta_limit: 0.005,
+            maximum_absolute_logit_delta_within_limit: true,
+            python_logits: vec![0.0, 1.0, 2.0],
+            rust_logits: vec![0.0, 1.0, 2.0],
+            passed: true,
+        };
+
+        let assert_mode =
+            |schema: &str,
+             attention_off: Option<&QualificationArmResult>,
+             attention_off_parity: Option<&PrefixParityEvidence>| {
+                let expected = cid_serializable(&serde_json::json!({
+                    "schema": schema,
+                    "checkpoint_tree_cid": checkpoint.checkpoint_tree_cid,
+                    "weights_cid": checkpoint.weights_cid,
+                    "provenance": provenance,
+                    "token_store_cid": input.token_store_cid,
+                    "python_prefix_logits_cid": input.python_prefix_logits_cid,
+                    "python_prefix_result_cid": input.python_prefix_result_cid,
+                    "prefix_token_ids": input.prefix_token_ids,
+                    "enabled": arm,
+                    "attention_off": attention_off,
+                    "enabled_parity": parity,
+                    "attention_off_parity": attention_off_parity,
+                }))
+                .expect("inline qualification decision CID");
+                let evidence = QualificationDecisionEvidence {
+                    enabled: &arm,
+                    attention_off,
+                    enabled_parity: &parity,
+                    attention_off_parity,
+                };
+                let observed =
+                    qualification_decision_cid(schema, &checkpoint, &provenance, &input, &evidence)
+                        .expect("refactored qualification decision CID");
+                assert_eq!(observed, expected);
+            };
+
+        assert_mode(ENABLED_ONLY_QUALIFICATION_REPORT_SCHEMA, None, None);
+        assert_mode(QUALIFICATION_REPORT_SCHEMA, Some(&arm), Some(&parity));
+    }
+
+    #[test]
     fn request_bounds_fail_before_checkpoint_access() {
         assert!(validate_request(&config("", 1)).is_err());
         assert!(validate_request(&config("a", 0)).is_err());
@@ -2088,10 +2275,10 @@ mod tests {
                 top1_token_id: 7,
                 logits: enabled,
             },
-            attention_off: PythonPrefixArmReference {
+            attention_off: Some(PythonPrefixArmReference {
                 top1_token_id: 8,
                 logits: attention_off,
-            },
+            }),
             result_cid: String::new(),
         };
         let mut unsigned = serde_json::to_value(&reference).expect("serialize fixture");
@@ -2112,9 +2299,16 @@ mod tests {
             "test fixture",
         )
         .expect("fixture CID reproduces");
-        validate_python_prefix_reference_envelope(&reference).expect("valid two-arm fixture");
+        validate_python_prefix_reference_envelope(&reference, false)
+            .expect("valid two-arm fixture");
+        let mut enabled_only = reference.clone();
+        enabled_only.schema = PYTHON_ENABLED_PREFIX_LOGITS_SCHEMA.to_owned();
+        enabled_only.attention_off = None;
+        validate_python_prefix_reference_envelope(&enabled_only, true)
+            .expect("valid enabled-only fixture");
+        assert!(validate_python_prefix_reference_envelope(&enabled_only, false).is_err());
         reference.enabled.top1_token_id = 9;
-        assert!(validate_python_prefix_reference_envelope(&reference).is_err());
+        assert!(validate_python_prefix_reference_envelope(&reference, false).is_err());
     }
 
     #[test]

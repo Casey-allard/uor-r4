@@ -266,9 +266,22 @@ substituted for one another.
   causal attention at the learned R4/Spin scope: attention-off worsened sealed
   NLL by `2.6773925609275944` nats and both Rust policy arms matched Python.
   Its full quality DoD failed at enabled NLL `2.127407277216677` and prompt
-  retention `3/5`. The exact campaign closes without rerun or tuning; active
-  work is [#1017](https://github.com/UOR-Foundation/uor-r4/issues/1017), one
-  separately frozen quality-capacity rung over the same mechanism.
+  retention `3/5`. The exact campaign closes without rerun or tuning. #1017's
+  separate exposure continuation then closed negative solely on sealed NLL
+  `1.5727521962806827`; enabled parity, all mechanical gates, retention `5/5`,
+  and normalized replay `5/5` passed. Next, specify one predeclared
+  parameter-capacity increase over the same mechanism, not further 7.15M
+  exposure or LR tuning.
+- **`R4SoftmaxQualityCapacityContinuationV1`** — #1017's completed, independently
+  frozen continuation of the exact #1014 7,155,360-parameter model to
+  `149,995,520` cumulative training tokens. Development selection froze at NLL
+  `1.580241072373312`; enabled-only Python/Rust top-1 matched with maximum logit
+  delta `0.0000057220458984375`; all six R4/Spin layers and causal/external
+  audits passed. The one-time fresh sealed NLL `1.5727521962806827` failed the
+  strict `<1.50` criterion, while all five prompt-retention grades and all five
+  normalized replays passed. It is an NLL-only negative and does not reopen the
+  bounded #1014 attention conclusion. See the
+  [authoritative #1017 record](../r4_softmax_quality_capacity_continuation_1017.md).
 - **H4 frame connection** — the exact object is the relative H4 group element;
   the current compiler-side f64 matrix represents its left-quaternion action
   and is numerically orthogonal under the tested finite-group law. It does not
@@ -417,8 +430,9 @@ substituted for one another.
   [#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012) trace-state
   observability ladder at `INSUFFICIENT_SUPPORT_COVERAGE`, then the completed
   #1014 end-to-end campaign: attention intervention and Rust parity `PASS`,
-  complete quality DoD `FAIL`. The active successor is a separately frozen
-  quality-capacity rung over the unchanged mechanism. Intrinsic/readout,
+  complete quality DoD `FAIL`; then #1017's continuation: NLL-only `FAIL`, with
+  retention/parity/audits/replay `PASS`. The next action is to specify one
+  predeclared parameter-capacity increase over the unchanged mechanism. Intrinsic/readout,
   fiber-preserving multi-resonance replacement,
   whole-decoder recurrent factorization, and final requalification are parked
   (#973);
@@ -495,8 +509,11 @@ The subsequent construction-only trace-state observability ladder in
 expanded or repeated. #1014 subsequently established load-bearing ordinary
 causal attention with a `2.677393`-nat attention-off penalty and exact Rust
 parity, but failed its full quality DoD at enabled NLL `2.127407` and prompt
-retention `3/5`. Active work is one separately frozen quality-capacity rung
-over the unchanged mechanism; exact lowering, resonance, WASM, release,
+retention `3/5`. #1017 then closed NLL-only negative at
+`1.5727521962806827`, with retention `5/5` and all other gates passing. The
+recommended next work is to specify one predeclared parameter-capacity increase
+over the unchanged
+mechanism; exact lowering, resonance, WASM, release,
 correctness, and reasoning claims remain parked.
 
 ## Core roles

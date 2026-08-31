@@ -53,11 +53,17 @@
   load-bearing at this learned R4/Spin scope. The complete quality DoD is
   negative because enabled NLL exceeded `1.50` and subject/scene retention was
   `3/5`, below `4/5`. Close the exact campaign without rerun or tuning.
-  The sole active step is now
-  [#1017](https://github.com/UOR-Foundation/uor-r4/issues/1017), one separately
-  frozen quality-capacity rung that
-  reuses this attention and Rust execution path; it is not another attention
-  diagnostic, geometry comparator, or softmax replacement.
+  [#1017](https://github.com/UOR-Foundation/uor-r4/issues/1017), the one
+  separately frozen exposure continuation, then reached `149,995,520`
+  cumulative tokens. Enabled Rust parity, all six R4/Spin layers,
+  causal/external audits, prompt retention `5/5`, and normalized replay `5/5`
+  passed. Fresh sealed NLL `1.5727521962806827` failed the strict `<1.50`
+  criterion, so #1017 is negative solely on NLL. Freeze that result without
+  rerun, further 7.15M exposure, or learning-rate tuning. The sole next step
+  is to specify one predeclared parameter-capacity increase that reuses this attention
+  and Rust execution path; it is not another attention diagnostic, geometry
+  comparator, or softmax replacement. External training hardware is allowed
+  only if the frozen capacity and wall-clock contract requires it.
   Offline teacher/compiler floats, matrix operations, and softmax are permitted
   while proving a replacement mechanism; the deployed destination remains
   exact, integer/table-native, and source-free.
@@ -71,7 +77,8 @@
   [structured result](r4_softmax_reference_http_bridge_result_973.json), then
   the [trace-student record](r4_softmax_trace_student_973.md) and
   [#1012 observability record](r4_softmax_trace_observability_1012.md), followed
-  by the [#1014 end-to-end result](r4_softmax_end_to_end_attention_1014.md).
+  by the [#1014 end-to-end result](r4_softmax_end_to_end_attention_1014.md) and
+  [#1017 continuation result](r4_softmax_quality_capacity_continuation_1017.md).
   The intermediate
   [Geometric Causal Decoder Roadmap](geometric_causal_decoder_plan.md) records
   the superseded #948-#958 sequence.

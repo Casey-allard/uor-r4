@@ -1,10 +1,11 @@
-# R4 causal-softmax trainer (#1014)
+# R4 causal-softmax trainer (#1014 / #1017)
 
-This is the one bounded, offline training path authorized by issue
-[#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014). It trains an
-ordinary causal-softmax Llama-family model from random initialization, exports
-it in the existing Rust loaders' Hugging Face format, and freezes evidence
-before the sealed test is opened. It contains no teacher, trace-distillation,
+This package contains the bounded offline training paths authorized by issues
+[#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014) and
+[#1017](https://github.com/UOR-Foundation/uor-r4/issues/1017). They train and
+continue an ordinary causal-softmax Llama-family model, export it in the
+existing Rust loaders' Hugging Face format, and freeze evidence before each
+sealed test is opened. They contain no teacher, trace-distillation,
 comparison-arm, resonance, or routing experiment.
 
 The model is fixed: vocabulary 4096; hidden width 288; six layers; six query
@@ -14,6 +15,26 @@ ordinary stable complete-prefix softmax. The exact parameter count is
 7,155,360. Float multiplication, allocation, autograd, and MPS are intentional
 offline operations. This package is not the exact/table runtime and does not
 establish geometric advantage, reasoning, or release readiness.
+
+## Current measured boundary
+
+#1014 established load-bearing ordinary causal attention at this learned
+R4/Spin scope, but failed its complete quality Definition of Done. #1017 then
+continued that exact model, optimizer state, tokenizer, split discipline, and
+runtime path for one frozen 7,324-step campaign. It reached `149,995,520`
+cumulative training tokens and selected development NLL
+`1.580241072373312`. Enabled-only Python/Rust parity passed with identical
+top-1 and maximum logit delta `0.0000057220458984375`; all six layers and every
+causal/external audit passed. The one-time fresh sealed NLL was
+`1.5727521962806827`, failing the strict `<1.50` gate, while subject-or-scene
+retention and normalized replay both passed `5/5`.
+
+The #1017 result is negative solely on NLL. Do not rerun it, extend this
+7.15M-parameter checkpoint again, or tune its learning rate. The next research
+campaign must be a separately frozen parameter-capacity increase over the same
+qualified attention and Rust evidence path. External training hardware is
+allowed only if that new contract requires it. See the
+[#1017 record](../../docs/r4_softmax_quality_capacity_continuation_1017.md).
 
 ## Isolated environment
 
@@ -87,6 +108,41 @@ at least 0.10 nats/token. It also emits:
 Autonomous continuations are deliberately owned by the Rust local generator's
 explicit seeded sampler, R4/Spin transport audit, and replay contract. Python
 does not grade or substitute preview generations.
+
+## Frozen #1017 continuation lifecycle
+
+The #1017 evidence has already been consumed and frozen. The commands below
+document the one-way protocol; they do not authorize a rerun, a second reveal,
+new generations, or replacement rubric decisions.
+
+```bash
+CONTINUATION_ROOT="$(git rev-parse --show-toplevel)/.uor-models/research/issue-1017"
+PREDECESSOR_ROOT="$(git rev-parse --show-toplevel)/.uor-models/research/issue-1014"
+
+"$CLI" --root "$CONTINUATION_ROOT" prepare-continuation \
+  --predecessor-root "$PREDECESSOR_ROOT"
+"$CLI" --root "$CONTINUATION_ROOT" continue --resume
+"$CLI" --root "$CONTINUATION_ROOT" verify-continuation-training
+"$CLI" --root "$CONTINUATION_ROOT" admit-enabled-parity \
+  --rust-qualification /absolute/path/to/enabled-rust-qualification.json
+"$CLI" --root "$CONTINUATION_ROOT" reveal-continuation
+"$CLI" --root "$CONTINUATION_ROOT" finalize-continuation \
+  --rubric /absolute/path/to/independent-five-record-rubric.json
+```
+
+`prepare-continuation` constructs the fresh disjoint training, development,
+and denied confirmation population from the immutable #1014 predecessor.
+`continue --resume` may resume only the identical frozen run contract.
+`verify-continuation-training` reproduces the nonsealed training-view evidence
+while confirmation access remains denied. `admit-enabled-parity` binds the sole
+enabled-only 32-token Rust qualification. `reveal-continuation` irreversibly
+opens and scores the fresh confirmation exactly once.
+
+After the already archived Rust generator and replay reports exist,
+`finalize-continuation --rubric` validates and binds those ten reports, the
+opened reveal, and the independent five-record rubric into create-once final
+evidence. Finalization executes no model, generates no token, and opens no
+population or reveal.
 
 ## Local verification
 

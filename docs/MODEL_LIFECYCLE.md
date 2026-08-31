@@ -92,9 +92,14 @@ established load-bearing ordinary causal attention in the learned R4/Spin path:
 attention-off worsened sealed NLL by `2.6773925609275944` nats and both Rust
 policy arms matched Python. Its complete quality DoD failed at enabled NLL
 `2.127407277216677` and subject/scene retention `3/5`. Close the exact campaign
-without rerun or tuning. The active successor is
-[#1017](https://github.com/UOR-Foundation/uor-r4/issues/1017), one separately
-frozen quality-capacity rung over the same mechanism. The reference remains transformer-compatible
+without rerun or tuning. Its one separately frozen exposure successor,
+[#1017](https://github.com/UOR-Foundation/uor-r4/issues/1017), completed at
+`149,995,520` cumulative tokens. Enabled Rust parity, all-layer causal/R4
+audits, prompt retention `5/5`, and normalized replay `5/5` passed; sealed NLL
+`1.5727521962806827` failed the strict `<1.50` gate. The result is negative
+solely on NLL. The next action is to specify one predeclared parameter-capacity
+increase over the same mechanism and Rust path, not further 7.15M exposure or
+learning-rate tuning. The reference remains transformer-compatible
 and `f32`/multiply/alloc/source-weight backed; it is not source-free,
 table-native, multiply-free, transformerless, browser-WASM, release, or
 frontier-model evidence.
@@ -119,12 +124,17 @@ localization terminal `REJECT_TANGENT_READOUT_SELECT_SCORE_PREFLIGHT`; D3
 #1014 direct end-to-end training complete with attention-off intervention
 `PASS` (`2.6773925609275944` nats), two-arm Rust parity `PASS`, full quality DoD
 `FAIL` (enabled NLL `2.127407277216677`, prompt retention `3/5`);
+#1017 continuation complete at `149,995,520` cumulative tokens with enabled
+Rust parity and all mechanical gates `PASS`, sealed NLL `FAIL`
+(`1.5727521962806827`), prompt retention `PASS` (`5/5`), and normalized replay
+`PASS` (`5/5`); overall NLL-only negative;
 resonance replacement `NOT_RUN` and parked; full-model recurrent and
 exact lowering parked; #954 blocked. See
 [`helm_d_r4_softmax_decoder_973.md`](helm_d_r4_softmax_decoder_973.md) and
 [`helm_d_learned_manifold_r4_construction_973.md`](helm_d_learned_manifold_r4_construction_973.md),
 then [`r4_softmax_trace_student_973.md`](r4_softmax_trace_student_973.md) and
-[`r4_softmax_trace_observability_1012.md`](r4_softmax_trace_observability_1012.md).
+[`r4_softmax_trace_observability_1012.md`](r4_softmax_trace_observability_1012.md),
+followed by [`r4_softmax_quality_capacity_continuation_1017.md`](r4_softmax_quality_capacity_continuation_1017.md).
 
 ## Current route-native target lifecycle
 
@@ -164,7 +174,8 @@ canonical text/corpus
     -> R4SoftmaxTraceStateStudentV1 recurrent R4/Spin state [COMPLETE; FAIL PROMOTION]
     -> construction-only trace/state observability audit [COMPLETE; INSUFFICIENT SUPPORT]
     -> direct end-to-end causal softmax attention in learned R4/Spin coordinates [#1014; ATTENTION PASS, FULL QUALITY DOD FAIL]
-    -> separately frozen quality-capacity rung over the unchanged mechanism [NEXT]
+    -> continue unchanged 7.15M model to 149,995,520 tokens [#1017; NLL-ONLY FAIL, RETENTION/PARITY/REPLAY PASS]
+    -> one predeclared parameter-capacity increase over the unchanged mechanism [NEXT]
     -> intrinsic/readout alternatives, paired-E8, resonance replacement, full-model recurrent lowering, and exact deployment parked
     -> correctness + typed abstention (#954)
     -> bounded reasoning (#955)
@@ -1524,8 +1535,11 @@ D3 on construction covariance, with diagnostic curved NLL worse than donor and
   subsequently established load-bearing ordinary causal attention through a
   `2.677393`-nat attention-off penalty and exact Rust parity, but failed the
   complete quality DoD at enabled NLL `2.127407` and prompt retention `3/5`.
-  The next primary rung is one separately frozen quality-capacity step over the
-  unchanged attention and Rust execution path.
+  #1017's separate continuation then passed retention `5/5`, enabled parity,
+  every mechanical gate, and replay, but failed solely on sealed NLL
+  `1.5727521962806827`. The next primary rung is one predeclared
+  parameter-capacity increase over the unchanged attention and Rust execution
+  path. Further exposure and LR tuning of the 7.15M checkpoint are prohibited.
   Resonance substitutes, unrelated optimization, and release work
   remain parked. Lowering does not otherwise reactivate automatically on a
   generation positive.

@@ -1,4 +1,4 @@
-"""Command line for the one bounded #1014 training path."""
+"""Command line for the frozen #1014 base run and #1017 continuation."""
 
 from __future__ import annotations
 
@@ -8,8 +8,18 @@ from pathlib import Path
 from typing import Any
 
 from .admission import admit_rust_smoke_qualification
+from .continuation import (
+    admit_enabled_prefix_parity,
+    reveal_continuation,
+    train_continuation,
+)
+from .continuation_data import (
+    load_continuation_training_view_manifest,
+    prepare_continuation_dataset,
+)
 from .data import download_source, load_dataset_manifest, prepare_dataset
-from .paths import default_research_root
+from .finalize import finalize_continuation
+from .paths import default_continuation_root, default_research_root
 from .provenance import verify_bound_manifest
 from .train import TrainConfig, reveal_sealed_test, run_overfit_smoke, train_main
 
@@ -25,13 +35,15 @@ def _print_result(value: dict[str, Any]) -> None:
 def parser() -> argparse.ArgumentParser:
     command = argparse.ArgumentParser(
         prog="r4-softmax-trainer",
-        description="Direct MPS-only causal-softmax language-model campaign for UOR-R4 #1014",
+        description="Frozen MPS-only causal-softmax language-model campaigns for UOR-R4",
     )
     command.add_argument(
         "--root",
         type=_root,
-        default=default_research_root(),
-        help="untracked data/checkpoint root (default: repo .uor-models/research/issue-1014)",
+        help=(
+            "untracked data/checkpoint root (defaults to issue-1014 or issue-1017 "
+            "according to the selected lifecycle)"
+        ),
     )
     subcommands = command.add_subparsers(dest="command", required=True)
 
@@ -64,12 +76,66 @@ def parser() -> argparse.ArgumentParser:
 
     verify = subcommands.add_parser("verify", help="reproduce dataset and optional export CIDs")
     verify.add_argument("--export", action="store_true", help="also verify export/export-manifest.json")
+
+    continuation = subcommands.add_parser(
+        "prepare-continuation",
+        help="build #1017's fresh story-aligned population without opening #1014 sealed data",
+    )
+    continuation.add_argument(
+        "--predecessor-root",
+        type=_root,
+        default=default_research_root(),
+        help="immutable #1014 research root",
+    )
+    continuation.add_argument("--source", type=_root, help="exact pinned TinyStories source")
+    continuation.add_argument("--force", action="store_true")
+
+    continue_run = subcommands.add_parser(
+        "continue", help="run or resume the one frozen #1017 continuation"
+    )
+    continue_run.add_argument("--resume", action="store_true")
+
+    enabled = subcommands.add_parser(
+        "admit-enabled-parity",
+        help="bind the sole enabled-only Rust 32-token qualification",
+    )
+    enabled.add_argument("--rust-qualification", type=_root, required=True)
+    subcommands.add_parser(
+        "reveal-continuation",
+        help="irreversibly open and score #1017's fresh enabled-only confirmation",
+    )
+    subcommands.add_parser(
+        "verify-continuation-training",
+        help="verify #1017's nonsealed training view while confirmation remains denied",
+    )
+    finalize = subcommands.add_parser(
+        "finalize-continuation",
+        help="bind the opened reveal, ten existing Rust generations, and human rubric once",
+    )
+    finalize.add_argument(
+        "--rubric",
+        type=_root,
+        required=True,
+        help="independently prepared exact five-record human rubric JSON",
+    )
     return command
 
 
 def main() -> None:
     arguments = parser().parse_args()
-    root: Path = arguments.root
+    continuation_commands = {
+        "prepare-continuation",
+        "continue",
+        "admit-enabled-parity",
+        "reveal-continuation",
+        "verify-continuation-training",
+        "finalize-continuation",
+    }
+    root: Path = arguments.root or (
+        default_continuation_root()
+        if arguments.command in continuation_commands
+        else default_research_root()
+    )
     if arguments.command == "download":
         path = download_source(root)
         _print_result({"path": str(path), "bytes": path.stat().st_size, "status": "VERIFIED"})
@@ -97,5 +163,30 @@ def main() -> None:
                 artifact_root=root / "export",
             )
         _print_result(result)
+        return
+    if arguments.command == "prepare-continuation":
+        _print_result(
+            prepare_continuation_dataset(
+                root,
+                predecessor_root=arguments.predecessor_root,
+                source=arguments.source,
+                force=arguments.force,
+            )
+        )
+        return
+    if arguments.command == "continue":
+        _print_result(train_continuation(root, resume=arguments.resume))
+        return
+    if arguments.command == "admit-enabled-parity":
+        _print_result(admit_enabled_prefix_parity(root, arguments.rust_qualification))
+        return
+    if arguments.command == "reveal-continuation":
+        _print_result(reveal_continuation(root))
+        return
+    if arguments.command == "verify-continuation-training":
+        _print_result(load_continuation_training_view_manifest(root))
+        return
+    if arguments.command == "finalize-continuation":
+        _print_result(finalize_continuation(root, arguments.rubric))
         return
     raise AssertionError(f"unhandled command: {arguments.command}")

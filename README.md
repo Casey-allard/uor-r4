@@ -14,7 +14,7 @@ local hardware. The project is testing whether language context, inference,
 and reasoning can emerge from routes through a canonical geometric memory. The
 target serving engine uses no Ollama, hosted model, or source-model weights.
 
-> **Current attention-to-intelligence checkpoint (2026-08-30):** ordinary
+> **Current attention-to-intelligence checkpoint (2026-08-31):** ordinary
 > learned causal Q/K/V attention with stable softmax is established as the
 > equivalence baseline in coherent R4/Spin frames. The directly trained
 > 7,155,360-parameter [#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014)
@@ -28,15 +28,27 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > This establishes load-bearing ordinary causal attention at the declared
 > learned R4/Spin scope; it is not a geometry-advantage result.
 >
-> The same frozen campaign failed its full language-quality Definition of Done:
+> That frozen campaign failed its full language-quality Definition of Done:
 > enabled NLL exceeded the `1.50` ceiling and subject-or-scene retention was
 > `3/5`, below `4/5`. All five outputs were valid UTF-8, avoided period-one
 > through period-four loops, and replayed exactly. The campaign closes negative
-> without rerun or tuning. Dependable coherent generation remains unresolved;
-> the next step is [#1017](https://github.com/UOR-Foundation/uor-r4/issues/1017),
-> one separately frozen quality-capacity rung that reuses the
-> exact attention and Rust execution path rather than another attention
-> diagnostic or geometry substitute. See the
+> without rerun or tuning. Its one separately frozen quality-capacity successor,
+> [#1017](https://github.com/UOR-Foundation/uor-r4/issues/1017), has now also
+> completed. It reached `149,995,520` cumulative training tokens and selected
+> development NLL `1.580241072373312`. Enabled-only Python/Rust parity passed
+> with identical top-1 and maximum logit delta
+> `0.0000057220458984375`; all six R4/Spin layers and every causal/external audit
+> passed. The one-time fresh sealed reveal scored NLL
+> `1.5727521962806827`, failing the strict `<1.50` gate, while all `5/5` fixed
+> continuations passed subject-or-scene retention and all `5/5` normalized
+> replays were exact. The complete #1017 verdict is therefore negative solely
+> on NLL. Attention remains established, but dependable general language
+> quality remains unresolved. There is no rerun, learning-rate adjustment, or
+> further exposure extension for this 7.15M-parameter model. The next action is
+> one predeclared parameter-capacity increase over the same attention and Rust
+> evidence path, using external hardware only if its fixed budget requires it.
+> See the [#1017 record](docs/r4_softmax_quality_capacity_continuation_1017.md),
+> [#1017 structured aggregate](docs/r4_softmax_quality_capacity_continuation_1017_raw.json),
 > [#1014 record](docs/r4_softmax_end_to_end_attention_1014.md) and
 > [structured aggregate](docs/r4_softmax_end_to_end_attention_1014_raw.json).
 >
@@ -189,8 +201,12 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > `2.6773925609275944`-nat attention-off penalty and two-arm Rust parity
 > establish load-bearing ordinary attention, while enabled NLL `2.127407` and
 > subject/scene retention `3/5` fail the frozen quality DoD. That campaign is
-> closed to rerun or tuning; the next rung changes only learning capacity while
-> reusing the qualified mechanism and runtime evidence path.
+> closed to rerun or tuning. #1017's fixed exposure-only successor improved the
+> fresh sealed NLL to `1.5727521962806827` and prompt retention to `5/5`, with
+> enabled Rust parity and exact replay, but still failed the strict `<1.50`
+> quality gate. The next rung must increase parameter capacity while reusing the
+> qualified mechanism and runtime evidence path; no further 7.15M exposure or
+> learning-rate tuning is authorized.
 > Intrinsic/readout substitution, resonance, softmax replacement, scale, and
 > product promotion remain parked. No tag, release, hosted
 > promotion, or browser-WASM claim is authorized. See the
@@ -262,7 +278,9 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > load-bearing ordinary causal attention through its `2.677393`-nat
 > attention-off intervention and Rust parity, but failed its full quality DoD
 > at enabled NLL `2.127407` and subject/scene retention `3/5`. It closes
-> negative; a separate quality-capacity rung is next. #954 remains blocked.
+> negative. #1017's separate continuation then reached `5/5` retention but
+> failed NLL only at `1.5727521962806827`. A predeclared parameter-capacity
+> increase is next; #954 remains blocked.
 > See the
 > [bounded-global record](docs/bounded_global_exact_spin_attention_973.md).
 
@@ -655,8 +673,10 @@ exact-descriptor/entity-binding path selector apiece at their respective
    causal-softmax model: its `2.677393`-nat attention-off penalty and two-arm
    Rust parity establish attention, but enabled NLL `2.127407` and
    subject/scene retention `3/5` fail its quality DoD. Close that exact campaign
-   without tuning; a separate quality-capacity rung that reuses the mechanism
-   is next. #954 stays blocked.
+   without tuning. #1017's separate exposure continuation then passed retention
+   `5/5` and all mechanical gates but failed only sealed NLL at
+   `1.5727521962806827`. Next increase parameter capacity under a new frozen
+   contract; #954 stays blocked.
 See the [append-only #953 record](docs/local_geometric_generation_953.md).
 See the [accepted table-tie record](docs/source_free_table_geometric_intervention_953.md).
 See the [#973 Gate 0 record](docs/prior_sentence_count_radius_attention_973.md).
@@ -794,7 +814,10 @@ not become substitutes for working intelligence:
    ordinary causal attention with a `2.677393`-nat attention-off penalty and
    exact Rust parity, but failed its complete quality gate at enabled NLL
    `2.127407` and prompt retention `3/5`. Close that campaign without rerun or
-   tuning; next freeze one quality-capacity rung over the same mechanism.
+   tuning. #1017 then completed the one frozen exposure continuation: NLL
+   `1.5727521962806827` failed the strict `<1.50` gate, while retention, parity,
+   causal audits, and replay passed. Next freeze one parameter-capacity increase
+   over the same mechanism, with no further 7.15M exposure or LR tuning.
    Do not resume resonance substitutes or promote a product/release. This intermediate
    reference is transformer-compatible, `f32`/multiply/alloc and source-weight
    backed—not table-native, multiply-free, or transformerless. No tag, release,
@@ -848,8 +871,10 @@ boundary attribution follows. #1014 subsequently established load-bearing
 ordinary causal attention in the trained R4/Spin path through a `2.677393`-nat
 attention-off penalty and exact Rust parity. Its full quality DoD is negative:
 enabled NLL `2.127407` exceeded `1.50`, and subject/scene retention was `3/5`
-versus `4/5`. Close that exact campaign and advance only to a separately frozen
-quality-capacity rung over the same attention/runtime path.
+versus `4/5`. #1017's separately frozen continuation improved those measurements
+to NLL `1.5727521962806827` and retention `5/5`, but its full DoD remains
+negative solely on the strict NLL ceiling. Advance only to one predeclared
+parameter-capacity increase over the same attention/runtime path.
 #954 remains blocked behind #973. The exact contract is
 [ADR-0005](docs/adr/0005-predictive-geometric-connection-memory.md).
 

@@ -22,10 +22,14 @@
   attention-off worsened sealed NLL by `2.6773925609275944` nats and both Rust
   policy arms matched Python. Its complete language-quality DoD is negative at
   enabled NLL `2.127407277216677` and prompt retention `3/5`. Close that exact
-  campaign without rerun or tuning. The active successor is
-  [#1017](https://github.com/UOR-Foundation/uor-r4/issues/1017), one independently
-  frozen quality-capacity rung over the same mechanism.
-- **Date:** 2026-08-28; direction updated 2026-08-30
+  campaign without rerun or tuning. [#1017](https://github.com/UOR-Foundation/uor-r4/issues/1017)
+  then completed the one independently frozen exposure continuation. At
+  `149,995,520` cumulative tokens it passed enabled parity, all mechanical
+  gates, retention `5/5`, and normalized replay `5/5`, but failed solely on
+  fresh sealed NLL `1.5727521962806827` against the strict `<1.50` gate. The
+  next action is to specify one predeclared parameter-capacity increase over the same
+  mechanism and Rust path, not more 7.15M exposure or LR tuning.
+- **Date:** 2026-08-28; direction updated 2026-08-31
 - **Owner:** #973 under programme root #820
 - **Supersedes for forward work:** another fixed componentwise prototype or
   scale-only repair after the #997 negative
@@ -132,8 +136,11 @@ sealed NLL by `2.6773925609275944` nats and the Rust enabled/off policies
 matched Python, establishing load-bearing ordinary causal attention at that
 learned R4/Spin scope. Its full quality DoD failed because enabled NLL was
 `2.127407277216677 > 1.50` and subject/scene retention was `3/5 < 4/5`.
-Close the exact campaign without rerun or tuning. The active successor is one
-separately frozen quality-capacity rung over the unchanged mechanism. No tag,
+Close the exact campaign without rerun or tuning. The next action is to specify one
+separately frozen quality-capacity rung over the unchanged mechanism. That rung,
+#1017, has now closed NLL-only negative at `1.5727521962806827`, with retention
+`5/5` and every other gate passing. The next action is one predeclared
+parameter-capacity increase. No tag,
 release, hosted promotion, or static-WASM claim is authorized.
 Its architectural reference is the official MIT HELM-D source pinned at commit
 [`7501deca8f413848bfef804be64ce874b72a3cd7`](https://github.com/Graph-and-Geometric-Learning/helm/tree/7501deca8f413848bfef804be64ce874b72a3cd7).
@@ -177,9 +184,12 @@ The current sequence is strict:
    fresh untouched split and require autonomous decoded generation in the same
    deliverable; **completed** with attention established at the intervention
    scope and the full language-quality DoD negative; and
-8. freeze one quality-capacity rung that reuses #1014's exact attention,
+8. freeze one exposure-only quality-capacity rung that reuses #1014's exact attention,
    population discipline, Rust generation, intervention, and replay path while
-   changing only model or training capacity.
+   changing only training exposure; **completed** as #1017, negative solely on
+   sealed NLL; and
+9. freeze one predeclared parameter-capacity increase over the same mechanism,
+   using external hardware only if its fixed budget requires it.
 
 ### Qualified native endpoint and completed source-free trace rungs
 
@@ -819,7 +829,8 @@ retention was `3/5`, below the frozen `4/5` gate. This establishes ordinary
 causal attention as load-bearing at the declared learned R4/Spin scope while
 closing the full #1014 quality DoD negative. Do not rerun or tune the campaign.
 See the [#1012 record](../r4_softmax_trace_observability_1012.md) and the
-[#1014 record](../r4_softmax_end_to_end_attention_1014.md).
+[#1014 record](../r4_softmax_end_to_end_attention_1014.md), followed by the
+[#1017 record](../r4_softmax_quality_capacity_continuation_1017.md).
 
 ### #1014 outcome amendment — attention established, quality unresolved
 
@@ -835,8 +846,10 @@ The attention claim and the quality verdict are deliberately separate:
 | Decode/replay | UTF-8; no period-1..4 loop; exact reload | `5/5` | **PASS** |
 
 The full issue result is therefore negative, but the attention mechanism is no
-longer ambiguous. The next mechanism-building action is a separate
-quality-capacity rung over the same attention/runtime path. It must not reopen
+longer ambiguous. #1017 then completed the separate exposure continuation with
+sealed NLL `1.5727521962806827` as its sole failed gate and retention/parity/
+audits/replay passing. The next mechanism-building action is one predeclared
+parameter-capacity increase over the same attention/runtime path. It must not reopen
 folds, probes, transport permutations, alternative attention architectures,
 intrinsic geometry, resonance, or exact lowering. The
 [#1014 structured aggregate](../r4_softmax_end_to_end_attention_1014_raw.json)

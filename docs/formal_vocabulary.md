@@ -1,6 +1,6 @@
 # Formal Vocabulary, Notation, and Claim Classes
 
-- **Version:** 0.1.22
+- **Version:** 0.1.23
 - **Status:** Normative for all new specification, plan, proof-model, and certificate text.
 - **Source:** `docs/hologram_formal_analysis_direction.pdf` §§1, 7, 13; tracker
   [#122](https://github.com/UOR-Foundation/uor-r4/issues/122); issue
@@ -178,13 +178,21 @@ by wholesale rewrite.
 
 ## Changelog
 
+- **0.1.23** (2026-08-31) — Recorded #1017's frozen continuation at
+  `149,995,520` cumulative tokens: enabled Rust parity, all mechanical gates,
+  prompt retention `5/5`, and normalized replay `5/5` passed; sealed NLL
+  `1.5727521962806827` failed the strict `<1.50` gate. The result is negative
+  solely on NLL. Preserved #1014's bounded attention conclusion, prohibited
+  further 7.15M exposure/LR tuning, and advanced only one predeclared
+  parameter-capacity increase.
 - **0.1.22** (2026-08-30) — Added `Delta_attn-off` and recorded the completed
   #1014 split verdict: ordinary causal attention established at the learned
   R4/Spin intervention/parity scope; full language-quality DoD negative at
   enabled NLL `2.127407277216677` and prompt retention `3/5`. The exact
-  campaign closes without rerun or diagnostic expansion;
-  [#1017](https://github.com/UOR-Foundation/uor-r4/issues/1017), one
-  quality-capacity rung over the unchanged mechanism, is next.
+  campaign closes without rerun or diagnostic expansion. Its #1017 exposure
+  continuation then closed negative solely on sealed NLL
+  `1.5727521962806827`, with retention `5/5` and all other gates passing. One
+  predeclared parameter-capacity increase over the unchanged mechanism is next.
 - **0.1.21** (2026-08-30) — Recorded #1012
   `INSUFFICIENT_SUPPORT_COVERAGE`, forbade boundary attribution and further
   support/localization loops, and advanced [#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014),
