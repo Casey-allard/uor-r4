@@ -50,3 +50,7 @@ def default_source_span_pointer_root() -> Path:
 
 def default_source_relation_head_root() -> Path:
     return model_store_root() / "research" / "issue-954" / "source-relation-head"
+
+
+def default_attended_relation_adapter_root() -> Path:
+    return model_store_root() / "research" / "issue-954" / "attended-relation-adapter"

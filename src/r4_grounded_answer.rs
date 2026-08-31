@@ -15,7 +15,9 @@ use std::num::NonZeroUsize;
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
-use uor_r4_model_source::TeacherExecutionSnapshot;
+use uor_r4_model_source::{
+    HuggingFaceLlamaOracle, TeacherExecutionConfig, TeacherExecutionSnapshot, TeacherOracle,
+};
 
 use crate::r4_softmax_local_generation::{
     encode_r4_softmax_local_states, LocalCheckpointBinding, R4SoftmaxLocalGenerationError,
@@ -23,9 +25,13 @@ use crate::r4_softmax_local_generation::{
 };
 use crate::r4_softmax_reference_generation::ModelShape;
 use crate::r4_source_relation_head::{
-    evaluate_source_relation_head, load_source_relation_head, render_relation_input,
-    SourceRelationCandidate, SourceRelationHeadBinding, SourceRelationHeadDecision,
-    SourceRelationHeadError, SourceRelationHeadEvaluation, RELATION_HEAD_ARTIFACT_SCHEMA,
+    evaluate_attended_relation_adapter, evaluate_source_relation_head,
+    load_attended_relation_adapter, load_source_relation_head, render_attended_relation_input,
+    render_relation_input, AttendedRelationAdapterBinding, SourceRelationCandidate,
+    SourceRelationHeadBinding, SourceRelationHeadDecision, SourceRelationHeadError,
+    SourceRelationHeadEvaluation, ATTENDED_RELATION_ADAPTER_POLICY,
+    ATTENDED_RELATION_ADAPTER_SCHEMA, ATTENDED_RELATION_INPUT_POLICY,
+    ATTENDED_RELATION_SCORING_POLICY, ATTENDED_RELATION_UPDATE_NONE, RELATION_HEAD_ARTIFACT_SCHEMA,
     RELATION_HEAD_POLICY, RELATION_INPUT_POLICY,
 };
 use crate::r4_source_span_pointer::{
@@ -36,6 +42,8 @@ use crate::r4_source_span_pointer::{
 
 pub const POINTER_REPORT_SCHEMA: &str = "uor-r4.grounded-answer/2";
 pub const RELATION_REPORT_SCHEMA: &str = "uor-r4.grounded-answer/3";
+pub const ATTENDED_RELATION_REPORT_SCHEMA: &str = "uor-r4.grounded-answer/4";
+pub const FIXED_VERBALIZER_AUDIT_SCHEMA: &str = "uor-r4.fixed-verbalizer-audit/1";
 pub const MAX_SOURCE_BYTES: usize = 4 * 1024;
 pub const MAX_QUESTION_BYTES: usize = 1024;
 pub const MAX_SOURCE_SPANS: usize = 8;
@@ -126,6 +134,21 @@ pub struct GroundedRelationEvaluation {
     pub selected_span_index: Option<usize>,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct GroundedFixedVerbalizerAudit {
+    pub schema: String,
+    pub scoring_policy: String,
+    pub source_model_weights_cid: String,
+    pub supported_token_id: u32,
+    pub unsupported_token_id: u32,
+    pub row_width: usize,
+    pub supported_token_row_cid: String,
+    pub unsupported_token_row_cid: String,
+    pub oracle_loads: u64,
+    pub checkpoint_identity_reads: u64,
+    pub checkpoint_identity_unchanged: bool,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum GroundedAbstentionReason {
@@ -186,6 +209,28 @@ struct GroundedRelationDecisionIdentity<'a> {
 }
 
 #[derive(Serialize)]
+struct GroundedAttendedRelationDecisionIdentity<'a> {
+    schema: &'static str,
+    relation_policy: &'static str,
+    relation_input_policy: &'static str,
+    source_cid: &'a str,
+    source_byte_length: usize,
+    question: &'a str,
+    relation_artifact_cid: &'a str,
+    relation_admission: &'a str,
+    representation_update: &'a str,
+    checkpoint_tree_cid: &'a str,
+    model_weights_cid: &'a str,
+    config_cid: &'a str,
+    tokenizer_cid: &'a str,
+    state_encoding_audit_cid: &'a str,
+    fixed_verbalizer: &'a GroundedFixedVerbalizerAudit,
+    candidate_spans: &'a [SourceSpanCandidateBinding],
+    relation_evaluation: &'a GroundedRelationEvaluation,
+    outcome: &'a GroundedAnswerOutcome,
+}
+
+#[derive(Serialize)]
 pub struct GroundedAnswerReport {
     pub schema: String,
     pub decision_cid: String,
@@ -201,7 +246,11 @@ pub struct GroundedAnswerReport {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub relation: Option<SourceRelationHeadBinding>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub attended_relation: Option<AttendedRelationAdapterBinding>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub relation_evaluation: Option<GroundedRelationEvaluation>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fixed_verbalizer: Option<GroundedFixedVerbalizerAudit>,
     /// Compact audit only. Raw width-288 state vectors are deliberately not
     /// repeated in the public report, but their content CIDs remain bound.
     pub state_encoding: GroundedStateEncodingAudit,
@@ -277,6 +326,7 @@ pub fn run_grounded_answer(
         ))
     })?;
     match head_value.get("schema").and_then(serde_json::Value::as_str) {
+        Some(ATTENDED_RELATION_ADAPTER_SCHEMA) => run_attended_relation_grounded_answer(config),
         Some(RELATION_HEAD_ARTIFACT_SCHEMA) => run_relation_grounded_answer(config),
         Some(POINTER_ARTIFACT_SCHEMA) => run_pointer_grounded_answer(config),
         Some(schema) => Err(GroundedAnswerError::InvalidRequest(format!(
@@ -459,7 +509,9 @@ fn run_pointer_grounded_answer(
         pointer: Some(pointer.binding),
         pointer_evaluation: Some(pointer_evaluation),
         relation: None,
+        attended_relation: None,
         relation_evaluation: None,
+        fixed_verbalizer: None,
         state_encoding,
         outcome,
         nonclaims: vec![
@@ -677,7 +729,9 @@ fn run_relation_grounded_answer(
         pointer: None,
         pointer_evaluation: None,
         relation: Some(relation.binding),
+        attended_relation: None,
         relation_evaluation: Some(relation_evaluation),
+        fixed_verbalizer: None,
         state_encoding,
         outcome,
         nonclaims: vec![
@@ -686,6 +740,361 @@ fn run_relation_grounded_answer(
             "This result does not establish the final source-free exact geometric runtime or a browser product surface.".to_owned(),
         ],
     })
+}
+
+fn run_attended_relation_grounded_answer(
+    config: &GroundedAnswerConfig,
+) -> Result<GroundedAnswerReport, GroundedAnswerError> {
+    let source_before = read_source_file(&config.source_file)?;
+    let source_text = std::str::from_utf8(&source_before).map_err(|error| {
+        GroundedAnswerError::InvalidSource(format!(
+            "{} is not exact UTF-8: {error}",
+            config.source_file.display()
+        ))
+    })?;
+    let head_before = std::fs::read(&config.head).map_err(|error| {
+        GroundedAnswerError::InvalidRequest(format!(
+            "cannot read attended relation adapter {}: {error}",
+            config.head.display()
+        ))
+    })?;
+    let subject = parse_subject(&config.question)?;
+    let sentence_spans = split_sentence_spans(source_text)?;
+    if sentence_spans.len() < 2 {
+        return Err(GroundedAnswerError::InvalidSource(
+            "attended relation selection requires 2..=8 sentence spans".to_owned(),
+        ));
+    }
+
+    let sequences = sentence_spans
+        .iter()
+        .map(|(_, text)| render_attended_relation_input(text, &config.question))
+        .collect::<Vec<_>>();
+    let encoded = encode_r4_softmax_local_states(&R4SoftmaxLocalStateEncodingConfig {
+        model: config.model.clone(),
+        sequences,
+        workers: config.workers,
+    })?;
+    if encoded.sequences.len() != sentence_spans.len() {
+        return Err(GroundedAnswerError::Audit(
+            "attended relation state encoder returned the wrong independent-sequence count"
+                .to_owned(),
+        ));
+    }
+
+    let relation = load_attended_relation_adapter(
+        &config.head,
+        &encoded.checkpoint.weights_cid,
+        &encoded.checkpoint.checkpoint_tree_cid,
+        &encoded.checkpoint.config_cid,
+        &encoded.checkpoint.tokenizer_cid,
+    )?;
+    if relation.artifact.hidden_size != encoded.model_shape.dimension {
+        return Err(GroundedAnswerError::Audit(format!(
+            "attended relation width {} differs from model width {}",
+            relation.artifact.hidden_size, encoded.model_shape.dimension
+        )));
+    }
+    let (supported_token_row, unsupported_token_row, fixed_verbalizer) =
+        load_fixed_verbalizer_rows(
+            config,
+            &encoded.checkpoint,
+            &encoded.model_shape,
+            relation.artifact.supported_token_id,
+            relation.artifact.unsupported_token_id,
+        )?;
+
+    let terminal_states = encoded
+        .sequences
+        .iter()
+        .enumerate()
+        .map(|(candidate_index, sequence)| {
+            sequence
+                .final_normalized_residuals
+                .last()
+                .map(Vec::as_slice)
+                .ok_or_else(|| {
+                    GroundedAnswerError::Audit(format!(
+                        "candidate {candidate_index} attended relation input emitted no terminal state"
+                    ))
+                })
+        })
+        .collect::<Result<Vec<_>, GroundedAnswerError>>()?;
+    let relation_candidates = sentence_spans
+        .iter()
+        .zip(&terminal_states)
+        .map(|((source_span, text), state)| SourceRelationCandidate {
+            span_text: text,
+            byte_start: source_span.byte_start,
+            final_relation_state: state,
+        })
+        .collect::<Vec<_>>();
+    let internal_evaluation = evaluate_attended_relation_adapter(
+        &relation.artifact,
+        &relation_candidates,
+        &supported_token_row,
+        &unsupported_token_row,
+    )?;
+    let relation_evaluation = public_relation_evaluation(
+        &internal_evaluation,
+        &sentence_spans,
+        relation.artifact.threshold,
+    );
+
+    let candidate_spans = sentence_spans
+        .iter()
+        .zip(&encoded.sequences)
+        .zip(&terminal_states)
+        .enumerate()
+        .map(
+            |(candidate_index, (((source_span, text), sequence), terminal_state))| {
+                let relation_input = render_attended_relation_input(text, &config.question);
+                let relation_input_text_cid = raw_cid(relation_input.as_bytes());
+                if sequence.text_cid != relation_input_text_cid {
+                    return Err(GroundedAnswerError::Audit(format!(
+                        "candidate {candidate_index} state text CID does not match the exact attended relation input"
+                    )));
+                }
+                Ok(SourceSpanCandidateBinding {
+                    candidate_index,
+                    source_span: *source_span,
+                    text_cid: raw_cid(text.as_bytes()),
+                    state_cid: sequence.audit.state_cid.clone(),
+                    content_token_count: sequence.audit.content_token_count,
+                    relation_input_text_cid: Some(relation_input_text_cid),
+                    terminal_state_cid: Some(cid_serializable(terminal_state)?),
+                })
+            },
+        )
+        .collect::<Result<Vec<_>, GroundedAnswerError>>()?;
+
+    let outcome = match internal_evaluation.decision {
+        SourceRelationHeadDecision::Answer { candidate_index } => {
+            let candidate = sentence_spans.get(candidate_index).ok_or_else(|| {
+                GroundedAnswerError::Audit(
+                    "attended relation adapter selected an absent source span".to_owned(),
+                )
+            })?;
+            GroundedAnswerOutcome::Answered {
+                answer: candidate.1.to_owned(),
+                source_span: candidate.0,
+            }
+        }
+        SourceRelationHeadDecision::Abstain => GroundedAnswerOutcome::Abstained {
+            reason: GroundedAbstentionReason::RelationNoSupport,
+        },
+        SourceRelationHeadDecision::Contradiction => GroundedAnswerOutcome::Contradiction,
+    };
+
+    let source_after = read_source_file(&config.source_file)?;
+    let source_cid = raw_cid(&source_before);
+    if source_before != source_after {
+        return Err(GroundedAnswerError::Audit(format!(
+            "source {} changed during selection (before {}, after {})",
+            config.source_file.display(),
+            source_cid,
+            raw_cid(&source_after)
+        )));
+    }
+    let head_after = std::fs::read(&config.head).map_err(|error| {
+        GroundedAnswerError::Audit(format!(
+            "cannot rescan attended relation adapter {}: {error}",
+            config.head.display()
+        ))
+    })?;
+    if head_before != head_after {
+        return Err(GroundedAnswerError::Audit(format!(
+            "attended relation adapter {} changed during selection",
+            config.head.display()
+        )));
+    }
+
+    let source = GroundingSourceBinding {
+        path: config.source_file.display().to_string(),
+        source_cid,
+        byte_length: source_before.len(),
+        regular_non_symlink: true,
+        utf8: true,
+        reads: 2,
+        unchanged_after_run: true,
+    };
+    let sequence_audits = encoded
+        .sequences
+        .iter()
+        .map(|sequence| sequence.audit.clone())
+        .collect::<Vec<_>>();
+    let state_encoding = GroundedStateEncodingAudit {
+        schema: encoded.schema,
+        audit_cid: encoded.audit_cid,
+        model_weights_cid: encoded.checkpoint.weights_cid.clone(),
+        tokenizer_cid: encoded.checkpoint.tokenizer_cid.clone(),
+        hidden_size: encoded.model_shape.dimension,
+        checkpoint: encoded.checkpoint,
+        model_shape: encoded.model_shape,
+        subject_text_cid: None,
+        subject_state_cid: None,
+        subject_content_token_count: None,
+        relation_input_policy: Some(ATTENDED_RELATION_INPUT_POLICY.to_owned()),
+        sequence_audits,
+        source_read_audit: encoded.source_read_audit,
+        execution: encoded.execution,
+    };
+    let decision_cid = cid_serializable(&GroundedAttendedRelationDecisionIdentity {
+        schema: ATTENDED_RELATION_REPORT_SCHEMA,
+        relation_policy: ATTENDED_RELATION_ADAPTER_POLICY,
+        relation_input_policy: ATTENDED_RELATION_INPUT_POLICY,
+        source_cid: &source.source_cid,
+        source_byte_length: source.byte_length,
+        question: &config.question,
+        relation_artifact_cid: &relation.binding.artifact_cid,
+        relation_admission: &relation.binding.admission,
+        representation_update: &relation.binding.representation_update,
+        checkpoint_tree_cid: &state_encoding.checkpoint.checkpoint_tree_cid,
+        model_weights_cid: &state_encoding.checkpoint.weights_cid,
+        config_cid: &state_encoding.checkpoint.config_cid,
+        tokenizer_cid: &state_encoding.checkpoint.tokenizer_cid,
+        state_encoding_audit_cid: &state_encoding.audit_cid,
+        fixed_verbalizer: &fixed_verbalizer,
+        candidate_spans: &candidate_spans,
+        relation_evaluation: &relation_evaluation,
+        outcome: &outcome,
+    })?;
+
+    let claim_scope = if relation.binding.representation_update == ATTENDED_RELATION_UPDATE_NONE {
+        "research-only fixed-verbalizer relation evaluation over the frozen #1017 six-layer coherent R4/Spin causal-softmax checkpoint; output is an exact original source sentence or a typed non-answer"
+    } else {
+        "research-only fixed-verbalizer relation evaluation over one representation-trained six-layer coherent R4/Spin causal-softmax checkpoint; output is an exact original source sentence or a typed non-answer"
+    };
+
+    Ok(GroundedAnswerReport {
+        schema: ATTENDED_RELATION_REPORT_SCHEMA.to_owned(),
+        decision_cid,
+        claim_scope: claim_scope.to_owned(),
+        source,
+        question: config.question.clone(),
+        subject,
+        candidate_spans,
+        pointer: None,
+        pointer_evaluation: None,
+        relation: None,
+        attended_relation: Some(relation.binding),
+        relation_evaluation: Some(relation_evaluation),
+        fixed_verbalizer: Some(fixed_verbalizer),
+        state_encoding,
+        outcome,
+        nonclaims: vec![
+            "This artifact is admitted only for research parity; no qualified/product C1-SB3 tuple is registered.".to_owned(),
+            "This bounded source-relative result does not establish open-domain question answering, reasoning, or general semantic entailment.".to_owned(),
+            "The selected checkpoint remains source-backed, floating-point, multiplication-using, and ordinary-softmax based.".to_owned(),
+            "This result does not establish the final source-free exact geometric runtime or a browser product surface.".to_owned(),
+        ],
+    })
+}
+
+fn load_fixed_verbalizer_rows(
+    config: &GroundedAnswerConfig,
+    checkpoint: &LocalCheckpointBinding,
+    model_shape: &ModelShape,
+    supported_token_id: u32,
+    unsupported_token_id: u32,
+) -> Result<(Vec<f32>, Vec<f32>, GroundedFixedVerbalizerAudit), GroundedAnswerError> {
+    verify_bound_checkpoint_identity_files(config, checkpoint)?;
+    let oracle = HuggingFaceLlamaOracle::load_with_sequence_length_and_execution(
+        &config.model,
+        1,
+        TeacherExecutionConfig::fixed_workers(config.workers),
+    )
+    .map_err(|error| {
+        GroundedAnswerError::Audit(format!(
+            "cannot load the bound checkpoint's fixed verbalizer rows: {error}"
+        ))
+    })?;
+    if oracle.source_cid() != checkpoint.weights_cid {
+        return Err(GroundedAnswerError::Audit(
+            "fixed verbalizer rows came from different weights than the encoded relation states"
+                .to_owned(),
+        ));
+    }
+    if oracle.cfg().vocab != model_shape.vocabulary
+        || oracle.cfg().dim != model_shape.dimension
+        || supported_token_id as usize >= oracle.cfg().vocab
+        || unsupported_token_id as usize >= oracle.cfg().vocab
+    {
+        return Err(GroundedAnswerError::Audit(
+            "fixed verbalizer token IDs or row width lie outside the bound checkpoint".to_owned(),
+        ));
+    }
+    let mut supported_token_row = vec![0.0_f32; model_shape.dimension];
+    let mut unsupported_token_row = vec![0.0_f32; model_shape.dimension];
+    TeacherOracle::embedding(
+        &oracle,
+        supported_token_id as usize,
+        &mut supported_token_row,
+    );
+    TeacherOracle::embedding(
+        &oracle,
+        unsupported_token_id as usize,
+        &mut unsupported_token_row,
+    );
+    if supported_token_row.iter().any(|value| !value.is_finite())
+        || unsupported_token_row.iter().any(|value| !value.is_finite())
+    {
+        return Err(GroundedAnswerError::Audit(
+            "fixed verbalizer rows contain nonfinite lanes".to_owned(),
+        ));
+    }
+    verify_bound_checkpoint_identity_files(config, checkpoint)?;
+    let audit = GroundedFixedVerbalizerAudit {
+        schema: FIXED_VERBALIZER_AUDIT_SCHEMA.to_owned(),
+        scoring_policy: ATTENDED_RELATION_SCORING_POLICY.to_owned(),
+        source_model_weights_cid: checkpoint.weights_cid.clone(),
+        supported_token_id,
+        unsupported_token_id,
+        row_width: model_shape.dimension,
+        supported_token_row_cid: cid_serializable(&supported_token_row)?,
+        unsupported_token_row_cid: cid_serializable(&unsupported_token_row)?,
+        oracle_loads: 1,
+        checkpoint_identity_reads: 4,
+        checkpoint_identity_unchanged: true,
+    };
+    Ok((supported_token_row, unsupported_token_row, audit))
+}
+
+fn verify_bound_checkpoint_identity_files(
+    config: &GroundedAnswerConfig,
+    checkpoint: &LocalCheckpointBinding,
+) -> Result<(), GroundedAnswerError> {
+    for (name, expected_cid) in [
+        ("config.json", checkpoint.config_cid.as_str()),
+        ("tokenizer.json", checkpoint.tokenizer_cid.as_str()),
+    ] {
+        let path = config.model.join(name);
+        let metadata = std::fs::symlink_metadata(&path).map_err(|error| {
+            GroundedAnswerError::Audit(format!(
+                "cannot inspect bound checkpoint identity file {}: {error}",
+                path.display()
+            ))
+        })?;
+        if !metadata.file_type().is_file() {
+            return Err(GroundedAnswerError::Audit(format!(
+                "bound checkpoint identity file {} is not a regular non-symlink file",
+                path.display()
+            )));
+        }
+        let bytes = std::fs::read(&path).map_err(|error| {
+            GroundedAnswerError::Audit(format!(
+                "cannot read bound checkpoint identity file {}: {error}",
+                path.display()
+            ))
+        })?;
+        let observed_cid = raw_cid(&bytes);
+        if observed_cid != expected_cid {
+            return Err(GroundedAnswerError::Audit(format!(
+                "bound checkpoint identity file {name} changed after state encoding: expected {expected_cid}, observed {observed_cid}"
+            )));
+        }
+    }
+    Ok(())
 }
 
 fn public_relation_evaluation(
@@ -1110,5 +1519,77 @@ mod tests {
                 "Beta is there!"
             )
         );
+    }
+
+    #[test]
+    fn attended_decision_identity_binds_admission_update_and_checkpoint() {
+        let fixed_verbalizer = GroundedFixedVerbalizerAudit {
+            schema: FIXED_VERBALIZER_AUDIT_SCHEMA.to_owned(),
+            scoring_policy: ATTENDED_RELATION_SCORING_POLICY.to_owned(),
+            source_model_weights_cid: raw_cid(b"weights"),
+            supported_token_id: 1771,
+            unsupported_token_id: 542,
+            row_width: 288,
+            supported_token_row_cid: raw_cid(b"yes-row"),
+            unsupported_token_row_cid: raw_cid(b"no-row"),
+            oracle_loads: 1,
+            checkpoint_identity_reads: 4,
+            checkpoint_identity_unchanged: true,
+        };
+        let candidate_spans = vec![SourceSpanCandidateBinding {
+            candidate_index: 0,
+            source_span: SourceSpan {
+                byte_start: 0,
+                byte_end: 9,
+            },
+            text_cid: raw_cid(b"Evidence."),
+            state_cid: raw_cid(b"state"),
+            content_token_count: 1,
+            relation_input_text_cid: Some(raw_cid(b"input")),
+            terminal_state_cid: Some(raw_cid(b"terminal")),
+        }];
+        let relation_evaluation = GroundedRelationEvaluation {
+            candidate_logits: vec![1.0],
+            positive_candidate_indices: vec![0],
+            positive_unique_span_count: 1,
+            decision: "answer".to_owned(),
+            selected_span_index: Some(0),
+        };
+        let outcome = GroundedAnswerOutcome::Answered {
+            answer: "Evidence.".to_owned(),
+            source_span: candidate_spans[0].source_span,
+        };
+        let artifact_cid = raw_cid(b"adapter");
+        let tree_cid = raw_cid(b"tree");
+        let weights_cid = raw_cid(b"weights");
+        let config_cid = raw_cid(b"config");
+        let tokenizer_cid = raw_cid(b"tokenizer");
+        let audit_cid = raw_cid(b"audit");
+        let identity = |admission: &str, representation_update: &str| {
+            cid_serializable(&GroundedAttendedRelationDecisionIdentity {
+                schema: ATTENDED_RELATION_REPORT_SCHEMA,
+                relation_policy: ATTENDED_RELATION_ADAPTER_POLICY,
+                relation_input_policy: ATTENDED_RELATION_INPUT_POLICY,
+                source_cid: "blake3:source",
+                source_byte_length: 9,
+                question: "Where is the evidence?",
+                relation_artifact_cid: &artifact_cid,
+                relation_admission: admission,
+                representation_update,
+                checkpoint_tree_cid: &tree_cid,
+                model_weights_cid: &weights_cid,
+                config_cid: &config_cid,
+                tokenizer_cid: &tokenizer_cid,
+                state_encoding_audit_cid: &audit_cid,
+                fixed_verbalizer: &fixed_verbalizer,
+                candidate_spans: &candidate_spans,
+                relation_evaluation: &relation_evaluation,
+                outcome: &outcome,
+            })
+            .expect("attended decision CID")
+        };
+        let lora = identity("research_only", "lora_qkvo_all_layers");
+        assert_ne!(lora, identity("qualified", "lora_qkvo_all_layers"));
+        assert_ne!(lora, identity("research_only", "none_frozen_readout"));
     }
 }

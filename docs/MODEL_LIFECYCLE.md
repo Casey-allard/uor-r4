@@ -128,9 +128,22 @@ relations `20/20`, and supported copies `6/6`; sealed-family transfer was only
 the matched same-source, query-swap, duplicate-agreement, and distinct-value
 conflict controls failed. It stopped before Rust parity, the sole 512-step fit,
 development, product reveal, or final-head emission. This failure does not
-revise the established attention or generation results. See the
+revise the established attention or generation results.
+
+C1-SB3 `R4AttendedRelationAdapterV1` then placed rank-eight LoRA updates on
+Q/K/V/O in all six existing attention layers, used fixed yes/no tied-token
+logits, and added no trainable relation head. It produced bounded mechanistic
+transfer: base sealed positive recall `0/76` became trained `73/76`, trained
+negative specificity was `234/239`, all 24 attention tensors changed, and no
+non-attention tensor changed. The exact gate still failed: fit outcomes
+`124/126`; sealed outcomes `56/63` (answer `19/21`, abstain `19/21`, conflict
+`18/21`); supported copies `19/21`. Rust parity, the sole full fit,
+development, and the four committed but unopened product probes are `NOT_RUN`;
+no final adapter exists. This failure also does not revise established
+attention or coherent generation. See the
 [#954 campaign record](r4_grounded_correctness_954.md) and
-[C1-SB2 aggregate](r4_source_relation_head_954_raw.json).
+[C1-SB2 aggregate](r4_source_relation_head_954_raw.json), followed by the
+[corrected C1-SB3 aggregate](r4_attended_relation_adapter_954_raw.json).
 
 The #1017 export remains the current working 7.15M coherent-generation
 prototype. `r4 generate --prompt "..."` defaults to
@@ -147,9 +160,11 @@ table-native, multiply-free, transformerless, browser-WASM, release, or
 frontier-model evidence.
 Intrinsic/readout alternatives, multi-resonance softmax replacement, full-model
 recurrent lowering, and exact H4/Q29/integer-table deployment are parked. #954
-remains open: its next proposed mechanism trains relation supervision into the
-representation through the existing R4/Spin attention path while retaining the
-exact-copy and typed non-answer Rust seam. #955 remains blocked on a positive
+remains open. Do not tune or retry the C1-SB3 independent-candidate BCE
+adapter. Its next proposed mechanism is an independently frozen joint-source
+candidate-set representation with a record-level structured-margin objective
+through attention while retaining the exact-copy and typed non-answer Rust
+seam. #955 remains blocked on a positive
 correctness result, and #954's final source-free terminal remains blocked behind
 #973. Validation,
 test, and inference remain strictly causal and cannot fit on their future
@@ -177,6 +192,12 @@ Rust parity and all mechanical gates `PASS`, sealed NLL `FAIL`
 `FAIL_MATCHED_TRANSFER_PREFLIGHT_STOP` with fit positive/negative/copy
 `12/12`, `20/20`, `6/6`, sealed `5/12`, `14/20`, `0/6`, Rust parity/full
 fit/development/product `NOT_RUN`, and no final head;
+#954 C1-SB3 bounded mechanistic transfer with fixed-verbalizer/no-head
+rank-eight all-layer Q/K/V/O adaptation, base-to-trained sealed positive recall
+`0/76 -> 73/76`, trained negative specificity `234/239`, all 24 attention
+tensors changed and no non-attention tensors changed, but exact fit outcomes
+`124/126`, sealed outcomes `56/63`, copies `19/21`, and Rust parity/full fit/
+development/product `NOT_RUN`;
 resonance replacement `NOT_RUN` and parked; full-model recurrent and
 exact lowering parked. See
 [`helm_d_r4_softmax_decoder_973.md`](helm_d_r4_softmax_decoder_973.md) and
@@ -231,7 +252,8 @@ canonical text/corpus
     -> source-backed grounded SFT [#954 C1-SB0; PRODUCT TRANSFER FAIL]
     -> cosine source-span pointer [#954 C1-SB1; DEVELOPMENT FAIL, NO FINAL HEAD]
     -> terminal-residual relation head [#954 C1-SB2; MATCHED-TRANSFER PREFLIGHT FAIL, NO FINAL HEAD]
-    -> train relation supervision through existing R4/Spin attention while retaining exact-copy + typed nonanswer seam [#954; PROPOSED]
+    -> rank-8 all-layer Q/K/V/O relation adapter, fixed yes/no verbalizer, no head [#954 C1-SB3; BOUNDED TRANSFER, EXACT PREFLIGHT FAIL]
+    -> joint-source candidate-set representation + record-level structured margin through attention [#954; PROPOSED]
     -> final source-free correctness terminal [#954; BLOCKED BEHIND #973]
     -> bounded reasoning [#955; BLOCKED ON POSITIVE CORRECTNESS]
     -> durable isolated CLI/HTTP chat + persisted hive memory (#962)
@@ -1606,10 +1628,17 @@ D3 on construction covariance, with diagnostic curved NLL worse than donor and
   development gates; and C1-SB2 fit positive/negative/copy relations at
   `12/12`, `20/20`, and `6/6` but transferred only `5/12`, `14/20`, and `0/6`.
   Only candidate-array order equivariance passed. C1-SB2 stopped before Rust
-  parity, its 512-step fit, development, product, or final-head emission. The
-  active proposed #954 step is to train relation supervision into the existing
-  R4/Spin attention representation while preserving the exact-copy and typed
-  non-answer Rust seam. CUDA and external GPU execution are out of scope.
+  parity, its 512-step fit, development, product, or final-head emission.
+  C1-SB3's no-head rank-eight Q/K/V/O adapter then produced bounded transfer:
+  sealed positive recall improved from `0/76` to `73/76`, negative specificity
+  reached `234/239`, all 24 attention tensors changed, and no non-attention
+  tensors changed. It failed exact fit/sealed outcomes at `124/126` and `56/63`
+  with copies `19/21`; Rust parity/full fit/development/product are `NOT_RUN`,
+  and the committed product population stayed unopened. Do not tune or retry
+  that independent-candidate BCE adapter. The active proposed #954 step is an
+  independently frozen joint-source candidate-set representation with a
+  record-level structured-margin objective through attention, preserving the
+  exact-copy and typed non-answer Rust seam. CUDA and external GPU execution are out of scope.
   Further exposure and LR tuning of the 7.15M checkpoint are prohibited.
   Resonance substitutes, unrelated optimization, and release work
   remain parked. Lowering does not otherwise reactivate automatically on a

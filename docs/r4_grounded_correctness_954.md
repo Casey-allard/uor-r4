@@ -1,6 +1,6 @@
 # Source-backed grounded answer campaigns (#954)
 
-Status: **C1-SB2 MATCHED-TRANSFER PREFLIGHT STOP / NO QUALIFIED ANSWER ARTIFACT**
+Status: **C1-SB3 MECHANISM TRANSFER POSITIVE / EXACT PROMOTION NEGATIVE / NO QUALIFIED ANSWER ARTIFACT**
 Parent programme: #820
 Working model: #1017 six-layer R4/Spin causal-softmax checkpoint
 Final source-free correctness terminal: still blocked by parked #973
@@ -202,3 +202,75 @@ The compact bound aggregate is
 [`r4_source_relation_head_954_raw.json`](r4_source_relation_head_954_raw.json).
 The final source-free #954 terminal remains separately blocked by #973, and
 #955 reasoning remains downstream of a positive correctness result.
+
+## C1-SB3 attended-relation adapter result — 2026-08-31
+
+`R4AttendedRelationAdapterV1` moved relation supervision into the existing
+#1017 representation instead of training another probe over frozen terminal
+states. The #1017 base remained frozen while rank-8, alpha-8, dropout-zero LoRA
+adapters trained `q_proj`, `k_proj`, `v_proj`, and `o_proj` in all six R4/Spin
+causal-softmax layers. There is no trainable classification head. Each
+candidate uses the exact input below, with no terminal newline:
+
+```text
+Evidence:
+<exact source sentence>
+Question:
+<question>
+Supported:
+```
+
+The fixed decision score is the tied token-logit difference for token ID 1771
+(`yes`) minus token ID 542 (`no`) at the final input position; a score greater
+than zero marks a candidate supported. This produced 110,592 trainable adapter
+parameters. The implementation can merge them into an ordinary checkpoint,
+but the failed exact gate stopped before any adapted checkpoint was emitted.
+
+The first attempt-01 alignment report paired scores with the wrong candidate
+rows. It is invalid and is **non-evidence**. The result below is the corrected
+exact replay over the original frozen rows and aggregation policy:
+
+| Frozen metric | Base sealed | Trained fit | Trained sealed | Requirement |
+| --- | ---: | ---: | ---: | ---: |
+| answer decisions | `0/21` | `41/42` | `19/21` | exact |
+| abstain decisions | `21/21` | `42/42` | `19/21` | exact |
+| conflict decisions | `0/21` | `41/42` | `18/21` | exact |
+| positive-relation recall | `0/76` | `150/152` | `73/76` | exact |
+| negative-relation specificity | `239/239` | `478/478` | `234/239` | exact |
+| supported copied span | `0/21` | `41/42` | `19/21` | exact |
+
+The final optimizer loss was `0.04814816266298294`. Corrected fit mean binary
+cross-entropy was `0.01836039125919342`; corrected sealed mean binary
+cross-entropy was `0.12464728206396103`. The representation-delta audit passed:
+all `24/24` targeted Q/K/V/O tensors changed and remained finite, while every
+non-attention tensor remained unchanged. The corrected result is bound by:
+
+- result CID `blake3:b55bd25715705450742d80f9ecde56cdd965beefb1c122e08b477b03d0949b92`; and
+- manifest CID `blake3:e0faa45bb80b122d0e8a31ac6c582fd4b44b39ee20f5d49aeaca2f07deb21e71`.
+
+This is a **positive mechanism-transfer result**: unlike the frozen C1-SB2
+readout, supervision applied through the existing R4/Spin attention path
+transferred most supported, unsupported, conflict, and copy decisions to the
+sealed lexical families. It is nevertheless an **exact-promotion negative**:
+both fit and sealed evaluation missed binding exact criteria. The campaign
+therefore stopped before Rust parity, the full fit, development evaluation, or
+product probes; each is `NOT_RUN`. No C1-SB3 checkpoint is qualified for the
+default `r4 answer` surface.
+
+The observed internal result reused whole-population exactness for three named
+control booleans rather than isolating their individual motif populations.
+Those booleans are therefore `NOT_CLAIMED`; they did not decide this terminal
+because the independently reported fit and sealed semantic gates had already
+failed. The producer now evaluates future named controls separately.
+
+Do not retry this candidate-independent binary objective with another seed,
+rank, learning rate, or threshold. The next successor should be a freshly
+frozen joint-source/candidate-set mechanism trained with a record-level
+structured margin over answer, abstain, conflict, and exact-copy outcomes. That
+is a new objective and information flow, not a C1-SB3 retry: it must score the
+whole candidate set together so the learning signal matches the downstream
+record decision. Preserve the established exact-copy and typed non-answer Rust
+boundary. This result does not revise #1017's bounded ordinary-attention or
+coherent-generation claims, establish an intrinsic-geometric advantage, or
+unblock #955. The final source-free #954 terminal remains separately blocked by
+#973.

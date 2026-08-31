@@ -1,0 +1,100 @@
+{
+  "schema": "uor-r4.attended-relation-adapter-aggregate/1",
+  "issue": 954,
+  "policy": "R4AttendedRelationAdapterV1",
+  "claim_scope": "bounded source-backed lexical relation transfer through rank-8 Q/K/V/O adapters on all six established R4/Spin ordinary causal-softmax layers, with a fixed tied yes/no readout and no trainable relation head",
+  "dataset_cid": "blake3:ec211ee1397e1fae7a20597a2efec5c0fadb525a79c8babb859974b31e1adc24",
+  "preflight_cid": "blake3:639a7ad3c897c7bb360ec49204bf32f5ef48d3d42d5c396f1fa94a4a2c50ef24",
+  "census_cid": "blake3:b59391706078e9418829d28e20b1f73cfb808bec9b0e1da354592e3c7b192bb9",
+  "product_probes_cid": "blake3:05d4bc2f87761059d8c932906cd07b73f7a0d4dd42548ee2b4d0660d623669d3",
+  "training_view_manifest_cid": "blake3:eb25bc34cdb1d3b274f53dc1c337153c895202c7d91e97cb142a621218e16476",
+  "run_contract_cid": "blake3:237cd69a236cf0e26d00cd132bf63df63e7cf11c3fb96e569ebf4e96bbcee944",
+  "population": {
+    "fit_records": 126,
+    "sealed_records": 63,
+    "construction_records": 756,
+    "development_records": 252,
+    "product_probe_commitments": 4,
+    "product_text_status": "UNOPENED_NOT_RUN"
+  },
+  "mechanism": {
+    "trainable_parameters": 110592,
+    "rank": 8,
+    "alpha": 8,
+    "dropout": 0,
+    "attention_layers": 6,
+    "adapted_projections": ["q_proj", "k_proj", "v_proj", "o_proj"],
+    "trainable_head": false,
+    "positive_token_id": 1771,
+    "negative_token_id": 542,
+    "decision_threshold": 0,
+    "optimizer_steps": 192,
+    "candidate_batch_size": 64,
+    "seed": 9543,
+    "initial_binary_cross_entropy": 0.552886962890625,
+    "final_binary_cross_entropy": 0.04814816266298294,
+    "projected_seconds_at_step_8": 124.7729909978807
+  },
+  "untrained_sealed": {
+    "answer_outcomes": {"correct": 0, "total": 21},
+    "abstain_outcomes": {"correct": 21, "total": 21},
+    "conflict_outcomes": {"correct": 0, "total": 21},
+    "positive_relation_recall": {"correct": 0, "total": 76},
+    "negative_relation_specificity": {"correct": 239, "total": 239},
+    "supported_copies": {"correct": 0, "total": 21},
+    "mean_binary_cross_entropy": 0.6599822640419006
+  },
+  "trained_fit": {
+    "answer_outcomes": {"correct": 41, "total": 42},
+    "abstain_outcomes": {"correct": 42, "total": 42},
+    "conflict_outcomes": {"correct": 41, "total": 42},
+    "positive_relation_recall": {"correct": 150, "total": 152},
+    "negative_relation_specificity": {"correct": 478, "total": 478},
+    "supported_copies": {"correct": 41, "total": 42},
+    "mean_binary_cross_entropy": 0.01836039125919342
+  },
+  "trained_sealed": {
+    "answer_outcomes": {"correct": 19, "total": 21},
+    "abstain_outcomes": {"correct": 19, "total": 21},
+    "conflict_outcomes": {"correct": 18, "total": 21},
+    "positive_relation_recall": {"correct": 73, "total": 76},
+    "negative_relation_specificity": {"correct": 234, "total": 239},
+    "supported_copies": {"correct": 19, "total": 21},
+    "mean_binary_cross_entropy": 0.12464728206396103
+  },
+  "representation_audit": {
+    "changed_attention_tensors": 24,
+    "expected_attention_tensors": 24,
+    "all_changed_attention_tensors_finite": true,
+    "changed_nonattention_tensors": 0,
+    "verdict": "BOUNDED_REPRESENTATION_TRANSFER_OBSERVED"
+  },
+  "control_interpretation": {
+    "status": "NOT_CLAIMED_AFTER_SEMANTIC_GATE_FAILURE",
+    "reason": "The observed internal report reused whole-population exactness for three named control booleans instead of isolating each committed motif. The exact fit/sealed semantic miss already determined the terminal, so those booleans are excluded from the evidence claim and the producer is corrected for future runs."
+  },
+  "qualification": {
+    "exact_fit_gate": "FAIL",
+    "exact_sealed_gate": "FAIL",
+    "terminal": "FAIL_REPRESENTATION_TRANSFER_PREFLIGHT",
+    "rust_parity": "NOT_RUN",
+    "full_fit": "NOT_RUN",
+    "development": "NOT_RUN",
+    "product": "UNOPENED_NOT_RUN",
+    "result_cid": "blake3:b55bd25715705450742d80f9ecde56cdd965beefb1c122e08b477b03d0949b92",
+    "manifest_cid": "blake3:e0faa45bb80b122d0e8a31ac6c582fd4b44b39ee20f5d49aeaca2f07deb21e71"
+  },
+  "invalid_attempt_01": {
+    "status": "INVALID_EVALUATION_ALIGNMENT_NOT_EVIDENCE",
+    "result_cid": "blake3:2aa73e1361436ad28f6acfd245619681f9b5d30a73116c5565efeb9635b77c87",
+    "manifest_cid": "blake3:eed13c6a481a10eb3b0cea25a23389ee49fb7fb92051192c0ed3e67784493b3c",
+    "repair": "pair scores with the same stable sorted example inventory used by evaluation",
+    "replay": "same data, model, seed, schedule, optimizer, and per-step losses"
+  },
+  "decision": "Relation supervision causally entered the attention representation and transferred to disjoint lexical worlds, but the independent-candidate binary objective did not meet exact source-backed safety. Do not tune or retry this adapter. A successor should jointly encode the source candidate set and train the fixed copy/abstain/conflict decision with a record-level structured-margin objective through attention.",
+  "nonclaims": [
+    "No qualified source-backed answer backend was emitted.",
+    "No intrinsic geometry advantage or transformerless runtime was established.",
+    "No general correctness, reasoning, browser, WASM, or release claim was established."
+  ]
+}

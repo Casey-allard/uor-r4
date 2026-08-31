@@ -38,6 +38,7 @@ from .data import download_source, load_dataset_manifest, prepare_dataset
 from .finalize import finalize_continuation
 from .grounding import train_grounding
 from .paths import (
+    default_attended_relation_adapter_root,
     default_capacity_root,
     default_continuation_root,
     default_grounding_predecessor_root,
@@ -45,6 +46,10 @@ from .paths import (
     default_research_root,
     default_source_relation_head_root,
     default_source_span_pointer_root,
+)
+from .source_relation_adapter_campaign import (
+    prepare_attended_relation_data,
+    run_attended_relation_preflight,
 )
 from .provenance import verify_bound_manifest
 from .source_relation_head import train_source_relation_head
@@ -278,6 +283,32 @@ def parser() -> argparse.ArgumentParser:
             "head; required only on the second invocation"
         ),
     )
+    prepare_adapter = subcommands.add_parser(
+        "prepare-attended-relation",
+        help=(
+            "commit C1-SB3 independent relation data and sealed product CIDs "
+            "without starting optimization"
+        ),
+    )
+    prepare_adapter.add_argument(
+        "--predecessor",
+        type=_root,
+        default=default_grounding_predecessor_root(),
+        help="immutable completed #1017 Hugging Face export",
+    )
+    train_adapter = subcommands.add_parser(
+        "train-attended-relation-preflight",
+        help=(
+            "run the sole <=10 minute C1-SB3 representation-transfer preflight; "
+            "never opens product text"
+        ),
+    )
+    train_adapter.add_argument(
+        "--predecessor",
+        type=_root,
+        default=default_grounding_predecessor_root(),
+        help="immutable completed #1017 Hugging Face export",
+    )
     return command
 
 
@@ -307,6 +338,10 @@ def main() -> None:
     grounding_commands = {"finetune-grounding"}
     pointer_commands = {"train-source-span-pointer"}
     relation_commands = {"train-source-relation-head"}
+    attended_relation_commands = {
+        "prepare-attended-relation",
+        "train-attended-relation-preflight",
+    }
     if arguments.root:
         root = arguments.root
     elif arguments.command in capacity_commands:
@@ -319,6 +354,8 @@ def main() -> None:
         root = default_source_span_pointer_root()
     elif arguments.command in relation_commands:
         root = default_source_relation_head_root()
+    elif arguments.command in attended_relation_commands:
+        root = default_attended_relation_adapter_root()
     else:
         root = default_research_root()
     if arguments.command == "download":
@@ -452,6 +489,16 @@ def main() -> None:
                 predecessor=arguments.predecessor,
                 rust_score_parity=arguments.rust_score_parity,
             )
+        )
+        return
+    if arguments.command == "prepare-attended-relation":
+        _print_result(
+            prepare_attended_relation_data(root, predecessor=arguments.predecessor)
+        )
+        return
+    if arguments.command == "train-attended-relation-preflight":
+        _print_result(
+            run_attended_relation_preflight(root, predecessor=arguments.predecessor)
         )
         return
     raise AssertionError(f"unhandled command: {arguments.command}")

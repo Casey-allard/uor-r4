@@ -85,9 +85,29 @@
   and distinct-value conflict controls failed. It stopped before Rust parity,
   the sole 512-step fit, development, product, or final-head emission. This
   negative does not revise the established attention or generation results.
-  #954 remains open. Its next proposed mechanism trains relation supervision
-  into the representation through the existing R4/Spin attention path while
-  retaining the exact-copy and typed non-answer Rust seam. #955 remains
+  The independently frozen `R4AttendedRelationAdapterV1` C1-SB3 successor then
+  trained rank-8 Q/K/V/O LoRA adapters in all six existing R4/Spin attention
+  layers, with the base frozen, no trainable head, and fixed tied-token
+  `yes`/`no` logits. Its first attempt-01 alignment report is invalid
+  non-evidence; corrected exact replay is authoritative. The base sealed result
+  was answer `0/21`, abstain `21/21`, conflict `0/21`, positive relations
+  `0/76`, negative relations `239/239`, and copies `0/21`. The trained fit was
+  `41/42`, `42/42`, `41/42`, `150/152`, `478/478`, and `41/42` respectively;
+  trained sealed was `19/21`, `19/21`, `18/21`, `73/76`, `234/239`, and
+  `19/21`. Final optimizer loss was `0.04814816266298294`, fit BCE was
+  `0.01836039125919342`, and sealed BCE was `0.12464728206396103`. All `24/24`
+  Q/K/V/O tensors changed and remained finite, while every non-attention tensor
+  remained unchanged. This is positive mechanism transfer but an exact
+  promotion negative, so Rust parity, full fit, development, and product probes
+  are `NOT_RUN`. Result CID
+  `blake3:b55bd25715705450742d80f9ecde56cdd965beefb1c122e08b477b03d0949b92`;
+  manifest CID
+  `blake3:e0faa45bb80b122d0e8a31ac6c582fd4b44b39ee20f5d49aeaca2f07deb21e71`.
+  This result does not revise the established attention or generation results.
+  #954 remains open. Its next successor is a fresh joint-source/candidate-set,
+  record-level structured-margin mechanism over answer, abstain, conflict, and
+  exact-copy outcomes—not a C1-SB3 seed, rank, learning-rate, or threshold
+  retry. Retain the exact-copy and typed non-answer Rust seam. #955 remains
   blocked, and #954's final source-free terminal remains blocked behind #973.
   UOR's deployed
   architecture/runtime remains CPU-native;
@@ -112,8 +132,9 @@
   [#1017 continuation result](r4_softmax_quality_capacity_continuation_1017.md),
   then the [#1019 frozen contract](r4_softmax_parameter_capacity_1019.md) and
   [observed preflight](r4_softmax_parameter_capacity_preflight_1019_raw.json),
-  followed by the [#954 campaign record](r4_grounded_correctness_954.md) and
-  [C1-SB2 aggregate](r4_source_relation_head_954_raw.json).
+  followed by the [#954 campaign record](r4_grounded_correctness_954.md), the
+  [C1-SB2 aggregate](r4_source_relation_head_954_raw.json), and the
+  [corrected C1-SB3 aggregate](r4_attended_relation_adapter_954_raw.json).
   The intermediate
   [Geometric Causal Decoder Roadmap](geometric_causal_decoder_plan.md) records
   the superseded #948-#958 sequence.

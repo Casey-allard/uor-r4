@@ -78,9 +78,21 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > query-swap, duplicate-agreement, and distinct-conflict controls were false.
 > C1-SB2 therefore stopped before Rust parity, the sole 512-step full fit,
 > development, and product reveal; no final relation head was emitted. Do not
-> tune or retry either revealed head. The next proposed #954 mechanism trains
-> relation supervision into the representation through the established R4/Spin
-> attention path while retaining exact-source-copy and typed-nonanswer semantics.
+> tune or retry either revealed head. C1-SB3
+> `R4AttendedRelationAdapterV1` then trained rank-eight Q/K/V/O adapters through
+> all six existing attention layers with a fixed yes/no tied-token verbalizer
+> and no trainable head. It produced bounded mechanistic transfer: sealed
+> positive recall moved from base `0/76` to trained `73/76`, trained negative
+> specificity was `234/239`, all 24 attention tensors changed, and no
+> non-attention tensor changed. The exact gate still failed: fit outcomes were
+> `124/126`; sealed outcomes were `56/63` (answer `19/21`, abstain `19/21`,
+> conflict `18/21`), with copies `19/21`. Rust parity, the sole full fit,
+> development, and the four committed but unopened product probes are
+> `NOT_RUN`; no final adapter exists. Do not tune or retry this
+> independent-candidate BCE adapter. The next proposed #954 mechanism is an
+> independently frozen joint-source candidate-set representation with a
+> record-level structured-margin objective through attention, retaining
+> exact-source-copy and typed-nonanswer semantics.
 > #954's final source-free terminal remains blocked behind #973, and #955
 > remains blocked behind #954.
 > See the [#1017 record](docs/r4_softmax_quality_capacity_continuation_1017.md),
@@ -89,7 +101,9 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > [#1019 structured contract](docs/r4_softmax_parameter_capacity_1019_raw.json),
 > [#1019 signed preflight/admission result](docs/r4_softmax_parameter_capacity_preflight_1019_raw.json),
 > [#1014 record](docs/r4_softmax_end_to_end_attention_1014.md) and
-> [structured aggregate](docs/r4_softmax_end_to_end_attention_1014_raw.json).
+> [structured aggregate](docs/r4_softmax_end_to_end_attention_1014_raw.json),
+> plus the [#954 correctness campaign](docs/r4_grounded_correctness_954.md) and
+> [corrected C1-SB3 aggregate](docs/r4_attended_relation_adapter_954_raw.json).
 >
 > The completed #1017 checkpoint is the current working 7.15M
 > coherent-generation prototype. If its local export exists, run it directly
@@ -241,9 +255,13 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > result. #973 remains open for its intrinsic/source-free terminal; #954's
 > cosine source-span pointer stopped at its development gate, and its implemented
 > C1-SB2 relation head then stopped at failed matched-transfer preflight before
-> Rust parity/full fit/development/product, without a final head. The proposed
-> representation-trained successor retains the established R4/Spin attention
-> plus exact-copy/typed-nonanswer seam. #954's final source-free terminal remains
+> Rust parity/full fit/development/product, without a final head. C1-SB3's
+> rank-eight all-layer Q/K/V/O adapter then changed only the 24 attention
+> tensors and improved sealed positive recall from `0/76` to `73/76`, but it
+> missed the exact fit/sealed gates (`124/126`, `56/63`) and stopped before
+> parity, full fitting, development, or its unopened product reveal. The next
+> proposal is a jointly encoded candidate-set representation with a record-level
+> structured margin through attention. #954's final source-free terminal remains
 > blocked behind #973, and #955 remains blocked behind #954.
 > The trace/compiler rung
 > that followed that checkpoint is now complete: `R4SoftmaxTeacherTraceV1`
@@ -272,8 +290,12 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > stopped before final artifact or product reveal. Its implemented C1-SB2
 > source-relative relation successor then failed matched-transfer preflight and
 > stopped before Rust parity/full fit/development/product, without a final head.
-> The next proposal trains relation supervision into the existing R4/Spin
-> attention representation while retaining exact-copy/typed-nonanswer behavior.
+> C1-SB3's no-head, fixed-verbalizer rank-eight Q/K/V/O adapter established
+> bounded representation transfer but failed its exact gate at fit `124/126`
+> and sealed `56/63`; parity/full fit/development/product remain `NOT_RUN`.
+> The next proposal is an independently frozen joint-source candidate-set
+> representation with a record-level structured-margin objective through
+> attention while retaining exact-copy/typed-nonanswer behavior.
 > CUDA and external GPU execution are out of scope. No
 > further 7.15M exposure or learning-rate tuning is authorized.
 > Intrinsic/readout substitution, resonance, softmax replacement, scale, and
@@ -357,9 +379,12 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > (`4.485223` versus signed `3.491307 s/step`); #1019 closed without a full run.
 > #954's cosine pointer stopped at its development gate; its implemented C1-SB2
 > relation successor then failed matched-transfer preflight before Rust parity,
-> full fit, development, or product reveal, and emitted no final head. The next
-> proposal trains relation supervision into the existing R4/Spin attention
-> representation while retaining exact-copy/typed-nonanswer behavior. CUDA and
+> full fit, development, or product reveal, and emitted no final head. C1-SB3's
+> rank-eight all-layer Q/K/V/O adapter then improved sealed positive recall from
+> `0/76` to `73/76` with no non-attention changes, but failed its exact outcome
+> gate at fit `124/126` and sealed `56/63`; later stages remain `NOT_RUN`. The
+> next proposal is joint-source candidate-set encoding with a record-level
+> structured margin through attention. CUDA and
 > external GPU execution are out of scope. #954's final source-free terminal
 > remains blocked behind #973, and #955 remains blocked behind #954.
 > See the
@@ -427,7 +452,11 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > passed; browser E2E remains `NOT_RUN`. The source-free trace/state attempts
 > are preserved negatives; #954's cosine pointer is also a bounded negative.
 > Its implemented C1-SB2 relation successor failed matched-transfer preflight
-> before Rust parity/full fit/development/product and emitted no final head. The
+> before Rust parity/full fit/development/product and emitted no final head.
+> C1-SB3 then showed bounded attention-representation transfer but missed its
+> exact preflight (`124/126` fit outcomes; `56/63` sealed), so parity/full fit/
+> development/product remain `NOT_RUN`. The next frozen mechanism is a
+> joint-source candidate-set structured-margin objective through attention. The
 > final source-free terminal remains blocked behind #973, and #955 remains
 > blocked behind #954.
 > See the
@@ -503,9 +532,13 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > `3.491307 s/step`); #1019 closed without a full run. #954's cosine pointer
 > stopped before final artifact or reveal; its implemented C1-SB2 relation
 > successor then failed matched-transfer preflight before Rust parity/full
-> fit/development/product and emitted no final head. The next proposal trains
-> relation supervision into the existing R4/Spin attention representation while
-> retaining exact-copy/typed-nonanswer behavior. CUDA and external GPU execution
+> fit/development/product and emitted no final head. C1-SB3's rank-eight
+> all-layer Q/K/V/O adapter changed only attention tensors and transferred most
+> sealed relations (`73/76` positive, `234/239` negative), but missed the exact
+> fit/sealed outcome gates (`124/126`, `56/63`) and stopped before all later
+> stages. The next proposal jointly encodes the source candidate set and trains
+> a record-level structured margin through attention while retaining
+> exact-copy/typed-nonanswer behavior. CUDA and external GPU execution
 > are out of scope. #954's final source-free terminal remains blocked behind
 > #973, and #955 remains blocked behind #954. General higher-scope attention,
 > correct answers, and reasoning do not exist yet. The
@@ -586,9 +619,20 @@ distinct-conflict controls were false, so C1-SB2 stopped before Rust parity,
 the sole 512-step full fit, development, and product reveal. It emitted no final
 head. Consequently the default `r4 answer` surface is unavailable unless an
 explicitly qualified relation-head artifact exists. Do not tune or retry either
-revealed head. The next proposed #954 mechanism trains relation supervision
-into the representation through the established R4/Spin attention path while
-retaining exact-source-copy and typed-nonanswer semantics. #954's final
+revealed head. C1-SB3 `R4AttendedRelationAdapterV1` then used rank-eight LoRA
+updates on Q/K/V/O in all six attention layers, a fixed yes/no tied-token
+verbalizer, and no trainable classifier head. It moved sealed positive recall
+from base `0/76` to trained `73/76`, reached negative specificity `234/239`,
+changed all 24 attention tensors, and left all non-attention tensors unchanged.
+That is bounded mechanistic representation-transfer evidence, but not a
+qualified answer mechanism: fit outcomes were `124/126`; sealed outcomes were
+`56/63` (answer `19/21`, abstain `19/21`, conflict `18/21`), and supported
+copies were `19/21`. The exact gate stopped Rust parity, the sole full fit,
+development, and all four committed but unopened product probes as `NOT_RUN`.
+Do not tune or retry this independent-candidate BCE adapter. The next proposed
+#954 mechanism independently freezes a joint-source candidate-set
+representation with a record-level structured-margin objective through
+attention, retaining exact-source-copy and typed-nonanswer semantics. #954's final
 source-free terminal remains blocked behind #973, and #955 remains blocked
 behind #954. See the
 [#954 record](docs/r4_grounded_correctness_954.md) and
@@ -856,9 +900,12 @@ exact-descriptor/entity-binding path selector apiece at their respective
    signed `3.491307 s/step`); #1019 closed without a full run. #954's cosine
    pointer stopped before final artifact or product reveal; its implemented
    C1-SB2 relation successor then failed matched-transfer preflight before Rust
-   parity/full fit/development/product and emitted no final head. The next
-   proposal trains relation supervision into the existing R4/Spin attention
-   representation while retaining exact-copy/typed-nonanswer behavior. CUDA and
+   parity/full fit/development/product and emitted no final head. C1-SB3's
+   rank-eight all-layer Q/K/V/O adapter showed bounded transfer (`0/76` to
+   `73/76` sealed positive recall) but failed exact outcomes at fit `124/126`
+   and sealed `56/63`; parity/full fit/development/product are `NOT_RUN`. The
+   next proposal is joint-source candidate-set encoding with a record-level
+   structured margin through attention. CUDA and
    external GPU execution are out of scope. #954's final source-free terminal
    stays blocked behind #973, and #955 remains blocked behind #954.
 See the [append-only #953 record](docs/local_geometric_generation_953.md).
@@ -1010,9 +1057,12 @@ not become substitutes for working intelligence:
    versus signed `3.491307 s/step`); #1019 closed without a full run. #954's
    cosine pointer stopped before final artifact or product reveal. Its
    implemented C1-SB2 relation successor then failed matched-transfer preflight
-   before Rust parity/full fit/development/product and emitted no final head. The
-   next proposal trains relation supervision into the existing R4/Spin attention
-   representation while retaining exact-copy/typed-nonanswer behavior. CUDA and
+   before Rust parity/full fit/development/product and emitted no final head.
+   C1-SB3's rank-eight all-layer Q/K/V/O adapter changed only attention tensors
+   and transferred most sealed relations, but failed exact fit/sealed outcomes
+   (`124/126`, `56/63`); all later stages are `NOT_RUN`. The next proposal is a
+   joint-source candidate-set representation with a record-level structured
+   margin through attention. CUDA and
    external GPU execution are out of scope.
    Do not resume resonance substitutes. Product development continues through
    `r4 generate`, but no production-readiness or release claim follows yet. This intermediate
@@ -1081,9 +1131,12 @@ fast path was slower (`4.485223` versus signed `3.491307 s/step`); #1019 closed
 without a full run. #954's cosine pointer stopped before final artifact or
 product reveal. Its implemented C1-SB2 relation successor then failed
 matched-transfer preflight before Rust parity/full fit/development/product and
-emitted no final head. The next proposal trains relation supervision into the
-existing R4/Spin attention representation while retaining
-exact-copy/typed-nonanswer behavior. CUDA and external GPU execution are out of
+emitted no final head. C1-SB3's rank-eight all-layer Q/K/V/O adapter produced
+bounded representation transfer but failed exact fit/sealed outcomes at
+`124/126` and `56/63`; parity/full fit/development and the unopened product
+population are `NOT_RUN`. The next proposal is a joint-source candidate-set
+representation with a record-level structured-margin objective through
+attention, retaining exact-copy/typed-nonanswer behavior. CUDA and external GPU execution are out of
 scope. #954's final source-free terminal remains blocked behind #973, and #955
 remains blocked behind #954. The exact contract is
 [ADR-0005](docs/adr/0005-predictive-geometric-connection-memory.md).
