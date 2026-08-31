@@ -8,17 +8,19 @@ the readable mirror of programme root #820.** The
 is the current architecture and claim-boundary companion.
 The active mechanism contract is
 [`ADR-0005`](docs/adr/0005-predictive-geometric-connection-memory.md). The
-current evidence handoff is the
-[`R4SoftmaxTraceStudentV1` record](docs/r4_softmax_trace_student_973.md): ordinary
-causal R4/Spin Q/K/V plus stable softmax is the established equivalence
-baseline; the source-free Q16 suffix student shows bounded distillation but
-loops autonomously. Work next only on `R4SoftmaxTraceStateStudentV1`, compiling
-construction traces into recurrent source-free R4/Spin state under frozen
-suffix/plain-recurrent/transport-permuted controls. Offline teacher/compiler
-floats, matrix operations, and softmax are allowed; deployed runtime remains
-exact and source-free. The hosted Pages build is static, currently reports WASM
-offline, and has no functioning chat backend/artifact lowering; do not treat it
-as product evidence or let it replace this research gate.
+current evidence handoff is the frozen, not-yet-run
+[#1019 parameter-capacity contract](docs/r4_softmax_parameter_capacity_1019.md).
+It keeps the established ordinary causal R4/Spin Q/K/V plus stable-softmax
+mechanism and changes only decoder depth from six to twelve layers: exactly
+13,130,784 parameters, seed 1019, 16,800 optimizer steps, and 275,251,200
+training tokens. All #1019 execution gates are `NOT_RUN`. Work next only on
+that one campaign after its cheap preflights and eight-hour hardware-admission
+gate pass; a paid external launch requires explicit owner approval. Offline
+teacher/compiler floats, matrix operations, and softmax are allowed; deployed
+runtime remains exact and source-free. The hosted Pages build is static,
+currently reports WASM offline, and has no functioning chat backend/artifact
+lowering; do not treat it as product evidence or let it replace this research
+gate.
 
 The H4-only `DirectCausalGeometricAttentionR4V1` scaffold now exists, but its first
 8-case V2 result is `NON_PROMOTABLE_BUDGET_MISMATCH`: the nominally matched
@@ -81,14 +83,17 @@ decision CID, persistent-state CID, all-30-layer exact audits, and zero future
 reads as the CLI. Dashboard wiring, native-readiness gating, and static/WASM
 isolation checks pass, but hosted Pages remains static/offline without a
 functioning chat backend/artifact lowering. The feature is disabled by default
-and does not change the default engine. The teacher-trace/Q16 suffix-student
-step is complete with bounded distillation but looping output; the active step
-is `R4SoftmaxTraceStateStudentV1`. This reference remains
+and does not change the default engine. The teacher-trace/Q16 suffix student,
+its recurrent state successor, and #1012's observability rung are complete
+bounded negatives. #1014 established load-bearing attention; #1017 closed
+NLL-only negative; and the active step is #1019's frozen, not-yet-run 12-layer
+parameter-capacity campaign. This reference remains
 transformer-compatible and `f32`/multiply/alloc/source-weight backed—not
 table-native, multiply-free, or transformerless. It does not establish geometry
 advantage, softmax removal, correctness, reasoning, frontier quality, release
 readiness, or a static-WASM decoder. Do not resume resonance substitutes or
-promote a product/release until the source-free artifact passes. Do not tune
+promote a product/release before #1019's decision; only its positive branch may
+open one separate softmax-replacement issue. Do not tune
 the revealed V2/V3/V4 or learned-manifold
 fixtures, relax the V1 covariance bound, or scale #997's rejected
 componentwise-Frechet placement. The binding records are
@@ -221,9 +226,11 @@ readout. Provider-free-at-execution, source-backed
 opt-in, loopback-only dedicated native HTTP endpoint now pass. Dashboard
 wiring/readiness and static/WASM-isolation checks pass, while hosted Pages
 remains static/offline without a functioning chat backend/artifact lowering.
-#973 is active only on `R4SoftmaxTraceStateStudentV1`; the Q16 suffix trace
-student is complete with bounded distillation but looping output.
-Intrinsic/readout, resonance, recurrence,
+The Q16 suffix trace student, its recurrent state successor, and #1012's
+observability rung are complete bounded negatives. #1014 established
+load-bearing attention and #1017 closed NLL-only negative. #973 is active only
+on #1019's frozen 12-layer parameter-capacity campaign, whose execution remains
+`NOT_RUN`. Intrinsic/readout, resonance, recurrence,
 and lowering are parked. D3 remains `NOT_RUN`, and #954 remains blocked.
 Do not add a second #953 intervention or reuse the #983/#986 populations. The
 complete #973 Gate 0 record is
@@ -588,10 +595,11 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
   wiring/readiness and static/WASM-isolation checks pass; hosted Pages remains
   static/offline without a functioning chat backend/artifact lowering. The Q16
   suffix trace student is complete with bounded distillation but looping output.
-  The active step is `R4SoftmaxTraceStateStudentV1`; intrinsic/readout
-  alternatives, resonance-based softmax replacement, full-model recurrent
-  lowering, and exact deployment are parked. D3 remains
-  `NOT_RUN`.
+  The active step is #1019's frozen 12-layer, 13,130,784-parameter
+  ordinary-softmax R4/Spin quality campaign. Training remains `NOT_RUN` pending
+  the preflight and hardware gates. Intrinsic/readout alternatives,
+  resonance-based softmax replacement, full-model recurrent lowering, and
+  exact deployment are parked. D3 remains `NOT_RUN`.
   #954 remains blocked behind #973.
   #954 and #955 own correctness and reasoning respectively.
   #962 owns durable multi-turn CLI/HTTP chat, persistence, isolation, and
@@ -608,7 +616,10 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
   wiring/readiness and WASM isolation PASS; hosted Pages static/offline without
   chat backend/artifact lowering) → construction-only layerwise oracle traces
   [COMPLETE] → source-free Q16 suffix student [BOUNDED DISTILLATION; LOOPING] →
-  `R4SoftmaxTraceStateStudentV1`) →
+  `R4SoftmaxTraceStateStudentV1` [COMPLETE; FAIL PROMOTION] → #1012
+  observability [COMPLETE; INSUFFICIENT SUPPORT] → #1014 direct attention
+  [ATTENTION PASS; QUALITY FAIL] → #1017 exposure continuation [NLL-ONLY FAIL]
+  → #1019 frozen 12-layer parameter-capacity campaign [ACTIVE; NOT_RUN]) →
   correctness/abstention → reasoning → optimization/purity/release. The older placement/transport
   sequence is retained as evidence, not an active implementation queue.
 - Kappa is canonical identity/serialization, never the tokenizer or semantic

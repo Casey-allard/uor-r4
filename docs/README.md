@@ -99,10 +99,15 @@ has now completed at `149,995,520` cumulative tokens. Enabled Rust parity,
 all-layer causal/R4 audits, `5/5` subject-or-scene retention, and `5/5` exact
 normalized replay passed; fresh sealed NLL `1.5727521962806827` failed the
 strict `<1.50` criterion. The result is negative solely on NLL. No more
-7.15M-parameter exposure or learning-rate tuning follows; the next action is
-one predeclared parameter-capacity increase over the same mechanism. See the
-[#1017 record](r4_softmax_quality_capacity_continuation_1017.md). This stops one
-bounded model-capacity rung, not ordinary attention.
+7.15M-parameter exposure or learning-rate tuning follows. The sole successor is
+now frozen under [#1019](https://github.com/UOR-Foundation/uor-r4/issues/1019):
+twelve layers, 13,130,784 parameters, seed 1019, 16,800 optimizer steps, and
+275,251,200 tokens over the same mechanism and Rust path. Every #1019
+execution gate is `NOT_RUN`; a full launch requires the preflights and an
+eight-hour hardware projection, and paid external execution requires explicit
+approval. See the [#1017 record](r4_softmax_quality_capacity_continuation_1017.md)
+and [#1019 frozen contract](r4_softmax_parameter_capacity_1019.md). This stops
+one bounded model-capacity rung, not ordinary attention.
 No tag, release, hosted promotion, or static-WASM claim is authorized. D3
 remains `NOT_RUN`; #973 remains open and #954 remains blocked.
 
@@ -133,9 +138,9 @@ Choose the shortest path that matches what you need:
   [ADR-0005](adr/0005-predictive-geometric-connection-memory.md), then
   [ADR-0004](adr/0004-geometric-intelligence-route-hierarchy.md), and use the
   [glossary](transformerless/GLOSSARY.md) for unfamiliar terms.
-- **Contribute to the active build:** start from live issue
-  [#820](https://github.com/UOR-Foundation/uor-r4/issues/820) and take only the
-  first unblocked stage.
+- **Contribute to the active build:** start from live
+  [#1019](https://github.com/UOR-Foundation/uor-r4/issues/1019) under #973 and
+  programme root #820; execute only its frozen, currently `NOT_RUN` campaign.
 - **Audit a result or claim:** use the [research ledger](RESEARCH.md), then open
   the exact issue-numbered evidence record it names.
 - **Run the existing interface:** return to the root
@@ -213,8 +218,9 @@ These are the small set of living documents that define the present work:
    [#1014 record](r4_softmax_end_to_end_attention_1014.md) binds the positive
    attention intervention and negative first quality gate; the
    [#1017 record](r4_softmax_quality_capacity_continuation_1017.md) binds the
-   completed NLL-only-negative continuation and the parameter-capacity next
-   direction.
+   completed NLL-only-negative continuation; the
+   [#1019 contract](r4_softmax_parameter_capacity_1019.md) binds the active,
+   not-yet-run parameter-capacity campaign.
    The bounded
    [multi-resonance reuse audit](multi_resonance_attention_sieve_audit_973.md)
    distinguishes the implemented sin/cos and Spin substrate from the still
@@ -254,7 +260,7 @@ reversible lexical geometry
   → audit signal loss across full trace, signed reduction, recurrent features, and readout [COMPLETE; INSUFFICIENT SUPPORT]
   → directly train end-to-end causal softmax attention in R4 coordinates [#1014; ATTENTION PASS, FULL QUALITY DOD FAIL]
   → continue the unchanged 7.15M model to 149,995,520 tokens [#1017; NLL-ONLY FAIL, RETENTION/PARITY/REPLAY PASS]
-  → freeze one predeclared parameter-capacity increase over the same attention and Rust path [NEXT]
+  → execute #1019's frozen 12-layer, 13,130,784-parameter campaign over the same attention and Rust path [ACTIVE; NOT_RUN]
   → park intrinsic/readout alternatives, resonance-based softmax replacement, full-model recurrent lowering, and exact deployment
   → correctness and abstention
   → multi-step reasoning

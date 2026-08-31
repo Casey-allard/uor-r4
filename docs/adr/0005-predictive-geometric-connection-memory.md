@@ -26,9 +26,12 @@
   then completed the one independently frozen exposure continuation. At
   `149,995,520` cumulative tokens it passed enabled parity, all mechanical
   gates, retention `5/5`, and normalized replay `5/5`, but failed solely on
-  fresh sealed NLL `1.5727521962806827` against the strict `<1.50` gate. The
-  next action is to specify one predeclared parameter-capacity increase over the same
-  mechanism and Rust path, not more 7.15M exposure or LR tuning.
+  fresh sealed NLL `1.5727521962806827` against the strict `<1.50` gate.
+  [#1019](https://github.com/UOR-Foundation/uor-r4/issues/1019) now freezes the
+  sole increase: twelve layers, 13,130,784 parameters, seed 1019, 16,800 steps,
+  and 275,251,200 tokens over the same mechanism and Rust path. Every execution
+  gate is `NOT_RUN`; paid external execution requires explicit approval. More
+  7.15M exposure or LR tuning remains prohibited.
 - **Date:** 2026-08-28; direction updated 2026-08-31
 - **Owner:** #973 under programme root #820
 - **Supersedes for forward work:** another fixed componentwise prototype or
@@ -136,11 +139,11 @@ sealed NLL by `2.6773925609275944` nats and the Rust enabled/off policies
 matched Python, establishing load-bearing ordinary causal attention at that
 learned R4/Spin scope. Its full quality DoD failed because enabled NLL was
 `2.127407277216677 > 1.50` and subject/scene retention was `3/5 < 4/5`.
-Close the exact campaign without rerun or tuning. The next action is to specify one
+Close the exact campaign without rerun or tuning. The next action was one
 separately frozen quality-capacity rung over the unchanged mechanism. That rung,
 #1017, has now closed NLL-only negative at `1.5727521962806827`, with retention
-`5/5` and every other gate passing. The next action is one predeclared
-parameter-capacity increase. No tag,
+`5/5` and every other gate passing. #1019 now freezes the sole 12-layer,
+13,130,784-parameter successor and remains `NOT_RUN`. No tag,
 release, hosted promotion, or static-WASM claim is authorized.
 Its architectural reference is the official MIT HELM-D source pinned at commit
 [`7501deca8f413848bfef804be64ce874b72a3cd7`](https://github.com/Graph-and-Geometric-Learning/helm/tree/7501deca8f413848bfef804be64ce874b72a3cd7).
@@ -188,8 +191,10 @@ The current sequence is strict:
    population discipline, Rust generation, intervention, and replay path while
    changing only training exposure; **completed** as #1017, negative solely on
    sealed NLL; and
-9. freeze one predeclared parameter-capacity increase over the same mechanism,
-   using external hardware only if its fixed budget requires it.
+9. execute #1019's frozen 12-layer, 13,130,784-parameter increase over the same
+   mechanism, with 16,800 steps and 275,251,200 tokens; **active, `NOT_RUN`**
+   pending cheap preflights and the eight-hour hardware gate. Paid external
+   execution requires explicit owner approval.
 
 ### Qualified native endpoint and completed source-free trace rungs
 
@@ -735,8 +740,8 @@ hosted, or WASM capability. HELM-D remains an MIT architectural reference only
 at `7501deca8f413848bfef804be64ce874b72a3cd7`; no HELM checkpoint or code
 executed and no upstream result is inherited.
 
-The active successor is the proposed, not-yet-implemented
-`R4SoftmaxTeacherTraceV1` and trace compiler. It will record construction-only
+At the bridge checkpoint, the then-active successor was the proposed,
+not-yet-implemented `R4SoftmaxTeacherTraceV1` and trace compiler. It would record construction-only
 layerwise token/QKV/attention/value/logit traces from the exact reference, then
 compile and evaluate a first source-free student/attention-state artifact on
 decoded-token agreement and next-token loss. Intrinsic/readout, resonance,
@@ -848,8 +853,9 @@ The attention claim and the quality verdict are deliberately separate:
 The full issue result is therefore negative, but the attention mechanism is no
 longer ambiguous. #1017 then completed the separate exposure continuation with
 sealed NLL `1.5727521962806827` as its sole failed gate and retention/parity/
-audits/replay passing. The next mechanism-building action is one predeclared
-parameter-capacity increase over the same attention/runtime path. It must not reopen
+audits/replay passing. #1019 is the next mechanism-building action: one frozen
+12-layer, 13,130,784-parameter campaign over the same attention/runtime path,
+currently `NOT_RUN`. It must not reopen
 folds, probes, transport permutations, alternative attention architectures,
 intrinsic geometry, resonance, or exact lowering. The
 [#1014 structured aggregate](../r4_softmax_end_to_end_attention_1014_raw.json)

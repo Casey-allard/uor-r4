@@ -1,4 +1,4 @@
-"""Command line for the frozen #1014 base run and #1017 continuation."""
+"""Command line for the frozen #1014, #1017, and #1019 campaigns."""
 
 from __future__ import annotations
 
@@ -8,6 +8,23 @@ from pathlib import Path
 from typing import Any
 
 from .admission import admit_rust_smoke_qualification
+from .capacity import (
+    admit_capacity_prefix_parity,
+    admit_capacity_smoke,
+    reveal_capacity,
+    run_capacity_hardware_probe,
+    run_capacity_overfit_smoke,
+    train_capacity,
+)
+from .capacity_data import (
+    load_capacity_training_view_manifest,
+    prepare_capacity_dataset,
+)
+from .capacity_finalize import (
+    finalize_capacity,
+    verify_capacity_generation_ready,
+    write_capacity_rubric_template,
+)
 from .continuation import (
     admit_enabled_prefix_parity,
     reveal_continuation,
@@ -19,7 +36,7 @@ from .continuation_data import (
 )
 from .data import download_source, load_dataset_manifest, prepare_dataset
 from .finalize import finalize_continuation
-from .paths import default_continuation_root, default_research_root
+from .paths import default_capacity_root, default_continuation_root, default_research_root
 from .provenance import verify_bound_manifest
 from .train import TrainConfig, reveal_sealed_test, run_overfit_smoke, train_main
 
@@ -35,14 +52,14 @@ def _print_result(value: dict[str, Any]) -> None:
 def parser() -> argparse.ArgumentParser:
     command = argparse.ArgumentParser(
         prog="r4-softmax-trainer",
-        description="Frozen MPS-only causal-softmax language-model campaigns for UOR-R4",
+        description="Frozen causal-softmax language-model campaigns for UOR-R4",
     )
     command.add_argument(
         "--root",
         type=_root,
         help=(
-            "untracked data/checkpoint root (defaults to issue-1014 or issue-1017 "
-            "according to the selected lifecycle)"
+            "untracked data/checkpoint root (defaults to issue-1014, issue-1017, "
+            "or issue-1019 according to the selected lifecycle)"
         ),
     )
     subcommands = command.add_subparsers(dest="command", required=True)
@@ -118,6 +135,77 @@ def parser() -> argparse.ArgumentParser:
         required=True,
         help="independently prepared exact five-record human rubric JSON",
     )
+
+    capacity = subcommands.add_parser(
+        "prepare-capacity",
+        help="build #1019's canonical train stream and fresh sealed populations",
+    )
+    capacity.add_argument(
+        "--predecessor-root",
+        type=_root,
+        default=default_continuation_root(),
+        help="immutable #1017 research root",
+    )
+    capacity.add_argument("--source", type=_root, help="exact pinned TinyStories source")
+
+    smoke_capacity = subcommands.add_parser(
+        "smoke-capacity", help="run #1019's create-once 64-sequence overfit smoke"
+    )
+    smoke_capacity.add_argument("--backend", choices=["mps", "cuda"], required=True)
+    smoke_capacity.add_argument("--max-seconds", type=float, default=600.0)
+
+    admit_capacity = subcommands.add_parser(
+        "admit-capacity-smoke",
+        help="bind #1019's passed overfit export and enabled-only Rust parity",
+    )
+    admit_capacity.add_argument("--rust-qualification", type=_root, required=True)
+
+    probe_capacity = subcommands.add_parser(
+        "probe-capacity",
+        help="run #1019's exact 200-step accelerator time/memory admission",
+    )
+    probe_capacity.add_argument("--backend", choices=["mps", "cuda"], required=True)
+
+    train_capacity_parser = subcommands.add_parser(
+        "train-capacity", help="run or resume the one frozen #1019 campaign"
+    )
+    train_capacity_parser.add_argument("--backend", choices=["mps", "cuda"], required=True)
+    train_capacity_parser.add_argument("--resume", action="store_true")
+
+    admit_capacity_parity = subcommands.add_parser(
+        "admit-capacity-parity",
+        help="bind the selected #1019 checkpoint's enabled-only Rust parity",
+    )
+    admit_capacity_parity.add_argument("--rust-qualification", type=_root, required=True)
+
+    reveal_capacity_parser = subcommands.add_parser(
+        "reveal-capacity",
+        help="irreversibly score #1019 and frozen #1017 on the fresh confirmation",
+    )
+    reveal_capacity_parser.add_argument(
+        "--baseline-1017-root",
+        type=_root,
+        default=default_continuation_root(),
+        help="immutable completed #1017 research root",
+    )
+    subcommands.add_parser(
+        "verify-capacity-training",
+        help="verify #1019's nonsealed view while confirmation remains denied",
+    )
+    capacity_rubric = subcommands.add_parser(
+        "prepare-capacity-rubric",
+        help="validate #1019 generation pairs and write a review-only rubric template",
+    )
+    capacity_rubric.add_argument("--output", type=_root, required=True)
+    subcommands.add_parser(
+        "verify-capacity-generation-ready",
+        help="read-only validation before #1019's irreversible generation stage",
+    )
+    finalize_capacity_parser = subcommands.add_parser(
+        "finalize-capacity",
+        help="bind #1019's reveal, ten Rust generation reports, and human rubric",
+    )
+    finalize_capacity_parser.add_argument("--rubric", type=_root, required=True)
     return command
 
 
@@ -131,11 +219,27 @@ def main() -> None:
         "verify-continuation-training",
         "finalize-continuation",
     }
-    root: Path = arguments.root or (
-        default_continuation_root()
-        if arguments.command in continuation_commands
-        else default_research_root()
-    )
+    capacity_commands = {
+        "prepare-capacity",
+        "smoke-capacity",
+        "admit-capacity-smoke",
+        "probe-capacity",
+        "train-capacity",
+        "admit-capacity-parity",
+        "reveal-capacity",
+        "verify-capacity-training",
+        "prepare-capacity-rubric",
+        "verify-capacity-generation-ready",
+        "finalize-capacity",
+    }
+    if arguments.root:
+        root = arguments.root
+    elif arguments.command in capacity_commands:
+        root = default_capacity_root()
+    elif arguments.command in continuation_commands:
+        root = default_continuation_root()
+    else:
+        root = default_research_root()
     if arguments.command == "download":
         path = download_source(root)
         _print_result({"path": str(path), "bytes": path.stat().st_size, "status": "VERIFIED"})
@@ -170,7 +274,6 @@ def main() -> None:
                 root,
                 predecessor_root=arguments.predecessor_root,
                 source=arguments.source,
-                force=arguments.force,
             )
         )
         return
@@ -188,5 +291,59 @@ def main() -> None:
         return
     if arguments.command == "finalize-continuation":
         _print_result(finalize_continuation(root, arguments.rubric))
+        return
+    if arguments.command == "prepare-capacity":
+        _print_result(
+            prepare_capacity_dataset(
+                root,
+                predecessor_root=arguments.predecessor_root,
+                source=arguments.source,
+                force=False,
+            )
+        )
+        return
+    if arguments.command == "smoke-capacity":
+        _print_result(
+            run_capacity_overfit_smoke(
+                root,
+                backend=arguments.backend,
+                max_seconds=arguments.max_seconds,
+            )
+        )
+        return
+    if arguments.command == "admit-capacity-smoke":
+        _print_result(admit_capacity_smoke(root, arguments.rust_qualification))
+        return
+    if arguments.command == "probe-capacity":
+        _print_result(run_capacity_hardware_probe(root, backend=arguments.backend))
+        return
+    if arguments.command == "train-capacity":
+        _print_result(
+            train_capacity(
+                root,
+                backend=arguments.backend,
+                resume=arguments.resume,
+            )
+        )
+        return
+    if arguments.command == "admit-capacity-parity":
+        _print_result(admit_capacity_prefix_parity(root, arguments.rust_qualification))
+        return
+    if arguments.command == "reveal-capacity":
+        _print_result(
+            reveal_capacity(root, baseline_1017_root=arguments.baseline_1017_root)
+        )
+        return
+    if arguments.command == "verify-capacity-training":
+        _print_result(load_capacity_training_view_manifest(root))
+        return
+    if arguments.command == "prepare-capacity-rubric":
+        _print_result(write_capacity_rubric_template(root, arguments.output))
+        return
+    if arguments.command == "verify-capacity-generation-ready":
+        _print_result(verify_capacity_generation_ready(root))
+        return
+    if arguments.command == "finalize-capacity":
+        _print_result(finalize_capacity(root, arguments.rubric))
         return
     raise AssertionError(f"unhandled command: {arguments.command}")

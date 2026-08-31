@@ -44,11 +44,17 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > replays were exact. The complete #1017 verdict is therefore negative solely
 > on NLL. Attention remains established, but dependable general language
 > quality remains unresolved. There is no rerun, learning-rate adjustment, or
-> further exposure extension for this 7.15M-parameter model. The next action is
-> one predeclared parameter-capacity increase over the same attention and Rust
-> evidence path, using external hardware only if its fixed budget requires it.
+> further exposure extension for this 7.15M-parameter model. That successor is
+> now frozen as [#1019](https://github.com/UOR-Foundation/uor-r4/issues/1019):
+> one fresh 12-layer, 13,130,784-parameter model with seed 1019, exactly 16,800
+> optimizer steps and 275,251,200 training tokens over the same attention and
+> Rust evidence path. All #1019 execution gates are `NOT_RUN`. A 200-step
+> backend probe must project no more than eight hours, including a 1.25 safety
+> factor; no paid external launch is authorized without explicit approval.
 > See the [#1017 record](docs/r4_softmax_quality_capacity_continuation_1017.md),
 > [#1017 structured aggregate](docs/r4_softmax_quality_capacity_continuation_1017_raw.json),
+> [#1019 frozen contract](docs/r4_softmax_parameter_capacity_1019.md),
+> [#1019 structured contract](docs/r4_softmax_parameter_capacity_1019_raw.json),
 > [#1014 record](docs/r4_softmax_end_to_end_attention_1014.md) and
 > [structured aggregate](docs/r4_softmax_end_to_end_attention_1014_raw.json).
 >
@@ -189,8 +195,9 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > `NOT_RUN`. The feature is disabled by default and does not change the default
 > engine. This remains a native CPU research reference,
 > not a source-free, transformerless, static-WASM, release, or frontier-model
-> result. #973 remains open and #954 remains blocked. That next rung is now
-> complete: `R4SoftmaxTeacherTraceV1` supplied construction traces and
+> result. #973 remains open and #954 remains blocked. The trace/compiler rung
+> that followed that checkpoint is now complete: `R4SoftmaxTeacherTraceV1`
+> supplied construction traces and
 > `R4SoftmaxTraceStudentV1` compiled a source-free Q16 suffix artifact with a
 > bounded distillation effect, but its autonomous text looped. The subsequent
 > `R4SoftmaxTraceStateStudentV1` recurrent rung also stopped: its minute CE
@@ -204,9 +211,10 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > closed to rerun or tuning. #1017's fixed exposure-only successor improved the
 > fresh sealed NLL to `1.5727521962806827` and prompt retention to `5/5`, with
 > enabled Rust parity and exact replay, but still failed the strict `<1.50`
-> quality gate. The next rung must increase parameter capacity while reusing the
-> qualified mechanism and runtime evidence path; no further 7.15M exposure or
-> learning-rate tuning is authorized.
+> quality gate. #1019 now freezes that capacity rung at twelve layers and
+> 13,130,784 parameters over the qualified mechanism and runtime evidence path;
+> execution remains `NOT_RUN` pending preflight and hardware admission. No
+> further 7.15M exposure or learning-rate tuning is authorized.
 > Intrinsic/readout substitution, resonance, softmax replacement, scale, and
 > product promotion remain parked. No tag, release, hosted
 > promotion, or browser-WASM claim is authorized. See the
@@ -279,8 +287,9 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > attention-off intervention and Rust parity, but failed its full quality DoD
 > at enabled NLL `2.127407` and subject/scene retention `3/5`. It closes
 > negative. #1017's separate continuation then reached `5/5` retention but
-> failed NLL only at `1.5727521962806827`. A predeclared parameter-capacity
-> increase is next; #954 remains blocked.
+> failed NLL only at `1.5727521962806827`. #1019 now owns the single frozen
+> 12-layer, 13,130,784-parameter successor; it is `NOT_RUN` pending preflight
+> and hardware admission. #954 remains blocked.
 > See the
 > [bounded-global record](docs/bounded_global_exact_spin_attention_973.md).
 
@@ -406,10 +415,10 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > explicit opt-in, loopback-only dedicated native HTTP endpoint now passes the
 > frozen eight-token CLI-parity canary without changing the default engine.
 > Dashboard wiring/readiness and static/WASM-isolation checks pass; browser E2E
-> is `NOT_RUN`. The
-> current gate is a construction-only trace/state observability audit after
-> `R4SoftmaxTraceStateStudentV1` failed its decision, control-separation, and
-> continuation gates.
+> is `NOT_RUN`. The trace/state observability audit later completed at
+> insufficient support; #1014 established load-bearing attention, and #1017
+> closed NLL-only negative. The current gate is #1019's frozen 12-layer,
+> 13,130,784-parameter campaign, whose execution remains `NOT_RUN`.
 > #954 remains blocked behind #973. General higher-scope attention, correct
 > answers, and reasoning do not exist yet. The
 > dashboard is an interactive window into the research substrate, not a
@@ -675,8 +684,8 @@ exact-descriptor/entity-binding path selector apiece at their respective
    subject/scene retention `3/5` fail its quality DoD. Close that exact campaign
    without tuning. #1017's separate exposure continuation then passed retention
    `5/5` and all mechanical gates but failed only sealed NLL at
-   `1.5727521962806827`. Next increase parameter capacity under a new frozen
-   contract; #954 stays blocked.
+   `1.5727521962806827`. #1019 now freezes that 12-layer parameter-capacity
+   contract and remains `NOT_RUN`; #954 stays blocked.
 See the [append-only #953 record](docs/local_geometric_generation_953.md).
 See the [accepted table-tie record](docs/source_free_table_geometric_intervention_953.md).
 See the [#973 Gate 0 record](docs/prior_sentence_count_radius_attention_973.md).
@@ -816,8 +825,9 @@ not become substitutes for working intelligence:
    `2.127407` and prompt retention `3/5`. Close that campaign without rerun or
    tuning. #1017 then completed the one frozen exposure continuation: NLL
    `1.5727521962806827` failed the strict `<1.50` gate, while retention, parity,
-   causal audits, and replay passed. Next freeze one parameter-capacity increase
-   over the same mechanism, with no further 7.15M exposure or LR tuning.
+   causal audits, and replay passed. #1019 now freezes the sole 12-layer,
+   13,130,784-parameter increase over the same mechanism and remains `NOT_RUN`,
+   with no further 7.15M exposure or LR tuning.
    Do not resume resonance substitutes or promote a product/release. This intermediate
    reference is transformer-compatible, `f32`/multiply/alloc and source-weight
    backed—not table-native, multiply-free, or transformerless. No tag, release,
@@ -873,8 +883,9 @@ attention-off penalty and exact Rust parity. Its full quality DoD is negative:
 enabled NLL `2.127407` exceeded `1.50`, and subject/scene retention was `3/5`
 versus `4/5`. #1017's separately frozen continuation improved those measurements
 to NLL `1.5727521962806827` and retention `5/5`, but its full DoD remains
-negative solely on the strict NLL ceiling. Advance only to one predeclared
-parameter-capacity increase over the same attention/runtime path.
+negative solely on the strict NLL ceiling. Advance only through #1019's frozen
+12-layer, 13,130,784-parameter campaign over the same attention/runtime path.
+Its execution remains `NOT_RUN` pending preflight and hardware admission.
 #954 remains blocked behind #973. The exact contract is
 [ADR-0005](docs/adr/0005-predictive-geometric-connection-memory.md).
 

@@ -129,9 +129,13 @@ assumptions, or objectives rather than measured results.
 > audits passed. The one-time sealed NLL was `1.5727521962806827`, failing the
 > strict `<1.50` gate, while prompt retention and exact normalized replay both
 > passed `5/5`. The complete #1017 result is negative solely on NLL. Freeze it
-> without rerun, further 7.15M exposure, or learning-rate tuning. The next action
-> is one predeclared parameter-capacity increase over the same qualified
-> attention and Rust path. Offline floats, matrix
+> without rerun, further 7.15M exposure, or learning-rate tuning. That one
+> increase is now frozen under
+> [#1019](https://github.com/UOR-Foundation/uor-r4/issues/1019): twelve layers,
+> 13,130,784 parameters, seed 1019, 16,800 steps, and 275,251,200 tokens over
+> the same qualified attention and Rust path. All execution gates are
+> `NOT_RUN` pending preflight and hardware admission; paid external execution
+> requires explicit approval. Offline floats, matrix
 > operations, and softmax remain allowed while establishing language quality;
 > the deployed destination remains exact and source-free. Resonance substitutes
 > and product/release promotion remain parked. See the
@@ -530,8 +534,9 @@ assumptions, or objectives rather than measured results.
 > enabled NLL `2.127407` and subject/scene retention `3/5`. Close the exact
 > campaign. #1017's separately frozen continuation then passed retention `5/5`,
 > enabled parity, all mechanical gates, and replay, but failed solely on sealed
-> NLL `1.5727521962806827`. The recommended next #973 action is to specify one
-> predeclared parameter-capacity increase over that unchanged mechanism.
+> NLL `1.5727521962806827`. #1019 now specifies the sole #973 capacity action:
+> a frozen 12-layer, 13,130,784-parameter campaign over that unchanged
+> mechanism. Its execution remains `NOT_RUN`.
 > Intrinsic/readout alternatives,
 > resonance-based softmax replacement, whole-decoder recurrent lowering, and
 > exact deployment are parked. D3 remains
@@ -1113,8 +1118,9 @@ construction-only observability audit completed with
 causal attention through a `2.677393`-nat attention-off penalty and exact Rust
 parity, while failing its complete quality DoD at enabled NLL `2.127407` and
 subject/scene retention `3/5`. #1017's one exposure continuation then improved
-retention to `5/5` but failed solely on NLL `1.5727521962806827`. The next rung
-changes parameter capacity under a new frozen contract over that mechanism;
+retention to `5/5` but failed solely on NLL `1.5727521962806827`. #1019 is that
+new frozen contract: 12 layers, 13,130,784 parameters, seed 1019, 16,800 steps,
+and 275,251,200 tokens. Its execution remains `NOT_RUN` pending admission;
 fiber-preserving multi-resonance replacement, whole-decoder recurrent
 factorization, and final requalification are parked.
 Dependable broad coherent text remains unestablished.
@@ -1716,8 +1722,9 @@ intervention and exact Rust parity, but its enabled NLL `2.127407` and
 subject/scene retention `3/5` failed the complete quality DoD. Close that exact
 campaign without rerun or tuning. #1017's separately frozen continuation then
 closed NLL-only negative at `1.5727521962806827` with retention `5/5` and all
-other gates passing. The next action is to specify one predeclared parameter-capacity
-increase over the unchanged mechanism. Intrinsic/readout alternatives,
+other gates passing. #1019 now owns the one frozen 12-layer,
+13,130,784-parameter campaign over the unchanged mechanism; every execution
+gate remains `NOT_RUN`. Intrinsic/readout alternatives,
 multi-resonance replacement, whole-decoder recurrent factorization, and final
 requalification are parked. D3 remains `NOT_RUN`; #954 remains blocked.
 #955 invokes that accepted selector/

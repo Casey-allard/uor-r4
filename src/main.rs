@@ -114,7 +114,7 @@ enum Command {
     R4SoftmaxGenerate(R4SoftmaxGenerateArgs),
     /// Generate from a conformant local Llama checkpoint through all-layer R4/Spin causal softmax.
     R4SoftmaxLocalGenerate(R4SoftmaxLocalGenerateArgs),
-    /// Qualify a frozen #1014 export against Python logits under enabled and attention-off policies.
+    /// Qualify one frozen #1014, #1017, or #1019 local causal-softmax campaign.
     R4SoftmaxLocalQualify(R4SoftmaxLocalQualifyArgs),
     /// Compile and score the first source-free student of R4/Spin softmax traces.
     R4SoftmaxTraceStudent(R4SoftmaxTraceStudentArgs),
@@ -783,12 +783,38 @@ struct R4SoftmaxLocalQualifyArgs {
     /// Fixed exact output-row workers for source projections.
     #[arg(long, default_value_t = 4, value_parser = parse_positive_workers)]
     workers: usize,
-    /// Run only the enabled arm for the frozen #1017 quality continuation.
-    #[arg(long, default_value_t = false)]
+    /// Closed qualification campaign; omit for the legacy #1014 two-arm mode.
+    #[arg(long, value_enum, conflicts_with = "enabled_only")]
+    campaign: Option<R4SoftmaxLocalQualificationCampaignArg>,
+    /// Legacy spelling for the frozen #1017 enabled-only continuation.
+    #[arg(long, default_value_t = false, conflicts_with = "campaign")]
     enabled_only: bool,
     /// Required durable qualification report path.
     #[arg(long)]
     json_output: PathBuf,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, ValueEnum)]
+enum R4SoftmaxLocalQualificationCampaignArg {
+    #[value(name = "issue-1014")]
+    Issue1014,
+    #[value(name = "issue-1017")]
+    Issue1017,
+    #[value(name = "issue-1019")]
+    Issue1019,
+}
+
+impl R4SoftmaxLocalQualificationCampaignArg {
+    const fn campaign(
+        self,
+    ) -> uor_r4_wasm_router::r4_softmax_local_generation::R4SoftmaxLocalQualificationCampaign {
+        use uor_r4_wasm_router::r4_softmax_local_generation::R4SoftmaxLocalQualificationCampaign;
+        match self {
+            Self::Issue1014 => R4SoftmaxLocalQualificationCampaign::Issue1014TwoArm,
+            Self::Issue1017 => R4SoftmaxLocalQualificationCampaign::Issue1017EnabledOnly,
+            Self::Issue1019 => R4SoftmaxLocalQualificationCampaign::Issue1019EnabledOnly,
+        }
+    }
 }
 
 fn parse_positive_workers(value: &str) -> Result<usize, String> {
@@ -2551,13 +2577,20 @@ fn run(cli: &Cli) -> Result<(), RunError> {
             let workers = std::num::NonZeroUsize::new(args.workers).ok_or_else(|| {
                 RunError::Command("--workers must be greater than zero".to_owned())
             })?;
+            let campaign = if args.enabled_only {
+                uor_r4_wasm_router::r4_softmax_local_generation::R4SoftmaxLocalQualificationCampaign::Issue1017EnabledOnly
+            } else {
+                args.campaign
+                    .unwrap_or(R4SoftmaxLocalQualificationCampaignArg::Issue1014)
+                    .campaign()
+            };
             let report = uor_r4_wasm_router::r4_softmax_local_generation::run_r4_softmax_local_qualification(
                 &uor_r4_wasm_router::r4_softmax_local_generation::R4SoftmaxLocalQualificationConfig {
                     model: args.model.clone(),
                     python_prefix_logits: args.python_prefix_logits.clone(),
                     reveal_manifest: args.reveal_manifest.clone(),
                     workers,
-                    enabled_only: args.enabled_only,
+                    campaign,
                 },
             )
             .map_err(|error| RunError::Command(error.to_string()))?;
@@ -4570,6 +4603,7 @@ mod tests {
         };
         assert_eq!(args.model, PathBuf::from("/research/export"));
         assert_eq!(args.workers, 4);
+        assert!(args.campaign.is_none());
         assert!(!args.enabled_only);
         assert_eq!(
             args.reveal_manifest,
@@ -4603,8 +4637,45 @@ mod tests {
         let Some(Command::R4SoftmaxLocalQualify(args)) = enabled.command else {
             panic!("expected r4-softmax-local-qualify")
         };
+        assert!(args.campaign.is_none());
         assert!(args.enabled_only);
         assert!(args.reveal_manifest.is_none());
+
+        let capacity = Cli::try_parse_from([
+            "r4",
+            "r4-softmax-local-qualify",
+            "--model",
+            "/research/issue-1019/export",
+            "--python-prefix-logits",
+            "/research/issue-1019/dev-prefix.json",
+            "--campaign",
+            "issue-1019",
+            "--json-output",
+            "/research/issue-1019/rust-qualification.json",
+        ])
+        .expect("parse explicit #1019 capacity qualifier");
+        let Some(Command::R4SoftmaxLocalQualify(args)) = capacity.command else {
+            panic!("expected r4-softmax-local-qualify")
+        };
+        assert_eq!(
+            args.campaign,
+            Some(R4SoftmaxLocalQualificationCampaignArg::Issue1019)
+        );
+        assert!(!args.enabled_only);
+        assert!(Cli::try_parse_from([
+            "r4",
+            "r4-softmax-local-qualify",
+            "--model",
+            "/research/export",
+            "--python-prefix-logits",
+            "/research/dev-prefix.json",
+            "--campaign",
+            "issue-1019",
+            "--enabled-only",
+            "--json-output",
+            "/research/result.json",
+        ])
+        .is_err());
     }
 
     #[test]

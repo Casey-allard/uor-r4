@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "uor-r4-softmax-trainer"
 version = "0.1.0"
-description = "Bounded #1014 TinyStories causal-softmax reference trainer"
+description = "Frozen #1014, #1017, and #1019 TinyStories causal-softmax campaigns"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 license = { text = "MIT" }

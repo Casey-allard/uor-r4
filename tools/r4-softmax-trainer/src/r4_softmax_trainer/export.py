@@ -9,7 +9,7 @@ from typing import Any
 
 from safetensors.torch import save_file
 
-from .constants import EXPORT_MANIFEST_SCHEMA, FROZEN_MODEL_CONFIG
+from .constants import EXPORT_MANIFEST_SCHEMA
 from .model import R4SoftmaxForCausalLM, export_state_dict
 from .provenance import atomic_write_json, cid_file, write_bound_manifest
 
@@ -32,8 +32,10 @@ def export_hugging_face_snapshot(
     weights_path = output_dir / "model.safetensors"
     exported_tokenizer_path = output_dir / "tokenizer.json"
     result_path = output_dir / "training-result.json"
+    model_config = model.config
+    model_config.validate()
 
-    atomic_write_json(config_path, FROZEN_MODEL_CONFIG.as_hugging_face_config())
+    atomic_write_json(config_path, model_config.as_hugging_face_config())
     tokenizer_temporary = output_dir / ".tokenizer.json.part"
     shutil.copyfile(tokenizer_path, tokenizer_temporary)
     os.replace(tokenizer_temporary, exported_tokenizer_path)
@@ -57,7 +59,7 @@ def export_hugging_face_snapshot(
         "config_cid": cid_file(config_path),
         "tokenizer_cid": cid_file(exported_tokenizer_path),
         "weights_cid": weights_cid,
-        "model_contract": FROZEN_MODEL_CONFIG.as_contract(),
+        "model_contract": model_config.as_contract(),
         "loader_contract": {
             "weights": "HuggingFaceLlamaOracle",
             "tokenizer": "HfBpeTokenizer",

@@ -46,10 +46,72 @@ pub const ENABLED_ONLY_QUALIFICATION_REPORT_SCHEMA: &str =
     "uor-r4.r4-softmax-local-enabled-qualification/1";
 pub const PYTHON_ENABLED_PREFIX_LOGITS_SCHEMA: &str =
     "uor-r4.r4-softmax-python-enabled-prefix-logits/1";
+pub const CAPACITY_QUALIFICATION_REPORT_SCHEMA: &str =
+    "uor-r4.r4-softmax-local-capacity-qualification/1";
+pub const PYTHON_CAPACITY_PREFIX_LOGITS_SCHEMA: &str =
+    "uor-r4.r4-softmax-python-capacity-prefix-logits/1";
 pub const PREFIX_PARITY_TOKENS: usize = 32;
 pub const SEEDED_SAMPLER_POLICY: &str =
     "r4-local-top-k-q32-splitmix64/1;temperature=0.8;top-k=40;rank=logit-desc-token-asc";
 pub const GREEDY_SAMPLER_POLICY: &str = "r4-local-greedy-argmax-token-asc/1";
+
+/// Closed qualification campaigns admitted by the local R4/Spin seam.
+///
+/// The two legacy variants deliberately retain their original schemas and
+/// decision-CID inputs. The #1019 variant changes only the frozen checkpoint
+/// depth and forbids the already-closed attention-off intervention.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum R4SoftmaxLocalQualificationCampaign {
+    Issue1014TwoArm,
+    Issue1017EnabledOnly,
+    Issue1019EnabledOnly,
+}
+
+impl R4SoftmaxLocalQualificationCampaign {
+    pub const fn issue(self) -> u32 {
+        match self {
+            Self::Issue1014TwoArm => 1014,
+            Self::Issue1017EnabledOnly => 1017,
+            Self::Issue1019EnabledOnly => 1019,
+        }
+    }
+
+    pub const fn report_schema(self) -> &'static str {
+        match self {
+            Self::Issue1014TwoArm => QUALIFICATION_REPORT_SCHEMA,
+            Self::Issue1017EnabledOnly => ENABLED_ONLY_QUALIFICATION_REPORT_SCHEMA,
+            Self::Issue1019EnabledOnly => CAPACITY_QUALIFICATION_REPORT_SCHEMA,
+        }
+    }
+
+    pub const fn python_prefix_schema(self) -> &'static str {
+        match self {
+            Self::Issue1014TwoArm => PYTHON_PREFIX_LOGITS_SCHEMA,
+            Self::Issue1017EnabledOnly => PYTHON_ENABLED_PREFIX_LOGITS_SCHEMA,
+            Self::Issue1019EnabledOnly => PYTHON_CAPACITY_PREFIX_LOGITS_SCHEMA,
+        }
+    }
+
+    pub const fn runs_attention_off(self) -> bool {
+        matches!(self, Self::Issue1014TwoArm)
+    }
+
+    const fn expected_shape(self) -> ModelShape {
+        ModelShape {
+            dimension: 288,
+            hidden_dimension: 768,
+            layers: match self {
+                Self::Issue1019EnabledOnly => 12,
+                Self::Issue1014TwoArm | Self::Issue1017EnabledOnly => 6,
+            },
+            query_heads: 6,
+            key_value_heads: 6,
+            head_size: 48,
+            vocabulary: 4096,
+            sequence_capacity: PREFIX_PARITY_TOKENS,
+        }
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct R4SoftmaxLocalGeneratorConfig {
@@ -67,9 +129,8 @@ pub struct R4SoftmaxLocalQualificationConfig {
     pub python_prefix_logits: PathBuf,
     pub reveal_manifest: Option<PathBuf>,
     pub workers: NonZeroUsize,
-    /// Execute only the ordinary enabled path. This is the frozen #1017
-    /// quality-continuation gate; #1014 already closed the attention-off arm.
-    pub enabled_only: bool,
+    /// Exact frozen campaign, including its shape and allowed arm set.
+    pub campaign: R4SoftmaxLocalQualificationCampaign,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -866,7 +927,7 @@ pub fn run_r4_softmax_local_qualification(
                 "invalid Python prefix reference: {error}"
             ))
         })?;
-    validate_python_prefix_reference_envelope(&python_reference, config.enabled_only)?;
+    validate_python_prefix_reference_envelope(&python_reference, config.campaign)?;
 
     let tokenizer = HfBpeTokenizer::from_dir(&config.model)
         .map_err(|error| R4SoftmaxLocalGenerationError::Tokenizer(error.to_string()))?;
@@ -886,13 +947,19 @@ pub fn run_r4_softmax_local_qualification(
     .map_err(|error| R4SoftmaxLocalGenerationError::Source(error.to_string()))?;
     let source_load_seconds = load_started.elapsed().as_secs_f64();
     if oracle.cfg().seq_len != PREFIX_PARITY_TOKENS {
-        return Err(R4SoftmaxLocalGenerationError::InvalidCheckpoint(
-            "#1014 prefix qualifier could not allocate exactly 32 positions".to_owned(),
-        ));
+        return Err(R4SoftmaxLocalGenerationError::InvalidCheckpoint(format!(
+            "#{} prefix qualifier could not allocate exactly 32 positions",
+            config.campaign.issue()
+        )));
     }
     let shape = model_shape(&oracle, PREFIX_PARITY_TOKENS)
         .map_err(|error| R4SoftmaxLocalGenerationError::InvalidCheckpoint(error.to_string()))?;
-    enforce_issue_1014_shape(&config.model, &shape, tokenizer.vocab_size())?;
+    enforce_campaign_shape(
+        &config.model,
+        &shape,
+        tokenizer.vocab_size(),
+        config.campaign,
+    )?;
     let weights_cid = oracle.source_cid().to_owned();
     if python_reference.weights_cid != weights_cid {
         return Err(R4SoftmaxLocalGenerationError::InvalidCheckpoint(
@@ -944,9 +1011,7 @@ pub fn run_r4_softmax_local_qualification(
         maximum_token,
         CausalAttentionOutputPolicy::Enabled,
     )?;
-    let attention_off_execution = if config.enabled_only {
-        None
-    } else {
+    let attention_off_execution = if config.campaign.runs_attention_off() {
         Some(run_qualification_arm(
             &oracle,
             &python_reference.prefix_token_ids,
@@ -954,6 +1019,8 @@ pub fn run_r4_softmax_local_qualification(
             maximum_token,
             CausalAttentionOutputPolicy::ZeroPostWoBeforeResidual,
         )?)
+    } else {
+        None
     };
     let generation_seconds = qualification_started.elapsed().as_secs_f64();
     let enabled_prefix_parity = prefix_parity_evidence(
@@ -1009,7 +1076,11 @@ pub fn run_r4_softmax_local_qualification(
         tokenizer_loads: 1,
         oracle_loads: 1,
         local_checkpoint_forward_steps: (PREFIX_PARITY_TOKENS as u64)
-            * if config.enabled_only { 1 } else { 2 },
+            * if config.campaign.runs_attention_off() {
+                2
+            } else {
+                1
+            },
         provider_calls: 0,
         ollama_calls: 0,
         prior_trace_reads: 0,
@@ -1076,25 +1147,31 @@ pub fn run_r4_softmax_local_qualification(
         enabled_parity: &enabled_prefix_parity,
         attention_off_parity: attention_off_prefix_parity.as_ref(),
     };
-    let decision_cid = qualification_decision_cid(
-        if config.enabled_only {
-            ENABLED_ONLY_QUALIFICATION_REPORT_SCHEMA
-        } else {
-            QUALIFICATION_REPORT_SCHEMA
-        },
-        &checkpoint,
-        &provenance,
-        &evaluation_input,
-        &decision_evidence,
-    )?;
+    let decision_cid = if matches!(
+        config.campaign,
+        R4SoftmaxLocalQualificationCampaign::Issue1019EnabledOnly
+    ) {
+        capacity_qualification_decision_cid(
+            config.campaign.report_schema(),
+            &checkpoint,
+            &provenance,
+            &shape,
+            &evaluation_input,
+            &enabled,
+            &enabled_prefix_parity,
+        )?
+    } else {
+        qualification_decision_cid(
+            config.campaign.report_schema(),
+            &checkpoint,
+            &provenance,
+            &evaluation_input,
+            &decision_evidence,
+        )?
+    };
     Ok(R4SoftmaxLocalQualificationReport {
-        schema: if config.enabled_only {
-            ENABLED_ONLY_QUALIFICATION_REPORT_SCHEMA
-        } else {
-            QUALIFICATION_REPORT_SCHEMA
-        }
-        .to_owned(),
-        issue: if config.enabled_only { 1017 } else { 1014 },
+        schema: config.campaign.report_schema().to_owned(),
+        issue: config.campaign.issue(),
         decision_cid,
         checkpoint,
         provenance,
@@ -1104,7 +1181,7 @@ pub fn run_r4_softmax_local_qualification(
         attention_off,
         enabled_prefix_parity,
         attention_off_prefix_parity,
-        attention_off_executions: if config.enabled_only { 0 } else { 1 },
+        attention_off_executions: u64::from(config.campaign.runs_attention_off()),
         qualification_passed,
         source_read_audit,
         execution: oracle.execution_snapshot(),
@@ -1174,7 +1251,7 @@ fn checkpoint_tree_binding(
     let manifest = build_source_manifest(
         model,
         &SourceSnapshotInfo {
-            repository: "local://uor-r4/issue-1014".to_owned(),
+            repository: "local://uor-r4/r4-softmax-local-checkpoint".to_owned(),
             revision: "content-addressed-local-checkpoint".to_owned(),
             license: None,
             source_execution_mode: SOURCE_EXECUTION_MODE_OFFLINE_COMPILER_INPUT.to_owned(),
@@ -1454,7 +1531,7 @@ fn verify_export_provenance(
         != "uor-r4-softmax-trainer-export/1"
     {
         return Err(R4SoftmaxLocalGenerationError::InvalidCheckpoint(
-            "unexpected #1014 export manifest schema".to_owned(),
+            "unexpected local softmax export manifest schema".to_owned(),
         ));
     }
     verify_manifest_artifacts(&manifest.value, model)?;
@@ -1502,13 +1579,9 @@ fn verify_export_provenance(
 
 fn validate_python_prefix_reference_envelope(
     reference: &PythonPrefixLogitsReference,
-    enabled_only: bool,
+    campaign: R4SoftmaxLocalQualificationCampaign,
 ) -> Result<(), R4SoftmaxLocalGenerationError> {
-    let expected_schema = if enabled_only {
-        PYTHON_ENABLED_PREFIX_LOGITS_SCHEMA
-    } else {
-        PYTHON_PREFIX_LOGITS_SCHEMA
-    };
+    let expected_schema = campaign.python_prefix_schema();
     if reference.schema != expected_schema {
         return Err(R4SoftmaxLocalGenerationError::InvalidCheckpoint(format!(
             "unexpected Python prefix schema {}",
@@ -1528,12 +1601,12 @@ fn validate_python_prefix_reference_envelope(
             reference.maximum_absolute_logit_delta_limit
         )));
     }
-    if enabled_only && reference.attention_off.is_some() {
+    if !campaign.runs_attention_off() && reference.attention_off.is_some() {
         return Err(R4SoftmaxLocalGenerationError::InvalidCheckpoint(
             "enabled-only Python prefix must not carry an attention-off arm".to_owned(),
         ));
     }
-    if !enabled_only && reference.attention_off.is_none() {
+    if campaign.runs_attention_off() && reference.attention_off.is_none() {
         return Err(R4SoftmaxLocalGenerationError::InvalidCheckpoint(
             "two-arm Python prefix must carry an attention-off arm".to_owned(),
         ));
@@ -1600,24 +1673,17 @@ fn verify_embedded_cid_bytes(
     Ok(())
 }
 
-fn enforce_issue_1014_shape(
+fn enforce_campaign_shape(
     model: &Path,
     shape: &ModelShape,
     tokenizer_vocabulary: usize,
+    campaign: R4SoftmaxLocalQualificationCampaign,
 ) -> Result<(), R4SoftmaxLocalGenerationError> {
-    let expected = ModelShape {
-        dimension: 288,
-        hidden_dimension: 768,
-        layers: 6,
-        query_heads: 6,
-        key_value_heads: 6,
-        head_size: 48,
-        vocabulary: 4096,
-        sequence_capacity: PREFIX_PARITY_TOKENS,
-    };
+    let expected = campaign.expected_shape();
     if *shape != expected || tokenizer_vocabulary != expected.vocabulary {
         return Err(R4SoftmaxLocalGenerationError::InvalidCheckpoint(format!(
-            "checkpoint shape {shape:?} is not the frozen #1014 shape {expected:?}"
+            "checkpoint shape {shape:?} is not the frozen #{} shape {expected:?}",
+            campaign.issue()
         )));
     }
     let config_bytes = read_regular_file(&model.join("config.json"), "checkpoint config")?;
@@ -1643,9 +1709,10 @@ fn enforce_issue_1014_shape(
             .and_then(serde_json::Value::as_u64)
             == Some(1);
     if !exact {
-        return Err(R4SoftmaxLocalGenerationError::InvalidCheckpoint(
-            "checkpoint config violates frozen #1014 context/tied-head/BOS/EOS contract".to_owned(),
-        ));
+        return Err(R4SoftmaxLocalGenerationError::InvalidCheckpoint(format!(
+            "checkpoint config violates frozen #{} context/tied-head/BOS/EOS contract",
+            campaign.issue()
+        )));
     }
     Ok(())
 }
@@ -1924,6 +1991,44 @@ fn qualification_decision_cid(
     }))
 }
 
+/// #1019 uses an integer/string-only decision identity so the Python admission
+/// boundary can independently reproduce the CID without depending on the two
+/// languages' floating-point JSON formatting. The full float vectors remain
+/// bound by the independently reproduced output CID and parity arithmetic.
+fn capacity_qualification_decision_cid(
+    schema: &str,
+    checkpoint: &LocalCheckpointBinding,
+    provenance: &QualificationProvenance,
+    shape: &ModelShape,
+    input: &QualificationInputBinding,
+    enabled: &QualificationArmResult,
+    parity: &PrefixParityEvidence,
+) -> Result<String, R4SoftmaxLocalGenerationError> {
+    cid_serializable(&serde_json::json!({
+        "schema": schema,
+        "checkpoint_tree_cid": checkpoint.checkpoint_tree_cid,
+        "weights_cid": checkpoint.weights_cid,
+        "provenance": provenance,
+        "model_shape": shape,
+        "token_store_cid": input.token_store_cid,
+        "python_prefix_logits_cid": input.python_prefix_logits_cid,
+        "python_prefix_result_cid": input.python_prefix_result_cid,
+        "prefix_token_ids": input.prefix_token_ids,
+        "enabled_policy_cid": enabled.policy_cid,
+        "enabled_output_cid": enabled.output_cid,
+        "enabled_audit_cid": enabled.audit_cid,
+        "python_top1_token_id": parity.python_top1_token_id,
+        "rust_top1_token_id": parity.rust_top1_token_id,
+        "identical_top1": parity.identical_top1,
+        "maximum_absolute_logit_delta_bits": parity.maximum_absolute_logit_delta.to_bits(),
+        "maximum_absolute_logit_delta_limit_bits": parity.maximum_absolute_logit_delta_limit.to_bits(),
+        "maximum_absolute_logit_delta_within_limit": parity.maximum_absolute_logit_delta_within_limit,
+        "parity_passed": parity.passed,
+        "attention_off_executions": 0,
+        "qualification_passed": parity.passed,
+    }))
+}
+
 fn local_transcript(
     tokenizer: &HfBpeTokenizer,
     prompt: &str,
@@ -2100,6 +2205,131 @@ mod tests {
         }
     }
 
+    fn write_frozen_qualification_config(checkpoint: &TinyCheckpoint) {
+        std::fs::write(
+            checkpoint.path().join("config.json"),
+            br#"{"max_position_embeddings":256,"tie_word_embeddings":true,"bos_token_id":0,"eos_token_id":1}"#,
+        )
+        .expect("write frozen qualification config");
+    }
+
+    #[test]
+    fn qualification_campaign_modes_preserve_legacy_contracts_and_close_1019() {
+        let issue_1014 = R4SoftmaxLocalQualificationCampaign::Issue1014TwoArm;
+        assert_eq!(issue_1014.issue(), 1014);
+        assert_eq!(issue_1014.report_schema(), QUALIFICATION_REPORT_SCHEMA);
+        assert_eq!(
+            issue_1014.python_prefix_schema(),
+            PYTHON_PREFIX_LOGITS_SCHEMA
+        );
+        assert!(issue_1014.runs_attention_off());
+        assert_eq!(issue_1014.expected_shape().layers, 6);
+
+        let issue_1017 = R4SoftmaxLocalQualificationCampaign::Issue1017EnabledOnly;
+        assert_eq!(issue_1017.issue(), 1017);
+        assert_eq!(
+            issue_1017.report_schema(),
+            ENABLED_ONLY_QUALIFICATION_REPORT_SCHEMA
+        );
+        assert_eq!(
+            issue_1017.python_prefix_schema(),
+            PYTHON_ENABLED_PREFIX_LOGITS_SCHEMA
+        );
+        assert!(!issue_1017.runs_attention_off());
+        assert_eq!(issue_1017.expected_shape().layers, 6);
+
+        let issue_1019 = R4SoftmaxLocalQualificationCampaign::Issue1019EnabledOnly;
+        assert_eq!(issue_1019.issue(), 1019);
+        assert_eq!(
+            issue_1019.report_schema(),
+            CAPACITY_QUALIFICATION_REPORT_SCHEMA
+        );
+        assert_eq!(
+            issue_1019.python_prefix_schema(),
+            PYTHON_CAPACITY_PREFIX_LOGITS_SCHEMA
+        );
+        assert!(!issue_1019.runs_attention_off());
+        assert_eq!(issue_1019.expected_shape().layers, 12);
+    }
+
+    #[test]
+    fn qualification_campaign_shape_rejects_wrong_depth_geometry_and_context() {
+        let checkpoint = TinyCheckpoint::new();
+        write_frozen_qualification_config(&checkpoint);
+
+        let issue_1014 = R4SoftmaxLocalQualificationCampaign::Issue1014TwoArm;
+        let issue_1017 = R4SoftmaxLocalQualificationCampaign::Issue1017EnabledOnly;
+        let issue_1019 = R4SoftmaxLocalQualificationCampaign::Issue1019EnabledOnly;
+        let six_layers = issue_1014.expected_shape();
+        let twelve_layers = issue_1019.expected_shape();
+        enforce_campaign_shape(checkpoint.path(), &six_layers, 4096, issue_1014)
+            .expect("legacy #1014 shape");
+        enforce_campaign_shape(checkpoint.path(), &six_layers, 4096, issue_1017)
+            .expect("legacy #1017 shape");
+        enforce_campaign_shape(checkpoint.path(), &twelve_layers, 4096, issue_1019)
+            .expect("exact #1019 shape");
+
+        let mut wrong_depth = twelve_layers;
+        wrong_depth.layers = 11;
+        assert!(enforce_campaign_shape(checkpoint.path(), &wrong_depth, 4096, issue_1019).is_err());
+        assert!(enforce_campaign_shape(checkpoint.path(), &six_layers, 4096, issue_1019).is_err());
+
+        let mut wrong_geometry = twelve_layers;
+        wrong_geometry.head_size = 32;
+        wrong_geometry.query_heads = 9;
+        assert!(
+            enforce_campaign_shape(checkpoint.path(), &wrong_geometry, 4096, issue_1019).is_err()
+        );
+        assert!(
+            enforce_campaign_shape(checkpoint.path(), &twelve_layers, 4095, issue_1019).is_err()
+        );
+
+        std::fs::write(
+            checkpoint.path().join("config.json"),
+            br#"{"max_position_embeddings":255,"tie_word_embeddings":true,"bos_token_id":0,"eos_token_id":1}"#,
+        )
+        .expect("write wrong qualification context");
+        assert!(
+            enforce_campaign_shape(checkpoint.path(), &twelve_layers, 4096, issue_1019).is_err()
+        );
+    }
+
+    #[test]
+    fn issue_1019_output_policy_audit_requires_all_twelve_layers() {
+        let shape = R4SoftmaxLocalQualificationCampaign::Issue1019EnabledOnly.expected_shape();
+        let applications = (PREFIX_PARITY_TOKENS * shape.layers) as u64;
+        let audit = CausalAttentionOutputPolicyAudit {
+            policy: CausalAttentionOutputPolicy::Enabled,
+            applications,
+            enabled_applications: applications,
+            zeroed_applications: 0,
+            output_lanes: applications * shape.dimension as u64,
+            nonzero_lanes_before_policy: 1019,
+            nonzero_lanes_after_policy: 1019,
+            applications_by_layer: vec![PREFIX_PARITY_TOKENS as u64; 12],
+            maximum_query_position: Some(PREFIX_PARITY_TOKENS - 1),
+        };
+        let exact = output_policy_audit_record(
+            audit.clone(),
+            PREFIX_PARITY_TOKENS,
+            &shape,
+            CausalAttentionOutputPolicy::Enabled,
+        )
+        .expect("all twelve #1019 output-policy layer audits");
+        assert!(exact.exact);
+        assert_eq!(exact.applications_by_layer.len(), 12);
+
+        let mut eleven_layers = audit;
+        eleven_layers.applications_by_layer.pop();
+        assert!(output_policy_audit_record(
+            eleven_layers,
+            PREFIX_PARITY_TOKENS,
+            &shape,
+            CausalAttentionOutputPolicy::Enabled,
+        )
+        .is_err());
+    }
+
     #[test]
     fn qualification_decision_refactor_preserves_both_arm_mode_cids() {
         let checkpoint = LocalCheckpointBinding {
@@ -2220,6 +2450,20 @@ mod tests {
 
         assert_mode(ENABLED_ONLY_QUALIFICATION_REPORT_SCHEMA, None, None);
         assert_mode(QUALIFICATION_REPORT_SCHEMA, Some(&arm), Some(&parity));
+        let capacity = capacity_qualification_decision_cid(
+            CAPACITY_QUALIFICATION_REPORT_SCHEMA,
+            &checkpoint,
+            &provenance,
+            &R4SoftmaxLocalQualificationCampaign::Issue1019EnabledOnly.expected_shape(),
+            &input,
+            &arm,
+            &parity,
+        )
+        .expect("#1019 qualification decision CID");
+        assert_eq!(
+            capacity,
+            "blake3:b16624326eee695d5b0a39a3cf74866873e9b4537436c5627a15f2fd65bc8463"
+        );
     }
 
     #[test]
@@ -2299,16 +2543,36 @@ mod tests {
             "test fixture",
         )
         .expect("fixture CID reproduces");
-        validate_python_prefix_reference_envelope(&reference, false)
-            .expect("valid two-arm fixture");
+        validate_python_prefix_reference_envelope(
+            &reference,
+            R4SoftmaxLocalQualificationCampaign::Issue1014TwoArm,
+        )
+        .expect("valid two-arm fixture");
         let mut enabled_only = reference.clone();
         enabled_only.schema = PYTHON_ENABLED_PREFIX_LOGITS_SCHEMA.to_owned();
         enabled_only.attention_off = None;
-        validate_python_prefix_reference_envelope(&enabled_only, true)
-            .expect("valid enabled-only fixture");
-        assert!(validate_python_prefix_reference_envelope(&enabled_only, false).is_err());
+        validate_python_prefix_reference_envelope(
+            &enabled_only,
+            R4SoftmaxLocalQualificationCampaign::Issue1017EnabledOnly,
+        )
+        .expect("valid enabled-only fixture");
+        assert!(validate_python_prefix_reference_envelope(
+            &enabled_only,
+            R4SoftmaxLocalQualificationCampaign::Issue1014TwoArm,
+        )
+        .is_err());
+        enabled_only.schema = PYTHON_CAPACITY_PREFIX_LOGITS_SCHEMA.to_owned();
+        validate_python_prefix_reference_envelope(
+            &enabled_only,
+            R4SoftmaxLocalQualificationCampaign::Issue1019EnabledOnly,
+        )
+        .expect("valid #1019 capacity fixture");
         reference.enabled.top1_token_id = 9;
-        assert!(validate_python_prefix_reference_envelope(&reference, false).is_err());
+        assert!(validate_python_prefix_reference_envelope(
+            &reference,
+            R4SoftmaxLocalQualificationCampaign::Issue1014TwoArm,
+        )
+        .is_err());
     }
 
     #[test]

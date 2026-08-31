@@ -59,11 +59,14 @@
   causal/external audits, prompt retention `5/5`, and normalized replay `5/5`
   passed. Fresh sealed NLL `1.5727521962806827` failed the strict `<1.50`
   criterion, so #1017 is negative solely on NLL. Freeze that result without
-  rerun, further 7.15M exposure, or learning-rate tuning. The sole next step
-  is to specify one predeclared parameter-capacity increase that reuses this attention
-  and Rust execution path; it is not another attention diagnostic, geometry
-  comparator, or softmax replacement. External training hardware is allowed
-  only if the frozen capacity and wall-clock contract requires it.
+  rerun, further 7.15M exposure, or learning-rate tuning. The sole successor is
+  now frozen as [#1019](https://github.com/UOR-Foundation/uor-r4/issues/1019):
+  twelve layers, 13,130,784 parameters, seed 1019, 16,800 steps, and
+  275,251,200 tokens using this attention and Rust execution path. It is not
+  another attention diagnostic, geometry comparator, or softmax replacement.
+  Every execution gate is `NOT_RUN`. Full training requires an eight-hour
+  hardware projection after the cheap preflights; paid external execution
+  requires explicit owner approval.
   Offline teacher/compiler floats, matrix operations, and softmax are permitted
   while proving a replacement mechanism; the deployed destination remains
   exact, integer/table-native, and source-free.
@@ -78,7 +81,8 @@
   the [trace-student record](r4_softmax_trace_student_973.md) and
   [#1012 observability record](r4_softmax_trace_observability_1012.md), followed
   by the [#1014 end-to-end result](r4_softmax_end_to_end_attention_1014.md) and
-  [#1017 continuation result](r4_softmax_quality_capacity_continuation_1017.md).
+  [#1017 continuation result](r4_softmax_quality_capacity_continuation_1017.md),
+  then the [#1019 frozen contract](r4_softmax_parameter_capacity_1019.md).
   The intermediate
   [Geometric Causal Decoder Roadmap](geometric_causal_decoder_plan.md) records
   the superseded #948-#958 sequence.

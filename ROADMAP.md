@@ -82,9 +82,12 @@ quality DoD. #1017 completed the one authorized continuation to
 `149,995,520` cumulative tokens: enabled Rust parity, all six R4/Spin layers,
 causal/external audits, `5/5` subject-or-scene retention, and `5/5` normalized
 replay passed, but fresh sealed NLL `1.5727521962806827` failed the strict
-`<1.50` criterion. The result is negative solely on NLL. The next primary rung
-is one predeclared parameter-capacity increase over the same attention and Rust
-path; further 7.15M exposure and learning-rate tuning are prohibited.
+`<1.50` criterion. The result is negative solely on NLL. The primary rung is
+now [#1019](https://github.com/UOR-Foundation/uor-r4/issues/1019), one frozen
+12-layer, 13,130,784-parameter campaign over the same attention and Rust path.
+Its 16,800-step, 275,251,200-token execution remains `NOT_RUN` pending cheap
+preflights and an eight-hour hardware gate; paid external execution requires
+explicit approval. Further 7.15M exposure and learning-rate tuning are prohibited.
 D3 remains `NOT_RUN`, and #973 continues to block #954. Its current contract is
 [ADR-0005](docs/adr/0005-predictive-geometric-connection-memory.md), with the
 binding reference result in
@@ -151,7 +154,8 @@ The completed continuation and its NLL-only negative are in
 > WASM-isolation checks pass, but the hosted Pages surface is static and has no
 > functioning chat backend/artifact lowering. The completed teacher-trace/Q16
 > suffix student has a bounded source-free distillation effect and looping
-> output. The active rung is `R4SoftmaxTraceStateStudentV1` as described above.
+> output. The active rung is #1019's frozen 12-layer parameter-capacity
+> campaign; all execution gates remain `NOT_RUN` pending admission.
 > Offline teacher/compiler work remains transformer-compatible and
 > `f32`/multiply/alloc/source-weight backed—not the final
 > table-native, multiply-free, transformerless serving engine. D3 remains
@@ -233,8 +237,8 @@ pass, while the hosted static Pages surface currently has no working chat
 backend/artifact lowering; **Completed bounded step:** source-free Q16 suffix
 trace distillation, with looping autonomous output, state-student and
 observability negatives, #1014 attention qualification, and #1017's NLL-only
-quality-capacity negative; **Next:** specify one predeclared parameter-capacity
-increase over the same attention/Rust path; **Parked:** further 7.15M exposure
+quality-capacity negative; **Active / `NOT_RUN`:** #1019's frozen 12-layer,
+13,130,784-parameter campaign over the same attention/Rust path; **Parked:** further 7.15M exposure
 or LR tuning, intrinsic score/readout alternatives,
 resonance-based softmax replacement, full-model recurrent lowering, and exact
 deployment; **Blocked:** D3 and #954; **Later:**
@@ -262,8 +266,9 @@ distillation and looping output; its state and observability successors are
 complete negatives. #1014 established load-bearing attention. #1017 then
 completed the one exposure continuation with NLL `1.5727521962806827` (FAIL),
 retention `5/5` (PASS), enabled parity, all mechanical gates, and exact replay.
-The next action is to specify a predeclared parameter-capacity increase, not more
-exposure or LR tuning of the same 7.15M model.
+#1019 now specifies that one increase: twelve layers, 13,130,784 parameters,
+seed 1019, 16,800 steps, and 275,251,200 tokens. It is `NOT_RUN` pending
+preflight and hardware admission; do not add exposure or tune the 7.15M model.
 Intrinsic/resonance/replacement work is
 parked; D3 remains `NOT_RUN`. See the
 [#989 evidence](docs/source_free_table_baseline_989.md); the completed #986
@@ -518,8 +523,9 @@ feasibility boundary remains in the
    observability successor then closed negative. #1014 established load-bearing
    ordinary attention. #1017's fixed continuation reached `149,995,520` tokens
    and passed retention `5/5`, parity, audits, and replay, but failed only the
-   strict NLL gate at `1.5727521962806827`. Build next only one predeclared
-   parameter-capacity increase over the same qualified mechanism and Rust path.
+   strict NLL gate at `1.5727521962806827`. Build only #1019's frozen 12-layer,
+   13,130,784-parameter campaign over the same qualified mechanism and Rust
+   path; its execution is `NOT_RUN` pending preflight and hardware admission.
    Intrinsic score/readout alternatives, paired-E8, resonance-based softmax
    replacement, and exact deployment are parked; #954 remains blocked. Every learned epoch receives a
    new kappa and reruns its owning
@@ -610,9 +616,9 @@ historical evidence and comparators.
   inversion, and #953 were `NOT_RUN`. Its successor handoff is #986; the failed
   #983 representation and evidence remain unchanged.
 
-## Next proposed
+## Active
 
-- [ ] **Proposed #973 parameter-capacity successor after #1017's NLL-only negative** — retain the
+- [ ] **#1019 frozen 13.13M parameter-capacity campaign (`NOT_RUN`)** — retain the
   bounded positives, #997 placement negative, bounded gated-delta negative, V2
   budget invalidation, equal-manifold-budget V3 mixed-gauge H4 negative, and
   V4's held-out 13/24 functional/control negative. The positive attention
@@ -642,9 +648,15 @@ historical evidence and comparators.
   state-student and observability successors closed negative. #1014 established
   load-bearing ordinary attention. #1017 then completed at `149,995,520`
   cumulative tokens with NLL `1.5727521962806827` as its sole failed gate and
-  retention/parity/audits/replay passing. The next work is one independently
-  frozen parameter-capacity increase over the same attention and Rust path. Do
-  not extend exposure or tune learning rate on the 7.15M checkpoint. Intrinsic score/readout
+  retention/parity/audits/replay passing. #1019 freezes the sole successor:
+  depth 12, width 288, six 48-wide heads with twelve R4 blocks per head,
+  13,130,784 parameters, seed 1019, 16,800 steps, and 275,251,200 tokens.
+  Fresh development and confirmation tranches, all-twelve-layer Rust parity,
+  and the strict `<1.50` NLL gate remain `NOT_RUN`. Full training requires a
+  200-step probe projecting no more than eight hours with a 1.25 safety factor;
+  paid external launch requires explicit approval. See the
+  [frozen contract](docs/r4_softmax_parameter_capacity_1019.md). Do not extend
+  exposure or tune learning rate on the 7.15M checkpoint. Intrinsic score/readout
   alternatives, resonance-based softmax replacement, full-model recurrent
   lowering, and exact deployment are parked. D3 remains `NOT_RUN`; #954 remains blocked.
 
@@ -792,8 +804,8 @@ historical evidence and comparators.
   trace student is complete with bounded distillation but looping output;
   the state student and observability audit closed negative; #1014 established
   load-bearing attention; and #1017 closed NLL-only negative after passing
-  retention, parity, audits, and replay. One predeclared parameter-capacity
-  increase is next; intrinsic score/readout alternatives,
+  retention, parity, audits, and replay. #1019 is the active frozen
+  parameter-capacity campaign and remains `NOT_RUN`; intrinsic score/readout alternatives,
   resonance-based softmax replacement, full-model recurrent lowering, and exact
   deployment are parked. D3 remains `NOT_RUN`; #954 remains blocked.
   Coherent product behavior, correctness, and reasoning remain unestablished.

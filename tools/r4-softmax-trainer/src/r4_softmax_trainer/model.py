@@ -1,4 +1,4 @@
-"""The single frozen Llama/R4-block causal-softmax model for #1014."""
+"""Frozen Llama/R4-block causal-softmax model implementations."""
 
 from __future__ import annotations
 
@@ -12,7 +12,21 @@ from torch.nn import functional as F
 from .constants import FROZEN_MODEL_CONFIG, ModelConfig
 
 
-EXPECTED_PARAMETER_COUNT = 7_155_360
+def expected_parameter_count(config: ModelConfig) -> int:
+    """Return the exact tied-head parameter count implied by ``config``."""
+    config.validate()
+    embedding = config.vocab_size * config.hidden_size
+    per_layer = (
+        4 * config.hidden_size * config.hidden_size
+        + 3 * config.hidden_size * config.intermediate_size
+        + 2 * config.hidden_size
+    )
+    final_norm = config.hidden_size
+    return embedding + config.num_hidden_layers * per_layer + final_norm
+
+
+# Retain the original public constant for callers that bind the #1014 contract.
+EXPECTED_PARAMETER_COUNT = expected_parameter_count(FROZEN_MODEL_CONFIG)
 
 
 class RMSNorm(nn.Module):
@@ -141,9 +155,12 @@ class R4SoftmaxForCausalLM(nn.Module):
         self.config = config
         self.model = LlamaBackbone(config)
         self.apply(self._initialize)
-        if self.parameter_count() != EXPECTED_PARAMETER_COUNT:
+        actual_parameter_count = self.parameter_count()
+        configured_parameter_count = expected_parameter_count(config)
+        if actual_parameter_count != configured_parameter_count:
             raise RuntimeError(
-                f"parameter count {self.parameter_count()} != frozen {EXPECTED_PARAMETER_COUNT}"
+                "parameter count "
+                f"{actual_parameter_count} != config-derived {configured_parameter_count}"
             )
 
     @staticmethod

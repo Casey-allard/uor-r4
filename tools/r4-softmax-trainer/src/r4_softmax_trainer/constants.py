@@ -1,4 +1,4 @@
-"""Frozen #1014 model, data, and run contract."""
+"""Frozen model, data, and run contracts for the causal-softmax campaigns."""
 
 from __future__ import annotations
 
@@ -59,10 +59,11 @@ TEST_TOKEN_CAP = TEST_REVEAL_TOTAL_CAP - SEALED_PROMPT_TOKEN_COUNT
 
 @dataclass(frozen=True, slots=True)
 class ModelConfig:
-    """The one architecture authorized by #1014.
+    """An immutable architecture contract for an authorized campaign.
 
     A 48-wide head is twelve R4 coordinate blocks. No configuration search is
-    exposed: changing these values means opening a different experiment.
+    exposed: supplying different values means selecting a separately frozen
+    experiment contract.
     """
 
     vocab_size: int = 4096
@@ -81,6 +82,12 @@ class ModelConfig:
     tie_word_embeddings: bool = True
 
     def validate(self) -> None:
+        if self.num_hidden_layers <= 0:
+            raise ValueError("num_hidden_layers must be positive")
+        if self.num_attention_heads <= 0 or self.num_key_value_heads <= 0:
+            raise ValueError("attention head counts must be positive")
+        if self.hidden_size <= 0 or self.intermediate_size <= 0 or self.head_dim <= 0:
+            raise ValueError("model dimensions must be positive")
         if self.hidden_size != self.num_attention_heads * self.head_dim:
             raise ValueError("hidden_size must equal num_attention_heads * head_dim")
         if self.num_key_value_heads != self.num_attention_heads:
@@ -135,3 +142,9 @@ class ModelConfig:
 
 FROZEN_MODEL_CONFIG = ModelConfig()
 FROZEN_MODEL_CONFIG.validate()
+
+# Issue #1019 changes only parameter capacity: it doubles the layer count while
+# preserving the complete-prefix causal-softmax mechanism, 48-wide (12-block)
+# R4 head geometry, tokenizer vocabulary, context, and tied output head.
+CAPACITY_MODEL_CONFIG = ModelConfig(num_hidden_layers=12)
+CAPACITY_MODEL_CONFIG.validate()

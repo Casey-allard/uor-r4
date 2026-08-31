@@ -21,3 +21,7 @@ def default_research_root() -> Path:
 
 def default_continuation_root() -> Path:
     return repository_root() / ".uor-models" / "research" / "issue-1017"
+
+
+def default_capacity_root() -> Path:
+    return repository_root() / ".uor-models" / "research" / "issue-1019"

@@ -1,6 +1,6 @@
 # Formal Vocabulary, Notation, and Claim Classes
 
-- **Version:** 0.1.23
+- **Version:** 0.1.24
 - **Status:** Normative for all new specification, plan, proof-model, and certificate text.
 - **Source:** `docs/hologram_formal_analysis_direction.pdf` §§1, 7, 13; tracker
   [#122](https://github.com/UOR-Foundation/uor-r4/issues/122); issue
@@ -178,6 +178,13 @@ by wholesale rewrite.
 
 ## Changelog
 
+- **0.1.24** (2026-08-31) — Bound #1019 as the sole parameter-capacity
+  successor: twelve layers, exactly 13,130,784 parameters, seed 1019, 16,800
+  steps, and 275,251,200 tokens over the unchanged causal-softmax R4/Spin and
+  Rust evidence path. Recorded every execution gate as `NOT_RUN`, required the
+  cheap preflights and an eight-hour hardware projection, and prohibited paid
+  external execution without explicit owner approval. This is a frozen
+  Objective/Empirical Criterion, not a result claim.
 - **0.1.23** (2026-08-31) — Recorded #1017's frozen continuation at
   `149,995,520` cumulative tokens: enabled Rust parity, all mechanical gates,
   prompt retention `5/5`, and normalized replay `5/5` passed; sealed NLL

@@ -269,9 +269,9 @@ substituted for one another.
   retention `3/5`. The exact campaign closes without rerun or tuning. #1017's
   separate exposure continuation then closed negative solely on sealed NLL
   `1.5727521962806827`; enabled parity, all mechanical gates, retention `5/5`,
-  and normalized replay `5/5` passed. Next, specify one predeclared
-  parameter-capacity increase over the same mechanism, not further 7.15M
-  exposure or LR tuning.
+  and normalized replay `5/5` passed. #1019 now specifies the sole successor:
+  one fresh 12-layer, 13,130,784-parameter campaign over the same mechanism,
+  not further 7.15M exposure or LR tuning. Its execution is `NOT_RUN`.
 - **`R4SoftmaxQualityCapacityContinuationV1`** — #1017's completed, independently
   frozen continuation of the exact #1014 7,155,360-parameter model to
   `149,995,520` cumulative training tokens. Development selection froze at NLL
@@ -282,6 +282,15 @@ substituted for one another.
   normalized replays passed. It is an NLL-only negative and does not reopen the
   bounded #1014 attention conclusion. See the
   [authoritative #1017 record](../r4_softmax_quality_capacity_continuation_1017.md).
+- **#1019 parameter-capacity campaign** — the frozen, not-yet-run quality
+  campaign over the unchanged ordinary causal-softmax R4/Spin mechanism. It
+  changes only decoder depth from six to twelve layers: exactly 13,130,784
+  parameters, seed 1019, 16,800 optimizer steps, and 275,251,200 tokens. Fresh
+  development and confirmation tranches, all-twelve-layer Rust parity, sealed
+  NLL `<1.50`, five generations, and replay remain `NOT_RUN`. Full training
+  requires a 200-step backend probe projecting no more than eight hours with a
+  1.25 safety factor; a paid external launch requires explicit approval. See
+  the [authoritative #1019 contract](../r4_softmax_parameter_capacity_1019.md).
 - **H4 frame connection** — the exact object is the relative H4 group element;
   the current compiler-side f64 matrix represents its left-quaternion action
   and is numerically orthogonal under the tested finite-group law. It does not
@@ -431,8 +440,9 @@ substituted for one another.
   observability ladder at `INSUFFICIENT_SUPPORT_COVERAGE`, then the completed
   #1014 end-to-end campaign: attention intervention and Rust parity `PASS`,
   complete quality DoD `FAIL`; then #1017's continuation: NLL-only `FAIL`, with
-  retention/parity/audits/replay `PASS`. The next action is to specify one
-  predeclared parameter-capacity increase over the unchanged mechanism. Intrinsic/readout,
+  retention/parity/audits/replay `PASS`. #1019 now freezes the one 12-layer,
+  13,130,784-parameter campaign over the unchanged mechanism and remains
+  `NOT_RUN`. Intrinsic/readout,
   fiber-preserving multi-resonance replacement,
   whole-decoder recurrent factorization, and final requalification are parked
   (#973);
@@ -510,10 +520,9 @@ expanded or repeated. #1014 subsequently established load-bearing ordinary
 causal attention with a `2.677393`-nat attention-off penalty and exact Rust
 parity, but failed its full quality DoD at enabled NLL `2.127407` and prompt
 retention `3/5`. #1017 then closed NLL-only negative at
-`1.5727521962806827`, with retention `5/5` and all other gates passing. The
-recommended next work is to specify one predeclared parameter-capacity increase
-over the unchanged
-mechanism; exact lowering, resonance, WASM, release,
+`1.5727521962806827`, with retention `5/5` and all other gates passing. #1019
+now owns the frozen 12-layer, 13,130,784-parameter campaign over the unchanged
+mechanism; all execution gates remain `NOT_RUN`. Exact lowering, resonance, WASM, release,
 correctness, and reasoning claims remain parked.
 
 ## Core roles

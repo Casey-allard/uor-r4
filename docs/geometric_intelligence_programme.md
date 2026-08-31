@@ -180,9 +180,11 @@ tokens. Enabled Rust parity, all-layer causal/R4 audits, subject-or-scene
 retention `5/5`, and normalized replay `5/5` passed. Fresh sealed NLL
 `1.5727521962806827` failed the strict `<1.50` criterion, making the overall
 result negative solely on NLL. Freeze it without rerun, further 7.15M exposure,
-or learning-rate tuning. The sole next rung is one predeclared
-parameter-capacity increase that reuses the mechanism and Rust path, not another
-attention diagnostic or geometry substitute.
+or learning-rate tuning. The sole rung is now frozen under
+[#1019](https://github.com/UOR-Foundation/uor-r4/issues/1019): twelve layers,
+13,130,784 parameters, seed 1019, 16,800 steps, and 275,251,200 tokens reusing
+the mechanism and Rust path. Every execution gate is `NOT_RUN`; this is not
+another attention diagnostic or geometry substitute.
 Offline floats, matrix operations, and softmax remain allowed at the
 teacher/compiler boundary; the deployed destination remains exact,
 integer/table-native, and source-free. Intrinsic/readout substitution,
@@ -285,8 +287,9 @@ ordinary causal attention through a `2.677393`-nat attention-off penalty and
 exact Rust parity, but failed its full quality DoD at enabled NLL `2.127407`
 and subject/scene retention `3/5`. #1017's single exposure continuation then
 passed retention `5/5`, parity, all mechanical gates, and replay, but failed
-solely on NLL `1.5727521962806827`. The single next action is to specify one
-predeclared parameter-capacity increase over the unchanged mechanism. Intrinsic/readout,
+solely on NLL `1.5727521962806827`. #1019 now owns the single frozen 12-layer,
+13,130,784-parameter campaign over the unchanged mechanism; execution remains
+`NOT_RUN` pending preflight and hardware admission. Intrinsic/readout,
 multi-resonance, recurrent lowering, and final requalification are parked;
 D3 remains `NOT_RUN` and #954 remains blocked.
 No new H4,
@@ -402,10 +405,13 @@ construction-bound exact-descriptor selector at each of paragraph and
   artifact lowering. The Q16 suffix trace student is complete with bounded
   distillation but looping output. `R4SoftmaxTraceStateStudentV1` is also
   complete and failed its decision, material-control, and non-looping gates.
-  The only active rung is the construction-only leave-one-document-out
-  observability audit; intrinsic/readout alternatives, resonance-based softmax
-  replacement, new state dimensions, corpus scale, whole-decoder recurrent
-  lowering, and exact deployment are parked. Calling a later
+  The construction-only leave-one-document-out observability audit later
+  completed at insufficient support, #1014 established load-bearing attention,
+  and #1017 closed NLL-only negative. The only active rung is #1019's frozen
+  12-layer parameter-capacity campaign, with execution `NOT_RUN` pending
+  admission; intrinsic/readout alternatives, resonance-based softmax
+  replacement, new state dimensions, whole-decoder recurrent lowering, and
+  exact deployment are parked. Calling a later
 #973 operator harmonic additionally requires an
 artifact-bound basis/mode contract. #962
 separately owns product chat integration and persisted, identity-scoped hive
@@ -1399,8 +1405,9 @@ attention-off intervention and exact Rust parity, while its full quality DoD
 failed at enabled NLL `2.127407` and subject/scene retention `3/5`. Close that
 exact frozen campaign. #1017's exposure continuation then closed NLL-only
 negative at `1.5727521962806827`, with retention `5/5` and all other gates
-passing. One predeclared parameter-capacity increase over the unchanged
-mechanism is the recommended next issue, but is not yet active.
+passing. #1019 is now active as the frozen 12-layer, 13,130,784-parameter
+campaign over the unchanged mechanism, but its execution is `NOT_RUN` pending
+preflight and hardware admission.
 Intrinsic/readout, resonance/recurrent lowering, and final
 requalification are parked.
 Product CLI/HTTP chat integration, restart-persistent conversation state, and
@@ -1805,7 +1812,10 @@ H4 connection against a working plain arm and a strong coherent-tangent
   `R4SoftmaxTraceStateStudentV1` then completed and failed promotion without a
   changed top-1 decision, material geometry-control separation, or a repaired
   continuation. The construction-only leave-one-document-out observability
-  audit is the next primary rung.
+  audit later completed at insufficient support; #1014 and #1017 then produced
+  the attention-positive and NLL-only-negative results recorded above. #1019's
+  frozen parameter-capacity campaign is the current primary rung and remains
+  `NOT_RUN`.
 See ADR-0005 and the
 [#973 corpus-induced document placement record](corpus_induced_document_spin_placement_973.md).
 
@@ -1827,8 +1837,9 @@ bounded distillation but looping output. Its recurrent state successor is
 complete and failed promotion. The construction-only observability audit then
 closed at insufficient support; #1014 established load-bearing attention; and
 #1017 completed NLL-only negative at `1.5727521962806827` after passing
-retention, parity, audits, and replay. The sole next step is one predeclared
-parameter-capacity increase over the same attention/Rust path; intrinsic/readout alternatives,
+retention, parity, audits, and replay. The sole next step is #1019's frozen
+12-layer, 13,130,784-parameter campaign over the same attention/Rust path; all
+execution gates remain `NOT_RUN`. Intrinsic/readout alternatives,
 resonance-based softmax replacement, new state dimensions, corpus scale,
 whole-decoder recurrent lowering, and exact deployment are parked, while D3
 remains `NOT_RUN`. The one

@@ -97,9 +97,13 @@ without rerun or tuning. Its one separately frozen exposure successor,
 `149,995,520` cumulative tokens. Enabled Rust parity, all-layer causal/R4
 audits, prompt retention `5/5`, and normalized replay `5/5` passed; sealed NLL
 `1.5727521962806827` failed the strict `<1.50` gate. The result is negative
-solely on NLL. The next action is to specify one predeclared parameter-capacity
-increase over the same mechanism and Rust path, not further 7.15M exposure or
-learning-rate tuning. The reference remains transformer-compatible
+solely on NLL. [#1019](https://github.com/UOR-Foundation/uor-r4/issues/1019)
+now freezes the sole increase: twelve layers, 13,130,784 parameters, seed 1019,
+16,800 steps, and 275,251,200 tokens over the same mechanism and Rust path.
+Every #1019 execution gate is `NOT_RUN`; full training requires the eight-hour
+hardware admission, and paid external execution requires explicit owner
+approval. Further 7.15M exposure and learning-rate tuning remain prohibited.
+The reference remains transformer-compatible
 and `f32`/multiply/alloc/source-weight backed; it is not source-free,
 table-native, multiply-free, transformerless, browser-WASM, release, or
 frontier-model evidence.
@@ -175,7 +179,7 @@ canonical text/corpus
     -> construction-only trace/state observability audit [COMPLETE; INSUFFICIENT SUPPORT]
     -> direct end-to-end causal softmax attention in learned R4/Spin coordinates [#1014; ATTENTION PASS, FULL QUALITY DOD FAIL]
     -> continue unchanged 7.15M model to 149,995,520 tokens [#1017; NLL-ONLY FAIL, RETENTION/PARITY/REPLAY PASS]
-    -> one predeclared parameter-capacity increase over the unchanged mechanism [NEXT]
+    -> #1019 frozen 12-layer, 13,130,784-parameter campaign over the unchanged mechanism [ACTIVE; NOT_RUN]
     -> intrinsic/readout alternatives, paired-E8, resonance replacement, full-model recurrent lowering, and exact deployment parked
     -> correctness + typed abstention (#954)
     -> bounded reasoning (#955)
@@ -1537,9 +1541,10 @@ D3 on construction covariance, with diagnostic curved NLL worse than donor and
   complete quality DoD at enabled NLL `2.127407` and prompt retention `3/5`.
   #1017's separate continuation then passed retention `5/5`, enabled parity,
   every mechanical gate, and replay, but failed solely on sealed NLL
-  `1.5727521962806827`. The next primary rung is one predeclared
-  parameter-capacity increase over the unchanged attention and Rust execution
-  path. Further exposure and LR tuning of the 7.15M checkpoint are prohibited.
+  `1.5727521962806827`. #1019 is the primary rung: one frozen 12-layer,
+  13,130,784-parameter campaign over the unchanged attention and Rust execution
+  path. It remains `NOT_RUN` pending preflight and hardware admission. Further
+  exposure and LR tuning of the 7.15M checkpoint are prohibited.
   Resonance substitutes, unrelated optimization, and release work
   remain parked. Lowering does not otherwise reactivate automatically on a
   generation positive.

@@ -1,0 +1,177 @@
+{
+  "schema": "uor-r4-research/r4-softmax-parameter-capacity-1019/1",
+  "issue": 1019,
+  "evidence_date": "2026-08-31",
+  "evidence_status": "FROZEN_PRE_RUN_CONTRACT",
+  "terminal": "NOT_RUN",
+  "claim_scope": "one frozen 13,130,784-parameter ordinary causal-softmax R4/Spin language-quality campaign",
+  "record_conclusion": "No #1019 population, preflight, training, checkpoint, parity, reveal, generation, replay, or final result exists at contract freeze. All execution gates are NOT_RUN.",
+  "predecessor": {
+    "issue": 1017,
+    "parameters": 7155360,
+    "cumulative_train_tokens": 149995520,
+    "fresh_sealed_enabled_nll": 1.5727521962806827,
+    "strict_nll_ceiling": 1.5,
+    "attention_state": "ESTABLISHED_LOAD_BEARING_AT_DECLARED_R4_SPIN_SCOPE",
+    "complete_quality_verdict": "FAIL_ENABLED_NLL"
+  },
+  "model": {
+    "initialization": "fresh_random",
+    "seed": 1019,
+    "parameters": 13130784,
+    "vocabulary": 4096,
+    "hidden_width": 288,
+    "decoder_layers": 12,
+    "query_heads": 6,
+    "kv_heads": 6,
+    "head_width": 48,
+    "r4_blocks_per_head": 12,
+    "ffn_width": 768,
+    "context": 256,
+    "tied_embedding_and_lm_head": true,
+    "attention": "learned Q/K/V/O; complete-prefix scaled dot product; stable causal softmax; weighted-value aggregation",
+    "unchanged_components": [
+      "tokenizer",
+      "RMSNorm",
+      "RoPE",
+      "SwiGLU",
+      "R4 block partition",
+      "coherent Spin/H4 transport",
+      "sampler policy",
+      "story split policy",
+      "Rust all-layer generation and audit path"
+    ]
+  },
+  "population": {
+    "status": "NOT_RUN",
+    "source": "pinned TinyStories source inherited from #1014/#1017",
+    "train_token_ids": 275251200,
+    "development_token_ids": 250000,
+    "confirmation_token_ids": 250000,
+    "confirmation_nll_token_ids": 249880,
+    "confirmation_prompt_count": 5,
+    "confirmation_prompt_token_ids_each": 24,
+    "prior_published_prompt_story_cids_excluded": 10,
+    "requirements": [
+      "story-level train/development/confirmation disjointness",
+      "new development tranche after consumed #1014/#1017 development populations",
+      "new confirmation tranche after consumed #1014/#1017 test populations",
+      "confirmation paths denied to training and selection"
+    ]
+  },
+  "training": {
+    "status": "NOT_RUN",
+    "optimizer_steps": 16800,
+    "batch_sequences": 16,
+    "gradient_accumulation_steps": 4,
+    "context": 256,
+    "tokens_per_optimizer_step": 16384,
+    "total_train_tokens": 275251200,
+    "tokens_per_parameter": 20.962282221686078,
+    "optimizer": "AdamW",
+    "betas": [
+      0.9,
+      0.95
+    ],
+    "weight_decay": 0.1,
+    "gradient_clip": 1.0,
+    "warmup_steps": 100,
+    "peak_learning_rate": 0.0003,
+    "minimum_learning_rate": 0.00003,
+    "schedule": "one cosine decay after warmup",
+    "complete_development_evaluation_interval_steps": 400,
+    "selection": "minimum complete-development NLL before confirmation reveal",
+    "allowed_resume": "byte-identical interrupted run only",
+    "forbidden": [
+      "parameter sweep",
+      "alternate capacity",
+      "alternate seed",
+      "alternate schedule",
+      "alternate precision",
+      "retry",
+      "#1017 weight transplant or reshape"
+    ]
+  },
+  "hardware_admission": {
+    "status": "NOT_RUN",
+    "mps_full_run_authorized": false,
+    "maximum_projected_wall_hours_with_safety_factor": 8.0,
+    "maximum_peak_accelerator_memory_fraction": 0.8,
+    "projection_safety_factor": 1.25,
+    "probe_steps": 200,
+    "measured_regular_checkpoint_save_samples": 2,
+    "maximum_extra_best_checkpoint_saves": 43,
+    "projected_complete_development_evaluations": 44,
+    "fallback": "one pinned deterministic single-CUDA float32 environment with TF32 disabled",
+    "cuda_requires_bound_failed_mps_result": true,
+    "paid_external_launch_authorized": false,
+    "unavailable_terminal": "UNAVAILABLE_HARDWARE_BUDGET"
+  },
+  "preflight": {
+    "overall": "NOT_RUN",
+    "exact_parameter_count_and_r4_divisibility": "NOT_RUN",
+    "population_availability_and_disjointness": "NOT_RUN",
+    "fixed_64_sequence_overfit_loss_reduction_at_least_80_percent": "NOT_RUN",
+    "python_rust_random_export_top1_identical": "NOT_RUN",
+    "python_rust_random_export_maximum_absolute_logit_delta_at_most_0_005": "NOT_RUN",
+    "backend_200_step_throughput_memory_checkpoint_probe": "NOT_RUN"
+  },
+  "qualification": {
+    "status": "NOT_RUN",
+    "enabled_python_rust_prefix_tokens": 32,
+    "identical_top1_required": true,
+    "maximum_absolute_logit_delta_limit": 0.005,
+    "all_twelve_layers_required": true,
+    "causal_projection_r4_output_policy_audits_exact_required": true,
+    "forbidden_source_reads_required_zero": true,
+    "attention_off_executions": 0
+  },
+  "sealed_reveal": {
+    "status": "NOT_RUN",
+    "reveal_count_allowed": 1,
+    "candidate_enabled_nll_strict_ceiling": 1.5,
+    "same_tranche_1017_reporting_baseline_required": true,
+    "generation_requires_both_nll_thresholds": true,
+    "negative_nll_terminal": "FAIL_CAPACITY_NLL",
+    "negative_nll_action": "end rung before generation, replay, or finalization",
+    "rust_generation_seeds": [
+      3019,
+      3020,
+      3021,
+      3022,
+      3023
+    ],
+    "normalized_replay_required": 5
+  },
+  "definition_of_done": {
+    "overall": "NOT_RUN",
+    "exact_16800_step_completion": "NOT_RUN",
+    "candidate_enabled_sealed_nll_below_1_50": "NOT_RUN",
+    "candidate_nll_lower_than_1017_on_same_new_tranche": "NOT_RUN",
+    "python_rust_parity": "NOT_RUN",
+    "all_twelve_layer_r4_spin_execution": "NOT_RUN",
+    "causal_and_external_closure": "NOT_RUN",
+    "at_least_four_of_five_subject_or_scene_retention": "NOT_RUN",
+    "all_outputs_utf8_and_without_period_1_to_4_short_cycle": "NOT_RUN",
+    "exact_normalized_reload_replay_five_of_five": "NOT_RUN"
+  },
+  "decision": {
+    "if_positive": "Freeze #1019 as the first ordinary locally executable R4/Spin quality baseline, then open one separate #973 issue for the frozen multi-resonance/softmax-replacement mechanism against it.",
+    "if_negative": "Close the bespoke micro-model ladder; do not run a third size, exposure extension, seed, or learning-rate variant; require a source-pinned publicly reproduced TinyStories architecture/training-recipe decision before geometry replacement.",
+    "if_hardware_unavailable": "Record UNAVAILABLE_HARDWARE_BUDGET and do not interpret the absence of a run as a model-quality negative."
+  },
+  "parked_until_1019_decision": [
+    "intrinsic score or readout substitution",
+    "multi-resonance or trigonometric softmax replacement",
+    "whole-decoder recurrent lowering",
+    "exact table-native deployment",
+    "correctness and reasoning qualification",
+    "product, hosted, WASM, tag, or release promotion"
+  ],
+  "nonclaims": [
+    "The frozen configuration is not training, hardware, quality, or generation evidence.",
+    "A future positive would not establish geometry advantage or a capacity scaling law.",
+    "The planned floating-point checkpoint path is not transformerless, multiplication-free, allocation-free, table-native, or the deployed exact runtime.",
+    "A bounded TinyStories result would not establish correctness, reasoning, instruction following, chat quality, broad language modeling, WASM readiness, release readiness, or frontier capability."
+  ]
+}

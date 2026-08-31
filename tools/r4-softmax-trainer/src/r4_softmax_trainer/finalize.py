@@ -15,7 +15,7 @@ import stat
 from pathlib import Path
 from typing import Any
 
-from .constants import FROZEN_MODEL_CONFIG
+from .constants import FROZEN_MODEL_CONFIG, ModelConfig
 from .continuation import (
     CONTINUATION_REVEAL_MANIFEST_SCHEMA,
     CONTINUATION_REVEAL_RESULT_SCHEMA,
@@ -153,36 +153,42 @@ def _canonical_value_cid(value: Any) -> str:
     return cid_bytes(canonical_json_bytes(value))
 
 
-def _generation_paths() -> list[tuple[int, int, Path, Path]]:
+def _generation_paths(seed_base: int = 2014) -> list[tuple[int, int, Path, Path]]:
     return [
         (
             index,
-            2014 + index,
-            Path(f"generations/prompt-{index}-seed-{2014 + index}.json"),
-            Path(f"generations/replay/prompt-{index}-seed-{2014 + index}.json"),
+            seed_base + index,
+            Path(f"generations/prompt-{index}-seed-{seed_base + index}.json"),
+            Path(f"generations/replay/prompt-{index}-seed-{seed_base + index}.json"),
         )
         for index in range(5)
     ]
 
 
-def _verify_exact_generation_files(root: Path) -> None:
+def _verify_exact_generation_files(
+    root: Path,
+    *,
+    generation_paths: list[tuple[int, int, Path, Path]] | None = None,
+    issue: int = ISSUE,
+) -> None:
     generation_root = root / "generations"
     if not generation_root.is_dir() or generation_root.is_symlink():
-        raise FileNotFoundError("#1017 generation directory is unavailable")
+        raise FileNotFoundError(f"#{issue} generation directory is unavailable")
+    paths = generation_paths or _generation_paths()
     expected = {
         str(path.relative_to("generations"))
-        for _, _, primary, replay in _generation_paths()
+        for _, _, primary, replay in paths
         for path in (primary, replay)
     }
     observed: set[str] = set()
     for path in generation_root.rglob("*"):
         if path.is_symlink():
-            raise ValueError("#1017 generation directory contains a symlink")
+            raise ValueError(f"#{issue} generation directory contains a symlink")
         if path.is_file():
             observed.add(str(path.relative_to(generation_root)))
     if observed != expected:
         raise ValueError(
-            "#1017 generation directory must contain exactly five primary and five "
+            f"#{issue} generation directory must contain exactly five primary and five "
             f"replay reports; expected={sorted(expected)}, observed={sorted(observed)}"
         )
 
@@ -338,6 +344,7 @@ def _validate_generation_report(
     seed: int,
     checkpoint_records: list[dict[str, Any]],
     reveal: dict[str, Any],
+    model_config: ModelConfig = FROZEN_MODEL_CONFIG,
 ) -> dict[str, Any]:
     if report.get("schema") != GENERATION_REPORT_SCHEMA:
         raise ValueError(f"Rust generation {index} has an unsupported schema")
@@ -380,13 +387,13 @@ def _validate_generation_report(
 
     shape = report["model_shape"]
     expected_shape = {
-        "dimension": FROZEN_MODEL_CONFIG.hidden_size,
-        "hidden_dimension": FROZEN_MODEL_CONFIG.intermediate_size,
-        "layers": FROZEN_MODEL_CONFIG.num_hidden_layers,
-        "query_heads": FROZEN_MODEL_CONFIG.num_attention_heads,
-        "key_value_heads": FROZEN_MODEL_CONFIG.num_key_value_heads,
-        "head_size": FROZEN_MODEL_CONFIG.head_dim,
-        "vocabulary": FROZEN_MODEL_CONFIG.vocab_size,
+        "dimension": model_config.hidden_size,
+        "hidden_dimension": model_config.intermediate_size,
+        "layers": model_config.num_hidden_layers,
+        "query_heads": model_config.num_attention_heads,
+        "key_value_heads": model_config.num_key_value_heads,
+        "head_size": model_config.head_dim,
+        "vocabulary": model_config.vocab_size,
         "sequence_capacity": 153,
     }
     expected_prompt_ids = [0, *prompt["prompt_token_ids"]]
@@ -447,7 +454,7 @@ def _validate_generation_report(
         raise ValueError(f"Rust generation {index} has no R4 implementation audit")
     r4_audit = implementation.get("audit")
     if (
-        attention.get("selected_layer_count") != FROZEN_MODEL_CONFIG.num_hidden_layers
+        attention.get("selected_layer_count") != model_config.num_hidden_layers
         or attention.get("positions_executed") != positions
         or attention.get("observed_causal") != attention.get("expected_causal")
         or attention.get("causal_audit_exact") is not True
@@ -470,8 +477,8 @@ def _validate_generation_report(
         raise ValueError(f"Rust generation {index} is not exact all-layer causal R4")
 
     policy = report["attention_output_policy_audit"]
-    applications = positions * FROZEN_MODEL_CONFIG.num_hidden_layers
-    lanes = applications * FROZEN_MODEL_CONFIG.hidden_size
+    applications = positions * model_config.num_hidden_layers
+    lanes = applications * model_config.hidden_size
     if (
         policy.get("policy") != "causal-attention-output-enabled/1"
         or policy.get("applications") != applications
@@ -481,7 +488,7 @@ def _validate_generation_report(
         or policy.get("nonzero_lanes_before_policy")
         != policy.get("nonzero_lanes_after_policy")
         or policy.get("applications_by_layer")
-        != [positions] * FROZEN_MODEL_CONFIG.num_hidden_layers
+        != [positions] * model_config.num_hidden_layers
         or policy.get("maximum_query_position") != positions - 1
         or policy.get("exact") is not True
     ):
@@ -522,11 +529,15 @@ def _load_generation_pairs(
     root: Path,
     *,
     reveal: dict[str, Any],
+    generation_paths: list[tuple[int, int, Path, Path]] | None = None,
+    model_config: ModelConfig = FROZEN_MODEL_CONFIG,
+    issue: int = ISSUE,
 ) -> list[dict[str, Any]]:
-    _verify_exact_generation_files(root)
+    paths = generation_paths or _generation_paths()
+    _verify_exact_generation_files(root, generation_paths=paths, issue=issue)
     checkpoint_records = _checkpoint_records(root)
     pairs: list[dict[str, Any]] = []
-    for index, seed, primary_relative, replay_relative in _generation_paths():
+    for index, seed, primary_relative, replay_relative in paths:
         _, primary = _load_json_object_bytes(
             root / primary_relative, label=f"primary Rust generation {index}"
         )
@@ -542,6 +553,7 @@ def _load_generation_pairs(
             seed=seed,
             checkpoint_records=checkpoint_records,
             reveal=reveal,
+            model_config=model_config,
         )
         replay_quality = _validate_generation_report(
             root,
@@ -551,6 +563,7 @@ def _load_generation_pairs(
             seed=seed,
             checkpoint_records=checkpoint_records,
             reveal=reveal,
+            model_config=model_config,
         )
         if _normalized_generation_report(primary) != _normalized_generation_report(replay):
             raise ValueError(
@@ -582,23 +595,29 @@ def _load_generation_pairs(
 
 
 def _validate_rubric(
-    rubric: dict[str, Any], *, generation_pairs: list[dict[str, Any]]
+    rubric: dict[str, Any],
+    *,
+    generation_pairs: list[dict[str, Any]],
+    issue: int = ISSUE,
+    schema: str = HUMAN_RUBRIC_SCHEMA,
 ) -> list[dict[str, Any]]:
     if set(rubric) != {"schema", "issue", "criterion", "records"}:
-        raise ValueError("#1017 human rubric has extra or missing top-level fields")
+        raise ValueError(f"#{issue} human rubric has extra or missing top-level fields")
     if (
-        rubric.get("schema") != HUMAN_RUBRIC_SCHEMA
-        or rubric.get("issue") != ISSUE
+        rubric.get("schema") != schema
+        or rubric.get("issue") != issue
         or rubric.get("criterion") != HUMAN_RUBRIC_CRITERION
     ):
-        raise ValueError("#1017 human rubric identity or criterion differs")
+        raise ValueError(f"#{issue} human rubric identity or criterion differs")
     records = rubric.get("records")
     if not isinstance(records, list) or len(records) != 5:
-        raise ValueError("#1017 human rubric must contain exactly five records")
+        raise ValueError(f"#{issue} human rubric must contain exactly five records")
     validated: list[dict[str, Any]] = []
     for index, (record, generation) in enumerate(zip(records, generation_pairs, strict=True)):
         if not isinstance(record, dict) or set(record) != _RUBRIC_FIELDS:
-            raise ValueError(f"#1017 human rubric record {index} has extra or missing fields")
+            raise ValueError(
+                f"#{issue} human rubric record {index} has extra or missing fields"
+            )
         if (
             record.get("index") != index
             or record.get("story_cid") != generation["story_cid"]
@@ -608,7 +627,9 @@ def _validate_rubric(
             or not isinstance(record.get("reason"), str)
             or not record["reason"].strip()
         ):
-            raise ValueError(f"#1017 human rubric record {index} does not bind its rollout")
+            raise ValueError(
+                f"#{issue} human rubric record {index} does not bind its rollout"
+            )
         validated.append(record)
     return validated
 
