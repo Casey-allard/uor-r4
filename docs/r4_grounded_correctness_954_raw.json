@@ -1,0 +1,61 @@
+{
+  "schema": "uor-r4.grounded-correctness-result/1",
+  "issue": 954,
+  "date": "2026-08-31",
+  "terminal": "FAIL_GROUNDING_PRODUCT_TRANSFER_ABSTENTION_COLLAPSE",
+  "product_probes_passed": 1,
+  "product_probes_total": 3,
+  "training": {
+    "backend": "Apple M1 PyTorch MPS",
+    "cpu_fallback": false,
+    "cuda": false,
+    "optimizer_steps": 384,
+    "elapsed_seconds": 883.7735486670863,
+    "development_answer_token_loss_step_192": 0.0013607110659437775,
+    "development_answer_token_loss_step_384": 0.00014458666336423967,
+    "weights_cid": "blake3:0949d925c1189cdc784a4b93bbb9119da5c1a573fe3385c3b3c8f82a299c9439",
+    "final_manifest_cid": "blake3:c2c5b163485e39f14ba0a7869d83fab8c641ed061b5c0e8e5783924aff187b2f",
+    "run_contract_cid": "blake3:31b6d7776a42779d0b8daddfc8034f9984dc9f85476eb0bd5df713cd7624f589",
+    "training_result_cid": "blake3:f957c11f668a9a81098f4b2ad9cac9af75d3636b5a2c6cc1a796c5817be10ac9"
+  },
+  "inference": {
+    "backend": "Apple Accelerate CPU BLAS",
+    "generated_token_ids_all_probes": [35, 36, 53, 54, 35, 43, 48, 1],
+    "decoded_text_all_probes": "ABSTAIN",
+    "probes": [
+      {
+        "name": "supported",
+        "required": "The amber coin is inside the green basket.",
+        "observed": "ABSTAIN",
+        "passed": false,
+        "decision_cid": "blake3:63024db98ceb1cfdae5b106ddae0d611a027cc160578452c78ef6f4fda18bfe7",
+        "output_cid": "blake3:e76ecee0eaed19fe459d992a4c80029bc290bdf969e21fb57cb3fd3ff812e84d",
+        "audit_cid": "blake3:9c3915bbe21ae33ae376eb9356c80ed4ee47ddeb9de37e0a07f51c1a9305b5bc"
+      },
+      {
+        "name": "unsupported",
+        "required": "ABSTAIN",
+        "observed": "ABSTAIN",
+        "passed": true,
+        "decision_cid": "blake3:de1baea232dcb93bbae199e48ea3cdddc5c10de7da7c59e0b416dd0454eae35a",
+        "output_cid": "blake3:e76ecee0eaed19fe459d992a4c80029bc290bdf969e21fb57cb3fd3ff812e84d",
+        "audit_cid": "blake3:3bc01dad29ae784a7dcda559ca15994dcfed9f6dd009df58319b7d40bc604364"
+      },
+      {
+        "name": "conflict",
+        "required": "CONTRADICTION",
+        "observed": "ABSTAIN",
+        "passed": false,
+        "decision_cid": "blake3:b89b10fcff8c88cc7ed0d39c3d9c3293e0aa619d2fe34d7d044e6f00dfec4383",
+        "output_cid": "blake3:e76ecee0eaed19fe459d992a4c80029bc290bdf969e21fb57cb3fd3ff812e84d",
+        "audit_cid": "blake3:87e2e7aa59b3fb523d1fa8803448f290ec98a5ee88d072e1a4ff7baefad41d0d"
+      }
+    ]
+  },
+  "decision": "Do not rerun or tune this SFT. Build a source-span pointer/copy successor with explicit abstention and conflict scores over the established causal R4/Spin states, then freeze a new lexical population.",
+  "nonclaims": [
+    "This negative does not revoke established load-bearing causal attention.",
+    "The result does not establish general correctness, reasoning, source-free inference, or transformerlessness.",
+    "MPS and Apple Accelerate are local compilation, training, and inference accelerators; the deployed UOR target remains CPU-native."
+  ]
+}

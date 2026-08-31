@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 
@@ -25,3 +26,19 @@ def default_continuation_root() -> Path:
 
 def default_capacity_root() -> Path:
     return repository_root() / ".uor-models" / "research" / "issue-1019"
+
+
+def model_store_root() -> Path:
+    """Honor the shared model store when commands run from an isolated worktree."""
+    configured = os.environ.get("UOR_MODEL_STORE")
+    if configured:
+        return Path(configured).expanduser().resolve()
+    return repository_root() / ".uor-models"
+
+
+def default_grounding_predecessor_root() -> Path:
+    return model_store_root() / "research" / "issue-1017" / "export"
+
+
+def default_grounding_root() -> Path:
+    return model_store_root() / "research" / "issue-954"

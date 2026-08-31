@@ -1,4 +1,4 @@
-"""Command line for the frozen #1014, #1017, and #1019 campaigns."""
+"""Command line for the bounded #1014, #1017, #1019, and #954 campaigns."""
 
 from __future__ import annotations
 
@@ -36,7 +36,14 @@ from .continuation_data import (
 )
 from .data import download_source, load_dataset_manifest, prepare_dataset
 from .finalize import finalize_continuation
-from .paths import default_capacity_root, default_continuation_root, default_research_root
+from .grounding import train_grounding
+from .paths import (
+    default_capacity_root,
+    default_continuation_root,
+    default_grounding_predecessor_root,
+    default_grounding_root,
+    default_research_root,
+)
 from .provenance import verify_bound_manifest
 from .train import TrainConfig, reveal_sealed_test, run_overfit_smoke, train_main
 
@@ -206,6 +213,22 @@ def parser() -> argparse.ArgumentParser:
         help="bind #1019's reveal, ten Rust generation reports, and human rubric",
     )
     finalize_capacity_parser.add_argument("--rubric", type=_root, required=True)
+
+    grounding = subcommands.add_parser(
+        "finetune-grounding",
+        help="run the fixed 384-step MPS context-grounding SFT over #1017",
+    )
+    grounding.add_argument(
+        "--predecessor",
+        type=_root,
+        default=default_grounding_predecessor_root(),
+        help="completed #1017 Hugging Face export",
+    )
+    grounding.add_argument(
+        "--resume",
+        action="store_true",
+        help="resume the identical fixed run from checkpoints/latest.pt",
+    )
     return command
 
 
@@ -232,12 +255,15 @@ def main() -> None:
         "verify-capacity-generation-ready",
         "finalize-capacity",
     }
+    grounding_commands = {"finetune-grounding"}
     if arguments.root:
         root = arguments.root
     elif arguments.command in capacity_commands:
         root = default_capacity_root()
     elif arguments.command in continuation_commands:
         root = default_continuation_root()
+    elif arguments.command in grounding_commands:
+        root = default_grounding_root()
     else:
         root = default_research_root()
     if arguments.command == "download":
@@ -345,5 +371,14 @@ def main() -> None:
         return
     if arguments.command == "finalize-capacity":
         _print_result(finalize_capacity(root, arguments.rubric))
+        return
+    if arguments.command == "finetune-grounding":
+        _print_result(
+            train_grounding(
+                root,
+                predecessor=arguments.predecessor,
+                resume=arguments.resume,
+            )
+        )
         return
     raise AssertionError(f"unhandled command: {arguments.command}")

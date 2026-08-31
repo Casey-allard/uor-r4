@@ -62,9 +62,9 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > MPS fast-path test (10 warmup plus 40 measured steps) combined fused AdamW
 > with deferred logging and measured `4.485223 s/step`, slower than the signed
 > `3.491307 s/step`; `fused=True` was removed immediately. This is a bounded
-> fast-path negative, not a model result. #1019 tuning/full-run work stops and
-> remains optional/paused. The active next step is using and productizing the
-> working #1017 `r4 generate` path.
+> fast-path negative, not a model result. #1019 closed without a full run. The
+> active next step is #954's bounded source-grounding fine-tune and fail-closed
+> `r4 answer` product check over the working #1017 model.
 > See the [#1017 record](docs/r4_softmax_quality_capacity_continuation_1017.md),
 > [#1017 structured aggregate](docs/r4_softmax_quality_capacity_continuation_1017_raw.json),
 > [#1019 frozen contract](docs/r4_softmax_parameter_capacity_1019.md),
@@ -76,8 +76,8 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > The completed #1017 checkpoint is the current working 7.15M
 > coherent-generation prototype. If its local export exists, run it directly
 > with `r4 generate --prompt "..."`; the alias defaults to
-> `.uor-models/research/issue-1017/export`. #1019 is now an optional
-> quality-capacity improvement and does not block using or productizing this
+> `.uor-models/research/issue-1017/export`. #1019 closed without a full run and
+> does not block using or productizing this
 > bounded #1017 path. It remains source-backed, floating-point/matmul/softmax,
 > and below the strict NLL target; it does not establish geometry advantage,
 > transformerlessness, correctness, reasoning, frontier quality, browser/WASM
@@ -220,7 +220,9 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > `NOT_RUN`. The feature is disabled by default and does not change the default
 > engine. This remains a native CPU research reference,
 > not a source-free, transformerless, static-WASM, release, or frontier-model
-> result. #973 remains open and #954 remains blocked. The trace/compiler rung
+> result. #973 remains open for its intrinsic/source-free terminal; #954's
+> bounded source-backed grounding phase is active while its final source-free
+> terminal remains blocked. The trace/compiler rung
 > that followed that checkpoint is now complete: `R4SoftmaxTeacherTraceV1`
 > supplied construction traces and
 > `R4SoftmaxTraceStudentV1` compiled a source-free Q16 suffix artifact with a
@@ -243,8 +245,8 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > `UNAVAILABLE_HARDWARE_BUDGET` for the frozen eight-hour offline
 > implementation, and full training through replay remains `NOT_RUN`. The
 > fused-AdamW/deferred-logging fast path was slower (`4.485223` versus signed
-> `3.491307 s/step`); #1019 is optional/paused and the active next step is the
-> #1017 `r4 generate` product path. CUDA and external GPU execution are out of
+> `3.491307 s/step`); #1019 closed without a full run and #954's bounded
+> source-grounding product phase is active over #1017. CUDA and external GPU execution are out of
 > scope. No
 > further 7.15M exposure or learning-rate tuning is authorized.
 > Intrinsic/readout substitution, resonance, softmax replacement, scale, and
@@ -325,10 +327,10 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > stopped `UNAVAILABLE_HARDWARE_BUDGET` for the frozen eight-hour offline
 > implementation; full training, final qualification, reveal, generation, and
 > replay remain `NOT_RUN`. The fused-AdamW/deferred-logging fast path was slower
-> (`4.485223` versus signed `3.491307 s/step`); #1019 is optional/paused and the
-> active next step is the #1017 `r4 generate` product path. CUDA and external
-> GPU execution are out of scope. #954
-> remains blocked.
+> (`4.485223` versus signed `3.491307 s/step`); #1019 closed without a full run
+> and #954's bounded source-backed grounding phase is active. CUDA and external
+> GPU execution are out of scope. #954's final source-free terminal remains
+> blocked by the parked #973 replacement terminal.
 > See the
 > [bounded-global record](docs/bounded_global_exact_spin_attention_973.md).
 
@@ -391,8 +393,9 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > `R4SoftmaxReferenceGeneratorV1` (`HELM-D-R4`) generation subsequently passed.
 > Its opt-in, loopback-only dedicated native HTTP endpoint then passed exact CLI
 > canary parity. Dashboard wiring/readiness and static/WASM-isolation checks
-> passed; browser E2E remains `NOT_RUN`. Construction-only trace capture and source-free student
-> compilation are next; #954 remains blocked. See the
+> passed; browser E2E remains `NOT_RUN`. The source-free trace/state attempts
+> are preserved negatives; #954's bounded source-backed grounding phase is
+> active while its final source-free terminal remains blocked. See the
 > [conversation record](docs/conversation_entity_spin_path_attention_973.md).
 
 > **Accepted capability-first evidence (2026-08-28):** #953's frozen
@@ -462,9 +465,9 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > `UNAVAILABLE_HARDWARE_BUDGET` for the frozen eight-hour offline
 > implementation, so the full campaign remains `NOT_RUN`. The fused-AdamW/
 > deferred-logging fast path was slower (`4.485223` versus signed
-> `3.491307 s/step`); #1019 is optional/paused and the active next step is the
-> #1017 `r4 generate` product path. CUDA and external GPU execution are out of scope.
-> #954 remains blocked behind #973. General higher-scope attention, correct
+> `3.491307 s/step`); #1019 closed without a full run and #954's bounded
+> source-backed grounding phase is active over #1017. CUDA and external GPU execution are out of scope.
+> #954's final source-free terminal remains blocked behind #973. General higher-scope attention, correct
 > answers, and reasoning do not exist yet. The
 > dashboard is an interactive window into the research substrate, not a
 > frontier model or a ChatGPT replacement.
@@ -502,8 +505,38 @@ r4 generate --prompt "Once upon a time in a quiet village"
 `.uor-models/research/issue-1017/export` when the variable is unset). It requires
 that local export and is a bounded #1017 prototype: provider-free at execution,
 but still source-backed, floating-point/matmul/softmax, and below the strict
-`<1.50` NLL target. #1019 is an optional capacity improvement, not a prerequisite
-for using or productizing this path.
+`<1.50` NLL target. #1019 was closed without another capacity run; it is not a
+prerequisite for using or productizing this path.
+
+To ask against one exact local source while refusing unsupported generated text:
+
+```bash
+r4 answer --source-file facts.txt --question "Which key opens the north door?" \
+  --json-output grounded-answer.json
+```
+
+`answer` applies one fixed source/question prompt to the bounded #954 grounding
+fine-tune descended from #1017.
+It serves ordinary text only when the complete trimmed response is an exact,
+case-sensitive contiguous span of the source. Exact `ABSTAIN`, exact
+`CONTRADICTION`, empty output, and non-source output become typed non-answer
+outcomes; unsupported raw text remains visible only inside the optional nested
+audit report. The source must be a regular non-symlink UTF-8 file of at most
+4 KiB, is content-addressed, and is read again after generation to detect a
+change. The assembled prompt plus requested output must also fit the checkpoint's
+256-token context; oversized requests fail before an answer is served. This is
+fail-closed extractive provenance, not semantic-entailment or general-correctness
+evidence.
+
+The first fixed #954 MPS fine-tune completed in 14 minutes 44 seconds on the
+project M1, but its frozen Rust product population failed `1/3`: all three
+prompts decoded `ABSTAIN`, so only the unsupported question passed. The command
+therefore fails safely, but this checkpoint is not a usable answer model. It is
+not rerun or tuned. The active #954 successor is a learned source-span
+pointer/copy head with explicit abstention and conflict scores over the existing
+causal R4/Spin states. See the
+[#954 record](docs/r4_grounded_correctness_954.md) and
+[structured result](docs/r4_grounded_correctness_954_raw.json).
 
 On Apple Silicon, build the opt-in CPU-BLAS version so local inference uses the
 machine's Accelerate framework:
@@ -762,9 +795,9 @@ exact-descriptor/entity-binding path selector apiece at their respective
    admission stopped `UNAVAILABLE_HARDWARE_BUDGET` for the frozen eight-hour
    offline implementation; full training through replay remains `NOT_RUN`.
    The fused-AdamW/deferred-logging fast path was slower (`4.485223` versus
-   signed `3.491307 s/step`); #1019 is optional/paused and the active next step
-   is the #1017 `r4 generate` product path. CUDA and external GPU execution are
-   out of scope. #954 stays blocked.
+   signed `3.491307 s/step`); #1019 closed without a full run and #954's bounded
+   source-backed grounding phase is active over #1017. CUDA and external GPU
+   execution are out of scope. #954's final source-free terminal stays blocked.
 See the [append-only #953 record](docs/local_geometric_generation_953.md).
 See the [accepted table-tie record](docs/source_free_table_geometric_intervention_953.md).
 See the [#973 Gate 0 record](docs/prior_sentence_count_radius_attention_973.md).
@@ -911,9 +944,9 @@ not become substitutes for working intelligence:
    offline implementation; the full train/final-qualification/reveal/
    generation/replay path remains `NOT_RUN`, with no further 7.15M exposure or
    LR tuning. The fused-AdamW/deferred-logging fast path was slower (`4.485223`
-   versus signed `3.491307 s/step`); #1019 is optional/paused and the active
-   next step is the #1017 `r4 generate` product path. CUDA and external GPU
-   execution are out of scope.
+   versus signed `3.491307 s/step`); #1019 closed without a full run and #954's
+   bounded source-grounding product phase is active over #1017. CUDA and external
+   GPU execution are out of scope.
    Do not resume resonance substitutes. Product development continues through
    `r4 generate`, but no production-readiness or release claim follows yet. This intermediate
    reference is transformer-compatible, `f32`/multiply/alloc and source-weight
@@ -977,10 +1010,10 @@ passed, but the signed MPS probe stopped `UNAVAILABLE_HARDWARE_BUDGET` for the
 frozen eight-hour offline implementation; the full campaign remains `NOT_RUN`.
 UOR's deployed architecture/runtime remains CPU-native. Apple Accelerate/BLAS
 and MPS are local offline accelerators only. The fused-AdamW/deferred-logging
-fast path was slower (`4.485223` versus signed `3.491307 s/step`); #1019 is
-optional/paused and the active next step is the #1017 `r4 generate` product
-path. CUDA and external GPU execution are out of scope.
-#954 remains blocked behind #973. The exact contract is
+fast path was slower (`4.485223` versus signed `3.491307 s/step`); #1019 closed
+without a full run and #954's bounded source-grounding product phase is active
+over #1017. CUDA and external GPU execution are out of scope.
+#954's final source-free terminal remains blocked behind #973. The exact contract is
 [ADR-0005](docs/adr/0005-predictive-geometric-connection-memory.md).
 
 ## Find your way around

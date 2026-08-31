@@ -44,6 +44,8 @@ pub mod geometric_mixer_qualification;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod model;
 #[cfg(not(target_arch = "wasm32"))]
+pub mod r4_grounded_answer;
+#[cfg(not(target_arch = "wasm32"))]
 pub mod r4_softmax_local_generation;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod r4_softmax_reference_generation;

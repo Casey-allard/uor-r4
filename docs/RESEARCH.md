@@ -146,9 +146,11 @@ assumptions, or objectives rather than measured results.
 > test (10 warmup plus 40 measured steps) combined fused AdamW with deferred
 > logging and measured `4.485223 s/step`, slower than the signed
 > `3.491307 s/step`; `fused=True` was removed immediately. This is a bounded
-> fast-path negative, not a model result. #1019 tuning/full-run work stops and
-> remains optional/paused; the active next step is the working #1017
-> `r4 generate` product path. CUDA and external GPU execution are out of scope. See
+> fast-path negative, not a model result. #1019 closed without a full run. #954's
+> first fixed MPS grounding SFT then failed its frozen Rust product population
+> `1/3` through universal `ABSTAIN`; the active successor is a source-span
+> pointer/copy head over #1017's R4/Spin states. CUDA and external GPU execution
+> are out of scope. See
 > the [signed preflight/admission result](r4_softmax_parameter_capacity_preflight_1019_raw.json).
 > Offline floats, matrix
 > operations, and softmax remain allowed while establishing language quality;
@@ -554,13 +556,15 @@ assumptions, or objectives rather than measured results.
 > mechanism. Population, MPS overfit smoke, and random-export/all-12-layer Rust
 > parity passed, but MPS admission stopped `UNAVAILABLE_HARDWARE_BUDGET` for the
 > frozen eight-hour offline implementation. The full campaign remains
-> `NOT_RUN`; its fused-AdamW/deferred-logging fast path was slower, so #1019 is
-> optional/paused and the active next step is the #1017 `r4 generate` product
-> path. CUDA and external GPU execution are out of scope.
+> `NOT_RUN`; its fused-AdamW/deferred-logging fast path was slower, and #1019
+> closed without a full run. #954's first fixed grounding SFT subsequently
+> failed its frozen Rust population `1/3`; the active successor is a source-span
+> pointer/copy head. CUDA and external GPU execution are out of scope.
 > Intrinsic/readout alternatives,
 > resonance-based softmax replacement, whole-decoder recurrent lowering, and
-> exact deployment are parked. D3 remains
-> `NOT_RUN`; #954 remains blocked behind #973.
+> exact deployment are parked. D3 remains `NOT_RUN`; #954's final source-free
+> terminal remains blocked behind #973 while its bounded source-backed phase is
+> active.
 > Legacy
 > tracker #949 is closed as superseded, and #958 is retained directly beneath
 > #820 as GI-0 foundation. Two
@@ -1084,7 +1088,11 @@ up to the point where a structure predicts at all, and not past it.**
 
 ## Which track can actually produce coherent text — the honest current answer
 
-This project's immediate goal is source-free recursive geometric attention.
+The project's ultimate runtime goal remains source-free recursive geometric
+attention, but load-bearing ordinary causal attention is now established in the
+R4/Spin reference. The immediate active goal is #954 grounded correctness: a
+source-span pointer/copy successor after the first bounded generative SFT failed
+its frozen transfer population.
 GI-1/#961 has made lexical payloads and the hierarchy identities reversible.
 GI-2/#952 A1.0 then established candidate/value reachability but found that the
 reusable summaries erased earlier causal order, terminating as
@@ -1138,17 +1146,20 @@ construction-only observability audit completed with
 causal attention through a `2.677393`-nat attention-off penalty and exact Rust
 parity, while failing its complete quality DoD at enabled NLL `2.127407` and
 subject/scene retention `3/5`. #1017's one exposure continuation then improved
-retention to `5/5` but failed solely on NLL `1.5727521962806827`. #1019 is that
-new frozen contract: 12 layers, 13,130,784 parameters, seed 1019, 16,800 steps,
-and 275,251,200 tokens. Population, MPS overfit smoke, and
-random-export/all-12-layer Rust preflight parity passed, but MPS admission
-stopped `UNAVAILABLE_HARDWARE_BUDGET` for the frozen eight-hour offline
-implementation. Full training through replay remains `NOT_RUN`; its fused-
-AdamW/deferred-logging fast path was slower, so #1019 is optional/paused and the
-active next step is the #1017 `r4 generate` product path. CUDA and external GPU
-execution are out of scope. Fiber-preserving multi-resonance replacement, whole-decoder recurrent
-factorization, and final requalification are parked.
-Dependable broad coherent text remains unestablished.
+retention to `5/5` but failed solely on NLL `1.5727521962806827`. #1019's larger
+frozen contract passed its population, MPS smoke, and Rust preflight, then
+stopped on the eight-hour hardware budget and closed without a full run. The
+first #954 grounding SFT used the project M1 through MPS and completed 384 steps
+in `883.773549` seconds, but the frozen Accelerate-backed Rust product population
+failed `1/3`: supported, unsupported, and conflict prompts all decoded
+`ABSTAIN`. The terminal is
+`FAIL_GROUNDING_PRODUCT_TRANSFER_ABSTENTION_COLLAPSE`; no rerun or tuning is
+authorized. The active successor is a learned source-span pointer/copy head
+with explicit abstention and conflict scores over the existing R4/Spin states.
+CUDA and external GPU execution remain out of scope. Fiber-preserving
+multi-resonance replacement, whole-decoder recurrent factorization, capacity
+expansion, and final source-free requalification are parked. Dependable broad
+coherent text and grounded correctness remain unestablished.
 The final serving path has no source weights, transformer/self-attention, dense
 matrix intelligence, MoE, or sparse learned router. Compiler-side floating
 point remains allowed for witnessed chart construction; serving arithmetic is
@@ -1752,11 +1763,15 @@ other gates passing. #1019 now owns the one frozen 12-layer,
 population/smoke/random-export parity gates passed, but MPS admission stopped
 `UNAVAILABLE_HARDWARE_BUDGET` for the frozen eight-hour offline implementation.
 The full campaign remains `NOT_RUN`; its fused-AdamW/deferred-logging fast path
-was slower, so #1019 is optional/paused and the active next step is the #1017
-`r4 generate` product path. CUDA and external GPU execution are out of scope.
-Intrinsic/readout alternatives,
+was slower, and #1019 closed without a full run. #954's first source-backed
+grounding SFT subsequently completed but failed its frozen product transfer
+population `1/3` through universal `ABSTAIN`. The active successor is a learned
+source-span pointer/copy head with explicit abstention and conflict scores.
+CUDA and external GPU execution are out of scope. Intrinsic/readout alternatives,
 multi-resonance replacement, whole-decoder recurrent factorization, and final
-requalification are parked. D3 remains `NOT_RUN`; #954 remains blocked.
+requalification are parked. D3 remains `NOT_RUN`; #954's final source-free
+terminal remains blocked while the bounded source-backed correctness phase is
+active.
 #955 invokes that accepted selector/
 #953/#973/#954 consumer; #962 integrates the accepted selector/#953/#973 path
 into product chat with persisted identity-scoped hive memory. #963 retains
