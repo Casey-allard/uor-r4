@@ -1,10 +1,12 @@
 //! Fail-closed exact source-span answers selected from #1017 R4/Spin states.
 //!
 //! This surface does not ask the language-model decoder to invent an answer.
-//! It encodes the requested subject and each admitted source sentence through
-//! the established six-layer coherent R4/Spin causal-softmax executor, applies
-//! one learned pointer head, and either copies one original UTF-8 byte span or
-//! returns a typed abstention/conflict terminal.
+//! The current policy encodes every admitted source sentence relative to the
+//! exact question through the established six-layer coherent R4/Spin
+//! causal-softmax executor, applies one learned relation head, and either copies
+//! one original UTF-8 byte span or returns a typed abstention/conflict terminal.
+//! The failed historical cosine pointer remains readable only for replay of its
+//! already-recorded evidence.
 
 use std::fmt;
 use std::fs::{File, OpenOptions};
@@ -20,12 +22,20 @@ use crate::r4_softmax_local_generation::{
     R4SoftmaxLocalStateEncodingConfig, R4SoftmaxLocalStateSequenceAudit, SourceReadAudit,
 };
 use crate::r4_softmax_reference_generation::ModelShape;
+use crate::r4_source_relation_head::{
+    evaluate_source_relation_head, load_source_relation_head, render_relation_input,
+    SourceRelationCandidate, SourceRelationHeadBinding, SourceRelationHeadDecision,
+    SourceRelationHeadError, SourceRelationHeadEvaluation, RELATION_HEAD_ARTIFACT_SCHEMA,
+    RELATION_HEAD_POLICY, RELATION_INPUT_POLICY,
+};
 use crate::r4_source_span_pointer::{
     evaluate_source_span_pointer, load_source_span_pointer, SourceSpanPointerBinding,
-    SourceSpanPointerDecision, SourceSpanPointerError, SourceSpanPointerEvaluation, POINTER_POLICY,
+    SourceSpanPointerDecision, SourceSpanPointerError, SourceSpanPointerEvaluation,
+    POINTER_ARTIFACT_SCHEMA, POINTER_POLICY,
 };
 
-pub const REPORT_SCHEMA: &str = "uor-r4.grounded-answer/2";
+pub const POINTER_REPORT_SCHEMA: &str = "uor-r4.grounded-answer/2";
+pub const RELATION_REPORT_SCHEMA: &str = "uor-r4.grounded-answer/3";
 pub const MAX_SOURCE_BYTES: usize = 4 * 1024;
 pub const MAX_QUESTION_BYTES: usize = 1024;
 pub const MAX_SOURCE_SPANS: usize = 8;
@@ -63,6 +73,10 @@ pub struct SourceSpanCandidateBinding {
     pub text_cid: String,
     pub state_cid: String,
     pub content_token_count: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub relation_input_text_cid: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub terminal_state_cid: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -74,9 +88,14 @@ pub struct GroundedStateEncodingAudit {
     pub hidden_size: usize,
     pub checkpoint: LocalCheckpointBinding,
     pub model_shape: ModelShape,
-    pub subject_text_cid: String,
-    pub subject_state_cid: String,
-    pub subject_content_token_count: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subject_text_cid: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subject_state_cid: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subject_content_token_count: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub relation_input_policy: Option<String>,
     pub sequence_audits: Vec<R4SoftmaxLocalStateSequenceAudit>,
     pub source_read_audit: SourceReadAudit,
     pub execution: TeacherExecutionSnapshot,
@@ -98,16 +117,27 @@ pub struct GroundedPointerEvaluation {
     pub selected_span_index: Option<usize>,
 }
 
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct GroundedRelationEvaluation {
+    pub candidate_logits: Vec<f32>,
+    pub positive_candidate_indices: Vec<usize>,
+    pub positive_unique_span_count: usize,
+    pub decision: String,
+    pub selected_span_index: Option<usize>,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum GroundedAbstentionReason {
     PointerAbstained,
+    RelationNoSupport,
 }
 
 impl GroundedAbstentionReason {
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::PointerAbstained => "pointer_abstained",
+            Self::RelationNoSupport => "relation_no_support",
         }
     }
 }
@@ -141,6 +171,21 @@ struct GroundedDecisionIdentity<'a> {
 }
 
 #[derive(Serialize)]
+struct GroundedRelationDecisionIdentity<'a> {
+    schema: &'static str,
+    relation_policy: &'static str,
+    relation_input_policy: &'static str,
+    source_cid: &'a str,
+    source_byte_length: usize,
+    question: &'a str,
+    relation_artifact_cid: &'a str,
+    state_encoding_audit_cid: &'a str,
+    candidate_spans: &'a [SourceSpanCandidateBinding],
+    relation_evaluation: &'a GroundedRelationEvaluation,
+    outcome: &'a GroundedAnswerOutcome,
+}
+
+#[derive(Serialize)]
 pub struct GroundedAnswerReport {
     pub schema: String,
     pub decision_cid: String,
@@ -149,8 +194,14 @@ pub struct GroundedAnswerReport {
     pub question: String,
     pub subject: String,
     pub candidate_spans: Vec<SourceSpanCandidateBinding>,
-    pub pointer: SourceSpanPointerBinding,
-    pub pointer_evaluation: GroundedPointerEvaluation,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pointer: Option<SourceSpanPointerBinding>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pointer_evaluation: Option<GroundedPointerEvaluation>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub relation: Option<SourceRelationHeadBinding>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub relation_evaluation: Option<GroundedRelationEvaluation>,
     /// Compact audit only. Raw width-288 state vectors are deliberately not
     /// repeated in the public report, but their content CIDs remain bound.
     pub state_encoding: GroundedStateEncodingAudit,
@@ -164,6 +215,7 @@ pub enum GroundedAnswerError {
     InvalidSource(String),
     StateEncoding(R4SoftmaxLocalGenerationError),
     Pointer(SourceSpanPointerError),
+    Relation(SourceRelationHeadError),
     Audit(String),
     Io(io::Error),
 }
@@ -175,6 +227,7 @@ impl fmt::Display for GroundedAnswerError {
             Self::InvalidSource(reason) => write!(formatter, "invalid grounding source: {reason}"),
             Self::StateEncoding(error) => error.fmt(formatter),
             Self::Pointer(error) => error.fmt(formatter),
+            Self::Relation(error) => error.fmt(formatter),
             Self::Audit(reason) => write!(formatter, "grounded answer audit failed: {reason}"),
             Self::Io(error) => error.fmt(formatter),
         }
@@ -195,6 +248,12 @@ impl From<SourceSpanPointerError> for GroundedAnswerError {
     }
 }
 
+impl From<SourceRelationHeadError> for GroundedAnswerError {
+    fn from(error: SourceRelationHeadError) -> Self {
+        Self::Relation(error)
+    }
+}
+
 impl From<io::Error> for GroundedAnswerError {
     fn from(error: io::Error) -> Self {
         Self::Io(error)
@@ -202,6 +261,34 @@ impl From<io::Error> for GroundedAnswerError {
 }
 
 pub fn run_grounded_answer(
+    config: &GroundedAnswerConfig,
+) -> Result<GroundedAnswerReport, GroundedAnswerError> {
+    validate_request(config)?;
+    let head_bytes = std::fs::read(&config.head).map_err(|error| {
+        GroundedAnswerError::InvalidRequest(format!(
+            "cannot read answer head {}: {error}",
+            config.head.display()
+        ))
+    })?;
+    let head_value: serde_json::Value = serde_json::from_slice(&head_bytes).map_err(|error| {
+        GroundedAnswerError::InvalidRequest(format!(
+            "cannot decode answer head {}: {error}",
+            config.head.display()
+        ))
+    })?;
+    match head_value.get("schema").and_then(serde_json::Value::as_str) {
+        Some(RELATION_HEAD_ARTIFACT_SCHEMA) => run_relation_grounded_answer(config),
+        Some(POINTER_ARTIFACT_SCHEMA) => run_pointer_grounded_answer(config),
+        Some(schema) => Err(GroundedAnswerError::InvalidRequest(format!(
+            "unsupported answer-head schema {schema:?}"
+        ))),
+        None => Err(GroundedAnswerError::InvalidRequest(
+            "answer head has no string schema".to_owned(),
+        )),
+    }
+}
+
+fn run_pointer_grounded_answer(
     config: &GroundedAnswerConfig,
 ) -> Result<GroundedAnswerReport, GroundedAnswerError> {
     validate_request(config)?;
@@ -272,6 +359,8 @@ pub fn run_grounded_answer(
                 text_cid: sequence.text_cid.clone(),
                 state_cid: sequence.audit.state_cid.clone(),
                 content_token_count: sequence.audit.content_token_count,
+                relation_input_text_cid: None,
+                terminal_state_cid: None,
             })
         })
         .collect::<Result<Vec<_>, GroundedAnswerError>>()?;
@@ -337,15 +426,16 @@ pub fn run_grounded_answer(
         hidden_size: encoded.model_shape.dimension,
         checkpoint: encoded.checkpoint,
         model_shape: encoded.model_shape,
-        subject_text_cid: encoded.sequences[0].text_cid.clone(),
-        subject_state_cid: encoded.sequences[0].audit.state_cid.clone(),
-        subject_content_token_count: encoded.sequences[0].audit.content_token_count,
+        subject_text_cid: Some(encoded.sequences[0].text_cid.clone()),
+        subject_state_cid: Some(encoded.sequences[0].audit.state_cid.clone()),
+        subject_content_token_count: Some(encoded.sequences[0].audit.content_token_count),
+        relation_input_policy: None,
         sequence_audits,
         source_read_audit: encoded.source_read_audit,
         execution: encoded.execution,
     };
     let decision_cid = cid_serializable(&GroundedDecisionIdentity {
-        schema: REPORT_SCHEMA,
+        schema: POINTER_REPORT_SCHEMA,
         pointer_policy: POINTER_POLICY,
         source_cid: &source.source_cid,
         source_byte_length: source.byte_length,
@@ -359,15 +449,17 @@ pub fn run_grounded_answer(
     })?;
 
     Ok(GroundedAnswerReport {
-        schema: REPORT_SCHEMA.to_owned(),
+        schema: POINTER_REPORT_SCHEMA.to_owned(),
         decision_cid,
         claim_scope: "one learned source-span pointer over frozen #1017 all-layer coherent R4/Spin causal-softmax states; output is an exact original source sentence or a typed non-answer".to_owned(),
         source,
         question: config.question.clone(),
         subject,
         candidate_spans,
-        pointer: pointer.binding,
-        pointer_evaluation,
+        pointer: Some(pointer.binding),
+        pointer_evaluation: Some(pointer_evaluation),
+        relation: None,
+        relation_evaluation: None,
         state_encoding,
         outcome,
         nonclaims: vec![
@@ -376,6 +468,258 @@ pub fn run_grounded_answer(
             "This result does not establish the final source-free exact geometric runtime or a browser product surface.".to_owned(),
         ],
     })
+}
+
+fn run_relation_grounded_answer(
+    config: &GroundedAnswerConfig,
+) -> Result<GroundedAnswerReport, GroundedAnswerError> {
+    let source_before = read_source_file(&config.source_file)?;
+    let source_text = std::str::from_utf8(&source_before).map_err(|error| {
+        GroundedAnswerError::InvalidSource(format!(
+            "{} is not exact UTF-8: {error}",
+            config.source_file.display()
+        ))
+    })?;
+    let head_before = std::fs::read(&config.head).map_err(|error| {
+        GroundedAnswerError::InvalidRequest(format!(
+            "cannot read source-relative relation head {}: {error}",
+            config.head.display()
+        ))
+    })?;
+    let subject = parse_subject(&config.question)?;
+    let sentence_spans = split_sentence_spans(source_text)?;
+    if sentence_spans.len() < 2 {
+        return Err(GroundedAnswerError::InvalidSource(
+            "source-relative relation selection requires 2..=8 sentence spans".to_owned(),
+        ));
+    }
+
+    let sequences = sentence_spans
+        .iter()
+        .map(|(_, text)| render_relation_input(text, &config.question))
+        .collect::<Vec<_>>();
+    let encoded = encode_r4_softmax_local_states(&R4SoftmaxLocalStateEncodingConfig {
+        model: config.model.clone(),
+        sequences,
+        workers: config.workers,
+    })?;
+    if encoded.sequences.len() != sentence_spans.len() {
+        return Err(GroundedAnswerError::Audit(
+            "relation state encoder returned the wrong independent-sequence count".to_owned(),
+        ));
+    }
+
+    let relation = load_source_relation_head(
+        &config.head,
+        &encoded.checkpoint.weights_cid,
+        &encoded.checkpoint.tokenizer_cid,
+    )?;
+    if relation.artifact.hidden_size != encoded.model_shape.dimension {
+        return Err(GroundedAnswerError::Audit(format!(
+            "relation-head width {} differs from model width {}",
+            relation.artifact.hidden_size, encoded.model_shape.dimension
+        )));
+    }
+
+    let terminal_states = encoded
+        .sequences
+        .iter()
+        .enumerate()
+        .map(|(candidate_index, sequence)| {
+            sequence
+                .final_normalized_residuals
+                .last()
+                .map(Vec::as_slice)
+                .ok_or_else(|| {
+                    GroundedAnswerError::Audit(format!(
+                        "candidate {candidate_index} relation input emitted no terminal state"
+                    ))
+                })
+        })
+        .collect::<Result<Vec<_>, GroundedAnswerError>>()?;
+    let relation_candidates = sentence_spans
+        .iter()
+        .zip(&terminal_states)
+        .map(|((source_span, text), state)| SourceRelationCandidate {
+            span_text: text,
+            byte_start: source_span.byte_start,
+            final_relation_state: state,
+        })
+        .collect::<Vec<_>>();
+    let internal_evaluation =
+        evaluate_source_relation_head(&relation.artifact, &relation_candidates)?;
+    let relation_evaluation = public_relation_evaluation(
+        &internal_evaluation,
+        &sentence_spans,
+        relation.artifact.threshold,
+    );
+
+    let candidate_spans = sentence_spans
+        .iter()
+        .zip(&encoded.sequences)
+        .zip(&terminal_states)
+        .enumerate()
+        .map(
+            |(candidate_index, (((source_span, text), sequence), terminal_state))| {
+                let relation_input = render_relation_input(text, &config.question);
+                let relation_input_text_cid = raw_cid(relation_input.as_bytes());
+                if sequence.text_cid != relation_input_text_cid {
+                    return Err(GroundedAnswerError::Audit(format!(
+                        "candidate {candidate_index} state text CID does not match the exact relation input"
+                    )));
+                }
+                Ok(SourceSpanCandidateBinding {
+                    candidate_index,
+                    source_span: *source_span,
+                    text_cid: raw_cid(text.as_bytes()),
+                    state_cid: sequence.audit.state_cid.clone(),
+                    content_token_count: sequence.audit.content_token_count,
+                    relation_input_text_cid: Some(relation_input_text_cid),
+                    terminal_state_cid: Some(cid_serializable(terminal_state)?),
+                })
+            },
+        )
+        .collect::<Result<Vec<_>, GroundedAnswerError>>()?;
+
+    let outcome = match internal_evaluation.decision {
+        SourceRelationHeadDecision::Answer { candidate_index } => {
+            let candidate = sentence_spans.get(candidate_index).ok_or_else(|| {
+                GroundedAnswerError::Audit(
+                    "relation head selected an absent source span".to_owned(),
+                )
+            })?;
+            GroundedAnswerOutcome::Answered {
+                answer: candidate.1.to_owned(),
+                source_span: candidate.0,
+            }
+        }
+        SourceRelationHeadDecision::Abstain => GroundedAnswerOutcome::Abstained {
+            reason: GroundedAbstentionReason::RelationNoSupport,
+        },
+        SourceRelationHeadDecision::Contradiction => GroundedAnswerOutcome::Contradiction,
+    };
+
+    let source_after = read_source_file(&config.source_file)?;
+    let source_cid = raw_cid(&source_before);
+    if source_before != source_after {
+        return Err(GroundedAnswerError::Audit(format!(
+            "source {} changed during selection (before {}, after {})",
+            config.source_file.display(),
+            source_cid,
+            raw_cid(&source_after)
+        )));
+    }
+    let head_after = std::fs::read(&config.head).map_err(|error| {
+        GroundedAnswerError::Audit(format!(
+            "cannot rescan source-relative relation head {}: {error}",
+            config.head.display()
+        ))
+    })?;
+    if head_before != head_after {
+        return Err(GroundedAnswerError::Audit(format!(
+            "source-relative relation head {} changed during selection",
+            config.head.display()
+        )));
+    }
+
+    let source = GroundingSourceBinding {
+        path: config.source_file.display().to_string(),
+        source_cid,
+        byte_length: source_before.len(),
+        regular_non_symlink: true,
+        utf8: true,
+        reads: 2,
+        unchanged_after_run: true,
+    };
+    let sequence_audits = encoded
+        .sequences
+        .iter()
+        .map(|sequence| sequence.audit.clone())
+        .collect::<Vec<_>>();
+    let state_encoding = GroundedStateEncodingAudit {
+        schema: encoded.schema,
+        audit_cid: encoded.audit_cid,
+        model_weights_cid: encoded.checkpoint.weights_cid.clone(),
+        tokenizer_cid: encoded.checkpoint.tokenizer_cid.clone(),
+        hidden_size: encoded.model_shape.dimension,
+        checkpoint: encoded.checkpoint,
+        model_shape: encoded.model_shape,
+        subject_text_cid: None,
+        subject_state_cid: None,
+        subject_content_token_count: None,
+        relation_input_policy: Some(RELATION_INPUT_POLICY.to_owned()),
+        sequence_audits,
+        source_read_audit: encoded.source_read_audit,
+        execution: encoded.execution,
+    };
+    let decision_cid = cid_serializable(&GroundedRelationDecisionIdentity {
+        schema: RELATION_REPORT_SCHEMA,
+        relation_policy: RELATION_HEAD_POLICY,
+        relation_input_policy: RELATION_INPUT_POLICY,
+        source_cid: &source.source_cid,
+        source_byte_length: source.byte_length,
+        question: &config.question,
+        relation_artifact_cid: &relation.binding.artifact_cid,
+        state_encoding_audit_cid: &state_encoding.audit_cid,
+        candidate_spans: &candidate_spans,
+        relation_evaluation: &relation_evaluation,
+        outcome: &outcome,
+    })?;
+
+    Ok(GroundedAnswerReport {
+        schema: RELATION_REPORT_SCHEMA.to_owned(),
+        decision_cid,
+        claim_scope: "one learned source-relative relation head over frozen #1017 all-layer coherent R4/Spin causal-softmax states; output is an exact original source sentence or a typed non-answer".to_owned(),
+        source,
+        question: config.question.clone(),
+        subject,
+        candidate_spans,
+        pointer: None,
+        pointer_evaluation: None,
+        relation: Some(relation.binding),
+        relation_evaluation: Some(relation_evaluation),
+        state_encoding,
+        outcome,
+        nonclaims: vec![
+            "This bounded source-relative result does not establish open-domain question answering, reasoning, or general semantic entailment.".to_owned(),
+            "The learned head and #1017 executor remain source-backed, floating-point, multiplication-using, and ordinary-softmax based.".to_owned(),
+            "This result does not establish the final source-free exact geometric runtime or a browser product surface.".to_owned(),
+        ],
+    })
+}
+
+fn public_relation_evaluation(
+    evaluation: &SourceRelationHeadEvaluation,
+    sentence_spans: &[(SourceSpan, &str)],
+    threshold: f32,
+) -> GroundedRelationEvaluation {
+    let positive_candidate_indices = evaluation
+        .candidate_logits
+        .iter()
+        .enumerate()
+        .filter_map(|(candidate_index, &logit)| (logit > threshold).then_some(candidate_index))
+        .collect::<Vec<_>>();
+    let mut unique_positive_texts = Vec::<&str>::new();
+    for &candidate_index in &positive_candidate_indices {
+        let text = sentence_spans[candidate_index].1;
+        if !unique_positive_texts.contains(&text) {
+            unique_positive_texts.push(text);
+        }
+    }
+    let (decision, selected_span_index) = match evaluation.decision {
+        SourceRelationHeadDecision::Answer { candidate_index } => {
+            ("answer".to_owned(), Some(candidate_index))
+        }
+        SourceRelationHeadDecision::Abstain => ("abstain".to_owned(), None),
+        SourceRelationHeadDecision::Contradiction => ("conflict".to_owned(), None),
+    };
+    GroundedRelationEvaluation {
+        candidate_logits: evaluation.candidate_logits.clone(),
+        positive_candidate_indices,
+        positive_unique_span_count: unique_positive_texts.len(),
+        decision,
+        selected_span_index,
+    }
 }
 
 fn public_pointer_evaluation(

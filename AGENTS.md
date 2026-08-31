@@ -35,11 +35,19 @@ overfit and Python/Rust parity but failed all four frozen development gates
 after its sole 256-step fit. The terminal is
 `FAIL_SOURCE_SPAN_POINTER_DEVELOPMENT_GATE_STOP`; no final pointer artifact was
 emitted, and product probes plus browser/HTTP wiring were `NOT_RUN`. Do not tune
-or retry the revealed cosine head. The next proposed mechanism is a
-source-relative learned relation/entailment head preserving exact R4/Spin state
-capture and deterministic source-copy semantics; it must be independently
-frozen before execution, and no successor run or product wiring is active.
-The #1017 `r4 generate` path remains the working coherent-generation prototype.
+or retry the revealed cosine head. Its frozen source-relative successor,
+`R4SourceRelativeRelationHeadV1` (C1-SB2), is implemented and completed only its
+cheap matched-transfer preflight. The fitted families scored 12/12 positive
+relations, 20/20 negatives, and 6/6 supported copies; the independently sealed
+families scored 5/12 positives, 14/20 negatives, and 0/6 copies. Same-source
+matched-pair, query-swap, duplicate-agreement, and distinct-conflict controls
+were false, so the run stopped before Rust parity, the sole 512-step full fit,
+development, and product reveal. No final relation head exists. The next
+proposed #954 mechanism trains relation supervision into the representation
+through the established R4/Spin attention path while retaining exact-source-copy
+and typed-nonanswer semantics. #954's final source-free terminal remains blocked
+behind #973, and #955 remains blocked behind #954. The #1017 `r4 generate` path
+remains the working coherent-generation prototype.
 Prototype iteration uses
 one targeted compile plus one real behavior check; do not run a broad local
 suite or add a permanent gate until the mechanism is useful. The existing
@@ -127,8 +135,10 @@ implementation, and the full campaign remains `NOT_RUN`. The subsequent fused-
 AdamW/deferred-logging fast path was slower (`4.485223` versus signed
 `3.491307 s/step`), so `fused=True` was removed and #1019 is optional/paused.
 The #1017 `r4 generate` path remains the working coherent-generation prototype;
-the next proposed #954 relation/entailment mechanism must be independently
-frozen before any run. CUDA and external GPU execution are out of scope. This reference remains
+#954 C1-SB2 is an implemented matched-transfer preflight negative, not an active
+head. Its proposed representation-trained successor keeps the same established
+R4/Spin attention plus exact-copy/typed-nonanswer seam. CUDA and external GPU
+execution are out of scope. This reference remains
 transformer-compatible and `f32`/multiply/alloc/source-weight backed—not
 table-native, multiply-free, or transformerless. It does not establish geometry
 advantage, softmax removal, correctness, reasoning, frontier quality, release
@@ -146,9 +156,10 @@ the [generation record](docs/r4_softmax_reference_generation_973.md), its
 the [native bridge result](docs/r4_softmax_reference_http_bridge_973.md),
 and the V1/V2 negative records remain linked from there.
 Intrinsic/readout alternatives, multi-resonance softmax replacement,
-full-model recurrent lowering, and exact deployment are parked; #954's final
-source-free terminal remains blocked and no successor run/product wiring is
-active. Implementation progress is not a result.
+full-model recurrent lowering, and exact deployment are parked; #954's C1-SB2
+preflight stopped before Rust parity/full fit/development/product, with no final
+head. Its final source-free terminal remains blocked behind #973, and #955
+remains blocked behind #954. Implementation progress is not a result.
 The geometric causal decoder plan, prior S0–S7 completion plan, and
 graph-compiler implementation plan are retained as historical
 engineering/evidence records; none decides what is built next. Native GitHub
@@ -278,11 +289,14 @@ offline implementation, and full training through replay remains `NOT_RUN`.
 The fused-AdamW/deferred-logging fast path was slower (`4.485223` versus signed
 `3.491307 s/step`), so #1019 tuning/full-run work stops and remains
 optional/paused. The #1017 `r4 generate` path remains the working prototype;
-the next proposed #954 relation/entailment mechanism must be independently
-frozen before execution. CUDA and external GPU execution are out of scope.
+#954 C1-SB2 is implemented but stopped at its failed matched-transfer preflight,
+before Rust parity/full fit/development/product and without a final head. The
+next proposed mechanism trains relation supervision into the existing R4/Spin
+attention representation while retaining exact-copy/typed-nonanswer behavior.
+CUDA and external GPU execution are out of scope.
 Intrinsic/readout, resonance, recurrence,
 and lowering are parked. D3 remains `NOT_RUN`; #954's final source-free
-terminal remains blocked and no successor run is active.
+terminal remains blocked behind #973, and #955 remains blocked behind #954.
 Do not add a second #953 intervention or reuse the #983/#986 populations. The
 complete #973 Gate 0 record is
 [`docs/prior_sentence_count_radius_attention_973.md`](docs/prior_sentence_count_radius_attention_973.md).
@@ -654,14 +668,16 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
   fused-AdamW/deferred-logging fast path was slower (`4.485223` versus signed
   `3.491307 s/step`), so #1019 tuning/full-run work stops and remains
   optional/paused. The #1017 `r4 generate` path remains the working prototype;
-  the next proposed #954 relation/entailment mechanism must be independently
-  frozen before execution. CUDA and external GPU execution are out of scope.
+  #954 C1-SB2 is implemented but stopped at its failed matched-transfer
+  preflight before Rust parity/full fit/development/product, with no final head.
+  The next proposed mechanism trains relation supervision into the existing
+  R4/Spin attention representation while retaining exact-copy/typed-nonanswer
+  behavior. CUDA and external GPU execution are out of scope.
   Intrinsic/readout alternatives,
   resonance-based softmax replacement, full-model recurrent lowering, and
   exact deployment are parked. D3 remains `NOT_RUN`.
-  #954's final source-free terminal remains blocked behind #973; no successor
-  source-backed run or product wiring is active.
-  #954 and #955 own correctness and reasoning respectively.
+  #954's final source-free terminal remains blocked behind #973, and #955 remains
+  blocked behind #954. #954 and #955 own correctness and reasoning respectively.
   #962 owns durable multi-turn CLI/HTTP chat, persistence, isolation, and
   hive-memory; #963–#965 then own optimization, formal closure, and release.
 - Sequence strictly from the current reset: working source-free table baseline
@@ -683,8 +699,10 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
   FROZEN OFFLINE MPS IMPLEMENTATION OVER 8 H; FUSED FAST PATH SLOWER; OPTIONAL/
   PAUSED; FULL CAMPAIGN NOT_RUN; CUDA/EXTERNAL GPU OUT OF SCOPE]) →
   working bounded #1017 `r4 generate` prototype → #954 pointer development
-  negative → independently freeze the proposed relation/entailment mechanism →
-  correctness/abstention → reasoning → optimization/purity/release. The older placement/transport
+  negative → C1-SB2 source-relative relation preflight negative → train
+  relation supervision into the established R4/Spin attention representation
+  while retaining exact-copy/typed-nonanswer semantics → correctness/abstention
+  → reasoning → optimization/purity/release. The older placement/transport
   sequence is retained as evidence, not an active implementation queue.
 - Kappa is canonical identity/serialization, never the tokenizer or semantic
   distance. The pinned lexical codec is provenance-bound but opens no weights.

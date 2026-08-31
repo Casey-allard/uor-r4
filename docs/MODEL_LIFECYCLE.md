@@ -7,7 +7,7 @@
 > architecture and claim boundaries live in the
 > [Geometric Intelligence Programme](geometric_intelligence_programme.md).
 
-> **Current evidence and direction (2026-08-30):** #989 established the frozen
+> **Current evidence and direction (2026-08-31):** #989 established the frozen
 > source-free table reference at 22.261404% held-out top-1 versus 5.413561%
 > unigram. The accepted #953 `MultiscaleCountRadiusR4V1` intervention raised the
 > same measure to 23.211797% (+4,242 correct) with equal candidate support/work
@@ -110,13 +110,27 @@ MPS fast-path test (10 warmup plus 40 measured steps) combined fused AdamW with
 deferred logging and measured `4.485223 s/step`, slower than the signed
 `3.491307 s/step`; `fused=True` was removed immediately. This is a bounded
 fast-path negative, not a model result. #1019 tuning/full-run work stops and
-remains optional/paused; the active next step is the working #1017 `r4 generate`
-product path. UOR's deployed architecture/runtime remains CPU-native; Apple Accelerate/BLAS and MPS
+remains optional/paused; #1017 remains the working generation base. UOR's
+deployed architecture/runtime remains CPU-native; Apple Accelerate/BLAS and MPS
 are local offline accelerators only; CUDA and external GPU execution are out of
 scope. The MPS stop is not a model-quality negative,
 leaves the full-scale capacity hypothesis untested, and does not revoke the
 established attention result. See the
 [#1019 observed preflight](r4_softmax_parameter_capacity_preflight_1019_raw.json).
+
+#954's first source-backed grounding SFT failed its frozen product population
+`1/3` through universal abstention. `R4SourceSpanPointerV1` then passed overfit
+preflight and Python/Rust parity but missed all four development gates and
+emitted no final head. Its independently frozen C1-SB2 successor,
+`R4SourceRelativeRelationHeadV1`, fit positive relations `12/12`, negative
+relations `20/20`, and supported copies `6/6`; sealed-family transfer was only
+`5/12`, `14/20`, and `0/6`. Candidate-array order equivariance passed, while
+the matched same-source, query-swap, duplicate-agreement, and distinct-value
+conflict controls failed. It stopped before Rust parity, the sole 512-step fit,
+development, product reveal, or final-head emission. This failure does not
+revise the established attention or generation results. See the
+[#954 campaign record](r4_grounded_correctness_954.md) and
+[C1-SB2 aggregate](r4_source_relation_head_954_raw.json).
 
 The #1017 export remains the current working 7.15M coherent-generation
 prototype. `r4 generate --prompt "..."` defaults to
@@ -132,8 +146,12 @@ and `f32`/multiply/alloc/source-weight backed; it is not source-free,
 table-native, multiply-free, transformerless, browser-WASM, release, or
 frontier-model evidence.
 Intrinsic/readout alternatives, multi-resonance softmax replacement, full-model
-recurrent lowering, and exact H4/Q29/integer-table deployment are parked; #954
-remains blocked. Validation,
+recurrent lowering, and exact H4/Q29/integer-table deployment are parked. #954
+remains open: its next proposed mechanism trains relation supervision into the
+representation through the existing R4/Spin attention path while retaining the
+exact-copy and typed non-answer Rust seam. #955 remains blocked on a positive
+correctness result, and #954's final source-free terminal remains blocked behind
+#973. Validation,
 test, and inference remain strictly causal and cannot fit on their future
 tokens. Compiler-side floating point, matrix operations, and softmax are allowed
 to prove the representation before exact quantized/table lowering. No source-free
@@ -155,14 +173,19 @@ localization terminal `REJECT_TANGENT_READOUT_SELECT_SCORE_PREFLIGHT`; D3
 #1017 continuation complete at `149,995,520` cumulative tokens with enabled
 Rust parity and all mechanical gates `PASS`, sealed NLL `FAIL`
 (`1.5727521962806827`), prompt retention `PASS` (`5/5`), and normalized replay
-`PASS` (`5/5`); overall NLL-only negative;
+`PASS` (`5/5`); overall NLL-only negative; #954 C1-SB2
+`FAIL_MATCHED_TRANSFER_PREFLIGHT_STOP` with fit positive/negative/copy
+`12/12`, `20/20`, `6/6`, sealed `5/12`, `14/20`, `0/6`, Rust parity/full
+fit/development/product `NOT_RUN`, and no final head;
 resonance replacement `NOT_RUN` and parked; full-model recurrent and
-exact lowering parked; #954 blocked. See
+exact lowering parked. See
 [`helm_d_r4_softmax_decoder_973.md`](helm_d_r4_softmax_decoder_973.md) and
 [`helm_d_learned_manifold_r4_construction_973.md`](helm_d_learned_manifold_r4_construction_973.md),
 then [`r4_softmax_trace_student_973.md`](r4_softmax_trace_student_973.md) and
 [`r4_softmax_trace_observability_1012.md`](r4_softmax_trace_observability_1012.md),
-followed by [`r4_softmax_quality_capacity_continuation_1017.md`](r4_softmax_quality_capacity_continuation_1017.md).
+followed by [`r4_softmax_quality_capacity_continuation_1017.md`](r4_softmax_quality_capacity_continuation_1017.md),
+[`r4_grounded_correctness_954.md`](r4_grounded_correctness_954.md), and
+[`r4_source_relation_head_954_raw.json`](r4_source_relation_head_954_raw.json).
 
 ## Current route-native target lifecycle
 
@@ -205,8 +228,12 @@ canonical text/corpus
     -> continue unchanged 7.15M model to 149,995,520 tokens [#1017; NLL-ONLY FAIL, RETENTION/PARITY/REPLAY PASS]
     -> #1019 frozen 12-layer, 13,130,784-parameter campaign over the unchanged mechanism [MODEL SUBGATES PASS; MPS TIME UNAVAILABLE; FULL RUN NOT_RUN]
     -> intrinsic/readout alternatives, paired-E8, resonance replacement, full-model recurrent lowering, and exact deployment parked
-    -> correctness + typed abstention (#954)
-    -> bounded reasoning (#955)
+    -> source-backed grounded SFT [#954 C1-SB0; PRODUCT TRANSFER FAIL]
+    -> cosine source-span pointer [#954 C1-SB1; DEVELOPMENT FAIL, NO FINAL HEAD]
+    -> terminal-residual relation head [#954 C1-SB2; MATCHED-TRANSFER PREFLIGHT FAIL, NO FINAL HEAD]
+    -> train relation supervision through existing R4/Spin attention while retaining exact-copy + typed nonanswer seam [#954; PROPOSED]
+    -> final source-free correctness terminal [#954; BLOCKED BEHIND #973]
+    -> bounded reasoning [#955; BLOCKED ON POSITIVE CORRECTNESS]
     -> durable isolated CLI/HTTP chat + persisted hive memory (#962)
     -> measured cost, formal/serving closure, and release (#963-#965)
 ```
@@ -1551,8 +1578,10 @@ D3 on construction covariance, with diagnostic curved NLL worse than donor and
   also passes the frozen eight-token CLI-parity canary without changing the
   default engine. Dashboard wiring/readiness and static/WASM-isolation checks
   pass, but hosted Pages remains static/offline without a functioning chat
-  backend/artifact lowering. #973 remains open and correctness (#954), reasoning
-  (#955), and durable chat/memory integration (#962) remain blocked. The Q16
+  backend/artifact lowering. #973 and source-backed correctness work in #954
+  remain open; #954's final source-free terminal remains blocked behind #973,
+  and reasoning (#955) remains blocked on a positive correctness result. Durable
+  chat/memory integration (#962) remains downstream. The Q16
   suffix trace student is complete with bounded distillation but looping output.
   Its recurrent `R4SoftmaxTraceStateStudentV1` successor failed promotion with
   no decision change, no material geometry-control effect, and the same loop.
@@ -1572,10 +1601,16 @@ D3 on construction covariance, with diagnostic curved NLL worse than donor and
   `20.66 h` safety projection exceeded `8 h`; memory passed at `21.03%`. That
   terminal applies only to the frozen offline implementation. Full training,
   final parity, reveal, generation, and replay remain `NOT_RUN`. Its fused-
-  AdamW/deferred-logging fast path was slower, so #1019 is optional/paused and
-  the active next step is the #1017 `r4 generate` product path. CUDA and
-  external GPU execution are out of scope. Further exposure and
-  LR tuning of the 7.15M checkpoint are prohibited.
+  AdamW/deferred-logging fast path was slower, so #1019 is optional/paused.
+  #954 C1-SB0 then failed frozen product transfer `1/3`; C1-SB1 failed all four
+  development gates; and C1-SB2 fit positive/negative/copy relations at
+  `12/12`, `20/20`, and `6/6` but transferred only `5/12`, `14/20`, and `0/6`.
+  Only candidate-array order equivariance passed. C1-SB2 stopped before Rust
+  parity, its 512-step fit, development, product, or final-head emission. The
+  active proposed #954 step is to train relation supervision into the existing
+  R4/Spin attention representation while preserving the exact-copy and typed
+  non-answer Rust seam. CUDA and external GPU execution are out of scope.
+  Further exposure and LR tuning of the 7.15M checkpoint are prohibited.
   Resonance substitutes, unrelated optimization, and release work
   remain parked. Lowering does not otherwise reactivate automatically on a
   generation positive.

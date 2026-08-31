@@ -43,9 +43,11 @@ from .paths import (
     default_grounding_predecessor_root,
     default_grounding_root,
     default_research_root,
+    default_source_relation_head_root,
     default_source_span_pointer_root,
 )
 from .provenance import verify_bound_manifest
+from .source_relation_head import train_source_relation_head
 from .source_span_pointer import train_source_span_pointer
 from .train import TrainConfig, reveal_sealed_test, run_overfit_smoke, train_main
 
@@ -68,7 +70,7 @@ def parser() -> argparse.ArgumentParser:
         type=_root,
         help=(
             "untracked data/checkpoint root (defaults to issue-1014, issue-1017, "
-            "issue-1019, or issue-954/source-span-pointer according to the selected "
+            "issue-1019, or the selected issue-954 grounding mechanism according to the "
             "lifecycle)"
         ),
     )
@@ -253,6 +255,29 @@ def parser() -> argparse.ArgumentParser:
             "preflight head/source; required only on the second invocation"
         ),
     )
+    relation = subcommands.add_parser(
+        "train-source-relation-head",
+        help=(
+            "run the C1-SB2 matched-transfer gate, admit three Rust parity "
+            "reports, and only then perform its sole 512-step relation-head fit"
+        ),
+    )
+    relation.add_argument(
+        "--predecessor",
+        type=_root,
+        default=default_grounding_predecessor_root(),
+        help="immutable completed #1017 Hugging Face export",
+    )
+    relation.add_argument(
+        "--rust-score-parity",
+        type=_root,
+        nargs=3,
+        metavar=("ANSWER_JSON", "ABSTAIN_JSON", "CONFLICT_JSON"),
+        help=(
+            "three uor-r4.grounded-answer/3 reports emitted from the preflight "
+            "head; required only on the second invocation"
+        ),
+    )
     return command
 
 
@@ -281,6 +306,7 @@ def main() -> None:
     }
     grounding_commands = {"finetune-grounding"}
     pointer_commands = {"train-source-span-pointer"}
+    relation_commands = {"train-source-relation-head"}
     if arguments.root:
         root = arguments.root
     elif arguments.command in capacity_commands:
@@ -291,6 +317,8 @@ def main() -> None:
         root = default_grounding_root()
     elif arguments.command in pointer_commands:
         root = default_source_span_pointer_root()
+    elif arguments.command in relation_commands:
+        root = default_source_relation_head_root()
     else:
         root = default_research_root()
     if arguments.command == "download":
@@ -411,6 +439,15 @@ def main() -> None:
     if arguments.command == "train-source-span-pointer":
         _print_result(
             train_source_span_pointer(
+                root,
+                predecessor=arguments.predecessor,
+                rust_score_parity=arguments.rust_score_parity,
+            )
+        )
+        return
+    if arguments.command == "train-source-relation-head":
+        _print_result(
+            train_source_relation_head(
                 root,
                 predecessor=arguments.predecessor,
                 rust_score_parity=arguments.rust_score_parity,

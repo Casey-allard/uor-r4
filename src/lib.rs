@@ -58,6 +58,8 @@ pub mod r4_softmax_trace_observability_experiment;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod r4_softmax_trace_state_experiment;
 #[cfg(not(target_arch = "wasm32"))]
+pub mod r4_source_relation_head;
+#[cfg(not(target_arch = "wasm32"))]
 pub mod r4_source_span_pointer;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod r4g1;

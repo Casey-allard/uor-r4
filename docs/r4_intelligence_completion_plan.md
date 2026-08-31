@@ -74,8 +74,22 @@
   combined fused AdamW with deferred logging and measured `4.485223 s/step`,
   slower than the signed `3.491307 s/step`; `fused=True` was removed
   immediately. This is a bounded fast-path negative, not a model result. #1019
-  tuning/full-run work stops and remains optional/paused; the active next step
-  is the working #1017 `r4 generate` product path. UOR's deployed
+  tuning/full-run work stops and remains optional/paused; #1017 remains the
+  working generation base. #954's first grounded SFT failed product transfer
+  `1/3`, and its cosine source-span pointer stopped before product after missing
+  all four frozen development gates. The independently frozen
+  `R4SourceRelativeRelationHeadV1` successor then fit positive, negative, and
+  copy relations at `12/12`, `20/20`, and `6/6`, but transferred only `5/12`,
+  `14/20`, and `0/6` to sealed lexical families. Candidate-array order was the
+  only passing control; matched same-source, query-swap, duplicate-agreement,
+  and distinct-value conflict controls failed. It stopped before Rust parity,
+  the sole 512-step fit, development, product, or final-head emission. This
+  negative does not revise the established attention or generation results.
+  #954 remains open. Its next proposed mechanism trains relation supervision
+  into the representation through the existing R4/Spin attention path while
+  retaining the exact-copy and typed non-answer Rust seam. #955 remains
+  blocked, and #954's final source-free terminal remains blocked behind #973.
+  UOR's deployed
   architecture/runtime remains CPU-native;
   Apple Accelerate/BLAS and MPS are local offline accelerators only; CUDA and
   external GPU execution are out of scope. The MPS stop is not a
@@ -85,8 +99,8 @@
   while proving a replacement mechanism; the deployed destination remains
   exact, integer/table-native, and source-free.
   Intrinsic/readout alternatives, resonance-based softmax replacement,
-  full-model recurrent lowering, and exact deployment are parked. D3 remains `NOT_RUN`; #954 remains
-  blocked. No tag, release, hosted promotion, or static-WASM claim is
+  full-model recurrent lowering, and exact deployment are parked. D3 remains
+  `NOT_RUN`. No tag, release, hosted promotion, or static-WASM claim is
   authorized. See the
   [generation record](r4_softmax_reference_generation_973.md) and
   [compact aggregate](r4_softmax_reference_generation_attempt_01_result_973.json),
@@ -97,7 +111,9 @@
   by the [#1014 end-to-end result](r4_softmax_end_to_end_attention_1014.md) and
   [#1017 continuation result](r4_softmax_quality_capacity_continuation_1017.md),
   then the [#1019 frozen contract](r4_softmax_parameter_capacity_1019.md) and
-  [observed preflight](r4_softmax_parameter_capacity_preflight_1019_raw.json).
+  [observed preflight](r4_softmax_parameter_capacity_preflight_1019_raw.json),
+  followed by the [#954 campaign record](r4_grounded_correctness_954.md) and
+  [C1-SB2 aggregate](r4_source_relation_head_954_raw.json).
   The intermediate
   [Geometric Causal Decoder Roadmap](geometric_causal_decoder_plan.md) records
   the superseded #948-#958 sequence.

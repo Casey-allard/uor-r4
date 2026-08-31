@@ -1,6 +1,6 @@
 # Source-backed grounded answer campaigns (#954)
 
-Status: **C1-SB1 DEVELOPMENT GATE STOP / NO QUALIFIED ANSWER ARTIFACT**
+Status: **C1-SB2 MATCHED-TRANSFER PREFLIGHT STOP / NO QUALIFIED ANSWER ARTIFACT**
 Parent programme: #820
 Working model: #1017 six-layer R4/Spin causal-softmax checkpoint
 Final source-free correctness terminal: still blocked by parked #973
@@ -132,3 +132,73 @@ or product wiring is active. #1017 remains the working coherent-generation
 prototype, and ordinary causal attention remains established at its existing
 claim scope. The compact bound aggregate is
 [`r4_source_span_pointer_954_raw.json`](r4_source_span_pointer_954_raw.json).
+
+## C1-SB2 source-relative relation-head result — 2026-08-31
+
+`R4SourceRelativeRelationHeadV1` replaced subject/sentence cosine similarity
+with one question-conditioned representation per candidate:
+
+```text
+Evidence:
+<exact source sentence>
+Question:
+Where is the <subject>?
+```
+
+There is no terminal newline. The immutable #1017 executor retains the final
+width-288 normalized residual at the question-mark token after all six coherent
+R4/Spin causal-softmax layers. A fixed `288 -> 32 ReLU -> 1` probe (9,281
+parameters) assigns one relation logit. Only `logit > 0` authorizes a candidate;
+zero is negative. Exact duplicate sentence text collapses before the decision:
+zero unique positives abstains, one copies an original occurrence, and two or
+more distinct positives report contradiction.
+
+The new population removed the shortcut found in C1-SB1. It contains 3,360
+construction and 420 development records across answer/abstain/conflict and
+source widths 2 through 8. Construction and development subjects and exact
+sentences are disjoint. Raw queried-subject occurrence count is ambiguous in
+both splits. The 420 reversed-source and 335 same-source query-swap controls are
+also bound, while four product records were committed before fitting and never
+feature-extracted, scored, or evaluated by Python.
+
+Before any full-population extraction or fit, the frozen cheap gate trained on
+12 motifs from two lexical families and evaluated 12 homologous motifs from two
+unseen families. The 256-step MPS probe reduced fit loss from
+`0.7386124730110168` to `0.14383068680763245` and fit every required relation:
+
+| Preflight metric | Fit | Sealed lexical transfer | Required |
+| --- | ---: | ---: | ---: |
+| answer decisions | `6/6` | `0/6` | exact |
+| abstain decisions | `4/4` | `3/4` | exact |
+| conflict decisions | `2/2` | `1/2` | exact |
+| positive-relation recall | `12/12` | `5/12` | exact |
+| negative-relation specificity | `20/20` | `14/20` | exact |
+| supported copied span | `6/6` | `0/6` | exact |
+
+Candidate-array order equivariance passed, but the matched same-source,
+query-swap, duplicate-agreement, and distinct-value conflict controls did not.
+The terminal is **`FAIL_MATCHED_TRANSFER_PREFLIGHT_STOP`**. Result CID:
+`blake3:ce3f06fd4962ac72127bb7dc0ca4123f89478047acd302481704d1f1b3f4ebaf`;
+manifest CID:
+`blake3:14d04e0a6fe4ffd65c3fe1d63ede3425262c3de8351733021d5f7dbd0aa3c493`.
+
+The gate did its job in about 20 seconds: it showed exact fit-family
+memorization without independent lexical transfer. Python/Rust relation-logit
+parity, the sole 512-step full fit, development evaluation, final head emission,
+and all four product probes are `NOT_RUN`. No C1-SB2 head is qualified for the
+default `r4 answer` surface.
+
+Do not tune or retry this frozen residual probe and do not return to attention,
+capacity, resonance, backend, or corpus-volume campaigns for this failure.
+Ordinary causal attention and coherent bounded generation remain established at
+their prior scopes. The missing capability is now localized more sharply:
+source-relative entailment is not a lexically transferable feature of the
+frozen #1017 terminal residual under this probe. The next proposed mechanism
+must train relation supervision into the representation itself—through the
+existing R4/Spin attention path—while retaining the exact-copy and typed
+non-answer Rust boundary. It must be frozen independently before execution.
+
+The compact bound aggregate is
+[`r4_source_relation_head_954_raw.json`](r4_source_relation_head_954_raw.json).
+The final source-free #954 terminal remains separately blocked by #973, and
+#955 reasoning remains downstream of a positive correctness result.

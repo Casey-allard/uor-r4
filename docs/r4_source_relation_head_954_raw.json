@@ -1,0 +1,82 @@
+{
+  "schema": "uor-r4.source-relative-relation-head-aggregate/1",
+  "issue": 954,
+  "policy": "R4SourceRelativeRelationHeadV1",
+  "observed_at": "2026-08-31",
+  "terminal": "FAIL_MATCHED_TRANSFER_PREFLIGHT_STOP",
+  "claim_scope": "one frozen 288-to-32-ReLU-to-1 relation probe over immutable #1017 final question-token R4/Spin causal-softmax states",
+  "checkpoint": {
+    "model_weights_cid": "blake3:c5bf31aa97a567b3aaad4461ce2fac9cebc12b0a38becb6d02d21b43b493bf5d",
+    "tokenizer_cid": "blake3:3f42bcfce7728512076549c63b88387e13c8156fe35c0f91d9b112439f3739cc"
+  },
+  "population": {
+    "construction_records": 3360,
+    "development_records": 420,
+    "development_reversal_controls": 420,
+    "development_query_swap_controls": 335,
+    "preflight_fit_records": 12,
+    "preflight_sealed_records": 12,
+    "product_probe_commitments": 4,
+    "dataset_cid": "blake3:e578c45c25c955d473de3dc1b8645470f4c8b73c24ad4fc488ae1afe710c2cbc",
+    "dataset_manifest_cid": "blake3:4840c70e57ba2b28e620a853f015e5ae594a67918f58fde72e340e567cc3d71c",
+    "split_policy_cid": "blake3:03a9453e92ebde3ccd17f1d6e3f246f88e64cabb8a73552bfd7aea839066a5da",
+    "generator_contract_cid": "blake3:4ab75abee360a11a9fc3eb4c8f7251c301d989d6997c1448ca2a5666a962bc1f",
+    "shortcut_census_cid": "blake3:b6a66ffc2cefafec84ef58815c9579d960841244cdfc1097d5623e45a5b1353d",
+    "preflight_cid": "blake3:74b38e9f3e4b56a1b0ddd45b6849fb2981c3ed645fec475e56b64af8f5fe92ab",
+    "product_probes_cid": "blake3:e956f0e3fc603944eebdcd080ef09cf6c73cd65ebb72757664e4c6274e9ed2d2"
+  },
+  "run_contract_cid": "blake3:56df08813abfc75b3a89f67cce85a1b23eeff1ddac5250b54b255cbac108e151",
+  "optimization": {
+    "seed": 9542,
+    "optimizer": "AdamW",
+    "optimizer_steps": 256,
+    "batch_size": 12,
+    "initial_relation_loss": 0.7386124730110168,
+    "final_relation_loss": 0.14383068680763245
+  },
+  "fit": {
+    "mean_record_balanced_relation_loss": 0.14213033020496368,
+    "answer": {"correct": 6, "total": 6, "accuracy": 1.0},
+    "abstain": {"correct": 4, "total": 4, "accuracy": 1.0},
+    "conflict": {"correct": 2, "total": 2, "accuracy": 1.0},
+    "positive_relation_recall": {"correct": 12, "total": 12, "accuracy": 1.0},
+    "negative_relation_specificity": {"correct": 20, "total": 20, "accuracy": 1.0},
+    "supported_copied_span": {"correct": 6, "total": 6, "accuracy": 1.0}
+  },
+  "sealed_transfer": {
+    "mean_record_balanced_relation_loss": 1.0724267959594727,
+    "answer": {"correct": 0, "total": 6, "accuracy": 0.0},
+    "abstain": {"correct": 3, "total": 4, "accuracy": 0.75},
+    "conflict": {"correct": 1, "total": 2, "accuracy": 0.5},
+    "positive_relation_recall": {"correct": 5, "total": 12, "accuracy": 0.4166666666666667},
+    "negative_relation_specificity": {"correct": 14, "total": 20, "accuracy": 0.7},
+    "supported_copied_span": {"correct": 0, "total": 6, "accuracy": 0.0}
+  },
+  "controls": {
+    "candidate_array_order_equivariant": true,
+    "same_source_matched_pairs_exact": false,
+    "query_swap_sensitive": false,
+    "duplicate_agreement": false,
+    "different_value_conflict": false,
+    "passed": false
+  },
+  "preflight_result_cid": "blake3:ce3f06fd4962ac72127bb7dc0ca4123f89478047acd302481704d1f1b3f4ebaf",
+  "preflight_manifest_cid": "blake3:14d04e0a6fe4ffd65c3fe1d63ede3425262c3de8351733021d5f7dbd0aa3c493",
+  "preflight_tree_cid": "blake3:4291d713ab9d31e366575b157e8f7f5371e704db95fc933896015586a26ec5dc",
+  "stage_status": {
+    "zero_training_shortcut_census": "PASS",
+    "matched_transfer_preflight": "FAIL",
+    "python_rust_relation_parity": "NOT_RUN",
+    "sole_512_step_fit": "NOT_RUN",
+    "development_gate": "NOT_RUN",
+    "final_relation_head_artifact": "NOT_EMITTED",
+    "product_probe_reveal": "NOT_RUN",
+    "browser_or_http_wiring": "NOT_RUN"
+  },
+  "decision": "The frozen probe memorized both fit lexical families but did not transfer source-relative locative relations to either sealed family. Do not retry or tune this probe. Preserve the exact-copy Rust seam and move relation supervision into the representation rather than adding another frozen residual readout.",
+  "nonclaims": [
+    "This result does not revoke the established ordinary causal attention result.",
+    "This result does not test the independently blocked final source-free #954 terminal.",
+    "This result does not establish or refute general R4 geometry, reasoning, transformerlessness, exact lowering, or product readiness."
+  ]
+}

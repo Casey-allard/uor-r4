@@ -104,11 +104,17 @@ passed its 12/12 overfit preflight and Python/Rust score parity, but the sole
 256-step fit missed every `>=95%` development gate: answer `69.53125%`,
 abstain `89.0625%`, conflict `91.40625%`, and supported pointer `94.53125%`.
 It stopped `FAIL_SOURCE_SPAN_POINTER_DEVELOPMENT_GATE_STOP` before a final
-artifact or product reveal. Do not tune or retry that cosine head. The active
-next proposed mechanism is a source-relative learned relation/entailment head
-preserving exact R4/Spin state capture and copy semantics. It must be
-independently frozen before execution; no successor run or product wiring is
-active. CUDA and
+artifact or product reveal. Do not tune or retry that cosine head. The
+`R4SourceRelativeRelationHeadV1` successor was then independently frozen and
+executed. Its construction fit passed `12/12` positive decisions, `20/20`
+negative labels, and `6/6` supported copies, but sealed transfer reached only
+`5/12`, `14/20`, and `0/6`; every semantic control except candidate order
+failed. It stopped before Python/Rust parity, the full fit, development, or
+product reveal, and emitted no final head. The next proposed mechanism is an
+independently frozen representation-trained or joint relation mechanism through
+the existing R4/Spin attention path, retaining the Rust exact-copy and typed
+non-answer seam. #954 remains open, #955 remains blocked, and #954's final
+source-free terminal remains behind #973. CUDA and
 external GPU execution are out of scope.
 Further 7.15M exposure and learning-rate tuning are prohibited. See the
 [#1019 signed preflight/admission result](docs/r4_softmax_parameter_capacity_preflight_1019_raw.json).
@@ -187,15 +193,20 @@ The completed continuation and its NLL-only negative are in
 > versus signed `3.491307 s/step`), and #1019 closed without a full run. #954's
 > first fixed MPS grounding SFT subsequently failed its frozen Rust product
 > population `1/3`. The cosine source-span pointer then passed preflight/parity
-> but failed its development gate before final artifact or reveal. The next
-> proposed mechanism is a source-relative learned relation/entailment head that
-> must be independently frozen; no successor run is active.
+> but failed its development gate before final artifact or reveal. The frozen
+> `R4SourceRelativeRelationHeadV1` successor then passed construction fit at
+> `12/12` positive, `20/20` negative, and `6/6` copy, but sealed transfer fell
+> to `5/12`, `14/20`, and `0/6`; only candidate order survived the semantic
+> controls. It stopped before parity, full fit, development, or product reveal
+> and emitted no final head. The next proposal is a representation-trained or
+> joint relation mechanism through the existing R4/Spin attention path while
+> retaining Rust exact-copy and typed non-answer behavior.
 > CUDA and external GPU execution are out of scope.
 > Offline teacher/compiler work remains transformer-compatible and
 > `f32`/multiply/alloc/source-weight backed—not the final
 > table-native, multiply-free, transformerless serving engine. D3 remains
-> `NOT_RUN`; #954's final source-free terminal remains blocked. No
-> source-relative relation/entailment run is active.
+> `NOT_RUN`; #954 remains open, #955 remains blocked, and #954's final
+> source-free terminal remains behind #973.
 
 > **Admission/influence split:** exact causal/index rows decide which routes are
 > lawful candidates. Harmonic/neighbor influence may transform the state used
@@ -280,13 +291,20 @@ completed in `883.773549 s`, but all three frozen Rust prompts decoded
 `ABSTAIN` (`1/3`); `R4SourceSpanPointerV1` passed preflight/parity but failed
 its development gate at answer/abstain/conflict/pointer accuracies of
 `69.53125%`/`89.0625%`/`91.40625%`/`94.53125%`, so no final artifact was
-emitted and product probes were `NOT_RUN`; **Proposed next:** independently
-freeze a source-relative learned relation/entailment head while preserving
-exact R4/Spin state capture and source-copy semantics; no successor run is active;
+emitted and product probes were `NOT_RUN`; the independently frozen
+`R4SourceRelativeRelationHeadV1` then passed construction fit at
+`12/12` positive, `20/20` negative, and `6/6` copy, but sealed transfer reached
+only `5/12`, `14/20`, and `0/6`; every semantic control except candidate order
+failed, so parity, full fit, development, and product reveal were not run and
+no final head was emitted; **Proposed next:** independently freeze a
+representation-trained or joint relation mechanism through the existing
+R4/Spin attention path while preserving the Rust exact-copy and typed
+non-answer seam;
 CUDA and external GPU execution are out of scope; **Parked:** further 7.15M exposure
 or LR tuning, intrinsic score/readout alternatives,
 resonance-based softmax replacement, full-model recurrent lowering, and exact
-deployment; **Blocked:** D3, #954's final source-free terminal, and #955; **Later:**
+deployment; **Blocked:** D3, #954's final source-free terminal behind #973, and
+#955 while #954 remains open; **Later:**
 #955 → #962 → #963 → #964 → #965.
 
 This capability-first reset supersedes the old forward action implied by the
@@ -321,11 +339,17 @@ logging fast path was slower (`4.485223` versus signed `3.491307 s/step`), and
 but the frozen Rust product population failed `1/3` because every prompt decoded
 `ABSTAIN`. Its cosine source-span pointer successor passed preflight/parity but
 failed all four frozen development thresholds and stopped before final artifact
-or reveal. Do not rerun or tune either revealed mechanism. The next proposed
-successor is a source-relative learned relation/entailment head over #1017's
-exact R4/Spin state-capture and copy seams; it must be independently frozen and
-is not active. CUDA and external GPU
-execution are out of scope.
+or reveal. Do not rerun or tune either revealed mechanism. That source-relative
+successor, `R4SourceRelativeRelationHeadV1`, was independently
+frozen and executed: construction fit passed at `12/12` positive, `20/20`
+negative, and `6/6` copy, while sealed transfer failed at `5/12`, `14/20`, and
+`0/6`. Every semantic control except candidate order failed, so the campaign
+stopped before parity, full fit, development, and product reveal with no final
+head. The new proposal is an independently frozen representation-trained or
+joint relation mechanism through the existing R4/Spin attention path, retaining
+Rust exact-copy and typed non-answer behavior. #954 remains open, #955 remains
+blocked, and the final source-free terminal remains behind #973. CUDA and
+external GPU execution are out of scope.
 Intrinsic/resonance/replacement work is
 parked; D3 remains `NOT_RUN`. See the
 [#989 evidence](docs/source_free_table_baseline_989.md); the completed #986
@@ -598,11 +622,18 @@ feasibility boundary remains in the
    `>=95%` gates, so it stopped
    `FAIL_SOURCE_SPAN_POINTER_DEVELOPMENT_GATE_STOP` with no final artifact;
    product probes and browser/HTTP wiring were `NOT_RUN`. Do not tune or retry
-   the revealed cosine head. CUDA and external GPU execution are out of scope.
+   the revealed cosine head. `R4SourceRelativeRelationHeadV1` was then frozen
+   independently. It fit the construction gate at `12/12` positive, `20/20`
+   negative, and `6/6` copy, but transferred at only `5/12`, `14/20`, and
+   `0/6`; every semantic control except candidate order failed. It therefore
+   stopped before parity, full fit, development, or product reveal and emitted
+   no final head. CUDA and external GPU execution are out of scope.
    Intrinsic score/readout alternatives, paired-E8, resonance-based softmax
    replacement, and exact deployment are parked; #954's final source-free
-   terminal remains blocked. The proposed source-relative learned
-   relation/entailment successor must be independently frozen; no run is active.
+   terminal remains behind #973. The next proposed mechanism is an independently
+   frozen representation-trained or joint relation mechanism through the
+   existing R4/Spin attention path, retaining the Rust exact-copy and typed
+   non-answer seam. #954 remains open and #955 remains blocked.
    Every learned epoch receives a
    new kappa and reruns its owning
    construction gate. More documents, table density, or trace activity are
@@ -614,12 +645,18 @@ feasibility boundary remains in the
    source-span pointer passed preflight and cross-runtime parity but failed its
    four development gates before final artifact or product reveal. Preserve
    its exact R4/Spin state-capture and source-copy seams, but do not tune or
-   retry it. The next proposed successor is a source-relative learned
-   relation/entailment head on new lexical families; it must be independently
-   frozen before reveal and is not yet active.
+   retry it. The independently frozen `R4SourceRelativeRelationHeadV1`
+   successor then fit construction at `12/12` positive, `20/20` negative, and
+   `6/6` copy, but its sealed transfer was `5/12`, `14/20`, and `0/6`; every
+   semantic control except candidate order failed. It stopped before parity,
+   full fit, development, or product reveal and emitted no final head. The next
+   proposal is an independently frozen representation-trained or joint relation
+   mechanism through the existing R4/Spin attention path, retaining Rust
+   exact-copy and typed non-answer behavior.
    The final source-free terminal still requires the accepted
    selector/#953/#973 artifact and evidence provenance #969 → #983 → #986;
-   source-backed prototype evidence does not satisfy it.
+   source-backed prototype evidence does not satisfy it. #954 remains open and
+   #955 remains blocked.
 11. **GI-5 / #955 — reasoning:** invoke the accepted
    selector/#953/#973/#954 consumer at
    every bounded goal-directed route-composition step. Compare cloned
@@ -701,8 +738,8 @@ historical evidence and comparators.
 
 ## Active
 
-- [ ] **#954 grounded correctness: source-relative learned relation/entailment
-  successor after `FAIL_SOURCE_SPAN_POINTER_DEVELOPMENT_GATE_STOP`** — retain the
+- [ ] **#954 grounded correctness: representation-trained or joint relation
+  successor after the source-relative transfer failure** — retain the
   bounded positives, #997 placement negative, bounded gated-delta negative, V2
   budget invalidation, equal-manifold-budget V3 mixed-gauge H4 negative, and
   V4's held-out 13/24 functional/control negative. The positive attention
@@ -752,10 +789,15 @@ historical evidence and comparators.
   then missed the frozen `>=95%` development gates at answer `89/128`, abstain
   `114/128`, conflict `117/128`, and supported pointer `121/128`. No final head
   was emitted; the product probes and browser/HTTP wiring are `NOT_RUN`. Do not
-  tune or retry the revealed cosine pointer. The next proposed mechanism is a
-  source-relative learned relation/entailment head preserving the exact R4/Spin
-  state-capture and source-copy seams; independently freeze it before any run.
-  No successor run or product wiring is active. Apple
+  tune or retry the revealed cosine pointer. The independently frozen
+  `R4SourceRelativeRelationHeadV1` successor then passed its construction fit at
+  `12/12` positive, `20/20` negative, and `6/6` copy, but sealed transfer reached
+  only `5/12`, `14/20`, and `0/6`; every semantic control except candidate
+  order failed. It stopped before Python/Rust parity, the full fit, development,
+  or product reveal and emitted no final head. The next proposed mechanism is
+  an independently frozen representation-trained or joint relation mechanism
+  through the existing R4/Spin attention path, retaining the Rust exact-copy
+  and typed non-answer seam. No product wiring is active. Apple
   Accelerate/BLAS and MPS remain local offline accelerators only; CUDA and
   external GPU execution are out of scope. See the
   [frozen contract](docs/r4_softmax_parameter_capacity_1019.md) and
@@ -763,9 +805,9 @@ historical evidence and comparators.
   Do not extend
   exposure or tune learning rate on the 7.15M checkpoint. Intrinsic score/readout
   alternatives, resonance-based softmax replacement, full-model recurrent
-  lowering, and exact deployment are parked. D3 remains `NOT_RUN`; #954's final
-  source-free terminal remains blocked; no source-relative relation/entailment
-  run is active.
+  lowering, and exact deployment are parked. D3 remains `NOT_RUN`; #954 remains
+  open, its final source-free terminal remains behind #973, and #955 remains
+  blocked.
 
 ## Landed
 
@@ -919,13 +961,18 @@ historical evidence and comparators.
   run. #954's first fixed grounding SFT completed but failed its frozen Rust
   population `1/3`. Its cosine source-span pointer then passed preflight/parity
   but failed the frozen development gate before a final artifact or product
-  reveal. The next proposed successor is a source-relative learned
-  relation/entailment head that must be independently frozen; no run is active.
+  reveal. The independently frozen `R4SourceRelativeRelationHeadV1` successor
+  then passed construction fit at `12/12` positive, `20/20` negative, and
+  `6/6` copy but failed sealed transfer at `5/12`, `14/20`, and `0/6`; every
+  semantic control except candidate order failed. It stopped before parity,
+  full fit, development, or product reveal and emitted no final head. The next
+  proposal is an independently frozen representation-trained or joint relation
+  mechanism through the existing R4/Spin attention path, retaining Rust
+  exact-copy and typed non-answer behavior.
   CUDA and external GPU execution are out of scope. Intrinsic score/readout alternatives,
   resonance-based softmax replacement, full-model recurrent lowering, and exact
-  deployment are parked. D3 remains `NOT_RUN`; #954's final source-free
-  terminal remains blocked. No source-relative relation/entailment run is
-  active.
+  deployment are parked. D3 remains `NOT_RUN`; #954 remains open, its final
+  source-free terminal remains behind #973, and #955 remains blocked.
   Coherent product behavior, correctness, and reasoning remain unestablished.
   Historical canaries and pointwise results remain scoped evidence, not a
   claim that the current product works. See

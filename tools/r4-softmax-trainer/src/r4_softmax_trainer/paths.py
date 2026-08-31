@@ -46,3 +46,7 @@ def default_grounding_root() -> Path:
 
 def default_source_span_pointer_root() -> Path:
     return model_store_root() / "research" / "issue-954" / "source-span-pointer"
+
+
+def default_source_relation_head_root() -> Path:
+    return model_store_root() / "research" / "issue-954" / "source-relation-head"

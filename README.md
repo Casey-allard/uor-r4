@@ -70,10 +70,19 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > and supported-pointer development accuracy were `69.53125%`, `89.0625%`,
 > `91.40625%`, and `94.53125%`, all below the frozen `>=95%` gates. No final
 > pointer artifact was emitted and the reserved product probes were `NOT_RUN`.
-> The next proposed #954 mechanism is a source-relative learned
-> relation/entailment head that preserves exact R4/Spin state capture and copy
-> semantics; it must be independently frozen before execution, and no successor
-> run or product wiring is active. Do not tune or retry the revealed cosine head.
+> Its frozen source-relative successor, `R4SourceRelativeRelationHeadV1`
+> (C1-SB2), is implemented and completed only its cheap matched-transfer
+> preflight. The fitted families scored 12/12 positive relations, 20/20
+> negatives, and 6/6 supported copies; the independently sealed families scored
+> 5/12 positives, 14/20 negatives, and 0/6 copies. Same-source matched-pair,
+> query-swap, duplicate-agreement, and distinct-conflict controls were false.
+> C1-SB2 therefore stopped before Rust parity, the sole 512-step full fit,
+> development, and product reveal; no final relation head was emitted. Do not
+> tune or retry either revealed head. The next proposed #954 mechanism trains
+> relation supervision into the representation through the established R4/Spin
+> attention path while retaining exact-source-copy and typed-nonanswer semantics.
+> #954's final source-free terminal remains blocked behind #973, and #955
+> remains blocked behind #954.
 > See the [#1017 record](docs/r4_softmax_quality_capacity_continuation_1017.md),
 > [#1017 structured aggregate](docs/r4_softmax_quality_capacity_continuation_1017_raw.json),
 > [#1019 frozen contract](docs/r4_softmax_parameter_capacity_1019.md),
@@ -230,9 +239,12 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > engine. This remains a native CPU research reference,
 > not a source-free, transformerless, static-WASM, release, or frontier-model
 > result. #973 remains open for its intrinsic/source-free terminal; #954's
-> cosine source-span pointer stopped at its development gate. The proposed
-> source-relative relation/entailment head must be independently frozen; no
-> successor run is active, and the final source-free terminal remains blocked.
+> cosine source-span pointer stopped at its development gate, and its implemented
+> C1-SB2 relation head then stopped at failed matched-transfer preflight before
+> Rust parity/full fit/development/product, without a final head. The proposed
+> representation-trained successor retains the established R4/Spin attention
+> plus exact-copy/typed-nonanswer seam. #954's final source-free terminal remains
+> blocked behind #973, and #955 remains blocked behind #954.
 > The trace/compiler rung
 > that followed that checkpoint is now complete: `R4SoftmaxTeacherTraceV1`
 > supplied construction traces and
@@ -257,10 +269,12 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > implementation, and full training through replay remains `NOT_RUN`. The
 > fused-AdamW/deferred-logging fast path was slower (`4.485223` versus signed
 > `3.491307 s/step`); #1019 closed without a full run. #954's cosine pointer
-> stopped before final artifact or product reveal. A source-relative learned
-> relation/entailment successor over #1017's exact R4/Spin state and copy seams
-> is proposed but not frozen or active. CUDA and external GPU execution are out
-> of scope. No
+> stopped before final artifact or product reveal. Its implemented C1-SB2
+> source-relative relation successor then failed matched-transfer preflight and
+> stopped before Rust parity/full fit/development/product, without a final head.
+> The next proposal trains relation supervision into the existing R4/Spin
+> attention representation while retaining exact-copy/typed-nonanswer behavior.
+> CUDA and external GPU execution are out of scope. No
 > further 7.15M exposure or learning-rate tuning is authorized.
 > Intrinsic/readout substitution, resonance, softmax replacement, scale, and
 > product promotion remain parked. No tag, release, hosted
@@ -341,11 +355,13 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > implementation; full training, final qualification, reveal, generation, and
 > replay remain `NOT_RUN`. The fused-AdamW/deferred-logging fast path was slower
 > (`4.485223` versus signed `3.491307 s/step`); #1019 closed without a full run.
-> #954's cosine pointer stopped at its development gate; the proposed
-> source-relative relation/entailment successor is not yet frozen or active.
-> CUDA and external GPU
-> execution are out of scope. #954's final source-free terminal remains
-> blocked by the parked #973 replacement terminal.
+> #954's cosine pointer stopped at its development gate; its implemented C1-SB2
+> relation successor then failed matched-transfer preflight before Rust parity,
+> full fit, development, or product reveal, and emitted no final head. The next
+> proposal trains relation supervision into the existing R4/Spin attention
+> representation while retaining exact-copy/typed-nonanswer behavior. CUDA and
+> external GPU execution are out of scope. #954's final source-free terminal
+> remains blocked behind #973, and #955 remains blocked behind #954.
 > See the
 > [bounded-global record](docs/bounded_global_exact_spin_attention_973.md).
 
@@ -410,8 +426,10 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > canary parity. Dashboard wiring/readiness and static/WASM-isolation checks
 > passed; browser E2E remains `NOT_RUN`. The source-free trace/state attempts
 > are preserved negatives; #954's cosine pointer is also a bounded negative.
-> Its proposed source-relative learned relation/entailment successor must be
-> independently frozen, and the final source-free terminal remains blocked.
+> Its implemented C1-SB2 relation successor failed matched-transfer preflight
+> before Rust parity/full fit/development/product and emitted no final head. The
+> final source-free terminal remains blocked behind #973, and #955 remains
+> blocked behind #954.
 > See the
 > [conversation record](docs/conversation_entity_spin_path_attention_973.md).
 
@@ -483,11 +501,14 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > implementation, so the full campaign remains `NOT_RUN`. The fused-AdamW/
 > deferred-logging fast path was slower (`4.485223` versus signed
 > `3.491307 s/step`); #1019 closed without a full run. #954's cosine pointer
-> stopped before final artifact or reveal; its proposed source-relative learned
-> relation/entailment successor is not yet frozen or active. CUDA and external GPU
-> execution are out of scope.
-> #954's final source-free terminal remains blocked behind #973. General higher-scope attention, correct
-> answers, and reasoning do not exist yet. The
+> stopped before final artifact or reveal; its implemented C1-SB2 relation
+> successor then failed matched-transfer preflight before Rust parity/full
+> fit/development/product and emitted no final head. The next proposal trains
+> relation supervision into the existing R4/Spin attention representation while
+> retaining exact-copy/typed-nonanswer behavior. CUDA and external GPU execution
+> are out of scope. #954's final source-free terminal remains blocked behind
+> #973, and #955 remains blocked behind #954. General higher-scope attention,
+> correct answers, and reasoning do not exist yet. The
 > dashboard is an interactive window into the research substrate, not a
 > frontier model or a ChatGPT replacement.
 
@@ -532,16 +553,17 @@ The bounded `answer` interface now admits only an exact
 
 ```bash
 r4 answer --source-file facts.txt --question "Where is the copper compass?" \
-  --head /path/to/qualified-pointer-head.json \
+  --head /path/to/qualified-source-relation-head.json \
   --json-output grounded-answer.json
 ```
 
-`answer` captures the #1017 model's normalized causal R4/Spin states for the
-subject and two to eight exact punctuation-terminated source sentences, then
-uses the explicitly supplied `--head` artifact to choose an exact source span,
-typed abstention, or typed conflict. The source is content-addressed and read
-again after evaluation to detect change. This is fail-closed extractive
-provenance, not semantic-entailment or general-correctness evidence.
+For a source-relative relation head, `answer` pairs each of two to eight exact
+punctuation-terminated source sentences with the question, captures the #1017
+model's normalized causal R4/Spin state at the final question token, and uses
+the explicitly supplied qualified `--head` artifact to choose an exact source
+span, typed abstention, or typed conflict. The source is content-addressed and
+read again after evaluation to detect change. This is a fail-closed extractive
+seam, not semantic-entailment or general-correctness evidence.
 
 The first fixed #954 MPS fine-tune completed in 14 minutes 44 seconds on the
 project M1, but its frozen Rust product population failed `1/3`: all three
@@ -555,15 +577,24 @@ answer `89/128` (`69.53125%`), abstain `114/128` (`89.0625%`), conflict
 `117/128` (`91.40625%`), and supported pointer `121/128` (`94.53125%`) versus
 `>=95%` each. It stopped `FAIL_SOURCE_SPAN_POINTER_DEVELOPMENT_GATE_STOP`
 before producing a final pointer artifact; the three reserved product probes
-and browser/HTTP wiring are `NOT_RUN`. Consequently the default `r4 answer`
-surface is unavailable unless an explicitly qualified head artifact exists.
-Do not tune or retry the revealed cosine head. The next proposed #954 mechanism
-is a source-relative learned relation/entailment head preserving exact R4/Spin
-state capture and deterministic source-copy semantics; it must be independently
-frozen before execution, and no successor run or product wiring is active. See the
+and browser/HTTP wiring are `NOT_RUN`. The implemented
+`R4SourceRelativeRelationHeadV1` C1-SB2 successor then fit 12/12 positive
+relations, 20/20 negatives, and 6/6 supported copies on its two fit families,
+but transferred only 5/12 positives, 14/20 negatives, and 0/6 copies to its two
+sealed families. Same-source matched-pair, query-swap, duplicate-agreement, and
+distinct-conflict controls were false, so C1-SB2 stopped before Rust parity,
+the sole 512-step full fit, development, and product reveal. It emitted no final
+head. Consequently the default `r4 answer` surface is unavailable unless an
+explicitly qualified relation-head artifact exists. Do not tune or retry either
+revealed head. The next proposed #954 mechanism trains relation supervision
+into the representation through the established R4/Spin attention path while
+retaining exact-source-copy and typed-nonanswer semantics. #954's final
+source-free terminal remains blocked behind #973, and #955 remains blocked
+behind #954. See the
 [#954 record](docs/r4_grounded_correctness_954.md) and
 [C1-SB0 structured result](docs/r4_grounded_correctness_954_raw.json) plus the
-[C1-SB1 pointer result](docs/r4_source_span_pointer_954_raw.json).
+[C1-SB1 pointer result](docs/r4_source_span_pointer_954_raw.json) and
+[C1-SB2 relation result](docs/r4_source_relation_head_954_raw.json).
 
 On Apple Silicon, build the opt-in CPU-BLAS version so local inference uses the
 machine's Accelerate framework:
@@ -823,10 +854,13 @@ exact-descriptor/entity-binding path selector apiece at their respective
    offline implementation; full training through replay remains `NOT_RUN`.
    The fused-AdamW/deferred-logging fast path was slower (`4.485223` versus
    signed `3.491307 s/step`); #1019 closed without a full run. #954's cosine
-   pointer stopped before final artifact or product reveal; its proposed
-   source-relative learned relation/entailment successor is not frozen or active.
-   CUDA and external
-   GPU execution are out of scope. #954's final source-free terminal stays blocked.
+   pointer stopped before final artifact or product reveal; its implemented
+   C1-SB2 relation successor then failed matched-transfer preflight before Rust
+   parity/full fit/development/product and emitted no final head. The next
+   proposal trains relation supervision into the existing R4/Spin attention
+   representation while retaining exact-copy/typed-nonanswer behavior. CUDA and
+   external GPU execution are out of scope. #954's final source-free terminal
+   stays blocked behind #973, and #955 remains blocked behind #954.
 See the [append-only #953 record](docs/local_geometric_generation_953.md).
 See the [accepted table-tie record](docs/source_free_table_geometric_intervention_953.md).
 See the [#973 Gate 0 record](docs/prior_sentence_count_radius_attention_973.md).
@@ -974,9 +1008,12 @@ not become substitutes for working intelligence:
    generation/replay path remains `NOT_RUN`, with no further 7.15M exposure or
    LR tuning. The fused-AdamW/deferred-logging fast path was slower (`4.485223`
    versus signed `3.491307 s/step`); #1019 closed without a full run. #954's
-   cosine pointer stopped before final artifact or product reveal. Its proposed
-   source-relative learned relation/entailment successor is not frozen or active.
-   CUDA and external GPU execution are out of scope.
+   cosine pointer stopped before final artifact or product reveal. Its
+   implemented C1-SB2 relation successor then failed matched-transfer preflight
+   before Rust parity/full fit/development/product and emitted no final head. The
+   next proposal trains relation supervision into the existing R4/Spin attention
+   representation while retaining exact-copy/typed-nonanswer behavior. CUDA and
+   external GPU execution are out of scope.
    Do not resume resonance substitutes. Product development continues through
    `r4 generate`, but no production-readiness or release claim follows yet. This intermediate
    reference is transformer-compatible, `f32`/multiply/alloc and source-weight
@@ -1042,9 +1079,13 @@ UOR's deployed architecture/runtime remains CPU-native. Apple Accelerate/BLAS
 and MPS are local offline accelerators only. The fused-AdamW/deferred-logging
 fast path was slower (`4.485223` versus signed `3.491307 s/step`); #1019 closed
 without a full run. #954's cosine pointer stopped before final artifact or
-product reveal. Its proposed source-relative learned relation/entailment
-successor is not frozen or active. CUDA and external GPU execution are out of scope.
-#954's final source-free terminal remains blocked behind #973. The exact contract is
+product reveal. Its implemented C1-SB2 relation successor then failed
+matched-transfer preflight before Rust parity/full fit/development/product and
+emitted no final head. The next proposal trains relation supervision into the
+existing R4/Spin attention representation while retaining
+exact-copy/typed-nonanswer behavior. CUDA and external GPU execution are out of
+scope. #954's final source-free terminal remains blocked behind #973, and #955
+remains blocked behind #954. The exact contract is
 [ADR-0005](docs/adr/0005-predictive-geometric-connection-memory.md).
 
 ## Find your way around

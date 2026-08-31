@@ -5,7 +5,8 @@ This package contains the bounded offline training paths authorized by issues
 [#1017](https://github.com/UOR-Foundation/uor-r4/issues/1017), plus the frozen,
 preflight-recorded [#1019](https://github.com/UOR-Foundation/uor-r4/issues/1019)
 parameter-capacity campaign, and the bounded [#954](https://github.com/UOR-Foundation/uor-r4/issues/954)
-grounding fine-tune plus its frozen source-span-pointer successor. They train
+grounding fine-tune, frozen source-span-pointer successor, and independently
+frozen source-relative relation-head successor. They train
 and continue ordinary causal-softmax
 Llama-family models, export them in the existing Rust loaders' Hugging Face
 format, and freeze evidence before each sealed test is opened. They contain no
@@ -52,9 +53,12 @@ MPS fast-path test (10 warmup plus 40 measured steps) combined fused AdamW with
 deferred logging and measured `4.485223 s/step`, slower than the signed
 `3.491307 s/step`; `fused=True` was removed immediately. This is a bounded
 fast-path negative, not a model result. #1019 closed without a full run. #954's
-grounding fine-tune and positive-diagonal cosine pointer have also completed as
-bounded negatives. The next #954 mechanism must be frozen independently before
-use; it is not a retry of either revealed run. UOR's deployed architecture/runtime remains CPU-native; Apple Accelerate/BLAS
+grounding fine-tune, positive-diagonal cosine pointer, and source-relative
+relation probe have also completed as bounded negatives. The relation probe fit
+both construction lexical families exactly but failed its independent
+12-record transfer gate, so no full fit or product reveal ran. The next #954
+mechanism must train relation supervision into the representation and be frozen
+independently; it is not a retry of any revealed readout. UOR's deployed architecture/runtime remains CPU-native; Apple Accelerate/BLAS
 and MPS are local offline accelerators only; CUDA and external GPU execution
 are out of scope. The MPS stop is not a model-quality negative,
 leaves the full-scale capacity hypothesis untested, and does not revoke the
@@ -131,10 +135,34 @@ answer classification was `89/128` (`69.53125%`), abstention `114/128`
 Terminal: `FAIL_SOURCE_SPAN_POINTER_DEVELOPMENT_GATE_STOP`. No final pointer
 artifact was emitted, and all three committed product probes remain `NOT_RUN`.
 Do not rerun, tune, or use the preflight head as a product head. The retained
-state-capture and parity seams may support a future independently frozen
-source-relative relation/entailment head that preserves exact copy semantics.
+state-capture and parity seams subsequently supported the independently frozen
+C1-SB2 source-relative relation probe below.
 See the [#954 record](../../docs/r4_grounded_correctness_954.md) and
 [structured C1-SB1 result](../../docs/r4_source_span_pointer_954_raw.json).
+
+## C1-SB2 source-relative relation-head result
+
+`train-source-relation-head` implemented
+`R4SourceRelativeRelationHeadV1`. Each exact sentence is encoded together with
+the exact question, ending at the question-mark token. The immutable #1017
+executor supplies that final width-288 normalized R4/Spin state to a fixed
+`288 -> 32 ReLU -> 1` probe. Strict positive logits identify supporting
+relations; exact duplicate text collapses before deterministic exact-copy,
+abstain, or contradiction selection.
+
+The zero-training census passed over 3,360 construction and 420 lexically
+disjoint development records. The mandatory cheap gate then fit all 12 records
+from two construction families exactly but failed all six answer decisions in
+the two unseen families. Sealed answer, abstain, and conflict decisions were
+`0/6`, `3/4`, and `1/2`; positive recall was `5/12`, negative specificity
+`14/20`, and copied-span accuracy `0/6`. Terminal:
+`FAIL_MATCHED_TRANSFER_PREFLIGHT_STOP`.
+
+No Python/Rust parity report, 512-step full fit, final head, development result,
+or product evaluation exists. Do not rerun or tune the frozen probe. The
+preserved trainer/runtime seam is for replay and for a future independently
+frozen mechanism that trains relation semantics into the representation. See
+the [structured C1-SB2 result](../../docs/r4_source_relation_head_954_raw.json).
 
 ## Isolated environment
 
@@ -158,7 +186,8 @@ instead used its own eight-hour backend-admission gate. MPS stopped
 `21.03%`. That result applies only to the frozen offline implementation. The
 subsequent fused-AdamW/deferred-logging fast path was slower (`4.485223` versus
 signed `3.491307 s/step`), so #1019 closed without a full run. #954's grounding
-fine-tune and source-span pointer also closed negative; neither is rerun.
+fine-tune, source-span pointer, and source-relative relation probe also closed
+negative; none is rerun.
 CUDA and external GPU execution are out of scope.
 
 ## One-way campaign
@@ -268,7 +297,7 @@ Its signed MPS probe stopped `UNAVAILABLE_HARDWARE_BUDGET` because the
 terminal applies only to the frozen offline implementation. Full training,
 final parity, reveal, generation, and replay remain `NOT_RUN`. The subsequent
 fused-AdamW/deferred-logging fast path was slower (`4.485223` versus signed
-`3.491307 s/step`), so #1019 closed without a full run. #954's two bounded
+`3.491307 s/step`), so #1019 closed without a full run. #954's three bounded
 source-grounding mechanisms subsequently closed negative. CUDA and external GPU execution are out of scope. See the
 [#1019 observed preflight](../../docs/r4_softmax_parameter_capacity_preflight_1019_raw.json).
 

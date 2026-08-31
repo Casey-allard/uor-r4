@@ -32,7 +32,7 @@ use uor_r4_wasm_router::tless_uor;
     name = "r4",
     version,
     about,
-    long_about = "Run the working R4/Spin causal-attention generator, exercise the fail-closed source-span-pointer research surface, or inspect the preserved geometric research tools.\n\n`generate` uses the coherent #1017 reference. `answer` accepts a #954 pointer artifact over independently encoded #1017 R4/Spin states and serves only an exact source sentence or a typed non-answer; the frozen C1-SB1 run failed its development gate and emitted no qualified final head. Both paths remain source-backed floating-point/softmax references, not the final source-free transformerless runtime. Preserved compiler and certification commands remain available through `r4 research-tools`."
+    long_about = "Run the working R4/Spin causal-attention generator, exercise the fail-closed grounded-answer research surface, or inspect the preserved geometric research tools.\n\n`generate` uses the coherent #1017 reference. `answer` accepts either the historical #954 cosine-pointer schema or the source-relative relation-head schema over independently encoded #1017 R4/Spin states and serves only an exact source sentence or a typed non-answer. C1-SB1 failed development and C1-SB2 failed matched lexical transfer; neither emitted a qualified final head. Both paths remain source-backed floating-point/softmax references, not the final source-free transformerless runtime. Preserved compiler and certification commands remain available through `r4 research-tools`."
 )]
 struct Cli {
     /// Increase log verbosity (-v info, -vv debug, -vvv trace).
@@ -115,7 +115,7 @@ enum Command {
     /// Generate from the local learned R4/Spin model through causal softmax.
     #[command(visible_alias = "generate")]
     R4SoftmaxLocalGenerate(R4SoftmaxLocalGenerateArgs),
-    /// Exercise a #954 source-span pointer; no qualified final head exists yet.
+    /// Select an exact source answer with the #954 source-relative relation head.
     Answer(GroundedAnswerArgs),
     /// Qualify one frozen #1014, #1017, or #1019 local causal-softmax campaign.
     R4SoftmaxLocalQualify(R4SoftmaxLocalQualifyArgs),
@@ -774,13 +774,13 @@ struct R4SoftmaxLocalGenerateArgs {
 
 #[derive(Args, Debug)]
 struct GroundedAnswerArgs {
-    /// Frozen local #1017 checkpoint directory used to encode pointer states.
+    /// Frozen local #1017 checkpoint directory used to encode relation states.
     #[arg(long, default_value = ".uor-models/research/issue-1017/export")]
     model: PathBuf,
-    /// Research #954 pointer artifact bound to the frozen checkpoint.
+    /// Research #954 relation-head artifact bound to the frozen checkpoint.
     #[arg(
         long,
-        default_value = ".uor-models/research/issue-954/source-span-pointer/source-span-pointer.json"
+        default_value = ".uor-models/research/issue-954/source-relation-head/source-relation-head.json"
     )]
     head: PathBuf,
     /// Exact regular, non-symlink UTF-8 source file used to ground the answer.
@@ -789,7 +789,7 @@ struct GroundedAnswerArgs {
     /// Exact question in the sole admitted form: `Where is the <subject>?`.
     #[arg(long)]
     question: String,
-    /// Optional path for the source binding, pointer scores, and R4 state audit.
+    /// Optional path for the source binding, relation logits, and R4 state audit.
     #[arg(long)]
     json_output: Option<PathBuf>,
 }
@@ -2525,7 +2525,7 @@ const DEFAULT_REFERENCE_CHECKPOINT: &str = "/tmp/ref/out/model.bin";
 const DEFAULT_R4_SOFTMAX_LOCAL_MODEL: &str = ".uor-models/research/issue-1017/export";
 const DEFAULT_GROUNDED_ANSWER_MODEL: &str = ".uor-models/research/issue-1017/export";
 const DEFAULT_GROUNDED_ANSWER_HEAD: &str =
-    ".uor-models/research/issue-954/source-span-pointer/source-span-pointer.json";
+    ".uor-models/research/issue-954/source-relation-head/source-relation-head.json";
 
 fn resolve_r4_softmax_local_model(configured: &Path) -> Result<PathBuf, RunError> {
     let model = if configured == Path::new(DEFAULT_R4_SOFTMAX_LOCAL_MODEL) {
@@ -2559,13 +2559,13 @@ fn resolve_grounded_answer_model(configured: &Path) -> Result<PathBuf, RunError>
 
 fn resolve_grounded_answer_head(configured: &Path) -> Result<PathBuf, RunError> {
     let head = if configured == Path::new(DEFAULT_GROUNDED_ANSWER_HEAD) {
-        model_store_root().join("research/issue-954/source-span-pointer/source-span-pointer.json")
+        model_store_root().join("research/issue-954/source-relation-head/source-relation-head.json")
     } else {
         configured.to_path_buf()
     };
     if !head.is_file() {
         return Err(RunError::Command(format!(
-            "no #954 source-span pointer artifact found at {}; the bounded run emitted no qualified final head, so pass --head only for an explicit research artifact",
+            "no qualified #954 C1-SB2 source-relative relation head found at {}; C1-SB2 stopped before final-head emission, so pass --head only to replay an explicit research artifact",
             head.display()
         )));
     }
