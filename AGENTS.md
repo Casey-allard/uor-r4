@@ -8,9 +8,11 @@ the readable mirror of programme root #820.** The
 is the current architecture and claim-boundary companion.
 The active mechanism contract is
 [`ADR-0005`](docs/adr/0005-predictive-geometric-connection-memory.md). The
-current evidence handoff is the frozen
-[#1019 parameter-capacity contract](docs/r4_softmax_parameter_capacity_1019.md)
-and its [signed preflight result](docs/r4_softmax_parameter_capacity_preflight_1019_raw.json).
+current evidence handoff is the append-only
+[#954 grounded-correctness record](docs/r4_grounded_correctness_954.md). The
+earlier frozen [#1019 parameter-capacity contract](docs/r4_softmax_parameter_capacity_1019.md)
+and its [signed preflight result](docs/r4_softmax_parameter_capacity_preflight_1019_raw.json)
+remain reference history.
 It keeps the established ordinary causal R4/Spin Q/K/V plus stable-softmax
 mechanism and changes only decoder depth from six to twelve layers: exactly
 13,130,784 parameters, seed 1019, 16,800 optimizer steps, and 275,251,200
@@ -27,9 +29,18 @@ execution are out of scope. A single isolated exact-shape MPS fast-path test
 and measured `4.485223 s/step`, slower than the signed `3.491307 s/step`;
 `fused=True` was removed immediately. This is a bounded fast-path negative, not
 a model result. Preserve the passed population, smoke, and parity artifacts,
-but stop #1019 tuning and full-run work; #1019 is optional and paused. The
-active next step is using and productizing the working #1017 generator through
-`r4 generate`, without recurring broad research gates. Prototype iteration uses
+but stop #1019 tuning and full-run work; #1019 is optional and paused. #954's
+first grounding SFT failed `1/3`; `R4SourceSpanPointerV1` then passed 12/12
+overfit and Python/Rust parity but failed all four frozen development gates
+after its sole 256-step fit. The terminal is
+`FAIL_SOURCE_SPAN_POINTER_DEVELOPMENT_GATE_STOP`; no final pointer artifact was
+emitted, and product probes plus browser/HTTP wiring were `NOT_RUN`. Do not tune
+or retry the revealed cosine head. The next proposed mechanism is a
+source-relative learned relation/entailment head preserving exact R4/Spin state
+capture and deterministic source-copy semantics; it must be independently
+frozen before execution, and no successor run or product wiring is active.
+The #1017 `r4 generate` path remains the working coherent-generation prototype.
+Prototype iteration uses
 one targeted compile plus one real behavior check; do not run a broad local
 suite or add a permanent gate until the mechanism is useful. The existing
 mandatory merge-queue CI remains the single integration boundary rather than an
@@ -115,8 +126,9 @@ passed, MPS is `UNAVAILABLE_HARDWARE_BUDGET` for the frozen eight-hour offline
 implementation, and the full campaign remains `NOT_RUN`. The subsequent fused-
 AdamW/deferred-logging fast path was slower (`4.485223` versus signed
 `3.491307 s/step`), so `fused=True` was removed and #1019 is optional/paused.
-The active next step is the working #1017 `r4 generate` product path; CUDA and
-external GPU execution are out of scope. This reference remains
+The #1017 `r4 generate` path remains the working coherent-generation prototype;
+the next proposed #954 relation/entailment mechanism must be independently
+frozen before any run. CUDA and external GPU execution are out of scope. This reference remains
 transformer-compatible and `f32`/multiply/alloc/source-weight backed—not
 table-native, multiply-free, or transformerless. It does not establish geometry
 advantage, softmax removal, correctness, reasoning, frontier quality, release
@@ -134,8 +146,9 @@ the [generation record](docs/r4_softmax_reference_generation_973.md), its
 the [native bridge result](docs/r4_softmax_reference_http_bridge_973.md),
 and the V1/V2 negative records remain linked from there.
 Intrinsic/readout alternatives, multi-resonance softmax replacement,
-full-model recurrent lowering, and exact deployment are parked; #954 remains blocked;
-implementation progress is not a result.
+full-model recurrent lowering, and exact deployment are parked; #954's final
+source-free terminal remains blocked and no successor run/product wiring is
+active. Implementation progress is not a result.
 The geometric causal decoder plan, prior S0–S7 completion plan, and
 graph-compiler implementation plan are retained as historical
 engineering/evidence records; none decides what is built next. Native GitHub
@@ -264,10 +277,12 @@ MPS stopped `UNAVAILABLE_HARDWARE_BUDGET` on time for the frozen eight-hour
 offline implementation, and full training through replay remains `NOT_RUN`.
 The fused-AdamW/deferred-logging fast path was slower (`4.485223` versus signed
 `3.491307 s/step`), so #1019 tuning/full-run work stops and remains
-optional/paused. The active next step is the #1017 `r4 generate` product path;
-CUDA and external GPU execution are out of scope.
+optional/paused. The #1017 `r4 generate` path remains the working prototype;
+the next proposed #954 relation/entailment mechanism must be independently
+frozen before execution. CUDA and external GPU execution are out of scope.
 Intrinsic/readout, resonance, recurrence,
-and lowering are parked. D3 remains `NOT_RUN`, and #954 remains blocked.
+and lowering are parked. D3 remains `NOT_RUN`; #954's final source-free
+terminal remains blocked and no successor run is active.
 Do not add a second #953 intervention or reuse the #983/#986 populations. The
 complete #973 Gate 0 record is
 [`docs/prior_sentence_count_radius_attention_973.md`](docs/prior_sentence_count_radius_attention_973.md).
@@ -638,12 +653,14 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
   implementation, and full training through replay remains `NOT_RUN`. The
   fused-AdamW/deferred-logging fast path was slower (`4.485223` versus signed
   `3.491307 s/step`), so #1019 tuning/full-run work stops and remains
-  optional/paused. The active next step is the #1017 `r4 generate` product path;
-  CUDA and external GPU execution are out of scope.
+  optional/paused. The #1017 `r4 generate` path remains the working prototype;
+  the next proposed #954 relation/entailment mechanism must be independently
+  frozen before execution. CUDA and external GPU execution are out of scope.
   Intrinsic/readout alternatives,
   resonance-based softmax replacement, full-model recurrent lowering, and
   exact deployment are parked. D3 remains `NOT_RUN`.
-  #954 remains blocked behind #973.
+  #954's final source-free terminal remains blocked behind #973; no successor
+  source-backed run or product wiring is active.
   #954 and #955 own correctness and reasoning respectively.
   #962 owns durable multi-turn CLI/HTTP chat, persistence, isolation, and
   hive-memory; #963–#965 then own optimization, formal closure, and release.
@@ -665,7 +682,8 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
   → #1019 frozen 12-layer parameter-capacity campaign [MODEL SUBGATES PASS;
   FROZEN OFFLINE MPS IMPLEMENTATION OVER 8 H; FUSED FAST PATH SLOWER; OPTIONAL/
   PAUSED; FULL CAMPAIGN NOT_RUN; CUDA/EXTERNAL GPU OUT OF SCOPE]) →
-  active bounded #1017 `r4 generate` product path →
+  working bounded #1017 `r4 generate` prototype → #954 pointer development
+  negative → independently freeze the proposed relation/entailment mechanism →
   correctness/abstention → reasoning → optimization/purity/release. The older placement/transport
   sequence is retained as evidence, not an active implementation queue.
 - Kappa is canonical identity/serialization, never the tokenizer or semantic

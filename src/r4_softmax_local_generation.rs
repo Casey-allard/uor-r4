@@ -40,6 +40,8 @@ pub const POLICY_SCHEMA: &str = "R4SoftmaxLocalGeneratorV1";
 pub const DEFAULT_MAX_NEW_TOKENS: usize = 128;
 pub const MAX_NEW_TOKENS: usize = 128;
 pub const DEFAULT_WORKERS: usize = 4;
+pub const STATE_ENCODING_SCHEMA: &str = "uor-r4.r4-softmax-local-state-encoding/1";
+pub const MAX_STATE_ENCODING_SEQUENCES: usize = 9;
 pub const QUALIFICATION_REPORT_SCHEMA: &str = "uor-r4.r4-softmax-local-qualification/1";
 pub const PYTHON_PREFIX_LOGITS_SCHEMA: &str = "uor-r4.r4-softmax-python-prefix-logits/1";
 pub const ENABLED_ONLY_QUALIFICATION_REPORT_SCHEMA: &str =
@@ -123,6 +125,17 @@ pub struct R4SoftmaxLocalGeneratorConfig {
     pub seed: Option<u64>,
 }
 
+/// One bounded request for independent #1017 R4/Spin state sequences.
+///
+/// The checkpoint and oracle are loaded once. Every sequence receives a fresh
+/// reset of the same all-layer coherent transport session.
+#[derive(Clone, Debug)]
+pub struct R4SoftmaxLocalStateEncodingConfig {
+    pub model: PathBuf,
+    pub sequences: Vec<String>,
+    pub workers: NonZeroUsize,
+}
+
 #[derive(Clone, Debug)]
 pub struct R4SoftmaxLocalQualificationConfig {
     pub model: PathBuf,
@@ -194,6 +207,47 @@ pub struct AttentionOutputPolicyAuditRecord {
     pub applications_by_layer: Vec<u64>,
     pub maximum_query_position: Option<usize>,
     pub exact: bool,
+}
+
+/// Compact fail-closed evidence for one independently reset state sequence.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct R4SoftmaxLocalStateSequenceAudit {
+    pub positions_executed: usize,
+    pub content_token_count: usize,
+    pub residual_width: usize,
+    pub selected_layer_count: usize,
+    pub all_layers_selected: bool,
+    pub causal_audit_exact: bool,
+    pub projection_audit_exact: bool,
+    pub r4_audit_exact: bool,
+    pub output_policy_audit_exact: bool,
+    pub zero_future_reads: bool,
+    pub persistent_state_cid: String,
+    pub transport_evidence_cid: String,
+    pub state_cid: String,
+}
+
+/// Token-aligned post-final-RMSNorm states for one exact input text.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct R4SoftmaxLocalEncodedStateSequence {
+    pub text_cid: String,
+    /// Content ids only; the one checkpoint BOS step is intentionally omitted.
+    pub content_token_ids: Vec<u32>,
+    /// One width-`model_shape.dimension` state per content token.
+    pub final_normalized_residuals: Vec<Vec<f32>>,
+    pub audit: R4SoftmaxLocalStateSequenceAudit,
+}
+
+/// Bounded, serializable state-capture output for downstream learned heads.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct R4SoftmaxLocalStateEncodingReport {
+    pub schema: String,
+    pub audit_cid: String,
+    pub checkpoint: LocalCheckpointBinding,
+    pub model_shape: ModelShape,
+    pub sequences: Vec<R4SoftmaxLocalEncodedStateSequence>,
+    pub source_read_audit: SourceReadAudit,
+    pub execution: TeacherExecutionSnapshot,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
@@ -498,6 +552,321 @@ impl From<io::Error> for R4SoftmaxLocalGenerationError {
     fn from(error: io::Error) -> Self {
         Self::Io(error)
     }
+}
+
+/// Encode up to nine independent texts into token-aligned final residuals
+/// through the frozen six-layer #1017 coherent R4/Spin attention path.
+///
+/// The tokenizer, source checkpoint, and oracle are loaded exactly once. A
+/// single bounded session is reset and reused between texts, so no sequence can
+/// inherit another sequence's residual, KV cache, transport frames, or audit.
+pub fn encode_r4_softmax_local_states(
+    config: &R4SoftmaxLocalStateEncodingConfig,
+) -> Result<R4SoftmaxLocalStateEncodingReport, R4SoftmaxLocalGenerationError> {
+    if config.sequences.is_empty() || config.sequences.len() > MAX_STATE_ENCODING_SEQUENCES {
+        return Err(R4SoftmaxLocalGenerationError::InvalidRequest(format!(
+            "state encoding requires 1..={MAX_STATE_ENCODING_SEQUENCES} independent sequences"
+        )));
+    }
+
+    let before = checkpoint_tree_binding(&config.model)?;
+    let tokenizer = HfBpeTokenizer::from_dir(&config.model)
+        .map_err(|error| R4SoftmaxLocalGenerationError::Tokenizer(error.to_string()))?;
+    let tokenizer_cid = tokenizer.address();
+    let config_cid = required_file_cid(&before, "config.json")?;
+    let bound_tokenizer_cid = required_file_cid(&before, "tokenizer.json")?;
+    if tokenizer_cid != bound_tokenizer_cid {
+        return Err(R4SoftmaxLocalGenerationError::Audit(
+            "tokenizer parser identity differs from checkpoint-tree tokenizer bytes".to_owned(),
+        ));
+    }
+    require_weight_files(&before)?;
+
+    let mut encoded_inputs = Vec::with_capacity(config.sequences.len());
+    let mut maximum_content_tokens = 0usize;
+    for (index, text) in config.sequences.iter().enumerate() {
+        if text.is_empty() {
+            return Err(R4SoftmaxLocalGenerationError::InvalidRequest(format!(
+                "state-encoding sequence {index} is empty"
+            )));
+        }
+        let token_ids = tokenizer.encode(text);
+        if token_ids.is_empty() {
+            return Err(R4SoftmaxLocalGenerationError::Tokenizer(format!(
+                "state-encoding sequence {index} encoded to zero tokens"
+            )));
+        }
+        maximum_content_tokens = maximum_content_tokens.max(token_ids.len());
+        encoded_inputs.push((text, token_ids));
+    }
+    let sequence_capacity = maximum_content_tokens.checked_add(1).ok_or_else(|| {
+        R4SoftmaxLocalGenerationError::InvalidRequest(
+            "state-encoding sequence capacity overflowed".to_owned(),
+        )
+    })?;
+
+    let oracle = HuggingFaceLlamaOracle::load_with_sequence_length_and_execution(
+        &config.model,
+        sequence_capacity,
+        TeacherExecutionConfig::fixed_workers(config.workers),
+    )
+    .map_err(|error| R4SoftmaxLocalGenerationError::Source(error.to_string()))?;
+    if oracle.cfg().seq_len != sequence_capacity {
+        return Err(R4SoftmaxLocalGenerationError::InvalidRequest(format!(
+            "requested state horizon {sequence_capacity} exceeds checkpoint capacity {}",
+            oracle.cfg().seq_len
+        )));
+    }
+    if oracle.cfg().vocab != tokenizer.vocab_size() {
+        return Err(R4SoftmaxLocalGenerationError::InvalidCheckpoint(format!(
+            "model vocabulary {} != tokenizer vocabulary {}",
+            oracle.cfg().vocab,
+            tokenizer.vocab_size()
+        )));
+    }
+    let bos_token_id = u32::try_from(TeacherOracle::bos_token(&oracle)).map_err(|_| {
+        R4SoftmaxLocalGenerationError::InvalidCheckpoint(
+            "checkpoint BOS token exceeds the u32 token namespace".to_owned(),
+        )
+    })?;
+    let eos_token_id = u32::try_from(TeacherOracle::eos_token(&oracle)).map_err(|_| {
+        R4SoftmaxLocalGenerationError::InvalidCheckpoint(
+            "checkpoint EOS token exceeds the u32 token namespace".to_owned(),
+        )
+    })?;
+    let shape = model_shape(&oracle, sequence_capacity)
+        .map_err(|error| R4SoftmaxLocalGenerationError::InvalidCheckpoint(error.to_string()))?;
+    let mut frozen_shape = shape;
+    frozen_shape.sequence_capacity = PREFIX_PARITY_TOKENS;
+    enforce_campaign_shape(
+        &config.model,
+        &frozen_shape,
+        tokenizer.vocab_size(),
+        R4SoftmaxLocalQualificationCampaign::Issue1017EnabledOnly,
+    )?;
+    let maximum_token = u32::try_from(shape.vocabulary.checked_sub(1).ok_or_else(|| {
+        R4SoftmaxLocalGenerationError::InvalidCheckpoint(
+            "checkpoint vocabulary is empty".to_owned(),
+        )
+    })?)
+    .map_err(|_| {
+        R4SoftmaxLocalGenerationError::InvalidCheckpoint(
+            "checkpoint vocabulary exceeds the u32 token namespace".to_owned(),
+        )
+    })?;
+    if bos_token_id > maximum_token || eos_token_id > maximum_token {
+        return Err(R4SoftmaxLocalGenerationError::InvalidCheckpoint(
+            "checkpoint BOS or EOS token lies outside its vocabulary".to_owned(),
+        ));
+    }
+
+    let transport = R4SpinCausalAttentionTransport::new(
+        maximum_token,
+        sequence_capacity,
+        R4SpinTransportIntervention::Coherent,
+    )
+    .map_err(|error| R4SoftmaxLocalGenerationError::Attention(error.to_string()))?;
+    let mut session = oracle
+        .new_causal_attention_transport_session_with_output_policy(
+            Box::new(transport),
+            CausalAttentionLayerSelection::All,
+            sequence_capacity,
+            CausalAttentionOutputPolicy::Enabled,
+        )
+        .map_err(|error| R4SoftmaxLocalGenerationError::Attention(error.to_string()))?;
+    let all_layers_selected = session.selected_layer_count() == shape.layers
+        && (0..shape.layers).all(|layer| session.layer_is_selected(layer));
+    if !all_layers_selected {
+        return Err(R4SoftmaxLocalGenerationError::Audit(
+            "state encoding did not select every decoder attention layer".to_owned(),
+        ));
+    }
+
+    let mut logits = vec![0.0_f32; shape.vocabulary];
+    let mut sequences = Vec::with_capacity(encoded_inputs.len());
+    let mut total_positions = 0usize;
+    for (sequence_index, (text, content_token_ids)) in encoded_inputs.into_iter().enumerate() {
+        session.reset();
+        oracle
+            .step_causal_attention_transport(&mut session, bos_token_id as usize, 0, &mut logits)
+            .map_err(|error| R4SoftmaxLocalGenerationError::Attention(error.to_string()))?;
+
+        let mut residuals = Vec::with_capacity(content_token_ids.len());
+        for (content_position, &token) in content_token_ids.iter().enumerate() {
+            let position = content_position.checked_add(1).ok_or_else(|| {
+                R4SoftmaxLocalGenerationError::InvalidRequest(
+                    "state-encoding token position overflowed".to_owned(),
+                )
+            })?;
+            oracle
+                .step_causal_attention_transport(
+                    &mut session,
+                    token as usize,
+                    position,
+                    &mut logits,
+                )
+                .map_err(|error| R4SoftmaxLocalGenerationError::Attention(error.to_string()))?;
+            let residual = session.final_normalized_residual();
+            if residual.len() != shape.dimension || residual.iter().any(|value| !value.is_finite())
+            {
+                return Err(R4SoftmaxLocalGenerationError::Audit(format!(
+                    "sequence {sequence_index} position {content_position} produced an invalid final residual"
+                )));
+            }
+            residuals.push(residual.to_vec());
+        }
+
+        let positions_executed = content_token_ids.len().checked_add(1).ok_or_else(|| {
+            R4SoftmaxLocalGenerationError::Audit(
+                "state-encoding position count overflowed".to_owned(),
+            )
+        })?;
+        total_positions = total_positions
+            .checked_add(positions_executed)
+            .ok_or_else(|| {
+                R4SoftmaxLocalGenerationError::Audit(
+                    "state-encoding total position count overflowed".to_owned(),
+                )
+            })?;
+        session
+            .transport_status()
+            .map_err(R4SoftmaxLocalGenerationError::Attention)?;
+        if session.policy_identity() != HELM_D_R4_GAUGE_SOFTMAX_POLICY
+            || session.output_policy() != CausalAttentionOutputPolicy::Enabled
+        {
+            return Err(R4SoftmaxLocalGenerationError::Audit(format!(
+                "sequence {sequence_index} did not retain the coherent enabled R4/Spin policy"
+            )));
+        }
+        let implementation_json = session
+            .transport_implementation_evidence()
+            .map_err(R4SoftmaxLocalGenerationError::Attention)?
+            .ok_or_else(|| {
+                R4SoftmaxLocalGenerationError::Audit(format!(
+                    "sequence {sequence_index} emitted no R4 transport evidence"
+                ))
+            })?;
+        let implementation: R4SpinTransportEvidence = serde_json::from_str(&implementation_json)
+            .map_err(|error| R4SoftmaxLocalGenerationError::Audit(error.to_string()))?;
+        let observed_causal: CausalAttentionAuditRecord = session.audit().into();
+        let observed_projection: ProjectionAuditRecord = session.pre_rope_projection_audit().into();
+        let expected_causal = expected_causal_audit(positions_executed, &shape)
+            .map_err(|error| R4SoftmaxLocalGenerationError::Audit(error.to_string()))?;
+        let expected_projection = expected_projection_audit(positions_executed, &shape)
+            .map_err(|error| R4SoftmaxLocalGenerationError::Audit(error.to_string()))?;
+        let expected_r4 = expected_r4_audit(positions_executed, &shape)
+            .map_err(|error| R4SoftmaxLocalGenerationError::Audit(error.to_string()))?;
+        let causal_audit_exact = observed_causal == expected_causal;
+        let projection_audit_exact = observed_projection == expected_projection;
+        let r4_audit_exact = implementation.policy_identity == HELM_D_R4_GAUGE_SOFTMAX_POLICY
+            && implementation.intervention == R4SpinTransportIntervention::Coherent
+            && implementation.frame_table_offsets.len() == positions_executed
+            && implementation.audit == expected_r4;
+        let zero_future_reads =
+            observed_causal.future_reads == 0 && implementation.audit.future_position_reads == 0;
+        let output_policy_audit = output_policy_audit_record(
+            session.output_policy_audit(),
+            positions_executed,
+            &shape,
+            CausalAttentionOutputPolicy::Enabled,
+        )?;
+        if !(causal_audit_exact
+            && projection_audit_exact
+            && r4_audit_exact
+            && output_policy_audit.exact
+            && zero_future_reads)
+        {
+            return Err(R4SoftmaxLocalGenerationError::Audit(format!(
+                "sequence {sequence_index} state audit mismatch: causal={causal_audit_exact}, projection={projection_audit_exact}, R4={r4_audit_exact}, output_policy={}, zero_future_reads={zero_future_reads}",
+                output_policy_audit.exact
+            )));
+        }
+        let text_cid = raw_cid(text.as_bytes());
+        let state_cid = cid_serializable(&(&text_cid, &content_token_ids, &residuals))?;
+        let audit = R4SoftmaxLocalStateSequenceAudit {
+            positions_executed,
+            content_token_count: content_token_ids.len(),
+            residual_width: shape.dimension,
+            selected_layer_count: session.selected_layer_count(),
+            all_layers_selected,
+            causal_audit_exact,
+            projection_audit_exact,
+            r4_audit_exact,
+            output_policy_audit_exact: output_policy_audit.exact,
+            zero_future_reads,
+            persistent_state_cid: session.persistent_state_cid(),
+            transport_evidence_cid: raw_cid(implementation_json.as_bytes()),
+            state_cid,
+        };
+        sequences.push(R4SoftmaxLocalEncodedStateSequence {
+            text_cid,
+            content_token_ids,
+            final_normalized_residuals: residuals,
+            audit,
+        });
+    }
+
+    let execution = oracle.execution_snapshot();
+    let after = checkpoint_tree_binding(&config.model)?;
+    if before != after {
+        return Err(R4SoftmaxLocalGenerationError::Audit(
+            "checkpoint tree changed during local state encoding".to_owned(),
+        ));
+    }
+    let file_reads = u64::try_from(before.files.len())
+        .ok()
+        .and_then(|count| count.checked_mul(2))
+        .ok_or_else(|| {
+            R4SoftmaxLocalGenerationError::Audit("source-read count overflowed".to_owned())
+        })?;
+    let source_read_audit = SourceReadAudit {
+        checkpoint_tree_scans: 2,
+        checkpoint_tree_file_reads: file_reads,
+        tokenizer_loads: 1,
+        oracle_loads: 1,
+        local_checkpoint_forward_steps: u64::try_from(total_positions).map_err(|_| {
+            R4SoftmaxLocalGenerationError::Audit("forward-step count overflowed".to_owned())
+        })?,
+        provider_calls: 0,
+        ollama_calls: 0,
+        prior_trace_reads: 0,
+        tree_unchanged_across_execution: true,
+    };
+    let checkpoint = LocalCheckpointBinding {
+        model_path: config.model.display().to_string(),
+        checkpoint_tree_cid: before.checkpoint_tree_cid,
+        config_cid,
+        tokenizer_cid,
+        weights_cid: oracle.source_cid().to_owned(),
+        weights_cid_scope: "Safetensors shard bytes in the loader's canonical shard order; not the checkpoint-tree CID".to_owned(),
+        files: before.files,
+        tokenizer: tokenizer.adapter(),
+        bos_token_id,
+        eos_token_id,
+        exact_backend: oracle.exact_backend_report(),
+    };
+    let sequence_audits = sequences
+        .iter()
+        .map(|sequence| &sequence.audit)
+        .collect::<Vec<_>>();
+    let audit_cid = cid_serializable(&(
+        STATE_ENCODING_SCHEMA,
+        &checkpoint,
+        shape,
+        sequence_audits,
+        source_read_audit,
+        &execution,
+    ))?;
+
+    Ok(R4SoftmaxLocalStateEncodingReport {
+        schema: STATE_ENCODING_SCHEMA.to_owned(),
+        audit_cid,
+        checkpoint,
+        model_shape: shape,
+        sequences,
+        source_read_audit,
+        execution,
+    })
 }
 
 pub fn run_r4_softmax_local_generation(

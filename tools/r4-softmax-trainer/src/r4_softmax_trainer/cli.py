@@ -43,8 +43,10 @@ from .paths import (
     default_grounding_predecessor_root,
     default_grounding_root,
     default_research_root,
+    default_source_span_pointer_root,
 )
 from .provenance import verify_bound_manifest
+from .source_span_pointer import train_source_span_pointer
 from .train import TrainConfig, reveal_sealed_test, run_overfit_smoke, train_main
 
 
@@ -66,7 +68,8 @@ def parser() -> argparse.ArgumentParser:
         type=_root,
         help=(
             "untracked data/checkpoint root (defaults to issue-1014, issue-1017, "
-            "or issue-1019 according to the selected lifecycle)"
+            "issue-1019, or issue-954/source-span-pointer according to the selected "
+            "lifecycle)"
         ),
     )
     subcommands = command.add_subparsers(dest="command", required=True)
@@ -229,6 +232,27 @@ def parser() -> argparse.ArgumentParser:
         action="store_true",
         help="resume the identical fixed run from checkpoints/latest.pt",
     )
+    pointer = subcommands.add_parser(
+        "train-source-span-pointer",
+        help=(
+            "extract immutable #1017 states, gate the C1-SB1 pointer, and run its "
+            "sole 256-step fit only after Rust score parity"
+        ),
+    )
+    pointer.add_argument(
+        "--predecessor",
+        type=_root,
+        default=default_grounding_predecessor_root(),
+        help="immutable completed #1017 Hugging Face export",
+    )
+    pointer.add_argument(
+        "--rust-score-parity",
+        type=_root,
+        help=(
+            "uor-r4.grounded-answer/2 JSON from r4 answer using the emitted "
+            "preflight head/source; required only on the second invocation"
+        ),
+    )
     return command
 
 
@@ -256,6 +280,7 @@ def main() -> None:
         "finalize-capacity",
     }
     grounding_commands = {"finetune-grounding"}
+    pointer_commands = {"train-source-span-pointer"}
     if arguments.root:
         root = arguments.root
     elif arguments.command in capacity_commands:
@@ -264,6 +289,8 @@ def main() -> None:
         root = default_continuation_root()
     elif arguments.command in grounding_commands:
         root = default_grounding_root()
+    elif arguments.command in pointer_commands:
+        root = default_source_span_pointer_root()
     else:
         root = default_research_root()
     if arguments.command == "download":
@@ -378,6 +405,15 @@ def main() -> None:
                 root,
                 predecessor=arguments.predecessor,
                 resume=arguments.resume,
+            )
+        )
+        return
+    if arguments.command == "train-source-span-pointer":
+        _print_result(
+            train_source_span_pointer(
+                root,
+                predecessor=arguments.predecessor,
+                rust_score_parity=arguments.rust_score_parity,
             )
         )
         return

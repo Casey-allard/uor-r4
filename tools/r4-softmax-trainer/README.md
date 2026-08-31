@@ -5,7 +5,8 @@ This package contains the bounded offline training paths authorized by issues
 [#1017](https://github.com/UOR-Foundation/uor-r4/issues/1017), plus the frozen,
 preflight-recorded [#1019](https://github.com/UOR-Foundation/uor-r4/issues/1019)
 parameter-capacity campaign, and the bounded [#954](https://github.com/UOR-Foundation/uor-r4/issues/954)
-grounding fine-tune. They train and continue ordinary causal-softmax
+grounding fine-tune plus its frozen source-span-pointer successor. They train
+and continue ordinary causal-softmax
 Llama-family models, export them in the existing Rust loaders' Hugging Face
 format, and freeze evidence before each sealed test is opened. They contain no
 teacher, trace-distillation, comparison-arm, resonance, or routing experiment.
@@ -50,9 +51,10 @@ reveal, generation, and replay remain `NOT_RUN`. A single isolated exact-shape
 MPS fast-path test (10 warmup plus 40 measured steps) combined fused AdamW with
 deferred logging and measured `4.485223 s/step`, slower than the signed
 `3.491307 s/step`; `fused=True` was removed immediately. This is a bounded
-fast-path negative, not a model result. #1019 closed without a full run; the
-active next step is #954's one bounded grounding fine-tune and Rust product
-check over the working #1017 model. UOR's deployed architecture/runtime remains CPU-native; Apple Accelerate/BLAS
+fast-path negative, not a model result. #1019 closed without a full run. #954's
+grounding fine-tune and positive-diagonal cosine pointer have also completed as
+bounded negatives. The next #954 mechanism must be frozen independently before
+use; it is not a retry of either revealed run. UOR's deployed architecture/runtime remains CPU-native; Apple Accelerate/BLAS
 and MPS are local offline accelerators only; CUDA and external GPU execution
 are out of scope. The MPS stop is not a model-quality negative,
 leaves the full-scale capacity hypothesis untested, and does not revoke the
@@ -68,7 +70,7 @@ internal generation from `3.060506042 s` to `0.116236875 s`. This is ordinary
 Apple CPU BLAS and carries distinct backend provenance; it is not a CUDA path
 or a change to the exact portable runtime contract.
 
-## Bounded #954 grounding fine-tune
+## Historical bounded #954 grounding fine-tune
 
 `finetune-grounding` is the next product-facing step over the completed #1017
 model. It runs one fixed 384-step MPS fine-tune with a fresh AdamW optimizer;
@@ -109,6 +111,31 @@ the same command with `--resume`. Completion exports `issue-954/export` and the
 enabled-only Python prefix fixture; grounded generation remains `NOT_RUN` until
 the Rust product command passes all three reserved prompts.
 
+## C1-SB1 source-span pointer result
+
+`train-source-span-pointer` implemented the frozen
+`R4SourceSpanPointerV1`: each exact subject and punctuation-terminated source
+sentence was encoded independently through the immutable #1017 model, then a
+positive 288-lane diagonal weighted cosine selected a source span while three
+explicit logits selected answer, abstain, or conflict. The two-invocation gate
+first emitted one 12-record overfit head, required a Rust `r4 answer` report,
+and admitted the sole full fit only after Python/Rust score parity.
+
+The preflight passed `12/12`; maximum absolute Rust/Python score and logit
+deltas were `1.234420776e-7` and `1.428717041e-6`, respectively, against the
+frozen `0.01` tolerance. The one 256-step fit then failed its development gate:
+answer classification was `89/128` (`69.53125%`), abstention `114/128`
+(`89.0625%`), conflict `117/128` (`91.40625%`), and supported span selection
+`121/128` (`94.53125%`), all below the required `95%`.
+
+Terminal: `FAIL_SOURCE_SPAN_POINTER_DEVELOPMENT_GATE_STOP`. No final pointer
+artifact was emitted, and all three committed product probes remain `NOT_RUN`.
+Do not rerun, tune, or use the preflight head as a product head. The retained
+state-capture and parity seams may support a future independently frozen
+source-relative relation/entailment head that preserves exact copy semantics.
+See the [#954 record](../../docs/r4_grounded_correctness_954.md) and
+[structured C1-SB1 result](../../docs/r4_source_span_pointer_954_raw.json).
+
 ## Isolated environment
 
 Python is frozen to 3.12 and every dependency is exact in `pyproject.toml` and
@@ -130,8 +157,8 @@ instead used its own eight-hour backend-admission gate. MPS stopped
 `UNAVAILABLE_HARDWARE_BUDGET` on time (`20.66 h > 8 h`) while memory passed at
 `21.03%`. That result applies only to the frozen offline implementation. The
 subsequent fused-AdamW/deferred-logging fast path was slower (`4.485223` versus
-signed `3.491307 s/step`), so #1019 closed without a full run. The active next
-step is #954's bounded grounding fine-tune and Rust product check over #1017.
+signed `3.491307 s/step`), so #1019 closed without a full run. #954's grounding
+fine-tune and source-span pointer also closed negative; neither is rerun.
 CUDA and external GPU execution are out of scope.
 
 ## One-way campaign
@@ -241,8 +268,8 @@ Its signed MPS probe stopped `UNAVAILABLE_HARDWARE_BUDGET` because the
 terminal applies only to the frozen offline implementation. Full training,
 final parity, reveal, generation, and replay remain `NOT_RUN`. The subsequent
 fused-AdamW/deferred-logging fast path was slower (`4.485223` versus signed
-`3.491307 s/step`), so #1019 closed without a full run and #954's bounded
-source-grounding product phase is active over #1017. CUDA and external GPU execution are out of scope. See the
+`3.491307 s/step`), so #1019 closed without a full run. #954's two bounded
+source-grounding mechanisms subsequently closed negative. CUDA and external GPU execution are out of scope. See the
 [#1019 observed preflight](../../docs/r4_softmax_parameter_capacity_preflight_1019_raw.json).
 
 The Rust qualifier has a separate shape-bound campaign mode. After a #1019
@@ -281,8 +308,8 @@ create-once population, smoke, Rust parity, admission, or MPS probe stages.
 Preserve the passed smoke admission. CUDA and external GPU execution are out of
 scope. The one fused-AdamW/deferred-logging fast-path test was slower than the
 signed baseline, so do not tune or launch the #1019 full run. #1019 is closed;
-do not reopen recurring optimization or broad research gates. Continue the one
-bounded #954 grounding phase over the working #1017 model instead.
+do not reopen recurring optimization or broad research gates. The later #954
+grounding campaigns are recorded separately and are not reasons to reopen #1019.
 
 After a locally admitted full run produces an export, continue with:
 

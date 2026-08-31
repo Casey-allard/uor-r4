@@ -32,7 +32,7 @@ use uor_r4_wasm_router::tless_uor;
     name = "r4",
     version,
     about,
-    long_about = "Run the working R4/Spin causal-attention generator, ask a fail-closed question against one local source, or inspect the preserved geometric research surfaces.\n\n`generate` uses the coherent #1017 reference; `answer` uses the bounded #954 grounded export and serves only exact source spans or typed non-answers. Both remain source-backed floating-point/softmax references, not the final source-free transformerless runtime. Preserved compiler and certification commands remain available through `r4 research-tools`."
+    long_about = "Run the working R4/Spin causal-attention generator, exercise the fail-closed source-span-pointer research surface, or inspect the preserved geometric research tools.\n\n`generate` uses the coherent #1017 reference. `answer` accepts a #954 pointer artifact over independently encoded #1017 R4/Spin states and serves only an exact source sentence or a typed non-answer; the frozen C1-SB1 run failed its development gate and emitted no qualified final head. Both paths remain source-backed floating-point/softmax references, not the final source-free transformerless runtime. Preserved compiler and certification commands remain available through `r4 research-tools`."
 )]
 struct Cli {
     /// Increase log verbosity (-v info, -vv debug, -vvv trace).
@@ -115,7 +115,7 @@ enum Command {
     /// Generate from the local learned R4/Spin model through causal softmax.
     #[command(visible_alias = "generate")]
     R4SoftmaxLocalGenerate(R4SoftmaxLocalGenerateArgs),
-    /// Answer from one exact local source span or fail closed with a typed outcome.
+    /// Exercise a #954 source-span pointer; no qualified final head exists yet.
     Answer(GroundedAnswerArgs),
     /// Qualify one frozen #1014, #1017, or #1019 local causal-softmax campaign.
     R4SoftmaxLocalQualify(R4SoftmaxLocalQualifyArgs),
@@ -774,26 +774,22 @@ struct R4SoftmaxLocalGenerateArgs {
 
 #[derive(Args, Debug)]
 struct GroundedAnswerArgs {
-    /// Local grounded checkpoint directory; defaults to the bounded #954 export.
-    #[arg(long, default_value = ".uor-models/research/issue-954/export")]
+    /// Frozen local #1017 checkpoint directory used to encode pointer states.
+    #[arg(long, default_value = ".uor-models/research/issue-1017/export")]
     model: PathBuf,
+    /// Research #954 pointer artifact bound to the frozen checkpoint.
+    #[arg(
+        long,
+        default_value = ".uor-models/research/issue-954/source-span-pointer/source-span-pointer.json"
+    )]
+    head: PathBuf,
     /// Exact regular, non-symlink UTF-8 source file used to ground the answer.
     #[arg(long)]
     source_file: PathBuf,
-    /// Exact question placed after the source by the fixed grounding prompt policy.
+    /// Exact question in the sole admitted form: `Where is the <subject>?`.
     #[arg(long)]
     question: String,
-    /// Maximum generated tokens (1..=128); the grounded surface defaults to 32.
-    #[arg(
-        long,
-        default_value_t = uor_r4_wasm_router::r4_grounded_answer::DEFAULT_MAX_NEW_TOKENS,
-        value_parser = parse_r4_softmax_local_max_new_tokens
-    )]
-    max_new_tokens: usize,
-    /// Stable seed for the versioned temperature-0.8/top-k-40 sampler; omit for greedy.
-    #[arg(long)]
-    seed: Option<u64>,
-    /// Optional path for the complete source binding, typed outcome, and inner audit.
+    /// Optional path for the source binding, pointer scores, and R4 state audit.
     #[arg(long)]
     json_output: Option<PathBuf>,
 }
@@ -2527,7 +2523,9 @@ fn print_research_tools() {
 /// Default location of the reference teacher checkpoint used by `certify`/`compare`.
 const DEFAULT_REFERENCE_CHECKPOINT: &str = "/tmp/ref/out/model.bin";
 const DEFAULT_R4_SOFTMAX_LOCAL_MODEL: &str = ".uor-models/research/issue-1017/export";
-const DEFAULT_GROUNDED_ANSWER_MODEL: &str = ".uor-models/research/issue-954/export";
+const DEFAULT_GROUNDED_ANSWER_MODEL: &str = ".uor-models/research/issue-1017/export";
+const DEFAULT_GROUNDED_ANSWER_HEAD: &str =
+    ".uor-models/research/issue-954/source-span-pointer/source-span-pointer.json";
 
 fn resolve_r4_softmax_local_model(configured: &Path) -> Result<PathBuf, RunError> {
     let model = if configured == Path::new(DEFAULT_R4_SOFTMAX_LOCAL_MODEL) {
@@ -2546,17 +2544,32 @@ fn resolve_r4_softmax_local_model(configured: &Path) -> Result<PathBuf, RunError
 
 fn resolve_grounded_answer_model(configured: &Path) -> Result<PathBuf, RunError> {
     let model = if configured == Path::new(DEFAULT_GROUNDED_ANSWER_MODEL) {
-        model_store_root().join("research/issue-954/export")
+        model_store_root().join("research/issue-1017/export")
     } else {
         configured.to_path_buf()
     };
     if !model.join("model.safetensors").is_file() {
         return Err(RunError::Command(format!(
-            "no grounded #954 model found at {}; set UOR_MODEL_STORE or pass --model",
+            "no frozen #1017 model found at {}; set UOR_MODEL_STORE or pass --model",
             model.display()
         )));
     }
     Ok(model)
+}
+
+fn resolve_grounded_answer_head(configured: &Path) -> Result<PathBuf, RunError> {
+    let head = if configured == Path::new(DEFAULT_GROUNDED_ANSWER_HEAD) {
+        model_store_root().join("research/issue-954/source-span-pointer/source-span-pointer.json")
+    } else {
+        configured.to_path_buf()
+    };
+    if !head.is_file() {
+        return Err(RunError::Command(format!(
+            "no #954 source-span pointer artifact found at {}; the bounded run emitted no qualified final head, so pass --head only for an explicit research artifact",
+            head.display()
+        )));
+    }
+    Ok(head)
 }
 
 /// Resolve the reference teacher checkpoint path, honoring the `TLESS_CHECKPOINT`
@@ -2637,9 +2650,12 @@ fn run(cli: &Cli) -> Result<(), RunError> {
         }
         Some(Command::Answer(args)) => {
             let model = resolve_grounded_answer_model(&args.model)?;
+            let head = resolve_grounded_answer_head(&args.head)?;
             if let Some(path) = &args.json_output {
                 uor_r4_wasm_router::r4_grounded_answer::require_distinct_output_path(
                     &args.source_file,
+                    &head,
+                    &model,
                     path,
                 )
                 .map_err(|error| RunError::Command(error.to_string()))?;
@@ -2651,11 +2667,10 @@ fn run(cli: &Cli) -> Result<(), RunError> {
             let report = uor_r4_wasm_router::r4_grounded_answer::run_grounded_answer(
                 &uor_r4_wasm_router::r4_grounded_answer::GroundedAnswerConfig {
                     model,
+                    head,
                     source_file: args.source_file.clone(),
                     question: args.question.clone(),
-                    max_new_tokens: args.max_new_tokens,
                     workers,
-                    seed: args.seed,
                 },
             )
             .map_err(|error| RunError::Command(error.to_string()))?;

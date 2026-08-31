@@ -601,6 +601,17 @@ impl CausalAttentionOutputPolicyAudit {
 }
 
 impl CausalAttentionTransportSession {
+    /// Final post-decoder-RMSNorm residual produced by the most recent
+    /// [`HuggingFaceLlamaOracle::step_causal_attention_transport`] call.
+    ///
+    /// This is a read-only view into the session-owned state. It is distinct
+    /// from [`TeacherOracle::hidden_state`], which belongs to the oracle's
+    /// independent default session and is not advanced by the transported
+    /// causal-attention API.
+    pub fn final_normalized_residual(&self) -> &[f32] {
+        &self.state.x
+    }
+
     /// Stable identity of the injected transport implementation and policy.
     pub fn policy_identity(&self) -> &str {
         self.transport.policy_identity()

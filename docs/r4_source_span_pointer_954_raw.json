@@ -1,0 +1,72 @@
+{
+  "schema": "uor-r4.source-span-pointer-result/1",
+  "issue": 954,
+  "policy": "R4SourceSpanPointerV1",
+  "observed_at": "2026-08-31",
+  "model_weights_cid": "blake3:c5bf31aa97a567b3aaad4461ce2fac9cebc12b0a38becb6d02d21b43b493bf5d",
+  "tokenizer_cid": "blake3:3f42bcfce7728512076549c63b88387e13c8156fe35c0f91d9b112439f3739cc",
+  "dataset_cid": "blake3:45e6bc4061e41685b07423d404be8bfbd28052c8cc829fdd7856d498b1d23ab1",
+  "run_contract_cid": "blake3:8085b2fddc62bd8c4b49af001f120a995b56de61764a650a08ed790471ad7bdb",
+  "preflight": {
+    "balanced_records": 12,
+    "outcome_correct": {
+      "answer": "4/4",
+      "abstain": "4/4",
+      "conflict": "4/4"
+    },
+    "supported_span_pointer_correct": "4/4",
+    "python_rust_score_parity": "PASS",
+    "maximum_absolute_score_delta": 1.234420776152767e-7,
+    "maximum_absolute_logit_delta": 1.4287170411186878e-6,
+    "maximum_absolute_tolerance": 0.01,
+    "parity_admission_cid": "blake3:60ff58faf6a9250e2f87354a0d9a54c3147e7df377d5382e899a6b6486d88c1a"
+  },
+  "optimization": {
+    "seed": 9541,
+    "optimizer_steps": 256,
+    "batch_size": 128,
+    "initial_combined_loss": 3.1189775466918945,
+    "final_combined_loss": 1.7038427591323853,
+    "sweep": false,
+    "retry": false
+  },
+  "development": {
+    "required_accuracy_per_gate": 0.95,
+    "answer": {
+      "correct": 89,
+      "total": 128,
+      "accuracy": 0.6953125,
+      "passed": false
+    },
+    "abstain": {
+      "correct": 114,
+      "total": 128,
+      "accuracy": 0.890625,
+      "passed": false
+    },
+    "conflict": {
+      "correct": 117,
+      "total": 128,
+      "accuracy": 0.9140625,
+      "passed": false
+    },
+    "supported_span_pointer": {
+      "correct": 121,
+      "total": 128,
+      "accuracy": 0.9453125,
+      "passed": false
+    }
+  },
+  "product_probe_commitments": [
+    "blake3:96e9178ca42fa68ffa040234937cea63b578f47bd1edf706c3fa23217a9cb6f3",
+    "blake3:185f255f505c1b898b1d5ea55a3727d98402f7b0f954ba01c43193619e3fe514",
+    "blake3:6f9474942227c64dddd2e0cf0704d72fb2c163eb3b4c5804ff3a5a9ac05f22b6"
+  ],
+  "product_behavior_status": "NOT_RUN",
+  "pointer_artifact_cid": null,
+  "training_result_cid": "blake3:0f4dd6082e0599d25df6a1dd127e384167c66796e5eaacf50a8e099ca8837476",
+  "final_manifest_cid": "blake3:6634743f87154587c7fad65e83a30808764a2488c1149e4b32ef9d52b24a6b0a",
+  "final_tree_cid": "blake3:888ef6c03a6686caf62b268fb05b8a4105040461fb43d0f52f18c052c1bea0bf",
+  "terminal": "FAIL_SOURCE_SPAN_POINTER_DEVELOPMENT_GATE_STOP",
+  "browser_or_http_wiring": "NOT_RUN"
+}

@@ -62,9 +62,18 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > MPS fast-path test (10 warmup plus 40 measured steps) combined fused AdamW
 > with deferred logging and measured `4.485223 s/step`, slower than the signed
 > `3.491307 s/step`; `fused=True` was removed immediately. This is a bounded
-> fast-path negative, not a model result. #1019 closed without a full run. The
-> active next step is #954's bounded source-grounding fine-tune and fail-closed
-> `r4 answer` product check over the working #1017 model.
+> fast-path negative, not a model result. #1019 closed without a full run.
+> #954's first bounded grounding SFT then failed product transfer at `1/3`.
+> Its `R4SourceSpanPointerV1` successor passed the 12/12 overfit preflight and
+> Python/Rust score parity, but its sole 256-step fit stopped
+> `FAIL_SOURCE_SPAN_POINTER_DEVELOPMENT_GATE_STOP`: answer, abstain, conflict,
+> and supported-pointer development accuracy were `69.53125%`, `89.0625%`,
+> `91.40625%`, and `94.53125%`, all below the frozen `>=95%` gates. No final
+> pointer artifact was emitted and the reserved product probes were `NOT_RUN`.
+> The next proposed #954 mechanism is a source-relative learned
+> relation/entailment head that preserves exact R4/Spin state capture and copy
+> semantics; it must be independently frozen before execution, and no successor
+> run or product wiring is active. Do not tune or retry the revealed cosine head.
 > See the [#1017 record](docs/r4_softmax_quality_capacity_continuation_1017.md),
 > [#1017 structured aggregate](docs/r4_softmax_quality_capacity_continuation_1017_raw.json),
 > [#1019 frozen contract](docs/r4_softmax_parameter_capacity_1019.md),
@@ -221,8 +230,10 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > engine. This remains a native CPU research reference,
 > not a source-free, transformerless, static-WASM, release, or frontier-model
 > result. #973 remains open for its intrinsic/source-free terminal; #954's
-> bounded source-backed grounding phase is active while its final source-free
-> terminal remains blocked. The trace/compiler rung
+> cosine source-span pointer stopped at its development gate. The proposed
+> source-relative relation/entailment head must be independently frozen; no
+> successor run is active, and the final source-free terminal remains blocked.
+> The trace/compiler rung
 > that followed that checkpoint is now complete: `R4SoftmaxTeacherTraceV1`
 > supplied construction traces and
 > `R4SoftmaxTraceStudentV1` compiled a source-free Q16 suffix artifact with a
@@ -245,9 +256,11 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > `UNAVAILABLE_HARDWARE_BUDGET` for the frozen eight-hour offline
 > implementation, and full training through replay remains `NOT_RUN`. The
 > fused-AdamW/deferred-logging fast path was slower (`4.485223` versus signed
-> `3.491307 s/step`); #1019 closed without a full run and #954's bounded
-> source-grounding product phase is active over #1017. CUDA and external GPU execution are out of
-> scope. No
+> `3.491307 s/step`); #1019 closed without a full run. #954's cosine pointer
+> stopped before final artifact or product reveal. A source-relative learned
+> relation/entailment successor over #1017's exact R4/Spin state and copy seams
+> is proposed but not frozen or active. CUDA and external GPU execution are out
+> of scope. No
 > further 7.15M exposure or learning-rate tuning is authorized.
 > Intrinsic/readout substitution, resonance, softmax replacement, scale, and
 > product promotion remain parked. No tag, release, hosted
@@ -327,9 +340,11 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > stopped `UNAVAILABLE_HARDWARE_BUDGET` for the frozen eight-hour offline
 > implementation; full training, final qualification, reveal, generation, and
 > replay remain `NOT_RUN`. The fused-AdamW/deferred-logging fast path was slower
-> (`4.485223` versus signed `3.491307 s/step`); #1019 closed without a full run
-> and #954's bounded source-backed grounding phase is active. CUDA and external
-> GPU execution are out of scope. #954's final source-free terminal remains
+> (`4.485223` versus signed `3.491307 s/step`); #1019 closed without a full run.
+> #954's cosine pointer stopped at its development gate; the proposed
+> source-relative relation/entailment successor is not yet frozen or active.
+> CUDA and external GPU
+> execution are out of scope. #954's final source-free terminal remains
 > blocked by the parked #973 replacement terminal.
 > See the
 > [bounded-global record](docs/bounded_global_exact_spin_attention_973.md).
@@ -394,8 +409,10 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > Its opt-in, loopback-only dedicated native HTTP endpoint then passed exact CLI
 > canary parity. Dashboard wiring/readiness and static/WASM-isolation checks
 > passed; browser E2E remains `NOT_RUN`. The source-free trace/state attempts
-> are preserved negatives; #954's bounded source-backed grounding phase is
-> active while its final source-free terminal remains blocked. See the
+> are preserved negatives; #954's cosine pointer is also a bounded negative.
+> Its proposed source-relative learned relation/entailment successor must be
+> independently frozen, and the final source-free terminal remains blocked.
+> See the
 > [conversation record](docs/conversation_entity_spin_path_attention_973.md).
 
 > **Accepted capability-first evidence (2026-08-28):** #953's frozen
@@ -465,8 +482,10 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > `UNAVAILABLE_HARDWARE_BUDGET` for the frozen eight-hour offline
 > implementation, so the full campaign remains `NOT_RUN`. The fused-AdamW/
 > deferred-logging fast path was slower (`4.485223` versus signed
-> `3.491307 s/step`); #1019 closed without a full run and #954's bounded
-> source-backed grounding phase is active over #1017. CUDA and external GPU execution are out of scope.
+> `3.491307 s/step`); #1019 closed without a full run. #954's cosine pointer
+> stopped before final artifact or reveal; its proposed source-relative learned
+> relation/entailment successor is not yet frozen or active. CUDA and external GPU
+> execution are out of scope.
 > #954's final source-free terminal remains blocked behind #973. General higher-scope attention, correct
 > answers, and reasoning do not exist yet. The
 > dashboard is an interactive window into the research substrate, not a
@@ -508,35 +527,43 @@ but still source-backed, floating-point/matmul/softmax, and below the strict
 `<1.50` NLL target. #1019 was closed without another capacity run; it is not a
 prerequisite for using or productizing this path.
 
-To ask against one exact local source while refusing unsupported generated text:
+The bounded `answer` interface now admits only an exact
+`Where is the <subject>?` question and punctuation-terminated source spans:
 
 ```bash
-r4 answer --source-file facts.txt --question "Which key opens the north door?" \
+r4 answer --source-file facts.txt --question "Where is the copper compass?" \
+  --head /path/to/qualified-pointer-head.json \
   --json-output grounded-answer.json
 ```
 
-`answer` applies one fixed source/question prompt to the bounded #954 grounding
-fine-tune descended from #1017.
-It serves ordinary text only when the complete trimmed response is an exact,
-case-sensitive contiguous span of the source. Exact `ABSTAIN`, exact
-`CONTRADICTION`, empty output, and non-source output become typed non-answer
-outcomes; unsupported raw text remains visible only inside the optional nested
-audit report. The source must be a regular non-symlink UTF-8 file of at most
-4 KiB, is content-addressed, and is read again after generation to detect a
-change. The assembled prompt plus requested output must also fit the checkpoint's
-256-token context; oversized requests fail before an answer is served. This is
-fail-closed extractive provenance, not semantic-entailment or general-correctness
-evidence.
+`answer` captures the #1017 model's normalized causal R4/Spin states for the
+subject and two to eight exact punctuation-terminated source sentences, then
+uses the explicitly supplied `--head` artifact to choose an exact source span,
+typed abstention, or typed conflict. The source is content-addressed and read
+again after evaluation to detect change. This is fail-closed extractive
+provenance, not semantic-entailment or general-correctness evidence.
 
 The first fixed #954 MPS fine-tune completed in 14 minutes 44 seconds on the
 project M1, but its frozen Rust product population failed `1/3`: all three
 prompts decoded `ABSTAIN`, so only the unsupported question passed. The command
 therefore fails safely, but this checkpoint is not a usable answer model. It is
-not rerun or tuned. The active #954 successor is a learned source-span
-pointer/copy head with explicit abstention and conflict scores over the existing
-causal R4/Spin states. See the
+not rerun or tuned. The subsequent `R4SourceSpanPointerV1` preflight passed
+12/12, and Python/Rust parity passed with maximum score delta
+`1.234420776e-7` and maximum logit delta `1.428717041e-6`, both inside `0.01`.
+The sole 256-step fit nevertheless missed every frozen development gate:
+answer `89/128` (`69.53125%`), abstain `114/128` (`89.0625%`), conflict
+`117/128` (`91.40625%`), and supported pointer `121/128` (`94.53125%`) versus
+`>=95%` each. It stopped `FAIL_SOURCE_SPAN_POINTER_DEVELOPMENT_GATE_STOP`
+before producing a final pointer artifact; the three reserved product probes
+and browser/HTTP wiring are `NOT_RUN`. Consequently the default `r4 answer`
+surface is unavailable unless an explicitly qualified head artifact exists.
+Do not tune or retry the revealed cosine head. The next proposed #954 mechanism
+is a source-relative learned relation/entailment head preserving exact R4/Spin
+state capture and deterministic source-copy semantics; it must be independently
+frozen before execution, and no successor run or product wiring is active. See the
 [#954 record](docs/r4_grounded_correctness_954.md) and
-[structured result](docs/r4_grounded_correctness_954_raw.json).
+[C1-SB0 structured result](docs/r4_grounded_correctness_954_raw.json) plus the
+[C1-SB1 pointer result](docs/r4_source_span_pointer_954_raw.json).
 
 On Apple Silicon, build the opt-in CPU-BLAS version so local inference uses the
 machine's Accelerate framework:
@@ -795,9 +822,11 @@ exact-descriptor/entity-binding path selector apiece at their respective
    admission stopped `UNAVAILABLE_HARDWARE_BUDGET` for the frozen eight-hour
    offline implementation; full training through replay remains `NOT_RUN`.
    The fused-AdamW/deferred-logging fast path was slower (`4.485223` versus
-   signed `3.491307 s/step`); #1019 closed without a full run and #954's bounded
-   source-backed grounding phase is active over #1017. CUDA and external GPU
-   execution are out of scope. #954's final source-free terminal stays blocked.
+   signed `3.491307 s/step`); #1019 closed without a full run. #954's cosine
+   pointer stopped before final artifact or product reveal; its proposed
+   source-relative learned relation/entailment successor is not frozen or active.
+   CUDA and external
+   GPU execution are out of scope. #954's final source-free terminal stays blocked.
 See the [append-only #953 record](docs/local_geometric_generation_953.md).
 See the [accepted table-tie record](docs/source_free_table_geometric_intervention_953.md).
 See the [#973 Gate 0 record](docs/prior_sentence_count_radius_attention_973.md).
@@ -944,9 +973,10 @@ not become substitutes for working intelligence:
    offline implementation; the full train/final-qualification/reveal/
    generation/replay path remains `NOT_RUN`, with no further 7.15M exposure or
    LR tuning. The fused-AdamW/deferred-logging fast path was slower (`4.485223`
-   versus signed `3.491307 s/step`); #1019 closed without a full run and #954's
-   bounded source-grounding product phase is active over #1017. CUDA and external
-   GPU execution are out of scope.
+   versus signed `3.491307 s/step`); #1019 closed without a full run. #954's
+   cosine pointer stopped before final artifact or product reveal. Its proposed
+   source-relative learned relation/entailment successor is not frozen or active.
+   CUDA and external GPU execution are out of scope.
    Do not resume resonance substitutes. Product development continues through
    `r4 generate`, but no production-readiness or release claim follows yet. This intermediate
    reference is transformer-compatible, `f32`/multiply/alloc and source-weight
@@ -1011,8 +1041,9 @@ frozen eight-hour offline implementation; the full campaign remains `NOT_RUN`.
 UOR's deployed architecture/runtime remains CPU-native. Apple Accelerate/BLAS
 and MPS are local offline accelerators only. The fused-AdamW/deferred-logging
 fast path was slower (`4.485223` versus signed `3.491307 s/step`); #1019 closed
-without a full run and #954's bounded source-grounding product phase is active
-over #1017. CUDA and external GPU execution are out of scope.
+without a full run. #954's cosine pointer stopped before final artifact or
+product reveal. Its proposed source-relative learned relation/entailment
+successor is not frozen or active. CUDA and external GPU execution are out of scope.
 #954's final source-free terminal remains blocked behind #973. The exact contract is
 [ADR-0005](docs/adr/0005-predictive-geometric-connection-memory.md).
 

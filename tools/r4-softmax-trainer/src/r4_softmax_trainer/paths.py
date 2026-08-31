@@ -42,3 +42,7 @@ def default_grounding_predecessor_root() -> Path:
 
 def default_grounding_root() -> Path:
     return model_store_root() / "research" / "issue-954"
+
+
+def default_source_span_pointer_root() -> Path:
+    return model_store_root() / "research" / "issue-954" / "source-span-pointer"

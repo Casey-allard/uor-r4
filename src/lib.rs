@@ -58,6 +58,8 @@ pub mod r4_softmax_trace_observability_experiment;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod r4_softmax_trace_state_experiment;
 #[cfg(not(target_arch = "wasm32"))]
+pub mod r4_source_span_pointer;
+#[cfg(not(target_arch = "wasm32"))]
 pub mod r4g1;
 /// #655-D2: `release-bundle.json`'s shared filename constant is `pub`
 /// (rather than `pub(crate)`) because the CLI packaging command in the

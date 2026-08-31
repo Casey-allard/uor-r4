@@ -1,11 +1,11 @@
-# C1-SB0: source-backed grounded answer prototype (#954)
+# Source-backed grounded answer campaigns (#954)
 
-Status: **ACTIVE / PRODUCT PROTOTYPE**
+Status: **C1-SB1 DEVELOPMENT GATE STOP / NO QUALIFIED ANSWER ARTIFACT**
 Parent programme: #820
 Working model: #1017 six-layer R4/Spin causal-softmax checkpoint
 Final source-free correctness terminal: still blocked by parked #973
 
-## Why this is the next build
+## C1-SB0 historical rationale
 
 PR #1022 made the #1017 checkpoint directly usable through `r4 generate` and
 added an opt-in Apple Accelerate CPU-BLAS build for local Apple Silicon use.
@@ -95,3 +95,40 @@ the already established causal R4/Spin states. That mechanism must be frozen on
 new lexical families before a newly reserved product population is revealed.
 Do not return to #1019 capacity, resonance, intrinsic-attention substitution, or
 backend comparison for this failure.
+
+## C1-SB1 observed result — 2026-08-31
+
+The independently frozen `R4SourceSpanPointerV1` successor retained the #1017
+weights, exact causal R4/Spin state capture, and deterministic source-copy
+surface. Its cheap 12-record overfit preflight passed `12/12`. The public
+Python/Rust score fixture also passed: maximum absolute score delta was
+`1.234420776e-7` and maximum absolute logit delta was `1.428717041e-6`, both
+within the frozen `0.01` ceiling.
+
+The sole 256-step fit then completed and produced these development results:
+
+| Frozen development gate | Observed | Required | Verdict |
+| --- | ---: | ---: | --- |
+| answer decision | `89/128` (`69.53125%`) | `>=95%` | FAIL |
+| abstain decision | `114/128` (`89.0625%`) | `>=95%` | FAIL |
+| conflict decision | `117/128` (`91.40625%`) | `>=95%` | FAIL |
+| supported source-span pointer | `121/128` (`94.53125%`) | `>=95%` | FAIL |
+
+Terminal: **`FAIL_SOURCE_SPAN_POINTER_DEVELOPMENT_GATE_STOP`**.
+
+Because every development threshold was binding, the run stopped before
+emitting a final pointer artifact. The three reserved product probes were
+`NOT_RUN`; browser and HTTP wiring were also `NOT_RUN`. The implementation now
+accepts the exact question form `Where is the <subject>?`, two to eight exact
+punctuation-terminated sentence spans, and an explicit `--head` artifact, but
+there is no qualified final head. The default `r4 answer` product surface is
+therefore unavailable because no explicitly qualified artifact exists.
+
+Do not tune or retry the revealed positive-diagonal weighted-cosine head. The
+next proposed mechanism is a source-relative learned relation/entailment head
+that preserves the exact R4/Spin state-capture and source-copy seams. It must
+receive its own independent frozen contract before execution; no successor run
+or product wiring is active. #1017 remains the working coherent-generation
+prototype, and ordinary causal attention remains established at its existing
+claim scope. The compact bound aggregate is
+[`r4_source_span_pointer_954_raw.json`](r4_source_span_pointer_954_raw.json).

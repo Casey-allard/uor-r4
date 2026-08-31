@@ -148,9 +148,18 @@ assumptions, or objectives rather than measured results.
 > `3.491307 s/step`; `fused=True` was removed immediately. This is a bounded
 > fast-path negative, not a model result. #1019 closed without a full run. #954's
 > first fixed MPS grounding SFT then failed its frozen Rust product population
-> `1/3` through universal `ABSTAIN`; the active successor is a source-span
-> pointer/copy head over #1017's R4/Spin states. CUDA and external GPU execution
-> are out of scope. See
+> `1/3` through universal `ABSTAIN`. `R4SourceSpanPointerV1` next passed its
+> 12/12 overfit preflight and Python/Rust score parity (maximum score/logit
+> deltas `1.234420776e-7` and `1.428717041e-6`, within `0.01`), but the sole
+> 256-step fit missed all frozen `>=95%` development gates: answer `69.53125%`,
+> abstain `89.0625%`, conflict `91.40625%`, and supported pointer `94.53125%`.
+> It stopped `FAIL_SOURCE_SPAN_POINTER_DEVELOPMENT_GATE_STOP`; no final pointer
+> artifact was emitted, and product probes plus browser/HTTP wiring were
+> `NOT_RUN`. Do not tune or retry that revealed cosine head. The proposed next
+> #954 mechanism is a source-relative learned relation/entailment head
+> preserving exact R4/Spin state capture and source-copy semantics; it must be
+> independently frozen and no successor run or product wiring is active. CUDA and
+> external GPU execution are out of scope. See
 > the [signed preflight/admission result](r4_softmax_parameter_capacity_preflight_1019_raw.json).
 > Offline floats, matrix
 > operations, and softmax remain allowed while establishing language quality;
@@ -558,13 +567,17 @@ assumptions, or objectives rather than measured results.
 > frozen eight-hour offline implementation. The full campaign remains
 > `NOT_RUN`; its fused-AdamW/deferred-logging fast path was slower, and #1019
 > closed without a full run. #954's first fixed grounding SFT subsequently
-> failed its frozen Rust population `1/3`; the active successor is a source-span
-> pointer/copy head. CUDA and external GPU execution are out of scope.
+> failed its frozen Rust population `1/3`. Its cosine source-span pointer passed
+> preflight and cross-runtime parity but failed its four development gates
+> before a final artifact or product reveal. The proposed next mechanism is a
+> source-relative learned relation/entailment head that must be independently
+> frozen; no successor run is active. CUDA and external
+> GPU execution are out of scope.
 > Intrinsic/readout alternatives,
 > resonance-based softmax replacement, whole-decoder recurrent lowering, and
 > exact deployment are parked. D3 remains `NOT_RUN`; #954's final source-free
-> terminal remains blocked behind #973 while its bounded source-backed phase is
-> active.
+> terminal remains blocked behind #973; no source-relative relation/entailment
+> successor run is active.
 > Legacy
 > tracker #949 is closed as superseded, and #958 is retained directly beneath
 > #820 as GI-0 foundation. Two
@@ -1090,9 +1103,11 @@ up to the point where a structure predicts at all, and not past it.**
 
 The project's ultimate runtime goal remains source-free recursive geometric
 attention, but load-bearing ordinary causal attention is now established in the
-R4/Spin reference. The immediate active goal is #954 grounded correctness: a
-source-span pointer/copy successor after the first bounded generative SFT failed
-its frozen transfer population.
+R4/Spin reference. The immediate goal is #954 grounded correctness: a proposed
+source-relative learned relation/entailment head after both the
+bounded generative SFT and the cosine source-span pointer failed their frozen
+transfer/development gates. It must be independently frozen; no successor run
+or product wiring is active.
 GI-1/#961 has made lexical payloads and the hierarchy identities reversible.
 GI-2/#952 A1.0 then established candidate/value reachability but found that the
 reusable summaries erased earlier causal order, terminating as
@@ -1154,8 +1169,16 @@ in `883.773549` seconds, but the frozen Accelerate-backed Rust product populatio
 failed `1/3`: supported, unsupported, and conflict prompts all decoded
 `ABSTAIN`. The terminal is
 `FAIL_GROUNDING_PRODUCT_TRANSFER_ABSTENTION_COLLAPSE`; no rerun or tuning is
-authorized. The active successor is a learned source-span pointer/copy head
-with explicit abstention and conflict scores over the existing R4/Spin states.
+authorized. `R4SourceSpanPointerV1` then passed its 12/12 preflight and
+Python/Rust parity, but its sole 256-step fit reached answer `89/128`, abstain
+`114/128`, conflict `117/128`, and supported-pointer `121/128`; all were below
+the frozen `>=95%` gates. It stopped
+`FAIL_SOURCE_SPAN_POINTER_DEVELOPMENT_GATE_STOP` without a final head, so the
+reserved product probes and browser/HTTP wiring were `NOT_RUN`. Do not tune or
+retry the revealed cosine head. The proposed next mechanism is a source-relative
+learned relation/entailment head preserving the exact R4/Spin state capture and
+deterministic source-copy seams; it must be independently frozen, and no
+successor run is active.
 CUDA and external GPU execution remain out of scope. Fiber-preserving
 multi-resonance replacement, whole-decoder recurrent factorization, capacity
 expansion, and final source-free requalification are parked. Dependable broad
@@ -1765,13 +1788,16 @@ population/smoke/random-export parity gates passed, but MPS admission stopped
 The full campaign remains `NOT_RUN`; its fused-AdamW/deferred-logging fast path
 was slower, and #1019 closed without a full run. #954's first source-backed
 grounding SFT subsequently completed but failed its frozen product transfer
-population `1/3` through universal `ABSTAIN`. The active successor is a learned
-source-span pointer/copy head with explicit abstention and conflict scores.
+population `1/3` through universal `ABSTAIN`. Its cosine source-span pointer
+then passed preflight/parity but failed the frozen development gate before a
+final artifact or product reveal. The proposed next mechanism is a
+source-relative learned relation/entailment head that must be independently
+frozen; no successor run is active.
 CUDA and external GPU execution are out of scope. Intrinsic/readout alternatives,
 multi-resonance replacement, whole-decoder recurrent factorization, and final
 requalification are parked. D3 remains `NOT_RUN`; #954's final source-free
-terminal remains blocked while the bounded source-backed correctness phase is
-active.
+terminal remains blocked; no source-relative relation/entailment successor run
+is active.
 #955 invokes that accepted selector/
 #953/#973/#954 consumer; #962 integrates the accepted selector/#953/#973 path
 into product chat with persisted identity-scoped hive memory. #963 retains
