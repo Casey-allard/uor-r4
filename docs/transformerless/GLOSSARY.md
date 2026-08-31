@@ -271,7 +271,12 @@ substituted for one another.
   `1.5727521962806827`; enabled parity, all mechanical gates, retention `5/5`,
   and normalized replay `5/5` passed. #1019 now specifies the sole successor:
   one fresh 12-layer, 13,130,784-parameter campaign over the same mechanism,
-  not further 7.15M exposure or LR tuning. Its execution is `NOT_RUN`.
+  not further 7.15M exposure or LR tuning. Population, 400-step overfit, and
+  random-export all-twelve-layer Rust preflight parity passed; MPS is
+  `UNAVAILABLE_HARDWARE_BUDGET` on time (`20.66 h > 8 h`) with memory passing
+  at `21.03%`. Full training, final parity, reveal, generation, and replay
+  remain `NOT_RUN`; only an owner-authorized deterministic single-CUDA `f32`
+  fallback may proceed.
 - **`R4SoftmaxQualityCapacityContinuationV1`** — #1017's completed, independently
   frozen continuation of the exact #1014 7,155,360-parameter model to
   `149,995,520` cumulative training tokens. Development selection froze at NLL
@@ -282,15 +287,21 @@ substituted for one another.
   normalized replays passed. It is an NLL-only negative and does not reopen the
   bounded #1014 attention conclusion. See the
   [authoritative #1017 record](../r4_softmax_quality_capacity_continuation_1017.md).
-- **#1019 parameter-capacity campaign** — the frozen, not-yet-run quality
-  campaign over the unchanged ordinary causal-softmax R4/Spin mechanism. It
-  changes only decoder depth from six to twelve layers: exactly 13,130,784
-  parameters, seed 1019, 16,800 optimizer steps, and 275,251,200 tokens. Fresh
-  development and confirmation tranches, all-twelve-layer Rust parity, sealed
-  NLL `<1.50`, five generations, and replay remain `NOT_RUN`. Full training
-  requires a 200-step backend probe projecting no more than eight hours with a
-  1.25 safety factor; a paid external launch requires explicit approval. See
-  the [authoritative #1019 contract](../r4_softmax_parameter_capacity_1019.md).
+- **#1019 parameter-capacity campaign** — the frozen quality campaign over the
+  unchanged ordinary causal-softmax R4/Spin mechanism. It changes only decoder
+  depth from six to twelve layers: exactly 13,130,784 parameters, seed 1019,
+  16,800 optimizer steps, and 275,251,200 tokens. The exact population,
+  400-step fixed-sequence overfit, and random-export all-twelve-layer Rust
+  parity passed. The signed MPS gate stopped `UNAVAILABLE_HARDWARE_BUDGET` on
+  time: its `20.66 h` safety projection exceeded the `8 h` ceiling, while
+  memory passed at `21.03%`. Full training, final parity, reveal, generation,
+  and replay remain `NOT_RUN`; only the deterministic single-CUDA `f32`
+  fallback may proceed after explicit owner authorization for external compute
+  and any spend. The MPS stop is not a model-quality negative, leaves the
+  full-scale capacity hypothesis untested, and does not revoke the established
+  attention result. See the
+  [authoritative #1019 contract](../r4_softmax_parameter_capacity_1019.md) and
+  [observed preflight](../r4_softmax_parameter_capacity_preflight_1019_raw.json).
 - **H4 frame connection** — the exact object is the relative H4 group element;
   the current compiler-side f64 matrix represents its left-quaternion action
   and is numerically orthogonal under the tested finite-group law. It does not
@@ -441,8 +452,12 @@ substituted for one another.
   #1014 end-to-end campaign: attention intervention and Rust parity `PASS`,
   complete quality DoD `FAIL`; then #1017's continuation: NLL-only `FAIL`, with
   retention/parity/audits/replay `PASS`. #1019 now freezes the one 12-layer,
-  13,130,784-parameter campaign over the unchanged mechanism and remains
-  `NOT_RUN`. Intrinsic/readout,
+  13,130,784-parameter campaign over the unchanged mechanism. Population,
+  400-step overfit, and random-export all-twelve-layer Rust preflight parity passed; MPS
+  is `UNAVAILABLE_HARDWARE_BUDGET` on time (`20.66 h > 8 h`) with memory
+  passing at `21.03%`. Full training, final parity, reveal, generation, and
+  replay remain `NOT_RUN`; only an owner-authorized deterministic single-CUDA
+  `f32` fallback may proceed. Intrinsic/readout,
   fiber-preserving multi-resonance replacement,
   whole-decoder recurrent factorization, and final requalification are parked
   (#973);
@@ -522,8 +537,12 @@ parity, but failed its full quality DoD at enabled NLL `2.127407` and prompt
 retention `3/5`. #1017 then closed NLL-only negative at
 `1.5727521962806827`, with retention `5/5` and all other gates passing. #1019
 now owns the frozen 12-layer, 13,130,784-parameter campaign over the unchanged
-mechanism; all execution gates remain `NOT_RUN`. Exact lowering, resonance, WASM, release,
-correctness, and reasoning claims remain parked.
+mechanism. Population, 400-step overfit, and random-export all-twelve-layer Rust
+parity passed; MPS is `UNAVAILABLE_HARDWARE_BUDGET` on time
+(`20.66 h > 8 h`) with memory passing at `21.03%`. Full training, final parity,
+reveal, generation, and replay remain `NOT_RUN`; only an owner-authorized
+deterministic single-CUDA `f32` fallback may proceed. Exact lowering,
+resonance, WASM, release, correctness, and reasoning claims remain parked.
 
 ## Core roles
 

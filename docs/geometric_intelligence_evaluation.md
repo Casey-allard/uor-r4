@@ -179,12 +179,21 @@ sealed NLL `1.5727521962806827` failed the strict `<1.50` gate. Its overall
 verdict is negative solely on NLL. The next evaluation is now specified under
 [#1019](https://github.com/UOR-Foundation/uor-r4/issues/1019): one frozen
 12-layer, 13,130,784-parameter campaign with seed 1019, 16,800 steps, and
-275,251,200 tokens over the same mechanism. Every execution gate is `NOT_RUN`;
-this is not another attention diagnostic or more 7.15M exposure/LR tuning. See the
+275,251,200 tokens over the same mechanism. Exact population, 400-step
+fixed-sequence overfit, and random-export all-twelve-layer Rust preflight parity passed.
+The signed MPS gate stopped `UNAVAILABLE_HARDWARE_BUDGET` on time: its
+`20.66 h` safety projection exceeded the `8 h` ceiling, while memory passed at
+`21.03%`. Full training, final parity, reveal, generation, and replay remain
+`NOT_RUN`; only the deterministic single-CUDA `f32` fallback may proceed after
+explicit owner authorization for external compute and any spend. The MPS stop
+is not a model-quality negative, leaves the full-scale capacity hypothesis
+untested, and does not revoke the established attention result. This is not
+another attention diagnostic or more 7.15M exposure/LR tuning. See the
 [#1012 record](r4_softmax_trace_observability_1012.md),
 [#1014 record](r4_softmax_end_to_end_attention_1014.md), and
 [#1017 record](r4_softmax_quality_capacity_continuation_1017.md), and the
-[#1019 frozen contract](r4_softmax_parameter_capacity_1019.md).
+[#1019 frozen contract](r4_softmax_parameter_capacity_1019.md) plus its
+[observed preflight](r4_softmax_parameter_capacity_preflight_1019_raw.json).
 
 Offline floats, matrix operations, and softmax remain allowed at the
 teacher/compiler boundary; the deployed destination remains exact,
@@ -1037,8 +1046,12 @@ but its enabled NLL `2.127407` and subject/scene retention `3/5` failed the full
 quality DoD. #1017's separately frozen continuation then passed retention
 `5/5`, parity, audits, and replay, but failed solely on NLL
 `1.5727521962806827`. #1019 now specifies the sole next evaluation action: a
-frozen 12-layer, 13,130,784-parameter campaign over that exact mechanism. Its
-execution remains `NOT_RUN`. D3 remains `NOT_RUN`;
+frozen 12-layer, 13,130,784-parameter campaign over that exact mechanism.
+Population, 400-step overfit, and random-export all-twelve-layer Rust preflight parity
+passed. MPS stopped `UNAVAILABLE_HARDWARE_BUDGET` on time (`20.66 h > 8 h`),
+with memory passing at `21.03%`. Full training, final parity, reveal,
+generation, and replay remain `NOT_RUN`; only an owner-authorized deterministic
+single-CUDA `f32` fallback may proceed. D3 remains `NOT_RUN`;
 intrinsic/readout alternatives,
 resonance-based softmax replacement, whole-decoder recurrent lowering, and
 exact deployment are parked.
@@ -1113,7 +1126,12 @@ its complete quality DoD at enabled NLL `2.127407` and prompt retention `3/5`.
 #1017's separate continuation then closed NLL-only negative at
 `1.5727521962806827`, with retention `5/5` and all other gates passing. #1019 is
 now active as the one frozen 12-layer, 13,130,784-parameter campaign over that
-unchanged mechanism, but execution remains `NOT_RUN`,
+unchanged mechanism. Population, 400-step overfit, and random-export
+all-twelve-layer Rust parity passed. MPS is `UNAVAILABLE_HARDWARE_BUDGET` on
+time (`20.66 h > 8 h`) with memory passing at `21.03%`. Full training, final
+parity, reveal, generation, and replay remain `NOT_RUN`; only the deterministic
+single-CUDA `f32` fallback may proceed after explicit owner authorization for
+external compute and any spend,
 while intrinsic/readout alternatives,
 resonance-based softmax replacement, whole-decoder recurrent lowering, and
 final requalification are parked.
@@ -1191,7 +1209,11 @@ its full quality DoD at enabled NLL `2.127407` and prompt retention `3/5`. The
 subsequent #1017 continuation failed solely on NLL `1.5727521962806827` while
 retention, parity, audits, and replay passed. The current #973 decision is
 #1019's frozen 12-layer, 13,130,784-parameter campaign over that unchanged
-mechanism; every execution gate is `NOT_RUN`;
+mechanism. Population, 400-step overfit, and random-export all-twelve-layer Rust
+parity passed; MPS is `UNAVAILABLE_HARDWARE_BUDGET` on time
+(`20.66 h > 8 h`) with memory passing at `21.03%`. Full training, final parity,
+reveal, generation, and replay remain `NOT_RUN`; only an owner-authorized
+deterministic single-CUDA `f32` fallback may proceed;
 intrinsic/readout,
 multi-resonance, and recurrent lowering are parked. D3 remains `NOT_RUN` and
 #954 remains blocked. See the

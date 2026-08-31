@@ -8,14 +8,19 @@ the readable mirror of programme root #820.** The
 is the current architecture and claim-boundary companion.
 The active mechanism contract is
 [`ADR-0005`](docs/adr/0005-predictive-geometric-connection-memory.md). The
-current evidence handoff is the frozen, not-yet-run
-[#1019 parameter-capacity contract](docs/r4_softmax_parameter_capacity_1019.md).
+current evidence handoff is the frozen
+[#1019 parameter-capacity contract](docs/r4_softmax_parameter_capacity_1019.md)
+and its [signed preflight result](docs/r4_softmax_parameter_capacity_preflight_1019_raw.json).
 It keeps the established ordinary causal R4/Spin Q/K/V plus stable-softmax
 mechanism and changes only decoder depth from six to twelve layers: exactly
 13,130,784 parameters, seed 1019, 16,800 optimizer steps, and 275,251,200
-training tokens. All #1019 execution gates are `NOT_RUN`. Work next only on
-that one campaign after its cheap preflights and eight-hour hardware-admission
-gate pass; a paid external launch requires explicit owner approval. Offline
+training tokens. Its population, fixed overfit smoke, and random-export
+all-twelve-layer Rust preflight parity passed. The signed MPS probe passed memory at
+`21.03%` but stopped `UNAVAILABLE_HARDWARE_BUDGET` on time at a safety-projected
+`20.66 h` against the `8 h` ceiling. MPS full training is unauthorized; full
+training, final parity, reveal, generation, and replay remain `NOT_RUN`. Work
+next only on the deterministic single-CUDA `f32` fallback after explicit owner
+authorization for external compute and any spend. Offline
 teacher/compiler floats, matrix operations, and softmax are allowed; deployed
 runtime remains exact and source-free. The hosted Pages build is static,
 currently reports WASM offline, and has no functioning chat backend/artifact
@@ -86,8 +91,12 @@ functioning chat backend/artifact lowering. The feature is disabled by default
 and does not change the default engine. The teacher-trace/Q16 suffix student,
 its recurrent state successor, and #1012's observability rung are complete
 bounded negatives. #1014 established load-bearing attention; #1017 closed
-NLL-only negative; and the active step is #1019's frozen, not-yet-run 12-layer
-parameter-capacity campaign. This reference remains
+NLL-only negative; and the active step is #1019's frozen 12-layer
+parameter-capacity campaign: the model-side population/smoke/parity subgates
+passed, MPS is
+`UNAVAILABLE_HARDWARE_BUDGET`, and the full campaign remains `NOT_RUN` pending
+only an explicitly owner-authorized deterministic single-CUDA `f32` fallback.
+This reference remains
 transformer-compatible and `f32`/multiply/alloc/source-weight backed—not
 table-native, multiply-free, or transformerless. It does not establish geometry
 advantage, softmax removal, correctness, reasoning, frontier quality, release
@@ -229,8 +238,11 @@ remains static/offline without a functioning chat backend/artifact lowering.
 The Q16 suffix trace student, its recurrent state successor, and #1012's
 observability rung are complete bounded negatives. #1014 established
 load-bearing attention and #1017 closed NLL-only negative. #973 is active only
-on #1019's frozen 12-layer parameter-capacity campaign, whose execution remains
-`NOT_RUN`. Intrinsic/readout, resonance, recurrence,
+on #1019's frozen 12-layer parameter-capacity campaign. Its population, fixed
+overfit smoke, and random-export all-twelve-layer Rust preflight parity passed; MPS
+stopped `UNAVAILABLE_HARDWARE_BUDGET` on time, and full training through replay
+remains `NOT_RUN` pending only the owner-authorized deterministic single-CUDA
+`f32` fallback. Intrinsic/readout, resonance, recurrence,
 and lowering are parked. D3 remains `NOT_RUN`, and #954 remains blocked.
 Do not add a second #953 intervention or reuse the #983/#986 populations. The
 complete #973 Gate 0 record is
@@ -596,8 +608,11 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
   static/offline without a functioning chat backend/artifact lowering. The Q16
   suffix trace student is complete with bounded distillation but looping output.
   The active step is #1019's frozen 12-layer, 13,130,784-parameter
-  ordinary-softmax R4/Spin quality campaign. Training remains `NOT_RUN` pending
-  the preflight and hardware gates. Intrinsic/readout alternatives,
+  ordinary-softmax R4/Spin quality campaign. The model-side
+  population/smoke/parity subgates passed; MPS
+  stopped `UNAVAILABLE_HARDWARE_BUDGET` on time, and full training through
+  replay remains `NOT_RUN` pending only an explicitly owner-authorized
+  deterministic single-CUDA `f32` fallback. Intrinsic/readout alternatives,
   resonance-based softmax replacement, full-model recurrent lowering, and
   exact deployment are parked. D3 remains `NOT_RUN`.
   #954 remains blocked behind #973.
@@ -619,7 +634,9 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
   `R4SoftmaxTraceStateStudentV1` [COMPLETE; FAIL PROMOTION] → #1012
   observability [COMPLETE; INSUFFICIENT SUPPORT] → #1014 direct attention
   [ATTENTION PASS; QUALITY FAIL] → #1017 exposure continuation [NLL-ONLY FAIL]
-  → #1019 frozen 12-layer parameter-capacity campaign [ACTIVE; NOT_RUN]) →
+  → #1019 frozen 12-layer parameter-capacity campaign [MODEL SUBGATES PASS;
+  MPS UNAVAILABLE_HARDWARE_BUDGET; FULL CAMPAIGN NOT_RUN; OWNER-AUTHORIZED CUDA
+  F32 FALLBACK ONLY]) →
   correctness/abstention → reasoning → optimization/purity/release. The older placement/transport
   sequence is retained as evidence, not an active implementation queue.
 - Kappa is canonical identity/serialization, never the tokenizer or semantic

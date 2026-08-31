@@ -29,9 +29,18 @@
   fresh sealed NLL `1.5727521962806827` against the strict `<1.50` gate.
   [#1019](https://github.com/UOR-Foundation/uor-r4/issues/1019) now freezes the
   sole increase: twelve layers, 13,130,784 parameters, seed 1019, 16,800 steps,
-  and 275,251,200 tokens over the same mechanism and Rust path. Every execution
-  gate is `NOT_RUN`; paid external execution requires explicit approval. More
-  7.15M exposure or LR tuning remains prohibited.
+  and 275,251,200 tokens over the same mechanism and Rust path. Exact
+  population, 400-step fixed-sequence overfit, and random-export
+  all-twelve-layer Rust parity passed. The signed MPS gate stopped
+  `UNAVAILABLE_HARDWARE_BUDGET` on time: its `20.66 h` safety projection
+  exceeded the `8 h` ceiling, while memory passed at `21.03%`. Full training,
+  final parity, reveal, generation, and replay remain `NOT_RUN`; only the
+  deterministic single-CUDA `f32` fallback may proceed after explicit owner
+  authorization for external compute and any spend. The MPS stop is not a
+  model-quality negative, leaves the full-scale capacity hypothesis untested,
+  and does not revoke the established attention result. See the
+  [#1019 observed preflight](../r4_softmax_parameter_capacity_preflight_1019_raw.json).
+  More 7.15M exposure or LR tuning remains prohibited.
 - **Date:** 2026-08-28; direction updated 2026-08-31
 - **Owner:** #973 under programme root #820
 - **Supersedes for forward work:** another fixed componentwise prototype or
@@ -143,7 +152,11 @@ Close the exact campaign without rerun or tuning. The next action was one
 separately frozen quality-capacity rung over the unchanged mechanism. That rung,
 #1017, has now closed NLL-only negative at `1.5727521962806827`, with retention
 `5/5` and every other gate passing. #1019 now freezes the sole 12-layer,
-13,130,784-parameter successor and remains `NOT_RUN`. No tag,
+13,130,784-parameter successor. Population, 400-step overfit, and random-export
+all-twelve-layer Rust parity passed; MPS is `UNAVAILABLE_HARDWARE_BUDGET` on
+time (`20.66 h > 8 h`) with memory passing at `21.03%`. Full training, final
+parity, reveal, generation, and replay remain `NOT_RUN`; only an
+owner-authorized deterministic single-CUDA `f32` fallback may proceed. No tag,
 release, hosted promotion, or static-WASM claim is authorized.
 Its architectural reference is the official MIT HELM-D source pinned at commit
 [`7501deca8f413848bfef804be64ce874b72a3cd7`](https://github.com/Graph-and-Geometric-Learning/helm/tree/7501deca8f413848bfef804be64ce874b72a3cd7).
@@ -192,9 +205,13 @@ The current sequence is strict:
    changing only training exposure; **completed** as #1017, negative solely on
    sealed NLL; and
 9. execute #1019's frozen 12-layer, 13,130,784-parameter increase over the same
-   mechanism, with 16,800 steps and 275,251,200 tokens; **active, `NOT_RUN`**
-   pending cheap preflights and the eight-hour hardware gate. Paid external
-   execution requires explicit owner approval.
+   mechanism, with 16,800 steps and 275,251,200 tokens; **model subgates passed,
+   MPS time budget unavailable, full run `NOT_RUN`**. Population, 400-step overfit,
+   and random-export all-twelve-layer Rust preflight parity passed. MPS stopped
+   `UNAVAILABLE_HARDWARE_BUDGET` at `20.66 h > 8 h`, while memory passed at
+   `21.03%`. Full training, final parity, reveal, generation, and replay remain
+   `NOT_RUN`. Only the deterministic single-CUDA `f32` fallback may proceed
+   after explicit owner authorization for external compute and any spend.
 
 ### Qualified native endpoint and completed source-free trace rungs
 
@@ -855,7 +872,11 @@ longer ambiguous. #1017 then completed the separate exposure continuation with
 sealed NLL `1.5727521962806827` as its sole failed gate and retention/parity/
 audits/replay passing. #1019 is the next mechanism-building action: one frozen
 12-layer, 13,130,784-parameter campaign over the same attention/runtime path,
-currently `NOT_RUN`. It must not reopen
+with population, 400-step overfit, and random-export all-twelve-layer Rust
+parity passed. MPS is `UNAVAILABLE_HARDWARE_BUDGET` on time
+(`20.66 h > 8 h`) while memory passed at `21.03%`. Full training, final parity,
+reveal, generation, and replay remain `NOT_RUN`; only an owner-authorized
+deterministic single-CUDA `f32` fallback may proceed. It must not reopen
 folds, probes, transport permutations, alternative attention architectures,
 intrinsic geometry, resonance, or exact lowering. The
 [#1014 structured aggregate](../r4_softmax_end_to_end_attention_1014_raw.json)

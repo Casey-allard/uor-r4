@@ -64,9 +64,15 @@
   twelve layers, 13,130,784 parameters, seed 1019, 16,800 steps, and
   275,251,200 tokens using this attention and Rust execution path. It is not
   another attention diagnostic, geometry comparator, or softmax replacement.
-  Every execution gate is `NOT_RUN`. Full training requires an eight-hour
-  hardware projection after the cheap preflights; paid external execution
-  requires explicit owner approval.
+  The exact population, 400-step fixed-sequence overfit, and random-export
+  all-twelve-layer Rust parity preflights passed. The signed MPS gate stopped
+  `UNAVAILABLE_HARDWARE_BUDGET` on time: its `20.66 h` safety projection
+  exceeded the `8 h` ceiling, while memory passed at `21.03%`. Full training,
+  final parity, reveal, generation, and replay remain `NOT_RUN`; only the
+  deterministic single-CUDA `f32` fallback may proceed after explicit owner
+  authorization for external compute and any spend. The MPS stop is not a
+  model-quality negative, leaves the full-scale capacity hypothesis untested,
+  and does not revoke the established attention result.
   Offline teacher/compiler floats, matrix operations, and softmax are permitted
   while proving a replacement mechanism; the deployed destination remains
   exact, integer/table-native, and source-free.
@@ -82,7 +88,8 @@
   [#1012 observability record](r4_softmax_trace_observability_1012.md), followed
   by the [#1014 end-to-end result](r4_softmax_end_to_end_attention_1014.md) and
   [#1017 continuation result](r4_softmax_quality_capacity_continuation_1017.md),
-  then the [#1019 frozen contract](r4_softmax_parameter_capacity_1019.md).
+  then the [#1019 frozen contract](r4_softmax_parameter_capacity_1019.md) and
+  [observed preflight](r4_softmax_parameter_capacity_preflight_1019_raw.json).
   The intermediate
   [Geometric Causal Decoder Roadmap](geometric_causal_decoder_plan.md) records
   the superseded #948-#958 sequence.

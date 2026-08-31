@@ -2,8 +2,8 @@
 
 This package contains the bounded offline training paths authorized by issues
 [#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014) and
-[#1017](https://github.com/UOR-Foundation/uor-r4/issues/1017), plus the frozen
-not-yet-run [#1019](https://github.com/UOR-Foundation/uor-r4/issues/1019)
+[#1017](https://github.com/UOR-Foundation/uor-r4/issues/1017), plus the frozen,
+preflight-recorded [#1019](https://github.com/UOR-Foundation/uor-r4/issues/1019)
 parameter-capacity campaign. They train and continue ordinary causal-softmax
 Llama-family models, export them in the existing Rust loaders' Hugging Face
 format, and freeze evidence before each sealed test is opened. They contain no
@@ -36,13 +36,18 @@ The #1017 result is negative solely on NLL. Do not rerun it, extend this
 7.15M-parameter checkpoint again, or tune its learning rate. #1019 is the sole
 successor: a fresh seed-1019, twelve-layer, 13,130,784-parameter run of exactly
 16,800 steps and 275,251,200 tokens over the same qualified attention and Rust
-evidence path. Every #1019 execution gate is `NOT_RUN`. Full training requires
-the cheap preflights plus a 200-step backend probe whose projection, including
-a worst-case 43 extra best-checkpoint saves, 44 full development evaluations,
-and a 1.25 safety factor, is no more than eight hours. Paid external execution
-requires explicit owner approval. See the
+evidence path. The exact population, 400-step fixed-sequence overfit, and
+random-export all-twelve-layer Rust preflight parity passed. The signed MPS gate stopped
+`UNAVAILABLE_HARDWARE_BUDGET` on time: its `20.66 h` safety projection exceeded
+the `8 h` ceiling, while memory passed at `21.03%`. Full training, final parity,
+reveal, generation, and replay remain `NOT_RUN`. Only the deterministic
+single-CUDA `f32` fallback may proceed after explicit owner authorization for
+external compute and any spend. The MPS stop is not a model-quality negative,
+leaves the full-scale capacity hypothesis untested, and does not revoke the
+established attention result. See the
 [#1017 record](../../docs/r4_softmax_quality_capacity_continuation_1017.md) and
-[#1019 frozen contract](../../docs/r4_softmax_parameter_capacity_1019.md).
+[#1019 frozen contract](../../docs/r4_softmax_parameter_capacity_1019.md) plus
+its [observed preflight](../../docs/r4_softmax_parameter_capacity_preflight_1019_raw.json).
 
 ## Isolated environment
 
@@ -61,9 +66,11 @@ CLI="$ROOT/venv/bin/r4-softmax-trainer"
 The #1014/#1017 run contracts bind `pyproject.toml`, `uv.lock`, and every
 package source file by a sorted BLAKE3 tree, in addition to dependency
 versions. Their MPS-only limits remain historical campaign constraints. #1019
-instead uses its own eight-hour backend-admission gate and allows one pinned
-deterministic single-CUDA float32 environment only after the MPS projection
-fails; TF32 is disabled and paid execution requires explicit approval.
+instead used its own eight-hour backend-admission gate. MPS stopped
+`UNAVAILABLE_HARDWARE_BUDGET` on time (`20.66 h > 8 h`) while memory passed at
+`21.03%`. The only permitted fallback is one pinned deterministic single-CUDA
+`f32` environment, after explicit owner authorization for external compute and
+any spend; TF32 remains disabled.
 
 ## One-way campaign
 
@@ -166,9 +173,19 @@ until the preflight report admits a backend under the eight-hour ceiling. Do
 not start a paid job without explicit owner approval, and do not treat a
 hardware stop or partial checkpoint as language-quality evidence.
 
+The observed preflight has since passed the exact population, 400-step
+fixed-sequence overfit, and random-export all-twelve-layer Rust preflight parity gates.
+Its signed MPS probe stopped `UNAVAILABLE_HARDWARE_BUDGET` because the
+`20.66 h` safety projection exceeded `8 h`; memory passed at `21.03%`. Full
+training, final parity, reveal, generation, and replay remain `NOT_RUN`. The
+only allowed next path is the deterministic single-CUDA `f32` fallback after
+explicit owner authorization for external compute and any spend. See the
+[#1019 observed preflight](../../docs/r4_softmax_parameter_capacity_preflight_1019_raw.json).
+
 The Rust qualifier has a separate shape-bound campaign mode. After a #1019
 export and Python development-prefix fixture exist, it rejects the legacy
-six-layer shape and requires all twelve layers. The executable lifecycle is:
+six-layer shape and requires all twelve layers. The already-consumed MPS
+preflight sequence was:
 
 ```bash
 CAPACITY_ROOT="$(git rev-parse --show-toplevel)/.uor-models/research/issue-1019"
@@ -196,16 +213,19 @@ cargo run --release --offline --bin r4 -- r4-softmax-local-qualify \
 "$CAPACITY_CLI" --root "$CAPACITY_ROOT" probe-capacity --backend mps
 ```
 
-The probe writes its signed result even when it stops
-`UNAVAILABLE_HARDWARE_BUDGET`. Only a `PASS_HARDWARE_ADMISSION` authorizes the
-next command on that same backend. If the MPS hardware probe fails, reuse its
-already-passed smoke admission and run only the probe in the one
-contract-permitted deterministic CUDA environment; the create-once smoke must
-not be repeated. A failed smoke ends the rung. Do not improvise a CPU or
-mixed-precision fallback.
+That MPS probe wrote `UNAVAILABLE_HARDWARE_BUDGET` on time, so do not rerun its
+create-once population, smoke, Rust parity, admission, or MPS probe stages.
+Reuse the passed smoke admission and run only the probe in the one
+contract-permitted deterministic CUDA `f32` environment after explicit owner
+authorization for external compute and any spend. The create-once smoke must
+not be repeated. Do not improvise a CPU or mixed-precision fallback.
 
 ```bash
-"$CAPACITY_CLI" --root "$CAPACITY_ROOT" train-capacity --backend mps
+# Requires explicit owner authorization and the pinned deterministic CUDA f32 environment.
+"$CAPACITY_CLI" --root "$CAPACITY_ROOT" probe-capacity --backend cuda
+
+# Run only if the signed CUDA probe returns PASS_HARDWARE_ADMISSION.
+"$CAPACITY_CLI" --root "$CAPACITY_ROOT" train-capacity --backend cuda
 
 cargo run --release --offline --bin r4 -- r4-softmax-local-qualify \
   --model "$CAPACITY_ROOT/export" \
@@ -280,6 +300,8 @@ The authoritative model, population, optimization, admission, reveal,
 positive/negative branch, and nonclaim definitions live in the
 [#1019 record](../../docs/r4_softmax_parameter_capacity_1019.md) and its
 [structured contract](../../docs/r4_softmax_parameter_capacity_1019_raw.json).
+The consumed preflight evidence lives in the
+[#1019 observed preflight](../../docs/r4_softmax_parameter_capacity_preflight_1019_raw.json).
 
 ## Local verification
 

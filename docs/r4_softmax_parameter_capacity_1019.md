@@ -1,17 +1,135 @@
 # Frozen 13.13M R4/Spin parameter-capacity campaign (#1019)
 
-- **Status:** `FROZEN_PRE_RUN_CONTRACT / NOT_RUN`.
+- **Current status:** `MODEL_SUBGATES_PASS / MPS_UNAVAILABLE_HARDWARE_BUDGET /
+  FULL_CAMPAIGN_NOT_RUN`.
+- **Contract-freeze status (historical):** `FROZEN_PRE_RUN_CONTRACT / NOT_RUN`.
 - **Owner:** [#1019](https://github.com/UOR-Foundation/uor-r4/issues/1019)
   under attention issue #973 and programme root #820.
 - **Predecessor:**
   [#1017](r4_softmax_quality_capacity_continuation_1017.md).
 - **Machine-readable contract:**
   [`r4_softmax_parameter_capacity_1019_raw.json`](r4_softmax_parameter_capacity_1019_raw.json).
-- **Planned local evidence root:** `.uor-models/research/issue-1019/`
-  (ignored bulk populations, checkpoints, parity, reveal, generation, and
-  replay reports; none exists as qualifying evidence at contract freeze).
+- **Local evidence root:** `.uor-models/research/issue-1019/` (ignored bulk
+  population, smoke, parity, and hardware-probe artifacts now exist; full
+  training, final qualification, reveal, generation, and replay do not).
 
-## Decision and current evidence status
+## Current signed preflight result — 2026-08-31
+
+> **Current result:** population `PASS`; fixed overfit smoke `PASS`; random-export
+> all-twelve-layer Python/Rust preflight parity `PASS`. The signed MPS hardware probe
+> ended `UNAVAILABLE_HARDWARE_BUDGET` with `main_run_authorized=false`, so the
+> full campaign remains `NOT_RUN`. This is a hardware-time terminal, not an
+> attention or parameter-capacity falsification.
+
+The compact machine-readable evidence record is
+[`r4_softmax_parameter_capacity_preflight_1019_raw.json`](r4_softmax_parameter_capacity_preflight_1019_raw.json).
+The frozen contract below is retained unchanged as the pre-run declaration;
+its `NOT_RUN` statements describe the state at contract freeze. This section
+appends the later preflight evidence and is the current status.
+
+### Population — `PASS`
+
+The current semantic verifier accepted the signed population and training-view
+envelopes, all bound artifacts, exact predecessor boundaries, freshness rules,
+and the still-sealed confirmation commitment.
+
+- Dataset manifest CID:
+  `blake3:6efbffeb1b6cb20ae9bbcda03428a4b820824224c578a168cd9a65f616f3dd5c`.
+- Training-view manifest CID:
+  `blake3:bb090c4b87fb62e71ce073c2e4df525745109e71e0db3e9846852a696af5501e`.
+- Split-policy CID:
+  `blake3:54f0886d3e906a4aeeaa9328ff236440d61d9f16b2f92dcb8c05cac96e54d1aa`;
+  tokenizer CID:
+  `blake3:3f42bcfce7728512076549c63b88387e13c8156fe35c0f91d9b112439f3739cc`.
+- Train: `275,251,200` token IDs, `275,250,944` complete-context scored
+  next tokens, `1,347,394` stories. Development: `250,000` token IDs,
+  `249,856` scored next tokens, `1,251` stories. Confirmation: `249,880`
+  stored token IDs, `249,856` scored next tokens, `1,197` stories, plus `120`
+  sealed prompt token IDs, exactly the `250,000`-token reveal cap.
+- The content-bound #1017 development/test last source-story ordinals are
+  `47,293`/`48,856`; the new development/test tranches begin at
+  `47,299`/`48,874`. All ten published prompt-story CIDs were excluded and
+  predecessor sealed-artifact reads remained zero.
+
+### Fixed overfit smoke — `PASS`
+
+The exact `13,130,784`-parameter, 12-layer arm passed the frozen smoke:
+`64` sequences and `400` optimizer steps reduced loss from
+`8.366631031036377` to `1.508070632815361`, a reduction of
+`0.8197517462857979` (81.9751746286%) against the required `0.80`. Elapsed
+time was `288.06345129199326` seconds (`0.080017625359` hours) against the
+600-second ceiling, with zero attention-off executions.
+
+- Signed smoke result CID:
+  `blake3:d1f2e3b3a2d269fbccca1ccdd2f9439392b5a06a3a48f0f90a0825029f1508ec`.
+- Bound smoke-admission manifest CID:
+  `blake3:bbc5eb7420a2e1bbc8391e5089cb129f77a1387f9d15071498336544fef382e7`.
+- Trainer implementation tree CID:
+  `blake3:9f1cd533b2e057a5b41bc81f2641b08de42f07c6badb98356333a2de9efb0707`.
+
+### Random-export all-twelve-layer Rust preflight parity — `PASS`
+
+The 32-token enabled prefix selected all `12` layers. Every layer recorded
+`32` enabled applications; causal, projection, R4, and output-policy audits
+were exact, with zero future reads. Python and Rust both selected token `16`.
+Maximum absolute logit delta was exactly
+`0.000044345855712890625`, below the frozen `0.005` limit. Provider, Ollama,
+and prior-trace reads were all zero, and `attention_off_executions` remained
+zero.
+
+- Rust qualification decision CID:
+  `blake3:dfe39b41eb39d9f737af003fc7fa1b21c52c1290823849b2dd3d09ce0de53bbb`.
+- Python prefix result CID:
+  `blake3:0454063d1eb645efe0e76fe044347ed7f940ab7e7eb3f0f6c27e41207256ab09`.
+- Rust enabled-audit CID:
+  `blake3:1d46be99fc6d3ad6d17d18bf5fd3f3eef10f061056ee2d226b5ea8829e14c7be`.
+
+### Signed MPS hardware admission — `UNAVAILABLE_HARDWARE_BUDGET`
+
+The signed 200-step probe presented `3,276,800` train tokens. Total measured
+time was `717.50556925009` seconds (`0.199307102569` hours), including
+`698.2614083748776` seconds in the optimizer loop, `18.91384125011973`
+seconds for one complete development evaluation, and `0.3303196250926703`
+seconds for checkpoint reload. The raw full-run projection was
+`59,513.153594312025` seconds (`16.531431553976` hours); after the frozen
+`1.25` safety factor it was `74,391.44199289003` seconds
+(`20.664289442469` hours), above the `28,800`-second (`8`-hour) ceiling.
+Therefore `time_passed=false`.
+
+Peak accelerator memory was `2,673,278,976` bytes (`2.489685058594` GiB) of
+`12,713,115,648` reported bytes (`11.840011596680` GiB), a fraction of
+`0.21027724831721753`, below the `0.80` ceiling; therefore
+`memory_passed=true`. The probe checkpoint is explicitly
+`partial_checkpoint_interpretable=false`.
+
+- Signed hardware result CID:
+  `blake3:8de57ebef53cda52b62baa619f87566042c59bac2a399ebf6588e53f78e4daf7`.
+- Probe-contract CID:
+  `blake3:c67a2c4bed089aa8349eb9c6643ee01edbbf2cbbd9bb5d675499539afbbf805c`.
+- Probe-checkpoint CID:
+  `blake3:9bd6395790ec2cfcca93f7cc7606125c2d783b74319595ec602904f5b486c58d`;
+  signed sidecar result CID:
+  `blake3:a37360da48fe2b303fa94ffd802bc0e5621d77effd91f77ab4fb49ffcc0da8db`.
+- Signed elapsed-sample result CID:
+  `blake3:5e1989e2b5d6b3c58a8b9ac6c57f56b223f0cf7aa00a81b198199079b46de5f9`.
+
+### Decision boundary after preflight
+
+Full training, full-training checkpoint selection/export, final Python/Rust
+parity, the one-time sealed reveal, generation, deterministic replay, and
+finalization are all `NOT_RUN`. Consequently no #1019 held-out NLL, coherent
+generation, replay, or capacity-quality claim exists. The positive smoke and
+all-layer parity mean this preflight did not falsify the ordinary attention
+path or the 13.13M capacity hypothesis; they do not establish either final
+quality or geometry advantage.
+
+The failed signed MPS result now satisfies the prerequisite for at most one
+pinned deterministic single-CUDA float32 probe with TF32 disabled. No CUDA
+admission exists yet, and MPS cannot launch full training. Any paid external
+CUDA probe or training launch remains outside current authority and requires
+explicit owner approval before money is spent.
+
+## Frozen decision and evidence status at contract freeze (historical)
 
 #1017 completed the only authorized exposure continuation of the
 7,155,360-parameter model. It preserved load-bearing ordinary causal softmax
@@ -27,11 +145,11 @@ tokenizer, split discipline, sampler, and Rust all-layer evidence path remain
 unchanged. This is a language-quality campaign, not another attention
 experiment, geometry comparison, architecture search, or learning-rate search.
 
-No #1019 population, preflight, training, checkpoint selection, export, Rust
-qualification, sealed reveal, generation, replay, or finalization result is
-reported here. Every such gate is `NOT_RUN`. A frozen configuration is not
-evidence that the model trains, fits the hardware budget, meets the NLL gate,
-or produces coherent text.
+At contract freeze, no #1019 population, preflight, training, checkpoint
+selection, export, Rust qualification, sealed reveal, generation, replay, or
+finalization result existed. Every such gate was then `NOT_RUN`. This paragraph
+is preserved as the historical pre-run declaration; the current signed
+preflight result is recorded above.
 
 ## Frozen model
 

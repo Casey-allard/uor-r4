@@ -102,11 +102,19 @@ strict `<1.50` criterion. The result is negative solely on NLL. No more
 7.15M-parameter exposure or learning-rate tuning follows. The sole successor is
 now frozen under [#1019](https://github.com/UOR-Foundation/uor-r4/issues/1019):
 twelve layers, 13,130,784 parameters, seed 1019, 16,800 optimizer steps, and
-275,251,200 tokens over the same mechanism and Rust path. Every #1019
-execution gate is `NOT_RUN`; a full launch requires the preflights and an
-eight-hour hardware projection, and paid external execution requires explicit
-approval. See the [#1017 record](r4_softmax_quality_capacity_continuation_1017.md)
-and [#1019 frozen contract](r4_softmax_parameter_capacity_1019.md). This stops
+275,251,200 tokens over the same mechanism and Rust path. Its fresh population
+is `PASS`; the 400-step, 64-sequence MPS overfit smoke is `PASS` with `81.9752%`
+loss reduction; and random-export/all-12-layer Rust preflight parity is `PASS` with
+maximum absolute logit delta `0.0000443459`. The signed 200-step MPS probe
+passed memory at `21.03%` but failed time with a safety projection of `20.66 h`,
+above the `8 h` ceiling, so the MPS path is terminal
+`UNAVAILABLE_HARDWARE_BUDGET` and MPS full training is unauthorized. Full
+training, final qualification, sealed reveal, generation, and replay remain
+`NOT_RUN`. Only the deterministic single-CUDA `f32` fallback may continue after
+explicit owner approval for external compute and spend. See the
+[#1017 record](r4_softmax_quality_capacity_continuation_1017.md),
+[#1019 frozen contract](r4_softmax_parameter_capacity_1019.md), and
+[#1019 signed preflight/admission result](r4_softmax_parameter_capacity_preflight_1019_raw.json). This stops
 one bounded model-capacity rung, not ordinary attention.
 No tag, release, hosted promotion, or static-WASM claim is authorized. D3
 remains `NOT_RUN`; #973 remains open and #954 remains blocked.
@@ -140,7 +148,10 @@ Choose the shortest path that matches what you need:
   [glossary](transformerless/GLOSSARY.md) for unfamiliar terms.
 - **Contribute to the active build:** start from live
   [#1019](https://github.com/UOR-Foundation/uor-r4/issues/1019) under #973 and
-  programme root #820; execute only its frozen, currently `NOT_RUN` campaign.
+  programme root #820. Its population/smoke/random-export parity gates passed,
+  but MPS admission stopped `UNAVAILABLE_HARDWARE_BUDGET`; execute the remaining
+  `NOT_RUN` campaign only through the deterministic single-CUDA `f32` fallback
+  after explicit owner approval for external compute and spend.
 - **Audit a result or claim:** use the [research ledger](RESEARCH.md), then open
   the exact issue-numbered evidence record it names.
 - **Run the existing interface:** return to the root
@@ -220,7 +231,10 @@ These are the small set of living documents that define the present work:
    [#1017 record](r4_softmax_quality_capacity_continuation_1017.md) binds the
    completed NLL-only-negative continuation; the
    [#1019 contract](r4_softmax_parameter_capacity_1019.md) binds the active,
-   not-yet-run parameter-capacity campaign.
+   partially executed parameter-capacity campaign: preliminary gates passed,
+   MPS admission stopped `UNAVAILABLE_HARDWARE_BUDGET`, and the full campaign
+   remains `NOT_RUN` pending only an explicitly owner-approved deterministic
+   single-CUDA `f32` fallback.
    The bounded
    [multi-resonance reuse audit](multi_resonance_attention_sieve_audit_973.md)
    distinguishes the implemented sin/cos and Spin substrate from the still
@@ -260,7 +274,7 @@ reversible lexical geometry
   → audit signal loss across full trace, signed reduction, recurrent features, and readout [COMPLETE; INSUFFICIENT SUPPORT]
   → directly train end-to-end causal softmax attention in R4 coordinates [#1014; ATTENTION PASS, FULL QUALITY DOD FAIL]
   → continue the unchanged 7.15M model to 149,995,520 tokens [#1017; NLL-ONLY FAIL, RETENTION/PARITY/REPLAY PASS]
-  → execute #1019's frozen 12-layer, 13,130,784-parameter campaign over the same attention and Rust path [ACTIVE; NOT_RUN]
+  → #1019 frozen 12-layer, 13,130,784-parameter campaign over the same attention and Rust path [MODEL SUBGATES PASS; MPS UNAVAILABLE_HARDWARE_BUDGET; FULL CAMPAIGN NOT_RUN; OWNER-APPROVED CUDA F32 FALLBACK ONLY]
   → park intrinsic/readout alternatives, resonance-based softmax replacement, full-model recurrent lowering, and exact deployment
   → correctness and abstention
   → multi-step reasoning

@@ -133,9 +133,17 @@ assumptions, or objectives rather than measured results.
 > increase is now frozen under
 > [#1019](https://github.com/UOR-Foundation/uor-r4/issues/1019): twelve layers,
 > 13,130,784 parameters, seed 1019, 16,800 steps, and 275,251,200 tokens over
-> the same qualified attention and Rust path. All execution gates are
-> `NOT_RUN` pending preflight and hardware admission; paid external execution
-> requires explicit approval. Offline floats, matrix
+> the same qualified attention and Rust path. Its fresh population passed; the
+> 400-step, 64-sequence MPS overfit smoke passed with `81.9752%` loss reduction;
+> and random-export/all-12-layer Rust preflight parity passed with maximum absolute logit
+> delta `0.0000443459`. The signed 200-step MPS probe passed memory at `21.03%`
+> but failed time with a safety projection of `20.66 h`, above the `8 h` ceiling,
+> terminating the MPS path `UNAVAILABLE_HARDWARE_BUDGET`. MPS full training is
+> unauthorized; full training, final qualification, sealed reveal, generation,
+> and replay remain `NOT_RUN`. Only the deterministic single-CUDA `f32` fallback
+> may continue after explicit owner approval for external compute and spend. See
+> the [signed preflight/admission result](r4_softmax_parameter_capacity_preflight_1019_raw.json).
+> Offline floats, matrix
 > operations, and softmax remain allowed while establishing language quality;
 > the deployed destination remains exact and source-free. Resonance substitutes
 > and product/release promotion remain parked. See the
@@ -536,7 +544,10 @@ assumptions, or objectives rather than measured results.
 > enabled parity, all mechanical gates, and replay, but failed solely on sealed
 > NLL `1.5727521962806827`. #1019 now specifies the sole #973 capacity action:
 > a frozen 12-layer, 13,130,784-parameter campaign over that unchanged
-> mechanism. Its execution remains `NOT_RUN`.
+> mechanism. Population, MPS overfit smoke, and random-export/all-12-layer Rust
+> parity passed, but MPS admission stopped `UNAVAILABLE_HARDWARE_BUDGET`; the
+> full campaign remains `NOT_RUN` unless an explicitly owner-approved
+> deterministic single-CUDA `f32` fallback qualifies.
 > Intrinsic/readout alternatives,
 > resonance-based softmax replacement, whole-decoder recurrent lowering, and
 > exact deployment are parked. D3 remains
@@ -1120,8 +1131,11 @@ parity, while failing its complete quality DoD at enabled NLL `2.127407` and
 subject/scene retention `3/5`. #1017's one exposure continuation then improved
 retention to `5/5` but failed solely on NLL `1.5727521962806827`. #1019 is that
 new frozen contract: 12 layers, 13,130,784 parameters, seed 1019, 16,800 steps,
-and 275,251,200 tokens. Its execution remains `NOT_RUN` pending admission;
-fiber-preserving multi-resonance replacement, whole-decoder recurrent
+and 275,251,200 tokens. Population, MPS overfit smoke, and
+random-export/all-12-layer Rust preflight parity passed, but MPS admission stopped
+`UNAVAILABLE_HARDWARE_BUDGET`; full training through replay remains `NOT_RUN`,
+with only an explicitly owner-approved deterministic single-CUDA `f32` fallback
+eligible. Fiber-preserving multi-resonance replacement, whole-decoder recurrent
 factorization, and final requalification are parked.
 Dependable broad coherent text remains unestablished.
 The final serving path has no source weights, transformer/self-attention, dense
@@ -1723,8 +1737,11 @@ subject/scene retention `3/5` failed the complete quality DoD. Close that exact
 campaign without rerun or tuning. #1017's separately frozen continuation then
 closed NLL-only negative at `1.5727521962806827` with retention `5/5` and all
 other gates passing. #1019 now owns the one frozen 12-layer,
-13,130,784-parameter campaign over the unchanged mechanism; every execution
-gate remains `NOT_RUN`. Intrinsic/readout alternatives,
+13,130,784-parameter campaign over the unchanged mechanism. Its
+population/smoke/random-export parity gates passed, but MPS admission stopped
+`UNAVAILABLE_HARDWARE_BUDGET`; the full campaign remains `NOT_RUN` pending only
+an explicitly owner-approved deterministic single-CUDA `f32` fallback.
+Intrinsic/readout alternatives,
 multi-resonance replacement, whole-decoder recurrent factorization, and final
 requalification are parked. D3 remains `NOT_RUN`; #954 remains blocked.
 #955 invokes that accepted selector/

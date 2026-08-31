@@ -48,13 +48,21 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > now frozen as [#1019](https://github.com/UOR-Foundation/uor-r4/issues/1019):
 > one fresh 12-layer, 13,130,784-parameter model with seed 1019, exactly 16,800
 > optimizer steps and 275,251,200 training tokens over the same attention and
-> Rust evidence path. All #1019 execution gates are `NOT_RUN`. A 200-step
-> backend probe must project no more than eight hours, including a 1.25 safety
-> factor; no paid external launch is authorized without explicit approval.
+> Rust evidence path. Its fresh population is `PASS`; the 400-step,
+> 64-sequence MPS overfit smoke is `PASS` with `81.9752%` loss reduction; and
+> random-export/all-12-layer Rust preflight parity is `PASS` with maximum absolute logit
+> delta `0.0000443459`. The signed 200-step MPS probe passed memory at `21.03%`
+> but failed time: its safety projection was `20.66 h`, above the `8 h` ceiling,
+> so the MPS path is terminal `UNAVAILABLE_HARDWARE_BUDGET` and MPS full
+> training is unauthorized. Full training, final qualification, sealed reveal,
+> generation, and replay remain `NOT_RUN`. The only eligible continuation is
+> the frozen deterministic single-CUDA `f32` fallback, after explicit owner
+> approval for external compute and spend.
 > See the [#1017 record](docs/r4_softmax_quality_capacity_continuation_1017.md),
 > [#1017 structured aggregate](docs/r4_softmax_quality_capacity_continuation_1017_raw.json),
 > [#1019 frozen contract](docs/r4_softmax_parameter_capacity_1019.md),
 > [#1019 structured contract](docs/r4_softmax_parameter_capacity_1019_raw.json),
+> [#1019 signed preflight/admission result](docs/r4_softmax_parameter_capacity_preflight_1019_raw.json),
 > [#1014 record](docs/r4_softmax_end_to_end_attention_1014.md) and
 > [structured aggregate](docs/r4_softmax_end_to_end_attention_1014_raw.json).
 >
@@ -212,8 +220,12 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > fresh sealed NLL to `1.5727521962806827` and prompt retention to `5/5`, with
 > enabled Rust parity and exact replay, but still failed the strict `<1.50`
 > quality gate. #1019 now freezes that capacity rung at twelve layers and
-> 13,130,784 parameters over the qualified mechanism and runtime evidence path;
-> execution remains `NOT_RUN` pending preflight and hardware admission. No
+> 13,130,784 parameters over the qualified mechanism and runtime evidence path.
+> Population, the 400-step MPS overfit smoke, and random-export/all-12-layer
+> Rust parity passed, but the signed MPS probe stopped
+> `UNAVAILABLE_HARDWARE_BUDGET`; MPS full training is unauthorized and full
+> training through replay remains `NOT_RUN` unless the explicitly approved
+> deterministic single-CUDA `f32` fallback qualifies. No
 > further 7.15M exposure or learning-rate tuning is authorized.
 > Intrinsic/readout substitution, resonance, softmax replacement, scale, and
 > product promotion remain parked. No tag, release, hosted
@@ -288,8 +300,12 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > at enabled NLL `2.127407` and subject/scene retention `3/5`. It closes
 > negative. #1017's separate continuation then reached `5/5` retention but
 > failed NLL only at `1.5727521962806827`. #1019 now owns the single frozen
-> 12-layer, 13,130,784-parameter successor; it is `NOT_RUN` pending preflight
-> and hardware admission. #954 remains blocked.
+> 12-layer, 13,130,784-parameter successor. Its population, MPS overfit smoke,
+> and random-export/all-12-layer Rust preflight parity passed, but its MPS hardware path
+> stopped `UNAVAILABLE_HARDWARE_BUDGET`; full training, final qualification,
+> reveal, generation, and replay remain `NOT_RUN`, with only an explicitly
+> owner-approved deterministic single-CUDA `f32` fallback eligible. #954
+> remains blocked.
 > See the
 > [bounded-global record](docs/bounded_global_exact_spin_attention_973.md).
 
@@ -418,7 +434,11 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > is `NOT_RUN`. The trace/state observability audit later completed at
 > insufficient support; #1014 established load-bearing attention, and #1017
 > closed NLL-only negative. The current gate is #1019's frozen 12-layer,
-> 13,130,784-parameter campaign, whose execution remains `NOT_RUN`.
+> 13,130,784-parameter campaign. Population, MPS overfit smoke, and
+> random-export/all-12-layer Rust preflight parity passed; the MPS hardware path stopped
+> `UNAVAILABLE_HARDWARE_BUDGET`, so the full campaign remains `NOT_RUN` unless
+> an explicitly owner-approved deterministic single-CUDA `f32` fallback
+> qualifies.
 > #954 remains blocked behind #973. General higher-scope attention, correct
 > answers, and reasoning do not exist yet. The
 > dashboard is an interactive window into the research substrate, not a
@@ -685,7 +705,10 @@ exact-descriptor/entity-binding path selector apiece at their respective
    without tuning. #1017's separate exposure continuation then passed retention
    `5/5` and all mechanical gates but failed only sealed NLL at
    `1.5727521962806827`. #1019 now freezes that 12-layer parameter-capacity
-   contract and remains `NOT_RUN`; #954 stays blocked.
+   contract. Population, smoke, and random-export parity passed, but MPS
+   admission stopped `UNAVAILABLE_HARDWARE_BUDGET`; full training through
+   replay remains `NOT_RUN` pending only an explicitly owner-approved
+   deterministic single-CUDA `f32` fallback. #954 stays blocked.
 See the [append-only #953 record](docs/local_geometric_generation_953.md).
 See the [accepted table-tie record](docs/source_free_table_geometric_intervention_953.md).
 See the [#973 Gate 0 record](docs/prior_sentence_count_radius_attention_973.md).
@@ -826,8 +849,12 @@ not become substitutes for working intelligence:
    tuning. #1017 then completed the one frozen exposure continuation: NLL
    `1.5727521962806827` failed the strict `<1.50` gate, while retention, parity,
    causal audits, and replay passed. #1019 now freezes the sole 12-layer,
-   13,130,784-parameter increase over the same mechanism and remains `NOT_RUN`,
-   with no further 7.15M exposure or LR tuning.
+   13,130,784-parameter increase over the same mechanism. Its population, MPS
+   overfit smoke, and random-export/all-12-layer Rust preflight parity passed, but MPS
+   admission stopped `UNAVAILABLE_HARDWARE_BUDGET`; the full train/final-
+   qualification/reveal/generation/replay path remains `NOT_RUN`, with no
+   further 7.15M exposure or LR tuning and only an explicitly owner-approved
+   deterministic single-CUDA `f32` fallback eligible.
    Do not resume resonance substitutes or promote a product/release. This intermediate
    reference is transformer-compatible, `f32`/multiply/alloc and source-weight
    backed—not table-native, multiply-free, or transformerless. No tag, release,
@@ -885,7 +912,11 @@ versus `4/5`. #1017's separately frozen continuation improved those measurements
 to NLL `1.5727521962806827` and retention `5/5`, but its full DoD remains
 negative solely on the strict NLL ceiling. Advance only through #1019's frozen
 12-layer, 13,130,784-parameter campaign over the same attention/runtime path.
-Its execution remains `NOT_RUN` pending preflight and hardware admission.
+Its population, MPS overfit smoke, and random-export/all-12-layer Rust preflight parity
+passed, but the signed MPS probe stopped `UNAVAILABLE_HARDWARE_BUDGET`; MPS
+full training is unauthorized and the full campaign remains `NOT_RUN`. Only
+the deterministic single-CUDA `f32` fallback may continue after explicit owner
+approval for external compute and spend.
 #954 remains blocked behind #973. The exact contract is
 [ADR-0005](docs/adr/0005-predictive-geometric-connection-memory.md).
 
