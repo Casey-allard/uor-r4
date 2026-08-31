@@ -39,10 +39,10 @@ const BLAS_MATRIX_MARKERS: &[&str] =
 const SANCTIONED_SUFFIXES: &[&str] = &[
     "uor-r4-graph-compiler/src/dependency_audit.rs",
     "uor-r4-proof-model/src/inference_audit.rs",
-    // #804 measurement-only BLAS exception (maintainer-approved
-    // 2026-08-18): the ONE sanctioned library-BLAS use site, compiled
-    // only under the opt-in `observation-blas-exception` feature on
-    // macOS, for teacher-forced observation passes. Its gating and its
+    // #804 Apple Accelerate path (maintainer-approved 2026-08-18): the ONE
+    // sanctioned library-BLAS use site, compiled only under the opt-in
+    // `observation-blas-exception` feature on macOS, for local source-backed
+    // inference and teacher-forced observation. Its gating and its
     // single dispatch site are pinned by
     // `observation_blas_exception_is_opt_in_and_never_default` below —
     // adding this suffix does NOT exempt default builds from anything,
@@ -166,9 +166,8 @@ fn teacher_site_owns_no_blas_matrix_ffi() {
     );
 }
 
-/// #804: the measurement-only BLAS exception stays exactly what the
-/// maintainer approved — an opt-in, macOS-only, observation-side escape
-/// hatch — and can never silently widen:
+/// #804: the Apple Accelerate path stays opt-in, macOS-only, limited to the
+/// local source-backed model, and can never silently widen:
 ///
 /// - the exception module and every dispatch to it in `lib.rs` sit behind
 ///   `cfg(all(feature = "observation-blas-exception", target_os = "macos"))`

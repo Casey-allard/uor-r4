@@ -99,23 +99,37 @@ has now completed at `149,995,520` cumulative tokens. Enabled Rust parity,
 all-layer causal/R4 audits, `5/5` subject-or-scene retention, and `5/5` exact
 normalized replay passed; fresh sealed NLL `1.5727521962806827` failed the
 strict `<1.50` criterion. The result is negative solely on NLL. No more
-7.15M-parameter exposure or learning-rate tuning follows. The sole successor is
-now frozen under [#1019](https://github.com/UOR-Foundation/uor-r4/issues/1019):
+7.15M-parameter exposure or learning-rate tuning follows. An optional capacity
+successor was frozen under [#1019](https://github.com/UOR-Foundation/uor-r4/issues/1019):
 twelve layers, 13,130,784 parameters, seed 1019, 16,800 optimizer steps, and
 275,251,200 tokens over the same mechanism and Rust path. Its fresh population
 is `PASS`; the 400-step, 64-sequence MPS overfit smoke is `PASS` with `81.9752%`
 loss reduction; and random-export/all-12-layer Rust preflight parity is `PASS` with
 maximum absolute logit delta `0.0000443459`. The signed 200-step MPS probe
 passed memory at `21.03%` but failed time with a safety projection of `20.66 h`,
-above the `8 h` ceiling, so the MPS path is terminal
-`UNAVAILABLE_HARDWARE_BUDGET` and MPS full training is unauthorized. Full
-training, final qualification, sealed reveal, generation, and replay remain
-`NOT_RUN`. Only the deterministic single-CUDA `f32` fallback may continue after
-explicit owner approval for external compute and spend. See the
+above the `8 h` ceiling, so that frozen offline implementation is terminal
+`UNAVAILABLE_HARDWARE_BUDGET`. Full training, final qualification, sealed
+reveal, generation, and replay remain `NOT_RUN`. UOR's deployed
+architecture/runtime remains CPU-native; Apple Accelerate/BLAS and MPS are
+local offline accelerators only. A single isolated exact-shape MPS fast-path
+test (10 warmup plus 40 measured steps) combined fused AdamW with deferred
+logging and measured `4.485223 s/step`, slower than the signed
+`3.491307 s/step`; `fused=True` was removed immediately. This is a bounded
+fast-path negative, not a model result. #1019 tuning/full-run work stops and
+remains optional/paused; the active next step is the working #1017 `r4 generate`
+product path. CUDA and external GPU execution are out of scope. See the
 [#1017 record](r4_softmax_quality_capacity_continuation_1017.md),
 [#1019 frozen contract](r4_softmax_parameter_capacity_1019.md), and
 [#1019 signed preflight/admission result](r4_softmax_parameter_capacity_preflight_1019_raw.json). This stops
 one bounded model-capacity rung, not ordinary attention.
+#1017 remains the current working 7.15M coherent-generation prototype:
+`r4 generate --prompt "..."` defaults to
+`.uor-models/research/issue-1017/export`. #1019 is an optional capacity
+improvement and does not block using or productizing that bounded path. The
+#1017 prototype remains source-backed, floating-point/matmul/softmax, and below
+the strict NLL target; it is not geometry advantage, transformerlessness,
+correctness, reasoning, frontier quality, browser/WASM readiness, or release
+readiness.
 No tag, release, hosted promotion, or static-WASM claim is authorized. D3
 remains `NOT_RUN`; #973 remains open and #954 remains blocked.
 
@@ -146,12 +160,14 @@ Choose the shortest path that matches what you need:
   [ADR-0005](adr/0005-predictive-geometric-connection-memory.md), then
   [ADR-0004](adr/0004-geometric-intelligence-route-hierarchy.md), and use the
   [glossary](transformerless/GLOSSARY.md) for unfamiliar terms.
-- **Contribute to the active build:** start from live
+- **Improve the optional capacity rung:** start from live
   [#1019](https://github.com/UOR-Foundation/uor-r4/issues/1019) under #973 and
   programme root #820. Its population/smoke/random-export parity gates passed,
-  but MPS admission stopped `UNAVAILABLE_HARDWARE_BUDGET`; execute the remaining
-  `NOT_RUN` campaign only through the deterministic single-CUDA `f32` fallback
-  after explicit owner approval for external compute and spend.
+  but MPS admission stopped `UNAVAILABLE_HARDWARE_BUDGET` for the frozen
+  eight-hour offline implementation. Its fused-AdamW/deferred-logging fast path
+  was slower (`4.485223` versus signed `3.491307 s/step`), so the `NOT_RUN`
+  campaign is optional/paused and the active next step is the #1017
+  `r4 generate` product path. CUDA and external GPU execution are out of scope.
 - **Audit a result or claim:** use the [research ledger](RESEARCH.md), then open
   the exact issue-numbered evidence record it names.
 - **Run the existing interface:** return to the root
@@ -230,11 +246,13 @@ These are the small set of living documents that define the present work:
    attention intervention and negative first quality gate; the
    [#1017 record](r4_softmax_quality_capacity_continuation_1017.md) binds the
    completed NLL-only-negative continuation; the
-   [#1019 contract](r4_softmax_parameter_capacity_1019.md) binds the active,
+   [#1019 contract](r4_softmax_parameter_capacity_1019.md) binds the optional,
    partially executed parameter-capacity campaign: preliminary gates passed,
-   MPS admission stopped `UNAVAILABLE_HARDWARE_BUDGET`, and the full campaign
-   remains `NOT_RUN` pending only an explicitly owner-approved deterministic
-   single-CUDA `f32` fallback.
+   MPS admission stopped `UNAVAILABLE_HARDWARE_BUDGET` for the frozen eight-hour
+   offline implementation, and the full campaign remains `NOT_RUN`. Its fused-
+   AdamW/deferred-logging fast path was slower, so #1019 is optional/paused and
+   the active next step is the #1017 `r4 generate` product path. CUDA and
+   external GPU execution are out of scope.
    The bounded
    [multi-resonance reuse audit](multi_resonance_attention_sieve_audit_973.md)
    distinguishes the implemented sin/cos and Spin substrate from the still
@@ -274,7 +292,8 @@ reversible lexical geometry
   → audit signal loss across full trace, signed reduction, recurrent features, and readout [COMPLETE; INSUFFICIENT SUPPORT]
   → directly train end-to-end causal softmax attention in R4 coordinates [#1014; ATTENTION PASS, FULL QUALITY DOD FAIL]
   → continue the unchanged 7.15M model to 149,995,520 tokens [#1017; NLL-ONLY FAIL, RETENTION/PARITY/REPLAY PASS]
-  → #1019 frozen 12-layer, 13,130,784-parameter campaign over the same attention and Rust path [MODEL SUBGATES PASS; MPS UNAVAILABLE_HARDWARE_BUDGET; FULL CAMPAIGN NOT_RUN; OWNER-APPROVED CUDA F32 FALLBACK ONLY]
+  → #1019 frozen 12-layer, 13,130,784-parameter campaign over the same attention and Rust path [MODEL SUBGATES PASS; FROZEN OFFLINE MPS IMPLEMENTATION OVER 8 H; FUSED FAST PATH SLOWER; OPTIONAL/PAUSED; FULL CAMPAIGN NOT_RUN; CUDA/EXTERNAL GPU OUT OF SCOPE]
+  → active bounded #1017 `r4 generate` product path
   → park intrinsic/readout alternatives, resonance-based softmax replacement, full-model recurrent lowering, and exact deployment
   → correctness and abstention
   → multi-step reasoning

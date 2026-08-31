@@ -111,22 +111,26 @@ No `cblas_*` symbol remains anywhere in the default production chain; the CI
 guard now enforces zero library-BLAS use (only the two dependency-audit files,
 which list BLAS crate names as denylist data, are exempt).
 
-### #804 measurement-only BLAS exception (maintainer-approved 2026-08-18)
+### #804 local source-backed Apple Accelerate path (maintainer-approved 2026-08-18)
 
 One additional, **opt-in** sanctioned site exists:
 `uor-r4-model-source/src/observation_blas_exception.rs` routes the teacher
 weight matmuls through Apple Accelerate (`cblas_sgemv`/`cblas_sgemm`) — but
-ONLY when a build explicitly passes `--features observation-blas-exception`
-on macOS, for corpus-scale teacher-forced **observation** passes whose
-wall-clock is infeasible under the exact GEMM (~50–100× slower on the pinned
-measurement Mac). Every default build keeps the uor-matmul owner everywhere;
+ONLY when a build explicitly passes `--features local-inference-accelerate`
+(or the historical alias `observation-blas-exception`)
+on macOS, for local source-backed inference and corpus-scale teacher-forced
+observation whose wall-clock is infeasible under the exact GEMM (~50–100×
+slower on the pinned measurement Mac). Every default build keeps the
+uor-matmul owner everywhere;
 the census gate (`observation_blas_exception_is_opt_in_and_never_default`)
 pins the file, its cfg gating, its exact two dispatch sites, and that no
 manifest default-enables the feature. Runtime provenance is loud: the
 "teacher model ready" line reports
-`Accelerate cblas (observation-only exception #804)` for every run built with
-the feature, and any corpus produced under it must record the backend in its
-run log / contract amendment (see #804/#605). Accelerate accumulation order
+`Accelerate cblas (local CPU inference/observation #804)` for a normal fast run
+built with the feature. `TLESS_CANONICAL_DETERMINISTIC` or
+`TLESS_EXACT_SCALAR` disables that dispatch and reports the exact owner instead.
+Any corpus produced under Accelerate must record the backend in its run log /
+contract amendment (see #804/#605). Accelerate accumulation order
 is machine-tuned, so logits differ from the exact GEMM in low-order bits —
 corpora produced under the exception are compared against traces from the
 SAME backend, never mixed silently with exact-GEMM corpora.

@@ -1,19 +1,21 @@
-//! #804 measurement-only BLAS exception — maintainer-approved 2026-08-18.
+//! #804 Apple Accelerate CPU BLAS path — maintainer-approved 2026-08-18.
 //!
 //! Routes the TEACHER weight matmuls through Apple Accelerate
-//! (`cblas_sgemv`/`cblas_sgemm`) for **observation passes only**, restoring
+//! (`cblas_sgemv`/`cblas_sgemm`) for local source-backed inference and
+//! observation passes, restoring
 //! the pre-#655-B2 throughput (~50–100× over the owned exact GEMM on this
 //! class of machine) so corpus-scale teacher-forced observation remains
-//! feasible on the pinned measurement Mac. This is an explicit, pinned
-//! exception to the #655-B2 arithmetic-ownership migration, NOT a rollback:
+//! feasible and local generation uses the host efficiently. This is an
+//! explicit opt-in to ordinary f32 CPU BLAS, not a change to the portable
+//! exact or source-free runtime:
 //!
 //! - **Never a default.** This module only compiles under
 //!   `--features observation-blas-exception` on macOS; every default build
 //!   keeps the pinned `uor-matmul` exact GEMM everywhere. The
 //!   `matrix_operation_census` gate pins the file, its feature gating, and
 //!   its single dispatch site.
-//! - **Teacher data only.** Only the teacher forward used by
-//!   observation/compize passes dispatches here; the deployed
+//! - **Local source-backed work only.** Teacher observation/compile passes and
+//!   explicitly built local source-backed generation dispatch here; the deployed
 //!   transformerless serving runtime carries no dependency on this crate's
 //!   matmuls at all (P-4 contract, `INFERENCE_OPERATION_CONTRACT.md`).
 //! - **Provenance is loud.** `fast_matmul_backend()` reports the exception

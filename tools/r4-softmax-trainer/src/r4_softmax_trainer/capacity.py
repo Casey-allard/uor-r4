@@ -8,7 +8,6 @@ import math
 import os
 import platform
 import struct
-import subprocess
 import sys
 import time
 from dataclasses import asdict, dataclass
@@ -115,43 +114,41 @@ REVEAL_OPENED_RELATIVE_PATH = Path("reveal/capacity-opened.json")
 REVEAL_RESULT_RELATIVE_PATH = Path("reveal/capacity-reveal-result.json")
 REVEAL_MANIFEST_RELATIVE_PATH = Path("reveal/capacity-reveal-manifest.json")
 
-Backend = Literal["mps", "cuda"]
+Backend = Literal["mps"]
+
+
+def _require_mps_backend(backend: object) -> None:
+    if backend != "mps":
+        raise ValueError("#1019 backend must be mps")
 
 
 def hardware_result_relative_path(backend: Backend) -> Path:
-    if backend not in {"mps", "cuda"}:
-        raise ValueError("#1019 backend must be mps or cuda")
+    _require_mps_backend(backend)
     return Path(f"preflight/capacity-hardware-{backend}.json")
 
 
 def hardware_checkpoint_relative_path(backend: Backend) -> Path:
-    if backend not in {"mps", "cuda"}:
-        raise ValueError("#1019 backend must be mps or cuda")
+    _require_mps_backend(backend)
     return Path(f"preflight/capacity-hardware-{backend}-checkpoint.pt")
 
 
 def hardware_elapsed_sample_relative_path(backend: Backend) -> Path:
-    if backend not in {"mps", "cuda"}:
-        raise ValueError("#1019 backend must be mps or cuda")
+    _require_mps_backend(backend)
     return Path(f"preflight/capacity-hardware-{backend}-elapsed-sample.json")
 
 
 def hardware_evidence_relative_paths(backend: Backend) -> list[str]:
     """Return the complete probe chain that a frozen selection must bind."""
-    if backend not in {"mps", "cuda"}:
-        raise ValueError("#1019 backend must be mps or cuda")
-    backends: tuple[Backend, ...] = ("mps", "cuda") if backend == "cuda" else ("mps",)
+    _require_mps_backend(backend)
     paths: list[str] = []
-    for evidence_backend in backends:
-        paths.extend(
-            [
-                str(hardware_result_relative_path(evidence_backend)),
-                str(hardware_checkpoint_relative_path(evidence_backend)),
-                str(hardware_checkpoint_relative_path(evidence_backend))
-                + ".manifest.json",
-                str(hardware_elapsed_sample_relative_path(evidence_backend)),
-            ]
-        )
+    paths.extend(
+        [
+            str(hardware_result_relative_path(backend)),
+            str(hardware_checkpoint_relative_path(backend)),
+            str(hardware_checkpoint_relative_path(backend)) + ".manifest.json",
+            str(hardware_elapsed_sample_relative_path(backend)),
+        ]
+    )
     return paths
 
 
@@ -229,6 +226,7 @@ def _dependency_versions() -> dict[str, str]:
 
 def _validate_backend_identity(identity: Any, backend: Backend) -> None:
     """Require the complete deterministic accelerator identity for one backend."""
+    _require_mps_backend(backend)
     common = {
         "backend",
         "device_count",
@@ -236,19 +234,7 @@ def _validate_backend_identity(identity: Any, backend: Backend) -> None:
         "deterministic_algorithms",
         "dtype",
     }
-    backend_specific = (
-        {
-            "compute_capability",
-            "total_memory_bytes",
-            "driver_version",
-            "torch_cuda",
-            "cublas_workspace_config",
-            "tf32",
-            "cudnn_benchmark",
-        }
-        if backend == "cuda"
-        else {"recommended_max_memory_bytes", "macos"}
-    )
+    backend_specific = {"recommended_max_memory_bytes", "macos"}
     if not isinstance(identity, dict) or set(identity) != common | backend_specific:
         raise ValueError(f"#1019 {backend} backend identity fields differ")
     if (
@@ -260,39 +246,20 @@ def _validate_backend_identity(identity: Any, backend: Backend) -> None:
         or identity.get("dtype") != "float32"
     ):
         raise ValueError(f"#1019 {backend} backend identity differs")
-    if backend == "cuda":
-        capability = identity.get("compute_capability")
-        if (
-            not isinstance(capability, list)
-            or len(capability) != 2
-            or any(
-                isinstance(value, bool) or not isinstance(value, int) or value < 0
-                for value in capability
-            )
-            or isinstance(identity.get("total_memory_bytes"), bool)
-            or not isinstance(identity.get("total_memory_bytes"), int)
-            or identity["total_memory_bytes"] <= 0
-            or not isinstance(identity.get("driver_version"), str)
-            or not identity["driver_version"]
-            or not isinstance(identity.get("torch_cuda"), str)
-            or not identity["torch_cuda"]
-            or identity.get("cublas_workspace_config") != ":4096:8"
-            or identity.get("tf32") is not False
-            or identity.get("cudnn_benchmark") is not False
-        ):
-            raise ValueError("#1019 CUDA identity is not deterministic F32")
-    else:
-        recommended = identity.get("recommended_max_memory_bytes")
-        if (
-            (recommended is not None and (
+    recommended = identity.get("recommended_max_memory_bytes")
+    if (
+        (
+            recommended is not None
+            and (
                 isinstance(recommended, bool)
                 or not isinstance(recommended, int)
                 or recommended <= 0
-            ))
-            or not isinstance(identity.get("macos"), str)
-            or not identity["macos"]
-        ):
-            raise ValueError("#1019 MPS identity differs")
+            )
+        )
+        or not isinstance(identity.get("macos"), str)
+        or not identity["macos"]
+    ):
+        raise ValueError("#1019 MPS identity differs")
 
 
 def _tool_root() -> Path:
@@ -344,38 +311,7 @@ def _validate_runtime_environment_envelope(
 
 
 def _device_identity(device: torch.device, backend: Backend) -> dict[str, Any]:
-    if backend == "cuda":
-        properties = torch.cuda.get_device_properties(device)
-        driver = subprocess.run(
-            [
-                "nvidia-smi",
-                "--query-gpu=driver_version",
-                "--format=csv,noheader",
-            ],
-            check=True,
-            capture_output=True,
-            text=True,
-            timeout=10,
-        )
-        driver_versions = [
-            line.strip() for line in driver.stdout.splitlines() if line.strip()
-        ]
-        if len(driver_versions) != 1:
-            raise RuntimeError("#1019 requires exactly one reported CUDA driver")
-        return {
-            "backend": "cuda",
-            "device_count": torch.cuda.device_count(),
-            "device_name": properties.name,
-            "compute_capability": [properties.major, properties.minor],
-            "total_memory_bytes": properties.total_memory,
-            "driver_version": driver_versions[0],
-            "torch_cuda": torch.version.cuda,
-            "cublas_workspace_config": os.environ["CUBLAS_WORKSPACE_CONFIG"],
-            "tf32": False,
-            "cudnn_benchmark": False,
-            "deterministic_algorithms": True,
-            "dtype": "float32",
-        }
+    _require_mps_backend(backend)
     recommended = (
         int(torch.mps.recommended_max_memory())
         if hasattr(torch.mps, "recommended_max_memory")
@@ -393,48 +329,27 @@ def _device_identity(device: torch.device, backend: Backend) -> dict[str, Any]:
 
 
 def require_backend(seed: int, backend: Backend) -> tuple[torch.device, dict[str, Any]]:
-    if backend == "mps":
-        if os.environ.get("PYTORCH_ENABLE_MPS_FALLBACK", "0") not in {"", "0"}:
-            raise RuntimeError("PYTORCH_ENABLE_MPS_FALLBACK must be unset or 0")
-        if not torch.backends.mps.is_built() or not torch.backends.mps.is_available():
-            raise RuntimeError("PyTorch MPS is unavailable; refusing CPU fallback")
-        device = torch.device("mps")
-        if hasattr(torch.mps, "manual_seed"):
-            torch.mps.manual_seed(seed)
-    elif backend == "cuda":
-        if not torch.cuda.is_available():
-            raise RuntimeError("PyTorch CUDA is unavailable; refusing CPU fallback")
-        if torch.cuda.device_count() != 1:
-            raise RuntimeError("#1019 requires exactly one visible CUDA device")
-        workspace = os.environ.get("CUBLAS_WORKSPACE_CONFIG")
-        if workspace not in {None, ":4096:8"}:
-            raise RuntimeError(
-                "CUBLAS_WORKSPACE_CONFIG must be unset or exactly :4096:8"
-            )
-        os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
-        torch.backends.cuda.matmul.allow_tf32 = False
-        torch.backends.cudnn.allow_tf32 = False
-        torch.backends.cudnn.benchmark = False
-        torch.backends.cudnn.deterministic = True
-        torch.cuda.manual_seed_all(seed)
-        device = torch.device("cuda:0")
-    else:
-        raise ValueError("#1019 backend must be mps or cuda")
+    _require_mps_backend(backend)
+    if os.environ.get("PYTORCH_ENABLE_MPS_FALLBACK", "0") not in {"", "0"}:
+        raise RuntimeError("PYTORCH_ENABLE_MPS_FALLBACK must be unset or 0")
+    if not torch.backends.mps.is_built() or not torch.backends.mps.is_available():
+        raise RuntimeError("PyTorch MPS is unavailable; refusing CPU fallback")
+    device = torch.device("mps")
+    if hasattr(torch.mps, "manual_seed"):
+        torch.mps.manual_seed(seed)
     torch.use_deterministic_algorithms(True)
     torch.manual_seed(seed)
     return device, _device_identity(device, backend)
 
 
 def _sync(backend: Backend) -> None:
-    if backend == "cuda":
-        torch.cuda.synchronize()
-    elif hasattr(torch, "mps"):
+    _require_mps_backend(backend)
+    if hasattr(torch, "mps"):
         torch.mps.synchronize()
 
 
 def _memory_sample(backend: Backend, identity: dict[str, Any]) -> tuple[int, int | None]:
-    if backend == "cuda":
-        return int(torch.cuda.max_memory_allocated()), int(identity["total_memory_bytes"])
+    _require_mps_backend(backend)
     allocated = (
         int(torch.mps.driver_allocated_memory())
         if hasattr(torch.mps, "driver_allocated_memory")
@@ -457,8 +372,7 @@ def _cpu_tree(value: Any) -> Any:
 
 
 def _accelerator_rng_state(backend: Backend) -> Any:
-    if backend == "cuda":
-        return _cpu_tree(torch.cuda.get_rng_state_all())
+    _require_mps_backend(backend)
     if hasattr(torch.mps, "get_rng_state"):
         return torch.mps.get_rng_state().cpu()
     return None
@@ -467,9 +381,8 @@ def _accelerator_rng_state(backend: Backend) -> Any:
 def _restore_accelerator_rng_state(backend: Backend, state: Any) -> None:
     if state is None:
         return
-    if backend == "cuda":
-        torch.cuda.set_rng_state_all(state)
-    elif hasattr(torch.mps, "set_rng_state"):
+    _require_mps_backend(backend)
+    if hasattr(torch.mps, "set_rng_state"):
         torch.mps.set_rng_state(state)
 
 
@@ -1330,26 +1243,10 @@ def run_capacity_hardware_probe(
     steps: int = 200,
 ) -> dict[str, Any]:
     """Measure the exact full-shape optimizer step before authorizing the main run."""
+    _require_mps_backend(backend)
     if steps != 200:
         raise ValueError("#1019 hardware probe is exactly 200 optimizer steps")
-    mps_failure_prerequisite: dict[str, Any] | None = None
-    if backend == "cuda":
-        if not (root / hardware_result_relative_path("mps")).is_file():
-            raise RuntimeError("#1019 CUDA fallback requires the completed failed MPS probe")
-        mps = load_capacity_hardware_admission(
-            root, backend="mps", require_pass=False
-        )
-        if (
-            mps.get("terminal") != "UNAVAILABLE_HARDWARE_BUDGET"
-            or mps.get("main_run_authorized") is not False
-        ):
-            raise ValueError("#1019 CUDA fallback lacks an exact failed MPS admission")
-        mps_failure_prerequisite = {
-            "path": str(hardware_result_relative_path("mps")),
-            "result_cid": mps["result_cid"],
-            "terminal": "UNAVAILABLE_HARDWARE_BUDGET",
-            "main_run_authorized": False,
-        }
+    mps_failure_prerequisite = None
     result_path = root / hardware_result_relative_path(backend)
     if result_path.exists():
         raise FileExistsError(f"#1019 {backend} hardware probe is create-once")
@@ -1359,8 +1256,6 @@ def run_capacity_hardware_probe(
     if current_tree["tree_cid"] != smoke_admission["trainer_implementation_tree_cid"]:
         raise ValueError("trainer changed after #1019 smoke admission")
     device, identity = require_backend(1019, backend)
-    if backend == "cuda":
-        torch.cuda.reset_peak_memory_stats(device)
     store = TokenStore(root / TOKEN_RELATIVE_PATHS["train"])
     dev_store = TokenStore(root / TOKEN_RELATIVE_PATHS["dev"])
     model = R4SoftmaxForCausalLM(CAPACITY_MODEL_CONFIG).to(device)
@@ -1396,7 +1291,7 @@ def run_capacity_hardware_probe(
     for step in range(1, steps + 1):
         model.train()
         optimizer.zero_grad(set_to_none=True)
-        accumulated_loss = 0.0
+        microbatch_losses: list[Tensor] = []
         for accumulation in range(4):
             inputs, targets = store.random_batch(
                 seed=1019,
@@ -1406,21 +1301,22 @@ def run_capacity_hardware_probe(
             output = model(inputs.to(device), targets.to(device))
             assert output.loss is not None
             (output.loss / 4).backward()
-            accumulated_loss += float(output.loss.detach().cpu())
+            microbatch_losses.append(output.loss.detach())
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
         optimizer.step()
-        _write_signed(
-            root / hardware_elapsed_sample_relative_path(backend),
-            {
-                "schema": "uor-r4-softmax-trainer-capacity-hardware-elapsed-sample/1",
-                "issue": ISSUE,
-                "backend": backend,
-                "probe_contract_cid": probe_contract_cid,
-                "optimizer_step": step,
-                "train_tokens": step * TOKENS_PER_OPTIMIZER_STEP,
-                "elapsed_seconds": time.monotonic() - started,
-            },
-        )
+        if step % 10 == 0 or step == steps:
+            _write_signed(
+                root / hardware_elapsed_sample_relative_path(backend),
+                {
+                    "schema": "uor-r4-softmax-trainer-capacity-hardware-elapsed-sample/1",
+                    "issue": ISSUE,
+                    "backend": backend,
+                    "probe_contract_cid": probe_contract_cid,
+                    "optimizer_step": step,
+                    "train_tokens": step * TOKENS_PER_OPTIMIZER_STEP,
+                    "elapsed_seconds": time.monotonic() - started,
+                },
+            )
         allocated, _ = _memory_sample(backend, identity)
         peak = max(peak, allocated)
         if step % 100 == 0:
@@ -1444,6 +1340,7 @@ def run_capacity_hardware_probe(
             _sync(backend)
             elapsed_so_far = time.monotonic() - started
             rate = step / elapsed_so_far if elapsed_so_far > 0 else 0.0
+            mean_microbatch_loss = float(torch.stack(microbatch_losses).mean().cpu())
             progress = {
                 "schema": "uor-r4-softmax-trainer-capacity-hardware-progress/1",
                 "issue": ISSUE,
@@ -1451,7 +1348,7 @@ def run_capacity_hardware_probe(
                 "optimizer_step": step,
                 "optimizer_steps_total": steps,
                 "optimizer_steps_remaining": steps - step,
-                "mean_microbatch_loss": accumulated_loss / 4,
+                "mean_microbatch_loss": mean_microbatch_loss,
                 "elapsed_seconds": elapsed_so_far,
                 "optimizer_steps_per_second": rate,
                 "probe_eta_seconds": (steps - step) / rate if rate > 0 else None,
@@ -1590,6 +1487,7 @@ def _validate_capacity_hardware_evidence(
     require_current_environment: bool,
 ) -> dict[str, Any]:
     """Recompute one signed hardware decision without touching sealed inputs."""
+    _require_mps_backend(backend)
     _verify_signed(result, label="#1019 hardware probe")
     backend_identity = result.get("backend")
     _validate_backend_identity(backend_identity, backend)
@@ -1672,38 +1570,8 @@ def _validate_capacity_hardware_evidence(
     mps_prerequisite = result.get("mps_failure_prerequisite")
     if probe_contract.get("mps_failure_prerequisite") != mps_prerequisite:
         raise ValueError("#1019 hardware prerequisite identities differ")
-    if backend == "mps":
-        if mps_prerequisite is not None:
-            raise ValueError("#1019 MPS probe cannot have an MPS-failure prerequisite")
-    else:
-        expected_mps_path = str(hardware_result_relative_path("mps"))
-        if (
-            not isinstance(mps_prerequisite, dict)
-            or set(mps_prerequisite)
-            != {"path", "result_cid", "terminal", "main_run_authorized"}
-            or mps_prerequisite.get("path") != expected_mps_path
-            or mps_prerequisite.get("terminal") != "UNAVAILABLE_HARDWARE_BUDGET"
-            or mps_prerequisite.get("main_run_authorized") is not False
-        ):
-            raise ValueError("#1019 CUDA probe lacks its exact MPS-failure prerequisite")
-        mps_result = json.loads((root / expected_mps_path).read_text(encoding="utf-8"))
-        if not isinstance(mps_result, dict):
-            raise ValueError("#1019 MPS prerequisite must be a JSON object")
-        _validate_capacity_hardware_evidence(
-            root,
-            backend="mps",
-            training_view=training_view,
-            smoke_admission=smoke_admission,
-            result=mps_result,
-            require_pass=False,
-            require_current_environment=require_current_environment,
-        )
-        if (
-            mps_result.get("result_cid") != mps_prerequisite.get("result_cid")
-            or mps_result.get("terminal") != "UNAVAILABLE_HARDWARE_BUDGET"
-            or mps_result.get("main_run_authorized") is not False
-        ):
-            raise ValueError("#1019 CUDA MPS-failure prerequisite differs")
+    if mps_prerequisite is not None:
+        raise ValueError("#1019 MPS probe cannot have an MPS-failure prerequisite")
     probe_contract_cid = cid_bytes(canonical_json_bytes(probe_contract))
     checkpoint_path = root / hardware_checkpoint_relative_path(backend)
     checkpoint_manifest_path = checkpoint_path.with_suffix(
@@ -1899,7 +1767,7 @@ def build_capacity_run_contract(
     if not isinstance(backend_identity, dict):
         raise ValueError("#1019 hardware admission has no backend identity")
     backend = backend_identity.get("backend")
-    if backend not in {"mps", "cuda"}:
+    if backend != "mps":
         raise ValueError("#1019 hardware admission backend differs")
     _validate_backend_identity(backend_identity, backend)
     probe_contract = hardware.get("probe_contract")
@@ -2192,7 +2060,7 @@ def train_capacity(
     for step in range(optimizer_step + 1, config.optimizer_steps + 1):
         model.train()
         optimizer.zero_grad(set_to_none=True)
-        accumulated_loss = 0.0
+        microbatch_losses: list[Tensor] = []
         for accumulation in range(config.gradient_accumulation_steps):
             inputs, targets = train_store.random_batch(
                 seed=config.seed,
@@ -2202,7 +2070,7 @@ def train_capacity(
             output = model(inputs.to(device), targets.to(device))
             assert output.loss is not None
             (output.loss / config.gradient_accumulation_steps).backward()
-            accumulated_loss += float(output.loss.detach().cpu())
+            microbatch_losses.append(output.loss.detach())
         torch.nn.utils.clip_grad_norm_(model.parameters(), config.gradient_clip)
         learning_rate = capacity_learning_rate(step, config)
         for group in optimizer.param_groups:
@@ -2210,7 +2078,14 @@ def train_capacity(
         optimizer.step()
         optimizer_step = step
         highest_optimizer_step_attempted = max(highest_optimizer_step_attempted, step)
-        if step % config.evaluation_interval == 0 or step == config.optimizer_steps:
+        should_evaluate = (
+            step % config.evaluation_interval == 0 or step == config.optimizer_steps
+        )
+        should_checkpoint = (
+            step % config.checkpoint_interval == 0 or step == config.optimizer_steps
+        )
+        should_report = step % config.progress_interval == 0 or step == config.optimizer_steps
+        if should_evaluate:
             dev_loss = evaluate(model, dev_store, device, config.batch_size)
             candidates.append(
                 {
@@ -2233,7 +2108,7 @@ def train_capacity(
                     run_contract_cid=run_contract_cid,
                     backend=backend,
                 )
-        if step % config.checkpoint_interval == 0 or step == config.optimizer_steps:
+        if should_checkpoint:
             _save_checkpoint(
                 latest_path,
                 model=model,
@@ -2246,15 +2121,20 @@ def train_capacity(
                 run_contract_cid=run_contract_cid,
                 backend=backend,
             )
-        ledger = _write_elapsed_ledger(
-            root,
-            run_contract_cid=run_contract_cid,
-            backend=backend,
-            optimizer_step=highest_optimizer_step_attempted,
-            campaign_started_unix_seconds=campaign_started_unix_seconds,
-            elapsed_seconds=elapsed_before + (time.monotonic() - started),
+        elapsed = max(
+            elapsed_before + (time.monotonic() - started),
+            time.time() - campaign_started_unix_seconds,
         )
-        elapsed = float(ledger["elapsed_seconds"])
+        if should_report or should_checkpoint or should_evaluate:
+            ledger = _write_elapsed_ledger(
+                root,
+                run_contract_cid=run_contract_cid,
+                backend=backend,
+                optimizer_step=highest_optimizer_step_attempted,
+                campaign_started_unix_seconds=campaign_started_unix_seconds,
+                elapsed_seconds=elapsed,
+            )
+            elapsed = float(ledger["elapsed_seconds"])
         if elapsed >= config.wall_ceiling_seconds:
             _save_checkpoint(
                 latest_path,
@@ -2268,6 +2148,14 @@ def train_capacity(
                 run_contract_cid=run_contract_cid,
                 backend=backend,
             )
+            _write_elapsed_ledger(
+                root,
+                run_contract_cid=run_contract_cid,
+                backend=backend,
+                optimizer_step=highest_optimizer_step_attempted,
+                campaign_started_unix_seconds=campaign_started_unix_seconds,
+                elapsed_seconds=elapsed,
+            )
             _write_training_unavailable(
                 root,
                 run_contract_cid=run_contract_cid,
@@ -2276,9 +2164,10 @@ def train_capacity(
                 wall_ceiling_seconds=config.wall_ceiling_seconds,
             )
             raise RuntimeError("UNAVAILABLE_HARDWARE_BUDGET")
-        if step % config.progress_interval == 0 or step == config.optimizer_steps:
+        if should_report:
             rate = step / elapsed if elapsed > 0 else 0.0
             eta = (config.optimizer_steps - step) / rate if rate > 0 else None
+            mean_microbatch_loss = float(torch.stack(microbatch_losses).mean().cpu())
             progress = {
                 "schema": "uor-r4-softmax-trainer-capacity-progress/1",
                 "issue": ISSUE,
@@ -2287,7 +2176,7 @@ def train_capacity(
                 "optimizer_steps_remaining": config.optimizer_steps - step,
                 "train_tokens": step * config.tokens_per_optimizer_step,
                 "train_tokens_total": config.train_tokens,
-                "mean_microbatch_loss": accumulated_loss / config.gradient_accumulation_steps,
+                "mean_microbatch_loss": mean_microbatch_loss,
                 "best_dev_loss": best_dev_loss,
                 "learning_rate": learning_rate,
                 "elapsed_seconds": elapsed,
@@ -2378,11 +2267,7 @@ def train_capacity(
             "run_contract_cid": run_contract_cid,
             "hardware_admission_result_cid": hardware["result_cid"],
             "hardware_admission_path": str(hardware_result_relative_path(backend)),
-            "mps_failure_prerequisite_result_cid": (
-                hardware["mps_failure_prerequisite"]["result_cid"]
-                if backend == "cuda"
-                else None
-            ),
+            "mps_failure_prerequisite_result_cid": None,
             "selected_checkpoint_cid": selected_checkpoint_cid,
             "selected_checkpoint_step": selected_step,
             "selected_dev_loss": selected_dev,
@@ -2415,17 +2300,10 @@ def train_capacity(
 def load_frozen_capacity_selection(root: Path) -> dict[str, Any]:
     selection = verify_bound_manifest(root / SELECTION_RELATIVE_PATH, artifact_root=root)
     hardware_relative = selection.get("hardware_admission_path")
-    allowed_hardware_paths = {
-        str(hardware_result_relative_path("mps")),
-        str(hardware_result_relative_path("cuda")),
-    }
-    if hardware_relative not in allowed_hardware_paths:
+    expected_hardware_path = str(hardware_result_relative_path("mps"))
+    if hardware_relative != expected_hardware_path:
         raise ValueError("#1019 selection has an invalid hardware path")
-    hardware_backend: Backend = (
-        "mps"
-        if hardware_relative == str(hardware_result_relative_path("mps"))
-        else "cuda"
-    )
+    hardware_backend: Backend = "mps"
     expected_selection_paths = {
         *hardware_evidence_relative_paths(hardware_backend),
         "checkpoints/best.pt",
@@ -2469,7 +2347,7 @@ def load_frozen_capacity_selection(root: Path) -> dict[str, Any]:
         raise ValueError("#1019 selected hardware result must be a JSON object")
     _verify_signed(hardware, label="#1019 selected hardware probe")
     backend = hardware.get("backend", {}).get("backend")
-    if backend not in {"mps", "cuda"}:
+    if backend != "mps":
         raise ValueError("#1019 selected hardware backend differs")
     smoke_admission = load_capacity_smoke_admission(root)
     _validate_capacity_hardware_evidence(
@@ -2481,11 +2359,7 @@ def load_frozen_capacity_selection(root: Path) -> dict[str, Any]:
         require_pass=True,
         require_current_environment=False,
     )
-    expected_mps_prerequisite_cid = (
-        hardware["mps_failure_prerequisite"]["result_cid"]
-        if hardware_backend == "cuda"
-        else None
-    )
+    expected_mps_prerequisite_cid = None
     expected_run_contract = build_capacity_run_contract(
         training_view, hardware, CapacityTrainConfig()
     )

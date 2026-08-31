@@ -46,7 +46,6 @@ from r4_softmax_trainer.capacity import (
     hardware_elapsed_sample_relative_path,
     hardware_result_relative_path,
     load_capacity_hardware_admission,
-    run_capacity_hardware_probe,
     train_capacity,
 )
 from r4_softmax_trainer.capacity_data import (
@@ -343,131 +342,6 @@ def _write_valid_mps_hardware_evidence(
     return training_view, smoke
 
 
-def _rewrite_mps_hardware_as_valid_failure(root: Path) -> dict[str, object]:
-    result_path = root / hardware_result_relative_path("mps")
-    result = json.loads(result_path.read_text(encoding="utf-8"))
-    optimizer_seconds = 400.0
-    checkpoint_seconds = float(result["checkpoint_reload_seconds"])
-    development_seconds = float(result["complete_dev_evaluation_seconds"])
-    checkpoint_samples = list(result["checkpoint_save_seconds_samples"])
-    projected_optimizer = optimizer_seconds / 200 * OPTIMIZER_STEPS
-    projected_development = development_seconds * (2 + OPTIMIZER_STEPS // 400)
-    projected_best = max(checkpoint_samples) * MAXIMUM_BEST_CHECKPOINT_SAVES
-    projected = (
-        projected_optimizer
-        + projected_development
-        + projected_best
-        + checkpoint_seconds
-    )
-    result.update(
-        {
-            "terminal": "UNAVAILABLE_HARDWARE_BUDGET",
-            "main_run_authorized": False,
-            "time_passed": False,
-            "elapsed_seconds": (
-                optimizer_seconds + checkpoint_seconds + development_seconds
-            ),
-            "optimizer_loop_seconds": optimizer_seconds,
-            "optimizer_steps_per_second": 200 / optimizer_seconds,
-            "projected_optimizer_and_checkpoint_seconds": projected_optimizer,
-            "projected_development_evaluation_seconds": projected_development,
-            "projected_best_checkpoint_seconds": projected_best,
-            "projected_training_seconds": projected,
-            "safety_projected_training_seconds": projected * 1.25,
-        }
-    )
-    result.pop("result_cid")
-    return _write_signed(result_path, result)
-
-
-def _cuda_identity() -> dict[str, object]:
-    return {
-        "backend": "cuda",
-        "device_count": 1,
-        "device_name": "synthetic-cuda",
-        "compute_capability": [8, 0],
-        "total_memory_bytes": 10_000,
-        "driver_version": "synthetic-driver",
-        "torch_cuda": "synthetic-toolkit",
-        "cublas_workspace_config": ":4096:8",
-        "tf32": False,
-        "cudnn_benchmark": False,
-        "deterministic_algorithms": True,
-        "dtype": "float32",
-    }
-
-
-def _write_valid_cuda_hardware_evidence(
-    root: Path,
-    *,
-    pass_template: dict[str, object],
-    mps_failure: dict[str, object],
-) -> dict[str, object]:
-    prerequisite = {
-        "path": str(hardware_result_relative_path("mps")),
-        "result_cid": mps_failure["result_cid"],
-        "terminal": "UNAVAILABLE_HARDWARE_BUDGET",
-        "main_run_authorized": False,
-    }
-    identity = _cuda_identity()
-    environment = _runtime_environment_identity(identity, "cuda")
-    probe_contract = json.loads(json.dumps(pass_template["probe_contract"]))
-    probe_contract["backend"] = identity
-    probe_contract["environment"] = environment
-    probe_contract["mps_failure_prerequisite"] = prerequisite
-    probe_contract_cid = cid_bytes(canonical_json_bytes(probe_contract))
-
-    checkpoint_path = root / hardware_checkpoint_relative_path("cuda")
-    checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
-    checkpoint_path.write_bytes(b"cuda probe checkpoint")
-    checkpoint_manifest_path = checkpoint_path.with_suffix(".pt.manifest.json")
-    _write_signed(
-        checkpoint_manifest_path,
-        {
-            "schema": CAPACITY_CHECKPOINT_MANIFEST_SCHEMA,
-            "issue": 1019,
-            "checkpoint_filename": checkpoint_path.name,
-            "checkpoint_cid": cid_file(checkpoint_path),
-            "run_contract_cid": probe_contract_cid,
-            "optimizer_step": 200,
-            "tokens_seen": 200 * TOKENS_PER_OPTIMIZER_STEP,
-            "backend": "cuda",
-        },
-    )
-    elapsed_sample_path = root / hardware_elapsed_sample_relative_path("cuda")
-    _write_signed(
-        elapsed_sample_path,
-        {
-            "schema": "uor-r4-softmax-trainer-capacity-hardware-elapsed-sample/1",
-            "issue": 1019,
-            "backend": "cuda",
-            "probe_contract_cid": probe_contract_cid,
-            "optimizer_step": 200,
-            "train_tokens": 200 * TOKENS_PER_OPTIMIZER_STEP,
-            "elapsed_seconds": float(pass_template["optimizer_loop_seconds"]),
-        },
-    )
-    result = json.loads(json.dumps(pass_template))
-    result.pop("result_cid")
-    result.update(
-        {
-            "backend": identity,
-            "mps_failure_prerequisite": prerequisite,
-            "probe_contract": probe_contract,
-            "probe_contract_cid": probe_contract_cid,
-            "probe_checkpoint_path": str(hardware_checkpoint_relative_path("cuda")),
-            "probe_checkpoint_cid": cid_file(checkpoint_path),
-            "probe_checkpoint_manifest_path": (
-                str(hardware_checkpoint_relative_path("cuda")) + ".manifest.json"
-            ),
-            "probe_checkpoint_manifest_cid": cid_file(checkpoint_manifest_path),
-            "elapsed_sample_path": str(hardware_elapsed_sample_relative_path("cuda")),
-            "elapsed_sample_cid": cid_file(elapsed_sample_path),
-        }
-    )
-    return _write_signed(root / hardware_result_relative_path("cuda"), result)
-
-
 class CapacityArithmeticTests(unittest.TestCase):
     def test_hardware_admission_rejects_resigned_malformed_backend_identity(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -618,94 +492,6 @@ class CapacityArithmeticTests(unittest.TestCase):
                             require_current_environment=False,
                         )
 
-    def test_cuda_evidence_binds_a_validated_failed_mps_prerequisite(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            trainer_tree = trainer_implementation_contract()
-            mps_environment = _runtime_environment_identity(_mps_identity(), "mps")
-            training_view, smoke = _write_valid_mps_hardware_evidence(
-                root,
-                environment=mps_environment,
-                trainer_tree=trainer_tree,
-            )
-            pass_template = json.loads(
-                (root / hardware_result_relative_path("mps")).read_text(
-                    encoding="utf-8"
-                )
-            )
-            mps_failure = _rewrite_mps_hardware_as_valid_failure(root)
-            self.assertEqual(
-                _validate_capacity_hardware_evidence(
-                    root,
-                    backend="mps",
-                    training_view=training_view,
-                    smoke_admission=smoke,
-                    result=mps_failure,
-                    require_pass=False,
-                    require_current_environment=False,
-                )["terminal"],
-                "UNAVAILABLE_HARDWARE_BUDGET",
-            )
-            cuda_result = _write_valid_cuda_hardware_evidence(
-                root,
-                pass_template=pass_template,
-                mps_failure=mps_failure,
-            )
-            self.assertEqual(
-                _validate_capacity_hardware_evidence(
-                    root,
-                    backend="cuda",
-                    training_view=training_view,
-                    smoke_admission=smoke,
-                    result=cuda_result,
-                    require_pass=True,
-                    require_current_environment=False,
-                )["terminal"],
-                "PASS_HARDWARE_ADMISSION",
-            )
-
-            def resigned_prerequisite_tamper(
-                *, path: str | None = None, result_cid: str | None = None
-            ) -> dict[str, object]:
-                tampered = json.loads(json.dumps(cuda_result))
-                tampered.pop("result_cid")
-                prerequisite = tampered["mps_failure_prerequisite"]
-                contract_prerequisite = tampered["probe_contract"][
-                    "mps_failure_prerequisite"
-                ]
-                if path is not None:
-                    prerequisite["path"] = path
-                    contract_prerequisite["path"] = path
-                if result_cid is not None:
-                    prerequisite["result_cid"] = result_cid
-                    contract_prerequisite["result_cid"] = result_cid
-                tampered["result_cid"] = cid_bytes(canonical_json_bytes(tampered))
-                return tampered
-
-            for label, tampered in (
-                (
-                    "path",
-                    resigned_prerequisite_tamper(
-                        path="preflight/not-the-failed-mps-result.json"
-                    ),
-                ),
-                (
-                    "cid",
-                    resigned_prerequisite_tamper(result_cid="blake3:" + "0" * 64),
-                ),
-            ):
-                with self.subTest(binding=label):
-                    with self.assertRaisesRegex(ValueError, "MPS-failure prerequisite"):
-                        _validate_capacity_hardware_evidence(
-                            root,
-                            backend="cuda",
-                            training_view=training_view,
-                            smoke_admission=smoke,
-                            result=tampered,
-                            require_pass=True,
-                            require_current_environment=False,
-                        )
-
     def test_exact_frozen_capacity_and_training_arithmetic(self) -> None:
         config = CapacityTrainConfig()
         config.validate()
@@ -731,11 +517,6 @@ class CapacityArithmeticTests(unittest.TestCase):
             CapacityTrainConfig(seed=1020).validate()
         with self.assertRaises(ValueError):
             capacity_learning_rate(OPTIMIZER_STEPS + 1, config)
-
-    def test_cuda_fallback_requires_a_completed_failed_mps_probe(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            with self.assertRaisesRegex(RuntimeError, "failed MPS probe"):
-                run_capacity_hardware_probe(Path(directory), backend="cuda")
 
     def test_terminal_wall_budget_cannot_resume(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -1317,10 +1098,10 @@ class CapacityCliTests(unittest.TestCase):
             )
             print_result.assert_called_once_with(expected)
 
-    def test_capacity_commands_require_closed_backend_and_inputs(self) -> None:
-        train = parser().parse_args(["train-capacity", "--backend", "cuda"])
+    def test_capacity_commands_require_mps_backend_and_closed_inputs(self) -> None:
+        train = parser().parse_args(["train-capacity", "--backend", "mps"])
         self.assertEqual(train.command, "train-capacity")
-        self.assertEqual(train.backend, "cuda")
+        self.assertEqual(train.backend, "mps")
         qualify = parser().parse_args(
             ["admit-capacity-parity", "--rust-qualification", "/tmp/report.json"]
         )

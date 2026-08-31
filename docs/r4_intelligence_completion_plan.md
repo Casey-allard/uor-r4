@@ -59,18 +59,26 @@
   causal/external audits, prompt retention `5/5`, and normalized replay `5/5`
   passed. Fresh sealed NLL `1.5727521962806827` failed the strict `<1.50`
   criterion, so #1017 is negative solely on NLL. Freeze that result without
-  rerun, further 7.15M exposure, or learning-rate tuning. The sole successor is
-  now frozen as [#1019](https://github.com/UOR-Foundation/uor-r4/issues/1019):
+  rerun, further 7.15M exposure, or learning-rate tuning. An optional capacity
+  successor was frozen as [#1019](https://github.com/UOR-Foundation/uor-r4/issues/1019):
   twelve layers, 13,130,784 parameters, seed 1019, 16,800 steps, and
   275,251,200 tokens using this attention and Rust execution path. It is not
   another attention diagnostic, geometry comparator, or softmax replacement.
   The exact population, 400-step fixed-sequence overfit, and random-export
   all-twelve-layer Rust parity preflights passed. The signed MPS gate stopped
   `UNAVAILABLE_HARDWARE_BUDGET` on time: its `20.66 h` safety projection
-  exceeded the `8 h` ceiling, while memory passed at `21.03%`. Full training,
-  final parity, reveal, generation, and replay remain `NOT_RUN`; only the
-  deterministic single-CUDA `f32` fallback may proceed after explicit owner
-  authorization for external compute and any spend. The MPS stop is not a
+  exceeded the `8 h` ceiling, while memory passed at `21.03%`. That terminal
+  applies only to the frozen offline PyTorch/MPS implementation. Full training,
+  final parity, reveal, generation, and replay remain `NOT_RUN`. A single
+  isolated exact-shape MPS fast-path test (10 warmup plus 40 measured steps)
+  combined fused AdamW with deferred logging and measured `4.485223 s/step`,
+  slower than the signed `3.491307 s/step`; `fused=True` was removed
+  immediately. This is a bounded fast-path negative, not a model result. #1019
+  tuning/full-run work stops and remains optional/paused; the active next step
+  is the working #1017 `r4 generate` product path. UOR's deployed
+  architecture/runtime remains CPU-native;
+  Apple Accelerate/BLAS and MPS are local offline accelerators only; CUDA and
+  external GPU execution are out of scope. The MPS stop is not a
   model-quality negative, leaves the full-scale capacity hypothesis untested,
   and does not revoke the established attention result.
   Offline teacher/compiler floats, matrix operations, and softmax are permitted
@@ -950,8 +958,9 @@ its evidence discipline from the start:
   instrument and its required verdict; predeclared thresholds and distinct positive/negative
   outcome branches; cost estimate; evidence-record path; and claim status.
 - **Implementation** — execution scope; dependencies/blockers; acceptance criteria; non-goals;
-  compatibility/migration; conformance mapping (RF IDs; the build order above); verification
-  (the four local gates + applicable ladder); documentation reconciliation; and claim status.
+  compatibility/migration; conformance mapping (RF IDs; the build order above); one targeted
+  compile plus one real behavior check during prototype work; deferred release verification;
+  documentation reconciliation; and claim status.
 
 ## Historical closure rule (superseded)
 

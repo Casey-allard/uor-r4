@@ -1,7 +1,7 @@
 # Frozen 13.13M R4/Spin parameter-capacity campaign (#1019)
 
-- **Current status:** `MODEL_SUBGATES_PASS / MPS_UNAVAILABLE_HARDWARE_BUDGET /
-  FULL_CAMPAIGN_NOT_RUN`.
+- **Current status:** `OPTIONAL_PAUSED / MODEL_SUBGATES_PASS /
+  MPS_UNAVAILABLE_HARDWARE_BUDGET / FULL_CAMPAIGN_NOT_RUN`.
 - **Contract-freeze status (historical):** `FROZEN_PRE_RUN_CONTRACT / NOT_RUN`.
 - **Owner:** [#1019](https://github.com/UOR-Foundation/uor-r4/issues/1019)
   under attention issue #973 and programme root #820.
@@ -123,11 +123,27 @@ all-layer parity mean this preflight did not falsify the ordinary attention
 path or the 13.13M capacity hypothesis; they do not establish either final
 quality or geometry advantage.
 
-The failed signed MPS result now satisfies the prerequisite for at most one
-pinned deterministic single-CUDA float32 probe with TF32 disabled. No CUDA
-admission exists yet, and MPS cannot launch full training. Any paid external
-CUDA probe or training launch remains outside current authority and requires
-explicit owner approval before money is spent.
+The signed MPS terminal applies only to the frozen eight-hour offline
+PyTorch/MPS implementation. It does not redirect UOR's CPU-native deployed
+architecture/runtime and no longer authorizes the historical CUDA branch.
+Apple Accelerate/BLAS and MPS remain permitted only for local offline training,
+compilation, and bounded tests; CUDA and external GPU execution are out of
+scope. One subsequent isolated exact-shape MPS fast-path test used 10 warmup and
+40 measured steps with fused AdamW plus deferred logging. It measured
+`4.485223 s/step`, slower than the signed `3.491307 s/step`; `fused=True` was
+removed immediately. This is a bounded fast-path negative, not a model-quality
+or attention result. Preserve the passed population, smoke, and parity
+artifacts, but stop #1019 tuning and full-run work. #1019 is optional and
+paused; no recurring optimization or research gate follows from this result.
+
+#1019 is an optional, paused quality-capacity improvement. It does not block
+using or productizing the working #1017 7.15M coherent-generation prototype. The
+simple local entry point is `r4 generate --prompt "..."`, which defaults to
+`.uor-models/research/issue-1017/export`. That path remains a bounded,
+source-backed, floating-point/matmul/softmax prototype; it does not establish
+geometry advantage, transformerlessness, correctness, reasoning, frontier
+quality, browser/WASM readiness, or release readiness. This #1017 path is now
+the active next step.
 
 ## Frozen decision and evidence status at contract freeze (historical)
 
@@ -139,7 +155,8 @@ fresh sealed NLL `1.5727521962806827` failed the strict `<1.50` quality gate.
 That checkpoint will not receive more exposure, learning-rate tuning, another
 seed, or another reveal.
 
-#1019 is the one allowed parameter-capacity decision. It changes only decoder
+#1019 was the one allowed parameter-capacity decision at contract freeze. It
+changes only decoder
 depth from six to twelve layers. The attention mechanism, R4 block structure,
 tokenizer, split discipline, sampler, and Rust all-layer evidence path remain
 unchanged. This is a language-quality campaign, not another attention
@@ -223,7 +240,7 @@ slower measured save another 43 times as the worst-case initial/updated-best
 checkpoint cost, and includes 44 complete development evaluations before the
 `1.25` safety factor.
 
-**Hardware decision:** launch on the current MPS host only when the measured
+**Historical hardware decision at contract freeze (superseded):** launch on the current MPS host only when the measured
 projection, including a `1.25` safety factor, is at most eight hours. Peak
 accelerator memory must also be no more than 80% of the backend's reported
 available or recommended maximum. Otherwise require one pinned deterministic
@@ -234,10 +251,14 @@ backend qualifies, stop `UNAVAILABLE_HARDWARE_BUDGET`; a partial checkpoint is
 not evidence. No paid external launch is authorized without explicit owner
 approval.
 
-**Cost estimate:** prior M1 evidence projects this rung above the eight-hour
+**Historical cost estimate at contract freeze (superseded):** prior M1 evidence projects this rung above the eight-hour
 local ceiling, so a local full campaign is not authorized until a fresh probe
 contradicts that estimate. Any external campaign must project to at most eight
 hours and separately satisfy the monetary-approval gate.
+
+The CPU-native scope correction above supersedes this historical CUDA/external
+branch without changing the frozen contract or its observed evidence. No CUDA
+or external GPU probe or training run is an active #1019 action.
 
 ## Qualification and one-time reveal
 

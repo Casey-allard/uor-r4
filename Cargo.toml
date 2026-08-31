@@ -41,9 +41,14 @@ name = "r4"
 path = "src/main.rs"
 
 [features]
-# #804 measurement-only exception passthrough (maintainer-approved
-# 2026-08-18) — see uor-r4-model-source's feature of the same name.
-# Never a default; observation builds opt in explicitly:
+# CPU-native Apple Accelerate path for fast local source-backed inference on
+# macOS. This is an honest product/developer alias for the older #804 feature;
+# exact uor-matmul remains the portable default.
+#   cargo build --release --features local-inference-accelerate --bin r4
+local-inference-accelerate = ["observation-blas-exception"]
+# #804 Apple Accelerate passthrough (maintainer-approved 2026-08-18) — retained
+# as the historical feature name for local source-backed inference and
+# observation. Never a default; callers may still opt in explicitly:
 #   cargo build --release --features observation-blas-exception
 observation-blas-exception = [
     "uor-r4-model-source/observation-blas-exception",

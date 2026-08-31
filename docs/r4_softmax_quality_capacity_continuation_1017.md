@@ -107,3 +107,34 @@ execution, dependable general-purpose generation, inference, correctness,
 reasoning, chat, browser-WASM operation, release readiness, or frontier
 capability. Five bounded rubric passes are evidence for those five frozen
 prompts only.
+
+## Owner direction and local M1 inference update — 2026-08-31
+
+The historical next-action paragraph above is superseded. #1019 is optional
+and paused after its MPS training projection and one slower fused-optimizer
+probe; it does not block use of this #1017 checkpoint. The active product path
+is `r4 generate --prompt "..."`. Broad qualification remains deferred until
+the prototype delivers useful behavior.
+
+The repository's existing Apple Accelerate `cblas_sgemv`/`cblas_sgemm` path
+was exercised on the project M1 rather than rejected by static analysis. For
+the same prompt `Once upon a time`, greedy four-token exact and Accelerate runs
+both produced IDs `[14, 403, 285, 261]`, decoded `, there was a`, output CID
+`blake3:ad043d419e9a3f30cc9be75d6a84f519d988e370a7288f6455763afe6257818e`,
+and attention-audit CID
+`blake3:1552cef6effdb28b3a4b5e1a29313a90beef7df0494ff7230040389c01d4fd78`.
+Exact `uor-matmul` required `3.060506042 s` of recorded generation and `3.41 s`
+wall time; Apple Accelerate required `0.116236875 s` and `0.52 s`, respectively:
+`26.33x` faster inside generation and `6.56x` end to end. Decision and
+persistent-state CIDs differ intentionally because they bind truthful backend
+and execution provenance.
+
+The local CPU-BLAS build is:
+
+```bash
+cargo build --release --offline --features local-inference-accelerate --bin r4
+target/release/r4 generate --prompt "Once upon a time"
+```
+
+This keeps exact `uor-matmul` as the portable default and uses Apple
+Accelerate only when explicitly requested for local source-backed inference.

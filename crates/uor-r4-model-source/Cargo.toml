@@ -5,11 +5,11 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-# #804 measurement-only exception (maintainer-approved 2026-08-18): route
-# the TEACHER weight matmuls through Apple Accelerate for observation
-# passes. Never a default; the matrix_operation_census gate pins the
-# exception file, its feature gating, and its two dispatch sites. The
-# deployed serving runtime is unaffected by construction (P-4 contract).
+# #804 Apple Accelerate path (maintainer-approved 2026-08-18): route TEACHER
+# weight matmuls through CPU BLAS for explicitly built local source-backed
+# inference and observation. Never a default; the matrix_operation_census gate
+# pins the file, feature gating, and two dispatch sites. The deployed source-free
+# serving runtime is unaffected by construction (P-4 contract).
 observation-blas-exception = []
 
 [dependencies]

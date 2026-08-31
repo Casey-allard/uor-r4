@@ -33,21 +33,39 @@ causal/external audit passed. The one-time fresh sealed NLL was
 retention and normalized replay both passed `5/5`.
 
 The #1017 result is negative solely on NLL. Do not rerun it, extend this
-7.15M-parameter checkpoint again, or tune its learning rate. #1019 is the sole
-successor: a fresh seed-1019, twelve-layer, 13,130,784-parameter run of exactly
+7.15M-parameter checkpoint again, or tune its learning rate. It remains the
+current working coherent-generation prototype: `r4 generate --prompt "..."`
+defaults to `$UOR_MODEL_STORE/research/issue-1017/export` (or the same path
+under `.uor-models` when unset). #1019 is an optional
+quality-capacity improvement: a fresh seed-1019, twelve-layer,
+13,130,784-parameter run of exactly
 16,800 steps and 275,251,200 tokens over the same qualified attention and Rust
 evidence path. The exact population, 400-step fixed-sequence overfit, and
 random-export all-twelve-layer Rust preflight parity passed. The signed MPS gate stopped
 `UNAVAILABLE_HARDWARE_BUDGET` on time: its `20.66 h` safety projection exceeded
-the `8 h` ceiling, while memory passed at `21.03%`. Full training, final parity,
-reveal, generation, and replay remain `NOT_RUN`. Only the deterministic
-single-CUDA `f32` fallback may proceed after explicit owner authorization for
-external compute and any spend. The MPS stop is not a model-quality negative,
+the `8 h` ceiling, while memory passed at `21.03%`. That terminal applies only
+to the frozen offline PyTorch/MPS implementation. Full training, final parity,
+reveal, generation, and replay remain `NOT_RUN`. A single isolated exact-shape
+MPS fast-path test (10 warmup plus 40 measured steps) combined fused AdamW with
+deferred logging and measured `4.485223 s/step`, slower than the signed
+`3.491307 s/step`; `fused=True` was removed immediately. This is a bounded
+fast-path negative, not a model result. #1019 tuning/full-run work stops and
+remains optional/paused; the active next step is the working #1017 `r4 generate`
+product path. UOR's deployed architecture/runtime remains CPU-native; Apple Accelerate/BLAS
+and MPS are local offline accelerators only; CUDA and external GPU execution
+are out of scope. The MPS stop is not a model-quality negative,
 leaves the full-scale capacity hypothesis untested, and does not revoke the
 established attention result. See the
 [#1017 record](../../docs/r4_softmax_quality_capacity_continuation_1017.md) and
 [#1019 frozen contract](../../docs/r4_softmax_parameter_capacity_1019.md) plus
 its [observed preflight](../../docs/r4_softmax_parameter_capacity_preflight_1019_raw.json).
+
+For fast local #1017 inference on Apple Silicon, build the Rust CLI with
+`--features local-inference-accelerate`. The observed four-token comparison
+preserved generated IDs, output CID, and attention-audit CID while reducing
+internal generation from `3.060506042 s` to `0.116236875 s`. This is ordinary
+Apple CPU BLAS and carries distinct backend provenance; it is not a CUDA path
+or a change to the exact portable runtime contract.
 
 ## Isolated environment
 
@@ -68,9 +86,11 @@ package source file by a sorted BLAKE3 tree, in addition to dependency
 versions. Their MPS-only limits remain historical campaign constraints. #1019
 instead used its own eight-hour backend-admission gate. MPS stopped
 `UNAVAILABLE_HARDWARE_BUDGET` on time (`20.66 h > 8 h`) while memory passed at
-`21.03%`. The only permitted fallback is one pinned deterministic single-CUDA
-`f32` environment, after explicit owner authorization for external compute and
-any spend; TF32 remains disabled.
+`21.03%`. That result applies only to the frozen offline implementation. The
+subsequent fused-AdamW/deferred-logging fast path was slower (`4.485223` versus
+signed `3.491307 s/step`), so #1019 is optional/paused and the active next step
+is the #1017 `r4 generate` product path. CUDA and external GPU execution are out
+of scope.
 
 ## One-way campaign
 
@@ -168,18 +188,19 @@ population or reveal.
 population, 64-sequence overfit test, random-export Python/Rust parity check,
 200-step hardware probe, full run, selected export, all-twelve-layer Rust
 qualification, one-time reveal, five seeds 3019 through 3023, and normalized
-replays are all `NOT_RUN` at contract freeze. Do not launch the full campaign
-until the preflight report admits a backend under the eight-hour ceiling. Do
-not start a paid job without explicit owner approval, and do not treat a
-hardware stop or partial checkpoint as language-quality evidence.
+replays were all `NOT_RUN` at contract freeze. The first four stages have since
+run as recorded below. Do not treat a hardware stop or partial checkpoint as
+language-quality evidence.
 
 The observed preflight has since passed the exact population, 400-step
 fixed-sequence overfit, and random-export all-twelve-layer Rust preflight parity gates.
 Its signed MPS probe stopped `UNAVAILABLE_HARDWARE_BUDGET` because the
-`20.66 h` safety projection exceeded `8 h`; memory passed at `21.03%`. Full
-training, final parity, reveal, generation, and replay remain `NOT_RUN`. The
-only allowed next path is the deterministic single-CUDA `f32` fallback after
-explicit owner authorization for external compute and any spend. See the
+`20.66 h` safety projection exceeded `8 h`; memory passed at `21.03%`. That
+terminal applies only to the frozen offline implementation. Full training,
+final parity, reveal, generation, and replay remain `NOT_RUN`. The subsequent
+fused-AdamW/deferred-logging fast path was slower (`4.485223` versus signed
+`3.491307 s/step`), so #1019 is optional/paused and the active next step is the
+#1017 `r4 generate` product path. CUDA and external GPU execution are out of scope. See the
 [#1019 observed preflight](../../docs/r4_softmax_parameter_capacity_preflight_1019_raw.json).
 
 The Rust qualifier has a separate shape-bound campaign mode. After a #1019
@@ -215,18 +236,15 @@ cargo run --release --offline --bin r4 -- r4-softmax-local-qualify \
 
 That MPS probe wrote `UNAVAILABLE_HARDWARE_BUDGET` on time, so do not rerun its
 create-once population, smoke, Rust parity, admission, or MPS probe stages.
-Reuse the passed smoke admission and run only the probe in the one
-contract-permitted deterministic CUDA `f32` environment after explicit owner
-authorization for external compute and any spend. The create-once smoke must
-not be repeated. Do not improvise a CPU or mixed-precision fallback.
+Preserve the passed smoke admission. CUDA and external GPU execution are out of
+scope. The one fused-AdamW/deferred-logging fast-path test was slower than the
+signed baseline, so do not tune or launch the #1019 full run. #1019 is optional/
+paused; do not reopen recurring optimization or broad research gates. Use and
+productize the working #1017 path with `r4 generate --prompt "..."` instead.
+
+After a locally admitted full run produces an export, continue with:
 
 ```bash
-# Requires explicit owner authorization and the pinned deterministic CUDA f32 environment.
-"$CAPACITY_CLI" --root "$CAPACITY_ROOT" probe-capacity --backend cuda
-
-# Run only if the signed CUDA probe returns PASS_HARDWARE_ADMISSION.
-"$CAPACITY_CLI" --root "$CAPACITY_ROOT" train-capacity --backend cuda
-
 cargo run --release --offline --bin r4 -- r4-softmax-local-qualify \
   --model "$CAPACITY_ROOT/export" \
   --python-prefix-logits "$CAPACITY_ROOT/qualification/python-capacity-prefix-logits.json" \
@@ -241,7 +259,6 @@ cargo run --release --offline --bin r4 -- r4-softmax-local-qualify \
   --baseline-1017-root "$CONTINUATION_ROOT"
 ```
 
-Use `train-capacity --backend cuda` only when the signed CUDA probe passed.
 `--resume` may continue only the authenticated byte-identical frozen run and
 backend; elapsed wall time remains monotone across an interruption. After a
 positive NLL reveal, the following is the exact generation and replay stage.

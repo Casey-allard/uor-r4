@@ -17,10 +17,27 @@ mechanism and changes only decoder depth from six to twelve layers: exactly
 training tokens. Its population, fixed overfit smoke, and random-export
 all-twelve-layer Rust preflight parity passed. The signed MPS probe passed memory at
 `21.03%` but stopped `UNAVAILABLE_HARDWARE_BUDGET` on time at a safety-projected
-`20.66 h` against the `8 h` ceiling. MPS full training is unauthorized; full
-training, final parity, reveal, generation, and replay remain `NOT_RUN`. Work
-next only on the deterministic single-CUDA `f32` fallback after explicit owner
-authorization for external compute and any spend. Offline
+`20.66 h` against the `8 h` ceiling. That terminal applies only to the frozen
+offline PyTorch/MPS implementation; full training, final parity, reveal,
+generation, and replay remain `NOT_RUN`. UOR's deployed architecture and
+runtime remain CPU-native. Apple Accelerate/BLAS and MPS are permitted only for
+local offline training, compilation, and bounded tests; CUDA and external GPU
+execution are out of scope. A single isolated exact-shape MPS fast-path test
+(10 warmup plus 40 measured steps) combined fused AdamW with deferred logging
+and measured `4.485223 s/step`, slower than the signed `3.491307 s/step`;
+`fused=True` was removed immediately. This is a bounded fast-path negative, not
+a model result. Preserve the passed population, smoke, and parity artifacts,
+but stop #1019 tuning and full-run work; #1019 is optional and paused. The
+active next step is using and productizing the working #1017 generator through
+`r4 generate`, without recurring broad research gates. Prototype iteration uses
+one targeted compile plus one real behavior check; do not run a broad local
+suite or add a permanent gate until the mechanism is useful. The existing
+mandatory merge-queue CI remains the single integration boundary rather than an
+every-iteration loop. On the project M1, the opt-in
+`local-inference-accelerate` CPU-BLAS build preserved the four generated token
+IDs, output CID, and attention-audit CID while reducing internal generation
+from `3.060506042 s` to `0.116236875 s`; use it for local #1017 inference while
+keeping exact `uor-matmul` as the portable default. Offline
 teacher/compiler floats, matrix operations, and softmax are allowed; deployed
 runtime remains exact and source-free. The hosted Pages build is static,
 currently reports WASM offline, and has no functioning chat backend/artifact
@@ -91,18 +108,21 @@ functioning chat backend/artifact lowering. The feature is disabled by default
 and does not change the default engine. The teacher-trace/Q16 suffix student,
 its recurrent state successor, and #1012's observability rung are complete
 bounded negatives. #1014 established load-bearing attention; #1017 closed
-NLL-only negative; and the active step is #1019's frozen 12-layer
-parameter-capacity campaign: the model-side population/smoke/parity subgates
-passed, MPS is
-`UNAVAILABLE_HARDWARE_BUDGET`, and the full campaign remains `NOT_RUN` pending
-only an explicitly owner-authorized deterministic single-CUDA `f32` fallback.
-This reference remains
+NLL-only negative and remains the working bounded generator; #1019 is an
+optional frozen 12-layer parameter-capacity improvement whose model-side
+population/smoke/parity subgates
+passed, MPS is `UNAVAILABLE_HARDWARE_BUDGET` for the frozen eight-hour offline
+implementation, and the full campaign remains `NOT_RUN`. The subsequent fused-
+AdamW/deferred-logging fast path was slower (`4.485223` versus signed
+`3.491307 s/step`), so `fused=True` was removed and #1019 is optional/paused.
+The active next step is the working #1017 `r4 generate` product path; CUDA and
+external GPU execution are out of scope. This reference remains
 transformer-compatible and `f32`/multiply/alloc/source-weight backed—not
 table-native, multiply-free, or transformerless. It does not establish geometry
 advantage, softmax removal, correctness, reasoning, frontier quality, release
-readiness, or a static-WASM decoder. Do not resume resonance substitutes or
-promote a product/release before #1019's decision; only its positive branch may
-open one separate softmax-replacement issue. Do not tune
+readiness, or a static-WASM decoder. Product work does not wait for #1019: use
+the bounded #1017 `r4 generate` path while keeping its claim limits explicit.
+Do not resume resonance substitutes. Do not tune
 the revealed V2/V3/V4 or learned-manifold
 fixtures, relax the V1 covariance bound, or scale #997's rejected
 componentwise-Frechet placement. The binding records are
@@ -237,12 +257,16 @@ wiring/readiness and static/WASM-isolation checks pass, while hosted Pages
 remains static/offline without a functioning chat backend/artifact lowering.
 The Q16 suffix trace student, its recurrent state successor, and #1012's
 observability rung are complete bounded negatives. #1014 established
-load-bearing attention and #1017 closed NLL-only negative. #973 is active only
-on #1019's frozen 12-layer parameter-capacity campaign. Its population, fixed
-overfit smoke, and random-export all-twelve-layer Rust preflight parity passed; MPS
-stopped `UNAVAILABLE_HARDWARE_BUDGET` on time, and full training through replay
-remains `NOT_RUN` pending only the owner-authorized deterministic single-CUDA
-`f32` fallback. Intrinsic/readout, resonance, recurrence,
+load-bearing attention and #1017 closed NLL-only negative. #1019's optional,
+paused 12-layer parameter-capacity campaign recorded population, fixed
+overfit smoke, and random-export all-twelve-layer Rust preflight parity passed;
+MPS stopped `UNAVAILABLE_HARDWARE_BUDGET` on time for the frozen eight-hour
+offline implementation, and full training through replay remains `NOT_RUN`.
+The fused-AdamW/deferred-logging fast path was slower (`4.485223` versus signed
+`3.491307 s/step`), so #1019 tuning/full-run work stops and remains
+optional/paused. The active next step is the #1017 `r4 generate` product path;
+CUDA and external GPU execution are out of scope.
+Intrinsic/readout, resonance, recurrence,
 and lowering are parked. D3 remains `NOT_RUN`, and #954 remains blocked.
 Do not add a second #953 intervention or reuse the #983/#986 populations. The
 complete #973 Gate 0 record is
@@ -607,12 +631,16 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
   wiring/readiness and static/WASM-isolation checks pass; hosted Pages remains
   static/offline without a functioning chat backend/artifact lowering. The Q16
   suffix trace student is complete with bounded distillation but looping output.
-  The active step is #1019's frozen 12-layer, 13,130,784-parameter
-  ordinary-softmax R4/Spin quality campaign. The model-side
-  population/smoke/parity subgates passed; MPS
-  stopped `UNAVAILABLE_HARDWARE_BUDGET` on time, and full training through
-  replay remains `NOT_RUN` pending only an explicitly owner-authorized
-  deterministic single-CUDA `f32` fallback. Intrinsic/readout alternatives,
+  #1019 is an optional frozen 12-layer, 13,130,784-parameter ordinary-softmax
+  R4/Spin quality-capacity improvement. The model-side
+  population/smoke/parity subgates passed; MPS stopped
+  `UNAVAILABLE_HARDWARE_BUDGET` on time for the frozen eight-hour offline
+  implementation, and full training through replay remains `NOT_RUN`. The
+  fused-AdamW/deferred-logging fast path was slower (`4.485223` versus signed
+  `3.491307 s/step`), so #1019 tuning/full-run work stops and remains
+  optional/paused. The active next step is the #1017 `r4 generate` product path;
+  CUDA and external GPU execution are out of scope.
+  Intrinsic/readout alternatives,
   resonance-based softmax replacement, full-model recurrent lowering, and
   exact deployment are parked. D3 remains `NOT_RUN`.
   #954 remains blocked behind #973.
@@ -635,8 +663,9 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
   observability [COMPLETE; INSUFFICIENT SUPPORT] → #1014 direct attention
   [ATTENTION PASS; QUALITY FAIL] → #1017 exposure continuation [NLL-ONLY FAIL]
   → #1019 frozen 12-layer parameter-capacity campaign [MODEL SUBGATES PASS;
-  MPS UNAVAILABLE_HARDWARE_BUDGET; FULL CAMPAIGN NOT_RUN; OWNER-AUTHORIZED CUDA
-  F32 FALLBACK ONLY]) →
+  FROZEN OFFLINE MPS IMPLEMENTATION OVER 8 H; FUSED FAST PATH SLOWER; OPTIONAL/
+  PAUSED; FULL CAMPAIGN NOT_RUN; CUDA/EXTERNAL GPU OUT OF SCOPE]) →
+  active bounded #1017 `r4 generate` product path →
   correctness/abstention → reasoning → optimization/purity/release. The older placement/transport
   sequence is retained as evidence, not an active implementation queue.
 - Kappa is canonical identity/serialization, never the tokenizer or semantic

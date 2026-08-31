@@ -17,8 +17,8 @@ pub mod geometric_training;
 pub mod geometry;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod gpt2;
-/// #804 measurement-only BLAS exception — opt-in feature, macOS only,
-/// pinned by the `matrix_operation_census` gate. See the module docs.
+/// #804 local source-backed Apple Accelerate path — opt-in feature, macOS
+/// only, pinned by the `matrix_operation_census` gate. See the module docs.
 #[cfg(all(feature = "observation-blas-exception", target_os = "macos"))]
 mod observation_blas_exception;
 pub mod progress;
@@ -27,7 +27,7 @@ pub mod teacher;
 
 #[cfg(all(test, not(target_arch = "wasm32")))]
 use exact_executor::AtomicTeacherExecutionProgress;
-use exact_executor::ExactExecutor;
+use exact_executor::{backend_report_for_fast_matmul, ExactExecutor};
 pub use exact_executor::{
     exact_backend_report, ExactBackendReport, TeacherExecutionConfig, TeacherExecutionObserver,
     TeacherExecutionPreparation, TeacherExecutionSnapshot, UOR_MATMUL_REVISION,
@@ -951,28 +951,26 @@ pub(crate) fn softmax_with_mode(x: &mut [f32], canonical: bool) {
 /// GEMM (#655-B2). `gemm_float` accumulates every product into a complete
 /// accumulator and rounds once. The enforced output-bit contract is exercised
 /// across fixed worker counts by `exact_matmul_matches_serial_bits_for_1_2_4_8_workers`
-/// and by the fixture-present exact probe. The former
-/// `fast` (Accelerate BLAS `sgemv`) / hand-rolled canonical paths are gone;
-/// `_fast` is retained in the signature only so callers need not change.
-fn matmul(
-    _executor: &ExactExecutor,
-    xout: &mut [f32],
-    x: &[f32],
-    w: &[f32],
-    n: usize,
-    _fast: bool,
-) {
-    // #804 measurement-only exception (maintainer-approved 2026-08-18):
-    // under the opt-in feature, observation builds route through Apple
-    // Accelerate — see `observation_blas_exception`'s module docs. Every
-    // default build takes the owned exact GEMM below.
+/// and by the fixture-present exact probe. The opt-in local-inference feature
+/// uses `fast=true` to select Accelerate; canonical/exact callers pass `false`
+/// and retain the owned exact path.
+fn matmul(executor: &ExactExecutor, xout: &mut [f32], x: &[f32], w: &[f32], n: usize, fast: bool) {
+    // #804 Apple Accelerate path (maintainer-approved 2026-08-18): under the
+    // opt-in feature, normal local source-backed inference/observation routes
+    // through CPU BLAS — see `observation_blas_exception`'s module docs. Every
+    // default or explicitly exact build takes the owned exact GEMM below.
     #[cfg(all(feature = "observation-blas-exception", target_os = "macos"))]
     {
-        observation_blas_exception::matmul(xout, x, w, n);
+        if fast {
+            observation_blas_exception::matmul(xout, x, w, n);
+        } else {
+            executor.matmul(xout, x, w, n);
+        }
     }
     #[cfg(not(all(feature = "observation-blas-exception", target_os = "macos")))]
     {
-        _executor.matmul(xout, x, w, n);
+        let _ = fast;
+        executor.matmul(xout, x, w, n);
     }
 }
 
@@ -985,27 +983,33 @@ fn matmul(
 /// enforced contract covered by `exact_batched_matmul_matches_serial_bits_for_1_2_4_8_workers`
 /// and the fixture-present probe; unavailable live evidence is not a pass.
 fn matmul_batched(
-    _executor: &ExactExecutor,
+    executor: &ExactExecutor,
     xout: &mut [f32],
     x: &[f32],
     w: &[f32],
     n: usize,
     batch: usize,
+    fast: bool,
 ) {
     debug_assert!(batch > 0);
     debug_assert_eq!(xout.len() % batch, 0);
     let rows = xout.len() / batch;
     debug_assert!(w.len() >= rows * n);
     debug_assert_eq!(x.len(), batch * n);
-    // #804 measurement-only exception — see `matmul` above and the
+    // #804 opt-in Apple Accelerate path — see `matmul` above and the
     // `observation_blas_exception` module docs.
     #[cfg(all(feature = "observation-blas-exception", target_os = "macos"))]
     {
-        observation_blas_exception::matmul_batched(xout, x, w, n, batch);
+        if fast {
+            observation_blas_exception::matmul_batched(xout, x, w, n, batch);
+        } else {
+            executor.matmul_batched(xout, x, w, n, batch);
+        }
     }
     #[cfg(not(all(feature = "observation-blas-exception", target_os = "macos")))]
     {
-        _executor.matmul_batched(xout, x, w, n, batch);
+        let _ = fast;
+        executor.matmul_batched(xout, x, w, n, batch);
     }
 }
 
@@ -1020,7 +1024,7 @@ fn fast_matmul_backend() -> &'static str {
     {
         // Loud per-run provenance: every "teacher model ready" line names
         // the exception so no corpus can be produced under it silently.
-        "Accelerate cblas (observation-only exception #804)"
+        "Accelerate cblas (local CPU inference/observation #804)"
     }
     #[cfg(not(all(feature = "observation-blas-exception", target_os = "macos")))]
     {
@@ -1893,8 +1897,9 @@ impl Llama {
     /// mirrors [`Llama::forward`] exactly. `matmul_batched` and the serial path
     /// share the pinned exact `uor-matmul` owner; exact bit agreement is an
     /// enforced contract checked by focused per-target tests and the live
-    /// probe, not a universal cross-target claim. `fast_matmul` is a
-    /// compatibility parameter and does not select another arithmetic owner.
+    /// probe, not a universal cross-target claim. Under the explicit Apple
+    /// Accelerate feature, `fast_matmul` selects CPU BLAS; canonical/exact mode
+    /// passes `false` and keeps the owned exact path.
     pub fn forward_batch(
         &self,
         states: &mut [State],
@@ -1920,7 +1925,6 @@ impl Llama {
             .forward_gate
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
-        let _ = fast_matmul;
         let c = &self.cfg;
         let (dim, hid) = (c.dim, c.hidden);
         let kv_dim = c.dim * c.n_kv_heads / c.n_heads;
@@ -2002,6 +2006,7 @@ impl Llama {
                 &w[self.wq + l * dim * dim..],
                 dim,
                 b,
+                fast_matmul,
             );
             matmul_batched(
                 &self.exact_executor,
@@ -2010,6 +2015,7 @@ impl Llama {
                 &w[self.wk + l * dim * kv_dim..],
                 dim,
                 b,
+                fast_matmul,
             );
             matmul_batched(
                 &self.exact_executor,
@@ -2018,6 +2024,7 @@ impl Llama {
                 &w[self.wv + l * dim * kv_dim..],
                 dim,
                 b,
+                fast_matmul,
             );
             for bi in 0..b {
                 let loff = l * states[bi].sequence_capacity * kv_dim;
@@ -2117,6 +2124,7 @@ impl Llama {
                 &w[self.wo + l * dim * dim..],
                 dim,
                 b,
+                fast_matmul,
             );
             for bi in 0..b {
                 for i in 0..dim {
@@ -2139,6 +2147,7 @@ impl Llama {
                 &w[self.w1 + l * dim * hid..],
                 dim,
                 b,
+                fast_matmul,
             );
             matmul_batched(
                 &self.exact_executor,
@@ -2147,6 +2156,7 @@ impl Llama {
                 &w[self.w3 + l * dim * hid..],
                 dim,
                 b,
+                fast_matmul,
             );
             for idx in 0..b * hid {
                 let mut val = hb[idx];
@@ -2161,6 +2171,7 @@ impl Llama {
                 &w[self.w2 + l * hid * dim..],
                 hid,
                 b,
+                fast_matmul,
             );
             for bi in 0..b {
                 for i in 0..dim {
@@ -2182,6 +2193,7 @@ impl Llama {
             &w[self.wcls..],
             dim,
             b,
+            fast_matmul,
         );
         for bi in 0..b {
             states[bi]
@@ -4149,9 +4161,9 @@ impl HuggingFaceLlamaOracle {
             .exact_probe_trace_shape_bounded(sequence_capacity, positions, batch_width, top_k)
     }
 
-    /// Exact arithmetic owner and observable hosted-kernel availability.
+    /// Selected arithmetic owner and observable hosted-kernel availability.
     pub fn exact_backend_report(&self) -> ExactBackendReport {
-        exact_backend_report()
+        backend_report_for_fast_matmul(self.fast_matmul)
     }
 
     /// Enable or disable the experimental attention variant
@@ -4326,10 +4338,12 @@ impl HuggingFaceLlamaOracle {
         }
         let state = State::new(&model.cfg);
         let fast_matmul = !canonical_math && std::env::var("TLESS_EXACT_SCALAR").is_err();
-        let backend = if canonical_math {
+        let backend = if fast_matmul {
+            fast_matmul_backend()
+        } else if canonical_math {
             "uor-matmul exact GEMM + canonical libm scalar (D2)"
         } else {
-            fast_matmul_backend()
+            "uor-matmul exact GEMM"
         };
         eprintln!(
             "teacher model ready (κ {kappa}, matmul={backend}, exact_workers={})",
@@ -4615,7 +4629,7 @@ mod tests {
         let executor = ExactExecutor::new(TeacherExecutionConfig::sequential())
             .expect("serial exact executor");
         let mut batched = vec![0.0f32; BATCH * ROWS];
-        matmul_batched(&executor, &mut batched, &x, &weights, N, BATCH);
+        matmul_batched(&executor, &mut batched, &x, &weights, N, BATCH, false);
         for bi in 0..BATCH {
             let mut serial = [0.0f32; ROWS];
             matmul(
@@ -4691,10 +4705,7 @@ mod tests {
     #[test]
     fn observation_blas_exception_reports_non_exact_owner() {
         let report = exact_backend_report();
-        assert_eq!(
-            report.arithmetic_owner,
-            "Apple Accelerate observation BLAS exception"
-        );
+        assert_eq!(report.arithmetic_owner, "Apple Accelerate CPU BLAS");
         assert_eq!(report.selected_backend.as_deref(), Some("Apple Accelerate"));
         assert!(report.selection_status.starts_with("AVAILABLE:"));
         assert_eq!(report.target_os, std::env::consts::OS);

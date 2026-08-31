@@ -18,8 +18,8 @@ use uor_r4_core::transformerless::hf_bpe::{resolve_source_tokenizer, TokenizerAd
 use uor_r4_graph_cli as transformerless_command;
 use uor_r4_wasm_router::chat::{ChatAnswer, ChatEngine, ChatError, DEFAULT_SAMPLE_SEED};
 use uor_r4_wasm_router::model::{
-    default_model_reference, download_source, evaluate_live_quality, ModelCapability, ModelError,
-    ModelManifest, ModelStore, QualityAttestation, SourceDownload,
+    default_model_reference, download_source, evaluate_live_quality, model_store_root,
+    ModelCapability, ModelError, ModelManifest, ModelStore, QualityAttestation, SourceDownload,
 };
 use uor_r4_wasm_router::release_bundle_loader::RELEASE_BUNDLE_SIDECAR_FILE_NAME;
 use uor_r4_wasm_router::release_bundle_packager::{self, PackageInputs};
@@ -112,7 +112,8 @@ enum Command {
     SourceFreeTable(SourceFreeTableArgs),
     /// Generate bounded text through all-layer R4/Spin causal softmax.
     R4SoftmaxGenerate(R4SoftmaxGenerateArgs),
-    /// Generate from a conformant local Llama checkpoint through all-layer R4/Spin causal softmax.
+    /// Generate from the local learned R4/Spin model through causal softmax.
+    #[command(visible_alias = "generate")]
     R4SoftmaxLocalGenerate(R4SoftmaxLocalGenerateArgs),
     /// Qualify one frozen #1014, #1017, or #1019 local causal-softmax campaign.
     R4SoftmaxLocalQualify(R4SoftmaxLocalQualifyArgs),
@@ -745,8 +746,8 @@ fn parse_r4_softmax_local_max_new_tokens(value: &str) -> Result<usize, String> {
 
 #[derive(Args, Debug)]
 struct R4SoftmaxLocalGenerateArgs {
-    /// Conformant local Hugging Face Llama checkpoint directory; no network fallback.
-    #[arg(long)]
+    /// Local learned checkpoint directory; defaults to the working #1017 model.
+    #[arg(long, default_value = ".uor-models/research/issue-1017/export")]
     model: PathBuf,
     /// Exact raw prompt; checkpoint BOS is prepended once and no chat template is applied.
     #[arg(long)]
@@ -2551,13 +2552,25 @@ fn run(cli: &Cli) -> Result<(), RunError> {
             Ok(())
         }
         Some(Command::R4SoftmaxLocalGenerate(args)) => {
+            let default_model = Path::new(".uor-models/research/issue-1017/export");
+            let model = if args.model == default_model {
+                model_store_root().join("research/issue-1017/export")
+            } else {
+                args.model.clone()
+            };
+            if !model.join("model.safetensors").is_file() {
+                return Err(RunError::Command(format!(
+                    "no local #1017 model found at {}; set UOR_MODEL_STORE or pass --model",
+                    model.display()
+                )));
+            }
             let workers = std::num::NonZeroUsize::new(
                 uor_r4_wasm_router::r4_softmax_local_generation::DEFAULT_WORKERS,
             )
             .ok_or_else(|| RunError::Command("local generator worker count is zero".to_owned()))?;
             let report = uor_r4_wasm_router::r4_softmax_local_generation::run_r4_softmax_local_generation(
                 &uor_r4_wasm_router::r4_softmax_local_generation::R4SoftmaxLocalGeneratorConfig {
-                    model: args.model.clone(),
+                    model,
                     prompt: args.prompt.clone(),
                     max_new_tokens: args.max_new_tokens,
                     workers,

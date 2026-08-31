@@ -178,6 +178,25 @@ by wholesale rewrite.
 
 ## Changelog
 
+- **0.1.26** (2026-08-31) — Recorded the one bounded #1019 local fast-path
+  result: an isolated exact-shape MPS test with 10 warmup plus 40 measured steps
+  combined fused AdamW and deferred logging, measuring `4.485223 s/step` versus
+  the signed `3.491307 s/step`. Because it was slower, `fused=True` was removed
+  immediately. This is a bounded implementation negative, not a model or
+  attention result. #1019 tuning/full-run work stops and remains optional/
+  paused; product work and #973 no longer wait for it. The active next step is
+  using and productizing the bounded #1017 generator through `r4 generate`.
+- **0.1.25** (2026-08-31) — Corrected #1019's active execution scope without
+  rewriting its frozen contract or measured preflight: UOR's deployed
+  architecture/runtime remains CPU-native; Apple Accelerate/BLAS and MPS are
+  permitted only for local offline training, compilation, and bounded tests;
+  CUDA and external GPU execution are out of scope. The observed
+  `UNAVAILABLE_HARDWARE_BUDGET` terminal applies only to the frozen eight-hour
+  offline implementation. Reuse the passed population/smoke/parity artifacts
+  and proceed prototype-first on the local M1: build, demonstrate, then harden
+  one working efficiency mechanism without recurring broad research gates.
+  #1019 is an optional quality-capacity improvement and no longer blocks use or
+  productization of the bounded #1017 generator through `r4 generate`.
 - **0.1.24** (2026-08-31) — Bound #1019 as the sole parameter-capacity
   successor: twelve layers, exactly 13,130,784 parameters, seed 1019, 16,800
   steps, and 275,251,200 tokens over the unchanged causal-softmax R4/Spin and

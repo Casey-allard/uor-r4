@@ -151,7 +151,7 @@ def parser() -> argparse.ArgumentParser:
     smoke_capacity = subcommands.add_parser(
         "smoke-capacity", help="run #1019's create-once 64-sequence overfit smoke"
     )
-    smoke_capacity.add_argument("--backend", choices=["mps", "cuda"], required=True)
+    smoke_capacity.add_argument("--backend", choices=["mps"], required=True)
     smoke_capacity.add_argument("--max-seconds", type=float, default=600.0)
 
     admit_capacity = subcommands.add_parser(
@@ -164,12 +164,12 @@ def parser() -> argparse.ArgumentParser:
         "probe-capacity",
         help="run #1019's exact 200-step accelerator time/memory admission",
     )
-    probe_capacity.add_argument("--backend", choices=["mps", "cuda"], required=True)
+    probe_capacity.add_argument("--backend", choices=["mps"], required=True)
 
     train_capacity_parser = subcommands.add_parser(
         "train-capacity", help="run or resume the one frozen #1019 campaign"
     )
-    train_capacity_parser.add_argument("--backend", choices=["mps", "cuda"], required=True)
+    train_capacity_parser.add_argument("--backend", choices=["mps"], required=True)
     train_capacity_parser.add_argument("--resume", action="store_true")
 
     admit_capacity_parity = subcommands.add_parser(

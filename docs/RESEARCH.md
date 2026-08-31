@@ -138,10 +138,17 @@ assumptions, or objectives rather than measured results.
 > and random-export/all-12-layer Rust preflight parity passed with maximum absolute logit
 > delta `0.0000443459`. The signed 200-step MPS probe passed memory at `21.03%`
 > but failed time with a safety projection of `20.66 h`, above the `8 h` ceiling,
-> terminating the MPS path `UNAVAILABLE_HARDWARE_BUDGET`. MPS full training is
-> unauthorized; full training, final qualification, sealed reveal, generation,
-> and replay remain `NOT_RUN`. Only the deterministic single-CUDA `f32` fallback
-> may continue after explicit owner approval for external compute and spend. See
+> terminating that frozen offline implementation
+> `UNAVAILABLE_HARDWARE_BUDGET`. Full training, final qualification, sealed
+> reveal, generation, and replay remain `NOT_RUN`. UOR's deployed
+> architecture/runtime remains CPU-native; Apple Accelerate/BLAS and MPS are
+> local offline accelerators only. A single isolated exact-shape MPS fast-path
+> test (10 warmup plus 40 measured steps) combined fused AdamW with deferred
+> logging and measured `4.485223 s/step`, slower than the signed
+> `3.491307 s/step`; `fused=True` was removed immediately. This is a bounded
+> fast-path negative, not a model result. #1019 tuning/full-run work stops and
+> remains optional/paused; the active next step is the working #1017
+> `r4 generate` product path. CUDA and external GPU execution are out of scope. See
 > the [signed preflight/admission result](r4_softmax_parameter_capacity_preflight_1019_raw.json).
 > Offline floats, matrix
 > operations, and softmax remain allowed while establishing language quality;
@@ -542,12 +549,14 @@ assumptions, or objectives rather than measured results.
 > enabled NLL `2.127407` and subject/scene retention `3/5`. Close the exact
 > campaign. #1017's separately frozen continuation then passed retention `5/5`,
 > enabled parity, all mechanical gates, and replay, but failed solely on sealed
-> NLL `1.5727521962806827`. #1019 now specifies the sole #973 capacity action:
+> NLL `1.5727521962806827`. #1019 now specifies an optional capacity improvement:
 > a frozen 12-layer, 13,130,784-parameter campaign over that unchanged
 > mechanism. Population, MPS overfit smoke, and random-export/all-12-layer Rust
-> parity passed, but MPS admission stopped `UNAVAILABLE_HARDWARE_BUDGET`; the
-> full campaign remains `NOT_RUN` unless an explicitly owner-approved
-> deterministic single-CUDA `f32` fallback qualifies.
+> parity passed, but MPS admission stopped `UNAVAILABLE_HARDWARE_BUDGET` for the
+> frozen eight-hour offline implementation. The full campaign remains
+> `NOT_RUN`; its fused-AdamW/deferred-logging fast path was slower, so #1019 is
+> optional/paused and the active next step is the #1017 `r4 generate` product
+> path. CUDA and external GPU execution are out of scope.
 > Intrinsic/readout alternatives,
 > resonance-based softmax replacement, whole-decoder recurrent lowering, and
 > exact deployment are parked. D3 remains
@@ -1132,10 +1141,12 @@ subject/scene retention `3/5`. #1017's one exposure continuation then improved
 retention to `5/5` but failed solely on NLL `1.5727521962806827`. #1019 is that
 new frozen contract: 12 layers, 13,130,784 parameters, seed 1019, 16,800 steps,
 and 275,251,200 tokens. Population, MPS overfit smoke, and
-random-export/all-12-layer Rust preflight parity passed, but MPS admission stopped
-`UNAVAILABLE_HARDWARE_BUDGET`; full training through replay remains `NOT_RUN`,
-with only an explicitly owner-approved deterministic single-CUDA `f32` fallback
-eligible. Fiber-preserving multi-resonance replacement, whole-decoder recurrent
+random-export/all-12-layer Rust preflight parity passed, but MPS admission
+stopped `UNAVAILABLE_HARDWARE_BUDGET` for the frozen eight-hour offline
+implementation. Full training through replay remains `NOT_RUN`; its fused-
+AdamW/deferred-logging fast path was slower, so #1019 is optional/paused and the
+active next step is the #1017 `r4 generate` product path. CUDA and external GPU
+execution are out of scope. Fiber-preserving multi-resonance replacement, whole-decoder recurrent
 factorization, and final requalification are parked.
 Dependable broad coherent text remains unestablished.
 The final serving path has no source weights, transformer/self-attention, dense
@@ -1739,8 +1750,10 @@ closed NLL-only negative at `1.5727521962806827` with retention `5/5` and all
 other gates passing. #1019 now owns the one frozen 12-layer,
 13,130,784-parameter campaign over the unchanged mechanism. Its
 population/smoke/random-export parity gates passed, but MPS admission stopped
-`UNAVAILABLE_HARDWARE_BUDGET`; the full campaign remains `NOT_RUN` pending only
-an explicitly owner-approved deterministic single-CUDA `f32` fallback.
+`UNAVAILABLE_HARDWARE_BUDGET` for the frozen eight-hour offline implementation.
+The full campaign remains `NOT_RUN`; its fused-AdamW/deferred-logging fast path
+was slower, so #1019 is optional/paused and the active next step is the #1017
+`r4 generate` product path. CUDA and external GPU execution are out of scope.
 Intrinsic/readout alternatives,
 multi-resonance replacement, whole-decoder recurrent factorization, and final
 requalification are parked. D3 remains `NOT_RUN`; #954 remains blocked.

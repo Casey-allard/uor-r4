@@ -252,8 +252,8 @@ pub struct ExactBackendReport {
     pub selection_status: String,
 }
 
-/// Report exact arithmetic ownership and observable uor-matmul availability.
-pub fn exact_backend_report() -> ExactBackendReport {
+/// Report arithmetic ownership for a selected source-backed forward mode.
+pub(crate) fn backend_report_for_fast_matmul(fast_matmul: bool) -> ExactBackendReport {
     let mut available_backends = Vec::new();
     for spec in uor_matmul::kernels::cached::available_reduce_i8().filter(|spec| spec.k_group == 1)
     {
@@ -263,17 +263,29 @@ pub fn exact_backend_report() -> ExactBackendReport {
         }
     }
     #[cfg(all(feature = "observation-blas-exception", target_os = "macos"))]
-    let (arithmetic_owner, selected_backend, selection_status) = (
-        "Apple Accelerate observation BLAS exception".to_owned(),
-        Some("Apple Accelerate".to_owned()),
-        "AVAILABLE: explicitly selected by observation-blas-exception".to_owned(),
-    );
+    let (arithmetic_owner, selected_backend, selection_status) = if fast_matmul {
+        (
+            "Apple Accelerate CPU BLAS".to_owned(),
+            Some("Apple Accelerate".to_owned()),
+            "AVAILABLE: explicitly selected by observation-blas-exception".to_owned(),
+        )
+    } else {
+        (
+            "uor-matmul exact GEMM".to_owned(),
+            None,
+            "AVAILABLE_BUT_DISABLED: exact/canonical runtime selected".to_owned(),
+        )
+    };
     #[cfg(not(all(feature = "observation-blas-exception", target_os = "macos")))]
-    let (arithmetic_owner, selected_backend, selection_status) = (
-        "uor-matmul exact GEMM".to_owned(),
-        None,
-        "UNAVAILABLE: uor-matmul does not expose the private float auto-selection cache".to_owned(),
-    );
+    let (arithmetic_owner, selected_backend, selection_status) = {
+        let _ = fast_matmul;
+        (
+            "uor-matmul exact GEMM".to_owned(),
+            None,
+            "UNAVAILABLE: uor-matmul does not expose the private float auto-selection cache"
+                .to_owned(),
+        )
+    };
 
     ExactBackendReport {
         arithmetic_owner,
@@ -285,6 +297,24 @@ pub fn exact_backend_report() -> ExactBackendReport {
         selected_backend,
         selection_status,
     }
+}
+
+/// Report the arithmetic owner selected by the current process environment.
+///
+/// The historical function name is retained for API compatibility. A macOS
+/// build with the Accelerate feature reports BLAS in normal fast mode, while
+/// either exact override reports the exact owner that will actually execute.
+pub fn exact_backend_report() -> ExactBackendReport {
+    #[cfg(all(feature = "observation-blas-exception", target_os = "macos"))]
+    let fast_matmul = {
+        let canonical_math =
+            std::env::var("TLESS_CANONICAL_DETERMINISTIC").is_ok_and(|value| value != "0");
+        !canonical_math && std::env::var("TLESS_EXACT_SCALAR").is_err()
+    };
+    #[cfg(not(all(feature = "observation-blas-exception", target_os = "macos")))]
+    let fast_matmul = false;
+
+    backend_report_for_fast_matmul(fast_matmul)
 }
 
 #[derive(Clone, Copy)]

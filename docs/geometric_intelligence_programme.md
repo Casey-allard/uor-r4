@@ -180,16 +180,23 @@ tokens. Enabled Rust parity, all-layer causal/R4 audits, subject-or-scene
 retention `5/5`, and normalized replay `5/5` passed. Fresh sealed NLL
 `1.5727521962806827` failed the strict `<1.50` criterion, making the overall
 result negative solely on NLL. Freeze it without rerun, further 7.15M exposure,
-or learning-rate tuning. The sole rung is now frozen under
+or learning-rate tuning. An optional capacity rung was frozen under
 [#1019](https://github.com/UOR-Foundation/uor-r4/issues/1019): twelve layers,
 13,130,784 parameters, seed 1019, 16,800 steps, and 275,251,200 tokens reusing
 the mechanism and Rust path. Exact population, 400-step fixed-sequence overfit,
 and random-export all-twelve-layer Rust preflight parity passed. The signed MPS gate
 stopped `UNAVAILABLE_HARDWARE_BUDGET` on time: its `20.66 h` safety projection
-exceeded the `8 h` ceiling, while memory passed at `21.03%`. Full training,
-final parity, reveal, generation, and replay remain `NOT_RUN`; only the
-deterministic single-CUDA `f32` fallback may proceed after explicit owner
-authorization for external compute and any spend. The MPS stop is not a
+exceeded the `8 h` ceiling, while memory passed at `21.03%`. That terminal
+applies only to the frozen offline PyTorch/MPS implementation. Full training,
+final parity, reveal, generation, and replay remain `NOT_RUN`. A single isolated
+exact-shape MPS fast-path test (10 warmup plus 40 measured steps) combined fused
+AdamW with deferred logging and measured `4.485223 s/step`, slower than the
+signed `3.491307 s/step`; `fused=True` was removed immediately. This is a
+bounded fast-path negative, not a model result. #1019 tuning/full-run work stops
+and remains optional/paused; the active next step is the working #1017
+`r4 generate` product path. UOR's deployed architecture/runtime remains CPU-native; Apple
+Accelerate/BLAS and MPS are local offline accelerators only; CUDA and external
+GPU execution are out of scope. The MPS stop is not a
 model-quality negative, leaves the full-scale capacity hypothesis untested, and
 does not revoke the established attention result. See the
 [#1019 observed preflight](r4_softmax_parameter_capacity_preflight_1019_raw.json).
@@ -300,9 +307,11 @@ solely on NLL `1.5727521962806827`. #1019 now owns the single frozen 12-layer,
 13,130,784-parameter campaign over the unchanged mechanism. Its population,
 400-step overfit, and random-export all-twelve-layer Rust preflight parity passed; MPS
 stopped `UNAVAILABLE_HARDWARE_BUDGET` on its `20.66 h` time projection while
-memory passed at `21.03%`. Full training, final parity, reveal, generation, and
-replay remain `NOT_RUN`; only an owner-authorized deterministic single-CUDA
-`f32` fallback may proceed. Intrinsic/readout,
+memory passed at `21.03%`. That terminal applies only to the frozen offline
+implementation. Full training, final parity, reveal, generation, and replay
+remain `NOT_RUN`. Its fused-AdamW/deferred-logging fast path was slower, so
+#1019 is optional/paused and the active next step is the #1017 `r4 generate`
+product path. CUDA and external GPU execution are out of scope. Intrinsic/readout,
 multi-resonance, recurrent lowering, and final requalification are parked;
 D3 remains `NOT_RUN` and #954 remains blocked.
 No new H4,
@@ -420,13 +429,16 @@ construction-bound exact-descriptor selector at each of paragraph and
   complete and failed its decision, material-control, and non-looping gates.
   The construction-only leave-one-document-out observability audit later
   completed at insufficient support, #1014 established load-bearing attention,
-  and #1017 closed NLL-only negative. The only active rung is #1019's frozen
-  12-layer parameter-capacity campaign. Population, 400-step overfit, and
+  and #1017 closed NLL-only negative while remaining the working bounded
+  generator. #1019 is an optional frozen 12-layer parameter-capacity
+  improvement. Population, 400-step overfit, and
   random-export all-twelve-layer Rust preflight parity passed; MPS is
   `UNAVAILABLE_HARDWARE_BUDGET` on time (`20.66 h > 8 h`) with memory passing
-  at `21.03%`. Full training, final parity, reveal, generation, and replay are
-  `NOT_RUN`; only the deterministic single-CUDA `f32` fallback may proceed
-  after explicit owner authorization for external compute and any spend.
+  at `21.03%`. That terminal applies only to the frozen offline implementation.
+  Full training, final parity, reveal, generation, and replay are `NOT_RUN`.
+  Its fused-AdamW/deferred-logging fast path was slower, so #1019 is optional/
+  paused and the active next step is the #1017 `r4 generate` product path. CUDA
+  and external GPU execution are out of scope.
   Intrinsic/readout alternatives, resonance-based softmax
   replacement, new state dimensions, whole-decoder recurrent lowering, and
   exact deployment are parked. Calling a later
@@ -1423,13 +1435,15 @@ attention-off intervention and exact Rust parity, while its full quality DoD
 failed at enabled NLL `2.127407` and subject/scene retention `3/5`. Close that
 exact frozen campaign. #1017's exposure continuation then closed NLL-only
 negative at `1.5727521962806827`, with retention `5/5` and all other gates
-passing. #1019 is now active as the frozen 12-layer, 13,130,784-parameter
-campaign over the unchanged mechanism. Population, 400-step overfit, and
+passing. #1019 is an optional frozen 12-layer, 13,130,784-parameter capacity
+improvement over the unchanged mechanism. Population, 400-step overfit, and
 random-export all-twelve-layer Rust preflight parity passed. MPS stopped
 `UNAVAILABLE_HARDWARE_BUDGET` on time (`20.66 h > 8 h`) while memory passed at
-`21.03%`. Full training, final parity, reveal, generation, and replay remain
-`NOT_RUN`; only the deterministic single-CUDA `f32` fallback may proceed after
-explicit owner authorization for external compute and any spend.
+`21.03%`. That terminal applies only to the frozen offline implementation. Full
+training, final parity, reveal, generation, and replay remain `NOT_RUN`. Its
+fused-AdamW/deferred-logging fast path was slower, so #1019 is optional/paused
+and the active next step is the #1017 `r4 generate` product path. CUDA and
+external GPU execution are out of scope.
 Intrinsic/readout, resonance/recurrent lowering, and final
 requalification are parked.
 Product CLI/HTTP chat integration, restart-persistent conversation state, and
@@ -1836,12 +1850,14 @@ H4 connection against a working plain arm and a strong coherent-tangent
   continuation. The construction-only leave-one-document-out observability
   audit later completed at insufficient support; #1014 and #1017 then produced
   the attention-positive and NLL-only-negative results recorded above. #1019's
-  frozen parameter-capacity campaign is the current primary rung. Population,
+  frozen parameter-capacity campaign is optional and paused. Population,
   400-step overfit, and random-export all-twelve-layer Rust preflight parity passed; MPS
   is `UNAVAILABLE_HARDWARE_BUDGET` on time (`20.66 h > 8 h`) with memory passing
-  at `21.03%`. Full training, final parity, reveal, generation, and replay
-  remain `NOT_RUN`; only an owner-authorized deterministic single-CUDA `f32`
-  fallback may proceed.
+  at `21.03%`. That terminal applies only to the frozen offline implementation.
+  Full training, final parity, reveal, generation, and replay remain `NOT_RUN`.
+  Its fused-AdamW/deferred-logging fast path was slower, so #1019 is optional/
+  paused and the active next step is the #1017 `r4 generate` product path. CUDA
+  and external GPU execution are out of scope.
 See ADR-0005 and the
 [#973 corpus-induced document placement record](corpus_induced_document_spin_placement_973.md).
 
@@ -1863,14 +1879,15 @@ bounded distillation but looping output. Its recurrent state successor is
 complete and failed promotion. The construction-only observability audit then
 closed at insufficient support; #1014 established load-bearing attention; and
 #1017 completed NLL-only negative at `1.5727521962806827` after passing
-retention, parity, audits, and replay. The sole next step is #1019's frozen
-12-layer, 13,130,784-parameter campaign over the same attention/Rust path.
+retention, parity, audits, and replay. #1019's optional frozen 12-layer,
+13,130,784-parameter campaign preserves the same attention/Rust path.
 Population, 400-step overfit, and random-export all-twelve-layer Rust preflight parity
 passed; MPS is `UNAVAILABLE_HARDWARE_BUDGET` on time (`20.66 h > 8 h`) with
-memory passing at `21.03%`. Full training, final parity, reveal, generation,
-and replay remain `NOT_RUN`; only the deterministic single-CUDA `f32` fallback
-may proceed after explicit owner authorization for external compute and any
-spend. Intrinsic/readout alternatives,
+memory passing at `21.03%`. That terminal applies only to the frozen offline
+implementation. Full training, final parity, reveal, generation, and replay
+remain `NOT_RUN`. Its fused-AdamW/deferred-logging fast path was slower, so
+#1019 is optional/paused and the active next step is the #1017 `r4 generate`
+product path. CUDA and external GPU execution are out of scope. Intrinsic/readout alternatives,
 resonance-based softmax replacement, new state dimensions, corpus scale,
 whole-decoder recurrent lowering, and exact deployment are parked, while D3
 remains `NOT_RUN`. The one

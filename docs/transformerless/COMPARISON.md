@@ -169,6 +169,13 @@ Use one path as the **portable baseline**, then add accelerated variants as
 separate rows. Do not merge CPU, Metal, CUDA, Vulkan, or other backends into
 one headline number: backend and machine class are part of the condition.
 
+The active UOR architecture/runtime direction is CPU-native. Apple
+Accelerate/BLAS and Metal/MPS may be used only for local offline compilation,
+training, or bounded comparison tests. The non-Apple accelerator recipes below
+are retained solely to reproduce historical external comparison rows; CUDA and
+external GPU execution are out of scope for current UOR development and are not
+an execution path for #1019.
+
 Before any `llama.cpp` conversion or benchmark command below, fetch the source
 checkpoint required by this repo's teacher path:
 
@@ -218,9 +225,10 @@ same benchmark arguments, but allow the Metal backend:
 Report these rows as `Metal` (or whatever backend string `llama-bench`
 prints), not as CPU rows.
 
-### x86/Linux accelerated variant: CUDA
+### Historical external comparison only: CUDA (out of current UOR scope)
 
-For NVIDIA systems, build the CUDA backend explicitly and allow GPU offload:
+The commands below reproduce the historical NVIDIA comparison condition. They
+are not an active UOR implementation, training, runtime, or #1019 path:
 
     git clone https://github.com/ggml-org/llama.cpp && cd llama.cpp
     git checkout e8f19cc

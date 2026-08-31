@@ -98,18 +98,34 @@ without rerun or tuning. Its one separately frozen exposure successor,
 audits, prompt retention `5/5`, and normalized replay `5/5` passed; sealed NLL
 `1.5727521962806827` failed the strict `<1.50` gate. The result is negative
 solely on NLL. [#1019](https://github.com/UOR-Foundation/uor-r4/issues/1019)
-now freezes the sole increase: twelve layers, 13,130,784 parameters, seed 1019,
+froze an optional increase: twelve layers, 13,130,784 parameters, seed 1019,
 16,800 steps, and 275,251,200 tokens over the same mechanism and Rust path.
 The exact population, 400-step fixed-sequence overfit, and random-export
 all-twelve-layer Rust parity preflights passed. The signed MPS gate stopped
 `UNAVAILABLE_HARDWARE_BUDGET` on time: its `20.66 h` safety projection exceeded
-the `8 h` ceiling, while memory passed at `21.03%`. Full training, final parity,
-reveal, generation, and replay remain `NOT_RUN`; only the deterministic
-single-CUDA `f32` fallback may proceed after explicit owner authorization for
-external compute and any spend. The MPS stop is not a model-quality negative,
+the `8 h` ceiling, while memory passed at `21.03%`. That terminal applies only
+to the frozen offline PyTorch/MPS implementation. Full training, final parity,
+reveal, generation, and replay remain `NOT_RUN`. A single isolated exact-shape
+MPS fast-path test (10 warmup plus 40 measured steps) combined fused AdamW with
+deferred logging and measured `4.485223 s/step`, slower than the signed
+`3.491307 s/step`; `fused=True` was removed immediately. This is a bounded
+fast-path negative, not a model result. #1019 tuning/full-run work stops and
+remains optional/paused; the active next step is the working #1017 `r4 generate`
+product path. UOR's deployed architecture/runtime remains CPU-native; Apple Accelerate/BLAS and MPS
+are local offline accelerators only; CUDA and external GPU execution are out of
+scope. The MPS stop is not a model-quality negative,
 leaves the full-scale capacity hypothesis untested, and does not revoke the
 established attention result. See the
 [#1019 observed preflight](r4_softmax_parameter_capacity_preflight_1019_raw.json).
+
+The #1017 export remains the current working 7.15M coherent-generation
+prototype. `r4 generate --prompt "..."` defaults to
+`.uor-models/research/issue-1017/export`. #1019 is an optional quality-capacity
+improvement and does not block using or productizing that bounded path. The
+prototype remains source-backed, floating-point/matmul/softmax, and below the
+strict NLL target; it does not establish geometry advantage,
+transformerlessness, correctness, reasoning, frontier quality, browser/WASM
+readiness, or release readiness.
 Further 7.15M exposure and learning-rate tuning remain prohibited.
 The reference remains transformer-compatible
 and `f32`/multiply/alloc/source-weight backed; it is not source-free,
@@ -1549,14 +1565,16 @@ D3 on construction covariance, with diagnostic curved NLL worse than donor and
   complete quality DoD at enabled NLL `2.127407` and prompt retention `3/5`.
   #1017's separate continuation then passed retention `5/5`, enabled parity,
   every mechanical gate, and replay, but failed solely on sealed NLL
-  `1.5727521962806827`. #1019 is the primary rung: one frozen 12-layer,
+  `1.5727521962806827`. #1019 is an optional, paused rung: one frozen 12-layer,
   13,130,784-parameter campaign over the unchanged attention and Rust execution
   path. Population, 400-step overfit, and random-export all-twelve-layer Rust
   parity passed. MPS stopped `UNAVAILABLE_HARDWARE_BUDGET` because the
-  `20.66 h` safety projection exceeded `8 h`; memory passed at `21.03%`. Full
-  training, final parity, reveal, generation, and replay remain `NOT_RUN`.
-  Only the deterministic single-CUDA `f32` fallback may proceed after explicit
-  owner authorization for external compute and any spend. Further exposure and
+  `20.66 h` safety projection exceeded `8 h`; memory passed at `21.03%`. That
+  terminal applies only to the frozen offline implementation. Full training,
+  final parity, reveal, generation, and replay remain `NOT_RUN`. Its fused-
+  AdamW/deferred-logging fast path was slower, so #1019 is optional/paused and
+  the active next step is the #1017 `r4 generate` product path. CUDA and
+  external GPU execution are out of scope. Further exposure and
   LR tuning of the 7.15M checkpoint are prohibited.
   Resonance substitutes, unrelated optimization, and release work
   remain parked. Lowering does not otherwise reactivate automatically on a
