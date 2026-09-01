@@ -106,3 +106,37 @@ def default_language_path_root() -> Path:
     """Return #973's compact retained language-path experiment root."""
 
     return model_store_root() / "research" / "issue-973-retained-language-path-v1"
+
+
+def default_paired_h4_prompt_capacity_root() -> Path:
+    """Return #973's independently frozen paired-H4 capacity root."""
+
+    return (
+        model_store_root()
+        / "research"
+        / "issue-973-paired-h4-prompt-capacity-v1"
+    )
+
+
+def default_paired_h4_prompt_capacity_predecessor() -> Path:
+    """Return the immutable qualified retained-language predecessor."""
+
+    return default_language_path_root()
+
+
+def default_paired_h4_prompt_capacity_source_train() -> Path:
+    """Return the verified nonsealed #1019 train-token store."""
+
+    return default_language_path_source_root() / "tokens" / "train.u16"
+
+
+def default_paired_h4_prompt_capacity_raw_source() -> Path:
+    """Return the pinned raw TinyStories source used only for prompt freezing."""
+
+    return (
+        model_store_root()
+        / "research"
+        / "issue-1014"
+        / "raw"
+        / "TinyStoriesV2-GPT4-train.txt"
+    )

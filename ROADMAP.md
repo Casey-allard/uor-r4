@@ -9,25 +9,25 @@ The earlier
 preserved #948–#958 sequencing record. Measured, refuted, and frozen research
 remains in [docs/RESEARCH.md](docs/RESEARCH.md).
 
-**Active correction (2026-09-01):** #973's independently frozen
-[`R4RetainedLanguagePathV1`](docs/r4_retained_language_path_v1_973.md) is
-terminal `RETAINED_LANGUAGE_PATH_PASS`. The exact-H4 retained arm generalized,
-remained load-bearing under state removal, and stayed competitive with the
-equal-parameter ordinary causal-softmax control. Its retained-only successor
-then completed five maximum-64-token autonomous local decodes with valid raw
-UTF-8, exact fresh-load replay, and zero forbidden, future, source-data, target,
-teacher, or provider reads/calls. This
-establishes bounded geometric retained attention and autonomous retained
-decoding. All five outputs drift from their supplied subjects or scenes, so
-prompt-responsive coherence, reasoning, H4-specific superiority, exact
-lowering, browser readiness, and release readiness remain unestablished. The
-next #973 rung preserves this cell and freezes a data-supported
-representation/capacity change with a prompt-conditioned behavior criterion.
-#954 stays blocked and no C1-SB6 is authorized.
+**Active correction (2026-09-01):** #973's independently frozen paired-H4
+capacity arm is terminal `PAIRED_H4_PROMPT_CAPACITY_FAIL` at result CID
+`blake3:508a4ff352f1e533d669d9616f65b972b0f13e8efe35867b7b095281ad940274`.
+It reduced repeated joint addresses by `97.5477%` and slightly improved fresh
+held-out language over qualified `R4RetainedLanguagePathV1` (NLL
+`3.8832293739` versus `3.8901151940`; top-1 `29.780171%` versus
+`29.706357%`). Those changes did not improve the frozen prompt-swap criterion:
+candidate mean gain was `0.0062477543` versus V1's `0.0063672952`, with
+`282/512` wins, below the `0.043321699` absolute-gain and `308/512` win floors.
+Causal, replay, reveal, and forbidden-read checks passed; state-off contrast was
+exactly zero. Reject paired addressing, preserve the qualified V1 cell, and do
+not run candidate generation. Attention remains established. The next #973
+rung independently freezes the prompt-state-to-logit readout seam. #973 stays
+open; #954 stays blocked; no C1-SB6 is authorized.
 
 _Last reviewed: 2026-09-01 (#973 retained language-path generalization and
-autonomous local decoding passed; prompt-responsive coherence and H4 specificity
-remain unestablished; #961 reversible S0 landed;
+autonomous local decoding passed; its paired-H4 prompt-capacity successor failed
+and the prompt-state-to-logit readout seam is next; prompt-responsive coherence
+and H4 specificity remain unestablished; #961 reversible S0 landed;
 #952 A1.0 stopped at
 `REDESIGN_ORDERED_ROUTE_SUMMARY`; #967 A1R terminated `RETAIN_STATE_ONLY`;
 #970 A1P produced the bounded paired-H4-derived exact R4-heatmap result
@@ -316,7 +316,11 @@ pass, while the hosted static Pages surface currently has no working chat
 backend/artifact lowering; **Completed bounded step:** source-free Q16 suffix
 trace distillation, with looping autonomous output, state-student and
 observability negatives, #1014 attention qualification, and #1017's NLL-only
-quality-capacity negative; **Closed without a full run:** #1019's frozen
+quality-capacity negative; **Qualified retained baseline:**
+`R4RetainedLanguagePathV1`; **Rejected capacity seam:** paired-H4 addressing
+after it reduced construction repeats but failed to improve the frozen prompt
+contrast; **Current #973 action:** independently freeze the
+prompt-state-to-logit readout seam; **Closed without a full run:** #1019's frozen
 12-layer, 13,130,784-parameter capacity campaign after its MPS hardware-budget
 stop; **Observed #954 negatives:** the fixed 384-step MPS grounding SFT
 completed in `883.773549 s`, but all three frozen Rust prompts decoded
@@ -787,19 +791,27 @@ historical evidence and comparators.
 
 ## Active
 
-- [ ] **#973 prompt-responsive capacity over qualified retained attention** —
+- [x] **#973 paired-H4 prompt-responsive-capacity arm — rejected.**
   `R4RetainedLanguagePathV1` is terminal `RETAINED_LANGUAGE_PATH_PASS`: held-out
   retained NLL `3.899862`, ordinary-control NLL `3.903394`, and state-off NLL
   `4.234849` with 16,660 lost top-1 decisions. Its retained-only successor
   completed `5/5` bounded local decodes with valid raw UTF-8, exact replay, and
   zero forbidden, future, source-data, target, teacher, or provider reads/calls.
-  Autonomous retained decoding is established,
-  but all five outputs drift from their prompts. Preserve the cell and freeze
-  one data-supported representation/capacity successor with a
-  prompt-conditioned behavior criterion. Do not reopen attention-existence
-  testing or claim coherence, reasoning, H4 superiority, exact lowering, or
-  release readiness. See the
-  [binding record](docs/r4_retained_language_path_v1_973.md).
+  Autonomous retained decoding is established, but all five outputs drift from
+  their prompts. The one frozen paired-H4 successor then slightly improved
+  fresh-language NLL/top-1 while reducing structural repeats `97.5477%`, yet
+  its prompt contrast was worse than V1 (`0.0062477543` versus `0.0063672952`;
+  `282/512` wins). It terminated `PAIRED_H4_PROMPT_CAPACITY_FAIL` at
+  `blake3:508a4ff352f1e533d669d9616f65b972b0f13e8efe35867b7b095281ad940274`.
+  Preserve V1; reject and do not generate from the paired candidate. See the
+  [V1 binding record](docs/r4_retained_language_path_v1_973.md) and
+  [paired-H4 machine result](docs/r4_paired_h4_prompt_capacity_result_973_raw.json).
+
+- [ ] **#973 prompt-state-to-logit readout seam — next independent freeze.**
+  Hold the qualified V1 training/data/seed/schedule and prompt-swap criterion
+  fixed; test whether retained prompt state reaches candidate logits through
+  the readout. Do not reopen attention-existence testing or claim coherence,
+  reasoning, H4 superiority, exact lowering, or release readiness.
 
 - [ ] **#954 grounded correctness: C1-SB5 retired negative; final source-free
   terminal blocked behind #973** — retain the

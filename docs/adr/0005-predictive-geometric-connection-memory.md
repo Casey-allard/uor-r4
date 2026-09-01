@@ -3,7 +3,7 @@
 - **Status:** Accepted; ordinary dot-product/stable-softmax causal attention in
   coherent R4/Spin frames is the current baseline. The localization attempt
   stopped at its two-document preflight and rejected tangent readout.
-  Intrinsic/readout alternatives, resonance-based softmax replacement,
+  Intrinsic geometric/readout alternatives, resonance-based softmax replacement,
   full-model recurrent lowering, and exact deployment are parked. Provider-free autonomous
   `R4SoftmaxReferenceGeneratorV1` (`HELM-D-R4`) generation now passes, and its
   dedicated opt-in, loopback-only native HTTP endpoint passes exact eight-token
@@ -40,8 +40,8 @@
   combined fused AdamW with deferred logging and measured `4.485223 s/step`,
   slower than the signed `3.491307 s/step`; `fused=True` was removed
   immediately. This is a bounded fast-path negative, not a model result. #1019
-  tuning/full-run work stops and remains optional/paused; the active next step
-  is the working #1017 `r4 generate` product path. UOR's deployed
+  tuning/full-run work stops and remains optional/paused; at #1019 close, the
+  active product step was the working #1017 `r4 generate` path. UOR's deployed
   architecture/runtime remains CPU-native;
   Apple Accelerate/BLAS and MPS are local offline accelerators only; CUDA and
   external GPU execution are out of scope. The MPS stop is not a
@@ -49,7 +49,13 @@
   and does not revoke the established attention result. See the
   [#1019 observed preflight](../r4_softmax_parameter_capacity_preflight_1019_raw.json).
   More 7.15M exposure or LR tuning remains prohibited.
-- **Date:** 2026-08-28; direction updated 2026-08-31
+  #973's later compact retained-language path passed its frozen language,
+  state-off, and matched-control gates and completed deterministic autonomous
+  decoding. Its paired-H4 address-capacity successor then stopped
+  `PAIRED_H4_PROMPT_CAPACITY_FAIL`; qualified V1 is preserved and the next
+  independent freeze targets the prompt-state-to-logit readout seam. #973
+  remains open and #954 remains blocked.
+- **Date:** 2026-08-28; direction updated 2026-09-01
 - **Owner:** #973 under programme root #820
 - **Supersedes for forward work:** another fixed componentwise prototype or
   scale-only repair after the #997 negative
@@ -896,6 +902,54 @@ folds, probes, transport permutations, alternative attention architectures,
 intrinsic geometry, resonance, or exact lowering. The
 [#1014 structured aggregate](../r4_softmax_end_to_end_attention_1014_raw.json)
 binds the five exact outputs, rubric grades, CIDs, audits, and replay results.
+
+## Retained-language and paired-H4 capacity amendment — 2026-09-01 (EDT)
+
+#973 subsequently completed a smaller matched language-path experiment rather
+than extending the #1017/#1019 Transformer-compatible model. The
+252,160-parameter `R4RetainedLanguagePathV1` exact-H4 retained arm and equal-size
+ordinary causal-softmax arm both generalized on the frozen nonsealed language
+population. Retained state-off worsened NLL by `0.334987556` nats and lost
+16,660 top-1 decisions; retained final NLL was `0.003532495` nats better than
+ordinary and its top-1 was `0.073814` percentage points lower. Every frozen
+language, state-off, matched-control, causal, replay, and forbidden-read gate
+passed. A separately frozen five-prompt smoke then completed provider-free,
+fresh-load deterministic autonomous retained decoding. This qualifies a compact
+retained-attention language path, not H4-specific superiority, reasoning,
+correctness, exact lowering, browser readiness, or release readiness. See the
+[V1 record](../r4_retained_language_path_v1_973.md).
+
+The next frozen rung changed only V1's token addressing. It gave the two layers
+separate canonical exact-H4 radix coordinates while preserving parameters,
+state, projections, gates, training data/order, seed, and optimizer dose. A
+construction-only token census reduced repeated cumulative joint addresses by
+`97.5477123%`; this is collision evidence, not a learned-capacity or H4-advantage
+result. The canonical prompt population contained 256 pairs and 512 directions
+under CID
+`blake3:c11a7c935139ca169460b90c01392d7c9e0929e4c10710e76e6c8f74cbdf0340`.
+The earlier provisional `blake3:9e041283383713a2ce48037774adb1022f6137d63dedfa4c587bdbee9e9f47c1`
+scan omitted canonical whitespace normalization and mostly overlapped training;
+it was rejected before freeze, never scored, and carries no evidence claim.
+
+The candidate slightly improved fresh-slice language fit: NLL/top-1 were
+`3.8832293739`/`0.2978017102` versus frozen V1
+`3.8901151940`/`0.2970635689`. It nevertheless failed the independent
+prompt-capacity decision. Candidate prompt gain was `0.0062477543` nats per
+target token versus V1 `0.0063672952`, a `-0.0001195409` delta, and candidate
+wins were `282/512` against the required 308. Both state-off arms collapsed to
+exactly zero prompt gain and paired-logit difference; replay, causal, and
+forbidden-read audits passed. The terminal is
+`PAIRED_H4_PROMPT_CAPACITY_FAIL`, result CID
+`blake3:508a4ff352f1e533d669d9616f65b972b0f13e8efe35867b7b095281ad940274`.
+See the [canonical result](../r4_paired_h4_prompt_capacity_973.md) and
+[structured aggregate](../r4_paired_h4_prompt_capacity_result_973_raw.json).
+
+This negative is local to the paired-address capacity seam. It does not revoke
+the established ordinary attention intervention or V1's qualified retained
+language path. Do not promote or retune the paired candidate and do not rerun
+generation. Preserve V1. The next independently frozen #973 experiment must
+isolate the prompt-state-to-logit readout seam. #973 remains open, #954 remains
+blocked, and C1-SB6 remains unauthorized.
 
 ## Historical intrinsic/replacement outcome branches — parked
 

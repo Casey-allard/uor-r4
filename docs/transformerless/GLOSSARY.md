@@ -5,7 +5,7 @@ historical [geometric causal decoder](../geometric_causal_decoder_plan.md).
 Current sequencing lives in the
 [Geometric Intelligence Programme](../geometric_intelligence_programme.md),
 and the latest terminal #973 mechanism is
-[`R4GroupAddressedRetentionDecoderV1CpuRecovery`](../r4_group_addressed_retention_decoder_cpu_recovery_973.md).
+[`R4PairedH4PromptCapacityV1`](../r4_paired_h4_prompt_capacity_result_973_raw.json).
 ADR-0005 remains the historical mechanism-family record.
 Decoder terms and graph terms name different execution lanes and must not be
 substituted for one another.
@@ -181,6 +181,36 @@ substituted for one another.
   `0.033049` nats better, so the recipe is not promoted and no H4-specific
   advantage is claimed. See the
   [terminal record](../r4_group_addressed_retention_decoder_cpu_recovery_973.md).
+- **`R4RetainedLanguagePathV1`** — #973's qualified 252,160-parameter
+  source-free retained-attention language path. It generalized, remained
+  load-bearing under state removal, and stayed competitive with its equal-
+  parameter ordinary causal-softmax control. A separately frozen retained-only
+  smoke produced five valid, exactly replayed local continuations without
+  forbidden/provider/source reads, but every output drifted from the prompt
+  subject or scene. It establishes retained attention and autonomous local
+  decoding at that scope, not prompt-conditioned coherence, H4 superiority,
+  reasoning, or exact lowering. See the
+  [binding record](../r4_retained_language_path_v1_973.md).
+- **`R4PairedH4LanguagePathV1` / `R4PairedH4PromptCapacityV1`** — the one
+  frozen V1 capacity successor that changes only the per-layer exact-H4 token
+  address while holding training data, seed, schedule, parameter count, and
+  work fixed. Its second coordinate reduced repeated joint addresses by
+  `97.5477%`, but the frozen prompt-swap criterion was worse than V1:
+  `0.0062477543` versus `0.0063672952` mean gain and `282/512` wins, below the
+  `0.043321699` and `308/512` floors. State-off was exactly zero and all
+  causal/replay/reveal checks passed. Terminal
+  `PAIRED_H4_PROMPT_CAPACITY_FAIL`; preserve V1 and do not generate from the
+  paired candidate. See the
+  [machine result](../r4_paired_h4_prompt_capacity_result_973_raw.json).
+- **`R4RetainedPromptSwapContrastV1`** — the sealed prompt-conditioning
+  criterion used by the paired-H4 campaign. Each of 256 pairs supplies two
+  bidirectional directions whose prompts differ globally but share their last
+  four tokens; each continuation is scored under its own and the paired prompt.
+  The population was sealed before candidate fitting and revealed only after
+  both artifact CIDs were fixed. Its canonical population CID is
+  `blake3:c11a7c935139ca169460b90c01392d7c9e0929e4c10710e76e6c8f74cbdf0340`.
+  A provisional `9e04...` scan was corrected before freeze because it omitted
+  whitespace normalization and overlapped training data.
 - **`DirectCausalGeometricAttentionR4V1`** — #973's offline gold-standard
   reference for the literal attention function: learned Q/K/V/O roles, local
   S3 tangent projection, causal H4-frame transport of every prior key and
@@ -331,10 +361,10 @@ substituted for one another.
   and measured `4.485223 s/step`, slower than the signed `3.491307 s/step`;
   `fused=True` was removed immediately. This is a bounded fast-path negative,
   not a model result. #1019 tuning/full-run work stops and remains optional/
-  paused. #1017 remains the working source-backed `r4 generate` path; #973 must
-  test language-path generalization of its qualified retained-attention
-  component with a data-supported budget and an ordinary matched non-geometric
-  decoder.
+  paused. #1017 remains the working source-backed `r4 generate` path; #973's
+  retained language path qualified, its paired-H4 capacity successor failed,
+  and the next independently frozen experiment isolates the prompt-state-to-
+  logit readout seam.
   UOR's deployed
   architecture/runtime remains CPU-native; Apple Accelerate/BLAS and MPS are
   local offline accelerators only; CUDA and external GPU execution are out of
@@ -500,8 +530,9 @@ substituted for one another.
   implementation. Full training, final parity, reveal, generation, and replay
   remain `NOT_RUN`. Its fused-AdamW/deferred-logging fast path was slower, so
   #1019 is optional/paused. #1017 remains the working source-backed
-  `r4 generate` path; #973 must test a data-supported language-path decoder
-  against an ordinary matched non-geometric decoder. CUDA
+  `r4 generate` path; #973's retained language path qualified, its paired-H4
+  capacity successor failed, and the prompt-state-to-logit readout seam is
+  next. CUDA
   and external GPU execution are out of scope.
   Intrinsic/readout,
   fiber-preserving multi-resonance replacement,
@@ -565,22 +596,21 @@ substituted for one another.
 - **Multiplication-free runtime** — a separate operation-set claim belonging
   to an exact execution path. It is not implied by “transformerless.”
 
-## Current #973 retained-decoder terminal — 2026-09-01
+## Current #973 prompt-capacity terminal — 2026-09-01
 
-`R4GroupAddressedRetentionDecoderV1CpuRecovery` completed all 512 construction
-steps in `438.117083 s`. On the disjoint construction-validation partition,
-disabling retained state lost `0.967227` nats and 182 top-1 hits. This is bounded causal
-retained-attention component evidence for the tested read/write law. The exact
-3.17M-parameter, two-block, data/dose recipe did not satisfy its frozen
-full-decoder generalization criterion: aggregate validation CE moved
-`8.371911 -> 8.976155`. Scrambled transport was `0.033049` nats better, so no
-H4-specific advantage is claimed. Do not scale or tune this exact complete
-decoder recipe; preserve the qualified read/write component. #973 must next
-freeze a data-supported language-path decoder with an ordinary matched
-non-geometric control. #954 remains blocked, no C1-SB6 is authorized, and the
-earlier gated-delta, trace-state, intrinsic/readout, and resonance lanes remain
-historical negatives or parked. See the
-[canonical #973 record](../r4_group_addressed_retention_decoder_cpu_recovery_973.md).
+`R4PairedH4PromptCapacityV1` completed
+`PAIRED_H4_PROMPT_CAPACITY_FAIL` at result CID
+`blake3:508a4ff352f1e533d669d9616f65b972b0f13e8efe35867b7b095281ad940274`.
+Fresh-language NLL/top-1 slightly improved over qualified V1, and structural
+repeats fell `97.5477%`, but candidate prompt gain was `0.0062477543` versus
+V1 `0.0063672952`, with only `282/512` wins. The paired address therefore does
+not supply the missing prompt capacity. Causal, replay, reveal, and forbidden-
+read checks passed; state-off was exactly zero. Preserve V1, reject the paired
+candidate, and do not run generation. Attention remains established; H4
+superiority, prompt-conditioned coherence, reasoning, and exact lowering do
+not follow. #973 next independently freezes the prompt-state-to-logit readout
+seam. #973 remains open, #954 remains blocked, and no C1-SB6 is authorized.
+See the [machine result](../r4_paired_h4_prompt_capacity_result_973_raw.json).
 
 ## Historical #973 state-student outcome — 2026-08-30
 
@@ -605,8 +635,8 @@ parity passed; MPS is `UNAVAILABLE_HARDWARE_BUDGET` on time
 (`20.66 h > 8 h`) with memory passing at `21.03%`. That terminal applies only
 to the frozen offline implementation. Full training, final parity, reveal,
 generation, and replay remain `NOT_RUN`. Its fused-AdamW/deferred-logging fast
-path was slower, so #1019 is optional/paused and the active next step is the
-#1017 `r4 generate` product path. CUDA and external GPU execution are out of
+path was slower, so #1019 is optional/paused. At that checkpoint, the active
+product step became the #1017 `r4 generate` path. CUDA and external GPU execution are out of
 scope. Exact lowering,
 resonance, WASM, release, correctness, and reasoning claims remain parked.
 

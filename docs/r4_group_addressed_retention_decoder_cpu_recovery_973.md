@@ -184,3 +184,32 @@ transport loses.
 Autonomous generation, coherent text, broad attention transfer, reasoning,
 correctness, exact lowering, heldout evaluation, #954, and release readiness
 remain `NOT_RUN` or unestablished.
+
+## Language-path and paired-address successors — 2026-09-01
+
+The data-supported successor requested above completed as
+[`R4RetainedLanguagePathV1`](r4_retained_language_path_v1_973.md). Its matched
+252,160-parameter retained and ordinary arms both generalized on the frozen
+nonsealed validation population. Disabling retained attention cost
+`0.334987556` nats and 16,660 top-1 decisions, and the retained arm remained
+within both frozen competitiveness bounds. Its terminal was
+`RETAINED_LANGUAGE_PATH_PASS`; a separately frozen five-prompt smoke then
+completed exact autonomous retained decoding. Those results supersede only
+this record's then-current sequencing, not its `RETAINED_DECODER_FAIL`.
+
+#973 next tested whether a layer-paired exact-H4 radix address would improve
+prompt-conditioned capacity without changing the qualified V1 cell. The
+[paired-H4 successor](r4_paired_h4_prompt_capacity_973.md) terminated
+`PAIRED_H4_PROMPT_CAPACITY_FAIL`, result CID
+`blake3:508a4ff352f1e533d669d9616f65b972b0f13e8efe35867b7b095281ad940274`.
+Fresh language fit slightly improved, but prompt gain was `0.0062477543` for
+the candidate versus `0.0063672952` for frozen V1, and candidate directional
+wins were `282/512` versus the required 308. State-off collapse, replay,
+causal, and forbidden-read controls passed.
+
+Qualified V1 is therefore preserved. There is no paired-address retry or new
+generation smoke. The next independent freeze targets the
+prompt-state-to-logit readout seam. Attention remains established at the
+separately qualified scopes; H4-specific advantage, reasoning, correctness,
+and exact lowering remain unestablished. #973 remains open and #954 remains
+blocked.

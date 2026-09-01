@@ -4,23 +4,23 @@
   readable mirror of programme root #820 (stages S0–S7 plus cross-cutting F0).
   The [Geometric Intelligence Programme](geometric_intelligence_programme.md)
   is its current architecture and claim-boundary companion.
-  The latest source-free attention result is #973's independently frozen
-  [`R4RetainedLanguagePathV1`](r4_retained_language_path_v1_973.md). Its
-  252,160-parameter exact-H4 retained arm generalized, remained load-bearing
-  under state removal, and stayed competitive with the equal-parameter ordinary
-  causal-softmax control: retained NLL `3.899862`, ordinary NLL `3.903394`, and
-  state-off NLL `4.234849` with 16,660 lost top-1 decisions. The terminal is
-  `RETAINED_LANGUAGE_PATH_PASS`; H4-specific advantage remains
-  `NOT_EVALUATED`. The separately frozen retained-only successor then completed
-  five maximum-64-token local decodes with valid raw UTF-8, exact fresh-load
-  replay, and zero forbidden, future, source-data, target, teacher, or provider
-  reads/calls. All five outputs drift from
-  their prompts, so autonomous retained decoding is established while
-  prompt-responsive coherence, reasoning, exact lowering, browser readiness,
-  and release remain unestablished. Preserve this cell; the next language-model
-  rung is a data-supported representation/capacity change with a frozen
-  prompt-conditioned behavior criterion. #954 remains blocked and no C1-SB6 is
-  authorized.
+  The latest source-free capacity result is #973's independently frozen
+  paired-H4 successor to qualified
+  [`R4RetainedLanguagePathV1`](r4_retained_language_path_v1_973.md). It is
+  terminal `PAIRED_H4_PROMPT_CAPACITY_FAIL` at
+  `blake3:508a4ff352f1e533d669d9616f65b972b0f13e8efe35867b7b095281ad940274`.
+  Structural repeats fell `97.5477%`, and fresh held-out language slightly
+  improved (NLL `3.8832293739` versus `3.8901151940`; top-1 `29.780171%`
+  versus `29.706357%`). The decision-bearing prompt contrast did not:
+  candidate gain was `0.0062477543` versus V1's `0.0063672952`, with
+  `282/512` wins below the absolute `0.043321699` and win `308/512` floors.
+  Causal, replay, reveal, and forbidden-read checks passed, and state-off was
+  exactly zero. Preserve V1, reject paired addressing, and do not run candidate
+  generation. Attention remains established at the qualified scope; coherence,
+  reasoning, H4 superiority, exact lowering, browser readiness, and release do
+  not follow. The next independently frozen #973 rung isolates the
+  prompt-state-to-logit readout seam. #973 remains open, #954 remains blocked,
+  and no C1-SB6 is authorized.
   [ADR-0005](adr/0005-predictive-geometric-connection-memory.md) retains the
   accepted-attention, autonomous-reference-generation, and parked-replacement
   architecture history.

@@ -10,17 +10,17 @@ The accepted #973 attention reference, completed learned-manifold/localization
 results, parked intrinsic-replacement lane, autonomous-generation gate, and
 native bridge result are frozen in
 [ADR-0005](docs/adr/0005-predictive-geometric-connection-memory.md).
-The current handoff is the completed independently frozen
-[#973 CPU-recovery record](docs/r4_group_addressed_retention_decoder_cpu_recovery_973.md).
-Its 512-step construction run establishes a bounded causal retained-attention
-component: exact state-on beats state-off on the disjoint construction
-validation partition by `0.967227` nats and 182 top-1 hits. The exact
-complete-decoder recipe is not
-promoted: aggregate validation CE worsened from `8.371911` to `8.976155`, and scrambled transport
-was `0.033049` nats better, so this result supports no H4-specific advantage. Preserve the
-qualified component; next freeze a language-path generalization mechanism with
-a data-supported parameter budget and an ordinary matched non-geometric
-decoder. Ordinary
+The current handoff preserves qualified
+[`R4RetainedLanguagePathV1`](docs/r4_retained_language_path_v1_973.md) and
+rejects its one paired-H4 prompt-capacity successor. That candidate reduced
+construction repeats `97.5477%` and slightly improved fresh-language NLL/top-1,
+but prompt gain fell from V1's `0.0063672952` to `0.0062477543`, with
+`282/512` wins below the `0.043321699` absolute-gain and `308/512` win floors.
+The terminal is `PAIRED_H4_PROMPT_CAPACITY_FAIL`, result CID
+`blake3:508a4ff352f1e533d669d9616f65b972b0f13e8efe35867b7b095281ad940274`.
+Causal/replay/reveal checks passed and state-off was exactly zero. Do not tune,
+retry, lower, or generate from this candidate. The next independently frozen
+#973 experiment isolates the prompt-state-to-logit readout seam. Ordinary
 causal R4/Spin Q/K/V plus stable softmax remains the bounded source-backed
 attention baseline, while C1-SB5 paired-query binding fit `56/56` but reached
 only `14/28` sealed. Row-swap equivariance was bit-exact; mean-query and
@@ -240,17 +240,15 @@ The experiment must be able to change the next programme decision:
   retried. C1-SB5 then fit `56/56` paired records but reached only `14/28`
   sealed and retired before checkpoint/head/Rust/development, with products
   unopened.
-  #973's independently frozen `R4GroupAddressedRetentionDecoderV1CpuRecovery`
-  completed 512 construction steps and established a bounded retained-attention
-  component through its state-off construction-validation loss. The exact complete-decoder
-  recipe did not satisfy its frozen generalization criterion, and H4 did not
-  beat scrambled transport. See the
-  [binding record](docs/r4_group_addressed_retention_decoder_cpu_recovery_973.md).
-  The old gated-delta,
+  #973's independently frozen `R4RetainedLanguagePathV1` is the qualified
+  retained-attention baseline. Its paired-H4 addressing successor failed the
+  prompt-capacity criterion and is frozen without generation; see the
+  [machine result](docs/r4_paired_h4_prompt_capacity_result_973_raw.json). The
+  old gated-delta,
   trace-state, intrinsic/readout, resonance, full-model recurrent-lowering, and
-  exact-deployment lanes remain negative or parked. Do not scale or tune this
-  exact complete-decoder recipe; #973 must next test a data-supported language-path decoder
-  against an ordinary matched non-geometric decoder. #973 still
+  exact-deployment lanes remain negative or parked. Do not scale or tune the
+  rejected paired candidate; #973 must next isolate the prompt-state-to-logit
+  readout seam against frozen V1. #973 still
   blocks GI-4/#954's final source-free terminal, with GI-5/#955 downstream of
   positive correctness.
 - **Exercise the accepted route path.** #953 geometry runs before token choice

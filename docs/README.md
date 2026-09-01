@@ -9,18 +9,19 @@ geometric recurrence and routing rather than a transformer, MoE, sparse learned
 router, or dense learned matrix engine in the serving path.
 
 The latest research gate is #973's independently frozen
-[`R4GroupAddressedRetentionDecoderV1` CPU recovery](r4_group_addressed_retention_decoder_cpu_recovery_973.md).
-It completed all 512 construction steps in `438.117083 s`. Turning retained
-state off on the disjoint construction-validation partition loses `0.967227`
-nats and 182 top-1 hits,
-which qualifies one bounded causal retained-attention component. The exact
-complete-decoder recipe is not promoted: aggregate validation CE worsened
-`8.371911 -> 8.976155`.
-Scrambled transport was `0.033049` nats better, so no H4-specific advantage is
-claimed. The next #973 action is an independently frozen language-path
-generalization mechanism with a data-supported parameter budget and an ordinary
-matched non-geometric decoder. #954 remains blocked; no C1-SB6, coherent
-generation, reasoning, exact lowering, or release is authorized.
+[paired-H4 prompt-capacity campaign](r4_paired_h4_prompt_capacity_result_973_raw.json).
+It is terminal `PAIRED_H4_PROMPT_CAPACITY_FAIL` at result CID
+`blake3:508a4ff352f1e533d669d9616f65b972b0f13e8efe35867b7b095281ad940274`.
+The candidate cut construction repeats `97.5477%` and slightly improved fresh-
+language NLL/top-1 over qualified `R4RetainedLanguagePathV1`, but prompt gain
+fell from `0.0063672952` to `0.0062477543`, with `282/512` wins below the
+absolute `0.043321699` and `308/512` floors. Causal, replay, reveal, and
+forbidden-read checks passed; state-off contrast was exactly zero. Preserve V1,
+reject the paired candidate, and do not run its generation gate. Attention
+remains established. The next #973 action independently freezes the
+prompt-state-to-logit readout seam. #973 remains open and #954 remains blocked;
+coherent generation, reasoning, H4 superiority, exact lowering, and release
+remain unestablished.
 
 The goal is real. Its success remains unproven. The current implementation has
 a storage/recall and route-query foundation, one bounded causal path mechanism,
@@ -131,8 +132,8 @@ logging and measured `4.485223 s/step`, slower than the signed
 `3.491307 s/step`; `fused=True` was removed immediately. This is a bounded
 fast-path negative, not a model result. #1019 tuning/full-run work stops and
 remains optional/paused; #1017 remains the working source-backed generator while
-#973 tests language-path generalization of its qualified retained-attention
-component. CUDA and external
+#973 tests the prompt-state-to-logit readout seam of its qualified retained-
+attention component. CUDA and external
 GPU execution are out of scope. See the
 [#1017 record](r4_softmax_quality_capacity_continuation_1017.md),
 [#1019 frozen contract](r4_softmax_parameter_capacity_1019.md), and
@@ -187,7 +188,8 @@ Choose the shortest path that matches what you need:
 - **Understand the project:** read the
   [Geometric Intelligence Programme](geometric_intelligence_programme.md).
 - **Understand the current geometric mechanism:** read the
-  [#973 retained-decoder CPU-recovery record](r4_group_addressed_retention_decoder_cpu_recovery_973.md),
+  [#973 retained-language-path record](r4_retained_language_path_v1_973.md),
+  then the [paired-H4 capacity result](r4_paired_h4_prompt_capacity_result_973_raw.json),
   then the [group-addressed retention record](r4_group_addressed_retention_973.md),
   then [ADR-0005](adr/0005-predictive-geometric-connection-memory.md) and
   [ADR-0004](adr/0004-geometric-intelligence-route-hierarchy.md), and use the
@@ -196,8 +198,8 @@ Choose the shortest path that matches what you need:
   [#954 record](r4_grounded_correctness_954.md). C1-SB5 paired-query binding is
   the latest frozen negative (`56/56` fit, `14/28` sealed) and is retired without
   retry. No C1-SB6 is authorized; #954's final source-free terminal remains
-  blocked while #973 tests language-path generalization of its qualified
-  retained-attention component.
+  blocked while #973 tests the prompt-state-to-logit readout seam of its
+  qualified retained-attention component.
 - **Improve the optional capacity rung:** start from live
   [#1019](https://github.com/UOR-Foundation/uor-r4/issues/1019) under #973 and
   programme root #820. Its population/smoke/random-export parity gates passed,
@@ -205,8 +207,7 @@ Choose the shortest path that matches what you need:
   eight-hour offline implementation. Its fused-AdamW/deferred-logging fast path
   was slower (`4.485223` versus signed `3.491307 s/step`), so the `NOT_RUN`
   campaign is optional/paused. #1017 remains usable through `r4 generate`; #973
-  must test a data-supported language-path decoder against an ordinary matched
-  non-geometric decoder. CUDA and
+  must isolate the prompt-state-to-logit readout seam against frozen V1. CUDA and
   external GPU execution are out of scope.
 - **Audit a result or claim:** use the [research ledger](RESEARCH.md), then open
   the exact issue-numbered evidence record it names.
@@ -292,8 +293,7 @@ These are the small set of living documents that define the present work:
    offline implementation, and the full campaign remains `NOT_RUN`. Its fused-
    AdamW/deferred-logging fast path was slower, so #1019 is optional/paused and
    #1017 remains the working source-backed `r4 generate` path. #973 must next
-   test a data-supported language-path decoder against an ordinary matched
-   non-geometric decoder. CUDA and
+   isolate the prompt-state-to-logit readout seam against frozen V1. CUDA and
    external GPU execution are out of scope.
    The bounded
    [multi-resonance reuse audit](multi_resonance_attention_sieve_audit_973.md)
@@ -338,7 +338,9 @@ reversible lexical geometry
   → preserve bounded #1017 `r4 generate` as the working source-backed prototype
   → close #973's exact group-addressed cell [UNAVAILABLE_FRAME_POPULATION_OR_LOCAL_BUDGET; MAIN/HELD-OUT NOT_RUN]
   → recover the frozen decoder on measured-fast CPU BLAS [512 STEPS COMPLETE; STATE ABLATION POSITIVE; BOUNDED RETAINED-ATTENTION COMPONENT EVIDENCE; FROZEN FULL-DECODER GENERALIZATION CRITERION NOT SATISFIED; H4 SPECIFICITY NOT_EVALUATED; DIAGNOSTIC SCRAMBLE CE BETTER]
-  → independently freeze a data-supported language-path decoder plus ordinary matched non-geometric control
+  → independently freeze a data-supported language-path decoder plus ordinary matched non-geometric control [R4RetainedLanguagePathV1 PASS]
+  → test paired-H4 prompt capacity [FAIL; STRUCTURAL REPEATS -97.5477%; PROMPT CONTRAST WORSE; GENERATION NOT_RUN]
+  → independently freeze the prompt-state-to-logit readout seam
   → park intrinsic/readout alternatives, resonance-based softmax replacement, full-model recurrent lowering, and exact deployment
   → correctness and abstention
   → multi-step reasoning

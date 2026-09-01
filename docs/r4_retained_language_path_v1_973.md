@@ -302,3 +302,27 @@ contain grammatical errors. No coherence threshold was frozen, so this is not
 post-hoc labeled a coherence pass or failure. It establishes autonomous retained decoding;
 prompt-conditioned meaning, reasoning, H4-specific advantage, exact/table
 runtime, browser integration, and release readiness remain unestablished.
+
+## Paired-H4 prompt-capacity successor — 2026-09-01
+
+The next independently frozen #973 rung replaced V1's shared token coordinate
+with one canonical exact-H4 coordinate per layer while preserving this record's
+parameter count, recurrent fields, projections, gates, optimizer dose, data
+order, and qualified V1 artifact as the frozen baseline. Its construction-only
+census reduced repeated cumulative joint addresses by `97.5477123%`, and the
+trained candidate slightly improved fresh-slice NLL and top-1 relative to V1.
+
+The independent prompt-swap decision nevertheless terminated
+`PAIRED_H4_PROMPT_CAPACITY_FAIL`. Candidate mean prompt gain was
+`0.0062477543` nats per target token versus `0.0063672952` for V1, a
+`-0.0001195409` delta, and the candidate won `282/512` directions against the
+frozen `308/512` threshold. Both state-off arms collapsed to exactly zero;
+replay, causal, and forbidden-read audits passed. See the
+[canonical paired-H4 result](r4_paired_h4_prompt_capacity_973.md) and
+[structured result](r4_paired_h4_prompt_capacity_result_973_raw.json).
+
+This successor does not alter `RETAINED_LANGUAGE_PATH_PASS` or the autonomous
+generation smoke recorded above. It shows that paired addressing did not add
+the required prompt-conditioned capacity. Preserve V1, do not retry generation,
+and independently freeze the prompt-state-to-logit readout seam next. #973
+remains open; #954 remains blocked.

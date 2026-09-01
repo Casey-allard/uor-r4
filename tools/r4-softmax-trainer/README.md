@@ -10,7 +10,8 @@ frozen source-relative relation-head, attended-relation, and joint-candidate
 successors, followed by the frozen paired-query binding rung. The package also
 contains #973's isolated source-free `R4GroupAddressedRetentionLMV1` campaign,
 its independently frozen `R4GroupAddressedRetentionDecoderV1CpuRecovery`, and
-the compact matched `R4RetainedLanguagePathV1` generalization rung.
+the compact matched `R4RetainedLanguagePathV1` generalization rung and its
+terminal `R4PairedH4PromptCapacityV1` successor.
 The causal-softmax and grounding paths train
 and continue ordinary causal-softmax
 Llama-family models, export them in the existing Rust loaders' Hugging Face
@@ -67,8 +68,7 @@ lost `0.967227` nats and 182
 top-1 hits, qualifying a bounded causal retained-attention component. The exact
 complete-decoder recipe is not promoted because aggregate validation CE worsened `8.371911 -> 8.976155`;
 scrambled transport was `0.033049` nats better, so no H4-specific advantage is
-claimed. The next #973 mechanism must test language-path generalization with a
-data-supported parameter budget and an ordinary matched non-geometric decoder.
+claimed. That next action later completed as `R4RetainedLanguagePathV1` below.
 There is no authorized retry, CUDA path, sweep, or C1-SB6.
 
 ## Frozen #973 retained language-path rung
@@ -115,6 +115,39 @@ prompts for at most 64 selected tokens, and records an exact fresh-load replay
 without training or opening train, validation, source, or sealed data. Its
 create-once result is a local autonomous-decoding smoke, not a coherence,
 reasoning, H4-superiority, lowering, browser, or release claim.
+
+## Terminal #973 paired-H4 prompt-capacity rung
+
+[`R4PairedH4PromptCapacityV1`](../../docs/r4_paired_h4_prompt_capacity_973.md)
+changes only the qualified retained cell's token addressing: token zero remains
+the canonical exact-H4 identity, while every other token receives a reversible
+two-coordinate radix address, one coordinate per decoder layer. The V1
+parameter count, state ledger, projections, gates, training slice/order, seed,
+and optimizer dose remain fixed; frozen V1 is evaluated without retraining.
+
+The create-once lifecycle is:
+
+```bash
+export UOR_MODEL_STORE="/absolute/path/to/the/shared/.uor-models"
+ROOT="$UOR_MODEL_STORE/research/issue-973-paired-h4-prompt-capacity-v1"
+TRAINER="$(git rev-parse --show-toplevel)/tools/r4-softmax-trainer"
+
+uv run --offline --project "$TRAINER" r4-softmax-trainer \
+  --root "$ROOT" prepare-paired-h4-prompt-capacity
+uv run --offline --project "$TRAINER" r4-softmax-trainer \
+  --root "$ROOT" probe-paired-h4-prompt-capacity
+uv run --offline --project "$TRAINER" r4-softmax-trainer \
+  --root "$ROOT" run-paired-h4-prompt-capacity
+```
+
+The run completed on Apple Accelerate CPU with four threads and terminated
+`PAIRED_H4_PROMPT_CAPACITY_FAIL`. Fresh heldout NLL/top-1 slightly improved
+over V1, but independent prompt gain was `0.0062477543` for the candidate
+versus `0.0063672952` for V1, and candidate wins were `282/512` against the
+required 308. State-off collapsed to zero; replay, causal, and forbidden-read
+audits passed. The candidate is not promoted. Preserve V1 and independently
+freeze the prompt-state-to-logit readout seam. There is no authorized
+generation retry, parameter sweep, CUDA path, or C1-SB6.
 
 ## Current measured boundary
 

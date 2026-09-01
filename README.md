@@ -14,29 +14,33 @@ local hardware. The project is testing whether language context, inference,
 and reasoning can emerge from routes through a canonical geometric memory. The
 target serving engine uses no Ollama, hosted model, or source-model weights.
 
-> **Latest source-free attention result (2026-09-01):** #973's independently
-> frozen [`R4RetainedLanguagePathV1`](docs/r4_retained_language_path_v1_973.md)
-> completed `RETAINED_LANGUAGE_PATH_PASS`. The 252,160-parameter exact-H4
-> retained arm improved held-out NLL from `8.326807` to `3.899862` and top-1 by
-> `29.730558` percentage points. Disabling retained state worsened NLL by
-> `0.334988` nats and lost 16,660 correct next-token decisions. The retained
-> arm finished `0.003532` nats better and only `0.073814` points behind the
-> equal-parameter ordinary causal-softmax control, inside both frozen
-> competitiveness bounds. This establishes a generalizing, causally
-> load-bearing geometric retained-attention language path; H4-specific
-> superiority remains `NOT_EVALUATED`.
+> **Latest source-free capacity result (2026-09-01):** #973's one frozen
+> paired-H4 successor completed `PAIRED_H4_PROMPT_CAPACITY_FAIL` at result CID
+> `blake3:508a4ff352f1e533d669d9616f65b972b0f13e8efe35867b7b095281ad940274`.
+> It reused [`R4RetainedLanguagePathV1`](docs/r4_retained_language_path_v1_973.md)
+> training data, seed, schedule, parameter count, and evaluation path, changing
+> only the per-layer exact-H4 token address. The second coordinate reduced
+> repeated joint addresses by `97.5477%`, but that is construction-only
+> evidence. On fresh held-out language the candidate was slightly better than
+> V1: NLL `3.8832293739` versus `3.8901151940`, and top-1 `29.780171%` versus
+> `29.706357%`.
 >
-> Its separately frozen retained-only autonomous smoke then completed five
-> maximum-64-token local continuations with valid raw UTF-8, zero forbidden,
-> future, source-data, target, teacher, or provider reads/calls, and five exact
-> fresh-artifact/fresh-state replays. The text is
-> recognizably multi-sentence TinyStories-style English, but all five outputs
-> lose the prompt subject or scene and contain grammatical errors. Therefore
-> autonomous retained decoding is established; dependable prompt-conditioned
-> coherence, reasoning, exact/table lowering, browser readiness, and release
-> readiness are not. The next language-model bottleneck is representation and
-> capacity for prompt-conditioned meaning, not another proof that attention
-> exists. #954 remains blocked.
+> The decision-bearing prompt-swap contrast did not improve. Candidate mean
+> gain was `0.0062477543` nats/token versus V1's `0.0063672952` (delta
+> `-0.0001195409`), with `282/512` directional wins; both the absolute
+> `0.043321699` gain floor and `308/512` win floor were missed. Causal,
+> forbidden-read, fresh-artifact replay, and reveal-binding checks passed, and
+> both state-off contrasts were exactly zero. The canonical population CID is
+> `blake3:c11a7c935139ca169460b90c01392d7c9e0929e4c10710e76e6c8f74cbdf0340`;
+> it replaced a provisional `9e04...` scan before freeze because that scan
+> omitted whitespace normalization and overlapped training data.
+>
+> Paired addressing is rejected as the prompt-capacity fix. Preserve the
+> qualified V1 cell; do not retry this arm or run its generation gate.
+> Attention remains established, but prompt-conditioned coherence, reasoning,
+> H4 superiority, exact/table lowering, browser readiness, and release readiness
+> do not follow. The next independently frozen #973 experiment targets the
+> prompt-state-to-logit readout seam. #973 stays open and #954 remains blocked.
 
 > **Current attention-to-intelligence checkpoint (2026-08-31):** ordinary
 > learned causal Q/K/V attention with stable softmax is established as the

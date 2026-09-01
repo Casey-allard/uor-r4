@@ -509,3 +509,27 @@ read/write component but does not establish coherent generation, source-free
 correctness, reasoning, exact lowering, or release readiness. C1-SB6 remains
 unauthorized. #973 must next independently freeze a data-supported language-path
 decoder with an ordinary matched non-geometric control.
+
+## #973 language-path and paired-capacity follow-up — 2026-09-01
+
+The data-supported language-path decoder requested immediately above completed
+`RETAINED_LANGUAGE_PATH_PASS`: a compact exact-H4 retained arm generalized,
+was load-bearing under state-off intervention, and remained within the frozen
+bounds of its matched ordinary causal-softmax arm. A separately frozen
+five-prompt run also completed deterministic autonomous decoding. These are
+attention and decoding results at the declared #973 scope, not source-free
+correctness or reasoning evidence.
+
+The subsequent layer-paired exact-H4 capacity candidate then terminated
+`PAIRED_H4_PROMPT_CAPACITY_FAIL`, result CID
+`blake3:508a4ff352f1e533d669d9616f65b972b0f13e8efe35867b7b095281ad940274`.
+Its fresh-slice NLL/top-1 slightly improved upon frozen V1, but independent
+prompt-swap gain regressed by `0.0001195409` nats per target token and it won
+only `282/512` directions against the required 308. State-off collapsed to
+zero and all causal, replay, and forbidden-read audits passed. See the
+[canonical paired-H4 record](r4_paired_h4_prompt_capacity_973.md).
+
+This result preserves V1 and moves #973 to an independently frozen
+prompt-state-to-logit readout seam; it does not authorize a generation retry.
+#954 remains blocked because no source-free correctness or reasoning criterion
+has passed. C1-SB6 remains unauthorized.

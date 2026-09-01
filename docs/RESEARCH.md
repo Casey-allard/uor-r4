@@ -14,29 +14,37 @@ Measurements retain their pre-declared exit rule and durable issue/record
 reference; design targets remain explicitly labeled as definitions,
 assumptions, or objectives rather than measured results.
 
-> **Current forward decision (2026-09-01).** #973's independently frozen
-> [`R4RetainedLanguagePathV1`](r4_retained_language_path_v1_973.md) completed
-> `RETAINED_LANGUAGE_PATH_PASS`. The 252,160-parameter exact-H4 retained arm
-> improved validation NLL `8.326807 -> 3.899862` and top-1 by `29.730558`
-> percentage points. Turning retained state off cost `0.334988` nats and 16,660
-> correct decisions. Retained versus the equal-parameter ordinary causal-softmax
-> control was `-0.003532` nats and `-0.073814` points, inside both predeclared
-> bounds. This establishes a generalizing and causally load-bearing geometric
-> retained-attention language path; H4-specific advantage remains
-> `NOT_EVALUATED`.
+> **Current forward decision (2026-09-01).** Preserve the qualified
+> [`R4RetainedLanguagePathV1`](r4_retained_language_path_v1_973.md) and reject
+> paired-H4 addressing as its prompt-capacity successor. The one independently
+> frozen `R4PairedH4PromptCapacityV1` campaign completed
+> `PAIRED_H4_PROMPT_CAPACITY_FAIL`; result CID
+> `blake3:508a4ff352f1e533d669d9616f65b972b0f13e8efe35867b7b095281ad940274`.
+> It held V1's training data, seed, schedule, parameter count, and work fixed,
+> changing only the per-layer exact-H4 token address. The second coordinate
+> reduced repeated joint addresses by `97.5477%`, a construction-only result.
+> On the fresh held-out language partition the candidate slightly improved NLL
+> (`3.8832293739` versus `3.8901151940`) and top-1 (`29.780171%` versus
+> `29.706357%`).
 >
-> The separately frozen retained-only successor is terminal
-> `AUTONOMOUS_GENERATION_SMOKE_COMPLETE`: five maximum-64-token outputs, valid
-> raw UTF-8, five exact fresh-artifact/fresh-zero-state replays, and zero
-> forbidden, future, provider, teacher, target, or source-data reads. The
-> outputs are multi-sentence TinyStories-style English but all five abandon
-> the supplied subject or scene and contain grammatical errors. Autonomous
-> local retained decoding is therefore established; prompt-conditioned
-> coherence, reasoning, exact/table lowering, browser readiness, and release
-> readiness are not. Do not reopen attention-existence testing or tune these
-> revealed prompts. The next language-model rung should preserve this retained
-> cell and independently freeze a data-supported representation/capacity change
-> with a prompt-conditioned behavior criterion. #954 remains blocked.
+> The frozen `R4RetainedPromptSwapContrastV1` criterion failed. Candidate mean
+> prompt gain was `0.0062477543` nats/token versus V1's `0.0063672952`, a
+> `-0.0001195409` delta, and candidate wins were `282/512`. It missed the
+> absolute `0.043321699` gain floor and `308/512` win floor. Both state-off
+> contrasts were exactly zero; causal-input, forbidden-read, fresh-artifact
+> replay, artifact-before-reveal, and CID-binding checks passed. The canonical
+> population CID is
+> `blake3:c11a7c935139ca169460b90c01392d7c9e0929e4c10710e76e6c8f74cbdf0340`.
+> It superseded a provisional `9e04...` scan before freeze because that scan
+> omitted whitespace normalization and overlapped training data.
+>
+> Do not retry, tune, lower, or generate from the paired candidate. Attention
+> and autonomous retained decoding remain established at V1's declared scope;
+> prompt-conditioned coherence, reasoning, H4 superiority, exact lowering,
+> browser readiness, and release readiness remain unestablished. The next
+> independently frozen #973 experiment isolates the prompt-state-to-logit
+> readout seam. #973 remains open and #954 remains blocked. See the
+> [machine result](r4_paired_h4_prompt_capacity_result_973_raw.json).
 
 > **Current forward decision after protected localization
 > (2026-08-30).** `ConnectionGaugeCovarianceV4` preserved construction-scale

@@ -54,6 +54,37 @@ correctness, and reasoning remain separate claims.
 Optimization, broad QA, formalization, and release certification follow a
 working decision-bearing product slice. They do not replace it.
 
+## Current #973 decision — paired addressing rejected, readout seam next
+
+Qualified `R4RetainedLanguagePathV1` remains the active source-free retained-
+attention baseline. Its one independently frozen paired-H4 capacity successor
+held training data, seed, schedule, parameter count, and work fixed while
+changing only the per-layer exact-H4 token address. It reduced repeated joint
+addresses by `97.5477%` and slightly improved fresh held-out language (NLL
+`3.8832293739` versus V1 `3.8901151940`; top-1 `29.780171%` versus
+`29.706357%`). That structural capacity did not improve prompt use.
+
+On the sealed `R4RetainedPromptSwapContrastV1` population, candidate mean gain
+was `0.0062477543` nats/token versus V1's `0.0063672952`, a
+`-0.0001195409` delta, and it won `282/512` directions. It missed the frozen
+absolute `0.043321699` gain and `308/512` win floors. State-off contrast was
+exactly zero for both artifacts; causal, forbidden-read, reveal-binding, and
+deterministic fresh-load replay checks passed. The terminal is
+`PAIRED_H4_PROMPT_CAPACITY_FAIL`, result CID
+`blake3:508a4ff352f1e533d669d9616f65b972b0f13e8efe35867b7b095281ad940274`.
+The canonical prompt population is
+`blake3:c11a7c935139ca169460b90c01392d7c9e0929e4c10710e76e6c8f74cbdf0340`;
+it replaced the provisional `9e04...` scan before freeze because that scan
+omitted whitespace normalization and overlapped training data.
+
+Reject paired addressing as the capacity fix and do not run its generation or
+lowering gates. Preserve V1. Attention remains established at its declared
+scope; this negative establishes neither H4 inferiority nor superiority and
+does not establish coherent generation, general reasoning, or exact lowering.
+The next independently frozen #973 experiment isolates the
+prompt-state-to-logit readout seam. #973 stays open and #954 remains blocked.
+See the [machine result](r4_paired_h4_prompt_capacity_result_973_raw.json).
+
 ## Primary direction after protected localization — 2026-08-30
 
 PR #997 separated causal geometric action from useful prediction. Its exact
@@ -193,8 +224,8 @@ exact-shape MPS fast-path test (10 warmup plus 40 measured steps) combined fused
 AdamW with deferred logging and measured `4.485223 s/step`, slower than the
 signed `3.491307 s/step`; `fused=True` was removed immediately. This is a
 bounded fast-path negative, not a model result. #1019 tuning/full-run work stops
-and remains optional/paused; the active next step is the working #1017
-`r4 generate` product path. UOR's deployed architecture/runtime remains CPU-native; Apple
+and remains optional/paused. At that checkpoint, the active product step became
+the working #1017 `r4 generate` path. UOR's deployed architecture/runtime remains CPU-native; Apple
 Accelerate/BLAS and MPS are local offline accelerators only; CUDA and external
 GPU execution are out of scope. The MPS stop is not a
 model-quality negative, leaves the full-scale capacity hypothesis untested, and
@@ -310,8 +341,8 @@ stopped `UNAVAILABLE_HARDWARE_BUDGET` on its `20.66 h` time projection while
 memory passed at `21.03%`. That terminal applies only to the frozen offline
 implementation. Full training, final parity, reveal, generation, and replay
 remain `NOT_RUN`. Its fused-AdamW/deferred-logging fast path was slower, so
-#1019 is optional/paused and the active next step is the #1017 `r4 generate`
-product path. CUDA and external GPU execution are out of scope. Intrinsic/readout,
+#1019 is optional/paused. At that checkpoint, the active product step became the
+#1017 `r4 generate` path. CUDA and external GPU execution are out of scope. Intrinsic/readout,
 multi-resonance, recurrent lowering, and final requalification are parked;
 D3 remains `NOT_RUN` and #954 remains blocked.
 No new H4,
@@ -437,7 +468,8 @@ construction-bound exact-descriptor selector at each of paragraph and
   at `21.03%`. That terminal applies only to the frozen offline implementation.
   Full training, final parity, reveal, generation, and replay are `NOT_RUN`.
   Its fused-AdamW/deferred-logging fast path was slower, so #1019 is optional/
-  paused and the active next step is the #1017 `r4 generate` product path. CUDA
+  paused. At that checkpoint, the active product step became the #1017
+  `r4 generate` path. CUDA
   and external GPU execution are out of scope.
   Intrinsic/readout alternatives, resonance-based softmax
   replacement, new state dimensions, whole-decoder recurrent lowering, and
@@ -1441,8 +1473,9 @@ random-export all-twelve-layer Rust preflight parity passed. MPS stopped
 `UNAVAILABLE_HARDWARE_BUDGET` on time (`20.66 h > 8 h`) while memory passed at
 `21.03%`. That terminal applies only to the frozen offline implementation. Full
 training, final parity, reveal, generation, and replay remain `NOT_RUN`. Its
-fused-AdamW/deferred-logging fast path was slower, so #1019 is optional/paused
-and the active next step is the #1017 `r4 generate` product path. CUDA and
+fused-AdamW/deferred-logging fast path was slower, so #1019 is optional/paused.
+At that checkpoint, the active product step became the #1017 `r4 generate`
+path. CUDA and
 external GPU execution are out of scope.
 Intrinsic/readout, resonance/recurrent lowering, and final
 requalification are parked.
@@ -1856,7 +1889,8 @@ H4 connection against a working plain arm and a strong coherent-tangent
   at `21.03%`. That terminal applies only to the frozen offline implementation.
   Full training, final parity, reveal, generation, and replay remain `NOT_RUN`.
   Its fused-AdamW/deferred-logging fast path was slower, so #1019 is optional/
-  paused and the active next step is the #1017 `r4 generate` product path. CUDA
+  paused. At that checkpoint, the active product step became the #1017
+  `r4 generate` path. CUDA
   and external GPU execution are out of scope.
 See ADR-0005 and the
 [#973 corpus-induced document placement record](corpus_induced_document_spin_placement_973.md).
@@ -1886,8 +1920,8 @@ passed; MPS is `UNAVAILABLE_HARDWARE_BUDGET` on time (`20.66 h > 8 h`) with
 memory passing at `21.03%`. That terminal applies only to the frozen offline
 implementation. Full training, final parity, reveal, generation, and replay
 remain `NOT_RUN`. Its fused-AdamW/deferred-logging fast path was slower, so
-#1019 is optional/paused and the active next step is the #1017 `r4 generate`
-product path. CUDA and external GPU execution are out of scope. Intrinsic/readout alternatives,
+#1019 is optional/paused. At that checkpoint, the active product step became the
+#1017 `r4 generate` path. CUDA and external GPU execution are out of scope. Intrinsic/readout alternatives,
 resonance-based softmax replacement, new state dimensions, corpus scale,
 whole-decoder recurrent lowering, and exact deployment are parked, while D3
 remains `NOT_RUN`. The one
@@ -2065,10 +2099,12 @@ hours remains a hard kill ceiling, never an estimate.
   lowering;
   it has completed the Q16 suffix trace student with bounded distillation but
   looping output; its `R4SoftmaxTraceStateStudentV1` successor is complete and
-  failed promotion; and it next owns only the construction-only
-  leave-one-document-out observability audit;
-  intrinsic/readout, new state dimensions, corpus scale, resonance/recurrent
-  lowering, and final requalification are parked.
+  failed promotion; its construction-only leave-one-document-out observability
+  audit is complete; `R4RetainedLanguagePathV1` is qualified; and the paired-H4
+  addressing successor failed prompt capacity. It next owns only the
+  independently frozen prompt-state-to-logit readout seam. Intrinsic attention
+  replacement, new state dimensions, corpus scale, resonance/recurrent
+  lowering, and final requalification remain parked.
 - S3/R4 compute, Hopf S2/R3 observation, and an E8 action plane are distinct
   objects.
 - Exact recall, grammatical text, correct inference, and reasoning are separate
@@ -2077,7 +2113,7 @@ hours remains a hard kill ceiling, never an estimate.
 - No frontier, general-intelligence, correctness, or energy-superiority claim
   follows until its own declared product evidence exists.
 
-## Current #973 retained language-path decision (2026-09-01)
+## Current #973 retained baseline and capacity decision (2026-09-01)
 
 The independently frozen
 [`R4RetainedLanguagePathV1`](r4_retained_language_path_v1_973.md) supersedes
@@ -2096,11 +2132,13 @@ replay, and zero forbidden, future, provider, teacher, target, or source-data
 reads. This establishes autonomous local retained decoding. All five outputs
 drift from their prompt subjects or scenes, so prompt-responsive coherence,
 reasoning, exact/table lowering, browser readiness, and release readiness
-remain unestablished. #973 now preserves the qualified retained cell and owns
-one independently frozen, data-supported representation/capacity successor
-with a prompt-conditioned behavior criterion. It does not reopen attention
-existence or tune the revealed prompts; #954 remains blocked while #973 stays
-open.
+remain unestablished. The one independently frozen paired-H4 addressing
+successor described in the current decision above then failed its prompt-
+capacity criterion despite lower construction collisions and slightly better
+fresh-language metrics. Preserve the qualified V1 cell, reject the paired arm,
+and do not run its generation gate. #973 next owns one independently frozen
+prompt-state-to-logit readout-seam experiment. It does not reopen attention
+existence or tune revealed prompts; #954 remains blocked while #973 stays open.
 
 ## Historical preservation
 

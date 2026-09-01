@@ -59,6 +59,11 @@ from .language_path_generalization_campaign import (
 )
 from .language_path_generalization_data import prepare_language_path_data
 from .language_path_generation import run_language_path_generation
+from .paired_h4_prompt_capacity_campaign import (
+    prepare_paired_h4_prompt_capacity,
+    probe_paired_h4_prompt_capacity,
+    run_paired_h4_prompt_capacity,
+)
 from .paired_query_binding_campaign import (
     prepare_paired_query_binding_data,
     run_paired_query_binding_preflight,
@@ -69,24 +74,28 @@ from .paths import (
     default_continuation_root,
     default_grounding_predecessor_root,
     default_grounding_root,
-    default_group_retention_decoder_root,
     default_group_retention_decoder_cpu_recovery_root,
+    default_group_retention_decoder_root,
     default_group_retention_root,
     default_group_retention_source_root,
     default_joint_candidate_margin_root,
     default_language_path_geometry,
     default_language_path_root,
     default_language_path_source_root,
+    default_paired_h4_prompt_capacity_predecessor,
+    default_paired_h4_prompt_capacity_raw_source,
+    default_paired_h4_prompt_capacity_root,
+    default_paired_h4_prompt_capacity_source_train,
     default_paired_query_binding_root,
     default_research_root,
     default_source_relation_head_root,
     default_source_span_pointer_root,
 )
+from .provenance import verify_bound_manifest
 from .source_relation_adapter_campaign import (
     prepare_attended_relation_data,
     run_attended_relation_preflight,
 )
-from .provenance import verify_bound_manifest
 from .source_relation_head import train_source_relation_head
 from .source_span_pointer import train_source_span_pointer
 from .train import TrainConfig, reveal_sealed_test, run_overfit_smoke, train_main
@@ -511,6 +520,44 @@ def parser() -> argparse.ArgumentParser:
             "autonomous generation smoke"
         ),
     )
+    prepare_paired_h4 = subcommands.add_parser(
+        "prepare-paired-h4-prompt-capacity",
+        help=(
+            "freeze #973's one paired-H4 successor, fresh heldout slice, and "
+            "independent prompt-conditioning population"
+        ),
+    )
+    prepare_paired_h4.add_argument(
+        "--predecessor-root",
+        type=_root,
+        default=default_paired_h4_prompt_capacity_predecessor(),
+        help="immutable qualified retained-language-path root",
+    )
+    prepare_paired_h4.add_argument(
+        "--source-train",
+        type=_root,
+        default=default_paired_h4_prompt_capacity_source_train(),
+        help="verified nonsealed #1019 train-token store",
+    )
+    prepare_paired_h4.add_argument(
+        "--raw-source",
+        type=_root,
+        default=default_paired_h4_prompt_capacity_raw_source(),
+        help="pinned raw TinyStories source for the sealed prompt population",
+    )
+    subcommands.add_parser(
+        "probe-paired-h4-prompt-capacity",
+        help="run #973's five-step Apple Accelerate CPU4 admission probe",
+    )
+    run_paired_h4 = subcommands.add_parser(
+        "run-paired-h4-prompt-capacity",
+        help="run or resume #973's single paired-H4 fit and frozen evaluation",
+    )
+    run_paired_h4.add_argument(
+        "--resume",
+        action="store_true",
+        help="resume the identical frozen candidate trajectory",
+    )
     return command
 
 
@@ -568,6 +615,12 @@ def main() -> None:
         "prepare-language-path",
         "probe-language-path",
         "run-language-path",
+        "generate-language-path",
+    }
+    paired_h4_prompt_capacity_commands = {
+        "prepare-paired-h4-prompt-capacity",
+        "probe-paired-h4-prompt-capacity",
+        "run-paired-h4-prompt-capacity",
     }
     if arguments.root:
         root = arguments.root
@@ -595,6 +648,8 @@ def main() -> None:
         root = default_group_retention_decoder_cpu_recovery_root()
     elif arguments.command in language_path_commands:
         root = default_language_path_root()
+    elif arguments.command in paired_h4_prompt_capacity_commands:
+        root = default_paired_h4_prompt_capacity_root()
     else:
         root = default_research_root()
     if arguments.command == "download":
@@ -826,5 +881,22 @@ def main() -> None:
         return
     if arguments.command == "generate-language-path":
         _print_result(run_language_path_generation(root))
+        return
+    if arguments.command == "prepare-paired-h4-prompt-capacity":
+        prepared = prepare_paired_h4_prompt_capacity(
+            root=root,
+            predecessor_root=arguments.predecessor_root,
+            source_train_path=arguments.source_train,
+            raw_source_path=arguments.raw_source,
+        )
+        _print_result(prepared.manifest)
+        return
+    if arguments.command == "probe-paired-h4-prompt-capacity":
+        _print_result(probe_paired_h4_prompt_capacity(root))
+        return
+    if arguments.command == "run-paired-h4-prompt-capacity":
+        _print_result(
+            run_paired_h4_prompt_capacity(root, resume=arguments.resume)
+        )
         return
     raise AssertionError(f"unhandled command: {arguments.command}")
