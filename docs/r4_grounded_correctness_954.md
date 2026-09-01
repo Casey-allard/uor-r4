@@ -463,3 +463,28 @@ remains downstream.
 
 The compact bound aggregate is
 [`r4_paired_query_binding_954_raw.json`](r4_paired_query_binding_954_raw.json).
+
+## Status correction — 2026-09-01
+
+The statement above that #973 was parked records the state at C1-SB5 close; it
+is not the current execution handoff. #973 has since been independently
+re-scoped to
+[`R4GroupAddressedRetentionLMV1`](r4_group_addressed_retention_973.md). Its
+corrected exact-H4/cyclic-120/scrambled-H4 geometry and frozen population pass
+construction-only audits. The MPS training/timing gate, disposable smoke, main
+optimization, and held-out model scoring remain `NOT_RUN`; no attention,
+H4-advantage, generation, correctness, or reasoning claim follows. #954's final
+source-free terminal remains blocked behind #973. C1-SB6 remains unauthorized.
+
+## #973 terminal follow-up — 2026-09-01
+
+The group-addressed construction gate referenced immediately above has now
+completed. `R4GroupAddressedRetentionLMV1` terminated
+`UNAVAILABLE_FRAME_POPULATION_OR_LOCAL_BUDGET`: geometry, population,
+reachability, gradients, memory, equal work, and held-out sealing passed, while
+timing and disposable learning smoke failed. Main optimization and held-out
+model scoring are `NOT_RUN`; there is no attention or H4-advantage verdict. The
+exact cell will not be retried or tuned. #973 must next scientifically select
+and independently freeze a fuller source-free decoder block. #954 remains
+blocked and C1-SB6 remains unauthorized. See the
+[canonical #973 record](r4_group_addressed_retention_973.md).

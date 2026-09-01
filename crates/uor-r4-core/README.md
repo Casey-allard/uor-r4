@@ -8,7 +8,15 @@ a transformerless local AI engine.
 prime/semiprime routes, spin and torsion state, Hopf projection with a retained
 fiber, golden-radial structure, exact transport controls, and bounded route
 operators. They are the retained address/frame/transport substrate, not a
-semantic language model. The bounded `GeometricGatedDeltaRetentionR4V1` core
+semantic language model. The latest #973 implementation is
+[`R4GroupAddressedRetentionLMV1`](../../docs/r4_group_addressed_retention_973.md):
+`r4_group_addressed_retention` and `r4-group-geometry-export` bind exact H4,
+cyclic-120, and destructive scrambled-H4 actions plus the corrected prime-leaf
+map. It terminated `UNAVAILABLE_FRAME_POPULATION_OR_LOCAL_BUDGET`: mechanical
+audits passed, but timing and disposable learning smoke failed. Main and
+held-out model runs are `NOT_RUN`; do not retry or tune this cell. #973 must
+next select a fuller source-free decoder block. The bounded
+`GeometricGatedDeltaRetentionR4V1` core
 now implements separate learned K/V/Q, H4-frame transport, four retained banks,
 and candidate-relative readout, but its sealed synthetic smoke was weaker than
 plain delta. `DirectCausalGeometricAttentionR4V1` now implements the literal
@@ -37,8 +45,9 @@ in coherent R4/Spin frames is the accepted baseline. Provider-free autonomous
 `R4SoftmaxReferenceGeneratorV1` (`HELM-D-R4`) native CLI generation now passes
 using the credited HELM attention seam and UOR's pinned SmolLM2
 `HuggingFaceLlamaOracle` for embeddings, RoPE, residual/RMSNorm, MLP, final
-normalization, and the language-model head. The active rung is its explicit
-opt-in native HTTP/dashboard bridge, with no default-engine change.
+normalization, and the language-model head. Its explicit opt-in native
+HTTP/dashboard bridge is a completed source-backed reference surface, not the
+active source-free research rung.
 It remains transformer-compatible and `f32`/multiply/alloc/source-weight
 backed—not yet a table-native, multiply-free, or transformerless serving
 mechanism. Intrinsic/readout, resonance, replacement, recurrence, and lowering
@@ -74,8 +83,8 @@ The crate therefore hosts three related bodies of work:
    (`src/prime_route_attention.rs`,
    `src/prime_route_geometric_attention.rs`, `src/spiralcore_operator.rs`):
    canonical route identities, recursive geometric state operators, direct
-   attention reference, bounded gated-delta candidate, and the construction
-   seams reused by the current #973 programme.
+   attention reference, the historical bounded gated-delta comparator, and the
+   group-addressed geometry/export seams retained from #973's terminal cell.
 3. **The historical transformerless engine** (`src/transformerless/`): cross-compiles a
    pinned Hugging Face teacher into a multiplication-free, table-native
    inference artifact (TLA3-TLA7 containers; TLA7 is the default emission), plus the integer-only

@@ -7,6 +7,17 @@
 > architecture and claim boundaries live in the
 > [Geometric Intelligence Programme](geometric_intelligence_programme.md).
 
+> **Latest #973 lifecycle (2026-09-01):** the independently re-scoped
+> [`R4GroupAddressedRetentionLMV1`](r4_group_addressed_retention_973.md)
+> terminated `UNAVAILABLE_FRAME_POPULATION_OR_LOCAL_BUDGET`. Geometry,
+> population, reachability, gradients, memory, and equal work passed; timing and
+> disposable learning smoke failed. Main optimization and held-out model scoring
+> are `NOT_RUN`, with zero held-out training reads and no attention/H4 verdict.
+> Do not retry or tune this exact cell. The next #973 lifecycle action is to
+> scientifically select and independently freeze a fuller source-free decoder
+> block. #954 remains blocked and no C1-SB6 is authorized. The dated lifecycle
+> below is retained as evidence history.
+
 > **Current evidence and direction (2026-08-31):** #989 established the frozen
 > source-free table reference at 22.261404% held-out top-1 versus 5.413561%
 > unigram. The accepted #953 `MultiscaleCountRadiusR4V1` intervention raised the

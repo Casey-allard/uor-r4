@@ -6,11 +6,18 @@ Guidance for agents (human or otherwise) working in this repository.
 the readable mirror of programme root #820.** The
 [`Geometric Intelligence Programme`](docs/geometric_intelligence_programme.md)
 is the current architecture and claim-boundary companion.
-The active mechanism contract is
-[`ADR-0005`](docs/adr/0005-predictive-geometric-connection-memory.md). The
-current evidence handoff is the append-only
-[#954 grounded-correctness record](docs/r4_grounded_correctness_954.md) and
-[C1-SB5 aggregate](docs/r4_paired_query_binding_954_raw.json). The
+The latest mechanism and evidence contract is the independently re-scoped
+[#973 `R4GroupAddressedRetentionLMV1` record](docs/r4_group_addressed_retention_973.md).
+It terminated `UNAVAILABLE_FRAME_POPULATION_OR_LOCAL_BUDGET`: geometry,
+population, label-free reachability, gradients, memory, and equal work passed,
+but the frozen timing ceiling and disposable learning smoke did not. The main
+run was unauthorized and `NOT_RUN`; held-out training reads stayed zero and no
+attention or H4-advantage verdict exists. Do not retry or tune this exact cell.
+The next #973 action is to scientifically select and independently freeze a
+fuller source-free decoder block. #954's final source-free correctness terminal
+remains blocked; no C1-SB6 is authorized. ADR-0005 and the
+append-only [#954 grounded-correctness record](docs/r4_grounded_correctness_954.md)
+remain historical mechanism/evidence context. The
 earlier frozen [#1019 parameter-capacity contract](docs/r4_softmax_parameter_capacity_1019.md)
 and its [signed preflight result](docs/r4_softmax_parameter_capacity_preflight_1019_raw.json)
 remain reference history.
@@ -398,7 +405,9 @@ source-backed `R4SoftmaxReferenceGeneratorV1` (`HELM-D-R4`) generation and its
 opt-in, loopback-only dedicated native HTTP endpoint now pass; dashboard
 wiring/readiness and static/WASM-isolation checks pass while hosted Pages
 remains static/offline without a functioning chat backend/artifact lowering;
-the Q16 suffix trace student is complete and `R4SoftmaxTraceStateStudentV1` is active;
+the Q16 suffix trace student and `R4SoftmaxTraceStateStudentV1` are complete
+bounded negatives; `R4GroupAddressedRetentionLMV1` also closed at its
+construction terminal, and #973 must select a fuller source-free decoder block;
 new route families, intrinsic/readout alternatives, resonance-based softmax
 replacement, unqualified scale, and exact deployment remain parked. D3 remains
 `NOT_RUN`; #954 and
@@ -464,13 +473,16 @@ source-backed `R4SoftmaxReferenceGeneratorV1` (`HELM-D-R4`) generation and its
 opt-in, loopback-only dedicated native HTTP endpoint now pass; dashboard
 wiring/readiness and static/WASM-isolation checks pass while hosted Pages
 remains static/offline without a functioning chat backend/artifact lowering;
-the Q16 suffix trace student is complete and `R4SoftmaxTraceStateStudentV1` is active;
+the Q16 suffix trace student and `R4SoftmaxTraceStateStudentV1` are complete
+bounded negatives; `R4GroupAddressedRetentionLMV1` also closed at its
+construction terminal, and #973 must select a fuller source-free decoder block;
 intrinsic/readout alternatives, paired-E8, resonance-based softmax replacement,
 and exact deployment are parked. Actual paired-E8 hierarchy, fiber, and torsion binding remains
 `NOT_IMPLEMENTED`. Transport
-overhead is reported explicitly rather than called equal work. The recurrent
-gated-delta core remains an explicit compression candidate and negative
-baseline; it is not promoted until it reproduces a qualified dense reference.
+overhead is reported explicitly rather than called equal work. The old
+recurrent gated-delta core remains a negative historical comparator; it is not
+an active retry lane. The terminal independently frozen group-addressed cell used
+matched H4, cyclic, and destructive scrambled actions instead.
 No construction result alone authorizes the held-out D3 join.
 Freeze the operator family/schema, objective, scope semantics, neighborhood
 contract, and induction rule; vary only declared parameter values under new

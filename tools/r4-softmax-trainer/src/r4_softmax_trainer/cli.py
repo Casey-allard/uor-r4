@@ -1,4 +1,4 @@
-"""Command line for the bounded #1014, #1017, #1019, and #954 campaigns."""
+"""Command line for the bounded #1014/#1017/#1019/#954/#973 campaigns."""
 
 from __future__ import annotations
 
@@ -37,6 +37,10 @@ from .continuation_data import (
 from .data import download_source, load_dataset_manifest, prepare_dataset
 from .finalize import finalize_continuation
 from .grounding import train_grounding
+from .group_retention_campaign import (
+    prepare_group_retention_data,
+    run_group_retention_preflight,
+)
 from .joint_candidate_margin_campaign import (
     prepare_joint_candidate_margin_data,
     run_joint_candidate_margin_preflight,
@@ -51,6 +55,8 @@ from .paths import (
     default_continuation_root,
     default_grounding_predecessor_root,
     default_grounding_root,
+    default_group_retention_root,
+    default_group_retention_source_root,
     default_joint_candidate_margin_root,
     default_paired_query_binding_root,
     default_research_root,
@@ -85,8 +91,8 @@ def parser() -> argparse.ArgumentParser:
         type=_root,
         help=(
             "untracked data/checkpoint root (defaults to issue-1014, issue-1017, "
-            "issue-1019, or the selected issue-954 grounding mechanism according to the "
-            "lifecycle)"
+            "issue-1019, issue-973, or the selected issue-954 grounding mechanism "
+            "according to the lifecycle)"
         ),
     )
     subcommands = command.add_subparsers(dest="command", required=True)
@@ -371,6 +377,33 @@ def parser() -> argparse.ArgumentParser:
         default=default_grounding_predecessor_root(),
         help="immutable completed #1017 Hugging Face export",
     )
+    prepare_retention = subcommands.add_parser(
+        "prepare-group-retention",
+        help=(
+            "freeze #973's source-free geometry and physically sealed "
+            "256/64 natural-language population without training"
+        ),
+    )
+    prepare_retention.add_argument(
+        "--source-root",
+        type=_root,
+        default=default_group_retention_source_root(),
+        help="immutable completed #1017 research root; weights and traces are forbidden",
+    )
+    prepare_retention.add_argument(
+        "--geometry",
+        type=_root,
+        required=True,
+        help="canonical JSON emitted by r4-group-geometry-export",
+    )
+    retention_preflight = subcommands.add_parser(
+        "preflight-group-retention",
+        help=(
+            "run #973's sole structural, MPS timing, gradient, and disposable "
+            "overfit gate; held-out bytes remain sealed"
+        ),
+    )
+    retention_preflight.add_argument("--backend", choices=["mps"], required=True)
     return command
 
 
@@ -412,6 +445,10 @@ def main() -> None:
         "prepare-paired-query-binding",
         "train-paired-query-binding-preflight",
     }
+    group_retention_commands = {
+        "prepare-group-retention",
+        "preflight-group-retention",
+    }
     if arguments.root:
         root = arguments.root
     elif arguments.command in capacity_commands:
@@ -430,6 +467,8 @@ def main() -> None:
         root = default_joint_candidate_margin_root()
     elif arguments.command in paired_query_commands:
         root = default_paired_query_binding_root()
+    elif arguments.command in group_retention_commands:
+        root = default_group_retention_root()
     else:
         root = default_research_root()
     if arguments.command == "download":
@@ -602,5 +641,17 @@ def main() -> None:
                 root, predecessor=arguments.predecessor
             )
         )
+        return
+    if arguments.command == "prepare-group-retention":
+        _print_result(
+            prepare_group_retention_data(
+                root,
+                source_root=arguments.source_root,
+                geometry_path=arguments.geometry,
+            )
+        )
+        return
+    if arguments.command == "preflight-group-retention":
+        _print_result(run_group_retention_preflight(root, backend=arguments.backend))
         return
     raise AssertionError(f"unhandled command: {arguments.command}")

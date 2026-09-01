@@ -10,17 +10,21 @@ The accepted #973 attention reference, completed learned-manifold/localization
 results, parked intrinsic-replacement lane, autonomous-generation gate, and
 native bridge result are frozen in
 [ADR-0005](docs/adr/0005-predictive-geometric-connection-memory.md).
-The current handoff is the
-[#954 grounded-correctness record](docs/r4_grounded_correctness_954.md) and
-[C1-SB5 aggregate](docs/r4_paired_query_binding_954_raw.json): ordinary
+The current handoff is the independently re-scoped
+[#973 group-addressed retention record](docs/r4_group_addressed_retention_973.md):
+its geometry, population, reachability, gradients, memory, and equal-work audits
+passed, but timing and disposable learning smoke produced terminal
+`UNAVAILABLE_FRAME_POPULATION_OR_LOCAL_BUDGET`. Main optimization and held-out
+model scoring are `NOT_RUN`. Ordinary
 causal R4/Spin Q/K/V plus stable softmax remains the bounded source-backed
 attention baseline, while C1-SB5 paired-query binding fit `56/56` but reached
 only `14/28` sealed. Row-swap equivariance was bit-exact; mean-query and
 attention-off controls were each `0/28`. Products remained unopened and no
 checkpoint/head/Rust/development stage followed. The rung is retired without
 retry and establishes neither generation, reasoning, correctness, nor a
-source-free runtime. Do not contribute a C1-SB5 retry or its downstream artifact
-work; #954's final source-free terminal remains blocked behind #973, with #955
+source-free runtime. Do not contribute a C1-SB5 retry, C1-SB6, or its downstream
+artifact work; #954's final source-free terminal remains blocked behind #973,
+with #955
 downstream of positive correctness. Offline
 teacher/compiler floats, matrix operations, and softmax are permitted; deployed
 runtime remains exact and source-free. Hosted Pages is currently a static,
@@ -158,8 +162,11 @@ The experiment must be able to change the next programme decision:
   and static/WASM isolation checks pass, but hosted Pages remains static/offline
   without a functioning chat backend/artifact lowering. The feature is disabled
   by default and does not change the default engine. The Q16 suffix trace
-  student is complete with bounded distillation but looping output. Work next
-  only on `R4SoftmaxTraceStateStudentV1`.
+  student and `R4SoftmaxTraceStateStudentV1` are complete bounded negatives.
+  `R4GroupAddressedRetentionLMV1` has also reached a construction terminal. Do
+  not retry or tune that exact cell. Work next only on scientifically selecting
+  and independently freezing a fuller source-free decoder block; held-out model
+  data remain unopened.
   See the
   [#989 record](docs/source_free_table_baseline_989.md).
 - **Preserve the GI evidence lineage.** GI-1 makes lexical/address state
@@ -197,7 +204,7 @@ The experiment must be able to change the next programme decision:
   Cl(0,6)/SpiralCore operator map were unavailable. Gate 0, labels, selection,
   and #953 were `NOT_RUN`. That pre-reset handoff left #953 parked pending a
   fresh successor; B0/#989 and the later accepted matched #953 intervention
-  supersede that action. A1Q-H/#973 is active: bounded Gate 0, paragraph,
+  supersede that action. A1Q-H/#973 then retained bounded Gate 0, paragraph,
   conversation, and repaired noncommuting-global witnesses are retained; the
   first natural document placement is negative at
   `RETAIN_BOUNDED_GLOBAL_ONLY_REDESIGN_CORPUS_SPIN_PLACEMENT`. Its first bounded
@@ -223,8 +230,16 @@ The experiment must be able to change the next programme decision:
   retried. C1-SB5 then fit `56/56` paired records but reached only `14/28`
   sealed and retired before checkpoint/head/Rust/development, with products
   unopened.
-  Intrinsic/readout alternatives, resonance-based softmax replacement,
-  full-model recurrent lowering, and exact deployment are parked; #973 still
+  #973 has now been independently re-scoped to
+  `R4GroupAddressedRetentionLMV1`, a source-free fixed-state field with matched
+  exact-H4, cyclic-120, and destructive scrambled-H4 arms. Its corrected
+  prime-leaf geometry/population and mechanical audits passed, but timing and
+  learning smoke failed the construction gate. Its main and held-out model
+  results remain `NOT_RUN`. See the
+  [binding record](docs/r4_group_addressed_retention_973.md). The old gated-delta,
+  trace-state, intrinsic/readout, resonance, full-model recurrent-lowering, and
+  exact-deployment lanes remain negative or parked. Do not retry or tune this
+  cell; #973 must next select a fuller source-free decoder block. #973 still
   blocks GI-4/#954's final source-free terminal, with GI-5/#955 downstream of
   positive correctness.
 - **Exercise the accepted route path.** #953 geometry runs before token choice

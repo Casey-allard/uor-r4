@@ -14,6 +14,20 @@ Measurements retain their pre-declared exit rule and durable issue/record
 reference; design targets remain explicitly labeled as definitions,
 assumptions, or objectives rather than measured results.
 
+> **Current forward decision (2026-09-01).** #973 is independently re-scoped to
+> [`R4GroupAddressedRetentionLMV1`](r4_group_addressed_retention_973.md), a
+> bounded source-free R4 field compared under exact-H4, cyclic-120, and
+> destructive scrambled-H4 group actions. It terminated
+> `UNAVAILABLE_FRAME_POPULATION_OR_LOCAL_BUDGET`. Geometry, population,
+> label-free reachability, gradients, memory, equal work, and zero held-out
+> training reads passed; timing and disposable learning smoke failed. Main
+> optimization and held-out model scoring are `NOT_RUN`, so there is no
+> attention or H4-advantage verdict. Do not retry or tune this exact cell. The
+> next #973 action is to scientifically select and independently freeze a fuller
+> source-free decoder block. The old gated-delta, trace-state,
+> intrinsic/readout, and resonance lanes remain negative or parked; #954 remains
+> blocked and no C1-SB6 is authorized.
+
 > **Current forward decision after protected localization
 > (2026-08-30).** `ConnectionGaugeCovarianceV4` preserved construction-scale
 > representation covariance but failed held-out functional binding. H4,

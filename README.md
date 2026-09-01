@@ -14,6 +14,20 @@ local hardware. The project is testing whether language context, inference,
 and reasoning can emerge from routes through a canonical geometric memory. The
 target serving engine uses no Ollama, hosted model, or source-model weights.
 
+> **Latest source-free attention experiment (2026-09-01):** #973 was
+> independently re-scoped to
+> [`R4GroupAddressedRetentionLMV1`](docs/r4_group_addressed_retention_973.md), a
+> fixed-size group-addressed R4 state with matched exact-H4, cyclic-120, and
+> destructive scrambled-H4 arms. It terminated
+> `UNAVAILABLE_FRAME_POPULATION_OR_LOCAL_BUDGET`: geometry, population,
+> reachability, gradients, memory, and equal work passed, but timing and the
+> disposable learning smoke did not. Main optimization and held-out model
+> scoring are `NOT_RUN`, with zero held-out training reads, so there is no
+> attention or H4-advantage verdict. Do not tune or retry this exact cell. #973's
+> next research action is to scientifically select and independently freeze a
+> fuller source-free decoder block. #954 remains blocked and no C1-SB6 is
+> authorized.
+
 > **Current attention-to-intelligence checkpoint (2026-08-31):** ordinary
 > learned causal Q/K/V attention with stable softmax is established as the
 > equivalence baseline in coherent R4/Spin frames. The directly trained

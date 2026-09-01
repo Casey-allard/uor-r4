@@ -9,7 +9,18 @@ The earlier
 preserved #948–#958 sequencing record. Measured, refuted, and frozen research
 remains in [docs/RESEARCH.md](docs/RESEARCH.md).
 
-_Last reviewed: 2026-08-31 (#961 reversible S0 landed; #952 A1.0 stopped at
+**Active correction (2026-09-01):** #973 has been independently re-scoped to
+[`R4GroupAddressedRetentionLMV1`](docs/r4_group_addressed_retention_973.md).
+The exact cell terminated `UNAVAILABLE_FRAME_POPULATION_OR_LOCAL_BUDGET`:
+geometry, population, reachability, gradients, memory, and equal work passed,
+but timing and the disposable learning smoke did not. Main optimization and
+held-out model scoring are `NOT_RUN`, with zero held-out training reads and no
+attention/H4 verdict. Do not tune or retry this cell. The next #973 action is
+to scientifically select and independently freeze a fuller source-free decoder
+block. #954 stays blocked and no C1-SB6 is authorized.
+
+_Last reviewed: 2026-09-01 (#973 group-addressed retention reached its
+construction terminal; #961 reversible S0 landed; #952 A1.0 stopped at
 `REDESIGN_ORDERED_ROUTE_SUMMARY`; #967 A1R terminated `RETAIN_STATE_ONLY`;
 #970 A1P produced the bounded paired-H4-derived exact R4-heatmap result
 `RETAIN_H4_STATE_ONLY_ADVANCE_MULTICHANNEL_A1Q` and closed through protected
@@ -718,7 +729,10 @@ loopback-only native HTTP endpoint plus dashboard static-native-readiness and
 WASM-isolation checks
 (hosted Pages static/offline, no chat backend or artifact lowering) → completed
 source-free Q16 suffix trace student (bounded distillation, looping output) →
-`R4SoftmaxTraceStateStudentV1` → blocked #954 → #955 →
+completed negative `R4SoftmaxTraceStateStudentV1` →
+`R4GroupAddressedRetentionLMV1` construction terminal
+`UNAVAILABLE_FRAME_POPULATION_OR_LOCAL_BUDGET` → select a fuller source-free
+decoder block → blocked #954 → #955 →
 #962–#965. #973 continues to
 block #954.
 Legacy tracker #949 is closed as
@@ -761,6 +775,16 @@ historical evidence and comparators.
   #983 representation and evidence remain unchanged.
 
 ## Active
+
+- [ ] **#973 fuller source-free decoder-block selection** —
+  `R4GroupAddressedRetentionLMV1` closed
+  `UNAVAILABLE_FRAME_POPULATION_OR_LOCAL_BUDGET`. Its mechanical substrate
+  passed, but timing and disposable learning smoke failed; main optimization
+  and held-out scoring are `NOT_RUN`. Do not retry or tune the exact cell. The
+  only active action is to scientifically select and independently freeze a
+  fuller source-free decoder block. This is not attention, geometric advantage,
+  generation, or reasoning evidence. See the
+  [binding record](docs/r4_group_addressed_retention_973.md).
 
 - [ ] **#954 grounded correctness: C1-SB5 retired negative; final source-free
   terminal blocked behind #973** — retain the

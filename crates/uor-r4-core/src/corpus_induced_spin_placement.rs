@@ -2507,7 +2507,7 @@ fn compile_construction_documents(
     })
 }
 
-fn first_primes(count: usize) -> Result<Vec<u64>, CorpusInducedDocumentSpinError> {
+pub(crate) fn first_primes(count: usize) -> Result<Vec<u64>, CorpusInducedDocumentSpinError> {
     if count == 0 {
         return Ok(Vec::new());
     }

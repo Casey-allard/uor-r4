@@ -1,4 +1,4 @@
-# R4 causal-softmax trainer (#1014 / #1017 / #1019 / #954)
+# R4 offline trainers (#973 / #1014 / #1017 / #1019 / #954)
 
 This package contains the bounded offline training paths authorized by issues
 [#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014) and
@@ -7,11 +7,15 @@ preflight-recorded [#1019](https://github.com/UOR-Foundation/uor-r4/issues/1019)
 parameter-capacity campaign, and the bounded [#954](https://github.com/UOR-Foundation/uor-r4/issues/954)
 grounding fine-tune, frozen source-span-pointer successor, and independently
 frozen source-relative relation-head, attended-relation, and joint-candidate
-successors, followed by the frozen paired-query binding rung. They train
+successors, followed by the frozen paired-query binding rung. The package also
+contains #973's isolated source-free `R4GroupAddressedRetentionLMV1` campaign.
+The causal-softmax and grounding paths train
 and continue ordinary causal-softmax
 Llama-family models, export them in the existing Rust loaders' Hugging Face
 format, and freeze evidence before each sealed test is opened. They contain no
-teacher, trace-distillation, comparison-arm, resonance, or routing experiment.
+teacher, trace-distillation, resonance, or routing experiment. The #973 path is
+a separate matched-arm experiment and consumes only the frozen tokenizer and
+training-store data—not #1017 weights or traces.
 
 The #1014/#1017 model is fixed at vocabulary 4096, hidden width 288, six
 layers, six query and KV heads, head width 48 (twelve R4 blocks), SwiGLU width
@@ -22,6 +26,24 @@ RMSNorm/RoPE/SwiGLU, learned Q/K/V/O, and ordinary stable complete-prefix
 softmax. Float multiplication, allocation, and autograd are intentional offline
 operations. This package is not the exact/table runtime and does not establish
 geometric advantage, reasoning, or release readiness.
+
+## Terminal #973 group-retention path
+
+The canonical contract and evidence log are
+[`docs/r4_group_addressed_retention_973.md`](../../docs/r4_group_addressed_retention_973.md).
+The Rust `r4-group-geometry-export` binary emits the bound exact-H4,
+cyclic-120, scrambled-H4, and prime-leaf artifact. This package exposes
+`prepare-group-retention --geometry <artifact>` and
+`preflight-group-retention --backend mps`. The preflight completed at
+`UNAVAILABLE_FRAME_POPULATION_OR_LOCAL_BUDGET`: geometry, population,
+reachability, gradients, memory, equal work, and held-out sealing passed, but
+timing and disposable learning smoke failed. Main optimization and held-out
+model scoring are `NOT_RUN`. The exact signed envelopes are preserved in
+`docs/`. The retained commands are not an
+authorized retry or tuning surface, and the terminal package exposes no
+held-out-open API. #973 must next select and
+independently freeze a fuller source-free decoder block. There is no CPU
+fallback, CUDA path, sweep, or C1-SB6.
 
 ## Current measured boundary
 

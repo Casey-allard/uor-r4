@@ -4,7 +4,9 @@ Originally the Phase 0 graph-compiler glossary; expanded by #948 for the now-
 historical [geometric causal decoder](../geometric_causal_decoder_plan.md).
 Current sequencing lives in the
 [Geometric Intelligence Programme](../geometric_intelligence_programme.md),
-and the active #973 mechanism is [ADR-0005](../adr/0005-predictive-geometric-connection-memory.md).
+and the latest terminal #973 mechanism is
+[`R4GroupAddressedRetentionLMV1`](../r4_group_addressed_retention_973.md).
+ADR-0005 remains the historical mechanism-family record.
 Decoder terms and graph terms name different execution lanes and must not be
 substituted for one another.
 
@@ -152,8 +154,21 @@ substituted for one another.
   The first #1011 4D signed-reduction/token-derived realization completed
   negative: its geometric state changed under transport permutation but did
   not change any held-out top-1 decision or escape the frozen decoded cycle.
-  That result retires or repairs this realization, not the full mechanism
-  family or the accepted ordinary R4/Spin softmax reference.
+  That result retires this realization from the active lane; it does not
+  falsify the full mechanism family or the accepted ordinary R4/Spin softmax
+  reference.
+- **`R4GroupAddressedRetentionLMV1`** — #973's independently frozen source-free
+  language cell. Four fixed-capacity banks hold one R4-block field over 120
+  group addresses. A token's corrected prime leaf permutes the field before an
+  identity-slot overwrite; candidate leaves read the retained field and change
+  full-vocabulary logits through separate learned query and value tables.
+  Exact H4 is compared with equal-size cyclic-120 and destructive scrambled-H4
+  actions, plus state-off and order-shuffled interventions. It terminated
+  `UNAVAILABLE_FRAME_POPULATION_OR_LOCAL_BUDGET`: mechanical audits passed, but
+  timing and disposable learning smoke failed. Main and held-out model scoring
+  are `NOT_RUN`; therefore attention, H4 advantage, generation, reasoning, and
+  deployment remain unestablished. The exact cell is not retried or tuned. See the
+  [canonical record](../r4_group_addressed_retention_973.md).
 - **`DirectCausalGeometricAttentionR4V1`** — #973's offline gold-standard
   reference for the literal attention function: learned Q/K/V/O roles, local
   S3 tangent projection, causal H4-frame transport of every prior key and
@@ -304,7 +319,8 @@ substituted for one another.
   and measured `4.485223 s/step`, slower than the signed `3.491307 s/step`;
   `fused=True` was removed immediately. This is a bounded fast-path negative,
   not a model result. #1019 tuning/full-run work stops and remains optional/
-  paused; the active next step is the working #1017 `r4 generate` product path.
+  paused. #1017 remains the working source-backed `r4 generate` path; #973 must
+  select a fuller source-free decoder block.
   UOR's deployed
   architecture/runtime remains CPU-native; Apple Accelerate/BLAS and MPS are
   local offline accelerators only; CUDA and external GPU execution are out of
@@ -469,8 +485,9 @@ substituted for one another.
   passing at `21.03%`. That terminal applies only to the frozen offline
   implementation. Full training, final parity, reveal, generation, and replay
   remain `NOT_RUN`. Its fused-AdamW/deferred-logging fast path was slower, so
-  #1019 is optional/paused and the active next step is the #1017 `r4 generate`
-  product path. CUDA and external GPU execution are out of scope.
+  #1019 is optional/paused. #1017 remains the working source-backed
+  `r4 generate` path; #973 must select a fuller source-free decoder block. CUDA
+  and external GPU execution are out of scope.
   Intrinsic/readout,
   fiber-preserving multi-resonance replacement,
   whole-decoder recurrent factorization, and final requalification are parked
@@ -533,7 +550,20 @@ substituted for one another.
 - **Multiplication-free runtime** — a separate operation-set claim belonging
   to an exact execution path. It is not implied by “transformerless.”
 
-## Current #973 state-student outcome — 2026-08-30
+## Current #973 group-addressed construction terminal — 2026-09-01
+
+`R4GroupAddressedRetentionLMV1` terminated
+`UNAVAILABLE_FRAME_POPULATION_OR_LOCAL_BUDGET`. Geometry, population,
+reachability, gradients, memory, equal work, and held-out sealing passed;
+timing and disposable learning smoke failed. Main optimization and held-out
+model scoring are `NOT_RUN`, so no attention/H4 verdict exists. Do not retry or
+tune the exact cell. #973 must scientifically select and independently freeze a
+fuller source-free decoder block. #954 remains blocked, no C1-SB6 is authorized,
+and the earlier gated-delta, trace-state, intrinsic/readout, and resonance lanes
+remain historical negatives or parked. See the
+[canonical #973 record](../r4_group_addressed_retention_973.md).
+
+## Historical #973 state-student outcome — 2026-08-30
 
 At implementation revision
 `25569057f2d770dd2ffb0f10b6d2af0a985a6bd4`,

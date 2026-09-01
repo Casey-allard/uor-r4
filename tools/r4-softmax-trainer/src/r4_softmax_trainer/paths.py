@@ -62,3 +62,11 @@ def default_joint_candidate_margin_root() -> Path:
 
 def default_paired_query_binding_root() -> Path:
     return model_store_root() / "research" / "issue-954" / "paired-query-binding"
+
+
+def default_group_retention_root() -> Path:
+    return model_store_root() / "research" / "issue-973-group-retention"
+
+
+def default_group_retention_source_root() -> Path:
+    return model_store_root() / "research" / "issue-1017"

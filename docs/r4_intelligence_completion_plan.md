@@ -4,9 +4,17 @@
   readable mirror of programme root #820 (stages S0–S7 plus cross-cutting F0).
   The [Geometric Intelligence Programme](geometric_intelligence_programme.md)
   is its current architecture and claim-boundary companion.
-  The current accepted-attention, autonomous-reference-generation, and parked
-  replacement architecture is
-  [ADR-0005](adr/0005-predictive-geometric-connection-memory.md).
+  The latest source-free attention experiment is the independently re-scoped
+  [#973 `R4GroupAddressedRetentionLMV1`](r4_group_addressed_retention_973.md).
+  It terminated `UNAVAILABLE_FRAME_POPULATION_OR_LOCAL_BUDGET`: mechanical
+  geometry/population/training-path audits passed, but timing and disposable
+  learning smoke failed. Main optimization and held-out model scoring are
+  `NOT_RUN`. Do not retry or tune this exact cell; scientifically select and
+  independently freeze a fuller source-free decoder block next. #954 remains
+  blocked and no C1-SB6 is authorized.
+  [ADR-0005](adr/0005-predictive-geometric-connection-memory.md) retains the
+  accepted-attention, autonomous-reference-generation, and parked-replacement
+  architecture history.
   Ordinary softmax attention remains qualified on the bounded R4/Spin
   full-decoder reference. Source-faithful learned-manifold V2 is now a valid
   non-D3 construction-validation negative: learned Lorentz failed retention and

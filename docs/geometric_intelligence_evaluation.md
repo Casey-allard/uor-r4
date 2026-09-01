@@ -6,7 +6,9 @@
   attention, inference, correctness, bounded reasoning, and provider-free
   serving.
 - **Architecture:** [ADR-0004](adr/0004-geometric-intelligence-route-hierarchy.md)
-- **Active mechanism:**
+- **Latest terminal mechanism:**
+  [#973 `R4GroupAddressedRetentionLMV1`](r4_group_addressed_retention_973.md)
+- **Historical mechanism family:**
   [ADR-0005](adr/0005-predictive-geometric-connection-memory.md)
 - **Vocabulary:** [Formal Vocabulary](formal_vocabulary.md) and the
   [Glossary](transformerless/GLOSSARY.md)
@@ -19,7 +21,22 @@ make an hours-long run the price of learning whether a mechanism is reachable.
 Experimental evaluations are dormant by default. Activate only the smallest
 probe whose possible outcomes cause different next actions.
 
-### Active decision — construction-only trace/state observability/#973
+### Active decision — select a fuller source-free decoder block/#973
+
+The independently frozen `R4GroupAddressedRetentionLMV1` compares one bounded
+source-free R4 state under exact-H4, cyclic-120, and destructive scrambled-H4
+actions. Its corrected prime-leaf geometry and frozen population pass: all
+three action families cover 120 states, the label-free opportunity census is
+adequate, and the training view made zero held-out reads. Gradients, memory, and
+equal work also passed, but timing and the disposable learning smoke failed.
+Terminal: `UNAVAILABLE_FRAME_POPULATION_OR_LOCAL_BUDGET`. Main optimization and
+held-out model scoring are `NOT_RUN`; no attention, H4-advantage, generation,
+correctness, or reasoning verdict exists. Do not retry or tune this exact cell.
+The next decision is to scientifically select and independently freeze a fuller
+source-free decoder block. #954 remains blocked and C1-SB6 is not authorized.
+See the [binding record](r4_group_addressed_retention_973.md).
+
+### Prior #973 evidence retained
 
 PR #997 proved reachability but rejected its componentwise-Frechet placement:
 real 2,931/35,028 (8.367592%), unchanged #953 4,281/35,028 (12.221651%),
@@ -1060,14 +1077,15 @@ passed. MPS stopped `UNAVAILABLE_HARDWARE_BUDGET` on time (`20.66 h > 8 h`),
 with memory passing at `21.03%`. That terminal applies only to the frozen
 offline implementation. Full training, final parity, reveal, generation, and
 replay remain `NOT_RUN`. Its fused-AdamW/deferred-logging fast path was slower,
-so #1019 is optional/paused and the active next step is the #1017 `r4 generate`
-product path. CUDA and external GPU execution are out of scope. D3 remains `NOT_RUN`;
+so #1019 is optional/paused. #1017 remains the working source-backed
+`r4 generate` path; #973 must select a fuller source-free decoder block.
+CUDA and external GPU execution are out of scope. D3 remains `NOT_RUN`;
 intrinsic/readout alternatives,
 resonance-based softmax replacement, whole-decoder recurrent lowering, and
 exact deployment are parked.
 
-#973 owns paragraph, conversation, and bounded-global influence only after the
-one #989-matched #953 intervention qualifies the decoded loop.
+The earlier #989-matched #953 dependency qualified; the terminal group-addressed
+contract linked above now constrains selection of #973's fuller decoder block.
 Operator influence consumes #953-admitted support;
 it does not participate in admission. The existing adjacent-spin retrieval rows
 remain fallback/diagnostic data, not operator coefficients; any neighbor

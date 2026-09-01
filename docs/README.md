@@ -8,6 +8,16 @@ whose predictive state, memory, inference, and reasoning are performed by
 geometric recurrence and routing rather than a transformer, MoE, sparse learned
 router, or dense learned matrix engine in the serving path.
 
+The latest research gate is the independently re-scoped
+[#973 `R4GroupAddressedRetentionLMV1`](r4_group_addressed_retention_973.md).
+It terminated `UNAVAILABLE_FRAME_POPULATION_OR_LOCAL_BUDGET`: mechanical
+geometry/population/training-path audits passed, but timing and disposable
+learning smoke failed. Main optimization and held-out model scoring are
+`NOT_RUN`, so no attention, H4-advantage, generation, or reasoning claim
+follows. Do not retry or tune this exact cell. The next #973 action is to
+scientifically select and independently freeze a fuller source-free decoder
+block. #954 remains blocked; no C1-SB6 is authorized.
+
 The goal is real. Its success remains unproven. The current implementation has
 a storage/recall and route-query foundation, one bounded causal path mechanism,
 one corpus-scale geometric increment, and several narrow higher-scope
@@ -116,8 +126,9 @@ test (10 warmup plus 40 measured steps) combined fused AdamW with deferred
 logging and measured `4.485223 s/step`, slower than the signed
 `3.491307 s/step`; `fused=True` was removed immediately. This is a bounded
 fast-path negative, not a model result. #1019 tuning/full-run work stops and
-remains optional/paused; the active next step is the working #1017 `r4 generate`
-product path. CUDA and external GPU execution are out of scope. See the
+remains optional/paused; #1017 remains the working source-backed generator while
+#973 selects a fuller source-free decoder block. CUDA and external
+GPU execution are out of scope. See the
 [#1017 record](r4_softmax_quality_capacity_continuation_1017.md),
 [#1019 frozen contract](r4_softmax_parameter_capacity_1019.md), and
 [#1019 signed preflight/admission result](r4_softmax_parameter_capacity_preflight_1019_raw.json). This stops
@@ -131,14 +142,15 @@ the strict NLL target; it is not geometry advantage, transformerlessness,
 correctness, reasoning, frontier quality, browser/WASM readiness, or release
 readiness.
 
-#954's source-backed correctness campaign has now completed through C1-SB4.
+#954's source-backed correctness campaign has now completed through C1-SB5.
 The independently frozen full-source, record-level structured-margin adapter
 recovered every positive group but reached only `70/126` fit and `35/63` sealed
 exact records, with negative specificity `394/478` and `197/239`. A
 question-ignoring ` is inside ` rule reproduces every aggregate count exactly.
 The run stopped before Rust parity, checkpoint emission, development, or its
-four committed unopened products; do not retry C1-SB4. The next proposal is
-separately frozen paired-query conditional binding over one exact source. See
+four committed unopened products; do not retry C1-SB4. C1-SB5 then fit all
+`56/56` paired records but reached only `14/28` sealed and retired without
+checkpoint, Rust, development, or product work; do not retry it. See
 the [#954 record](r4_grounded_correctness_954.md) and
 [C1-SB4 aggregate](r4_joint_candidate_margin_954_raw.json).
 
@@ -169,23 +181,25 @@ Choose the shortest path that matches what you need:
 
 - **Understand the project:** read the
   [Geometric Intelligence Programme](geometric_intelligence_programme.md).
-- **Understand the current geometric mechanism:** read
-  [ADR-0005](adr/0005-predictive-geometric-connection-memory.md), then
+- **Understand the current geometric mechanism:** read the
+  [#973 group-addressed retention record](r4_group_addressed_retention_973.md),
+  then [ADR-0005](adr/0005-predictive-geometric-connection-memory.md) and
   [ADR-0004](adr/0004-geometric-intelligence-route-hierarchy.md), and use the
   [glossary](transformerless/GLOSSARY.md) for unfamiliar terms.
 - **Advance grounded correctness:** start from the append-only
   [#954 record](r4_grounded_correctness_954.md). C1-SB5 paired-query binding is
   the latest frozen negative (`56/56` fit, `14/28` sealed) and is retired without
   retry. No C1-SB6 is authorized; #954's final source-free terminal remains
-  blocked behind parked #973.
+  blocked while #973 selects a fuller source-free decoder block.
 - **Improve the optional capacity rung:** start from live
   [#1019](https://github.com/UOR-Foundation/uor-r4/issues/1019) under #973 and
   programme root #820. Its population/smoke/random-export parity gates passed,
   but MPS admission stopped `UNAVAILABLE_HARDWARE_BUDGET` for the frozen
   eight-hour offline implementation. Its fused-AdamW/deferred-logging fast path
   was slower (`4.485223` versus signed `3.491307 s/step`), so the `NOT_RUN`
-  campaign is optional/paused and the active next step is the #1017
-  `r4 generate` product path. CUDA and external GPU execution are out of scope.
+  campaign is optional/paused. #1017 remains usable through `r4 generate`; #973
+  must scientifically select a fuller source-free decoder block. CUDA and
+  external GPU execution are out of scope.
 - **Audit a result or claim:** use the [research ledger](RESEARCH.md), then open
   the exact issue-numbered evidence record it names.
 - **Run the existing interface:** return to the root
@@ -269,7 +283,8 @@ These are the small set of living documents that define the present work:
    MPS admission stopped `UNAVAILABLE_HARDWARE_BUDGET` for the frozen eight-hour
    offline implementation, and the full campaign remains `NOT_RUN`. Its fused-
    AdamW/deferred-logging fast path was slower, so #1019 is optional/paused and
-   the active next step is the #1017 `r4 generate` product path. CUDA and
+   #1017 remains the working source-backed `r4 generate` path. #973 must next
+   select a fuller source-free decoder block. CUDA and
    external GPU execution are out of scope.
    The bounded
    [multi-resonance reuse audit](multi_resonance_attention_sieve_audit_973.md)
@@ -311,7 +326,9 @@ reversible lexical geometry
   → directly train end-to-end causal softmax attention in R4 coordinates [#1014; ATTENTION PASS, FULL QUALITY DOD FAIL]
   → continue the unchanged 7.15M model to 149,995,520 tokens [#1017; NLL-ONLY FAIL, RETENTION/PARITY/REPLAY PASS]
   → #1019 frozen 12-layer, 13,130,784-parameter campaign over the same attention and Rust path [MODEL SUBGATES PASS; FROZEN OFFLINE MPS IMPLEMENTATION OVER 8 H; FUSED FAST PATH SLOWER; OPTIONAL/PAUSED; FULL CAMPAIGN NOT_RUN; CUDA/EXTERNAL GPU OUT OF SCOPE]
-  → active bounded #1017 `r4 generate` product path
+  → preserve bounded #1017 `r4 generate` as the working source-backed prototype
+  → close #973's exact group-addressed cell [UNAVAILABLE_FRAME_POPULATION_OR_LOCAL_BUDGET; MAIN/HELD-OUT NOT_RUN]
+  → scientifically select and independently freeze a fuller source-free decoder block
   → park intrinsic/readout alternatives, resonance-based softmax replacement, full-model recurrent lowering, and exact deployment
   → correctness and abstention
   → multi-step reasoning
