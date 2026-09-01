@@ -554,3 +554,30 @@ fixed `1/sqrt(2)` sum, holding every other variable and gate fixed. A miss ends
 that readout ladder and redirects #973 to learned associative binding/readout.
 #954 remains open, unassigned, and blocked; grounding, contradiction,
 abstention, reasoning, and C1-SB6 remain `NOT_RUN`.
+
+## #973 layerwise-readout blocker checkpoint — 2026-09-01
+
+The exact final parameter-free successor named above has completed. On the
+independently sealed V3 prompt population,
+`R4LayerwiseNormalizedRetainedReadoutLanguagePathV1` produced gain
+`0.0286980210` versus frozen V1 `0.0073316237`, delta `0.0213663973`, and
+`339/512` directional wins. Own-prompt NLL, exact state-off collapse, causal,
+replay, artifact/reveal binding, and forbidden-read gates passed. Fresh-
+language evaluation also passed all gates: candidate NLL/top-1 were
+`3.7126411677` / `31.661826%` versus V1 `3.8850003883` / `29.728138%`, and
+state removal cost `1.3495375637` nats plus `20,595` correct decisions.
+
+The candidate missed both decision-bearing prompt floors—absolute
+`0.0433216988` and incremental `0.0253415693`—so the terminal is
+`LAYERWISE_NORMALIZED_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL`, result CID
+`blake3:35396bd6e64fc2c0bc7d86a84cc9e212ed913ce28e5353f5f2b8212b4cf2c532`.
+Independent fresh-process verification passed all 13 comparisons at
+`blake3:3f316541dbab8061ed5ba891bf6a47ef22c55bca21fba01f6f97dbb3cb8497aa`.
+
+This result does not unblock correctness. The parameter-free readout ladder is
+closed, and #973's sole successor is a freshly frozen learned associative
+binding/readout over the preserved retained-attention substrate. The layerwise
+candidate receives no retry, tuning, third normalization, generation,
+widening, or lowering. Generation, reasoning, and exact/geometry-native
+lowering are `NOT_RUN`. #954 remains open, unassigned, and blocked; grounding,
+contradiction, abstention, reasoning, and C1-SB6 remain `NOT_RUN`.

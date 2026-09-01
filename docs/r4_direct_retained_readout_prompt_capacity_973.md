@@ -171,7 +171,8 @@ Those scopes remain `NOT_RUN` or unestablished. It does not revoke the
 separate ordinary causal-attention result or qualified retained V1.
 
 Per the frozen branch contract, this candidate receives no generation,
-retry, widening, scalar tuning, or lowering run. The sole fresh successor is
+retry, widening, scalar tuning, or lowering run. The sole fresh successor
+authorized at that checkpoint was
 `R4LayerwiseNormalizedRetainedReadoutLanguagePathV1`, changing only the
 readout from
 
@@ -194,3 +195,34 @@ after V2 plus a new fresh held-out slice; V2 is never scored or tuned again.
 If any unchanged gate misses, the parameter-free readout ladder stops and #973
 pivots to learned associative binding/readout. There is no scalar tweak and no
 third normalization attempt.
+
+## Layerwise-normalized successor result — 2026-09-01
+
+The sole successor named above completed without changing V1 recurrence,
+state, parameter count, training data/order, optimizer, dose, or tied-head
+work. Its only intervention was
+`N(a1+a2) -> (N(a1)+N(a2))/sqrt(2)`.
+
+On the independently sealed V3 population, the layerwise candidate produced
+prompt gain `0.0286980210` versus matched V1 `0.0073316237`, delta
+`0.0213663973`, and `339/512` wins. Own-prompt NLL improved to
+`3.4798765288` from V1 `3.6930405921`; both state-off prompt contrasts were
+exactly zero. The wins, own-NLL, state-off, causal, replay, and forbidden-read
+gates passed, but the candidate missed the absolute `0.0433216988` and
+incremental `0.0253415693` prompt-gain floors.
+
+Fresh-language evaluation passed every frozen gate: candidate NLL/top-1 were
+`3.7126411677` / `31.661826%` versus V1 `3.8850003883` / `29.728138%`, and
+state removal cost `1.3495375637` nats and `20,595` correct decisions. The
+terminal is
+`LAYERWISE_NORMALIZED_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL`, result CID
+`blake3:35396bd6e64fc2c0bc7d86a84cc9e212ed913ce28e5353f5f2b8212b4cf2c532`.
+Independent fresh-process verification passed all 13 comparisons at
+`blake3:3f316541dbab8061ed5ba891bf6a47ef22c55bca21fba01f6f97dbb3cb8497aa`.
+
+This executes this record's predeclared miss branch. The parameter-free
+readout ladder is closed: no scalar tweak, third normalization, retry,
+generation, widening, or lowering. The sole #973 successor is a freshly frozen
+learned associative binding/readout. For the layerwise candidate, generation,
+reasoning, and exact/geometry-native lowering remain `NOT_RUN`; #954 remains
+blocked.

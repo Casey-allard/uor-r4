@@ -184,12 +184,44 @@ The terminal is `DIRECT_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL` because both
 frozen gain floors were missed. There is no generation, retry, widened readout,
 gain tuning, CUDA path, exact lowering, or C1-SB6.
 
-The sole next experiment is a new, separately frozen
-`R4LayerwiseNormalizedRetainedReadoutLanguagePathV1` implementation using
-`E @ [N(h) + (1/sqrt(2))*(N(a1)+N(a2))]`. This README documents that decision;
-it does not expose an implemented or runnable V3 command. V3 must preserve all
-budgets and unchanged gates and use fully disjoint prompt/held-out data. A miss
-ends the parameter-free readout ladder.
+## Terminal #973 layerwise-normalized retained-readout rung
+
+`R4LayerwiseNormalizedRetainedReadoutLanguagePathV1` preserves every qualified
+V1 budget and uses the exact zero-parameter formula
+`E @ [N(h) + (g/sqrt(2))*(N(a1)+N(a2))]`, fixed `g=1` versus equal-work `g=0`.
+Its create-once lifecycle was:
+
+```bash
+export UOR_MODEL_STORE="/absolute/path/to/the/shared/.uor-models"
+ROOT="$UOR_MODEL_STORE/research/issue-973-layerwise-normalized-retained-readout-v1"
+TRAINER="$(git rev-parse --show-toplevel)/tools/r4-softmax-trainer"
+
+uv run --offline --project "$TRAINER" r4-softmax-trainer \
+  --root "$ROOT" prepare-layerwise-normalized-readout
+uv run --offline --project "$TRAINER" r4-softmax-trainer \
+  --root "$ROOT" probe-layerwise-normalized-readout
+uv run --offline --project "$TRAINER" r4-softmax-trainer \
+  --root "$ROOT" run-layerwise-normalized-readout
+uv run --offline --project "$TRAINER" r4-softmax-trainer \
+  --root "$ROOT" verify-layerwise-normalized-readout
+```
+
+Apple Accelerate CPU with four threads completed the sole 2,730-step trajectory
+in `1,447.764 s`. Prompt gain was `0.0286980210` versus matched V1 at
+`0.0073316237` (delta `0.0213663973`), with `339/512` wins. Fresh held-out
+NLL/top-1 improved to `3.7126411677` / `31.661826%` from
+`3.8850003883` / `29.728138%`; state removal cost `1.3495375637` nats and
+20,595 decisions. Exact replay and all `13/13` separate-process verifier
+comparisons passed. The terminal is
+`LAYERWISE_NORMALIZED_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL` because both
+frozen gain floors were missed. Result and verification CIDs are
+`blake3:35396bd6e64fc2c0bc7d86a84cc9e212ed913ce28e5353f5f2b8212b4cf2c532`
+and `blake3:3f316541dbab8061ed5ba891bf6a47ef22c55bca21fba01f6f97dbb3cb8497aa`.
+
+This valid miss ends the parameter-free readout ladder. #973 must next freshly
+freeze learned associative binding/readout. There is no gain tuning, `g=2`,
+third normalization variant, retry, widened readout, generation, reasoning,
+CUDA path, or lowering run from this result; #954 remains blocked.
 
 ## Current measured boundary
 

@@ -1039,7 +1039,8 @@ incremental `0.0253415693` prompt-gain floors. The terminal is
 No generation, retry, widened readout, exact lowering, or post-reveal gain
 tuning is authorized.
 
-One final parameter-free readout hypothesis remains. Freeze
+At that checkpoint, one final parameter-free readout hypothesis remained and
+was frozen as
 `R4LayerwiseNormalizedRetainedReadoutLanguagePathV1` with
 `E @ [N(h) + (g/sqrt(L))*sum_l N(a_l)]`, `L=2`, fixed `g=1` versus `g=0`,
 zero new learned parameters/state, the same recurrence/data/dose, and the same
@@ -1048,3 +1049,40 @@ must be CID- and story-disjoint from all previously scored data; V2 is never
 reused for scoring or tuning. Any unchanged prompt, language, state-off,
 causal, or replay gate miss ends parameter-free readout work and redirects the
 programme to a learned associative binding/readout architecture.
+
+## Layerwise-normalized terminal and binding pivot — 2026-09-01
+
+The final parameter-free hypothesis above completed exactly once under its
+frozen contract. `R4LayerwiseNormalizedRetainedReadoutLanguagePathV1` preserved
+qualified V1's recurrence, exact-H4 addresses/transport, parameters, state,
+training data/order, optimizer, `2,730`-step / `5,241,600`-presentation dose,
+and tied vocabulary projection. The only intervention was
+`N(a1+a2) -> (N(a1)+N(a2))/sqrt(2)` in the retained-state readout.
+
+The intervention remained useful but below the predeclared capacity effect.
+On the CID- and story-disjoint V3 population, candidate prompt gain was
+`0.0286980210` versus matched V1 `0.0073316237`, delta `0.0213663973`, with
+`339/512` wins and own-prompt NLL `3.4798765288` versus `3.6930405921`.
+State-off prompt gain and paired-logit difference were exactly zero. The
+candidate missed the absolute `0.0433216988` and incremental `0.0253415693`
+gain floors.
+
+The miss was not a language-fit or disconnected-state result. On 247,920
+fresh decisions, NLL/top-1 were `3.7126411677` / `31.661826%` versus frozen V1
+`3.8850003883` / `29.728138%`; state removal cost `1.3495375637` nats and
+`20,595` correct decisions. Every language, causal, state-off, artifact,
+forbidden-read, and replay gate passed. The canonical terminal is
+`LAYERWISE_NORMALIZED_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL`, result CID
+`blake3:35396bd6e64fc2c0bc7d86a84cc9e212ed913ce28e5353f5f2b8212b4cf2c532`.
+Independent fresh-process verification reproduced all 13 comparisons without
+constructing an optimizer or reading training batches; verification CID
+`blake3:3f316541dbab8061ed5ba891bf6a47ef22c55bca21fba01f6f97dbb3cb8497aa`.
+
+The predeclared negative branch is binding: the parameter-free readout ladder
+ends here. No `g` tuning, third normalization placement, retry, generation,
+widening, resonance substitution, or exact/geometry-native lowering is
+authorized by this result. The sole active #973 successor is a new,
+independently frozen learned associative binding/readout over the preserved V1
+retained-attention substrate, with its own matched non-geometric and state-off
+controls. Candidate generation, reasoning, and lowering are `NOT_RUN`; #954
+remains blocked.

@@ -170,3 +170,59 @@ def default_direct_retained_readout_raw_source() -> Path:
     """Return the pinned raw source used only to seal prompt contrast V2."""
 
     return default_paired_h4_prompt_capacity_raw_source()
+
+
+def default_layerwise_normalized_readout_root() -> Path:
+    """Return #973's independently frozen layerwise-readout campaign root."""
+
+    return (
+        model_store_root()
+        / "research"
+        / "issue-973-layerwise-normalized-retained-readout-v1"
+    )
+
+
+def default_layerwise_normalized_readout_predecessor() -> Path:
+    """Return the immutable qualified retained-language predecessor."""
+
+    return default_language_path_root()
+
+
+def default_layerwise_normalized_readout_source_train() -> Path:
+    """Return the verified nonsealed #1019 train-token store."""
+
+    return default_language_path_source_root() / "tokens" / "train.u16"
+
+
+def default_layerwise_normalized_readout_source_train_index() -> Path:
+    """Return the canonical #1019 train-story index."""
+
+    return default_language_path_source_root() / "indexes" / "train.jsonl"
+
+
+def default_layerwise_normalized_readout_raw_source() -> Path:
+    """Return the pinned raw source used only to seal prompt contrast V3."""
+
+    return default_paired_h4_prompt_capacity_raw_source()
+
+
+def default_layerwise_normalized_readout_v1_population() -> Path:
+    """Return the revealed V1 prompt population used only for CID exclusion."""
+
+    return (
+        default_paired_h4_prompt_capacity_root()
+        / "prompt-conditioning"
+        / "sealed"
+        / "population.json"
+    )
+
+
+def default_layerwise_normalized_readout_v2_population() -> Path:
+    """Return the revealed V2 prompt population used only for CID exclusion."""
+
+    return (
+        default_direct_retained_readout_root()
+        / "prompt-conditioning-v2"
+        / "sealed"
+        / "population.json"
+    )

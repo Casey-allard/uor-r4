@@ -350,9 +350,39 @@ The candidate missed the absolute `0.0433216988` and incremental
 It does not alter this record's qualified attention result and is not generated
 from, retried, widened, lowered, or gain-tuned.
 
-One final parameter-free successor changes only normalization placement:
+The final parameter-free successor authorized at that checkpoint changed only
+normalization placement:
 `E @ [N(h) + (1/sqrt(2))*(N(a1)+N(a2))]`. It must preserve this recurrence and
 all budgets/gates while using fully disjoint V3 prompt and held-out data. If it
 misses, parameter-free readout work stops in favor of a learned associative
 binding/readout architecture. See the
 [direct-readout record](r4_direct_retained_readout_prompt_capacity_973.md).
+
+## Final parameter-free successor terminal — 2026-09-01
+
+The layerwise-normalized successor completed
+`LAYERWISE_NORMALIZED_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL`. It kept this
+qualified V1 recurrence and every frozen budget fixed and changed only
+`N(a1+a2)` to `(N(a1)+N(a2))/sqrt(2)` at the tied-head readout.
+
+V3 prompt gain was `0.0286980210` versus V1 `0.0073316237`, an incremental
+`0.0213663973`, with `339/512` wins. The candidate passed own-NLL,
+state-off-collapse, causal, replay, and forbidden-read gates, but missed both
+frozen prompt-gain floors. Fresh-language NLL/top-1 were
+`3.7126411677` / `31.661826%` versus V1 `3.8850003883` / `29.728138%`;
+state removal cost `1.3495375637` nats and `20,595` correct decisions, so every
+language gate passed.
+
+Result CID:
+`blake3:35396bd6e64fc2c0bc7d86a84cc9e212ed913ce28e5353f5f2b8212b4cf2c532`.
+Independent verification CID:
+`blake3:3f316541dbab8061ed5ba891bf6a47ef22c55bca21fba01f6f97dbb3cb8497aa`;
+all 13 comparisons passed in fresh model instances with no optimizer or
+training-batch reads.
+
+This does not change `RETAINED_LANGUAGE_PATH_PASS`; it closes only the
+parameter-free prompt-readout ladder. Do not retry, tune, add another
+normalization, generate, widen, or lower the layerwise artifact. The sole
+active #973 successor is a freshly frozen learned associative binding/readout
+over this preserved attention substrate. Candidate generation, reasoning, and
+lowering remain `NOT_RUN`; #954 remains blocked.

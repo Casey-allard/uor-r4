@@ -15,72 +15,52 @@ reference; design targets remain explicitly labeled as definitions,
 assumptions, or objectives rather than measured results.
 
 > **Current forward decision (2026-09-01).** Preserve the qualified
-> [`R4RetainedLanguagePathV1`](r4_retained_language_path_v1_973.md). Its one
-> independently frozen readout-only candidate,
-> `R4DirectRetainedReadoutLanguagePathV1`, completed
-> `DIRECT_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL`. It changed only the path
-> from each layer's already output-projected, state-off-gated retained read to
-> tied-embedding logits. V1 representation, recurrence, initialization, seed
-> `9738`, `252,160` learned parameters, `23,040` f32 state values, training
-> examples/order, `2,730` optimizer steps, and `5,241,600` token decisions were
-> fixed; `g=0` was the matched equal-work V1 control.
+> [`R4RetainedLanguagePathV1`](r4_retained_language_path_v1_973.md). Its sole
+> layerwise-normalized candidate,
+> `R4LayerwiseNormalizedRetainedReadoutLanguagePathV1`, completed
+> `LAYERWISE_NORMALIZED_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL`. V1
+> representation, recurrence, initialization, seed `9738`, `252,160` learned
+> parameters, `23,040` f32 state values, training examples/order, `2,730`
+> optimizer steps, and `5,241,600` token decisions stayed fixed. The only change
+> was `E @ [N(h) + (g / sqrt(2)) * (N(a1) + N(a2))]`, fixed `g=1` versus the
+> equal-work `g=0` control, with zero new parameters/state and one vocabulary
+> matrix operation.
 >
-> Across 512 bidirectional prompt contrasts and 8,192 scored target tokens,
-> candidate mean gain was `0.02158978940594819` nats/token versus V1 `g=0` at
-> `0.007630419823799905`, a delta of `0.013959369582148285`, with `343/512`
-> directional wins. Candidate own NLL was `3.5521331250931936` versus V1
-> `3.7415367660865004`. The directional, any-gain, and own-NLL gates passed, but
+> Across 512 bidirectional V3 prompt contrasts and 8,192 scored target tokens,
+> candidate mean gain was `0.02869802096506591` nats/token versus V1 at
+> `0.007331623694789724`, a delta of `0.021366397270276186`, with `339/512`
+> directional wins. Candidate own NLL was `3.479876528760464` versus V1
+> `3.6930405921095097`. The directional, any-gain, and own-NLL gates passed, but
 > the absolute-gain floor `0.04332169878499658` and incremental-gain floor
 > `0.025341569256760274` did not. Fresh held-out candidate NLL/top-1 was
-> `3.7374367988736603`/`31.542433%`, versus V1
-> `3.9010778352651876`/`29.632946%`. Disabling retained state cost
-> `1.1234286047020587` NLL and `20,179` correct decisions. All fresh-language,
+> `3.712641167679153`/`31.661826%`, versus V1
+> `3.8850003882891597`/`29.728138%`. Disabling retained state cost
+> `1.3495375636624845` NLL and `20,595` correct decisions. All fresh-language,
 > state-off, causal-input, forbidden-read, same-work, initialization/state,
-> artifact-replay, seal-before-fit, and independent-verification checks passed.
+> artifact-replay, seal-before-fit, and `13/13` independent-verification checks
+> passed.
 >
-> The evidence ledger is preparation
-> `blake3:1b8bcb10fcc1023e4a02e4a06751e8f0ad154d31b16cabf02a25c54ee43e6d4a`,
-> run contract
-> `blake3:07fda18240d6577149b6e4b3dcd08205da38e5dad19e372d31ef74d0fd2b8996`,
-> probe `blake3:0e8360e0c3f67524664c4cb0a8ae4d88b54d7f77e2e60e1427324afb5e959e5f`,
+> The binding evidence identities are run contract
+> `blake3:69c30a15c6aea1400dcbc3b14aae823cad050c5d903a7403e2b8b685a075c775`,
+> probe `blake3:f001e0a7421bbfa565e7f0fa045a3515ec82fc494d404105c3db5e7e4e2f9f55`,
 > prompt population
-> `blake3:258f143eedbbb7067dc512db929a42166ad8a492fc059542409f419a3b46942e`,
+> `blake3:165be397b73041afd39aa65ae796400ea539399f8586729ad19a168c4daa9e93`,
 > candidate artifact
-> `blake3:6c66f5542a4513c610819b79210792cfe75c8afcdd13572b433ebddac23d688c`,
-> reveal `blake3:693767eb8156eee49507d7f72c2e786a326e7e61f68bd4f04d3820692bf9c839`,
-> result `blake3:71dd85e610dcc50b74cb2bb2068e5a1a433ac5df5db2a4f8fde22fb41735889c`,
+> `blake3:8d31e15c355aade1ccc2592dc5fb1caf14a5f056862621e7b467858569a1c1e4`,
+> reveal `blake3:079bee84db32513c5d6c0cb54cbff1e70b163902efa934d950204090985b3f5a`,
+> result `blake3:35396bd6e64fc2c0bc7d86a84cc9e212ed913ce28e5353f5f2b8212b4cf2c532`,
 > and independent verification
-> `blake3:b8ad3b6fa6d6ab9e429b3bd8d2a5060215d15230cd272e7272f27b7eef54785b`.
-> See the [binding result and evidence ledger](r4_direct_retained_readout_prompt_capacity_973.md).
+> `blake3:3f316541dbab8061ed5ba891bf6a47ef22c55bca21fba01f6f97dbb3cb8497aa`.
+> See the [binding result and evidence ledger](r4_layerwise_normalized_retained_readout_prompt_capacity_973.md).
 > The result is a directional positive but not a capacity pass. Generation,
-> lowering, and geometry-native lowering remain `NOT_RUN`. It does not establish
-> prompt-coherent generation, reasoning, H4 superiority, an exact/table runtime,
-> browser readiness, or release readiness.
+> reasoning, lowering, and geometry-native lowering remain `NOT_RUN`. It does
+> not establish prompt-coherent generation, H4 superiority, an exact/table
+> runtime, browser readiness, or release readiness.
 >
-> The one permitted successor is independently frozen
-> `R4LayerwiseNormalizedRetainedReadoutLanguagePathV1`:
-> `logits_t(g) = E @ (N(h_t) + (g / sqrt(L)) * sum_l N(a_l,t))`, where `L=2`,
-> fixed `g=1`, and each `a_l,t` is the layer's existing output-projected,
-> state-off-gated retained read. The matched V1 and state-off controls use fixed
-> `g=0` and identical readout work. Relative to the PARTIAL candidate, the only
-> changed variable is normalization placement: replace `N(sum_l a_l,t)` with
-> `(1/sqrt(L)) * sum_l N(a_l,t)`. Add no learned parameter or recurrent state;
-> keep representation, recurrence, initialization, data/order, seed, optimizer,
-> dose, and the one tied-vocabulary matrix operation fixed.
->
-> Freeze a new story-disjoint V3 prompt population and its CID before fitting;
-> never reuse the revealed V2 population for selection or tuning. The unchanged
-> prompt gates are `G >= 0.04332169878499658`,
-> `G-G_V1 >= 0.025341569256760274`, at least `308/512` wins, and own NLL no
-> worse than V1. The unchanged fresh-language gates require final NLL `<=4.0`,
-> at least `1.0` nat improvement from initialization, at least `5.0` top-1
-> percentage points from initialization, predecessor nonregression within
-> `0.05` NLL and `1.0` top-1 point, state-off costs of at least `0.1` NLL and
-> `2,480` correct decisions, zero forbidden reads, equal work, and exact replay.
-> If this single rung misses any gate, stop parameter-free readout variants and
-> pivot to learned associative binding/readout. Do not tune the gain, try `g=2`,
-> add a third normalization variant, retry, widen, generate, or lower. #973
-> remains open and #954 remains blocked.
+> This valid miss ends the parameter-free readout ladder. #973's sole successor
+> is a freshly frozen learned associative binding/readout. Do not tune the gain,
+> try `g=2`, add a third normalization variant, retry, widen, generate, or lower.
+> #973 remains open and #954 remains blocked.
 
 > **Current forward decision after protected localization
 > (2026-08-30).** `ConnectionGaugeCovarianceV4` preserved construction-scale
@@ -1247,10 +1227,14 @@ up to the point where a structure predicts at all, and not past it.**
 The project's ultimate runtime goal remains source-free recursive geometric
 attention. #973 now establishes bounded geometric retained attention and
 autonomous local retained decoding, but its first five-prompt smoke drifts from
-every prompt. The remaining language-capability gap is prompt-responsive
-coherent generation, not whether retained attention can affect held-out
-language predictions. Correctness and reasoning remain downstream and
-unestablished; #954 grounded correctness remains blocked while #973 is open.
+every prompt. Its direct and layerwise-normalized parameter-free readouts both
+improved prompt and fresh-language metrics but missed their frozen capacity
+floors, so that ladder is closed. #973 must next freshly freeze learned
+associative binding/readout. The remaining language-capability gap is
+prompt-responsive coherent generation, not whether retained attention can
+affect held-out language predictions. Correctness and reasoning remain
+downstream and unestablished; #954 grounded correctness remains blocked while
+#973 is open.
 After the bounded generative SFT and cosine source-span pointer failed their
 frozen transfer/development gates, `R4SourceRelativeRelationHeadV1` fit its
 matched construction families but failed independent lexical transfer at its

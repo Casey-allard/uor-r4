@@ -4,23 +4,23 @@
   readable mirror of programme root #820 (stages S0–S7 plus cross-cutting F0).
   The [Geometric Intelligence Programme](geometric_intelligence_programme.md)
   is its current architecture and claim-boundary companion.
-  The latest source-free capacity result is #973's independently frozen direct
-  retained-state readout over qualified
+  The latest source-free capacity result is #973's sole layerwise-normalized
+  readout over qualified
   [`R4RetainedLanguagePathV1`](r4_retained_language_path_v1_973.md). It is
-  terminal `DIRECT_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL` at result CID
-  `blake3:71dd85e610dcc50b74cb2bb2068e5a1a433ac5df5db2a4f8fde22fb41735889c`.
-  The sole changed variable exposed the sum of already-computed retained layer
-  outputs to the tied language head. Prompt gain rose from `0.0076304198` to
-  `0.0215897894`, wins rose from `313/512` to `343/512`, fresh NLL improved by
-  `0.1636410364`, and state removal cost `1.1234286047` nats. The result passed
-  wins, language, causal, state-off, replay, and independent-verification gates
-  but missed both frozen prompt-gain floors. Freeze it without generation,
-  retry, widening, lowering, or gain tuning. Attention remains established at
-  the qualified scope; coherence, reasoning, H4 superiority, exact lowering,
-  browser readiness, and release do not follow. The next independently frozen
-  #973 rung changes only normalization placement to the fixed layerwise formula
-  `E @ [N(h) + (1/sqrt(2))*(N(a1)+N(a2))]`. If that misses any unchanged gate,
-  end the parameter-free readout ladder and pivot to learned associative
+  terminal `LAYERWISE_NORMALIZED_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL` at
+  result CID
+  `blake3:35396bd6e64fc2c0bc7d86a84cc9e212ed913ce28e5353f5f2b8212b4cf2c532`.
+  With every V1 budget fixed, the exact formula
+  `E @ [N(h) + (1/sqrt(2))*(N(a1)+N(a2))]` raised prompt gain from
+  `0.0073316237` to `0.0286980210`, raised wins from `298/512` to `339/512`,
+  improved fresh NLL by `0.1723592206`, and made state removal cost
+  `1.3495375637` nats. The result passed wins, language, causal, state-off,
+  replay, and all `13/13` independent-verification comparisons but missed both
+  frozen prompt-gain floors. Freeze it without generation, retry, widening,
+  lowering, or gain tuning. Attention remains established at the qualified
+  scope; coherence, reasoning, H4 superiority, exact lowering, browser
+  readiness, and release do not follow. This valid miss ends the parameter-free
+  readout ladder. #973 must next freshly freeze a learned associative
   binding/readout. #973 remains open, #954 remains blocked, and no C1-SB6 is
   authorized.
   [ADR-0005](adr/0005-predictive-geometric-connection-memory.md) retains the

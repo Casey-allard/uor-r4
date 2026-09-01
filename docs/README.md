@@ -8,38 +8,35 @@ whose predictive state, memory, inference, and reasoning are performed by
 geometric recurrence and routing rather than a transformer, MoE, sparse learned
 router, or dense learned matrix engine in the serving path.
 
-The latest research gate is #973's independently frozen
-[`R4DirectRetainedReadoutLanguagePathV1`](r4_direct_retained_readout_prompt_capacity_973.md).
-It completed
-`DIRECT_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL`: prompt gain
-`0.02158978940594819` versus matched V1 `g=0` at
-`0.007630419823799905` (delta `0.013959369582148285`), `343/512` wins, and own
-NLL `3.5521331250931936` versus `3.7415367660865004`. It improved fresh held-out
-NLL/top-1 to `3.7374367988736603`/`31.542433%` from
-`3.9010778352651876`/`29.632946%`; state-off cost
-`1.1234286047020587` NLL and `20,179` decisions. The frozen absolute
+The latest research gate is #973's sole layerwise-normalized candidate,
+[`R4LayerwiseNormalizedRetainedReadoutLanguagePathV1`](r4_layerwise_normalized_retained_readout_prompt_capacity_973.md).
+It completed `LAYERWISE_NORMALIZED_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL`.
+With every qualified V1 budget fixed, its exact formula
+`E @ [N(h) + (g / sqrt(2)) * (N(a1) + N(a2))]` used fixed `g=1` versus
+equal-work `g=0`, zero new parameters/state, and one vocabulary matmul. Prompt
+gain was `0.02869802096506591` versus V1 at `0.007331623694789724` (delta
+`0.021366397270276186`), with `339/512` wins and own NLL
+`3.479876528760464` versus `3.6930405921095097`. Fresh held-out NLL/top-1
+improved to `3.712641167679153`/`31.661826%` from
+`3.8850003882891597`/`29.728138%`; state-off cost
+`1.3495375636624845` NLL and `20,595` decisions. The frozen absolute
 `0.04332169878499658` and incremental `0.025341569256760274` gain floors were
 still missed. Result/candidate/population/reveal/verification CIDs are
-`blake3:71dd85e610dcc50b74cb2bb2068e5a1a433ac5df5db2a4f8fde22fb41735889c`,
-`blake3:6c66f5542a4513c610819b79210792cfe75c8afcdd13572b433ebddac23d688c`,
-`blake3:258f143eedbbb7067dc512db929a42166ad8a492fc059542409f419a3b46942e`,
-`blake3:693767eb8156eee49507d7f72c2e786a326e7e61f68bd4f04d3820692bf9c839`,
-and `blake3:b8ad3b6fa6d6ab9e429b3bd8d2a5060215d15230cd272e7272f27b7eef54785b`.
-Mechanics and replay passed; generation and lowering remain `NOT_RUN`.
+`blake3:35396bd6e64fc2c0bc7d86a84cc9e212ed913ce28e5353f5f2b8212b4cf2c532`,
+`blake3:8d31e15c355aade1ccc2592dc5fb1caf14a5f056862621e7b467858569a1c1e4`,
+`blake3:165be397b73041afd39aa65ae796400ea539399f8586729ad19a168c4daa9e93`,
+`blake3:079bee84db32513c5d6c0cb54cbff1e70b163902efa934d950204090985b3f5a`,
+and `blake3:3f316541dbab8061ed5ba891bf6a47ef22c55bca21fba01f6f97dbb3cb8497aa`.
+Mechanics, replay, and all `13/13` fresh-process verification comparisons
+passed; generation, reasoning, lowering, and geometry-native lowering remain
+`NOT_RUN`.
 
-The only next #973 rung is independently frozen
-`R4LayerwiseNormalizedRetainedReadoutLanguagePathV1`:
-`logits_t(g) = E @ (N(h_t) + (g / sqrt(L)) * sum_l N(a_l,t))`, `L=2`, fixed
-`g=1`, and matched `g=0`/state-off controls. It changes only normalization
-placement from `N(sum_l a_l,t)`, adds no learned parameter/state, and keeps V1's
-representation, recurrence, initialization, data/order, dose, optimizer, and
-tied-vocabulary operation fixed. Use a new story-disjoint CID-sealed population
-and the unchanged prompt-capacity, held-out, state-off, causal, equal-work, and
-replay gates. Failure ends parameter-free readout variants and pivots to learned
-associative binding/readout; no gain tuning, `g=2`, third normalization, retry,
-widening, generation, or lowering. #973 remains open and #954 remains blocked.
-Prompt-coherent generation, reasoning, H4 superiority, exact/table lowering,
-browser readiness, and release readiness remain unestablished.
+This valid miss ends parameter-free readout variants. #973's sole successor is
+a freshly frozen learned associative binding/readout; no gain tuning, `g=2`,
+third normalization, retry, widening, generation, or lowering is authorized.
+#973 remains open and #954 remains blocked. Prompt-coherent generation,
+reasoning, H4 superiority, exact/table lowering, browser readiness, and release
+readiness remain unestablished.
 
 The goal is real. Its success remains unproven. The current implementation has
 a storage/recall and route-query foundation, one bounded causal path mechanism,
@@ -150,8 +147,9 @@ logging and measured `4.485223 s/step`, slower than the signed
 `3.491307 s/step`; `fused=True` was removed immediately. This is a bounded
 fast-path negative, not a model result. #1019 tuning/full-run work stops and
 remains optional/paused; #1017 remains the working source-backed generator while
-#973 freezes the sole layerwise-normalized successor to its partial direct
-retained readout. CUDA and external
+#973 has ended the parameter-free readout ladder after the partial direct and
+layerwise-normalized results and must next freshly freeze a learned associative
+binding/readout. CUDA and external
 GPU execution are out of scope. See the
 [#1017 record](r4_softmax_quality_capacity_continuation_1017.md),
 [#1019 frozen contract](r4_softmax_parameter_capacity_1019.md), and
@@ -209,6 +207,7 @@ Choose the shortest path that matches what you need:
   [#973 retained-language-path record](r4_retained_language_path_v1_973.md),
   then the [paired-H4 capacity result](r4_paired_h4_prompt_capacity_result_973_raw.json),
   then the [direct retained-readout result](r4_direct_retained_readout_prompt_capacity_973.md),
+  then the [layerwise-normalized result](r4_layerwise_normalized_retained_readout_prompt_capacity_973.md),
   then the [group-addressed retention record](r4_group_addressed_retention_973.md),
   then [ADR-0005](adr/0005-predictive-geometric-connection-memory.md) and
   [ADR-0004](adr/0004-geometric-intelligence-route-hierarchy.md), and use the
@@ -217,8 +216,8 @@ Choose the shortest path that matches what you need:
   [#954 record](r4_grounded_correctness_954.md). C1-SB5 paired-query binding is
   the latest frozen negative (`56/56` fit, `14/28` sealed) and is retired without
   retry. No C1-SB6 is authorized; #954's final source-free terminal remains
-  blocked while #973 tests the sole layerwise-normalized successor to its
-  partial direct retained-readout result.
+  blocked while #973 freshly freezes the learned associative binding/readout
+  successor to its completed parameter-free readout ladder.
 - **Improve the optional capacity rung:** start from live
   [#1019](https://github.com/UOR-Foundation/uor-r4/issues/1019) under #973 and
   programme root #820. Its population/smoke/random-export parity gates passed,
@@ -226,7 +225,7 @@ Choose the shortest path that matches what you need:
   eight-hour offline implementation. Its fused-AdamW/deferred-logging fast path
   was slower (`4.485223` versus signed `3.491307 s/step`), so the `NOT_RUN`
   campaign is optional/paused. #1017 remains usable through `r4 generate`; #973
-  must test only the frozen layerwise-normalized readout against V1. CUDA and
+  must next freshly freeze learned associative binding/readout. CUDA and
   external GPU execution are out of scope.
 - **Audit a result or claim:** use the [research ledger](RESEARCH.md), then open
   the exact issue-numbered evidence record it names.
@@ -312,7 +311,7 @@ These are the small set of living documents that define the present work:
    offline implementation, and the full campaign remains `NOT_RUN`. Its fused-
    AdamW/deferred-logging fast path was slower, so #1019 is optional/paused and
    #1017 remains the working source-backed `r4 generate` path. #973 must next
-   test only the frozen layerwise-normalized readout against V1. CUDA and
+   freshly freeze learned associative binding/readout. CUDA and
    external GPU execution are out of scope.
    The bounded
    [multi-resonance reuse audit](multi_resonance_attention_sieve_audit_973.md)
@@ -360,7 +359,8 @@ reversible lexical geometry
   → independently freeze a data-supported language-path decoder plus ordinary matched non-geometric control [R4RetainedLanguagePathV1 PASS]
   → test paired-H4 prompt capacity [FAIL; STRUCTURAL REPEATS -97.5477%; PROMPT CONTRAST WORSE; GENERATION NOT_RUN]
   → expose retained state directly to logits [PARTIAL; PROMPT/LANGUAGE IMPROVED; BOTH PROMPT-GAIN FLOORS MISSED; GENERATION NOT_RUN]
-  → independently freeze one layerwise-normalized retained readout [SOLE PARAMETER-FREE SUCCESSOR]
+  → independently freeze one layerwise-normalized retained readout [PARTIAL; PROMPT/LANGUAGE IMPROVED; BOTH PROMPT-GAIN FLOORS MISSED; PARAMETER-FREE LADDER CLOSED; GENERATION NOT_RUN]
+  → freshly freeze learned associative binding/readout [SOLE #973 SUCCESSOR]
   → park intrinsic/readout alternatives, resonance-based softmax replacement, full-model recurrent lowering, and exact deployment
   → correctness and abstention
   → multi-step reasoning

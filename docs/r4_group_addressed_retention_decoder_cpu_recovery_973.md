@@ -210,8 +210,31 @@ causal, and forbidden-read controls passed.
 Qualified V1 is therefore preserved. There is no paired-address retry or new
 generation smoke. At this historical checkpoint, the next independent freeze
 targeted the prompt-state-to-logit readout seam; that later experiment completed
-directional `PARTIAL`, and only its layerwise-normalized successor remains.
+directional `PARTIAL`, and the next frozen successor was layerwise-normalized.
 Attention remains established at the
 separately qualified scopes; H4-specific advantage, reasoning, correctness,
 and exact lowering remain unestablished. #973 remains open and #954 remains
 blocked.
+
+## Readout-ladder completion — 2026-09-01
+
+After the direct readout's directional `PARTIAL`, the one authorized
+layerwise-normalized variant completed with the same terminal class. It changed
+only `N(a1+a2)` to `(N(a1)+N(a2))/sqrt(2)` over the later qualified V1
+substrate, not this record's failed 3.17M-parameter decoder recipe.
+
+The V3 candidate produced prompt gain `0.0286980210` versus V1
+`0.0073316237`, delta `0.0213663973`, with `339/512` wins. All fresh-language
+and mechanics gates passed; candidate fresh NLL/top-1 were
+`3.7126411677` / `31.661826%`, and state removal cost `1.3495375637` nats and
+`20,595` correct decisions. The absolute and incremental prompt-gain floors
+still missed. Terminal:
+`LAYERWISE_NORMALIZED_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL`, result CID
+`blake3:35396bd6e64fc2c0bc7d86a84cc9e212ed913ce28e5353f5f2b8212b4cf2c532`;
+independent verification CID
+`blake3:3f316541dbab8061ed5ba891bf6a47ef22c55bca21fba01f6f97dbb3cb8497aa`.
+
+This later result does not revise `RETAINED_DECODER_FAIL`. It closes the
+parameter-free readout ladder and makes a freshly frozen learned associative
+binding/readout the sole #973 successor. The layerwise candidate has no
+generation, reasoning, or lowering result; #954 remains blocked.

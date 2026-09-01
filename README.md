@@ -14,59 +14,49 @@ local hardware. The project is testing whether language context, inference,
 and reasoning can emerge from routes through a canonical geometric memory. The
 target serving engine uses no Ollama, hosted model, or source-model weights.
 
-> **Latest source-free prompt-capacity result (2026-09-01):** #973's one frozen
-> readout-only candidate, `R4DirectRetainedReadoutLanguagePathV1`, completed
-> `DIRECT_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL`. It held the qualified
-> [`R4RetainedLanguagePathV1`](docs/r4_retained_language_path_v1_973.md)
+> **Latest source-free prompt-capacity result (2026-09-01):** #973's sole
+> layerwise-normalized candidate,
+> `R4LayerwiseNormalizedRetainedReadoutLanguagePathV1`, completed
+> `LAYERWISE_NORMALIZED_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL`. It held the
+> qualified [`R4RetainedLanguagePathV1`](docs/r4_retained_language_path_v1_973.md)
 > representation, recurrence, initialization, training data/order, seed `9738`,
 > `252,160` learned parameters, `23,040` f32 state values, `2,730` optimizer
-> steps, and `5,241,600` token decisions fixed. Only the already-computed,
-> output-projected retained reads were added directly to the tied-embedding
-> logit path; fixed `g=0` was the equal-work V1 control.
+> steps, and `5,241,600` token decisions fixed. Its only change was
+> `E @ [N(h) + (g / sqrt(2)) * (N(a1) + N(a2))]`, with fixed `g=1` versus the
+> equal-work `g=0` V1 control, zero new learned parameters or state, and the same
+> one tied-vocabulary matrix operation.
 >
-> On the sealed 512-direction prompt swap, candidate mean gain was
-> `0.02158978940594819` nats/token versus V1 `g=0` at
-> `0.007630419823799905`, a positive delta of `0.013959369582148285`, with
-> `343/512` wins. Candidate own NLL was `3.5521331250931936` versus V1
-> `3.7415367660865004`. It nevertheless missed the frozen absolute-gain floor
+> On the sealed 512-direction V3 prompt swap, candidate mean gain was
+> `0.02869802096506591` nats/token versus V1 `g=0` at
+> `0.007331623694789724`, a positive delta of `0.021366397270276186`, with
+> `339/512` wins. Candidate own NLL was `3.479876528760464` versus V1
+> `3.6930405921095097`. It nevertheless missed the frozen absolute-gain floor
 > `0.04332169878499658` and incremental-gain floor
 > `0.025341569256760274`. On fresh held-out language it improved NLL/top-1 to
-> `3.7374367988736603`/`31.542433%` from V1's
-> `3.9010778352651876`/`29.632946%`; disabling retained state cost
-> `1.1234286047020587` NLL and `20,179` correct decisions. Causal, equal-work,
-> state, artifact-replay, seal-before-fit, and independent-verification checks
-> passed.
+> `3.712641167679153`/`31.661826%` from V1's
+> `3.8850003882891597`/`29.728138%`; disabling retained state cost
+> `1.3495375636624845` NLL and `20,595` correct decisions. Causal, equal-work,
+> state, artifact-replay, seal-before-fit, and all `13/13` independent-verifier
+> comparisons passed.
 >
 > Evidence is bound to candidate artifact CID
-> `blake3:6c66f5542a4513c610819b79210792cfe75c8afcdd13572b433ebddac23d688c`,
+> `blake3:8d31e15c355aade1ccc2592dc5fb1caf14a5f056862621e7b467858569a1c1e4`,
 > population CID
-> `blake3:258f143eedbbb7067dc512db929a42166ad8a492fc059542409f419a3b46942e`,
+> `blake3:165be397b73041afd39aa65ae796400ea539399f8586729ad19a168c4daa9e93`,
 > reveal CID
-> `blake3:693767eb8156eee49507d7f72c2e786a326e7e61f68bd4f04d3820692bf9c839`,
+> `blake3:079bee84db32513c5d6c0cb54cbff1e70b163902efa934d950204090985b3f5a`,
 > result CID
-> `blake3:71dd85e610dcc50b74cb2bb2068e5a1a433ac5df5db2a4f8fde22fb41735889c`,
+> `blake3:35396bd6e64fc2c0bc7d86a84cc9e212ed913ce28e5353f5f2b8212b4cf2c532`,
 > and independent-verification CID
-> `blake3:b8ad3b6fa6d6ab9e429b3bd8d2a5060215d15230cd272e7272f27b7eef54785b`.
-> See the [binding #973 readout record](docs/r4_direct_retained_readout_prompt_capacity_973.md).
-> This is directional evidence, not a prompt-capacity pass. Generation,
+> `blake3:3f316541dbab8061ed5ba891bf6a47ef22c55bca21fba01f6f97dbb3cb8497aa`.
+> See the [binding #973 layerwise-readout record](docs/r4_layerwise_normalized_retained_readout_prompt_capacity_973.md).
+> This is directional evidence, not a prompt-capacity pass. The valid miss ends
+> the parameter-free readout ladder. #973's sole successor is a freshly frozen
+> learned associative binding/readout—no gain tuning, `g=2`, third normalization
+> variant, retry, widening, generation, or lowering. Generation, reasoning,
 > lowering, and geometry-native lowering remain `NOT_RUN`; prompt-coherent
-> generation, reasoning, H4 superiority, exact/table runtime, browser readiness,
-> and release readiness do not follow.
->
-> The one permitted successor is independently frozen
-> `R4LayerwiseNormalizedRetainedReadoutLanguagePathV1`:
-> `logits_t(g) = E @ (N(h_t) + (g / sqrt(L)) * sum_l N(a_l,t))`, with `L=2`,
-> fixed `g=1`, and matched `g=0`/state-off controls. Here each `a_l,t` is the
-> layer's existing output-projected, state-off-gated retained read. This changes
-> only normalization placement from `N(sum_l a_l,t)`; it adds no learned
-> parameter or recurrent state and retains V1's data, order, dose, optimizer,
-> recurrence, and one tied-vocabulary matrix operation. Freeze a new
-> story-disjoint CID population before fitting and keep the same absolute,
-> incremental, wins, own-NLL, held-out, state-off, causal, equal-work, and replay
-> gates. If it misses any of them, stop the parameter-free readout ladder and
-> pivot to learned associative binding/readout—no gain tuning, `g=2`, third
-> normalization variant, retry, widening, generation, or lowering. #973 stays
-> open and #954 remains blocked.
+> generation, H4 superiority, exact/table runtime, browser readiness, and release
+> readiness do not follow. #973 stays open and #954 remains blocked.
 
 > **Current attention-to-intelligence checkpoint (2026-08-31):** ordinary
 > learned causal Q/K/V attention with stable softmax is established as the

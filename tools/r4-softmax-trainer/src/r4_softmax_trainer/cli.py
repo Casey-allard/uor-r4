@@ -65,6 +65,12 @@ from .language_path_generalization_campaign import (
 )
 from .language_path_generalization_data import prepare_language_path_data
 from .language_path_generation import run_language_path_generation
+from .layerwise_normalized_retained_readout_campaign import (
+    prepare_layerwise_normalized_retained_readout,
+    probe_layerwise_normalized_retained_readout,
+    run_layerwise_normalized_retained_readout,
+    verify_layerwise_normalized_retained_readout_result,
+)
 from .paired_h4_prompt_capacity_campaign import (
     prepare_paired_h4_prompt_capacity,
     probe_paired_h4_prompt_capacity,
@@ -93,6 +99,13 @@ from .paths import (
     default_language_path_geometry,
     default_language_path_root,
     default_language_path_source_root,
+    default_layerwise_normalized_readout_predecessor,
+    default_layerwise_normalized_readout_raw_source,
+    default_layerwise_normalized_readout_root,
+    default_layerwise_normalized_readout_source_train,
+    default_layerwise_normalized_readout_source_train_index,
+    default_layerwise_normalized_readout_v1_population,
+    default_layerwise_normalized_readout_v2_population,
     default_paired_h4_prompt_capacity_predecessor,
     default_paired_h4_prompt_capacity_raw_source,
     default_paired_h4_prompt_capacity_root,
@@ -617,6 +630,66 @@ def parser() -> argparse.ArgumentParser:
         "verify-direct-retained-readout",
         help="fresh-process exact re-score of terminal prompt and heldout evidence",
     )
+    prepare_layerwise_readout = subcommands.add_parser(
+        "prepare-layerwise-normalized-readout",
+        help=(
+            "freeze #973's layerwise-normalized readout successor, disjoint "
+            "heldout slice, and sealed prompt-contrast V3 population"
+        ),
+    )
+    prepare_layerwise_readout.add_argument(
+        "--predecessor-root",
+        type=_root,
+        default=default_layerwise_normalized_readout_predecessor(),
+        help="immutable qualified retained-language-path root",
+    )
+    prepare_layerwise_readout.add_argument(
+        "--source-train",
+        type=_root,
+        default=default_layerwise_normalized_readout_source_train(),
+        help="verified nonsealed #1019 train-token store",
+    )
+    prepare_layerwise_readout.add_argument(
+        "--source-train-index",
+        type=_root,
+        default=default_layerwise_normalized_readout_source_train_index(),
+        help="canonical #1019 train-story index binding the heldout slice",
+    )
+    prepare_layerwise_readout.add_argument(
+        "--raw-source",
+        type=_root,
+        default=default_layerwise_normalized_readout_raw_source(),
+        help="pinned raw TinyStories source for prompt-contrast V3",
+    )
+    prepare_layerwise_readout.add_argument(
+        "--v1-population",
+        type=_root,
+        default=default_layerwise_normalized_readout_v1_population(),
+        help="revealed V1 prompt population used only for story-CID exclusion",
+    )
+    prepare_layerwise_readout.add_argument(
+        "--v2-population",
+        type=_root,
+        default=default_layerwise_normalized_readout_v2_population(),
+        help="revealed V2 prompt population used only for story-CID exclusion",
+    )
+    subcommands.add_parser(
+        "probe-layerwise-normalized-readout",
+        help="run #973's sole five-step Apple Accelerate CPU4 admission probe",
+    )
+    run_layerwise_readout = subcommands.add_parser(
+        "run-layerwise-normalized-readout",
+        help="run or resume #973's sole layerwise-readout fit and frozen evaluation",
+    )
+    run_layerwise_readout.add_argument(
+        "--resume",
+        action="store_true",
+        help="resume the identical frozen candidate trajectory",
+    )
+    subcommands.add_parser(
+        "verify-layerwise-normalized-readout",
+        help="fresh-process exact re-score of terminal V3 prompt and heldout evidence",
+    )
     return command
 
 
@@ -687,6 +760,12 @@ def main() -> None:
         "run-direct-retained-readout",
         "verify-direct-retained-readout",
     }
+    layerwise_normalized_readout_commands = {
+        "prepare-layerwise-normalized-readout",
+        "probe-layerwise-normalized-readout",
+        "run-layerwise-normalized-readout",
+        "verify-layerwise-normalized-readout",
+    }
     if arguments.root:
         root = arguments.root
     elif arguments.command in capacity_commands:
@@ -717,6 +796,8 @@ def main() -> None:
         root = default_paired_h4_prompt_capacity_root()
     elif arguments.command in direct_retained_readout_commands:
         root = default_direct_retained_readout_root()
+    elif arguments.command in layerwise_normalized_readout_commands:
+        root = default_layerwise_normalized_readout_root()
     else:
         root = default_research_root()
     if arguments.command == "download":
@@ -984,5 +1065,31 @@ def main() -> None:
         return
     if arguments.command == "verify-direct-retained-readout":
         _print_result(verify_direct_retained_readout_result(root))
+        return
+    if arguments.command == "prepare-layerwise-normalized-readout":
+        prepared = prepare_layerwise_normalized_retained_readout(
+            root=root,
+            predecessor_root=arguments.predecessor_root,
+            source_train_path=arguments.source_train,
+            source_train_index_path=arguments.source_train_index,
+            raw_source_path=arguments.raw_source,
+            prior_v1_prompt_population_path=arguments.v1_population,
+            prior_v2_prompt_population_path=arguments.v2_population,
+        )
+        _print_result(prepared.manifest)
+        return
+    if arguments.command == "probe-layerwise-normalized-readout":
+        _print_result(probe_layerwise_normalized_retained_readout(root))
+        return
+    if arguments.command == "run-layerwise-normalized-readout":
+        _print_result(
+            run_layerwise_normalized_retained_readout(
+                root,
+                resume=arguments.resume,
+            )
+        )
+        return
+    if arguments.command == "verify-layerwise-normalized-readout":
+        _print_result(verify_layerwise_normalized_retained_readout_result(root))
         return
     raise AssertionError(f"unhandled command: {arguments.command}")

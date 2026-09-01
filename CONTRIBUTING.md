@@ -12,38 +12,33 @@ native bridge result are frozen in
 [ADR-0005](docs/adr/0005-predictive-geometric-connection-memory.md).
 The current handoff preserves qualified
 [`R4RetainedLanguagePathV1`](docs/r4_retained_language_path_v1_973.md) and
-records its fixed-budget direct-readout candidate as
-`DIRECT_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL`. Candidate prompt gain was
-`0.02158978940594819` versus matched V1 `g=0` at
-`0.007630419823799905` (delta `0.013959369582148285`), with `343/512` wins and
-own NLL `3.5521331250931936` versus `3.7415367660865004`. It improved fresh
-held-out NLL/top-1 to `3.7374367988736603`/`31.542433%` from
-`3.9010778352651876`/`29.632946%`, and state-off cost
-`1.1234286047020587` NLL plus `20,179` correct decisions. It still missed the
+records its sole layerwise-normalized candidate as
+`LAYERWISE_NORMALIZED_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL`. With every V1
+budget fixed, `E @ [N(h) + (g / sqrt(2)) * (N(a1) + N(a2))]` used fixed `g=1`
+versus equal-work `g=0`, zero new parameters/state, and one vocabulary matmul.
+Candidate prompt gain was `0.02869802096506591` versus matched V1 at
+`0.007331623694789724` (delta `0.021366397270276186`), with `339/512` wins and
+own NLL `3.479876528760464` versus `3.6930405921095097`. Fresh held-out NLL/
+top-1 improved to `3.712641167679153`/`31.661826%` from
+`3.8850003882891597`/`29.728138%`, and state-off cost
+`1.3495375636624845` NLL plus `20,595` correct decisions. It still missed the
 frozen absolute `0.04332169878499658` and incremental
 `0.025341569256760274` gain floors. Result, candidate, population, reveal, and
 verification CIDs are respectively
-`blake3:71dd85e610dcc50b74cb2bb2068e5a1a433ac5df5db2a4f8fde22fb41735889c`,
-`blake3:6c66f5542a4513c610819b79210792cfe75c8afcdd13572b433ebddac23d688c`,
-`blake3:258f143eedbbb7067dc512db929a42166ad8a492fc059542409f419a3b46942e`,
-`blake3:693767eb8156eee49507d7f72c2e786a326e7e61f68bd4f04d3820692bf9c839`,
-and `blake3:b8ad3b6fa6d6ab9e429b3bd8d2a5060215d15230cd272e7272f27b7eef54785b`.
-The [binding #973 readout record](docs/r4_direct_retained_readout_prompt_capacity_973.md)
-contains the complete evidence ledger.
-Mechanics and replay passed, but generation/lowering are `NOT_RUN` and no
-coherence, reasoning, H4-superiority, exact-runtime, browser, or release claim
-follows.
+`blake3:35396bd6e64fc2c0bc7d86a84cc9e212ed913ce28e5353f5f2b8212b4cf2c532`,
+`blake3:8d31e15c355aade1ccc2592dc5fb1caf14a5f056862621e7b467858569a1c1e4`,
+`blake3:165be397b73041afd39aa65ae796400ea539399f8586729ad19a168c4daa9e93`,
+`blake3:079bee84db32513c5d6c0cb54cbff1e70b163902efa934d950204090985b3f5a`,
+and `blake3:3f316541dbab8061ed5ba891bf6a47ef22c55bca21fba01f6f97dbb3cb8497aa`.
+The [binding #973 layerwise-readout record](docs/r4_layerwise_normalized_retained_readout_prompt_capacity_973.md)
+contains the complete evidence ledger. Mechanics, replay, and all `13/13`
+fresh-process comparisons passed, but generation, reasoning, lowering, and
+geometry-native lowering are `NOT_RUN`; no coherence, H4-superiority,
+exact-runtime, browser, or release claim follows.
 
-Contribute only the independently frozen
-`R4LayerwiseNormalizedRetainedReadoutLanguagePathV1` successor:
-`logits_t(g) = E @ (N(h_t) + (g / sqrt(L)) * sum_l N(a_l,t))`, with `L=2`,
-fixed `g=1`, matched `g=0`/state-off controls, no new learned parameters/state,
-and V1 representation, recurrence, data/order, seed, optimizer dose, and tied
-vocabulary operation unchanged. Seal a new story-disjoint CID population before
-fit. Keep the same absolute/incremental/wins/own-NLL, held-out, state-off,
-causal, equal-work, and replay gates. If it fails, stop parameter-free readout
-variants and pivot to learned associative binding/readout; do not tune `g`, try
-`g=2`, add another normalization variant, retry, widen, generate, or lower.
+The valid miss ends parameter-free readout variants. Contribute only toward a
+freshly frozen learned associative binding/readout successor; do not tune `g`,
+try `g=2`, add another normalization variant, retry, widen, generate, or lower.
 Ordinary
 causal R4/Spin Q/K/V plus stable softmax remains the bounded source-backed
 attention baseline, while C1-SB5 paired-query binding fit `56/56` but reached
@@ -271,8 +266,9 @@ The experiment must be able to change the next programme decision:
   old gated-delta,
   trace-state, intrinsic/readout, resonance, full-model recurrent-lowering, and
   exact-deployment lanes remain negative or parked. Do not scale or tune the
-  rejected paired candidate or the partial direct readout; #973 must next test
-  only the frozen layerwise-normalized readout against V1. #973 still
+  rejected paired candidate, the partial direct readout, or the partial
+  layerwise-normalized readout. The parameter-free ladder is closed; #973 must
+  next freshly freeze a learned associative binding/readout. #973 still
   blocks GI-4/#954's final source-free terminal, with GI-5/#955 downstream of
   positive correctness.
 - **Exercise the accepted route path.** #953 geometry runs before token choice

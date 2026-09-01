@@ -220,15 +220,26 @@ substituted for one another.
   floors. Terminal `DIRECT_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL`; it is not
   a generation, coherence, reasoning, H4-advantage, or exact-runtime result.
   See the [canonical record](../r4_direct_retained_readout_prompt_capacity_973.md).
-- **`R4LayerwiseNormalizedRetainedReadoutLanguagePathV1`** — the sole fresh
-  parameter-free successor to the partial direct readout. It changes only the
-  normalization placement to
+- **`R4LayerwiseNormalizedRetainedReadoutLanguagePathV1`** — #973's completed
+  final parameter-free readout variant. It changed only the normalization
+  placement to
   `E @ [N(h) + (g/sqrt(L))*sum_l N(a_l)]`, with `L=2`, fixed `g=1` versus
   `g=0`, zero new learned parameters/state, and identical recurrence, data,
-  dose, and tied-matmul work. It must use a V3 prompt population and fresh
-  held-out slice disjoint from every prior scored item. A gate miss ends the
-  parameter-free readout ladder rather than authorizing another scalar or
-  normalization tweak.
+  dose, and tied-matmul work. Its V3 prompt population and fresh held-out slice
+  were disjoint from every prior scored item. Candidate prompt gain
+  `0.0286980210` and incremental gain `0.0213663973` missed their frozen
+  `0.0433216988` and `0.0253415693` floors despite `339/512` wins and a full
+  fresh-language/mechanics pass. Terminal
+  `LAYERWISE_NORMALIZED_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL`; result CID
+  `blake3:35396bd6e64fc2c0bc7d86a84cc9e212ed913ce28e5353f5f2b8212b4cf2c532`.
+  The valid miss ends the parameter-free readout ladder.
+- **Learned associative binding/readout** — #973's sole active successor after
+  the parameter-free ladder ended. It must be a new independently frozen
+  learned candidate-relative binding from the preserved retained state to
+  logits, compared with matched ordinary/non-geometric and state-off controls.
+  Its architecture and budget are not yet frozen; implementation, fitting,
+  generation, reasoning, and lowering are `NOT_RUN`. The phrase does not name
+  an already-qualified mechanism.
 - **`DirectCausalGeometricAttentionR4V1`** — #973's offline gold-standard
   reference for the literal attention function: learned Q/K/V/O roles, local
   S3 tangent projection, causal H4-frame transport of every prior key and
@@ -549,9 +560,11 @@ substituted for one another.
   remain `NOT_RUN`. Its fused-AdamW/deferred-logging fast path was slower, so
   #1019 is optional/paused. #1017 remains the working source-backed
   `r4 generate` path; #973's retained language path qualified, its paired-H4
-  capacity successor failed, and its direct retained readout completed
-  directional `PARTIAL`; only the layerwise-normalized readout is next. CUDA
-  and external GPU execution are out of scope.
+  capacity successor failed, its direct retained readout completed directional
+  `PARTIAL`, and its layerwise-normalized readout also completed `PARTIAL` after
+  passing language/mechanics but missing both prompt-gain floors. The
+  parameter-free ladder is closed; only a freshly frozen learned associative
+  binding/readout is next. CUDA and external GPU execution are out of scope.
   Intrinsic/readout,
   fiber-preserving multi-resonance replacement,
   whole-decoder recurrent factorization, and final requalification are parked
@@ -614,7 +627,7 @@ substituted for one another.
 - **Multiplication-free runtime** — a separate operation-set claim belonging
   to an exact execution path. It is not implied by “transformerless.”
 
-## Current #973 prompt-capacity terminal — 2026-09-01
+## Historical direct-readout #973 prompt-capacity terminal — 2026-09-01
 
 `R4DirectRetainedReadoutLanguagePathV1` completed
 `DIRECT_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL` at result CID
@@ -624,11 +637,33 @@ wins, improved fresh NLL by `0.1636410364` and top-1 by `1.909487` percentage
 points, and lost `1.1234286047` nats under state removal. Exact causal,
 forbidden-read, reveal-binding, replay, and independent verification passed.
 It missed both frozen prompt-gain floors, so generation, retry, widening,
-lowering, and gain tuning are forbidden. The only next rung is the fresh
-layerwise-normalized formula defined above; its failure ends the parameter-free
+lowering, and gain tuning are forbidden. The only next rung authorized at that
+checkpoint was the fresh layerwise-normalized formula defined above; its
+failure would end the parameter-free
 readout ladder. Attention remains established, but prompt-conditioned
 coherence, reasoning, H4 superiority, and exact lowering do not follow. #973
 remains open, #954 remains blocked, and no C1-SB6 is authorized.
+
+## Current #973 layerwise terminal and successor — 2026-09-01
+
+`R4LayerwiseNormalizedRetainedReadoutLanguagePathV1` completed
+`LAYERWISE_NORMALIZED_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL` at result CID
+`blake3:35396bd6e64fc2c0bc7d86a84cc9e212ed913ce28e5353f5f2b8212b4cf2c532`.
+On disjoint V3 prompts, candidate `G=0.0286980210` versus V1
+`0.0073316237`, delta `0.0213663973`, with `339/512` wins and better own-prompt
+NLL. Both state-off contrasts were exactly zero. Fresh-language NLL/top-1 were
+`3.7126411677` / `31.661826%` versus V1 `3.8850003883` / `29.728138%`, and
+state removal cost `1.3495375637` nats plus `20,595` correct decisions.
+
+Every language and mechanics gate passed, and an independent fresh-process
+verifier reproduced all 13 comparisons at
+`blake3:3f316541dbab8061ed5ba891bf6a47ef22c55bca21fba01f6f97dbb3cb8497aa`.
+The absolute `0.0433216988` and incremental `0.0253415693` prompt-gain floors
+did not pass. Therefore there is no retry, scalar tweak, third normalization,
+generation, widening, or lowering. A freshly frozen learned associative
+binding/readout is the sole #973 successor. For this candidate, generation,
+reasoning, and exact/geometry-native lowering remain `NOT_RUN`; #954 remains
+blocked and C1-SB6 remains unauthorized.
 
 ### Prior paired-H4 terminal
 

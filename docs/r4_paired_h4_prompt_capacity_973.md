@@ -266,10 +266,34 @@ terminal is `DIRECT_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL`, result CID
 `blake3:71dd85e610dcc50b74cb2bb2068e5a1a433ac5df5db2a4f8fde22fb41735889c`.
 Generation, retry, widening, lowering, and gain tuning remain forbidden.
 
-The only fresh successor normalizes the two retained layer outputs separately
+The only fresh successor authorized at that checkpoint normalized the two
+retained layer outputs separately
 before their fixed variance-preserving `1/sqrt(2)` sum. It introduces no
 learned parameter or state and keeps recurrence, data, optimizer dose, work,
 and gates fixed. It must use a V3 population and fresh held-out slice disjoint
-from every V1/V2 scored item. A miss ends the parameter-free readout ladder.
+from every V1/V2 scored item. A miss would end the parameter-free readout ladder.
 See the
 [direct-readout record](r4_direct_retained_readout_prompt_capacity_973.md).
+
+## Final readout-ladder outcome — 2026-09-01
+
+The layerwise-normalized successor after the direct-readout `PARTIAL` has now
+completed. It restored the same qualified V1 substrate and varied only
+normalization placement at the retained-state-to-logit seam. On disjoint V3
+prompts it reached gain `0.0286980210` versus V1 `0.0073316237`, delta
+`0.0213663973`, and `339/512` wins. Every fresh-language and mechanics gate
+passed, including a `1.3495375637`-nat / `20,595`-decision state-off cost, but
+the absolute and incremental prompt-gain floors did not.
+
+Terminal:
+`LAYERWISE_NORMALIZED_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL`. Result CID:
+`blake3:35396bd6e64fc2c0bc7d86a84cc9e212ed913ce28e5353f5f2b8212b4cf2c532`.
+Independent verification CID:
+`blake3:3f316541dbab8061ed5ba891bf6a47ef22c55bca21fba01f6f97dbb3cb8497aa`.
+
+The parameter-free readout ladder therefore ends. Qualified V1 remains the
+baseline; the paired, direct, and layerwise artifacts remain bounded evidence,
+not promotion to generation or exact runtime. The sole #973 successor is a
+freshly frozen learned associative binding/readout. Generation, reasoning, and
+lowering for this candidate remain `NOT_RUN`; #954 stays blocked and C1-SB6
+remains unauthorized.

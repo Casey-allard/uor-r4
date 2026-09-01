@@ -8,16 +8,19 @@ a transformerless local AI engine.
 prime/semiprime routes, spin and torsion state, Hopf projection with a retained
 fiber, golden-radial structure, exact transport controls, and bounded route
 operators. They are the retained address/frame/transport substrate, not a
-semantic language model. The latest #973 result is the independently frozen
-[`R4GroupAddressedRetentionDecoderV1` CPU recovery](../../docs/r4_group_addressed_retention_decoder_cpu_recovery_973.md).
-Its exact-H4, cyclic-120, and destructive scrambled-H4 construction completed
-all 512 steps. Turning retained state off on the disjoint construction
-validation partition loses `0.967227` nats and 182 top-1 hits, qualifying one bounded causal
-retained-attention component. The exact complete-decoder recipe is not promoted
-because aggregate validation CE worsened `8.371911 -> 8.976155`; scrambled transport was
-`0.033049` nats better, so no H4-specific advantage is claimed. #973 must next
-freeze a language-path generalization mechanism with a data-supported parameter
-budget and an ordinary matched non-geometric decoder. The bounded
+semantic language model. #973's subsequently qualified
+[`R4RetainedLanguagePathV1`](../../docs/r4_retained_language_path_v1_973.md)
+establishes one bounded, source-free, causally load-bearing retained-attention
+path, not H4 superiority or prompt-coherent generation. Its direct and sole
+layerwise-normalized parameter-free readout successors each improved prompt and
+fresh-language metrics but missed both frozen capacity-gain floors. The latest
+terminal is
+`LAYERWISE_NORMALIZED_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL`, result CID
+`blake3:35396bd6e64fc2c0bc7d86a84cc9e212ed913ce28e5353f5f2b8212b4cf2c532`;
+all `13/13` fresh-process verifier comparisons passed. The parameter-free
+readout ladder is closed, and #973 must next freshly freeze a learned
+associative binding/readout. Generation, reasoning, and lowering remain
+`NOT_RUN`; #954 remains blocked. The bounded
 `GeometricGatedDeltaRetentionR4V1` core
 now implements separate learned K/V/Q, H4-frame transport, four retained banks,
 and candidate-relative readout, but its sealed synthetic smoke was weaker than

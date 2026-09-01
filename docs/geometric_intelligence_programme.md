@@ -54,45 +54,38 @@ correctness, and reasoning remain separate claims.
 Optimization, broad QA, formalization, and release certification follow a
 working decision-bearing product slice. They do not replace it.
 
-## Current #973 decision — direct retained readout is positive but partial
+## Current #973 decision — parameter-free ladder ended at PARTIAL
 
-Qualified `R4RetainedLanguagePathV1` remains the active source-free retained-
-attention baseline. The independently frozen
-`R4DirectRetainedReadoutLanguagePathV1` held its exact-H4 recurrence, learned
-parameters, state, data, seed, order, optimizer, 2,730-step dose, and one tied
-vocabulary matmul fixed. It changed only the final readout from `E @ N(h)` to
-`E @ (N(h) + g*N(a1+a2))`, with fixed candidate `g=1` and matched V1 control
-`g=0`.
+Qualified `R4RetainedLanguagePathV1` remains the source-free retained-attention
+baseline. The last authorized parameter-free successor,
+`R4LayerwiseNormalizedRetainedReadoutLanguagePathV1`, held its exact-H4
+recurrence, parameters, state, data, seed, order, optimizer, 2,730-step dose,
+and one tied vocabulary projection fixed. It changed only the retained-state
+normalization from `N(a1+a2)` to `(N(a1)+N(a2))/sqrt(2)`.
 
-This is a directional positive. On the disjoint 256-pair V2 prompt population,
-mean own-versus-crossed prompt gain rose from `0.0076304198` to `0.0215897894`
-nats/token, candidate wins rose from `313/512` to `343/512`, and own-prompt NLL
-fell from `3.7415367661` to `3.5521331251`. On 247,920 fresh held-out language
-decisions, candidate NLL/top-1 were `3.7374367989` / `31.542433%`, versus
-`3.9010778353` / `29.632946%` for matched V1. Turning retained state off cost
-`1.1234286047` nats and 20,179 correct decisions. Both state-off prompt
-contrasts were exactly zero; causal, forbidden-read, artifact-before-reveal,
-CID-binding, replay, and independent fresh-process reproduction passed.
+On disjoint V3 prompts, candidate gain was `0.0286980210` versus V1
+`0.0073316237`, delta `0.0213663973`, with `339/512` wins and better own-prompt
+NLL. Both state-off prompt contrasts were exactly zero. Fresh-language
+NLL/top-1 were `3.7126411677` / `31.661826%` versus V1
+`3.8850003883` / `29.728138%`; state removal cost `1.3495375637` nats and
+`20,595` correct decisions. All language, causal, state-off, replay,
+artifact/reveal-binding, and forbidden-read gates passed.
 
-The result is nevertheless terminal
-`DIRECT_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL`, result CID
-`blake3:71dd85e610dcc50b74cb2bb2068e5a1a433ac5df5db2a4f8fde22fb41735889c`.
-The gain cleared the wins and language gates but missed the frozen absolute
-`0.0433216988` floor and the `0.0253415693` incremental-over-V1 floor. Freeze
-the artifact; do not generate, retry, widen, lower, or tune `g` after reveal.
+The candidate still missed the frozen absolute `0.0433216988` and incremental
+`0.0253415693` prompt-gain floors. Terminal:
+`LAYERWISE_NORMALIZED_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL`, result CID
+`blake3:35396bd6e64fc2c0bc7d86a84cc9e212ed913ce28e5353f5f2b8212b4cf2c532`;
+independent verification CID
+`blake3:3f316541dbab8061ed5ba891bf6a47ef22c55bca21fba01f6f97dbb3cb8497aa`.
 
-The sole fresh #973 successor is
-`R4LayerwiseNormalizedRetainedReadoutLanguagePathV1`. It changes only
-normalization placement:
-`E @ [N(h) + (g/sqrt(L))*sum_l N(a_l)]`, with `L=2`, fixed `g=1` versus
-`g=0`, zero new learned parameters or state, and the same one tied vocabulary
-matmul. Freeze code and unchanged thresholds before sealing a CID/story-
-disjoint V3 population and fresh held-out slice; V2 may never be scored or
-tuned again. If this one layerwise-normalized readout misses any unchanged
-prompt, language, causal, state-off, or replay gate, stop the parameter-free
-readout ladder and pivot to a learned associative binding/readout architecture.
+The predeclared falsifier now ends parameter-free readout work. No gain tuning,
+third normalization, retry, generation, widening, or lowering is authorized.
+The sole fresh #973 successor is an independently frozen learned associative
+binding/readout over the preserved V1 retained-attention substrate. Its exact
+architecture and budget are not yet frozen. Generation, reasoning, and
+exact/geometry-native lowering for the layerwise candidate are `NOT_RUN`.
 #973 stays open and #954 remains blocked. See the
-[canonical record](r4_direct_retained_readout_prompt_capacity_973.md).
+[layerwise terminal record](r4_layerwise_normalized_retained_readout_prompt_capacity_973.md).
 
 ## Primary direction after protected localization — 2026-08-30
 
@@ -2112,7 +2105,11 @@ hours remains a hard kill ceiling, never an estimate.
   audit is complete; `R4RetainedLanguagePathV1` is qualified; the paired-H4
   addressing successor failed prompt capacity; and the direct retained-state
   readout produced a causally load-bearing but threshold-partial improvement.
-  It next owns only the independently frozen layerwise-normalized readout seam.
+  The independently frozen layerwise-normalized readout also completed
+  `PARTIAL`: it passed every fresh-language and mechanics gate but missed both
+  prompt-capacity effect-size floors. The parameter-free readout ladder is now
+  closed; #973 next owns only a freshly frozen learned associative
+  binding/readout.
   Intrinsic attention
   replacement, new state dimensions, corpus scale, resonance/recurrent
   lowering, and final requalification remain parked.
@@ -2124,7 +2121,7 @@ hours remains a hard kill ceiling, never an estimate.
 - No frontier, general-intelligence, correctness, or energy-superiority claim
   follows until its own declared product evidence exists.
 
-## Current #973 retained baseline and readout decision (2026-09-01)
+## #973 retained baseline and historical readout chain (2026-09-01)
 
 The independently frozen
 [`R4RetainedLanguagePathV1`](r4_retained_language_path_v1_973.md) supersedes
@@ -2156,8 +2153,44 @@ or work. It increased prompt gain from `0.0076304198` to `0.0215897894`, won
 seam, but it reached only `49.8%` of the absolute prompt-gain floor and is
 terminal `DIRECT_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL`. Preserve both V1
 and this evidence artifact; do not generate, retry, widen, lower, or tune it.
-#973 next owns only the fresh layerwise-normalized readout formula specified in
-the current decision above. #954 remains blocked while #973 stays open.
+At that checkpoint, #973 next owned only the fresh layerwise-normalized readout
+formula specified in the then-current decision above. #954 remained blocked
+while #973 stayed open.
+
+## Authoritative layerwise-normalized terminal and pivot (2026-09-01)
+
+The single parameter-free successor described immediately above has now
+completed. `R4LayerwiseNormalizedRetainedReadoutLanguagePathV1` changed only
+the retained-state normalization placement to
+`E @ [N(h) + (g/sqrt(2))*(N(a1)+N(a2))]`, fixed `g=1` versus `g=0`, while
+preserving qualified V1's recurrence, state, learned-parameter count, data,
+order, optimizer, `2,730`-step dose, and tied vocabulary projection.
+
+On the independently sealed V3 prompt population, candidate prompt gain was
+`0.0286980210` nats/token versus V1 `0.0073316237`, an increment of
+`0.0213663973`, and the candidate won `339/512` directions. Candidate own-
+prompt NLL was better (`3.4798765288` versus `3.6930405921`), both state-off
+prompt contrasts collapsed exactly to zero, and causal, replay, binding, and
+zero-forbidden-read mechanics passed. The candidate nevertheless missed the
+absolute `0.0433216988` and incremental `0.0253415693` gain floors.
+
+Fresh-language evidence passed every frozen gate: NLL improved
+`8.3238252820 -> 3.7126411677`, top-1 reached `31.661826%`, candidate NLL was
+`0.1723592206` better than V1, and disabling retained state cost
+`1.3495375637` nats and `20,595` correct decisions. The binding terminal is
+`LAYERWISE_NORMALIZED_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL`, result CID
+`blake3:35396bd6e64fc2c0bc7d86a84cc9e212ed913ce28e5353f5f2b8212b4cf2c532`.
+Independent fresh-process verification passed all 13 comparisons at
+`blake3:3f316541dbab8061ed5ba891bf6a47ef22c55bca21fba01f6f97dbb3cb8497aa`.
+
+This valid miss executes the predeclared falsifier: end the entire
+parameter-free readout ladder. There is no scalar gain change, third
+normalization placement, retry, generation, widening, or lowering. The sole
+active #973 successor is a freshly frozen learned associative binding/readout
+over the preserved qualified V1 retained-attention substrate. For the
+layerwise candidate, generation, reasoning, and exact/geometry-native lowering
+are `NOT_RUN`. #973 remains open and #954 remains blocked; correctness,
+reasoning, C1-SB6, browser, and release work are not authorized by this result.
 
 ## Historical preservation
 

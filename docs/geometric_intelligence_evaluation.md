@@ -7,7 +7,7 @@
   serving.
 - **Architecture:** [ADR-0004](adr/0004-geometric-intelligence-route-hierarchy.md)
 - **Latest terminal mechanism:**
-  [#973 direct retained-readout result](r4_direct_retained_readout_prompt_capacity_973.md)
+  [#973 layerwise-normalized retained-readout result](r4_layerwise_normalized_retained_readout_prompt_capacity_973.md)
 - **Historical mechanism family:**
   [ADR-0005](adr/0005-predictive-geometric-connection-memory.md)
 - **Vocabulary:** [Formal Vocabulary](formal_vocabulary.md) and the
@@ -21,36 +21,32 @@ make an hours-long run the price of learning whether a mechanism is reachable.
 Experimental evaluations are dormant by default. Activate only the smallest
 probe whose possible outcomes cause different next actions.
 
-### Active decision — one layerwise-normalized readout/#973
+### Active decision — learned associative binding/readout/#973
 
 Qualified `R4RetainedLanguagePathV1` remains the retained-attention baseline.
-Its frozen direct-readout successor changed only `E @ N(h)` to
-`E @ (N(h) + g*N(a1+a2))`, fixed `g=1` versus matched `g=0`; recurrence,
-parameters, state, data, optimizer dose, and one tied vocabulary matmul stayed
-fixed. On the disjoint V2 prompt population it raised mean prompt gain from
-`0.0076304198` to `0.0215897894`, raised directional wins from `313/512` to
-`343/512`, and lowered own-prompt NLL from `3.7415367661` to `3.5521331251`.
-Fresh held-out NLL/top-1 improved from `3.9010778353` / `29.632946%` to
-`3.7374367989` / `31.542433%`; state removal cost `1.1234286047` nats and
-20,179 correct decisions.
+Its final zero-parameter successor changed only the readout from `N(a1+a2)` to
+`(N(a1)+N(a2))/sqrt(2)`. On independently sealed V3 prompts it produced gain
+`0.0286980210` versus V1 `0.0073316237`, delta `0.0213663973`, and
+`339/512` wins. Candidate own-prompt NLL improved; state-off prompt gain was
+exactly zero. Fresh-language NLL/top-1 were `3.7126411677` / `31.661826%`
+versus V1 `3.8850003883` / `29.728138%`, and state removal cost
+`1.3495375637` nats plus `20,595` correct decisions.
 
-The candidate passed wins, language, state-off, causal, forbidden-read,
-artifact/reveal binding, replay, and independent-verification gates, but missed
-the frozen absolute `0.0433216988` and incremental `0.0253415693` prompt-gain
-floors. Terminal: `DIRECT_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL`; result CID
-`blake3:71dd85e610dcc50b74cb2bb2068e5a1a433ac5df5db2a4f8fde22fb41735889c`.
-Freeze it without generation, retry, widening, lowering, or post-reveal gain
-tuning.
+All language and mechanics gates passed, but the absolute `0.0433216988` and
+incremental `0.0253415693` prompt-gain floors failed. Terminal:
+`LAYERWISE_NORMALIZED_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL`, result CID
+`blake3:35396bd6e64fc2c0bc7d86a84cc9e212ed913ce28e5353f5f2b8212b4cf2c532`.
+Fresh-process verification passed all 13 comparisons at
+`blake3:3f316541dbab8061ed5ba891bf6a47ef22c55bca21fba01f6f97dbb3cb8497aa`.
 
-The only next probe is fixed before new outcomes:
-`E @ [N(h) + (g/sqrt(2))*(N(a1)+N(a2))]`, fixed `g=1` against `g=0`, with
-zero new parameters/state and unchanged work/gates. Seal a V3 prompt population
-and held-out slice disjoint from all earlier scored data; never score or tune on
-V2 again. Failure of any unchanged gate ends parameter-free readout work and
-redirects to learned associative binding/readout. Attention remains
-established; coherent prompt-conditioned generation, reasoning, H4 advantage,
-exact lowering, and product readiness do not follow. #973 stays open, #954
-stays blocked, and C1-SB6 is not authorized.
+The parameter-free ladder is closed. The next probe is not another scalar or
+normalization variant: #973 must independently freeze one learned associative
+binding/readout over the preserved retained state, with matched non-geometric,
+state-off, causal, replay, and forbidden-read controls. Until that contract is
+frozen, it is `NOT_IMPLEMENTED` and `NOT_RUN`. The layerwise candidate receives
+no retry, generation, widening, or lowering; its generation, reasoning, and
+exact/geometry-native lowering statuses are `NOT_RUN`. #954 stays blocked and
+C1-SB6 is not authorized.
 
 ### Prior #973 evidence retained
 
@@ -1095,8 +1091,10 @@ offline implementation. Full training, final parity, reveal, generation, and
 replay remain `NOT_RUN`. Its fused-AdamW/deferred-logging fast path was slower,
 so #1019 is optional/paused. #1017 remains the working source-backed
 `r4 generate` path; #973's retained language path qualified, its paired-H4
-capacity successor failed, and its direct retained readout is a directional
-`PARTIAL`. The next independent freeze is only the layerwise-normalized readout.
+capacity successor failed, its direct retained readout is a directional
+`PARTIAL`, and the independently frozen layerwise-normalized readout is also
+terminal `PARTIAL`. The parameter-free readout ladder is closed; the next
+independent freeze is only a learned associative binding/readout.
 CUDA and external GPU execution are out of scope. D3 remains `NOT_RUN`;
 intrinsic/readout alternatives,
 resonance-based softmax replacement, whole-decoder recurrent lowering, and
@@ -1574,3 +1572,43 @@ Use these outcomes literally:
 Never convert a missing fixture, empty denominator, skipped test, or unrelated
 green suite into `PASS`. Every report preserves artifact kappas, partition CIDs,
 control identity, denominators, and the action caused by the result.
+
+## #973 layerwise-normalized readout result (2026-09-01)
+
+The frozen `R4LayerwiseNormalizedRetainedReadoutLanguagePathV1` campaign ran
+one Apple Accelerate CPU trajectory with four threads: `2,730` optimizer steps,
+`5,241,600` token presentations, and `1,447.763973 s` total elapsed time. The
+candidate artifact (`blake3:8d31e15c355aade1ccc2592dc5fb1caf14a5f056862621e7b467858569a1c1e4`)
+was fixed before V3 reveal
+`blake3:079bee84db32513c5d6c0cb54cbff1e70b163902efa934d950204090985b3f5a`.
+
+The prompt decision over 512 directions / 8,192 target tokens was:
+
+| Measure | Layerwise candidate | Frozen V1 | Frozen requirement |
+|---|---:|---:|---:|
+| Mean gain `G` | `0.0286980210` | `0.0073316237` | candidate `>= 0.0433216988` |
+| Incremental gain | `0.0213663973` | — | `>= 0.0253415693` |
+| Directional wins | `339/512` | `298/512` | candidate `>= 308/512` |
+| Own-prompt NLL | `3.4798765288` | `3.6930405921` | candidate no worse |
+| State-off gain | `0` | `0` | collapse within `1e-7` |
+
+Thus wins, own-NLL, state-off, replay, and forbidden-read gates passed, while
+both prompt effect-size gates failed. Fresh-language evaluation separately
+passed all eight gates: candidate NLL/top-1 were `3.7126411677` / `31.661826%`
+versus V1 `3.8850003883` / `29.728138%`; initial-to-final NLL improved by
+`4.6111841143`; state removal cost `1.3495375637` nats and `20,595` correct
+decisions; forbidden reads were zero.
+
+Terminal:
+`LAYERWISE_NORMALIZED_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL`. Result CID:
+`blake3:35396bd6e64fc2c0bc7d86a84cc9e212ed913ce28e5353f5f2b8212b4cf2c532`.
+Fresh-process verification reproduced all 13 declared comparisons, created no
+optimizer, executed zero optimizer steps, and scored zero training batches;
+verification CID
+`blake3:3f316541dbab8061ed5ba891bf6a47ef22c55bca21fba01f6f97dbb3cb8497aa`.
+
+The exact decision caused by this valid miss is to end parameter-free readout
+variants and independently freeze a learned associative binding/readout next.
+Do not retry, tune `g`, add a third normalization placement, generate from this
+candidate, widen it, or lower it. Candidate generation, reasoning, and
+exact/geometry-native lowering are `NOT_RUN`; #954 remains blocked.
