@@ -9,18 +9,23 @@ The earlier
 preserved #948–#958 sequencing record. Measured, refuted, and frozen research
 remains in [docs/RESEARCH.md](docs/RESEARCH.md).
 
-**Active correction (2026-09-01):** #973 has been independently re-scoped to
-[`R4GroupAddressedRetentionLMV1`](docs/r4_group_addressed_retention_973.md).
-The exact cell terminated `UNAVAILABLE_FRAME_POPULATION_OR_LOCAL_BUDGET`:
-geometry, population, reachability, gradients, memory, and equal work passed,
-but timing and the disposable learning smoke did not. Main optimization and
-held-out model scoring are `NOT_RUN`, with zero held-out training reads and no
-attention/H4 verdict. Do not tune or retry this cell. The next #973 action is
-to scientifically select and independently freeze a fuller source-free decoder
-block. #954 stays blocked and no C1-SB6 is authorized.
+**Active correction (2026-09-01):** #973's independently frozen
+[`R4GroupAddressedRetentionDecoderV1` CPU recovery](docs/r4_group_addressed_retention_decoder_cpu_recovery_973.md)
+completed all 512 construction steps. State-off on the disjoint construction
+validation partition lost `0.967227` nats and 182 top-1 hits, qualifying one bounded causal
+retained-attention component. The exact 3.17M-parameter, two-block, data/dose
+recipe did not satisfy its frozen full-decoder generalization criterion:
+aggregate validation CE moved `8.371911 -> 8.976155`; it is not promoted. Scrambled
+transport was `0.033049` nats better, so no H4-specific advantage is claimed.
+The next #973 action is an independently frozen language-path generalization
+mechanism with a data-supported parameter budget and an ordinary matched
+non-geometric decoder. #954 stays blocked, no C1-SB6 is authorized, and no
+coherent-generation, reasoning, exact-lowering, or release claim follows.
 
-_Last reviewed: 2026-09-01 (#973 group-addressed retention reached its
-construction terminal; #961 reversible S0 landed; #952 A1.0 stopped at
+_Last reviewed: 2026-09-01 (#973 group-addressed decoder completed its CPU
+recovery with bounded retained-attention evidence but did not satisfy its frozen
+full-decoder generalization or H4-separation criteria; #961 reversible S0 landed;
+#952 A1.0 stopped at
 `REDESIGN_ORDERED_ROUTE_SUMMARY`; #967 A1R terminated `RETAIN_STATE_ONLY`;
 #970 A1P produced the bounded paired-H4-derived exact R4-heatmap result
 `RETAIN_H4_STATE_ONLY_ADVANCE_MULTICHANNEL_A1Q` and closed through protected
@@ -731,8 +736,11 @@ WASM-isolation checks
 source-free Q16 suffix trace student (bounded distillation, looping output) →
 completed negative `R4SoftmaxTraceStateStudentV1` →
 `R4GroupAddressedRetentionLMV1` construction terminal
-`UNAVAILABLE_FRAME_POPULATION_OR_LOCAL_BUDGET` → select a fuller source-free
-decoder block → blocked #954 → #955 →
+`UNAVAILABLE_FRAME_POPULATION_OR_LOCAL_BUDGET` → measured-fast CPU recovery
+with bounded retained-attention component positive, frozen full-decoder
+generalization criterion not satisfied, and no H4 separation → data-supported
+language-path decoder plus
+ordinary matched non-geometric control → blocked #954 → #955 →
 #962–#965. #973 continues to
 block #954.
 Legacy tracker #949 is closed as
@@ -776,15 +784,17 @@ historical evidence and comparators.
 
 ## Active
 
-- [ ] **#973 fuller source-free decoder-block selection** —
-  `R4GroupAddressedRetentionLMV1` closed
-  `UNAVAILABLE_FRAME_POPULATION_OR_LOCAL_BUDGET`. Its mechanical substrate
-  passed, but timing and disposable learning smoke failed; main optimization
-  and held-out scoring are `NOT_RUN`. Do not retry or tune the exact cell. The
-  only active action is to scientifically select and independently freeze a
-  fuller source-free decoder block. This is not attention, geometric advantage,
-  generation, or reasoning evidence. See the
-  [binding record](docs/r4_group_addressed_retention_973.md).
+- [ ] **#973 language-path generalization of qualified retained attention** —
+  `R4GroupAddressedRetentionDecoderV1CpuRecovery` completed all 512 construction
+  steps. State-off on the disjoint construction-validation partition lost
+  `0.967227` nats and 182 top-1 hits, so the
+  bounded causal retained-attention component is qualified. The exact
+  complete-decoder recipe is not promoted because aggregate validation CE worsened
+  `8.371911 -> 8.976155`; scrambled transport was `0.033049` nats better, so no
+  H4-specific advantage is claimed. Independently freeze a data-supported
+  language-path decoder with an ordinary matched non-geometric control. This is
+  not coherent-generation, reasoning, exact-lowering, or release evidence. See
+  the [binding record](docs/r4_group_addressed_retention_decoder_cpu_recovery_973.md).
 
 - [ ] **#954 grounded correctness: C1-SB5 retired negative; final source-free
   terminal blocked behind #973** — retain the

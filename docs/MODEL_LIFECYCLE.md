@@ -7,16 +7,25 @@
 > architecture and claim boundaries live in the
 > [Geometric Intelligence Programme](geometric_intelligence_programme.md).
 
-> **Latest #973 lifecycle (2026-09-01):** the independently re-scoped
-> [`R4GroupAddressedRetentionLMV1`](r4_group_addressed_retention_973.md)
-> terminated `UNAVAILABLE_FRAME_POPULATION_OR_LOCAL_BUDGET`. Geometry,
-> population, reachability, gradients, memory, and equal work passed; timing and
-> disposable learning smoke failed. Main optimization and held-out model scoring
-> are `NOT_RUN`, with zero held-out training reads and no attention/H4 verdict.
-> Do not retry or tune this exact cell. The next #973 lifecycle action is to
-> scientifically select and independently freeze a fuller source-free decoder
-> block. #954 remains blocked and no C1-SB6 is authorized. The dated lifecycle
-> below is retained as evidence history.
+> **Latest #973 lifecycle (2026-09-01):** the independently frozen
+> [`R4GroupAddressedRetentionDecoderV1` CPU recovery](r4_group_addressed_retention_decoder_cpu_recovery_973.md)
+> completed all 512 construction steps. State-off on the disjoint construction
+> validation partition lost `0.967227` nats and 182 top-1 hits, so a bounded causal retained-attention
+> component is qualified. The exact complete-decoder recipe is not promoted:
+> aggregate validation CE worsened `8.371911 -> 8.976155`, and scrambled transport was `0.033049` nats
+> better, so no H4-specific advantage is claimed. The next #973 lifecycle action
+> is an independently frozen language-path generalization mechanism with a
+> data-supported parameter budget and an ordinary matched non-geometric decoder.
+> #954 remains blocked; no C1-SB6, coherent generation, reasoning, exact lowering,
+> or release is authorized. The dated lifecycle below is retained as evidence
+> history.
+
+Substantial offline jobs follow the measured backend/thread/worker selection
+rule in [AGENTS.md](../AGENTS.md#long-run-discipline-process-amendment-2026-08-06):
+benchmark a representative unit across scientifically eligible plans, select
+the fastest stable deterministic configuration, and record the evidence. One
+core and maximum workers are both hypotheses to measure, not defaults. This
+offline execution choice does not change the CPU/table-native runtime target.
 
 > **Current evidence and direction (2026-08-31):** #989 established the frozen
 > source-free table reference at 22.261404% held-out top-1 versus 5.413561%

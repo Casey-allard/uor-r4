@@ -488,3 +488,24 @@ exact cell will not be retried or tuned. #973 must next scientifically select
 and independently freeze a fuller source-free decoder block. #954 remains
 blocked and C1-SB6 remains unauthorized. See the
 [canonical #973 record](r4_group_addressed_retention_973.md).
+
+## #973 CPU-recovery follow-up — 2026-09-01
+
+The statement immediately above remains the historical terminal for the smaller
+group-addressed cell. #973 then independently froze and completed
+[`R4GroupAddressedRetentionDecoderV1CpuRecovery`](r4_group_addressed_retention_decoder_cpu_recovery_973.md)
+on deterministic Apple Accelerate CPU BLAS. All 512 construction steps completed
+in `438.117083 s`; result CID
+`blake3:68355ad2f61d02dc73dbf22de4c24834815a23069ed5735630dc365081cf91db`.
+Disabling retained state on the disjoint construction-validation partition lost `0.967227` nats and 182
+top-1 hits, qualifying a bounded causal retained-attention component. The exact
+3.17M-parameter, two-block, data/dose recipe did not satisfy its frozen
+full-decoder generalization criterion: aggregate validation CE moved
+`8.371911 -> 8.976155`. Scrambled transport was `0.033049` nats better, so no
+H4-specific advantage is claimed.
+
+This result does not unblock #954. It preserves one qualified attention
+read/write component but does not establish coherent generation, source-free
+correctness, reasoning, exact lowering, or release readiness. C1-SB6 remains
+unauthorized. #973 must next independently freeze a data-supported language-path
+decoder with an ordinary matched non-geometric control.

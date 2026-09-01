@@ -8,7 +8,8 @@ parameter-capacity campaign, and the bounded [#954](https://github.com/UOR-Found
 grounding fine-tune, frozen source-span-pointer successor, and independently
 frozen source-relative relation-head, attended-relation, and joint-candidate
 successors, followed by the frozen paired-query binding rung. The package also
-contains #973's isolated source-free `R4GroupAddressedRetentionLMV1` campaign.
+contains #973's isolated source-free `R4GroupAddressedRetentionLMV1` campaign
+and its independently frozen `R4GroupAddressedRetentionDecoderV1CpuRecovery`.
 The causal-softmax and grounding paths train
 and continue ordinary causal-softmax
 Llama-family models, export them in the existing Rust loaders' Hugging Face
@@ -27,7 +28,20 @@ softmax. Float multiplication, allocation, and autograd are intentional offline
 operations. This package is not the exact/table runtime and does not establish
 geometric advantage, reasoning, or release readiness.
 
-## Terminal #973 group-retention path
+## Offline execution selection
+
+Before any substantial deterministic trainer run, predeclare a small set of
+materially plausible, scientifically eligible backend/thread/worker plans and
+benchmark one representative unit from each. Select the measured-fast stable plan that preserves the
+declared result and fits memory; neither one core nor the maximum worker count is
+an acceptable silent default. Record backend/BLAS provider, PyTorch
+intra/inter-op settings, process count, utilization, representative timing, and equivalence
+evidence in the freeze. MPS is eligible only when the scientific contract allows
+it; CUDA requires explicit issue scope. Offline acceleration does not change the
+CPU/table-native deployed-runtime target. The normative rule is in the root
+[`AGENTS.md`](../../AGENTS.md#long-run-discipline-process-amendment-2026-08-06).
+
+## Terminal #973 group-retention and decoder paths
 
 The canonical contract and evidence log are
 [`docs/r4_group_addressed_retention_973.md`](../../docs/r4_group_addressed_retention_973.md).
@@ -41,9 +55,20 @@ timing and disposable learning smoke failed. Main optimization and held-out
 model scoring are `NOT_RUN`. The exact signed envelopes are preserved in
 `docs/`. The retained commands are not an
 authorized retry or tuning surface, and the terminal package exposes no
-held-out-open API. #973 must next select and
-independently freeze a fuller source-free decoder block. There is no CPU
-fallback, CUDA path, sweep, or C1-SB6.
+held-out-open API. It was not retried or reinterpreted as a model negative.
+
+The independently frozen
+[`R4GroupAddressedRetentionDecoderV1CpuRecovery`](../../docs/r4_group_addressed_retention_decoder_cpu_recovery_973.md)
+then used deterministic Apple Accelerate CPU BLAS with one process and a
+configured PyTorch intra/inter-op thread count of four. It completed all 512 construction steps in
+`438.117083 s`. State-off on the disjoint construction-validation partition
+lost `0.967227` nats and 182
+top-1 hits, qualifying a bounded causal retained-attention component. The exact
+complete-decoder recipe is not promoted because aggregate validation CE worsened `8.371911 -> 8.976155`;
+scrambled transport was `0.033049` nats better, so no H4-specific advantage is
+claimed. The next #973 mechanism must test language-path generalization with a
+data-supported parameter budget and an ordinary matched non-geometric decoder.
+There is no authorized retry, CUDA path, sweep, or C1-SB6.
 
 ## Current measured boundary
 

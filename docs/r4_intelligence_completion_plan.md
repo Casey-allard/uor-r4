@@ -4,14 +4,18 @@
   readable mirror of programme root #820 (stages S0–S7 plus cross-cutting F0).
   The [Geometric Intelligence Programme](geometric_intelligence_programme.md)
   is its current architecture and claim-boundary companion.
-  The latest source-free attention experiment is the independently re-scoped
-  [#973 `R4GroupAddressedRetentionLMV1`](r4_group_addressed_retention_973.md).
-  It terminated `UNAVAILABLE_FRAME_POPULATION_OR_LOCAL_BUDGET`: mechanical
-  geometry/population/training-path audits passed, but timing and disposable
-  learning smoke failed. Main optimization and held-out model scoring are
-  `NOT_RUN`. Do not retry or tune this exact cell; scientifically select and
-  independently freeze a fuller source-free decoder block next. #954 remains
-  blocked and no C1-SB6 is authorized.
+  The latest source-free attention experiment is #973's independently frozen
+  [`R4GroupAddressedRetentionDecoderV1` CPU recovery](r4_group_addressed_retention_decoder_cpu_recovery_973.md).
+  It completed all 512 construction steps. State-off on the disjoint
+  construction-validation partition lost `0.967227` nats and 182 top-1 hits,
+  qualifying one bounded causal
+  retained-attention component. The exact complete-decoder recipe is not
+  promoted: aggregate validation CE worsened `8.371911 -> 8.976155`. Scrambled transport was
+  `0.033049` nats better, so no H4-specific advantage is claimed. Retain the
+  component and independently freeze a language-path generalization mechanism
+  with a data-supported parameter budget and an ordinary matched non-geometric
+  decoder next. #954 remains blocked; no C1-SB6, coherent generation, reasoning,
+  exact lowering, or release is authorized.
   [ADR-0005](adr/0005-predictive-geometric-connection-memory.md) retains the
   accepted-attention, autonomous-reference-generation, and parked-replacement
   architecture history.

@@ -10,12 +10,17 @@ The accepted #973 attention reference, completed learned-manifold/localization
 results, parked intrinsic-replacement lane, autonomous-generation gate, and
 native bridge result are frozen in
 [ADR-0005](docs/adr/0005-predictive-geometric-connection-memory.md).
-The current handoff is the independently re-scoped
-[#973 group-addressed retention record](docs/r4_group_addressed_retention_973.md):
-its geometry, population, reachability, gradients, memory, and equal-work audits
-passed, but timing and disposable learning smoke produced terminal
-`UNAVAILABLE_FRAME_POPULATION_OR_LOCAL_BUDGET`. Main optimization and held-out
-model scoring are `NOT_RUN`. Ordinary
+The current handoff is the completed independently frozen
+[#973 CPU-recovery record](docs/r4_group_addressed_retention_decoder_cpu_recovery_973.md).
+Its 512-step construction run establishes a bounded causal retained-attention
+component: exact state-on beats state-off on the disjoint construction
+validation partition by `0.967227` nats and 182 top-1 hits. The exact
+complete-decoder recipe is not
+promoted: aggregate validation CE worsened from `8.371911` to `8.976155`, and scrambled transport
+was `0.033049` nats better, so this result supports no H4-specific advantage. Preserve the
+qualified component; next freeze a language-path generalization mechanism with
+a data-supported parameter budget and an ordinary matched non-geometric
+decoder. Ordinary
 causal R4/Spin Q/K/V plus stable softmax remains the bounded source-backed
 attention baseline, while C1-SB5 paired-query binding fit `56/56` but reached
 only `14/28` sealed. Row-swap equivariance was bit-exact; mean-query and
@@ -163,10 +168,15 @@ The experiment must be able to change the next programme decision:
   without a functioning chat backend/artifact lowering. The feature is disabled
   by default and does not change the default engine. The Q16 suffix trace
   student and `R4SoftmaxTraceStateStudentV1` are complete bounded negatives.
-  `R4GroupAddressedRetentionLMV1` has also reached a construction terminal. Do
-  not retry or tune that exact cell. Work next only on scientifically selecting
-  and independently freezing a fuller source-free decoder block; held-out model
-  data remain unopened.
+  `R4GroupAddressedRetentionDecoderV1CpuRecovery` has now completed its full
+  construction run. Retained state is load-bearing on the disjoint construction
+  validation partition,
+  but the exact 3.17M-parameter, two-block, data/dose recipe did not satisfy its
+  frozen full-decoder generalization criterion. Formal H4 specificity remained
+  `NOT_EVALUATED`; diagnostic scrambled-transport CE was `0.033049` nats better.
+  Preserve the qualified read/write component and work next only on an
+  independently frozen, data-supported language-path decoder with an ordinary
+  matched non-geometric control; held-out model data remain unopened.
   See the
   [#989 record](docs/source_free_table_baseline_989.md).
 - **Preserve the GI evidence lineage.** GI-1 makes lexical/address state
@@ -230,16 +240,17 @@ The experiment must be able to change the next programme decision:
   retried. C1-SB5 then fit `56/56` paired records but reached only `14/28`
   sealed and retired before checkpoint/head/Rust/development, with products
   unopened.
-  #973 has now been independently re-scoped to
-  `R4GroupAddressedRetentionLMV1`, a source-free fixed-state field with matched
-  exact-H4, cyclic-120, and destructive scrambled-H4 arms. Its corrected
-  prime-leaf geometry/population and mechanical audits passed, but timing and
-  learning smoke failed the construction gate. Its main and held-out model
-  results remain `NOT_RUN`. See the
-  [binding record](docs/r4_group_addressed_retention_973.md). The old gated-delta,
+  #973's independently frozen `R4GroupAddressedRetentionDecoderV1CpuRecovery`
+  completed 512 construction steps and established a bounded retained-attention
+  component through its state-off construction-validation loss. The exact complete-decoder
+  recipe did not satisfy its frozen generalization criterion, and H4 did not
+  beat scrambled transport. See the
+  [binding record](docs/r4_group_addressed_retention_decoder_cpu_recovery_973.md).
+  The old gated-delta,
   trace-state, intrinsic/readout, resonance, full-model recurrent-lowering, and
-  exact-deployment lanes remain negative or parked. Do not retry or tune this
-  cell; #973 must next select a fuller source-free decoder block. #973 still
+  exact-deployment lanes remain negative or parked. Do not scale or tune this
+  exact complete-decoder recipe; #973 must next test a data-supported language-path decoder
+  against an ordinary matched non-geometric decoder. #973 still
   blocks GI-4/#954's final source-free terminal, with GI-5/#955 downstream of
   positive correctness.
 - **Exercise the accepted route path.** #953 geometry runs before token choice
@@ -290,10 +301,17 @@ The experiment must be able to change the next programme decision:
   [compact aggregate](docs/r4_softmax_reference_generation_attempt_01_result_973.json),
   then the
   [native bridge result](docs/r4_softmax_reference_http_bridge_973.md).
-- **Parallelize deterministic corpus work.** Partition by content identity,
-  use all available local workers with canonical ordered reductions, and
-  compare independent multithreaded rebuilds. Do not launch a long experiment
-  on one worker.
+- **Calibrate deterministic offline compute before a substantial run.** Benchmark
+  the scientifically eligible CPU-BLAS/Accelerate and, only when the contract
+  permits it, MPS backends across representative thread and worker/process
+  counts. Select the measured-fast stable plan that preserves canonical results
+  and fits memory; do not silently default to one core and do not blindly max
+  workers when contention is slower. Record hardware, backend/BLAS provider,
+  intra/inter-op threads, worker processes, utilization, representative-step
+  timing, and equivalence evidence in the run contract. Partition corpus work by
+  content identity with canonical ordered reductions when workers help. CUDA is
+  eligible only when an issue explicitly places it in scope. None of these
+  offline accelerators changes the CPU/table-native deployed-runtime target.
 - **Use non-degenerate anti-recall controls.** Run the active issue's
   predeclared matched controls under equal information and work budgets. The
   historical current-only, additive-summary, factor/count-only,

@@ -5,7 +5,7 @@ historical [geometric causal decoder](../geometric_causal_decoder_plan.md).
 Current sequencing lives in the
 [Geometric Intelligence Programme](../geometric_intelligence_programme.md),
 and the latest terminal #973 mechanism is
-[`R4GroupAddressedRetentionLMV1`](../r4_group_addressed_retention_973.md).
+[`R4GroupAddressedRetentionDecoderV1CpuRecovery`](../r4_group_addressed_retention_decoder_cpu_recovery_973.md).
 ADR-0005 remains the historical mechanism-family record.
 Decoder terms and graph terms name different execution lanes and must not be
 substituted for one another.
@@ -169,6 +169,18 @@ substituted for one another.
   are `NOT_RUN`; therefore attention, H4 advantage, generation, reasoning, and
   deployment remain unestablished. The exact cell is not retried or tuned. See the
   [canonical record](../r4_group_addressed_retention_973.md).
+- **`R4GroupAddressedRetentionDecoderV1CpuRecovery`** — #973's independently
+  frozen complete construction run over the same retained read/write law. It
+  uses one deterministic Apple Accelerate CPU process with a configured PyTorch
+  intra/inter-op thread count of four; timing is telemetry, not a model gate.
+  Disabling retained state on the disjoint construction-validation partition
+  lost `0.967227` nats and
+  182 top-1 hits, qualifying a bounded causal retained-attention component. The
+  exact 3.17M-parameter, two-block, data/dose recipe did not satisfy its frozen
+  full-decoder generalization criterion, and scrambled transport was
+  `0.033049` nats better, so the recipe is not promoted and no H4-specific
+  advantage is claimed. See the
+  [terminal record](../r4_group_addressed_retention_decoder_cpu_recovery_973.md).
 - **`DirectCausalGeometricAttentionR4V1`** — #973's offline gold-standard
   reference for the literal attention function: learned Q/K/V/O roles, local
   S3 tangent projection, causal H4-frame transport of every prior key and
@@ -320,7 +332,9 @@ substituted for one another.
   `fused=True` was removed immediately. This is a bounded fast-path negative,
   not a model result. #1019 tuning/full-run work stops and remains optional/
   paused. #1017 remains the working source-backed `r4 generate` path; #973 must
-  select a fuller source-free decoder block.
+  test language-path generalization of its qualified retained-attention
+  component with a data-supported budget and an ordinary matched non-geometric
+  decoder.
   UOR's deployed
   architecture/runtime remains CPU-native; Apple Accelerate/BLAS and MPS are
   local offline accelerators only; CUDA and external GPU execution are out of
@@ -486,7 +500,8 @@ substituted for one another.
   implementation. Full training, final parity, reveal, generation, and replay
   remain `NOT_RUN`. Its fused-AdamW/deferred-logging fast path was slower, so
   #1019 is optional/paused. #1017 remains the working source-backed
-  `r4 generate` path; #973 must select a fuller source-free decoder block. CUDA
+  `r4 generate` path; #973 must test a data-supported language-path decoder
+  against an ordinary matched non-geometric decoder. CUDA
   and external GPU execution are out of scope.
   Intrinsic/readout,
   fiber-preserving multi-resonance replacement,
@@ -550,18 +565,22 @@ substituted for one another.
 - **Multiplication-free runtime** — a separate operation-set claim belonging
   to an exact execution path. It is not implied by “transformerless.”
 
-## Current #973 group-addressed construction terminal — 2026-09-01
+## Current #973 retained-decoder terminal — 2026-09-01
 
-`R4GroupAddressedRetentionLMV1` terminated
-`UNAVAILABLE_FRAME_POPULATION_OR_LOCAL_BUDGET`. Geometry, population,
-reachability, gradients, memory, equal work, and held-out sealing passed;
-timing and disposable learning smoke failed. Main optimization and held-out
-model scoring are `NOT_RUN`, so no attention/H4 verdict exists. Do not retry or
-tune the exact cell. #973 must scientifically select and independently freeze a
-fuller source-free decoder block. #954 remains blocked, no C1-SB6 is authorized,
-and the earlier gated-delta, trace-state, intrinsic/readout, and resonance lanes
-remain historical negatives or parked. See the
-[canonical #973 record](../r4_group_addressed_retention_973.md).
+`R4GroupAddressedRetentionDecoderV1CpuRecovery` completed all 512 construction
+steps in `438.117083 s`. On the disjoint construction-validation partition,
+disabling retained state lost `0.967227` nats and 182 top-1 hits. This is bounded causal
+retained-attention component evidence for the tested read/write law. The exact
+3.17M-parameter, two-block, data/dose recipe did not satisfy its frozen
+full-decoder generalization criterion: aggregate validation CE moved
+`8.371911 -> 8.976155`. Scrambled transport was `0.033049` nats better, so no
+H4-specific advantage is claimed. Do not scale or tune this exact complete
+decoder recipe; preserve the qualified read/write component. #973 must next
+freeze a data-supported language-path decoder with an ordinary matched
+non-geometric control. #954 remains blocked, no C1-SB6 is authorized, and the
+earlier gated-delta, trace-state, intrinsic/readout, and resonance lanes remain
+historical negatives or parked. See the
+[canonical #973 record](../r4_group_addressed_retention_decoder_cpu_recovery_973.md).
 
 ## Historical #973 state-student outcome — 2026-08-30
 

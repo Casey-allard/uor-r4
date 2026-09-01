@@ -1,6 +1,6 @@
 # Formal Vocabulary, Notation, and Claim Classes
 
-- **Version:** 0.1.28
+- **Version:** 0.1.29
 - **Status:** Normative for all new specification, plan, proof-model, and certificate text.
 - **Source:** `docs/hologram_formal_analysis_direction.pdf` §§1, 7, 13; tracker
   [#122](https://github.com/UOR-Foundation/uor-r4/issues/122); issue
@@ -13,7 +13,7 @@
   and experiment policy is
   [Geometric Intelligence Evaluation](geometric_intelligence_evaluation.md).
   The latest terminal #973 empirical contract is
-  [`R4GroupAddressedRetentionLMV1`](r4_group_addressed_retention_973.md).
+  [`R4GroupAddressedRetentionDecoderV1CpuRecovery`](r4_group_addressed_retention_decoder_cpu_recovery_973.md).
 
 This spec separates the statement classes that the research notes previously mixed —
 architectural definitions, compiler optimization objectives, empirical certification
@@ -98,6 +98,7 @@ runtime path for them lands in the issues noted.
 | `R4SoftmaxTeacherTraceV1`, `R4SoftmaxTraceCompilerV1` | **Definition** | Construction-only trace schema and compiler. The trace binds causal layerwise token, Q/K/V, attention-support, value-aggregate, decoded-output, and logit states from the exact qualified reference. The first compiler emits matched teacher-distilled, observed-count, and document-permuted Q16 suffix arms without granting future or target inputs at inference. | **Pass** at the bounded source-free-distillation scope: context-bearing covered teacher CE was `2.660721` versus count `9.678894` and permuted `4.342019`; teacher top-1 was `3/9` versus `2/9` and `1/9`; actual-next top-1 was `2/9`, tied with count. Artifact/reveal CIDs and replay were exact, causal audits passed, and student inference made zero source calls. Decoded continuation collapsed into a `, Scotland` cycle, and the student does not use geometric trace state, so this is not geometry advantage, coherent generation, reasoning, or a deployed transformerless runtime. See `r4_softmax_trace_student_973.md`. |
 | `R4SoftmaxTraceStateStudentV1` | **Definition** | Bounded source-free state transition and next-token readout over the captured query-gauge Q, transported K/V support, weighted aggregate, and decoded model-frame trace, compared with the established suffix student, an equal-budget non-geometric recurrent state, and a transport-permuted control. | **Completed negative** at the frozen #1011 gate. On the same nine context positions and `422,875` Q16 teacher mass, covered CE / teacher top-1 / actual-next top-1 were suffix `2.660721032`, `3/9`, `2/9`; plain `2.660770919`, `3/9`, `2/9`; geometric `2.660705367`, `3/9`, `2/9`; and transport-permuted `2.660729215`, `3/9`, `2/9`. The geometric gains of `0.000015665` nats over suffix and `0.000023848` over permutation were below the frozen `0.10` threshold; no top-1 decision changed, the control lost none, and all arms retained the period-two `, Scotland` cycle. Exact replay and causal/runtime audits passed. State/freeze/seal/result CIDs are respectively `blake3:b617fc38e7bef1cdea76991f6e5e7cc653118451d63bcbd595f8ffd7e247ae7b`, `blake3:67cf67bb46b94cf5644b8dde286e89adb7e49159b3749790dffb500d8047fedb`, `blake3:64587526f7883ab046e884a28b6af7e9e89818c9ead2039f8c995de7fb483060`, and `blake3:dc04a8a8b21750799db2d451c8237d1e62cf90ffa74561fb54272b1e9704c824`. Terminal: `STOP_R4_SOFTMAX_TRACE_STATE_STUDENT_REPAIR_OR_RETIRE_REPRESENTATION`. This falsifies the current 4D signed-reduction/token-derived state cell, not ordinary R4/Spin softmax attention. See `r4_softmax_trace_state_student_1011.md`. |
 | `R4GroupAddressedRetentionLMV1`, `M_t^b(h)` | **Definition** | #973's fixed-size source-free state: four banks hold an R4-block field over 120 addresses, updated through one frozen group action and read candidate-relatively with separate learned query/value tables. Exact-H4 is compared with equal-size cyclic-120 and destructive scrambled-H4 actions; a state-off intervention tests whether retention changes logits. | **Construction terminal:** `UNAVAILABLE_FRAME_POPULATION_OR_LOCAL_BUDGET`. Geometry, population, reachability, gradients, memory, equal work, and held-out sealing passed; timing and disposable learning smoke failed. Main optimization and held-out model criteria are `NOT_RUN`; there is no attention or H4-advantage verdict. The exact cell is not retried or tuned. See `r4_group_addressed_retention_973.md`. |
+| `R4GroupAddressedRetentionDecoderV1CpuRecovery` | **Empirical Criterion** | Independently frozen complete construction run of the group-addressed retained read/write law inside an exact 3.17M-parameter, two-block decoder recipe. A state-off intervention measures whether retained state is load-bearing; exact-H4 versus scrambled transport measures geometry-specific separation. | **Completed:** state-off on the disjoint construction-validation partition lost `0.967227` nats and 182 top-1 hits, qualifying a bounded causal retained-attention component. Aggregate validation CE moved `8.371911 -> 8.976155`, so the exact data/dose/parameter recipe did not satisfy its frozen full-decoder generalization criterion. Scrambled transport was `0.033049` nats better, so no H4-specific advantage follows. Formal H4 specificity is `NOT_EVALUATED`. Result CID `blake3:68355ad2f61d02dc73dbf22de4c24834815a23069ed5735630dc365081cf91db`; see `r4_group_addressed_retention_decoder_cpu_recovery_973.md`. |
 | `O_trace^(0..3)` | **Objective** | Construction-only, leave-one-document-out observability ladder measuring the same teacher-relative candidate loss at four frozen boundaries: full ordered final-layer Q/K/V trace blocks; fixed 576-to-4 signed reduction; token-derived role maps plus recurrent state features; and fitted residual readout/logit scale. | **Completed** in [#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012) at `INSUFFICIENT_SUPPORT_COVERAGE`: aggregate primary coverage was `0.6202622204224402`, but the minimum fold was `0.3469116829611222`, below the frozen 50% floor, so no boundary attribution is licensed. On the covered rows, full Q/K/V CE was `2.215410922655504` versus suffix `2.215064603216862` (`suffix - full = -0.0003463194386417179`, direction `0/4`); the fixed label control separated by `1.3807454322642605` nats in `4/4`. Exact replay and zero source/document-13 reads passed. The ladder will not be expanded or repeated. #1014 subsequently completed the direct-learning pivot; see `Delta_attn-off` below. |
 | `d_R4`, `mu_R4` | **Objective** | If reactivated, a separately trained intrinsic arm may score transported manifold-valued Q/K pairs and aggregate transported values with an artifact-bound equivariant geometric centroid `mu_R4`. | V1 stopped `UNAVAILABLE` before D3; learned-manifold V2 failed donor retention and matched Euclidean parity; the 8/8-contract attempt stopped at its two-document preflight and rejected tangent readout with pooled normalized audit-MSE ratio `1.0643688804269025`. Intrinsic attention remains unestablished and this objective is **Parked**. |
 | `A_M`, `K_hat`, `N_t`, `Z_t` | **Objective** | A finite fiber-aware resonance amplitude, its nonnegative normalized kernel `K_hat = floor + abs(A_M)^2`, and the recurrent transported value-numerator and normalization-denominator mode sums that replace dense all-pairs weighting. | ADR-0005 and the #973 multi-resonance reuse audit retain the conditional contract. The normalized sieve, recurrent factorization, and H4/Q29/integer lowering are **Parked**, `NOT_IMPLEMENTED`, and `NOT_RUN`. |
@@ -181,6 +182,17 @@ by wholesale rewrite.
 
 ## Changelog
 
+- **0.1.29** (2026-09-01) — Recorded #973's completed CPU-recovery boundary.
+  Disabling retained state on the disjoint construction-validation partition
+  lost `0.967227` nats and
+  182 top-1 hits, qualifying a bounded causal retained-attention component. The
+  exact 3.17M-parameter, two-block, data/dose recipe did not satisfy the frozen
+  full-decoder generalization criterion; scrambled transport was
+  `0.033049` nats better, so no H4-specific advantage follows. Directed #973 to
+  a data-supported language-path decoder with an ordinary matched non-geometric
+  control. Also made representative-step backend/thread/worker calibration the
+  operating rule for substantial offline jobs; deployed runtime remains
+  CPU/table-native and CUDA remains explicit-scope only.
 - **0.1.28** (2026-09-01) — Recorded the terminal #973 construction result
   `UNAVAILABLE_FRAME_POPULATION_OR_LOCAL_BUDGET`. Mechanical audits passed;
   timing and disposable learning smoke failed, so main and held-out model work

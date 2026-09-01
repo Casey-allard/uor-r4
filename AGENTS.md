@@ -6,16 +6,22 @@ Guidance for agents (human or otherwise) working in this repository.
 the readable mirror of programme root #820.** The
 [`Geometric Intelligence Programme`](docs/geometric_intelligence_programme.md)
 is the current architecture and claim-boundary companion.
-The latest mechanism and evidence contract is the independently re-scoped
-[#973 `R4GroupAddressedRetentionLMV1` record](docs/r4_group_addressed_retention_973.md).
-It terminated `UNAVAILABLE_FRAME_POPULATION_OR_LOCAL_BUDGET`: geometry,
-population, label-free reachability, gradients, memory, and equal work passed,
-but the frozen timing ceiling and disposable learning smoke did not. The main
-run was unauthorized and `NOT_RUN`; held-out training reads stayed zero and no
-attention or H4-advantage verdict exists. Do not retry or tune this exact cell.
-The next #973 action is to scientifically select and independently freeze a
-fuller source-free decoder block. #954's final source-free correctness terminal
-remains blocked; no C1-SB6 is authorized. ADR-0005 and the
+The latest mechanism and evidence contract is the independently frozen
+[#973 CPU recovery](docs/r4_group_addressed_retention_decoder_cpu_recovery_973.md)
+for `R4GroupAddressedRetentionDecoderV1`. Its complete 512-step construction run
+provides bounded causal retained-attention evidence: disabling retained state
+on the disjoint construction-validation partition loses `0.967227` nats and
+182 top-1 hits. The exact
+complete-decoder recipe is not promoted because aggregate validation CE worsened from `8.371911` to
+`8.976155`; scrambled transport was `0.033049` nats better, so there is no
+H4-specific advantage. Preserve the qualified retained-attention read/write law,
+but do not scale or tune this exact 3.17M-parameter, two-block, data/dose decoder
+recipe. The next #973
+decision is an independently frozen language-path generalization mechanism with
+a data-supported parameter budget and an ordinary matched non-geometric decoder.
+#954's final source-free correctness terminal remains blocked; no C1-SB6 is
+authorized. No coherent generation, reasoning, exact lowering, or release claim
+follows. ADR-0005 and the
 append-only [#954 grounded-correctness record](docs/r4_grounded_correctness_954.md)
 remain historical mechanism/evidence context. The
 earlier frozen [#1019 parameter-capacity contract](docs/r4_softmax_parameter_capacity_1019.md)
@@ -406,8 +412,12 @@ opt-in, loopback-only dedicated native HTTP endpoint now pass; dashboard
 wiring/readiness and static/WASM-isolation checks pass while hosted Pages
 remains static/offline without a functioning chat backend/artifact lowering;
 the Q16 suffix trace student and `R4SoftmaxTraceStateStudentV1` are complete
-bounded negatives; `R4GroupAddressedRetentionLMV1` also closed at its
-construction terminal, and #973 must select a fuller source-free decoder block;
+bounded negatives. #973's recovered full construction run now qualifies a
+bounded causal retained-attention component, but the exact decoder recipe did
+not satisfy its frozen generalization criterion. Formal H4 specificity remained
+`NOT_EVALUATED`; diagnostic scrambled-transport CE was `0.033049` nats better.
+#973 must next test a data-supported language-path decoder against
+an ordinary matched non-geometric decoder;
 new route families, intrinsic/readout alternatives, resonance-based softmax
 replacement, unqualified scale, and exact deployment remain parked. D3 remains
 `NOT_RUN`; #954 and
@@ -474,8 +484,11 @@ opt-in, loopback-only dedicated native HTTP endpoint now pass; dashboard
 wiring/readiness and static/WASM-isolation checks pass while hosted Pages
 remains static/offline without a functioning chat backend/artifact lowering;
 the Q16 suffix trace student and `R4SoftmaxTraceStateStudentV1` are complete
-bounded negatives; `R4GroupAddressedRetentionLMV1` also closed at its
-construction terminal, and #973 must select a fuller source-free decoder block;
+bounded negatives. #973's CPU recovery qualifies a bounded causal
+retained-attention component while rejecting promotion of the exact
+complete-decoder recipe; no H4-specific advantage was established. Next test language-path
+generalization with a data-supported budget and an ordinary matched
+non-geometric decoder;
 intrinsic/readout alternatives, paired-E8, resonance-based softmax replacement,
 and exact deployment are parked. Actual paired-E8 hierarchy, fiber, and torsion binding remains
 `NOT_IMPLEMENTED`. Transport
@@ -1010,6 +1023,22 @@ outcome against it afterwards:
     if positive:         <the next action>
     if negative:         <the next action, and it must differ>
     cost estimate:       <wall-clock, and what else it blocks>
+
+**Calibrate substantial offline compute; never silently accept one-core
+execution.** Before launching a deterministic offline training, compilation, or
+measurement job, predeclare a small set of materially plausible, scientifically
+eligible plans, then benchmark one representative unit: CPU BLAS/Apple
+Accelerate, MPS only when the frozen contract allows it, and selected
+intra/inter-op thread and process/worker counts.
+Select the measured-fast stable plan that preserves the declared result and fits
+memory. Maximum threads or concurrent arms are not automatically faster; use
+sequential arms when shared-memory contention wins. Record hardware, backend and
+BLAS provider, intra/inter-op threads, worker processes, utilization, unit
+timings, determinism/equivalence evidence, and the selected plan in the run
+contract. A substantial job must not default to one core without measured
+evidence that one core is fastest or a scientific constraint requiring it.
+CUDA is eligible only when the active issue explicitly places it in scope.
+Offline acceleration never changes the CPU/table-native deployed-runtime target.
 
 **A long run must be observable before it starts.** Anything expected to exceed
 15 minutes needs a finite work denominator, completed/remaining units,

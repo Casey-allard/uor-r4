@@ -14,19 +14,21 @@ local hardware. The project is testing whether language context, inference,
 and reasoning can emerge from routes through a canonical geometric memory. The
 target serving engine uses no Ollama, hosted model, or source-model weights.
 
-> **Latest source-free attention experiment (2026-09-01):** #973 was
-> independently re-scoped to
-> [`R4GroupAddressedRetentionLMV1`](docs/r4_group_addressed_retention_973.md), a
-> fixed-size group-addressed R4 state with matched exact-H4, cyclic-120, and
-> destructive scrambled-H4 arms. It terminated
-> `UNAVAILABLE_FRAME_POPULATION_OR_LOCAL_BUDGET`: geometry, population,
-> reachability, gradients, memory, and equal work passed, but timing and the
-> disposable learning smoke did not. Main optimization and held-out model
-> scoring are `NOT_RUN`, with zero held-out training reads, so there is no
-> attention or H4-advantage verdict. Do not tune or retry this exact cell. #973's
-> next research action is to scientifically select and independently freeze a
-> fuller source-free decoder block. #954 remains blocked and no C1-SB6 is
-> authorized.
+> **Latest source-free attention experiment (2026-09-01):** #973's independently
+> frozen [`R4GroupAddressedRetentionDecoderV1` CPU recovery](docs/r4_group_addressed_retention_decoder_cpu_recovery_973.md)
+> completed all 512 construction steps in `438.117083 s`. On the disjoint
+> construction-validation partition, turning retained state off cost `0.967227`
+> nats and 182 top-1 hits;
+> this is positive bounded causal retained-attention evidence. It is not a full
+> language-model success: aggregate validation CE worsened from `8.371911` to
+> `8.976155`, so this exact 3.17M-parameter, two-block, data/dose recipe is not
+> promoted. Scrambled
+> transport was `0.033049` nats better, so this result supports no H4-specific
+> advantage.
+> Next, retain this qualified component inside an independently frozen
+> language-path generalization mechanism with a data-supported parameter budget
+> and an ordinary matched non-geometric decoder. #954 remains blocked; there is
+> no coherent generation, reasoning, exact-lowering, or release claim.
 
 > **Current attention-to-intelligence checkpoint (2026-08-31):** ordinary
 > learned causal Q/K/V attention with stable softmax is established as the

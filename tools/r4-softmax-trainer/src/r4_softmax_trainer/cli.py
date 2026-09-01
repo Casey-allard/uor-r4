@@ -41,6 +41,14 @@ from .group_retention_campaign import (
     prepare_group_retention_data,
     run_group_retention_preflight,
 )
+from .group_retention_decoder_campaign import (
+    prepare_group_retention_decoder_data,
+    run_group_retention_decoder_preflight,
+)
+from .group_retention_decoder_cpu_recovery_campaign import (
+    prepare_group_retention_decoder_cpu_recovery_data,
+    run_group_retention_decoder_cpu_recovery_preflight,
+)
 from .joint_candidate_margin_campaign import (
     prepare_joint_candidate_margin_data,
     run_joint_candidate_margin_preflight,
@@ -55,6 +63,8 @@ from .paths import (
     default_continuation_root,
     default_grounding_predecessor_root,
     default_grounding_root,
+    default_group_retention_decoder_root,
+    default_group_retention_decoder_cpu_recovery_root,
     default_group_retention_root,
     default_group_retention_source_root,
     default_joint_candidate_margin_root,
@@ -404,6 +414,52 @@ def parser() -> argparse.ArgumentParser:
         ),
     )
     retention_preflight.add_argument("--backend", choices=["mps"], required=True)
+    prepare_retention_decoder = subcommands.add_parser(
+        "prepare-group-retention-decoder",
+        help=(
+            "freeze #973's independent fit-only fuller-decoder construction "
+            "population and inherited geometry without training"
+        ),
+    )
+    prepare_retention_decoder.add_argument(
+        "--predecessor",
+        type=_root,
+        required=True,
+        help="immutable completed issue-973-group-retention root",
+    )
+    retention_decoder_preflight = subcommands.add_parser(
+        "preflight-group-retention-decoder",
+        help=(
+            "run #973's sole two-arm fuller-decoder construction terminal; "
+            "no model-held-out or main command exists"
+        ),
+    )
+    retention_decoder_preflight.add_argument(
+        "--backend", choices=["mps"], required=True
+    )
+    prepare_retention_decoder_cpu = subcommands.add_parser(
+        "prepare-group-retention-decoder-cpu-recovery",
+        help=(
+            "freeze #973's resource-only Apple CPU recovery in a distinct "
+            "create-once root without touching the terminal MPS attempt"
+        ),
+    )
+    prepare_retention_decoder_cpu.add_argument(
+        "--predecessor",
+        type=_root,
+        required=True,
+        help="immutable completed issue-973-group-retention root",
+    )
+    retention_decoder_cpu_preflight = subcommands.add_parser(
+        "preflight-group-retention-decoder-cpu-recovery",
+        help=(
+            "run #973's single-process four-thread Apple Accelerate recovery; "
+            "timing is telemetry and no reveal or main command exists"
+        ),
+    )
+    retention_decoder_cpu_preflight.add_argument(
+        "--backend", choices=["cpu"], required=True
+    )
     return command
 
 
@@ -449,6 +505,14 @@ def main() -> None:
         "prepare-group-retention",
         "preflight-group-retention",
     }
+    group_retention_decoder_commands = {
+        "prepare-group-retention-decoder",
+        "preflight-group-retention-decoder",
+    }
+    group_retention_decoder_cpu_recovery_commands = {
+        "prepare-group-retention-decoder-cpu-recovery",
+        "preflight-group-retention-decoder-cpu-recovery",
+    }
     if arguments.root:
         root = arguments.root
     elif arguments.command in capacity_commands:
@@ -469,6 +533,10 @@ def main() -> None:
         root = default_paired_query_binding_root()
     elif arguments.command in group_retention_commands:
         root = default_group_retention_root()
+    elif arguments.command in group_retention_decoder_commands:
+        root = default_group_retention_decoder_root()
+    elif arguments.command in group_retention_decoder_cpu_recovery_commands:
+        root = default_group_retention_decoder_cpu_recovery_root()
     else:
         root = default_research_root()
     if arguments.command == "download":
@@ -653,5 +721,33 @@ def main() -> None:
         return
     if arguments.command == "preflight-group-retention":
         _print_result(run_group_retention_preflight(root, backend=arguments.backend))
+        return
+    if arguments.command == "prepare-group-retention-decoder":
+        _print_result(
+            prepare_group_retention_decoder_data(
+                root,
+                predecessor=arguments.predecessor,
+            )
+        )
+        return
+    if arguments.command == "preflight-group-retention-decoder":
+        _print_result(
+            run_group_retention_decoder_preflight(root, backend=arguments.backend)
+        )
+        return
+    if arguments.command == "prepare-group-retention-decoder-cpu-recovery":
+        _print_result(
+            prepare_group_retention_decoder_cpu_recovery_data(
+                root,
+                predecessor=arguments.predecessor,
+            )
+        )
+        return
+    if arguments.command == "preflight-group-retention-decoder-cpu-recovery":
+        _print_result(
+            run_group_retention_decoder_cpu_recovery_preflight(
+                root, backend=arguments.backend
+            )
+        )
         return
     raise AssertionError(f"unhandled command: {arguments.command}")

@@ -8,14 +8,16 @@ a transformerless local AI engine.
 prime/semiprime routes, spin and torsion state, Hopf projection with a retained
 fiber, golden-radial structure, exact transport controls, and bounded route
 operators. They are the retained address/frame/transport substrate, not a
-semantic language model. The latest #973 implementation is
-[`R4GroupAddressedRetentionLMV1`](../../docs/r4_group_addressed_retention_973.md):
-`r4_group_addressed_retention` and `r4-group-geometry-export` bind exact H4,
-cyclic-120, and destructive scrambled-H4 actions plus the corrected prime-leaf
-map. It terminated `UNAVAILABLE_FRAME_POPULATION_OR_LOCAL_BUDGET`: mechanical
-audits passed, but timing and disposable learning smoke failed. Main and
-held-out model runs are `NOT_RUN`; do not retry or tune this cell. #973 must
-next select a fuller source-free decoder block. The bounded
+semantic language model. The latest #973 result is the independently frozen
+[`R4GroupAddressedRetentionDecoderV1` CPU recovery](../../docs/r4_group_addressed_retention_decoder_cpu_recovery_973.md).
+Its exact-H4, cyclic-120, and destructive scrambled-H4 construction completed
+all 512 steps. Turning retained state off on the disjoint construction
+validation partition loses `0.967227` nats and 182 top-1 hits, qualifying one bounded causal
+retained-attention component. The exact complete-decoder recipe is not promoted
+because aggregate validation CE worsened `8.371911 -> 8.976155`; scrambled transport was
+`0.033049` nats better, so no H4-specific advantage is claimed. #973 must next
+freeze a language-path generalization mechanism with a data-supported parameter
+budget and an ordinary matched non-geometric decoder. The bounded
 `GeometricGatedDeltaRetentionR4V1` core
 now implements separate learned K/V/Q, H4-frame transport, four retained banks,
 and candidate-relative readout, but its sealed synthetic smoke was weaker than
