@@ -174,9 +174,10 @@ Choose the shortest path that matches what you need:
   [ADR-0004](adr/0004-geometric-intelligence-route-hierarchy.md), and use the
   [glossary](transformerless/GLOSSARY.md) for unfamiliar terms.
 - **Advance grounded correctness:** start from the append-only
-  [#954 record](r4_grounded_correctness_954.md). C1-SB4 is a frozen negative;
-  the current proposal is a new paired-query conditional-binding mechanism,
-  not an SB4 retry.
+  [#954 record](r4_grounded_correctness_954.md). C1-SB5 paired-query binding is
+  the latest frozen negative (`56/56` fit, `14/28` sealed) and is retired without
+  retry. No C1-SB6 is authorized; #954's final source-free terminal remains
+  blocked behind parked #973.
 - **Improve the optional capacity rung:** start from live
   [#1019](https://github.com/UOR-Foundation/uor-r4/issues/1019) under #973 and
   programme root #820. Its population/smoke/random-export parity gates passed,
