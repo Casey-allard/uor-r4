@@ -8,7 +8,29 @@ whose predictive state, memory, inference, and reasoning are performed by
 geometric recurrence and routing rather than a transformer, MoE, sparse learned
 router, or dense learned matrix engine in the serving path.
 
-The latest research gate is #973's sole layerwise-normalized candidate,
+The latest research gate is #973's separately frozen learned-associative
+campaign. It completed `LEARNED_ASSOCIATIVE_READOUT_NO_CAPACITY` at result CID
+`blake3:cedba37738ee249457bb589f716ee75afb16a0c4937c2a22ae9f917dd3eb97c1`;
+fresh-process verification passed at CID
+`blake3:443d711ce9a228e26e2eb2eebb55c582848424e2677c3473d41deaf8afd69ec7`.
+On its 512-direction prompt contrast, geometric gain was
+`0.0063767854348491465` with `299/512` wins, pooled gain was
+`0.010263234571452827` with `324/512`, and V1 gain was
+`0.006423652456300697`. Neither learned arm met the absolute
+`0.04332169878499658` or incremental `0.025341569256760274` capacity floor.
+Pooled fresh-language NLL/top-1 improved over 247,920 decisions from V1's
+`3.9036360153193317`/`29.628509%` to
+`3.8737562215878296`/`30.042756%`; state-off degraded to
+`4.239191759767437`/`22.859793%` and lost `17,808` correct decisions. Preserve
+this load-bearing fresh-language signal only as a matched non-geometric control.
+Geometry attribution failed against pooled (`-0.0038864491366036808` gain,
+`209/512` paired improvements) and deranged (`-0.0002888663472835149`,
+`251/512`), both below the required `308/512`. Mechanics, replay, causal access,
+and independent verification passed, but associative prompt capacity and
+geometry advantage did not. See the
+[#973 learned-associative result](r4_learned_associative_readout_prompt_capacity_973.md).
+
+The immediately preceding gate was #973's sole layerwise-normalized candidate,
 [`R4LayerwiseNormalizedRetainedReadoutLanguagePathV1`](r4_layerwise_normalized_retained_readout_prompt_capacity_973.md).
 It completed `LAYERWISE_NORMALIZED_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL`.
 With every qualified V1 budget fixed, its exact formula
@@ -31,12 +53,14 @@ Mechanics, replay, and all `13/13` fresh-process verification comparisons
 passed; generation, reasoning, lowering, and geometry-native lowering remain
 `NOT_RUN`.
 
-This valid miss ends parameter-free readout variants. #973's sole successor is
-a freshly frozen learned associative binding/readout; no gain tuning, `g=2`,
-third normalization, retry, widening, generation, or lowering is authorized.
-#973 remains open and #954 remains blocked. Prompt-coherent generation,
-reasoning, H4 superiority, exact/table lowering, browser readiness, and release
-readiness remain unestablished.
+That valid miss ended parameter-free readout variants and led to the now-
+completed learned-associative campaign above. No tuning or retry of that
+readout, and no generation or lowering from it, is authorized. The next #973
+action is to separately freeze a contract that changes the retained value
+write/binding law before implementation or population creation. #973 remains
+open and #954 remains blocked. Prompt-coherent generation, reasoning, H4
+superiority, exact/table lowering, browser readiness, and release readiness
+remain unestablished.
 
 The goal is real. Its success remains unproven. The current implementation has
 a storage/recall and route-query foundation, one bounded causal path mechanism,
@@ -147,9 +171,12 @@ logging and measured `4.485223 s/step`, slower than the signed
 `3.491307 s/step`; `fused=True` was removed immediately. This is a bounded
 fast-path negative, not a model result. #1019 tuning/full-run work stops and
 remains optional/paused; #1017 remains the working source-backed generator while
-#973 has ended the parameter-free readout ladder after the partial direct and
-layerwise-normalized results and must next freshly freeze a learned associative
-binding/readout. CUDA and external
+#973 ended the parameter-free readout ladder after the partial direct and
+layerwise-normalized results, then completed the frozen learned-associative
+campaign at `LEARNED_ASSOCIATIVE_READOUT_NO_CAPACITY`. Preserve its pooled
+fresh-language improvement only as a non-geometric control. Next separately
+freeze a changed retained value write/binding law; do not retry the readout or
+run generation. CUDA and external
 GPU execution are out of scope. See the
 [#1017 record](r4_softmax_quality_capacity_continuation_1017.md),
 [#1019 frozen contract](r4_softmax_parameter_capacity_1019.md), and
@@ -208,6 +235,7 @@ Choose the shortest path that matches what you need:
   then the [paired-H4 capacity result](r4_paired_h4_prompt_capacity_result_973_raw.json),
   then the [direct retained-readout result](r4_direct_retained_readout_prompt_capacity_973.md),
   then the [layerwise-normalized result](r4_layerwise_normalized_retained_readout_prompt_capacity_973.md),
+  then the [learned-associative result](r4_learned_associative_readout_prompt_capacity_973.md),
   then the [group-addressed retention record](r4_group_addressed_retention_973.md),
   then [ADR-0005](adr/0005-predictive-geometric-connection-memory.md) and
   [ADR-0004](adr/0004-geometric-intelligence-route-hierarchy.md), and use the
@@ -216,16 +244,20 @@ Choose the shortest path that matches what you need:
   [#954 record](r4_grounded_correctness_954.md). C1-SB5 paired-query binding is
   the latest frozen negative (`56/56` fit, `14/28` sealed) and is retired without
   retry. No C1-SB6 is authorized; #954's final source-free terminal remains
-  blocked while #973 freshly freezes the learned associative binding/readout
-  successor to its completed parameter-free readout ladder.
+  blocked while #973 separately freezes a changed retained value write/binding
+  law. The rejected learned-associative readout is not retried and does not
+  proceed to generation.
 - **Improve the optional capacity rung:** start from live
   [#1019](https://github.com/UOR-Foundation/uor-r4/issues/1019) under #973 and
   programme root #820. Its population/smoke/random-export parity gates passed,
   but MPS admission stopped `UNAVAILABLE_HARDWARE_BUDGET` for the frozen
   eight-hour offline implementation. Its fused-AdamW/deferred-logging fast path
   was slower (`4.485223` versus signed `3.491307 s/step`), so the `NOT_RUN`
-  campaign is optional/paused. #1017 remains usable through `r4 generate`; #973
-  must next freshly freeze learned associative binding/readout. CUDA and
+  campaign is optional/paused. #1017 remains usable through `r4 generate`; #973's
+  frozen learned-associative campaign completed
+  `LEARNED_ASSOCIATIVE_READOUT_NO_CAPACITY`. Preserve pooled fresh-language
+  behavior only as a non-geometric control and separately freeze a changed
+  retained value write/binding law next; no readout retry or generation. CUDA and
   external GPU execution are out of scope.
 - **Audit a result or claim:** use the [research ledger](RESEARCH.md), then open
   the exact issue-numbered evidence record it names.
@@ -310,8 +342,12 @@ These are the small set of living documents that define the present work:
    MPS admission stopped `UNAVAILABLE_HARDWARE_BUDGET` for the frozen eight-hour
    offline implementation, and the full campaign remains `NOT_RUN`. Its fused-
    AdamW/deferred-logging fast path was slower, so #1019 is optional/paused and
-   #1017 remains the working source-backed `r4 generate` path. #973 must next
-   freshly freeze learned associative binding/readout. CUDA and
+   #1017 remains the working source-backed `r4 generate` path. #973's frozen
+   learned-associative campaign completed
+   `LEARNED_ASSOCIATIVE_READOUT_NO_CAPACITY`; pooled fresh-language behavior is
+   retained only as a non-geometric control. Next separately freeze a changed
+   retained value write/binding law; do not retry the readout or run generation.
+   CUDA and
    external GPU execution are out of scope.
    The bounded
    [multi-resonance reuse audit](multi_resonance_attention_sieve_audit_973.md)
@@ -360,7 +396,8 @@ reversible lexical geometry
   → test paired-H4 prompt capacity [FAIL; STRUCTURAL REPEATS -97.5477%; PROMPT CONTRAST WORSE; GENERATION NOT_RUN]
   → expose retained state directly to logits [PARTIAL; PROMPT/LANGUAGE IMPROVED; BOTH PROMPT-GAIN FLOORS MISSED; GENERATION NOT_RUN]
   → independently freeze one layerwise-normalized retained readout [PARTIAL; PROMPT/LANGUAGE IMPROVED; BOTH PROMPT-GAIN FLOORS MISSED; PARAMETER-FREE LADDER CLOSED; GENERATION NOT_RUN]
-  → freshly freeze learned associative binding/readout [SOLE #973 SUCCESSOR]
+  → learned associative binding/readout [LEARNED_ASSOCIATIVE_READOUT_NO_CAPACITY; POOLED FRESH-LANGUAGE CONTROL RETAINED; GEOMETRY ATTRIBUTION FAIL; GENERATION NOT_RUN]
+  → separately freeze a changed retained value write/binding law [NEXT #973 CONTRACT; NO READOUT RETRY]
   → park intrinsic/readout alternatives, resonance-based softmax replacement, full-model recurrent lowering, and exact deployment
   → correctness and abstention
   → multi-step reasoning

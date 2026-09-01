@@ -51,11 +51,17 @@
   More 7.15M exposure or LR tuning remains prohibited.
   #973's later compact retained-language path passed its frozen language,
   state-off, and matched-control gates and completed deterministic autonomous
-  decoding. Its paired-H4 address-capacity successor then stopped
-  `PAIRED_H4_PROMPT_CAPACITY_FAIL`; qualified V1 is preserved and the next
-  independent freeze targets the prompt-state-to-logit readout seam. #973
-  remains open and #954 remains blocked.
-- **Date:** 2026-08-28; direction updated 2026-09-01
+  decoding. Its paired-H4 address-capacity successor failed, while its direct
+  and layerwise-normalized zero-parameter readouts each ended `PARTIAL`; that
+  ladder is closed. The separately frozen
+  `R4LearnedCandidateLeafAssociativeReadoutV1` then completed
+  `LEARNED_ASSOCIATIVE_READOUT_NO_CAPACITY`: its pooled control improved fresh
+  language but remained below both prompt-capacity floors, and geometry
+  attribution failed. Do not retry that readout or run generation from it. The
+  next separately frozen #973 contract must change the retained value
+  write/binding law while preserving pooled and geometry-destroying controls.
+  #973 remains open and #954 remains blocked.
+- **Date:** 2026-08-28; direction and result updated 2026-09-01
 - **Owner:** #973 under programme root #820
 - **Supersedes for forward work:** another fixed componentwise prototype or
   scale-only repair after the #997 negative
@@ -1086,3 +1092,115 @@ independently frozen learned associative binding/readout over the preserved V1
 retained-attention substrate, with its own matched non-geometric and state-off
 controls. Candidate generation, reasoning, and lowering are `NOT_RUN`; #954
 remains blocked.
+
+## Learned candidate-leaf associative-readout freeze — 2026-09-01
+
+The successor above is now frozen before implementation, V4 population
+creation, optimization, or outcome access as
+`R4LearnedCandidateLeafAssociativeReadoutV1`, under campaign
+`R4LearnedAssociativeReadoutPromptCapacityV1`. Its status is
+`FROZEN_ARCHITECTURE / POPULATIONS_NOT_CREATED / NOT_RUN`.
+
+The qualified `R4RetainedLanguagePathV1` artifact remains immutable. The
+geometric learned arm adds one zero-initialized `[2,4096,12,4]`
+candidate-query table and reads each candidate's strict-prior transported value
+at its canonical exact-H4 leaf. The equal-parameter learned control has its own
+unshared, byte-identically initialized query table but reads the
+occupied-address mean. A fixed-leaf cyclic derangement reuses the trained
+geometric table while destroying candidate/address binding without selecting
+unused slots. Head-off must reproduce qualified V1 byte-identically; full
+state-off must zero both V1 retention and the added score.
+
+Each effective learned arm adds exactly 393,216 trainable values over the
+frozen 252,160-parameter V1 substrate, for 645,376 total parameters. V1's
+23,040-f32-value recurrent state and 240 validity bits do not change. Both arms
+receive the same predecessor 43,680-window / 5,241,600-decision order, seed
+9738, and 2,730-step AdamW schedule. There is one trajectory, with no sweep,
+alternate seed, table/rank change, continuation, scalar tuning, or scientific
+retry.
+
+The V4 prompt policy retains 256 pairs / 512 directions / 8,192 target tokens,
+begins strictly after revealed V3 source ordinal 324,230, and excludes the
+CID-bound 1,536-story V1+V2+V3 union. Its separately fixed fresh-language slice
+contains 247,920 decisions at token range
+`[156,032,138, 156,282,124)`. Both populations must be created once and sealed
+together in a mode-`000` directory. Qualified V1 and both final learned-head
+artifact CIDs must be fixed before the single reveal marker; optimization is
+permanently closed after reveal.
+
+Capacity and geometry attribution are distinct decisions. Either learned arm
+must independently pass the unchanged absolute/incremental prompt-gain, win,
+own-NLL, fresh-language, state-load, mechanics, causal, work, replay, and
+forbidden-read criteria. `GEOMETRY_ATTRIBUTED` additionally requires the
+geometric arm to clear the same frozen incremental effect and directional/NLL
+rules against both the address-blind pooled arm and the fixed-leaf derangement.
+A generic learned-head gain is not geometric advantage.
+
+The outcome branches are fixed before data creation: geometric capacity plus
+attribution permits one separately frozen disjoint smoke; learned capacity
+without attribution permits only one smoke from the passing arm with the lowest
+frozen fresh-language NLL; prompt capacity with language regression stops at a
+joint objective; a double capacity miss rejects this exact readout law and
+returns only to retained-value representation/binding; invalid mechanics carry
+no model claim; and unavailable compute preserves only an identical
+pre-reveal trajectory. See the
+[canonical freeze](../r4_learned_associative_readout_prompt_capacity_973.md).
+
+No V4 population, learned artifact, reveal, result, or verification exists at
+this amendment. A future positive would establish only bounded learned
+associative prompt capacity, and geometry attribution only if its separate
+controls pass. Coherent generation, reasoning, correctness, intrinsic Spin/H4
+superiority, exact/table/`no_std` lowering, browser or release readiness, #973
+closure, and #954 unblocking do not follow.
+
+## Learned associative-readout terminal and value-binding pivot — 2026-09-01
+
+The frozen campaign above completed once and independently verified at
+`LEARNED_ASSOCIATIVE_READOUT_NO_CAPACITY`. This amendment records the outcome
+without changing the historical pre-population freeze.
+
+On the V4 prompt contrast, frozen V1, geometric exact-leaf, pooled
+address-blind, and fixed-leaf-deranged gains were respectively `0.00642365`,
+`0.00637679`, `0.01026323`, and `0.00666565` nats/token. The geometric arm had
+`299/512` wins and own NLL `3.71038302`; its capacity decision failed. The
+pooled arm had `324/512` wins and own NLL `3.68289051`; it was partial because
+it missed both the absolute `0.04332170` and incremental `0.02534157` gain
+floors. Geometry attribution also failed: geometric-minus-pooled gain was
+`-0.00388645` with `209/512` paired improvements, and
+geometric-minus-deranged gain was `-0.00028887` with `251/512`, against frozen
+requirements of `+0.02534157` and at least `308/512` for each.
+
+The negative is localized to associative prompt capacity in this readout law,
+not to state reachability or ordinary language fit. Both learned arms passed all
+fresh-language gates. Frozen V1, geometric, and pooled fresh NLL were
+`3.90363602`, `3.90141233`, and `3.87375622`; top-1 was `29.6285%`, `29.6342%`,
+and `30.0428%`. State-off NLL was `4.23919176`, costing the geometric arm
+`0.33778` nats and 16,795 correct decisions and the pooled arm `0.36544` nats
+and 17,808 decisions. The retained state is load-bearing, while the stronger
+pooled result is explicitly a non-geometric control signal.
+
+All ten mechanics gates and the fresh-process verifier passed. The final
+artifact/reveal chain is geometric arm/head
+`blake3:3983416d7936c3fc02bab19f711cfab69adaf3607077df7f3407515a8057eb60` /
+`blake3:85a33965a7cd9ee952948ed6e6c5a925585edb9496377baa56a22ffaca40175f`,
+pooled arm/head
+`blake3:ca6f713a22a67b6a5749c9ebef374abeeb9d22a232d0ab4f77043ae09c69a08f` /
+`blake3:4eeba8bb99d200e77558d89529a1e9f33d7c1ea6f4439ec3cae64c79d0b0f0d1`,
+reveal
+`blake3:0fcbeffa06ed2ef7496a5ead77ff9a81320c44a4e4aec2d29082f86c0b8634a9`,
+result
+`blake3:cedba37738ee249457bb589f716ee75afb16a0c4937c2a22ae9f917dd3eb97c1`,
+and verification
+`blake3:443d711ce9a228e26e2eb2eebb55c582848424e2677c3473d41deaf8afd69ec7`.
+The complete lifecycle ledger is in the
+[canonical record](../r4_learned_associative_readout_prompt_capacity_973.md).
+
+The predeclared branch now controls the programme: do not retry or tune this
+candidate-query readout, do not add another readout over the same frozen V1
+value field, and do not run generation. Preserve the pooled fresh-language
+signal as the matched control. The next separately frozen #973 architecture
+must change the retained value write/binding law so prompt-specific key-value
+information exists before readout, then compare it against the pooled result
+and geometry-destroying controls. Reasoning, coherent generation, exact or
+geometry-native lowering, transformerless general-model capability, and release
+readiness remain `NOT_RUN` or `NOT_ESTABLISHED`.

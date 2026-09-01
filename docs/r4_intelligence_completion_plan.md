@@ -4,25 +4,37 @@
   readable mirror of programme root #820 (stages S0–S7 plus cross-cutting F0).
   The [Geometric Intelligence Programme](geometric_intelligence_programme.md)
   is its current architecture and claim-boundary companion.
-  The latest source-free capacity result is #973's sole layerwise-normalized
-  readout over qualified
-  [`R4RetainedLanguagePathV1`](r4_retained_language_path_v1_973.md). It is
-  terminal `LAYERWISE_NORMALIZED_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL` at
-  result CID
-  `blake3:35396bd6e64fc2c0bc7d86a84cc9e212ed913ce28e5353f5f2b8212b4cf2c532`.
-  With every V1 budget fixed, the exact formula
-  `E @ [N(h) + (1/sqrt(2))*(N(a1)+N(a2))]` raised prompt gain from
-  `0.0073316237` to `0.0286980210`, raised wins from `298/512` to `339/512`,
-  improved fresh NLL by `0.1723592206`, and made state removal cost
-  `1.3495375637` nats. The result passed wins, language, causal, state-off,
-  replay, and all `13/13` independent-verification comparisons but missed both
-  frozen prompt-gain floors. Freeze it without generation, retry, widening,
-  lowering, or gain tuning. Attention remains established at the qualified
-  scope; coherence, reasoning, H4 superiority, exact lowering, browser
-  readiness, and release do not follow. This valid miss ends the parameter-free
-  readout ladder. #973 must next freshly freeze a learned associative
-  binding/readout. #973 remains open, #954 remains blocked, and no C1-SB6 is
-  authorized.
+  The latest source-free capacity result is #973's separately frozen learned-
+  associative campaign over qualified
+  [`R4RetainedLanguagePathV1`](r4_retained_language_path_v1_973.md). It completed
+  `LEARNED_ASSOCIATIVE_READOUT_NO_CAPACITY` at result CID
+  `blake3:cedba37738ee249457bb589f716ee75afb16a0c4937c2a22ae9f917dd3eb97c1`;
+  fresh-process verification passed at CID
+  `blake3:443d711ce9a228e26e2eb2eebb55c582848424e2677c3473d41deaf8afd69ec7`.
+  Across 512 prompt directions, geometric gain was `0.0063767854348491465`
+  with `299/512` wins, pooled gain was `0.010263234571452827` with `324/512`,
+  and V1 gain was `0.006423652456300697`. Neither learned arm met the absolute
+  `0.04332169878499658` or incremental `0.025341569256760274` capacity floor.
+  On 247,920 fresh-language decisions, pooled NLL/top-1 improved from V1's
+  `3.9036360153193317`/`29.628509%` to
+  `3.8737562215878296`/`30.042756%`; state-off cost
+  `0.3654355381796077` NLL and `17,808` correct decisions. Preserve that signal
+  only as the matched non-geometric control. Geometry attribution failed
+  against pooled (`-0.0038864491366036808` gain, `209/512` paired
+  improvements) and deranged (`-0.0002888663472835149`, `251/512`), below the
+  required `308/512`. Mechanics, exact replay, causal access, and independent
+  verification passed; associative prompt capacity and geometry advantage did
+  not. The immediately preceding layerwise-normalized candidate remains the
+  historical terminal
+  `LAYERWISE_NORMALIZED_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL`; it ended the
+  parameter-free ladder. No tuning or retry of the learned readout, and no
+  generation or lowering from it, is authorized. Next separately freeze a
+  contract that changes the retained value write/binding law before
+  implementation or population creation. #973 remains open, #954 remains
+  blocked, and no C1-SB6 is authorized. Attention remains established only at
+  the qualified scope; coherence, reasoning, H4 superiority, exact lowering,
+  browser readiness, and release do not follow. See the
+  [binding learned-associative result](r4_learned_associative_readout_prompt_capacity_973.md).
   [ADR-0005](adr/0005-predictive-geometric-connection-memory.md) retains the
   accepted-attention, autonomous-reference-generation, and parked-replacement
   architecture history.

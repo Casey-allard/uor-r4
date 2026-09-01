@@ -9,7 +9,33 @@ The earlier
 preserved #948–#958 sequencing record. Measured, refuted, and frozen research
 remains in [docs/RESEARCH.md](docs/RESEARCH.md).
 
-**Active correction (2026-09-01):** #973's sole layerwise-normalized retained
+**Active correction (2026-09-01):** #973's separately frozen learned
+associative campaign completed `LEARNED_ASSOCIATIVE_READOUT_NO_CAPACITY` at
+result CID
+`blake3:cedba37738ee249457bb589f716ee75afb16a0c4937c2a22ae9f917dd3eb97c1`;
+fresh-process verification passed at CID
+`blake3:443d711ce9a228e26e2eb2eebb55c582848424e2677c3473d41deaf8afd69ec7`.
+On the 512-direction prompt contrast, geometric gain was
+`0.0063767854348491465` with `299/512` wins, pooled gain was
+`0.010263234571452827` with `324/512` wins, and V1 gain was
+`0.006423652456300697`. Neither arm met the frozen absolute
+`0.04332169878499658` or incremental `0.025341569256760274` capacity floor.
+On 247,920 fresh-language decisions, pooled NLL/top-1 improved from V1's
+`3.9036360153193317`/`29.628509%` to
+`3.8737562215878296`/`30.042756%`; state-off cost `0.3654355381796077` NLL and
+`17,808` correct decisions. Preserve this load-bearing signal only as the
+matched non-geometric control. Geometry attribution failed: geometric-minus-
+pooled gain was `-0.0038864491366036808` with `209/512` paired improvements,
+and geometric-minus-deranged gain was `-0.0002888663472835149` with `251/512`,
+both below the required `308/512`. Mechanics, exact replay, causal access, and
+independent verification passed; associative prompt capacity and geometry
+advantage did not. No generation/readout retry is authorized. Next separately
+freeze a contract that changes the retained value write/binding law before
+creating any successor population. #973 stays open; #954 stays blocked; no
+C1-SB6 is authorized. See the
+[binding result record](docs/r4_learned_associative_readout_prompt_capacity_973.md).
+
+**Immediately preceding result:** #973's sole layerwise-normalized retained
 readout completed `LAYERWISE_NORMALIZED_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL`
 at result CID
 `blake3:35396bd6e64fc2c0bc7d86a84cc9e212ed913ce28e5353f5f2b8212b4cf2c532`.
@@ -28,15 +54,18 @@ missed. Candidate, population, reveal, and independent-verification CIDs are
 and `blake3:3f316541dbab8061ed5ba891bf6a47ef22c55bca21fba01f6f97dbb3cb8497aa`.
 Generation, reasoning, lowering, and geometry-native lowering remain `NOT_RUN`;
 coherence, H4 superiority, exact/table runtime, browser, and release claims do
-not follow. This valid miss ends the parameter-free readout ladder. #973's sole
-successor is a freshly frozen learned associative binding/readout. #973 stays
-open; #954 stays blocked; no C1-SB6 is authorized.
+not follow. This valid miss ended the parameter-free readout ladder and led to
+the learned-associative campaign reported above.
 
 _Last reviewed: 2026-09-01 (#973 retained language-path generalization and
-autonomous local decoding passed; paired-H4 addressing failed, and the direct
-and layerwise-normalized readout seams each completed PARTIAL; the parameter-free
-ladder is closed and learned associative binding/readout is next; prompt-responsive
-coherence and H4 specificity remain unestablished; #961 reversible S0 landed;
+autonomous local decoding passed; paired-H4 addressing failed, the direct and
+layerwise-normalized readout seams each completed PARTIAL, and the separately
+frozen learned-associative successor completed
+`LEARNED_ASSOCIATIVE_READOUT_NO_CAPACITY`; preserve pooled fresh-language signal
+as a non-geometric control and separately freeze a changed retained value
+write/binding law next, with no readout retry or generation;
+prompt-responsive coherence and H4 specificity remain unestablished; #961
+reversible S0 landed;
 #952 A1.0 stopped at
 `REDESIGN_ORDERED_ROUTE_SUMMARY`; #967 A1R terminated `RETAIN_STATE_ONLY`;
 #970 A1P produced the bounded paired-H4-derived exact R4-heatmap result
@@ -329,7 +358,11 @@ quality-capacity negative; **Qualified retained baseline:**
 `R4RetainedLanguagePathV1`; **Rejected capacity seam:** paired-H4 addressing;
 **PARTIAL readout seams:** direct and layerwise-normalized retained readouts each
 improved prompt gain and fresh language but missed both frozen gain margins;
-**Current #973 action:** freshly freeze one learned associative binding/readout;
+**Rejected learned readout:** `LEARNED_ASSOCIATIVE_READOUT_NO_CAPACITY`, with
+the pooled fresh-language improvement retained only as a non-geometric control;
+**Current #973 action:** separately freeze a changed retained value
+write/binding law before implementation or population creation, with no retry
+or generation from the rejected readout;
 **Closed without a full run:** #1019's frozen
 12-layer, 13,130,784-parameter capacity campaign after its MPS hardware-budget
 stop; **Observed #954 negatives:** the fixed 384-step MPS grounding SFT
@@ -845,11 +878,21 @@ historical evidence and comparators.
   and `blake3:3f316541dbab8061ed5ba891bf6a47ef22c55bca21fba01f6f97dbb3cb8497aa`.
   See the [binding layerwise-readout record](docs/r4_layerwise_normalized_retained_readout_prompt_capacity_973.md).
 
-- [ ] **#973 learned associative binding/readout — sole successor.** Freshly
-  freeze one learned associative mechanism and its matched controls before
-  implementation or scoring. The completed valid miss ends all parameter-free
-  readout variants; no gain tuning, `g=2`, third normalization, retry, widening,
-  generation, or lowering is authorized from this rung.
+- [x] **#973 learned associative binding/readout — no capacity.** The frozen
+  campaign completed `LEARNED_ASSOCIATIVE_READOUT_NO_CAPACITY`; independent
+  verification passed. Neither learned arm met prompt-capacity, and geometry
+  attribution failed. Preserve the pooled fresh-language signal only as a
+  non-geometric control. Result and verification CIDs are
+  `blake3:cedba37738ee249457bb589f716ee75afb16a0c4937c2a22ae9f917dd3eb97c1`
+  and
+  `blake3:443d711ce9a228e26e2eb2eebb55c582848424e2677c3473d41deaf8afd69ec7`.
+  No tuning, retry, generation, or lowering is authorized from this rung.
+
+- [ ] **#973 retained value write/binding law — next contract.** Separately
+  freeze one changed retained value representation/write/binding law and its
+  matched controls before implementation or population creation. Carry the
+  pooled arm forward only as a fresh-language control, not as prompt-capacity
+  or geometry evidence.
 
 - [ ] **#954 grounded correctness: C1-SB5 retired negative; final source-free
   terminal blocked behind #973** — retain the

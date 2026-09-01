@@ -37,11 +37,33 @@ Generation, reasoning, lowering, and geometry-native lowering are `NOT_RUN`;
 coherence, H4 superiority, exact/table lowering, browser readiness, and release
 readiness remain unestablished.
 
-This valid miss ends the parameter-free readout ladder. #973's sole successor
-is a freshly frozen learned associative binding/readout; do not tune `g`, try
-`g=2`, add a third normalization variant, retry, widen, generate, or lower.
-#973 stays open; #954's final source-free correctness terminal remains blocked;
-no C1-SB6 is authorized. ADR-0005 and the
+The separately frozen learned-associative successor has now completed
+`LEARNED_ASSOCIATIVE_READOUT_NO_CAPACITY` at result CID
+`blake3:cedba37738ee249457bb589f716ee75afb16a0c4937c2a22ae9f917dd3eb97c1`;
+fresh-process verification passed at CID
+`blake3:443d711ce9a228e26e2eb2eebb55c582848424e2677c3473d41deaf8afd69ec7`.
+Across the frozen 512 prompt directions, geometric gain was
+`0.0063767854348491465` with `299/512` wins, pooled gain was
+`0.010263234571452827` with `324/512` wins, and V1 gain was
+`0.006423652456300697`; neither learned arm met the absolute
+`0.04332169878499658` or incremental `0.025341569256760274` capacity floor.
+On 247,920 fresh-language decisions, pooled NLL/top-1 was
+`3.8737562215878296`/`30.042756%` versus V1 at
+`3.9036360153193317`/`29.628509%`; pooled state-off degraded to
+`4.239191759767437`/`22.859793%` and lost `17,808` correct decisions. Preserve
+that load-bearing fresh-language signal only as the matched non-geometric
+control. Geometry attribution failed: geometric-minus-pooled gain was
+`-0.0038864491366036808` with `209/512` paired improvements, and
+geometric-minus-deranged gain was `-0.0002888663472835149` with `251/512`, both
+below the required `308/512`. Mechanics, replay, causal access, and independent
+verification passed, but no associative prompt capacity or geometry advantage
+was established. The next #973 action is to separately freeze a new contract
+that changes the retained value write/binding law before creating any new
+population. Do not tune or retry this readout, and do not run generation from
+it. #973 stays open; #954's final source-free correctness terminal remains
+blocked; no C1-SB6 is authorized. See the
+[binding learned-associative record](docs/r4_learned_associative_readout_prompt_capacity_973.md).
+ADR-0005 and the
 append-only [#954 grounded-correctness record](docs/r4_grounded_correctness_954.md)
 remain historical mechanism/evidence context. The
 earlier frozen [#1019 parameter-capacity contract](docs/r4_softmax_parameter_capacity_1019.md)
@@ -442,8 +464,16 @@ language metrics and fewer construction collisions. The direct retained-state
 readout then improved prompt and fresh-language metrics but missed both frozen
 gain floors. Its sole layerwise-normalized successor also improved prompt and
 fresh-language metrics but missed the same absolute and incremental gain
-floors. The parameter-free readout ladder is closed; #973 must next freshly
-freeze a learned associative binding/readout;
+floors. The parameter-free readout ladder is closed. The separately frozen
+learned-associative campaign then completed
+`LEARNED_ASSOCIATIVE_READOUT_NO_CAPACITY` (result
+`blake3:cedba37738ee249457bb589f716ee75afb16a0c4937c2a22ae9f917dd3eb97c1`;
+verified
+`blake3:443d711ce9a228e26e2eb2eebb55c582848424e2677c3473d41deaf8afd69ec7`).
+Its pooled arm's load-bearing fresh-language improvement remains a
+non-geometric control, not prompt-capacity evidence. Next separately freeze a
+changed retained value write/binding law; do not retry this readout or run
+generation;
 new route families, intrinsic/readout alternatives, resonance-based softmax
 replacement, unqualified scale, and exact deployment remain parked. D3 remains
 `NOT_RUN`; #954 and

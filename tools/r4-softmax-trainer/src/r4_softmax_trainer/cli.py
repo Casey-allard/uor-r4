@@ -71,6 +71,12 @@ from .layerwise_normalized_retained_readout_campaign import (
     run_layerwise_normalized_retained_readout,
     verify_layerwise_normalized_retained_readout_result,
 )
+from .learned_associative_readout_campaign import (
+    prepare_learned_associative_readout,
+    probe_learned_associative_readout,
+    run_learned_associative_readout,
+    verify_learned_associative_readout_result,
+)
 from .paired_h4_prompt_capacity_campaign import (
     prepare_paired_h4_prompt_capacity,
     probe_paired_h4_prompt_capacity,
@@ -99,6 +105,14 @@ from .paths import (
     default_language_path_geometry,
     default_language_path_root,
     default_language_path_source_root,
+    default_learned_associative_readout_predecessor,
+    default_learned_associative_readout_raw_source,
+    default_learned_associative_readout_root,
+    default_learned_associative_readout_source_train,
+    default_learned_associative_readout_source_train_index,
+    default_learned_associative_readout_v1_population,
+    default_learned_associative_readout_v2_population,
+    default_learned_associative_readout_v3_population,
     default_layerwise_normalized_readout_predecessor,
     default_layerwise_normalized_readout_raw_source,
     default_layerwise_normalized_readout_root,
@@ -690,6 +704,72 @@ def parser() -> argparse.ArgumentParser:
         "verify-layerwise-normalized-readout",
         help="fresh-process exact re-score of terminal V3 prompt and heldout evidence",
     )
+    prepare_learned_readout = subcommands.add_parser(
+        "prepare-learned-associative-readout",
+        help=(
+            "seal #973's frozen V4 prompt and fresh-language populations for "
+            "the learned geometric and pooled associative readouts"
+        ),
+    )
+    prepare_learned_readout.add_argument(
+        "--predecessor-root",
+        type=_root,
+        default=default_learned_associative_readout_predecessor(),
+        help="immutable qualified retained-language-path root",
+    )
+    prepare_learned_readout.add_argument(
+        "--source-train",
+        type=_root,
+        default=default_learned_associative_readout_source_train(),
+        help="verified nonsealed #1019 train-token store",
+    )
+    prepare_learned_readout.add_argument(
+        "--source-train-index",
+        type=_root,
+        default=default_learned_associative_readout_source_train_index(),
+        help="canonical #1019 train-story index binding the heldout slice",
+    )
+    prepare_learned_readout.add_argument(
+        "--raw-source",
+        type=_root,
+        default=default_learned_associative_readout_raw_source(),
+        help="pinned raw TinyStories source used only for the sealed V4 population",
+    )
+    prepare_learned_readout.add_argument(
+        "--v1-population",
+        type=_root,
+        default=default_learned_associative_readout_v1_population(),
+        help="revealed V1 prompt population used only for story-CID exclusion",
+    )
+    prepare_learned_readout.add_argument(
+        "--v2-population",
+        type=_root,
+        default=default_learned_associative_readout_v2_population(),
+        help="revealed V2 prompt population used only for story-CID exclusion",
+    )
+    prepare_learned_readout.add_argument(
+        "--v3-population",
+        type=_root,
+        default=default_learned_associative_readout_v3_population(),
+        help="revealed V3 prompt population used only for story-CID exclusion",
+    )
+    subcommands.add_parser(
+        "probe-learned-associative-readout",
+        help="benchmark eligible local backends using training data only",
+    )
+    run_learned_readout = subcommands.add_parser(
+        "run-learned-associative-readout",
+        help="run or resume the one frozen two-head fit and one-time evaluation",
+    )
+    run_learned_readout.add_argument(
+        "--resume",
+        action="store_true",
+        help="resume only the identical frozen pre-reveal trajectory",
+    )
+    subcommands.add_parser(
+        "verify-learned-associative-readout",
+        help="fresh-process exact re-score of terminal V4 and heldout evidence",
+    )
     return command
 
 
@@ -766,6 +846,12 @@ def main() -> None:
         "run-layerwise-normalized-readout",
         "verify-layerwise-normalized-readout",
     }
+    learned_associative_readout_commands = {
+        "prepare-learned-associative-readout",
+        "probe-learned-associative-readout",
+        "run-learned-associative-readout",
+        "verify-learned-associative-readout",
+    }
     if arguments.root:
         root = arguments.root
     elif arguments.command in capacity_commands:
@@ -798,6 +884,8 @@ def main() -> None:
         root = default_direct_retained_readout_root()
     elif arguments.command in layerwise_normalized_readout_commands:
         root = default_layerwise_normalized_readout_root()
+    elif arguments.command in learned_associative_readout_commands:
+        root = default_learned_associative_readout_root()
     else:
         root = default_research_root()
     if arguments.command == "download":
@@ -1091,5 +1179,29 @@ def main() -> None:
         return
     if arguments.command == "verify-layerwise-normalized-readout":
         _print_result(verify_layerwise_normalized_retained_readout_result(root))
+        return
+    if arguments.command == "prepare-learned-associative-readout":
+        prepared = prepare_learned_associative_readout(
+            root=root,
+            predecessor_root=arguments.predecessor_root,
+            source_train_path=arguments.source_train,
+            source_train_index_path=arguments.source_train_index,
+            raw_source_path=arguments.raw_source,
+            prior_v1_prompt_population_path=arguments.v1_population,
+            prior_v2_prompt_population_path=arguments.v2_population,
+            prior_v3_prompt_population_path=arguments.v3_population,
+        )
+        _print_result(prepared.manifest)
+        return
+    if arguments.command == "probe-learned-associative-readout":
+        _print_result(probe_learned_associative_readout(root))
+        return
+    if arguments.command == "run-learned-associative-readout":
+        _print_result(
+            run_learned_associative_readout(root, resume=arguments.resume)
+        )
+        return
+    if arguments.command == "verify-learned-associative-readout":
+        _print_result(verify_learned_associative_readout_result(root))
         return
     raise AssertionError(f"unhandled command: {arguments.command}")

@@ -534,6 +534,46 @@ class _RetainedDecoderBlock(nn.Module):
         recurrent-state transition below is unchanged.
         """
 
+        (
+            values,
+            final_keys,
+            final_values,
+            final_occupied,
+            retained,
+            _,
+            _,
+        ) = self.forward_stationary_with_retained_value_field(
+            values,
+            key_state,
+            value_state,
+            occupied,
+            prefix_actions,
+            identity_offset,
+            state_off=state_off,
+        )
+        return values, final_keys, final_values, final_occupied, retained
+
+    def forward_stationary_with_retained_value_field(
+        self,
+        values: Tensor,
+        key_state: Tensor,
+        value_state: Tensor,
+        occupied: Tensor,
+        prefix_actions: Tensor,
+        identity_offset: int,
+        *,
+        state_off: bool,
+    ) -> tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor]:
+        """Also expose the strict-prior transported/decayed value field.
+
+        The sixth and seventh return values are respectively the value field
+        immediately before the current write, shaped
+        ``[batch,time,heads,group,head_dim]``, and its logical occupancy mask,
+        shaped ``[batch,time,group]``.  This is an observational seam: the
+        qualified attention, residual, MLP, and recurrent update below are the
+        same operations used by :meth:`forward_stationary_with_retained`.
+        """
+
         normalized = self.input_layernorm(values)
         query = self._heads(self.q_proj(normalized))
         key = self._heads(self.k_proj(normalized))
@@ -560,7 +600,15 @@ class _RetainedDecoderBlock(nn.Module):
         retained = retained * (0.0 if state_off else 1.0)
         values = values + retained
         values = values + self.mlp(self.post_attention_layernorm(values))
-        return values, final_keys, final_values, schedule.final_occupied, retained
+        return (
+            values,
+            final_keys,
+            final_values,
+            schedule.final_occupied,
+            retained,
+            value_reads,
+            schedule.read_occupied,
+        )
 
     def forward_direct_step(
         self,
@@ -601,6 +649,43 @@ class _RetainedDecoderBlock(nn.Module):
     ) -> tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
         """Run one direct transition and expose its already-gated read."""
 
+        (
+            values,
+            final_keys,
+            final_values,
+            final_occupied,
+            retained,
+            _,
+            _,
+        ) = self.forward_direct_step_with_retained_value_field(
+            values,
+            token_actions,
+            key_state,
+            value_state,
+            occupied,
+            identity_offset,
+            state_off=state_off,
+        )
+        return values, final_keys, final_values, final_occupied, retained
+
+    def forward_direct_step_with_retained_value_field(
+        self,
+        values: Tensor,
+        token_actions: Tensor,
+        key_state: Tensor,
+        value_state: Tensor,
+        occupied: Tensor,
+        identity_offset: int,
+        *,
+        state_off: bool,
+    ) -> tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor]:
+        """Also expose the direct strict-prior transported/decayed value field.
+
+        The sixth value is ``decayed_values`` before the identity-slot delta
+        write and the seventh is its transported occupancy mask.  Existing V1
+        callers discard both through :meth:`forward_direct_step_with_retained`.
+        """
+
         batch = int(values.shape[0])
         heads = self.config.heads
         group = self.config.group_size
@@ -638,7 +723,15 @@ class _RetainedDecoderBlock(nn.Module):
             1, 1, group, 1
         )
         final_occupied = transported_occupied | identity_mask.bool().view(1, group)
-        return values, final_keys, final_values, final_occupied, retained
+        return (
+            values,
+            final_keys,
+            final_values,
+            final_occupied,
+            retained,
+            decayed_values,
+            transported_occupied,
+        )
 
 
 class R4GroupAddressedRetentionDecoderV1(nn.Module):

@@ -36,9 +36,25 @@ fresh-process comparisons passed, but generation, reasoning, lowering, and
 geometry-native lowering are `NOT_RUN`; no coherence, H4-superiority,
 exact-runtime, browser, or release claim follows.
 
-The valid miss ends parameter-free readout variants. Contribute only toward a
-freshly frozen learned associative binding/readout successor; do not tune `g`,
-try `g=2`, add another normalization variant, retry, widen, generate, or lower.
+The separately frozen learned-associative successor has now completed
+`LEARNED_ASSOCIATIVE_READOUT_NO_CAPACITY` (result
+`blake3:cedba37738ee249457bb589f716ee75afb16a0c4937c2a22ae9f917dd3eb97c1`;
+independent verification
+`blake3:443d711ce9a228e26e2eb2eebb55c582848424e2677c3473d41deaf8afd69ec7`).
+Geometric and pooled prompt gains were `0.0063767854348491465` (`299/512` wins)
+and `0.010263234571452827` (`324/512`) versus V1 at
+`0.006423652456300697`; neither learned arm met the absolute or incremental
+capacity floor. The pooled arm nevertheless improved 247,920-decision fresh
+NLL/top-1 from V1's `3.9036360153193317`/`29.628509%` to
+`3.8737562215878296`/`30.042756%`, while state-off cost `0.3654355381796077`
+NLL and `17,808` correct decisions. Retain that result only as a matched
+non-geometric control. Geometry attribution failed against both pooled
+(`-0.0038864491366036808`, `209/512` paired improvements) and deranged
+(`-0.0002888663472835149`, `251/512`). Mechanics and verification passed, but
+no prompt-capacity, geometry-advantage, generation, or reasoning claim follows.
+Contribute next only toward a separately frozen contract that changes the
+retained value write/binding law; do not tune or retry this readout, widen it,
+or run generation from it.
 Ordinary
 causal R4/Spin Q/K/V plus stable softmax remains the bounded source-backed
 attention baseline, while C1-SB5 paired-query binding fit `56/56` but reached
@@ -267,8 +283,12 @@ The experiment must be able to change the next programme decision:
   trace-state, intrinsic/readout, resonance, full-model recurrent-lowering, and
   exact-deployment lanes remain negative or parked. Do not scale or tune the
   rejected paired candidate, the partial direct readout, or the partial
-  layerwise-normalized readout. The parameter-free ladder is closed; #973 must
-  next freshly freeze a learned associative binding/readout. #973 still
+  layerwise-normalized readout. The parameter-free ladder is closed, and the
+  separately frozen learned-associative campaign completed
+  `LEARNED_ASSOCIATIVE_READOUT_NO_CAPACITY` with independent verification.
+  Preserve its pooled fresh-language signal only as a non-geometric control.
+  Next separately freeze a changed retained value write/binding law; do not
+  retry the readout or run generation. #973 still
   blocks GI-4/#954's final source-free terminal, with GI-5/#955 downstream of
   positive correctness.
 - **Exercise the accepted route path.** #953 geometry runs before token choice

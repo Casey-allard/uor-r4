@@ -5,7 +5,7 @@ historical [geometric causal decoder](../geometric_causal_decoder_plan.md).
 Current sequencing lives in the
 [Geometric Intelligence Programme](../geometric_intelligence_programme.md),
 and the latest terminal #973 mechanism is
-[`R4DirectRetainedReadoutLanguagePathV1`](../r4_direct_retained_readout_prompt_capacity_973.md).
+[`R4LearnedCandidateLeafAssociativeReadoutV1`](../r4_learned_associative_readout_prompt_capacity_973.md).
 ADR-0005 remains the historical mechanism-family record.
 Decoder terms and graph terms name different execution lanes and must not be
 substituted for one another.
@@ -233,13 +233,19 @@ substituted for one another.
   `LAYERWISE_NORMALIZED_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL`; result CID
   `blake3:35396bd6e64fc2c0bc7d86a84cc9e212ed913ce28e5353f5f2b8212b4cf2c532`.
   The valid miss ends the parameter-free readout ladder.
-- **Learned associative binding/readout** — #973's sole active successor after
-  the parameter-free ladder ended. It must be a new independently frozen
-  learned candidate-relative binding from the preserved retained state to
-  logits, compared with matched ordinary/non-geometric and state-off controls.
-  Its architecture and budget are not yet frozen; implementation, fitting,
-  generation, reasoning, and lowering are `NOT_RUN`. The phrase does not name
-  an already-qualified mechanism.
+- **Learned associative binding/readout** — #973's completed
+  `R4LearnedCandidateLeafAssociativeReadoutV1` campaign. A learned
+  candidate-query table read each candidate's exact-H4 leaf value; its matched
+  equal-parameter control read the occupied-address pool, and a fixed-leaf
+  derangement destroyed candidate/address binding without changing head work.
+  Terminal `LEARNED_ASSOCIATIVE_READOUT_NO_CAPACITY`: geometric prompt gain was
+  `0.00637679`, pooled was `0.01026323`, and neither met the frozen capacity
+  criteria. Geometric minus pooled was `-0.00388645`; geometric minus deranged
+  was `-0.00028887`, producing `GEOMETRY_ATTRIBUTION_FAIL`. The pooled effect remains
+  a non-geometric control signal. Both learned arms passed fresh-language gates,
+  and mechanics plus exact independent verification passed. No generation or
+  readout retry is authorized; the next independent freeze must change the
+  retained-value write/binding law.
 - **`DirectCausalGeometricAttentionR4V1`** — #973's offline gold-standard
   reference for the literal attention function: learned Q/K/V/O roles, local
   S3 tangent projection, causal H4-frame transport of every prior key and
@@ -563,8 +569,12 @@ substituted for one another.
   capacity successor failed, its direct retained readout completed directional
   `PARTIAL`, and its layerwise-normalized readout also completed `PARTIAL` after
   passing language/mechanics but missing both prompt-gain floors. The
-  parameter-free ladder is closed; only a freshly frozen learned associative
-  binding/readout is next. CUDA and external GPU execution are out of scope.
+  parameter-free ladder is closed. Its learned candidate-leaf associative
+  successor then completed `LEARNED_ASSOCIATIVE_READOUT_NO_CAPACITY`: pooled
+  readout was strongest but below capacity, and geometry attribution failed.
+  The next #973 freeze must change the retained-value write/binding law while
+  keeping pooled readout as the non-geometric control. CUDA and external GPU
+  execution are out of scope.
   Intrinsic/readout,
   fiber-preserving multi-resonance replacement,
   whole-decoder recurrent factorization, and final requalification are parked
@@ -644,7 +654,7 @@ readout ladder. Attention remains established, but prompt-conditioned
 coherence, reasoning, H4 superiority, and exact lowering do not follow. #973
 remains open, #954 remains blocked, and no C1-SB6 is authorized.
 
-## Current #973 layerwise terminal and successor — 2026-09-01
+## Historical #973 layerwise terminal and successor — 2026-09-01
 
 `R4LayerwiseNormalizedRetainedReadoutLanguagePathV1` completed
 `LAYERWISE_NORMALIZED_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL` at result CID
@@ -660,10 +670,39 @@ verifier reproduced all 13 comparisons at
 `blake3:3f316541dbab8061ed5ba891bf6a47ef22c55bca21fba01f6f97dbb3cb8497aa`.
 The absolute `0.0433216988` and incremental `0.0253415693` prompt-gain floors
 did not pass. Therefore there is no retry, scalar tweak, third normalization,
-generation, widening, or lowering. A freshly frozen learned associative
-binding/readout is the sole #973 successor. For this candidate, generation,
+generation, widening, or lowering. At that checkpoint, the freshly frozen
+learned associative binding/readout became the sole #973 successor; its
+completed result is recorded below. For the layerwise candidate, generation,
 reasoning, and exact/geometry-native lowering remain `NOT_RUN`; #954 remains
 blocked and C1-SB6 remains unauthorized.
+
+## Current #973 learned-associative terminal and next decision — 2026-09-01
+
+`R4LearnedCandidateLeafAssociativeReadoutV1` completed
+`LEARNED_ASSOCIATIVE_READOUT_NO_CAPACITY`. On sealed V4 prompts, geometric
+gain/wins/NLL were `0.00637679` / `299/512` / `3.710383`; frozen V1 was
+`0.00642365` / `308/512` / `3.712799`; and the address-blind pooled control was
+`0.01026323` / `324/512` / `3.682891`. Pooled was
+`PROMPT_CONDITIONING_PARTIAL`, but its gain was below `0.04332170` and its
+`0.00383958` increment over V1 was below the required `0.02534157`.
+
+Geometry minus pooled was `-0.00388645` with `209/512` paired improvements;
+geometry minus fixed-leaf deranged was `-0.00028887` with `251/512`. The
+separate terminal was `GEOMETRY_ATTRIBUTION_FAIL`, and pooled remains a
+non-geometric control signal. Fresh
+NLL/top-1 was `3.903636` / `29.6285%` for V1, `3.901412` / `29.6342%` for
+geometric, and `3.873756` / `30.0428%` for pooled; both learned arms passed
+their fresh gates. Mechanics and exact independent verification passed. Result
+CID:
+`blake3:cedba37738ee249457bb589f716ee75afb16a0c4937c2a22ae9f917dd3eb97c1`;
+verification CID:
+`blake3:443d711ce9a228e26e2eb2eebb55c582848424e2677c3473d41deaf8afd69ec7`.
+
+There is no generation or further readout retry over the same retained values.
+The next #973 mechanism must change the retained-value write/binding law under
+a new independent freeze, with pooled readout retained as the matched control.
+Reasoning and exact/geometry-native lowering remain `NOT_RUN`; #954 and C1-SB6
+remain blocked.
 
 ### Prior paired-H4 terminal
 

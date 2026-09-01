@@ -1,6 +1,6 @@
 # Formal Vocabulary, Notation, and Claim Classes
 
-- **Version:** 0.1.32
+- **Version:** 0.1.34
 - **Status:** Normative for all new specification, plan, proof-model, and certificate text.
 - **Source:** `docs/hologram_formal_analysis_direction.pdf` §§1, 7, 13; tracker
   [#122](https://github.com/UOR-Foundation/uor-r4/issues/122); issue
@@ -13,7 +13,7 @@
   and experiment policy is
   [Geometric Intelligence Evaluation](geometric_intelligence_evaluation.md).
   The latest terminal #973 empirical contract is
-  [`R4LayerwiseNormalizedRetainedReadoutLanguagePathV1`](r4_layerwise_normalized_retained_readout_prompt_capacity_973.md).
+  [`R4LearnedAssociativeReadoutPromptCapacityV1`](r4_learned_associative_readout_prompt_capacity_973.md).
 
 This spec separates the statement classes that the research notes previously mixed —
 architectural definitions, compiler optimization objectives, empirical certification
@@ -103,7 +103,8 @@ runtime path for them lands in the issues noted.
 | `R4PairedH4LanguagePathV1` | **Definition** | The one frozen V1-capacity successor that holds training data, seed, schedule, parameter count, and work fixed while replacing the shared per-layer H4 token address with a deterministic paired-H4 address. | The address construction reduced repeated joint addresses by `97.5477%`. On fresh held-out language it scored NLL `3.8832293739` and top-1 `29.780171%`, versus V1 `3.8901151940` and `29.706357%`. This is construction/general-language evidence only; it does not establish prompt capacity or H4 superiority. |
 | `g_d`, `G_prompt` | **Empirical Criterion** | For each of 512 bidirectional matched-prompt contrasts sharing the final four prompt tokens, `g_d = (log P(y_d | own prompt) - log P(y_d | paired prompt)) / 16`, and `G_prompt` is the mean. Candidate promotion requires `G_prompt >= 0.043321699`, at least `308/512` directional wins, and the separately frozen capacity-gain rules. | **V1 completed negative:** paired-H4 candidate `G_prompt = 0.0062477543` versus V1 `0.0063672952` (delta `-0.0001195409`), with `282/512` wins. Both state-off contrasts were exactly zero; causal, forbidden-read, artifact-before-reveal, CID-binding, and replay checks passed. Terminal `PAIRED_H4_PROMPT_CAPACITY_FAIL`; result CID `blake3:508a4ff352f1e533d669d9616f65b972b0f13e8efe35867b7b095281ad940274`. Preserve V1, reject the paired candidate, and do not run generation. See `r4_paired_h4_prompt_capacity_result_973_raw.json`. Later V2/V3 results are recorded by their named readout terms below. |
 | `R4LayerwiseNormalizedRetainedReadoutLanguagePathV1` | **Definition** | #973's final zero-parameter readout variant: `E @ [N(h) + (g/sqrt(2))*(N(a1)+N(a2))]`, fixed candidate `g=1` versus matched V1 `g=0`, with recurrence, state, parameters, data/order, optimizer, 2,730-step dose, and tied vocabulary projection held fixed. | **Completed partial:** V3 candidate `G_prompt = 0.0286980210` versus V1 `0.0073316237`, incremental `0.0213663973`, with `339/512` wins. Every fresh-language and mechanics gate passed, but the candidate missed the absolute `0.0433216988` and incremental `0.0253415693` prompt-gain floors. Terminal `LAYERWISE_NORMALIZED_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL`; result CID `blake3:35396bd6e64fc2c0bc7d86a84cc9e212ed913ce28e5353f5f2b8212b4cf2c532`; independent verification CID `blake3:3f316541dbab8061ed5ba891bf6a47ef22c55bca21fba01f6f97dbb3cb8497aa`. Generation, reasoning, and exact/geometry-native lowering are `NOT_RUN`. |
-| learned associative binding/readout | **Objective** | A separately frozen learned mechanism that binds the preserved causal retained state to candidate-relative logits, with an ordinary matched non-geometric readout plus state-off, causal, replay, and forbidden-read controls. Its representation, parameter/work budget, population, thresholds, and falsifier must be declared before fitting or reveal. | **Unproven / `NOT_IMPLEMENTED` / `NOT_RUN`:** this is the sole #973 successor after both zero-parameter readouts ended `PARTIAL`. It is not permission for another scalar gain, normalization placement, retry, generation, corpus widening, or exact lowering. #954 remains blocked. |
+| `R4LearnedCandidateLeafAssociativeReadoutV1`, `zG[t,c]` | **Definition** | #973's completed learned readout reads V1's strict-prior transported retained value at candidate `c`'s canonical exact-H4 leaf with an independently learned `[2,4096,12,4]` candidate-query table: `zG[t,c] = <E[c],N(h[t])> + (1/(2*sqrt(48)))*sum_l <qG[l,c],R(V[l,t,lambda(c)])>`. Qualified V1 is immutable. The equal-parameter address-blind arm has an unshared, byte-identically initialized query table and reads the occupied-address mean; a fixed-leaf derangement reuses the geometric table while destroying candidate/address binding. | **Completed negative at the frozen prompt-capacity scope:** geometric gain `0.00637679`, `299/512` wins, and own NLL `3.71038302` failed the capacity floors. Pooled gain `0.01026323`, `324/512` wins, and own NLL `3.68289051` was partial but also below both gain floors. Both fresh-language and state-load-bearing gates passed. Terminal `LEARNED_ASSOCIATIVE_READOUT_NO_CAPACITY`; result CID `blake3:cedba37738ee249457bb589f716ee75afb16a0c4937c2a22ae9f917dd3eb97c1`; verification CID `blake3:443d711ce9a228e26e2eb2eebb55c582848424e2677c3473d41deaf8afd69ec7`. See `r4_learned_associative_readout_prompt_capacity_973.md`. |
+| `R4LearnedAssociativeReadoutPromptCapacityV1` | **Empirical Criterion** | Each learned arm must pass the frozen V4 absolute and incremental prompt-gain floors, `308/512` wins, own-NLL nonregression, fresh-language nonregression, load-bearing state, mechanics, replay, work, and causal audits. `GEOMETRY_ATTRIBUTED` separately requires the geometric arm to exceed both pooled and fixed-leaf-deranged controls by the frozen incremental effect and win/NLL rules. | **Empirical terminal:** neither arm passed capacity. Geometry attribution failed: geometric-minus-pooled gain `-0.00388645` with `209/512` paired improvements and geometric-minus-deranged gain `-0.00028887` with `251/512`, below `+0.02534157` and `308/512`. All ten mechanics gates and independent replay passed; post-reveal optimizer steps were zero. No retry or generation is authorized. The next separately frozen architecture must alter the retained value write/binding law and retain pooled plus geometry-destroying controls. #973 remains open and #954 blocked. |
 | `O_trace^(0..3)` | **Objective** | Construction-only, leave-one-document-out observability ladder measuring the same teacher-relative candidate loss at four frozen boundaries: full ordered final-layer Q/K/V trace blocks; fixed 576-to-4 signed reduction; token-derived role maps plus recurrent state features; and fitted residual readout/logit scale. | **Completed** in [#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012) at `INSUFFICIENT_SUPPORT_COVERAGE`: aggregate primary coverage was `0.6202622204224402`, but the minimum fold was `0.3469116829611222`, below the frozen 50% floor, so no boundary attribution is licensed. On the covered rows, full Q/K/V CE was `2.215410922655504` versus suffix `2.215064603216862` (`suffix - full = -0.0003463194386417179`, direction `0/4`); the fixed label control separated by `1.3807454322642605` nats in `4/4`. Exact replay and zero source/document-13 reads passed. The ladder will not be expanded or repeated. #1014 subsequently completed the direct-learning pivot; see `Delta_attn-off` below. |
 | `d_R4`, `mu_R4` | **Objective** | If reactivated, a separately trained intrinsic arm may score transported manifold-valued Q/K pairs and aggregate transported values with an artifact-bound equivariant geometric centroid `mu_R4`. | V1 stopped `UNAVAILABLE` before D3; learned-manifold V2 failed donor retention and matched Euclidean parity; the 8/8-contract attempt stopped at its two-document preflight and rejected tangent readout with pooled normalized audit-MSE ratio `1.0643688804269025`. Intrinsic attention remains unestablished and this objective is **Parked**. |
 | `A_M`, `K_hat`, `N_t`, `Z_t` | **Objective** | A finite fiber-aware resonance amplitude, its nonnegative normalized kernel `K_hat = floor + abs(A_M)^2`, and the recurrent transported value-numerator and normalization-denominator mode sums that replace dense all-pairs weighting. | ADR-0005 and the #973 multi-resonance reuse audit retain the conditional contract. The normalized sieve, recurrent factorization, and H4/Q29/integer lowering are **Parked**, `NOT_IMPLEMENTED`, and `NOT_RUN`. |
@@ -187,6 +188,28 @@ by wholesale rewrite.
 
 ## Changelog
 
+- **0.1.34** (2026-09-01) — Recorded the independently verified
+  `R4LearnedAssociativeReadoutPromptCapacityV1` terminal
+  `LEARNED_ASSOCIATIVE_READOUT_NO_CAPACITY`. Geometric gain `0.00637679` and
+  pooled gain `0.01026323` both missed the frozen absolute `0.04332170` and
+  incremental `0.02534157` capacity effects; geometry also lost the pooled and
+  fixed-leaf-deranged attribution comparisons. Both learned arms passed every
+  fresh-language and state-load-bearing gate, so the pooled improvement is
+  retained as a non-geometric control signal. All mechanics and independent
+  replay passed. No retry or generation is authorized; the next separately
+  frozen #973 architecture must change the retained value write/binding law.
+  Result CID
+  `blake3:cedba37738ee249457bb589f716ee75afb16a0c4937c2a22ae9f917dd3eb97c1`;
+  verification CID
+  `blake3:443d711ce9a228e26e2eb2eebb55c582848424e2677c3473d41deaf8afd69ec7`.
+- **0.1.33** (2026-09-01) — Froze
+  `R4LearnedCandidateLeafAssociativeReadoutV1` and its independent
+  `R4LearnedAssociativeReadoutPromptCapacityV1` campaign before implementation,
+  V4 population creation, fitting, or outcome access. Bound the exact-leaf,
+  address-blind pooled, fixed-leaf-deranged, head-off, and state-off arms plus
+  the fresh-data, create-once reveal, capacity, geometry-attribution, compute,
+  and divergent-action contracts. All empirical outcomes remain `NOT_RUN`;
+  #973 remains open and #954 blocked.
 - **0.1.32** (2026-09-01) — Recorded
   `R4LayerwiseNormalizedRetainedReadoutLanguagePathV1` as terminal
   `LAYERWISE_NORMALIZED_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL`. All

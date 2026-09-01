@@ -10,7 +10,7 @@
   [Geometric Causal Decoder Roadmap](geometric_causal_decoder_plan.md)
 - **Historical measurements:** [Research ledger](RESEARCH.md)
 - **Current mechanism:**
-  [ADR-0005 predictive geometric connection memory](adr/0005-predictive-geometric-connection-memory.md)
+  [#973 learned-associative terminal and write/binding-law decision](r4_learned_associative_readout_prompt_capacity_973.md)
 
 ## Purpose
 
@@ -54,38 +54,38 @@ correctness, and reasoning remain separate claims.
 Optimization, broad QA, formalization, and release certification follow a
 working decision-bearing product slice. They do not replace it.
 
-## Current #973 decision — parameter-free ladder ended at PARTIAL
+## Current #973 decision — change the retained-value write/binding law
 
 Qualified `R4RetainedLanguagePathV1` remains the source-free retained-attention
-baseline. The last authorized parameter-free successor,
-`R4LayerwiseNormalizedRetainedReadoutLanguagePathV1`, held its exact-H4
-recurrence, parameters, state, data, seed, order, optimizer, 2,730-step dose,
-and one tied vocabulary projection fixed. It changed only the retained-state
-normalization from `N(a1+a2)` to `(N(a1)+N(a2))/sqrt(2)`.
+baseline. The independently frozen
+`R4LearnedCandidateLeafAssociativeReadoutV1` successor has now completed
+`LEARNED_ASSOCIATIVE_READOUT_NO_CAPACITY`. Its geometric prompt gain/wins/NLL
+were `0.00637679` / `299/512` / `3.710383`, versus frozen V1
+`0.00642365` / `308/512` / `3.712799`.
 
-On disjoint V3 prompts, candidate gain was `0.0286980210` versus V1
-`0.0073316237`, delta `0.0213663973`, with `339/512` wins and better own-prompt
-NLL. Both state-off prompt contrasts were exactly zero. Fresh-language
-NLL/top-1 were `3.7126411677` / `31.661826%` versus V1
-`3.8850003883` / `29.728138%`; state removal cost `1.3495375637` nats and
-`20,595` correct decisions. All language, causal, state-off, replay,
-artifact/reveal-binding, and forbidden-read gates passed.
+The equal-parameter address-blind pooled arm was strongest at gain
+`0.01026323`, `324/512` wins, and NLL `3.682891`, but its
+`PROMPT_CONDITIONING_PARTIAL` result missed the absolute `0.04332170` floor and
+its `0.00383958` improvement over V1 missed the `0.02534157` margin. The
+separate terminal was `GEOMETRY_ATTRIBUTION_FAIL`: geometric minus pooled was `-0.00388645` with
+`209/512` paired improvements, and geometric minus fixed-leaf deranged was
+`-0.00028887` with `251/512`. The pooled effect is a control signal, not an H4
+binding result.
 
-The candidate still missed the frozen absolute `0.0433216988` and incremental
-`0.0253415693` prompt-gain floors. Terminal:
-`LAYERWISE_NORMALIZED_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL`, result CID
-`blake3:35396bd6e64fc2c0bc7d86a84cc9e212ed913ce28e5353f5f2b8212b4cf2c532`;
-independent verification CID
-`blake3:3f316541dbab8061ed5ba891bf6a47ef22c55bca21fba01f6f97dbb3cb8497aa`.
+Both learned arms passed fresh-language gates. V1 fresh NLL/top-1 was
+`3.903636` / `29.6285%`; geometric was `3.901412` / `29.6342%`; pooled was
+`3.873756` / `30.0428%`. Mechanics and exact independent verification passed.
+Result CID:
+`blake3:cedba37738ee249457bb589f716ee75afb16a0c4937c2a22ae9f917dd3eb97c1`;
+verification CID:
+`blake3:443d711ce9a228e26e2eb2eebb55c582848424e2677c3473d41deaf8afd69ec7`.
 
-The predeclared falsifier now ends parameter-free readout work. No gain tuning,
-third normalization, retry, generation, widening, or lowering is authorized.
-The sole fresh #973 successor is an independently frozen learned associative
-binding/readout over the preserved V1 retained-attention substrate. Its exact
-architecture and budget are not yet frozen. Generation, reasoning, and
-exact/geometry-native lowering for the layerwise candidate are `NOT_RUN`.
-#973 stays open and #954 remains blocked. See the
-[layerwise terminal record](r4_layerwise_normalized_retained_readout_prompt_capacity_973.md).
+No generation or further readout retry is authorized. The next #973 mechanism
+must be independently frozen and alter the retained-value write/binding law,
+with the pooled arm preserved as its matched non-geometric control. Generation,
+reasoning, exact/geometry-native lowering, #954, and C1-SB6 remain blocked or
+`NOT_RUN`. See the
+[learned associative record](r4_learned_associative_readout_prompt_capacity_973.md).
 
 ## Primary direction after protected localization — 2026-08-30
 
@@ -2108,8 +2108,12 @@ hours remains a hard kill ceiling, never an estimate.
   The independently frozen layerwise-normalized readout also completed
   `PARTIAL`: it passed every fresh-language and mechanics gate but missed both
   prompt-capacity effect-size floors. The parameter-free readout ladder is now
-  closed; #973 next owns only a freshly frozen learned associative
-  binding/readout.
+  closed. The learned candidate-leaf associative successor then completed
+  `LEARNED_ASSOCIATIVE_READOUT_NO_CAPACITY`; pooled readout was strongest but
+  below both capacity floors, and geometry attribution failed. No further
+  readout retry or generation is authorized. #973 next requires a new freeze
+  that changes the retained-value write/binding law and keeps pooled readout as
+  the matched control.
   Intrinsic attention
   replacement, new state dimensions, corpus scale, resonance/recurrent
   lowering, and final requalification remain parked.
@@ -2185,12 +2189,45 @@ Independent fresh-process verification passed all 13 comparisons at
 
 This valid miss executes the predeclared falsifier: end the entire
 parameter-free readout ladder. There is no scalar gain change, third
-normalization placement, retry, generation, widening, or lowering. The sole
-active #973 successor is a freshly frozen learned associative binding/readout
-over the preserved qualified V1 retained-attention substrate. For the
-layerwise candidate, generation, reasoning, and exact/geometry-native lowering
-are `NOT_RUN`. #973 remains open and #954 remains blocked; correctness,
+normalization placement, retry, generation, widening, or lowering. At that
+checkpoint, the sole active #973 successor was frozen as
+`R4LearnedCandidateLeafAssociativeReadoutV1` over the preserved qualified V1
+retained-attention substrate, with an equal-parameter address-blind learned
+control and a fixed-leaf geometry-destroying intervention. Its completed result
+is recorded below; this paragraph preserves the pre-run decision. See the
+[learned associative freeze](r4_learned_associative_readout_prompt_capacity_973.md).
+For the layerwise candidate, generation, reasoning, and exact/geometry-native
+lowering are `NOT_RUN`. #973 remains open and #954 remains blocked; correctness,
 reasoning, C1-SB6, browser, and release work are not authorized by this result.
+
+## Authoritative learned-associative terminal and pivot (2026-09-01)
+
+`R4LearnedCandidateLeafAssociativeReadoutV1` completed
+`LEARNED_ASSOCIATIVE_READOUT_NO_CAPACITY`. The geometric arm reached prompt
+gain `0.00637679`, `299/512` wins, and own-prompt NLL `3.710383`; frozen V1
+reached `0.00642365`, `308/512`, and `3.712799`. The equal-parameter pooled
+control reached `0.01026323`, `324/512`, and `3.682891`. Pooled was
+`PROMPT_CONDITIONING_PARTIAL`, but it remained below the absolute `0.04332170`
+floor and its `0.00383958` increment over V1 remained below `0.02534157`.
+
+The separate terminal was `GEOMETRY_ATTRIBUTION_FAIL`: the geometric margin versus pooled was
+`-0.00388645` with `209/512` paired improvements, and its margin versus the
+fixed-leaf derangement was `-0.00028887` with `251/512`. The pooled result is
+retained as a non-geometric control signal; it is not an H4-binding promotion.
+
+Both learned arms passed their fresh-language gates. Fresh NLL/top-1 was
+`3.903636` / `29.6285%` for V1, `3.901412` / `29.6342%` for geometric, and
+`3.873756` / `30.0428%` for pooled. Mechanics passed and the independent
+verifier reproduced the result exactly. Result CID:
+`blake3:cedba37738ee249457bb589f716ee75afb16a0c4937c2a22ae9f917dd3eb97c1`;
+verification CID:
+`blake3:443d711ce9a228e26e2eb2eebb55c582848424e2677c3473d41deaf8afd69ec7`.
+
+This terminal forbids generation and another readout retry over the same
+retained values. Preserve qualified V1 and pooled as the matched control. The
+next #973 mechanism must alter the retained-value write/binding law under a new
+independent freeze. Reasoning, exact/geometry-native lowering, #954, C1-SB6,
+browser, and release work remain blocked or `NOT_RUN`.
 
 ## Historical preservation
 
