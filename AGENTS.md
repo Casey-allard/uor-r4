@@ -42,12 +42,19 @@ relations, 20/20 negatives, and 6/6 supported copies; the independently sealed
 families scored 5/12 positives, 14/20 negatives, and 0/6 copies. Same-source
 matched-pair, query-swap, duplicate-agreement, and distinct-conflict controls
 were false, so the run stopped before Rust parity, the sole 512-step full fit,
-development, and product reveal. No final relation head exists. The next
-proposed #954 mechanism trains relation supervision into the representation
-through the established R4/Spin attention path while retaining exact-source-copy
-and typed-nonanswer semantics. #954's final source-free terminal remains blocked
-behind #973, and #955 remains blocked behind #954. The #1017 `r4 generate` path
-remains the working coherent-generation prototype.
+development, and product reveal. No final relation head exists. C1-SB3 then
+moved supervision into all six attention layers and transferred most relations,
+but missed its exact gate. C1-SB4's independently frozen full-source,
+record-level structured-margin successor also failed: exact records were
+`70/126` fit and `35/63` sealed; positive groups were exact, negative-group
+specificity was `394/478` and `197/239`, and same-source query relocation was
+not exact. It stopped before Rust parity, checkpoint emission, development, or
+the four committed product probes; do not tune or retry it. The next proposal
+is a separately frozen paired-query conditional-binding objective over the same
+source, not another C1-SB4 seed/rank/threshold/schedule run. #954's final
+source-free terminal remains blocked behind #973, and #955 remains blocked
+behind #954. The #1017 `r4 generate` path remains the working
+coherent-generation prototype.
 Prototype iteration uses
 one targeted compile plus one real behavior check; do not run a broad local
 suite or add a permanent gate until the mechanism is useful. The existing
@@ -134,11 +141,13 @@ passed, MPS is `UNAVAILABLE_HARDWARE_BUDGET` for the frozen eight-hour offline
 implementation, and the full campaign remains `NOT_RUN`. The subsequent fused-
 AdamW/deferred-logging fast path was slower (`4.485223` versus signed
 `3.491307 s/step`), so `fused=True` was removed and #1019 is optional/paused.
-The #1017 `r4 generate` path remains the working coherent-generation prototype;
-#954 C1-SB2 is an implemented matched-transfer preflight negative, not an active
-head. Its proposed representation-trained successor keeps the same established
-R4/Spin attention plus exact-copy/typed-nonanswer seam. CUDA and external GPU
-execution are out of scope. This reference remains
+The #1017 `r4 generate` path remains the working coherent-generation prototype.
+#954 C1-SB2, C1-SB3, and C1-SB4 are bounded negatives, not active answer
+artifacts. C1-SB4's full-source structured-margin arm reached only `70/126` fit
+and `35/63` sealed exact records and stopped before Rust/checkpoint/product.
+Its product text remains unopened and it must not be retried. The next proposal
+is paired-query conditional binding under a separate freeze. CUDA and external
+GPU execution are out of scope. This reference remains
 transformer-compatible and `f32`/multiply/alloc/source-weight backed—not
 table-native, multiply-free, or transformerless. It does not establish geometry
 advantage, softmax removal, correctness, reasoning, frontier quality, release
@@ -289,10 +298,12 @@ offline implementation, and full training through replay remains `NOT_RUN`.
 The fused-AdamW/deferred-logging fast path was slower (`4.485223` versus signed
 `3.491307 s/step`), so #1019 tuning/full-run work stops and remains
 optional/paused. The #1017 `r4 generate` path remains the working prototype;
-#954 C1-SB2 is implemented but stopped at its failed matched-transfer preflight,
-before Rust parity/full fit/development/product and without a final head. The
-next proposed mechanism trains relation supervision into the existing R4/Spin
-attention representation while retaining exact-copy/typed-nonanswer behavior.
+#954 C1-SB2 and C1-SB3 are preserved negatives. C1-SB4 then trained the frozen
+full-source structured-margin attention representation but reached only
+`70/126` fit and `35/63` sealed exact records; it stopped before Rust parity,
+checkpoint emission, development, or its unopened products. Do not retry it.
+The next proposal couples multiple questions over the same source so candidate
+sign must change with the queried subject, under a new independent freeze.
 CUDA and external GPU execution are out of scope.
 Intrinsic/readout, resonance, recurrence,
 and lowering are parked. D3 remains `NOT_RUN`; #954's final source-free
@@ -668,11 +679,12 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
   fused-AdamW/deferred-logging fast path was slower (`4.485223` versus signed
   `3.491307 s/step`), so #1019 tuning/full-run work stops and remains
   optional/paused. The #1017 `r4 generate` path remains the working prototype;
-  #954 C1-SB2 is implemented but stopped at its failed matched-transfer
-  preflight before Rust parity/full fit/development/product, with no final head.
-  The next proposed mechanism trains relation supervision into the existing
-  R4/Spin attention representation while retaining exact-copy/typed-nonanswer
-  behavior. CUDA and external GPU execution are out of scope.
+  #954 C1-SB2 and C1-SB3 are preserved negatives. C1-SB4's independently frozen
+  full-source structured-margin attention arm reached only `70/126` fit and
+  `35/63` sealed exact records and stopped before Rust/checkpoint/development/
+  product; do not retry it. The next proposal is separately frozen paired-query
+  conditional binding over the same exact source. CUDA and external GPU
+  execution are out of scope.
   Intrinsic/readout alternatives,
   resonance-based softmax replacement, full-model recurrent lowering, and
   exact deployment are parked. D3 remains `NOT_RUN`.

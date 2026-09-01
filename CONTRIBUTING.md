@@ -210,10 +210,17 @@ The experiment must be able to change the next programme decision:
   opt-in, loopback-only dedicated native HTTP endpoint now pass. Dashboard
   wiring/readiness and static/WASM-isolation checks pass, but hosted Pages is
   static/offline without a functioning chat backend/artifact lowering. The Q16
-  suffix trace student is complete and `R4SoftmaxTraceStateStudentV1` is active.
+  suffix trace student, `R4SoftmaxTraceStateStudentV1`, and observability rung
+  are complete bounded negatives. #1014 established load-bearing ordinary
+  attention and #1017 remains the working bounded generator. #954 C1-SB4's
+  full-source record-margin successor failed at `70/126` fit and `35/63` sealed
+  exact records; it stopped before Rust/checkpoint/product and must not be
+  retried. Its next proposal is separately frozen paired-query conditional
+  binding over one exact source.
   Intrinsic/readout alternatives, resonance-based softmax replacement,
-  full-model recurrent lowering, and exact deployment are parked; GI-4/#954
-  remains blocked, with GI-5/#955 downstream.
+  full-model recurrent lowering, and exact deployment are parked; #973 still
+  blocks GI-4/#954's final source-free terminal, with GI-5/#955 downstream of
+  positive correctness.
 - **Exercise the accepted route path.** #953 geometry runs before token choice
   and emits admitted support and its fixed-point radius trace. The completed
   #973 localization kept its frozen split, trace identity, score-paired common
@@ -243,16 +250,18 @@ The experiment must be able to change the next programme decision:
   loopback-only dedicated native HTTP canary through the identical policy also
   passes. Dashboard wiring/readiness and static/WASM-isolation checks pass, but
   hosted Pages is static/offline without a functioning chat backend/artifact
-  lowering. The smallest current falsifier is whether
-  `R4SoftmaxTraceStateStudentV1` can compile construction traces into recurrent
-  source-free R4/Spin state that beats its frozen controls without looping.
+  lowering. The smallest current source-backed correctness falsifier is a newly
+  frozen paired-query conditional-binding mechanism that requires the same
+  candidate to change sign under same-source query relocation. C1-SB4 itself is
+  closed negative and cannot be retried.
   Pinned-source provenance, donor reproduction, and transported-R4 parity are
   recorded in `docs/helm_d_r4_softmax_decoder_973.md`; V1 and V2 outcomes are in
   `docs/intrinsic_lorentz_r4_attention_973.md` and
   `docs/helm_d_learned_manifold_r4_construction_973.md`, with localization in
   `docs/helm_d_score_centroid_localization_973.md`. Intrinsic/readout
   alternatives, resonance-based softmax replacement, full-model recurrent
-  lowering, and exact deployment are parked; #954 remains blocked.
+  lowering, and exact deployment are parked; #954's final source-free terminal
+  remains blocked by #973.
   The PASS does not establish geometry advantage, softmax removal,
   source-free/table-native serving, correctness, reasoning, frontier quality,
   release readiness, or a static-WASM decoder.

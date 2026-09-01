@@ -1,0 +1,210 @@
+{
+  "schema": "uor-r4.joint-candidate-margin-aggregate/1",
+  "issue": 954,
+  "policy": "R4JointCandidateMarginAdapterV1",
+  "observed_at": "2026-08-31",
+  "terminal": "FAIL_JOINT_CANDIDATE_MARGIN_PREFLIGHT",
+  "claim_scope": "one independently frozen full-source, candidate-conditioned, record-level structured-margin preflight through rank-8 Q/K/V/O adapters on all six established R4/Spin ordinary causal-softmax layers",
+  "checkpoint": {
+    "model_weights_cid": "blake3:c5bf31aa97a567b3aaad4461ce2fac9cebc12b0a38becb6d02d21b43b493bf5d",
+    "tokenizer_cid": "blake3:3f42bcfce7728512076549c63b88387e13c8156fe35c0f91d9b112439f3739cc"
+  },
+  "population": {
+    "fit_records": 126,
+    "fit_distinct_groups": 604,
+    "sealed_records": 63,
+    "sealed_distinct_groups": 302,
+    "product_probe_commitments": 4,
+    "dataset_cid": "blake3:46e95f83f05bd5a3bfd4ca0c39c4974f617ae9591ff083d3c6abb8f5593c0e51",
+    "preflight_cid": "blake3:b61a098a53fca1f30b69a0ef0d6e15c5b6fc5a310d0ac8f0f2df04d1fd208814",
+    "census_cid": "blake3:2531f2c19cc60570c3807aa117b97923d4ce0b0c8111a8c239861cbae4303a92",
+    "tokenizer_census_cid": "blake3:ff5c25b70d0940e0b43ec8cacc60c2b576ba069106d28c8ce58cb6b17f2cbc10",
+    "training_view_manifest_cid": "blake3:37fcac42e400c35df3d770b57032a528684e3cb6cbdfb4c3c80b88c1247c432a",
+    "product_probes_cid": "blake3:153f6075f165d6cf92aeb63c31f05c9a869cc94c4655f83b9fe036bf7c773e3e",
+    "product_manifest_cid": "blake3:886d931fd6dde610955c6eedff3181fbffa8d8590f300731387f225f0012197b",
+    "product_text_status": "COMMITTED_UNOPENED_NOT_RUN",
+    "disjointness_scope": "exact sentences and complete generated composite world items are disjoint; primitive component vocabulary is deliberately shared"
+  },
+  "mechanism": {
+    "representation_update": "lora_qkvo_all_layers",
+    "input": "E:<exact full source>\\nQ:<question>\\nC:<exact distinct group text>\\nSupported:",
+    "input_has_terminal_newline": false,
+    "duplicate_policy": "collapse exact-text groups and copy the earliest exact source occurrence",
+    "trainable_parameters": 110592,
+    "rank": 8,
+    "alpha": 8,
+    "dropout": 0,
+    "attention_layers": 6,
+    "adapted_projections": [
+      "q_proj",
+      "k_proj",
+      "v_proj",
+      "o_proj"
+    ],
+    "trainable_head": false,
+    "positive_token_id": 1771,
+    "negative_token_id": 542,
+    "decision_threshold": 0,
+    "record_objective": "relu(1 - minimum positive-group score) + relu(1 + maximum negative-group score), with an absent-set term of zero",
+    "optimizer_steps": 270,
+    "records_per_step": 7,
+    "seed": 9544,
+    "initial_structured_margin": 2.2566068172454834,
+    "final_structured_margin": 0.8698721528053284,
+    "eta_probe_step": 8,
+    "wall_ceiling_seconds": 600,
+    "eta_probe_passed": true,
+    "completed_within_wall_ceiling": true,
+    "timing_values": "OMITTED_FROM_CONTENT_ADDRESS_FOR_DETERMINISM"
+  },
+  "untrained_sealed": {
+    "records_exact": {
+      "correct": 21,
+      "total": 63
+    },
+    "answer_outcomes": {
+      "correct": 0,
+      "total": 21
+    },
+    "abstain_outcomes": {
+      "correct": 21,
+      "total": 21
+    },
+    "conflict_outcomes": {
+      "correct": 0,
+      "total": 21
+    },
+    "positive_group_recall": {
+      "correct": 0,
+      "total": 63
+    },
+    "positive_relation_recall": {
+      "correct": 0,
+      "total": 76
+    },
+    "negative_group_specificity": {
+      "correct": 239,
+      "total": 239
+    },
+    "supported_copies": {
+      "correct": 0,
+      "total": 21
+    },
+    "mean_structured_margin": 2.1919445272475953
+  },
+  "trained_fit": {
+    "records_exact": {
+      "correct": 70,
+      "total": 126
+    },
+    "answer_outcomes": {
+      "correct": 14,
+      "total": 42
+    },
+    "abstain_outcomes": {
+      "correct": 14,
+      "total": 42
+    },
+    "conflict_outcomes": {
+      "correct": 42,
+      "total": 42
+    },
+    "positive_group_recall": {
+      "correct": 126,
+      "total": 126
+    },
+    "positive_relation_recall": {
+      "correct": 152,
+      "total": 152
+    },
+    "negative_group_specificity": {
+      "correct": 394,
+      "total": 478
+    },
+    "supported_copies": {
+      "correct": 14,
+      "total": 42
+    },
+    "mean_structured_margin": 0.842590963556653
+  },
+  "trained_sealed": {
+    "records_exact": {
+      "correct": 35,
+      "total": 63
+    },
+    "answer_outcomes": {
+      "correct": 7,
+      "total": 21
+    },
+    "abstain_outcomes": {
+      "correct": 7,
+      "total": 21
+    },
+    "conflict_outcomes": {
+      "correct": 21,
+      "total": 21
+    },
+    "positive_group_recall": {
+      "correct": 63,
+      "total": 63
+    },
+    "positive_relation_recall": {
+      "correct": 76,
+      "total": 76
+    },
+    "negative_group_specificity": {
+      "correct": 197,
+      "total": 239
+    },
+    "supported_copies": {
+      "correct": 7,
+      "total": 21
+    },
+    "mean_structured_margin": 0.8974597255388895
+  },
+  "controls": {
+    "fit_same_source_query_relocation_exact": false,
+    "sealed_same_source_query_relocation_exact": false,
+    "fit_duplicate_agreement_exact": true,
+    "sealed_duplicate_agreement_exact": true,
+    "fit_distinct_conflict_exact": true,
+    "sealed_distinct_conflict_exact": true,
+    "sealed_source_reversal": "NOT_RUN_MAIN_GATE_NEGATIVE",
+    "passed": false
+  },
+  "representation_audit": {
+    "changed_attention_tensors": 24,
+    "expected_attention_tensors": 24,
+    "all_changed_attention_tensors_finite": true,
+    "changed_nonattention_tensors": 0,
+    "passed": true
+  },
+  "qualification": {
+    "exact_fit_gate": "FAIL",
+    "exact_sealed_gate": "FAIL",
+    "rust_parity": "NOT_RUN",
+    "full_fit": "NOT_RUN",
+    "development": "NOT_RUN",
+    "product": "UNOPENED_NOT_RUN",
+    "checkpoint": "NOT_EMITTED",
+    "adapter_artifact": "NOT_EMITTED",
+    "result_cid": "blake3:82f83d865eaea24589cf8acdbcc4c83fd4714041c1d80e31a818d587664b7b84",
+    "manifest_cid": "blake3:4872dd1b70cebbd7c2cf9930389e73df52e2325f809b0d0e27763a588a88b04f",
+    "tree_cid": "blake3:5bcf79dfaef01b5357b831af5990bb36d5dc21a6c193a7c051eb701b79ba551e",
+    "run_contract_cid": "blake3:0b621e5a69b5660bd9f9df47cb3c4ce6d0dbe6d0f3d9f4236f8da4435686d02a"
+  },
+  "implementation_tree_cid": "blake3:0fe475a1b82f199b8b0bf18bf620d8a894f498e165a2e006d6db4e180e613054",
+  "shortcut_reproduction": {
+    "rule": "predict supported iff the exact candidate text contains ` is inside `; ignore the question",
+    "fit": "exactly reproduces 70/126 records, 126/126 positive groups, 394/478 negative groups, answer 14/42, abstain 14/42, conflict 42/42, and copy 14/42",
+    "sealed": "exactly reproduces 35/63 records, 63/63 positive groups, 197/239 negative groups, answer 7/21, abstain 7/21, conflict 21/21, and copy 7/21",
+    "status": "AGGREGATE_EQUIVALENT; per-row model scores were not retained, so this does not prove the model's internal rule"
+  },
+  "interpretation": "The entire published metric pattern is exactly reproduced by a question-ignoring affirmative-locative rule. The learned scorer therefore did not demonstrate subject-question binding; per-row scores were not retained, so the rule is aggregate-equivalent rather than a proved internal mechanism.",
+  "decision": "Stop this mechanism without retry, Rust parity, larger fit, development, or product reveal. A genuinely distinct successor must place multiple questions over the same exact source inside one coupled objective and require the same candidate to change sign when the queried subject changes, eliminating the shortcut before any product work.",
+  "nonclaims": [
+    "No qualified source-backed answer artifact was emitted.",
+    "This negative does not revoke the established ordinary causal-attention or coherent-generation results.",
+    "No intrinsic geometry advantage, reasoning, source-free correctness, transformerless runtime, exact lowering, browser, WASM, or release claim was established."
+  ]
+}

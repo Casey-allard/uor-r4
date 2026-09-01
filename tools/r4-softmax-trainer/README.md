@@ -6,7 +6,8 @@ This package contains the bounded offline training paths authorized by issues
 preflight-recorded [#1019](https://github.com/UOR-Foundation/uor-r4/issues/1019)
 parameter-capacity campaign, and the bounded [#954](https://github.com/UOR-Foundation/uor-r4/issues/954)
 grounding fine-tune, frozen source-span-pointer successor, and independently
-frozen source-relative relation-head successor. They train
+frozen source-relative relation-head, attended-relation, and joint-candidate
+successors. They train
 and continue ordinary causal-softmax
 Llama-family models, export them in the existing Rust loaders' Hugging Face
 format, and freeze evidence before each sealed test is opened. They contain no
@@ -53,12 +54,16 @@ MPS fast-path test (10 warmup plus 40 measured steps) combined fused AdamW with
 deferred logging and measured `4.485223 s/step`, slower than the signed
 `3.491307 s/step`; `fused=True` was removed immediately. This is a bounded
 fast-path negative, not a model result. #1019 closed without a full run. #954's
-grounding fine-tune, positive-diagonal cosine pointer, and source-relative
-relation probe have also completed as bounded negatives. The relation probe fit
-both construction lexical families exactly but failed its independent
-12-record transfer gate, so no full fit or product reveal ran. The next #954
-mechanism must train relation supervision into the representation and be frozen
-independently; it is not a retry of any revealed readout. UOR's deployed architecture/runtime remains CPU-native; Apple Accelerate/BLAS
+grounding fine-tune, positive-diagonal cosine pointer, source-relative relation
+probe, attended-relation adapter, and joint-candidate adapter have completed.
+C1-SB3 transferred most relations through the six attention layers but failed
+its exact gate. C1-SB4 then executed its independently frozen full-source,
+record-level structured-margin run: exact records were `70/126` fit and
+`35/63` sealed, with perfect positive-group recall and negative specificity
+`394/478` and `197/239`. It stopped before Rust/checkpoint/development/product
+and must not be retried. A question-ignoring ` is inside ` rule reproduces the
+entire published aggregate exactly. The next proposal is separately frozen
+paired-query conditional binding over one exact source. UOR's deployed architecture/runtime remains CPU-native; Apple Accelerate/BLAS
 and MPS are local offline accelerators only; CUDA and external GPU execution
 are out of scope. The MPS stop is not a model-quality negative,
 leaves the full-scale capacity hypothesis untested, and does not revoke the
@@ -66,6 +71,9 @@ established attention result. See the
 [#1017 record](../../docs/r4_softmax_quality_capacity_continuation_1017.md) and
 [#1019 frozen contract](../../docs/r4_softmax_parameter_capacity_1019.md) plus
 its [observed preflight](../../docs/r4_softmax_parameter_capacity_preflight_1019_raw.json).
+The #954 evidence is in the
+[#954 record](../../docs/r4_grounded_correctness_954.md) and
+[C1-SB4 aggregate](../../docs/r4_joint_candidate_margin_954_raw.json).
 
 For fast local #1017 inference on Apple Silicon, build the Rust CLI with
 `--features local-inference-accelerate`. The observed four-token comparison
@@ -164,6 +172,52 @@ preserved trainer/runtime seam is for replay and for a future independently
 frozen mechanism that trains relation semantics into the representation. See
 the [structured C1-SB2 result](../../docs/r4_source_relation_head_954_raw.json).
 
+## C1-SB3 attended-relation adapter result
+
+`prepare-attended-relation` and `train-attended-relation-preflight` implemented
+`R4AttendedRelationAdapterV1`: rank-eight Q/K/V/O LoRA in every one of the six
+attention layers, fixed tied-token yes/no scoring, and no learned head. Corrected
+evaluation showed bounded transfer—sealed positive recall `73/76`, negative
+specificity `234/239`, and only the 24 attention tensors changed—but the exact
+fit/sealed record gates failed at `124/126` and `56/63`. No merged checkpoint,
+Rust parity, full fit, development, or product reveal followed. Do not retry
+this independent-candidate BCE mechanism. See the
+[corrected C1-SB3 aggregate](../../docs/r4_attended_relation_adapter_954_raw.json).
+
+## C1-SB4 joint-candidate structured-margin result
+
+`prepare-joint-candidate-margin` commits the fresh data, tokenizer census, and
+four opaque product records without training. The separately consumed
+`train-joint-candidate-margin-preflight` used complete-source candidate prompts,
+collapsed exact duplicate groups, and optimized one record-level margin across
+positive and negative groups. Its only admitted configuration was seed 9544,
+270 MPS updates, seven complete records per update, and a step-eight/600-second
+wall gate.
+
+The run completed within budget but failed exactly: `70/126` fit and `35/63`
+sealed records, positive groups `126/126` and `63/63`, negative specificity
+`394/478` and `197/239`, and same-source query relocation false. All 24 Q/K/V/O
+targets changed and no non-attention tensor changed. Rust parity, checkpoint,
+development, reversal, and product are `NOT_RUN`; the products remain unopened.
+A question-ignoring ` is inside ` rule reproduces every published aggregate
+count exactly, so the next mechanism must couple multiple questions over one
+source. Do not rerun C1-SB4.
+
+The already-consumed invocation was:
+
+```bash
+PYTHONPATH="$PWD/tools/r4-softmax-trainer/src" \
+  "$UOR_MODEL_STORE/research/issue-1014/venv/bin/python" \
+  -c 'from r4_softmax_trainer.cli import main; main()' \
+  --root "$UOR_MODEL_STORE/research/issue-954/joint-candidate-margin" \
+  train-joint-candidate-margin-preflight \
+  --predecessor "$UOR_MODEL_STORE/research/issue-1017/export"
+```
+
+The started/result markers intentionally reject a second invocation. See the
+[#954 record](../../docs/r4_grounded_correctness_954.md) and
+[C1-SB4 aggregate](../../docs/r4_joint_candidate_margin_954_raw.json).
+
 ## Isolated environment
 
 Python is frozen to 3.12 and every dependency is exact in `pyproject.toml` and
@@ -186,8 +240,9 @@ instead used its own eight-hour backend-admission gate. MPS stopped
 `21.03%`. That result applies only to the frozen offline implementation. The
 subsequent fused-AdamW/deferred-logging fast path was slower (`4.485223` versus
 signed `3.491307 s/step`), so #1019 closed without a full run. #954's grounding
-fine-tune, source-span pointer, and source-relative relation probe also closed
-negative; none is rerun.
+fine-tune, source-span pointer, source-relative relation probe,
+attended-relation adapter, and joint-candidate adapter also closed negative;
+none is rerun.
 CUDA and external GPU execution are out of scope.
 
 ## One-way campaign
@@ -297,8 +352,9 @@ Its signed MPS probe stopped `UNAVAILABLE_HARDWARE_BUDGET` because the
 terminal applies only to the frozen offline implementation. Full training,
 final parity, reveal, generation, and replay remain `NOT_RUN`. The subsequent
 fused-AdamW/deferred-logging fast path was slower (`4.485223` versus signed
-`3.491307 s/step`), so #1019 closed without a full run. #954's three bounded
-source-grounding mechanisms subsequently closed negative. CUDA and external GPU execution are out of scope. See the
+`3.491307 s/step`), so #1019 closed without a full run. #954's five bounded
+source-grounding mechanisms through C1-SB4 subsequently closed negative. CUDA
+and external GPU execution are out of scope. See the
 [#1019 observed preflight](../../docs/r4_softmax_parameter_capacity_preflight_1019_raw.json).
 
 The Rust qualifier has a separate shape-bound campaign mode. After a #1019

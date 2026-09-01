@@ -104,11 +104,28 @@
   manifest CID
   `blake3:e0faa45bb80b122d0e8a31ac6c582fd4b44b39ee20f5d49aeaca2f07deb21e71`.
   This result does not revise the established attention or generation results.
-  #954 remains open. Its next successor is a fresh joint-source/candidate-set,
-  record-level structured-margin mechanism over answer, abstain, conflict, and
-  exact-copy outcomes—not a C1-SB3 seed, rank, learning-rate, or threshold
-  retry. Retain the exact-copy and typed non-answer Rust seam. #955 remains
-  blocked, and #954's final source-free terminal remains blocked behind #973.
+  C1-SB4 `R4JointCandidateMarginAdapterV1` then executed the independently
+  frozen full-source successor: 270 MPS updates over 126 fit records, with 63
+  independently sealed records and four committed unopened products. All
+  positive groups were recovered, but negative specificity was only `394/478`
+  fit and `197/239` sealed. Exact records were `70/126` and `35/63`; answer and
+  abstain were each one-third exact, conflict and duplicate agreement were
+  exact, and same-source query relocation was not. All 24 attention targets
+  changed with no non-attention change. Terminal
+  `FAIL_JOINT_CANDIDATE_MARGIN_PREFLIGHT` stops Rust parity, checkpoint
+  emission, development, and product reveal as `NOT_RUN`; do not tune or retry
+  C1-SB4. A question-ignoring ` is inside ` rule reproduces every aggregate
+  count exactly; this is aggregate-equivalent shortcut evidence because per-row
+  model scores were not retained. Result CID
+  `blake3:82f83d865eaea24589cf8acdbcc4c83fd4714041c1d80e31a818d587664b7b84`;
+  manifest CID
+  `blake3:4872dd1b70cebbd7c2cf9930389e73df52e2325f809b0d0e27763a588a88b04f`.
+  #954 remains open. The next proposal is a separately frozen paired-query
+  conditional-binding objective: multiple questions share the same exact
+  source and the same candidate must change sign with the queried subject. It
+  is not a C1-SB4 seed, rank, threshold, schedule, or corpus retry. Retain the
+  exact-copy and typed non-answer Rust seam. #955 remains blocked, and #954's
+  final source-free terminal remains blocked behind #973.
   UOR's deployed
   architecture/runtime remains CPU-native;
   Apple Accelerate/BLAS and MPS are local offline accelerators only; CUDA and
@@ -133,8 +150,9 @@
   then the [#1019 frozen contract](r4_softmax_parameter_capacity_1019.md) and
   [observed preflight](r4_softmax_parameter_capacity_preflight_1019_raw.json),
   followed by the [#954 campaign record](r4_grounded_correctness_954.md), the
-  [C1-SB2 aggregate](r4_source_relation_head_954_raw.json), and the
-  [corrected C1-SB3 aggregate](r4_attended_relation_adapter_954_raw.json).
+  [C1-SB2 aggregate](r4_source_relation_head_954_raw.json), the
+  [corrected C1-SB3 aggregate](r4_attended_relation_adapter_954_raw.json), and
+  the [C1-SB4 aggregate](r4_joint_candidate_margin_954_raw.json).
   The intermediate
   [Geometric Causal Decoder Roadmap](geometric_causal_decoder_plan.md) records
   the superseded #948-#958 sequence.

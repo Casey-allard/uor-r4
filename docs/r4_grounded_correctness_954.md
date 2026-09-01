@@ -1,6 +1,6 @@
 # Source-backed grounded answer campaigns (#954)
 
-Status: **C1-SB3 MECHANISM TRANSFER POSITIVE / EXACT PROMOTION NEGATIVE / NO QUALIFIED ANSWER ARTIFACT**
+Status: **C1-SB4 JOINT-CANDIDATE PREFLIGHT NEGATIVE / NO QUALIFIED ANSWER ARTIFACT**
 Parent programme: #820
 Working model: #1017 six-layer R4/Spin causal-softmax checkpoint
 Final source-free correctness terminal: still blocked by parked #973
@@ -274,3 +274,89 @@ boundary. This result does not revise #1017's bounded ordinary-attention or
 coherent-generation claims, establish an intrinsic-geometric advantage, or
 unblock #955. The final source-free #954 terminal remains separately blocked by
 #973.
+
+## C1-SB4 joint-source candidate-margin result — 2026-08-31
+
+`R4JointCandidateMarginAdapterV1` implemented the independently frozen
+successor rather than retrying C1-SB3. Every distinct exact-text candidate was
+scored from the complete source and question:
+
+```text
+E:<exact full source>
+Q:<question>
+C:<exact distinct candidate text>
+Supported:
+```
+
+The fixed tied-token score remained `yes[1771] - no[542] > 0`. Rank-eight,
+alpha-eight, dropout-zero LoRA updated Q/K/V/O in all six existing attention
+layers; there was no learned head. The complete-record objective used margin
+one:
+
+```text
+relu(1 - minimum positive-group score)
++ relu(1 + maximum negative-group score)
+```
+
+An absent positive or negative set contributed zero for that term. Exact
+duplicate text collapsed to one scored group and copied back to the earliest
+exact occurrence. The committed population contained 126 fit records and 604
+distinct groups, 63 independently sealed records and 302 groups, and four
+opaque product commitments. Exact sentences and complete generated composite
+world items were disjoint; primitive component vocabulary was deliberately
+shared. The longest prompt occupied 221 of 256 positions including BOS.
+
+The sole MPS run used seed 9544, 270 optimizer steps, seven complete records per
+step, and the frozen step-eight/600-second wall gate. It completed within the
+budget. Structured-margin loss moved from `2.2566068172454834` to
+`0.8698721528053284`, and the representation audit passed: all 24 targeted
+Q/K/V/O tensors changed and remained finite, while no non-attention tensor
+changed.
+
+The semantic gate nevertheless failed exactly and symmetrically:
+
+| Frozen metric | Untrained sealed | Trained fit | Trained sealed | Required |
+| --- | ---: | ---: | ---: | ---: |
+| exact records | `21/63` | `70/126` | `35/63` | exact |
+| answer outcomes | `0/21` | `14/42` | `7/21` | exact |
+| abstain outcomes | `21/21` | `14/42` | `7/21` | exact |
+| conflict outcomes | `0/21` | `42/42` | `21/21` | exact |
+| positive-group recall | `0/63` | `126/126` | `63/63` | exact |
+| negative-group specificity | `239/239` | `394/478` | `197/239` | exact |
+| supported copied span | `0/21` | `14/42` | `7/21` | exact |
+
+Duplicate agreement and distinct-conflict subsets were exact in both fit and
+sealed partitions. Same-source query relocation was not exact in either. The
+source-order reversal control was correctly `NOT_RUN_MAIN_GATE_NEGATIVE`.
+Terminal: **`FAIL_JOINT_CANDIDATE_MARGIN_PREFLIGHT`**.
+
+The result is bound by:
+
+- result CID `blake3:82f83d865eaea24589cf8acdbcc4c83fd4714041c1d80e31a818d587664b7b84`;
+- manifest CID `blake3:4872dd1b70cebbd7c2cf9930389e73df52e2325f809b0d0e27763a588a88b04f`;
+- tree CID `blake3:5bcf79dfaef01b5357b831af5990bb36d5dc21a6c193a7c051eb701b79ba551e`;
+- run-contract CID `blake3:0b621e5a69b5660bd9f9df47cb3c4ce6d0dbe6d0f3d9f4236f8da4435686d02a`.
+
+The complete published metric pattern is reproduced exactly by the deterministic
+rule “predict supported iff the candidate text contains ` is inside `,” while
+ignoring the question: `70/126` and `35/63` exact records, every positive and
+negative count, every outcome count, and every copy count all match. Per-row
+model scores were not retained, so this is an aggregate-equivalent shortcut,
+not a proved description of the model's internal computation. It nevertheless
+shows that the observed evidence does not distinguish real subject-question
+binding from affirmative-locative syntax.
+
+Per the frozen decision, C1-SB4 stops here without retry, Rust parity, larger
+fit, development evaluation, checkpoint emission, or product reveal. The four
+product records remain committed and unopened. A genuinely distinct successor
+must make question conditioning identifiable at the objective itself: couple
+multiple questions over the same exact source and require the same candidate
+to change sign when the queried subject changes. That proposed paired-query
+conditional-binding rung must receive its own independent freeze; it is not an
+authorized C1-SB4 seed, threshold, rank, schedule, or corpus retry.
+
+The compact aggregate is
+[`r4_joint_candidate_margin_954_raw.json`](r4_joint_candidate_margin_954_raw.json).
+This negative does not revise #1014/#1017 ordinary-attention or bounded coherent
+generation evidence, establish intrinsic geometry, or unblock #955. #954's
+final source-free terminal remains separately blocked behind #973.

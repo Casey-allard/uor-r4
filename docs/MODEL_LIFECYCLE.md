@@ -145,6 +145,21 @@ attention or coherent generation. See the
 [C1-SB2 aggregate](r4_source_relation_head_954_raw.json), followed by the
 [corrected C1-SB3 aggregate](r4_attended_relation_adapter_954_raw.json).
 
+C1-SB4 `R4JointCandidateMarginAdapterV1` then scored each candidate from the
+complete source and question and trained the independently frozen record-level
+structured margin for 270 MPS updates. Every positive group transferred, but
+negative specificity was only `394/478` fit and `197/239` sealed. Exact records
+were `70/126` and `35/63`; answer and abstain were one-third exact, conflicts
+were exact, and same-source query relocation was not. All 24 attention targets
+changed with no non-attention change. Terminal
+`FAIL_JOINT_CANDIDATE_MARGIN_PREFLIGHT` stopped Rust parity, checkpoint
+emission, development, and the four committed unopened products as `NOT_RUN`.
+Do not tune or retry it. A question-ignoring ` is inside ` rule reproduces every
+published aggregate count exactly; per-row scores were not retained, so this is
+aggregate-equivalent shortcut evidence rather than an internal-mechanism claim.
+See the
+[C1-SB4 aggregate](r4_joint_candidate_margin_954_raw.json).
+
 The #1017 export remains the current working 7.15M coherent-generation
 prototype. `r4 generate --prompt "..."` defaults to
 `.uor-models/research/issue-1017/export`. #1019 is an optional quality-capacity
@@ -160,10 +175,10 @@ table-native, multiply-free, transformerless, browser-WASM, release, or
 frontier-model evidence.
 Intrinsic/readout alternatives, multi-resonance softmax replacement, full-model
 recurrent lowering, and exact H4/Q29/integer-table deployment are parked. #954
-remains open. Do not tune or retry the C1-SB3 independent-candidate BCE
-adapter. Its next proposed mechanism is an independently frozen joint-source
-candidate-set representation with a record-level structured-margin objective
-through attention while retaining the exact-copy and typed non-answer Rust
+remains open. Do not tune or retry the C1-SB3 or C1-SB4 adapters. The next
+proposal is a separately frozen paired-query conditional-binding objective:
+multiple questions share one exact source and the same candidate must change
+sign with the queried subject. Retain the exact-copy and typed non-answer Rust
 seam. #955 remains blocked on a positive
 correctness result, and #954's final source-free terminal remains blocked behind
 #973. Validation,
@@ -198,6 +213,10 @@ rank-eight all-layer Q/K/V/O adaptation, base-to-trained sealed positive recall
 tensors changed and no non-attention tensors changed, but exact fit outcomes
 `124/126`, sealed outcomes `56/63`, copies `19/21`, and Rust parity/full fit/
 development/product `NOT_RUN`;
+#954 C1-SB4 full-source record-level structured margin, `70/126` fit and
+`35/63` sealed exact records, positive groups `126/126` and `63/63`, negative
+groups `394/478` and `197/239`, all 24 attention tensors changed with no
+non-attention change, and Rust/checkpoint/development/product `NOT_RUN`;
 resonance replacement `NOT_RUN` and parked; full-model recurrent and
 exact lowering parked. See
 [`helm_d_r4_softmax_decoder_973.md`](helm_d_r4_softmax_decoder_973.md) and
@@ -206,7 +225,8 @@ then [`r4_softmax_trace_student_973.md`](r4_softmax_trace_student_973.md) and
 [`r4_softmax_trace_observability_1012.md`](r4_softmax_trace_observability_1012.md),
 followed by [`r4_softmax_quality_capacity_continuation_1017.md`](r4_softmax_quality_capacity_continuation_1017.md),
 [`r4_grounded_correctness_954.md`](r4_grounded_correctness_954.md), and
-[`r4_source_relation_head_954_raw.json`](r4_source_relation_head_954_raw.json).
+[`r4_source_relation_head_954_raw.json`](r4_source_relation_head_954_raw.json),
+then [`r4_joint_candidate_margin_954_raw.json`](r4_joint_candidate_margin_954_raw.json).
 
 ## Current route-native target lifecycle
 
@@ -253,7 +273,8 @@ canonical text/corpus
     -> cosine source-span pointer [#954 C1-SB1; DEVELOPMENT FAIL, NO FINAL HEAD]
     -> terminal-residual relation head [#954 C1-SB2; MATCHED-TRANSFER PREFLIGHT FAIL, NO FINAL HEAD]
     -> rank-8 all-layer Q/K/V/O relation adapter, fixed yes/no verbalizer, no head [#954 C1-SB3; BOUNDED TRANSFER, EXACT PREFLIGHT FAIL]
-    -> joint-source candidate-set representation + record-level structured margin through attention [#954; PROPOSED]
+    -> joint-source candidate-set representation + record-level structured margin through attention [#954 C1-SB4; EXACT PREFLIGHT FAIL, NO RUST/ARTIFACT]
+    -> paired-query conditional binding over one exact source [#954; PROPOSED, REQUIRES INDEPENDENT FREEZE]
     -> final source-free correctness terminal [#954; BLOCKED BEHIND #973]
     -> bounded reasoning [#955; BLOCKED ON POSITIVE CORRECTNESS]
     -> durable isolated CLI/HTTP chat + persisted hive memory (#962)
@@ -1635,9 +1656,12 @@ D3 on construction covariance, with diagnostic curved NLL worse than donor and
   tensors changed. It failed exact fit/sealed outcomes at `124/126` and `56/63`
   with copies `19/21`; Rust parity/full fit/development/product are `NOT_RUN`,
   and the committed product population stayed unopened. Do not tune or retry
-  that independent-candidate BCE adapter. The active proposed #954 step is an
-  independently frozen joint-source candidate-set representation with a
-  record-level structured-margin objective through attention, preserving the
+  that independent-candidate BCE adapter. C1-SB4's independently frozen
+  full-source record-margin successor then failed at `70/126` fit and `35/63`
+  sealed exact records despite exact positive-group recall; negative specificity
+  was `394/478` and `197/239`. It stopped before Rust/checkpoint/development/
+  product and must not be retried. The active proposal is separately frozen
+  paired-query conditional binding over the same exact source, preserving the
   exact-copy and typed non-answer Rust seam. CUDA and external GPU execution are out of scope.
   Further exposure and LR tuning of the 7.15M checkpoint are prohibited.
   Resonance substitutes, unrelated optimization, and release work

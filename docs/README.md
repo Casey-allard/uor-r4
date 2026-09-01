@@ -130,8 +130,21 @@ improvement and does not block using or productizing that bounded path. The
 the strict NLL target; it is not geometry advantage, transformerlessness,
 correctness, reasoning, frontier quality, browser/WASM readiness, or release
 readiness.
+
+#954's source-backed correctness campaign has now completed through C1-SB4.
+The independently frozen full-source, record-level structured-margin adapter
+recovered every positive group but reached only `70/126` fit and `35/63` sealed
+exact records, with negative specificity `394/478` and `197/239`. A
+question-ignoring ` is inside ` rule reproduces every aggregate count exactly.
+The run stopped before Rust parity, checkpoint emission, development, or its
+four committed unopened products; do not retry C1-SB4. The next proposal is
+separately frozen paired-query conditional binding over one exact source. See
+the [#954 record](r4_grounded_correctness_954.md) and
+[C1-SB4 aggregate](r4_joint_candidate_margin_954_raw.json).
+
 No tag, release, hosted promotion, or static-WASM claim is authorized. D3
-remains `NOT_RUN`; #973 remains open and #954 remains blocked.
+remains `NOT_RUN`; #973 remains open and continues to block #954's final
+source-free terminal. #955 remains blocked on positive correctness.
 
 Pinned-source provenance, ordinary-donor reproduction, transported-R4 parity,
 the frame-permutation control, and the causal audit now pass; see the
@@ -160,6 +173,10 @@ Choose the shortest path that matches what you need:
   [ADR-0005](adr/0005-predictive-geometric-connection-memory.md), then
   [ADR-0004](adr/0004-geometric-intelligence-route-hierarchy.md), and use the
   [glossary](transformerless/GLOSSARY.md) for unfamiliar terms.
+- **Advance grounded correctness:** start from the append-only
+  [#954 record](r4_grounded_correctness_954.md). C1-SB4 is a frozen negative;
+  the current proposal is a new paired-query conditional-binding mechanism,
+  not an SB4 retry.
 - **Improve the optional capacity rung:** start from live
   [#1019](https://github.com/UOR-Foundation/uor-r4/issues/1019) under #973 and
   programme root #820. Its population/smoke/random-export parity gates passed,

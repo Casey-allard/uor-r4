@@ -37,12 +37,17 @@ from .continuation_data import (
 from .data import download_source, load_dataset_manifest, prepare_dataset
 from .finalize import finalize_continuation
 from .grounding import train_grounding
+from .joint_candidate_margin_campaign import (
+    prepare_joint_candidate_margin_data,
+    run_joint_candidate_margin_preflight,
+)
 from .paths import (
     default_attended_relation_adapter_root,
     default_capacity_root,
     default_continuation_root,
     default_grounding_predecessor_root,
     default_grounding_root,
+    default_joint_candidate_margin_root,
     default_research_root,
     default_source_relation_head_root,
     default_source_span_pointer_root,
@@ -309,6 +314,32 @@ def parser() -> argparse.ArgumentParser:
         default=default_grounding_predecessor_root(),
         help="immutable completed #1017 Hugging Face export",
     )
+    prepare_joint = subcommands.add_parser(
+        "prepare-joint-candidate-margin",
+        help=(
+            "commit the C1-SB4 fresh joint-candidate data and sealed product "
+            "CIDs without starting optimization"
+        ),
+    )
+    prepare_joint.add_argument(
+        "--predecessor",
+        type=_root,
+        default=default_grounding_predecessor_root(),
+        help="immutable completed #1017 Hugging Face export",
+    )
+    train_joint = subcommands.add_parser(
+        "train-joint-candidate-margin-preflight",
+        help=(
+            "run the sole <=10 minute C1-SB4 complete-record structured-margin "
+            "preflight; never opens product text"
+        ),
+    )
+    train_joint.add_argument(
+        "--predecessor",
+        type=_root,
+        default=default_grounding_predecessor_root(),
+        help="immutable completed #1017 Hugging Face export",
+    )
     return command
 
 
@@ -342,6 +373,10 @@ def main() -> None:
         "prepare-attended-relation",
         "train-attended-relation-preflight",
     }
+    joint_candidate_commands = {
+        "prepare-joint-candidate-margin",
+        "train-joint-candidate-margin-preflight",
+    }
     if arguments.root:
         root = arguments.root
     elif arguments.command in capacity_commands:
@@ -356,6 +391,8 @@ def main() -> None:
         root = default_source_relation_head_root()
     elif arguments.command in attended_relation_commands:
         root = default_attended_relation_adapter_root()
+    elif arguments.command in joint_candidate_commands:
+        root = default_joint_candidate_margin_root()
     else:
         root = default_research_root()
     if arguments.command == "download":
@@ -499,6 +536,20 @@ def main() -> None:
     if arguments.command == "train-attended-relation-preflight":
         _print_result(
             run_attended_relation_preflight(root, predecessor=arguments.predecessor)
+        )
+        return
+    if arguments.command == "prepare-joint-candidate-margin":
+        _print_result(
+            prepare_joint_candidate_margin_data(
+                root, predecessor=arguments.predecessor
+            )
+        )
+        return
+    if arguments.command == "train-joint-candidate-margin-preflight":
+        _print_result(
+            run_joint_candidate_margin_preflight(
+                root, predecessor=arguments.predecessor
+            )
         )
         return
     raise AssertionError(f"unhandled command: {arguments.command}")

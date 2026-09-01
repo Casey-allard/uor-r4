@@ -110,10 +110,14 @@ executed. Its construction fit passed `12/12` positive decisions, `20/20`
 negative labels, and `6/6` supported copies, but sealed transfer reached only
 `5/12`, `14/20`, and `0/6`; every semantic control except candidate order
 failed. It stopped before Python/Rust parity, the full fit, development, or
-product reveal, and emitted no final head. The next proposed mechanism is an
-independently frozen representation-trained or joint relation mechanism through
-the existing R4/Spin attention path, retaining the Rust exact-copy and typed
-non-answer seam. #954 remains open, #955 remains blocked, and #954's final
+product reveal, and emitted no final head. C1-SB3 then produced bounded
+attention-representation transfer but missed its exact gate. C1-SB4's
+independently frozen full-source record-margin successor reached only `70/126`
+fit and `35/63` sealed exact records; it stopped before Rust/checkpoint/
+development/product and must not be retried. A question-ignoring ` is inside `
+rule reproduces every aggregate count exactly. The next proposal is separately
+frozen paired-query conditional binding over one exact source. #954 remains
+open, #955 remains blocked, and #954's final
 source-free terminal remains behind #973. CUDA and
 external GPU execution are out of scope.
 Further 7.15M exposure and learning-rate tuning are prohibited. See the
@@ -198,9 +202,11 @@ The completed continuation and its NLL-only negative are in
 > `12/12` positive, `20/20` negative, and `6/6` copy, but sealed transfer fell
 > to `5/12`, `14/20`, and `0/6`; only candidate order survived the semantic
 > controls. It stopped before parity, full fit, development, or product reveal
-> and emitted no final head. The next proposal is a representation-trained or
-> joint relation mechanism through the existing R4/Spin attention path while
-> retaining Rust exact-copy and typed non-answer behavior.
+> and emitted no final head. C1-SB3 then transferred most relations through
+> attention but missed exact promotion. C1-SB4's full-source record-margin
+> successor failed at `70/126` fit and `35/63` sealed exact records and stopped
+> before Rust/checkpoint/product; do not retry it. The next proposal is
+> separately frozen paired-query conditional binding.
 > CUDA and external GPU execution are out of scope.
 > Offline teacher/compiler work remains transformer-compatible and
 > `f32`/multiply/alloc/source-weight backed—not the final
@@ -296,10 +302,11 @@ emitted and product probes were `NOT_RUN`; the independently frozen
 `12/12` positive, `20/20` negative, and `6/6` copy, but sealed transfer reached
 only `5/12`, `14/20`, and `0/6`; every semantic control except candidate order
 failed, so parity, full fit, development, and product reveal were not run and
-no final head was emitted; **Proposed next:** independently freeze a
-representation-trained or joint relation mechanism through the existing
-R4/Spin attention path while preserving the Rust exact-copy and typed
-non-answer seam;
+no final head was emitted; C1-SB3 produced bounded transfer but failed exact
+promotion; C1-SB4's full-source record-margin successor failed at `70/126` fit
+and `35/63` sealed exact records and stopped before Rust/checkpoint/product;
+**Proposed next:** independently freeze paired-query conditional binding over
+one exact source while preserving the Rust exact-copy and typed non-answer seam;
 CUDA and external GPU execution are out of scope; **Parked:** further 7.15M exposure
 or LR tuning, intrinsic score/readout alternatives,
 resonance-based softmax replacement, full-model recurrent lowering, and exact
@@ -345,9 +352,12 @@ frozen and executed: construction fit passed at `12/12` positive, `20/20`
 negative, and `6/6` copy, while sealed transfer failed at `5/12`, `14/20`, and
 `0/6`. Every semantic control except candidate order failed, so the campaign
 stopped before parity, full fit, development, and product reveal with no final
-head. The new proposal is an independently frozen representation-trained or
-joint relation mechanism through the existing R4/Spin attention path, retaining
-Rust exact-copy and typed non-answer behavior. #954 remains open, #955 remains
+head. C1-SB3 then produced bounded attention-representation transfer but missed
+its exact gate. C1-SB4's full-source record-margin successor failed at
+`70/126` fit and `35/63` sealed exact records and stopped before Rust/checkpoint/
+product; do not retry it. The new proposal is independently frozen paired-query
+conditional binding over one exact source, retaining Rust exact-copy and typed
+non-answer behavior. #954 remains open, #955 remains
 blocked, and the final source-free terminal remains behind #973. CUDA and
 external GPU execution are out of scope.
 Intrinsic/resonance/replacement work is
@@ -630,10 +640,12 @@ feasibility boundary remains in the
    no final head. CUDA and external GPU execution are out of scope.
    Intrinsic score/readout alternatives, paired-E8, resonance-based softmax
    replacement, and exact deployment are parked; #954's final source-free
-   terminal remains behind #973. The next proposed mechanism is an independently
-   frozen representation-trained or joint relation mechanism through the
-   existing R4/Spin attention path, retaining the Rust exact-copy and typed
-   non-answer seam. #954 remains open and #955 remains blocked.
+   terminal remains behind #973. C1-SB3 produced bounded transfer but missed
+   exact promotion; C1-SB4's full-source record-margin successor failed at
+   `70/126` fit and `35/63` sealed exact records and stopped before Rust/
+   checkpoint/product. Do not retry it. The next proposal is independently
+   frozen paired-query conditional binding over one exact source, retaining the
+   Rust exact-copy and typed non-answer seam. #954 remains open and #955 remains blocked.
    Every learned epoch receives a
    new kappa and reruns its owning
    construction gate. More documents, table density, or trace activity are
@@ -649,9 +661,12 @@ feasibility boundary remains in the
    successor then fit construction at `12/12` positive, `20/20` negative, and
    `6/6` copy, but its sealed transfer was `5/12`, `14/20`, and `0/6`; every
    semantic control except candidate order failed. It stopped before parity,
-   full fit, development, or product reveal and emitted no final head. The next
-   proposal is an independently frozen representation-trained or joint relation
-   mechanism through the existing R4/Spin attention path, retaining Rust
+   full fit, development, or product reveal and emitted no final head. C1-SB3
+   then transferred most relations through attention but missed exact
+   promotion. C1-SB4's full-source record-margin successor failed at `70/126`
+   fit and `35/63` sealed exact records and stopped before Rust/checkpoint/
+   product; do not retry it. The next proposal is independently frozen
+   paired-query conditional binding over one exact source, retaining Rust
    exact-copy and typed non-answer behavior.
    The final source-free terminal still requires the accepted
    selector/#953/#973 artifact and evidence provenance #969 → #983 → #986;
@@ -738,8 +753,8 @@ historical evidence and comparators.
 
 ## Active
 
-- [ ] **#954 grounded correctness: representation-trained or joint relation
-  successor after the source-relative transfer failure** — retain the
+- [ ] **#954 grounded correctness: paired-query conditional binding after the
+  full-source structured-margin shortcut** — retain the
   bounded positives, #997 placement negative, bounded gated-delta negative, V2
   budget invalidation, equal-manifold-budget V3 mixed-gauge H4 negative, and
   V4's held-out 13/24 functional/control negative. The positive attention
@@ -794,14 +809,19 @@ historical evidence and comparators.
   `12/12` positive, `20/20` negative, and `6/6` copy, but sealed transfer reached
   only `5/12`, `14/20`, and `0/6`; every semantic control except candidate
   order failed. It stopped before Python/Rust parity, the full fit, development,
-  or product reveal and emitted no final head. The next proposed mechanism is
-  an independently frozen representation-trained or joint relation mechanism
-  through the existing R4/Spin attention path, retaining the Rust exact-copy
-  and typed non-answer seam. No product wiring is active. Apple
+  or product reveal and emitted no final head. C1-SB3 then produced bounded
+  attention-representation transfer but missed exact promotion. C1-SB4's
+  independently frozen full-source record-margin successor failed at `70/126`
+  fit and `35/63` sealed exact records and stopped before Rust/checkpoint/
+  product; no retry is authorized. The next proposal is independently frozen
+  paired-query conditional binding over one exact source, retaining the Rust
+  exact-copy and typed non-answer seam. No product wiring is active. Apple
   Accelerate/BLAS and MPS remain local offline accelerators only; CUDA and
   external GPU execution are out of scope. See the
   [frozen contract](docs/r4_softmax_parameter_capacity_1019.md) and
-  [signed preflight/admission result](docs/r4_softmax_parameter_capacity_preflight_1019_raw.json).
+  [signed preflight/admission result](docs/r4_softmax_parameter_capacity_preflight_1019_raw.json),
+  then the [#954 record](docs/r4_grounded_correctness_954.md) and
+  [C1-SB4 aggregate](docs/r4_joint_candidate_margin_954_raw.json).
   Do not extend
   exposure or tune learning rate on the 7.15M checkpoint. Intrinsic score/readout
   alternatives, resonance-based softmax replacement, full-model recurrent
@@ -965,9 +985,12 @@ historical evidence and comparators.
   then passed construction fit at `12/12` positive, `20/20` negative, and
   `6/6` copy but failed sealed transfer at `5/12`, `14/20`, and `0/6`; every
   semantic control except candidate order failed. It stopped before parity,
-  full fit, development, or product reveal and emitted no final head. The next
-  proposal is an independently frozen representation-trained or joint relation
-  mechanism through the existing R4/Spin attention path, retaining Rust
+  full fit, development, or product reveal and emitted no final head. C1-SB3
+  then produced bounded attention-representation transfer but missed exact
+  promotion. C1-SB4's full-source record-margin successor failed at `70/126`
+  fit and `35/63` sealed exact records and stopped before Rust/checkpoint/
+  product; do not retry it. The next proposal is independently frozen
+  paired-query conditional binding over one exact source, retaining Rust
   exact-copy and typed non-answer behavior.
   CUDA and external GPU execution are out of scope. Intrinsic score/readout alternatives,
   resonance-based softmax replacement, full-model recurrent lowering, and exact

@@ -54,3 +54,7 @@ def default_source_relation_head_root() -> Path:
 
 def default_attended_relation_adapter_root() -> Path:
     return model_store_root() / "research" / "issue-954" / "attended-relation-adapter"
+
+
+def default_joint_candidate_margin_root() -> Path:
+    return model_store_root() / "research" / "issue-954" / "joint-candidate-margin"
