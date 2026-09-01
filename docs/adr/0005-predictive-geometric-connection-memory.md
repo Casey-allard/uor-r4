@@ -1016,3 +1016,35 @@ UOR implementation:
 No cited work establishes a geometry-native, transformer-free, causal local
 language model with the UOR runtime contract. That combination remains the
 research gap this ADR turns into a falsifiable implementation sequence.
+
+## Direct and layerwise-normalized retained-readout amendment — 2026-09-01
+
+The independently frozen `R4DirectRetainedReadoutLanguagePathV1` tested the
+readout seam identified after the paired-H4 negative. It left qualified V1's
+exact-H4 recurrence, learned parameters, state, training data/order, seed,
+optimizer, 2,730-step dose, and one tied vocabulary matmul unchanged. Only the
+head input changed from `N(h)` to `N(h) + g*N(a1+a2)`, with fixed `g=1` for the
+candidate and `g=0` for the matched V1 control.
+
+The intervention is causally useful: prompt gain rose from `0.0076304198` to
+`0.0215897894` nats/token, directional wins rose from `313/512` to `343/512`,
+fresh held-out NLL improved by `0.1636410364`, fresh top-1 improved by
+`1.909487` percentage points, and state removal cost `1.1234286047` nats plus
+20,179 correct decisions. All causal, forbidden-read, artifact/reveal-binding,
+state-off, replay, and independent-verification checks passed. It is not a full
+capacity result: the candidate missed the frozen absolute `0.0433216988` and
+incremental `0.0253415693` prompt-gain floors. The terminal is
+`DIRECT_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL`, result CID
+`blake3:71dd85e610dcc50b74cb2bb2068e5a1a433ac5df5db2a4f8fde22fb41735889c`.
+No generation, retry, widened readout, exact lowering, or post-reveal gain
+tuning is authorized.
+
+One final parameter-free readout hypothesis remains. Freeze
+`R4LayerwiseNormalizedRetainedReadoutLanguagePathV1` with
+`E @ [N(h) + (g/sqrt(L))*sum_l N(a_l)]`, `L=2`, fixed `g=1` versus `g=0`,
+zero new learned parameters/state, the same recurrence/data/dose, and the same
+one tied vocabulary matmul. Its V3 prompt population and fresh held-out slice
+must be CID- and story-disjoint from all previously scored data; V2 is never
+reused for scoring or tuning. Any unchanged prompt, language, state-off,
+causal, or replay gate miss ends parameter-free readout work and redirects the
+programme to a learned associative binding/readout architecture.

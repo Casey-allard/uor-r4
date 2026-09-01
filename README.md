@@ -14,33 +14,59 @@ local hardware. The project is testing whether language context, inference,
 and reasoning can emerge from routes through a canonical geometric memory. The
 target serving engine uses no Ollama, hosted model, or source-model weights.
 
-> **Latest source-free capacity result (2026-09-01):** #973's one frozen
-> paired-H4 successor completed `PAIRED_H4_PROMPT_CAPACITY_FAIL` at result CID
-> `blake3:508a4ff352f1e533d669d9616f65b972b0f13e8efe35867b7b095281ad940274`.
-> It reused [`R4RetainedLanguagePathV1`](docs/r4_retained_language_path_v1_973.md)
-> training data, seed, schedule, parameter count, and evaluation path, changing
-> only the per-layer exact-H4 token address. The second coordinate reduced
-> repeated joint addresses by `97.5477%`, but that is construction-only
-> evidence. On fresh held-out language the candidate was slightly better than
-> V1: NLL `3.8832293739` versus `3.8901151940`, and top-1 `29.780171%` versus
-> `29.706357%`.
+> **Latest source-free prompt-capacity result (2026-09-01):** #973's one frozen
+> readout-only candidate, `R4DirectRetainedReadoutLanguagePathV1`, completed
+> `DIRECT_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL`. It held the qualified
+> [`R4RetainedLanguagePathV1`](docs/r4_retained_language_path_v1_973.md)
+> representation, recurrence, initialization, training data/order, seed `9738`,
+> `252,160` learned parameters, `23,040` f32 state values, `2,730` optimizer
+> steps, and `5,241,600` token decisions fixed. Only the already-computed,
+> output-projected retained reads were added directly to the tied-embedding
+> logit path; fixed `g=0` was the equal-work V1 control.
 >
-> The decision-bearing prompt-swap contrast did not improve. Candidate mean
-> gain was `0.0062477543` nats/token versus V1's `0.0063672952` (delta
-> `-0.0001195409`), with `282/512` directional wins; both the absolute
-> `0.043321699` gain floor and `308/512` win floor were missed. Causal,
-> forbidden-read, fresh-artifact replay, and reveal-binding checks passed, and
-> both state-off contrasts were exactly zero. The canonical population CID is
-> `blake3:c11a7c935139ca169460b90c01392d7c9e0929e4c10710e76e6c8f74cbdf0340`;
-> it replaced a provisional `9e04...` scan before freeze because that scan
-> omitted whitespace normalization and overlapped training data.
+> On the sealed 512-direction prompt swap, candidate mean gain was
+> `0.02158978940594819` nats/token versus V1 `g=0` at
+> `0.007630419823799905`, a positive delta of `0.013959369582148285`, with
+> `343/512` wins. Candidate own NLL was `3.5521331250931936` versus V1
+> `3.7415367660865004`. It nevertheless missed the frozen absolute-gain floor
+> `0.04332169878499658` and incremental-gain floor
+> `0.025341569256760274`. On fresh held-out language it improved NLL/top-1 to
+> `3.7374367988736603`/`31.542433%` from V1's
+> `3.9010778352651876`/`29.632946%`; disabling retained state cost
+> `1.1234286047020587` NLL and `20,179` correct decisions. Causal, equal-work,
+> state, artifact-replay, seal-before-fit, and independent-verification checks
+> passed.
 >
-> Paired addressing is rejected as the prompt-capacity fix. Preserve the
-> qualified V1 cell; do not retry this arm or run its generation gate.
-> Attention remains established, but prompt-conditioned coherence, reasoning,
-> H4 superiority, exact/table lowering, browser readiness, and release readiness
-> do not follow. The next independently frozen #973 experiment targets the
-> prompt-state-to-logit readout seam. #973 stays open and #954 remains blocked.
+> Evidence is bound to candidate artifact CID
+> `blake3:6c66f5542a4513c610819b79210792cfe75c8afcdd13572b433ebddac23d688c`,
+> population CID
+> `blake3:258f143eedbbb7067dc512db929a42166ad8a492fc059542409f419a3b46942e`,
+> reveal CID
+> `blake3:693767eb8156eee49507d7f72c2e786a326e7e61f68bd4f04d3820692bf9c839`,
+> result CID
+> `blake3:71dd85e610dcc50b74cb2bb2068e5a1a433ac5df5db2a4f8fde22fb41735889c`,
+> and independent-verification CID
+> `blake3:b8ad3b6fa6d6ab9e429b3bd8d2a5060215d15230cd272e7272f27b7eef54785b`.
+> See the [binding #973 readout record](docs/r4_direct_retained_readout_prompt_capacity_973.md).
+> This is directional evidence, not a prompt-capacity pass. Generation,
+> lowering, and geometry-native lowering remain `NOT_RUN`; prompt-coherent
+> generation, reasoning, H4 superiority, exact/table runtime, browser readiness,
+> and release readiness do not follow.
+>
+> The one permitted successor is independently frozen
+> `R4LayerwiseNormalizedRetainedReadoutLanguagePathV1`:
+> `logits_t(g) = E @ (N(h_t) + (g / sqrt(L)) * sum_l N(a_l,t))`, with `L=2`,
+> fixed `g=1`, and matched `g=0`/state-off controls. Here each `a_l,t` is the
+> layer's existing output-projected, state-off-gated retained read. This changes
+> only normalization placement from `N(sum_l a_l,t)`; it adds no learned
+> parameter or recurrent state and retains V1's data, order, dose, optimizer,
+> recurrence, and one tied-vocabulary matrix operation. Freeze a new
+> story-disjoint CID population before fitting and keep the same absolute,
+> incremental, wins, own-NLL, held-out, state-off, causal, equal-work, and replay
+> gates. If it misses any of them, stop the parameter-free readout ladder and
+> pivot to learned associative binding/readout—no gain tuning, `g=2`, third
+> normalization variant, retry, widening, generation, or lowering. #973 stays
+> open and #954 remains blocked.
 
 > **Current attention-to-intelligence checkpoint (2026-08-31):** ordinary
 > learned causal Q/K/V attention with stable softmax is established as the

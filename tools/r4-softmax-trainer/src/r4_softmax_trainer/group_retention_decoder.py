@@ -27,7 +27,6 @@ from torch.nn import functional as F
 from .group_retention import GroupAddressArtifact
 from .model import RMSNorm, SwiGLU
 
-
 POLICY = "R4GroupAddressedRetentionDecoderV1"
 ARTIFACT_SCHEMA = "uor-r4-group-addressed-retention-decoder/1"
 
@@ -502,6 +501,39 @@ class _RetainedDecoderBlock(nn.Module):
         *,
         state_off: bool,
     ) -> tuple[Tensor, Tensor, Tensor, Tensor]:
+        """Run the qualified stationary transition without exposing its read."""
+
+        values, final_keys, final_values, final_occupied, _ = (
+            self.forward_stationary_with_retained(
+                values,
+                key_state,
+                value_state,
+                occupied,
+                prefix_actions,
+                identity_offset,
+                state_off=state_off,
+            )
+        )
+        return values, final_keys, final_values, final_occupied
+
+    def forward_stationary_with_retained(
+        self,
+        values: Tensor,
+        key_state: Tensor,
+        value_state: Tensor,
+        occupied: Tensor,
+        prefix_actions: Tensor,
+        identity_offset: int,
+        *,
+        state_off: bool,
+    ) -> tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
+        """Run one stationary transition and expose its already-gated read.
+
+        The fifth return value is the existing post-``o_proj``, post-state-off
+        retained residual. It is observational: the qualified hidden and
+        recurrent-state transition below is unchanged.
+        """
+
         normalized = self.input_layernorm(values)
         query = self._heads(self.q_proj(normalized))
         key = self._heads(self.k_proj(normalized))
@@ -528,7 +560,7 @@ class _RetainedDecoderBlock(nn.Module):
         retained = retained * (0.0 if state_off else 1.0)
         values = values + retained
         values = values + self.mlp(self.post_attention_layernorm(values))
-        return values, final_keys, final_values, schedule.final_occupied
+        return values, final_keys, final_values, schedule.final_occupied, retained
 
     def forward_direct_step(
         self,
@@ -542,6 +574,32 @@ class _RetainedDecoderBlock(nn.Module):
         state_off: bool,
     ) -> tuple[Tensor, Tensor, Tensor, Tensor]:
         """Execute one exact transport/read-before-write/update transition."""
+
+        values, final_keys, final_values, final_occupied, _ = (
+            self.forward_direct_step_with_retained(
+                values,
+                token_actions,
+                key_state,
+                value_state,
+                occupied,
+                identity_offset,
+                state_off=state_off,
+            )
+        )
+        return values, final_keys, final_values, final_occupied
+
+    def forward_direct_step_with_retained(
+        self,
+        values: Tensor,
+        token_actions: Tensor,
+        key_state: Tensor,
+        value_state: Tensor,
+        occupied: Tensor,
+        identity_offset: int,
+        *,
+        state_off: bool,
+    ) -> tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
+        """Run one direct transition and expose its already-gated read."""
 
         batch = int(values.shape[0])
         heads = self.config.heads
@@ -580,7 +638,7 @@ class _RetainedDecoderBlock(nn.Module):
             1, 1, group, 1
         )
         final_occupied = transported_occupied | identity_mask.bool().view(1, group)
-        return values, final_keys, final_values, final_occupied
+        return values, final_keys, final_values, final_occupied, retained
 
 
 class R4GroupAddressedRetentionDecoderV1(nn.Module):

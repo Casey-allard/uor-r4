@@ -35,6 +35,12 @@ from .continuation_data import (
     prepare_continuation_dataset,
 )
 from .data import download_source, load_dataset_manifest, prepare_dataset
+from .direct_retained_readout_campaign import (
+    prepare_direct_retained_readout,
+    probe_direct_retained_readout,
+    run_direct_retained_readout,
+    verify_direct_retained_readout_result,
+)
 from .finalize import finalize_continuation
 from .grounding import train_grounding
 from .group_retention_campaign import (
@@ -72,6 +78,11 @@ from .paths import (
     default_attended_relation_adapter_root,
     default_capacity_root,
     default_continuation_root,
+    default_direct_retained_readout_predecessor,
+    default_direct_retained_readout_raw_source,
+    default_direct_retained_readout_root,
+    default_direct_retained_readout_source_train,
+    default_direct_retained_readout_source_train_index,
     default_grounding_predecessor_root,
     default_grounding_root,
     default_group_retention_decoder_cpu_recovery_root,
@@ -558,6 +569,54 @@ def parser() -> argparse.ArgumentParser:
         action="store_true",
         help="resume the identical frozen candidate trajectory",
     )
+    prepare_readout = subcommands.add_parser(
+        "prepare-direct-retained-readout",
+        help=(
+            "freeze #973's readout-only successor, disjoint heldout slice, "
+            "and independently sealed prompt-contrast V2 population"
+        ),
+    )
+    prepare_readout.add_argument(
+        "--predecessor-root",
+        type=_root,
+        default=default_direct_retained_readout_predecessor(),
+        help="immutable qualified retained-language-path root",
+    )
+    prepare_readout.add_argument(
+        "--source-train",
+        type=_root,
+        default=default_direct_retained_readout_source_train(),
+        help="verified nonsealed #1019 train-token store",
+    )
+    prepare_readout.add_argument(
+        "--source-train-index",
+        type=_root,
+        default=default_direct_retained_readout_source_train_index(),
+        help="canonical #1019 train-story index binding the heldout slice",
+    )
+    prepare_readout.add_argument(
+        "--raw-source",
+        type=_root,
+        default=default_direct_retained_readout_raw_source(),
+        help="pinned raw TinyStories source for prompt-contrast V2",
+    )
+    subcommands.add_parser(
+        "probe-direct-retained-readout",
+        help="run #973's sole five-step Apple Accelerate CPU4 admission probe",
+    )
+    run_readout = subcommands.add_parser(
+        "run-direct-retained-readout",
+        help="run or resume #973's sole readout-only fit and frozen evaluation",
+    )
+    run_readout.add_argument(
+        "--resume",
+        action="store_true",
+        help="resume the identical frozen candidate trajectory",
+    )
+    subcommands.add_parser(
+        "verify-direct-retained-readout",
+        help="fresh-process exact re-score of terminal prompt and heldout evidence",
+    )
     return command
 
 
@@ -622,6 +681,12 @@ def main() -> None:
         "probe-paired-h4-prompt-capacity",
         "run-paired-h4-prompt-capacity",
     }
+    direct_retained_readout_commands = {
+        "prepare-direct-retained-readout",
+        "probe-direct-retained-readout",
+        "run-direct-retained-readout",
+        "verify-direct-retained-readout",
+    }
     if arguments.root:
         root = arguments.root
     elif arguments.command in capacity_commands:
@@ -650,6 +715,8 @@ def main() -> None:
         root = default_language_path_root()
     elif arguments.command in paired_h4_prompt_capacity_commands:
         root = default_paired_h4_prompt_capacity_root()
+    elif arguments.command in direct_retained_readout_commands:
+        root = default_direct_retained_readout_root()
     else:
         root = default_research_root()
     if arguments.command == "download":
@@ -898,5 +965,24 @@ def main() -> None:
         _print_result(
             run_paired_h4_prompt_capacity(root, resume=arguments.resume)
         )
+        return
+    if arguments.command == "prepare-direct-retained-readout":
+        prepared = prepare_direct_retained_readout(
+            root=root,
+            predecessor_root=arguments.predecessor_root,
+            source_train_path=arguments.source_train,
+            source_train_index_path=arguments.source_train_index,
+            raw_source_path=arguments.raw_source,
+        )
+        _print_result(prepared.manifest)
+        return
+    if arguments.command == "probe-direct-retained-readout":
+        _print_result(probe_direct_retained_readout(root))
+        return
+    if arguments.command == "run-direct-retained-readout":
+        _print_result(run_direct_retained_readout(root, resume=arguments.resume))
+        return
+    if arguments.command == "verify-direct-retained-readout":
+        _print_result(verify_direct_retained_readout_result(root))
         return
     raise AssertionError(f"unhandled command: {arguments.command}")

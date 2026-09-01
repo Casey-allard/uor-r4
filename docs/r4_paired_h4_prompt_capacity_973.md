@@ -248,3 +248,28 @@ integration, and release readiness remain `NOT_RUN`, `NOT_EVALUATED`, or
 unestablished as applicable. Ordinary causal attention remains established by
 the separate #1014 intervention, and the V1 retained-language result remains
 qualified at its recorded scope.
+
+## Readout-seam successor result — 2026-09-01
+
+The independently frozen successor named above completed as
+`R4DirectRetainedReadoutLanguagePathV1`. It restored V1's original exact-H4
+addresses and recurrence and varied only whether the already-computed retained
+layer outputs reached the tied language head. On a new story-disjoint V2 prompt
+population, fixed `g=1` raised mean prompt gain to `0.0215897894` from the
+matched `g=0`/V1 value `0.0076304198`, with `343/512` versus `313/512` wins.
+Fresh held-out NLL/top-1 also improved to `3.7374367989` / `31.542433%` from
+`3.9010778353` / `29.632946%`; state removal cost `1.1234286047` nats.
+
+This cleanly localizes useful prompt information at the readout seam, but the
+candidate missed the frozen absolute and incremental prompt-gain floors. Its
+terminal is `DIRECT_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL`, result CID
+`blake3:71dd85e610dcc50b74cb2bb2068e5a1a433ac5df5db2a4f8fde22fb41735889c`.
+Generation, retry, widening, lowering, and gain tuning remain forbidden.
+
+The only fresh successor normalizes the two retained layer outputs separately
+before their fixed variance-preserving `1/sqrt(2)` sum. It introduces no
+learned parameter or state and keeps recurrence, data, optimizer dose, work,
+and gates fixed. It must use a V3 population and fresh held-out slice disjoint
+from every V1/V2 scored item. A miss ends the parameter-free readout ladder.
+See the
+[direct-readout record](r4_direct_retained_readout_prompt_capacity_973.md).

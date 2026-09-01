@@ -12,15 +12,39 @@ native bridge result are frozen in
 [ADR-0005](docs/adr/0005-predictive-geometric-connection-memory.md).
 The current handoff preserves qualified
 [`R4RetainedLanguagePathV1`](docs/r4_retained_language_path_v1_973.md) and
-rejects its one paired-H4 prompt-capacity successor. That candidate reduced
-construction repeats `97.5477%` and slightly improved fresh-language NLL/top-1,
-but prompt gain fell from V1's `0.0063672952` to `0.0062477543`, with
-`282/512` wins below the `0.043321699` absolute-gain and `308/512` win floors.
-The terminal is `PAIRED_H4_PROMPT_CAPACITY_FAIL`, result CID
-`blake3:508a4ff352f1e533d669d9616f65b972b0f13e8efe35867b7b095281ad940274`.
-Causal/replay/reveal checks passed and state-off was exactly zero. Do not tune,
-retry, lower, or generate from this candidate. The next independently frozen
-#973 experiment isolates the prompt-state-to-logit readout seam. Ordinary
+records its fixed-budget direct-readout candidate as
+`DIRECT_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL`. Candidate prompt gain was
+`0.02158978940594819` versus matched V1 `g=0` at
+`0.007630419823799905` (delta `0.013959369582148285`), with `343/512` wins and
+own NLL `3.5521331250931936` versus `3.7415367660865004`. It improved fresh
+held-out NLL/top-1 to `3.7374367988736603`/`31.542433%` from
+`3.9010778352651876`/`29.632946%`, and state-off cost
+`1.1234286047020587` NLL plus `20,179` correct decisions. It still missed the
+frozen absolute `0.04332169878499658` and incremental
+`0.025341569256760274` gain floors. Result, candidate, population, reveal, and
+verification CIDs are respectively
+`blake3:71dd85e610dcc50b74cb2bb2068e5a1a433ac5df5db2a4f8fde22fb41735889c`,
+`blake3:6c66f5542a4513c610819b79210792cfe75c8afcdd13572b433ebddac23d688c`,
+`blake3:258f143eedbbb7067dc512db929a42166ad8a492fc059542409f419a3b46942e`,
+`blake3:693767eb8156eee49507d7f72c2e786a326e7e61f68bd4f04d3820692bf9c839`,
+and `blake3:b8ad3b6fa6d6ab9e429b3bd8d2a5060215d15230cd272e7272f27b7eef54785b`.
+The [binding #973 readout record](docs/r4_direct_retained_readout_prompt_capacity_973.md)
+contains the complete evidence ledger.
+Mechanics and replay passed, but generation/lowering are `NOT_RUN` and no
+coherence, reasoning, H4-superiority, exact-runtime, browser, or release claim
+follows.
+
+Contribute only the independently frozen
+`R4LayerwiseNormalizedRetainedReadoutLanguagePathV1` successor:
+`logits_t(g) = E @ (N(h_t) + (g / sqrt(L)) * sum_l N(a_l,t))`, with `L=2`,
+fixed `g=1`, matched `g=0`/state-off controls, no new learned parameters/state,
+and V1 representation, recurrence, data/order, seed, optimizer dose, and tied
+vocabulary operation unchanged. Seal a new story-disjoint CID population before
+fit. Keep the same absolute/incremental/wins/own-NLL, held-out, state-off,
+causal, equal-work, and replay gates. If it fails, stop parameter-free readout
+variants and pivot to learned associative binding/readout; do not tune `g`, try
+`g=2`, add another normalization variant, retry, widen, generate, or lower.
+Ordinary
 causal R4/Spin Q/K/V plus stable softmax remains the bounded source-backed
 attention baseline, while C1-SB5 paired-query binding fit `56/56` but reached
 only `14/28` sealed. Row-swap equivariance was bit-exact; mean-query and
@@ -247,8 +271,8 @@ The experiment must be able to change the next programme decision:
   old gated-delta,
   trace-state, intrinsic/readout, resonance, full-model recurrent-lowering, and
   exact-deployment lanes remain negative or parked. Do not scale or tune the
-  rejected paired candidate; #973 must next isolate the prompt-state-to-logit
-  readout seam against frozen V1. #973 still
+  rejected paired candidate or the partial direct readout; #973 must next test
+  only the frozen layerwise-normalized readout against V1. #973 still
   blocks GI-4/#954's final source-free terminal, with GI-5/#955 downstream of
   positive correctness.
 - **Exercise the accepted route path.** #953 geometry runs before token choice

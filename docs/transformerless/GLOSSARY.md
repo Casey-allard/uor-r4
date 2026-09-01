@@ -5,7 +5,7 @@ historical [geometric causal decoder](../geometric_causal_decoder_plan.md).
 Current sequencing lives in the
 [Geometric Intelligence Programme](../geometric_intelligence_programme.md),
 and the latest terminal #973 mechanism is
-[`R4PairedH4PromptCapacityV1`](../r4_paired_h4_prompt_capacity_result_973_raw.json).
+[`R4DirectRetainedReadoutLanguagePathV1`](../r4_direct_retained_readout_prompt_capacity_973.md).
 ADR-0005 remains the historical mechanism-family record.
 Decoder terms and graph terms name different execution lanes and must not be
 substituted for one another.
@@ -211,6 +211,24 @@ substituted for one another.
   `blake3:c11a7c935139ca169460b90c01392d7c9e0929e4c10710e76e6c8f74cbdf0340`.
   A provisional `9e04...` scan was corrected before freeze because it omitted
   whitespace normalization and overlapped training data.
+- **`R4DirectRetainedReadoutLanguagePathV1`** — #973's zero-parameter direct
+  readout intervention over qualified V1. It keeps the recurrence, addresses,
+  state, data, training dose, and tied vocabulary matmul fixed, changing only
+  `E @ N(h)` to `E @ (N(h) + g*N(a1+a2))`, fixed `g=1` versus `g=0`. It raised
+  prompt gain from `0.0076304198` to `0.0215897894`, passed wins and language
+  gates, and was strongly state-load-bearing, but missed both frozen gain
+  floors. Terminal `DIRECT_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL`; it is not
+  a generation, coherence, reasoning, H4-advantage, or exact-runtime result.
+  See the [canonical record](../r4_direct_retained_readout_prompt_capacity_973.md).
+- **`R4LayerwiseNormalizedRetainedReadoutLanguagePathV1`** — the sole fresh
+  parameter-free successor to the partial direct readout. It changes only the
+  normalization placement to
+  `E @ [N(h) + (g/sqrt(L))*sum_l N(a_l)]`, with `L=2`, fixed `g=1` versus
+  `g=0`, zero new learned parameters/state, and identical recurrence, data,
+  dose, and tied-matmul work. It must use a V3 prompt population and fresh
+  held-out slice disjoint from every prior scored item. A gate miss ends the
+  parameter-free readout ladder rather than authorizing another scalar or
+  normalization tweak.
 - **`DirectCausalGeometricAttentionR4V1`** — #973's offline gold-standard
   reference for the literal attention function: learned Q/K/V/O roles, local
   S3 tangent projection, causal H4-frame transport of every prior key and
@@ -531,8 +549,8 @@ substituted for one another.
   remain `NOT_RUN`. Its fused-AdamW/deferred-logging fast path was slower, so
   #1019 is optional/paused. #1017 remains the working source-backed
   `r4 generate` path; #973's retained language path qualified, its paired-H4
-  capacity successor failed, and the prompt-state-to-logit readout seam is
-  next. CUDA
+  capacity successor failed, and its direct retained readout completed
+  directional `PARTIAL`; only the layerwise-normalized readout is next. CUDA
   and external GPU execution are out of scope.
   Intrinsic/readout,
   fiber-preserving multi-resonance replacement,
@@ -598,6 +616,22 @@ substituted for one another.
 
 ## Current #973 prompt-capacity terminal — 2026-09-01
 
+`R4DirectRetainedReadoutLanguagePathV1` completed
+`DIRECT_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL` at result CID
+`blake3:71dd85e610dcc50b74cb2bb2068e5a1a433ac5df5db2a4f8fde22fb41735889c`.
+It raised prompt gain from `0.0076304198` to `0.0215897894`, reached `343/512`
+wins, improved fresh NLL by `0.1636410364` and top-1 by `1.909487` percentage
+points, and lost `1.1234286047` nats under state removal. Exact causal,
+forbidden-read, reveal-binding, replay, and independent verification passed.
+It missed both frozen prompt-gain floors, so generation, retry, widening,
+lowering, and gain tuning are forbidden. The only next rung is the fresh
+layerwise-normalized formula defined above; its failure ends the parameter-free
+readout ladder. Attention remains established, but prompt-conditioned
+coherence, reasoning, H4 superiority, and exact lowering do not follow. #973
+remains open, #954 remains blocked, and no C1-SB6 is authorized.
+
+### Prior paired-H4 terminal
+
 `R4PairedH4PromptCapacityV1` completed
 `PAIRED_H4_PROMPT_CAPACITY_FAIL` at result CID
 `blake3:508a4ff352f1e533d669d9616f65b972b0f13e8efe35867b7b095281ad940274`.
@@ -608,8 +642,9 @@ not supply the missing prompt capacity. Causal, replay, reveal, and forbidden-
 read checks passed; state-off was exactly zero. Preserve V1, reject the paired
 candidate, and do not run generation. Attention remains established; H4
 superiority, prompt-conditioned coherence, reasoning, and exact lowering do
-not follow. #973 next independently freezes the prompt-state-to-logit readout
-seam. #973 remains open, #954 remains blocked, and no C1-SB6 is authorized.
+not follow. Its then-next readout-seam experiment is the partial direct result
+above; this paragraph is historical. #973 remains open, #954 remains blocked,
+and no C1-SB6 is authorized.
 See the [machine result](../r4_paired_h4_prompt_capacity_result_973_raw.json).
 
 ## Historical #973 state-student outcome — 2026-08-30

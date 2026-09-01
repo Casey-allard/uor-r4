@@ -326,3 +326,33 @@ generation smoke recorded above. It shows that paired addressing did not add
 the required prompt-conditioned capacity. Preserve V1, do not retry generation,
 and independently freeze the prompt-state-to-logit readout seam next. #973
 remains open; #954 remains blocked.
+
+## Direct retained-readout successor — 2026-09-01
+
+The independently frozen readout experiment retained this record's recurrence,
+exact-H4 addresses, learned-parameter count, state count, training data/order,
+seed, optimizer dose, and one tied output matmul. It changed only the final head
+input from `N(h)` to `N(h) + g*N(a1+a2)`, fixed `g=1` candidate versus `g=0`
+V1 control.
+
+It produced a real but incomplete gain. On a new 256-pair prompt population,
+mean gain rose from `0.0076304198` to `0.0215897894`, wins rose from `313/512`
+to `343/512`, and own-prompt NLL fell from `3.7415367661` to `3.5521331251`.
+Fresh held-out NLL/top-1 improved from `3.9010778353` / `29.632946%` to
+`3.7374367989` / `31.542433%`. State-off lost `1.1234286047` nats and 20,179
+correct decisions; its prompt contrast was exactly zero. All causal,
+forbidden-read, reveal-binding, replay, and fresh-process checks passed.
+
+The candidate missed the absolute `0.0433216988` and incremental
+`0.0253415693` prompt-gain floors, so its terminal is
+`DIRECT_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL`, result CID
+`blake3:71dd85e610dcc50b74cb2bb2068e5a1a433ac5df5db2a4f8fde22fb41735889c`.
+It does not alter this record's qualified attention result and is not generated
+from, retried, widened, lowered, or gain-tuned.
+
+One final parameter-free successor changes only normalization placement:
+`E @ [N(h) + (1/sqrt(2))*(N(a1)+N(a2))]`. It must preserve this recurrence and
+all budgets/gates while using fully disjoint V3 prompt and held-out data. If it
+misses, parameter-free readout work stops in favor of a learned associative
+binding/readout architecture. See the
+[direct-readout record](r4_direct_retained_readout_prompt_capacity_973.md).

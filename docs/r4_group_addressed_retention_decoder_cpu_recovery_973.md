@@ -208,8 +208,10 @@ wins were `282/512` versus the required 308. State-off collapse, replay,
 causal, and forbidden-read controls passed.
 
 Qualified V1 is therefore preserved. There is no paired-address retry or new
-generation smoke. The next independent freeze targets the
-prompt-state-to-logit readout seam. Attention remains established at the
+generation smoke. At this historical checkpoint, the next independent freeze
+targeted the prompt-state-to-logit readout seam; that later experiment completed
+directional `PARTIAL`, and only its layerwise-normalized successor remains.
+Attention remains established at the
 separately qualified scopes; H4-specific advantage, reasoning, correctness,
 and exact lowering remain unestablished. #973 remains open and #954 remains
 blocked.

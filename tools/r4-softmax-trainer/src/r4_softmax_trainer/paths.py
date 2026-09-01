@@ -140,3 +140,33 @@ def default_paired_h4_prompt_capacity_raw_source() -> Path:
         / "raw"
         / "TinyStoriesV2-GPT4-train.txt"
     )
+
+
+def default_direct_retained_readout_root() -> Path:
+    """Return #973's independently frozen readout-only campaign root."""
+
+    return model_store_root() / "research" / "issue-973-direct-retained-readout-v1"
+
+
+def default_direct_retained_readout_predecessor() -> Path:
+    """Return the immutable qualified retained-language predecessor."""
+
+    return default_language_path_root()
+
+
+def default_direct_retained_readout_source_train() -> Path:
+    """Return the verified nonsealed #1019 train-token store."""
+
+    return default_language_path_source_root() / "tokens" / "train.u16"
+
+
+def default_direct_retained_readout_source_train_index() -> Path:
+    """Return the canonical #1019 train-story index."""
+
+    return default_language_path_source_root() / "indexes" / "train.jsonl"
+
+
+def default_direct_retained_readout_raw_source() -> Path:
+    """Return the pinned raw source used only to seal prompt contrast V2."""
+
+    return default_paired_h4_prompt_capacity_raw_source()

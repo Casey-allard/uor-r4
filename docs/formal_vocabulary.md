@@ -1,6 +1,6 @@
 # Formal Vocabulary, Notation, and Claim Classes
 
-- **Version:** 0.1.30
+- **Version:** 0.1.31
 - **Status:** Normative for all new specification, plan, proof-model, and certificate text.
 - **Source:** `docs/hologram_formal_analysis_direction.pdf` §§1, 7, 13; tracker
   [#122](https://github.com/UOR-Foundation/uor-r4/issues/122); issue
@@ -13,7 +13,7 @@
   and experiment policy is
   [Geometric Intelligence Evaluation](geometric_intelligence_evaluation.md).
   The latest terminal #973 empirical contract is
-  [`R4PairedH4PromptCapacityV1`](r4_paired_h4_prompt_capacity_result_973_raw.json).
+  [`R4DirectRetainedReadoutLanguagePathV1`](r4_direct_retained_readout_prompt_capacity_973.md).
 
 This spec separates the statement classes that the research notes previously mixed —
 architectural definitions, compiler optimization objectives, empirical certification
@@ -185,6 +185,15 @@ by wholesale rewrite.
 
 ## Changelog
 
+- **0.1.31** (2026-09-01) — Recorded
+  `R4DirectRetainedReadoutLanguagePathV1` as terminal
+  `DIRECT_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL`. The zero-parameter readout
+  increased prompt gain and fresh-language quality while passing state-off,
+  causal, replay, and independent-verification checks, but missed both frozen
+  prompt-gain floors. Generation and lowering remain `NOT_RUN`. Froze exactly
+  one layerwise-normalized, zero-parameter successor and a stop/pivot falsifier;
+  no coherence, reasoning, H4-superiority, exact-runtime, browser, or release
+  claim follows.
 - **0.1.30** (2026-09-01) — Recorded qualified
   `R4RetainedLanguagePathV1` and its terminal paired-H4 capacity successor.
   Paired addressing reduced construction repeats `97.5477%` and slightly

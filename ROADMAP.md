@@ -9,25 +9,31 @@ The earlier
 preserved #948–#958 sequencing record. Measured, refuted, and frozen research
 remains in [docs/RESEARCH.md](docs/RESEARCH.md).
 
-**Active correction (2026-09-01):** #973's independently frozen paired-H4
-capacity arm is terminal `PAIRED_H4_PROMPT_CAPACITY_FAIL` at result CID
-`blake3:508a4ff352f1e533d669d9616f65b972b0f13e8efe35867b7b095281ad940274`.
-It reduced repeated joint addresses by `97.5477%` and slightly improved fresh
-held-out language over qualified `R4RetainedLanguagePathV1` (NLL
-`3.8832293739` versus `3.8901151940`; top-1 `29.780171%` versus
-`29.706357%`). Those changes did not improve the frozen prompt-swap criterion:
-candidate mean gain was `0.0062477543` versus V1's `0.0063672952`, with
-`282/512` wins, below the `0.043321699` absolute-gain and `308/512` win floors.
-Causal, replay, reveal, and forbidden-read checks passed; state-off contrast was
-exactly zero. Reject paired addressing, preserve the qualified V1 cell, and do
-not run candidate generation. Attention remains established. The next #973
-rung independently freezes the prompt-state-to-logit readout seam. #973 stays
-open; #954 stays blocked; no C1-SB6 is authorized.
+**Active correction (2026-09-01):** #973's independently frozen direct-retained
+readout completed `DIRECT_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL` at result CID
+`blake3:71dd85e610dcc50b74cb2bb2068e5a1a433ac5df5db2a4f8fde22fb41735889c`.
+Candidate prompt gain was `0.02158978940594819` versus matched V1 `g=0` at
+`0.007630419823799905` (delta `0.013959369582148285`), with `343/512` wins and
+own NLL `3.5521331250931936` versus `3.7415367660865004`. Fresh held-out
+NLL/top-1 improved to `3.7374367988736603`/`31.542433%` from
+`3.9010778352651876`/`29.632946%`; state-off cost
+`1.1234286047020587` NLL and `20,179` correct decisions. Mechanics and replay
+passed, but the absolute `0.04332169878499658` and incremental
+`0.025341569256760274` gain floors were missed. Candidate, population, reveal,
+and independent-verification CIDs are
+`blake3:6c66f5542a4513c610819b79210792cfe75c8afcdd13572b433ebddac23d688c`,
+`blake3:258f143eedbbb7067dc512db929a42166ad8a492fc059542409f419a3b46942e`,
+`blake3:693767eb8156eee49507d7f72c2e786a326e7e61f68bd4f04d3820692bf9c839`,
+and `blake3:b8ad3b6fa6d6ab9e429b3bd8d2a5060215d15230cd272e7272f27b7eef54785b`.
+Generation/lowering remain `NOT_RUN`; coherence, reasoning, H4 superiority,
+exact/table runtime, browser, and release claims do not follow. The only next
+#973 rung is the independently frozen layerwise-normalized readout below. #973
+stays open; #954 stays blocked; no C1-SB6 is authorized.
 
 _Last reviewed: 2026-09-01 (#973 retained language-path generalization and
-autonomous local decoding passed; its paired-H4 prompt-capacity successor failed
-and the prompt-state-to-logit readout seam is next; prompt-responsive coherence
-and H4 specificity remain unestablished; #961 reversible S0 landed;
+autonomous local decoding passed; paired-H4 addressing failed and the direct
+retained-readout seam completed PARTIAL; one layerwise-normalized readout is
+next; prompt-responsive coherence and H4 specificity remain unestablished; #961 reversible S0 landed;
 #952 A1.0 stopped at
 `REDESIGN_ORDERED_ROUTE_SUMMARY`; #967 A1R terminated `RETAIN_STATE_ONLY`;
 #970 A1P produced the bounded paired-H4-derived exact R4-heatmap result
@@ -317,10 +323,11 @@ backend/artifact lowering; **Completed bounded step:** source-free Q16 suffix
 trace distillation, with looping autonomous output, state-student and
 observability negatives, #1014 attention qualification, and #1017's NLL-only
 quality-capacity negative; **Qualified retained baseline:**
-`R4RetainedLanguagePathV1`; **Rejected capacity seam:** paired-H4 addressing
-after it reduced construction repeats but failed to improve the frozen prompt
-contrast; **Current #973 action:** independently freeze the
-prompt-state-to-logit readout seam; **Closed without a full run:** #1019's frozen
+`R4RetainedLanguagePathV1`; **Rejected capacity seam:** paired-H4 addressing;
+**PARTIAL readout seam:** direct retained readout improved prompt gain and fresh
+language but missed both frozen gain margins; **Current #973 action:** freeze
+one layerwise-normalized retained readout with no new parameters/state;
+**Closed without a full run:** #1019's frozen
 12-layer, 13,130,784-parameter capacity campaign after its MPS hardware-budget
 stop; **Observed #954 negatives:** the fixed 384-step MPS grounding SFT
 completed in `883.773549 s`, but all three frozen Rust prompts decoded
@@ -807,11 +814,33 @@ historical evidence and comparators.
   [V1 binding record](docs/r4_retained_language_path_v1_973.md) and
   [paired-H4 machine result](docs/r4_paired_h4_prompt_capacity_result_973_raw.json).
 
-- [ ] **#973 prompt-state-to-logit readout seam — next independent freeze.**
-  Hold the qualified V1 training/data/seed/schedule and prompt-swap criterion
-  fixed; test whether retained prompt state reaches candidate logits through
-  the readout. Do not reopen attention-existence testing or claim coherence,
-  reasoning, H4 superiority, exact lowering, or release readiness.
+- [x] **#973 direct retained-readout seam — directional PARTIAL.** With V1's
+  representation, recurrence, `252,160` parameters, `23,040` f32 state values,
+  seed/data/order, and `2,730` steps fixed, candidate gain was
+  `0.02158978940594819` versus matched V1 `0.007630419823799905` (delta
+  `0.013959369582148285`), with `343/512` wins. Fresh held-out NLL/top-1 was
+  `3.7374367988736603`/`31.542433%` versus
+  `3.9010778352651876`/`29.632946%`; state-off cost `1.1234286047020587` NLL
+  and `20,179` decisions. The absolute `0.04332169878499658` and incremental
+  `0.025341569256760274` gain floors were missed. Mechanics/replay passed;
+  generation/lowering are `NOT_RUN`. Result and verification CIDs are
+  `blake3:71dd85e610dcc50b74cb2bb2068e5a1a433ac5df5db2a4f8fde22fb41735889c`
+  and `blake3:b8ad3b6fa6d6ab9e429b3bd8d2a5060215d15230cd272e7272f27b7eef54785b`.
+  See the [binding readout record](docs/r4_direct_retained_readout_prompt_capacity_973.md).
+
+- [ ] **#973 layerwise-normalized retained readout — only permitted successor.**
+  Freeze `R4LayerwiseNormalizedRetainedReadoutLanguagePathV1` as
+  `logits_t(g) = E @ (N(h_t) + (g / sqrt(L)) * sum_l N(a_l,t))`, with `L=2`,
+  fixed `g=1`, and equal-work `g=0`/state-off controls. Change only normalization
+  placement from `N(sum_l a_l,t)`; add no parameter/state and keep V1's
+  representation, recurrence, initialization, data/order, seed, optimizer dose,
+  and tied-vocabulary operation fixed. Seal a new story-disjoint CID population
+  before fit. Retain the exact absolute/incremental/wins/own-NLL, held-out,
+  state-off, causal, equal-work, and replay gates. If any gate fails, end the
+  parameter-free readout ladder and pivot to learned associative binding/readout;
+  no gain tuning, `g=2`, third normalization, retry, widening, generation, or
+  lowering. Do not claim coherence, reasoning, H4 superiority, exact runtime,
+  browser readiness, or release readiness.
 
 - [ ] **#954 grounded correctness: C1-SB5 retired negative; final source-free
   terminal blocked behind #973** — retain the

@@ -7,7 +7,7 @@
   serving.
 - **Architecture:** [ADR-0004](adr/0004-geometric-intelligence-route-hierarchy.md)
 - **Latest terminal mechanism:**
-  [#973 paired-H4 prompt-capacity result](r4_paired_h4_prompt_capacity_result_973_raw.json)
+  [#973 direct retained-readout result](r4_direct_retained_readout_prompt_capacity_973.md)
 - **Historical mechanism family:**
   [ADR-0005](adr/0005-predictive-geometric-connection-memory.md)
 - **Vocabulary:** [Formal Vocabulary](formal_vocabulary.md) and the
@@ -21,30 +21,36 @@ make an hours-long run the price of learning whether a mechanism is reachable.
 Experimental evaluations are dormant by default. Activate only the smallest
 probe whose possible outcomes cause different next actions.
 
-### Active decision — isolate prompt-state-to-logit readout/#973
+### Active decision — one layerwise-normalized readout/#973
 
 Qualified `R4RetainedLanguagePathV1` remains the retained-attention baseline.
-Its one paired-H4 successor held training data, seed, schedule, parameter count,
-and work fixed, changing only the per-layer exact-H4 token address. Structural
-repeats fell `97.5477%`, and fresh held-out language slightly improved: NLL
-`3.8832293739` versus V1 `3.8901151940`, and top-1 `29.780171%` versus
-`29.706357%`. Those are construction and general-language results, not prompt
-capacity.
+Its frozen direct-readout successor changed only `E @ N(h)` to
+`E @ (N(h) + g*N(a1+a2))`, fixed `g=1` versus matched `g=0`; recurrence,
+parameters, state, data, optimizer dose, and one tied vocabulary matmul stayed
+fixed. On the disjoint V2 prompt population it raised mean prompt gain from
+`0.0076304198` to `0.0215897894`, raised directional wins from `313/512` to
+`343/512`, and lowered own-prompt NLL from `3.7415367661` to `3.5521331251`.
+Fresh held-out NLL/top-1 improved from `3.9010778353` / `29.632946%` to
+`3.7374367989` / `31.542433%`; state removal cost `1.1234286047` nats and
+20,179 correct decisions.
 
-On the frozen prompt-swap population, candidate mean gain was `0.0062477543`
-nats/token versus V1's `0.0063672952`, with `282/512` wins. The candidate
-missed the absolute `0.043321699` gain and `308/512` win floors. State-off was
-exactly zero for both arms; causal, forbidden-read, artifact-before-reveal,
-CID-binding, and deterministic replay checks passed. Terminal:
-`PAIRED_H4_PROMPT_CAPACITY_FAIL`; result CID
-`blake3:508a4ff352f1e533d669d9616f65b972b0f13e8efe35867b7b095281ad940274`.
+The candidate passed wins, language, state-off, causal, forbidden-read,
+artifact/reveal binding, replay, and independent-verification gates, but missed
+the frozen absolute `0.0433216988` and incremental `0.0253415693` prompt-gain
+floors. Terminal: `DIRECT_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL`; result CID
+`blake3:71dd85e610dcc50b74cb2bb2068e5a1a433ac5df5db2a4f8fde22fb41735889c`.
+Freeze it without generation, retry, widening, lowering, or post-reveal gain
+tuning.
 
-Reject paired addressing and do not tune, retry, lower, or generate from that
-candidate. Preserve V1 and independently freeze one prompt-state-to-logit
-readout-seam experiment. Attention remains established; no coherent-generation,
-general-reasoning, H4-superiority, or exact-lowering claim follows. #973 stays
-open, #954 stays blocked, and C1-SB6 is not authorized. See the
-[machine result](r4_paired_h4_prompt_capacity_result_973_raw.json).
+The only next probe is fixed before new outcomes:
+`E @ [N(h) + (g/sqrt(2))*(N(a1)+N(a2))]`, fixed `g=1` against `g=0`, with
+zero new parameters/state and unchanged work/gates. Seal a V3 prompt population
+and held-out slice disjoint from all earlier scored data; never score or tune on
+V2 again. Failure of any unchanged gate ends parameter-free readout work and
+redirects to learned associative binding/readout. Attention remains
+established; coherent prompt-conditioned generation, reasoning, H4 advantage,
+exact lowering, and product readiness do not follow. #973 stays open, #954
+stays blocked, and C1-SB6 is not authorized.
 
 ### Prior #973 evidence retained
 
@@ -1089,8 +1095,8 @@ offline implementation. Full training, final parity, reveal, generation, and
 replay remain `NOT_RUN`. Its fused-AdamW/deferred-logging fast path was slower,
 so #1019 is optional/paused. #1017 remains the working source-backed
 `r4 generate` path; #973's retained language path qualified, its paired-H4
-capacity successor failed, and the next independent freeze isolates the
-prompt-state-to-logit readout seam.
+capacity successor failed, and its direct retained readout is a directional
+`PARTIAL`. The next independent freeze is only the layerwise-normalized readout.
 CUDA and external GPU execution are out of scope. D3 remains `NOT_RUN`;
 intrinsic/readout alternatives,
 resonance-based softmax replacement, whole-decoder recurrent lowering, and

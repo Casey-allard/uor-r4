@@ -54,36 +54,45 @@ correctness, and reasoning remain separate claims.
 Optimization, broad QA, formalization, and release certification follow a
 working decision-bearing product slice. They do not replace it.
 
-## Current #973 decision — paired addressing rejected, readout seam next
+## Current #973 decision — direct retained readout is positive but partial
 
 Qualified `R4RetainedLanguagePathV1` remains the active source-free retained-
-attention baseline. Its one independently frozen paired-H4 capacity successor
-held training data, seed, schedule, parameter count, and work fixed while
-changing only the per-layer exact-H4 token address. It reduced repeated joint
-addresses by `97.5477%` and slightly improved fresh held-out language (NLL
-`3.8832293739` versus V1 `3.8901151940`; top-1 `29.780171%` versus
-`29.706357%`). That structural capacity did not improve prompt use.
+attention baseline. The independently frozen
+`R4DirectRetainedReadoutLanguagePathV1` held its exact-H4 recurrence, learned
+parameters, state, data, seed, order, optimizer, 2,730-step dose, and one tied
+vocabulary matmul fixed. It changed only the final readout from `E @ N(h)` to
+`E @ (N(h) + g*N(a1+a2))`, with fixed candidate `g=1` and matched V1 control
+`g=0`.
 
-On the sealed `R4RetainedPromptSwapContrastV1` population, candidate mean gain
-was `0.0062477543` nats/token versus V1's `0.0063672952`, a
-`-0.0001195409` delta, and it won `282/512` directions. It missed the frozen
-absolute `0.043321699` gain and `308/512` win floors. State-off contrast was
-exactly zero for both artifacts; causal, forbidden-read, reveal-binding, and
-deterministic fresh-load replay checks passed. The terminal is
-`PAIRED_H4_PROMPT_CAPACITY_FAIL`, result CID
-`blake3:508a4ff352f1e533d669d9616f65b972b0f13e8efe35867b7b095281ad940274`.
-The canonical prompt population is
-`blake3:c11a7c935139ca169460b90c01392d7c9e0929e4c10710e76e6c8f74cbdf0340`;
-it replaced the provisional `9e04...` scan before freeze because that scan
-omitted whitespace normalization and overlapped training data.
+This is a directional positive. On the disjoint 256-pair V2 prompt population,
+mean own-versus-crossed prompt gain rose from `0.0076304198` to `0.0215897894`
+nats/token, candidate wins rose from `313/512` to `343/512`, and own-prompt NLL
+fell from `3.7415367661` to `3.5521331251`. On 247,920 fresh held-out language
+decisions, candidate NLL/top-1 were `3.7374367989` / `31.542433%`, versus
+`3.9010778353` / `29.632946%` for matched V1. Turning retained state off cost
+`1.1234286047` nats and 20,179 correct decisions. Both state-off prompt
+contrasts were exactly zero; causal, forbidden-read, artifact-before-reveal,
+CID-binding, replay, and independent fresh-process reproduction passed.
 
-Reject paired addressing as the capacity fix and do not run its generation or
-lowering gates. Preserve V1. Attention remains established at its declared
-scope; this negative establishes neither H4 inferiority nor superiority and
-does not establish coherent generation, general reasoning, or exact lowering.
-The next independently frozen #973 experiment isolates the
-prompt-state-to-logit readout seam. #973 stays open and #954 remains blocked.
-See the [machine result](r4_paired_h4_prompt_capacity_result_973_raw.json).
+The result is nevertheless terminal
+`DIRECT_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL`, result CID
+`blake3:71dd85e610dcc50b74cb2bb2068e5a1a433ac5df5db2a4f8fde22fb41735889c`.
+The gain cleared the wins and language gates but missed the frozen absolute
+`0.0433216988` floor and the `0.0253415693` incremental-over-V1 floor. Freeze
+the artifact; do not generate, retry, widen, lower, or tune `g` after reveal.
+
+The sole fresh #973 successor is
+`R4LayerwiseNormalizedRetainedReadoutLanguagePathV1`. It changes only
+normalization placement:
+`E @ [N(h) + (g/sqrt(L))*sum_l N(a_l)]`, with `L=2`, fixed `g=1` versus
+`g=0`, zero new learned parameters or state, and the same one tied vocabulary
+matmul. Freeze code and unchanged thresholds before sealing a CID/story-
+disjoint V3 population and fresh held-out slice; V2 may never be scored or
+tuned again. If this one layerwise-normalized readout misses any unchanged
+prompt, language, causal, state-off, or replay gate, stop the parameter-free
+readout ladder and pivot to a learned associative binding/readout architecture.
+#973 stays open and #954 remains blocked. See the
+[canonical record](r4_direct_retained_readout_prompt_capacity_973.md).
 
 ## Primary direction after protected localization — 2026-08-30
 
@@ -2100,9 +2109,11 @@ hours remains a hard kill ceiling, never an estimate.
   it has completed the Q16 suffix trace student with bounded distillation but
   looping output; its `R4SoftmaxTraceStateStudentV1` successor is complete and
   failed promotion; its construction-only leave-one-document-out observability
-  audit is complete; `R4RetainedLanguagePathV1` is qualified; and the paired-H4
-  addressing successor failed prompt capacity. It next owns only the
-  independently frozen prompt-state-to-logit readout seam. Intrinsic attention
+  audit is complete; `R4RetainedLanguagePathV1` is qualified; the paired-H4
+  addressing successor failed prompt capacity; and the direct retained-state
+  readout produced a causally load-bearing but threshold-partial improvement.
+  It next owns only the independently frozen layerwise-normalized readout seam.
+  Intrinsic attention
   replacement, new state dimensions, corpus scale, resonance/recurrent
   lowering, and final requalification remain parked.
 - S3/R4 compute, Hopf S2/R3 observation, and an E8 action plane are distinct
@@ -2113,7 +2124,7 @@ hours remains a hard kill ceiling, never an estimate.
 - No frontier, general-intelligence, correctness, or energy-superiority claim
   follows until its own declared product evidence exists.
 
-## Current #973 retained baseline and capacity decision (2026-09-01)
+## Current #973 retained baseline and readout decision (2026-09-01)
 
 The independently frozen
 [`R4RetainedLanguagePathV1`](r4_retained_language_path_v1_973.md) supersedes
@@ -2135,10 +2146,18 @@ reasoning, exact/table lowering, browser readiness, and release readiness
 remain unestablished. The one independently frozen paired-H4 addressing
 successor described in the current decision above then failed its prompt-
 capacity criterion despite lower construction collisions and slightly better
-fresh-language metrics. Preserve the qualified V1 cell, reject the paired arm,
-and do not run its generation gate. #973 next owns one independently frozen
-prompt-state-to-logit readout-seam experiment. It does not reopen attention
-existence or tune revealed prompts; #954 remains blocked while #973 stays open.
+fresh-language metrics.
+
+The direct readout successor then exposed the already-computed retained layer
+outputs to the tied language head without changing recurrence, parameter count,
+or work. It increased prompt gain from `0.0076304198` to `0.0215897894`, won
+`343/512` directions, improved fresh NLL by `0.1636410364`, and lost
+`1.1234286047` nats under state removal. It therefore confirms a useful readout
+seam, but it reached only `49.8%` of the absolute prompt-gain floor and is
+terminal `DIRECT_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL`. Preserve both V1
+and this evidence artifact; do not generate, retry, widen, lower, or tune it.
+#973 next owns only the fresh layerwise-normalized readout formula specified in
+the current decision above. #954 remains blocked while #973 stays open.
 
 ## Historical preservation
 

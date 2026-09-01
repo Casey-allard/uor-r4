@@ -533,3 +533,24 @@ This result preserves V1 and moves #973 to an independently frozen
 prompt-state-to-logit readout seam; it does not authorize a generation retry.
 #954 remains blocked because no source-free correctness or reasoning criterion
 has passed. C1-SB6 remains unauthorized.
+
+## #973 direct-readout blocker checkpoint — 2026-09-01
+
+#973 completed the independently frozen readout seam named above. Exposing its
+already-computed retained layer outputs directly to the tied language head
+raised prompt gain from `0.0076304198` to `0.0215897894`, produced `343/512`
+directional wins, improved fresh held-out NLL/top-1, and remained strongly
+load-bearing under state removal. Exact causal, forbidden-read, reveal-binding,
+replay, and fresh-process verification checks passed.
+
+The terminal is still partial because the result missed both frozen
+prompt-gain floors: `DIRECT_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL`, result
+CID `blake3:71dd85e610dcc50b74cb2bb2068e5a1a433ac5df5db2a4f8fde22fb41735889c`.
+It is frozen without generation, retry, widening, lowering, or gain tuning.
+
+This does not unblock correctness. #973 has exactly one fresh parameter-free
+successor: normalize the two retained layer outputs separately before their
+fixed `1/sqrt(2)` sum, holding every other variable and gate fixed. A miss ends
+that readout ladder and redirects #973 to learned associative binding/readout.
+#954 remains open, unassigned, and blocked; grounding, contradiction,
+abstention, reasoning, and C1-SB6 remain `NOT_RUN`.

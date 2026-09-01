@@ -10,8 +10,9 @@ frozen source-relative relation-head, attended-relation, and joint-candidate
 successors, followed by the frozen paired-query binding rung. The package also
 contains #973's isolated source-free `R4GroupAddressedRetentionLMV1` campaign,
 its independently frozen `R4GroupAddressedRetentionDecoderV1CpuRecovery`, and
-the compact matched `R4RetainedLanguagePathV1` generalization rung and its
-terminal `R4PairedH4PromptCapacityV1` successor.
+the compact matched `R4RetainedLanguagePathV1` generalization rung, its
+terminal `R4PairedH4PromptCapacityV1` successor, and the frozen
+`R4DirectRetainedReadoutLanguagePathV1` campaign.
 The causal-softmax and grounding paths train
 and continue ordinary causal-softmax
 Llama-family models, export them in the existing Rust loaders' Hugging Face
@@ -148,6 +149,47 @@ required 308. State-off collapsed to zero; replay, causal, and forbidden-read
 audits passed. The candidate is not promoted. Preserve V1 and independently
 freeze the prompt-state-to-logit readout seam. There is no authorized
 generation retry, parameter sweep, CUDA path, or C1-SB6.
+
+## Terminal #973 direct retained-readout rung
+
+[`R4DirectRetainedReadoutLanguagePathV1`](../../docs/r4_direct_retained_readout_prompt_capacity_973.md)
+keeps qualified V1's exact-H4 recurrence, parameter/state counts, data/order,
+seed, optimizer dose, and tied output matmul fixed. It exposes the two
+already-computed retained layer outputs only at the final head:
+`E @ (N(h) + g*N(a1+a2))`, fixed `g=1` candidate versus `g=0` V1 control.
+
+Its create-once lifecycle was:
+
+```bash
+export UOR_MODEL_STORE="/absolute/path/to/the/shared/.uor-models"
+ROOT="$UOR_MODEL_STORE/research/issue-973-direct-retained-readout-v1"
+TRAINER="$(git rev-parse --show-toplevel)/tools/r4-softmax-trainer"
+
+uv run --offline --project "$TRAINER" r4-softmax-trainer \
+  --root "$ROOT" prepare-direct-retained-readout
+uv run --offline --project "$TRAINER" r4-softmax-trainer \
+  --root "$ROOT" probe-direct-retained-readout
+uv run --offline --project "$TRAINER" r4-softmax-trainer \
+  --root "$ROOT" run-direct-retained-readout
+uv run --offline --project "$TRAINER" r4-softmax-trainer \
+  --root "$ROOT" verify-direct-retained-readout
+```
+
+Apple Accelerate CPU with four threads completed the sole 2,730-step trajectory
+in `1,313.037 s`. Prompt gain improved from `0.0076304198` to `0.0215897894`,
+wins from `313/512` to `343/512`, and fresh held-out NLL/top-1 from
+`3.9010778353` / `29.632946%` to `3.7374367989` / `31.542433%`. State removal
+cost `1.1234286047` nats. Exact replay and a separate-process verifier passed.
+The terminal is `DIRECT_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL` because both
+frozen gain floors were missed. There is no generation, retry, widened readout,
+gain tuning, CUDA path, exact lowering, or C1-SB6.
+
+The sole next experiment is a new, separately frozen
+`R4LayerwiseNormalizedRetainedReadoutLanguagePathV1` implementation using
+`E @ [N(h) + (1/sqrt(2))*(N(a1)+N(a2))]`. This README documents that decision;
+it does not expose an implemented or runnable V3 command. V3 must preserve all
+budgets and unchanged gates and use fully disjoint prompt/held-out data. A miss
+ends the parameter-free readout ladder.
 
 ## Current measured boundary
 
