@@ -360,3 +360,106 @@ The compact aggregate is
 This negative does not revise #1014/#1017 ordinary-attention or bounded coherent
 generation evidence, establish intrinsic geometry, or unblock #955. #954's
 final source-free terminal remains separately blocked behind #973.
+
+## C1-SB5 paired-query conditional-binding result — 2026-08-31
+
+`R4PairedQueryCandidateMatrixV1` implemented the independently frozen response
+to C1-SB4's question-ignoring shortcut. Each first-class item held one exact
+source and two different subject questions. Both lanes used the input below,
+with no terminal newline:
+
+```text
+E:<exact full source>
+Q:<question>
+Bind:
+```
+
+The candidate columns were the final punctuation-token states of the earliest
+source occurrence of each distinct exact-text candidate group. The two lanes
+had bit-identical source prefixes, and the query row used the final `Bind:`
+colon after all six established R4/Spin ordinary causal-softmax layers. Rank-8,
+alpha-8, dropout-zero LoRA updated Q/K/V/O in every layer. A separate asymmetric
+rank-32 head scored `dot(Wq*hq,Wc*hc)/sqrt(32)+b`; only a score greater than zero
+marked a candidate supported. LoRA plus the three-tensor head exposed 129,025
+trainable parameters. The eight four-lane head blocks are bookkeeping, not an
+intrinsic-geometry claim.
+
+The fresh population began at world ordinal 162. It contained 56 fit pairs and
+28 independently sealed pairs across widths 2 through 8. Every pair included
+at least one candidate whose label flipped between its two questions. The fit
+matrix contained 112 query rows, 266 candidate groups, 532 cells, and 98 flip
+columns; sealed contained 56 rows, 133 groups, 266 cells, and 49 flips. Exact
+sentences and complete composite world items were disjoint from C1-SB3,
+C1-SB4, and the other partitions; primitive component vocabulary remained
+shared deliberately. All candidate anchors preceded `Q:`, paired source token
+prefixes reproduced exactly, and the longest fit/sealed input occupied 189/201
+of 256 positions including BOS. Four opaque product pair commitments were
+created during preparation and remained outside the training view.
+
+The sole MPS optimizer used seed 9545, one pair for each of seven widths per
+step, 120 steps, 15 complete epochs, and 7,980 matrix-cell presentations. The
+objective was mean margin-one row loss plus mean margin-two flip-column loss.
+Loss moved from `5.9824323654174805` to `0.0`. The step-eight ETA gate passed,
+and the optimizer completed inside its 300-second ceiling; exact elapsed timing
+was deliberately omitted from the content-addressed result.
+
+Fit was exact, but lexical transfer was not:
+
+| Frozen metric | Trained fit | Trained sealed | Requirement |
+| --- | ---: | ---: | ---: |
+| exact pairs | `56/56` | `14/28` | exact |
+| exact query rows | `112/112` | `37/56` | exact |
+| cell signs | `532/532` | `227/266` | exact |
+| flip columns | `98/98` | `38/49` | exact |
+| supported copies | `42/42` | `13/21` | exact |
+| duplicate pairs | `14/14` | `4/7` | exact |
+| answer outcomes | `42/42` | `13/21` | exact |
+| abstain outcomes | `42/42` | `14/21` | exact |
+| conflict outcomes | `28/28` | `10/14` | exact |
+
+Fit mean loss was `0.0`; sealed mean row-margin loss was
+`2.1721223763057163`, mean flip-margin loss was `0.34822897035248424`, and
+total mean loss was `2.5203513466582006`. The miss was not isolated to one
+pair construction: the four pair slots reached `3/7`, `4/7`, `3/7`, and
+`4/7`. The descriptive sealed width/world counts were `4/4`, `0/4`, `4/4`,
+`4/4`, `0/4`, `0/4`, and `2/4` for widths 2 through 8. Each width had exactly
+one sealed lexical world, so that pattern cannot identify a causal width
+effect.
+
+The causal controls sharpen the result without rescuing qualification.
+Corresponding candidate states were bit-identical in all `56/56` fit and
+`28/28` sealed pairs. Identity-aligned row swapping reproduced the complete
+matrix trace and aggregate exactly. Pair-mean query ablation produced identical
+rows in `28/28`, scored `0/28` exact pairs, and increased loss. Turning
+attention off also scored `0/28` and increased loss. Deterministic evaluation
+replay was exact. All 24 targeted attention tensors and all three binding-head
+tensors changed and remained finite; no non-attention base tensor changed.
+Thus distinct query states and active causal attention were load-bearing for
+the observed behavior, but the independently sealed semantics still failed.
+
+Terminal: **`FAIL_PAIRED_QUERY_BINDING_PREFLIGHT`**. The result is bound by:
+
+- result CID `blake3:076242ab2bd379083ae55a22a272b3a0943b350fa301f65909e1b0ecc0d72571`;
+- manifest CID `blake3:c4a7ec5e4926cc5ede144d7f3c013940d104bb77ce26f8e201aa63c524c6a119`;
+- tree CID `blake3:0c3b0d869c45fca9924c1d76af19c9b411d8529c6ac8f9f7bf9d641d788dc188`;
+- run-contract CID `blake3:992bc9bb61c3e7bb4481cee3b959db338aa68530ffe43e93ee0eac5c133d2103`.
+
+The training view recorded zero product or forbidden reads, and the result
+manifest contains no checkpoint or binding-head artifact. Product evaluation,
+Rust parity, development evaluation, and any larger fit are `NOT_RUN`.
+Per the independent freeze, C1-SB5 is retired without retry, parameter change,
+larger fit, checkpoint emission, or product reveal.
+
+This is a bounded causal-mechanism result and an exact-qualification negative:
+the architecture fit paired subject binding perfectly, and query/attention
+ablations destroyed its sealed behavior, but it did not transfer exact binding
+to fresh lexical worlds. It does not establish intrinsic geometry, source-free
+correctness, reasoning, transformerlessness, exact lowering, browser/WASM, or
+release readiness, and it does not revoke #1014/#1017 ordinary-attention or
+bounded-generation evidence. No C1-SB6 or other scientific run is authorized
+by this result. #973 remains parked and must be independently re-scoped before
+work on the source-free/geometric-attention blocker resumes; #955 reasoning
+remains downstream.
+
+The compact bound aggregate is
+[`r4_paired_query_binding_954_raw.json`](r4_paired_query_binding_954_raw.json).

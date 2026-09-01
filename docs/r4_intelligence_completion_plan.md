@@ -120,11 +120,16 @@
   `blake3:82f83d865eaea24589cf8acdbcc4c83fd4714041c1d80e31a818d587664b7b84`;
   manifest CID
   `blake3:4872dd1b70cebbd7c2cf9930389e73df52e2325f809b0d0e27763a588a88b04f`.
-  #954 remains open. The next proposal is a separately frozen paired-query
-  conditional-binding objective: multiple questions share the same exact
-  source and the same candidate must change sign with the queried subject. It
-  is not a C1-SB4 seed, rank, threshold, schedule, or corpus retry. Retain the
-  exact-copy and typed non-answer Rust seam. #955 remains blocked, and #954's
+  C1-SB5 `R4PairedQueryCandidateMatrixV1` then executed that independently
+  frozen same-source paired-query contrast. Fit was `56/56`, but sealed exact
+  pairs were only `14/28`. Query-row-swap equivariance was bit-exact;
+  pair-mean-query and inference-time attention-off controls were each `0/28`.
+  The product population remained unopened, no checkpoint or binding-head
+  artifact was emitted, and Rust parity, development, and product evaluation
+  were `NOT_RUN`. Terminal `FAIL_PAIRED_QUERY_BINDING_PREFLIGHT` retires C1-SB5
+  without retry. This remains bounded source-backed attention evidence and does
+  not establish generation, reasoning, correctness, or a source-free runtime.
+  #954 remains open. #955 remains blocked, and #954's
   final source-free terminal remains blocked behind #973.
   UOR's deployed
   architecture/runtime remains CPU-native;
@@ -152,7 +157,8 @@
   followed by the [#954 campaign record](r4_grounded_correctness_954.md), the
   [C1-SB2 aggregate](r4_source_relation_head_954_raw.json), the
   [corrected C1-SB3 aggregate](r4_attended_relation_adapter_954_raw.json), and
-  the [C1-SB4 aggregate](r4_joint_candidate_margin_954_raw.json).
+  the [C1-SB4 aggregate](r4_joint_candidate_margin_954_raw.json), followed by the
+  [C1-SB5 aggregate](r4_paired_query_binding_954_raw.json).
   The intermediate
   [Geometric Causal Decoder Roadmap](geometric_causal_decoder_plan.md) records
   the superseded #948-#958 sequence.

@@ -9,7 +9,8 @@ is the current architecture and claim-boundary companion.
 The active mechanism contract is
 [`ADR-0005`](docs/adr/0005-predictive-geometric-connection-memory.md). The
 current evidence handoff is the append-only
-[#954 grounded-correctness record](docs/r4_grounded_correctness_954.md). The
+[#954 grounded-correctness record](docs/r4_grounded_correctness_954.md) and
+[C1-SB5 aggregate](docs/r4_paired_query_binding_954_raw.json). The
 earlier frozen [#1019 parameter-capacity contract](docs/r4_softmax_parameter_capacity_1019.md)
 and its [signed preflight result](docs/r4_softmax_parameter_capacity_preflight_1019_raw.json)
 remain reference history.
@@ -49,11 +50,17 @@ record-level structured-margin successor also failed: exact records were
 `70/126` fit and `35/63` sealed; positive groups were exact, negative-group
 specificity was `394/478` and `197/239`, and same-source query relocation was
 not exact. It stopped before Rust parity, checkpoint emission, development, or
-the four committed product probes; do not tune or retry it. The next proposal
-is a separately frozen paired-query conditional-binding objective over the same
-source, not another C1-SB4 seed/rank/threshold/schedule run. #954's final
-source-free terminal remains blocked behind #973, and #955 remains blocked
-behind #954. The #1017 `r4 generate` path remains the working
+the four committed product probes; do not tune or retry it. C1-SB5
+`R4PairedQueryCandidateMatrixV1` then fit all `56/56` paired records but reached
+only `14/28` exact sealed pairs. Query-row-swap equivariance was bit-exact;
+pair-mean-query and inference-time attention-off controls were each `0/28`.
+The product population remained unopened, and checkpoint/binding-head emission,
+Rust parity, development, and product evaluation were `NOT_RUN`. Terminal
+`FAIL_PAIRED_QUERY_BINDING_PREFLIGHT` retires C1-SB5 without retry. It preserves
+only bounded source-backed attention evidence; it does not establish generation,
+reasoning, correctness, or a source-free runtime. #954's final source-free
+terminal remains blocked behind #973, and #955 remains blocked behind #954. The
+#1017 `r4 generate` path remains the working
 coherent-generation prototype.
 Prototype iteration uses
 one targeted compile plus one real behavior check; do not run a broad local
@@ -142,11 +149,12 @@ implementation, and the full campaign remains `NOT_RUN`. The subsequent fused-
 AdamW/deferred-logging fast path was slower (`4.485223` versus signed
 `3.491307 s/step`), so `fused=True` was removed and #1019 is optional/paused.
 The #1017 `r4 generate` path remains the working coherent-generation prototype.
-#954 C1-SB2, C1-SB3, and C1-SB4 are bounded negatives, not active answer
-artifacts. C1-SB4's full-source structured-margin arm reached only `70/126` fit
+#954 C1-SB2 through C1-SB5 are bounded negatives, not active answer artifacts.
+C1-SB4's full-source structured-margin arm reached only `70/126` fit
 and `35/63` sealed exact records and stopped before Rust/checkpoint/product.
-Its product text remains unopened and it must not be retried. The next proposal
-is paired-query conditional binding under a separate freeze. CUDA and external
+Its product text remains unopened and it must not be retried. C1-SB5 then fit
+`56/56` pairs but reached only `14/28` sealed; its products stayed unopened and
+the rung retired before checkpoint/head/Rust/development work. CUDA and external
 GPU execution are out of scope. This reference remains
 transformer-compatible and `f32`/multiply/alloc/source-weight backed—not
 table-native, multiply-free, or transformerless. It does not establish geometry
@@ -302,8 +310,10 @@ optional/paused. The #1017 `r4 generate` path remains the working prototype;
 full-source structured-margin attention representation but reached only
 `70/126` fit and `35/63` sealed exact records; it stopped before Rust parity,
 checkpoint emission, development, or its unopened products. Do not retry it.
-The next proposal couples multiple questions over the same source so candidate
-sign must change with the queried subject, under a new independent freeze.
+C1-SB5 subsequently tested that paired-query contrast: fit was `56/56`, sealed
+was `14/28`, row-swap equivariance was bit-exact, and mean-query plus
+attention-off controls were each `0/28`. Its products stayed unopened and the
+rung retired before checkpoint/head/Rust/development work.
 CUDA and external GPU execution are out of scope.
 Intrinsic/readout, resonance, recurrence,
 and lowering are parked. D3 remains `NOT_RUN`; #954's final source-free
@@ -682,8 +692,10 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
   #954 C1-SB2 and C1-SB3 are preserved negatives. C1-SB4's independently frozen
   full-source structured-margin attention arm reached only `70/126` fit and
   `35/63` sealed exact records and stopped before Rust/checkpoint/development/
-  product; do not retry it. The next proposal is separately frozen paired-query
-  conditional binding over the same exact source. CUDA and external GPU
+  product; do not retry it. C1-SB5 then fit `56/56` paired records but reached
+  only `14/28` sealed, with bit-exact row-swap equivariance and `0/28`
+  mean-query/attention-off controls. Its products remained unopened and the rung
+  retired before checkpoint/head/Rust/development work. CUDA and external GPU
   execution are out of scope.
   Intrinsic/readout alternatives,
   resonance-based softmax replacement, full-model recurrent lowering, and

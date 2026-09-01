@@ -750,6 +750,7 @@ def export_merged_attended_relation_checkpoint(
     split_policy_cid: str,
     run_contract_cid: str,
     selected_checkpoint_cid: str | None,
+    selected_checkpoint_identity: str | None = None,
 ) -> dict[str, Any]:
     """Merge LoRA and reuse the standard checkpoint format accepted by Rust."""
     clean = adapter.merged_model()
@@ -763,4 +764,5 @@ def export_merged_attended_relation_checkpoint(
         split_policy_cid=split_policy_cid,
         run_contract_cid=run_contract_cid,
         selected_checkpoint_cid=selected_checkpoint_cid,
+        selected_checkpoint_identity=selected_checkpoint_identity,
     )

@@ -1,0 +1,230 @@
+{
+  "schema": "uor-r4.paired-query-binding-aggregate/1",
+  "issue": 954,
+  "policy": "R4PairedQueryCandidateMatrixV1",
+  "observed_at": "2026-08-31",
+  "terminal": "FAIL_PAIRED_QUERY_BINDING_PREFLIGHT",
+  "claim_scope": "one independently frozen same-source paired-query conditional-binding preflight through rank-8 Q/K/V/O adapters on all six established R4/Spin ordinary causal-softmax layers plus a separate asymmetric rank-32 binding head",
+  "frozen_identities": {
+    "predecessor_export_manifest_cid": "blake3:77d5735ccfb4f2ac8a89f2f42a7ad8663b96770ea23a0b4bfae87b3daea7d8f3",
+    "predecessor_weights_cid": "blake3:c5bf31aa97a567b3aaad4461ce2fac9cebc12b0a38becb6d02d21b43b493bf5d",
+    "predecessor_tokenizer_cid": "blake3:3f42bcfce7728512076549c63b88387e13c8156fe35c0f91d9b112439f3739cc",
+    "dataset_cid": "blake3:b8d6b381eb856396b91ba1cc343b94f6abe99e3de9d54953e5071dfdb1d5bc3f",
+    "preflight_cid": "blake3:008a302b1e625a7568d04d26492c058ddcd26a7caaa23b63138e57871c4cf4c1",
+    "split_policy_cid": "blake3:3010b5bc37c1f8b9e5afb9adfab34abf98632df9449ba67f502a57c74555ab0c",
+    "census_cid": "blake3:95533608ebe3dae761d925667572cd6de6d2e1f7b94d3efa29374c0a29fe4307",
+    "tokenizer_census_cid": "blake3:bf4eebd5c35f09ce4452e86fe14823888d75d14dc82a025769c43c4801965271",
+    "training_view_manifest_cid": "blake3:2256e0ff59fbbd9a5efed6f9d8505e6f94910470e505238d9f6b485837782ad9",
+    "training_view_tree_cid": "blake3:b2211e95e1a3c08d735b17a0db502c42ad8d3fcede5608460fe1260168d35cf2",
+    "product_probes_cid": "blake3:5489089f7fc73906d07c27308e6a031a2dd373d016b610f09b26657d4238665e",
+    "product_manifest_cid": "blake3:7f03b47c3aecdb47c943eaafba3dea19c9798f83b938d40742b0bdcb7f9aa246",
+    "run_contract_cid": "blake3:992bc9bb61c3e7bb4481cee3b959db338aa68530ffe43e93ee0eac5c133d2103",
+    "implementation_tree_cid": "blake3:ca3b1f0804af779151baa9e0875973aba9542cb219f6e876c85512c3365b1a29",
+    "result_cid": "blake3:076242ab2bd379083ae55a22a272b3a0943b350fa301f65909e1b0ecc0d72571",
+    "manifest_cid": "blake3:c4a7ec5e4926cc5ede144d7f3c013940d104bb77ce26f8e201aa63c524c6a119",
+    "result_tree_cid": "blake3:0c3b0d869c45fca9924c1d76af19c9b411d8529c6ac8f9f7bf9d641d788dc188"
+  },
+  "product_probe_commitments": [
+    "blake3:6c0fa9773dcde75b5e07e3427d8554645d1093cde74aefd8b14a497647286630",
+    "blake3:c281c06533c3cf418a016e98cb0028e8e833a94f865451ffb1f69cede6112e34",
+    "blake3:07ee858c95e9da02b746625ed31e23d066680ebda60c48b081b48b47f1cfcaec",
+    "blake3:abce456fad476bed4d30c38f862df1ff432cca797b22bd46ebc231b13746f89a"
+  ],
+  "population": {
+    "fresh_world_ordinal_range": [162, 186],
+    "source_widths": [2, 3, 4, 5, 6, 7, 8],
+    "fit": {
+      "pairs": 56,
+      "query_rows": 112,
+      "candidate_groups": 266,
+      "matrix_cells": 532,
+      "positive_cells": 98,
+      "negative_cells": 434,
+      "required_flips": 98,
+      "duplicate_pairs": 14,
+      "outcomes": {"answer": 42, "abstain": 42, "conflict": 28},
+      "maximum_positions_including_bos": 189
+    },
+    "sealed": {
+      "pairs": 28,
+      "query_rows": 56,
+      "candidate_groups": 133,
+      "matrix_cells": 266,
+      "positive_cells": 49,
+      "negative_cells": 217,
+      "required_flips": 49,
+      "duplicate_pairs": 7,
+      "outcomes": {"answer": 21, "abstain": 21, "conflict": 14},
+      "maximum_positions_including_bos": 201
+    },
+    "product": {
+      "pairs": 4,
+      "query_rows": 8,
+      "commitments": 4,
+      "maximum_positions_including_bos": 81,
+      "text_status": "COMMITTED_UNOPENED_NOT_RUN"
+    },
+    "context_ceiling_including_bos": 256,
+    "no_prompt_truncated": true,
+    "candidate_states_before_query": true,
+    "paired_source_prefix_identity_exact": true,
+    "partition_disjointness": "exact sentences and complete composite world items are disjoint from C1-SB3, C1-SB4, and each other; primitive component vocabulary is deliberately shared"
+  },
+  "mechanism": {
+    "representation_update": "lora_qkvo_all_layers_plus_rank32_binding",
+    "input": "E:<exact full source>\\nQ:<question>\\nBind:",
+    "input_has_terminal_newline": false,
+    "query_state": "final Bind colon after all six layers",
+    "candidate_state": "final punctuation token of the earliest source occurrence of each distinct exact-text candidate group",
+    "duplicate_policy": "collapse exact-text groups and copy the earliest exact source occurrence",
+    "score": "dot(Wq*hq,Wc*hc)/sqrt(32)+b",
+    "decision": "supported iff score > 0",
+    "lora_rank": 8,
+    "lora_alpha": 8,
+    "lora_dropout": 0,
+    "attention_layers": 6,
+    "adapted_projections": ["q_proj", "k_proj", "v_proj", "o_proj"],
+    "binding_rank": 32,
+    "binding_blocks": 8,
+    "binding_head_parameters": 18433,
+    "lora_parameters": 110592,
+    "trainable_parameters": 129025,
+    "geometry_claim": "NONE; the eight four-lane binding blocks are bookkeeping"
+  },
+  "optimization": {
+    "objective": "mean margin-one row loss plus mean margin-two counterfactual flip-column loss over complete paired matrices",
+    "seed": 9545,
+    "optimizer": "AdamW",
+    "learning_rate": 0.001,
+    "betas": [0.9, 0.999],
+    "epsilon": 1e-8,
+    "weight_decay": 0,
+    "gradient_clip": 1.0,
+    "optimizer_steps": 120,
+    "steps_per_epoch": 8,
+    "epochs": 15,
+    "pairs_per_step": 7,
+    "pair_presentations": 840,
+    "row_presentations": 1680,
+    "cell_presentations": 7980,
+    "initial_loss": 5.9824323654174805,
+    "final_loss": 0.0,
+    "backend": "Apple MPS required; CPU fallback refused; no CUDA path",
+    "timing": {
+      "scope": "optimizer only",
+      "eta_probe_step": 8,
+      "wall_ceiling_seconds": 300.0,
+      "eta_probe_passed": true,
+      "completed_within_wall_ceiling": true,
+      "elapsed_seconds": "OMITTED_FROM_CONTENT_ADDRESS_FOR_DETERMINISM"
+    }
+  },
+  "fit": {
+    "pair_exact": {"correct": 56, "total": 56},
+    "row_exact": {"correct": 112, "total": 112},
+    "cell_exact": {"correct": 532, "total": 532},
+    "flip_exact": {"correct": 98, "total": 98},
+    "candidate_copy_exact": {"correct": 42, "total": 42},
+    "duplicate_pair_exact": {"correct": 14, "total": 14},
+    "outcomes": {
+      "answer": {"correct": 42, "total": 42},
+      "abstain": {"correct": 42, "total": 42},
+      "conflict": {"correct": 28, "total": 28}
+    },
+    "candidate_state_bit_identity": {"correct": 56, "total": 56},
+    "mean_row_margin": 0.0,
+    "mean_flip_margin": 0.0,
+    "mean_loss": 0.0
+  },
+  "sealed": {
+    "pair_exact": {"correct": 14, "total": 28},
+    "row_exact": {"correct": 37, "total": 56},
+    "cell_exact": {"correct": 227, "total": 266},
+    "flip_exact": {"correct": 38, "total": 49},
+    "candidate_copy_exact": {"correct": 13, "total": 21},
+    "duplicate_pair_exact": {"correct": 4, "total": 7},
+    "outcomes": {
+      "answer": {"correct": 13, "total": 21},
+      "abstain": {"correct": 14, "total": 21},
+      "conflict": {"correct": 10, "total": 14}
+    },
+    "candidate_state_bit_identity": {"correct": 28, "total": 28},
+    "mean_row_margin": 2.1721223763057163,
+    "mean_flip_margin": 0.34822897035248424,
+    "mean_loss": 2.5203513466582006,
+    "pair_slot_breakdown": [
+      {"pair_slot": 0, "correct": 3, "total": 7},
+      {"pair_slot": 1, "correct": 4, "total": 7},
+      {"pair_slot": 2, "correct": 3, "total": 7},
+      {"pair_slot": 3, "correct": 4, "total": 7}
+    ],
+    "width_world_breakdown": [
+      {"source_width": 2, "correct": 4, "total": 4},
+      {"source_width": 3, "correct": 0, "total": 4},
+      {"source_width": 4, "correct": 4, "total": 4},
+      {"source_width": 5, "correct": 4, "total": 4},
+      {"source_width": 6, "correct": 0, "total": 4},
+      {"source_width": 7, "correct": 0, "total": 4},
+      {"source_width": 8, "correct": 2, "total": 4}
+    ],
+    "width_world_caveat": "each width has exactly one sealed lexical world, so this descriptive breakdown cannot identify a causal width effect"
+  },
+  "controls": {
+    "row_swap_equivariance": {
+      "record_order_exact": true,
+      "pair_trace_bit_exact": true,
+      "aggregate_bit_exact": true,
+      "identity_aligned_trace_cid": "blake3:d895009240ba4d4222f1640145157f3dbba85e1fe9ad8d27ca722a50a97f4d27",
+      "passed": true
+    },
+    "row_swap_combined_with_exact_sealed_semantics": false,
+    "mean_query_ablation": {
+      "paired_rows_identical": {"correct": 28, "total": 28},
+      "pair_exact": {"correct": 0, "total": 28},
+      "loss_higher_than_main": true,
+      "passed": true
+    },
+    "attention_off": {
+      "pair_exact": {"correct": 0, "total": 28},
+      "loss_higher_than_main": true,
+      "passed": true
+    },
+    "deterministic_replay_exact": true,
+    "all_controls_and_main_semantics_passed": false
+  },
+  "representation_audit": {
+    "changed_attention_tensors": 24,
+    "expected_attention_tensors": 24,
+    "all_changed_attention_tensors_finite": true,
+    "changed_nonattention_tensors": 0,
+    "changed_binding_head_tensors": 3,
+    "expected_binding_head_tensors": 3,
+    "all_binding_head_tensors_finite": true,
+    "passed": true
+  },
+  "access_and_artifact_policy": {
+    "training_view_artifacts": [
+      "paired-query-binding-census.json",
+      "paired-query-binding-dataset.json",
+      "paired-query-binding-preflight.json",
+      "paired-query-binding-tokenizer-census.json"
+    ],
+    "product_or_forbidden_reads": 0,
+    "product": "UNOPENED_NOT_RUN",
+    "rust_parity": "NOT_RUN",
+    "development": "NOT_RUN",
+    "research_checkpoint": "NOT_EMITTED",
+    "binding_head_artifact": "NOT_EMITTED",
+    "retry": "FORBIDDEN",
+    "rung_disposition": "RETIRED_NO_RETRY"
+  },
+  "falsifier": "The frozen mechanism required exact fit and sealed pairs, rows, cell signs, flips, copies, duplicate pairs, outcomes, causal candidate-state identity, controls, and tensor deltas. Fit and representation criteria passed, but sealed semantics reached only 14/28 exact pairs; therefore exact transferable paired-query binding was falsified for C1-SB5.",
+  "interpretation": "The architecture can fit the paired binding objective exactly, and the sealed behavior depends on distinct query states and active causal attention. It did not transfer exact subject-question binding to the independently sealed lexical worlds. The result is bounded causal mechanism evidence but a qualification negative, not an intrinsic-geometry result.",
+  "next_action": "Retire C1-SB5 without retry, Rust parity, a larger fit, development evaluation, checkpoint or head emission, or product reveal. No C1-SB6 or other scientific run is authorized by this result. #973 remains parked and must be independently re-scoped before source-free/geometric-attention work resumes; #955 reasoning remains downstream.",
+  "nonclaims": [
+    "No C1-SB5 checkpoint or binding-head artifact is qualified.",
+    "No product record was opened or evaluated.",
+    "This negative does not revoke #1014/#1017 ordinary causal-attention or bounded coherent-generation evidence.",
+    "No intrinsic geometry advantage, source-free correctness, reasoning, transformerlessness, exact lowering, browser, WASM, or release claim was established."
+  ]
+}

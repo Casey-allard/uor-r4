@@ -11,12 +11,17 @@ results, parked intrinsic-replacement lane, autonomous-generation gate, and
 native bridge result are frozen in
 [ADR-0005](docs/adr/0005-predictive-geometric-connection-memory.md).
 The current handoff is the
-[`R4SoftmaxTraceStudentV1` record](docs/r4_softmax_trace_student_973.md): ordinary
-causal R4/Spin Q/K/V plus stable softmax is established as the equivalence
-baseline; the source-free Q16 suffix student shows bounded distillation but
-loops autonomously. Contribute next only to `R4SoftmaxTraceStateStudentV1`,
-which compiles construction traces into recurrent source-free R4/Spin state and
-must beat frozen suffix/plain-recurrent/transport-permuted controls. Offline
+[#954 grounded-correctness record](docs/r4_grounded_correctness_954.md) and
+[C1-SB5 aggregate](docs/r4_paired_query_binding_954_raw.json): ordinary
+causal R4/Spin Q/K/V plus stable softmax remains the bounded source-backed
+attention baseline, while C1-SB5 paired-query binding fit `56/56` but reached
+only `14/28` sealed. Row-swap equivariance was bit-exact; mean-query and
+attention-off controls were each `0/28`. Products remained unopened and no
+checkpoint/head/Rust/development stage followed. The rung is retired without
+retry and establishes neither generation, reasoning, correctness, nor a
+source-free runtime. Do not contribute a C1-SB5 retry or its downstream artifact
+work; #954's final source-free terminal remains blocked behind #973, with #955
+downstream of positive correctness. Offline
 teacher/compiler floats, matrix operations, and softmax are permitted; deployed
 runtime remains exact and source-free. Hosted Pages is currently a static,
 WASM-offline surface without a functioning chat backend/artifact lowering, not
@@ -215,8 +220,9 @@ The experiment must be able to change the next programme decision:
   attention and #1017 remains the working bounded generator. #954 C1-SB4's
   full-source record-margin successor failed at `70/126` fit and `35/63` sealed
   exact records; it stopped before Rust/checkpoint/product and must not be
-  retried. Its next proposal is separately frozen paired-query conditional
-  binding over one exact source.
+  retried. C1-SB5 then fit `56/56` paired records but reached only `14/28`
+  sealed and retired before checkpoint/head/Rust/development, with products
+  unopened.
   Intrinsic/readout alternatives, resonance-based softmax replacement,
   full-model recurrent lowering, and exact deployment are parked; #973 still
   blocks GI-4/#954's final source-free terminal, with GI-5/#955 downstream of
@@ -250,10 +256,9 @@ The experiment must be able to change the next programme decision:
   loopback-only dedicated native HTTP canary through the identical policy also
   passes. Dashboard wiring/readiness and static/WASM-isolation checks pass, but
   hosted Pages is static/offline without a functioning chat backend/artifact
-  lowering. The smallest current source-backed correctness falsifier is a newly
-  frozen paired-query conditional-binding mechanism that requires the same
-  candidate to change sign under same-source query relocation. C1-SB4 itself is
-  closed negative and cannot be retried.
+  lowering. The paired-query C1-SB5 source-backed correctness falsifier has now
+  closed negative at `56/56` fit and `14/28` sealed; its controls do not rescue
+  promotion, and neither C1-SB4 nor C1-SB5 may be retried.
   Pinned-source provenance, donor reproduction, and transported-R4 parity are
   recorded in `docs/helm_d_r4_softmax_decoder_973.md`; V1 and V2 outcomes are in
   `docs/intrinsic_lorentz_r4_attention_973.md` and

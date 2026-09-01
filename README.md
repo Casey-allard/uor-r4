@@ -100,8 +100,15 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > supported reproduces every published C1-SB4 aggregate exactly; per-row model
 > scores were not retained, so this is aggregate-equivalent shortcut evidence,
 > not a claim about the model's internal computation.
-> The next proposal is a separately frozen paired-query conditional-binding
-> objective over the same exact source.
+> C1-SB5 `R4PairedQueryCandidateMatrixV1` then fit `56/56` paired records but
+> reached only `14/28` exact sealed pairs. Query-row-swap equivariance was
+> bit-exact, while pair-mean-query and inference-time attention-off controls were
+> each `0/28`. The product population remained unopened; no checkpoint or
+> binding-head artifact was emitted, and Rust parity, development, and product
+> evaluation were `NOT_RUN`. Terminal `FAIL_PAIRED_QUERY_BINDING_PREFLIGHT`
+> retires this rung without retry. It leaves attention established only at the
+> bounded source-backed scope and does not establish generation, reasoning,
+> correctness, or a source-free runtime.
 > #954's final source-free terminal remains blocked behind #973, and #955
 > remains blocked behind #954.
 > See the [#1017 record](docs/r4_softmax_quality_capacity_continuation_1017.md),
@@ -113,7 +120,8 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > [structured aggregate](docs/r4_softmax_end_to_end_attention_1014_raw.json),
 > plus the [#954 correctness campaign](docs/r4_grounded_correctness_954.md),
 > [corrected C1-SB3 aggregate](docs/r4_attended_relation_adapter_954_raw.json),
-> and [C1-SB4 aggregate](docs/r4_joint_candidate_margin_954_raw.json).
+> [C1-SB4 aggregate](docs/r4_joint_candidate_margin_954_raw.json), and
+> [C1-SB5 aggregate](docs/r4_paired_query_binding_954_raw.json).
 >
 > The completed #1017 checkpoint is the current working 7.15M
 > coherent-generation prototype. If its local export exists, run it directly
@@ -273,8 +281,9 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > full-source structured-margin successor then failed at `70/126` fit and
 > `35/63` sealed exact records, with perfect positive-group recall but only
 > `82.43%` negative specificity. Rust/checkpoint/development/product stayed
-> `NOT_RUN`; do not retry it. The next proposal is separately frozen
-> paired-query conditional binding. #954's final source-free terminal remains
+> `NOT_RUN`; do not retry it. C1-SB5 later fit `56/56` pairs but reached only
+> `14/28` sealed and retired before checkpoint/head/Rust/development work, with
+> its product population unopened. #954's final source-free terminal remains
 > blocked behind #973, and #955 remains blocked behind #954.
 > The trace/compiler rung
 > that followed that checkpoint is now complete: `R4SoftmaxTeacherTraceV1`
@@ -308,9 +317,9 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > and sealed `56/63`; parity/full fit/development/product remain `NOT_RUN`.
 > C1-SB4's independently frozen full-source structured-margin successor then
 > failed at `70/126` fit and `35/63` sealed exact records and stopped before
-> Rust/checkpoint/development/product. Do not retry it. The next proposal is
-> paired-query conditional binding over one shared exact source under a new
-> freeze.
+> Rust/checkpoint/development/product. Do not retry it. C1-SB5 subsequently fit
+> `56/56` paired records but generalized to `14/28` sealed and retired without a
+> checkpoint/head/Rust/development stage; its products remained unopened.
 > CUDA and external GPU execution are out of scope. No
 > further 7.15M exposure or learning-rate tuning is authorized.
 > Intrinsic/readout substitution, resonance, softmax replacement, scale, and
@@ -400,8 +409,9 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > gate at fit `124/126` and sealed `56/63`; later stages remain `NOT_RUN`.
 > C1-SB4's full-source record-margin successor then failed at `70/126` fit and
 > `35/63` sealed exact records. Rust/checkpoint/development/product remain
-> `NOT_RUN`; do not retry it. The next proposal is separately frozen
-> paired-query conditional binding. CUDA and
+> `NOT_RUN`; do not retry it. C1-SB5 later fit `56/56` paired records but reached
+> `14/28` sealed and retired with products unopened and no emitted artifacts.
+> CUDA and
 > external GPU execution are out of scope. #954's final source-free terminal
 > remains blocked behind #973, and #955 remains blocked behind #954.
 > See the
@@ -475,7 +485,9 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > development/product remain `NOT_RUN`. C1-SB4's independently frozen
 > full-source structured-margin arm then failed at `70/126` fit and `35/63`
 > sealed exact records; no Rust/checkpoint/product followed and no retry is
-> authorized. The next proposal is paired-query conditional binding. The
+> authorized. C1-SB5 then fit `56/56` pairs but reached `14/28` sealed and
+> retired before checkpoint/head/Rust/development; products remained unopened.
+> The
 > final source-free terminal remains blocked behind #973, and #955 remains
 > blocked behind #954.
 > See the
@@ -558,8 +570,9 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > stages. C1-SB4's full-source structured-margin successor then recovered every
 > positive group but only `82.43%` of negative groups, yielding `70/126` fit and
 > `35/63` sealed exact records. Rust/checkpoint/development/product are
-> `NOT_RUN`; do not retry it. The next proposal is separately frozen
-> paired-query conditional binding. CUDA and external GPU execution
+> `NOT_RUN`; do not retry it. C1-SB5 later fit `56/56` pairs but reached `14/28`
+> sealed and retired before checkpoint/head/Rust/development, with products
+> unopened. CUDA and external GPU execution
 > are out of scope. #954's final source-free terminal remains blocked behind
 > #973, and #955 remains blocked behind #954. General higher-scope attention,
 > correct answers, and reasoning do not exist yet. The
@@ -656,8 +669,11 @@ representation. It recovered `126/126` fit and `63/63` sealed positive groups,
 but rejected only `394/478` and `197/239` negatives. Exact records were
 `70/126` fit and `35/63` sealed; same-source query relocation was not exact.
 Rust parity, checkpoint emission, development, and product remained `NOT_RUN`.
-Do not tune or retry C1-SB4. The next proposal is separately frozen
-paired-query conditional binding over the same exact source. #954's final
+Do not tune or retry C1-SB4. C1-SB5 then fit `56/56` paired records but reached
+only `14/28` sealed; row-swap equivariance was bit-exact and mean-query plus
+attention-off controls were `0/28`. Its products remained unopened, no
+checkpoint/head was emitted, and Rust/development were `NOT_RUN`; retire the
+rung without retry. #954's final
 source-free terminal remains blocked behind #973, and #955 remains blocked
 behind #954. See the
 [#954 record](docs/r4_grounded_correctness_954.md) and
@@ -665,7 +681,8 @@ behind #954. See the
 [C1-SB1 pointer result](docs/r4_source_span_pointer_954_raw.json) and
 [C1-SB2 relation result](docs/r4_source_relation_head_954_raw.json), the
 [corrected C1-SB3 result](docs/r4_attended_relation_adapter_954_raw.json), and
-[C1-SB4 result](docs/r4_joint_candidate_margin_954_raw.json).
+[C1-SB4 result](docs/r4_joint_candidate_margin_954_raw.json), followed by the
+[C1-SB5 result](docs/r4_paired_query_binding_954_raw.json).
 
 On Apple Silicon, build the opt-in CPU-BLAS version so local inference uses the
 machine's Accelerate framework:
@@ -933,9 +950,9 @@ exact-descriptor/entity-binding path selector apiece at their respective
    and sealed `56/63`; parity/full fit/development/product are `NOT_RUN`.
    C1-SB4's full-source structured-margin successor then failed at `70/126` fit
    and `35/63` sealed exact records and stopped before Rust/checkpoint/product;
-   do not retry it. The next proposal is separately frozen paired-query
-   conditional binding. CUDA and
-   external GPU execution are out of scope. #954's final source-free terminal
+   do not retry it. C1-SB5 later fit `56/56` pairs but reached `14/28` sealed and
+   retired before checkpoint/head/Rust/development, with products unopened.
+   CUDA and external GPU execution are out of scope. #954's final source-free terminal
    stays blocked behind #973, and #955 remains blocked behind #954.
 See the [append-only #953 record](docs/local_geometric_generation_953.md).
 See the [accepted table-tie record](docs/source_free_table_geometric_intervention_953.md).
@@ -1091,8 +1108,9 @@ not become substitutes for working intelligence:
    and transferred most sealed relations, but failed exact fit/sealed outcomes
    (`124/126`, `56/63`); all later stages are `NOT_RUN`. C1-SB4's full-source
    record-margin successor then failed at `70/126` fit and `35/63` sealed exact
-   records and stopped before Rust/checkpoint/product; do not retry it. The
-   next proposal is separately frozen paired-query conditional binding. CUDA and
+   records and stopped before Rust/checkpoint/product; do not retry it. C1-SB5
+   later fit `56/56` pairs but reached `14/28` sealed and retired before
+   checkpoint/head/Rust/development, with products unopened. CUDA and
    external GPU execution are out of scope.
    Do not resume resonance substitutes. Product development continues through
    `r4 generate`, but no production-readiness or release claim follows yet. This intermediate
@@ -1168,7 +1186,8 @@ population are `NOT_RUN`. C1-SB4's independently frozen full-source
 structured-margin successor then failed at `70/126` fit and `35/63` sealed
 exact records, with perfect positive-group recall but only `82.43%` negative
 specificity. Rust/checkpoint/development/product are `NOT_RUN`; do not retry
-it. The next proposal is separately frozen paired-query conditional binding.
+it. C1-SB5 later fit `56/56` pairs but reached `14/28` sealed and retired before
+checkpoint/head/Rust/development, with products unopened.
 CUDA and external GPU execution are out of
 scope. #954's final source-free terminal remains blocked behind #973, and #955
 remains blocked behind #954. The exact contract is

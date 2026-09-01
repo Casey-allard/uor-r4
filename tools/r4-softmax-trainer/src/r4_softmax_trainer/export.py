@@ -25,8 +25,14 @@ def export_hugging_face_snapshot(
     split_policy_cid: str,
     run_contract_cid: str,
     selected_checkpoint_cid: str | None,
+    selected_checkpoint_identity: str | None = None,
 ) -> dict[str, Any]:
     """Export three standard files plus CID-bound provenance/result files."""
+    if (
+        selected_checkpoint_identity is not None
+        and not selected_checkpoint_identity.strip()
+    ):
+        raise ValueError("selected checkpoint identity must be nonempty when provided")
     output_dir.mkdir(parents=True, exist_ok=True)
     config_path = output_dir / "config.json"
     weights_path = output_dir / "model.safetensors"
@@ -45,6 +51,11 @@ def export_hugging_face_snapshot(
     atomic_write_json(result_path, training_result)
 
     weights_cid = cid_file(weights_path)
+    checkpoint_identity = selected_checkpoint_identity
+    if checkpoint_identity is None:
+        checkpoint_identity = (
+            "checkpoint artifact" if selected_checkpoint_cid else "exported smoke weights"
+        )
     payload: dict[str, Any] = {
         "schema": EXPORT_MANIFEST_SCHEMA,
         "dataset_manifest_cid": dataset_manifest_cid,
@@ -52,9 +63,7 @@ def export_hugging_face_snapshot(
         "split_policy_cid": split_policy_cid,
         "run_contract_cid": run_contract_cid,
         "selected_checkpoint_cid": selected_checkpoint_cid or weights_cid,
-        "selected_checkpoint_identity": (
-            "checkpoint artifact" if selected_checkpoint_cid else "exported smoke weights"
-        ),
+        "selected_checkpoint_identity": checkpoint_identity,
         "training_result_cid": training_result["result_cid"],
         "config_cid": cid_file(config_path),
         "tokenizer_cid": cid_file(exported_tokenizer_path),

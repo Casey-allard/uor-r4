@@ -58,3 +58,7 @@ def default_attended_relation_adapter_root() -> Path:
 
 def default_joint_candidate_margin_root() -> Path:
     return model_store_root() / "research" / "issue-954" / "joint-candidate-margin"
+
+
+def default_paired_query_binding_root() -> Path:
+    return model_store_root() / "research" / "issue-954" / "paired-query-binding"

@@ -7,7 +7,7 @@ preflight-recorded [#1019](https://github.com/UOR-Foundation/uor-r4/issues/1019)
 parameter-capacity campaign, and the bounded [#954](https://github.com/UOR-Foundation/uor-r4/issues/954)
 grounding fine-tune, frozen source-span-pointer successor, and independently
 frozen source-relative relation-head, attended-relation, and joint-candidate
-successors. They train
+successors, followed by the frozen paired-query binding rung. They train
 and continue ordinary causal-softmax
 Llama-family models, export them in the existing Rust loaders' Hugging Face
 format, and freeze evidence before each sealed test is opened. They contain no
@@ -62,8 +62,15 @@ record-level structured-margin run: exact records were `70/126` fit and
 `35/63` sealed, with perfect positive-group recall and negative specificity
 `394/478` and `197/239`. It stopped before Rust/checkpoint/development/product
 and must not be retried. A question-ignoring ` is inside ` rule reproduces the
-entire published aggregate exactly. The next proposal is separately frozen
-paired-query conditional binding over one exact source. UOR's deployed architecture/runtime remains CPU-native; Apple Accelerate/BLAS
+entire published aggregate exactly. C1-SB5
+`R4PairedQueryCandidateMatrixV1` then fit all `56/56` paired records but reached
+only `14/28` sealed. Row-swap equivariance was bit-exact; pair-mean-query and
+attention-off controls were each `0/28`. Products remained unopened, no
+checkpoint or binding head was emitted, and Rust parity, development, and
+product evaluation were `NOT_RUN`. Terminal
+`FAIL_PAIRED_QUERY_BINDING_PREFLIGHT` retires the rung without retry. This is
+bounded source-backed attention evidence only, not generation, reasoning,
+correctness, or a source-free runtime. UOR's deployed architecture/runtime remains CPU-native; Apple Accelerate/BLAS
 and MPS are local offline accelerators only; CUDA and external GPU execution
 are out of scope. The MPS stop is not a model-quality negative,
 leaves the full-scale capacity hypothesis untested, and does not revoke the
@@ -73,7 +80,8 @@ established attention result. See the
 its [observed preflight](../../docs/r4_softmax_parameter_capacity_preflight_1019_raw.json).
 The #954 evidence is in the
 [#954 record](../../docs/r4_grounded_correctness_954.md) and
-[C1-SB4 aggregate](../../docs/r4_joint_candidate_margin_954_raw.json).
+[C1-SB4 aggregate](../../docs/r4_joint_candidate_margin_954_raw.json), followed
+by the [C1-SB5 aggregate](../../docs/r4_paired_query_binding_954_raw.json).
 
 For fast local #1017 inference on Apple Silicon, build the Rust CLI with
 `--features local-inference-accelerate`. The observed four-token comparison
@@ -352,8 +360,8 @@ Its signed MPS probe stopped `UNAVAILABLE_HARDWARE_BUDGET` because the
 terminal applies only to the frozen offline implementation. Full training,
 final parity, reveal, generation, and replay remain `NOT_RUN`. The subsequent
 fused-AdamW/deferred-logging fast path was slower (`4.485223` versus signed
-`3.491307 s/step`), so #1019 closed without a full run. #954's five bounded
-source-grounding mechanisms through C1-SB4 subsequently closed negative. CUDA
+`3.491307 s/step`), so #1019 closed without a full run. #954's six bounded
+source-grounding mechanisms through C1-SB5 subsequently closed negative. CUDA
 and external GPU execution are out of scope. See the
 [#1019 observed preflight](../../docs/r4_softmax_parameter_capacity_preflight_1019_raw.json).
 

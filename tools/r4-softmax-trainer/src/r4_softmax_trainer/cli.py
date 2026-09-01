@@ -41,6 +41,10 @@ from .joint_candidate_margin_campaign import (
     prepare_joint_candidate_margin_data,
     run_joint_candidate_margin_preflight,
 )
+from .paired_query_binding_campaign import (
+    prepare_paired_query_binding_data,
+    run_paired_query_binding_preflight,
+)
 from .paths import (
     default_attended_relation_adapter_root,
     default_capacity_root,
@@ -48,6 +52,7 @@ from .paths import (
     default_grounding_predecessor_root,
     default_grounding_root,
     default_joint_candidate_margin_root,
+    default_paired_query_binding_root,
     default_research_root,
     default_source_relation_head_root,
     default_source_span_pointer_root,
@@ -340,6 +345,32 @@ def parser() -> argparse.ArgumentParser:
         default=default_grounding_predecessor_root(),
         help="immutable completed #1017 Hugging Face export",
     )
+    prepare_paired = subcommands.add_parser(
+        "prepare-paired-query-binding",
+        help=(
+            "commit the C1-SB5 paired-query population and sealed product CIDs "
+            "without starting optimization"
+        ),
+    )
+    prepare_paired.add_argument(
+        "--predecessor",
+        type=_root,
+        default=default_grounding_predecessor_root(),
+        help="immutable completed #1017 Hugging Face export",
+    )
+    train_paired = subcommands.add_parser(
+        "train-paired-query-binding-preflight",
+        help=(
+            "run the sole C1-SB5 optimizer under its 300-second ceiling, then "
+            "the mandatory controls; never opens product text"
+        ),
+    )
+    train_paired.add_argument(
+        "--predecessor",
+        type=_root,
+        default=default_grounding_predecessor_root(),
+        help="immutable completed #1017 Hugging Face export",
+    )
     return command
 
 
@@ -377,6 +408,10 @@ def main() -> None:
         "prepare-joint-candidate-margin",
         "train-joint-candidate-margin-preflight",
     }
+    paired_query_commands = {
+        "prepare-paired-query-binding",
+        "train-paired-query-binding-preflight",
+    }
     if arguments.root:
         root = arguments.root
     elif arguments.command in capacity_commands:
@@ -393,6 +428,8 @@ def main() -> None:
         root = default_attended_relation_adapter_root()
     elif arguments.command in joint_candidate_commands:
         root = default_joint_candidate_margin_root()
+    elif arguments.command in paired_query_commands:
+        root = default_paired_query_binding_root()
     else:
         root = default_research_root()
     if arguments.command == "download":
@@ -548,6 +585,20 @@ def main() -> None:
     if arguments.command == "train-joint-candidate-margin-preflight":
         _print_result(
             run_joint_candidate_margin_preflight(
+                root, predecessor=arguments.predecessor
+            )
+        )
+        return
+    if arguments.command == "prepare-paired-query-binding":
+        _print_result(
+            prepare_paired_query_binding_data(
+                root, predecessor=arguments.predecessor
+            )
+        )
+        return
+    if arguments.command == "train-paired-query-binding-preflight":
+        _print_result(
+            run_paired_query_binding_preflight(
                 root, predecessor=arguments.predecessor
             )
         )

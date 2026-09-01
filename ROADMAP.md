@@ -115,8 +115,14 @@ attention-representation transfer but missed its exact gate. C1-SB4's
 independently frozen full-source record-margin successor reached only `70/126`
 fit and `35/63` sealed exact records; it stopped before Rust/checkpoint/
 development/product and must not be retried. A question-ignoring ` is inside `
-rule reproduces every aggregate count exactly. The next proposal is separately
-frozen paired-query conditional binding over one exact source. #954 remains
+rule reproduces every aggregate count exactly. C1-SB5
+`R4PairedQueryCandidateMatrixV1` then fit `56/56` pairs but reached only `14/28`
+sealed. Row-swap equivariance was bit-exact; pair-mean-query and attention-off
+controls were each `0/28`. Products remained unopened, no checkpoint or binding
+head was emitted, and Rust parity, development, and product evaluation were
+`NOT_RUN`. Retire the rung without retry. This remains bounded source-backed
+attention evidence, not generation, reasoning, correctness, or a source-free
+runtime. #954 remains
 open, #955 remains blocked, and #954's final
 source-free terminal remains behind #973. CUDA and
 external GPU execution are out of scope.
@@ -205,8 +211,9 @@ The completed continuation and its NLL-only negative are in
 > and emitted no final head. C1-SB3 then transferred most relations through
 > attention but missed exact promotion. C1-SB4's full-source record-margin
 > successor failed at `70/126` fit and `35/63` sealed exact records and stopped
-> before Rust/checkpoint/product; do not retry it. The next proposal is
-> separately frozen paired-query conditional binding.
+> before Rust/checkpoint/product; do not retry it. C1-SB5 later fit `56/56`
+> paired records but reached `14/28` sealed and retired before
+> checkpoint/head/Rust/development, with products unopened.
 > CUDA and external GPU execution are out of scope.
 > Offline teacher/compiler work remains transformer-compatible and
 > `f32`/multiply/alloc/source-weight backed—not the final
@@ -305,8 +312,10 @@ failed, so parity, full fit, development, and product reveal were not run and
 no final head was emitted; C1-SB3 produced bounded transfer but failed exact
 promotion; C1-SB4's full-source record-margin successor failed at `70/126` fit
 and `35/63` sealed exact records and stopped before Rust/checkpoint/product;
-**Proposed next:** independently freeze paired-query conditional binding over
-one exact source while preserving the Rust exact-copy and typed non-answer seam;
+**Retired negative:** C1-SB5 fit `56/56` paired records but reached only `14/28`
+sealed, with bit-exact row-swap equivariance and `0/28` mean-query plus
+attention-off controls; products stayed unopened and checkpoint/head/Rust/
+development were `NOT_RUN`;
 CUDA and external GPU execution are out of scope; **Parked:** further 7.15M exposure
 or LR tuning, intrinsic score/readout alternatives,
 resonance-based softmax replacement, full-model recurrent lowering, and exact
@@ -355,9 +364,9 @@ stopped before parity, full fit, development, and product reveal with no final
 head. C1-SB3 then produced bounded attention-representation transfer but missed
 its exact gate. C1-SB4's full-source record-margin successor failed at
 `70/126` fit and `35/63` sealed exact records and stopped before Rust/checkpoint/
-product; do not retry it. The new proposal is independently frozen paired-query
-conditional binding over one exact source, retaining Rust exact-copy and typed
-non-answer behavior. #954 remains open, #955 remains
+product; do not retry it. C1-SB5 then fit `56/56` pairs but reached `14/28`
+sealed and retired before checkpoint/head/Rust/development, with products
+unopened. #954 remains open, #955 remains
 blocked, and the final source-free terminal remains behind #973. CUDA and
 external GPU execution are out of scope.
 Intrinsic/resonance/replacement work is
@@ -643,9 +652,9 @@ feasibility boundary remains in the
    terminal remains behind #973. C1-SB3 produced bounded transfer but missed
    exact promotion; C1-SB4's full-source record-margin successor failed at
    `70/126` fit and `35/63` sealed exact records and stopped before Rust/
-   checkpoint/product. Do not retry it. The next proposal is independently
-   frozen paired-query conditional binding over one exact source, retaining the
-   Rust exact-copy and typed non-answer seam. #954 remains open and #955 remains blocked.
+   checkpoint/product. Do not retry it. C1-SB5 then fit `56/56` pairs but reached
+   `14/28` sealed and retired before checkpoint/head/Rust/development; products
+   remained unopened. #954 remains open and #955 remains blocked.
    Every learned epoch receives a
    new kappa and reruns its owning
    construction gate. More documents, table density, or trace activity are
@@ -665,9 +674,9 @@ feasibility boundary remains in the
    then transferred most relations through attention but missed exact
    promotion. C1-SB4's full-source record-margin successor failed at `70/126`
    fit and `35/63` sealed exact records and stopped before Rust/checkpoint/
-   product; do not retry it. The next proposal is independently frozen
-   paired-query conditional binding over one exact source, retaining Rust
-   exact-copy and typed non-answer behavior.
+   product; do not retry it. C1-SB5 then fit `56/56` pairs but reached `14/28`
+   sealed and retired before checkpoint/head/Rust/development; products remained
+   unopened.
    The final source-free terminal still requires the accepted
    selector/#953/#973 artifact and evidence provenance #969 → #983 → #986;
    source-backed prototype evidence does not satisfy it. #954 remains open and
@@ -753,8 +762,8 @@ historical evidence and comparators.
 
 ## Active
 
-- [ ] **#954 grounded correctness: paired-query conditional binding after the
-  full-source structured-margin shortcut** — retain the
+- [ ] **#954 grounded correctness: C1-SB5 retired negative; final source-free
+  terminal blocked behind #973** — retain the
   bounded positives, #997 placement negative, bounded gated-delta negative, V2
   budget invalidation, equal-manifold-budget V3 mixed-gauge H4 negative, and
   V4's held-out 13/24 functional/control negative. The positive attention
@@ -813,15 +822,18 @@ historical evidence and comparators.
   attention-representation transfer but missed exact promotion. C1-SB4's
   independently frozen full-source record-margin successor failed at `70/126`
   fit and `35/63` sealed exact records and stopped before Rust/checkpoint/
-  product; no retry is authorized. The next proposal is independently frozen
-  paired-query conditional binding over one exact source, retaining the Rust
-  exact-copy and typed non-answer seam. No product wiring is active. Apple
+  product; no retry is authorized. C1-SB5 then fit all `56/56` paired records
+  but reached only `14/28` sealed. Its row-swap control was bit-exact;
+  mean-query and attention-off were `0/28`. Products remained unopened and no
+  checkpoint/head/Rust/development stage followed; retire the rung without
+  retry. No product wiring is active. Apple
   Accelerate/BLAS and MPS remain local offline accelerators only; CUDA and
   external GPU execution are out of scope. See the
   [frozen contract](docs/r4_softmax_parameter_capacity_1019.md) and
   [signed preflight/admission result](docs/r4_softmax_parameter_capacity_preflight_1019_raw.json),
   then the [#954 record](docs/r4_grounded_correctness_954.md) and
-  [C1-SB4 aggregate](docs/r4_joint_candidate_margin_954_raw.json).
+  [C1-SB4 aggregate](docs/r4_joint_candidate_margin_954_raw.json), followed by
+  the [C1-SB5 aggregate](docs/r4_paired_query_binding_954_raw.json).
   Do not extend
   exposure or tune learning rate on the 7.15M checkpoint. Intrinsic score/readout
   alternatives, resonance-based softmax replacement, full-model recurrent
@@ -989,9 +1001,9 @@ historical evidence and comparators.
   then produced bounded attention-representation transfer but missed exact
   promotion. C1-SB4's full-source record-margin successor failed at `70/126`
   fit and `35/63` sealed exact records and stopped before Rust/checkpoint/
-  product; do not retry it. The next proposal is independently frozen
-  paired-query conditional binding over one exact source, retaining Rust
-  exact-copy and typed non-answer behavior.
+  product; do not retry it. C1-SB5 then fit `56/56` pairs but reached `14/28`
+  sealed and retired before checkpoint/head/Rust/development; products remained
+  unopened.
   CUDA and external GPU execution are out of scope. Intrinsic score/readout alternatives,
   resonance-based softmax replacement, full-model recurrent lowering, and exact
   deployment are parked. D3 remains `NOT_RUN`; #954 remains open, its final

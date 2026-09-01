@@ -160,6 +160,16 @@ aggregate-equivalent shortcut evidence rather than an internal-mechanism claim.
 See the
 [C1-SB4 aggregate](r4_joint_candidate_margin_954_raw.json).
 
+C1-SB5 `R4PairedQueryCandidateMatrixV1` then executed the independently frozen
+same-source paired-query contrast. It fit all `56/56` pairs but reached only
+`14/28` sealed pairs. Query-row-swap equivariance was bit-exact;
+pair-mean-query and inference-time attention-off controls were each `0/28`.
+The product population remained unopened, no checkpoint or binding head was
+emitted, and Rust parity, development, and product evaluation were `NOT_RUN`.
+Terminal `FAIL_PAIRED_QUERY_BINDING_PREFLIGHT` retires the rung without retry.
+This preserves bounded source-backed attention evidence only; it does not
+establish generation, reasoning, correctness, or a source-free runtime.
+
 The #1017 export remains the current working 7.15M coherent-generation
 prototype. `r4 generate --prompt "..."` defaults to
 `.uor-models/research/issue-1017/export`. #1019 is an optional quality-capacity
@@ -175,11 +185,8 @@ table-native, multiply-free, transformerless, browser-WASM, release, or
 frontier-model evidence.
 Intrinsic/readout alternatives, multi-resonance softmax replacement, full-model
 recurrent lowering, and exact H4/Q29/integer-table deployment are parked. #954
-remains open. Do not tune or retry the C1-SB3 or C1-SB4 adapters. The next
-proposal is a separately frozen paired-query conditional-binding objective:
-multiple questions share one exact source and the same candidate must change
-sign with the queried subject. Retain the exact-copy and typed non-answer Rust
-seam. #955 remains blocked on a positive
+remains open. Do not tune or retry the C1-SB3, C1-SB4, or C1-SB5 mechanisms.
+#955 remains blocked on a positive
 correctness result, and #954's final source-free terminal remains blocked behind
 #973. Validation,
 test, and inference remain strictly causal and cannot fit on their future
@@ -217,6 +224,9 @@ development/product `NOT_RUN`;
 `35/63` sealed exact records, positive groups `126/126` and `63/63`, negative
 groups `394/478` and `197/239`, all 24 attention tensors changed with no
 non-attention change, and Rust/checkpoint/development/product `NOT_RUN`;
+#954 C1-SB5 paired-query binding, `56/56` fit and `14/28` sealed pairs,
+bit-exact row-swap equivariance, mean-query and attention-off `0/28`, products
+unopened, and checkpoint/head/Rust/development/product `NOT_RUN`; rung retired;
 resonance replacement `NOT_RUN` and parked; full-model recurrent and
 exact lowering parked. See
 [`helm_d_r4_softmax_decoder_973.md`](helm_d_r4_softmax_decoder_973.md) and
@@ -226,7 +236,8 @@ then [`r4_softmax_trace_student_973.md`](r4_softmax_trace_student_973.md) and
 followed by [`r4_softmax_quality_capacity_continuation_1017.md`](r4_softmax_quality_capacity_continuation_1017.md),
 [`r4_grounded_correctness_954.md`](r4_grounded_correctness_954.md), and
 [`r4_source_relation_head_954_raw.json`](r4_source_relation_head_954_raw.json),
-then [`r4_joint_candidate_margin_954_raw.json`](r4_joint_candidate_margin_954_raw.json).
+then [`r4_joint_candidate_margin_954_raw.json`](r4_joint_candidate_margin_954_raw.json)
+and [`r4_paired_query_binding_954_raw.json`](r4_paired_query_binding_954_raw.json).
 
 ## Current route-native target lifecycle
 
@@ -274,7 +285,7 @@ canonical text/corpus
     -> terminal-residual relation head [#954 C1-SB2; MATCHED-TRANSFER PREFLIGHT FAIL, NO FINAL HEAD]
     -> rank-8 all-layer Q/K/V/O relation adapter, fixed yes/no verbalizer, no head [#954 C1-SB3; BOUNDED TRANSFER, EXACT PREFLIGHT FAIL]
     -> joint-source candidate-set representation + record-level structured margin through attention [#954 C1-SB4; EXACT PREFLIGHT FAIL, NO RUST/ARTIFACT]
-    -> paired-query conditional binding over one exact source [#954; PROPOSED, REQUIRES INDEPENDENT FREEZE]
+    -> paired-query conditional binding over one exact source [#954 C1-SB5; FIT 56/56, SEALED 14/28, RETIRED, NO ARTIFACT]
     -> final source-free correctness terminal [#954; BLOCKED BEHIND #973]
     -> bounded reasoning [#955; BLOCKED ON POSITIVE CORRECTNESS]
     -> durable isolated CLI/HTTP chat + persisted hive memory (#962)
@@ -1660,9 +1671,9 @@ D3 on construction covariance, with diagnostic curved NLL worse than donor and
   full-source record-margin successor then failed at `70/126` fit and `35/63`
   sealed exact records despite exact positive-group recall; negative specificity
   was `394/478` and `197/239`. It stopped before Rust/checkpoint/development/
-  product and must not be retried. The active proposal is separately frozen
-  paired-query conditional binding over the same exact source, preserving the
-  exact-copy and typed non-answer Rust seam. CUDA and external GPU execution are out of scope.
+  product and must not be retried. C1-SB5 then fit `56/56` pairs but reached
+  `14/28` sealed and retired before checkpoint/head/Rust/development; products
+  remained unopened. CUDA and external GPU execution are out of scope.
   Further exposure and LR tuning of the 7.15M checkpoint are prohibited.
   Resonance substitutes, unrelated optimization, and release work
   remain parked. Lowering does not otherwise reactivate automatically on a
