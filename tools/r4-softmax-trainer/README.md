@@ -8,8 +8,9 @@ parameter-capacity campaign, and the bounded [#954](https://github.com/UOR-Found
 grounding fine-tune, frozen source-span-pointer successor, and independently
 frozen source-relative relation-head, attended-relation, and joint-candidate
 successors, followed by the frozen paired-query binding rung. The package also
-contains #973's isolated source-free `R4GroupAddressedRetentionLMV1` campaign
-and its independently frozen `R4GroupAddressedRetentionDecoderV1CpuRecovery`.
+contains #973's isolated source-free `R4GroupAddressedRetentionLMV1` campaign,
+its independently frozen `R4GroupAddressedRetentionDecoderV1CpuRecovery`, and
+the compact matched `R4RetainedLanguagePathV1` generalization rung.
 The causal-softmax and grounding paths train
 and continue ordinary causal-softmax
 Llama-family models, export them in the existing Rust loaders' Hugging Face
@@ -69,6 +70,51 @@ scrambled transport was `0.033049` nats better, so no H4-specific advantage is
 claimed. The next #973 mechanism must test language-path generalization with a
 data-supported parameter budget and an ordinary matched non-geometric decoder.
 There is no authorized retry, CUDA path, sweep, or C1-SB6.
+
+## Frozen #973 retained language-path rung
+
+[`R4RetainedLanguagePathV1`](../../docs/r4_retained_language_path_v1_973.md)
+is one from-scratch two-arm comparison: the qualified exact-H4 retained cell
+versus ordinary full-prefix causal RoPE Q/K/V softmax. Both arms have exactly
+252,160 learned parameters, two width-48 blocks, four 12-wide heads, equal
+23,040-value full-context K/V state, tied output storage, and identical
+5,241,600-decision optimizer dose. The data freezer copies only CID-bound
+nonsealed slices from #1019 plus its tokenizer and the inherited canonical
+geometry; it reads no checkpoint, weight, teacher logit, sealed confirmation,
+or heldout reveal.
+
+The lifecycle is deliberately short and ordered:
+
+```bash
+export UOR_MODEL_STORE="/absolute/path/to/the/shared/.uor-models"
+ROOT="$UOR_MODEL_STORE/research/issue-973-retained-language-path-v1"
+TRAINER="$(git rev-parse --show-toplevel)/tools/r4-softmax-trainer"
+
+uv run --offline --project "$TRAINER" r4-softmax-trainer \
+  --root "$ROOT" prepare-language-path
+uv run --offline --project "$TRAINER" r4-softmax-trainer \
+  --root "$ROOT" probe-language-path
+uv run --offline --project "$TRAINER" r4-softmax-trainer \
+  --root "$ROOT" run-language-path
+uv run --offline --project "$TRAINER" r4-softmax-trainer \
+  --root "$ROOT" generate-language-path
+```
+
+Preparation is create-once. The probe measures deterministic four-thread and
+eight-thread Apple Accelerate CPU, concurrent isolated two-thread workers, and
+deterministic MPS, then binds the fastest admitted aggregate plan. CUDA is
+forbidden. `run-language-path --resume` may only continue the byte-identical
+same trajectory after interruption; it is not a scientific retry.
+
+The frozen fit completed at `RETAINED_LANGUAGE_PATH_PASS`: the retained arm
+generalized, remained load-bearing under its state-off intervention, and was
+competitive with the matched ordinary decoder. `generate-language-path` is
+the separately frozen positive branch. It reads only the copied tokenizer and
+geometry plus the immutable retained result/artifact, executes five public
+prompts for at most 64 selected tokens, and records an exact fresh-load replay
+without training or opening train, validation, source, or sealed data. Its
+create-once result is a local autonomous-decoding smoke, not a coherence,
+reasoning, H4-superiority, lowering, browser, or release claim.
 
 ## Current measured boundary
 

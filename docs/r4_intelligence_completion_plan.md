@@ -4,18 +4,23 @@
   readable mirror of programme root #820 (stages S0–S7 plus cross-cutting F0).
   The [Geometric Intelligence Programme](geometric_intelligence_programme.md)
   is its current architecture and claim-boundary companion.
-  The latest source-free attention experiment is #973's independently frozen
-  [`R4GroupAddressedRetentionDecoderV1` CPU recovery](r4_group_addressed_retention_decoder_cpu_recovery_973.md).
-  It completed all 512 construction steps. State-off on the disjoint
-  construction-validation partition lost `0.967227` nats and 182 top-1 hits,
-  qualifying one bounded causal
-  retained-attention component. The exact complete-decoder recipe is not
-  promoted: aggregate validation CE worsened `8.371911 -> 8.976155`. Scrambled transport was
-  `0.033049` nats better, so no H4-specific advantage is claimed. Retain the
-  component and independently freeze a language-path generalization mechanism
-  with a data-supported parameter budget and an ordinary matched non-geometric
-  decoder next. #954 remains blocked; no C1-SB6, coherent generation, reasoning,
-  exact lowering, or release is authorized.
+  The latest source-free attention result is #973's independently frozen
+  [`R4RetainedLanguagePathV1`](r4_retained_language_path_v1_973.md). Its
+  252,160-parameter exact-H4 retained arm generalized, remained load-bearing
+  under state removal, and stayed competitive with the equal-parameter ordinary
+  causal-softmax control: retained NLL `3.899862`, ordinary NLL `3.903394`, and
+  state-off NLL `4.234849` with 16,660 lost top-1 decisions. The terminal is
+  `RETAINED_LANGUAGE_PATH_PASS`; H4-specific advantage remains
+  `NOT_EVALUATED`. The separately frozen retained-only successor then completed
+  five maximum-64-token local decodes with valid raw UTF-8, exact fresh-load
+  replay, and zero forbidden, future, source-data, target, teacher, or provider
+  reads/calls. All five outputs drift from
+  their prompts, so autonomous retained decoding is established while
+  prompt-responsive coherence, reasoning, exact lowering, browser readiness,
+  and release remain unestablished. Preserve this cell; the next language-model
+  rung is a data-supported representation/capacity change with a frozen
+  prompt-conditioned behavior criterion. #954 remains blocked and no C1-SB6 is
+  authorized.
   [ADR-0005](adr/0005-predictive-geometric-connection-memory.md) retains the
   accepted-attention, autonomous-reference-generation, and parked-replacement
   architecture history.

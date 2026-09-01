@@ -53,6 +53,12 @@ from .joint_candidate_margin_campaign import (
     prepare_joint_candidate_margin_data,
     run_joint_candidate_margin_preflight,
 )
+from .language_path_generalization_campaign import (
+    probe_language_path_execution,
+    run_language_path_generalization,
+)
+from .language_path_generalization_data import prepare_language_path_data
+from .language_path_generation import run_language_path_generation
 from .paired_query_binding_campaign import (
     prepare_paired_query_binding_data,
     run_paired_query_binding_preflight,
@@ -68,6 +74,9 @@ from .paths import (
     default_group_retention_root,
     default_group_retention_source_root,
     default_joint_candidate_margin_root,
+    default_language_path_geometry,
+    default_language_path_root,
+    default_language_path_source_root,
     default_paired_query_binding_root,
     default_research_root,
     default_source_relation_head_root,
@@ -460,6 +469,48 @@ def parser() -> argparse.ArgumentParser:
     retention_decoder_cpu_preflight.add_argument(
         "--backend", choices=["cpu"], required=True
     )
+    prepare_language_path = subcommands.add_parser(
+        "prepare-language-path",
+        help=(
+            "freeze #973's compact matched language population and exact-H4 "
+            "geometry without reading sealed data or training"
+        ),
+    )
+    prepare_language_path.add_argument(
+        "--source-root",
+        type=_root,
+        default=default_language_path_source_root(),
+        help="immutable nonsealed #1019 training-view root",
+    )
+    prepare_language_path.add_argument(
+        "--geometry",
+        type=_root,
+        default=default_language_path_geometry(),
+        help="canonical exact-H4 group geometry inherited from #973",
+    )
+    subcommands.add_parser(
+        "probe-language-path",
+        help=(
+            "measure the eligible deterministic Apple execution plans and "
+            "bind the fastest admitted plan"
+        ),
+    )
+    run_language_path = subcommands.add_parser(
+        "run-language-path",
+        help="run or resume #973's one frozen matched language-path experiment",
+    )
+    run_language_path.add_argument(
+        "--resume",
+        action="store_true",
+        help="resume the same frozen trajectory from its latest checkpoints",
+    )
+    subcommands.add_parser(
+        "generate-language-path",
+        help=(
+            "run or verify #973's create-once retained-only five-prompt "
+            "autonomous generation smoke"
+        ),
+    )
     return command
 
 
@@ -513,6 +564,11 @@ def main() -> None:
         "prepare-group-retention-decoder-cpu-recovery",
         "preflight-group-retention-decoder-cpu-recovery",
     }
+    language_path_commands = {
+        "prepare-language-path",
+        "probe-language-path",
+        "run-language-path",
+    }
     if arguments.root:
         root = arguments.root
     elif arguments.command in capacity_commands:
@@ -537,6 +593,8 @@ def main() -> None:
         root = default_group_retention_decoder_root()
     elif arguments.command in group_retention_decoder_cpu_recovery_commands:
         root = default_group_retention_decoder_cpu_recovery_root()
+    elif arguments.command in language_path_commands:
+        root = default_language_path_root()
     else:
         root = default_research_root()
     if arguments.command == "download":
@@ -749,5 +807,24 @@ def main() -> None:
                 root, backend=arguments.backend
             )
         )
+        return
+    if arguments.command == "prepare-language-path":
+        prepared = prepare_language_path_data(
+            source_root=arguments.source_root,
+            output_root=root,
+            geometry_path=arguments.geometry,
+        )
+        _print_result(prepared.manifest)
+        return
+    if arguments.command == "probe-language-path":
+        _print_result(probe_language_path_execution(root))
+        return
+    if arguments.command == "run-language-path":
+        _print_result(
+            run_language_path_generalization(root, resume=arguments.resume)
+        )
+        return
+    if arguments.command == "generate-language-path":
+        _print_result(run_language_path_generation(root))
         return
     raise AssertionError(f"unhandled command: {arguments.command}")

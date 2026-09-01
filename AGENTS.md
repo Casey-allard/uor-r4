@@ -6,22 +6,26 @@ Guidance for agents (human or otherwise) working in this repository.
 the readable mirror of programme root #820.** The
 [`Geometric Intelligence Programme`](docs/geometric_intelligence_programme.md)
 is the current architecture and claim-boundary companion.
-The latest mechanism and evidence contract is the independently frozen
-[#973 CPU recovery](docs/r4_group_addressed_retention_decoder_cpu_recovery_973.md)
-for `R4GroupAddressedRetentionDecoderV1`. Its complete 512-step construction run
-provides bounded causal retained-attention evidence: disabling retained state
-on the disjoint construction-validation partition loses `0.967227` nats and
-182 top-1 hits. The exact
-complete-decoder recipe is not promoted because aggregate validation CE worsened from `8.371911` to
-`8.976155`; scrambled transport was `0.033049` nats better, so there is no
-H4-specific advantage. Preserve the qualified retained-attention read/write law,
-but do not scale or tune this exact 3.17M-parameter, two-block, data/dose decoder
-recipe. The next #973
-decision is an independently frozen language-path generalization mechanism with
-a data-supported parameter budget and an ordinary matched non-geometric decoder.
-#954's final source-free correctness terminal remains blocked; no C1-SB6 is
-authorized. No coherent generation, reasoning, exact lowering, or release claim
-follows. ADR-0005 and the
+The current mechanism and evidence contract is
+[`R4RetainedLanguagePathV1`](docs/r4_retained_language_path_v1_973.md). #973's
+independently frozen 252,160-parameter exact-H4 retained arm generalized,
+remained causally load-bearing under state removal, and stayed within both
+competitiveness bounds against the equal-parameter ordinary causal-softmax
+control. It improved validation NLL `8.326807 -> 3.899862`; state-off cost
+`0.334988` nats and 16,660 correct decisions; retained versus ordinary was
+`-0.003532` nats and `-0.073814` percentage points. Its retained-only
+autonomous successor produced five maximum-64-token local continuations with
+valid raw UTF-8, zero forbidden, future, source-data, target, teacher, or
+provider reads/calls, and exact fresh-load replay.
+This establishes autonomous local geometric retained-attention decoding. The
+literal text is TinyStories-like but all five outputs lose the supplied subject or scene,
+so prompt-conditioned coherence, reasoning, H4-specific superiority, exact
+lowering, browser readiness, and release readiness remain unestablished. Do not
+reopen attention-existence testing or tune the revealed five prompts. Preserve
+this cell and move the next language-model rung to data-supported
+prompt-conditioned representation/capacity with an independently frozen
+behavior criterion. #954's final source-free correctness terminal remains
+blocked; no C1-SB6 is authorized. ADR-0005 and the
 append-only [#954 grounded-correctness record](docs/r4_grounded_correctness_954.md)
 remain historical mechanism/evidence context. The
 earlier frozen [#1019 parameter-capacity contract](docs/r4_softmax_parameter_capacity_1019.md)
@@ -74,7 +78,7 @@ only bounded source-backed attention evidence; it does not establish generation,
 reasoning, correctness, or a source-free runtime. #954's final source-free
 terminal remains blocked behind #973, and #955 remains blocked behind #954. The
 #1017 `r4 generate` path remains the working
-coherent-generation prototype.
+ordinary-softmax generation prototype.
 Prototype iteration uses
 one targeted compile plus one real behavior check; do not run a broad local
 suite or add a permanent gate until the mechanism is useful. The existing
@@ -161,7 +165,7 @@ passed, MPS is `UNAVAILABLE_HARDWARE_BUDGET` for the frozen eight-hour offline
 implementation, and the full campaign remains `NOT_RUN`. The subsequent fused-
 AdamW/deferred-logging fast path was slower (`4.485223` versus signed
 `3.491307 s/step`), so `fused=True` was removed and #1019 is optional/paused.
-The #1017 `r4 generate` path remains the working coherent-generation prototype.
+The #1017 `r4 generate` path remains the working ordinary-softmax generation prototype.
 #954 C1-SB2 through C1-SB5 are bounded negatives, not active answer artifacts.
 C1-SB4's full-source structured-margin arm reached only `70/126` fit
 and `35/63` sealed exact records and stopped before Rust/checkpoint/product.

@@ -2077,6 +2077,31 @@ hours remains a hard kill ceiling, never an estimate.
 - No frontier, general-intelligence, correctness, or energy-superiority claim
   follows until its own declared product evidence exists.
 
+## Current #973 retained language-path decision (2026-09-01)
+
+The independently frozen
+[`R4RetainedLanguagePathV1`](r4_retained_language_path_v1_973.md) supersedes
+older present-tense #973 next-action prose while preserving every earlier
+result as history. Its 252,160-parameter exact-H4 retained arm generalized,
+remained causally load-bearing under state removal, and stayed competitive with
+the equal-parameter ordinary causal-softmax control. Retained validation NLL
+was `3.899862`, ordinary NLL was `3.903394`, and state-off NLL was `4.234849`
+with 16,660 fewer correct next-token decisions. The terminal is
+`RETAINED_LANGUAGE_PATH_PASS`; H4-specific advantage remains
+`NOT_EVALUATED`.
+
+The separately frozen retained-only successor completed five maximum-64-token
+local decodes with valid raw UTF-8, exact fresh-artifact/fresh-zero-state
+replay, and zero forbidden, future, provider, teacher, target, or source-data
+reads. This establishes autonomous local retained decoding. All five outputs
+drift from their prompt subjects or scenes, so prompt-responsive coherence,
+reasoning, exact/table lowering, browser readiness, and release readiness
+remain unestablished. #973 now preserves the qualified retained cell and owns
+one independently frozen, data-supported representation/capacity successor
+with a prompt-conditioned behavior criterion. It does not reopen attention
+existence or tune the revealed prompts; #954 remains blocked while #973 stays
+open.
+
 ## Historical preservation
 
 The TLA/R4G1 compiler/runtime, graph programme, learned layer-29 mixer,

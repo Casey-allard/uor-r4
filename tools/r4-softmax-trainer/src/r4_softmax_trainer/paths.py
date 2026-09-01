@@ -82,3 +82,27 @@ def default_group_retention_decoder_cpu_recovery_root() -> Path:
         / "research"
         / "issue-973-group-retention-decoder-v1-cpu-recovery"
     )
+
+
+def default_language_path_source_root() -> Path:
+    """Return the shared, nonsealed #1019 source-data root."""
+
+    return model_store_root() / "research" / "issue-1019"
+
+
+def default_language_path_geometry() -> Path:
+    """Return the qualified exact-H4 geometry inherited by the new rung."""
+
+    return (
+        model_store_root()
+        / "research"
+        / "issue-973-group-retention-decoder-v1-cpu-recovery"
+        / "geometry"
+        / "r4-group-address-geometry.json"
+    )
+
+
+def default_language_path_root() -> Path:
+    """Return #973's compact retained language-path experiment root."""
+
+    return model_store_root() / "research" / "issue-973-retained-language-path-v1"

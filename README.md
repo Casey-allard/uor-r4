@@ -14,21 +14,29 @@ local hardware. The project is testing whether language context, inference,
 and reasoning can emerge from routes through a canonical geometric memory. The
 target serving engine uses no Ollama, hosted model, or source-model weights.
 
-> **Latest source-free attention experiment (2026-09-01):** #973's independently
-> frozen [`R4GroupAddressedRetentionDecoderV1` CPU recovery](docs/r4_group_addressed_retention_decoder_cpu_recovery_973.md)
-> completed all 512 construction steps in `438.117083 s`. On the disjoint
-> construction-validation partition, turning retained state off cost `0.967227`
-> nats and 182 top-1 hits;
-> this is positive bounded causal retained-attention evidence. It is not a full
-> language-model success: aggregate validation CE worsened from `8.371911` to
-> `8.976155`, so this exact 3.17M-parameter, two-block, data/dose recipe is not
-> promoted. Scrambled
-> transport was `0.033049` nats better, so this result supports no H4-specific
-> advantage.
-> Next, retain this qualified component inside an independently frozen
-> language-path generalization mechanism with a data-supported parameter budget
-> and an ordinary matched non-geometric decoder. #954 remains blocked; there is
-> no coherent generation, reasoning, exact-lowering, or release claim.
+> **Latest source-free attention result (2026-09-01):** #973's independently
+> frozen [`R4RetainedLanguagePathV1`](docs/r4_retained_language_path_v1_973.md)
+> completed `RETAINED_LANGUAGE_PATH_PASS`. The 252,160-parameter exact-H4
+> retained arm improved held-out NLL from `8.326807` to `3.899862` and top-1 by
+> `29.730558` percentage points. Disabling retained state worsened NLL by
+> `0.334988` nats and lost 16,660 correct next-token decisions. The retained
+> arm finished `0.003532` nats better and only `0.073814` points behind the
+> equal-parameter ordinary causal-softmax control, inside both frozen
+> competitiveness bounds. This establishes a generalizing, causally
+> load-bearing geometric retained-attention language path; H4-specific
+> superiority remains `NOT_EVALUATED`.
+>
+> Its separately frozen retained-only autonomous smoke then completed five
+> maximum-64-token local continuations with valid raw UTF-8, zero forbidden,
+> future, source-data, target, teacher, or provider reads/calls, and five exact
+> fresh-artifact/fresh-state replays. The text is
+> recognizably multi-sentence TinyStories-style English, but all five outputs
+> lose the prompt subject or scene and contain grammatical errors. Therefore
+> autonomous retained decoding is established; dependable prompt-conditioned
+> coherence, reasoning, exact/table lowering, browser readiness, and release
+> readiness are not. The next language-model bottleneck is representation and
+> capacity for prompt-conditioned meaning, not another proof that attention
+> exists. #954 remains blocked.
 
 > **Current attention-to-intelligence checkpoint (2026-08-31):** ordinary
 > learned causal Q/K/V attention with stable softmax is established as the
@@ -140,7 +148,7 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > [C1-SB5 aggregate](docs/r4_paired_query_binding_954_raw.json).
 >
 > The completed #1017 checkpoint is the current working 7.15M
-> coherent-generation prototype. If its local export exists, run it directly
+> ordinary-softmax generation prototype. If its local export exists, run it directly
 > with `r4 generate --prompt "..."`; the alias defaults to
 > `.uor-models/research/issue-1017/export`. #1019 closed without a full run and
 > does not block using or productizing this
@@ -618,7 +626,7 @@ To inspect one route from the command line instead:
 cargo run --bin r4 -- route "geometry is the route"
 ```
 
-To run the current working local 7.15M coherent-generation prototype:
+To run the current working local 7.15M ordinary-softmax generation prototype:
 
 ```bash
 r4 generate --prompt "Once upon a time in a quiet village"

@@ -15,21 +15,28 @@ reference; design targets remain explicitly labeled as definitions,
 assumptions, or objectives rather than measured results.
 
 > **Current forward decision (2026-09-01).** #973's independently frozen
-> [`R4GroupAddressedRetentionDecoderV1` CPU recovery](r4_group_addressed_retention_decoder_cpu_recovery_973.md)
-> completed all 512 construction steps in `438.117083 s`; result CID
-> `blake3:68355ad2f61d02dc73dbf22de4c24834815a23069ed5735630dc365081cf91db`.
-> Turning retained state off on the disjoint construction-validation partition
-> loses `0.967227` nats and 182 top-1 hits, establishing bounded causal retained-attention component
-> evidence. The exact 3.17M-parameter, two-block, data/dose decoder recipe is not
-> promoted because aggregate validation CE worsened
-> `8.371911 -> 8.976155`. Scrambled transport was
-> `0.033049` nats better, so this result supports no H4-specific advantage. Retain the
-> qualified component; next independently freeze a language-path generalization
-> mechanism with a data-supported parameter budget and an ordinary matched
-> non-geometric decoder. The old gated-delta, trace-state, intrinsic/readout,
-> and resonance lanes remain negative or parked; #954 remains blocked and no
-> C1-SB6, coherent-generation, reasoning, exact-lowering, or release claim is
-> authorized.
+> [`R4RetainedLanguagePathV1`](r4_retained_language_path_v1_973.md) completed
+> `RETAINED_LANGUAGE_PATH_PASS`. The 252,160-parameter exact-H4 retained arm
+> improved validation NLL `8.326807 -> 3.899862` and top-1 by `29.730558`
+> percentage points. Turning retained state off cost `0.334988` nats and 16,660
+> correct decisions. Retained versus the equal-parameter ordinary causal-softmax
+> control was `-0.003532` nats and `-0.073814` points, inside both predeclared
+> bounds. This establishes a generalizing and causally load-bearing geometric
+> retained-attention language path; H4-specific advantage remains
+> `NOT_EVALUATED`.
+>
+> The separately frozen retained-only successor is terminal
+> `AUTONOMOUS_GENERATION_SMOKE_COMPLETE`: five maximum-64-token outputs, valid
+> raw UTF-8, five exact fresh-artifact/fresh-zero-state replays, and zero
+> forbidden, future, provider, teacher, target, or source-data reads. The
+> outputs are multi-sentence TinyStories-style English but all five abandon
+> the supplied subject or scene and contain grammatical errors. Autonomous
+> local retained decoding is therefore established; prompt-conditioned
+> coherence, reasoning, exact/table lowering, browser readiness, and release
+> readiness are not. Do not reopen attention-existence testing or tune these
+> revealed prompts. The next language-model rung should preserve this retained
+> cell and independently freeze a data-supported representation/capacity change
+> with a prompt-conditioned behavior criterion. #954 remains blocked.
 
 > **Current forward decision after protected localization
 > (2026-08-30).** `ConnectionGaugeCovarianceV4` preserved construction-scale
@@ -1194,8 +1201,12 @@ up to the point where a structure predicts at all, and not past it.**
 ## Which track can actually produce coherent text — the honest current answer
 
 The project's ultimate runtime goal remains source-free recursive geometric
-attention, but load-bearing ordinary causal attention is now established in the
-R4/Spin reference. The immediate goal remains open #954 grounded correctness.
+attention. #973 now establishes bounded geometric retained attention and
+autonomous local retained decoding, but its first five-prompt smoke drifts from
+every prompt. The remaining language-capability gap is prompt-responsive
+coherent generation, not whether retained attention can affect held-out
+language predictions. Correctness and reasoning remain downstream and
+unestablished; #954 grounded correctness remains blocked while #973 is open.
 After the bounded generative SFT and cosine source-span pointer failed their
 frozen transfer/development gates, `R4SourceRelativeRelationHeadV1` fit its
 matched construction families but failed independent lexical transfer at its

@@ -10,21 +10,24 @@ preserved #948–#958 sequencing record. Measured, refuted, and frozen research
 remains in [docs/RESEARCH.md](docs/RESEARCH.md).
 
 **Active correction (2026-09-01):** #973's independently frozen
-[`R4GroupAddressedRetentionDecoderV1` CPU recovery](docs/r4_group_addressed_retention_decoder_cpu_recovery_973.md)
-completed all 512 construction steps. State-off on the disjoint construction
-validation partition lost `0.967227` nats and 182 top-1 hits, qualifying one bounded causal
-retained-attention component. The exact 3.17M-parameter, two-block, data/dose
-recipe did not satisfy its frozen full-decoder generalization criterion:
-aggregate validation CE moved `8.371911 -> 8.976155`; it is not promoted. Scrambled
-transport was `0.033049` nats better, so no H4-specific advantage is claimed.
-The next #973 action is an independently frozen language-path generalization
-mechanism with a data-supported parameter budget and an ordinary matched
-non-geometric decoder. #954 stays blocked, no C1-SB6 is authorized, and no
-coherent-generation, reasoning, exact-lowering, or release claim follows.
+[`R4RetainedLanguagePathV1`](docs/r4_retained_language_path_v1_973.md) is
+terminal `RETAINED_LANGUAGE_PATH_PASS`. The exact-H4 retained arm generalized,
+remained load-bearing under state removal, and stayed competitive with the
+equal-parameter ordinary causal-softmax control. Its retained-only successor
+then completed five maximum-64-token autonomous local decodes with valid raw
+UTF-8, exact fresh-load replay, and zero forbidden, future, source-data, target,
+teacher, or provider reads/calls. This
+establishes bounded geometric retained attention and autonomous retained
+decoding. All five outputs drift from their supplied subjects or scenes, so
+prompt-responsive coherence, reasoning, H4-specific superiority, exact
+lowering, browser readiness, and release readiness remain unestablished. The
+next #973 rung preserves this cell and freezes a data-supported
+representation/capacity change with a prompt-conditioned behavior criterion.
+#954 stays blocked and no C1-SB6 is authorized.
 
-_Last reviewed: 2026-09-01 (#973 group-addressed decoder completed its CPU
-recovery with bounded retained-attention evidence but did not satisfy its frozen
-full-decoder generalization or H4-separation criteria; #961 reversible S0 landed;
+_Last reviewed: 2026-09-01 (#973 retained language-path generalization and
+autonomous local decoding passed; prompt-responsive coherence and H4 specificity
+remain unestablished; #961 reversible S0 landed;
 #952 A1.0 stopped at
 `REDESIGN_ORDERED_ROUTE_SUMMARY`; #967 A1R terminated `RETAIN_STATE_ONLY`;
 #970 A1P produced the bounded paired-H4-derived exact R4-heatmap result
@@ -784,17 +787,19 @@ historical evidence and comparators.
 
 ## Active
 
-- [ ] **#973 language-path generalization of qualified retained attention** —
-  `R4GroupAddressedRetentionDecoderV1CpuRecovery` completed all 512 construction
-  steps. State-off on the disjoint construction-validation partition lost
-  `0.967227` nats and 182 top-1 hits, so the
-  bounded causal retained-attention component is qualified. The exact
-  complete-decoder recipe is not promoted because aggregate validation CE worsened
-  `8.371911 -> 8.976155`; scrambled transport was `0.033049` nats better, so no
-  H4-specific advantage is claimed. Independently freeze a data-supported
-  language-path decoder with an ordinary matched non-geometric control. This is
-  not coherent-generation, reasoning, exact-lowering, or release evidence. See
-  the [binding record](docs/r4_group_addressed_retention_decoder_cpu_recovery_973.md).
+- [ ] **#973 prompt-responsive capacity over qualified retained attention** —
+  `R4RetainedLanguagePathV1` is terminal `RETAINED_LANGUAGE_PATH_PASS`: held-out
+  retained NLL `3.899862`, ordinary-control NLL `3.903394`, and state-off NLL
+  `4.234849` with 16,660 lost top-1 decisions. Its retained-only successor
+  completed `5/5` bounded local decodes with valid raw UTF-8, exact replay, and
+  zero forbidden, future, source-data, target, teacher, or provider reads/calls.
+  Autonomous retained decoding is established,
+  but all five outputs drift from their prompts. Preserve the cell and freeze
+  one data-supported representation/capacity successor with a
+  prompt-conditioned behavior criterion. Do not reopen attention-existence
+  testing or claim coherence, reasoning, H4 superiority, exact lowering, or
+  release readiness. See the
+  [binding record](docs/r4_retained_language_path_v1_973.md).
 
 - [ ] **#954 grounded correctness: C1-SB5 retired negative; final source-free
   terminal blocked behind #973** — retain the
