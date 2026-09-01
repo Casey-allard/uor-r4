@@ -14,31 +14,180 @@ local hardware. The project is testing whether language context, inference,
 and reasoning can emerge from routes through a canonical geometric memory. The
 target serving engine uses no Ollama, hosted model, or source-model weights.
 
-> **Current attention-to-intelligence checkpoint (2026-08-30):** ordinary
+> **Latest source-free attention experiment (2026-09-01):** #973 was
+> independently re-scoped to
+> [`R4GroupAddressedRetentionLMV1`](docs/r4_group_addressed_retention_973.md), a
+> fixed-size group-addressed R4 state with matched exact-H4, cyclic-120, and
+> destructive scrambled-H4 arms. It terminated
+> `UNAVAILABLE_FRAME_POPULATION_OR_LOCAL_BUDGET`: geometry, population,
+> reachability, gradients, memory, and equal work passed, but timing and the
+> disposable learning smoke did not. Main optimization and held-out model
+> scoring are `NOT_RUN`, with zero held-out training reads, so there is no
+> attention or H4-advantage verdict. Do not tune or retry this exact cell. #973's
+> next research action is to scientifically select and independently freeze a
+> fuller source-free decoder block. #954 remains blocked and no C1-SB6 is
+> authorized.
+
+> **Current attention-to-intelligence checkpoint (2026-08-31):** ordinary
 > learned causal Q/K/V attention with stable softmax is established as the
-> equivalence baseline in coherent R4/Spin frames. The completed
+> equivalence baseline in coherent R4/Spin frames. The directly trained
+> 7,155,360-parameter [#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014)
+> model now supplies the binding intervention evidence: enabled sealed-test
+> NLL was `2.127407277216677`, while zeroing every attention output after
+> `W_o` and before the residual raised it to `4.804799838144271`, a
+> `2.6773925609275944`-nat penalty versus the frozen `0.10` minimum. Final
+> enabled and attention-off Python/Rust top-1 matched with maximum logit deltas
+> `0.00000762939453125` and `0.00001239776611328125`, both inside `0.005`,
+> while all six layers passed exact causal/R4 audits with zero future reads.
+> This establishes load-bearing ordinary causal attention at the declared
+> learned R4/Spin scope; it is not a geometry-advantage result.
+>
+> That frozen campaign failed its full language-quality Definition of Done:
+> enabled NLL exceeded the `1.50` ceiling and subject-or-scene retention was
+> `3/5`, below `4/5`. All five outputs were valid UTF-8, avoided period-one
+> through period-four loops, and replayed exactly. The campaign closes negative
+> without rerun or tuning. Its one separately frozen quality-capacity successor,
+> [#1017](https://github.com/UOR-Foundation/uor-r4/issues/1017), has now also
+> completed. It reached `149,995,520` cumulative training tokens and selected
+> development NLL `1.580241072373312`. Enabled-only Python/Rust parity passed
+> with identical top-1 and maximum logit delta
+> `0.0000057220458984375`; all six R4/Spin layers and every causal/external audit
+> passed. The one-time fresh sealed reveal scored NLL
+> `1.5727521962806827`, failing the strict `<1.50` gate, while all `5/5` fixed
+> continuations passed subject-or-scene retention and all `5/5` normalized
+> replays were exact. The complete #1017 verdict is therefore negative solely
+> on NLL. Attention remains established, but dependable general language
+> quality remains unresolved. There is no rerun, learning-rate adjustment, or
+> further exposure extension for this 7.15M-parameter model. That successor is
+> now frozen as [#1019](https://github.com/UOR-Foundation/uor-r4/issues/1019):
+> one fresh 12-layer, 13,130,784-parameter model with seed 1019, exactly 16,800
+> optimizer steps and 275,251,200 training tokens over the same attention and
+> Rust evidence path. Its fresh population is `PASS`; the 400-step,
+> 64-sequence MPS overfit smoke is `PASS` with `81.9752%` loss reduction; and
+> random-export/all-12-layer Rust preflight parity is `PASS` with maximum absolute logit
+> delta `0.0000443459`. The signed 200-step MPS probe passed memory at `21.03%`
+> but failed time: its safety projection was `20.66 h`, above the `8 h` ceiling,
+> so that frozen offline PyTorch/MPS implementation is terminal
+> `UNAVAILABLE_HARDWARE_BUDGET`. Full training, final qualification, sealed
+> reveal, generation, and replay remain `NOT_RUN`. This does not redirect UOR:
+> the deployed architecture/runtime remains CPU-native; Apple Accelerate/BLAS
+> and MPS are local offline training/compilation/test accelerators only; CUDA
+> and external GPU execution are out of scope. A single isolated exact-shape
+> MPS fast-path test (10 warmup plus 40 measured steps) combined fused AdamW
+> with deferred logging and measured `4.485223 s/step`, slower than the signed
+> `3.491307 s/step`; `fused=True` was removed immediately. This is a bounded
+> fast-path negative, not a model result. #1019 closed without a full run.
+> #954's first bounded grounding SFT then failed product transfer at `1/3`.
+> Its `R4SourceSpanPointerV1` successor passed the 12/12 overfit preflight and
+> Python/Rust score parity, but its sole 256-step fit stopped
+> `FAIL_SOURCE_SPAN_POINTER_DEVELOPMENT_GATE_STOP`: answer, abstain, conflict,
+> and supported-pointer development accuracy were `69.53125%`, `89.0625%`,
+> `91.40625%`, and `94.53125%`, all below the frozen `>=95%` gates. No final
+> pointer artifact was emitted and the reserved product probes were `NOT_RUN`.
+> Its frozen source-relative successor, `R4SourceRelativeRelationHeadV1`
+> (C1-SB2), is implemented and completed only its cheap matched-transfer
+> preflight. The fitted families scored 12/12 positive relations, 20/20
+> negatives, and 6/6 supported copies; the independently sealed families scored
+> 5/12 positives, 14/20 negatives, and 0/6 copies. Same-source matched-pair,
+> query-swap, duplicate-agreement, and distinct-conflict controls were false.
+> C1-SB2 therefore stopped before Rust parity, the sole 512-step full fit,
+> development, and product reveal; no final relation head was emitted. Do not
+> tune or retry either revealed head. C1-SB3
+> `R4AttendedRelationAdapterV1` then trained rank-eight Q/K/V/O adapters through
+> all six existing attention layers with a fixed yes/no tied-token verbalizer
+> and no trainable head. It produced bounded mechanistic transfer: sealed
+> positive recall moved from base `0/76` to trained `73/76`, trained negative
+> specificity was `234/239`, all 24 attention tensors changed, and no
+> non-attention tensor changed. The exact gate still failed: fit outcomes were
+> `124/126`; sealed outcomes were `56/63` (answer `19/21`, abstain `19/21`,
+> conflict `18/21`), with copies `19/21`. Rust parity, the sole full fit,
+> development, and the four committed but unopened product probes are
+> `NOT_RUN`; no final adapter exists. Do not tune or retry this
+> independent-candidate BCE adapter. C1-SB4
+> `R4JointCandidateMarginAdapterV1` then executed its independently frozen
+> full-source, record-level structured-margin run. All positive groups were
+> recovered, but negative specificity was only `394/478` fit and `197/239`
+> sealed; exact records were `70/126` and `35/63`, and same-source query
+> relocation was not exact. It stopped before Rust parity, checkpoint,
+> development, or its four committed unopened products. Do not retry C1-SB4.
+> A question-ignoring rule that marks text containing ` is inside ` as
+> supported reproduces every published C1-SB4 aggregate exactly; per-row model
+> scores were not retained, so this is aggregate-equivalent shortcut evidence,
+> not a claim about the model's internal computation.
+> C1-SB5 `R4PairedQueryCandidateMatrixV1` then fit `56/56` paired records but
+> reached only `14/28` exact sealed pairs. Query-row-swap equivariance was
+> bit-exact, while pair-mean-query and inference-time attention-off controls were
+> each `0/28`. The product population remained unopened; no checkpoint or
+> binding-head artifact was emitted, and Rust parity, development, and product
+> evaluation were `NOT_RUN`. Terminal `FAIL_PAIRED_QUERY_BINDING_PREFLIGHT`
+> retires this rung without retry. It leaves attention established only at the
+> bounded source-backed scope and does not establish generation, reasoning,
+> correctness, or a source-free runtime.
+> #954's final source-free terminal remains blocked behind #973, and #955
+> remains blocked behind #954.
+> See the [#1017 record](docs/r4_softmax_quality_capacity_continuation_1017.md),
+> [#1017 structured aggregate](docs/r4_softmax_quality_capacity_continuation_1017_raw.json),
+> [#1019 frozen contract](docs/r4_softmax_parameter_capacity_1019.md),
+> [#1019 structured contract](docs/r4_softmax_parameter_capacity_1019_raw.json),
+> [#1019 signed preflight/admission result](docs/r4_softmax_parameter_capacity_preflight_1019_raw.json),
+> [#1014 record](docs/r4_softmax_end_to_end_attention_1014.md) and
+> [structured aggregate](docs/r4_softmax_end_to_end_attention_1014_raw.json),
+> plus the [#954 correctness campaign](docs/r4_grounded_correctness_954.md),
+> [corrected C1-SB3 aggregate](docs/r4_attended_relation_adapter_954_raw.json),
+> [C1-SB4 aggregate](docs/r4_joint_candidate_margin_954_raw.json), and
+> [C1-SB5 aggregate](docs/r4_paired_query_binding_954_raw.json).
+>
+> The completed #1017 checkpoint is the current working 7.15M
+> coherent-generation prototype. If its local export exists, run it directly
+> with `r4 generate --prompt "..."`; the alias defaults to
+> `.uor-models/research/issue-1017/export`. #1019 closed without a full run and
+> does not block using or productizing this
+> bounded #1017 path. It remains source-backed, floating-point/matmul/softmax,
+> and below the strict NLL target; it does not establish geometry advantage,
+> transformerlessness, correctness, reasoning, frontier quality, browser/WASM
+> readiness, or release readiness.
+>
+> The completed
 > `R4SoftmaxTraceStudentV1` then compiled construction-side teacher traces into
 > a source-free Q16 suffix artifact and showed bounded distillation relative to
 > its count and document-permuted controls. Its autonomous continuation still
 > entered a repetition loop. That result is not geometric attention, coherent
 > generation, correctness, general-purpose inference, or reasoning.
 >
-> The active rung is `R4SoftmaxTraceStateStudentV1`: compile construction traces
-> into recurrent R4/Spin state whose prediction path reads only prior compiled
-> state, observed token IDs, and independently available canonical addresses and
-> frames. It must beat the frozen suffix, plain-recurrent, and
-> transport-permuted controls on held-out next-token decisions/loss, preserve a
-> geometry-destroying control effect, replay exactly without source weights, and
-> avoid period-1/2 decoding loops. Offline teacher/compiler work may use floats,
-> matrix operations, and softmax while establishing the mechanism; the deployed
-> destination remains exact, integer/table-native, and source-free.
+> `R4SoftmaxTraceStateStudentV1` is now complete and negative at its frozen
+> promotion gate. Its geometric arm moved covered CE only from `2.660721032` to
+> `2.660705367`, changed no teacher or actual-next top-1 decision, separated
+> from the transport-permuted control by only `0.000023848` nats versus the
+> required `0.10`, and produced the identical period-two `, Scotland` loop.
+> Exact replay and the zero-source/future-read audit passed, so this is a
+> representation failure rather than an execution-integrity failure.
+>
+> [#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012) is now measured
+> at `INSUFFICIENT_SUPPORT_COVERAGE`: aggregate primary coverage was
+> `0.6202622204224402`, but the minimum held-document fold covered only
+> `0.3469116829611222`, below the frozen 50% floor. Boundary attribution is
+> therefore forbidden. On the covered rows, the full current-step Q/K/V probe
+> was also `0.0003463194386417179` nats worse than the suffix baseline with the
+> required direction in `0/4` folds; both retained `14/26` teacher-top-1 and
+> `6/26` actual-next top-1. The label-rotation control separated by
+> `1.3807454322642605` nats in `4/4`, so the instrument was sensitive but did
+> not demonstrate useful gain over suffix. Exact replay and zero source-model,
+> future, or document-13 reads passed.
+>
+> The project will not expand support or build another observability ladder for
+> this bounded current-step trace-distillation path. #1014 has now executed the
+> direct-learning pivot and separates the established attention mechanism from
+> the still-negative quality gate. See the
+> [#1012 measured record](docs/r4_softmax_trace_observability_1012.md).
 >
 > The hosted GitHub Pages surface is currently a static visualization that
 > reports WASM offline and has no functioning chat backend or compiled-artifact
 > lowering. It is not a product proof and does not change the active research
 > gate. No tag, release, hosted-chat, coherent-generation, correctness, or
 > reasoning claim is authorized. See the
-> [trace-student record](docs/r4_softmax_trace_student_973.md).
+> [state-student result](docs/r4_softmax_trace_state_student_1011.md), the
+> [#1012 measured record](docs/r4_softmax_trace_observability_1012.md), and the
+> [#1014 result](docs/r4_softmax_end_to_end_attention_1014.md).
 
 > **Prior #973 evidence chain leading to this checkpoint (2026-08-30):** routing, exact R4/spin
 > state, least-cost selection, and multiscale hierarchy remain the geometric
@@ -135,14 +284,60 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > `NOT_RUN`. The feature is disabled by default and does not change the default
 > engine. This remains a native CPU research reference,
 > not a source-free, transformerless, static-WASM, release, or frontier-model
-> result. #973 remains open and #954 remains blocked. That next rung is now
-> complete: `R4SoftmaxTeacherTraceV1` supplied construction traces and
+> result. #973 remains open for its intrinsic/source-free terminal; #954's
+> cosine source-span pointer stopped at its development gate, and its implemented
+> C1-SB2 relation head then stopped at failed matched-transfer preflight before
+> Rust parity/full fit/development/product, without a final head. C1-SB3's
+> rank-eight all-layer Q/K/V/O adapter then changed only the 24 attention
+> tensors and improved sealed positive recall from `0/76` to `73/76`, but it
+> missed the exact fit/sealed gates (`124/126`, `56/63`) and stopped before
+> parity, full fitting, development, or its unopened product reveal. C1-SB4's
+> full-source structured-margin successor then failed at `70/126` fit and
+> `35/63` sealed exact records, with perfect positive-group recall but only
+> `82.43%` negative specificity. Rust/checkpoint/development/product stayed
+> `NOT_RUN`; do not retry it. C1-SB5 later fit `56/56` pairs but reached only
+> `14/28` sealed and retired before checkpoint/head/Rust/development work, with
+> its product population unopened. #954's final source-free terminal remains
+> blocked behind #973, and #955 remains blocked behind #954.
+> The trace/compiler rung
+> that followed that checkpoint is now complete: `R4SoftmaxTeacherTraceV1`
+> supplied construction traces and
 > `R4SoftmaxTraceStudentV1` compiled a source-free Q16 suffix artifact with a
-> bounded distillation effect, but its autonomous text looped. The active
-> `R4SoftmaxTraceStateStudentV1` rung must turn construction traces into causal
-> recurrent R4/Spin state and beat its frozen controls without source access.
-> Intrinsic/readout, resonance, softmax replacement, and product promotion
-> remain parked until that artifact passes. No tag, release, hosted
+> bounded distillation effect, but its autonomous text looped. The subsequent
+> `R4SoftmaxTraceStateStudentV1` recurrent rung also stopped: its minute CE
+> change was not decision-bearing or materially geometry-dependent, and the
+> same loop remained. The subsequent construction-only observability audit
+> completed at `INSUFFICIENT_SUPPORT_COVERAGE` and cannot attribute a boundary.
+> #1014 then directly trained the end-to-end R4/Spin causal-softmax model. Its
+> `2.6773925609275944`-nat attention-off penalty and two-arm Rust parity
+> establish load-bearing ordinary attention, while enabled NLL `2.127407` and
+> subject/scene retention `3/5` fail the frozen quality DoD. That campaign is
+> closed to rerun or tuning. #1017's fixed exposure-only successor improved the
+> fresh sealed NLL to `1.5727521962806827` and prompt retention to `5/5`, with
+> enabled Rust parity and exact replay, but still failed the strict `<1.50`
+> quality gate. #1019 now freezes that capacity rung at twelve layers and
+> 13,130,784 parameters over the qualified mechanism and runtime evidence path.
+> Population, the 400-step MPS overfit smoke, and random-export/all-12-layer
+> Rust parity passed, but the signed MPS probe stopped
+> `UNAVAILABLE_HARDWARE_BUDGET` for the frozen eight-hour offline
+> implementation, and full training through replay remains `NOT_RUN`. The
+> fused-AdamW/deferred-logging fast path was slower (`4.485223` versus signed
+> `3.491307 s/step`); #1019 closed without a full run. #954's cosine pointer
+> stopped before final artifact or product reveal. Its implemented C1-SB2
+> source-relative relation successor then failed matched-transfer preflight and
+> stopped before Rust parity/full fit/development/product, without a final head.
+> C1-SB3's no-head, fixed-verbalizer rank-eight Q/K/V/O adapter established
+> bounded representation transfer but failed its exact gate at fit `124/126`
+> and sealed `56/63`; parity/full fit/development/product remain `NOT_RUN`.
+> C1-SB4's independently frozen full-source structured-margin successor then
+> failed at `70/126` fit and `35/63` sealed exact records and stopped before
+> Rust/checkpoint/development/product. Do not retry it. C1-SB5 subsequently fit
+> `56/56` paired records but generalized to `14/28` sealed and retired without a
+> checkpoint/head/Rust/development stage; its products remained unopened.
+> CUDA and external GPU execution are out of scope. No
+> further 7.15M exposure or learning-rate tuning is authorized.
+> Intrinsic/readout substitution, resonance, softmax replacement, scale, and
+> product promotion remain parked. No tag, release, hosted
 > promotion, or browser-WASM claim is authorized. See the
 > [V4 connection-gauge record](docs/connection_gauge_covariance_v4_973.md), the
 > [direct-attention history](docs/direct_causal_geometric_attention_973.md), the
@@ -152,6 +347,7 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > [generation result](docs/r4_softmax_reference_generation_973.md), the
 > [compact attempt-01 aggregate](docs/r4_softmax_reference_generation_attempt_01_result_973.json),
 > [native bridge result](docs/r4_softmax_reference_http_bridge_973.md),
+> [#1014 end-to-end result](docs/r4_softmax_end_to_end_attention_1014.md),
 > [ADR-0005](docs/adr/0005-predictive-geometric-connection-memory.md) and the
 > [Geometric Intelligence Programme](docs/geometric_intelligence_programme.md).
 >
@@ -205,8 +401,33 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > subsequently passed without changing the default engine. Dashboard
 > wiring/readiness and static/WASM-isolation checks passed; browser E2E remains
 > `NOT_RUN`. The trace-capture/Q16 suffix-student successor later completed with
-> bounded source-free distillation but looping output. The active successor is
-> `R4SoftmaxTraceStateStudentV1`; #954 remains blocked.
+> bounded source-free distillation but looping output. Its recurrent state
+> successor failed promotion, and the following #1012 observability audit
+> completed at `INSUFFICIENT_SUPPORT_COVERAGE`. #1014 subsequently established
+> load-bearing ordinary causal attention through its `2.677393`-nat
+> attention-off intervention and Rust parity, but failed its full quality DoD
+> at enabled NLL `2.127407` and subject/scene retention `3/5`. It closes
+> negative. #1017's separate continuation then reached `5/5` retention but
+> failed NLL only at `1.5727521962806827`. #1019 records an optional frozen
+> 12-layer, 13,130,784-parameter successor. Its population, MPS overfit smoke,
+> and random-export/all-12-layer Rust preflight parity passed, but its MPS hardware path
+> stopped `UNAVAILABLE_HARDWARE_BUDGET` for the frozen eight-hour offline
+> implementation; full training, final qualification, reveal, generation, and
+> replay remain `NOT_RUN`. The fused-AdamW/deferred-logging fast path was slower
+> (`4.485223` versus signed `3.491307 s/step`); #1019 closed without a full run.
+> #954's cosine pointer stopped at its development gate; its implemented C1-SB2
+> relation successor then failed matched-transfer preflight before Rust parity,
+> full fit, development, or product reveal, and emitted no final head. C1-SB3's
+> rank-eight all-layer Q/K/V/O adapter then improved sealed positive recall from
+> `0/76` to `73/76` with no non-attention changes, but failed its exact outcome
+> gate at fit `124/126` and sealed `56/63`; later stages remain `NOT_RUN`.
+> C1-SB4's full-source record-margin successor then failed at `70/126` fit and
+> `35/63` sealed exact records. Rust/checkpoint/development/product remain
+> `NOT_RUN`; do not retry it. C1-SB5 later fit `56/56` paired records but reached
+> `14/28` sealed and retired with products unopened and no emitted artifacts.
+> CUDA and
+> external GPU execution are out of scope. #954's final source-free terminal
+> remains blocked behind #973, and #955 remains blocked behind #954.
 > See the
 > [bounded-global record](docs/bounded_global_exact_spin_attention_973.md).
 
@@ -269,8 +490,21 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > `R4SoftmaxReferenceGeneratorV1` (`HELM-D-R4`) generation subsequently passed.
 > Its opt-in, loopback-only dedicated native HTTP endpoint then passed exact CLI
 > canary parity. Dashboard wiring/readiness and static/WASM-isolation checks
-> passed; browser E2E remains `NOT_RUN`. Construction-only trace capture and source-free student
-> compilation are next; #954 remains blocked. See the
+> passed; browser E2E remains `NOT_RUN`. The source-free trace/state attempts
+> are preserved negatives; #954's cosine pointer is also a bounded negative.
+> Its implemented C1-SB2 relation successor failed matched-transfer preflight
+> before Rust parity/full fit/development/product and emitted no final head.
+> C1-SB3 then showed bounded attention-representation transfer but missed its
+> exact preflight (`124/126` fit outcomes; `56/63` sealed), so parity/full fit/
+> development/product remain `NOT_RUN`. C1-SB4's independently frozen
+> full-source structured-margin arm then failed at `70/126` fit and `35/63`
+> sealed exact records; no Rust/checkpoint/product followed and no retry is
+> authorized. C1-SB5 then fit `56/56` pairs but reached `14/28` sealed and
+> retired before checkpoint/head/Rust/development; products remained unopened.
+> The
+> final source-free terminal remains blocked behind #973, and #955 remains
+> blocked behind #954.
+> See the
 > [conversation record](docs/conversation_entity_spin_path_attention_973.md).
 
 > **Accepted capability-first evidence (2026-08-28):** #953's frozen
@@ -332,11 +566,30 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > explicit opt-in, loopback-only dedicated native HTTP endpoint now passes the
 > frozen eight-token CLI-parity canary without changing the default engine.
 > Dashboard wiring/readiness and static/WASM-isolation checks pass; browser E2E
-> is `NOT_RUN`. The
-> current gate is `R4SoftmaxTraceStateStudentV1`, following a bounded positive
-> source-free suffix-distillation result whose autonomous output still looped.
-> #954 remains blocked behind #973. General higher-scope attention, correct
-> answers, and reasoning do not exist yet. The
+> is `NOT_RUN`. The trace/state observability audit later completed at
+> insufficient support; #1014 established load-bearing attention, and #1017
+> closed NLL-only negative. #1019's optional frozen 12-layer,
+> 13,130,784-parameter campaign recorded population, MPS overfit smoke, and
+> random-export/all-12-layer Rust preflight parity passed; the MPS hardware path stopped
+> `UNAVAILABLE_HARDWARE_BUDGET` for the frozen eight-hour offline
+> implementation, so the full campaign remains `NOT_RUN`. The fused-AdamW/
+> deferred-logging fast path was slower (`4.485223` versus signed
+> `3.491307 s/step`); #1019 closed without a full run. #954's cosine pointer
+> stopped before final artifact or reveal; its implemented C1-SB2 relation
+> successor then failed matched-transfer preflight before Rust parity/full
+> fit/development/product and emitted no final head. C1-SB3's rank-eight
+> all-layer Q/K/V/O adapter changed only attention tensors and transferred most
+> sealed relations (`73/76` positive, `234/239` negative), but missed the exact
+> fit/sealed outcome gates (`124/126`, `56/63`) and stopped before all later
+> stages. C1-SB4's full-source structured-margin successor then recovered every
+> positive group but only `82.43%` of negative groups, yielding `70/126` fit and
+> `35/63` sealed exact records. Rust/checkpoint/development/product are
+> `NOT_RUN`; do not retry it. C1-SB5 later fit `56/56` pairs but reached `14/28`
+> sealed and retired before checkpoint/head/Rust/development, with products
+> unopened. CUDA and external GPU execution
+> are out of scope. #954's final source-free terminal remains blocked behind
+> #973, and #955 remains blocked behind #954. General higher-scope attention,
+> correct answers, and reasoning do not exist yet. The
 > dashboard is an interactive window into the research substrate, not a
 > frontier model or a ChatGPT replacement.
 
@@ -362,6 +615,103 @@ To inspect one route from the command line instead:
 ```bash
 cargo run --bin r4 -- route "geometry is the route"
 ```
+
+To run the current working local 7.15M coherent-generation prototype:
+
+```bash
+r4 generate --prompt "Once upon a time in a quiet village"
+```
+
+`generate` defaults to `$UOR_MODEL_STORE/research/issue-1017/export` (or
+`.uor-models/research/issue-1017/export` when the variable is unset). It requires
+that local export and is a bounded #1017 prototype: provider-free at execution,
+but still source-backed, floating-point/matmul/softmax, and below the strict
+`<1.50` NLL target. #1019 was closed without another capacity run; it is not a
+prerequisite for using or productizing this path.
+
+The bounded `answer` interface now admits only an exact
+`Where is the <subject>?` question and punctuation-terminated source spans:
+
+```bash
+r4 answer --source-file facts.txt --question "Where is the copper compass?" \
+  --head /path/to/qualified-source-relation-head.json \
+  --json-output grounded-answer.json
+```
+
+For a source-relative relation head, `answer` pairs each of two to eight exact
+punctuation-terminated source sentences with the question, captures the #1017
+model's normalized causal R4/Spin state at the final question token, and uses
+the explicitly supplied qualified `--head` artifact to choose an exact source
+span, typed abstention, or typed conflict. The source is content-addressed and
+read again after evaluation to detect change. This is a fail-closed extractive
+seam, not semantic-entailment or general-correctness evidence.
+
+The first fixed #954 MPS fine-tune completed in 14 minutes 44 seconds on the
+project M1, but its frozen Rust product population failed `1/3`: all three
+prompts decoded `ABSTAIN`, so only the unsupported question passed. The command
+therefore fails safely, but this checkpoint is not a usable answer model. It is
+not rerun or tuned. The subsequent `R4SourceSpanPointerV1` preflight passed
+12/12, and Python/Rust parity passed with maximum score delta
+`1.234420776e-7` and maximum logit delta `1.428717041e-6`, both inside `0.01`.
+The sole 256-step fit nevertheless missed every frozen development gate:
+answer `89/128` (`69.53125%`), abstain `114/128` (`89.0625%`), conflict
+`117/128` (`91.40625%`), and supported pointer `121/128` (`94.53125%`) versus
+`>=95%` each. It stopped `FAIL_SOURCE_SPAN_POINTER_DEVELOPMENT_GATE_STOP`
+before producing a final pointer artifact; the three reserved product probes
+and browser/HTTP wiring are `NOT_RUN`. The implemented
+`R4SourceRelativeRelationHeadV1` C1-SB2 successor then fit 12/12 positive
+relations, 20/20 negatives, and 6/6 supported copies on its two fit families,
+but transferred only 5/12 positives, 14/20 negatives, and 0/6 copies to its two
+sealed families. Same-source matched-pair, query-swap, duplicate-agreement, and
+distinct-conflict controls were false, so C1-SB2 stopped before Rust parity,
+the sole 512-step full fit, development, and product reveal. It emitted no final
+head. Consequently the default `r4 answer` surface is unavailable unless an
+explicitly qualified relation-head artifact exists. Do not tune or retry either
+revealed head. C1-SB3 `R4AttendedRelationAdapterV1` then used rank-eight LoRA
+updates on Q/K/V/O in all six attention layers, a fixed yes/no tied-token
+verbalizer, and no trainable classifier head. It moved sealed positive recall
+from base `0/76` to trained `73/76`, reached negative specificity `234/239`,
+changed all 24 attention tensors, and left all non-attention tensors unchanged.
+That is bounded mechanistic representation-transfer evidence, but not a
+qualified answer mechanism: fit outcomes were `124/126`; sealed outcomes were
+`56/63` (answer `19/21`, abstain `19/21`, conflict `18/21`), and supported
+copies were `19/21`. The exact gate stopped Rust parity, the sole full fit,
+development, and all four committed but unopened product probes as `NOT_RUN`.
+Do not tune or retry this independent-candidate BCE adapter. C1-SB4 then ran
+the independently frozen full-source, record-level structured-margin
+representation. It recovered `126/126` fit and `63/63` sealed positive groups,
+but rejected only `394/478` and `197/239` negatives. Exact records were
+`70/126` fit and `35/63` sealed; same-source query relocation was not exact.
+Rust parity, checkpoint emission, development, and product remained `NOT_RUN`.
+Do not tune or retry C1-SB4. C1-SB5 then fit `56/56` paired records but reached
+only `14/28` sealed; row-swap equivariance was bit-exact and mean-query plus
+attention-off controls were `0/28`. Its products remained unopened, no
+checkpoint/head was emitted, and Rust/development were `NOT_RUN`; retire the
+rung without retry. #954's final
+source-free terminal remains blocked behind #973, and #955 remains blocked
+behind #954. See the
+[#954 record](docs/r4_grounded_correctness_954.md) and
+[C1-SB0 structured result](docs/r4_grounded_correctness_954_raw.json) plus the
+[C1-SB1 pointer result](docs/r4_source_span_pointer_954_raw.json) and
+[C1-SB2 relation result](docs/r4_source_relation_head_954_raw.json), the
+[corrected C1-SB3 result](docs/r4_attended_relation_adapter_954_raw.json), and
+[C1-SB4 result](docs/r4_joint_candidate_margin_954_raw.json), followed by the
+[C1-SB5 result](docs/r4_paired_query_binding_954_raw.json).
+
+On Apple Silicon, build the opt-in CPU-BLAS version so local inference uses the
+machine's Accelerate framework:
+
+```bash
+cargo build --release --offline --features local-inference-accelerate --bin r4
+target/release/r4 generate --prompt "Once upon a time"
+```
+
+On the project M1, the same four-token #1017 prompt produced token IDs
+`[14, 403, 285, 261]` and text `, there was a` under both exact `uor-matmul`
+and Accelerate. Output and attention-audit CIDs were identical. Accelerate cut
+measured generation from `3.060506042 s` to `0.116236875 s` (`26.33x`) and
+end-to-end wall time from `3.41 s` to `0.52 s` (`6.56x`). The complete report
+still differs intentionally because backend provenance and timing differ.
 
 To run the qualified source-backed R4/Spin softmax reference generator from an
 already-local pinned SmolLM2 snapshot:
@@ -590,8 +940,34 @@ exact-descriptor/entity-binding path selector apiece at their respective
    HTTP endpoint now pass. Dashboard wiring/readiness and static/WASM-isolation
    checks pass; the hosted Pages surface is static, currently reports WASM
    offline, and has no working chat backend/artifact lowering. The Q16 suffix
-   trace student completed with bounded distillation but looping output;
-   `R4SoftmaxTraceStateStudentV1` is next and #954 stays blocked.
+   trace student completed with bounded distillation but looping output; its
+   recurrent `R4SoftmaxTraceStateStudentV1` successor then failed to produce a
+   material or selection-bearing effect. The subsequent construction-only
+   observability audit completed at `INSUFFICIENT_SUPPORT_COVERAGE` and cannot
+   attribute a boundary. #1014 then directly trained the frozen R4/Spin
+   causal-softmax model: its `2.677393`-nat attention-off penalty and two-arm
+   Rust parity establish attention, but enabled NLL `2.127407` and
+   subject/scene retention `3/5` fail its quality DoD. Close that exact campaign
+   without tuning. #1017's separate exposure continuation then passed retention
+   `5/5` and all mechanical gates but failed only sealed NLL at
+   `1.5727521962806827`. #1019 now freezes that 12-layer parameter-capacity
+   contract. Population, smoke, and random-export parity passed, but MPS
+   admission stopped `UNAVAILABLE_HARDWARE_BUDGET` for the frozen eight-hour
+   offline implementation; full training through replay remains `NOT_RUN`.
+   The fused-AdamW/deferred-logging fast path was slower (`4.485223` versus
+   signed `3.491307 s/step`); #1019 closed without a full run. #954's cosine
+   pointer stopped before final artifact or product reveal; its implemented
+   C1-SB2 relation successor then failed matched-transfer preflight before Rust
+   parity/full fit/development/product and emitted no final head. C1-SB3's
+   rank-eight all-layer Q/K/V/O adapter showed bounded transfer (`0/76` to
+   `73/76` sealed positive recall) but failed exact outcomes at fit `124/126`
+   and sealed `56/63`; parity/full fit/development/product are `NOT_RUN`.
+   C1-SB4's full-source structured-margin successor then failed at `70/126` fit
+   and `35/63` sealed exact records and stopped before Rust/checkpoint/product;
+   do not retry it. C1-SB5 later fit `56/56` pairs but reached `14/28` sealed and
+   retired before checkpoint/head/Rust/development, with products unopened.
+   CUDA and external GPU execution are out of scope. #954's final source-free terminal
+   stays blocked behind #973, and #955 remains blocked behind #954.
 See the [append-only #953 record](docs/local_geometric_generation_953.md).
 See the [accepted table-tie record](docs/source_free_table_geometric_intervention_953.md).
 See the [#973 Gate 0 record](docs/prior_sentence_count_radius_attention_973.md).
@@ -720,13 +1096,38 @@ not become substitutes for working intelligence:
    all-layer-audit, and causal-read parity, without changing the default engine.
    Dashboard wiring/readiness and static/WASM-isolation checks pass; browser
    interaction/E2E is `NOT_RUN`.
-   That trace/compiler rung has now produced `R4SoftmaxTraceStudentV1`: a
-   source-free Q16 suffix artifact with bounded distillation but looping
-   autonomous output. Next compile those construction traces into the causal
-   recurrent R4/Spin state of `R4SoftmaxTraceStateStudentV1` and compare it with
-   frozen suffix, plain-recurrent, and transport-permuted controls.
-   Do not resume resonance substitutes or promote a product/release until that
-   artifact passes its frozen comparison. This intermediate
+   That trace/compiler rung produced `R4SoftmaxTraceStudentV1`, and the next
+   recurrent `R4SoftmaxTraceStateStudentV1` rung completed with exact causal
+   execution but no material control separation, no changed decision, and the
+   same loop. Its #1012 full-trace/signed-reduction/state/readout audit then
+   completed at `INSUFFICIENT_SUPPORT_COVERAGE`; it cannot localize signal loss
+   and will not be expanded or repeated. #1014 then established load-bearing
+   ordinary causal attention with a `2.677393`-nat attention-off penalty and
+   exact Rust parity, but failed its complete quality gate at enabled NLL
+   `2.127407` and prompt retention `3/5`. Close that campaign without rerun or
+   tuning. #1017 then completed the one frozen exposure continuation: NLL
+   `1.5727521962806827` failed the strict `<1.50` gate, while retention, parity,
+   causal audits, and replay passed. #1019 now freezes an optional 12-layer,
+   13,130,784-parameter increase over the same mechanism. Its population, MPS
+   overfit smoke, and random-export/all-12-layer Rust preflight parity passed, but MPS
+   admission stopped `UNAVAILABLE_HARDWARE_BUDGET` for the frozen eight-hour
+   offline implementation; the full train/final-qualification/reveal/
+   generation/replay path remains `NOT_RUN`, with no further 7.15M exposure or
+   LR tuning. The fused-AdamW/deferred-logging fast path was slower (`4.485223`
+   versus signed `3.491307 s/step`); #1019 closed without a full run. #954's
+   cosine pointer stopped before final artifact or product reveal. Its
+   implemented C1-SB2 relation successor then failed matched-transfer preflight
+   before Rust parity/full fit/development/product and emitted no final head.
+   C1-SB3's rank-eight all-layer Q/K/V/O adapter changed only attention tensors
+   and transferred most sealed relations, but failed exact fit/sealed outcomes
+   (`124/126`, `56/63`); all later stages are `NOT_RUN`. C1-SB4's full-source
+   record-margin successor then failed at `70/126` fit and `35/63` sealed exact
+   records and stopped before Rust/checkpoint/product; do not retry it. C1-SB5
+   later fit `56/56` pairs but reached `14/28` sealed and retired before
+   checkpoint/head/Rust/development, with products unopened. CUDA and
+   external GPU execution are out of scope.
+   Do not resume resonance substitutes. Product development continues through
+   `r4 generate`, but no production-readiness or release claim follows yet. This intermediate
    reference is transformer-compatible, `f32`/multiply/alloc and source-weight
    backed—not table-native, multiply-free, or transformerless. No tag, release,
    static web, or browser-WASM claim follows from the result.
@@ -772,9 +1173,38 @@ with no default-engine change. Dashboard wiring/readiness and
 static/WASM-isolation checks pass, but the hosted Pages deployment is static,
 currently reports WASM offline, and lacks a working chat backend/artifact
 lowering. The source-free Q16 suffix trace student is complete and boundedly
-positive but loops. The only active successor is
-`R4SoftmaxTraceStateStudentV1`.
-#954 remains blocked behind #973. The exact contract is
+positive but loops; `R4SoftmaxTraceStateStudentV1` also completed and failed
+its material, decision, and cycle gates. The bounded construction-only
+observability audit then completed at `INSUFFICIENT_SUPPORT_COVERAGE`; no
+boundary attribution follows. #1014 subsequently established load-bearing
+ordinary causal attention in the trained R4/Spin path through a `2.677393`-nat
+attention-off penalty and exact Rust parity. Its full quality DoD is negative:
+enabled NLL `2.127407` exceeded `1.50`, and subject/scene retention was `3/5`
+versus `4/5`. #1017's separately frozen continuation improved those measurements
+to NLL `1.5727521962806827` and retention `5/5`, but its full DoD remains
+negative solely on the strict NLL ceiling. #1019's optional frozen 12-layer,
+13,130,784-parameter campaign uses the same attention/runtime path.
+Its population, MPS overfit smoke, and random-export/all-12-layer Rust preflight parity
+passed, but the signed MPS probe stopped `UNAVAILABLE_HARDWARE_BUDGET` for the
+frozen eight-hour offline implementation; the full campaign remains `NOT_RUN`.
+UOR's deployed architecture/runtime remains CPU-native. Apple Accelerate/BLAS
+and MPS are local offline accelerators only. The fused-AdamW/deferred-logging
+fast path was slower (`4.485223` versus signed `3.491307 s/step`); #1019 closed
+without a full run. #954's cosine pointer stopped before final artifact or
+product reveal. Its implemented C1-SB2 relation successor then failed
+matched-transfer preflight before Rust parity/full fit/development/product and
+emitted no final head. C1-SB3's rank-eight all-layer Q/K/V/O adapter produced
+bounded representation transfer but failed exact fit/sealed outcomes at
+`124/126` and `56/63`; parity/full fit/development and the unopened product
+population are `NOT_RUN`. C1-SB4's independently frozen full-source
+structured-margin successor then failed at `70/126` fit and `35/63` sealed
+exact records, with perfect positive-group recall but only `82.43%` negative
+specificity. Rust/checkpoint/development/product are `NOT_RUN`; do not retry
+it. C1-SB5 later fit `56/56` pairs but reached `14/28` sealed and retired before
+checkpoint/head/Rust/development, with products unopened.
+CUDA and external GPU execution are out of
+scope. #954's final source-free terminal remains blocked behind #973, and #955
+remains blocked behind #954. The exact contract is
 [ADR-0005](docs/adr/0005-predictive-geometric-connection-memory.md).
 
 ## Find your way around
