@@ -1,6 +1,6 @@
 # Source-backed grounded answer campaigns (#954)
 
-Status: **C1-SB4 JOINT-CANDIDATE PREFLIGHT NEGATIVE / NO QUALIFIED ANSWER ARTIFACT**
+Status: **C1-SB5 PAIRED-QUERY BINDING PREFLIGHT NEGATIVE / NO QUALIFIED ANSWER ARTIFACT**
 Parent programme: #820
 Working model: #1017 six-layer R4/Spin causal-softmax checkpoint
 Final source-free correctness terminal: still blocked by parked #973

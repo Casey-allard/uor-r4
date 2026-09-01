@@ -55,7 +55,8 @@ deferred logging and measured `4.485223 s/step`, slower than the signed
 `3.491307 s/step`; `fused=True` was removed immediately. This is a bounded
 fast-path negative, not a model result. #1019 closed without a full run. #954's
 grounding fine-tune, positive-diagonal cosine pointer, source-relative relation
-probe, attended-relation adapter, and joint-candidate adapter have completed.
+probe, attended-relation adapter, joint-candidate adapter, and paired-query
+binding adapter have completed.
 C1-SB3 transferred most relations through the six attention layers but failed
 its exact gate. C1-SB4 then executed its independently frozen full-source,
 record-level structured-margin run: exact records were `70/126` fit and
@@ -208,8 +209,8 @@ sealed records, positive groups `126/126` and `63/63`, negative specificity
 targets changed and no non-attention tensor changed. Rust parity, checkpoint,
 development, reversal, and product are `NOT_RUN`; the products remain unopened.
 A question-ignoring ` is inside ` rule reproduces every published aggregate
-count exactly, so the next mechanism must couple multiple questions over one
-source. Do not rerun C1-SB4.
+count exactly. C1-SB5 subsequently consumed that finding by coupling multiple
+questions over one source. Do not rerun C1-SB4.
 
 The already-consumed invocation was:
 
@@ -225,6 +226,42 @@ PYTHONPATH="$PWD/tools/r4-softmax-trainer/src" \
 The started/result markers intentionally reject a second invocation. See the
 [#954 record](../../docs/r4_grounded_correctness_954.md) and
 [C1-SB4 aggregate](../../docs/r4_joint_candidate_margin_954_raw.json).
+
+## C1-SB5 paired-query binding result
+
+`prepare-paired-query-binding` committed a fresh fit/sealed population plus four
+opaque product-pair commitments without optimization or product access. The sole
+`train-paired-query-binding-preflight` execution used paired questions over each
+exact source, rank-8 Q/K/V/O LoRA in all six attention layers, and an asymmetric
+rank-32 query/candidate binding head. Its 120 MPS steps fit `56/56` pairs, but
+only `14/28` independently sealed pairs transferred. Identity-aligned row-swap
+traces were bit-exact; pair-mean-query and attention-off controls each fell to
+`0/28`. The terminal was `FAIL_PAIRED_QUERY_BINDING_PREFLIGHT`.
+
+The already-consumed invocations were:
+
+```bash
+PYTHONPATH="$PWD/tools/r4-softmax-trainer/src" \
+  "$UOR_MODEL_STORE/research/issue-1014/venv/bin/python" \
+  -m r4_softmax_trainer \
+  --root "$UOR_MODEL_STORE/research/issue-954/paired-query-binding" \
+  prepare-paired-query-binding \
+  --predecessor "$UOR_MODEL_STORE/research/issue-1017/export"
+
+PYTHONPATH="$PWD/tools/r4-softmax-trainer/src" \
+  "$UOR_MODEL_STORE/research/issue-1014/venv/bin/python" \
+  -m r4_softmax_trainer \
+  --root "$UOR_MODEL_STORE/research/issue-954/paired-query-binding" \
+  train-paired-query-binding-preflight \
+  --predecessor "$UOR_MODEL_STORE/research/issue-1017/export"
+```
+
+The exclusive start marker forbids a second training invocation. The product
+population remained unopened, and the negative branch emitted no checkpoint or
+binding-head artifact and ran no Rust parity, development, or product stage.
+Retire C1-SB5 without retry. See the
+[#954 record](../../docs/r4_grounded_correctness_954.md) and
+[C1-SB5 aggregate](../../docs/r4_paired_query_binding_954_raw.json).
 
 ## Isolated environment
 
@@ -249,8 +286,8 @@ instead used its own eight-hour backend-admission gate. MPS stopped
 subsequent fused-AdamW/deferred-logging fast path was slower (`4.485223` versus
 signed `3.491307 s/step`), so #1019 closed without a full run. #954's grounding
 fine-tune, source-span pointer, source-relative relation probe,
-attended-relation adapter, and joint-candidate adapter also closed negative;
-none is rerun.
+attended-relation adapter, joint-candidate adapter, and paired-query binding
+adapter also closed negative; none is rerun.
 CUDA and external GPU execution are out of scope.
 
 ## One-way campaign
