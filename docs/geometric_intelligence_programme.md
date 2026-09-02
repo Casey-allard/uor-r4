@@ -16,7 +16,7 @@
 - **Latest construction diagnostic:**
   [#1065 retained English error localization](r4_zoology_english_diagnostic_1065.md)
 - **Latest learning experiment:**
-  [#1067 matched query-object readout](r4_zoology_query_readout_1067.md)
+  [#1069 matched owner-plus-object query](r4_zoology_joint_query_1069.md)
 - **Retained exact-data learning artifact:**
   [#1057 exact-checkpoint continuation](r4_zoology_checkpoint_continuation_1057.md)
 
@@ -64,48 +64,46 @@ working decision-bearing product slice. They do not replace it.
 
 ## Current learning progress — English binding needs diagnosis
 
-**Current English readout result (2026-09-02):** #1067 completed
-`QUERY_OBJECT_READOUT_CONSTRUCTION_MISS` with substantial partial progress.
-Moving the supervised answer from colon position 40 to query-object position
-37 increased construction accuracy from `2,396/8,192 = 29.2480%` to
-**`3,735/8,192 = 45.5933%` (+16.3452 percentage points)** at the same seed,
-cell, construction data and 3,920-update dose. NLL fell by 0.2290623263 nats.
-See the [#1067 matched readout record](r4_zoology_query_readout_1067.md).
+**Current joint-query result (2026-09-02):** #1069 completed
+`JOINT_QUERY_PRESERVATION_MISS`, retaining substantial owner/aggregate gains
+and a failed object-pair preservation condition. Adding the owner embedding
+at query-object/readout position 37 raised construction from
+`3,735/8,192 = 45.5933%` to **`4,118/8,192 = 50.2686%` (+4.6753 points)**
+at the matched 3,920-update dose. NLL fell by 0.1386159509 nats.
+See the [#1069 joint-query record](r4_zoology_joint_query_1069.md).
 
-Object-changing question pairs now change predictions in `1,413/2,048` cases
-(previously 33), with **447 pairs both correct** (previously 6). Owner-changing
-pairs change predictions in only `193/2,048` cases (previously 89), with **47
-both correct** (previously 14). The descriptive focus is `OWNER_DISAMBIGUATION`:
-wrong-owner/same-object choices are `1,439/2,131 = 67.5270%` of q0 in-history
-errors. Position bias also remains: displayed slots 2 and 4 receive 74.2686%
-of in-history selections despite balanced target exposure. These measurements
-do not establish an internal causal mechanism or full binding.
+Owner-changing question pairs both correct rose **47 → 338 / 2,048**, passing
+the required 150. Object-changing pairs both correct fell **447 → 376 / 2,048**,
+missing preservation even though individual accuracy in that family improved.
+The aggregate gain is concentrated by position: target-slot accuracies are
+**35.8887%, 36.0352%, 29.4922%, 99.6582%**. Slot 4 gains 690 correct answers;
+the other three collectively lose 307. Their accuracy falls 38.8021% → 33.8053%.
+The descriptive `DISTRIBUTED_BINDING` label and false single-slot majority flag
+do not establish position independence or complete binding.
 
-The fit, final evaluation and exact fresh-process replay took **290.31 seconds**
-combined, peak **0.7764 GiB**, using eight Apple Accelerate CPU threads.
-The frozen `8,111/8,192` construction gate was missed; new development is
-`NOT_RUN_CONSTRUCTION_MISS` with **zero model decisions**. R4 inference is
-`NOT_RUN_SEPARATE_INFERENCE_STEP`. Eight focused checks and independent evidence
-review passed; broad QA remains dormant and queue statuses are transport only.
+The complete fit/evaluation/exact fresh-process replay took **286.89 seconds**,
+peak **0.7856 GiB**, on eight Apple Accelerate CPU threads. Twelve focused
+checks and independent source/preparation/evidence reviews passed. Construction
+missed `8,111/8,192`; new development is `NOT_RUN_CONSTRUCTION_MISS` with
+**zero model decisions**. R4 is `NOT_RUN_SEPARATE_INFERENCE_STEP`. Broad QA
+remains dormant; queue statuses acknowledge transport only.
 
-The next recommendation is one separately frozen **joint-query encoding fit**:
-retain readout 37 and add the causal owner-token embedding from position 35 to
-the object embedding before unchanged embedding dropout/attention. Keep fresh
-initialization, construction rows/labels, seed, 3,920-update dose and model
-size. This parameter-free intervention tests direct access to both query
-attributes. Require owner-changing both-correct improvement while preserving
-overall accuracy and object-changing behavior; report position effects and
-freeze a new development population before fitting. No additional fit occurred
-in #1067. More geometry remains deferred.
+The frozen decision retains **#1067 as the reference** and preserves #1069's
+measured tradeoff. The next recommendation is one separately frozen **cyclic
+fact-order augmentation fit**, with the plain #1067 query-object readout,
+no owner residual, the same four-fact task, 41-token shape, labels, seed and
+3,920-update budget. Rotate complete fact blocks across successive training
+traversals, keeping paired variants aligned. Compare final candidate/reference
+on canonical construction and all four cyclic rotations; freeze improvement
+criteria for both question types and an explicit worst-slot requirement before
+fitting. No such fit ran in #1069. More geometry remains deferred.
 
-The #1063 held-out negative (`218/1,024` supported, `0/256` complete groups,
-`37/256` unknown) and #1065 diagnostic remain intact.
-[#1061](r4_zoology_exact_coherent_inference_1061.md): ordinary and coherent R4 both score
-`8,071/8,192 = 98.5229%`, with all 8,192 predictions identical and an
-`86.2061`-percentage-point loss under transport control. #1059 retains
-`11,900/12,000 = 99.1667%` preservation.
-General English, H4 superiority, softmax removal, reasoning and chat readiness
-remain unestablished; #973 stays open and #954 remains blocked.
+Historical #1063/#1065/#1067 evidence remains intact. #1061 retains ordinary
+and coherent R4 both at `8,071/8,192 = 98.5229%`, all 8,192 predictions identical,
+and an `86.2061`-percentage-point loss under transport control. #1059 retains
+`11,900/12,000 = 99.1667%` preservation. Fresh transfer, general English, H4
+superiority, softmax removal, reasoning and chat readiness remain unestablished;
+#973 stays open and #954 remains blocked.
 
 ## Historical #1043 decision — preserve the invalid result; fix learning first
 
