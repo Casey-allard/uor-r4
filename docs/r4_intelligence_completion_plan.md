@@ -53,6 +53,16 @@
   pass, but the hosted Pages deployment is static, currently reports WASM
   offline, and has no functioning chat backend or compiled-artifact lowering;
   the default engine remains unchanged.
+  [#1041](https://github.com/UOR-Foundation/uor-r4/issues/1041) has now resolved
+  the separate frozen #1017 checkpoint's normal-use product scope. Dashboard
+  and direct-endpoint mechanics passed; fresh narrative continuation passed
+  `2/3`, while neither supplied-history binding comparison passed. Its terminal
+  is `KEEP_RAW_CONTINUATION_ONLY`: retain the #1039 loopback surface as a
+  bounded source-backed single-turn story-continuation reference, and do not
+  add a history serializer, multi-turn adapter, or chat endpoint around #1017.
+  This does not change the source-free sequence, activate #962, or unblock
+  #954. See the
+  [#1041 normal-use record](r4_softmax_local_normal_use_1041.md).
   `R4SoftmaxTeacherTraceV1` and `R4SoftmaxTraceStudentV1` have completed the first
   trace/compiler step. The source-free Q16 suffix artifact shows bounded
   distillation against count and document-permuted controls, but its autonomous

@@ -14,6 +14,24 @@ Measurements retain their pre-declared exit rule and durable issue/record
 reference; design targets remain explicitly labeled as definitions,
 assumptions, or objectives rather than measured results.
 
+> **Normal-use product decision (2026-09-01).** #1041 ran the merged #1039
+> dashboard plus seven direct endpoint observations: three fresh narrative
+> prompts, two supplied-history bindings, and their no-history controls. All
+> UI/transport and returned mechanical conditions passed with Apple Accelerate
+> and the exact frozen export. Narrative N1 and N3 passed their predeclared
+> scene predicates; N2 swapped `Sora -> boat` for the yellow kite, yielding
+> `2/3`. H1 did not recover `green box`, and H2 did not recover `under the
+> wooden chair`; neither history/control comparison passed.
+>
+> The predeclared terminal is `KEEP_RAW_CONTINUATION_ONLY`. The #1039 endpoint
+> and dashboard option remain a bounded disabled-by-default source-backed
+> single-turn story-continuation reference. No source-backed history serializer,
+> multi-turn adapter, chat endpoint, retraining, or widened prompt campaign is
+> authorized for this checkpoint. This does not revise ordinary-attention
+> evidence, activate #962, unblock #954, or establish correctness or reasoning.
+> See the
+> [#1041 normal-use record](r4_softmax_local_normal_use_1041.md).
+
 > **Bounded source-backed product/reference result (2026-09-01).** #1039
 > exercised the immutable #1017 export on a predeclared fresh narrative prompt
 > with 24 generated tokens, seed `1039`, four exact-executor workers, and Apple Accelerate on

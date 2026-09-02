@@ -229,8 +229,11 @@ remain `NOT_RUN`. A single isolated exact-shape MPS fast-path test (10 warmup
 plus 40 measured steps) combined fused AdamW with deferred logging and measured
 `4.485223 s/step`, slower than the signed `3.491307 s/step`; `fused=True` was
 removed immediately. This is a bounded fast-path negative, not a model result.
-#1019 tuning/full-run work stops and remains optional/paused; the active next
-step is the working #1017 `r4 generate` product path. UOR's deployed architecture/runtime
+#1019 tuning/full-run work stops and remains optional/paused. At that
+checkpoint, the active next step was the working #1017 `r4 generate` path;
+#1041 later bounded it to raw single-turn story continuation after `2/3`
+narrative and `0/2` supplied-history results (see the
+[#1041 record](r4_softmax_local_normal_use_1041.md)). UOR's deployed architecture/runtime
 remains CPU-native; Apple Accelerate/BLAS and MPS are local offline accelerators
 only; CUDA and external GPU execution are out of scope. The MPS stop
 is not a model-quality negative, leaves the full-scale capacity hypothesis

@@ -145,6 +145,18 @@ geometry advantage, transformerlessness, correctness, reasoning, frontier
 quality, browser/WASM readiness, or release readiness. This #1017 path is now
 the active next step.
 
+### #1041 product-boundary follow-up — 2026-09-01
+
+The active-next-step wording immediately above is now historical. #1039 exposed
+the frozen #1017 checkpoint through a disabled-by-default loopback raw-
+completion surface, and #1041 performed its frozen normal-use decision. All
+dashboard/endpoint mechanics passed; narrative continuation passed `2/3`, but
+both supplied-history binding comparisons failed. Terminal
+`KEEP_RAW_CONTINUATION_ONLY` retains the path only as a bounded source-backed
+single-turn story-continuation reference. It does not authorize a history
+serializer, multi-turn/chat adapter, retraining, or prompt widening. See the
+[#1041 record](r4_softmax_local_normal_use_1041.md).
+
 ## Frozen decision and evidence status at contract freeze (historical)
 
 #1017 completed the only authorized exposure continuation of the

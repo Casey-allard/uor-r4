@@ -9,6 +9,20 @@ The earlier
 preserved #948–#958 sequencing record. Measured, refuted, and frozen research
 remains in [docs/RESEARCH.md](docs/RESEARCH.md).
 
+**Normal-use product boundary (2026-09-01):** #1041 exercised the merged #1039
+dashboard and endpoint with three fresh narrative probes, two supplied-history
+bindings, and two no-history controls. UI/transport and every returned
+attention, decode, source-read, backend, and capacity condition passed. N1 and
+N3 retained their frozen scenes; N2 swapped `Sora -> boat` for the yellow kite,
+so narrative continuation passed `2/3`. H1 did not recover `green box` and H2
+did not recover `under the wooden chair`; neither history/control comparison
+passed. The predeclared terminal is `KEEP_RAW_CONTINUATION_ONLY`. Preserve the
+disabled-by-default loopback surface as a bounded source-backed single-turn
+story continuation, and do not add a history serializer, multi-turn adapter,
+chat endpoint, or further #1017 wrapper. #962 is not activated and #954 remains
+blocked. See the
+[#1041 normal-use record](docs/r4_softmax_local_normal_use_1041.md).
+
 **Bounded local reference surface (2026-09-01):** #1039 productizes only the
 already-frozen #1017 checkpoint. Its predeclared fresh-prompt gate passed: one
 24-token continuation was nonempty UTF-8, avoided an immediate short cycle, and

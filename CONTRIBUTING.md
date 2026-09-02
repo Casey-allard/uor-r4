@@ -233,7 +233,9 @@ The experiment must be able to change the next programme decision:
   readout, learned-associative, and predictive block-delta promotion rungs did
   not. Do not reopen those frozen mechanisms. New #973 research requires a
   separately authorized contract; product-facing work uses the established
-  #1017 `r4 generate` path.
+  #1017 `r4 generate` path. #1041 bounds its presentation to raw single-turn
+  story continuation; do not add a source-backed history or multi-turn/chat
+  adapter around that checkpoint.
   See the
   [#989 record](docs/source_free_table_baseline_989.md).
 - **Preserve the GI evidence lineage.** GI-1 makes lexical/address state

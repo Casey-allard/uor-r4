@@ -204,14 +204,24 @@ GPU execution are out of scope. See the
 [#1019 frozen contract](r4_softmax_parameter_capacity_1019.md), and
 [#1019 signed preflight/admission result](r4_softmax_parameter_capacity_preflight_1019_raw.json). This stops
 one bounded model-capacity rung, not ordinary attention.
-#1017 remains the current working 7.15M coherent-generation prototype:
+#1017 remains the current working 7.15M raw-continuation reference prototype:
 `r4 generate --prompt "..."` defaults to
 `.uor-models/research/issue-1017/export`. #1019 is an optional capacity
-improvement and does not block using or productizing that bounded path. The
+improvement and does not block using that bounded raw-continuation path. The
 #1017 prototype remains source-backed, floating-point/matmul/softmax, and below
 the strict NLL target; it is not geometry advantage, transformerlessness,
 correctness, reasoning, frontier quality, browser/WASM readiness, or release
 readiness.
+
+[#1039](r4_softmax_local_reference_surface_1039.md) exposes that exact frozen
+checkpoint through a disabled-by-default loopback raw-completion endpoint and
+the native-served dashboard. Its required normal-use follow-up,
+[#1041](r4_softmax_local_normal_use_1041.md), passed every dashboard/endpoint
+mechanical condition and retained fresh narrative scenes on `2/3` probes, but
+both supplied-history bindings failed. Terminal:
+`KEEP_RAW_CONTINUATION_ONLY`. The endpoint remains a bounded source-backed
+single-turn story-continuation reference; no history or multi-turn adapter is
+authorized around this checkpoint.
 
 #954's source-backed correctness campaign has now completed through C1-SB5.
 The independently frozen full-source, record-level structured-margin adapter

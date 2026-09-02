@@ -7,6 +7,18 @@
 > architecture and claim boundaries live in the
 > [Geometric Intelligence Programme](geometric_intelligence_programme.md).
 
+> **Normal-use #1017 product boundary (2026-09-01):** #1041 exercised the
+> native-served #1039 surface without changing the checkpoint or executor. All
+> dashboard/endpoint mechanics passed. Fresh narrative continuation passed
+> `2/3`: N1 and N3 retained their frozen scenes, while N2 swapped the bound
+> objects. Both supplied-history probes failed to recover their stated
+> locations relative to no-history controls. The terminal is
+> `KEEP_RAW_CONTINUATION_ONLY`. Retain the opt-in loopback endpoint as a bounded
+> source-backed single-turn story-continuation reference; do not add a history
+> or multi-turn lifecycle for this checkpoint. #962 remains separate and #954
+> remains blocked. See the
+> [#1041 normal-use record](r4_softmax_local_normal_use_1041.md).
+
 > **Bounded #1017 reference-surface lifecycle (2026-09-01):** #1039 leaves the
 > frozen 7.15M checkpoint, sampler, attention, and training unchanged. Its
 > predeclared fresh-prompt gate generated 24 non-looping tokens twice with seed
@@ -258,7 +270,7 @@ Terminal `FAIL_PAIRED_QUERY_BINDING_PREFLIGHT` retires the rung without retry.
 This preserves bounded source-backed attention evidence only; it does not
 establish generation, reasoning, correctness, or a source-free runtime.
 
-The #1017 export remains the current working 7.15M coherent-generation
+The #1017 export remains the current working 7.15M raw-continuation
 prototype. `r4 generate --prompt "..."` defaults to
 `.uor-models/research/issue-1017/export`. #1019 is an optional quality-capacity
 improvement and does not block using or productizing that bounded path. The

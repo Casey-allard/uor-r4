@@ -138,3 +138,15 @@ target/release/r4 generate --prompt "Once upon a time"
 
 This keeps exact `uor-matmul` as the portable default and uses Apple
 Accelerate only when explicitly requested for local source-backed inference.
+
+## #1041 normal-use product-boundary follow-up — 2026-09-01
+
+The deferred behavior decision above is complete. #1039 exposed this exact
+checkpoint through a disabled-by-default loopback raw-completion surface, and
+#1041 exercised the native dashboard plus seven frozen direct requests. All
+mechanical conditions passed. Fresh narrative continuation passed `2/3`, while
+neither supplied-history binding comparison passed. Terminal
+`KEEP_RAW_CONTINUATION_ONLY` retains the checkpoint as a bounded source-backed
+single-turn story-continuation reference; it does not authorize a history
+serializer, multi-turn/chat adapter, retraining, or prompt widening. See the
+[#1041 record](r4_softmax_local_normal_use_1041.md).

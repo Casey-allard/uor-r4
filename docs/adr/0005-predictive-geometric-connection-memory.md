@@ -8,7 +8,13 @@
   `R4SoftmaxReferenceGeneratorV1` (`HELM-D-R4`) generation now passes, and its
   dedicated opt-in, loopback-only native HTTP endpoint passes exact eight-token
   CLI parity. Dashboard wiring/static native-readiness and WASM-isolation
-  checks pass; browser interaction/E2E is `NOT_RUN`.
+  checks pass; browser interaction/E2E for that #973
+  `/r4-softmax-reference` bridge is `NOT_RUN`. The separate #1039
+  `/r4-softmax-local` dashboard path was exercised by #1041: its mechanics
+  passed, narrative continuation passed `2/3`, and both supplied-history
+  bindings failed. Terminal `KEEP_RAW_CONTINUATION_ONLY` retains it as a raw
+  single-turn reference and forbids a source-backed history/multi-turn adapter
+  (see the [#1041 record](../r4_softmax_local_normal_use_1041.md)).
   `R4SoftmaxTeacherTraceV1` and the first source-free suffix compiler now pass
   their bounded distillation gate, while decoded continuation remains
   incoherent. `R4SoftmaxTraceStateStudentV1` completed negative at its frozen

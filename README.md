@@ -233,6 +233,19 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > source-free chat product. See the
 > [#1039 result and interface record](docs/r4_softmax_local_reference_surface_1039.md).
 >
+> [#1041](https://github.com/UOR-Foundation/uor-r4/issues/1041) has now
+> resolved the required normal-use product decision. The dashboard and all
+> direct endpoint mechanics passed on Apple Accelerate. Fresh narrative probes
+> N1 and N3 passed their frozen first-sentence predicates while N2 swapped the
+> `Sora -> boat` / `Milo -> kite` binding, for `2/3` overall. Neither supplied-
+> history probe recovered its bound location. The predeclared terminal is
+> `KEEP_RAW_CONTINUATION_ONLY`: retain the disabled-by-default loopback surface
+> as a bounded single-turn story-continuation reference, but do not add a
+> source-backed history or multi-turn adapter around this checkpoint. This does
+> not revise the established attention evidence, activate #962, unblock #954,
+> or establish chat, correctness, or reasoning. See the
+> [#1041 normal-use record](docs/r4_softmax_local_normal_use_1041.md).
+>
 > The completed
 > `R4SoftmaxTraceStudentV1` then compiled construction-side teacher traces into
 > a source-free Q16 suffix artifact and showed bounded distillation relative to

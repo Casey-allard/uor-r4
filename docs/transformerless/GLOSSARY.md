@@ -388,9 +388,12 @@ substituted for one another.
   at `21.03%`. That terminal applies only to the frozen offline implementation.
   Full training, final parity, reveal, generation, and replay remain `NOT_RUN`.
   Its fused-AdamW/deferred-logging fast path was slower (`4.485223` versus
-  signed `3.491307 s/step`), so #1019 is optional/paused and the active next
-  step is the #1017 `r4 generate` product path. CUDA and external GPU execution
-  are out of scope.
+  signed `3.491307 s/step`), so #1019 is optional/paused. At that checkpoint,
+  the active next step was the #1017 `r4 generate` path; #1041 later bounded
+  its presentation to raw single-turn story continuation after `2/3` narrative
+  and `0/2` supplied-history results (see the
+  [#1041 record](../r4_softmax_local_normal_use_1041.md)). CUDA and external GPU
+  execution are out of scope.
 - **`R4SoftmaxQualityCapacityContinuationV1`** — #1017's completed, independently
   frozen continuation of the exact #1014 7,155,360-parameter model to
   `149,995,520` cumulative training tokens. Development selection froze at NLL

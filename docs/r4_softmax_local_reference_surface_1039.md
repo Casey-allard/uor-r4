@@ -178,3 +178,19 @@ and it does not implement #962's source-free multi-turn CLI/HTTP chat stage.
 The next product decision must be based on actual use of this bounded surface.
 No additional training campaign or geometry mechanism is authorized by this
 record.
+
+## Follow-up: #1041 normal-use decision
+
+[#1041](https://github.com/UOR-Foundation/uor-r4/issues/1041) completed that
+next product decision without changing this implementation. Dashboard and
+direct-endpoint mechanics passed. Two of three fresh narrative probes retained
+their frozen scene, but the entity/object probe swapped the supplied binding;
+both supplied-history probes failed to return their bound location relative to
+no-history controls. The predeclared terminal is
+`KEEP_RAW_CONTINUATION_ONLY`.
+
+This surface remains available exactly as the disabled-by-default raw
+single-turn reference documented above. #1041 does not authorize a history
+serializer, multi-turn adapter, chat endpoint, retraining, or another wrapper
+for this checkpoint. See the
+[#1041 normal-use record](r4_softmax_local_normal_use_1041.md).

@@ -225,7 +225,11 @@ passed, MPS is `UNAVAILABLE_HARDWARE_BUDGET` for the frozen eight-hour offline
 implementation, and the full campaign remains `NOT_RUN`. The subsequent fused-
 AdamW/deferred-logging fast path was slower (`4.485223` versus signed
 `3.491307 s/step`), so `fused=True` was removed and #1019 is optional/paused.
-The #1017 `r4 generate` path remains the working ordinary-softmax generation prototype.
+The #1017 `r4 generate` path remains the working ordinary-softmax
+raw-continuation prototype.
+#1041 bounds its product presentation to raw single-turn story continuation:
+do not add a source-backed history serializer or multi-turn/chat adapter around
+that checkpoint.
 #954 C1-SB2 through C1-SB5 are bounded negatives, not active answer artifacts.
 C1-SB4's full-source structured-margin arm reached only `70/126` fit
 and `35/63` sealed exact records and stopped before Rust/checkpoint/product.
