@@ -212,3 +212,20 @@ substrate, not the probability domain for this offline softmax control.
 | C2 exact #1045 bytes | `NOT_RUN_C1_MISS` |
 | Binding-permuted control | `NOT_RUN_C1_MISS` |
 | Result/artifact | created and verified |
+
+## Successor result (2026-09-02)
+
+The separately frozen #1050 released-configuration reproduction completed
+positive. Its first source learning-rate arm reached `11,900/12,000`
+(`99.1666667%`) on the 3,000-row source test/early-stop split at epoch 20;
+the remaining rates were not run because the predeclared source early stop
+fired. Result CID is
+`blake3:bd16d012c01262ffb8c5197e4cf316c6fee1d722cf0700a0048386180a8122e0`.
+
+That result rules out a broken copied cell and localizes this record's miss to
+the bundle of reduced-versus-released calibration-contract differences. No
+ablation isolates population exposure, batch, shuffle/RNG, learning-rate
+identity, evaluation ordering, or scheduler semantics as the unique cause.
+#1049 remains immutable. See the
+[#1050 record](r4_zoology_release_reproduction_1050.md) for the exact result,
+split boundary, adaptations, and authorized C2 transfer.

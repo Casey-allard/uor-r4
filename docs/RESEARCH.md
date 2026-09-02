@@ -14,34 +14,37 @@ Measurements retain their pre-declared exit rule and durable issue/record
 reference; design targets remain explicitly labeled as definitions,
 assumptions, or objectives rather than measured results.
 
-> **Copied Zoology attention-control result (2026-09-02).** #1049 executed the
-> credited ICLR24 one-head, width-64 causal-softmax cell integrated by #1047.
-> C0 repeated literal-source loader/model goldens, deterministic initialization,
-> causal/query-only parity, and the disposable `128/128` overfit successfully.
-> The measured all-core 8-thread CPU plan completed C1's 64 epochs and
-> `2,097,152` presentations in `195.201318 s` total wall.
+> **Copied Zoology attention result (2026-09-02).** #1050 reproduced the
+> executable-source ICLR24 T=64, four-K/V, one-head width-64 causal-softmax
+> configuration and training semantics integrated by #1047, with declared CPU
+> and query-only-projection adaptations. The deterministic population contains
+> 100,000 training rows and 3,000 independently generated source
+> test/early-stop rows held out from gradient updates at batch 512. C0 repeated
+> literal loader/model goldens, initialization replay,
+> causal/query-only projection parity, and the disposable `128/128` overfit;
+> the focused full-versus-query-only loss/gradient test also passed.
 >
-> Construction reached `32,758/32,768` (`99.969482%`, NLL `0.0205207`), but
-> development peaked at `999/4,096` (`24.389648%`) and finished at
-> `980/4,096` (`23.925781%`, NLL `9.174184`). Consecutive passes remained zero,
-> giving `SCALED_SOURCE_CALIBRATION_MISS`. C2 and binding permutation are
-> `NOT_RUN_C1_MISS`. Future, sealed, provider, teacher, cache, transport,
-> role-model, and H4-model reads were zero. Result CID is
-> `blake3:9b36540d81d0967a3f7e2ccabed80900d31c904b6c747d9ba0d539b325b13373`;
-> C1 artifact/state CIDs are
-> `blake3:aa0980621f7cae3ce392003ee0230fe536d3c842f342fa9129fe8d77c45882dc`
+> Fresh one/four/eight-thread batch-512 preflight selected four threads because
+> they were fastest on this M1. The first frozen learning rate passed the
+> source's strict `>99%` rule at epoch 20: `11,900/12,000`
+> (`99.1666667%`) source-test top-1, NLL `0.0512461`, and `577.834602 s` arm
+> wall. The other three source rates were not run because the predeclared
+> source early stop fired. Verdict
+> `SOURCE_REPRODUCTION_POSITIVE`. Future-value, role, R4, UOR-byte, provider,
+> and teacher reads were zero.
+>
+> Artifact/state/result CIDs are
+> `blake3:163cf3e5375b3e721fa7a826acdb2dfc809e5989209b03fb2a3eea3e3d5459e9`,
+> `blake3:600bdc76cefff79f4be8709197b15252cb531892fad0db2156b36b865c01877e`,
 > and
-> `blake3:aaff1b1e919b49928181e6f29910f275a8fc32f5050a2276b0c9758cab73febc`.
->
-> A read-only diagnosis found `4,089/4,096` predictions among the four values
-> admitted in each row, but only `980` matched the queried key. The scaled cell
-> learned value-set extraction while binding remained at four-choice chance.
-> The executable release used 100,000 construction rows, batch 512, and a
-> four-rate sweep; #1049 used 8,192, batch 64, and one rate. Therefore one
-> exact executable-source reproduction retains decision value; #1050 freezes
-> it. Stop before C2 and UOR bytes, do not tune #1049, and return to C2 only after a source-scale
-> pass. This is not an R4/geometric-attention result. See the
-> [#1049 record](r4_zoology_mqar_measured_wall_1049.md).
+> `blake3:bd16d012c01262ffb8c5197e4cf316c6fee1d722cf0700a0048386180a8122e0`.
+> This establishes ordinary copied attention binding on held-out rows at
+> released scale. It rules out a broken copied cell and localizes #1049's
+> four-choice plateau to its bundled reduced-versus-released
+> calibration-contract differences; no ablation isolates the causal factor.
+> It is not an R4/geometric-attention result. The next bounded action is
+> exact-#1045-byte C2 transfer with the positive source semantics; see the
+> [#1050 record](r4_zoology_release_reproduction_1050.md).
 
 > **Predecessor role-tagged associative-learning result (2026-09-02).** #1045
 > completed its full 64-epoch R1 cap and stopped
@@ -68,9 +71,9 @@ assumptions, or objectives rather than measured results.
 > #1045 borrowed the associative-first curriculum and optimizer shape from
 > Zoology, but it was not a stock Zoology replication: its role-tagged wrapper,
 > inherited decoder, data loader, and query-only projection mechanics
-> materially differ. #1047 performed that released-cell integration, and #1049
-> executed its scaled source-native calibration under the measured CPU wall,
-> as reported above. Do not tune or retry #1045.
+> materially differ. #1047 performed that released-cell integration, #1049's
+> reduced calibration missed, and #1050's released-configuration reproduction
+> passed, as reported above. Do not tune or retry #1045.
 > Modulo-256 remains relevant
 > to categorical roles, discrete tables, and later lowering, not continuous
 > probability normalization. See the

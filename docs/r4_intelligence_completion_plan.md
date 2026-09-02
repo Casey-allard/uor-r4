@@ -4,23 +4,31 @@
   readable mirror of programme root #820 (stages S0–S7 plus cross-cutting F0).
   The [Geometric Intelligence Programme](geometric_intelligence_programme.md)
   is its current architecture and claim-boundary companion.
-  The newest copied-attention control is #1049's
-  [`ZoologyMQARControlV2MeasuredWall`](r4_zoology_mqar_measured_wall_1049.md).
-  It executed the released ICLR24 one-head, width-64 causal-softmax cell ported
-  by #1047. C0 again passed literal-source mechanics, deterministic replay,
-  causal/query-only parity, and the 32-row `128/128` overfit. The all-core
-  8-thread plan then completed scaled C1 in `195.201318 s`. Construction reached
-  `32,758/32,768` (`99.969482%`), but development peaked at `999/4,096`
-  (`24.389648%`) and finished at `980/4,096` (`23.925781%`). Verdict
-  `SCALED_SOURCE_CALIBRATION_MISS` stops C2 and binding permutation as
-  `NOT_RUN_C1_MISS`. Result CID is
-  `blake3:9b36540d81d0967a3f7e2ccabed80900d31c904b6c747d9ba0d539b325b13373`.
-  A post-result diagnosis found `4,089/4,096` predictions among the four
-  admitted values while key-specific binding remained at chance. Stop before
-  UOR bytes and do not tune #1049. Because the executable release used
-  100,000 rows, batch 512, and the maximum of four frozen rates, one exact
-  executable-source reproduction retains decision value; #1050 freezes it and
-  only its pass can return sequencing to C2. This is no R4/geometric-attention verdict.
+  The newest copied-attention control is #1050's
+  [`ZoologyFigure2ReleaseReproductionV1`](r4_zoology_release_reproduction_1050.md).
+  It reproduced the executable ICLR24 T=64, four-K/V, one-head width-64
+  causal-softmax configuration and training semantics ported by #1047, with
+  declared CPU-placement and query-only-projection adaptations. C0 passed
+  literal-source mechanics, deterministic population replay, initialization
+  replay, causal/query-only projection parity, and the disposable 32-row
+  `128/128` overfit; the focused full-versus-query-only loss/gradient test also
+  passed. A measured one/four/eight-thread preflight selected
+  four intra-op CPU threads. The first frozen source learning rate crossed the
+  strict source threshold at epoch 20: `11,900/12,000` (`99.1666667%`) on the
+  3,000-row source test/early-stop split, NLL `0.05124610455830892`, and
+  `577.834602 s` arm wall. The remaining three rates were not run because the
+  predeclared source early stop fired. Verdict `SOURCE_REPRODUCTION_POSITIVE`;
+  result CID
+  `blake3:bd16d012c01262ffb8c5197e4cf316c6fee1d722cf0700a0048386180a8122e0`.
+  The split is held out from gradient updates and has zero full-row overlap,
+  but it is evaluated every epoch and 294 of its 11,998 unique K/V pairs occur
+  in training; it is not assignment-disjoint or sealed terminal evaluation.
+  This rules out a broken copied cell and localizes #1049's miss to the bundle
+  of reduced-versus-released calibration-contract differences without
+  isolating a causal factor. The single authorized next decision is an
+  independently initialized C2 transfer to the exact open #1045 bytes under
+  the source-positive training semantics. No R4/geometric-attention, English,
+  generation, reasoning, or exact-lowering claim follows from #1050.
   The predecessor open associative-learning result is #1045's
   [`R4RoleTaggedAssociativeCurriculumV1`](r4_role_tagged_associative_curriculum_1045.md).
   It completed all 64 R1 epochs and `4,194,304` presentations in `966.7488 s`,
@@ -42,10 +50,10 @@
   attention, attention attribution, or generation. It borrowed Zoology's
   curriculum and optimizer shape but materially differed from the released
   cell, loader, model, role path, and projection mechanics. #1047 performed
-  that released-cell integration, and #1049 executed its scaled source-native
-  calibration under the measured CPU wall, as reported above. Modulo-256 is
-  retained for discrete roles, tables, and later lowering, not continuous
-  probability normalization.
+  that released-cell integration, #1049 executed its reduced source-native
+  calibration and missed, and #1050 passed at the released configuration and
+  training semantics, as reported above. Modulo-256 is retained for discrete
+  roles, tables, and later lowering, not continuous probability normalization.
   The newest bounded source-free binding campaign is #1043's
   [`R4PositionPreservingCausalKVBindingV1`](r4_position_kv_binding_1043.md).
   Its one frozen fit/reveal is terminal `INVALID_POSITION_KV_BINDING` because

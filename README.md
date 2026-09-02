@@ -14,32 +14,34 @@ local hardware. The project is testing whether language context, inference,
 and reasoning can emerge from routes through a canonical geometric memory. The
 target serving engine uses no Ollama, hosted model, or source-model weights.
 
-> **Latest copied-attention control result (2026-09-02):** #1049 executed the
-> credited ICLR24 Zoology one-head, width-64 causal-softmax cell carried forward
-> unchanged from #1047. C0 again passed literal-source loader/model goldens,
-> initialization replay, causal-prefix/query-only parity, and the disposable
-> 32-row `128/128` overfit. The all-core 8-thread CPU plan completed scaled C1
-> in `195.201318 s`.
+> **Latest copied-attention result (2026-09-02):** #1050 reproduced the
+> executable-source ICLR24 Zoology T=64, four-K/V, width-64 causal-softmax
+> configuration and training semantics on the CPU, with declared CPU-placement
+> and query-only-projection adaptations. C0 passed literal loader/model goldens,
+> initialization replay, causal/query-only projection parity, and the disposable
+> `128/128` overfit; the focused full-versus-query-only loss/gradient test also
+> passed. The deterministic released population contains 100,000 training rows
+> and 3,000 source test/early-stop rows held out from gradient updates at batch
+> 512.
 >
-> C1 nearly memorized construction at `32,758/32,768` (`99.969482%`), but
-> assignment-disjoint development peaked at `999/4,096` (`24.389648%`) and
-> finished at `980/4,096` (`23.925781%`). The verdict is
-> `SCALED_SOURCE_CALIBRATION_MISS`; C2 and binding permutation are
-> `NOT_RUN_C1_MISS`. A read-only diagnosis found `4,089/4,096` predictions
-> inside the row's four admitted values, while key-specific binding remained at
-> the four-choice chance boundary. Result CID is
-> `blake3:9b36540d81d0967a3f7e2ccabed80900d31c904b6c747d9ba0d539b325b13373`.
-> This is positive copied causal-attention mechanics at C0 and a negative
-> scaled binding result at C1—not an R4/geometric-attention verdict.
+> Measured 1/4/8-thread preflight selected four intra-op CPU threads because
+> they were faster than eight. The first frozen learning rate then crossed the
+> strict source `>99%` threshold at epoch 20: `11,900/12,000`
+> (`99.1666667%`) source-test top-1, NLL `0.0512461`, in `577.834602 s`. The
+> verdict is `SOURCE_REPRODUCTION_POSITIVE`; the other three rates were not run
+> because the predeclared source early stop fired. Result CID is
+> `blake3:bd16d012c01262ffb8c5197e4cf316c6fee1d722cf0700a0048386180a8122e0`.
 >
-> The exact released positive used 100,000 construction rows, batch 512, and
-> the best of four frozen learning rates; #1049 used 8,192, batch 64, and one
-> rate. [#1050](https://github.com/UOR-Foundation/uor-r4/issues/1050) freezes
-> one executable-source reproduction; only its pass can return the programme
-> to C2. Modulo-256
-> remains the intended substrate for discrete roles, wheel/table operations,
-> and later lowering, not continuous softmax normalization. See the
-> [#1049 record](docs/r4_zoology_mqar_measured_wall_1049.md).
+> This establishes copied ordinary causal-softmax key-to-value binding on
+> independently generated held-out rows at the released scale. It rules out a
+> broken copied cell and localizes #1049's 24% result to its reduced/mismatched
+> calibration contract; no ablation isolates the causal factor. It does
+> **not** establish R4/geometric attention,
+> English, generation, reasoning, or exact lowering. The next bounded action is
+> exact-#1045-byte C2 transfer with the now-positive source training semantics.
+> Modulo-256 remains the later discrete role/table/lowering substrate, not the
+> probability field for softmax. See the
+> [#1050 record](docs/r4_zoology_release_reproduction_1050.md).
 
 > **Predecessor open role-tagged associative result (2026-09-02):** #1045
 > completed the full 64-epoch R1 cap and stopped at
@@ -67,8 +69,9 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > but it was not a stock Zoology replication: the role embedding, inherited
 > decoder, population loader, projection path, and other mechanics materially
 > differ. #1047 subsequently integrated the released ICLR24 Zoology
-> causal-softmax cell and loader, and #1049 executed its scaled source-native
-> calibration under the measured CPU wall, as reported above. Modulo-256 remains relevant to discrete role identities,
+> causal-softmax cell and loader. #1049's reduced calibration missed, while
+> #1050's released-configuration reproduction passed, as reported above.
+> Modulo-256 remains relevant to discrete role identities,
 > tables, and later lowering; it is not a substitute for continuous probability
 > normalization. See the
 > [#1045 record](docs/r4_role_tagged_associative_curriculum_1045.md).

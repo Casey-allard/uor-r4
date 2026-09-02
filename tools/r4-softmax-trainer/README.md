@@ -131,9 +131,59 @@ values present in the row, but key-specific binding remained at four-choice
 chance. The pinned executable release used 100,000 construction rows, batch
 512, and the best of four frozen rates, rather than #1049's 8,192 rows, batch
 64, and one rate. The only authorized next copied-control decision is a fresh,
-source-faithful reproduction contract, now frozen in #1050. These commands and #1049's create-once
-root are retained as evidence and are not a rerun interface. Do not tune #1049
-or proceed to C2 from its result.
+released-configuration reproduction contract, now frozen in #1050. These
+commands and #1049's create-once root are retained as evidence and are not a
+rerun interface. Do not tune #1049 or proceed to C2 from its result.
+
+## #1050 released-configuration Zoology reproduction
+
+The canonical contract and executed result are documented in
+[`docs/r4_zoology_release_reproduction_1050.md`](../../docs/r4_zoology_release_reproduction_1050.md).
+This sibling package preserves #1049's immutable implementation and reproduces
+the executable Figure-2 T=64 configuration and training semantics: 100,000
+training rows, 3,000 source test/early-stop rows, batch 512, seed 123, the
+released DataLoader RNG trajectory, cosine schedule, and frozen source learning
+rates. CPU placement and query-only tied-head projection are the two declared
+adaptations; a direct full-versus-query-only loss and gradient test passed.
+
+Its create-once lifecycle is:
+
+```bash
+TRAINER="$(git rev-parse --show-toplevel)/tools/r4-softmax-trainer"
+ROOT="/absolute/issue-1050-root"
+PREDECESSOR_ROOT="/absolute/issue-1049-root"
+cd "$TRAINER"
+PYTHONPATH=src .venv/bin/python -m r4_softmax_trainer.zoology_release prepare \
+  "$ROOT" --predecessor-root "$PREDECESSOR_ROOT"
+PYTHONPATH=src .venv/bin/python -m r4_softmax_trainer.zoology_release preflight \
+  "$ROOT"
+PYTHONPATH=src .venv/bin/python -m r4_softmax_trainer.zoology_release run \
+  "$ROOT"
+PYTHONPATH=src .venv/bin/python -m r4_softmax_trainer.zoology_release verify \
+  "$ROOT"
+```
+
+One/four/eight-thread preflight selected four intra-op CPU threads. The first
+frozen source rate passed the strict source threshold at epoch 20 with
+`11,900/12,000` (`99.1666667%`) top-1 and NLL
+`0.05124610455830892` in `577.834602 s`; the remaining rates were not run
+because the source early stop fired. Result CID is
+`blake3:bd16d012c01262ffb8c5197e4cf316c6fee1d722cf0700a0048386180a8122e0`;
+artifact CID is
+`blake3:163cf3e5375b3e721fa7a826acdb2dfc809e5989209b03fb2a3eea3e3d5459e9`.
+The split has zero full-row overlap but is not assignment-disjoint and is
+evaluated each epoch; it is held out only from gradient updates.
+
+The create-once root is evidence, not a rerun or tuning interface. This result
+rules out a broken copied cell but does not isolate which reduced-versus-
+released contract difference caused #1049's miss. The next decision is one
+freshly initialized transfer to the exact open #1045 bytes under the positive
+training semantics; R4, W8, English, generation, and broad sweeps stay out of
+that transfer issue. Final audit also limits the current lifecycle claim: its
+implementation CID does not cover `pyproject.toml`/`uv.lock`, and an
+interruption immediately after a passing-epoch checkpoint is not guaranteed to
+preserve first-pass early stop. The successor must close both provenance and
+resume gaps before its own run; neither occurred in #1050's uninterrupted run.
 
 ## Terminal #973 group-retention and decoder paths
 
