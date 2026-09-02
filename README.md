@@ -14,7 +14,47 @@ local hardware. The project is testing whether language context, inference,
 and reasoning can emerge from routes through a canonical geometric memory. The
 target serving engine uses no Ollama, hosted model, or source-model weights.
 
-> **Latest source-free prompt-capacity result (2026-09-01):** #973's sole
+> **Latest source-free prompt-capacity result (2026-09-01):** #973's frozen
+> `R4PredictiveBlockDeltaPromptCapacityV5` campaign is complete and independently
+> verified at `PREDICTIVE_BINDING_NO_TERMINAL_CAPACITY`. The geometric arm
+> reached prompt gain `0.03896945868086732`, below the frozen
+> `0.04332169878499658` floor, despite `375/512` wins, own NLL
+> `3.5419674206289073`, gains above qualified V1
+> (`0.005190052751459007`) and the pooled comparator
+> (`0.009168421948743344`), and a passing state-load-bearing check.
+>
+> Geometry and delta overwrite were not attributed. Geometric gain exceeded
+> independently fitted plain delta by `0.023929811749894725`, below the
+> `0.025341569256760274` floor, and its own NLL was worse than plain
+> (`3.5419674206289073` versus `3.518444197495228`). Transport permutation did
+> separate by `0.03181032686529761`, but both geometry controls were required.
+> The language-valid independently fitted additive arm beat geometric delta by
+> `0.006512463228773413`; only `234/512` paired directions favored delta.
+> Fresh language passed over all `247,920` decisions: geometric CE/top-1 was
+> `3.84055165318221`/`0.30979348176831234`, versus pooled
+> `3.85444653890486`/`0.3014924169086802`.
+>
+> Integrity, zero forbidden reads, zero post-reveal optimizer steps, and exact
+> replay passed. The first scoring attempt's preserved
+> `blake3:a819ed7f2b558d80053362c6c229642835b1317ff367d576aeb6ab23a592536a`
+> record remains `NOT_RUN`: its failure was a tail-batch work-ledger bug, not a
+> model result. Scoring-only recovery
+> `blake3:7b76e36e44798bebf184ece08fdd8a2065bdd370106b5d64d5fae4c59dc6d88b`
+> reused the frozen artifacts with no optimizer or retraining. Evidence is bound
+> to scoring CID
+> `blake3:44f8941d24a99fc230710fd700e7a7b13cee87587bfbe4e13bf7b095222e2ee6`,
+> result CID
+> `blake3:6c67544d675eafcb8eb9c0dabb93617e3f6c3295af812e8acbb687107c010a74`,
+> and exact independent verification CID
+> `blake3:567cf336eb05c3ec562aef7135f6fb35b580d02c758b0e79f2508cae57065f5d`.
+> The predeclared next action is `STOP_WITHOUT_GENERATION`: this V5
+> write/binding law is retired. Coherent generation, reasoning, and lowering
+> remain `NOT_RUN`; release readiness is not established. This does not retire
+> the geometric-attention programme or negate established ordinary causal
+> softmax attention. See the
+> [canonical #973 record](docs/r4_predictive_block_delta_binding_prompt_capacity_973.md).
+
+> **Prior source-free prompt-capacity result (2026-09-01):** #973's sole
 > layerwise-normalized candidate,
 > `R4LayerwiseNormalizedRetainedReadoutLanguagePathV1`, completed
 > `LAYERWISE_NORMALIZED_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL`. It held the
@@ -1144,7 +1184,15 @@ not become substitutes for working intelligence:
    offline implementation; the full train/final-qualification/reveal/
    generation/replay path remains `NOT_RUN`, with no further 7.15M exposure or
    LR tuning. The fused-AdamW/deferred-logging fast path was slower (`4.485223`
-   versus signed `3.491307 s/step`); #1019 closed without a full run. #954's
+   versus signed `3.491307 s/step`); #1019 closed without a full run.
+   Separately, #973 qualified `R4RetainedLanguagePathV1`, then rejected its
+   paired-H4, direct/layerwise readout, and learned-associative capacity seams.
+   The independently frozen V5 predictive write/binding successor completed
+   `PREDICTIVE_BINDING_NO_TERMINAL_CAPACITY`: fresh-language and integrity
+   passed, but terminal capacity, geometry attribution, and delta-overwrite
+   attribution did not. Retire that law and `STOP_WITHOUT_GENERATION`; this
+   does not revoke the accepted ordinary-softmax or retained-attention scopes.
+   #954's
    cosine pointer stopped before final artifact or product reveal. Its
    implemented C1-SB2 relation successor then failed matched-transfer preflight
    before Rust parity/full fit/development/product and emitted no final head.
@@ -1220,7 +1268,13 @@ frozen eight-hour offline implementation; the full campaign remains `NOT_RUN`.
 UOR's deployed architecture/runtime remains CPU-native. Apple Accelerate/BLAS
 and MPS are local offline accelerators only. The fused-AdamW/deferred-logging
 fast path was slower (`4.485223` versus signed `3.491307 s/step`); #1019 closed
-without a full run. #954's cosine pointer stopped before final artifact or
+without a full run. #973 subsequently qualified its retained language path,
+then closed the paired-H4, direct/layerwise readout, learned-associative, and
+predictive block-delta promotion rungs. V5 terminal
+`PREDICTIVE_BINDING_NO_TERMINAL_CAPACITY` retires only that write/binding law
+at `STOP_WITHOUT_GENERATION`; fresh-language and integrity passed, while
+capacity, geometry attribution, and delta-overwrite attribution did not. #954's
+cosine pointer stopped before final artifact or
 product reveal. Its implemented C1-SB2 relation successor then failed
 matched-transfer preflight before Rust parity/full fit/development/product and
 emitted no final head. C1-SB3's rank-eight all-layer Q/K/V/O adapter produced

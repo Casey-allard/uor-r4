@@ -10,7 +10,27 @@ The accepted #973 attention reference, completed learned-manifold/localization
 results, parked intrinsic-replacement lane, autonomous-generation gate, and
 native bridge result are frozen in
 [ADR-0005](docs/adr/0005-predictive-geometric-connection-memory.md).
-The current handoff preserves qualified
+The current handoff is #973 V5's independently verified terminal
+`PREDICTIVE_BINDING_NO_TERMINAL_CAPACITY` (result
+`blake3:6c67544d675eafcb8eb9c0dabb93617e3f6c3295af812e8acbb687107c010a74`;
+verification
+`blake3:567cf336eb05c3ec562aef7135f6fb35b580d02c758b0e79f2508cae57065f5d`).
+Integrity and fresh-language nonregression passed. Geometric prompt gain was
+`0.03896945868086732` with `375/512` wins and beat V1 and pooled, but missed
+the `0.04332169878499658` absolute floor. Its margin over independently fitted
+plain delta was `0.023929811749894725`, below
+`0.025341569256760274`, with worse own NLL; transport permutation passed.
+Delta-overwrite attribution against independently fitted additive failed at
+`-0.006512463228773413` and `234/512`. Preserve the original scoring-harness
+failure as `NOT_RUN`: the corrected scoring recovery performed zero retraining
+and zero optimizer steps, reused the frozen arms, and passed exact independent
+replay. The binding law is retired at `STOP_WITHOUT_GENERATION`; do not retry,
+generate, claim reasoning, or begin integer/table lowering from it. Ordinary
+softmax and the qualified retained-attention baseline remain established and
+the larger programme continues, but #954 remains blocked. See the
+[#973 V5 record](docs/r4_predictive_block_delta_binding_prompt_capacity_973.md).
+
+The retained baseline remains qualified as
 [`R4RetainedLanguagePathV1`](docs/r4_retained_language_path_v1_973.md) and
 records its sole layerwise-normalized candidate as
 `LAYERWISE_NORMALIZED_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL`. With every V1
@@ -36,7 +56,7 @@ fresh-process comparisons passed, but generation, reasoning, lowering, and
 geometry-native lowering are `NOT_RUN`; no coherence, H4-superiority,
 exact-runtime, browser, or release claim follows.
 
-The separately frozen learned-associative successor has now completed
+The preceding separately frozen learned-associative successor completed
 `LEARNED_ASSOCIATIVE_READOUT_NO_CAPACITY` (result
 `blake3:cedba37738ee249457bb589f716ee75afb16a0c4937c2a22ae9f917dd3eb97c1`;
 independent verification
@@ -52,9 +72,8 @@ non-geometric control. Geometry attribution failed against both pooled
 (`-0.0038864491366036808`, `209/512` paired improvements) and deranged
 (`-0.0002888663472835149`, `251/512`). Mechanics and verification passed, but
 no prompt-capacity, geometry-advantage, generation, or reasoning claim follows.
-Contribute next only toward a separately frozen contract that changes the
-retained value write/binding law; do not tune or retry this readout, widen it,
-or run generation from it.
+That result motivated the terminal V5 campaign above. Do not tune or retry this
+readout, widen it, or run generation from it.
 Ordinary
 causal R4/Spin Q/K/V plus stable softmax remains the bounded source-backed
 attention baseline, while C1-SB5 paired-query binding fit `56/56` but reached
@@ -209,9 +228,12 @@ The experiment must be able to change the next programme decision:
   but the exact 3.17M-parameter, two-block, data/dose recipe did not satisfy its
   frozen full-decoder generalization criterion. Formal H4 specificity remained
   `NOT_EVALUATED`; diagnostic scrambled-transport CE was `0.033049` nats better.
-  Preserve the qualified read/write component and work next only on an
-  independently frozen, data-supported language-path decoder with an ordinary
-  matched non-geometric control; held-out model data remain unopened.
+  Preserve the qualified read/write component and the completed V1-through-V5
+  evidence chain. The language-path decoder qualified, but its paired-H4,
+  readout, learned-associative, and predictive block-delta promotion rungs did
+  not. Do not reopen those frozen mechanisms. New #973 research requires a
+  separately authorized contract; product-facing work uses the established
+  #1017 `r4 generate` path.
   See the
   [#989 record](docs/source_free_table_baseline_989.md).
 - **Preserve the GI evidence lineage.** GI-1 makes lexical/address state
@@ -287,10 +309,13 @@ The experiment must be able to change the next programme decision:
   separately frozen learned-associative campaign completed
   `LEARNED_ASSOCIATIVE_READOUT_NO_CAPACITY` with independent verification.
   Preserve its pooled fresh-language signal only as a non-geometric control.
-  Next separately freeze a changed retained value write/binding law; do not
-  retry the readout or run generation. #973 still
-  blocks GI-4/#954's final source-free terminal, with GI-5/#955 downstream of
-  positive correctness.
+  Its independently frozen V5 predictive write/binding successor then stopped
+  `PREDICTIVE_BINDING_NO_TERMINAL_CAPACITY`; fresh-language and integrity passed,
+  but capacity, geometry attribution, and delta-overwrite attribution did not.
+  Preserve the harness incident as `NOT_RUN` and the scoring-only recovery as
+  zero retraining. Retire the write/binding law and
+  `STOP_WITHOUT_GENERATION`. #973 still blocks GI-4/#954's final source-free
+  terminal, with GI-5/#955 downstream of positive correctness.
 - **Exercise the accepted route path.** #953 geometry runs before token choice
   and emits admitted support and its fixed-point radius trace. The completed
   #973 localization kept its frozen split, trace identity, score-paired common

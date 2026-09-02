@@ -9,7 +9,27 @@ The earlier
 preserved #948–#958 sequencing record. Measured, refuted, and frozen research
 remains in [docs/RESEARCH.md](docs/RESEARCH.md).
 
-**Active correction (2026-09-01):** #973's separately frozen learned
+**Active correction (2026-09-01):** #973's V5 predictive write/binding campaign
+is independently verified at `PREDICTIVE_BINDING_NO_TERMINAL_CAPACITY` (result
+CID `blake3:6c67544d675eafcb8eb9c0dabb93617e3f6c3295af812e8acbb687107c010a74`;
+verification CID
+`blake3:567cf336eb05c3ec562aef7135f6fb35b580d02c758b0e79f2508cae57065f5d`).
+Integrity and fresh-language nonregression passed. Geometric gain was
+`0.03896945868086732` with `375/512` wins and beat V1 and pooled, but missed
+the `0.04332169878499658` absolute capacity floor. Geometry attribution failed:
+the margin over independently fitted plain delta was
+`0.023929811749894725`, below `0.025341569256760274`, and geometric own NLL
+was worse; transport permutation passed. Delta-overwrite attribution against
+independently fitted additive failed at `-0.006512463228773413` and `234/512`.
+The original scoring-harness tail-batch stop remains `NOT_RUN`; the recovery
+performed zero retraining and zero optimizer steps, reused the frozen arms, and
+passed exact independent replay. Retire this write/binding law and
+`STOP_WITHOUT_GENERATION`. No generation, reasoning, or integer/table lowering
+is authorized. Ordinary softmax/retained attention remain established and the
+larger programme continues, but #954 remains blocked. See the
+[V5 result record](docs/r4_predictive_block_delta_binding_prompt_capacity_973.md).
+
+**Immediately preceding result:** #973's separately frozen learned
 associative campaign completed `LEARNED_ASSOCIATIVE_READOUT_NO_CAPACITY` at
 result CID
 `blake3:cedba37738ee249457bb589f716ee75afb16a0c4937c2a22ae9f917dd3eb97c1`;
@@ -29,13 +49,12 @@ pooled gain was `-0.0038864491366036808` with `209/512` paired improvements,
 and geometric-minus-deranged gain was `-0.0002888663472835149` with `251/512`,
 both below the required `308/512`. Mechanics, exact replay, causal access, and
 independent verification passed; associative prompt capacity and geometry
-advantage did not. No generation/readout retry is authorized. Next separately
-freeze a contract that changes the retained value write/binding law before
-creating any successor population. #973 stays open; #954 stays blocked; no
-C1-SB6 is authorized. See the
+advantage did not. No generation/readout retry is authorized. This result led
+to the terminal V5 write/binding campaign above. #954 stays blocked; no C1-SB6
+is authorized. See the
 [binding result record](docs/r4_learned_associative_readout_prompt_capacity_973.md).
 
-**Immediately preceding result:** #973's sole layerwise-normalized retained
+**Earlier result:** #973's sole layerwise-normalized retained
 readout completed `LAYERWISE_NORMALIZED_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL`
 at result CID
 `blake3:35396bd6e64fc2c0bc7d86a84cc9e212ed913ce28e5353f5f2b8212b4cf2c532`.
@@ -59,11 +78,11 @@ the learned-associative campaign reported above.
 
 _Last reviewed: 2026-09-01 (#973 retained language-path generalization and
 autonomous local decoding passed; paired-H4 addressing failed, the direct and
-layerwise-normalized readout seams each completed PARTIAL, and the separately
-frozen learned-associative successor completed
-`LEARNED_ASSOCIATIVE_READOUT_NO_CAPACITY`; preserve pooled fresh-language signal
-as a non-geometric control and separately freeze a changed retained value
-write/binding law next, with no readout retry or generation;
+layerwise-normalized readout seams each completed PARTIAL, the learned-
+associative successor completed `LEARNED_ASSOCIATIVE_READOUT_NO_CAPACITY`, and
+V5 predictive write/binding completed
+`PREDICTIVE_BINDING_NO_TERMINAL_CAPACITY`; retire that law and
+`STOP_WITHOUT_GENERATION` after verified zero-retraining scoring recovery;
 prompt-responsive coherence and H4 specificity remain unestablished; #961
 reversible S0 landed;
 #952 A1.0 stopped at
@@ -360,9 +379,11 @@ quality-capacity negative; **Qualified retained baseline:**
 improved prompt gain and fresh language but missed both frozen gain margins;
 **Rejected learned readout:** `LEARNED_ASSOCIATIVE_READOUT_NO_CAPACITY`, with
 the pooled fresh-language improvement retained only as a non-geometric control;
-**Current #973 action:** separately freeze a changed retained value
-write/binding law before implementation or population creation, with no retry
-or generation from the rejected readout;
+**Terminal V5 write/binding law:**
+`PREDICTIVE_BINDING_NO_TERMINAL_CAPACITY`; integrity/fresh-language and
+transport-permuted comparison passed, capacity/geometry/delta attribution did
+not; **Current #973 action:** retire the law and `STOP_WITHOUT_GENERATION`, with
+no generation, reasoning, or integer lowering authorized;
 **Closed without a full run:** #1019's frozen
 12-layer, 13,130,784-parameter capacity campaign after its MPS hardware-budget
 stop; **Observed #954 negatives:** the fixed 384-step MPS grounding SFT
@@ -394,8 +415,8 @@ numbered evidence ladder below without rewriting that history. #989 scored
 99,362/446,342 (22.261404%) held-out top-1 versus 24,163/446,342 (5.413561%)
 for unigram, an uplift of +16.847843 percentage points, with byte-identical
 double execution. Its non-geometric table engine, corpus, support, decode, and
-work budget remain the frozen reference inherited by accepted #953 and active
-#973. Do not broaden scale or tune a revealed fixture; ADR-0005's pinned
+work budget remain the frozen reference inherited by accepted #953 and the
+#973 campaign. Do not broaden scale or tune a revealed fixture; ADR-0005's pinned
 HELM-D architecture audit, ordinary donor reproduction, and R4/Spin
 full-decoder softmax-parity gate remain qualified. Intrinsic Lorentz V1 attempt
 02 is unavailable before D3. Source-faithful learned-manifold V2 failed donor
@@ -788,9 +809,12 @@ completed negative `R4SoftmaxTraceStateStudentV1` →
 `R4GroupAddressedRetentionLMV1` construction terminal
 `UNAVAILABLE_FRAME_POPULATION_OR_LOCAL_BUDGET` → measured-fast CPU recovery
 with bounded retained-attention component positive, frozen full-decoder
-generalization criterion not satisfied, and no H4 separation → data-supported
-language-path decoder plus
-ordinary matched non-geometric control → blocked #954 → #955 →
+generalization criterion not satisfied, and no H4 separation → qualified
+data-supported language-path decoder plus ordinary matched non-geometric
+control → rejected paired-H4/direct/layerwise/learned-associative capacity
+seams → terminal V5 predictive write/binding
+`PREDICTIVE_BINDING_NO_TERMINAL_CAPACITY` → `STOP_WITHOUT_GENERATION` →
+blocked #954 → #955 →
 #962–#965. #973 continues to
 block #954.
 Legacy tracker #949 is closed as
@@ -888,11 +912,24 @@ historical evidence and comparators.
   `blake3:443d711ce9a228e26e2eb2eebb55c582848424e2677c3473d41deaf8afd69ec7`.
   No tuning, retry, generation, or lowering is authorized from this rung.
 
-- [ ] **#973 retained value write/binding law — next contract.** Separately
-  freeze one changed retained value representation/write/binding law and its
-  matched controls before implementation or population creation. Carry the
-  pooled arm forward only as a fresh-language control, not as prompt-capacity
-  or geometry evidence.
+- [x] **#973 predictive retained value write/binding law — terminal no
+  capacity.** The independently frozen V5 campaign completed
+  `PREDICTIVE_BINDING_NO_TERMINAL_CAPACITY` and exact independent replay. The
+  geometric arm gained `0.03896945868086732` with `375/512` wins and beat V1
+  and pooled, but missed the `0.04332169878499658` absolute floor. Its margin
+  over plain delta was `0.023929811749894725`, below
+  `0.025341569256760274`, with worse own NLL; transport permutation passed.
+  Delta overwrite lost to independently fitted additive at
+  `-0.006512463228773413` and `234/512`. Integrity and fresh-language
+  nonregression passed. Preserve the first scoring attempt as a harness-only
+  `NOT_RUN`; recovery reused the frozen arms with zero retraining. Result and
+  verification CIDs are
+  `blake3:6c67544d675eafcb8eb9c0dabb93617e3f6c3295af812e8acbb687107c010a74`
+  and
+  `blake3:567cf336eb05c3ec562aef7135f6fb35b580d02c758b0e79f2508cae57065f5d`.
+  Retire this law and `STOP_WITHOUT_GENERATION`; no generation, reasoning, or
+  integer/table lowering is authorized. See the
+  [V5 record](docs/r4_predictive_block_delta_binding_prompt_capacity_973.md).
 
 - [ ] **#954 grounded correctness: C1-SB5 retired negative; final source-free
   terminal blocked behind #973** — retain the

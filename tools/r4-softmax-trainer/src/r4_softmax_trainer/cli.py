@@ -86,6 +86,19 @@ from .paired_query_binding_campaign import (
     prepare_paired_query_binding_data,
     run_paired_query_binding_preflight,
 )
+from .predictive_block_delta_campaign import (
+    MAXIMUM_UPDATES as PREDICTIVE_BLOCK_DELTA_MAXIMUM_UPDATES,
+    run_predictive_block_delta_preflight,
+)
+from .predictive_block_delta_campaign_v2 import (
+    run_predictive_block_delta_v2_preflight,
+)
+from .predictive_block_delta_terminal_campaign import (
+    prepare_predictive_block_delta_terminal,
+    probe_predictive_block_delta_terminal,
+    run_predictive_block_delta_terminal,
+    verify_predictive_block_delta_terminal,
+)
 from .paths import (
     default_attended_relation_adapter_root,
     default_capacity_root,
@@ -125,6 +138,15 @@ from .paths import (
     default_paired_h4_prompt_capacity_root,
     default_paired_h4_prompt_capacity_source_train,
     default_paired_query_binding_root,
+    default_predictive_block_delta_frame_sidecar,
+    default_predictive_block_delta_predecessor,
+    default_predictive_block_delta_revealed_v4_root,
+    default_predictive_block_delta_root,
+    default_predictive_block_delta_v1_result,
+    default_predictive_block_delta_v2_root,
+    default_predictive_block_delta_terminal_prior_populations,
+    default_predictive_block_delta_terminal_root,
+    default_predictive_block_delta_terminal_v2_result,
     default_research_root,
     default_source_relation_head_root,
     default_source_span_pointer_root,
@@ -141,6 +163,19 @@ from .train import TrainConfig, reveal_sealed_test, run_overfit_smoke, train_mai
 
 def _root(value: str) -> Path:
     return Path(value).expanduser().resolve()
+
+
+def _predictive_block_delta_updates(value: str) -> int:
+    try:
+        updates = int(value)
+    except ValueError as error:
+        raise argparse.ArgumentTypeError("maximum updates must be an integer") from error
+    if not 1 <= updates <= PREDICTIVE_BLOCK_DELTA_MAXIMUM_UPDATES:
+        raise argparse.ArgumentTypeError(
+            "maximum updates must be between 1 and "
+            f"{PREDICTIVE_BLOCK_DELTA_MAXIMUM_UPDATES}"
+        )
+    return updates
 
 
 def _print_result(value: dict[str, Any]) -> None:
@@ -770,6 +805,146 @@ def parser() -> argparse.ArgumentParser:
         "verify-learned-associative-readout",
         help="fresh-process exact re-score of terminal V4 and heldout evidence",
     )
+    predictive_delta = subcommands.add_parser(
+        "preflight-predictive-block-delta",
+        help=(
+            "run #973's sole disposable predictive block-delta expressivity gate "
+            "against the already revealed V4 population"
+        ),
+    )
+    predictive_delta.add_argument(
+        "--predecessor-root",
+        type=_root,
+        default=default_predictive_block_delta_predecessor(),
+        help="immutable qualified retained-language-path root",
+    )
+    predictive_delta.add_argument(
+        "--revealed-v4-root",
+        type=_root,
+        default=default_predictive_block_delta_revealed_v4_root(),
+        help="completed learned-associative root containing the revealed V4 population",
+    )
+    predictive_delta.add_argument(
+        "--frame-sidecar",
+        type=_root,
+        default=default_predictive_block_delta_frame_sidecar(),
+        help="canonical JSON emitted by r4-h4-spin-frame-export",
+    )
+    predictive_delta.add_argument(
+        "--maximum-updates",
+        type=_predictive_block_delta_updates,
+        default=PREDICTIVE_BLOCK_DELTA_MAXIMUM_UPDATES,
+        help=(
+            "disposable optimizer ceiling, bounded to the frozen campaign maximum "
+            f"of {PREDICTIVE_BLOCK_DELTA_MAXIMUM_UPDATES}"
+        ),
+    )
+    predictive_delta_v2 = subcommands.add_parser(
+        "preflight-predictive-block-delta-v2",
+        help=(
+            "run #973's frozen independent native/additive correction on "
+            "revealed V4 pairs 32 through 63"
+        ),
+    )
+    predictive_delta_v2.add_argument(
+        "--predecessor-root",
+        type=_root,
+        default=default_predictive_block_delta_predecessor(),
+        help="immutable qualified retained-language-path root",
+    )
+    predictive_delta_v2.add_argument(
+        "--revealed-v4-root",
+        type=_root,
+        default=default_predictive_block_delta_revealed_v4_root(),
+        help="completed learned-associative root containing the revealed V4 population",
+    )
+    predictive_delta_v2.add_argument(
+        "--frame-sidecar",
+        type=_root,
+        default=default_predictive_block_delta_frame_sidecar(),
+        help="canonical JSON emitted by r4-h4-spin-frame-export",
+    )
+    predictive_delta_v2.add_argument(
+        "--v1-result",
+        type=_root,
+        default=default_predictive_block_delta_v1_result(),
+        help="immutable create-once V1 result required by the V2 correction",
+    )
+    prepare_predictive_terminal = subcommands.add_parser(
+        "prepare-predictive-block-delta-terminal",
+        help=(
+            "create and mode-000 seal #973's authorized V5 prompt and fresh-language "
+            "populations without returning either payload"
+        ),
+    )
+    prepare_predictive_terminal.add_argument(
+        "--predecessor-root",
+        type=_root,
+        default=default_predictive_block_delta_predecessor(),
+        help="immutable qualified retained-language-path root",
+    )
+    prepare_predictive_terminal.add_argument(
+        "--source-train",
+        type=_root,
+        default=default_learned_associative_readout_source_train(),
+        help="verified nonsealed #1019 train-token store",
+    )
+    prepare_predictive_terminal.add_argument(
+        "--source-train-index",
+        type=_root,
+        default=default_learned_associative_readout_source_train_index(),
+        help="canonical #1019 train-story index binding the V5 fresh slice",
+    )
+    prepare_predictive_terminal.add_argument(
+        "--raw-source",
+        type=_root,
+        default=default_learned_associative_readout_raw_source(),
+        help="pinned raw TinyStories source used only during create-once V5 selection",
+    )
+    for version, default in enumerate(
+        default_predictive_block_delta_terminal_prior_populations(), start=1
+    ):
+        prepare_predictive_terminal.add_argument(
+            f"--v{version}-population",
+            type=_root,
+            default=default,
+            help=f"exact revealed V{version} prompt population used only for CID exclusion",
+        )
+    prepare_predictive_terminal.add_argument(
+        "--frame-sidecar",
+        type=_root,
+        default=default_predictive_block_delta_frame_sidecar(),
+        help="canonical Rust-exported H4 spin-frame sidecar",
+    )
+    prepare_predictive_terminal.add_argument(
+        "--v2-result",
+        type=_root,
+        default=default_predictive_block_delta_terminal_v2_result(),
+        help="exact admitted V2 authorization read before any V5 access",
+    )
+    prepare_predictive_terminal.add_argument(
+        "--pooled-comparator-root",
+        type=_root,
+        default=default_learned_associative_readout_root(),
+        help="completed V4 campaign holding the immutable pooled comparator",
+    )
+    subcommands.add_parser(
+        "probe-predictive-block-delta-terminal",
+        help="benchmark CPU4, CPU8, and two CPU4 workers using construction data only",
+    )
+    run_predictive_terminal = subcommands.add_parser(
+        "run-predictive-block-delta-terminal",
+        help="fit three frozen arms, reveal V5 once, and write the terminal decision",
+    )
+    run_predictive_terminal.add_argument(
+        "--resume",
+        action="store_true",
+        help="resume only exact pre-reveal checkpoints under the frozen plan",
+    )
+    subcommands.add_parser(
+        "verify-predictive-block-delta-terminal",
+        help="independently reproduce V5 prompt, fresh-language, and decision evidence",
+    )
     return command
 
 
@@ -852,6 +1027,14 @@ def main() -> None:
         "run-learned-associative-readout",
         "verify-learned-associative-readout",
     }
+    predictive_block_delta_commands = {"preflight-predictive-block-delta"}
+    predictive_block_delta_v2_commands = {"preflight-predictive-block-delta-v2"}
+    predictive_block_delta_terminal_commands = {
+        "prepare-predictive-block-delta-terminal",
+        "probe-predictive-block-delta-terminal",
+        "run-predictive-block-delta-terminal",
+        "verify-predictive-block-delta-terminal",
+    }
     if arguments.root:
         root = arguments.root
     elif arguments.command in capacity_commands:
@@ -886,6 +1069,12 @@ def main() -> None:
         root = default_layerwise_normalized_readout_root()
     elif arguments.command in learned_associative_readout_commands:
         root = default_learned_associative_readout_root()
+    elif arguments.command in predictive_block_delta_commands:
+        root = default_predictive_block_delta_root()
+    elif arguments.command in predictive_block_delta_v2_commands:
+        root = default_predictive_block_delta_v2_root()
+    elif arguments.command in predictive_block_delta_terminal_commands:
+        root = default_predictive_block_delta_terminal_root()
     else:
         root = default_research_root()
     if arguments.command == "download":
@@ -1203,5 +1392,57 @@ def main() -> None:
         return
     if arguments.command == "verify-learned-associative-readout":
         _print_result(verify_learned_associative_readout_result(root))
+        return
+    if arguments.command == "preflight-predictive-block-delta":
+        _print_result(
+            run_predictive_block_delta_preflight(
+                root=root,
+                predecessor_root=arguments.predecessor_root,
+                revealed_v4_root=arguments.revealed_v4_root,
+                frame_sidecar_path=arguments.frame_sidecar,
+                maximum_updates=arguments.maximum_updates,
+            )
+        )
+        return
+    if arguments.command == "preflight-predictive-block-delta-v2":
+        _print_result(
+            run_predictive_block_delta_v2_preflight(
+                root=root,
+                predecessor_root=arguments.predecessor_root,
+                revealed_v4_root=arguments.revealed_v4_root,
+                frame_sidecar_path=arguments.frame_sidecar,
+                v1_result_path=arguments.v1_result,
+            )
+        )
+        return
+    if arguments.command == "prepare-predictive-block-delta-terminal":
+        prepared = prepare_predictive_block_delta_terminal(
+            root=root,
+            predecessor_root=arguments.predecessor_root,
+            source_train_path=arguments.source_train,
+            source_train_index_path=arguments.source_train_index,
+            raw_source_path=arguments.raw_source,
+            prior_population_paths=(
+                arguments.v1_population,
+                arguments.v2_population,
+                arguments.v3_population,
+                arguments.v4_population,
+            ),
+            frame_sidecar_path=arguments.frame_sidecar,
+            v2_result_path=arguments.v2_result,
+            pooled_comparator_root=arguments.pooled_comparator_root,
+        )
+        _print_result(prepared.manifest)
+        return
+    if arguments.command == "probe-predictive-block-delta-terminal":
+        _print_result(probe_predictive_block_delta_terminal(root))
+        return
+    if arguments.command == "run-predictive-block-delta-terminal":
+        _print_result(
+            run_predictive_block_delta_terminal(root, resume=arguments.resume)
+        )
+        return
+    if arguments.command == "verify-predictive-block-delta-terminal":
+        _print_result(verify_predictive_block_delta_terminal(root))
         return
     raise AssertionError(f"unhandled command: {arguments.command}")

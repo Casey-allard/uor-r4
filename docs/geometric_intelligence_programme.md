@@ -9,8 +9,10 @@
 - **Supersedes for architectural direction:**
   [Geometric Causal Decoder Roadmap](geometric_causal_decoder_plan.md)
 - **Historical measurements:** [Research ledger](RESEARCH.md)
-- **Current mechanism:**
-  [#973 learned-associative terminal and write/binding-law decision](r4_learned_associative_readout_prompt_capacity_973.md)
+- **Qualified retained baseline:**
+  [`R4RetainedLanguagePathV1`](r4_retained_language_path_v1_973.md)
+- **Latest terminal decision:**
+  [#973 predictive block-delta terminal](r4_predictive_block_delta_binding_prompt_capacity_973.md)
 
 ## Purpose
 
@@ -54,38 +56,41 @@ correctness, and reasoning remain separate claims.
 Optimization, broad QA, formalization, and release certification follow a
 working decision-bearing product slice. They do not replace it.
 
-## Current #973 decision — change the retained-value write/binding law
+## Current #973 decision — stop this predictive block-delta law
 
 Qualified `R4RetainedLanguagePathV1` remains the source-free retained-attention
-baseline. The independently frozen
-`R4LearnedCandidateLeafAssociativeReadoutV1` successor has now completed
-`LEARNED_ASSOCIATIVE_READOUT_NO_CAPACITY`. Its geometric prompt gain/wins/NLL
-were `0.00637679` / `299/512` / `3.710383`, versus frozen V1
-`0.00642365` / `308/512` / `3.712799`.
+baseline. The independently frozen `R4PredictiveBlockDeltaBindingV1` campaign
+has now completed `PREDICTIVE_BINDING_NO_TERMINAL_CAPACITY`; its binding action
+is `STOP_WITHOUT_GENERATION`.
 
-The equal-parameter address-blind pooled arm was strongest at gain
-`0.01026323`, `324/512` wins, and NLL `3.682891`, but its
-`PROMPT_CONDITIONING_PARTIAL` result missed the absolute `0.04332170` floor and
-its `0.00383958` improvement over V1 missed the `0.02534157` margin. The
-separate terminal was `GEOMETRY_ATTRIBUTION_FAIL`: geometric minus pooled was `-0.00388645` with
-`209/512` paired improvements, and geometric minus fixed-leaf deranged was
-`-0.00028887` with `251/512`. The pooled effect is a control signal, not an H4
-binding result.
+On the sealed V5 prompt population, the geometric arm gained
+`0.03896945868086732` nats/token with `375/512` wins and own-prompt NLL
+`3.5419674206289073`. It beat frozen V1 and pooled by the required incremental
+margin and passed fresh-language and integrity gates, but missed the absolute
+`0.04332169878499658` capacity floor. Capacity is therefore negative even
+though the memory is causal and useful.
 
-Both learned arms passed fresh-language gates. V1 fresh NLL/top-1 was
-`3.903636` / `29.6285%`; geometric was `3.901412` / `29.6342%`; pooled was
-`3.873756` / `30.0428%`. Mechanics and exact independent verification passed.
-Result CID:
-`blake3:cedba37738ee249457bb589f716ee75afb16a0c4937c2a22ae9f917dd3eb97c1`;
+Geometry and overwrite attribution were also negative. Geometric minus the
+independently fitted plain arm was `0.023929811749894725`, below the frozen
+`0.025341569256760274` margin, and geometric own NLL was worse; the separate
+transport-permuted comparison passed. Geometric minus the independently fitted
+additive arm was `-0.006512463228773413`, with only `234/512` paired
+improvements. Exact verification replayed the complete evidence. Result CID:
+`blake3:6c67544d675eafcb8eb9c0dabb93617e3f6c3295af812e8acbb687107c010a74`;
+scoring CID:
+`blake3:44f8941d24a99fc230710fd700e7a7b13cee87587bfbe4e13bf7b095222e2ee6`;
 verification CID:
-`blake3:443d711ce9a228e26e2eb2eebb55c582848424e2677c3473d41deaf8afd69ec7`.
+`blake3:567cf336eb05c3ec562aef7135f6fb35b580d02c758b0e79f2508cae57065f5d`.
 
-No generation or further readout retry is authorized. The next #973 mechanism
-must be independently frozen and alter the retained-value write/binding law,
-with the pooled arm preserved as its matched non-geometric control. Generation,
-reasoning, exact/geometry-native lowering, #954, and C1-SB6 remain blocked or
-`NOT_RUN`. See the
-[learned associative record](r4_learned_associative_readout_prompt_capacity_973.md).
+The first scoring attempt stopped on a variable-tail batching assertion, not a
+model result. The scoring-only recovery at
+`blake3:7b76e36e44798bebf184ece08fdd8a2065bdd370106b5d64d5fae4c59dc6d88b`
+preserved every fitted artifact, executed zero optimizer steps, and superseded
+only that harness failure. This result retires this exact predictive block-
+delta write/binding law, not ordinary R4/Spin softmax attention or qualified
+retained attention. No generation, reasoning, exact/geometry-native lowering,
+#954, C1-SB6, browser promotion, or release is authorized. See the
+[predictive block-delta record](r4_predictive_block_delta_binding_prompt_capacity_973.md).
 
 ## Primary direction after protected localization — 2026-08-30
 
@@ -278,7 +283,7 @@ remain `NOT_RUN` and parked. See the [intrinsic R4 record](intrinsic_lorentz_r4_
 the [learned-manifold record](helm_d_learned_manifold_r4_construction_973.md),
 and the [localization record](helm_d_score_centroid_localization_973.md).
 
-## Current capability-first delivery decision — #953
+## Established capability-first delivery baseline — #953
 
 #989 reached `ESTABLISH_TABLE_NATIVE_LEXICAL_BASELINE`. On 446,342 held-out
 known-target positions, its deterministic construction-trained integer table
@@ -351,7 +356,7 @@ No new H4,
 SpiralCore, harmonic, algebraic, placement, transport, or scale qualifier is
 eligible outside its exposed issue.
 
-## Current truth and post-A1Q-L2 decision
+## Foundation truth and historical post-A1Q-L2 decision
 
 #958 is foundation evidence, not abandonment of geometric intelligence. It
 retained the following source-free mechanisms:
@@ -2110,10 +2115,15 @@ hours remains a hard kill ceiling, never an estimate.
   prompt-capacity effect-size floors. The parameter-free readout ladder is now
   closed. The learned candidate-leaf associative successor then completed
   `LEARNED_ASSOCIATIVE_READOUT_NO_CAPACITY`; pooled readout was strongest but
-  below both capacity floors, and geometry attribution failed. No further
-  readout retry or generation is authorized. #973 next requires a new freeze
-  that changes the retained-value write/binding law and keeps pooled readout as
-  the matched control.
+  below both capacity floors, and geometry attribution failed. Its one
+  independently frozen write/binding-law successor then completed
+  `PREDICTIVE_BINDING_NO_TERMINAL_CAPACITY`: geometric gain
+  `0.03896945868086732` missed the absolute `0.04332169878499658` floor,
+  geometric-minus-plain missed its margin and NLL requirements, and full delta
+  did not beat independently fitted additive. Fresh-language and integrity
+  gates passed. This exact predictive block-delta law is retired with
+  `STOP_WITHOUT_GENERATION`; the established ordinary-softmax and retained-
+  attention results remain intact.
   Intrinsic attention
   replacement, new state dimensions, corpus scale, resonance/recurrent
   lowering, and final requalification remain parked.
@@ -2224,10 +2234,54 @@ verification CID:
 `blake3:443d711ce9a228e26e2eb2eebb55c582848424e2677c3473d41deaf8afd69ec7`.
 
 This terminal forbids generation and another readout retry over the same
-retained values. Preserve qualified V1 and pooled as the matched control. The
-next #973 mechanism must alter the retained-value write/binding law under a new
-independent freeze. Reasoning, exact/geometry-native lowering, #954, C1-SB6,
-browser, and release work remain blocked or `NOT_RUN`.
+retained values. Preserve qualified V1 and pooled as the matched control. At
+that checkpoint, the next #973 mechanism had to alter the retained-value
+write/binding law under a new independent freeze; that successor is recorded
+below. Reasoning, exact/geometry-native lowering, #954, C1-SB6, browser, and
+release work remain blocked or `NOT_RUN`.
+
+## Authoritative predictive block-delta terminal (2026-09-01)
+
+The independently frozen successor changed the write/binding law instead of
+adding another readout. `R4PredictiveBlockDeltaBindingV1` trained separate
+equal-parameter geometric full-delta, identity/plain full-delta, and geometric
+additive memories over the unchanged qualified V1 substrate. All three arms
+completed the same `2,730`-step construction dose. Their fitted artifacts were
+fixed before the V5 reveal; terminal scoring performed zero optimizer steps.
+
+The geometric arm reached prompt gain `0.03896945868086732`, `375/512` wins,
+and own-prompt NLL `3.5419674206289073`. It cleared the required gains over V1
+and pooled and passed fresh-language and integrity criteria, but missed the
+absolute capacity floor `0.04332169878499658`. The terminal is therefore
+`PREDICTIVE_BINDING_NO_TERMINAL_CAPACITY`, and the predeclared action is
+`STOP_WITHOUT_GENERATION`.
+
+No geometry or delta-overwrite advantage follows. The geometric-minus-plain
+gain was `0.023929811749894725`, below `0.025341569256760274`, and geometric
+own NLL was worse; the transport-permuted gain, paired-win, and NLL gates did
+pass. Geometric-minus-additive gain was `-0.006512463228773413` with `234/512`
+paired improvements, so delta-specific superiority is not established. Fresh
+geometric NLL/top-1 was `3.84055165318221` / `30.979348%`, within the frozen
+nonregression bounds, and all forbidden-read, work, state-off, causal, replay,
+and artifact-integrity checks passed.
+
+The first scoring process exposed a tail-batch work-audit bug and wrote no
+scientific result. Recovery CID
+`blake3:7b76e36e44798bebf184ece08fdd8a2065bdd370106b5d64d5fae4c59dc6d88b`
+bound the unchanged arms and allowed scoring only; it created no optimizer and
+performed no refit. Result CID
+`blake3:6c67544d675eafcb8eb9c0dabb93617e3f6c3295af812e8acbb687107c010a74`,
+scoring CID
+`blake3:44f8941d24a99fc230710fd700e7a7b13cee87587bfbe4e13bf7b095222e2ee6`,
+and independent exact-replay verification CID
+`blake3:567cf336eb05c3ec562aef7135f6fb35b580d02c758b0e79f2508cae57065f5d`.
+
+This terminal retires only this predictive block-delta write/binding law.
+Qualified ordinary R4/Spin causal-softmax attention and
+`R4RetainedLanguagePathV1` remain established at their prior bounded scopes.
+Coherent generation from this cell, reasoning, integer/table lowering,
+geometry-native runtime promotion, browser readiness, and release are
+`NOT_RUN` or not established. #973 remains open and #954 remains blocked.
 
 ## Historical preservation
 

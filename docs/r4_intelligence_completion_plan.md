@@ -4,37 +4,34 @@
   readable mirror of programme root #820 (stages S0–S7 plus cross-cutting F0).
   The [Geometric Intelligence Programme](geometric_intelligence_programme.md)
   is its current architecture and claim-boundary companion.
-  The latest source-free capacity result is #973's separately frozen learned-
-  associative campaign over qualified
-  [`R4RetainedLanguagePathV1`](r4_retained_language_path_v1_973.md). It completed
-  `LEARNED_ASSOCIATIVE_READOUT_NO_CAPACITY` at result CID
-  `blake3:cedba37738ee249457bb589f716ee75afb16a0c4937c2a22ae9f917dd3eb97c1`;
-  fresh-process verification passed at CID
-  `blake3:443d711ce9a228e26e2eb2eebb55c582848424e2677c3473d41deaf8afd69ec7`.
-  Across 512 prompt directions, geometric gain was `0.0063767854348491465`
-  with `299/512` wins, pooled gain was `0.010263234571452827` with `324/512`,
-  and V1 gain was `0.006423652456300697`. Neither learned arm met the absolute
-  `0.04332169878499658` or incremental `0.025341569256760274` capacity floor.
-  On 247,920 fresh-language decisions, pooled NLL/top-1 improved from V1's
-  `3.9036360153193317`/`29.628509%` to
-  `3.8737562215878296`/`30.042756%`; state-off cost
-  `0.3654355381796077` NLL and `17,808` correct decisions. Preserve that signal
-  only as the matched non-geometric control. Geometry attribution failed
-  against pooled (`-0.0038864491366036808` gain, `209/512` paired
-  improvements) and deranged (`-0.0002888663472835149`, `251/512`), below the
-  required `308/512`. Mechanics, exact replay, causal access, and independent
-  verification passed; associative prompt capacity and geometry advantage did
-  not. The immediately preceding layerwise-normalized candidate remains the
-  historical terminal
-  `LAYERWISE_NORMALIZED_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL`; it ended the
-  parameter-free ladder. No tuning or retry of the learned readout, and no
-  generation or lowering from it, is authorized. Next separately freeze a
-  contract that changes the retained value write/binding law before
-  implementation or population creation. #973 remains open, #954 remains
-  blocked, and no C1-SB6 is authorized. Attention remains established only at
-  the qualified scope; coherence, reasoning, H4 superiority, exact lowering,
-  browser readiness, and release do not follow. See the
-  [binding learned-associative result](r4_learned_associative_readout_prompt_capacity_973.md).
+  The latest source-free capacity result is #973's independently frozen
+  `R4PredictiveBlockDeltaBindingV1` terminal over qualified
+  [`R4RetainedLanguagePathV1`](r4_retained_language_path_v1_973.md). Its V5
+  campaign completed `PREDICTIVE_BINDING_NO_TERMINAL_CAPACITY` and the binding
+  action is `STOP_WITHOUT_GENERATION`. On 512 unopened prompt directions, the
+  geometric arm gained `0.03896945868086732` nats/token and won `375/512`, but
+  missed the absolute `0.04332169878499658` capacity floor. It cleared the
+  incremental V1 and pooled comparisons and all fresh-language/integrity
+  gates. Geometry attribution nevertheless failed: geometric minus independently
+  fitted plain gain was `0.023929811749894725`, below
+  `0.025341569256760274`, and geometric own-prompt NLL was worse; the separate
+  transport-permuted comparison passed. Delta overwrite was also not
+  attributed: geometric minus independently fitted additive gain was
+  `-0.006512463228773413`, with `234/512` paired improvements. This retires
+  only the tested predictive block-delta write/binding law. It does not revoke
+  the established ordinary-softmax or compact retained-attention results.
+  Result CID
+  `blake3:6c67544d675eafcb8eb9c0dabb93617e3f6c3295af812e8acbb687107c010a74`,
+  scoring CID
+  `blake3:44f8941d24a99fc230710fd700e7a7b13cee87587bfbe4e13bf7b095222e2ee6`,
+  and exact fresh-process verification CID
+  `blake3:567cf336eb05c3ec562aef7135f6fb35b580d02c758b0e79f2508cae57065f5d`.
+  The scoring-only recovery was bound at
+  `blake3:7b76e36e44798bebf184ece08fdd8a2065bdd370106b5d64d5fae4c59dc6d88b`;
+  no optimizer was created and no arm was refit. No generation, coherent-text,
+  reasoning, integer/table lowering, browser promotion, release, or C1-SB6 is
+  authorized. #973 remains open and #954 remains blocked. See the
+  [predictive block-delta terminal](r4_predictive_block_delta_binding_prompt_capacity_973.md).
   [ADR-0005](adr/0005-predictive-geometric-connection-memory.md) retains the
   accepted-attention, autonomous-reference-generation, and parked-replacement
   architecture history.
@@ -185,7 +182,9 @@
   [#1017 continuation result](r4_softmax_quality_capacity_continuation_1017.md),
   then the [#1019 frozen contract](r4_softmax_parameter_capacity_1019.md) and
   [observed preflight](r4_softmax_parameter_capacity_preflight_1019_raw.json),
-  followed by the [#954 campaign record](r4_grounded_correctness_954.md), the
+  followed by the
+  [#973 predictive block-delta terminal](r4_predictive_block_delta_binding_prompt_capacity_973.md),
+  then the [#954 campaign record](r4_grounded_correctness_954.md), the
   [C1-SB2 aggregate](r4_source_relation_head_954_raw.json), the
   [corrected C1-SB3 aggregate](r4_attended_relation_adapter_954_raw.json), and
   the [C1-SB4 aggregate](r4_joint_candidate_margin_954_raw.json), followed by the

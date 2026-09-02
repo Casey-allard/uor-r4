@@ -57,9 +57,16 @@
   `R4LearnedCandidateLeafAssociativeReadoutV1` then completed
   `LEARNED_ASSOCIATIVE_READOUT_NO_CAPACITY`: its pooled control improved fresh
   language but remained below both prompt-capacity floors, and geometry
-  attribution failed. Do not retry that readout or run generation from it. The
-  next separately frozen #973 contract must change the retained value
-  write/binding law while preserving pooled and geometry-destroying controls.
+  attribution failed. Do not retry that readout or run generation from it. Its
+  separately frozen write/binding-law successor,
+  `R4PredictiveBlockDeltaBindingV1`, then completed
+  `PREDICTIVE_BINDING_NO_TERMINAL_CAPACITY`: geometric gain
+  `0.03896945868086732` missed the absolute capacity floor, geometry versus
+  independently fitted plain missed its margin and NLL gates, and full delta
+  did not beat independently fitted additive. Fresh-language and integrity
+  gates passed. The binding action is `STOP_WITHOUT_GENERATION`; this retires
+  only that predictive block-delta law and does not revoke ordinary-softmax or
+  qualified retained-attention evidence.
   #973 remains open and #954 remains blocked.
 - **Date:** 2026-08-28; direction and result updated 2026-09-01
 - **Owner:** #973 under programme root #820
@@ -1198,9 +1205,55 @@ The complete lifecycle ledger is in the
 The predeclared branch now controls the programme: do not retry or tune this
 candidate-query readout, do not add another readout over the same frozen V1
 value field, and do not run generation. Preserve the pooled fresh-language
-signal as the matched control. The next separately frozen #973 architecture
-must change the retained value write/binding law so prompt-specific key-value
-information exists before readout, then compare it against the pooled result
-and geometry-destroying controls. Reasoning, coherent generation, exact or
-geometry-native lowering, transformerless general-model capability, and release
-readiness remain `NOT_RUN` or `NOT_ESTABLISHED`.
+signal as the matched control. At that checkpoint, the next separately frozen
+#973 architecture had to change the retained value write/binding law so prompt-
+specific key-value information existed before readout, then compare it against
+the pooled result and geometry-destroying controls. That successor is recorded
+below. Reasoning, coherent generation, exact or geometry-native lowering,
+transformerless general-model capability, and release readiness remain
+`NOT_RUN` or `NOT_ESTABLISHED`.
+
+## Predictive block-delta write/binding terminal — 2026-09-01
+
+The independently frozen successor changed the retained write/binding law as
+required. `R4PredictiveBlockDeltaBindingV1` used four transported, multiscale
+R4 matrix-state banks and separate learned key, value, query, and candidate
+maps over immutable qualified V1. Three equal-parameter arms were fitted
+independently: canonical-H4 full delta, identity/plain full delta, and
+canonical-H4 additive/no-overwrite. Each completed the same `2,730`-step dose.
+
+On sealed V5, geometric prompt gain was `0.03896945868086732`, wins were
+`375/512`, and own NLL was `3.5419674206289073`. The arm passed the incremental
+V1/pooled, wins, NLL, state-load, fresh-language, and integrity gates, but
+missed the absolute `0.04332169878499658` capacity floor. The terminal is
+`PREDICTIVE_BINDING_NO_TERMINAL_CAPACITY`.
+
+Geometry was not attributed. Geometric-minus-plain gain was
+`0.023929811749894725`, below `0.025341569256760274`, and geometric own NLL was
+worse than plain. The transport-permuted comparison separately passed, but the
+contract required both controls. Delta overwrite was not attributed either:
+geometric-minus-independently-fitted-additive gain was
+`-0.006512463228773413`, with `234/512` paired improvements. Fresh geometric
+NLL/top-1 was `3.84055165318221` / `30.979348%`, and all fresh/integrity gates
+passed.
+
+The original scoring attempt stopped before a scientific result because its
+work audit compared a final two-row batch with full sixteen-row batches as if
+their raw counters must match. Recovery CID
+`blake3:7b76e36e44798bebf184ece08fdd8a2065bdd370106b5d64d5fae4c59dc6d88b`
+bound unchanged fitted artifacts and authorized scoring only; it created no
+optimizer and executed zero fit steps. Result CID
+`blake3:6c67544d675eafcb8eb9c0dabb93617e3f6c3295af812e8acbb687107c010a74`,
+scoring CID
+`blake3:44f8941d24a99fc230710fd700e7a7b13cee87587bfbe4e13bf7b095222e2ee6`,
+and independent exact-replay verification CID
+`blake3:567cf336eb05c3ec562aef7135f6fb35b580d02c758b0e79f2508cae57065f5d`.
+
+The binding action is `STOP_WITHOUT_GENERATION`. Retire this exact predictive
+block-delta write/binding law; do not enlarge its corpus, tune its threshold,
+generate from it, or lower it into the exact runtime. This result does not
+revoke established ordinary causal-softmax attention or qualified retained
+attention. Coherent generation from this cell, reasoning, integer/table
+lowering, browser/release promotion, and #954/C1-SB6 progression remain
+`NOT_RUN`, not established, or blocked. See the
+[canonical terminal record](../r4_predictive_block_delta_binding_prompt_capacity_973.md).

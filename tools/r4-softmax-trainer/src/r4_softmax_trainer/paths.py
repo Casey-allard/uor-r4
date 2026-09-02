@@ -283,3 +283,77 @@ def default_learned_associative_readout_v3_population() -> Path:
         / "sealed"
         / "population.json"
     )
+
+
+def default_predictive_block_delta_root() -> Path:
+    """Return #973's disposable predictive block-delta campaign root."""
+
+    return model_store_root() / "research" / "issue-973-predictive-block-delta-v1"
+
+
+def default_predictive_block_delta_predecessor() -> Path:
+    """Return the immutable qualified retained-language predecessor."""
+
+    return default_language_path_root()
+
+
+def default_predictive_block_delta_revealed_v4_root() -> Path:
+    """Return the completed, already revealed V4 comparator root."""
+
+    return default_learned_associative_readout_root()
+
+
+def default_predictive_block_delta_frame_sidecar() -> Path:
+    """Return the canonical Rust-exported H4 sidecar inside the new root."""
+
+    return (
+        default_predictive_block_delta_root()
+        / "geometry"
+        / "h4-spin-frames.json"
+    )
+
+
+def default_predictive_block_delta_v1_result() -> Path:
+    """Return the immutable historical V1 disposable result."""
+
+    return (
+        default_predictive_block_delta_root()
+        / "preflight"
+        / "predictive-block-delta-admission.json"
+    )
+
+
+def default_predictive_block_delta_v2_root() -> Path:
+    """Return #973's independent-arm V2 correction root."""
+
+    return model_store_root() / "research" / "issue-973-predictive-block-delta-v2"
+
+
+def default_predictive_block_delta_terminal_root() -> Path:
+    """Return #973's create-once V5 terminal campaign root."""
+
+    return model_store_root() / "research" / "issue-973-predictive-block-delta-v5"
+
+
+def default_predictive_block_delta_terminal_v2_result() -> Path:
+    """Return the exact native-capacity authorization for V5 creation."""
+
+    return (
+        default_predictive_block_delta_v2_root()
+        / "preflight"
+        / "predictive-block-delta-admission-v2.json"
+    )
+
+
+def default_predictive_block_delta_terminal_prior_populations() -> tuple[Path, ...]:
+    """Return the exact already revealed V1-through-V4 prompt populations."""
+
+    return (
+        default_learned_associative_readout_v1_population(),
+        default_learned_associative_readout_v2_population(),
+        default_learned_associative_readout_v3_population(),
+        default_learned_associative_readout_root()
+        / "evaluation"
+        / "sealed"
+        / "prompt-population.json",
+    )

@@ -5,7 +5,7 @@ historical [geometric causal decoder](../geometric_causal_decoder_plan.md).
 Current sequencing lives in the
 [Geometric Intelligence Programme](../geometric_intelligence_programme.md),
 and the latest terminal #973 mechanism is
-[`R4LearnedCandidateLeafAssociativeReadoutV1`](../r4_learned_associative_readout_prompt_capacity_973.md).
+[`R4PredictiveBlockDeltaBindingV1`](../r4_predictive_block_delta_binding_prompt_capacity_973.md).
 ADR-0005 remains the historical mechanism-family record.
 Decoder terms and graph terms name different execution lanes and must not be
 substituted for one another.
@@ -154,9 +154,11 @@ substituted for one another.
   The first #1011 4D signed-reduction/token-derived realization completed
   negative: its geometric state changed under transport permutation but did
   not change any held-out top-1 decision or escape the frozen decoded cycle.
-  That result retires this realization from the active lane; it does not
-  falsify the full mechanism family or the accepted ordinary R4/Spin softmax
-  reference.
+  That result retires that realization from the active lane. The later
+  `R4PredictiveBlockDeltaBindingV1` realization also completed negative at its
+  terminal capacity gate after passing fresh-language and integrity checks.
+  Neither result falsifies the full mechanism family or the accepted ordinary
+  R4/Spin softmax reference.
 - **`R4GroupAddressedRetentionLMV1`** — #973's independently frozen source-free
   language cell. Four fixed-capacity banks hold one R4-block field over 120
   group addresses. A token's corrected prime leaf permutes the field before an
@@ -244,8 +246,25 @@ substituted for one another.
   was `-0.00028887`, producing `GEOMETRY_ATTRIBUTION_FAIL`. The pooled effect remains
   a non-geometric control signal. Both learned arms passed fresh-language gates,
   and mechanics plus exact independent verification passed. No generation or
-  readout retry is authorized; the next independent freeze must change the
-  retained-value write/binding law.
+  readout retry is authorized; its then-next independent freeze had to change
+  the retained-value write/binding law. The completed successor is the term
+  below.
+- **`R4PredictiveBlockDeltaBindingV1`** — #973's completed bounded matrix-state
+  write/binding successor. Four retention banks each hold 12 independent
+  `4 x 4` R4 block memories. Separate learned key, value, query, and candidate
+  maps write the observed next token against the prior causal-context key;
+  canonical H4 frame transport and immutable token-leaf anchors are compared
+  with independently fitted identity/plain and additive/no-overwrite arms.
+  On sealed V5, geometric gain was `0.03896945868086732` with `375/512` wins,
+  below the absolute `0.04332169878499658` floor. Geometry versus plain missed
+  its gain/NLL rules despite a passing transport-permuted comparison, and full
+  delta did not beat independently fitted additive. Fresh-language and
+  integrity gates passed. Terminal `PREDICTIVE_BINDING_NO_TERMINAL_CAPACITY`;
+  action `STOP_WITHOUT_GENERATION`; result CID
+  `blake3:6c67544d675eafcb8eb9c0dabb93617e3f6c3295af812e8acbb687107c010a74`.
+  This retires only this law, not ordinary-softmax or qualified retained
+  attention. See the
+  [canonical record](../r4_predictive_block_delta_binding_prompt_capacity_973.md).
 - **`DirectCausalGeometricAttentionR4V1`** — #973's offline gold-standard
   reference for the literal attention function: learned Q/K/V/O roles, local
   S3 tangent projection, causal H4-frame transport of every prior key and
@@ -572,9 +591,11 @@ substituted for one another.
   parameter-free ladder is closed. Its learned candidate-leaf associative
   successor then completed `LEARNED_ASSOCIATIVE_READOUT_NO_CAPACITY`: pooled
   readout was strongest but below capacity, and geometry attribution failed.
-  The next #973 freeze must change the retained-value write/binding law while
-  keeping pooled readout as the non-geometric control. CUDA and external GPU
-  execution are out of scope.
+  Its independently frozen write/binding-law successor then completed
+  `PREDICTIVE_BINDING_NO_TERMINAL_CAPACITY`: geometric prompt gain missed the
+  absolute floor, geometry versus plain did not qualify, and full delta did not
+  beat additive. Fresh-language and integrity passed; the exact block-delta law
+  stops without generation. CUDA and external GPU execution are out of scope.
   Intrinsic/readout,
   fiber-preserving multi-resonance replacement,
   whole-decoder recurrent factorization, and final requalification are parked
@@ -676,7 +697,7 @@ completed result is recorded below. For the layerwise candidate, generation,
 reasoning, and exact/geometry-native lowering remain `NOT_RUN`; #954 remains
 blocked and C1-SB6 remains unauthorized.
 
-## Current #973 learned-associative terminal and next decision — 2026-09-01
+## Historical #973 learned-associative terminal and pivot — 2026-09-01
 
 `R4LearnedCandidateLeafAssociativeReadoutV1` completed
 `LEARNED_ASSOCIATIVE_READOUT_NO_CAPACITY`. On sealed V4 prompts, geometric
@@ -699,10 +720,43 @@ verification CID:
 `blake3:443d711ce9a228e26e2eb2eebb55c582848424e2677c3473d41deaf8afd69ec7`.
 
 There is no generation or further readout retry over the same retained values.
-The next #973 mechanism must change the retained-value write/binding law under
-a new independent freeze, with pooled readout retained as the matched control.
-Reasoning and exact/geometry-native lowering remain `NOT_RUN`; #954 and C1-SB6
-remain blocked.
+At that checkpoint the next #973 mechanism had to change the retained-value
+write/binding law under a new independent freeze, with pooled readout retained
+as the matched control. That successor has now completed and is recorded
+below. Reasoning and exact/geometry-native lowering remain `NOT_RUN`; #954 and
+C1-SB6 remain blocked.
+
+## Current #973 predictive block-delta terminal — 2026-09-01
+
+`R4PredictiveBlockDeltaBindingV1` changed the write/binding law with bounded
+transported R4 matrix state. Its geometric, identity/plain, and additive arms
+were fitted independently with equal `9,228`-parameter budgets and the same
+`2,730`-step construction dose.
+
+On sealed V5, geometric gain/wins/own NLL were
+`0.03896945868086732` / `375/512` / `3.5419674206289073`. The arm passed
+incremental V1/pooled comparisons, fresh language, state load, and integrity,
+but missed the absolute `0.04332169878499658` capacity floor. Geometry minus
+plain was `0.023929811749894725`, below the frozen
+`0.025341569256760274` margin, and geometric NLL was worse; transport-permuted
+gates separately passed. Full delta minus independently fitted additive was
+`-0.006512463228773413`, with `234/512` paired improvements. Neither geometry
+nor delta overwrite is therefore attributed.
+
+The terminal is `PREDICTIVE_BINDING_NO_TERMINAL_CAPACITY`, with action
+`STOP_WITHOUT_GENERATION`. Result, scoring, and exact-replay verification CIDs
+are respectively
+`blake3:6c67544d675eafcb8eb9c0dabb93617e3f6c3295af812e8acbb687107c010a74`,
+`blake3:44f8941d24a99fc230710fd700e7a7b13cee87587bfbe4e13bf7b095222e2ee6`,
+and `blake3:567cf336eb05c3ec562aef7135f6fb35b580d02c758b0e79f2508cae57065f5d`.
+Recovery
+`blake3:7b76e36e44798bebf184ece08fdd8a2065bdd370106b5d64d5fae4c59dc6d88b`
+repaired only a variable-tail scoring assertion and performed no retraining.
+This retires only the tested block-delta law. Ordinary R4/Spin softmax and
+qualified retained attention remain established at their earlier scopes;
+coherent generation from this cell, reasoning, integer/table lowering,
+browser/release promotion, and #954/C1-SB6 progression remain unestablished,
+`NOT_RUN`, or blocked.
 
 ### Prior paired-H4 terminal
 

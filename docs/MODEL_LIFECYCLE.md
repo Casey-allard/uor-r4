@@ -8,6 +8,40 @@
 > [Geometric Intelligence Programme](geometric_intelligence_programme.md).
 
 > **Latest #973 lifecycle (2026-09-01):** the independently frozen
+> [`R4PredictiveBlockDeltaPromptCapacityV5`](r4_predictive_block_delta_binding_prompt_capacity_973.md)
+> terminal is complete and independently verified at
+> `PREDICTIVE_BINDING_NO_TERMINAL_CAPACITY`. Its geometric arm reached prompt
+> gain `0.03896945868086732`, below the frozen `0.04332169878499658` floor,
+> despite `375/512` wins, own NLL `3.5419674206289073`, gains above V1
+> `0.005190052751459007` and pooled `0.009168421948743344`, and passing state
+> load-bearing. Geometry was not attributed: `+0.023929811749894725` over the
+> independently fitted plain arm missed the `0.025341569256760274` floor and
+> geometric own NLL was worse (`3.5419674206289073` versus
+> `3.518444197495228`), even though transport permutation separated by
+> `+0.03181032686529761`. Delta overwrite was also not attributed against the
+> language-valid additive arm (`-0.006512463228773413`, `234/512`).
+>
+> Fresh language passed over all `247,920` rows: geometric CE/top-1
+> `3.84055165318221`/`0.30979348176831234` versus pooled
+> `3.85444653890486`/`0.3014924169086802`. Integrity, zero forbidden reads,
+> zero post-reveal optimizer steps, and exact independent replay passed. A
+> preserved initial scoring-unavailable record
+> `blake3:a819ed7f2b558d80053362c6c229642835b1317ff367d576aeb6ab23a592536a`
+> remains `NOT_RUN`; scoring-only recovery
+> `blake3:7b76e36e44798bebf184ece08fdd8a2065bdd370106b5d64d5fae4c59dc6d88b`
+> fixed only the variable tail-batch ledger, with no optimizer or retraining.
+> Evidence is bound to scoring/result/verification CIDs
+> `blake3:44f8941d24a99fc230710fd700e7a7b13cee87587bfbe4e13bf7b095222e2ee6`,
+> `blake3:6c67544d675eafcb8eb9c0dabb93617e3f6c3295af812e8acbb687107c010a74`,
+> and
+> `blake3:567cf336eb05c3ec562aef7135f6fb35b580d02c758b0e79f2508cae57065f5d`.
+> The lifecycle action is `STOP_WITHOUT_GENERATION`: retire this V5
+> write/binding law only. Coherent generation, reasoning, and lowering remain
+> `NOT_RUN`; release readiness is not established. Ordinary causal softmax and
+> the wider attention programme are not rejected by this result. #954 remains
+> blocked while #973's programme direction remains open.
+
+> **Prior #973 lifecycle (2026-09-01):** the independently frozen
 > [`R4GroupAddressedRetentionDecoderV1` CPU recovery](r4_group_addressed_retention_decoder_cpu_recovery_973.md)
 > completed all 512 construction steps. State-off on the disjoint construction
 > validation partition lost `0.967227` nats and 182 top-1 hits, so a bounded causal retained-attention
@@ -27,7 +61,7 @@ the fastest stable deterministic configuration, and record the evidence. One
 core and maximum workers are both hypotheses to measure, not defaults. This
 offline execution choice does not change the CPU/table-native runtime target.
 
-> **Current evidence and direction (2026-08-31):** #989 established the frozen
+> **Earlier route evidence (2026-08-31):** #989 established the frozen
 > source-free table reference at 22.261404% held-out top-1 versus 5.413561%
 > unigram. The accepted #953 `MultiscaleCountRadiusR4V1` intervention raised the
 > same measure to 23.211797% (+4,242 correct) with equal candidate support/work
@@ -138,6 +172,17 @@ leaves the full-scale capacity hypothesis untested, and does not revoke the
 established attention result. See the
 [#1019 observed preflight](r4_softmax_parameter_capacity_preflight_1019_raw.json).
 
+#973 then qualified `R4RetainedLanguagePathV1` as a bounded source-free
+retained-attention baseline. Its paired-H4 address-capacity successor failed;
+direct and layerwise-normalized readouts ended `PARTIAL`; and the learned-
+associative readout completed `LEARNED_ASSOCIATIVE_READOUT_NO_CAPACITY`. The
+separately frozen V5 predictive write/binding successor finally completed
+`PREDICTIVE_BINDING_NO_TERMINAL_CAPACITY` with exact replay. Fresh-language and
+integrity passed, while terminal capacity, geometry attribution, and delta-
+overwrite attribution did not. The binding action is
+`STOP_WITHOUT_GENERATION`: retire only that law, preserve the qualified
+retained and ordinary-softmax baselines, and keep #954 blocked.
+
 #954's first source-backed grounding SFT failed its frozen product population
 `1/3` through universal abstention. `R4SourceSpanPointerV1` then passed overfit
 preflight and Python/Rust parity but missed all four development gates and
@@ -230,7 +275,13 @@ localization terminal `REJECT_TANGENT_READOUT_SELECT_SCORE_PREFLIGHT`; D3
 #1017 continuation complete at `149,995,520` cumulative tokens with enabled
 Rust parity and all mechanical gates `PASS`, sealed NLL `FAIL`
 (`1.5727521962806827`), prompt retention `PASS` (`5/5`), and normalized replay
-`PASS` (`5/5`); overall NLL-only negative; #954 C1-SB2
+`PASS` (`5/5`); overall NLL-only negative; #973 retained language-path V5
+terminal `PREDICTIVE_BINDING_NO_TERMINAL_CAPACITY`, result CID
+`blake3:6c67544d675eafcb8eb9c0dabb93617e3f6c3295af812e8acbb687107c010a74`,
+exact-replay verification CID
+`blake3:567cf336eb05c3ec562aef7135f6fb35b580d02c758b0e79f2508cae57065f5d`,
+fresh-language/integrity `PASS`, capacity/geometry/delta attribution `FAIL`,
+action `STOP_WITHOUT_GENERATION`; #954 C1-SB2
 `FAIL_MATCHED_TRANSFER_PREFLIGHT_STOP` with fit positive/negative/copy
 `12/12`, `20/20`, `6/6`, sealed `5/12`, `14/20`, `0/6`, Rust parity/full
 fit/development/product `NOT_RUN`, and no final head;
@@ -299,6 +350,9 @@ canonical text/corpus
     -> direct end-to-end causal softmax attention in learned R4/Spin coordinates [#1014; ATTENTION PASS, FULL QUALITY DOD FAIL]
     -> continue unchanged 7.15M model to 149,995,520 tokens [#1017; NLL-ONLY FAIL, RETENTION/PARITY/REPLAY PASS]
     -> #1019 frozen 12-layer, 13,130,784-parameter campaign over the unchanged mechanism [MODEL SUBGATES PASS; MPS TIME UNAVAILABLE; FULL RUN NOT_RUN]
+    -> qualified source-free R4RetainedLanguagePathV1 (#973)
+    -> paired-H4/direct/layerwise/learned-associative capacity seams [FAILED OR PARTIAL; NO GENERATION]
+    -> predictive block-delta V5 [PREDICTIVE_BINDING_NO_TERMINAL_CAPACITY; VERIFIED; STOP_WITHOUT_GENERATION]
     -> intrinsic/readout alternatives, paired-E8, resonance replacement, full-model recurrent lowering, and exact deployment parked
     -> source-backed grounded SFT [#954 C1-SB0; PRODUCT TRANSFER FAIL]
     -> cosine source-span pointer [#954 C1-SB1; DEVELOPMENT FAIL, NO FINAL HEAD]

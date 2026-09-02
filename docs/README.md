@@ -8,8 +8,29 @@ whose predictive state, memory, inference, and reasoning are performed by
 geometric recurrence and routing rather than a transformer, MoE, sparse learned
 router, or dense learned matrix engine in the serving path.
 
-The latest research gate is #973's separately frozen learned-associative
-campaign. It completed `LEARNED_ASSOCIATIVE_READOUT_NO_CAPACITY` at result CID
+The latest research gate is #973's independently verified V5 predictive
+write/binding campaign. It completed
+`PREDICTIVE_BINDING_NO_TERMINAL_CAPACITY` at result CID
+`blake3:6c67544d675eafcb8eb9c0dabb93617e3f6c3295af812e8acbb687107c010a74`;
+exact independent replay passed at verification CID
+`blake3:567cf336eb05c3ec562aef7135f6fb35b580d02c758b0e79f2508cae57065f5d`.
+Integrity and fresh-language nonregression passed. Geometric gain was
+`0.03896945868086732` with `375/512` wins and beat V1 and pooled, but missed
+the `0.04332169878499658` absolute capacity floor. Its margin over independently
+fitted plain delta was `0.023929811749894725`, below
+`0.025341569256760274`, with worse own NLL; transport permutation passed.
+Delta overwrite failed against independently fitted additive at
+`-0.006512463228773413` and `234/512`. The original scoring-harness tail-batch
+failure remains recorded as `NOT_RUN`; recovery reused the frozen arms with
+zero retraining and zero optimizer steps before exact replay. The terminal
+action is `STOP_WITHOUT_GENERATION`: retire this write/binding law. No
+generation, reasoning, or integer/table lowering is authorized. Ordinary
+softmax/retained attention remain established and the larger programme
+continues, but #954 remains blocked. See the
+[#973 V5 result](r4_predictive_block_delta_binding_prompt_capacity_973.md).
+
+The immediately preceding gate was #973's separately frozen learned-
+associative campaign. It completed `LEARNED_ASSOCIATIVE_READOUT_NO_CAPACITY` at result CID
 `blake3:cedba37738ee249457bb589f716ee75afb16a0c4937c2a22ae9f917dd3eb97c1`;
 fresh-process verification passed at CID
 `blake3:443d711ce9a228e26e2eb2eebb55c582848424e2677c3473d41deaf8afd69ec7`.
@@ -30,7 +51,7 @@ and independent verification passed, but associative prompt capacity and
 geometry advantage did not. See the
 [#973 learned-associative result](r4_learned_associative_readout_prompt_capacity_973.md).
 
-The immediately preceding gate was #973's sole layerwise-normalized candidate,
+Before that, #973's sole layerwise-normalized candidate,
 [`R4LayerwiseNormalizedRetainedReadoutLanguagePathV1`](r4_layerwise_normalized_retained_readout_prompt_capacity_973.md).
 It completed `LAYERWISE_NORMALIZED_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL`.
 With every qualified V1 budget fixed, its exact formula
@@ -53,14 +74,12 @@ Mechanics, replay, and all `13/13` fresh-process verification comparisons
 passed; generation, reasoning, lowering, and geometry-native lowering remain
 `NOT_RUN`.
 
-That valid miss ended parameter-free readout variants and led to the now-
-completed learned-associative campaign above. No tuning or retry of that
-readout, and no generation or lowering from it, is authorized. The next #973
-action is to separately freeze a contract that changes the retained value
-write/binding law before implementation or population creation. #973 remains
-open and #954 remains blocked. Prompt-coherent generation, reasoning, H4
-superiority, exact/table lowering, browser readiness, and release readiness
-remain unestablished.
+That valid miss ended parameter-free readout variants and led to the completed
+learned-associative campaign, which in turn led to terminal V5 above. No tuning
+or retry of either readout or the V5 write/binding law, and no generation or
+lowering from them, is authorized. #954 remains blocked. Prompt-coherent
+geometry-native generation, reasoning, H4 superiority, exact/table lowering,
+browser readiness, and release readiness remain unestablished.
 
 The goal is real. Its success remains unproven. The current implementation has
 a storage/recall and route-query foundation, one bounded causal path mechanism,
@@ -143,7 +162,7 @@ was `0.0003463194386417179` nats worse than suffix in `0/4` directional folds,
 with unchanged `14/26` teacher and `6/26` actual-next top-1 counts. The fixed
 label control separated by `1.3807454322642605` nats in `4/4`; exact replay and
 the zero-source/document-13 audit passed. The project will not expand this
-support or build another observability ladder. The next deliverable is direct
+support or build another observability ladder. The next deliverable was direct
 end-to-end causal softmax attention training in R4 coordinates on a fresh
 untouched split, including autonomous decoded generation, under
 [#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014). That campaign
@@ -174,9 +193,12 @@ remains optional/paused; #1017 remains the working source-backed generator while
 #973 ended the parameter-free readout ladder after the partial direct and
 layerwise-normalized results, then completed the frozen learned-associative
 campaign at `LEARNED_ASSOCIATIVE_READOUT_NO_CAPACITY`. Preserve its pooled
-fresh-language improvement only as a non-geometric control. Next separately
-freeze a changed retained value write/binding law; do not retry the readout or
-run generation. CUDA and external
+fresh-language improvement only as a non-geometric control. Its independently
+frozen V5 predictive write/binding successor then completed
+`PREDICTIVE_BINDING_NO_TERMINAL_CAPACITY`; fresh-language and integrity passed,
+but capacity, geometry attribution, and delta-overwrite attribution did not.
+Retire that law and `STOP_WITHOUT_GENERATION`; do not retry or run generation.
+CUDA and external
 GPU execution are out of scope. See the
 [#1017 record](r4_softmax_quality_capacity_continuation_1017.md),
 [#1019 frozen contract](r4_softmax_parameter_capacity_1019.md), and
@@ -236,6 +258,7 @@ Choose the shortest path that matches what you need:
   then the [direct retained-readout result](r4_direct_retained_readout_prompt_capacity_973.md),
   then the [layerwise-normalized result](r4_layerwise_normalized_retained_readout_prompt_capacity_973.md),
   then the [learned-associative result](r4_learned_associative_readout_prompt_capacity_973.md),
+  then the [terminal V5 predictive write/binding result](r4_predictive_block_delta_binding_prompt_capacity_973.md),
   then the [group-addressed retention record](r4_group_addressed_retention_973.md),
   then [ADR-0005](adr/0005-predictive-geometric-connection-memory.md) and
   [ADR-0004](adr/0004-geometric-intelligence-route-hierarchy.md), and use the
@@ -244,9 +267,9 @@ Choose the shortest path that matches what you need:
   [#954 record](r4_grounded_correctness_954.md). C1-SB5 paired-query binding is
   the latest frozen negative (`56/56` fit, `14/28` sealed) and is retired without
   retry. No C1-SB6 is authorized; #954's final source-free terminal remains
-  blocked while #973 separately freezes a changed retained value write/binding
-  law. The rejected learned-associative readout is not retried and does not
-  proceed to generation.
+  blocked after #973's V5 write/binding law stopped
+  `PREDICTIVE_BINDING_NO_TERMINAL_CAPACITY`. The rejected learned-associative
+  readout and V5 law are not retried and do not proceed to generation.
 - **Improve the optional capacity rung:** start from live
   [#1019](https://github.com/UOR-Foundation/uor-r4/issues/1019) under #973 and
   programme root #820. Its population/smoke/random-export parity gates passed,
@@ -256,9 +279,10 @@ Choose the shortest path that matches what you need:
   campaign is optional/paused. #1017 remains usable through `r4 generate`; #973's
   frozen learned-associative campaign completed
   `LEARNED_ASSOCIATIVE_READOUT_NO_CAPACITY`. Preserve pooled fresh-language
-  behavior only as a non-geometric control and separately freeze a changed
-  retained value write/binding law next; no readout retry or generation. CUDA and
-  external GPU execution are out of scope.
+  behavior only as a non-geometric control. The later V5 predictive
+  write/binding law completed `PREDICTIVE_BINDING_NO_TERMINAL_CAPACITY`; retire
+  it and `STOP_WITHOUT_GENERATION`. No readout/law retry or generation is
+  authorized. CUDA and external GPU execution are out of scope.
 - **Audit a result or claim:** use the [research ledger](RESEARCH.md), then open
   the exact issue-numbered evidence record it names.
 - **Run the existing interface:** return to the root
@@ -296,7 +320,8 @@ reports it ready. Static/WASM mode rejects it; the default engine and `/api/chat
 remain unchanged. The hosted Pages build is therefore a static visualization,
 currently reports WASM offline, and cannot provide chat without a backend or a
 lowered compiled artifact. Its failure is a separate integration boundary, not
-evidence against or a replacement for the active state-student gate.
+evidence against the accepted reference or the completed source-free research
+ladder.
 
 ## Current authority
 
@@ -345,8 +370,10 @@ These are the small set of living documents that define the present work:
    #1017 remains the working source-backed `r4 generate` path. #973's frozen
    learned-associative campaign completed
    `LEARNED_ASSOCIATIVE_READOUT_NO_CAPACITY`; pooled fresh-language behavior is
-   retained only as a non-geometric control. Next separately freeze a changed
-   retained value write/binding law; do not retry the readout or run generation.
+   retained only as a non-geometric control. The subsequent V5 predictive
+   write/binding campaign completed `PREDICTIVE_BINDING_NO_TERMINAL_CAPACITY`
+   with verified zero-retraining scoring recovery. Retire the law and
+   `STOP_WITHOUT_GENERATION`; do not retry the readout/law or run generation.
    CUDA and
    external GPU execution are out of scope.
    The bounded
@@ -397,7 +424,7 @@ reversible lexical geometry
   → expose retained state directly to logits [PARTIAL; PROMPT/LANGUAGE IMPROVED; BOTH PROMPT-GAIN FLOORS MISSED; GENERATION NOT_RUN]
   → independently freeze one layerwise-normalized retained readout [PARTIAL; PROMPT/LANGUAGE IMPROVED; BOTH PROMPT-GAIN FLOORS MISSED; PARAMETER-FREE LADDER CLOSED; GENERATION NOT_RUN]
   → learned associative binding/readout [LEARNED_ASSOCIATIVE_READOUT_NO_CAPACITY; POOLED FRESH-LANGUAGE CONTROL RETAINED; GEOMETRY ATTRIBUTION FAIL; GENERATION NOT_RUN]
-  → separately freeze a changed retained value write/binding law [NEXT #973 CONTRACT; NO READOUT RETRY]
+  → predictive retained value write/binding V5 [PREDICTIVE_BINDING_NO_TERMINAL_CAPACITY; VERIFIED ZERO-RETRAINING SCORING RECOVERY; STOP_WITHOUT_GENERATION]
   → park intrinsic/readout alternatives, resonance-based softmax replacement, full-model recurrent lowering, and exact deployment
   → correctness and abstention
   → multi-step reasoning

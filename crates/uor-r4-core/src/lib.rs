@@ -15,6 +15,7 @@ pub mod conversation_entity_spin_path_attention;
 pub mod corpus_induced_spin_placement;
 pub mod direct_causal_geometric_attention;
 pub mod geometric_gated_delta_retention;
+pub mod h4_spin_frame_sidecar;
 pub mod helm_d_r4_attention;
 pub mod higher_scope_geometric_attention;
 pub mod local_geometric_generation;

@@ -6,7 +6,30 @@ Guidance for agents (human or otherwise) working in this repository.
 the readable mirror of programme root #820.** The
 [`Geometric Intelligence Programme`](docs/geometric_intelligence_programme.md)
 is the current architecture and claim-boundary companion.
-The current qualified mechanism is
+The latest #973 terminal is the independently verified V5 predictive
+write/binding campaign. It completed
+`PREDICTIVE_BINDING_NO_TERMINAL_CAPACITY` at result CID
+`blake3:6c67544d675eafcb8eb9c0dabb93617e3f6c3295af812e8acbb687107c010a74`;
+exact independent replay passed at verification CID
+`blake3:567cf336eb05c3ec562aef7135f6fb35b580d02c758b0e79f2508cae57065f5d`.
+Integrity and fresh-language nonregression passed. The geometric arm reached
+gain `0.03896945868086732` with `375/512` wins and beat V1 and pooled, but
+missed the frozen `0.04332169878499658` absolute capacity floor. Geometry
+attribution also failed: its gain margin over independently fitted plain delta
+was `0.023929811749894725`, below `0.025341569256760274`, and its own NLL was
+worse; the transport-permuted comparison passed. Delta-overwrite attribution
+failed against independently fitted additive at gain
+`-0.006512463228773413` and `234/512` paired improvements. The original
+scoring-harness tail-batch failure remains recorded as `NOT_RUN`; its repair
+performed zero retraining and zero optimizer steps and reused the three frozen
+arms for scoring and exact replay. The predeclared action is
+`STOP_WITHOUT_GENERATION`: retire this write/binding law. No generation,
+reasoning, or integer/table lowering follows. Ordinary softmax and qualified
+retained attention remain established and the larger programme continues, but
+#954 remains blocked. See the
+[binding #973 V5 record](docs/r4_predictive_block_delta_binding_prompt_capacity_973.md).
+
+The qualified retained mechanism remains
 [`R4RetainedLanguagePathV1`](docs/r4_retained_language_path_v1_973.md); its
 retained state remains a causally load-bearing, competitive source-free
 attention path. Its sole layerwise-normalized candidate,
@@ -37,7 +60,7 @@ Generation, reasoning, lowering, and geometry-native lowering are `NOT_RUN`;
 coherence, H4 superiority, exact/table lowering, browser readiness, and release
 readiness remain unestablished.
 
-The separately frozen learned-associative successor has now completed
+The preceding separately frozen learned-associative successor completed
 `LEARNED_ASSOCIATIVE_READOUT_NO_CAPACITY` at result CID
 `blake3:cedba37738ee249457bb589f716ee75afb16a0c4937c2a22ae9f917dd3eb97c1`;
 fresh-process verification passed at CID
@@ -57,11 +80,10 @@ control. Geometry attribution failed: geometric-minus-pooled gain was
 geometric-minus-deranged gain was `-0.0002888663472835149` with `251/512`, both
 below the required `308/512`. Mechanics, replay, causal access, and independent
 verification passed, but no associative prompt capacity or geometry advantage
-was established. The next #973 action is to separately freeze a new contract
-that changes the retained value write/binding law before creating any new
-population. Do not tune or retry this readout, and do not run generation from
-it. #973 stays open; #954's final source-free correctness terminal remains
-blocked; no C1-SB6 is authorized. See the
+was established. That result motivated the terminal V5 write/binding campaign
+reported above. Do not tune or retry this readout, and do not run generation
+from it. #954's final source-free correctness terminal remains blocked; no
+C1-SB6 is authorized. See the
 [binding learned-associative record](docs/r4_learned_associative_readout_prompt_capacity_973.md).
 ADR-0005 and the
 append-only [#954 grounded-correctness record](docs/r4_grounded_correctness_954.md)
@@ -471,9 +493,12 @@ learned-associative campaign then completed
 verified
 `blake3:443d711ce9a228e26e2eb2eebb55c582848424e2677c3473d41deaf8afd69ec7`).
 Its pooled arm's load-bearing fresh-language improvement remains a
-non-geometric control, not prompt-capacity evidence. Next separately freeze a
-changed retained value write/binding law; do not retry this readout or run
-generation;
+non-geometric control, not prompt-capacity evidence. The independently frozen
+V5 predictive write/binding successor then stopped
+`PREDICTIVE_BINDING_NO_TERMINAL_CAPACITY` with exact independent replay. Its
+fresh-language and integrity gates passed, but capacity, geometry attribution,
+and delta-overwrite attribution did not; retire that law and
+`STOP_WITHOUT_GENERATION`;
 new route families, intrinsic/readout alternatives, resonance-based softmax
 replacement, unqualified scale, and exact deployment remain parked. D3 remains
 `NOT_RUN`; #954 and
@@ -542,9 +567,10 @@ remains static/offline without a functioning chat backend/artifact lowering;
 the Q16 suffix trace student and `R4SoftmaxTraceStateStudentV1` are complete
 bounded negatives. #973's CPU recovery qualifies a bounded causal
 retained-attention component while rejecting promotion of the exact
-complete-decoder recipe; no H4-specific advantage was established. Next test language-path
-generalization with a data-supported budget and an ordinary matched
-non-geometric decoder;
+complete-decoder recipe; no H4-specific advantage was established. The later
+language-path baseline qualified, while paired-H4, direct/layerwise readout,
+learned-associative, and finally V5 predictive write/binding capacity failed
+their frozen promotion gates. The V5 action is `STOP_WITHOUT_GENERATION`;
 intrinsic/readout alternatives, paired-E8, resonance-based softmax replacement,
 and exact deployment are parked. Actual paired-E8 hierarchy, fiber, and torsion binding remains
 `NOT_IMPLEMENTED`. Transport
@@ -803,11 +829,16 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
   → #1019 frozen 12-layer parameter-capacity campaign [MODEL SUBGATES PASS;
   FROZEN OFFLINE MPS IMPLEMENTATION OVER 8 H; FUSED FAST PATH SLOWER; OPTIONAL/
   PAUSED; FULL CAMPAIGN NOT_RUN; CUDA/EXTERNAL GPU OUT OF SCOPE]) →
-  working bounded #1017 `r4 generate` prototype → #954 pointer development
-  negative → C1-SB2 source-relative relation preflight negative → train
-  relation supervision into the established R4/Spin attention representation
-  while retaining exact-copy/typed-nonanswer semantics → correctness/abstention
-  → reasoning → optimization/purity/release. The older placement/transport
+  working bounded #1017 `r4 generate` prototype → #973 qualified retained
+  language path → rejected paired-H4/direct/layerwise/learned-associative
+  capacity seams → V5 predictive write/binding
+  [`PREDICTIVE_BINDING_NO_TERMINAL_CAPACITY`; `STOP_WITHOUT_GENERATION`] →
+  #954 source-span pointer development negative → C1-SB2 source-relative
+  relation preflight negative → C1-SB3 bounded attention transfer / exact
+  preflight negative → C1-SB4 structured-margin negative → C1-SB5 paired-query
+  binding negative → final source-free correctness terminal [BLOCKED BEHIND
+  #973] → reasoning [BLOCKED ON POSITIVE CORRECTNESS] → optimization/purity/
+  release. The older placement/transport
   sequence is retained as evidence, not an active implementation queue.
 - Kappa is canonical identity/serialization, never the tokenizer or semantic
   distance. The pinned lexical codec is provenance-bound but opens no weights.

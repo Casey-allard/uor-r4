@@ -15,6 +15,33 @@ reference; design targets remain explicitly labeled as definitions,
 assumptions, or objectives rather than measured results.
 
 > **Current forward decision (2026-09-01).** The independently frozen
+> `R4PredictiveBlockDeltaBindingV1` V5 campaign completed
+> `PREDICTIVE_BINDING_NO_TERMINAL_CAPACITY`. The geometric arm reached prompt
+> gain `0.03896945868086732` with `375/512` wins, but missed the frozen
+> `0.04332169878499658` absolute-capacity floor. It beat immutable V1 and
+> pooled controls and passed state-load, fresh-language, and integrity gates.
+> Geometry attribution nevertheless failed: geometric-minus-plain gain was
+> `0.023929811749894725`, below `0.025341569256760274`, and geometric own NLL
+> was worse than plain; the separate transport-permuted comparison passed.
+> Delta overwrite also failed attribution against the language-valid,
+> independently fitted additive arm at `-0.006512463228773413` gain and
+> `234/512` paired improvements.
+>
+> The first scoring process's tail-batch work-ledger failure remains preserved
+> as a harness-only `NOT_RUN`. Scoring-only recovery
+> `blake3:7b76e36e44798bebf184ece08fdd8a2065bdd370106b5d64d5fae4c59dc6d88b`
+> reused the frozen arms with no optimizer or retraining. Exact independent
+> replay passed. Result and verification CIDs are
+> `blake3:6c67544d675eafcb8eb9c0dabb93617e3f6c3295af812e8acbb687107c010a74`
+> and
+> `blake3:567cf336eb05c3ec562aef7135f6fb35b580d02c758b0e79f2508cae57065f5d`.
+> The binding action is `STOP_WITHOUT_GENERATION`: retire only this V5
+> write/binding law. Do not enlarge, tune, generate from, or lower it. Ordinary
+> causal softmax and qualified retained-attention evidence remain intact; #954
+> and C1-SB6 remain blocked. See the
+> [predictive block-delta result and evidence ledger](r4_predictive_block_delta_binding_prompt_capacity_973.md).
+
+> **Prior learned-associative decision (2026-09-01).** The independently frozen
 > `R4LearnedCandidateLeafAssociativeReadoutV1` campaign completed
 > `LEARNED_ASSOCIATIVE_READOUT_NO_CAPACITY`. On 512 sealed V4 prompt
 > directions, the geometric arm produced mean gain `0.00637679`, `299/512`
@@ -1268,13 +1295,47 @@ associative readout also completed `LEARNED_ASSOCIATIVE_READOUT_NO_CAPACITY`:
 its geometric arm did not beat V1, pooled, or deranged binding on the frozen
 prompt criteria. The pooled control improved prompt and fresh metrics, but it
 remained below both capacity floors and is not geometry evidence. Do not run
-generation or another readout retry. Next independently freeze a mechanism that
-changes the retained-value write/binding law while preserving pooled readout as
-the non-geometric control. The remaining language-capability gap is
-prompt-responsive coherent generation, not whether retained attention can
-affect held-out language predictions. Correctness and reasoning remain
-downstream and unestablished; #954 grounded correctness remains blocked while
-#973 is open.
+generation or another readout retry. That recommendation led to the independently
+frozen `R4PredictiveBlockDeltaPromptCapacityV5` write/binding campaign.
+
+V5 is now complete and independently verified at
+`PREDICTIVE_BINDING_NO_TERMINAL_CAPACITY`. Geometric prompt gain was
+`0.03896945868086732`, below the frozen `0.04332169878499658` capacity floor,
+although it won `375/512` directions, had own NLL `3.5419674206289073`, beat V1
+gain `0.005190052751459007` and pooled gain `0.009168421948743344`, and passed
+state load-bearing. Geometry was not attributed: the gain over independently
+fitted plain delta was `0.023929811749894725`, below
+`0.025341569256760274`, and geometric own NLL was worse than plain
+(`3.5419674206289073` versus `3.518444197495228`). The transport-permuted
+comparison did pass at `+0.03181032686529761`, but both controls were required.
+Delta-overwrite attribution also failed against the language-valid additive
+arm (`-0.006512463228773413`, `234/512`).
+
+Fresh language passed across `247,920` rows: geometric CE/top-1 was
+`3.84055165318221`/`0.30979348176831234`, versus pooled
+`3.85444653890486`/`0.3014924169086802`. Integrity, zero forbidden reads, zero
+post-reveal optimizer steps, and exact independent replay all passed. The first
+scoring attempt's preserved unavailable record
+`blake3:a819ed7f2b558d80053362c6c229642835b1317ff367d576aeb6ab23a592536a`
+remains `NOT_RUN`: it exposed a tail-batch work-ledger bug and supplied no
+scientific result. Recovery
+`blake3:7b76e36e44798bebf184ece08fdd8a2065bdd370106b5d64d5fae4c59dc6d88b`
+rescored the frozen artifacts without an optimizer or retraining. The verified
+chain is scoring CID
+`blake3:44f8941d24a99fc230710fd700e7a7b13cee87587bfbe4e13bf7b095222e2ee6`,
+result CID
+`blake3:6c67544d675eafcb8eb9c0dabb93617e3f6c3295af812e8acbb687107c010a74`,
+and verification CID
+`blake3:567cf336eb05c3ec562aef7135f6fb35b580d02c758b0e79f2508cae57065f5d`.
+
+The predeclared action is `STOP_WITHOUT_GENERATION`. Retire this V5
+write/binding law without another readout, corpus expansion, generation rung,
+or lowering attempt. This result does not retire the attention programme and
+does not revise the established ordinary causal-softmax baseline. Coherent
+generation, reasoning, and integer/table lowering are `NOT_RUN`; release
+readiness is not established. #973 remains open for programme direction, and
+#954 grounded correctness remains blocked while #973 is open.
+
 After the bounded generative SFT and cosine source-span pointer failed their
 frozen transfer/development gates, `R4SourceRelativeRelationHeadV1` fit its
 matched construction families but failed independent lexical transfer at its
