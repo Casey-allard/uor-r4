@@ -14,20 +14,20 @@ local hardware. The project is testing whether language context, inference,
 and reasoning can emerge from routes through a canonical geometric memory. The
 target serving engine uses no Ollama, hosted model, or source-model weights.
 
-> **Latest progress (2026-09-02):** #1055's optimizer-clock correction improved
-> exact-data recall from `12.0117%` to `68.2861%` (+56.2744 points), using the
-> same 8,192 unique training rows with more exposure—not a larger corpus.
-> The final curve was still improving, but strict `>99%` was missed:
-> `CLOCK_MATCHED_TRANSFER_MISS`; the binding control did not run. The single
-> fit took about 18 minutes on eight CPU threads; replay/checkpoint audit passed.
-> #1050's `99.1667%` ordinary-attention positive and HELM-D-R4/#1014 remain intact.
-> The approved next step is a separately contracted continuation of this saved
-> checkpoint: at most 3,920 additional updates, unchanged model/data/LR policy
-> and optimizer/sampling/RNG, retaining strict `>99%`. None launched in #1055;
-> 68% is not an established ceiling, and benefit from
-> more unique data is unmeasured. Coherent-R4 integration remains the goal, with
-> inference-only #1050 integration available as another option. See the
-> [#1055 evidence and next action](docs/r4_zoology_optimizer_clock_1055.md).
+> **Latest retained progress (2026-09-02):** #1057 continued the same checkpoint
+> and raised exact-data recall from `68.2861%` to `98.5229%` (+30.2368 points).
+> Its best observed score was `98.6572%`; the retained final artifact is block
+> 40, not the best block's weights. This is meaningful near-target learning,
+> not failed attention or discarded work. Strict `>99%` was narrowly unmet
+> (`CONTINUATION_MISS`); the conditional binding control did not run.
+> The same 8,192 unique rows received more exposure; no new corpus was used.
+> The eight-thread CPU continuation took 18.3 minutes; replay and audit passed.
+> Next recommendation: separately scope inference-only coherent-R4 integration
+> with the qualified #1050 reference, retaining #1057 as a useful companion.
+> #1050's `99.1667%` used a different configuration/population, not a head-to-head
+> comparison. Prior positives remain. No third training window or R4 integration
+> was run here, and no new generation capability is claimed. See the
+> [#1057 evidence and next action](docs/r4_zoology_checkpoint_continuation_1057.md).
 
 > **Predecessor open role-tagged associative result (2026-09-02):** #1045
 > completed the full 64-epoch R1 cap and stopped at

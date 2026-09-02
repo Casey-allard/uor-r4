@@ -11,8 +11,8 @@
 - **Historical measurements:** [Research ledger](RESEARCH.md)
 - **Qualified retained baseline:**
   [`R4RetainedLanguagePathV1`](r4_retained_language_path_v1_973.md)
-- **Latest terminal decision:**
-  [#1043 position-preserving K/V terminal](r4_position_kv_binding_1043.md)
+- **Latest retained learning result:**
+  [#1057 exact-checkpoint continuation](r4_zoology_checkpoint_continuation_1057.md)
 
 ## Purpose
 
@@ -56,7 +56,33 @@ correctness, and reasoning remain separate claims.
 Optimization, broad QA, formalization, and release certification follow a
 working decision-bearing product slice. They do not replace it.
 
-## Current #1043 decision — preserve the invalid result; fix learning first
+## Current attention progress — preserve the learned artifacts and integrate
+
+#1057 continued #1055's exact model, optimizer, scheduler, sampler, and RNG on
+the same unique data. Final development recall rose from `68.2861328125%` to
+`98.52294921875%` with NLL `0.09141154401004314`; best measured recall was
+`98.6572265625%` at block 36, while the preserved final artifact is block 40.
+The additional 3,920 updates took about 18 minutes on eight CPU threads.
+Fresh-process replay and independent checkpoint/accounting audit passed.
+
+This is retained near-target learning progress, not false/failed attention or
+a discarded model. The raw `CONTINUATION_MISS` records only that strict `>99%`
+was narrowly unmet; its conditional binding control was not run. It does not
+establish a capacity ceiling or convergence, and increased-unique-data benefit
+remains unmeasured. #1050's separate `99.1667%` ordinary-attention reference and
+the HELM-D-R4/#1014 positives remain intact; the populations/configurations
+differ, so their scores are not a head-to-head comparison.
+
+The recommended next action is a separately scoped inference-only coherent-R4
+integration using the already-qualified #1050 reference, with #1057 preserved
+as a valuable exact-data artifact for subsequent inference work. Keep learned
+weights and the functioning softmax mechanism while changing the inner R4
+transport/aggregation path. No automatic third training window, discarded
+checkpoint, or return to broad testing is implied. This recommendation does
+not itself establish geometric advantage, softmax removal, coherent text,
+reasoning, or exact/table lowering. See the [complete #1057 record](r4_zoology_checkpoint_continuation_1057.md).
+
+## Historical #1043 decision — preserve the invalid result; fix learning first
 
 `R4PositionPreservingCausalKVBindingV1` copied the smallest ordinary
 position-preserving Q/K/V softmax mechanism, kept one exact record per causal

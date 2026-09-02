@@ -282,3 +282,25 @@ learned weights, positions, norms/residuals and softmax. It remains a fallback
 or next integration option, not a required first step before the approved
 continuation. Neither option establishes geometric superiority, softmax
 removal, generation, reasoning, or exact lowering without its own evidence.
+
+### Successor continuation retained (#1057, 2026-09-02)
+
+The separately authorized [#1057 continuation](r4_zoology_checkpoint_continuation_1057.md)
+resumed this exact checkpoint and reached `8,071/8,192 = 98.52294921875%`
+final development recall, with NLL `0.09141154401004314`; its best measured
+recall was `98.6572265625%` at block 36. The final saved artifact is block 40,
+not that earlier best-scoring state. This is a retained `30.23681640625`-point
+gain over #1055 after 3,920 additional updates on the same unique training
+rows, not an increased-unique-data experiment.
+
+The user explicitly directed that this near-target result must not be
+discarded or labeled false/failed attention. Its frozen `CONTINUATION_MISS`
+records only that strict `>99%` was narrowly unmet; the conditional binding
+control remains unrun. It does not falsify attention, establish a capacity
+ceiling, or stop geometric integration. #1055's original result is unchanged;
+both its checkpoint and the #1057 final artifact are preserved, as is #1050's
+separate `99.1667%` reference. The next recommendation is inference-only
+coherent-R4 integration using that already-qualified reference, retaining
+#1057 as a valuable exact-data artifact for subsequent inference work, without
+an automatic third training window. See #1057 for the complete curve,
+artifact identities, work accounting, and successful fresh-process replay.

@@ -9,20 +9,19 @@ The earlier
 preserved #948–#958 sequencing record. Measured, refuted, and frozen research
 remains in [docs/RESEARCH.md](docs/RESEARCH.md).
 
-**Current progress (2026-09-02):** #1055 retained a `56.2744`-point gain:
-development recall rose from `12.0117%` to `68.2861%` on unchanged 8,192
-training rows with more exposure. It missed strict `>99%`, leaving
-`CLOCK_MATCHED_TRANSFER_MISS` and no binding-control result. The 3,920-update
-fit took about 18 minutes on eight CPU threads; replay/checkpoint audit passed.
-Its late curve was improving; the preset cap is not a measured capacity ceiling.
-The approved next step is a separately contracted continuation of the saved
-checkpoint: at most 3,920 additional updates, unchanged data/model/LR policy/
-optimizer/sampling/RNG, and strict `>99%` stop—not a from-scratch repeat or
-parameter sweep. No continuation launched within #1055.
-More unique-data benefit is unmeasured. Prior #1050/HELM-D-R4/#1014 positives
-remain; coherent-R4 integration is the goal, with inference-only #1050
-integration still available as another option. See the
-[#1055 record](docs/r4_zoology_optimizer_clock_1055.md).
+**Current retained progress (2026-09-02):** #1057 raised exact-data recall
+from `68.2861%` to `98.5229%`; best observed was `98.6572%`. Keep the final
+block-40 artifact and full curve. The strict `>99%` target was narrowly unmet
+(`CONTINUATION_MISS`), not failed attention; the binding control remains unrun.
+The same 8,192 unique rows received more exposure. The eight-thread CPU
+continuation took 18.3 minutes; fresh replay and checkpoint audit passed.
+Next recommendation: a separately scoped inference-only coherent-R4
+integration using qualified #1050, retaining #1057 as an exact-data companion.
+Preserve learned weights, positions, norms/residuals and softmax while changing
+only inner Q/K/V transport/aggregation. #1050's `99.1667%` is a different
+configuration/population, not a head-to-head comparison; prior positives stand.
+No discard, restart, automatic third window, or new integration claim.
+See the [#1057 record](docs/r4_zoology_checkpoint_continuation_1057.md).
 
 **Predecessor open associative-learning boundary (2026-09-02):** #1045 completed
 all 64 permitted R1 epochs and stopped `OPEN_MQAR_NOT_LEARNED`. Training reached

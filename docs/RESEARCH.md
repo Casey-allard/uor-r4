@@ -14,20 +14,19 @@ Measurements retain their pre-declared exit rule and durable issue/record
 reference; design targets remain explicitly labeled as definitions,
 assumptions, or objectives rather than measured results.
 
-> **Optimizer-clock result (2026-09-02).** #1055 improved development from
-> `984/8,192` to `5,594/8,192 = 68.2861328125%` (+56.2744140625 points);
-> NLL fell from `6.7966416` to `2.6761019`. The strict `>99%` target was
-> missed: `CLOCK_MATCHED_TRANSFER_MISS`, control `NOT_RUN_PRIMARY_MISS`.
-> Its eight-thread CPU fit took about 18 minutes; replay/checkpoint audit passed.
-> The same 8,192 unique training rows were repeatedly exposed. Late recall rose
-> 36%→55%→64%→68%; convergence and benefit from new unique data are unmeasured.
-> The user approved a separately contracted continuation of this checkpoint:
-> at most 3,920 additional updates, unchanged data/model/LR policy/optimizer/
-> sampling/RNG and strict `>99%` stop. None launched in #1055; this does not
-> revise the frozen verdict or authorize
-> a parameter sweep. Prior positives remain; coherent-R4 integration is the
-> goal, with inference-only #1050 integration still an option. See the
-> [complete curve and evidence](r4_zoology_optimizer_clock_1055.md).
+> **Retained continuation result (2026-09-02).** #1057 reached
+> `8,071/8,192 = 98.52294921875%`, up `30.23681640625` points; NLL
+> fell from `2.6761019` to `0.0914115`. Best observed was block 36 at
+> `98.6572265625%`; the retained artifact is final block 40. Strict `>99%`
+> was narrowly unmet (`CONTINUATION_MISS`), not attention falsification.
+> The control remains `NOT_RUN_PRIMARY_MISS`. Fresh replay and audit passed;
+> the eight-thread CPU continuation took 18.3 minutes on the same 8,192 rows.
+> Retain this meaningful learning evidence; neither convergence nor a capacity
+> ceiling is established. Recommend separately scoped inference-only coherent-R4
+> integration using qualified #1050, with #1057 retained as a useful companion.
+> #1050's `99.1667%` is from a different configuration/population; prior positives
+> remain. No automatic third window, geometry or generation claim.
+> See the [complete curve and evidence](r4_zoology_checkpoint_continuation_1057.md).
 
 > **Predecessor role-tagged associative-learning result (2026-09-02).** #1045
 > completed its full 64-epoch R1 cap and stopped
