@@ -9,6 +9,27 @@ The earlier
 preserved #948–#958 sequencing record. Measured, refuted, and frozen research
 remains in [docs/RESEARCH.md](docs/RESEARCH.md).
 
+**Current source-free binding boundary (2026-09-02):** #1043 preserved one
+exact K/V record per causal position and completed its frozen 2,730-step mixed
+fit, coherent-R4 execution, reveal, and replay. Its terminal is
+`INVALID_POSITION_KV_BINDING`, result CID
+`blake3:96a382d2f6118fbd2883fbee8b383764de0d6098efbf82bf863412c6996d80d0`.
+The sole mechanics miss was a maximum R4/plain logit delta of
+`2.193450927734375e-05` against `2e-5`; attention delta, full/incremental delta,
+all `257,136` top-1 comparisons, work, leakage, and replay passed. Audit found
+harmless f32 reassociation rather than a geometry/causal defect, but the frozen
+gate is not changed after reveal.
+
+A construction-only diagnostic found the more important development blocker:
+the artifact scored `30/87,360` MQAR and `578/8,190` English supplied-history
+decisions while perfectly learning the easy `2,730` no-history abstentions.
+Therefore a parity-only recovery cannot change the action and is not run. Keep
+ordinary softmax attention and the coherent R4 gauge implementation, but do not
+advance this artifact to generation, recurrence, or lowering. A new successor
+must first pass an open role-tagged associative-learning and curriculum ladder;
+#954 remains blocked. See the
+[#1043 record](docs/r4_position_kv_binding_1043.md).
+
 **Normal-use product boundary (2026-09-01):** #1041 exercised the merged #1039
 dashboard and endpoint with three fresh narrative probes, two supplied-history
 bindings, and two no-history controls. UI/transport and every returned

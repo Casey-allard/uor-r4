@@ -193,6 +193,19 @@ substituted for one another.
   decoding at that scope, not prompt-conditioned coherence, H4 superiority,
   reasoning, or exact lowering. See the
   [binding record](../r4_retained_language_path_v1_973.md).
+- **`R4PositionPreservingCausalKVBindingV1`** — #1043's exact-cache successor
+  over the same 252,160-parameter ordinary two-layer language model. It keeps
+  one causal K/V record per position, uses learned Q/K/V plus stable softmax,
+  and executes the same weights through coherent R4/H4 frame transport. Its
+  sole frozen fit/reveal is terminal `INVALID_POSITION_KV_BINDING`: all work,
+  leakage, replay, attention, incremental, and top-1 parity checks passed, but
+  the maximum R4/plain logit delta was `2.193450927734375e-05` against `2e-5`.
+  Audit attributed the miss to f32 reassociation, not a transport or causal
+  defect; the historical threshold remains fixed. Construction diagnosis found
+  that the fitted weights had not learned associative retrieval (`30/87,360`
+  MQAR and `578/8,190` English history) despite perfect no-history abstention.
+  No parity-only recovery, generation, recurrence, or lowering follows. See the
+  [terminal record](../r4_position_kv_binding_1043.md).
 - **`R4PairedH4LanguagePathV1` / `R4PairedH4PromptCapacityV1`** — the one
   frozen V1 capacity successor that changes only the per-layer exact-H4 token
   address while holding training data, seed, schedule, parameter count, and

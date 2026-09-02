@@ -4,6 +4,21 @@
   readable mirror of programme root #820 (stages S0–S7 plus cross-cutting F0).
   The [Geometric Intelligence Programme](geometric_intelligence_programme.md)
   is its current architecture and claim-boundary companion.
+  The newest bounded source-free binding campaign is #1043's
+  [`R4PositionPreservingCausalKVBindingV1`](r4_position_kv_binding_1043.md).
+  Its one frozen fit/reveal is terminal `INVALID_POSITION_KV_BINDING` because
+  R4/plain maximum logit delta was `2.193450927734375e-05` against `2e-5`.
+  Attention parity, full/incremental parity, exact work, zero forbidden reads,
+  replay, and identical top-1 over `257,136` decisions passed. Numerical audit
+  found expected f32 reassociation, not a transport or causal bug; the frozen
+  result is nevertheless immutable. Construction-only diagnosis then measured
+  `30/87,360` MQAR, `578/8,190` supplied-history English, and `2,730/2,730`
+  no-history abstention. A parity-only rescore cannot repair those weights and
+  is not run. The next contract must establish role-tagged associative-first
+  learning on open construction/development data before another sealed fit.
+  No generation, recurrence, lowering, #954, or reasoning work is authorized
+  from #1043. Result CID
+  `blake3:96a382d2f6118fbd2883fbee8b383764de0d6098efbf82bf863412c6996d80d0`.
   The latest source-free capacity result is #973's independently frozen
   `R4PredictiveBlockDeltaBindingV1` terminal over qualified
   [`R4RetainedLanguagePathV1`](r4_retained_language_path_v1_973.md). Its V5

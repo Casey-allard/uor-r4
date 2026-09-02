@@ -99,6 +99,13 @@ from .predictive_block_delta_terminal_campaign import (
     run_predictive_block_delta_terminal,
     verify_predictive_block_delta_terminal,
 )
+from .position_kv_binding_campaign import (
+    collect_position_kv_story_exclusions,
+    preflight_position_kv_binding_campaign,
+    prepare_position_kv_binding_campaign,
+    run_position_kv_binding_campaign,
+    validate_position_kv_binding_result,
+)
 from .paths import (
     default_attended_relation_adapter_root,
     default_capacity_root,
@@ -150,6 +157,7 @@ from .paths import (
     default_research_root,
     default_source_relation_head_root,
     default_source_span_pointer_root,
+    model_store_root,
 )
 from .provenance import verify_bound_manifest
 from .source_relation_adapter_campaign import (
@@ -180,6 +188,10 @@ def _predictive_block_delta_updates(value: str) -> int:
 
 def _print_result(value: dict[str, Any]) -> None:
     print(json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2))
+
+
+def _default_position_kv_binding_root() -> Path:
+    return model_store_root() / "research" / "issue-1043-position-kv-binding"
 
 
 def parser() -> argparse.ArgumentParser:
@@ -945,6 +957,61 @@ def parser() -> argparse.ArgumentParser:
         "verify-predictive-block-delta-terminal",
         help="independently reproduce V5 prompt, fresh-language, and decision evidence",
     )
+    prepare_position_kv = subcommands.add_parser(
+        "prepare-position-kv-binding",
+        help=(
+            "freeze #1043's complete story-disjoint construction and sealed "
+            "terminal populations without fitting"
+        ),
+    )
+    prepare_position_kv.add_argument(
+        "--retained-language-root",
+        type=_root,
+        default=default_language_path_root(),
+        help="immutable #973 ordinary/retained language-path root",
+    )
+    prepare_position_kv.add_argument(
+        "--source-root",
+        type=_root,
+        default=default_language_path_source_root(),
+        help="immutable #1019 token stores and canonical story indexes",
+    )
+    prepare_position_kv.add_argument(
+        "--tokenizer",
+        type=_root,
+        default=default_language_path_root() / "tokenizer" / "tokenizer.json",
+        help="exact inherited 4096-token tokenizer",
+    )
+    prepare_position_kv.add_argument(
+        "--geometry",
+        type=_root,
+        default=default_language_path_geometry(),
+        help="canonical exact-H4 group geometry",
+    )
+    prepare_position_kv.add_argument(
+        "--h4-sidecar",
+        type=_root,
+        default=default_predictive_block_delta_frame_sidecar(),
+        help="canonical Rust-exported H4 spin-frame sidecar",
+    )
+    prepare_position_kv.add_argument(
+        "--v5-root",
+        type=_root,
+        default=default_predictive_block_delta_terminal_root(),
+        help="immutable revealed V5 root used only to bind prior story exclusions",
+    )
+    subcommands.add_parser(
+        "preflight-position-kv-binding",
+        help="run #1043's oracle, mechanics, and Apple CPU 1/4/8 admission",
+    )
+    subcommands.add_parser(
+        "run-position-kv-binding",
+        help="execute #1043's one frozen fit, reveal, score, and terminal decision",
+    )
+    subcommands.add_parser(
+        "verify-position-kv-binding",
+        help="fresh-process validation of #1043's create-once terminal result",
+    )
     return command
 
 
@@ -1035,6 +1102,12 @@ def main() -> None:
         "run-predictive-block-delta-terminal",
         "verify-predictive-block-delta-terminal",
     }
+    position_kv_binding_commands = {
+        "prepare-position-kv-binding",
+        "preflight-position-kv-binding",
+        "run-position-kv-binding",
+        "verify-position-kv-binding",
+    }
     if arguments.root:
         root = arguments.root
     elif arguments.command in capacity_commands:
@@ -1075,6 +1148,8 @@ def main() -> None:
         root = default_predictive_block_delta_v2_root()
     elif arguments.command in predictive_block_delta_terminal_commands:
         root = default_predictive_block_delta_terminal_root()
+    elif arguments.command in position_kv_binding_commands:
+        root = _default_position_kv_binding_root()
     else:
         root = default_research_root()
     if arguments.command == "download":
@@ -1444,5 +1519,31 @@ def main() -> None:
         return
     if arguments.command == "verify-predictive-block-delta-terminal":
         _print_result(verify_predictive_block_delta_terminal(root))
+        return
+    if arguments.command == "prepare-position-kv-binding":
+        exclusions = collect_position_kv_story_exclusions(
+            source_root=arguments.source_root,
+            v5_root=arguments.v5_root,
+        )
+        _print_result(
+            prepare_position_kv_binding_campaign(
+                root,
+                retained_language_root=arguments.retained_language_root,
+                source_root=arguments.source_root,
+                tokenizer_path=arguments.tokenizer,
+                geometry_path=arguments.geometry,
+                h4_sidecar_path=arguments.h4_sidecar,
+                excluded_story_cids=exclusions,
+            )
+        )
+        return
+    if arguments.command == "preflight-position-kv-binding":
+        _print_result(preflight_position_kv_binding_campaign(root))
+        return
+    if arguments.command == "run-position-kv-binding":
+        _print_result(run_position_kv_binding_campaign(root))
+        return
+    if arguments.command == "verify-position-kv-binding":
+        _print_result(validate_position_kv_binding_result(root))
         return
     raise AssertionError(f"unhandled command: {arguments.command}")

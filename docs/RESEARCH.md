@@ -14,6 +14,29 @@ Measurements retain their pre-declared exit rule and durable issue/record
 reference; design targets remain explicitly labeled as definitions,
 assumptions, or objectives rather than measured results.
 
+> **Position-preserving causal K/V result (2026-09-02).** #1043 completed its
+> sole frozen 2,730-step CPU/Apple-Accelerate fit and reveal. The create-once
+> result is `INVALID_POSITION_KV_BINDING`, CID
+> `blake3:96a382d2f6118fbd2883fbee8b383764de0d6098efbf82bf863412c6996d80d0`.
+> Exact work, zero forbidden/future/provider/teacher reads, artifact replay,
+> R4 full/incremental parity, attention-weight parity, and identical R4/plain
+> top-1 over `257,136` decisions passed. The only mechanics miss was maximum
+> R4/plain logit delta `2.193450927734375e-05` versus the frozen `2e-5` bound.
+>
+> The audit found correct equations and frames; differently associated f32
+> frame/block contractions accumulated a `23 * 2^-20` output tail through the
+> second block and tied vocabulary projection. This is numerical forward error,
+> not a transport or causal bug, but the frozen threshold cannot be changed
+> after reveal. The terminal metrics therefore remain uninterpreted.
+> Construction-only scoring nevertheless supplies a decision-bearing design
+> diagnostic: the final artifact reached only `30/87,360` MQAR and `578/8,190`
+> English-history top-1 while learning `2,730/2,730` no-history abstentions.
+> Because a parity-only rescore cannot repair unlearned weights, no recovery
+> campaign has decision value. Preserve the artifact/result, do not generate or
+> lower it, and require an open role/curriculum capability ladder before any new
+> sealed successor. See the [#1043 record](r4_position_kv_binding_1043.md) and
+> [structured result](r4_position_kv_binding_1043_result_raw.json).
+
 > **Normal-use product decision (2026-09-01).** #1041 ran the merged #1039
 > dashboard plus seven direct endpoint observations: three fresh narrative
 > prompts, two supplied-history bindings, and their no-history controls. All

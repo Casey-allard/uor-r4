@@ -12,7 +12,7 @@
 - **Qualified retained baseline:**
   [`R4RetainedLanguagePathV1`](r4_retained_language_path_v1_973.md)
 - **Latest terminal decision:**
-  [#973 predictive block-delta terminal](r4_predictive_block_delta_binding_prompt_capacity_973.md)
+  [#1043 position-preserving K/V terminal](r4_position_kv_binding_1043.md)
 
 ## Purpose
 
@@ -55,6 +55,38 @@ correctness, and reasoning remain separate claims.
 
 Optimization, broad QA, formalization, and release certification follow a
 working decision-bearing product slice. They do not replace it.
+
+## Current #1043 decision — preserve the invalid result; fix learning first
+
+`R4PositionPreservingCausalKVBindingV1` copied the smallest ordinary
+position-preserving Q/K/V softmax mechanism, kept one exact record per causal
+position, and executed the same fitted weights through coherent R4/H4 frame
+transport. Its sole frozen fit and terminal reveal completed
+`INVALID_POSITION_KV_BINDING`, result CID
+`blake3:96a382d2f6118fbd2883fbee8b383764de0d6098efbf82bf863412c6996d80d0`.
+
+Exact work, causal isolation, artifact replay, coherent-R4 full/incremental
+parity, attention-weight parity, and R4/plain top-1 identity passed. The sole
+mechanics miss was maximum R4/plain logit delta
+`2.193450927734375e-05` against the frozen `2e-5` threshold. The equations,
+frames, transport indices, mask, and cache are correct; different f32
+contraction association accumulated a two-ULP-scale tail through the second
+block and output projection. The result remains invalid because thresholds and
+implementation identities are not changed after reveal.
+
+A read-only construction diagnostic then separated that numerical issue from
+the actual development blocker. The final weights scored `30/87,360` MQAR and
+`578/8,190` English supplied-history decisions, but `2,730/2,730` no-history
+abstentions. Thus the mixed one-epoch recipe learned the easy classifier and
+ordinary language objective, not associative retrieval even on construction.
+A parity-only rescore cannot change the weights, so it would have no decision
+value and is not run. Preserve ordinary softmax attention and its coherent R4
+gauge realization; retire only this optimization recipe. Before another sealed
+campaign, require an open role-tagged associative-first curriculum to fit and
+transfer, followed by English binding and language replay. Generation,
+recurrence compression, resonance replacement, exact lowering, correctness,
+and reasoning remain unauthorized; #954 remains blocked. See the
+[#1043 record](r4_position_kv_binding_1043.md).
 
 ## Current #973 decision — stop this predictive block-delta law
 

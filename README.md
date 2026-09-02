@@ -14,6 +14,26 @@ local hardware. The project is testing whether language context, inference,
 and reasoning can emerge from routes through a canonical geometric memory. The
 target serving engine uses no Ollama, hosted model, or source-model weights.
 
+> **Latest position-preserving K/V result (2026-09-02):** #1043 completed its
+> one frozen fit and terminal reveal as `INVALID_POSITION_KV_BINDING`. Exact
+> work, causal isolation, replay, attention-weight parity, full/incremental
+> parity, and R4/plain top-1 parity all passed. The sole mechanics miss was an
+> R4/plain maximum logit delta of `2.193450927734375e-05` against the frozen
+> `2e-5` limit; all `257,136` compared top-1 decisions were identical. A
+> numerical audit localized this to expected f32 contraction reassociation,
+> not a transport, cache, mask, or causal bug. The threshold and result remain
+> immutable.
+>
+> A read-only construction diagnostic then showed that the fitted artifact had
+> not learned its training binding task: MQAR was `30/87,360`, English supplied
+> history was `578/8,190`, while the easy no-history abstention was
+> `2,730/2,730`. A parity-only rescore cannot change the weights and would not
+> change the project action, so #1043 is not retried or reclassified. The next
+> research contract must establish role-tagged, associative-first
+> construction/development learning before another sealed fit. Ordinary causal
+> softmax attention and its coherent R4 gauge realization remain established at
+> their prior scopes. See the [#1043 record](docs/r4_position_kv_binding_1043.md).
+
 > **Latest source-free prompt-capacity result (2026-09-01):** #973's frozen
 > `R4PredictiveBlockDeltaPromptCapacityV5` campaign is complete and independently
 > verified at `PREDICTIVE_BINDING_NO_TERMINAL_CAPACITY`. The geometric arm
