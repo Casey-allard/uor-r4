@@ -7,38 +7,44 @@ the readable mirror of programme root #820.** The
 [`Geometric Intelligence Programme`](docs/geometric_intelligence_programme.md)
 is the current architecture and claim-boundary companion.
 
-**Current English-binding result (2026-09-02):** #1063 completed its frozen
-3,920-update / 2,007,040-answer curriculum and returned
-`ENGLISH_BINDING_CONSTRUCTION_MISS`. The final ordinary model scored
-`2,396/8,192 = 29.2480%` on construction and `218/1,024 = 21.2891%` on
-held-out supported questions. Complete counterfactual groups were `0/256`
-(`0/128` for each question type); missing-binding answers were
-`37/256 = 14.4531%`. Changing the question with the facts fixed changed the
-prediction in only `12/512` comparisons. This recipe did not reliably learn
-the requested owner-object binding. See the [#1063 record](docs/r4_zoology_english_binding_1063.md).
+**Current English construction diagnostic (2026-09-02):** #1065 completed
+`CONSTRUCTION_DIAGNOSTIC_COMPLETE`, with descriptive focus `QUESTION_READOUT`.
+The retained #1063 model reproduced its entire construction score exactly:
+`2,396/8,192 = 29.2480%`, including full logits, predictions, attention and NLL.
+Changing the question left the prediction unchanged in
+`3,974/4,096 = 97.0215%` of construction pairs; only `20/4,096` pairs had both
+answers correct. Target-logit changes were positive in 2,040 pairs and negative
+in 2,056. See the [#1065 diagnostic record](docs/r4_zoology_english_diagnostic_1065.md).
 
-The artifact, optimizer/sampler/RNG checkpoint and exact data are retained.
-Fresh-process replay reproduced all final evidence. Fit, evaluation and replay
-took `249.37 s` combined, with peak RSS `0.486 GiB`, on eight Apple Accelerate
-threads. The optimizer received zero development decisions. Conditional R4
-inference and transport control are `NOT_RUN_ENGLISH_BINDING_MISS`.
+Of 8,192 answers, 6,905 selected a location in the history and 1,287 answered
+`unknown`; none selected an absent location or other vocabulary token. The
+largest displayed-slot selection share was 27.7625%, against balanced 25%
+target exposure. Pooled q0 in-history errors were same-owner 841, same-object
+834, unrelated 578. No overall position or attribute-confound majority fired;
+type-specific attribute effects remain visible in the full record. This
+localizes the next investigation behaviorally without proving an internal cause.
 
-[#1061](docs/r4_zoology_exact_coherent_inference_1061.md) remains established:
-plain and coherent R4 both scored `8,071/8,192 = 98.5229%`, with all 8,192
-predictions identical and an `86.2061` percentage-point transport-control loss. #1059's
-`11,900/12,000 = 99.1667%` preservation also remains intact. Both MQAR artifacts
-and #1057's historical `NOT_RUN_PRIMARY_MISS` control are unchanged. #1063
-introduces no geometry change and does not reverse those attention results.
+The run and exact fresh-process replay took `3.43 s` combined with peak RSS
+`0.775 GiB` on eight Apple Accelerate threads. Training updates, new development
+decisions, development/checkpoint/frame payload reads and geometry changes were
+zero. #1063's completed 3,920-update fit and held-out negatives remain unchanged:
+`218/1,024` supported answers, `0/256` complete groups, `37/256` unknown answers.
+Its conditional R4/control remain `NOT_RUN_ENGLISH_BINDING_MISS`.
 
-The next recommendation is one separately frozen, construction-only diagnostic
-on the retained English artifact: classify target versus same-owner,
-same-object and unrelated-location choices, and measure question/location-swap
-responses by fact slot. This should localize the failing lexical/readout step
-before choosing another fit. The English readout must gather two query words into
-a constant colon position; MQAR placed its single query key directly at the
-readout. More geometry is deferred. General English understanding, H4
-superiority, softmax removal, reasoning and chat readiness remain unestablished;
-#973 stays open and #954 remains blocked.
+The next recommendation is one separately frozen readout-placement learning
+experiment: a fresh matched fit with the supervised answer readout at the
+queried object (position 37) instead of the constant colon (40). Keep the cell,
+construction rows/labels, seed, optimizer and dose fixed; report both question
+types separately. This is an explicit answer-readout task, with new unrevealed
+development data required for a new transfer claim. The diagnostic does not
+establish that this change will repair learning.
+
+[#1061](docs/r4_zoology_exact_coherent_inference_1061.md) remains established: plain and coherent R4 both scored
+`8,071/8,192 = 98.5229%`, with identical predictions and an `86.2061` percentage
+points lost under the transport control. #1059's `11,900/12,000 = 99.1667%` preservation
+also remains intact. More geometry is deferred. General English understanding,
+H4 superiority, softmax removal, reasoning and chat readiness remain
+unestablished; #973 stays open and #954 remains blocked.
 
 The earlier #973 V5 terminal is the independently verified predictive
 write/binding campaign. It completed
