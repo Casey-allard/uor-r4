@@ -14,44 +14,48 @@ Measurements retain their pre-declared exit rule and durable issue/record
 reference; design targets remain explicitly labeled as definitions,
 assumptions, or objectives rather than measured results.
 
-> **Current English construction diagnostic (2026-09-02):** #1065 completed
-> `CONSTRUCTION_DIAGNOSTIC_COMPLETE`, with descriptive focus `QUESTION_READOUT`.
-> The retained #1063 model reproduced its entire construction score exactly:
-> `2,396/8,192 = 29.2480%`, including full logits, predictions, attention and NLL.
-> Changing the question left the prediction unchanged in
-> `3,974/4,096 = 97.0215%` of construction pairs; only `20/4,096` pairs had both
-> answers correct. Target-logit changes were positive in 2,040 pairs and negative
-> in 2,056. See the [#1065 diagnostic record](r4_zoology_english_diagnostic_1065.md).
+> **Current English readout result (2026-09-02):** #1067 completed
+> `QUERY_OBJECT_READOUT_CONSTRUCTION_MISS` with substantial partial progress.
+> Moving the supervised answer from colon position 40 to query-object position
+> 37 increased construction accuracy from `2,396/8,192 = 29.2480%` to
+> **`3,735/8,192 = 45.5933%` (+16.3452 percentage points)** at the same seed,
+> cell, construction data and 3,920-update dose. NLL fell by 0.2290623263 nats.
+> See the [#1067 matched readout record](r4_zoology_query_readout_1067.md).
 >
-> Of 8,192 answers, 6,905 selected a location in the history and 1,287 answered
-> `unknown`; none selected an absent location or other vocabulary token. The
-> largest displayed-slot selection share was 27.7625%, against balanced 25%
-> target exposure. Pooled q0 in-history errors were same-owner 841, same-object
-> 834, unrelated 578. No overall position or attribute-confound majority fired;
-> type-specific attribute effects remain visible in the full record. This
-> localizes the next investigation behaviorally without proving an internal cause.
+> Object-changing question pairs now change predictions in `1,413/2,048` cases
+> (previously 33), with **447 pairs both correct** (previously 6). Owner-changing
+> pairs change predictions in only `193/2,048` cases (previously 89), with **47
+> both correct** (previously 14). The descriptive focus is `OWNER_DISAMBIGUATION`:
+> wrong-owner/same-object choices are `1,439/2,131 = 67.5270%` of q0 in-history
+> errors. Position bias also remains: displayed slots 2 and 4 receive 74.2686%
+> of in-history selections despite balanced target exposure. These measurements
+> do not establish an internal causal mechanism or full binding.
 >
-> The run and exact fresh-process replay took `3.43 s` combined with peak RSS
-> `0.775 GiB` on eight Apple Accelerate threads. Training updates, new development
-> decisions, development/checkpoint/frame payload reads and geometry changes were
-> zero. #1063's completed 3,920-update fit and held-out negatives remain unchanged:
-> `218/1,024` supported answers, `0/256` complete groups, `37/256` unknown answers.
-> Its conditional R4/control remain `NOT_RUN_ENGLISH_BINDING_MISS`.
+> The fit, final evaluation and exact fresh-process replay took **290.31 seconds**
+> combined, peak **0.7764 GiB**, using eight Apple Accelerate CPU threads.
+> The frozen `8,111/8,192` construction gate was missed; new development is
+> `NOT_RUN_CONSTRUCTION_MISS` with **zero model decisions**. R4 inference is
+> `NOT_RUN_SEPARATE_INFERENCE_STEP`. Eight focused checks and independent evidence
+> review passed; broad QA remains dormant and queue statuses are transport only.
 >
-> The next recommendation is one separately frozen readout-placement learning
-> experiment: a fresh matched fit with the supervised answer readout at the
-> queried object (position 37) instead of the constant colon (40). Keep the cell,
-> construction rows/labels, seed, optimizer and dose fixed; report both question
-> types separately. This is an explicit answer-readout task, with new unrevealed
-> development data required for a new transfer claim. The diagnostic does not
-> establish that this change will repair learning.
+> The next recommendation is one separately frozen **joint-query encoding fit**:
+> retain readout 37 and add the causal owner-token embedding from position 35 to
+> the object embedding before unchanged embedding dropout/attention. Keep fresh
+> initialization, construction rows/labels, seed, 3,920-update dose and model
+> size. This parameter-free intervention tests direct access to both query
+> attributes. Require owner-changing both-correct improvement while preserving
+> overall accuracy and object-changing behavior; report position effects and
+> freeze a new development population before fitting. No additional fit occurred
+> in #1067. More geometry remains deferred.
 >
-> [#1061](r4_zoology_exact_coherent_inference_1061.md) remains established: plain and coherent R4 both scored
-> `8,071/8,192 = 98.5229%`, with identical predictions and an `86.2061` percentage
-> points lost under the transport control. #1059's `11,900/12,000 = 99.1667%` preservation
-> also remains intact. More geometry is deferred. General English understanding,
-> H4 superiority, softmax removal, reasoning and chat readiness remain
-> unestablished; #973 stays open and #954 remains blocked.
+> The #1063 held-out negative (`218/1,024` supported, `0/256` complete groups,
+> `37/256` unknown) and #1065 diagnostic remain intact.
+> [#1061](r4_zoology_exact_coherent_inference_1061.md): ordinary and coherent R4 both score
+> `8,071/8,192 = 98.5229%`, with all 8,192 predictions identical and an
+> `86.2061`-percentage-point loss under transport control. #1059 retains
+> `11,900/12,000 = 99.1667%` preservation.
+> General English, H4 superiority, softmax removal, reasoning and chat readiness
+> remain unestablished; #973 stays open and #954 remains blocked.
 
 > **Predecessor role-tagged associative-learning result (2026-09-02).** #1045
 > completed its full 64-epoch R1 cap and stopped
