@@ -197,3 +197,15 @@ lowering. It is not the probability field used by this offline softmax cell.
 | R4/geometric comparison | `NOT_RUN` |
 | English/generation/reasoning | `NOT_RUN` |
 | W8/exact lowering | `NOT_RUN` |
+
+## Successor update: exact-byte transfer (#1053)
+
+The [#1053 exact-byte transfer](r4_zoology_exact_transfer_1053.md) completed at
+`STOCK_CELL_TRANSFER_MISS`: `984/8,192 = 12.01171875%` development top-1.
+The earlier prospective “serialization/population transfer” interpretation is
+not a unique causal diagnosis. At batch 512, #1053's 64 epochs supplied only
+1,024 optimizer updates and exhausted its cosine schedule; this source run
+first passed after 3,920 updates. The unresolved optimizer-clock/annealing
+mismatch motivates one separately scoped correction, not a retry within
+#1053. Matching updates does not match query dose or work (eight versus four
+K/V pairs). This #1050 positive and its immutable evidence remain unchanged.

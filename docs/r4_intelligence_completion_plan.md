@@ -4,31 +4,24 @@
   readable mirror of programme root #820 (stages S0–S7 plus cross-cutting F0).
   The [Geometric Intelligence Programme](geometric_intelligence_programme.md)
   is its current architecture and claim-boundary companion.
-  The newest copied-attention control is #1050's
-  [`ZoologyFigure2ReleaseReproductionV1`](r4_zoology_release_reproduction_1050.md).
-  It reproduced the executable ICLR24 T=64, four-K/V, one-head width-64
-  causal-softmax configuration and training semantics ported by #1047, with
-  declared CPU-placement and query-only-projection adaptations. C0 passed
-  literal-source mechanics, deterministic population replay, initialization
-  replay, causal/query-only projection parity, and the disposable 32-row
-  `128/128` overfit; the focused full-versus-query-only loss/gradient test also
-  passed. A measured one/four/eight-thread preflight selected
-  four intra-op CPU threads. The first frozen source learning rate crossed the
-  strict source threshold at epoch 20: `11,900/12,000` (`99.1666667%`) on the
-  3,000-row source test/early-stop split, NLL `0.05124610455830892`, and
-  `577.834602 s` arm wall. The remaining three rates were not run because the
-  predeclared source early stop fired. Verdict `SOURCE_REPRODUCTION_POSITIVE`;
-  result CID
-  `blake3:bd16d012c01262ffb8c5197e4cf316c6fee1d722cf0700a0048386180a8122e0`.
-  The split is held out from gradient updates and has zero full-row overlap,
-  but it is evaluated every epoch and 294 of its 11,998 unique K/V pairs occur
-  in training; it is not assignment-disjoint or sealed terminal evaluation.
-  This rules out a broken copied cell and localizes #1049's miss to the bundle
-  of reduced-versus-released calibration-contract differences without
-  isolating a causal factor. The single authorized next decision is an
-  independently initialized C2 transfer to the exact open #1045 bytes under
-  the source-positive training semantics. No R4/geometric-attention, English,
-  generation, reasoning, or exact-lowering claim follows from #1050.
+  The newest copied-attention transfer is #1053's
+  [`ZoologyExact1045TransferV1`](r4_zoology_exact_transfer_1053.md), terminal
+  `STOCK_CELL_TRANSFER_MISS` at `984/8,192 = 12.01171875%` assignment-disjoint
+  development top-1 and NLL `6.7966416`. Its single 64-epoch/1,024-update arm
+  took `324.061369 s` on the measured-fastest four-thread Apple Accelerate
+  CPU plan. Fresh-process verification passed; the binding control is
+  `NOT_RUN_PRIMARY_MISS`. This is a bounded population/training-recipe miss,
+  not proof of bad serialization or broken ordinary attention. Its cosine
+  schedule ended at 1,024 updates, whereas #1050 first passed at 3,920.
+  Recommend one separately frozen optimizer-clock correction on unchanged
+  data/model, using the source's 196-update schedule cadence and a 3,920-update
+  cap. Equal updates are not equal queries or work (eight versus four K/V
+  pairs). No retry or R4 change was made in #1053. #1050's
+  [released-configuration positive](r4_zoology_release_reproduction_1050.md)
+  remains established at `99.1666667%` held-out-row associative recall.
+  Coherent-R4 replacement of this copied cell still requires exact-byte
+  transfer and binding control passes; English, generation, reasoning, and
+  lowering remain unrun in this transfer.
   The predecessor open associative-learning result is #1045's
   [`R4RoleTaggedAssociativeCurriculumV1`](r4_role_tagged_associative_curriculum_1045.md).
   It completed all 64 R1 epochs and `4,194,304` presentations in `966.7488 s`,

@@ -14,36 +14,22 @@ Measurements retain their pre-declared exit rule and durable issue/record
 reference; design targets remain explicitly labeled as definitions,
 assumptions, or objectives rather than measured results.
 
-> **Copied Zoology attention result (2026-09-02).** #1050 reproduced the
-> executable-source ICLR24 T=64, four-K/V, one-head width-64 causal-softmax
-> configuration and training semantics integrated by #1047, with declared CPU
-> and query-only-projection adaptations. The deterministic population contains
-> 100,000 training rows and 3,000 independently generated source
-> test/early-stop rows held out from gradient updates at batch 512. C0 repeated
-> literal loader/model goldens, initialization replay,
-> causal/query-only projection parity, and the disposable `128/128` overfit;
-> the focused full-versus-query-only loss/gradient test also passed.
->
-> Fresh one/four/eight-thread batch-512 preflight selected four threads because
-> they were fastest on this M1. The first frozen learning rate passed the
-> source's strict `>99%` rule at epoch 20: `11,900/12,000`
-> (`99.1666667%`) source-test top-1, NLL `0.0512461`, and `577.834602 s` arm
-> wall. The other three source rates were not run because the predeclared
-> source early stop fired. Verdict
-> `SOURCE_REPRODUCTION_POSITIVE`. Future-value, role, R4, UOR-byte, provider,
-> and teacher reads were zero.
->
-> Artifact/state/result CIDs are
-> `blake3:163cf3e5375b3e721fa7a826acdb2dfc809e5989209b03fb2a3eea3e3d5459e9`,
-> `blake3:600bdc76cefff79f4be8709197b15252cb531892fad0db2156b36b865c01877e`,
-> and
-> `blake3:bd16d012c01262ffb8c5197e4cf316c6fee1d722cf0700a0048386180a8122e0`.
-> This establishes ordinary copied attention binding on held-out rows at
-> released scale. It rules out a broken copied cell and localizes #1049's
-> four-choice plateau to its bundled reduced-versus-released
-> calibration-contract differences; no ablation isolates the causal factor.
-> It is not an R4/geometric-attention result. The next bounded action is
-> exact-#1045-byte C2 transfer with the positive source semantics; see the
+> **Exact-byte transfer result (2026-09-02).** #1053 completed its single
+> 64-epoch/1,024-update arm at `STOCK_CELL_TRANSFER_MISS`: `984/8,192 =
+> 12.01171875%` assignment-disjoint development top-1 and NLL `6.7966416`.
+> Fresh-process final-logit/result verification passed; the binding control is
+> `NOT_RUN_PRIMARY_MISS`. Four CPU threads with Apple Accelerate were fastest
+> in the measured preflight; primary wall was `324.061369 s`.
+> This bounded population/training-recipe miss does not isolate serialization:
+> the epoch-based cosine schedule exhausted after 1,024 updates, while the
+> source-positive #1050 run first passed after 3,920. The recommended successor
+> corrects that optimizer clock on unchanged data/model, with a 196-update
+> source schedule cadence and a 3,920-update cap. Updates are not equal query
+> dose or work (eight versus four K/V pairs). No retry or R4 change ran.
+> See the [#1053 evidence and exposure audit](r4_zoology_exact_transfer_1053.md).
+> #1050's `99.1666667%` ordinary causal-softmax held-out-row binding remains
+> established; geometric advantage, English, generation, reasoning, and exact
+> lowering do not follow. See the
 > [#1050 record](r4_zoology_release_reproduction_1050.md).
 
 > **Predecessor role-tagged associative-learning result (2026-09-02).** #1045

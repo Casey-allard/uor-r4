@@ -14,33 +14,22 @@ local hardware. The project is testing whether language context, inference,
 and reasoning can emerge from routes through a canonical geometric memory. The
 target serving engine uses no Ollama, hosted model, or source-model weights.
 
-> **Latest copied-attention result (2026-09-02):** #1050 reproduced the
-> executable-source ICLR24 Zoology T=64, four-K/V, width-64 causal-softmax
-> configuration and training semantics on the CPU, with declared CPU-placement
-> and query-only-projection adaptations. C0 passed literal loader/model goldens,
-> initialization replay, causal/query-only projection parity, and the disposable
-> `128/128` overfit; the focused full-versus-query-only loss/gradient test also
-> passed. The deterministic released population contains 100,000 training rows
-> and 3,000 source test/early-stop rows held out from gradient updates at batch
-> 512.
->
-> Measured 1/4/8-thread preflight selected four intra-op CPU threads because
-> they were faster than eight. The first frozen learning rate then crossed the
-> strict source `>99%` threshold at epoch 20: `11,900/12,000`
-> (`99.1666667%`) source-test top-1, NLL `0.0512461`, in `577.834602 s`. The
-> verdict is `SOURCE_REPRODUCTION_POSITIVE`; the other three rates were not run
-> because the predeclared source early stop fired. Result CID is
-> `blake3:bd16d012c01262ffb8c5197e4cf316c6fee1d722cf0700a0048386180a8122e0`.
->
-> This establishes copied ordinary causal-softmax key-to-value binding on
-> independently generated held-out rows at the released scale. It rules out a
-> broken copied cell and localizes #1049's 24% result to its reduced/mismatched
-> calibration contract; no ablation isolates the causal factor. It does
-> **not** establish R4/geometric attention,
-> English, generation, reasoning, or exact lowering. The next bounded action is
-> exact-#1045-byte C2 transfer with the now-positive source training semantics.
-> Modulo-256 remains the later discrete role/table/lowering substrate, not the
-> probability field for softmax. See the
+> **Latest transfer result (2026-09-02):** #1053 completed its one frozen run
+> on the exact #1045 bytes: `984/8,192 = 12.01171875%` assignment-disjoint
+> development top-1, NLL `6.7966416`, at epoch 64. Terminal
+> `STOCK_CELL_TRANSFER_MISS`; the conditional binding control was not run.
+> Four CPU threads with Apple Accelerate were measured fastest; primary wall
+> was `324.061369 s`. Fresh-process verification reproduced the final result.
+> This is a bounded population/training-recipe miss, not an attention failure:
+> its cosine schedule ended after 1,024 updates, versus 3,920 updates at
+> #1050's positive stop. The next recommendation is one separately frozen
+> optimizer-clock correction on unchanged data/model, with the source's
+> 196-update schedule cadence and a 3,920-update cap. Matching updates is not
+> matching query dose or work (eight versus four K/V pairs). No retry or R4
+> change was made. See the [#1053 record](docs/r4_zoology_exact_transfer_1053.md).
+> #1050's ordinary causal-softmax attention remains established at
+> `99.1666667%` held-out-row recall; it does not establish geometric advantage,
+> generation, reasoning, or exact lowering. See the
 > [#1050 record](docs/r4_zoology_release_reproduction_1050.md).
 
 > **Predecessor open role-tagged associative result (2026-09-02):** #1045

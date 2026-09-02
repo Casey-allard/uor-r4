@@ -9,30 +9,22 @@ The earlier
 preserved #948–#958 sequencing record. Measured, refuted, and frozen research
 remains in [docs/RESEARCH.md](docs/RESEARCH.md).
 
-**Current copied-attention boundary (2026-09-02):** #1050 reproduced the
-executable-source ICLR24 Zoology T=64, four-K/V, one-head width-64
-causal-softmax configuration and training semantics, with declared CPU and
-query-only-projection adaptations: 100,000 training rows, 3,000 independently
-generated source test/early-stop rows held out from gradient updates, batch
-512, shared train/test DataLoader RNG, and the
-source's strict `>99%` early stop. C0, deterministic population replay, and
-source mechanics passed; the focused query-only loss/gradient parity test also
-passed.
-
-Measured 1/4/8-thread CPU preflight selected four threads because they were
-faster than eight on this M1. The first frozen source learning rate passed at
-epoch 20 with `11,900/12,000` (`99.1666667%`) source-test top-1 and NLL
-`0.0512461` in `577.834602 s`; the other three rates were not run because the
-predeclared source early stop fired. Verdict `SOURCE_REPRODUCTION_POSITIVE`, result CID
-`blake3:bd16d012c01262ffb8c5197e4cf316c6fee1d722cf0700a0048386180a8122e0`.
-
-This establishes copied ordinary attention binding on held-out rows at
-released scale. It rules out a broken copied cell and localizes #1049's
-four-choice plateau to its bundled reduced-versus-released calibration-contract
-differences; no ablation isolates the causal factor. It is not R4/geometric
-attention. The next bounded action is exact-#1045-byte C2 transfer using the
-positive source semantics; only a C2 pass may authorize a coherent-R4
-transport/replacement comparison. See the
+**Current transfer boundary (2026-09-02):** #1053 is terminal
+`STOCK_CELL_TRANSFER_MISS`: `984/8,192 = 12.01171875%` assignment-disjoint
+development top-1 after its frozen 64 epochs/1,024 updates. Fresh-process
+verification passed. The primary took `324.061369 s` on the measured-fastest
+four-thread Apple Accelerate CPU plan; the binding control did not run.
+This is a bounded population/training-recipe miss, not a demonstrated
+serialization defect or an ordinary-attention falsifier. Its cosine clock
+expired at 1,024 updates; #1050 passed at 3,920. Recommend one separately
+frozen optimizer-clock correction on unchanged data/model, retaining the
+source's 196-update schedule cadence and capping work at 3,920 updates.
+Matching updates does not match queries or work: this population has eight
+K/V pairs rather than four. No same-issue retry or R4 change is authorized.
+See the [#1053 record](docs/r4_zoology_exact_transfer_1053.md).
+#1050's ordinary causal-softmax held-out-row binding remains positive at
+`99.1666667%`; coherent-R4 replacement of this copied cell still requires an
+exact-byte transfer pass and its binding control. See the
 [#1050 record](docs/r4_zoology_release_reproduction_1050.md).
 
 **Predecessor open associative-learning boundary (2026-09-02):** #1045 completed
