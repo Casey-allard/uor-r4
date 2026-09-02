@@ -4,24 +4,20 @@
   readable mirror of programme root #820 (stages S0–S7 plus cross-cutting F0).
   The [Geometric Intelligence Programme](geometric_intelligence_programme.md)
   is its current architecture and claim-boundary companion.
-  The newest copied-attention transfer is #1053's
-  [`ZoologyExact1045TransferV1`](r4_zoology_exact_transfer_1053.md), terminal
-  `STOCK_CELL_TRANSFER_MISS` at `984/8,192 = 12.01171875%` assignment-disjoint
-  development top-1 and NLL `6.7966416`. Its single 64-epoch/1,024-update arm
-  took `324.061369 s` on the measured-fastest four-thread Apple Accelerate
-  CPU plan. Fresh-process verification passed; the binding control is
-  `NOT_RUN_PRIMARY_MISS`. This is a bounded population/training-recipe miss,
-  not proof of bad serialization or broken ordinary attention. Its cosine
-  schedule ended at 1,024 updates, whereas #1050 first passed at 3,920.
-  Recommend one separately frozen optimizer-clock correction on unchanged
-  data/model, using the source's 196-update schedule cadence and a 3,920-update
-  cap. Equal updates are not equal queries or work (eight versus four K/V
-  pairs). No retry or R4 change was made in #1053. #1050's
-  [released-configuration positive](r4_zoology_release_reproduction_1050.md)
-  remains established at `99.1666667%` held-out-row associative recall.
-  Coherent-R4 replacement of this copied cell still requires exact-byte
-  transfer and binding control passes; English, generation, reasoning, and
-  lowering remain unrun in this transfer.
+  The newest transfer, [#1055](r4_zoology_optimizer_clock_1055.md), retained a
+  `56.2744`-point gain: development rose from `12.0117%` to `68.2861%` on
+  unchanged 8,192 training rows with more exposure. Strict `>99%` was missed:
+  `CLOCK_MATCHED_TRANSFER_MISS`; the binding control did not run. Its eight-
+  thread CPU fit took about 18 minutes; replay/checkpoint audit passed.
+  The late curve improved; 68% is not a measured ceiling. The approved next
+  step is a separately contracted continuation of this saved checkpoint, at
+  most 3,920 additional updates, preserving data/model/LR policy/optimizer/
+  sampling/RNG and strict `>99%` stop—not a from-scratch repeat or parameter
+  grid. No continuation launched within #1055; more unique-data benefit
+  is unmeasured. #1050's `99.1667%` and HELM-D-R4/#1014 positives remain.
+  Coherent-R4 integration is the goal; inference-only integration on #1050's
+  qualified artifact/population remains an available alternative, not a
+  prerequisite to the approved continuation or a geometric-advantage claim.
   The predecessor open associative-learning result is #1045's
   [`R4RoleTaggedAssociativeCurriculumV1`](r4_role_tagged_associative_curriculum_1045.md).
   It completed all 64 R1 epochs and `4,194,304` presentations in `966.7488 s`,

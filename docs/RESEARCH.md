@@ -14,23 +14,20 @@ Measurements retain their pre-declared exit rule and durable issue/record
 reference; design targets remain explicitly labeled as definitions,
 assumptions, or objectives rather than measured results.
 
-> **Exact-byte transfer result (2026-09-02).** #1053 completed its single
-> 64-epoch/1,024-update arm at `STOCK_CELL_TRANSFER_MISS`: `984/8,192 =
-> 12.01171875%` assignment-disjoint development top-1 and NLL `6.7966416`.
-> Fresh-process final-logit/result verification passed; the binding control is
-> `NOT_RUN_PRIMARY_MISS`. Four CPU threads with Apple Accelerate were fastest
-> in the measured preflight; primary wall was `324.061369 s`.
-> This bounded population/training-recipe miss does not isolate serialization:
-> the epoch-based cosine schedule exhausted after 1,024 updates, while the
-> source-positive #1050 run first passed after 3,920. The recommended successor
-> corrects that optimizer clock on unchanged data/model, with a 196-update
-> source schedule cadence and a 3,920-update cap. Updates are not equal query
-> dose or work (eight versus four K/V pairs). No retry or R4 change ran.
-> See the [#1053 evidence and exposure audit](r4_zoology_exact_transfer_1053.md).
-> #1050's `99.1666667%` ordinary causal-softmax held-out-row binding remains
-> established; geometric advantage, English, generation, reasoning, and exact
-> lowering do not follow. See the
-> [#1050 record](r4_zoology_release_reproduction_1050.md).
+> **Optimizer-clock result (2026-09-02).** #1055 improved development from
+> `984/8,192` to `5,594/8,192 = 68.2861328125%` (+56.2744140625 points);
+> NLL fell from `6.7966416` to `2.6761019`. The strict `>99%` target was
+> missed: `CLOCK_MATCHED_TRANSFER_MISS`, control `NOT_RUN_PRIMARY_MISS`.
+> Its eight-thread CPU fit took about 18 minutes; replay/checkpoint audit passed.
+> The same 8,192 unique training rows were repeatedly exposed. Late recall rose
+> 36%→55%→64%→68%; convergence and benefit from new unique data are unmeasured.
+> The user approved a separately contracted continuation of this checkpoint:
+> at most 3,920 additional updates, unchanged data/model/LR policy/optimizer/
+> sampling/RNG and strict `>99%` stop. None launched in #1055; this does not
+> revise the frozen verdict or authorize
+> a parameter sweep. Prior positives remain; coherent-R4 integration is the
+> goal, with inference-only #1050 integration still an option. See the
+> [complete curve and evidence](r4_zoology_optimizer_clock_1055.md).
 
 > **Predecessor role-tagged associative-learning result (2026-09-02).** #1045
 > completed its full 64-epoch R1 cap and stopped

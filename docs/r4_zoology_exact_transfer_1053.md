@@ -255,3 +255,16 @@ not a rerun, new issue, or changed verdict within #1053.
 Coherent-R4 replacement, English, generation, reasoning, modulo-256 softmax,
 and lowering remain `NOT_RUN`; no geometric mechanism is rejected or promoted
 by this transfer miss.
+
+## Successor outcome (#1055, 2026-09-02)
+
+The separately frozen optimizer-clock correction completed 3,920 updates on
+these unchanged data and reached `5,594/8,192 = 68.2861328125%` development
+top-1, up `56.2744140625` percentage points from this record. It retained the
+gain but missed its strict 99% target; no binding-control inference ran.
+Fresh-process replay passed. See the [#1055 record](r4_zoology_optimizer_clock_1055.md)
+for the complete, still-improving late curve and the recommendation for a
+separately authorized bounded continuation of that checkpoint. This is not a
+measured convergence point or evidence that more unique data caused the gain:
+the same 8,192 training rows were reused. No continuation was launched, and
+this appendix does not change #1053's frozen result.

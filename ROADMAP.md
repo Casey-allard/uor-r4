@@ -9,23 +9,20 @@ The earlier
 preserved #948–#958 sequencing record. Measured, refuted, and frozen research
 remains in [docs/RESEARCH.md](docs/RESEARCH.md).
 
-**Current transfer boundary (2026-09-02):** #1053 is terminal
-`STOCK_CELL_TRANSFER_MISS`: `984/8,192 = 12.01171875%` assignment-disjoint
-development top-1 after its frozen 64 epochs/1,024 updates. Fresh-process
-verification passed. The primary took `324.061369 s` on the measured-fastest
-four-thread Apple Accelerate CPU plan; the binding control did not run.
-This is a bounded population/training-recipe miss, not a demonstrated
-serialization defect or an ordinary-attention falsifier. Its cosine clock
-expired at 1,024 updates; #1050 passed at 3,920. Recommend one separately
-frozen optimizer-clock correction on unchanged data/model, retaining the
-source's 196-update schedule cadence and capping work at 3,920 updates.
-Matching updates does not match queries or work: this population has eight
-K/V pairs rather than four. No same-issue retry or R4 change is authorized.
-See the [#1053 record](docs/r4_zoology_exact_transfer_1053.md).
-#1050's ordinary causal-softmax held-out-row binding remains positive at
-`99.1666667%`; coherent-R4 replacement of this copied cell still requires an
-exact-byte transfer pass and its binding control. See the
-[#1050 record](docs/r4_zoology_release_reproduction_1050.md).
+**Current progress (2026-09-02):** #1055 retained a `56.2744`-point gain:
+development recall rose from `12.0117%` to `68.2861%` on unchanged 8,192
+training rows with more exposure. It missed strict `>99%`, leaving
+`CLOCK_MATCHED_TRANSFER_MISS` and no binding-control result. The 3,920-update
+fit took about 18 minutes on eight CPU threads; replay/checkpoint audit passed.
+Its late curve was improving; the preset cap is not a measured capacity ceiling.
+The approved next step is a separately contracted continuation of the saved
+checkpoint: at most 3,920 additional updates, unchanged data/model/LR policy/
+optimizer/sampling/RNG, and strict `>99%` stop—not a from-scratch repeat or
+parameter sweep. No continuation launched within #1055.
+More unique-data benefit is unmeasured. Prior #1050/HELM-D-R4/#1014 positives
+remain; coherent-R4 integration is the goal, with inference-only #1050
+integration still available as another option. See the
+[#1055 record](docs/r4_zoology_optimizer_clock_1055.md).
 
 **Predecessor open associative-learning boundary (2026-09-02):** #1045 completed
 all 64 permitted R1 epochs and stopped `OPEN_MQAR_NOT_LEARNED`. Training reached

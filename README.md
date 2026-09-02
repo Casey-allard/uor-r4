@@ -14,23 +14,20 @@ local hardware. The project is testing whether language context, inference,
 and reasoning can emerge from routes through a canonical geometric memory. The
 target serving engine uses no Ollama, hosted model, or source-model weights.
 
-> **Latest transfer result (2026-09-02):** #1053 completed its one frozen run
-> on the exact #1045 bytes: `984/8,192 = 12.01171875%` assignment-disjoint
-> development top-1, NLL `6.7966416`, at epoch 64. Terminal
-> `STOCK_CELL_TRANSFER_MISS`; the conditional binding control was not run.
-> Four CPU threads with Apple Accelerate were measured fastest; primary wall
-> was `324.061369 s`. Fresh-process verification reproduced the final result.
-> This is a bounded population/training-recipe miss, not an attention failure:
-> its cosine schedule ended after 1,024 updates, versus 3,920 updates at
-> #1050's positive stop. The next recommendation is one separately frozen
-> optimizer-clock correction on unchanged data/model, with the source's
-> 196-update schedule cadence and a 3,920-update cap. Matching updates is not
-> matching query dose or work (eight versus four K/V pairs). No retry or R4
-> change was made. See the [#1053 record](docs/r4_zoology_exact_transfer_1053.md).
-> #1050's ordinary causal-softmax attention remains established at
-> `99.1666667%` held-out-row recall; it does not establish geometric advantage,
-> generation, reasoning, or exact lowering. See the
-> [#1050 record](docs/r4_zoology_release_reproduction_1050.md).
+> **Latest progress (2026-09-02):** #1055's optimizer-clock correction improved
+> exact-data recall from `12.0117%` to `68.2861%` (+56.2744 points), using the
+> same 8,192 unique training rows with more exposure—not a larger corpus.
+> The final curve was still improving, but strict `>99%` was missed:
+> `CLOCK_MATCHED_TRANSFER_MISS`; the binding control did not run. The single
+> fit took about 18 minutes on eight CPU threads; replay/checkpoint audit passed.
+> #1050's `99.1667%` ordinary-attention positive and HELM-D-R4/#1014 remain intact.
+> The approved next step is a separately contracted continuation of this saved
+> checkpoint: at most 3,920 additional updates, unchanged model/data/LR policy
+> and optimizer/sampling/RNG, retaining strict `>99%`. None launched in #1055;
+> 68% is not an established ceiling, and benefit from
+> more unique data is unmeasured. Coherent-R4 integration remains the goal, with
+> inference-only #1050 integration available as another option. See the
+> [#1055 evidence and next action](docs/r4_zoology_optimizer_clock_1055.md).
 
 > **Predecessor open role-tagged associative result (2026-09-02):** #1045
 > completed the full 64-epoch R1 cap and stopped at
