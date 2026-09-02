@@ -14,30 +14,38 @@ Measurements retain their pre-declared exit rule and durable issue/record
 reference; design targets remain explicitly labeled as definitions,
 assumptions, or objectives rather than measured results.
 
-> **Current integration result (2026-09-02):** #1061 reused #1059's unchanged
-> adapter on #1057's final block-40 model: plain and R4 both scored
-> `8,071/8,192 = 98.5229%`, with every top-1 prediction identical. Inconsistent
-> source-frame transport scored `1,009/8,192 = 12.3169%`, an `86.2061`
-> percentage-point loss at equal causal support and work. Learned weights and
-> tied head stayed unchanged; zero training or optimizer updates ran. Exact
-> fresh-process replay passed. Combined run and replay took `33.79 s`, peak RSS
-> `2.411 GiB`, on four Apple Accelerate threads. See the [#1061 record](r4_zoology_exact_coherent_inference_1061.md).
+> **Current English-binding result (2026-09-02):** #1063 completed its frozen
+> 3,920-update / 2,007,040-answer curriculum and returned
+> `ENGLISH_BINDING_CONSTRUCTION_MISS`. The final ordinary model scored
+> `2,396/8,192 = 29.2480%` on construction and `218/1,024 = 21.2891%` on
+> held-out supported questions. Complete counterfactual groups were `0/256`
+> (`0/128` for each question type); missing-binding answers were
+> `37/256 = 14.4531%`. Changing the question with the facts fixed changed the
+> prediction in only `12/512` comparisons. This recipe did not reliably learn
+> the requested owner-object binding. See the [#1063 record](r4_zoology_english_binding_1063.md).
 >
-> The model used vocabulary 4,096, sequence length 120 and eight queries per row.
-> The unchanged native 8,192-token map covered its vocabulary; inference reached
-> 24 of 120 H4 frames. [#1059](r4_zoology_coherent_inference_1059.md) remains a predecessor positive:
-> `11,900/12,000 = 99.1667%` preserved, with a `79.9417` percentage-point control
-> loss. Both results establish associative preservation and transport sensitivity;
-> H4 superiority, softmax removal and English language binding remain unshown.
+> The artifact, optimizer/sampler/RNG checkpoint and exact data are retained.
+> Fresh-process replay reproduced all final evidence. Fit, evaluation and replay
+> took `249.37 s` combined, with peak RSS `0.486 GiB`, on eight Apple Accelerate
+> threads. The optimizer received zero development decisions. Conditional R4
+> inference and transport control are `NOT_RUN_ENGLISH_BINDING_MISS`.
 >
-> The next recommendation is one separately frozen small English context-binding
-> curriculum using the working architecture and R4 adapter: a fixed question
-> with contrasting supplied facts, distractors, and swapped/missing history
-> controls, plus explicit lexical encoding and a bounded learning contract.
-> These MQAR checkpoints are not English models; a zero-shot English test is not
-> a gate on whether attention exists. Preserve both artifacts and #1057's
-> historical `NOT_RUN_PRIMARY_MISS` control. Further training or geometry
-> expansion is outside this inference-only delivery.
+> [#1061](r4_zoology_exact_coherent_inference_1061.md) remains established:
+> plain and coherent R4 both scored `8,071/8,192 = 98.5229%`, with all 8,192
+> predictions identical and an `86.2061` percentage-point transport-control loss. #1059's
+> `11,900/12,000 = 99.1667%` preservation also remains intact. Both MQAR artifacts
+> and #1057's historical `NOT_RUN_PRIMARY_MISS` control are unchanged. #1063
+> introduces no geometry change and does not reverse those attention results.
+>
+> The next recommendation is one separately frozen, construction-only diagnostic
+> on the retained English artifact: classify target versus same-owner,
+> same-object and unrelated-location choices, and measure question/location-swap
+> responses by fact slot. This should localize the failing lexical/readout step
+> before choosing another fit. The English readout must gather two query words into
+> a constant colon position; MQAR placed its single query key directly at the
+> readout. More geometry is deferred. General English understanding, H4
+> superiority, softmax removal, reasoning and chat readiness remain unestablished;
+> #973 stays open and #954 remains blocked.
 
 > **Predecessor role-tagged associative-learning result (2026-09-02).** #1045
 > completed its full 64-epoch R1 cap and stopped
