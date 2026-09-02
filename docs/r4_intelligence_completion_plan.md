@@ -4,19 +4,29 @@
   readable mirror of programme root #820 (stages S0–S7 plus cross-cutting F0).
   The [Geometric Intelligence Programme](geometric_intelligence_programme.md)
   is its current architecture and claim-boundary companion.
-  The newest continuation, [#1057](r4_zoology_checkpoint_continuation_1057.md),
-  retained meaningful near-target progress: `68.2861%` → `98.5229%` final
-  recall, with `98.6572%` best observed. Preserve the final block-40 artifact
-  and curve. Strict `>99%` was narrowly unmet (`CONTINUATION_MISS`), not
-  failed attention; the binding control did not run. The same 8,192 rows
-  received more exposure; eight-thread CPU continuation took 18.3 minutes.
-  Fresh replay and checkpoint audit passed. Next recommendation: separately
-  scoped inference-only coherent-R4 integration using qualified #1050,
-  retaining #1057 as an exact-data companion. Preserve learned weights,
-  positions, norms/residuals and softmax; change only inner Q/K/V transport/
-  aggregation. #1050's `99.1667%` uses a different configuration/population,
-  not a head-to-head comparison. Prior positives remain; no automatic third
-  window, completed R4 integration, geometric-advantage or generation claim.
+  **Current integration result (2026-09-02):** #1059 preserved the qualified
+  #1050 model through coherent R4 inference: plain and R4 both scored
+  `11,900/12,000 = 99.1667%`, with every top-1 prediction identical. Deliberately
+  inconsistent source-frame transport scored `2,307/12,000 = 19.225%`, a
+  `79.9417` percentage-point loss at equal causal support and work. Learned
+  weights and tied head stayed unchanged; zero optimizer updates ran. Exact
+  fresh-process replay passed. The combined CPU run and replay took `27.49 s`
+  with peak RSS `1.844 GiB` on four Apple Accelerate threads.
+
+  This establishes preserved learned associative behavior and transport-path
+  sensitivity on the retained open Zoology population. It does not establish H4
+  superiority, softmax removal, source-free/table lowering, English context
+  binding, or generation. All 8,192 token leaves were covered; inference reached
+  24 of 120 H4 frames. More reachable frame labels alone would change coordinates,
+  not the capacity of this coherent adapter.
+
+  The next recommended step is a separately scoped inference-only application of
+  the same adapter to #1057's retained final block-40 artifact on its original
+  exact-data population (`8,071/8,192 = 98.5229%` reference). Preserve its original
+  near-target result, weights, and unrun historical control. No third training
+  window or geometry expansion is implied. See the [#1059 integration record](r4_zoology_coherent_inference_1059.md)
+  and the [preserved #1057 record](r4_zoology_checkpoint_continuation_1057.md).
+
   The predecessor open associative-learning result is #1045's
   [`R4RoleTaggedAssociativeCurriculumV1`](r4_role_tagged_associative_curriculum_1045.md).
   It completed all 64 R1 epochs and `4,194,304` presentations in `966.7488 s`,

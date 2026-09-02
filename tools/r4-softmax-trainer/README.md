@@ -185,6 +185,72 @@ interruption immediately after a passing-epoch checkpoint is not guaranteed to
 preserve first-pass early stop. The successor must close both provenance and
 resume gaps before its own run; neither occurred in #1050's uninterrupted run.
 
+## #1059 coherent R4 inference integration
+
+[#1059](https://github.com/UOR-Foundation/uor-r4/issues/1059) reuses the retained
+qualified #1050 artifact and test container for fixed-weight inference. It
+performs no training or optimizer updates and leaves the #1057 continuation
+artifact and checkpoint preserved. The existing #1050 evidence root, including
+its source envelopes, model and dataset, is a prerequisite; these commands do
+not rerun the source reproduction.
+
+Choose absolute source and new evidence paths, then export the native
+`R4SpinFrameAtlas` mapping for all 8,192 token IDs. The exporter writes the
+canonical H4 frame sidecar, token leaves and causal prefix witnesses into a new
+directory. Preparation binds these files, the source artifacts and the current
+implementation/dependency closure without scoring a fitted model:
+
+```bash
+INFERENCE_REPO="$(git rev-parse --show-toplevel)"
+INFERENCE_TRAINER="$INFERENCE_REPO/tools/r4-softmax-trainer"
+INFERENCE_SOURCE="/absolute/retained/issue-1050-zoology-release-reproduction"
+INFERENCE_ROOT="/absolute/new/issue-1059-zoology-r4-inference"
+INFERENCE_FRAMES="$INFERENCE_ROOT/frames"
+
+mkdir -p "$INFERENCE_ROOT"
+cargo run --release --locked --manifest-path "$INFERENCE_REPO/Cargo.toml" \
+  -p uor-r4-core --bin r4-zoology-frame-export -- "$INFERENCE_FRAMES"
+PYTHONPATH="$INFERENCE_TRAINER/src" "$INFERENCE_TRAINER/.venv/bin/python" \
+  -m r4_softmax_trainer.zoology_r4_inference prepare "$INFERENCE_ROOT" \
+  --source-root "$INFERENCE_SOURCE" --frames-root "$INFERENCE_FRAMES"
+```
+
+Use the package's locked Python environment. Commit the implementation and
+record its preparation identity in the issue before fitted-model scoring.
+Then run the matched integration and its independent replay as separate Python
+processes:
+
+```bash
+PYTHONPATH="$INFERENCE_TRAINER/src" "$INFERENCE_TRAINER/.venv/bin/python" \
+  -m r4_softmax_trainer.zoology_r4_inference run "$INFERENCE_ROOT"
+PYTHONPATH="$INFERENCE_TRAINER/src" "$INFERENCE_TRAINER/.venv/bin/python" \
+  -m r4_softmax_trainer.zoology_r4_inference verify "$INFERENCE_ROOT"
+```
+
+Both primary arms use unchanged learned tensors and tied weights, complete
+model evaluation mode, canonical test rows `0..2999`, and batch size 512.
+Only the three `test_*` tensor values are loaded; labels reach the scorer, not
+the attention adapter. The new canonical logits digests do not reuse #1050's
+order-dependent shuffled-test digest. The primary criteria require the source
+count of `11,900/12,000`, identical plain/R4 top-1 decisions, and the frozen
+logit, attention and NLL tolerances recorded in preparation.
+
+Only after primary integration passes does one control deliberately mismatch
+the source transport frames using the causal-prefix cyclic permutation while
+retaining true source encodings, payloads, positions, weights and support. Its
+causal/work integrity and recall loss are reported separately. A weak or
+invalid control does not discard a preserved primary integration result or
+authorize another fit; it does not establish H4 superiority.
+
+Execution uses four CPU threads, one inter-op thread and one process. The run
+and fresh-process replay share a 900-second allowance and a 4 GiB peak-RSS
+ceiling. Finite batch progress, `result.json` and `replay.json` retain output
+digests, metrics, source/frame identities and actual work counts. Replay must
+reproduce the complete inference evidence exactly while all bound files and
+learned tensors remain unchanged. Start markers prevent an interrupted run or
+replay from silently renewing its budget; resource interruption is incomplete
+evidence rather than a model failure.
+
 ## Terminal #973 group-retention and decoder paths
 
 The canonical contract and evidence log are

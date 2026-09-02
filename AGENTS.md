@@ -7,23 +7,28 @@ the readable mirror of programme root #820.** The
 [`Geometric Intelligence Programme`](docs/geometric_intelligence_programme.md)
 is the current architecture and claim-boundary companion.
 
-**Current attention progress (2026-09-02):** the exact-checkpoint
-[#1057 continuation](docs/r4_zoology_checkpoint_continuation_1057.md) retained
-`98.52294921875%` final development recall, up from #1055's `68.2861328125%`,
-with a best measured `98.6572265625%`. Preserve the final block-40 artifact,
-checkpoint, and complete curve. Per the user's explicit direction, a narrowly
-unmet preset target is not false/failed attention and is not grounds to discard
-the model or halt geometric integration. The raw `CONTINUATION_MISS` means
-only that strict `>99%` was not reached; its conditional binding control was
-not run. It is not a capacity-ceiling or convergence result. The same unique
-data received more training exposure; new-data scaling remains unmeasured.
-Fresh-process replay and independent checkpoint accounting passed. #1050's
-separate `99.1667%` reference and HELM-D-R4/#1014 positives remain valid.
-The recommended next action is separately scoped inference-only coherent-R4
-integration using the already-qualified #1050 reference, retaining #1057 for
-subsequent inference work, without an automatic third training window. These
-different configurations/populations are not a head-to-head comparison; no new
-generation, reasoning, geometric advantage, or exact-lowering claim follows.
+**Current integration result (2026-09-02):** #1059 preserved the qualified
+#1050 model through coherent R4 inference: plain and R4 both scored
+`11,900/12,000 = 99.1667%`, with every top-1 prediction identical. Deliberately
+inconsistent source-frame transport scored `2,307/12,000 = 19.225%`, a
+`79.9417` percentage-point loss at equal causal support and work. Learned
+weights and tied head stayed unchanged; zero optimizer updates ran. Exact
+fresh-process replay passed. The combined CPU run and replay took `27.49 s`
+with peak RSS `1.844 GiB` on four Apple Accelerate threads.
+
+This establishes preserved learned associative behavior and transport-path
+sensitivity on the retained open Zoology population. It does not establish H4
+superiority, softmax removal, source-free/table lowering, English context
+binding, or generation. All 8,192 token leaves were covered; inference reached
+24 of 120 H4 frames. More reachable frame labels alone would change coordinates,
+not the capacity of this coherent adapter.
+
+The next recommended step is a separately scoped inference-only application of
+the same adapter to #1057's retained final block-40 artifact on its original
+exact-data population (`8,071/8,192 = 98.5229%` reference). Preserve its original
+near-target result, weights, and unrun historical control. No third training
+window or geometry expansion is implied. See the [#1059 integration record](docs/r4_zoology_coherent_inference_1059.md)
+and the [preserved #1057 record](docs/r4_zoology_checkpoint_continuation_1057.md).
 
 The earlier #973 V5 terminal is the independently verified predictive
 write/binding campaign. It completed

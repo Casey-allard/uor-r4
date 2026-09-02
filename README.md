@@ -14,20 +14,28 @@ local hardware. The project is testing whether language context, inference,
 and reasoning can emerge from routes through a canonical geometric memory. The
 target serving engine uses no Ollama, hosted model, or source-model weights.
 
-> **Latest retained progress (2026-09-02):** #1057 continued the same checkpoint
-> and raised exact-data recall from `68.2861%` to `98.5229%` (+30.2368 points).
-> Its best observed score was `98.6572%`; the retained final artifact is block
-> 40, not the best block's weights. This is meaningful near-target learning,
-> not failed attention or discarded work. Strict `>99%` was narrowly unmet
-> (`CONTINUATION_MISS`); the conditional binding control did not run.
-> The same 8,192 unique rows received more exposure; no new corpus was used.
-> The eight-thread CPU continuation took 18.3 minutes; replay and audit passed.
-> Next recommendation: separately scope inference-only coherent-R4 integration
-> with the qualified #1050 reference, retaining #1057 as a useful companion.
-> #1050's `99.1667%` used a different configuration/population, not a head-to-head
-> comparison. Prior positives remain. No third training window or R4 integration
-> was run here, and no new generation capability is claimed. See the
-> [#1057 evidence and next action](docs/r4_zoology_checkpoint_continuation_1057.md).
+> **Current integration result (2026-09-02):** #1059 preserved the qualified
+> #1050 model through coherent R4 inference: plain and R4 both scored
+> `11,900/12,000 = 99.1667%`, with every top-1 prediction identical. Deliberately
+> inconsistent source-frame transport scored `2,307/12,000 = 19.225%`, a
+> `79.9417` percentage-point loss at equal causal support and work. Learned
+> weights and tied head stayed unchanged; zero optimizer updates ran. Exact
+> fresh-process replay passed. The combined CPU run and replay took `27.49 s`
+> with peak RSS `1.844 GiB` on four Apple Accelerate threads.
+>
+> This establishes preserved learned associative behavior and transport-path
+> sensitivity on the retained open Zoology population. It does not establish H4
+> superiority, softmax removal, source-free/table lowering, English context
+> binding, or generation. All 8,192 token leaves were covered; inference reached
+> 24 of 120 H4 frames. More reachable frame labels alone would change coordinates,
+> not the capacity of this coherent adapter.
+>
+> The next recommended step is a separately scoped inference-only application of
+> the same adapter to #1057's retained final block-40 artifact on its original
+> exact-data population (`8,071/8,192 = 98.5229%` reference). Preserve its original
+> near-target result, weights, and unrun historical control. No third training
+> window or geometry expansion is implied. See the [#1059 integration record](docs/r4_zoology_coherent_inference_1059.md)
+> and the [preserved #1057 record](docs/r4_zoology_checkpoint_continuation_1057.md).
 
 > **Predecessor open role-tagged associative result (2026-09-02):** #1045
 > completed the full 64-epoch R1 cap and stopped at
