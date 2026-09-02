@@ -7,6 +7,29 @@
 > architecture and claim boundaries live in the
 > [Geometric Intelligence Programme](geometric_intelligence_programme.md).
 
+> **Bounded #1017 reference-surface lifecycle (2026-09-01):** #1039 leaves the
+> frozen 7.15M checkpoint, sampler, attention, and training unchanged. Its
+> predeclared fresh-prompt gate generated 24 non-looping tokens twice with seed
+> `1039`; both outputs were valid UTF-8 and the full reports replayed
+> byte-identically after timing removal. Apple Accelerate CPU wall times were
+> `0.22 s` and `0.17 s`. Manifest/tree CIDs are
+> `blake3:77d5735ccfb4f2ac8a89f2f42a7ad8663b96770ea23a0b4bfae87b3daea7d8f3`
+> and
+> `blake3:4819f8cbb6e673c4124eaa61e319b42adc54b1de178969916df035aad65a4000`;
+> decision/output/audit/state CIDs are
+> `blake3:86ce45d07684f8abead1e4faca2346024ef7b01e99f9b0e3b51188deafcde61b`,
+> `blake3:87150ebc68ed1e3902f6e0c9937f7a642f234ac2a3644cc33262cb081715ae49`,
+> `blake3:3e7d642eb20c9e1d05c385df2802d120becb91ba88df16a9b61cf2569caec010`,
+> and
+> `blake3:ff69922ed27437e308852b053f3b3b15baebeb1e5a51c27c704f18f1ba423793`.
+> The positive transition adds an explicit loopback-only, single-flight raw
+> HTTP reference seam over the existing generator. The required export remains
+> local and operator-supplied; invalid readiness fails closed. This is a
+> **bounded local generation prototype**, not a new model, the source-free #962
+> chat lifecycle, or an unblocker for #954. CUDA and external GPU execution are
+> out of scope. See the
+> [#1039 result and interface record](r4_softmax_local_reference_surface_1039.md).
+
 > **Latest #973 lifecycle (2026-09-01):** the independently frozen
 > [`R4PredictiveBlockDeltaPromptCapacityV5`](r4_predictive_block_delta_binding_prompt_capacity_973.md)
 > terminal is complete and independently verified at
@@ -239,6 +262,12 @@ The #1017 export remains the current working 7.15M coherent-generation
 prototype. `r4 generate --prompt "..."` defaults to
 `.uor-models/research/issue-1017/export`. #1019 is an optional quality-capacity
 improvement and does not block using or productizing that bounded path. The
+same generator is now available through the opt-in raw
+`POST /uor/v1/r4-softmax-local/generate` #1039 reference endpoint. It remains
+disabled by default, loopback-only, single-flight, capped at 32 generated
+tokens, and bound at startup to the operator-supplied local export and
+exact-executor worker count. Accelerate owns its internal CPU scheduling. It is
+not `/v1/chat/completions` and does not implement chat state. The
 prototype remains source-backed, floating-point/matmul/softmax, and below the
 strict NLL target; it does not establish geometry advantage,
 transformerlessness, correctness, reasoning, frontier quality, browser/WASM

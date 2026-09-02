@@ -217,6 +217,22 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > transformerlessness, correctness, reasoning, frontier quality, browser/WASM
 > readiness, or release readiness.
 >
+> [#1039](https://github.com/UOR-Foundation/uor-r4/issues/1039) now exposes
+> that exact frozen checkpoint as a **bounded local generation prototype**. A
+> predeclared fresh prompt produced 24 non-looping tokens in `0.22 s` and
+> `0.17 s` on the project M1's CPU-native Apple Accelerate backend; removing
+> timing made the fixed-seed reports byte-identical. Decision/output/audit/state
+> CIDs were respectively
+> `blake3:86ce45d07684f8abead1e4faca2346024ef7b01e99f9b0e3b51188deafcde61b`,
+> `blake3:87150ebc68ed1e3902f6e0c9937f7a642f234ac2a3644cc33262cb081715ae49`,
+> `blake3:3e7d642eb20c9e1d05c385df2802d120becb91ba88df16a9b61cf2569caec010`,
+> and
+> `blake3:ff69922ed27437e308852b053f3b3b15baebeb1e5a51c27c704f18f1ba423793`.
+> The new endpoint is an opt-in, loopback-only, single-flight wrapper around the
+> existing generator. It does not revise #973's V5 negative or implement #962's
+> source-free chat product. See the
+> [#1039 result and interface record](docs/r4_softmax_local_reference_surface_1039.md).
+>
 > The completed
 > `R4SoftmaxTraceStudentV1` then compiled construction-side teacher traces into
 > a source-free Q16 suffix artifact and showed bounded distillation relative to
@@ -698,6 +714,47 @@ that local export and is a bounded #1017 prototype: provider-free at execution,
 but still source-backed, floating-point/matmul/softmax, and below the strict
 `<1.50` NLL target. #1019 was closed without another capacity run; it is not a
 prerequisite for using or productizing this path.
+
+To expose that same frozen checkpoint through its dedicated native reference
+seam, build the Apple Silicon CPU-Accelerate binary and opt in on loopback:
+
+```bash
+cargo build --release --offline --features local-inference-accelerate --bin r4
+target/release/r4 --host 127.0.0.1 --port 8000 serve \
+  --enable-r4-softmax-local \
+  --r4-softmax-local-model .uor-models/research/issue-1017/export \
+  --r4-softmax-local-workers 4
+```
+
+The server never downloads the export. The path must contain the immutable
+#1017 `export-manifest.json`, `config.json`, `model.safetensors`,
+`tokenizer.json`, and `training-result.json`; invalid or missing state fails
+closed, and additional loader files such as a Safetensors shard index are
+rejected. The exact-executor default is up to four workers, capped by the
+process's available parallelism, and the resulting count is fixed at startup.
+Apple Accelerate/BLAS remains CPU-native and owns its internal CPU scheduling;
+the worker flag is not a BLAS thread cap. This surface has no CUDA or external
+GPU path.
+
+In another terminal, request one raw continuation:
+
+```bash
+curl --fail-with-body http://127.0.0.1:8000/uor/v1/r4-softmax-local/generate \
+  -H 'content-type: application/json' \
+  --data '{"prompt":"Mira found a small brass key beneath the old pear tree.","max_tokens":8}'
+```
+
+`max_tokens` defaults to 8 and is capped at 32. The
+`uor-r4.r4-softmax-local-http/1` response reports text, generated token IDs,
+stop reason, model identity/shape, content-addressed decisions and audits, and
+backend/timing provenance without reflecting the prompt, prompt token IDs,
+local model path, or filenames. `GET /api/sysinfo` reports
+`r4_softmax_local.checkpoint_preflight_ready`. Requests are single-flight and
+cannot override the model, backend, or exact-executor workers. This dedicated raw single-turn
+endpoint is not `/v1/chat/completions`, the default serving engine, or #962's
+source-free multi-turn product. The native-served dashboard may offer it as a
+raw-completion choice only after preflight passes; it sends no chat history or
+chat template. Static/WASM sessions cannot use it.
 
 The bounded `answer` interface now admits only an exact
 `Where is the <subject>?` question and punctuation-terminated source spans:

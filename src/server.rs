@@ -33,6 +33,12 @@ use uor_r4_router::fallback::{
 };
 
 use crate::geometric_decoder::{validate_source, PINNED_SOURCE_REVISION};
+use crate::r4_softmax_local_generation::{
+    run_r4_softmax_local_generation, AttentionOutputPolicyAuditRecord, LocalDecodeAudit,
+    R4SoftmaxLocalGenerationError, R4SoftmaxLocalGenerationReport, R4SoftmaxLocalGeneratorConfig,
+    SourceReadAudit, TimingReport as R4SoftmaxLocalTimingReport,
+    POLICY_SCHEMA as R4_SOFTMAX_LOCAL_POLICY_SCHEMA,
+};
 use crate::r4_softmax_reference_generation::{
     run_r4_softmax_reference_generation, AttentionAuditEvidence, CausalAttentionAuditRecord,
     GenerationStopReason, ModelShape, ProjectionAuditRecord, R4SoftmaxReferenceGenerationError,
@@ -69,6 +75,33 @@ const R4_SOFTMAX_REFERENCE_HTTP_MAX_BODY_BYTES: usize = 16 * 1024;
 /// Frozen single-request worker default established by the native canary.
 pub const R4_SOFTMAX_REFERENCE_HTTP_DEFAULT_WORKERS: usize = 8;
 
+const R4_SOFTMAX_LOCAL_HTTP_PATH: &str = "/uor/v1/r4-softmax-local/generate";
+const R4_SOFTMAX_LOCAL_HTTP_SCHEMA: &str = "uor-r4.r4-softmax-local-http/1";
+const R4_SOFTMAX_LOCAL_HTTP_DEFAULT_MAX_TOKENS: usize = 8;
+const R4_SOFTMAX_LOCAL_HTTP_MAX_TOKENS: usize = 32;
+const R4_SOFTMAX_LOCAL_HTTP_MAX_BODY_BYTES: usize = 16 * 1024;
+/// Operator-owned exact-executor worker default for the frozen #1017 reference model.
+pub const R4_SOFTMAX_LOCAL_HTTP_DEFAULT_WORKERS: usize = 4;
+const R4_SOFTMAX_LOCAL_ISSUE_1017_EXPORT_MANIFEST_CID: &str =
+    "blake3:77d5735ccfb4f2ac8a89f2f42a7ad8663b96770ea23a0b4bfae87b3daea7d8f3";
+const R4_SOFTMAX_LOCAL_ISSUE_1017_EXPORT_TREE_CID: &str =
+    "blake3:4819f8cbb6e673c4124eaa61e319b42adc54b1de178969916df035aad65a4000";
+const R4_SOFTMAX_LOCAL_ISSUE_1017_WEIGHTS_CID: &str =
+    "blake3:c5bf31aa97a567b3aaad4461ce2fac9cebc12b0a38becb6d02d21b43b493bf5d";
+const R4_SOFTMAX_LOCAL_ISSUE_1017_TOKENIZER_CID: &str =
+    "blake3:3f42bcfce7728512076549c63b88387e13c8156fe35c0f91d9b112439f3739cc";
+const R4_SOFTMAX_LOCAL_ISSUE_1017_CONFIG_CID: &str =
+    "blake3:1f1ddb6de22f5c81c04d3093eeff8e0991d63b79ee33bc8ff3cf7c68ef0a9497";
+const R4_SOFTMAX_LOCAL_ISSUE_1017_LOADER_TREE_CID: &str =
+    "blake3:66ee347b23e818f1816682f0b942737c88f1eca831cd6d4f00b3d14fc00aaa37";
+const R4_SOFTMAX_LOCAL_ISSUE_1017_CHECKPOINT_ENTRIES: [&str; 5] = [
+    "config.json",
+    "export-manifest.json",
+    "model.safetensors",
+    "tokenizer.json",
+    "training-result.json",
+];
+
 /// Explicit native-server opt-in for the source-backed R4/Spin reference.
 ///
 /// This is deliberately separate from every default serving engine and from
@@ -77,6 +110,18 @@ pub const R4_SOFTMAX_REFERENCE_HTTP_DEFAULT_WORKERS: usize = 8;
 #[derive(Debug, Clone)]
 pub struct R4SoftmaxReferenceHttpConfig {
     pub source: PathBuf,
+    pub workers: NonZeroUsize,
+}
+
+/// Explicit native-server opt-in for the frozen #1017 learned checkpoint.
+///
+/// Requests cannot select a model, exact-executor worker count, attention
+/// intervention, or sampler. The operator owns the immutable checkpoint and
+/// worker bound; attention stays on and decoding is greedy. An accelerated
+/// BLAS backend owns its own internal CPU scheduling separately.
+#[derive(Debug, Clone)]
+pub struct R4SoftmaxLocalHttpConfig {
+    pub model: PathBuf,
     pub workers: NonZeroUsize,
 }
 
@@ -97,6 +142,8 @@ pub struct ServerConfig {
     pub geometric_demo: bool,
     /// `None` keeps the source-backed R4/Spin reference endpoint absent.
     pub r4_softmax_reference: Option<R4SoftmaxReferenceHttpConfig>,
+    /// `None` keeps the frozen #1017 learned reference endpoint absent.
+    pub r4_softmax_local: Option<R4SoftmaxLocalHttpConfig>,
 }
 
 pub use uor_r4_api::{InferenceRequest, InferenceResponse, InferenceWitness};
@@ -189,6 +236,120 @@ impl From<R4SoftmaxReferenceGenerationReport> for R4SoftmaxReferenceHttpResponse
             timing: report.timing,
             nonclaims: report.nonclaims,
         }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct R4SoftmaxLocalHttpRequest {
+    prompt: String,
+    #[serde(default)]
+    max_tokens: Option<usize>,
+}
+
+#[derive(Debug)]
+struct ValidatedR4SoftmaxLocalHttpRequest {
+    prompt: String,
+    max_tokens: usize,
+}
+
+#[derive(Debug, serde::Serialize)]
+struct R4SoftmaxLocalHttpCheckpoint {
+    checkpoint_tree_cid: String,
+    config_cid: String,
+    tokenizer_cid: String,
+    weights_cid: String,
+    weights_cid_scope: String,
+    exact_backend: uor_r4_model_source::ExactBackendReport,
+}
+
+#[derive(Debug, serde::Serialize)]
+struct R4SoftmaxLocalHttpAudit {
+    attention: R4SoftmaxReferenceHttpAudit,
+    attention_output_policy: AttentionOutputPolicyAuditRecord,
+    decode: LocalDecodeAudit,
+    source_read: SourceReadAudit,
+}
+
+/// Compact product-facing view of the complete local-generation report.
+///
+/// Prompt text, prompt token ids, checkpoint paths, and checkpoint file paths
+/// are deliberately absent. Content identities and execution/audit provenance
+/// remain visible so the response stays independently attributable.
+#[derive(Debug, serde::Serialize)]
+struct R4SoftmaxLocalHttpResponse {
+    schema: &'static str,
+    generator: &'static str,
+    claim_scope: String,
+    checkpoint: R4SoftmaxLocalHttpCheckpoint,
+    model_shape: ModelShape,
+    input_tokens: usize,
+    generated_token_ids: Vec<u32>,
+    response_text: String,
+    stop_reason: GenerationStopReason,
+    decision_cid: String,
+    generation_policy_cid: String,
+    output_cid: String,
+    audit_cid: String,
+    persistent_state_cid: String,
+    audit: R4SoftmaxLocalHttpAudit,
+    execution: uor_r4_model_source::TeacherExecutionSnapshot,
+    timing: R4SoftmaxLocalTimingReport,
+    nonclaims: Vec<String>,
+}
+
+impl TryFrom<R4SoftmaxLocalGenerationReport> for R4SoftmaxLocalHttpResponse {
+    type Error = R4SoftmaxLocalGenerationError;
+
+    fn try_from(report: R4SoftmaxLocalGenerationReport) -> Result<Self, Self::Error> {
+        if report.checkpoint.checkpoint_tree_cid != R4_SOFTMAX_LOCAL_ISSUE_1017_LOADER_TREE_CID
+            || report.checkpoint.config_cid != R4_SOFTMAX_LOCAL_ISSUE_1017_CONFIG_CID
+            || report.checkpoint.tokenizer_cid != R4_SOFTMAX_LOCAL_ISSUE_1017_TOKENIZER_CID
+            || report.checkpoint.weights_cid != R4_SOFTMAX_LOCAL_ISSUE_1017_WEIGHTS_CID
+        {
+            return Err(R4SoftmaxLocalGenerationError::Audit(
+                "local generation report is not bound to the frozen #1017 checkpoint".to_owned(),
+            ));
+        }
+        if !report.source_read_audit.tree_unchanged_across_execution {
+            return Err(R4SoftmaxLocalGenerationError::Audit(
+                "local checkpoint tree changed during generation".to_owned(),
+            ));
+        }
+        let checkpoint = R4SoftmaxLocalHttpCheckpoint {
+            checkpoint_tree_cid: report.checkpoint.checkpoint_tree_cid.clone(),
+            config_cid: report.checkpoint.config_cid.clone(),
+            tokenizer_cid: report.checkpoint.tokenizer_cid.clone(),
+            weights_cid: report.checkpoint.weights_cid.clone(),
+            weights_cid_scope: report.checkpoint.weights_cid_scope.clone(),
+            exact_backend: report.checkpoint.exact_backend.clone(),
+        };
+        let audit = R4SoftmaxLocalHttpAudit {
+            attention: compact_r4_softmax_reference_http_audit(&report.attention_audit),
+            attention_output_policy: report.attention_output_policy_audit,
+            decode: report.decode_audit,
+            source_read: report.source_read_audit,
+        };
+        Ok(Self {
+            schema: R4_SOFTMAX_LOCAL_HTTP_SCHEMA,
+            generator: R4_SOFTMAX_LOCAL_POLICY_SCHEMA,
+            claim_scope: report.claim_scope,
+            checkpoint,
+            model_shape: report.model_shape,
+            input_tokens: report.prompt_token_ids.len(),
+            generated_token_ids: report.transcript.generated_token_ids,
+            response_text: report.transcript.response_text,
+            stop_reason: report.stop_reason,
+            decision_cid: report.decision_cid,
+            generation_policy_cid: report.generation_policy_cid,
+            output_cid: report.output_cid,
+            audit_cid: report.audit_cid,
+            persistent_state_cid: report.persistent_state_cid,
+            audit,
+            execution: report.execution,
+            timing: report.timing,
+            nonclaims: report.nonclaims,
+        })
     }
 }
 
@@ -521,6 +682,7 @@ enum SourceCacheOperationKind {
     Compile,
     Reload,
     R4SoftmaxReferenceGeneration,
+    R4SoftmaxLocalGeneration,
 }
 
 impl SourceCacheOperationKind {
@@ -530,6 +692,7 @@ impl SourceCacheOperationKind {
             Self::Compile => "compile",
             Self::Reload => "reload",
             Self::R4SoftmaxReferenceGeneration => "R4 softmax reference generation",
+            Self::R4SoftmaxLocalGeneration => "R4 softmax local generation",
         }
     }
 }
@@ -814,6 +977,418 @@ fn r4_softmax_reference_http_status(cli: &ServerConfig) -> serde_json::Value {
     })
 }
 
+/// Validate the frozen #1017 endpoint before the listener starts.
+///
+/// This performs no model load. It does verify the immutable export envelope,
+/// every committed artifact byte string, and the frozen #1017 identities. The
+/// request path repeats the same preflight under the single-flight reservation
+/// before invoking the existing generator.
+pub fn validate_r4_softmax_local_http_startup(
+    host: &str,
+    config: Option<&R4SoftmaxLocalHttpConfig>,
+) -> Result<(), String> {
+    let Some(config) = config else {
+        return Ok(());
+    };
+    if !r4_softmax_reference_loopback_host(host) {
+        return Err(
+            "the R4 softmax local HTTP bridge is local-only; bind to localhost, 127.0.0.1, or ::1"
+                .to_owned(),
+        );
+    }
+    validate_r4_softmax_local_checkpoint_preflight(&config.model)
+}
+
+fn r4_softmax_local_raw_cid(bytes: &[u8]) -> String {
+    format!("blake3:{}", blake3::hash(bytes).to_hex())
+}
+
+fn r4_softmax_local_json_string<'a>(
+    value: &'a serde_json::Value,
+    field: &str,
+) -> Result<&'a str, String> {
+    value
+        .get(field)
+        .and_then(serde_json::Value::as_str)
+        .filter(|text| !text.is_empty())
+        .ok_or_else(|| format!("export manifest has no nonempty {field}"))
+}
+
+fn verify_r4_softmax_local_embedded_cid(
+    bytes: &[u8],
+    field: &str,
+    expected: &str,
+) -> Result<(), String> {
+    let text = std::str::from_utf8(bytes)
+        .map_err(|error| format!("export manifest is not UTF-8 JSON: {error}"))?;
+    let needle = format!("\"{field}\":\"{expected}\"");
+    let start = text
+        .find(&needle)
+        .ok_or_else(|| format!("export manifest does not contain its canonical {field}"))?;
+    if text[start + needle.len()..].contains(&needle) {
+        return Err(format!("export manifest contains duplicate {field} values"));
+    }
+    let mut unsigned = bytes.to_vec();
+    let end = start + needle.len();
+    if start > 0 && unsigned[start - 1] == b',' {
+        unsigned.drain(start - 1..end);
+    } else if unsigned.get(end) == Some(&b',') {
+        unsigned.drain(start..=end);
+    } else {
+        return Err(format!(
+            "export manifest {field} is not one field of a canonical JSON object"
+        ));
+    }
+    if r4_softmax_local_raw_cid(&unsigned) != expected {
+        return Err(format!("export manifest {field} does not reproduce"));
+    }
+    Ok(())
+}
+
+fn read_r4_softmax_local_regular_file(path: &Path, label: &str) -> Result<Vec<u8>, String> {
+    let metadata = fs::symlink_metadata(path)
+        .map_err(|error| format!("cannot inspect {label} {}: {error}", path.display()))?;
+    if !metadata.file_type().is_file() {
+        return Err(format!(
+            "{label} {} is not a regular non-symlink file",
+            path.display()
+        ));
+    }
+    fs::read(path).map_err(|error| format!("cannot read {label} {}: {error}", path.display()))
+}
+
+fn validate_r4_softmax_local_checkpoint_entry_names(
+    mut observed: Vec<String>,
+) -> Result<(), String> {
+    observed.sort();
+    let expected = R4_SOFTMAX_LOCAL_ISSUE_1017_CHECKPOINT_ENTRIES
+        .iter()
+        .map(|entry| (*entry).to_owned())
+        .collect::<Vec<_>>();
+    if observed != expected {
+        return Err(format!(
+            "checkpoint entries differ from the frozen #1017 loader tree: observed {observed:?}"
+        ));
+    }
+    Ok(())
+}
+
+fn validate_r4_softmax_local_checkpoint_preflight(model: &Path) -> Result<(), String> {
+    let metadata = fs::symlink_metadata(model)
+        .map_err(|error| format!("cannot inspect checkpoint {}: {error}", model.display()))?;
+    if !metadata.file_type().is_dir() {
+        return Err(format!(
+            "checkpoint {} is not a regular non-symlink directory",
+            model.display()
+        ));
+    }
+
+    let mut observed_entries = Vec::new();
+    for entry in fs::read_dir(model)
+        .map_err(|error| format!("cannot enumerate checkpoint {}: {error}", model.display()))?
+    {
+        let entry = entry
+            .map_err(|error| format!("cannot enumerate checkpoint {}: {error}", model.display()))?;
+        let file_type = entry.file_type().map_err(|error| {
+            format!(
+                "cannot inspect checkpoint entry {}: {error}",
+                entry.path().display()
+            )
+        })?;
+        if !file_type.is_file() {
+            return Err(format!(
+                "checkpoint entry {} is not a regular non-symlink file",
+                entry.path().display()
+            ));
+        }
+        let name = entry.file_name().into_string().map_err(|_| {
+            format!(
+                "checkpoint entry {} is not valid UTF-8",
+                entry.path().display()
+            )
+        })?;
+        observed_entries.push(name);
+    }
+    validate_r4_softmax_local_checkpoint_entry_names(observed_entries)?;
+
+    let manifest_bytes =
+        read_r4_softmax_local_regular_file(&model.join("export-manifest.json"), "export manifest")?;
+    let manifest: serde_json::Value = serde_json::from_slice(&manifest_bytes)
+        .map_err(|error| format!("invalid export manifest JSON: {error}"))?;
+    if r4_softmax_local_json_string(&manifest, "schema")? != "uor-r4-softmax-trainer-export/1" {
+        return Err("unexpected local softmax export manifest schema".to_owned());
+    }
+    let manifest_cid = r4_softmax_local_json_string(&manifest, "manifest_cid")?;
+    if manifest_cid != R4_SOFTMAX_LOCAL_ISSUE_1017_EXPORT_MANIFEST_CID {
+        return Err("checkpoint is not the frozen #1017 export manifest".to_owned());
+    }
+    verify_r4_softmax_local_embedded_cid(&manifest_bytes, "manifest_cid", manifest_cid)?;
+
+    let artifacts = manifest
+        .get("artifacts")
+        .and_then(serde_json::Value::as_array)
+        .ok_or_else(|| "export manifest has no artifact array".to_owned())?;
+    let mut sorted = artifacts.clone();
+    sorted.sort_by(|left, right| {
+        left.get("path")
+            .and_then(serde_json::Value::as_str)
+            .cmp(&right.get("path").and_then(serde_json::Value::as_str))
+    });
+    if sorted != *artifacts {
+        return Err("export manifest artifacts are not in canonical path order".to_owned());
+    }
+    let mut tree_bytes = serde_json::to_vec(&serde_json::Value::Array(sorted))
+        .map_err(|error| format!("cannot serialize export artifact identity: {error}"))?;
+    tree_bytes.push(b'\n');
+    let tree_cid = r4_softmax_local_json_string(&manifest, "tree_cid")?;
+    if tree_cid != R4_SOFTMAX_LOCAL_ISSUE_1017_EXPORT_TREE_CID
+        || r4_softmax_local_raw_cid(&tree_bytes) != tree_cid
+    {
+        return Err("frozen #1017 export tree CID does not reproduce".to_owned());
+    }
+
+    let mut seen_paths = Vec::with_capacity(artifacts.len());
+    let mut config_cid = None;
+    let mut tokenizer_cid = None;
+    let mut weights_cid = None;
+    for record in artifacts {
+        let relative = r4_softmax_local_json_string(record, "path")?;
+        let relative_path = Path::new(relative);
+        if relative_path.is_absolute()
+            || relative_path
+                .components()
+                .any(|component| !matches!(component, std::path::Component::Normal(_)))
+        {
+            return Err(format!(
+                "export artifact path {relative:?} is not a safe relative path"
+            ));
+        }
+        if seen_paths.iter().any(|seen| seen == relative) {
+            return Err(format!("duplicate export artifact path {relative:?}"));
+        }
+        seen_paths.push(relative.to_owned());
+        let bytes =
+            read_r4_softmax_local_regular_file(&model.join(relative_path), "export artifact")?;
+        let expected_bytes = record
+            .get("bytes")
+            .and_then(serde_json::Value::as_u64)
+            .ok_or_else(|| format!("export artifact {relative:?} has no byte length"))?;
+        let expected_cid = r4_softmax_local_json_string(record, "cid")?;
+        if u64::try_from(bytes.len()).ok() != Some(expected_bytes)
+            || r4_softmax_local_raw_cid(&bytes) != expected_cid
+        {
+            return Err(format!("export artifact {relative:?} does not reproduce"));
+        }
+        match relative {
+            "config.json" => config_cid = Some(expected_cid),
+            "tokenizer.json" => tokenizer_cid = Some(expected_cid),
+            "model.safetensors" => weights_cid = Some(expected_cid),
+            _ => {}
+        }
+    }
+    let config_cid = config_cid.ok_or_else(|| "export does not commit config.json".to_owned())?;
+    let tokenizer_cid =
+        tokenizer_cid.ok_or_else(|| "export does not commit tokenizer.json".to_owned())?;
+    let weights_cid =
+        weights_cid.ok_or_else(|| "export does not commit model.safetensors".to_owned())?;
+    if r4_softmax_local_json_string(&manifest, "config_cid")? != config_cid
+        || r4_softmax_local_json_string(&manifest, "tokenizer_cid")? != tokenizer_cid
+        || r4_softmax_local_json_string(&manifest, "weights_cid")? != weights_cid
+    {
+        return Err("export top-level artifact CIDs do not match artifact records".to_owned());
+    }
+    if tokenizer_cid != R4_SOFTMAX_LOCAL_ISSUE_1017_TOKENIZER_CID
+        || weights_cid != R4_SOFTMAX_LOCAL_ISSUE_1017_WEIGHTS_CID
+    {
+        return Err("checkpoint is not the frozen #1017 tokenizer/weights pair".to_owned());
+    }
+    Ok(())
+}
+
+fn is_r4_softmax_local_http_path(path: &str) -> bool {
+    path == R4_SOFTMAX_LOCAL_HTTP_PATH
+}
+
+fn parse_r4_softmax_local_http_request(
+    body: &[u8],
+) -> Result<ValidatedR4SoftmaxLocalHttpRequest, String> {
+    if body.len() > R4_SOFTMAX_LOCAL_HTTP_MAX_BODY_BYTES {
+        return Err(format!(
+            "request body exceeds the {}-byte R4 softmax local limit",
+            R4_SOFTMAX_LOCAL_HTTP_MAX_BODY_BYTES
+        ));
+    }
+    let request: R4SoftmaxLocalHttpRequest =
+        serde_json::from_slice(body).map_err(|error| format!("invalid request body: {error}"))?;
+    if request.prompt.is_empty() {
+        return Err("prompt must not be empty".to_owned());
+    }
+    let max_tokens = request
+        .max_tokens
+        .unwrap_or(R4_SOFTMAX_LOCAL_HTTP_DEFAULT_MAX_TOKENS);
+    if max_tokens == 0 || max_tokens > R4_SOFTMAX_LOCAL_HTTP_MAX_TOKENS {
+        return Err(format!(
+            "max_tokens must be in 1..={R4_SOFTMAX_LOCAL_HTTP_MAX_TOKENS}"
+        ));
+    }
+    Ok(ValidatedR4SoftmaxLocalHttpRequest {
+        prompt: request.prompt,
+        max_tokens,
+    })
+}
+
+fn r4_softmax_local_http_error(
+    status: u16,
+    code: &'static str,
+    message: impl Into<String>,
+) -> (u16, serde_json::Value) {
+    (
+        status,
+        serde_json::json!({
+            "error": {
+                "type": "r4_softmax_local_error",
+                "code": code,
+                "message": message.into(),
+            }
+        }),
+    )
+}
+
+fn r4_softmax_local_generation_error(
+    error: R4SoftmaxLocalGenerationError,
+) -> (u16, serde_json::Value) {
+    let (status, message) = match &error {
+        R4SoftmaxLocalGenerationError::InvalidRequest(_) => {
+            (400, "the local generation request was rejected")
+        }
+        R4SoftmaxLocalGenerationError::InvalidCheckpoint(_)
+        | R4SoftmaxLocalGenerationError::Tokenizer(_)
+        | R4SoftmaxLocalGenerationError::Source(_)
+        | R4SoftmaxLocalGenerationError::Io(_) => {
+            (503, "the frozen #1017 checkpoint is unavailable")
+        }
+        R4SoftmaxLocalGenerationError::Attention(_) | R4SoftmaxLocalGenerationError::Audit(_) => {
+            (500, "local generation failed its internal audit")
+        }
+    };
+    tracing::error!(error = %error, status, "R4 softmax local generation failed");
+    r4_softmax_local_http_error(status, "generation_failed", message)
+}
+
+fn execute_r4_softmax_local_http_request<P, F>(
+    bridge: Option<&R4SoftmaxLocalHttpConfig>,
+    body: &[u8],
+    source_cache_operations: &SharedSourceCacheOperations,
+    preflight: P,
+    runner: F,
+) -> (u16, serde_json::Value)
+where
+    P: FnOnce(&Path) -> Result<(), String>,
+    F: FnOnce(
+        &R4SoftmaxLocalGeneratorConfig,
+    ) -> Result<R4SoftmaxLocalHttpResponse, R4SoftmaxLocalGenerationError>,
+{
+    let Some(bridge) = bridge else {
+        return r4_softmax_local_http_error(
+            404,
+            "bridge_disabled",
+            "the native R4 softmax local bridge was not enabled at server startup",
+        );
+    };
+    let request = match parse_r4_softmax_local_http_request(body) {
+        Ok(request) => request,
+        Err(error) => return r4_softmax_local_http_error(400, "invalid_request", error),
+    };
+    let _reservation = match try_reserve_source_cache_operation(
+        source_cache_operations,
+        SourceCacheOperationKind::R4SoftmaxLocalGeneration,
+        "frozen #1017 local checkpoint",
+    ) {
+        Ok(reservation) => reservation,
+        Err(error) => {
+            tracing::warn!(error = %error, "R4 softmax local single-flight reservation failed");
+            return r4_softmax_local_http_error(
+                409,
+                "bridge_busy",
+                "another source-cache operation or reference generation is already active",
+            );
+        }
+    };
+    if let Err(error) = preflight(&bridge.model) {
+        tracing::warn!(
+            error = %error,
+            model = %bridge.model.display(),
+            "R4 softmax local checkpoint preflight failed"
+        );
+        return r4_softmax_local_http_error(
+            503,
+            "checkpoint_unavailable",
+            "the frozen #1017 checkpoint is unavailable",
+        );
+    }
+    let config = R4SoftmaxLocalGeneratorConfig {
+        model: bridge.model.clone(),
+        prompt: request.prompt,
+        max_new_tokens: request.max_tokens,
+        workers: bridge.workers,
+        attention_off: false,
+        seed: None,
+    };
+    let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| runner(&config)));
+    match outcome {
+        Err(payload) => {
+            tracing::error!(
+                panic = %panic_payload_message(&*payload),
+                "R4 softmax local generation panicked"
+            );
+            r4_softmax_local_http_error(
+                500,
+                "generation_panicked",
+                "R4 softmax local generation failed unexpectedly",
+            )
+        }
+        Ok(Err(error)) => r4_softmax_local_generation_error(error),
+        Ok(Ok(response)) => match serde_json::to_value(response) {
+            Ok(body) => (200, body),
+            Err(error) => {
+                tracing::error!(error = %error, "R4 softmax local response serialization failed");
+                r4_softmax_local_http_error(
+                    500,
+                    "response_serialization_failed",
+                    "the local reference response could not be serialized",
+                )
+            }
+        },
+    }
+}
+
+fn r4_softmax_local_http_status(cli: &ServerConfig) -> serde_json::Value {
+    let Some(config) = cli.r4_softmax_local.as_ref() else {
+        return serde_json::json!({
+            "enabled": false,
+            "checkpoint_preflight_ready": false,
+            "attention_on": true,
+            "greedy": true,
+            "static_wasm": false,
+        });
+    };
+    serde_json::json!({
+        "enabled": true,
+        // Enabled configuration reached this listener only after the exact
+        // startup preflight passed. Avoid re-hashing the 28.6 MB checkpoint on
+        // dashboard polls; every generation repeats the exact preflight under
+        // the single-flight reservation before loading any model bytes.
+        "checkpoint_preflight_ready": true,
+        "endpoint": R4_SOFTMAX_LOCAL_HTTP_PATH,
+        "default_max_tokens": R4_SOFTMAX_LOCAL_HTTP_DEFAULT_MAX_TOKENS,
+        "maximum_max_tokens": R4_SOFTMAX_LOCAL_HTTP_MAX_TOKENS,
+        "workers": config.workers.get(),
+        "attention_on": true,
+        "greedy": true,
+        "static_wasm": false,
+    })
+}
+
 fn r4_softmax_reference_allowed_origin(cli: &ServerConfig) -> String {
     r4_softmax_reference_allowed_origin_for(&cli.host, cli.port)
 }
@@ -1027,6 +1602,12 @@ pub fn run_server(cli: Arc<ServerConfig>) {
         validate_r4_softmax_reference_http_startup(&cli.host, cli.r4_softmax_reference.as_ref())
     {
         tracing::error!(error = %error, "refusing invalid R4 softmax reference server configuration");
+        return;
+    }
+    if let Err(error) =
+        validate_r4_softmax_local_http_startup(&cli.host, cli.r4_softmax_local.as_ref())
+    {
+        tracing::error!(error = %error, "refusing invalid R4 softmax local server configuration");
         return;
     }
     tracing::info!(
@@ -15924,6 +16505,20 @@ fn handle_connection(
         send_json_response(stream, 413, &body.to_string());
         return;
     }
+    if is_r4_softmax_local_http_path(clean_path)
+        && content_length > R4_SOFTMAX_LOCAL_HTTP_MAX_BODY_BYTES
+    {
+        let (_, body) = r4_softmax_local_http_error(
+            413,
+            "request_too_large",
+            format!(
+                "request body exceeds the {}-byte R4 softmax local limit",
+                R4_SOFTMAX_LOCAL_HTTP_MAX_BODY_BYTES
+            ),
+        );
+        send_json_response(stream, 413, &body.to_string());
+        return;
+    }
 
     let mut body = vec![0; content_length];
     if content_length > 0 && buf_reader.read_exact(&mut body).is_err() {
@@ -15965,6 +16560,46 @@ fn handle_connection(
             |config| {
                 run_r4_softmax_reference_generation(config)
                     .map(R4SoftmaxReferenceHttpResponse::from)
+            },
+        );
+        send_json_response(stream, status, &response.to_string());
+        return;
+    }
+
+    // Frozen #1017 learned reference endpoint. It is isolated from the
+    // default engine cascade, OpenAI-compatible routes, and static/WASM app.
+    if is_r4_softmax_local_http_path(clean_path) {
+        if method != "POST" {
+            let (_, body) = r4_softmax_local_http_error(
+                405,
+                "method_not_allowed",
+                "the R4 softmax local endpoint accepts POST only",
+            );
+            send_json_response(stream, 405, &body.to_string());
+            return;
+        }
+        if let Some(origin) = request_origin.as_deref() {
+            let allowed = r4_softmax_reference_allowed_origin(&cli);
+            if origin != allowed {
+                let (_, body) = r4_softmax_local_http_error(
+                    403,
+                    "origin_forbidden",
+                    format!(
+                        "browser Origin {origin:?} does not match the local server origin {allowed:?}"
+                    ),
+                );
+                send_json_response(stream, 403, &body.to_string());
+                return;
+            }
+        }
+        let (status, response) = execute_r4_softmax_local_http_request(
+            cli.r4_softmax_local.as_ref(),
+            &body,
+            &source_cache_operations,
+            validate_r4_softmax_local_checkpoint_preflight,
+            |config| {
+                run_r4_softmax_local_generation(config)
+                    .and_then(R4SoftmaxLocalHttpResponse::try_from)
             },
         );
         send_json_response(stream, status, &response.to_string());
@@ -18274,6 +18909,7 @@ fn handle_connection(
             "otel_available": false,
             "r4g1_ready": r4g1_ready,
             "r4_softmax_reference": r4_softmax_reference_http_status(&cli),
+            "r4_softmax_local": r4_softmax_local_http_status(&cli),
             "research_demo": cli.geometric_demo,
             "model_format": if cli.geometric_demo {
                 "geometric router research demo"
@@ -26576,7 +27212,7 @@ mod tests {
     #[test]
     fn source_cache_reservation_closes_download_compile_reload_and_reference_races() {
         use super::SourceCacheOperationKind::{
-            Compile, Download, R4SoftmaxReferenceGeneration, Reload,
+            Compile, Download, R4SoftmaxLocalGeneration, R4SoftmaxReferenceGeneration, Reload,
         };
 
         assert_source_cache_reservation_conflict(Compile, Download);
@@ -26589,6 +27225,20 @@ mod tests {
         assert_source_cache_reservation_conflict(
             R4SoftmaxReferenceGeneration,
             R4SoftmaxReferenceGeneration,
+        );
+        assert_source_cache_reservation_conflict(R4SoftmaxLocalGeneration, Download);
+        assert_source_cache_reservation_conflict(Download, R4SoftmaxLocalGeneration);
+        assert_source_cache_reservation_conflict(
+            R4SoftmaxLocalGeneration,
+            R4SoftmaxReferenceGeneration,
+        );
+        assert_source_cache_reservation_conflict(
+            R4SoftmaxReferenceGeneration,
+            R4SoftmaxLocalGeneration,
+        );
+        assert_source_cache_reservation_conflict(
+            R4SoftmaxLocalGeneration,
+            R4SoftmaxLocalGeneration,
         );
     }
 
@@ -26873,6 +27523,300 @@ mod tests {
         assert!(!body["error"]["message"]
             .as_str()
             .is_some_and(|message| message.contains("synthetic runner panic")));
+        assert!(operations.lock().expect("operation state").active.is_none());
+    }
+
+    fn r4_softmax_local_http_test_response() -> super::R4SoftmaxLocalHttpResponse {
+        let reference = r4_softmax_reference_http_test_response();
+        super::R4SoftmaxLocalHttpResponse {
+            schema: super::R4_SOFTMAX_LOCAL_HTTP_SCHEMA,
+            generator: crate::r4_softmax_local_generation::POLICY_SCHEMA,
+            claim_scope: "frozen #1017 bounded source-backed reference model".to_owned(),
+            checkpoint: super::R4SoftmaxLocalHttpCheckpoint {
+                checkpoint_tree_cid: "checkpoint-tree-cid".to_owned(),
+                config_cid: "config-cid".to_owned(),
+                tokenizer_cid: super::R4_SOFTMAX_LOCAL_ISSUE_1017_TOKENIZER_CID.to_owned(),
+                weights_cid: super::R4_SOFTMAX_LOCAL_ISSUE_1017_WEIGHTS_CID.to_owned(),
+                weights_cid_scope: "canonical Safetensors shard bytes".to_owned(),
+                exact_backend: uor_r4_model_source::ExactBackendReport {
+                    arithmetic_owner: "Apple Accelerate CPU BLAS".to_owned(),
+                    std_runtime_detection_enabled: true,
+                    target_arch: "aarch64".to_owned(),
+                    target_os: "macos".to_owned(),
+                    uor_matmul_revision: "matmul-revision".to_owned(),
+                    available_backends: vec!["portable".to_owned()],
+                    selected_backend: Some("Apple Accelerate".to_owned()),
+                    selection_status: "AVAILABLE".to_owned(),
+                },
+            },
+            model_shape: crate::r4_softmax_reference_generation::ModelShape {
+                dimension: 288,
+                hidden_dimension: 768,
+                layers: 6,
+                query_heads: 6,
+                key_value_heads: 6,
+                head_size: 48,
+                vocabulary: 4_096,
+                sequence_capacity: 24,
+            },
+            input_tokens: 16,
+            generated_token_ids: vec![11, 12],
+            response_text: "bounded local response".to_owned(),
+            stop_reason:
+                crate::r4_softmax_reference_generation::GenerationStopReason::MaximumNewTokens,
+            decision_cid: "decision-cid".to_owned(),
+            generation_policy_cid: "policy-cid".to_owned(),
+            output_cid: "output-cid".to_owned(),
+            audit_cid: "audit-cid".to_owned(),
+            persistent_state_cid: "state-cid".to_owned(),
+            audit: super::R4SoftmaxLocalHttpAudit {
+                attention: reference.audit,
+                attention_output_policy:
+                    crate::r4_softmax_local_generation::AttentionOutputPolicyAuditRecord {
+                        policy: "enabled".to_owned(),
+                        applications: 96,
+                        enabled_applications: 96,
+                        zeroed_applications: 0,
+                        output_lanes: 27_648,
+                        nonzero_lanes_before_policy: 10,
+                        nonzero_lanes_after_policy: 10,
+                        applications_by_layer: vec![16; 6],
+                        maximum_query_position: Some(15),
+                        exact: true,
+                    },
+                decode: crate::r4_softmax_local_generation::LocalDecodeAudit {
+                    selection: "greedy argmax over local checkpoint logits".to_owned(),
+                    deterministic_greedy: true,
+                    exact_tie_break: "lower token id wins".to_owned(),
+                    sampler_policy: crate::r4_softmax_local_generation::GREEDY_SAMPLER_POLICY
+                        .to_owned(),
+                    seed: None,
+                    bos_policy: "one BOS".to_owned(),
+                    bos_insertions: 1,
+                    utf8_decodable: true,
+                    short_cycle_period: None,
+                    cycles_checked: vec![1, 2, 3, 4],
+                },
+                source_read: crate::r4_softmax_local_generation::SourceReadAudit {
+                    checkpoint_tree_scans: 2,
+                    checkpoint_tree_file_reads: 8,
+                    tokenizer_loads: 1,
+                    oracle_loads: 1,
+                    local_checkpoint_forward_steps: 16,
+                    provider_calls: 0,
+                    ollama_calls: 0,
+                    prior_trace_reads: 0,
+                    tree_unchanged_across_execution: true,
+                },
+            },
+            execution: uor_r4_model_source::TeacherExecutionSnapshot {
+                requested_workers: 4,
+                effective_workers: 4,
+                ..Default::default()
+            },
+            timing: crate::r4_softmax_local_generation::TimingReport {
+                source_load_seconds: 1.0,
+                generation_seconds: 2.0,
+                total_seconds: 3.0,
+            },
+            nonclaims: vec!["not transformerless".to_owned()],
+        }
+    }
+
+    #[test]
+    fn r4_softmax_local_http_parser_is_strict_exact_and_bounded() {
+        let defaulted = super::parse_r4_softmax_local_http_request(
+            br#"{"prompt":"  preserve exact prompt  "}"#,
+        )
+        .expect("default request");
+        assert_eq!(defaulted.prompt, "  preserve exact prompt  ");
+        assert_eq!(
+            defaulted.max_tokens,
+            super::R4_SOFTMAX_LOCAL_HTTP_DEFAULT_MAX_TOKENS
+        );
+
+        let maximum =
+            super::parse_r4_softmax_local_http_request(br#"{"prompt":"bounded","max_tokens":32}"#)
+                .expect("maximum request");
+        assert_eq!(maximum.max_tokens, super::R4_SOFTMAX_LOCAL_HTTP_MAX_TOKENS);
+
+        for invalid in [
+            br#"{"prompt":""}"#.as_slice(),
+            br#"{"prompt":"x","max_tokens":0}"#.as_slice(),
+            br#"{"prompt":"x","max_tokens":33}"#.as_slice(),
+            br#"{"prompt":"x","workers":4}"#.as_slice(),
+            br#"{"prompt":"x","model":"/tmp/model"}"#.as_slice(),
+            br#"{"prompt":"x","attention_off":true}"#.as_slice(),
+            br#"{"prompt":"x","seed":7}"#.as_slice(),
+        ] {
+            assert!(
+                super::parse_r4_softmax_local_http_request(invalid).is_err(),
+                "accepted invalid request: {}",
+                String::from_utf8_lossy(invalid)
+            );
+        }
+        let oversized = vec![b' '; super::R4_SOFTMAX_LOCAL_HTTP_MAX_BODY_BYTES + 1];
+        assert!(super::parse_r4_softmax_local_http_request(&oversized).is_err());
+        assert!(super::is_r4_softmax_local_http_path(
+            super::R4_SOFTMAX_LOCAL_HTTP_PATH
+        ));
+        assert!(!super::is_r4_softmax_local_http_path(
+            "/uor/v1/r4-softmax-local"
+        ));
+        assert!(!super::is_r4_softmax_local_http_path(
+            "/v1/chat/completions"
+        ));
+
+        assert!(super::validate_r4_softmax_local_http_startup("0.0.0.0", None).is_ok());
+        let bridge = super::R4SoftmaxLocalHttpConfig {
+            model: "/definitely/not/a/checkpoint".into(),
+            workers: std::num::NonZeroUsize::new(4).expect("nonzero"),
+        };
+        let error = super::validate_r4_softmax_local_http_startup("0.0.0.0", Some(&bridge))
+            .expect_err("enabled bridge cannot bind remotely");
+        assert!(error.contains("local-only"), "{error}");
+    }
+
+    #[test]
+    fn r4_softmax_local_checkpoint_entry_set_rejects_loader_override() {
+        let exact = super::R4_SOFTMAX_LOCAL_ISSUE_1017_CHECKPOINT_ENTRIES
+            .iter()
+            .map(|entry| (*entry).to_owned())
+            .collect();
+        assert!(super::validate_r4_softmax_local_checkpoint_entry_names(exact).is_ok());
+
+        let mut with_index = super::R4_SOFTMAX_LOCAL_ISSUE_1017_CHECKPOINT_ENTRIES
+            .iter()
+            .map(|entry| (*entry).to_owned())
+            .collect::<Vec<_>>();
+        with_index.push("model.safetensors.index.json".to_owned());
+        let error = super::validate_r4_softmax_local_checkpoint_entry_names(with_index)
+            .expect_err("an uncommitted shard index could override the frozen single-file model");
+        assert!(error.contains("entries differ"));
+        assert!(error.contains("model.safetensors.index.json"));
+    }
+
+    #[test]
+    fn r4_softmax_local_http_success_is_scrubbed_greedy_and_operator_bounded() {
+        let operations = std::sync::Arc::new(std::sync::Mutex::new(
+            super::SourceCacheOperationState::default(),
+        ));
+        let bridge = super::R4SoftmaxLocalHttpConfig {
+            model: "/private/operator/issue-1017-export".into(),
+            workers: std::num::NonZeroUsize::new(4).expect("nonzero"),
+        };
+        let (status, body) = super::execute_r4_softmax_local_http_request(
+            Some(&bridge),
+            br#"{"prompt":"exact private prompt","max_tokens":9}"#,
+            &operations,
+            |_| Ok(()),
+            |config| {
+                assert_eq!(config.model, bridge.model);
+                assert_eq!(config.prompt, "exact private prompt");
+                assert_eq!(config.max_new_tokens, 9);
+                assert_eq!(config.workers.get(), 4);
+                assert!(!config.attention_off);
+                assert_eq!(config.seed, None);
+                let conflict = match super::try_reserve_source_cache_operation(
+                    &operations,
+                    super::SourceCacheOperationKind::Download,
+                    "dashboard download",
+                ) {
+                    Err(error) => error,
+                    Ok(_) => panic!("the generation reservation must block a concurrent download"),
+                };
+                assert!(!conflict.contains("/private/operator"));
+                assert!(conflict.contains("frozen #1017 local checkpoint"));
+                Ok(r4_softmax_local_http_test_response())
+            },
+        );
+        assert_eq!(status, 200);
+        assert_eq!(body["response_text"], "bounded local response");
+        assert_eq!(body["generated_token_ids"], serde_json::json!([11, 12]));
+        assert_eq!(body["audit"]["source_read"]["provider_calls"], 0);
+        assert_eq!(body["audit"]["source_read"]["ollama_calls"], 0);
+        assert_eq!(body["audit"]["decode"]["deterministic_greedy"], true);
+        assert_eq!(body["execution"]["requested_workers"], 4);
+        assert_eq!(
+            body["checkpoint"]["exact_backend"]["arithmetic_owner"],
+            "Apple Accelerate CPU BLAS"
+        );
+        assert!(body.get("prompt").is_none());
+        assert!(body.get("prompt_token_ids").is_none());
+        assert!(body["checkpoint"].get("model_path").is_none());
+        assert!(body["checkpoint"].get("files").is_none());
+        let encoded = body.to_string();
+        assert!(!encoded.contains("/private/operator/issue-1017-export"));
+        assert!(!encoded.contains("exact private prompt"));
+        assert!(operations.lock().expect("operation state").active.is_none());
+    }
+
+    #[test]
+    fn r4_softmax_local_http_is_single_flight_and_releases_on_every_terminal() {
+        let operations = std::sync::Arc::new(std::sync::Mutex::new(
+            super::SourceCacheOperationState::default(),
+        ));
+        let bridge = super::R4SoftmaxLocalHttpConfig {
+            model: "/private/operator/issue-1017-export".into(),
+            workers: std::num::NonZeroUsize::new(4).expect("nonzero"),
+        };
+        let held = super::try_reserve_source_cache_operation(
+            &operations,
+            super::SourceCacheOperationKind::R4SoftmaxLocalGeneration,
+            "first request",
+        )
+        .expect("first reservation");
+        let (status, body) = super::execute_r4_softmax_local_http_request(
+            Some(&bridge),
+            br#"{"prompt":"second request"}"#,
+            &operations,
+            |_| panic!("preflight must not run while busy"),
+            |_| panic!("runner must not run while busy"),
+        );
+        assert_eq!(status, 409);
+        assert_eq!(body["error"]["code"], "bridge_busy");
+        drop(held);
+
+        let (status, body) = super::execute_r4_softmax_local_http_request(
+            Some(&bridge),
+            br#"{"prompt":"preflight failure"}"#,
+            &operations,
+            |_| Err("/private/operator/issue-1017-export is incomplete".to_owned()),
+            |_| panic!("runner must not run after failed preflight"),
+        );
+        assert_eq!(status, 503);
+        assert_eq!(body["error"]["code"], "checkpoint_unavailable");
+        assert!(!body.to_string().contains("/private/operator"));
+        assert!(operations.lock().expect("operation state").active.is_none());
+
+        let (status, body) = super::execute_r4_softmax_local_http_request(
+            Some(&bridge),
+            br#"{"prompt":"generation failure"}"#,
+            &operations,
+            |_| Ok(()),
+            |_| {
+                Err(
+                    crate::r4_softmax_local_generation::R4SoftmaxLocalGenerationError::InvalidCheckpoint(
+                        "/private/operator/issue-1017-export is unavailable".to_owned(),
+                    ),
+                )
+            },
+        );
+        assert_eq!(status, 503);
+        assert_eq!(body["error"]["code"], "generation_failed");
+        assert!(!body.to_string().contains("/private/operator"));
+        assert!(operations.lock().expect("operation state").active.is_none());
+
+        let (status, body) = super::execute_r4_softmax_local_http_request(
+            Some(&bridge),
+            br#"{"prompt":"panic containment"}"#,
+            &operations,
+            |_| Ok(()),
+            |_| panic!("synthetic local runner panic"),
+        );
+        assert_eq!(status, 500);
+        assert_eq!(body["error"]["code"], "generation_panicked");
+        assert!(!body.to_string().contains("synthetic local runner panic"));
         assert!(operations.lock().expect("operation state").active.is_none());
     }
 
@@ -29523,6 +30467,7 @@ mod tests {
             tless_corpus_recs: None,
             geometric_demo: false,
             r4_softmax_reference: None,
+            r4_softmax_local: None,
         });
 
         client.write_all(request.as_bytes()).expect("send request");
@@ -29608,6 +30553,54 @@ mod tests {
             "POST {} HTTP/1.1\r\nHost: localhost\r\nContent-Length: {}\r\n\r\n",
             super::R4_SOFTMAX_REFERENCE_HTTP_PATH,
             super::R4_SOFTMAX_REFERENCE_HTTP_MAX_BODY_BYTES + 1
+        ));
+        assert!(
+            status.contains("413 PAYLOAD TOO LARGE"),
+            "{status}: {response}"
+        );
+        assert!(response.contains(r#""code":"request_too_large""#));
+    }
+
+    #[test]
+    fn r4_softmax_local_http_route_fails_closed_before_checkpoint_work() {
+        let (status, response) = g4_post(
+            super::R4_SOFTMAX_LOCAL_HTTP_PATH,
+            r#"{"prompt":"disabled"}"#,
+        );
+        assert!(status.contains("404 NOT FOUND"), "{status}: {response}");
+        assert!(response.contains(r#""code":"bridge_disabled""#));
+
+        let (status, response) = g4_drive(&format!(
+            "GET {} HTTP/1.1\r\nHost: localhost\r\n\r\n",
+            super::R4_SOFTMAX_LOCAL_HTTP_PATH
+        ));
+        assert!(
+            status.contains("405 METHOD NOT ALLOWED"),
+            "{status}: {response}"
+        );
+        assert!(response.contains(r#""code":"method_not_allowed""#));
+
+        let body = r#"{"prompt":"browser"}"#;
+        let (status, response) = g4_drive(&format!(
+            "POST {} HTTP/1.1\r\nHost: localhost\r\nOrigin: https://foreign.example\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{body}",
+            super::R4_SOFTMAX_LOCAL_HTTP_PATH,
+            body.len()
+        ));
+        assert!(status.contains("403 FORBIDDEN"), "{status}: {response}");
+        assert!(response.contains(r#""code":"origin_forbidden""#));
+
+        let (status, response) = g4_drive(&format!(
+            "POST {} HTTP/1.1\r\nHost: localhost\r\nOrigin: http://127.0.0.1:0\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{body}",
+            super::R4_SOFTMAX_LOCAL_HTTP_PATH,
+            body.len()
+        ));
+        assert!(status.contains("404 NOT FOUND"), "{status}: {response}");
+        assert!(response.contains(r#""code":"bridge_disabled""#));
+
+        let (status, response) = g4_drive(&format!(
+            "POST {} HTTP/1.1\r\nHost: localhost\r\nContent-Length: {}\r\n\r\n",
+            super::R4_SOFTMAX_LOCAL_HTTP_PATH,
+            super::R4_SOFTMAX_LOCAL_HTTP_MAX_BODY_BYTES + 1
         ));
         assert!(
             status.contains("413 PAYLOAD TOO LARGE"),

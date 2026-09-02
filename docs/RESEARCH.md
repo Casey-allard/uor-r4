@@ -14,6 +14,34 @@ Measurements retain their pre-declared exit rule and durable issue/record
 reference; design targets remain explicitly labeled as definitions,
 assumptions, or objectives rather than measured results.
 
+> **Bounded source-backed product/reference result (2026-09-01).** #1039
+> exercised the immutable #1017 export on a predeclared fresh narrative prompt
+> with 24 generated tokens, seed `1039`, four exact-executor workers, and Apple Accelerate on
+> the CPU. Both runs returned nonempty valid UTF-8 with no immediate short
+> cycle; after removing timing, their complete JSON reports were byte-identical.
+> Wall times were `0.22 s` and `0.17 s`. All six layers were selected, the
+> causal/projection/R4/policy audits passed, and future, provider, and Ollama
+> reads were zero.
+>
+> The export manifest/tree CIDs are
+> `blake3:77d5735ccfb4f2ac8a89f2f42a7ad8663b96770ea23a0b4bfae87b3daea7d8f3`
+> and
+> `blake3:4819f8cbb6e673c4124eaa61e319b42adc54b1de178969916df035aad65a4000`;
+> decision/output/audit/persistent-state CIDs are
+> `blake3:86ce45d07684f8abead1e4faca2346024ef7b01e99f9b0e3b51188deafcde61b`,
+> `blake3:87150ebc68ed1e3902f6e0c9937f7a642f234ac2a3644cc33262cb081715ae49`,
+> `blake3:3e7d642eb20c9e1d05c385df2802d120becb91ba88df16a9b61cf2569caec010`,
+> and
+> `blake3:ff69922ed27437e308852b053f3b3b15baebeb1e5a51c27c704f18f1ba423793`.
+> The positive binding action is a disabled-by-default, loopback-only,
+> single-flight raw generation endpoint over the same implementation. This is a
+> **bounded local generation prototype**, not #962's source-free multi-turn chat
+> stage. It does not revise the #973 V5 terminal below, unblock #954, or establish
+> geometry advantage, transformerlessness, correctness, reasoning, standalone
+> browser/WASM operation, release, or frontier quality. Apple Accelerate/BLAS
+> is CPU-native here; CUDA and external GPU execution remain out of scope. See the
+> [#1039 result and interface record](r4_softmax_local_reference_surface_1039.md).
+
 > **Current forward decision (2026-09-01).** The independently frozen
 > `R4PredictiveBlockDeltaBindingV1` V5 campaign completed
 > `PREDICTIVE_BINDING_NO_TERMINAL_CAPACITY`. The geometric arm reached prompt

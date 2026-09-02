@@ -288,7 +288,7 @@ mod facade_smoke_tests {
     }
 
     #[test]
-    fn static_wasm_cannot_masquerade_as_the_native_r4_softmax_reference() {
+    fn static_wasm_cannot_masquerade_as_native_r4_softmax_engines() {
         let dashboard = include_str!("../index.html");
         let worker = include_str!("../r4_worker.js");
         assert!(dashboard.contains("id=\"r4SoftmaxReferenceOption\" hidden disabled"));
@@ -299,5 +299,20 @@ mod facade_smoke_tests {
         assert!(dashboard.contains("fetch(\"/uor/v1/r4-softmax-reference/generate\""));
         assert!(dashboard.contains("referenceRequest ? \"R4/Spin Softmax Reference\" : null"));
         assert!(!worker.contains("r4-softmax-reference"));
+
+        assert!(dashboard.contains("id=\"r4SoftmaxLocalOption\" hidden disabled"));
+        assert!(dashboard.contains("serverR4SoftmaxLocalReady = !localWasmMode"));
+        assert!(dashboard.contains("Boolean(status.checkpoint_preflight_ready)"));
+        assert!(dashboard.contains("status.attention_on === true"));
+        assert!(dashboard.contains("status.greedy === true"));
+        assert!(dashboard.contains("status.static_wasm === false"));
+        assert!(dashboard.contains(
+            "R4/Spin Local #1017 is native-only and was not exposed by this static/WASM session"
+        ));
+        assert!(dashboard.contains(
+            "body: JSON.stringify({ prompt: text, max_tokens: localCheckpointMaxTokens })"
+        ));
+        assert!(dashboard.contains("fetch(serverR4SoftmaxLocalEndpoint"));
+        assert!(!worker.contains("r4-softmax-local"));
     }
 }

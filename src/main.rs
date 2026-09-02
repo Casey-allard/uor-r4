@@ -1019,6 +1019,15 @@ struct ServeArgs {
     /// Operator-owned projection workers (defaults to up to 8, capped by process parallelism).
     #[arg(long, requires = "enable_r4_softmax_reference")]
     r4_softmax_workers: Option<usize>,
+    /// Explicitly expose the frozen #1017 learned checkpoint on a local-only route.
+    #[arg(long)]
+    enable_r4_softmax_local: bool,
+    /// Exact frozen #1017 export used only by the opt-in local reference route.
+    #[arg(long, requires = "enable_r4_softmax_local")]
+    r4_softmax_local_model: Option<PathBuf>,
+    /// Exact-executor workers (defaults to up to 4, capped by process parallelism).
+    #[arg(long, requires = "enable_r4_softmax_local")]
+    r4_softmax_local_workers: Option<usize>,
 }
 
 #[derive(Args, Debug)]
@@ -1091,6 +1100,7 @@ impl Cli {
             tless_corpus_recs: self.tless_corpus_recs.clone(),
             geometric_demo: false,
             r4_softmax_reference: None,
+            r4_softmax_local: None,
         }
     }
 
@@ -1116,6 +1126,24 @@ fn resolve_r4_softmax_reference_workers(
     if workers.get() > available {
         return Err(format!(
             "--r4-softmax-workers={} exceeds the {available} workers available to this process",
+            workers.get()
+        ));
+    }
+    Ok(workers)
+}
+
+fn resolve_r4_softmax_local_workers(
+    requested: Option<usize>,
+) -> Result<std::num::NonZeroUsize, String> {
+    let available = std::thread::available_parallelism()
+        .map(std::num::NonZeroUsize::get)
+        .unwrap_or(1);
+    let workers = requested.unwrap_or(server::R4_SOFTMAX_LOCAL_HTTP_DEFAULT_WORKERS.min(available));
+    let workers = std::num::NonZeroUsize::new(workers)
+        .ok_or_else(|| "--r4-softmax-local-workers must be greater than zero".to_owned())?;
+    if workers.get() > available {
+        return Err(format!(
+            "--r4-softmax-local-workers={} exceeds the {available} workers available to this process",
             workers.get()
         ));
     }
@@ -2517,7 +2545,9 @@ fn print_research_tools() {
     println!("  deployed-quality, certify, compare, compare-report, scenarios");
     println!();
     println!("Run `r4 <command> --help` for an individual preserved command.");
-    println!("These paths are retained research infrastructure, not the active route-native intelligence sequence.");
+    println!(
+        "These paths are retained research infrastructure, not the active route-native intelligence sequence."
+    );
 }
 
 /// Default location of the reference teacher checkpoint used by `certify`/`compare`.
@@ -2535,7 +2565,7 @@ fn resolve_r4_softmax_local_model(configured: &Path) -> Result<PathBuf, RunError
     };
     if !model.join("model.safetensors").is_file() {
         return Err(RunError::Command(format!(
-            "no local #1017 model found at {}; set UOR_MODEL_STORE or pass --model",
+            "no local #1017 model found at {}; set UOR_MODEL_STORE or pass --model/--r4-softmax-local-model",
             model.display()
         )));
     }
@@ -2594,7 +2624,9 @@ fn run(cli: &Cli) -> Result<(), RunError> {
             config.geometric_demo = true;
             println!("UOR-R4 geometric router research demo");
             println!("Open http://{}:{} in a browser.", config.host, config.port);
-            println!("This demonstrates routing, retrieval, and geometry telemetry; it is not yet the source-free intelligence engine.");
+            println!(
+                "This demonstrates routing, retrieval, and geometry telemetry; it is not yet the source-free intelligence engine."
+            );
             server::run_server(Arc::new(config));
             Ok(())
         }
@@ -3108,9 +3140,24 @@ fn run(cli: &Cli) -> Result<(), RunError> {
                     workers,
                 });
             }
+            if args.enable_r4_softmax_local {
+                let configured_model = args
+                    .r4_softmax_local_model
+                    .as_deref()
+                    .unwrap_or_else(|| Path::new(DEFAULT_R4_SOFTMAX_LOCAL_MODEL));
+                let model = resolve_r4_softmax_local_model(configured_model)?;
+                let workers = resolve_r4_softmax_local_workers(args.r4_softmax_local_workers)
+                    .map_err(RunError::Command)?;
+                config.r4_softmax_local = Some(server::R4SoftmaxLocalHttpConfig { model, workers });
+            }
             server::validate_r4_softmax_reference_http_startup(
                 &config.host,
                 config.r4_softmax_reference.as_ref(),
+            )
+            .map_err(RunError::Command)?;
+            server::validate_r4_softmax_local_http_startup(
+                &config.host,
+                config.r4_softmax_local.as_ref(),
             )
             .map_err(RunError::Command)?;
             server::run_server(Arc::new(config));
@@ -4983,6 +5030,9 @@ mod tests {
         assert!(!args.enable_r4_softmax_reference);
         assert!(args.r4_softmax_source.is_none());
         assert!(args.r4_softmax_workers.is_none());
+        assert!(!args.enable_r4_softmax_local);
+        assert!(args.r4_softmax_local_model.is_none());
+        assert!(args.r4_softmax_local_workers.is_none());
 
         let cli = Cli::try_parse_from([
             "r4",
@@ -5005,6 +5055,49 @@ mod tests {
         assert_eq!(args.r4_softmax_workers, Some(8));
 
         assert!(Cli::try_parse_from(["r4", "serve", "--r4-softmax-workers", "8"]).is_err());
+    }
+
+    #[test]
+    fn serve_keeps_r4_softmax_local_disabled_and_operator_owned() {
+        let cli = Cli::try_parse_from([
+            "r4",
+            "serve",
+            "--enable-r4-softmax-local",
+            "--r4-softmax-local-model",
+            "/models/issue-1017/export",
+            "--r4-softmax-local-workers",
+            "4",
+        ])
+        .unwrap();
+        let Some(Command::Serve(args)) = cli.command else {
+            panic!("expected serve")
+        };
+        assert!(args.enable_r4_softmax_local);
+        assert_eq!(
+            args.r4_softmax_local_model,
+            Some(PathBuf::from("/models/issue-1017/export"))
+        );
+        assert_eq!(args.r4_softmax_local_workers, Some(4));
+
+        assert!(Cli::try_parse_from([
+            "r4",
+            "serve",
+            "--r4-softmax-local-model",
+            "/models/issue-1017/export",
+        ])
+        .is_err());
+        assert!(Cli::try_parse_from(["r4", "serve", "--r4-softmax-local-workers", "4",]).is_err());
+        let available = std::thread::available_parallelism()
+            .map(std::num::NonZeroUsize::get)
+            .unwrap_or(1);
+        assert_eq!(
+            super::resolve_r4_softmax_local_workers(None)
+                .expect("bounded default")
+                .get(),
+            4.min(available)
+        );
+        assert!(super::resolve_r4_softmax_local_workers(Some(0)).is_err());
+        assert!(super::resolve_r4_softmax_local_workers(Some(available + 1)).is_err());
     }
 
     #[test]

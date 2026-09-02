@@ -9,6 +9,22 @@ The earlier
 preserved #948–#958 sequencing record. Measured, refuted, and frozen research
 remains in [docs/RESEARCH.md](docs/RESEARCH.md).
 
+**Bounded local reference surface (2026-09-01):** #1039 productizes only the
+already-frozen #1017 checkpoint. Its predeclared fresh-prompt gate passed: one
+24-token continuation was nonempty UTF-8, avoided an immediate short cycle, and
+replayed byte-identically after removing timing; measured Apple Accelerate CPU
+wall times were `0.22 s` and `0.17 s`. The immutable export is bound to manifest
+CID `blake3:77d5735ccfb4f2ac8a89f2f42a7ad8663b96770ea23a0b4bfae87b3daea7d8f3`
+and tree CID
+`blake3:4819f8cbb6e673c4124eaa61e319b42adc54b1de178969916df035aad65a4000`.
+The resulting product slice is an opt-in, loopback-only, single-flight raw
+generation endpoint over the existing implementation, not a new model or
+inference path. Call it a **bounded local generation prototype**. It does not
+change the active V5 negative below, unblock #954, or implement #962's
+source-free multi-turn chat stage. CUDA and external GPU execution remain out
+of scope. See the
+[#1039 result and interface record](docs/r4_softmax_local_reference_surface_1039.md).
+
 **Active correction (2026-09-01):** #973's V5 predictive write/binding campaign
 is independently verified at `PREDICTIVE_BINDING_NO_TERMINAL_CAPACITY` (result
 CID `blake3:6c67544d675eafcb8eb9c0dabb93617e3f6c3295af812e8acbb687107c010a74`;
@@ -783,6 +799,9 @@ feasibility boundary remains in the
    contract that binds evidence provenance #970 → #969 → #983 → #986 plus the
    actual accepted selector → #953 → #973 path (#964);
    then activate only the release QA needed to qualify that exact path (#965).
+   The #1039 loopback surface is explicitly outside this source-free sequence:
+   it is a useful source-backed #1017 reference harness, not partial completion
+   of #962 and not an unblocker for #954.
 
 The live issue bodies and native dependencies now mirror this sequence. #961
 is closed. #952's terminal negative evidence is preserved in
@@ -813,7 +832,10 @@ generalization criterion not satisfied, and no H4 separation → qualified
 data-supported language-path decoder plus ordinary matched non-geometric
 control → rejected paired-H4/direct/layerwise/learned-associative capacity
 seams → terminal V5 predictive write/binding
-`PREDICTIVE_BINDING_NO_TERMINAL_CAPACITY` → `STOP_WITHOUT_GENERATION` →
+`PREDICTIVE_BINDING_NO_TERMINAL_CAPACITY` → `STOP_WITHOUT_GENERATION`; in a
+separate source-backed reference lane, #1039 wraps the frozen #1017 checkpoint
+in a dedicated bounded loopback endpoint without changing any model or
+source-free claim →
 blocked #954 → #955 →
 #962–#965. #973 continues to
 block #954.

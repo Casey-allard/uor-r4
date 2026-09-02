@@ -996,7 +996,7 @@
                 <span class="config-val" id="engineVal" style="color: var(--cyan); font-weight: bold;">Geometric</span>
             </div>
             <div class="config-row" style="margin-bottom: 0.75rem; font-size: 0.75rem; color: #888;">
-                <span>↳ Exploratory route-conditioned continuation</span>
+                <span id="engineScopeVal">↳ Exploratory route-conditioned continuation</span>
             </div>
 
             <div class="identity-label">Routing Identity (UOR, address, or text)</div>
@@ -1007,6 +1007,7 @@
                 <optgroup label="Current interactive surface">
                     <option value="geometric" selected>Geometric Router Research Demo</option>
                     <option value="r4-softmax-reference" id="r4SoftmaxReferenceOption" hidden disabled>R4/Spin Softmax Reference — native source-backed</option>
+                    <option value="r4-softmax-local" id="r4SoftmaxLocalOption" hidden disabled>R4/Spin Local #1017 — bounded raw completion</option>
                 </optgroup>
                 <optgroup label="Preserved artifact experiments (setup required)">
                     <option value="r4g1">Historical R4G1 Runtime — requires admitted bundle</option>
@@ -1016,6 +1017,9 @@
             </select>
             <div id="r4SoftmaxReferenceNote" hidden style="font-size:0.64rem; margin-top:-0.45rem; margin-bottom:0.75rem; color:var(--amber); line-height:1.35;">
                 Native research reference: ordinary causal softmax in coherent R4/Spin frames. One local decode may take several minutes; this is not the source-free runtime.
+            </div>
+            <div id="r4SoftmaxLocalNote" hidden style="font-size:0.64rem; margin-top:-0.45rem; margin-bottom:0.75rem; color:var(--amber); line-height:1.35;">
+                Frozen source-backed #1017 CPU reference: bounded single-turn raw completion with fixed greedy decoding. Only the current prompt and token cap are sent; routing identity, temperature, state decay, and chat memory do not apply. This is not source-free, transformerless, or a WASM/static engine.
             </div>
 
             <div class="section-label">Manifold Database & Indexing</div>
@@ -1380,8 +1384,11 @@ const tempVal     = document.getElementById("tempVal");
 const tokensVal   = document.getElementById("tokensVal");
 const gammaVal    = document.getElementById("gammaVal");
 const engineVal   = document.getElementById("engineVal");
+const engineScopeVal = document.getElementById("engineScopeVal");
 const r4SoftmaxReferenceOption = document.getElementById("r4SoftmaxReferenceOption");
 const r4SoftmaxReferenceNote = document.getElementById("r4SoftmaxReferenceNote");
+const r4SoftmaxLocalOption = document.getElementById("r4SoftmaxLocalOption");
+const r4SoftmaxLocalNote = document.getElementById("r4SoftmaxLocalNote");
 
 const kbTextarea  = document.getElementById("kbTextarea");
 const indexBtn    = document.getElementById("indexBtn");
@@ -1504,6 +1511,13 @@ let localWasmMode = false;
 let serverResearchDemo = false;
 let serverR4g1Ready = false;
 let serverR4SoftmaxReferenceReady = false;
+let serverR4SoftmaxLocalReady = false;
+const R4_SOFTMAX_LOCAL_ENDPOINT = "/uor/v1/r4-softmax-local/generate";
+const R4_SOFTMAX_LOCAL_UI_DEFAULT_TOKENS = 8;
+const R4_SOFTMAX_LOCAL_UI_MAX_TOKENS = 32;
+let serverR4SoftmaxLocalEndpoint = R4_SOFTMAX_LOCAL_ENDPOINT;
+let serverR4SoftmaxLocalDefaultTokens = R4_SOFTMAX_LOCAL_UI_DEFAULT_TOKENS;
+let serverR4SoftmaxLocalMaxTokens = R4_SOFTMAX_LOCAL_UI_MAX_TOKENS;
 let r4g1ProductionInstalled = false;
 let r4g1InstallError = "schema-2 production bundle has not been installed";
 
@@ -1665,6 +1679,41 @@ function syncR4SoftmaxReferenceAvailability(info) {
         r4SoftmaxReferenceNote.hidden = !serverR4SoftmaxReferenceReady;
     }
     if (!serverR4SoftmaxReferenceReady && engineSelect?.value === "r4-softmax-reference") {
+        engineSelect.value = "geometric";
+    }
+}
+
+function syncR4SoftmaxLocalAvailability(info) {
+    const status = info?.r4_softmax_local || {};
+    serverR4SoftmaxLocalReady = !localWasmMode
+        && Boolean(status.enabled)
+        && Boolean(status.checkpoint_preflight_ready)
+        && status.attention_on === true
+        && status.greedy === true
+        && status.static_wasm === false;
+    serverR4SoftmaxLocalEndpoint = status.endpoint === R4_SOFTMAX_LOCAL_ENDPOINT
+        ? status.endpoint
+        : R4_SOFTMAX_LOCAL_ENDPOINT;
+    const reportedLimit = Number(
+        status.maximum_max_tokens
+            ?? status.limits?.max_tokens
+            ?? status.limits?.max_new_tokens
+    );
+    serverR4SoftmaxLocalMaxTokens = Number.isInteger(reportedLimit) && reportedLimit > 0
+        ? Math.min(reportedLimit, R4_SOFTMAX_LOCAL_UI_MAX_TOKENS)
+        : R4_SOFTMAX_LOCAL_UI_MAX_TOKENS;
+    const reportedDefault = Number(status.default_max_tokens);
+    serverR4SoftmaxLocalDefaultTokens = Number.isInteger(reportedDefault) && reportedDefault > 0
+        ? Math.min(reportedDefault, serverR4SoftmaxLocalMaxTokens)
+        : Math.min(R4_SOFTMAX_LOCAL_UI_DEFAULT_TOKENS, serverR4SoftmaxLocalMaxTokens);
+    if (r4SoftmaxLocalOption) {
+        r4SoftmaxLocalOption.hidden = !serverR4SoftmaxLocalReady;
+        r4SoftmaxLocalOption.disabled = !serverR4SoftmaxLocalReady;
+    }
+    if (r4SoftmaxLocalNote) {
+        r4SoftmaxLocalNote.hidden = !serverR4SoftmaxLocalReady;
+    }
+    if (!serverR4SoftmaxLocalReady && engineSelect?.value === "r4-softmax-local") {
         engineSelect.value = "geometric";
     }
 }
@@ -2866,6 +2915,9 @@ async function runLocalChat(text, identity) {
     if (engineSelect?.value === "r4-softmax-reference") {
         throw new Error("The R4/Spin softmax reference is native-only and was not exposed by this static/WASM session");
     }
+    if (engineSelect?.value === "r4-softmax-local") {
+        throw new Error("R4/Spin Local #1017 is native-only and was not exposed by this static/WASM session");
+    }
     if (!router) {
         const ok = await tryInitLocalWasm();
         if (!ok || !router) {
@@ -3000,32 +3052,70 @@ async function sendQuery(text) {
     if (!text.trim()) return;
     const selectedEngineMode = engineSelect?.value || "geometric";
     const referenceRequest = selectedEngineMode === "r4-softmax-reference";
+    const localCheckpointRequest = selectedEngineMode === "r4-softmax-local";
+    const nativeReferenceRequest = referenceRequest || localCheckpointRequest;
+    const referenceModelLabel = referenceRequest ? "R4/Spin Softmax Reference" : null;
+    const localCheckpointModelLabel = localCheckpointRequest ? "R4/Spin Local #1017" : null;
+    const responseModelLabel = localCheckpointModelLabel || referenceModelLabel;
+    const localCheckpointMaxTokens = Math.min(
+        serverR4SoftmaxLocalDefaultTokens,
+        serverR4SoftmaxLocalMaxTokens,
+        R4_SOFTMAX_LOCAL_UI_MAX_TOKENS
+    );
     addMessage("user", text);
     chatInput.value = "";
     chatInput.disabled = true;
     sendBtn.disabled = true;
 
     const loadMsg = document.createElement("div"); loadMsg.className = "message model";
-    loadMsg.innerHTML = referenceRequest
-        ? `<div class="avatar">R4</div><div class="message-content"><div class="message-sender">R4/Spin Softmax Reference</div><div class="message-bubble" style="padding:0.75rem 1rem"><span class="reference-wait">Running one exact local decode · elapsed 0:00</span></div></div>`
+    const nativeWaitLabel = localCheckpointRequest
+        ? `Running source-backed #1017 raw completion · ${localCheckpointMaxTokens}-token cap`
+        : "Running one exact local decode";
+    loadMsg.innerHTML = nativeReferenceRequest
+        ? `<div class="avatar">R4</div><div class="message-content"><div class="message-sender">${responseModelLabel}</div><div class="message-bubble" style="padding:0.75rem 1rem"><span class="reference-wait">${nativeWaitLabel} · elapsed 0:00</span></div></div>`
         : `<div class="avatar">R4</div><div class="message-content"><div class="message-sender">R4 Prime Router</div><div class="message-bubble" style="padding:0.75rem 1rem"><div class="loading-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div></div>`;
     chatLogInner.appendChild(loadMsg);
     scrollToBottom();
 
     const referenceStarted = Date.now();
     const referenceWait = loadMsg.querySelector(".reference-wait");
-    const referenceTicker = referenceRequest ? window.setInterval(() => {
+    const referenceTicker = nativeReferenceRequest ? window.setInterval(() => {
         const elapsed = Math.floor((Date.now() - referenceStarted) / 1000);
         const minutes = Math.floor(elapsed / 60);
         const seconds = String(elapsed % 60).padStart(2, "0");
-        if (referenceWait) referenceWait.textContent = `Running one exact local decode · elapsed ${minutes}:${seconds}`;
+        if (referenceWait) referenceWait.textContent = `${nativeWaitLabel} · elapsed ${minutes}:${seconds}`;
     }, 1000) : null;
 
     const identity = document.getElementById("identityInput")?.value.trim() || "null_dev_00";
     try {
         let data;
-        if (localWasmMode) {
-            data = await runLocalChat(text, identity);
+        if (localCheckpointRequest) {
+            if (localWasmMode || !serverR4SoftmaxLocalReady) {
+                throw new Error("The source-backed #1017 checkpoint did not pass native server preflight; it is unavailable in this session");
+            }
+            const response = await fetch(serverR4SoftmaxLocalEndpoint, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                // Deliberately raw and single-turn: no identity, history, or chat envelope.
+                body: JSON.stringify({ prompt: text, max_tokens: localCheckpointMaxTokens })
+            });
+            if (!response.ok) {
+                const raw = await response.text();
+                let detail = null;
+                try { detail = JSON.parse(raw); } catch (_) { /* plain-text error */ }
+                const message = detail?.error?.message || detail?.error || detail?.message || raw
+                    || `HTTP error: ${response.status}`;
+                throw new Error(message);
+            }
+            const localCheckpoint = await response.json();
+            if (typeof localCheckpoint.response_text !== "string"
+                || !localCheckpoint.response_text.trim()) {
+                throw new Error("The #1017 endpoint returned no nonempty response_text");
+            }
+            data = {
+                description: localCheckpoint.response_text,
+                localCheckpoint
+            };
         } else if (referenceRequest) {
             if (!serverR4SoftmaxReferenceReady) {
                 throw new Error("The native R4/Spin softmax reference bridge is not enabled and source-ready");
@@ -3046,6 +3136,8 @@ async function sendQuery(text) {
                 description: reference.response_text,
                 reference
             };
+        } else if (localWasmMode) {
+            data = await runLocalChat(text, identity);
         } else {
             const payload = {
                 text: text,
@@ -3076,10 +3168,61 @@ async function sendQuery(text) {
             "model",
             data.description,
             true,
-            referenceRequest ? "R4/Spin Softmax Reference" : null
+            responseModelLabel
         );
 
-        if (referenceRequest) {
+        if (localCheckpointRequest) {
+            const localCheckpoint = data.localCheckpoint;
+            const audit = localCheckpoint.audit || {};
+            const attentionAudit = audit.attention || {};
+            const outputPolicyAudit = audit.attention_output_policy || {};
+            const decodeAudit = audit.decode || {};
+            const sourceReadAudit = audit.source_read || {};
+            const attentionExact = attentionAudit.causal_audit_exact === true
+                && attentionAudit.projection_audit_exact === true
+                && attentionAudit.r4_audit_exact === true
+                && attentionAudit.all_layers_selected === true
+                && attentionAudit.zero_future_reads === true
+                && outputPolicyAudit.exact === true;
+            const decodeQualified = decodeAudit.utf8_decodable === true
+                && decodeAudit.short_cycle_period === null;
+            const generatedTokens = Array.isArray(localCheckpoint.generated_token_ids)
+                ? localCheckpoint.generated_token_ids.length
+                : null;
+            const generationSeconds = Number(localCheckpoint.timing?.generation_seconds);
+            const stopReason = typeof localCheckpoint.stop_reason === "string"
+                ? localCheckpoint.stop_reason
+                : Number.isInteger(localCheckpoint.stop_reason?.short_cycle?.period)
+                    ? `short_cycle(${localCheckpoint.stop_reason.short_cycle.period})`
+                    : "unavailable";
+            const timingParts = [];
+            if (Number.isFinite(generationSeconds)) {
+                timingParts.push(`${generationSeconds.toFixed(1)}s`);
+            }
+            timingParts.push(generatedTokens === null ? "bounded output" : `${generatedTokens} tokens`);
+            timingParts.push(decodeQualified ? "UTF-8 · no short cycle" : "decode audit incomplete");
+            safeSetTextContent("output-timing", timingParts.join(" · "));
+            const output = document.getElementById("console-output");
+            if (output) {
+                output.textContent = [
+                    localCheckpoint.generator || "R4SoftmaxLocalGeneratorV1",
+                    "source-backed #1017 bounded raw completion · single turn · no chat memory",
+                    `checkpoint tree ${localCheckpoint.checkpoint?.checkpoint_tree_cid || "unavailable"}`,
+                    `weights ${localCheckpoint.checkpoint?.weights_cid || "unavailable"}`,
+                    `tokenizer ${localCheckpoint.checkpoint?.tokenizer_cid || "unavailable"}`,
+                    `decision ${localCheckpoint.decision_cid || "unavailable"}`,
+                    `output ${localCheckpoint.output_cid || "unavailable"}`,
+                    `audit ${localCheckpoint.audit_cid || "unavailable"}`,
+                    `state ${localCheckpoint.persistent_state_cid || "unavailable"}`,
+                    `layers ${localCheckpoint.model_shape?.layers ?? "?"} · ${attentionExact ? "attention audits exact" : "attention audit incomplete"}`,
+                    `decode ${decodeQualified ? "UTF-8 / no short cycle" : "qualification incomplete"} · stop ${stopReason}`,
+                    `source calls provider ${sourceReadAudit.provider_calls ?? "?"} · Ollama ${sourceReadAudit.ollama_calls ?? "?"}`,
+                    `exact-executor workers ${localCheckpoint.execution?.effective_workers ?? localCheckpoint.execution?.requested_workers ?? "?"} · Accelerate schedules its own CPU work`,
+                    "Not source-free, transformerless, broad chat, reasoning, or WASM/static inference."
+                ].join("\n");
+            }
+            updateSelectedEngineValue();
+        } else if (referenceRequest) {
             const reference = data.reference;
             const audit = reference.audit || {};
             const exact = audit.causal_audit_exact
@@ -3113,11 +3256,16 @@ async function sendQuery(text) {
     } catch (err) {
         console.error("Chat request failed:", err);
         chatLogInner.removeChild(loadMsg);
+        const errorPrefix = localCheckpointRequest
+            ? "R4/Spin Local #1017 error"
+            : referenceRequest
+                ? "R4/Spin reference error"
+                : "Error contacting Prime Router";
         addMessage(
             "model",
-            `${referenceRequest ? "R4/Spin reference error" : "Error contacting Prime Router"}: ${err.message}`,
+            `${errorPrefix}: ${err.message}`,
             true,
-            referenceRequest ? "R4/Spin Softmax Reference" : null
+            responseModelLabel
         );
     } finally {
         if (referenceTicker !== null) window.clearInterval(referenceTicker);
@@ -3311,6 +3459,7 @@ function selectedEngineLabel(engine) {
         "attention": "Full Attention Llama",
         "r4-attention": "Experimental R4 Attention",
         "r4-softmax-reference": "R4/Spin Softmax Reference",
+        "r4-softmax-local": "R4/Spin Local #1017",
         "geometric": "Geometric Research Demo"
     }[engine] || "R4G1 Graph";
 }
@@ -3318,10 +3467,19 @@ function selectedEngineLabel(engine) {
 function updateSelectedEngineValue() {
     if (!engineVal) return;
     engineVal.textContent = selectedEngineLabel(engineSelect?.value || "geometric");
+    if (engineScopeVal) {
+        engineScopeVal.textContent = engineSelect?.value === "r4-softmax-local"
+            ? "↳ Source-backed #1017 raw single-turn completion"
+            : engineSelect?.value === "r4-softmax-reference"
+                ? "↳ Native source-backed softmax attention reference"
+                : "↳ Exploratory route-conditioned continuation";
+    }
     if (engineSelect?.value === "r4g1") {
         engineVal.style.color = serverR4g1Ready ? "var(--emerald)" : "var(--amber)";
     } else if (engineSelect?.value === "r4-softmax-reference") {
         engineVal.style.color = serverR4SoftmaxReferenceReady ? "var(--purple)" : "var(--amber)";
+    } else if (engineSelect?.value === "r4-softmax-local") {
+        engineVal.style.color = serverR4SoftmaxLocalReady ? "var(--purple)" : "var(--amber)";
     } else {
         engineVal.style.color = "var(--cyan)";
     }
@@ -3697,6 +3855,7 @@ function pollSysinfo() {
                 localWasmMode = false;
                 serverResearchDemo = Boolean(info && info.research_demo);
                 syncR4SoftmaxReferenceAvailability(info);
+                syncR4SoftmaxLocalAvailability(info);
                 if (serverResearchDemo && engineSelect) engineSelect.value = "geometric";
                 updateConnectionStatusUI();
                 if (info && info.sentences_indexed !== undefined) {
@@ -3718,6 +3877,7 @@ function pollSysinfo() {
                 localWasmMode = true;
                 serverResearchDemo = true;
                 syncR4SoftmaxReferenceAvailability(null);
+                syncR4SoftmaxLocalAvailability(null);
                 if (engineSelect) engineSelect.value = "geometric";
                 updateConnectionStatusUI();
                 if (window.wasm_module && typeof router !== 'undefined') {
@@ -3912,7 +4072,9 @@ async function restoreSessionFromLocalStorage() {
                 const restoredEngine = session.engineSelect || "geometric";
                 const referenceUnavailable = restoredEngine === "r4-softmax-reference"
                     && !serverR4SoftmaxReferenceReady;
-                engineSelect.value = (localWasmMode || serverResearchDemo || referenceUnavailable)
+                const localCheckpointUnavailable = restoredEngine === "r4-softmax-local"
+                    && !serverR4SoftmaxLocalReady;
+                engineSelect.value = (localWasmMode || serverResearchDemo || referenceUnavailable || localCheckpointUnavailable)
                     ? "geometric"
                     : restoredEngine;
             }
@@ -3973,7 +4135,11 @@ function updateConnectionStatusUI() {
         const isR4g1Unavailable = selected === "r4g1" && !serverR4g1Ready;
         const isReferenceUnavailable = selected === "r4-softmax-reference"
             && !serverR4SoftmaxReferenceReady;
-        const selectedUnavailable = isR4g1Unavailable || isReferenceUnavailable;
+        const isLocalCheckpointUnavailable = selected === "r4-softmax-local"
+            && !serverR4SoftmaxLocalReady;
+        const selectedUnavailable = isR4g1Unavailable
+            || isReferenceUnavailable
+            || isLocalCheckpointUnavailable;
         if (dot) {
             dot.style.background = selectedUnavailable ? "var(--amber)" : "var(--emerald)";
             dot.style.boxShadow = selectedUnavailable
@@ -3987,6 +4153,12 @@ function updateConnectionStatusUI() {
             } else if (isReferenceUnavailable) {
                 route.textContent = "🟠 Server online · R4/Spin reference unavailable";
                 route.style.color = "var(--amber)";
+            } else if (isLocalCheckpointUnavailable) {
+                route.textContent = "🟠 Server online · #1017 checkpoint preflight unavailable";
+                route.style.color = "var(--amber)";
+            } else if (selected === "r4-softmax-local") {
+                route.textContent = "🟢 Local native · #1017 bounded raw completion (no chat memory)";
+                route.style.color = "var(--emerald)";
             } else {
                 route.textContent = `🟢 Connected · ${selectedEngineLabel(selected)}`;
                 route.style.color = "var(--emerald)";
@@ -4009,6 +4181,7 @@ async function startApp() {
                 localWasmMode = false;
                 serverResearchDemo = Boolean(info && info.research_demo);
                 syncR4SoftmaxReferenceAvailability(info);
+                syncR4SoftmaxLocalAvailability(info);
                 if (serverResearchDemo && engineSelect) engineSelect.value = "geometric";
                 updateConnectionStatusUI();
                 console.log("[+] Server detected, using backend routing.");
@@ -4020,6 +4193,7 @@ async function startApp() {
             localWasmMode = true;
             serverResearchDemo = true;
             syncR4SoftmaxReferenceAvailability(null);
+            syncR4SoftmaxLocalAvailability(null);
             if (engineSelect) engineSelect.value = "geometric";
             updateConnectionStatusUI();
             await tryInitLocalWasm();
