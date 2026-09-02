@@ -14,19 +14,34 @@ Measurements retain their pre-declared exit rule and durable issue/record
 reference; design targets remain explicitly labeled as definitions,
 assumptions, or objectives rather than measured results.
 
-> **Copied Zoology attention-control result (2026-09-02).** #1047 ported and
-> credited the released ICLR24 one-head, width-64 causal-softmax cell and MQAR
-> loader. C0 passed literal-source loader/model goldens, deterministic
-> initialization, causal-prefix/query-only parity, and `128/128` top-1 on the
-> disposable 32-row overfit. The long run is `NOT_RUN_PREFLIGHT`: all CPU plans
-> passed replay and memory checks, but the fastest plan used all eight host
-> cores and projected `959.212581 s` after the frozen safety factor, above the
-> 900-second admission wall. Thus C1, C2, binding permutation, and artifacts
-> did not run, and there is no scientific verdict about the cell. Result CID is
-> `blake3:b453abccc6ae0db9cc186c791aba268555dc0e75fe687c994e940254b0ac9ef6`.
-> Continue with the same scientific contract and a minimally widened CPU wall
-> in a fresh issue; do not tune or rerun #1047. See the
-> [#1047 record](r4_zoology_mqar_control_1047.md).
+> **Copied Zoology attention-control result (2026-09-02).** #1049 executed the
+> credited ICLR24 one-head, width-64 causal-softmax cell integrated by #1047.
+> C0 repeated literal-source loader/model goldens, deterministic initialization,
+> causal/query-only parity, and the disposable `128/128` overfit successfully.
+> The measured all-core 8-thread CPU plan completed C1's 64 epochs and
+> `2,097,152` presentations in `195.201318 s` total wall.
+>
+> Construction reached `32,758/32,768` (`99.969482%`, NLL `0.0205207`), but
+> development peaked at `999/4,096` (`24.389648%`) and finished at
+> `980/4,096` (`23.925781%`, NLL `9.174184`). Consecutive passes remained zero,
+> giving `SCALED_SOURCE_CALIBRATION_MISS`. C2 and binding permutation are
+> `NOT_RUN_C1_MISS`. Future, sealed, provider, teacher, cache, transport,
+> role-model, and H4-model reads were zero. Result CID is
+> `blake3:9b36540d81d0967a3f7e2ccabed80900d31c904b6c747d9ba0d539b325b13373`;
+> C1 artifact/state CIDs are
+> `blake3:aa0980621f7cae3ce392003ee0230fe536d3c842f342fa9129fe8d77c45882dc`
+> and
+> `blake3:aaff1b1e919b49928181e6f29910f275a8fc32f5050a2276b0c9758cab73febc`.
+>
+> A read-only diagnosis found `4,089/4,096` predictions among the four values
+> admitted in each row, but only `980` matched the queried key. The scaled cell
+> learned value-set extraction while binding remained at four-choice chance.
+> The executable release used 100,000 construction rows, batch 512, and a
+> four-rate sweep; #1049 used 8,192, batch 64, and one rate. Therefore one
+> exact executable-source reproduction retains decision value; #1050 freezes
+> it. Stop before C2 and UOR bytes, do not tune #1049, and return to C2 only after a source-scale
+> pass. This is not an R4/geometric-attention result. See the
+> [#1049 record](r4_zoology_mqar_measured_wall_1049.md).
 
 > **Predecessor role-tagged associative-learning result (2026-09-02).** #1045
 > completed its full 64-epoch R1 cap and stopped
@@ -53,8 +68,9 @@ assumptions, or objectives rather than measured results.
 > #1045 borrowed the associative-first curriculum and optimizer shape from
 > Zoology, but it was not a stock Zoology replication: its role-tagged wrapper,
 > inherited decoder, data loader, and query-only projection mechanics
-> materially differ. #1047 performed that released-cell integration and
-> stopped at CPU admission, as reported above. Do not tune or retry #1045.
+> materially differ. #1047 performed that released-cell integration, and #1049
+> executed its scaled source-native calibration under the measured CPU wall,
+> as reported above. Do not tune or retry #1045.
 > Modulo-256 remains relevant
 > to categorical roles, discrete tables, and later lowering, not continuous
 > probability normalization. See the

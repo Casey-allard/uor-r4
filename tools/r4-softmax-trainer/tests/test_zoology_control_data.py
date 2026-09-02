@@ -276,6 +276,12 @@ class ZoologyControlDataTests(unittest.TestCase):
 
     def test_source_attribution_and_recursive_tree_binding(self) -> None:
         attribution = zoology_source_attribution()
+        self.assertEqual(attribution["issue"], 1047)
+        self.assertEqual(attribution["policy"], "ZoologyMQARControlV1")
+        self.assertEqual(
+            attribution["attribution_cid"],
+            "blake3:e2798cac6b3d04f0f86535f2845d3e966246850c1ea528e1c3577f082514daee",
+        )
         self.assertEqual(
             attribution["release_oracle"]["revision"],
             ZOOLOGY_RELEASE_REVISION,
@@ -304,6 +310,15 @@ class ZoologyControlDataTests(unittest.TestCase):
             ZOOLOGY_RELEASE_LICENSE_CID,
         )
         live_contract = zoology_control_implementation_contract()
+        self.assertEqual(live_contract["issue"], 1049)
+        self.assertEqual(
+            live_contract["policy"],
+            "ZoologyMQARControlV2MeasuredWall",
+        )
+        self.assertEqual(
+            live_contract["source_attribution_cid"],
+            attribution["attribution_cid"],
+        )
         live_files = {
             record["path"]: record for record in live_contract["files"]
         }

@@ -1,4 +1,4 @@
-"""Credited, source-faithful Zoology MQAR integration control for #1047."""
+"""Credited, source-faithful Zoology MQAR integration control for #1049."""
 
 from .data import (
     ZoologyMQARBatch,

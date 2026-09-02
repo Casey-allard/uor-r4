@@ -1,4 +1,4 @@
-"""Create-once CPU lifecycle for the credited Zoology MQAR control (#1047).
+"""Create-once CPU lifecycle for the credited Zoology MQAR control (#1049).
 
 Source-derived mechanics are attributed in :mod:`.provenance` and NOTICE.md.
 This runner never opens a fitted #1045 artifact or a sealed population.  It
@@ -52,8 +52,8 @@ from .provenance import (
 )
 
 
-ISSUE = 1047
-POLICY = "ZoologyMQARControlV1"
+ISSUE = 1049
+POLICY = "ZoologyMQARControlV2MeasuredWall"
 SOURCE_MODEL_SEED = 123
 
 SOURCE_TRAIN_ROWS = 8_192
@@ -76,7 +76,7 @@ MAXIMUM_C2_QUERY_PRESENTATIONS = 4_194_304
 ELIGIBLE_THREADS = (1, 4, 8)
 TIMED_TRAINING_BATCHES = 32
 PROJECTION_SAFETY_FACTOR = 1.25
-HARD_WALL_SECONDS = 900.0
+HARD_WALL_SECONDS = 1_200.0
 MEMORY_CEILING_BYTES = 8 * 1024**3
 PROBE_TIMEOUT_SECONDS = 300.0
 
@@ -91,6 +91,16 @@ EXPECTED_1045_DIAGNOSTIC_CID = (
 )
 FORBIDDEN_1045_ARTIFACT_CID = (
     "blake3:92bb13caf71c9ef44885a9da39023d080de075118b5902b716d2ca9b0f61f611"
+)
+EXPECTED_1047_MERGE_COMMIT = "677fb133b6d6a01fe384450b66beabbbd1b8f9a5"
+EXPECTED_1047_IMPLEMENTATION_TREE_CID = (
+    "blake3:c848c05ae53bc3adc0a8f7099ceed43657b6348e4e00fe3aaef5cf1368cc38de"
+)
+EXPECTED_1047_PREFLIGHT_CID = (
+    "blake3:78158700e632d303bf674ed544f997a0e14eb89947470f5032e6acc75c830c9b"
+)
+EXPECTED_1047_RESULT_CID = (
+    "blake3:b453abccc6ae0db9cc186c791aba268555dc0e75fe687c994e940254b0ac9ef6"
 )
 
 PREPARATION_RELATIVE_PATH = "zoology-control-preparation.json"
@@ -214,7 +224,7 @@ class ScoreResult:
 
 
 class HardWallExceeded(TimeoutError):
-    """The combined C1+C2 execution reached its frozen 900-second wall."""
+    """The combined C1+C2 execution reached its frozen resource wall."""
 
     def __init__(self, message: str, partial: Mapping[str, Any] | None = None) -> None:
         super().__init__(message)
@@ -386,6 +396,23 @@ def _bind_predecessor(predecessor_root: Path) -> dict[str, Any]:
     }
 
 
+def _capacity_predecessor_record() -> dict[str, Any]:
+    """Bind #1047 by its protected merge and immutable create-once identities."""
+
+    return {
+        "issue": 1047,
+        "merge_commit": EXPECTED_1047_MERGE_COMMIT,
+        "implementation_tree_cid": EXPECTED_1047_IMPLEMENTATION_TREE_CID,
+        "preflight_cid": EXPECTED_1047_PREFLIGHT_CID,
+        "result_cid": EXPECTED_1047_RESULT_CID,
+        "status": "NOT_RUN_PREFLIGHT",
+        "fastest_plan": "cpu-8t-b64",
+        "projected_seconds": 959.2125811270671,
+        "hard_wall_seconds": 900.0,
+        "scientific_result": "NOT_AVAILABLE",
+    }
+
+
 def prepare_zoology_control(
     root: Path,
     *,
@@ -406,6 +433,7 @@ def prepare_zoology_control(
     path = root / PREPARATION_RELATIVE_PATH
     source_population, exact_population = _load_bound_populations(source_root)
     predecessor = _bind_predecessor(predecessor_root)
+    capacity_predecessor = _capacity_predecessor_record()
     implementation = zoology_control_implementation_contract()
     attribution = zoology_source_attribution()
     if path.exists():
@@ -414,6 +442,7 @@ def prepare_zoology_control(
             preparation.get("source_root") != str(source_root)
             or preparation.get("predecessor_root") != str(predecessor_root)
             or preparation.get("predecessor") != predecessor
+            or preparation.get("capacity_predecessor") != capacity_predecessor
             or preparation.get("implementation") != implementation
             or preparation.get("source_attribution") != attribution
             or preparation.get("populations")
@@ -434,6 +463,7 @@ def prepare_zoology_control(
         "source_root": str(source_root),
         "predecessor_root": str(predecessor_root),
         "predecessor": predecessor,
+        "capacity_predecessor": capacity_predecessor,
         "implementation": implementation,
         "source_attribution": attribution,
         "inputs": {
@@ -449,6 +479,11 @@ def prepare_zoology_control(
                 "file_cid"
             ],
             "source_1045_result_file_cid": predecessor["result"]["file_cid"],
+            "source_1047_implementation_tree_cid": (
+                capacity_predecessor["implementation_tree_cid"]
+            ),
+            "source_1047_preflight_cid": capacity_predecessor["preflight_cid"],
+            "source_1047_result_cid": capacity_predecessor["result_cid"],
         },
         "populations": {
             "c1_source_native": _population_record(source_population),
@@ -619,7 +654,7 @@ def decide_zoology_control(
     elif not preflight_available:
         verdict = None
         status = "NOT_RUN_PREFLIGHT"
-        action = "stop without a scientific verdict; do not tune #1047"
+        action = "stop without a scientific verdict; do not tune #1049"
         passed = False
     elif not (c1_train and c1_development and c1_two):
         verdict = "SCALED_SOURCE_CALIBRATION_MISS"
@@ -683,6 +718,10 @@ def decide_zoology_control(
         },
         "action": action,
     }
+
+
+def _preflight_stop_marker(c0_passed: bool) -> str:
+    return "NOT_RUN_PREFLIGHT" if c0_passed else "NOT_RUN_C0_MISS"
 
 
 def _result_body(
@@ -915,7 +954,9 @@ def _score_rows(
         with torch.inference_mode():
             for start in range(0, len(rows), batch_size):
                 if deadline is not None and time.monotonic() >= deadline:
-                    raise HardWallExceeded("#1047 scoring reached the 900-second wall")
+                    raise HardWallExceeded(
+                        f"#1049 scoring reached the {HARD_WALL_SECONDS:.0f}-second wall"
+                    )
                 batch = batch_rows(rows[start : start + batch_size], device=device)
                 output = model.forward_selected(
                     batch.input_ids,
@@ -942,7 +983,9 @@ def _score_rows(
                     _batch_work(batch, vocab_size=model.config.vocab_size),
                 )
                 if deadline is not None and time.monotonic() >= deadline:
-                    raise HardWallExceeded("#1047 scoring reached the 900-second wall")
+                    raise HardWallExceeded(
+                        f"#1049 scoring reached the {HARD_WALL_SECONDS:.0f}-second wall"
+                    )
     finally:
         model.train(was_training)
     expected = _row_query_count(rows)
@@ -989,7 +1032,7 @@ def _train_epoch(
         if time.monotonic() >= deadline:
             partial = record(complete=False)
             raise HardWallExceeded(
-                "#1047 training reached the 900-second wall",
+                f"#1049 training reached the {HARD_WALL_SECONDS:.0f}-second wall",
                 partial,
             )
         batch = batch_rows(ordered[start : start + BATCH_SIZE], device=device)
@@ -1015,7 +1058,7 @@ def _train_epoch(
         if time.monotonic() >= deadline:
             partial = record(complete=False)
             raise HardWallExceeded(
-                "#1047 training reached the 900-second wall",
+                f"#1049 training reached the {HARD_WALL_SECONDS:.0f}-second wall",
                 partial,
             )
     expected = _row_query_count(rows)
@@ -1056,6 +1099,7 @@ def _train_rung(
                 optimizer,
                 population.train,
                 epoch=epoch,
+                # Preserve V1 ordering exactly; #1049 changes resource policy only.
                 namespace=f"uor-r4/1047/{rung}",
                 device=device,
                 deadline=deadline,
@@ -1623,6 +1667,8 @@ def preflight_zoology_control(root: Path) -> dict[str, Any]:
     source_population, exact_population = _load_bound_populations(source_root)
     if preparation.get("predecessor") != _bind_predecessor(predecessor_root):
         raise ValueError("#1045 predecessor changed after preparation")
+    if preparation.get("capacity_predecessor") != _capacity_predecessor_record():
+        raise ValueError("#1047 capacity predecessor changed after preparation")
     if preparation.get("populations") != {
         "c1_source_native": _population_record(source_population),
         "c2_exact_1045": _population_record(exact_population),
@@ -1854,6 +1900,8 @@ def run_zoology_control(root: Path) -> dict[str, Any]:
     source_population, exact_population = _load_bound_populations(source_root)
     if preparation.get("predecessor") != _bind_predecessor(predecessor_root):
         raise ValueError("#1045 predecessor changed before execution")
+    if preparation.get("capacity_predecessor") != _capacity_predecessor_record():
+        raise ValueError("#1047 capacity predecessor changed before execution")
     if preflight.get("population_cids") != {
         "c1_source_native": source_population.population_cid,
         "c2_exact_1045": exact_population.population_cid,
@@ -1882,6 +1930,7 @@ def run_zoology_control(root: Path) -> dict[str, Any]:
         and preflight["c0"].get("passed") is True
     )
     if not c0_passed:
+        marker = _preflight_stop_marker(False)
         decision = decide_zoology_control(
             c0_passed=False,
             preflight_available=False,
@@ -1891,14 +1940,15 @@ def run_zoology_control(root: Path) -> dict[str, Any]:
             preparation=preparation,
             preflight=preflight,
             plan=None,
-            c1="NOT_RUN_C0_MISS",
-            c2="NOT_RUN_C0_MISS",
-            binding_control="NOT_RUN_C0_MISS",
+            c1=marker,
+            c2=marker,
+            binding_control=marker,
             artifacts=(),
             decision=decision,
             elapsed_seconds=0.0,
         )
     if preflight.get("passed") is not True or not isinstance(selected_plan, Mapping):
+        marker = _preflight_stop_marker(True)
         decision = decide_zoology_control(
             c0_passed=True,
             preflight_available=False,
@@ -1908,9 +1958,9 @@ def run_zoology_control(root: Path) -> dict[str, Any]:
             preparation=preparation,
             preflight=preflight,
             plan=None,
-            c1="NOT_RUN_PREFLIGHT",
-            c2="NOT_RUN_PREFLIGHT",
-            binding_control="NOT_RUN_PREFLIGHT",
+            c1=marker,
+            c2=marker,
+            binding_control=marker,
             artifacts=(),
             decision=decision,
             elapsed_seconds=0.0,
@@ -2107,6 +2157,54 @@ def _verify_artifact(
         raise ValueError("#1047 artifact tensor schema differs")
 
 
+def _validate_execution_policy_envelope(
+    result: Mapping[str, Any],
+    *,
+    preflight: Mapping[str, Any],
+    selection: Mapping[str, Any] | object,
+    preflight_started: Mapping[str, Any],
+    run_started: Mapping[str, Any],
+    preparation: Mapping[str, Any],
+    implementation: Mapping[str, Any],
+) -> None:
+    """Bind the V2 wall, selected CPU plan, and both create-once starts."""
+
+    if not isinstance(selection, Mapping):
+        raise ValueError("#1049 execution selection is malformed")
+    expected_plan = selection.get("selected_plan")
+    c0 = preflight.get("c0")
+    expected_preflight_passed = bool(
+        isinstance(c0, Mapping)
+        and c0.get("passed") is True
+        and selection.get("available") is True
+    )
+    if (
+        preparation.get("schema") != PREPARATION_SCHEMA
+        or preparation.get("issue") != ISSUE
+        or preparation.get("policy") != POLICY
+        or preflight.get("schema") != PREFLIGHT_SCHEMA
+        or preflight.get("issue") != ISSUE
+        or preflight.get("policy") != POLICY
+        or preflight.get("preparation_cid") != preparation.get("preparation_cid")
+        or preflight.get("passed") is not expected_preflight_passed
+        or result.get("hard_wall_seconds") != HARD_WALL_SECONDS
+        or result.get("plan") != expected_plan
+        or dict(preflight_started)
+        != _started_record(
+            phase="preflight",
+            preparation=preparation,
+            implementation=implementation,
+        )
+        or dict(run_started)
+        != _started_record(
+            phase="run",
+            preparation=preparation,
+            implementation=implementation,
+        )
+    ):
+        raise ValueError("#1049 execution policy envelope differs")
+
+
 def verify_zoology_control(root: Path) -> dict[str, Any]:
     """Verify envelopes, CIDs, ledgers, decisions, and artifacts without rescore."""
 
@@ -2129,6 +2227,16 @@ def verify_zoology_control(root: Path) -> dict[str, Any]:
         cid_field="started_cid",
     )
     implementation = zoology_control_implementation_contract()
+    selection = preflight.get("selection")
+    _validate_execution_policy_envelope(
+        result,
+        preflight=preflight,
+        selection=selection,
+        preflight_started=preflight_started,
+        run_started=run_started,
+        preparation=preparation,
+        implementation=implementation,
+    )
     if (
         result.get("schema") != RESULT_SCHEMA
         or result.get("issue") != ISSUE
@@ -2147,7 +2255,8 @@ def verify_zoology_control(root: Path) -> dict[str, Any]:
     source_population, exact_population = _load_bound_populations(source_root)
     if preparation.get("predecessor") != _bind_predecessor(predecessor_root):
         raise ValueError("#1045 predecessor changed after result")
-    selection = preflight.get("selection")
+    if preparation.get("capacity_predecessor") != _capacity_predecessor_record():
+        raise ValueError("#1047 capacity predecessor changed after result")
     if not isinstance(selection, Mapping) or select_execution_plan(
         selection.get("plans", [])
     ) != selection:
@@ -2198,6 +2307,31 @@ def verify_zoology_control(root: Path) -> dict[str, Any]:
     c1 = rungs.get("c1")
     c2 = rungs.get("c2")
     binding = result.get("binding_permuted_control")
+    reached_rungs = {
+        name for name, value in (("c1", c1), ("c2", c2)) if isinstance(value, Mapping)
+    }
+    if reached_rungs != observed_rungs:
+        raise ValueError("#1049 artifacts do not match the reached rungs")
+    preflight_passed = preflight.get("passed") is True
+    c0 = preflight.get("c0")
+    c0_passed = isinstance(c0, Mapping) and c0.get("passed") is True
+    if preflight_passed and not isinstance(c1, Mapping):
+        raise ValueError("#1049 admitted execution lacks its C1 record")
+    if not preflight_passed:
+        marker = _preflight_stop_marker(c0_passed)
+        expected_decision = decide_zoology_control(
+            c0_passed=c0_passed,
+            preflight_available=False,
+        )
+        if (
+            reached_rungs
+            or artifacts
+            or c1 != marker
+            or c2 != marker
+            or binding != marker
+            or dict(decision) != expected_decision
+        ):
+            raise ValueError("#1049 preflight stop does not reproduce")
     incomplete = _validate_hard_wall_decision(
         decision,
         c1=c1,

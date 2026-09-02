@@ -9,19 +9,25 @@ The earlier
 preserved #948–#958 sequencing record. Measured, refuted, and frozen research
 remains in [docs/RESEARCH.md](docs/RESEARCH.md).
 
-**Current copied-attention control boundary (2026-09-02):** #1047 integrated
-and credited the released ICLR24 Zoology one-head, width-64 causal-softmax cell
-and MQAR loader. C0 passed literal-source loader/model goldens, deterministic
-initialization, causal/query-only parity, and `128/128` open overfit. The
-scientific run is `NOT_RUN_PREFLIGHT`: the all-core 8-thread plan was fastest
-but projected `959.212581 s` after the frozen `1.25` safety factor, above the
-900-second wall. C1, C2, binding permutation, and artifacts did not run, so
-this is a resource-admission result rather than a finding about attention,
-geometry, or assignment-disjoint generalization. Result CID is
-`blake3:b453abccc6ae0db9cc186c791aba268555dc0e75fe687c994e940254b0ac9ef6`.
-Continue on a fresh issue with the identical scientific cell/data/training
-contract and a minimally widened CPU wall; do not tune #1047. See the
-[#1047 record](docs/r4_zoology_mqar_control_1047.md).
+**Current copied-attention control boundary (2026-09-02):** #1049 executed the
+credited ICLR24 Zoology one-head, width-64 causal-softmax cell carried forward
+unchanged from #1047. C0 again passed source goldens, deterministic
+initialization, causal/query-only parity, and the `128/128` disposable overfit.
+The all-core 8-thread plan completed scaled C1 in `195.201318 s`. Construction
+reached `32,758/32,768` (`99.969482%`), but development peaked at
+`999/4,096` (`24.389648%`) and finished at `980/4,096` (`23.925781%`). The
+verdict is `SCALED_SOURCE_CALIBRATION_MISS`; C2 and binding permutation are
+`NOT_RUN_C1_MISS`. Result CID is
+`blake3:9b36540d81d0967a3f7e2ccabed80900d31c904b6c747d9ba0d539b325b13373`.
+
+A read-only diagnosis found `4,089/4,096` predictions inside the row's four
+admitted values while key-specific binding remained at four-choice chance.
+The pinned executable release used 100,000 construction rows, batch 512, and
+the best of four rates; #1049 used 8,192, batch 64, and one rate. Stop before
+UOR bytes and do not tune #1049. [#1050](https://github.com/UOR-Foundation/uor-r4/issues/1050)
+freezes the only next copied-cell decision: an executable-source reproduction.
+Only its pass can authorize returning to C2. This is not an R4/geometric-attention result. See the
+[#1049 record](docs/r4_zoology_mqar_measured_wall_1049.md).
 
 **Predecessor open associative-learning boundary (2026-09-02):** #1045 completed
 all 64 permitted R1 epochs and stopped `OPEN_MQAR_NOT_LEARNED`. Training reached
@@ -43,7 +49,8 @@ attention attribution: #1045 used plain ordinary causal softmax and is neither
 geometric-attention nor generation evidence. It borrowed Zoology's curriculum
 and optimizer shape but materially differed from the released Zoology cell,
 loader, model, role path, and projection mechanics. #1047 performed that
-released-cell integration and stopped at CPU admission, as reported above.
+released-cell integration, and #1049 executed its scaled source-native
+calibration under the measured CPU wall, as reported above.
 Modulo-256 remains a
 discrete role/table/lowering substrate, not continuous softmax normalization.
 See the

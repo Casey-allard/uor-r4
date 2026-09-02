@@ -43,7 +43,9 @@ is recorded for #1045 provenance only. It is not the executable source oracle.
 ## UOR-R4 modifications
 
 The files in this directory are changed/adapted for the bounded
-`ZoologyMQARControlV1` experiment. The declared changes are:
+`ZoologyMQARControlV2MeasuredWall` experiment. It preserves the V1 scientific
+mechanism and raises only the bounded CPU execution wall. The declared changes
+from upstream are:
 
 - device-neutral, CPU-only construction and execution in place of CUDA device
   assumptions;

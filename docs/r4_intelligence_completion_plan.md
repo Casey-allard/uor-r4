@@ -4,17 +4,23 @@
   readable mirror of programme root #820 (stages S0–S7 plus cross-cutting F0).
   The [Geometric Intelligence Programme](geometric_intelligence_programme.md)
   is its current architecture and claim-boundary companion.
-  The newest copied-attention control is #1047's
-  [`ZoologyMQARControlV1`](r4_zoology_mqar_control_1047.md). It integrated and
-  credited the released ICLR24 one-head, width-64 causal-softmax cell and MQAR
-  loader. Literal-source mechanics and the 32-row `128/128` overfit passed, but
-  the long run is `NOT_RUN_PREFLIGHT`: the all-core 8-thread plan projected
-  `959.212581 s` after the frozen safety factor, above the 900-second wall.
-  C1, C2, binding permutation, and artifacts did not run; no scientific
-  attention or transfer verdict exists. Result CID is
-  `blake3:b453abccc6ae0db9cc186c791aba268555dc0e75fe687c994e940254b0ac9ef6`.
-  Continue with the identical scientific contract and a minimally widened CPU
-  wall in a fresh issue, not a #1047 tune or rerun.
+  The newest copied-attention control is #1049's
+  [`ZoologyMQARControlV2MeasuredWall`](r4_zoology_mqar_measured_wall_1049.md).
+  It executed the released ICLR24 one-head, width-64 causal-softmax cell ported
+  by #1047. C0 again passed literal-source mechanics, deterministic replay,
+  causal/query-only parity, and the 32-row `128/128` overfit. The all-core
+  8-thread plan then completed scaled C1 in `195.201318 s`. Construction reached
+  `32,758/32,768` (`99.969482%`), but development peaked at `999/4,096`
+  (`24.389648%`) and finished at `980/4,096` (`23.925781%`). Verdict
+  `SCALED_SOURCE_CALIBRATION_MISS` stops C2 and binding permutation as
+  `NOT_RUN_C1_MISS`. Result CID is
+  `blake3:9b36540d81d0967a3f7e2ccabed80900d31c904b6c747d9ba0d539b325b13373`.
+  A post-result diagnosis found `4,089/4,096` predictions among the four
+  admitted values while key-specific binding remained at chance. Stop before
+  UOR bytes and do not tune #1049. Because the executable release used
+  100,000 rows, batch 512, and the maximum of four frozen rates, one exact
+  executable-source reproduction retains decision value; #1050 freezes it and
+  only its pass can return sequencing to C2. This is no R4/geometric-attention verdict.
   The predecessor open associative-learning result is #1045's
   [`R4RoleTaggedAssociativeCurriculumV1`](r4_role_tagged_associative_curriculum_1045.md).
   It completed all 64 R1 epochs and `4,194,304` presentations in `966.7488 s`,
@@ -36,8 +42,8 @@
   attention, attention attribution, or generation. It borrowed Zoology's
   curriculum and optimizer shape but materially differed from the released
   cell, loader, model, role path, and projection mechanics. #1047 performed
-  that released-cell integration and stopped at CPU admission, as reported
-  above. Modulo-256 is
+  that released-cell integration, and #1049 executed its scaled source-native
+  calibration under the measured CPU wall, as reported above. Modulo-256 is
   retained for discrete roles, tables, and later lowering, not continuous
   probability normalization.
   The newest bounded source-free binding campaign is #1043's

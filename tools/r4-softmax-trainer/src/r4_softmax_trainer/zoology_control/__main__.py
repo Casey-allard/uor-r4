@@ -20,7 +20,7 @@ from .development import (
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="python -m r4_softmax_trainer.zoology_control",
-        description="Create-once CPU lifecycle for the frozen #1047 Zoology control.",
+        description="Create-once CPU lifecycle for the frozen #1049 Zoology control.",
     )
     commands = parser.add_subparsers(dest="command", required=True)
 

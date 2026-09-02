@@ -1,4 +1,4 @@
-"""Focused lifecycle tests for the credited #1047 Zoology control."""
+"""Focused lifecycle tests for the measured-wall #1049 Zoology control."""
 
 from __future__ import annotations
 
@@ -43,6 +43,104 @@ def _passing_fit(population_cid: str) -> dict[str, object]:
 
 
 class ZoologyControlDevelopmentTests(unittest.TestCase):
+    def test_measured_wall_successor_preserves_the_scientific_identity(self) -> None:
+        self.assertEqual(subject.ISSUE, 1049)
+        self.assertEqual(subject.POLICY, "ZoologyMQARControlV2MeasuredWall")
+        self.assertEqual(subject.HARD_WALL_SECONDS, 1_200.0)
+        predecessor = subject._capacity_predecessor_record()
+        self.assertEqual(predecessor["issue"], 1047)
+        self.assertEqual(
+            predecessor["implementation_tree_cid"],
+            subject.EXPECTED_1047_IMPLEMENTATION_TREE_CID,
+        )
+        self.assertEqual(predecessor["status"], "NOT_RUN_PREFLIGHT")
+        self.assertEqual(predecessor["scientific_result"], "NOT_AVAILABLE")
+        self.assertEqual(subject._preflight_stop_marker(False), "NOT_RUN_C0_MISS")
+        self.assertEqual(subject._preflight_stop_marker(True), "NOT_RUN_PREFLIGHT")
+
+    def test_execution_policy_verifier_binds_wall_plan_and_starts(self) -> None:
+        implementation = {
+            "implementation_cid": "blake3:" + "1" * 64,
+            "tree_cid": "blake3:" + "2" * 64,
+        }
+        preparation = {"preparation_cid": "blake3:" + "3" * 64}
+        plan = subject.ExecutionPlan(8).record()
+        selection = {"available": True, "selected_plan": plan}
+        preflight = {
+            "schema": subject.PREFLIGHT_SCHEMA,
+            "issue": subject.ISSUE,
+            "policy": subject.POLICY,
+            "preparation_cid": preparation["preparation_cid"],
+            "c0": {"passed": True},
+            "passed": True,
+        }
+        preparation.update(
+            {
+                "schema": subject.PREPARATION_SCHEMA,
+                "issue": subject.ISSUE,
+                "policy": subject.POLICY,
+            }
+        )
+        preflight_started = subject._started_record(
+            phase="preflight",
+            preparation=preparation,
+            implementation=implementation,
+        )
+        run_started = subject._started_record(
+            phase="run",
+            preparation=preparation,
+            implementation=implementation,
+        )
+        result = {
+            "hard_wall_seconds": subject.HARD_WALL_SECONDS,
+            "plan": plan,
+        }
+        subject._validate_execution_policy_envelope(
+            result,
+            preflight=preflight,
+            selection=selection,
+            preflight_started=preflight_started,
+            run_started=run_started,
+            preparation=preparation,
+            implementation=implementation,
+        )
+        for altered in (
+            {**result, "hard_wall_seconds": 900.0},
+            {**result, "plan": subject.ExecutionPlan(4).record()},
+        ):
+            with self.assertRaisesRegex(ValueError, "policy envelope"):
+                subject._validate_execution_policy_envelope(
+                    altered,
+                    preflight=preflight,
+                    selection=selection,
+                    preflight_started=preflight_started,
+                    run_started=run_started,
+                    preparation=preparation,
+                    implementation=implementation,
+                )
+        forged_start = {**run_started, "phase": "preflight"}
+        with self.assertRaisesRegex(ValueError, "policy envelope"):
+            subject._validate_execution_policy_envelope(
+                result,
+                preflight=preflight,
+                selection=selection,
+                preflight_started=preflight_started,
+                run_started=forged_start,
+                preparation=preparation,
+                implementation=implementation,
+            )
+        forged_preflight = {**preflight, "policy": "wrong"}
+        with self.assertRaisesRegex(ValueError, "policy envelope"):
+            subject._validate_execution_policy_envelope(
+                result,
+                preflight=forged_preflight,
+                selection=selection,
+                preflight_started=preflight_started,
+                run_started=run_started,
+                preparation=preparation,
+                implementation=implementation,
+            )
+
     def test_source_oracle_is_executed_inside_c0_contract(self) -> None:
         golden = subject._source_oracle_golden()
         self.assertTrue(golden["passed"])
@@ -349,6 +447,7 @@ class ZoologyControlDevelopmentTests(unittest.TestCase):
             "source_root": "/open/source",
             "predecessor_root": "/open/predecessor",
             "predecessor": predecessor,
+            "capacity_predecessor": subject._capacity_predecessor_record(),
         }
         preflight = {
             "preflight_cid": "blake3:" + "e" * 64,

@@ -1,4 +1,4 @@
-"""Source attribution and recursive implementation binding for issue #1047.
+"""Source attribution and recursive implementation binding for issue #1049.
 
 The MQAR construction in :mod:`r4_softmax_trainer.zoology_control.data` is a
 bounded-memory adaptation of HazyResearch/Zoology's ICLR24 ``_mqar`` routine.
@@ -20,8 +20,10 @@ from ..provenance import (
 )
 
 
-ISSUE = 1047
-POLICY = "ZoologyMQARControlV1"
+ISSUE = 1049
+POLICY = "ZoologyMQARControlV2MeasuredWall"
+SOURCE_ATTRIBUTION_ISSUE = 1047
+SOURCE_ATTRIBUTION_POLICY = "ZoologyMQARControlV1"
 ZOOLOGY_REPOSITORY = "https://github.com/HazyResearch/zoology"
 ZOOLOGY_LICENSE = "Apache-2.0"
 ZOOLOGY_RELEASE_REVISION = "de4e258784224e09909c257ff3ea040f089ed660"
@@ -62,8 +64,8 @@ def zoology_source_attribution() -> dict[str, Any]:
 
     body: dict[str, Any] = {
         "schema": "uor-r4/zoology-source-attribution/v1",
-        "issue": ISSUE,
-        "policy": POLICY,
+        "issue": SOURCE_ATTRIBUTION_ISSUE,
+        "policy": SOURCE_ATTRIBUTION_POLICY,
         "repository": ZOOLOGY_REPOSITORY,
         "license": ZOOLOGY_LICENSE,
         "release_oracle": {

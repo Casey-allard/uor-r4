@@ -44,7 +44,7 @@ it; CUDA requires explicit issue scope. Offline acceleration does not change the
 CPU/table-native deployed-runtime target. The normative rule is in the root
 [`AGENTS.md`](../../AGENTS.md#long-run-discipline-process-amendment-2026-08-06).
 
-## Open #1045 role-tagged associative ladder
+## Completed #1045 role-tagged associative ladder
 
 The canonical contract and append-only evidence record are
 [`docs/r4_role_tagged_associative_curriculum_1045.md`](../../docs/r4_role_tagged_associative_curriculum_1045.md).
@@ -80,9 +80,9 @@ the next open English-transfer rung—not generation, geometric advantage,
 softmax replacement, exact lowering, reasoning, product, or release claims.
 The executed R1 stopped `OPEN_MQAR_NOT_LEARNED`: construction reached
 `65,500/65,536`, while assignment-disjoint development reached
-`7,137/8,192`. The binding next action is a separately scoped port of the
-released Zoology cell and loader, not a #1045 retry; exact evidence and CIDs are
-in the canonical record above.
+`7,137/8,192`. Its binding next action was the separately scoped #1047 port of
+the released Zoology cell and loader, followed by #1049's measured-wall
+execution; exact evidence and CIDs are in the canonical records.
 
 ## #1047 released Zoology MQAR control
 
@@ -109,6 +109,31 @@ frozen CPU plan met the 900-second admission wall: the all-core 8-thread plan
 projected `959.212581 s`. The immutable result is `NOT_RUN_PREFLIGHT`, CID
 `blake3:b453abccc6ae0db9cc186c791aba268555dc0e75fe687c994e940254b0ac9ef6`.
 No training artifact or scientific attention verdict was produced.
+
+## #1049 measured-wall Zoology MQAR execution
+
+The frozen continuation and executed result are documented in
+[`docs/r4_zoology_mqar_measured_wall_1049.md`](../../docs/r4_zoology_mqar_measured_wall_1049.md).
+#1049 preserved the #1047 source-derived cell, loader, RNG namespaces, batch
+64, optimizer, schedule, and thresholds, changing only execution provenance
+and the CPU wall from 900 to 1,200 seconds.
+
+C0 repeated exact source mechanics and the disposable `128/128` overfit. The
+all-core 8-thread plan completed C1's 64 epochs in `195.201318 s` total wall.
+Construction reached `32,758/32,768` (`99.969482%`), while development peaked
+at `999/4,096` (`24.389648%`) and finished at `980/4,096` (`23.925781%`). The
+immutable verdict is `SCALED_SOURCE_CALIBRATION_MISS`; C2 and binding
+permutation are `NOT_RUN_C1_MISS`. Result CID is
+`blake3:9b36540d81d0967a3f7e2ccabed80900d31c904b6c747d9ba0d539b325b13373`.
+
+A read-only diagnosis found that `4,089/4,096` predictions were one of the four
+values present in the row, but key-specific binding remained at four-choice
+chance. The pinned executable release used 100,000 construction rows, batch
+512, and the best of four frozen rates, rather than #1049's 8,192 rows, batch
+64, and one rate. The only authorized next copied-control decision is a fresh,
+source-faithful reproduction contract, now frozen in #1050. These commands and #1049's create-once
+root are retained as evidence and are not a rerun interface. Do not tune #1049
+or proceed to C2 from its result.
 
 ## Terminal #973 group-retention and decoder paths
 
