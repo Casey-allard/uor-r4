@@ -9,6 +9,32 @@ The earlier
 preserved #948–#958 sequencing record. Measured, refuted, and frozen research
 remains in [docs/RESEARCH.md](docs/RESEARCH.md).
 
+**Current open associative-learning boundary (2026-09-02):** #1045 completed
+all 64 permitted R1 epochs and stopped `OPEN_MQAR_NOT_LEARNED`. Training reached
+`65,500/65,536` (`99.945068%`), while assignment-disjoint development finished
+at `7,137/8,192` (`87.121582%`) with NLL `1.1712778`; the best development
+checkpoint was epoch 53 at `7,162/8,192` (`87.426758%`). The run consumed
+`4,194,304` presentations in `966.7488 s`. Result and artifact CIDs are
+`blake3:d920ad7b7f373c55cb564e27b3ddb1af8949a20c432e0d7cd2b39f1f69999557`
+and
+`blake3:92bb13caf71c9ef44885a9da39023d080de075118b5902b716d2ca9b0f61f611`.
+
+All future, forbidden, teacher, provider, and sealed reads were zero. The
+primary 99% development gate missed, so the native/coherent-R4 arm is
+`NOT_RUN_PRIMARY_MISS`; current-only, role-off, value-permuted, and
+binding-permuted are `NOT_RUN_NATIVE_MISS`; attention-off is
+`UNAVAILABLE_FROZEN_MECHANICS`; English transfer, language preservation,
+coherent-R4 comparison, and generation do not run. This establishes no new
+attention attribution: #1045 used plain ordinary causal softmax and is neither
+geometric-attention nor generation evidence. It borrowed Zoology's curriculum
+and optimizer shape but materially differed from the released Zoology cell,
+loader, model, role path, and projection mechanics. The next bounded action is
+a new issue integrating the exact released ICLR24 Zoology causal-softmax cell
+and loader as an integration control, not tuning #1045. Modulo-256 remains a
+discrete role/table/lowering substrate, not continuous softmax normalization.
+See the
+[#1045 record](docs/r4_role_tagged_associative_curriculum_1045.md).
+
 **Current source-free binding boundary (2026-09-02):** #1043 preserved one
 exact K/V record per causal position and completed its frozen 2,730-step mixed
 fit, coherent-R4 execution, reveal, and replay. Its terminal is
@@ -25,9 +51,10 @@ the artifact scored `30/87,360` MQAR and `578/8,190` English supplied-history
 decisions while perfectly learning the easy `2,730` no-history abstentions.
 Therefore a parity-only recovery cannot change the action and is not run. Keep
 ordinary softmax attention and the coherent R4 gauge implementation, but do not
-advance this artifact to generation, recurrence, or lowering. A new successor
-must first pass an open role-tagged associative-learning and curriculum ladder;
-#954 remains blocked. See the
+advance this artifact to generation, recurrence, or lowering. Its #1045
+successor attempted the required open role-tagged associative-learning ladder
+and missed assignment-disjoint development, as reported above; #954 remains
+blocked. See the
 [#1043 record](docs/r4_position_kv_binding_1043.md).
 
 **Normal-use product boundary (2026-09-01):** #1041 exercised the merged #1039

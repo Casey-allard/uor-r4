@@ -106,6 +106,12 @@ from .position_kv_binding_campaign import (
     run_position_kv_binding_campaign,
     validate_position_kv_binding_result,
 )
+from .role_tagged_associative_development import (
+    preflight_role_tagged_associative_development,
+    prepare_role_tagged_associative_development,
+    run_role_tagged_associative_development,
+    verify_role_tagged_associative_development,
+)
 from .paths import (
     default_attended_relation_adapter_root,
     default_capacity_root,
@@ -192,6 +198,10 @@ def _print_result(value: dict[str, Any]) -> None:
 
 def _default_position_kv_binding_root() -> Path:
     return model_store_root() / "research" / "issue-1043-position-kv-binding"
+
+
+def _default_role_tagged_associative_root() -> Path:
+    return model_store_root() / "research" / "issue-1045-role-tagged-associative"
 
 
 def parser() -> argparse.ArgumentParser:
@@ -1012,6 +1022,28 @@ def parser() -> argparse.ArgumentParser:
         "verify-position-kv-binding",
         help="fresh-process validation of #1043's create-once terminal result",
     )
+    prepare_role_tagged = subcommands.add_parser(
+        "prepare-role-tagged-associative",
+        help="bind #1045's open role-tagged ladder to #1043 construction only",
+    )
+    prepare_role_tagged.add_argument(
+        "--source-root",
+        type=_root,
+        default=_default_position_kv_binding_root(),
+        help="immutable #1043 root; only ordinary inputs and construction are read",
+    )
+    subcommands.add_parser(
+        "preflight-role-tagged-associative",
+        help="run #1045's role oracle, overfit, and Apple CPU plan probe",
+    )
+    subcommands.add_parser(
+        "run-role-tagged-associative",
+        help="run #1045's open MQAR rung until its first decision",
+    )
+    subcommands.add_parser(
+        "verify-role-tagged-associative",
+        help="validate #1045's open result and learned artifact",
+    )
     return command
 
 
@@ -1108,6 +1140,12 @@ def main() -> None:
         "run-position-kv-binding",
         "verify-position-kv-binding",
     }
+    role_tagged_associative_commands = {
+        "prepare-role-tagged-associative",
+        "preflight-role-tagged-associative",
+        "run-role-tagged-associative",
+        "verify-role-tagged-associative",
+    }
     if arguments.root:
         root = arguments.root
     elif arguments.command in capacity_commands:
@@ -1150,6 +1188,8 @@ def main() -> None:
         root = default_predictive_block_delta_terminal_root()
     elif arguments.command in position_kv_binding_commands:
         root = _default_position_kv_binding_root()
+    elif arguments.command in role_tagged_associative_commands:
+        root = _default_role_tagged_associative_root()
     else:
         root = default_research_root()
     if arguments.command == "download":
@@ -1545,5 +1585,22 @@ def main() -> None:
         return
     if arguments.command == "verify-position-kv-binding":
         _print_result(validate_position_kv_binding_result(root))
+        return
+    if arguments.command == "prepare-role-tagged-associative":
+        _print_result(
+            prepare_role_tagged_associative_development(
+                root,
+                source_root=arguments.source_root,
+            )
+        )
+        return
+    if arguments.command == "preflight-role-tagged-associative":
+        _print_result(preflight_role_tagged_associative_development(root))
+        return
+    if arguments.command == "run-role-tagged-associative":
+        _print_result(run_role_tagged_associative_development(root))
+        return
+    if arguments.command == "verify-role-tagged-associative":
+        _print_result(verify_role_tagged_associative_development(root))
         return
     raise AssertionError(f"unhandled command: {arguments.command}")

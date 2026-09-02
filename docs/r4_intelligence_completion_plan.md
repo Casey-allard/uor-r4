@@ -4,6 +4,31 @@
   readable mirror of programme root #820 (stages S0–S7 plus cross-cutting F0).
   The [Geometric Intelligence Programme](geometric_intelligence_programme.md)
   is its current architecture and claim-boundary companion.
+  The newest open associative-learning result is #1045's
+  [`R4RoleTaggedAssociativeCurriculumV1`](r4_role_tagged_associative_curriculum_1045.md).
+  It completed all 64 R1 epochs and `4,194,304` presentations in `966.7488 s`,
+  reaching `65,500/65,536` (`99.945068%`) training accuracy but only
+  `7,137/8,192` (`87.121582%`) final assignment-disjoint development accuracy
+  at NLL `1.1712778`. Best development was epoch 53 at `7,162/8,192`
+  (`87.426758%`). The frozen 99% development gate therefore yields
+  `OPEN_MQAR_NOT_LEARNED`. Result CID is
+  `blake3:d920ad7b7f373c55cb564e27b3ddb1af8949a20c432e0d7cd2b39f1f69999557`;
+  artifact CID is
+  `blake3:92bb13caf71c9ef44885a9da39023d080de075118b5902b716d2ca9b0f61f611`.
+  Future, forbidden, teacher, provider, and sealed reads were zero, but the
+  primary miss leaves the native/coherent-R4 arm `NOT_RUN_PRIMARY_MISS`, the
+  current-only, role-off, value-permuted, and binding-permuted arms
+  `NOT_RUN_NATIVE_MISS`, and attention-off `UNAVAILABLE_FROZEN_MECHANICS`.
+  English transfer, language
+  preservation, coherent-R4 comparison, and generation remain unrun. #1045
+  used plain ordinary causal softmax; it does not establish geometric
+  attention, attention attribution, or generation. It borrowed Zoology's
+  curriculum and optimizer shape but materially differed from the released
+  cell, loader, model, role path, and projection mechanics. The next action is
+  a new issue integrating the exact released ICLR24 Zoology causal-softmax cell
+  and loader as a matched integration control, not tuning #1045. Modulo-256 is
+  retained for discrete roles, tables, and later lowering, not continuous
+  probability normalization.
   The newest bounded source-free binding campaign is #1043's
   [`R4PositionPreservingCausalKVBindingV1`](r4_position_kv_binding_1043.md).
   Its one frozen fit/reveal is terminal `INVALID_POSITION_KV_BINDING` because
@@ -14,10 +39,10 @@
   result is nevertheless immutable. Construction-only diagnosis then measured
   `30/87,360` MQAR, `578/8,190` supplied-history English, and `2,730/2,730`
   no-history abstention. A parity-only rescore cannot repair those weights and
-  is not run. The next contract must establish role-tagged associative-first
-  learning on open construction/development data before another sealed fit.
-  No generation, recurrence, lowering, #954, or reasoning work is authorized
-  from #1043. Result CID
+  is not run. That requirement led to #1045's open role-tagged
+  associative-first ladder, which missed assignment-disjoint development as
+  reported above. No new sealed fit, generation, recurrence, lowering, #954,
+  or reasoning work is authorized from either result. Result CID
   `blake3:96a382d2f6118fbd2883fbee8b383764de0d6098efbf82bf863412c6996d80d0`.
   The latest source-free capacity result is #973's independently frozen
   `R4PredictiveBlockDeltaBindingV1` terminal over qualified

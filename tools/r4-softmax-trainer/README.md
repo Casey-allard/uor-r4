@@ -1,4 +1,4 @@
-# R4 offline trainers (#973 / #1014 / #1017 / #1019 / #954)
+# R4 offline trainers
 
 This package contains the bounded offline training paths authorized by issues
 [#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014) and
@@ -43,6 +43,46 @@ evidence in the freeze. MPS is eligible only when the scientific contract allows
 it; CUDA requires explicit issue scope. Offline acceleration does not change the
 CPU/table-native deployed-runtime target. The normative rule is in the root
 [`AGENTS.md`](../../AGENTS.md#long-run-discipline-process-amendment-2026-08-06).
+
+## Open #1045 role-tagged associative ladder
+
+The canonical contract and append-only evidence record are
+[`docs/r4_role_tagged_associative_curriculum_1045.md`](../../docs/r4_role_tagged_associative_curriculum_1045.md).
+This campaign starts from #1043's ordinary initialization and open construction
+population only. It never reads #1043's fitted artifact or sealed evaluation
+payloads. Its create-once lifecycle is:
+
+```bash
+export UOR_MODEL_STORE="/absolute/path/to/the/shared/.uor-models"
+ROOT="$UOR_MODEL_STORE/research/issue-1045-role-tagged-associative"
+SOURCE_ROOT="$UOR_MODEL_STORE/research/issue-1043-position-kv-binding"
+TRAINER="$(git rev-parse --show-toplevel)/tools/r4-softmax-trainer"
+
+uv run --offline --project "$TRAINER" r4-softmax-trainer \
+  --root "$ROOT" prepare-role-tagged-associative --source-root "$SOURCE_ROOT"
+uv run --offline --project "$TRAINER" r4-softmax-trainer \
+  --root "$ROOT" preflight-role-tagged-associative
+uv run --offline --project "$TRAINER" r4-softmax-trainer \
+  --root "$ROOT" run-role-tagged-associative
+uv run --offline --project "$TRAINER" r4-softmax-trainer \
+  --root "$ROOT" verify-role-tagged-associative
+```
+
+Preparation binds the input and trainer implementation identities. Preflight
+must establish the causal role oracle, the disposable 32-row overfit, and an
+eligible Apple Accelerate CPU plan before R1 may run. A positive preflight is
+mechanics and resource-admission evidence, not a held-out associative-attention
+result. R1 alone decides `OPEN_MQAR_LEARNED` versus
+`OPEN_MQAR_NOT_LEARNED` on assignment-disjoint open MQAR and its destructive
+controls. Role-off is a separate, non-gating attribution check; attention-off
+is unavailable under the frozen mechanics. Even a positive R1 authorizes only
+the next open English-transfer rung—not generation, geometric advantage,
+softmax replacement, exact lowering, reasoning, product, or release claims.
+The executed R1 stopped `OPEN_MQAR_NOT_LEARNED`: construction reached
+`65,500/65,536`, while assignment-disjoint development reached
+`7,137/8,192`. The binding next action is a separately scoped port of the
+released Zoology cell and loader, not a #1045 retry; exact evidence and CIDs are
+in the canonical record above.
 
 ## Terminal #973 group-retention and decoder paths
 

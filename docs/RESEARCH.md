@@ -14,6 +14,38 @@ Measurements retain their pre-declared exit rule and durable issue/record
 reference; design targets remain explicitly labeled as definitions,
 assumptions, or objectives rather than measured results.
 
+> **Open role-tagged associative-learning result (2026-09-02).** #1045
+> completed its full 64-epoch R1 cap and stopped
+> `OPEN_MQAR_NOT_LEARNED`. Training reached `65,500/65,536`
+> (`99.945068%`), but final assignment-disjoint development was only
+> `7,137/8,192` (`87.121582%`), versus the frozen 99% requirement. The best
+> development checkpoint was epoch 53 at `7,162/8,192` (`87.426758%`), and
+> final development NLL was `1.1712778`. The run made `4,194,304`
+> presentations over 64 epochs in `966.7488 s`.
+>
+> The result is bound to
+> `blake3:d920ad7b7f373c55cb564e27b3ddb1af8949a20c432e0d7cd2b39f1f69999557`
+> and artifact
+> `blake3:92bb13caf71c9ef44885a9da39023d080de075118b5902b716d2ca9b0f61f611`.
+> Future, forbidden, teacher, provider, and sealed reads were all zero. Those
+> integrity facts do not erase the primary miss. The native/coherent-R4 arm is
+> `NOT_RUN_PRIMARY_MISS`; current-only, role-off, value-permuted, and
+> binding-permuted are `NOT_RUN_NATIVE_MISS`; attention-off is
+> `UNAVAILABLE_FROZEN_MECHANICS`; English transfer, natural-language
+> preservation, coherent-R4 comparison, and generation were not reached.
+> Therefore this is a plain ordinary causal-softmax open-development negative,
+> not new geometric-attention, attention-attribution, or generation evidence.
+>
+> #1045 borrowed the associative-first curriculum and optimizer shape from
+> Zoology, but it was not a stock Zoology replication: its role-tagged wrapper,
+> inherited decoder, data loader, and query-only projection mechanics
+> materially differ. The divergent next action is a new issue integrating the
+> exact released ICLR24 Zoology causal-softmax cell and loader as a matched
+> integration control. Do not tune or retry #1045. Modulo-256 remains relevant
+> to categorical roles, discrete tables, and later lowering, not continuous
+> probability normalization. See the
+> [#1045 record](r4_role_tagged_associative_curriculum_1045.md).
+
 > **Position-preserving causal K/V result (2026-09-02).** #1043 completed its
 > sole frozen 2,730-step CPU/Apple-Accelerate fit and reveal. The create-once
 > result is `INVALID_POSITION_KV_BINDING`, CID
@@ -33,8 +65,10 @@ assumptions, or objectives rather than measured results.
 > English-history top-1 while learning `2,730/2,730` no-history abstentions.
 > Because a parity-only rescore cannot repair unlearned weights, no recovery
 > campaign has decision value. Preserve the artifact/result, do not generate or
-> lower it, and require an open role/curriculum capability ladder before any new
-> sealed successor. See the [#1043 record](r4_position_kv_binding_1043.md) and
+> lower it. That requirement led to #1045's open role/curriculum ladder, which
+> missed assignment-disjoint development as reported above; no new sealed
+> successor is authorized. See the
+> [#1043 record](r4_position_kv_binding_1043.md) and
 > [structured result](r4_position_kv_binding_1043_result_raw.json).
 
 > **Normal-use product decision (2026-09-01).** #1041 ran the merged #1039

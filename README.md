@@ -14,6 +14,38 @@ local hardware. The project is testing whether language context, inference,
 and reasoning can emerge from routes through a canonical geometric memory. The
 target serving engine uses no Ollama, hosted model, or source-model weights.
 
+> **Latest open role-tagged associative result (2026-09-02):** #1045
+> completed the full 64-epoch R1 cap and stopped at
+> `OPEN_MQAR_NOT_LEARNED`. Training reached `65,500/65,536`
+> (`99.945068%`), but the assignment-disjoint development population reached
+> only `7,137/8,192` (`87.121582%`) at the final artifact; the best open
+> development checkpoint was epoch 53 at `7,162/8,192` (`87.426758%`). Final
+> development NLL was `1.1712778`. The run used `4,194,304` presentations over
+> 64 epochs and completed in `966.7488 s`.
+>
+> Future, forbidden, teacher, provider, and sealed-population reads were all
+> zero. Result CID is
+> `blake3:d920ad7b7f373c55cb564e27b3ddb1af8949a20c432e0d7cd2b39f1f69999557`;
+> artifact CID is
+> `blake3:92bb13caf71c9ef44885a9da39023d080de075118b5902b716d2ca9b0f61f611`.
+> Because primary plain-attention development missed the frozen 99% gate, the
+> native/coherent-R4 arm is `NOT_RUN_PRIMARY_MISS`; current-only, role-off,
+> value-permuted, and binding-permuted are `NOT_RUN_NATIVE_MISS`; attention-off is
+> `UNAVAILABLE_FROZEN_MECHANICS`. English transfer, language preservation,
+> coherent-R4 comparison, and generation therefore remain unrun. This is a
+> plain ordinary causal-softmax result, not geometric-attention or generation
+> evidence.
+>
+> #1045 borrowed Zoology's associative-first curriculum and optimizer shape,
+> but it was not a stock Zoology replication: the role embedding, inherited
+> decoder, population loader, projection path, and other mechanics materially
+> differ. The next action is a new issue integrating the exact released ICLR24
+> Zoology causal-softmax cell and loader as a matched control, not tuning or
+> retrying #1045. Modulo-256 remains relevant to discrete role identities,
+> tables, and later lowering; it is not a substitute for continuous probability
+> normalization. See the
+> [#1045 record](docs/r4_role_tagged_associative_curriculum_1045.md).
+
 > **Latest position-preserving K/V result (2026-09-02):** #1043 completed its
 > one frozen fit and terminal reveal as `INVALID_POSITION_KV_BINDING`. Exact
 > work, causal isolation, replay, attention-weight parity, full/incremental
@@ -29,10 +61,12 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > history was `578/8,190`, while the easy no-history abstention was
 > `2,730/2,730`. A parity-only rescore cannot change the weights and would not
 > change the project action, so #1043 is not retried or reclassified. The next
-> research contract must establish role-tagged, associative-first
-> construction/development learning before another sealed fit. Ordinary causal
-> softmax attention and its coherent R4 gauge realization remain established at
-> their prior scopes. See the [#1043 record](docs/r4_position_kv_binding_1043.md).
+> research contract had to establish role-tagged, associative-first
+> construction/development learning before another sealed fit. #1045 attempted
+> that open ladder and missed its assignment-disjoint development gate, as
+> reported above. Ordinary causal softmax attention and its coherent R4 gauge
+> realization remain established only at their prior scopes. See the
+> [#1043 record](docs/r4_position_kv_binding_1043.md).
 
 > **Latest source-free prompt-capacity result (2026-09-01):** #973's frozen
 > `R4PredictiveBlockDeltaPromptCapacityV5` campaign is complete and independently
