@@ -251,6 +251,41 @@ learned tensors remain unchanged. Start markers prevent an interrupted run or
 replay from silently renewing its budget; resource interruption is incomplete
 evidence rather than a model failure.
 
+## #1061 exact-data coherent R4 inference
+
+[#1061](../../docs/r4_zoology_exact_coherent_inference_1061.md) applies the unchanged
+#1059 adapter to #1057's retained final block-40 model without training. Reuse
+the existing #1059 frame directory; do not rebuild or reexport native geometry.
+Preparation reads the dataset root from #1057's preparation envelope. Inference
+opens only the three `test_*` tensor values and evaluates canonical development
+rows `0..1023` in two batches of 512; targets reach only the scorer.
+
+Use the package's locked Python environment and absolute retained/new paths:
+
+```bash
+EXACT_REPO="$(git rev-parse --show-toplevel)"
+EXACT_TRAINER="$EXACT_REPO/tools/r4-softmax-trainer"
+EXACT_SOURCE="/absolute/retained/issue-1057-zoology-checkpoint-continuation"
+EXACT_FRAMES="/absolute/retained/issue-1059-zoology-r4-inference/frames"
+EXACT_ROOT="/absolute/new/issue-1061-zoology-exact-r4-inference"
+PYTHONPATH="$EXACT_TRAINER/src" "$EXACT_TRAINER/.venv/bin/python" \
+  -m r4_softmax_trainer.zoology_exact_r4_inference prepare "$EXACT_ROOT" \
+  --source-root "$EXACT_SOURCE" --frames-root "$EXACT_FRAMES"
+```
+
+Commit and publish the implementation and preparation binding before fitted
+scoring. Then run and verify in separate Python processes:
+
+```bash
+PYTHONPATH="$EXACT_TRAINER/src" "$EXACT_TRAINER/.venv/bin/python" \
+  -m r4_softmax_trainer.zoology_exact_r4_inference run "$EXACT_ROOT"
+PYTHONPATH="$EXACT_TRAINER/src" "$EXACT_TRAINER/.venv/bin/python" \
+  -m r4_softmax_trainer.zoology_exact_r4_inference verify "$EXACT_ROOT"
+```
+
+The new conditional transport control leaves #1057's historical physical
+binding-control status `NOT_RUN_PRIMARY_MISS` unchanged.
+
 ## Terminal #973 group-retention and decoder paths
 
 The canonical contract and evidence log are

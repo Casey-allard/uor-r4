@@ -14,28 +14,30 @@ Measurements retain their pre-declared exit rule and durable issue/record
 reference; design targets remain explicitly labeled as definitions,
 assumptions, or objectives rather than measured results.
 
-> **Current integration result (2026-09-02):** #1059 preserved the qualified
-> #1050 model through coherent R4 inference: plain and R4 both scored
-> `11,900/12,000 = 99.1667%`, with every top-1 prediction identical. Deliberately
-> inconsistent source-frame transport scored `2,307/12,000 = 19.225%`, a
-> `79.9417` percentage-point loss at equal causal support and work. Learned
-> weights and tied head stayed unchanged; zero optimizer updates ran. Exact
-> fresh-process replay passed. The combined CPU run and replay took `27.49 s`
-> with peak RSS `1.844 GiB` on four Apple Accelerate threads.
+> **Current integration result (2026-09-02):** #1061 reused #1059's unchanged
+> adapter on #1057's final block-40 model: plain and R4 both scored
+> `8,071/8,192 = 98.5229%`, with every top-1 prediction identical. Inconsistent
+> source-frame transport scored `1,009/8,192 = 12.3169%`, an `86.2061`
+> percentage-point loss at equal causal support and work. Learned weights and
+> tied head stayed unchanged; zero training or optimizer updates ran. Exact
+> fresh-process replay passed. Combined run and replay took `33.79 s`, peak RSS
+> `2.411 GiB`, on four Apple Accelerate threads. See the [#1061 record](r4_zoology_exact_coherent_inference_1061.md).
 >
-> This establishes preserved learned associative behavior and transport-path
-> sensitivity on the retained open Zoology population. It does not establish H4
-> superiority, softmax removal, source-free/table lowering, English context
-> binding, or generation. All 8,192 token leaves were covered; inference reached
-> 24 of 120 H4 frames. More reachable frame labels alone would change coordinates,
-> not the capacity of this coherent adapter.
+> The model used vocabulary 4,096, sequence length 120 and eight queries per row.
+> The unchanged native 8,192-token map covered its vocabulary; inference reached
+> 24 of 120 H4 frames. [#1059](r4_zoology_coherent_inference_1059.md) remains a predecessor positive:
+> `11,900/12,000 = 99.1667%` preserved, with a `79.9417` percentage-point control
+> loss. Both results establish associative preservation and transport sensitivity;
+> H4 superiority, softmax removal and English language binding remain unshown.
 >
-> The next recommended step is a separately scoped inference-only application of
-> the same adapter to #1057's retained final block-40 artifact on its original
-> exact-data population (`8,071/8,192 = 98.5229%` reference). Preserve its original
-> near-target result, weights, and unrun historical control. No third training
-> window or geometry expansion is implied. See the [#1059 integration record](r4_zoology_coherent_inference_1059.md)
-> and the [preserved #1057 record](r4_zoology_checkpoint_continuation_1057.md).
+> The next recommendation is one separately frozen small English context-binding
+> curriculum using the working architecture and R4 adapter: a fixed question
+> with contrasting supplied facts, distractors, and swapped/missing history
+> controls, plus explicit lexical encoding and a bounded learning contract.
+> These MQAR checkpoints are not English models; a zero-shot English test is not
+> a gate on whether attention exists. Preserve both artifacts and #1057's
+> historical `NOT_RUN_PRIMARY_MISS` control. Further training or geometry
+> expansion is outside this inference-only delivery.
 
 > **Predecessor role-tagged associative-learning result (2026-09-02).** #1045
 > completed its full 64-epoch R1 cap and stopped
