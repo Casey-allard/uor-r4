@@ -14,7 +14,23 @@ local hardware. The project is testing whether language context, inference,
 and reasoning can emerge from routes through a canonical geometric memory. The
 target serving engine uses no Ollama, hosted model, or source-model weights.
 
-> **Latest open role-tagged associative result (2026-09-02):** #1045
+> **Latest copied-attention control result (2026-09-02):** #1047 ported and
+> credited the released ICLR24 Zoology one-head, width-64 causal-softmax cell
+> and MQAR loader. Literal-source loader/model goldens, initialization replay,
+> causal-prefix/query-only parity, and a 32-row `128/128` overfit all passed.
+> The long run was correctly `NOT_RUN_PREFLIGHT`: the fastest frozen plan used
+> all eight CPU cores but projected `959.212581 s` after the required `1.25`
+> safety factor, above the 900-second wall. C1, C2, binding permutation, and
+> artifacts therefore did not run; there is no scientific verdict about the
+> copied cell. Result CID is
+> `blake3:b453abccc6ae0db9cc186c791aba268555dc0e75fe687c994e940254b0ac9ef6`.
+> The next action preserves the exact cell/data/training contract and widens
+> only the CPU execution wall on a fresh issue. Modulo-256 remains the intended
+> substrate for discrete roles, wheel/table operations, and later lowering;
+> it is not continuous softmax normalization. See the
+> [#1047 record](docs/r4_zoology_mqar_control_1047.md).
+
+> **Predecessor open role-tagged associative result (2026-09-02):** #1045
 > completed the full 64-epoch R1 cap and stopped at
 > `OPEN_MQAR_NOT_LEARNED`. Training reached `65,500/65,536`
 > (`99.945068%`), but the assignment-disjoint development population reached
@@ -39,9 +55,9 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > #1045 borrowed Zoology's associative-first curriculum and optimizer shape,
 > but it was not a stock Zoology replication: the role embedding, inherited
 > decoder, population loader, projection path, and other mechanics materially
-> differ. The next action is a new issue integrating the exact released ICLR24
-> Zoology causal-softmax cell and loader as a matched control, not tuning or
-> retrying #1045. Modulo-256 remains relevant to discrete role identities,
+> differ. #1047 subsequently integrated the released ICLR24 Zoology
+> causal-softmax cell and loader as a matched control and stopped at its CPU
+> admission wall, as reported above. Modulo-256 remains relevant to discrete role identities,
 > tables, and later lowering; it is not a substitute for continuous probability
 > normalization. See the
 > [#1045 record](docs/r4_role_tagged_associative_curriculum_1045.md).

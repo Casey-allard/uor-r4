@@ -84,6 +84,32 @@ The executed R1 stopped `OPEN_MQAR_NOT_LEARNED`: construction reached
 released Zoology cell and loader, not a #1045 retry; exact evidence and CIDs are
 in the canonical record above.
 
+## #1047 released Zoology MQAR control
+
+The credited source port and frozen contract are documented in
+[`docs/r4_zoology_mqar_control_1047.md`](../../docs/r4_zoology_mqar_control_1047.md).
+Its create-once lifecycle is exposed as a module:
+
+```bash
+TRAINER="$(git rev-parse --show-toplevel)/tools/r4-softmax-trainer"
+cd "$TRAINER"
+PYTHONPATH=src .venv/bin/python -m r4_softmax_trainer.zoology_control prepare \
+  /absolute/run/root --source-root /absolute/1043/root \
+  --predecessor-root /absolute/1045/root
+PYTHONPATH=src .venv/bin/python -m r4_softmax_trainer.zoology_control preflight \
+  /absolute/run/root
+PYTHONPATH=src .venv/bin/python -m r4_softmax_trainer.zoology_control run \
+  /absolute/run/root
+PYTHONPATH=src .venv/bin/python -m r4_softmax_trainer.zoology_control verify \
+  /absolute/run/root
+```
+
+The executed C0 passed exact source goldens and disposable overfit, but no
+frozen CPU plan met the 900-second admission wall: the all-core 8-thread plan
+projected `959.212581 s`. The immutable result is `NOT_RUN_PREFLIGHT`, CID
+`blake3:b453abccc6ae0db9cc186c791aba268555dc0e75fe687c994e940254b0ac9ef6`.
+No training artifact or scientific attention verdict was produced.
+
 ## Terminal #973 group-retention and decoder paths
 
 The canonical contract and evidence log are

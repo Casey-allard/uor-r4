@@ -4,7 +4,18 @@
   readable mirror of programme root #820 (stages S0–S7 plus cross-cutting F0).
   The [Geometric Intelligence Programme](geometric_intelligence_programme.md)
   is its current architecture and claim-boundary companion.
-  The newest open associative-learning result is #1045's
+  The newest copied-attention control is #1047's
+  [`ZoologyMQARControlV1`](r4_zoology_mqar_control_1047.md). It integrated and
+  credited the released ICLR24 one-head, width-64 causal-softmax cell and MQAR
+  loader. Literal-source mechanics and the 32-row `128/128` overfit passed, but
+  the long run is `NOT_RUN_PREFLIGHT`: the all-core 8-thread plan projected
+  `959.212581 s` after the frozen safety factor, above the 900-second wall.
+  C1, C2, binding permutation, and artifacts did not run; no scientific
+  attention or transfer verdict exists. Result CID is
+  `blake3:b453abccc6ae0db9cc186c791aba268555dc0e75fe687c994e940254b0ac9ef6`.
+  Continue with the identical scientific contract and a minimally widened CPU
+  wall in a fresh issue, not a #1047 tune or rerun.
+  The predecessor open associative-learning result is #1045's
   [`R4RoleTaggedAssociativeCurriculumV1`](r4_role_tagged_associative_curriculum_1045.md).
   It completed all 64 R1 epochs and `4,194,304` presentations in `966.7488 s`,
   reaching `65,500/65,536` (`99.945068%`) training accuracy but only
@@ -24,9 +35,9 @@
   used plain ordinary causal softmax; it does not establish geometric
   attention, attention attribution, or generation. It borrowed Zoology's
   curriculum and optimizer shape but materially differed from the released
-  cell, loader, model, role path, and projection mechanics. The next action is
-  a new issue integrating the exact released ICLR24 Zoology causal-softmax cell
-  and loader as a matched integration control, not tuning #1045. Modulo-256 is
+  cell, loader, model, role path, and projection mechanics. #1047 performed
+  that released-cell integration and stopped at CPU admission, as reported
+  above. Modulo-256 is
   retained for discrete roles, tables, and later lowering, not continuous
   probability normalization.
   The newest bounded source-free binding campaign is #1043's

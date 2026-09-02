@@ -9,7 +9,21 @@ The earlier
 preserved #948–#958 sequencing record. Measured, refuted, and frozen research
 remains in [docs/RESEARCH.md](docs/RESEARCH.md).
 
-**Current open associative-learning boundary (2026-09-02):** #1045 completed
+**Current copied-attention control boundary (2026-09-02):** #1047 integrated
+and credited the released ICLR24 Zoology one-head, width-64 causal-softmax cell
+and MQAR loader. C0 passed literal-source loader/model goldens, deterministic
+initialization, causal/query-only parity, and `128/128` open overfit. The
+scientific run is `NOT_RUN_PREFLIGHT`: the all-core 8-thread plan was fastest
+but projected `959.212581 s` after the frozen `1.25` safety factor, above the
+900-second wall. C1, C2, binding permutation, and artifacts did not run, so
+this is a resource-admission result rather than a finding about attention,
+geometry, or assignment-disjoint generalization. Result CID is
+`blake3:b453abccc6ae0db9cc186c791aba268555dc0e75fe687c994e940254b0ac9ef6`.
+Continue on a fresh issue with the identical scientific cell/data/training
+contract and a minimally widened CPU wall; do not tune #1047. See the
+[#1047 record](docs/r4_zoology_mqar_control_1047.md).
+
+**Predecessor open associative-learning boundary (2026-09-02):** #1045 completed
 all 64 permitted R1 epochs and stopped `OPEN_MQAR_NOT_LEARNED`. Training reached
 `65,500/65,536` (`99.945068%`), while assignment-disjoint development finished
 at `7,137/8,192` (`87.121582%`) with NLL `1.1712778`; the best development
@@ -28,9 +42,9 @@ coherent-R4 comparison, and generation do not run. This establishes no new
 attention attribution: #1045 used plain ordinary causal softmax and is neither
 geometric-attention nor generation evidence. It borrowed Zoology's curriculum
 and optimizer shape but materially differed from the released Zoology cell,
-loader, model, role path, and projection mechanics. The next bounded action is
-a new issue integrating the exact released ICLR24 Zoology causal-softmax cell
-and loader as an integration control, not tuning #1045. Modulo-256 remains a
+loader, model, role path, and projection mechanics. #1047 performed that
+released-cell integration and stopped at CPU admission, as reported above.
+Modulo-256 remains a
 discrete role/table/lowering substrate, not continuous softmax normalization.
 See the
 [#1045 record](docs/r4_role_tagged_associative_curriculum_1045.md).
