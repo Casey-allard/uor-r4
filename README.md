@@ -14,46 +14,48 @@ local hardware. The project is testing whether language context, inference,
 and reasoning can emerge from routes through a canonical geometric memory. The
 target serving engine uses no Ollama, hosted model, or source-model weights.
 
-> **Current joint-query result (2026-09-02):** #1069 completed
-> `JOINT_QUERY_PRESERVATION_MISS`, retaining substantial owner/aggregate gains
-> and a failed object-pair preservation condition. Adding the owner embedding
-> at query-object/readout position 37 raised construction from
-> `3,735/8,192 = 45.5933%` to **`4,118/8,192 = 50.2686%` (+4.6753 points)**
-> at the matched 3,920-update dose. NLL fell by 0.1386159509 nats.
-> See the [#1069 joint-query record](docs/r4_zoology_joint_query_1069.md).
+> **Current cyclic fact-order result (2026-09-02):** #1071 completed
+> `CYCLIC_FACTS_PRESERVATION_MISS`. The single plain-#1067 augmentation fit
+> regresses in every tested order at the same 3,920-update dose. Canonical
+> construction falls **3,735 → 1,702 / 8,192 (45.5933% → 20.7764%)**;
+> all four candidate scores are **20.7764–21.0083%**, versus the retained
+> reference's 40.8569–45.5933%. The reference's full canonical score and
+> diagnostic reproduce exactly. See the [#1071 cyclic-order record](docs/r4_zoology_cyclic_facts_1071.md).
 >
-> Owner-changing question pairs both correct rose **47 → 338 / 2,048**, passing
-> the required 150. Object-changing pairs both correct fell **447 → 376 / 2,048**,
-> missing preservation even though individual accuracy in that family improved.
-> The aggregate gain is concentrated by position: target-slot accuracies are
-> **35.8887%, 36.0352%, 29.4922%, 99.6582%**. Slot 4 gains 690 correct answers;
-> the other three collectively lose 307. Their accuracy falls 38.8021% → 33.8053%.
-> The descriptive `DISTRIBUTED_BINDING` label and false single-slot majority flag
-> do not establish position independence or complete binding.
+> Owner-changing pairs both correct fall to **11 / 18 / 17 / 13** of 2,048,
+> versus 47 / 23 / 35 / 33; object-changing pairs fall to **20 / 23 / 24 / 30**,
+> versus 447 / 329 / 392 / 352. Every frozen behavior criterion misses.
+> All target-slot accuracies are 19.1406–22.9004%, below the 50% floor.
+> The candidate has zero complete four-answer quartets in every rotation.
+> Canonical supported questions receive **2,647 unknown answers / 8,192
+> (32.3120%)**, versus 330. Owner-change responsiveness increases, but paired
+> correctness falls. Similar low scores across rotations do not establish
+> invariant predictions or successful binding.
 >
-> The complete fit/evaluation/exact fresh-process replay took **286.89 seconds**,
-> peak **0.7856 GiB**, on eight Apple Accelerate CPU threads. Twelve focused
-> checks and independent source/preparation/evidence reviews passed. Construction
-> missed `8,111/8,192`; new development is `NOT_RUN_CONSTRUCTION_MISS` with
-> **zero model decisions**. R4 is `NOT_RUN_SEPARATE_INFERENCE_STEP`. Broad QA
-> remains dormant; queue statuses acknowledge transport only.
+> The complete fit, eight-view comparison and exact fresh-process replay took
+> **315.59 seconds**, peak **0.78595 GiB**, on eight Apple Accelerate CPU threads.
+> The exact 2,007,040-presentation ledger and partial-tail exposure reconcile.
+> Fifteen focused checks and independent source/preparation/evidence reviews
+> passed. Fresh development is **`NOT_RUN_CONSTRUCTION_MISS`**, with zero model
+> decisions; R4 is `NOT_RUN_SEPARATE_INFERENCE_STEP`. Broad QA remains dormant;
+> queue statuses acknowledge transport only. Retain **#1067 as the reference**.
 >
-> The frozen decision retains **#1067 as the reference** and preserves #1069's
-> measured tradeoff. The next recommendation is one separately frozen **cyclic
-> fact-order augmentation fit**, with the plain #1067 query-object readout,
-> no owner residual, the same four-fact task, 41-token shape, labels, seed and
-> 3,920-update budget. Rotate complete fact blocks across successive training
-> traversals, keeping paired variants aligned. Compare final candidate/reference
-> on canonical construction and all four cyclic rotations; freeze improvement
-> criteria for both question types and an explicit worst-slot requirement before
-> fitting. No such fit ran in #1069. More geometry remains deferred.
+> The next recommendation is one separately frozen **fact-level learned Q/K/V
+> binding prototype**: independently learned owner–object query/key projections,
+> a shared encoder for all four facts without fact-slot embeddings, location
+> values and a learned null for missing bindings, with ordinary softmax and the
+> full 4,096-token head. Keep the four-fact task, counterfactual controls and bounded
+> dose. Fixed grammar supplies roles; no equality matcher or target-derived routing.
+> Any positive would concern learned binding through an explicit structured
+> interface, not learned English parsing. Freeze controls and fresh exclusions
+> before that separate run. No such prototype ran in #1071. More geometry deferred.
 >
-> Historical #1063/#1065/#1067 evidence remains intact. #1061 retains ordinary
-> and coherent R4 both at `8,071/8,192 = 98.5229%`, all 8,192 predictions identical,
-> and an `86.2061`-percentage-point loss under transport control. #1059 retains
-> `11,900/12,000 = 99.1667%` preservation. Fresh transfer, general English, H4
-> superiority, softmax removal, reasoning and chat readiness remain unestablished;
-> #973 stays open and #954 remains blocked.
+> Historical #1063/#1065/#1067/#1069 evidence remains intact. #1061 retains
+> ordinary/coherent R4 at **8,071/8,192 = 98.5229%**, all predictions identical,
+> and an 86.2061-point transport-control loss. #1059 retains
+> **11,900/12,000 = 99.1667%** preservation. Fresh transfer, general English,
+> H4 superiority, softmax removal, reasoning and chat readiness remain
+> unestablished; #973 stays open and #954 remains blocked.
 
 > **Predecessor open role-tagged associative result (2026-09-02):** #1045
 > completed the full 64-epoch R1 cap and stopped at
