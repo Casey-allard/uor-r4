@@ -1,0 +1,30 @@
+{
+  "schema": "uor-r4.native-bridge-storage-review/1",
+  "issue": 1102,
+  "date": "2026-09-03",
+  "prior_audit": "/Users/casey.allard/Documents/Codex/storage-audit-2026-09-02.md",
+  "available_before_cache_restore_KiB": 44418764,
+  "available_at_delivery_review_KiB": 43878120,
+  "available_change_attribution": "Filesystem snapshots include other activity; do not attribute the whole delta to this task.",
+  "directory_allocation_KiB": {
+    "native_build": 458524,
+    "native_comparison": 74108,
+    "cache_recovery": 152,
+    "isolated_worktree": 1170976
+  },
+  "restored_archive_bytes": 2749985,
+  "native_build_observed_generation_bytes": 682391353,
+  "native_build_current_retained_bytes": 465237834,
+  "comparison_retained_files": 92,
+  "comparison_retained_bytes": 74366230,
+  "comparison_ledger_including_original_authoring_bytes": 75039076,
+  "full_output_tensor_bytes_retained": 26910720,
+  "deleted_paths": [],
+  "retained": [
+    "Both exact exported artifacts, all eleven mutation copies, four full tensor streams, per-row records, completed/stop-protocol receipts and independent audits.",
+    "The measured executable, build receipts and dependency cache required by its binding.",
+    "The isolated worktree and accepted historical reference worktrees.",
+    "Original .uor-models, original authoring files, sealed withheld population and mixed-checkout user changes."
+  ],
+  "decision": "Retain all task material. Current storage is sufficient; no cleanup is needed to deliver this bounded result."
+}

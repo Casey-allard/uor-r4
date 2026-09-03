@@ -1,0 +1,91 @@
+{
+  "schema": "uor-r4.native-reference-qualification-handoff/1",
+  "issue": 1102,
+  "status": "ACCEPTED_BOUNDED_NATIVE_REFERENCE_QUALIFICATION",
+  "qualification_sha256": "61d29aa80e6bcd3d163b2ff2a6da4faab04414ea9f4284d80b798c4e46cf5369",
+  "qualification_local_path": "/Users/casey.allard/.codex/uor/issue-1102-qualification/qualification.json",
+  "qualification_repository_path": "docs/r4_native_bridge_1102_evidence/qualification.json",
+  "qualification_encoding": "ascii-json-1086/1; no trailing LF",
+  "source_revision": "1c6be403a9de732dcbb1d9aad8fda66c2b18579c",
+  "operation": "answer_four_fact_raw_text/v1",
+  "artifact": {
+    "path": "/Users/casey.allard/.codex/uor/issue-1102-native-comparison/exports/a.r4lr",
+    "bytes": 2172252,
+    "sha256": "2c209590a64cae16a4140fd43adc1cb1f87b357c02e3d4959f1e37f4ab8cd5ab"
+  },
+  "native_binary": {
+    "path": "/Users/casey.allard/.codex/uor/issue-1102-native-build/target/aarch64-apple-darwin/release/r4-learned-reference-1102",
+    "sha256": "d423d8d3c3acd2d1c6215c21206e1bec7583e4dd37e84f30f70f79e77c40d53f"
+  },
+  "result_review": {
+    "path": "docs/r4_native_bridge_1102_evidence/result-review.json",
+    "sha256": "5e75c5a3407d91bf14a6ec8d57981a72cfe110cdaf1ddfd0c71f6ea0a07974e8"
+  },
+  "runtime_receipt": {
+    "path": "docs/r4_native_bridge_1102_evidence/runtime-receipt.json",
+    "sha256": "daba1ad4bf60d28def983378a6a856e0990d7eab20d2ec2365552ad07f3d83d2"
+  },
+  "trusted_binding": {
+    "accepted_binding": {
+      "assets": {
+        "core": {
+          "bytes": 1148672,
+          "cid": "blake3:9c055cc6ea09548bf960e37288276535b30515b94a50a96aa929b5e55afea3c4",
+          "sha256": "43ffff3c24f8030701e340cab802b985f7c0b7e4e12e270ec1107d141d65b079"
+        },
+        "h4_frames": {
+          "bytes": 81255,
+          "cid": "blake3:9df624162d14ba133fed34c560e4828961a4dc8d6a9438c731e8f8c209c16ad4",
+          "sha256": "ea9ea1de2f666aff24761991e16cb3d7ab21f3b36e38992e04b2376927c18b65"
+        },
+        "reader": {
+          "bytes": 566692,
+          "cid": "blake3:c11d21817bff818fa242f653279e9e0c12d21641ff63df3a5f7a6680bcc732a7",
+          "sha256": "912ac1d8a3dfb80a04755557576fbb87d518e78f04163085111fccfd329e5250"
+        },
+        "token_frames": {
+          "bytes": 32189,
+          "cid": "blake3:303a734c069af0c8910c8b473c87b549a687cf1f04570b979238d5d187576a13",
+          "sha256": "427f20c223886131910ebc3a16dcc4d7898c732b1654a37e483b5494b0b83fc0"
+        },
+        "vocabulary": {
+          "bytes": 130245,
+          "cid": "blake3:571d5fbc282b17c8726eebd7b23c3ae55212a3de81b35d27722a0fa5979b8c5b",
+          "sha256": "01d70796333a5c94c87a45d012a04038a9c79da2127792f5acd0132fd0255a82"
+        }
+      },
+      "core_state_cid": "blake3:abbdbcaafc2d9eb36543ce75fbb0101b6788119d80a6ed9c017bb9d06fbeac59",
+      "frame_tree_cid": "blake3:94762441a43b03f596a66131ec34af15bba3afbc2bbc5d28ab7dfdabd9b6d68c",
+      "policy_sha256": "91cce30a0b78c48130595369d3ea2a47c4de89cab5db1d4219d1874198cf52d0",
+      "reader_state_cid": "blake3:7c659422df2e65a0ce24c08738dc9f08dca99775de1702251097a0fc6483404e"
+    },
+    "artifact_sha256": "2c209590a64cae16a4140fd43adc1cb1f87b357c02e3d4959f1e37f4ab8cd5ab",
+    "contract_sha256": "e3565728dfa872d9c260dd3d391ae59e0b0d454ebead20cd15cb075b24796115",
+    "export_release_sha256": "2c3c2f73eb6cf804eb69b2afb0f979ae623a512ca0492e47df2af70d6cbaca8b",
+    "operator_profile": "cpu-scalar-f32-f64-1086/1"
+  },
+  "next_issue": 1084,
+  "next_action": "Freeze the Rust service/API and artifact-ownership ADR for this exact four-fact operation, including host-owned verification and truthful qualification of its actual binary. Do not activate or implement it during #1102.",
+  "ordinary_qualify_success_path": "NOT_RUN",
+  "ordinary_serving_endpoint": "NOT_IMPLEMENTED",
+  "comparison_envelope": "CONSUMED_NO_RETRY",
+  "trust_boundary": [
+    "Host must independently verify the accepted result review, comparison result, artifact and actual executable/runtime identities before supplying the trusted receipt digest.",
+    "The qualify API validates supplied bindings; it does not discover the actual host binary or interpret the review/result documents.",
+    "A newly linked service binary cannot borrow this measured binary SHA256 or qualification decision.",
+    "The measured binary exposes metadata, gate and admitted comparison modes; this handoff does not create a serving endpoint or reopen the comparison."
+  ],
+  "limits": [
+    "CPU floating-point research reference at the pinned Apple M1/aarch64-macOS runtime only.",
+    "Existing known vocabulary/query forms, four facts, one query and original authoring stratum.",
+    "No general parsing, semantic novelty, generation, larger context, reasoning/coding, geometry superiority, mathematical proof or final integer/table kernel."
+  ],
+  "metadata_construction_work": {
+    "model_loads": 0,
+    "forwards": 0,
+    "exports": 0,
+    "loader_calls": 0,
+    "successful_qualify_calls": 0,
+    "run_root_mutations": 0
+  }
+}

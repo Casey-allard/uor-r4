@@ -1,0 +1,144 @@
+{
+  "schema": "uor-r4.native-bridge-measured-summary/1",
+  "issue": 1102,
+  "terminal": "NATIVE_REFERENCE_PRESERVED",
+  "independent_result_review_at_summary_creation": "PENDING",
+  "contract_sha256": "e3565728dfa872d9c260dd3d391ae59e0b0d454ebead20cd15cb075b24796115",
+  "details": {
+    "artifact_sha256": "2c209590a64cae16a4140fd43adc1cb1f87b357c02e3d4959f1e37f4ab8cd5ab",
+    "attempted_forward_counts": {
+      "initial_native": {
+        "admitted_upper_bound": 320,
+        "exact": 320,
+        "known_lower_bound": 320,
+        "unavailable_counter": false
+      },
+      "initial_reference": {
+        "admitted_upper_bound": 320,
+        "exact": 320,
+        "known_lower_bound": 320,
+        "unavailable_counter": false
+      },
+      "replay_native": {
+        "admitted_upper_bound": 320,
+        "exact": 320,
+        "known_lower_bound": 320,
+        "unavailable_counter": false
+      },
+      "replay_reference": {
+        "admitted_upper_bound": 320,
+        "exact": 320,
+        "known_lower_bound": 320,
+        "unavailable_counter": false
+      }
+    },
+    "completed_logical_forwards": 1280,
+    "completed_model_state_loads": 10,
+    "initial_comparison_errors": [],
+    "loader_gate_calls": 12,
+    "loader_rejected_partial_model_states": 7,
+    "native": {
+      "answers": 320,
+      "errors": [],
+      "refusals": 16,
+      "roles": 4480
+    },
+    "native_exact_replay": true,
+    "native_state_sha256": "4f453da12a9346356e64b6c16abfbaad1ca99e3966173cd79e9ddbc8c2d9341b",
+    "parameter_updates": 0,
+    "reference": {
+      "answers": 320,
+      "errors": [],
+      "refusals": 16,
+      "roles": 4480
+    },
+    "reference_exact_replay": true,
+    "replay_comparison_errors": [],
+    "replay_native": {
+      "answers": 320,
+      "errors": [],
+      "refusals": 16,
+      "roles": 4480
+    },
+    "replay_reference": {
+      "answers": 320,
+      "errors": [],
+      "refusals": 16,
+      "roles": 4480
+    },
+    "successful_engine_loads": 5,
+    "withheld_reads": 0,
+    "worker_failures": []
+  },
+  "tensor_maxima": {
+    "initial": {
+      "binding_attention": {
+        "row": 132,
+        "flat_index": 4,
+        "max_abs": 2.980232238769531e-07
+      },
+      "logits": {
+        "row": 140,
+        "flat_index": 49,
+        "max_abs": 4.76837158203125e-06
+      },
+      "role_attention": {
+        "row": 240,
+        "flat_index": 172,
+        "max_abs": 3.5762786865234375e-07
+      },
+      "role_vectors": {
+        "row": 12,
+        "flat_index": 149,
+        "max_abs": 8.940696716308594e-08
+      }
+    },
+    "replay": {
+      "binding_attention": {
+        "row": 132,
+        "flat_index": 4,
+        "max_abs": 2.980232238769531e-07
+      },
+      "logits": {
+        "row": 140,
+        "flat_index": 49,
+        "max_abs": 4.76837158203125e-06
+      },
+      "role_attention": {
+        "row": 240,
+        "flat_index": 172,
+        "max_abs": 3.5762786865234375e-07
+      },
+      "role_vectors": {
+        "row": 12,
+        "flat_index": 149,
+        "max_abs": 8.940696716308594e-08
+      }
+    }
+  },
+  "resources": {
+    "phase_seconds": {
+      "execution": 4.209746583001106,
+      "export_integrity": 0.8177877919952152,
+      "replay": 3.765631000002031
+    },
+    "wall_seconds_after_completion_write": 8.809783916993183,
+    "rss_peak_bytes": 602390528,
+    "ledger_bytes_including_wall_receipt": 75039076,
+    "stop_present": false
+  },
+  "artifact_bytes": 2172252,
+  "artifact_manifest_bytes": 11490,
+  "artifact_parameter_bytes": 1714188,
+  "full_tensor_bytes": 26910720,
+  "scientific_classification": "Measured finite known-authoring preservation under the frozen criterion; no mathematical proof or new semantic generalization.",
+  "successful_qualification_api_call": "NOT_RUN",
+  "service_endpoint": "NOT_IMPLEMENTED",
+  "next_decision_issue": 1084,
+  "final_independent_result_review": {
+    "status": "ACCEPTED_BOUNDED_NATIVE_REFERENCE_QUALIFICATION",
+    "path": "docs/r4_native_bridge_1102_evidence/result-review.json",
+    "sha256": "5e75c5a3407d91bf14a6ec8d57981a72cfe110cdaf1ddfd0c71f6ea0a07974e8"
+  },
+  "qualification_receipt_sha256": "61d29aa80e6bcd3d163b2ff2a6da4faab04414ea9f4284d80b798c4e46cf5369"
+}

@@ -1,0 +1,162 @@
+{
+  "schema": "uor-r4.native-bridge-prebuild/1",
+  "issue": 1102,
+  "date": "2026-09-03",
+  "status": "PREBUILD_DEPENDENCY_UNAVAILABLE",
+  "classification": "Engineering preparation observation; no mathematical proof or native behavior result",
+  "baseline_revision": "93613bf82782ca78406fe2739dcc8d9e1d0f2b9e",
+  "implementation_revision": "087303635b9674de02339bc057fca67e19bcd318",
+  "contract_sha256": "e3565728dfa872d9c260dd3d391ae59e0b0d454ebead20cd15cb075b24796115",
+  "release": "NOT_ADMITTED",
+  "native_behavior": "NOT_RUN",
+  "source_files": [
+    {
+      "path": "crates/uor-r4-api/Cargo.toml",
+      "bytes": 1986,
+      "sha256": "bf5061338e5cfbe83231111929bd12ad8ee1b8d179e3812cab99ca32e0f151a5"
+    },
+    {
+      "path": "crates/uor-r4-api/src/bin/r4-learned-reference-1102.rs",
+      "bytes": 8983,
+      "sha256": "ba10ca22b6124ce5a551424e4793cb1a3f324b2857ed20c58542d4e01aa43457"
+    },
+    {
+      "path": "crates/uor-r4-api/src/learned_reference.rs",
+      "bytes": 117,
+      "sha256": "87926c7df0f5493221385377282586f17eeae59cd8db5f4d92ccb12181b57d98"
+    },
+    {
+      "path": "crates/uor-r4-api/src/lib.rs",
+      "bytes": 7355,
+      "sha256": "7879007a7de265c66be09573f8c3cdcdf50b5aa0a540537e0256745d660a3416"
+    },
+    {
+      "path": "crates/uor-r4-core/Cargo.toml",
+      "bytes": 1366,
+      "sha256": "df6dd7148489fec2f22a9af26ddd7d8c0a6c10d2eb0d66be7e9b691027f2e81a"
+    },
+    {
+      "path": "crates/uor-r4-core/src/learned_reference/adapter.rs",
+      "bytes": 11596,
+      "sha256": "90caf4d8873d754a3266f664eb284f52bb0cae118e96b4dc890d6139b9ea598e"
+    },
+    {
+      "path": "crates/uor-r4-core/src/learned_reference/environment.rs",
+      "bytes": 1477,
+      "sha256": "307341a98cb20719604681e528966c20d8b622f107d29939fae6f4f02ff07bf0"
+    },
+    {
+      "path": "crates/uor-r4-core/src/learned_reference/loader.rs",
+      "bytes": 22959,
+      "sha256": "208fbe0a2447a650063909cc623e9c9c3804a839a4c0ba99ab39c79e8b26ec07"
+    },
+    {
+      "path": "crates/uor-r4-core/src/learned_reference/mod.rs",
+      "bytes": 13528,
+      "sha256": "2ead8e40b9f3f095a057c5dec0c1d36bb38f0dd7ea61fc7ca7b5da7924401cec"
+    },
+    {
+      "path": "crates/uor-r4-core/src/learned_reference/numerics.rs",
+      "bytes": 26800,
+      "sha256": "f35000f21178d0174d347e38fa09fefc7f05a5d373485ab4bd1ef11acbc5d8aa"
+    },
+    {
+      "path": "crates/uor-r4-core/src/lib.rs",
+      "bytes": 18648,
+      "sha256": "d997a4a7738e214e8b19fe6fafd437641a97059c63d6fed9372b3e4e6f182196"
+    },
+    {
+      "path": "scripts/r4_native_bridge_1102_export.py",
+      "bytes": 27625,
+      "sha256": "3e58d6ba6fc137ea6ed6bde2c39e6d492731983842f7ff08eac2ec4a976b9ef7"
+    },
+    {
+      "path": "scripts/r4_native_bridge_1102_mutations.py",
+      "bytes": 16059,
+      "sha256": "4b6f4e6ea413eb3b90772af56e1149e3818fb328f05ed5e9c5cc15c6ee38bda3"
+    },
+    {
+      "path": "scripts/r4_native_bridge_1102_reference.py",
+      "bytes": 15461,
+      "sha256": "ab9c9bd6d0c7801b30bdd4107498d0cdad7b030c9aa39436cb5fe75b25711a07"
+    },
+    {
+      "path": "scripts/r4_native_bridge_1102_run.py",
+      "bytes": 21732,
+      "sha256": "5b3542f774ff014757ce8dbdc591dc15a7843b2cb53f8a0dab028ead0d0083e9"
+    },
+    {
+      "path": "scripts/r4_native_bridge_1102_supervisor.py",
+      "bytes": 26600,
+      "sha256": "4053b57c87a9d12a3e313733c54346263d2184d41a83b4892a85198570fcd2a2"
+    }
+  ],
+  "metadata_checks": [
+    {
+      "command": "cargo tree --offline -p uor-r4-api --no-default-features --features learned-reference -e features -i libm",
+      "exit_code": 101
+    },
+    {
+      "command": "cargo tree --offline -p uor-r4-api --no-default-features --features learned-reference --target aarch64-apple-darwin -e normal,build,features -i libm",
+      "exit_code": 101
+    }
+  ],
+  "cargo_error": "error: failed to download `aho-corasick v1.1.4`\n\nCaused by:\n  attempting to make an HTTP request, but --offline was specified\n",
+  "dependency": {
+    "name": "aho-corasick",
+    "version": "1.1.4",
+    "archive_sha256_expected": "ddd31a130427c27518df266943a5308ed92d4b226cc639f5a8f1002816174301",
+    "archive_present": false,
+    "extracted_source_present": true,
+    "extracted_source_checksum_manifest_present": false,
+    "cargo_marker": "{\"v\":1}",
+    "source_presence_verifies_archive": false
+  },
+  "toolchain": {
+    "rustc": "1.97.1 (8bab26f4f 2026-07-14)",
+    "host": "aarch64-apple-darwin",
+    "LLVM": "22.1.6",
+    "cargo_lock_sha256": "7b0ebac536e2522b87c75b9874b693c03fc469160578612289893c6c8bbef5dd"
+  },
+  "checks": {
+    "new_python_AST": "PASS",
+    "named_Rust_rustfmt": "PASS",
+    "claim_wording": "PASS",
+    "diff_whitespace": "PASS",
+    "independent_source_review": "DRAFT_ONLY",
+    "cargo_dependency_metadata": "UNAVAILABLE"
+  },
+  "actual_work": {
+    "offline_metadata_attempts": 2,
+    "native_builds": 0,
+    "build_envelope_consumed": false,
+    "export_comparison_envelope_consumed": false,
+    "model_payload_deserializations": 0,
+    "artifact_exports": 0,
+    "loader_calls": 0,
+    "model_loads": 0,
+    "logical_forwards": 0,
+    "optimizer_updates": 0,
+    "evaluations": 0,
+    "replays": 0,
+    "withheld_payload_reads": 0,
+    "dependency_downloads": 0
+  },
+  "access_note": "A broad local file-name discovery reached the sealed withheld directory and returned Permission denied; no payload was read and no permissions changed. Subsequent discovery stayed on named paths.",
+  "storage": {
+    "audit": "/Users/casey.allard/Documents/Codex/storage-audit-2026-09-02.md",
+    "available_KiB_before_worktree": 45752488,
+    "available_KiB_at_checkpoint": 44421256,
+    "deleted_paths": [],
+    "original_mixed_checkout_preserved": true,
+    "models_and_sealed_evidence_preserved": true,
+    "new_build_output_bytes": 0
+  },
+  "closure": {
+    "issue": "OPEN",
+    "delivery": "DRAFT_PR_ONLY",
+    "merge_approved": false,
+    "claim_promoted": false,
+    "next_action": "Restore exact Cargo.lock-matching dependency archives to the local cache, then resume the unconsumed offline build and independent concrete release review for #1102."
+  }
+}

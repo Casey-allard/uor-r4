@@ -6,6 +6,8 @@ edition = "2021"
 description = "Typed compile and engine APIs over the uor-r4 transformerless graph stack, for library consumers"
 
 [features]
+# Explicit CPU floating-point research boundary; never enabled by default.
+learned-reference = ["uor-r4-core/learned-reference"]
 default = ["full"]
 # Filesystem-free production loading and serving. This is the only API surface
 # pulled into the browser build; compiler orchestration and evaluation stay
@@ -34,3 +36,8 @@ tracing = { version = "0.1", default-features = false, features = ["std"] }
 uor-r4-core = { version = "0.1.0", path = "../uor-r4-core" }
 uor-r4-graph-compiler = { version = "0.1.0", path = "../uor-r4-graph-compiler" }
 uor-r4-router = { version = "0.1.0", path = "../uor-r4-router" }
+
+[[bin]]
+name = "r4-learned-reference-1102"
+path = "src/bin/r4-learned-reference-1102.rs"
+required-features = ["learned-reference"]

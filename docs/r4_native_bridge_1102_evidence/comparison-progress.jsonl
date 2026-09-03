@@ -1,0 +1,15 @@
+{"child_pid":70056,"elapsed_seconds":0.002515166997909546,"kind":"started","phase":"export_integrity","schema":"uor-r4.native-reference-supervisor/1"}
+{"elapsed_seconds":0.8177914169937139,"kind":"phase_finished","phase":"export_integrity","phase_seconds":0.8177877919952152,"schema":"uor-r4.native-reference-supervisor/1"}
+{"elapsed_seconds":0.8178639999969164,"kind":"phase_started","phase":"execution","schema":"uor-r4.native-reference-supervisor/1"}
+{"elapsed_seconds":1.0928620420017978,"kind":"sample","phase":"execution","retained_ledger_bytes":43863270,"rss_peak_bytes":348766208,"sampled_file_count":70,"samples":12,"schema":"uor-r4.native-reference-supervisor/1"}
+{"elapsed_seconds":2.1727418749942444,"kind":"sample","phase":"execution","retained_ledger_bytes":43863554,"rss_peak_bytes":517865472,"sampled_file_count":70,"samples":21,"schema":"uor-r4.native-reference-supervisor/1"}
+{"elapsed_seconds":3.251109958990128,"kind":"sample","phase":"execution","retained_ledger_bytes":47786171,"rss_peak_bytes":568393728,"sampled_file_count":71,"samples":30,"schema":"uor-r4.native-reference-supervisor/1"}
+{"elapsed_seconds":4.333874999996624,"kind":"sample","phase":"execution","retained_ledger_bytes":52952032,"rss_peak_bytes":574898176,"sampled_file_count":76,"samples":39,"schema":"uor-r4.native-reference-supervisor/1"}
+{"elapsed_seconds":5.027538041991647,"kind":"phase_finished","phase":"execution","phase_seconds":4.209746583001106,"schema":"uor-r4.native-reference-supervisor/1"}
+{"elapsed_seconds":5.027672291995259,"kind":"phase_started","phase":"replay","schema":"uor-r4.native-reference-supervisor/1"}
+{"elapsed_seconds":5.4228175839962205,"kind":"sample","phase":"replay","retained_ledger_bytes":59449969,"rss_peak_bytes":574898176,"sampled_file_count":81,"samples":49,"schema":"uor-r4.native-reference-supervisor/1"}
+{"elapsed_seconds":6.505246208995231,"kind":"sample","phase":"replay","retained_ledger_bytes":61067020,"rss_peak_bytes":591757312,"sampled_file_count":82,"samples":58,"schema":"uor-r4.native-reference-supervisor/1"}
+{"elapsed_seconds":7.5833602089987835,"kind":"sample","phase":"replay","retained_ledger_bytes":66557592,"rss_peak_bytes":601358336,"sampled_file_count":82,"samples":67,"schema":"uor-r4.native-reference-supervisor/1"}
+{"elapsed_seconds":8.663145375001477,"kind":"sample","phase":"replay","retained_ledger_bytes":74944390,"rss_peak_bytes":602390528,"sampled_file_count":88,"samples":76,"schema":"uor-r4.native-reference-supervisor/1"}
+{"elapsed_seconds":8.7399932089902,"kind":"completion_requested","phase":"replay","schema":"uor-r4.native-reference-supervisor/1","terminal":"NATIVE_REFERENCE_PRESERVED"}
+{"elapsed_seconds":8.793169291995582,"exit_code":0,"kind":"child_exit_verified","phase":"replay","phase_seconds":3.765631000002031,"schema":"uor-r4.native-reference-supervisor/1"}

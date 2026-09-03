@@ -1,6 +1,6 @@
 # Current programme map and correctness handoff
 
-**Planning reconciliation: 2026-09-03, #1086 records `NATIVE_REFERENCE_CONTRACT_SPECIFIED`; #1094 is closed through protected PR #1101.** Original audit baseline:
+**Planning reconciliation: 2026-09-03, #1102 records `NATIVE_REFERENCE_PRESERVED`; independent result review accepts this bounded result and protected PR #1104 owns closure.** Original audit baseline:
 `UOR-Foundation/uor-r4@e627252e525201815169ffd8364184953a46018d`.
 This map supersedes earlier “current” and “next” sequencing prose, not its
 measurements. Refresh native GitHub before selecting work. The
@@ -9,27 +9,39 @@ measurements. Refresh native GitHub before selecting work. The
 paper lanes adopted through [#1081](https://github.com/UOR-Foundation/uor-r4/issues/1081); the
 [claim ledger](claim-ledger.json) preserves their different evidence states.
 
-## Current specification and next action
+## Current native result and next action
 
-The [#1086 native-reference specification](../r4_native_reference_1086.md) records
-**`NATIVE_REFERENCE_CONTRACT_SPECIFIED`** at protected baseline
-`eade29f4b78435e9857936786426bb34e596b301`. The
-[machine contract](../r4_native_reference_1086_contract.json),
-[operator audit](../r4_native_reference_1086_operator_audit.md) and
-[original-source audit](../r4_native_reference_1086_sources.md) define exact
-artifact/state identities, the byte-oriented loader and operator boundary, and a
-separate matched reference/native comparison with its resource envelope.
-Export, native implementation, model loads, forwards, evaluation and replay are
-**`NOT_RUN`**. This specification is neither an execution release nor a native
-capability result. QA remains dormant; only named specification checks apply.
+[#1102 native reference](../r4_native_bridge_1102_execution.md) records
+**`NATIVE_REFERENCE_PRESERVED`**. The one offline build passed; the separately
+admitted comparison passed all twelve loader gates, 320/320 answers,
+4,480/4,480 consumed roles and 16/16 refusals in both runtimes and phases.
+All four full f32 tensors met the frozen absolute limit `1e-5`; the largest
+error was `4.768372e-6`. Both fresh-process replays were exact. The comparison
+used 1,280 forwards, zero fitting, 8.809784 seconds and 75,039,076 retained
+ledger bytes; 26,910,720 bytes of full tensors remain available for review.
 
-The next action is separate activation of parked
-[#1102 — Implement and qualify the frozen native learned-reference bridge](https://github.com/UOR-Foundation/uor-r4/issues/1102),
-a child of #1086, unassigned until active.
-It must use the frozen contract and bind the missing implementation/input/runtime
-identities before any authorized model run. #1087 requires its own final-lowering
-contract and #1083 typed UOR integration; neither follows automatically from this
-specification. #973 stays open and #954 remains blocked.
+Independent result review accepts the bounded result; protected delivery is tracked in
+[PR #1104](https://github.com/UOR-Foundation/uor-r4/pull/1104). Its earlier offline
+cache failures remain recorded; exact locked cache restoration resolved that
+preparation issue without changing dependencies or the frozen contract.
+Both build and comparison envelopes are now consumed. Do not rerun either.
+
+**One next action after closure:** separately activate
+[#1084](https://github.com/UOR-Foundation/uor-r4/issues/1084) and freeze the
+service/API and artifact-ownership ADR for `answer_four_fact_raw_text/v1`,
+including the actual serving binary's qualification boundary. #1084 remains
+unassigned until active. The measured binary provides research comparison
+modes, not a service endpoint; its identity cannot be assigned to a newly
+linked host. Successful ordinary `qualify()`/serving operation remains a
+separate integration decision. #1083 typed integration and #1087 final lowering
+remain separate. #973 stays open and #954 blocked.
+
+The [#1086 contract](../r4_native_reference_1086_contract.json), delivered at
+`93613bf82782ca78406fe2739dcc8d9e1d0f2b9e`, is unchanged. The observed scope is the
+original 320 authoring rows and 16 refusals, B=1 both arms, known vocabulary and
+query forms, four facts and the pinned reader/core/R4. It is empirical finite
+preservation, with no mathematical proof, semantic novelty, general language,
+longer context, generation, reasoning/coding or final integer-kernel claim.
 
 ### Retained empirical baseline
 
@@ -168,7 +180,7 @@ transport acknowledgements do not complete their parent capability.
 | [#1096 runtime readiness](https://github.com/UOR-Foundation/uor-r4/issues/1096), child of #1094 | Delivered `ISOLATED_RUNTIME_READY` at `6f21fc5f4c40b9620c9fec5e95a39097f812ae73`; sole zero-forward attempt and independent review complete | Four harmless probes denied; no model load/output/replay, raw-text qualification or universal isolation claim. |
 | [#1083 UOR integration](https://github.com/UOR-Foundation/uor-r4/issues/1083) | Typed identity/arithmetic ADR and review of one selected adapter boundary | Content hashes, structural identities, codec identities and derivation keys remain distinct; arithmetic needs a declared domain and error/cost contract. |
 | [#1086 native reference specification](https://github.com/UOR-Foundation/uor-r4/issues/1086) | [Contract specified](../r4_native_reference_1086.md) as `NATIVE_REFERENCE_CONTRACT_SPECIFIED`; export, native implementation, loads, forwards, evaluation and replay `NOT_RUN` | Exact artifact/state/operator identities and a separate empirical comparison are defined; no native capability or execution release follows from the specification. |
-| [#1102 native implementation/export/comparison](https://github.com/UOR-Foundation/uor-r4/issues/1102), child of #1086; parked, unassigned until active | Separately activate the frozen native-reference contract and bind implementation/input/runtime identities before an authorized run | Retain only the bounded reader/core, vocabulary/query and four-fact context. Native behavior and final integer/table serving require separate qualification. |
+| [#1102 native implementation/export/comparison](https://github.com/UOR-Foundation/uor-r4/issues/1102), child of #1086 | [Measured `NATIVE_REFERENCE_PRESERVED`](../r4_native_bridge_1102_execution.md); independent result accepted; protected PR #1104 owns closure | Exact native artifact/profile preserves the bounded reader/core, vocabulary/query and four-fact operation. New host-binary qualification and final integer/table serving remain separate. |
 | [#1087 final serving representation](https://github.com/UOR-Foundation/uor-r4/issues/1087), with #1083 typed UOR prerequisite | Separate lowering contract with operation/error/resource obligations after the native-reference boundary is qualified | Specification or dense research-reference success does not establish the final integer/table kernel; a lowering candidate needs its own frozen contract. |
 | [#1084 product interface](https://github.com/UOR-Foundation/uor-r4/issues/1084) | API/asset-ownership ADR and minimal same-origin shell with one honest supported operation | This can proceed in parallel without completing #962 or presenting bounded binding as general chat. |
 | [#1088 coding/workspace](https://github.com/UOR-Foundation/uor-r4/issues/1088), blocked by #1084 and #955 | Minimal executable task/patch/result schema; separate harness and later model evaluations | UI actions and external teacher output are separate from the native model's coding competence. |
@@ -186,8 +198,9 @@ Its earlier unavailable preparation, separate #1096 runtime-only readiness and
 retained-evidence release remain preserved. #1094 is closed through protected
 PR #1101. #1086 now specifies the separate native export/loader/reference-behavior
 contract; its [#1102 implementation/export/comparison successor](https://github.com/UOR-Foundation/uor-r4/issues/1102)
-remains parked. Neither
-the positive raw-text result nor this specification qualifies the native bridge.
+now records `NATIVE_REFERENCE_PRESERVED` on the original authoring stratum.
+The specification and Python result remain separate from that later measured
+native evidence; no final-kernel or service qualification transfers automatically.
 Planned lanes remain unassigned until active.
 The pre-adoption snapshot had nine open issues and all 24 #973 children closed;
 those counts are historical now that the new children exist.

@@ -1,7 +1,7 @@
 {
   "schema": "uor-r4.claim-ledger/1",
   "repository": "UOR-Foundation/uor-r4",
-  "source_revision": "d56d952d360ec167343903c7ff3f6149218410f1",
+  "source_revision": "5af0ae38df122853815947aafefb6a88b3f519ea",
   "vocabulary": {
     "source": "formal_vocabulary",
     "role": "Statement class from the normative vocabulary.",
@@ -460,6 +460,125 @@
       "revision": "d56d952d360ec167343903c7ff3f6149218410f1",
       "sha256": "d1f82d45df39f232b6a30c022e75e1015a6e25cd36895daf01241c66dbca9d23",
       "evidence_status": "SPECIFICATION_METADATA_RECONCILED"
+    },
+    "prebuild_1102": {
+      "path": "docs/r4_native_bridge_1102_prebuild.json",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/ccabce9f0619b6154cf347a1b2641715e18d230a/docs/r4_native_bridge_1102_prebuild.json",
+      "revision": "ccabce9f0619b6154cf347a1b2641715e18d230a",
+      "sha256": "72e041fc56efc92b79bca57d9e7f52d253ad9cde2313a2cdc39ff4f03f3e35b8",
+      "evidence_status": "PREBUILD_DEPENDENCY_UNAVAILABLE"
+    },
+    "record_1102": {
+      "path": "docs/r4_native_bridge_1102.md",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/ccabce9f0619b6154cf347a1b2641715e18d230a/docs/r4_native_bridge_1102.md",
+      "revision": "ccabce9f0619b6154cf347a1b2641715e18d230a",
+      "sha256": "65c7928a2a97a2106eba8ae552f9ce6ad6baa90b08da83ea56e3be3d2421a97d",
+      "evidence_status": "DRAFT_NOT_MERGED"
+    },
+    "code_review_1102": {
+      "path": "docs/r4_native_bridge_1102_code_review.md",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/ccabce9f0619b6154cf347a1b2641715e18d230a/docs/r4_native_bridge_1102_code_review.md",
+      "revision": "ccabce9f0619b6154cf347a1b2641715e18d230a",
+      "sha256": "92c6ee34f3e2166d219449fc5e1e2a10f19e20086cbd42479f9b04740d4f7410",
+      "evidence_status": "DRAFT_SOURCE_REVIEW_ONLY"
+    },
+    "harness_review_1102": {
+      "path": "docs/r4_native_bridge_1102_harness_review.md",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/ccabce9f0619b6154cf347a1b2641715e18d230a/docs/r4_native_bridge_1102_harness_review.md",
+      "revision": "ccabce9f0619b6154cf347a1b2641715e18d230a",
+      "sha256": "6aa790e66eab4b45223248a448cee35d112ef6dfd8766fdccf98e04407ed8387",
+      "evidence_status": "DRAFT_SOURCE_REVIEW_ONLY"
+    },
+    "input_audit_1102": {
+      "path": "docs/r4_native_bridge_1102_input_audit.md",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/ccabce9f0619b6154cf347a1b2641715e18d230a/docs/r4_native_bridge_1102_input_audit.md",
+      "revision": "ccabce9f0619b6154cf347a1b2641715e18d230a",
+      "sha256": "85295b6f4d483b781fa5a491752afd403eb4280aa1bbabf0d6a6dc35829a3117",
+      "evidence_status": "INPUT_IDENTITY_ONLY"
+    },
+    "execution_1102": {
+      "path": "docs/r4_native_bridge_1102_execution.md",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/5af0ae38df122853815947aafefb6a88b3f519ea/docs/r4_native_bridge_1102_execution.md",
+      "revision": "5af0ae38df122853815947aafefb6a88b3f519ea",
+      "sha256": "c4640510c0beee980daa4a42418e00341731d8a179e4c500a65e5ae36645af1d",
+      "evidence_status": "ACCEPTED_BOUNDED_NATIVE_REFERENCE_QUALIFICATION"
+    },
+    "result_1102": {
+      "path": "docs/r4_native_bridge_1102_evidence/comparison-result.json",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/5af0ae38df122853815947aafefb6a88b3f519ea/docs/r4_native_bridge_1102_evidence/comparison-result.json",
+      "revision": "5af0ae38df122853815947aafefb6a88b3f519ea",
+      "sha256": "ae9c6fce9f50cab67c94ae9695c28ebfd735069b6d42833a2ad73666ab7e8263",
+      "evidence_status": "ACCEPTED_BOUNDED_NATIVE_REFERENCE_QUALIFICATION"
+    },
+    "result_summary_1102": {
+      "path": "docs/r4_native_bridge_1102_evidence/measured-summary.json",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/5af0ae38df122853815947aafefb6a88b3f519ea/docs/r4_native_bridge_1102_evidence/measured-summary.json",
+      "revision": "5af0ae38df122853815947aafefb6a88b3f519ea",
+      "sha256": "5eed78f9dc2d7b7a7812c9019fb77abfbb62ba7a414ca2f23122bde94ce6626d",
+      "evidence_status": "ACCEPTED_BOUNDED_NATIVE_REFERENCE_QUALIFICATION"
+    },
+    "result_review_1102": {
+      "path": "docs/r4_native_bridge_1102_result_review.md",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/5af0ae38df122853815947aafefb6a88b3f519ea/docs/r4_native_bridge_1102_result_review.md",
+      "revision": "5af0ae38df122853815947aafefb6a88b3f519ea",
+      "sha256": "d1021e3adac3cc7bd1764141649b72347ba2c9a85b2e298be97c76a5b656168b",
+      "evidence_status": "ACCEPTED_BOUNDED_NATIVE_REFERENCE_QUALIFICATION"
+    },
+    "result_audit_1102": {
+      "path": "docs/r4_native_bridge_1102_evidence/result-review.json",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/5af0ae38df122853815947aafefb6a88b3f519ea/docs/r4_native_bridge_1102_evidence/result-review.json",
+      "revision": "5af0ae38df122853815947aafefb6a88b3f519ea",
+      "sha256": "5e75c5a3407d91bf14a6ec8d57981a72cfe110cdaf1ddfd0c71f6ea0a07974e8",
+      "evidence_status": "ACCEPTED_BOUNDED_NATIVE_REFERENCE_QUALIFICATION"
+    },
+    "retained_index_1102": {
+      "path": "docs/r4_native_bridge_1102_evidence/retained-evidence-index.json",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/5af0ae38df122853815947aafefb6a88b3f519ea/docs/r4_native_bridge_1102_evidence/retained-evidence-index.json",
+      "revision": "5af0ae38df122853815947aafefb6a88b3f519ea",
+      "sha256": "da3d2936fae1e7ab94e16cf0d2b6e84cef5f2e9d494a410679cf6b36e306db7b",
+      "evidence_status": "ACCEPTED_BOUNDED_NATIVE_REFERENCE_QUALIFICATION"
+    },
+    "qualification_1102": {
+      "path": "docs/r4_native_bridge_1102_evidence/qualification.json",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/5af0ae38df122853815947aafefb6a88b3f519ea/docs/r4_native_bridge_1102_evidence/qualification.json",
+      "revision": "5af0ae38df122853815947aafefb6a88b3f519ea",
+      "sha256": "61d29aa80e6bcd3d163b2ff2a6da4faab04414ea9f4284d80b798c4e46cf5369",
+      "evidence_status": "ACCEPTED_BOUNDED_NATIVE_REFERENCE_QUALIFICATION"
+    },
+    "qualification_handoff_1102": {
+      "path": "docs/r4_native_bridge_1102_evidence/qualification-handoff.json",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/5af0ae38df122853815947aafefb6a88b3f519ea/docs/r4_native_bridge_1102_evidence/qualification-handoff.json",
+      "revision": "5af0ae38df122853815947aafefb6a88b3f519ea",
+      "sha256": "efc02551d493e255f12680ccf2e4ee99cca5f645e0ca3d7fcd6445419e963426",
+      "evidence_status": "ACCEPTED_BOUNDED_NATIVE_REFERENCE_QUALIFICATION"
+    },
+    "native_runtime_1102": {
+      "path": "docs/r4_native_bridge_1102_evidence/runtime-receipt.json",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/5af0ae38df122853815947aafefb6a88b3f519ea/docs/r4_native_bridge_1102_evidence/runtime-receipt.json",
+      "revision": "5af0ae38df122853815947aafefb6a88b3f519ea",
+      "sha256": "daba1ad4bf60d28def983378a6a856e0990d7eab20d2ec2365552ad07f3d83d2",
+      "evidence_status": "ACCEPTED_BOUNDED_NATIVE_REFERENCE_QUALIFICATION"
+    },
+    "native_build_1102": {
+      "path": "docs/r4_native_bridge_1102_evidence/build-completion.json",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/5af0ae38df122853815947aafefb6a88b3f519ea/docs/r4_native_bridge_1102_evidence/build-completion.json",
+      "revision": "5af0ae38df122853815947aafefb6a88b3f519ea",
+      "sha256": "aaf73fffdd6420e8895fdefdd4d41e29108f895cb53476a654799c6a1f748f11",
+      "evidence_status": "ENGINEERING_PREPARATION_OR_STORAGE_OBSERVATION"
+    },
+    "native_restore_1102": {
+      "path": "docs/r4_native_bridge_1102_evidence/cache-restoration.json",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/5af0ae38df122853815947aafefb6a88b3f519ea/docs/r4_native_bridge_1102_evidence/cache-restoration.json",
+      "revision": "5af0ae38df122853815947aafefb6a88b3f519ea",
+      "sha256": "b0b49679cbce639c8d5c378db3d67c7408661cec114167b38ccfbd7324f047b1",
+      "evidence_status": "ENGINEERING_PREPARATION_OR_STORAGE_OBSERVATION"
+    },
+    "native_storage_1102": {
+      "path": "docs/r4_native_bridge_1102_evidence/storage-review.json",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/5af0ae38df122853815947aafefb6a88b3f519ea/docs/r4_native_bridge_1102_evidence/storage-review.json",
+      "revision": "5af0ae38df122853815947aafefb6a88b3f519ea",
+      "sha256": "542957a48a9b711711dfe77eca5c824eb092608f4bf7d20f36f80b65b1ca44e3",
+      "evidence_status": "ENGINEERING_PREPARATION_OR_STORAGE_OBSERVATION"
     }
   },
   "artifacts_1079": {
@@ -572,10 +691,10 @@
         "The #1082 construction-only diagnostic now measures role-selective exposure and pooling displacement; it does not establish a downstream causal explanation. The #1079 strong-sensitivity miss remains unchanged and does not falsify primary preservation or establish geometric superiority."
       ],
       "next_action": {
-        "status": "PARKED_SEPARATE_ACTIVATION",
-        "scope": "Separately activate #1102: implement the accepted #1086 native reference boundary and bind exact export/input/runtime release for independent review before any model work. The frozen bridge uses original 320 authoring rows and 16 refusals, B=1 both arms, fixed numerical/discrete/replay criteria and one bounded envelope. #1094 remains complete with its envelope consumed; #973 open and #954 blocked. #1086 performed zero native execution.",
+        "status": "PARKED_PRODUCT_HANDOFF",
+        "scope": "After protected #1102 closure, separately activate #1084 and freeze the Rust service/API and artifact-ownership ADR for answer_four_fact_raw_text/v1, including truthful qualification of its actual host binary. Do not rerun the consumed native campaign or treat it as a serving endpoint.",
         "issue_urls": [
-          "https://github.com/UOR-Foundation/uor-r4/issues/1102"
+          "https://github.com/UOR-Foundation/uor-r4/issues/1084"
         ]
       },
       "proof_artifacts": []
@@ -633,11 +752,12 @@
         "formal_vocabulary"
       ],
       "limits": [
-        "Current dense projections, normalization, floating-point frame arithmetic and softmax are research-reference operations. #1079 performed zero native exports and did not qualify the final serving kernel. Historical graph-kernel evidence does not transfer automatically."
+        "Current dense projections, normalization, floating-point frame arithmetic and softmax are research-reference operations. #1079 performed zero native exports and did not qualify the final serving kernel. Historical graph-kernel evidence does not transfer automatically.",
+        "The later #1102 NATIVE_REFERENCE_PRESERVED result is empirical and specific to a floating-point research artifact/binary/runtime; it supplies no final-kernel qualification."
       ],
       "next_action": {
         "status": "OWNED_SEPARATE_BOUNDARIES",
-        "scope": "#1086 specifies the native reference contract only; #1102 owns its separately admitted implementation/export/comparison. Final integer/table lowering remains #1087 with #1083 typed prerequisites and #964 proof obligations. No native or kernel result follows from the specification.",
+        "scope": "#1102 qualifies only its exact bounded CPU floating-point reference. Final integer/table lowering remains #1087 with #1083 typed prerequisites and #964 proof obligations; #1084 owns a separate actual-host service/API handoff. No final-kernel result follows from native-reference preservation.",
         "issue_urls": [
           "https://github.com/UOR-Foundation/uor-r4/issues/1102",
           "https://github.com/UOR-Foundation/uor-r4/issues/1087",
@@ -740,10 +860,10 @@
         "Numerical bound and replay checks are not a universal floating-point refinement proof."
       ],
       "next_action": {
-        "status": "PARKED_SEPARATE_ACTIVATION",
-        "scope": "Separately activate #1102: implement the accepted #1086 native reference boundary and bind exact export/input/runtime release for independent review before any model work. The frozen bridge uses original 320 authoring rows and 16 refusals, B=1 both arms, fixed numerical/discrete/replay criteria and one bounded envelope. #1094 remains complete with its envelope consumed; #973 open and #954 blocked. #1086 performed zero native execution.",
+        "status": "PARKED_PRODUCT_HANDOFF",
+        "scope": "After protected #1102 closure, separately activate #1084 and freeze the Rust service/API and artifact-ownership ADR for answer_four_fact_raw_text/v1, including truthful qualification of its actual host binary. Do not rerun the consumed native campaign or treat it as a serving endpoint.",
         "issue_urls": [
-          "https://github.com/UOR-Foundation/uor-r4/issues/1102"
+          "https://github.com/UOR-Foundation/uor-r4/issues/1084"
         ]
       },
       "proof_artifacts": []
@@ -792,10 +912,10 @@
         "#973 higher-context and #954 final source-free correctness terminals remain unmet."
       ],
       "next_action": {
-        "status": "PARKED_SEPARATE_ACTIVATION",
-        "scope": "Separately activate #1102: implement the accepted #1086 native reference boundary and bind exact export/input/runtime release for independent review before any model work. The frozen bridge uses original 320 authoring rows and 16 refusals, B=1 both arms, fixed numerical/discrete/replay criteria and one bounded envelope. #1094 remains complete with its envelope consumed; #973 open and #954 blocked. #1086 performed zero native execution.",
+        "status": "PARKED_PRODUCT_HANDOFF",
+        "scope": "After protected #1102 closure, separately activate #1084 and freeze the Rust service/API and artifact-ownership ADR for answer_four_fact_raw_text/v1, including truthful qualification of its actual host binary. Do not rerun the consumed native campaign or treat it as a serving endpoint.",
         "issue_urls": [
-          "https://github.com/UOR-Foundation/uor-r4/issues/1102"
+          "https://github.com/UOR-Foundation/uor-r4/issues/1084"
         ]
       },
       "proof_artifacts": []
@@ -857,10 +977,10 @@
         "Recorded worker RSS zero indicates no worker resource receipt; it is not a successful worker measurement."
       ],
       "next_action": {
-        "status": "PARKED_SEPARATE_ACTIVATION",
-        "scope": "Separately activate #1102: implement the accepted #1086 native reference boundary and bind exact export/input/runtime release for independent review before any model work. The frozen bridge uses original 320 authoring rows and 16 refusals, B=1 both arms, fixed numerical/discrete/replay criteria and one bounded envelope. #1094 remains complete with its envelope consumed; #973 open and #954 blocked. #1086 performed zero native execution.",
+        "status": "PARKED_PRODUCT_HANDOFF",
+        "scope": "After protected #1102 closure, separately activate #1084 and freeze the Rust service/API and artifact-ownership ADR for answer_four_fact_raw_text/v1, including truthful qualification of its actual host binary. Do not rerun the consumed native campaign or treat it as a serving endpoint.",
         "issue_urls": [
-          "https://github.com/UOR-Foundation/uor-r4/issues/1102"
+          "https://github.com/UOR-Foundation/uor-r4/issues/1084"
         ]
       },
       "proof_artifacts": []
@@ -937,10 +1057,10 @@
         "#1079 weak-control and #1082 descriptive results are unchanged; #973 remains open and #954 blocked."
       ],
       "next_action": {
-        "status": "PARKED_SEPARATE_ACTIVATION",
-        "scope": "Separately activate #1102: implement the accepted #1086 native reference boundary and bind exact export/input/runtime release for independent review before any model work. The frozen bridge uses original 320 authoring rows and 16 refusals, B=1 both arms, fixed numerical/discrete/replay criteria and one bounded envelope. #1094 remains complete with its envelope consumed; #973 open and #954 blocked. #1086 performed zero native execution.",
+        "status": "PARKED_PRODUCT_HANDOFF",
+        "scope": "After protected #1102 closure, separately activate #1084 and freeze the Rust service/API and artifact-ownership ADR for answer_four_fact_raw_text/v1, including truthful qualification of its actual host binary. Do not rerun the consumed native campaign or treat it as a serving endpoint.",
         "issue_urls": [
-          "https://github.com/UOR-Foundation/uor-r4/issues/1102"
+          "https://github.com/UOR-Foundation/uor-r4/issues/1084"
         ]
       },
       "proof_artifacts": []
@@ -992,10 +1112,10 @@
         "Supplied segmentation remains the qualified model entry; #1094 and #973 remain open and #954 blocked."
       ],
       "next_action": {
-        "status": "PARKED_SEPARATE_ACTIVATION",
-        "scope": "Separately activate #1102: implement the accepted #1086 native reference boundary and bind exact export/input/runtime release for independent review before any model work. The frozen bridge uses original 320 authoring rows and 16 refusals, B=1 both arms, fixed numerical/discrete/replay criteria and one bounded envelope. #1094 remains complete with its envelope consumed; #973 open and #954 blocked. #1086 performed zero native execution.",
+        "status": "PARKED_PRODUCT_HANDOFF",
+        "scope": "After protected #1102 closure, separately activate #1084 and freeze the Rust service/API and artifact-ownership ADR for answer_four_fact_raw_text/v1, including truthful qualification of its actual host binary. Do not rerun the consumed native campaign or treat it as a serving endpoint.",
         "issue_urls": [
-          "https://github.com/UOR-Foundation/uor-r4/issues/1102"
+          "https://github.com/UOR-Foundation/uor-r4/issues/1084"
         ]
       },
       "proof_artifacts": []
@@ -1066,13 +1186,13 @@
       "limits": [
         "Evidence concerns metadata construction, independent source/profile review and synthetic coordinator behavior. No new mathematical proof, preparation, runtime readiness, model load/forward, fit, withheld comparison or replay.",
         "Conditional release does not establish execution feasibility or raw-text model-output preservation; fresh checks may refuse execution. Any admitted-attempt marker consumes the envelope and a stop overrides completion; no automatic retry.",
-        "Supplied clauses remain the qualified model entry. #1079 weak-control and #1082 descriptive findings are unchanged; #1094/#973 stay open and #954 blocked."
+        "At this historical assembly checkpoint, supplied clauses remained the qualified model entry, #1079 weak-control and #1082 descriptive findings were unchanged, #1094/#973 were open and #954 was blocked."
       ],
       "next_action": {
-        "status": "PARKED_SEPARATE_ACTIVATION",
-        "scope": "Separately activate #1102: implement the accepted #1086 native reference boundary and bind exact export/input/runtime release for independent review before any model work. The frozen bridge uses original 320 authoring rows and 16 refusals, B=1 both arms, fixed numerical/discrete/replay criteria and one bounded envelope. #1094 remains complete with its envelope consumed; #973 open and #954 blocked. #1086 performed zero native execution.",
+        "status": "PARKED_PRODUCT_HANDOFF",
+        "scope": "After protected #1102 closure, separately activate #1084 and freeze the Rust service/API and artifact-ownership ADR for answer_four_fact_raw_text/v1, including truthful qualification of its actual host binary. Do not rerun the consumed native campaign or treat it as a serving endpoint.",
         "issue_urls": [
-          "https://github.com/UOR-Foundation/uor-r4/issues/1102"
+          "https://github.com/UOR-Foundation/uor-r4/issues/1084"
         ]
       },
       "proof_artifacts": []
@@ -1160,10 +1280,10 @@
         "The 120-second historical charge is a conservative policy debit; the resource snapshot excludes its own write/exit tail. Storage peak is a reconstructed bound, not an instantaneous measurement."
       ],
       "next_action": {
-        "status": "PARKED_SEPARATE_ACTIVATION",
-        "scope": "Separately activate #1102: implement the accepted #1086 native reference boundary and bind exact export/input/runtime release for independent review before any model work. The frozen bridge uses original 320 authoring rows and 16 refusals, B=1 both arms, fixed numerical/discrete/replay criteria and one bounded envelope. #1094 remains complete with its envelope consumed; #973 open and #954 blocked. #1086 performed zero native execution.",
+        "status": "PARKED_PRODUCT_HANDOFF",
+        "scope": "After protected #1102 closure, separately activate #1084 and freeze the Rust service/API and artifact-ownership ADR for answer_four_fact_raw_text/v1, including truthful qualification of its actual host binary. Do not rerun the consumed native campaign or treat it as a serving endpoint.",
         "issue_urls": [
-          "https://github.com/UOR-Foundation/uor-r4/issues/1102"
+          "https://github.com/UOR-Foundation/uor-r4/issues/1084"
         ]
       },
       "proof_artifacts": []
@@ -1172,35 +1292,102 @@
       "id": "R4-1086-NATIVE-REFERENCE-BRIDGE",
       "statement": "The exact native R4LearnedReferenceV1 artifact and implementation preserve the accepted Python raw-text reader/core/R4 behavior on the frozen known authoring fixtures under the specified numerical and discrete criteria.",
       "role": "Empirical Criterion",
-      "evidence_status": "Unproven",
-      "outcome": "SPECIFIED_NOT_RUN",
+      "evidence_status": "Empirical",
+      "outcome": "NATIVE_REFERENCE_PRESERVED",
       "scope": {
         "operation": "answer_four_fact_raw_text/v1",
         "artifact_components": 21,
+        "artifact_bytes": 2172252,
         "artifact_payload_bytes": 2160742,
         "parameter_tensors": 14,
-        "future_valid_rows": 320,
-        "future_refusal_rows": 16,
-        "future_batch_size_both_arms": 1,
-        "future_logical_row_forwards": 1280,
-        "future_maximum_absolute_error_per_tensor_per_row": "0.00001",
-        "future_relative_tolerance": "0",
-        "current_exports": 0,
-        "current_model_loads": 0,
-        "current_forwards": 0,
-        "current_fits": 0,
-        "current_comparisons": 0
+        "parameter_bytes": 1714188,
+        "valid_rows_per_arm_phase": 320,
+        "refusal_rows_per_arm_phase": 16,
+        "batch_size_both_arms": 1,
+        "consumed_roles_per_arm_phase": 4480,
+        "logical_row_forwards": 1280,
+        "maximum_absolute_error_per_tensor_per_row": "0.00001",
+        "relative_tolerance": "0",
+        "exports": 2,
+        "loader_gate_calls": 12,
+        "successful_engine_loads": 5,
+        "successful_model_state_loads": 10,
+        "rejected_partial_model_state_validations": 7,
+        "fits": 0,
+        "refusal_forwards": 0,
+        "withheld_reads": 0,
+        "full_output_tensor_bytes_retained": 26910720
       },
       "assumptions": [
-        "The separately reviewed execution release binds exact implementation, assets, independent input/reference files, runtime and resource envelope before outcomes.",
-        "The new scalar f32/f64 profile uses pinned libm and fixed reduction/rounding rules; its agreement with the batch-one Python reference is an empirical hypothesis.",
-        "The full 320-row authoring stratum reuses four known base groups and is not independent semantic generalization."
+        "The exact source, artifact, codec/frame/policy, binary, numerical profile and Python/runtime bindings remain the ones independently admitted and audited.",
+        "The original 320-row authoring stratum reuses known groups and is not an independent semantic holdout.",
+        "A host must verify the external result/review and its own actual binary/runtime identities before presenting the trusted qualification receipt; a newly linked host requires a separate truthful qualification decision."
       ],
       "observations": {
         "specification_status": "NATIVE_REFERENCE_CONTRACT_SPECIFIED",
         "independent_specification_review": "ACCEPTED",
-        "native_behavior": "NOT_RUN",
-        "mathematical_proof": "NONE_SUPPLIED"
+        "native_behavior_result": "NATIVE_REFERENCE_PRESERVED",
+        "independent_result_review": "ACCEPTED_BOUNDED_NATIVE_REFERENCE_QUALIFICATION",
+        "mathematical_proof": "NONE_SUPPLIED",
+        "initial_tensor_maxima": {
+          "binding_attention": {
+            "row": 132,
+            "flat_index": 4,
+            "max_abs": 2.980232238769531e-07
+          },
+          "logits": {
+            "row": 140,
+            "flat_index": 49,
+            "max_abs": 4.76837158203125e-06
+          },
+          "role_attention": {
+            "row": 240,
+            "flat_index": 172,
+            "max_abs": 3.5762786865234375e-07
+          },
+          "role_vectors": {
+            "row": 12,
+            "flat_index": 149,
+            "max_abs": 8.940696716308594e-08
+          }
+        },
+        "replay_tensor_maxima": {
+          "binding_attention": {
+            "row": 132,
+            "flat_index": 4,
+            "max_abs": 2.980232238769531e-07
+          },
+          "logits": {
+            "row": 140,
+            "flat_index": 49,
+            "max_abs": 4.76837158203125e-06
+          },
+          "role_attention": {
+            "row": 240,
+            "flat_index": 172,
+            "max_abs": 3.5762786865234375e-07
+          },
+          "role_vectors": {
+            "row": 12,
+            "flat_index": 149,
+            "max_abs": 8.940696716308594e-08
+          }
+        },
+        "both_arms_exact_fresh_replay": true,
+        "both_arms_answer_role_refusal_errors": 0,
+        "ordinary_qualify_success_path": "NOT_RUN",
+        "service_endpoint": "NOT_IMPLEMENTED",
+        "resources": {
+          "phase_seconds": {
+            "execution": 4.209746583001106,
+            "export_integrity": 0.8177877919952152,
+            "replay": 3.765631000002031
+          },
+          "wall_seconds_after_completion_write": 8.809783916993183,
+          "rss_peak_bytes": 602390528,
+          "ledger_bytes_including_wall_receipt": 75039076,
+          "stop_present": false
+        }
       },
       "evidence_refs": [
         "specification_1086",
@@ -1212,24 +1399,81 @@
         "specification_review_1086",
         "metadata_validation_1086",
         "comparison_record_1094",
-        "comparison_result_1094"
+        "comparison_result_1094",
+        "prebuild_1102",
+        "record_1102",
+        "code_review_1102",
+        "harness_review_1102",
+        "input_audit_1102",
+        "execution_1102",
+        "result_1102",
+        "result_summary_1102",
+        "result_review_1102",
+        "result_audit_1102",
+        "retained_index_1102",
+        "qualification_1102",
+        "qualification_handoff_1102",
+        "native_runtime_1102",
+        "native_build_1102",
+        "native_restore_1102",
+        "native_storage_1102"
       ],
       "limits": [
-        "Static inventory/identity/schema reconciliation is design evidence, not export correctness, measured native behavior or a universal floating-point refinement proof.",
-        "All prior negative/unavailable/weak-control/descriptive records remain. No new parsing, worlds, context, generation, reasoning, coding, geometric advantage or final-kernel claim follows.",
-        "The #1086 contract is not an execution release; its successor requires separate activation and independent release review."
+        "This is measured finite authoring preservation, not a universal mathematical or floating-point refinement proof, portability finding or performance benchmark.",
+        "Known vocabulary/query forms and four-fact context remain fixed; no semantic novelty, unrestricted parsing, generation, larger context, reasoning/coding or geometry-superiority claim follows.",
+        "All prior unavailable, negative, weak-control and descriptive records remain unchanged.",
+        "Full compared tensor bytes, exports and loader mutations remain at the original local evidence root; public metadata mirrors do not replace them.",
+        "The successful ordinary qualify()/serving path remains NOT_RUN; the measured binary exposes research modes, not a service endpoint. Final integer/table lowering remains a separate contract."
       ],
       "next_action": {
-        "status": "PARKED_SEPARATE_ACTIVATION",
-        "scope": "Separately activate #1102: implement the accepted #1086 native reference boundary and bind exact export/input/runtime release for independent review before any model work. The frozen bridge uses original 320 authoring rows and 16 refusals, B=1 both arms, fixed numerical/discrete/replay criteria and one bounded envelope. #1094 remains complete with its envelope consumed; #973 open and #954 blocked. #1086 performed zero native execution.",
+        "status": "PARKED_PRODUCT_HANDOFF",
+        "scope": "After protected #1102 closure, separately activate #1084 and freeze the Rust service/API and artifact-ownership ADR for answer_four_fact_raw_text/v1, including truthful qualification of its actual host binary. Do not rerun the consumed native campaign or treat it as a serving endpoint.",
         "issue_urls": [
-          "https://github.com/UOR-Foundation/uor-r4/issues/1102"
+          "https://github.com/UOR-Foundation/uor-r4/issues/1084"
         ]
       },
-      "proof_artifacts": []
+      "proof_artifacts": [],
+      "history": [
+        {
+          "source_revision": "ccabce9f0619b6154cf347a1b2641715e18d230a",
+          "evidence_status": "Unproven",
+          "outcome": "DRAFT_IMPLEMENTATION_PREBUILD_UNAVAILABLE",
+          "scope": {
+            "operation": "answer_four_fact_raw_text/v1",
+            "artifact_components": 21,
+            "artifact_payload_bytes": 2160742,
+            "parameter_tensors": 14,
+            "future_valid_rows": 320,
+            "future_refusal_rows": 16,
+            "future_batch_size_both_arms": 1,
+            "future_logical_row_forwards": 1280,
+            "future_maximum_absolute_error_per_tensor_per_row": "0.00001",
+            "future_relative_tolerance": "0",
+            "current_exports": 0,
+            "current_model_loads": 0,
+            "current_forwards": 0,
+            "current_fits": 0,
+            "current_comparisons": 0
+          },
+          "observations": {
+            "specification_status": "NATIVE_REFERENCE_CONTRACT_SPECIFIED",
+            "independent_specification_review": "ACCEPTED",
+            "native_behavior": "NOT_RUN",
+            "mathematical_proof": "NONE_SUPPLIED",
+            "implementation_1102": "SOURCE_REVIEWED_NOT_BUILT",
+            "execution_release": "NOT_ADMITTED"
+          },
+          "limits": [
+            "Static inventory/identity/schema reconciliation is design evidence, not export correctness, measured native behavior or a universal floating-point refinement proof.",
+            "All prior negative/unavailable/weak-control/descriptive records remain. No new parsing, worlds, context, generation, reasoning, coding, geometric advantage or final-kernel claim follows.",
+            "The #1086 contract is not an execution release; its successor requires separate activation and independent release review.",
+            "The #1102 candidate is a draft: offline dependency metadata failed before building; no compiler/type acceptance, export, loader result or model behavior has been measured. Both execution envelopes remain unconsumed."
+          ]
+        }
+      ]
     }
   ],
-  "previous_source_revision": "2974e4a6509f7ee83a7db708099ba301a7ed5f4f",
+  "previous_source_revision": "ccabce9f0619b6154cf347a1b2641715e18d230a",
   "artifacts_1082": {
     "implementation_cid": "blake3:1451084b66531dbe5eb0cb1d3b3e60e5f0aa3f4bd59fffbf582a18d4dfc9380e",
     "preparation_cid": "blake3:c8a4a56de77767cbbe8fd31edc83251b42a6f729e182d065caa47d981f248741",
@@ -1314,5 +1558,88 @@
     "next_state": "PARKED_UNASSIGNED",
     "closure_condition": "Specification DoD accepted; close #1086 only after verified protected delivery. No native capability promotion.",
     "history": "Earlier latest_* checkpoints retain original results and scheduling. #1094 is closed through protected PR #1101; its bounded measured preservation remains unchanged."
+  },
+  "latest_native_preparation": {
+    "issue": 1102,
+    "status": "OFFLINE_BUILD_COMPLETED",
+    "source_revision": "1c6be403a9de732dcbb1d9aad8fda66c2b18579c",
+    "evidence_revision": "5af0ae38df122853815947aafefb6a88b3f519ea",
+    "build_seconds": 175.93249895800545,
+    "build_observed_generation_bytes": 682391353,
+    "build_envelope_consumed": true,
+    "cache_archive_bytes_restored": 2749985,
+    "cache_archives_restored": 25,
+    "cache_pins_changed": false,
+    "prior_prebuild_status_preserved": "PREBUILD_DEPENDENCY_UNAVAILABLE",
+    "next_action": "The one native comparison completed; see latest_native_comparison."
+  },
+  "native_preparation_history": [
+    {
+      "source_revision": "ccabce9f0619b6154cf347a1b2641715e18d230a",
+      "record": {
+        "issue": 1102,
+        "status": "PREBUILD_DEPENDENCY_UNAVAILABLE",
+        "implementation_revision": "087303635b9674de02339bc057fca67e19bcd318",
+        "evidence_revision": "ccabce9f0619b6154cf347a1b2641715e18d230a",
+        "release": "NOT_ADMITTED",
+        "delivery": "DRAFT_PR_NOT_MERGED",
+        "issue_state": "OPEN_PARKED",
+        "native_build": "NOT_RUN",
+        "exports": 0,
+        "model_loads": 0,
+        "forwards": 0,
+        "comparison": "NOT_RUN",
+        "replay": "NOT_RUN",
+        "build_envelope_consumed": false,
+        "comparison_envelope_consumed": false,
+        "next_action": "Resume the existing #1102 draft after exact Cargo.lock-matching archives are restored locally; then run the unconsumed offline build and obtain independent concrete release review before any export/model work. No native result or merge is approved."
+      }
+    }
+  ],
+  "latest_native_comparison": {
+    "issue": 1102,
+    "status": "NATIVE_REFERENCE_PRESERVED",
+    "independent_result_review": "ACCEPTED_BOUNDED_NATIVE_REFERENCE_QUALIFICATION",
+    "source_revision": "1c6be403a9de732dcbb1d9aad8fda66c2b18579c",
+    "evidence_revision": "5af0ae38df122853815947aafefb6a88b3f519ea",
+    "artifact_sha256": "2c209590a64cae16a4140fd43adc1cb1f87b357c02e3d4959f1e37f4ab8cd5ab",
+    "native_state_sha256": "4f453da12a9346356e64b6c16abfbaad1ca99e3966173cd79e9ddbc8c2d9341b",
+    "qualification_receipt_sha256": "61d29aa80e6bcd3d163b2ff2a6da4faab04414ea9f4284d80b798c4e46cf5369",
+    "exports": 2,
+    "successful_engine_loads": 5,
+    "successful_model_state_loads": 10,
+    "rejected_partial_model_state_validations": 7,
+    "loader_gate_calls": 12,
+    "logical_row_forwards": 1280,
+    "fits": 0,
+    "refusal_forwards": 0,
+    "withheld_reads": 0,
+    "valid_answers_per_arm_phase": 320,
+    "consumed_roles_per_arm_phase": 4480,
+    "refusals_per_arm_phase": 16,
+    "exact_replay_both_arms": true,
+    "full_tensors_retained_bytes": 26910720,
+    "resources": {
+      "phase_seconds": {
+        "execution": 4.209746583001106,
+        "export_integrity": 0.8177877919952152,
+        "replay": 3.765631000002031
+      },
+      "wall_seconds_after_completion_write": 8.809783916993183,
+      "rss_peak_bytes": 602390528,
+      "ledger_bytes_including_wall_receipt": 75039076,
+      "stop_present": false
+    },
+    "comparison_envelope_consumed": true,
+    "ordinary_qualify_success_path": "NOT_RUN",
+    "service_endpoint": "NOT_IMPLEMENTED",
+    "delivery": "Protected PR #1104 owns delivery and #1102 closure.",
+    "next_action": {
+      "status": "PARKED_PRODUCT_HANDOFF",
+      "scope": "After protected #1102 closure, separately activate #1084 and freeze the Rust service/API and artifact-ownership ADR for answer_four_fact_raw_text/v1, including truthful qualification of its actual host binary. Do not rerun the consumed native campaign or treat it as a serving endpoint.",
+      "issue_urls": [
+        "https://github.com/UOR-Foundation/uor-r4/issues/1084"
+      ]
+    }
   }
 }

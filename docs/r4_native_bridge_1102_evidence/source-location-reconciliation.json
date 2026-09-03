@@ -1,0 +1,18 @@
+{
+  "schema": "uor-r4.native-reference-source-location-reconciliation/1",
+  "issue": 1102,
+  "reference_pins_changed": false,
+  "model_or_fixture_payload_reads": 0,
+  "comparison_envelope_consumed": false,
+  "prospective_run_root_created": false,
+  "original_closure_mismatches": [],
+  "current_checkout_differences": [
+    {
+      "relative": "tools/r4-softmax-trainer/src/r4_softmax_trainer/text_clause_adapter/campaign.py",
+      "expected": "e0e6c8d1387800cf587e82928accb988a9e13fed31a9dbb73763104069d56023",
+      "original": "e0e6c8d1387800cf587e82928accb988a9e13fed31a9dbb73763104069d56023",
+      "current": "755d4d82286f97c2864e233d50b87dae40b08b05f244dce6c16346e2c0429bb4"
+    }
+  ],
+  "verified_count": 169
+}

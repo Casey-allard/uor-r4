@@ -1,0 +1,116 @@
+{
+  "schema": "uor-r4.native-bridge-input-audit/1",
+  "issue": 1102,
+  "baseline": "93613bf82782ca78406fe2739dcc8d9e1d0f2b9e",
+  "status": "INPUT_METADATA_VERIFIED_RELEASE_NOT_ADMITTED",
+  "release_admitted": false,
+  "contract_sha256": "e3565728dfa872d9c260dd3d391ae59e0b0d454ebead20cd15cb075b24796115",
+  "authoring_files": [
+    {
+      "relative_path": "authoring/raw.jsonl",
+      "absolute_path": "/Users/casey.allard/.codex/uor/issue-1094-curator/authoring/raw.jsonl",
+      "resolved_path": "/Users/casey.allard/.codex/uor/issue-1094-curator/authoring/raw.jsonl",
+      "bytes": 215866,
+      "sha256": "58ecc23bf6a587508355266e039bb0cb3bdbf7597204fec40aee2c34d7f89503",
+      "mode": "0444",
+      "regular_file": true,
+      "symlink_components": false,
+      "read_method": "streamed opaque bytes only; JSONL rows not parsed"
+    },
+    {
+      "relative_path": "authoring/reference.jsonl",
+      "absolute_path": "/Users/casey.allard/.codex/uor/issue-1094-curator/authoring/reference.jsonl",
+      "resolved_path": "/Users/casey.allard/.codex/uor/issue-1094-curator/authoring/reference.jsonl",
+      "bytes": 456980,
+      "sha256": "d6740ea56caa6e7df9dea7be4b9636880056629549c5e72783ba988a8ca3c660",
+      "mode": "0444",
+      "regular_file": true,
+      "symlink_components": false,
+      "read_method": "streamed opaque bytes only; JSONL rows not parsed"
+    }
+  ],
+  "original_metadata_files": [
+    {
+      "absolute_path": "/Users/casey.allard/.codex/uor/issue-1094-curator/selection.json",
+      "bytes": 8982,
+      "sha256": "892e3239773e8a14e72ee650dc12c98ee4e1a5b432b69365a60cef8b15c9b5fa",
+      "source_record": "docs/r4_text_clause_adapter_1094_curation.json#selection.json"
+    },
+    {
+      "absolute_path": "/Users/casey.allard/.codex/uor/issue-1094-curator/population.json",
+      "bytes": 1565,
+      "sha256": "ad5bf0fdecb66b0de9e28c98941cf0fb2c6f737c7e1be3cbf48570822c65ba30",
+      "source_record": "docs/r4_text_clause_adapter_1094_curation.json#population.json"
+    }
+  ],
+  "authoring_payload_bytes_count_once": 672846,
+  "retained_preflight": {
+    "path": "docs/r4_text_clause_adapter_1094_evidence/authoring-input-preflight.json",
+    "bytes": 3032,
+    "sha256": "f79df8623038961d899ba727d99bb69b39754b1878d10bbed9da0bfe03e5ee82",
+    "status": "AUTHORING_INPUT_EXACT",
+    "valid_rows": 320,
+    "refusal_rows": 16,
+    "fresh_preflight_run": false
+  },
+  "independence": {
+    "original_curator_separate_from_adapter_author": true,
+    "curator_source_sha256": "4d8012f8647cbbf57136999de6522af7b27bf994466744d0efac20e435a5defb",
+    "independence_source": "docs/r4_text_clause_adapter_1094_review.md",
+    "new_input_authoring": false,
+    "authoring_groups": [
+      {
+        "group_id": "00491608a8c670917815d7f837af2b004dd8cd11fe16f5f921a08538271cc9c2",
+        "pair_type": 0,
+        "source_group_id": 180
+      },
+      {
+        "group_id": "00b3d9cd871cf8e619ec126022e9690802edf46179dbd722074880daa2a42282",
+        "pair_type": 0,
+        "source_group_id": 674
+      },
+      {
+        "group_id": "000e45452183f64b6e6b176eadc919bfa0de71b1b66174d4c9d02593aff577f6",
+        "pair_type": 1,
+        "source_group_id": 631
+      },
+      {
+        "group_id": "000e7c92141ae16685e949f552fa60255419176183be58fde5c53ce24ce34164",
+        "pair_type": 1,
+        "source_group_id": 493
+      }
+    ],
+    "semantic_population": "four already-observed base groups; related renderings, no new holdout"
+  },
+  "pending_release_bindings": [
+    "final executing source closure and revision",
+    "native release binary and compiler/lockfile/profile",
+    "exact Python/Torch/runtime/hardware and clean environments",
+    "concrete inference/reference access separation",
+    "exclusive output/build paths and durable supervised one-attempt envelope"
+  ],
+  "actual_work": {
+    "authoring_payload_hash_bytes": 1345692,
+    "authoring_file_hash_passes": 2,
+    "unique_authoring_payload_bytes": 672846,
+    "authoring_rows_parsed": 0,
+    "model_payload_reads": 0,
+    "model_deserializations": 0,
+    "model_forwards": 0,
+    "optimizer_updates": 0,
+    "artifact_exports": 0,
+    "runtime_probes": 0,
+    "builds": 0,
+    "withheld_payload_reads": 0
+  },
+  "knowledge_source_ids": [
+    "kb:707c06ae968e06b816ff4b8e9a3f7e1b48a54bfa2d7d4290774d2dad81c33c24",
+    "kb:2531e7ab3b4d69cea48cdbfa53cf620caedbb2cd5c654392875b56d597eb9038",
+    "kb:6b8e284c02461ae77686686561ce481cea3ff3017b300af2c9d17f6da1108430"
+  ],
+  "limits": [
+    "Input byte identity only; no fresh parser/model result",
+    "Native preservation and resource feasibility remain unverified",
+    "No source proof or hash substitutes for the released empirical comparison"
+  ]
+}

@@ -32,6 +32,9 @@
 //! Claim language follows `docs/formal_vocabulary.md`; nothing here
 //! strengthens or weakens the guarantees of the underlying crates.
 
+#[cfg(feature = "learned-reference")]
+pub mod learned_reference;
+
 #[cfg(feature = "full")]
 pub mod capability_suite;
 #[cfg(feature = "full")]

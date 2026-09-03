@@ -1,0 +1,67 @@
+{
+  "schema": "uor-r4.native-bridge-preparation-index/1",
+  "issue": 1102,
+  "status": "OFFLINE_BUILD_COMPLETED_COMPARISON_PENDING",
+  "source_revision": "1c6be403a9de732dcbb1d9aad8fda66c2b18579c",
+  "prior_prebuild_record": "docs/r4_native_bridge_1102_prebuild.json",
+  "records": [
+    {
+      "path": "docs/r4_native_bridge_1102_evidence/cache-restoration.json",
+      "origin_path": "/Users/casey.allard/.codex/uor/issue-1102-cache-recovery/completion.json",
+      "bytes": 15437,
+      "sha256": "b0b49679cbce639c8d5c378db3d67c7408661cec114167b38ccfbd7324f047b1"
+    },
+    {
+      "path": "docs/r4_native_bridge_1102_evidence/offline-dependencies.json",
+      "origin_path": "/Users/casey.allard/.codex/uor/issue-1102-cache-recovery/offline-verification.json",
+      "bytes": 769,
+      "sha256": "7ab94e06f911655143b2a0feed8926583f4318557d54c3b724957e79efdfb42d"
+    },
+    {
+      "path": "docs/r4_native_bridge_1102_evidence/build-release.json",
+      "origin_path": "/Users/casey.allard/.codex/uor/issue-1102-native-build/build-release.json",
+      "bytes": 76210,
+      "sha256": "18ac4bbf90edc0be7aa7eef0e53aacea7e921b0e703fe2dc6a3b6b881c740b35"
+    },
+    {
+      "path": "docs/r4_native_bridge_1102_evidence/build-review.json",
+      "origin_path": "/Users/casey.allard/.codex/uor/issue-1102-native-build/build-review.json",
+      "bytes": 3905,
+      "sha256": "f6d670ebbecdd790d5598b913c635ee877da25ab9b015056d20b24b842f4545b"
+    },
+    {
+      "path": "docs/r4_native_bridge_1102_evidence/build-completion.json",
+      "origin_path": "/Users/casey.allard/.codex/uor/issue-1102-native-build/receipts/supervisor-completion.json",
+      "bytes": 415,
+      "sha256": "aaf73fffdd6420e8895fdefdd4d41e29108f895cb53476a654799c6a1f748f11"
+    },
+    {
+      "path": "docs/r4_native_bridge_1102_evidence/build-wall.json",
+      "origin_path": "/Users/casey.allard/.codex/uor/issue-1102-native-build/receipts/supervisor-wall.json",
+      "bytes": 515,
+      "sha256": "f44cb104b9a29b8956b7c002cb61526cdd394ea3cd0f38f0d008209b0c1a60d1"
+    },
+    {
+      "path": "docs/r4_native_bridge_1102_evidence/runtime-receipt.json",
+      "origin_path": "/Users/casey.allard/.codex/uor/issue-1102-native-build/runtime-receipt.json",
+      "bytes": 5826,
+      "sha256": "daba1ad4bf60d28def983378a6a856e0990d7eab20d2ec2365552ad07f3d83d2"
+    },
+    {
+      "path": "docs/r4_native_bridge_1102_evidence/source-location-reconciliation.json",
+      "origin_path": "/Users/casey.allard/.codex/uor/issue-1102-cache-recovery/source-location-reconciliation.json",
+      "bytes": 720,
+      "sha256": "a84e98e3e787ff002925898a474fee987264646369566f59988fbc330851c536"
+    },
+    {
+      "path": "docs/r4_native_bridge_1102_evidence/comparison-budget-plan.json",
+      "origin_path": "/Users/casey.allard/.codex/uor/issue-1102-cache-recovery/comparison-budget-plan.json",
+      "bytes": 5783,
+      "sha256": "8c8a001d8b30e7bd53e0c4dca62a332988ff73db726f7932c0961f84b0ef8b9a"
+    }
+  ],
+  "model_loads_at_this_checkpoint": 0,
+  "exports_at_this_checkpoint": 0,
+  "forwards_at_this_checkpoint": 0,
+  "comparison_envelope_consumed_at_this_checkpoint": false
+}

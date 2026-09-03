@@ -2,6 +2,9 @@
 //! prime/QIMC identity, state metrics, and integrated local transformerless
 //! compilation and inference. No WASM or UOR-framework dependencies.
 
+#[cfg(feature = "learned-reference")]
+pub mod learned_reference;
+
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::{BTreeMap, HashMap};

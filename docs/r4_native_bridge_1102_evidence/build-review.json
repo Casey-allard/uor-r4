@@ -1,0 +1,81 @@
+{
+  "accepted": true,
+  "build_release_path": "/Users/casey.allard/.codex/uor/issue-1102-native-build/build-release.json",
+  "build_release_sha256": "18ac4bbf90edc0be7aa7eef0e53aacea7e921b0e703fe2dc6a3b6b881c740b35",
+  "cache_review": {
+    "acquisition_is_separately_recorded_preparation": true,
+    "every_new_archive_matches_frozen_lock": true,
+    "libm_archive_sha256": "b6d2cec3eae94f9f509c767b45932f1ada8350c4bdb85af2fcab4a3c14807981",
+    "lock_sha256": "7b0ebac536e2522b87c75b9874b693c03fc469160578612289893c6c8bbef5dd",
+    "new_archive_bytes": 2749985,
+    "new_archives": 25,
+    "offline_metadata_record_sha256": "7ab94e06f911655143b2a0feed8926583f4318557d54c3b724957e79efdfb42d"
+  },
+  "command": [
+    "/Users/casey.allard/.cargo/bin/cargo",
+    "build",
+    "--release",
+    "--offline",
+    "--locked",
+    "-p",
+    "uor-r4-api",
+    "--no-default-features",
+    "--features",
+    "learned-reference",
+    "--bin",
+    "r4-learned-reference-1102",
+    "--target",
+    "aarch64-apple-darwin",
+    "-j",
+    "2"
+  ],
+  "contract_sha256": "e3565728dfa872d9c260dd3d391ae59e0b0d454ebead20cd15cb075b24796115",
+  "disposition": "ACCEPTED_ONE_BUILD_ONLY",
+  "environment": {
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_NET_OFFLINE": "true",
+    "CARGO_TERM_COLOR": "never",
+    "HOME": "/Users/casey.allard",
+    "LANG": "en_US.UTF-8",
+    "LOGNAME": "casey.allard",
+    "PATH": "/Users/casey.allard/.cargo/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+    "RUSTFLAGS": "-C target-cpu=generic -C no-vectorize-loops -C no-vectorize-slp",
+    "RUSTUP_TOOLCHAIN": "1.97.1",
+    "TMPDIR": "/Users/casey.allard/.codex/uor/issue-1102-native-build/target/",
+    "USER": "casey.allard"
+  },
+  "issue": 1102,
+  "limits": {
+    "new_build_bytes": 2147483648,
+    "seconds": 900
+  },
+  "limits_of_review": [
+    "Read-only source and byte-identity review; no compiler, test, model, fixture deserialization, exporter, native executable, or numerical probe was run by the reviewer.",
+    "No known static source blocker remains from this review, but successful compilation and runtime behavior are not established.",
+    "Any later scientific run requires independent acceptance of its complete concrete release, including the resulting binary identity and build receipt."
+  ],
+  "rationale": [
+    "The frozen section 8 requires the native compiler to run offline under a separate one-time 900-second and 2-GiB new-build-output cap; it does not prohibit restoring unchanged Cargo.lock checksum-verified prerequisite archives.",
+    "The explicit minimal environment pins Rust 1.97.1, disables incremental compilation and ambient compiler/profile overrides, preserves generic scalar no-vectorization flags, and places scratch output under the charged target tree.",
+    "The reviewed supervisor uses one clock, exclusive consumed/receipt paths, and a cumulative observed-generation build-output ledger without subtracting deleted Cargo temporary outputs.",
+    "The command admits one compiler invocation; a compiler error or budget stop does not authorize restarting the clock or launching model work."
+  ],
+  "reviewer": "independent_review",
+  "roots": {
+    "both_uncreated_at_review": true,
+    "build_root": "/Users/casey.allard/.codex/uor/issue-1102-native-build/target",
+    "no_aliases": true,
+    "receipt_root": "/Users/casey.allard/.codex/uor/issue-1102-native-build/receipts"
+  },
+  "schema": "uor-r4.native-bridge-build-review/1",
+  "scope": "One invocation of the exact frozen offline release build through the reviewed supervisor. No model, fixture, export, comparison, qualification, merge, or retry authorization.",
+  "source_identity": {
+    "all_recorded_sources_match": true,
+    "bytes": 16199891,
+    "duplicate_paths": false,
+    "files": 494,
+    "source_aliases": false
+  },
+  "source_revision": "1c6be403a9de732dcbb1d9aad8fda66c2b18579c",
+  "utc_reviewed": "2026-09-03T15:48:30.495278+00:00"
+}
