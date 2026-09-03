@@ -14,38 +14,29 @@ Measurements retain their pre-declared exit rule and durable issue/record
 reference; design targets remain explicitly labeled as definitions,
 assumptions, or objectives rather than measured results.
 
-> **Current learned language-interface result (2026-09-02):** #1077 completed
-> `LANGUAGE_INTERFACE_HELDOUT_PASSED`. A **141,571-parameter reader** learned
-> contextual roles while the **286,976-parameter [#1073 binding core](r4_zoology_compound_binding_1073.md)**
-> remained frozen. The reader fit used **512 updates, 65,536 row presentations and
-> 917,504 role-label presentations**. See the [#1077 record](r4_zoology_language_interface_1077.md).
+> **Current two-stage R4 result (2026-09-02):** #1079 completed
+> `LANGUAGE_R4_PRESERVED_CONTROL_WEAK`. The retained [#1077 learned interface](r4_zoology_language_interface_1077.md)
+> and frozen binding core preserve both full soft mixtures through R4 transport.
+> See the [#1079 record](r4_zoology_language_r4_1079.md).
 >
-> Both construction views achieved **8,192/8,192 supported and 2,048/2,048 unknown**
-> answers. All four development views achieved **1,024/1,024 supported and 256/256
-> unknown**: two seen and two withheld clause/owner-phrase combinations. All
-> **25,600 primary answers and 358,400 role decisions** were correct. Every view
-> completed all same-bag question pairs and both families' counterfactual quartets.
+> All **156/156 preservation criteria** passed across six observed views:
+> **25,600 identical answer predictions**, **358,400 correct role decisions** and
+> **384,000 computed soft role vectors**. Reader attention stayed exact; maximum
+> full-head logit difference from the learned ordinary path was **8.82149e-6**.
 >
-> Cycling construction fact values changed all **8,192 supported answers** to the
-> reassigned locations in each view; original-answer accuracy became zero.
-> All **2,048 unknown answers** remained correct, with role and binding attention
-> unchanged. Full soft mixtures remain in use.
+> Both controls were valid with equal transport work. Fact-frame corruption met
+> its strong-drop criterion in **6/6 views** (**84.1797–93.2617 percentage points**).
+> Token-frame corruption met it in **3/6 views** (**28.7231–52.6367 points**).
+> Three views missed the frozen **50-point floor**; all six were required to pass.
 >
-> Fit, evaluation and exact fresh-process replay took **49.9201 seconds**, peak
-> **1.4572 GiB**, on the qualified four-thread CPU plan. Sixteen focused checks
-> passed; broad QA remains dormant. #1077 used **no R4 execution or geometry change**.
+> The run and exact fresh-process replay took **57.0422 seconds**, peak **2.2171 GiB**.
+> No fitting, new parameters, geometry changes or generation occurred. Scope remains
+> supplied clauses, known lexicon/query form and already-observed semantic worlds.
 >
-> Scope is contextual owner disambiguation through the full question prefix,
-> with supplied clause boundaries, disjoint object/location lexicons, a seen
-> query form and already-observed #1073 worlds. This establishes neither general
-> English nor free generation. The prior
-> [#1075 R4 preservation](r4_zoology_compound_r4_1075.md) retains **46,080 identical predictions**;
-> #1061 and #1059 preservation records remain intact.
->
-> Next, separately freeze **R4 qualification of the retained full soft-role
-> interface and four-fact-plus-null mixture**, comparing against its learned
-> ordinary soft execution, with no additional fit.
-> #973 stays open and #954 remains blocked.
+> Retain two-stage preservation and the strong fact control. Next, separately freeze
+> a **construction-only, attention-weighted token-frame exposure diagnostic**; any changed frame
+> somewhere in a row does not measure exposure of its attended tokens. The cause of
+> the weaker token control remains unmeasured. #973 stays open; #954 remains blocked.
 
 > **Predecessor role-tagged associative-learning result (2026-09-02).** #1045
 > completed its full 64-epoch R1 cap and stopped
