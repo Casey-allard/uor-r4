@@ -21,13 +21,19 @@ The separate [#1096 readiness decision](docs/r4_isolated_runtime_readiness_1096.
 recorded `ISOLATED_RUNTIME_READY`: all four harmless denied-path probes passed,
 with null model states and zero model loads/forwards/updates. Independent result
 review passed; #1096 was delivered at `6f21fc5f4c40b9620c9fec5e95a39097f812ae73`.
-The [#1094 preparation contract](docs/r4_text_clause_preparation_1094.md) is now
-`PREPARATION_CONTRACT_FROZEN`, with execution release `NOT_ADMITTED`. The full
-120-second preparation allocation is quarantined; no new `prepare` is admitted.
-Next: implement retained-evidence assembly and the launch gate that carries the
-120-second debit, then obtain independent review of the exact release envelope.
-#1094 remains open, parked and unassigned after contract delivery. Model
-comparison/replay remain `NOT_RUN`; readiness does not qualify raw-text behavior.
+The [frozen #1094 preparation contract](docs/r4_text_clause_preparation_1094.md)
+now has an [implemented retained-evidence assembly and launch gate](docs/r4_retained_assembly_1094.md).
+Committed source `07ec3f0d` produced `PREPARATION_ASSEMBLED_FROM_RETAINED_EVIDENCE`
+without another preparation or worker. Independent exact-envelope release is
+`ACCEPTED_FOR_RETAINED_EVIDENCE_COMPARISON`; the assembly's embedded `NOT_ADMITTED`
+remains immutable and the separate release receipt governs execution. The full 120-second preparation debit and 3,465,401
+historical bytes remain charged. Next: separately activate the frozen comparison
+and fresh-process replay through `run-retained` from the bound coordinator with
+the verified exact release. Fresh identity checks consume the 120-second execution and
+120-second replay allocations, within the 360-second cumulative cap; no new
+`prepare` is admitted. #1094 remains open, parked and unassigned after this
+delivery. Model comparison/replay remain `NOT_RUN`; neither assembly nor readiness
+qualifies raw-text behavior.
 #1079's weak-control and #1082's descriptive findings remain unchanged; #973 is
 open and #954 blocked. Use the [current map](docs/integration/current-state.md).
 

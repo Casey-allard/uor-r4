@@ -1,0 +1,40 @@
+#1094 retained assembly: named synthetic checks only
+No real assembly, runtime verification, worker or withheld access.
+
+COMMAND: /Users/casey.allard/.codex/worktrees/r4-language-r4/uor-r4/tools/r4-softmax-trainer/.venv/bin/python -B -m unittest discover -s tools/r4-softmax-trainer/tests -p test_retained_assembly.py -v
+
+test_clean_environment_does_not_inherit_parent_python_or_loader_flags (test_retained_assembly.RetainedAssemblyChecks.test_clean_environment_does_not_inherit_parent_python_or_loader_flags) ... ok
+test_committed_source_rejects_changed_missing_and_extra_python (test_retained_assembly.RetainedAssemblyChecks.test_committed_source_rejects_changed_missing_and_extra_python) ... ok
+test_executing_module_must_be_the_bound_coordinator (test_retained_assembly.RetainedAssemblyChecks.test_executing_module_must_be_the_bound_coordinator) ... ok
+test_output_path_rejects_corpus_overlap_and_symlink_without_payload_reads (test_retained_assembly.RetainedAssemblyChecks.test_output_path_rejects_corpus_overlap_and_symlink_without_payload_reads) ... ok
+test_profile_reproduces_readiness_then_only_rebinds_and_narrows (test_retained_assembly.RetainedAssemblyChecks.test_profile_reproduces_readiness_then_only_rebinds_and_narrows) ... ok
+test_release_requires_new_status_and_every_exact_hash (test_retained_assembly.RetainedAssemblyChecks.test_release_requires_new_status_and_every_exact_hash) ... ok
+test_sealed_metadata_accepts_only_original_identity_and_release_read_mode (test_retained_assembly.RetainedAssemblyChecks.test_sealed_metadata_accepts_only_original_identity_and_release_read_mode) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.183s
+
+OK
+
+EXIT: 0
+
+COMMAND: /Users/casey.allard/.codex/worktrees/r4-language-r4/uor-r4/tools/r4-softmax-trainer/.venv/bin/python -B -m unittest discover -s tools/r4-softmax-trainer/tests -p test_retained_campaign.py -v
+
+test_loaded_coordinator_cannot_bind_a_different_repository (test_retained_campaign.RetainedAdmissionTests.test_loaded_coordinator_cannot_bind_a_different_repository) ... ok
+test_missing_legacy_and_changed_release_refuse_before_payloads (test_retained_campaign.RetainedAdmissionTests.test_missing_legacy_and_changed_release_refuse_before_payloads) ... ok
+test_prior_start_stop_progress_and_completion_refuse_reuse (test_retained_campaign.RetainedAdmissionTests.test_prior_start_stop_progress_and_completion_refuse_reuse) ... ok
+test_runtime_failure_leaves_durable_attempt_before_payloads (test_retained_campaign.RetainedAdmissionTests.test_runtime_failure_leaves_durable_attempt_before_payloads) ... ok
+test_source_failure_leaves_durable_attempt_and_refuses_reuse (test_retained_campaign.RetainedAdmissionTests.test_source_failure_leaves_durable_attempt_and_refuses_reuse) ... ok
+test_start_receipt_precedes_first_payload_hash_and_checks_use_clock (test_retained_campaign.RetainedAdmissionTests.test_start_receipt_precedes_first_payload_hash_and_checks_use_clock) ... ok
+test_historical_debit_and_bytes_survive_execution_to_replay (test_retained_campaign.RetainedBudgetTests.test_historical_debit_and_bytes_survive_execution_to_replay) ... ok
+test_independent_caps_refuse_at_the_resource_boundary (test_retained_campaign.RetainedBudgetTests.test_independent_caps_refuse_at_the_resource_boundary) ... ok
+test_unadmitted_output_is_not_traversed_and_aliases_are_refused (test_retained_campaign.RetainedBudgetTests.test_unadmitted_output_is_not_traversed_and_aliases_are_refused) ... ok
+test_clean_environment_and_parent_identity_checks_surround_stub (test_retained_campaign.RetainedLauncherTests.test_clean_environment_and_parent_identity_checks_surround_stub) ... ok
+test_launch_and_worker_failure_still_check_identity_and_keep_first_cause (test_retained_campaign.RetainedLauncherTests.test_launch_and_worker_failure_still_check_identity_and_keep_first_cause) ... ok
+
+----------------------------------------------------------------------
+Ran 11 tests in 0.034s
+
+OK
+
+EXIT: 0

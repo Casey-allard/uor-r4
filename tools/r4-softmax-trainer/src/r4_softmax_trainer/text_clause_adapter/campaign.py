@@ -16,6 +16,7 @@ import math
 import os
 import resource
 import signal
+import stat
 import struct
 import subprocess
 import sys
@@ -270,6 +271,14 @@ class Budget:
     def __init__(self, args, phase: str, carried: float = 0.0, carried_forwards: int = 0):
         self.started, self.phase = time.monotonic(), phase
         self.output, self.corpus, self.carried = args.output, args.corpus, carried
+        self.retained = getattr(args, "phase", None) == "run-retained"
+        # No output traversal is safe until the retained envelope admits its
+        # exact path. Even a rejected command retains the historical debit.
+        self.output_validated = not self.retained
+        if self.retained:
+            self.carried = max(120.0, carried)
+            if phase == "execution":
+                self.started = getattr(args, "_execution_started", self.started)
         self.carried_forwards, self.row_forwards = carried_forwards, 0
         self.worker_peak = 0
         self.progress = []
@@ -283,16 +292,22 @@ class Budget:
         coordinator = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
         if sys.platform != "darwin":
             coordinator *= 1024
-        output_bytes = sum(p.stat().st_size for p in self.output.rglob("*") if p.is_file())
-        population = self.corpus / "population.json"
-        # The frozen manifest accounts for sealed bytes without opening or
-        # traversing withheld files during authoring preparation.
-        corpus_bytes = json.loads(population.read_bytes())["total_bytes"] + population.stat().st_size
-        probe = self.corpus / "isolation-probe.txt"
-        if probe.exists():
-            corpus_bytes += probe.stat().st_size
-        return {"phase_elapsed_seconds": self.elapsed,
-                "cumulative_elapsed_seconds": self.carried + self.elapsed,
+        if self.retained:
+            output_bytes = retained_output_bytes(self.output) if self.output_validated else 0
+            # Count original corpus/probe/output once from the audited frozen
+            # ledger, never by walking the corpus or trusting a fresh folder.
+            corpus_bytes = 3465401
+        else:
+            output_bytes = sum(p.stat().st_size for p in self.output.rglob("*") if p.is_file())
+            population = self.corpus / "population.json"
+            corpus_bytes = json.loads(population.read_bytes())["total_bytes"] + population.stat().st_size
+            probe = self.corpus / "isolation-probe.txt"
+            if probe.exists():
+                corpus_bytes += probe.stat().st_size
+        elapsed = self.elapsed
+        return {"phase_elapsed_seconds": elapsed,
+                "cumulative_elapsed_seconds": self.carried + elapsed,
+                "historical_preparation_policy_debit_seconds": 120 if self.retained else 0,
                 "coordinator_peak_rss_bytes": int(coordinator),
                 "worker_peak_rss_bytes": self.worker_peak,
                 "combined_peak_rss_bound_bytes": int(coordinator) + self.worker_peak,
@@ -316,6 +331,41 @@ class Budget:
         self.progress.append(retained)
         with (self.output / f"{self.phase}-progress.jsonl").open("ab") as stream:
             stream.write(contract.canonical(retained))
+
+
+def retained_output_bytes(root: Path) -> int:
+    """Inventory admitted output without following aliases or special files."""
+    def visit(path):
+        meta = path.lstat()
+        if stat.S_ISLNK(meta.st_mode):
+            raise ValueError("retained output contains a symlink")
+        if stat.S_ISREG(meta.st_mode):
+            if meta.st_nlink != 1:
+                raise ValueError("retained output contains a hard-linked file")
+            return meta.st_size
+        if not stat.S_ISDIR(meta.st_mode):
+            raise ValueError("retained output contains a special file")
+        return sum(visit(child) for child in path.iterdir())
+    return visit(root)
+
+
+def preparation_path(args) -> Path:
+    name = "retained-preparation.json" if getattr(args, "phase", None) == "run-retained" else "preparation.json"
+    return args.output / name
+
+
+def retained_runtime_check(args, budget: Budget, arm: str, when: str) -> None:
+    """Actual file/alias/hardware checks belong to the live phase clock."""
+    from . import retained
+    budget.check()
+    executing_coordinator_identity(args.repo)
+    for key in ("bindings", "sandbox", "assembly_record"):
+        contract.verify_record(args._retained_assembly[key])
+    contract.verify_record(args._retained_review)
+    identity = retained.verify_runtime(args._retained_assembly)
+    budget.record_event(arm, {"event": "retained-runtime-identity", "when": when,
+                              "identity": identity})
+    budget.check()
 
 
 def alarm(_number, _frame):
@@ -345,11 +395,17 @@ def arm_process(args, arm: str, packets, budget: Budget, callback=None, *, readi
     """Consume one packet/receipt at a time; never retain full-arm tensors."""
     bindings = json.loads((args.output / "bindings.json").read_bytes())
     binding_sha = contract.record(args.output / "bindings.json")["sha256"]
-    env = dict(os.environ)
-    env.update(PYTHONPATH=str(args.repo / "tools/r4-softmax-trainer/src"),
-               PYTHONDONTWRITEBYTECODE="1", PYTHONUNBUFFERED="1",
-               OMP_NUM_THREADS="4", VECLIB_MAXIMUM_THREADS="4",
-               UOR_ISOLATION_PROBE=str(args.corpus / "isolation-probe.txt"))
+    if budget.retained:
+        if readiness:
+            raise ValueError("retained preparation cannot launch another readiness worker")
+        retained_runtime_check(args, budget, arm, "before-worker")
+        env = dict(args._retained_assembly["clean_environment"])
+    else:
+        env = dict(os.environ)
+        env.update(PYTHONPATH=str(args.repo / "tools/r4-softmax-trainer/src"),
+                   PYTHONDONTWRITEBYTECODE="1", PYTHONUNBUFFERED="1",
+                   OMP_NUM_THREADS="4", VECLIB_MAXIMUM_THREADS="4",
+                   UOR_ISOLATION_PROBE=str(args.corpus / "isolation-probe.txt"))
     command = ["/usr/bin/sandbox-exec", "-f", str(args.output / "worker.sb"),
                str(args.python), "-m", "r4_softmax_trainer.text_clause_adapter.worker",
                "--bindings", str(args.output / "bindings.json"), "--arm", arm]
@@ -357,11 +413,12 @@ def arm_process(args, arm: str, packets, budget: Budget, callback=None, *, readi
         command.append("--readiness-only")
     budget.record_event(arm, {"event": "worker-started", "bindings_sha256": binding_sha,
                               "readiness_only": readiness, "model_forwards": 0})
-    process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                               stderr=subprocess.PIPE, env=env, cwd="/", text=True,
-                               bufsize=1, start_new_session=True)
+    process = None
     processed_rows, processed_batches = 0, 0
     try:
+        process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE, env=env, cwd="/", text=True,
+                                   bufsize=1, start_new_session=True)
         def receive():
             budget.check()
             line = process.stdout.readline()
@@ -416,12 +473,34 @@ def arm_process(args, arm: str, packets, budget: Budget, callback=None, *, readi
         budget.check()
         return final
     finally:
-        if process.poll() is None:
-            os.killpg(process.pid, signal.SIGKILL)
-            process.wait()
-        for stream in (process.stdin, process.stdout, process.stderr):
-            if stream and not stream.closed:
-                stream.close()
+        original_error = sys.exc_info()[1]
+        try:
+            if process is not None:
+                if process.poll() is None:
+                    os.killpg(process.pid, signal.SIGKILL)
+                    process.wait()
+                for stream in (process.stdin, process.stdout, process.stderr):
+                    if stream and not stream.closed:
+                        stream.close()
+        finally:
+            if budget.retained:
+                try:
+                    # Request a post check even for failed launch/worker paths.
+                    # An exhausted cap refuses further hashing and is retained
+                    # explicitly as NOT_VERIFIED, never as a passed check.
+                    retained_runtime_check(args, budget, arm, "after-worker")
+                except Exception as cleanup_error:
+                    event = {"event": "post-worker-check-failed", "status": "NOT_VERIFIED",
+                             "reason": str(cleanup_error),
+                             "original_failure": str(original_error) if original_error else None}
+                    try:
+                        budget.record_event(arm, event)
+                    except Exception as record_error:
+                        # A full/changed output cannot replace the original
+                        # worker/resource failure while trying to retain it.
+                        args._cleanup_failure = {**event, "retention_error": str(record_error)}
+                    if original_error is None:
+                        raise
 
 
 def prepare(args) -> dict:
@@ -792,7 +871,7 @@ def run_phase(args, pairs, preparation, phase: str, budget: Budget):
         budget.check()
         completed = True
         return {"schema": "uor-r4.text-clause-comparison-phase/1", "phase": phase,
-                "preparation_sha256": contract.record(args.output / "preparation.json")["sha256"],
+                "preparation_sha256": contract.record(preparation_path(args))["sha256"],
                 "deterministic": evidence, "deterministic_sha256": contract.digest(contract.canonical(evidence)),
                 "oracle_replay_sha256": contract.digest(contract.canonical(_oracle_identity(evidence))),
                 "elapsed_seconds": budget.elapsed,
@@ -834,22 +913,88 @@ def _execution_identity(args, preparation: dict) -> dict:
     return bindings
 
 
+def _retained_admission(args, budget: Budget) -> dict:
+    from . import retained
+    executing_coordinator_identity(args.repo)
+    if args.review is None or args.assembly is None:
+        raise ValueError("retained execution requires assembly and independent release")
+    if args.assembly != preparation_path(args):
+        raise ValueError("retained assembly must be in its exact output directory")
+    if args.review != args.output / "release.json":
+        raise ValueError("retained review must be the exact output/release.json")
+    preparation = retained.load_for_release(args.assembly, repo=args.repo, output=args.output)
+    if args.corpus != Path(preparation["output_paths"]["corpus"]):
+        raise ValueError("retained corpus path differs")
+    if args.python != Path(preparation["runtime_identity"]["interpreter"]["launcher"]):
+        raise ValueError("retained interpreter launcher differs")
+    # A start, terminal, or interrupted progress file consumes this envelope.
+    # Do not open payloads, launch children, or overwrite its prior evidence.
+    for path in args.output.iterdir():
+        name = path.name
+        if (name.startswith(("execution-", "replay-", "run-", "run-retained-"))
+                or name in {"execution.json", "replay.json", "result.json", "completion.json"}
+                or "stopped" in name or "started" in name):
+            raise ValueError("retained execution envelope already consumed")
+    retained.verify_release(preparation, args.review)
+    args._retained_assembly = preparation
+    args._retained_review = contract.record(args.review)
+    budget.output_validated = True
+    # Failures after this point leave an irreversible stop in this exact
+    # independently approved output. Earlier invalid paths cannot be written.
+    args._retained_attempt_admitted = True
+    contract.exclusive(args.output / "admission-started.json", {
+        "schema": "uor-r4.text-clause-retained-admission-started/1", "issue": 1094,
+        "assembly": preparation["assembly_record"], "review": args._retained_review,
+        "historical_preparation_policy_debit_seconds": 120,
+        "historical_retained_bytes": 3465401,
+        "fresh_identity_checks": "NOT_RUN", "withheld_payload_reads": 0,
+        "scope": "one admitted attempt; interruption consumes this envelope; no automatic retry",
+    })
+    budget.check()
+    validated = retained.validate_assembly(
+        args.assembly, repo=args.repo, output=args.output, require_sealed=False)
+    if validated != preparation:
+        raise ValueError("retained envelope changed after its independent release")
+    retained_runtime_check(args, budget, "coordinator", "before-withheld-access")
+    return preparation
+
+
+def executing_coordinator_identity(repo: Path) -> None:
+    """A clean tree elsewhere cannot stand in for the loaded coordinator."""
+    package = repo / "tools/r4-softmax-trainer/src/r4_softmax_trainer/text_clause_adapter"
+    actual = {"campaign.py": __file__, "contract.py": contract.__file__,
+              "adapter.py": segment_request.__code__.co_filename}
+    for name, path in actual.items():
+        if Path(path).resolve() != package / name:
+            raise ValueError(f"executing coordinator source is outside bound repo: {name}")
+
+
+def run_retained(args) -> dict:
+    """Consume the separately reviewed assembly; never call prepare()."""
+    args.phase = "run-retained"
+    return run(args)
+
+
 def run(args) -> dict:
     budget = Budget(args, "execution")
-    prep_path = args.output / "preparation.json"
-    prep = json.loads(prep_path.read_bytes())
-    prep_closed = json.loads((args.output / "preparation-closed.json").read_bytes())
-    budget.carried = prep_closed["phase_elapsed_seconds"]
-    if prep["status"] != "COMPARISON_PREPARED":
-        raise ValueError("authoring preflight does not admit withheld access")
-    bindings = _execution_identity(args, prep)
-    review = json.loads(args.review.read_bytes())
-    if (review.get("status") != "ACCEPTED_FOR_FROZEN_COMPARISON"
-            or review.get("bindings_sha256") != prep["bindings"]["sha256"]
-            or review.get("preparation_sha256") != contract.record(prep_path)["sha256"]
-            or review.get("corpus_manifest_sha256") != prep["corpus_manifest"]["sha256"]
-            or review.get("selection_sha256") != prep["selection"]["sha256"]):
-        raise ValueError("independent review does not bind actual preparation and sealed commitments")
+    prep_path = preparation_path(args)
+    if budget.retained:
+        prep = _retained_admission(args, budget)
+        bindings = json.loads((args.output / "bindings.json").read_bytes())
+    else:
+        prep = json.loads(prep_path.read_bytes())
+        prep_closed = json.loads((args.output / "preparation-closed.json").read_bytes())
+        budget.carried = prep_closed["phase_elapsed_seconds"]
+        if prep["status"] != "COMPARISON_PREPARED":
+            raise ValueError("authoring preflight does not admit withheld access")
+        bindings = _execution_identity(args, prep)
+        review = json.loads(args.review.read_bytes())
+        if (review.get("status") != "ACCEPTED_FOR_FROZEN_COMPARISON"
+                or review.get("bindings_sha256") != prep["bindings"]["sha256"]
+                or review.get("preparation_sha256") != contract.record(prep_path)["sha256"]
+                or review.get("corpus_manifest_sha256") != prep["corpus_manifest"]["sha256"]
+                or review.get("selection_sha256") != prep["selection"]["sha256"]):
+            raise ValueError("independent review does not bind actual preparation and sealed commitments")
     budget.check()
     # This durable receipt precedes the first withheld file read/hash, including
     # integrity verification. The execution clock already includes review/source
@@ -859,6 +1004,8 @@ def run(args) -> dict:
         "preparation": contract.record(prep_path), "review": contract.record(args.review),
         "bindings_sha256": prep["bindings"]["sha256"],
         "carried_seconds": budget.carried, "hardware": bindings["hardware"],
+        "preparation_kind": prep["status"],
+        "historical_retained_bytes": 3465401 if budget.retained else 0,
         "optimizer_updates": 0, "withheld_payload_reads_before_receipt": 0,
     })
     for item in prep["corpus_commitments"]["files"]:
@@ -884,8 +1031,18 @@ def run(args) -> dict:
     budget.check()
     carried = budget.carried + budget.elapsed
     replay_budget = Budget(args, "replay", carried, phase["logical_row_forwards"])
+    replay_budget.output_validated = budget.output_validated
     signal.setitimer(signal.ITIMER_REAL, min(120, max(0.001, 360-carried)))
-    bindings = _execution_identity(args, prep)
+    if replay_budget.retained:
+        from . import retained
+        current = retained.validate_assembly(args.assembly, repo=args.repo,
+                                            output=args.output, require_sealed=False)
+        retained.verify_release(current, args.review)
+        if current != args._retained_assembly:
+            raise ValueError("retained assembly changed between execution and replay")
+        retained_runtime_check(args, replay_budget, "coordinator", "before-replay")
+    else:
+        bindings = _execution_identity(args, prep)
     contract.exclusive(args.output / "replay-started.json", {
         "schema": "uor-r4.text-clause-replay-started/1", "issue": 1094,
         "execution": contract.record(args.output / "execution.json"),
@@ -916,6 +1073,7 @@ def run(args) -> dict:
         "execution": contract.record(args.output / "execution.json"),
         "replay": contract.record(args.output / "replay.json"),
         "elapsed_seconds": carried + replay_budget.elapsed,
+        "historical_preparation_policy_debit_seconds": 120 if budget.retained else 0,
         "logical_row_forwards": phase["logical_row_forwards"] + replay["logical_row_forwards"],
         "final_resource_path": str(args.output / "final-resources.json"),
         "terminal_authority": "requires completion.json bound to this result and no run-stopped.json; any stopped receipt takes precedence",
@@ -941,20 +1099,26 @@ def run(args) -> dict:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("phase", choices=("prepare", "run"))
+    parser.add_argument("phase", choices=("prepare", "run", "run-retained"))
     parser.add_argument("--repo", type=Path, required=True)
     parser.add_argument("--corpus", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--python", type=Path, required=True)
     parser.add_argument("--review", type=Path)
+    parser.add_argument("--assembly", type=Path)
     args = parser.parse_args()
     for key in ("repo", "corpus", "output", "python"):
         setattr(args, key, getattr(args, key).absolute())
+    for key in ("review", "assembly"):
+        if getattr(args, key) is not None:
+            setattr(args, key, getattr(args, key).absolute())
+    args._execution_started = time.monotonic()
     signal.signal(signal.SIGALRM, alarm)
     signal.setitimer(signal.ITIMER_REAL, 120)
     exit_code = 0
     try:
-        result = prepare(args) if args.phase == "prepare" else run(args)
+        result = (prepare(args) if args.phase == "prepare" else
+                  run_retained(args) if args.phase == "run-retained" else run(args))
     except Exception as error:
         exit_code = 1
         status = (error.status if isinstance(error, CampaignFailure)
@@ -969,15 +1133,19 @@ def main() -> int:
                   "active_phase": budget.phase if budget is not None else None,
                   "status": status, "reason": str(error), "optimizer_updates": 0,
                   "cause": error.evidence if isinstance(error, CampaignFailure) else None,
+                  "cleanup_failure": getattr(args, "_cleanup_failure", None),
                   "resources": resources,
                   "partial_progress": budget.progress if budget is not None else []}
-        args.output.mkdir(parents=True, exist_ok=True)
-        contract.exclusive(args.output / f"{args.phase}-stopped.json", result)
+        may_write = args.phase != "run-retained" or getattr(args, "_retained_attempt_admitted", False)
+        stop_phase = "run" if args.phase == "run-retained" else args.phase
+        if may_write:
+            args.output.mkdir(parents=True, exist_ok=True)
+            contract.exclusive(args.output / f"{stop_phase}-stopped.json", result)
         # A resource-overrun stop is already terminal; do not replace its typed
         # cause with a second exception while preserving its final footprint.
-        if budget is not None:
+        if budget is not None and may_write:
             try:
-                contract.exclusive(args.output / f"{args.phase}-stopped-resources.json", budget.snapshot())
+                contract.exclusive(args.output / f"{stop_phase}-stopped-resources.json", budget.snapshot())
             except (OSError, ValueError, KeyError):
                 pass
     finally:

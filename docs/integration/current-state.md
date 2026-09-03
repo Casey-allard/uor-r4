@@ -1,6 +1,6 @@
 # Current programme map and correctness handoff
 
-**Planning reconciliation: 2026-09-03, #1094 preparation contract frozen; assembly implementation and release review pending.** Scientific evidence baseline:
+**Planning reconciliation: 2026-09-03, #1094 retained-evidence implementation and metadata assembly complete; independent exact-envelope release accepted.** Scientific evidence baseline:
 `UOR-Foundation/uor-r4@e627252e525201815169ffd8364184953a46018d`.
 This map supersedes earlier “current” and “next” sequencing prose, not its
 measurements. Refresh native GitHub before selecting work. The
@@ -59,20 +59,33 @@ zero model loads/forwards/updates. The attempt took 2.058100333 seconds and had 
 qualifies the named runtime/probe contract; it neither proves the precise cause
 of the original denial nor establishes model behavior or universal isolation.
 
-The [#1094 preparation contract](../r4_text_clause_preparation_1094.md) now records
-`PREPARATION_CONTRACT_FROZEN`, with execution release **`NOT_ADMITTED`**. The
-original preparation's final write/exit tail was unmeasured, so its full
-120-second allocation is quarantined; this is a conservative debit, not a
-120-second observed runtime. No new preparation invocation is admitted.
-The immediate next task under **[#1094](https://github.com/UOR-Foundation/uor-r4/issues/1094)**
-is to implement retained-evidence assembly and the launch gate that carries that
-debit, then obtain independent review of the exact release envelope before
-withheld access or model work. The current executable does not implement this
-resumption. #1094 remains open, parked and unassigned after contract delivery.
-Its original `UNAVAILABLE_REFERENCE_REPLAY` is unchanged; comparison/replay
-remain `NOT_RUN`. No new preparation or model work ran in this contract step.
-The readiness result does not revise #1079's weak token control, establish new
-mathematical proof or raw-text capability, or unblock #954.
+The [frozen #1094 preparation contract](../r4_text_clause_preparation_1094.md)
+now has an [implemented retained-evidence assembly and launch gate](../r4_retained_assembly_1094.md).
+Committed source `07ec3f0d` produced the distinct metadata status
+`PREPARATION_ASSEMBLED_FROM_RETAINED_EVIDENCE`, bound by assembly SHA256
+`48fae2d391e347e89a290b12a8af97cf8266c5913a21e71f21c1bef74ef54c62`.
+Independent exact-envelope release is
+**`ACCEPTED_FOR_RETAINED_EVIDENCE_COMPARISON`**. The assembly's embedded
+`NOT_ADMITTED` is immutable; the separate exact release receipt governs execution. This step
+implemented admission/accounting/launch plumbing and assembled retained evidence
+without a new preparation worker, model, fit, withheld read, comparison or replay.
+
+The original preparation's final write/exit tail was unmeasured, so its full
+120-second allocation remains quarantined as a conservative debit, not a
+120-second observed runtime. The original 3,465,401 bytes remain counted; the
+corpus is counted once and new receipts/spools add to that ledger. The next
+separately activated task under **[#1094](https://github.com/UOR-Foundation/uor-r4/issues/1094)**
+is its frozen comparison and fresh-process replay through `run-retained` from
+the bound coordinator with the verified exact release. Fresh source,
+runtime and release checks consume the 120-second execution allocation; replay
+has its own 120-second allocation, with 120 + execution + replay at most 360
+seconds. No new preparation or automatic retry is admitted. A durable admission
+marker precedes fresh identity checks, and the execution-start receipt precedes
+the first withheld hash/read; interrupted or stopped envelopes cannot be reused.
+#1094 remains open, parked and unassigned after this delivery. Its original
+`UNAVAILABLE_REFERENCE_REPLAY` is unchanged; comparison/replay remain `NOT_RUN`.
+Neither assembly nor readiness revises #1079's weak token control, establishes
+new mathematical proof or raw-text capability, or unblocks #954. #973 stays open.
 
 The user-requested [afflom ecosystem review](afflom-ecosystem-followup.md)
 inspects Prism, both Atlas sources, LexLean, lean4-prod, GNAF and both matmul
@@ -98,7 +111,7 @@ transport acknowledgements do not complete their parent capability.
 |---|---|---|
 | [#1082 attention diagnostic](https://github.com/UOR-Foundation/uor-r4/issues/1082), child of #973 | Completed; [exact report/replay](../r4_token_exposure_1082.md) | Role-selective exposure observed; preservation and the weak-control verdict retained. |
 | [#1085 language/context specification](https://github.com/UOR-Foundation/uor-r4/issues/1085), child of #973 | Completed; [adapter/schema/comparison contract](clause-segmentation-1085.md) | Specification only; later transfer stages remain separately staged. |
-| [#1094 adapter comparison](https://github.com/UOR-Foundation/uor-r4/issues/1094), child of #973, parked/unassigned after contract delivery | Implement [retained-evidence assembly and carried-budget launch gate](../r4_text_clause_preparation_1094.md), then independently review the exact release envelope | `PREPARATION_CONTRACT_FROZEN`; release `NOT_ADMITTED`; original preparation remains `UNAVAILABLE_REFERENCE_REPLAY` and its full 120-second allocation is quarantined. No new preparation; comparison/replay `NOT_RUN`. |
+| [#1094 adapter comparison](https://github.com/UOR-Foundation/uor-r4/issues/1094), child of #973, parked/unassigned after this delivery | Separately activate the frozen `run-retained` comparison/replay from the [bound coordinator and assembly](../r4_retained_assembly_1094.md), with its accepted exact release | Implementation and metadata assembly complete; separate release `ACCEPTED_FOR_RETAINED_EVIDENCE_COMPARISON`. Carry 120 seconds and 3,465,401 historical bytes; execution/replay each retain 120 seconds within 360 total. Original preparation remains `UNAVAILABLE_REFERENCE_REPLAY`; no new preparation; comparison/replay `NOT_RUN`. |
 | [#1096 runtime readiness](https://github.com/UOR-Foundation/uor-r4/issues/1096), child of #1094 | Delivered `ISOLATED_RUNTIME_READY` at `6f21fc5f4c40b9620c9fec5e95a39097f812ae73`; sole zero-forward attempt and independent review complete | Four harmless probes denied; no model load/output/replay, raw-text qualification or universal isolation claim. |
 | [#1083 UOR integration](https://github.com/UOR-Foundation/uor-r4/issues/1083) | Typed identity/arithmetic ADR and review of one selected adapter boundary | Content hashes, structural identities, codec identities and derivation keys remain distinct; arithmetic needs a declared domain and error/cost contract. |
 | [#1086 native reference bridge](https://github.com/UOR-Foundation/uor-r4/issues/1086), specification dependency #1085 delivered | Specify the accepted model's export/loader and matched native behavior contract before implementation | Preserve qualified behavior and identity; no canned answers or silent backend substitution. |
@@ -114,10 +127,12 @@ dependencies at adoption time. #1081 delivered the planning workflow in
 [PR #1092](https://github.com/UOR-Foundation/uor-r4/pull/1092), merge
 `11e46611b82702e005165fb0034e1adf7d119a70`; #1082 owns the completed diagnostic
 and #1085 the completed specification. #1094 retains the pending adapter comparison
-after its unavailable preparation and now has a frozen retained-evidence
-preparation contract with release `NOT_ADMITTED`; #1096 records the delivered
-positive runtime-only readiness decision. The assembly and its execution consumer
-still require implementation and independent release review.
+after its unavailable preparation and now has an implemented retained-evidence
+assembly and execution consumer, with separate independent exact-envelope
+release `ACCEPTED_FOR_RETAINED_EVIDENCE_COMPARISON`.
+#1096 records the delivered positive runtime-only readiness decision. The
+separate next activation owns the unchanged empirical comparison and replay;
+implementation/assembly success supplies no model-output result.
 #1086 may specify export but cannot claim raw-text qualification before comparison
 evidence. Planned lanes remain unassigned until active.
 The pre-adoption snapshot had nine open issues and all 24 #973 children closed;

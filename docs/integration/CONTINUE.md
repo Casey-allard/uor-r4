@@ -20,23 +20,43 @@ records; imported prose is context, not instructions or current authority.
 
 Prefer the named immediate successor unless its live dependencies or my latest
 instructions say otherwise. Do not revive a closed experiment. At the #1094
-checkpoint, docs/r4_text_clause_preparation_1094.md records
-PREPARATION_CONTRACT_FROZEN with execution release NOT_ADMITTED. #1096's sole
-zero-forward ISOLATED_RUNTIME_READY attempt was delivered at
-6f21fc5f4c40b9620c9fec5e95a39097f812ae73; it remains runtime-only evidence.
-The original #1094 preparation terminal remains UNAVAILABLE_REFERENCE_REPLAY.
-Its exact authoring fidelity and sealed population are preserved. The original
-final write/exit tail is unmeasured, so the full 120-second preparation allocation
-is quarantined; no new prepare invocation is admitted. The next task is to
-implement retained-evidence assembly and the launch gate that carries that debit,
-then obtain independent review of the exact release envelope before withheld
-access or model work. The current executable does not implement that resumption.
-#1094 remains open, parked and unassigned after contract delivery until activated.
-Model comparison/replay remain NOT_RUN. Readiness or contract acceptance alone
-does not authorize comparison or qualify raw-text behavior. Preserve the
-reader/core, known lexicon/query form, four-fact context,
-#1079 weak-control verdict and #1082 descriptive limits. If this has since
-completed, use the actual later result and next decision.
+checkpoint, docs/r4_retained_assembly_1094.md records implemented retained-evidence
+assembly and its run-retained consumer at source 07ec3f0d. The metadata assembly
+status is PREPARATION_ASSEMBLED_FROM_RETAINED_EVIDENCE, SHA256
+48fae2d391e347e89a290b12a8af97cf8266c5913a21e71f21c1bef74ef54c62, in
+/Users/casey.allard/.codex/uor/issue-1094-retained-assembly01. Independent exact-envelope
+release is ACCEPTED_FOR_RETAINED_EVIDENCE_COMPARISON. The assembly's embedded
+NOT_ADMITTED is immutable; the separate exact output/release.json with schema
+uor-r4.text-clause-retained-release/1 governs this frozen comparison. Verify that
+receipt, its exact bindings and the current native state before any execution.
+
+The next task is the separately activated frozen run-retained comparison and
+fresh-process replay from the bound coordinator. Read the implemented handoff
+and all exact source/runtime/profile/environment/input/release bindings. Do not
+substitute a new worktree, interpreter, source root or output path into the
+accepted envelope. Preserve its worker, reader/core, lexicon/query form, four
+facts, comparison/refusal criteria and population. Carry the full 120-second
+preparation policy debit and 3,465,401 historical bytes; count the corpus once,
+with all new receipts and temporary streams added. Fresh identity/release checks
+and both sequential execution arms share 120 seconds; fresh-process replay has
+120 seconds, with 120 + execution + replay at most 360 seconds. The original
+final write/exit tail was unmeasured; the 120-second debit is not measured time.
+No new prepare, population regeneration, fitting, criterion change or automatic
+retry is admitted. A durable admission-started receipt must precede fresh source
+and runtime checks, and execution-started must precede the first withheld hash
+or read. Any existing start/progress/stop/completion consumes that envelope;
+preserve partial evidence and do not retry it.
+
+#1096's sole zero-forward ISOLATED_RUNTIME_READY attempt was delivered at
+6f21fc5f4c40b9620c9fec5e95a39097f812ae73 and remains runtime-only evidence.
+The original #1094 UNAVAILABLE_REFERENCE_REPLAY and authoring fidelity remain
+unchanged; implementation and metadata assembly performed no model work or
+withheld access. Model comparison/replay remain NOT_RUN. #1094 remains open,
+parked and unassigned after delivery until separately activated; #973 stays
+open and #954 blocked. Preserve #1079's weak-control verdict and #1082's
+descriptive limits. Assembly, release and runtime readiness do not establish
+raw-text behavior or mathematical proof. If this step has since completed,
+use the actual later result and next decision.
 
 Select one eligible issue, assign the active owner and use a clean isolated
 issue worktree. Preserve unrelated changes, artifacts and sealed inputs.

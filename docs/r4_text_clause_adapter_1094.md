@@ -272,3 +272,21 @@ no model/corpus/runtime copy, build output or download was created. Original
 model/evidence stores and sealed input directories are retained. The primary
 checkout's two pre-existing tracked deletions and untracked user material are
 unchanged. Nothing was deleted, pruned or unsealed.
+
+
+## Retained-evidence implementation and release — 2026-09-03
+
+The [retained assembly and carried-budget gate](r4_retained_assembly_1094.md)
+are implemented at source `07ec3f0d39d08ac5bf9c2ba7a6b864229e007867`.
+The exact metadata assembly has separate status
+`PREPARATION_ASSEMBLED_FROM_RETAINED_EVIDENCE`; its immutable embedded
+`NOT_ADMITTED` is accompanied by an independent
+`ACCEPTED_FOR_RETAINED_EVIDENCE_COMPARISON` release receipt. The evidence index
+and independent review bind the actual source/path/profile/population envelope.
+All 18 named synthetic code checks passed. No new preparation, readiness worker,
+runtime/asset verification, model work or withheld access ran in this step.
+The original `UNAVAILABLE_REFERENCE_REPLAY` and authoring observations above
+remain unchanged. Original 120 seconds are quarantined as a policy debit and
+3,465,401 historical bytes remain counted; the new output cannot reset them.
+The separately activated frozen comparison/replay is the next action. #1094's
+scientific DoD and #973 remain open; #954 remains blocked.
