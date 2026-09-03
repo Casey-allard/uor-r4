@@ -1,9 +1,11 @@
 # Frozen raw-text adapter comparison — #1094
 
 Current handoff: the separate [#1096 readiness decision](r4_isolated_runtime_readiness_1096.md)
-returned `ISOLATED_RUNTIME_READY` with zero model loads/forwards. #1094 remains
-open for separately frozen preparation and independent release review; its
-comparison and replay remain `NOT_RUN`. The original attempt below is unchanged.
+returned `ISOLATED_RUNTIME_READY` with zero model loads/forwards. The subsequent
+[preparation contract](r4_text_clause_preparation_1094.md) is frozen, with release
+`NOT_ADMITTED`. #1094 remains open for implementation of retained-evidence
+assembly and a launch gate that preserves the original budget. Comparison and
+replay remain `NOT_RUN`. The original attempt below is unchanged.
 
 **Original preparation result (2026-09-03): `UNAVAILABLE_REFERENCE_REPLAY`.** The sole authoring
 preparation recovered all 320 valid inputs exactly and matched all 16 typed
@@ -231,3 +233,42 @@ evidence, not a success retroactively. After #1096's protected delivery, #1094
 must separately freeze preparation against the accepted readiness bindings,
 account for its consumed budget and obtain independent release review before
 withheld access/comparison. It remains open and parked/unassigned until active.
+
+
+## Subsequent preparation contract and release review (2026-09-03)
+
+The separately requested [contract](r4_text_clause_preparation_1094.md),
+[machine-readable freeze](r4_text_clause_preparation_1094_contract.json),
+[independent budget audit](r4_text_clause_preparation_1094_budget_audit.md),
+[source audit](r4_text_clause_preparation_1094_source_audit.md) and
+[contract review](r4_text_clause_preparation_1094_review.md) preserve the
+original unavailable attempt and accepted #1096 startup without calling either
+a new successful preparation or a model result. No preparation worker, fit,
+withheld access, comparison or replay ran in this contract step.
+
+The last original resource snapshot predates its own serialization/write and
+exit, so arithmetic remaining-time figures are upper bounds. The chosen
+resumption policy quarantines the full original 120-second preparation
+allocation. This is a policy debit, not a claim that 120 seconds was measured.
+Execution and replay retain at most 120 seconds each under the unchanged
+360-second total. Original counted bytes are 3,465,401; the remaining allowance
+is 130,752,327 bytes before new receipts. #1096 and independent authoring retain
+their separate ledgers. No allocation or original result is reset.
+
+A new exclusive assembly schema/status must link the original authoring and
+readiness receipts and bind the exact implementation, clean child environment,
+profile delta, runtime/source/asset identities and carried budget. The current
+coordinator implements neither that assembly nor its release consumer. Release
+is therefore `NOT_ADMITTED`. The next action is to implement this bounded
+coordinator path under #1094, then obtain independent review of the exact
+implemented envelope before any withheld execution. Adapter, worker, curator,
+model computation, populations and empirical criteria remain unchanged.
+
+Storage was reviewed against the September 2 audit. At this checkpoint the
+volume had 50,227,488 KiB (47.90 GiB) available, and the isolated contract
+worktree occupied 1,165,544 KiB (1.11 GiB) of directory allocation. These are
+snapshots, not a reclaimed-space claim. This step adds documents and metadata;
+no model/corpus/runtime copy, build output or download was created. Original
+model/evidence stores and sealed input directories are retained. The primary
+checkout's two pre-existing tracked deletions and untracked user material are
+unchanged. Nothing was deleted, pruned or unsealed.

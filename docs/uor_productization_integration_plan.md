@@ -8,10 +8,15 @@ refusals were exact, but isolated Python startup was denied. No model forward,
 withheld comparison or replay ran. The separate
 [#1096 readiness decision](r4_isolated_runtime_readiness_1096.md) recorded
 `ISOLATED_RUNTIME_READY`: four harmless probes were denied, with null model
-states and zero model loads/forwards/updates. Independent result review passed.
-#1094 remains open, parked and unassigned. Its separate frozen preparation and
-independent release review are next after delivery; no new preparation, withheld
-comparison or replay ran under #1096. Readiness does not qualify raw-text behavior.
+states and zero model loads/forwards/updates. Independent result review passed;
+#1096 was delivered at `6f21fc5f4c40b9620c9fec5e95a39097f812ae73`.
+The [#1094 preparation contract](r4_text_clause_preparation_1094.md) is now
+`PREPARATION_CONTRACT_FROZEN`, with execution release `NOT_ADMITTED`. Its full
+120-second preparation allocation is quarantined; no new preparation is admitted.
+Next: implement retained-evidence assembly and the launch gate that carries that
+debit, then independently review the exact release envelope. #1094 remains open,
+parked and unassigned after contract delivery. Model comparison/replay remain
+`NOT_RUN`; readiness does not qualify raw-text behavior.
 The [afflom ecosystem follow-up](integration/afflom-ecosystem-followup.md)
 records concrete Prism/Atlas/LexLean/GNAF/matmul source boundaries without changing
 the fixed reader/core or its arithmetic. Use the

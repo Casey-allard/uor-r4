@@ -1,0 +1,220 @@
+{
+  "schema": "uor-r4.text-clause-preparation-contract/1",
+  "issue": 1094,
+  "status": "PREPARATION_CONTRACT_FROZEN",
+  "release": "NOT_ADMITTED",
+  "base_revision": "6f21fc5f4c40b9620c9fec5e95a39097f812ae73",
+  "evidence_status": "SPECIFICATION_WITH_SOURCE_AUDIT",
+  "sources": {
+    "specification": {
+      "path": "docs/integration/clause-segmentation-1085.md",
+      "revision": "6f21fc5f4c40b9620c9fec5e95a39097f812ae73",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/6f21fc5f4c40b9620c9fec5e95a39097f812ae73/docs/integration/clause-segmentation-1085.md",
+      "bytes": 24982,
+      "sha256": "85f928fec94fa0f6793cff4c35e1fc8c9cba691739d34db272465766c7c9dab1"
+    },
+    "old_start": {
+      "path": "docs/r4_text_clause_adapter_1094_evidence/preparation-started.json",
+      "revision": "6f21fc5f4c40b9620c9fec5e95a39097f812ae73",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/6f21fc5f4c40b9620c9fec5e95a39097f812ae73/docs/r4_text_clause_adapter_1094_evidence/preparation-started.json",
+      "bytes": 863,
+      "sha256": "0a0eeff9238eb28ca745e8e4010654fc1f436f65f6c86aa5eedae8bd996c94d7"
+    },
+    "old_stop": {
+      "path": "docs/r4_text_clause_adapter_1094_evidence/prepare-stopped.json",
+      "revision": "6f21fc5f4c40b9620c9fec5e95a39097f812ae73",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/6f21fc5f4c40b9620c9fec5e95a39097f812ae73/docs/r4_text_clause_adapter_1094_evidence/prepare-stopped.json",
+      "bytes": 1262,
+      "sha256": "87bd3082ce9b4da5e5227a3b82f6515773cf5f113de689ff6251a2a45340fad5"
+    },
+    "old_resources": {
+      "path": "docs/r4_text_clause_adapter_1094_evidence/prepare-stopped-resources.json",
+      "revision": "6f21fc5f4c40b9620c9fec5e95a39097f812ae73",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/6f21fc5f4c40b9620c9fec5e95a39097f812ae73/docs/r4_text_clause_adapter_1094_evidence/prepare-stopped-resources.json",
+      "bytes": 279,
+      "sha256": "02f907640d6830e17c136e06078a54390ee4173862043926bee7f8f7670eaf18"
+    },
+    "old_authoring": {
+      "path": "docs/r4_text_clause_adapter_1094_evidence/authoring-input-preflight.json",
+      "revision": "6f21fc5f4c40b9620c9fec5e95a39097f812ae73",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/6f21fc5f4c40b9620c9fec5e95a39097f812ae73/docs/r4_text_clause_adapter_1094_evidence/authoring-input-preflight.json",
+      "bytes": 3032,
+      "sha256": "f79df8623038961d899ba727d99bb69b39754b1878d10bbed9da0bfe03e5ee82"
+    },
+    "old_bindings": {
+      "path": "docs/r4_text_clause_adapter_1094_evidence/bindings.json",
+      "revision": "6f21fc5f4c40b9620c9fec5e95a39097f812ae73",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/6f21fc5f4c40b9620c9fec5e95a39097f812ae73/docs/r4_text_clause_adapter_1094_evidence/bindings.json",
+      "bytes": 58987,
+      "sha256": "baeb56a632c0e75c0574d9bad503e7849cf434039490e1fe92e3b8f0114b1f0b"
+    },
+    "old_curation": {
+      "path": "docs/r4_text_clause_adapter_1094_curation.json",
+      "revision": "6f21fc5f4c40b9620c9fec5e95a39097f812ae73",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/6f21fc5f4c40b9620c9fec5e95a39097f812ae73/docs/r4_text_clause_adapter_1094_curation.json",
+      "bytes": 13399,
+      "sha256": "e10466d762e5982a4338aa950b00450d8c523af36099b6a6f2858ac081bfdb36"
+    },
+    "ready_manifest": {
+      "path": "docs/r4_isolated_runtime_readiness_1096_evidence/admitted-freeze02/manifest.json",
+      "revision": "6f21fc5f4c40b9620c9fec5e95a39097f812ae73",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/6f21fc5f4c40b9620c9fec5e95a39097f812ae73/docs/r4_isolated_runtime_readiness_1096_evidence/admitted-freeze02/manifest.json",
+      "bytes": 9395,
+      "sha256": "4acd2b7ec00ac8874573e2d6e52e5087b376bc0ebcd52aedd4464aa28979c644"
+    },
+    "ready_bindings": {
+      "path": "docs/r4_isolated_runtime_readiness_1096_evidence/admitted-freeze02/bindings.json",
+      "revision": "6f21fc5f4c40b9620c9fec5e95a39097f812ae73",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/6f21fc5f4c40b9620c9fec5e95a39097f812ae73/docs/r4_isolated_runtime_readiness_1096_evidence/admitted-freeze02/bindings.json",
+      "bytes": 58978,
+      "sha256": "23977918c1685148f6cbc61ebab87507e2ce153e40d9b15c2634a4d68e0c2353"
+    },
+    "ready_profile": {
+      "path": "docs/r4_isolated_runtime_readiness_1096_evidence/admitted-freeze02/worker.sb",
+      "revision": "6f21fc5f4c40b9620c9fec5e95a39097f812ae73",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/6f21fc5f4c40b9620c9fec5e95a39097f812ae73/docs/r4_isolated_runtime_readiness_1096_evidence/admitted-freeze02/worker.sb",
+      "bytes": 8243,
+      "sha256": "d508d3ec50b78e3bbd3cb1fe9468788f457f4e47f713f9a793f03079df48416e"
+    },
+    "ready_result": {
+      "path": "docs/r4_isolated_runtime_readiness_1096_evidence/admitted-freeze02/result.json",
+      "revision": "6f21fc5f4c40b9620c9fec5e95a39097f812ae73",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/6f21fc5f4c40b9620c9fec5e95a39097f812ae73/docs/r4_isolated_runtime_readiness_1096_evidence/admitted-freeze02/result.json",
+      "bytes": 4756,
+      "sha256": "439aa149d6f128844490c4a9002bfe2ffb52fdeeaad067e8e3cb16447b24b930"
+    },
+    "ready_start": {
+      "path": "docs/r4_isolated_runtime_readiness_1096_evidence/admitted-freeze02/started.json",
+      "revision": "6f21fc5f4c40b9620c9fec5e95a39097f812ae73",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/6f21fc5f4c40b9620c9fec5e95a39097f812ae73/docs/r4_isolated_runtime_readiness_1096_evidence/admitted-freeze02/started.json",
+      "bytes": 737,
+      "sha256": "2da6bab8bc6812b4dcec55da98650fe996768c9ff365fbcdde5896f31c9d38b9"
+    },
+    "ready_approval": {
+      "path": "docs/r4_isolated_runtime_readiness_1096_evidence/admitted-freeze02/review.json",
+      "revision": "6f21fc5f4c40b9620c9fec5e95a39097f812ae73",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/6f21fc5f4c40b9620c9fec5e95a39097f812ae73/docs/r4_isolated_runtime_readiness_1096_evidence/admitted-freeze02/review.json",
+      "bytes": 2452,
+      "sha256": "e092e4bc3d3a989d37868c5530ff3483d80f4a64e53b3cf609aa1774a5c43759"
+    },
+    "ready_result_review": {
+      "path": "docs/r4_isolated_runtime_readiness_1096_result_review.md",
+      "revision": "6f21fc5f4c40b9620c9fec5e95a39097f812ae73",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/6f21fc5f4c40b9620c9fec5e95a39097f812ae73/docs/r4_isolated_runtime_readiness_1096_result_review.md",
+      "bytes": 6126,
+      "sha256": "3ea0bab914de67ad1e170cd3f58ee37e4780f3ff007517c8372daa8a7cfac6f9"
+    },
+    "campaign_source": {
+      "path": "tools/r4-softmax-trainer/src/r4_softmax_trainer/text_clause_adapter/campaign.py",
+      "revision": "6f21fc5f4c40b9620c9fec5e95a39097f812ae73",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/6f21fc5f4c40b9620c9fec5e95a39097f812ae73/tools/r4-softmax-trainer/src/r4_softmax_trainer/text_clause_adapter/campaign.py",
+      "bytes": 56370,
+      "sha256": "e0e6c8d1387800cf587e82928accb988a9e13fed31a9dbb73763104069d56023"
+    },
+    "worker_source": {
+      "path": "tools/r4-softmax-trainer/src/r4_softmax_trainer/text_clause_adapter/worker.py",
+      "revision": "6f21fc5f4c40b9620c9fec5e95a39097f812ae73",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/6f21fc5f4c40b9620c9fec5e95a39097f812ae73/tools/r4-softmax-trainer/src/r4_softmax_trainer/text_clause_adapter/worker.py",
+      "bytes": 25732,
+      "sha256": "b8c0359edbfe63564bcd811351b06389c2b4384c73489d676ea7c46f4179458c"
+    },
+    "adapter_source": {
+      "path": "tools/r4-softmax-trainer/src/r4_softmax_trainer/text_clause_adapter/adapter.py",
+      "revision": "6f21fc5f4c40b9620c9fec5e95a39097f812ae73",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/6f21fc5f4c40b9620c9fec5e95a39097f812ae73/tools/r4-softmax-trainer/src/r4_softmax_trainer/text_clause_adapter/adapter.py",
+      "bytes": 9553,
+      "sha256": "21af8d2d43f9622a7a6e2d88c0c07e358b1bc8d519cc193b0574c8f6ced4fc27"
+    },
+    "curator_source": {
+      "path": "tools/r4-softmax-trainer/src/r4_softmax_trainer/text_clause_adapter/curate.py",
+      "revision": "6f21fc5f4c40b9620c9fec5e95a39097f812ae73",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/6f21fc5f4c40b9620c9fec5e95a39097f812ae73/tools/r4-softmax-trainer/src/r4_softmax_trainer/text_clause_adapter/curate.py",
+      "bytes": 31413,
+      "sha256": "4d8012f8647cbbf57136999de6522af7b27bf994466744d0efac20e435a5defb"
+    },
+    "profile_generator": {
+      "path": "tools/r4-softmax-trainer/src/r4_softmax_trainer/text_clause_adapter/contract.py",
+      "revision": "6f21fc5f4c40b9620c9fec5e95a39097f812ae73",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/6f21fc5f4c40b9620c9fec5e95a39097f812ae73/tools/r4-softmax-trainer/src/r4_softmax_trainer/text_clause_adapter/contract.py",
+      "bytes": 7971,
+      "sha256": "7aa5da459d1b68af9acdb5424c4c30c13d9ecee059e10b814cdff814d54d074b"
+    }
+  },
+  "prior_result": "UNAVAILABLE_REFERENCE_REPLAY",
+  "accepted_readiness": "ISOLATED_RUNTIME_READY",
+  "recorded_debit": {
+    "preparation_seconds": "0.2602927920015645",
+    "cumulative_seconds": "0.2602929580025375",
+    "timing_scope": "Recorded lower-bound debit; final receipt write/exit tail unobserved.",
+    "arithmetic_preparation_remainder_upper_bound": "119.7397072079984355",
+    "arithmetic_cumulative_remainder_upper_bound": "359.7397070419974625",
+    "original_retained_bytes": 3465401,
+    "remaining_bytes_before_new_material": 130752327,
+    "model_loads": 0,
+    "logical_row_forwards": 0,
+    "optimizer_updates": 0
+  },
+  "selected_accounting": {
+    "historical_preparation_debit_seconds": 120,
+    "new_preparation_attempts": 0,
+    "execution_seconds_max": 120,
+    "replay_seconds_max": 120,
+    "cumulative_seconds_max": 360,
+    "logical_row_forwards_max": 6400,
+    "new_bytes_max": 134217728,
+    "combined_peak_rss_bytes_max": 3221225472,
+    "note": "Full original preparation allocation quarantined as policy debit, not measured elapsed time. Count original corpus once and old outputs plus all new outputs."
+  },
+  "separate_1096_ledger": {
+    "attempts_consumed": 1,
+    "elapsed_seconds": "2.058100333000766",
+    "original_receipt_bytes": 165740,
+    "original_plus_public_evidence_bytes": 339014,
+    "changes_1094_budget": false
+  },
+  "required_assembly": {
+    "schema": "uor-r4.text-clause-retained-preparation/1",
+    "status": "PREPARATION_ASSEMBLED_FROM_RETAINED_EVIDENCE",
+    "implemented": false,
+    "candidate_coordinator_commit": null,
+    "assembled_envelope_sha256": null,
+    "worker_adapter_curator_model_changes_allowed": false,
+    "new_population_or_authoring_execution_allowed": false,
+    "new_worker_or_model_execution_allowed": false
+  },
+  "required_release": {
+    "schema": "uor-r4.text-clause-retained-release/1",
+    "status": "ACCEPTED_FOR_RETAINED_EVIDENCE_COMPARISON",
+    "exists": false,
+    "review_must_bind": [
+      "assembly_sha256",
+      "coordinator_source_closure",
+      "unchanged_worker_adapter_curator_model_sources",
+      "exact_profile_and_delta",
+      "exact_clean_environment",
+      "interpreter_symlinks_18_runtime_files_hardware_assets",
+      "selection_population_commitments",
+      "historical_preparation_debit_120_seconds"
+    ]
+  },
+  "current_executable_blockers": [
+    "prepare resets budget and repeats stopped phase",
+    "new output omits old retained outputs",
+    "run carries only new preparation phase time and rejects proposed assembly status",
+    "arm_process inherits environment and differs from1096 manifest/probe receipt",
+    "run couples execution and replay"
+  ],
+  "not_run": [
+    "preparation",
+    "worker_readiness",
+    "model_construction",
+    "model_forwards",
+    "optimizer_updates",
+    "withheld_hash_or_read",
+    "comparison",
+    "replay",
+    "broad_QA"
+  ],
+  "proof_artifacts": [],
+  "next_action": "Implement retained-evidence assembly and carry-aware launch gate in #1094; independent exact-envelope release review before withheld execution."
+}

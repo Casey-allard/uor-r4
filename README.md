@@ -19,10 +19,15 @@ and replay are `NOT_RUN`. Supplied segmentation remains qualified. The
 [#1085 specification](docs/integration/clause-segmentation-1085.md) is unchanged.
 The separate [#1096 readiness decision](docs/r4_isolated_runtime_readiness_1096.md)
 recorded `ISOLATED_RUNTIME_READY`: all four harmless denied-path probes passed,
-with null model states and zero model loads/forwards/updates. Independent result review
-passed. Next: #1094's separate frozen preparation and independent release
-review. #1094 remains open, parked and unassigned; no new preparation, withheld
-comparison or replay ran under #1096. Readiness does not qualify raw-text behavior.
+with null model states and zero model loads/forwards/updates. Independent result
+review passed; #1096 was delivered at `6f21fc5f4c40b9620c9fec5e95a39097f812ae73`.
+The [#1094 preparation contract](docs/r4_text_clause_preparation_1094.md) is now
+`PREPARATION_CONTRACT_FROZEN`, with execution release `NOT_ADMITTED`. The full
+120-second preparation allocation is quarantined; no new `prepare` is admitted.
+Next: implement retained-evidence assembly and the launch gate that carries the
+120-second debit, then obtain independent review of the exact release envelope.
+#1094 remains open, parked and unassigned after contract delivery. Model
+comparison/replay remain `NOT_RUN`; readiness does not qualify raw-text behavior.
 #1079's weak-control and #1082's descriptive findings remain unchanged; #973 is
 open and #954 blocked. Use the [current map](docs/integration/current-state.md).
 

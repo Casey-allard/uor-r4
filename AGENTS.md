@@ -19,10 +19,15 @@ and replay are `NOT_RUN`. Supplied segmentation remains qualified. The
 [#1085 specification](docs/integration/clause-segmentation-1085.md) is unchanged.
 The separate [#1096 readiness decision](docs/r4_isolated_runtime_readiness_1096.md)
 recorded `ISOLATED_RUNTIME_READY`: all four harmless denied-path probes passed,
-with null model states and zero model loads/forwards/updates. Independent result review
-passed. Next: #1094's separate frozen preparation and independent release
-review. #1094 remains open, parked and unassigned; no new preparation, withheld
-comparison or replay ran under #1096. Readiness does not qualify raw-text behavior.
+with null model states and zero model loads/forwards/updates. Independent result
+review passed; #1096 was delivered at `6f21fc5f4c40b9620c9fec5e95a39097f812ae73`.
+The [#1094 preparation contract](docs/r4_text_clause_preparation_1094.md) is now
+`PREPARATION_CONTRACT_FROZEN`, with execution release `NOT_ADMITTED`. The full
+120-second preparation allocation is quarantined; no new `prepare` is admitted.
+Next: implement retained-evidence assembly and the launch gate that carries the
+120-second debit, then obtain independent review of the exact release envelope.
+#1094 remains open, parked and unassigned after contract delivery. Model
+comparison/replay remain `NOT_RUN`; readiness does not qualify raw-text behavior.
 #1079's weak-control and #1082's descriptive findings remain unchanged; #973 is
 open and #954 blocked. Use the [current map](docs/integration/current-state.md).
 
@@ -73,7 +78,10 @@ the weaker token control remains unmeasured. #973 stays open; #954 remains block
 **Historical checkpoints — superseded for next-action selection on
 2026-09-03.** The earlier “current/next” decisions below retain their original
 scope and results. Use the current map and live issue graph; the next research
-task is [#1094](https://github.com/UOR-Foundation/uor-r4/issues/1094), a separate frozen preparation and independent release review after #1096's zero-forward readiness decision lands through the protected path.
+task is [#1094](https://github.com/UOR-Foundation/uor-r4/issues/1094): implement the
+[frozen retained-evidence assembly and carried-budget launch gate](docs/r4_text_clause_preparation_1094.md),
+then obtain independent review of the exact release envelope. No new preparation
+invocation or model comparison is admitted by the contract alone.
 
 The earlier #973 V5 terminal is the independently verified predictive
 write/binding campaign. It completed

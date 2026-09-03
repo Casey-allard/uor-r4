@@ -1,7 +1,7 @@
 {
   "schema": "uor-r4.claim-ledger/1",
   "repository": "UOR-Foundation/uor-r4",
-  "source_revision": "11f8384b8a0b866180beb0302f7f9804e05cf9b6",
+  "source_revision": "df4d2f9b6d38500109c80583fed7e02d3a157b1a",
   "vocabulary": {
     "source": "formal_vocabulary",
     "role": "Statement class from the normative vocabulary.",
@@ -222,6 +222,41 @@
       "revision": "e1ddfc045e00ff11f8837b9c807f13c9b159cf03",
       "sha256": "c3a5005f661cdd2e42a18e85eea066d0a7c9dadf3f7b6f391c48e8757398ba42",
       "evidence_status": "MEASURED_RESOURCE_RECEIPT"
+    },
+    "preparation_contract_1094": {
+      "path": "docs/r4_text_clause_preparation_1094.md",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/df4d2f9b6d38500109c80583fed7e02d3a157b1a/docs/r4_text_clause_preparation_1094.md",
+      "revision": "df4d2f9b6d38500109c80583fed7e02d3a157b1a",
+      "sha256": "8fa572877490755dbfd6ffbd1cbb28bbdc2553486914549803973cf62995ac97",
+      "evidence_status": "PREPARATION_CONTRACT_FROZEN"
+    },
+    "preparation_freeze_1094": {
+      "path": "docs/r4_text_clause_preparation_1094_contract.json",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/df4d2f9b6d38500109c80583fed7e02d3a157b1a/docs/r4_text_clause_preparation_1094_contract.json",
+      "revision": "df4d2f9b6d38500109c80583fed7e02d3a157b1a",
+      "sha256": "fa0fbde6fda045bfa770837fd3eda612329bf34d2abaee34a5b143c751c65780",
+      "evidence_status": "SPECIFICATION_WITH_SOURCE_AUDIT"
+    },
+    "preparation_budget_audit_1094": {
+      "path": "docs/r4_text_clause_preparation_1094_budget_audit.md",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/df4d2f9b6d38500109c80583fed7e02d3a157b1a/docs/r4_text_clause_preparation_1094_budget_audit.md",
+      "revision": "df4d2f9b6d38500109c80583fed7e02d3a157b1a",
+      "sha256": "b4c1c03af0fe5c38f1ea11ef225c73954b6de4514637a97d9c4405ffee1596d3",
+      "evidence_status": "INDEPENDENT_BUDGET_AUDIT"
+    },
+    "preparation_source_audit_1094": {
+      "path": "docs/r4_text_clause_preparation_1094_source_audit.md",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/df4d2f9b6d38500109c80583fed7e02d3a157b1a/docs/r4_text_clause_preparation_1094_source_audit.md",
+      "revision": "df4d2f9b6d38500109c80583fed7e02d3a157b1a",
+      "sha256": "37198e6c635f4f09575b94b04e3cba8073bd2ab35e9b70f277436783b0c20e5d",
+      "evidence_status": "SOURCE_INSPECTED"
+    },
+    "preparation_review_1094": {
+      "path": "docs/r4_text_clause_preparation_1094_review.md",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/df4d2f9b6d38500109c80583fed7e02d3a157b1a/docs/r4_text_clause_preparation_1094_review.md",
+      "revision": "df4d2f9b6d38500109c80583fed7e02d3a157b1a",
+      "sha256": "5cb3db7196c968b62049190e35856b3ce9af5be34ef2ca2aad2b24adc2306694",
+      "evidence_status": "INDEPENDENT_CONTRACT_REVIEW"
     }
   },
   "artifacts_1079": {
@@ -334,7 +369,7 @@
         "The #1082 construction-only diagnostic now measures role-selective exposure and pooling displacement; it does not establish a downstream causal explanation. The #1079 strong-sensitivity miss remains unchanged and does not falsify primary preservation or establish geometric superiority."
       ],
       "next_action": {
-        "scope": "#1096 observed ISOLATED_RUNTIME_READY with zero model work. #1094 must separately freeze preparation using the accepted source/profile/runtime bindings, account for its consumed budget and obtain independent release review before withheld access or comparison. No raw-text model preservation result exists.",
+        "scope": "Implement #1094 retained-evidence assembly and its carry-aware launch gate using the frozen preparation contract. Quarantine the full original 120-second preparation allocation; no new prepare attempt. Obtain independent approval of the exact implemented envelope before withheld execution. Release remains NOT_ADMITTED; no raw-text model preservation result exists.",
         "issue_urls": [
           "https://github.com/UOR-Foundation/uor-r4/issues/1094"
         ]
@@ -365,7 +400,7 @@
       ],
       "next_action": {
         "status": "OPEN_PROGRAMME_GOAL",
-        "scope": "Reconcile #973\u2192#954 consumer scope, then qualify named language/context, correctness, reasoning and coding tasks before promoting capability claims.",
+        "scope": "Reconcile #973→#954 consumer scope, then qualify named language/context, correctness, reasoning and coding tasks before promoting capability claims.",
         "issue_urls": [
           "https://github.com/UOR-Foundation/uor-r4/issues/973",
           "https://github.com/UOR-Foundation/uor-r4/issues/954",
@@ -499,7 +534,7 @@
         "Numerical bound and replay checks are not a universal floating-point refinement proof."
       ],
       "next_action": {
-        "scope": "#1096 observed ISOLATED_RUNTIME_READY with zero model work. #1094 must separately freeze preparation using the accepted source/profile/runtime bindings, account for its consumed budget and obtain independent release review before withheld access or comparison. No raw-text model preservation result exists.",
+        "scope": "Implement #1094 retained-evidence assembly and its carry-aware launch gate using the frozen preparation contract. Quarantine the full original 120-second preparation allocation; no new prepare attempt. Obtain independent approval of the exact implemented envelope before withheld execution. Release remains NOT_ADMITTED; no raw-text model preservation result exists.",
         "issue_urls": [
           "https://github.com/UOR-Foundation/uor-r4/issues/1094"
         ]
@@ -550,7 +585,7 @@
         "#973 higher-context and #954 final source-free correctness terminals remain unmet."
       ],
       "next_action": {
-        "scope": "#1096 observed ISOLATED_RUNTIME_READY with zero model work. #1094 must separately freeze preparation using the accepted source/profile/runtime bindings, account for its consumed budget and obtain independent release review before withheld access or comparison. No raw-text model preservation result exists.",
+        "scope": "Implement #1094 retained-evidence assembly and its carry-aware launch gate using the frozen preparation contract. Quarantine the full original 120-second preparation allocation; no new prepare attempt. Obtain independent approval of the exact implemented envelope before withheld execution. Release remains NOT_ADMITTED; no raw-text model preservation result exists.",
         "issue_urls": [
           "https://github.com/UOR-Foundation/uor-r4/issues/1094"
         ]
@@ -614,7 +649,7 @@
         "Recorded worker RSS zero indicates no worker resource receipt; it is not a successful worker measurement."
       ],
       "next_action": {
-        "scope": "#1096 observed ISOLATED_RUNTIME_READY with zero model work. #1094 must separately freeze preparation using the accepted source/profile/runtime bindings, account for its consumed budget and obtain independent release review before withheld access or comparison. No raw-text model preservation result exists.",
+        "scope": "Implement #1094 retained-evidence assembly and its carry-aware launch gate using the frozen preparation contract. Quarantine the full original 120-second preparation allocation; no new prepare attempt. Obtain independent approval of the exact implemented envelope before withheld execution. Release remains NOT_ADMITTED; no raw-text model preservation result exists.",
         "issue_urls": [
           "https://github.com/UOR-Foundation/uor-r4/issues/1094"
         ]
@@ -693,7 +728,61 @@
         "#1079 weak-control and #1082 descriptive results are unchanged; #973 remains open and #954 blocked."
       ],
       "next_action": {
-        "scope": "#1096 observed ISOLATED_RUNTIME_READY with zero model work. #1094 must separately freeze preparation using the accepted source/profile/runtime bindings, account for its consumed budget and obtain independent release review before withheld access or comparison. No raw-text model preservation result exists.",
+        "scope": "Implement #1094 retained-evidence assembly and its carry-aware launch gate using the frozen preparation contract. Quarantine the full original 120-second preparation allocation; no new prepare attempt. Obtain independent approval of the exact implemented envelope before withheld execution. Release remains NOT_ADMITTED; no raw-text model preservation result exists.",
+        "issue_urls": [
+          "https://github.com/UOR-Foundation/uor-r4/issues/1094"
+        ]
+      },
+      "proof_artifacts": []
+    },
+    {
+      "id": "R4-1094-RETAINED-PREPARATION-CONTRACT",
+      "statement": "Retained-evidence preparation is defined as a distinct immutable assembly of original authoring and accepted runtime receipts with the full original 120-second preparation allocation carried into later execution and replay. The coordinator implementation and its release gate remain unimplemented.",
+      "role": "Definition",
+      "evidence_status": "Unproven",
+      "outcome": "PREPARATION_CONTRACT_FROZEN_RELEASE_NOT_ADMITTED",
+      "scope": {
+        "base_revision": "6f21fc5f4c40b9620c9fec5e95a39097f812ae73",
+        "historical_preparation_debit_seconds": 120,
+        "new_preparation_attempts": 0,
+        "execution_seconds_max": 120,
+        "replay_seconds_max": 120,
+        "cumulative_seconds_max": 360,
+        "original_retained_bytes": 3465401,
+        "remaining_bytes_before_new_receipts": 130752327,
+        "proposed_assembly_status": "PREPARATION_ASSEMBLED_FROM_RETAINED_EVIDENCE",
+        "coordinator_implementation": "NOT_RUN",
+        "model_work": "NOT_RUN",
+        "withheld_access": "NOT_RUN",
+        "comparison": "NOT_RUN",
+        "replay": "NOT_RUN"
+      },
+      "assumptions": [
+        "The proposed assembly must preserve exact authoring/runtime provenance and unchanged adapter/worker/curator/model/population/criteria before reuse.",
+        "A future implementation and exact assembled envelope need independent review before the new comparison release receipt.",
+        "Fresh identity checks and every future receipt consume the unchanged execution/replay resources; a new output directory cannot reset history."
+      ],
+      "evidence_refs": [
+        "preparation_contract_1094",
+        "preparation_freeze_1094",
+        "preparation_budget_audit_1094",
+        "preparation_source_audit_1094",
+        "preparation_review_1094",
+        "specification_1085",
+        "authoring_1094",
+        "stop_1094",
+        "manifest_1096",
+        "result_1096",
+        "source_audit_1085"
+      ],
+      "limits": [
+        "This is a reviewed specification and static source/budget audit, not executed assembly, an admitted comparison or a mathematical proof.",
+        "Original elapsed observations precede terminal receipt write/exit. Charging 120 seconds is a conservative allocation policy, not a measured duration or a proved upper bound on the original unobserved tail.",
+        "Original #1094 UNAVAILABLE_REFERENCE_REPLAY, #1096 runtime-only readiness, #1079 weak-control and #1082 descriptive findings remain unchanged.",
+        "Supplied segmentation remains the qualified model entry; #1094 and #973 remain open and #954 blocked."
+      ],
+      "next_action": {
+        "scope": "Implement #1094 retained-evidence assembly and its carry-aware launch gate using the frozen preparation contract. Quarantine the full original 120-second preparation allocation; no new prepare attempt. Obtain independent approval of the exact implemented envelope before withheld execution. Release remains NOT_ADMITTED; no raw-text model preservation result exists.",
         "issue_urls": [
           "https://github.com/UOR-Foundation/uor-r4/issues/1094"
         ]
@@ -701,7 +790,7 @@
       "proof_artifacts": []
     }
   ],
-  "previous_source_revision": "c1c45fa098d24f4ceae3c8fc207f0ecd07d62e20",
+  "previous_source_revision": "11f8384b8a0b866180beb0302f7f9804e05cf9b6",
   "artifacts_1082": {
     "implementation_cid": "blake3:1451084b66531dbe5eb0cb1d3b3e60e5f0aa3f4bd59fffbf582a18d4dfc9380e",
     "preparation_cid": "blake3:c8a4a56de77767cbbe8fd31edc83251b42a6f729e182d065caa47d981f248741",
@@ -726,5 +815,16 @@
     "manifest_sha256": "4acd2b7ec00ac8874573e2d6e52e5087b376bc0ebcd52aedd4464aa28979c644",
     "result_sha256": "439aa149d6f128844490c4a9002bfe2ffb52fdeeaad067e8e3cb16447b24b930",
     "closure_condition": "Verified protected PR delivery; readiness does not complete #1094."
+  },
+  "latest_preparation_contract": {
+    "issue": 1094,
+    "status": "PREPARATION_CONTRACT_FROZEN",
+    "release": "NOT_ADMITTED",
+    "evidence_revision": "df4d2f9b6d38500109c80583fed7e02d3a157b1a",
+    "historical_preparation_policy_debit_seconds": 120,
+    "implementation": "NOT_RUN",
+    "comparison": "NOT_RUN",
+    "replay": "NOT_RUN",
+    "closure_scope": "Contract and independent review only; #1094 comparison issue remains open."
   }
 }
