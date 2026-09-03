@@ -1,6 +1,25 @@
 # Roadmap
 
-**Latest adapter comparison (2026-09-03):** [#1094](docs/r4_retained_comparison_1094.md)
+**Current native-reference specification (2026-09-03):**
+[#1086](docs/r4_native_reference_1086.md) records
+`NATIVE_REFERENCE_CONTRACT_SPECIFIED`. The
+[machine contract](docs/r4_native_reference_1086_contract.json),
+[operator audit](docs/r4_native_reference_1086_operator_audit.md) and
+[original-source audit](docs/r4_native_reference_1086_sources.md) define the
+exact artifact/state identities, loader and operator boundary, and a separate
+matched reference/native comparison with its resource envelope. Export, native
+implementation, model loads, forwards, evaluation and replay are **`NOT_RUN`**.
+This is specification evidence, not native behavior or an execution release.
+QA remains dormant; only the named specification checks apply.
+
+#1094 is closed through [protected PR #1101](https://github.com/UOR-Foundation/uor-r4/pull/1101),
+merge `eade29f4b78435e9857936786426bb34e596b301`; its measured evidence below is
+unchanged and its consumed envelope cannot be rerun. The next action is separate
+activation of the parked native implementation/export/comparison successor
+[#1102](https://github.com/UOR-Foundation/uor-r4/issues/1102), a child of #1086, unassigned until active. #1087 still requires its separate final-lowering
+contract and #1083 typed UOR integration. #973 stays open and #954 blocked.
+
+**Retained adapter comparison (2026-09-03; pre-merge closure and next-action wording below are historical):** [#1094](docs/r4_retained_comparison_1094.md)
 completed `CLAUSE_ADAPTER_PRESERVED`; independent review accepted the result. The sole
 approved comparison matched all 1,600 valid inputs, complete compared tensors and
 answers; all 80 refusal rows and 16 boundary controls matched with zero forwards.
@@ -71,11 +90,13 @@ remains in [docs/RESEARCH.md](docs/RESEARCH.md).
 [#1082](https://github.com/UOR-Foundation/uor-r4/issues/1082) completed the
 construction-only exposure diagnostic; #1085 specifies the adapter, and
 [#1094's sole comparison](docs/r4_retained_comparison_1094.md) reports
-`CLAUSE_ADAPTER_PRESERVED`, with independent result acceptance. Its scientific DoD
-is complete and #1094 closes upon protected merge. The next separate activation is
-[#1086](https://github.com/UOR-Foundation/uor-r4/issues/1086) to freeze the native
-export/loader/reference-behavior contract and smallest matched check before
-implementation. The earlier preparation stop, #1096 runtime-only readiness and
+`CLAUSE_ADAPTER_PRESERVED`, with independent result acceptance, and is closed
+through protected PR #1101 at `eade29f4b78435e9857936786426bb34e596b301`.
+[#1086's specification](docs/r4_native_reference_1086.md) now freezes the native
+artifact, loader and separate matched comparison. The next separate activation
+is parked [#1102](https://github.com/UOR-Foundation/uor-r4/issues/1102), its native
+implementation/export/comparison successor; native execution
+remains `NOT_RUN`. The earlier preparation stop, #1096 runtime-only readiness and
 retained-evidence accounting remain preserved; the consumed envelope is not rerun.
 Parallel integration, native interface,
 coding evaluation and paper work have separate owners; they do not complete

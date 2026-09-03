@@ -1,6 +1,25 @@
 # Geometric Intelligence Programme
 
-**Latest adapter comparison (2026-09-03):** [#1094](r4_retained_comparison_1094.md)
+**Current native-reference specification (2026-09-03):**
+[#1086](r4_native_reference_1086.md) records
+`NATIVE_REFERENCE_CONTRACT_SPECIFIED`. The
+[machine contract](r4_native_reference_1086_contract.json),
+[operator audit](r4_native_reference_1086_operator_audit.md) and
+[original-source audit](r4_native_reference_1086_sources.md) define the
+exact artifact/state identities, loader and operator boundary, and a separate
+matched reference/native comparison with its resource envelope. Export, native
+implementation, model loads, forwards, evaluation and replay are **`NOT_RUN`**.
+This is specification evidence, not native behavior or an execution release.
+QA remains dormant; only the named specification checks apply.
+
+#1094 is closed through [protected PR #1101](https://github.com/UOR-Foundation/uor-r4/pull/1101),
+merge `eade29f4b78435e9857936786426bb34e596b301`; its measured evidence below is
+unchanged and its consumed envelope cannot be rerun. The next action is separate
+activation of the parked native implementation/export/comparison successor
+[#1102](https://github.com/UOR-Foundation/uor-r4/issues/1102), a child of #1086, unassigned until active. #1087 still requires its separate final-lowering
+contract and #1083 typed UOR integration. #973 stays open and #954 blocked.
+
+**Retained adapter comparison (2026-09-03; pre-merge closure and next-action wording below are historical):** [#1094](r4_retained_comparison_1094.md)
 completed `CLAUSE_ADAPTER_PRESERVED`; independent review accepted the result. The sole
 approved comparison matched all 1,600 valid inputs, complete compared tensors and
 answers; all 80 refusal rows and 16 boundary controls matched with zero forwards.
@@ -59,13 +78,15 @@ open and #954 blocked. Use the [current map](integration/current-state.md).
 **Planning adoption (2026-09-03):** use the
 [current map and #973→#954 consumer contract](integration/current-state.md),
 [adopted issue graph](integration/adopted-issues.json), and
-[continuation prompt](integration/CONTINUE.md). After #1094's protected delivery,
-the next separately activated task is
-[#1086](https://github.com/UOR-Foundation/uor-r4/issues/1086): freeze the native
-export/loader/reference-behavior contract using the
+[continuation prompt](integration/CONTINUE.md). The
+[#1086 native-reference specification](r4_native_reference_1086.md) records
+`NATIVE_REFERENCE_CONTRACT_SPECIFIED` using the
 [bounded raw-text comparison evidence](r4_retained_comparison_1094.md).
-Declare the smallest matched check and resource envelope before implementation;
-raw-text preservation does not establish a native loader or final serving kernel.
+Its native implementation/export/comparison successor
+[#1102](https://github.com/UOR-Foundation/uor-r4/issues/1102) remains parked until separately activated; native execution is `NOT_RUN`. The reference's floating-point
+contract and the separate #1087/#1083 final-serving obligations remain distinct;
+raw-text preservation and this specification qualify neither native behavior nor
+the final serving kernel.
 Product interfaces, integration, coding evaluation and
 paper/proof preparation now have separate issue ownership; no capability stage
 is promoted by adopting those plans.

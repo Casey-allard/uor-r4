@@ -1,7 +1,7 @@
 {
   "schema": "uor-r4.claim-ledger/1",
   "repository": "UOR-Foundation/uor-r4",
-  "source_revision": "445c882adfae770b9b313ba8b59a5ef5a39e510b",
+  "source_revision": "d56d952d360ec167343903c7ff3f6149218410f1",
   "vocabulary": {
     "source": "formal_vocabulary",
     "role": "Statement class from the normative vocabulary.",
@@ -404,6 +404,62 @@
       "revision": "445c882adfae770b9b313ba8b59a5ef5a39e510b",
       "sha256": "3bdb020aad7b29e56c1eaff1028f02ab8bf44b110715a46d5019517c84516361",
       "evidence_status": "MEASURED_RESOURCE_SNAPSHOT"
+    },
+    "specification_1086": {
+      "path": "docs/r4_native_reference_1086.md",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/d56d952d360ec167343903c7ff3f6149218410f1/docs/r4_native_reference_1086.md",
+      "revision": "d56d952d360ec167343903c7ff3f6149218410f1",
+      "sha256": "568b4aae769f7c91f0ab5a0ebd7cf2d0263cc3198ec29c6b5096188392804341",
+      "evidence_status": "SPECIFICATION"
+    },
+    "contract_1086": {
+      "path": "docs/r4_native_reference_1086_contract.json",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/d56d952d360ec167343903c7ff3f6149218410f1/docs/r4_native_reference_1086_contract.json",
+      "revision": "d56d952d360ec167343903c7ff3f6149218410f1",
+      "sha256": "e3565728dfa872d9c260dd3d391ae59e0b0d454ebead20cd15cb075b24796115",
+      "evidence_status": "SPECIFICATION"
+    },
+    "operator_audit_1086": {
+      "path": "docs/r4_native_reference_1086_operator_audit.md",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/d56d952d360ec167343903c7ff3f6149218410f1/docs/r4_native_reference_1086_operator_audit.md",
+      "revision": "d56d952d360ec167343903c7ff3f6149218410f1",
+      "sha256": "7b5b20253e7483b631dfa7635648924f5b0c47ce7697b2d2acfa1b2710569751",
+      "evidence_status": "SOURCE_INSPECTED_NOT_EXECUTED"
+    },
+    "operator_sources_1086": {
+      "path": "docs/r4_native_reference_1086_operator_sources.json",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/d56d952d360ec167343903c7ff3f6149218410f1/docs/r4_native_reference_1086_operator_sources.json",
+      "revision": "d56d952d360ec167343903c7ff3f6149218410f1",
+      "sha256": "7cc821b3cf5ea246c5d132656319b2cb36266552cfb2f490c23a6668e1f71f74",
+      "evidence_status": "SOURCE_INSPECTED_NOT_EXECUTED"
+    },
+    "research_audit_1086": {
+      "path": "docs/r4_native_reference_1086_sources.md",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/d56d952d360ec167343903c7ff3f6149218410f1/docs/r4_native_reference_1086_sources.md",
+      "revision": "d56d952d360ec167343903c7ff3f6149218410f1",
+      "sha256": "cda82a7383b5247ed712a9f926a71247d993163bd754d57189ac1b47ef477d98",
+      "evidence_status": "SOURCE_INSPECTED_NOT_EXECUTED"
+    },
+    "research_sources_1086": {
+      "path": "docs/r4_native_reference_1086_source_manifest.json",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/d56d952d360ec167343903c7ff3f6149218410f1/docs/r4_native_reference_1086_source_manifest.json",
+      "revision": "d56d952d360ec167343903c7ff3f6149218410f1",
+      "sha256": "cce805345342f1476fc333e430b69e9bdbea4c83361bad6aeaa74565b59dd999",
+      "evidence_status": "SOURCE_INSPECTED_NOT_EXECUTED"
+    },
+    "specification_review_1086": {
+      "path": "docs/r4_native_reference_1086_review.md",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/d56d952d360ec167343903c7ff3f6149218410f1/docs/r4_native_reference_1086_review.md",
+      "revision": "d56d952d360ec167343903c7ff3f6149218410f1",
+      "sha256": "05fcee5c9ee31713c6f678036703f18b1af13676dd3c7641e2af738eb0f82e63",
+      "evidence_status": "INDEPENDENT_SPECIFICATION_REVIEW"
+    },
+    "metadata_validation_1086": {
+      "path": "docs/r4_native_reference_1086_validation.json",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/d56d952d360ec167343903c7ff3f6149218410f1/docs/r4_native_reference_1086_validation.json",
+      "revision": "d56d952d360ec167343903c7ff3f6149218410f1",
+      "sha256": "d1f82d45df39f232b6a30c022e75e1015a6e25cd36895daf01241c66dbca9d23",
+      "evidence_status": "SPECIFICATION_METADATA_RECONCILED"
     }
   },
   "artifacts_1079": {
@@ -516,9 +572,10 @@
         "The #1082 construction-only diagnostic now measures role-selective exposure and pooling displacement; it does not establish a downstream causal explanation. The #1079 strong-sensitivity miss remains unchanged and does not falsify primary preservation or establish geometric superiority."
       ],
       "next_action": {
-        "scope": "Separately freeze #1086 native export/loader and matched reference-behavior contract: accepted artifacts and lexical/frame identities, input/state/output, operator/dtype/reduction semantics, loader validation and the smallest matched behavior check with a resource envelope before implementation. #1094 comparison is complete and its envelope consumed; no rerun, new fit or widened capability claim. #973 remains open and #954 blocked.",
+        "status": "PARKED_SEPARATE_ACTIVATION",
+        "scope": "Separately activate #1102: implement the accepted #1086 native reference boundary and bind exact export/input/runtime release for independent review before any model work. The frozen bridge uses original 320 authoring rows and 16 refusals, B=1 both arms, fixed numerical/discrete/replay criteria and one bounded envelope. #1094 remains complete with its envelope consumed; #973 open and #954 blocked. #1086 performed zero native execution.",
         "issue_urls": [
-          "https://github.com/UOR-Foundation/uor-r4/issues/1086"
+          "https://github.com/UOR-Foundation/uor-r4/issues/1102"
         ]
       },
       "proof_artifacts": []
@@ -580,9 +637,9 @@
       ],
       "next_action": {
         "status": "OWNED_SEPARATE_BOUNDARIES",
-        "scope": "Freeze #1086 native reference export/loader contract before implementation; final integer/table lowering remains separately owned by #1087 with #1083 typed identity/arithmetic prerequisites and #964 proof obligations. No native or kernel result follows from #1094.",
+        "scope": "#1086 specifies the native reference contract only; #1102 owns its separately admitted implementation/export/comparison. Final integer/table lowering remains #1087 with #1083 typed prerequisites and #964 proof obligations. No native or kernel result follows from the specification.",
         "issue_urls": [
-          "https://github.com/UOR-Foundation/uor-r4/issues/1086",
+          "https://github.com/UOR-Foundation/uor-r4/issues/1102",
           "https://github.com/UOR-Foundation/uor-r4/issues/1087",
           "https://github.com/UOR-Foundation/uor-r4/issues/1083",
           "https://github.com/UOR-Foundation/uor-r4/issues/964"
@@ -683,9 +740,10 @@
         "Numerical bound and replay checks are not a universal floating-point refinement proof."
       ],
       "next_action": {
-        "scope": "Separately freeze #1086 native export/loader and matched reference-behavior contract: accepted artifacts and lexical/frame identities, input/state/output, operator/dtype/reduction semantics, loader validation and the smallest matched behavior check with a resource envelope before implementation. #1094 comparison is complete and its envelope consumed; no rerun, new fit or widened capability claim. #973 remains open and #954 blocked.",
+        "status": "PARKED_SEPARATE_ACTIVATION",
+        "scope": "Separately activate #1102: implement the accepted #1086 native reference boundary and bind exact export/input/runtime release for independent review before any model work. The frozen bridge uses original 320 authoring rows and 16 refusals, B=1 both arms, fixed numerical/discrete/replay criteria and one bounded envelope. #1094 remains complete with its envelope consumed; #973 open and #954 blocked. #1086 performed zero native execution.",
         "issue_urls": [
-          "https://github.com/UOR-Foundation/uor-r4/issues/1086"
+          "https://github.com/UOR-Foundation/uor-r4/issues/1102"
         ]
       },
       "proof_artifacts": []
@@ -734,9 +792,10 @@
         "#973 higher-context and #954 final source-free correctness terminals remain unmet."
       ],
       "next_action": {
-        "scope": "Separately freeze #1086 native export/loader and matched reference-behavior contract: accepted artifacts and lexical/frame identities, input/state/output, operator/dtype/reduction semantics, loader validation and the smallest matched behavior check with a resource envelope before implementation. #1094 comparison is complete and its envelope consumed; no rerun, new fit or widened capability claim. #973 remains open and #954 blocked.",
+        "status": "PARKED_SEPARATE_ACTIVATION",
+        "scope": "Separately activate #1102: implement the accepted #1086 native reference boundary and bind exact export/input/runtime release for independent review before any model work. The frozen bridge uses original 320 authoring rows and 16 refusals, B=1 both arms, fixed numerical/discrete/replay criteria and one bounded envelope. #1094 remains complete with its envelope consumed; #973 open and #954 blocked. #1086 performed zero native execution.",
         "issue_urls": [
-          "https://github.com/UOR-Foundation/uor-r4/issues/1086"
+          "https://github.com/UOR-Foundation/uor-r4/issues/1102"
         ]
       },
       "proof_artifacts": []
@@ -798,9 +857,10 @@
         "Recorded worker RSS zero indicates no worker resource receipt; it is not a successful worker measurement."
       ],
       "next_action": {
-        "scope": "Separately freeze #1086 native export/loader and matched reference-behavior contract: accepted artifacts and lexical/frame identities, input/state/output, operator/dtype/reduction semantics, loader validation and the smallest matched behavior check with a resource envelope before implementation. #1094 comparison is complete and its envelope consumed; no rerun, new fit or widened capability claim. #973 remains open and #954 blocked.",
+        "status": "PARKED_SEPARATE_ACTIVATION",
+        "scope": "Separately activate #1102: implement the accepted #1086 native reference boundary and bind exact export/input/runtime release for independent review before any model work. The frozen bridge uses original 320 authoring rows and 16 refusals, B=1 both arms, fixed numerical/discrete/replay criteria and one bounded envelope. #1094 remains complete with its envelope consumed; #973 open and #954 blocked. #1086 performed zero native execution.",
         "issue_urls": [
-          "https://github.com/UOR-Foundation/uor-r4/issues/1086"
+          "https://github.com/UOR-Foundation/uor-r4/issues/1102"
         ]
       },
       "proof_artifacts": []
@@ -877,9 +937,10 @@
         "#1079 weak-control and #1082 descriptive results are unchanged; #973 remains open and #954 blocked."
       ],
       "next_action": {
-        "scope": "Separately freeze #1086 native export/loader and matched reference-behavior contract: accepted artifacts and lexical/frame identities, input/state/output, operator/dtype/reduction semantics, loader validation and the smallest matched behavior check with a resource envelope before implementation. #1094 comparison is complete and its envelope consumed; no rerun, new fit or widened capability claim. #973 remains open and #954 blocked.",
+        "status": "PARKED_SEPARATE_ACTIVATION",
+        "scope": "Separately activate #1102: implement the accepted #1086 native reference boundary and bind exact export/input/runtime release for independent review before any model work. The frozen bridge uses original 320 authoring rows and 16 refusals, B=1 both arms, fixed numerical/discrete/replay criteria and one bounded envelope. #1094 remains complete with its envelope consumed; #973 open and #954 blocked. #1086 performed zero native execution.",
         "issue_urls": [
-          "https://github.com/UOR-Foundation/uor-r4/issues/1086"
+          "https://github.com/UOR-Foundation/uor-r4/issues/1102"
         ]
       },
       "proof_artifacts": []
@@ -931,9 +992,10 @@
         "Supplied segmentation remains the qualified model entry; #1094 and #973 remain open and #954 blocked."
       ],
       "next_action": {
-        "scope": "Separately freeze #1086 native export/loader and matched reference-behavior contract: accepted artifacts and lexical/frame identities, input/state/output, operator/dtype/reduction semantics, loader validation and the smallest matched behavior check with a resource envelope before implementation. #1094 comparison is complete and its envelope consumed; no rerun, new fit or widened capability claim. #973 remains open and #954 blocked.",
+        "status": "PARKED_SEPARATE_ACTIVATION",
+        "scope": "Separately activate #1102: implement the accepted #1086 native reference boundary and bind exact export/input/runtime release for independent review before any model work. The frozen bridge uses original 320 authoring rows and 16 refusals, B=1 both arms, fixed numerical/discrete/replay criteria and one bounded envelope. #1094 remains complete with its envelope consumed; #973 open and #954 blocked. #1086 performed zero native execution.",
         "issue_urls": [
-          "https://github.com/UOR-Foundation/uor-r4/issues/1086"
+          "https://github.com/UOR-Foundation/uor-r4/issues/1102"
         ]
       },
       "proof_artifacts": []
@@ -1007,9 +1069,10 @@
         "Supplied clauses remain the qualified model entry. #1079 weak-control and #1082 descriptive findings are unchanged; #1094/#973 stay open and #954 blocked."
       ],
       "next_action": {
-        "scope": "Separately freeze #1086 native export/loader and matched reference-behavior contract: accepted artifacts and lexical/frame identities, input/state/output, operator/dtype/reduction semantics, loader validation and the smallest matched behavior check with a resource envelope before implementation. #1094 comparison is complete and its envelope consumed; no rerun, new fit or widened capability claim. #973 remains open and #954 blocked.",
+        "status": "PARKED_SEPARATE_ACTIVATION",
+        "scope": "Separately activate #1102: implement the accepted #1086 native reference boundary and bind exact export/input/runtime release for independent review before any model work. The frozen bridge uses original 320 authoring rows and 16 refusals, B=1 both arms, fixed numerical/discrete/replay criteria and one bounded envelope. #1094 remains complete with its envelope consumed; #973 open and #954 blocked. #1086 performed zero native execution.",
         "issue_urls": [
-          "https://github.com/UOR-Foundation/uor-r4/issues/1086"
+          "https://github.com/UOR-Foundation/uor-r4/issues/1102"
         ]
       },
       "proof_artifacts": []
@@ -1097,9 +1160,70 @@
         "The 120-second historical charge is a conservative policy debit; the resource snapshot excludes its own write/exit tail. Storage peak is a reconstructed bound, not an instantaneous measurement."
       ],
       "next_action": {
-        "scope": "Separately freeze #1086 native export/loader and matched reference-behavior contract: accepted artifacts and lexical/frame identities, input/state/output, operator/dtype/reduction semantics, loader validation and the smallest matched behavior check with a resource envelope before implementation. #1094 comparison is complete and its envelope consumed; no rerun, new fit or widened capability claim. #973 remains open and #954 blocked.",
+        "status": "PARKED_SEPARATE_ACTIVATION",
+        "scope": "Separately activate #1102: implement the accepted #1086 native reference boundary and bind exact export/input/runtime release for independent review before any model work. The frozen bridge uses original 320 authoring rows and 16 refusals, B=1 both arms, fixed numerical/discrete/replay criteria and one bounded envelope. #1094 remains complete with its envelope consumed; #973 open and #954 blocked. #1086 performed zero native execution.",
         "issue_urls": [
-          "https://github.com/UOR-Foundation/uor-r4/issues/1086"
+          "https://github.com/UOR-Foundation/uor-r4/issues/1102"
+        ]
+      },
+      "proof_artifacts": []
+    },
+    {
+      "id": "R4-1086-NATIVE-REFERENCE-BRIDGE",
+      "statement": "The exact native R4LearnedReferenceV1 artifact and implementation preserve the accepted Python raw-text reader/core/R4 behavior on the frozen known authoring fixtures under the specified numerical and discrete criteria.",
+      "role": "Empirical Criterion",
+      "evidence_status": "Unproven",
+      "outcome": "SPECIFIED_NOT_RUN",
+      "scope": {
+        "operation": "answer_four_fact_raw_text/v1",
+        "artifact_components": 21,
+        "artifact_payload_bytes": 2160742,
+        "parameter_tensors": 14,
+        "future_valid_rows": 320,
+        "future_refusal_rows": 16,
+        "future_batch_size_both_arms": 1,
+        "future_logical_row_forwards": 1280,
+        "future_maximum_absolute_error_per_tensor_per_row": "0.00001",
+        "future_relative_tolerance": "0",
+        "current_exports": 0,
+        "current_model_loads": 0,
+        "current_forwards": 0,
+        "current_fits": 0,
+        "current_comparisons": 0
+      },
+      "assumptions": [
+        "The separately reviewed execution release binds exact implementation, assets, independent input/reference files, runtime and resource envelope before outcomes.",
+        "The new scalar f32/f64 profile uses pinned libm and fixed reduction/rounding rules; its agreement with the batch-one Python reference is an empirical hypothesis.",
+        "The full 320-row authoring stratum reuses four known base groups and is not independent semantic generalization."
+      ],
+      "observations": {
+        "specification_status": "NATIVE_REFERENCE_CONTRACT_SPECIFIED",
+        "independent_specification_review": "ACCEPTED",
+        "native_behavior": "NOT_RUN",
+        "mathematical_proof": "NONE_SUPPLIED"
+      },
+      "evidence_refs": [
+        "specification_1086",
+        "contract_1086",
+        "operator_audit_1086",
+        "operator_sources_1086",
+        "research_audit_1086",
+        "research_sources_1086",
+        "specification_review_1086",
+        "metadata_validation_1086",
+        "comparison_record_1094",
+        "comparison_result_1094"
+      ],
+      "limits": [
+        "Static inventory/identity/schema reconciliation is design evidence, not export correctness, measured native behavior or a universal floating-point refinement proof.",
+        "All prior negative/unavailable/weak-control/descriptive records remain. No new parsing, worlds, context, generation, reasoning, coding, geometric advantage or final-kernel claim follows.",
+        "The #1086 contract is not an execution release; its successor requires separate activation and independent release review."
+      ],
+      "next_action": {
+        "status": "PARKED_SEPARATE_ACTIVATION",
+        "scope": "Separately activate #1102: implement the accepted #1086 native reference boundary and bind exact export/input/runtime release for independent review before any model work. The frozen bridge uses original 320 authoring rows and 16 refusals, B=1 both arms, fixed numerical/discrete/replay criteria and one bounded envelope. #1094 remains complete with its envelope consumed; #973 open and #954 blocked. #1086 performed zero native execution.",
+        "issue_urls": [
+          "https://github.com/UOR-Foundation/uor-r4/issues/1102"
         ]
       },
       "proof_artifacts": []
@@ -1169,5 +1293,26 @@
     "envelope": "CONSUMED_NO_RETRY",
     "closure_condition": "Bounded scientific DoD accepted; close #1094 after verified protected delivery.",
     "history": "Earlier latest_* entries retain their original checkpoint observations; this later comparison supersedes their scheduling and NOT_RUN status only."
+  },
+  "latest_native_contract": {
+    "issue": 1086,
+    "status": "NATIVE_REFERENCE_CONTRACT_SPECIFIED",
+    "baseline_revision": "eade29f4b78435e9857936786426bb34e596b301",
+    "evidence_revision": "d56d952d360ec167343903c7ff3f6149218410f1",
+    "independent_review": "INDEPENDENT_SPECIFICATION_ACCEPTED",
+    "contract_sha256": "e3565728dfa872d9c260dd3d391ae59e0b0d454ebead20cd15cb075b24796115",
+    "native_implementation": "NOT_RUN",
+    "artifact_exports": 0,
+    "model_payload_reads": 0,
+    "model_loads": 0,
+    "logical_row_forwards": 0,
+    "optimizer_updates": 0,
+    "comparison": "NOT_RUN",
+    "replay": "NOT_RUN",
+    "withheld_access": "NOT_RUN",
+    "next_issue": 1102,
+    "next_state": "PARKED_UNASSIGNED",
+    "closure_condition": "Specification DoD accepted; close #1086 only after verified protected delivery. No native capability promotion.",
+    "history": "Earlier latest_* checkpoints retain original results and scheduling. #1094 is closed through protected PR #1101; its bounded measured preservation remains unchanged."
   }
 }

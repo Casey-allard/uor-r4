@@ -1,6 +1,25 @@
 # R⁴ — Geometric Intelligence on Local Hardware
 
-**Latest adapter comparison (2026-09-03):** [#1094](docs/r4_retained_comparison_1094.md)
+**Current native-reference specification (2026-09-03):**
+[#1086](docs/r4_native_reference_1086.md) records
+`NATIVE_REFERENCE_CONTRACT_SPECIFIED`. The
+[machine contract](docs/r4_native_reference_1086_contract.json),
+[operator audit](docs/r4_native_reference_1086_operator_audit.md) and
+[original-source audit](docs/r4_native_reference_1086_sources.md) define the
+exact artifact/state identities, loader and operator boundary, and a separate
+matched reference/native comparison with its resource envelope. Export, native
+implementation, model loads, forwards, evaluation and replay are **`NOT_RUN`**.
+This is specification evidence, not native behavior or an execution release.
+QA remains dormant; only the named specification checks apply.
+
+#1094 is closed through [protected PR #1101](https://github.com/UOR-Foundation/uor-r4/pull/1101),
+merge `eade29f4b78435e9857936786426bb34e596b301`; its measured evidence below is
+unchanged and its consumed envelope cannot be rerun. The next action is separate
+activation of the parked native implementation/export/comparison successor
+[#1102](https://github.com/UOR-Foundation/uor-r4/issues/1102), a child of #1086, unassigned until active. #1087 still requires its separate final-lowering
+contract and #1083 typed UOR integration. #973 stays open and #954 blocked.
+
+**Retained adapter comparison (2026-09-03; pre-merge closure and next-action wording below are historical):** [#1094](docs/r4_retained_comparison_1094.md)
 completed `CLAUSE_ADAPTER_PRESERVED`; independent review accepted the result. The sole
 approved comparison matched all 1,600 valid inputs, complete compared tensors and
 answers; all 80 refusal rows and 16 boundary controls matched with zero forwards.
@@ -72,8 +91,9 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 
 **Current programme (adopted 2026-09-03):** the
 [current map](docs/integration/current-state.md) names the accepted reference,
-[completed #1082 exposure diagnostic](https://github.com/UOR-Foundation/uor-r4/issues/1082),
-correctness handoff and parallel integration/product/paper lanes. Start the next
+[completed #1086 native-reference specification](docs/r4_native_reference_1086.md),
+its parked [#1102 implementation successor](https://github.com/UOR-Foundation/uor-r4/issues/1102), correctness handoff and parallel
+integration/product/paper lanes. Start the next
 task with [CONTINUE.md](docs/integration/CONTINUE.md). The capability goal includes
 reasoning and coding; neither is established by the bounded result below.
 

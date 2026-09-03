@@ -1,0 +1,436 @@
+{
+  "date": "2026-09-03",
+  "installed_torch_sources": [
+    {
+      "bytes": 241540,
+      "declared_version_from_accepted_receipts": "2.7.1",
+      "locator": "1987-2006 default GELU; 2889-2915 LN dispatch",
+      "path": "/Users/casey.allard/.codex/worktrees/r4-language-r4/uor-r4/tools/r4-softmax-trainer/.venv/lib/python3.12/site-packages/torch/nn/functional.py",
+      "project": "pytorch",
+      "relative_path": "nn/functional.py",
+      "scope": "installed Python source documentation, not numerical kernel verification",
+      "sha256": "0c02464c208daff72bcfcb3f0eed09a136e0766d926c08c4bfd0038eb977bc28"
+    },
+    {
+      "bytes": 14957,
+      "declared_version_from_accepted_receipts": "2.7.1",
+      "locator": "94-119 LN dimensions and variance definition",
+      "path": "/Users/casey.allard/.codex/worktrees/r4-language-r4/uor-r4/tools/r4-softmax-trainer/.venv/lib/python3.12/site-packages/torch/nn/modules/normalization.py",
+      "project": "pytorch",
+      "relative_path": "nn/modules/normalization.py",
+      "scope": "installed Python source documentation, not numerical kernel verification",
+      "sha256": "1a0514a93ed28c5fb3021aaaeea0eb88c9e83c694b8bd4e13792f06bb583fb65"
+    },
+    {
+      "bytes": 75722,
+      "declared_version_from_accepted_receipts": "2.7.1",
+      "locator": "214-246 cross-correlation and padding",
+      "path": "/Users/casey.allard/.codex/worktrees/r4-language-r4/uor-r4/tools/r4-softmax-trainer/.venv/lib/python3.12/site-packages/torch/nn/modules/conv.py",
+      "project": "pytorch",
+      "relative_path": "nn/modules/conv.py",
+      "scope": "installed Python source documentation, not numerical kernel verification",
+      "sha256": "a5a0f988686fb033ec61c29755b1a6d0c9c0d924b3b440eebbbd4af16d023407"
+    },
+    {
+      "bytes": 423623,
+      "declared_version_from_accepted_receipts": "2.7.1",
+      "locator": "6623-6634 argmax tie semantics",
+      "path": "/Users/casey.allard/.codex/worktrees/r4-language-r4/uor-r4/tools/r4-softmax-trainer/.venv/lib/python3.12/site-packages/torch/_torch_docs.py",
+      "project": "pytorch",
+      "relative_path": "_torch_docs.py",
+      "scope": "installed Python source documentation, not numerical kernel verification",
+      "sha256": "00d7efffa3a55d6d25b23c1b9904545328ab6dfcb934046925c9eae24abff3e5"
+    }
+  ],
+  "issue": 1086,
+  "logical_row_forwards": 0,
+  "method": "static original-source and retained public metadata inspection",
+  "model_loads": 0,
+  "model_payload_reads": 0,
+  "optimizer_updates": 0,
+  "population_payload_reads": 0,
+  "repository_sources": [
+    {
+      "bytes": 7835,
+      "locator": "19-63 configuration; 66-123 validation/reader; 126-195 ordinary interface",
+      "matches_accepted_1094_worker_source_sha256": true,
+      "path": "tools/r4-softmax-trainer/src/r4_softmax_trainer/zoology_language_interface/model.py",
+      "repository": "UOR-Foundation/uor-r4",
+      "revision": "eade29f4b78435e9857936786426bb34e596b301",
+      "sha256": "9ad6971e92f67804b9a65333b62c7525beb96d5f44c8a8d0dd1a178a275a0414"
+    },
+    {
+      "bytes": 10113,
+      "locator": "27-81 core policy; 98-143 tensor construction; 220-249 loader",
+      "matches_accepted_1094_worker_source_sha256": true,
+      "path": "tools/r4-softmax-trainer/src/r4_softmax_trainer/zoology_compound_binding/model.py",
+      "repository": "UOR-Foundation/uor-r4",
+      "revision": "eade29f4b78435e9857936786426bb34e596b301",
+      "sha256": "b07f38161bb393c6a808c4c588ae5b89660265281429a777b32dc7d6b6e3f80b"
+    },
+    {
+      "bytes": 13722,
+      "locator": "66-88 frame fold; 133-174 role transport; 180-215 type guards; 273-347 forward",
+      "matches_accepted_1094_worker_source_sha256": true,
+      "path": "tools/r4-softmax-trainer/src/r4_softmax_trainer/zoology_language_r4/attention.py",
+      "repository": "UOR-Foundation/uor-r4",
+      "revision": "eade29f4b78435e9857936786426bb34e596b301",
+      "sha256": "6986d4ec011a3fe3bd1271046b3f992839f48f0b5a1718679acd115e784b4e6c"
+    },
+    {
+      "bytes": 10757,
+      "locator": "64-106 complete R4 binding operation",
+      "matches_accepted_1094_worker_source_sha256": true,
+      "path": "tools/r4-softmax-trainer/src/r4_softmax_trainer/zoology_compound_r4/attention.py",
+      "repository": "UOR-Foundation/uor-r4",
+      "revision": "eade29f4b78435e9857936786426bb34e596b301",
+      "sha256": "e87a7bfd8a159bd50ed80dc248e12f5ba711459a2c3008bf260bc802ff392da3"
+    },
+    {
+      "bytes": 9305,
+      "locator": "16-49 native identity policy; 96-135 frame object; 138-252 strict loader",
+      "matches_accepted_1094_worker_source_sha256": true,
+      "path": "tools/r4-softmax-trainer/src/r4_softmax_trainer/zoology_r4_inference/frames.py",
+      "repository": "UOR-Foundation/uor-r4",
+      "revision": "eade29f4b78435e9857936786426bb34e596b301",
+      "sha256": "d6dae17335e5a59894841d0f829e939e1af093e309902a93cbd7c529fd265f84"
+    },
+    {
+      "bytes": 15364,
+      "locator": "20-42 table identities; 243-367 canonical validation",
+      "matches_accepted_1094_worker_source_sha256": true,
+      "path": "tools/r4-softmax-trainer/src/r4_softmax_trainer/h4_spin_frame_sidecar.py",
+      "repository": "UOR-Foundation/uor-r4",
+      "revision": "eade29f4b78435e9857936786426bb34e596b301",
+      "sha256": "26448455200102df2380b7018f1386b42acf7bb3b0feb2101644903774e52d90"
+    },
+    {
+      "bytes": 9553,
+      "locator": "19-53 policy setup; 78-180 lexical/syntax admission; 183-223 input hash; 226-284 request",
+      "matches_accepted_1094_worker_source_sha256": true,
+      "path": "tools/r4-softmax-trainer/src/r4_softmax_trainer/text_clause_adapter/adapter.py",
+      "repository": "UOR-Foundation/uor-r4",
+      "revision": "eade29f4b78435e9857936786426bb34e596b301",
+      "sha256": "21af8d2d43f9622a7a6e2d88c0c07e358b1bc8d519cc193b0574c8f6ced4fc27"
+    },
+    {
+      "bytes": 6769,
+      "locator": "whole immutable policy",
+      "matches_accepted_1094_worker_source_sha256": true,
+      "path": "tools/r4-softmax-trainer/src/r4_softmax_trainer/text_clause_adapter/policy.json",
+      "repository": "UOR-Foundation/uor-r4",
+      "revision": "eade29f4b78435e9857936786426bb34e596b301",
+      "sha256": "91cce30a0b78c48130595369d3ea2a47c4de89cab5db1d4219d1874198cf52d0"
+    },
+    {
+      "bytes": 25732,
+      "locator": "33-52 fixed identities/runtime; 166-249 bound assets; 252-280 runtime; 318-383 state/load; 401-550 input/output",
+      "matches_accepted_1094_worker_source_sha256": true,
+      "path": "tools/r4-softmax-trainer/src/r4_softmax_trainer/text_clause_adapter/worker.py",
+      "repository": "UOR-Foundation/uor-r4",
+      "revision": "eade29f4b78435e9857936786426bb34e596b301",
+      "sha256": "b8c0359edbfe63564bcd811351b06389c2b4384c73489d676ea7c46f4179458c"
+    },
+    {
+      "bytes": 26071,
+      "locator": "22-39 lexical aliases/forms; 136-165 evaluator-only role parsing",
+      "matches_accepted_1094_worker_source_sha256": true,
+      "path": "tools/r4-softmax-trainer/src/r4_softmax_trainer/zoology_language_interface/data.py",
+      "repository": "UOR-Foundation/uor-r4",
+      "revision": "eade29f4b78435e9857936786426bb34e596b301",
+      "sha256": "5e6a8d306b1b5bc3bf1c174998fd573e0b66eeab3505fd4d7d7ea0f2530013bc"
+    },
+    {
+      "bytes": 23961,
+      "locator": "21-93 core lexical IDs",
+      "matches_accepted_1094_worker_source_sha256": true,
+      "path": "tools/r4-softmax-trainer/src/r4_softmax_trainer/zoology_english_binding/data.py",
+      "repository": "UOR-Foundation/uor-r4",
+      "revision": "eade29f4b78435e9857936786426bb34e596b301",
+      "sha256": "c80cf9a34f5664e856261ca364742edabf0c35f0949234f935f676eae078ac6a"
+    },
+    {
+      "bytes": 47797,
+      "locator": "173-193 state CID and safetensors framing",
+      "matches_accepted_1094_worker_source_sha256": true,
+      "path": "tools/r4-softmax-trainer/src/r4_softmax_trainer/zoology_release/development.py",
+      "repository": "UOR-Foundation/uor-r4",
+      "revision": "eade29f4b78435e9857936786426bb34e596b301",
+      "sha256": "7ee9c2279c26f9e3d1bd9fbbc3369250015cccdebb82c047c5f5f7cb81b3fa15"
+    },
+    {
+      "bytes": 5496,
+      "locator": "13-18 canonical JSON",
+      "matches_accepted_1094_worker_source_sha256": true,
+      "path": "tools/r4-softmax-trainer/src/r4_softmax_trainer/provenance.py",
+      "repository": "UOR-Foundation/uor-r4",
+      "revision": "eade29f4b78435e9857936786426bb34e596b301",
+      "sha256": "0a3db32698b26e7acc80f2615cf4dce84c327e9c3d1e3f0372ebaf0ecf374fb0"
+    },
+    {
+      "bytes": 21217,
+      "locator": "89-104 typed frame fields; 255-327 validation",
+      "path": "crates/uor-r4-core/src/h4_spin_frame_sidecar.rs",
+      "repository": "UOR-Foundation/uor-r4",
+      "revision": "eade29f4b78435e9857936786426bb34e596b301",
+      "sha256": "7c750686675793400e6ddf208eaf86c6d614f864719c3953e306641d1f785cce"
+    },
+    {
+      "bytes": 5448,
+      "locator": "15-110 native token-leaf and prefix-witness export",
+      "path": "crates/uor-r4-core/src/bin/r4-zoology-frame-export.rs",
+      "repository": "UOR-Foundation/uor-r4",
+      "revision": "eade29f4b78435e9857936786426bb34e596b301",
+      "sha256": "66c33e0636933e66eddf94f05bc9f05b79963a3da3529cf2978c2994c256c14d"
+    },
+    {
+      "bytes": 58202,
+      "locator": "930-933 libm 0.2.16 package version and registry checksum",
+      "path": "Cargo.lock",
+      "repository": "UOR-Foundation/uor-r4",
+      "revision": "eade29f4b78435e9857936786426bb34e596b301",
+      "sha256": "7b0ebac536e2522b87c75b9874b693c03fc469160578612289893c6c8bbef5dd"
+    }
+  ],
+  "retained_asset_identities": {
+    "core": {
+      "bytes": 1148672,
+      "cid": "blake3:9c055cc6ea09548bf960e37288276535b30515b94a50a96aa929b5e55afea3c4",
+      "path": "/Users/casey.allard/uor-r4/.uor-models/research/issue-1073-zoology-compound-binding/fit/model.safetensors",
+      "sha256": "43ffff3c24f8030701e340cab802b985f7c0b7e4e12e270ec1107d141d65b079"
+    },
+    "h4_frames": {
+      "bytes": 81255,
+      "cid": "blake3:9df624162d14ba133fed34c560e4828961a4dc8d6a9438c731e8f8c209c16ad4",
+      "path": "/Users/casey.allard/uor-r4/.uor-models/research/issue-1059-zoology-r4-inference/frames/h4-frames.json",
+      "sha256": "ea9ea1de2f666aff24761991e16cb3d7ab21f3b36e38992e04b2376927c18b65"
+    },
+    "reader": {
+      "bytes": 566692,
+      "cid": "blake3:c11d21817bff818fa242f653279e9e0c12d21641ff63df3a5f7a6680bcc732a7",
+      "path": "/Users/casey.allard/uor-r4/.uor-models/research/issue-1077-language-interface/fit/reader.safetensors",
+      "sha256": "912ac1d8a3dfb80a04755557576fbb87d518e78f04163085111fccfd329e5250"
+    },
+    "token_frames": {
+      "bytes": 32189,
+      "cid": "blake3:303a734c069af0c8910c8b473c87b549a687cf1f04570b979238d5d187576a13",
+      "path": "/Users/casey.allard/uor-r4/.uor-models/research/issue-1059-zoology-r4-inference/frames/token-frames.json",
+      "sha256": "427f20c223886131910ebc3a16dcc4d7898c732b1654a37e483b5494b0b83fc0"
+    },
+    "vocabulary": {
+      "bytes": 130245,
+      "cid": "blake3:571d5fbc282b17c8726eebd7b23c3ae55212a3de81b35d27722a0fa5979b8c5b",
+      "path": "/Users/casey.allard/uor-r4/.uor-models/research/issue-1077-language-interface/data/vocabulary.json",
+      "sha256": "01d70796333a5c94c87a45d012a04038a9c79da2127792f5acd0132fd0255a82"
+    }
+  },
+  "retained_frame_tree_cid": "blake3:94762441a43b03f596a66131ec34af15bba3afbc2bbc5d28ab7dfdabd9b6d68c",
+  "retained_policy_sha256": "91cce30a0b78c48130595369d3ea2a47c4de89cab5db1d4219d1874198cf52d0",
+  "retained_receipts": [
+    {
+      "bytes": 58978,
+      "locator": "assets, state CIDs, runtime, core_model; no external payload access",
+      "path": "docs/r4_retained_assembly_1094_evidence/bindings.json",
+      "repository": "UOR-Foundation/uor-r4",
+      "revision": "eade29f4b78435e9857936786426bb34e596b301",
+      "sha256": "23977918c1685148f6cbc61ebab87507e2ce153e40d9b15c2634a4d68e0c2353"
+    },
+    {
+      "bytes": 1894358,
+      "locator": "worker_receipts states/runtime; deterministic.tensors shape/dtype only",
+      "path": "docs/r4_retained_comparison_1094_evidence/execution.json",
+      "repository": "UOR-Foundation/uor-r4",
+      "revision": "eade29f4b78435e9857936786426bb34e596b301",
+      "sha256": "c803b0daa1769f26af82bc093d330e59a8fdd390fdc760ed501a73618580bd91"
+    },
+    {
+      "bytes": 1894351,
+      "locator": "retained replay receipt identity",
+      "path": "docs/r4_retained_comparison_1094_evidence/replay.json",
+      "repository": "UOR-Foundation/uor-r4",
+      "revision": "eade29f4b78435e9857936786426bb34e596b301",
+      "sha256": "a803cdbc361adc2ccb9b6fefaec24f785982f86faa3ae296da08f573fa0915e2"
+    },
+    {
+      "bytes": 2797112,
+      "locator": "frames/source identity metadata",
+      "path": "docs/r4_zoology_language_r4_1079_preparation.json",
+      "repository": "UOR-Foundation/uor-r4",
+      "revision": "eade29f4b78435e9857936786426bb34e596b301",
+      "sha256": "f5949cd77a905597f6ce912fcbd6a9c673317233c3bb30e5b684f0f28480156b"
+    },
+    {
+      "bytes": 27278,
+      "locator": "frames identity metadata",
+      "path": "docs/r4_zoology_coherent_inference_1059_preparation.json",
+      "repository": "UOR-Foundation/uor-r4",
+      "revision": "eade29f4b78435e9857936786426bb34e596b301",
+      "sha256": "6f6961e03adafe369ddd6d173c8e61f06fb96d7ffb1f107e455232d0570696fe"
+    }
+  ],
+  "retained_runtime": {
+    "blas": "accelerate",
+    "device": "cpu",
+    "interop_threads": 1,
+    "python": "3.12.14",
+    "threads": 4,
+    "torch": "2.7.1",
+    "workers": 1
+  },
+  "revision": "eade29f4b78435e9857936786426bb34e596b301",
+  "schema": "uor-r4.native-reference-operator-source-audit/1",
+  "source_derived_state_inventory": {
+    "core": {
+      "inventory_evidence": "source-derived; no asset header or tensor payload read in this audit",
+      "raw_bytes": 1147904,
+      "state_cid": "blake3:abbdbcaafc2d9eb36543ce75fbb0101b6788119d80a6ed9c017bb9d06fbeac59",
+      "tensors": [
+        {
+          "dtype": "float32",
+          "name": "embedding.weight",
+          "raw_bytes": 1048576,
+          "scalars": 262144,
+          "shape": [
+            4096,
+            64
+          ]
+        },
+        {
+          "dtype": "float32",
+          "name": "key_projection.weight",
+          "raw_bytes": 32768,
+          "scalars": 8192,
+          "shape": [
+            64,
+            128
+          ]
+        },
+        {
+          "dtype": "float32",
+          "name": "null_key",
+          "raw_bytes": 256,
+          "scalars": 64,
+          "shape": [
+            64
+          ]
+        },
+        {
+          "dtype": "float32",
+          "name": "null_value",
+          "raw_bytes": 256,
+          "scalars": 64,
+          "shape": [
+            64
+          ]
+        },
+        {
+          "dtype": "float32",
+          "name": "output_norm.bias",
+          "raw_bytes": 256,
+          "scalars": 64,
+          "shape": [
+            64
+          ]
+        },
+        {
+          "dtype": "float32",
+          "name": "output_norm.weight",
+          "raw_bytes": 256,
+          "scalars": 64,
+          "shape": [
+            64
+          ]
+        },
+        {
+          "dtype": "float32",
+          "name": "output_projection.weight",
+          "raw_bytes": 16384,
+          "scalars": 4096,
+          "shape": [
+            64,
+            64
+          ]
+        },
+        {
+          "dtype": "float32",
+          "name": "query_projection.weight",
+          "raw_bytes": 32768,
+          "scalars": 8192,
+          "shape": [
+            64,
+            128
+          ]
+        },
+        {
+          "dtype": "float32",
+          "name": "value_projection.weight",
+          "raw_bytes": 16384,
+          "scalars": 4096,
+          "shape": [
+            64,
+            64
+          ]
+        }
+      ],
+      "unique_scalars": 286976
+    },
+    "reader": {
+      "inventory_evidence": "source-derived; no asset header or tensor payload read in this audit",
+      "raw_bytes": 566284,
+      "state_cid": "blake3:7c659422df2e65a0ce24c08738dc9f08dca99775de1702251097a0fc6483404e",
+      "tensors": [
+        {
+          "dtype": "float32",
+          "name": "context.bias",
+          "raw_bytes": 256,
+          "scalars": 64,
+          "shape": [
+            64
+          ]
+        },
+        {
+          "dtype": "float32",
+          "name": "context.weight",
+          "raw_bytes": 40960,
+          "scalars": 10240,
+          "shape": [
+            64,
+            32,
+            5
+          ]
+        },
+        {
+          "dtype": "float32",
+          "name": "embedding.weight",
+          "raw_bytes": 524288,
+          "scalars": 131072,
+          "shape": [
+            4096,
+            32
+          ]
+        },
+        {
+          "dtype": "float32",
+          "name": "role_projection.bias",
+          "raw_bytes": 12,
+          "scalars": 3,
+          "shape": [
+            3
+          ]
+        },
+        {
+          "dtype": "float32",
+          "name": "role_projection.weight",
+          "raw_bytes": 768,
+          "scalars": 192,
+          "shape": [
+            3,
+            64
+          ]
+        }
+      ],
+      "unique_scalars": 141571
+    }
+  },
+  "tensor_deserializations": 0
+}

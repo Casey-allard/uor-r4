@@ -1,0 +1,658 @@
+{
+  "schema": "uor-r4.native-reference-contract/1",
+  "issue": 1086,
+  "classification": "Definition and Empirical Criterion; no proof or native observation",
+  "status": "NATIVE_REFERENCE_CONTRACT_SPECIFIED",
+  "baseline": "eade29f4b78435e9857936786426bb34e596b301",
+  "execution_authorized": false,
+  "actual_work": {
+    "model_payload_reads": 0,
+    "model_loads": 0,
+    "logical_row_forwards": 0,
+    "optimizer_updates": 0,
+    "exports": 0,
+    "withheld_reads": 0
+  },
+  "normative_prose": "docs/r4_native_reference_1086.md",
+  "accepted_binding": {
+    "assets": {
+      "core": {
+        "bytes": 1148672,
+        "sha256": "43ffff3c24f8030701e340cab802b985f7c0b7e4e12e270ec1107d141d65b079",
+        "cid": "blake3:9c055cc6ea09548bf960e37288276535b30515b94a50a96aa929b5e55afea3c4"
+      },
+      "h4_frames": {
+        "bytes": 81255,
+        "sha256": "ea9ea1de2f666aff24761991e16cb3d7ab21f3b36e38992e04b2376927c18b65",
+        "cid": "blake3:9df624162d14ba133fed34c560e4828961a4dc8d6a9438c731e8f8c209c16ad4"
+      },
+      "reader": {
+        "bytes": 566692,
+        "sha256": "912ac1d8a3dfb80a04755557576fbb87d518e78f04163085111fccfd329e5250",
+        "cid": "blake3:c11d21817bff818fa242f653279e9e0c12d21641ff63df3a5f7a6680bcc732a7"
+      },
+      "token_frames": {
+        "bytes": 32189,
+        "sha256": "427f20c223886131910ebc3a16dcc4d7898c732b1654a37e483b5494b0b83fc0",
+        "cid": "blake3:303a734c069af0c8910c8b473c87b549a687cf1f04570b979238d5d187576a13"
+      },
+      "vocabulary": {
+        "bytes": 130245,
+        "sha256": "01d70796333a5c94c87a45d012a04038a9c79da2127792f5acd0132fd0255a82",
+        "cid": "blake3:571d5fbc282b17c8726eebd7b23c3ae55212a3de81b35d27722a0fa5979b8c5b"
+      }
+    },
+    "reader_state_cid": "blake3:7c659422df2e65a0ce24c08738dc9f08dca99775de1702251097a0fc6483404e",
+    "core_state_cid": "blake3:abbdbcaafc2d9eb36543ce75fbb0101b6788119d80a6ed9c017bb9d06fbeac59",
+    "frame_tree_cid": "blake3:94762441a43b03f596a66131ec34af15bba3afbc2bbc5d28ab7dfdabd9b6d68c",
+    "policy_sha256": "91cce30a0b78c48130595369d3ea2a47c4de89cab5db1d4219d1874198cf52d0"
+  },
+  "schema_rules": {
+    "purpose": "Type descriptions below are the complete normative field sets, not an executable JSON Schema. Reject unknown/missing/duplicate fields at every level.",
+    "hex64": "64 lowercase hexadecimal ASCII characters",
+    "git40": "40 lowercase hexadecimal ASCII characters",
+    "integer": "unsigned decimal in range, no negative zero/leading zero/fraction/exponent; booleans are not integers",
+    "canonicalization": "ascii-json-1086/1 as specified in prose; recursive lexicographic object keys; arrays ordered; no BOM or whitespace; unique keys; strings ASCII; slash unescaped; controls lowercase \\u00xx; quote/backslash escaped",
+    "binding_fields": "accepted_binding and tied_aliases objects contain exactly the keys and values supplied in this contract",
+    "provenance": "source paths are metadata only; inference never resolves external components",
+    "hash_cycle": "contract file has no self digest; manifest binds final contract digest; artifact whole digest is external; native_state excludes manifest and all declared hashes"
+  },
+  "exact_fields": {
+    "manifest": {
+      "schema": "literal uor-r4.native-reference-manifest/1",
+      "name": "literal R4LearnedReferenceV1",
+      "canonicalization": "literal ascii-json-1086/1",
+      "contract_sha256": "hex64",
+      "operation": "literal answer_four_fact_raw_text/v1",
+      "operator_profile": "literal cpu-scalar-f32-f64-1086/1",
+      "source_binding": "accepted_binding exact object",
+      "export_provenance": "export_provenance object",
+      "components": "component[21] in fixed order",
+      "identity_index": "u32 less than 120; agrees with both original frame JSONs",
+      "native_state_sha256": "hex64",
+      "tied_aliases": "exact tied_aliases object"
+    },
+    "component": {
+      "name": "fixed component name",
+      "kind": "fixed component kind",
+      "dtype": "fixed dtype",
+      "shape": "u64 array; fixed ordered dimensions",
+      "offset": "u64; fixed payload-relative offset",
+      "bytes": "u64; fixed length",
+      "sha256": "hex64 of exact component bytes"
+    },
+    "export_provenance": {
+      "source_revision": "git40",
+      "exporter_revision": "git40",
+      "exporter_sources": "source_file array sorted by path, nonempty",
+      "exporter_runtime": "ASCII version/platform string, nonempty",
+      "exporter_lock_sha256": "hex64",
+      "release_sha256": "hex64 of admitted export release"
+    },
+    "source_file": {
+      "repository": "nonempty ASCII",
+      "revision": "git40",
+      "path": "nonempty ASCII repository-relative path",
+      "sha256": "hex64",
+      "bytes": "u64"
+    },
+    "expected_binding": {
+      "artifact_sha256": "hex64, trusted out of band",
+      "contract_sha256": "hex64 of this contract file",
+      "accepted_binding": "accepted_binding exact object",
+      "operator_profile": "literal cpu-scalar-f32-f64-1086/1",
+      "export_release_sha256": "hex64, trusted out of band"
+    },
+    "native_receipt": {
+      "schema": "literal uor-r4.native-reference-receipt/1",
+      "operation": "literal answer_four_fact_raw_text/v1",
+      "artifact_sha256": "hex64",
+      "native_state_sha256": "hex64",
+      "native_binary_sha256": "hex64",
+      "runtime_receipt_sha256": "hex64",
+      "contract_sha256": "hex64",
+      "operator_profile": "literal cpu-scalar-f32-f64-1086/1",
+      "raw_text_sha256": "hex64",
+      "result_sha256": "hex64 of ascii-json-1086/1 canonical nested model or refusal result",
+      "logical_forwards": "u32, 1 for MODEL_TOKEN, 0 for adapter refusal",
+      "parameter_updates": "literal 0"
+    },
+    "native_error": {
+      "tag": "native_error_tags enum",
+      "component": "fixed component name or null",
+      "offset": "u64 or null"
+    },
+    "capability": {
+      "schema": "literal uor-r4.native-reference-capability/1",
+      "operation": "literal answer_four_fact_raw_text/v1",
+      "artifact_sha256": "hex64",
+      "native_state_sha256": "hex64",
+      "codec_cid": "accepted vocabulary CID",
+      "policy_sha256": "accepted policy SHA256",
+      "operator_profile": "literal cpu-scalar-f32-f64-1086/1",
+      "reference_evidence": "literal CLAUSE_ADAPTER_PRESERVED",
+      "native_behavior": "NOT_RUN or EMPIRICAL_NATIVE_REFERENCE_PRESERVED",
+      "qualification_receipt_sha256": "hex64 or null; null iff NOT_RUN",
+      "stateless": "literal true",
+      "execution": "literal cpu-floating-point-research-reference",
+      "scope": "literal controlled-language-known-vocabulary-four-facts-one-query",
+      "general_generation": "literal false",
+      "general_context": "literal false",
+      "coding": "literal false",
+      "final_integer_kernel": "literal false"
+    },
+    "qualification_binding": {
+      "schema": "literal uor-r4.native-reference-qualification/1",
+      "terminal": "literal NATIVE_REFERENCE_PRESERVED",
+      "accepted_review_sha256": "hex64",
+      "comparison_result_sha256": "hex64",
+      "artifact_sha256": "hex64",
+      "native_state_sha256": "hex64",
+      "native_binary_sha256": "hex64",
+      "runtime_receipt_sha256": "hex64",
+      "contract_sha256": "hex64",
+      "operator_profile": "literal cpu-scalar-f32-f64-1086/1",
+      "request_schema": "literal uor-r4.text-to-clauses/1",
+      "result_schema": "literal uor-r4.text-binding-result/1"
+    }
+  },
+  "container": {
+    "magic_ascii": "R4LR0001",
+    "manifest_length": "u32le",
+    "payload_length": "u64le",
+    "layout": [
+      "magic",
+      "manifest_length",
+      "manifest",
+      "payload_length",
+      "payload",
+      "EOF"
+    ],
+    "maximum_bytes": 16777216,
+    "maximum_manifest_bytes": 262144,
+    "component_count": 21,
+    "payload_bytes": 2160742
+  },
+  "components": [
+    {
+      "name": "reader.context.bias",
+      "kind": "parameter",
+      "dtype": "f32le",
+      "shape": [
+        64
+      ],
+      "offset": 0,
+      "bytes": 256
+    },
+    {
+      "name": "reader.context.weight",
+      "kind": "parameter",
+      "dtype": "f32le",
+      "shape": [
+        64,
+        32,
+        5
+      ],
+      "offset": 256,
+      "bytes": 40960
+    },
+    {
+      "name": "reader.embedding.weight",
+      "kind": "parameter",
+      "dtype": "f32le",
+      "shape": [
+        4096,
+        32
+      ],
+      "offset": 41216,
+      "bytes": 524288
+    },
+    {
+      "name": "reader.role_projection.bias",
+      "kind": "parameter",
+      "dtype": "f32le",
+      "shape": [
+        3
+      ],
+      "offset": 565504,
+      "bytes": 12
+    },
+    {
+      "name": "reader.role_projection.weight",
+      "kind": "parameter",
+      "dtype": "f32le",
+      "shape": [
+        3,
+        64
+      ],
+      "offset": 565516,
+      "bytes": 768
+    },
+    {
+      "name": "core.embedding.weight",
+      "kind": "parameter",
+      "dtype": "f32le",
+      "shape": [
+        4096,
+        64
+      ],
+      "offset": 566284,
+      "bytes": 1048576
+    },
+    {
+      "name": "core.key_projection.weight",
+      "kind": "parameter",
+      "dtype": "f32le",
+      "shape": [
+        64,
+        128
+      ],
+      "offset": 1614860,
+      "bytes": 32768
+    },
+    {
+      "name": "core.null_key",
+      "kind": "parameter",
+      "dtype": "f32le",
+      "shape": [
+        64
+      ],
+      "offset": 1647628,
+      "bytes": 256
+    },
+    {
+      "name": "core.null_value",
+      "kind": "parameter",
+      "dtype": "f32le",
+      "shape": [
+        64
+      ],
+      "offset": 1647884,
+      "bytes": 256
+    },
+    {
+      "name": "core.output_norm.bias",
+      "kind": "parameter",
+      "dtype": "f32le",
+      "shape": [
+        64
+      ],
+      "offset": 1648140,
+      "bytes": 256
+    },
+    {
+      "name": "core.output_norm.weight",
+      "kind": "parameter",
+      "dtype": "f32le",
+      "shape": [
+        64
+      ],
+      "offset": 1648396,
+      "bytes": 256
+    },
+    {
+      "name": "core.output_projection.weight",
+      "kind": "parameter",
+      "dtype": "f32le",
+      "shape": [
+        64,
+        64
+      ],
+      "offset": 1648652,
+      "bytes": 16384
+    },
+    {
+      "name": "core.query_projection.weight",
+      "kind": "parameter",
+      "dtype": "f32le",
+      "shape": [
+        64,
+        128
+      ],
+      "offset": 1665036,
+      "bytes": 32768
+    },
+    {
+      "name": "core.value_projection.weight",
+      "kind": "parameter",
+      "dtype": "f32le",
+      "shape": [
+        64,
+        64
+      ],
+      "offset": 1697804,
+      "bytes": 16384
+    },
+    {
+      "name": "vocabulary.json",
+      "kind": "original_json",
+      "dtype": "u8",
+      "shape": [
+        130245
+      ],
+      "offset": 1714188,
+      "bytes": 130245
+    },
+    {
+      "name": "policy.json",
+      "kind": "original_json",
+      "dtype": "u8",
+      "shape": [
+        6769
+      ],
+      "offset": 1844433,
+      "bytes": 6769
+    },
+    {
+      "name": "h4-frames.json",
+      "kind": "original_json",
+      "dtype": "u8",
+      "shape": [
+        81255
+      ],
+      "offset": 1851202,
+      "bytes": 81255
+    },
+    {
+      "name": "token-frames.json",
+      "kind": "original_json",
+      "dtype": "u8",
+      "shape": [
+        32189
+      ],
+      "offset": 1932457,
+      "bytes": 32189
+    },
+    {
+      "name": "frames",
+      "kind": "frame_table",
+      "dtype": "f64le",
+      "shape": [
+        120,
+        4,
+        4
+      ],
+      "offset": 1964646,
+      "bytes": 15360
+    },
+    {
+      "name": "multiplication",
+      "kind": "frame_table",
+      "dtype": "i64le",
+      "shape": [
+        120,
+        120
+      ],
+      "offset": 1980006,
+      "bytes": 115200
+    },
+    {
+      "name": "token_leaves",
+      "kind": "frame_table",
+      "dtype": "i64le",
+      "shape": [
+        8192
+      ],
+      "offset": 2095206,
+      "bytes": 65536
+    }
+  ],
+  "tied_aliases": {
+    "core.lm_head.weight": "core.embedding.weight"
+  },
+  "identities": {
+    "component_sha256": "SHA256 exact bytes; each emitted manifest component adds only sha256 to its fixed descriptor",
+    "native_state": "L(domain),u32le component count; each component: L(name),L(kind),L(dtype),u32le rank,u64le dimensions,u64le bytes,exact payload; then u32le identity_index,L(operator_profile)",
+    "native_state_domain": "uor-r4.native-reference-state/1",
+    "L": "u32le byte count then ASCII bytes",
+    "historical_state": "For each original unprefixed name sorted lexicographically, compact sorted JSON {name,shape,dtype:torch.float32}, LF, contiguous little-endian f32 bytes; exclude core.lm_head.weight; no additional domain/count prefix",
+    "source_file_cids": "verified by exporter on original files; loader matches trusted provenance and independently verifies decoded states",
+    "frame_tree": "historical frame-tree recipe and prefix witnesses from pinned frames.py; original JSON and decoded table agreement required"
+  },
+  "loader": {
+    "validation_order": [
+      "CONTAINER_LIMIT",
+      "INVALID_CONTAINER",
+      "ARTIFACT_IDENTITY_MISMATCH",
+      "UNSUPPORTED_MANIFEST",
+      "UNSUPPORTED_PROFILE",
+      "SOURCE_BINDING_MISMATCH",
+      "INVALID_COMPONENT",
+      "INVALID_TENSOR",
+      "INVALID_CODEC_POLICY",
+      "INVALID_FRAME_TABLE",
+      "STATE_IDENTITY_MISMATCH"
+    ],
+    "layout_stage": "INVALID_COMPONENT covers count/name/kind/order/offset/bytes/hash; INVALID_TENSOR covers parameter dtype/shape/finite and tied alias. Frame table dtype/shape/ranges/finite/agreement is INVALID_FRAME_TABLE; original JSON decode/mappings is INVALID_CODEC_POLICY for vocabulary/policy and INVALID_FRAME_TABLE for frame JSON. Declared length checked before dtype-dependent product.",
+    "offset_units": "For byte/layout errors offset is payload-relative byte offset (container structural errors container-relative); for tensor/frame numeric errors offset is flattened component element index; otherwise null. Component null when not applicable.",
+    "whole_identity": "expected whole hash is trusted input, not manifest self identity",
+    "gate_mutations": "One immutable independent mutation per validation tag. Fixture-only ExpectedBinding may recompute expected whole SHA and prior-stage component digests solely to reach target stage; accepted source/state/codec/frame constraints remain fixed. Freeze bytes and expected tag before invoking loader; count all copies in byte ledger. These synthetic bindings never qualify real exports or hosts. Wrong expected hash uses unmodified artifact. Missing qualification is tested separately with valid export.",
+    "load_has_no_forward": true,
+    "owned_immutable_bytes": true,
+    "trusted_field_equalities": "manifest.contract_sha256 equals ExpectedBinding.contract_sha256; manifest.export_provenance.release_sha256 equals ExpectedBinding.export_release_sha256; manifest.source_binding equals ExpectedBinding.accepted_binding. Any mismatch is SOURCE_BINDING_MISMATCH. manifest.operator_profile equals ExpectedBinding.operator_profile and supported profile, otherwise UNSUPPORTED_PROFILE. These checks precede component validation.",
+    "gate_attempt_accounting": "Exactly 12 loader calls maximum: 11 rejected mutations (one per validation tag, including wrong expected artifact SHA) plus one successful valid export load used for the missing-qualification probe and accepted decoded-state checks. No separate duplicate wrong-hash case. Gate success loads at most two model states (reader and core); each of 11 rejected attempts may partially validate up to two model states (22 partial model-state validations maximum); report every wire/tensor component and stage reached. Reuse the successful gate engine for all zero-forward checks, then unload before scoring. Count all work in export/integrity phase; no forwards. Four later scoring/replay engines/eight model-state loads are separate."
+  },
+  "native_error_tags": [
+    "CONTAINER_LIMIT",
+    "INVALID_CONTAINER",
+    "ARTIFACT_IDENTITY_MISMATCH",
+    "UNSUPPORTED_MANIFEST",
+    "UNSUPPORTED_PROFILE",
+    "SOURCE_BINDING_MISMATCH",
+    "INVALID_COMPONENT",
+    "INVALID_TENSOR",
+    "INVALID_CODEC_POLICY",
+    "INVALID_FRAME_TABLE",
+    "STATE_IDENTITY_MISMATCH",
+    "UNAVAILABLE_ARTIFACT",
+    "UNAVAILABLE_NATIVE_QUALIFICATION",
+    "BUSY",
+    "NUMERICAL_FAILURE"
+  ],
+  "api": {
+    "request": "Exact original raw-byte request schema and refusal contract in policy.json and #1085; Rust &[u8] or owned bytes; no transport encoding chosen",
+    "response": "Original MODEL_TOKEN object or original adapter refusal, unchanged; optional native_receipt separately pairs with result; native error is separate Result error with no model token",
+    "capability_admission": "Trusted qualification_binding must match active ExpectedBinding, native binary/runtime and accepted review; a supplied self assertion is insufficient. Without it only separately admitted harness access is possible.",
+    "request_order": [
+      "artifact admission",
+      "native qualification or admitted comparison",
+      "busy gate",
+      "original adapter request/refusal precedence",
+      "one model forward"
+    ],
+    "parameter_state": "immutable; one request replaces four facts; scratch and audit reset; no semantic persistence",
+    "loader_limit_allocation": "Check all lengths/products/conversions before allocation; exact fixed component count and bytes; malformed bytes never produce partial engine"
+  },
+  "operator_profile": {
+    "id": "cpu-scalar-f32-f64-1086/1",
+    "first_target": "aarch64-apple-darwin",
+    "build": "release, generic target CPU, scalar code; exact rustc/lockfile/flags/binary bound in later release",
+    "math_library": {
+      "name": "libm",
+      "version": "0.2.16",
+      "cargo_lock_checksum": "b6d2cec3eae94f9f509c767b45932f1ada8350c4bdb85af2fcab4a3c14807981",
+      "enabled_features": [
+        "arch"
+      ],
+      "force_soft_floats": false,
+      "unstable_features": false,
+      "calls": [
+        "erff",
+        "expf",
+        "sqrtf"
+      ],
+      "inspected_sources": [
+        {
+          "package": "libm",
+          "version": "0.2.16",
+          "path": "Cargo.toml",
+          "bytes": 1455,
+          "sha256": "a2d94f9cbaa4a177bacde9737bfcc7b2ed9de5bddadafe507923a5b5748f9bd7"
+        },
+        {
+          "package": "libm",
+          "version": "0.2.16",
+          "path": "src/math/erff.rs",
+          "bytes": 7565,
+          "sha256": "62c30876390e532d7dc9ac1f1f1c1f654065fba2b2e534e531964d79e1766196"
+        },
+        {
+          "package": "libm",
+          "version": "0.2.16",
+          "path": "src/math/expf.rs",
+          "bytes": 3113,
+          "sha256": "33b01180ebd01bb2911379476c5411fd05b066f2e17ef66e48c4dde83a7f01c0"
+        },
+        {
+          "package": "libm",
+          "version": "0.2.16",
+          "path": "src/math/sqrt.rs",
+          "bytes": 1331,
+          "sha256": "a9a82063eba9cd3467a9b37a1caf13b14106570f03a28e12419a4957f9b705eb"
+        }
+      ]
+    },
+    "rounding": "round-to-nearest ties-to-even; preserve subnormals, no FTZ/DAZ",
+    "reductions": "ascending contracted indices; positive zero start; round each product/add separately to f32 or f64; bias after completed dot; no FMA, reassociation, fast math or gauge cancellation",
+    "f32_constants": {
+      "positive_zero": "00000000",
+      "half": "3f000000",
+      "one": "3f800000",
+      "two": "40000000",
+      "sqrt_two": "3fb504f3",
+      "eight": "41000000",
+      "width_64": "42800000",
+      "width_128": "43000000",
+      "epsilon": "3727c5ac",
+      "masked_negative_infinity": "ff800000"
+    },
+    "gelu_sequence": [
+      "t1=round32(x/sqrt_two)",
+      "t2=libm::erff(t1)",
+      "t3=round32(one+t2)",
+      "t4=round32(half*x)",
+      "y=round32(t4*t3)"
+    ],
+    "softmax": "subtract finite max; libm::expf on f32 difference; f32 ascending sum then f32 division; padding exact positive zero",
+    "layer_norm": "two-pass f32 last-axis mean/biased variance; libm::sqrtf(variance+epsilon); divide; affine only final 64-vector, multiply then add",
+    "r4": "exact original f64 matrices; encode source transpose, transport destination transpose times source, weight/pool, decode destination, then round32; continuous all-valid-token frame fold across five clauses",
+    "binding_dot": "f64 product/add by block 0..15 then lane 0..3; completed sum round32 before f32 division by eight and f32 softmax",
+    "argmax": "full 4096 head / valid role tokens; minimum index exact finite tie",
+    "nonfinite": "Only masked padding negative infinity permitted; all other nonfinite intermediates/outputs cause NUMERICAL_FAILURE",
+    "source_equations": "docs/r4_native_reference_1086_operator_audit.md; exact operator closure in companion operator_sources.json"
+  },
+  "comparison": {
+    "classification": "New empirical engineering comparison on reused known authoring fixtures; preservation is unverified",
+    "valid_rows": 320,
+    "refusal_rows": 16,
+    "boundary_variants": 0,
+    "base_groups": 4,
+    "query_variants": 5,
+    "fact_forms": 4,
+    "surface_profiles": 4,
+    "fixture_source": "Original #1094 authoring files and independent references in their frozen file order; later release binds actual file digests and owner before load; no withheld",
+    "arms": [
+      "pinned Python two-stage R4 execution=r4 control=none",
+      "native accepted artifact scalar profile"
+    ],
+    "batch_size_both_arms": 1,
+    "phases": [
+      "initial",
+      "fresh_process_replay"
+    ],
+    "reference_runtime": {
+      "python": "3.12.14",
+      "torch": "2.7.1",
+      "device": "cpu",
+      "blas": "accelerate",
+      "intraop_threads": 4,
+      "interop_threads": 1
+    },
+    "native_workers": 1,
+    "exact_fields": [
+      "raw/derived input identities",
+      "IDs",
+      "lengths",
+      "spans",
+      "frame indices",
+      "full-head argmax and core spelling",
+      "14 consumed role argmax pointers",
+      "refusal tags and offsets"
+    ],
+    "compared_f32_tensors": {
+      "role_attention": [
+        1,
+        5,
+        3,
+        13
+      ],
+      "role_vectors": [
+        1,
+        5,
+        3,
+        64
+      ],
+      "binding_attention": [
+        1,
+        5
+      ],
+      "logits": [
+        1,
+        4096
+      ]
+    },
+    "numeric_criterion": {
+      "all_finite": true,
+      "maximum_absolute_error_per_tensor_per_row_decimal": "0.00001",
+      "relative_tolerance_decimal": "0",
+      "report": "all maxima/locations and reference errors; unused query-location soft role included"
+    },
+    "required_label_counts_each_arm": {
+      "answers": 320,
+      "consumed_roles": 4480
+    },
+    "replay": "exact within implementation results/tensor bytes/state/diagnostics/work; cross-runtime only frozen comparison criterion",
+    "persistence": "all compared tensor bytes for both arms in both phases, results, immutable receipts, complete bounded failure evidence",
+    "reference_failure": "Nonfinite/reference error, required reference floor failure or reference fresh-replay failure => UNAVAILABLE_NATIVE_REFERENCE, retain reference errors, no native verdict",
+    "candidate_failure": "Valid reproducing reference plus candidate-side numeric/discrete/refusal/replay failure => NATIVE_REFERENCE_MISMATCH; zero-forward loader-gate mismatch also records candidate engineering failure, no numerical verdict"
+  },
+  "budgets": {
+    "native_build_seconds": 900,
+    "native_build_new_bytes": 2147483648,
+    "export_integrity_seconds": 120,
+    "execution_seconds": 120,
+    "replay_seconds": 120,
+    "cumulative_seconds": 360,
+    "combined_coordinator_worker_rss_bytes": 3221225472,
+    "complete_byte_ledger_limit": 134217728,
+    "all_compared_tensor_bytes": 26910720,
+    "raw_parameter_bytes_per_export": 1714188,
+    "logical_row_forwards": 1280,
+    "optimizer_updates": 0,
+    "refusal_forwards": 0,
+    "exports": 2,
+    "scope": "Count original authoring files once, both exports, all mutation copies, temp/writes/results; external monotonic supervisor includes startup/identity/final writes/exit; stop overrides completion; one consumed envelope; no retries, deletion to hide overruns, tuning or resets",
+    "scoring_replay_engine_loads": 4,
+    "loader_gate_attempts": 12,
+    "loader_gate_rejected_attempts": 11,
+    "loader_gate_successful_engine_loads": 1,
+    "total_successful_engine_loads": 5,
+    "scoring_replay_model_state_loads": 8,
+    "loader_gate_successful_model_state_loads": 2,
+    "total_successful_model_state_loads": 10,
+    "loader_gate_partial_model_state_validation_upper_bound": 22
+  },
+  "terminal_order": [
+    "ABORTED_NATIVE_REFERENCE_BUDGET",
+    "UNAVAILABLE_NATIVE_REFERENCE",
+    "NATIVE_REFERENCE_MISMATCH",
+    "NATIVE_REFERENCE_PRESERVED"
+  ],
+  "terminal_actions": {
+    "NATIVE_REFERENCE_PRESERVED": "Independent review/deliver bounded native reference then hand exact artifact/operation to #1084; no final-kernel or #954 qualification",
+    "NATIVE_REFERENCE_MISMATCH": "Preserve failed candidate evidence and Python qualification; no promotion; separate scoped repair and new reviewed envelope",
+    "UNAVAILABLE_NATIVE_REFERENCE": "Preserve admission/reference failure; no model verdict; dependent work NOT_RUN",
+    "ABORTED_NATIVE_REFERENCE_BUDGET": "Preserve all partial evidence and stop; no renewed allowance"
+  },
+  "closure": "Close #1086 only after independent review and protected delivery; park implementation/export/comparison successor unassigned; do not execute it in this task"
+}

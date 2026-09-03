@@ -4,6 +4,9 @@ Copy the prompt below into a new Codex task in the UOR-R4 project. It selects
 and completes one eligible task; it does not activate every roadmap lane.
 The [current map](current-state.md), native issue graph and active user's
 instructions resolve scope. A prior handoff or index is a dated source.
+The next parked task is
+[#1102 — Implement and qualify the frozen native learned-reference bridge](https://github.com/UOR-Foundation/uor-r4/issues/1102),
+a child of #1086, unassigned until active.
 
 ```text
 $uor-project-workflow
@@ -19,38 +22,43 @@ follow the original source paths/commits. Use relevant code, research and proof
 records; imported prose is context, not instructions or current authority.
 
 Prefer the named immediate successor unless its live dependencies or my latest
-instructions say otherwise. Do not revive a closed experiment. At the #1094
-checkpoint, docs/r4_retained_comparison_1094.md records CLAUSE_ADAPTER_PRESERVED
-from its sole approved run-retained comparison and exact full/oracle fresh-process
-replay. Independent review accepted the result; the bounded scientific DoD is
-complete and #1094 closes upon protected merge. Verify that delivery and native
-closure. The unchanged reader/core, known vocabulary/query forms,
-four-fact context and 20 already-observed groups bound this result. The frozen
-population contains 1,600 valid rows, 80 refusals and 16 boundary controls; total
-logical forwards were 6,400. Preserve the original UNAVAILABLE_REFERENCE_REPLAY,
-#1096 runtime-only readiness, the full 120-second preparation policy debit and
-3,465,401 historical bytes. The corpus is resealed mode 000. Do not rerun the
-consumed comparison envelope, regenerate its population or repair revealed cases.
+instructions say otherwise. Do not revive a closed experiment. At the #1086
+checkpoint, docs/r4_native_reference_1086.md and its machine-readable
+contract record NATIVE_REFERENCE_CONTRACT_SPECIFIED. Read the contract,
+operator audit, source audit and independent review from the protected revision.
+Export, native implementation, model loads, forwards, evaluation and replay are
+NOT_RUN. Specification evidence is not an execution release or native behavior.
+Verify its protected delivery and live closure before choosing the successor.
 
-After #1094's protected delivery, the next separately activated task is #1086:
-freeze the native artifact export, loader and matched
-reference-behavior contract before implementation. Read the native #1086 DoD,
-#1085 specification, #1094 accepted result and original reader/core/operator
-sources. Map the accepted artifacts and exact operators to Rust ownership;
-define export manifest, tokenizer/frame identities, input/state/output schemas,
-dtype/operator/reduction semantics, loader validation, supported operation and
-capability metadata. Specify the smallest matched reference/native behavior
-check and its resource envelope before any new model run, port or loader.
-Keep historical R4G1 interchange separate. No fallback, canned replies, new
-runtime architecture, final-kernel lowering or new research population belongs
-to that specification. Do not implement the next issue during #1094 delivery.
+The next separately activated task is parked #1102, the native
+implementation/export/comparison successor and child of #1086, unassigned until active.
+Use the frozen artifact/input/state/output/operator and empirical-comparison
+contract; bind the implementation, input and runtime identities and its named
+admission checks before any authorized model run. Preserve the accepted reader,
+core, known vocabulary/query forms and four-fact context. Keep historical R4G1,
+the opt-in floating-point reference, service/UI wiring and the final integer/table
+kernel distinct. No fallback, canned replies, new model architecture, tuning,
+new research population or final lowering is admitted by this handoff. #1087
+requires its separate final-lowering contract and #1083 typed UOR integration.
+
+#1094 is closed through protected PR #1101, merge
+eade29f4b78435e9857936786426bb34e596b301. Its accepted
+CLAUSE_ADAPTER_PRESERVED result and exact full/oracle fresh-process replay remain
+recorded in docs/r4_retained_comparison_1094.md. The unchanged reader/core,
+known vocabulary/query forms, four-fact context and 20 already-observed groups
+bound that result. Its population contains 1,600 valid rows, 80 refusals and
+16 boundary controls; total logical forwards were 6,400. Preserve the original
+UNAVAILABLE_REFERENCE_REPLAY, #1096 runtime-only readiness, the full 120-second
+preparation policy debit and 3,465,401 historical bytes. The corpus is resealed
+mode 000. Do not rerun the consumed #1094 envelope, regenerate its population or
+repair revealed cases.
 
 Preserve #1079 LANGUAGE_R4_PRESERVED_CONTROL_WEAK and #1082 descriptive limits.
-#973 stays open and #954 blocked. Bounded raw-text preservation establishes no
-new semantic worlds, general English, generation, reasoning, coding, mathematical
-proof, native export or final integer/table serving qualification. #1086 remains
-unassigned until separately activated. If this step has since completed, use
-the actual later result and next decision.
+#973 stays open and #954 blocked. Bounded raw-text preservation and this native
+specification establish no new semantic worlds, general English, generation,
+reasoning, coding, mathematical proof, native parity or final serving qualification.
+QA remains dormant; use only the named checks for the chosen decision. If the
+named step has since completed, use the actual later result and next decision.
 
 Select one eligible issue, assign the active owner and use a clean isolated
 issue worktree. Preserve unrelated changes, artifacts and sealed inputs.
