@@ -1,0 +1,131 @@
+{
+  "schema": "uor-integration-issues-v1",
+  "date": "2026-09-03",
+  "issues": {
+    "adoption": {
+      "number": 1081,
+      "id": 5332019679,
+      "url": "https://github.com/UOR-Foundation/uor-r4/issues/1081",
+      "title": "Adopt integrated research workflow, source dossier and coherent current roadmap",
+      "parent": 820,
+      "state": "OPEN",
+      "assignees": [
+        "Casey-allard"
+      ],
+      "blocked_by": []
+    },
+    "diagnostic": {
+      "number": 1082,
+      "id": 5332020160,
+      "url": "https://github.com/UOR-Foundation/uor-r4/issues/1082",
+      "title": "Diagnose token-frame exposure and pooled-role displacement on the frozen construction views",
+      "parent": 973,
+      "state": "OPEN",
+      "assignees": [
+        "Casey-allard"
+      ],
+      "blocked_by": []
+    },
+    "uor_contract": {
+      "number": 1083,
+      "id": 5332020544,
+      "url": "https://github.com/UOR-Foundation/uor-r4/issues/1083",
+      "title": "Define typed UOR identity and arithmetic integration boundaries",
+      "parent": 820,
+      "state": "OPEN",
+      "assignees": [],
+      "blocked_by": []
+    },
+    "interface": {
+      "number": 1084,
+      "id": 5332020828,
+      "url": "https://github.com/UOR-Foundation/uor-r4/issues/1084",
+      "title": "Define one Rust service and truthful browser workbench interface",
+      "parent": 820,
+      "state": "OPEN",
+      "assignees": [],
+      "blocked_by": []
+    },
+    "language": {
+      "number": 1085,
+      "id": 5332021117,
+      "url": "https://github.com/UOR-Foundation/uor-r4/issues/1085",
+      "title": "Specify general language and context transfer from the accepted learned interface",
+      "parent": 973,
+      "state": "OPEN",
+      "assignees": [],
+      "blocked_by": [
+        1082
+      ]
+    },
+    "native": {
+      "number": 1086,
+      "id": 5332021434,
+      "url": "https://github.com/UOR-Foundation/uor-r4/issues/1086",
+      "title": "Specify native artifact export, loader and reference behavior for the learned path",
+      "parent": 820,
+      "state": "OPEN",
+      "assignees": [],
+      "blocked_by": [
+        1085
+      ]
+    },
+    "lowering": {
+      "number": 1087,
+      "id": 5332021714,
+      "url": "https://github.com/UOR-Foundation/uor-r4/issues/1087",
+      "title": "Define behavior and cost contract for final integer-table lowering of the accepted reference",
+      "parent": 820,
+      "state": "OPEN",
+      "assignees": [],
+      "blocked_by": [
+        1083,
+        1086
+      ]
+    },
+    "coding": {
+      "number": 1088,
+      "id": 5332021970,
+      "url": "https://github.com/UOR-Foundation/uor-r4/issues/1088",
+      "title": "Define executable coding and controlled workspace capability",
+      "parent": 820,
+      "state": "OPEN",
+      "assignees": [],
+      "blocked_by": [
+        955,
+        1084
+      ]
+    },
+    "publication": {
+      "number": 1089,
+      "id": 5332022242,
+      "url": "https://github.com/UOR-Foundation/uor-r4/issues/1089",
+      "title": "Develop the geometric research paper through claim-proof-evidence and reproducibility records",
+      "parent": 820,
+      "state": "OPEN",
+      "assignees": [],
+      "blocked_by": []
+    },
+    "scorecard": {
+      "number": 1090,
+      "id": 5332022588,
+      "url": "https://github.com/UOR-Foundation/uor-r4/issues/1090",
+      "title": "Define a multi-axis local reasoning-coding capability and resource scorecard",
+      "parent": 820,
+      "state": "OPEN",
+      "assignees": [],
+      "blocked_by": []
+    },
+    "research_transfer": {
+      "number": 1091,
+      "id": 5332022876,
+      "url": "https://github.com/UOR-Foundation/uor-r4/issues/1091",
+      "title": "Map NEMESIS and W33 constructions to the current R4 mechanism with explicit proof obligations",
+      "parent": 820,
+      "state": "OPEN",
+      "assignees": [],
+      "blocked_by": []
+    }
+  },
+  "collected_at": "2026-09-03T04:03:09.244430+00:00"
+}

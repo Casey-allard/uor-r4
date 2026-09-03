@@ -1,0 +1,332 @@
+{
+  "schema": "uor-publication-tooling-v1",
+  "audited_at_utc": "2026-09-03T03:35:18.540733+00:00",
+  "local_commands": [
+    {
+      "name": "pdflatex",
+      "path": null,
+      "status": "NOT_FOUND"
+    },
+    {
+      "name": "xelatex",
+      "path": null,
+      "status": "NOT_FOUND"
+    },
+    {
+      "name": "lualatex",
+      "path": null,
+      "status": "NOT_FOUND"
+    },
+    {
+      "name": "latexmk",
+      "path": null,
+      "status": "NOT_FOUND"
+    },
+    {
+      "name": "bibtex",
+      "path": null,
+      "status": "NOT_FOUND"
+    },
+    {
+      "name": "biber",
+      "path": null,
+      "status": "NOT_FOUND"
+    },
+    {
+      "name": "tectonic",
+      "path": "/opt/homebrew/bin/tectonic",
+      "status": "VERSION_CHECKED",
+      "exit_code": 0,
+      "version_output": "Tectonic 0.17.0"
+    },
+    {
+      "name": "chktex",
+      "path": null,
+      "status": "NOT_FOUND"
+    },
+    {
+      "name": "lacheck",
+      "path": null,
+      "status": "NOT_FOUND"
+    },
+    {
+      "name": "latexdiff",
+      "path": null,
+      "status": "NOT_FOUND"
+    },
+    {
+      "name": "pandoc",
+      "path": null,
+      "status": "NOT_FOUND"
+    },
+    {
+      "name": "qpdf",
+      "path": null,
+      "status": "NOT_FOUND"
+    },
+    {
+      "name": "pdfinfo",
+      "path": "/Users/casey.allard/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override/pdfinfo",
+      "status": "VERSION_CHECKED",
+      "exit_code": 0,
+      "version_output": "pdfinfo version 26.05.0\nCopyright 2005-2026 The Poppler Developers - http://poppler.freedesktop.org\nCopyright 1996-2011, 2022 Glyph & Cog, LLC"
+    },
+    {
+      "name": "pdftoppm",
+      "path": "/Users/casey.allard/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override/pdftoppm",
+      "status": "VERSION_CHECKED",
+      "exit_code": 0,
+      "version_output": "pdftoppm version 26.05.0\nCopyright 2005-2026 The Poppler Developers - http://poppler.freedesktop.org\nCopyright 1996-2011, 2022 Glyph & Cog, LLC"
+    },
+    {
+      "name": "pdftotext",
+      "path": null,
+      "status": "NOT_FOUND"
+    },
+    {
+      "name": "mutool",
+      "path": null,
+      "status": "NOT_FOUND"
+    },
+    {
+      "name": "gs",
+      "path": null,
+      "status": "NOT_FOUND"
+    },
+    {
+      "name": "uv",
+      "path": "/opt/homebrew/bin/uv",
+      "status": "VERSION_CHECKED",
+      "exit_code": 0,
+      "version_output": "uv 0.12.7 (Homebrew 2026-08-27 aarch64-apple-darwin)"
+    },
+    {
+      "name": "lean",
+      "path": "/opt/homebrew/bin/lean",
+      "status": "VERSION_CHECKED",
+      "exit_code": 0,
+      "version_output": "Lean (version 4.33.1, arm64-apple-darwin24.6.0, commit 819816b2e0a3bf405af45ae5c7af2491d8f5bee6, Release)"
+    },
+    {
+      "name": "lake",
+      "path": "/opt/homebrew/bin/lake",
+      "status": "VERSION_CHECKED",
+      "exit_code": 0,
+      "version_output": "Lake version 5.0.0-src+819816b (Lean version 4.33.1)"
+    },
+    {
+      "name": "tlmgr",
+      "path": null,
+      "status": "NOT_FOUND"
+    },
+    {
+      "name": "kpsewhich",
+      "path": null,
+      "status": "NOT_FOUND"
+    }
+  ],
+  "bundled_python": {
+    "path": "/Users/casey.allard/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "inspection": "importlib.metadata version query; no document generated",
+    "packages": {
+      "pypdf": "6.10.0",
+      "pdfplumber": "0.11.9",
+      "reportlab": "4.4.9",
+      "python-docx": "1.2.0",
+      "sympy": "NOT_INSTALLED_IN_THIS_BUNDLED_ENVIRONMENT",
+      "bibtexparser": "NOT_INSTALLED_IN_THIS_BUNDLED_ENVIRONMENT"
+    }
+  },
+  "skills": [
+    {
+      "name": "mathbox:proof-audit",
+      "path": "/Users/casey.allard/.codex/plugins/cache/openai-curated-remote/mathbox/2.1.0/skills/proof-audit/SKILL.md",
+      "installed": true,
+      "workflow_reviewed": true,
+      "execution": "NOT_RUN"
+    },
+    {
+      "name": "mathbox:literature-check",
+      "path": "/Users/casey.allard/.codex/plugins/cache/openai-curated-remote/mathbox/2.1.0/skills/literature-check/SKILL.md",
+      "installed": true,
+      "workflow_reviewed": true,
+      "execution": "NOT_RUN"
+    },
+    {
+      "name": "engineering:documentation",
+      "path": "/Users/casey.allard/.codex/plugins/cache/claude-cowork/engineering/1.2.0/skills/documentation/SKILL.md",
+      "installed": true,
+      "workflow_reviewed": true,
+      "execution": "NOT_RUN"
+    },
+    {
+      "name": "hugging-face:paper-publisher",
+      "path": "/Users/casey.allard/.codex/plugins/cache/openai-curated-remote/hugging-face/1.0.0/skills/paper-publisher/SKILL.md",
+      "installed": true,
+      "workflow_reviewed": true,
+      "execution": "NOT_RUN"
+    },
+    {
+      "name": "pdf:pdf",
+      "path": "/Users/casey.allard/.codex/plugins/cache/openai-primary-runtime/pdf/26.826.12353/skills/pdf/SKILL.md",
+      "installed": true,
+      "workflow_reviewed": true,
+      "execution": "NOT_RUN"
+    },
+    {
+      "name": "documents:documents",
+      "path": "/Users/casey.allard/.codex/plugins/cache/openai-primary-runtime/documents/26.826.12353/skills/documents/SKILL.md",
+      "installed": true,
+      "workflow_reviewed": true,
+      "execution": "NOT_RUN"
+    }
+  ],
+  "research_tools": [
+    {
+      "name": "mcp__codex_apps__academic_writing_toolkit_audit_citations",
+      "status": "EXPOSED_CALLABLE",
+      "behavior_verification": "PUBLIC_TEXT_SMOKE_PASSED"
+    },
+    {
+      "name": "mcp__codex_apps__academic_writing_toolkit_create_reading_note_template",
+      "status": "EXPOSED_CALLABLE",
+      "behavior_verification": "PUBLIC_TEXT_SMOKE_PASSED"
+    },
+    {
+      "name": "mcp__codex_apps__academic_writing_toolkit_verify_bibtex_references",
+      "status": "EXPOSED_CALLABLE",
+      "behavior_verification": "PUBLIC_TEXT_SMOKE_PASSED"
+    },
+    {
+      "name": "mcp__codex_apps__consensus_fetch",
+      "status": "EXPOSED_CALLABLE",
+      "behavior_verification": "NOT_RUN_IN_THIS_SUBTASK"
+    },
+    {
+      "name": "mcp__codex_apps__consensus_search",
+      "status": "EXPOSED_CALLABLE",
+      "behavior_verification": "NOT_RUN_IN_THIS_SUBTASK"
+    },
+    {
+      "name": "mcp__codex_apps__hugging_face_paper_search",
+      "status": "EXPOSED_CALLABLE",
+      "behavior_verification": "NOT_RUN_IN_THIS_SUBTASK"
+    },
+    {
+      "name": "mcp__codex_apps__scispace_search_papers",
+      "status": "EXPOSED_CALLABLE",
+      "behavior_verification": "ROOT_REPORTED_SEARCH_PASSED_NOT_REPEATED"
+    }
+  ],
+  "academic_tool_smoke": {
+    "path": "academic-tool-smoke.json",
+    "private_draft_sent": false,
+    "citation_audit": "PASS: detected deliberately unmatched citation; also detected malformed source-note formatting",
+    "reading_note_template": "PASS: returned source/title/author/year and structured reading-note fields",
+    "bibtex_checker": "PASS for offline input validation only; entries=1, issue_count=0, verified=[], online_sources=[]; no source existence or claim verification"
+  },
+  "hf_paper_manager": {
+    "path": "/Users/casey.allard/.codex/plugins/cache/openai-curated-remote/hugging-face/1.0.0/skills/paper-publisher/scripts/paper_manager.py",
+    "exists": true,
+    "invoked": false,
+    "authentication": "NOT_VERIFIED_IN_THIS_SUBTASK",
+    "scope": "HF paper indexing and artifact linking after real arXiv identifier; not arXiv submission or moderation"
+  },
+  "installation_recommendation": {
+    "install_now": [],
+    "reason": "Existing Tectonic, PDF tooling, academic-writing helpers and primary-source search cover current drafting/audit needs. Evidence repair is the blocker.",
+    "deferred": [
+      {
+        "name": "ChkTeX",
+        "condition": "Recurring TeX lint defects justify a small linter; not needed to resolve the current scientific/BBL defects."
+      },
+      {
+        "name": "arXiv-compatible pinned TeX Live environment",
+        "condition": "Chosen final manuscript requires exact server-compatibility check; set disk budget and use minimal package set or bounded CI image. Full MacTeX not recommended now."
+      }
+    ]
+  },
+  "package_inspection": "package-inspection.json",
+  "local_artifacts": [
+    {
+      "path": "/Users/casey.allard/Downloads/uor-r4-project/paper/main.tex",
+      "bytes": 26124,
+      "sha256": "9cbe5ff9c57166b8e9604831411a01bd4dd1c949cc0f1408915af60686f355af"
+    },
+    {
+      "path": "/Users/casey.allard/Downloads/uor-r4-project/paper/main.bbl",
+      "bytes": 3069,
+      "sha256": "1902c715cea0a4a9e426e946a485885356b5f2140256d322aa7dc49e4712c241"
+    },
+    {
+      "path": "/Users/casey.allard/Downloads/uor-r4-project/paper/references.bib",
+      "bytes": 6244,
+      "sha256": "ecadd2d8728f7ee1669b7810d6bcf3f81a9b12e5e9dc9c2aee1071e3c9b2a5b8"
+    },
+    {
+      "path": "/Users/casey.allard/Downloads/uor-r4-project/paper/arxiv_submission.tar.gz",
+      "bytes": 458947,
+      "sha256": "bc3f168440d9574964e425f7e48ee7d21d6c032aac0ab51fe25f265bea049d07"
+    },
+    {
+      "path": "/Users/casey.allard/Downloads/uor-r4-project/paper/arxiv_submission.zip",
+      "bytes": 457094,
+      "sha256": "13f1ab4367e9e69617c3369adf78b0b81e206e7e6bf0838eed9c54d69eabaf35"
+    },
+    {
+      "path": "/Users/casey.allard/Downloads/uor-r4-project/paper/lean/UOR_Formal_Proofs.lean",
+      "bytes": 2947,
+      "sha256": "4d76969efa982b72b4f9d424dfbfefc5e7a2914397debb29260b3e9a0831c287"
+    },
+    {
+      "path": "/Users/casey.allard/Downloads/uor-r4-project/src/bin/benchmark_geometric_core.rs",
+      "bytes": 7807,
+      "sha256": "f7486020e18bcc964f480cae4fb751eb58a2dde5ff0c1bf79ce5631ee74872e5"
+    },
+    {
+      "path": "/Users/casey.allard/Downloads/uor-r4-project/results/benchmark_data.json",
+      "bytes": 1819,
+      "sha256": "aa34002080279a2a59dd2cf9a195f59169dbc2ce3e6f30cda3a7d1d1944e575a"
+    }
+  ],
+  "rejection_notices": {
+    "found": false,
+    "search_scope": [
+      "/Users/casey.allard/uor-r4/docs",
+      "/Users/casey.allard/uor-r4/README.md",
+      "/Users/casey.allard/Downloads/uor-r4-project/paper",
+      "/Users/casey.allard/uor-r4/research/prime-analysis/research/routing-infrastructure/ai-router"
+    ],
+    "meaning": "NOT_LOCATED_IN_BOUNDED_LOCAL_SEARCH; not proof that notices do not exist",
+    "user_report": "two past rejections, reasons unknown",
+    "dashboard_accessed": false
+  },
+  "verification_status": {
+    "full_paper_build": "NOT_RUN",
+    "paper_pdf_visual_review": "NOT_RUN",
+    "formal_proof_build": "NOT_RUN",
+    "browser_benchmarks": "NOT_RUN",
+    "full_bibliography_truth_check": "NOT_RUN",
+    "arxiv_submission": "NOT_RUN",
+    "source_package_static_check": "PASS_WITH_BLOCKERS_RECORDED",
+    "tools_installed": false,
+    "repo_files_modified": false,
+    "cleanup_performed": false
+  },
+  "official_sources": [
+    "https://info.arxiv.org/help/moderation/index.html",
+    "https://info.arxiv.org/help/moderation/appeals.html",
+    "https://info.arxiv.org/help/endorsement.html",
+    "https://info.arxiv.org/help/prep.html",
+    "https://info.arxiv.org/help/submit_tex.html",
+    "https://info.arxiv.org/help/faq/texlive.html",
+    "https://info.arxiv.org/help/faq/whytex.html",
+    "https://arxiv.org/category_taxonomy",
+    "https://tectonic-typesetting.github.io/en-US/"
+  ],
+  "historical_memory": {
+    "source": "/Users/casey.allard/.codex/memories/MEMORY.md:176",
+    "status": "MEMORY_DERIVED_NOT_DASHBOARD_REVERIFIED",
+    "summary": "8023631 processing errors and later abstract limit problem; 8023757 preview; no acceptance or rejection inferred"
+  }
+}

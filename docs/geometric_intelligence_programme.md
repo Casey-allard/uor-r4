@@ -1,5 +1,14 @@
 # Geometric Intelligence Programme
 
+**Planning adoption (2026-09-03):** use the
+[current map and #973→#954 consumer contract](integration/current-state.md),
+[adopted issue graph](integration/adopted-issues.json), and
+[continuation prompt](integration/CONTINUE.md). The next research task is
+[#1082](https://github.com/UOR-Foundation/uor-r4/issues/1082), a construction-only
+exposure diagnostic. Product interfaces, integration, coding evaluation and
+paper/proof preparation now have separate issue ownership; no capability stage
+is promoted by adopting those plans.
+
 - **Status:** Current architecture and claim-boundary companion to the
   authoritative post-v0.1 sequencing in
   [R4 Intelligence Completion Plan](r4_intelligence_completion_plan.md)
@@ -59,8 +68,11 @@ feasibility boundary (#986). Those results remain provenance, not an active
 queue. Semantic placement, table value, exact transport, attention, generation,
 correctness, and reasoning remain separate claims.
 
-Optimization, broad QA, formalization, and release certification follow a
-working decision-bearing product slice. They do not replace it.
+Cost optimization and full formal/release qualification follow a working
+decision-bearing product slice. **Planning amendment (2026-09-03):** named
+mathematical obligations, the claim ledger and paper preparation may proceed
+in parallel, while broad QA remains dormant. Neither proof tooling nor product
+infrastructure substitutes for measured model capability.
 
 ## Current R4 preservation — token control misses three views
 
@@ -89,6 +101,11 @@ somewhere in a row does not measure exposure of its attended tokens. The cause o
 the weaker token control remains unmeasured. #973 stays open; #954 remains blocked.
 
 ## Historical #1043 decision — preserve the invalid result; fix learning first
+
+**Historical checkpoint sequence; superseded for next-action selection on
+2026-09-03.** The earlier decisions and measurement records below remain valid
+at their named scopes. Their “current/next” wording describes those dates;
+select work from the [current map](integration/current-state.md).
 
 `R4PositionPreservingCausalKVBindingV1` copied the smallest ordinary
 position-preserving Q/K/V softmax mechanism, kept one exact record per causal
@@ -121,6 +138,11 @@ and reasoning remain unauthorized; #954 remains blocked. See the
 [#1043 record](r4_position_kv_binding_1043.md).
 
 ## Current #973 decision — stop this predictive block-delta law
+
+**Historical V5 decision, superseded for programme sequencing on 2026-09-03.**
+The V5 law remains retired with the result below unchanged. The current #973
+reference is #1077/#1079, and its next owned task is
+[#1082](https://github.com/UOR-Foundation/uor-r4/issues/1082).
 
 Qualified `R4RetainedLanguagePathV1` remains the source-free retained-attention
 baseline. The independently frozen `R4PredictiveBlockDeltaBindingV1` campaign

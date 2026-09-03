@@ -1,0 +1,268 @@
+{
+  "schema": "uor-r4.claim-ledger/1",
+  "repository": "UOR-Foundation/uor-r4",
+  "source_revision": "e627252e525201815169ffd8364184953a46018d",
+  "vocabulary": {
+    "source": "formal_vocabulary",
+    "role": "Statement class from the normative vocabulary.",
+    "evidence_status": "Normative evidence status; read the claim together with this status and its scope.",
+    "outcome": "Measured decision or pending-work state; this does not replace the normative evidence status.",
+    "evidence_refs": "Keys in sources; source_revision pins all repository paths and URLs.",
+    "proof_artifacts": "An empty list means this ledger does not supply a proof for that claim."
+  },
+  "sources": {
+    "preparation_1079": {
+      "path": "docs/r4_zoology_language_r4_1079_preparation.json",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/e627252e525201815169ffd8364184953a46018d/docs/r4_zoology_language_r4_1079_preparation.json",
+      "cid": "blake3:d9c8ad8448365b2039276fdeda6b70da53ef63fde24e02dd1dd8dea437b546a4"
+    },
+    "result_1079": {
+      "path": "docs/r4_zoology_language_r4_1079_result.json",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/e627252e525201815169ffd8364184953a46018d/docs/r4_zoology_language_r4_1079_result.json",
+      "cid": "blake3:dee107190172afcb7637d52469662ecab217847271e4bbdb0721514fcfbdc3a5"
+    },
+    "replay_1079": {
+      "path": "docs/r4_zoology_language_r4_1079_replay.json",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/e627252e525201815169ffd8364184953a46018d/docs/r4_zoology_language_r4_1079_replay.json",
+      "cid": "blake3:eaa17433d5cd150a2a0c52adab6104bda4c4dae26221944fcde112ef841ca597"
+    },
+    "record_1079": {
+      "path": "docs/r4_zoology_language_r4_1079.md",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/e627252e525201815169ffd8364184953a46018d/docs/r4_zoology_language_r4_1079.md"
+    },
+    "formal_vocabulary": {
+      "path": "docs/formal_vocabulary.md",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/e627252e525201815169ffd8364184953a46018d/docs/formal_vocabulary.md"
+    },
+    "historical_proof_matrix": {
+      "path": "crates/uor-r4-proof-model/src/proof_matrix.rs",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/e627252e525201815169ffd8364184953a46018d/crates/uor-r4-proof-model/src/proof_matrix.rs"
+    },
+    "historical_proof_scope": {
+      "path": "crates/uor-r4-proof-model/README.md",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/e627252e525201815169ffd8364184953a46018d/crates/uor-r4-proof-model/README.md"
+    },
+    "language_r4_implementation": {
+      "path": "tools/r4-softmax-trainer/src/r4_softmax_trainer/zoology_language_r4/attention.py",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/e627252e525201815169ffd8364184953a46018d/tools/r4-softmax-trainer/src/r4_softmax_trainer/zoology_language_r4/attention.py"
+    }
+  },
+  "artifacts_1079": {
+    "implementation_cid": "blake3:a94432fb7e764247521a9fbd42ee8f99472bb6f2e800e895f380806b0bbf1462",
+    "preparation_cid": "blake3:d9c8ad8448365b2039276fdeda6b70da53ef63fde24e02dd1dd8dea437b546a4",
+    "evidence_cid": "blake3:663320fe263cc945aae412ef27c6fa1b6a35fb33f391908d29e20d65cd50df10",
+    "reader_file_cid": "blake3:c11d21817bff818fa242f653279e9e0c12d21641ff63df3a5f7a6680bcc732a7",
+    "reader_state_cid": "blake3:7c659422df2e65a0ce24c08738dc9f08dca99775de1702251097a0fc6483404e",
+    "core_file_cid": "blake3:9c055cc6ea09548bf960e37288276535b30515b94a50a96aa929b5e55afea3c4",
+    "core_state_cid": "blake3:abbdbcaafc2d9eb36543ce75fbb0101b6788119d80a6ed9c017bb9d06fbeac59"
+  },
+  "claims": [
+    {
+      "id": "R4-1079-PRESERVATION",
+      "statement": "The frozen coherent R4 execution preserves the learned ordinary reference on every evaluated row and every declared primary stratum of the six #1079 views within the frozen numerical envelope.",
+      "role": "Empirical Criterion",
+      "evidence_status": "Empirical",
+      "outcome": "PASSED_BOUNDED",
+      "scope": {
+        "views": 6,
+        "construction_views": 2,
+        "already_observed_development_views": 4,
+        "rows": 25600,
+        "supported_rows": 20480,
+        "unknown_rows": 5120,
+        "new_population": false,
+        "new_training_updates": 0
+      },
+      "assumptions": [
+        "The pinned reader, core, data, native frames, code and runtime are the qualified execution.",
+        "Evaluation uses supplied clause boundaries and the frozen controlled-language task. The six views are not independent generalization samples."
+      ],
+      "observations": {
+        "primary_criteria_passed": 156,
+        "primary_criteria_total": 156,
+        "identical_correct_answers": 25600,
+        "supervised_role_decisions_correct": 358400,
+        "computed_role_vectors_within_tolerance": 384000,
+        "reader_attention_bit_identical": true,
+        "maximum_logit_difference": 8.821487426757812e-06,
+        "logit_ceiling": 0.005,
+        "maximum_binding_attention_difference": 4.76837158203125e-07,
+        "maximum_role_vector_difference": 8.940696716308594e-08,
+        "maximum_mean_nll_difference": 1.3947101251687855e-09,
+        "attention_role_vector_nll_ceiling": 1e-05,
+        "fresh_process_exact_evidence_replay": true
+      },
+      "evidence_refs": [
+        "preparation_1079",
+        "result_1079",
+        "replay_1079",
+        "record_1079"
+      ],
+      "limits": [
+        "Finite observed-population preservation is not a universal numerical theorem, geometric advantage, general language/coding evidence, or final serving-kernel qualification."
+      ],
+      "proof_artifacts": []
+    },
+    {
+      "id": "R4-1079-TOKEN-CONTROL",
+      "statement": "The unchanged token-source-frame control is valid in all six views but meets the frozen strong-sensitivity threshold in only three; coherent preservation and the strong fact-control result remain separate findings.",
+      "role": "Empirical Criterion",
+      "evidence_status": "Empirical",
+      "outcome": "LANGUAGE_R4_PRESERVED_CONTROL_WEAK",
+      "scope": {
+        "view_order": [
+          "construction_0",
+          "construction_1",
+          "development_0",
+          "development_1",
+          "development_2",
+          "development_3"
+        ],
+        "strong_threshold_supported_accuracy_loss_pp": 50,
+        "required_strong_views": 6
+      },
+      "assumptions": [
+        "Source frames are permuted by the exact predeclared controls; input values, learned parameters and work remain bound.",
+        "An actual changed matrix in a row is opportunity, not attention-weighted exposure."
+      ],
+      "observations": {
+        "token_valid_views": 6,
+        "token_strong_views": 3,
+        "token_supported_accuracy_loss_pp": [
+          28.72314453125,
+          51.5625,
+          30.17578125,
+          52.44140625,
+          52.63671875,
+          37.01171875
+        ],
+        "fact_valid_views": 6,
+        "fact_strong_views": 6,
+        "fact_supported_accuracy_loss_pp": [
+          91.05224609375,
+          90.4296875,
+          93.26171875,
+          85.64453125,
+          84.1796875,
+          87.98828125
+        ]
+      },
+      "evidence_refs": [
+        "preparation_1079",
+        "result_1079",
+        "replay_1079",
+        "record_1079"
+      ],
+      "limits": [
+        "The proposed low-exposure, cancellation and downstream-tolerance explanations are not measured causes. The result does not falsify primary preservation or establish geometric superiority."
+      ],
+      "next_action": {
+        "status": "PROPOSED_NOT_RUN",
+        "scope": "One separately frozen construction-only diagnostic on the two existing renderings: attention mass on changed matrices, weighted individual-value displacement and net pooled displacement for used roles, related descriptively to recorded answers. No new fit, population, development probe, replacement control or geometry.",
+        "authority_url": "https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5519385959"
+      },
+      "proof_artifacts": []
+    },
+    {
+      "id": "R4-GENERAL-LANGUAGE-REASONING-CODING",
+      "statement": "The current learned geometric model supports general conversational language, open-ended generation, reasoning and coding on independently held-out natural tasks.",
+      "role": "Empirical Criterion",
+      "evidence_status": "Unproven",
+      "outcome": "NOT_ESTABLISHED",
+      "scope": {
+        "target_capabilities": [
+          "general conversation",
+          "open-ended generation",
+          "reasoning",
+          "coding"
+        ],
+        "population_and_acceptance_protocol": "Not qualified by #1079; each later claim requires its own declared task population and decision."
+      },
+      "assumptions": [],
+      "evidence_refs": [
+        "record_1079"
+      ],
+      "limits": [
+        "#1079 evaluated already-observed controlled-language rows with supplied clause boundaries; it did not run general generation or coding. This is absence of qualification, not evidence that those future capabilities are impossible."
+      ],
+      "next_action": {
+        "status": "OPEN_PROGRAMME_GOAL",
+        "scope": "Reconcile #973→#954 consumer scope, then qualify named language/context, correctness, reasoning and coding tasks before promoting capability claims.",
+        "issue_urls": [
+          "https://github.com/UOR-Foundation/uor-r4/issues/973",
+          "https://github.com/UOR-Foundation/uor-r4/issues/954",
+          "https://github.com/UOR-Foundation/uor-r4/issues/955",
+          "https://github.com/UOR-Foundation/uor-r4/issues/962"
+        ]
+      },
+      "proof_artifacts": []
+    },
+    {
+      "id": "R4-CURRENT-PATH-FINAL-LOWERING",
+      "statement": "A promoted implementation of the current learned language path meets the declared integer/table serving-kernel contract while retaining its qualified behavior.",
+      "role": "Guarantee",
+      "evidence_status": "Unproven",
+      "outcome": "OPEN",
+      "scope": {
+        "artifact_family": "The #1077 learned role reader and compound-binding core with the #1079 R4 adapter.",
+        "required_contract": "An explicit reference-to-native-artifact mapping and a later final-kernel lowering contract for this actual path."
+      },
+      "assumptions": [
+        "The accepted reference input/state/output schema and behavioral envelope must be pinned before lowering."
+      ],
+      "evidence_refs": [
+        "record_1079",
+        "language_r4_implementation",
+        "formal_vocabulary"
+      ],
+      "limits": [
+        "Current dense projections, normalization, floating-point frame arithmetic and softmax are research-reference operations. #1079 performed zero native exports and did not qualify the final serving kernel. Historical graph-kernel evidence does not transfer automatically."
+      ],
+      "next_action": {
+        "status": "PROPOSED_OWNERSHIP",
+        "scope": "Create explicit native export/loader and final-kernel lowering work with operation, representation, error, state and cost obligations; preserve a negative mapping result if the contract fails.",
+        "issue_urls": [
+          "https://github.com/UOR-Foundation/uor-r4/issues/820",
+          "https://github.com/UOR-Foundation/uor-r4/issues/964"
+        ]
+      },
+      "proof_artifacts": []
+    },
+    {
+      "id": "R4-MATH-IMPLEMENTATION-CORRESPONDENCE",
+      "statement": "Each promoted primitive implements its stated mathematical law for all inputs within its declared domain and under its enumerated assumptions.",
+      "role": "Guarantee",
+      "evidence_status": "Unproven",
+      "outcome": "REQUIRES_PER_OBLIGATION_PROOF",
+      "scope": {
+        "obligations": [
+          "Exact finite algebra and the registered frame/transport convention.",
+          "Causal access and weighted pooling including zero/null cases.",
+          "Explicit floating-point refinement or numerical error bounds.",
+          "Serialization and theorem-to-Rust implementation correspondence."
+        ],
+        "universal_claim": "No blanket proof for the current learned path is supplied by this ledger."
+      },
+      "assumptions": [
+        "Domains, representation, orientation/composition order, rounding and allowed axioms must be declared per obligation."
+      ],
+      "evidence_refs": [
+        "formal_vocabulary",
+        "historical_proof_matrix",
+        "historical_proof_scope",
+        "record_1079"
+      ],
+      "limits": [
+        "Exact symbolic identities, replayed finite examples and historical R4G1 proofs do not by themselves prove every current operation or learned capability. No proof result is imported merely because a theorem or proof assistant exists."
+      ],
+      "next_action": {
+        "status": "PROPOSED_OBLIGATION_LEDGER",
+        "scope": "Link each claimed guarantee to pinned checked declarations, assumptions and the implemented operation; otherwise retain Unproven or Assumed status.",
+        "issue_urls": [
+          "https://github.com/UOR-Foundation/uor-r4/issues/964"
+        ]
+      },
+      "proof_artifacts": []
+    }
+  ]
+}

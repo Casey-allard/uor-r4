@@ -1,0 +1,450 @@
+[
+  {
+    "repository": "UOR-Foundation/uor-addr",
+    "visibility": "public",
+    "commit": "165b51e3e2113ee5d032730cde709335d4fe9b60",
+    "decision": "ALREADY_DEPENDED_ON_EXTEND_ADAPTERS",
+    "reuse": "Reuse typed JSON/CBOR/ring and ONNX/GGUF canonical addressing plus replayable AddressOutcome/AddressWitness. Existing R4 JSON address_blake3 and CBOR usage should remain the entry point.",
+    "limits": "Identity depends on canonicalization schema/version and hash axis. Structural equivalence means the declared canonical form, not model behavioral equivalence. Ring realization accepts four declared Witt levels, not arbitrary tensors.",
+    "source_links": [
+      {
+        "path": "crates/uor-addr/src/json/mod.rs",
+        "line": 62,
+        "url": "https://github.com/UOR-Foundation/uor-addr/blob/165b51e3e2113ee5d032730cde709335d4fe9b60/crates/uor-addr/src/json/mod.rs#L62"
+      },
+      {
+        "path": "crates/uor-addr/src/onnx/mod.rs",
+        "line": 25,
+        "url": "https://github.com/UOR-Foundation/uor-addr/blob/165b51e3e2113ee5d032730cde709335d4fe9b60/crates/uor-addr/src/onnx/mod.rs#L25"
+      },
+      {
+        "path": "crates/uor-addr/src/ring/mod.rs",
+        "line": 23,
+        "url": "https://github.com/UOR-Foundation/uor-addr/blob/165b51e3e2113ee5d032730cde709335d4fe9b60/crates/uor-addr/src/ring/mod.rs#L23"
+      },
+      {
+        "path": "crates/uor-addr/src/composition/canonicalize.rs",
+        "line": 95,
+        "url": "https://github.com/UOR-Foundation/uor-addr/blob/165b51e3e2113ee5d032730cde709335d4fe9b60/crates/uor-addr/src/composition/canonicalize.rs#L95"
+      }
+    ],
+    "validation": "SOURCE_REVIEW_ONLY; not built, run or benchmarked during audit"
+  },
+  {
+    "repository": "UOR-Foundation/UOR-Framework",
+    "visibility": "public",
+    "commit": "51c01382200b0179d6640b07e9c8119364ab69a1",
+    "decision": "ALREADY_DEPENDED_ON_KEEP_ONE_TYPE_SOURCE",
+    "reuse": "Reuse PrismModel/run_route, typed HostBounds, input/output shape admission, trace/replay contracts.",
+    "limits": "Ontology traits and structural witnesses do not establish general intelligence, every mathematical theorem, or equivalence of an arbitrary implementation.",
+    "source_links": [
+      {
+        "path": "foundation/src/pipeline.rs",
+        "line": 3521,
+        "url": "https://github.com/UOR-Foundation/UOR-Framework/blob/51c01382200b0179d6640b07e9c8119364ab69a1/foundation/src/pipeline.rs#L3521"
+      },
+      {
+        "path": "foundation/src/kernel/address.rs",
+        "line": 10,
+        "url": "https://github.com/UOR-Foundation/UOR-Framework/blob/51c01382200b0179d6640b07e9c8119364ab69a1/foundation/src/kernel/address.rs#L10"
+      },
+      {
+        "path": "uor-foundation-verify/src/lib.rs",
+        "line": 1,
+        "url": "https://github.com/UOR-Foundation/UOR-Framework/blob/51c01382200b0179d6640b07e9c8119364ab69a1/uor-foundation-verify/src/lib.rs#L1"
+      }
+    ],
+    "validation": "SOURCE_REVIEW_ONLY; not built, run or benchmarked during audit"
+  },
+  {
+    "repository": "UOR-Foundation/prism",
+    "visibility": "public",
+    "commit": "507995bab43c0cb06ec244c96e6fc25b3f502204",
+    "decision": "REUSE_THROUGH_EXISTING_DEPENDENCY_GRAPH",
+    "reuse": "Reuse public hash axis and exact numerics only where algebra matches.",
+    "limits": "Gf2NumericAxisN uses XOR/AND over independent bits. It is not the ring Z/256Z and not GF(256). The FHE module describes a one-time-pad reference; do not promote that to arbitrary production homomorphic encryption.",
+    "source_links": [
+      {
+        "path": "crates/uor-prism-numerics/src/ring.rs",
+        "line": 1,
+        "url": "https://github.com/UOR-Foundation/prism/blob/507995bab43c0cb06ec244c96e6fc25b3f502204/crates/uor-prism-numerics/src/ring.rs#L1"
+      },
+      {
+        "path": "crates/uor-prism/src/lib.rs",
+        "line": 1,
+        "url": "https://github.com/UOR-Foundation/prism/blob/507995bab43c0cb06ec244c96e6fc25b3f502204/crates/uor-prism/src/lib.rs#L1"
+      },
+      {
+        "path": "crates/uor-prism-fhe/src/lib.rs",
+        "line": 1,
+        "url": "https://github.com/UOR-Foundation/prism/blob/507995bab43c0cb06ec244c96e6fc25b3f502204/crates/uor-prism-fhe/src/lib.rs#L1"
+      }
+    ],
+    "validation": "SOURCE_REVIEW_ONLY; not built, run or benchmarked during audit"
+  },
+  {
+    "repository": "UOR-Foundation/uor-matmul",
+    "visibility": "public",
+    "commit": "3cc5882f210667f9ac00fd8c02c5b5957b493f5d",
+    "decision": "AUDIT_PIN_DELTA_BEFORE_UPGRADE",
+    "reuse": "Use as exact numeric reference/CPU arithmetic backend already integrated. Upstream offers raw/slice APIs, codec/alphabet types, caller-owned Scratch and exact accumulation with one output encoding.",
+    "limits": "Exact-sum final rounding differs from sequential FMA/BLAS rounding. Speed reports are workload and hardware specific. Optional kappa feature still names uor-addr-1 and has independent allocation/manifest semantics; audit dependency boundary first.",
+    "source_links": [
+      {
+        "path": "crates/uor-matmul/src/lib.rs",
+        "line": 116,
+        "url": "https://github.com/UOR-Foundation/uor-matmul/blob/3cc5882f210667f9ac00fd8c02c5b5957b493f5d/crates/uor-matmul/src/lib.rs#L116"
+      },
+      {
+        "path": "crates/uor-matmul-codec/src/kappa.rs",
+        "line": 1,
+        "url": "https://github.com/UOR-Foundation/uor-matmul/blob/3cc5882f210667f9ac00fd8c02c5b5957b493f5d/crates/uor-matmul-codec/src/kappa.rs#L1"
+      },
+      {
+        "path": "README.md",
+        "line": 217,
+        "url": "https://github.com/UOR-Foundation/uor-matmul/blob/3cc5882f210667f9ac00fd8c02c5b5957b493f5d/README.md#L217"
+      },
+      {
+        "path": "README.md",
+        "line": 325,
+        "url": "https://github.com/UOR-Foundation/uor-matmul/blob/3cc5882f210667f9ac00fd8c02c5b5957b493f5d/README.md#L325"
+      }
+    ],
+    "validation": "SOURCE_REVIEW_ONLY; not built, run or benchmarked during audit"
+  },
+  {
+    "repository": "Hologram-Technologies/hologram",
+    "visibility": "public",
+    "commit": "94ecb886811115491a77c8229e494965bea03fc2",
+    "decision": "SELECTIVE_ADAPTER_OR_REFERENCE",
+    "reuse": "Prioritize archive address APIs, deterministic derivation keys, KappaStore/storage seams, and finite-domain LUT mechanisms. Import only a selected crate behind an adapter if a behavior-level need exists.",
+    "limits": "O(1) lookup is per finite-domain lookup or memo hit after construction; input hashing, table construction, memory traffic, cache misses and unseen work remain. Ordered derivation keys and unordered component identity must stay distinct. The archive crate’s compose_model unsorted fold is not justified as permutation invariant for 3+ parts.",
+    "source_links": [
+      {
+        "path": "crates/hologram-archive/src/address.rs",
+        "line": 83,
+        "url": "https://github.com/Hologram-Technologies/hologram/blob/94ecb886811115491a77c8229e494965bea03fc2/crates/hologram-archive/src/address.rs#L83"
+      },
+      {
+        "path": "crates/hologram-archive/src/address.rs",
+        "line": 108,
+        "url": "https://github.com/Hologram-Technologies/hologram/blob/94ecb886811115491a77c8229e494965bea03fc2/crates/hologram-archive/src/address.rs#L108"
+      },
+      {
+        "path": "crates/hologram-archive/src/address.rs",
+        "line": 150,
+        "url": "https://github.com/Hologram-Technologies/hologram/blob/94ecb886811115491a77c8229e494965bea03fc2/crates/hologram-archive/src/address.rs#L150"
+      },
+      {
+        "path": "README.md",
+        "line": 102,
+        "url": "https://github.com/Hologram-Technologies/hologram/blob/94ecb886811115491a77c8229e494965bea03fc2/README.md#L102"
+      },
+      {
+        "path": "README.md",
+        "line": 113,
+        "url": "https://github.com/Hologram-Technologies/hologram/blob/94ecb886811115491a77c8229e494965bea03fc2/README.md#L113"
+      }
+    ],
+    "validation": "SOURCE_REVIEW_ONLY; not built, run or benchmarked during audit"
+  },
+  {
+    "repository": "Hologram-Technologies/hologram-ai",
+    "visibility": "public",
+    "commit": "d5337ec2b3289fc8462abac2e627d165342079b2",
+    "decision": "SELECTIVE_API_DESIGN_REFERENCE_FIRST",
+    "reuse": "Reuse ideas from DownloadProgress, LmSession/SessionProvider, model_kappa/component_kappa and materialization verification for R4 local service.",
+    "limits": "Cargo uses a pinned humuhumu33/hologram fork and a moving holospaces branch; not directly equivalent to main hologram API. Format canonical identity and sorted component identity differ. Browser and generation claims not rerun here.",
+    "source_links": [
+      {
+        "path": "crates/hologram-ai/src/download/progress.rs",
+        "line": 1,
+        "url": "https://github.com/Hologram-Technologies/hologram-ai/blob/d5337ec2b3289fc8462abac2e627d165342079b2/crates/hologram-ai/src/download/progress.rs#L1"
+      },
+      {
+        "path": "crates/hologram-ai/src/engine.rs",
+        "line": 90,
+        "url": "https://github.com/Hologram-Technologies/hologram-ai/blob/d5337ec2b3289fc8462abac2e627d165342079b2/crates/hologram-ai/src/engine.rs#L90"
+      },
+      {
+        "path": "crates/hologram-ai/src/engine.rs",
+        "line": 209,
+        "url": "https://github.com/Hologram-Technologies/hologram-ai/blob/d5337ec2b3289fc8462abac2e627d165342079b2/crates/hologram-ai/src/engine.rs#L209"
+      },
+      {
+        "path": "crates/hologram-ai/src/address.rs",
+        "line": 60,
+        "url": "https://github.com/Hologram-Technologies/hologram-ai/blob/d5337ec2b3289fc8462abac2e627d165342079b2/crates/hologram-ai/src/address.rs#L60"
+      },
+      {
+        "path": "crates/hologram-ai/src/address.rs",
+        "line": 117,
+        "url": "https://github.com/Hologram-Technologies/hologram-ai/blob/d5337ec2b3289fc8462abac2e627d165342079b2/crates/hologram-ai/src/address.rs#L117"
+      },
+      {
+        "path": "Cargo.toml",
+        "line": 42,
+        "url": "https://github.com/Hologram-Technologies/hologram-ai/blob/d5337ec2b3289fc8462abac2e627d165342079b2/Cargo.toml#L42"
+      }
+    ],
+    "validation": "SOURCE_REVIEW_ONLY; not built, run or benchmarked during audit"
+  },
+  {
+    "repository": "UOR-Foundation/kappa-registry",
+    "visibility": "public",
+    "commit": "2af86560a177fc9651b6c0e92e7974140ed77dd5",
+    "decision": "LATER_EXTERNAL_SERVICE_ADAPTER",
+    "reuse": "Candidate for one disk-aware artifact/provenance registry using VerifiedContent, streaming verification, protocol distribution and typed composition edges. Prefer external client boundary over linking server stack into kernel.",
+    "limits": "KappaLabel here is a different Rust type: six algorithm prefixes and max135 bytes. Raw blobs hash raw bytes; structured values use dCBOR. This is not automatically the same identity as UOR-ADDR JCS/NFC or model canonical forms. Several moving git-branch dependencies require lockfile/revision closure.",
+    "source_links": [
+      {
+        "path": "crates/kappa-core/src/kappa/compute.rs",
+        "line": 127,
+        "url": "https://github.com/UOR-Foundation/kappa-registry/blob/2af86560a177fc9651b6c0e92e7974140ed77dd5/crates/kappa-core/src/kappa/compute.rs#L127"
+      },
+      {
+        "path": "crates/kappa-core/src/kappa/compute.rs",
+        "line": 143,
+        "url": "https://github.com/UOR-Foundation/kappa-registry/blob/2af86560a177fc9651b6c0e92e7974140ed77dd5/crates/kappa-core/src/kappa/compute.rs#L143"
+      },
+      {
+        "path": "crates/kappa-core/src/verified.rs",
+        "line": 101,
+        "url": "https://github.com/UOR-Foundation/kappa-registry/blob/2af86560a177fc9651b6c0e92e7974140ed77dd5/crates/kappa-core/src/verified.rs#L101"
+      },
+      {
+        "path": "crates/kappa-core/src/store/mod.rs",
+        "line": 1,
+        "url": "https://github.com/UOR-Foundation/kappa-registry/blob/2af86560a177fc9651b6c0e92e7974140ed77dd5/crates/kappa-core/src/store/mod.rs#L1"
+      },
+      {
+        "path": "Cargo.toml",
+        "line": 30,
+        "url": "https://github.com/UOR-Foundation/kappa-registry/blob/2af86560a177fc9651b6c0e92e7974140ed77dd5/Cargo.toml#L30"
+      }
+    ],
+    "validation": "SOURCE_REVIEW_ONLY; not built, run or benchmarked during audit"
+  },
+  {
+    "repository": "Hologram-Technologies/hologram-storage",
+    "visibility": "public",
+    "commit": "ae71f47cc27bc30aa5e2d75621ebc5860beb8436",
+    "decision": "REFERENCE_ONLY_AVOID_DUPLICATE_CAS",
+    "reuse": "Small content store and generic storage APIs may inform an adapter, but choose one primary store.",
+    "limits": "Its ContentAddressingSystem directly BLAKE3 hashes bytes and stores Vec in a map, with cloned retrieval. This is not typed model canonicalization or an allocation-free persistent kernel.",
+    "source_links": [
+      {
+        "path": "src/storage/content.rs",
+        "line": 37,
+        "url": "https://github.com/Hologram-Technologies/hologram-storage/blob/ae71f47cc27bc30aa5e2d75621ebc5860beb8436/src/storage/content.rs#L37"
+      },
+      {
+        "path": "src/storage/content.rs",
+        "line": 59,
+        "url": "https://github.com/Hologram-Technologies/hologram-storage/blob/ae71f47cc27bc30aa5e2d75621ebc5860beb8436/src/storage/content.rs#L59"
+      },
+      {
+        "path": "src/storage/backend.rs",
+        "line": 1,
+        "url": "https://github.com/Hologram-Technologies/hologram-storage/blob/ae71f47cc27bc30aa5e2d75621ebc5860beb8436/src/storage/backend.rs#L1"
+      }
+    ],
+    "validation": "SOURCE_REVIEW_ONLY; not built, run or benchmarked during audit"
+  },
+  {
+    "repository": "auser/uor-semantic",
+    "visibility": "public",
+    "commit": "1ba84e726f34893485e59ce89bd56197c9188c4a",
+    "decision": "LEGACY_INTERCHANGE_REFERENCE",
+    "reuse": "Concrete R4G1 export_r4g1/replay_r4g1, CompatibilityManifest/Prediction/Witness and bounded parsing/routing/scoring types. Useful for old graph interchange comparisons.",
+    "limits": "Explicitly contains no attention. Its exporter uses synthetic route-code projections and lacks target per-stage class-signature books; it does not establish separate R4-runtime/teacher parity. Do not replace the current causal-attention line with captured-context replay.",
+    "source_links": [
+      {
+        "path": "README.md",
+        "line": 20,
+        "url": "https://github.com/auser/uor-semantic/blob/1ba84e726f34893485e59ce89bd56197c9188c4a/README.md#L20"
+      },
+      {
+        "path": "README.md",
+        "line": 153,
+        "url": "https://github.com/auser/uor-semantic/blob/1ba84e726f34893485e59ce89bd56197c9188c4a/README.md#L153"
+      },
+      {
+        "path": "crates/uor-semantic-compiler/src/lib.rs",
+        "line": 25,
+        "url": "https://github.com/auser/uor-semantic/blob/1ba84e726f34893485e59ce89bd56197c9188c4a/crates/uor-semantic-compiler/src/lib.rs#L25"
+      },
+      {
+        "path": "crates/uor-semantic/src/compatibility.rs",
+        "line": 173,
+        "url": "https://github.com/auser/uor-semantic/blob/1ba84e726f34893485e59ce89bd56197c9188c4a/crates/uor-semantic/src/compatibility.rs#L173"
+      },
+      {
+        "path": "crates/uor-semantic/src/r4g1.rs",
+        "line": 620,
+        "url": "https://github.com/auser/uor-semantic/blob/1ba84e726f34893485e59ce89bd56197c9188c4a/crates/uor-semantic/src/r4g1.rs#L620"
+      }
+    ],
+    "validation": "SOURCE_REVIEW_ONLY; not built, run or benchmarked during audit"
+  },
+  {
+    "repository": "auser/archon",
+    "visibility": "public",
+    "commit": "054388f3f59e23affc67e6580272c4fc4ef188c2",
+    "decision": "OPTIONAL_DEVELOPER_TOOL_REFERENCE",
+    "reuse": "Dependency graph and public API extraction for this multi-repo inventory.",
+    "limits": "Tool writes generated context to CLAUDE.md and may run rules; do not enable its automatic context-writing workflow as part of source import. Current read-only manifest is sufficient for planning.",
+    "source_links": [
+      {
+        "path": "README.md",
+        "line": 3,
+        "url": "https://github.com/auser/archon/blob/054388f3f59e23affc67e6580272c4fc4ef188c2/README.md#L3"
+      }
+    ],
+    "validation": "SOURCE_REVIEW_ONLY; not built, run or benchmarked during audit"
+  },
+  {
+    "repository": "auser/lean4-prod",
+    "visibility": "public",
+    "commit": "80634f290ca4146a4908f27f5e2f2e6f1141425f",
+    "decision": "LATER_NAMED_PROOF_TO_CODE_PROTOTYPE",
+    "reuse": "Lean LCNF extraction and Rust emission may support a specific exact kernel with explicit correspondence validation.",
+    "limits": "Generated Rust does not inherit Lean theorem validity merely because source was proven. Trust includes extractor, lowering, code generator, runtime mapping and compile configuration; no equivalence was proved here.",
+    "source_links": [
+      {
+        "path": "README.md",
+        "line": 3,
+        "url": "https://github.com/auser/lean4-prod/blob/80634f290ca4146a4908f27f5e2f2e6f1141425f/README.md#L3"
+      }
+    ],
+    "validation": "SOURCE_REVIEW_ONLY; not built, run or benchmarked during audit"
+  },
+  {
+    "repository": "afflom/LexLean",
+    "visibility": "public",
+    "commit": "79371e16027d0864e014e3ce1f8f95745ce5caaa",
+    "decision": "LATER_CONTROLLED_FORMAL_SPEC",
+    "reuse": "Controlled lexicon plus shared typed IR can generate Lean and document artifacts from one source.",
+    "limits": "Closed language with pinned Lean4.32.1; not an arbitrary prose-to-proof converter. Current repository claims its pipeline at build-evidence level.",
+    "source_links": [
+      {
+        "path": "README.md",
+        "line": 3,
+        "url": "https://github.com/afflom/LexLean/blob/79371e16027d0864e014e3ce1f8f95745ce5caaa/README.md#L3"
+      }
+    ],
+    "validation": "SOURCE_REVIEW_ONLY; not built, run or benchmarked during audit"
+  },
+  {
+    "repository": "afflom/WASM-GEMM-GNAF",
+    "visibility": "public",
+    "commit": "917306fd2b5a397ab02c5d38918fb8620fcc5ae0",
+    "decision": "PROOF_REFERENCE_WITH_OPEN_RELEASE_BOUNDARY",
+    "reuse": "Specific exact arithmetic and cost-model lemmas can be scoped sources for future obligations.",
+    "limits": "Terminal status WorkloadIncomplete; global optimality not established. Its abstract charged-cost objective is not physical latency. Do not cite partial lemmas as a globally optimal shipped binary.",
+    "source_links": [
+      {
+        "path": "README.md",
+        "line": 5,
+        "url": "https://github.com/afflom/WASM-GEMM-GNAF/blob/917306fd2b5a397ab02c5d38918fb8620fcc5ae0/README.md#L5"
+      },
+      {
+        "path": "WasmGemmGnaf/Theorems/Status.lean",
+        "line": 1,
+        "url": "https://github.com/afflom/WASM-GEMM-GNAF/blob/917306fd2b5a397ab02c5d38918fb8620fcc5ae0/WasmGemmGnaf/Theorems/Status.lean#L1"
+      },
+      {
+        "path": "WasmGemmGnaf/Foundation/ExactFloat.lean",
+        "line": 1,
+        "url": "https://github.com/afflom/WASM-GEMM-GNAF/blob/917306fd2b5a397ab02c5d38918fb8620fcc5ae0/WasmGemmGnaf/Foundation/ExactFloat.lean#L1"
+      },
+      {
+        "path": "WasmGemmGnaf/Atlas/CoverageScope.lean",
+        "line": 1,
+        "url": "https://github.com/afflom/WASM-GEMM-GNAF/blob/917306fd2b5a397ab02c5d38918fb8620fcc5ae0/WasmGemmGnaf/Atlas/CoverageScope.lean#L1"
+      }
+    ],
+    "validation": "SOURCE_REVIEW_ONLY; not built, run or benchmarked during audit"
+  },
+  {
+    "repository": "afflom/UOR-Atlas-UTQC",
+    "visibility": "public",
+    "commit": "b9717312e76c14c35ee7be88ac7ca71625448dff",
+    "decision": "SCOPED_MATH_ORACLE_REFERENCE",
+    "reuse": "Parametric MTC, exact group/certificate and algorithm reference calculations may serve as external mathematical witnesses.",
+    "limits": "Structural/simulation sense; density has different outcomes for different blocks; cache-collapse measurements do not establish quantum advantage or semantic attention. No upstream tests rerun.",
+    "source_links": [
+      {
+        "path": "README.md",
+        "line": 3,
+        "url": "https://github.com/afflom/UOR-Atlas-UTQC/blob/b9717312e76c14c35ee7be88ac7ca71625448dff/README.md#L3"
+      }
+    ],
+    "validation": "SOURCE_REVIEW_ONLY; not built, run or benchmarked during audit"
+  },
+  {
+    "repository": "UOR-Foundation/F1",
+    "visibility": "public",
+    "commit": "d45fe9f54eafbc86b5060efcaf604681482469c0",
+    "decision": "SCOPED_LEAN_REFERENCE",
+    "reuse": "Reference explicitly proved algebra/analysis lemmas if required by a named R4 obligation.",
+    "limits": "The repository expressly keeps RH/Hodge-index positivity open. It is not evidence of model reasoning or general compute efficiency.",
+    "source_links": [
+      {
+        "path": "README.md",
+        "line": 1,
+        "url": "https://github.com/UOR-Foundation/F1/blob/d45fe9f54eafbc86b5060efcaf604681482469c0/README.md#L1"
+      }
+    ],
+    "validation": "SOURCE_REVIEW_ONLY; not built, run or benchmarked during audit"
+  },
+  {
+    "repository": "afflom/emporous",
+    "visibility": "public",
+    "commit": "58208f5aed07f14de0315e96b6b69f9791153da9",
+    "decision": "LATER_PROVENANCE_COMPOSITION_REFERENCE",
+    "reuse": "Supply-chain composition, realization admission and blast-radius traversal over kappa-registry.",
+    "limits": "Uses a vendored kappa-registry snapshot plus local corrections; not byte-identical to current upstream registry. Measures selected traversal/NAF ranges without universal rate claim.",
+    "source_links": [
+      {
+        "path": "README.md",
+        "line": 1,
+        "url": "https://github.com/afflom/emporous/blob/58208f5aed07f14de0315e96b6b69f9791153da9/README.md#L1"
+      }
+    ],
+    "validation": "SOURCE_REVIEW_ONLY; not built, run or benchmarked during audit"
+  },
+  {
+    "repository": "Hologram-Technologies/hologram-live",
+    "visibility": "public",
+    "commit": "e3294b8d9539bb4641f77819cdbe059986be9a50",
+    "decision": "SERVICE_API_REFERENCE_NOT_CLIENT_PIVOT",
+    "reuse": "Its standalone server, model engine dispatch and module interfaces may inform service ergonomics.",
+    "limits": "Tauri desktop is separate. Default chat engine is echo; real completion requires configured engines. Preserve R4 browser-workbench direction.",
+    "source_links": [
+      {
+        "path": "README.md",
+        "line": 5,
+        "url": "https://github.com/Hologram-Technologies/hologram-live/blob/e3294b8d9539bb4641f77819cdbe059986be9a50/README.md#L5"
+      }
+    ],
+    "validation": "SOURCE_REVIEW_ONLY; not built, run or benchmarked during audit"
+  },
+  {
+    "repository": "auser/workflow-graph",
+    "visibility": "public",
+    "commit": "3c9f5317ad4bce74756e9cee69febccd83c265d5",
+    "decision": "LATER_UI_COMPONENT_OPTION",
+    "reuse": "Browser DAG visualization for compile progress or evidence dependency display.",
+    "limits": "Adds scheduler/runtime concepts not currently needed. Avoid importing full workflow engine merely for a graph view.",
+    "source_links": [
+      {
+        "path": "README.md",
+        "line": 1,
+        "url": "https://github.com/auser/workflow-graph/blob/3c9f5317ad4bce74756e9cee69febccd83c265d5/README.md#L1"
+      }
+    ],
+    "validation": "SOURCE_REVIEW_ONLY; not built, run or benchmarked during audit"
+  }
+]

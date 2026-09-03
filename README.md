@@ -14,6 +14,13 @@ local hardware. The project is testing whether language context, inference,
 and reasoning can emerge from routes through a canonical geometric memory. The
 target serving engine uses no Ollama, hosted model, or source-model weights.
 
+**Current programme (adopted 2026-09-03):** the
+[current map](docs/integration/current-state.md) names the accepted reference,
+[#1082 exposure diagnostic](https://github.com/UOR-Foundation/uor-r4/issues/1082),
+correctness handoff and parallel integration/product/paper lanes. Start the next
+task with [CONTINUE.md](docs/integration/CONTINUE.md). The capability goal includes
+reasoning and coding; neither is established by the bounded result below.
+
 > **Current two-stage R4 result (2026-09-02):** #1079 completed
 > `LANGUAGE_R4_PRESERVED_CONTROL_WEAK`. The retained [#1077 learned interface](docs/r4_zoology_language_interface_1077.md)
 > and frozen binding core preserve both full soft mixtures through R4 transport.
@@ -37,6 +44,11 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > a **construction-only, attention-weighted token-frame exposure diagnostic**; any changed frame
 > somewhere in a row does not measure exposure of its attended tokens. The cause of
 > the weaker token control remains unmeasured. #973 stays open; #954 remains blocked.
+
+> **Historical checkpoint sequence — superseded for task selection on
+> 2026-09-03.** The predecessor records below retain their measured results and
+> original decisions. Older “current/next” statements are dated history; use
+> the [current programme map](docs/integration/current-state.md) for new work.
 
 > **Predecessor open role-tagged associative result (2026-09-02):** #1045
 > completed the full 64-epoch R1 cap and stopped at
@@ -1267,6 +1279,12 @@ in the repository as research evidence and reusable components. They are not
 the current product path and are not prerequisites for trying the dashboard.
 
 ## Current roadmap
+
+**Historical roadmap narrative; superseded for sequencing on 2026-09-03.**
+The retained lineage below explains the earlier decisions. The active research
+step is #1082; the [current map](docs/integration/current-state.md) and
+[adopted issues](docs/integration/adopted-issues.json) own the research,
+native-interface, integration, coding and publication work now.
 
 The programme is deliberately sequential so that infrastructure and testing do
 not become substitutes for working intelligence:

@@ -1,0 +1,141 @@
+{
+  "scope_amendment_url": "https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5520112973",
+  "updated_issues": [
+    {
+      "number": 973,
+      "url": "https://github.com/UOR-Foundation/uor-r4/issues/973",
+      "before_body_sha256": "1b5858d6b57ed5aeafafb3b780f262683287cbe1fb907fda16e1b1433ca4de2c",
+      "after_body_sha256": "1e5e70550df2f8658c98683eb325be16e7244a2e47c66d278c42d8b3138b9f3f",
+      "after_chars": 65316
+    },
+    {
+      "number": 820,
+      "url": "https://github.com/UOR-Foundation/uor-r4/issues/820",
+      "before_body_sha256": "8997d06a1c2e4c9b4c0ac9f70feabfddbcca15f3c979308fb3d02c868f203803",
+      "after_body_sha256": "f843b1e1cc07414b1e183c44ea3387f69fec3666b028b3ac18df5605a0ba8ec3",
+      "after_chars": 57818
+    },
+    {
+      "number": 954,
+      "url": "https://github.com/UOR-Foundation/uor-r4/issues/954",
+      "before_body_sha256": "d6bc9c779f7e49225f486eb2c9bdac34574a01f1ca6859eb99d4fd7f9f62eddc",
+      "after_body_sha256": "b91525035280d43fcb9e661ee83b99c7f4ec2e249afba17120b10e1568dfdcd1",
+      "after_chars": 17233
+    },
+    {
+      "number": 955,
+      "url": "https://github.com/UOR-Foundation/uor-r4/issues/955",
+      "before_body_sha256": "3eebadab9646bfc973d7b07a4a6f9784f96c30e41a9046791b9fe7469b9f6f36",
+      "after_body_sha256": "72a1c633e1dc0df27593ffb6aa900529d14877e3eb44943b71f1a1e0b7797c95",
+      "after_chars": 5580
+    },
+    {
+      "number": 962,
+      "url": "https://github.com/UOR-Foundation/uor-r4/issues/962",
+      "before_body_sha256": "2a886f04b94059f25c42280943421941dd0c4f58899eb8b3319340d475aff402",
+      "after_body_sha256": "77b36d08074e11678b248638573f3defaae938376ce2aff8cc42a2dfea7838d2",
+      "after_chars": 5359
+    },
+    {
+      "number": 964,
+      "url": "https://github.com/UOR-Foundation/uor-r4/issues/964",
+      "before_body_sha256": "13998e86646e2c537c681b907bdf8d30a01a2882b30ec23e9bf048a155eeca9d",
+      "after_body_sha256": "53becee78cb88cf9bed7fa3c44835dd899da0289c4a285dbd216373f0fe36533",
+      "after_chars": 6205
+    },
+    {
+      "number": 965,
+      "url": "https://github.com/UOR-Foundation/uor-r4/issues/965",
+      "before_body_sha256": "b51a2e56f1f5304224c55d6c25f9470aedb0de089824e3fddf91043bda473979",
+      "after_body_sha256": "b38a3b44e042445a97cad4596605b24c8a3ce4aaa6ee42fd99b74faa789ccf3f",
+      "after_chars": 5212
+    },
+    {
+      "number": 963,
+      "url": "https://github.com/UOR-Foundation/uor-r4/issues/963",
+      "before_body_sha256": "feffb45923d3cf44f22ae0977709cf78921a4afc93fb50fbaae237db592f396d",
+      "after_body_sha256": "e27370390906fbcbda4f9066d31ba9922f5674152666edddd0506dc45fd47d4b",
+      "after_chars": 5605
+    }
+  ],
+  "created_issues": {
+    "adoption": {
+      "number": 1081,
+      "id": 5332019679,
+      "url": "https://github.com/UOR-Foundation/uor-r4/issues/1081",
+      "title": "Adopt integrated research workflow, source dossier and coherent current roadmap",
+      "parent": 820
+    },
+    "diagnostic": {
+      "number": 1082,
+      "id": 5332020160,
+      "url": "https://github.com/UOR-Foundation/uor-r4/issues/1082",
+      "title": "Diagnose token-frame exposure and pooled-role displacement on the frozen construction views",
+      "parent": 973
+    },
+    "uor_contract": {
+      "number": 1083,
+      "id": 5332020544,
+      "url": "https://github.com/UOR-Foundation/uor-r4/issues/1083",
+      "title": "Define typed UOR identity and arithmetic integration boundaries",
+      "parent": 820
+    },
+    "interface": {
+      "number": 1084,
+      "id": 5332020828,
+      "url": "https://github.com/UOR-Foundation/uor-r4/issues/1084",
+      "title": "Define one Rust service and truthful browser workbench interface",
+      "parent": 820
+    },
+    "language": {
+      "number": 1085,
+      "id": 5332021117,
+      "url": "https://github.com/UOR-Foundation/uor-r4/issues/1085",
+      "title": "Specify general language and context transfer from the accepted learned interface",
+      "parent": 973
+    },
+    "native": {
+      "number": 1086,
+      "id": 5332021434,
+      "url": "https://github.com/UOR-Foundation/uor-r4/issues/1086",
+      "title": "Specify native artifact export, loader and reference behavior for the learned path",
+      "parent": 820
+    },
+    "lowering": {
+      "number": 1087,
+      "id": 5332021714,
+      "url": "https://github.com/UOR-Foundation/uor-r4/issues/1087",
+      "title": "Define behavior and cost contract for final integer-table lowering of the accepted reference",
+      "parent": 820
+    },
+    "coding": {
+      "number": 1088,
+      "id": 5332021970,
+      "url": "https://github.com/UOR-Foundation/uor-r4/issues/1088",
+      "title": "Define executable coding and controlled workspace capability",
+      "parent": 820
+    },
+    "publication": {
+      "number": 1089,
+      "id": 5332022242,
+      "url": "https://github.com/UOR-Foundation/uor-r4/issues/1089",
+      "title": "Develop the geometric research paper through claim-proof-evidence and reproducibility records",
+      "parent": 820
+    },
+    "scorecard": {
+      "number": 1090,
+      "id": 5332022588,
+      "url": "https://github.com/UOR-Foundation/uor-r4/issues/1090",
+      "title": "Define a multi-axis local reasoning-coding capability and resource scorecard",
+      "parent": 820
+    },
+    "research_transfer": {
+      "number": 1091,
+      "id": 5332022876,
+      "url": "https://github.com/UOR-Foundation/uor-r4/issues/1091",
+      "title": "Map NEMESIS and W33 constructions to the current R4 mechanism with explicit proof obligations",
+      "parent": 820
+    }
+  },
+  "release_scorecard_dependency": true
+}

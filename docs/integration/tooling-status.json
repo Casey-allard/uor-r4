@@ -1,0 +1,72 @@
+{
+  "schema": "uor-tooling-status-v1",
+  "reference": "2026-09-03",
+  "versions": {
+    "context7_plugin": "1.0.1",
+    "serena": "1.7.0",
+    "rust_analyzer": "1.97.1",
+    "gitnexus": "1.6.10",
+    "lean_lsp_mcp": "0.30.0",
+    "trackio": "0.37.0",
+    "samply": "0.13.1",
+    "uor_project_knowledge": "0.1.0"
+  },
+  "new_mcp_registrations": [
+    "serena",
+    "gitnexus",
+    "deepwiki",
+    "lean_lsp",
+    "uor_knowledge"
+  ],
+  "marketplaces": {
+    "context7-marketplace": "6d777619c2777a79ad0754dc48b48845cb912bac",
+    "gitnexus-marketplace": "b15ff2d888949e16834cb341e81f9345931dfc96"
+  },
+  "skill_pins": {
+    "sympy": "K-Dense-AI/scientific-agent-skills@1e5eeffbdad3749125afe7ab48a39694e27f181c"
+  },
+  "verification": {
+    "context7": "live library lookup",
+    "deepwiki": "MCP initialization and tool listing only",
+    "serena": "actual Rust symbol body lookup",
+    "gitnexus": "384 source files indexed; actual attention query returned source",
+    "lean_lsp": "temporary theorem goal and false-proof diagnostic; no project proof",
+    "trackio": "local metric write/read",
+    "samply": "199-sample CPU profile",
+    "academic_writing": "citation mismatch and reading note; offline BibTeX syntax only"
+  },
+  "code_index": {
+    "revision": "e627252e525201815169ffd8364184953a46018d",
+    "name": "uor-r4-e627-active",
+    "files": 384,
+    "source_bytes": 15562979,
+    "nodes": 34473,
+    "edges": 94581,
+    "scope": "active Rust/Python source, not whole repository or history",
+    "limitations": "candidate, depth and graph budget caps; inspect actual source for semantic claims"
+  },
+  "guardrails": {
+    "serena_cargo_build_scripts": false,
+    "serena_check_on_save": false,
+    "serena_cargo_autoreload": false,
+    "gitnexus_read_only": true,
+    "knowledge_mcp_read_only": true,
+    "gitnexus_buffer_pool_bytes": 536870912
+  },
+  "schedules_created": 0,
+  "cloud_jobs_created": 0,
+  "product_imports_merged": 0,
+  "refresh_note": "Newly registered plugins/MCPs may require a fresh Codex session to enter the active tool catalog; direct clients verified server behavior.",
+  "knowledge_index": {
+    "public_items": 926,
+    "private_items": 8,
+    "private_history_documents": 6,
+    "total_items": 934,
+    "curated_edges": 305,
+    "public_repositories": 552,
+    "scope_checks": "PASS",
+    "native_dependency_query": "PASS",
+    "provenance_queries": "PASS",
+    "idempotent_and_read_only_checks": "PASS"
+  }
+}

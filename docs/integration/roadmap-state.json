@@ -1,0 +1,872 @@
+{
+  "repository": "UOR-Foundation/uor-r4",
+  "source_main_sha": "e627252e525201815169ffd8364184953a46018d",
+  "open_issue_count": 9,
+  "issues": [
+    {
+      "number": 820,
+      "title": "TRACKER: geometric intelligence \u2014 route-native local engine",
+      "state": "OPEN",
+      "url": "https://github.com/UOR-Foundation/uor-r4/issues/820",
+      "updated_at": "2026-09-03T02:25:16Z",
+      "closed_at": null,
+      "assignees": [],
+      "milestone": {
+        "number": 21,
+        "title": "Geometric Intelligence \u2014 route-native local engine",
+        "state": "OPEN"
+      },
+      "parent": null,
+      "blocked_by": [],
+      "children": [
+        {
+          "number": 821,
+          "title": "TRACKER/S0: truth baseline, conformance, and normative inference closure",
+          "state": "CLOSED",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/821"
+        },
+        {
+          "number": 822,
+          "title": "TRACKER/S1: persistent prompt-conditioned predictive state",
+          "state": "CLOSED",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/822"
+        },
+        {
+          "number": 823,
+          "title": "TRACKER/S2: evidence-grounded selective prediction and calibrated abstention",
+          "state": "CLOSED",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/823"
+        },
+        {
+          "number": 824,
+          "title": "TRACKER/S3: coherent free-running generation and trajectory correction",
+          "state": "CLOSED",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/824"
+        },
+        {
+          "number": 826,
+          "title": "TRACKER/S4: learned semantic planning and geometry qualification",
+          "state": "CLOSED",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/826"
+        },
+        {
+          "number": 825,
+          "title": "TRACKER/S5: native instruction behavior and production delta covers",
+          "state": "CLOSED",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/825"
+        },
+        {
+          "number": 827,
+          "title": "TRACKER/S6: R4G1 v1 scale, streaming, and local composition",
+          "state": "CLOSED",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/827"
+        },
+        {
+          "number": 828,
+          "title": "TRACKER/S7: proof/release closure and distributed composition",
+          "state": "CLOSED",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/828"
+        },
+        {
+          "number": 859,
+          "title": "formal/#820-F0: specify and prove the stable R\u2074 prime-router kernel in Lean 4",
+          "state": "CLOSED",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/859"
+        },
+        {
+          "number": 948,
+          "title": "roadmap: recenter UOR-R4 on an end-to-end uor-matmul geometric causal decoder",
+          "state": "CLOSED",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/948"
+        },
+        {
+          "number": 949,
+          "title": "LEGACY TRACKER: hybrid geometric decoder superseded by #820",
+          "state": "CLOSED",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/949"
+        },
+        {
+          "number": 961,
+          "title": "S0: canonical lexical ingestion and hierarchical route-state serialization",
+          "state": "CLOSED",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/961"
+        },
+        {
+          "number": 952,
+          "title": "A1: recursive geometric attention across the full route hierarchy",
+          "state": "CLOSED",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/952"
+        },
+        {
+          "number": 953,
+          "title": "I1: bounded source-free geometric generation loop",
+          "state": "CLOSED",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/953"
+        },
+        {
+          "number": 954,
+          "title": "C1: context-grounded correctness, contradiction handling, and abstention",
+          "state": "OPEN",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/954"
+        },
+        {
+          "number": 955,
+          "title": "R1: geometric reasoning through auditable multi-step route composition",
+          "state": "OPEN",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/955"
+        },
+        {
+          "number": 962,
+          "title": "P1: integrate route-native chat with identity-scoped hive memory",
+          "state": "OPEN",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/962"
+        },
+        {
+          "number": 963,
+          "title": "O1: minimize serving cost through route reuse and four-worker execution",
+          "state": "OPEN",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/963"
+        },
+        {
+          "number": 964,
+          "title": "F1: formalize and enforce the route-native serving-kernel contract",
+          "state": "OPEN",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/964"
+        },
+        {
+          "number": 965,
+          "title": "L1: freeze and qualify the first product-ready geometric-intelligence release",
+          "state": "OPEN",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/965"
+        },
+        {
+          "number": 958,
+          "title": "GI-0: retained fixed-zeta prime-route foundation at the layer-29 seam",
+          "state": "CLOSED",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/958"
+        },
+        {
+          "number": 967,
+          "title": "A1R: associative ordered route summaries and candidate-relative transition gate",
+          "state": "CLOSED",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/967"
+        },
+        {
+          "number": 969,
+          "title": "A1Q-L: build one causal R4 least-cost attention mechanism",
+          "state": "CLOSED",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/969"
+        },
+        {
+          "number": 970,
+          "title": "A1P: candidate-relative identifiability and construction-derived readout",
+          "state": "CLOSED",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/970"
+        },
+        {
+          "number": 973,
+          "title": "A1Q-H: generalize qualified retained attention in a data-supported language path",
+          "state": "OPEN",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/973"
+        },
+        {
+          "number": 974,
+          "title": "SUPERSEDED: A1Q-R ordered-transport repair folded into #969",
+          "state": "CLOSED",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/974"
+        },
+        {
+          "number": 983,
+          "title": "A1Q-L2: construction-transferred candidate-conditioned geometric attention",
+          "state": "CLOSED",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/983"
+        },
+        {
+          "number": 985,
+          "title": "PLAN: reconcile the geometric-intelligence programme after A1Q-L2",
+          "state": "CLOSED",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/985"
+        },
+        {
+          "number": 986,
+          "title": "A1Q-L3: qualify corpus-induced harmonic signed transport attention",
+          "state": "CLOSED",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/986"
+        },
+        {
+          "number": 989,
+          "title": "B0: source-free table-native lexical baseline from corpus to decoded text",
+          "state": "CLOSED",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/989"
+        }
+      ],
+      "body_characters": 56415,
+      "body_sha256": "8997d06a1c2e4c9b4c0ac9f70feabfddbcca15f3c979308fb3d02c868f203803",
+      "recent_comments": [
+        {
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/820#issuecomment-5497975266",
+          "created_at": "2026-09-01T17:42:20Z",
+          "body_sha256": "ec416cabf648ca29556c328c371d23d135a6d0bc51d0dedaf46e2218272b80b0"
+        },
+        {
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/820#issuecomment-5502836071",
+          "created_at": "2026-09-02T01:12:27Z",
+          "body_sha256": "158da92a5fd474859e3de3a032f08aeb010a6713a07c3f124d38831435436b0b"
+        }
+      ]
+    },
+    {
+      "number": 940,
+      "title": "DORMANT: remove ruleset 19597522 transport compatibility when admin is available",
+      "state": "OPEN",
+      "url": "https://github.com/UOR-Foundation/uor-r4/issues/940",
+      "updated_at": "2026-08-27T01:51:28Z",
+      "closed_at": null,
+      "assignees": [],
+      "milestone": {
+        "number": 21,
+        "title": "Geometric Intelligence \u2014 route-native local engine",
+        "state": "OPEN"
+      },
+      "parent": null,
+      "blocked_by": [],
+      "children": [],
+      "body_characters": 1924,
+      "body_sha256": "8b8fbb1da3e8dd2400e092826f48f530b202fc0f0fb02f0a429b36edb414be8e",
+      "recent_comments": [
+        {
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/940#issuecomment-5432839131",
+          "created_at": "2026-08-27T00:43:10Z",
+          "body_sha256": "c9a4021b01eb9bd75b4335fa926b192861b73be3fafc365929491e02d0e014d1"
+        },
+        {
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/940#issuecomment-5432974370",
+          "created_at": "2026-08-27T01:03:17Z",
+          "body_sha256": "2c85616f9ebf13b9f763335374c3fa73d552e9867c413dd58e65dafa7e922e32"
+        }
+      ]
+    },
+    {
+      "number": 954,
+      "title": "C1: context-grounded correctness, contradiction handling, and abstention",
+      "state": "OPEN",
+      "url": "https://github.com/UOR-Foundation/uor-r4/issues/954",
+      "updated_at": "2026-09-03T02:25:17Z",
+      "closed_at": null,
+      "assignees": [],
+      "milestone": {
+        "number": 21,
+        "title": "Geometric Intelligence \u2014 route-native local engine",
+        "state": "OPEN"
+      },
+      "parent": {
+        "number": 820,
+        "title": "TRACKER: geometric intelligence \u2014 route-native local engine",
+        "state": "OPEN",
+        "url": "https://github.com/UOR-Foundation/uor-r4/issues/820"
+      },
+      "blocked_by": [
+        {
+          "number": 973,
+          "title": "A1Q-H: generalize qualified retained attention in a data-supported language path",
+          "state": "OPEN",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/973"
+        },
+        {
+          "number": 953,
+          "title": "I1: bounded source-free geometric generation loop",
+          "state": "CLOSED",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/953"
+        }
+      ],
+      "children": [],
+      "body_characters": 16301,
+      "body_sha256": "d6bc9c779f7e49225f486eb2c9bdac34574a01f1ca6859eb99d4fd7f9f62eddc",
+      "recent_comments": [
+        {
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/954#issuecomment-5497975023",
+          "created_at": "2026-09-01T17:42:18Z",
+          "body_sha256": "4258904158dae77bc28dfd9b5f367ea64a51ffbfd04923865a2b82e696421267"
+        },
+        {
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/954#issuecomment-5502836282",
+          "created_at": "2026-09-02T01:12:29Z",
+          "body_sha256": "e75bf259d4d24e149562cfa88735d63e6b627b0416f3aac05e3cd0cb3a314140"
+        }
+      ]
+    },
+    {
+      "number": 955,
+      "title": "R1: geometric reasoning through auditable multi-step route composition",
+      "state": "OPEN",
+      "url": "https://github.com/UOR-Foundation/uor-r4/issues/955",
+      "updated_at": "2026-08-28T00:13:39Z",
+      "closed_at": null,
+      "assignees": [],
+      "milestone": {
+        "number": 21,
+        "title": "Geometric Intelligence \u2014 route-native local engine",
+        "state": "OPEN"
+      },
+      "parent": {
+        "number": 820,
+        "title": "TRACKER: geometric intelligence \u2014 route-native local engine",
+        "state": "OPEN",
+        "url": "https://github.com/UOR-Foundation/uor-r4/issues/820"
+      },
+      "blocked_by": [
+        {
+          "number": 954,
+          "title": "C1: context-grounded correctness, contradiction handling, and abstention",
+          "state": "OPEN",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/954"
+        }
+      ],
+      "children": [],
+      "body_characters": 5041,
+      "body_sha256": "3eebadab9646bfc973d7b07a4a6f9784f96c30e41a9046791b9fe7469b9f6f36",
+      "recent_comments": [
+        {
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/955#issuecomment-5432839053",
+          "created_at": "2026-08-27T00:43:09Z",
+          "body_sha256": "4899aca1d38c993a2108f31c575200d3e47ea321f5dcca80aeb65712bf8b487a"
+        }
+      ]
+    },
+    {
+      "number": 962,
+      "title": "P1: integrate route-native chat with identity-scoped hive memory",
+      "state": "OPEN",
+      "url": "https://github.com/UOR-Foundation/uor-r4/issues/962",
+      "updated_at": "2026-08-30T07:56:11Z",
+      "closed_at": null,
+      "assignees": [],
+      "milestone": {
+        "number": 21,
+        "title": "Geometric Intelligence \u2014 route-native local engine",
+        "state": "OPEN"
+      },
+      "parent": {
+        "number": 820,
+        "title": "TRACKER: geometric intelligence \u2014 route-native local engine",
+        "state": "OPEN",
+        "url": "https://github.com/UOR-Foundation/uor-r4/issues/820"
+      },
+      "blocked_by": [
+        {
+          "number": 955,
+          "title": "R1: geometric reasoning through auditable multi-step route composition",
+          "state": "OPEN",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/955"
+        }
+      ],
+      "children": [],
+      "body_characters": 4770,
+      "body_sha256": "2a886f04b94059f25c42280943421941dd0c4f58899eb8b3319340d475aff402",
+      "recent_comments": []
+    },
+    {
+      "number": 963,
+      "title": "O1: minimize serving cost through route reuse and four-worker execution",
+      "state": "OPEN",
+      "url": "https://github.com/UOR-Foundation/uor-r4/issues/963",
+      "updated_at": "2026-08-27T00:52:49Z",
+      "closed_at": null,
+      "assignees": [],
+      "milestone": {
+        "number": 21,
+        "title": "Geometric Intelligence \u2014 route-native local engine",
+        "state": "OPEN"
+      },
+      "parent": {
+        "number": 820,
+        "title": "TRACKER: geometric intelligence \u2014 route-native local engine",
+        "state": "OPEN",
+        "url": "https://github.com/UOR-Foundation/uor-r4/issues/820"
+      },
+      "blocked_by": [
+        {
+          "number": 962,
+          "title": "P1: integrate route-native chat with identity-scoped hive memory",
+          "state": "OPEN",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/962"
+        }
+      ],
+      "children": [],
+      "body_characters": 4880,
+      "body_sha256": "feffb45923d3cf44f22ae0977709cf78921a4afc93fb50fbaae237db592f396d",
+      "recent_comments": []
+    },
+    {
+      "number": 964,
+      "title": "F1: formalize and enforce the route-native serving-kernel contract",
+      "state": "OPEN",
+      "url": "https://github.com/UOR-Foundation/uor-r4/issues/964",
+      "updated_at": "2026-08-27T20:10:26Z",
+      "closed_at": null,
+      "assignees": [],
+      "milestone": {
+        "number": 21,
+        "title": "Geometric Intelligence \u2014 route-native local engine",
+        "state": "OPEN"
+      },
+      "parent": {
+        "number": 820,
+        "title": "TRACKER: geometric intelligence \u2014 route-native local engine",
+        "state": "OPEN",
+        "url": "https://github.com/UOR-Foundation/uor-r4/issues/820"
+      },
+      "blocked_by": [
+        {
+          "number": 963,
+          "title": "O1: minimize serving cost through route reuse and four-worker execution",
+          "state": "OPEN",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/963"
+        }
+      ],
+      "children": [],
+      "body_characters": 5483,
+      "body_sha256": "13998e86646e2c537c681b907bdf8d30a01a2882b30ec23e9bf048a155eeca9d",
+      "recent_comments": []
+    },
+    {
+      "number": 965,
+      "title": "L1: freeze and qualify the first product-ready geometric-intelligence release",
+      "state": "OPEN",
+      "url": "https://github.com/UOR-Foundation/uor-r4/issues/965",
+      "updated_at": "2026-08-27T17:49:40Z",
+      "closed_at": null,
+      "assignees": [],
+      "milestone": {
+        "number": 21,
+        "title": "Geometric Intelligence \u2014 route-native local engine",
+        "state": "OPEN"
+      },
+      "parent": {
+        "number": 820,
+        "title": "TRACKER: geometric intelligence \u2014 route-native local engine",
+        "state": "OPEN",
+        "url": "https://github.com/UOR-Foundation/uor-r4/issues/820"
+      },
+      "blocked_by": [
+        {
+          "number": 940,
+          "title": "DORMANT: remove ruleset 19597522 transport compatibility when admin is available",
+          "state": "OPEN",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/940"
+        },
+        {
+          "number": 964,
+          "title": "F1: formalize and enforce the route-native serving-kernel contract",
+          "state": "OPEN",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/964"
+        }
+      ],
+      "children": [],
+      "body_characters": 4551,
+      "body_sha256": "b51a2e56f1f5304224c55d6c25f9470aedb0de089824e3fddf91043bda473979",
+      "recent_comments": []
+    },
+    {
+      "number": 973,
+      "title": "A1Q-H: generalize qualified retained attention in a data-supported language path",
+      "state": "OPEN",
+      "url": "https://github.com/UOR-Foundation/uor-r4/issues/973",
+      "updated_at": "2026-09-03T02:25:14Z",
+      "closed_at": null,
+      "assignees": [
+        "Casey-allard"
+      ],
+      "milestone": {
+        "number": 21,
+        "title": "Geometric Intelligence \u2014 route-native local engine",
+        "state": "OPEN"
+      },
+      "parent": {
+        "number": 820,
+        "title": "TRACKER: geometric intelligence \u2014 route-native local engine",
+        "state": "OPEN",
+        "url": "https://github.com/UOR-Foundation/uor-r4/issues/820"
+      },
+      "blocked_by": [
+        {
+          "number": 1012,
+          "title": "A1Q-H2: localize R4 trace-state signal loss with a construction-only observability ladder",
+          "state": "CLOSED",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/1012"
+        },
+        {
+          "number": 1011,
+          "title": "A1Q-H1: compile and qualify R4SoftmaxTraceStateStudentV1 from frozen R4/Spin traces",
+          "state": "CLOSED",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/1011"
+        },
+        {
+          "number": 969,
+          "title": "A1Q-L: build one causal R4 least-cost attention mechanism",
+          "state": "CLOSED",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/969"
+        },
+        {
+          "number": 953,
+          "title": "I1: bounded source-free geometric generation loop",
+          "state": "CLOSED",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/953"
+        }
+      ],
+      "children": [
+        {
+          "number": 1011,
+          "title": "A1Q-H1: compile and qualify R4SoftmaxTraceStateStudentV1 from frozen R4/Spin traces",
+          "state": "CLOSED",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/1011"
+        },
+        {
+          "number": 1012,
+          "title": "A1Q-H2: localize R4 trace-state signal loss with a construction-only observability ladder",
+          "state": "CLOSED",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/1012"
+        },
+        {
+          "number": 1014,
+          "title": "A1Q-H3: train one end-to-end R4/Spin causal-softmax LM and require autonomous text",
+          "state": "CLOSED",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/1014"
+        },
+        {
+          "number": 1019,
+          "title": "A1Q-H5: optional local-M1 13.13M R4/Spin capacity prototype",
+          "state": "CLOSED",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/1019"
+        },
+        {
+          "number": 1039,
+          "title": "P0: expose frozen #1017 generator as a bounded loopback reference surface",
+          "state": "CLOSED",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/1039"
+        },
+        {
+          "number": 1041,
+          "title": "P0.1: decide frozen #1017 normal-use scope through the native dashboard",
+          "state": "CLOSED",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/1041"
+        },
+        {
+          "number": 1043,
+          "title": "A1Q-H6: qualify source-free position-preserving R4 associative binding",
+          "state": "CLOSED",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/1043"
+        },
+        {
+          "number": 1045,
+          "title": "A1Q-H7: establish role-tagged associative-first causal K/V learning",
+          "state": "CLOSED",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/1045"
+        },
+        {
+          "number": 1047,
+          "title": "A1Q-H8: copy the released Zoology causal-softmax MQAR control",
+          "state": "CLOSED",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/1047"
+        },
+        {
+          "number": 1050,
+          "title": "A1Q-H10: reproduce the exact released Zoology width-64 attention control",
+          "state": "CLOSED",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/1050"
+        },
+        {
+          "number": 1053,
+          "title": "A1Q-H11: transfer the source-positive Zoology cell to the exact #1045 bytes",
+          "state": "CLOSED",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/1053"
+        },
+        {
+          "number": 1055,
+          "title": "A1Q-H12: correct the exact-byte transfer optimizer clock",
+          "state": "CLOSED",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/1055"
+        },
+        {
+          "number": 1057,
+          "title": "A1Q-H13: continue the learned exact-data attention checkpoint",
+          "state": "CLOSED",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/1057"
+        },
+        {
+          "number": 1059,
+          "title": "A1Q-H14: preserve qualified associative recall through coherent R4 inference",
+          "state": "CLOSED",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/1059"
+        },
+        {
+          "number": 1061,
+          "title": "A1Q-H15: preserve exact-data associative recall through coherent R4 inference",
+          "state": "CLOSED",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/1061"
+        },
+        {
+          "number": 1063,
+          "title": "Learn English supplied-context binding with the qualified attention cell",
+          "state": "CLOSED",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/1063"
+        },
+        {
+          "number": 1065,
+          "title": "A1Q-H: diagnose retained English construction binding without training",
+          "state": "CLOSED",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/1065"
+        },
+        {
+          "number": 1067,
+          "title": "A1Q-H: test query-object answer readout with the matched English learning dose",
+          "state": "CLOSED",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/1067"
+        },
+        {
+          "number": 1069,
+          "title": "A1Q-H: test direct owner-plus-object query encoding at the matched learning dose",
+          "state": "CLOSED",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/1069"
+        },
+        {
+          "number": 1071,
+          "title": "A1Q-H: learn four-fact binding across cyclic fact orders at the matched dose",
+          "state": "CLOSED",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/1071"
+        },
+        {
+          "number": 1073,
+          "title": "A1Q-H: learn compound owner-object binding through explicit fact-level Q/K/V",
+          "state": "CLOSED",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/1073"
+        },
+        {
+          "number": 1075,
+          "title": "Preserve compound binding through unchanged R4 inference",
+          "state": "CLOSED",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/1075"
+        },
+        {
+          "number": 1077,
+          "title": "Learn a position-independent language interface for compound binding",
+          "state": "CLOSED",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/1077"
+        },
+        {
+          "number": 1079,
+          "title": "Qualify learned soft-role and compound binding through unchanged R4",
+          "state": "CLOSED",
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/1079"
+        }
+      ],
+      "body_characters": 65345,
+      "body_sha256": "1b5858d6b57ed5aeafafb3b780f262683287cbe1fb907fda16e1b1433ca4de2c",
+      "recent_comments": [
+        {
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5519108070",
+          "created_at": "2026-09-03T01:52:08Z",
+          "body_sha256": "b08667fc5f083c046699c470d60479e2f489b85ac1590c7ed440c2f26796c510"
+        },
+        {
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5519385959",
+          "created_at": "2026-09-03T02:25:13Z",
+          "body_sha256": "0b4b0a7715902554bcb2a2609c255d6924823cd56b1887a200602c4e809153e5"
+        }
+      ]
+    },
+    {
+      "number": 1079,
+      "title": "Qualify learned soft-role and compound binding through unchanged R4",
+      "state": "CLOSED",
+      "url": "https://github.com/UOR-Foundation/uor-r4/issues/1079",
+      "updated_at": "2026-09-03T02:25:21Z",
+      "closed_at": "2026-09-03T02:25:21Z",
+      "assignees": [
+        "Casey-allard"
+      ],
+      "milestone": {
+        "number": 21,
+        "title": "Geometric Intelligence \u2014 route-native local engine",
+        "state": "OPEN"
+      },
+      "parent": {
+        "number": 973,
+        "title": "A1Q-H: generalize qualified retained attention in a data-supported language path",
+        "state": "OPEN",
+        "url": "https://github.com/UOR-Foundation/uor-r4/issues/973"
+      },
+      "blocked_by": [],
+      "children": [],
+      "body_characters": 4021,
+      "body_sha256": "53fe19d8057ddd68f8ae7eabb2f8ba29cd2787e6ef3a861ae224d1c7549f7b65",
+      "recent_comments": [
+        {
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/1079#issuecomment-5519329572",
+          "created_at": "2026-09-03T02:19:10Z",
+          "body_sha256": "383ffe0c18ba5cbd7266a4c828ad1581b621d6857af473c2f2d0ab86b848b6a3"
+        },
+        {
+          "url": "https://github.com/UOR-Foundation/uor-r4/issues/1079#issuecomment-5519387268",
+          "created_at": "2026-09-03T02:25:20Z",
+          "body_sha256": "382274064dda563e9a2e23d0bea19c3ac9d4824488ad40e72e2fe7683a5495e8"
+        }
+      ]
+    }
+  ],
+  "planning_documents": [
+    {
+      "path": "README.md",
+      "git_blob_sha1": "ef84aa6da0c8a48385dd6d3c370b477492d6c12f",
+      "sha256": "9f775343f4d5e8e4022921d2c6c7246aa99f394a8c1e36ec0ae09265f73ca137",
+      "bytes": 93444,
+      "lines": 1470
+    },
+    {
+      "path": "AGENTS.md",
+      "git_blob_sha1": "9a2cfbdde7d5105add1f96093fa71e75a796782a",
+      "sha256": "f77b336e1080cafb36b0d7d561a42d346fd79cd3535f5ebfcdcea48accb76133",
+      "bytes": 82856,
+      "lines": 1229
+    },
+    {
+      "path": "ROADMAP.md",
+      "git_blob_sha1": "f37bc8dde467f93c80c1c743843d7b3603ea1cfb",
+      "sha256": "0c1f18c03656beea64ad60dd70fa5e607abe7dc25b3b9f13ce555809a3da1e77",
+      "bytes": 87855,
+      "lines": 1331
+    },
+    {
+      "path": "docs/RESEARCH.md",
+      "git_blob_sha1": "076f08b89665bad05346475caaccc15708a15eab",
+      "sha256": "282f62c5429f8c08e7774a7743d6149144845583d567e5d945eaced26fb6adad",
+      "bytes": 176232,
+      "lines": 2344
+    },
+    {
+      "path": "docs/r4_intelligence_completion_plan.md",
+      "git_blob_sha1": "463ae5479b374ca80eca68a06ed4f54775ac22fa",
+      "sha256": "dc532a53b38be4be6f07a8b3e6f801fe4f87d91f4e6235eefd7c06340131ca7d",
+      "bytes": 79762,
+      "lines": 1137
+    },
+    {
+      "path": "docs/geometric_intelligence_programme.md",
+      "git_blob_sha1": "8ddd9365c1ac09c47dd7adf42750311bf5712fa0",
+      "sha256": "89866ba2abcae327438fe298a99c315577fc4b1b846ba8a959f91f0df0d1ce5e",
+      "bytes": 138298,
+      "lines": 2362
+    },
+    {
+      "path": "docs/r4_graph_compiler_implementation_plan.md",
+      "git_blob_sha1": "859ef6316e0d4568fd7dc3699797613d7e324fc7",
+      "sha256": "1fe09ff2f320f1ab2cf5745fbed305a69424bf8fb0111bbf23c8245fb25237c6",
+      "bytes": 60466,
+      "lines": 770
+    },
+    {
+      "path": "docs/geometric_causal_decoder_plan.md",
+      "git_blob_sha1": "79cc034b7148fae7eab636c9aa1dbc2f6b92a45e",
+      "sha256": "433476691eed675db07223935f7b1324e531a50a95bcf9dea804923c1587ccb1",
+      "bytes": 26733,
+      "lines": 480
+    },
+    {
+      "path": "docs/r4_native_architecture.md",
+      "git_blob_sha1": "c1b770563fd60132664d184d462dc0d00609df57",
+      "sha256": "a328d8aea4b5046028dc2dc4a2d6e28d5fb24290545f0c98e9a3cf61618ab133",
+      "bytes": 10075,
+      "lines": 187
+    },
+    {
+      "path": "docs/MODEL_LIFECYCLE.md",
+      "git_blob_sha1": "026c73b9f3c2e5d43451ff4506f9aa48be422302",
+      "sha256": "a55a25006a507572fca7e3e86e4aeed0490a198770d79dc455f28bc64c35f52f",
+      "bytes": 130276,
+      "lines": 2161
+    },
+    {
+      "path": "docs/CONFIGURATION.md",
+      "git_blob_sha1": "a7388b50108c6fb9c875ea422b8b4c9636659a68",
+      "sha256": "951010acc8a89bf9f4400458d83102282ed6678fc36915df75a96884187e7795",
+      "bytes": 31757,
+      "lines": 410
+    },
+    {
+      "path": "docs/formal_vocabulary.md",
+      "git_blob_sha1": "a58e1335f66c0629566027a01bfec3eb200ae282",
+      "sha256": "d8392e0f557b16e79b8c73d5c6487b561569d6e797a06cc3eea554089ee30dc4",
+      "bytes": 58183,
+      "lines": 373
+    },
+    {
+      "path": "crates/uor-r4-api/README.md",
+      "git_blob_sha1": "8f83fd63902bb605a3742625f91d85af07b33ce8",
+      "sha256": "dd0d30c89d7f4b7d3603d2847e10f8e44249e832075731b840eb52c5621fd0f2",
+      "bytes": 6658,
+      "lines": 132
+    },
+    {
+      "path": "crates/uor-r4-proof-model/README.md",
+      "git_blob_sha1": "9e5ed09fa10a55e3ab10cf56c786343babd43bc6",
+      "sha256": "26ab3ff2d122ef596d5542507a5893d8d8d601a1273673c49d7ae5fb0c8f5be4",
+      "bytes": 3101,
+      "lines": 53
+    },
+    {
+      "path": "profiles/openai/README.md",
+      "git_blob_sha1": "e5987e4b588d95829f008d1b6688cb8d4ff67c30",
+      "sha256": "f8d2e3296a92e0825f9d9ba90ae417128d48343b6f3c78a9e30e8c50822c52b6",
+      "bytes": 5718,
+      "lines": 117
+    },
+    {
+      "path": "docs/r4_zoology_language_r4_1079.md",
+      "git_blob_sha1": "3e9a68bdc1ad4f14e6c8ff92c4ba1d6254ac6897",
+      "sha256": "a33511fb4f4570b5a4046655d096da15a18388a9b9ea780aba8c0fd9e970b039",
+      "bytes": 16647,
+      "lines": 288
+    }
+  ],
+  "milestone_21": {
+    "url": "https://api.github.com/repos/UOR-Foundation/uor-r4/milestones/21",
+    "html_url": "https://github.com/UOR-Foundation/uor-r4/milestone/21",
+    "labels_url": "https://api.github.com/repos/UOR-Foundation/uor-r4/milestones/21/labels",
+    "id": 17477534,
+    "node_id": "MI_kwDOS1s4Zc4BCq-e",
+    "number": 21,
+    "title": "Geometric Intelligence \u2014 route-native local engine",
+    "description": "Build a route-native local geometric engine with demonstrated language binding and coherent behavior. Latest #1079/#1080: LANGUAGE_R4_PRESERVED_CONTROL_WEAK. Both soft mixtures preserve all 25,600 answers and 358,400 supervised roles; 156 criteria pass. Fact control strong in 6/6 views; token control in 3/6; all controls valid. Exact replay, 57.0422 s, 2.217148 GiB. Next: separately freeze a construction-only, attention-weighted token-frame exposure diagnostic with the reader/core/data/control fixed. Retain primary preservation and strong fact sensitivity; the weaker token-control cause is unmeasured. Given clauses, known vocabulary and observed worlds limit the claim. No retraining, generation or geometry expansion. #973 open; #954 blocked; broad QA dormant.",
+    "creator": {
+      "login": "Casey-allard",
+      "id": 112731500,
+      "node_id": "U_kgDOBrglbA",
+      "avatar_url": "https://avatars.githubusercontent.com/u/112731500?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/Casey-allard",
+      "html_url": "https://github.com/Casey-allard",
+      "followers_url": "https://api.github.com/users/Casey-allard/followers",
+      "following_url": "https://api.github.com/users/Casey-allard/following{/other_user}",
+      "gists_url": "https://api.github.com/users/Casey-allard/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/Casey-allard/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/Casey-allard/subscriptions",
+      "organizations_url": "https://api.github.com/users/Casey-allard/orgs",
+      "repos_url": "https://api.github.com/users/Casey-allard/repos",
+      "events_url": "https://api.github.com/users/Casey-allard/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/Casey-allard/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "open_issues": 9,
+    "closed_issues": 46,
+    "state": "open",
+    "created_at": "2026-08-25T23:26:55Z",
+    "updated_at": "2026-09-03T02:25:21Z",
+    "due_on": null,
+    "closed_at": null
+  },
+  "open_prs": [],
+  "queue_refs": "",
+  "mode": "Read-only live graph and exact origin/main planning-document snapshots; no issue/PR/document mutations or execution."
+}

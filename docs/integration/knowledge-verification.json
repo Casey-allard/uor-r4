@@ -1,0 +1,86 @@
+{
+  "tools": [
+    "search_knowledge",
+    "get_source",
+    "related_sources",
+    "knowledge_status"
+  ],
+  "1079 token": [
+    {
+      "title": "R4-1079-TOKEN-CONTROL",
+      "kind": "claim"
+    },
+    {
+      "title": "claim-ledger.json [lines 1-268]",
+      "kind": "project_review"
+    },
+    {
+      "title": "#1079 completion/context comment [lines 1-17]",
+      "kind": "issue_comment"
+    },
+    {
+      "title": "#1079 Qualify learned soft-role and compound binding through unchanged R4 [lines 1-19]",
+      "kind": "issue_body"
+    }
+  ],
+  "kappa composition": [
+    {
+      "title": "Hologram-Technologies/hologram-ai/crates/hologram-ai/src/address.rs [lines 1-179]",
+      "kind": "upstream_source"
+    },
+    {
+      "title": "UOR-Foundation/kappa-registry/crates/kappa-server/src/openapi.rs [lines 1-348]",
+      "kind": "upstream_source"
+    },
+    {
+      "title": "Hologram-Technologies/hologram/crates/hologram-archive/src/address.rs [lines 1-335]",
+      "kind": "upstream_source"
+    },
+    {
+      "title": "uor-source-audit.md [lines 1-89]",
+      "kind": "project_review"
+    }
+  ],
+  "memory_dimension": [
+    {
+      "title": "README.md [lines 1-58]",
+      "kind": "project_review"
+    },
+    {
+      "title": "publication-readiness.md [lines 1-70]",
+      "kind": "project_review"
+    }
+  ],
+  "954_edges": [
+    {
+      "relation": "part_of",
+      "title": "#954 C1: context-grounded correctness, contradiction handling, and abstention [lines 1-149]"
+    },
+    {
+      "relation": "blocked_by",
+      "title": "#955 R1: geometric reasoning through auditable multi-step route composition"
+    },
+    {
+      "relation": "part_of",
+      "title": "#954 completion/context comment [lines 1-1]"
+    },
+    {
+      "relation": "blocked_by",
+      "title": "#973 A1Q-H: generalize qualified retained attention in a data-supported language path"
+    },
+    {
+      "relation": "child_of",
+      "title": "#820 TRACKER: geometric intelligence \u2014 route-native local engine"
+    },
+    {
+      "relation": "part_of",
+      "title": "#954 completion/context comment [lines 1-5]"
+    }
+  ],
+  "private_history_count": 6,
+  "private_default_scope": "HIDDEN",
+  "public_items": 926,
+  "all_items": 934,
+  "edges": 305,
+  "status": "PASS"
+}

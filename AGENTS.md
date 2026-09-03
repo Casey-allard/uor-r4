@@ -7,6 +7,19 @@ the readable mirror of programme root #820.** The
 [`Geometric Intelligence Programme`](docs/geometric_intelligence_programme.md)
 is the current architecture and claim-boundary companion.
 
+For cross-repository integration, tooling, private history ingestion and the
+research-paper workflow, consult the adopted
+[`research and productization plan`](docs/uor_productization_integration_plan.md)
+and [current map / #973→#954 handoff](docs/integration/current-state.md).
+The [continuation prompt](docs/integration/CONTINUE.md) selects one eligible
+owned task; it does not activate the full programme.
+Its source catalog and knowledge index are dated retrieval aids; refresh native
+GitHub state before acting. The optional `uor-project-workflow` skill is maintained
+under `tools/skills/`. Preserve typed identity/arithmetic meanings, exact source
+provenance, and the distinction between mathematical proof, empirical capability
+and submission status. This tooling guidance does not activate dormant QA,
+experiments, publication or cleanup.
+
 **Current two-stage R4 result (2026-09-02):** #1079 completed
 `LANGUAGE_R4_PRESERVED_CONTROL_WEAK`. The retained [#1077 learned interface](docs/r4_zoology_language_interface_1077.md)
 and frozen binding core preserve both full soft mixtures through R4 transport.
@@ -30,6 +43,11 @@ Retain two-stage preservation and the strong fact control. Next, separately free
 a **construction-only, attention-weighted token-frame exposure diagnostic**; any changed frame
 somewhere in a row does not measure exposure of its attended tokens. The cause of
 the weaker token control remains unmeasured. #973 stays open; #954 remains blocked.
+
+**Historical checkpoints — superseded for next-action selection on
+2026-09-03.** The earlier “current/next” decisions below retain their original
+scope and results. Use the current map and live issue graph; the next research
+child is [#1082](https://github.com/UOR-Foundation/uor-r4/issues/1082).
 
 The earlier #973 V5 terminal is the independently verified predictive
 write/binding campaign. It completed
@@ -1140,12 +1158,14 @@ outcome against it afterwards:
     if negative:         <the next action, and it must differ>
     cost estimate:       <wall-clock, and what else it blocks>
 
-**Calibrate substantial offline compute; never silently accept one-core
-execution.** Before launching a deterministic offline training, compilation, or
-measurement job, predeclare a small set of materially plausible, scientifically
-eligible plans, then benchmark one representative unit: CPU BLAS/Apple
-Accelerate, MPS only when the frozen contract allows it, and selected
-intra/inter-op thread and process/worker counts.
+**Execution-plan amendment (2026-09-03): measure eligible plans for substantial
+offline compute.** Before a deterministic offline training, compilation or
+measurement job needs new timing evidence, predeclare a small set of materially
+plausible, scientifically eligible plans and benchmark a representative unit:
+CPU BLAS/Apple Accelerate, MPS only when the frozen contract allows it, and
+selected intra/inter-op thread and process/worker counts. Reuse previously
+qualified evidence when its semantic inputs, workload shape, backend and
+runtime bindings remain unchanged; do not repeat calibration by habit.
 Select the measured-fast stable plan that preserves the declared result and fits
 memory. Maximum threads or concurrent arms are not automatically faster; use
 sequential arms when shared-memory contention wins. Record hardware, backend and
@@ -1160,13 +1180,17 @@ Offline acceleration never changes the CPU/table-native deployed-runtime target.
 15 minutes needs a finite work denominator, completed/remaining units,
 throughput, an ETA derived from that denominator, durable checkpoints, and a
 typed terminal report. A missing denominator, absent ETA, non-resumable
-checkpoint, or worker setting that has not passed a one-worker/four-worker
-semantic-equivalence, useful-worker utilization, and measured wall-time
-improvement canary prevents launch. #958's final schema-2 complete-manifest
-canary passed on 2026-08-26; its exact binding may be reused only while semantic
-inputs and workload shape remain unchanged. A change must re-establish the
-binding before the dependent product decision. Performance
-evidence comes from release builds; a debug run cannot authorize larger work.
+checkpoint, or execution plan without the contract's required semantic,
+resource and representative timing evidence prevents launch. Compare only the
+predeclared eligible plans; four processes, four threads and four concurrent
+arms are different choices, not a universal requirement. A scientifically
+required single plan must state that constraint and still establish budget
+admission. #958's one-worker/four-worker schema-2 complete-manifest result from
+2026-08-26 remains historical evidence for that exact path, not a mandatory
+comparison for new workloads. Re-establish only the bindings affected by a
+change before its dependent decision; reuse unaffected evidence. Performance
+evidence for compiled paths comes from release builds; a debug run cannot
+authorize larger work.
 Eight hours is a hard kill ceiling, not an estimate. Reaching it stops the run
 and records `ABORTED`, `NOT_RUN`, or the last completed bounded result; never
 continue because the process may be nearly finished.

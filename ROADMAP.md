@@ -9,6 +9,15 @@ The earlier
 preserved #948–#958 sequencing record. Measured, refuted, and frozen research
 remains in [docs/RESEARCH.md](docs/RESEARCH.md).
 
+**Adopted current map (2026-09-03):** [current programme and #973→#954 handoff](docs/integration/current-state.md),
+[adopted issues](docs/integration/adopted-issues.json), and
+[reusable continuation prompt](docs/integration/CONTINUE.md).
+[#1082](https://github.com/UOR-Foundation/uor-r4/issues/1082) owns the next
+construction-only exposure diagnostic. Parallel integration, native interface,
+coding evaluation and paper work have separate owners; they do not complete
+#973 or unblock #954. This adoption supersedes earlier “current/next” ordering
+below while preserving all measured results.
+
 **Current two-stage R4 result (2026-09-02):** #1079 completed
 `LANGUAGE_R4_PRESERVED_CONTROL_WEAK`. The retained [#1077 learned interface](docs/r4_zoology_language_interface_1077.md)
 and frozen binding core preserve both full soft mixtures through R4 transport.
@@ -32,6 +41,11 @@ Retain two-stage preservation and the strong fact control. Next, separately free
 a **construction-only, attention-weighted token-frame exposure diagnostic**; any changed frame
 somewhere in a row does not measure exposure of its attended tokens. The cause of
 the weaker token control remains unmeasured. #973 stays open; #954 remains blocked.
+
+**Historical checkpoint sequence — superseded for next-action selection on
+2026-09-03.** The following predecessor records retain their original results
+and decisions. Use the [current map](docs/integration/current-state.md) and live
+issue graph to select new work; do not reactivate an old recommendation.
 
 **Predecessor open associative-learning boundary (2026-09-02):** #1045 completed
 all 64 permitted R1 epochs and stopped `OPEN_MQAR_NOT_LEARNED`. Training reached
@@ -458,6 +472,12 @@ The completed continuation and its NLL-only negative are in
 > [#934 genealogy](docs/canonical_quality_baseline_934.md).
 
 ## Next up (recommended sequencing)
+
+**Historical sequencing snapshot; superseded 2026-09-03.** The V5 and earlier
+next-action statements below describe their recorded era. The active research
+successor is [#1082](https://github.com/UOR-Foundation/uor-r4/issues/1082), with
+current parallel lanes and consumer criteria in the
+[current map](docs/integration/current-state.md). No result below is retracted.
 
 Native GitHub relationships are the source of truth:
 

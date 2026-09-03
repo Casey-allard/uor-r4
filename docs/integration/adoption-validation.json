@@ -1,0 +1,14 @@
+{
+  "issue": 1081,
+  "new_dossier_local_links": "PASS",
+  "json_parsing": "PASS",
+  "restricted_repository_name_separation": "PASS",
+  "private_sync_rejection": "PASS",
+  "escaping_symlink_rejection": "PASS",
+  "live_sync": "PASS",
+  "idempotent_edge_compatibility": "PASS",
+  "reused_tool_verification": "prior receipts; unchanged package",
+  "model_runs": "NOT_RUN",
+  "broad_QA": "NOT_RUN",
+  "legacy_missing_link_count": 0
+}

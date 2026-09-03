@@ -1,7 +1,13 @@
 # R4 Intelligence Completion Plan
 
-- **Status:** Authoritative for post-v0.1 intelligence sequencing and the
-  readable mirror of programme root #820 (stages S0–S7 plus cross-cutting F0).
+- **Status:** Authoritative readable mirror of programme root #820. The
+  [current map and #973→#954 handoff](integration/current-state.md) govern
+  current sequencing; the S0–S7/F0 stage graph below is retained history.
+- **Planning adoption (2026-09-03):** [adopted issues](integration/adopted-issues.json)
+  and [adoption record](integration/workflow-adoption.md). The immediate research
+  successor is [#1082](https://github.com/UOR-Foundation/uor-r4/issues/1082).
+  [CONTINUE.md](integration/CONTINUE.md) is the reusable one-task handoff.
+  This adoption reconciles sequencing, not any measured result.
   The [Geometric Intelligence Programme](geometric_intelligence_programme.md)
   is its current architecture and claim-boundary companion.
   **Current two-stage R4 result (2026-09-02):** #1079 completed
@@ -27,6 +33,11 @@
   a **construction-only, attention-weighted token-frame exposure diagnostic**; any changed frame
   somewhere in a row does not measure exposure of its attended tokens. The cause of
   the weaker token control remains unmeasured. #973 stays open; #954 remains blocked.
+
+  **Historical checkpoint sequence — superseded for next-action selection on
+  2026-09-03.** The predecessor summaries below retain their recorded-era
+  “latest/current” descriptions and frozen decisions. They do not supersede
+  the [current map](integration/current-state.md) or activate retired work.
 
   The predecessor open associative-learning result is #1045's
   [`R4RoleTaggedAssociativeCurriculumV1`](r4_role_tagged_associative_curriculum_1045.md).
@@ -285,6 +296,12 @@
   dormant unless a product/release decision explicitly activates it.
 
 ## Why this plan exists
+
+**Historical S0–S7/F0 programme context, retained 2026-09-03.** This section and
+its subsequent stage graph, gates and completion rules describe the earlier
+compiler programme. They are not a second active queue or an instruction to
+restore dormant QA. Current native dependencies, new lane ownership and the
+accepted consumer boundary are in the [current map](integration/current-state.md).
 
 UOR-R4 reached a reproducible v0.1 engineering baseline: it compiles a pinned Hugging Face
 teacher into a multiplication-free, table-native artifact with a witnessed integer runtime,
