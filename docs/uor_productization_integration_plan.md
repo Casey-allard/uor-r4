@@ -2,9 +2,14 @@
 
 **Execution update (2026-09-03):** Adoption #1081, diagnostic #1082 and
 [#1085's text-to-clause specification](integration/clause-segmentation-1085.md)
-are delivered. The next bounded task is [#1094](https://github.com/UOR-Foundation/uor-r4/issues/1094),
-implementation and independent comparison under that contract. It is parked;
-no parser, new population, fit or evaluation was run by #1085. Use the
+are delivered. [#1094's adapter preparation](r4_text_clause_adapter_1094.md)
+returned `UNAVAILABLE_REFERENCE_REPLAY`: 320/320 authoring inputs and 16/16
+refusals were exact, but isolated Python startup was denied. No model forward,
+withheld comparison or replay ran. #1094 remains open, blocked by the separate
+[#1096 zero-forward readiness repair](https://github.com/UOR-Foundation/uor-r4/issues/1096),
+which is the next bounded task. The [afflom ecosystem follow-up](integration/afflom-ecosystem-followup.md)
+records concrete Prism/Atlas/LexLean/GNAF/matmul source boundaries without changing
+the fixed reader/core or its arithmetic. Use the
 [current map](integration/current-state.md) and native GitHub. The audit-era
 current/next descriptions below are preserved history and do not select work.
 

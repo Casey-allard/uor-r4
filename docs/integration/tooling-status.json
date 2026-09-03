@@ -68,5 +68,18 @@
     "native_dependency_query": "PASS",
     "provenance_queries": "PASS",
     "idempotent_and_read_only_checks": "PASS"
+  },
+  "latest_code_index": {
+    "source_revision": "ff925481fcb290e8f91442a28a1b43b51b28dd26",
+    "name": "uor-r4-ff92548-1094-active",
+    "source_files": 397,
+    "represented_source_files": 392,
+    "file_nodes_including_manifest": 393,
+    "manifest_sha256": "2eb8cb7a2e5bff0b94e3eca9c3ccf9168dd40af1b8328c82eb4e022e7879db76",
+    "receipt": "docs/integration/code-index-1094.json",
+    "record": "docs/integration/code-index-1094.md",
+    "status": "SOURCE_NAVIGATION_ONLY",
+    "previous_indexes_retained": true,
+    "model_evaluation": "NOT_RUN"
   }
 }

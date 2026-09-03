@@ -1,0 +1,133 @@
+{
+  "schema": "uor-r4.text-to-clauses-policy/1",
+  "name": "R4TextToClausesV1",
+  "issue": 1094,
+  "specification": {
+    "repository": "UOR-Foundation/uor-r4",
+    "commit": "3e894820c520f3b7803a48c6a2eeeb5b7d7021c5",
+    "path": "docs/integration/clause-segmentation-1085.md",
+    "sha256": "85f928fec94fa0f6793cff4c35e1fc8c9cba691739d34db272465766c7c9dab1"
+  },
+  "request": {
+    "schema": "uor-r4.text-to-clauses/1",
+    "exact_fields": ["schema", "text"],
+    "python_record_type": "built-in dict",
+    "text_type": "built-in bytes; strings, bytearray, memoryview and all other types are UNSUPPORTED_SCHEMA",
+    "schema_type": "built-in str",
+    "unknown_or_missing_fields": "UNSUPPORTED_SCHEMA"
+  },
+  "result_schema": "uor-r4.text-to-clauses-result/1",
+  "lexical_artifact": {
+    "cid": "blake3:571d5fbc282b17c8726eebd7b23c3ae55212a3de81b35d27722a0fa5979b8c5b",
+    "source_paths": [
+      "tools/r4-softmax-trainer/src/r4_softmax_trainer/zoology_language_interface/data.py",
+      "tools/r4-softmax-trainer/src/r4_softmax_trainer/zoology_english_binding/data.py"
+    ],
+    "reader_prefix_by_id": [
+      "<bos>", "put", "the", "in", ".", "where", "is", "'s", "?", "answer", ":", "unknown",
+      "mara", "lena", "omar", "noah", "iris", "liam", "nora", "otto", "ada", "erin", "hugo", "iona", "jude", "kira", "leon", "mila",
+      "key", "book", "coin", "cup", "ring", "ball", "pen", "map", "hat", "toy", "jar", "box", "comb", "fork", "shoe", "doll",
+      "drawer", "cabinet", "basket", "closet", "pouch", "locker", "crate", "trunk",
+      "not", "but", ",", "owned", "by", "<pad>"
+    ],
+    "vocabulary_size": 4096,
+    "rejected_input_ids": [0, 7, 11, 57],
+    "unused_ids": "58 through 4095 are not input words",
+    "output_decode": "the unchanged core vocabulary, never reader aliases"
+  },
+  "limits": {"max_bytes": 4096, "clauses": 5, "facts": 4, "tokens_per_clause": 13, "padding_id": 57},
+  "lexing": {
+    "encoding": "strict UTF-8, with lowercase ASCII repertoire only",
+    "word": "maximal [a-z]+",
+    "punctuation": [".", ",", "?", ":"],
+    "separators": ["ASCII space", "tab", "LF", "CRLF"],
+    "bare_cr": "INVALID_ENCODING",
+    "unknown_lowercase_word": "UNKNOWN_LEXEME",
+    "disallowed_unknown_word": "UNKNOWN_LEXEME",
+    "unsupported_byte_or_character": "INVALID_ENCODING",
+    "normalization_repair_truncation": false,
+    "spans": "half-open offsets into the unchanged original bytes; maximal words and each punctuation token have one span"
+  },
+  "syntax": {
+    "owners": ["mara", "lena", "omar", "noah", "iris", "liam", "nora", "otto", "ada", "erin", "hugo", "iona", "jude", "kira", "leon", "mila"],
+    "objects": ["key", "book", "coin", "cup", "ring", "ball", "pen", "map", "hat", "toy", "jar", "box", "comb", "fork", "shoe", "doll"],
+    "locations": ["drawer", "cabinet", "basket", "closet", "pouch", "locker", "crate", "trunk"],
+    "fact_forms": [
+      "O , not D , put the X in the L .",
+      "in the L , not D but O put the X .",
+      "not D but O put the X in the L .",
+      "in the L , O , not D , put the X ."
+    ],
+    "query_form": "where is the X owned by O , not D ? answer :",
+    "owner_distractor_distinct": true,
+    "all_four_facts_same_form": true,
+    "recognizer": "boolean acceptance from unchanged token strings using literal and membership predicates; no semantic assignments, roles, gold data or answers are returned",
+    "boundaries": "exactly four period tokens, each retained in its fact; nonempty query suffix ending in the three tokens ? answer :; no token follows the colon",
+    "clause_spans": "first token start through final token end; surrounding and inter-clause whitespace excluded"
+  },
+  "refusal_precedence": [
+    "startup artifact verification",
+    "schema and exact request field types",
+    "raw byte limit",
+    "encoding and lexing in increasing byte order",
+    "boundaries and counts",
+    "clause length",
+    "syntax"
+  ],
+  "byte_offsets": {
+    "artifact_or_schema": null,
+    "raw_byte_limit": 4096,
+    "encoding_or_unknown_word": "first offending byte, or beginning of the unknown maximal word",
+    "empty_clause": "its period token start",
+    "extra_period": "fifth period token start",
+    "missing_boundary_or_suffix": "end-of-buffer when the absent token has no byte position",
+    "appended_answer": "first token after an existing ? answer : suffix",
+    "wrong_suffix_token": "first token inconsistent with ? answer : after its question mark; end-of-buffer for a missing token",
+    "overlong_clause": "fourteenth token start of the first overlong clause",
+    "unsupported_syntax": "first token start of the earliest clause that has no admitted form, or the first fact that breaks the form of fact zero; query failures use the query first token"
+  },
+  "surface_profiles": [
+    {
+      "id": 0,
+      "name": "compact-space",
+      "within_clause": "no whitespace before punctuation . , ? :; one ASCII space before every other token except the first",
+      "clause_join_hex": "20"
+    },
+    {
+      "id": 1,
+      "name": "compact-lf",
+      "within_clause": "no whitespace before punctuation . , ? :; one ASCII space before every other token except the first",
+      "clause_join_hex": "0a"
+    },
+    {
+      "id": 2,
+      "name": "separated-crlf",
+      "within_clause": "one ASCII space between every pair of tokens, including punctuation",
+      "clause_join_hex": "0d0a"
+    },
+    {
+      "id": 3,
+      "name": "alternating-space-tab-lf",
+      "within_clause": "gaps cycle ASCII space, tab, LF by zero-based gap index, restarting at the start of each clause",
+      "clause_join_hex": "20"
+    }
+  ],
+  "generated_surfaces": "no leading or trailing whitespace; adapter also accepts the declared whitespace outside all spans",
+  "derived_input_hash": {
+    "algorithm": "sha256",
+    "domain": "uor-r4.text-to-clauses-input/1",
+    "string_framing": "u32 little-endian UTF-8 byte length then exact string bytes",
+    "ordered_strings": ["domain", "policy_sha256", "lexical_artifact.cid", "i64le"],
+    "shape_u32le": [1, 5, 13, 1, 5],
+    "payload": "65 input IDs then five lengths as signed i64 little-endian in fact0, fact1, fact2, fact3, query order",
+    "excluded": "raw bytes and spans; raw_text_sha256 separately binds exact original bytes"
+  },
+  "inference_boundary": {
+    "model_inputs": ["inputs", "lengths"],
+    "parameters": 0,
+    "state": "stateless and atomic; one request replaces all four facts",
+    "refusals": "no partial parse, tensors, spans, token or answer; zero model forwards",
+    "artifact_startup": "wrapper verifies fixed reader/core/codec/frame/source identities before request access; unavailable startup returns UNAVAILABLE_ARTIFACT regardless of request",
+    "semantic_conflict_resolution": false
+  }
+}

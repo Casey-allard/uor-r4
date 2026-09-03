@@ -11,15 +11,16 @@ coexist with nonzero displacement. This is descriptive evidence, not a causal
 explanation or a revision of #1079's weak-control result. No new answers,
 fitting, development scoring or generation ran.
 
-**Latest specification (2026-09-03):** [#1085](docs/integration/clause-segmentation-1085.md)
-completed `CLAUSE_SEGMENTATION_SPECIFIED`. The bounded text adapter preserves
-the reader/core, known lexicon/query and four-fact context. Its separate
-[#1094 comparison](https://github.com/UOR-Foundation/uor-r4/issues/1094) is frozen
-at specification scope and parked pending implementation/input identity binding.
-No parser implementation, population preparation, fitting or evaluation ran.
-Next: activate #1094 to implement the sole adapter and independently prepare its
-comparison under that contract. #973 remains open and #954 blocked; use the
-[current map](docs/integration/current-state.md).
+**Latest adapter attempt (2026-09-03):** [#1094](docs/r4_text_clause_adapter_1094.md)
+returned `UNAVAILABLE_REFERENCE_REPLAY` during preparation. Authoring input
+fidelity was 320/320 and typed refusals 16/16; the OS denied the pinned Python
+launch before worker startup. Model loads/forwards are zero; withheld comparison
+and replay are `NOT_RUN`. Supplied segmentation remains qualified. The
+[#1085 specification](docs/integration/clause-segmentation-1085.md) is unchanged.
+Next: [#1096](https://github.com/UOR-Foundation/uor-r4/issues/1096) separately repairs
+zero-forward isolated runtime readiness; #1094 remains open and blocked by it.
+#1079's weak-control and #1082's descriptive findings remain unchanged; #973 is
+open and #954 blocked. Use the [current map](docs/integration/current-state.md).
 
 Guidance for agents (human or otherwise) working in this repository.
 **Post-v0.1 intelligence sequencing is authoritative in
@@ -68,7 +69,7 @@ the weaker token control remains unmeasured. #973 stays open; #954 remains block
 **Historical checkpoints — superseded for next-action selection on
 2026-09-03.** The earlier “current/next” decisions below retain their original
 scope and results. Use the current map and live issue graph; the next research
-contract is [#1094](https://github.com/UOR-Foundation/uor-r4/issues/1094), following the completed #1085 specification.
+task is [#1096](https://github.com/UOR-Foundation/uor-r4/issues/1096), the isolated-runtime readiness repair after #1094 stopped before model access.
 
 The earlier #973 V5 terminal is the independently verified predictive
 write/binding campaign. It completed

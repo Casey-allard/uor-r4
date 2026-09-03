@@ -1,0 +1,51 @@
+{
+  "schema": "uor-r4.text-clause-retained-evidence/1",
+  "issue": 1094,
+  "source_commit": "ff925481fcb290e8f91442a28a1b43b51b28dd26",
+  "terminal": "UNAVAILABLE_REFERENCE_REPLAY",
+  "files": [
+    {
+      "path": "authoring-input-preflight.json",
+      "bytes": 3032,
+      "sha256": "f79df8623038961d899ba727d99bb69b39754b1878d10bbed9da0bfe03e5ee82"
+    },
+    {
+      "path": "bindings.json",
+      "bytes": 58987,
+      "sha256": "baeb56a632c0e75c0574d9bad503e7849cf434039490e1fe92e3b8f0114b1f0b"
+    },
+    {
+      "path": "preparation-progress.jsonl",
+      "bytes": 581,
+      "sha256": "8d3dd2b0ddf75af91f3ba7d75098a232ebe188703ea24eef90fbc639e92e3883"
+    },
+    {
+      "path": "preparation-started.json",
+      "bytes": 863,
+      "sha256": "0a0eeff9238eb28ca745e8e4010654fc1f436f65f6c86aa5eedae8bd996c94d7"
+    },
+    {
+      "path": "prepare-stopped-resources.json",
+      "bytes": 279,
+      "sha256": "02f907640d6830e17c136e06078a54390ee4173862043926bee7f8f7670eaf18"
+    },
+    {
+      "path": "prepare-stopped.json",
+      "bytes": 1262,
+      "sha256": "87bd3082ce9b4da5e5227a3b82f6515773cf5f113de689ff6251a2a45340fad5"
+    },
+    {
+      "path": "worker.sb",
+      "bytes": 1519,
+      "sha256": "914b72856e0822c981b1295b8e96048fa43f35b8c1dedeea58f51321a781a72d"
+    }
+  ],
+  "model_loads": 0,
+  "model_forwards": 0,
+  "withheld_evaluation": "NOT_RUN",
+  "notes": [
+    "Exact immutable local receipt bytes; no model output or withheld payload copied.",
+    "The recorded worker RSS zero means no worker receipt was received, not a successful worker resource measurement.",
+    "Source and asset paths are provenance locators; relocate only under a separately reviewed preparation contract."
+  ]
+}
