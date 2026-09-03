@@ -1,6 +1,6 @@
 # Current programme map and correctness handoff
 
-**Planning reconciliation: 2026-09-03, #1094 preparation unavailable; #1096 next.** Scientific evidence baseline:
+**Planning reconciliation: 2026-09-03, #1096 runtime ready; separate #1094 preparation/review next after protected delivery.** Scientific evidence baseline:
 `UOR-Foundation/uor-r4@e627252e525201815169ffd8364184953a46018d`.
 This map supersedes earlier “current” and “next” sequencing prose, not its
 measurements. Refresh native GitHub before selecting work. The
@@ -44,20 +44,28 @@ NEMESIS/W33/UOR material without importing capability or proof claims.
 The [#1094 implementation/preparation](../r4_text_clause_adapter_1094.md) returned
 `UNAVAILABLE_REFERENCE_REPLAY`. The committed adapter recovered all 320
 authoring inputs exactly and matched all 16 refusal cases, but the OS denied
-execution of the pinned interpreter before Python startup. Model loads/forwards
-are zero. Effective worker isolation, model preservation, withheld comparison
-and replay remain `NOT_RUN`. The independently curated 1280 withheld valid,
-64 refusal and 16 boundary-control rows remain sealed; no post-stop source
-change or comparison retry occurred. Supplied segmentation stays qualified.
+execution of the pinned interpreter before Python startup. In that stopped
+preparation, model loads/forwards were zero; effective worker isolation, model
+preservation, withheld comparison and replay were `NOT_RUN`. The independently
+curated 1280 withheld valid, 64 refusal and 16 boundary-control rows remain sealed.
+The original stop and its receipts are preserved. Supplied segmentation stays qualified.
 
-The immediate next task is **[#1096: repair isolated runtime readiness](https://github.com/UOR-Foundation/uor-r4/issues/1096)**.
-It is parked and unassigned until active; #1094 remains open and blocked by it.
-Specify and independently review the minimal interpreter/runtime access fix,
-then qualify actual startup and harmless denied-reference probes with zero
-model forwards. Preserve the failed preparation. New #1094 preparation and
-withheld release still require their own exact source/runtime/review bindings.
-The unavailable result does not revise #1079's weak token control, establish
-new mathematical proof or model capability, or unblock #954.
+The separate [#1096 readiness decision](../r4_isolated_runtime_readiness_1096.md)
+recorded **`ISOLATED_RUNTIME_READY`** in its sole attempt: all four harmless
+corpus/reference/history/results probes were denied, with null model states and
+zero model loads/forwards/updates. The attempt took 2.058100333 seconds and had a
+704,806,912-byte combined peak-RSS bound. Independent result review passed. This
+qualifies the named runtime/probe contract; it neither proves the precise cause
+of the original denial nor establishes model behavior or universal isolation.
+
+After protected delivery, the immediate next task is **[#1094: separate frozen
+preparation and independent release review](https://github.com/UOR-Foundation/uor-r4/issues/1094)**.
+#1094 remains open, parked and unassigned until activated. Its original
+`UNAVAILABLE_REFERENCE_REPLAY` is unchanged. New preparation and any later
+withheld release require their own exact source/runtime/input/review bindings;
+neither preparation nor comparison/replay was authorized or executed under #1096.
+The readiness result does not revise #1079's weak token control, establish new
+mathematical proof or raw-text capability, or unblock #954.
 
 The user-requested [afflom ecosystem review](afflom-ecosystem-followup.md)
 inspects Prism, both Atlas sources, LexLean, lean4-prod, GNAF and both matmul
@@ -83,8 +91,8 @@ transport acknowledgements do not complete their parent capability.
 |---|---|---|
 | [#1082 attention diagnostic](https://github.com/UOR-Foundation/uor-r4/issues/1082), child of #973 | Completed; [exact report/replay](../r4_token_exposure_1082.md) | Role-selective exposure observed; preservation and the weak-control verdict retained. |
 | [#1085 language/context specification](https://github.com/UOR-Foundation/uor-r4/issues/1085), child of #973 | Completed; [adapter/schema/comparison contract](clause-segmentation-1085.md) | Specification only; later transfer stages remain separately staged. |
-| [#1094 adapter comparison](https://github.com/UOR-Foundation/uor-r4/issues/1094), child of #973, blocked by #1096 | Implementation and authoring fidelity recorded; runtime preparation stopped `UNAVAILABLE_REFERENCE_REPLAY` | Remains open; full model comparison and withheld release are not admitted. |
-| [#1096 runtime readiness](https://github.com/UOR-Foundation/uor-r4/issues/1096), child of #1094 | Minimal interpreter/runtime access repair and one independent zero-forward readiness decision | Preserve reference/corpus isolation and the prior stop; success alone does not qualify raw-text model behavior. |
+| [#1094 adapter comparison](https://github.com/UOR-Foundation/uor-r4/issues/1094), child of #973, parked/unassigned | Separate frozen preparation and independent release review after #1096 protected delivery; original preparation remains `UNAVAILABLE_REFERENCE_REPLAY` | Remains open; new preparation, full model comparison and withheld release are not admitted by #1096. |
+| [#1096 runtime readiness](https://github.com/UOR-Foundation/uor-r4/issues/1096), child of #1094 | `ISOLATED_RUNTIME_READY`; sole zero-forward attempt and independent review complete | Four harmless probes denied; no model load/output/replay, raw-text qualification or universal isolation claim. |
 | [#1083 UOR integration](https://github.com/UOR-Foundation/uor-r4/issues/1083) | Typed identity/arithmetic ADR and review of one selected adapter boundary | Content hashes, structural identities, codec identities and derivation keys remain distinct; arithmetic needs a declared domain and error/cost contract. |
 | [#1086 native reference bridge](https://github.com/UOR-Foundation/uor-r4/issues/1086), specification dependency #1085 delivered | Specify the accepted model's export/loader and matched native behavior contract before implementation | Preserve qualified behavior and identity; no canned answers or silent backend substitution. |
 | [#1087 final serving representation](https://github.com/UOR-Foundation/uor-r4/issues/1087), blocked by #1086 and #1083 | Operator inventory and one concrete lowering decision with operation/error/resource obligations | Dense research-reference success does not establish the final integer/table kernel; a lowering candidate needs its own frozen contract. |
@@ -99,7 +107,8 @@ dependencies at adoption time. #1081 delivered the planning workflow in
 [PR #1092](https://github.com/UOR-Foundation/uor-r4/pull/1092), merge
 `11e46611b82702e005165fb0034e1adf7d119a70`; #1082 owns the completed diagnostic
 and #1085 the completed specification. #1094 retains the pending adapter comparison
-after its unavailable preparation; #1096 owns the separate readiness repair.
+after its unavailable preparation; #1096 records the separate positive readiness
+decision with independent result review complete.
 #1086 may specify export but cannot claim raw-text qualification before comparison
 evidence. Planned lanes remain unassigned until active.
 The pre-adoption snapshot had nine open issues and all 24 #973 children closed;

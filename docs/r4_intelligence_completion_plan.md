@@ -17,8 +17,12 @@ fidelity was 320/320 and typed refusals 16/16; the OS denied the pinned Python
 launch before worker startup. Model loads/forwards are zero; withheld comparison
 and replay are `NOT_RUN`. Supplied segmentation remains qualified. The
 [#1085 specification](integration/clause-segmentation-1085.md) is unchanged.
-Next: [#1096](https://github.com/UOR-Foundation/uor-r4/issues/1096) separately repairs
-zero-forward isolated runtime readiness; #1094 remains open and blocked by it.
+The separate [#1096 readiness decision](r4_isolated_runtime_readiness_1096.md)
+recorded `ISOLATED_RUNTIME_READY`: all four harmless denied-path probes passed,
+with null model states and zero model loads/forwards/updates. Independent result review
+passed. Next: #1094's separate frozen preparation and independent release
+review. #1094 remains open, parked and unassigned; no new preparation, withheld
+comparison or replay ran under #1096. Readiness does not qualify raw-text behavior.
 #1079's weak-control and #1082's descriptive findings remain unchanged; #973 is
 open and #954 blocked. Use the [current map](integration/current-state.md).
 
@@ -27,7 +31,7 @@ open and #954 blocked. Use the [current map](integration/current-state.md).
   current sequencing; the S0–S7/F0 stage graph below is retained history.
 - **Planning adoption (2026-09-03):** [adopted issues](integration/adopted-issues.json)
   and [adoption record](integration/workflow-adoption.md). The immediate research
-  next task is [#1096](https://github.com/UOR-Foundation/uor-r4/issues/1096), a separate zero-forward readiness repair before #1094 can resume its frozen comparison.
+  next task is [#1094](https://github.com/UOR-Foundation/uor-r4/issues/1094), separate frozen preparation and independent release review after #1096's zero-forward readiness decision lands through the protected path.
   [CONTINUE.md](integration/CONTINUE.md) is the reusable one-task handoff.
   This adoption reconciles sequencing, not any measured result.
   The [Geometric Intelligence Programme](geometric_intelligence_programme.md)

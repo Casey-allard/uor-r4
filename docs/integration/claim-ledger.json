@@ -1,7 +1,7 @@
 {
   "schema": "uor-r4.claim-ledger/1",
   "repository": "UOR-Foundation/uor-r4",
-  "source_revision": "d98a1ef22cec93fd90fee571e61b60c31c76a394",
+  "source_revision": "11f8384b8a0b866180beb0302f7f9804e05cf9b6",
   "vocabulary": {
     "source": "formal_vocabulary",
     "role": "Statement class from the normative vocabulary.",
@@ -159,6 +159,69 @@
       "revision": "d98a1ef22cec93fd90fee571e61b60c31c76a394",
       "sha256": "a77f09e66e720dc3da739ef258f3a9681f3a9c1e876bbbf800a73157285d970c",
       "evidence_status": "INDEPENDENT_SOURCE_REVIEW"
+    },
+    "record_1096": {
+      "path": "docs/r4_isolated_runtime_readiness_1096.md",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/11f8384b8a0b866180beb0302f7f9804e05cf9b6/docs/r4_isolated_runtime_readiness_1096.md",
+      "revision": "11f8384b8a0b866180beb0302f7f9804e05cf9b6",
+      "sha256": "952655fa2af59ac2e94842aa4d61a4f44b400b85b64f5405e736f2b83a5a12f5",
+      "evidence_status": "EMPIRICAL_READINESS"
+    },
+    "source_audit_1096": {
+      "path": "docs/r4_isolated_runtime_readiness_1096_sources.md",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/e1ddfc045e00ff11f8837b9c807f13c9b159cf03/docs/r4_isolated_runtime_readiness_1096_sources.md",
+      "revision": "e1ddfc045e00ff11f8837b9c807f13c9b159cf03",
+      "sha256": "d00e858994e5b717697345418928abdf471406a855256764a2545941c4dccef4",
+      "evidence_status": "SOURCE_INSPECTED"
+    },
+    "preexecution_review_1096": {
+      "path": "docs/r4_isolated_runtime_readiness_1096_preexecution_review.md",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/e1ddfc045e00ff11f8837b9c807f13c9b159cf03/docs/r4_isolated_runtime_readiness_1096_preexecution_review.md",
+      "revision": "e1ddfc045e00ff11f8837b9c807f13c9b159cf03",
+      "sha256": "f4e10b19e7b816f9321388f7abb5dc209f431c7ce8e1ffa71fc88def6ffc8417",
+      "evidence_status": "INDEPENDENT_PREEXECUTION_REVIEW"
+    },
+    "result_review_1096": {
+      "path": "docs/r4_isolated_runtime_readiness_1096_result_review.md",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/e1ddfc045e00ff11f8837b9c807f13c9b159cf03/docs/r4_isolated_runtime_readiness_1096_result_review.md",
+      "revision": "e1ddfc045e00ff11f8837b9c807f13c9b159cf03",
+      "sha256": "3ea0bab914de67ad1e170cd3f58ee37e4780f3ff007517c8372daa8a7cfac6f9",
+      "evidence_status": "INDEPENDENT_RESULT_REVIEW_PASS"
+    },
+    "evidence_index_1096": {
+      "path": "docs/r4_isolated_runtime_readiness_1096_evidence/receipt-index.json",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/e1ddfc045e00ff11f8837b9c807f13c9b159cf03/docs/r4_isolated_runtime_readiness_1096_evidence/receipt-index.json",
+      "revision": "e1ddfc045e00ff11f8837b9c807f13c9b159cf03",
+      "sha256": "69ad55bdd416566ffccac1594964f9fbc7f720210580d098d614af40052a6437",
+      "evidence_status": "EXACT_ORIGINAL_RECEIPTS"
+    },
+    "manifest_1096": {
+      "path": "docs/r4_isolated_runtime_readiness_1096_evidence/admitted-freeze02/manifest.json",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/e1ddfc045e00ff11f8837b9c807f13c9b159cf03/docs/r4_isolated_runtime_readiness_1096_evidence/admitted-freeze02/manifest.json",
+      "revision": "e1ddfc045e00ff11f8837b9c807f13c9b159cf03",
+      "sha256": "4acd2b7ec00ac8874573e2d6e52e5087b376bc0ebcd52aedd4464aa28979c644",
+      "evidence_status": "PREEXECUTION_BINDING"
+    },
+    "result_1096": {
+      "path": "docs/r4_isolated_runtime_readiness_1096_evidence/admitted-freeze02/result.json",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/e1ddfc045e00ff11f8837b9c807f13c9b159cf03/docs/r4_isolated_runtime_readiness_1096_evidence/admitted-freeze02/result.json",
+      "revision": "e1ddfc045e00ff11f8837b9c807f13c9b159cf03",
+      "sha256": "439aa149d6f128844490c4a9002bfe2ffb52fdeeaad067e8e3cb16447b24b930",
+      "evidence_status": "ISOLATED_RUNTIME_READY"
+    },
+    "stdout_1096": {
+      "path": "docs/r4_isolated_runtime_readiness_1096_evidence/admitted-freeze02/worker.stdout.jsonl",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/e1ddfc045e00ff11f8837b9c807f13c9b159cf03/docs/r4_isolated_runtime_readiness_1096_evidence/admitted-freeze02/worker.stdout.jsonl",
+      "revision": "e1ddfc045e00ff11f8837b9c807f13c9b159cf03",
+      "sha256": "cbe9436ab15bf207c362b7863685c524ec95f8f20b2402f3294920289af6561c",
+      "evidence_status": "OBSERVED_WORKER_EVENTS"
+    },
+    "resources_1096": {
+      "path": "docs/r4_isolated_runtime_readiness_1096_evidence/admitted-freeze02/resources.json",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/e1ddfc045e00ff11f8837b9c807f13c9b159cf03/docs/r4_isolated_runtime_readiness_1096_evidence/admitted-freeze02/resources.json",
+      "revision": "e1ddfc045e00ff11f8837b9c807f13c9b159cf03",
+      "sha256": "c3a5005f661cdd2e42a18e85eea066d0a7c9dadf3f7b6f391c48e8757398ba42",
+      "evidence_status": "MEASURED_RESOURCE_RECEIPT"
     }
   },
   "artifacts_1079": {
@@ -271,10 +334,9 @@
         "The #1082 construction-only diagnostic now measures role-selective exposure and pooling displacement; it does not establish a downstream causal explanation. The #1079 strong-sensitivity miss remains unchanged and does not falsify primary preservation or establish geometric superiority."
       ],
       "next_action": {
-        "scope": "#1094 authoring fidelity is exact; runtime preparation stopped UNAVAILABLE_REFERENCE_REPLAY. #1096 separately repairs isolated zero-forward readiness before new comparison preparation; no model preservation result exists.",
+        "scope": "#1096 observed ISOLATED_RUNTIME_READY with zero model work. #1094 must separately freeze preparation using the accepted source/profile/runtime bindings, account for its consumed budget and obtain independent release review before withheld access or comparison. No raw-text model preservation result exists.",
         "issue_urls": [
-          "https://github.com/UOR-Foundation/uor-r4/issues/1094",
-          "https://github.com/UOR-Foundation/uor-r4/issues/1096"
+          "https://github.com/UOR-Foundation/uor-r4/issues/1094"
         ]
       },
       "proof_artifacts": []
@@ -303,7 +365,7 @@
       ],
       "next_action": {
         "status": "OPEN_PROGRAMME_GOAL",
-        "scope": "Reconcile #973→#954 consumer scope, then qualify named language/context, correctness, reasoning and coding tasks before promoting capability claims.",
+        "scope": "Reconcile #973\u2192#954 consumer scope, then qualify named language/context, correctness, reasoning and coding tasks before promoting capability claims.",
         "issue_urls": [
           "https://github.com/UOR-Foundation/uor-r4/issues/973",
           "https://github.com/UOR-Foundation/uor-r4/issues/954",
@@ -437,10 +499,9 @@
         "Numerical bound and replay checks are not a universal floating-point refinement proof."
       ],
       "next_action": {
-        "scope": "#1094 authoring fidelity is exact; runtime preparation stopped UNAVAILABLE_REFERENCE_REPLAY. #1096 separately repairs isolated zero-forward readiness before new comparison preparation; no model preservation result exists.",
+        "scope": "#1096 observed ISOLATED_RUNTIME_READY with zero model work. #1094 must separately freeze preparation using the accepted source/profile/runtime bindings, account for its consumed budget and obtain independent release review before withheld access or comparison. No raw-text model preservation result exists.",
         "issue_urls": [
-          "https://github.com/UOR-Foundation/uor-r4/issues/1094",
-          "https://github.com/UOR-Foundation/uor-r4/issues/1096"
+          "https://github.com/UOR-Foundation/uor-r4/issues/1094"
         ]
       },
       "proof_artifacts": []
@@ -489,10 +550,9 @@
         "#973 higher-context and #954 final source-free correctness terminals remain unmet."
       ],
       "next_action": {
-        "scope": "#1094 authoring fidelity is exact; runtime preparation stopped UNAVAILABLE_REFERENCE_REPLAY. #1096 separately repairs isolated zero-forward readiness before new comparison preparation; no model preservation result exists.",
+        "scope": "#1096 observed ISOLATED_RUNTIME_READY with zero model work. #1094 must separately freeze preparation using the accepted source/profile/runtime bindings, account for its consumed budget and obtain independent release review before withheld access or comparison. No raw-text model preservation result exists.",
         "issue_urls": [
-          "https://github.com/UOR-Foundation/uor-r4/issues/1094",
-          "https://github.com/UOR-Foundation/uor-r4/issues/1096"
+          "https://github.com/UOR-Foundation/uor-r4/issues/1094"
         ]
       },
       "proof_artifacts": []
@@ -554,9 +614,88 @@
         "Recorded worker RSS zero indicates no worker resource receipt; it is not a successful worker measurement."
       ],
       "next_action": {
-        "scope": "#1096 separately qualifies minimal interpreter/runtime access and harmless denied-reference probes with zero model forwards before any new #1094 preparation.",
+        "scope": "#1096 observed ISOLATED_RUNTIME_READY with zero model work. #1094 must separately freeze preparation using the accepted source/profile/runtime bindings, account for its consumed budget and obtain independent release review before withheld access or comparison. No raw-text model preservation result exists.",
         "issue_urls": [
-          "https://github.com/UOR-Foundation/uor-r4/issues/1096"
+          "https://github.com/UOR-Foundation/uor-r4/issues/1094"
+        ]
+      },
+      "proof_artifacts": []
+    },
+    {
+      "id": "R4-1096-ISOLATED-RUNTIME-READINESS",
+      "statement": "One pinned actual comparison worker completed isolated readiness with verified source/artifact/runtime identities, four denied harmless probes, null model states and zero model loads, forwards and optimizer updates.",
+      "role": "Empirical Criterion",
+      "evidence_status": "Empirical",
+      "outcome": "ISOLATED_RUNTIME_READY",
+      "scope": {
+        "source_commit": "79c674c8f6179a68878a12ee86e664f1435c3ebf",
+        "manifest_sha256": "4acd2b7ec00ac8874573e2d6e52e5087b376bc0ebcd52aedd4464aa28979c644",
+        "attempts": 1,
+        "hardware": "Apple M1 / MacBookPro17,1 / 16 GiB",
+        "runtime": "Python 3.12.14 / Torch 2.7.1 / CPU Accelerate / 4 intra-op and 1 inter-op thread",
+        "model_loads": 0,
+        "model_forwards": 0,
+        "optimizer_updates": 0,
+        "withheld_access": "NOT_RUN",
+        "model_comparison": "NOT_RUN",
+        "model_replay": "NOT_RUN"
+      },
+      "assumptions": [
+        "Independent source/contract review and exact manifest approval preceded the sole attempt.",
+        "The four probe files are harmless stand-ins under the same denied-home policy; actual research payloads are not accessed.",
+        "The parent and actual worker hash accepted model files as bytes; hashing does not construct or deserialize a model."
+      ],
+      "observations": {
+        "worker_events": [
+          "ready",
+          "done"
+        ],
+        "initial_status": "ARTIFACTS_READY",
+        "runtime_files_verified": 18,
+        "bound_source_files": 169,
+        "bound_assets": 5,
+        "interpreter_symlinks_verified": 2,
+        "denied_probes": {
+          "corpus": true,
+          "reference": true,
+          "history": true,
+          "results": true
+        },
+        "initial_model_state": null,
+        "final_model_state": null,
+        "elapsed_seconds": 2.058100333000766,
+        "combined_peak_rss_bound_bytes": 704806912,
+        "original_receipt_bytes_both_freezes": 165740,
+        "public_copy_and_index_bytes": 173274
+      },
+      "counterevidence": [
+        "Original #1094 preparation remains UNAVAILABLE_REFERENCE_REPLAY; it emitted no worker readiness event and did not qualify model behavior.",
+        "The first identity-only freeze was superseded for a static profile-ordering defect before any readiness attempt; its original bytes remain preserved and it was never executed."
+      ],
+      "evidence_refs": [
+        "record_1096",
+        "source_audit_1096",
+        "preexecution_review_1096",
+        "result_review_1096",
+        "evidence_index_1096",
+        "manifest_1096",
+        "result_1096",
+        "stdout_1096",
+        "resources_1096",
+        "stop_1094",
+        "bindings_1094",
+        "source_audit_1085"
+      ],
+      "limits": [
+        "One measured startup and four harmless-read refusals, not mathematical proof, universal isolation, parser correctness or raw-text model-output preservation.",
+        "The combined alias/ancestor-metadata correction does not separately identify the precise original denial cause.",
+        "No fit, actual corpus/withheld read, preparation, comparison or replay; supplied segmentation remains the qualified model entry.",
+        "#1079 weak-control and #1082 descriptive results are unchanged; #973 remains open and #954 blocked."
+      ],
+      "next_action": {
+        "scope": "#1096 observed ISOLATED_RUNTIME_READY with zero model work. #1094 must separately freeze preparation using the accepted source/profile/runtime bindings, account for its consumed budget and obtain independent release review before withheld access or comparison. No raw-text model preservation result exists.",
+        "issue_urls": [
+          "https://github.com/UOR-Foundation/uor-r4/issues/1094"
         ]
       },
       "proof_artifacts": []
@@ -574,9 +713,18 @@
   "latest_adapter_attempt": {
     "issue": 1094,
     "status": "UNAVAILABLE_REFERENCE_REPLAY",
-    "issue_state": "OPEN_BLOCKED_BY_1096",
+    "issue_state": "OPEN_SEPARATE_PREPARATION_REVIEW_REQUIRED",
     "qualified_entry": "SUPPLIED_CLAUSES",
     "source_revision": "ff925481fcb290e8f91442a28a1b43b51b28dd26",
     "evidence_revision": "d98a1ef22cec93fd90fee571e61b60c31c76a394"
+  },
+  "latest_runtime_readiness": {
+    "issue": 1096,
+    "status": "ISOLATED_RUNTIME_READY",
+    "source_revision": "79c674c8f6179a68878a12ee86e664f1435c3ebf",
+    "evidence_revision": "e1ddfc045e00ff11f8837b9c807f13c9b159cf03",
+    "manifest_sha256": "4acd2b7ec00ac8874573e2d6e52e5087b376bc0ebcd52aedd4464aa28979c644",
+    "result_sha256": "439aa149d6f128844490c4a9002bfe2ffb52fdeeaad067e8e3cb16447b24b930",
+    "closure_condition": "Verified protected PR delivery; readiness does not complete #1094."
   }
 }

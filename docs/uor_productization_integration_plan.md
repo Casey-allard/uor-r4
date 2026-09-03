@@ -5,9 +5,14 @@
 are delivered. [#1094's adapter preparation](r4_text_clause_adapter_1094.md)
 returned `UNAVAILABLE_REFERENCE_REPLAY`: 320/320 authoring inputs and 16/16
 refusals were exact, but isolated Python startup was denied. No model forward,
-withheld comparison or replay ran. #1094 remains open, blocked by the separate
-[#1096 zero-forward readiness repair](https://github.com/UOR-Foundation/uor-r4/issues/1096),
-which is the next bounded task. The [afflom ecosystem follow-up](integration/afflom-ecosystem-followup.md)
+withheld comparison or replay ran. The separate
+[#1096 readiness decision](r4_isolated_runtime_readiness_1096.md) recorded
+`ISOLATED_RUNTIME_READY`: four harmless probes were denied, with null model
+states and zero model loads/forwards/updates. Independent result review passed.
+#1094 remains open, parked and unassigned. Its separate frozen preparation and
+independent release review are next after delivery; no new preparation, withheld
+comparison or replay ran under #1096. Readiness does not qualify raw-text behavior.
+The [afflom ecosystem follow-up](integration/afflom-ecosystem-followup.md)
 records concrete Prism/Atlas/LexLean/GNAF/matmul source boundaries without changing
 the fixed reader/core or its arithmetic. Use the
 [current map](integration/current-state.md) and native GitHub. The audit-era

@@ -117,8 +117,8 @@ def _bound_file(record: dict, *, require_bytes: bool = True) -> bytes:
     return payload
 
 
-def _isolation_probe() -> bool:
-    probe = os.environ.get("UOR_ISOLATION_PROBE")
+def _isolation_probe(probe: str | None = None) -> bool:
+    probe = probe or os.environ.get("UOR_ISOLATION_PROBE")
     if not probe:
         raise ValueError("required denied-reference isolation probe is absent")
     try:
@@ -129,6 +129,38 @@ def _isolation_probe() -> bool:
     except OSError as error:
         raise ValueError("isolation probe failed without permission denial") from error
     raise ValueError("OS sandbox allowed the denied-reference isolation probe")
+
+
+def _readiness_identity(path: Path, expected_sha256: str, binding_sha256: str) -> dict:
+    """Verify the separately reviewed #1096 launch, never a model population."""
+    from .contract import hardware_identity, interpreter_links
+
+    raw = path.read_bytes()
+    if hashlib.sha256(raw).hexdigest() != expected_sha256:
+        raise ValueError("readiness manifest digest differs")
+    manifest = _json(raw)
+    if (manifest["schema"] != "uor-r4.isolated-runtime-readiness/1"
+            or manifest["issue"] != 1096
+            or manifest["bindings"]["sha256"] != binding_sha256
+            or set(manifest["probes"]) != {"corpus", "reference", "history", "results"}):
+        raise ValueError("readiness identity or probe classes differ")
+    runtime = manifest["interpreter"]
+    if (sys.executable != runtime["launcher"]
+            or str(Path(sys.executable).resolve()) != runtime["resolved"]
+            or str(Path(sys.prefix).resolve()) != runtime["venv"]
+            or str(Path(sys.base_prefix).resolve()) != runtime["base"]
+            or interpreter_links(Path(sys.executable)) != runtime["links"]
+            or hardware_identity() != manifest["hardware"]):
+        raise ValueError("executing interpreter, symlinks or hardware differ")
+    for item in manifest["runtime_files"] + [manifest["profile"]]:
+        _bound_file(item)
+    probes = {name: _isolation_probe(item["path"])
+              for name, item in sorted(manifest["probes"].items())}
+    return {"manifest_sha256": expected_sha256,
+            "profile_sha256": manifest["profile"]["sha256"],
+            "interpreter": runtime, "hardware": manifest["hardware"],
+            "runtime_files_verified": len(manifest["runtime_files"]),
+            "denied_probes": probes, "torch_file": manifest["torch_file"]}
 
 
 def _verify_bindings(bindings: dict) -> tuple[dict[str, bytes], list[str]]:
@@ -260,6 +292,7 @@ class Worker:
         self.refusal_rows = 0
         self.isolation_denied = False
         self.inference = None
+        self.readiness_identity = None
 
     def resources(self) -> dict:
         return {
@@ -359,6 +392,7 @@ class Worker:
                 "deterministic_algorithms": True,
                 "isolation_denied": self.isolation_denied,
                 "states": self.states_before,
+                "readiness_identity": self.readiness_identity,
                 **self.counts(),
                 **self.resources(),
             }
@@ -478,6 +512,7 @@ class Worker:
                 "deterministic_algorithms": True,
                 "states_before": self.states_before,
                 "states_after": states_after,
+                "readiness_identity": self.readiness_identity,
                 **self.counts(),
                 **self.resources(),
                 "audit": audit,
@@ -524,7 +559,12 @@ def main() -> int:
     parser.add_argument("--bindings", required=True, type=Path)
     parser.add_argument("--arm", choices=("adapter", "oracle"), required=True)
     parser.add_argument("--readiness-only", action="store_true")
+    parser.add_argument("--readiness-manifest", type=Path)
+    parser.add_argument("--readiness-sha256")
     args = parser.parse_args()
+    if bool(args.readiness_manifest) != bool(args.readiness_sha256) or (
+            args.readiness_manifest and not args.readiness_only):
+        parser.error("a bound readiness manifest requires readiness-only execution")
     worker = Worker(time.monotonic())
     signal.signal(signal.SIGALRM, _alarm)
     signal.setitimer(signal.ITIMER_REAL, MAX_SECONDS)
@@ -534,8 +574,16 @@ def main() -> int:
         worker.bindings_sha256 = hashlib.sha256(raw_bindings).hexdigest()
         bindings = _json(raw_bindings)
         payloads, vocabulary = _verify_bindings(bindings)
-        worker.isolation_denied = _isolation_probe()
+        if args.readiness_manifest:
+            worker.readiness_identity = _readiness_identity(
+                args.readiness_manifest, args.readiness_sha256, worker.bindings_sha256)
+            worker.isolation_denied = all(worker.readiness_identity["denied_probes"].values())
+        else:
+            worker.isolation_denied = _isolation_probe()
         worker.runtime = _configure_runtime()
+        if worker.readiness_identity and str(Path(sys.modules["torch"].__file__).resolve()) != (
+                worker.readiness_identity["torch_file"]):
+            raise ValueError("Torch imported from an unbound runtime")
         worker.check_resources()
         if not args.readiness_only:
             worker.load(bindings, payloads)

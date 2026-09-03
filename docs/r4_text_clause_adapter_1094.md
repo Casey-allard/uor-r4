@@ -1,6 +1,11 @@
 # Frozen raw-text adapter comparison — #1094
 
-**Latest result (2026-09-03): `UNAVAILABLE_REFERENCE_REPLAY`.** The sole authoring
+Current handoff: the separate [#1096 readiness decision](r4_isolated_runtime_readiness_1096.md)
+returned `ISOLATED_RUNTIME_READY` with zero model loads/forwards. #1094 remains
+open for separately frozen preparation and independent release review; its
+comparison and replay remain `NOT_RUN`. The original attempt below is unchanged.
+
+**Original preparation result (2026-09-03): `UNAVAILABLE_REFERENCE_REPLAY`.** The sole authoring
 preparation recovered all 320 valid inputs exactly and matched all 16 typed
 refusals, with zero failures. The OS then denied execution of the pinned Python
 interpreter before it started. Model loads/forwards are zero; worker readiness,
@@ -209,3 +214,20 @@ claim wording, independent receipt verification and this authoring/readiness
 preflight. Broad QA and model evaluation remain dormant. All model assets,
 corpus files, sealed withheld inputs, original receipts and mixed-checkout user
 changes are retained. No storage cleanup was performed.
+
+## Subsequent isolated-runtime handoff — #1096 (2026-09-03)
+
+The separate [readiness record](r4_isolated_runtime_readiness_1096.md) qualifies
+one zero-forward worker startup at source
+`79c674c8f6179a68878a12ee86e664f1435c3ebf`, manifest SHA256
+`4acd2b7ec00ac8874573e2d6e52e5087b376bc0ebcd52aedd4464aa28979c644` and
+result SHA256 `439aa149d6f128844490c4a9002bfe2ffb52fdeeaad067e8e3cb16447b24b930`.
+All four harmless probe reads were denied; runtime/source/asset identities were
+verified, states remained null, and loads/forwards/updates were zero. No corpus
+preparation, withheld access, model-output comparison or replay occurred.
+
+The original unavailable preparation and its exact receipts remain historical
+evidence, not a success retroactively. After #1096's protected delivery, #1094
+must separately freeze preparation against the accepted readiness bindings,
+account for its consumed budget and obtain independent release review before
+withheld access/comparison. It remains open and parked/unassigned until active.

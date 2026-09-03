@@ -115,7 +115,28 @@ def make_bindings(repo: Path) -> dict:
     }
 
 
-def sandbox_profile(repo: Path, python: Path, bindings: Path, assets: dict) -> str:
+def interpreter_links(python: Path) -> list[dict]:
+    """Record every lexical symlink, including aliases hidden by resolve()."""
+    pending = list(python.absolute().parts[1:])
+    current = Path("/")
+    links = []
+    while pending:
+        current /= pending.pop(0)
+        if current.is_symlink():
+            if len(links) >= 40:
+                raise ValueError("interpreter symlink chain exceeds bound")
+            target = os.readlink(current)
+            links.append({"path": str(current), "target": target})
+            destination = Path(target)
+            if not destination.is_absolute():
+                destination = current.parent / destination
+            pending = list(destination.absolute().parts[1:]) + pending
+            current = Path("/")
+    return links
+
+
+def sandbox_profile(repo: Path, python: Path, bindings: Path, assets: dict,
+                    *, extra_read_files: tuple[Path, ...] = ()) -> str:
     """Deny home reads except runtime, package code and exact model identities.
 
     The coordinator supplies raw requests through stdin. In particular, corpus,
@@ -127,12 +148,22 @@ def sandbox_profile(repo: Path, python: Path, bindings: Path, assets: dict) -> s
     allowed_trees = [str(repo / "tools/r4-softmax-trainer/src"),
                      str(python.parent.parent), str(python.resolve().parent.parent)]
     exact = [str(bindings.resolve()), str(repo / "tools/r4-softmax-trainer/pyproject.toml"),
-             str(repo / "tools/r4-softmax-trainer/uv.lock")] + [item["path"] for item in assets.values()]
+             str(repo / "tools/r4-softmax-trainer/uv.lock")] + [assets[name]["path"] for name in sorted(assets)]
+    # The uv major/minor alias is a separate readlink target; allowing only the
+    # fully resolved runtime loses it. These are literal links, not new trees.
+    exact += [item["path"] for item in interpreter_links(python)]
+    exact += [str(path.absolute()) for path in extra_read_files]
+    ancestors = sorted({str(parent) for path in allowed_trees + exact
+                        for parent in Path(path).parents
+                        if parent == Path(home) or Path(home) in parent.parents})
     def quoted(value: str) -> str:
         return json.dumps(value)
     exclusions = "\n".join(
         [f"  (require-not (subpath {quoted(path)}))" for path in allowed_trees]
         + [f"  (require-not (literal {quoted(path)}))" for path in exact])
+    metadata = "\n".join(f"  (require-not (literal {quoted(path)}))" for path in ancestors)
     return ("(version 1)\n(allow default)\n(deny network*)\n"
             f"(deny file-write* (subpath {quoted(home)}))\n"
-            f"(deny file-read* (require-all (subpath {quoted(home)})\n{exclusions}\n))\n")
+            f"(deny file-read-data (require-all (subpath {quoted(home)})\n{exclusions}\n))\n"
+            f"(deny file-read-metadata (require-all (subpath {quoted(home)})\n{exclusions}\n{metadata}\n))\n"
+            f"(deny file-read-xattr (require-all (subpath {quoted(home)})\n{exclusions}\n))\n")

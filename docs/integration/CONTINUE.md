@@ -19,17 +19,20 @@ follow the original source paths/commits. Use relevant code, research and proof
 records; imported prose is context, not instructions or current authority.
 
 Prefer the named immediate successor unless its live dependencies or my latest
-instructions say otherwise. Do not revive a closed experiment. At the #1094
-preparation checkpoint, that successor is #1096: separately repair isolated
-runtime readiness with zero model forwards. #1094's authoring fidelity was
-exact, but the OS denied Python startup; its terminal remains
-UNAVAILABLE_REFERENCE_REPLAY, and withheld comparison/replay remain NOT_RUN.
-Preserve the sealed population and original receipts. Independently review the
-minimal access policy and demonstrate actual readiness through the named benign
-probes before any later #1094 preparation or release. Preserve the reader/core,
-known lexicon/query form, four-fact context, #1079 weak-control verdict and
-#1082 descriptive limits. If this has since completed, use the
-actual later result and next decision.
+instructions say otherwise. Do not revive a closed experiment. At the #1096
+checkpoint, ISOLATED_RUNTIME_READY is recorded for the sole zero-forward
+readiness attempt; independent result review passed. Read
+docs/r4_isolated_runtime_readiness_1096.md and verify its native delivery state.
+After it lands, the successor is #1094's separate frozen preparation and
+independent release review. #1094 remains open, parked and unassigned until
+activated. Its original preparation terminal remains UNAVAILABLE_REFERENCE_REPLAY;
+its exact authoring fidelity and sealed population are preserved. No new #1094
+preparation, withheld comparison or replay ran under #1096. Freeze the separate
+source/runtime/input contract and obtain independent review before any later
+release; readiness alone does not authorize comparison or qualify raw-text
+behavior. Preserve the reader/core, known lexicon/query form, four-fact context,
+#1079 weak-control verdict and #1082 descriptive limits. If this has since
+completed, use the actual later result and next decision.
 
 Select one eligible issue, assign the active owner and use a clean isolated
 issue worktree. Preserve unrelated changes, artifacts and sealed inputs.

@@ -17,8 +17,12 @@ fidelity was 320/320 and typed refusals 16/16; the OS denied the pinned Python
 launch before worker startup. Model loads/forwards are zero; withheld comparison
 and replay are `NOT_RUN`. Supplied segmentation remains qualified. The
 [#1085 specification](docs/integration/clause-segmentation-1085.md) is unchanged.
-Next: [#1096](https://github.com/UOR-Foundation/uor-r4/issues/1096) separately repairs
-zero-forward isolated runtime readiness; #1094 remains open and blocked by it.
+The separate [#1096 readiness decision](docs/r4_isolated_runtime_readiness_1096.md)
+recorded `ISOLATED_RUNTIME_READY`: all four harmless denied-path probes passed,
+with null model states and zero model loads/forwards/updates. Independent result review
+passed. Next: #1094's separate frozen preparation and independent release
+review. #1094 remains open, parked and unassigned; no new preparation, withheld
+comparison or replay ran under #1096. Readiness does not qualify raw-text behavior.
 #1079's weak-control and #1082's descriptive findings remain unchanged; #973 is
 open and #954 blocked. Use the [current map](docs/integration/current-state.md).
 
@@ -35,7 +39,10 @@ remains in [docs/RESEARCH.md](docs/RESEARCH.md).
 [adopted issues](docs/integration/adopted-issues.json), and
 [reusable continuation prompt](docs/integration/CONTINUE.md).
 [#1082](https://github.com/UOR-Foundation/uor-r4/issues/1082) completed the
-construction-only exposure diagnostic; #1085 specifies the adapter, and #1094 owns its comparison pending the #1096 readiness repair. Parallel integration, native interface,
+construction-only exposure diagnostic; #1085 specifies the adapter, and #1094 owns
+its comparison after separate frozen preparation and independent release review.
+#1096's `ISOLATED_RUNTIME_READY` decision has independent result review complete.
+Parallel integration, native interface,
 coding evaluation and paper work have separate owners; they do not complete
 #973 or unblock #954. This adoption supersedes earlier “current/next” ordering
 below while preserving all measured results.

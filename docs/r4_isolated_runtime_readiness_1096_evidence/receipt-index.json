@@ -1,0 +1,171 @@
+{
+  "schema": "uor-r4.isolated-runtime-evidence-index/1",
+  "issue": 1096,
+  "source_commit": "79c674c8f6179a68878a12ee86e664f1435c3ebf",
+  "status": "ISOLATED_RUNTIME_READY",
+  "attempts": 1,
+  "files": [
+    {
+      "path": "superseded-freeze01/bindings.json",
+      "origin_path": "/Users/casey.allard/.codex/uor/issue-1096-readiness/bindings.json",
+      "bytes": 58978,
+      "sha256": "6595da15117ea8e82f27fa3e518457831d3180869815f20fde5a3d15c142e931",
+      "visibility": "public",
+      "evidence_status": "UNATTEMPTED_AUTHORING"
+    },
+    {
+      "path": "superseded-freeze01/manifest.json",
+      "origin_path": "/Users/casey.allard/.codex/uor/issue-1096-readiness/manifest.json",
+      "bytes": 9341,
+      "sha256": "704b78e285a1ba5b1ee24f5c9e3a82205ac15c3d31081fc942c1a0dcbcb140ea",
+      "visibility": "public",
+      "evidence_status": "UNATTEMPTED_AUTHORING"
+    },
+    {
+      "path": "superseded-freeze01/probes/corpus/sentinel.txt",
+      "origin_path": "/Users/casey.allard/.codex/uor/issue-1096-readiness/probes/corpus/sentinel.txt",
+      "bytes": 68,
+      "sha256": "96323cca58f55e256f91a1dd0a4c893657a5a52b71021d584998174d4d3d26f3",
+      "visibility": "public",
+      "evidence_status": "UNATTEMPTED_AUTHORING"
+    },
+    {
+      "path": "superseded-freeze01/probes/history/sentinel.txt",
+      "origin_path": "/Users/casey.allard/.codex/uor/issue-1096-readiness/probes/history/sentinel.txt",
+      "bytes": 68,
+      "sha256": "96323cca58f55e256f91a1dd0a4c893657a5a52b71021d584998174d4d3d26f3",
+      "visibility": "public",
+      "evidence_status": "UNATTEMPTED_AUTHORING"
+    },
+    {
+      "path": "superseded-freeze01/probes/reference/sentinel.txt",
+      "origin_path": "/Users/casey.allard/.codex/uor/issue-1096-readiness/probes/reference/sentinel.txt",
+      "bytes": 68,
+      "sha256": "96323cca58f55e256f91a1dd0a4c893657a5a52b71021d584998174d4d3d26f3",
+      "visibility": "public",
+      "evidence_status": "UNATTEMPTED_AUTHORING"
+    },
+    {
+      "path": "superseded-freeze01/probes/results/sentinel.txt",
+      "origin_path": "/Users/casey.allard/.codex/uor/issue-1096-readiness/probes/results/sentinel.txt",
+      "bytes": 68,
+      "sha256": "96323cca58f55e256f91a1dd0a4c893657a5a52b71021d584998174d4d3d26f3",
+      "visibility": "public",
+      "evidence_status": "UNATTEMPTED_AUTHORING"
+    },
+    {
+      "path": "superseded-freeze01/worker.sb",
+      "origin_path": "/Users/casey.allard/.codex/uor/issue-1096-readiness/worker.sb",
+      "bytes": 8153,
+      "sha256": "dc051ecdf8aad0f74b2a726b1ecd4a253ce80f6be69c6eaaa9ce282a77ec3a38",
+      "visibility": "public",
+      "evidence_status": "UNATTEMPTED_AUTHORING"
+    },
+    {
+      "path": "admitted-freeze02/bindings.json",
+      "origin_path": "/Users/casey.allard/.codex/uor/issue-1096-readiness-freeze02/bindings.json",
+      "bytes": 58978,
+      "sha256": "23977918c1685148f6cbc61ebab87507e2ce153e40d9b15c2634a4d68e0c2353",
+      "visibility": "public",
+      "evidence_status": "OBSERVED_READINESS_RECEIPT"
+    },
+    {
+      "path": "admitted-freeze02/manifest.json",
+      "origin_path": "/Users/casey.allard/.codex/uor/issue-1096-readiness-freeze02/manifest.json",
+      "bytes": 9395,
+      "sha256": "4acd2b7ec00ac8874573e2d6e52e5087b376bc0ebcd52aedd4464aa28979c644",
+      "visibility": "public",
+      "evidence_status": "OBSERVED_READINESS_RECEIPT"
+    },
+    {
+      "path": "admitted-freeze02/probes/corpus/sentinel.txt",
+      "origin_path": "/Users/casey.allard/.codex/uor/issue-1096-readiness-freeze02/probes/corpus/sentinel.txt",
+      "bytes": 68,
+      "sha256": "96323cca58f55e256f91a1dd0a4c893657a5a52b71021d584998174d4d3d26f3",
+      "visibility": "public",
+      "evidence_status": "OBSERVED_READINESS_RECEIPT"
+    },
+    {
+      "path": "admitted-freeze02/probes/history/sentinel.txt",
+      "origin_path": "/Users/casey.allard/.codex/uor/issue-1096-readiness-freeze02/probes/history/sentinel.txt",
+      "bytes": 68,
+      "sha256": "96323cca58f55e256f91a1dd0a4c893657a5a52b71021d584998174d4d3d26f3",
+      "visibility": "public",
+      "evidence_status": "OBSERVED_READINESS_RECEIPT"
+    },
+    {
+      "path": "admitted-freeze02/probes/reference/sentinel.txt",
+      "origin_path": "/Users/casey.allard/.codex/uor/issue-1096-readiness-freeze02/probes/reference/sentinel.txt",
+      "bytes": 68,
+      "sha256": "96323cca58f55e256f91a1dd0a4c893657a5a52b71021d584998174d4d3d26f3",
+      "visibility": "public",
+      "evidence_status": "OBSERVED_READINESS_RECEIPT"
+    },
+    {
+      "path": "admitted-freeze02/probes/results/sentinel.txt",
+      "origin_path": "/Users/casey.allard/.codex/uor/issue-1096-readiness-freeze02/probes/results/sentinel.txt",
+      "bytes": 68,
+      "sha256": "96323cca58f55e256f91a1dd0a4c893657a5a52b71021d584998174d4d3d26f3",
+      "visibility": "public",
+      "evidence_status": "OBSERVED_READINESS_RECEIPT"
+    },
+    {
+      "path": "admitted-freeze02/resources.json",
+      "origin_path": "/Users/casey.allard/.codex/uor/issue-1096-readiness-freeze02/resources.json",
+      "bytes": 394,
+      "sha256": "c3a5005f661cdd2e42a18e85eea066d0a7c9dadf3f7b6f391c48e8757398ba42",
+      "visibility": "public",
+      "evidence_status": "OBSERVED_READINESS_RECEIPT"
+    },
+    {
+      "path": "admitted-freeze02/result.json",
+      "origin_path": "/Users/casey.allard/.codex/uor/issue-1096-readiness-freeze02/result.json",
+      "bytes": 4756,
+      "sha256": "439aa149d6f128844490c4a9002bfe2ffb52fdeeaad067e8e3cb16447b24b930",
+      "visibility": "public",
+      "evidence_status": "OBSERVED_READINESS_RECEIPT"
+    },
+    {
+      "path": "admitted-freeze02/review.json",
+      "origin_path": "/Users/casey.allard/.codex/uor/issue-1096-readiness-freeze02/review.json",
+      "bytes": 2452,
+      "sha256": "e092e4bc3d3a989d37868c5530ff3483d80f4a64e53b3cf609aa1774a5c43759",
+      "visibility": "public",
+      "evidence_status": "OBSERVED_READINESS_RECEIPT"
+    },
+    {
+      "path": "admitted-freeze02/started.json",
+      "origin_path": "/Users/casey.allard/.codex/uor/issue-1096-readiness-freeze02/started.json",
+      "bytes": 737,
+      "sha256": "2da6bab8bc6812b4dcec55da98650fe996768c9ff365fbcdde5896f31c9d38b9",
+      "visibility": "public",
+      "evidence_status": "OBSERVED_READINESS_RECEIPT"
+    },
+    {
+      "path": "admitted-freeze02/worker.sb",
+      "origin_path": "/Users/casey.allard/.codex/uor/issue-1096-readiness-freeze02/worker.sb",
+      "bytes": 8243,
+      "sha256": "d508d3ec50b78e3bbd3cb1fe9468788f457f4e47f713f9a793f03079df48416e",
+      "visibility": "public",
+      "evidence_status": "OBSERVED_READINESS_RECEIPT"
+    },
+    {
+      "path": "admitted-freeze02/worker.stderr.txt",
+      "origin_path": "/Users/casey.allard/.codex/uor/issue-1096-readiness-freeze02/worker.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "visibility": "public",
+      "evidence_status": "OBSERVED_READINESS_RECEIPT"
+    },
+    {
+      "path": "admitted-freeze02/worker.stdout.jsonl",
+      "origin_path": "/Users/casey.allard/.codex/uor/issue-1096-readiness-freeze02/worker.stdout.jsonl",
+      "bytes": 3769,
+      "sha256": "cbe9436ab15bf207c362b7863685c524ec95f8f20b2402f3294920289af6561c",
+      "visibility": "public",
+      "evidence_status": "OBSERVED_READINESS_RECEIPT"
+    }
+  ],
+  "original_receipt_bytes": 165740,
+  "copy_policy": "Exact original bytes. No model, corpus, withheld payload or provider history copied. Both identity freezes retained; only freeze02 was attempted."
+}
