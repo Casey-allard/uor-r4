@@ -1,6 +1,6 @@
 # Current programme map and correctness handoff
 
-**Planning reconciliation: 2026-09-03.** Scientific evidence baseline:
+**Planning reconciliation: 2026-09-03, #1085 specification delivered.** Scientific evidence baseline:
 `UOR-Foundation/uor-r4@e627252e525201815169ffd8364184953a46018d`.
 This map supersedes earlier “current” and “next” sequencing prose, not its
 measurements. Refresh native GitHub before selecting work. The
@@ -33,17 +33,23 @@ retained supported-answer strata have very similar role means. Role-selective
 exposure and retained answers despite displacement are observed; no downstream
 cause is established and #1079's weak-control verdict remains unchanged.
 
-The immediate successor is **[#1085: specify removal of externally supplied
-clause segmentation](https://github.com/UOR-Foundation/uor-r4/issues/1085)**.
-Keep the accepted reader/core, known lexicon/query form and four-fact context.
-Specify one text-to-clause adapter, its allowed inputs, typed failure behavior,
-and comparison with the current oracle-segmented reference. The eventual
-empirical child must freeze independent inputs, output/role preservation,
-controls, decision branches and budget before observation. This is the next
-product restriction selected by independent review; the diagnostic does not
-prove that segmentation caused the control difference. No fit, new population,
-downstream diagnosis, replacement control or geometry expansion is activated by
-this specification handoff. #954 remains blocked.
+[#1085's specification](clause-segmentation-1085.md) is complete at
+`CLAUSE_SEGMENTATION_SPECIFIED`. It defines one deterministic text-to-clause
+adapter, exact raw-only input/output/refusal schemas and a separate empirical
+comparison while preserving the reader/core, lexicon/query and four-fact context.
+The [source audit](clause-segmentation-1085-sources.md) links original
+NEMESIS/W33/UOR material without importing capability or proof claims.
+Implementation, population preparation, fitting and evaluation are `NOT_RUN`.
+
+The immediate next task is **[#1094: implement and compare the fixed adapter](https://github.com/UOR-Foundation/uor-r4/issues/1094)**.
+It is parked and unassigned until active. Before outcome access, bind the merged
+contract, implementation, independently prepared raw-text/reference partitions
+and runtime. The frozen comparison uses 320 authoring/1280 withheld valid rows,
+16/64 refusal rows and 16 boundary controls; exact tensor/output fidelity and
+refusal without model work decide bounded admission. Semantics remain previously
+observed. The budget is 360 seconds, 3 GiB RSS and 128 MiB new corpus/evidence.
+This specification does not establish segmentation as the cause of #1079's
+weak token control, qualify raw-text behavior, or unblock #954.
 
 ## Sequencing and ownership
 
@@ -62,9 +68,10 @@ transport acknowledgements do not complete their parent capability.
 | Lane / native owner | Next bounded deliverable | Promotion boundary |
 |---|---|---|
 | [#1082 attention diagnostic](https://github.com/UOR-Foundation/uor-r4/issues/1082), child of #973 | Completed; [exact report/replay](../r4_token_exposure_1082.md) | Role-selective exposure observed; preservation and the weak-control verdict retained. |
-| [#1085 language/context](https://github.com/UOR-Foundation/uor-r4/issues/1085), child of #973, eligible after #1082 delivery | Specify removal of supplied clause segmentation, then freeze a separate empirical child | Clause segmentation, role ambiguity, new semantic combinations, variable context and temporal updates need their own evidence; this issue plans them rather than automatically fitting. |
+| [#1085 language/context specification](https://github.com/UOR-Foundation/uor-r4/issues/1085), child of #973 | Completed; [adapter/schema/comparison contract](clause-segmentation-1085.md) | Specification only; later transfer stages remain separately staged. |
+| [#1094 adapter comparison](https://github.com/UOR-Foundation/uor-r4/issues/1094), child of #973, follows #1085 | Implement the sole adapter and independently freeze comparison inputs before evaluation | Exact input/soft-output preservation and typed refusal admit only bounded text entry; no new semantic-world or general-language claim. |
 | [#1083 UOR integration](https://github.com/UOR-Foundation/uor-r4/issues/1083) | Typed identity/arithmetic ADR and review of one selected adapter boundary | Content hashes, structural identities, codec identities and derivation keys remain distinct; arithmetic needs a declared domain and error/cost contract. |
-| [#1086 native reference bridge](https://github.com/UOR-Foundation/uor-r4/issues/1086), blocked by #1085 | Specify the accepted model's export/loader and matched native behavior contract before implementation | Preserve qualified behavior and identity; no canned answers or silent backend substitution. |
+| [#1086 native reference bridge](https://github.com/UOR-Foundation/uor-r4/issues/1086), specification dependency #1085 delivered | Specify the accepted model's export/loader and matched native behavior contract before implementation | Preserve qualified behavior and identity; no canned answers or silent backend substitution. |
 | [#1087 final serving representation](https://github.com/UOR-Foundation/uor-r4/issues/1087), blocked by #1086 and #1083 | Operator inventory and one concrete lowering decision with operation/error/resource obligations | Dense research-reference success does not establish the final integer/table kernel; a lowering candidate needs its own frozen contract. |
 | [#1084 product interface](https://github.com/UOR-Foundation/uor-r4/issues/1084) | API/asset-ownership ADR and minimal same-origin shell with one honest supported operation | This can proceed in parallel without completing #962 or presenting bounded binding as general chat. |
 | [#1088 coding/workspace](https://github.com/UOR-Foundation/uor-r4/issues/1088), blocked by #1084 and #955 | Minimal executable task/patch/result schema; separate harness and later model evaluations | UI actions and external teacher output are separate from the native model's coding competence. |
@@ -76,7 +83,7 @@ The [adopted issue record](adopted-issues.json) records native ownership and
 dependencies at adoption time. #1081 delivered the planning workflow in
 [PR #1092](https://github.com/UOR-Foundation/uor-r4/pull/1092), merge
 `11e46611b82702e005165fb0034e1adf7d119a70`; #1082 owns the completed diagnostic
-and #1085 the next specification. Planned lanes remain unassigned until active.
+and #1085 the completed specification. #1094 owns the pending adapter comparison; #1086 may specify export but cannot claim raw-text qualification before that evidence. Planned lanes remain unassigned until active.
 The pre-adoption snapshot had nine open issues and all 24 #973 children closed;
 those counts are historical now that the new children exist.
 The S0–S7/F0 compiler-era graph is retained as history, not a second active queue.

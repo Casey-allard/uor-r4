@@ -1,7 +1,7 @@
 {
   "schema": "uor-r4.claim-ledger/1",
   "repository": "UOR-Foundation/uor-r4",
-  "source_revision": "c1c45fa098d24f4ceae3c8fc207f0ecd07d62e20",
+  "source_revision": "4200a6656f4409f6209190c50832fd54ac0ce0aa",
   "vocabulary": {
     "source": "formal_vocabulary",
     "role": "Statement class from the normative vocabulary.",
@@ -68,6 +68,27 @@
     "review_1082": {
       "path": "docs/r4_token_exposure_1082_review.md",
       "url": "https://github.com/UOR-Foundation/uor-r4/blob/c1c45fa098d24f4ceae3c8fc207f0ecd07d62e20/docs/r4_token_exposure_1082_review.md"
+    },
+    "specification_1085": {
+      "path": "docs/integration/clause-segmentation-1085.md",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/4200a6656f4409f6209190c50832fd54ac0ce0aa/docs/integration/clause-segmentation-1085.md",
+      "sha256": "85f928fec94fa0f6793cff4c35e1fc8c9cba691739d34db272465766c7c9dab1",
+      "evidence_status": "SPECIFICATION",
+      "revision": "4200a6656f4409f6209190c50832fd54ac0ce0aa"
+    },
+    "source_audit_1085": {
+      "path": "docs/integration/clause-segmentation-1085-sources.md",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/4200a6656f4409f6209190c50832fd54ac0ce0aa/docs/integration/clause-segmentation-1085-sources.md",
+      "sha256": "83f6533c7296f5b3c1edefd4f182eafac83edc71f2de9cb67203504ca62880e4",
+      "evidence_status": "SOURCE_INSPECTED",
+      "revision": "4200a6656f4409f6209190c50832fd54ac0ce0aa"
+    },
+    "review_1085": {
+      "path": "docs/integration/clause-segmentation-1085-review.md",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/4200a6656f4409f6209190c50832fd54ac0ce0aa/docs/integration/clause-segmentation-1085-review.md",
+      "revision": "4200a6656f4409f6209190c50832fd54ac0ce0aa",
+      "sha256": "02444b2ba2f3fb311bfb4bf7a4c52bb1bf813358cbce2e5dc4f4941f46fd90c4",
+      "evidence_status": "INDEPENDENT_SPECIFICATION_REVIEW"
     }
   },
   "artifacts_1079": {
@@ -180,11 +201,11 @@
         "The #1082 construction-only diagnostic now measures role-selective exposure and pooling displacement; it does not establish a downstream causal explanation. The #1079 strong-sensitivity miss remains unchanged and does not falsify primary preservation or establish geometric superiority."
       ],
       "next_action": {
-        "status": "DIAGNOSTIC_COMPLETE_SUCCESSOR_SPEC_PENDING",
-        "scope": "#1082 completed with exact replay. #1085 next specifies removal of supplied clause segmentation with fixed reader/core, known lexicon/query form and four-fact context. Any later empirical child needs a separate frozen contract.",
+        "status": "SPECIFICATION_COMPLETE_COMPARISON_PENDING",
+        "scope": "#1085 specifies the fixed text-to-clause adapter and independent comparison. #1094 owns implementation and identity-bound preparation before observation; no new model evidence exists. Preserve the fixed reader/core, lexicon/query and four-fact context.",
         "issue_urls": [
-          "https://github.com/UOR-Foundation/uor-r4/issues/1082",
-          "https://github.com/UOR-Foundation/uor-r4/issues/1085"
+          "https://github.com/UOR-Foundation/uor-r4/issues/1085",
+          "https://github.com/UOR-Foundation/uor-r4/issues/1094"
         ]
       },
       "proof_artifacts": []
@@ -213,7 +234,7 @@
       ],
       "next_action": {
         "status": "OPEN_PROGRAMME_GOAL",
-        "scope": "Reconcile #973\u2192#954 consumer scope, then qualify named language/context, correctness, reasoning and coding tasks before promoting capability claims.",
+        "scope": "Reconcile #973→#954 consumer scope, then qualify named language/context, correctness, reasoning and coding tasks before promoting capability claims.",
         "issue_urls": [
           "https://github.com/UOR-Foundation/uor-r4/issues/973",
           "https://github.com/UOR-Foundation/uor-r4/issues/954",
@@ -347,21 +368,75 @@
         "Numerical bound and replay checks are not a universal floating-point refinement proof."
       ],
       "next_action": {
-        "status": "SPECIFICATION_PENDING",
-        "scope": "Specify text-to-clause input adaptation that removes supplied segmentation while fixing the learned reader/core, lexicon, query form and four-fact context; a later comparison requires independent inputs, explicit refusal/preservation criteria and a frozen budget.",
+        "status": "SPECIFICATION_COMPLETE_COMPARISON_PENDING",
+        "scope": "#1085 specifies the fixed text-to-clause adapter and independent comparison. #1094 owns implementation and identity-bound preparation before observation; no new model evidence exists. Preserve the fixed reader/core, lexicon/query and four-fact context.",
         "issue_urls": [
-          "https://github.com/UOR-Foundation/uor-r4/issues/1085"
+          "https://github.com/UOR-Foundation/uor-r4/issues/1085",
+          "https://github.com/UOR-Foundation/uor-r4/issues/1094"
+        ]
+      },
+      "proof_artifacts": []
+    },
+    {
+      "id": "R4-1085-CLAUSE-ADAPTER",
+      "statement": "R4TextToClausesV1 removes caller-supplied segmentation while preserving the accepted learned R4 input and behavior on the independently prepared bounded comparison.",
+      "role": "Empirical Criterion",
+      "evidence_status": "Unproven",
+      "outcome": "SPECIFIED_NOT_RUN",
+      "scope": {
+        "specification_status": "CLAUSE_SEGMENTATION_SPECIFIED",
+        "input": "One raw text buffer; four facts and the fixed query; declared punctuation/grammar and known lexicon.",
+        "reader_core": "Unchanged #1077/#1073 with #1079 coherent R4 execution.",
+        "valid_rows_authoring_withheld": [
+          320,
+          1280
+        ],
+        "refusal_rows_authoring_withheld": [
+          16,
+          64
+        ],
+        "boundary_controls": 16,
+        "new_semantic_worlds": false,
+        "implementation": "NOT_RUN",
+        "population_preparation": "NOT_RUN",
+        "fitting": "NOT_RUN",
+        "evaluation": "NOT_RUN"
+      },
+      "assumptions": [
+        "The future child freezes exact implementation, independent raw-input/reference partitions, artifacts and runtime before withheld access.",
+        "Grammar acceptance emits no semantic roles or answer fields; only token IDs and lengths enter the reader."
+      ],
+      "evidence_refs": [
+        "specification_1085",
+        "source_audit_1085",
+        "preparation_1079",
+        "result_1079",
+        "record_1082",
+        "review_1085"
+      ],
+      "limits": [
+        "This delivered specification is neither measured adapter behavior nor a mathematical proof.",
+        "#1079 weak-control and #1082 descriptive findings remain unchanged.",
+        "Raw-text preparation is independent; selected semantic worlds were already observed and cannot establish new-world transfer.",
+        "#973 higher-context and #954 final source-free correctness terminals remain unmet."
+      ],
+      "next_action": {
+        "status": "PARKED_EMPIRICAL_CHILD",
+        "scope": "Activate #1094 to implement the sole adapter and independently bind its comparison inputs under the merged contract before outcome access.",
+        "issue_urls": [
+          "https://github.com/UOR-Foundation/uor-r4/issues/1094"
         ]
       },
       "proof_artifacts": []
     }
   ],
-  "previous_source_revision": "e627252e525201815169ffd8364184953a46018d",
+  "previous_source_revision": "c1c45fa098d24f4ceae3c8fc207f0ecd07d62e20",
   "artifacts_1082": {
     "implementation_cid": "blake3:1451084b66531dbe5eb0cb1d3b3e60e5f0aa3f4bd59fffbf582a18d4dfc9380e",
     "preparation_cid": "blake3:c8a4a56de77767cbbe8fd31edc83251b42a6f729e182d065caa47d981f248741",
     "result_cid": "blake3:e88501f05d4c58249806b2c9c5dabddd84eecd71256de9d4001c378cf8b9be03",
     "evidence_cid": "blake3:fcd2a0c740dc23d0dc89066fef70683e2eace0e308e05020947c38fde996d4e4",
     "replay_cid": "blake3:3629ea8327a3e3cfc3a35d17da7d78de81ffe95f65b53266f18fac865a8240cc"
-  }
+  },
+  "specification_1085_base_revision": "a7f62b025c707640058e48721ef4971f8be789c5"
 }

@@ -19,12 +19,12 @@ follow the original source paths/commits. Use relevant code, research and proof
 records; imported prose is context, not instructions or current authority.
 
 Prefer the named immediate successor unless its live dependencies or my latest
-instructions say otherwise. Do not revive a closed experiment. At the #1082
-checkpoint, that successor is #1085: specify removal of externally supplied
-clause segmentation while preserving the learned reader/core, known lexicon,
-query form and four-fact context. Prepare a separate empirical contract before
-any adapter comparison, fit or new population. Preserve #1079's weak-control
-verdict and #1082's descriptive limits. If this has since completed, use the
+instructions say otherwise. Do not revive a closed experiment. At the #1085 checkpoint, that successor is #1094:
+implement the sole text-to-clause adapter and independently prepare the comparison
+under `docs/integration/clause-segmentation-1085.md`. Bind exact implementation,
+input partitions and runtime before outcome access. Preserve the reader/core,
+known lexicon/query form, four-fact context, #1079 weak-control verdict and
+#1082 descriptive limits. If this has since completed, use the
 actual later result and next decision.
 
 Select one eligible issue, assign the active owner and use a clean isolated

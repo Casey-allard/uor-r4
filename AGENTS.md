@@ -11,12 +11,15 @@ coexist with nonzero displacement. This is descriptive evidence, not a causal
 explanation or a revision of #1079's weak-control result. No new answers,
 fitting, development scoring or generation ran.
 
-**Next:** [#1085](https://github.com/UOR-Foundation/uor-r4/issues/1085) specifies
-removal of externally supplied clause segmentation, holding the reader/core,
-known lexicon/query form and four-fact context fixed. Freeze a separate
-adapter-versus-oracle-segmentation comparison before any empirical work.
-#973 remains open and #954 blocked. Earlier next-action prose below is dated
-history; use the [current map](docs/integration/current-state.md).
+**Latest specification (2026-09-03):** [#1085](docs/integration/clause-segmentation-1085.md)
+completed `CLAUSE_SEGMENTATION_SPECIFIED`. The bounded text adapter preserves
+the reader/core, known lexicon/query and four-fact context. Its separate
+[#1094 comparison](https://github.com/UOR-Foundation/uor-r4/issues/1094) is frozen
+at specification scope and parked pending implementation/input identity binding.
+No parser implementation, population preparation, fitting or evaluation ran.
+Next: activate #1094 to implement the sole adapter and independently prepare its
+comparison under that contract. #973 remains open and #954 blocked; use the
+[current map](docs/integration/current-state.md).
 
 Guidance for agents (human or otherwise) working in this repository.
 **Post-v0.1 intelligence sequencing is authoritative in
@@ -65,7 +68,7 @@ the weaker token control remains unmeasured. #973 stays open; #954 remains block
 **Historical checkpoints — superseded for next-action selection on
 2026-09-03.** The earlier “current/next” decisions below retain their original
 scope and results. Use the current map and live issue graph; the next research
-contract is [#1085](https://github.com/UOR-Foundation/uor-r4/issues/1085).
+contract is [#1094](https://github.com/UOR-Foundation/uor-r4/issues/1094), following the completed #1085 specification.
 
 The earlier #973 V5 terminal is the independently verified predictive
 write/binding campaign. It completed

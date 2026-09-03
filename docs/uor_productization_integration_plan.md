@@ -1,6 +1,12 @@
 # UOR-R4 research, integration and productization plan
 
-**Execution update (2026-09-03):** The user authorized adoption under [#1081](https://github.com/UOR-Foundation/uor-r4/issues/1081). Native ownership/dependencies and current scope have been updated; the immediate diagnostic is now [#1082](https://github.com/UOR-Foundation/uor-r4/issues/1082). Use the [current map](integration/current-state.md), [adoption record](integration/workflow-adoption.md) and [reusable continuation prompt](integration/CONTINUE.md). The audit-era descriptions below preserve what was known before this adoption; they do not override the current map.
+**Execution update (2026-09-03):** Adoption #1081, diagnostic #1082 and
+[#1085's text-to-clause specification](integration/clause-segmentation-1085.md)
+are delivered. The next bounded task is [#1094](https://github.com/UOR-Foundation/uor-r4/issues/1094),
+implementation and independent comparison under that contract. It is parked;
+no parser, new population, fit or evaluation was run by #1085. Use the
+[current map](integration/current-state.md) and native GitHub. The audit-era
+current/next descriptions below are preserved history and do not select work.
 
 Audit baseline: `UOR-Foundation/uor-r4@e627252e525201815169ffd8364184953a46018d`, retrieved September 2–3, 2026. This is a proposed extension of the live programme, accompanied by installed local tools and a queryable source inventory. It does not itself change GitHub ownership, activate experiments, authorize publication, or establish model capability. Native GitHub state remains authoritative when this snapshot ages.
 
