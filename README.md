@@ -14,40 +14,39 @@ local hardware. The project is testing whether language context, inference,
 and reasoning can emerge from routes through a canonical geometric memory. The
 target serving engine uses no Ollama, hosted model, or source-model weights.
 
-> **Current structured-binding result (2026-09-02):** #1073 completed
-> `COMPOUND_BINDING_FRESH_PASSED`. Every tested cyclic order scores
-> **8,192/8,192 supported**, **2,048/2,048 unknown**, and **1,024/1,024 complete
-> quartets per question family** on construction. Predictions are identical
-> across four orders; maximum full-head logit difference is **5.7220459e-6**.
-> See the [#1073 compound-binding record](docs/r4_zoology_compound_binding_1073.md).
+> **Current R4 structured-binding result (2026-09-02):** #1075 completed
+> `COMPOUND_R4_PRESERVED`. Ordinary execution exactly reproduced all eight
+> published population/order views. Coherent R4 preserved **all 46,080 predictions**:
+> **8,192/8,192 supported and 2,048/2,048 unknown** construction answers, plus
+> **1,024/1,024 supported and 256/256 unknown** development answers, in every
+> cyclic order. All question-group counts remain intact. See the
+> [#1075 preservation record](docs/r4_zoology_compound_r4_1075.md).
 >
-> Fresh development reaches **1,024/1,024 supported, 256/256 unknown and
-> 256/256 complete groups (128/128 per family)** in every order. The fresh
-> population covers 64 held-out owner-object pairs and has zero world/input overlaps
-> with construction and all four historical development populations. In each
-> value-cycle control, attention is exactly unchanged: original supported accuracy
-> becomes **0/8,192**, reassigned answers **8,192/8,192**, and all **2,048 unknown
-> predictions remain unchanged and correct**.
+> Maximum ordinary/R4 differences were **6.7949295e-6 logits**, **3.5762787e-7
+> attention**, and **4.6475179e-10 nats mean NLL**, within every frozen tolerance.
+> The complete four-fact-plus-null softmax mixture is preserved; this is not hard
+> fact selection or an argmax-null absence rule.
 >
-> The **286,976-parameter** model received **3,920 updates / 2,007,040 presentations**
-> (1,846,495 supported; 160,545 unknown). Fit, evaluation and exact fresh-process
-> replay took **63.7994 seconds**, peak **1.323975 GiB**, on eight CPU threads.
-> Eighteen focused checks passed; broad QA remains dormant.
+> Valid controls with equal work and the null frame fixed broke fact-frame
+> transport. Supported accuracy fell **81.5796–82.5684 percentage points** on
+> construction and **90.8203–92.6758 points** on development across orders.
+> Unknown-query effects are descriptive; they are not control success criteria.
 >
-> This establishes learned structured binding with grammar-supplied roles.
-> Learned English parsing, general English/chat and geometric superiority remain
-> unestablished; architecture changed at the matched dose. Null receives mean
-> 54.64% attention on supported construction: preserve the complete softmax mixture.
+> The retained [#1073 compound model](docs/r4_zoology_compound_binding_1073.md) has **286,976 parameters**
+> and its original **3,920-update / 2,007,040-presentation** fit. #1075 performed
+> **zero training and zero geometry changes**. Run and exact fresh-process replay
+> took **15.5921 seconds**, peak **2.069 GiB**, on eight CPU threads. Fourteen
+> focused checks passed; broad QA remains dormant.
 >
-> Next, separately freeze **unchanged-R4 inference preservation** for these same
-> weights: ordinary/coherent execution and broken-transport controls over the
-> rectangular four-fact-plus-null mixture, including construction and fresh rows
-> in all four orders. #1073 ran no R4 or geometry increase.
+> Fixed grammar still supplies owner/object/location roles, and these populations
+> were already observed in #1073. This is behavior preservation, not a new
+> fresh-generalization result, general English, free generation or H4 superiority.
+> Next, separately freeze a **bounded language-interface learning step that
+> removes fixed-position role extraction**. No follow-up fit ran in #1075.
 >
 > Historical records, including the #1071 negative, remain intact. #1061 retains
-> **8,071/8,192 = 98.5229%** ordinary/coherent R4 preservation, all 8,192 predictions
-> identical, and its 86.2061-point transport-control loss; #1059 retains
-> **11,900/12,000 = 99.1667%** preservation.
+> **8,071/8,192 = 98.5229%** preservation with all predictions identical and an
+> 86.2061-point control loss; #1059 retains **11,900/12,000 = 99.1667%** preservation.
 > #973 stays open and #954 remains blocked.
 
 > **Predecessor open role-tagged associative result (2026-09-02):** #1045
