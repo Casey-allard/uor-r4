@@ -62,41 +62,39 @@ correctness, and reasoning remain separate claims.
 Optimization, broad QA, formalization, and release certification follow a
 working decision-bearing product slice. They do not replace it.
 
-## Current learning progress — R4 preserves structured binding
+## Current learning progress — learned clause roles feed preserved binding
 
-**Current R4 structured-binding result (2026-09-02):** #1075 completed
-`COMPOUND_R4_PRESERVED`. Ordinary execution exactly reproduced all eight
-published population/order views. Coherent R4 preserved **all 46,080 predictions**:
-**8,192/8,192 supported and 2,048/2,048 unknown** construction answers, plus
-**1,024/1,024 supported and 256/256 unknown** development answers, in every
-cyclic order. All question-group counts remain intact. See the
-[#1075 preservation record](r4_zoology_compound_r4_1075.md).
+**Current learned language-interface result (2026-09-02):** #1077 completed
+`LANGUAGE_INTERFACE_HELDOUT_PASSED`. A **141,571-parameter reader** learned
+contextual roles while the **286,976-parameter [#1073 binding core](r4_zoology_compound_binding_1073.md)**
+remained frozen. The reader fit used **512 updates, 65,536 row presentations and
+917,504 role-label presentations**. See the [#1077 record](r4_zoology_language_interface_1077.md).
 
-Maximum ordinary/R4 differences were **6.7949295e-6 logits**, **3.5762787e-7
-attention**, and **4.6475179e-10 nats mean NLL**, within every frozen tolerance.
-The complete four-fact-plus-null softmax mixture is preserved; this is not hard
-fact selection or an argmax-null absence rule.
+Both construction views achieved **8,192/8,192 supported and 2,048/2,048 unknown**
+answers. All four development views achieved **1,024/1,024 supported and 256/256
+unknown**: two seen and two withheld clause/owner-phrase combinations. All
+**25,600 primary answers and 358,400 role decisions** were correct. Every view
+completed all same-bag question pairs and both families' counterfactual quartets.
 
-Valid controls with equal work and the null frame fixed broke fact-frame
-transport. Supported accuracy fell **81.5796–82.5684 percentage points** on
-construction and **90.8203–92.6758 points** on development across orders.
-Unknown-query effects are descriptive; they are not control success criteria.
+Cycling construction fact values changed all **8,192 supported answers** to the
+reassigned locations in each view; original-answer accuracy became zero.
+All **2,048 unknown answers** remained correct, with role and binding attention
+unchanged. Full soft mixtures remain in use.
 
-The retained [#1073 compound model](r4_zoology_compound_binding_1073.md) has **286,976 parameters**
-and its original **3,920-update / 2,007,040-presentation** fit. #1075 performed
-**zero training and zero geometry changes**. Run and exact fresh-process replay
-took **15.5921 seconds**, peak **2.069 GiB**, on eight CPU threads. Fourteen
-focused checks passed; broad QA remains dormant.
+Fit, evaluation and exact fresh-process replay took **49.9201 seconds**, peak
+**1.4572 GiB**, on the qualified four-thread CPU plan. Sixteen focused checks
+passed; broad QA remains dormant. #1077 used **no R4 execution or geometry change**.
 
-Fixed grammar still supplies owner/object/location roles, and these populations
-were already observed in #1073. This is behavior preservation, not a new
-fresh-generalization result, general English, free generation or H4 superiority.
-Next, separately freeze a **bounded language-interface learning step that
-removes fixed-position role extraction**. No follow-up fit ran in #1075.
+Scope is contextual owner disambiguation through the full question prefix,
+with supplied clause boundaries, disjoint object/location lexicons, a seen
+query form and already-observed #1073 worlds. This establishes neither general
+English nor free generation. The prior
+[#1075 R4 preservation](r4_zoology_compound_r4_1075.md) retains **46,080 identical predictions**;
+#1061 and #1059 preservation records remain intact.
 
-Historical records, including the #1071 negative, remain intact. #1061 retains
-**8,071/8,192 = 98.5229%** preservation with all predictions identical and an
-86.2061-point control loss; #1059 retains **11,900/12,000 = 99.1667%** preservation.
+Next, separately freeze **R4 qualification of the retained full soft-role
+interface and four-fact-plus-null mixture**, comparing against its learned
+ordinary soft execution, with no additional fit.
 #973 stays open and #954 remains blocked.
 
 ## Historical #1043 decision — preserve the invalid result; fix learning first
