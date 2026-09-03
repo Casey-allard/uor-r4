@@ -1,0 +1,1124 @@
+{
+  "schema": "uor-r4.service-api-contract/1",
+  "issue": 1105,
+  "parent_issue": 1084,
+  "base_revision": "85d9eb8beca2a59ccda47e290afd483f7838982c",
+  "status": "SERVICE_API_CONTRACT_SPECIFIED",
+  "statement_role": "Definition",
+  "implementation_evidence_status": "Unproven",
+  "terminal_when_accepted": "SERVICE_API_CONTRACT_SPECIFIED",
+  "adr": "docs/adr/0006-native-four-fact-workbench-service.md",
+  "runtime_work_in_this_issue": {
+    "builds": 0,
+    "model_loads": 0,
+    "qualification_calls": 0,
+    "forwards": 0,
+    "fits": 0,
+    "exports": 0,
+    "replays": 0,
+    "http_or_browser_runs": 0
+  },
+  "architecture": {
+    "proposed_crate": "uor-r4-workbench",
+    "proposed_binary": "r4-workbench",
+    "parent": "one loopback HTTP/lifecycle/static-asset owner",
+    "worker": "one child process of the same final executable; private pipes only; no listener",
+    "reusable_api": "uor_r4_api::learned_reference::{LoadedResearchReference,ExpectedBinding,RuntimeIdentity,RawRequest}",
+    "public_model_call_path": [
+      "load",
+      "qualify",
+      "answer"
+    ],
+    "public_compare_route": false,
+    "private_comparison": "Fresh independently accepted host execution release checked separately from immutable original export provenance.",
+    "first_target": "aarch64-apple-darwin; no unsupported platform readiness",
+    "model_slots": 1,
+    "active_jobs": 1,
+    "waiting_jobs": 0,
+    "default_enabled": false
+  },
+  "identity": {
+    "configured_model_id": "r4lr:sha256:2c209590a64cae16a4140fd43adc1cb1f87b357c02e3d4959f1e37f4ab8cd5ab",
+    "artifact_sha256": "2c209590a64cae16a4140fd43adc1cb1f87b357c02e3d4959f1e37f4ab8cd5ab",
+    "artifact_bytes": 2172252,
+    "native_state_sha256": "4f453da12a9346356e64b6c16abfbaad1ca99e3966173cd79e9ddbc8c2d9341b",
+    "contract_sha256": "e3565728dfa872d9c260dd3d391ae59e0b0d454ebead20cd15cb075b24796115",
+    "operator_profile": "cpu-scalar-f32-f64-1086/1",
+    "original_export_release_sha256": "2c3c2f73eb6cf804eb69b2afb0f979ae623a512ca0492e47df2af70d6cbaca8b",
+    "original_binding_source": "docs/r4_native_bridge_1102_evidence/qualification-handoff.json#/trusted_binding",
+    "original_binding_source_sha256": "efc02551d493e255f12680ccf2e4ee99cca5f645e0ca3d7fcd6445419e963426",
+    "historical_qualification_sha256": "61d29aa80e6bcd3d163b2ff2a6da4faab04414ea9f4284d80b798c4e46cf5369",
+    "historical_binary_sha256": "d423d8d3c3acd2d1c6215c21206e1bec7583e4dd37e84f30f70f79e77c40d53f",
+    "historical_receipt_applies_to_new_host": false,
+    "separate_axes": [
+      "artifact bytes",
+      "decoded native state",
+      "codec realization",
+      "policy",
+      "reader/core files",
+      "ordered frame tree",
+      "original export provenance",
+      "actual executable",
+      "runtime receipt",
+      "qualification",
+      "host acceptance",
+      "asset manifest"
+    ],
+    "instance_id": "Fresh 16 random bytes encoded lowercase hex at startup; never an artifact or semantic identity.",
+    "model_generation": "uint53; starts zero; increments once per successful readiness and once per spawned-worker invalidation; reaping does not increment again; never wraps.",
+    "revision": "uint53 global event sequence; each entity retains its last mutation revision; compare revisions within the same instance and resource identity, not across unrelated jobs.",
+    "job_id": "Positive monotonically allocated uint53 sequence encoded decimal string, scoped by instance_id; never reused or wrapped.",
+    "worker_generation": "Separate private uint53 sequence incremented for each spawned child; never reused. It is distinct from public model_generation and is checked on every IPC message."
+  },
+  "http": {
+    "bind": "127.0.0.1",
+    "port": "explicit operator-selected available port; fail without killing another port owner",
+    "namespace": "/uor/v1/workbench",
+    "one_origin": true,
+    "remote_bind": false,
+    "permissive_cors": false,
+    "host": "Exact literal startup authority 127.0.0.1:actual_port; reject other Host values.",
+    "origin": "Mutations require exact http://127.0.0.1:actual_port Origin. GET permits absent/exact and rejects foreign Origin. Null mutation Origin is rejected.",
+    "json": "UTF-8 JSON; unique keys, exact object fields and types; no unknown fields; no NaN/Infinity.",
+    "request_content_type": "application/json, with optional charset=utf-8",
+    "response_content_type": "application/json; charset=utf-8",
+    "api_cache_control": "no-store",
+    "body_max_bytes": 16384,
+    "raw_decoded_max_bytes": 8192,
+    "core_input_policy_max_bytes": 4096,
+    "headers_max_bytes": 8192,
+    "request_read_deadline_ms": 5000,
+    "max_connections": 16,
+    "framing": "Reject duplicate/conflicting Content-Length and any Transfer-Encoding; cap before allocation, require exact declared bytes, one request per connection, no request pipelining.",
+    "api_html_fallback": false,
+    "automatic_retry": false,
+    "lost_response": "Do not resubmit automatically. Model snapshot exposes active_job_id and last_job_id; correlate fetched job raw_text_sha256 and admitted_generation, otherwise report delivery uncertainty."
+  },
+  "enums": {
+    "ModelState": [
+      "unavailable",
+      "unloaded",
+      "loading",
+      "ready",
+      "running",
+      "stopping",
+      "unloading",
+      "error"
+    ],
+    "JobState": [
+      "accepted",
+      "loading",
+      "running",
+      "stopping",
+      "unloading",
+      "completed",
+      "cancelled",
+      "failed"
+    ],
+    "JobKind": [
+      "load",
+      "answer",
+      "unload"
+    ],
+    "StopReason": [
+      "user_cancel",
+      "deadline",
+      "worker_failure",
+      "shutdown"
+    ],
+    "ProgressStage": [
+      "idle",
+      "reading_artifact",
+      "validating",
+      "qualifying",
+      "ready",
+      "inference",
+      "terminating",
+      "reaping",
+      "complete",
+      "error"
+    ],
+    "ServiceErrorTag": [
+      "BAD_REQUEST",
+      "UNSUPPORTED_SCHEMA",
+      "UNSUPPORTED_OPERATION",
+      "INVALID_BASE64",
+      "ORIGIN_REJECTED",
+      "HOST_REJECTED",
+      "NOT_FOUND",
+      "MODEL_NOT_FOUND",
+      "JOB_NOT_FOUND",
+      "METHOD_NOT_ALLOWED",
+      "STALE_INSTANCE",
+      "STALE_MODEL",
+      "BUSY",
+      "NOT_READY",
+      "ALREADY_LOADED",
+      "ALREADY_UNLOADED",
+      "ALREADY_TERMINAL",
+      "NOT_CANCELLABLE",
+      "BODY_TOO_LARGE",
+      "RAW_INPUT_TOO_LARGE",
+      "UNSUPPORTED_MEDIA_TYPE",
+      "UNAVAILABLE_NATIVE_QUALIFICATION",
+      "UNSUPPORTED_RUNTIME",
+      "UNAVAILABLE_ARTIFACT",
+      "ARTIFACT_REJECTED",
+      "NATIVE_FAILURE",
+      "WORKER_FAILURE",
+      "WORKER_PROTOCOL_FAILURE",
+      "TERMINATION_UNCONFIRMED",
+      "DEADLINE_EXCEEDED"
+    ],
+    "NativeErrorTag": [
+      "CONTAINER_LIMIT",
+      "INVALID_CONTAINER",
+      "ARTIFACT_IDENTITY_MISMATCH",
+      "UNSUPPORTED_MANIFEST",
+      "UNSUPPORTED_PROFILE",
+      "SOURCE_BINDING_MISMATCH",
+      "INVALID_COMPONENT",
+      "INVALID_TENSOR",
+      "INVALID_CODEC_POLICY",
+      "INVALID_FRAME_TABLE",
+      "STATE_IDENTITY_MISMATCH",
+      "UNAVAILABLE_ARTIFACT",
+      "UNAVAILABLE_NATIVE_QUALIFICATION",
+      "BUSY",
+      "NUMERICAL_FAILURE"
+    ],
+    "RefusalStatus": [
+      "UNSUPPORTED_SCHEMA",
+      "UNAVAILABLE_ARTIFACT",
+      "INPUT_LIMIT",
+      "INVALID_ENCODING",
+      "UNKNOWN_LEXEME",
+      "UNSUPPORTED_BOUNDARY",
+      "UNSUPPORTED_SYNTAX"
+    ],
+    "IPCCommand": [
+      "load",
+      "answer",
+      "unload"
+    ],
+    "IPCReplyKind": [
+      "ready",
+      "progress",
+      "result",
+      "failure",
+      "unloaded"
+    ]
+  },
+  "types": {
+    "rules": "Named object definitions have exactly the listed keys; all keys required, nullable only where '|null'. 'T[]' means array. 'literal:X' means the exact JSON string X, except true/false/numeric constants. NativeTextResult is the union ModelToken|Refusal. Pipe unions are discriminated by the command/kind field as specified in ipc.payload_discriminants. Field order is irrelevant on HTTP/IPC, but duplicate keys are rejected. Local configuration/host-acceptance/asset-manifest identities hash their exact UTF-8 JSON file bytes; no silent reserialization before hashing.",
+    "primitives": {
+      "string": "JSON string",
+      "bounded_string_512": "JSON string <=512 UTF-8 bytes; safe message, no raw request/stack/local path",
+      "uint53": "JSON integer 0..9007199254740991",
+      "zero_or_one": "JSON integer 0 or 1",
+      "token_id": "JSON integer 0..4095",
+      "boolean": "JSON true/false",
+      "null": "JSON null",
+      "hex64": "64 lowercase hexadecimal ASCII characters",
+      "hex32": "32 lowercase hexadecimal ASCII characters",
+      "blake3_cid": "literal blake3: followed by hex64",
+      "configured_model_id": "r4lr:sha256:2c209590a64cae16a4140fd43adc1cb1f87b357c02e3d4959f1e37f4ab8cd5ab",
+      "JobId": "decimal string matching ^[1-9][0-9]{0,15}$, numeric value <=9007199254740991",
+      "canonical_base64": "Standard alphabet A-Z a-z 0-9 + / with required = padding, no whitespace; decode then standard padded re-encode must equal input. Empty is allowed and passed to core.",
+      "FrozenAcceptedBinding": "Exact JSON value at the pinned original_binding_source trusted_binding.accepted_binding; no alternative fields or values.",
+      "port": "JSON integer 1024..65535; explicit available port, no fallback."
+    },
+    "definitions": {
+      "HostIdentity": {
+        "native_binary_sha256": "hex64",
+        "runtime_receipt_sha256": "hex64|null",
+        "target": "string",
+        "operator_profile": "literal:cpu-scalar-f32-f64-1086/1",
+        "service_contract_sha256": "hex64",
+        "asset_manifest_sha256": "hex64",
+        "host_acceptance_sha256": "hex64|null",
+        "qualification_receipt_sha256": "hex64|null"
+      },
+      "ArtifactIdentity": {
+        "model_id": "configured_model_id",
+        "artifact_sha256": "hex64",
+        "artifact_bytes": "uint53",
+        "native_state_sha256": "hex64",
+        "codec_cid": "blake3_cid",
+        "policy_sha256": "hex64",
+        "reader_file_cid": "blake3_cid",
+        "core_file_cid": "blake3_cid",
+        "frame_tree_cid": "blake3_cid",
+        "original_export_release_sha256": "hex64"
+      },
+      "Operation": {
+        "id": "literal:answer_four_fact_raw_text/v1",
+        "input_schema": "literal:uor-r4.text-to-clauses/1",
+        "result_schemas": "string[]",
+        "enabled": "boolean",
+        "unavailable_reason": "ServiceError|null",
+        "stateless": "literal:true",
+        "input_policy_max_bytes": "literal:4096",
+        "decoded_transport_max_bytes": "literal:8192",
+        "general_generation": "literal:false",
+        "general_context": "literal:false",
+        "coding": "literal:false",
+        "final_integer_kernel": "literal:false"
+      },
+      "Capabilities": {
+        "schema": "literal:uor-r4.workbench-capabilities/1",
+        "instance_id": "hex32",
+        "revision": "uint53",
+        "provider": "literal:native",
+        "execution": "literal:cpu-floating-point-research-reference",
+        "host": "HostIdentity",
+        "configured_artifact": "ArtifactIdentity",
+        "model_state": "ModelState",
+        "operations": "Operation[]",
+        "historical_reference": "HistoricalReference",
+        "active_job_id": "JobId|null",
+        "last_job_id": "JobId|null"
+      },
+      "HistoricalReference": {
+        "issue": "literal:1102",
+        "terminal": "literal:NATIVE_REFERENCE_PRESERVED",
+        "binary_sha256": "hex64",
+        "qualification_sha256": "hex64",
+        "scope": "literal:known-authoring-four-fact-reference",
+        "applies_to_current_host": "literal:false"
+      },
+      "Progress": {
+        "stage": "ProgressStage",
+        "completed": "uint53|null",
+        "total": "uint53|null",
+        "unit": "literal:bytes|null",
+        "fraction": "null",
+        "eta_ms": "null"
+      },
+      "ModelSnapshot": {
+        "schema": "literal:uor-r4.workbench-model/1",
+        "instance_id": "hex32",
+        "revision": "uint53",
+        "model_id": "configured_model_id",
+        "model_generation": "uint53",
+        "state": "ModelState",
+        "verified_artifact": "ArtifactIdentity|null",
+        "qualification_receipt_sha256": "hex64|null",
+        "active_job_id": "JobId|null",
+        "last_job_id": "JobId|null",
+        "progress": "Progress",
+        "error": "ServiceError|null"
+      },
+      "LoadRequest": {
+        "schema": "literal:uor-r4.workbench-load/1",
+        "instance_id": "hex32",
+        "model_id": "configured_model_id"
+      },
+      "UnloadRequest": {
+        "schema": "literal:uor-r4.workbench-unload/1",
+        "instance_id": "hex32",
+        "model_id": "configured_model_id",
+        "expected_generation": "uint53"
+      },
+      "RawInput": {
+        "schema": "literal:uor-r4.text-to-clauses/1",
+        "encoding": "literal:base64",
+        "bytes_b64": "canonical_base64"
+      },
+      "AnswerRequest": {
+        "schema": "literal:uor-r4.workbench-request/1",
+        "instance_id": "hex32",
+        "model_id": "configured_model_id",
+        "expected_generation": "uint53",
+        "operation": "literal:answer_four_fact_raw_text/v1",
+        "input": "RawInput"
+      },
+      "CancelRequest": {
+        "schema": "literal:uor-r4.workbench-cancel/1",
+        "instance_id": "hex32"
+      },
+      "ServiceError": {
+        "tag": "ServiceErrorTag",
+        "message": "bounded_string_512",
+        "native": "NativeError|null"
+      },
+      "ErrorResponse": {
+        "schema": "literal:uor-r4.workbench-error/1",
+        "instance_id": "hex32",
+        "revision": "uint53",
+        "error": "ServiceError"
+      },
+      "Work": {
+        "forward_count": "zero_or_one|null",
+        "forward_upper_bound": "zero_or_one",
+        "elapsed_ms": "uint53|null"
+      },
+      "JobSnapshot": {
+        "schema": "literal:uor-r4.workbench-job/1",
+        "instance_id": "hex32",
+        "revision": "uint53",
+        "job_id": "JobId",
+        "kind": "JobKind",
+        "state": "JobState",
+        "model_id": "configured_model_id",
+        "admitted_generation": "uint53",
+        "raw_text_sha256": "hex64|null",
+        "progress": "Progress",
+        "stop_reason": "StopReason|null",
+        "result": "NativeTextResult|null",
+        "error": "ServiceError|null",
+        "work": "Work",
+        "host": "HostIdentity",
+        "artifact": "ArtifactIdentity"
+      },
+      "NativeError": {
+        "tag": "NativeErrorTag",
+        "component": "string|null",
+        "offset": "uint53|null"
+      },
+      "ModelToken": {
+        "schema": "literal:uor-r4.text-binding-result/1",
+        "status": "literal:MODEL_TOKEN",
+        "policy_sha256": "hex64",
+        "raw_text_sha256": "hex64",
+        "derived_input_sha256": "hex64",
+        "reader_file_cid": "blake3_cid",
+        "core_file_cid": "blake3_cid",
+        "frame_tree_cid": "blake3_cid",
+        "token_id": "token_id",
+        "token": "string"
+      },
+      "Refusal": {
+        "schema": "literal:uor-r4.text-to-clauses-result/1",
+        "status": "RefusalStatus",
+        "byte_offset": "uint53|null"
+      },
+      "IPCRequest": {
+        "schema": "literal:uor-r4.workbench-ipc/1",
+        "instance_id": "hex32",
+        "job_id": "JobId",
+        "worker_generation": "uint53",
+        "command": "IPCCommand",
+        "payload": "IPCLoad|RawInput|null"
+      },
+      "IPCLoad": {
+        "configuration_path": "string",
+        "configuration_sha256": "hex64"
+      },
+      "IPCResponse": {
+        "schema": "literal:uor-r4.workbench-ipc/1",
+        "instance_id": "hex32",
+        "job_id": "JobId",
+        "worker_generation": "uint53",
+        "kind": "IPCReplyKind",
+        "payload": "WorkerReady|Progress|NativeTextResult|ServiceError|null"
+      },
+      "WorkerReady": {
+        "host": "HostIdentity",
+        "artifact": "ArtifactIdentity"
+      },
+      "LocalConfiguration": {
+        "schema": "literal:uor-r4.workbench-config/1",
+        "artifact_path": "string",
+        "expected_binding": "ExpectedBinding",
+        "host_acceptance": "FileIdentity|null",
+        "trusted_host_acceptance_sha256": "hex64|null",
+        "asset_manifest": "FileIdentity",
+        "bind_host": "literal:127.0.0.1",
+        "port": "port"
+      },
+      "FileIdentity": {
+        "path": "string",
+        "bytes": "uint53",
+        "sha256": "hex64"
+      },
+      "AssetManifest": {
+        "schema": "literal:uor-r4.workbench-assets/1",
+        "files": "AssetFile[]"
+      },
+      "AssetFile": {
+        "path": "string",
+        "bytes": "uint53",
+        "sha256": "hex64",
+        "mime": "string"
+      },
+      "ExpectedBinding": {
+        "artifact_sha256": "hex64",
+        "contract_sha256": "hex64",
+        "accepted_binding": "FrozenAcceptedBinding",
+        "operator_profile": "literal:cpu-scalar-f32-f64-1086/1",
+        "export_release_sha256": "hex64"
+      },
+      "HostAcceptance": {
+        "schema": "literal:uor-r4.workbench-host-acceptance/1",
+        "service_contract_sha256": "hex64",
+        "native_binary_sha256": "hex64",
+        "operator_profile": "literal:cpu-scalar-f32-f64-1086/1",
+        "target": "literal:aarch64-apple-darwin",
+        "runtime_receipt": "FileIdentity",
+        "qualification": "FileIdentity",
+        "comparison_result": "FileIdentity",
+        "accepted_result_review": "FileIdentity",
+        "fresh_execution_release": "FileIdentity",
+        "original_export_release_sha256": "hex64",
+        "artifact_sha256": "hex64",
+        "native_state_sha256": "hex64"
+      }
+    },
+    "unions": {
+      "NativeTextResult": [
+        "ModelToken",
+        "Refusal"
+      ]
+    }
+  },
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/uor/v1/workbench/capabilities",
+      "request": null,
+      "success_status": 200,
+      "response": "Capabilities"
+    },
+    {
+      "method": "GET",
+      "path": "/uor/v1/workbench/model",
+      "request": null,
+      "success_status": 200,
+      "response": "ModelSnapshot"
+    },
+    {
+      "method": "POST",
+      "path": "/uor/v1/workbench/model/load",
+      "request": "LoadRequest",
+      "success_status": 202,
+      "response": "JobSnapshot",
+      "admit_from": [
+        "unloaded",
+        "error"
+      ],
+      "reject_ready": "ALREADY_LOADED"
+    },
+    {
+      "method": "POST",
+      "path": "/uor/v1/workbench/model/unload",
+      "request": "UnloadRequest",
+      "success_status": 202,
+      "response": "JobSnapshot",
+      "admit_from": [
+        "ready"
+      ],
+      "reject_unloaded": "ALREADY_UNLOADED"
+    },
+    {
+      "method": "POST",
+      "path": "/uor/v1/workbench/requests",
+      "request": "AnswerRequest",
+      "success_status": 202,
+      "response": "JobSnapshot",
+      "admit_from": [
+        "ready"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/uor/v1/workbench/jobs/{job_id}",
+      "request": null,
+      "success_status": 200,
+      "response": "JobSnapshot"
+    },
+    {
+      "method": "POST",
+      "path": "/uor/v1/workbench/jobs/{job_id}/cancel",
+      "request": "CancelRequest",
+      "success_status": 202,
+      "response": "JobSnapshot",
+      "kinds": [
+        "load",
+        "answer"
+      ],
+      "repeat_stopping": "same job snapshot, no extra action"
+    }
+  ],
+  "file_intake_limits": {
+    "local_configuration_bytes": 65536,
+    "host_acceptance_bytes": 65536,
+    "qualification_bytes": 65536,
+    "runtime_receipt_bytes": 1048576,
+    "fresh_execution_release_bytes": 1048576,
+    "accepted_result_review_bytes": 1048576,
+    "comparison_result_bytes": 8388608,
+    "asset_manifest_bytes": 131072,
+    "asset_entries": 128,
+    "per_asset_bytes": 4194304,
+    "total_asset_bytes": 16777216,
+    "executable_bytes": 268435456,
+    "stream_hash_buffer_bytes": 65536,
+    "absolute_path_utf8_bytes": 4096,
+    "relative_asset_path_utf8_bytes": 1024,
+    "json_max_nesting": 32,
+    "model_artifact_bytes": 2172252,
+    "enforcement": "Check declared and actual lengths before allocation; detect trailing/excess bytes. Open regular no-follow files confined to adopted paths; reject duplicate asset paths and checked-sum overflow. No recursive reads from result/review references, and no full scientific tensors at service startup. Executable hashing streams through the bounded buffer.",
+    "startup_failures": "Unreadable/invalid root configuration, executable binding or assets prevents listening and reports bounded local ServiceError (BAD_REQUEST for config/assets; UNSUPPORTED_RUNTIME for executable binding). Invalid/missing host acceptance or nested evidence leaves discovery available with UNAVAILABLE_NATIVE_QUALIFICATION; it never enables model work. The exact fixed artifact remains subject to original loader errors.",
+    "status": "SPECIFIED_CAPS_NOT_MEASURED"
+  },
+  "operation_availability": {
+    "ready": {"enabled": true, "unavailable_reason": null},
+    "loading,running,stopping,unloading": {"enabled": false, "unavailable_reason_tag": "BUSY"},
+    "unloaded": {"enabled": false, "unavailable_reason_tag": "NOT_READY"},
+    "unavailable": {"enabled": false, "unavailable_reason": "Exact current host qualification/runtime error; never null"},
+    "error": {"enabled": false, "unavailable_reason": "Exact ModelSnapshot.error; never null"},
+    "scope": "Readiness for immediate answer admission only, not external service/lifecycle acceptance. All entries use the current serialized model snapshot."
+  },
+  "errors": {
+    "wire_schema": "ErrorResponse",
+    "http_status_by_tag": {
+      "BAD_REQUEST": 400,
+      "UNSUPPORTED_SCHEMA": 400,
+      "UNSUPPORTED_OPERATION": 400,
+      "INVALID_BASE64": 400,
+      "ORIGIN_REJECTED": 403,
+      "HOST_REJECTED": 421,
+      "NOT_FOUND": 404,
+      "MODEL_NOT_FOUND": 404,
+      "JOB_NOT_FOUND": 404,
+      "METHOD_NOT_ALLOWED": 405,
+      "STALE_INSTANCE": 409,
+      "STALE_MODEL": 409,
+      "BUSY": 409,
+      "NOT_READY": 409,
+      "ALREADY_LOADED": 409,
+      "ALREADY_UNLOADED": 409,
+      "ALREADY_TERMINAL": 409,
+      "NOT_CANCELLABLE": 409,
+      "BODY_TOO_LARGE": 413,
+      "RAW_INPUT_TOO_LARGE": 413,
+      "UNSUPPORTED_MEDIA_TYPE": 415,
+      "UNAVAILABLE_NATIVE_QUALIFICATION": 503,
+      "UNSUPPORTED_RUNTIME": 503,
+      "UNAVAILABLE_ARTIFACT": 503,
+      "ARTIFACT_REJECTED": 503,
+      "NATIVE_FAILURE": 500,
+      "WORKER_FAILURE": 500,
+      "WORKER_PROTOCOL_FAILURE": 500,
+      "TERMINATION_UNCONFIRMED": 500,
+      "DEADLINE_EXCEEDED": 504
+    },
+    "asynchronous": "Accepted POST stays 202. GET job stays 200 even when job failed; its error.tag carries the typed terminal. HTTP table applies only when an operation is rejected before job acceptance, not to polling a failed job.",
+    "precedence": [
+      "Host/Origin and HTTP framing/method/content-type limits",
+      "JSON uniqueness/types, outer schema and known route",
+      "instance_id on mutations",
+      "configured model_id and operation where present",
+      "route-specific admission below; base64 and decoded transport caps only after answer admission guards",
+      "accept job; worker core grammar/refusal unchanged"
+    ],
+    "native_mapping": {
+      "UNAVAILABLE_NATIVE_QUALIFICATION": "UNAVAILABLE_NATIVE_QUALIFICATION",
+      "UNSUPPORTED_PROFILE": "UNSUPPORTED_RUNTIME",
+      "UNAVAILABLE_ARTIFACT": "UNAVAILABLE_ARTIFACT",
+      "BUSY": "NATIVE_FAILURE",
+      "NUMERICAL_FAILURE": "NATIVE_FAILURE",
+      "remaining_loader_tags": "ARTIFACT_REJECTED"
+    },
+    "preserve_native_error_fields": true,
+    "route_guards": {
+      "GET capabilities/model": "Discovery snapshots remain available regardless of native qualification/readiness.",
+      "GET job": "Validate job ID and existence only; qualification/model state does not block polling.",
+      "POST cancel": "Job existence -> terminal check -> kind cancellability -> repeat stopping or arbitrate stop; no native qualification/readiness guard may block cleanup.",
+      "POST load": "Host runtime/qualification availability -> single-slot BUSY -> unloaded/error state with no unreaped worker; ready gives ALREADY_LOADED.",
+      "POST unload": "single-slot BUSY -> ready state -> expected_generation; unloaded gives ALREADY_UNLOADED; no new model work.",
+      "POST answer": "Host runtime/qualification availability -> single-slot BUSY -> ready state -> expected_generation -> canonical base64 and transport byte cap."
+    }
+  },
+  "state_transitions": [
+    {
+      "from": [
+        "unavailable"
+      ],
+      "event": "service restart with adopted compatible host bundle",
+      "to": "unloaded",
+      "note": "No HTTP endpoint changes trust or configuration."
+    },
+    {
+      "from": [
+        "unloaded",
+        "error"
+      ],
+      "event": "admitted load; no unreaped worker exists",
+      "to": "loading"
+    },
+    {
+      "from": [
+        "loading"
+      ],
+      "event": "exact worker verified artifact, runtime and qualification",
+      "to": "ready",
+      "job_terminal": "completed",
+      "generation": "increment"
+    },
+    {
+      "from": [
+        "loading"
+      ],
+      "event": "load failure before any child spawn",
+      "to": "error",
+      "job_terminal": "failed",
+      "generation": "unchanged"
+    },
+    {
+      "from": [
+        "ready"
+      ],
+      "event": "admitted answer with exact generation",
+      "to": "running"
+    },
+    {
+      "from": [
+        "running"
+      ],
+      "event": "actual ModelToken or Refusal committed before cancel",
+      "to": "ready",
+      "job_terminal": "completed"
+    },
+    {
+      "from": [
+        "loading",
+        "running"
+      ],
+      "event": "cancel or deadline wins terminal arbitration with a spawned child",
+      "to": "stopping",
+      "generation": "invalidate once"
+    },
+    {
+      "from": ["loading"],
+      "event": "user cancellation wins before child spawn",
+      "to": "unloaded",
+      "job_terminal": "cancelled",
+      "generation": "unchanged",
+      "note": "No child exists to terminate/reap; zero forwards."
+    },
+    {
+      "from": ["loading"],
+      "event": "load deadline wins before child spawn",
+      "to": "error",
+      "job_terminal": "failed",
+      "generation": "unchanged",
+      "note": "DEADLINE_EXCEEDED; no child exists to terminate/reap; zero forwards."
+    },
+    {
+      "from": [
+        "stopping"
+      ],
+      "event": "worker confirmed reaped after user_cancel",
+      "to": "unloaded",
+      "job_terminal": "cancelled"
+    },
+    {
+      "from": [
+        "stopping"
+      ],
+      "event": "worker confirmed reaped after deadline/worker_failure with an active job",
+      "to": "error",
+      "job_terminal": "failed"
+    },
+    {
+      "from": [
+        "stopping"
+      ],
+      "event": "termination/reaping unconfirmed",
+      "to": "stopping",
+      "note": "Set TERMINATION_UNCONFIRMED; no terminal cancellation, no new slot."
+    },
+    {
+      "from": [
+        "ready"
+      ],
+      "event": "admitted unload",
+      "to": "unloading",
+      "generation": "invalidate once"
+    },
+    {
+      "from": [
+        "unloading"
+      ],
+      "event": "valid unloaded acknowledgment received and worker confirmed reaped before unload deadline",
+      "to": "unloaded",
+      "job_terminal": "completed"
+    },
+    {
+      "from": ["unloading"],
+      "event": "unload deadline wins before confirmed reap",
+      "to": "stopping",
+      "generation": "unchanged; already invalidated at unload admission",
+      "note": "Retain active unload job and deadline stop reason; only confirmed reap permits failed / DEADLINE_EXCEEDED."
+    },
+    {
+      "from": [
+        "loading",
+        "running",
+        "unloading"
+      ],
+      "event": "native/loader/numerical/protocol failure, crash, or missing required terminal acknowledgment while an active job exists and no earlier stop won",
+      "to": "stopping",
+      "generation": "invalidate once if not already invalidated; unload admission already invalidated it",
+      "note": "stop_reason=worker_failure; retain exact causal ServiceError. Terminate and confirm reap (immediately if already reaped) before failed/error. A failure reply does not imply child exit."
+    },
+    {
+      "from": ["ready"],
+      "event": "unexpected idle worker failure",
+      "to": "stopping",
+      "generation": "invalidate once",
+      "note": "Model-only transition: active_job_id remains null; no completed job changes."
+    },
+    {
+      "from": ["stopping"],
+      "event": "idle failed worker confirmed reaped; no active job",
+      "to": "error",
+      "note": "Model-only transition; no completed job changes."
+    }
+  ],
+  "cancellation": {
+    "arbitrate": "Parent commits one ordered winner: accepted terminal result or stop. Later worker output cannot replace a stop.",
+    "terminal_already_committed": "409 ALREADY_TERMINAL; leave result unchanged",
+    "actual_stop": "Only terminate the owned child handle; no PID search/port-owner kill. Graceful terminate, then force kill if needed; confirm reaping.",
+    "before_spawn": "For an accepted loading job whose child has not spawned, a winning user cancellation or deadline commits cancelled/unloaded or failed-DEADLINE_EXCEEDED/error immediately, with unchanged model_generation and zero forwards. No nonexistent child is reaped.",
+    "graceful_wait_ms": 2000,
+    "forced_reap_wait_ms": 2000,
+    "unconfirmed": "Remain stopping with TERMINATION_UNCONFIRMED and block the slot; later confirmed reap may finish original stop.",
+    "deadline_ms": {
+      "load": 30000,
+      "answer": 10000,
+      "unload": 4000
+    },
+    "timeout_result": "failed with DEADLINE_EXCEEDED only after confirmed reap if a child was spawned; before spawn, immediate failure with unchanged generation",
+    "counts": "Pre-dispatch cancellation has forward_count 0. Post-dispatch interrupted/native-failed answer has forward_count null and upper bound 1. Never infer zero from missing output.",
+    "replacement": "No automatic respawn. Explicit new load verifies and qualifies again.",
+    "parent_shutdown": "Stop and reap owned worker before normal parent exit; OS crash/orphan guarantees require implementation-specific handling and are not established by this ADR."
+  },
+  "ipc": {
+    "transport": "Parent-created private stdin/stdout pipes; stderr only sanitized bounded diagnostics; no inherited listening socket or credentials.",
+    "frame": "u32 little-endian byte length followed by exact UTF-8 JSON bytes; limit checked before allocation",
+    "max_frame_bytes": 65536,
+    "strict_fields": true,
+    "correlation": "Every command/reply binds instance_id, job_id and worker_generation; late/mismatched messages are rejected and cannot complete another job.",
+    "handshake": "Worker reports actual executable/runtime plus verified artifact/qualification identities before parent publishes ready.",
+    "public_raw_encoding": "Canonical base64 transports the same bytes through HTTP and IPC; validate at each boundary. The worker passes the decoded raw bytes unchanged to RawRequest; no normalization or double-decoding of raw bytes.",
+    "invalid_message": "WORKER_PROTOCOL_FAILURE; terminate/reap child, invalidate model, no partial public result",
+    "command_kinds": [
+      "load",
+      "answer",
+      "unload"
+    ],
+    "unsolicited_messages": "Only bounded stage progress for the current job; no unsolicited requests",
+    "sequence": "One command in flight, no request pipelining. Load permits zero or more progress replies then exactly one ready or failure; answer permits progress then exactly one result or failure; unload permits progress then exactly one unloaded or failure. No progress/extra terminal reply after the terminal reply. Idle unsolicited replies are protocol failures; output after a winning parent stop is discarded.",
+    "unload_success": "Requires both valid unloaded acknowledgment and confirmed child reap before the deadline. Reap/exit without that acknowledgment is WORKER_FAILURE. Acknowledgment without reap is not success.",
+    "request_schema": "IPCRequest",
+    "response_schema": "IPCResponse",
+    "startup": "Parent resolves and verifies its actual executable under the platform-specific accepted launch binding; launches only --internal-worker, then sends the adopted configuration path/digest over a private pipe. No caller-controlled arguments or environment.",
+    "payload_discriminants": {
+      "load": "IPCLoad",
+      "answer": "RawInput",
+      "unload": "null",
+      "ready": "WorkerReady",
+      "progress": "Progress",
+      "result": "NativeTextResult",
+      "failure": "ServiceError",
+      "unloaded": "null"
+    }
+  },
+  "retention": {
+    "terminal_jobs": 64,
+    "order": "FIFO by terminal commit, never evict active job",
+    "durable": false,
+    "last_job": "Model snapshot preserves newest accepted job ID; it is not a cache of an answer for new input.",
+    "request_text_persisted": false,
+    "model_state_persisted": false,
+    "log_raw_prompts": false,
+    "stdout_stderr_limit": "65536 bytes per worker lifetime for sanitized stderr diagnostics; reaching the cap stops retention with a truncation marker. Parent continues draining and discarding excess stderr until pipe closure so the cap cannot fill the pipe and stall the child. IPC stdout remains framed and separately bounded."
+  },
+  "state_error_rules": {
+    "initial_or_active_without_stop": "Host-valid unloaded/loading/ready/running/unloading model has error=null; accepted/working jobs have error=null. Unavailable has a non-null host qualification/runtime error. A terminal failed load without child uses its causal error.",
+    "stop_winner": "Parent records the first stop_reason and a private causal ServiceError. Later output cannot replace that winner. user_cancel has null cause, deadline has DEADLINE_EXCEEDED, worker_failure has the exact mapped native/loader/numerical/protocol/crash error.",
+    "stopping_before_unconfirmed": "ModelSnapshot.error and active JobSnapshot.error equal the causal error (null for user_cancel); job remains stopping, not terminal failed/cancelled. Idle failure has no active job.",
+    "termination_unconfirmed": "Set ModelSnapshot.error and, if present, active JobSnapshot.error to TERMINATION_UNCONFIRMED. Preserve the original stop_reason and private causal error for eventual resolution. No completed job is mutated.",
+    "reaped_user_cancel": "Commit cancelled job and unloaded model with both error fields null; clear transient termination error.",
+    "reaped_deadline_or_failure": "Commit failed active job and error model with both error fields equal to retained DEADLINE_EXCEEDED or original worker-failure cause; clear transient termination error. An idle failure changes only model.error.",
+    "normal_completion": "Completed load/answer/refusal/unload jobs have error=null; model error=null. Only a completed answer has a non-null result. Failed/cancelled/active jobs have result=null.",
+    "shutdown": "Normal process shutdown stops admissions and reaps its owned child before exiting. No durable terminal snapshot is promised across shutdown; pending HTTP clients observe disconnect and must not auto-retry. Transient shutdown snapshots use stop_reason=shutdown and null cause until a termination error, without claiming a completed public job."
+  },
+  "job_state_rules": {
+    "admission": "Parent atomically reserves the sole slot, assigns active_job_id/last_job_id and changes model to loading/running/unloading for admitted load/answer/unload. The job may first be observed as accepted, then respectively loading/running/unloading. This is a dispatch phase, not a waiting queue.",
+    "active_relation": "Model loading/running/unloading always has the matching active load/answer/unload job, including its initial accepted phase. A ready/unloaded/unavailable/error model has active_job_id=null. Model stopping has its stopping job except model-only idle worker failure; that case has active_job_id=null.",
+    "stop": "A winning stop changes an accepted or working active job to stopping when a child exists. Pre-spawn loading stops use the explicit direct terminal transitions. Unload is not user-cancellable even while accepted. Pre-dispatch answer cancellation records zero forwards, but still reaps the existing worker.",
+    "terminal": "Only the terminal job/model combinations in state_transitions and state_error_rules are permitted. Commit the job terminal and clear active_job_id atomically; retain last_job_id. Terminal snapshots never change.",
+    "response": "An accepted POST is always 202 and returns the latest already-reached snapshot, including accepted, working, stopping or terminal. Polling only reads state."
+  },
+  "progress_rules": {
+    "policy": "Progress is an optional monotonic subsequence of actually entered stages, not synthesized events or a clock-driven estimate. Repeated reading_artifact reports have nondecreasing completed bytes. Skipping unobserved stages is allowed.",
+    "load_success_order": ["idle", "reading_artifact", "validating", "qualifying", "complete"],
+    "answer_success_order": ["idle", "inference", "complete"],
+    "unload_success_order": ["idle", "terminating", "reaping", "complete"],
+    "stop_branch": "From any active stage, a spawned-child stop may proceed terminating -> reaping -> complete for cancellation or error for failure. Pre-spawn cancellation/failure goes directly complete/error. These branches do not move back to an earlier work stage.",
+    "denominators": "Only reading_artifact has unit=bytes and 0 <= completed <= total == 2172252. All other stages have completed,total,unit=null; fraction and eta_ms are always null.",
+    "model_progress": "Active model copies its current job progress. Ready uses stage=ready; unloaded uses idle; unavailable/error uses error. Idle-worker stopping uses actual terminating/reaping stages without inventing a job."
+  },
+  "invariants": [
+    "operations is exactly one entry for answer_four_fact_raw_text/v1; enabled iff model_state is ready and current worker qualification is accepted.",
+    "HistoricalReference always identifies #1102 and applies_to_current_host=false; current-host acceptance is separately present in HostIdentity.",
+    "Configured ArtifactIdentity uses immutable accepted values; verified_artifact is null until worker intake and after confirmed removal.",
+    "ModelSnapshot.qualification_receipt_sha256 means qualification installed in the current worker. It is null before accepted WorkerReady and after confirmed worker removal; ready/running must equal the adopted qualification. During unloading/stopping it retains that installed receipt, if any, until confirmed reap. HostIdentity qualification instead describes the accepted host bundle even while unloaded.",
+    "JobSnapshot.artifact is configured admission identity even during loading; it does not assert verification. Only ModelSnapshot.verified_artifact and WorkerReady assert successful intake. A failed load before child spawn does not increment model_generation.",
+    "Every mutation carries exact instance_id; stale IDs cannot mutate a restarted service.",
+    "LoadRequest never accepts caller-supplied path, runtime or qualification. Missing host acceptance rejects load/inference without examining raw input.",
+    "Accepted jobs retain their admitted_generation and input digest; stale worker replies never modify a newer job.",
+    "JobSnapshot.raw_text_sha256 is SHA256 of decoded raw input bytes for every accepted answer, and null for load/unload. A completed ModelToken.raw_text_sha256 must equal that job hash. Successful load retains its pre-load admitted_generation; the resulting ready ModelSnapshot.model_generation is admitted_generation + 1.",
+    "Job result is non-null only for completed answer; native Refusal is completed with zero forwards. Load/unload completion has result null.",
+    "A published ModelToken policy_sha256, reader_file_cid, core_file_cid and frame_tree_cid must equal the job/verified ArtifactIdentity fields; retain the original core object unchanged. A mismatched worker result is WORKER_PROTOCOL_FAILURE, never a published partial result.",
+    "Completed model-token answer has Work forward_count=1, upper bound=1. Refusal/load/unload have 0/0. Active dispatched answer may have null/1; all elapsed times are measured or null.",
+    "Progress fraction and ETA remain null. Only reading_artifact has non-null completed/total/unit bytes, using exact artifact length; all other stages are indeterminate.",
+    "After terminal commit job snapshot is immutable; polling does not execute work.",
+    "Native failure invalidates/reaps worker before another load; it never falls back or returns a model token.",
+    "With a spawned child, StopReason user_cancel reaches cancelled only after reaping; deadline/worker failure reaches failed only after reaping. A stop before child spawn commits directly with unchanged generation and zero forwards.",
+    "Operation.result_schemas is exactly the ordered array [uor-r4.text-binding-result/1, uor-r4.text-to-clauses-result/1], with no extra or duplicate entry.",
+    "Initial web shell sends only explicit raw input, displays actual model/native identity and preserves selection across errors.",
+    "LocalConfiguration.host_acceptance and trusted_host_acceptance_sha256 are both null or both present; their digests agree. HostAcceptance comparison/result review and qualification refer to the new host, never the old #1102 binary.",
+    "Without an accepted HostAcceptance, HostIdentity.host_acceptance_sha256, qualification_receipt_sha256 and runtime_receipt_sha256 are all null. With acceptance they are all present and match the adopted bundle. Binary/target/contract/asset fields always describe actual configured host bytes, not the historical reference.",
+    "Before ready, WorkerReady.host must match the parent HostIdentity field-for-field and adopted HostAcceptance across actual binary/runtime/profile/target/service-contract/qualification identities. WorkerReady.artifact must match configured ArtifactIdentity in every field. Hash-shaped strings alone cannot establish those bindings.",
+    "Native INPUT_LIMIT, UNKNOWN_LEXEME and UNSUPPORTED_SYNTAX tags retain exact source spelling; transport errors remain a separate layer."
+  ],
+  "qualification_gates": [
+    "Freeze and independently accept concrete new source/build/environment/budget before building or model payload access.",
+    "Fresh host comparison permission and original immutable export provenance are distinct checked records.",
+    "The exact final service executable includes its separately invoked private comparison mode before source/build freeze. That mode has no listener/public-worker IPC entry, validates fresh execution permission then original export provenance, and cannot be added or substituted as a different harness executable after comparison.",
+    "Freeze exact inputs/reference ownership, discrete criteria and full tensors at atol 1e-5/rtol 0, fresh host replay and finite caps before outcomes.",
+    "Retained reference evidence can be reused only if its relevant source/input/runtime bindings remain unchanged; changed/unreproducible reference means unavailable.",
+    "Accept actual result independently; only then create exact 12-field receipt for actual new executable/runtime. No provisional qualification.",
+    "Separately freeze and run ordinary public load/qualify/answer, lifecycle and browser checks. Record those independently of numerical preservation.",
+    "No future concrete release, binary or experiment envelope exists in this specification."
+  ],
+  "examples_status": "ILLUSTRATIVE_SPECIFICATION_SCENARIOS_NOT_EXECUTED",
+  "scenarios": [
+    {
+      "id": "S01",
+      "given": "missing new host acceptance; old #1102 receipt present",
+      "action": "GET capabilities then POST load",
+      "expected": "discovery 200 unavailable; load 503 UNAVAILABLE_NATIVE_QUALIFICATION; zero worker/model/forward"
+    },
+    {
+      "id": "S02",
+      "given": "compatible adopted host bundle, no loaded worker",
+      "action": "load exact configured model",
+      "expected": "202 job; loading; after verified handshake completed load and ready generation+1; no forward"
+    },
+    {
+      "id": "S03",
+      "given": "ready generation 1",
+      "action": "answer with expected_generation 0",
+      "expected": "409 STALE_MODEL; no job, zero forward"
+    },
+    {
+      "id": "S04",
+      "given": "ready exact generation",
+      "action": "submit supported canonical base64 raw bytes",
+      "expected": "202 job; actual qualified answer result only; model ready afterward; one forward if MODEL_TOKEN"
+    },
+    {
+      "id": "S05",
+      "given": "ready exact generation",
+      "action": "submit canonical base64 encoding a 4097-byte raw buffer",
+      "expected": "202; original INPUT_LIMIT refusal; completed job; zero forwards"
+    },
+    {
+      "id": "S06",
+      "given": "ready exact generation",
+      "action": "submit noncanonical base64 or raw bytes beyond 8192",
+      "expected": "400 INVALID_BASE64 or 413 RAW_INPUT_TOO_LARGE; no job/forward"
+    },
+    {
+      "id": "S07",
+      "given": "one active answer job",
+      "action": "submit another answer",
+      "expected": "409 BUSY; no queue and no second job"
+    },
+    {
+      "id": "S08",
+      "given": "active dispatched answer",
+      "action": "cancel wins before result commit",
+      "expected": "202 stopping; discard late reply; terminate/reap; cancelled and unloaded; work null/upper bound 1"
+    },
+    {
+      "id": "S09",
+      "given": "answer result committed first",
+      "action": "cancel completed job",
+      "expected": "409 ALREADY_TERMINAL; immutable original result remains"
+    },
+    {
+      "id": "S10",
+      "given": "stopping worker",
+      "action": "termination/reaping cannot be confirmed",
+      "expected": "stopping plus TERMINATION_UNCONFIRMED; no cancelled state or new worker"
+    },
+    {
+      "id": "S11",
+      "given": "cancelled and unloaded generation advanced",
+      "action": "explicit load then use old generation",
+      "expected": "fresh verified worker/readiness; old generation rejected; no automatic replay of cancelled input"
+    },
+    {
+      "id": "S12",
+      "given": "worker crashes or sends mismatched job/generation",
+      "action": "parent reads event",
+      "expected": "typed failure and invalidate/terminate/reap; no ready or partial result"
+    },
+    {
+      "id": "S13",
+      "given": "browser model selection; load or answer fails",
+      "action": "render failure",
+      "expected": "same selected model, visible typed error; no fallback/teacher/template output"
+    },
+    {
+      "id": "S14",
+      "given": "foreign Origin or unlisted static path",
+      "action": "mutation or asset request",
+      "expected": "403 ORIGIN_REJECTED or 404; no model work and no directory/SPA fallback"
+    },
+    {
+      "id": "S15",
+      "given": "service restarted",
+      "action": "mutation with old instance_id",
+      "expected": "409 STALE_INSTANCE; no model work"
+    },
+    {
+      "id": "S16",
+      "given": "idle ready worker",
+      "action": "unload then poll job",
+      "expected": "202 unloading; reject cancel NOT_CANCELLABLE; reap before deadline gives completed/unloaded. Deadline first gives stopping with no second generation increment, then failed/DEADLINE_EXCEEDED and error only after confirmed reap; zero forward."
+    }
+  ],
+  "selected_user_flow": {
+    "title": "Four-fact research reference",
+    "provider": "native",
+    "controls": [
+      "actual model identity and scope",
+      "availability and Load/Unload",
+      "raw text input",
+      "Answer",
+      "Stop while active load/answer",
+      "actual token/refusal/error"
+    ],
+    "raw_text_transformations": [],
+    "teacher_fallback": false,
+    "deferred": [
+      "conversation context",
+      "persistent sessions",
+      "editor/diff/save",
+      "preview",
+      "Git writes",
+      "search grounding",
+      "geometry visualization",
+      "browser teacher execution"
+    ]
+  },
+  "accepted_specification_action": "Protected-merge #1105 only; #1084 remains open. Next implement the small host/worker/first shell and bind its fresh build/qualification release before model work.",
+  "service_delivery_acceptance": {
+    "role": "External delivery gate, separate from runtime startup and the canonical 12-field numerical qualification receipt.",
+    "candidate": "An independently numerically qualified candidate may enter ready only during separately admitted service integration. Ready means loaded and numerically qualified; it does not assert completed lifecycle/browser checks.",
+    "promotion_record": "Before adopting the service for ordinary use, independently accept an immutable result/review record bound to the exact service-contract, source/build, binary/runtime, HostAcceptance, asset-manifest, admitted behavior-input/release and retained behavior-result digests. Publish its identity in the implementation issue, delivery record and claim ledger.",
+    "startup_requirement": false,
+    "reason": "The candidate must exercise the actual public path before its behavior can be accepted; a product-acceptance record is not a provisional numerical receipt or a startup prerequisite. No service acceptance exists in #1105."
+  },
+  "prior_results_preserved": [
+    "#1102 NATIVE_REFERENCE_PRESERVED",
+    "#1094 CLAUSE_ADAPTER_PRESERVED and original unavailable preparation",
+    "#1079 LANGUAGE_R4_PRESERVED_CONTROL_WEAK",
+    "#1082 TOKEN_EXPOSURE_DESCRIPTIVE_COMPLETE",
+    "#973 open",
+    "#954 blocked"
+  ],
+  "proof_artifacts": [],
+  "configuration": {
+    "schema": "LocalConfiguration",
+    "paths": "Absolute operator-owned local paths; regular-file/no-follow bounded reads. Relative asset paths are confined beneath the manifest directory; no browser-provided path is accepted.",
+    "host_acceptance_schema": "HostAcceptance",
+    "digest_adoption": "Both null means unavailable. Otherwise exact qualification/runtime/result/review/release byte identities must validate against the independently operator-adopted host acceptance digest before native readiness.",
+    "runtime_receipt_required_bindings": [
+      "actual executable bytes",
+      "source revision and relevant source digests",
+      "Cargo.lock and compiler/link flags",
+      "target and runtime dependency closure",
+      "hardware/OS",
+      "exact private worker invocation/environment",
+      "actual arithmetic-thread floating-point environment",
+      "operator profile"
+    ],
+    "review_result_validation": "Independent operator adoption externally evaluates the comparison/result-review disposition, exact bindings and frozen criteria before adopting the HostAcceptance digest. Runtime treats that explicitly adopted digest as transitive authority, verifies each referenced file's exact bytes/length/hash, and parses/cross-checks only schemas frozen here: HostAcceptance and canonical #1086 qualification. Other result/review/release/runtime evidence is opaque adopted content; no unspecified semantic parser or recursive evidence read is required. A self-asserted accepted field without external digest adoption is insufficient.",
+    "qualification_validation": "Original canonical 12-field #1086 receipt; every artifact/state/binary/runtime/profile/contract/schema and result/review digest must match the adopted new host acceptance bundle. No extra fields.",
+    "asset_manifest_rules": "Exact fields; unique relative UTF-8 POSIX paths, nonempty files, regular-file no-follow reads, no dots/dotdots/backslash/encoded separators or escapes; finite declared sizes/hashes/MIME; index.html required; no source/config/model/evidence files. Verify bytes before serving.",
+    "separate_asset_identity": "The native qualification does not qualify the UI. The asset manifest and service contract are bound independently; implementation must record any asset change and its named product checks without relabeling model evidence."
+  },
+  "wire_examples": [
+    {
+      "id": "W01",
+      "status": "ILLUSTRATIVE_NOT_EXECUTED",
+      "type": "LoadRequest",
+      "value": {
+        "schema": "uor-r4.workbench-load/1",
+        "instance_id": "00000000000000000000000000000001",
+        "model_id": "r4lr:sha256:2c209590a64cae16a4140fd43adc1cb1f87b357c02e3d4959f1e37f4ab8cd5ab"
+      }
+    },
+    {
+      "id": "W02",
+      "status": "ILLUSTRATIVE_NOT_EXECUTED",
+      "type": "AnswerRequest",
+      "value": {
+        "schema": "uor-r4.workbench-request/1",
+        "instance_id": "00000000000000000000000000000001",
+        "model_id": "r4lr:sha256:2c209590a64cae16a4140fd43adc1cb1f87b357c02e3d4959f1e37f4ab8cd5ab",
+        "expected_generation": 1,
+        "operation": "answer_four_fact_raw_text/v1",
+        "input": {
+          "schema": "uor-r4.text-to-clauses/1",
+          "encoding": "base64",
+          "bytes_b64": ""
+        }
+      }
+    },
+    {
+      "id": "W03",
+      "status": "ILLUSTRATIVE_NOT_EXECUTED",
+      "type": "CancelRequest",
+      "value": {
+        "schema": "uor-r4.workbench-cancel/1",
+        "instance_id": "00000000000000000000000000000001"
+      }
+    },
+    {
+      "id": "W04",
+      "status": "ILLUSTRATIVE_NOT_EXECUTED",
+      "type": "ErrorResponse",
+      "value": {
+        "schema": "uor-r4.workbench-error/1",
+        "instance_id": "00000000000000000000000000000001",
+        "revision": 0,
+        "error": {
+          "tag": "UNAVAILABLE_NATIVE_QUALIFICATION",
+          "message": "Current host has no accepted qualification.",
+          "native": null
+        }
+      }
+    },
+    {
+      "id": "W05",
+      "status": "ILLUSTRATIVE_NOT_EXECUTED",
+      "type": "RawInput",
+      "value": {
+        "schema": "uor-r4.text-to-clauses/1",
+        "encoding": "base64",
+        "bytes_b64": "/w=="
+      }
+    }
+  ],
+  "wire_example_notes": "Instance IDs and counters are illustrative only. Empty and 0xff raw buffers demonstrate byte transport, not model answers. No qualification receipt or successful model result is synthesized. These objects were not sent to any service."
+}

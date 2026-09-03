@@ -1,6 +1,27 @@
 # Roadmap
 
-**Current native reference (2026-09-03):**
+**Current service/API specification (2026-09-03):**
+[#1105](https://github.com/UOR-Foundation/uor-r4/issues/1105), the contract-only
+child of [#1084](https://github.com/UOR-Foundation/uor-r4/issues/1084), delivers
+the [service ADR](docs/adr/0006-native-four-fact-workbench-service.md) and
+[machine contract](docs/r4_service_contract_1105.json). They freeze one
+dedicated, opt-in `r4-workbench` Rust host, one private same-executable worker
+and the first four-fact research-reference shell. Independent review accepts
+**`SERVICE_API_CONTRACT_SPECIFIED`**. Protected delivery closes #1105 only.
+
+This specification creates no service host, private worker, shell, build,
+model load, qualification call, forward, HTTP request or browser behavior.
+#1084 remains open and unassigned. Its next separately activated child will
+implement the host, worker and shell. Before any new build, that child must
+freeze and independently accept its concrete source/build/environment
+admission; before model work, it must separately freeze and independently
+accept an actual-host qualification release. #1102's bounded
+`NATIVE_REFERENCE_PRESERVED` result is unchanged, and its consumed build and
+comparison envelopes cannot be rerun. The accepted reader/core, known
+vocabulary and query form, four-fact context, all negative/unavailable results,
+and proof-versus-measurement limits remain unchanged.
+
+**Retained native reference (2026-09-03):**
 [#1102](docs/r4_native_bridge_1102_execution.md) records **`NATIVE_REFERENCE_PRESERVED`**
 for the exact exported artifact and pinned CPU Rust reference. Both runtimes,
 in initial execution and fresh replay, produced 320/320 correct answers,
@@ -12,10 +33,8 @@ exports, loader fixtures and all prior negative/unavailable evidence are retaine
 Independent result review accepts the bounded result; protected delivery is tracked in
 [PR #1104](https://github.com/UOR-Foundation/uor-r4/pull/1104).
 
-Next after closure: separately activate
-[#1084](https://github.com/UOR-Foundation/uor-r4/issues/1084) to freeze the Rust
-service/API and artifact-ownership handoff for this one four-fact operation,
-including truthful qualification for its actual host binary. The measured
+The then-next service/API freeze is now the accepted #1105 specification above.
+The measured
 comparison CLI is consumed; no service/UI endpoint or general generation,
 context/coding capability, mathematical proof or final integer kernel follows.
 The known vocabulary/query forms, four-fact context, #1079 weak-control result
@@ -114,13 +133,16 @@ construction-only exposure diagnostic; #1085 specifies the adapter, and
 [#1094's sole comparison](docs/r4_retained_comparison_1094.md) reports
 `CLAUSE_ADAPTER_PRESERVED`, with independent result acceptance, and is closed
 through protected PR #1101 at `eade29f4b78435e9857936786426bb34e596b301`.
-[#1086's specification](docs/r4_native_reference_1086.md) now freezes the native
-artifact, loader and separate matched comparison. The next separate activation
-is parked [#1102](https://github.com/UOR-Foundation/uor-r4/issues/1102), its native
-implementation/export/comparison successor; native execution
-remains `NOT_RUN`. The earlier preparation stop, #1096 runtime-only readiness and
-retained-evidence accounting remain preserved; the consumed envelope is not rerun.
-Parallel integration, native interface,
+[#1086's specification](docs/r4_native_reference_1086.md) froze the native
+artifact, loader and separate matched comparison; #1102 subsequently recorded
+the bounded `NATIVE_REFERENCE_PRESERVED` result and consumed both admitted
+envelopes. The current [#1105 ADR](docs/adr/0006-native-four-fact-workbench-service.md)
+and [machine contract](docs/r4_service_contract_1105.json) specify only the
+next service boundary, independently accepted and awaiting protected delivery. #1084 remains open
+and unassigned for a later, separately admitted implementation child. The
+earlier preparation stop, #1096 runtime-only readiness and retained-evidence
+accounting remain preserved; consumed envelopes are not rerun. Parallel integration,
+native interface,
 coding evaluation and paper work have separate owners; they do not complete
 #973 or unblock #954. This adoption supersedes earlier “current/next” ordering
 below while preserving all measured results.

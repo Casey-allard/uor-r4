@@ -1,0 +1,45 @@
+{
+  "schema": "uor-r4.service-contract-storage-review/1",
+  "issue": 1105,
+  "observed_utc": "2026-09-03T17:00:52.998565+00:00",
+  "prior_audit": "/Users/casey.allard/Documents/Codex/storage-audit-2026-09-02.md",
+  "method": "Exact named paths only; du allocation is not guaranteed reclaimable physical space. No cleanup performed.",
+  "free_space_df": "Filesystem   1024-blocks      Used Available Capacity iused     ifree %iused  Mounted on\n/dev/disk3s1   239362496 168670032  42635212    80% 1735079 426352120    0%   /System/Volumes/Data\n",
+  "named_paths": [
+    {
+      "path": "/Users/casey.allard/.codex/worktrees/r4-service-contract/uor-r4",
+      "allocated_kib": 1171116
+    },
+    {
+      "path": "/Users/casey.allard/.codex/uor/issue-1084-service-contract",
+      "allocated_kib": 64
+    },
+    {
+      "path": "/Users/casey.allard/.codex/uor/issue-1102-native-build",
+      "allocated_kib": 457496
+    },
+    {
+      "path": "/Users/casey.allard/.codex/uor/issue-1102-native-comparison",
+      "allocated_kib": 74036
+    },
+    {
+      "path": "/Users/casey.allard/.local/share/uor-r4/knowledge/knowledge.sqlite3",
+      "allocated_kib": 31164
+    }
+  ],
+  "original_checkout_status": " D research/ai-research/ai-router/router-research/data/wikitext2_proxy/ppmi_proxy.npz\n D research/archives/gemini-dev/wikitext2_proxy/ppmi_proxy.npz\n?? .serena/\n?? crates/uor-r4-core/tests/.uor-r4-recorded-corpus-producers/\n?? tools/\n",
+  "new_builds": 0,
+  "new_model_or_corpus_assets": 0,
+  "deleted_paths": [],
+  "retain": [
+    "Original mixed checkout and untracked source/research material",
+    "All #1102 build, binary, full tensors, artifacts, mutations and acceptance receipts",
+    "All #1094 sealed inputs and their reference source worktrees",
+    "Current pinned research/donor/UOR source snapshots and knowledge database"
+  ],
+  "future_candidate": {
+    "path": "/Users/casey.allard/.codex/worktrees/r4-service-contract/uor-r4",
+    "condition": "After protected merge, review clean state, unique files, source/evidence references and successor needs before any removal. A source checkout can be recreated from Git, but this task does not remove it."
+  },
+  "unique_evidence_or_user_material_deleted": false
+}

@@ -1,0 +1,202 @@
+{
+  "schema": "uor-r4.service-contract-metadata-check/1",
+  "issue": 1105,
+  "observed_utc": "2026-09-03T17:10:52.202079+00:00",
+  "status": "SPECIFICATION_METADATA_CONSISTENT",
+  "contract_sha256": "337d66d025fc9ec3a1e8c21befc25198b015061235fefc98f9208f99412e7a7f",
+  "source_manifest_sha256": "963fd69c57a3c38e85cc1c236549c1db4744b82014a27eaf5a17b88baa9275e6",
+  "checker_sha256": "58d20401bd2fe029fe93587676fc4c2fc517405a2d4118761731c54d36ea7cee",
+  "source_rows_verified": 28,
+  "unique_original_sources_verified": 27,
+  "source_identities": [
+    {
+      "repo": "markrnd87-cmd/NEMESIS-Theory",
+      "revision": "0d106967843c2c96477cf3e57aeff213e7db1c97",
+      "path": "Technical Report_ Integration of Hypercomplex Geometries as UOR Structure Carrying Substrates.pdf",
+      "sha256": "697d48b70a1499a1fd70d8f1a4c285606a198a3831250425ae11439f37b395cc"
+    },
+    {
+      "repo": "wilcompute/W33-Theory",
+      "revision": "5674aa2e74c7de81864556b1bbc90aa9a1b1bd3d",
+      "path": "analysis/w33_fractal_microvm_runtime.py",
+      "sha256": "875b53408cc5312b60b5a6254dbac80a9a1324c89cdf24936488d7a4744e90ca"
+    },
+    {
+      "repo": "UOR-Foundation/uor-addr",
+      "revision": "165b51e3e2113ee5d032730cde709335d4fe9b60",
+      "path": "crates/uor-addr/src/json/mod.rs",
+      "sha256": "39bc9fcb5f83ef2408e752a1eb775c984f40068791119d38df8acd39b14289f1"
+    },
+    {
+      "repo": "UOR-Foundation/uor-addr",
+      "revision": "165b51e3e2113ee5d032730cde709335d4fe9b60",
+      "path": "crates/uor-addr/src/composition/canonicalize.rs",
+      "sha256": "d9032fc9bc95a4f86ddbb8c0db3753865ee6de36a8f915fc446597243b8a6d89"
+    },
+    {
+      "repo": "UOR-Foundation/kappa-registry",
+      "revision": "2af86560a177fc9651b6c0e92e7974140ed77dd5",
+      "path": "crates/kappa-core/src/kappa/compute.rs",
+      "sha256": "e363cfffd908383d502ee8fdea50cd861bba621fbc705c7b56595c9cad4262b2"
+    },
+    {
+      "repo": "UOR-Foundation/uor-matmul",
+      "revision": "3cc5882f210667f9ac00fd8c02c5b5957b493f5d",
+      "path": "crates/uor-matmul-codec/src/kappa.rs",
+      "sha256": "ca608c9af4b112f530e4314455fcbafe6de9945d345c57eb93b996be9cad5370"
+    },
+    {
+      "repo": "Hologram-Technologies/hologram",
+      "revision": "94ecb886811115491a77c8229e494965bea03fc2",
+      "path": "crates/hologram-archive/src/address.rs",
+      "sha256": "9e4bc8a2202ef28b8dbab9feba1e44e01b9fc39bc9df4f61a31675a7fab003dd"
+    },
+    {
+      "repo": "Hologram-Technologies/hologram-ai",
+      "revision": "d5337ec2b3289fc8462abac2e627d165342079b2",
+      "path": "crates/hologram-ai/src/address.rs",
+      "sha256": "3e9bb0710f8de976288f04d4d654e6c800a3eed3e5c6bb8b0d5467be63e8d5c3"
+    },
+    {
+      "repo": "Casey-allard/uor-r4-wasm-chat",
+      "revision": "5a10305126df62e838cadfec5fd509e0c9705fa7",
+      "path": "index.html",
+      "sha256": "04fd7a5809486f484f25c60f5ed533262ef2b6135937ad3db499668179d98ff1"
+    },
+    {
+      "repo": "Casey-allard/uor-r4-wasm-chat",
+      "revision": "5a10305126df62e838cadfec5fd509e0c9705fa7",
+      "path": "assets/js/uor_model_worker.js",
+      "sha256": "b6aea5c6c0d42e2ebf6a9a195976038c42361a8e9d7eedba560a881eba750c2a"
+    },
+    {
+      "repo": "Casey-allard/uor-r4-wasm-chat",
+      "revision": "5a10305126df62e838cadfec5fd509e0c9705fa7",
+      "path": "LICENSE",
+      "sha256": "a53213a65af4b16433bc076eb3b341511440b1d81b73c1fb4fbca474ecc10257"
+    },
+    {
+      "repo": "wilcompute/W33-Theory",
+      "revision": "5674aa2e74c7de81864556b1bbc90aa9a1b1bd3d",
+      "path": "LICENSE",
+      "sha256": "02c48257db6f1517f0391eaddf8dc67ab21dde55bccae811e3dfeedaa9e23ac4"
+    },
+    {
+      "repo": "UOR-Foundation/uor-r4",
+      "revision": "85d9eb8beca2a59ccda47e290afd483f7838982c",
+      "path": "docs/integration/frontend-port-plan.md",
+      "sha256": "6cecd10abb9f41b892e1eb083174546cb85a8a5be014995d1d5c2ab0ed6309f6"
+    },
+    {
+      "repo": "UOR-Foundation/uor-r4",
+      "revision": "85d9eb8beca2a59ccda47e290afd483f7838982c",
+      "path": "docs/r4_native_reference_1086_source_manifest.json",
+      "sha256": "cce805345342f1476fc333e430b69e9bdbea4c83361bad6aeaa74565b59dd999"
+    },
+    {
+      "repo": "UOR-Foundation/uor-r4",
+      "revision": "85d9eb8beca2a59ccda47e290afd483f7838982c",
+      "path": "docs/r4_native_reference_1086_contract.json",
+      "sha256": "e3565728dfa872d9c260dd3d391ae59e0b0d454ebead20cd15cb075b24796115"
+    },
+    {
+      "repo": "UOR-Foundation/uor-r4",
+      "revision": "85d9eb8beca2a59ccda47e290afd483f7838982c",
+      "path": "docs/r4_native_bridge_1102_execution.md",
+      "sha256": "c4640510c0beee980daa4a42418e00341731d8a179e4c500a65e5ae36645af1d"
+    },
+    {
+      "repo": "UOR-Foundation/uor-r4",
+      "revision": "85d9eb8beca2a59ccda47e290afd483f7838982c",
+      "path": "docs/r4_native_bridge_1102_evidence/qualification-handoff.json",
+      "sha256": "efc02551d493e255f12680ccf2e4ee99cca5f645e0ca3d7fcd6445419e963426"
+    },
+    {
+      "repo": "UOR-Foundation/uor-r4",
+      "revision": "85d9eb8beca2a59ccda47e290afd483f7838982c",
+      "path": "crates/uor-r4-core/src/learned_reference/mod.rs",
+      "sha256": "2ead8e40b9f3f095a057c5dec0c1d36bb38f0dd7ea61fc7ca7b5da7924401cec"
+    },
+    {
+      "repo": "UOR-Foundation/uor-r4",
+      "revision": "85d9eb8beca2a59ccda47e290afd483f7838982c",
+      "path": "src/server.rs",
+      "sha256": "86b66222d75ba8320af782b6aa46001052b7dd511d2fb3bdc572a6f7c23f05ea"
+    },
+    {
+      "repo": "UOR-Foundation/uor-r4",
+      "revision": "85d9eb8beca2a59ccda47e290afd483f7838982c",
+      "path": "src/main.rs",
+      "sha256": "3cfdff7c7bcad4c578db198f16ab1d4914df8723211314d1d71ff83be8f67577"
+    },
+    {
+      "repo": "UOR-Foundation/uor-r4",
+      "revision": "85d9eb8beca2a59ccda47e290afd483f7838982c",
+      "path": "crates/uor-r4-api/Cargo.toml",
+      "sha256": "bf5061338e5cfbe83231111929bd12ad8ee1b8d179e3812cab99ca32e0f151a5"
+    },
+    {
+      "repo": "UOR-Foundation/uor-r4",
+      "revision": "85d9eb8beca2a59ccda47e290afd483f7838982c",
+      "path": "crates/uor-r4-api/src/learned_reference.rs",
+      "sha256": "87926c7df0f5493221385377282586f17eeae59cd8db5f4d92ccb12181b57d98"
+    },
+    {
+      "repo": "UOR-Foundation/uor-r4",
+      "revision": "85d9eb8beca2a59ccda47e290afd483f7838982c",
+      "path": "crates/uor-r4-api/src/bin/r4-learned-reference-1102.rs",
+      "sha256": "ba10ca22b6124ce5a551424e4793cb1a3f324b2857ed20c58542d4e01aa43457"
+    },
+    {
+      "repo": "UOR-Foundation/uor-r4",
+      "revision": "85d9eb8beca2a59ccda47e290afd483f7838982c",
+      "path": "crates/uor-r4-core/src/learned_reference/mod.rs",
+      "sha256": "2ead8e40b9f3f095a057c5dec0c1d36bb38f0dd7ea61fc7ca7b5da7924401cec"
+    },
+    {
+      "repo": "UOR-Foundation/uor-r4",
+      "revision": "85d9eb8beca2a59ccda47e290afd483f7838982c",
+      "path": "crates/uor-r4-core/src/learned_reference/loader.rs",
+      "sha256": "208fbe0a2447a650063909cc623e9c9c3804a839a4c0ba99ab39c79e8b26ec07"
+    },
+    {
+      "repo": "UOR-Foundation/uor-r4",
+      "revision": "85d9eb8beca2a59ccda47e290afd483f7838982c",
+      "path": "crates/uor-r4-core/src/learned_reference/adapter.rs",
+      "sha256": "90caf4d8873d754a3266f664eb284f52bb0cae118e96b4dc890d6139b9ea598e"
+    },
+    {
+      "repo": "UOR-Foundation/uor-r4",
+      "revision": "85d9eb8beca2a59ccda47e290afd483f7838982c",
+      "path": "crates/uor-r4-core/src/learned_reference/environment.rs",
+      "sha256": "307341a98cb20719604681e528966c20d8b622f107d29939fae6f4f02ff07bf0"
+    },
+    {
+      "repo": "UOR-Foundation/uor-r4",
+      "revision": "85d9eb8beca2a59ccda47e290afd483f7838982c",
+      "path": "docs/r4_native_bridge_1102_evidence/qualification.json",
+      "sha256": "61d29aa80e6bcd3d163b2ff2a6da4faab04414ea9f4284d80b798c4e46cf5369"
+    }
+  ],
+  "definition_count": 29,
+  "routes": 7,
+  "illustrative_wire_objects_checked": 5,
+  "scenario_ids_checked": 16,
+  "exact_native_error_tags_match_source": true,
+  "exact_refusal_tags_match_source": true,
+  "original_result_object_fields_match_source": true,
+  "historical_qualification_not_reassigned": true,
+  "elapsed_seconds": 0.276896084,
+  "budget_seconds": 60,
+  "scope": "JSON unique keys, type/reference closure, illustrative object shape and actual pinned source/identity consistency only. No lifecycle/model implementation was executed or proved.",
+  "runtime_work": {
+    "builds": 0,
+    "model_loads": 0,
+    "qualification_calls": 0,
+    "forwards": 0,
+    "fits": 0,
+    "exports": 0,
+    "replays": 0,
+    "http_or_browser_runs": 0
+  }
+}

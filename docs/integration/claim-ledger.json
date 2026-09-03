@@ -1,7 +1,7 @@
 {
   "schema": "uor-r4.claim-ledger/1",
   "repository": "UOR-Foundation/uor-r4",
-  "source_revision": "5af0ae38df122853815947aafefb6a88b3f519ea",
+  "source_revision": "f830b1a774fca7945f340ab05391f28c2fe6c4fc",
   "vocabulary": {
     "source": "formal_vocabulary",
     "role": "Statement class from the normative vocabulary.",
@@ -579,6 +579,69 @@
       "revision": "5af0ae38df122853815947aafefb6a88b3f519ea",
       "sha256": "542957a48a9b711711dfe77eca5c824eb092608f4bf7d20f36f80b65b1ca44e3",
       "evidence_status": "ENGINEERING_PREPARATION_OR_STORAGE_OBSERVATION"
+    },
+    "service_adr_1105": {
+      "path": "docs/adr/0006-native-four-fact-workbench-service.md",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/f830b1a774fca7945f340ab05391f28c2fe6c4fc/docs/adr/0006-native-four-fact-workbench-service.md",
+      "revision": "f830b1a774fca7945f340ab05391f28c2fe6c4fc",
+      "sha256": "f6bd7135767868561bf65006e6167accf231193aafbb8ada3162d6e2c5aab330",
+      "evidence_status": "SPECIFICATION"
+    },
+    "service_contract_1105": {
+      "path": "docs/r4_service_contract_1105.json",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/f830b1a774fca7945f340ab05391f28c2fe6c4fc/docs/r4_service_contract_1105.json",
+      "revision": "f830b1a774fca7945f340ab05391f28c2fe6c4fc",
+      "sha256": "337d66d025fc9ec3a1e8c21befc25198b015061235fefc98f9208f99412e7a7f",
+      "evidence_status": "SPECIFICATION"
+    },
+    "service_sources_1105": {
+      "path": "docs/r4_service_contract_1105_sources.md",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/f830b1a774fca7945f340ab05391f28c2fe6c4fc/docs/r4_service_contract_1105_sources.md",
+      "revision": "f830b1a774fca7945f340ab05391f28c2fe6c4fc",
+      "sha256": "90a6c3616660007c3018bf22969e1ed2dbc32dd9038e1342481ead93e343b89d",
+      "evidence_status": "SOURCE_INSPECTED"
+    },
+    "service_source_manifest_1105": {
+      "path": "docs/r4_service_contract_1105_source_manifest.json",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/f830b1a774fca7945f340ab05391f28c2fe6c4fc/docs/r4_service_contract_1105_source_manifest.json",
+      "revision": "f830b1a774fca7945f340ab05391f28c2fe6c4fc",
+      "sha256": "963fd69c57a3c38e85cc1c236549c1db4744b82014a27eaf5a17b88baa9275e6",
+      "evidence_status": "PINNED_SOURCE_IDENTITIES"
+    },
+    "service_source_audit_1105": {
+      "path": "docs/r4_service_contract_1105_service_audit.md",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/f830b1a774fca7945f340ab05391f28c2fe6c4fc/docs/r4_service_contract_1105_service_audit.md",
+      "revision": "f830b1a774fca7945f340ab05391f28c2fe6c4fc",
+      "sha256": "a218da152385bcb327f6778931fd4f8e6d8b5aebb4f4c62306e179cb46fa6b67",
+      "evidence_status": "SOURCE_INSPECTED"
+    },
+    "service_specification_review_1105": {
+      "path": "docs/r4_service_contract_1105_review.md",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/f830b1a774fca7945f340ab05391f28c2fe6c4fc/docs/r4_service_contract_1105_review.md",
+      "revision": "f830b1a774fca7945f340ab05391f28c2fe6c4fc",
+      "sha256": "99fdb6fb8986520bb02457c65cc0dacc7117ddecaa2cfca74a8011d802c6e480",
+      "evidence_status": "INDEPENDENT_SPECIFICATION_REVIEW"
+    },
+    "service_metadata_check_1105": {
+      "path": "docs/r4_service_contract_1105_check.py",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/f830b1a774fca7945f340ab05391f28c2fe6c4fc/docs/r4_service_contract_1105_check.py",
+      "revision": "f830b1a774fca7945f340ab05391f28c2fe6c4fc",
+      "sha256": "58d20401bd2fe029fe93587676fc4c2fc517405a2d4118761731c54d36ea7cee",
+      "evidence_status": "METADATA_CHECK_SOURCE"
+    },
+    "service_metadata_receipt_1105": {
+      "path": "docs/r4_service_contract_1105_checks.json",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/f830b1a774fca7945f340ab05391f28c2fe6c4fc/docs/r4_service_contract_1105_checks.json",
+      "revision": "f830b1a774fca7945f340ab05391f28c2fe6c4fc",
+      "sha256": "4a4f87df57f51f2253e061d6eda3219e47e160a2899b65fa365b69ea01edcc3a",
+      "evidence_status": "SPECIFICATION_METADATA_CONSISTENT"
+    },
+    "service_storage_review_1105": {
+      "path": "docs/r4_service_contract_1105_storage.json",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/f830b1a774fca7945f340ab05391f28c2fe6c4fc/docs/r4_service_contract_1105_storage.json",
+      "revision": "f830b1a774fca7945f340ab05391f28c2fe6c4fc",
+      "sha256": "2134fbdaec66f32a001bcbf93f921977862b49507d0b8cfc856c56987f1f0ac6",
+      "evidence_status": "STORAGE_REVIEW_NO_DELETION"
     }
   },
   "artifacts_1079": {
@@ -691,8 +754,8 @@
         "The #1082 construction-only diagnostic now measures role-selective exposure and pooling displacement; it does not establish a downstream causal explanation. The #1079 strong-sensitivity miss remains unchanged and does not falsify primary preservation or establish geometric superiority."
       ],
       "next_action": {
-        "status": "PARKED_PRODUCT_HANDOFF",
-        "scope": "After protected #1102 closure, separately activate #1084 and freeze the Rust service/API and artifact-ownership ADR for answer_four_fact_raw_text/v1, including truthful qualification of its actual host binary. Do not rerun the consumed native campaign or treat it as a serving endpoint.",
+        "status": "PARKED_IMPLEMENTATION_HANDOFF",
+        "scope": "After protected #1105 delivery, activate one separate #1084 implementation child for the dedicated r4-workbench host, private same-executable worker and first four-fact shell. Independently accept concrete source/build/environment admission before any build, and a fresh actual-host qualification release before model work. The final executable must contain its private comparison mode before build freeze; numerical qualification and ordinary API/lifecycle/browser acceptance are distinct. No consumed #1102/#1094 envelope may be rerun.",
         "issue_urls": [
           "https://github.com/UOR-Foundation/uor-r4/issues/1084"
         ]
@@ -860,8 +923,8 @@
         "Numerical bound and replay checks are not a universal floating-point refinement proof."
       ],
       "next_action": {
-        "status": "PARKED_PRODUCT_HANDOFF",
-        "scope": "After protected #1102 closure, separately activate #1084 and freeze the Rust service/API and artifact-ownership ADR for answer_four_fact_raw_text/v1, including truthful qualification of its actual host binary. Do not rerun the consumed native campaign or treat it as a serving endpoint.",
+        "status": "PARKED_IMPLEMENTATION_HANDOFF",
+        "scope": "After protected #1105 delivery, activate one separate #1084 implementation child for the dedicated r4-workbench host, private same-executable worker and first four-fact shell. Independently accept concrete source/build/environment admission before any build, and a fresh actual-host qualification release before model work. The final executable must contain its private comparison mode before build freeze; numerical qualification and ordinary API/lifecycle/browser acceptance are distinct. No consumed #1102/#1094 envelope may be rerun.",
         "issue_urls": [
           "https://github.com/UOR-Foundation/uor-r4/issues/1084"
         ]
@@ -912,8 +975,8 @@
         "#973 higher-context and #954 final source-free correctness terminals remain unmet."
       ],
       "next_action": {
-        "status": "PARKED_PRODUCT_HANDOFF",
-        "scope": "After protected #1102 closure, separately activate #1084 and freeze the Rust service/API and artifact-ownership ADR for answer_four_fact_raw_text/v1, including truthful qualification of its actual host binary. Do not rerun the consumed native campaign or treat it as a serving endpoint.",
+        "status": "PARKED_IMPLEMENTATION_HANDOFF",
+        "scope": "After protected #1105 delivery, activate one separate #1084 implementation child for the dedicated r4-workbench host, private same-executable worker and first four-fact shell. Independently accept concrete source/build/environment admission before any build, and a fresh actual-host qualification release before model work. The final executable must contain its private comparison mode before build freeze; numerical qualification and ordinary API/lifecycle/browser acceptance are distinct. No consumed #1102/#1094 envelope may be rerun.",
         "issue_urls": [
           "https://github.com/UOR-Foundation/uor-r4/issues/1084"
         ]
@@ -977,8 +1040,8 @@
         "Recorded worker RSS zero indicates no worker resource receipt; it is not a successful worker measurement."
       ],
       "next_action": {
-        "status": "PARKED_PRODUCT_HANDOFF",
-        "scope": "After protected #1102 closure, separately activate #1084 and freeze the Rust service/API and artifact-ownership ADR for answer_four_fact_raw_text/v1, including truthful qualification of its actual host binary. Do not rerun the consumed native campaign or treat it as a serving endpoint.",
+        "status": "PARKED_IMPLEMENTATION_HANDOFF",
+        "scope": "After protected #1105 delivery, activate one separate #1084 implementation child for the dedicated r4-workbench host, private same-executable worker and first four-fact shell. Independently accept concrete source/build/environment admission before any build, and a fresh actual-host qualification release before model work. The final executable must contain its private comparison mode before build freeze; numerical qualification and ordinary API/lifecycle/browser acceptance are distinct. No consumed #1102/#1094 envelope may be rerun.",
         "issue_urls": [
           "https://github.com/UOR-Foundation/uor-r4/issues/1084"
         ]
@@ -1057,8 +1120,8 @@
         "#1079 weak-control and #1082 descriptive results are unchanged; #973 remains open and #954 blocked."
       ],
       "next_action": {
-        "status": "PARKED_PRODUCT_HANDOFF",
-        "scope": "After protected #1102 closure, separately activate #1084 and freeze the Rust service/API and artifact-ownership ADR for answer_four_fact_raw_text/v1, including truthful qualification of its actual host binary. Do not rerun the consumed native campaign or treat it as a serving endpoint.",
+        "status": "PARKED_IMPLEMENTATION_HANDOFF",
+        "scope": "After protected #1105 delivery, activate one separate #1084 implementation child for the dedicated r4-workbench host, private same-executable worker and first four-fact shell. Independently accept concrete source/build/environment admission before any build, and a fresh actual-host qualification release before model work. The final executable must contain its private comparison mode before build freeze; numerical qualification and ordinary API/lifecycle/browser acceptance are distinct. No consumed #1102/#1094 envelope may be rerun.",
         "issue_urls": [
           "https://github.com/UOR-Foundation/uor-r4/issues/1084"
         ]
@@ -1112,8 +1175,8 @@
         "Supplied segmentation remains the qualified model entry; #1094 and #973 remain open and #954 blocked."
       ],
       "next_action": {
-        "status": "PARKED_PRODUCT_HANDOFF",
-        "scope": "After protected #1102 closure, separately activate #1084 and freeze the Rust service/API and artifact-ownership ADR for answer_four_fact_raw_text/v1, including truthful qualification of its actual host binary. Do not rerun the consumed native campaign or treat it as a serving endpoint.",
+        "status": "PARKED_IMPLEMENTATION_HANDOFF",
+        "scope": "After protected #1105 delivery, activate one separate #1084 implementation child for the dedicated r4-workbench host, private same-executable worker and first four-fact shell. Independently accept concrete source/build/environment admission before any build, and a fresh actual-host qualification release before model work. The final executable must contain its private comparison mode before build freeze; numerical qualification and ordinary API/lifecycle/browser acceptance are distinct. No consumed #1102/#1094 envelope may be rerun.",
         "issue_urls": [
           "https://github.com/UOR-Foundation/uor-r4/issues/1084"
         ]
@@ -1189,8 +1252,8 @@
         "At this historical assembly checkpoint, supplied clauses remained the qualified model entry, #1079 weak-control and #1082 descriptive findings were unchanged, #1094/#973 were open and #954 was blocked."
       ],
       "next_action": {
-        "status": "PARKED_PRODUCT_HANDOFF",
-        "scope": "After protected #1102 closure, separately activate #1084 and freeze the Rust service/API and artifact-ownership ADR for answer_four_fact_raw_text/v1, including truthful qualification of its actual host binary. Do not rerun the consumed native campaign or treat it as a serving endpoint.",
+        "status": "PARKED_IMPLEMENTATION_HANDOFF",
+        "scope": "After protected #1105 delivery, activate one separate #1084 implementation child for the dedicated r4-workbench host, private same-executable worker and first four-fact shell. Independently accept concrete source/build/environment admission before any build, and a fresh actual-host qualification release before model work. The final executable must contain its private comparison mode before build freeze; numerical qualification and ordinary API/lifecycle/browser acceptance are distinct. No consumed #1102/#1094 envelope may be rerun.",
         "issue_urls": [
           "https://github.com/UOR-Foundation/uor-r4/issues/1084"
         ]
@@ -1280,8 +1343,8 @@
         "The 120-second historical charge is a conservative policy debit; the resource snapshot excludes its own write/exit tail. Storage peak is a reconstructed bound, not an instantaneous measurement."
       ],
       "next_action": {
-        "status": "PARKED_PRODUCT_HANDOFF",
-        "scope": "After protected #1102 closure, separately activate #1084 and freeze the Rust service/API and artifact-ownership ADR for answer_four_fact_raw_text/v1, including truthful qualification of its actual host binary. Do not rerun the consumed native campaign or treat it as a serving endpoint.",
+        "status": "PARKED_IMPLEMENTATION_HANDOFF",
+        "scope": "After protected #1105 delivery, activate one separate #1084 implementation child for the dedicated r4-workbench host, private same-executable worker and first four-fact shell. Independently accept concrete source/build/environment admission before any build, and a fresh actual-host qualification release before model work. The final executable must contain its private comparison mode before build freeze; numerical qualification and ordinary API/lifecycle/browser acceptance are distinct. No consumed #1102/#1094 envelope may be rerun.",
         "issue_urls": [
           "https://github.com/UOR-Foundation/uor-r4/issues/1084"
         ]
@@ -1426,8 +1489,8 @@
         "The successful ordinary qualify()/serving path remains NOT_RUN; the measured binary exposes research modes, not a service endpoint. Final integer/table lowering remains a separate contract."
       ],
       "next_action": {
-        "status": "PARKED_PRODUCT_HANDOFF",
-        "scope": "After protected #1102 closure, separately activate #1084 and freeze the Rust service/API and artifact-ownership ADR for answer_four_fact_raw_text/v1, including truthful qualification of its actual host binary. Do not rerun the consumed native campaign or treat it as a serving endpoint.",
+        "status": "PARKED_IMPLEMENTATION_HANDOFF",
+        "scope": "After protected #1105 delivery, activate one separate #1084 implementation child for the dedicated r4-workbench host, private same-executable worker and first four-fact shell. Independently accept concrete source/build/environment admission before any build, and a fresh actual-host qualification release before model work. The final executable must contain its private comparison mode before build freeze; numerical qualification and ordinary API/lifecycle/browser acceptance are distinct. No consumed #1102/#1094 envelope may be rerun.",
         "issue_urls": [
           "https://github.com/UOR-Foundation/uor-r4/issues/1084"
         ]
@@ -1471,9 +1534,69 @@
           ]
         }
       ]
+    },
+    {
+      "id": "R4-1105-NATIVE-SERVICE-CONTRACT",
+      "statement": "ADR-0006 defines one loopback Rust HTTP/lifecycle/static-asset owner and one private same-executable worker for the exact answer_four_fact_raw_text/v1 operation, with separately admitted actual-host numerical qualification and service behavior acceptance.",
+      "role": "Definition",
+      "evidence_status": "Unproven",
+      "outcome": "SERVICE_API_CONTRACT_SPECIFIED",
+      "scope": {
+        "specification": "INDEPENDENTLY_ACCEPTED",
+        "implementation_guarantees": "UNPROVEN",
+        "host_worker_shell": "NOT_IMPLEMENTED",
+        "operation": "answer_four_fact_raw_text/v1",
+        "routes": 7,
+        "illustrative_wire_objects": 5,
+        "illustrative_lifecycle_scenarios": 16,
+        "source_rows_verified": 28,
+        "original_sources_verified": 27,
+        "runtime_work": {
+          "builds": 0,
+          "model_loads": 0,
+          "qualification_calls": 0,
+          "forwards": 0,
+          "fits": 0,
+          "exports": 0,
+          "replays": 0,
+          "http_or_browser_runs": 0
+        }
+      },
+      "assumptions": [
+        "The future implementation preserves the accepted reader/core, known vocabulary/query forms, four-fact context and exact native artifact/binding.",
+        "The operator independently adopts actual host evidence; runtime verifies exact bytes and specified schemas, without inferring acceptance from a digest-shaped string.",
+        "The successor freezes actual source/build/environment and fresh comparison/integration permissions and finite budgets before execution."
+      ],
+      "evidence_refs": [
+        "service_adr_1105",
+        "service_contract_1105",
+        "service_sources_1105",
+        "service_source_manifest_1105",
+        "service_source_audit_1105",
+        "service_specification_review_1105",
+        "service_metadata_check_1105",
+        "service_metadata_receipt_1105",
+        "service_storage_review_1105"
+      ],
+      "limits": [
+        "Independent specification review and metadata checks do not establish implemented transitions, cancellation, platform launch binding, native qualification, HTTP/browser behavior or a mathematical proof.",
+        "#1102 remains finite empirical preservation for its own artifact/binary/runtime and authoring fixtures. Its historical qualification cannot qualify the newly linked host.",
+        "The private comparison mode must be in the final executable before the build freeze; no separate harness identity or consumed release is substituted.",
+        "Donor source defects and NEMESIS/W33/UOR research motivate scoped ownership choices; they are not service or model capability evidence.",
+        "All prior weak-control, descriptive, unavailable and negative results remain; no general language, generation, context expansion, coding, geometry advantage or final integer/table-kernel claim follows.",
+        "#1084 remains open for implementation. #1083/#1087 retain separate boundaries; #973 remains open and #954 blocked."
+      ],
+      "next_action": {
+        "status": "PARKED_IMPLEMENTATION_HANDOFF",
+        "scope": "After protected #1105 delivery, activate one separate #1084 implementation child for the dedicated r4-workbench host, private same-executable worker and first four-fact shell. Independently accept concrete source/build/environment admission before any build, and a fresh actual-host qualification release before model work. The final executable must contain its private comparison mode before build freeze; numerical qualification and ordinary API/lifecycle/browser acceptance are distinct. No consumed #1102/#1094 envelope may be rerun.",
+        "issue_urls": [
+          "https://github.com/UOR-Foundation/uor-r4/issues/1084"
+        ]
+      },
+      "proof_artifacts": []
     }
   ],
-  "previous_source_revision": "ccabce9f0619b6154cf347a1b2641715e18d230a",
+  "previous_source_revision": "5af0ae38df122853815947aafefb6a88b3f519ea",
   "artifacts_1082": {
     "implementation_cid": "blake3:1451084b66531dbe5eb0cb1d3b3e60e5f0aa3f4bd59fffbf582a18d4dfc9380e",
     "preparation_cid": "blake3:c8a4a56de77767cbbe8fd31edc83251b42a6f729e182d065caa47d981f248741",
@@ -1635,8 +1758,54 @@
     "service_endpoint": "NOT_IMPLEMENTED",
     "delivery": "Protected PR #1104 owns delivery and #1102 closure.",
     "next_action": {
-      "status": "PARKED_PRODUCT_HANDOFF",
-      "scope": "After protected #1102 closure, separately activate #1084 and freeze the Rust service/API and artifact-ownership ADR for answer_four_fact_raw_text/v1, including truthful qualification of its actual host binary. Do not rerun the consumed native campaign or treat it as a serving endpoint.",
+      "status": "PARKED_IMPLEMENTATION_HANDOFF",
+      "scope": "After protected #1105 delivery, activate one separate #1084 implementation child for the dedicated r4-workbench host, private same-executable worker and first four-fact shell. Independently accept concrete source/build/environment admission before any build, and a fresh actual-host qualification release before model work. The final executable must contain its private comparison mode before build freeze; numerical qualification and ordinary API/lifecycle/browser acceptance are distinct. No consumed #1102/#1094 envelope may be rerun.",
+      "issue_urls": [
+        "https://github.com/UOR-Foundation/uor-r4/issues/1084"
+      ]
+    }
+  },
+  "handoff_history": [
+    {
+      "source_revision": "5af0ae38df122853815947aafefb6a88b3f519ea",
+      "superseded_by": "SERVICE_API_CONTRACT_SPECIFIED under #1105",
+      "claim_ids": [
+        "R4-1079-TOKEN-CONTROL",
+        "R4-1082-TOKEN-EXPOSURE",
+        "R4-1085-CLAUSE-ADAPTER",
+        "R4-1094-AUTHORING-INPUT",
+        "R4-1096-ISOLATED-RUNTIME-READINESS",
+        "R4-1094-RETAINED-PREPARATION-CONTRACT",
+        "R4-1094-RETAINED-ASSEMBLY-ADMISSION",
+        "R4-1094-RAW-TEXT-PRESERVATION",
+        "R4-1086-NATIVE-REFERENCE-BRIDGE"
+      ],
+      "previous_next_action": {
+        "status": "PARKED_PRODUCT_HANDOFF",
+        "scope": "After protected #1102 closure, separately activate #1084 and freeze the Rust service/API and artifact-ownership ADR for answer_four_fact_raw_text/v1, including truthful qualification of its actual host binary. Do not rerun the consumed native campaign or treat it as a serving endpoint.",
+        "issue_urls": [
+          "https://github.com/UOR-Foundation/uor-r4/issues/1084"
+        ]
+      },
+      "scope": "Sequencing pointer only; original statements, assumptions, observations, limits, outcomes and evidence remain unchanged."
+    }
+  ],
+  "latest_service_contract": {
+    "issue": 1105,
+    "parent_issue": 1084,
+    "base_revision": "85d9eb8beca2a59ccda47e290afd483f7838982c",
+    "evidence_revision": "f830b1a774fca7945f340ab05391f28c2fe6c4fc",
+    "status": "SERVICE_API_CONTRACT_SPECIFIED",
+    "independent_review": "ACCEPTED_SPECIFICATION_ONLY",
+    "service_contract_sha256": "337d66d025fc9ec3a1e8c21befc25198b015061235fefc98f9208f99412e7a7f",
+    "source_manifest_sha256": "963fd69c57a3c38e85cc1c236549c1db4744b82014a27eaf5a17b88baa9275e6",
+    "service_endpoint": "NOT_IMPLEMENTED",
+    "actual_host_qualification": "NOT_RUN",
+    "service_behavior": "NOT_RUN",
+    "delivery": "Protected PR closes #1105 only; #1084 remains open and unassigned.",
+    "next_action": {
+      "status": "PARKED_IMPLEMENTATION_HANDOFF",
+      "scope": "After protected #1105 delivery, activate one separate #1084 implementation child for the dedicated r4-workbench host, private same-executable worker and first four-fact shell. Independently accept concrete source/build/environment admission before any build, and a fresh actual-host qualification release before model work. The final executable must contain its private comparison mode before build freeze; numerical qualification and ordinary API/lifecycle/browser acceptance are distinct. No consumed #1102/#1094 envelope may be rerun.",
       "issue_urls": [
         "https://github.com/UOR-Foundation/uor-r4/issues/1084"
       ]

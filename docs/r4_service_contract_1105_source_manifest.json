@@ -1,0 +1,333 @@
+{
+  "schema": "uor-r4.service-contract-source-audit/1",
+  "issue": 1105,
+  "parent_issue": 1084,
+  "base_revision": "85d9eb8beca2a59ccda47e290afd483f7838982c",
+  "status": "SOURCE_INSPECTED_NOT_EXECUTED",
+  "scope": "ADR source audit only; no code/model/runtime work",
+  "sources": [
+    {
+      "repo": "markrnd87-cmd/NEMESIS-Theory",
+      "revision": "0d106967843c2c96477cf3e57aeff213e7db1c97",
+      "path": "Technical Report_ Integration of Hypercomplex Geometries as UOR Structure Carrying Substrates.pdf",
+      "sha256": "697d48b70a1499a1fd70d8f1a4c285606a198a3831250425ae11439f37b395cc",
+      "bytes": 99374,
+      "git_blob_sha1": "2d706a2525c0176272b93de066c082d80ec6b974",
+      "relevant_lines": "pages 1-3 (retained page-marked extraction)",
+      "license": "NO_LICENSE_FOUND_IN_PINNED_INVENTORY",
+      "license_basis": "Link and attributed discussion only; no vendoring.",
+      "local_path": "/Users/casey.allard/.local/share/uor-r4/knowledge/audits/2026-09-03/research/snapshots/markrnd87-cmd__NEMESIS-Theory/Technical Report_ Integration of Hypercomplex Geometries as UOR Structure Carrying Substrates.pdf",
+      "source_url": "https://github.com/markrnd87-cmd/NEMESIS-Theory/blob/0d106967843c2c96477cf3e57aeff213e7db1c97/Technical%20Report_%20Integration%20of%20Hypercomplex%20Geometries%20as%20UOR%20Structure%20Carrying%20Substrates.pdf",
+      "status": "SOURCE_INSPECTED_NOT_EXECUTED"
+    },
+    {
+      "repo": "wilcompute/W33-Theory",
+      "revision": "5674aa2e74c7de81864556b1bbc90aa9a1b1bd3d",
+      "path": "analysis/w33_fractal_microvm_runtime.py",
+      "sha256": "875b53408cc5312b60b5a6254dbac80a9a1324c89cdf24936488d7a4744e90ca",
+      "bytes": 58882,
+      "git_blob_sha1": "cc918a06462261b5639d2449d4dd96430df1a061",
+      "relevant_lines": "38-58, 314-329, 746-795, 874-925",
+      "license": "MIT",
+      "license_basis": "Actual retained LICENSE read; preserve William Dembski Jr. notice.",
+      "local_path": "/Users/casey.allard/.local/share/uor-r4/knowledge/audits/2026-09-03/research/snapshots/wilcompute__W33-Theory/analysis/w33_fractal_microvm_runtime.py",
+      "source_url": "https://github.com/wilcompute/W33-Theory/blob/5674aa2e74c7de81864556b1bbc90aa9a1b1bd3d/analysis/w33_fractal_microvm_runtime.py",
+      "status": "SOURCE_INSPECTED_NOT_EXECUTED"
+    },
+    {
+      "repo": "UOR-Foundation/uor-addr",
+      "revision": "165b51e3e2113ee5d032730cde709335d4fe9b60",
+      "path": "crates/uor-addr/src/json/mod.rs",
+      "sha256": "39bc9fcb5f83ef2408e752a1eb775c984f40068791119d38df8acd39b14289f1",
+      "bytes": 3692,
+      "git_blob_sha1": "9172e32e030e114791abf84d1b2418becb2690af",
+      "relevant_lines": "1-36, 57-67",
+      "license": "Apache-2.0",
+      "license_basis": "Actual license/workspace identity retained in #1086 source manifest; no code copied.",
+      "local_path": "/Users/casey.allard/.local/share/uor-r4/knowledge/audits/2026-09-03/uor/sources/UOR-Foundation__uor-addr/files/crates/uor-addr/src/json/mod.rs",
+      "source_url": "https://github.com/UOR-Foundation/uor-addr/blob/165b51e3e2113ee5d032730cde709335d4fe9b60/crates/uor-addr/src/json/mod.rs",
+      "status": "SOURCE_INSPECTED_NOT_EXECUTED"
+    },
+    {
+      "repo": "UOR-Foundation/uor-addr",
+      "revision": "165b51e3e2113ee5d032730cde709335d4fe9b60",
+      "path": "crates/uor-addr/src/composition/canonicalize.rs",
+      "sha256": "d9032fc9bc95a4f86ddbb8c0db3753865ee6de36a8f915fc446597243b8a6d89",
+      "bytes": 15372,
+      "git_blob_sha1": "84a894885d007ff0149cd3eb534bbec755c63365",
+      "relevant_lines": "68-118",
+      "license": "Apache-2.0",
+      "license_basis": "Actual license/workspace identity retained in #1086 source manifest; no code copied.",
+      "local_path": "/Users/casey.allard/.local/share/uor-r4/knowledge/audits/2026-09-03/uor/sources/UOR-Foundation__uor-addr/files/crates/uor-addr/src/composition/canonicalize.rs",
+      "source_url": "https://github.com/UOR-Foundation/uor-addr/blob/165b51e3e2113ee5d032730cde709335d4fe9b60/crates/uor-addr/src/composition/canonicalize.rs",
+      "status": "SOURCE_INSPECTED_NOT_EXECUTED"
+    },
+    {
+      "repo": "UOR-Foundation/kappa-registry",
+      "revision": "2af86560a177fc9651b6c0e92e7974140ed77dd5",
+      "path": "crates/kappa-core/src/kappa/compute.rs",
+      "sha256": "e363cfffd908383d502ee8fdea50cd861bba621fbc705c7b56595c9cad4262b2",
+      "bytes": 14302,
+      "git_blob_sha1": "1680accdd094940233f85a8e36989472ea3b33c1",
+      "relevant_lines": "110-152",
+      "license": "MIT OR Apache-2.0 (Cargo declaration)",
+      "license_basis": "Root LICENSE missing in pinned audit; declaration reread, no code copied.",
+      "local_path": "/Users/casey.allard/.local/share/uor-r4/knowledge/audits/2026-09-03/uor/sources/UOR-Foundation__kappa-registry/files/crates/kappa-core/src/kappa/compute.rs",
+      "source_url": "https://github.com/UOR-Foundation/kappa-registry/blob/2af86560a177fc9651b6c0e92e7974140ed77dd5/crates/kappa-core/src/kappa/compute.rs",
+      "status": "SOURCE_INSPECTED_NOT_EXECUTED"
+    },
+    {
+      "repo": "UOR-Foundation/uor-matmul",
+      "revision": "3cc5882f210667f9ac00fd8c02c5b5957b493f5d",
+      "path": "crates/uor-matmul-codec/src/kappa.rs",
+      "sha256": "ca608c9af4b112f530e4314455fcbafe6de9945d345c57eb93b996be9cad5370",
+      "bytes": 26805,
+      "git_blob_sha1": "2244a6d304674dc1369f69b2373f84be4d594545",
+      "relevant_lines": "1-60",
+      "license": "UNRESOLVED: MIT file / Apache-2.0 Cargo declaration",
+      "license_basis": "#1086 retained original LICENSE identity and current cached declaration disagree; no adoption.",
+      "local_path": "/Users/casey.allard/.local/share/uor-r4/knowledge/audits/2026-09-03/uor/sources/UOR-Foundation__uor-matmul/files/crates/uor-matmul-codec/src/kappa.rs",
+      "source_url": "https://github.com/UOR-Foundation/uor-matmul/blob/3cc5882f210667f9ac00fd8c02c5b5957b493f5d/crates/uor-matmul-codec/src/kappa.rs",
+      "status": "SOURCE_INSPECTED_NOT_EXECUTED"
+    },
+    {
+      "repo": "Hologram-Technologies/hologram",
+      "revision": "94ecb886811115491a77c8229e494965bea03fc2",
+      "path": "crates/hologram-archive/src/address.rs",
+      "sha256": "9e4bc8a2202ef28b8dbab9feba1e44e01b9fc39bc9df4f61a31675a7fab003dd",
+      "bytes": 14450,
+      "git_blob_sha1": "6ef738eb1d9d94ff6e9b301d7fe8d431a56ce956",
+      "relevant_lines": "73-166",
+      "license": "MIT OR Apache-2.0",
+      "license_basis": "Actual dual license file identities retained in #1086 source manifest; Cargo declaration reread.",
+      "local_path": "/Users/casey.allard/.local/share/uor-r4/knowledge/audits/2026-09-03/uor/sources/Hologram-Technologies__hologram/files/crates/hologram-archive/src/address.rs",
+      "source_url": "https://github.com/Hologram-Technologies/hologram/blob/94ecb886811115491a77c8229e494965bea03fc2/crates/hologram-archive/src/address.rs",
+      "status": "SOURCE_INSPECTED_NOT_EXECUTED"
+    },
+    {
+      "repo": "Hologram-Technologies/hologram-ai",
+      "revision": "d5337ec2b3289fc8462abac2e627d165342079b2",
+      "path": "crates/hologram-ai/src/address.rs",
+      "sha256": "3e9bb0710f8de976288f04d4d654e6c800a3eed3e5c6bb8b0d5467be63e8d5c3",
+      "bytes": 7565,
+      "git_blob_sha1": "a75c75cfc1dc9f49474cd26ca61fdcedebbf6cf5",
+      "relevant_lines": "108-128",
+      "license": "MIT OR Apache-2.0 (recorded declaration)",
+      "license_basis": "No code copied; this audit uses source identity semantics only.",
+      "local_path": "/Users/casey.allard/.local/share/uor-r4/knowledge/audits/2026-09-03/uor/sources/Hologram-Technologies__hologram-ai/files/crates/hologram-ai/src/address.rs",
+      "source_url": "https://github.com/Hologram-Technologies/hologram-ai/blob/d5337ec2b3289fc8462abac2e627d165342079b2/crates/hologram-ai/src/address.rs",
+      "status": "SOURCE_INSPECTED_NOT_EXECUTED"
+    },
+    {
+      "repo": "Casey-allard/uor-r4-wasm-chat",
+      "revision": "5a10305126df62e838cadfec5fd509e0c9705fa7",
+      "path": "index.html",
+      "sha256": "04fd7a5809486f484f25c60f5ed533262ef2b6135937ad3db499668179d98ff1",
+      "bytes": 329557,
+      "git_blob_sha1": "3f34019975a5f2d2b022be12a9d348077566d1b5",
+      "relevant_lines": "23-54, 2300-2349, 2899-2965, 3987-4014, 5227-5258, 5378-5448, 5584-5668, 6280-6290, 7300-7395",
+      "license": "MIT",
+      "license_basis": "Pinned LICENSE read; Copyright (c) 2026 Casey Allard & UOR-R4 Contributors; bundled third-party terms remain separate.",
+      "local_path": "/Users/casey.allard/Downloads/uor-r4-project/index.html",
+      "read_method": "git show exact pinned revision",
+      "source_url": "https://github.com/Casey-allard/uor-r4-wasm-chat/blob/5a10305126df62e838cadfec5fd509e0c9705fa7/index.html",
+      "status": "SOURCE_INSPECTED_NOT_EXECUTED"
+    },
+    {
+      "repo": "Casey-allard/uor-r4-wasm-chat",
+      "revision": "5a10305126df62e838cadfec5fd509e0c9705fa7",
+      "path": "assets/js/uor_model_worker.js",
+      "sha256": "b6aea5c6c0d42e2ebf6a9a195976038c42361a8e9d7eedba560a881eba750c2a",
+      "bytes": 20835,
+      "git_blob_sha1": "d18502715238c70dc7745c7cfc10a5c1c19ffc88",
+      "relevant_lines": "10-24, 45-97, 167-239, 280-330, 336-342, 414-431, 463-467",
+      "license": "MIT",
+      "license_basis": "Pinned LICENSE read; Copyright (c) 2026 Casey Allard & UOR-R4 Contributors; bundled third-party terms remain separate.",
+      "local_path": "/Users/casey.allard/Downloads/uor-r4-project/assets/js/uor_model_worker.js",
+      "read_method": "git show exact pinned revision",
+      "source_url": "https://github.com/Casey-allard/uor-r4-wasm-chat/blob/5a10305126df62e838cadfec5fd509e0c9705fa7/assets/js/uor_model_worker.js",
+      "status": "SOURCE_INSPECTED_NOT_EXECUTED"
+    },
+    {
+      "repo": "Casey-allard/uor-r4-wasm-chat",
+      "revision": "5a10305126df62e838cadfec5fd509e0c9705fa7",
+      "path": "LICENSE",
+      "sha256": "a53213a65af4b16433bc076eb3b341511440b1d81b73c1fb4fbca474ecc10257",
+      "bytes": 1091,
+      "git_blob_sha1": "e30c6e7f3365112143ee83ab7990a797ef341be3",
+      "relevant_lines": "1-21",
+      "license": "MIT",
+      "license_basis": "Pinned LICENSE read; Copyright (c) 2026 Casey Allard & UOR-R4 Contributors; bundled third-party terms remain separate.",
+      "local_path": "/Users/casey.allard/Downloads/uor-r4-project/LICENSE",
+      "read_method": "git show exact pinned revision",
+      "source_url": "https://github.com/Casey-allard/uor-r4-wasm-chat/blob/5a10305126df62e838cadfec5fd509e0c9705fa7/LICENSE",
+      "status": "SOURCE_INSPECTED_NOT_EXECUTED"
+    },
+    {
+      "repo": "wilcompute/W33-Theory",
+      "revision": "5674aa2e74c7de81864556b1bbc90aa9a1b1bd3d",
+      "path": "LICENSE",
+      "sha256": "02c48257db6f1517f0391eaddf8dc67ab21dde55bccae811e3dfeedaa9e23ac4",
+      "bytes": 1076,
+      "relevant_lines": "1-21",
+      "license": "MIT",
+      "local_path": "/Users/casey.allard/.local/share/uor-r4/knowledge/audits/2026-09-03/research/snapshots/wilcompute__W33-Theory/LICENSE",
+      "status": "SOURCE_INSPECTED_NOT_EXECUTED"
+    }
+  ],
+  "retained_pdf_extraction": {
+    "local_path": "/Users/casey.allard/.local/share/uor-r4/knowledge/audits/2026-09-03/research/snapshots/markrnd87-cmd__NEMESIS-Theory/Technical Report_ Integration of Hypercomplex Geometries as UOR Structure Carrying Substrates.extracted.txt",
+    "sha256": "4ea32402e9398f7830a243e5c5f8db30df2ff497e1d8cf559c5949228e2f8376",
+    "bytes": 6910,
+    "pages_read": "1-3"
+  },
+  "local_evidence": [
+    {
+      "repo": "UOR-Foundation/uor-r4",
+      "revision": "85d9eb8beca2a59ccda47e290afd483f7838982c",
+      "path": "docs/integration/frontend-port-plan.md",
+      "sha256": "6cecd10abb9f41b892e1eb083174546cb85a8a5be014995d1d5c2ab0ed6309f6",
+      "bytes": 11483,
+      "relevant_lines": "1-76",
+      "status": "SOURCE_AND_RETAINED_PUBLIC_METADATA_INSPECTED_NO_EXECUTION"
+    },
+    {
+      "repo": "UOR-Foundation/uor-r4",
+      "revision": "85d9eb8beca2a59ccda47e290afd483f7838982c",
+      "path": "docs/r4_native_reference_1086_source_manifest.json",
+      "sha256": "cce805345342f1476fc333e430b69e9bdbea4c83361bad6aeaa74565b59dd999",
+      "bytes": 19221,
+      "relevant_lines": "whole identity manifest",
+      "status": "SOURCE_AND_RETAINED_PUBLIC_METADATA_INSPECTED_NO_EXECUTION"
+    },
+    {
+      "repo": "UOR-Foundation/uor-r4",
+      "revision": "85d9eb8beca2a59ccda47e290afd483f7838982c",
+      "path": "docs/r4_native_reference_1086_contract.json",
+      "sha256": "e3565728dfa872d9c260dd3d391ae59e0b0d454ebead20cd15cb075b24796115",
+      "bytes": 25469,
+      "relevant_lines": "exact_fields.qualification_binding; immutable schema",
+      "status": "SOURCE_AND_RETAINED_PUBLIC_METADATA_INSPECTED_NO_EXECUTION"
+    },
+    {
+      "repo": "UOR-Foundation/uor-r4",
+      "revision": "85d9eb8beca2a59ccda47e290afd483f7838982c",
+      "path": "docs/r4_native_bridge_1102_execution.md",
+      "sha256": "c4640510c0beee980daa4a42418e00341731d8a179e4c500a65e5ae36645af1d",
+      "bytes": 12114,
+      "relevant_lines": "128-186",
+      "status": "SOURCE_AND_RETAINED_PUBLIC_METADATA_INSPECTED_NO_EXECUTION"
+    },
+    {
+      "repo": "UOR-Foundation/uor-r4",
+      "revision": "85d9eb8beca2a59ccda47e290afd483f7838982c",
+      "path": "docs/r4_native_bridge_1102_evidence/qualification-handoff.json",
+      "sha256": "efc02551d493e255f12680ccf2e4ee99cca5f645e0ca3d7fcd6445419e963426",
+      "bytes": 5001,
+      "relevant_lines": "trust_boundary; trusted_binding",
+      "status": "SOURCE_AND_RETAINED_PUBLIC_METADATA_INSPECTED_NO_EXECUTION"
+    },
+    {
+      "repo": "UOR-Foundation/uor-r4",
+      "revision": "85d9eb8beca2a59ccda47e290afd483f7838982c",
+      "path": "crates/uor-r4-core/src/learned_reference/mod.rs",
+      "sha256": "2ead8e40b9f3f095a057c5dec0c1d36bb38f0dd7ea61fc7ca7b5da7924401cec",
+      "bytes": 13528,
+      "relevant_lines": "98-103, 134-229",
+      "status": "SOURCE_AND_RETAINED_PUBLIC_METADATA_INSPECTED_NO_EXECUTION"
+    }
+  ],
+  "knowledge_queries": [
+    "frontend-port-plan",
+    "NEMESIS",
+    "W33",
+    "1084",
+    "kappa_from_value",
+    "uor-r4-wasm-chat"
+  ],
+  "boundary_incident": "One broad filename enumeration while locating prior license files encountered the withheld directory with Permission denied. No withheld paths or contents were returned/opened. Subsequent reads used exact public snapshot/repository paths.",
+  "service_sources": [
+    {
+      "repo": "UOR-Foundation/uor-r4",
+      "revision": "85d9eb8beca2a59ccda47e290afd483f7838982c",
+      "path": "src/server.rs",
+      "bytes": 1295150,
+      "sha256": "86b66222d75ba8320af782b6aa46001052b7dd511d2fb3bdc572a6f7c23f05ea",
+      "status": "SOURCE_INSPECTED_NOT_EXECUTED"
+    },
+    {
+      "repo": "UOR-Foundation/uor-r4",
+      "revision": "85d9eb8beca2a59ccda47e290afd483f7838982c",
+      "path": "src/main.rs",
+      "bytes": 221274,
+      "sha256": "3cfdff7c7bcad4c578db198f16ab1d4914df8723211314d1d71ff83be8f67577",
+      "status": "SOURCE_INSPECTED_NOT_EXECUTED"
+    },
+    {
+      "repo": "UOR-Foundation/uor-r4",
+      "revision": "85d9eb8beca2a59ccda47e290afd483f7838982c",
+      "path": "crates/uor-r4-api/Cargo.toml",
+      "bytes": 1986,
+      "sha256": "bf5061338e5cfbe83231111929bd12ad8ee1b8d179e3812cab99ca32e0f151a5",
+      "status": "SOURCE_INSPECTED_NOT_EXECUTED"
+    },
+    {
+      "repo": "UOR-Foundation/uor-r4",
+      "revision": "85d9eb8beca2a59ccda47e290afd483f7838982c",
+      "path": "crates/uor-r4-api/src/learned_reference.rs",
+      "bytes": 117,
+      "sha256": "87926c7df0f5493221385377282586f17eeae59cd8db5f4d92ccb12181b57d98",
+      "status": "SOURCE_INSPECTED_NOT_EXECUTED"
+    },
+    {
+      "repo": "UOR-Foundation/uor-r4",
+      "revision": "85d9eb8beca2a59ccda47e290afd483f7838982c",
+      "path": "crates/uor-r4-api/src/bin/r4-learned-reference-1102.rs",
+      "bytes": 8983,
+      "sha256": "ba10ca22b6124ce5a551424e4793cb1a3f324b2857ed20c58542d4e01aa43457",
+      "status": "SOURCE_INSPECTED_NOT_EXECUTED"
+    },
+    {
+      "repo": "UOR-Foundation/uor-r4",
+      "revision": "85d9eb8beca2a59ccda47e290afd483f7838982c",
+      "path": "crates/uor-r4-core/src/learned_reference/mod.rs",
+      "bytes": 13528,
+      "sha256": "2ead8e40b9f3f095a057c5dec0c1d36bb38f0dd7ea61fc7ca7b5da7924401cec",
+      "status": "SOURCE_INSPECTED_NOT_EXECUTED"
+    },
+    {
+      "repo": "UOR-Foundation/uor-r4",
+      "revision": "85d9eb8beca2a59ccda47e290afd483f7838982c",
+      "path": "crates/uor-r4-core/src/learned_reference/loader.rs",
+      "bytes": 22959,
+      "sha256": "208fbe0a2447a650063909cc623e9c9c3804a839a4c0ba99ab39c79e8b26ec07",
+      "status": "SOURCE_INSPECTED_NOT_EXECUTED"
+    },
+    {
+      "repo": "UOR-Foundation/uor-r4",
+      "revision": "85d9eb8beca2a59ccda47e290afd483f7838982c",
+      "path": "crates/uor-r4-core/src/learned_reference/adapter.rs",
+      "bytes": 11596,
+      "sha256": "90caf4d8873d754a3266f664eb284f52bb0cae118e96b4dc890d6139b9ea598e",
+      "status": "SOURCE_INSPECTED_NOT_EXECUTED"
+    },
+    {
+      "repo": "UOR-Foundation/uor-r4",
+      "revision": "85d9eb8beca2a59ccda47e290afd483f7838982c",
+      "path": "crates/uor-r4-core/src/learned_reference/environment.rs",
+      "bytes": 1477,
+      "sha256": "307341a98cb20719604681e528966c20d8b622f107d29939fae6f4f02ff07bf0",
+      "status": "SOURCE_INSPECTED_NOT_EXECUTED"
+    },
+    {
+      "repo": "UOR-Foundation/uor-r4",
+      "revision": "85d9eb8beca2a59ccda47e290afd483f7838982c",
+      "path": "docs/r4_native_bridge_1102_evidence/qualification.json",
+      "bytes": 857,
+      "sha256": "61d29aa80e6bcd3d163b2ff2a6da4faab04414ea9f4284d80b798c4e46cf5369",
+      "status": "SOURCE_INSPECTED_NOT_EXECUTED"
+    }
+  ],
+  "service_audit": "docs/r4_service_contract_1105_service_audit.md",
+  "graph_coverage": "GitNexus lookup used a stale retained-assembly source index. Exact current source was read for every adopted conclusion. This documentation-only change does not alter represented code; no graph rebuild is needed."
+}

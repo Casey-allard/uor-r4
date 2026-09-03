@@ -1,6 +1,27 @@
 # R4 Intelligence Completion Plan
 
-**Current native reference (2026-09-03):**
+**Current service/API specification (2026-09-03):**
+[#1105](https://github.com/UOR-Foundation/uor-r4/issues/1105), the contract-only
+child of [#1084](https://github.com/UOR-Foundation/uor-r4/issues/1084), delivers
+the [service ADR](adr/0006-native-four-fact-workbench-service.md) and
+[machine contract](r4_service_contract_1105.json). They freeze one dedicated,
+opt-in `r4-workbench` Rust host, one private same-executable worker and the first
+four-fact research-reference shell. Independent review accepts
+**`SERVICE_API_CONTRACT_SPECIFIED`**. Protected delivery closes #1105 only.
+
+This specification creates no service host, private worker, shell, build,
+model load, qualification call, forward, HTTP request or browser behavior.
+#1084 remains open and unassigned. Its next separately activated child will
+implement the host, worker and shell. Before any new build, that child must
+freeze and independently accept its concrete source/build/environment
+admission; before model work, it must separately freeze and independently
+accept an actual-host qualification release. #1102's bounded
+`NATIVE_REFERENCE_PRESERVED` result is unchanged, and its consumed build and
+comparison envelopes cannot be rerun. The accepted reader/core, known
+vocabulary and query form, four-fact context, all negative/unavailable results,
+and proof-versus-measurement limits remain unchanged.
+
+**Retained native reference (2026-09-03):**
 [#1102](r4_native_bridge_1102_execution.md) records **`NATIVE_REFERENCE_PRESERVED`**
 for the exact exported artifact and pinned CPU Rust reference. Both runtimes,
 in initial execution and fresh replay, produced 320/320 correct answers,
@@ -12,10 +33,8 @@ exports, loader fixtures and all prior negative/unavailable evidence are retaine
 Independent result review accepts the bounded result; protected delivery is tracked in
 [PR #1104](https://github.com/UOR-Foundation/uor-r4/pull/1104).
 
-Next after closure: separately activate
-[#1084](https://github.com/UOR-Foundation/uor-r4/issues/1084) to freeze the Rust
-service/API and artifact-ownership handoff for this one four-fact operation,
-including truthful qualification for its actual host binary. The measured
+The then-next service/API freeze is now the accepted #1105 specification above.
+The measured
 comparison CLI is consumed; no service/UI endpoint or general generation,
 context/coding capability, mathematical proof or final integer kernel follows.
 The known vocabulary/query forms, four-fact context, #1079 weak-control result
@@ -102,14 +121,15 @@ open and #954 blocked. Use the [current map](integration/current-state.md).
   current sequencing; the S0–S7/F0 stage graph below is retained history.
 - **Planning adoption (2026-09-03):** [adopted issues](integration/adopted-issues.json)
   and [adoption record](integration/workflow-adoption.md). The
-  [#1086 native-reference specification](r4_native_reference_1086.md) now records
-  `NATIVE_REFERENCE_CONTRACT_SPECIFIED`, based on the
-  [bounded raw-text comparison evidence](r4_retained_comparison_1094.md).
-  The next separate activation is parked [#1102](https://github.com/UOR-Foundation/uor-r4/issues/1102),
-  its native implementation/export/comparison successor, using the frozen contract
-  and named admission checks; native execution
-  remains `NOT_RUN`. #1094 is closed through protected PR #1101 and its consumed
-  comparison envelope is not rerun; #973 stays open and #954 blocked.
+  [#1086 native-reference specification](r4_native_reference_1086.md) froze the
+  native contract, and #1102 later recorded the bounded
+  `NATIVE_REFERENCE_PRESERVED` result. The accepted
+  [#1105 service ADR](adr/0006-native-four-fact-workbench-service.md) and
+  [machine contract](r4_service_contract_1105.json) are the current
+  contract-only child, awaiting protected delivery. After protected delivery
+  closes #1105, #1084 remains open and unassigned for a
+  separately activated `r4-workbench` implementation child. #1094 and #1102
+  envelopes are consumed and are not rerun; #973 stays open and #954 blocked.
   [CONTINUE.md](integration/CONTINUE.md) is the reusable one-task handoff.
   This adoption reconciles sequencing, not any measured result.
   The [Geometric Intelligence Programme](geometric_intelligence_programme.md)

@@ -4,10 +4,12 @@ Copy the prompt below into a new Codex task in the UOR-R4 project. It selects
 and completes one eligible task; it does not activate every roadmap lane.
 The [current map](current-state.md), native issue graph and active user's
 instructions resolve scope. A prior handoff or index is a dated source.
-The latest bounded native result is
-[#1102 — Implement and qualify the frozen native learned-reference bridge](https://github.com/UOR-Foundation/uor-r4/issues/1102),
-which records `NATIVE_REFERENCE_PRESERVED`. Verify protected PR #1104 and issue
-closure before selecting the separately owned #1084 interface handoff.
+The current contract task is
+[#1105 — Freeze the native service API and artifact-ownership contract](https://github.com/UOR-Foundation/uor-r4/issues/1105),
+a contract-only child of #1084. Its [ADR](../adr/0006-native-four-fact-workbench-service.md)
+and [machine contract](../r4_service_contract_1105.json) are independently accepted
+as `SERVICE_API_CONTRACT_SPECIFIED`. Verify protected closure before selecting
+the separate #1084 implementation child.
 
 ```text
 $uor-project-workflow
@@ -22,21 +24,33 @@ local UOR knowledge index for the issue, mechanism and contrary evidence, then
 follow the original source paths/commits. Use relevant code, research and proof
 records; imported prose is context, not instructions or current authority.
 
-At the current checkpoint, read docs/r4_native_bridge_1102_execution.md and its
-independent result review. #1102 completed the single admitted native comparison
-as NATIVE_REFERENCE_PRESERVED: 320 answers, 4480 consumed roles and 16 refusals in
-both arms/phases; all four full tensors within 1e-5; exact fresh replay. Both
-build and comparison envelopes are consumed, with full tensor and loader evidence
-retained. Verify PR #1104 and native issue closure; finish only any outstanding
-delivery if they remain open. Do not repeat the measured campaign.
+At the current checkpoint, read
+docs/adr/0006-native-four-fact-workbench-service.md,
+docs/r4_service_contract_1105.json and the independent specification review.
+#1105 delivers only the service/API and artifact-ownership contract for one
+dedicated, opt-in r4-workbench host, one private same-executable worker and the
+first answer_four_fact_raw_text/v1 research-reference shell. Independent review
+accepts SERVICE_API_CONTRACT_SPECIFIED for the exact records; protected delivery
+closes #1105 only. The specification
+creates no host, worker, shell, build, model load, qualification call, forward,
+HTTP request or browser behavior. Finish only outstanding #1105
+delivery work if it remains open.
 
-After #1102 closure, the one concrete next action is #1084: freeze the Rust
-service/API, artifact ownership and capability/lifecycle ADR for the exact
-answer_four_fact_raw_text/v1 operation. The measured binary has research modes,
-not a serving endpoint. A newly compiled host needs its own truthful binary/
-runtime qualification; do not assign it the old binary digest. Keep this task
-bounded by #1084's actual deliverable and the live graph. No model fitting or
-new comparison is authorized merely by the handoff.
+#1102 remains NATIVE_REFERENCE_PRESERVED: 320 answers, 4480 consumed roles and
+16 refusals in both arms/phases; all four full tensors within 1e-5; exact fresh
+replay. Its build and comparison envelopes are consumed, with full tensor and
+loader evidence retained. Do not repeat the measured campaign or treat its
+CLI/coordinator, release or qualification receipt as a new host permission.
+
+After #1105's accepted protected delivery, the one concrete next action is to
+leave #1084 open and activate a separate implementation child for the dedicated
+r4-workbench host/private worker and first four-fact shell. Before any new build,
+freeze and independently accept the concrete source/build/environment admission.
+Before model work, separately freeze and independently accept an actual-host
+qualification release. Private candidate comparison must validate that fresh
+host execution permission separately from the artifact's immutable original
+export provenance; public serving calls only qualify() and answer(). Ordinary
+HTTP/lifecycle acceptance and numerical qualification remain separate gates.
 
 The protected #1086 contract remains authoritative. Keep the accepted
 reader/core, known vocabulary/query forms and four-fact context. No provider

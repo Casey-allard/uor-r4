@@ -2,9 +2,28 @@
 
 Status: proposed architecture for the parent plan. This is not an approved implementation or a new scientific run.
 
+**Current checkpoint (2026-09-03):**
+[#1105](https://github.com/UOR-Foundation/uor-r4/issues/1105), a contract-only
+child of #1084, delivers the
+[native four-fact service ADR](../adr/0006-native-four-fact-workbench-service.md)
+and [machine contract](../r4_service_contract_1105.json). They narrow the first
+delivery to one dedicated, opt-in `r4-workbench` host, one private child process
+of that same executable and one `answer_four_fact_raw_text/v1` research-reference
+shell. Independent review accepts `SERVICE_API_CONTRACT_SPECIFIED`;
+protected delivery closes #1105 only.
+No host, worker, shell, build, model operation, HTTP request or browser behavior
+has been implemented or exercised by this specification.
+
 ## Decision
 
 One local Rust service owns served model identity, provenance, readiness, inference, cancellation and optional workspace operations. It serves a small static web workbench from an explicit asset root. The frontend chooses the same-origin API first and renders capabilities returned by that service. Hosted Pages remains a static client; when no native backend is connected, it may offer an explicitly named browser teacher provider, with the actual model source visible. It must not silently emulate a native geometric model.
+
+For the first bounded flow, the #1105 contract selects a new loopback host plus
+one private same-executable worker. It leaves the existing root server unchanged,
+exposes no public comparison route and excludes an automatic teacher fallback.
+Public model calls use only the learned-reference `qualify()` and `answer()` path.
+The broader provider, workspace and hosted-client options below remain later
+parent-plan work, not behavior supplied by #1105.
 
 Use a provider interface at the frontend boundary, not model-specific conditions scattered through views:
 
@@ -24,7 +43,11 @@ Workbench
 
 The shared contract should carry `model_id`, actual artifact/source identity, execution kind, supported operations, readiness/error state, token/context limits, request ID, finish reason and measured usage. Research metadata can be expandable, keeping ordinary UI language simple. For unsupported chat/tool/multimodal operations, disable the corresponding action or explain the supported form before sending; do not fabricate a compatible response.
 
-Keep the existing HTTP/OpenAI contract and its truthful errors. Introduce new application capability/lifecycle endpoints only where existing `/api/sysinfo`, `/uor/v1/status` and `/v1/models` cannot express the product state. Avoid a general rewrite of the 31,000-line server as part of a visual port: first isolate a small route/adapter seam, then migrate serving internals in separately scoped work if needed.
+Keep the existing root HTTP/OpenAI contract and its truthful errors unchanged
+and separate. The new opt-in host owns its narrow `/uor/v1/workbench/` namespace;
+it does not forward into `/api/sysinfo`, `/uor/v1/status` or `/v1/*`. Avoid a
+general rewrite of the 31,000-line server as part of a visual port. The dedicated
+host and worker remain a separately scoped implementation.
 
 ## Transfer map
 
@@ -54,8 +77,8 @@ All donor references below are at `5a10305126df62e838cadfec5fd509e0c9705fa7`; pa
 
 ## Smallest useful delivery sequence
 
-1. **Freeze the application contract and chosen first user flow.** Existing native #1017 gives raw continuation; #1079 gives a bounded research result, not chat. Choose the actual served operation, state its interface and terminal errors, and preserve exact model identity. Frontend mocks can exercise product states without new fitting or scientific claims.
-2. **Port the workbench shell and one native request path.** Sessions, composer, truthful readiness/model label, completed output and visible error. Same-origin discovery; one Rust launch serves API + assets. No need to wait for Git tooling or a visualizer. If only raw continuation is supported, label it plainly and send only the raw prompt.
+1. **Freeze the application contract and chosen first user flow.** #1105 delivers the independently accepted ADR and machine contract for `answer_four_fact_raw_text/v1` as `SERVICE_API_CONTRACT_SPECIFIED`; protected delivery closes only that child. No mock or specification state counts as host behavior.
+2. **Implement the workbench shell and one native request path.** After #1105 delivery, leave #1084 open and separately activate an implementation child for the dedicated `r4-workbench` host, private same-executable worker and first four-fact shell. Freeze and independently accept concrete source/build/environment admission before a build, then a separate actual-host qualification release before model work. The consumed #1102 CLI/coordinator and qualification cannot authorize the host.
 3. **Complete request/model lifecycle.** Serialize load/generate/cancel, keep model selection stable, preserve artifact identity, show real progress and request completion. Add one scoped cold-load and warm-load exercise only when that lifecycle is the named product decision.
 4. **Add the editor and file workflow.** Explicit attachment → request context → proposed diff → review → save → reopen. Reconstruct sandboxed preview and code/log iteration separately; validate real saved file contents, not just an on-screen success label.
 5. **Add Git/issue/worktree integration through the same local service or delegated harness.** Read status first; named paths; scope each issue; real PR/check/queue/merge state. Do not import the donor's multi-file Contents PUT loop or `git add .`.
