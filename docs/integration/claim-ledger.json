@@ -1,7 +1,7 @@
 {
   "schema": "uor-r4.claim-ledger/1",
   "repository": "UOR-Foundation/uor-r4",
-  "source_revision": "e627252e525201815169ffd8364184953a46018d",
+  "source_revision": "c1c45fa098d24f4ceae3c8fc207f0ecd07d62e20",
   "vocabulary": {
     "source": "formal_vocabulary",
     "role": "Statement class from the normative vocabulary.",
@@ -13,38 +13,61 @@
   "sources": {
     "preparation_1079": {
       "path": "docs/r4_zoology_language_r4_1079_preparation.json",
-      "url": "https://github.com/UOR-Foundation/uor-r4/blob/e627252e525201815169ffd8364184953a46018d/docs/r4_zoology_language_r4_1079_preparation.json",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/c1c45fa098d24f4ceae3c8fc207f0ecd07d62e20/docs/r4_zoology_language_r4_1079_preparation.json",
       "cid": "blake3:d9c8ad8448365b2039276fdeda6b70da53ef63fde24e02dd1dd8dea437b546a4"
     },
     "result_1079": {
       "path": "docs/r4_zoology_language_r4_1079_result.json",
-      "url": "https://github.com/UOR-Foundation/uor-r4/blob/e627252e525201815169ffd8364184953a46018d/docs/r4_zoology_language_r4_1079_result.json",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/c1c45fa098d24f4ceae3c8fc207f0ecd07d62e20/docs/r4_zoology_language_r4_1079_result.json",
       "cid": "blake3:dee107190172afcb7637d52469662ecab217847271e4bbdb0721514fcfbdc3a5"
     },
     "replay_1079": {
       "path": "docs/r4_zoology_language_r4_1079_replay.json",
-      "url": "https://github.com/UOR-Foundation/uor-r4/blob/e627252e525201815169ffd8364184953a46018d/docs/r4_zoology_language_r4_1079_replay.json",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/c1c45fa098d24f4ceae3c8fc207f0ecd07d62e20/docs/r4_zoology_language_r4_1079_replay.json",
       "cid": "blake3:eaa17433d5cd150a2a0c52adab6104bda4c4dae26221944fcde112ef841ca597"
     },
     "record_1079": {
       "path": "docs/r4_zoology_language_r4_1079.md",
-      "url": "https://github.com/UOR-Foundation/uor-r4/blob/e627252e525201815169ffd8364184953a46018d/docs/r4_zoology_language_r4_1079.md"
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/c1c45fa098d24f4ceae3c8fc207f0ecd07d62e20/docs/r4_zoology_language_r4_1079.md"
     },
     "formal_vocabulary": {
       "path": "docs/formal_vocabulary.md",
-      "url": "https://github.com/UOR-Foundation/uor-r4/blob/e627252e525201815169ffd8364184953a46018d/docs/formal_vocabulary.md"
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/c1c45fa098d24f4ceae3c8fc207f0ecd07d62e20/docs/formal_vocabulary.md"
     },
     "historical_proof_matrix": {
       "path": "crates/uor-r4-proof-model/src/proof_matrix.rs",
-      "url": "https://github.com/UOR-Foundation/uor-r4/blob/e627252e525201815169ffd8364184953a46018d/crates/uor-r4-proof-model/src/proof_matrix.rs"
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/c1c45fa098d24f4ceae3c8fc207f0ecd07d62e20/crates/uor-r4-proof-model/src/proof_matrix.rs"
     },
     "historical_proof_scope": {
       "path": "crates/uor-r4-proof-model/README.md",
-      "url": "https://github.com/UOR-Foundation/uor-r4/blob/e627252e525201815169ffd8364184953a46018d/crates/uor-r4-proof-model/README.md"
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/c1c45fa098d24f4ceae3c8fc207f0ecd07d62e20/crates/uor-r4-proof-model/README.md"
     },
     "language_r4_implementation": {
       "path": "tools/r4-softmax-trainer/src/r4_softmax_trainer/zoology_language_r4/attention.py",
-      "url": "https://github.com/UOR-Foundation/uor-r4/blob/e627252e525201815169ffd8364184953a46018d/tools/r4-softmax-trainer/src/r4_softmax_trainer/zoology_language_r4/attention.py"
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/c1c45fa098d24f4ceae3c8fc207f0ecd07d62e20/tools/r4-softmax-trainer/src/r4_softmax_trainer/zoology_language_r4/attention.py"
+    },
+    "preparation_1082": {
+      "path": "docs/r4_token_exposure_1082_preparation.json",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/c1c45fa098d24f4ceae3c8fc207f0ecd07d62e20/docs/r4_token_exposure_1082_preparation.json",
+      "cid": "blake3:c8a4a56de77767cbbe8fd31edc83251b42a6f729e182d065caa47d981f248741"
+    },
+    "result_1082": {
+      "path": "docs/r4_token_exposure_1082_result.json",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/c1c45fa098d24f4ceae3c8fc207f0ecd07d62e20/docs/r4_token_exposure_1082_result.json",
+      "cid": "blake3:e88501f05d4c58249806b2c9c5dabddd84eecd71256de9d4001c378cf8b9be03"
+    },
+    "replay_1082": {
+      "path": "docs/r4_token_exposure_1082_replay.json",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/c1c45fa098d24f4ceae3c8fc207f0ecd07d62e20/docs/r4_token_exposure_1082_replay.json",
+      "cid": "blake3:3629ea8327a3e3cfc3a35d17da7d78de81ffe95f65b53266f18fac865a8240cc"
+    },
+    "record_1082": {
+      "path": "docs/r4_token_exposure_1082.md",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/c1c45fa098d24f4ceae3c8fc207f0ecd07d62e20/docs/r4_token_exposure_1082.md"
+    },
+    "review_1082": {
+      "path": "docs/r4_token_exposure_1082_review.md",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/c1c45fa098d24f4ceae3c8fc207f0ecd07d62e20/docs/r4_token_exposure_1082_review.md"
     }
   },
   "artifacts_1079": {
@@ -154,12 +177,15 @@
         "record_1079"
       ],
       "limits": [
-        "The proposed low-exposure, cancellation and downstream-tolerance explanations are not measured causes. The result does not falsify primary preservation or establish geometric superiority."
+        "The #1082 construction-only diagnostic now measures role-selective exposure and pooling displacement; it does not establish a downstream causal explanation. The #1079 strong-sensitivity miss remains unchanged and does not falsify primary preservation or establish geometric superiority."
       ],
       "next_action": {
-        "status": "PROPOSED_NOT_RUN",
-        "scope": "One separately frozen construction-only diagnostic on the two existing renderings: attention mass on changed matrices, weighted individual-value displacement and net pooled displacement for used roles, related descriptively to recorded answers. No new fit, population, development probe, replacement control or geometry.",
-        "authority_url": "https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5519385959"
+        "status": "DIAGNOSTIC_COMPLETE_SUCCESSOR_SPEC_PENDING",
+        "scope": "#1082 completed with exact replay. #1085 next specifies removal of supplied clause segmentation with fixed reader/core, known lexicon/query form and four-fact context. Any later empirical child needs a separate frozen contract.",
+        "issue_urls": [
+          "https://github.com/UOR-Foundation/uor-r4/issues/1082",
+          "https://github.com/UOR-Foundation/uor-r4/issues/1085"
+        ]
       },
       "proof_artifacts": []
     },
@@ -187,7 +213,7 @@
       ],
       "next_action": {
         "status": "OPEN_PROGRAMME_GOAL",
-        "scope": "Reconcile #973→#954 consumer scope, then qualify named language/context, correctness, reasoning and coding tasks before promoting capability claims.",
+        "scope": "Reconcile #973\u2192#954 consumer scope, then qualify named language/context, correctness, reasoning and coding tasks before promoting capability claims.",
         "issue_urls": [
           "https://github.com/UOR-Foundation/uor-r4/issues/973",
           "https://github.com/UOR-Foundation/uor-r4/issues/954",
@@ -263,6 +289,79 @@
         ]
       },
       "proof_artifacts": []
+    },
+    {
+      "id": "R4-1082-TOKEN-EXPOSURE",
+      "statement": "On the two frozen construction views, the fixed token-source-frame control has role-selective attended exposure; large measured pooling displacement coexists with historically retained answers.",
+      "role": "Empirical Criterion",
+      "evidence_status": "Empirical",
+      "outcome": "TOKEN_EXPOSURE_DESCRIPTIVE_COMPLETE",
+      "scope": {
+        "construction_views": 2,
+        "reader_rows": 20480,
+        "used_role_measurements": 286720,
+        "new_predictions": 0,
+        "development_tensor_evaluations": 0,
+        "optimizer_updates": 0,
+        "new_controls": 0,
+        "geometry_changes": 0,
+        "generation": 0
+      },
+      "assumptions": [
+        "The exact #1079 reader, core embedding, frames, input population, token control and qualified runtime remain bound.",
+        "Recorded predictions only define descriptive changed/retained groups after measurement."
+      ],
+      "observations": {
+        "historical_reconstruction_checks": 8,
+        "fresh_process_exact_raw_and_summary_replay": true,
+        "view_0_fact_location_mean_changed_mass": 3.49734e-05,
+        "view_1_fact_object_mean_changed_mass": 3.91333e-05,
+        "view_0_fact_location_mean_used_displacement": 1.43815e-05,
+        "view_1_fact_object_mean_used_displacement": 2.44239e-05,
+        "view_1_fact_location_mean_used_displacement": 1.209478715,
+        "supported_recorded_changed_retained": [
+          [
+            2353,
+            5839
+          ],
+          [
+            4224,
+            3968
+          ]
+        ],
+        "run_plus_replay_internal_seconds": 31.159102207995602,
+        "maximum_peak_rss_bytes": 1061994496,
+        "near_zero_mass_is_exact_zero": false,
+        "role_mean_population": "8,192 supported rows per view, averaged across the four fact slots"
+      },
+      "evidence_refs": [
+        "preparation_1082",
+        "result_1082",
+        "replay_1082",
+        "record_1082",
+        "review_1082"
+      ],
+      "limits": [
+        "Descriptive construction-only evidence does not locate the downstream cause of retained answers or establish general language transfer.",
+        "The #1079 weak-control terminal is unchanged; high-exposure role families show little pooling cancellation, while low-exposure families already have tiny displacement.",
+        "Numerical bound and replay checks are not a universal floating-point refinement proof."
+      ],
+      "next_action": {
+        "status": "SPECIFICATION_PENDING",
+        "scope": "Specify text-to-clause input adaptation that removes supplied segmentation while fixing the learned reader/core, lexicon, query form and four-fact context; a later comparison requires independent inputs, explicit refusal/preservation criteria and a frozen budget.",
+        "issue_urls": [
+          "https://github.com/UOR-Foundation/uor-r4/issues/1085"
+        ]
+      },
+      "proof_artifacts": []
     }
-  ]
+  ],
+  "previous_source_revision": "e627252e525201815169ffd8364184953a46018d",
+  "artifacts_1082": {
+    "implementation_cid": "blake3:1451084b66531dbe5eb0cb1d3b3e60e5f0aa3f4bd59fffbf582a18d4dfc9380e",
+    "preparation_cid": "blake3:c8a4a56de77767cbbe8fd31edc83251b42a6f729e182d065caa47d981f248741",
+    "result_cid": "blake3:e88501f05d4c58249806b2c9c5dabddd84eecd71256de9d4001c378cf8b9be03",
+    "evidence_cid": "blake3:fcd2a0c740dc23d0dc89066fef70683e2eace0e308e05020947c38fde996d4e4",
+    "replay_cid": "blake3:3629ea8327a3e3cfc3a35d17da7d78de81ffe95f65b53266f18fac865a8240cc"
+  }
 }

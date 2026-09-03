@@ -21,17 +21,29 @@ controlled-language views, not independent general-English or coding evidence.
 The [measurement record](../r4_zoology_language_r4_1079.md) and its immutable
 JSON envelopes remain authoritative.
 
-The immediate successor is **[#1082: one construction-only token-frame exposure
-diagnostic](https://github.com/UOR-Foundation/uor-r4/issues/1082)**, as selected in the
-[#973 completion comment](https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5519385959).
-Keep the frozen reader, core, inputs, two existing renderings and token control.
-Measure learned-attention mass on actually changed matrices, weighted
-individual-value displacement, and net pooled displacement for the 14 used
-roles. Compare these descriptively with recorded changed/retained supported and
-unknown answers. Construction views lost 28.72314453125 and 51.5625 percentage
-points under the same control. Neither geometric expansion nor a replacement
-control follows from that difference. No new fit, population, development
-probe, generation or threshold tuning belongs to this successor.
+The [#1082 diagnostic](../r4_token_exposure_1082.md) is complete at
+`TOKEN_EXPOSURE_DESCRIPTIVE_COMPLETE`, with exact fresh-process replay of all
+286,720 used-role measurements and complete evidence. The frozen reader,
+core, frames, two renderings and control were unchanged. Averaged over the four
+fact slots and 8,192 supported rows per view, view 0 gives fact locations about
+0.0035% changed-frame attention; view 1 gives fact objects about 0.0039%. Other
+used roles are near full exposure. Highly displaced roles retain
+almost all their weighted individual displacement after pooling. Changed and
+retained supported-answer strata have very similar role means. Role-selective
+exposure and retained answers despite displacement are observed; no downstream
+cause is established and #1079's weak-control verdict remains unchanged.
+
+The immediate successor is **[#1085: specify removal of externally supplied
+clause segmentation](https://github.com/UOR-Foundation/uor-r4/issues/1085)**.
+Keep the accepted reader/core, known lexicon/query form and four-fact context.
+Specify one text-to-clause adapter, its allowed inputs, typed failure behavior,
+and comparison with the current oracle-segmented reference. The eventual
+empirical child must freeze independent inputs, output/role preservation,
+controls, decision branches and budget before observation. This is the next
+product restriction selected by independent review; the diagnostic does not
+prove that segmentation caused the control difference. No fit, new population,
+downstream diagnosis, replacement control or geometry expansion is activated by
+this specification handoff. #954 remains blocked.
 
 ## Sequencing and ownership
 
@@ -49,8 +61,8 @@ transport acknowledgements do not complete their parent capability.
 
 | Lane / native owner | Next bounded deliverable | Promotion boundary |
 |---|---|---|
-| [#1082 attention diagnostic](https://github.com/UOR-Foundation/uor-r4/issues/1082), child of #973 | Frozen construction-only exposure report | Interpret the current control; retain preservation and do not declare its cause from association. |
-| [#1085 language/context](https://github.com/UOR-Foundation/uor-r4/issues/1085), child of #973, blocked by #1082 | Select one restriction/interface contract from the diagnostic, then freeze a separate empirical child | Clause segmentation, role ambiguity, new semantic combinations, variable context and temporal updates need their own evidence; this issue plans them rather than automatically fitting. |
+| [#1082 attention diagnostic](https://github.com/UOR-Foundation/uor-r4/issues/1082), child of #973 | Completed; [exact report/replay](../r4_token_exposure_1082.md) | Role-selective exposure observed; preservation and the weak-control verdict retained. |
+| [#1085 language/context](https://github.com/UOR-Foundation/uor-r4/issues/1085), child of #973, eligible after #1082 delivery | Specify removal of supplied clause segmentation, then freeze a separate empirical child | Clause segmentation, role ambiguity, new semantic combinations, variable context and temporal updates need their own evidence; this issue plans them rather than automatically fitting. |
 | [#1083 UOR integration](https://github.com/UOR-Foundation/uor-r4/issues/1083) | Typed identity/arithmetic ADR and review of one selected adapter boundary | Content hashes, structural identities, codec identities and derivation keys remain distinct; arithmetic needs a declared domain and error/cost contract. |
 | [#1086 native reference bridge](https://github.com/UOR-Foundation/uor-r4/issues/1086), blocked by #1085 | Specify the accepted model's export/loader and matched native behavior contract before implementation | Preserve qualified behavior and identity; no canned answers or silent backend substitution. |
 | [#1087 final serving representation](https://github.com/UOR-Foundation/uor-r4/issues/1087), blocked by #1086 and #1083 | Operator inventory and one concrete lowering decision with operation/error/resource obligations | Dense research-reference success does not establish the final integer/table kernel; a lowering candidate needs its own frozen contract. |
@@ -61,8 +73,10 @@ transport acknowledgements do not complete their parent capability.
 | [#1091 external-theory bridge](https://github.com/UOR-Foundation/uor-r4/issues/1091) | One precisely typed, independently reviewable NEMESIS/W33 hypothesis or finite construction | Require an explicit mapping to the actual R4 path and source/license provenance; terminology and outside claims are not inherited evidence. |
 
 The [adopted issue record](adopted-issues.json) records native ownership and
-dependencies. #1081 owns this planning delivery; #1082 owns the immediate
-research successor. Other new lanes are planned and unassigned until active.
+dependencies at adoption time. #1081 delivered the planning workflow in
+[PR #1092](https://github.com/UOR-Foundation/uor-r4/pull/1092), merge
+`11e46611b82702e005165fb0034e1adf7d119a70`; #1082 owns the completed diagnostic
+and #1085 the next specification. Planned lanes remain unassigned until active.
 The pre-adoption snapshot had nine open issues and all 24 #973 children closed;
 those counts are historical now that the new children exist.
 The S0–S7/F0 compiler-era graph is retained as history, not a second active queue.

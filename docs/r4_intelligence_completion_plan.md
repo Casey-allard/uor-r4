@@ -1,11 +1,29 @@
 # R4 Intelligence Completion Plan
 
+**Latest diagnostic (2026-09-03):** [#1082](r4_token_exposure_1082.md) completed
+`TOKEN_EXPOSURE_DESCRIPTIVE_COMPLETE` on the two frozen construction views.
+All 286,720 used-role measurements and full summary evidence replayed exactly;
+run plus replay took 31.159102 seconds, with peak 0.9891 GiB. Token-control
+exposure is role-selective: fact locations receive almost no changed-frame
+attention in rendering 0, and fact objects receive almost none in rendering 1.
+Highly displaced roles show little cancellation; recorded retained answers
+coexist with nonzero displacement. This is descriptive evidence, not a causal
+explanation or a revision of #1079's weak-control result. No new answers,
+fitting, development scoring or generation ran.
+
+**Next:** [#1085](https://github.com/UOR-Foundation/uor-r4/issues/1085) specifies
+removal of externally supplied clause segmentation, holding the reader/core,
+known lexicon/query form and four-fact context fixed. Freeze a separate
+adapter-versus-oracle-segmentation comparison before any empirical work.
+#973 remains open and #954 blocked. Earlier next-action prose below is dated
+history; use the [current map](integration/current-state.md).
+
 - **Status:** Authoritative readable mirror of programme root #820. The
   [current map and #973→#954 handoff](integration/current-state.md) govern
   current sequencing; the S0–S7/F0 stage graph below is retained history.
 - **Planning adoption (2026-09-03):** [adopted issues](integration/adopted-issues.json)
   and [adoption record](integration/workflow-adoption.md). The immediate research
-  successor is [#1082](https://github.com/UOR-Foundation/uor-r4/issues/1082).
+  successor is [#1085](https://github.com/UOR-Foundation/uor-r4/issues/1085).
   [CONTINUE.md](integration/CONTINUE.md) is the reusable one-task handoff.
   This adoption reconciles sequencing, not any measured result.
   The [Geometric Intelligence Programme](geometric_intelligence_programme.md)

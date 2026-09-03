@@ -1,11 +1,29 @@
 # Geometric Intelligence Programme
 
+**Latest diagnostic (2026-09-03):** [#1082](r4_token_exposure_1082.md) completed
+`TOKEN_EXPOSURE_DESCRIPTIVE_COMPLETE` on the two frozen construction views.
+All 286,720 used-role measurements and full summary evidence replayed exactly;
+run plus replay took 31.159102 seconds, with peak 0.9891 GiB. Token-control
+exposure is role-selective: fact locations receive almost no changed-frame
+attention in rendering 0, and fact objects receive almost none in rendering 1.
+Highly displaced roles show little cancellation; recorded retained answers
+coexist with nonzero displacement. This is descriptive evidence, not a causal
+explanation or a revision of #1079's weak-control result. No new answers,
+fitting, development scoring or generation ran.
+
+**Next:** [#1085](https://github.com/UOR-Foundation/uor-r4/issues/1085) specifies
+removal of externally supplied clause segmentation, holding the reader/core,
+known lexicon/query form and four-fact context fixed. Freeze a separate
+adapter-versus-oracle-segmentation comparison before any empirical work.
+#973 remains open and #954 blocked. Earlier next-action prose below is dated
+history; use the [current map](integration/current-state.md).
+
 **Planning adoption (2026-09-03):** use the
 [current map and #973→#954 consumer contract](integration/current-state.md),
 [adopted issue graph](integration/adopted-issues.json), and
 [continuation prompt](integration/CONTINUE.md). The next research task is
-[#1082](https://github.com/UOR-Foundation/uor-r4/issues/1082), a construction-only
-exposure diagnostic. Product interfaces, integration, coding evaluation and
+[#1085](https://github.com/UOR-Foundation/uor-r4/issues/1085), the clause-segmentation
+interface contract informed by the completed #1082 exposure diagnostic. Product interfaces, integration, coding evaluation and
 paper/proof preparation now have separate issue ownership; no capability stage
 is promoted by adopting those plans.
 
@@ -23,7 +41,7 @@ is promoted by adopting those plans.
 - **Latest inference integration:**
   [#1079 learned-interface two-stage R4 preservation](r4_zoology_language_r4_1079.md)
 - **Latest construction diagnostic:**
-  [#1065 retained English error localization](r4_zoology_english_diagnostic_1065.md)
+  [#1082 token-frame exposure and pooled displacement](r4_token_exposure_1082.md)
 - **Latest learning experiment:**
   [#1077 learned contextual role interface](r4_zoology_language_interface_1077.md)
 - **Retained exact-data learning artifact:**

@@ -82,3 +82,13 @@ The next scientific implementation is separately owned by
 existing construction reader/pooling computation and recorded answer IDs.
 Its numerical result is reported in its own record after its preparation is
 frozen and reviewed.
+
+## Protected delivery and first execution
+
+Adoption merged in [PR #1092](https://github.com/UOR-Foundation/uor-r4/pull/1092)
+as `11e46611b82702e005165fb0034e1adf7d119a70`; independent review confirmed its
+tree equals reviewed head `05f280ce96da412a2a737f70b9c9dfe87e4856ca`. #1081 is
+closed with [the delivery receipt](https://github.com/UOR-Foundation/uor-r4/issues/1081#issuecomment-5520238743).
+The first execution is the [#1082 diagnostic](../r4_token_exposure_1082.md),
+with exact fresh-process replay; the current map now selects #1085. The
+adoption-era assignments and initial index counts above are dated snapshots.

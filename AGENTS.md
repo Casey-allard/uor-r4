@@ -1,5 +1,23 @@
 # AGENTS.md — uor-r4
 
+**Latest diagnostic (2026-09-03):** [#1082](docs/r4_token_exposure_1082.md) completed
+`TOKEN_EXPOSURE_DESCRIPTIVE_COMPLETE` on the two frozen construction views.
+All 286,720 used-role measurements and full summary evidence replayed exactly;
+run plus replay took 31.159102 seconds, with peak 0.9891 GiB. Token-control
+exposure is role-selective: fact locations receive almost no changed-frame
+attention in rendering 0, and fact objects receive almost none in rendering 1.
+Highly displaced roles show little cancellation; recorded retained answers
+coexist with nonzero displacement. This is descriptive evidence, not a causal
+explanation or a revision of #1079's weak-control result. No new answers,
+fitting, development scoring or generation ran.
+
+**Next:** [#1085](https://github.com/UOR-Foundation/uor-r4/issues/1085) specifies
+removal of externally supplied clause segmentation, holding the reader/core,
+known lexicon/query form and four-fact context fixed. Freeze a separate
+adapter-versus-oracle-segmentation comparison before any empirical work.
+#973 remains open and #954 blocked. Earlier next-action prose below is dated
+history; use the [current map](docs/integration/current-state.md).
+
 Guidance for agents (human or otherwise) working in this repository.
 **Post-v0.1 intelligence sequencing is authoritative in
 [`docs/r4_intelligence_completion_plan.md`](docs/r4_intelligence_completion_plan.md),
@@ -47,7 +65,7 @@ the weaker token control remains unmeasured. #973 stays open; #954 remains block
 **Historical checkpoints — superseded for next-action selection on
 2026-09-03.** The earlier “current/next” decisions below retain their original
 scope and results. Use the current map and live issue graph; the next research
-child is [#1082](https://github.com/UOR-Foundation/uor-r4/issues/1082).
+contract is [#1085](https://github.com/UOR-Foundation/uor-r4/issues/1085).
 
 The earlier #973 V5 terminal is the independently verified predictive
 write/binding campaign. It completed

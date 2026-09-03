@@ -1,5 +1,23 @@
 # Roadmap
 
+**Latest diagnostic (2026-09-03):** [#1082](docs/r4_token_exposure_1082.md) completed
+`TOKEN_EXPOSURE_DESCRIPTIVE_COMPLETE` on the two frozen construction views.
+All 286,720 used-role measurements and full summary evidence replayed exactly;
+run plus replay took 31.159102 seconds, with peak 0.9891 GiB. Token-control
+exposure is role-selective: fact locations receive almost no changed-frame
+attention in rendering 0, and fact objects receive almost none in rendering 1.
+Highly displaced roles show little cancellation; recorded retained answers
+coexist with nonzero displacement. This is descriptive evidence, not a causal
+explanation or a revision of #1079's weak-control result. No new answers,
+fitting, development scoring or generation ran.
+
+**Next:** [#1085](https://github.com/UOR-Foundation/uor-r4/issues/1085) specifies
+removal of externally supplied clause segmentation, holding the reader/core,
+known lexicon/query form and four-fact context fixed. Freeze a separate
+adapter-versus-oracle-segmentation comparison before any empirical work.
+#973 remains open and #954 blocked. Earlier next-action prose below is dated
+history; use the [current map](docs/integration/current-state.md).
+
 This is the product view of the authoritative post-v0.1 sequence in the
 [R4 Intelligence Completion Plan](docs/r4_intelligence_completion_plan.md),
 with architecture and claim boundaries supplied by the
@@ -12,8 +30,8 @@ remains in [docs/RESEARCH.md](docs/RESEARCH.md).
 **Adopted current map (2026-09-03):** [current programme and #973→#954 handoff](docs/integration/current-state.md),
 [adopted issues](docs/integration/adopted-issues.json), and
 [reusable continuation prompt](docs/integration/CONTINUE.md).
-[#1082](https://github.com/UOR-Foundation/uor-r4/issues/1082) owns the next
-construction-only exposure diagnostic. Parallel integration, native interface,
+[#1082](https://github.com/UOR-Foundation/uor-r4/issues/1082) completed the
+construction-only exposure diagnostic; #1085 owns its next interface contract. Parallel integration, native interface,
 coding evaluation and paper work have separate owners; they do not complete
 #973 or unblock #954. This adoption supersedes earlier “current/next” ordering
 below while preserving all measured results.
