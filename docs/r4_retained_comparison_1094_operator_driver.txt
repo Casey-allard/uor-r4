@@ -1,0 +1,52 @@
+from pathlib import Path
+import datetime, hashlib, json, os, signal, stat, subprocess, time
+root=Path('/Users/casey.allard/.codex/worktrees/r4-retained-comparison/uor-r4')
+activation_path=root/'docs/r4_retained_comparison_1094_activation.json'
+assert hashlib.sha256(activation_path.read_bytes()).hexdigest()=='3e169228370147c5c30b651595c5eaf1304e035caf5b991613791bdb7e95cbc6'
+a=json.loads(activation_path.read_text())
+out=Path('/Users/casey.allard/.codex/uor/issue-1094-retained-assembly01')
+sealed=Path('/Users/casey.allard/.codex/uor/issue-1094-curator/withheld')
+for name,key in [('retained-preparation.json','assembly_sha256'),('release.json','release_sha256')]:
+ p=out/name;s=p.lstat();assert stat.S_ISREG(s.st_mode) and s.st_nlink==1
+ assert hashlib.sha256(p.read_bytes()).hexdigest()==a[key]
+assert {p.name for p in out.iterdir()}=={'bindings.json','isolation-probe.txt','retained-preparation.json','worker.sb','release.json'}
+envelope=json.loads((out/'retained-preparation.json').read_text())
+before=sealed.lstat();assert stat.S_ISDIR(before.st_mode) and before.st_mode&0o777==0
+# The consumer independently binds full sealed identity under its live clock.
+record_path=root/'docs/r4_retained_comparison_1094_operator.json'
+assert not record_path.exists()
+started=time.monotonic();utc=datetime.datetime.now(datetime.timezone.utc).isoformat();p=None;stdout=b'';stderr=b'';outer_failure=None;returncode=None;killed=[]
+try:
+ sealed.chmod(0o500)
+ p=subprocess.Popen(a['command'],cwd=a['working_directory'],env=a['coordinator_environment'],stdout=subprocess.PIPE,stderr=subprocess.PIPE,start_new_session=True)
+ try:
+  stdout,stderr=p.communicate(timeout=245)
+ except BaseException as e:
+  outer_failure=type(e).__name__+': '+str(e)
+  # Only descendants of this invocation are eligible for emergency cleanup.
+  pairs=[]
+  for line in subprocess.check_output(['/bin/ps','-axo','pid=,ppid='],text=True).splitlines():
+   fields=line.split()
+   if len(fields)==2:pairs.append(tuple(map(int,fields)))
+  children={p.pid};changed=True
+  while changed:
+   new={pid for pid,ppid in pairs if ppid in children};changed=not new.issubset(children);children.update(new)
+  for pid in sorted(children,reverse=True):
+   try:os.kill(pid,signal.SIGKILL);killed.append(pid)
+   except ProcessLookupError:pass
+  stdout,stderr=p.communicate(timeout=10)
+ returncode=p.returncode
+finally:
+ if p is not None and p.poll() is None:
+  os.killpg(p.pid,signal.SIGKILL);stdout,stderr=p.communicate(timeout=10);returncode=p.returncode
+ sealed.chmod(0o000)
+ after=sealed.lstat()
+ assert (after.st_dev,after.st_ino)==(before.st_dev,before.st_ino) and after.st_mode&0o777==0
+ elapsed=time.monotonic()-started
+ try:printed=json.loads(stdout)
+ except (ValueError,TypeError):printed=None
+ record={'schema':'uor-r4.retained-comparison-operator/1','issue':1094,'activation_sha256':a and hashlib.sha256(activation_path.read_bytes()).hexdigest(),'started_at_utc':utc,'ended_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'operator_wall_seconds':elapsed,'wall_scope':'Includes operator permission handoff, Python startup, consumer, cleanup and reseal; separate from the consumer phase clocks and historical policy debit.','invocations':1,'command':a['command'],'returncode':returncode,'outer_failure':outer_failure,'emergency_killed_descendants':killed,'coordinator_stdout_sha256':hashlib.sha256(stdout).hexdigest(),'coordinator_stdout_bytes':len(stdout),'coordinator_stderr_sha256':hashlib.sha256(stderr).hexdigest(),'coordinator_stderr_bytes':len(stderr),'reported_status':printed.get('status') if isinstance(printed,dict) else None,'sealed_directory':{'path':str(sealed),'device':after.st_dev,'inode':after.st_ino,'final_mode':'000'},'receipt_scope':'Operator observation; original consumer receipts govern scientific terminal, subject to any operator abort. No retry.'}
+ record_path.write_text(json.dumps(record,indent=2)+'\n')
+ if stderr:(root/'docs/r4_retained_comparison_1094_operator.stderr.txt').write_bytes(stderr)
+ print(json.dumps(record,indent=2),flush=True)
+ if isinstance(printed,dict):print(json.dumps({k:printed.get(k) for k in ['status','reason','active_phase','elapsed_seconds','logical_row_forwards','resources','exact_fresh_process_replay','oracle_exact_fresh_process_replay']},indent=2),flush=True)

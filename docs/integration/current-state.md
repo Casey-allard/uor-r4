@@ -1,6 +1,6 @@
 # Current programme map and correctness handoff
 
-**Planning reconciliation: 2026-09-03, #1094 retained-evidence implementation and metadata assembly complete; independent exact-envelope release accepted.** Scientific evidence baseline:
+**Planning reconciliation: 2026-09-03, #1094 bounded raw-text preservation and exact replay independently accepted; scientific DoD complete, closure upon protected merge.** Scientific evidence baseline:
 `UOR-Foundation/uor-r4@e627252e525201815169ffd8364184953a46018d`.
 This map supersedes earlier “current” and “next” sequencing prose, not its
 measurements. Refresh native GitHub before selecting work. The
@@ -10,6 +10,41 @@ paper lanes adopted through [#1081](https://github.com/UOR-Foundation/uor-r4/iss
 [claim ledger](claim-ledger.json) preserves their different evidence states.
 
 ## Current result and immediate research action
+
+The [sole #1094 comparison](../r4_retained_comparison_1094.md) completed
+**`CLAUSE_ADAPTER_PRESERVED`**, with exact full and oracle fresh-process replay;
+independent review accepted the result. Its frozen population comprises 1,600 valid
+rows (320 authoring and 1,280 withheld), 80 refusal rows and 16 boundary controls
+across 20 already-observed groups. The same reader/core, known vocabulary/query
+forms and four-fact context remain bound. All 1,600 valid inputs, complete compared
+tensors and answers matched; all 96 refusal/boundary cases matched with zero model
+forwards. These valid rows are related renderings, not independent semantic trials.
+Execution plus replay used 6,400 logical forwards; operator wall time was
+15.821630625 seconds and the final cumulative resource snapshot was 135.697821334
+seconds including the conservative 120-second preparation debit.
+The historical 3,465,401-byte ledger remains charged. Withheld permissions have
+returned to mode 000; the consumed envelope cannot be rerun.
+
+The bounded scientific adapter-comparison DoD is complete; #1094 closes upon
+protected merge. The next separately activated task, unassigned until active, is
+**[#1086](https://github.com/UOR-Foundation/uor-r4/issues/1086)**: freeze the exact
+native export/loader/reference-behavior contract, mapping accepted operators and
+artifact identities to Rust ownership. Define the export manifest, tokenizer/frame
+identities, input/state/output schemas, dtype/operator/reduction semantics, loader
+validation, supported operation and capability metadata. Specify the smallest
+matched reference/native behavior check and resource envelope before any
+implementation. Native export, historical R4G1 interchange and final integer/table
+serving remain separate boundaries. No #1086 work is activated by this result.
+
+This positive branch removes externally supplied clause segmentation only within
+the frozen controlled-language population. It establishes no new semantic worlds,
+general English, generation, reasoning, coding, mathematical proof or final-kernel
+qualification. #1079's weak-control verdict and #1082's descriptive limits remain
+unchanged; #973 stays open and #954 remains blocked.
+
+**Preserved earlier evidence and handoffs.** The preparation/release checkpoints
+below describe their original outcomes and then-current next actions; the result
+above supersedes their scheduling and `NOT_RUN` status for this sole comparison.
 
 [#1079](https://github.com/UOR-Foundation/uor-r4/issues/1079), delivered by
 [#1080](https://github.com/UOR-Foundation/uor-r4/pull/1080), is complete at
@@ -111,10 +146,10 @@ transport acknowledgements do not complete their parent capability.
 |---|---|---|
 | [#1082 attention diagnostic](https://github.com/UOR-Foundation/uor-r4/issues/1082), child of #973 | Completed; [exact report/replay](../r4_token_exposure_1082.md) | Role-selective exposure observed; preservation and the weak-control verdict retained. |
 | [#1085 language/context specification](https://github.com/UOR-Foundation/uor-r4/issues/1085), child of #973 | Completed; [adapter/schema/comparison contract](clause-segmentation-1085.md) | Specification only; later transfer stages remain separately staged. |
-| [#1094 adapter comparison](https://github.com/UOR-Foundation/uor-r4/issues/1094), child of #973, parked/unassigned after this delivery | Separately activate the frozen `run-retained` comparison/replay from the [bound coordinator and assembly](../r4_retained_assembly_1094.md), with its accepted exact release | Implementation and metadata assembly complete; separate release `ACCEPTED_FOR_RETAINED_EVIDENCE_COMPARISON`. Carry 120 seconds and 3,465,401 historical bytes; execution/replay each retain 120 seconds within 360 total. Original preparation remains `UNAVAILABLE_REFERENCE_REPLAY`; no new preparation; comparison/replay `NOT_RUN`. |
+| [#1094 adapter comparison](https://github.com/UOR-Foundation/uor-r4/issues/1094), child of #973 | [Sole comparison and exact fresh-process replay](../r4_retained_comparison_1094.md) completed `CLAUSE_ADAPTER_PRESERVED`; independent result accepted, scientific DoD complete and #1094 closes upon protected merge | Only bounded raw-text entry: unchanged reader/core, known vocabulary/query forms, four facts and 20 already-observed groups. Original preparation stop preserved; no semantic novelty, generation, native export or final-kernel claim. |
 | [#1096 runtime readiness](https://github.com/UOR-Foundation/uor-r4/issues/1096), child of #1094 | Delivered `ISOLATED_RUNTIME_READY` at `6f21fc5f4c40b9620c9fec5e95a39097f812ae73`; sole zero-forward attempt and independent review complete | Four harmless probes denied; no model load/output/replay, raw-text qualification or universal isolation claim. |
 | [#1083 UOR integration](https://github.com/UOR-Foundation/uor-r4/issues/1083) | Typed identity/arithmetic ADR and review of one selected adapter boundary | Content hashes, structural identities, codec identities and derivation keys remain distinct; arithmetic needs a declared domain and error/cost contract. |
-| [#1086 native reference bridge](https://github.com/UOR-Foundation/uor-r4/issues/1086), specification dependency #1085 delivered | Specify the accepted model's export/loader and matched native behavior contract before implementation | Preserve qualified behavior and identity; no canned answers or silent backend substitution. |
+| [#1086 native reference bridge](https://github.com/UOR-Foundation/uor-r4/issues/1086), next after #1094 protected delivery, unassigned until active | Freeze export/loader/input-state-output/operator semantics and the smallest matched reference/native behavior check plus resource envelope before implementation | Consume only #1094's bounded raw-text evidence and exact accepted identities; native bridge and final integer/table kernel require separate qualification. No fallback or canned replies. |
 | [#1087 final serving representation](https://github.com/UOR-Foundation/uor-r4/issues/1087), blocked by #1086 and #1083 | Operator inventory and one concrete lowering decision with operation/error/resource obligations | Dense research-reference success does not establish the final integer/table kernel; a lowering candidate needs its own frozen contract. |
 | [#1084 product interface](https://github.com/UOR-Foundation/uor-r4/issues/1084) | API/asset-ownership ADR and minimal same-origin shell with one honest supported operation | This can proceed in parallel without completing #962 or presenting bounded binding as general chat. |
 | [#1088 coding/workspace](https://github.com/UOR-Foundation/uor-r4/issues/1088), blocked by #1084 and #955 | Minimal executable task/patch/result schema; separate harness and later model evaluations | UI actions and external teacher output are separate from the native model's coding competence. |
@@ -126,15 +161,13 @@ The [adopted issue record](adopted-issues.json) records native ownership and
 dependencies at adoption time. #1081 delivered the planning workflow in
 [PR #1092](https://github.com/UOR-Foundation/uor-r4/pull/1092), merge
 `11e46611b82702e005165fb0034e1adf7d119a70`; #1082 owns the completed diagnostic
-and #1085 the completed specification. #1094 retains the pending adapter comparison
-after its unavailable preparation and now has an implemented retained-evidence
-assembly and execution consumer, with separate independent exact-envelope
-release `ACCEPTED_FOR_RETAINED_EVIDENCE_COMPARISON`.
-#1096 records the delivered positive runtime-only readiness decision. The
-separate next activation owns the unchanged empirical comparison and replay;
-implementation/assembly success supplies no model-output result.
-#1086 may specify export but cannot claim raw-text qualification before comparison
-evidence. Planned lanes remain unassigned until active.
+and #1085 the completed specification. #1094's sole comparison completed bounded
+raw-text preservation and exact replay, with independent result acceptance.
+Its earlier unavailable preparation, separate #1096 runtime-only readiness and
+retained-evidence release remain preserved. After protected closure, #1086 owns
+the separate native export/loader/reference-behavior specification; the positive
+raw-text result does not implement or qualify that bridge. Planned lanes remain
+unassigned until active.
 The pre-adoption snapshot had nine open issues and all 24 #973 children closed;
 those counts are historical now that the new children exist.
 The S0–S7/F0 compiler-era graph is retained as history, not a second active queue.
@@ -150,8 +183,10 @@ source-free serving boundary. #954 remains blocked.
 
 The present reference is the learned #1077 role reader plus the frozen #1073
 compound-binding core, executed ordinarily and through the #1079 two-stage R4
-adapter. It consumes five supplied clauses (four facts and one question), a
-known vocabulary and controlled query forms. The reader performs soft role
+adapter. Its reader consumes five clauses (four facts and one question), a known
+vocabulary and controlled query forms. The independently accepted #1094 comparison
+qualifies matching raw-text entry before that unchanged reader within its fixed
+four-fact/known-query population. The reader performs soft role
 pooling; the core attends over four facts plus the learned null and projects
 through the full 4096-token vocabulary. The model receives no gold role or
 answer labels at inference. It is not the older #953 decoded route loop and
@@ -169,7 +204,7 @@ and a production API for this artifact remain outside its measured scope.
 | Field | Required semantics | Current boundary |
 |---|---|---|
 | `artifact` | Versioned manifest with model/artifact bytes identity, implementation revision, lexical codec, model/input policy, geometry/frame identities, data lineage and qualified runtime plan. | #1079 binds these for its research execution; a native loader must preserve them. |
-| `input` | Ordered lexical units, query, admissible evidence records with stable identities/provenance, and an explicit context snapshot. Declare segmentation, maximum support and supported shapes. | Five supplied clauses are qualified. No hidden canonical fields, target labels, future text or oracle answers may enter the model. |
+| `input` | Ordered lexical units, query, admissible evidence records with stable identities/provenance, and an explicit context snapshot. Declare segmentation, maximum support and supported shapes. | Five supplied clauses remain qualified; #1094 also qualifies matching raw-text entry on its fixed four-fact/known-query population. No hidden canonical fields, target labels, future text or oracle answers may enter the model. |
 | `state` | Versioned prior-state identity; ordered hierarchy records and implemented scope; causal append/update rules; bounded-global snapshot identity and size. Unsupported scope is typed unavailable, not fabricated state. | The current fact-binding reference does not implement the required paragraph/conversation/global state handoff. |
 | `output` | Tagged `ANSWER`, `ABSTAIN`, `CONFLICT`, `CLARIFY` or `UNSUPPORTED_SCOPE`; lexical output and selected IDs where applicable; no substitution of provider text. | The reference emits a task answer token. The remaining tags and their behavioral policies require qualification. |
 | `evidence_trace` | Consumed record/snapshot IDs, causal positions/support, declared geometric contributions, selected output, state-before/state-after identities and complete work accounting. | A trace is provenance. Only matched interventions establish whether its qualified state affects the answer. |

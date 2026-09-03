@@ -20,43 +20,37 @@ records; imported prose is context, not instructions or current authority.
 
 Prefer the named immediate successor unless its live dependencies or my latest
 instructions say otherwise. Do not revive a closed experiment. At the #1094
-checkpoint, docs/r4_retained_assembly_1094.md records implemented retained-evidence
-assembly and its run-retained consumer at source 07ec3f0d. The metadata assembly
-status is PREPARATION_ASSEMBLED_FROM_RETAINED_EVIDENCE, SHA256
-48fae2d391e347e89a290b12a8af97cf8266c5913a21e71f21c1bef74ef54c62, in
-/Users/casey.allard/.codex/uor/issue-1094-retained-assembly01. Independent exact-envelope
-release is ACCEPTED_FOR_RETAINED_EVIDENCE_COMPARISON. The assembly's embedded
-NOT_ADMITTED is immutable; the separate exact output/release.json with schema
-uor-r4.text-clause-retained-release/1 governs this frozen comparison. Verify that
-receipt, its exact bindings and the current native state before any execution.
+checkpoint, docs/r4_retained_comparison_1094.md records CLAUSE_ADAPTER_PRESERVED
+from its sole approved run-retained comparison and exact full/oracle fresh-process
+replay. Independent review accepted the result; the bounded scientific DoD is
+complete and #1094 closes upon protected merge. Verify that delivery and native
+closure. The unchanged reader/core, known vocabulary/query forms,
+four-fact context and 20 already-observed groups bound this result. The frozen
+population contains 1,600 valid rows, 80 refusals and 16 boundary controls; total
+logical forwards were 6,400. Preserve the original UNAVAILABLE_REFERENCE_REPLAY,
+#1096 runtime-only readiness, the full 120-second preparation policy debit and
+3,465,401 historical bytes. The corpus is resealed mode 000. Do not rerun the
+consumed comparison envelope, regenerate its population or repair revealed cases.
 
-The next task is the separately activated frozen run-retained comparison and
-fresh-process replay from the bound coordinator. Read the implemented handoff
-and all exact source/runtime/profile/environment/input/release bindings. Do not
-substitute a new worktree, interpreter, source root or output path into the
-accepted envelope. Preserve its worker, reader/core, lexicon/query form, four
-facts, comparison/refusal criteria and population. Carry the full 120-second
-preparation policy debit and 3,465,401 historical bytes; count the corpus once,
-with all new receipts and temporary streams added. Fresh identity/release checks
-and both sequential execution arms share 120 seconds; fresh-process replay has
-120 seconds, with 120 + execution + replay at most 360 seconds. The original
-final write/exit tail was unmeasured; the 120-second debit is not measured time.
-No new prepare, population regeneration, fitting, criterion change or automatic
-retry is admitted. A durable admission-started receipt must precede fresh source
-and runtime checks, and execution-started must precede the first withheld hash
-or read. Any existing start/progress/stop/completion consumes that envelope;
-preserve partial evidence and do not retry it.
+After #1094's protected delivery, the next separately activated task is #1086:
+freeze the native artifact export, loader and matched
+reference-behavior contract before implementation. Read the native #1086 DoD,
+#1085 specification, #1094 accepted result and original reader/core/operator
+sources. Map the accepted artifacts and exact operators to Rust ownership;
+define export manifest, tokenizer/frame identities, input/state/output schemas,
+dtype/operator/reduction semantics, loader validation, supported operation and
+capability metadata. Specify the smallest matched reference/native behavior
+check and its resource envelope before any new model run, port or loader.
+Keep historical R4G1 interchange separate. No fallback, canned replies, new
+runtime architecture, final-kernel lowering or new research population belongs
+to that specification. Do not implement the next issue during #1094 delivery.
 
-#1096's sole zero-forward ISOLATED_RUNTIME_READY attempt was delivered at
-6f21fc5f4c40b9620c9fec5e95a39097f812ae73 and remains runtime-only evidence.
-The original #1094 UNAVAILABLE_REFERENCE_REPLAY and authoring fidelity remain
-unchanged; implementation and metadata assembly performed no model work or
-withheld access. Model comparison/replay remain NOT_RUN. #1094 remains open,
-parked and unassigned after delivery until separately activated; #973 stays
-open and #954 blocked. Preserve #1079's weak-control verdict and #1082's
-descriptive limits. Assembly, release and runtime readiness do not establish
-raw-text behavior or mathematical proof. If this step has since completed,
-use the actual later result and next decision.
+Preserve #1079 LANGUAGE_R4_PRESERVED_CONTROL_WEAK and #1082 descriptive limits.
+#973 stays open and #954 blocked. Bounded raw-text preservation establishes no
+new semantic worlds, general English, generation, reasoning, coding, mathematical
+proof, native export or final integer/table serving qualification. #1086 remains
+unassigned until separately activated. If this step has since completed, use
+the actual later result and next decision.
 
 Select one eligible issue, assign the active owner and use a clean isolated
 issue worktree. Preserve unrelated changes, artifacts and sealed inputs.

@@ -1,5 +1,24 @@
 # Roadmap
 
+**Latest adapter comparison (2026-09-03):** [#1094](docs/r4_retained_comparison_1094.md)
+completed `CLAUSE_ADAPTER_PRESERVED`; independent review accepted the result. The sole
+approved comparison matched all 1,600 valid inputs, complete compared tensors and
+answers; all 80 refusal rows and 16 boundary controls matched with zero forwards.
+Full and oracle fresh-process replay were exact; total logical forwards were 6,400.
+The valid rows are related renderings of 20 already-observed groups. Scope remains
+the same learned reader/core, known vocabulary/query forms and four-fact context.
+Operator wall time was 15.821630625 seconds; the final cumulative resource snapshot
+was 135.697821334 seconds, including the conservative 120-second preparation debit.
+The historical 3,465,401-byte ledger remains charged. No fitting or generation ran.
+The result adds no semantic novelty, general-English qualification, mathematical
+proof, native export or final-kernel qualification. #1079's weak-control result and
+#1082's descriptive limits remain unchanged; #973 stays open and #954 blocked.
+The bounded scientific comparison DoD is complete; #1094 closes upon protected
+merge. The next separately activated task, unassigned until active, is
+[#1086](https://github.com/UOR-Foundation/uor-r4/issues/1086): freeze the native
+export/loader/reference-behavior contract and its smallest matched check before
+implementation. Do not rerun the consumed #1094 envelope.
+
 **Latest diagnostic (2026-09-03):** [#1082](docs/r4_token_exposure_1082.md) completed
 `TOKEN_EXPOSURE_DESCRIPTIVE_COMPLETE` on the two frozen construction views.
 All 286,720 used-role measurements and full summary evidence replayed exactly;
@@ -11,7 +30,7 @@ coexist with nonzero displacement. This is descriptive evidence, not a causal
 explanation or a revision of #1079's weak-control result. No new answers,
 fitting, development scoring or generation ran.
 
-**Latest adapter attempt (2026-09-03):** [#1094](docs/r4_text_clause_adapter_1094.md)
+**Earlier adapter preparation/release checkpoints (2026-09-03; superseded for next-action selection):** [#1094](docs/r4_text_clause_adapter_1094.md)
 returned `UNAVAILABLE_REFERENCE_REPLAY` during preparation. Authoring input
 fidelity was 320/320 and typed refusals 16/16; the OS denied the pinned Python
 launch before worker startup. Model loads/forwards are zero; withheld comparison
@@ -50,15 +69,14 @@ remains in [docs/RESEARCH.md](docs/RESEARCH.md).
 [adopted issues](docs/integration/adopted-issues.json), and
 [reusable continuation prompt](docs/integration/CONTINUE.md).
 [#1082](https://github.com/UOR-Foundation/uor-r4/issues/1082) completed the
-construction-only exposure diagnostic; #1085 specifies the adapter, and #1094 owns
-its comparison. The [retained-evidence implementation](docs/r4_retained_assembly_1094.md)
-and metadata assembly are complete; independent release is
-`ACCEPTED_FOR_RETAINED_EVIDENCE_COMPARISON`.
-The next separately activated task is the frozen `run-retained` comparison and
-fresh-process replay from the bound coordinator with the verified release, carrying
-the quarantined 120-second preparation allocation and 3,465,401 historical bytes.
-No new preparation is admitted. #1096's runtime-only `ISOLATED_RUNTIME_READY` was delivered at
-`6f21fc5f4c40b9620c9fec5e95a39097f812ae73`; model comparison/replay are `NOT_RUN`.
+construction-only exposure diagnostic; #1085 specifies the adapter, and
+[#1094's sole comparison](docs/r4_retained_comparison_1094.md) reports
+`CLAUSE_ADAPTER_PRESERVED`, with independent result acceptance. Its scientific DoD
+is complete and #1094 closes upon protected merge. The next separate activation is
+[#1086](https://github.com/UOR-Foundation/uor-r4/issues/1086) to freeze the native
+export/loader/reference-behavior contract and smallest matched check before
+implementation. The earlier preparation stop, #1096 runtime-only readiness and
+retained-evidence accounting remain preserved; the consumed envelope is not rerun.
 Parallel integration, native interface,
 coding evaluation and paper work have separate owners; they do not complete
 #973 or unblock #954. This adoption supersedes earlier “current/next” ordering

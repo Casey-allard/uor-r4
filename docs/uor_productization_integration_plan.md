@@ -1,6 +1,25 @@
 # UOR-R4 research, integration and productization plan
 
-**Execution update (2026-09-03):** Adoption #1081, diagnostic #1082 and
+**Latest adapter comparison (2026-09-03):** [#1094](r4_retained_comparison_1094.md)
+completed `CLAUSE_ADAPTER_PRESERVED`; independent review accepted the result. The sole
+approved comparison matched all 1,600 valid inputs, complete compared tensors and
+answers; all 80 refusal rows and 16 boundary controls matched with zero forwards.
+Full and oracle fresh-process replay were exact; total logical forwards were 6,400.
+The valid rows are related renderings of 20 already-observed groups. Scope remains
+the same learned reader/core, known vocabulary/query forms and four-fact context.
+Operator wall time was 15.821630625 seconds; the final cumulative resource snapshot
+was 135.697821334 seconds, including the conservative 120-second preparation debit.
+The historical 3,465,401-byte ledger remains charged. No fitting or generation ran.
+The result adds no semantic novelty, general-English qualification, mathematical
+proof, native export or final-kernel qualification. #1079's weak-control result and
+#1082's descriptive limits remain unchanged; #973 stays open and #954 blocked.
+The bounded scientific comparison DoD is complete; #1094 closes upon protected
+merge. The next separately activated task, unassigned until active, is
+[#1086](https://github.com/UOR-Foundation/uor-r4/issues/1086): freeze the native
+export/loader/reference-behavior contract and its smallest matched check before
+implementation. Do not rerun the consumed #1094 envelope.
+
+**Earlier preparation/release update (2026-09-03; superseded for next-action selection):** Adoption #1081, diagnostic #1082 and
 [#1085's text-to-clause specification](integration/clause-segmentation-1085.md)
 are delivered. [#1094's adapter preparation](r4_text_clause_adapter_1094.md)
 returned `UNAVAILABLE_REFERENCE_REPLAY`: 320/320 authoring inputs and 16/16

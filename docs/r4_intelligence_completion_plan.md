@@ -1,5 +1,24 @@
 # R4 Intelligence Completion Plan
 
+**Latest adapter comparison (2026-09-03):** [#1094](r4_retained_comparison_1094.md)
+completed `CLAUSE_ADAPTER_PRESERVED`; independent review accepted the result. The sole
+approved comparison matched all 1,600 valid inputs, complete compared tensors and
+answers; all 80 refusal rows and 16 boundary controls matched with zero forwards.
+Full and oracle fresh-process replay were exact; total logical forwards were 6,400.
+The valid rows are related renderings of 20 already-observed groups. Scope remains
+the same learned reader/core, known vocabulary/query forms and four-fact context.
+Operator wall time was 15.821630625 seconds; the final cumulative resource snapshot
+was 135.697821334 seconds, including the conservative 120-second preparation debit.
+The historical 3,465,401-byte ledger remains charged. No fitting or generation ran.
+The result adds no semantic novelty, general-English qualification, mathematical
+proof, native export or final-kernel qualification. #1079's weak-control result and
+#1082's descriptive limits remain unchanged; #973 stays open and #954 blocked.
+The bounded scientific comparison DoD is complete; #1094 closes upon protected
+merge. The next separately activated task, unassigned until active, is
+[#1086](https://github.com/UOR-Foundation/uor-r4/issues/1086): freeze the native
+export/loader/reference-behavior contract and its smallest matched check before
+implementation. Do not rerun the consumed #1094 envelope.
+
 **Latest diagnostic (2026-09-03):** [#1082](r4_token_exposure_1082.md) completed
 `TOKEN_EXPOSURE_DESCRIPTIVE_COMPLETE` on the two frozen construction views.
 All 286,720 used-role measurements and full summary evidence replayed exactly;
@@ -11,7 +30,7 @@ coexist with nonzero displacement. This is descriptive evidence, not a causal
 explanation or a revision of #1079's weak-control result. No new answers,
 fitting, development scoring or generation ran.
 
-**Latest adapter attempt (2026-09-03):** [#1094](r4_text_clause_adapter_1094.md)
+**Earlier adapter preparation/release checkpoints (2026-09-03; superseded for next-action selection):** [#1094](r4_text_clause_adapter_1094.md)
 returned `UNAVAILABLE_REFERENCE_REPLAY` during preparation. Authoring input
 fidelity was 320/320 and typed refusals 16/16; the OS denied the pinned Python
 launch before worker startup. Model loads/forwards are zero; withheld comparison
@@ -42,12 +61,12 @@ open and #954 blocked. Use the [current map](integration/current-state.md).
   current sequencing; the S0–S7/F0 stage graph below is retained history.
 - **Planning adoption (2026-09-03):** [adopted issues](integration/adopted-issues.json)
   and [adoption record](integration/workflow-adoption.md). The immediate research
-  next task is [#1094](https://github.com/UOR-Foundation/uor-r4/issues/1094): separately
-  activate the frozen `run-retained` comparison/replay with the accepted exact
-  release, using the [implemented retained-evidence handoff](r4_retained_assembly_1094.md).
-  The 120-second preparation allocation and 3,465,401 historical bytes remain
-  charged; fresh execution and replay each retain 120 seconds within the
-  360-second cumulative cap. No new preparation is admitted.
+  next task after #1094's protected delivery is
+  [#1086](https://github.com/UOR-Foundation/uor-r4/issues/1086): freeze the native
+  export/loader/reference-behavior contract using the
+  [bounded raw-text comparison evidence](r4_retained_comparison_1094.md), with its
+  smallest matched check and resource envelope specified before implementation.
+  #1094's consumed comparison envelope is not rerun; #973 stays open and #954 blocked.
   [CONTINUE.md](integration/CONTINUE.md) is the reusable one-task handoff.
   This adoption reconciles sequencing, not any measured result.
   The [Geometric Intelligence Programme](geometric_intelligence_programme.md)

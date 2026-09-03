@@ -290,3 +290,29 @@ remain unchanged. Original 120 seconds are quarantined as a policy debit and
 3,465,401 historical bytes remain counted; the new output cannot reset them.
 The separately activated frozen comparison/replay is the next action. #1094's
 scientific DoD and #973 remain open; #954 remains blocked.
+
+
+## Frozen retained comparison — 2026-09-03
+
+The separately activated [comparison and fresh-process replay](r4_retained_comparison_1094.md)
+returned **`CLAUSE_ADAPTER_PRESERVED`** in one `run-retained` invocation.
+All 320 authoring and 1,280 withheld valid rows recovered exact input/spans and
+byte-identical full compared tensors and answers. Each arm correctly answered
+all 1,600 valid rows and all 22,400 consumed role decisions per phase. All 80
+refusals and sixteen boundary controls were exact with zero model forwards.
+The full deterministic comparison and oracle replay matched exactly; total
+work was 6,400 row forwards, 52 model batches and zero optimizer updates.
+Operator wall time was 15.821630625 seconds; the final cumulative snapshot was
+135.697821334 seconds including the preserved 120-second policy debit.
+Combined peak-RSS bound was 471,531,520 bytes. Original final receipts plus
+historical bytes total 7,498,795, with complete provenance and completion
+binding and no stopped receipt. The withheld directory was resealed to `000`.
+
+This qualifies only the frozen controlled raw-text entry while keeping the
+same reader/core, known vocabulary/query and four-fact context. The original
+unavailable preparation and subsequent runtime/assembly records above remain
+unchanged history; #1079's weak token-control and #1082's descriptive result
+are not revised. Independent result review and protected delivery govern
+#1094 closure. #973 remains open and #954 blocked. The positive handoff is
+#1086's separate export/loader and matched native-reference contract before
+implementation, not a general-language, mathematical-proof or serving claim.

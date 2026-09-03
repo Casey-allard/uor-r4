@@ -1,0 +1,369 @@
+{
+  "schema": "uor-r4.retained-comparison-summary/1",
+  "issue": 1094,
+  "status": "CLAUSE_ADAPTER_PRESERVED",
+  "summary_basis": "Derived from original persisted receipts after the sole invocation; no further model or payload evaluation.",
+  "source_commit": "07ec3f0d39d08ac5bf9c2ba7a6b864229e007867",
+  "assembly_sha256": "48fae2d391e347e89a290b12a8af97cf8266c5913a21e71f21c1bef74ef54c62",
+  "release_sha256": "5787e4a64113800c5fc82cd1d32d564d9c6e3a344e74ca102a754fe82dccee23",
+  "result_sha256": "c50b354f8da5ae170b97eabbc3b887bf065efb8e1861353cb485d8515c558171",
+  "result_cid": "blake3:cba0ca583ff0b1fd2bc3533b2e82e1b574095e71cad7bd95469510acf4d31e3f",
+  "phases": {
+    "execution": {
+      "deterministic_sha256": "b28336e8c0413b277c5655d2841b7aef4a0e254618aa1910c50146e7dfcea1d4",
+      "oracle_replay_sha256": "a3420cd5b865c0f55d08bce02d3292bb7349c0679e3acad2616da9cb31e49470",
+      "failure_count": 0,
+      "logical_row_forwards": 3200,
+      "metrics_by_partition": {
+        "oracle/authoring": {
+          "rows": 320,
+          "answer_correct": 320,
+          "role_correct": 4480,
+          "role_decisions": 4480
+        },
+        "adapter/authoring": {
+          "rows": 320,
+          "answer_correct": 320,
+          "role_correct": 4480,
+          "role_decisions": 4480
+        },
+        "oracle/withheld": {
+          "rows": 1280,
+          "answer_correct": 1280,
+          "role_correct": 17920,
+          "role_decisions": 17920
+        },
+        "adapter/withheld": {
+          "rows": 1280,
+          "answer_correct": 1280,
+          "role_correct": 17920,
+          "role_decisions": 17920
+        }
+      },
+      "answer_rows_exact": 1600,
+      "role_rows_exact": 1600,
+      "tensor_batches_exact": 13,
+      "tensor_kinds": [
+        "binding_attention",
+        "inputs",
+        "lengths",
+        "logits",
+        "predictions",
+        "role_attention",
+        "role_positions",
+        "role_vectors"
+      ],
+      "tensor_receipts": 208,
+      "refusal_rows": 96,
+      "refusal_forwards": 0,
+      "runtime_identity_events": 5,
+      "worker_receipts": {
+        "adapter": {
+          "model_loads": 2,
+          "row_forwards": 1600,
+          "batch_forwards": 13,
+          "peak_rss_bytes": 364445696,
+          "elapsed_seconds": 2.12286945800588,
+          "runtime": {
+            "blas": "accelerate",
+            "device": "cpu",
+            "interop_threads": 1,
+            "python": "3.12.14",
+            "threads": 4,
+            "torch": "2.7.1",
+            "workers": 1
+          },
+          "states_before": {
+            "core": "blake3:abbdbcaafc2d9eb36543ce75fbb0101b6788119d80a6ed9c017bb9d06fbeac59",
+            "reader": "blake3:7c659422df2e65a0ce24c08738dc9f08dca99775de1702251097a0fc6483404e"
+          },
+          "states_after": {
+            "core": "blake3:abbdbcaafc2d9eb36543ce75fbb0101b6788119d80a6ed9c017bb9d06fbeac59",
+            "reader": "blake3:7c659422df2e65a0ce24c08738dc9f08dca99775de1702251097a0fc6483404e"
+          }
+        },
+        "oracle": {
+          "model_loads": 2,
+          "row_forwards": 1600,
+          "batch_forwards": 13,
+          "peak_rss_bytes": 361332736,
+          "elapsed_seconds": 2.527506667000125,
+          "runtime": {
+            "blas": "accelerate",
+            "device": "cpu",
+            "interop_threads": 1,
+            "python": "3.12.14",
+            "threads": 4,
+            "torch": "2.7.1",
+            "workers": 1
+          },
+          "states_before": {
+            "core": "blake3:abbdbcaafc2d9eb36543ce75fbb0101b6788119d80a6ed9c017bb9d06fbeac59",
+            "reader": "blake3:7c659422df2e65a0ce24c08738dc9f08dca99775de1702251097a0fc6483404e"
+          },
+          "states_after": {
+            "core": "blake3:abbdbcaafc2d9eb36543ce75fbb0101b6788119d80a6ed9c017bb9d06fbeac59",
+            "reader": "blake3:7c659422df2e65a0ce24c08738dc9f08dca99775de1702251097a0fc6483404e"
+          }
+        }
+      },
+      "temporary_oracle_stream": {
+        "bytes": 47281715,
+        "path": "/Users/casey.allard/.codex/uor/issue-1094-retained-assembly01/execution-oracle-tensors.tmp.jsonl",
+        "policy": "one sequential-arm spool; remove only after complete deterministic evidence is persisted; retain on exception",
+        "sha256": "2cd1412bc8866be60ab63a294377ae0f6c3ae71ac89a34f02bb089975b248f64"
+      },
+      "reference_integrity": {
+        "authoring": {
+          "cells": 16,
+          "counts": {
+            "refusal": 16,
+            "valid": 320
+          },
+          "groups": 64,
+          "independent_selection": true,
+          "refusal_families": {
+            "appended_answer": 1,
+            "bare_cr": 1,
+            "extra_fact": 1,
+            "extra_period_empty_clause": 1,
+            "fewer_facts": 1,
+            "invalid_schema_extra_field": 1,
+            "invalid_utf8": 1,
+            "literal_padding": 1,
+            "missing_period": 1,
+            "missing_query_suffix": 1,
+            "non_ascii": 1,
+            "overlong_clause": 1,
+            "oversized_buffer": 1,
+            "unknown_word": 1,
+            "unsupported_mixed_fact_form": 1,
+            "unsupported_query_equal_owner_distractor": 1
+          }
+        },
+        "withheld": {
+          "cells": 16,
+          "counts": {
+            "boundary_control": 16,
+            "refusal": 64,
+            "valid": 1280
+          },
+          "groups": 256,
+          "independent_selection": true,
+          "refusal_families": {
+            "appended_answer": 4,
+            "bare_cr": 4,
+            "extra_fact": 4,
+            "extra_period_empty_clause": 4,
+            "fewer_facts": 4,
+            "invalid_schema_extra_field": 4,
+            "invalid_utf8": 4,
+            "literal_padding": 4,
+            "missing_period": 4,
+            "missing_query_suffix": 4,
+            "non_ascii": 4,
+            "overlong_clause": 4,
+            "oversized_buffer": 4,
+            "unknown_word": 4,
+            "unsupported_mixed_fact_form": 4,
+            "unsupported_query_equal_owner_distractor": 4
+          }
+        }
+      }
+    },
+    "replay": {
+      "deterministic_sha256": "b28336e8c0413b277c5655d2841b7aef4a0e254618aa1910c50146e7dfcea1d4",
+      "oracle_replay_sha256": "a3420cd5b865c0f55d08bce02d3292bb7349c0679e3acad2616da9cb31e49470",
+      "failure_count": 0,
+      "logical_row_forwards": 3200,
+      "metrics_by_partition": {
+        "oracle/authoring": {
+          "rows": 320,
+          "answer_correct": 320,
+          "role_correct": 4480,
+          "role_decisions": 4480
+        },
+        "adapter/authoring": {
+          "rows": 320,
+          "answer_correct": 320,
+          "role_correct": 4480,
+          "role_decisions": 4480
+        },
+        "oracle/withheld": {
+          "rows": 1280,
+          "answer_correct": 1280,
+          "role_correct": 17920,
+          "role_decisions": 17920
+        },
+        "adapter/withheld": {
+          "rows": 1280,
+          "answer_correct": 1280,
+          "role_correct": 17920,
+          "role_decisions": 17920
+        }
+      },
+      "answer_rows_exact": 1600,
+      "role_rows_exact": 1600,
+      "tensor_batches_exact": 13,
+      "tensor_kinds": [
+        "binding_attention",
+        "inputs",
+        "lengths",
+        "logits",
+        "predictions",
+        "role_attention",
+        "role_positions",
+        "role_vectors"
+      ],
+      "tensor_receipts": 208,
+      "refusal_rows": 96,
+      "refusal_forwards": 0,
+      "runtime_identity_events": 5,
+      "worker_receipts": {
+        "adapter": {
+          "model_loads": 2,
+          "row_forwards": 1600,
+          "batch_forwards": 13,
+          "peak_rss_bytes": 364855296,
+          "elapsed_seconds": 2.270833542002947,
+          "runtime": {
+            "blas": "accelerate",
+            "device": "cpu",
+            "interop_threads": 1,
+            "python": "3.12.14",
+            "threads": 4,
+            "torch": "2.7.1",
+            "workers": 1
+          },
+          "states_before": {
+            "core": "blake3:abbdbcaafc2d9eb36543ce75fbb0101b6788119d80a6ed9c017bb9d06fbeac59",
+            "reader": "blake3:7c659422df2e65a0ce24c08738dc9f08dca99775de1702251097a0fc6483404e"
+          },
+          "states_after": {
+            "core": "blake3:abbdbcaafc2d9eb36543ce75fbb0101b6788119d80a6ed9c017bb9d06fbeac59",
+            "reader": "blake3:7c659422df2e65a0ce24c08738dc9f08dca99775de1702251097a0fc6483404e"
+          }
+        },
+        "oracle": {
+          "model_loads": 2,
+          "row_forwards": 1600,
+          "batch_forwards": 13,
+          "peak_rss_bytes": 362037248,
+          "elapsed_seconds": 2.056229750000057,
+          "runtime": {
+            "blas": "accelerate",
+            "device": "cpu",
+            "interop_threads": 1,
+            "python": "3.12.14",
+            "threads": 4,
+            "torch": "2.7.1",
+            "workers": 1
+          },
+          "states_before": {
+            "core": "blake3:abbdbcaafc2d9eb36543ce75fbb0101b6788119d80a6ed9c017bb9d06fbeac59",
+            "reader": "blake3:7c659422df2e65a0ce24c08738dc9f08dca99775de1702251097a0fc6483404e"
+          },
+          "states_after": {
+            "core": "blake3:abbdbcaafc2d9eb36543ce75fbb0101b6788119d80a6ed9c017bb9d06fbeac59",
+            "reader": "blake3:7c659422df2e65a0ce24c08738dc9f08dca99775de1702251097a0fc6483404e"
+          }
+        }
+      },
+      "temporary_oracle_stream": {
+        "bytes": 47281715,
+        "path": "/Users/casey.allard/.codex/uor/issue-1094-retained-assembly01/replay-oracle-tensors.tmp.jsonl",
+        "policy": "one sequential-arm spool; remove only after complete deterministic evidence is persisted; retain on exception",
+        "sha256": "2cd1412bc8866be60ab63a294377ae0f6c3ae71ac89a34f02bb089975b248f64"
+      },
+      "reference_integrity": {
+        "authoring": {
+          "cells": 16,
+          "counts": {
+            "refusal": 16,
+            "valid": 320
+          },
+          "groups": 64,
+          "independent_selection": true,
+          "refusal_families": {
+            "appended_answer": 1,
+            "bare_cr": 1,
+            "extra_fact": 1,
+            "extra_period_empty_clause": 1,
+            "fewer_facts": 1,
+            "invalid_schema_extra_field": 1,
+            "invalid_utf8": 1,
+            "literal_padding": 1,
+            "missing_period": 1,
+            "missing_query_suffix": 1,
+            "non_ascii": 1,
+            "overlong_clause": 1,
+            "oversized_buffer": 1,
+            "unknown_word": 1,
+            "unsupported_mixed_fact_form": 1,
+            "unsupported_query_equal_owner_distractor": 1
+          }
+        },
+        "withheld": {
+          "cells": 16,
+          "counts": {
+            "boundary_control": 16,
+            "refusal": 64,
+            "valid": 1280
+          },
+          "groups": 256,
+          "independent_selection": true,
+          "refusal_families": {
+            "appended_answer": 4,
+            "bare_cr": 4,
+            "extra_fact": 4,
+            "extra_period_empty_clause": 4,
+            "fewer_facts": 4,
+            "invalid_schema_extra_field": 4,
+            "invalid_utf8": 4,
+            "literal_padding": 4,
+            "missing_period": 4,
+            "missing_query_suffix": 4,
+            "non_ascii": 4,
+            "overlong_clause": 4,
+            "oversized_buffer": 4,
+            "unknown_word": 4,
+            "unsupported_mixed_fact_form": 4,
+            "unsupported_query_equal_owner_distractor": 4
+          }
+        }
+      }
+    }
+  },
+  "exact_fresh_process_replay": true,
+  "oracle_exact_fresh_process_replay": true,
+  "logical_row_forwards": 6400,
+  "optimizer_updates": 0,
+  "new_mathematical_proofs": 0,
+  "semantic_world_novelty": false,
+  "generation": "NOT_RUN",
+  "operator_wall_seconds": 15.821630625,
+  "final_resources": {
+    "combined_peak_rss_bound_bytes": 471531520,
+    "coordinator_peak_rss_bytes": 106676224,
+    "cumulative_elapsed_seconds": 135.69782133398985,
+    "cumulative_logical_row_forwards": 6400,
+    "historical_preparation_policy_debit_seconds": 120,
+    "logical_row_forwards": 3200,
+    "new_bytes": 7497731,
+    "phase_elapsed_seconds": 7.515791124998941,
+    "worker_peak_rss_bytes": 364855296
+  },
+  "storage": {
+    "original_output_files": 17,
+    "original_output_bytes": 4033394,
+    "historical_retained_bytes": 3465401,
+    "final_campaign_retained_bytes": 7498795,
+    "final_snapshot_new_bytes_field": 7497731,
+    "final_snapshot_excludes_own_and_completion_bytes": 1064,
+    "largest_single_oracle_spool_bytes": 47281715,
+    "conservative_peak_retained_plus_spool_upper_bound_bytes": 54780510,
+    "peak_bound_scope": "Reconstructed from final retained file sizes plus the largest one-at-a-time spool; not an instantaneous filesystem sample.",
+    "spool_cleanup": "Two temporary oracle streams removed by the frozen consumer only after complete deterministic evidence was persisted; original results and unique/user material retained.",
+    "withheld_final_mode": "000"
+  }
+}

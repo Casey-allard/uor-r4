@@ -1,7 +1,7 @@
 {
   "schema": "uor-r4.claim-ledger/1",
   "repository": "UOR-Foundation/uor-r4",
-  "source_revision": "2974e4a6509f7ee83a7db708099ba301a7ed5f4f",
+  "source_revision": "445c882adfae770b9b313ba8b59a5ef5a39e510b",
   "vocabulary": {
     "source": "formal_vocabulary",
     "role": "Statement class from the normative vocabulary.",
@@ -320,6 +320,90 @@
       "revision": "2974e4a6509f7ee83a7db708099ba301a7ed5f4f",
       "sha256": "5bb4e1c4b78ed0af4ec25ce70bc2607ae4a16d4bf26e07aea43204a05d9847de",
       "evidence_status": "SOURCE_INSPECTED"
+    },
+    "comparison_record_1094": {
+      "path": "docs/r4_retained_comparison_1094.md",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/445c882adfae770b9b313ba8b59a5ef5a39e510b/docs/r4_retained_comparison_1094.md",
+      "revision": "445c882adfae770b9b313ba8b59a5ef5a39e510b",
+      "sha256": "4c5fbdbb755666d89ecfcb1cf7c11f128a562353de54c7468ff34a74a59096ef",
+      "evidence_status": "EMPIRICAL_COMPARISON_AND_REPLAY"
+    },
+    "comparison_activation_1094": {
+      "path": "docs/r4_retained_comparison_1094_activation.json",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/445c882adfae770b9b313ba8b59a5ef5a39e510b/docs/r4_retained_comparison_1094_activation.json",
+      "revision": "445c882adfae770b9b313ba8b59a5ef5a39e510b",
+      "sha256": "3e169228370147c5c30b651595c5eaf1304e035caf5b991613791bdb7e95cbc6",
+      "evidence_status": "PREEXECUTION_ACTIVATION"
+    },
+    "comparison_summary_1094": {
+      "path": "docs/r4_retained_comparison_1094_summary.json",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/445c882adfae770b9b313ba8b59a5ef5a39e510b/docs/r4_retained_comparison_1094_summary.json",
+      "revision": "445c882adfae770b9b313ba8b59a5ef5a39e510b",
+      "sha256": "5ba64568d3204e4d5736755dc45a779c5317e1951e3670a438ff6c840aeef08e",
+      "evidence_status": "DERIVED_RECEIPT_SUMMARY"
+    },
+    "comparison_operator_1094": {
+      "path": "docs/r4_retained_comparison_1094_operator.json",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/445c882adfae770b9b313ba8b59a5ef5a39e510b/docs/r4_retained_comparison_1094_operator.json",
+      "revision": "445c882adfae770b9b313ba8b59a5ef5a39e510b",
+      "sha256": "2743d42b9e4a8051dd1d39b8a0aa55677af2508cda57c9d59f2c63d159a6472d",
+      "evidence_status": "OBSERVED_SINGLE_INVOCATION"
+    },
+    "comparison_review_1094": {
+      "path": "docs/r4_retained_comparison_1094_review.md",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/445c882adfae770b9b313ba8b59a5ef5a39e510b/docs/r4_retained_comparison_1094_review.md",
+      "revision": "445c882adfae770b9b313ba8b59a5ef5a39e510b",
+      "sha256": "557cd6b05008920a7c9eccd694bf2f9902a6b71b8c1b5835da63b66bbe98d2bd",
+      "evidence_status": "INDEPENDENT_RESULT_ACCEPTED"
+    },
+    "comparison_sources_1094": {
+      "path": "docs/r4_retained_comparison_1094_sources.md",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/445c882adfae770b9b313ba8b59a5ef5a39e510b/docs/r4_retained_comparison_1094_sources.md",
+      "revision": "445c882adfae770b9b313ba8b59a5ef5a39e510b",
+      "sha256": "037936223a1fe78dc76e766079db05d65045006e93b9fd3bd30ee9f439863e05",
+      "evidence_status": "ORIGINAL_SOURCES_INSPECTED"
+    },
+    "comparison_index_1094": {
+      "path": "docs/r4_retained_comparison_1094_evidence/receipt-index.json",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/445c882adfae770b9b313ba8b59a5ef5a39e510b/docs/r4_retained_comparison_1094_evidence/receipt-index.json",
+      "revision": "445c882adfae770b9b313ba8b59a5ef5a39e510b",
+      "sha256": "50325990c8d81aab7c418ce007f14046cdf15cc00df10688e6fea9048cce37bf",
+      "evidence_status": "EXACT_ORIGINAL_RECEIPTS"
+    },
+    "comparison_execution_1094": {
+      "path": "docs/r4_retained_comparison_1094_evidence/execution.json",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/445c882adfae770b9b313ba8b59a5ef5a39e510b/docs/r4_retained_comparison_1094_evidence/execution.json",
+      "revision": "445c882adfae770b9b313ba8b59a5ef5a39e510b",
+      "sha256": "c803b0daa1769f26af82bc093d330e59a8fdd390fdc760ed501a73618580bd91",
+      "evidence_status": "OBSERVED_EXECUTION"
+    },
+    "comparison_replay_1094": {
+      "path": "docs/r4_retained_comparison_1094_evidence/replay.json",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/445c882adfae770b9b313ba8b59a5ef5a39e510b/docs/r4_retained_comparison_1094_evidence/replay.json",
+      "revision": "445c882adfae770b9b313ba8b59a5ef5a39e510b",
+      "sha256": "a803cdbc361adc2ccb9b6fefaec24f785982f86faa3ae296da08f573fa0915e2",
+      "evidence_status": "EXACT_FRESH_PROCESS_REPLAY"
+    },
+    "comparison_result_1094": {
+      "path": "docs/r4_retained_comparison_1094_evidence/result.json",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/445c882adfae770b9b313ba8b59a5ef5a39e510b/docs/r4_retained_comparison_1094_evidence/result.json",
+      "revision": "445c882adfae770b9b313ba8b59a5ef5a39e510b",
+      "sha256": "c50b354f8da5ae170b97eabbc3b887bf065efb8e1861353cb485d8515c558171",
+      "evidence_status": "CLAUSE_ADAPTER_PRESERVED"
+    },
+    "comparison_completion_1094": {
+      "path": "docs/r4_retained_comparison_1094_evidence/completion.json",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/445c882adfae770b9b313ba8b59a5ef5a39e510b/docs/r4_retained_comparison_1094_evidence/completion.json",
+      "revision": "445c882adfae770b9b313ba8b59a5ef5a39e510b",
+      "sha256": "ea14a44f6077fd9af2ef13bd1d3acb7976f2ac8fbb95aa76b320da14ae79f36c",
+      "evidence_status": "COMPLETED_NO_STOP"
+    },
+    "comparison_resources_1094": {
+      "path": "docs/r4_retained_comparison_1094_evidence/final-resources.json",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/445c882adfae770b9b313ba8b59a5ef5a39e510b/docs/r4_retained_comparison_1094_evidence/final-resources.json",
+      "revision": "445c882adfae770b9b313ba8b59a5ef5a39e510b",
+      "sha256": "3bdb020aad7b29e56c1eaff1028f02ab8bf44b110715a46d5019517c84516361",
+      "evidence_status": "MEASURED_RESOURCE_SNAPSHOT"
     }
   },
   "artifacts_1079": {
@@ -432,9 +516,9 @@
         "The #1082 construction-only diagnostic now measures role-selective exposure and pooling displacement; it does not establish a downstream causal explanation. The #1079 strong-sensitivity miss remains unchanged and does not falsify primary preservation or establish geometric superiority."
       ],
       "next_action": {
-        "scope": "Separately activate one #1094 frozen comparison and fresh-process replay through run-retained using the independently accepted exact envelope, bound coordinator and unchanged worker. Fresh identity checks consume execution/replay budgets; carry the original 120-second policy debit and 3,465,401 historical bytes plus new output. No new prepare, automatic retry, input repair or policy/criterion relaxation. Raw-text model preservation remains unmeasured.",
+        "scope": "Separately freeze #1086 native export/loader and matched reference-behavior contract: accepted artifacts and lexical/frame identities, input/state/output, operator/dtype/reduction semantics, loader validation and the smallest matched behavior check with a resource envelope before implementation. #1094 comparison is complete and its envelope consumed; no rerun, new fit or widened capability claim. #973 remains open and #954 blocked.",
         "issue_urls": [
-          "https://github.com/UOR-Foundation/uor-r4/issues/1094"
+          "https://github.com/UOR-Foundation/uor-r4/issues/1086"
         ]
       },
       "proof_artifacts": []
@@ -495,10 +579,12 @@
         "Current dense projections, normalization, floating-point frame arithmetic and softmax are research-reference operations. #1079 performed zero native exports and did not qualify the final serving kernel. Historical graph-kernel evidence does not transfer automatically."
       ],
       "next_action": {
-        "status": "PROPOSED_OWNERSHIP",
-        "scope": "Create explicit native export/loader and final-kernel lowering work with operation, representation, error, state and cost obligations; preserve a negative mapping result if the contract fails.",
+        "status": "OWNED_SEPARATE_BOUNDARIES",
+        "scope": "Freeze #1086 native reference export/loader contract before implementation; final integer/table lowering remains separately owned by #1087 with #1083 typed identity/arithmetic prerequisites and #964 proof obligations. No native or kernel result follows from #1094.",
         "issue_urls": [
-          "https://github.com/UOR-Foundation/uor-r4/issues/820",
+          "https://github.com/UOR-Foundation/uor-r4/issues/1086",
+          "https://github.com/UOR-Foundation/uor-r4/issues/1087",
+          "https://github.com/UOR-Foundation/uor-r4/issues/1083",
           "https://github.com/UOR-Foundation/uor-r4/issues/964"
         ]
       },
@@ -597,9 +683,9 @@
         "Numerical bound and replay checks are not a universal floating-point refinement proof."
       ],
       "next_action": {
-        "scope": "Separately activate one #1094 frozen comparison and fresh-process replay through run-retained using the independently accepted exact envelope, bound coordinator and unchanged worker. Fresh identity checks consume execution/replay budgets; carry the original 120-second policy debit and 3,465,401 historical bytes plus new output. No new prepare, automatic retry, input repair or policy/criterion relaxation. Raw-text model preservation remains unmeasured.",
+        "scope": "Separately freeze #1086 native export/loader and matched reference-behavior contract: accepted artifacts and lexical/frame identities, input/state/output, operator/dtype/reduction semantics, loader validation and the smallest matched behavior check with a resource envelope before implementation. #1094 comparison is complete and its envelope consumed; no rerun, new fit or widened capability claim. #973 remains open and #954 blocked.",
         "issue_urls": [
-          "https://github.com/UOR-Foundation/uor-r4/issues/1094"
+          "https://github.com/UOR-Foundation/uor-r4/issues/1086"
         ]
       },
       "proof_artifacts": []
@@ -648,9 +734,9 @@
         "#973 higher-context and #954 final source-free correctness terminals remain unmet."
       ],
       "next_action": {
-        "scope": "Separately activate one #1094 frozen comparison and fresh-process replay through run-retained using the independently accepted exact envelope, bound coordinator and unchanged worker. Fresh identity checks consume execution/replay budgets; carry the original 120-second policy debit and 3,465,401 historical bytes plus new output. No new prepare, automatic retry, input repair or policy/criterion relaxation. Raw-text model preservation remains unmeasured.",
+        "scope": "Separately freeze #1086 native export/loader and matched reference-behavior contract: accepted artifacts and lexical/frame identities, input/state/output, operator/dtype/reduction semantics, loader validation and the smallest matched behavior check with a resource envelope before implementation. #1094 comparison is complete and its envelope consumed; no rerun, new fit or widened capability claim. #973 remains open and #954 blocked.",
         "issue_urls": [
-          "https://github.com/UOR-Foundation/uor-r4/issues/1094"
+          "https://github.com/UOR-Foundation/uor-r4/issues/1086"
         ]
       },
       "proof_artifacts": []
@@ -712,9 +798,9 @@
         "Recorded worker RSS zero indicates no worker resource receipt; it is not a successful worker measurement."
       ],
       "next_action": {
-        "scope": "Separately activate one #1094 frozen comparison and fresh-process replay through run-retained using the independently accepted exact envelope, bound coordinator and unchanged worker. Fresh identity checks consume execution/replay budgets; carry the original 120-second policy debit and 3,465,401 historical bytes plus new output. No new prepare, automatic retry, input repair or policy/criterion relaxation. Raw-text model preservation remains unmeasured.",
+        "scope": "Separately freeze #1086 native export/loader and matched reference-behavior contract: accepted artifacts and lexical/frame identities, input/state/output, operator/dtype/reduction semantics, loader validation and the smallest matched behavior check with a resource envelope before implementation. #1094 comparison is complete and its envelope consumed; no rerun, new fit or widened capability claim. #973 remains open and #954 blocked.",
         "issue_urls": [
-          "https://github.com/UOR-Foundation/uor-r4/issues/1094"
+          "https://github.com/UOR-Foundation/uor-r4/issues/1086"
         ]
       },
       "proof_artifacts": []
@@ -791,9 +877,9 @@
         "#1079 weak-control and #1082 descriptive results are unchanged; #973 remains open and #954 blocked."
       ],
       "next_action": {
-        "scope": "Separately activate one #1094 frozen comparison and fresh-process replay through run-retained using the independently accepted exact envelope, bound coordinator and unchanged worker. Fresh identity checks consume execution/replay budgets; carry the original 120-second policy debit and 3,465,401 historical bytes plus new output. No new prepare, automatic retry, input repair or policy/criterion relaxation. Raw-text model preservation remains unmeasured.",
+        "scope": "Separately freeze #1086 native export/loader and matched reference-behavior contract: accepted artifacts and lexical/frame identities, input/state/output, operator/dtype/reduction semantics, loader validation and the smallest matched behavior check with a resource envelope before implementation. #1094 comparison is complete and its envelope consumed; no rerun, new fit or widened capability claim. #973 remains open and #954 blocked.",
         "issue_urls": [
-          "https://github.com/UOR-Foundation/uor-r4/issues/1094"
+          "https://github.com/UOR-Foundation/uor-r4/issues/1086"
         ]
       },
       "proof_artifacts": []
@@ -845,9 +931,9 @@
         "Supplied segmentation remains the qualified model entry; #1094 and #973 remain open and #954 blocked."
       ],
       "next_action": {
-        "scope": "Separately activate one #1094 frozen comparison and fresh-process replay through run-retained using the independently accepted exact envelope, bound coordinator and unchanged worker. Fresh identity checks consume execution/replay budgets; carry the original 120-second policy debit and 3,465,401 historical bytes plus new output. No new prepare, automatic retry, input repair or policy/criterion relaxation. Raw-text model preservation remains unmeasured.",
+        "scope": "Separately freeze #1086 native export/loader and matched reference-behavior contract: accepted artifacts and lexical/frame identities, input/state/output, operator/dtype/reduction semantics, loader validation and the smallest matched behavior check with a resource envelope before implementation. #1094 comparison is complete and its envelope consumed; no rerun, new fit or widened capability claim. #973 remains open and #954 blocked.",
         "issue_urls": [
-          "https://github.com/UOR-Foundation/uor-r4/issues/1094"
+          "https://github.com/UOR-Foundation/uor-r4/issues/1086"
         ]
       },
       "proof_artifacts": []
@@ -921,15 +1007,105 @@
         "Supplied clauses remain the qualified model entry. #1079 weak-control and #1082 descriptive findings are unchanged; #1094/#973 stay open and #954 blocked."
       ],
       "next_action": {
-        "scope": "Separately activate one #1094 frozen comparison and fresh-process replay through run-retained using the independently accepted exact envelope, bound coordinator and unchanged worker. Fresh identity checks consume execution/replay budgets; carry the original 120-second policy debit and 3,465,401 historical bytes plus new output. No new prepare, automatic retry, input repair or policy/criterion relaxation. Raw-text model preservation remains unmeasured.",
+        "scope": "Separately freeze #1086 native export/loader and matched reference-behavior contract: accepted artifacts and lexical/frame identities, input/state/output, operator/dtype/reduction semantics, loader validation and the smallest matched behavior check with a resource envelope before implementation. #1094 comparison is complete and its envelope consumed; no rerun, new fit or widened capability claim. #973 remains open and #954 blocked.",
         "issue_urls": [
-          "https://github.com/UOR-Foundation/uor-r4/issues/1094"
+          "https://github.com/UOR-Foundation/uor-r4/issues/1086"
+        ]
+      },
+      "proof_artifacts": []
+    },
+    {
+      "id": "R4-1094-RAW-TEXT-PRESERVATION",
+      "statement": "The frozen R4TextToClausesV1 adapter recovered independently annotated inputs from one raw text buffer and preserved the unchanged learned R4 reader/core tensors, consumed roles and answers on every admitted row; complete comparison and oracle identities replayed exactly in fresh processes.",
+      "role": "Empirical Criterion",
+      "evidence_status": "Empirical",
+      "outcome": "CLAUSE_ADAPTER_PRESERVED",
+      "scope": {
+        "known_vocabulary": true,
+        "fixed_query_forms": true,
+        "facts": 4,
+        "reader_inputs": "inputs[B,5,13] and lengths[B,5]",
+        "valid_rows_authoring_withheld": [
+          320,
+          1280
+        ],
+        "base_semantic_groups_authoring_withheld": [
+          4,
+          16
+        ],
+        "ordinary_refusals_authoring_withheld": [
+          16,
+          64
+        ],
+        "boundary_controls": 16,
+        "fact_forms": 4,
+        "surface_profiles": 4,
+        "semantic_world_novelty": false,
+        "fit_updates": 0,
+        "generation": 0,
+        "native_exports": 0
+      },
+      "assumptions": [
+        "The approved source, reader/core states, lexical/frame identities, independent raw/reference commitments and Python 3.12.14/Torch 2.7.1 CPU runtime remain bound.",
+        "The 1600 rows are related renderings of twenty already-observed semantic groups, not independent semantic trials.",
+        "Only the single approved comparison plus fresh-process replay was invoked; withheld access and all fresh checks consumed their frozen phase budgets."
+      ],
+      "observations": {
+        "exact_valid_inputs_per_phase": 1600,
+        "exact_answers_per_arm_phase": 1600,
+        "correct_consumed_roles_per_arm_phase": 22400,
+        "typed_refusals_per_phase": 96,
+        "refusal_forwards": 0,
+        "tensor_receipts_per_phase": 208,
+        "valid_batches_per_arm_phase": 13,
+        "deterministic_checks_per_phase": 166,
+        "failure_count": 0,
+        "exact_fresh_process_replay": true,
+        "oracle_exact_fresh_process_replay": true,
+        "logical_row_forwards_total": 6400,
+        "optimizer_updates": 0,
+        "unchanged_before_after_model_states": true,
+        "operator_wall_seconds": 15.821630625,
+        "cumulative_resource_snapshot_seconds": 135.69782133398985,
+        "historical_policy_debit_seconds": 120,
+        "combined_peak_rss_bound_bytes": 471531520,
+        "historical_plus_final_output_bytes": 7498795,
+        "reconstructed_retained_plus_spool_bound_bytes": 54780510
+      },
+      "evidence_refs": [
+        "comparison_record_1094",
+        "comparison_activation_1094",
+        "comparison_summary_1094",
+        "comparison_operator_1094",
+        "comparison_review_1094",
+        "comparison_sources_1094",
+        "comparison_index_1094",
+        "comparison_execution_1094",
+        "comparison_replay_1094",
+        "comparison_result_1094",
+        "comparison_completion_1094",
+        "comparison_resources_1094",
+        "specification_1085",
+        "result_1079",
+        "result_1082"
+      ],
+      "limits": [
+        "Finite known-world preservation does not establish general parsing, semantic novelty, variable context, generation, reasoning, coding, geometry superiority or causality for the weak token control.",
+        "No new mathematical proof, native export/loader or final serving-kernel qualification is supplied. #973 remains open and #954 blocked.",
+        "The original unavailable preparation, runtime-only readiness, weak-control and descriptive findings are preserved.",
+        "Two temporary raw oracle streams were removed only after their deterministic phase evidence persisted. Independent review verifies the retained equality/digest receipts; raw temporary tensor bytes are no longer present.",
+        "The 120-second historical charge is a conservative policy debit; the resource snapshot excludes its own write/exit tail. Storage peak is a reconstructed bound, not an instantaneous measurement."
+      ],
+      "next_action": {
+        "scope": "Separately freeze #1086 native export/loader and matched reference-behavior contract: accepted artifacts and lexical/frame identities, input/state/output, operator/dtype/reduction semantics, loader validation and the smallest matched behavior check with a resource envelope before implementation. #1094 comparison is complete and its envelope consumed; no rerun, new fit or widened capability claim. #973 remains open and #954 blocked.",
+        "issue_urls": [
+          "https://github.com/UOR-Foundation/uor-r4/issues/1086"
         ]
       },
       "proof_artifacts": []
     }
   ],
-  "previous_source_revision": "df4d2f9b6d38500109c80583fed7e02d3a157b1a",
+  "previous_source_revision": "2974e4a6509f7ee83a7db708099ba301a7ed5f4f",
   "artifacts_1082": {
     "implementation_cid": "blake3:1451084b66531dbe5eb0cb1d3b3e60e5f0aa3f4bd59fffbf582a18d4dfc9380e",
     "preparation_cid": "blake3:c8a4a56de77767cbbe8fd31edc83251b42a6f729e182d065caa47d981f248741",
@@ -978,5 +1154,20 @@
     "comparison": "NOT_RUN",
     "replay": "NOT_RUN",
     "closure_scope": "Implementation, metadata assembly and independent conditional release complete; #1094 scientific issue remains open."
+  },
+  "latest_adapter_comparison": {
+    "issue": 1094,
+    "status": "CLAUSE_ADAPTER_PRESERVED",
+    "independent_review": "INDEPENDENT_RESULT_ACCEPTED",
+    "qualified_entry": "BOUNDED_RAW_TEXT",
+    "evidence_revision": "445c882adfae770b9b313ba8b59a5ef5a39e510b",
+    "coordinator_source_commit": "07ec3f0d39d08ac5bf9c2ba7a6b864229e007867",
+    "worker_source_commit": "79c674c8f6179a68878a12ee86e664f1435c3ebf",
+    "result_sha256": "c50b354f8da5ae170b97eabbc3b887bf065efb8e1861353cb485d8515c558171",
+    "comparison": "COMPLETED",
+    "replay": "EXACT",
+    "envelope": "CONSUMED_NO_RETRY",
+    "closure_condition": "Bounded scientific DoD accepted; close #1094 after verified protected delivery.",
+    "history": "Earlier latest_* entries retain their original checkpoint observations; this later comparison supersedes their scheduling and NOT_RUN status only."
   }
 }

@@ -1,0 +1,144 @@
+{
+  "schema": "uor-r4.retained-comparison-receipt-index/1",
+  "issue": 1094,
+  "original_output": "/Users/casey.allard/.codex/uor/issue-1094-retained-assembly01",
+  "files": [
+    {
+      "original": "/Users/casey.allard/.codex/uor/issue-1094-retained-assembly01/admission-started.json",
+      "copy": "docs/r4_retained_comparison_1094_evidence/admission-started.json",
+      "bytes": 774,
+      "sha256": "486d6587cd57633525c884aa56a06687459d3b9db309ce9249f611b7ead5996d",
+      "prior_public_copy": false
+    },
+    {
+      "original": "/Users/casey.allard/.codex/uor/issue-1094-retained-assembly01/bindings.json",
+      "copy": "docs/r4_retained_assembly_1094_evidence/bindings.json",
+      "bytes": 58978,
+      "sha256": "23977918c1685148f6cbc61ebab87507e2ce153e40d9b15c2634a4d68e0c2353",
+      "prior_public_copy": true
+    },
+    {
+      "original": "/Users/casey.allard/.codex/uor/issue-1094-retained-assembly01/completion.json",
+      "copy": "docs/r4_retained_comparison_1094_evidence/completion.json",
+      "bytes": 720,
+      "sha256": "ea14a44f6077fd9af2ef13bd1d3acb7976f2ac8fbb95aa76b320da14ae79f36c",
+      "prior_public_copy": false
+    },
+    {
+      "original": "/Users/casey.allard/.codex/uor/issue-1094-retained-assembly01/execution-closed.json",
+      "copy": "docs/r4_retained_comparison_1094_evidence/execution-closed.json",
+      "bytes": 344,
+      "sha256": "cbe7d5ce164123249eef7114495fb53d43aeaf867ac89231cfa91a207e8db05d",
+      "prior_public_copy": false
+    },
+    {
+      "original": "/Users/casey.allard/.codex/uor/issue-1094-retained-assembly01/execution-progress.jsonl",
+      "copy": "docs/r4_retained_comparison_1094_evidence/execution-progress.jsonl",
+      "bytes": 26592,
+      "sha256": "18698a4f533d471169a731d3befd32356f21741b3b4e60df8e35a25b8a38f221",
+      "prior_public_copy": false
+    },
+    {
+      "original": "/Users/casey.allard/.codex/uor/issue-1094-retained-assembly01/execution-started.json",
+      "copy": "docs/r4_retained_comparison_1094_evidence/execution-started.json",
+      "bytes": 1008,
+      "sha256": "8040a0f1d23c99daad9eb6fd2b7c977a434533fc96a3e696cb8d7ed91c80d528",
+      "prior_public_copy": false
+    },
+    {
+      "original": "/Users/casey.allard/.codex/uor/issue-1094-retained-assembly01/execution.json",
+      "copy": "docs/r4_retained_comparison_1094_evidence/execution.json",
+      "bytes": 1894358,
+      "sha256": "c803b0daa1769f26af82bc093d330e59a8fdd390fdc760ed501a73618580bd91",
+      "prior_public_copy": false
+    },
+    {
+      "original": "/Users/casey.allard/.codex/uor/issue-1094-retained-assembly01/final-resources.json",
+      "copy": "docs/r4_retained_comparison_1094_evidence/final-resources.json",
+      "bytes": 344,
+      "sha256": "3bdb020aad7b29e56c1eaff1028f02ab8bf44b110715a46d5019517c84516361",
+      "prior_public_copy": false
+    },
+    {
+      "original": "/Users/casey.allard/.codex/uor/issue-1094-retained-assembly01/isolation-probe.txt",
+      "copy": "docs/r4_retained_assembly_1094_evidence/isolation-probe.txt",
+      "bytes": 49,
+      "sha256": "cd3db2e6fd2e484737adf34dfce487cb4b846c1afb30a566c1acbd0aeb066323",
+      "prior_public_copy": true
+    },
+    {
+      "original": "/Users/casey.allard/.codex/uor/issue-1094-retained-assembly01/release.json",
+      "copy": "docs/r4_retained_assembly_1094_evidence/release.json",
+      "bytes": 3305,
+      "sha256": "5787e4a64113800c5fc82cd1d32d564d9c6e3a344e74ca102a754fe82dccee23",
+      "prior_public_copy": true
+    },
+    {
+      "original": "/Users/casey.allard/.codex/uor/issue-1094-retained-assembly01/replay-closed.json",
+      "copy": "docs/r4_retained_comparison_1094_evidence/replay-closed.json",
+      "bytes": 344,
+      "sha256": "c2c23854d69568f8d67e5945140a76db53978adfe352e044302c6532c66874a6",
+      "prior_public_copy": false
+    },
+    {
+      "original": "/Users/casey.allard/.codex/uor/issue-1094-retained-assembly01/replay-progress.jsonl",
+      "copy": "docs/r4_retained_comparison_1094_evidence/replay-progress.jsonl",
+      "bytes": 26455,
+      "sha256": "40dc98e6e67818daf2d48fa81bbb0f7785ed36bd440279922462d44850e09bc1",
+      "prior_public_copy": false
+    },
+    {
+      "original": "/Users/casey.allard/.codex/uor/issue-1094-retained-assembly01/replay-started.json",
+      "copy": "docs/r4_retained_comparison_1094_evidence/replay-started.json",
+      "bytes": 633,
+      "sha256": "dfb7d42331747f6921afd2b30de1e5be025f9936e06d8b117e46a0314cf9789a",
+      "prior_public_copy": false
+    },
+    {
+      "original": "/Users/casey.allard/.codex/uor/issue-1094-retained-assembly01/replay.json",
+      "copy": "docs/r4_retained_comparison_1094_evidence/replay.json",
+      "bytes": 1894351,
+      "sha256": "a803cdbc361adc2ccb9b6fefaec24f785982f86faa3ae296da08f573fa0915e2",
+      "prior_public_copy": false
+    },
+    {
+      "original": "/Users/casey.allard/.codex/uor/issue-1094-retained-assembly01/result.json",
+      "copy": "docs/r4_retained_comparison_1094_evidence/result.json",
+      "bytes": 1598,
+      "sha256": "c50b354f8da5ae170b97eabbc3b887bf065efb8e1861353cb485d8515c558171",
+      "prior_public_copy": false
+    },
+    {
+      "original": "/Users/casey.allard/.codex/uor/issue-1094-retained-assembly01/retained-preparation.json",
+      "copy": "docs/r4_retained_assembly_1094_evidence/retained-preparation.json",
+      "bytes": 115900,
+      "sha256": "48fae2d391e347e89a290b12a8af97cf8266c5913a21e71f21c1bef74ef54c62",
+      "prior_public_copy": true
+    },
+    {
+      "original": "/Users/casey.allard/.codex/uor/issue-1094-retained-assembly01/worker.sb",
+      "copy": "docs/r4_retained_assembly_1094_evidence/worker.sb",
+      "bytes": 7641,
+      "sha256": "88e57a18f1c7946fa8538699d8b6acc45645840d991bef3f07ccd7109c8f9189",
+      "prior_public_copy": true
+    }
+  ],
+  "original_output_bytes": 4033394,
+  "existing_assembly_copy_base_revision": "1ff8b81cb060ca2e8ced409ec78ae566b5b98891",
+  "comparison_records_are_byte_identical_copies": true,
+  "no_stopped_receipt": true,
+  "operator_receipt": "docs/r4_retained_comparison_1094_operator.json",
+  "storage": {
+    "original_output_files": 17,
+    "original_output_bytes": 4033394,
+    "historical_retained_bytes": 3465401,
+    "final_campaign_retained_bytes": 7498795,
+    "final_snapshot_new_bytes_field": 7497731,
+    "final_snapshot_excludes_own_and_completion_bytes": 1064,
+    "largest_single_oracle_spool_bytes": 47281715,
+    "conservative_peak_retained_plus_spool_upper_bound_bytes": 54780510,
+    "peak_bound_scope": "Reconstructed from final retained file sizes plus the largest one-at-a-time spool; not an instantaneous filesystem sample.",
+    "spool_cleanup": "Two temporary oracle streams removed by the frozen consumer only after complete deterministic evidence was persisted; original results and unique/user material retained.",
+    "withheld_final_mode": "000"
+  }
+}

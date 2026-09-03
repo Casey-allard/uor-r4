@@ -1,0 +1,63 @@
+{
+  "schema": "uor-r4.retained-comparison-activation/1",
+  "issue": 1094,
+  "base_revision": "1ff8b81cb060ca2e8ced409ec78ae566b5b98891",
+  "accepted_source_commit": "07ec3f0d39d08ac5bf9c2ba7a6b864229e007867",
+  "assembly_sha256": "48fae2d391e347e89a290b12a8af97cf8266c5913a21e71f21c1bef74ef54c62",
+  "release_sha256": "5787e4a64113800c5fc82cd1d32d564d9c6e3a344e74ca102a754fe82dccee23",
+  "command": [
+    "/Users/casey.allard/.codex/worktrees/r4-language-r4/uor-r4/tools/r4-softmax-trainer/.venv/bin/python",
+    "-B",
+    "-m",
+    "r4_softmax_trainer.text_clause_adapter.campaign",
+    "run-retained",
+    "--repo",
+    "/Users/casey.allard/.codex/worktrees/r4-retained-assembly/uor-r4",
+    "--corpus",
+    "/Users/casey.allard/.codex/uor/issue-1094-curator",
+    "--output",
+    "/Users/casey.allard/.codex/uor/issue-1094-retained-assembly01",
+    "--python",
+    "/Users/casey.allard/.codex/worktrees/r4-language-r4/uor-r4/tools/r4-softmax-trainer/.venv/bin/python",
+    "--review",
+    "/Users/casey.allard/.codex/uor/issue-1094-retained-assembly01/release.json",
+    "--assembly",
+    "/Users/casey.allard/.codex/uor/issue-1094-retained-assembly01/retained-preparation.json"
+  ],
+  "coordinator_environment": {
+    "PATH": "/usr/bin:/bin:/usr/sbin:/sbin",
+    "HOME": "/Users/casey.allard",
+    "PYTHONPATH": "/Users/casey.allard/.codex/worktrees/r4-retained-assembly/uor-r4/tools/r4-softmax-trainer/src",
+    "PYTHONNOUSERSITE": "1",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "PYTHONUNBUFFERED": "1",
+    "OMP_NUM_THREADS": "4",
+    "VECLIB_MAXIMUM_THREADS": "4"
+  },
+  "working_directory": "/Users/casey.allard/.codex/worktrees/r4-retained-assembly/uor-r4",
+  "invocations": 1,
+  "mode_handoff": "Only original corpus/withheld directory 000->0500 immediately before invocation; restore000 after coordinator and its workers exit; no recursive permission changes or pre-run payload inspection.",
+  "budget": {
+    "historical_policy_debit_seconds": 120,
+    "execution_seconds": 120,
+    "replay_seconds": 120,
+    "cumulative_seconds": 360,
+    "combined_rss_bytes": 3221225472,
+    "corpus_results_bytes": 134217728,
+    "logical_forwards": 6400,
+    "optimizer_updates": 0
+  },
+  "preflight_basis": "Reuse accepted 320/320 authoring,16/16 refusals,2 schema probes; exact conditional release; fresh identities checked by consumer inside phase clock. No calibration, new prepare or readiness attempt.",
+  "population": {
+    "valid_authoring": 320,
+    "valid_withheld": 1280,
+    "refusal_authoring": 16,
+    "refusal_withheld": 64,
+    "boundary_controls": 16
+  },
+  "criterion": "100% accepted valid input/token/length/span fidelity; byte-identical full soft outputs/logits/answers; all14 used role decisions exact; all refusal/boundary controls typed and zero-forward; exact fresh-process replay.",
+  "if_positive": "Admit only bounded raw-text entry and hand the accepted reference evidence to #1086; #973 open/#954blocked.",
+  "if_valid_miss": "Keep supplied segmentation qualified; preserve miss and separately scope repair without reusing revealed population.",
+  "if_unavailable_or_resource_stop": "Keep supplied segmentation qualified; retain typed stop and partial evidence; no retry or altered source/profile/criteria; identify one separate decision from the observed cause.",
+  "extra_work": "No fit, corpus regeneration, source change, geometry expansion, general-language claim or broadQA."
+}
