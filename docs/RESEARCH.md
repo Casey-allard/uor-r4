@@ -14,48 +14,41 @@ Measurements retain their pre-declared exit rule and durable issue/record
 reference; design targets remain explicitly labeled as definitions,
 assumptions, or objectives rather than measured results.
 
-> **Current cyclic fact-order result (2026-09-02):** #1071 completed
-> `CYCLIC_FACTS_PRESERVATION_MISS`. The single plain-#1067 augmentation fit
-> regresses in every tested order at the same 3,920-update dose. Canonical
-> construction falls **3,735 → 1,702 / 8,192 (45.5933% → 20.7764%)**;
-> all four candidate scores are **20.7764–21.0083%**, versus the retained
-> reference's 40.8569–45.5933%. The reference's full canonical score and
-> diagnostic reproduce exactly. See the [#1071 cyclic-order record](r4_zoology_cyclic_facts_1071.md).
+> **Current structured-binding result (2026-09-02):** #1073 completed
+> `COMPOUND_BINDING_FRESH_PASSED`. Every tested cyclic order scores
+> **8,192/8,192 supported**, **2,048/2,048 unknown**, and **1,024/1,024 complete
+> quartets per question family** on construction. Predictions are identical
+> across four orders; maximum full-head logit difference is **5.7220459e-6**.
+> See the [#1073 compound-binding record](r4_zoology_compound_binding_1073.md).
 >
-> Owner-changing pairs both correct fall to **11 / 18 / 17 / 13** of 2,048,
-> versus 47 / 23 / 35 / 33; object-changing pairs fall to **20 / 23 / 24 / 30**,
-> versus 447 / 329 / 392 / 352. Every frozen behavior criterion misses.
-> All target-slot accuracies are 19.1406–22.9004%, below the 50% floor.
-> The candidate has zero complete four-answer quartets in every rotation.
-> Canonical supported questions receive **2,647 unknown answers / 8,192
-> (32.3120%)**, versus 330. Owner-change responsiveness increases, but paired
-> correctness falls. Similar low scores across rotations do not establish
-> invariant predictions or successful binding.
+> Fresh development reaches **1,024/1,024 supported, 256/256 unknown and
+> 256/256 complete groups (128/128 per family)** in every order. The fresh
+> population covers 64 held-out owner-object pairs and has zero world/input overlaps
+> with construction and all four historical development populations. In each
+> value-cycle control, attention is exactly unchanged: original supported accuracy
+> becomes **0/8,192**, reassigned answers **8,192/8,192**, and all **2,048 unknown
+> predictions remain unchanged and correct**.
 >
-> The complete fit, eight-view comparison and exact fresh-process replay took
-> **315.59 seconds**, peak **0.78595 GiB**, on eight Apple Accelerate CPU threads.
-> The exact 2,007,040-presentation ledger and partial-tail exposure reconcile.
-> Fifteen focused checks and independent source/preparation/evidence reviews
-> passed. Fresh development is **`NOT_RUN_CONSTRUCTION_MISS`**, with zero model
-> decisions; R4 is `NOT_RUN_SEPARATE_INFERENCE_STEP`. Broad QA remains dormant;
-> queue statuses acknowledge transport only. Retain **#1067 as the reference**.
+> The **286,976-parameter** model received **3,920 updates / 2,007,040 presentations**
+> (1,846,495 supported; 160,545 unknown). Fit, evaluation and exact fresh-process
+> replay took **63.7994 seconds**, peak **1.323975 GiB**, on eight CPU threads.
+> Eighteen focused checks passed; broad QA remains dormant.
 >
-> The next recommendation is one separately frozen **fact-level learned Q/K/V
-> binding prototype**: independently learned owner–object query/key projections,
-> a shared encoder for all four facts without fact-slot embeddings, location
-> values and a learned null for missing bindings, with ordinary softmax and the
-> full 4,096-token head. Keep the four-fact task, counterfactual controls and bounded
-> dose. Fixed grammar supplies roles; no equality matcher or target-derived routing.
-> Any positive would concern learned binding through an explicit structured
-> interface, not learned English parsing. Freeze controls and fresh exclusions
-> before that separate run. No such prototype ran in #1071. More geometry deferred.
+> This establishes learned structured binding with grammar-supplied roles.
+> Learned English parsing, general English/chat and geometric superiority remain
+> unestablished; architecture changed at the matched dose. Null receives mean
+> 54.64% attention on supported construction: preserve the complete softmax mixture.
 >
-> Historical #1063/#1065/#1067/#1069 evidence remains intact. #1061 retains
-> ordinary/coherent R4 at **8,071/8,192 = 98.5229%**, all predictions identical,
-> and an 86.2061-point transport-control loss. #1059 retains
-> **11,900/12,000 = 99.1667%** preservation. Fresh transfer, general English,
-> H4 superiority, softmax removal, reasoning and chat readiness remain
-> unestablished; #973 stays open and #954 remains blocked.
+> Next, separately freeze **unchanged-R4 inference preservation** for these same
+> weights: ordinary/coherent execution and broken-transport controls over the
+> rectangular four-fact-plus-null mixture, including construction and fresh rows
+> in all four orders. #1073 ran no R4 or geometry increase.
+>
+> Historical records, including the #1071 negative, remain intact. #1061 retains
+> **8,071/8,192 = 98.5229%** ordinary/coherent R4 preservation, all 8,192 predictions
+> identical, and its 86.2061-point transport-control loss; #1059 retains
+> **11,900/12,000 = 99.1667%** preservation.
+> #973 stays open and #954 remains blocked.
 
 > **Predecessor role-tagged associative-learning result (2026-09-02).** #1045
 > completed its full 64-epoch R1 cap and stopped
