@@ -405,6 +405,33 @@ and stops at a hard 2,700-second wall. It writes only
 `arms/contextual-retained-full/`; it has no update-count override or automatic
 retry.
 
+The context-bound key/value successor keeps the same reader, exact-H4 route,
+strict read-before-write recurrence, gates, state tensors, 252,160 learned
+parameters, and tied vocabulary head. After the strict-prior read it forms
+`c_t = RMSNorm(x_t + a_t)` and writes both `Wk(c_t)` and `Wv(c_t)` through the
+existing identity slot. Its separate fixed command always warm-starts from the
+original retained V1 artifact, runs 128 updates over 2,048 open training
+windows with four CPU threads and an 840-second hard wall, and has no flags,
+resume path, or automatic retry:
+
+```bash
+uv run --offline --project "$TRAINER" r4-softmax-trainer \
+  --root "$ROOT" fit-contextual-key-value
+
+CONTEXTUAL_KEY_VALUE="$ROOT/arms/contextual-key-value/model.safetensors"
+uv run --offline --project "$TRAINER" r4-softmax-trainer \
+  --root "$ROOT" generate-contextual-retained \
+  --artifact "$CONTEXTUAL_KEY_VALUE" \
+  --prompt "A purple turtle found a clock in the garden" \
+  --max-new-tokens 16
+```
+
+The fit reads no validation, sealed, teacher, or source-model files. The
+generator selects the versioned recurrence from the adjacent `fit.json` and
+checks the artifact and geometry identities before loading the byte-compatible
+weights. The result measures one bounded intervention; it does not establish
+factual recall, general language quality, or geometric advantage.
+
 ## Terminal #973 paired-H4 prompt-capacity rung
 
 [`R4PairedH4PromptCapacityV1`](../../docs/r4_paired_h4_prompt_capacity_973.md)

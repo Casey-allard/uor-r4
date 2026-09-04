@@ -14,6 +14,7 @@ from .group_retention_campaign import load_group_geometry_artifacts
 from .language_path_generalization import (
     CONTEXT,
     PARAMETER_COUNT,
+    R4ContextualKeyValueWriteLanguagePathV1,
     R4ContextualValueWriteLanguagePathV1,
 )
 from .language_path_generalization_campaign import (
@@ -36,6 +37,8 @@ from .provenance import atomic_write, atomic_write_json, cid_bytes, cid_file
 
 SCHEMA = "uor-r4.contextual-retained-fit/1"
 STATUS = "CONTEXTUAL_RETAINED_ADAPTED"
+CONTEXTUAL_KEY_VALUE_SCHEMA = "uor-r4.contextual-key-value-fit/1"
+CONTEXTUAL_KEY_VALUE_STATUS = "CONTEXTUAL_KEY_VALUE_ADAPTED"
 BATCH_SIZE = 16
 THREADS = 4
 MAX_UPDATES = 128
@@ -57,6 +60,10 @@ GEOMETRY_RELATIVE_PATH = Path("geometry/r4-group-address-geometry.json")
 INITIAL_ARTIFACT_RELATIVE_PATH = Path("arms/retained/model.safetensors")
 OUTPUT_DIRECTORY_RELATIVE_PATH = Path("arms/contextual-retained")
 FULL_EPOCH_OUTPUT_DIRECTORY_RELATIVE_PATH = Path("arms/contextual-retained-full")
+CONTEXTUAL_KEY_VALUE_OUTPUT_DIRECTORY_RELATIVE_PATH = Path(
+    "arms/contextual-key-value"
+)
+KEY_WRITE = "Wk(RMSNorm(x_t + strict_prior_retained_residual))"
 VALUE_WRITE = "Wv(RMSNorm(x_t + strict_prior_retained_residual))"
 
 
@@ -117,8 +124,12 @@ def _fit_contextual_retained(
     maximum_updates: int,
     maximum_seconds: float,
     output_directory_relative_path: Path,
+    schema: str,
     status: str,
     profile: str | None,
+    model_type: type[R4ContextualValueWriteLanguagePathV1],
+    model_writes: dict[str, str],
+    progress_label: str,
 ) -> dict[str, Any]:
     if isinstance(updates, bool) or not isinstance(updates, int):
         raise TypeError("updates must be an integer")
@@ -153,7 +164,7 @@ def _fit_contextual_retained(
     store = LanguagePathWindowStore(train_path, window_count=TRAIN_WINDOWS)
     order = deterministic_window_order(TRAIN_WINDOWS)
     geometry = load_group_geometry_artifacts(geometry_path).exact_h4
-    model = R4ContextualValueWriteLanguagePathV1(geometry).to(
+    model = model_type(geometry).to(
         device=torch.device("cpu"), dtype=torch.float32
     )
     model.load_learned_artifact(initial_artifact_path.read_bytes())
@@ -201,7 +212,7 @@ def _fit_contextual_retained(
         losses.append(float(output.loss.detach()))
         if update % 16 == 0 or update == updates:
             print(
-                f"contextual_retained_fit update={update}/{updates} "
+                f"{progress_label} update={update}/{updates} "
                 f"loss={losses[-1]:.6f} elapsed={time.monotonic() - started:.3f}s",
                 flush=True,
             )
@@ -237,13 +248,13 @@ def _fit_contextual_retained(
         )
 
     result = {
-        "schema": SCHEMA,
+        "schema": schema,
         "status": status,
         "model": {
             "policy": model.policy,
             "parameter_count": PARAMETER_COUNT,
-            "value_write": VALUE_WRITE,
             "initialization": "qualified retained V1 artifact",
+            **model_writes,
         },
         "fit": fit_result,
         "execution": execution,
@@ -284,8 +295,12 @@ def fit_contextual_retained(
         maximum_updates=MAX_UPDATES,
         maximum_seconds=MAX_SECONDS,
         output_directory_relative_path=OUTPUT_DIRECTORY_RELATIVE_PATH,
+        schema=SCHEMA,
         status=STATUS,
         profile=None,
+        model_type=R4ContextualValueWriteLanguagePathV1,
+        model_writes={"value_write": VALUE_WRITE},
+        progress_label="contextual_retained_fit",
     )
 
 
@@ -300,12 +315,40 @@ def fit_contextual_retained_full(root: Path) -> dict[str, Any]:
         maximum_updates=FULL_EPOCH_UPDATES,
         maximum_seconds=FULL_EPOCH_MAX_SECONDS,
         output_directory_relative_path=FULL_EPOCH_OUTPUT_DIRECTORY_RELATIVE_PATH,
+        schema=SCHEMA,
         status=FULL_EPOCH_STATUS,
         profile="full_epoch",
+        model_type=R4ContextualValueWriteLanguagePathV1,
+        model_writes={"value_write": VALUE_WRITE},
+        progress_label="contextual_retained_fit",
+    )
+
+
+def fit_contextual_key_value(root: Path) -> dict[str, Any]:
+    """Run one bounded adaptation with a shared contextual key/value source."""
+
+    return _fit_contextual_retained(
+        root,
+        updates=MAX_UPDATES,
+        threads=THREADS,
+        max_seconds=MAX_SECONDS,
+        maximum_updates=MAX_UPDATES,
+        maximum_seconds=MAX_SECONDS,
+        output_directory_relative_path=(
+            CONTEXTUAL_KEY_VALUE_OUTPUT_DIRECTORY_RELATIVE_PATH
+        ),
+        schema=CONTEXTUAL_KEY_VALUE_SCHEMA,
+        status=CONTEXTUAL_KEY_VALUE_STATUS,
+        profile="contextual_key_value_adaptation",
+        model_type=R4ContextualKeyValueWriteLanguagePathV1,
+        model_writes={"key_write": KEY_WRITE, "value_write": VALUE_WRITE},
+        progress_label="contextual_key_value_fit",
     )
 
 
 __all__ = [
+    "CONTEXTUAL_KEY_VALUE_SCHEMA",
+    "CONTEXTUAL_KEY_VALUE_STATUS",
     "DEFAULT_UPDATES",
     "FULL_EPOCH_MAX_SECONDS",
     "FULL_EPOCH_STATUS",
@@ -314,6 +357,7 @@ __all__ = [
     "MAX_UPDATES",
     "SCHEMA",
     "STATUS",
+    "fit_contextual_key_value",
     "fit_contextual_retained",
     "fit_contextual_retained_full",
 ]

@@ -15,10 +15,22 @@ import torch
 from blake3 import blake3
 from tokenizers import Tokenizer
 
+from .contextual_retained_fit import (
+    CONTEXTUAL_KEY_VALUE_SCHEMA,
+    CONTEXTUAL_KEY_VALUE_STATUS,
+    EXPECTED_GEOMETRY_CID,
+    EXPECTED_INITIAL_ARTIFACT_CID,
+    FULL_EPOCH_STATUS,
+    SCHEMA as CONTEXTUAL_FIT_SCHEMA,
+    STATUS as CONTEXTUAL_FIT_STATUS,
+)
 from .group_retention_campaign import load_group_geometry_artifacts
 from .language_path_generalization import (
+    CONTEXTUAL_KEY_VALUE_WRITE_POLICY,
+    CONTEXTUAL_VALUE_WRITE_POLICY,
     CONTEXT,
     VOCAB_SIZE,
+    R4ContextualKeyValueWriteLanguagePathV1,
     R4ContextualValueWriteLanguagePathV1,
 )
 from .language_path_generation import (
@@ -34,11 +46,14 @@ from .language_path_generation import (
 
 
 SCHEMA = "uor-r4.contextual-retained-generation/1"
-POLICY = "R4ContextualValueWriteLanguagePathV1"
+POLICY = CONTEXTUAL_VALUE_WRITE_POLICY
 DEFAULT_MAX_NEW_TOKENS = 32
 DEFAULT_SEED = 9_738
 TOKENIZER_RELATIVE_PATH = Path("tokenizer/tokenizer.json")
 ARTIFACT_RELATIVE_PATH = Path("arms/retained/model.safetensors")
+CONTEXTUAL_KEY_WRITE = "Wk(RMSNorm(x_t + strict_prior_retained_residual))"
+CONTEXTUAL_VALUE_WRITE = "Wv(RMSNorm(x_t + strict_prior_retained_residual))"
+TOKEN_LOCAL_VALUE_WRITE = "Wv(RMSNorm(x_t))"
 
 
 def _record(path: Path, payload: bytes) -> dict[str, Any]:
@@ -86,24 +101,64 @@ def generate_contextual_retained(
     artifact_payload = resolved_artifact.read_bytes()
     geometry_payload = resolved_geometry.read_bytes()
     artifact_cid = f"blake3:{blake3(artifact_payload).hexdigest()}"
+    geometry_cid = f"blake3:{blake3(geometry_payload).hexdigest()}"
     fit_result_path = resolved_artifact.with_name("fit.json")
     fit_summary: dict[str, Any] | None = None
-    fitted_under_value_write = "Wv(RMSNorm(x_t))"
+    selected_policy = POLICY
+    model_type = R4ContextualValueWriteLanguagePathV1
+    fitted_under_key_write: str | None = None
+    fitted_under_value_write = TOKEN_LOCAL_VALUE_WRITE
     if fit_result_path.is_file():
         fit_result = json.loads(fit_result_path.read_text(encoding="utf-8"))
         if fit_result.get("artifact", {}).get("cid") != artifact_cid:
             raise ValueError("contextual fit metadata does not match the selected artifact")
-        if fit_result.get("model", {}).get("value_write") != (
-            "Wv(RMSNorm(x_t + strict_prior_retained_residual))"
-        ):
-            raise ValueError("contextual fit metadata names a different value write")
-        fitted_under_value_write = fit_result["model"]["value_write"]
+        if fit_result.get("inputs", {}).get("geometry", {}).get("cid") != geometry_cid:
+            raise ValueError("contextual fit metadata names a different geometry")
+        fit_model = fit_result.get("model", {})
+        fit_policy = fit_model.get("policy")
+        if fit_policy == POLICY:
+            if (
+                fit_result.get("schema") != CONTEXTUAL_FIT_SCHEMA
+                or fit_result.get("status")
+                not in {CONTEXTUAL_FIT_STATUS, FULL_EPOCH_STATUS}
+            ):
+                raise ValueError(
+                    "contextual fit metadata has an unsupported schema or status"
+                )
+            if fit_model.get("value_write") != CONTEXTUAL_VALUE_WRITE:
+                raise ValueError("contextual fit metadata names a different value write")
+        elif fit_policy == CONTEXTUAL_KEY_VALUE_WRITE_POLICY:
+            if (
+                fit_result.get("schema") != CONTEXTUAL_KEY_VALUE_SCHEMA
+                or fit_result.get("status") != CONTEXTUAL_KEY_VALUE_STATUS
+            ):
+                raise ValueError(
+                    "contextual key/value fit metadata has an unsupported schema or status"
+                )
+            if fit_model.get("key_write") != CONTEXTUAL_KEY_WRITE:
+                raise ValueError("contextual fit metadata names a different key write")
+            if fit_model.get("value_write") != CONTEXTUAL_VALUE_WRITE:
+                raise ValueError("contextual fit metadata names a different value write")
+            selected_policy = CONTEXTUAL_KEY_VALUE_WRITE_POLICY
+            model_type = R4ContextualKeyValueWriteLanguagePathV1
+            fitted_under_key_write = fit_model["key_write"]
+        else:
+            raise ValueError("contextual fit metadata names an unsupported model policy")
+        fitted_under_value_write = fit_model["value_write"]
         fit_summary = {
             "updates": fit_result.get("fit", {}).get("updates"),
             "causal_targets": fit_result.get("fit", {}).get("causal_targets"),
             "elapsed_seconds": fit_result.get("fit", {}).get("elapsed_seconds"),
             "result_path": str(fit_result_path),
         }
+    else:
+        canonical_artifact = (resolved_root / ARTIFACT_RELATIVE_PATH).resolve()
+        if resolved_artifact != canonical_artifact:
+            raise ValueError("a noncanonical retained artifact requires adjacent fit metadata")
+        if artifact_cid != EXPECTED_INITIAL_ARTIFACT_CID:
+            raise ValueError("canonical retained artifact differs from the pinned V1 artifact")
+        if geometry_cid != EXPECTED_GEOMETRY_CID:
+            raise ValueError("canonical retained generation requires the pinned geometry")
 
     tokenizer = Tokenizer.from_file(str(tokenizer_path))
     raw_decoder = ByteLevelRawDecoder.from_tokenizer_json(tokenizer_path)
@@ -123,7 +178,7 @@ def generate_contextual_retained(
         )
 
     geometry = load_group_geometry_artifacts(resolved_geometry).exact_h4
-    model = R4ContextualValueWriteLanguagePathV1(geometry)
+    model = model_type(geometry)
     model.load_learned_artifact(artifact_payload)
     model.to(device=torch.device("cpu"), dtype=torch.float32)
     model.eval()
@@ -186,16 +241,21 @@ def generate_contextual_retained(
 
     response_ids = generated[:-1] if generated and generated[-1] == EOS_TOKEN_ID else generated
     continuation, utf8_decodable = _decode_utf8(raw_decoder.decode_bytes(response_ids))
+    model_report: dict[str, Any] = {
+        "policy": selected_policy,
+        "value_write": CONTEXTUAL_VALUE_WRITE,
+        "parameters_added": 0,
+        "fitted_under_value_write": fitted_under_value_write,
+        "fit": fit_summary,
+    }
+    if fitted_under_key_write is not None:
+        model_report["key_write"] = CONTEXTUAL_KEY_WRITE
+        model_report["fitted_under_key_write"] = fitted_under_key_write
+
     return {
         "schema": SCHEMA,
         "status": "GENERATED",
-        "model": {
-            "policy": POLICY,
-            "value_write": "Wv(RMSNorm(x_t + strict_prior_retained_residual))",
-            "parameters_added": 0,
-            "fitted_under_value_write": fitted_under_value_write,
-            "fit": fit_summary,
-        },
+        "model": model_report,
         "inputs": {
             "model_artifact": _record(resolved_artifact, artifact_payload),
             "tokenizer": _record(tokenizer_path, tokenizer_payload),

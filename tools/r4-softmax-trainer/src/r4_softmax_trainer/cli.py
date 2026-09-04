@@ -35,6 +35,7 @@ from .continuation_data import (
     prepare_continuation_dataset,
 )
 from .contextual_retained_fit import (
+    fit_contextual_key_value,
     fit_contextual_retained,
     fit_contextual_retained_full,
 )
@@ -637,6 +638,13 @@ def parser() -> argparse.ArgumentParser:
             "value write using open training bytes only"
         ),
     )
+    subcommands.add_parser(
+        "fit-contextual-key-value",
+        help=(
+            "run #973's fixed bounded fit with one strict-prior context "
+            "supplying both retained key and value writes"
+        ),
+    )
     generate_contextual = subcommands.add_parser(
         "generate-contextual-retained",
         help=(
@@ -1152,6 +1160,7 @@ def main() -> None:
         "generate-language-path",
         "fit-contextual-retained",
         "fit-contextual-retained-full",
+        "fit-contextual-key-value",
         "generate-contextual-retained",
     }
     paired_h4_prompt_capacity_commands = {
@@ -1485,6 +1494,9 @@ def main() -> None:
         return
     if arguments.command == "fit-contextual-retained-full":
         _print_result(fit_contextual_retained_full(root))
+        return
+    if arguments.command == "fit-contextual-key-value":
+        _print_result(fit_contextual_key_value(root))
         return
     if arguments.command == "generate-contextual-retained":
         result = generate_contextual_retained(

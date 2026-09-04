@@ -36,6 +36,7 @@ from .model import RMSNorm, RotaryEmbedding, SwiGLU
 
 POLICY = "R4RetainedLanguagePathV1"
 CONTEXTUAL_VALUE_WRITE_POLICY = "R4ContextualValueWriteLanguagePathV1"
+CONTEXTUAL_KEY_VALUE_WRITE_POLICY = "R4ContextualKeyValueWriteLanguagePathV1"
 ORDINARY_POLICY = "OrdinaryCausalSoftmaxLanguagePathV1"
 
 VOCAB_SIZE = 4_096
@@ -392,6 +393,57 @@ class R4ContextualValueWriteLanguagePathV1(R4RetainedLanguagePathV1):
             final_state=output.final_state,
             audit=output.audit,
         )
+
+
+class R4ContextualKeyValueWriteLanguagePathV1(
+    R4ContextualValueWriteLanguagePathV1
+):
+    """Versioned retained path with one shared contextual key/value source.
+
+    Query construction and the strict-prior retained read remain token-local.
+    Only the later identity-slot write changes: both its key and value derive
+    from the same current residual plus ungated retained context.  All learned
+    tensors, recurrent state, geometry, and output-head semantics remain byte
+    compatible with the earlier retained artifacts.
+    """
+
+    policy = CONTEXTUAL_KEY_VALUE_WRITE_POLICY
+
+    def _contextual_direct_hidden(
+        self, token_ids: Tensor, state: DecoderState, *, state_off: bool
+    ) -> tuple[Tensor, DecoderState]:
+        outputs: list[Tensor] = []
+        current = state
+        for time_index in range(int(token_ids.shape[1])):
+            token = token_ids[:, time_index]
+            values = self.token_embedding(token)
+            leaves = self.token_leaves.index_select(0, token)
+            actions = self.left_actions.index_select(0, leaves)
+            keys: list[Tensor] = []
+            retained_values: list[Tensor] = []
+            occupied: list[Tensor] = []
+            for layer_index, layer in enumerate(self.layers):
+                values, layer_keys, layer_values, layer_occupied = (
+                    layer.forward_direct_step_with_contextual_key_value_write(
+                        values,
+                        actions,
+                        current.keys[layer_index],
+                        current.values[layer_index],
+                        current.occupied[layer_index],
+                        self.identity_offset,
+                        state_off=state_off,
+                    )
+                )
+                keys.append(layer_keys)
+                retained_values.append(layer_values)
+                occupied.append(layer_occupied)
+            current = DecoderState(
+                keys=torch.stack(keys),
+                values=torch.stack(retained_values),
+                occupied=torch.stack(occupied),
+            )
+            outputs.append(values)
+        return torch.stack(outputs, dim=1), current
 
 
 @dataclass(frozen=True, slots=True)
