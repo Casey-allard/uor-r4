@@ -1,10 +1,10 @@
 # Proposed product boundary and component transfer
 
-Status: proposed architecture for the parent plan. #1107 supplies an unbuilt
-source candidate for the first bounded slice; the broader plan is neither an
-approved implementation nor a new scientific run.
+Status: parked architecture reference. Product-interface work resumes after the
+source-free generator produces prompt-dependent output, unless the owner
+explicitly reprioritizes it.
 
-**Current checkpoint (2026-09-04):**
+**Historical checkpoint (2026-09-04):**
 [#1105](https://github.com/UOR-Foundation/uor-r4/issues/1105), a closed contract
 child of #1084, delivered the
 [native four-fact service ADR](../adr/0006-native-four-fact-workbench-service.md)
@@ -15,7 +15,9 @@ shell. [#1107](../r4_workbench_candidate_1107.md) adds candidate source for that
 crate, worker, private comparison entry and shell and freezes it as
 `WORKBENCH_CANDIDATE_SOURCE_FROZEN_UNBUILT`. Compilation, tests, model
 operations, HTTP/service execution, browser acceptance, portability and
-qualification are `NOT_RUN_BY_POLICY`.
+qualification were not run at that checkpoint. The superseding
+[`build_first_pre_alpha`](agent-execution-policy.md) policy permits execution,
+but #1084 remains parked while #973 is active.
 
 ## Decision
 
@@ -81,9 +83,16 @@ All donor references below are at `5a10305126df62e838cadfec5fd509e0c9705fa7`; pa
 
 ## Smallest useful delivery sequence
 
-1. **Freeze the application contract and chosen first user flow.** #1105 delivered the independently accepted ADR and machine contract for `answer_four_fact_raw_text/v1` as `SERVICE_API_CONTRACT_SPECIFIED`. No specification state counts as host behavior.
-2. **Freeze the workbench source candidate.** #1107 supplies the dedicated crate, private same-executable worker/comparison entries and first Four-fact shell as `WORKBENCH_CANDIDATE_SOURCE_FROZEN_UNBUILT`. Build, test, model, HTTP/service, browser, portability and qualification work is `NOT_RUN_BY_POLICY`. #1084 stays open; the owner separately decides whether to authorize manual qualification. The consumed #1102 CLI/coordinator and qualification cannot authorize this source.
-3. **Complete request/model lifecycle.** Serialize load/generate/cancel, keep model selection stable, preserve artifact identity, show real progress and request completion. Add one scoped cold-load and warm-load exercise only when that lifecycle is the named product decision.
+1. **Retain the existing application contract.** #1105 delivered the ADR and
+   machine contract for `answer_four_fact_raw_text/v1`; #1107 supplied the
+   unbuilt source candidate. They remain references rather than prerequisites
+   for #973 capability work.
+2. **Resume only after useful generation exists.** When #1084 becomes active,
+   compile the candidate and complete request/model lifecycle in the actual
+   service: serialize load/generate/cancel, keep model selection stable, expose
+   real progress, and return prompt-dependent output.
+3. **Exercise the real path.** Run one cold-load and warm-request flow; add a
+   focused test only for a concrete lifecycle regression.
 4. **Add the editor and file workflow.** Explicit attachment → request context → proposed diff → review → save → reopen. Reconstruct sandboxed preview and code/log iteration separately; validate real saved file contents, not just an on-screen success label.
 5. **Add Git/issue/worktree integration through the same local service or delegated harness.** Read status first; named paths; scope each issue; real PR/check/queue/merge state. Do not import the donor's multi-file Contents PUT loop or `git add .`.
 6. **Package and measure the chosen release surface.** Bundle assets/dependencies, limit static-file serving, add a single launch path and deterministic version/build identity. Run only the explicitly activated product behavior checks. Existing transport queue acknowledgements are not QA.

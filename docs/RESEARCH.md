@@ -1,120 +1,21 @@
 # Research: what is measured, what is closed, what is open
 
-**Current workbench source candidate (2026-09-04):**
-[#1107](https://github.com/UOR-Foundation/uor-r4/issues/1107), a child of
-[#1084](https://github.com/UOR-Foundation/uor-r4/issues/1084), adds the dedicated
-`uor-r4-workbench` crate, its private same-executable worker and comparison
-entries, and the first Four-fact shell defined by the accepted
-[#1105 service contract](adr/0006-native-four-fact-workbench-service.md).
-The [candidate record](r4_workbench_candidate_1107.md) and independent static
-review freeze **`WORKBENCH_CANDIDATE_SOURCE_FROZEN_UNBUILT`**. Protected
-delivery closes #1107 only.
+**Build-first pre-alpha reset (2026-09-04):** The former
+`deterministic_source_only` policy is superseded by
+[`build_first_pre_alpha`](https://github.com/UOR-Foundation/uor-r4/blob/main/docs/integration/agent-execution-policy.md). The active
+priority returns to [#973](https://github.com/UOR-Foundation/uor-r4/issues/973):
+produce prompt-dependent source-free generation through the actual repository
+CLI or local service. Code, compilation, and real behavior come before formal
+proof, claim ledgers, evidence packages, publication, broad QA, or UI polish.
 
-This checkpoint establishes reviewable source presence and a bounded static
-contract assessment. Under the repository's `deterministic_source_only`
-agent policy, compilation, tests, model operations, service/HTTP execution,
-browser acceptance, platform behavior, numerical comparison and qualification
-are all **`NOT_RUN_BY_POLICY`**. The source is therefore unbuilt and its runtime
-behavior is unverified. #1084 remains open and unassigned. #1102's bounded
-`NATIVE_REFERENCE_PRESERVED` result is unchanged, and its consumed build and
-comparison envelopes cannot be rerun. The accepted reader/core, known
-vocabulary and query form, four-fact context, all negative/unavailable results,
-and proof-versus-measurement limits remain unchanged.
-
-**Retained native reference (2026-09-03):**
-[#1102](r4_native_bridge_1102_execution.md) records **`NATIVE_REFERENCE_PRESERVED`**
-for the exact exported artifact and pinned CPU Rust reference. Both runtimes,
-in initial execution and fresh replay, produced 320/320 correct answers,
-4,480/4,480 consumed roles and 16/16 expected refusals. All four full tensors
-met the frozen `1e-5` absolute limit; the maximum difference was `4.768372e-6`.
-Replay was exact within each implementation. The one comparison used 1,280
-forwards, zero fitting, 8.809784 seconds and 75,039,076 ledger bytes. Full tensors,
-exports, loader fixtures and all prior negative/unavailable evidence are retained.
-Independent result review accepts the bounded result; protected delivery is tracked in
-[PR #1104](https://github.com/UOR-Foundation/uor-r4/pull/1104).
-
-The accepted #1105 contract and the unbuilt #1107 source candidate are recorded
-above. The measured comparison CLI is consumed; no verified service/UI endpoint
-or general generation, context/coding capability, mathematical proof or final
-integer kernel follows.
-The known vocabulary/query forms, four-fact context, #1079 weak-control result
-and #1082 descriptive limits remain. #973 stays open and #954 blocked.
-Earlier checkpoint text below is historical for sequencing.
-
-**Prior native-reference specification (2026-09-03):**
-[#1086](r4_native_reference_1086.md) records
-`NATIVE_REFERENCE_CONTRACT_SPECIFIED`. The
-[machine contract](r4_native_reference_1086_contract.json),
-[operator audit](r4_native_reference_1086_operator_audit.md) and
-[original-source audit](r4_native_reference_1086_sources.md) define the
-exact artifact/state identities, loader and operator boundary, and a separate
-matched reference/native comparison with its resource envelope. Export, native
-implementation, model loads, forwards, evaluation and replay are **`NOT_RUN`**.
-This is specification evidence, not native behavior or an execution release.
-QA remains dormant; only the named specification checks apply.
-
-#1094 is closed through [protected PR #1101](https://github.com/UOR-Foundation/uor-r4/pull/1101),
-merge `eade29f4b78435e9857936786426bb34e596b301`; its measured evidence below is
-unchanged and its consumed envelope cannot be rerun. The next action is separate
-activation of the parked native implementation/export/comparison successor
-[#1102](https://github.com/UOR-Foundation/uor-r4/issues/1102), a child of #1086, unassigned until active. #1087 still requires its separate final-lowering
-contract and #1083 typed UOR integration. #973 stays open and #954 blocked.
-
-**Retained adapter comparison (2026-09-03; pre-merge closure and next-action wording below are historical):** [#1094](r4_retained_comparison_1094.md)
-completed `CLAUSE_ADAPTER_PRESERVED`; independent review accepted the result. The sole
-approved comparison matched all 1,600 valid inputs, complete compared tensors and
-answers; all 80 refusal rows and 16 boundary controls matched with zero forwards.
-Full and oracle fresh-process replay were exact; total logical forwards were 6,400.
-The valid rows are related renderings of 20 already-observed groups. Scope remains
-the same learned reader/core, known vocabulary/query forms and four-fact context.
-Operator wall time was 15.821630625 seconds; the final cumulative resource snapshot
-was 135.697821334 seconds, including the conservative 120-second preparation debit.
-The historical 3,465,401-byte ledger remains charged. No fitting or generation ran.
-The result adds no semantic novelty, general-English qualification, mathematical
-proof, native export or final-kernel qualification. #1079's weak-control result and
-#1082's descriptive limits remain unchanged; #973 stays open and #954 blocked.
-The bounded scientific comparison DoD is complete; #1094 closes upon protected
-merge. The next separately activated task, unassigned until active, is
-[#1086](https://github.com/UOR-Foundation/uor-r4/issues/1086): freeze the native
-export/loader/reference-behavior contract and its smallest matched check before
-implementation. Do not rerun the consumed #1094 envelope.
-
-**Latest diagnostic (2026-09-03):** [#1082](r4_token_exposure_1082.md) completed
-`TOKEN_EXPOSURE_DESCRIPTIVE_COMPLETE` on the two frozen construction views.
-All 286,720 used-role measurements and full summary evidence replayed exactly;
-run plus replay took 31.159102 seconds, with peak 0.9891 GiB. Token-control
-exposure is role-selective: fact locations receive almost no changed-frame
-attention in rendering 0, and fact objects receive almost none in rendering 1.
-Highly displaced roles show little cancellation; recorded retained answers
-coexist with nonzero displacement. This is descriptive evidence, not a causal
-explanation or a revision of #1079's weak-control result. No new answers,
-fitting, development scoring or generation ran.
-
-**Earlier adapter preparation/release checkpoints (2026-09-03; superseded for next-action selection):** [#1094](r4_text_clause_adapter_1094.md)
-returned `UNAVAILABLE_REFERENCE_REPLAY` during preparation. Authoring input
-fidelity was 320/320 and typed refusals 16/16; the OS denied the pinned Python
-launch before worker startup. Model loads/forwards are zero; withheld comparison
-and replay are `NOT_RUN`. Supplied segmentation remains qualified. The
-[#1085 specification](integration/clause-segmentation-1085.md) is unchanged.
-The separate [#1096 readiness decision](r4_isolated_runtime_readiness_1096.md)
-recorded `ISOLATED_RUNTIME_READY`: all four harmless denied-path probes passed,
-with null model states and zero model loads/forwards/updates. Independent result
-review passed; #1096 was delivered at `6f21fc5f4c40b9620c9fec5e95a39097f812ae73`.
-The [frozen #1094 preparation contract](r4_text_clause_preparation_1094.md)
-now has an [implemented retained-evidence assembly and launch gate](r4_retained_assembly_1094.md).
-Committed source `07ec3f0d` produced `PREPARATION_ASSEMBLED_FROM_RETAINED_EVIDENCE`
-without another preparation or worker. Independent exact-envelope release is
-`ACCEPTED_FOR_RETAINED_EVIDENCE_COMPARISON`; the assembly's embedded `NOT_ADMITTED`
-remains immutable and the separate release receipt governs execution. The full 120-second preparation debit and 3,465,401
-historical bytes remain charged. Next: separately activate the frozen comparison
-and fresh-process replay through `run-retained` from the bound coordinator with
-the verified exact release. Fresh identity checks consume the 120-second execution and
-120-second replay allocations, within the 360-second cumulative cap; no new
-`prepare` is admitted. #1094 remains open, parked and unassigned after this
-delivery. Model comparison/replay remain `NOT_RUN`; neither assembly nor readiness
-qualifies raw-text behavior.
-#1079's weak-control and #1082's descriptive findings remain unchanged; #973 is
-open and #954 blocked. Use the [current map](integration/current-state.md).
+[#1107](https://github.com/UOR-Foundation/uor-r4/issues/1107) remains an
+historical `WORKBENCH_CANDIDATE_SOURCE_FROZEN_UNBUILT` result; changing policy
+does not retroactively qualify it. [#1084](https://github.com/UOR-Foundation/uor-r4/issues/1084)
+remains open and unassigned, but workbench qualification is not the current
+project priority. #1102's bounded `NATIVE_REFERENCE_PRESERVED` result, the
+accepted reader/core, known vocabulary and query form, four-fact context, and
+all prior negative or unavailable results remain unchanged. #954 remains
+blocked by #973.
 
 R⁴ is a research programme as much as an engine. Its aspirational goal is
 frontier-like useful local intelligence built from routed geometry rather than

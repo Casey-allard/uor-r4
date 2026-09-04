@@ -1,60 +1,73 @@
 {
-  "agent_scope": {
-    "applies_to": [
-      "automated_repository_agents"
+  "alpha_exit_condition": "a source-free model artifact loads and produces prompt-dependent text through the repository CLI or local service on target local hardware",
+  "delivery": {
+    "active_task_limit": 1,
+    "direct_push_to_main": false,
+    "protected_pull_request": true
+  },
+  "evidence": {
+    "distinguish": [
+      "mathematical_proof",
+      "measured_behavior",
+      "unverified_hypothesis"
     ],
-    "policy_change_requires": [
-      "explicit_owner_instruction",
-      "protected_pull_request"
-    ]
+    "preserve_negative_results": true,
+    "preserve_unique_evidence_and_user_material": true,
+    "routine_record": "pull_request_or_active_issue_summary"
   },
-  "failure_budget": {
-    "automatic_retries": 0,
-    "environment_probe_attempts": 0,
-    "source_corrections_after_concrete_remote_failure": 1,
-    "terminal_action_after_next_failure": "park_and_report"
-  },
-  "local_execution": {
+  "execution": {
     "allowed": [
-      "read_repository_and_authoritative_sources",
-      "edit_declared_source_paths",
-      "git_status_diff_log_and_named_path_staging",
-      "run_static_agent_policy_guard"
+      "build_compile_and_lint",
+      "focused_tests",
+      "model_training_fitting_and_evaluation",
+      "service_browser_and_cli_execution",
+      "repository_and_source_inspection",
+      "reviewable_git_and_github_operations"
     ],
-    "forbidden": [
-      "cargo_rustc_rustup_and_wasm_pack",
-      "test_benchmark_fuzz_lint_and_build_runners",
-      "model_teacher_training_fitting_and_evaluation",
-      "browser_service_and_product_probes",
-      "sandbox_syscall_entitlement_and_environment_probes",
-      "custom_supervisors_watchdogs_and_retry_wrappers"
+    "automatic_retries": 0,
+    "concrete_failure_response": "inspect_existing_output_then_one_direct_fix_and_rerun_or_park",
+    "expensive_run": {
+      "definition": "estimated_over_15_minutes_or_any_external_cost_or_over_10_gib_new_storage",
+      "requires": [
+        "explicit_owner_or_active_issue_authorization",
+        "hard_resource_limit",
+        "stop_condition"
+      ]
+    },
+    "prohibited": [
+      "automatic_retry_campaigns",
+      "custom_supervisors_watchdogs_and_receipt_harnesses",
+      "environment_probe_campaigns",
+      "silent_external_spend"
+    ],
+    "verification": "run_only_the_smallest_check_that_directly_exercises_the_changed_behavior"
+  },
+  "mode": "build_first_pre_alpha",
+  "routine_artifacts": {
+    "deferred_until_alpha": [
+      "formal_proof_work",
+      "claim_ledger_updates",
+      "knowledge_index_maintenance",
+      "independent_review",
+      "frozen_experiment_contracts",
+      "fresh_process_replay",
+      "receipt_and_supervisor_packages",
+      "duplicate_roadmap_and_status_mirrors",
+      "paper_and_publication_work",
+      "nemesis_and_w33_mapping",
+      "broad_qa_and_release_certification"
+    ],
+    "early_activation": "explicit_owner_instruction_only",
+    "required": [
+      "primary_code_or_product_deliverable",
+      "direct_behavior_result_when_execution_is_relevant",
+      "concise_limit_and_next_action"
     ]
   },
-  "mode": "deterministic_source_only",
-  "remote_execution": {
-    "agent_may_dispatch_qa": false,
-    "owner_manual_qa_workflow": "workflow_dispatch_only",
-    "pull_request_and_merge_group": "static_policy_guard_plus_ruleset_transport_only"
-  },
-  "reporting": {
-    "final_fields": [
-      "delivered_result",
-      "source_review_limits",
-      "closure_state",
-      "one_concrete_next_action"
-    ],
-    "suppress": [
-      "individual_build_progress",
-      "individual_test_progress",
-      "individual_probe_progress",
-      "unchanged_polling"
-    ]
-  },
-  "schema": "uor-r4.agent-execution-policy/1",
+  "schema": "uor-r4.agent-execution-policy/2",
   "workspace": {
     "base": "refreshed_origin_main",
     "preserve_user_and_unique_evidence": true,
-    "sparse_pruned_or_hand_copied_workspaces_forbidden": true,
-    "type": "full_git_worktree"
+    "type": "isolated_full_git_worktree"
   }
 }

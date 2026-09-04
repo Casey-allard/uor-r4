@@ -1,18 +1,15 @@
 # Current programme map and correctness handoff
 
-**Planning reconciliation: 2026-09-04, #1107 records
-`WORKBENCH_CANDIDATE_SOURCE_FROZEN_UNBUILT`; independent static review accepts
-the source-level contract mapping and its explicit unverified boundary.**
-Protected delivery closes #1107 only. Original audit baseline:
-`UOR-Foundation/uor-r4@e627252e525201815169ffd8364184953a46018d`.
-This map supersedes earlier “current” and “next” sequencing prose, not its
-measurements. Refresh native GitHub before selecting work. The
-[integration plan](../uor_productization_integration_plan.md) and
-[adoption record](workflow-adoption.md) describe the research, engineering and
-paper lanes adopted through [#1081](https://github.com/UOR-Foundation/uor-r4/issues/1081); the
-[claim ledger](claim-ledger.json) preserves their different evidence states.
+**Build-first reset: 2026-09-04.** The former source-only policy is superseded
+by [`build_first_pre_alpha`](agent-execution-policy.md). The current priority is
+[#973](https://github.com/UOR-Foundation/uor-r4/issues/973): obtain
+prompt-dependent source-free generation through the repository CLI or local
+service. Formal proof, claim/evidence ledgers, publication, external-mathematics
+mapping, broad QA, and workbench polish are deferred until that working-alpha
+condition is met. This pointer supersedes earlier next-action prose without
+rewriting its measurements.
 
-## Current workbench source candidate and owner decision
+## Parked workbench source candidate
 
 [#1105](https://github.com/UOR-Foundation/uor-r4/issues/1105) delivered the
 [native four-fact workbench ADR](../adr/0006-native-four-fact-workbench-service.md)
@@ -25,15 +22,10 @@ comparison entry and shell. Source review freezes the result as
 `WORKBENCH_CANDIDATE_SOURCE_FROZEN_UNBUILT`.
 
 Compilation, tests, model loads, qualification calls, forwards, service/HTTP
-execution, browser acceptance, numerical behavior and platform behavior are
-all `NOT_RUN_BY_POLICY`. Source presence therefore establishes none of those
-behaviors. #1084 remains open and unassigned. Its one concrete next action is
-for the owner to decide whether to authorize a separate manual qualification
-workflow; automated agents neither dispatch nor perform it. Any future private
-comparison must still validate fresh host execution permission separately from
-the artifact's immutable original export provenance. Neither the consumed
-#1102 CLI/coordinator nor its qualification receipt supplies permission or
-identity for this source candidate.
+execution, browser acceptance, numerical behavior and platform behavior were
+`NOT_RUN_BY_POLICY` when #1107 closed. That remains the historical result;
+the new policy does not retroactively qualify it. #1084 remains open and
+unassigned, and its qualification is not the current project priority.
 
 ## Retained native result
 
@@ -200,17 +192,17 @@ transport acknowledgements do not complete their parent capability.
 | [#1085 language/context specification](https://github.com/UOR-Foundation/uor-r4/issues/1085), child of #973 | Completed; [adapter/schema/comparison contract](clause-segmentation-1085.md) | Specification only; later transfer stages remain separately staged. |
 | [#1094 adapter comparison](https://github.com/UOR-Foundation/uor-r4/issues/1094), child of #973 | [Sole comparison and exact fresh-process replay](../r4_retained_comparison_1094.md) completed `CLAUSE_ADAPTER_PRESERVED`; independent result accepted, scientific DoD complete and #1094 closed through protected PR #1101 at `eade29f4b78435e9857936786426bb34e596b301` | Only bounded raw-text entry: unchanged reader/core, known vocabulary/query forms, four facts and 20 already-observed groups. Original preparation stop preserved; no semantic novelty, generation, native export or final-kernel claim. |
 | [#1096 runtime readiness](https://github.com/UOR-Foundation/uor-r4/issues/1096), child of #1094 | Delivered `ISOLATED_RUNTIME_READY` at `6f21fc5f4c40b9620c9fec5e95a39097f812ae73`; sole zero-forward attempt and independent review complete | Four harmless probes denied; no model load/output/replay, raw-text qualification or universal isolation claim. |
-| [#1083 UOR integration](https://github.com/UOR-Foundation/uor-r4/issues/1083) | Typed identity/arithmetic ADR and review of one selected adapter boundary | Content hashes, structural identities, codec identities and derivation keys remain distinct; arithmetic needs a declared domain and error/cost contract. |
+| [#1083 UOR integration](https://github.com/UOR-Foundation/uor-r4/issues/1083) | Deferred until the working model exposes a concrete integration seam | Content hashes, structural identities, codec identities and derivation keys remain distinct when this lane resumes. |
 | [#1086 native reference specification](https://github.com/UOR-Foundation/uor-r4/issues/1086) | [Contract specified](../r4_native_reference_1086.md) as `NATIVE_REFERENCE_CONTRACT_SPECIFIED`; export, native implementation, loads, forwards, evaluation and replay `NOT_RUN` | Exact artifact/state/operator identities and a separate empirical comparison are defined; no native capability or execution release follows from the specification. |
 | [#1102 native implementation/export/comparison](https://github.com/UOR-Foundation/uor-r4/issues/1102), child of #1086 | [Measured `NATIVE_REFERENCE_PRESERVED`](../r4_native_bridge_1102_execution.md); independent result accepted and delivered through protected PR #1104; both admitted envelopes consumed | Exact native artifact/profile preserves the bounded reader/core, vocabulary/query and four-fact operation. New host-binary qualification and final integer/table serving remain separate. |
-| [#1087 final serving representation](https://github.com/UOR-Foundation/uor-r4/issues/1087), with #1083 typed UOR prerequisite | Separate lowering contract with operation/error/resource obligations after the native-reference boundary is qualified | Specification or dense research-reference success does not establish the final integer/table kernel; a lowering candidate needs its own frozen contract. |
+| [#1087 final serving representation](https://github.com/UOR-Foundation/uor-r4/issues/1087), with #1083 typed UOR prerequisite | Deferred until prompt-dependent source-free generation works | The final integer/table kernel remains a later implementation stage. |
 | [#1105 service/API specification](https://github.com/UOR-Foundation/uor-r4/issues/1105), child of #1084 | Accepted [ADR](../adr/0006-native-four-fact-workbench-service.md) and [machine contract](../r4_service_contract_1105.json); `SERVICE_API_CONTRACT_SPECIFIED`; protected delivery closes only #1105 | Contract only; no host, worker, shell, build, model operation, HTTP or browser behavior exists. |
-| [#1107 workbench source candidate](https://github.com/UOR-Foundation/uor-r4/issues/1107), child of #1084 | [Dedicated crate, private worker/comparison entries and first shell](../r4_workbench_candidate_1107.md) frozen as `WORKBENCH_CANDIDATE_SOURCE_FROZEN_UNBUILT`; protected delivery closes only #1107 | Static source evidence only. Build, tests, model work, HTTP/service/browser behavior, portability and numerical qualification are `NOT_RUN_BY_POLICY`. |
-| [#1084 product interface](https://github.com/UOR-Foundation/uor-r4/issues/1084) | Remains open and unassigned; owner decides whether to authorize a separate manual qualification workflow | Automated agents do not dispatch or run qualification. Bounded Four-fact source is not general chat or verified runtime behavior. |
+| [#1107 workbench source candidate](https://github.com/UOR-Foundation/uor-r4/issues/1107), child of #1084 | [Dedicated crate, private worker/comparison entries and first shell](../r4_workbench_candidate_1107.md) retained as historical `WORKBENCH_CANDIDATE_SOURCE_FROZEN_UNBUILT` | Its behavior was unrun at closure. The new policy permits execution when product work resumes but does not retroactively qualify it. |
+| [#1084 product interface](https://github.com/UOR-Foundation/uor-r4/issues/1084) | Open, unassigned, and parked until the source-free generator makes the workbench useful | Bounded Four-fact source is not general chat or verified runtime behavior. |
 | [#1088 coding/workspace](https://github.com/UOR-Foundation/uor-r4/issues/1088), blocked by #1084 and #955 | Minimal executable task/patch/result schema; separate harness and later model evaluations | UI actions and external teacher output are separate from the native model's coding competence. |
-| [#1089 scientific paper/proofs](https://github.com/UOR-Foundation/uor-r4/issues/1089) | Claim/evidence table, named proof obligations, primary-source bibliography and reproducibility package | Guarantees require their own proof status; empirical capability stays empirical; submission is a separate action. |
-| [#1090 capability/resource scorecard](https://github.com/UOR-Foundation/uor-r4/issues/1090) | Defined task axes, comparison populations and resource budgets | Freeze meaningful comparisons before a frontier/release claim; a tool install or a tiny entry probe cannot fill the scorecard. |
-| [#1091 external-theory bridge](https://github.com/UOR-Foundation/uor-r4/issues/1091) | One precisely typed, independently reviewable NEMESIS/W33 hypothesis or finite construction | Require an explicit mapping to the actual R4 path and source/license provenance; terminology and outside claims are not inherited evidence. |
+| [#1089 scientific paper/proofs](https://github.com/UOR-Foundation/uor-r4/issues/1089) | Deferred until a working alpha | Existing proof and publication material remains historical reference only. |
+| [#1090 capability/resource scorecard](https://github.com/UOR-Foundation/uor-r4/issues/1090) | Deferred until a working alpha or explicit release decision | Measure the implemented product when a score can change a release decision. |
+| [#1091 external-theory bridge](https://github.com/UOR-Foundation/uor-r4/issues/1091) | Deferred until a working alpha | NEMESIS/W33 mapping is not an implementation prerequisite. |
 
 The [adopted issue record](adopted-issues.json) records native ownership and
 dependencies at adoption time. #1081 delivered the planning workflow in
@@ -227,14 +219,20 @@ The specification and Python result remain separate from that later measured
 native evidence; no final-kernel or service qualification transfers automatically.
 [#1105](https://github.com/UOR-Foundation/uor-r4/issues/1105) retains the
 accepted service/API contract; [#1107](https://github.com/UOR-Foundation/uor-r4/issues/1107)
-owns only the unbuilt source candidate. After protected #1107 delivery, #1084
-remains open and unassigned for the owner's separate manual-qualification
-decision. Planned lanes remain unassigned until active.
+owns only the unbuilt source candidate. #1084 remains open, unassigned, and
+parked while implementation returns to #973. Formal, publication, external-
+theory, scorecard, and broad product lanes remain deferred until a working
+alpha or explicit owner activation.
 The pre-adoption snapshot had nine open issues and all 24 #973 children closed;
 those counts are historical now that the new children exist.
 The S0–S7/F0 compiler-era graph is retained as history, not a second active queue.
 
-## #973 → #954 consumer contract
+## Historical #973 → #954 consumer contract
+
+The detailed handoff below is retained for interface and evidence history. Its
+freeze, replay, proof, ledger, and review procedures are not active pre-alpha
+requirements. Current work implements and directly runs the smallest source-free
+generation step under the build-first policy above.
 
 This is the explicit intake specification for the current mechanism family.
 It names the interfaces that must be qualified; it does **not** declare that
@@ -315,9 +313,8 @@ and imported project memories do not substitute for it.
 
 ## Keeping this map current
 
-After protected delivery, retain the detailed record and update this small
-pointer and its native issue links. Preserve superseded records with their
-dates. Local knowledge ingestion is `NOT_RUN_BY_POLICY` for automated agents;
-the tracked claim/source records remain the reviewable index update. Use
-[CONTINUE.md](CONTINUE.md) for the next task and refresh live GitHub rather than
-treating this snapshot as permanent eligibility.
+Update this pointer only when the actual next project action changes. Routine
+pre-alpha pull requests do not update the claim ledger, knowledge index,
+duplicate status mirrors, proof records, or evidence dossiers. Preserve dated
+records in place. Use [CONTINUE.md](CONTINUE.md) for the next task and refresh
+live GitHub rather than treating this snapshot as permanent eligibility.

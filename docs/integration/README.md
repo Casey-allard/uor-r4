@@ -1,4 +1,12 @@
-# Integration dossier and local tools
+# Integration archive and optional tools
+
+This directory preserves prior research and integration records. It is not a
+pre-alpha checklist. Routine work follows the
+[build-first pre-alpha policy](agent-execution-policy.md): implement and run the
+product path without updating this archive, the claim ledger, or the knowledge
+index. Formalization, publication, independent review, replay packages, and
+broad QA stay deferred until a working alpha unless the owner explicitly asks
+for one earlier.
 
 Start with the [adopted current map](current-state.md), [workflow adoption record](workflow-adoption.md), and [reusable continuation prompt](CONTINUE.md). The [research and productization plan](../uor_productization_integration_plan.md) retains the full audit and design. Native GitHub issues and current source remain authoritative; dated audit snapshots preserve earlier state.
 
@@ -9,9 +17,9 @@ Start with the [adopted current map](current-state.md), [workflow adoption recor
 | What can external research contribute? | [HELM / GoldSnnail / W33 / NEMESIS review](external-research-audit.md) |
 | What should be ported from the browser product? | [Component and API port plan](frontend-port-plan.md) |
 | What is installed and how should it be used? | [Tool status](tooling-status.json), [workflow selection](workflow-tools.md) |
-| What bounds automated agent execution? | [Deterministic source-only policy](agent-execution-policy.md), [machine contract](agent-execution-policy.json) |
+| What bounds automated agent execution? | [Build-first pre-alpha policy](agent-execution-policy.md), [machine contract](agent-execution-policy.json) |
 | What is the current workbench checkpoint? | [#1107 source candidate](../r4_workbench_candidate_1107.md), [independent static review](../r4_workbench_candidate_1107_review.md) |
-| What is needed for a defensible paper? | [Publication readiness](publication-readiness.md), [publication tools](publication-tooling.json), [initial claim ledger](claim-ledger.json) |
+| What is needed later for a defensible paper? | Deferred reference: [publication readiness](publication-readiness.md), [publication tools](publication-tooling.json), [initial claim ledger](claim-ledger.json) |
 
 ## Query the actual local index
 
@@ -29,12 +37,12 @@ Search uses literal AND-connected terms, not a natural-language query planner. F
 
 The durable acquisition cache on this workstation is `~/.local/share/uor-r4/knowledge/audits/2026-09-03`. It contains source manifests, raw native issue snapshots, explicit audit limits and restricted records. It is not part of the public repository. The six imported Antigravity documents are historical context; no full binary conversation decoding or Gemini cloud export was performed.
 
-## Owner-operated refresh and ingest
+## Refresh and ingest when the active task needs it
 
-The commands below document the index's owner-operated maintenance path.
-Automated repository agents do not invoke them under
-`deterministic_source_only`; they query the existing index read-only, update the
-tracked claim/source ledger, and record local ingestion as `NOT_RUN_BY_POLICY`.
+The commands below document optional index maintenance. It is not a routine
+pre-alpha deliverable. Run it only when current source retrieval materially
+helps the active implementation; do not update the claim ledger merely to
+record that maintenance.
 
 The builder validates pinned Git/source hashes and emits separate public/private JSONL files. It does not fetch new source: refresh the audit inputs first when a new snapshot is needed. It records the new origin/revision/content identity, preserving prior records.
 
@@ -78,4 +86,8 @@ This command only measures. It reports permission/time limits and a proposed res
 
 ## Project instructions
 
-The installed `uor-project-workflow` skill is maintained at [tools/skills/uor-project-workflow](../../tools/skills/uor-project-workflow/SKILL.md), with a [paper-workflow reference](../../tools/skills/uor-project-workflow/references/publication.md). The small proposed AGENTS.md pointer makes the new dossier discoverable. These additions do not change the model, activate dormant QA, or expand permissions.
+The installed `uor-project-workflow` skill is maintained at
+[tools/skills/uor-project-workflow](../../tools/skills/uor-project-workflow/SKILL.md),
+with a deferred [paper-workflow reference](../../tools/skills/uor-project-workflow/references/publication.md).
+The skill must follow the build-first policy and must not turn this archive into
+a routine task checklist.

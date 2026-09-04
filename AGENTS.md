@@ -1,775 +1,86 @@
 # AGENTS.md — uor-r4
 
-**Current workbench source candidate (2026-09-04):**
-[#1107](https://github.com/UOR-Foundation/uor-r4/issues/1107), a child of
-[#1084](https://github.com/UOR-Foundation/uor-r4/issues/1084), adds the dedicated
-`uor-r4-workbench` crate, its private same-executable worker and comparison
-entries, and the first Four-fact shell defined by the accepted
-[#1105 service contract](docs/adr/0006-native-four-fact-workbench-service.md).
-The [candidate record](docs/r4_workbench_candidate_1107.md) and independent
-static review freeze **`WORKBENCH_CANDIDATE_SOURCE_FROZEN_UNBUILT`**. Protected
-delivery closes #1107 only.
+**Build-first pre-alpha reset (2026-09-04):** The former
+`deterministic_source_only` policy is superseded by
+[`build_first_pre_alpha`](https://github.com/UOR-Foundation/uor-r4/blob/main/docs/integration/agent-execution-policy.md). The active
+priority returns to [#973](https://github.com/UOR-Foundation/uor-r4/issues/973):
+produce prompt-dependent source-free generation through the actual repository
+CLI or local service. Code, compilation, and real behavior come before formal
+proof, claim ledgers, evidence packages, publication, broad QA, or UI polish.
 
-This checkpoint establishes reviewable source presence and a bounded static
-contract assessment. Under the repository's `deterministic_source_only`
-agent policy, compilation, tests, model operations, service/HTTP execution,
-browser acceptance, platform behavior, numerical comparison and qualification
-are all **`NOT_RUN_BY_POLICY`**. The source is therefore unbuilt and its runtime
-behavior is unverified. #1084 remains open and unassigned. #1102's bounded
-`NATIVE_REFERENCE_PRESERVED` result is unchanged, and its consumed build and
-comparison envelopes cannot be rerun. The accepted reader/core, known
-vocabulary and query form, four-fact context, all negative/unavailable results,
-and proof-versus-measurement limits remain unchanged.
+[#1107](https://github.com/UOR-Foundation/uor-r4/issues/1107) remains an
+historical `WORKBENCH_CANDIDATE_SOURCE_FROZEN_UNBUILT` result; changing policy
+does not retroactively qualify it. [#1084](https://github.com/UOR-Foundation/uor-r4/issues/1084)
+remains open and unassigned, but workbench qualification is not the current
+project priority. #1102's bounded `NATIVE_REFERENCE_PRESERVED` result, the
+accepted reader/core, known vocabulary and query form, four-fact context, and
+all prior negative or unavailable results remain unchanged. #954 remains
+blocked by #973.
 
-**Retained native reference (2026-09-03):**
-[#1102](docs/r4_native_bridge_1102_execution.md) records **`NATIVE_REFERENCE_PRESERVED`**
-for the exact exported artifact and pinned CPU Rust reference. Both runtimes,
-in initial execution and fresh replay, produced 320/320 correct answers,
-4,480/4,480 consumed roles and 16/16 expected refusals. All four full tensors
-met the frozen `1e-5` absolute limit; the maximum difference was `4.768372e-6`.
-Replay was exact within each implementation. The one comparison used 1,280
-forwards, zero fitting, 8.809784 seconds and 75,039,076 ledger bytes. Full tensors,
-exports, loader fixtures and all prior negative/unavailable evidence are retained.
-Independent result review accepts the bounded result; protected delivery is tracked in
-[PR #1104](https://github.com/UOR-Foundation/uor-r4/pull/1104).
+This is the binding operating manual for repository work. Live GitHub and the
+[current map](docs/integration/current-state.md) select the active implementation
+task. Detailed measurements and retired decisions remain in
+[docs/RESEARCH.md](docs/RESEARCH.md); they are history, not a checklist for new
+work.
 
-The accepted #1105 contract and the unbuilt #1107 source candidate are recorded
-above. The measured comparison CLI is consumed; no verified service/UI endpoint
-or general generation, context/coding capability, mathematical proof or final
-integer kernel follows.
-The known vocabulary/query forms, four-fact context, #1079 weak-control result
-and #1082 descriptive limits remain. #973 stays open and #954 blocked.
-Earlier checkpoint text below is historical for sequencing.
+## Build-first pre-alpha agent policy
 
-**Prior native-reference specification (2026-09-03):**
-[#1086](docs/r4_native_reference_1086.md) records
-`NATIVE_REFERENCE_CONTRACT_SPECIFIED`. The
-[machine contract](docs/r4_native_reference_1086_contract.json),
-[operator audit](docs/r4_native_reference_1086_operator_audit.md) and
-[original-source audit](docs/r4_native_reference_1086_sources.md) define the
-exact artifact/state identities, loader and operator boundary, and a separate
-matched reference/native comparison with its resource envelope. Export, native
-implementation, model loads, forwards, evaluation and replay are **`NOT_RUN`**.
-This is specification evidence, not native behavior or an execution release.
-QA remains dormant; only the named specification checks apply.
+<!-- agent-execution-policy:start -->
+The repository-wide automated-agent mode is `build_first_pre_alpha`. Its
+canonical contract is
+[`docs/integration/agent-execution-policy.json`](docs/integration/agent-execution-policy.json),
+with the short rationale and boundary in
+[`docs/integration/agent-execution-policy.md`](docs/integration/agent-execution-policy.md).
+This section overrides every historical process requirement below until a
+source-free model artifact loads and produces prompt-dependent text through the
+repository CLI or local service on target local hardware. Technical invariants
+still apply to code that touches their respective runtime.
 
-#1094 is closed through [protected PR #1101](https://github.com/UOR-Foundation/uor-r4/pull/1101),
-merge `eade29f4b78435e9857936786426bb34e596b301`; its measured evidence below is
-unchanged and its consumed envelope cannot be rerun. The next action is separate
-activation of the parked native implementation/export/comparison successor
-[#1102](https://github.com/UOR-Foundation/uor-r4/issues/1102), a child of #1086, unassigned until active. #1087 still requires its separate final-lowering
-contract and #1083 typed UOR integration. #973 stays open and #954 blocked.
+- Work on one active task in an isolated full worktree from refreshed
+  `origin/main`. Implement the actual feature before expanding process or
+  documentation. Preserve user material, unique artifacts, and prior negative
+  results.
+- Agents may build, test, train, evaluate, and run repository CLIs, models,
+  services, and browser flows when the implementation needs them. Use the
+  smallest command that directly exercises the changed behavior. A focused
+  test is optional unless it protects a concrete failure mode.
+- Formal proof work, claim-ledger maintenance, knowledge-index maintenance,
+  frozen experiment contracts, independent review, fresh-process replay,
+  receipt/supervisor packages, duplicate roadmap synchronization, publication,
+  NEMESIS/W33 mapping, and broad release QA are deferred until a working alpha.
+  Only an explicit owner instruction can activate one of them earlier.
+- A command expected to exceed 15 minutes, create more than 10 GiB, or incur
+  external cost needs explicit owner or active-issue authorization, a hard
+  resource limit, and a stop condition. Automatic retries remain zero. After a
+  concrete failure, make one direct source/input correction and rerun once only
+  when that change plausibly resolves it; otherwise report the blocker.
+- Do not create custom supervisors, watchdogs, receipt harnesses, partial
+  workspace capsules, or environment-diagnostic campaigns. A routine delivery
+  needs code or the primary product artifact, the direct behavior result when
+  execution matters, the remaining limitation, and one next action.
+- Keep mathematical proof, measured behavior, and unverified hypotheses
+  distinct. This honesty rule does not require a proof artifact or evidence
+  dossier. Deliver changes through a protected pull request; never push main
+  directly.
 
-**Retained adapter comparison (2026-09-03; pre-merge closure and next-action wording below are historical):** [#1094](docs/r4_retained_comparison_1094.md)
-completed `CLAUSE_ADAPTER_PRESERVED`; independent review accepted the result. The sole
-approved comparison matched all 1,600 valid inputs, complete compared tensors and
-answers; all 80 refusal rows and 16 boundary controls matched with zero forwards.
-Full and oracle fresh-process replay were exact; total logical forwards were 6,400.
-The valid rows are related renderings of 20 already-observed groups. Scope remains
-the same learned reader/core, known vocabulary/query forms and four-fact context.
-Operator wall time was 15.821630625 seconds; the final cumulative resource snapshot
-was 135.697821334 seconds, including the conservative 120-second preparation debit.
-The historical 3,465,401-byte ledger remains charged. No fitting or generation ran.
-The result adds no semantic novelty, general-English qualification, mathematical
-proof, native export or final-kernel qualification. #1079's weak-control result and
-#1082's descriptive limits remain unchanged; #973 stays open and #954 blocked.
-The bounded scientific comparison DoD is complete; #1094 closes upon protected
-merge. The next separately activated task, unassigned until active, is
-[#1086](https://github.com/UOR-Foundation/uor-r4/issues/1086): freeze the native
-export/loader/reference-behavior contract and its smallest matched check before
-implementation. Do not rerun the consumed #1094 envelope.
-
-**Latest diagnostic (2026-09-03):** [#1082](docs/r4_token_exposure_1082.md) completed
-`TOKEN_EXPOSURE_DESCRIPTIVE_COMPLETE` on the two frozen construction views.
-All 286,720 used-role measurements and full summary evidence replayed exactly;
-run plus replay took 31.159102 seconds, with peak 0.9891 GiB. Token-control
-exposure is role-selective: fact locations receive almost no changed-frame
-attention in rendering 0, and fact objects receive almost none in rendering 1.
-Highly displaced roles show little cancellation; recorded retained answers
-coexist with nonzero displacement. This is descriptive evidence, not a causal
-explanation or a revision of #1079's weak-control result. No new answers,
-fitting, development scoring or generation ran.
-
-**Earlier adapter preparation/release checkpoints (2026-09-03; superseded for next-action selection):** [#1094](docs/r4_text_clause_adapter_1094.md)
-returned `UNAVAILABLE_REFERENCE_REPLAY` during preparation. Authoring input
-fidelity was 320/320 and typed refusals 16/16; the OS denied the pinned Python
-launch before worker startup. Model loads/forwards are zero; withheld comparison
-and replay are `NOT_RUN`. Supplied segmentation remains qualified. The
-[#1085 specification](docs/integration/clause-segmentation-1085.md) is unchanged.
-The separate [#1096 readiness decision](docs/r4_isolated_runtime_readiness_1096.md)
-recorded `ISOLATED_RUNTIME_READY`: all four harmless denied-path probes passed,
-with null model states and zero model loads/forwards/updates. Independent result
-review passed; #1096 was delivered at `6f21fc5f4c40b9620c9fec5e95a39097f812ae73`.
-The [frozen #1094 preparation contract](docs/r4_text_clause_preparation_1094.md)
-now has an [implemented retained-evidence assembly and launch gate](docs/r4_retained_assembly_1094.md).
-Committed source `07ec3f0d` produced `PREPARATION_ASSEMBLED_FROM_RETAINED_EVIDENCE`
-without another preparation or worker. Independent exact-envelope release is
-`ACCEPTED_FOR_RETAINED_EVIDENCE_COMPARISON`; the assembly's embedded `NOT_ADMITTED`
-remains immutable and the separate release receipt governs execution. The full 120-second preparation debit and 3,465,401
-historical bytes remain charged. Next: separately activate the frozen comparison
-and fresh-process replay through `run-retained` from the bound coordinator with
-the verified exact release. Fresh identity checks consume the 120-second execution and
-120-second replay allocations, within the 360-second cumulative cap; no new
-`prepare` is admitted. #1094 remains open, parked and unassigned after this
-delivery. Model comparison/replay remain `NOT_RUN`; neither assembly nor readiness
-qualifies raw-text behavior.
-#1079's weak-control and #1082's descriptive findings remain unchanged; #973 is
-open and #954 blocked. Use the [current map](docs/integration/current-state.md).
-
-Guidance for agents (human or otherwise) working in this repository.
-**Post-v0.1 intelligence sequencing is authoritative in
-[`docs/r4_intelligence_completion_plan.md`](docs/r4_intelligence_completion_plan.md),
-the readable mirror of programme root #820.** The
-[`Geometric Intelligence Programme`](docs/geometric_intelligence_programme.md)
-is the current architecture and claim-boundary companion.
-
-For cross-repository integration, tooling, private history ingestion and the
-research-paper workflow, consult the adopted
-[`research and productization plan`](docs/uor_productization_integration_plan.md)
-and [current map / #973→#954 handoff](docs/integration/current-state.md).
-The [continuation prompt](docs/integration/CONTINUE.md) selects one eligible
-owned task; it does not activate the full programme.
-Its source catalog and knowledge index are dated retrieval aids; refresh native
-GitHub state before acting. The optional `uor-project-workflow` skill is maintained
-under `tools/skills/`. Preserve typed identity/arithmetic meanings, exact source
-provenance, and the distinction between mathematical proof, empirical capability
-and submission status. This tooling guidance does not activate dormant QA,
-experiments, publication or cleanup.
-
-**Current two-stage R4 result (2026-09-02):** #1079 completed
-`LANGUAGE_R4_PRESERVED_CONTROL_WEAK`. The retained [#1077 learned interface](docs/r4_zoology_language_interface_1077.md)
-and frozen binding core preserve both full soft mixtures through R4 transport.
-See the [#1079 record](docs/r4_zoology_language_r4_1079.md).
-
-All **156/156 preservation criteria** passed across six observed views:
-**25,600 identical answer predictions**, **358,400 correct role decisions** and
-**384,000 computed soft role vectors**. Reader attention stayed exact; maximum
-full-head logit difference from the learned ordinary path was **8.82149e-6**.
-
-Both controls were valid with equal transport work. Fact-frame corruption met
-its strong-drop criterion in **6/6 views** (**84.1797–93.2617 percentage points**).
-Token-frame corruption met it in **3/6 views** (**28.7231–52.6367 points**).
-Three views missed the frozen **50-point floor**; all six were required to pass.
-
-The run and exact fresh-process replay took **57.0422 seconds**, peak **2.2171 GiB**.
-No fitting, new parameters, geometry changes or generation occurred. Scope remains
-supplied clauses, known lexicon/query form and already-observed semantic worlds.
-
-Retain two-stage preservation and the strong fact control. Next, separately freeze
-a **construction-only, attention-weighted token-frame exposure diagnostic**; any changed frame
-somewhere in a row does not measure exposure of its attended tokens. The cause of
-the weaker token control remains unmeasured. #973 stays open; #954 remains blocked.
-
-**Historical checkpoints — superseded for next-action selection on
-2026-09-03.** The earlier “current/next” decisions below retain their original
-scope and results. Use the current map and live issue graph. The then-next
-[#1086 specification](docs/r4_native_reference_1086.md) now records
-`NATIVE_REFERENCE_CONTRACT_SPECIFIED`, using the unchanged
-[bounded raw-text comparison evidence](docs/r4_retained_comparison_1094.md).
-The next separate activation is parked [#1102](https://github.com/UOR-Foundation/uor-r4/issues/1102),
-its native implementation/export/comparison successor under that frozen contract. Native execution remains `NOT_RUN`.
-Do not rerun the consumed #1094 envelope or widen its scope.
-
-The earlier #973 V5 terminal is the independently verified predictive
-write/binding campaign. It completed
-`PREDICTIVE_BINDING_NO_TERMINAL_CAPACITY` at result CID
-`blake3:6c67544d675eafcb8eb9c0dabb93617e3f6c3295af812e8acbb687107c010a74`;
-exact independent replay passed at verification CID
-`blake3:567cf336eb05c3ec562aef7135f6fb35b580d02c758b0e79f2508cae57065f5d`.
-Integrity and fresh-language nonregression passed. The geometric arm reached
-gain `0.03896945868086732` with `375/512` wins and beat V1 and pooled, but
-missed the frozen `0.04332169878499658` absolute capacity floor. Geometry
-attribution also failed: its gain margin over independently fitted plain delta
-was `0.023929811749894725`, below `0.025341569256760274`, and its own NLL was
-worse; the transport-permuted comparison passed. Delta-overwrite attribution
-failed against independently fitted additive at gain
-`-0.006512463228773413` and `234/512` paired improvements. The original
-scoring-harness tail-batch failure remains recorded as `NOT_RUN`; its repair
-performed zero retraining and zero optimizer steps and reused the three frozen
-arms for scoring and exact replay. The predeclared action is
-`STOP_WITHOUT_GENERATION`: retire this write/binding law. No generation,
-reasoning, or integer/table lowering follows. Ordinary softmax and qualified
-retained attention remain established and the larger programme continues, but
-#954 remains blocked. See the
-[binding #973 V5 record](docs/r4_predictive_block_delta_binding_prompt_capacity_973.md).
-
-The qualified retained mechanism remains
-[`R4RetainedLanguagePathV1`](docs/r4_retained_language_path_v1_973.md); its
-retained state remains a causally load-bearing, competitive source-free
-attention path. Its sole layerwise-normalized candidate,
-`R4LayerwiseNormalizedRetainedReadoutLanguagePathV1`, is terminal
-`LAYERWISE_NORMALIZED_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL`, not PASS. With
-V1's representation, recurrence, initialization, seed `9738`, `252,160` learned
-parameters, `23,040` f32 state values, data/order, and `2,730`-step/
-`5,241,600`-decision optimizer dose fixed, the exact readout
-`E @ [N(h) + (g / sqrt(2)) * (N(a1) + N(a2))]` used fixed `g=1` versus the
-equal-work `g=0` control, zero new parameters/state, and one vocabulary matmul.
-Candidate prompt gain was `0.02869802096506591` versus matched V1 at
-`0.007331623694789724` (delta `0.021366397270276186`), with `339/512` wins and
-own NLL `3.479876528760464` versus `3.6930405921095097`. It missed the frozen
-absolute `0.04332169878499658` and incremental `0.025341569256760274` gain
-floors. Fresh held-out NLL/top-1 improved to
-`3.712641167679153`/`31.661826%` from
-`3.8850003882891597`/`29.728138%`; state-off cost
-`1.3495375636624845` NLL and `20,595` correct decisions. Mechanics, replay, and
-all `13/13` fresh-process verification comparisons passed.
-Candidate/population/reveal/result/verification CIDs are respectively
-`blake3:8d31e15c355aade1ccc2592dc5fb1caf14a5f056862621e7b467858569a1c1e4`,
-`blake3:165be397b73041afd39aa65ae796400ea539399f8586729ad19a168c4daa9e93`,
-`blake3:079bee84db32513c5d6c0cb54cbff1e70b163902efa934d950204090985b3f5a`,
-`blake3:35396bd6e64fc2c0bc7d86a84cc9e212ed913ce28e5353f5f2b8212b4cf2c532`,
-and `blake3:3f316541dbab8061ed5ba891bf6a47ef22c55bca21fba01f6f97dbb3cb8497aa`.
-See the [binding #973 layerwise-readout record](docs/r4_layerwise_normalized_retained_readout_prompt_capacity_973.md).
-Generation, reasoning, lowering, and geometry-native lowering are `NOT_RUN`;
-coherence, H4 superiority, exact/table lowering, browser readiness, and release
-readiness remain unestablished.
-
-The preceding separately frozen learned-associative successor completed
-`LEARNED_ASSOCIATIVE_READOUT_NO_CAPACITY` at result CID
-`blake3:cedba37738ee249457bb589f716ee75afb16a0c4937c2a22ae9f917dd3eb97c1`;
-fresh-process verification passed at CID
-`blake3:443d711ce9a228e26e2eb2eebb55c582848424e2677c3473d41deaf8afd69ec7`.
-Across the frozen 512 prompt directions, geometric gain was
-`0.0063767854348491465` with `299/512` wins, pooled gain was
-`0.010263234571452827` with `324/512` wins, and V1 gain was
-`0.006423652456300697`; neither learned arm met the absolute
-`0.04332169878499658` or incremental `0.025341569256760274` capacity floor.
-On 247,920 fresh-language decisions, pooled NLL/top-1 was
-`3.8737562215878296`/`30.042756%` versus V1 at
-`3.9036360153193317`/`29.628509%`; pooled state-off degraded to
-`4.239191759767437`/`22.859793%` and lost `17,808` correct decisions. Preserve
-that load-bearing fresh-language signal only as the matched non-geometric
-control. Geometry attribution failed: geometric-minus-pooled gain was
-`-0.0038864491366036808` with `209/512` paired improvements, and
-geometric-minus-deranged gain was `-0.0002888663472835149` with `251/512`, both
-below the required `308/512`. Mechanics, replay, causal access, and independent
-verification passed, but no associative prompt capacity or geometry advantage
-was established. That result motivated the terminal V5 write/binding campaign
-reported above. Do not tune or retry this readout, and do not run generation
-from it. #954's final source-free correctness terminal remains blocked; no
-C1-SB6 is authorized. See the
-[binding learned-associative record](docs/r4_learned_associative_readout_prompt_capacity_973.md).
-ADR-0005 and the
-append-only [#954 grounded-correctness record](docs/r4_grounded_correctness_954.md)
-remain historical mechanism/evidence context. The
-earlier frozen [#1019 parameter-capacity contract](docs/r4_softmax_parameter_capacity_1019.md)
-and its [signed preflight result](docs/r4_softmax_parameter_capacity_preflight_1019_raw.json)
-remain reference history.
-It keeps the established ordinary causal R4/Spin Q/K/V plus stable-softmax
-mechanism and changes only decoder depth from six to twelve layers: exactly
-13,130,784 parameters, seed 1019, 16,800 optimizer steps, and 275,251,200
-training tokens. Its population, fixed overfit smoke, and random-export
-all-twelve-layer Rust preflight parity passed. The signed MPS probe passed memory at
-`21.03%` but stopped `UNAVAILABLE_HARDWARE_BUDGET` on time at a safety-projected
-`20.66 h` against the `8 h` ceiling. That terminal applies only to the frozen
-offline PyTorch/MPS implementation; full training, final parity, reveal,
-generation, and replay remain `NOT_RUN`. UOR's deployed architecture and
-runtime remain CPU-native. Apple Accelerate/BLAS and MPS are permitted only for
-local offline training, compilation, and bounded tests; CUDA and external GPU
-execution are out of scope. A single isolated exact-shape MPS fast-path test
-(10 warmup plus 40 measured steps) combined fused AdamW with deferred logging
-and measured `4.485223 s/step`, slower than the signed `3.491307 s/step`;
-`fused=True` was removed immediately. This is a bounded fast-path negative, not
-a model result. Preserve the passed population, smoke, and parity artifacts,
-but stop #1019 tuning and full-run work; #1019 is optional and paused. #954's
-first grounding SFT failed `1/3`; `R4SourceSpanPointerV1` then passed 12/12
-overfit and Python/Rust parity but failed all four frozen development gates
-after its sole 256-step fit. The terminal is
-`FAIL_SOURCE_SPAN_POINTER_DEVELOPMENT_GATE_STOP`; no final pointer artifact was
-emitted, and product probes plus browser/HTTP wiring were `NOT_RUN`. Do not tune
-or retry the revealed cosine head. Its frozen source-relative successor,
-`R4SourceRelativeRelationHeadV1` (C1-SB2), is implemented and completed only its
-cheap matched-transfer preflight. The fitted families scored 12/12 positive
-relations, 20/20 negatives, and 6/6 supported copies; the independently sealed
-families scored 5/12 positives, 14/20 negatives, and 0/6 copies. Same-source
-matched-pair, query-swap, duplicate-agreement, and distinct-conflict controls
-were false, so the run stopped before Rust parity, the sole 512-step full fit,
-development, and product reveal. No final relation head exists. C1-SB3 then
-moved supervision into all six attention layers and transferred most relations,
-but missed its exact gate. C1-SB4's independently frozen full-source,
-record-level structured-margin successor also failed: exact records were
-`70/126` fit and `35/63` sealed; positive groups were exact, negative-group
-specificity was `394/478` and `197/239`, and same-source query relocation was
-not exact. It stopped before Rust parity, checkpoint emission, development, or
-the four committed product probes; do not tune or retry it. C1-SB5
-`R4PairedQueryCandidateMatrixV1` then fit all `56/56` paired records but reached
-only `14/28` exact sealed pairs. Query-row-swap equivariance was bit-exact;
-pair-mean-query and inference-time attention-off controls were each `0/28`.
-The product population remained unopened, and checkpoint/binding-head emission,
-Rust parity, development, and product evaluation were `NOT_RUN`. Terminal
-`FAIL_PAIRED_QUERY_BINDING_PREFLIGHT` retires C1-SB5 without retry. It preserves
-only bounded source-backed attention evidence; it does not establish generation,
-reasoning, correctness, or a source-free runtime. #954's final source-free
-terminal remains blocked behind #973, and #955 remains blocked behind #954. The
-#1017 `r4 generate` path remains the working
-ordinary-softmax generation prototype.
-Prototype iteration uses
-one targeted compile plus one real behavior check; do not run a broad local
-suite or add a permanent gate until the mechanism is useful. The existing
-mandatory merge-queue CI remains the single integration boundary rather than an
-every-iteration loop. On the project M1, the opt-in
-`local-inference-accelerate` CPU-BLAS build preserved the four generated token
-IDs, output CID, and attention-audit CID while reducing internal generation
-from `3.060506042 s` to `0.116236875 s`; use it for local #1017 inference while
-keeping exact `uor-matmul` as the portable default. Offline
-teacher/compiler floats, matrix operations, and softmax are allowed; deployed
-runtime remains exact and source-free. The hosted Pages build is static,
-currently reports WASM offline, and has no functioning chat backend/artifact
-lowering; do not treat it as product evidence or let it replace this research
-gate.
-
-The H4-only `DirectCausalGeometricAttentionR4V1` scaffold now exists, but its first
-8-case V2 result is `NON_PROMOTABLE_BUDGET_MISMATCH`: the nominally matched
-plain/current arms had fewer effective degrees of freedom. The corrected,
-pre-reveal-kappa-bound 12-case V3 used normalized R4 parameters for every arm.
-It returned full H4 3/12, matched plain 12/12, current-only 6/12, an
-inference-time coherent alternative-connection swap 10/12, key-isometry 7/12, order-shuffled 5/12,
-and value-permuted 8/12. Thus the direct learning/softmax/value path works, but
-the current mixed-gauge H4 parameterization/conditioning does not transfer and
-is not a geometric oracle; the exact group action itself remains algebraically
-valid. `ConnectionGaugeCovarianceV4` subsequently passed construction covariance
-but failed its protected held-out gate: all three main arms were 13/24 and the
-order/value/gauge destructive controls did not separate. V4 is frozen negative
-evidence and must not be retuned. The #973 reference is `HELM-D-R4`, pinned to
-the official MIT HELM-D architectural source at
-`7501deca8f413848bfef804be64ce874b72a3cd7`. The now-qualified
-`R4SoftmaxReferenceGeneratorV1` credits and adapts HELM's attention seam and
-provenance; it does not port HELM's remaining geometric decoder stack. UOR's
-existing pinned SmolLM2 `HuggingFaceLlamaOracle` supplies embeddings, RoPE,
-residual/RMSNorm, MLP, final normalization, and the language-model head. No
-HELM checkpoint or upstream generation code was executed in this gate. The released HELM
-generation/cache path is incomplete. Its checkpoint and full
-geometric decoder remain an optional external baseline behind a separate
-tokenizer and license gate, and are not directly an R4-block runtime; do not
-vendor upstream code or claim checkpoint parity in this documentation change.
-Its bounded full-decoder run
-preserves learned causal Q/K/V, ordinary stable softmax, value aggregation, and
-`W_o` while transporting R4 blocks through exact cumulative Spin/H4 frames. It
-passes exact donor/R4 replay, real-language behavioral parity, a live
-frame-permutation control, and zero future reads. This establishes ordinary
-softmax attention in R4/Spin frames, not geometric advantage.
-`IntrinsicLorentzR4AttentionV1` attempt 02 subsequently stopped
-`UNAVAILABLE_INTRINSIC_LORENTZ_R4_STOP_BEFORE_HELD_OUT`: its construction
-barycenter-covariance audit measured `9.121400701417315e-08` against the frozen
-`1e-08` ceiling, while diagnostic curved NLL was worse than both donor and flat.
-D3 remained sealed. Source-faithful learned-manifold V2 then completed one valid
-non-D3 construction-validation run at
-`FAIL_HELM_D_MANIFOLD_CONSTRUCTION_REVISE_PROJECTION_SCORE_CENTROID_OR_TRAINING`.
-Donor/gauge parity, deterministic replay, exact causal work, and all three
-destructive-control separations passed, but learned-Lorentz NLL
-`7.71061809923296` failed donor retention (`3.667626465210025`) and matched
-learned-Euclidean parity (`4.483153905078387`). The controls establish
-sensitivity only, not useful Lorentz attention. The 8/8-contract localization
-attempt stopped at its two-document preflight with
-`REJECT_TANGENT_READOUT_SELECT_SCORE_PREFLIGHT`: tangent readout increased
-normalized audit MSE on both documents (pooled ratio `1.0643688804269025`).
-Ordinary dot-product/stable-softmax causal attention in coherent R4/Spin frames
-is the accepted current baseline. Intrinsic score/readout alternatives,
-resonance-based softmax replacement, full-model recurrent lowering, and exact
-deployment are parked. The provider-
-free-at-execution, source-backed native CPU `R4SoftmaxReferenceGeneratorV1`
-(`HELM-D-R4`) CLI gate passes:
-4/5 frozen quality in both passes, 5/5 exact replay after timing removal, all
-30 layers with exact causal/projection/R4 audits and zero future reads, and
-source-donor reproduction (P1 through EOS; P2-P5 all 32 tokens). The terminal
-is `PASS_R4_SOFTMAX_REFERENCE_GENERATION_ADVANCE_NATIVE_PRODUCT_BRIDGE`. Its
-explicit opt-in, loopback-only dedicated native HTTP endpoint now passes the
-frozen eight-token sunlight canary with the same token sequence, decoded text,
-decision CID, persistent-state CID, all-30-layer exact audits, and zero future
-reads as the CLI. Dashboard wiring, native-readiness gating, and static/WASM
-isolation checks pass, but hosted Pages remains static/offline without a
-functioning chat backend/artifact lowering. The feature is disabled by default
-and does not change the default engine. The teacher-trace/Q16 suffix student,
-its recurrent state successor, and #1012's observability rung are complete
-bounded negatives. #1014 established load-bearing attention; #1017 closed
-NLL-only negative and remains the working bounded generator; #1019 is an
-optional frozen 12-layer parameter-capacity improvement whose model-side
-population/smoke/parity subgates
-passed, MPS is `UNAVAILABLE_HARDWARE_BUDGET` for the frozen eight-hour offline
-implementation, and the full campaign remains `NOT_RUN`. The subsequent fused-
-AdamW/deferred-logging fast path was slower (`4.485223` versus signed
-`3.491307 s/step`), so `fused=True` was removed and #1019 is optional/paused.
-The #1017 `r4 generate` path remains the working ordinary-softmax
-raw-continuation prototype.
-#1041 bounds its product presentation to raw single-turn story continuation:
-do not add a source-backed history serializer or multi-turn/chat adapter around
-that checkpoint.
-#954 C1-SB2 through C1-SB5 are bounded negatives, not active answer artifacts.
-C1-SB4's full-source structured-margin arm reached only `70/126` fit
-and `35/63` sealed exact records and stopped before Rust/checkpoint/product.
-Its product text remains unopened and it must not be retried. C1-SB5 then fit
-`56/56` pairs but reached only `14/28` sealed; its products stayed unopened and
-the rung retired before checkpoint/head/Rust/development work. CUDA and external
-GPU execution are out of scope. This reference remains
-transformer-compatible and `f32`/multiply/alloc/source-weight backed—not
-table-native, multiply-free, or transformerless. It does not establish geometry
-advantage, softmax removal, correctness, reasoning, frontier quality, release
-readiness, or a static-WASM decoder. Product work does not wait for #1019: use
-the bounded #1017 `r4 generate` path while keeping its claim limits explicit.
-Do not resume resonance substitutes. Do not tune
-the revealed V2/V3/V4 or learned-manifold
-fixtures, relax the V1 covariance bound, or scale #997's rejected
-componentwise-Frechet placement. The binding records are
-[`docs/helm_d_r4_softmax_decoder_973.md`](docs/helm_d_r4_softmax_decoder_973.md)
-and the completed
-[`score-by-readout localization`](docs/helm_d_score_centroid_localization_973.md);
-the [generation record](docs/r4_softmax_reference_generation_973.md), its
-[compact aggregate](docs/r4_softmax_reference_generation_attempt_01_result_973.json),
-the [native bridge result](docs/r4_softmax_reference_http_bridge_973.md),
-and the V1/V2 negative records remain linked from there.
-Intrinsic/readout alternatives, multi-resonance softmax replacement,
-full-model recurrent lowering, and exact deployment are parked; #954's C1-SB2
-preflight stopped before Rust parity/full fit/development/product, with no final
-head. Its final source-free terminal remains blocked behind #973, and #955
-remains blocked behind #954. Implementation progress is not a result.
-The geometric causal decoder plan, prior S0–S7 completion plan, and
-graph-compiler implementation plan are retained as historical
-engineering/evidence records; none decides what is built next. Native GitHub
-relationships now mirror the programme: #961 closed with reversible S0 state;
-#952 stopped at `REDESIGN_ORDERED_ROUTE_SUMMARY`; #967 repaired the ordered
-state but terminated `RETAIN_STATE_ONLY`; #970's corrected, target-free A1P
-gate produced the bounded paired-H4-derived exact R4-heatmap result
-`RETAIN_H4_STATE_ONLY_ADVANCE_MULTICHANNEL_A1Q` and closed through protected
-PR #972. #969's mechanism-first pivot delivered one causal R4/S3 least-cost
-route-attention mechanism and one matched two-unit decoded smoke at
-`PROCEED_TO_I1_WITH_CAUSAL_R4_PATH_ATTENTION`. #953 implemented the first
-bounded provider-free decode/render/append loop, but its initial smoke was an
-exact rank-preserving lexical relabel of #969 and terminated
-`REVISE_I1_GENERATOR_IN_PLACE`: it did not supply incompatible natural choices
-or qualify grammar. `PrimaryThenAdjacentSpinFallbackV1` then repaired the
-separately frozen natural agreement admission: I1/I2/ordered-sentence plus
-divisor form the primary tier; adjacent-spin rows are always consulted and
-report physical presence truthfully, but do not admit while primary support is
-non-empty. The preflight recovered exact `{still}` then `{run,runs}` support
-under equal work. One permitted four-arm run produced left/full `still run`,
-right/full `still run`, and both state-disabled arms `still runs`, with
-deterministic replay, so the terminal remains `REVISE_I1_GENERATOR_IN_PLACE`.
-The first frozen local same-object, order-sensitive candidate-placement
-preflight then reproduced 7/7 construction prototypes with zero class
-collisions, but real placement selected 0/2 intended candidates while the
-same-artifact placement-permuted control selected 2/2. Generation and replay
-were `NOT_RUN`. #983 then froze `ConstructionCausalReturnV1` on an independent
-three-family, six-decision population. Its usable construction classes were
-pure, but construction coverage and the sealed strict ceiling were both 0/6.
-It stopped `UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER` before a deployed selector,
-payload inversion, or #953 generation. #983 is now closed as bounded negative
-evidence. #986 then executed the one frozen `CorpusSignedTransportV1`
-feasibility contract. The pinned raw corpus reproduced, but no exact
-corpus-scale codec/three-way pair commitment existed, and the exact SpiralCore
-control still supplied no complete same-frame lexical `O(x)` map or
-compiler/query frame identity. #986 therefore closed
-`UNAVAILABLE_FRAME_OR_POPULATION` before placement, diffusion, Gate 0, labels,
-selection, or the historical #953 path. The later capability-first reset first
-established B0/#989 and then executed the one permitted matched #953
-intervention. `MultiscaleCountRadiusR4V1` improved held-out top-1 from
-22.261404% to 23.211797% (+0.950392 percentage points, +4,242 correct) with
-zero candidate-support/declared-work-ledger mismatches and byte-identical
-replay. The external replay adjudication promoted each report's pending verdict
-to `PROCEED_TO_A1Q_H_WITH_BOUNDED_SOURCE_FREE_GEOMETRIC_GENERATION`. This does not
-rehabilitate the failed #983/#986 representations or establish semantics,
-attention, correctness, reasoning, chat, or release readiness. #973 Gate 0 then
-retained `PriorSentenceCountRadiusR4V1` at
-`RETAIN_GATE0_PRIOR_SENTENCE_ATTENTION_CONTINUE_PARAGRAPH_CONVERSATION`. On two
-synthetic D3-partitioned histories with identical local #953 evidence, its
-prefix-before-final-period coordinate made exact earlier-candidate state
-causally load-bearing: real decoded ` tea.` / ` coffee.` (2/2), scope-disabled
-decoded ` coffee.` / ` coffee.` (1/2), and candidate-permuted decoded
-` coffee.` / ` tea.` (0/2), with zero support/work mismatches and exact replay.
-This establishes only one bounded lexical copy-attention mechanism, not
-semantic or general paragraph/conversation/global attention. The next frozen
-two-case synthetic paragraph slice then retained
-`ParagraphEntitySpinPathR4V1` at
-`RETAIN_PARAGRAPH_ENTITY_SPIN_PATH_ATTENTION_CONTINUE_CONVERSATION`. Neither
-candidate token occurred in either prompt, the prior-copy operator abstained,
-and #953 support/work stayed unchanged. The decoded matrix was real 2/2,
-paragraph-disabled 1/2, entity-binding-permuted 0/2, and parsed-fact-vector-
-reversed 2/2. Every candidate-relative H4 shell was `Coincident`; fiber was the
-first sufficient discriminator, while torsion was retained and audited but did
-not decide the ranking. The stored phases retain their upstream lexical
-unit-ID/prime provenance; the new ranker adds no prime/hash placement and
-does not establish prime/index-independent or intrinsic geometry. It also does
-not establish semantic/paraphrase or natural-distribution transfer, anti-recall
-beyond exact candidate absence, a general entity model, or general paragraph,
-conversation, or global attention. The operator, target-free census, and
-decoded-smoke identities are respectively
-`blake3:9221efa7ad952e4890aae335970418b38ec93beb8cb4de65c5aa1d8c67f70afd`,
-`blake3:515720686b96dbebc2f055f9a21d3f0684f76092018381c836b51abf47a4d197`,
-and `blake3:0ba32e5fe26f1280ec2eef2b115023de52f2ef946882352311dcecc531d76a32`.
-#973 then retained `ConversationEntitySpinPathR4V1` at
-`RETAIN_CONVERSATION_ENTITY_SPIN_PATH_ATTENTION_CONTINUE_BOUNDED_GLOBAL`.
-With current-through-paragraph and global identities/ordered states fixed, only
-the older conversation binding changed. Its decoded matrix was real 2/2,
-conversation-disabled 1/2, cross-turn-binding-permuted 0/2, and parsed-binding-
-row-reversed 2/2, with zero support/work mismatches and exact target-free and
-decoded replay. The complete stored-spin lexicographic path was load-bearing;
-the run did not separately qualify an individual H4-shell, fiber, or torsion
-coordinate. This remains one bounded synthetic, construction-bound exact-
-descriptor cross-turn entity-role selector, not semantic, natural, general
-conversation, or global attention. The operator, target-free census, and
-decoded-smoke identities are respectively
-`blake3:343c961b06605f6ae9bb6160ac34a98224991715b706156349a8fd544b6dbb35`,
-`blake3:649d733a194469aa648101a873d9e2ee323266b18872ced412d1da2cc6a56635`,
-and `blake3:6930de3c07d30df4420bb68e60ea74531c8076516bcfef1c016240eddf1b9ca2`.
-The first independently frozen bounded-global exact-spin contrast stopped
-target-free at
-`RETAIN_CONVERSATION_ONLY_REDESIGN_BOUNDED_GLOBAL_EXACT_SPIN_RELATION`.
-Its detached carriers retained four references, three classes, one same-address
-reuse, distinct epochs/roots, one common lower artifact, and equal support/work,
-but `Pavel`/`helix` share one H4 root and `prism` is identity, so both swapped
-orders finish at the identical complete `-1`/fiber/torsion state. Real roles
-were `helix/helix`; permuted roles were `prism/prism`. Target loads were zero
-and decoded execution is `NOT_RUN`. Operator and census identities are
-`blake3:f6b36cdf3e6cf96e1e9a345980843ee9eaffd25f5b864d4b4ed45a30ae6f746f`
-and `blake3:6c0a9f89a29584a09d917ae427a494b53c06b76e56482f665870ae86c1cd130a`.
-#973's independently frozen V2 repair subsequently retained one bounded
-noncommuting exact-spin mechanism. Its first natural document-scale corpus
-placement then passed target-free reachability but scored 2,931/35,028
-(8.367592%), below unchanged #953 at 4,281/35,028 (12.221651%) and below both
-order-shuffled and operator-permuted controls. The terminal is
-`RETAIN_BOUNDED_GLOBAL_ONLY_REDESIGN_CORPUS_SPIN_PLACEMENT`. The bounded
-gated-delta core later trailed plain delta on its sealed smoke. Direct-attention
-V2 is non-promotable and equal-manifold-budget V3 isolated the connection/gauge
-seam. V4 preserved construction covariance but failed held-out functional
-binding. ADR-0005's `HELM-D-R4` reference/parity path subsequently passed and
-remains qualified. Intrinsic V1 attempt 02 stopped unavailable before D3 on its
-covariance audit. Source-faithful learned-manifold V2 then produced a valid
-non-D3 construction-validation negative: learned Lorentz failed retention and
-matched parity, while its controls established sensitivity only. The 8/8
-contract's attempt stopped at its two-document preflight and rejected tangent
-readout. Provider-free-at-execution, source-backed
-`R4SoftmaxReferenceGeneratorV1` (`HELM-D-R4`) generation and its explicit
-opt-in, loopback-only dedicated native HTTP endpoint now pass. Dashboard
-wiring/readiness and static/WASM-isolation checks pass, while hosted Pages
-remains static/offline without a functioning chat backend/artifact lowering.
-The Q16 suffix trace student, its recurrent state successor, and #1012's
-observability rung are complete bounded negatives. #1014 established
-load-bearing attention and #1017 closed NLL-only negative. #1019's optional,
-paused 12-layer parameter-capacity campaign recorded population, fixed
-overfit smoke, and random-export all-twelve-layer Rust preflight parity passed;
-MPS stopped `UNAVAILABLE_HARDWARE_BUDGET` on time for the frozen eight-hour
-offline implementation, and full training through replay remains `NOT_RUN`.
-The fused-AdamW/deferred-logging fast path was slower (`4.485223` versus signed
-`3.491307 s/step`), so #1019 tuning/full-run work stops and remains
-optional/paused. The #1017 `r4 generate` path remains the working prototype;
-#954 C1-SB2 and C1-SB3 are preserved negatives. C1-SB4 then trained the frozen
-full-source structured-margin attention representation but reached only
-`70/126` fit and `35/63` sealed exact records; it stopped before Rust parity,
-checkpoint emission, development, or its unopened products. Do not retry it.
-C1-SB5 subsequently tested that paired-query contrast: fit was `56/56`, sealed
-was `14/28`, row-swap equivariance was bit-exact, and mean-query plus
-attention-off controls were each `0/28`. Its products stayed unopened and the
-rung retired before checkpoint/head/Rust/development work.
-CUDA and external GPU execution are out of scope.
-Intrinsic/readout, resonance, recurrence,
-and lowering are parked. D3 remains `NOT_RUN`; #954's final source-free
-terminal remains blocked behind #973, and #955 remains blocked behind #954.
-Do not add a second #953 intervention or reuse the #983/#986 populations. The
-complete #973 Gate 0 record is
-[`docs/prior_sentence_count_radius_attention_973.md`](docs/prior_sentence_count_radius_attention_973.md).
-The complete paragraph record is
-[`docs/paragraph_entity_spin_path_attention_973.md`](docs/paragraph_entity_spin_path_attention_973.md).
-The complete conversation record is
-[`docs/conversation_entity_spin_path_attention_973.md`](docs/conversation_entity_spin_path_attention_973.md).
-The complete bounded-global target-free negative record is
-[`docs/bounded_global_exact_spin_attention_973.md`](docs/bounded_global_exact_spin_attention_973.md).
-The complete #986 result and nonclaim boundary is
-[`docs/corpus_signed_transport_attention_986.md`](docs/corpus_signed_transport_attention_986.md).
-Terminology lives in
-`docs/transformerless/GLOSSARY.md`. Keep this file current when conventions
-change.
-
-## Capability-first baseline and geometric increment — #989/#953 established; #973 native reference generation qualified
-
-Effective 2026-08-28, #989 established the deterministic source-free
-table-native lexical baseline at
-`ESTABLISH_TABLE_NATIVE_LEXICAL_BASELINE`. Across 446,342 held-out known-target
-positions, the table scored 99,362 (22.261404%) versus 24,163 (5.413561%) for
-unigram, an uplift of +16.847843 percentage points. The 35,655,288-byte
-artifact is frozen at
-`blake3:ccdc399731cb866a329be478467a434cda4e445813421e5d17c21ccc87288297`;
-two complete executions produced identical report bytes and artifacts.
-
-The one permitted matched #953 intervention is now accepted. Its separate
-24,250,680-byte overlay is frozen at
-`blake3:914126a311c3984d1482258a8f0a7fa2e34896540d502d19f1d9076fbd4a9b76`.
-Across the same held-out positions, it scored 103,604/446,342 (23.211797%), a
-net +4,242 correct and +0.950392 percentage points over #989. It changed 56,280
-known-target choices, with 6,753 geometry-correct versus 2,511 baseline-correct
-among those changes. Candidate support and the declared-work ledger matched at
-all 446,342 teacher-forced positions and through the first free-running
-divergence. The structural source-closure counters were all zero, and two
-complete executions produced identical table, overlay, and report bytes. The
-external byte comparison promoted the reports' pending verdict to the frozen
-positive terminal.
-
-This establishes a bounded source-free geometric increment over a statistical
-lexical baseline. It does not establish semantics, broad attention, general
-coherence, correctness, reasoning, chat, performance, or release readiness.
-The #989 table remains the frozen non-geometric reference; no second #953
-formula, axis, prompt, or corpus run is permitted. #973 Gate 0 has retained one
-exact-candidate prior-prefix copy mechanism. Its frozen paragraph slice
-retained one construction-bound exact-descriptor/entity-binding stored-phase
-path selector with absent candidate tokens and unchanged #953 support/work.
-Its independently frozen conversation slice then retained one construction-
-bound exact-descriptor cross-turn entity-role stored-spin path selector while
-all lower scopes and global state stayed fixed. These are not semantic,
-paraphrastic, natural-distribution, or general higher-scope evidence. One
-independently frozen bounded-global exact-spin contrast then failed target-free
-because its swapped states commute. V2 repaired that exact relation and
-retained a bounded synthetic mechanism. PR #997 then rejected the first natural
-componentwise-Frechet document placement against #953 and both destructive
-controls. The first bounded `GeometricGatedDeltaRetentionR4V1` core then passed
-its structural smoke but showed no advantage on its sealed construction
-fixture: full geometric was 16/28 next-token and 55/112 association wins versus
-plain delta at 23/28 and 98/112. This does not falsify geometric attention;
-without a literal dense attention reference, the result confounds geometry,
-compression, training, and recurrent factorization. Direct-attention V2 was
-then rejected as `NON_PROMOTABLE_BUDGET_MISMATCH`. Its fresh equal-manifold-budget V3
-returned full H4 3/12 against matched plain 12/12 and current-only 6/12; an
-inference-time coherent alternative-connection swap returned 10/12. The ordinary learning
-path is viable, but the current H4 parameter-gauge/conditioning seam is not.
-V4 later preserved construction covariance but failed held-out functional
-binding and destructive-control separation. The exposed `HELM-D-R4`
-source-pinned full-decoder ordinary-softmax parity in transported R4/Spin frames
-remains qualified on bounded real causal language. Intrinsic Lorentz V1 attempt 02
-reached construction validation but stopped unavailable before D3 because its
-barycenter covariance exceeded the frozen ceiling; its curved NLL was also
-diagnostically worse than donor and equal-capacity flat. Source-faithful
-learned-manifold V2 then completed a valid non-D3 construction-validation
-negative: learned Lorentz failed retention and matched parity, although its
-controls established sensitivity. The 8/8-contract attempt stopped at its
-two-document preflight and rejected tangent readout. Provider-free-at-execution,
-source-backed `R4SoftmaxReferenceGeneratorV1` (`HELM-D-R4`) generation and its
-opt-in, loopback-only dedicated native HTTP endpoint now pass; dashboard
-wiring/readiness and static/WASM-isolation checks pass while hosted Pages
-remains static/offline without a functioning chat backend/artifact lowering;
-the Q16 suffix trace student and `R4SoftmaxTraceStateStudentV1` are complete
-bounded negatives. #973's recovered full construction run now qualifies a
-bounded causal retained-attention component, but the exact decoder recipe did
-not satisfy its frozen generalization criterion. Formal H4 specificity remained
-`NOT_EVALUATED`; diagnostic scrambled-transport CE was `0.033049` nats better.
-The subsequent `R4RetainedLanguagePathV1` qualified, but its paired-H4
-addressing successor failed prompt capacity despite slightly better fresh-
-language metrics and fewer construction collisions. The direct retained-state
-readout then improved prompt and fresh-language metrics but missed both frozen
-gain floors. Its sole layerwise-normalized successor also improved prompt and
-fresh-language metrics but missed the same absolute and incremental gain
-floors. The parameter-free readout ladder is closed. The separately frozen
-learned-associative campaign then completed
-`LEARNED_ASSOCIATIVE_READOUT_NO_CAPACITY` (result
-`blake3:cedba37738ee249457bb589f716ee75afb16a0c4937c2a22ae9f917dd3eb97c1`;
-verified
-`blake3:443d711ce9a228e26e2eb2eebb55c582848424e2677c3473d41deaf8afd69ec7`).
-Its pooled arm's load-bearing fresh-language improvement remains a
-non-geometric control, not prompt-capacity evidence. The independently frozen
-V5 predictive write/binding successor then stopped
-`PREDICTIVE_BINDING_NO_TERMINAL_CAPACITY` with exact independent replay. Its
-fresh-language and integrity gates passed, but capacity, geometry attribution,
-and delta-overwrite attribution did not; retire that law and
-`STOP_WITHOUT_GENERATION`;
-new route families, intrinsic/readout alternatives, resonance-based softmax
-replacement, unqualified scale, and exact deployment remain parked. D3 remains
-`NOT_RUN`; #954 and
-later-stage work remain blocked.
-See the
-[#989 evidence record](docs/source_free_table_baseline_989.md) and
-[#953 evidence record](docs/source_free_table_geometric_intervention_953.md),
-then the [#973 Gate 0 record](docs/prior_sentence_count_radius_attention_973.md)
-and [#973 paragraph record](docs/paragraph_entity_spin_path_attention_973.md),
-then the
-[#973 conversation record](docs/conversation_entity_spin_path_attention_973.md)
-and [#973 bounded-global negative record](docs/bounded_global_exact_spin_attention_973.md).
+Changing this policy requires explicit owner instruction and a protected pull
+request. A task template, old checklist, skill, or agent judgment cannot create
+an exception.
+<!-- agent-execution-policy:end -->
 
 ## What this repo is
 
-A local, CPU-first **geometric intelligence programme**. Geometry is the route
-and the route is the data location. The active lane uses a pinned lexical codec,
-registered prime atoms, semiprime transitions including `p^2` self-loops,
-ordered n-lets, fixed-zeta R4/S3 state, Hopf observation, torsion, exact
-`Z[phi]` radial shells, and the required structural/storage project bridge
-`E8 = H4 x H4`, realized in code and serialization by the golden/Galois-coupled
-icosian pair `H4 ⊕ phi H4`. The qualified local attention mechanism is
-narrower: natural schema-2 adjacency supplies candidates, an ordered
-unit-quaternion path on S3 supplies causal prefix memory, and exact path closure
-plus lease age selects or abstains. #953 wraps that selector in one bounded
-canonical decode/render/append loop. H4 is an exact finite S3 codebook here;
-`H4 ⊕ phi H4` / E8 remains structural storage and control rather than the
-attention score.
+UOR-R4 is a local, CPU-first attempt to build a useful transformerless model.
+The active pre-alpha objective is prompt-dependent source-free text generation
+through the repository CLI or local service. The repository also contains older
+compiler/runtime, geometric-routing, proof, certification, and dashboard work.
+Those components remain available, but their historical process does not control
+the active implementation task.
 
-#986 did not assume that identity geometry was semantic geometry. It stopped
-before constructing either semantic placement or the signed transport readout:
-the population commitment and complete lexical SpiralCore operator frame were
-unavailable. Its exact finite algebra remains addressing/transport/control
-substrate only. No table-value or geometric arm ran, so neither may be promoted
-from #986.
-
-The intended destination is frontier-like useful local intelligence without
-transformers, MoE/sparse learned routing, or dense matrix intelligence. That is
-an aspirational research target, not a current capability claim. Spherical
-harmonics are the project-level model for overlapping spin-state storage and
-transport; R4/S3 and Hopf/S2 are the bounded compute/observation charts used to
-operate on that field. Exact operator sharing reuses the existing signed
-S3/Hopf/fiber/torsion `shared_class_kappa`; the current Hopf-octant/torsion
-`SpinSector` is only a coarse lookup bucket. Direction-sensitive relations use
-either a new exact `SpinTorsionState` relative relation or an explicitly bound
-spin-to-H4 map; the existing H4 relative witness is prime-derived route state.
-A versioned exact-spin global result is an immutable overlay over lawful
-candidates, not candidate injection or a corpus broadcast. Call it harmonic
-only after its identity binds basis, mode order, coefficients, quantization,
-and transition law.
-
-Corpus scale follows mechanism qualification; it never substitutes for it.
-#986 was one bounded local placement/transport qualification, but it stopped
-before freezing its CID-disjoint split. Within #973, `HELM-D-R4` now establishes
-ordinary inclusive causal attention with learned Q/K/V/O, causal all-prefix
-logits, R4/Spin frame transport, stable softmax, and transported value
-aggregation. Intrinsic Lorentz V1 did not clear construction validation and
-never opened D3. Source-faithful learned-manifold V2 then failed donor retention
-and matched Euclidean parity on valid non-D3 construction validation, while its
-controls established sensitivity only. The 8/8-contract attempt stopped at its
-two-document preflight and rejected tangent readout. Provider-free-at-execution,
-source-backed `R4SoftmaxReferenceGeneratorV1` (`HELM-D-R4`) generation and its
-opt-in, loopback-only dedicated native HTTP endpoint now pass; dashboard
-wiring/readiness and static/WASM-isolation checks pass while hosted Pages
-remains static/offline without a functioning chat backend/artifact lowering;
-the Q16 suffix trace student and `R4SoftmaxTraceStateStudentV1` are complete
-bounded negatives. #973's CPU recovery qualifies a bounded causal
-retained-attention component while rejecting promotion of the exact
-complete-decoder recipe; no H4-specific advantage was established. The later
-language-path baseline qualified, while paired-H4, direct/layerwise readout,
-learned-associative, and finally V5 predictive write/binding capacity failed
-their frozen promotion gates. The V5 action is `STOP_WITHOUT_GENERATION`;
-intrinsic/readout alternatives, paired-E8, resonance-based softmax replacement,
-and exact deployment are parked. Actual paired-E8 hierarchy, fiber, and torsion binding remains
-`NOT_IMPLEMENTED`. Transport
-overhead is reported explicitly rather than called equal work. The old
-recurrent gated-delta core remains a negative historical comparator; it is not
-an active retry lane. The terminal independently frozen group-addressed cell used
-matched H4, cyclic, and destructive scrambled actions instead.
-No construction result alone authorizes the held-out D3 join.
-Freeze the operator family/schema, objective, scope semantics, neighborhood
-contract, and induction rule; vary only declared parameter values under new
-artifact/operator identities, and rerun the bounded gate for every structural
-or placement epoch. Additional rows, hits, or trace activity are capacity/recall
-unless the real arm changes a held-out anti-recall choice and matched controls do
-not. A selector may provisionally append one candidate admitted from its cloned
-observed state, but actual future/target data never enter inference. Deeper
-hypothetical branches, rollback, and comparison belong to #955 after #954. Do
-not launch corpus expansion while the required scope gate is negative or
-blocked.
-
-The active autonomous reference may execute pinned local source weights; it is
-explicitly not the final serving path. That final path loads no source weights
-and contains no transformer/self-attention, dense
-matrix intelligence kernel, MoE, or sparse learned router. The learned
-four-coordinate mixer remains only the negative G0/G1 comparator recorded by
-#950/#951; #958 is retained positive foundation evidence at
-`RETAIN_STORAGE_RECALL_ONLY` scope.
-
-The multiplication-free TLA/R4G1 compiler, packed graph runtime, certifier,
-proof assets, and dashboard remain in the repository as working historical
-components and research comparators. They are not the active intelligence
-sequencing path.
+The intended serving path ultimately avoids source-model weights, transformer
+attention, MoE or sparse learned routing, and dense matrix intelligence. Existing
+research references may still use floating point, softmax, or source-backed
+weights; describe those paths accurately when touching them.
 
 ## Workspace layout
 
@@ -811,43 +122,9 @@ build (`Cargo.toml` `exclude`); its `.gitignore` entry blocks new additions,
 but ~1,100 legacy files remain tracked in the tree (recorded 2026-08-18,
 baseline audit).
 
-## Deterministic source-only agent policy
 
-<!-- agent-execution-policy:start -->
-The repository-wide automated-agent mode is `deterministic_source_only`. Its
-canonical contract is
-[`docs/integration/agent-execution-policy.json`](docs/integration/agent-execution-policy.json),
-with the rationale and boundary in
-[`docs/integration/agent-execution-policy.md`](docs/integration/agent-execution-policy.md).
-This section overrides historical agent instructions to run local gates or to
-diagnose an execution environment.
 
-- Automated work starts from refreshed `origin/main` in a complete Git
-  worktree. Sparse, pruned, filtered, or hand-copied workspace capsules are
-  forbidden. Preserve user material and unique evidence.
-- Agents may inspect sources, edit declared paths, use reviewable Git
-  operations, and run `python3 scripts/check_agent_execution_policy.py`.
-  Agents do not run or dispatch builds, tests, probes, model work, or QA. This
-  includes Cargo/Rust toolchain commands, linters, benchmarks, fuzzers,
-  training, fitting, evaluation, browser/service checks, operating-system or
-  sandbox diagnostics, and custom supervisors, watchdogs, or retry wrappers.
-- Pull-request and merge-group automation runs only the standard-library
-  static policy guard plus the five historical ruleset transport
-  acknowledgements. Owner-operated manual `workflow_dispatch` remains the
-  sole product/release QA path; agents do not dispatch it.
-- A concrete failure from owner-run remote QA permits one source correction.
-  If the next owner-run result fails, park the work with the exact blocker.
-  Environment-probe and automatic-retry budgets are both zero.
-- Do not narrate individual build, test, probe, or unchanged polling events.
-  Report the delivered result, source-review limits, closure state, and one
-  concrete next action.
-
-Changing this policy requires explicit owner instruction and a protected pull
-request. A task template, old checklist, skill, or agent judgment cannot create
-an exception.
-<!-- agent-execution-policy:end -->
-
-## Decision checks (dormant by default)
+## Development checks
 
 ```bash
 cargo fmt --check
@@ -856,21 +133,17 @@ cargo test -p <touched-package> --lib --offline
 python3 scripts/check_claim_wording.py      # when claims/docs change
 ```
 
-These commands are references, not automatic pre-commit work. Testing and QA
-remain dormant until a product or release issue names the exact check, decision,
-fixture identity, outcome actions, and resource budget. Do not run a focused
-test merely because code changed. Do not run broad suites to create confidence
-without a decision they can change.
+These commands are examples, not a mandatory ladder. Compile and run the path
+being changed. Add a focused test when it protects an observed or high-risk
+failure. Do not run broad suites merely because code changed.
 
-Source-free attention probes, anti-recall controls, bounded product
-transcripts, and serving censuses are activated by their programme stage.
 Workspace, BDD, doctest, no_std, deterministic-rebuild, kappa, Gate C,
 all-features, WASM, fuzz, Kani, conformance, audit, and corpus-scale suites stay
-dormant unless the active product/release decision explicitly requires them.
-Automatic QA is disabled. Pull-request and merge-group events emit only five
-instantaneous ruleset-transport acknowledgements with no checkout or
-verification work. They exist because immutable ruleset `19597522` requires
-the historical names and queue; they are explicitly **not PASS evidence**.
+dormant unless the changed component or a release decision needs them.
+Pull-request and merge-group events currently emit five ruleset-transport
+acknowledgements because immutable ruleset `19597522` requires those historical
+names. Record the actual local command and result in the PR when behavior was
+executed.
 
 The toolchain is pinned in `rust-toolchain.toml`: rustup-managed `cargo`
 resolves the pin automatically, so an activated local check and the manually

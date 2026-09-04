@@ -1,59 +1,55 @@
-# Deterministic source-only agent execution
+# Build-first pre-alpha execution
 
-This is the repository-wide default for automated agents. Its machine-readable
-contract is [agent-execution-policy.json](agent-execution-policy.json), and the
-binding instructions are embedded in [AGENTS.md](../../AGENTS.md).
+The project is in `build_first_pre_alpha` mode. The former
+`deterministic_source_only` policy is superseded. It prevented the project from
+being compiled or run and turned routine development into evidence production.
 
-## The failure this prevents
+The pre-alpha objective is concrete: load a source-free model artifact and
+produce prompt-dependent text through the repository CLI or local service on
+the target local hardware. Work that does not materially help reach that
+behavior is deferred.
 
-An agent must not respond to a build-environment failure by constructing a
-partial workspace, adding diagnostic probes, wrapping commands in supervisors,
-or retrying variants. A partial copy can omit an explicitly declared Cargo
-target while still looking like a plausible source checkout. Repeated attempts
-then spend time and tokens without increasing evidence about the product
-decision.
+## Routine work
 
-Every automated change now starts from refreshed `origin/main` in a complete
-Git worktree. Agent work is limited to source inspection, declared edits,
-reviewable Git operations, and the static policy guard. Sparse, pruned, or
-hand-copied workspace capsules are prohibited.
+Use one active task in an isolated full worktree from refreshed `origin/main`.
+Implement the feature, compile it, and run the smallest command that directly
+exercises the changed behavior. Focused tests are useful when they protect a
+specific failure mode; they are not required merely because code changed.
+Deliver through a protected pull request. Preserve user material, unique
+artifacts, and prior negative results.
 
-## Execution boundary
+Agents may run builds, linters, focused tests, models, training, evaluation,
+CLIs, services, and browser flows when the active implementation requires
+them. A run estimated to exceed 15 minutes, create more than 10 GiB, or incur
+external cost requires explicit owner or active-issue authorization, a hard
+resource limit, and a stop condition.
 
-Agents do not run or dispatch Cargo, Rust toolchain commands, builds, tests,
-linters, benchmarks, fuzzers, model execution, fitting, evaluation, browser or
-service probes, operating-system probes, or custom retry/supervisor wrappers.
-Pull-request and merge-group automation performs this static policy guard and
-the five ruleset transport acknowledgements only. Product and release QA stays
-available solely through the owner-operated `workflow_dispatch` path already
-defined in `.github/workflows/ci.yml`.
+Automatic retry campaigns are prohibited. After a concrete failure, inspect
+the existing output, make one direct source or input correction, and rerun once
+when that change plausibly addresses the failure. Otherwise park the command
+and report the blocker. Do not construct supervisor programs, watchdogs,
+receipt harnesses, workspace capsules, or environment-diagnostic campaigns.
 
-An explicit owner instruction plus a protected pull request is required to
-change this policy. A task prompt, issue template, historical checklist, or
-agent judgment cannot silently activate an exception.
+## Deferred until a working alpha
 
-## Failure and reporting budget
+Formal proof work, claim-ledger maintenance, knowledge-index maintenance,
+independent review, frozen experiment contracts, fresh-process replay,
+receipt packages, duplicate roadmap synchronization, publication work,
+NEMESIS/W33 mapping, and broad release certification are not routine pre-alpha
+requirements. Only an explicit owner instruction can activate one before the
+working-alpha condition is met.
 
-When owner-run remote QA reports a concrete source failure, an agent may make
-one source correction based on that evidence. If the next owner-run result
-still fails, the work is parked with the exact source blocker. The agent does
-not probe the environment, invent another harness, or begin a retry campaign.
-Environment-probe and automatic-retry budgets are both zero.
+Historical records remain available and retain their original meaning. They do
+not impose their old process on new work. A routine PR needs the primary code
+or product deliverable, the direct behavior result when execution matters, and
+a concise statement of the remaining limitation and next action.
 
-Agent reports contain the delivered result, the limits of source review, the
-closure state, and one concrete next action. Individual build, test, probe, and
-unchanged-poll narration is suppressed.
+## Claim boundary
 
-## What this establishes
+Do not call unrun code working. Keep mathematical proof, measured behavior, and
+unverified hypotheses distinct. This honesty rule does not require a proof
+artifact, claim ledger, evidence dossier, or separate review.
 
-The policy makes the automated development workflow bounded and predictable.
-It prevents the specific runaway validation pattern described above and makes
-policy drift visible in the protected path. It does not prove that research
-algorithms, third-party tools, operating systems, or model outputs are
-deterministic. Those remain separate product or release questions that only the
-owner may choose to evaluate.
-
-For this policy change, project builds, tests, probes, model runs, and product
-evaluations are `NOT_RUN_BY_POLICY`. The only executable validation is the
-standard-library static policy guard; it reads tracked text and does not import
-or execute project code.
+After the alpha exit condition is met, the owner can select the small amount of
+testing, formalization, reproducibility, and release work that the implemented
+product actually needs.

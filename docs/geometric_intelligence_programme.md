@@ -1,5 +1,15 @@
 # Geometric Intelligence Programme
 
+**Build-first override (2026-09-04):** The historical programme below remains
+architectural context, not the active task queue. Until a source-free artifact
+loads and produces prompt-dependent text through the repository CLI or local
+service, implementation and direct execution under
+[`build_first_pre_alpha`](integration/agent-execution-policy.md) take priority.
+Formal proof, claim/evidence ledgers, independent review, replay packages,
+publication, NEMESIS/W33 mapping, duplicate planning updates, and broad QA are
+deferred unless the owner explicitly activates one. The current implementation
+priority is #973; #1084 workbench qualification is parked.
+
 **Current native-reference specification (2026-09-03):**
 [#1086](r4_native_reference_1086.md) records
 `NATIVE_REFERENCE_CONTRACT_SPECIFIED`. The
@@ -151,10 +161,8 @@ queue. Semantic placement, table value, exact transport, attention, generation,
 correctness, and reasoning remain separate claims.
 
 Cost optimization and full formal/release qualification follow a working
-decision-bearing product slice. **Planning amendment (2026-09-03):** named
-mathematical obligations, the claim ledger and paper preparation may proceed
-in parallel, while broad QA remains dormant. Neither proof tooling nor product
-infrastructure substitutes for measured model capability.
+decision-bearing product slice. The former 2026-09-03 parallel proof and paper
+lane is superseded by the build-first override above.
 
 ## Current R4 preservation — token control misses three views
 

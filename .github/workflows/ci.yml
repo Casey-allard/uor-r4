@@ -1,12 +1,10 @@
 name: ci
 
-# Development verification is dormant while the product mechanism is being
-# built. Pull-request and merge-group events run one standard-library static
-# policy guard plus five ruleset-transport acknowledgements: no build, test,
-# lint, audit, fuzz, WASM build, model work, or certification. Real QA remains
-# explicit and owner-operated. The acknowledgement names match the immutable
-# repository ruleset so write-level contributors can merge without reviving
-# its obsolete contracts.
+# Pre-alpha verification is issue-scoped: developers compile and run the path
+# they changed instead of paying for the full release ladder on every PR.
+# Pull-request and merge-group events keep one small policy check plus the five
+# historical status names required by the immutable ruleset. The full release
+# workflow remains available when the implemented product reaches that stage.
 on:
   pull_request:
   merge_group:
@@ -103,8 +101,8 @@ jobs:
         run: cargo test --workspace --lib
 
   # Ruleset transport only. The repository setting still expects these five
-  # historical names. The first job checks only the tracked agent-policy text
-  # from a complete checkout; the jobs execute no project code or product QA.
+  # historical names. The first job checks the small tracked policy contract;
+  # implementation results belong in the PR that produced them.
   required-core-transport:
     name: fmt / clippy / tests / no_std / κ
     if: ${{ always() && (github.event_name == 'pull_request' || github.event_name == 'merge_group') }}
@@ -112,18 +110,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Enforce deterministic source-only agent policy
+      - name: Enforce build-first pre-alpha policy
         run: python3 scripts/check_agent_execution_policy.py
 
-      - name: Acknowledge dormant product QA
-        run: echo "Ruleset transport only; no build, test, lint, or certification ran."
+      - name: Acknowledge issue-scoped verification
+        run: echo "Ruleset transport only; issue-scoped execution is recorded in the PR."
 
   required-audit-transport:
     name: cargo audit
     if: ${{ always() && (github.event_name == 'pull_request' || github.event_name == 'merge_group') }}
     runs-on: ubuntu-latest
     steps:
-      - name: Acknowledge dormant product QA
+      - name: Acknowledge deferred release audit
         run: echo "Ruleset transport only; no dependency audit ran."
 
   required-fuzz-transport:
@@ -131,7 +129,7 @@ jobs:
     if: ${{ always() && (github.event_name == 'pull_request' || github.event_name == 'merge_group') }}
     runs-on: ubuntu-latest
     steps:
-      - name: Acknowledge dormant product QA
+      - name: Acknowledge deferred release fuzzing
         run: echo "Ruleset transport only; no fuzzing ran."
 
   required-wasm-transport:
@@ -139,7 +137,7 @@ jobs:
     if: ${{ always() && (github.event_name == 'pull_request' || github.event_name == 'merge_group') }}
     runs-on: ubuntu-latest
     steps:
-      - name: Acknowledge dormant product QA
+      - name: Acknowledge deferred release WASM build
         run: echo "Ruleset transport only; no WASM build ran."
 
   required-gate-c-transport:
@@ -147,7 +145,7 @@ jobs:
     if: ${{ always() && (github.event_name == 'pull_request' || github.event_name == 'merge_group') }}
     runs-on: ubuntu-latest
     steps:
-      - name: Acknowledge dormant product QA
+      - name: Acknowledge deferred release model evaluation
         run: echo "Ruleset transport only; no Gate C or model evaluation ran."
 
   # Full certification is retained for an explicit product-release decision.
