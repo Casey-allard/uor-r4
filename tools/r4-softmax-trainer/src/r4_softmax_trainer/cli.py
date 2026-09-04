@@ -34,6 +34,7 @@ from .continuation_data import (
     load_continuation_training_view_manifest,
     prepare_continuation_dataset,
 )
+from .contextual_retained_fit import fit_contextual_retained
 from .contextual_retained_generation import generate_contextual_retained
 from .data import download_source, load_dataset_manifest, prepare_dataset
 from .direct_retained_readout_campaign import (
@@ -616,6 +617,16 @@ def parser() -> argparse.ArgumentParser:
             "autonomous generation smoke"
         ),
     )
+    fit_contextual = subcommands.add_parser(
+        "fit-contextual-retained",
+        help=(
+            "adapt the existing retained artifact through #973's contextual "
+            "value write using open training bytes only"
+        ),
+    )
+    fit_contextual.add_argument("--updates", type=int, default=128)
+    fit_contextual.add_argument("--threads", type=int, choices=[4], default=4)
+    fit_contextual.add_argument("--max-seconds", type=float, default=840.0)
     generate_contextual = subcommands.add_parser(
         "generate-contextual-retained",
         help=(
@@ -624,6 +635,11 @@ def parser() -> argparse.ArgumentParser:
         ),
     )
     generate_contextual.add_argument("--prompt", required=True)
+    generate_contextual.add_argument(
+        "--artifact",
+        type=_root,
+        help="retained artifact to load; defaults to the historical V1 artifact",
+    )
     generate_contextual.add_argument(
         "--geometry",
         type=_root,
@@ -1124,6 +1140,7 @@ def main() -> None:
         "probe-language-path",
         "run-language-path",
         "generate-language-path",
+        "fit-contextual-retained",
         "generate-contextual-retained",
     }
     paired_h4_prompt_capacity_commands = {
@@ -1445,11 +1462,22 @@ def main() -> None:
     if arguments.command == "generate-language-path":
         _print_result(run_language_path_generation(root))
         return
+    if arguments.command == "fit-contextual-retained":
+        _print_result(
+            fit_contextual_retained(
+                root,
+                updates=arguments.updates,
+                threads=arguments.threads,
+                max_seconds=arguments.max_seconds,
+            )
+        )
+        return
     if arguments.command == "generate-contextual-retained":
         result = generate_contextual_retained(
             root,
             geometry_path=arguments.geometry,
             prompt=arguments.prompt,
+            artifact_path=arguments.artifact,
             max_new_tokens=arguments.max_new_tokens,
             seed=arguments.seed,
         )

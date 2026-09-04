@@ -7,6 +7,7 @@ does not train, select a checkpoint, or read corpus data.
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any
 
@@ -60,6 +61,7 @@ def generate_contextual_retained(
     *,
     geometry_path: Path,
     prompt: str,
+    artifact_path: Path | None = None,
     max_new_tokens: int = DEFAULT_MAX_NEW_TOKENS,
     seed: int = DEFAULT_SEED,
 ) -> dict[str, Any]:
@@ -75,10 +77,33 @@ def generate_contextual_retained(
     resolved_root = root.expanduser().resolve()
     resolved_geometry = geometry_path.expanduser().resolve()
     tokenizer_path = resolved_root / TOKENIZER_RELATIVE_PATH
-    artifact_path = resolved_root / ARTIFACT_RELATIVE_PATH
+    resolved_artifact = (
+        resolved_root / ARTIFACT_RELATIVE_PATH
+        if artifact_path is None
+        else artifact_path.expanduser().resolve()
+    )
     tokenizer_payload = tokenizer_path.read_bytes()
-    artifact_payload = artifact_path.read_bytes()
+    artifact_payload = resolved_artifact.read_bytes()
     geometry_payload = resolved_geometry.read_bytes()
+    artifact_cid = f"blake3:{blake3(artifact_payload).hexdigest()}"
+    fit_result_path = resolved_artifact.with_name("fit.json")
+    fit_summary: dict[str, Any] | None = None
+    fitted_under_value_write = "Wv(RMSNorm(x_t))"
+    if fit_result_path.is_file():
+        fit_result = json.loads(fit_result_path.read_text(encoding="utf-8"))
+        if fit_result.get("artifact", {}).get("cid") != artifact_cid:
+            raise ValueError("contextual fit metadata does not match the selected artifact")
+        if fit_result.get("model", {}).get("value_write") != (
+            "Wv(RMSNorm(x_t + strict_prior_retained_residual))"
+        ):
+            raise ValueError("contextual fit metadata names a different value write")
+        fitted_under_value_write = fit_result["model"]["value_write"]
+        fit_summary = {
+            "updates": fit_result.get("fit", {}).get("updates"),
+            "causal_targets": fit_result.get("fit", {}).get("causal_targets"),
+            "elapsed_seconds": fit_result.get("fit", {}).get("elapsed_seconds"),
+            "result_path": str(fit_result_path),
+        }
 
     tokenizer = Tokenizer.from_file(str(tokenizer_path))
     raw_decoder = ByteLevelRawDecoder.from_tokenizer_json(tokenizer_path)
@@ -168,10 +193,11 @@ def generate_contextual_retained(
             "policy": POLICY,
             "value_write": "Wv(RMSNorm(x_t + strict_prior_retained_residual))",
             "parameters_added": 0,
-            "fitted_under_value_write": "Wv(RMSNorm(x_t))",
+            "fitted_under_value_write": fitted_under_value_write,
+            "fit": fit_summary,
         },
         "inputs": {
-            "model_artifact": _record(artifact_path, artifact_payload),
+            "model_artifact": _record(resolved_artifact, artifact_payload),
             "tokenizer": _record(tokenizer_path, tokenizer_payload),
             "geometry": _record(resolved_geometry, geometry_payload),
             "corpus_files_read": 0,

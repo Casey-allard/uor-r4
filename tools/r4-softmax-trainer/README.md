@@ -359,12 +359,18 @@ without training or opening train, validation, source, or sealed data. Its
 create-once result is a local autonomous-decoding smoke, not a coherence,
 reasoning, H4-superiority, lowering, browser, or release claim.
 
-The build-first contextual value-write successor can be exercised directly on
-an arbitrary prompt without a fit or corpus read:
+The build-first contextual value-write successor can first adapt the existing
+weights on the copied open training store, then generate from the separate
+artifact without changing the historical V1 artifact:
 
 ```bash
 uv run --offline --project "$TRAINER" r4-softmax-trainer \
+  --root "$ROOT" fit-contextual-retained
+
+CONTEXTUAL="$ROOT/arms/contextual-retained/model.safetensors"
+uv run --offline --project "$TRAINER" r4-softmax-trainer \
   --root "$ROOT" generate-contextual-retained \
+  --artifact "$CONTEXTUAL" \
   --prompt "A purple turtle found a clock in the garden" \
   --max-new-tokens 32
 ```
@@ -372,9 +378,11 @@ uv run --offline --project "$TRAINER" r4-softmax-trainer \
 This version writes `Wv(RMSNorm(x_t + a_t))`, where `a_t` is the ungated
 strict-prior retained residual, into the existing identity-addressed value
 field. It adds no parameters or recurrent tensors and leaves the historical V1
-path unchanged. The loaded weights were fitted under V1's token-only write, so
-the command demonstrates executable source-free behavior; it does not claim
-that the changed write has been fitted or improves language quality.
+path unchanged. The fit is a fixed maximum of 128 warm-start updates over 2,048
+open training windows, with a hard 840-second wall. It reads no validation,
+sealed, teacher, or source-model files. This bounded adaptation is not a
+convergence or language-quality claim; the direct generation output remains the
+behavioral check.
 
 ## Terminal #973 paired-H4 prompt-capacity rung
 
