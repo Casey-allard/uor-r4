@@ -459,6 +459,22 @@ has no resume path or automatic retry. The adjacent `fit.json` binds the exact
 address-scoring law and zero-bias initialization so same-shaped historical and
 address-aware artifacts cannot be silently interchanged.
 
+The matched ordinary causal-softmax control can be generated directly from its
+completed artifact without fitting, checkpoint state, corpus data, teacher
+execution, or H4 geometry. It recomputes the complete causal prefix for every
+token so its attention and RoPE positions match the trained path:
+
+```bash
+uv run --offline --project "$TRAINER" r4-softmax-trainer \
+  --root "$ROOT" generate-ordinary-language-path \
+  --prompt "A purple turtle found a clock in the garden" \
+  --max-new-tokens 16 --seed 9738 --json
+```
+
+The command verifies the final ordinary artifact against its completed arm
+record before loading it. This is an offline architectural control for direct
+prompt behavior; it is not the transformerless serving path.
+
 ## Terminal #973 paired-H4 prompt-capacity rung
 
 [`R4PairedH4PromptCapacityV1`](../../docs/r4_paired_h4_prompt_capacity_973.md)

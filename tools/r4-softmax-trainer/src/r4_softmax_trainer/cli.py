@@ -72,6 +72,7 @@ from .language_path_generalization_campaign import (
 )
 from .language_path_generalization_data import prepare_language_path_data
 from .language_path_generation import run_language_path_generation
+from .ordinary_language_generation import generate_ordinary_language_path
 from .layerwise_normalized_retained_readout_campaign import (
     prepare_layerwise_normalized_retained_readout,
     probe_layerwise_normalized_retained_readout,
@@ -679,6 +680,21 @@ def parser() -> argparse.ArgumentParser:
         action="store_true",
         help="emit the artifact identities, token IDs, and execution details",
     )
+    generate_ordinary = subcommands.add_parser(
+        "generate-ordinary-language-path",
+        help=(
+            "continue one prompt through #973's already-fitted ordinary "
+            "causal-softmax control without fitting"
+        ),
+    )
+    generate_ordinary.add_argument("--prompt", required=True)
+    generate_ordinary.add_argument("--max-new-tokens", type=int, default=16)
+    generate_ordinary.add_argument("--seed", type=int, default=9_738)
+    generate_ordinary.add_argument(
+        "--json",
+        action="store_true",
+        help="emit the artifact identities, token IDs, and execution details",
+    )
     prepare_paired_h4 = subcommands.add_parser(
         "prepare-paired-h4-prompt-capacity",
         help=(
@@ -1171,6 +1187,7 @@ def main() -> None:
         "fit-contextual-key-value",
         "fit-contextual-key-value-address-read",
         "generate-contextual-retained",
+        "generate-ordinary-language-path",
     }
     paired_h4_prompt_capacity_commands = {
         "prepare-paired-h4-prompt-capacity",
@@ -1516,6 +1533,18 @@ def main() -> None:
             geometry_path=arguments.geometry,
             prompt=arguments.prompt,
             artifact_path=arguments.artifact,
+            max_new_tokens=arguments.max_new_tokens,
+            seed=arguments.seed,
+        )
+        if arguments.json:
+            _print_result(result)
+        else:
+            print(result["text"])
+        return
+    if arguments.command == "generate-ordinary-language-path":
+        result = generate_ordinary_language_path(
+            root,
+            prompt=arguments.prompt,
             max_new_tokens=arguments.max_new_tokens,
             seed=arguments.seed,
         )
