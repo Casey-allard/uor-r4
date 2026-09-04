@@ -67,9 +67,9 @@ execution.
    and publication against the release candidate. This work does not gate the
    earlier build stages unless a concrete implementation decision needs it.
 
-Fixed recurrent geometric memory is the completed mechanical checkpoint under
-[#973](https://github.com/UOR-Foundation/uor-r4/issues/973). The current stage
-is sparse geometric attention. #954 and the old capability chain remain
+Fixed recurrent memory and sparse geometric attention are completed mechanical
+checkpoints under [#973](https://github.com/UOR-Foundation/uor-r4/issues/973).
+The current stage is the nonlinear geometric block. #954 and the old capability chain remain
 historical issue structure; they do not insert a proof or bookkeeping campaign
 between these build stages.
 
@@ -94,6 +94,16 @@ future, or forbidden reads.
 This is measured mechanism behavior. It does not establish better language,
 long-context retention, geometric advantage, architectural alpha, or
 table-native execution. The trained RoPE limit remains 120 positions.
+
+`R4SparseGeometricCandidateSoftmaxKVBindingV1` now ranks the fixed twelve-slot
+metadata directory with exact H4 inverse/product/root witnesses, admits at most
+eight persistent records plus current, and only then gathers K/V for unchanged
+learned Q/K softmax. On the same two no-fit prompts, peak attention sources fell
+from 13 to 9 and aggregate materialized scores fell from 3,824 to 3,240. The
+geometric set differed from age-only on 33/35 sparse decisions and admitted 55
+summary records. Common generated prefixes against the fixed recurrent path
+were 12 and 3 tokens. This completes the sparse mechanical checkpoint while
+leaving useful retrieval and geometric advantage unestablished.
 
 ## Research reservoirs
 

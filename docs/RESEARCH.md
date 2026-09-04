@@ -7,12 +7,12 @@ implementation is fixed recurrent memory → sparse geometric attention →
 nonlinear geometric block → scale/data/instruction → retrieval/tools → product alpha
 → Rust/table lowering → release proof/evidence/QA.
 
-**Current measured mechanism:** `R4FixedRecurrentCausalKVBindingV1` uses eight
-exact live K/V records and four H4-local chronological summary banks. It keeps
-2,304 f32 K/V values (9,216 bytes) independent of processed sequence length,
-versus 23,040 values (92,160 bytes) in the 120-token full-cache comparator. A
-focused execution check is bit-exact with the comparator through the decision
-that causes the first post-read eviction.
+**Current measured mechanism:** `R4SparseGeometricCandidateSoftmaxKVBindingV1`
+uses the accepted eight-live/four-summary recurrent state. It ranks only source
+metadata by exact signed-S3 shell and full-H4-root diversity, admits at most
+eight persistent records plus current, and gathers K/V only after selection.
+The recurrent state remains 2,304 f32 values (9,216 bytes), and the learned Q/K
+softmax reader remains the bounded comparator inside the admitted set.
 
 The frozen full-prompt seed-9738, top-k-40, 16-token no-fit comparison observed:
 
@@ -23,13 +23,15 @@ The frozen full-prompt seed-9738, top-k-40, 16-token no-fit comparison observed:
   `he put it with` versus recurrent `and and a time`; 20 evictions, 80 summary
   reads, 18 merges.
 
-Both recurrent executions stayed within 13 attention sources and made zero
-teacher, provider, future, or forbidden reads. This establishes bounded
-read-before-write compression and executable post-eviction summary use. It does
-not establish language improvement, long-context retention, geometric
+The sparse successor stayed within nine attention sources and made zero
+complete-prefix scans, omitted-payload reads, teacher, provider, future, or
+forbidden reads. Against the fixed recurrent arm, its common generated prefixes
+were 12 tokens for the turtle prompt and 3 for Einstein; aggregate materialized
+scores fell 15.27%. This establishes bounded pre-read geometric admission, not
+useful retrieval, language improvement, long-context retention, geometric
 advantage, architectural alpha, or table-native execution. RoPE still limits
-the reference to 120 positions. The next implementation is sparse geometric
-attention.
+the reference to 120 positions. The next implementation is the nonlinear
+geometric block.
 
 Historical positive, negative, and unavailable results below retain their exact
 scope. A negative binds its artifact/population/operator/controls/budget and may

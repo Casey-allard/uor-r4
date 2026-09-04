@@ -81,6 +81,13 @@ class FixedRecurrentKVBindingAudit:
     vocabulary_scores: int
     source_reads: int
     peak_attention_source_slots: int
+    eligible_persistent_source_slots: int
+    selected_persistent_source_slots: int
+    geometric_shell_evaluations: int
+    pairwise_shell_evaluations: int
+    candidate_cost_comparisons: int
+    unselected_key_value_reads: int
+    complete_prefix_scans: int
     provider_calls: int = 0
     teacher_calls: int = 0
     future_reads: int = 0
@@ -117,6 +124,13 @@ class FixedRecurrentKVBindingAudit:
                 "value_reads",
                 "vocabulary_scores",
                 "source_reads",
+                "eligible_persistent_source_slots",
+                "selected_persistent_source_slots",
+                "geometric_shell_evaluations",
+                "pairwise_shell_evaluations",
+                "candidate_cost_comparisons",
+                "unselected_key_value_reads",
+                "complete_prefix_scans",
                 "provider_calls",
                 "teacher_calls",
                 "future_reads",
@@ -165,6 +179,35 @@ class FixedRecurrentKVStepOutput:
     audit: FixedRecurrentKVBindingAudit
     # [layers,batch,heads,MAXIMUM_READ_SOURCES]
     attention_weights: Tensor
+    candidate_selection: FixedRecurrentCandidateSelection | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class FixedRecurrentCandidateSelection:
+    """Persistent metadata selected once for one causal token.
+
+    Physical slots 0..3 name summary banks and 4..11 name live-array slots.
+    K/V tensors are deliberately absent: selection must finish before a layer
+    gathers, transports, or scores any source state.
+    """
+
+    source_slots: Tensor
+    source_kind_codes: Tensor
+    source_positions: Tensor
+    source_represented_counts: Tensor
+    source_frame_indices: Tensor
+    relative_frame_indices: Tensor
+    query_shell_indices: Tensor
+    selection_ranks: Tensor
+    minimum_pairwise_shell_indices: Tensor
+    current_frame_indices: Tensor
+    current_position: int
+    eligible_persistent_sources: int
+    age_only_source_slots: Tensor | None = None
+    pairwise_shell_evaluations: int = 0
+    candidate_cost_comparisons: int = 0
+    pairwise_shell_evaluations_by_batch: Tensor | None = None
+    candidate_cost_comparisons_by_batch: Tensor | None = None
 
 
 @dataclass(slots=True)
@@ -181,6 +224,9 @@ class R4FixedRecurrentCausalKVBindingV1(
     R4PositionPreservingCausalKVBindingV1
 ):
     """Accepted ordinary weights with bounded hierarchical H4 K/V memory."""
+
+    POLICY_NAME = POLICY
+    MAXIMUM_ATTENTION_SOURCES = MAXIMUM_READ_SOURCES
 
     def __init__(
         self,
@@ -215,10 +261,12 @@ class R4FixedRecurrentCausalKVBindingV1(
     def recurrent_metadata_i64_value_count() -> int:
         return RECURRENT_METADATA_I64_VALUES
 
-    @staticmethod
-    def _empty_recurrent_audit(batch_size: int) -> FixedRecurrentKVBindingAudit:
+    @classmethod
+    def _empty_recurrent_audit(
+        cls, batch_size: int
+    ) -> FixedRecurrentKVBindingAudit:
         return FixedRecurrentKVBindingAudit(
-            policy=POLICY,
+            policy=cls.POLICY_NAME,
             batch_size=batch_size,
             token_steps=0,
             layers=LAYERS,
@@ -241,6 +289,13 @@ class R4FixedRecurrentCausalKVBindingV1(
             vocabulary_scores=0,
             source_reads=0,
             peak_attention_source_slots=0,
+            eligible_persistent_source_slots=0,
+            selected_persistent_source_slots=0,
+            geometric_shell_evaluations=0,
+            pairwise_shell_evaluations=0,
+            candidate_cost_comparisons=0,
+            unselected_key_value_reads=0,
+            complete_prefix_scans=0,
         )
 
     def initial_recurrent_state(
@@ -475,8 +530,21 @@ class R4FixedRecurrentCausalKVBindingV1(
         ):
             if not bool(torch.isfinite(tensor).all()):
                 raise ValueError("fixed-recurrent state contains a non-finite value")
-        if state.audit.policy != POLICY or state.audit.batch_size != batch_size:
+        if (
+            state.audit.policy != self.POLICY_NAME
+            or state.audit.batch_size != batch_size
+        ):
             raise ValueError("fixed-recurrent audit policy differs")
+
+    def _select_persistent_candidates(
+        self,
+        state: FixedRecurrentKVState,
+        current_frames: Tensor,
+    ) -> FixedRecurrentCandidateSelection | None:
+        """Return ``None`` for the accepted all-source comparator."""
+
+        del state, current_frames
+        return None
 
     def _model_to_local(self, values: Tensor, frame_indices: Tensor) -> Tensor:
         frames = self._frames(frame_indices, dtype=values.dtype)
@@ -602,6 +670,127 @@ class R4FixedRecurrentCausalKVBindingV1(
                 summary_last_positions[batch_offset, bank] = carry_last_position
         return bank_updates, merges, transported_blocks
 
+    def _selected_r4_attention(
+        self,
+        query: Tensor,
+        current_key: Tensor,
+        current_value: Tensor,
+        state: FixedRecurrentKVState,
+        layer_offset: int,
+        current_frames: Tensor,
+        score_gains: Tensor,
+        selection: FixedRecurrentCandidateSelection,
+    ) -> tuple[Tensor, Tensor, int, int, int]:
+        """Apply unchanged Q/K softmax after metadata-only sparse admission."""
+
+        batch_size = int(query.shape[0])
+        selected_count = int(selection.source_slots.shape[1])
+        selected_keys_local = torch.empty(
+            batch_size,
+            HEADS,
+            selected_count,
+            HEAD_DIM,
+            device=query.device,
+            dtype=torch.float32,
+        )
+        selected_values_local = torch.empty_like(selected_keys_local)
+
+        # Gather only admitted slots. Summary tensors are already local to their
+        # named H4 frames; live tensors enter that local frame after selection.
+        for batch_offset in range(batch_size):
+            for selected_offset, physical_slot in enumerate(
+                selection.source_slots[batch_offset].tolist()
+            ):
+                frame = selection.source_frame_indices[
+                    batch_offset, selected_offset
+                ]
+                if physical_slot < SUMMARY_BANKS:
+                    key_local = state.summary_keys_local[
+                        layer_offset, batch_offset, :, physical_slot, :
+                    ].float()
+                    value_local = state.summary_values_local[
+                        layer_offset, batch_offset, :, physical_slot, :
+                    ].float()
+                else:
+                    live_offset = physical_slot - SUMMARY_BANKS
+                    key_local = self._model_to_local(
+                        state.live_keys[
+                            layer_offset, batch_offset, :, live_offset, :
+                        ].float(),
+                        frame,
+                    )
+                    value_local = self._model_to_local(
+                        state.live_values[
+                            layer_offset, batch_offset, :, live_offset, :
+                        ].float(),
+                        frame,
+                    )
+                selected_keys_local[
+                    batch_offset, :, selected_offset, :
+                ] = key_local
+                selected_values_local[
+                    batch_offset, :, selected_offset, :
+                ] = value_local
+
+        current_key_local = self._model_to_local(current_key.float(), current_frames)
+        current_value_local = self._model_to_local(
+            current_value.float(), current_frames
+        )
+        source_keys_local = torch.cat(
+            (selected_keys_local, current_key_local.unsqueeze(2)), dim=2
+        )
+        source_values_local = torch.cat(
+            (selected_values_local, current_value_local.unsqueeze(2)), dim=2
+        )
+        source_frames = torch.cat(
+            (selection.source_frame_indices, current_frames.unsqueeze(1)), dim=1
+        )
+
+        current_frame_matrices = self._frames(current_frames, dtype=torch.float32)
+        source_frame_matrices = self._frames(source_frames, dtype=torch.float32)
+        transport = torch.einsum(
+            "bji,bsjk->bsik", current_frame_matrices, source_frame_matrices
+        )
+        query_local = torch.einsum(
+            "bji,bhdj->bhdi",
+            current_frame_matrices,
+            self._r4_blocks(query.float()),
+        )
+        transported_keys = torch.einsum(
+            "bsij,bhsdj->bhsdi",
+            transport,
+            self._r4_blocks(source_keys_local),
+        )
+        scores = torch.einsum("bhdi,bhsdi->bhs", query_local, transported_keys)
+        scores = scores / math.sqrt(HEAD_DIM)
+        scores = scores * score_gains.exp().view(1, -1, 1)
+        weights = torch.softmax(scores, dim=-1, dtype=torch.float32)
+
+        transported_values = torch.einsum(
+            "bsij,bhsdj->bhsdi",
+            transport,
+            self._r4_blocks(source_values_local),
+        )
+        attended_local = torch.einsum(
+            "bhs,bhsdi->bhdi", weights, transported_values
+        )
+        attended_model = torch.einsum(
+            "bij,bhdj->bhdi", current_frame_matrices, attended_local
+        )
+        summary_sources = int(
+            torch.count_nonzero(selection.source_kind_codes == 0)
+        )
+        live_sources = int(
+            torch.count_nonzero(selection.source_kind_codes == 1)
+        )
+        return (
+            self._from_r4_blocks(attended_model).to(query.dtype),
+            weights,
+            summary_sources + live_sources + batch_size,
+            live_sources,
+            summary_sources,
+        )
+
     def _fixed_r4_attention(
         self,
         query: Tensor,
@@ -611,8 +800,24 @@ class R4FixedRecurrentCausalKVBindingV1(
         layer_offset: int,
         current_frames: Tensor,
         score_gains: Tensor,
+        candidate_selection: FixedRecurrentCandidateSelection | None = None,
     ) -> tuple[Tensor, Tensor, int, int, int]:
         batch_size = int(query.shape[0])
+        if (
+            candidate_selection is not None
+            and candidate_selection.source_slots.numel()
+            < candidate_selection.eligible_persistent_sources
+        ):
+            return self._selected_r4_attention(
+                query,
+                current_key,
+                current_value,
+                state,
+                layer_offset,
+                current_frames,
+                score_gains,
+                candidate_selection,
+            )
         summary_order = torch.arange(
             SUMMARY_BANKS - 1,
             -1,
@@ -785,6 +990,9 @@ class R4FixedRecurrentCausalKVBindingV1(
         current_frames = self.frame_multiplication[
             state.current_frame_indices, leaves
         ]
+        candidate_selection = self._select_persistent_candidates(
+            state, current_frames
+        )
         values = self.token_embedding(token_ids)
         current_keys: list[Tensor] = []
         current_values: list[Tensor] = []
@@ -811,6 +1019,7 @@ class R4FixedRecurrentCausalKVBindingV1(
                     layer_offset,
                     current_frames,
                     layer.log_score_gains,
+                    candidate_selection,
                 )
             )
             admitted_sources_total += admitted
@@ -824,7 +1033,7 @@ class R4FixedRecurrentCausalKVBindingV1(
             padded_weights = torch.zeros(
                 batch_size,
                 HEADS,
-                MAXIMUM_READ_SOURCES,
+                self.MAXIMUM_ATTENTION_SOURCES,
                 device=weights.device,
                 dtype=weights.dtype,
             )
@@ -882,11 +1091,31 @@ class R4FixedRecurrentCausalKVBindingV1(
         summary_scores = summary_sources_total * HEADS
         current_scores = batch_size * LAYERS * HEADS
         materialized = admitted_scores
-        peak_sources = state.live_length + int(
+        eligible_per_batch = state.live_length + int(
             torch.count_nonzero(state.summary_counts[0])
-        ) + 1
+        )
+        if candidate_selection is None:
+            eligible_slots = batch_size * eligible_per_batch
+            selected_slots = eligible_slots
+            shell_evaluations = 0
+            pairwise_shell_evaluations = 0
+            candidate_cost_comparisons = 0
+            peak_sources = eligible_per_batch + 1
+        else:
+            eligible_slots = candidate_selection.eligible_persistent_sources
+            selected_slots = int(candidate_selection.source_slots.numel())
+            shell_evaluations = eligible_slots
+            pairwise_shell_evaluations = (
+                candidate_selection.pairwise_shell_evaluations
+            )
+            candidate_cost_comparisons = (
+                candidate_selection.candidate_cost_comparisons
+            )
+            peak_sources = (
+                int(candidate_selection.source_slots.shape[1]) + 1
+            )
         call_audit = FixedRecurrentKVBindingAudit(
-            policy=POLICY,
+            policy=self.POLICY_NAME,
             batch_size=batch_size,
             token_steps=batch_size,
             layers=LAYERS,
@@ -911,6 +1140,13 @@ class R4FixedRecurrentCausalKVBindingV1(
             vocabulary_scores=batch_size * VOCAB_SIZE,
             source_reads=batch_size,
             peak_attention_source_slots=peak_sources,
+            eligible_persistent_source_slots=eligible_slots,
+            selected_persistent_source_slots=selected_slots,
+            geometric_shell_evaluations=shell_evaluations,
+            pairwise_shell_evaluations=pairwise_shell_evaluations,
+            candidate_cost_comparisons=candidate_cost_comparisons,
+            unselected_key_value_reads=0,
+            complete_prefix_scans=0,
         )
         cumulative = state.audit.accumulated_with(call_audit)
         final_state = FixedRecurrentKVState(
@@ -936,6 +1172,7 @@ class R4FixedRecurrentCausalKVBindingV1(
             final_state=final_state,
             audit=call_audit,
             attention_weights=torch.stack(layer_weights, dim=0),
+            candidate_selection=candidate_selection,
         )
 
     @staticmethod

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+import copy
 import unittest
 from types import SimpleNamespace
 
@@ -30,6 +31,12 @@ from r4_softmax_trainer.language_path_generalization import (
 from r4_softmax_trainer.position_kv_binding import (
     R4PositionPreservingCausalKVBindingV1,
 )
+from r4_softmax_trainer.sparse_geometric_kv_binding import (
+    MAXIMUM_READ_SOURCES as SPARSE_MAXIMUM_READ_SOURCES,
+    PERSISTENT_CANDIDATE_BUDGET,
+    POLICY as SPARSE_POLICY,
+    R4SparseGeometricCandidateSoftmaxKVBindingV1,
+)
 
 
 def _geometry_and_frames() -> tuple[GroupAddressArtifact, SimpleNamespace]:
@@ -52,11 +59,35 @@ def _geometry_and_frames() -> tuple[GroupAddressArtifact, SimpleNamespace]:
     matrices[:, 1, 0] = torch.sin(angles)
     matrices[:, 1, 1] = torch.cos(angles)
     permutation = torch.arange(order, dtype=torch.long)
+    inverses = (-elements) % order
+    scalar_shells = (
+        (2, 0),
+        (0, 1),
+        (1, 0),
+        (-1, 1),
+        (0, 0),
+        (1, -1),
+        (-1, 0),
+        (0, -1),
+        (-2, 0),
+    )
+    roots = tuple(
+        (
+            scalar_shells[offset % len(scalar_shells)],
+            ((offset % 3) - 1, 0),
+            (0, (offset % 2)),
+            ((offset % 5) - 2, 1),
+        )
+        for offset in range(order)
+    )
+    roots = (((2, 0), (0, 0), (0, 0), (0, 0)), *roots[1:])
     frames = SimpleNamespace(
         frame_matrices=matrices,
         multiplication_indices=table,
+        inverse_indices=inverses,
         transport_permutation=permutation,
         identity_index=0,
+        root_coordinates=roots,
         artifact_cid="synthetic:fixed-recurrent-frames",
     )
     return geometry, frames
@@ -202,6 +233,138 @@ class FixedRecurrentKVBindingTests(unittest.TestCase):
         ).initial_state(1, execution="r4")
         with self.assertRaisesRegex(TypeError, "FixedRecurrentKVState"):
             model.step(tokens[:, 0], exact_state)
+
+    def test_sparse_geometry_selects_before_payload_reads(self) -> None:
+        torch.manual_seed(1_122)
+        geometry, frames = _geometry_and_frames()
+        source = R4PositionPreservingCausalKVBindingV1(  # type: ignore[arg-type]
+            geometry, frames
+        )
+        artifact = source.export_learned_artifact()
+        fixed = R4FixedRecurrentCausalKVBindingV1.from_learned_artifact(
+            artifact, geometry=geometry, frames=frames
+        )
+        sparse = (
+            R4SparseGeometricCandidateSoftmaxKVBindingV1.from_learned_artifact(
+                artifact, geometry=geometry, frames=frames
+            )
+        )
+        fixed.eval()
+        sparse.eval()
+
+        self.assertEqual(
+            SPARSE_POLICY, "R4SparseGeometricCandidateSoftmaxKVBindingV1"
+        )
+        self.assertEqual(PERSISTENT_CANDIDATE_BUDGET, LIVE_WINDOW)
+        self.assertEqual(SPARSE_MAXIMUM_READ_SOURCES, LIVE_WINDOW + 1)
+        self.assertEqual(sparse.parameter_count(), PARAMETER_COUNT)
+        self.assertEqual(sparse.export_learned_artifact(), artifact)
+
+        fixed_state = fixed.initial_state(1)
+        sparse_state = sparse.initial_state(1)
+        tokens = torch.tensor([0, 1, 7, 3, 9, 2, 12, 4, 8], dtype=torch.long)
+        with torch.inference_mode():
+            for token in tokens:
+                fixed_output = fixed.step(token.view(1), fixed_state)
+                sparse_output = sparse.step(token.view(1), sparse_state)
+                self.assertTrue(torch.equal(fixed_output.logits, sparse_output.logits))
+                admitted = fixed_state.live_length + int(
+                    torch.count_nonzero(fixed_state.summary_counts[0])
+                ) + 1
+                self.assertTrue(
+                    torch.equal(
+                        fixed_output.attention_weights[..., :admitted],
+                        sparse_output.attention_weights[..., :admitted],
+                    )
+                )
+                fixed_state = fixed_output.final_state
+                sparse_state = sparse_output.final_state
+
+        self.assertEqual(sparse_state.tokens_seen, LIVE_WINDOW + 1)
+        self.assertEqual(int(sparse_state.summary_counts.sum()), 1)
+        next_token = torch.tensor([5], dtype=torch.long)
+        pristine = copy.deepcopy(sparse_state)
+        with torch.inference_mode():
+            baseline = sparse.step(next_token, pristine)
+        selection = baseline.candidate_selection
+        self.assertIsNotNone(selection)
+        assert selection is not None
+        self.assertEqual(selection.eligible_persistent_sources, 9)
+        self.assertEqual(selection.source_slots.numel(), LIVE_WINDOW)
+        self.assertEqual(selection.pairwise_shell_evaluations, 36)
+        self.assertEqual(tuple(baseline.attention_weights.shape), (LAYERS, 1, HEADS, 9))
+        self.assertEqual(baseline.audit.eligible_persistent_source_slots, 9)
+        self.assertEqual(baseline.audit.selected_persistent_source_slots, 8)
+        self.assertEqual(baseline.audit.materialized_attention_scores, 72)
+        self.assertEqual(baseline.audit.unselected_key_value_reads, 0)
+        self.assertEqual(baseline.audit.complete_prefix_scans, 0)
+        self.assertEqual(baseline.audit.peak_attention_source_slots, 9)
+
+        all_slots = set(range(SUMMARY_BANKS)) | set(
+            range(SUMMARY_BANKS, SUMMARY_BANKS + sparse_state.live_length)
+        )
+        occupied_slots = {
+            bank
+            for bank in range(SUMMARY_BANKS)
+            if int(sparse_state.summary_counts[0, bank]) > 0
+        } | set(range(SUMMARY_BANKS, SUMMARY_BANKS + sparse_state.live_length))
+        self.assertEqual(all_slots & occupied_slots, occupied_slots)
+        selected_slots = set(selection.source_slots[0].tolist())
+        unselected_slots = occupied_slots - selected_slots
+        self.assertEqual(len(unselected_slots), 1)
+
+        omitted_state = copy.deepcopy(sparse_state)
+        omitted_slot = unselected_slots.pop()
+        if omitted_slot < SUMMARY_BANKS:
+            omitted_state.summary_keys_local[..., omitted_slot, :].add_(10_000.0)
+            omitted_state.summary_values_local[..., omitted_slot, :].add_(10_000.0)
+        else:
+            live_offset = omitted_slot - SUMMARY_BANKS
+            omitted_state.live_keys[..., live_offset, :].add_(10_000.0)
+            omitted_state.live_values[..., live_offset, :].add_(10_000.0)
+        with torch.inference_mode():
+            omitted_output = sparse.step(next_token, omitted_state)
+        self.assertTrue(torch.equal(baseline.logits, omitted_output.logits))
+
+        selected_state = copy.deepcopy(sparse_state)
+        selected_slot = next(iter(selected_slots))
+        if selected_slot < SUMMARY_BANKS:
+            selected_state.summary_values_local[..., selected_slot, :].add_(100.0)
+        else:
+            live_offset = selected_slot - SUMMARY_BANKS
+            selected_state.live_values[..., live_offset, :].add_(100.0)
+        with torch.inference_mode():
+            selected_output = sparse.step(next_token, selected_state)
+        self.assertFalse(torch.equal(baseline.logits, selected_output.logits))
+
+        trace = sparse.describe_candidate_selection(selection)
+        self.assertEqual(trace["eligible_persistent_sources"], 9)
+        self.assertEqual(trace["selected_persistent_sources"], 8)
+        self.assertEqual(trace["admitted_sources_including_current"], 9)
+        self.assertEqual(trace["admitted"][-1]["source_kind"], "current")
+        for source_trace in trace["admitted"]:
+            self.assertEqual(len(source_trace["relative_root_z_phi_over_2"]), 4)
+            self.assertFalse(source_trace["heatmap_trace"]["used_for_admission"])
+        ranked = sorted(
+            trace["admitted"][:-1], key=lambda item: item["selection_rank"]
+        )
+        self.assertEqual(
+            [item["query_shell_degrees"] for item in ranked],
+            sorted(item["query_shell_degrees"] for item in ranked),
+        )
+        current_frame = int(selection.current_frame_indices[0])
+        for item in ranked:
+            source_frame = item["source_frame_index"]
+            expected_relative = int(
+                frames.multiplication_indices[
+                    frames.inverse_indices[source_frame], current_frame
+                ]
+            )
+            self.assertEqual(item["relative_frame_index"], expected_relative)
+            self.assertEqual(
+                item["relative_root_z_phi_over_2"],
+                [list(pair) for pair in frames.root_coordinates[expected_relative]],
+            )
 
 
 if __name__ == "__main__":

@@ -118,6 +118,9 @@ from .position_r4_language_generation import generate_position_r4_language_path
 from .fixed_recurrent_r4_language_generation import (
     generate_fixed_recurrent_r4_language_path,
 )
+from .sparse_geometric_r4_language_generation import (
+    generate_sparse_geometric_r4_language_path,
+)
 from .role_tagged_associative_development import (
     preflight_role_tagged_associative_development,
     prepare_role_tagged_associative_development,
@@ -755,6 +758,35 @@ def parser() -> argparse.ArgumentParser:
         action="store_true",
         help="emit artifact, recurrent-state, token, and execution details",
     )
+    generate_sparse_geometric = subcommands.add_parser(
+        "generate-sparse-geometric-r4-language-path",
+        help=(
+            "continue one prompt through #973's ordinary weights with bounded "
+            "H4 candidate admission over fixed recurrent memory"
+        ),
+    )
+    generate_sparse_geometric.add_argument("--prompt", required=True)
+    generate_sparse_geometric.add_argument(
+        "--geometry",
+        type=_root,
+        default=default_language_path_geometry(),
+        help="canonical exact-H4 group geometry",
+    )
+    generate_sparse_geometric.add_argument(
+        "--h4-sidecar",
+        type=_root,
+        default=default_predictive_block_delta_frame_sidecar(),
+        help="validated H4 frame sidecar used for candidate admission and transport",
+    )
+    generate_sparse_geometric.add_argument(
+        "--max-new-tokens", type=int, default=16
+    )
+    generate_sparse_geometric.add_argument("--seed", type=int, default=9_738)
+    generate_sparse_geometric.add_argument(
+        "--json",
+        action="store_true",
+        help="emit artifact, candidate-trace, token, and execution details",
+    )
     prepare_paired_h4 = subcommands.add_parser(
         "prepare-paired-h4-prompt-capacity",
         help=(
@@ -1250,6 +1282,7 @@ def main() -> None:
         "generate-ordinary-language-path",
         "generate-position-r4-language-path",
         "generate-fixed-recurrent-r4-language-path",
+        "generate-sparse-geometric-r4-language-path",
     }
     paired_h4_prompt_capacity_commands = {
         "prepare-paired-h4-prompt-capacity",
@@ -1631,6 +1664,20 @@ def main() -> None:
         return
     if arguments.command == "generate-fixed-recurrent-r4-language-path":
         result = generate_fixed_recurrent_r4_language_path(
+            root,
+            geometry_path=arguments.geometry,
+            frame_path=arguments.h4_sidecar,
+            prompt=arguments.prompt,
+            max_new_tokens=arguments.max_new_tokens,
+            seed=arguments.seed,
+        )
+        if arguments.json:
+            _print_result(result)
+        else:
+            print(result["text"])
+        return
+    if arguments.command == "generate-sparse-geometric-r4-language-path":
+        result = generate_sparse_geometric_r4_language_path(
             root,
             geometry_path=arguments.geometry,
             frame_path=arguments.h4_sidecar,

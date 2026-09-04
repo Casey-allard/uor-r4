@@ -242,14 +242,17 @@ These are workflow templates, not newly activated recurring schedules. No backgr
 
 ## 8. Current delivery and next action
 
-The fixed recurrent mechanical checkpoint is implemented under #973 and retains
-its raw no-fit comparison outside Git under the repository's `.uor-models`
-store. The next
-implementation is the first versioned sparse geometric-attention successor:
-select and read a bounded geometric candidate set without a complete-prefix
-scan, retaining the full-cache and fixed-recurrent paths as comparators. Compare
-the same two prompt trajectories before fitting. Use a small open-data retention
-probe only if the direct runs expose a concrete selector decision.
+The sparse geometric mechanical checkpoint is implemented under #973 and
+retains its raw no-fit comparison outside Git under the repository's
+`.uor-models` store. It admits at most eight persistent records plus current
+from the fixed recurrent state and gathers no omitted K/V payload. The two
+frozen prompts shared 12 and 3 generated tokens with the fixed recurrent
+comparator, so bounded execution is measured while useful retrieval remains
+unestablished.
 
-Do not start the nonlinear block, scale campaign, workbench, final lowering, or
-release proof/QA in that same task.
+The next implementation is one versioned nonlinear geometric block. Retain the
+sparse reader and dense SwiGLU block as comparators, define an explicit finite
+R4 state map, nonlinearity, residual/readout and cost, and execute one direct
+prompt comparison before scale work. Keep E8/R8 separately typed unless an
+explicit bridge is implemented. Do not start scale, workbench, final lowering,
+or release proof/QA in that same task.

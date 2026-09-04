@@ -7,20 +7,20 @@ checkpoint definitions are in [project-track.md](project-track.md). Live
 model work.
 
 The old artifact-only pre-alpha condition is complete. The accepted #1119
-comparator preserves full chronological K/V through exact H4 transport.
-`R4FixedRecurrentCausalKVBindingV1` is the next executed mechanical
-checkpoint: eight exact live records, four H4-local summary banks, and a fixed
-2,304-value / 9,216-byte f32 K/V ledger. In the frozen full-prompt no-fit
-two-prompt
-comparison, both runs evicted and later read summaries;
-`A purple turtle found a clock in the garden` and
-`Albert Einstein was born in` each shared 12 generated tokens with the
-full-cache reference.
-This measures the bounded mechanism, not quality, long-context retention,
-geometric advantage, architectural alpha, or table-native serving. The RoPE
-limit remains 120.
+comparator preserves full chronological K/V through exact H4 transport, and
+`R4FixedRecurrentCausalKVBindingV1` provides the fixed 2,304-value / 9,216-byte
+f32 K/V ledger.
 
-Sparse geometric attention is next. Broad proofs, evidence ledgers,
+`R4SparseGeometricCandidateSoftmaxKVBindingV1` is the next executed mechanical
+checkpoint. It ranks only the fixed twelve-slot metadata directory by exact
+signed-S3 shell and full-H4-root maximin diversity, admits at most eight
+persistent records, appends current, and gathers K/V only after admission. The
+two frozen no-fit prompts reached at most nine attention sources with zero
+complete-prefix scans or omitted-payload reads. They shared 12 and 3 generated
+tokens respectively with the fixed recurrent comparator; this uneven result is
+mechanism evidence, not useful-retrieval or language-quality evidence.
+
+The nonlinear geometric block is next. Broad proofs, evidence ledgers,
 publication, programme-wide research mapping, and release QA do not sit between
 the build stages. SpiralCore, HELM, W33, NEMESIS, UOR, and H4/zeta sources are
 consulted only for a concrete design seam, with original-source inspection and

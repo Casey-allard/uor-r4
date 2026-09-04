@@ -1,7 +1,7 @@
 {
   "schema": "uor-r4.claim-ledger/1",
   "repository": "UOR-Foundation/uor-r4",
-  "source_revision": "db8682fb762aadc5e87c0afb0d4f1fd01cfc4495",
+  "source_revision": "9cbc14c43248bed9f04b099282f12f866253b115",
   "vocabulary": {
     "source": "formal_vocabulary",
     "role": "Statement class from the normative vocabulary.",
@@ -705,6 +705,55 @@
       "revision": "db8682fb762aadc5e87c0afb0d4f1fd01cfc4495",
       "sha256": "aa199fa8346a1cc0e58b58fb490092910e31a8a8f78a2204d0c915fde4f2a014",
       "evidence_status": "LOCAL_RAW_COMPARISON_OUTSIDE_GIT_SUMMARIZED_IN_NATIVE_ISSUE"
+    },
+    "sparse_recurrent_base_source_973": {
+      "path": "tools/r4-softmax-trainer/src/r4_softmax_trainer/fixed_recurrent_kv_binding.py",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/e93822e944d1a8edfbc314153abc4585f2dcafc5/tools/r4-softmax-trainer/src/r4_softmax_trainer/fixed_recurrent_kv_binding.py",
+      "revision": "e93822e944d1a8edfbc314153abc4585f2dcafc5",
+      "git_blob_oid": "45f9f742b3302e69bca249fe0c49d721237beb62",
+      "evidence_status": "INDEPENDENTLY_REVIEWED_IMPLEMENTATION_SOURCE"
+    },
+    "sparse_selector_source_973": {
+      "path": "tools/r4-softmax-trainer/src/r4_softmax_trainer/sparse_geometric_kv_binding.py",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/e93822e944d1a8edfbc314153abc4585f2dcafc5/tools/r4-softmax-trainer/src/r4_softmax_trainer/sparse_geometric_kv_binding.py",
+      "revision": "e93822e944d1a8edfbc314153abc4585f2dcafc5",
+      "git_blob_oid": "8e38b58b4c95aa95d1821c180229fc2164039be5",
+      "evidence_status": "INDEPENDENTLY_REVIEWED_IMPLEMENTATION_SOURCE"
+    },
+    "sparse_generation_source_973": {
+      "path": "tools/r4-softmax-trainer/src/r4_softmax_trainer/sparse_geometric_r4_language_generation.py",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/e93822e944d1a8edfbc314153abc4585f2dcafc5/tools/r4-softmax-trainer/src/r4_softmax_trainer/sparse_geometric_r4_language_generation.py",
+      "revision": "e93822e944d1a8edfbc314153abc4585f2dcafc5",
+      "git_blob_oid": "63afe85c8c9fa1e7b69c5a7a5a43f1f5c5ed8358",
+      "evidence_status": "SOURCE_BACKED_GENERATION_PATH"
+    },
+    "sparse_focused_test_973": {
+      "path": "tools/r4-softmax-trainer/tests/test_fixed_recurrent_kv_binding.py",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/e93822e944d1a8edfbc314153abc4585f2dcafc5/tools/r4-softmax-trainer/tests/test_fixed_recurrent_kv_binding.py",
+      "revision": "e93822e944d1a8edfbc314153abc4585f2dcafc5",
+      "git_blob_oid": "92f6e04c9277acb0eb46ec2ea6bfe0637d311c46",
+      "evidence_status": "FOCUSED_MECHANISM_REGRESSION_TEST"
+    },
+    "sparse_record_973": {
+      "path": "docs/r4_sparse_geometric_attention_973.md",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/9cbc14c43248bed9f04b099282f12f866253b115/docs/r4_sparse_geometric_attention_973.md",
+      "revision": "9cbc14c43248bed9f04b099282f12f866253b115",
+      "git_blob_oid": "6d9bc377855fb3938287aa4b3e368d7cc2c05857",
+      "evidence_status": "MEASURED_MECHANISM_RECORD"
+    },
+    "sparse_project_track_973": {
+      "path": "docs/integration/project-track.md",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/9cbc14c43248bed9f04b099282f12f866253b115/docs/integration/project-track.md",
+      "revision": "9cbc14c43248bed9f04b099282f12f866253b115",
+      "git_blob_oid": "df57cb37bd6eabde1143be98324dc4542b61103f",
+      "evidence_status": "PROJECT_AUTHORITY"
+    },
+    "sparse_comparison_summary_973": {
+      "path": ".uor-models/research/issue-973-sparse-geometric-r4-v1/comparison/uor-sparse-geometric-comparison.json",
+      "url": "https://github.com/UOR-Foundation/uor-r4/issues/973",
+      "revision": "e93822e944d1a8edfbc314153abc4585f2dcafc5",
+      "sha256": "d592b5bb9c430a509c465ac8dbb38c706a240fb980df18dee2c4a98ed560d396",
+      "evidence_status": "LOCAL_RAW_COMPARISON_OUTSIDE_GIT_SUMMARIZED_IN_RECORD"
     }
   },
   "artifacts_1079": {
@@ -817,8 +866,8 @@
         "The #1082 construction-only diagnostic now measures role-selective exposure and pooling displacement; it does not establish a downstream causal explanation. The #1079 strong-sensitivity miss remains unchanged and does not falsify primary preservation or establish geometric superiority."
       ],
       "next_action": {
-        "status": "CURRENT_STAGE_SPARSE_GEOMETRIC_ATTENTION",
-        "scope": "After protected #1120 delivered fixed recurrent R4 memory, implement one versioned bounded geometric candidate selector over its eight live records and four summary banks. Compare admitted sources and frozen-prompt trajectories with the accepted recurrent softmax reader before fitting. #1084 and #1091 remain nonblocking reservoirs rather than scheduled qualification or proof gates.",
+        "status": "CURRENT_STAGE_NONLINEAR_GEOMETRIC_BLOCK",
+        "scope": "Implement one versioned finite R4 nonlinear operator block under #973 while retaining R4SparseGeometricCandidateSoftmaxKVBindingV1 and the dense SwiGLU block as comparators. Define the state map, nonlinearity, residual/readout and bounded cost, then run one direct no-fit prompt comparison before scale work.",
         "issue_urls": [
           "https://github.com/UOR-Foundation/uor-r4/issues/973"
         ]
@@ -848,8 +897,8 @@
         "#1079 evaluated already-observed controlled-language rows with supplied clause boundaries; it did not run general generation or coding. This is absence of qualification, not evidence that those future capabilities are impossible."
       ],
       "next_action": {
-        "status": "CURRENT_STAGE_SPARSE_GEOMETRIC_ATTENTION",
-        "scope": "After protected #1120 delivered fixed recurrent R4 memory, implement one versioned bounded geometric candidate selector over its eight live records and four summary banks. Compare admitted sources and frozen-prompt trajectories with the accepted recurrent softmax reader before fitting. #1084 and #1091 remain nonblocking reservoirs rather than scheduled qualification or proof gates.",
+        "status": "CURRENT_STAGE_NONLINEAR_GEOMETRIC_BLOCK",
+        "scope": "Implement one versioned finite R4 nonlinear operator block under #973 while retaining R4SparseGeometricCandidateSoftmaxKVBindingV1 and the dense SwiGLU block as comparators. Define the state map, nonlinearity, residual/readout and bounded cost, then run one direct no-fit prompt comparison before scale work.",
         "issue_urls": [
           "https://github.com/UOR-Foundation/uor-r4/issues/973"
         ]
@@ -983,8 +1032,8 @@
         "Numerical bound and replay checks are not a universal floating-point refinement proof."
       ],
       "next_action": {
-        "status": "CURRENT_STAGE_SPARSE_GEOMETRIC_ATTENTION",
-        "scope": "After protected #1120 delivered fixed recurrent R4 memory, implement one versioned bounded geometric candidate selector over its eight live records and four summary banks. Compare admitted sources and frozen-prompt trajectories with the accepted recurrent softmax reader before fitting. #1084 and #1091 remain nonblocking reservoirs rather than scheduled qualification or proof gates.",
+        "status": "CURRENT_STAGE_NONLINEAR_GEOMETRIC_BLOCK",
+        "scope": "Implement one versioned finite R4 nonlinear operator block under #973 while retaining R4SparseGeometricCandidateSoftmaxKVBindingV1 and the dense SwiGLU block as comparators. Define the state map, nonlinearity, residual/readout and bounded cost, then run one direct no-fit prompt comparison before scale work.",
         "issue_urls": [
           "https://github.com/UOR-Foundation/uor-r4/issues/973"
         ]
@@ -1035,8 +1084,8 @@
         "#973 higher-context and #954 final source-free correctness terminals remain unmet."
       ],
       "next_action": {
-        "status": "CURRENT_STAGE_SPARSE_GEOMETRIC_ATTENTION",
-        "scope": "After protected #1120 delivered fixed recurrent R4 memory, implement one versioned bounded geometric candidate selector over its eight live records and four summary banks. Compare admitted sources and frozen-prompt trajectories with the accepted recurrent softmax reader before fitting. #1084 and #1091 remain nonblocking reservoirs rather than scheduled qualification or proof gates.",
+        "status": "CURRENT_STAGE_NONLINEAR_GEOMETRIC_BLOCK",
+        "scope": "Implement one versioned finite R4 nonlinear operator block under #973 while retaining R4SparseGeometricCandidateSoftmaxKVBindingV1 and the dense SwiGLU block as comparators. Define the state map, nonlinearity, residual/readout and bounded cost, then run one direct no-fit prompt comparison before scale work.",
         "issue_urls": [
           "https://github.com/UOR-Foundation/uor-r4/issues/973"
         ]
@@ -1100,8 +1149,8 @@
         "Recorded worker RSS zero indicates no worker resource receipt; it is not a successful worker measurement."
       ],
       "next_action": {
-        "status": "CURRENT_STAGE_SPARSE_GEOMETRIC_ATTENTION",
-        "scope": "After protected #1120 delivered fixed recurrent R4 memory, implement one versioned bounded geometric candidate selector over its eight live records and four summary banks. Compare admitted sources and frozen-prompt trajectories with the accepted recurrent softmax reader before fitting. #1084 and #1091 remain nonblocking reservoirs rather than scheduled qualification or proof gates.",
+        "status": "CURRENT_STAGE_NONLINEAR_GEOMETRIC_BLOCK",
+        "scope": "Implement one versioned finite R4 nonlinear operator block under #973 while retaining R4SparseGeometricCandidateSoftmaxKVBindingV1 and the dense SwiGLU block as comparators. Define the state map, nonlinearity, residual/readout and bounded cost, then run one direct no-fit prompt comparison before scale work.",
         "issue_urls": [
           "https://github.com/UOR-Foundation/uor-r4/issues/973"
         ]
@@ -1180,8 +1229,8 @@
         "#1079 weak-control and #1082 descriptive results are unchanged; #973 remains open and #954 blocked."
       ],
       "next_action": {
-        "status": "CURRENT_STAGE_SPARSE_GEOMETRIC_ATTENTION",
-        "scope": "After protected #1120 delivered fixed recurrent R4 memory, implement one versioned bounded geometric candidate selector over its eight live records and four summary banks. Compare admitted sources and frozen-prompt trajectories with the accepted recurrent softmax reader before fitting. #1084 and #1091 remain nonblocking reservoirs rather than scheduled qualification or proof gates.",
+        "status": "CURRENT_STAGE_NONLINEAR_GEOMETRIC_BLOCK",
+        "scope": "Implement one versioned finite R4 nonlinear operator block under #973 while retaining R4SparseGeometricCandidateSoftmaxKVBindingV1 and the dense SwiGLU block as comparators. Define the state map, nonlinearity, residual/readout and bounded cost, then run one direct no-fit prompt comparison before scale work.",
         "issue_urls": [
           "https://github.com/UOR-Foundation/uor-r4/issues/973"
         ]
@@ -1235,8 +1284,8 @@
         "Supplied segmentation remains the qualified model entry; #1094 and #973 remain open and #954 blocked."
       ],
       "next_action": {
-        "status": "CURRENT_STAGE_SPARSE_GEOMETRIC_ATTENTION",
-        "scope": "After protected #1120 delivered fixed recurrent R4 memory, implement one versioned bounded geometric candidate selector over its eight live records and four summary banks. Compare admitted sources and frozen-prompt trajectories with the accepted recurrent softmax reader before fitting. #1084 and #1091 remain nonblocking reservoirs rather than scheduled qualification or proof gates.",
+        "status": "CURRENT_STAGE_NONLINEAR_GEOMETRIC_BLOCK",
+        "scope": "Implement one versioned finite R4 nonlinear operator block under #973 while retaining R4SparseGeometricCandidateSoftmaxKVBindingV1 and the dense SwiGLU block as comparators. Define the state map, nonlinearity, residual/readout and bounded cost, then run one direct no-fit prompt comparison before scale work.",
         "issue_urls": [
           "https://github.com/UOR-Foundation/uor-r4/issues/973"
         ]
@@ -1312,8 +1361,8 @@
         "At this historical assembly checkpoint, supplied clauses remained the qualified model entry, #1079 weak-control and #1082 descriptive findings were unchanged, #1094/#973 were open and #954 was blocked."
       ],
       "next_action": {
-        "status": "CURRENT_STAGE_SPARSE_GEOMETRIC_ATTENTION",
-        "scope": "After protected #1120 delivered fixed recurrent R4 memory, implement one versioned bounded geometric candidate selector over its eight live records and four summary banks. Compare admitted sources and frozen-prompt trajectories with the accepted recurrent softmax reader before fitting. #1084 and #1091 remain nonblocking reservoirs rather than scheduled qualification or proof gates.",
+        "status": "CURRENT_STAGE_NONLINEAR_GEOMETRIC_BLOCK",
+        "scope": "Implement one versioned finite R4 nonlinear operator block under #973 while retaining R4SparseGeometricCandidateSoftmaxKVBindingV1 and the dense SwiGLU block as comparators. Define the state map, nonlinearity, residual/readout and bounded cost, then run one direct no-fit prompt comparison before scale work.",
         "issue_urls": [
           "https://github.com/UOR-Foundation/uor-r4/issues/973"
         ]
@@ -1403,8 +1452,8 @@
         "The 120-second historical charge is a conservative policy debit; the resource snapshot excludes its own write/exit tail. Storage peak is a reconstructed bound, not an instantaneous measurement."
       ],
       "next_action": {
-        "status": "CURRENT_STAGE_SPARSE_GEOMETRIC_ATTENTION",
-        "scope": "After protected #1120 delivered fixed recurrent R4 memory, implement one versioned bounded geometric candidate selector over its eight live records and four summary banks. Compare admitted sources and frozen-prompt trajectories with the accepted recurrent softmax reader before fitting. #1084 and #1091 remain nonblocking reservoirs rather than scheduled qualification or proof gates.",
+        "status": "CURRENT_STAGE_NONLINEAR_GEOMETRIC_BLOCK",
+        "scope": "Implement one versioned finite R4 nonlinear operator block under #973 while retaining R4SparseGeometricCandidateSoftmaxKVBindingV1 and the dense SwiGLU block as comparators. Define the state map, nonlinearity, residual/readout and bounded cost, then run one direct no-fit prompt comparison before scale work.",
         "issue_urls": [
           "https://github.com/UOR-Foundation/uor-r4/issues/973"
         ]
@@ -1549,8 +1598,8 @@
         "The successful ordinary qualify()/serving path remains NOT_RUN; the measured binary exposes research modes, not a service endpoint. Final integer/table lowering remains a separate contract."
       ],
       "next_action": {
-        "status": "CURRENT_STAGE_SPARSE_GEOMETRIC_ATTENTION",
-        "scope": "After protected #1120 delivered fixed recurrent R4 memory, implement one versioned bounded geometric candidate selector over its eight live records and four summary banks. Compare admitted sources and frozen-prompt trajectories with the accepted recurrent softmax reader before fitting. #1084 and #1091 remain nonblocking reservoirs rather than scheduled qualification or proof gates.",
+        "status": "CURRENT_STAGE_NONLINEAR_GEOMETRIC_BLOCK",
+        "scope": "Implement one versioned finite R4 nonlinear operator block under #973 while retaining R4SparseGeometricCandidateSoftmaxKVBindingV1 and the dense SwiGLU block as comparators. Define the state map, nonlinearity, residual/readout and bounded cost, then run one direct no-fit prompt comparison before scale work.",
         "issue_urls": [
           "https://github.com/UOR-Foundation/uor-r4/issues/973"
         ]
@@ -1647,8 +1696,8 @@
         "#1084 remains open for implementation. #1083/#1087 retain separate boundaries; #973 remains open and #954 blocked."
       ],
       "next_action": {
-        "status": "CURRENT_STAGE_SPARSE_GEOMETRIC_ATTENTION",
-        "scope": "After protected #1120 delivered fixed recurrent R4 memory, implement one versioned bounded geometric candidate selector over its eight live records and four summary banks. Compare admitted sources and frozen-prompt trajectories with the accepted recurrent softmax reader before fitting. #1084 and #1091 remain nonblocking reservoirs rather than scheduled qualification or proof gates.",
+        "status": "CURRENT_STAGE_NONLINEAR_GEOMETRIC_BLOCK",
+        "scope": "Implement one versioned finite R4 nonlinear operator block under #973 while retaining R4SparseGeometricCandidateSoftmaxKVBindingV1 and the dense SwiGLU block as comparators. Define the state map, nonlinearity, residual/readout and bounded cost, then run one direct no-fit prompt comparison before scale work.",
         "issue_urls": [
           "https://github.com/UOR-Foundation/uor-r4/issues/973"
         ]
@@ -1702,8 +1751,8 @@
         "#1084 remains open and unassigned. #1083/#1087 retain separate boundaries; #973 remains open and #954 blocked."
       ],
       "next_action": {
-        "status": "CURRENT_STAGE_SPARSE_GEOMETRIC_ATTENTION",
-        "scope": "After protected #1120 delivered fixed recurrent R4 memory, implement one versioned bounded geometric candidate selector over its eight live records and four summary banks. Compare admitted sources and frozen-prompt trajectories with the accepted recurrent softmax reader before fitting. #1084 and #1091 remain nonblocking reservoirs rather than scheduled qualification or proof gates.",
+        "status": "CURRENT_STAGE_NONLINEAR_GEOMETRIC_BLOCK",
+        "scope": "Implement one versioned finite R4 nonlinear operator block under #973 while retaining R4SparseGeometricCandidateSoftmaxKVBindingV1 and the dense SwiGLU block as comparators. Define the state map, nonlinearity, residual/readout and bounded cost, then run one direct no-fit prompt comparison before scale work.",
         "issue_urls": [
           "https://github.com/UOR-Foundation/uor-r4/issues/973"
         ]
@@ -1783,8 +1832,94 @@
         "No mathematical proof or final held-out evaluation was performed."
       ],
       "next_action": {
-        "status": "CURRENT_STAGE_SPARSE_GEOMETRIC_ATTENTION",
-        "scope": "After protected #1120 delivered fixed recurrent R4 memory, implement one versioned bounded geometric candidate selector over its eight live records and four summary banks. Compare admitted sources and frozen-prompt trajectories with the accepted recurrent softmax reader before fitting. #1084 and #1091 remain nonblocking reservoirs rather than scheduled qualification or proof gates.",
+        "status": "CURRENT_STAGE_NONLINEAR_GEOMETRIC_BLOCK",
+        "scope": "Implement one versioned finite R4 nonlinear operator block under #973 while retaining R4SparseGeometricCandidateSoftmaxKVBindingV1 and the dense SwiGLU block as comparators. Define the state map, nonlinearity, residual/readout and bounded cost, then run one direct no-fit prompt comparison before scale work.",
+        "issue_urls": [
+          "https://github.com/UOR-Foundation/uor-r4/issues/973"
+        ]
+      },
+      "proof_artifacts": []
+    },
+    {
+      "id": "R4-973-SPARSE-GEOMETRIC-ATTENTION",
+      "statement": "The accepted fixed recurrent language artifact executes causal generation through a deterministic exact-H4 metadata selector that admits at most eight persistent records plus current before gathering K/V, with no complete-prefix scan on the frozen two-prompt comparison.",
+      "role": "Empirical Criterion",
+      "evidence_status": "Empirical",
+      "outcome": "SPARSE_GEOMETRIC_MECHANISM_EXECUTED_LANGUAGE_UTILITY_UNESTABLISHED",
+      "scope": {
+        "parent_issue": 973,
+        "implementation_revision": "e93822e944d1a8edfbc314153abc4585f2dcafc5",
+        "policy": "R4SparseGeometricCandidateSoftmaxKVBindingV1",
+        "accepted_learned_artifact": "blake3:c1cd34b36c7df7c53915785a608ccd353a11de56eebb3ecc58e74092cb5d1933",
+        "prompts": 2,
+        "seed": 9738,
+        "maximum_new_tokens": 16,
+        "fits": 0,
+        "evaluations": 0,
+        "live_records": 8,
+        "summary_banks": 4,
+        "persistent_candidate_budget": 8,
+        "maximum_read_sources": 9,
+        "recurrent_state_values_f32": 2304,
+        "recurrent_state_bytes_f32": 9216
+      },
+      "assumptions": [
+        "The accepted tokenizer, learned artifact, exact-H4 geometry, H4 frame sidecar, sampler and frozen prompts retain the identities recorded by the raw comparison.",
+        "The signed-S3 shell plus full-root maximin rule is an unfitted engineering hypothesis about useful memory; exact finite selection does not establish semantic relevance.",
+        "The comparison covers two fixed prompts within the trained 120-position RoPE limit and is not a population-level language or retention evaluation."
+      ],
+      "observations": {
+        "mathematical_or_exact": "Canonical inverse/product/root lookup, nine signed-S3 shells, deterministic finite selection and the eight-plus-current ceiling; no formal proof artifact supplied.",
+        "independent_review": "CLEAN_AFTER_PER_LANE_TRACE_ACCOUNTING_CORRECTION_AND_14400_PAIR_CANONICAL_AUDIT",
+        "turtle": {
+          "common_generated_prefix_tokens_vs_fixed_recurrent": 12,
+          "sparse_selection_steps": 16,
+          "selected_summary_records": 26,
+          "materialized_attention_scores_fixed": 1776,
+          "materialized_attention_scores_sparse": 1512,
+          "sparse_raw_sha256": "b2ca5780bd5fc91faeab0ac9ee58737aff5fb0931f783ffdfd256d7fc82a7b4d"
+        },
+        "einstein": {
+          "common_generated_prefix_tokens_vs_fixed_recurrent": 3,
+          "sparse_selection_steps": 19,
+          "selected_summary_records": 29,
+          "materialized_attention_scores_fixed": 2048,
+          "materialized_attention_scores_sparse": 1728,
+          "sparse_raw_sha256": "3bcbddecda5e856d2cba095373f37769d6da6f16b7434c0ff4fb4ff793761018"
+        },
+        "sparse_decisions": 35,
+        "selection_different_from_age_only": 33,
+        "selected_live_records": 225,
+        "selected_summary_records": 55,
+        "aggregate_materialized_score_reduction_fraction": 0.15271966527196656,
+        "peak_attention_sources": 9,
+        "complete_prefix_scans": 0,
+        "unselected_key_value_reads": 0,
+        "provider_calls": 0,
+        "teacher_calls": 0,
+        "future_reads": 0,
+        "forbidden_reads": 0,
+        "comparison_summary_sha256": "d592b5bb9c430a509c465ac8dbb38c706a240fb980df18dee2c4a98ed560d396"
+      },
+      "evidence_refs": [
+        "sparse_recurrent_base_source_973",
+        "sparse_selector_source_973",
+        "sparse_generation_source_973",
+        "sparse_focused_test_973",
+        "sparse_record_973",
+        "sparse_project_track_973",
+        "sparse_comparison_summary_973"
+      ],
+      "limits": [
+        "The prompt trajectories preserve 12 and 3 generated tokens respectively against the fixed recurrent comparator; neither continuation is evidence of improved quality.",
+        "This does not establish useful retrieval, general language quality, long-context retention, geometric advantage, architectural alpha, reasoning, coding or table-native serving.",
+        "Learned f32 Q/K/V/O, bounded softmax, RMSNorm, SwiGLU, vocabulary projection and allocation remain; the trained RoPE limit remains 120 positions.",
+        "The #967 shortest-Cayley and #970 q0/q1 heatmap negatives retain their tested scope; the full-root set-valued selector is materially different but unverified.",
+        "No fit, population evaluation or formal proof artifact was produced."
+      ],
+      "next_action": {
+        "status": "CURRENT_STAGE_NONLINEAR_GEOMETRIC_BLOCK",
+        "scope": "Implement one versioned finite R4 nonlinear operator block under #973 while retaining R4SparseGeometricCandidateSoftmaxKVBindingV1 and the dense SwiGLU block as comparators. Define the state map, nonlinearity, residual/readout and bounded cost, then run one direct no-fit prompt comparison before scale work.",
         "issue_urls": [
           "https://github.com/UOR-Foundation/uor-r4/issues/973"
         ]
@@ -1792,7 +1927,7 @@
       "proof_artifacts": []
     }
   ],
-  "previous_source_revision": "8399a71affd6eb3063a3a3765b1db44058b7f4fb",
+  "previous_source_revision": "db8682fb762aadc5e87c0afb0d4f1fd01cfc4495",
   "artifacts_1082": {
     "implementation_cid": "blake3:1451084b66531dbe5eb0cb1d3b3e60e5f0aa3f4bd59fffbf582a18d4dfc9380e",
     "preparation_cid": "blake3:c8a4a56de77767cbbe8fd31edc83251b42a6f729e182d065caa47d981f248741",
@@ -2088,10 +2223,10 @@
   },
   "current_project_track": {
     "document": "docs/integration/project-track.md",
-    "revision": "db8682fb762aadc5e87c0afb0d4f1fd01cfc4495",
+    "revision": "9cbc14c43248bed9f04b099282f12f866253b115",
     "status": "BUILD_FIRST_ARCHITECTURAL_ALPHA",
-    "completed_stage": "fixed_recurrent_geometric_memory",
-    "current_stage": "sparse_geometric_attention",
+    "completed_stage": "sparse_geometric_attention",
+    "current_stage": "nonlinear_geometric_block",
     "ordered_stages": [
       "fixed_recurrent_geometric_memory",
       "sparse_geometric_attention",
@@ -2113,8 +2248,26 @@
     "recurrent_state_bytes_f32": 9216,
     "maximum_read_sources": 13,
     "next_action": {
-      "status": "CURRENT_STAGE_SPARSE_GEOMETRIC_ATTENTION",
-      "scope": "After protected #1120 delivered fixed recurrent R4 memory, implement one versioned bounded geometric candidate selector over its eight live records and four summary banks. Compare admitted sources and frozen-prompt trajectories with the accepted recurrent softmax reader before fitting. #1084 and #1091 remain nonblocking reservoirs rather than scheduled qualification or proof gates.",
+      "status": "CURRENT_STAGE_NONLINEAR_GEOMETRIC_BLOCK",
+      "scope": "Implement one versioned finite R4 nonlinear operator block under #973 while retaining R4SparseGeometricCandidateSoftmaxKVBindingV1 and the dense SwiGLU block as comparators. Define the state map, nonlinearity, residual/readout and bounded cost, then run one direct no-fit prompt comparison before scale work.",
+      "issue_urls": [
+        "https://github.com/UOR-Foundation/uor-r4/issues/973"
+      ]
+    }
+  },
+  "latest_sparse_geometric_attention": {
+    "issue": 973,
+    "status": "SPARSE_GEOMETRIC_MECHANISM_EXECUTED_LANGUAGE_UTILITY_UNESTABLISHED",
+    "source_revision": "e93822e944d1a8edfbc314153abc4585f2dcafc5",
+    "comparison_summary_sha256": "d592b5bb9c430a509c465ac8dbb38c706a240fb980df18dee2c4a98ed560d396",
+    "fit_performed": false,
+    "evaluation_performed": false,
+    "persistent_candidate_budget": 8,
+    "maximum_read_sources": 9,
+    "aggregate_materialized_score_reduction_fraction": 0.15271966527196656,
+    "next_action": {
+      "status": "CURRENT_STAGE_NONLINEAR_GEOMETRIC_BLOCK",
+      "scope": "Implement one versioned finite R4 nonlinear operator block under #973 while retaining R4SparseGeometricCandidateSoftmaxKVBindingV1 and the dense SwiGLU block as comparators. Define the state map, nonlinearity, residual/readout and bounded cost, then run one direct no-fit prompt comparison before scale work.",
       "issue_urls": [
         "https://github.com/UOR-Foundation/uor-r4/issues/973"
       ]

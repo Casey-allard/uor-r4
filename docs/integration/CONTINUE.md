@@ -13,7 +13,7 @@ alpha → Rust/table lowering → release proof/evidence/QA.
 
 ## Current checkpoint
 
-[#973](https://github.com/UOR-Foundation/uor-r4/issues/973) now has two
+[#973](https://github.com/UOR-Foundation/uor-r4/issues/973) now has three
 artifact-only causal paths over the same accepted ordinary weights:
 
 - `R4PositionPreservingCausalKVBindingV1` is the full 120-position comparator.
@@ -21,6 +21,9 @@ artifact-only causal paths over the same accepted ordinary weights:
   four chronological binary-age H4 summary banks. It reads before writing and
   keeps its f32 K/V ledger fixed at 2,304 values / 9,216 bytes, 90% below the
   comparator's 92,160 f32 bytes.
+- `R4SparseGeometricCandidateSoftmaxKVBindingV1` ranks only those twelve
+  persistent metadata slots by exact signed-S3 shell and full-H4-root maximin
+  diversity, admits at most eight plus current, and gathers K/V only afterward.
 
 The focused causal check is exact through the decision that performs the first
 post-read eviction. In the frozen full-prompt no-fit, seed-9738, top-k-40, 16-token
@@ -31,21 +34,23 @@ comparison:
 | `A purple turtle found a clock in the garden` | `, there was a time, there was a little girl named It found a big` | `, there was a time, there was a little girl named but so she saw` | 12 tokens |
 | `Albert Einstein was born in` | ` his friend, a time, there was a little girl named he put it with` | ` his friend, a time, there was a little girl named and and a time` | 12 tokens |
 
-The recurrent runs made 17/20 evictions, 66/80 summary-slot reads, and 15/18
-summary merges respectively. Both stayed within 13 attention sources, made zero
-teacher/provider/future/forbidden reads, and performed no fit. These are
-measured mechanism results. They do not establish language quality,
-long-context retention, geometric advantage, architectural alpha, or
+The sparse runs shared 12 and 3 generated tokens with the fixed recurrent arm.
+They selected a different set from age-only on 33/35 sparse decisions, admitted
+55 summary records, stayed within nine sources, and reduced aggregate score
+materialization from 3,824 to 3,240. Both reported zero complete-prefix scans,
+omitted-payload, teacher, provider, future, or forbidden reads. These are
+measured mechanism results. They do not establish useful retrieval, language
+quality, long-context retention, geometric advantage, architectural alpha, or
 table-native execution. The trained RoPE ceiling remains 120.
 
 ## Next implementation action
 
-Implement the first versioned **sparse geometric attention** successor under
-#973. Keep the full-cache path and fixed recurrent path as comparators. Map the
-current query/state to a bounded set of geometric candidates, read and aggregate
-only those candidates, and prevent any complete-prefix attention scan. Compare
-the same two prompt trajectories before fitting; add a small open-data retention
-probe only if those two executions leave a specific unresolved design choice.
+Implement the first versioned **nonlinear geometric block** successor under
+#973. Keep `R4SparseGeometricCandidateSoftmaxKVBindingV1` as the attention path
+and the current dense SwiGLU block as the comparator. Define one finite R4
+operator block with an explicit state map, nonlinearity, residual/readout, and
+bounded cost. Keep E8/R8 separate unless a typed bridge is implemented. Run one
+direct prompt execution before any scale or instruction campaign.
 
 SpiralCore's finite labelled E8 action graph may inform an operator-indexed
 candidate selector, but it is not already attention. Keep its H4/R4 and E8/R8
@@ -66,11 +71,12 @@ docs/integration/project-track.md. Complete exactly one active implementation
 task and stop.
 
 Apply build_first_architectural_alpha. Use one isolated full Git worktree.
-Implement the first versioned sparse geometric-attention successor under #973.
-Keep the accepted full-cache and fixed-recurrent paths as comparators. Select and
-read a bounded geometric candidate set without retaining or scanning the full
-prefix. Run the smallest direct no-fit comparison that resolves the mechanism;
-use bounded open development data only if a specific design choice remains.
+Implement the first versioned nonlinear geometric block successor under #973.
+Keep the accepted sparse geometric reader and dense SwiGLU block as
+comparators. Specify and execute one finite R4 state map, nonlinearity,
+residual/readout, and bounded-cost path. Keep H4/R4 and E8/R8 typed separately
+unless an explicit bridge is implemented. Run the smallest direct no-fit prompt
+comparison that resolves the mechanism.
 
 Query the knowledge index or inspect SpiralCore/HELM/W33/NEMESIS/UOR/H4-zeta
 sources only for the concrete selector/read decision. Treat them as donor
