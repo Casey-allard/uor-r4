@@ -1,121 +1,41 @@
 # UOR-R4 research, integration and productization plan
 
-**Build-first override (2026-09-04):** This plan is a design and historical
-reference, not a pre-alpha workflow checklist. The repository now follows
-[`build_first_pre_alpha`](integration/agent-execution-policy.md). The active
-priority is [#973](https://github.com/UOR-Foundation/uor-r4/issues/973): load a
-source-free model artifact and produce prompt-dependent text through the actual
-repository CLI or local service. Agents may build, test, train, evaluate, and
-run that path. Proof work, claim/evidence ledgers, knowledge-index maintenance,
-independent review, experiment freezes, replay packages, publication,
-NEMESIS/W33 mapping, duplicate planning updates, and broad QA are deferred until
-a working alpha unless the owner explicitly activates one earlier.
+**Active direction (2026-09-04):** The repository follows
+`build_first_architectural_alpha`. The canonical definitions and exact ordered
+sequence are in the [active project track](integration/project-track.md):
 
-[#1107](https://github.com/UOR-Foundation/uor-r4/issues/1107) remains a
-historical `WORKBENCH_CANDIDATE_SOURCE_FROZEN_UNBUILT` result; its unrun status
-describes that closed checkpoint and is no longer an execution ban. #1084 stays
-open and parked while #973 is active. Prior measurements, negative results, and
-unique artifacts retain their recorded meaning without routine reproduction or
-ledger updates.
+fixed recurrent memory → sparse geometric attention → nonlinear geometric block
+→ scale/data/instruction → retrieval/tools → representative product alpha →
+Rust/table lowering → release proof/evidence/QA.
 
-**Retained native reference (2026-09-03):**
-[#1102](r4_native_bridge_1102_execution.md) records **`NATIVE_REFERENCE_PRESERVED`**
-for the exact exported artifact and pinned CPU Rust reference. Both runtimes,
-in initial execution and fresh replay, produced 320/320 correct answers,
-4,480/4,480 consumed roles and 16/16 expected refusals. All four full tensors
-met the frozen `1e-5` absolute limit; the maximum difference was `4.768372e-6`.
-Replay was exact within each implementation. The one comparison used 1,280
-forwards, zero fitting, 8.809784 seconds and 75,039,076 ledger bytes. Full tensors,
-exports, loader fixtures and all prior negative/unavailable evidence are retained.
-Independent result review accepts the bounded result; protected delivery is tracked in
-[PR #1104](https://github.com/UOR-Foundation/uor-r4/pull/1104).
+The artifact-only pre-alpha target has been met and is now a mechanical
+checkpoint. The fixed recurrent successor has also executed: eight exact live
+K/V records plus four H4-local summaries retain a constant 9,216-byte f32 K/V
+ledger and produce post-eviction trajectories on both fixed prompts. Quality,
+long-context retention, geometric advantage, architectural alpha, and
+table-native execution remain open. Sparse geometric attention is next under
+#973.
 
-The accepted #1105 contract and the unbuilt #1107 source candidate are recorded
-above. The measured comparison CLI is consumed; no verified service/UI endpoint
-or general generation, context/coding capability, mathematical proof or final
-integer kernel follows.
-The known vocabulary/query forms, four-fact context, #1079 weak-control result
-and #1082 descriptive limits remain. #973 stays open and #954 blocked.
-Earlier checkpoint text below is historical for sequencing.
+Research and evidence support this track without becoming a second product
+queue. SpiralCore, HELM, W33, NEMESIS, UOR ecosystem work, and H4/zeta work are
+on-demand donor reservoirs. Preserve exact negative results; allow only a
+materially versioned re-entry with a named change and rationale. Treat
+`UNAVAILABLE` as an execution/source/environment boundary. Broad proof,
+ledger, publication, research-mapping, and QA work begins at release candidate
+unless a concrete current design question or the owner activates it.
 
-**Prior native-reference specification (2026-09-03):**
-[#1086](r4_native_reference_1086.md) records
-`NATIVE_REFERENCE_CONTRACT_SPECIFIED`. The
-[machine contract](r4_native_reference_1086_contract.json),
-[operator audit](r4_native_reference_1086_operator_audit.md) and
-[original-source audit](r4_native_reference_1086_sources.md) define the
-exact artifact/state identities, loader and operator boundary, and a separate
-matched reference/native comparison with its resource envelope. Export, native
-implementation, model loads, forwards, evaluation and replay are **`NOT_RUN`**.
-This is specification evidence, not native behavior or an execution release.
-QA remains dormant; only the named specification checks apply.
+The sections below retain the September 2–3 audit and earlier product plans.
+Their historical next-action text does not override the active track.
 
-#1094 is closed through [protected PR #1101](https://github.com/UOR-Foundation/uor-r4/pull/1101),
-merge `eade29f4b78435e9857936786426bb34e596b301`; its measured evidence below is
-unchanged and its consumed envelope cannot be rerun. The next action is separate
-activation of the parked native implementation/export/comparison successor
-[#1102](https://github.com/UOR-Foundation/uor-r4/issues/1102), a child of #1086, unassigned until active. #1087 still requires its separate final-lowering
-contract and #1083 typed UOR integration. #973 stays open and #954 blocked.
-
-**Retained adapter comparison (2026-09-03; pre-merge closure and next-action wording below are historical):** [#1094](r4_retained_comparison_1094.md)
-completed `CLAUSE_ADAPTER_PRESERVED`; independent review accepted the result. The sole
-approved comparison matched all 1,600 valid inputs, complete compared tensors and
-answers; all 80 refusal rows and 16 boundary controls matched with zero forwards.
-Full and oracle fresh-process replay were exact; total logical forwards were 6,400.
-The valid rows are related renderings of 20 already-observed groups. Scope remains
-the same learned reader/core, known vocabulary/query forms and four-fact context.
-Operator wall time was 15.821630625 seconds; the final cumulative resource snapshot
-was 135.697821334 seconds, including the conservative 120-second preparation debit.
-The historical 3,465,401-byte ledger remains charged. No fitting or generation ran.
-The result adds no semantic novelty, general-English qualification, mathematical
-proof, native export or final-kernel qualification. #1079's weak-control result and
-#1082's descriptive limits remain unchanged; #973 stays open and #954 blocked.
-The bounded scientific comparison DoD is complete; #1094 closes upon protected
-merge. The next separately activated task, unassigned until active, is
-[#1086](https://github.com/UOR-Foundation/uor-r4/issues/1086): freeze the native
-export/loader/reference-behavior contract and its smallest matched check before
-implementation. Do not rerun the consumed #1094 envelope.
-
-**Earlier preparation/release update (2026-09-03; superseded for next-action selection):** Adoption #1081, diagnostic #1082 and
-[#1085's text-to-clause specification](integration/clause-segmentation-1085.md)
-are delivered. [#1094's adapter preparation](r4_text_clause_adapter_1094.md)
-returned `UNAVAILABLE_REFERENCE_REPLAY`: 320/320 authoring inputs and 16/16
-refusals were exact, but isolated Python startup was denied. No model forward,
-withheld comparison or replay ran. The separate
-[#1096 readiness decision](r4_isolated_runtime_readiness_1096.md) recorded
-`ISOLATED_RUNTIME_READY`: four harmless probes were denied, with null model
-states and zero model loads/forwards/updates. Independent result review passed;
-#1096 was delivered at `6f21fc5f4c40b9620c9fec5e95a39097f812ae73`.
-The [frozen #1094 preparation contract](r4_text_clause_preparation_1094.md) now has
-an [implemented retained-evidence assembly and launch gate](r4_retained_assembly_1094.md).
-Committed source `07ec3f0d` produced `PREPARATION_ASSEMBLED_FROM_RETAINED_EVIDENCE`
-without another preparation or worker. Independent exact-envelope release is
-`ACCEPTED_FOR_RETAINED_EVIDENCE_COMPARISON`; the assembly's embedded `NOT_ADMITTED`
-remains immutable and the separate release receipt governs execution. Next: separately activate the frozen `run-retained`
-comparison and fresh-process replay from the bound coordinator with the verified
-exact release. Carry the full 120-second preparation debit and 3,465,401 historical
-bytes; execution and replay each retain 120 seconds within 360 seconds total,
-including fresh identity checks. No new preparation is admitted. #1094 remains
-open, parked and unassigned after this delivery; #973 stays open and #954 blocked.
-Model comparison/replay remain `NOT_RUN`; neither assembly nor readiness qualifies
-raw-text behavior. #1079's weak-control and #1082's descriptive limits remain intact.
-The [afflom ecosystem follow-up](integration/afflom-ecosystem-followup.md)
-records concrete Prism/Atlas/LexLean/GNAF/matmul source boundaries without changing
-the fixed reader/core or its arithmetic. Use the
-[current map](integration/current-state.md) and native GitHub. The audit-era
-current/next descriptions below are preserved history and do not select work.
-
-Audit baseline: `UOR-Foundation/uor-r4@e627252e525201815169ffd8364184953a46018d`, retrieved September 2–3, 2026. This is a proposed extension of the live programme, accompanied by installed local tools and a queryable source inventory. It does not itself change GitHub ownership, activate experiments, authorize publication, or establish model capability. Native GitHub state remains authoritative when this snapshot ages.
-
-## 1. Destination and present position
+## 1. Historical destination and present position
 
 The destination is a local, CPU-first geometric language model that can reason, write and repair code, use a controlled workspace, and retain useful context. The final serving representation must satisfy the programme's declared integer/table constraints. “Frontier” is a research target: define comparison tasks and resource budgets before using it as a capability description. A capable dense research reference and a qualified final serving kernel are separate deliverables.
 
-The latest completed scientific step is [#1079](https://github.com/UOR-Foundation/uor-r4/issues/1079), merged through [#1080](https://github.com/UOR-Foundation/uor-r4/pull/1080). Its terminal is `LANGUAGE_R4_PRESERVED_CONTROL_WEAK`. All 156 primary preservation criteria passed, including 25,600 identical answers; fact-frame corruption was strong in 6/6 views, while token-frame corruption was strong in 3/6 against a required 6/6. The result preserves the frozen learned interface/binding reference. It does not establish general conversational language, reasoning, coding, H4 superiority, final-kernel lowering, or release readiness.
+At the September 2–3 audit, the latest completed scientific step was [#1079](https://github.com/UOR-Foundation/uor-r4/issues/1079), merged through [#1080](https://github.com/UOR-Foundation/uor-r4/pull/1080). Its terminal is `LANGUAGE_R4_PRESERVED_CONTROL_WEAK`. All 156 primary preservation criteria passed, including 25,600 identical answers; fact-frame corruption was strong in 6/6 views, while token-frame corruption was strong in 3/6 against a required 6/6. The result preserves the frozen learned interface/binding reference. It does not establish general conversational language, reasoning, coding, H4 superiority, final-kernel lowering, or release readiness.
 
-**Immediate scientific next action:** name and freeze one #973 child for the construction-only token-stage exposure diagnostic selected in the [latest completion comment](https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5519385959). Keep the reader, core, two existing renderings, rows and control unchanged. Report attention mass on changed matrices, weighted individual-value displacement, and net displacement of used pooled roles, related descriptively to already recorded changed/retained answers. Compare patterns consistent with limited exposure, cancellation and downstream tolerance without treating those associations as causal attribution. No new fitting, revealed-fixture tuning, population, generation, or geometry expansion belongs to that diagnostic.
+**Then-next scientific action (historical):** the audit selected one #973 child for the construction-only token-stage exposure diagnostic in the [then-latest completion comment](https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5519385959). The diagnostic subsequently completed as #1082. Its frozen reader/core, two renderings, rows and control remain historical evidence; this paragraph does not select current work.
 
-The native chain is `#973 → #954 → #955 → #962 → #963 → #964 → #965`. #940 separately blocks the release issue and is dormant administrator work. At audit there are nine open issues, no open PRs and no queue refs. All 24 native children of #973 are closed; the diagnostic lacks an open child. See the [precise roadmap reconciliation](integration/roadmap-reconciliation.md) and [machine-readable state](integration/roadmap-state.json).
+The audit-era native chain was `#973 → #954 → #955 → #962 → #963 → #964 → #965`. #940 separately blocked the release issue. At that audit there were nine open issues, no open PRs and no queue refs. See the [precise roadmap reconciliation](integration/roadmap-reconciliation.md) and [machine-readable state](integration/roadmap-state.json).
 
 ### Necessary roadmap corrections
 
@@ -142,7 +62,7 @@ not require a tool, index query, proof pass, or review before implementation.
 | External repository orientation | DeepWiki MCP; connection/tool discovery passed | Public upstream orientation, followed by exact-source verification. No private source upload is needed. |
 | Literature and academic writing | SciSpace, Consensus, Academic Writing Toolkit; existing connected capabilities | Find papers, read primary sources, build reading notes and audit citations. Generated summaries are discovery aids, never proof artifacts. |
 | Exact/symbolic mathematics | Mathbox proof/literature/computation skills, Wolfram, selected K-Dense SymPy skill | State assumptions, find counterexamples, check algebra, and distinguish empirical claims from guarantees. SymPy skill pinned to `1e5eeffbdad3749125afe7ab48a39694e27f181c`; no bulk skill library import. |
-| Proof development | Lean LSP MCP 0.30.0; actual theorem/goal and deliberate-error smoke passed; existing Lean/Kani | Deferred until working alpha unless explicitly activated by the owner. |
+| Proof development | Lean LSP MCP 0.30.0; actual theorem/goal and deliberate-error smoke passed; existing Lean/Kani | Broad formalization is release-candidate work unless a current implementation decision or owner needs it. |
 | Experiment evidence | Trackio 0.37.0; local write/read passed | Deferred; routine implementation records its direct result in the pull request. |
 | CPU cost diagnosis | Samply 0.13.1; sampled CPU profile passed | Profile a named bottleneck before changing kernels, worker counts or cache policy. Charge cold/warm and end-to-end costs separately. |
 | Architecture and delivery | Existing Engineering and Product Management tools | Use only when a concrete implementation tradeoff requires them; routine work proceeds directly to code and execution. |
@@ -160,7 +80,7 @@ New MCP registrations are persistent. Codex may need a new task turn/session to 
 4. Deliver through a protected pull request with the observed result, remaining
    limitation, and next implementation action.
 
-No routine pre-alpha step requires a new contract, ADR, source audit, proof,
+No routine build-stage step requires a new contract, ADR, source audit, proof,
 claim/evidence record, independent review, replay package, knowledge-index
 refresh, duplicate roadmap update, or tool installation. Historical material
 below remains available when a concrete implementation question needs it.
@@ -198,34 +118,44 @@ An arithmetic adapter must name its domain. `Z/256Z`, the Boolean product ring w
 
 ## 4. Product architecture and implementation sequence
 
-**One Rust service owns model/artifact identity, capability discovery, loading, cancellation, inference, workspace access and persistence, and serves the web assets from the same origin.** A typed `NativeProvider` calls that service; an optional `BrowserTeacherProvider` is explicitly labeled with its real model. Model names, selected IDs and error states must match the loaded artifact; no silent model substitution.
+One local product eventually owns model/artifact identity, capability discovery,
+loading, cancellation, inference, workspace access, memory, tools, and web
+assets. The workbench must expose actual model behavior and actual failures; it
+must not relabel a bounded research response as general chat or substitute a
+hidden provider.
 
-Port the donor shell in bounded slices: style/layout → conversations/composer → lifecycle/progress → editor/diff/save → sandboxed preview → deliberate Git/PR workflow. Its current `index.html` sends inference to a Transformers.js worker and does not discover `/v1/models` or `/v1/chat/completions`. Source tracing found incorrect model labeling, progress scaling, detached grounding, and preview handlers without their intended elements. These are code-audit findings; fresh browser behavior was not rerun during this audit.
+| Order | Work package | Concrete promotion boundary |
+|---:|---|---|
+| 1 | Fixed recurrent geometric memory | Constant state, read-before-write, actual post-eviction summary reads, direct no-fit trajectory comparison |
+| 2 | Sparse geometric attention | Bounded candidate selection and value reads with no complete-prefix scan; causal comparator retained |
+| 3 | Nonlinear geometric block | Dense SwiGLU/MLP replaced by a specified and measured R4 operator or separately typed E8/R8 operator bank |
+| 4 | Scale, data, and instruction | Bounded architecture trained on open development data; useful language, instruction, retention, and composition measured |
+| 5 | Retrieval and tools | Typed ambiguity/refusal, real retrieval/tool execution, feedback, and result ingestion |
+| 6 | Representative product alpha | Grounding/abstention, composition, identity memory, coding, and tools exercised through one local workbench |
+| 7 | Rust/table lowering and optimization | Accepted behavior preserved in the packed Rust runtime with bounded memory and final serving operations |
+| 8 | Release proof, evidence, and QA | Proofs, claims, resources, portability, security, scorecards, broad QA, installation, rollback, and publication reconciled for the release candidate |
 
-The first end-to-end operation must be something the native backend actually supports, such as a qualified raw-continuation route or a later typed binding operation. Do not turn a bounded binding experiment into a chat response template. Lifecycle checks must distinguish cold load, warm cache, actual response completion, stop/cancel, and failed load. Workspace behavior means a real read → proposed diff → review → save → reopen cycle, with explicit file identity and isolated preview.
+SpiralCore's typed finite state, refusal behavior, transition tables, and
+labelled E8 action graph are plausible contract/routing donors. The attachment
+does not implement recurrent token memory, learned attention, a nonlinear UOR
+block, tool use, or Rust/table lowering. Keep H4/R4 and E8/R8 typed separately,
+and require a UOR-specific state/query-to-candidate mapping plus direct model
+measurement before using the word attention.
 
-| Work package | Dependency / owner at activation | Concrete done condition |
-|---|---|---|
-| P0 Tooling + knowledge + current-state map | This local delivery; coordinator | Servers work, plan/source records searchable, coverage truthful, project skill installed. |
-| R1 Frozen token exposure diagnostic | New #973 child, assign executor when active | Construction-only report measures exposure and displacement, and compares possible cancellation/tolerance patterns without changing the candidate or choosing a new winner. |
-| U1 Typed UOR identity/arithmetic ADR | Parallel bounded integration issue | Actual types mapped; one selected adapter and its semantic/cost obligations are reviewable. |
-| P1 Native API/web-shell contract | Parallel interface child under #820 | Real capability discovery and one honest native operation; frontend assets and errors have a single owner. |
-| R2 Language/context generalization | Follows R1 interpretation and explicit #973 contract | Remove one interface restriction at a time: clause segmentation, role ambiguity, new combinations, variable fact count/context and temporal updates. Independent holdouts, frozen decisions. |
-| N1 Native reference export/loader | Accepted model/input/state schema | Artifact identity and the actual supported behavior survive export/load; no handcrafted answers or hidden fallback. |
-| L1 Final-kernel lowering | Accepted reference and a stated lowering decision | Required runtime operations, representation, dtype/error and resource bounds met on the actual path. A failed mapping remains an open scientific result. |
-| C1 Correctness and reasoning | #954 then #955, accepted consumer artifact | Grounding, contradiction, abstention and checkable composition work on the declared population; tiny entry probes do not establish frontier ability. |
-| P2 Workspace and coding | Interface harness can precede model capability; competent coding depends on C1 | Independently checkable code tasks, multi-file repair and controlled tool iterations with real executable feedback. |
-| M1 Durable model/product memory | #962 after its native blockers | Identity-scoped persistence, retrieval/update/forget behavior and multi-turn use are actually exercised. Imported project history is separate provenance. |
-| E1 Cost/proof/release | #963/#964/#965 against implemented product | Resource scorecard, current proof obligations, installation/API/rollback and adopted release criteria satisfied; #940 governance resolved when required. |
-| W1 Paper evidence and writing | Deferred until working alpha | Revisit only after implemented behavior exists or the owner explicitly activates it. |
+The earlier donor workbench remains parked until stage 6. Its style, composer,
+editor/diff, and lifecycle components may be reused then behind one honest
+native provider. Coding competence requires real executable feedback; UI
+rendering alone is not product-alpha evidence.
 
-Geometry expansion is deferred. It becomes useful only when a diagnosed capacity limitation predicts a discriminating improvement and the added geometry participates in the actual decision path. More coordinates or frames alone do not establish attention, language capacity or coding ability.
+Geometry expands only when a diagnosed limit predicts a discriminating
+improvement and the added geometry participates in the decision path. More
+coordinates, roots, or fixtures alone do not establish language capability.
 
 ## 5. Deferred formal mathematics and research-paper programme
 
-This programme is deferred until the working-alpha condition is met or the owner
-explicitly reactivates it. The existing [claim ledger](integration/claim-ledger.json)
-is retained as history and is not updated by routine pre-alpha work. When this
+This programme is deferred until the release-candidate stage or until a current
+implementation decision or owner explicitly activates it. The existing [claim ledger](integration/claim-ledger.json)
+is retained as history and is not updated by routine build-stage work. When this
 lane resumes, keep the normative statement role (`Definition`, `Objective`,
 `Guarantee`, `Assumption`, `Empirical Criterion`) separate from evidence status
 (`Structural`, `Witnessed`, `Empirical`, `Assumed`, `Unproven`). Historical R4G1
@@ -250,8 +180,9 @@ The user reports that both previous submissions were held and then declined by m
 
 ## 6. Deferred knowledge and documentation architecture
 
-The indexes and ledgers below are optional historical retrieval tools. Routine
-pre-alpha work does not query, refresh, ingest, or synchronize them.
+The indexes and ledgers below are optional retrieval tools. Query them when a
+current implementation question needs source history; routine work does not
+refresh, ingest, or synchronize them without a concrete need.
 
 Use two complementary local indexes:
 
@@ -295,8 +226,8 @@ Treat space management as an input to work selection:
 
 Before each large clone/build/model run, estimate growth and reserve space. A proposed starting policy is a free-space reserve of max(20 GiB, 15% of the volume), adjustable to actual workloads; exceeding it triggers a reclaim proposal rather than automatic deletion. Budget source, build, model, evidence and index bytes separately. `git clean -ndX` is an inventory aid, not authorization for `git clean -fdX`.
 
-The following old automation design is retained for possible post-alpha use; it
-is not an active pre-alpha workflow:
+The following old automation design is retained for possible release-stage use;
+it is not an active build workflow:
 
 | Trigger | Automatic read/prepare work | Mutating step |
 |---|---|---|
@@ -311,9 +242,14 @@ These are workflow templates, not newly activated recurring schedules. No backgr
 
 ## 8. Current delivery and next action
 
-#1107's source-only result is historical. #1084 remains open and parked. The
-current engineering priority is #973: implement the smallest missing step that
-loads the source-free artifact and produces prompt-dependent output through the
-real CLI or local service. Compile and run that path, then deliver the observed
-behavior through the protected pull-request queue. Do not create a proof,
-ledger, review, replay, publication, or index-maintenance task first.
+The fixed recurrent mechanical checkpoint is implemented under #973 and retains
+its raw no-fit comparison outside Git under the repository's `.uor-models`
+store. The next
+implementation is the first versioned sparse geometric-attention successor:
+select and read a bounded geometric candidate set without a complete-prefix
+scan, retaining the full-cache and fixed-recurrent paths as comparators. Compare
+the same two prompt trajectories before fitting. Use a small open-data retention
+probe only if the direct runs expose a concrete selector decision.
+
+Do not start the nonlinear block, scale campaign, workbench, final lowering, or
+release proof/QA in that same task.

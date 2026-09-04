@@ -1,13 +1,30 @@
 # Current programme map and correctness handoff
 
-**Build-first reset: 2026-09-04.** The former source-only policy is superseded
-by [`build_first_pre_alpha`](agent-execution-policy.md). The current priority is
-[#973](https://github.com/UOR-Foundation/uor-r4/issues/973): obtain
-prompt-dependent source-free generation through the repository CLI or local
-service. Formal proof, claim/evidence ledgers, publication, external-mathematics
-mapping, broad QA, and workbench polish are deferred until that working-alpha
-condition is met. This pointer supersedes earlier next-action prose without
-rewriting its measurements.
+**Active track: 2026-09-04.** The project is in
+`build_first_architectural_alpha` mode. The exact ordered sequence and
+checkpoint definitions are in [project-track.md](project-track.md). Live
+[#973](https://github.com/UOR-Foundation/uor-r4/issues/973) owns the current
+model work.
+
+The old artifact-only pre-alpha condition is complete. The accepted #1119
+comparator preserves full chronological K/V through exact H4 transport.
+`R4FixedRecurrentCausalKVBindingV1` is the next executed mechanical
+checkpoint: eight exact live records, four H4-local summary banks, and a fixed
+2,304-value / 9,216-byte f32 K/V ledger. In the frozen full-prompt no-fit
+two-prompt
+comparison, both runs evicted and later read summaries;
+`A purple turtle found a clock in the garden` and
+`Albert Einstein was born in` each shared 12 generated tokens with the
+full-cache reference.
+This measures the bounded mechanism, not quality, long-context retention,
+geometric advantage, architectural alpha, or table-native serving. The RoPE
+limit remains 120.
+
+Sparse geometric attention is next. Broad proofs, evidence ledgers,
+publication, programme-wide research mapping, and release QA do not sit between
+the build stages. SpiralCore, HELM, W33, NEMESIS, UOR, and H4/zeta sources are
+consulted only for a concrete design seam, with original-source inspection and
+direct UOR measurement before any capability transfer.
 
 ## Parked workbench source candidate
 
@@ -174,65 +191,37 @@ improvement follows from the source audit.
 
 ## Sequencing and ownership
 
-The capability dependency chain remains
-[#973](https://github.com/UOR-Foundation/uor-r4/issues/973) →
-[#954](https://github.com/UOR-Foundation/uor-r4/issues/954) →
-[#955](https://github.com/UOR-Foundation/uor-r4/issues/955) →
-[#962](https://github.com/UOR-Foundation/uor-r4/issues/962) →
-[#963](https://github.com/UOR-Foundation/uor-r4/issues/963) →
-[#964](https://github.com/UOR-Foundation/uor-r4/issues/964) →
-[#965](https://github.com/UOR-Foundation/uor-r4/issues/965).
-[#940](https://github.com/UOR-Foundation/uor-r4/issues/940) remains dormant
-administrator work that separately blocks release. [#1090](https://github.com/UOR-Foundation/uor-r4/issues/1090) also blocks #965 until the capability/resource scorecard is adopted. Closed children and green
-transport acknowledgements do not complete their parent capability.
+The active build sequence is fixed:
 
-| Lane / native owner | Next bounded deliverable | Promotion boundary |
-|---|---|---|
-| [#1082 attention diagnostic](https://github.com/UOR-Foundation/uor-r4/issues/1082), child of #973 | Completed; [exact report/replay](../r4_token_exposure_1082.md) | Role-selective exposure observed; preservation and the weak-control verdict retained. |
-| [#1085 language/context specification](https://github.com/UOR-Foundation/uor-r4/issues/1085), child of #973 | Completed; [adapter/schema/comparison contract](clause-segmentation-1085.md) | Specification only; later transfer stages remain separately staged. |
-| [#1094 adapter comparison](https://github.com/UOR-Foundation/uor-r4/issues/1094), child of #973 | [Sole comparison and exact fresh-process replay](../r4_retained_comparison_1094.md) completed `CLAUSE_ADAPTER_PRESERVED`; independent result accepted, scientific DoD complete and #1094 closed through protected PR #1101 at `eade29f4b78435e9857936786426bb34e596b301` | Only bounded raw-text entry: unchanged reader/core, known vocabulary/query forms, four facts and 20 already-observed groups. Original preparation stop preserved; no semantic novelty, generation, native export or final-kernel claim. |
-| [#1096 runtime readiness](https://github.com/UOR-Foundation/uor-r4/issues/1096), child of #1094 | Delivered `ISOLATED_RUNTIME_READY` at `6f21fc5f4c40b9620c9fec5e95a39097f812ae73`; sole zero-forward attempt and independent review complete | Four harmless probes denied; no model load/output/replay, raw-text qualification or universal isolation claim. |
-| [#1083 UOR integration](https://github.com/UOR-Foundation/uor-r4/issues/1083) | Deferred until the working model exposes a concrete integration seam | Content hashes, structural identities, codec identities and derivation keys remain distinct when this lane resumes. |
-| [#1086 native reference specification](https://github.com/UOR-Foundation/uor-r4/issues/1086) | [Contract specified](../r4_native_reference_1086.md) as `NATIVE_REFERENCE_CONTRACT_SPECIFIED`; export, native implementation, loads, forwards, evaluation and replay `NOT_RUN` | Exact artifact/state/operator identities and a separate empirical comparison are defined; no native capability or execution release follows from the specification. |
-| [#1102 native implementation/export/comparison](https://github.com/UOR-Foundation/uor-r4/issues/1102), child of #1086 | [Measured `NATIVE_REFERENCE_PRESERVED`](../r4_native_bridge_1102_execution.md); independent result accepted and delivered through protected PR #1104; both admitted envelopes consumed | Exact native artifact/profile preserves the bounded reader/core, vocabulary/query and four-fact operation. New host-binary qualification and final integer/table serving remain separate. |
-| [#1087 final serving representation](https://github.com/UOR-Foundation/uor-r4/issues/1087), with #1083 typed UOR prerequisite | Deferred until prompt-dependent source-free generation works | The final integer/table kernel remains a later implementation stage. |
-| [#1105 service/API specification](https://github.com/UOR-Foundation/uor-r4/issues/1105), child of #1084 | Accepted [ADR](../adr/0006-native-four-fact-workbench-service.md) and [machine contract](../r4_service_contract_1105.json); `SERVICE_API_CONTRACT_SPECIFIED`; protected delivery closes only #1105 | Contract only; no host, worker, shell, build, model operation, HTTP or browser behavior exists. |
-| [#1107 workbench source candidate](https://github.com/UOR-Foundation/uor-r4/issues/1107), child of #1084 | [Dedicated crate, private worker/comparison entries and first shell](../r4_workbench_candidate_1107.md) retained as historical `WORKBENCH_CANDIDATE_SOURCE_FROZEN_UNBUILT` | Its behavior was unrun at closure. The new policy permits execution when product work resumes but does not retroactively qualify it. |
-| [#1084 product interface](https://github.com/UOR-Foundation/uor-r4/issues/1084) | Open, unassigned, and parked until the source-free generator makes the workbench useful | Bounded Four-fact source is not general chat or verified runtime behavior. |
-| [#1088 coding/workspace](https://github.com/UOR-Foundation/uor-r4/issues/1088), blocked by #1084 and #955 | Minimal executable task/patch/result schema; separate harness and later model evaluations | UI actions and external teacher output are separate from the native model's coding competence. |
-| [#1089 scientific paper/proofs](https://github.com/UOR-Foundation/uor-r4/issues/1089) | Deferred until a working alpha | Existing proof and publication material remains historical reference only. |
-| [#1090 capability/resource scorecard](https://github.com/UOR-Foundation/uor-r4/issues/1090) | Deferred until a working alpha or explicit release decision | Measure the implemented product when a score can change a release decision. |
-| [#1091 external-theory bridge](https://github.com/UOR-Foundation/uor-r4/issues/1091) | Deferred until a working alpha | NEMESIS/W33 mapping is not an implementation prerequisite. |
+| Order | Stage | Current decision |
+|---:|---|---|
+| 1 | Fixed recurrent geometric memory | Executed mechanical checkpoint under #973; bounded state and summary use observed, quality unestablished |
+| 2 | Sparse geometric attention | **Next:** bounded geometry-selected candidates and read operator without a complete-prefix scan |
+| 3 | Nonlinear geometric block | Replace dense SwiGLU/MLP with a versioned R4 operator or separately typed E8/R8 bank |
+| 4 | Scale, data, and instruction behavior | Grow and train the bounded architecture; measure useful language and composition |
+| 5 | Retrieval and tools | Typed retrieval/refusal plus real tool execution, feedback, and result ingestion |
+| 6 | Representative product alpha | Grounding, composition, identity memory, coding, and tools in one local workbench |
+| 7 | Rust/table lowering and optimization | Preserve accepted behavior in the bounded packed Rust runtime |
+| 8 | Release proof, evidence, and QA | Reconcile and certify only the implementation intended to ship |
 
-The [adopted issue record](adopted-issues.json) records native ownership and
-dependencies at adoption time. #1081 delivered the planning workflow in
-[PR #1092](https://github.com/UOR-Foundation/uor-r4/pull/1092), merge
-`11e46611b82702e005165fb0034e1adf7d119a70`; #1082 owns the completed diagnostic
-and #1085 the completed specification. #1094's sole comparison completed bounded
-raw-text preservation and exact replay, with independent result acceptance.
-Its earlier unavailable preparation, separate #1096 runtime-only readiness and
-retained-evidence release remain preserved. #1094 is closed through protected
-PR #1101. #1086 now specifies the separate native export/loader/reference-behavior
-contract; its [#1102 implementation/export/comparison successor](https://github.com/UOR-Foundation/uor-r4/issues/1102)
-now records `NATIVE_REFERENCE_PRESERVED` on the original authoring stratum.
-The specification and Python result remain separate from that later measured
-native evidence; no final-kernel or service qualification transfers automatically.
-[#1105](https://github.com/UOR-Foundation/uor-r4/issues/1105) retains the
-accepted service/API contract; [#1107](https://github.com/UOR-Foundation/uor-r4/issues/1107)
-owns only the unbuilt source candidate. #1084 remains open, unassigned, and
-parked while implementation returns to #973. Formal, publication, external-
-theory, scorecard, and broad product lanes remain deferred until a working
-alpha or explicit owner activation.
-The pre-adoption snapshot had nine open issues and all 24 #973 children closed;
-those counts are historical now that the new children exist.
-The S0–S7/F0 compiler-era graph is retained as history, not a second active queue.
+The older #973 → #954 → #955 → #962 → #963 → #964 → #965 dependency chain is
+retained as issue history and capability ownership. It does not require a
+proof, ledger, or evaluation campaign between active build stages. #1084 stays
+parked until product-alpha integration; #954 remains blocked until the
+architectural model exposes the consumer behavior it needs. #940 and #1090
+remain release-stage governance/scorecard dependencies.
+
+A research negative binds only its frozen tuple. Preserve it and do not repeat
+it unchanged. A successor can re-enter with a material version change and a
+reason the changed mechanism could alter the result. An `UNAVAILABLE` result
+records an execution/source/environment boundary and does not rank the model.
 
 ## Historical #973 → #954 consumer contract
 
 The detailed handoff below is retained for interface and evidence history. Its
-freeze, replay, proof, ledger, and review procedures are not active pre-alpha
-requirements. Current work implements and directly runs the smallest source-free
-generation step under the build-first policy above.
+freeze, replay, proof, ledger, and review procedures are not routine build-stage
+requirements. Current work follows the sparse geometric-attention stage under
+the build-first policy above.
 
 This is the explicit intake specification for the current mechanism family.
 It names the interfaces that must be qualified; it does **not** declare that
@@ -314,7 +303,7 @@ and imported project memories do not substitute for it.
 ## Keeping this map current
 
 Update this pointer only when the actual next project action changes. Routine
-pre-alpha pull requests do not update the claim ledger, knowledge index,
+build-stage pull requests do not update the claim ledger, knowledge index,
 duplicate status mirrors, proof records, or evidence dossiers. Preserve dated
 records in place. Use [CONTINUE.md](CONTINUE.md) for the next task and refresh
 live GitHub rather than treating this snapshot as permanent eligibility.

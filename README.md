@@ -1,21 +1,20 @@
 # R⁴ — Geometric Intelligence on Local Hardware
 
-**Build-first pre-alpha reset (2026-09-04):** The former
-`deterministic_source_only` policy is superseded by
-[`build_first_pre_alpha`](https://github.com/UOR-Foundation/uor-r4/blob/main/docs/integration/agent-execution-policy.md). The active
-priority returns to [#973](https://github.com/UOR-Foundation/uor-r4/issues/973):
-produce prompt-dependent source-free generation through the actual repository
-CLI or local service. Code, compilation, and real behavior come before formal
-proof, claim ledgers, evidence packages, publication, broad QA, or UI polish.
+**Active architectural-alpha track (2026-09-04):** The old artifact-only
+pre-alpha target has been met, but it is a mechanical checkpoint rather than a
+useful model or product. The canonical
+[project track](docs/integration/project-track.md) now proceeds through fixed
+recurrent memory, sparse geometric attention, a nonlinear geometric block,
+scale/data/instruction, retrieval/tools, product alpha, Rust/table lowering,
+and release proof/evidence/QA.
 
-[#1107](https://github.com/UOR-Foundation/uor-r4/issues/1107) remains an
-historical `WORKBENCH_CANDIDATE_SOURCE_FROZEN_UNBUILT` result; changing policy
-does not retroactively qualify it. [#1084](https://github.com/UOR-Foundation/uor-r4/issues/1084)
-remains open and unassigned, but workbench qualification is not the current
-project priority. #1102's bounded `NATIVE_REFERENCE_PRESERVED` result, the
-accepted reader/core, known vocabulary and query form, four-fact context, and
-all prior negative or unavailable results remain unchanged. #954 remains
-blocked by #973.
+The fixed recurrent stage now executes with eight exact K/V records, four
+H4-local summary banks, and a constant 9,216-byte f32 K/V ledger. Its sole
+two-prompt no-fit comparison read summaries after eviction and produced
+distinct post-compression trajectories. This establishes the mechanism only;
+quality, long-context retention, architectural alpha, and final serving remain
+open. Sparse geometric attention is next under
+[#973](https://github.com/UOR-Foundation/uor-r4/issues/973).
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Rust](https://img.shields.io/badge/built%20with-Rust-orange.svg)](rust-toolchain.toml)
@@ -31,14 +30,15 @@ local hardware. The project is testing whether language context, inference,
 and reasoning can emerge from routes through a canonical geometric memory. The
 target serving engine uses no Ollama, hosted model, or source-model weights.
 
-**Current programme (updated 2026-09-04):** work has returned to
-[#973](https://github.com/UOR-Foundation/uor-r4/issues/973) under the
+**Current programme:** [#973](https://github.com/UOR-Foundation/uor-r4/issues/973)
+owns the model track under the
 [build-first policy](docs/integration/agent-execution-policy.md). The next
-deliverable is prompt-dependent source-free output through the actual CLI or
-local service. [#1107](docs/r4_workbench_candidate_1107.md) remains an unbuilt
-historical source checkpoint and #1084 is parked. Start a later task with
-[CONTINUE.md](docs/integration/CONTINUE.md). Formal proof, publication,
-claim/evidence bookkeeping, and broad QA are deferred until a working alpha.
+implementation is bounded sparse geometric attention over the accepted
+full-cache and fixed-recurrent comparators. [#1107](docs/r4_workbench_candidate_1107.md)
+remains an unbuilt historical workbench source and #1084 is parked until
+product-alpha integration. Start a later task with
+[CONTINUE.md](docs/integration/CONTINUE.md). Broad proof, evidence
+reconciliation, publication, and QA are release-candidate work.
 
 Measured results, negative findings, and retired paths remain in
 [docs/RESEARCH.md](docs/RESEARCH.md). The concise
@@ -555,13 +555,12 @@ Earlier compiler, graph, proof, conformance, and teacher-derived systems remain
 in the repository as research evidence and reusable components. They are not
 the current product path and are not prerequisites for trying the dashboard.
 
-## Current roadmap
+## Historical roadmap lineage
 
 **Historical roadmap narrative; superseded for sequencing on 2026-09-03.**
-The retained lineage below explains the earlier decisions. The active research
-step is #1082; the [current map](docs/integration/current-state.md) and
-[adopted issues](docs/integration/adopted-issues.json) own the research,
-native-interface, integration, coding and publication work now.
+The retained lineage below explains the earlier decisions. Its then-active
+research step was #1082. The [active project track](docs/integration/project-track.md)
+and [current map](docs/integration/current-state.md) own sequencing now.
 
 The programme is deliberately sequential so that infrastructure and testing do
 not become substitutes for working intelligence:

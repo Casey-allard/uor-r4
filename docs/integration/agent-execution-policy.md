@@ -1,55 +1,79 @@
-# Build-first pre-alpha execution
+# Build-first architectural-alpha execution
 
-The project is in `build_first_pre_alpha` mode. The former
-`deterministic_source_only` policy is superseded. It prevented the project from
-being compiled or run and turned routine development into evidence production.
+The repository is in `build_first_architectural_alpha` mode. The canonical
+sequence is the [active project track](project-track.md). The earlier
+`build_first_pre_alpha` reset succeeded in restoring direct implementation,
+but its exit condition was too weak: artifact-only prompt-dependent text now
+exists, while bounded memory, geometric attention, nonlinear geometry, useful
+capability, and product integration remain unfinished.
 
-The pre-alpha objective is concrete: load a source-free model artifact and
-produce prompt-dependent text through the repository CLI or local service on
-the target local hardware. Work that does not materially help reach that
-behavior is deferred.
+The active objective is architectural alpha: useful prompt-dependent local text
+through bounded recurrent geometric memory and bounded geometric selection,
+without a complete-prefix scan or runtime teacher, provider, or source model.
+Transitional f32 and dense nonlinear reference operations may remain until their
+named later stages.
 
 ## Routine work
 
-Use one active task in an isolated full worktree from refreshed `origin/main`.
-Implement the feature, compile it, and run the smallest command that directly
-exercises the changed behavior. Focused tests are useful when they protect a
-specific failure mode; they are not required merely because code changed.
-Deliver through a protected pull request. Preserve user material, unique
-artifacts, and prior negative results.
+Use one active issue and an isolated full worktree from refreshed
+`origin/main`. Implement the next stage in the actual product path, run the
+smallest check that directly exercises it, and deliver through a protected pull
+request. A focused test should protect a concrete state, causal, or interface
+risk; code changes do not trigger broad testing by default.
 
-Agents may run builds, linters, focused tests, models, training, evaluation,
-CLIs, services, and browser flows when the active implementation requires
-them. A run estimated to exceed 15 minutes, create more than 10 GiB, or incur
-external cost requires explicit owner or active-issue authorization, a hard
-resource limit, and a stop condition.
+Agents may build, compile, lint, test, train, fit, evaluate, run models and
+services, inspect the project index and original sources, and request
+proportionate independent review. Research sources such as SpiralCore, HELM,
+W33, NEMESIS, the UOR ecosystem, and H4/zeta work are on-demand reservoirs for a
+specific implementation problem. They are not a serial programme or capability
+evidence by themselves.
 
-Automatic retry campaigns are prohibited. After a concrete failure, inspect
+Bounded iteration on open development data is allowed. Keep final held-out
+evaluation separate until design selection. A run expected to exceed 15
+minutes, create more than 10 GiB, or incur external cost requires explicit
+owner or active-issue authorization, a hard resource limit, and a stop
+condition.
+
+Automatic retry campaigns remain prohibited. After a concrete failure, inspect
 the existing output, make one direct source or input correction, and rerun once
-when that change plausibly addresses the failure. Otherwise park the command
-and report the blocker. Do not construct supervisor programs, watchdogs,
-receipt harnesses, workspace capsules, or environment-diagnostic campaigns.
+when the change plausibly resolves it. Otherwise park the command. Do not build
+supervisors, watchdogs, receipt harnesses, workspace capsules, or environment
+probe campaigns.
 
-## Deferred until a working alpha
+## Evidence without bureaucracy
 
-Formal proof work, claim-ledger maintenance, knowledge-index maintenance,
-independent review, frozen experiment contracts, fresh-process replay,
-receipt packages, duplicate roadmap synchronization, publication work,
-NEMESIS/W33 mapping, and broad release certification are not routine pre-alpha
-requirements. Only an explicit owner instruction can activate one before the
-working-alpha condition is met.
+Keep mathematical proof, measured behavior, and unverified hypotheses distinct.
+Preserve negative results, but bind each negative to its exact artifact,
+population, operator, controls, budget, and decision rule. A materially
+versioned successor may re-enter when it names what changed and why that change
+could alter the result. `UNAVAILABLE` is an execution, source, or environment
+boundary, not positive or negative model evidence.
 
-Historical records remain available and retain their original meaning. They do
-not impose their old process on new work. A routine PR needs the primary code
-or product deliverable, the direct behavior result when execution matters, and
-a concise statement of the remaining limitation and next action.
+A normal development pull request needs the primary implementation, the direct
+behavior result when execution matters, and a concise limitation and next
+action. It does not need a new ledger, evidence dossier, frozen contract, or
+proof package.
 
-## Claim boundary
+Broad proof work, claim-ledger reconciliation, routine knowledge-index
+maintenance, replay/receipt packages, duplicate roadmap mirrors, publication,
+broad research mapping, and release QA wait for the release-candidate stage
+unless the active implementation decision or owner explicitly needs one.
+Historical documents retain their original meaning but do not restore their old
+process.
 
-Do not call unrun code working. Keep mathematical proof, measured behavior, and
-unverified hypotheses distinct. This honesty rule does not require a proof
-artifact, claim ledger, evidence dossier, or separate review.
+## Ordered authority
 
-After the alpha exit condition is met, the owner can select the small amount of
-testing, formalization, reproducibility, and release work that the implemented
-product actually needs.
+The stage order is fixed:
+
+1. fixed recurrent geometric memory;
+2. sparse geometric attention;
+3. nonlinear geometric block;
+4. scale, data, and instruction behavior;
+5. retrieval and tools;
+6. representative product alpha;
+7. Rust/table lowering and optimization;
+8. release proof, evidence, and QA.
+
+The machine-readable boundary is
+[agent-execution-policy.json](agent-execution-policy.json). Changing this policy
+requires explicit owner instruction and protected delivery.

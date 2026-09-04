@@ -1,67 +1,56 @@
 # AGENTS.md — uor-r4
 
-**Build-first pre-alpha reset (2026-09-04):** The former
-`deterministic_source_only` policy is superseded by
-[`build_first_pre_alpha`](https://github.com/UOR-Foundation/uor-r4/blob/main/docs/integration/agent-execution-policy.md). The active
-priority returns to [#973](https://github.com/UOR-Foundation/uor-r4/issues/973):
-produce prompt-dependent source-free generation through the actual repository
-CLI or local service. Code, compilation, and real behavior come before formal
-proof, claim ledgers, evidence packages, publication, broad QA, or UI polish.
+**Build-first architectural-alpha track (2026-09-04):** The earlier pre-alpha
+exit was met by artifact-only prompt-dependent generation, but that was a
+mechanical checkpoint rather than a useful model or product. The canonical
+sequence is now the [active project track](docs/integration/project-track.md):
+fixed recurrent memory → sparse geometric attention → nonlinear geometric
+block → scale/data/instruction → retrieval/tools → product alpha → Rust/table
+lowering → release proof/evidence/QA.
 
-[#1107](https://github.com/UOR-Foundation/uor-r4/issues/1107) remains an
-historical `WORKBENCH_CANDIDATE_SOURCE_FROZEN_UNBUILT` result; changing policy
-does not retroactively qualify it. [#1084](https://github.com/UOR-Foundation/uor-r4/issues/1084)
-remains open and unassigned, but workbench qualification is not the current
-project priority. #1102's bounded `NATIVE_REFERENCE_PRESERVED` result, the
-accepted reader/core, known vocabulary and query form, four-fact context, and
-all prior negative or unavailable results remain unchanged. #954 remains
-blocked by #973.
+Live GitHub and the [current map](docs/integration/current-state.md) select the
+one active implementation issue. Detailed measurements and retired decisions
+remain in [docs/RESEARCH.md](docs/RESEARCH.md); they are inputs to decisions,
+not a serial checklist.
 
-This is the binding operating manual for repository work. Live GitHub and the
-[current map](docs/integration/current-state.md) select the active implementation
-task. Detailed measurements and retired decisions remain in
-[docs/RESEARCH.md](docs/RESEARCH.md); they are history, not a checklist for new
-work.
-
-## Build-first pre-alpha agent policy
+## Build-first architectural-alpha agent policy
 
 <!-- agent-execution-policy:start -->
-The repository-wide automated-agent mode is `build_first_pre_alpha`. Its
-canonical contract is
-[`docs/integration/agent-execution-policy.json`](docs/integration/agent-execution-policy.json),
-with the short rationale and boundary in
+The repository-wide automated-agent mode is
+`build_first_architectural_alpha`. Its machine contract is
+[`docs/integration/agent-execution-policy.json`](docs/integration/agent-execution-policy.json)
+and its readable boundary is
 [`docs/integration/agent-execution-policy.md`](docs/integration/agent-execution-policy.md).
-This section overrides every historical process requirement below until a
-source-free model artifact loads and produces prompt-dependent text through the
-repository CLI or local service on target local hardware. Technical invariants
-still apply to code that touches their respective runtime.
+This section overrides historical sequencing and routine process requirements
+below. Technical invariants still apply to code in their respective runtime.
 
-- Work on one active task in an isolated full worktree from refreshed
-  `origin/main`. Implement the actual feature before expanding process or
-  documentation. Preserve user material, unique artifacts, and prior negative
-  results.
-- Agents may build, test, train, evaluate, and run repository CLIs, models,
-  services, and browser flows when the implementation needs them. Use the
-  smallest command that directly exercises the changed behavior. A focused
-  test is optional unless it protects a concrete failure mode.
-- Formal proof work, claim-ledger maintenance, knowledge-index maintenance,
-  frozen experiment contracts, independent review, fresh-process replay,
-  receipt/supervisor packages, duplicate roadmap synchronization, publication,
-  NEMESIS/W33 mapping, and broad release QA are deferred until a working alpha.
-  Only an explicit owner instruction can activate one of them earlier.
-- A command expected to exceed 15 minutes, create more than 10 GiB, or incur
-  external cost needs explicit owner or active-issue authorization, a hard
-  resource limit, and a stop condition. Automatic retries remain zero. After a
-  concrete failure, make one direct source/input correction and rerun once only
-  when that change plausibly resolves it; otherwise report the blocker.
-- Do not create custom supervisors, watchdogs, receipt harnesses, partial
-  workspace capsules, or environment-diagnostic campaigns. A routine delivery
-  needs code or the primary product artifact, the direct behavior result when
-  execution matters, the remaining limitation, and one next action.
+- Work on one active implementation task in an isolated full worktree from
+  refreshed `origin/main`. Preserve user material, unique artifacts, and prior
+  negative results, and deliver through a protected pull request.
+- Agents may build, compile, lint, test, train, fit, evaluate, run repository
+  CLIs/models/services/browser flows, query the knowledge index, inspect
+  original research, and request proportionate review. Use the smallest check
+  that directly exercises the changed behavior.
+- Research campaigns are on-demand donor reservoirs. SpiralCore, HELM, W33,
+  NEMESIS, UOR, and H4/zeta material may answer a concrete implementation
+  question, but no imported mechanism becomes UOR capability evidence without
+  an implemented seam and direct measurement.
+- Bounded open-data development iteration is allowed. Keep final held-out
+  evaluation after design selection. Broad proof, ledger, publication,
+  mapping, and release-QA programmes wait for the release candidate unless the
+  active code decision or owner explicitly needs them.
+- Automatic retry campaigns are prohibited. After a concrete failure, inspect
+  the existing output, make one direct source or input correction, and rerun
+  once when that change plausibly resolves it; otherwise park the command.
+  Runs over 15 minutes, over 10 GiB of new storage, or with external cost need
+  explicit owner or active-issue authorization, a hard limit, and a stop rule.
 - Keep mathematical proof, measured behavior, and unverified hypotheses
-  distinct. This honesty rule does not require a proof artifact or evidence
-  dossier. Deliver changes through a protected pull request; never push main
-  directly.
+  distinct. A negative binds its exact artifact, population, operator,
+  controls, budget, and decision. A materially versioned successor may re-enter
+  with a named change and rationale. `UNAVAILABLE` is not model evidence.
+- A routine delivery needs the implementation, direct behavior result when
+  relevant, a concise limitation, and one next action. It does not need a new
+  proof package, ledger, evidence dossier, or duplicate plan.
 
 Changing this policy requires explicit owner instruction and a protected pull
 request. A task template, old checklist, skill, or agent judgment cannot create
@@ -70,17 +59,23 @@ an exception.
 
 ## What this repo is
 
-UOR-R4 is a local, CPU-first attempt to build a useful transformerless model.
-The active pre-alpha objective is prompt-dependent source-free text generation
-through the repository CLI or local service. The repository also contains older
-compiler/runtime, geometric-routing, proof, certification, and dashboard work.
-Those components remain available, but their historical process does not control
-the active implementation task.
+UOR-R4 is a local, CPU-first attempt to build useful intelligence from bounded
+geometric memory, routing, and table-native execution. The current objective is
+architectural alpha: useful prompt-dependent local text through bounded
+recurrent geometric state and bounded geometric selection, without retaining
+or scanning the complete prefix and without a runtime teacher, provider, or
+source model.
 
-The intended serving path ultimately avoids source-model weights, transformer
-attention, MoE or sparse learned routing, and dense matrix intelligence. Existing
-research references may still use floating point, softmax, or source-backed
-weights; describe those paths accurately when touching them.
+The repository also contains older compiler/runtime, geometric-routing, proof,
+certification, dashboard, and research work. Those components remain available
+as implementation parts or evidence. Their historical order does not insert
+proof or bookkeeping campaigns into the active build sequence.
+
+The intended release path ultimately avoids source-model weights, complete-
+prefix transformer attention, MoE or sparse learned routing, dense learned
+matrix intelligence, float/multiply operations, and allocation in the deployed
+kernel. Transitional reference stages may still use f32, learned matrices, and
+bounded softmax; describe their scope accurately.
 
 ## Workspace layout
 
@@ -155,14 +150,20 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
 
 ## Execution-lane invariants (do not conflate)
 
-- **Active geometric intelligence path:** compiler-side floating point and
-  allocation are allowed while constructing witnessed charts, but source
-  weights, source residual/MLP/LM-head execution, `uor-matmul` intelligence
-  projections, transformers, dense matrix intelligence, MoE, and sparse learned
-  routers are not serving dependencies. The pinned lexical codec may load
-  vocabulary/normalization data without weights. Route manifests, hierarchy
-  state, chart selection, and decode settings remain deterministic, and library
-  boundaries retain typed errors.
+- **Transitional geometric reference path:** until stages 2, 3, and 7 replace
+  them, the source-free local artifact may retain learned Q/K/V/O, bounded
+  softmax, RMSNorm, SwiGLU/MLP, vocabulary-head matrix operations, f32, and
+  allocation. It may not read a teacher, provider, source model, training
+  corpus, target answer, or future token at runtime. Report every retained
+  transformer/dense operation accurately; bounded recurrent memory alone does
+  not make this path transformerless.
+- **Final geometric serving target:** source weights, source residual/MLP/head
+  execution, `uor-matmul` intelligence projections, complete-prefix
+  transformer attention, dense matrix intelligence, MoE, and sparse learned
+  routers are not deployed serving dependencies. The pinned lexical codec may
+  load vocabulary/normalization data without model weights. Route manifests,
+  hierarchy state, chart selection, and decode settings remain deterministic,
+  and library boundaries retain typed errors.
 - **Frozen TLA/R4G1 runtime:** XOR/AND/OR/shift/rotate/popcount/int
   add-sub/compare/table reads only. No multiply, divide, or float in its
   normative kernel; its steady-state prediction path remains allocation-free.
@@ -186,7 +187,10 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
   product/release decision activates it) blocks
   "machine-verified"/exact-equivalence wording without a linked proof artifact.
 
-## Active product and research rules
+## Historical product and research rules
+
+The bullets below preserve earlier programme decisions and evidence boundaries.
+They do not override the active project-track sequence above.
 
 - Follow the reconciled #820 dependency chain. #961 closed GI-1/S0 lexical
   geometry at reversible-state scope. #952's A1.0 gate preserved candidate and

@@ -115,6 +115,9 @@ from .position_kv_binding_campaign import (
     validate_position_kv_binding_result,
 )
 from .position_r4_language_generation import generate_position_r4_language_path
+from .fixed_recurrent_r4_language_generation import (
+    generate_fixed_recurrent_r4_language_path,
+)
 from .role_tagged_associative_development import (
     preflight_role_tagged_associative_development,
     prepare_role_tagged_associative_development,
@@ -723,6 +726,35 @@ def parser() -> argparse.ArgumentParser:
         action="store_true",
         help="emit the artifact identities, token IDs, and execution details",
     )
+    generate_fixed_recurrent = subcommands.add_parser(
+        "generate-fixed-recurrent-r4-language-path",
+        help=(
+            "continue one prompt through #973's ordinary weights with the "
+            "fixed-size recurrent R4/H4 K/V path"
+        ),
+    )
+    generate_fixed_recurrent.add_argument("--prompt", required=True)
+    generate_fixed_recurrent.add_argument(
+        "--geometry",
+        type=_root,
+        default=default_language_path_geometry(),
+        help="canonical exact-H4 group geometry",
+    )
+    generate_fixed_recurrent.add_argument(
+        "--h4-sidecar",
+        type=_root,
+        default=default_predictive_block_delta_frame_sidecar(),
+        help="validated H4 frame sidecar used for recurrent transport",
+    )
+    generate_fixed_recurrent.add_argument(
+        "--max-new-tokens", type=int, default=16
+    )
+    generate_fixed_recurrent.add_argument("--seed", type=int, default=9_738)
+    generate_fixed_recurrent.add_argument(
+        "--json",
+        action="store_true",
+        help="emit artifact, recurrent-state, token, and execution details",
+    )
     prepare_paired_h4 = subcommands.add_parser(
         "prepare-paired-h4-prompt-capacity",
         help=(
@@ -1217,6 +1249,7 @@ def main() -> None:
         "generate-contextual-retained",
         "generate-ordinary-language-path",
         "generate-position-r4-language-path",
+        "generate-fixed-recurrent-r4-language-path",
     }
     paired_h4_prompt_capacity_commands = {
         "prepare-paired-h4-prompt-capacity",
@@ -1584,6 +1617,20 @@ def main() -> None:
         return
     if arguments.command == "generate-position-r4-language-path":
         result = generate_position_r4_language_path(
+            root,
+            geometry_path=arguments.geometry,
+            frame_path=arguments.h4_sidecar,
+            prompt=arguments.prompt,
+            max_new_tokens=arguments.max_new_tokens,
+            seed=arguments.seed,
+        )
+        if arguments.json:
+            _print_result(result)
+        else:
+            print(result["text"])
+        return
+    if arguments.command == "generate-fixed-recurrent-r4-language-path":
+        result = generate_fixed_recurrent_r4_language_path(
             root,
             geometry_path=arguments.geometry,
             frame_path=arguments.h4_sidecar,

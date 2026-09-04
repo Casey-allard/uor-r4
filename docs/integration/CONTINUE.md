@@ -1,68 +1,85 @@
 # Continue one UOR-R4 task
 
-Use the prompt below for one later repository task. Live GitHub and refreshed
-`origin/main` decide eligibility.
+Use the prompt below for one later repository task. Refresh live GitHub and
+`origin/main` before deciding eligibility.
 
-The project is in `build_first_pre_alpha` mode. The active priority is #973:
-produce prompt-dependent source-free text through the actual repository CLI or
-local service. #1107 remains historically source-frozen and unbuilt; #1084
-workbench qualification is not the current priority. #954 remains blocked by
-#973.
+The project is in `build_first_architectural_alpha` mode. Its exact stage
+order is in [project-track.md](project-track.md). The old artifact-only
+pre-alpha target was a mechanical checkpoint and is already complete.
 
-The latest #973 implementation loads the already-trained ordinary artifact into
-`R4PositionPreservingCausalKVBindingV1` and exposes its `execution="r4"` path
-through artifact-only CLI generation. It keeps one chronological K/V slot per
-observed token and transports key/value content through the validated H4
-frames. With the same seed-9738 top-k-40 sampler and 16-token limit, both fixed
-prompts produced the exact token trajectories already recorded for the ordinary
-control: `A purple turtle found a clock in the garden` continued `, there was a
-time, there was a little girl named It found a big`; `Albert Einstein was born
-in` continued ` his friend, a time, there was a little girl named he put it
-with`. The R4 executions made zero provider, teacher, future, or forbidden
-reads and did not load the invalid historical position-K/V fit.
+The ordered track is fixed recurrent memory → sparse geometric attention →
+nonlinear geometric block → scale/data/instruction → retrieval/tools → product
+alpha → Rust/table lowering → release proof/evidence/QA.
 
-This is measured two-prompt trajectory preservation through the full
-position-preserving cache. It does not establish exact logit equivalence,
-general language or factual quality, geometric advantage, recurrent
-compression, or transformerless serving. The outputs remain generic, and the
-Einstein continuation remains factually and grammatically wrong.
+## Current checkpoint
 
-Stop modifying the exact-cache adapter at this checkpoint. The next task is to
-implement one versioned fixed-size recurrent R4 cache path, with the frozen
-ordinary artifact, sampler, and exact-cache generator held as its reference.
-Fold displaced chronological content into bounded H4-addressed recurrent state
-and directly compare the same two prompt trajectories before considering any
-fit, attention scalar, or broader evaluation.
+[#973](https://github.com/UOR-Foundation/uor-r4/issues/973) now has two
+artifact-only causal paths over the same accepted ordinary weights:
+
+- `R4PositionPreservingCausalKVBindingV1` is the full 120-position comparator.
+- `R4FixedRecurrentCausalKVBindingV1` keeps eight exact live K/V records and
+  four chronological binary-age H4 summary banks. It reads before writing and
+  keeps its f32 K/V ledger fixed at 2,304 values / 9,216 bytes, 90% below the
+  comparator's 92,160 f32 bytes.
+
+The focused causal check is exact through the decision that performs the first
+post-read eviction. In the frozen full-prompt no-fit, seed-9738, top-k-40, 16-token
+comparison:
+
+| Prompt | Full-cache continuation | Recurrent continuation | Common generated prefix |
+|---|---|---|---:|
+| `A purple turtle found a clock in the garden` | `, there was a time, there was a little girl named It found a big` | `, there was a time, there was a little girl named but so she saw` | 12 tokens |
+| `Albert Einstein was born in` | ` his friend, a time, there was a little girl named he put it with` | ` his friend, a time, there was a little girl named and and a time` | 12 tokens |
+
+The recurrent runs made 17/20 evictions, 66/80 summary-slot reads, and 15/18
+summary merges respectively. Both stayed within 13 attention sources, made zero
+teacher/provider/future/forbidden reads, and performed no fit. These are
+measured mechanism results. They do not establish language quality,
+long-context retention, geometric advantage, architectural alpha, or
+table-native execution. The trained RoPE ceiling remains 120.
+
+## Next implementation action
+
+Implement the first versioned **sparse geometric attention** successor under
+#973. Keep the full-cache path and fixed recurrent path as comparators. Map the
+current query/state to a bounded set of geometric candidates, read and aggregate
+only those candidates, and prevent any complete-prefix attention scan. Compare
+the same two prompt trajectories before fitting; add a small open-data retention
+probe only if those two executions leave a specific unresolved design choice.
+
+SpiralCore's finite labelled E8 action graph may inform an operator-indexed
+candidate selector, but it is not already attention. Keep its H4/R4 and E8/R8
+spaces typed separately. HELM can supply causal/cache comparator semantics;
+W33, NEMESIS, UOR, and H4/zeta sources remain on-demand donors. Inspect original
+source for the exact mechanism used and do not transfer external proof or
+capability claims.
+
+Do not start the nonlinear block, scale campaign, workbench, lowering, release
+proof, or broad QA in the same task.
 
 ```text
 $uor-project-workflow
 
 Continue UOR-Foundation/uor-r4 from refreshed origin/main and the live GitHub
-issue graph. Read AGENTS.md and docs/integration/current-state.md. Complete one
-active implementation task and stop.
+issue graph. Read AGENTS.md, docs/integration/current-state.md, and
+docs/integration/project-track.md. Complete exactly one active implementation
+task and stop.
 
-Apply build_first_pre_alpha. Use an isolated full Git worktree. Implement the
-actual feature, compile it, and run the smallest command that directly exercises
-its behavior. Agents may build, test, train, evaluate, and run repository CLIs,
-models, services, and browser flows when the task needs them. Do not require a
-test merely because code changed.
+Apply build_first_architectural_alpha. Use one isolated full Git worktree.
+Implement the first versioned sparse geometric-attention successor under #973.
+Keep the accepted full-cache and fixed-recurrent paths as comparators. Select and
+read a bounded geometric candidate set without retaining or scanning the full
+prefix. Run the smallest direct no-fit comparison that resolves the mechanism;
+use bounded open development data only if a specific design choice remains.
 
-Do not create frozen experiment contracts, supervisor or watchdog programs,
-receipt chains, independent-review tasks, replay packages, claim-ledger updates,
-knowledge-index maintenance, source audits, duplicate roadmap updates, formal
-proof work, publication work, NEMESIS/W33 mapping, or broad QA unless I
-explicitly request it.
+Query the knowledge index or inspect SpiralCore/HELM/W33/NEMESIS/UOR/H4-zeta
+sources only for the concrete selector/read decision. Treat them as donor
+material, preserve their evidence status, and inspect original source before
+using a mechanism.
 
-Work on one task. Automatic retries are zero. After a concrete failure, use the
-existing output to make one direct source or input correction and rerun once
-only when that change plausibly resolves the failure; otherwise report the
-blocker. Any run expected to exceed 15 minutes, create more than 10 GiB, or
-incur external cost needs explicit authorization, a hard limit, and a stop
-condition.
-
-Preserve user material, unique artifacts, and prior negative results. Keep
-mathematical proof, measured behavior, and hypotheses distinct without building
-an evidence dossier. Deliver through a protected pull request. Report the
-working behavior, actual command result, remaining limitation, closure state,
-and one next action.
+Preserve unique artifacts, user material, and prior negative results. A
+negative binds its exact tuple; UNAVAILABLE is not model evidence. Keep proof,
+measured behavior, and hypotheses distinct without manufacturing an evidence
+dossier. Deliver through a protected pull request. Report the working behavior,
+actual command result, remaining limitation, closure state, and one next action.
 ```

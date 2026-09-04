@@ -1,17 +1,17 @@
 # Contributing to R⁴
 
-## Build-first pre-alpha policy
+## Build-first architectural-alpha policy
 
-The project is in **build-first pre-alpha** mode. The immediate goal is to load
-a source-free model artifact and produce prompt-dependent text through the
-repository CLI or local service on target local hardware. Read the binding
-policy in [AGENTS.md](AGENTS.md) and the small machine contract in
-[agent-execution-policy.json](docs/integration/agent-execution-policy.json).
+The project is in **build-first architectural-alpha** mode. Follow the exact
+[project track](docs/integration/project-track.md): fixed recurrent memory,
+sparse geometric attention, nonlinear geometric block, scale/data/instruction,
+retrieval/tools, product alpha, Rust/table lowering, then release proof and QA.
+Read the binding policy in [AGENTS.md](AGENTS.md) and the small machine contract
+in [agent-execution-policy.json](docs/integration/agent-execution-policy.json).
 
 ## Development loop
 
-1. Pick one implementation task that moves the working product toward the
-   pre-alpha goal.
+1. Pick one implementation task in the current project-track stage.
 2. Start an isolated worktree from refreshed `origin/main`.
 3. Implement the behavior in the actual product path.
 4. Compile and run the smallest command that directly exercises it. Add a
@@ -19,12 +19,18 @@ policy in [AGENTS.md](AGENTS.md) and the small machine contract in
 5. Open a pull request that states the observed behavior, remaining limitation,
    and next implementation action. Merge through the protected queue.
 
-Agents may build, test, train, fit, evaluate, and run repository CLIs, models,
-services, and browser flows. Formal proof work, claim and evidence ledgers,
-knowledge-index maintenance, experiment freezes, replay packages, independent
-review, publication, external-theory mapping, duplicate status documents, and
-broad release QA are deferred until the pre-alpha goal is working. Only an
-explicit owner instruction can activate one of those activities earlier.
+Agents may build, test, train, fit, evaluate, run repository CLIs, models,
+services, and browser flows, query the index, inspect original research, and
+request proportionate review. SpiralCore, HELM, W33, NEMESIS, UOR, and H4/zeta
+work are on-demand donor reservoirs for a concrete design seam. Broad formal
+proof, ledger reconciliation, publication, programme-wide source mapping, and
+release QA wait for the release candidate unless the current decision or owner
+needs them.
+
+Bounded open-data development may iterate. Keep final held-out evaluation after
+design selection. A negative remains true for its exact configuration; a
+materially versioned successor may re-enter with a named change and rationale.
+`UNAVAILABLE` is not model evidence.
 
 Automatic retries are zero. After a concrete failure, read the existing output,
 make one direct source or input correction, and rerun once when that correction
@@ -58,5 +64,5 @@ forbids it; keep deterministic artifact production deterministic; return focused
 errors at library boundaries; and do not claim behavior that was not run.
 
 Preserve unique artifacts, user material, and prior negative results. Old
-research records in `docs/` remain historical evidence, but routine pre-alpha
-development does not update or reproduce them.
+research records in `docs/` remain historical evidence and do not create a
+routine proof or bookkeeping gate for implementation.

@@ -1,32 +1,40 @@
 # R4 Intelligence Completion Plan
 
-**Build-first pre-alpha reset (2026-09-04):** The former
-`deterministic_source_only` policy is superseded by
-[`build_first_pre_alpha`](https://github.com/UOR-Foundation/uor-r4/blob/main/docs/integration/agent-execution-policy.md). The active
-priority returns to [#973](https://github.com/UOR-Foundation/uor-r4/issues/973):
-produce prompt-dependent source-free generation through the actual repository
-CLI or local service. Code, compilation, and real behavior come before formal
-proof, claim ledgers, evidence packages, publication, broad QA, or UI polish.
+**Current sequencing authority (2026-09-04):** The project is in
+`build_first_architectural_alpha` mode. The
+[active project track](integration/project-track.md) supersedes all earlier
+next-action and stage-gate prose while preserving the evidence below.
 
-[#1107](https://github.com/UOR-Foundation/uor-r4/issues/1107) remains an
-historical `WORKBENCH_CANDIDATE_SOURCE_FROZEN_UNBUILT` result; changing policy
-does not retroactively qualify it. [#1084](https://github.com/UOR-Foundation/uor-r4/issues/1084)
-remains open and unassigned, but workbench qualification is not the current
-project priority. #1102's bounded `NATIVE_REFERENCE_PRESERVED` result, the
-accepted reader/core, known vocabulary and query form, four-fact context, and
-all prior negative or unavailable results remain unchanged. #954 remains
-blocked by #973.
+The active sequence is:
 
-- **Status:** Authoritative readable mirror of programme root #820. The
-  [current map and #973→#954 handoff](integration/current-state.md) govern
-  current sequencing; the S0–S7/F0 stage graph below is retained history.
-- **Current sequence (updated 2026-09-04):** Build-first work is active on
-  #973 until a source-free artifact loads and produces prompt-dependent text
-  through the actual CLI or local service. #1107 remains a historical unbuilt
-  source checkpoint; #1084 is parked; #954 remains blocked. Proof, publication,
-  claim/evidence bookkeeping, external-theory mapping, duplicate planning, and
-  broad QA are deferred until a working alpha. The stage graph below is retained
-  as history and architecture, not an active proof or paperwork queue.
+1. fixed recurrent geometric memory;
+2. sparse geometric attention;
+3. nonlinear geometric block;
+4. scale, data, and instruction behavior;
+5. retrieval and tools;
+6. representative product alpha;
+7. Rust/table lowering and optimization;
+8. release proof, evidence, and QA.
+
+The old pre-alpha condition—artifact-only prompt-dependent CLI output—was met by
+the accepted full-cache path and is now classified as a mechanical checkpoint.
+Architectural alpha additionally requires useful prompt-dependent text through
+bounded recurrent geometric memory and bounded geometric selection, with no
+complete-prefix scan or runtime teacher/provider/source model. Product alpha,
+release candidate, and release have separate conditions in the active track.
+
+The fixed recurrent stage now has an unfitted executed mechanism: eight exact
+live K/V records and four H4-local summary banks, with 9,216 bytes of fixed f32
+K/V storage. Its two-prompt comparison observed post-eviction summary reads and
+trajectory divergence; it made no quality, long-context, advantage, or
+table-native claim. Sparse geometric attention is the next build stage.
+
+The S0–S7/F0 graph below is retained as historical architecture and evidence,
+not an active serial queue. Proof, claim-ledger reconciliation, publication,
+broad research mapping, and release QA wait for the release candidate unless
+the current implementation needs a specific result. Research programmes are
+on-demand donor reservoirs and require an implemented UOR seam plus direct
+measurement before their claims transfer.
 
 ## Why this plan exists
 

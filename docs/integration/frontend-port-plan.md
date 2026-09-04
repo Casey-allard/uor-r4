@@ -1,8 +1,7 @@
 # Proposed product boundary and component transfer
 
-Status: parked architecture reference. Product-interface work resumes after the
-source-free generator produces prompt-dependent output, unless the owner
-explicitly reprioritizes it.
+Status: parked architecture reference. Product-interface work resumes at stage
+6, representative product alpha, unless the owner explicitly reprioritizes it.
 
 **Historical checkpoint (2026-09-04):**
 [#1105](https://github.com/UOR-Foundation/uor-r4/issues/1105), a closed contract
@@ -16,7 +15,7 @@ crate, worker, private comparison entry and shell and freezes it as
 `WORKBENCH_CANDIDATE_SOURCE_FROZEN_UNBUILT`. Compilation, tests, model
 operations, HTTP/service execution, browser acceptance, portability and
 qualification were not run at that checkpoint. The superseding
-[`build_first_pre_alpha`](agent-execution-policy.md) policy permits execution,
+[`build_first_architectural_alpha`](agent-execution-policy.md) policy permits execution,
 but #1084 remains parked while #973 is active.
 
 ## Decision

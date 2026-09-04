@@ -1,21 +1,41 @@
 # Research: what is measured, what is closed, what is open
 
-**Build-first pre-alpha reset (2026-09-04):** The former
-`deterministic_source_only` policy is superseded by
-[`build_first_pre_alpha`](https://github.com/UOR-Foundation/uor-r4/blob/main/docs/integration/agent-execution-policy.md). The active
-priority returns to [#973](https://github.com/UOR-Foundation/uor-r4/issues/973):
-produce prompt-dependent source-free generation through the actual repository
-CLI or local service. Code, compilation, and real behavior come before formal
-proof, claim ledgers, evidence packages, publication, broad QA, or UI polish.
+**Active direction (2026-09-04):** The project follows the
+[architectural-alpha track](integration/project-track.md). Artifact-only
+prompt-dependent generation is a completed mechanical checkpoint. The ordered
+implementation is fixed recurrent memory → sparse geometric attention →
+nonlinear geometric block → scale/data/instruction → retrieval/tools → product alpha
+→ Rust/table lowering → release proof/evidence/QA.
 
-[#1107](https://github.com/UOR-Foundation/uor-r4/issues/1107) remains an
-historical `WORKBENCH_CANDIDATE_SOURCE_FROZEN_UNBUILT` result; changing policy
-does not retroactively qualify it. [#1084](https://github.com/UOR-Foundation/uor-r4/issues/1084)
-remains open and unassigned, but workbench qualification is not the current
-project priority. #1102's bounded `NATIVE_REFERENCE_PRESERVED` result, the
-accepted reader/core, known vocabulary and query form, four-fact context, and
-all prior negative or unavailable results remain unchanged. #954 remains
-blocked by #973.
+**Current measured mechanism:** `R4FixedRecurrentCausalKVBindingV1` uses eight
+exact live K/V records and four H4-local chronological summary banks. It keeps
+2,304 f32 K/V values (9,216 bytes) independent of processed sequence length,
+versus 23,040 values (92,160 bytes) in the 120-token full-cache comparator. A
+focused execution check is bit-exact with the comparator through the decision
+that causes the first post-read eviction.
+
+The frozen full-prompt seed-9738, top-k-40, 16-token no-fit comparison observed:
+
+- `A purple turtle found a clock in the garden`: 12 common generated tokens,
+  then full cache `It found a big` versus recurrent `but so she saw`; 17
+  evictions, 66 summary reads, 15 merges.
+- `Albert Einstein was born in`: 12 common generated tokens, then full cache
+  `he put it with` versus recurrent `and and a time`; 20 evictions, 80 summary
+  reads, 18 merges.
+
+Both recurrent executions stayed within 13 attention sources and made zero
+teacher, provider, future, or forbidden reads. This establishes bounded
+read-before-write compression and executable post-eviction summary use. It does
+not establish language improvement, long-context retention, geometric
+advantage, architectural alpha, or table-native execution. RoPE still limits
+the reference to 120 positions. The next implementation is sparse geometric
+attention.
+
+Historical positive, negative, and unavailable results below retain their exact
+scope. A negative binds its artifact/population/operator/controls/budget and may
+be revisited only by a materially versioned successor with a named rationale.
+`UNAVAILABLE` is not model evidence. Research sources are donor reservoirs,
+not capability claims or serial gates.
 
 R⁴ is a research programme as much as an engine. Its aspirational goal is
 frontier-like useful local intelligence built from routed geometry rather than
@@ -1229,14 +1249,14 @@ teacher work. The structural harness gates pass; live exact-multicore
 throughput, speedup, and parity remain **NOT ESTABLISHED**. See the
 [append-only #932 record](teacher_parity_parallelism_932.md).
 
-## Measurement discipline
+## Historical measurement discipline and current costly-run boundary
 
-Every substantive claim in this repo arrives with a **pre-declared exit rule, a
-null baseline, and a falsifier**. Negative results are recorded and kept, not
-discarded — several entries below are negatives that redirected the programme,
-and they are more valuable than the positives they replaced.
+Release-bearing and costly scientific claims use a **pre-declared exit rule, a
+null baseline, and a falsifier**. Routine implementation uses the direct result,
+limit, and next decision without manufacturing a frozen experiment. Negative
+results are recorded and kept; several entries below redirected the programme.
 
-Long runs additionally follow the run-contract discipline in
+Long runs follow the run-contract discipline in
 [AGENTS.md](../AGENTS.md): compute the reachability ceiling before spending
 hours, gate on the cheap instrument first, and pre-declare what each outcome
 *causes*. That discipline exists because we lost days to runs whose result could

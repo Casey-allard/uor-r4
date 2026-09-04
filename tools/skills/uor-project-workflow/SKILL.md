@@ -7,21 +7,23 @@ description: Execute one build-first UOR-R4 implementation task and deliver its 
 
 Follow the checkout's `AGENTS.md` and
 `docs/integration/agent-execution-policy.json`. The project is in
-`build_first_pre_alpha` mode until a source-free model artifact loads and
-produces prompt-dependent text through the repository CLI or local service on
-target local hardware.
+`build_first_architectural_alpha` mode. Follow the ordered stages in
+`docs/integration/project-track.md`; do not substitute an older issue or proof
+sequence.
 
 ## Start
 
 1. Refresh `origin/main`, the live active issue, and its immediate blocker or
    parent when one matters.
-2. Read `AGENTS.md` and `docs/integration/current-state.md`.
+2. Read `AGENTS.md`, `docs/integration/current-state.md`, and
+   `docs/integration/project-track.md`.
 3. Create one isolated full worktree and implement one product behavior.
 
 Do not begin with a project-wide history reconstruction. Query the knowledge
-index, old research, external repositories, or papers only when a concrete code
-decision cannot be answered from the current source and active issue. Original
-source beats summaries.
+index or inspect SpiralCore, HELM, W33, NEMESIS, UOR, H4/zeta, other external
+repositories, or papers when they can answer a concrete active design question.
+Treat them as donor reservoirs and inspect original source before transferring a
+mechanism or claim.
 
 ## Build the product
 
@@ -31,11 +33,13 @@ directly exercises the behavior changed by the task. A test is useful when it
 protects a specific regression; code changes do not automatically require a
 new test or a full suite.
 
-Formal proof work, claim/evidence ledgers, knowledge-index maintenance,
-experiment freezes, independent review, replay packages, receipt chains,
-publication work, NEMESIS/W33 mapping, duplicate roadmap/status updates, source
-audits, and broad release QA are deferred until the working-alpha condition.
-Only an explicit owner instruction can activate one earlier.
+Bounded iteration on open development data is allowed; keep final held-out
+evaluation after design selection. Proportionate independent review is useful
+for novel causal/state code and when the owner requests it. Broad formal proof,
+claim-ledger reconciliation, routine knowledge-index maintenance, replay and
+receipt packages, publication, programme-wide research mapping, duplicate
+plans, and broad release QA wait for the release candidate unless a concrete
+implementation decision or owner activates one earlier.
 
 Automatic retries are zero. When a command fails, inspect the output, make one
 direct source or input correction, and rerun once only when that correction
@@ -49,8 +53,11 @@ and a stop condition.
 ## Preserve and deliver
 
 Preserve unrelated changes, user material, unique artifacts, and prior negative
-results. Keep mathematical proof, measured behavior, and unverified hypotheses
-distinct without manufacturing an evidence dossier.
+results. A negative binds its exact artifact, population, operator, controls,
+budget, and decision; a materially versioned successor may re-enter with a
+named rationale. `UNAVAILABLE` is not model evidence. Keep mathematical proof,
+measured behavior, and unverified hypotheses distinct without manufacturing an
+evidence dossier.
 
 Deliver through a protected pull request. A routine completion report contains
 the working behavior, the command and observed result, the remaining limitation,

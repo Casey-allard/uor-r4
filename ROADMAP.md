@@ -1,51 +1,58 @@
 # Roadmap
 
-**Build-first pre-alpha reset (2026-09-04):** The former
-`deterministic_source_only` policy is superseded by
-[`build_first_pre_alpha`](https://github.com/UOR-Foundation/uor-r4/blob/main/docs/integration/agent-execution-policy.md). The active
-priority returns to [#973](https://github.com/UOR-Foundation/uor-r4/issues/973):
-produce prompt-dependent source-free generation through the actual repository
-CLI or local service. Code, compilation, and real behavior come before formal
-proof, claim ledgers, evidence packages, publication, broad QA, or UI polish.
+**Active track (2026-09-04):** The earlier artifact-only generation target was
+a mechanical checkpoint. It is complete, but it is not architectural alpha,
+product alpha, or release readiness. The exact definitions, research-reservoir
+rules, and evidence boundaries live in the
+[active project track](docs/integration/project-track.md). The machine policy is
+`build_first_architectural_alpha`.
 
-[#1107](https://github.com/UOR-Foundation/uor-r4/issues/1107) remains an
-historical `WORKBENCH_CANDIDATE_SOURCE_FROZEN_UNBUILT` result; changing policy
-does not retroactively qualify it. [#1084](https://github.com/UOR-Foundation/uor-r4/issues/1084)
-remains open and unassigned, but workbench qualification is not the current
-project priority. #1102's bounded `NATIVE_REFERENCE_PRESERVED` result, the
-accepted reader/core, known vocabulary and query form, four-fact context, and
-all prior negative or unavailable results remain unchanged. #954 remains
-blocked by #973.
+## Project sequence
 
-This is the product view of the authoritative post-v0.1 sequence in the
-[R4 Intelligence Completion Plan](docs/r4_intelligence_completion_plan.md),
-with architecture and claim boundaries supplied by the
-[Geometric Intelligence Programme](docs/geometric_intelligence_programme.md).
-The earlier
-[Geometric Causal Decoder Roadmap](docs/geometric_causal_decoder_plan.md) is a
-preserved #948–#958 sequencing record. Measured, refuted, and frozen research
-remains in [docs/RESEARCH.md](docs/RESEARCH.md).
+1. **Fixed recurrent geometric memory — implemented mechanical checkpoint.**
+   `R4FixedRecurrentCausalKVBindingV1` replaces the 120-slot full K/V cache
+   with eight exact live records and four H4-local summary banks. Its 9,216-byte
+   f32 K/V state is constant. The no-fit two-prompt comparison executed and
+   read summaries after eviction; quality and long-context retention remain
+   unestablished.
+2. **Sparse geometric attention — next.** Implement bounded
+   geometry-selected candidates and a bounded read operator without scanning
+   the complete prefix. Compare against the accepted causal Q/K/V reference.
+3. **Nonlinear geometric block.** Replace dense SwiGLU/MLP intelligence with a
+   versioned R4 operator or separately typed E8/R8 operator bank and a measured
+   nonlinear state transition.
+4. **Scale, data, and instruction behavior.** Grow the bounded architecture and
+   train on open development data until useful language, instruction,
+   retention, and composition are measured.
+5. **Retrieval and tools.** Add typed retrieval, ambiguity/refusal, real tool
+   execution, feedback, and result ingestion.
+6. **Representative product alpha.** Exercise grounding/abstention,
+   composition, identity memory, coding, and tools through one local workbench.
+7. **Rust/table lowering and optimization.** Preserve accepted behavior through
+   the packed Rust runtime, then remove remaining float, multiply, allocation,
+   and unbounded serving work.
+8. **Release proof, evidence, and QA.** Reconcile proofs, claims, negative
+   results, resources, portability, security, broad QA, scorecards, and
+   publication against the actual release candidate.
 
-## Current sequence
+[#973](https://github.com/UOR-Foundation/uor-r4/issues/973) owns the current
+model track. #954 and the older capability chain remain historical issue
+structure, not a proof queue between build stages. The #1107 workbench source
+remains an unbuilt historical candidate; it returns when the model reaches the
+product-alpha stage.
 
-1. **Make the model work (#973).** Load the source-free artifact and produce
-   prompt-dependent text through the actual CLI or local service. Implement and
-   execute one missing behavior at a time.
-2. **Make the product usable (#1084).** Once generation works, connect the real
-   model lifecycle to the local workbench. The #1105 contract and #1107 source
-   candidate are available as references.
-3. **Measure the implemented capability (#954, then #955).** Correctness,
-   reasoning, resource, portability, and release decisions follow working
-   behavior. Use focused checks that can change a concrete implementation or
-   release decision.
-4. **Formalize and publish later (#1089/#1091).** Proofs, the paper, external
-   theory bridges, claim/evidence ledgers, and broad certification remain
-   deferred until a working alpha unless the owner explicitly activates one.
+SpiralCore, HELM, W33, NEMESIS, UOR ecosystem work, and H4/zeta research are
+on-demand donor reservoirs. SpiralCore's finite labelled E8 transitions may
+inform sparse operator routing, and its typed state/refusal/table discipline may
+inform contracts, but the attached browser implementation is not measured UOR
+attention, recurrent memory, nonlinear model execution, tool use, or Rust/table
+lowering. H4/R4 and E8/R8 remain typed separately.
 
-[#1107](docs/r4_workbench_candidate_1107.md) remains historical unbuilt source;
-#1084 is parked; #954 remains blocked by #973. Prior measurements and negative
-results remain in [docs/RESEARCH.md](docs/RESEARCH.md) and are not rerun or
-copied into routine implementation pull requests.
+Negative results retain their exact historical scope. A materially versioned
+successor may re-enter with a named change and reason; `UNAVAILABLE` is not
+model evidence. Bounded open-data development may iterate, while final held-out
+evaluation and broad release evidence wait until design selection and release
+candidate respectively.
 
 ## Historical roadmap
 
@@ -53,7 +60,7 @@ The sections below preserve older baselines and delivered components. Their old
 next-action and proof-process wording does not override the current sequence or
 the [build-first policy](docs/integration/agent-execution-policy.md).
 
-## Established baseline and only permitted successor
+## Historical established baseline and then-permitted successor
 
 - [x] **#989 B0 source-free table-native lexical baseline — established.** The
   3,000-document D3 run produced 116,061 lexical routes and a 35,655,288-byte
@@ -84,7 +91,7 @@ the [build-first policy](docs/integration/agent-execution-policy.md).
   inversion, and #953 were `NOT_RUN`. Its successor handoff is #986; the failed
   #983 representation and evidence remain unchanged.
 
-## Active
+## Historical #973 experiment sequence
 
 - [x] **#973 paired-H4 prompt-responsive-capacity arm — rejected.**
   `R4RetainedLanguagePathV1` is terminal `RETAINED_LANGUAGE_PATH_PASS`: held-out

@@ -1,125 +1,50 @@
 # Geometric Intelligence Programme
 
-**Build-first override (2026-09-04):** The historical programme below remains
-architectural context, not the active task queue. Until a source-free artifact
-loads and produces prompt-dependent text through the repository CLI or local
-service, implementation and direct execution under
-[`build_first_pre_alpha`](integration/agent-execution-policy.md) take priority.
-Formal proof, claim/evidence ledgers, independent review, replay packages,
-publication, NEMESIS/W33 mapping, duplicate planning updates, and broad QA are
-deferred unless the owner explicitly activates one. The current implementation
-priority is #973; #1084 workbench qualification is parked.
+**Active programme direction (2026-09-04):** The canonical sequence is the
+[active project track](integration/project-track.md) under
+`build_first_architectural_alpha`:
 
-**Current native-reference specification (2026-09-03):**
-[#1086](r4_native_reference_1086.md) records
-`NATIVE_REFERENCE_CONTRACT_SPECIFIED`. The
-[machine contract](r4_native_reference_1086_contract.json),
-[operator audit](r4_native_reference_1086_operator_audit.md) and
-[original-source audit](r4_native_reference_1086_sources.md) define the
-exact artifact/state identities, loader and operator boundary, and a separate
-matched reference/native comparison with its resource envelope. Export, native
-implementation, model loads, forwards, evaluation and replay are **`NOT_RUN`**.
-This is specification evidence, not native behavior or an execution release.
-QA remains dormant; only the named specification checks apply.
+1. fixed recurrent geometric memory;
+2. sparse geometric attention;
+3. nonlinear geometric block;
+4. scale, data, and instruction behavior;
+5. retrieval and tools;
+6. representative product alpha;
+7. Rust/table lowering and optimization;
+8. release proof, evidence, and QA.
 
-#1094 is closed through [protected PR #1101](https://github.com/UOR-Foundation/uor-r4/pull/1101),
-merge `eade29f4b78435e9857936786426bb34e596b301`; its measured evidence below is
-unchanged and its consumed envelope cannot be rerun. The next action is separate
-activation of the parked native implementation/export/comparison successor
-[#1102](https://github.com/UOR-Foundation/uor-r4/issues/1102), a child of #1086, unassigned until active. #1087 still requires its separate final-lowering
-contract and #1083 typed UOR integration. #973 stays open and #954 blocked.
+The old artifact-only pre-alpha exit is a completed mechanical checkpoint, not
+a working model or product. The fixed recurrent H4 memory successor has now
+executed with eight exact live K/V records and four summary banks at a constant
+9,216 f32 K/V bytes. It read summaries after eviction and diverged from the
+full-cache comparator after 12 generated tokens on both
+`A purple turtle found a clock in the garden` and
+`Albert Einstein was born in`. That is measured mechanism behavior only. Sparse geometric
+attention is next.
 
-**Retained adapter comparison (2026-09-03; pre-merge closure and next-action wording below are historical):** [#1094](r4_retained_comparison_1094.md)
-completed `CLAUSE_ADAPTER_PRESERVED`; independent review accepted the result. The sole
-approved comparison matched all 1,600 valid inputs, complete compared tensors and
-answers; all 80 refusal rows and 16 boundary controls matched with zero forwards.
-Full and oracle fresh-process replay were exact; total logical forwards were 6,400.
-The valid rows are related renderings of 20 already-observed groups. Scope remains
-the same learned reader/core, known vocabulary/query forms and four-fact context.
-Operator wall time was 15.821630625 seconds; the final cumulative resource snapshot
-was 135.697821334 seconds, including the conservative 120-second preparation debit.
-The historical 3,465,401-byte ledger remains charged. No fitting or generation ran.
-The result adds no semantic novelty, general-English qualification, mathematical
-proof, native export or final-kernel qualification. #1079's weak-control result and
-#1082's descriptive limits remain unchanged; #973 stays open and #954 blocked.
-The bounded scientific comparison DoD is complete; #1094 closes upon protected
-merge. The next separately activated task, unassigned until active, is
-[#1086](https://github.com/UOR-Foundation/uor-r4/issues/1086): freeze the native
-export/loader/reference-behavior contract and its smallest matched check before
-implementation. Do not rerun the consumed #1094 envelope.
+Research lines are donor reservoirs consulted for an unresolved implementation
+choice. SpiralCore contributes candidate finite-state, refusal, table, and E8
+transition-graph patterns; HELM contributes causal comparator semantics; W33,
+NEMESIS, UOR, and H4/zeta work contribute typed constructions and hypotheses.
+None transfers a capability claim without an implemented UOR seam and direct
+measurement. Keep H4/R4 and E8/R8 typed separately.
 
-**Latest diagnostic (2026-09-03):** [#1082](r4_token_exposure_1082.md) completed
-`TOKEN_EXPOSURE_DESCRIPTIVE_COMPLETE` on the two frozen construction views.
-All 286,720 used-role measurements and full summary evidence replayed exactly;
-run plus replay took 31.159102 seconds, with peak 0.9891 GiB. Token-control
-exposure is role-selective: fact locations receive almost no changed-frame
-attention in rendering 0, and fact objects receive almost none in rendering 1.
-Highly displaced roles show little cancellation; recorded retained answers
-coexist with nonzero displacement. This is descriptive evidence, not a causal
-explanation or a revision of #1079's weak-control result. No new answers,
-fitting, development scoring or generation ran.
+Negative results below remain binding for their exact artifact, data,
+operator, controls, budget, and decision. They do not ban a materially
+versioned successor that names its change and rationale. `UNAVAILABLE` is not
+model evidence. Broad formalization, ledgers, publication, research mapping,
+and QA are release-candidate work unless a current implementation decision
+needs a specific result.
 
-**Earlier adapter preparation/release checkpoints (2026-09-03; superseded for next-action selection):** [#1094](r4_text_clause_adapter_1094.md)
-returned `UNAVAILABLE_REFERENCE_REPLAY` during preparation. Authoring input
-fidelity was 320/320 and typed refusals 16/16; the OS denied the pinned Python
-launch before worker startup. Model loads/forwards are zero; withheld comparison
-and replay are `NOT_RUN`. Supplied segmentation remains qualified. The
-[#1085 specification](integration/clause-segmentation-1085.md) is unchanged.
-The separate [#1096 readiness decision](r4_isolated_runtime_readiness_1096.md)
-recorded `ISOLATED_RUNTIME_READY`: all four harmless denied-path probes passed,
-with null model states and zero model loads/forwards/updates. Independent result
-review passed; #1096 was delivered at `6f21fc5f4c40b9620c9fec5e95a39097f812ae73`.
-The [frozen #1094 preparation contract](r4_text_clause_preparation_1094.md)
-now has an [implemented retained-evidence assembly and launch gate](r4_retained_assembly_1094.md).
-Committed source `07ec3f0d` produced `PREPARATION_ASSEMBLED_FROM_RETAINED_EVIDENCE`
-without another preparation or worker. Independent exact-envelope release is
-`ACCEPTED_FOR_RETAINED_EVIDENCE_COMPARISON`; the assembly's embedded `NOT_ADMITTED`
-remains immutable and the separate release receipt governs execution. The full 120-second preparation debit and 3,465,401
-historical bytes remain charged. Next: separately activate the frozen comparison
-and fresh-process replay through `run-retained` from the bound coordinator with
-the verified exact release. Fresh identity checks consume the 120-second execution and
-120-second replay allocations, within the 360-second cumulative cap; no new
-`prepare` is admitted. #1094 remains open, parked and unassigned after this
-delivery. Model comparison/replay remain `NOT_RUN`; neither assembly nor readiness
-qualifies raw-text behavior.
-#1079's weak-control and #1082's descriptive findings remain unchanged; #973 is
-open and #954 blocked. Use the [current map](integration/current-state.md).
+The historical programme sections below preserve their original measurements,
+architecture, and vocabulary. Their next-action prose does not override the
+active sequence.
 
-**Planning adoption (2026-09-03):** use the
-[current map and #973→#954 consumer contract](integration/current-state.md),
-[adopted issue graph](integration/adopted-issues.json), and
-[continuation prompt](integration/CONTINUE.md). The
-[#1086 native-reference specification](r4_native_reference_1086.md) records
-`NATIVE_REFERENCE_CONTRACT_SPECIFIED` using the
-[bounded raw-text comparison evidence](r4_retained_comparison_1094.md).
-Its native implementation/export/comparison successor
-[#1102](https://github.com/UOR-Foundation/uor-r4/issues/1102) remains parked until separately activated; native execution is `NOT_RUN`. The reference's floating-point
-contract and the separate #1087/#1083 final-serving obligations remain distinct;
-raw-text preservation and this specification qualify neither native behavior nor
-the final serving kernel.
-Product interfaces, integration, coding evaluation and
-paper/proof preparation now have separate issue ownership; no capability stage
-is promoted by adopting those plans.
-
-- **Status:** Current architecture and claim-boundary companion to the
-  authoritative post-v0.1 sequencing in
+- **Status:** Architecture and evidence companion to the
   [R4 Intelligence Completion Plan](r4_intelligence_completion_plan.md)
-- **Adopted:** 2026-08-26
-- **Foundation evidence:**
-  [#958 prime-route qualification](prime_route_attention_qualification_958.md)
-- **Supersedes for architectural direction:**
-  [Geometric Causal Decoder Roadmap](geometric_causal_decoder_plan.md)
+- **Current state:** [programme map](integration/current-state.md)
 - **Historical measurements:** [Research ledger](RESEARCH.md)
-- **Qualified retained baseline:**
-  [`R4RetainedLanguagePathV1`](r4_retained_language_path_v1_973.md)
-- **Latest inference integration:**
-  [#1079 learned-interface two-stage R4 preservation](r4_zoology_language_r4_1079.md)
-- **Latest construction diagnostic:**
-  [#1082 token-frame exposure and pooled displacement](r4_token_exposure_1082.md)
-- **Latest learning experiment:**
-  [#1077 learned contextual role interface](r4_zoology_language_interface_1077.md)
-- **Retained exact-data learning artifact:**
-  [#1057 exact-checkpoint continuation](r4_zoology_checkpoint_continuation_1057.md)
+- **Current implementation owner:** [#973](https://github.com/UOR-Foundation/uor-r4/issues/973)
 
 ## Purpose
 
@@ -164,7 +89,7 @@ Cost optimization and full formal/release qualification follow a working
 decision-bearing product slice. The former 2026-09-03 parallel proof and paper
 lane is superseded by the build-first override above.
 
-## Current R4 preservation — token control misses three views
+## Historical R4 preservation — token control misses three views
 
 **Current two-stage R4 result (2026-09-02):** #1079 completed
 `LANGUAGE_R4_PRESERVED_CONTROL_WEAK`. The retained [#1077 learned interface](r4_zoology_language_interface_1077.md)
@@ -227,7 +152,7 @@ recurrence compression, resonance replacement, exact lowering, correctness,
 and reasoning remain unauthorized; #954 remains blocked. See the
 [#1043 record](r4_position_kv_binding_1043.md).
 
-## Current #973 decision — stop this predictive block-delta law
+## Historical #973 decision — stop this predictive block-delta law
 
 **Historical V5 decision, superseded for programme sequencing on 2026-09-03.**
 The V5 law remains retired with the result below unchanged. The current #973
@@ -1151,7 +1076,7 @@ by itself. Held-out prompts, exact-recall labels, geometry-permuted controls,
 count-only controls, and equal candidate/token budgets must separate stored
 grammar from load-bearing geometry.
 
-## Programme sequence
+## Historical programme sequence
 
 ### B0 / #989 — source-free table-native lexical baseline
 

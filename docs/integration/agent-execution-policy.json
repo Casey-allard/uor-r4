@@ -1,5 +1,4 @@
 {
-  "alpha_exit_condition": "a source-free model artifact loads and produces prompt-dependent text through the repository CLI or local service on target local hardware",
   "delivery": {
     "active_task_limit": 1,
     "direct_push_to_main": false,
@@ -11,17 +10,22 @@
       "measured_behavior",
       "unverified_hypothesis"
     ],
+    "negative_result_scope": "exact_artifact_population_operator_controls_budget_and_decision",
     "preserve_negative_results": true,
     "preserve_unique_evidence_and_user_material": true,
-    "routine_record": "pull_request_or_active_issue_summary"
+    "reentry": "materially_versioned_successor_with_named_change_and_causal_rationale",
+    "routine_record": "pull_request_or_active_issue_summary",
+    "unavailable_is_model_evidence": false
   },
   "execution": {
     "allowed": [
       "build_compile_and_lint",
       "focused_tests",
+      "bounded_open_data_development",
       "model_training_fitting_and_evaluation",
       "service_browser_and_cli_execution",
-      "repository_and_source_inspection",
+      "repository_index_and_source_inspection",
+      "proportionate_independent_review",
       "reviewable_git_and_github_operations"
     ],
     "automatic_retries": 0,
@@ -34,37 +38,67 @@
         "stop_condition"
       ]
     },
+    "final_heldout_evaluation": "after_design_selection",
     "prohibited": [
       "automatic_retry_campaigns",
+      "blind_unchanged_negative_or_unavailable_retries",
       "custom_supervisors_watchdogs_and_receipt_harnesses",
       "environment_probe_campaigns",
       "silent_external_spend"
     ],
     "verification": "run_only_the_smallest_check_that_directly_exercises_the_changed_behavior"
   },
-  "mode": "build_first_pre_alpha",
+  "mode": "build_first_architectural_alpha",
+  "project_track": {
+    "architectural_alpha": "useful_prompt_dependent_text_through_bounded_recurrent_geometric_memory_and_bounded_geometric_selection_without_complete_prefix_scan_or_runtime_teacher_provider_or_source_model",
+    "current_stage": "sparse_geometric_attention",
+    "ordered_stages": [
+      "fixed_recurrent_geometric_memory",
+      "sparse_geometric_attention",
+      "nonlinear_geometric_block",
+      "scale_data_and_instruction_behavior",
+      "retrieval_and_tools",
+      "representative_product_alpha",
+      "rust_table_lowering_and_optimization",
+      "release_proof_evidence_and_qa"
+    ],
+    "product_alpha": "representative_grounding_abstention_composition_identity_memory_coding_and_tool_use_through_one_local_workbench",
+    "release": "targeted_proof_evidence_reproducibility_broad_qa_scorecard_and_publication_for_the_shipped_implementation",
+    "release_candidate": "accepted_product_behavior_through_bounded_rust_table_integer_serving_with_installation_resource_and_rollback_qualification"
+  },
+  "research": {
+    "broad_mapping_default": "deferred_until_release_candidate",
+    "consultation": "on_demand_for_a_concrete_active_implementation_question",
+    "reservoirs": [
+      "spiralcore",
+      "helm",
+      "w33",
+      "nemesis",
+      "uor_ecosystem",
+      "h4_and_zeta"
+    ],
+    "transfer_rule": "original_source_inspection_and_direct_uor_measurement_required_before_capability_claim"
+  },
   "routine_artifacts": {
-    "deferred_until_alpha": [
-      "formal_proof_work",
-      "claim_ledger_updates",
-      "knowledge_index_maintenance",
-      "independent_review",
-      "frozen_experiment_contracts",
-      "fresh_process_replay",
+    "not_default_before_release_candidate": [
+      "broad_formal_proof_work",
+      "claim_ledger_reconciliation",
+      "routine_knowledge_index_maintenance",
+      "frozen_contracts_for_cheap_development_steps",
+      "fresh_process_replay_packages",
       "receipt_and_supervisor_packages",
       "duplicate_roadmap_and_status_mirrors",
       "paper_and_publication_work",
-      "nemesis_and_w33_mapping",
+      "broad_nemesis_w33_or_spiralcore_mapping",
       "broad_qa_and_release_certification"
     ],
-    "early_activation": "explicit_owner_instruction_only",
     "required": [
       "primary_code_or_product_deliverable",
       "direct_behavior_result_when_execution_is_relevant",
       "concise_limit_and_next_action"
     ]
   },
-  "schema": "uor-r4.agent-execution-policy/2",
+  "schema": "uor-r4.agent-execution-policy/3",
   "workspace": {
     "base": "refreshed_origin_main",
     "preserve_user_and_unique_evidence": true,

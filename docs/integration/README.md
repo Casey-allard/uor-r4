@@ -1,12 +1,14 @@
 # Integration archive and optional tools
 
-This directory preserves prior research and integration records. It is not a
-pre-alpha checklist. Routine work follows the
-[build-first pre-alpha policy](agent-execution-policy.md): implement and run the
-product path without updating this archive, the claim ledger, or the knowledge
-index. Formalization, publication, independent review, replay packages, and
-broad QA stay deferred until a working alpha unless the owner explicitly asks
-for one earlier.
+This directory preserves prior research and integration records. It is not an
+implementation checklist. Routine work follows the
+[build-first architectural-alpha policy](agent-execution-policy.md) and the
+[active project track](project-track.md). Research, index, and review tools may
+answer a concrete design question; broad proof, ledger, publication, mapping,
+and QA programmes wait for the release candidate.
+
+The fixed recurrent-memory mechanical checkpoint is implemented; sparse geometric
+attention is the next model stage.
 
 Start with the [adopted current map](current-state.md), [workflow adoption record](workflow-adoption.md), and [reusable continuation prompt](CONTINUE.md). The [research and productization plan](../uor_productization_integration_plan.md) retains the full audit and design. Native GitHub issues and current source remain authoritative; dated audit snapshots preserve earlier state.
 
@@ -17,7 +19,8 @@ Start with the [adopted current map](current-state.md), [workflow adoption recor
 | What can external research contribute? | [HELM / GoldSnnail / W33 / NEMESIS review](external-research-audit.md) |
 | What should be ported from the browser product? | [Component and API port plan](frontend-port-plan.md) |
 | What is installed and how should it be used? | [Tool status](tooling-status.json), [workflow selection](workflow-tools.md) |
-| What bounds automated agent execution? | [Build-first pre-alpha policy](agent-execution-policy.md), [machine contract](agent-execution-policy.json) |
+| What is the exact model/product sequence? | [Active project track](project-track.md) |
+| What bounds automated agent execution? | [Build-first architectural-alpha policy](agent-execution-policy.md), [machine contract](agent-execution-policy.json) |
 | What is the current workbench checkpoint? | [#1107 source candidate](../r4_workbench_candidate_1107.md), [independent static review](../r4_workbench_candidate_1107_review.md) |
 | What is needed later for a defensible paper? | Deferred reference: [publication readiness](publication-readiness.md), [publication tools](publication-tooling.json), [initial claim ledger](claim-ledger.json) |
 
@@ -39,10 +42,10 @@ The durable acquisition cache on this workstation is `~/.local/share/uor-r4/know
 
 ## Refresh and ingest when the active task needs it
 
-The commands below document optional index maintenance. It is not a routine
-pre-alpha deliverable. Run it only when current source retrieval materially
-helps the active implementation; do not update the claim ledger merely to
-record that maintenance.
+The commands below document optional index maintenance. Run it only when
+current source retrieval materially helps the active implementation or the
+owner requests a refresh; do not update the claim ledger merely to record that
+maintenance.
 
 The builder validates pinned Git/source hashes and emits separate public/private JSONL files. It does not fetch new source: refresh the audit inputs first when a new snapshot is needed. It records the new origin/revision/content identity, preserving prior records.
 
