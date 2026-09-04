@@ -114,6 +114,7 @@ from .position_kv_binding_campaign import (
     run_position_kv_binding_campaign,
     validate_position_kv_binding_result,
 )
+from .position_r4_language_generation import generate_position_r4_language_path
 from .role_tagged_associative_development import (
     preflight_role_tagged_associative_development,
     prepare_role_tagged_associative_development,
@@ -695,6 +696,33 @@ def parser() -> argparse.ArgumentParser:
         action="store_true",
         help="emit the artifact identities, token IDs, and execution details",
     )
+    generate_position_r4 = subcommands.add_parser(
+        "generate-position-r4-language-path",
+        help=(
+            "continue one prompt through #973's ordinary weights with the "
+            "position-preserving R4 K/V path"
+        ),
+    )
+    generate_position_r4.add_argument("--prompt", required=True)
+    generate_position_r4.add_argument(
+        "--geometry",
+        type=_root,
+        default=default_language_path_geometry(),
+        help="canonical exact-H4 group geometry",
+    )
+    generate_position_r4.add_argument(
+        "--h4-sidecar",
+        type=_root,
+        default=default_predictive_block_delta_frame_sidecar(),
+        help="validated H4 frame sidecar used for key/value transport",
+    )
+    generate_position_r4.add_argument("--max-new-tokens", type=int, default=16)
+    generate_position_r4.add_argument("--seed", type=int, default=9_738)
+    generate_position_r4.add_argument(
+        "--json",
+        action="store_true",
+        help="emit the artifact identities, token IDs, and execution details",
+    )
     prepare_paired_h4 = subcommands.add_parser(
         "prepare-paired-h4-prompt-capacity",
         help=(
@@ -1188,6 +1216,7 @@ def main() -> None:
         "fit-contextual-key-value-address-read",
         "generate-contextual-retained",
         "generate-ordinary-language-path",
+        "generate-position-r4-language-path",
     }
     paired_h4_prompt_capacity_commands = {
         "prepare-paired-h4-prompt-capacity",
@@ -1544,6 +1573,20 @@ def main() -> None:
     if arguments.command == "generate-ordinary-language-path":
         result = generate_ordinary_language_path(
             root,
+            prompt=arguments.prompt,
+            max_new_tokens=arguments.max_new_tokens,
+            seed=arguments.seed,
+        )
+        if arguments.json:
+            _print_result(result)
+        else:
+            print(result["text"])
+        return
+    if arguments.command == "generate-position-r4-language-path":
+        result = generate_position_r4_language_path(
+            root,
+            geometry_path=arguments.geometry,
+            frame_path=arguments.h4_sidecar,
             prompt=arguments.prompt,
             max_new_tokens=arguments.max_new_tokens,
             seed=arguments.seed,

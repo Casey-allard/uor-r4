@@ -9,26 +9,30 @@ local service. #1107 remains historically source-frozen and unbuilt; #1084
 workbench qualification is not the current priority. #954 remains blocked by
 #973.
 
-The latest #973 implementation exposes the already-trained ordinary
-causal-softmax control through artifact-only CLI generation. With the same
-seed-9738 top-k-40 sampler and 16-token limit, `A purple turtle found a clock in
-the garden` continued `, there was a time, there was a little girl named It
-found a big`; `Albert Einstein was born in` continued ` his friend, a time,
-there was a little girl named he put it with`. The two outputs are
-prompt-dependent and materially more grammatical than the identical broken
-continuations from the contextual retained and address-aware variants. They are
-still generic, and the Einstein continuation is factually and grammatically
-wrong. This is measured two-prompt behavior, not a general language or factual
-recall claim.
+The latest #973 implementation loads the already-trained ordinary artifact into
+`R4PositionPreservingCausalKVBindingV1` and exposes its `execution="r4"` path
+through artifact-only CLI generation. It keeps one chronological K/V slot per
+observed token and transports key/value content through the validated H4
+frames. With the same seed-9738 top-k-40 sampler and 16-token limit, both fixed
+prompts produced the exact token trajectories already recorded for the ordinary
+control: `A purple turtle found a clock in the garden` continued `, there was a
+time, there was a little girl named It found a big`; `Albert Einstein was born
+in` continued ` his friend, a time, there was a little girl named he put it
+with`. The R4 executions made zero provider, teacher, future, or forbidden
+reads and did not load the invalid historical position-K/V fit.
 
-Stop modifying the group-retained reader at this checkpoint. The next task is
-to load the same ordinary artifact into the existing
-`R4PositionPreservingCausalKVBindingV1` and expose its `execution="r4"` path
-through artifact-only generation. Keep one chronological K/V slot per token and
-transport key/value content through the validated H4 frames; do not fit or add
-another attention scalar. This directly tests whether the position-preserving
-geometric execution retains the working ordinary prompt behavior before any
-later recurrent compression or larger-capacity fit.
+This is measured two-prompt trajectory preservation through the full
+position-preserving cache. It does not establish exact logit equivalence,
+general language or factual quality, geometric advantage, recurrent
+compression, or transformerless serving. The outputs remain generic, and the
+Einstein continuation remains factually and grammatically wrong.
+
+Stop modifying the exact-cache adapter at this checkpoint. The next task is to
+implement one versioned fixed-size recurrent R4 cache path, with the frozen
+ordinary artifact, sampler, and exact-cache generator held as its reference.
+Fold displaced chronological content into bounded H4-addressed recurrent state
+and directly compare the same two prompt trajectories before considering any
+fit, attention scalar, or broader evaluation.
 
 ```text
 $uor-project-workflow

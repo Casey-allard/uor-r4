@@ -475,6 +475,24 @@ The command verifies the final ordinary artifact against its completed arm
 record before loading it. This is an offline architectural control for direct
 prompt behavior; it is not the transformerless serving path.
 
+The same artifact can also run through the existing position-preserving R4
+execution. This keeps one chronological K/V slot per observed token and reads
+those keys and values through the validated H4 frame transport:
+
+```bash
+uv run --offline --project "$TRAINER" r4-softmax-trainer \
+  --root "$ROOT" generate-position-r4-language-path \
+  --prompt "A purple turtle found a clock in the garden" \
+  --max-new-tokens 16 --seed 9738 --json
+```
+
+The command binds the ordinary weights, exact-H4 geometry, and H4 frame
+sidecar by content identity before generation. It performs no fitting and does
+not load the invalid historical position-K/V fit. This remains a learned f32
+softmax decoder with a full 120-position cache; it does not establish recurrent
+compression, geometric advantage, general language quality, or transformerless
+serving behavior.
+
 ## Terminal #973 paired-H4 prompt-capacity rung
 
 [`R4PairedH4PromptCapacityV1`](../../docs/r4_paired_h4_prompt_capacity_973.md)
