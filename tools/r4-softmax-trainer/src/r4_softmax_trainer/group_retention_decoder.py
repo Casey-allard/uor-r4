@@ -289,6 +289,32 @@ class _RetainedDecoderBlock(nn.Module):
         return torch.einsum("...hg,...hgd->...hd", weights, values.float()).to(values.dtype)
 
     @staticmethod
+    def _attend_with_address_bias(
+        query: Tensor,
+        keys: Tensor,
+        values: Tensor,
+        occupied: Tensor,
+        address_score_bias: Tensor,
+    ) -> Tensor:
+        """Score content plus the transported field's current relative address."""
+
+        heads = int(query.shape[-2])
+        head_dim = int(query.shape[-1])
+        group = int(keys.shape[-2])
+        if tuple(address_score_bias.shape) != (heads, group):
+            raise ValueError("address score bias must have shape [heads,group]")
+        scores = torch.einsum("...hd,...hgd->...hg", query.float(), keys.float())
+        scores = scores / math.sqrt(head_dim)
+        scores = scores + address_score_bias.float()
+        valid = occupied.unsqueeze(-2)
+        has_any = occupied.any(dim=-1, keepdim=True).unsqueeze(-2)
+        masked = scores.masked_fill(~valid, torch.finfo(scores.dtype).min)
+        safe = torch.where(has_any, masked, torch.zeros_like(masked))
+        weights = torch.softmax(safe, dim=-1, dtype=torch.float32)
+        weights = weights * valid.to(weights.dtype)
+        return torch.einsum("...hg,...hgd->...hd", weights, values.float()).to(values.dtype)
+
+    @staticmethod
     def _inclusive_permutation_scan(actions: Tensor) -> Tensor:
         """Compose supplied new-slot-to-old-slot permutations in parallel."""
 
@@ -830,6 +856,74 @@ class _RetainedDecoderBlock(nn.Module):
         decayed_values = transported_values * rho.view(1, heads, 1, 1)
 
         retained = self._attend(query, decayed_keys, decayed_values, transported_occupied)
+        retained = self.o_proj(retained.reshape(batch, self.config.hidden_size))
+        contextual = self.input_layernorm(values + retained)
+        key = self._heads(self.k_proj(contextual))
+        value = self._heads(self.v_proj(contextual))
+
+        visible_retained = retained * (0.0 if state_off else 1.0)
+        values = values + visible_retained
+        values = values + self.mlp(self.post_attention_layernorm(values))
+
+        identity_mask = F.one_hot(
+            torch.tensor(identity_offset, device=values.device), num_classes=group
+        ).to(decayed_keys.dtype)
+        prior_keys = decayed_keys[:, :, identity_offset, :]
+        prior_values = decayed_values[:, :, identity_offset, :]
+        key_delta = eta.view(1, heads, 1) * (key - prior_keys)
+        value_delta = eta.view(1, heads, 1) * (value - prior_values)
+        final_keys = decayed_keys + key_delta[:, :, None, :] * identity_mask.view(
+            1, 1, group, 1
+        )
+        final_values = decayed_values + value_delta[:, :, None, :] * identity_mask.view(
+            1, 1, group, 1
+        )
+        final_occupied = transported_occupied | identity_mask.bool().view(1, group)
+        return values, final_keys, final_values, final_occupied
+
+    def forward_direct_step_with_contextual_key_value_address_read(
+        self,
+        values: Tensor,
+        token_actions: Tensor,
+        key_state: Tensor,
+        value_state: Tensor,
+        occupied: Tensor,
+        identity_offset: int,
+        address_score_bias: Tensor,
+        *,
+        state_off: bool,
+    ) -> tuple[Tensor, Tensor, Tensor, Tensor]:
+        """Use relative group address in the contextual K/V retained read.
+
+        The learned bias is attached to the destination slot after exact-H4
+        transport.  It therefore changes a stored record's score when the
+        current token moves that record to a different relative address.  The
+        recurrent tensors, decay, delta write, and contextual K/V source stay
+        identical to the contextual key/value-write policy.
+        """
+
+        batch = int(values.shape[0])
+        heads = self.config.heads
+        group = self.config.group_size
+        head_dim = self.config.head_dim
+        normalized = self.input_layernorm(values)
+        query = self._heads(self.q_proj(normalized))
+        rho, eta = self.resolved_gates()
+
+        indices = token_actions[:, None, :, None].expand(batch, heads, group, head_dim)
+        transported_keys = torch.gather(key_state, dim=2, index=indices)
+        transported_values = torch.gather(value_state, dim=2, index=indices)
+        transported_occupied = torch.gather(occupied, dim=1, index=token_actions)
+        decayed_keys = transported_keys * rho.view(1, heads, 1, 1)
+        decayed_values = transported_values * rho.view(1, heads, 1, 1)
+
+        retained = self._attend_with_address_bias(
+            query,
+            decayed_keys,
+            decayed_values,
+            transported_occupied,
+            address_score_bias,
+        )
         retained = self.o_proj(retained.reshape(batch, self.config.hidden_size))
         contextual = self.input_layernorm(values + retained)
         key = self._heads(self.k_proj(contextual))

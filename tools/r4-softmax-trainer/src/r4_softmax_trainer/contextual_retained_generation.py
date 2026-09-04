@@ -16,6 +16,9 @@ from blake3 import blake3
 from tokenizers import Tokenizer
 
 from .contextual_retained_fit import (
+    ADDRESS_READ,
+    CONTEXTUAL_KEY_VALUE_ADDRESS_READ_SCHEMA,
+    CONTEXTUAL_KEY_VALUE_ADDRESS_READ_STATUS,
     CONTEXTUAL_KEY_VALUE_SCHEMA,
     CONTEXTUAL_KEY_VALUE_STATUS,
     EXPECTED_GEOMETRY_CID,
@@ -26,10 +29,14 @@ from .contextual_retained_fit import (
 )
 from .group_retention_campaign import load_group_geometry_artifacts
 from .language_path_generalization import (
+    ADDRESS_READ_PARAMETER_COUNT,
+    ADDRESS_SCORE_BIAS_PARAMETER_COUNT,
+    CONTEXTUAL_KEY_VALUE_ADDRESS_READ_POLICY,
     CONTEXTUAL_KEY_VALUE_WRITE_POLICY,
     CONTEXTUAL_VALUE_WRITE_POLICY,
     CONTEXT,
     VOCAB_SIZE,
+    R4ContextualKeyValueAddressReadLanguagePathV1,
     R4ContextualKeyValueWriteLanguagePathV1,
     R4ContextualValueWriteLanguagePathV1,
 )
@@ -108,6 +115,8 @@ def generate_contextual_retained(
     model_type = R4ContextualValueWriteLanguagePathV1
     fitted_under_key_write: str | None = None
     fitted_under_value_write = TOKEN_LOCAL_VALUE_WRITE
+    fitted_under_key_read: str | None = None
+    parameters_added = 0
     if fit_result_path.is_file():
         fit_result = json.loads(fit_result_path.read_text(encoding="utf-8"))
         if fit_result.get("artifact", {}).get("cid") != artifact_cid:
@@ -142,6 +151,31 @@ def generate_contextual_retained(
             selected_policy = CONTEXTUAL_KEY_VALUE_WRITE_POLICY
             model_type = R4ContextualKeyValueWriteLanguagePathV1
             fitted_under_key_write = fit_model["key_write"]
+        elif fit_policy == CONTEXTUAL_KEY_VALUE_ADDRESS_READ_POLICY:
+            if (
+                fit_result.get("schema")
+                != CONTEXTUAL_KEY_VALUE_ADDRESS_READ_SCHEMA
+                or fit_result.get("status")
+                != CONTEXTUAL_KEY_VALUE_ADDRESS_READ_STATUS
+            ):
+                raise ValueError(
+                    "address-aware fit metadata has an unsupported schema or status"
+                )
+            if fit_model.get("key_write") != CONTEXTUAL_KEY_WRITE:
+                raise ValueError("address-aware fit metadata names a different key write")
+            if fit_model.get("value_write") != CONTEXTUAL_VALUE_WRITE:
+                raise ValueError("address-aware fit metadata names a different value write")
+            if fit_model.get("key_read") != ADDRESS_READ:
+                raise ValueError("address-aware fit metadata names a different key read")
+            if fit_model.get("address_score_bias_initialization") != "zeros":
+                raise ValueError("address-aware fit metadata names a different bias initialization")
+            if fit_model.get("parameter_count") != ADDRESS_READ_PARAMETER_COUNT:
+                raise ValueError("address-aware fit metadata names a different parameter count")
+            selected_policy = CONTEXTUAL_KEY_VALUE_ADDRESS_READ_POLICY
+            model_type = R4ContextualKeyValueAddressReadLanguagePathV1
+            fitted_under_key_write = fit_model["key_write"]
+            fitted_under_key_read = fit_model["key_read"]
+            parameters_added = ADDRESS_SCORE_BIAS_PARAMETER_COUNT
         else:
             raise ValueError("contextual fit metadata names an unsupported model policy")
         fitted_under_value_write = fit_model["value_write"]
@@ -244,13 +278,16 @@ def generate_contextual_retained(
     model_report: dict[str, Any] = {
         "policy": selected_policy,
         "value_write": CONTEXTUAL_VALUE_WRITE,
-        "parameters_added": 0,
+        "parameters_added": parameters_added,
         "fitted_under_value_write": fitted_under_value_write,
         "fit": fit_summary,
     }
     if fitted_under_key_write is not None:
         model_report["key_write"] = CONTEXTUAL_KEY_WRITE
         model_report["fitted_under_key_write"] = fitted_under_key_write
+    if fitted_under_key_read is not None:
+        model_report["key_read"] = fitted_under_key_read
+        model_report["fitted_under_key_read"] = fitted_under_key_read
 
     return {
         "schema": SCHEMA,

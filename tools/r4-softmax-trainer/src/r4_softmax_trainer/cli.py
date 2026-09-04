@@ -35,6 +35,7 @@ from .continuation_data import (
     prepare_continuation_dataset,
 )
 from .contextual_retained_fit import (
+    fit_contextual_key_value_address_read,
     fit_contextual_key_value,
     fit_contextual_retained,
     fit_contextual_retained_full,
@@ -645,6 +646,13 @@ def parser() -> argparse.ArgumentParser:
             "supplying both retained key and value writes"
         ),
     )
+    subcommands.add_parser(
+        "fit-contextual-key-value-address-read",
+        help=(
+            "run #973's fixed bounded fit with relative exact-H4 address "
+            "participating in the retained attention score"
+        ),
+    )
     generate_contextual = subcommands.add_parser(
         "generate-contextual-retained",
         help=(
@@ -1161,6 +1169,7 @@ def main() -> None:
         "fit-contextual-retained",
         "fit-contextual-retained-full",
         "fit-contextual-key-value",
+        "fit-contextual-key-value-address-read",
         "generate-contextual-retained",
     }
     paired_h4_prompt_capacity_commands = {
@@ -1497,6 +1506,9 @@ def main() -> None:
         return
     if arguments.command == "fit-contextual-key-value":
         _print_result(fit_contextual_key_value(root))
+        return
+    if arguments.command == "fit-contextual-key-value-address-read":
+        _print_result(fit_contextual_key_value_address_read(root))
         return
     if arguments.command == "generate-contextual-retained":
         result = generate_contextual_retained(

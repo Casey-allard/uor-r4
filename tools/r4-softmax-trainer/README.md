@@ -432,6 +432,33 @@ checks the artifact and geometry identities before loading the byte-compatible
 weights. The result measures one bounded intervention; it does not establish
 factual recall, general language quality, or geometric advantage.
 
+The address-aware read successor fixes one structural omission in that reader:
+the old content-only softmax was invariant when exact-H4 transport permuted its
+keys, values, and occupancy together. The versioned model adds one logit bias
+per layer, head, and current relative group address (`960` scalars; `253,120`
+parameters total). The bias starts at exact zero, so the warm start is the prior
+reader, and then learns whether a transported relative address should raise or
+lower the content score. K/V state, decay and writes remain unchanged.
+
+```bash
+uv run --offline --project "$TRAINER" r4-softmax-trainer \
+  --root "$ROOT" fit-contextual-key-value-address-read
+
+ADDRESS_READ="$ROOT/arms/contextual-key-value-address-read/model.safetensors"
+uv run --offline --project "$TRAINER" r4-softmax-trainer \
+  --root "$ROOT" generate-contextual-retained \
+  --artifact "$ADDRESS_READ" \
+  --prompt "A purple turtle found a clock in the garden" \
+  --max-new-tokens 16
+```
+
+This command has the same fixed 128 updates, 2,048 open windows, four CPU
+threads, and 840-second wall as the contextual K/V predecessor. It always
+starts from the original retained V1 artifact, creates a separate output, and
+has no resume path or automatic retry. The adjacent `fit.json` binds the exact
+address-scoring law and zero-bias initialization so same-shaped historical and
+address-aware artifacts cannot be silently interchanged.
+
 ## Terminal #973 paired-H4 prompt-capacity rung
 
 [`R4PairedH4PromptCapacityV1`](../../docs/r4_paired_h4_prompt_capacity_973.md)

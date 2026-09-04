@@ -12,8 +12,10 @@ import torch
 
 from .group_retention_campaign import load_group_geometry_artifacts
 from .language_path_generalization import (
+    ADDRESS_READ_PARAMETER_COUNT,
     CONTEXT,
     PARAMETER_COUNT,
+    R4ContextualKeyValueAddressReadLanguagePathV1,
     R4ContextualKeyValueWriteLanguagePathV1,
     R4ContextualValueWriteLanguagePathV1,
 )
@@ -39,6 +41,12 @@ SCHEMA = "uor-r4.contextual-retained-fit/1"
 STATUS = "CONTEXTUAL_RETAINED_ADAPTED"
 CONTEXTUAL_KEY_VALUE_SCHEMA = "uor-r4.contextual-key-value-fit/1"
 CONTEXTUAL_KEY_VALUE_STATUS = "CONTEXTUAL_KEY_VALUE_ADAPTED"
+CONTEXTUAL_KEY_VALUE_ADDRESS_READ_SCHEMA = (
+    "uor-r4.contextual-key-value-address-read-fit/1"
+)
+CONTEXTUAL_KEY_VALUE_ADDRESS_READ_STATUS = (
+    "CONTEXTUAL_KEY_VALUE_ADDRESS_READ_ADAPTED"
+)
 BATCH_SIZE = 16
 THREADS = 4
 MAX_UPDATES = 128
@@ -63,8 +71,15 @@ FULL_EPOCH_OUTPUT_DIRECTORY_RELATIVE_PATH = Path("arms/contextual-retained-full"
 CONTEXTUAL_KEY_VALUE_OUTPUT_DIRECTORY_RELATIVE_PATH = Path(
     "arms/contextual-key-value"
 )
+CONTEXTUAL_KEY_VALUE_ADDRESS_READ_OUTPUT_DIRECTORY_RELATIVE_PATH = Path(
+    "arms/contextual-key-value-address-read"
+)
 KEY_WRITE = "Wk(RMSNorm(x_t + strict_prior_retained_residual))"
 VALUE_WRITE = "Wv(RMSNorm(x_t + strict_prior_retained_residual))"
+ADDRESS_READ = (
+    "softmax((Wq(RMSNorm(x_t)) dot decayed_transported_keys) / sqrt(12) "
+    "+ address_score_bias[layer,head,address]) over occupied addresses"
+)
 
 
 def _input_record(path: Path, expected_cid: str) -> dict[str, Any]:
@@ -129,6 +144,7 @@ def _fit_contextual_retained(
     profile: str | None,
     model_type: type[R4ContextualValueWriteLanguagePathV1],
     model_writes: dict[str, str],
+    expected_parameter_count: int,
     progress_label: str,
 ) -> dict[str, Any]:
     if isinstance(updates, bool) or not isinstance(updates, int):
@@ -167,8 +183,12 @@ def _fit_contextual_retained(
     model = model_type(geometry).to(
         device=torch.device("cpu"), dtype=torch.float32
     )
-    model.load_learned_artifact(initial_artifact_path.read_bytes())
-    if model.parameter_count() != PARAMETER_COUNT:
+    initial_payload = initial_artifact_path.read_bytes()
+    if isinstance(model, R4ContextualKeyValueAddressReadLanguagePathV1):
+        model.load_retained_v1_warm_start(initial_payload)
+    else:
+        model.load_learned_artifact(initial_payload)
+    if model.parameter_count() != expected_parameter_count:
         raise RuntimeError("contextual retained parameter count changed")
 
     parameters = tuple(model.parameters())
@@ -184,7 +204,7 @@ def _fit_contextual_retained(
         for group in optimizer.param_groups
         for parameter in group["params"]
     )
-    if optimizer_values != PARAMETER_COUNT:
+    if optimizer_values != expected_parameter_count:
         raise RuntimeError("optimizer does not include every contextual retained parameter")
 
     losses: list[float] = []
@@ -252,7 +272,7 @@ def _fit_contextual_retained(
         "status": status,
         "model": {
             "policy": model.policy,
-            "parameter_count": PARAMETER_COUNT,
+            "parameter_count": expected_parameter_count,
             "initialization": "qualified retained V1 artifact",
             **model_writes,
         },
@@ -300,6 +320,7 @@ def fit_contextual_retained(
         profile=None,
         model_type=R4ContextualValueWriteLanguagePathV1,
         model_writes={"value_write": VALUE_WRITE},
+        expected_parameter_count=PARAMETER_COUNT,
         progress_label="contextual_retained_fit",
     )
 
@@ -320,6 +341,7 @@ def fit_contextual_retained_full(root: Path) -> dict[str, Any]:
         profile="full_epoch",
         model_type=R4ContextualValueWriteLanguagePathV1,
         model_writes={"value_write": VALUE_WRITE},
+        expected_parameter_count=PARAMETER_COUNT,
         progress_label="contextual_retained_fit",
     )
 
@@ -342,11 +364,43 @@ def fit_contextual_key_value(root: Path) -> dict[str, Any]:
         profile="contextual_key_value_adaptation",
         model_type=R4ContextualKeyValueWriteLanguagePathV1,
         model_writes={"key_write": KEY_WRITE, "value_write": VALUE_WRITE},
+        expected_parameter_count=PARAMETER_COUNT,
         progress_label="contextual_key_value_fit",
     )
 
 
+def fit_contextual_key_value_address_read(root: Path) -> dict[str, Any]:
+    """Fit one bounded address-aware retained attention candidate."""
+
+    return _fit_contextual_retained(
+        root,
+        updates=MAX_UPDATES,
+        threads=THREADS,
+        max_seconds=MAX_SECONDS,
+        maximum_updates=MAX_UPDATES,
+        maximum_seconds=MAX_SECONDS,
+        output_directory_relative_path=(
+            CONTEXTUAL_KEY_VALUE_ADDRESS_READ_OUTPUT_DIRECTORY_RELATIVE_PATH
+        ),
+        schema=CONTEXTUAL_KEY_VALUE_ADDRESS_READ_SCHEMA,
+        status=CONTEXTUAL_KEY_VALUE_ADDRESS_READ_STATUS,
+        profile="contextual_key_value_address_read_adaptation",
+        model_type=R4ContextualKeyValueAddressReadLanguagePathV1,
+        model_writes={
+            "key_write": KEY_WRITE,
+            "value_write": VALUE_WRITE,
+            "key_read": ADDRESS_READ,
+            "address_score_bias_initialization": "zeros",
+        },
+        expected_parameter_count=ADDRESS_READ_PARAMETER_COUNT,
+        progress_label="contextual_key_value_address_read_fit",
+    )
+
+
 __all__ = [
+    "ADDRESS_READ",
+    "CONTEXTUAL_KEY_VALUE_ADDRESS_READ_SCHEMA",
+    "CONTEXTUAL_KEY_VALUE_ADDRESS_READ_STATUS",
     "CONTEXTUAL_KEY_VALUE_SCHEMA",
     "CONTEXTUAL_KEY_VALUE_STATUS",
     "DEFAULT_UPDATES",
@@ -357,6 +411,7 @@ __all__ = [
     "MAX_UPDATES",
     "SCHEMA",
     "STATUS",
+    "fit_contextual_key_value_address_read",
     "fit_contextual_key_value",
     "fit_contextual_retained",
     "fit_contextual_retained_full",

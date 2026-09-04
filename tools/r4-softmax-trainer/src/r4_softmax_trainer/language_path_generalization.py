@@ -37,6 +37,9 @@ from .model import RMSNorm, RotaryEmbedding, SwiGLU
 POLICY = "R4RetainedLanguagePathV1"
 CONTEXTUAL_VALUE_WRITE_POLICY = "R4ContextualValueWriteLanguagePathV1"
 CONTEXTUAL_KEY_VALUE_WRITE_POLICY = "R4ContextualKeyValueWriteLanguagePathV1"
+CONTEXTUAL_KEY_VALUE_ADDRESS_READ_POLICY = (
+    "R4ContextualKeyValueAddressReadLanguagePathV1"
+)
 ORDINARY_POLICY = "OrdinaryCausalSoftmaxLanguagePathV1"
 
 VOCAB_SIZE = 4_096
@@ -54,6 +57,8 @@ INITIALIZATION_STD = 0.02
 DECAY_HALF_LIVES = (4.0, 16.0, 64.0, 256.0)
 
 PARAMETER_COUNT = 252_160
+ADDRESS_SCORE_BIAS_PARAMETER_COUNT = LAYERS * HEADS * GROUP_SIZE
+ADDRESS_READ_PARAMETER_COUNT = PARAMETER_COUNT + ADDRESS_SCORE_BIAS_PARAMETER_COUNT
 STATE_VALUES = 23_040
 STATE_BYTES_F32 = 92_160
 VALIDITY_BITS = 240
@@ -431,6 +436,102 @@ class R4ContextualKeyValueWriteLanguagePathV1(
                         current.values[layer_index],
                         current.occupied[layer_index],
                         self.identity_offset,
+                        state_off=state_off,
+                    )
+                )
+                keys.append(layer_keys)
+                retained_values.append(layer_values)
+                occupied.append(layer_occupied)
+            current = DecoderState(
+                keys=torch.stack(keys),
+                values=torch.stack(retained_values),
+                occupied=torch.stack(occupied),
+            )
+            outputs.append(values)
+        return torch.stack(outputs, dim=1), current
+
+
+class R4ContextualKeyValueAddressReadLanguagePathV1(
+    R4ContextualKeyValueWriteLanguagePathV1
+):
+    """Contextual K/V retention whose softmax consumes relative H4 address.
+
+    The historical retained readers score only query/key content.  Because
+    exact-H4 transport applies the same slot permutation to keys, values, and
+    occupancy, that read is invariant to the transport itself.  This version
+    adds one learned scalar for every layer, head, and destination address to
+    the attention logit.  A zero bias is exactly the prior read law.
+    """
+
+    policy = CONTEXTUAL_KEY_VALUE_ADDRESS_READ_POLICY
+
+    def __init__(self, geometry: GroupAddressArtifact) -> None:
+        super().__init__(geometry)
+        self.address_score_bias = nn.Parameter(
+            torch.zeros(LAYERS, HEADS, GROUP_SIZE, dtype=torch.float32)
+        )
+        if (
+            self.parameter_count() != ADDRESS_READ_PARAMETER_COUNT
+            or self.state_value_count() != STATE_VALUES
+            or self.validity_bit_count() != VALIDITY_BITS
+        ):
+            raise RuntimeError("address-aware retained path changed its frozen ledger")
+
+    def load_learned_artifact(self, payload: bytes) -> None:
+        """Load an exact address-aware artifact for inference."""
+
+        loaded = load_safetensors(payload)
+        expected = dict(self.named_parameters())
+        if set(loaded) != set(expected):
+            raise ValueError("learned artifact parameter names differ from address reader")
+        with torch.no_grad():
+            for name in sorted(expected):
+                source = loaded[name]
+                target = expected[name]
+                if source.dtype != target.dtype or tuple(source.shape) != tuple(target.shape):
+                    raise ValueError(f"learned artifact tensor contract differs for {name}")
+                target.copy_(source.to(device=target.device))
+
+    def load_retained_v1_warm_start(self, payload: bytes) -> None:
+        """Load only the historical parameter set and initialize the new bias."""
+
+        loaded = load_safetensors(payload)
+        expected = dict(self.named_parameters())
+        base_names = set(expected) - {"address_score_bias"}
+        if set(loaded) != base_names:
+            raise ValueError("warm-start artifact parameter names differ from retained V1")
+        with torch.no_grad():
+            for name in sorted(base_names):
+                source = loaded[name]
+                target = expected[name]
+                if source.dtype != target.dtype or tuple(source.shape) != tuple(target.shape):
+                    raise ValueError(f"warm-start tensor contract differs for {name}")
+                target.copy_(source.to(device=target.device))
+            self.address_score_bias.zero_()
+
+    def _contextual_direct_hidden(
+        self, token_ids: Tensor, state: DecoderState, *, state_off: bool
+    ) -> tuple[Tensor, DecoderState]:
+        outputs: list[Tensor] = []
+        current = state
+        for time_index in range(int(token_ids.shape[1])):
+            token = token_ids[:, time_index]
+            values = self.token_embedding(token)
+            leaves = self.token_leaves.index_select(0, token)
+            actions = self.left_actions.index_select(0, leaves)
+            keys: list[Tensor] = []
+            retained_values: list[Tensor] = []
+            occupied: list[Tensor] = []
+            for layer_index, layer in enumerate(self.layers):
+                values, layer_keys, layer_values, layer_occupied = (
+                    layer.forward_direct_step_with_contextual_key_value_address_read(
+                        values,
+                        actions,
+                        current.keys[layer_index],
+                        current.values[layer_index],
+                        current.occupied[layer_index],
+                        self.identity_offset,
+                        self.address_score_bias[layer_index],
                         state_off=state_off,
                     )
                 )
