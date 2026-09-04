@@ -1,7 +1,7 @@
 {
   "schema": "uor-r4.claim-ledger/1",
   "repository": "UOR-Foundation/uor-r4",
-  "source_revision": "8399a71affd6eb3063a3a3765b1db44058b7f4fb",
+  "source_revision": "db8682fb762aadc5e87c0afb0d4f1fd01cfc4495",
   "vocabulary": {
     "source": "formal_vocabulary",
     "role": "Statement class from the normative vocabulary.",
@@ -670,6 +670,41 @@
       "revision": "8399a71affd6eb3063a3a3765b1db44058b7f4fb",
       "git_blob_oid": "91576caae02b7b13d0fb98656c89b0db1e88cb11",
       "evidence_status": "SOURCE_PROTOCOL_FROZEN_BEHAVIOR_NOT_RUN"
+    },
+    "fixed_recurrent_binding_source_973": {
+      "path": "tools/r4-softmax-trainer/src/r4_softmax_trainer/fixed_recurrent_kv_binding.py",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/db8682fb762aadc5e87c0afb0d4f1fd01cfc4495/tools/r4-softmax-trainer/src/r4_softmax_trainer/fixed_recurrent_kv_binding.py",
+      "revision": "db8682fb762aadc5e87c0afb0d4f1fd01cfc4495",
+      "git_blob_oid": "a78ae70db5d6e25aea741293cd3f8c146f7a41dd",
+      "evidence_status": "MERGED_IMPLEMENTATION_SOURCE"
+    },
+    "fixed_recurrent_generation_source_973": {
+      "path": "tools/r4-softmax-trainer/src/r4_softmax_trainer/fixed_recurrent_r4_language_generation.py",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/db8682fb762aadc5e87c0afb0d4f1fd01cfc4495/tools/r4-softmax-trainer/src/r4_softmax_trainer/fixed_recurrent_r4_language_generation.py",
+      "revision": "db8682fb762aadc5e87c0afb0d4f1fd01cfc4495",
+      "git_blob_oid": "ebaa542846ff331ebc1d7e1f21ff089aea37d174",
+      "evidence_status": "MERGED_GENERATION_SOURCE"
+    },
+    "fixed_recurrent_test_973": {
+      "path": "tools/r4-softmax-trainer/tests/test_fixed_recurrent_kv_binding.py",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/db8682fb762aadc5e87c0afb0d4f1fd01cfc4495/tools/r4-softmax-trainer/tests/test_fixed_recurrent_kv_binding.py",
+      "revision": "db8682fb762aadc5e87c0afb0d4f1fd01cfc4495",
+      "git_blob_oid": "23de2ec920edebb78cf2a5fff1a417315a3bbffb",
+      "evidence_status": "FOCUSED_MECHANISM_REGRESSION_TEST"
+    },
+    "fixed_recurrent_project_track_1120": {
+      "path": "docs/integration/project-track.md",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/db8682fb762aadc5e87c0afb0d4f1fd01cfc4495/docs/integration/project-track.md",
+      "revision": "db8682fb762aadc5e87c0afb0d4f1fd01cfc4495",
+      "git_blob_oid": "659b7bb340707406f6f96017ab21af3ccdf5d641",
+      "evidence_status": "MERGED_PROJECT_AUTHORITY"
+    },
+    "fixed_recurrent_comparison_summary_973": {
+      "path": ".uor-models/research/issue-973-fixed-recurrent-r4-v1/comparison/uor-fixed-recurrent-comparison.json",
+      "url": "https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5544255876",
+      "revision": "db8682fb762aadc5e87c0afb0d4f1fd01cfc4495",
+      "sha256": "aa199fa8346a1cc0e58b58fb490092910e31a8a8f78a2204d0c915fde4f2a014",
+      "evidence_status": "LOCAL_RAW_COMPARISON_OUTSIDE_GIT_SUMMARIZED_IN_NATIVE_ISSUE"
     }
   },
   "artifacts_1079": {
@@ -782,10 +817,10 @@
         "The #1082 construction-only diagnostic now measures role-selective exposure and pooling displacement; it does not establish a downstream causal explanation. The #1079 strong-sensitivity miss remains unchanged and does not falsify primary preservation or establish geometric superiority."
       ],
       "next_action": {
-        "status": "OWNER_MANUAL_QUALIFICATION_DECISION",
-        "scope": "After protected #1107 source-only delivery, keep #1084 open and unassigned. The owner decides whether to authorize a separate manual qualification workflow for the unbuilt candidate; automated agents do not dispatch or run it. Compilation, tests, model work, numerical qualification, service/HTTP behavior, browser acceptance, portability and performance remain NOT_RUN_BY_POLICY. No consumed #1102/#1094 envelope may be rerun.",
+        "status": "CURRENT_STAGE_SPARSE_GEOMETRIC_ATTENTION",
+        "scope": "After protected #1120 delivered fixed recurrent R4 memory, implement one versioned bounded geometric candidate selector over its eight live records and four summary banks. Compare admitted sources and frozen-prompt trajectories with the accepted recurrent softmax reader before fitting. #1084 and #1091 remain nonblocking reservoirs rather than scheduled qualification or proof gates.",
         "issue_urls": [
-          "https://github.com/UOR-Foundation/uor-r4/issues/1084"
+          "https://github.com/UOR-Foundation/uor-r4/issues/973"
         ]
       },
       "proof_artifacts": []
@@ -813,13 +848,10 @@
         "#1079 evaluated already-observed controlled-language rows with supplied clause boundaries; it did not run general generation or coding. This is absence of qualification, not evidence that those future capabilities are impossible."
       ],
       "next_action": {
-        "status": "OPEN_PROGRAMME_GOAL",
-        "scope": "Reconcile #973→#954 consumer scope, then qualify named language/context, correctness, reasoning and coding tasks before promoting capability claims.",
+        "status": "CURRENT_STAGE_SPARSE_GEOMETRIC_ATTENTION",
+        "scope": "After protected #1120 delivered fixed recurrent R4 memory, implement one versioned bounded geometric candidate selector over its eight live records and four summary banks. Compare admitted sources and frozen-prompt trajectories with the accepted recurrent softmax reader before fitting. #1084 and #1091 remain nonblocking reservoirs rather than scheduled qualification or proof gates.",
         "issue_urls": [
-          "https://github.com/UOR-Foundation/uor-r4/issues/973",
-          "https://github.com/UOR-Foundation/uor-r4/issues/954",
-          "https://github.com/UOR-Foundation/uor-r4/issues/955",
-          "https://github.com/UOR-Foundation/uor-r4/issues/962"
+          "https://github.com/UOR-Foundation/uor-r4/issues/973"
         ]
       },
       "proof_artifacts": []
@@ -951,10 +983,10 @@
         "Numerical bound and replay checks are not a universal floating-point refinement proof."
       ],
       "next_action": {
-        "status": "OWNER_MANUAL_QUALIFICATION_DECISION",
-        "scope": "After protected #1107 source-only delivery, keep #1084 open and unassigned. The owner decides whether to authorize a separate manual qualification workflow for the unbuilt candidate; automated agents do not dispatch or run it. Compilation, tests, model work, numerical qualification, service/HTTP behavior, browser acceptance, portability and performance remain NOT_RUN_BY_POLICY. No consumed #1102/#1094 envelope may be rerun.",
+        "status": "CURRENT_STAGE_SPARSE_GEOMETRIC_ATTENTION",
+        "scope": "After protected #1120 delivered fixed recurrent R4 memory, implement one versioned bounded geometric candidate selector over its eight live records and four summary banks. Compare admitted sources and frozen-prompt trajectories with the accepted recurrent softmax reader before fitting. #1084 and #1091 remain nonblocking reservoirs rather than scheduled qualification or proof gates.",
         "issue_urls": [
-          "https://github.com/UOR-Foundation/uor-r4/issues/1084"
+          "https://github.com/UOR-Foundation/uor-r4/issues/973"
         ]
       },
       "proof_artifacts": []
@@ -1003,10 +1035,10 @@
         "#973 higher-context and #954 final source-free correctness terminals remain unmet."
       ],
       "next_action": {
-        "status": "OWNER_MANUAL_QUALIFICATION_DECISION",
-        "scope": "After protected #1107 source-only delivery, keep #1084 open and unassigned. The owner decides whether to authorize a separate manual qualification workflow for the unbuilt candidate; automated agents do not dispatch or run it. Compilation, tests, model work, numerical qualification, service/HTTP behavior, browser acceptance, portability and performance remain NOT_RUN_BY_POLICY. No consumed #1102/#1094 envelope may be rerun.",
+        "status": "CURRENT_STAGE_SPARSE_GEOMETRIC_ATTENTION",
+        "scope": "After protected #1120 delivered fixed recurrent R4 memory, implement one versioned bounded geometric candidate selector over its eight live records and four summary banks. Compare admitted sources and frozen-prompt trajectories with the accepted recurrent softmax reader before fitting. #1084 and #1091 remain nonblocking reservoirs rather than scheduled qualification or proof gates.",
         "issue_urls": [
-          "https://github.com/UOR-Foundation/uor-r4/issues/1084"
+          "https://github.com/UOR-Foundation/uor-r4/issues/973"
         ]
       },
       "proof_artifacts": []
@@ -1068,10 +1100,10 @@
         "Recorded worker RSS zero indicates no worker resource receipt; it is not a successful worker measurement."
       ],
       "next_action": {
-        "status": "OWNER_MANUAL_QUALIFICATION_DECISION",
-        "scope": "After protected #1107 source-only delivery, keep #1084 open and unassigned. The owner decides whether to authorize a separate manual qualification workflow for the unbuilt candidate; automated agents do not dispatch or run it. Compilation, tests, model work, numerical qualification, service/HTTP behavior, browser acceptance, portability and performance remain NOT_RUN_BY_POLICY. No consumed #1102/#1094 envelope may be rerun.",
+        "status": "CURRENT_STAGE_SPARSE_GEOMETRIC_ATTENTION",
+        "scope": "After protected #1120 delivered fixed recurrent R4 memory, implement one versioned bounded geometric candidate selector over its eight live records and four summary banks. Compare admitted sources and frozen-prompt trajectories with the accepted recurrent softmax reader before fitting. #1084 and #1091 remain nonblocking reservoirs rather than scheduled qualification or proof gates.",
         "issue_urls": [
-          "https://github.com/UOR-Foundation/uor-r4/issues/1084"
+          "https://github.com/UOR-Foundation/uor-r4/issues/973"
         ]
       },
       "proof_artifacts": []
@@ -1148,10 +1180,10 @@
         "#1079 weak-control and #1082 descriptive results are unchanged; #973 remains open and #954 blocked."
       ],
       "next_action": {
-        "status": "OWNER_MANUAL_QUALIFICATION_DECISION",
-        "scope": "After protected #1107 source-only delivery, keep #1084 open and unassigned. The owner decides whether to authorize a separate manual qualification workflow for the unbuilt candidate; automated agents do not dispatch or run it. Compilation, tests, model work, numerical qualification, service/HTTP behavior, browser acceptance, portability and performance remain NOT_RUN_BY_POLICY. No consumed #1102/#1094 envelope may be rerun.",
+        "status": "CURRENT_STAGE_SPARSE_GEOMETRIC_ATTENTION",
+        "scope": "After protected #1120 delivered fixed recurrent R4 memory, implement one versioned bounded geometric candidate selector over its eight live records and four summary banks. Compare admitted sources and frozen-prompt trajectories with the accepted recurrent softmax reader before fitting. #1084 and #1091 remain nonblocking reservoirs rather than scheduled qualification or proof gates.",
         "issue_urls": [
-          "https://github.com/UOR-Foundation/uor-r4/issues/1084"
+          "https://github.com/UOR-Foundation/uor-r4/issues/973"
         ]
       },
       "proof_artifacts": []
@@ -1203,10 +1235,10 @@
         "Supplied segmentation remains the qualified model entry; #1094 and #973 remain open and #954 blocked."
       ],
       "next_action": {
-        "status": "OWNER_MANUAL_QUALIFICATION_DECISION",
-        "scope": "After protected #1107 source-only delivery, keep #1084 open and unassigned. The owner decides whether to authorize a separate manual qualification workflow for the unbuilt candidate; automated agents do not dispatch or run it. Compilation, tests, model work, numerical qualification, service/HTTP behavior, browser acceptance, portability and performance remain NOT_RUN_BY_POLICY. No consumed #1102/#1094 envelope may be rerun.",
+        "status": "CURRENT_STAGE_SPARSE_GEOMETRIC_ATTENTION",
+        "scope": "After protected #1120 delivered fixed recurrent R4 memory, implement one versioned bounded geometric candidate selector over its eight live records and four summary banks. Compare admitted sources and frozen-prompt trajectories with the accepted recurrent softmax reader before fitting. #1084 and #1091 remain nonblocking reservoirs rather than scheduled qualification or proof gates.",
         "issue_urls": [
-          "https://github.com/UOR-Foundation/uor-r4/issues/1084"
+          "https://github.com/UOR-Foundation/uor-r4/issues/973"
         ]
       },
       "proof_artifacts": []
@@ -1280,10 +1312,10 @@
         "At this historical assembly checkpoint, supplied clauses remained the qualified model entry, #1079 weak-control and #1082 descriptive findings were unchanged, #1094/#973 were open and #954 was blocked."
       ],
       "next_action": {
-        "status": "OWNER_MANUAL_QUALIFICATION_DECISION",
-        "scope": "After protected #1107 source-only delivery, keep #1084 open and unassigned. The owner decides whether to authorize a separate manual qualification workflow for the unbuilt candidate; automated agents do not dispatch or run it. Compilation, tests, model work, numerical qualification, service/HTTP behavior, browser acceptance, portability and performance remain NOT_RUN_BY_POLICY. No consumed #1102/#1094 envelope may be rerun.",
+        "status": "CURRENT_STAGE_SPARSE_GEOMETRIC_ATTENTION",
+        "scope": "After protected #1120 delivered fixed recurrent R4 memory, implement one versioned bounded geometric candidate selector over its eight live records and four summary banks. Compare admitted sources and frozen-prompt trajectories with the accepted recurrent softmax reader before fitting. #1084 and #1091 remain nonblocking reservoirs rather than scheduled qualification or proof gates.",
         "issue_urls": [
-          "https://github.com/UOR-Foundation/uor-r4/issues/1084"
+          "https://github.com/UOR-Foundation/uor-r4/issues/973"
         ]
       },
       "proof_artifacts": []
@@ -1371,10 +1403,10 @@
         "The 120-second historical charge is a conservative policy debit; the resource snapshot excludes its own write/exit tail. Storage peak is a reconstructed bound, not an instantaneous measurement."
       ],
       "next_action": {
-        "status": "OWNER_MANUAL_QUALIFICATION_DECISION",
-        "scope": "After protected #1107 source-only delivery, keep #1084 open and unassigned. The owner decides whether to authorize a separate manual qualification workflow for the unbuilt candidate; automated agents do not dispatch or run it. Compilation, tests, model work, numerical qualification, service/HTTP behavior, browser acceptance, portability and performance remain NOT_RUN_BY_POLICY. No consumed #1102/#1094 envelope may be rerun.",
+        "status": "CURRENT_STAGE_SPARSE_GEOMETRIC_ATTENTION",
+        "scope": "After protected #1120 delivered fixed recurrent R4 memory, implement one versioned bounded geometric candidate selector over its eight live records and four summary banks. Compare admitted sources and frozen-prompt trajectories with the accepted recurrent softmax reader before fitting. #1084 and #1091 remain nonblocking reservoirs rather than scheduled qualification or proof gates.",
         "issue_urls": [
-          "https://github.com/UOR-Foundation/uor-r4/issues/1084"
+          "https://github.com/UOR-Foundation/uor-r4/issues/973"
         ]
       },
       "proof_artifacts": []
@@ -1517,10 +1549,10 @@
         "The successful ordinary qualify()/serving path remains NOT_RUN; the measured binary exposes research modes, not a service endpoint. Final integer/table lowering remains a separate contract."
       ],
       "next_action": {
-        "status": "OWNER_MANUAL_QUALIFICATION_DECISION",
-        "scope": "After protected #1107 source-only delivery, keep #1084 open and unassigned. The owner decides whether to authorize a separate manual qualification workflow for the unbuilt candidate; automated agents do not dispatch or run it. Compilation, tests, model work, numerical qualification, service/HTTP behavior, browser acceptance, portability and performance remain NOT_RUN_BY_POLICY. No consumed #1102/#1094 envelope may be rerun.",
+        "status": "CURRENT_STAGE_SPARSE_GEOMETRIC_ATTENTION",
+        "scope": "After protected #1120 delivered fixed recurrent R4 memory, implement one versioned bounded geometric candidate selector over its eight live records and four summary banks. Compare admitted sources and frozen-prompt trajectories with the accepted recurrent softmax reader before fitting. #1084 and #1091 remain nonblocking reservoirs rather than scheduled qualification or proof gates.",
         "issue_urls": [
-          "https://github.com/UOR-Foundation/uor-r4/issues/1084"
+          "https://github.com/UOR-Foundation/uor-r4/issues/973"
         ]
       },
       "proof_artifacts": [],
@@ -1615,10 +1647,10 @@
         "#1084 remains open for implementation. #1083/#1087 retain separate boundaries; #973 remains open and #954 blocked."
       ],
       "next_action": {
-        "status": "OWNER_MANUAL_QUALIFICATION_DECISION",
-        "scope": "After protected #1107 source-only delivery, keep #1084 open and unassigned. The owner decides whether to authorize a separate manual qualification workflow for the unbuilt candidate; automated agents do not dispatch or run it. Compilation, tests, model work, numerical qualification, service/HTTP behavior, browser acceptance, portability and performance remain NOT_RUN_BY_POLICY. No consumed #1102/#1094 envelope may be rerun.",
+        "status": "CURRENT_STAGE_SPARSE_GEOMETRIC_ATTENTION",
+        "scope": "After protected #1120 delivered fixed recurrent R4 memory, implement one versioned bounded geometric candidate selector over its eight live records and four summary banks. Compare admitted sources and frozen-prompt trajectories with the accepted recurrent softmax reader before fitting. #1084 and #1091 remain nonblocking reservoirs rather than scheduled qualification or proof gates.",
         "issue_urls": [
-          "https://github.com/UOR-Foundation/uor-r4/issues/1084"
+          "https://github.com/UOR-Foundation/uor-r4/issues/973"
         ]
       },
       "proof_artifacts": []
@@ -1670,16 +1702,97 @@
         "#1084 remains open and unassigned. #1083/#1087 retain separate boundaries; #973 remains open and #954 blocked."
       ],
       "next_action": {
-        "status": "OWNER_MANUAL_QUALIFICATION_DECISION",
-        "scope": "The owner decides whether to authorize a separate manual qualification workflow for the unbuilt candidate. Automated agents do not dispatch or execute it.",
+        "status": "CURRENT_STAGE_SPARSE_GEOMETRIC_ATTENTION",
+        "scope": "After protected #1120 delivered fixed recurrent R4 memory, implement one versioned bounded geometric candidate selector over its eight live records and four summary banks. Compare admitted sources and frozen-prompt trajectories with the accepted recurrent softmax reader before fitting. #1084 and #1091 remain nonblocking reservoirs rather than scheduled qualification or proof gates.",
         "issue_urls": [
-          "https://github.com/UOR-Foundation/uor-r4/issues/1084"
+          "https://github.com/UOR-Foundation/uor-r4/issues/973"
+        ]
+      },
+      "proof_artifacts": []
+    },
+    {
+      "id": "R4-973-FIXED-RECURRENT-MEMORY",
+      "statement": "The accepted ordinary language artifact executes causal generation through R4FixedRecurrentCausalKVBindingV1 with fixed persistent K/V storage, real eviction and H4-summary reads, and no runtime teacher or provider access on the frozen two-prompt comparison.",
+      "role": "Empirical Criterion",
+      "evidence_status": "Empirical",
+      "outcome": "MECHANISM_EXECUTED_NO_QUALITY_CLAIM",
+      "scope": {
+        "parent_issue": 973,
+        "delivery_pr": 1120,
+        "implementation_revision": "db8682fb762aadc5e87c0afb0d4f1fd01cfc4495",
+        "policy": "R4FixedRecurrentCausalKVBindingV1",
+        "accepted_learned_artifact": "blake3:c1cd34b36c7df7c53915785a608ccd353a11de56eebb3ecc58e74092cb5d1933",
+        "prompts": 2,
+        "seed": 9738,
+        "maximum_new_tokens": 16,
+        "fits": 0,
+        "live_records": 8,
+        "summary_banks": 4,
+        "maximum_read_sources": 13,
+        "recurrent_state_values_f32": 2304,
+        "recurrent_state_bytes_f32": 9216,
+        "exact_cache_basis_values_f32": 23040,
+        "exact_cache_basis_bytes_f32": 92160,
+        "serialized_f32_kv_reduction_fraction": 0.9
+      },
+      "assumptions": [
+        "The accepted tokenizer, learned artifact, exact-H4 geometry, H4 frame sidecar, sampler and frozen prompts retain the identities recorded by the raw comparison.",
+        "The comparison covers two fixed prompts within the trained 120-position RoPE limit and is not a population-level language or retention evaluation.",
+        "Counts weight compression averages but do not weight Q/K attention scores; the accepted learned dense blocks remain unchanged."
+      ],
+      "observations": {
+        "mathematical_proof": "NONE_SUPPLIED",
+        "independent_review": "ACCEPTED_AFTER_NO_SUMMARY_EXACTNESS_PROMPT_AND_SUMMARY_TRANSPORT_CORRECTIONS",
+        "turtle": {
+          "common_generated_prefix_tokens": 12,
+          "evictions": 17,
+          "summary_slots_read": 66,
+          "summary_merges": 15,
+          "peak_attention_sources": 13,
+          "exact_raw_sha256": "3dcf02364ed28496f010603d8d0ede7244af63061d9d04d3c97e38665396355d",
+          "recurrent_raw_sha256": "9f209e7808f470043d303bfa11dd8175e77c2fe87ff8125d00ad973f8fdc168b"
+        },
+        "einstein": {
+          "common_generated_prefix_tokens": 12,
+          "evictions": 20,
+          "summary_slots_read": 80,
+          "summary_merges": 18,
+          "peak_attention_sources": 13,
+          "exact_raw_sha256": "e34cb700d1be9ded01a4383fafd3fed2af3b00bb5e94dea1a129a20036d14166",
+          "recurrent_raw_sha256": "f5353687f072fdb3e6ea6893e37e942fe990fd1f7758fdca915f954a344b489e"
+        },
+        "provider_calls": 0,
+        "teacher_calls": 0,
+        "future_reads": 0,
+        "forbidden_reads": 0,
+        "state_constant_across_processed_sequence": true,
+        "exploratory_short_prompt_outputs_preserved_but_excluded": true
+      },
+      "evidence_refs": [
+        "fixed_recurrent_binding_source_973",
+        "fixed_recurrent_generation_source_973",
+        "fixed_recurrent_test_973",
+        "fixed_recurrent_project_track_1120",
+        "fixed_recurrent_comparison_summary_973"
+      ],
+      "limits": [
+        "The recurrent continuations diverge from the exact-cache comparator after a 12-token shared generated prefix on both prompts; the lossy outputs are not a quality improvement.",
+        "This does not establish general language quality, factual recall, long-context retention, geometric advantage, architectural alpha or table-native serving.",
+        "Learned f32 Q/K/V/O, bounded softmax, RMSNorm, SwiGLU, vocabulary projection and allocation remain; the trained RoPE limit remains 120 positions.",
+        "The 90 percent reduction applies only to serialized f32 K/V state relative to the 120-token exact-cache basis; fixed metadata is separate.",
+        "No mathematical proof or final held-out evaluation was performed."
+      ],
+      "next_action": {
+        "status": "CURRENT_STAGE_SPARSE_GEOMETRIC_ATTENTION",
+        "scope": "After protected #1120 delivered fixed recurrent R4 memory, implement one versioned bounded geometric candidate selector over its eight live records and four summary banks. Compare admitted sources and frozen-prompt trajectories with the accepted recurrent softmax reader before fitting. #1084 and #1091 remain nonblocking reservoirs rather than scheduled qualification or proof gates.",
+        "issue_urls": [
+          "https://github.com/UOR-Foundation/uor-r4/issues/973"
         ]
       },
       "proof_artifacts": []
     }
   ],
-  "previous_source_revision": "f830b1a774fca7945f340ab05391f28c2fe6c4fc",
+  "previous_source_revision": "8399a71affd6eb3063a3a3765b1db44058b7f4fb",
   "artifacts_1082": {
     "implementation_cid": "blake3:1451084b66531dbe5eb0cb1d3b3e60e5f0aa3f4bd59fffbf582a18d4dfc9380e",
     "preparation_cid": "blake3:c8a4a56de77767cbbe8fd31edc83251b42a6f729e182d065caa47d981f248741",
@@ -1841,10 +1954,10 @@
     "service_endpoint": "NOT_IMPLEMENTED",
     "delivery": "Protected PR #1104 owns delivery and #1102 closure.",
     "next_action": {
-      "status": "OWNER_MANUAL_QUALIFICATION_DECISION",
-      "scope": "After protected #1107 source-only delivery, keep #1084 open and unassigned. The owner decides whether to authorize a separate manual qualification workflow for the unbuilt candidate; automated agents do not dispatch or run it. Compilation, tests, model work, numerical qualification, service/HTTP behavior, browser acceptance, portability and performance remain NOT_RUN_BY_POLICY. No consumed #1102/#1094 envelope may be rerun.",
+      "status": "CURRENT_STAGE_SPARSE_GEOMETRIC_ATTENTION",
+      "scope": "After protected #1120 delivered fixed recurrent R4 memory, implement one versioned bounded geometric candidate selector over its eight live records and four summary banks. Compare admitted sources and frozen-prompt trajectories with the accepted recurrent softmax reader before fitting. #1084 and #1091 remain nonblocking reservoirs rather than scheduled qualification or proof gates.",
       "issue_urls": [
-        "https://github.com/UOR-Foundation/uor-r4/issues/1084"
+        "https://github.com/UOR-Foundation/uor-r4/issues/973"
       ]
     }
   },
@@ -1895,6 +2008,31 @@
         ]
       },
       "scope": "Sequencing pointer only. #1107 adds statically reviewed, unbuilt source; every original statement, assumption, measured observation, negative/unavailable result and proof limit remains unchanged."
+    },
+    {
+      "source_revision": "db8682fb762aadc5e87c0afb0d4f1fd01cfc4495",
+      "superseded_by": "MECHANISM_EXECUTED_NO_QUALITY_CLAIM under #973/#1120",
+      "claim_ids": [
+        "R4-1079-TOKEN-CONTROL",
+        "R4-1082-TOKEN-EXPOSURE",
+        "R4-1085-CLAUSE-ADAPTER",
+        "R4-1094-AUTHORING-INPUT",
+        "R4-1096-ISOLATED-RUNTIME-READINESS",
+        "R4-1094-RETAINED-PREPARATION-CONTRACT",
+        "R4-1094-RETAINED-ASSEMBLY-ADMISSION",
+        "R4-1094-RAW-TEXT-PRESERVATION",
+        "R4-1086-NATIVE-REFERENCE-BRIDGE",
+        "R4-1105-NATIVE-SERVICE-CONTRACT",
+        "R4-1107-WORKBENCH-CANDIDATE"
+      ],
+      "previous_next_action": {
+        "status": "OWNER_MANUAL_QUALIFICATION_DECISION",
+        "scope": "After protected #1107 source-only delivery, keep #1084 open and unassigned. The owner decides whether to authorize a separate manual qualification workflow for the unbuilt candidate; automated agents do not dispatch or run it.",
+        "issue_urls": [
+          "https://github.com/UOR-Foundation/uor-r4/issues/1084"
+        ]
+      },
+      "scope": "Sequencing pointer only. The canonical project track now makes sparse geometric attention the current stage; every historical statement, assumption, measured observation, negative or unavailable result and proof limit remains unchanged."
     }
   ],
   "latest_service_contract": {
@@ -1911,10 +2049,10 @@
     "service_behavior": "NOT_RUN",
     "delivery": "Protected PR closes #1105 only; #1084 remains open and unassigned.",
     "next_action": {
-      "status": "OWNER_MANUAL_QUALIFICATION_DECISION",
-      "scope": "After protected #1107 source-only delivery, keep #1084 open and unassigned. The owner decides whether to authorize a separate manual qualification workflow for the unbuilt candidate; automated agents do not dispatch or run it. Compilation, tests, model work, numerical qualification, service/HTTP behavior, browser acceptance, portability and performance remain NOT_RUN_BY_POLICY. No consumed #1102/#1094 envelope may be rerun.",
+      "status": "CURRENT_STAGE_SPARSE_GEOMETRIC_ATTENTION",
+      "scope": "After protected #1120 delivered fixed recurrent R4 memory, implement one versioned bounded geometric candidate selector over its eight live records and four summary banks. Compare admitted sources and frozen-prompt trajectories with the accepted recurrent softmax reader before fitting. #1084 and #1091 remain nonblocking reservoirs rather than scheduled qualification or proof gates.",
       "issue_urls": [
-        "https://github.com/UOR-Foundation/uor-r4/issues/1084"
+        "https://github.com/UOR-Foundation/uor-r4/issues/973"
       ]
     }
   },
@@ -1941,10 +2079,44 @@
     "knowledge_index_ingestion": "NOT_RUN_BY_POLICY",
     "delivery": "Protected PR closes #1107 only; #1084 remains open and unassigned.",
     "next_action": {
-      "status": "OWNER_MANUAL_QUALIFICATION_DECISION",
-      "scope": "The owner decides whether to authorize a separate manual qualification workflow for the unbuilt candidate. Automated agents do not dispatch or execute it.",
+      "status": "PARKED_NONBLOCKING_PRODUCT_RESERVOIR",
+      "scope": "#1084 remains open and unassigned. Its source-only workbench candidate may be consulted at the representative-product-alpha stage or for a concrete current integration question; no manual qualification is the active project step.",
       "issue_urls": [
         "https://github.com/UOR-Foundation/uor-r4/issues/1084"
+      ]
+    }
+  },
+  "current_project_track": {
+    "document": "docs/integration/project-track.md",
+    "revision": "db8682fb762aadc5e87c0afb0d4f1fd01cfc4495",
+    "status": "BUILD_FIRST_ARCHITECTURAL_ALPHA",
+    "completed_stage": "fixed_recurrent_geometric_memory",
+    "current_stage": "sparse_geometric_attention",
+    "ordered_stages": [
+      "fixed_recurrent_geometric_memory",
+      "sparse_geometric_attention",
+      "nonlinear_geometric_block",
+      "scale_data_and_instruction_behavior",
+      "retrieval_and_tools",
+      "representative_product_alpha",
+      "rust_table_lowering_and_optimization",
+      "release_proof_evidence_and_qa"
+    ]
+  },
+  "latest_fixed_recurrent_memory": {
+    "issue": 973,
+    "status": "MECHANISM_EXECUTED_NO_QUALITY_CLAIM",
+    "source_revision": "db8682fb762aadc5e87c0afb0d4f1fd01cfc4495",
+    "comparison_summary_sha256": "aa199fa8346a1cc0e58b58fb490092910e31a8a8f78a2204d0c915fde4f2a014",
+    "fit_performed": false,
+    "recurrent_state_values_f32": 2304,
+    "recurrent_state_bytes_f32": 9216,
+    "maximum_read_sources": 13,
+    "next_action": {
+      "status": "CURRENT_STAGE_SPARSE_GEOMETRIC_ATTENTION",
+      "scope": "After protected #1120 delivered fixed recurrent R4 memory, implement one versioned bounded geometric candidate selector over its eight live records and four summary banks. Compare admitted sources and frozen-prompt trajectories with the accepted recurrent softmax reader before fitting. #1084 and #1091 remain nonblocking reservoirs rather than scheduled qualification or proof gates.",
+      "issue_urls": [
+        "https://github.com/UOR-Foundation/uor-r4/issues/973"
       ]
     }
   }
