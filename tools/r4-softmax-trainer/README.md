@@ -359,6 +359,23 @@ without training or opening train, validation, source, or sealed data. Its
 create-once result is a local autonomous-decoding smoke, not a coherence,
 reasoning, H4-superiority, lowering, browser, or release claim.
 
+The build-first contextual value-write successor can be exercised directly on
+an arbitrary prompt without a fit or corpus read:
+
+```bash
+uv run --offline --project "$TRAINER" r4-softmax-trainer \
+  --root "$ROOT" generate-contextual-retained \
+  --prompt "A purple turtle found a clock in the garden" \
+  --max-new-tokens 32
+```
+
+This version writes `Wv(RMSNorm(x_t + a_t))`, where `a_t` is the ungated
+strict-prior retained residual, into the existing identity-addressed value
+field. It adds no parameters or recurrent tensors and leaves the historical V1
+path unchanged. The loaded weights were fitted under V1's token-only write, so
+the command demonstrates executable source-free behavior; it does not claim
+that the changed write has been fitted or improves language quality.
+
 ## Terminal #973 paired-H4 prompt-capacity rung
 
 [`R4PairedH4PromptCapacityV1`](../../docs/r4_paired_h4_prompt_capacity_973.md)

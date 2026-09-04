@@ -34,6 +34,7 @@ from .continuation_data import (
     load_continuation_training_view_manifest,
     prepare_continuation_dataset,
 )
+from .contextual_retained_generation import generate_contextual_retained
 from .data import download_source, load_dataset_manifest, prepare_dataset
 from .direct_retained_readout_campaign import (
     prepare_direct_retained_readout,
@@ -615,6 +616,27 @@ def parser() -> argparse.ArgumentParser:
             "autonomous generation smoke"
         ),
     )
+    generate_contextual = subcommands.add_parser(
+        "generate-contextual-retained",
+        help=(
+            "continue one arbitrary prompt through #973's contextual retained "
+            "value-write successor"
+        ),
+    )
+    generate_contextual.add_argument("--prompt", required=True)
+    generate_contextual.add_argument(
+        "--geometry",
+        type=_root,
+        default=default_language_path_geometry(),
+        help="canonical exact-H4 group geometry",
+    )
+    generate_contextual.add_argument("--max-new-tokens", type=int, default=32)
+    generate_contextual.add_argument("--seed", type=int, default=9_738)
+    generate_contextual.add_argument(
+        "--json",
+        action="store_true",
+        help="emit the artifact identities, token IDs, and execution details",
+    )
     prepare_paired_h4 = subcommands.add_parser(
         "prepare-paired-h4-prompt-capacity",
         help=(
@@ -1102,6 +1124,7 @@ def main() -> None:
         "probe-language-path",
         "run-language-path",
         "generate-language-path",
+        "generate-contextual-retained",
     }
     paired_h4_prompt_capacity_commands = {
         "prepare-paired-h4-prompt-capacity",
@@ -1421,6 +1444,19 @@ def main() -> None:
         return
     if arguments.command == "generate-language-path":
         _print_result(run_language_path_generation(root))
+        return
+    if arguments.command == "generate-contextual-retained":
+        result = generate_contextual_retained(
+            root,
+            geometry_path=arguments.geometry,
+            prompt=arguments.prompt,
+            max_new_tokens=arguments.max_new_tokens,
+            seed=arguments.seed,
+        )
+        if arguments.json:
+            _print_result(result)
+        else:
+            print(result["text"])
         return
     if arguments.command == "prepare-paired-h4-prompt-capacity":
         prepared = prepare_paired_h4_prompt_capacity(

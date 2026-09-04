@@ -733,6 +733,67 @@ class _RetainedDecoderBlock(nn.Module):
             transported_occupied,
         )
 
+    def forward_direct_step_with_contextual_value_write(
+        self,
+        values: Tensor,
+        token_actions: Tensor,
+        key_state: Tensor,
+        value_state: Tensor,
+        occupied: Tensor,
+        identity_offset: int,
+        *,
+        state_off: bool,
+    ) -> tuple[Tensor, Tensor, Tensor, Tensor]:
+        """Write the current causal context through the existing value field.
+
+        This is the direct cell for the versioned contextual-write successor.
+        The retained read still uses only the transported strict-prior field.
+        Its ungated output is combined with the current residual-stream input
+        before ``v_proj`` supplies the identity-slot value write.  Existing V1
+        entry points above retain their original token-only write source.
+        """
+
+        batch = int(values.shape[0])
+        heads = self.config.heads
+        group = self.config.group_size
+        head_dim = self.config.head_dim
+        normalized = self.input_layernorm(values)
+        query = self._heads(self.q_proj(normalized))
+        key = self._heads(self.k_proj(normalized))
+        rho, eta = self.resolved_gates()
+
+        indices = token_actions[:, None, :, None].expand(batch, heads, group, head_dim)
+        transported_keys = torch.gather(key_state, dim=2, index=indices)
+        transported_values = torch.gather(value_state, dim=2, index=indices)
+        transported_occupied = torch.gather(occupied, dim=1, index=token_actions)
+        decayed_keys = transported_keys * rho.view(1, heads, 1, 1)
+        decayed_values = transported_values * rho.view(1, heads, 1, 1)
+
+        retained = self._attend(query, decayed_keys, decayed_values, transported_occupied)
+        retained = self.o_proj(retained.reshape(batch, self.config.hidden_size))
+        contextual = self.input_layernorm(values + retained)
+        value = self._heads(self.v_proj(contextual))
+
+        visible_retained = retained * (0.0 if state_off else 1.0)
+        values = values + visible_retained
+        values = values + self.mlp(self.post_attention_layernorm(values))
+
+        identity_mask = F.one_hot(
+            torch.tensor(identity_offset, device=values.device), num_classes=group
+        ).to(decayed_keys.dtype)
+        prior_keys = decayed_keys[:, :, identity_offset, :]
+        prior_values = decayed_values[:, :, identity_offset, :]
+        key_delta = eta.view(1, heads, 1) * (key - prior_keys)
+        value_delta = eta.view(1, heads, 1) * (value - prior_values)
+        final_keys = decayed_keys + key_delta[:, :, None, :] * identity_mask.view(
+            1, 1, group, 1
+        )
+        final_values = decayed_values + value_delta[:, :, None, :] * identity_mask.view(
+            1, 1, group, 1
+        )
+        final_occupied = transported_occupied | identity_mask.bool().view(1, group)
+        return values, final_keys, final_values, final_occupied
+
 
 class R4GroupAddressedRetentionDecoderV1(nn.Module):
     """Two-block tied-head language model with fixed-state geometric attention."""

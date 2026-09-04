@@ -35,6 +35,7 @@ from .model import RMSNorm, RotaryEmbedding, SwiGLU
 
 
 POLICY = "R4RetainedLanguagePathV1"
+CONTEXTUAL_VALUE_WRITE_POLICY = "R4ContextualValueWriteLanguagePathV1"
 ORDINARY_POLICY = "OrdinaryCausalSoftmaxLanguagePathV1"
 
 VOCAB_SIZE = 4_096
@@ -241,6 +242,149 @@ class R4RetainedLanguagePathV1(R4GroupAddressedRetentionDecoderV1):
             token_ids[:, None],
             initial_state=state,
             state_off=attention_off,
+            implementation="direct",
+        )
+        return DecoderStepOutput(
+            logits=output.logits[:, 0, :],
+            final_state=output.final_state,
+            audit=output.audit,
+        )
+
+
+class R4ContextualValueWriteLanguagePathV1(R4RetainedLanguagePathV1):
+    """Versioned retained path that writes its ungated causal attention context.
+
+    The learned parameters, recurrent-state tensors, geometry, and output head
+    are byte-compatible with ``R4RetainedLanguagePathV1``.  Only the value
+    written at the transported identity address changes.  Full-sequence,
+    incremental, and one-token calls all traverse the same causal direct cell;
+    the stationary closed form is inapplicable once a write depends on its
+    strict-prior retained read.
+    """
+
+    policy = CONTEXTUAL_VALUE_WRITE_POLICY
+
+    def __init__(self, geometry: GroupAddressArtifact) -> None:
+        super().__init__(geometry)
+        if (
+            self.parameter_count() != PARAMETER_COUNT
+            or self.state_value_count() != STATE_VALUES
+            or self.validity_bit_count() != VALIDITY_BITS
+        ):
+            raise RuntimeError("contextual value-write path changed the qualified ledger")
+
+    def _contextual_direct_hidden(
+        self, token_ids: Tensor, state: DecoderState, *, state_off: bool
+    ) -> tuple[Tensor, DecoderState]:
+        outputs: list[Tensor] = []
+        current = state
+        for time_index in range(int(token_ids.shape[1])):
+            token = token_ids[:, time_index]
+            values = self.token_embedding(token)
+            leaves = self.token_leaves.index_select(0, token)
+            actions = self.left_actions.index_select(0, leaves)
+            keys: list[Tensor] = []
+            retained_values: list[Tensor] = []
+            occupied: list[Tensor] = []
+            for layer_index, layer in enumerate(self.layers):
+                values, layer_keys, layer_values, layer_occupied = (
+                    layer.forward_direct_step_with_contextual_value_write(
+                        values,
+                        actions,
+                        current.keys[layer_index],
+                        current.values[layer_index],
+                        current.occupied[layer_index],
+                        self.identity_offset,
+                        state_off=state_off,
+                    )
+                )
+                keys.append(layer_keys)
+                retained_values.append(layer_values)
+                occupied.append(layer_occupied)
+            current = DecoderState(
+                keys=torch.stack(keys),
+                values=torch.stack(retained_values),
+                occupied=torch.stack(occupied),
+            )
+            outputs.append(values)
+        return torch.stack(outputs, dim=1), current
+
+    def forward(
+        self,
+        token_ids: Tensor,
+        targets: Tensor | None = None,
+        *,
+        attention_off: bool = False,
+        initial_state: DecoderState | None = None,
+        implementation: Literal["direct"] = "direct",
+    ) -> DecoderOutput:
+        """Run a full token sequence through the contextual direct recurrence."""
+
+        if token_ids.ndim != 2:
+            raise ValueError("token_ids must have shape [batch,time]")
+        if implementation != "direct":
+            raise ValueError("contextual value-write path requires 'direct' implementation")
+        state = (
+            self.initial_state(int(token_ids.shape[0]))
+            if initial_state is None
+            else initial_state
+        )
+        self._validate_inputs(token_ids, targets, state)
+        hidden, final_state = self._contextual_direct_hidden(
+            token_ids, state, state_off=attention_off
+        )
+        hidden = self.final_norm(hidden)
+        logits = F.linear(hidden, self.output_weight)
+        loss = None
+        if targets is not None:
+            loss = F.cross_entropy(
+                logits.float().reshape(-1, self.config.vocab_size), targets.reshape(-1)
+            )
+        return DecoderOutput(
+            logits=logits,
+            loss=loss,
+            final_state=final_state,
+            audit=self._audit(
+                int(token_ids.shape[0]),
+                int(token_ids.shape[1]),
+                state_off=attention_off,
+                implementation="direct",
+            ),
+        )
+
+    def forward_incremental(
+        self,
+        token_ids: Tensor,
+        targets: Tensor | None = None,
+        *,
+        attention_off: bool = False,
+        initial_state: DecoderState | None = None,
+    ) -> DecoderOutput:
+        """Run one or more tokens through the same contextual direct recurrence."""
+
+        return self.forward(
+            token_ids,
+            targets,
+            attention_off=attention_off,
+            initial_state=initial_state,
+            implementation="direct",
+        )
+
+    def step(
+        self,
+        token_ids: Tensor,
+        state: DecoderState,
+        *,
+        attention_off: bool = False,
+    ) -> DecoderStepOutput:
+        """Advance one token through the contextual direct recurrence."""
+
+        if token_ids.ndim != 1:
+            raise ValueError("incremental token_ids must have shape [batch]")
+        output = self.forward(
+            token_ids[:, None],
+            initial_state=state,
+            attention_off=attention_off,
             implementation="direct",
         )
         return DecoderStepOutput(
