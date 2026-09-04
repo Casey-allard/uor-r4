@@ -31,6 +31,21 @@ generated token and produced visibly degraded text. This establishes the
 mechanism only. The current stage is a bounded development-data fit of the
 assembled sparse-plus-nonlinear architecture before any larger scale increase.
 
+The first bounded full-context fit task ended at
+[`RESOURCE_UNAVAILABLE_FULL_CONTEXT_CUBE_FIT`](../r4_quaternion_cube_fit_973.md).
+The exact 120-token graph passed its backward gate and reached eight optimizer
+updates twice, reproducing update-one loss `10.436132` and gradient norm
+`6.284435` to the reported six decimals. After the resource correction,
+elapsed time to update one fell from `78.177` to `25.757` seconds, but the
+corrected completion projection still
+did not admit continuation toward 128 updates inside the 840-second wall. No
+fitted artifact or language result was produced, and no validation or held-out
+data was read. The
+current implementation step is a lean differentiable training forward that
+removes unused attention-weight materialization and precomputes the fixed
+metadata-only sparse selections while preserving the current recurrent
+computation graph.
+
 Broad proofs, evidence ledgers,
 publication, programme-wide research mapping, and release QA do not sit between
 the build stages. SpiralCore, HELM, W33, NEMESIS, UOR, and H4/zeta sources are
@@ -209,7 +224,7 @@ The active build sequence is fixed:
 | 1 | Fixed recurrent geometric memory | Executed mechanical checkpoint under #973; bounded state and summary use observed, quality unestablished |
 | 2 | Sparse geometric attention | Executed mechanical checkpoint under #973; nine-source ceiling observed, useful retrieval unestablished |
 | 3 | Nonlinear geometric block | Executed mechanical checkpoint under #973; finite-indexed R4 cube bypasses dense SwiGLU, useful language unestablished |
-| 4 | Scale, data, and instruction behavior | **Next:** bound and fit the assembled architecture on open development data before increasing scale |
+| 4 | Scale, data, and instruction behavior | Full-context fit reached backward and eight updates but missed its hard-wall projection; **next:** make the unchanged training forward lean enough to admit the fixed 128-update decision |
 | 5 | Retrieval and tools | Typed retrieval/refusal plus real tool execution, feedback, and result ingestion |
 | 6 | Representative product alpha | Grounding, composition, identity memory, coding, and tools in one local workbench |
 | 7 | Rust/table lowering and optimization | Preserve accepted behavior in the bounded packed Rust runtime |

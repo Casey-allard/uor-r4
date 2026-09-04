@@ -119,6 +119,17 @@ the fitted dense comparator at the first generated token and were visibly
 degraded. This completes a mechanical nonlinear checkpoint, not useful
 language or a selected training architecture.
 
+The subsequent bounded fit task returned
+`RESOURCE_UNAVAILABLE_FULL_CONTEXT_CUBE_FIT`. The full 120-token recurrent graph
+completed backward and reached update 8 in both admitted launches. The sole
+resource correction was followed by an elapsed-to-update-one reduction from
+`78.177` to `25.757` seconds, but the fixed 128-update dose still missed the
+840-second completion projection. No fitted artifact, model-quality result,
+validation read, shorter dose, or additional retry followed. The direct stage-4
+action is now a lean training forward that omits unused attention-weight outputs
+and precomputes the metadata-only selector while preserving the current
+recurrent computation graph and inference semantics.
+
 ## Research reservoirs
 
 Research is consulted when an active implementation has a concrete unresolved

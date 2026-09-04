@@ -8,11 +8,18 @@ f32 mechanism, not a language-quality or table-native execution claim.
 
 from __future__ import annotations
 
+import math
+
 import torch
 from torch import Tensor
 
 from .fixed_recurrent_kv_binding import RecurrentNonlinearAudit
-from .language_path_generalization import HIDDEN_SIZE
+from .language_path_generalization import (
+    HIDDEN_SIZE,
+    INTERMEDIATE_SIZE,
+    LAYERS,
+    PARAMETER_COUNT,
+)
 from .position_kv_binding import R4_WIDTH
 from .sparse_geometric_kv_binding import (
     R4SparseGeometricCandidateSoftmaxKVBindingV1,
@@ -26,6 +33,10 @@ H4_FRAME_COEFFICIENT_PRODUCTS_PER_BLOCK = 2 * R4_WIDTH * R4_WIDTH
 QUATERNION_CUBE_SCALAR_PRODUCTS_PER_BLOCK = 14
 QUATERNION_CUBE_RECIPROCALS_PER_BLOCK = 1
 RESIDUAL_SUBTRACTIONS_PER_BLOCK = R4_WIDTH
+RETAINED_DENSE_MLP_PARAMETER_VALUES = (
+    LAYERS * 3 * HIDDEN_SIZE * INTERMEDIATE_SIZE
+)
+ACTIVE_PARAMETER_VALUES = PARAMETER_COUNT - RETAINED_DENSE_MLP_PARAMETER_VALUES
 
 if R4_WIDTH != 4 or HIDDEN_SIZE % R4_WIDTH != 0:
     raise RuntimeError("quaternion-cube residual requires ordered R4 blocks")
@@ -38,6 +49,32 @@ class R4H4FrameQuaternionCubeResidualV1(
 
     POLICY_NAME = POLICY
     NONLINEAR_POLICY = POLICY
+
+    def __init__(self, geometry: object, frames: object) -> None:
+        super().__init__(geometry, frames)  # type: ignore[arg-type]
+        for layer in self.layers:
+            layer.mlp.requires_grad_(False)
+        if self.trainable_parameter_count() != ACTIVE_PARAMETER_VALUES:
+            raise RuntimeError("quaternion-cube active parameter count changed")
+
+    def trainable_parameter_names(self) -> tuple[str, ...]:
+        """Return the learned tensors reached by the cube predictive path."""
+
+        return tuple(
+            name for name, parameter in self.named_parameters()
+            if parameter.requires_grad
+        )
+
+    def trainable_parameters(self) -> tuple[torch.nn.Parameter, ...]:
+        """Return only parameters exercised by the cube predictive path."""
+
+        return tuple(
+            parameter for parameter in self.parameters()
+            if parameter.requires_grad
+        )
+
+    def trainable_parameter_count(self) -> int:
+        return sum(parameter.numel() for parameter in self.trainable_parameters())
 
     def _post_attention_nonlinear(
         self,
@@ -110,6 +147,7 @@ class R4H4FrameQuaternionCubeResidualV1(
         )
 
         block_evaluations = batch_size * R4_BLOCKS_PER_HIDDEN
+        positive_norms = norm_squared.detach()[nonzero]
         audit = RecurrentNonlinearAudit(
             policy=self.NONLINEAR_POLICY,
             batch_size=batch_size,
@@ -136,6 +174,17 @@ class R4H4FrameQuaternionCubeResidualV1(
             maximum_residual_bound_ratio=float(
                 residual_bound_ratios.amax().detach()
             ),
+            exact_zero_r4_blocks=(
+                block_evaluations - int(torch.count_nonzero(nonzero).detach())
+            ),
+            minimum_positive_block_norm_squared=(
+                float(positive_norms.amin()) if positive_norms.numel() else math.inf
+            ),
+            maximum_block_inverse_norm_squared=(
+                float(inverse_norm_squared.detach()[nonzero].amax())
+                if positive_norms.numel()
+                else 0.0
+            ),
         )
         return (
             delta_blocks.reshape(batch_size, HIDDEN_SIZE).to(values.dtype),
@@ -144,6 +193,7 @@ class R4H4FrameQuaternionCubeResidualV1(
 
 
 __all__ = [
+    "ACTIVE_PARAMETER_VALUES",
     "H4_FRAME_COEFFICIENT_PRODUCTS_PER_BLOCK",
     "H4_FRAME_MAPS_PER_BLOCK",
     "POLICY",
@@ -151,5 +201,6 @@ __all__ = [
     "QUATERNION_CUBE_SCALAR_PRODUCTS_PER_BLOCK",
     "R4_BLOCKS_PER_HIDDEN",
     "RESIDUAL_SUBTRACTIONS_PER_BLOCK",
+    "RETAINED_DENSE_MLP_PARAMETER_VALUES",
     "R4H4FrameQuaternionCubeResidualV1",
 ]

@@ -124,6 +124,7 @@ from .sparse_geometric_r4_language_generation import (
 from .quaternion_cube_r4_language_generation import (
     generate_quaternion_cube_r4_language_path,
 )
+from .quaternion_cube_fit import fit_quaternion_cube_r4_language_path
 from .role_tagged_associative_development import (
     preflight_role_tagged_associative_development,
     prepare_role_tagged_associative_development,
@@ -822,6 +823,22 @@ def parser() -> argparse.ArgumentParser:
             "execution details"
         ),
     )
+    fit_quaternion_cube = subcommands.add_parser(
+        "fit-quaternion-cube-r4-language-path",
+        help=(
+            "run #973's one bounded open-data fit of the fixed sparse "
+            "quaternion-cube path against the retained dense comparator"
+        ),
+    )
+    fit_quaternion_cube.add_argument(
+        "--h4-sidecar",
+        type=_root,
+        default=default_predictive_block_delta_frame_sidecar(),
+        help="validated H4 frame sidecar used by the fixed sparse and cube laws",
+    )
+    fit_quaternion_cube.add_argument("--updates", type=int, default=128)
+    fit_quaternion_cube.add_argument("--threads", type=int, choices=[4], default=4)
+    fit_quaternion_cube.add_argument("--max-seconds", type=float, default=840.0)
     prepare_paired_h4 = subcommands.add_parser(
         "prepare-paired-h4-prompt-capacity",
         help=(
@@ -1319,6 +1336,7 @@ def main() -> None:
         "generate-fixed-recurrent-r4-language-path",
         "generate-sparse-geometric-r4-language-path",
         "generate-quaternion-cube-r4-language-path",
+        "fit-quaternion-cube-r4-language-path",
     }
     paired_h4_prompt_capacity_commands = {
         "prepare-paired-h4-prompt-capacity",
@@ -1739,6 +1757,17 @@ def main() -> None:
             _print_result(result)
         else:
             print(result["text"])
+        return
+    if arguments.command == "fit-quaternion-cube-r4-language-path":
+        _print_result(
+            fit_quaternion_cube_r4_language_path(
+                root,
+                frame_path=arguments.h4_sidecar,
+                updates=arguments.updates,
+                threads=arguments.threads,
+                max_seconds=arguments.max_seconds,
+            )
+        )
         return
     if arguments.command == "prepare-paired-h4-prompt-capacity":
         prepared = prepare_paired_h4_prompt_capacity(

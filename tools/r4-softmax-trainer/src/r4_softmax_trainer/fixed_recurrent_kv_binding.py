@@ -76,6 +76,9 @@ class RecurrentNonlinearAudit:
     residual_subtractions: int
     maximum_block_norm_error: float
     maximum_residual_bound_ratio: float
+    exact_zero_r4_blocks: int = 0
+    minimum_positive_block_norm_squared: float = math.inf
+    maximum_block_inverse_norm_squared: float = 0.0
 
     def accumulated_with(
         self, later: RecurrentNonlinearAudit
@@ -96,6 +99,7 @@ class RecurrentNonlinearAudit:
                 "quaternion_cube_scalar_products",
                 "quaternion_cube_reciprocals",
                 "residual_subtractions",
+                "exact_zero_r4_blocks",
             )
         }
         return replace(
@@ -108,6 +112,14 @@ class RecurrentNonlinearAudit:
             maximum_residual_bound_ratio=max(
                 self.maximum_residual_bound_ratio,
                 later.maximum_residual_bound_ratio,
+            ),
+            minimum_positive_block_norm_squared=min(
+                self.minimum_positive_block_norm_squared,
+                later.minimum_positive_block_norm_squared,
+            ),
+            maximum_block_inverse_norm_squared=max(
+                self.maximum_block_inverse_norm_squared,
+                later.maximum_block_inverse_norm_squared,
             ),
         )
 

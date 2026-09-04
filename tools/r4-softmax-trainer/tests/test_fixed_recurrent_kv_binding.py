@@ -40,6 +40,7 @@ from r4_softmax_trainer.sparse_geometric_kv_binding import (
     R4SparseGeometricCandidateSoftmaxKVBindingV1,
 )
 from r4_softmax_trainer.quaternion_cube_nonlinear import (
+    ACTIVE_PARAMETER_VALUES,
     H4_FRAME_COEFFICIENT_PRODUCTS_PER_BLOCK,
     H4_FRAME_MAPS_PER_BLOCK,
     POLICY as QUATERNION_CUBE_POLICY,
@@ -47,6 +48,7 @@ from r4_softmax_trainer.quaternion_cube_nonlinear import (
     QUATERNION_CUBE_SCALAR_PRODUCTS_PER_BLOCK,
     R4_BLOCKS_PER_HIDDEN,
     RESIDUAL_SUBTRACTIONS_PER_BLOCK,
+    RETAINED_DENSE_MLP_PARAMETER_VALUES,
     R4H4FrameQuaternionCubeResidualV1,
 )
 
@@ -394,6 +396,20 @@ class FixedRecurrentKVBindingTests(unittest.TestCase):
         dense.eval()
         cube.eval()
 
+        self.assertEqual(cube.trainable_parameter_count(), ACTIVE_PARAMETER_VALUES)
+        self.assertEqual(
+            PARAMETER_COUNT - cube.trainable_parameter_count(),
+            RETAINED_DENSE_MLP_PARAMETER_VALUES,
+        )
+        self.assertEqual(len(cube.trainable_parameter_names()), 18)
+        self.assertTrue(
+            all(
+                not parameter.requires_grad
+                for layer in cube.layers
+                for parameter in layer.mlp.parameters()
+            )
+        )
+
         # The new hook preserves the accepted comparator expression exactly.
         values = torch.randn(1, 48)
         expected_dense = dense.layers[0].mlp(
@@ -454,6 +470,9 @@ class FixedRecurrentKVBindingTests(unittest.TestCase):
         )
         self.assertEqual(one_layer_audit.maximum_block_norm_error, 0.0)
         self.assertEqual(one_layer_audit.maximum_residual_bound_ratio, 1.0)
+        self.assertEqual(one_layer_audit.exact_zero_r4_blocks, 11)
+        self.assertEqual(one_layer_audit.minimum_positive_block_norm_squared, 1.0)
+        self.assertEqual(one_layer_audit.maximum_block_inverse_norm_squared, 1.0)
 
         # The candidate predictive forward must not call the retained dense MLP.
         def forbidden_dense_call(_: torch.Tensor) -> torch.Tensor:
