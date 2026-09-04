@@ -108,6 +108,8 @@ enum Command {
     Route(RouteArgs),
     /// Run the bounded #953 provider-free decoded geometric generation witness.
     BoundedGeometricGenerate(BoundedGeometricGenerateArgs),
+    /// Load a source-free table artifact and generate without its source corpus.
+    SourceFreeGenerate(SourceFreeGenerateArgs),
     /// Build and measure the #989 source-free lexical table baseline.
     SourceFreeTable(SourceFreeTableArgs),
     /// Generate bounded text through all-layer R4/Spin causal softmax.
@@ -301,6 +303,25 @@ struct BoundedGeometricGenerateArgs {
     control: BoundedGeometricControl,
 
     /// Emit the generator's deterministic canonical JSON report.
+    #[arg(long)]
+    json: bool,
+}
+
+#[derive(Args, Debug)]
+struct SourceFreeGenerateArgs {
+    /// Canonical SFTBL001 artifact produced by `source-free-table`.
+    #[arg(long, value_name = "FILE")]
+    artifact: PathBuf,
+
+    /// Exact UTF-8 prompt bytes to continue.
+    #[arg(long, value_name = "PROMPT")]
+    prompt: String,
+
+    /// Hard maximum number of emitted continuation lexical units.
+    #[arg(long, value_name = "UNITS")]
+    continuation_cap: usize,
+
+    /// Emit the generation result and artifact identity as JSON.
     #[arg(long)]
     json: bool,
 }
@@ -1755,6 +1776,7 @@ fn bounded_geometric_generate(args: &BoundedGeometricGenerateArgs) -> Result<(),
 }
 
 const SOURCE_FREE_TABLE_REPORT_SCHEMA: &str = "uor-r4-source-free-table-report/1";
+const SOURCE_FREE_GENERATION_SCHEMA: &str = "uor-r4-source-free-generation/1";
 const SOURCE_FREE_TABLE_POSITIVE: &str = "NUMERIC_BASELINE_GATE_MET_PENDING_REPLAY_BINDING";
 const SOURCE_FREE_TABLE_NEGATIVE: &str = "REPAIR_LEXICAL_REPRESENTATION_OR_COUNT_OBJECTIVE";
 const SOURCE_FREE_GEOMETRIC_REPORT_SCHEMA: &str =
@@ -1792,6 +1814,20 @@ struct SourceFreeClosureCounters {
     provider_calls: u64,
     source_weight_reads: u64,
     geometry_operations: u64,
+}
+
+#[derive(Debug, Serialize)]
+struct SourceFreeGenerationReport {
+    schema: &'static str,
+    artifact_cid: String,
+    artifact_bytes: usize,
+    prompt: String,
+    continuation_cap: usize,
+    emitted_units: usize,
+    continuation: String,
+    text: String,
+    stop: &'static str,
+    source_closure: SourceFreeClosureCounters,
 }
 
 #[derive(Debug, Serialize)]
@@ -1987,6 +2023,57 @@ struct SourceFreeGeometricReport {
 struct SourceFreeGeometricEnvelope {
     report_payload_cid: String,
     report: SourceFreeGeometricReport,
+}
+
+fn source_free_generate(args: &SourceFreeGenerateArgs) -> Result<(), RunError> {
+    let artifact_bytes = std::fs::read(&args.artifact).map_err(|error| {
+        RunError::Command(format!(
+            "read source-free table artifact {}: {error}",
+            args.artifact.display()
+        ))
+    })?;
+    let table = SourceFreeTable::from_bytes(&artifact_bytes).map_err(|error| {
+        RunError::Command(format!(
+            "load source-free table artifact {}: {error}",
+            args.artifact.display()
+        ))
+    })?;
+    let continuation = table
+        .continue_text(args.prompt.as_bytes(), args.continuation_cap)
+        .map_err(|error| RunError::Command(format!("generate from source-free table: {error}")))?;
+    let continuation_text = String::from_utf8(continuation.decoded).map_err(|error| {
+        RunError::Command(format!("source-free continuation is not UTF-8: {error}"))
+    })?;
+    let generated_text = format!("{}{}", args.prompt, continuation_text);
+
+    if args.json {
+        let report = SourceFreeGenerationReport {
+            schema: SOURCE_FREE_GENERATION_SCHEMA,
+            artifact_cid: table.artifact_cid(),
+            artifact_bytes: artifact_bytes.len(),
+            prompt: args.prompt.clone(),
+            continuation_cap: args.continuation_cap,
+            emitted_units: continuation.tokens.len(),
+            continuation: continuation_text,
+            text: generated_text,
+            stop: source_free_continuation_stop(continuation.stop),
+            source_closure: SourceFreeClosureCounters {
+                teacher_calls: 0,
+                provider_calls: 0,
+                source_weight_reads: 0,
+                geometry_operations: 0,
+            },
+        };
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&report).map_err(|error| {
+                RunError::Command(format!("serialize source-free generation: {error}"))
+            })?
+        );
+    } else {
+        println!("{generated_text}");
+    }
+    Ok(())
 }
 
 fn source_free_table(args: &SourceFreeTableArgs) -> Result<(), RunError> {
@@ -2534,6 +2621,7 @@ fn local_generation_stop_label(reason: LocalGenerationStopReason) -> String {
 
 fn print_research_tools() {
     println!("Active capability-first command:");
+    println!("  source-free-generate");
     println!("  source-free-table");
     println!();
     println!("Preserved research commands (not required for the table baseline):");
@@ -2632,6 +2720,7 @@ fn run(cli: &Cli) -> Result<(), RunError> {
         }
         Some(Command::Route(args)) => route_demo(args),
         Some(Command::BoundedGeometricGenerate(args)) => bounded_geometric_generate(args),
+        Some(Command::SourceFreeGenerate(args)) => source_free_generate(args),
         Some(Command::SourceFreeTable(args)) => source_free_table(args),
         Some(Command::R4SoftmaxGenerate(args)) => {
             let workers = std::num::NonZeroUsize::new(args.workers).ok_or_else(|| {

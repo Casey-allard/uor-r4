@@ -272,6 +272,21 @@ the deterministic packed artifact, and emits the exact decoded continuation.
 It is a statistical lexical baseline command, not an attention, semantic,
 correctness, chat, or release surface.
 
+Once the artifact exists, generate from it directly without the corpus:
+
+```bash
+cargo run --bin r4 -- source-free-generate \
+  --artifact /path/to/source-free-table.bin \
+  --prompt "The United States" \
+  --continuation-cap 16
+```
+
+Add `--json` to include the artifact CID, prompt, continuation, completed text,
+stop reason, and source-closure counters. This invocation loads only the packed
+table artifact. Its output is deterministic and prompt-conditioned within the
+table's lexical statistics; it does not establish semantic understanding or
+general language capability.
+
 To run the one frozen #953 comparison against that unchanged table baseline:
 
 ```bash
