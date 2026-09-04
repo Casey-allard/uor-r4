@@ -51,7 +51,7 @@
   "mode": "build_first_architectural_alpha",
   "project_track": {
     "architectural_alpha": "useful_prompt_dependent_text_through_bounded_recurrent_geometric_memory_and_bounded_geometric_selection_without_complete_prefix_scan_or_runtime_teacher_provider_or_source_model",
-    "current_stage": "nonlinear_geometric_block",
+    "current_stage": "scale_data_and_instruction_behavior",
     "ordered_stages": [
       "fixed_recurrent_geometric_memory",
       "sparse_geometric_attention",

@@ -29,9 +29,20 @@ forbidden reads. Against the fixed recurrent arm, its common generated prefixes
 were 12 tokens for the turtle prompt and 3 for Einstein; aggregate materialized
 scores fell 15.27%. This establishes bounded pre-read geometric admission, not
 useful retrieval, language improvement, long-context retention, geometric
-advantage, architectural alpha, or table-native execution. RoPE still limits
-the reference to 120 positions. The next implementation is the nonlinear
-geometric block.
+advantage, architectural alpha, or table-native execution.
+
+`R4H4FrameQuaternionCubeResidualV1` now applies twelve continuous R4
+quaternion-cube residuals through the current element of the validated
+120-index H4 bank after each sparse attention residual; antipodal frame pairs
+select the same odd map, leaving at most 60 distinct operators. Across the same two
+no-fit prompts it executed 1,272 R4 blocks, no dense-MLP call, no new parameter
+or recurrent state, and a largest f32 block-norm error of
+`7.152557373046875e-07`. Prompt-stage sparse selections remained exact, but
+both generated trajectories diverged from the fitted dense comparator at their
+first token and were visibly degraded. This establishes the finite-indexed
+nonlinear mechanism only. RoPE still limits the reference to 120 positions.
+The next implementation is a bounded development-data fit of the assembled
+sparse-plus-quaternion-cube architecture before any larger scale increase.
 
 Historical positive, negative, and unavailable results below retain their exact
 scope. A negative binds its artifact/population/operator/controls/budget and may

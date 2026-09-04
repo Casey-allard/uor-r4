@@ -11,7 +11,7 @@ comparator preserves full chronological K/V through exact H4 transport, and
 `R4FixedRecurrentCausalKVBindingV1` provides the fixed 2,304-value / 9,216-byte
 f32 K/V ledger.
 
-`R4SparseGeometricCandidateSoftmaxKVBindingV1` is the next executed mechanical
+`R4SparseGeometricCandidateSoftmaxKVBindingV1` is an executed mechanical
 checkpoint. It ranks only the fixed twelve-slot metadata directory by exact
 signed-S3 shell and full-H4-root maximin diversity, admits at most eight
 persistent records, appends current, and gathers K/V only after admission. The
@@ -20,7 +20,18 @@ complete-prefix scans or omitted-payload reads. They shared 12 and 3 generated
 tokens respectively with the fixed recurrent comparator; this uneven result is
 mechanism evidence, not useful-retrieval or language-quality evidence.
 
-The nonlinear geometric block is next. Broad proofs, evidence ledgers,
+`R4H4FrameQuaternionCubeResidualV1` is the next executed mechanical
+checkpoint. It splits the post-attention normalized residual into twelve R4
+blocks, applies `q^3 / ||q||^2` in the current H4 frame with an exact zero
+branch, decodes, and adds the resulting displacement. It uses the same sparse
+reader and learned artifact, but bypasses every dense SwiGLU call. Both no-fit
+prompts completed with bounded f32 errors and unchanged recurrent/causal
+contracts; both diverged from the fitted dense comparator at their first
+generated token and produced visibly degraded text. This establishes the
+mechanism only. The current stage is a bounded development-data fit of the
+assembled sparse-plus-nonlinear architecture before any larger scale increase.
+
+Broad proofs, evidence ledgers,
 publication, programme-wide research mapping, and release QA do not sit between
 the build stages. SpiralCore, HELM, W33, NEMESIS, UOR, and H4/zeta sources are
 consulted only for a concrete design seam, with original-source inspection and
@@ -196,9 +207,9 @@ The active build sequence is fixed:
 | Order | Stage | Current decision |
 |---:|---|---|
 | 1 | Fixed recurrent geometric memory | Executed mechanical checkpoint under #973; bounded state and summary use observed, quality unestablished |
-| 2 | Sparse geometric attention | **Next:** bounded geometry-selected candidates and read operator without a complete-prefix scan |
-| 3 | Nonlinear geometric block | Replace dense SwiGLU/MLP with a versioned R4 operator or separately typed E8/R8 bank |
-| 4 | Scale, data, and instruction behavior | Grow and train the bounded architecture; measure useful language and composition |
+| 2 | Sparse geometric attention | Executed mechanical checkpoint under #973; nine-source ceiling observed, useful retrieval unestablished |
+| 3 | Nonlinear geometric block | Executed mechanical checkpoint under #973; finite-indexed R4 cube bypasses dense SwiGLU, useful language unestablished |
+| 4 | Scale, data, and instruction behavior | **Next:** bound and fit the assembled architecture on open development data before increasing scale |
 | 5 | Retrieval and tools | Typed retrieval/refusal plus real tool execution, feedback, and result ingestion |
 | 6 | Representative product alpha | Grounding, composition, identity memory, coding, and tools in one local workbench |
 | 7 | Rust/table lowering and optimization | Preserve accepted behavior in the bounded packed Rust runtime |

@@ -31,6 +31,7 @@ from .language_path_generalization import (
     HEAD_DIM,
     HEADS,
     HIDDEN_SIZE,
+    INTERMEDIATE_SIZE,
     LAYERS,
     PARAMETER_COUNT,
     VOCAB_SIZE,
@@ -52,6 +53,63 @@ RECURRENT_STATE_VALUES = (
 )
 RECURRENT_STATE_BYTES_F32 = RECURRENT_STATE_VALUES * 4
 RECURRENT_METADATA_I64_VALUES = LIVE_WINDOW * 2 + SUMMARY_BANKS * 3 + 1
+DENSE_SWIGLU_POLICY = "DenseSwiGLU"
+DENSE_MLP_WEIGHT_PRODUCTS_PER_TOKEN_LAYER = (
+    3 * HIDDEN_SIZE * INTERMEDIATE_SIZE
+)
+
+
+@dataclass(frozen=True, slots=True)
+class RecurrentNonlinearAudit:
+    """Analytical work and bounded numerical errors for one nonlinear policy."""
+
+    policy: str
+    batch_size: int
+    layer_calls: int
+    dense_mlp_calls: int
+    dense_mlp_weight_products: int
+    r4_block_evaluations: int
+    h4_frame_maps: int
+    h4_frame_coefficient_products: int
+    quaternion_cube_scalar_products: int
+    quaternion_cube_reciprocals: int
+    residual_subtractions: int
+    maximum_block_norm_error: float
+    maximum_residual_bound_ratio: float
+
+    def accumulated_with(
+        self, later: RecurrentNonlinearAudit
+    ) -> RecurrentNonlinearAudit:
+        """Accumulate consecutive calls of the same nonlinear policy."""
+
+        if self.policy != later.policy or self.batch_size != later.batch_size:
+            raise ValueError("cannot accumulate unlike recurrent nonlinear policies")
+        summed = {
+            field: getattr(self, field) + getattr(later, field)
+            for field in (
+                "layer_calls",
+                "dense_mlp_calls",
+                "dense_mlp_weight_products",
+                "r4_block_evaluations",
+                "h4_frame_maps",
+                "h4_frame_coefficient_products",
+                "quaternion_cube_scalar_products",
+                "quaternion_cube_reciprocals",
+                "residual_subtractions",
+            )
+        }
+        return replace(
+            self,
+            **summed,
+            maximum_block_norm_error=max(
+                self.maximum_block_norm_error,
+                later.maximum_block_norm_error,
+            ),
+            maximum_residual_bound_ratio=max(
+                self.maximum_residual_bound_ratio,
+                later.maximum_residual_bound_ratio,
+            ),
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -179,6 +237,7 @@ class FixedRecurrentKVStepOutput:
     audit: FixedRecurrentKVBindingAudit
     # [layers,batch,heads,MAXIMUM_READ_SOURCES]
     attention_weights: Tensor
+    nonlinear_audit: RecurrentNonlinearAudit
     candidate_selection: FixedRecurrentCandidateSelection | None = None
 
 
@@ -218,6 +277,7 @@ class FixedRecurrentKVBindingOutput:
     audit: FixedRecurrentKVBindingAudit
     # [layers,batch,heads,time,MAXIMUM_READ_SOURCES]
     attention_weights: Tensor
+    nonlinear_audit: RecurrentNonlinearAudit
 
 
 class R4FixedRecurrentCausalKVBindingV1(
@@ -226,6 +286,7 @@ class R4FixedRecurrentCausalKVBindingV1(
     """Accepted ordinary weights with bounded hierarchical H4 K/V memory."""
 
     POLICY_NAME = POLICY
+    NONLINEAR_POLICY = DENSE_SWIGLU_POLICY
     MAXIMUM_ATTENTION_SOURCES = MAXIMUM_READ_SOURCES
 
     def __init__(
@@ -260,6 +321,57 @@ class R4FixedRecurrentCausalKVBindingV1(
     @staticmethod
     def recurrent_metadata_i64_value_count() -> int:
         return RECURRENT_METADATA_I64_VALUES
+
+    def _empty_nonlinear_audit(
+        self, batch_size: int
+    ) -> RecurrentNonlinearAudit:
+        return RecurrentNonlinearAudit(
+            policy=self.NONLINEAR_POLICY,
+            batch_size=batch_size,
+            layer_calls=0,
+            dense_mlp_calls=0,
+            dense_mlp_weight_products=0,
+            r4_block_evaluations=0,
+            h4_frame_maps=0,
+            h4_frame_coefficient_products=0,
+            quaternion_cube_scalar_products=0,
+            quaternion_cube_reciprocals=0,
+            residual_subtractions=0,
+            maximum_block_norm_error=0.0,
+            maximum_residual_bound_ratio=0.0,
+        )
+
+    def _post_attention_nonlinear(
+        self,
+        values: Tensor,
+        *,
+        layer: object,
+        current_frames: Tensor,
+    ) -> tuple[Tensor, RecurrentNonlinearAudit]:
+        """Return the accepted dense residual and its analytical work audit."""
+
+        del current_frames
+        post_attention_layernorm = getattr(layer, "post_attention_layernorm")
+        mlp = getattr(layer, "mlp")
+        residual = mlp(post_attention_layernorm(values))
+        batch_size = int(values.shape[0])
+        return residual, RecurrentNonlinearAudit(
+            policy=self.NONLINEAR_POLICY,
+            batch_size=batch_size,
+            layer_calls=1,
+            dense_mlp_calls=1,
+            dense_mlp_weight_products=(
+                batch_size * DENSE_MLP_WEIGHT_PRODUCTS_PER_TOKEN_LAYER
+            ),
+            r4_block_evaluations=0,
+            h4_frame_maps=0,
+            h4_frame_coefficient_products=0,
+            quaternion_cube_scalar_products=0,
+            quaternion_cube_reciprocals=0,
+            residual_subtractions=0,
+            maximum_block_norm_error=0.0,
+            maximum_residual_bound_ratio=0.0,
+        )
 
     @classmethod
     def _empty_recurrent_audit(
@@ -1000,6 +1112,7 @@ class R4FixedRecurrentCausalKVBindingV1(
         admitted_sources_total = 0
         live_sources_total = 0
         summary_sources_total = 0
+        nonlinear_audit = self._empty_nonlinear_audit(batch_size)
 
         # The persistent state is not mutated in this loop.  Current K/V is a
         # transient causal source and is committed only after all logits exist.
@@ -1027,7 +1140,17 @@ class R4FixedRecurrentCausalKVBindingV1(
             summary_sources_total += summary_sources
             attended = attended * layer.log_output_gains.exp().view(1, -1, 1)
             values = values + layer.o_proj(attended.reshape(batch_size, HIDDEN_SIZE))
-            values = values + layer.mlp(layer.post_attention_layernorm(values))
+            nonlinear_residual, layer_nonlinear_audit = (
+                self._post_attention_nonlinear(
+                    values,
+                    layer=layer,
+                    current_frames=current_frames,
+                )
+            )
+            values = values + nonlinear_residual
+            nonlinear_audit = nonlinear_audit.accumulated_with(
+                layer_nonlinear_audit
+            )
             current_keys.append(key)
             current_values.append(value)
             padded_weights = torch.zeros(
@@ -1172,6 +1295,7 @@ class R4FixedRecurrentCausalKVBindingV1(
             final_state=final_state,
             audit=call_audit,
             attention_weights=torch.stack(layer_weights, dim=0),
+            nonlinear_audit=nonlinear_audit,
             candidate_selection=candidate_selection,
         )
 
@@ -1247,12 +1371,16 @@ class R4FixedRecurrentCausalKVBindingV1(
                 "token block exceeds the trained fixed-recurrent RoPE context"
             )
         call_audit = self._empty_recurrent_audit(batch_size)
+        nonlinear_audit = self._empty_nonlinear_audit(batch_size)
         logits: list[Tensor] = []
         weights: list[Tensor] = []
         for position in range(time):
             output = self.step_recurrent(token_ids[:, position], state)
             state = output.final_state
             call_audit = call_audit.accumulated_with(output.audit)
+            nonlinear_audit = nonlinear_audit.accumulated_with(
+                output.nonlinear_audit
+            )
             logits.append(output.logits)
             weights.append(output.attention_weights)
         stacked_logits = torch.stack(logits, dim=1)
@@ -1268,6 +1396,7 @@ class R4FixedRecurrentCausalKVBindingV1(
             final_state=state,
             audit=call_audit,
             attention_weights=torch.stack(weights, dim=3),
+            nonlinear_audit=nonlinear_audit,
         )
 
     def forward(
@@ -1298,9 +1427,12 @@ __all__ = [
     "RECURRENT_STATE_VALUES",
     "RECURRENT_METADATA_I64_VALUES",
     "SUMMARY_BANKS",
+    "DENSE_MLP_WEIGHT_PRODUCTS_PER_TOKEN_LAYER",
+    "DENSE_SWIGLU_POLICY",
     "FixedRecurrentKVBindingAudit",
     "FixedRecurrentKVBindingOutput",
     "FixedRecurrentKVState",
     "FixedRecurrentKVStepOutput",
+    "RecurrentNonlinearAudit",
     "R4FixedRecurrentCausalKVBindingV1",
 ]

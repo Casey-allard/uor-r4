@@ -120,7 +120,7 @@ def main() -> int:
         )
         require(
             policy["project_track"]["current_stage"]
-            == "nonlinear_geometric_block",
+            == "scale_data_and_instruction_behavior",
             "current project-track stage changed",
         )
         require(

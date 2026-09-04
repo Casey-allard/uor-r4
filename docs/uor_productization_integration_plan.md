@@ -250,9 +250,20 @@ frozen prompts shared 12 and 3 generated tokens with the fixed recurrent
 comparator, so bounded execution is measured while useful retrieval remains
 unestablished.
 
-The next implementation is one versioned nonlinear geometric block. Retain the
-sparse reader and dense SwiGLU block as comparators, define an explicit finite
-R4 state map, nonlinearity, residual/readout and cost, and execute one direct
-prompt comparison before scale work. Keep E8/R8 separately typed unless an
-explicit bridge is implemented. Do not start scale, workbench, final lowering,
-or release proof/QA in that same task.
+`R4H4FrameQuaternionCubeResidualV1` now completes the first nonlinear
+geometric mechanical checkpoint. It applies a finite H4-frame-indexed,
+continuous R4 quaternion-cube residual after the accepted sparse reader. Its
+120 signed frame indices reduce to at most 60 distinct operators because
+antipodal pairs select the same odd map. The block adds
+no parameter or recurrent state, and executes no dense SwiGLU matrix. Its two
+no-fit prompts preserved the bounded causal mechanics but diverged from the
+fitted dense comparator at the first generated token and produced visibly
+degraded text. This is a mechanism result, not useful language or an H4
+advantage claim.
+
+The next implementation is a separately specified, bounded development-data
+fit of this exact assembled sparse-plus-quaternion-cube architecture against
+the retained dense-SwiGLU comparator. Establish whether the replacement can
+learn useful prompt-dependent text before increasing width, corpus dose, or
+instruction scope. Do not start retrieval/tools, workbench integration, final
+lowering, or release proof/QA in that same task.

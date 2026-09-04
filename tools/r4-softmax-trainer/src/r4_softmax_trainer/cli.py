@@ -121,6 +121,9 @@ from .fixed_recurrent_r4_language_generation import (
 from .sparse_geometric_r4_language_generation import (
     generate_sparse_geometric_r4_language_path,
 )
+from .quaternion_cube_r4_language_generation import (
+    generate_quaternion_cube_r4_language_path,
+)
 from .role_tagged_associative_development import (
     preflight_role_tagged_associative_development,
     prepare_role_tagged_associative_development,
@@ -787,6 +790,38 @@ def parser() -> argparse.ArgumentParser:
         action="store_true",
         help="emit artifact, candidate-trace, token, and execution details",
     )
+    generate_quaternion_cube = subcommands.add_parser(
+        "generate-quaternion-cube-r4-language-path",
+        help=(
+            "continue one prompt through #973's sparse recurrent reader and "
+            "finite-indexed H4-frame quaternion-cube residual"
+        ),
+    )
+    generate_quaternion_cube.add_argument("--prompt", required=True)
+    generate_quaternion_cube.add_argument(
+        "--geometry",
+        type=_root,
+        default=default_language_path_geometry(),
+        help="canonical exact-H4 group geometry",
+    )
+    generate_quaternion_cube.add_argument(
+        "--h4-sidecar",
+        type=_root,
+        default=default_predictive_block_delta_frame_sidecar(),
+        help="validated H4 frame sidecar used for sparse attention and the R4 cube",
+    )
+    generate_quaternion_cube.add_argument(
+        "--max-new-tokens", type=int, default=16
+    )
+    generate_quaternion_cube.add_argument("--seed", type=int, default=9_738)
+    generate_quaternion_cube.add_argument(
+        "--json",
+        action="store_true",
+        help=(
+            "emit artifact, sparse trace, nonlinear audit, token, and "
+            "execution details"
+        ),
+    )
     prepare_paired_h4 = subcommands.add_parser(
         "prepare-paired-h4-prompt-capacity",
         help=(
@@ -1283,6 +1318,7 @@ def main() -> None:
         "generate-position-r4-language-path",
         "generate-fixed-recurrent-r4-language-path",
         "generate-sparse-geometric-r4-language-path",
+        "generate-quaternion-cube-r4-language-path",
     }
     paired_h4_prompt_capacity_commands = {
         "prepare-paired-h4-prompt-capacity",
@@ -1678,6 +1714,20 @@ def main() -> None:
         return
     if arguments.command == "generate-sparse-geometric-r4-language-path":
         result = generate_sparse_geometric_r4_language_path(
+            root,
+            geometry_path=arguments.geometry,
+            frame_path=arguments.h4_sidecar,
+            prompt=arguments.prompt,
+            max_new_tokens=arguments.max_new_tokens,
+            seed=arguments.seed,
+        )
+        if arguments.json:
+            _print_result(result)
+        else:
+            print(result["text"])
+        return
+    if arguments.command == "generate-quaternion-cube-r4-language-path":
+        result = generate_quaternion_cube_r4_language_path(
             root,
             geometry_path=arguments.geometry,
             frame_path=arguments.h4_sidecar,

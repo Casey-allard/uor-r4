@@ -67,11 +67,12 @@ execution.
    and publication against the release candidate. This work does not gate the
    earlier build stages unless a concrete implementation decision needs it.
 
-Fixed recurrent memory and sparse geometric attention are completed mechanical
-checkpoints under [#973](https://github.com/UOR-Foundation/uor-r4/issues/973).
-The current stage is the nonlinear geometric block. #954 and the old capability chain remain
-historical issue structure; they do not insert a proof or bookkeeping campaign
-between these build stages.
+Fixed recurrent memory, sparse geometric attention, and the first nonlinear
+geometric block are completed mechanical checkpoints under
+[#973](https://github.com/UOR-Foundation/uor-r4/issues/973). The current stage
+is bounded scale/data/instruction fitting of the assembled architecture. #954
+and the old capability chain remain historical issue structure; they do not
+insert a proof or bookkeeping campaign between these build stages.
 
 ## Current measured boundary
 
@@ -104,6 +105,19 @@ geometric set differed from age-only on 33/35 sparse decisions and admitted 55
 summary records. Common generated prefixes against the fixed recurrent path
 were 12 and 3 tokens. This completes the sparse mechanical checkpoint while
 leaving useful retrieval and geometric advantage unestablished.
+
+`R4H4FrameQuaternionCubeResidualV1` now replaces each executed dense SwiGLU
+residual with twelve ordered R4 cells and a current-H4-frame-indexed
+quaternion-cube map. The 120 signed frame indices form antipodal pairs for this
+odd map, leaving at most 60 distinct operators. It keeps continuous f32 hidden state, adds no
+parameter or persistent state, and retains the dense tensors only so the
+accepted artifact remains a byte-identical comparator. Across the two no-fit
+prompts it executed 1,272 R4 blocks and zero dense-MLP calls while preserving
+the nine-source attention ceiling and all causal prohibitions. Its largest f32
+block-norm error was `7.152557373046875e-07`; both continuations diverged from
+the fitted dense comparator at the first generated token and were visibly
+degraded. This completes a mechanical nonlinear checkpoint, not useful
+language or a selected training architecture.
 
 ## Research reservoirs
 

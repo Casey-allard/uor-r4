@@ -13,7 +13,7 @@ alpha → Rust/table lowering → release proof/evidence/QA.
 
 ## Current checkpoint
 
-[#973](https://github.com/UOR-Foundation/uor-r4/issues/973) now has three
+[#973](https://github.com/UOR-Foundation/uor-r4/issues/973) now has four
 artifact-only causal paths over the same accepted ordinary weights:
 
 - `R4PositionPreservingCausalKVBindingV1` is the full 120-position comparator.
@@ -24,6 +24,10 @@ artifact-only causal paths over the same accepted ordinary weights:
 - `R4SparseGeometricCandidateSoftmaxKVBindingV1` ranks only those twelve
   persistent metadata slots by exact signed-S3 shell and full-H4-root maximin
   diversity, admits at most eight plus current, and gathers K/V only afterward.
+- `R4H4FrameQuaternionCubeResidualV1` keeps that sparse reader and replaces
+  each dense SwiGLU residual with twelve ordered R4 blocks evaluated through a
+  finite bank addressed by 120 current-H4-frame indices. Antipodal frame pairs
+  select the same odd cube map, so there are at most 60 distinct operators.
 
 The focused causal check is exact through the decision that performs the first
 post-read eviction. In the frozen full-prompt no-fit, seed-9738, top-k-40, 16-token
@@ -43,14 +47,24 @@ measured mechanism results. They do not establish useful retrieval, language
 quality, long-context retention, geometric advantage, architectural alpha, or
 table-native execution. The trained RoPE ceiling remains 120.
 
+The quaternion-cube arm completed the same two prompts with 1,272 R4 block
+evaluations, no dense-MLP call, no new parameter or state, a largest f32
+block-norm error of `7.152557373046875e-07`, and the same nine-source/causal
+ceilings. Its forced-prompt sparse selections exactly matched the dense arm.
+Both generated trajectories diverged from the fitted dense-SwiGLU comparator
+at token zero and produced visibly degraded text. This completes the
+nonlinear mechanical checkpoint while leaving trainability and useful language
+unestablished.
+
 ## Next implementation action
 
-Implement the first versioned **nonlinear geometric block** successor under
-#973. Keep `R4SparseGeometricCandidateSoftmaxKVBindingV1` as the attention path
-and the current dense SwiGLU block as the comparator. Define one finite R4
-operator block with an explicit state map, nonlinearity, residual/readout, and
-bounded cost. Keep E8/R8 separate unless a typed bridge is implemented. Run one
-direct prompt execution before any scale or instruction campaign.
+Specify and execute the first bounded **development-data fit** of the assembled
+sparse-plus-quaternion-cube architecture under #973. Keep the fitted
+`R4SparseGeometricCandidateSoftmaxKVBindingV1` dense-SwiGLU path as comparator,
+keep the nonlinear law and sparse reader fixed, and use open development data
+with an explicit resource ceiling. Decide whether this architecture can learn
+useful prompt-dependent text before increasing width, corpus dose, or
+instruction scope. Keep final held-out evaluation separate.
 
 SpiralCore's finite labelled E8 action graph may inform an operator-indexed
 candidate selector, but it is not already attention. Keep its H4/R4 and E8/R8
@@ -59,8 +73,8 @@ W33, NEMESIS, UOR, and H4/zeta sources remain on-demand donors. Inspect original
 source for the exact mechanism used and do not transfer external proof or
 capability claims.
 
-Do not start the nonlinear block, scale campaign, workbench, lowering, release
-proof, or broad QA in the same task.
+Do not start a larger scale campaign, retrieval/tools, workbench integration,
+lowering, release proof, or broad QA in the same task.
 
 ```text
 $uor-project-workflow
@@ -71,12 +85,13 @@ docs/integration/project-track.md. Complete exactly one active implementation
 task and stop.
 
 Apply build_first_architectural_alpha. Use one isolated full Git worktree.
-Implement the first versioned nonlinear geometric block successor under #973.
-Keep the accepted sparse geometric reader and dense SwiGLU block as
-comparators. Specify and execute one finite R4 state map, nonlinearity,
-residual/readout, and bounded-cost path. Keep H4/R4 and E8/R8 typed separately
-unless an explicit bridge is implemented. Run the smallest direct no-fit prompt
-comparison that resolves the mechanism.
+Specify and execute one bounded development-data fit of the exact
+`R4H4FrameQuaternionCubeResidualV1` architecture under #973. Keep its accepted
+sparse geometric reader, continuous quaternion-cube law, and dense-SwiGLU
+comparator fixed. Use open development data, a hard resource ceiling, and the
+smallest fit that can decide whether the assembled bounded path learns useful
+prompt-dependent text. Keep final held-out evaluation and any larger scale or
+instruction campaign separate.
 
 Query the knowledge index or inspect SpiralCore/HELM/W33/NEMESIS/UOR/H4-zeta
 sources only for the concrete selector/read decision. Treat them as donor

@@ -10,6 +10,8 @@ from types import SimpleNamespace
 import torch
 
 from r4_softmax_trainer.fixed_recurrent_kv_binding import (
+    DENSE_MLP_WEIGHT_PRODUCTS_PER_TOKEN_LAYER,
+    DENSE_SWIGLU_POLICY,
     LIVE_WINDOW,
     MAXIMUM_READ_SOURCES,
     POLICY,
@@ -36,6 +38,16 @@ from r4_softmax_trainer.sparse_geometric_kv_binding import (
     PERSISTENT_CANDIDATE_BUDGET,
     POLICY as SPARSE_POLICY,
     R4SparseGeometricCandidateSoftmaxKVBindingV1,
+)
+from r4_softmax_trainer.quaternion_cube_nonlinear import (
+    H4_FRAME_COEFFICIENT_PRODUCTS_PER_BLOCK,
+    H4_FRAME_MAPS_PER_BLOCK,
+    POLICY as QUATERNION_CUBE_POLICY,
+    QUATERNION_CUBE_RECIPROCALS_PER_BLOCK,
+    QUATERNION_CUBE_SCALAR_PRODUCTS_PER_BLOCK,
+    R4_BLOCKS_PER_HIDDEN,
+    RESIDUAL_SUBTRACTIONS_PER_BLOCK,
+    R4H4FrameQuaternionCubeResidualV1,
 )
 
 
@@ -365,6 +377,137 @@ class FixedRecurrentKVBindingTests(unittest.TestCase):
                 item["relative_root_z_phi_over_2"],
                 [list(pair) for pair in frames.root_coordinates[expected_relative]],
             )
+
+    def test_quaternion_cube_replaces_only_the_dense_nonlinear_residual(self) -> None:
+        torch.manual_seed(1_123)
+        geometry, frames = _geometry_and_frames()
+        source = R4PositionPreservingCausalKVBindingV1(  # type: ignore[arg-type]
+            geometry, frames
+        )
+        artifact = source.export_learned_artifact()
+        dense = R4SparseGeometricCandidateSoftmaxKVBindingV1.from_learned_artifact(
+            artifact, geometry=geometry, frames=frames
+        )
+        cube = R4H4FrameQuaternionCubeResidualV1.from_learned_artifact(
+            artifact, geometry=geometry, frames=frames
+        )
+        dense.eval()
+        cube.eval()
+
+        # The new hook preserves the accepted comparator expression exactly.
+        values = torch.randn(1, 48)
+        expected_dense = dense.layers[0].mlp(
+            dense.layers[0].post_attention_layernorm(values)
+        )
+        observed_dense, dense_audit = dense._post_attention_nonlinear(
+            values,
+            layer=dense.layers[0],
+            current_frames=torch.tensor([0], dtype=torch.long),
+        )
+        self.assertTrue(torch.equal(observed_dense, expected_dense))
+        self.assertEqual(dense_audit.policy, DENSE_SWIGLU_POLICY)
+        self.assertEqual(dense_audit.dense_mlp_calls, 1)
+        self.assertEqual(
+            dense_audit.dense_mlp_weight_products,
+            DENSE_MLP_WEIGHT_PRODUCTS_PER_TOKEN_LAYER,
+        )
+
+        # The closed form is odd, norm preserving, and explicit at zero.
+        block_values = torch.zeros(1, 48)
+        block_values[0, 4] = 0.0
+        block_values[0, 5] = 1.0
+        identity_layer = SimpleNamespace(post_attention_layernorm=lambda item: item)
+        cube_delta, one_layer_audit = cube._post_attention_nonlinear(
+            block_values,
+            layer=identity_layer,
+            current_frames=torch.tensor([0], dtype=torch.long),
+        )
+        negative_delta, _ = cube._post_attention_nonlinear(
+            -block_values,
+            layer=identity_layer,
+            current_frames=torch.tensor([0], dtype=torch.long),
+        )
+        self.assertTrue(torch.equal(cube_delta, -negative_delta))
+        self.assertEqual(cube_delta[0, 5], -2.0)
+        self.assertEqual(int(torch.count_nonzero(cube_delta)), 1)
+        self.assertEqual(one_layer_audit.policy, QUATERNION_CUBE_POLICY)
+        self.assertEqual(one_layer_audit.r4_block_evaluations, R4_BLOCKS_PER_HIDDEN)
+        self.assertEqual(
+            one_layer_audit.h4_frame_maps,
+            R4_BLOCKS_PER_HIDDEN * H4_FRAME_MAPS_PER_BLOCK,
+        )
+        self.assertEqual(
+            one_layer_audit.h4_frame_coefficient_products,
+            R4_BLOCKS_PER_HIDDEN * H4_FRAME_COEFFICIENT_PRODUCTS_PER_BLOCK,
+        )
+        self.assertEqual(
+            one_layer_audit.quaternion_cube_scalar_products,
+            R4_BLOCKS_PER_HIDDEN * QUATERNION_CUBE_SCALAR_PRODUCTS_PER_BLOCK,
+        )
+        self.assertEqual(
+            one_layer_audit.quaternion_cube_reciprocals,
+            R4_BLOCKS_PER_HIDDEN * QUATERNION_CUBE_RECIPROCALS_PER_BLOCK,
+        )
+        self.assertEqual(
+            one_layer_audit.residual_subtractions,
+            R4_BLOCKS_PER_HIDDEN * RESIDUAL_SUBTRACTIONS_PER_BLOCK,
+        )
+        self.assertEqual(one_layer_audit.maximum_block_norm_error, 0.0)
+        self.assertEqual(one_layer_audit.maximum_residual_bound_ratio, 1.0)
+
+        # The candidate predictive forward must not call the retained dense MLP.
+        def forbidden_dense_call(_: torch.Tensor) -> torch.Tensor:
+            raise AssertionError("candidate executed dense SwiGLU")
+
+        for layer in cube.layers:
+            layer.mlp.forward = forbidden_dense_call  # type: ignore[method-assign]
+
+        dense_state = dense.initial_state(1)
+        cube_state = cube.initial_state(1)
+        token = torch.tensor([7], dtype=torch.long)
+        with torch.inference_mode():
+            dense_step = dense.step(token, dense_state)
+            cube_step = cube.step(token, cube_state)
+
+        self.assertEqual(cube.parameter_count(), PARAMETER_COUNT)
+        self.assertEqual(cube.export_learned_artifact(), artifact)
+        self.assertTrue(torch.isfinite(cube_step.logits).all())
+        self.assertEqual(cube_step.final_state.tokens_seen, 1)
+        self.assertEqual(
+            cube.recurrent_state_value_count(), RECURRENT_STATE_VALUES
+        )
+        self.assertIsNotNone(dense_step.candidate_selection)
+        self.assertIsNotNone(cube_step.candidate_selection)
+        assert dense_step.candidate_selection is not None
+        assert cube_step.candidate_selection is not None
+        self.assertTrue(
+            torch.equal(
+                dense_step.candidate_selection.source_slots,
+                cube_step.candidate_selection.source_slots,
+            )
+        )
+        nonlinear = cube_step.nonlinear_audit
+        self.assertEqual(nonlinear.policy, QUATERNION_CUBE_POLICY)
+        self.assertEqual(nonlinear.layer_calls, LAYERS)
+        self.assertEqual(nonlinear.dense_mlp_calls, 0)
+        self.assertEqual(nonlinear.dense_mlp_weight_products, 0)
+        self.assertEqual(
+            nonlinear.r4_block_evaluations,
+            LAYERS * R4_BLOCKS_PER_HIDDEN,
+        )
+        self.assertEqual(
+            nonlinear.h4_frame_coefficient_products,
+            LAYERS
+            * R4_BLOCKS_PER_HIDDEN
+            * H4_FRAME_COEFFICIENT_PRODUCTS_PER_BLOCK,
+        )
+        self.assertLessEqual(nonlinear.maximum_residual_bound_ratio, 1.000001)
+        self.assertEqual(cube_step.audit.complete_prefix_scans, 0)
+        self.assertEqual(cube_step.audit.unselected_key_value_reads, 0)
+        self.assertEqual(cube_step.audit.provider_calls, 0)
+        self.assertEqual(cube_step.audit.teacher_calls, 0)
+        self.assertEqual(cube_step.audit.future_reads, 0)
+        self.assertEqual(cube_step.audit.forbidden_reads, 0)
 
 
 if __name__ == "__main__":

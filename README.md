@@ -8,13 +8,15 @@ recurrent memory, sparse geometric attention, a nonlinear geometric block,
 scale/data/instruction, retrieval/tools, product alpha, Rust/table lowering,
 and release proof/evidence/QA.
 
-The fixed recurrent stage now executes with eight exact K/V records, four
-H4-local summary banks, and a constant 9,216-byte f32 K/V ledger. Its sole
-two-prompt no-fit comparison read summaries after eviction and produced
-distinct post-compression trajectories. This establishes the mechanism only;
-quality, long-context retention, architectural alpha, and final serving remain
-open. Sparse geometric attention is next under
-[#973](https://github.com/UOR-Foundation/uor-r4/issues/973).
+The fixed recurrent, sparse attention, and first nonlinear R4 stages now
+execute mechanically under [#973](https://github.com/UOR-Foundation/uor-r4/issues/973).
+The path keeps a constant 9,216-byte f32 K/V ledger, reads at most eight
+persistent records plus current, and can replace dense SwiGLU execution with a
+finite H4-frame-indexed quaternion-cube residual. Its 120 signed frame indices
+contain antipodal pairs that select the same odd map. The no-fit cube runs stayed
+bounded but diverged immediately from the fitted dense comparator and produced
+visibly degraded text. The next stage is a bounded development-data fit;
+useful language, architectural alpha, and final serving remain open.
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Rust](https://img.shields.io/badge/built%20with-Rust-orange.svg)](rust-toolchain.toml)
@@ -33,8 +35,9 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 **Current programme:** [#973](https://github.com/UOR-Foundation/uor-r4/issues/973)
 owns the model track under the
 [build-first policy](docs/integration/agent-execution-policy.md). The next
-implementation is bounded sparse geometric attention over the accepted
-full-cache and fixed-recurrent comparators. [#1107](docs/r4_workbench_candidate_1107.md)
+implementation is a bounded development-data fit of the assembled sparse plus
+quaternion-cube path against its retained dense-SwiGLU comparator.
+[#1107](docs/r4_workbench_candidate_1107.md)
 remains an unbuilt historical workbench source and #1084 is parked until
 product-alpha integration. Start a later task with
 [CONTINUE.md](docs/integration/CONTINUE.md). Broad proof, evidence
