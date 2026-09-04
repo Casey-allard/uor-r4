@@ -1,8 +1,9 @@
 # Current programme map and correctness handoff
 
-**Planning reconciliation: 2026-09-03, #1105 records
-`SERVICE_API_CONTRACT_SPECIFIED`; independent review accepts the exact ADR and
-machine contract.** Protected delivery closes #1105 only. Original audit baseline:
+**Planning reconciliation: 2026-09-04, #1107 records
+`WORKBENCH_CANDIDATE_SOURCE_FROZEN_UNBUILT`; independent static review accepts
+the source-level contract mapping and its explicit unverified boundary.**
+Protected delivery closes #1107 only. Original audit baseline:
 `UOR-Foundation/uor-r4@e627252e525201815169ffd8364184953a46018d`.
 This map supersedes earlier “current” and “next” sequencing prose, not its
 measurements. Refresh native GitHub before selecting work. The
@@ -11,27 +12,28 @@ measurements. Refresh native GitHub before selecting work. The
 paper lanes adopted through [#1081](https://github.com/UOR-Foundation/uor-r4/issues/1081); the
 [claim ledger](claim-ledger.json) preserves their different evidence states.
 
-## Current service contract and next implementation
+## Current workbench source candidate and owner decision
 
-[#1105](https://github.com/UOR-Foundation/uor-r4/issues/1105) delivers the
+[#1105](https://github.com/UOR-Foundation/uor-r4/issues/1105) delivered the
 [native four-fact workbench ADR](../adr/0006-native-four-fact-workbench-service.md)
 and [machine contract](../r4_service_contract_1105.json). They specify one
 dedicated, opt-in `r4-workbench` Rust host, one private same-executable worker
 and the first four-fact research-reference shell. They are independently
-accepted definitions. No host, worker, shell, build, model load,
-qualification call, forward, HTTP request or browser behavior exists from
-this specification.
+accepted definitions. [#1107](../r4_workbench_candidate_1107.md) adds the
+dedicated crate and candidate source for that host, private worker, private
+comparison entry and shell. Source review freezes the result as
+`WORKBENCH_CANDIDATE_SOURCE_FROZEN_UNBUILT`.
 
-#1084 remains open and unassigned. After #1105's protected delivery, its one
-concrete next action is to activate a separate implementation child for the
-host, worker and shell. Before any new build, that child must freeze and obtain
-independent acceptance of its concrete source/build/environment admission.
-Before model work, it must separately freeze and obtain independent acceptance
-of an actual-host qualification release. The new host may use only public
-`qualify()` and `answer()` for serving; any private comparison must validate
-fresh host execution permission separately from the artifact's immutable
-original export provenance. Neither the consumed #1102 CLI/coordinator nor its
-qualification receipt supplies permission or identity for the new executable.
+Compilation, tests, model loads, qualification calls, forwards, service/HTTP
+execution, browser acceptance, numerical behavior and platform behavior are
+all `NOT_RUN_BY_POLICY`. Source presence therefore establishes none of those
+behaviors. #1084 remains open and unassigned. Its one concrete next action is
+for the owner to decide whether to authorize a separate manual qualification
+workflow; automated agents neither dispatch nor perform it. Any future private
+comparison must still validate fresh host execution permission separately from
+the artifact's immutable original export provenance. Neither the consumed
+#1102 CLI/coordinator nor its qualification receipt supplies permission or
+identity for this source candidate.
 
 ## Retained native result
 
@@ -203,7 +205,8 @@ transport acknowledgements do not complete their parent capability.
 | [#1102 native implementation/export/comparison](https://github.com/UOR-Foundation/uor-r4/issues/1102), child of #1086 | [Measured `NATIVE_REFERENCE_PRESERVED`](../r4_native_bridge_1102_execution.md); independent result accepted and delivered through protected PR #1104; both admitted envelopes consumed | Exact native artifact/profile preserves the bounded reader/core, vocabulary/query and four-fact operation. New host-binary qualification and final integer/table serving remain separate. |
 | [#1087 final serving representation](https://github.com/UOR-Foundation/uor-r4/issues/1087), with #1083 typed UOR prerequisite | Separate lowering contract with operation/error/resource obligations after the native-reference boundary is qualified | Specification or dense research-reference success does not establish the final integer/table kernel; a lowering candidate needs its own frozen contract. |
 | [#1105 service/API specification](https://github.com/UOR-Foundation/uor-r4/issues/1105), child of #1084 | Accepted [ADR](../adr/0006-native-four-fact-workbench-service.md) and [machine contract](../r4_service_contract_1105.json); `SERVICE_API_CONTRACT_SPECIFIED`; protected delivery closes only #1105 | Contract only; no host, worker, shell, build, model operation, HTTP or browser behavior exists. |
-| [#1084 product interface](https://github.com/UOR-Foundation/uor-r4/issues/1084) | Remains open and unassigned; after #1105 delivery, separately activate one implementation child for the dedicated host/private worker and first shell | Fresh accepted source/build/environment admission precedes any build; a separate actual-host qualification release precedes model work. Bounded binding is not general chat. |
+| [#1107 workbench source candidate](https://github.com/UOR-Foundation/uor-r4/issues/1107), child of #1084 | [Dedicated crate, private worker/comparison entries and first shell](../r4_workbench_candidate_1107.md) frozen as `WORKBENCH_CANDIDATE_SOURCE_FROZEN_UNBUILT`; protected delivery closes only #1107 | Static source evidence only. Build, tests, model work, HTTP/service/browser behavior, portability and numerical qualification are `NOT_RUN_BY_POLICY`. |
+| [#1084 product interface](https://github.com/UOR-Foundation/uor-r4/issues/1084) | Remains open and unassigned; owner decides whether to authorize a separate manual qualification workflow | Automated agents do not dispatch or run qualification. Bounded Four-fact source is not general chat or verified runtime behavior. |
 | [#1088 coding/workspace](https://github.com/UOR-Foundation/uor-r4/issues/1088), blocked by #1084 and #955 | Minimal executable task/patch/result schema; separate harness and later model evaluations | UI actions and external teacher output are separate from the native model's coding competence. |
 | [#1089 scientific paper/proofs](https://github.com/UOR-Foundation/uor-r4/issues/1089) | Claim/evidence table, named proof obligations, primary-source bibliography and reproducibility package | Guarantees require their own proof status; empirical capability stays empirical; submission is a separate action. |
 | [#1090 capability/resource scorecard](https://github.com/UOR-Foundation/uor-r4/issues/1090) | Defined task axes, comparison populations and resource budgets | Freeze meaningful comparisons before a frontier/release claim; a tool install or a tiny entry probe cannot fill the scorecard. |
@@ -222,9 +225,11 @@ contract; its [#1102 implementation/export/comparison successor](https://github.
 now records `NATIVE_REFERENCE_PRESERVED` on the original authoring stratum.
 The specification and Python result remain separate from that later measured
 native evidence; no final-kernel or service qualification transfers automatically.
-[#1105](https://github.com/UOR-Foundation/uor-r4/issues/1105) now owns only the
-accepted service/API contract. After protected delivery, #1084 remains open and unassigned for a separately
-admitted implementation child. Planned lanes remain unassigned until active.
+[#1105](https://github.com/UOR-Foundation/uor-r4/issues/1105) retains the
+accepted service/API contract; [#1107](https://github.com/UOR-Foundation/uor-r4/issues/1107)
+owns only the unbuilt source candidate. After protected #1107 delivery, #1084
+remains open and unassigned for the owner's separate manual-qualification
+decision. Planned lanes remain unassigned until active.
 The pre-adoption snapshot had nine open issues and all 24 #973 children closed;
 those counts are historical now that the new children exist.
 The S0–S7/F0 compiler-era graph is retained as history, not a second active queue.
@@ -310,8 +315,9 @@ and imported project memories do not substitute for it.
 
 ## Keeping this map current
 
-After protected delivery, retain the detailed measurement record, update this
-small pointer and its native issue links, and explicitly ingest accepted source
-and claim records into local knowledge. Preserve superseded records with their
-dates. Use [CONTINUE.md](CONTINUE.md) for the next task; refresh live GitHub
-rather than treating this snapshot as permanent eligibility.
+After protected delivery, retain the detailed record and update this small
+pointer and its native issue links. Preserve superseded records with their
+dates. Local knowledge ingestion is `NOT_RUN_BY_POLICY` for automated agents;
+the tracked claim/source records remain the reviewable index update. Use
+[CONTINUE.md](CONTINUE.md) for the next task and refresh live GitHub rather than
+treating this snapshot as permanent eligibility.

@@ -1,0 +1,10 @@
+This shell was independently written for UOR-R4 issue #1107.
+
+Its restrained dark palette, conversation rail, model selector, and composer
+placement were selectively informed by Casey-allard/uor-r4-wasm-chat at
+revision 5a10305126df62e838cadfec5fd509e0c9705fa7, licensed under MIT:
+
+Copyright (c) 2026 Casey Allard & UOR-R4 Contributors
+
+No donor model worker, cache detector, fallback, model label, external CDN,
+editor, Git operation, preview, or generated answer is included.

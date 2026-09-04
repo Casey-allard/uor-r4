@@ -1,0 +1,92 @@
+{
+  "schema": "uor-r4.workbench-private-release-contract/1",
+  "issue": 1107,
+  "parent_issue": 1084,
+  "service_contract_sha256": "337d66d025fc9ec3a1e8c21befc25198b015061235fefc98f9208f99412e7a7f",
+  "mode": "--private-compare-host RELEASE_PATH RELEASE_SHA256 ADMISSION_PATH ADMISSION_SHA256",
+  "launch_binding": {
+    "target": "aarch64-apple-darwin",
+    "mechanism": "Open the verified regular no-follow executable, execute that vnode through /dev/fd, retain the same image at inherited fd 3, and hash fd 3 inside the private model mode before artifact access.",
+    "failure": "UNSUPPORTED_RUNTIME before artifact access or model work",
+    "unsupported_platform_fallback": false
+  },
+  "fresh_execution_release": {
+    "schema": "uor-r4.workbench-private-comparison-release/1",
+    "exact_fields": {
+      "schema": "literal:uor-r4.workbench-private-comparison-release/1",
+      "issue": "positive uint53",
+      "service_contract_sha256": "literal:337d66d025fc9ec3a1e8c21befc25198b015061235fefc98f9208f99412e7a7f",
+      "source_revision": "40 lowercase hex",
+      "source_manifest": "FileIdentity",
+      "build_receipt": "FileIdentity",
+      "native_binary_sha256": "hex64",
+      "target": "literal:aarch64-apple-darwin",
+      "operator_profile": "literal:cpu-scalar-f32-f64-1086/1",
+      "runtime_receipt": "FileIdentity",
+      "asset_manifest": "FileIdentity",
+      "artifact": "FileIdentity with bytes exactly 2172252",
+      "expected_binding": "FileIdentity",
+      "original_export_release": "FileIdentity",
+      "comparison_plan": "FileIdentity",
+      "row_cap": "integer 1..336",
+      "forward_cap": "integer 1..320",
+      "refusal_cap": "integer 0..16"
+    },
+    "file_identity": {
+      "path": "absolute UTF-8 operator path no longer than 4096 bytes",
+      "bytes": "uint53 bounded again by the role-specific intake cap",
+      "sha256": "hex64"
+    },
+    "trusted_identity": "The exact release SHA256 is supplied independently on the command line; no embedded accepted flag is authority."
+  },
+  "independent_admission": {
+    "schema": "uor-r4.workbench-private-comparison-admission/1",
+    "exact_fields": {
+      "schema": "literal:uor-r4.workbench-private-comparison-admission/1",
+      "terminal": "literal:ACCEPTED_FOR_ONE_WORKBENCH_HOST_COMPARISON",
+      "release_sha256": "hex64 matching the supplied fresh release",
+      "native_binary_sha256": "hex64 matching the inherited executing image",
+      "service_contract_sha256": "literal:337d66d025fc9ec3a1e8c21befc25198b015061235fefc98f9208f99412e7a7f",
+      "comparison_plan_sha256": "hex64 matching the release FileIdentity",
+      "one_execution": "literal:true"
+    },
+    "trusted_identity": "The exact admission SHA256 is a separate operator-supplied trust anchor. The release cannot self-admit."
+  },
+  "private_request": {
+    "framing": "u32 little-endian byte length followed by exact UTF-8 JSON; maximum 65536 bytes",
+    "completion": "The sender writes exactly row_cap request frames. After the matching final result, the adapter validates frozen counts and emits done immediately; it does not wait for EOF or another frame, and the sender need not close stdin. Any later bytes are outside the admitted one-execution protocol.",
+    "schema": "uor-r4.workbench-private-comparison-request/1",
+    "exact_fields": {
+      "schema": "literal:uor-r4.workbench-private-comparison-request/1",
+      "text_b64": "canonical standard padded base64, decoded maximum 8192 bytes",
+      "request_extras": "JSON object; nonempty means the original outer request schema is unsupported and must reach the core as a refusal without a forward"
+    }
+  },
+  "private_reply": {
+    "framing": "same bounded frame as requests",
+    "kinds": [
+      "ready",
+      "result",
+      "done",
+      "error"
+    ],
+    "result": "Exact native result plus parsed clauses, full role_attention/role_vectors/binding_attention/logits as lowercase little-endian f32 hex, diagnostics, forward count and native comparison receipt.",
+    "limits": "The adapter consumes exactly row_cap frames and then emits done without reading again. External admission/supervision owns rejection of any attempted extra frame. A missing admitted row, forward-cap breach, refusal-cap breach or final count mismatch fails the run."
+  },
+  "validation_order": [
+    "Validate executing-image handle, supplied fresh release bytes/digest and independent admission bytes/digest.",
+    "Validate release/admission schema, exact fields, actual binary, target, service contract, plan and every role-bounded file identity.",
+    "Validate expected binding and immutable original export release independently.",
+    "Only then read the exact artifact and call load_audited.",
+    "Construct ComparisonAdmission only from the separately verified original export release bytes/digest plus the fresh runtime identity.",
+    "Run compare under the admitted finite population; never call qualify and never listen on a socket."
+  ],
+  "status": "SOURCE_PROTOCOL_FROZEN_BEHAVIOR_NOT_RUN",
+  "counters": {
+    "model_loads": 0,
+    "forwards": 0,
+    "comparisons": 0,
+    "qualification_calls": 0,
+    "service_or_browser_runs": 0
+  }
+}

@@ -1,7 +1,7 @@
 {
   "schema": "uor-r4.claim-ledger/1",
   "repository": "UOR-Foundation/uor-r4",
-  "source_revision": "f830b1a774fca7945f340ab05391f28c2fe6c4fc",
+  "source_revision": "8399a71affd6eb3063a3a3765b1db44058b7f4fb",
   "vocabulary": {
     "source": "formal_vocabulary",
     "role": "Statement class from the normative vocabulary.",
@@ -642,6 +642,34 @@
       "revision": "f830b1a774fca7945f340ab05391f28c2fe6c4fc",
       "sha256": "2134fbdaec66f32a001bcbf93f921977862b49507d0b8cfc856c56987f1f0ac6",
       "evidence_status": "STORAGE_REVIEW_NO_DELETION"
+    },
+    "workbench_source_1107": {
+      "path": "crates/uor-r4-workbench",
+      "url": "https://github.com/UOR-Foundation/uor-r4/tree/8399a71affd6eb3063a3a3765b1db44058b7f4fb/crates/uor-r4-workbench",
+      "revision": "8399a71affd6eb3063a3a3765b1db44058b7f4fb",
+      "git_tree_oid": "1ca9723348f11a42d7245504dc2da11497c1338c",
+      "evidence_status": "SOURCE_PRESENT_UNBUILT"
+    },
+    "workbench_record_1107": {
+      "path": "docs/r4_workbench_candidate_1107.md",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/8399a71affd6eb3063a3a3765b1db44058b7f4fb/docs/r4_workbench_candidate_1107.md",
+      "revision": "8399a71affd6eb3063a3a3765b1db44058b7f4fb",
+      "git_blob_oid": "4444c2c675bf37ce103f021e651c619c143062a5",
+      "evidence_status": "SOURCE_ONLY_DECISION_RECORD"
+    },
+    "workbench_review_1107": {
+      "path": "docs/r4_workbench_candidate_1107_review.md",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/8399a71affd6eb3063a3a3765b1db44058b7f4fb/docs/r4_workbench_candidate_1107_review.md",
+      "revision": "8399a71affd6eb3063a3a3765b1db44058b7f4fb",
+      "git_blob_oid": "80387c29b11c2967e0c7eff2161acf6ce5d21f3f",
+      "evidence_status": "INDEPENDENT_STATIC_SOURCE_REVIEW_ACCEPTED"
+    },
+    "workbench_private_protocol_1107": {
+      "path": "docs/r4_workbench_private_release_1107.json",
+      "url": "https://github.com/UOR-Foundation/uor-r4/blob/8399a71affd6eb3063a3a3765b1db44058b7f4fb/docs/r4_workbench_private_release_1107.json",
+      "revision": "8399a71affd6eb3063a3a3765b1db44058b7f4fb",
+      "git_blob_oid": "91576caae02b7b13d0fb98656c89b0db1e88cb11",
+      "evidence_status": "SOURCE_PROTOCOL_FROZEN_BEHAVIOR_NOT_RUN"
     }
   },
   "artifacts_1079": {
@@ -754,8 +782,8 @@
         "The #1082 construction-only diagnostic now measures role-selective exposure and pooling displacement; it does not establish a downstream causal explanation. The #1079 strong-sensitivity miss remains unchanged and does not falsify primary preservation or establish geometric superiority."
       ],
       "next_action": {
-        "status": "PARKED_IMPLEMENTATION_HANDOFF",
-        "scope": "After protected #1105 delivery, activate one separate #1084 implementation child for the dedicated r4-workbench host, private same-executable worker and first four-fact shell. Independently accept concrete source/build/environment admission before any build, and a fresh actual-host qualification release before model work. The final executable must contain its private comparison mode before build freeze; numerical qualification and ordinary API/lifecycle/browser acceptance are distinct. No consumed #1102/#1094 envelope may be rerun.",
+        "status": "OWNER_MANUAL_QUALIFICATION_DECISION",
+        "scope": "After protected #1107 source-only delivery, keep #1084 open and unassigned. The owner decides whether to authorize a separate manual qualification workflow for the unbuilt candidate; automated agents do not dispatch or run it. Compilation, tests, model work, numerical qualification, service/HTTP behavior, browser acceptance, portability and performance remain NOT_RUN_BY_POLICY. No consumed #1102/#1094 envelope may be rerun.",
         "issue_urls": [
           "https://github.com/UOR-Foundation/uor-r4/issues/1084"
         ]
@@ -923,8 +951,8 @@
         "Numerical bound and replay checks are not a universal floating-point refinement proof."
       ],
       "next_action": {
-        "status": "PARKED_IMPLEMENTATION_HANDOFF",
-        "scope": "After protected #1105 delivery, activate one separate #1084 implementation child for the dedicated r4-workbench host, private same-executable worker and first four-fact shell. Independently accept concrete source/build/environment admission before any build, and a fresh actual-host qualification release before model work. The final executable must contain its private comparison mode before build freeze; numerical qualification and ordinary API/lifecycle/browser acceptance are distinct. No consumed #1102/#1094 envelope may be rerun.",
+        "status": "OWNER_MANUAL_QUALIFICATION_DECISION",
+        "scope": "After protected #1107 source-only delivery, keep #1084 open and unassigned. The owner decides whether to authorize a separate manual qualification workflow for the unbuilt candidate; automated agents do not dispatch or run it. Compilation, tests, model work, numerical qualification, service/HTTP behavior, browser acceptance, portability and performance remain NOT_RUN_BY_POLICY. No consumed #1102/#1094 envelope may be rerun.",
         "issue_urls": [
           "https://github.com/UOR-Foundation/uor-r4/issues/1084"
         ]
@@ -975,8 +1003,8 @@
         "#973 higher-context and #954 final source-free correctness terminals remain unmet."
       ],
       "next_action": {
-        "status": "PARKED_IMPLEMENTATION_HANDOFF",
-        "scope": "After protected #1105 delivery, activate one separate #1084 implementation child for the dedicated r4-workbench host, private same-executable worker and first four-fact shell. Independently accept concrete source/build/environment admission before any build, and a fresh actual-host qualification release before model work. The final executable must contain its private comparison mode before build freeze; numerical qualification and ordinary API/lifecycle/browser acceptance are distinct. No consumed #1102/#1094 envelope may be rerun.",
+        "status": "OWNER_MANUAL_QUALIFICATION_DECISION",
+        "scope": "After protected #1107 source-only delivery, keep #1084 open and unassigned. The owner decides whether to authorize a separate manual qualification workflow for the unbuilt candidate; automated agents do not dispatch or run it. Compilation, tests, model work, numerical qualification, service/HTTP behavior, browser acceptance, portability and performance remain NOT_RUN_BY_POLICY. No consumed #1102/#1094 envelope may be rerun.",
         "issue_urls": [
           "https://github.com/UOR-Foundation/uor-r4/issues/1084"
         ]
@@ -1040,8 +1068,8 @@
         "Recorded worker RSS zero indicates no worker resource receipt; it is not a successful worker measurement."
       ],
       "next_action": {
-        "status": "PARKED_IMPLEMENTATION_HANDOFF",
-        "scope": "After protected #1105 delivery, activate one separate #1084 implementation child for the dedicated r4-workbench host, private same-executable worker and first four-fact shell. Independently accept concrete source/build/environment admission before any build, and a fresh actual-host qualification release before model work. The final executable must contain its private comparison mode before build freeze; numerical qualification and ordinary API/lifecycle/browser acceptance are distinct. No consumed #1102/#1094 envelope may be rerun.",
+        "status": "OWNER_MANUAL_QUALIFICATION_DECISION",
+        "scope": "After protected #1107 source-only delivery, keep #1084 open and unassigned. The owner decides whether to authorize a separate manual qualification workflow for the unbuilt candidate; automated agents do not dispatch or run it. Compilation, tests, model work, numerical qualification, service/HTTP behavior, browser acceptance, portability and performance remain NOT_RUN_BY_POLICY. No consumed #1102/#1094 envelope may be rerun.",
         "issue_urls": [
           "https://github.com/UOR-Foundation/uor-r4/issues/1084"
         ]
@@ -1120,8 +1148,8 @@
         "#1079 weak-control and #1082 descriptive results are unchanged; #973 remains open and #954 blocked."
       ],
       "next_action": {
-        "status": "PARKED_IMPLEMENTATION_HANDOFF",
-        "scope": "After protected #1105 delivery, activate one separate #1084 implementation child for the dedicated r4-workbench host, private same-executable worker and first four-fact shell. Independently accept concrete source/build/environment admission before any build, and a fresh actual-host qualification release before model work. The final executable must contain its private comparison mode before build freeze; numerical qualification and ordinary API/lifecycle/browser acceptance are distinct. No consumed #1102/#1094 envelope may be rerun.",
+        "status": "OWNER_MANUAL_QUALIFICATION_DECISION",
+        "scope": "After protected #1107 source-only delivery, keep #1084 open and unassigned. The owner decides whether to authorize a separate manual qualification workflow for the unbuilt candidate; automated agents do not dispatch or run it. Compilation, tests, model work, numerical qualification, service/HTTP behavior, browser acceptance, portability and performance remain NOT_RUN_BY_POLICY. No consumed #1102/#1094 envelope may be rerun.",
         "issue_urls": [
           "https://github.com/UOR-Foundation/uor-r4/issues/1084"
         ]
@@ -1175,8 +1203,8 @@
         "Supplied segmentation remains the qualified model entry; #1094 and #973 remain open and #954 blocked."
       ],
       "next_action": {
-        "status": "PARKED_IMPLEMENTATION_HANDOFF",
-        "scope": "After protected #1105 delivery, activate one separate #1084 implementation child for the dedicated r4-workbench host, private same-executable worker and first four-fact shell. Independently accept concrete source/build/environment admission before any build, and a fresh actual-host qualification release before model work. The final executable must contain its private comparison mode before build freeze; numerical qualification and ordinary API/lifecycle/browser acceptance are distinct. No consumed #1102/#1094 envelope may be rerun.",
+        "status": "OWNER_MANUAL_QUALIFICATION_DECISION",
+        "scope": "After protected #1107 source-only delivery, keep #1084 open and unassigned. The owner decides whether to authorize a separate manual qualification workflow for the unbuilt candidate; automated agents do not dispatch or run it. Compilation, tests, model work, numerical qualification, service/HTTP behavior, browser acceptance, portability and performance remain NOT_RUN_BY_POLICY. No consumed #1102/#1094 envelope may be rerun.",
         "issue_urls": [
           "https://github.com/UOR-Foundation/uor-r4/issues/1084"
         ]
@@ -1252,8 +1280,8 @@
         "At this historical assembly checkpoint, supplied clauses remained the qualified model entry, #1079 weak-control and #1082 descriptive findings were unchanged, #1094/#973 were open and #954 was blocked."
       ],
       "next_action": {
-        "status": "PARKED_IMPLEMENTATION_HANDOFF",
-        "scope": "After protected #1105 delivery, activate one separate #1084 implementation child for the dedicated r4-workbench host, private same-executable worker and first four-fact shell. Independently accept concrete source/build/environment admission before any build, and a fresh actual-host qualification release before model work. The final executable must contain its private comparison mode before build freeze; numerical qualification and ordinary API/lifecycle/browser acceptance are distinct. No consumed #1102/#1094 envelope may be rerun.",
+        "status": "OWNER_MANUAL_QUALIFICATION_DECISION",
+        "scope": "After protected #1107 source-only delivery, keep #1084 open and unassigned. The owner decides whether to authorize a separate manual qualification workflow for the unbuilt candidate; automated agents do not dispatch or run it. Compilation, tests, model work, numerical qualification, service/HTTP behavior, browser acceptance, portability and performance remain NOT_RUN_BY_POLICY. No consumed #1102/#1094 envelope may be rerun.",
         "issue_urls": [
           "https://github.com/UOR-Foundation/uor-r4/issues/1084"
         ]
@@ -1343,8 +1371,8 @@
         "The 120-second historical charge is a conservative policy debit; the resource snapshot excludes its own write/exit tail. Storage peak is a reconstructed bound, not an instantaneous measurement."
       ],
       "next_action": {
-        "status": "PARKED_IMPLEMENTATION_HANDOFF",
-        "scope": "After protected #1105 delivery, activate one separate #1084 implementation child for the dedicated r4-workbench host, private same-executable worker and first four-fact shell. Independently accept concrete source/build/environment admission before any build, and a fresh actual-host qualification release before model work. The final executable must contain its private comparison mode before build freeze; numerical qualification and ordinary API/lifecycle/browser acceptance are distinct. No consumed #1102/#1094 envelope may be rerun.",
+        "status": "OWNER_MANUAL_QUALIFICATION_DECISION",
+        "scope": "After protected #1107 source-only delivery, keep #1084 open and unassigned. The owner decides whether to authorize a separate manual qualification workflow for the unbuilt candidate; automated agents do not dispatch or run it. Compilation, tests, model work, numerical qualification, service/HTTP behavior, browser acceptance, portability and performance remain NOT_RUN_BY_POLICY. No consumed #1102/#1094 envelope may be rerun.",
         "issue_urls": [
           "https://github.com/UOR-Foundation/uor-r4/issues/1084"
         ]
@@ -1489,8 +1517,8 @@
         "The successful ordinary qualify()/serving path remains NOT_RUN; the measured binary exposes research modes, not a service endpoint. Final integer/table lowering remains a separate contract."
       ],
       "next_action": {
-        "status": "PARKED_IMPLEMENTATION_HANDOFF",
-        "scope": "After protected #1105 delivery, activate one separate #1084 implementation child for the dedicated r4-workbench host, private same-executable worker and first four-fact shell. Independently accept concrete source/build/environment admission before any build, and a fresh actual-host qualification release before model work. The final executable must contain its private comparison mode before build freeze; numerical qualification and ordinary API/lifecycle/browser acceptance are distinct. No consumed #1102/#1094 envelope may be rerun.",
+        "status": "OWNER_MANUAL_QUALIFICATION_DECISION",
+        "scope": "After protected #1107 source-only delivery, keep #1084 open and unassigned. The owner decides whether to authorize a separate manual qualification workflow for the unbuilt candidate; automated agents do not dispatch or run it. Compilation, tests, model work, numerical qualification, service/HTTP behavior, browser acceptance, portability and performance remain NOT_RUN_BY_POLICY. No consumed #1102/#1094 envelope may be rerun.",
         "issue_urls": [
           "https://github.com/UOR-Foundation/uor-r4/issues/1084"
         ]
@@ -1587,8 +1615,63 @@
         "#1084 remains open for implementation. #1083/#1087 retain separate boundaries; #973 remains open and #954 blocked."
       ],
       "next_action": {
-        "status": "PARKED_IMPLEMENTATION_HANDOFF",
-        "scope": "After protected #1105 delivery, activate one separate #1084 implementation child for the dedicated r4-workbench host, private same-executable worker and first four-fact shell. Independently accept concrete source/build/environment admission before any build, and a fresh actual-host qualification release before model work. The final executable must contain its private comparison mode before build freeze; numerical qualification and ordinary API/lifecycle/browser acceptance are distinct. No consumed #1102/#1094 envelope may be rerun.",
+        "status": "OWNER_MANUAL_QUALIFICATION_DECISION",
+        "scope": "After protected #1107 source-only delivery, keep #1084 open and unassigned. The owner decides whether to authorize a separate manual qualification workflow for the unbuilt candidate; automated agents do not dispatch or run it. Compilation, tests, model work, numerical qualification, service/HTTP behavior, browser acceptance, portability and performance remain NOT_RUN_BY_POLICY. No consumed #1102/#1094 envelope may be rerun.",
+        "issue_urls": [
+          "https://github.com/UOR-Foundation/uor-r4/issues/1084"
+        ]
+      },
+      "proof_artifacts": []
+    },
+    {
+      "id": "R4-1107-WORKBENCH-CANDIDATE",
+      "statement": "The repository contains a statically reviewed source candidate for the dedicated native Four-fact workbench, private same-executable worker and comparison entry defined by ADR-0006 and the #1105 machine contract.",
+      "role": "Definition",
+      "evidence_status": "Unproven",
+      "outcome": "WORKBENCH_CANDIDATE_SOURCE_FROZEN_UNBUILT",
+      "scope": {
+        "parent_issue": 1084,
+        "operation": "answer_four_fact_raw_text/v1",
+        "source_tree_oid": "1ca9723348f11a42d7245504dc2da11497c1338c",
+        "public_routes_declared": 7,
+        "executable_entries_declared": 4,
+        "independent_static_review": "ACCEPT_SOURCE_ONLY_AFTER_FIVE_CORRECTIONS",
+        "builds": "NOT_RUN_BY_POLICY",
+        "tests": "NOT_RUN_BY_POLICY",
+        "model_loads": 0,
+        "qualification_calls": 0,
+        "forwards": 0,
+        "comparisons": 0,
+        "http_or_service_runs": 0,
+        "browser_runs": 0,
+        "knowledge_index_query": "READ_ONLY",
+        "knowledge_index_ingestion": "NOT_RUN_BY_POLICY"
+      },
+      "assumptions": [
+        "Any claim that the candidate compiles or behaves as intended requires a separately authorized owner-operated manual qualification workflow.",
+        "Any later private comparison independently binds fresh host execution permission and the previously exported artifact's immutable original provenance.",
+        "The accepted reader/core, known vocabulary and query forms, Four-fact context and exact native artifact/binding remain unchanged."
+      ],
+      "evidence_refs": [
+        "service_adr_1105",
+        "service_contract_1105",
+        "service_sources_1105",
+        "workbench_source_1107",
+        "workbench_record_1107",
+        "workbench_review_1107",
+        "workbench_private_protocol_1107"
+      ],
+      "limits": [
+        "Static source review is not compiler acceptance, executable correctness, service/HTTP or browser behavior, security evidence, portability evidence, performance evidence, numerical preservation or model capability.",
+        "No mathematical proof or new measured behavior is supplied by #1107.",
+        "The source-level close-on-exec, launch, cancellation, deadline, reap, intake and protocol mechanisms remain behaviorally unverified.",
+        "#1102 remains finite empirical preservation for its own older artifact, binary/runtime and authoring fixtures; its consumed envelopes and qualification do not transfer to this candidate.",
+        "All prior weak-control, descriptive, unavailable and negative results remain; no general language, generation, context expansion, coding, geometry advantage or final integer/table-kernel claim follows.",
+        "#1084 remains open and unassigned. #1083/#1087 retain separate boundaries; #973 remains open and #954 blocked."
+      ],
+      "next_action": {
+        "status": "OWNER_MANUAL_QUALIFICATION_DECISION",
+        "scope": "The owner decides whether to authorize a separate manual qualification workflow for the unbuilt candidate. Automated agents do not dispatch or execute it.",
         "issue_urls": [
           "https://github.com/UOR-Foundation/uor-r4/issues/1084"
         ]
@@ -1596,7 +1679,7 @@
       "proof_artifacts": []
     }
   ],
-  "previous_source_revision": "5af0ae38df122853815947aafefb6a88b3f519ea",
+  "previous_source_revision": "f830b1a774fca7945f340ab05391f28c2fe6c4fc",
   "artifacts_1082": {
     "implementation_cid": "blake3:1451084b66531dbe5eb0cb1d3b3e60e5f0aa3f4bd59fffbf582a18d4dfc9380e",
     "preparation_cid": "blake3:c8a4a56de77767cbbe8fd31edc83251b42a6f729e182d065caa47d981f248741",
@@ -1758,8 +1841,8 @@
     "service_endpoint": "NOT_IMPLEMENTED",
     "delivery": "Protected PR #1104 owns delivery and #1102 closure.",
     "next_action": {
-      "status": "PARKED_IMPLEMENTATION_HANDOFF",
-      "scope": "After protected #1105 delivery, activate one separate #1084 implementation child for the dedicated r4-workbench host, private same-executable worker and first four-fact shell. Independently accept concrete source/build/environment admission before any build, and a fresh actual-host qualification release before model work. The final executable must contain its private comparison mode before build freeze; numerical qualification and ordinary API/lifecycle/browser acceptance are distinct. No consumed #1102/#1094 envelope may be rerun.",
+      "status": "OWNER_MANUAL_QUALIFICATION_DECISION",
+      "scope": "After protected #1107 source-only delivery, keep #1084 open and unassigned. The owner decides whether to authorize a separate manual qualification workflow for the unbuilt candidate; automated agents do not dispatch or run it. Compilation, tests, model work, numerical qualification, service/HTTP behavior, browser acceptance, portability and performance remain NOT_RUN_BY_POLICY. No consumed #1102/#1094 envelope may be rerun.",
       "issue_urls": [
         "https://github.com/UOR-Foundation/uor-r4/issues/1084"
       ]
@@ -1788,6 +1871,30 @@
         ]
       },
       "scope": "Sequencing pointer only; original statements, assumptions, observations, limits, outcomes and evidence remain unchanged."
+    },
+    {
+      "source_revision": "8399a71affd6eb3063a3a3765b1db44058b7f4fb",
+      "superseded_by": "WORKBENCH_CANDIDATE_SOURCE_FROZEN_UNBUILT under #1107",
+      "claim_ids": [
+        "R4-1079-TOKEN-CONTROL",
+        "R4-1082-TOKEN-EXPOSURE",
+        "R4-1085-CLAUSE-ADAPTER",
+        "R4-1094-AUTHORING-INPUT",
+        "R4-1096-ISOLATED-RUNTIME-READINESS",
+        "R4-1094-RETAINED-PREPARATION-CONTRACT",
+        "R4-1094-RETAINED-ASSEMBLY-ADMISSION",
+        "R4-1094-RAW-TEXT-PRESERVATION",
+        "R4-1086-NATIVE-REFERENCE-BRIDGE",
+        "R4-1105-NATIVE-SERVICE-CONTRACT"
+      ],
+      "previous_next_action": {
+        "status": "PARKED_IMPLEMENTATION_HANDOFF",
+        "scope": "After protected #1105 delivery, activate one separate #1084 implementation child for the dedicated r4-workbench host, private same-executable worker and first four-fact shell. Independently accept concrete source/build/environment admission before any build, and a fresh actual-host qualification release before model work. The final executable must contain its private comparison mode before build freeze; numerical qualification and ordinary API/lifecycle/browser acceptance are distinct. No consumed #1102/#1094 envelope may be rerun.",
+        "issue_urls": [
+          "https://github.com/UOR-Foundation/uor-r4/issues/1084"
+        ]
+      },
+      "scope": "Sequencing pointer only. #1107 adds statically reviewed, unbuilt source; every original statement, assumption, measured observation, negative/unavailable result and proof limit remains unchanged."
     }
   ],
   "latest_service_contract": {
@@ -1804,8 +1911,38 @@
     "service_behavior": "NOT_RUN",
     "delivery": "Protected PR closes #1105 only; #1084 remains open and unassigned.",
     "next_action": {
-      "status": "PARKED_IMPLEMENTATION_HANDOFF",
-      "scope": "After protected #1105 delivery, activate one separate #1084 implementation child for the dedicated r4-workbench host, private same-executable worker and first four-fact shell. Independently accept concrete source/build/environment admission before any build, and a fresh actual-host qualification release before model work. The final executable must contain its private comparison mode before build freeze; numerical qualification and ordinary API/lifecycle/browser acceptance are distinct. No consumed #1102/#1094 envelope may be rerun.",
+      "status": "OWNER_MANUAL_QUALIFICATION_DECISION",
+      "scope": "After protected #1107 source-only delivery, keep #1084 open and unassigned. The owner decides whether to authorize a separate manual qualification workflow for the unbuilt candidate; automated agents do not dispatch or run it. Compilation, tests, model work, numerical qualification, service/HTTP behavior, browser acceptance, portability and performance remain NOT_RUN_BY_POLICY. No consumed #1102/#1094 envelope may be rerun.",
+      "issue_urls": [
+        "https://github.com/UOR-Foundation/uor-r4/issues/1084"
+      ]
+    }
+  },
+  "latest_workbench_candidate": {
+    "issue": 1107,
+    "parent_issue": 1084,
+    "base_revision": "aff4acc41f07b866c0f4152440e9028d3cec8088",
+    "original_candidate_commit": "5b20051261541f45997f8bc5657c504203fe2d81",
+    "integration_cherry_pick_commit": "554886aaa5aec57c9d413f4e83332c52b3321c5d",
+    "reviewed_evidence_revision": "8399a71affd6eb3063a3a3765b1db44058b7f4fb",
+    "source_tree_oid": "1ca9723348f11a42d7245504dc2da11497c1338c",
+    "status": "WORKBENCH_CANDIDATE_SOURCE_FROZEN_UNBUILT",
+    "independent_review": "ACCEPT_SOURCE_ONLY_AFTER_FIVE_CORRECTIONS",
+    "service_contract_sha256": "337d66d025fc9ec3a1e8c21befc25198b015061235fefc98f9208f99412e7a7f",
+    "source_present": true,
+    "build": "NOT_RUN_BY_POLICY",
+    "tests": "NOT_RUN_BY_POLICY",
+    "model_operations": "NOT_RUN_BY_POLICY",
+    "service_http_behavior": "NOT_RUN_BY_POLICY",
+    "browser_behavior": "NOT_RUN_BY_POLICY",
+    "numerical_qualification": "NOT_RUN_BY_POLICY",
+    "portability_performance_security": "NOT_RUN_BY_POLICY",
+    "knowledge_index_query": "READ_ONLY",
+    "knowledge_index_ingestion": "NOT_RUN_BY_POLICY",
+    "delivery": "Protected PR closes #1107 only; #1084 remains open and unassigned.",
+    "next_action": {
+      "status": "OWNER_MANUAL_QUALIFICATION_DECISION",
+      "scope": "The owner decides whether to authorize a separate manual qualification workflow for the unbuilt candidate. Automated agents do not dispatch or execute it.",
       "issue_urls": [
         "https://github.com/UOR-Foundation/uor-r4/issues/1084"
       ]

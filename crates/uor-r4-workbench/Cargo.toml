@@ -1,0 +1,28 @@
+[package]
+name = "uor-r4-workbench"
+license = "MIT"
+version = "0.1.0"
+edition = "2021"
+description = "Opt-in native host for the bounded UOR-R4 Four-fact research reference"
+publish = false
+autobins = false
+
+[features]
+default = []
+
+[dependencies]
+uor-r4-api = { version = "0.1.0", path = "../uor-r4-api", default-features = false, features = ["learned-reference"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.10.8"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[lib]
+name = "uor_r4_workbench"
+path = "src/lib.rs"
+
+[[bin]]
+name = "r4-workbench"
+path = "src/main.rs"

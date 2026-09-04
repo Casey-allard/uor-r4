@@ -10,6 +10,7 @@ Start with the [adopted current map](current-state.md), [workflow adoption recor
 | What should be ported from the browser product? | [Component and API port plan](frontend-port-plan.md) |
 | What is installed and how should it be used? | [Tool status](tooling-status.json), [workflow selection](workflow-tools.md) |
 | What bounds automated agent execution? | [Deterministic source-only policy](agent-execution-policy.md), [machine contract](agent-execution-policy.json) |
+| What is the current workbench checkpoint? | [#1107 source candidate](../r4_workbench_candidate_1107.md), [independent static review](../r4_workbench_candidate_1107_review.md) |
 | What is needed for a defensible paper? | [Publication readiness](publication-readiness.md), [publication tools](publication-tooling.json), [initial claim ledger](claim-ledger.json) |
 
 ## Query the actual local index
@@ -28,7 +29,12 @@ Search uses literal AND-connected terms, not a natural-language query planner. F
 
 The durable acquisition cache on this workstation is `~/.local/share/uor-r4/knowledge/audits/2026-09-03`. It contains source manifests, raw native issue snapshots, explicit audit limits and restricted records. It is not part of the public repository. The six imported Antigravity documents are historical context; no full binary conversation decoding or Gemini cloud export was performed.
 
-## Refresh and ingest explicitly
+## Owner-operated refresh and ingest
+
+The commands below document the index's owner-operated maintenance path.
+Automated repository agents do not invoke them under
+`deterministic_source_only`; they query the existing index read-only, update the
+tracked claim/source ledger, and record local ingestion as `NOT_RUN_BY_POLICY`.
 
 The builder validates pinned Git/source hashes and emits separate public/private JSONL files. It does not fetch new source: refresh the audit inputs first when a new snapshot is needed. It records the new origin/revision/content identity, preserving prior records.
 

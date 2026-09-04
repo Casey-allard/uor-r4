@@ -1,18 +1,21 @@
 # Proposed product boundary and component transfer
 
-Status: proposed architecture for the parent plan. This is not an approved implementation or a new scientific run.
+Status: proposed architecture for the parent plan. #1107 supplies an unbuilt
+source candidate for the first bounded slice; the broader plan is neither an
+approved implementation nor a new scientific run.
 
-**Current checkpoint (2026-09-03):**
-[#1105](https://github.com/UOR-Foundation/uor-r4/issues/1105), a contract-only
-child of #1084, delivers the
+**Current checkpoint (2026-09-04):**
+[#1105](https://github.com/UOR-Foundation/uor-r4/issues/1105), a closed contract
+child of #1084, delivered the
 [native four-fact service ADR](../adr/0006-native-four-fact-workbench-service.md)
 and [machine contract](../r4_service_contract_1105.json). They narrow the first
 delivery to one dedicated, opt-in `r4-workbench` host, one private child process
 of that same executable and one `answer_four_fact_raw_text/v1` research-reference
-shell. Independent review accepts `SERVICE_API_CONTRACT_SPECIFIED`;
-protected delivery closes #1105 only.
-No host, worker, shell, build, model operation, HTTP request or browser behavior
-has been implemented or exercised by this specification.
+shell. [#1107](../r4_workbench_candidate_1107.md) adds candidate source for that
+crate, worker, private comparison entry and shell and freezes it as
+`WORKBENCH_CANDIDATE_SOURCE_FROZEN_UNBUILT`. Compilation, tests, model
+operations, HTTP/service execution, browser acceptance, portability and
+qualification are `NOT_RUN_BY_POLICY`.
 
 ## Decision
 
@@ -23,7 +26,7 @@ one private same-executable worker. It leaves the existing root server unchanged
 exposes no public comparison route and excludes an automatic teacher fallback.
 Public model calls use only the learned-reference `qualify()` and `answer()` path.
 The broader provider, workspace and hosted-client options below remain later
-parent-plan work, not behavior supplied by #1105.
+parent-plan work. The #1107 source does not establish any of this behavior.
 
 Use a provider interface at the frontend boundary, not model-specific conditions scattered through views:
 
@@ -47,7 +50,8 @@ Keep the existing root HTTP/OpenAI contract and its truthful errors unchanged
 and separate. The new opt-in host owns its narrow `/uor/v1/workbench/` namespace;
 it does not forward into `/api/sysinfo`, `/uor/v1/status` or `/v1/*`. Avoid a
 general rewrite of the 31,000-line server as part of a visual port. The dedicated
-host and worker remain a separately scoped implementation.
+host and worker now exist as separately scoped, unbuilt source; their runtime
+behavior remains unverified.
 
 ## Transfer map
 
@@ -77,8 +81,8 @@ All donor references below are at `5a10305126df62e838cadfec5fd509e0c9705fa7`; pa
 
 ## Smallest useful delivery sequence
 
-1. **Freeze the application contract and chosen first user flow.** #1105 delivers the independently accepted ADR and machine contract for `answer_four_fact_raw_text/v1` as `SERVICE_API_CONTRACT_SPECIFIED`; protected delivery closes only that child. No mock or specification state counts as host behavior.
-2. **Implement the workbench shell and one native request path.** After #1105 delivery, leave #1084 open and separately activate an implementation child for the dedicated `r4-workbench` host, private same-executable worker and first four-fact shell. Freeze and independently accept concrete source/build/environment admission before a build, then a separate actual-host qualification release before model work. The consumed #1102 CLI/coordinator and qualification cannot authorize the host.
+1. **Freeze the application contract and chosen first user flow.** #1105 delivered the independently accepted ADR and machine contract for `answer_four_fact_raw_text/v1` as `SERVICE_API_CONTRACT_SPECIFIED`. No specification state counts as host behavior.
+2. **Freeze the workbench source candidate.** #1107 supplies the dedicated crate, private same-executable worker/comparison entries and first Four-fact shell as `WORKBENCH_CANDIDATE_SOURCE_FROZEN_UNBUILT`. Build, test, model, HTTP/service, browser, portability and qualification work is `NOT_RUN_BY_POLICY`. #1084 stays open; the owner separately decides whether to authorize manual qualification. The consumed #1102 CLI/coordinator and qualification cannot authorize this source.
 3. **Complete request/model lifecycle.** Serialize load/generate/cancel, keep model selection stable, preserve artifact identity, show real progress and request completion. Add one scoped cold-load and warm-load exercise only when that lifecycle is the named product decision.
 4. **Add the editor and file workflow.** Explicit attachment → request context → proposed diff → review → save → reopen. Reconstruct sandboxed preview and code/log iteration separately; validate real saved file contents, not just an on-screen success label.
 5. **Add Git/issue/worktree integration through the same local service or delegated harness.** Read status first; named paths; scope each issue; real PR/check/queue/merge state. Do not import the donor's multi-file Contents PUT loop or `git add .`.

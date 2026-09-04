@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Four-fact research reference</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="workbench">
+    <aside class="rail" aria-label="Research session">
+      <div class="mark">R⁴</div>
+      <div>
+        <p class="eyebrow">Native research reference</p>
+        <h1>Four-fact research reference</h1>
+      </div>
+      <section class="identity" aria-labelledby="identity-heading">
+        <h2 id="identity-heading">Service identity</h2>
+        <dl>
+          <div><dt>Provider</dt><dd id="provider">Connecting…</dd></div>
+          <div><dt>Execution</dt><dd id="execution">—</dd></div>
+          <div><dt>Model</dt><dd id="model-id">—</dd></div>
+          <div><dt>Generation</dt><dd id="generation">—</dd></div>
+          <div><dt>Qualification</dt><dd id="qualification">—</dd></div>
+        </dl>
+      </section>
+      <p class="scope">Known vocabulary and query form · exactly four facts · one stateless query · CPU floating-point research reference</p>
+    </aside>
+
+    <section class="stage">
+      <header class="toolbar">
+        <div>
+          <p class="eyebrow">Selected service capability</p>
+          <strong id="operation">answer_four_fact_raw_text/v1</strong>
+        </div>
+        <div class="controls">
+          <span id="state-pill" class="pill" data-state="unavailable">unavailable</span>
+          <button id="load" type="button" disabled>Load</button>
+          <button id="unload" type="button" class="quiet" disabled>Unload</button>
+        </div>
+      </header>
+
+      <div id="notice" class="notice" role="status" aria-live="polite">Waiting for capability discovery.</div>
+
+      <section class="transcript" aria-label="Current request and result">
+        <article class="card intro">
+          <p class="eyebrow">Bounded operation</p>
+          <h2>Ask from four explicit facts</h2>
+          <p>The exact UTF-8 bytes below go to the accepted raw-text reader. The service may return one model token or a typed refusal. This shell supplies no fallback answer.</p>
+        </article>
+        <article id="result-card" class="card result" hidden>
+          <p class="eyebrow">Native result</p>
+          <h2 id="result-heading">Result</h2>
+          <pre id="result"></pre>
+        </article>
+      </section>
+
+      <form id="composer" class="composer">
+        <label for="raw-text">Four facts and one query</label>
+        <textarea id="raw-text" rows="8" maxlength="4096" spellcheck="false" placeholder="Enter the exact bounded input…"></textarea>
+        <div class="composer-foot">
+          <span><output id="byte-count">0</output> / 4096 UTF-8 bytes</span>
+          <div class="controls">
+            <button id="cancel" type="button" class="danger" hidden>Stop</button>
+            <button id="submit" type="submit" disabled>Answer</button>
+          </div>
+        </div>
+      </form>
+    </section>
+  </main>
+  <script src="/app.js" defer></script>
+</body>
+</html>
