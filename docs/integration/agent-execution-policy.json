@@ -1,0 +1,60 @@
+{
+  "agent_scope": {
+    "applies_to": [
+      "automated_repository_agents"
+    ],
+    "policy_change_requires": [
+      "explicit_owner_instruction",
+      "protected_pull_request"
+    ]
+  },
+  "failure_budget": {
+    "automatic_retries": 0,
+    "environment_probe_attempts": 0,
+    "source_corrections_after_concrete_remote_failure": 1,
+    "terminal_action_after_next_failure": "park_and_report"
+  },
+  "local_execution": {
+    "allowed": [
+      "read_repository_and_authoritative_sources",
+      "edit_declared_source_paths",
+      "git_status_diff_log_and_named_path_staging",
+      "run_static_agent_policy_guard"
+    ],
+    "forbidden": [
+      "cargo_rustc_rustup_and_wasm_pack",
+      "test_benchmark_fuzz_lint_and_build_runners",
+      "model_teacher_training_fitting_and_evaluation",
+      "browser_service_and_product_probes",
+      "sandbox_syscall_entitlement_and_environment_probes",
+      "custom_supervisors_watchdogs_and_retry_wrappers"
+    ]
+  },
+  "mode": "deterministic_source_only",
+  "remote_execution": {
+    "agent_may_dispatch_qa": false,
+    "owner_manual_qa_workflow": "workflow_dispatch_only",
+    "pull_request_and_merge_group": "static_policy_guard_plus_ruleset_transport_only"
+  },
+  "reporting": {
+    "final_fields": [
+      "delivered_result",
+      "source_review_limits",
+      "closure_state",
+      "one_concrete_next_action"
+    ],
+    "suppress": [
+      "individual_build_progress",
+      "individual_test_progress",
+      "individual_probe_progress",
+      "unchanged_polling"
+    ]
+  },
+  "schema": "uor-r4.agent-execution-policy/1",
+  "workspace": {
+    "base": "refreshed_origin_main",
+    "preserve_user_and_unique_evidence": true,
+    "sparse_pruned_or_hand_copied_workspaces_forbidden": true,
+    "type": "full_git_worktree"
+  }
+}

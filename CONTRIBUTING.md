@@ -91,6 +91,17 @@ WASM-offline surface without a functioning chat backend/artifact lowering, not
 product evidence or the active research gate.
 This file is the short version.
 
+## Deterministic source-only agent policy
+
+Automated repository work follows the canonical
+[`docs/integration/agent-execution-policy.json`](docs/integration/agent-execution-policy.json)
+contract and the binding section in [AGENTS.md](AGENTS.md). Agents use a full
+Git worktree from refreshed `origin/main`; sparse or hand-copied workspaces and
+automatic retries are prohibited. Agents do not run or dispatch builds, tests,
+probes, model work, or QA. The protected path runs a static text-only policy
+guard plus ruleset transport; owner-operated manual release QA remains
+separate.
+
 ## The loop
 
 1. **Assign yourself the issue.** In this repo assignment means

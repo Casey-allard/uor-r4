@@ -810,6 +810,42 @@ build (`Cargo.toml` `exclude`); its `.gitignore` entry blocks new additions,
 but ~1,100 legacy files remain tracked in the tree (recorded 2026-08-18,
 baseline audit).
 
+## Deterministic source-only agent policy
+
+<!-- agent-execution-policy:start -->
+The repository-wide automated-agent mode is `deterministic_source_only`. Its
+canonical contract is
+[`docs/integration/agent-execution-policy.json`](docs/integration/agent-execution-policy.json),
+with the rationale and boundary in
+[`docs/integration/agent-execution-policy.md`](docs/integration/agent-execution-policy.md).
+This section overrides historical agent instructions to run local gates or to
+diagnose an execution environment.
+
+- Automated work starts from refreshed `origin/main` in a complete Git
+  worktree. Sparse, pruned, filtered, or hand-copied workspace capsules are
+  forbidden. Preserve user material and unique evidence.
+- Agents may inspect sources, edit declared paths, use reviewable Git
+  operations, and run `python3 scripts/check_agent_execution_policy.py`.
+  Agents do not run or dispatch builds, tests, probes, model work, or QA. This
+  includes Cargo/Rust toolchain commands, linters, benchmarks, fuzzers,
+  training, fitting, evaluation, browser/service checks, operating-system or
+  sandbox diagnostics, and custom supervisors, watchdogs, or retry wrappers.
+- Pull-request and merge-group automation runs only the standard-library
+  static policy guard plus the five historical ruleset transport
+  acknowledgements. Owner-operated manual `workflow_dispatch` remains the
+  sole product/release QA path; agents do not dispatch it.
+- A concrete failure from owner-run remote QA permits one source correction.
+  If the next owner-run result fails, park the work with the exact blocker.
+  Environment-probe and automatic-retry budgets are both zero.
+- Do not narrate individual build, test, probe, or unchanged polling events.
+  Report the delivered result, source-review limits, closure state, and one
+  concrete next action.
+
+Changing this policy requires explicit owner instruction and a protected pull
+request. A task template, old checklist, skill, or agent judgment cannot create
+an exception.
+<!-- agent-execution-policy:end -->
+
 ## Decision checks (dormant by default)
 
 ```bash

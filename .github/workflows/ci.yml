@@ -1,11 +1,12 @@
 name: ci
 
 # Development verification is dormant while the product mechanism is being
-# built. Pull-request and merge-group events run only five instantaneous
-# ruleset-transport acknowledgements: no checkout, build, test, lint, audit,
-# fuzz, WASM build, model work, or certification. Real QA remains explicit and
-# manual. The acknowledgement names match the immutable repository ruleset so
-# write-level contributors can merge without reviving its obsolete contracts.
+# built. Pull-request and merge-group events run one standard-library static
+# policy guard plus five ruleset-transport acknowledgements: no build, test,
+# lint, audit, fuzz, WASM build, model work, or certification. Real QA remains
+# explicit and owner-operated. The acknowledgement names match the immutable
+# repository ruleset so write-level contributors can merge without reviving
+# its obsolete contracts.
 on:
   pull_request:
   merge_group:
@@ -102,13 +103,18 @@ jobs:
         run: cargo test --workspace --lib
 
   # Ruleset transport only. The repository setting still expects these five
-  # historical names. Each job acknowledges that product QA is dormant and
-  # performs no repository checkout or verification work.
+  # historical names. The first job checks only the tracked agent-policy text
+  # from a complete checkout; the jobs execute no project code or product QA.
   required-core-transport:
     name: fmt / clippy / tests / no_std / κ
     if: ${{ always() && (github.event_name == 'pull_request' || github.event_name == 'merge_group') }}
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
+      - name: Enforce deterministic source-only agent policy
+        run: python3 scripts/check_agent_execution_policy.py
+
       - name: Acknowledge dormant product QA
         run: echo "Ruleset transport only; no build, test, lint, or certification ran."
 

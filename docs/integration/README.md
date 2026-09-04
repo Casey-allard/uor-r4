@@ -9,6 +9,7 @@ Start with the [adopted current map](current-state.md), [workflow adoption recor
 | What can external research contribute? | [HELM / GoldSnnail / W33 / NEMESIS review](external-research-audit.md) |
 | What should be ported from the browser product? | [Component and API port plan](frontend-port-plan.md) |
 | What is installed and how should it be used? | [Tool status](tooling-status.json), [workflow selection](workflow-tools.md) |
+| What bounds automated agent execution? | [Deterministic source-only policy](agent-execution-policy.md), [machine contract](agent-execution-policy.json) |
 | What is needed for a defensible paper? | [Publication readiness](publication-readiness.md), [publication tools](publication-tooling.json), [initial claim ledger](claim-ledger.json) |
 
 ## Query the actual local index
