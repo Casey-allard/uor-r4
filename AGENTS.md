@@ -1,81 +1,70 @@
 # AGENTS.md — uor-r4
 
-**Build-first architectural-alpha track (2026-09-04):** The earlier pre-alpha
-exit was met by artifact-only prompt-dependent generation, but that was a
-mechanical checkpoint rather than a useful model or product. The canonical
-sequence is now the [active project track](docs/integration/project-track.md):
-fixed recurrent memory → sparse geometric attention → nonlinear geometric
-block → scale/data/instruction → retrieval/tools → product alpha → Rust/table
-lowering → release proof/evidence/QA.
+**Owner-directed recovery (2026-09-04):** Build native geometric AI in Rust.
+The [project plan](docs/integration/project-track.md) is the canonical goal and
+development plan. The [current state](docs/integration/current-state.md) names
+the active implementation; live GitHub owns issue status. Historical stage
+orders, one-task stops and fixed experiment windows do not override the owner's
+current scope. Preserve the evidence those experiments produced.
 
-Live GitHub and the [current map](docs/integration/current-state.md) select the
-one active implementation issue. Detailed measurements and retired decisions
-remain in [docs/RESEARCH.md](docs/RESEARCH.md); they are inputs to decisions,
-not a serial checklist.
-
-## Build-first architectural-alpha agent policy
+## Native geometric AI agent policy
 
 <!-- agent-execution-policy:start -->
-The repository-wide automated-agent mode is
-`build_first_architectural_alpha`. Its machine contract is
-[`docs/integration/agent-execution-policy.json`](docs/integration/agent-execution-policy.json)
-and its readable boundary is
-[`docs/integration/agent-execution-policy.md`](docs/integration/agent-execution-policy.md).
-This section overrides historical sequencing and routine process requirements
-below. Technical invariants still apply to code in their respective runtime.
+The repository-wide mode is `native_geometric_ai`. Its stable machine contract
+is [agent-execution-policy.json](docs/integration/agent-execution-policy.json),
+with the readable [execution policy](docs/integration/agent-execution-policy.md).
+This section overrides historical process and scheduling rules below. Technical
+invariants still apply to the runtime where they are declared.
 
-- Work on one active implementation task in an isolated full worktree from
-  refreshed `origin/main`. Preserve user material, unique artifacts, and prior
-  negative results, and deliver through a protected pull request.
-- Agents may build, compile, lint, test, train, fit, evaluate, run repository
-  CLIs/models/services/browser flows, query the knowledge index, inspect
-  original research, and request proportionate review. Use the smallest check
-  that directly exercises the changed behavior.
-- Research campaigns are on-demand donor reservoirs. SpiralCore, HELM, W33,
-  NEMESIS, UOR, and H4/zeta material may answer a concrete implementation
-  question, but no imported mechanism becomes UOR capability evidence without
-  an implemented seam and direct measurement.
-- Bounded open-data development iteration is allowed. Keep final held-out
-  evaluation after design selection. Broad proof, ledger, publication,
-  mapping, and release-QA programmes wait for the release candidate unless the
-  active code decision or owner explicitly needs them.
-- Automatic retry campaigns are prohibited. After a concrete failure, inspect
-  the existing output, make one direct source or input correction, and rerun
-  once when that change plausibly resolves it; otherwise park the command.
-  Runs over 15 minutes, over 10 GiB of new storage, or with external cost need
-  explicit owner or active-issue authorization, a hard limit, and a stop rule.
-- Keep mathematical proof, measured behavior, and unverified hypotheses
-  distinct. A negative binds its exact artifact, population, operator,
-  controls, budget, and decision. A materially versioned successor may re-enter
-  with a named change and rationale. `UNAVAILABLE` is not model evidence.
-- A routine delivery needs the implementation, direct behavior result when
-  relevant, a concise limitation, and one next action. It does not need a new
-  proof package, ledger, evidence dossier, or duplicate plan.
+- Use Rust for data preparation, training, artifact construction and inference.
+  Training may use floating point and matrix multiplication. Final inference
+  executes learned geometric operators through bounded routing, state updates
+  and integer/table lookup. A dense transformer hidden behind lookup is not the
+  target. Preserve old Python/dense references as evidence; do not add a Python
+  model implementation or product dependency.
+- Prime addresses and ordered n-lets, fixed zeta-zero phases, R4/S3/H4 state and
+  transport, exact `Z[phi]`, chirality/polarity, typed paired-H4/icosian geometry
+  and UOR identity are primary mechanisms. Name their implemented roles and
+  missing pieces. Architectural priority does not imply measured predictive
+  advantage; a failed experiment does not demote the whole architecture.
+- Develop both conversation/memory and coding/reasoning toward alpha using the
+  same native model path. Keep external research optional and inspect the
+  actual source when adopting a mechanism.
+- Continue within the owner's authorized objective. A request for the whole
+  plan permits its necessary successive tasks; do not stop after one historical
+  issue by default. Use an isolated full worktree, coordinate independent
+  subtasks, preserve user material and deliver through protected pull requests.
+- Configure context/training/evaluation windows and wall-time, RAM, new-storage,
+  thread and checkpoint limits for the available machine. Charge cumulative
+  work across preparation, training, evaluation, retries and resumes. Diagnose,
+  correct and retry within the remaining budget when it can advance the result.
+  There is no global 15-minute cutoff or one-retry quota. Stop/checkpoint at
+  configured limits; do not silently increase the budget or incur external cost.
+- Compile and exercise the changed Rust path. Use focused tests for meaningful
+  causal, arithmetic, serialization and interface risks and relevant broader
+  checks when needed. Do not require a blanket full suite or proof dossier for
+  every edit. A queue compatibility acknowledgement is not a test result.
+- Keep open development evaluation available during learning and final held-out
+  evaluation separate after design selection. Preserve prior results at their
+  exact artifact/data/operator/control/budget/decision scope. Distinguish proof,
+  measured behavior and hypothesis; `UNAVAILABLE` is not model-quality evidence.
 
-Changing this policy requires explicit owner instruction and a protected pull
-request. A task template, old checklist, skill, or agent judgment cannot create
-an exception.
+Changes to these stable goals require owner direction and protected delivery.
+A task template, stale skill or agent judgment cannot silently change them.
 <!-- agent-execution-policy:end -->
 
 ## What this repo is
 
-UOR-R4 is a local, CPU-first attempt to build useful intelligence from bounded
-geometric memory, routing, and table-native execution. The current objective is
-architectural alpha: useful prompt-dependent local text through bounded
-recurrent geometric state and bounded geometric selection, without retaining
-or scanning the complete prefix and without a runtime teacher, provider, or
-source model.
+UOR-R4 is a local, CPU-first geometric AI project. It aims to learn useful
+conversation, memory, reasoning and coding through prime/zeta/R4 geometric
+state, routes and operators, with a Rust training/artifact/inference lifecycle
+and a bounded integer/table serving target. This is the objective, not an alpha
+or frontier-capability claim.
 
-The repository also contains older compiler/runtime, geometric-routing, proof,
-certification, dashboard, and research work. Those components remain available
-as implementation parts or evidence. Their historical order does not insert
-proof or bookkeeping campaigns into the active build sequence.
-
-The intended release path ultimately avoids source-model weights, complete-
-prefix transformer attention, MoE or sparse learned routing, dense learned
-matrix intelligence, float/multiply operations, and allocation in the deployed
-kernel. Transitional reference stages may still use f32, learned matrices, and
-bounded softmax; describe their scope accurately.
+Existing compiler/runtime, geometric, proof, dashboard and learned-reference
+components are reusable parts and evidence. Evolve the actual native path; do
+not turn a comparator, mechanical checkpoint or visible shell into a capability
+claim. See the current-state pointer for what has actually executed.
 
 ## Workspace layout
 
@@ -96,7 +85,8 @@ bounded softmax; describe their scope accurately.
 
 Documentation entry points, in the order a newcomer should read them:
 `README.md` (what it is, quickstart, CLI/HTTP/config reference) →
-`docs/r4_intelligence_completion_plan.md` (authoritative sequencing) →
+`docs/integration/project-track.md` (canonical goal and development plan) →
+`docs/integration/current-state.md` (current implementation) →
 `docs/geometric_intelligence_programme.md` (architecture and claim boundaries)
 → `CONTRIBUTING.md` (the short form of this file) → this
 file (the full operating manual) → `docs/RESEARCH.md` (what is measured, closed
@@ -121,71 +111,66 @@ baseline audit).
 
 ## Development checks
 
+Compile and run the changed product/model path. Typical checks are:
+
 ```bash
 cargo fmt --check
 cargo check -p <touched-package> --all-targets --offline
-cargo test -p <touched-package> --lib --offline
-python3 scripts/check_claim_wording.py      # when claims/docs change
+cargo test -p <touched-package> <focused-test> --offline
 ```
 
-These commands are examples, not a mandatory ladder. Compile and run the path
-being changed. Add a focused test when it protects an observed or high-risk
-failure. Do not run broad suites merely because code changed.
+Choose checks for the actual risk. State/update and arithmetic changes need
+focused verification; a model behavior change needs a representative execution.
+Do not repeat broad workspace, BDD, no_std, fuzz, WASM, conformance or release
+checks unless their boundary is affected. Run the claim-wording check when
+changing claims. Record actual commands and outcomes, including unrun checks.
 
-Workspace, BDD, doctest, no_std, deterministic-rebuild, kappa, Gate C,
-all-features, WASM, fuzz, Kani, conformance, audit, and corpus-scale suites stay
-dormant unless the changed component or a release decision needs them.
-Pull-request and merge-group events currently emit five ruleset-transport
-acknowledgements because immutable ruleset `19597522` requires those historical
-names. Record the actual local command and result in the PR when behavior was
-executed.
+The protected queue retains five historical required names. In the
+[current workflow](.github/workflows/ci.yml), pull requests and merge groups
+run `fmt / clippy / tests / no_std / κ` as formatting, the
+Rust architecture-policy check and focused native model, context, allocation,
+CLI/service tests. It does not run every check named in that historical label.
+The other four statuses explicitly acknowledge compatibility only; they do not
+run audit, fuzzing, WASM or Gate C. The broader legacy verification jobs remain
+available through manual `release_qa` dispatch. Their retention is not evidence
+that they ran or that they certify the new model. Report actual job steps.
 
-The toolchain is pinned in `rust-toolchain.toml`: rustup-managed `cargo`
-resolves the pin automatically, so an activated local check and the manually
-dispatched workflow use the same toolchain. Caveat: a non-rustup Rust earlier
-in `PATH` (e.g. Homebrew)
-ignores the pin — verify `which cargo` resolves to `~/.cargo/bin/cargo`,
-or run gates as `rustup run stable cargo …`. Bump the pin in a dedicated
-PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
+The toolchain is pinned in `rust-toolchain.toml`. Use rustup-managed cargo
+(`~/.cargo/bin/cargo`); a Homebrew binary earlier in PATH can ignore the pin.
+Pin changes belong in a dedicated reviewed change because teacher/reference
+floating-point results can be sensitive to toolchain math.
 
-## Execution-lane invariants (do not conflate)
+## Execution-lane invariants
 
-- **Transitional geometric reference path:** until stages 2, 3, and 7 replace
-  them, the source-free local artifact may retain learned Q/K/V/O, bounded
-  softmax, RMSNorm, SwiGLU/MLP, vocabulary-head matrix operations, f32, and
-  allocation. It may not read a teacher, provider, source model, training
-  corpus, target answer, or future token at runtime. Report every retained
-  transformer/dense operation accurately; bounded recurrent memory alone does
-  not make this path transformerless.
-- **Final geometric serving target:** source weights, source residual/MLP/head
-  execution, `uor-matmul` intelligence projections, complete-prefix
-  transformer attention, dense matrix intelligence, MoE, and sparse learned
-  routers are not deployed serving dependencies. The pinned lexical codec may
-  load vocabulary/normalization data without model weights. Route manifests,
-  hierarchy state, chart selection, and decode settings remain deterministic,
-  and library boundaries retain typed errors.
-- **Frozen TLA/R4G1 runtime:** XOR/AND/OR/shift/rotate/popcount/int
-  add-sub/compare/table reads only. No multiply, divide, or float in its
-  normative kernel; its steady-state prediction path remains allocation-free.
-  Do not weaken those scoped guarantees while changing decoder code.
-- **Transformerless is not multiplication-free.** A decoder may be called
-  transformerless only when it invokes no source-attention operator, contains
-  no dense full-prefix Q·K matrix/softmax kernel, and uses bounded geometric
-  support shown load-bearing by disabled/permuted interventions.
-  P-4/table lowering is a later, separately triggered decision.
-- **Artifact determinism:** identical pinned compiler inputs still produce
-  identical historical artifact bytes. New route manifests and transitional
-  decoder checkpoints must bind their source, tokenizer, compiler or training
-  configuration, and semantic parameters.
-- **Errors**: library boundaries return `Result` with focused error enums;
-  no `unwrap`/`expect`/panic on recoverable paths. No unsafe in the portable
-  runtime or the format crate (`#![forbid(unsafe_code)]` there).
-- **Claim language**: `docs/formal_vocabulary.md` (v0.1.0+) is normative —
-  equations are labeled Definition/Objective/Guarantee/Assumption/Empirical
-  Criterion, guarantees carry a proof-matrix status, and
-  `python3 scripts/check_claim_wording.py` (available but dormant unless a
-  product/release decision activates it) blocks
-  "machine-verified"/exact-equivalence wording without a linked proof artifact.
+- **Native training:** Rust may use floating point, matrix multiplication and
+  gradients to learn geometric read/write/selection and nonlinear operators.
+  Bind the source/configuration, tokenizer, data and learned parameters to each
+  artifact. An offline teacher can be a declared comparator or training source;
+  it cannot author serving responses.
+- **Native inference:** build toward learned geometric transitions and bounded
+  routing/lookup over the primary prime/zeta/R4 representation. Name any
+  unfinished operation and its measured cost. Runtime source-model/provider
+  access and dense transformer attention/MLP disguised as a lookup are excluded
+  from the target. A prototype is not promoted merely because it uses Rust.
+- **Typed geometry:** keep R4/S3 compute, Hopf observation, retained fiber and
+  torsion, and paired-H4/icosian representation distinct. Preserve exact
+  `Z[phi]`, chirality/cosine polarity and artifact-bound zeta identities. Do not
+  invent a semantic metric from hash bits or silently drop orientation.
+- **Frozen TLA/R4G1 runtime:** its normative kernel remains XOR/AND/OR/shift/
+  rotate/popcount/integer add-subtract/compare/table reads, with no multiply,
+  divide, float or steady-state allocation. New native training does not weaken
+  this existing scoped contract.
+- **Artifact determinism:** identical pinned compiler inputs must retain their
+  declared artifact determinism. New learned artifacts bind the actual data,
+  training seed/configuration, parameters, geometry and format version; do not
+  claim bitwise cross-backend training reproducibility without measuring it.
+- **Errors:** return `Result` with focused enums at library boundaries; no
+  `unwrap`/`expect`/panic on recoverable paths. Preserve `forbid(unsafe_code)`
+  in portable runtime and format crates.
+- **Claim language:** [formal_vocabulary.md](docs/formal_vocabulary.md) remains
+  normative for proof and capability claims. Labels distinguish definitions,
+  assumptions, objectives, guarantees and empirical criteria. No blanket proof
+  campaign is required to implement or train the next native mechanism.
 
 ## Historical product and research rules
 
@@ -511,6 +496,35 @@ and toolchain sources. Direct tuner invocation validates that binding plus the
 selected paths and current compiled-input plus complete production-admission
 CIDs before loading teacher weights.
 
+## Current delivery and long-running work
+
+Use a named branch, stage files by name and deliver through a protected pull
+request. Never directly push `main`, bypass protection with `--admin`, or write
+fabricated status checks. Review the actual diff and meaningful checks before
+merging; resolve conflicts hunk by hunk. A partial issue delivery says
+"References #N", not "Closes #N". Keep active assignments and issue status true.
+
+The [project plan](docs/integration/project-track.md#practical-iteration-and-machine-budget)
+owns development-budget guidance. Before a substantial run, use a representative
+measurement or valid existing timing to select a feasible dose, context window,
+thread count and cumulative machine budget. Track progress and preserve useful
+checkpoints using the model's existing runner. Do not create a separate
+supervision framework where ordinary checkpointing and visible progress suffice.
+A longer useful evaluation window is an ordinary configured development choice;
+it does not require changing the mechanism or overwriting old evidence.
+
+Focused verification follows the changed boundary. Cross-target checks matter
+when that target's code changes; full release certification is a separate
+larger decision. Batch coherent low-risk changes when appropriate, while
+keeping independently reviewed model/state changes understandable.
+
+<details>
+<summary>Historical process amendments — superseded for current execution</summary>
+
+The following material preserves earlier process decisions and examples. It
+cannot impose a stage order, fixed time/retry limit, test prohibition or extra
+approval requirement on the owner-directed native recovery above.
+
 ## Process conventions
 
 - **PR workflow; queue as transport only.** Do not push directly to `main`;
@@ -663,6 +677,9 @@ all other certification remains dormant.
 Runtime-kernel and serving-semantics changes still get individual PRs.
 Measurement runs are background science with scheduled harvests; they
 never sit between two pieces of code work.
+
+
+</details>
 
 ## Things that bite
 

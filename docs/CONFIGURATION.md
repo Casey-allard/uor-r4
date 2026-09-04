@@ -1,18 +1,27 @@
 # Configuration reference
 
-> **Status:** living workspace option inventory across multiple architectural
-> eras. Use the [Geometric Intelligence Programme](geometric_intelligence_programme.md)
-> for current direction and the [documentation map](README.md) for scope. Most
-> `TLESS_*`, `R4G1_*`, Gate C, teacher, and release variables below configure
-> preserved compiler/runtime or measurement lanes; they do not configure a
-> working route-native source-free chat path, because that path does not yet
-> exist. New route-native options belong to #961 and later only when their
-> owning product decision makes them reachable.
+For the current Rust model, use the CLI options and examples in the
+[native geometric workflow](native_geometric_workflow.md). The explicit
+`r4 geometric` command family configures preparation, training, evaluation,
+generation and the local service; model context and operator settings travel
+with the artifact. The [canonical plan](integration/project-track.md) owns
+architecture and budget policy, while
+[current-state.md](integration/current-state.md) owns implementation status.
+Native options do not wait for a historical stage or later Rust port.
 
-Every environment variable the workspace reads, with its default and the module
-that owns it. Most have a CLI flag equivalent; where both exist, the flag wins.
+## Retained compiler and reference configuration
 
-**The override contract.** The capacity and sampling knobs
+The inventory below covers existing compiler/runtime and measurement lanes
+across earlier architectural eras. `TLESS_*`, `R4G1_*`, teacher and release
+variables apply to their named paths. Defaults for plain `ask`/`chat`, source
+tokenizers and older HTTP engines do not select the `r4 geometric` model.
+These references preserve compatibility and reproducibility; they do not
+reintroduce a Python model dependency or change the current project goal.
+
+The listed environment variables give their defaults and owning modules.
+Where a listed CLI flag and variable both exist, the flag wins.
+
+**Legacy override contract.** The capacity and sampling helpers
 (`capacity_override_usize` / `capacity_override_f64`) share one rule: **unset is
 κ-neutral — behaviour is bit-identical to not setting it. Set-but-invalid, or
 zero, panics.** A knob that silently did nothing would be indistinguishable from

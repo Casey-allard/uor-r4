@@ -1,31 +1,17 @@
-# UOR-R4 research, integration and productization plan
+# UOR-R4 research, integration and productization archive
 
-**Active direction (2026-09-04):** The repository follows
-`build_first_architectural_alpha`. The canonical definitions and exact ordered
-sequence are in the [active project track](integration/project-track.md):
+Current goals, development and product acceptance live in the
+[native geometric AI plan](integration/project-track.md); actual active work
+lives in [current-state.md](integration/current-state.md). Rust is the language
+for training, artifact construction and serving now, with prime/zeta/R4 and
+learned geometric operators primary. Conversation/memory and coding/reasoning
+are both required alpha goals.
 
-fixed recurrent memory → sparse geometric attention → nonlinear geometric block
-→ scale/data/instruction → retrieval/tools → representative product alpha →
-Rust/table lowering → release proof/evidence/QA.
-
-The artifact-only pre-alpha target has been met and is now a mechanical
-checkpoint. The fixed recurrent successor has also executed: eight exact live
-K/V records plus four H4-local summaries retain a constant 9,216-byte f32 K/V
-ledger and produce post-eviction trajectories on both fixed prompts. Quality,
-long-context retention, geometric advantage, architectural alpha, and
-table-native execution remain open. Sparse geometric attention is next under
-#973.
-
-Research and evidence support this track without becoming a second product
-queue. SpiralCore, HELM, W33, NEMESIS, UOR ecosystem work, and H4/zeta work are
-on-demand donor reservoirs. Preserve exact negative results; allow only a
-materially versioned re-entry with a named change and rationale. Treat
-`UNAVAILABLE` as an execution/source/environment boundary. Broad proof,
-ledger, publication, research-mapping, and QA work begins at release candidate
-unless a concrete current design question or the owner activates it.
-
-The sections below retain the September 2–3 audit and earlier product plans.
-Their historical next-action text does not override the active track.
+This document preserves the September 2–4 integration audit, source inventory,
+product concepts and prior sequencing. All “current/next,” stage-number and
+deferred-work passages below describe that historical plan. They do not defer
+Rust to a later port or impose a separate serial checklist. Reuse a component
+when it advances the actual native path, keeping its observed limitations.
 
 ## 1. Historical destination and present position
 
@@ -116,7 +102,7 @@ Binary commutativity does not make a three-component left fold associative or pe
 
 An arithmetic adapter must name its domain. `Z/256Z`, the Boolean product ring with XOR/AND, and polynomial `GF(256)` are different algebras. For CRT, declare pairwise coprime moduli and reconstruction range: signed recovery of a dot product bounded by `KAB` needs product modulus `M > 2KAB`, including epilogue growth. Powers of two are not independent coprime channels. Byte encoding alone does not preserve real softmax, normalization or arbitrary tensor operations. Each selected replacement needs a precise encode/operate/decode statement or error bound and a measured cost model. The audit did not establish a reusable general CRT API in the inspected excerpts.
 
-## 4. Product architecture and implementation sequence
+## 4. Historical product architecture and implementation sequence
 
 One local product eventually owns model/artifact identity, capability discovery,
 loading, cancellation, inference, workspace access, memory, tools, and web
@@ -240,7 +226,7 @@ it is not an active build workflow:
 
 These are workflow templates, not newly activated recurring schedules. No background task will upgrade dependencies, launch experiments, delete storage or submit a paper solely because this document exists. When a recurring monitor is requested, use the existing Codex heartbeat mechanism and notify only on a meaningful change, failure, completion or required action.
 
-## 8. Current delivery and next action
+## 8. Historical delivery and then-next action
 
 The sparse geometric mechanical checkpoint is implemented under #973 and
 retains its raw no-fit comparison outside Git under the repository's

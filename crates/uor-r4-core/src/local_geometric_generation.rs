@@ -17,14 +17,55 @@ use crate::prime_route_attention::{GeometricAddress, PrimeRouteError};
 use crate::prime_route_geometric_attention::{
     AttentionQueryPolicy, AttentionRowKey, AttentionRowRead, AttentionRowSource,
     AttentionSourceCounts, AttentionSupportAdmission, GeometricAttentionArtifact,
-    GeometricAttentionError, PathLeaseAttentionTrace, PathLeaseControl, PathLeaseCost,
-    LOCAL_PATH_ATTENTION_MAX_UNITS,
+    GeometricAttentionError, PathAttentionContextV1, PathContextMemoryV1, PathLeaseAttentionTrace,
+    PathLeaseControl, PathLeaseCost, WindowedPathLeaseCostV1, LOCAL_PATH_ATTENTION_MAX_UNITS,
 };
 
 pub const LOCAL_GEOMETRIC_GENERATION_REPORT_SCHEMA: u32 = 2;
 pub const LOCAL_GEOMETRIC_GENERATION_REPORT_DOMAIN: &str =
     "uor-r4.local-geometric-generation-report/2";
 pub const LOCAL_GEOMETRIC_GENERATION_MIN_PROMPT_UNITS: usize = 2;
+
+/// Compact diagnostics for the new sliding-context path. Report storage grows
+/// with emitted output; it is not part of the bounded inference working set.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct WindowedGenerationStepV1 {
+    pub step_index: usize,
+    pub observed_routes_before: u32,
+    pub observed_routes_after: u32,
+    pub first_retained_prefix_index: u32,
+    pub memory: PathContextMemoryV1,
+    pub candidate_count: usize,
+    pub path_geometry_evaluations: usize,
+    pub group_table_lookups: usize,
+    pub selected_lexical_unit_id: Option<u32>,
+    pub selected_payload_bytes: Option<Vec<u8>>,
+    pub selected_cost: Option<WindowedPathLeaseCostV1>,
+    pub tie: bool,
+    pub abstained: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct WindowedGeometricGenerationReportV1 {
+    pub schema: u32,
+    pub domain: String,
+    pub artifact_manifest_kappa: String,
+    pub attention_manifest_kappa: String,
+    pub context: PathAttentionContextV1,
+    pub control: LocalGenerationControl,
+    pub prompt_units: usize,
+    pub continuation_cap: usize,
+    pub steps: Vec<WindowedGenerationStepV1>,
+    pub emitted_lexical_unit_ids: Vec<u32>,
+    pub continuation_bytes: Vec<u8>,
+    pub stop_reason: LocalGenerationStopReason,
+}
+
+impl WindowedGeometricGenerationReportV1 {
+    pub fn canonical_bytes(&self) -> Result<Vec<u8>, LocalGeometricGenerationError> {
+        Ok(serde_json::to_vec(self)?)
+    }
+}
 
 #[derive(Debug)]
 pub enum LocalGeometricGenerationError {
@@ -369,6 +410,138 @@ impl LocalGeometricGenerator {
 
     pub fn attention_manifest_kappa(&self) -> &str {
         self.attention.manifest_kappa()
+    }
+
+    /// Generate with a separately configured causal working set. A 512-unit
+    /// prompt and a 32-unit window are valid: all prompt routes update the exact
+    /// cumulative frame, and only the latest 32 earlier prefix keys remain.
+    /// Output length is governed by `continuation_cap` and typed termination,
+    /// independently of context size. This host API allocates codec/output
+    /// diagnostics and does not claim an allocation-free runtime.
+    pub fn generate_with_context(
+        &self,
+        prompt: &[u8],
+        control: LocalGenerationControl,
+        continuation_cap: usize,
+        context: PathAttentionContextV1,
+    ) -> Result<WindowedGeometricGenerationReportV1, LocalGeometricGenerationError> {
+        if continuation_cap == 0 {
+            return Err(LocalGeometricGenerationError::Invalid(
+                "continuation cap must be at least one lexical unit".to_owned(),
+            ));
+        }
+        let encoded = self.codec.encode(0, 0, prompt)?;
+        if self.codec.decode(&encoded)? != prompt || !encoded.trailing_bytes.is_empty() {
+            return Err(LocalGeometricGenerationError::Invalid(
+                "windowed prompt must round-trip exactly and have no trailing whitespace"
+                    .to_owned(),
+            ));
+        }
+        let prompt_units = encoded.units.len();
+        if prompt_units < LOCAL_GEOMETRIC_GENERATION_MIN_PROMPT_UNITS {
+            return Err(LocalGeometricGenerationError::Invalid(
+                "windowed prompt requires at least two canonical lexical units".to_owned(),
+            ));
+        }
+        let total = prompt_units.checked_add(continuation_cap).ok_or_else(|| {
+            LocalGeometricGenerationError::Invalid("prompt plus output count overflows".to_owned())
+        })?;
+        if u32::try_from(total).is_err() {
+            return Err(LocalGeometricGenerationError::Invalid(
+                "prompt plus output exceeds the u32 observed-route counter".to_owned(),
+            ));
+        }
+
+        // Stream route addresses; do not materialize an additional full-history
+        // address vector or rebuild earlier folds for each prompt token.
+        let first = self.address_for_unit(encoded.units[0].unit_id)?;
+        let mut state =
+            self.attention
+                .windowed_path_state_from_history(&[first], &self.h4_table, context)?;
+        for unit in &encoded.units[1..] {
+            self.attention
+                .observe_windowed_path(&mut state, self.address_for_unit(unit.unit_id)?)?;
+        }
+        let last_unit = &encoded.units[prompt_units - 1];
+        let last_address = self.address_for_unit(last_unit.unit_id)?;
+        let last_value = self.invert_address(&last_address)?;
+        verify_unit_binding(last_unit.unit_id, &last_address, &last_value)?;
+        let mut renderer = BoundaryRenderer {
+            previous: Some(classify_boundary(&last_value.payload_bytes)?),
+        };
+        let mut steps = Vec::new();
+        let mut emitted_lexical_unit_ids = Vec::new();
+        let mut continuation_bytes = Vec::new();
+        let mut stop_reason = LocalGenerationStopReason::ContinuationCap;
+        for step_index in 0..continuation_cap {
+            let trace = self
+                .attention
+                .select_windowed_path_or_abstain(&state, control.path_control())?;
+            let mut selected_lexical_unit_id = None;
+            let mut selected_payload_bytes = None;
+            let mut selected_cost = None;
+            let mut terminal = false;
+            let mut cycle = None;
+            if let Some(selected) = &trace.selected {
+                let value = self.invert_address(&selected.next)?;
+                verify_unit_binding(value.lexical_unit_id, &selected.next, &value)?;
+                let boundary = classify_boundary(&value.payload_bytes)?;
+                let mut rendered = renderer.boundary_before(boundary);
+                rendered.extend_from_slice(&value.payload_bytes);
+                // Selection and exact decoding precede every observation.
+                self.attention
+                    .observe_windowed_path(&mut state, selected.next.clone())?;
+                emitted_lexical_unit_ids.push(value.lexical_unit_id);
+                continuation_bytes.extend_from_slice(&rendered);
+                renderer.observe(boundary);
+                terminal = boundary.is_terminal_punctuation();
+                cycle = short_cycle_period(&emitted_lexical_unit_ids);
+                selected_lexical_unit_id = Some(value.lexical_unit_id);
+                selected_payload_bytes = Some(value.payload_bytes);
+                selected_cost = Some(selected.cost);
+            }
+            steps.push(WindowedGenerationStepV1 {
+                step_index,
+                observed_routes_before: trace.observed_routes,
+                observed_routes_after: state.observed_routes(),
+                first_retained_prefix_index: trace.first_retained_prefix_index,
+                memory: trace.memory,
+                candidate_count: trace.candidates.len(),
+                path_geometry_evaluations: trace.path_geometry_evaluations,
+                group_table_lookups: trace.group_table_lookups,
+                selected_lexical_unit_id,
+                selected_payload_bytes,
+                selected_cost,
+                tie: trace.tie,
+                abstained: trace.abstained,
+            });
+            if trace.abstained {
+                stop_reason = LocalGenerationStopReason::Abstained { tie: trace.tie };
+                break;
+            }
+            if terminal {
+                stop_reason = LocalGenerationStopReason::TerminalPunctuation;
+                break;
+            }
+            if let Some(period) = cycle {
+                stop_reason = LocalGenerationStopReason::ShortCycle { period };
+                break;
+            }
+        }
+        Ok(WindowedGeometricGenerationReportV1 {
+            schema: 1,
+            domain: "uor-r4.windowed-geometric-generation/1".to_owned(),
+            artifact_manifest_kappa: self.artifact.manifest_kappa().to_owned(),
+            attention_manifest_kappa: self.attention.manifest_kappa().to_owned(),
+            context,
+            control,
+            prompt_units,
+            continuation_cap,
+            steps,
+            emitted_lexical_unit_ids,
+            continuation_bytes,
+            stop_reason,
+        })
     }
 
     /// Generate at most `continuation_cap` lexical units. The prompt must

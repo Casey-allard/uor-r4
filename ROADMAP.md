@@ -1,58 +1,21 @@
 # Roadmap
 
-**Active track (2026-09-04):** The earlier artifact-only generation target was
-a mechanical checkpoint. It is complete, but it is not architectural alpha,
-product alpha, or release readiness. The exact definitions, research-reservoir
-rules, and evidence boundaries live in the
-[active project track](docs/integration/project-track.md). The machine policy is
-`build_first_architectural_alpha`.
+The [native geometric AI plan](docs/integration/project-track.md) is the sole
+current goal and development plan. The [current implementation](docs/integration/current-state.md)
+records active work under [#973](https://github.com/UOR-Foundation/uor-r4/issues/973).
+Live GitHub owns issue status. Do not copy a changing “next stage” here.
 
-## Project sequence
+The owner-directed destination is Rust preparation/training/artifact/inference,
+with primary prime/zeta/R4 mechanisms and learned geometric operators, serving
+through bounded state, routing and integer/table lookup. Both
+conversation/memory and coding/reasoning must earn alpha. Development may use
+matrix multiplication in Rust training and meaningful configurable learning
+windows within a cumulative machine budget. Historical fixed stage, window and
+retry rules do not govern this recovery.
 
-1. **Fixed recurrent geometric memory — implemented mechanical checkpoint.**
-   `R4FixedRecurrentCausalKVBindingV1` replaces the 120-slot full K/V cache
-   with eight exact live records and four H4-local summary banks. Its 9,216-byte
-   f32 K/V state is constant. The no-fit two-prompt comparison executed and
-   read summaries after eviction; quality and long-context retention remain
-   unestablished.
-2. **Sparse geometric attention — next.** Implement bounded
-   geometry-selected candidates and a bounded read operator without scanning
-   the complete prefix. Compare against the accepted causal Q/K/V reference.
-3. **Nonlinear geometric block.** Replace dense SwiGLU/MLP intelligence with a
-   versioned R4 operator or separately typed E8/R8 operator bank and a measured
-   nonlinear state transition.
-4. **Scale, data, and instruction behavior.** Grow the bounded architecture and
-   train on open development data until useful language, instruction,
-   retention, and composition are measured.
-5. **Retrieval and tools.** Add typed retrieval, ambiguity/refusal, real tool
-   execution, feedback, and result ingestion.
-6. **Representative product alpha.** Exercise grounding/abstention,
-   composition, identity memory, coding, and tools through one local workbench.
-7. **Rust/table lowering and optimization.** Preserve accepted behavior through
-   the packed Rust runtime, then remove remaining float, multiply, allocation,
-   and unbounded serving work.
-8. **Release proof, evidence, and QA.** Reconcile proofs, claims, negative
-   results, resources, portability, security, broad QA, scorecards, and
-   publication against the actual release candidate.
-
-[#973](https://github.com/UOR-Foundation/uor-r4/issues/973) owns the current
-model track. #954 and the older capability chain remain historical issue
-structure, not a proof queue between build stages. The #1107 workbench source
-remains an unbuilt historical candidate; it returns when the model reaches the
-product-alpha stage.
-
-SpiralCore, HELM, W33, NEMESIS, UOR ecosystem work, and H4/zeta research are
-on-demand donor reservoirs. SpiralCore's finite labelled E8 transitions may
-inform sparse operator routing, and its typed state/refusal/table discipline may
-inform contracts, but the attached browser implementation is not measured UOR
-attention, recurrent memory, nonlinear model execution, tool use, or Rust/table
-lowering. H4/R4 and E8/R8 remain typed separately.
-
-Negative results retain their exact historical scope. A materially versioned
-successor may re-enter with a named change and reason; `UNAVAILABLE` is not
-model evidence. Bounded open-data development may iterate, while final held-out
-evaluation and broad release evidence wait until design selection and release
-candidate respectively.
+The completed measurements below remain evidence at their stated scope. They
+do not select a current action or imply alpha, source-free general capability,
+or a successful port of a Python reference.
 
 ## Historical roadmap
 

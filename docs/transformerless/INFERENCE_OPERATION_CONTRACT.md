@@ -1,9 +1,10 @@
 # Inference Operation Contract (Normative)
 
 > **Preserved runtime boundary.** “Normative” below is scoped to the named
-> TLA/R4G1 deployed hot paths. This is not yet the operation contract for the
-> route-native geometric-intelligence engine; that contract is scheduled only
-> after working behavior. See the [documentation map](../README.md).
+> TLA/R4G1 deployed hot paths. The same operation-set target applies to the new
+> native geometric model's state-update and prediction kernel. Qualification
+> of a new kernel requires its own evidence; the historical TLA/R4G1 checks do
+> not certify it. See the [current project plan](../integration/project-track.md).
 
 - **Version:** 0.2.0
 - **Status:** Normative for deployed inference hot paths
@@ -73,6 +74,23 @@ This contract does **not** restrict:
 - test-only reference implementations outside the production inference path.
 
 Compilation and training are explicitly unrestricted by this contract.
+
+The native model is prepared, trained, compiled and served in Rust. Training
+may use matrix multiplication and floating point. Learned geometric operators,
+learned table contents, bounded routing and finite state transitions are valid
+product mechanisms. Expressing an operator mathematically as a matrix does
+not disqualify its finite geometric implementation. A general dense matrix
+product or transformer forward pass remains forbidden in the deployed kernel,
+including when individual products are replaced with lookup arithmetic.
+
+Native recovery clarification (2026-09-04; no change to the TLA/R4G1 operation
+set or packed contract version): for `native_geometric`, the proposed kernel
+boundary is `Session::observe`
+and `Session::predict`; session construction, tokenization, artifact loading,
+training, evaluation statistics and output rendering are host activities.
+The canonical source-arithmetic guard and allocation tests cover only the explicitly measured
+boundary. Machine-code operation certification, platform parity and any
+broader release claim remain separate work until performed.
 
 Note (non-normative cross-reference, #602 and #704): the source attention
 operator specifications in `uor-r4-model-source::attention` are host-side

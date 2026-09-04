@@ -6,14 +6,15 @@
 //! It accepts only accumulated causal state; there is no future-route input.
 
 use std::cmp::Reverse;
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::num::NonZeroU16;
+use std::sync::Arc;
 
 use serde::Serialize;
 
 use crate::canonical_lexical_ingestion::{
     h4_leaf_state_for_address, validate_ordered_h4_table_exact, CanonicalLexicalError,
-    H4BinaryIcosahedralClosure, H4RootCoordinate, OrderedH4FoldState,
+    H4BinaryIcosahedralClosure, H4RootCoordinate, OpaqueH4TableIndex, OrderedH4FoldState,
 };
 use crate::prime_route_attention::{
     zeta_phase_delta, CandidateRow, CompiledSpinManifest, GeometricAddress, OrderedRouteKappa,
@@ -51,6 +52,125 @@ pub const LOCAL_CONTEXT_PLACEMENT_MAX_PROTOTYPES_PER_CANDIDATE: usize = 4;
 /// products rather than a digest so every earlier route can participate in
 /// candidate-relative path closure.
 pub const LOCAL_PATH_ATTENTION_MAX_UNITS: usize = 8;
+
+/// Maximum retained prefix keys in the versioned sliding-context API. This is
+/// a working-set limit, not a prompt, generation, vocabulary, or store limit.
+pub const WINDOWED_PATH_ATTENTION_MAX_UNITS: usize = 4096;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub struct PathAttentionContextV1 {
+    window_units: usize,
+}
+
+impl PathAttentionContextV1 {
+    pub fn new(window_units: usize) -> Result<Self, GeometricAttentionError> {
+        if !(1..=WINDOWED_PATH_ATTENTION_MAX_UNITS).contains(&window_units) {
+            return Err(GeometricAttentionError::Invalid(format!(
+                "path context must retain 1..={WINDOWED_PATH_ATTENTION_MAX_UNITS} prefix keys"
+            )));
+        }
+        Ok(Self { window_units })
+    }
+
+    pub const fn window_units(self) -> usize {
+        self.window_units
+    }
+}
+
+impl Default for PathAttentionContextV1 {
+    fn default() -> Self {
+        Self {
+            window_units: LOCAL_PATH_ATTENTION_MAX_UNITS,
+        }
+    }
+}
+
+/// The variable-size prefix buffer only. The immutable model/table, fixed
+/// causal metadata and strings, and caller-owned diagnostic reports are not
+/// included. `allocated_prefix_bytes` reports actual VecDeque capacity.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub struct PathContextMemoryV1 {
+    pub configured_prefix_keys: usize,
+    pub retained_prefix_keys: usize,
+    pub prefix_payload_bytes: usize,
+    pub allocated_prefix_bytes: usize,
+    pub current_fold_bytes: usize,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+pub struct WindowedPathLeaseCostV1 {
+    pub angular_shell: H4S3AngularShell,
+    pub lease_age: u16,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WindowedPathLeaseCandidateV1 {
+    pub next: GeometricAddress,
+    pub source_counts: AttentionSourceCounts,
+    /// Absolute observed-prefix index, not an index in the sliding buffer.
+    pub best_prefix_index: u32,
+    pub cost: WindowedPathLeaseCostV1,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WindowedPathLeaseAttentionTraceV1 {
+    pub observed_routes: u32,
+    pub first_retained_prefix_index: u32,
+    pub memory: PathContextMemoryV1,
+    pub path_geometry_evaluations: usize,
+    /// One candidate append, then inverse + product per retained key.
+    pub group_table_lookups: usize,
+    pub support: AttentionSupportTrace,
+    pub candidates: Vec<WindowedPathLeaseCandidateV1>,
+    pub minimum_cost: Option<WindowedPathLeaseCostV1>,
+    pub tie: bool,
+    pub abstained: bool,
+    pub selected: Option<WindowedPathLeaseCandidateV1>,
+}
+
+/// Exact cumulative ordered H4 state with a bounded window of earlier prefix
+/// keys. Eviction drops a key, never resets the cumulative frame. No complete
+/// prompt is retained or rescanned. Selection is O(candidates * window), while
+/// an observation uses one group composition and at most one queue eviction.
+/// The exact table is validated once and privately owned to prevent mutation.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WindowedCausalPathAttentionStateV1 {
+    causal: CausalAttentionState,
+    context: PathAttentionContextV1,
+    table: Arc<H4BinaryIcosahedralClosure>,
+    angular_shells: Arc<[H4S3AngularShell]>,
+    current: OrderedH4FoldState,
+    prefix_keys: VecDeque<OrderedH4FoldState>,
+}
+
+impl WindowedCausalPathAttentionStateV1 {
+    pub fn observed_routes(&self) -> u32 {
+        self.causal.observed_routes()
+    }
+
+    pub fn fold_state(&self) -> OrderedH4FoldState {
+        self.current
+    }
+
+    pub fn first_retained_prefix_index(&self) -> u32 {
+        self.observed_routes() - self.prefix_keys.len() as u32
+    }
+
+    pub fn retained_prefix_states(&self) -> impl ExactSizeIterator<Item = &OrderedH4FoldState> {
+        self.prefix_keys.iter()
+    }
+
+    pub fn memory(&self) -> PathContextMemoryV1 {
+        let fold_bytes = std::mem::size_of::<OrderedH4FoldState>();
+        PathContextMemoryV1 {
+            configured_prefix_keys: self.context.window_units,
+            retained_prefix_keys: self.prefix_keys.len(),
+            prefix_payload_bytes: self.prefix_keys.len() * fold_bytes,
+            allocated_prefix_bytes: self.prefix_keys.capacity() * fold_bytes,
+            current_fold_bytes: fold_bytes,
+        }
+    }
+}
 
 // round(pi * 2^29) and round(2*pi * 2^29), fixed by the manifest's Q29 chart.
 const PHASE_HALF_Q29: i64 = 1_686_629_713;
@@ -933,6 +1053,175 @@ impl GeometricAttentionArtifact {
         }
         self.validate_observed_address(observed_route)?;
         state.observe(observed_route, table)
+    }
+
+    /// Stream an observed history into a versioned sliding working set. Unlike
+    /// the historical eight-unit API, history length may exceed context size.
+    pub fn windowed_path_state_from_history(
+        &self,
+        history: &[GeometricAddress],
+        table: &H4BinaryIcosahedralClosure,
+        context: PathAttentionContextV1,
+    ) -> Result<WindowedCausalPathAttentionStateV1, GeometricAttentionError> {
+        validate_ordered_h4_table_exact(table).map_err(ordered_h4_error)?;
+        let first = history.first().ok_or_else(|| {
+            GeometricAttentionError::Invalid("windowed path requires an observed route".to_owned())
+        })?;
+        self.validate_observed_address(first)?;
+        let identity = OrderedH4FoldState::identity(table).map_err(ordered_h4_error)?;
+        let current = h4_leaf_state_for_address(first, table).map_err(ordered_h4_error)?;
+        // Lower the exact signed-coordinate relation once. The legacy root
+        // coordinate helper clones the root table; a windowed comparison must
+        // not allocate/copy that table once per candidate/key pair.
+        let angular_shells = (0..table.root_count)
+            .map(|offset| {
+                let index = u16::try_from(offset)
+                    .ok()
+                    .and_then(|offset| OpaqueH4TableIndex::from_table_offset(offset, table))
+                    .ok_or(GeometricAttentionError::ArithmeticOverflow)?;
+                let root =
+                    OrderedH4FoldState::from_table_index(index, table).map_err(ordered_h4_error)?;
+                h4_s3_angular_shell(root, table)
+            })
+            .collect::<Result<Vec<_>, GeometricAttentionError>>()?;
+        let mut prefix_keys = VecDeque::with_capacity(context.window_units);
+        prefix_keys.push_back(identity);
+        let mut state = WindowedCausalPathAttentionStateV1 {
+            causal: self.causal_state(first.clone())?,
+            context,
+            table: Arc::new(table.clone()),
+            angular_shells: angular_shells.into(),
+            current,
+            prefix_keys,
+        };
+        for observed in &history[1..] {
+            self.observe_windowed_path(&mut state, observed.clone())?;
+        }
+        Ok(state)
+    }
+
+    /// Read-before-write append. Validation and fallible arithmetic complete
+    /// before the queue changes. The immutable table is already validated;
+    /// neither the table nor the complete prefix is rescanned here.
+    pub fn observe_windowed_path(
+        &self,
+        state: &mut WindowedCausalPathAttentionStateV1,
+        observed: GeometricAddress,
+    ) -> Result<(), GeometricAttentionError> {
+        self.validate_state_binding(&state.causal)?;
+        self.validate_observed_address(&observed)?;
+        let leaf = h4_leaf_state_for_address(&observed, &state.table).map_err(ordered_h4_error)?;
+        let next = state
+            .current
+            .compose(leaf, &state.table)
+            .map_err(ordered_h4_error)?;
+        state.causal.observe(observed)?;
+        if state.prefix_keys.len() == state.context.window_units {
+            state.prefix_keys.pop_front();
+        }
+        state.prefix_keys.push_back(state.current);
+        state.current = next;
+        Ok(())
+    }
+
+    /// Select from the unchanged natural schema-2 support using at most the
+    /// configured number of causal prefix keys per candidate. This API has no
+    /// prompt-plus-output guard; the rolling context is independent of output
+    /// length. It is an allocating research/host API, not a certified kernel.
+    pub fn select_windowed_path_or_abstain(
+        &self,
+        state: &WindowedCausalPathAttentionStateV1,
+        control: PathLeaseControl,
+    ) -> Result<WindowedPathLeaseAttentionTraceV1, GeometricAttentionError> {
+        self.validate_state_binding(&state.causal)?;
+        if state.observed_routes() < 2 {
+            return Err(GeometricAttentionError::Invalid(
+                "path-lease selection requires at least two observed routes".to_owned(),
+            ));
+        }
+        let support = self.query_support_only(&state.causal)?;
+        let table = &state.table;
+        let identity = OrderedH4FoldState::identity(table).map_err(ordered_h4_error)?;
+        let memory = state.memory();
+        let comparisons = support
+            .candidates
+            .len()
+            .checked_mul(memory.retained_prefix_keys)
+            .ok_or(GeometricAttentionError::ArithmeticOverflow)?;
+        let group_table_lookups = comparisons
+            .checked_mul(2)
+            .and_then(|count| count.checked_add(support.candidates.len()))
+            .ok_or(GeometricAttentionError::ArithmeticOverflow)?;
+        let first_index = state.first_retained_prefix_index();
+        let last_key = *state.prefix_keys.back().ok_or_else(|| {
+            GeometricAttentionError::Invalid("windowed path has no retained key".to_owned())
+        })?;
+        let mut candidates = Vec::with_capacity(support.candidates.len());
+        for admitted in &support.candidates {
+            let leaf =
+                h4_leaf_state_for_address(&admitted.next, table).map_err(ordered_h4_error)?;
+            let base = if control == PathLeaseControl::StateDisabled {
+                identity
+            } else {
+                state.current
+            };
+            let query = base.compose(leaf, table).map_err(ordered_h4_error)?;
+            let mut best: Option<(WindowedPathLeaseCostV1, u32)> = None;
+            for (offset, retained) in state.prefix_keys.iter().enumerate() {
+                let (key, index, age) = match control {
+                    PathLeaseControl::FullPath => {
+                        let index = first_index + offset as u32;
+                        (*retained, index, state.observed_routes() - index + 1)
+                    }
+                    PathLeaseControl::LastOnly => (last_key, state.observed_routes() - 1, 2),
+                    PathLeaseControl::StateDisabled => (identity, 0, 1),
+                };
+                let relative = key
+                    .inverse(table)
+                    .and_then(|inverse| inverse.compose(query, table))
+                    .map_err(ordered_h4_error)?;
+                let cost = WindowedPathLeaseCostV1 {
+                    angular_shell: state.angular_shells
+                        [usize::from(relative.table_index().table_offset())],
+                    lease_age: u16::try_from(age)
+                        .map_err(|_| GeometricAttentionError::ArithmeticOverflow)?,
+                };
+                if best.is_none_or(|(previous, _)| cost < previous) {
+                    best = Some((cost, index));
+                }
+            }
+            let (cost, best_prefix_index) = best.ok_or_else(|| {
+                GeometricAttentionError::Invalid("windowed candidate has no comparison".to_owned())
+            })?;
+            candidates.push(WindowedPathLeaseCandidateV1 {
+                next: admitted.next.clone(),
+                source_counts: admitted.source_counts,
+                best_prefix_index,
+                cost,
+            });
+        }
+        candidates.sort_by(|left, right| (&left.cost, &left.next).cmp(&(&right.cost, &right.next)));
+        let minimum_cost = candidates.first().map(|candidate| candidate.cost);
+        let minimum_count = minimum_cost.map_or(0, |cost| {
+            candidates
+                .iter()
+                .filter(|candidate| candidate.cost == cost)
+                .count()
+        });
+        let selected = (minimum_count == 1).then(|| candidates[0].clone());
+        Ok(WindowedPathLeaseAttentionTraceV1 {
+            observed_routes: state.observed_routes(),
+            first_retained_prefix_index: first_index,
+            memory,
+            path_geometry_evaluations: comparisons,
+            group_table_lookups,
+            support,
+            candidates,
+            minimum_cost,
+            tie: minimum_count > 1,
+            abstained: selected.is_none(),
+            selected,
+        })
     }
 
     /// Build the bounded, exact prefix memory used by the #969 local

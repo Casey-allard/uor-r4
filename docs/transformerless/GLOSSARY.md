@@ -2,15 +2,18 @@
 
 Originally the Phase 0 graph-compiler glossary; expanded by #948 for the now-
 historical [geometric causal decoder](../geometric_causal_decoder_plan.md).
-Current sequencing lives in the
-[Geometric Intelligence Programme](../geometric_intelligence_programme.md),
-and the latest terminal #973 mechanism is
-[`R4PredictiveBlockDeltaBindingV1`](../r4_predictive_block_delta_binding_prompt_capacity_973.md).
-ADR-0005 remains the historical mechanism-family record.
+Current architecture and development live in the
+[native geometric AI plan](../integration/project-track.md); the
+[implementation pointer](../integration/current-state.md) names actual model
+work. The [native workflow](../native_geometric_workflow.md) describes the
+Rust data, training, artifact and inference path. Dated mechanism entries below
+retain their mathematical definitions and measured scope. Their earlier
+"current", "next" and stage instructions do not select new work.
+ADR-0005 remains a historical mechanism-family record.
 Decoder terms and graph terms name different execution lanes and must not be
 substituted for one another.
 
-## Active geometric-decoder terms
+## Geometric model and reference terms
 
 ### Canonical geometric-intelligence vocabulary
 
@@ -568,9 +571,17 @@ substituted for one another.
   bounded state into token probabilities or a selected next token, update
   state, and eventually decode bytes. Reachable attention is one input to
   inference; it is not coherent generation by itself.
-- **Geometric-intelligence sequence** — lexical ingestion, canonical
-  serialization, and address membership are prerequisite plumbing. The current
-  delivery order is the established source-free table-native lexical baseline
+- **Geometric-intelligence sequence** — development ordering and dependencies
+  are maintained in the [canonical plan](../integration/project-track.md),
+  with actual progress in [current-state.md](../integration/current-state.md).
+  Both conversation/memory and coding/reasoning remain required alpha goals;
+  a glossary entry does not establish a separate stage gate or postpone Rust
+  implementation. Representation and correct state updates do not alone
+  demonstrate useful learned behavior.
+- **Historical geometric-intelligence sequence (through 2026-09-01)** —
+  lexical ingestion, canonical serialization, and address membership were
+  prerequisite plumbing. The then-recorded delivery order was the established
+  source-free table-native lexical baseline
   (B0/#989), then exactly one #953 geometric intervention under the same
   corpus, support, decode, and work budget; paragraph, conversation, and
   global exact-spin operator qualification through that loop, followed by the
@@ -619,7 +630,9 @@ substituted for one another.
   correctness with abstention (#954); then bounded hypothetical-branch reasoning
   (#955). #969, #983, and #986 remain evidence provenance rather than a
   parallel implementation queue.
-  Evidence may not skip a stage or count prerequisite plumbing as inference.
+  That sequence required evidence not to skip a stage or count prerequisite
+  plumbing as inference. Its stage locks are historical; the results retain
+  their original experiment-specific scope.
 - **Correctness** — agreement with an independent task oracle, executable
   constraint, cited source, or other predeclared ground truth, reported with
   coverage and abstention. Teacher agreement, grammatical output, and exact

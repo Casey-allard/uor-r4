@@ -35,6 +35,11 @@
 #[cfg(feature = "learned-reference")]
 pub mod learned_reference;
 
+/// Native geometric model construction, fitting, artifact loading and sessions.
+/// This development API runs the same Rust model used by `r4 geometric`;
+/// it is not an alpha capability or historical R4G1 certification claim.
+pub use uor_r4_core::native_geometric;
+
 #[cfg(feature = "full")]
 pub mod capability_suite;
 #[cfg(feature = "full")]

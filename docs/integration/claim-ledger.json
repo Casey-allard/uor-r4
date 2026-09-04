@@ -2,6 +2,7 @@
   "schema": "uor-r4.claim-ledger/1",
   "repository": "UOR-Foundation/uor-r4",
   "source_revision": "9cbc14c43248bed9f04b099282f12f866253b115",
+  "authority_note": "Historical evidence remains bound to each recorded revision. Historical next_action/current_stage fields below describe those experiments only. New work follows docs/integration/project-track.md and docs/integration/current-state.md under the owner-directed native geometric recovery of 2026-09-04.",
   "vocabulary": {
     "source": "formal_vocabulary",
     "role": "Statement class from the normative vocabulary.",
@@ -2222,6 +2223,12 @@
     }
   },
   "current_project_track": {
+    "document": "docs/integration/project-track.md",
+    "implementation_pointer": "docs/integration/current-state.md",
+    "status": "NATIVE_GEOMETRIC_AI_DEVELOPMENT",
+    "alpha_claim": false
+  },
+  "historical_project_track_before_native_recovery": {
     "document": "docs/integration/project-track.md",
     "revision": "9cbc14c43248bed9f04b099282f12f866253b115",
     "status": "BUILD_FIRST_ARCHITECTURAL_ALPHA",

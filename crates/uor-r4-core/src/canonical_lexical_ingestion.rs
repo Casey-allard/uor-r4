@@ -2771,7 +2771,20 @@ fn icosian_coordinate(
     let selected_h4_root_index = usize::try_from(atom.value())
         .map_err(|_| CanonicalLexicalError::ArithmeticOverflow)?
         % root_count;
-    let root = profile.h4_root_table.roots[selected_h4_root_index];
+    icosian_coordinate_at_index(selected_h4_root_index, profile)
+}
+
+fn icosian_coordinate_at_index(
+    selected_h4_root_index: usize,
+    profile: &IcosianProfile,
+) -> Result<IcosianCoordinateWitness, CanonicalLexicalError> {
+    let root = *profile
+        .h4_root_table
+        .roots
+        .get(selected_h4_root_index)
+        .ok_or_else(|| {
+            CanonicalLexicalError::Invalid("icosian root index is out of range".to_owned())
+        })?;
     let mut e8_basis_coordinates = [0i64; 8];
     let mut h4 = [0i64; 4];
     let mut phi_h4 = [0i64; 4];
@@ -2832,6 +2845,65 @@ fn icosian_coordinate(
     };
     witness.coordinate_kappa = icosian_coordinate_kappa(&witness)?;
     Ok(witness)
+}
+
+/// Compiler-side view of the existing golden-coupled coefficient convention.
+/// The eight integers are coefficients in the declared Z-basis, not coordinates
+/// in an asserted orthogonal Euclidean E8 root system.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct CanonicalIcosianAnchor {
+    pub root_index: u16,
+    pub root_scaled_zphi: [[i64; 2]; 4],
+    pub paired_coefficients: [i64; 8],
+    pub phi_galois_companion: [[i64; 2]; 4],
+    pub root_norm_squared: [i64; 2],
+    pub coordinate_kappa: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct CanonicalIcosianAnchorTable {
+    pub profile_kappa: String,
+    pub operator_table_kappa: String,
+    pub rows: Vec<CanonicalIcosianAnchor>,
+}
+
+/// Reuse the established profile and inverse witnesses at the caller's exact
+/// root indices. This does not apply the historical prime-to-root assignment
+/// or import the bounded canonical-ingestion corpus contract.
+pub(crate) fn canonical_icosian_anchor_table(
+    table: &H4BinaryIcosahedralClosure,
+) -> Result<CanonicalIcosianAnchorTable, CanonicalLexicalError> {
+    validate_ordered_h4_table_exact(table)?;
+    let profile = fixed_icosian_profile()?;
+    if profile.h4_root_table.table_kappa != table.h4_root_table_kappa
+        || profile.h4_root_table.roots.len() != table.root_count
+    {
+        return Err(CanonicalLexicalError::Invalid(
+            "icosian anchor profile and H4 table disagree".to_owned(),
+        ));
+    }
+    let mut rows = Vec::with_capacity(table.root_count);
+    for index in 0..table.root_count {
+        let witness = icosian_coordinate_at_index(index, &profile)?;
+        if !witness.inverse_exact {
+            return Err(CanonicalLexicalError::Invalid(
+                "icosian anchor has no exact inverse witness".to_owned(),
+            ));
+        }
+        rows.push(CanonicalIcosianAnchor {
+            root_index: witness.selected_h4_root_index,
+            root_scaled_zphi: witness.zphi_quaternion.map(|value| [value.a, value.b]),
+            paired_coefficients: witness.e8_basis_coordinates,
+            phi_galois_companion: witness.phi_galois_companion.map(|value| [value.a, value.b]),
+            root_norm_squared: [witness.turyn_norm_zphi.a, witness.turyn_norm_zphi.b],
+            coordinate_kappa: witness.coordinate_kappa,
+        });
+    }
+    Ok(CanonicalIcosianAnchorTable {
+        profile_kappa: profile.profile_kappa,
+        operator_table_kappa: profile.operator_table.table_kappa,
+        rows,
+    })
 }
 
 fn icosian_coordinate_kappa(

@@ -22,6 +22,7 @@ pub mod h4_spin_frame_sidecar;
 pub mod helm_d_r4_attention;
 pub mod higher_scope_geometric_attention;
 pub mod local_geometric_generation;
+pub mod native_geometric;
 pub mod paragraph_entity_spin_path_attention;
 pub mod prime_route_attention;
 pub mod prime_route_geometric_attention;

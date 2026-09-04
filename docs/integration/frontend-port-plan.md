@@ -1,7 +1,8 @@
 # Proposed product boundary and component transfer
 
-Status: parked architecture reference. Product-interface work resumes at stage
-6, representative product alpha, unless the owner explicitly reprioritizes it.
+Status: historical component-transfer reference. Current integration follows
+the [native geometric AI plan](project-track.md) and
+[current implementation](current-state.md); the old stage-six stop is superseded.
 
 **Historical checkpoint (2026-09-04):**
 [#1105](https://github.com/UOR-Foundation/uor-r4/issues/1105), a closed contract
@@ -14,9 +15,9 @@ shell. [#1107](../r4_workbench_candidate_1107.md) adds candidate source for that
 crate, worker, private comparison entry and shell and freezes it as
 `WORKBENCH_CANDIDATE_SOURCE_FROZEN_UNBUILT`. Compilation, tests, model
 operations, HTTP/service execution, browser acceptance, portability and
-qualification were not run at that checkpoint. The superseding
-[`build_first_architectural_alpha`](agent-execution-policy.md) policy permits execution,
-but #1084 remains parked while #973 is active.
+qualification were not run at that checkpoint. The current
+[native execution policy](agent-execution-policy.md) permits execution,
+and live GitHub/current-state.md select its actual priority.
 
 ## Decision
 

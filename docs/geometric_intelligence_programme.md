@@ -1,66 +1,45 @@
 # Geometric Intelligence Programme
 
-**Active programme direction (2026-09-04):** The canonical sequence is the
-[active project track](integration/project-track.md) under
-`build_first_architectural_alpha`:
+**Owner-directed architecture recovery (2026-09-04):** The
+[native geometric AI plan](integration/project-track.md) owns current goals and
+development. The [current implementation](integration/current-state.md) is the
+only changing task pointer. Rust owns preparation, training, artifacts and
+inference; primes, fixed-zeta phases and R4/S3/H4 are primary mechanisms, along
+with exact `Z[phi]`/orientation, the typed paired-H4/icosian bridge and UOR
+identity. Training may use matrix multiplication to learn geometric operators;
+final serving executes bounded geometric state/routing/integer-table operations.
 
-1. fixed recurrent geometric memory;
-2. sparse geometric attention;
-3. nonlinear geometric block;
-4. scale, data, and instruction behavior;
-5. retrieval and tools;
-6. representative product alpha;
-7. Rust/table lowering and optimization;
-8. release proof, evidence, and QA.
+This document supplies architecture vocabulary and preserved research evidence.
+Architectural priority and demonstrated predictive contribution are distinct:
+retain exact negative results without treating them as a ban on all prime/zeta
+or geometric designs. External programmes are optional research sources; the
+core mechanism is not an optional donor. No current alpha claim follows from
+this restoration.
 
-The old artifact-only pre-alpha exit is a completed mechanical checkpoint, not
-a working model or product. The fixed recurrent H4 memory successor has now
-executed with eight exact live K/V records and four summary banks at a constant
-9,216 f32 K/V bytes. It read summaries after eviction and diverged from the
-full-cache comparator after 12 generated tokens on both
-`A purple turtle found a clock in the garden` and
-`Albert Einstein was born in`. That is measured mechanism behavior only. Sparse geometric
-attention is next.
-
-Research lines are donor reservoirs consulted for an unresolved implementation
-choice. SpiralCore contributes candidate finite-state, refusal, table, and E8
-transition-graph patterns; HELM contributes causal comparator semantics; W33,
-NEMESIS, UOR, and H4/zeta work contribute typed constructions and hypotheses.
-None transfers a capability claim without an implemented UOR seam and direct
-measurement. Keep H4/R4 and E8/R8 typed separately.
-
-Negative results below remain binding for their exact artifact, data,
-operator, controls, budget, and decision. They do not ban a materially
-versioned successor that names its change and rationale. `UNAVAILABLE` is not
-model evidence. Broad formalization, ledgers, publication, research mapping,
-and QA are release-candidate work unless a current implementation decision
-needs a specific result.
-
-The historical programme sections below preserve their original measurements,
-architecture, and vocabulary. Their next-action prose does not override the
-active sequence.
-
-- **Status:** Architecture and evidence companion to the
-  [R4 Intelligence Completion Plan](r4_intelligence_completion_plan.md)
-- **Current state:** [programme map](integration/current-state.md)
-- **Historical measurements:** [Research ledger](RESEARCH.md)
-- **Current implementation owner:** [#973](https://github.com/UOR-Foundation/uor-r4/issues/973)
+The architecture invariants below remain design references where consistent
+with the owner-directed plan. Dated results, stage orders, hard stops and
+“current/next” passages record their original experiments only. In particular,
+old Python-first sequencing, 15-minute/one-retry rules and narrow frozen windows
+do not govern new native development. Preserve all measured results and their
+scope; consult the plan for practical iteration and both alpha capabilities.
 
 ## Purpose
 
 UOR-R4 is building geometric intelligence for ordinary local machines. The
-serving engine is intended to generate, infer, and reason by following
-content-addressed geometric routes, not by executing a transformer, mixture of
-experts, sparse learned router, or dense matrix stack.
+serving engine is intended to generate, infer, and reason through learned
+geometric routes, state and bounded lookup. Learned sparse geometric gates are
+permitted; a dense transformer or dense expert stack behind a routing/lookup
+interface is outside the target.
 
 The research goal is frontier-like useful capability on a local CPU without
 the power, heat, and accelerator dependence of contemporary dense models.
 **Frontier-like is a target, not a current result.** The repository has not yet
-established source-free coherent chat, correctness, or reasoning; every such
-capability must be earned in the sequence below. Spherical harmonics are the
-programme's primary physical/mathematical picture for storing and transporting
-overlapping spin states: a routed state is a multichannel harmonic field, while
-R4/S3 and Hopf/S2 are bounded compute and observation charts of that field.
+established source-free coherent chat, correctness, or reasoning; each such
+capability needs actual model evidence under the canonical plan. A multichannel
+harmonic field is a proposed mathematical picture for storing and transporting
+overlapping spin states, with R4/S3 and Hopf/S2 as compute and observation charts.
+Calling an implemented operator harmonic requires its actual basis, modes and
+transition law; fixed-zeta coordinates or H4 action alone do not establish it.
 
 The central invariant is:
 
@@ -589,6 +568,12 @@ memory.
 
 ## Architecture invariants
 
+These are typed design requirements and definitions, not a declaration that
+the current native artifact implements every role. The owner-directed plan
+permits learning and testing all primary mechanisms directly. Historical
+qualification rules below limit their original claims; they do not prohibit a
+new versioned operator from using the same geometry during development.
+
 ### 1. Data is location
 
 Each lexical or semantic atom receives a registered prime. The geometric
@@ -803,12 +788,21 @@ preflight: `X=C(H,c)`, `Y=C(P_c,c)`, followed by the relative projection
 retained golden-coupled `H4 ⊕ phi H4` per-leaf serialization as another
 Cartesian root system. Both constructions remain typed and versioned.
 
-Structural presence does not authorize the paired coordinate as a semantic
-ranking feature. #969's selector uses round-S3 path closure, not the paired E8
-coordinate. The paired state remains storage, reconstruction evidence, a
-diagnostic, or a control. The optional six-prime SpiralCore chart retained by
-#958 is likewise a separate operator fixture and control; it neither satisfies
-the paired-H4/E8 storage requirement nor carries a semantic claim by itself.
+The native anchor bridge re-expresses one exact H4 root as eight integral
+coefficients and a golden/Galois companion. This is not two independently
+variable H4 factors or proof of an orthogonal Euclidean E8 root embedding.
+All unit roots have the same norm. A variable radial quantity must describe
+an actual aggregate or scale operation, with its domain and denominator named.
+
+Structural presence alone does not establish predictive usefulness. The paired
+coordinates may participate in learned native scoring and state operations;
+their contribution must be measured without claiming that an invertible view
+adds independent information. Historically, #969's selector used round-S3 path
+closure while its paired coordinate supplied storage/reconstruction evidence.
+That historical scope does not demote the required bridge in new development.
+The optional six-prime SpiralCore chart retained by #958 is a separate fixture;
+it neither satisfies the paired storage requirement nor carries a semantic
+claim by itself.
 
 ### 9. Least-cost certified chart selection
 
@@ -902,6 +896,11 @@ explicit compiled evidence with provenance. Source tensors are never serving
 geometry and are never required to answer a request.
 
 ## Recursive causal geometric attention
+
+This section preserves the #969/#953-era operator and its qualification rules.
+Its restrictions on which fields could affect that operator do not prohibit
+new native learned operators from consuming the project's primary geometry.
+Use the current implementation record for the model actually being trained.
 
 Attention is a recursive route lookup, not a Q/K dot-product approximation.
 At step `t`, only observed state and declared persistent memory may enter the
@@ -1038,8 +1037,9 @@ They are compiled from coarse current-sector to historically observed-next
 support and are not operator coefficients. Any #973 neighbor operator is built
 independently over exact classes and already-admitted candidates.
 
-No learned dense Q/K projection, softmax over a full prefix, all-corpus scan,
-MoE gate, or sparse learned router is permitted in the promoted serving path.
+No learned dense Q/K stack, softmax over a full prefix, all-corpus scan or dense
+neural expert stack is permitted in the final serving path. Learned bounded
+geometric routing and operator-selection gates are part of the native target.
 
 ### Global context coverage witness
 
@@ -2147,7 +2147,12 @@ and serving census. Formal proofs, exhaustive conformance, cross-target work,
 and broad performance campaigns are separately authorized only when they can
 change this release decision.
 
-## Testing and QA activation policy
+## Historical testing and QA activation policy (superseded)
+
+The following preserves the previous policy. Current verification and budgets
+follow [AGENTS.md](../AGENTS.md) and the
+[native project plan](integration/project-track.md); these old activation rules
+and fixed time limits do not apply to new implementation work.
 
 Testing and QA are **dormant by default**. Existing suites and historical
 certificates remain in the repository, but routine implementation does not run
@@ -2177,6 +2182,11 @@ hours remains a hard kill ceiling, never an estimate.
 
 ## Claim boundaries
 
+The experiment summaries below retain their historical artifact scope. Their
+old parked/next statuses do not select current work. The native model's actual
+evidence and missing roles are recorded in
+[current-state.md](integration/current-state.md).
+
 - #958 established a storage/recall foundation and bounded causal mechanics,
   not product attention.
 - A tokenizer is a lexical codec, not intelligence.
@@ -2185,7 +2195,8 @@ hours remains a hard kill ceiling, never an estimate.
 - Project shorthand is `E8 = H4 x H4`; its concrete implementation and
   serialization contract is the golden/Galois-coupled icosian pair
   `H4 ⊕ phi H4` with fixed basis, glue, and inverse witness.
-- Required structural/storage representation is not a semantic scoring term.
+- Required structural/storage representation alone does not establish a useful
+  semantic scoring term.
   #969 establishes only its identity-derived local path mechanism as
   load-bearing. #983 tested one construction-transferred local geometric
   mechanism on six held-out choices and stopped at 0/6 transfer before a

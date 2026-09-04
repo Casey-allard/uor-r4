@@ -1,11 +1,28 @@
 # Model lifecycle
 
-> **Status:** living lifecycle map. The route-native target comes first; the
-> source-model, TLA, and R4G1 material below is a preserved runtime/reference
-> lifecycle. Post-v0.1 sequencing authority lives in the
-> [R4 Intelligence Completion Plan](r4_intelligence_completion_plan.md);
-> architecture and claim boundaries live in the
-> [Geometric Intelligence Programme](geometric_intelligence_programme.md).
+The current model lifecycle is documented in the
+[native geometric workflow](native_geometric_workflow.md): `r4 geometric`
+uses Rust for preparation, training, artifact construction, evaluation and
+inference. The [canonical project plan](integration/project-track.md) owns the
+goal, and [current-state.md](integration/current-state.md) records what has
+actually run and what remains. Use those entry points for new model work.
+
+Rust training may use matrix operations; the final model executes learned
+geometric operators through bounded state, routing and integer/table lookup.
+Working generation or session persistence does not establish either required
+alpha capability group: conversation/memory and coding/reasoning.
+
+## Historical and retained reference lifecycles
+
+The material below preserves source-model, TLA, R4G1 and earlier geometric
+experiments. Their commands and defaults belong to those named execution
+lanes, including plain `r4 ask`, `r4 chat` and reference endpoints; they do not
+select the `r4 geometric` model or its lifecycle. Earlier passages labelled
+"latest", "current", "next" or "not authorized" describe their original
+checkpoint and do not override the current plan. In particular, retained
+Python training and later Rust-lowering sequences are historical references,
+not dependencies or postponed implementation stages for the native model.
+Keep their measurements and experiment-specific decisions intact.
 
 > **Normal-use #1017 product boundary (2026-09-01):** #1041 exercised the
 > native-served #1039 surface without changing the checkpoint or executor. All

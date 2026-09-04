@@ -1,54 +1,50 @@
 # R⁴ — Geometric Intelligence on Local Hardware
 
-**Active architectural-alpha track (2026-09-04):** The old artifact-only
-pre-alpha target has been met, but it is a mechanical checkpoint rather than a
-useful model or product. The canonical
-[project track](docs/integration/project-track.md) now proceeds through fixed
-recurrent memory, sparse geometric attention, a nonlinear geometric block,
-scale/data/instruction, retrieval/tools, product alpha, Rust/table lowering,
-and release proof/evidence/QA.
-
-The fixed recurrent, sparse attention, and first nonlinear R4 stages now
-execute mechanically under [#973](https://github.com/UOR-Foundation/uor-r4/issues/973).
-The path keeps a constant 9,216-byte f32 K/V ledger, reads at most eight
-persistent records plus current, and can replace dense SwiGLU execution with a
-finite H4-frame-indexed quaternion-cube residual. Its 120 signed frame indices
-contain antipodal pairs that select the same odd map. The no-fit cube runs stayed
-bounded but diverged immediately from the fitted dense comparator and produced
-visibly degraded text. The next stage is a bounded development-data fit;
-useful language, architectural alpha, and final serving remain open.
-
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Rust](https://img.shields.io/badge/built%20with-Rust-orange.svg)](rust-toolchain.toml)
 
-R⁴ is an open research project building a **transformerless local AI agent**.
-Its goal is to replace transformer attention, mixture-of-experts routing, and
-dense learned matrix operations in the serving path with deterministic
-geometric routing and lookup.
+UOR-R4 is building a local geometric AI in **Rust throughout training and
+inference**. Prime addresses, ordered prime context, fixed zeta-zero phases and
+R4/S3/H4 state are its primary mechanisms, with exact `Z[phi]`, orientation,
+typed paired-H4/icosian geometry and UOR identity preserved. The model is meant
+to learn useful conversation, memory, reasoning and coding on ordinary local
+hardware.
 
-That is a very real engineering goal, not a claim that the goal has already
-been reached. The long-term target is frontier-like capability on ordinary
-local hardware. The project is testing whether language context, inference,
-and reasoning can emerge from routes through a canonical geometric memory. The
-target serving engine uses no Ollama, hosted model, or source-model weights.
+Rust training may use matrix multiplication. The final serving path executes
+learned geometric operators through bounded routes, state transitions and
+integer/table lookup. It must not hide dense transformer computation behind a
+lookup interface or depend on a Python model or external response provider.
 
-**Current programme:** [#973](https://github.com/UOR-Foundation/uor-r4/issues/973)
-owns the model track under the
-[build-first policy](docs/integration/agent-execution-policy.md). The next
-implementation is a bounded development-data fit of the assembled sparse plus
-quaternion-cube path against its retained dense-SwiGLU comparator.
-[#1107](docs/r4_workbench_candidate_1107.md)
-remains an unbuilt historical workbench source and #1084 is parked until
-product-alpha integration. Start a later task with
-[CONTINUE.md](docs/integration/CONTINUE.md). Broad proof, evidence
-reconciliation, publication, and QA are release-candidate work.
+This is the project goal, not a claim of current alpha or frontier capability.
+The [canonical plan](docs/integration/project-track.md) defines the work and
+acceptance criteria. The [current implementation](docs/integration/current-state.md)
+is the single pointer to what has actually been built and measured. Existing
+Python/dense prototypes and older Rust runtimes remain preserved references;
+their results do not automatically transfer to the native model being built.
+See [RESEARCH.md](docs/RESEARCH.md) for the historical positive, negative and
+unavailable results and [CONTINUE.md](docs/integration/CONTINUE.md) for resuming
+work. New development uses configurable learning windows and cumulative machine
+budgets, focused checks and protected pull requests.
 
-Measured results, negative findings, and retired paths remain in
-[docs/RESEARCH.md](docs/RESEARCH.md). The concise
-[current map](docs/integration/current-state.md) is the only planning pointer
-that should be consulted before implementation.
+## Native geometric model
 
-## Try the project
+The primary implementation is `r4 geometric`: Rust preparation, training,
+resumable checkpoints, checked artifacts, matched development evaluation,
+generation, persistent sessions and a local workbench. The initial model fits
+finite score tables over prime context and exact geometric state. Its useful
+language and coding behavior is under development.
+
+```sh
+cargo build --release --bin r4
+target/release/r4 geometric --help
+```
+
+Follow the [native workflow](docs/native_geometric_workflow.md) to prepare data,
+fit an artifact and use that exact artifact from the CLI or workbench. Inspect
+the [implementation record](docs/integration/current-state.md) for measured
+results, remaining learned-operator work and capability limitations.
+
+## Preserved project entry points
 
 With Git and a current Rust toolchain installed:
 
@@ -71,13 +67,13 @@ To inspect one route from the command line instead:
 cargo run --bin r4 -- route "geometry is the route"
 ```
 
-To run the current working local 7.15M ordinary-softmax generation prototype:
+To inspect the preserved local 7.15M ordinary-softmax comparison prototype:
 
 ```bash
-r4 generate --prompt "Once upon a time in a quiet village"
+r4 r4-softmax-local-generate --prompt "Once upon a time in a quiet village"
 ```
 
-`generate` defaults to `$UOR_MODEL_STORE/research/issue-1017/export` (or
+`r4-softmax-local-generate` defaults to `$UOR_MODEL_STORE/research/issue-1017/export` (or
 `.uor-models/research/issue-1017/export` when the variable is unset). It requires
 that local export and is a bounded #1017 prototype: provider-free at execution,
 but still source-backed, floating-point/matmul/softmax, and below the strict

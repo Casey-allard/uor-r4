@@ -1,79 +1,71 @@
-# Build-first architectural-alpha execution
+# Native geometric AI execution policy
 
-The repository is in `build_first_architectural_alpha` mode. The canonical
-sequence is the [active project track](project-track.md). The earlier
-`build_first_pre_alpha` reset succeeded in restoring direct implementation,
-but its exit condition was too weak: artifact-only prompt-dependent text now
-exists, while bounded memory, geometric attention, nonlinear geometry, useful
-capability, and product integration remain unfinished.
+The owner-directed mode is `native_geometric_ai`. The
+[project plan](project-track.md) owns the goal and deliverables;
+[current-state.md](current-state.md) owns the current implementation pointer.
+The [machine policy](agent-execution-policy.json) captures stable invariants,
+not a hardcoded stage order or copies of roadmap prose.
 
-The active objective is architectural alpha: useful prompt-dependent local text
-through bounded recurrent geometric memory and bounded geometric selection,
-without a complete-prefix scan or runtime teacher, provider, or source model.
-Transitional f32 and dense nonlinear reference operations may remain until their
-named later stages.
+## Architecture and scope
 
-## Routine work
+Prepare data, train, construct artifacts and run inference in Rust. Training may
+use floating point and matrix multiplication. Final inference executes learned
+geometric operators through bounded routes, state transitions and integer/table
+lookup; a dense transformer stored behind a lookup interface does not satisfy
+that target. Keep prior Python/dense artifacts as comparison evidence and do
+not add a Python model dependency.
 
-Use one active issue and an isolated full worktree from refreshed
-`origin/main`. Implement the next stage in the actual product path, run the
-smallest check that directly exercises it, and deliver through a protected pull
-request. A focused test should protect a concrete state, causal, or interface
-risk; code changes do not trigger broad testing by default.
+Primes and ordered prime context, fixed zeta-zero phases, R4/S3/H4 transport,
+exact `Z[phi]` and orientation state, the typed paired-H4/icosian bridge and UOR
+identity are primary architecture. Their architectural roles and measured
+predictive contribution are separate facts. External research is optional
+support for a concrete design question.
 
-Agents may build, compile, lint, test, train, fit, evaluate, run models and
-services, inspect the project index and original sources, and request
-proportionate independent review. Research sources such as SpiralCore, HELM,
-W33, NEMESIS, the UOR ecosystem, and H4/zeta work are on-demand reservoirs for a
-specific implementation problem. They are not a serial programme or capability
-evidence by themselves.
+Both conversation/memory and coding/reasoning are alpha goals. Continue within
+the owner's authorized objective, including necessary successive tasks when the
+whole plan is requested. An old one-task stop or historical blocker does not
+shrink that authorization. Use an isolated full worktree, coordinate file
+ownership and deliver through protected pull requests.
 
-Bounded iteration on open development data is allowed. Keep final held-out
-evaluation separate until design selection. A run expected to exceed 15
-minutes, create more than 10 GiB, or incur external cost requires explicit
-owner or active-issue authorization, a hard resource limit, and a stop
-condition.
+## Learning and budget
 
-Automatic retry campaigns remain prohibited. After a concrete failure, inspect
-the existing output, make one direct source or input correction, and rerun once
-when the change plausibly resolves it. Otherwise park the command. Do not build
-supervisors, watchdogs, receipt harnesses, workspace capsules, or environment
-probe campaigns.
+Use configurable context, training and evaluation windows. Declare the run's
+CPU/thread, wall-time, RAM, new-storage, checkpoint and evaluation settings and
+charge their cumulative use across preparation, training, evaluation, retries
+and resumes. Select a meaningful window that fits the machine instead of
+changing the model to satisfy an arbitrary short historical experiment.
 
-## Evidence without bureaucracy
+A failed command permits diagnosis, correction and another run or resume within
+the remaining authorized budget when that can change the outcome. There is no
+global 15-minute cutoff or one-retry quota. Avoid unchanged blind retries,
+stop/checkpoint at configured limits, and obtain explicit authorization for
+external cost or a larger cumulative budget. Reuse measurements and checkpoints
+when their inputs remain valid.
 
-Keep mathematical proof, measured behavior, and unverified hypotheses distinct.
-Preserve negative results, but bind each negative to its exact artifact,
-population, operator, controls, budget, and decision rule. A materially
-versioned successor may re-enter when it names what changed and why that change
-could alter the result. `UNAVAILABLE` is an execution, source, or environment
-boundary, not positive or negative model evidence.
+Open development evaluation is part of learning. Keep final held-out evaluation
+separate until design selection. Resource unavailability is an execution result,
+not evidence against the model's ability to learn.
 
-A normal development pull request needs the primary implementation, the direct
-behavior result when execution matters, and a concise limitation and next
-action. It does not need a new ledger, evidence dossier, frozen contract, or
-proof package.
+## Verification and records
 
-Broad proof work, claim-ledger reconciliation, routine knowledge-index
-maintenance, replay/receipt packages, duplicate roadmap mirrors, publication,
-broad research mapping, and release QA wait for the release-candidate stage
-unless the active implementation decision or owner explicitly needs one.
-Historical documents retain their original meaning but do not restore their old
-process.
+Compile and exercise the changed Rust path. Focus tests on real arithmetic,
+state/causal, serialization and interface risks; run relevant broader checks
+when the change or release needs them. Neither a blanket full-suite ritual nor
+an echo-only queue status substitutes for the behavior check. Report actual
+commands, outcomes and remaining limitations.
 
-## Ordered authority
+PR and merge-group CI run formatting, the Rust architecture-policy check and
+focused native model/context/allocation/CLI-service tests under one historical
+required status name. Four other required names are explicit compatibility
+acknowledgements. Broader legacy verification remains manually available for
+relevant release work; neither those names nor unrun jobs certify capability.
+Protected pull-request and merge-queue delivery remain in force.
 
-The stage order is fixed:
+Preserve source, unique artifacts and all earlier evidence. A negative retains
+its exact artifact/data/operator/control/budget/decision scope. A changed
+successor is allowed when its change and rationale are clear. Proof, measured
+behavior and hypotheses remain distinct. Routine work does not require a new
+proof package, ledger, ADR, replay dossier or duplicate status mirror.
 
-1. fixed recurrent geometric memory;
-2. sparse geometric attention;
-3. nonlinear geometric block;
-4. scale, data, and instruction behavior;
-5. retrieval and tools;
-6. representative product alpha;
-7. Rust/table lowering and optimization;
-8. release proof, evidence, and QA.
-
-The machine-readable boundary is
-[agent-execution-policy.json](agent-execution-policy.json). Changing this policy
-requires explicit owner instruction and protected delivery.
+Changing the project goal or these stable invariants requires owner direction
+and protected delivery. Do not silently change them to make an experiment pass.

@@ -1,13 +1,20 @@
 # Research: what is measured, what is closed, what is open
 
-**Active direction (2026-09-04):** The project follows the
-[architectural-alpha track](integration/project-track.md). Artifact-only
-prompt-dependent generation is a completed mechanical checkpoint. The ordered
-implementation is fixed recurrent memory → sparse geometric attention →
-nonlinear geometric block → scale/data/instruction → retrieval/tools → product alpha
-→ Rust/table lowering → release proof/evidence/QA.
+The [native geometric AI plan](integration/project-track.md) defines current
+architecture and development; [current-state.md](integration/current-state.md)
+is the sole current implementation pointer. Primary prime/zeta/R4 mechanisms
+and Rust throughout are architectural requirements, not claims that useful
+conversation, memory, reasoning or coding have already been demonstrated.
 
-**Current measured mechanism:** `R4SparseGeometricCandidateSoftmaxKVBindingV1`
+The records below preserve earlier measurements and their then-current next
+actions. Do not use their dated scheduling, Python-first sequence or fixed
+windows as instructions for new work. A negative binds its exact configuration;
+resource unavailability does not determine model quality. The recovered plan
+allows open development iteration under configurable cumulative machine budgets.
+
+## Historical mechanics snapshot before native recovery (2026-09-04)
+
+**Then-current measured mechanism:** `R4SparseGeometricCandidateSoftmaxKVBindingV1`
 uses the accepted eight-live/four-summary recurrent state. It ranks only source
 metadata by exact signed-S3 shell and full-H4-root diversity, admits at most
 eight persistent records plus current, and gathers K/V only after selection.
@@ -41,7 +48,7 @@ or recurrent state, and a largest f32 block-norm error of
 both generated trajectories diverged from the fitted dense comparator at their
 first token and were visibly degraded. This establishes the finite-indexed
 nonlinear mechanism only. RoPE still limits the reference to 120 positions.
-The next implementation is a bounded development-data fit of the assembled
+The then-next implementation was a bounded development-data fit of the assembled
 sparse-plus-quaternion-cube architecture before any larger scale increase.
 
 Historical positive, negative, and unavailable results below retain their exact
@@ -50,16 +57,13 @@ be revisited only by a materially versioned successor with a named rationale.
 `UNAVAILABLE` is not model evidence. Research sources are donor reservoirs,
 not capability claims or serial gates.
 
-R⁴ is a research programme as much as an engine. Its aspirational goal is
-frontier-like useful local intelligence built from routed geometry rather than
-transformers, MoE/sparse learned routing, or dense matrix intelligence. That
-goal is not a current capability claim. Spherical harmonics are the project's
-working description of overlapping spin-state storage and transport, with
-R4/S3 and Hopf/S2 serving as bounded compute and observation charts.
-
-The engine's direction is set by evidence rather than intent. This document
-records where the programme actually stands, so anyone picking up work can see
-which paths are closed, which are load-bearing, and which are still open.
+R⁴'s architectural direction comes from the owner-directed native plan.
+Evidence selects and revises implementations and limits capability claims.
+Learned bounded geometric routing is part of the target; a dense transformer
+or dense expert stack is not. A harmonic-field description remains a proposed
+mathematical interpretation until the actual basis and operators are bound.
+This document preserves what each experiment established, which particular
+operators were retired and which hypotheses remained open at that point.
 Measurements retain their pre-declared exit rule and durable issue/record
 reference; design targets remain explicitly labeled as definitions,
 assumptions, or objectives rather than measured results.
@@ -1262,7 +1266,12 @@ teacher work. The structural harness gates pass; live exact-multicore
 throughput, speedup, and parity remain **NOT ESTABLISHED**. See the
 [append-only #932 record](teacher_parity_parallelism_932.md).
 
-## Historical measurement discipline and current costly-run boundary
+## Historical measurement discipline and costly-run boundary
+
+Current development verification and configurable cumulative budgets follow the
+[native project plan](integration/project-track.md). The old rules below explain
+their dated experiments and do not impose current training windows or extra
+approval gates.
 
 Release-bearing and costly scientific claims use a **pre-declared exit rule, a
 null baseline, and a falsifier**. Routine implementation uses the direct result,

@@ -1,40 +1,20 @@
 # R4 Intelligence Completion Plan
 
-**Current sequencing authority (2026-09-04):** The project is in
-`build_first_architectural_alpha` mode. The
-[active project track](integration/project-track.md) supersedes all earlier
-next-action and stage-gate prose while preserving the evidence below.
+Current goals and development are defined once in the
+[native geometric AI plan](integration/project-track.md). The
+[current implementation](integration/current-state.md) names actual work under
+#973; live GitHub owns issue status. This document preserves the earlier
+S0–S7/F0 programme, its architecture and evidence. It is not a second task queue.
 
-The active sequence is:
+Owner direction restores Rust throughout preparation/training/artifacts/
+inference and primary prime/zeta/R4 mechanisms, with learned geometric
+operators and both conversation/memory and coding/reasoning alpha goals. The
+old Python-first stage sequence and experiment-wide stops do not select new
+work. Do not infer capability from restoring an architectural goal.
 
-1. fixed recurrent geometric memory;
-2. sparse geometric attention;
-3. nonlinear geometric block;
-4. scale, data, and instruction behavior;
-5. retrieval and tools;
-6. representative product alpha;
-7. Rust/table lowering and optimization;
-8. release proof, evidence, and QA.
-
-The old pre-alpha condition—artifact-only prompt-dependent CLI output—was met by
-the accepted full-cache path and is now classified as a mechanical checkpoint.
-Architectural alpha additionally requires useful prompt-dependent text through
-bounded recurrent geometric memory and bounded geometric selection, with no
-complete-prefix scan or runtime teacher/provider/source model. Product alpha,
-release candidate, and release have separate conditions in the active track.
-
-The fixed recurrent stage now has an unfitted executed mechanism: eight exact
-live K/V records and four H4-local summary banks, with 9,216 bytes of fixed f32
-K/V storage. Its two-prompt comparison observed post-eviction summary reads and
-trajectory divergence; it made no quality, long-context, advantage, or
-table-native claim. Sparse geometric attention is the next build stage.
-
-The S0–S7/F0 graph below is retained as historical architecture and evidence,
-not an active serial queue. Proof, claim-ledger reconciliation, publication,
-broad research mapping, and release QA wait for the release candidate unless
-the current implementation needs a specific result. Research programmes are
-on-demand donor reservoirs and require an implemented UOR seam plus direct
-measurement before their claims transfer.
+All dated results and historical constraints below remain attached to their
+original artifacts and experiments; they do not impose a new proof or broad-QA
+campaign before native implementation and meaningful development learning.
 
 ## Why this plan exists
 
@@ -84,7 +64,7 @@ the exact execution scope claimed**.
 ## Historical programme hierarchy
 
 This table records the native S0–S7/F0 hierarchy used by the superseded
-programme. Current native state under #820 and #949 is the source of truth for
+programme. Use the canonical plan and current implementation linked above for
 new work. The historical root had eight stage trackers plus one cross-cutting
 formal foundation; their closed issues retain their exact verdicts.
 
@@ -110,11 +90,11 @@ formal foundation; their closed issues retain their exact verdicts.
 6. #933 — Restore normative R4G1 serving reachability, bind deployed quality,
    and re-ratify RF-31 *(foundational truth correction; added 2026-08-24)*
 
-Stage order, then the parent tracker's listed child order, governs what is worked next.
-A later stage's preparatory child does **not** displace the next sequential stage item
-merely because it lacks a direct blocker. Cross-cutting foundation work (F0) may proceed in
-parallel but does not displace the next sequential stage item unless the roadmap says it
-gates that item.
+The historical scheduling rule used stage order, then the parent tracker's
+listed child order. A later preparatory child did not displace that sequence
+merely because it lacked a direct blocker, and cross-cutting F0 work ran in
+parallel without displacing it. This rule is preserved as historical context;
+it does not select or constrain new native work.
 
 ### S0 stage verdict — PROMOTE (2026-08-20)
 

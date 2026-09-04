@@ -1,28 +1,24 @@
 # Integration archive and optional tools
 
-This directory preserves prior research and integration records. It is not an
-implementation checklist. Routine work follows the
-[build-first architectural-alpha policy](agent-execution-policy.md) and the
-[active project track](project-track.md). Research, index, and review tools may
-answer a concrete design question; broad proof, ledger, publication, mapping,
-and QA programmes wait for the release candidate.
+Current work follows the [native geometric AI plan](project-track.md),
+[current implementation](current-state.md), and [execution policy](agent-execution-policy.md).
+This directory also preserves dated research/integration inventories. Their
+snapshots and “next” actions are historical; live GitHub owns issue status.
 
-The fixed recurrent-memory mechanical checkpoint is implemented; sparse geometric
-attention is the next model stage.
+Core prime/zeta/R4/UOR architecture is primary. External research, source
+indexes and review tools may answer a concrete implementation question without
+becoming a serial proof or bookkeeping requirement. Existing Python knowledge
+index tooling is optional repository tooling, not the native model lifecycle.
 
-Start with the [adopted current map](current-state.md), [workflow adoption record](workflow-adoption.md), and [reusable continuation prompt](CONTINUE.md). The [research and productization plan](../uor_productization_integration_plan.md) retains the full audit and design. Native GitHub issues and current source remain authoritative; dated audit snapshots preserve earlier state.
-
-| Question | Evidence / decision document |
+| Question | Source |
 |---|---|
-| What is current and missing from the roadmap? | [Reconciliation](roadmap-reconciliation.md), [native snapshot](roadmap-state.json) |
-| What sources were discovered and inspected? | [552-repository public catalog](source-catalog.json), [UOR source audit](uor-source-audit.md), [18 pinned candidates](uor-integration-candidates.json) |
-| What can external research contribute? | [HELM / GoldSnnail / W33 / NEMESIS review](external-research-audit.md) |
-| What should be ported from the browser product? | [Component and API port plan](frontend-port-plan.md) |
-| What is installed and how should it be used? | [Tool status](tooling-status.json), [workflow selection](workflow-tools.md) |
-| What is the exact model/product sequence? | [Active project track](project-track.md) |
-| What bounds automated agent execution? | [Build-first architectural-alpha policy](agent-execution-policy.md), [machine contract](agent-execution-policy.json) |
-| What is the current workbench checkpoint? | [#1107 source candidate](../r4_workbench_candidate_1107.md), [independent static review](../r4_workbench_candidate_1107_review.md) |
-| What is needed later for a defensible paper? | Deferred reference: [publication readiness](publication-readiness.md), [publication tools](publication-tooling.json), [initial claim ledger](claim-ledger.json) |
+| What are we building and why? | [Canonical project plan](project-track.md) |
+| What is implemented and next? | [Current state](current-state.md), [continuation prompt](CONTINUE.md) |
+| What bounds execution? | [Policy](agent-execution-policy.md), [machine invariants](agent-execution-policy.json) |
+| What was discovered in the prior audit? | [Historical reconciliation](roadmap-reconciliation.md), [dated snapshot](roadmap-state.json), [source catalog](source-catalog.json) |
+| What components might be reused? | [UOR source audit](uor-source-audit.md), [external-source review](external-research-audit.md), [historical frontend port plan](frontend-port-plan.md) |
+| How do I use the native CLI/workbench? | [Native workflow](../native_geometric_workflow.md), [current implementation](current-state.md) |
+| What earlier workbench source is preserved? | [#1107 historical candidate](../r4_workbench_candidate_1107.md), [static review](../r4_workbench_candidate_1107_review.md) |
 
 ## Query the actual local index
 
@@ -92,5 +88,5 @@ This command only measures. It reports permission/time limits and a proposed res
 The installed `uor-project-workflow` skill is maintained at
 [tools/skills/uor-project-workflow](../../tools/skills/uor-project-workflow/SKILL.md),
 with a deferred [paper-workflow reference](../../tools/skills/uor-project-workflow/references/publication.md).
-The skill must follow the build-first policy and must not turn this archive into
+The skill must follow the native execution policy and must not turn this archive into
 a routine task checklist.

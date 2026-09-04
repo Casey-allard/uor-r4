@@ -1,8 +1,31 @@
 {
+  "architecture": {
+    "dense_transformer_disguised_as_lookup_allowed": false,
+    "final_inference": "learned_geometric_operators_with_bounded_routing_state_transitions_and_integer_table_lookup",
+    "historical_references": "preserve_existing_python_and_dense_comparators_as_evidence",
+    "implementation_language": "rust",
+    "primary_mechanisms": [
+      "prime_registry_and_ordered_nlets",
+      "fixed_zeta_zero_phase_channels",
+      "r4_s3_h4_causal_state_and_transport",
+      "z_phi_radial_and_orientation_state",
+      "typed_paired_h4_icosian_bridge",
+      "learned_geometric_operators",
+      "uor_canonical_identity"
+    ],
+    "python_model_dependency_allowed": false,
+    "rust_scope": [
+      "preparation",
+      "training",
+      "artifact_construction",
+      "inference"
+    ],
+    "training_matrix_multiplication_allowed": true
+  },
   "delivery": {
-    "active_task_limit": 1,
     "direct_push_to_main": false,
-    "protected_pull_request": true
+    "protected_pull_request": true,
+    "scope": "continue_within_explicit_owner_objective_and_coordinate_independent_subtasks"
   },
   "evidence": {
     "distinguish": [
@@ -28,54 +51,52 @@
       "proportionate_independent_review",
       "reviewable_git_and_github_operations"
     ],
-    "automatic_retries": 0,
-    "concrete_failure_response": "inspect_existing_output_then_one_direct_fix_and_rerun_or_park",
-    "expensive_run": {
-      "definition": "estimated_over_15_minutes_or_any_external_cost_or_over_10_gib_new_storage",
-      "requires": [
-        "explicit_owner_or_active_issue_authorization",
-        "hard_resource_limit",
-        "stop_condition"
-      ]
-    },
+    "concrete_failure_response": "inspect_then_correct_rerun_or_resume_within_remaining_cumulative_budget",
     "final_heldout_evaluation": "after_design_selection",
+    "machine_budget": {
+      "accounting": "cumulative_across_warmup_training_evaluation_retries_and_resumes",
+      "configuration": [
+        "context_windows",
+        "training_dose",
+        "evaluation_windows",
+        "checkpoint_interval",
+        "evaluation_interval",
+        "threads",
+        "wall_time",
+        "peak_ram",
+        "new_storage"
+      ],
+      "external_cost": "requires_explicit_owner_authorization",
+      "global_fixed_time_or_retry_quota": false,
+      "stop": "checkpoint_and_stop_at_configured_limits"
+    },
     "prohibited": [
-      "automatic_retry_campaigns",
-      "blind_unchanged_negative_or_unavailable_retries",
-      "custom_supervisors_watchdogs_and_receipt_harnesses",
-      "environment_probe_campaigns",
-      "silent_external_spend"
+      "blind_unchanged_failure_retries",
+      "silent_cumulative_budget_increase",
+      "silent_external_spend",
+      "python_model_implementation_or_product_dependency"
     ],
-    "verification": "run_only_the_smallest_check_that_directly_exercises_the_changed_behavior"
+    "verification": "focused_checks_for_changed_rust_path_and_actual_behavior_with_relevant_broader_checks"
   },
-  "mode": "build_first_architectural_alpha",
+  "mode": "native_geometric_ai",
   "project_track": {
-    "architectural_alpha": "useful_prompt_dependent_text_through_bounded_recurrent_geometric_memory_and_bounded_geometric_selection_without_complete_prefix_scan_or_runtime_teacher_provider_or_source_model",
-    "current_stage": "scale_data_and_instruction_behavior",
-    "ordered_stages": [
-      "fixed_recurrent_geometric_memory",
-      "sparse_geometric_attention",
-      "nonlinear_geometric_block",
-      "scale_data_and_instruction_behavior",
-      "retrieval_and_tools",
-      "representative_product_alpha",
-      "rust_table_lowering_and_optimization",
-      "release_proof_evidence_and_qa"
+    "alpha_capabilities": [
+      "conversation_and_memory",
+      "coding_and_reasoning"
     ],
-    "product_alpha": "representative_grounding_abstention_composition_identity_memory_coding_and_tool_use_through_one_local_workbench",
-    "release": "targeted_proof_evidence_reproducibility_broad_qa_scorecard_and_publication_for_the_shipped_implementation",
-    "release_candidate": "accepted_product_behavior_through_bounded_rust_table_integer_serving_with_installation_resource_and_rollback_qualification"
+    "canonical_plan": "docs/integration/project-track.md",
+    "current_state": "docs/integration/current-state.md",
+    "status": "development_no_alpha_claim"
   },
   "research": {
     "broad_mapping_default": "deferred_until_release_candidate",
     "consultation": "on_demand_for_a_concrete_active_implementation_question",
-    "reservoirs": [
+    "core_architecture": "prime_zeta_r4_s3_h4_and_uor_are_primary_not_optional_donors",
+    "external_sources": [
       "spiralcore",
       "helm",
       "w33",
-      "nemesis",
-      "uor_ecosystem",
-      "h4_and_zeta"
+      "nemesis"
     ],
     "transfer_rule": "original_source_inspection_and_direct_uor_measurement_required_before_capability_claim"
   },
@@ -98,7 +119,7 @@
       "concise_limit_and_next_action"
     ]
   },
-  "schema": "uor-r4.agent-execution-policy/3",
+  "schema": "uor-r4.agent-execution-policy/4",
   "workspace": {
     "base": "refreshed_origin_main",
     "preserve_user_and_unique_evidence": true,

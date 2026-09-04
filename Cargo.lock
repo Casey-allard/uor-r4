@@ -2069,17 +2069,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "uor-r4-workbench"
-version = "0.1.0"
-dependencies = [
- "libc",
- "serde",
- "serde_json",
- "sha2",
- "uor-r4-api",
-]
-
-[[package]]
 name = "uor-r4-wasm-router"
 version = "0.1.0"
 dependencies = [
@@ -2108,6 +2097,17 @@ dependencies = [
  "uor-r4-proof-model",
  "uor-r4-router",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "uor-r4-workbench"
+version = "0.1.0"
+dependencies = [
+ "libc",
+ "serde",
+ "serde_json",
+ "sha2",
+ "uor-r4-api",
 ]
 
 [[package]]

@@ -1,4 +1,106 @@
-# Current programme map and correctness handoff
+# Current native geometric AI work
+
+**Owner-directed recovery — 2026-09-04.** The canonical goal and development
+plan is [project-track.md](project-track.md); the stable execution policy is
+[agent-execution-policy.json](agent-execution-policy.json). Current model work
+remains owned by [#973](https://github.com/UOR-Foundation/uor-r4/issues/973).
+Refresh live GitHub before choosing a follow-up; dated snapshots and lower
+historical “next” paragraphs do not select work.
+
+## Native recovery checkpoint
+
+`r4 geometric` now connects Rust data preparation, count fitting, separate
+readout fitting, learned query-relative memory reading, resumable training checkpoints, versioned artifacts,
+development evaluation, generation, persistent sessions and a loopback
+workbench. The same core model is exposed by `uor_r4_api::native_geometric`.
+Its full prime identities, fixed zeta channels, exact H4 order, signed
+orientation, typed paired coordinates and exact aggregate radial state are
+actual computational inputs. The precise implemented roles and limits are in
+the [recovery record](../native_geometric_recovery_973.md); run commands are in
+the [native workflow](../native_geometric_workflow.md).
+
+The first matched 32/128/512-token runs complete with no dropped events.
+Learned-readout development accuracy is 26.9259%, 28.6717% and 24.7833%.
+Geometry-disabled arms score slightly higher; all three global geometric gates
+fit to zero. These are open-development next-piece predictions, not evidence
+of geometric advantage or useful conversation. The preceding fixed formula's
+negative results remain preserved.
+
+The initial supplied-fact experiment separates capacity from useful reading:
+larger windows retain 42/96, 72/96 and 96/96 answer-value tokens, but the learned
+readout scores 24/96 at all three windows and changes none of 48 paired answers
+when the supplied value changes. The implemented successor learns a
+query-dependent read from the addressable memory ring. After correcting its
+training objective, the exact-cue 512-token model answers 86/96 controlled prose
+queries versus 24/96 with memory reading disabled, with both answers correct in
+41/48 paired value changes. Geometry-disabled scores 66/96; zeta-disabled scores
+91/96. These are scoped finite-grammar results, not broad geometric advantage.
+
+Exact token cues remain the default. The optional word-cue equivalence map
+preserves output bytes and geometry but regresses the separate prose model and
+does not improve the separate Rust models. Its joint artifact improves prose
+while regressing Rust. It therefore remains explicit `--word-cues` research;
+the aggregate score cannot select it for both capability goals. Both artifact
+schemas and every predecessor result remain preserved.
+
+The final executable reproduces the useful prose artifact and the joint
+word-cue artifact with identical identities and results. Increasing the joint
+fit to 32 epochs per memory stage gives 82/96 prose and 30/96 Rust with exact
+cues, versus the memory-disabled baseline of 43/96 and 39/96. Word cues give
+82/96 and 32/96. The greater training dose still does not improve both groups.
+
+Browser generation and exact session restoration run through the real artifact.
+The initial Rust continuation fails a real compiler check. Both conversation/
+memory and coding/reasoning alpha requirements therefore remain unmet. Do not
+replace them with count-table accuracy or a working interface.
+
+The larger open-data construction run increases training exposure from 75,448
+to 391,725 target positions, with zero dropped events, 10.825 seconds elapsed
+and 1,630,748,672 peak process bytes. Old 120-token/128-update/840-second settings
+and one-retry rules are historical experiments, not limits on this path.
+Continue within the owner's authorized objective and remaining cumulative
+machine budget, preserving each versioned model and its actual results.
+
+On that larger corpus, adding the optional learned memory reader reduces
+development next-piece accuracy from 36.2485% to 33.2663%. Increasing its feature
+capacity learns 77,773 features with zero dropped events, but accuracy falls
+to 32.7638%; disabling memory restores the same 36.2485% baseline. This separates
+the capacity problem from the unresolved generalization problem. Preserve these
+artifacts as development evidence; do not promote the regressing reader.
+
+The next model work is **useful joint learning on one native artifact**: retain
+the exact-cue reader as a measured baseline, improve Rust variable/update and
+actual code-generation behavior without sacrificing supplied-fact performance,
+and develop learned write/selection/composition where the current automatic
+ring admission and finite score tables are insufficient. Use balanced open
+development examples, meaningful data/context exposure and actual generated
+code feedback. An implementation or useful controlled copy result does not
+close #973 or qualify either broader alpha group.
+
+## Evidence carried into recovery
+
+At the starting `main` revision `e3084eac47b04b540ccccf54d0547e37fa885882`,
+[PR #1124](https://github.com/UOR-Foundation/uor-r4/pull/1124) had delivered a
+Python sparse quaternion-cube fit command. Both admitted launches completed
+backward and eight updates but exceeded their completion projection; no fitted
+artifact or language-quality result was produced. Its terminal remains
+`RESOURCE_UNAVAILABLE_FULL_CONTEXT_CUBE_FIT`. It does not show that the model
+cannot learn. The then-next Python optimization is superseded by this native
+recovery, while its implementation and all run evidence remain preserved.
+
+Earlier Rust prime-route/table components, bounded #953 geometric intervention,
+R4 transport/preservation results, exact paired representations and the native
+four-fact bridge remain reusable at their measured scope. Neither those results
+nor the current recovery plan establish useful general conversation, coding,
+reasoning, geometric advantage or alpha. #954 remains a downstream correctness
+home; later capability issues do not supply evidence by being open or closed.
+
+## Historical handoff archive
+
+Everything below records the pre-recovery checkpoints and their then-current
+next actions. Preserve the results; use the active pointer above for new work.
+
+# Historical programme map and correctness handoff (before native recovery)
 
 **Active track: 2026-09-04.** The project is in
 `build_first_architectural_alpha` mode. The exact ordered sequence and

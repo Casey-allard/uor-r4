@@ -1,64 +1,66 @@
 ---
 name: uor-project-workflow
-description: Execute one build-first UOR-R4 implementation task and deliver its working behavior through the protected pull-request path.
+description: Develop the authorized native Rust prime/zeta/R4 model objective, verify real behavior, and deliver through protected pull requests.
 ---
 
 # UOR project workflow
 
-Follow the checkout's `AGENTS.md` and
-`docs/integration/agent-execution-policy.json`. The project is in
-`build_first_architectural_alpha` mode. Follow the ordered stages in
-`docs/integration/project-track.md`; do not substitute an older issue or proof
-sequence.
+Follow the checkout's `AGENTS.md`, `docs/integration/project-track.md`, and
+`docs/integration/agent-execution-policy.json`. The mode is `native_geometric_ai`.
+Use `docs/integration/current-state.md` as the changing implementation pointer;
+live GitHub owns issue status. This skill does not duplicate a stage sequence.
 
-## Start
+## Start and scope
 
-1. Refresh `origin/main`, the live active issue, and its immediate blocker or
-   parent when one matters.
-2. Read `AGENTS.md`, `docs/integration/current-state.md`, and
-   `docs/integration/project-track.md`.
-3. Create one isolated full worktree and implement one product behavior.
+Refresh `origin/main` and the relevant live issue/blocker state. Read the three
+current documents above and use an isolated full worktree. Continue within the
+owner's authorized objective. A whole-plan request permits necessary successive
+tasks; do not impose an old one-issue stop. Coordinate independent subtasks and
+file ownership without changing unrelated user work.
 
-Do not begin with a project-wide history reconstruction. Query the knowledge
-index or inspect SpiralCore, HELM, W33, NEMESIS, UOR, H4/zeta, other external
-repositories, or papers when they can answer a concrete active design question.
-Treat them as donor reservoirs and inspect original source before transferring a
-mechanism or claim.
+## Build and learn
 
-## Build the product
+Use Rust throughout preparation, training, artifact construction and inference.
+Training may use floating point, matrix multiplication and gradients. Final
+serving executes learned geometric operators through bounded routes, state
+transitions and integer/table lookup; dense transformer computation concealed
+behind lookup is excluded. Preserve prior Python/dense references as evidence,
+with no new Python model implementation or product dependency.
 
-Agents may edit, compile, lint, test, train, fit, evaluate, and run repository
-CLIs, models, services, and browser flows. Use the smallest command that
-directly exercises the behavior changed by the task. A test is useful when it
-protects a specific regression; code changes do not automatically require a
-new test or a full suite.
+Prime/ordered-n-let addresses, fixed zeta phases, R4/S3/H4 state and transport,
+exact `Z[phi]` and orientation, the typed paired-H4/icosian bridge and UOR
+identity are primary architecture. Name their actual implemented roles and
+missing work. Keep design priority separate from demonstrated usefulness.
+Develop conversation/memory and coding/reasoning on the same model path.
 
-Bounded iteration on open development data is allowed; keep final held-out
-evaluation after design selection. Proportionate independent review is useful
-for novel causal/state code and when the owner requests it. Broad formal proof,
-claim-ledger reconciliation, routine knowledge-index maintenance, replay and
-receipt packages, publication, programme-wide research mapping, duplicate
-plans, and broad release QA wait for the release candidate unless a concrete
-implementation decision or owner activates one earlier.
+Compile and exercise changed behavior. Use focused checks for real arithmetic,
+state, causality, serialization and interface risks, with broader checks when
+relevant. Do not trigger a blanket full suite, new proof package, ledger,
+research census or ADR for every edit. External research and indexes are useful
+when they answer a concrete design question; the core mechanisms are not
+optional donor material.
 
-Automatic retries are zero. When a command fails, inspect the output, make one
-direct source or input correction, and rerun once only when that correction
-plausibly addresses the failure. Do not create supervisors, watchdogs, receipt
-harnesses, workspace capsules, or environment-probe campaigns.
+## Budget and evidence
 
-A command expected to exceed 15 minutes, create more than 10 GiB, or incur an
-external cost needs explicit owner or active-issue authorization, a hard limit,
-and a stop condition.
+Configure useful context, training and evaluation windows, checkpoints, threads,
+wall time, RAM and new storage for the machine. Charge cumulative work across
+warmup, training, evaluation, retries and resumes. Inspect failures and correct
+or resume within the remaining budget when that can advance the result. There
+is no global 15-minute cutoff or one-retry quota. Avoid blind unchanged retries,
+checkpoint/stop at configured limits, and obtain authorization before
+expanding the cumulative budget or incurring external cost.
 
-## Preserve and deliver
+Use open development evaluation during learning and final held-out evaluation
+after design selection. Preserve old results at their exact configuration and
+resource scope. `UNAVAILABLE` is an execution result, not a model-quality
+conclusion. Distinguish proof, measured behavior and hypotheses. Preserve all
+unique artifacts and user material.
 
-Preserve unrelated changes, user material, unique artifacts, and prior negative
-results. A negative binds its exact artifact, population, operator, controls,
-budget, and decision; a materially versioned successor may re-enter with a
-named rationale. `UNAVAILABLE` is not model evidence. Keep mathematical proof,
-measured behavior, and unverified hypotheses distinct without manufacturing an
-evidence dossier.
+## Deliver
 
-Deliver through a protected pull request. A routine completion report contains
-the working behavior, the command and observed result, the remaining limitation,
-the closure state, and one next implementation action. Stop after the one task.
+Stage named files and deliver through protected pull requests. Check what CI
+actually executed; transport acknowledgements do not prove tests passed.
+Report the implementation, actual commands/results, resource use, limitations
+and remaining work. Update the current implementation pointer instead of
+copying current-stage prose into other roadmaps. Do not claim alpha from a
+mechanical checkpoint or stop short of the owner's authorized objective.

@@ -26,13 +26,16 @@ use uor_r4_wasm_router::release_bundle_packager::{self, PackageInputs};
 use uor_r4_wasm_router::server::{self, ServerConfig};
 use uor_r4_wasm_router::tless_uor;
 
+mod native_geometric_cli;
+mod native_geometric_service;
+
 /// UOR-R4 geometric intelligence research tools.
 #[derive(Parser, Debug)]
 #[command(
     name = "r4",
     version,
     about,
-    long_about = "Run the working R4/Spin causal-attention generator, exercise the fail-closed grounded-answer research surface, or inspect the preserved geometric research tools.\n\n`generate` uses the coherent #1017 reference. `answer` accepts either the historical #954 cosine-pointer schema or the source-relative relation-head schema over independently encoded #1017 R4/Spin states and serves only an exact source sentence or a typed non-answer. C1-SB1 failed development and C1-SB2 failed matched lexical transfer; neither emitted a qualified final head. Both paths remain source-backed floating-point/softmax references, not the final source-free transformerless runtime. Preserved compiler and certification commands remain available through `r4 research-tools`."
+    long_about = "Build and run the Rust native geometric language prototype with `r4 geometric train`, `generate`, `evaluate`, and `chat`. It learns finite score tables over prime identities, ordered H4 context and fixed zeta phases. General conversation and coding remain development targets.\n\nHistorical source-backed R4/Spin, graph compiler and research commands remain available by their explicit names. They are separate evidence paths."
 )]
 struct Cli {
     /// Increase log verbosity (-v info, -vv debug, -vvv trace).
@@ -102,6 +105,8 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Command {
+    /// Train, evaluate and use the Rust native geometric model.
+    Geometric(native_geometric_cli::GeometricArgs),
     /// Launch the recommended geometric router research dashboard.
     Demo,
     /// Inspect one prompt's geometric route without compiling or loading a model.
@@ -115,7 +120,6 @@ enum Command {
     /// Generate bounded text through all-layer R4/Spin causal softmax.
     R4SoftmaxGenerate(R4SoftmaxGenerateArgs),
     /// Generate from the local learned R4/Spin model through causal softmax.
-    #[command(visible_alias = "generate")]
     R4SoftmaxLocalGenerate(R4SoftmaxLocalGenerateArgs),
     /// Select an exact source answer with the #954 source-relative relation head.
     Answer(GroundedAnswerArgs),
@@ -2707,7 +2711,18 @@ fn reference_checkpoint_path() -> Result<String, RunError> {
 fn run(cli: &Cli) -> Result<(), RunError> {
     cli.configure_tless();
     match cli.command.as_ref() {
-        Some(Command::Demo) | None => {
+        Some(Command::Geometric(args)) => {
+            native_geometric_cli::run(args).map_err(RunError::Command)
+        }
+        None => {
+            use clap::CommandFactory;
+            Cli::command()
+                .print_help()
+                .map_err(|error| RunError::Command(error.to_string()))?;
+            println!();
+            Ok(())
+        }
+        Some(Command::Demo) => {
             let mut config = cli.server_config();
             config.geometric_demo = true;
             println!("UOR-R4 geometric router research demo");
@@ -4619,6 +4634,23 @@ mod tests {
         ] {
             assert!(help.contains(command));
         }
+    }
+
+    #[test]
+    fn native_geometric_commands_parse_with_explicit_artifact_and_port() {
+        Cli::command().debug_assert();
+        let cli = Cli::try_parse_from([
+            "r4",
+            "geometric",
+            "serve",
+            "--model",
+            "/tmp/model.json",
+            "--port",
+            "8087",
+        ])
+        .expect("native service command");
+        assert!(matches!(cli.command, Some(Command::Geometric(_))));
+        assert!(Cli::try_parse_from(["r4", "generate", "--prompt", "test"]).is_err());
     }
 
     #[test]

@@ -2,7 +2,7 @@ name: ci
 
 # Pre-alpha verification is issue-scoped: developers compile and run the path
 # they changed instead of paying for the full release ladder on every PR.
-# Pull-request and merge-group events keep one small policy check plus the five
+# Pull-request and merge-group events run native architecture and product-path checks plus the five
 # historical status names required by the immutable ruleset. The full release
 # workflow remains available when the implemented product reaches that stage.
 on:
@@ -101,8 +101,8 @@ jobs:
         run: cargo test --workspace --lib
 
   # Ruleset transport only. The repository setting still expects these five
-  # historical names. The first job checks the small tracked policy contract;
-  # implementation results belong in the PR that produced them.
+  # historical names. The first job checks the native architecture contract and
+  # changed geometric paths; this is not the deferred full release ladder.
   required-core-transport:
     name: fmt / clippy / tests / no_std / κ
     if: ${{ always() && (github.event_name == 'pull_request' || github.event_name == 'merge_group') }}
@@ -110,11 +110,36 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Enforce build-first pre-alpha policy
-        run: python3 scripts/check_agent_execution_policy.py
+      - name: Install pinned Rust
+        run: rustup show active-toolchain
 
-      - name: Acknowledge issue-scoped verification
-        run: echo "Ruleset transport only; issue-scoped execution is recorded in the PR."
+      - name: Cache native check dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-native-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
+          restore-keys: cargo-native-${{ runner.os }}-
+
+      - name: Format
+        run: cargo fmt --check
+
+      - name: Native geometric architecture policy
+        run: cargo run --locked -p uor-r4-core --bin r4-policy-check -- .
+
+      - name: Native fitting, artifact and runtime checks
+        run: cargo test --locked -p uor-r4-core --lib native_geometric
+
+      - name: Configurable geometric context
+        run: cargo test --locked -p uor-r4-core --test windowed_geometric_context
+
+      - name: Native kernel allocation census
+        run: cargo test --locked -p uor-r4-core --test native_geometric_allocations
+
+      - name: Native CLI checks
+        run: cargo test --locked --bin r4 native_geometric_
 
   required-audit-transport:
     name: cargo audit
