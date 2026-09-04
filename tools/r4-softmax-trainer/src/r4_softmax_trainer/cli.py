@@ -34,7 +34,10 @@ from .continuation_data import (
     load_continuation_training_view_manifest,
     prepare_continuation_dataset,
 )
-from .contextual_retained_fit import fit_contextual_retained
+from .contextual_retained_fit import (
+    fit_contextual_retained,
+    fit_contextual_retained_full,
+)
 from .contextual_retained_generation import generate_contextual_retained
 from .data import download_source, load_dataset_manifest, prepare_dataset
 from .direct_retained_readout_campaign import (
@@ -627,6 +630,13 @@ def parser() -> argparse.ArgumentParser:
     fit_contextual.add_argument("--updates", type=int, default=128)
     fit_contextual.add_argument("--threads", type=int, choices=[4], default=4)
     fit_contextual.add_argument("--max-seconds", type=float, default=840.0)
+    subcommands.add_parser(
+        "fit-contextual-retained-full",
+        help=(
+            "fit one complete deterministic epoch through #973's contextual "
+            "value write using open training bytes only"
+        ),
+    )
     generate_contextual = subcommands.add_parser(
         "generate-contextual-retained",
         help=(
@@ -1141,6 +1151,7 @@ def main() -> None:
         "run-language-path",
         "generate-language-path",
         "fit-contextual-retained",
+        "fit-contextual-retained-full",
         "generate-contextual-retained",
     }
     paired_h4_prompt_capacity_commands = {
@@ -1471,6 +1482,9 @@ def main() -> None:
                 max_seconds=arguments.max_seconds,
             )
         )
+        return
+    if arguments.command == "fit-contextual-retained-full":
+        _print_result(fit_contextual_retained_full(root))
         return
     if arguments.command == "generate-contextual-retained":
         result = generate_contextual_retained(

@@ -36,11 +36,16 @@ from .provenance import atomic_write, atomic_write_json, cid_bytes, cid_file
 
 SCHEMA = "uor-r4.contextual-retained-fit/1"
 STATUS = "CONTEXTUAL_RETAINED_ADAPTED"
-MAX_UPDATES = 128
-DEFAULT_UPDATES = MAX_UPDATES
 BATCH_SIZE = 16
 THREADS = 4
+MAX_UPDATES = 128
+DEFAULT_UPDATES = MAX_UPDATES
 MAX_SECONDS = 840.0
+FULL_EPOCH_STATUS = "CONTEXTUAL_RETAINED_FULL_EPOCH_FITTED"
+FULL_EPOCH_MAX_SECONDS = 2_700.0
+if TRAIN_WINDOWS % BATCH_SIZE != 0:
+    raise RuntimeError("contextual retained training windows must form full batches")
+FULL_EPOCH_UPDATES = TRAIN_WINDOWS // BATCH_SIZE
 EXPECTED_INITIAL_ARTIFACT_CID = (
     "blake3:d1417b325e7a545057cd38e9f1a723933a3682801877433d20e98774a5e9172d"
 )
@@ -51,8 +56,7 @@ TRAIN_RELATIVE_PATH = Path("data/train.u16")
 GEOMETRY_RELATIVE_PATH = Path("geometry/r4-group-address-geometry.json")
 INITIAL_ARTIFACT_RELATIVE_PATH = Path("arms/retained/model.safetensors")
 OUTPUT_DIRECTORY_RELATIVE_PATH = Path("arms/contextual-retained")
-OUTPUT_ARTIFACT_RELATIVE_PATH = OUTPUT_DIRECTORY_RELATIVE_PATH / "model.safetensors"
-OUTPUT_RESULT_RELATIVE_PATH = OUTPUT_DIRECTORY_RELATIVE_PATH / "fit.json"
+FULL_EPOCH_OUTPUT_DIRECTORY_RELATIVE_PATH = Path("arms/contextual-retained-full")
 VALUE_WRITE = "Wv(RMSNorm(x_t + strict_prior_retained_residual))"
 
 
@@ -75,6 +79,11 @@ def _configure_cpu(threads: int) -> dict[str, Any]:
     except RuntimeError:
         if torch.get_num_interop_threads() != threads:
             raise
+    if (
+        torch.get_num_threads() != threads
+        or torch.get_num_interop_threads() != threads
+    ):
+        raise RuntimeError("contextual retained fit did not acquire four CPU threads")
     torch.use_deterministic_algorithms(True)
     return {
         "device": "cpu",
@@ -99,34 +108,39 @@ def _require_first_step_gradients(model: torch.nn.Module) -> int:
     return len(tuple(model.parameters()))
 
 
-def fit_contextual_retained(
+def _fit_contextual_retained(
     root: Path,
     *,
-    updates: int = DEFAULT_UPDATES,
-    threads: int = THREADS,
-    max_seconds: float = MAX_SECONDS,
+    updates: int,
+    threads: int,
+    max_seconds: float,
+    maximum_updates: int,
+    maximum_seconds: float,
+    output_directory_relative_path: Path,
+    status: str,
+    profile: str | None,
 ) -> dict[str, Any]:
-    """Warm-start and adapt all retained parameters using open training bytes."""
-
     if isinstance(updates, bool) or not isinstance(updates, int):
         raise TypeError("updates must be an integer")
-    if not 1 <= updates <= MAX_UPDATES:
-        raise ValueError(f"updates must be between 1 and {MAX_UPDATES}")
+    if not 1 <= updates <= maximum_updates:
+        raise ValueError(f"updates must be between 1 and {maximum_updates}")
     if (
         isinstance(max_seconds, bool)
         or not isinstance(max_seconds, (int, float))
-        or not 0.0 < float(max_seconds) <= MAX_SECONDS
+        or not 0.0 < float(max_seconds) <= maximum_seconds
     ):
-        raise ValueError(f"max_seconds must be positive and at most {MAX_SECONDS}")
+        raise ValueError(
+            f"max_seconds must be positive and at most {maximum_seconds}"
+        )
 
     started = time.monotonic()
     resolved_root = root.expanduser().resolve()
     train_path = resolved_root / TRAIN_RELATIVE_PATH
     geometry_path = resolved_root / GEOMETRY_RELATIVE_PATH
     initial_artifact_path = resolved_root / INITIAL_ARTIFACT_RELATIVE_PATH
-    output_directory = resolved_root / OUTPUT_DIRECTORY_RELATIVE_PATH
-    output_artifact_path = resolved_root / OUTPUT_ARTIFACT_RELATIVE_PATH
-    output_result_path = resolved_root / OUTPUT_RESULT_RELATIVE_PATH
+    output_directory = resolved_root / output_directory_relative_path
+    output_artifact_path = output_directory / "model.safetensors"
+    output_result_path = output_directory / "fit.json"
     if output_directory.exists():
         raise FileExistsError(f"contextual fit output already exists: {output_directory}")
 
@@ -199,32 +213,39 @@ def fit_contextual_retained(
         raise RuntimeError("contextual retained fit produced a nonfinite parameter")
 
     artifact = model.export_learned_artifact()
+    fit_result: dict[str, Any] = {
+        "updates": updates,
+        "maximum_updates": maximum_updates,
+        "batch_size": BATCH_SIZE,
+        "training_windows": updates * BATCH_SIZE,
+        "causal_targets": updates * BATCH_SIZE * CONTEXT,
+        "learning_rate_first": learning_rate(1),
+        "learning_rate_last": learning_rate(updates),
+        "loss_first": losses[0],
+        "loss_last": losses[-1],
+        "loss_mean_first_16": sum(losses[:16]) / min(16, len(losses)),
+        "loss_mean_last_16": sum(losses[-16:]) / min(16, len(losses)),
+        "elapsed_seconds": elapsed_seconds,
+        "hard_wall_seconds": float(max_seconds),
+        "gradient_parameter_tensors": gradient_parameter_tensors,
+        "optimizer_parameter_values": optimizer_values,
+    }
+    if profile is not None:
+        fit_result["profile"] = profile
+        fit_result["complete_training_store"] = (
+            updates * BATCH_SIZE == TRAIN_WINDOWS
+        )
+
     result = {
         "schema": SCHEMA,
-        "status": STATUS,
+        "status": status,
         "model": {
             "policy": model.policy,
             "parameter_count": PARAMETER_COUNT,
             "value_write": VALUE_WRITE,
             "initialization": "qualified retained V1 artifact",
         },
-        "fit": {
-            "updates": updates,
-            "maximum_updates": MAX_UPDATES,
-            "batch_size": BATCH_SIZE,
-            "training_windows": updates * BATCH_SIZE,
-            "causal_targets": updates * BATCH_SIZE * CONTEXT,
-            "learning_rate_first": learning_rate(1),
-            "learning_rate_last": learning_rate(updates),
-            "loss_first": losses[0],
-            "loss_last": losses[-1],
-            "loss_mean_first_16": sum(losses[:16]) / min(16, len(losses)),
-            "loss_mean_last_16": sum(losses[-16:]) / min(16, len(losses)),
-            "elapsed_seconds": elapsed_seconds,
-            "hard_wall_seconds": float(max_seconds),
-            "gradient_parameter_tensors": gradient_parameter_tensors,
-            "optimizer_parameter_values": optimizer_values,
-        },
+        "fit": fit_result,
         "execution": execution,
         "inputs": {
             "train": training_input,
@@ -246,11 +267,53 @@ def fit_contextual_retained(
     return result
 
 
+def fit_contextual_retained(
+    root: Path,
+    *,
+    updates: int = DEFAULT_UPDATES,
+    threads: int = THREADS,
+    max_seconds: float = MAX_SECONDS,
+) -> dict[str, Any]:
+    """Warm-start one bounded adaptation using open training bytes."""
+
+    return _fit_contextual_retained(
+        root,
+        updates=updates,
+        threads=threads,
+        max_seconds=max_seconds,
+        maximum_updates=MAX_UPDATES,
+        maximum_seconds=MAX_SECONDS,
+        output_directory_relative_path=OUTPUT_DIRECTORY_RELATIVE_PATH,
+        status=STATUS,
+        profile=None,
+    )
+
+
+def fit_contextual_retained_full(root: Path) -> dict[str, Any]:
+    """Fit one complete deterministic epoch from the original V1 artifact."""
+
+    return _fit_contextual_retained(
+        root,
+        updates=FULL_EPOCH_UPDATES,
+        threads=THREADS,
+        max_seconds=FULL_EPOCH_MAX_SECONDS,
+        maximum_updates=FULL_EPOCH_UPDATES,
+        maximum_seconds=FULL_EPOCH_MAX_SECONDS,
+        output_directory_relative_path=FULL_EPOCH_OUTPUT_DIRECTORY_RELATIVE_PATH,
+        status=FULL_EPOCH_STATUS,
+        profile="full_epoch",
+    )
+
+
 __all__ = [
     "DEFAULT_UPDATES",
+    "FULL_EPOCH_MAX_SECONDS",
+    "FULL_EPOCH_STATUS",
+    "FULL_EPOCH_UPDATES",
     "MAX_SECONDS",
     "MAX_UPDATES",
     "SCHEMA",
     "STATUS",
     "fit_contextual_retained",
+    "fit_contextual_retained_full",
 ]
