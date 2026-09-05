@@ -5,7 +5,11 @@ for new work and [current-state](integration/current-state.md) for artifact
 selection. The delivered optional path also includes retained-word copying,
 composed prefix-to-copy entry, completion and committed-copy dispatch. Examples
 below are command/API references, not permission to rerun an earlier fit or a
-claim that role-aware selection and relational memory are already implemented.
+claim that the remaining relational-memory step is already implemented.
+The optional [#1137 role reader](native_geometric_role_read_1137.md) now implements
+one learned source/NoRead and entry choice, reused through observed commitment.
+Its Rust preparation/fitting commands and bounded transfer result are in that
+record; ordinary native generation and checkpoint loading execute the artifact.
 
 The native path is `r4 geometric`. Data preparation, fitting, artifacts,
 evaluation, sessions and generation use Rust. Its initial learner estimates

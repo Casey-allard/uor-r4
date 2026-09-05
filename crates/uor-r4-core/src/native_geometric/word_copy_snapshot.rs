@@ -71,6 +71,90 @@ impl Session {
             }
             Ok(item.token)
         };
+        if super::role_read::head(model).is_some()
+            && super::word_copy_runtime::enabled(self.control)
+        {
+            let commit = saved
+                .read_commit
+                .ok_or_else(|| invalid("role-read commit missing"))?;
+            if commit.at_seen != anchor.at_seen || token_at(commit.at_seen)? != commit.token {
+                return Err(invalid("read commitment differs from observed entry"));
+            }
+            let mut boundary = values.clone();
+            boundary.seen = anchor.at_seen;
+            boundary.pose = anchor.pose;
+            boundary.phases = anchor.phases;
+            boundary.pending = None;
+            let mut initial = ResponseEntryState {
+                boundary: Some(anchor),
+                seen: anchor.at_seen,
+                ..ResponseEntryState::default()
+            };
+            let mut choice = WordCopyState::default();
+            super::role_read::offer(
+                &mut choice,
+                model,
+                &mut initial,
+                &boundary,
+                Candidate {
+                    token: BOS,
+                    score: 0,
+                },
+                self.control,
+                &mut WordCopyWork::default(),
+            );
+            let decision = choice
+                .pending
+                .ok_or_else(|| invalid("read selection absent"))?;
+            let source =
+                (decision.word_index != super::role_read::NO_SOURCE).then_some(decision.word_index);
+            if source != commit.source
+                || saved.origin != source
+                || decision.source_end != commit.source_end
+                || decision.source_byte_end != commit.source_byte_end
+                || decision.token != commit.token
+                || (decision.action == WordCopyAction::Prepare) != commit.prepare
+            {
+                return Err(invalid("committed source differs from joint selection"));
+            }
+            if let Some(index) = source {
+                let word = words
+                    .queries
+                    .get(usize::from(index))
+                    .filter(|_| usize::from(index) < words.query_len)
+                    .ok_or_else(|| invalid("read source outside capture"))?;
+                if saved.start_step != u8::from(commit.prepare) {
+                    return Err(invalid("read start differs"));
+                }
+                let observed = entry
+                    .steps
+                    .checked_sub(saved.start_step)
+                    .ok_or_else(|| invalid("read prefix not observed"))?;
+                let prefix = match saved.progress {
+                    WordCopyProgress::Emitting { cursor }
+                        if cursor == observed && cursor < word.len =>
+                    {
+                        usize::from(cursor)
+                    }
+                    WordCopyProgress::Complete if observed >= word.len => usize::from(word.len),
+                    WordCopyProgress::Aborted if observed >= 1 => usize::from(!commit.prepare),
+                    _ => return Err(invalid("read cursor differs from observations")),
+                };
+                for offset in 0..prefix {
+                    if token_at(anchor.at_seen + u64::from(saved.start_step) + offset as u64)?
+                        != u32::from(word.bytes[offset]) + 2
+                    {
+                        return Err(invalid("read bytes differ from committed source"));
+                    }
+                }
+            } else if saved.progress != WordCopyProgress::Idle || saved.start_step != 0 {
+                return Err(invalid("NoRead retains copy progress"));
+            }
+            self.word_copy = Some(saved);
+            return Ok(());
+        } else if saved.read_commit.is_some() {
+            return Err(invalid("read commit is absent from this artifact/control"));
+        }
         // Recreate the actual first combined choice independently of the
         // ordinary total score: every head increment shares that same Base.
         let mut boundary_values = values.clone();

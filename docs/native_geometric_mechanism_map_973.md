@@ -9,6 +9,15 @@ unimplemented until their issue supplies evidence. See
 [current-state](integration/current-state.md) for the latest artifact and
 [research synthesis](native_geometric_direction_review_973.md) for reuse decisions.
 
+**Implemented #1137 successor:**
+[`role_read.rs`](../crates/uor-r4-core/src/native_geometric/role_read.rs) learns
+one candidate-relative source/NoRead and lexical-entry choice, with the exact
+source committed on observation and reused by copying. Its
+[implementation record](native_geometric_role_read_1137.md) gives the retained
+information, quantized fitting, complete work and 24/24 bounded first-use result.
+It preserves the sixteen-word capture and does not yet implement persistent
+relation memory or selective geometric access.
+
 This source map connects the native model to reusable mathematical and runtime
 components. Its baseline is the implementation delivered through PR #1127 at
 `3abf9d7e85f70416c95161863b4413cc42a6912c`; the versioned occurrence-selection,

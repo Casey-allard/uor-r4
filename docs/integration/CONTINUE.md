@@ -21,9 +21,10 @@ learned geometric operators through bounded routing/state/integer-table lookup,
 not a dense transformer concealed behind lookup. Preserve existing Python/dense
 references as evidence, with no new Python model dependency.
 
-Follow the immediate build sequence in project-track.md. The first unmet issue
-is #1137 until its accepted role-aware selection/commit handoff is recorded;
-#1138, #1139 and #1140 follow their native dependencies. A closed negative is
+Follow the immediate build sequence in project-track.md. The #1137 bounded role-aware
+selection/commit handoff now passes as recorded in current-state; after its
+protected delivery, #1138 is the next build. #1139 and #1140 follow their native
+dependencies. A closed negative is
 not an accepted handoff. Do not restart superseded #1083/#1084/#1087/#1089/#1090/
 #1091/#940 as parallel queues; use the plan's responsibility map. Maintain one
 task and one agent under the current owner cadence; necessary storage increases

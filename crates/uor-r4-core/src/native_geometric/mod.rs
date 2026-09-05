@@ -20,6 +20,8 @@ mod response_entry_runtime;
 mod response_entry_training;
 mod response_entry_types;
 mod response_runtime;
+mod role_read;
+mod role_read_training;
 mod runtime;
 mod snapshot;
 mod training;
@@ -480,5 +482,7 @@ mod completion_runtime_tests;
 mod response_entry_runtime_tests;
 #[cfg(test)]
 mod response_entry_training_tests;
+#[cfg(test)]
+mod role_read_tests;
 #[cfg(test)]
 mod word_copy_tests;

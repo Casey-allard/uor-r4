@@ -85,10 +85,15 @@ skip it, import a dense serving model, or treat issue closure as model quality.
 Necessary fixes to an existing interface, invariant or resource bottleneck may
 accompany a step; they do not start a competing product/research programme.
 
+**Current handoff:** [#1137's bounded result](../native_geometric_role_read_1137.md)
+passes with 24/24 first-use answers and all 62 preservation responses. After its
+protected delivery, #1138 is the next implementation. The remaining two older
+wording failures and geometric-attribution limits remain explicit in that record.
+
 ### Step 1: role-aware source choice shared with generation
 
-Start from the existing /4 memory, typed operators, lexical entry, retained-word
-copy and completion. The current correction fixes unbound prefix scores, but
+The starting point was /4 memory, typed operators, lexical entry, retained-word
+copy and completion. The preceding correction fixed unbound prefix scores, but
 positional query/source features and pooled source votes do not provide a
 general role representation. Required answer values are retained in the
 observed failures; widening the window first does not address that cause.
@@ -103,10 +108,12 @@ sixteen-word bound and the existing numeric and completion behavior.
 Reuse #1073/#1077's association-preserving representations, role supervision
 and owner/value contrasts. Their original dense soft readers and supplied
 clauses are reference evidence, not a qualified hard/table implementation.
-The first native candidate is a sparse additive scorer over ordered local
-n-lets and learned discrete role codes, trained in Rust and exported to
-quantized tables. Construction labels may supervise learning; serving receives
-raw text, not hand-parsed semantic answers or a city-specific template.
+Use sparse additive scoring over ordered local n-lets and role/context features,
+trained in Rust and exported to quantized tables. The bounded #1137 handoff
+learns weights over these features; a separate semantic role codebook remains
+unimplemented and is not required by that handoff. Construction labels may
+supervise learning; serving receives raw text, not hand-parsed semantic answers
+or a city-specific template.
 
 Acceptance requires preservation of the existing 62 responses and eight binding
 outputs, repaired open wording cases without lost abstention, causal

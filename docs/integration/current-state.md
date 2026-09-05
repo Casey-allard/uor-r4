@@ -1,5 +1,37 @@
 # Current native geometric AI work
 
+## Role-aware source/entry handoff — 2026-09-05, latest checkpoint
+
+**#1137 passes its bounded handoff.** The selected artifact is
+`blake3:61a24cfa4ce262fd974bc8e84f082a0489db3b58cfafb46c4c42a86e49c13184`,
+at `.uor-models/native-typed-value-2026-09-05/role-read-local-model.json`.
+A learned joint occurrence/NoRead and entry choice now shares one exact source
+through observed commitment and copying. Local role/context weights replace
+pooled initial source votes; the sixteen-word capture, numeric behavior, /4
+memory and completion remain. No semantic role codebook is claimed.
+
+The artifact preserves 62/62 responses and 8/8 binding outputs, repairs the
+previous sixteen-case wording set to 16/16, and improves the separate OPEN
+transfer set from 16/32 to 30/32. The predeclared first-use set passes 24/24
+versus 13/24 for the unchanged `5f590f1c` parent. Four new generated Rust
+functions pass 28 executed assertions; 32 older sources remain byte-identical
+to their checked versions. Actual native CLI Generation fields agree exactly.
+
+The first role fit preserved only 61/62; removing pooled query identity restored
+preservation and reduced rows from 4,804 to 3,973. Both fits remain preserved.
+The [role-read record](../native_geometric_role_read_1137.md) states source,
+first-use, geometric-control and complete-cost limits. Two older transfer cases
+still abstain incorrectly. This is bounded binding/generation, not alpha or a
+matched geometric superiority result.
+
+The next build is #1138 after protected delivery of this #1137 handoff: learned
+exact associations and updates surviving raw-window eviction. The plan PR #1141
+merged at `0731aa0b6ac444c89b294e146e1dbe1f5742c40b`. Live GitHub owns delivery
+and dependency status. Local cumulative model work is 1,138.842/1,800 seconds,
+leaving 661.158; necessary storage cap is 6,459,228,160 bytes with the 128 MiB
+margin. Refresh the local `role-read-checkpoint.json` and shared monitors before
+projecting #1138. Historical checkpoints below retain their original scope.
+
 ## Immediate plan adopted from the research review — 2026-09-05
 
 The owner has adopted the [four-step immediate build sequence](project-track.md#immediate-build-sequence):
@@ -9,7 +41,7 @@ exact learned relation memory -> [#1139](https://github.com/UOR-Foundation/uor-r
 selective geometric access at complete cost -> [#1140](https://github.com/UOR-Foundation/uor-r4/issues/1140)
 typed operator composition for conversation and Rust reasoning.
 
-**Earliest unmet step: #1137.** This plan adoption implements no new model and
+**At plan adoption, the earliest unmet step was #1137.** This plan adoption implements no new model and
 qualifies none of those handoffs. Reuse current retained words, /4 memory,
 copying and completion; learn relative role features and preserve one selected
 occurrence through entry/commit. Current positional/pooled binding is the

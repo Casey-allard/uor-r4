@@ -425,13 +425,39 @@ impl WordCopyState {
         let Some(words) = &values.lexemes else {
             return lexical;
         };
+        if head.role_read.is_some()
+            && entry.steps == 0
+            && self.read_commit.is_none()
+            && eligible(model, entry, values, control)
+        {
+            return super::role_read::offer(self, model, entry, values, baseline, control, work);
+        }
+        if let Some(commit) = self.read_commit.filter(|c| c.source.is_some()) {
+            work.word_record_reads = work.word_record_reads.saturating_add(1);
+            work.selector.metadata_reads = work.selector.metadata_reads.saturating_add(3);
+            let valid = commit
+                .source
+                .and_then(|i| words.queries.get(usize::from(i)))
+                .is_some_and(|w| {
+                    w.end == commit.source_end && w.byte_end == commit.source_byte_end
+                });
+            if !valid {
+                self.reset();
+                work.bound_rejections = work.bound_rejections.saturating_add(1);
+                return lexical;
+            }
+        }
         let mut chosen = None;
         let lexical = if self.progress == WordCopyProgress::Idle {
             prefix_offer(model, entry, values, baseline, lexical, control, work)
         } else {
             lexical
         };
-        if eligible(model, entry, values, control) && self.progress == WordCopyProgress::Idle {
+        if eligible(model, entry, values, control)
+            && self.progress == WordCopyProgress::Idle
+            && self.read_commit.is_none()
+            && head.role_read.is_none()
+        {
             let context = context(model, values, control, work);
             let mut threshold = lexical
                 .map_or(0, |candidate| candidate.score - baseline.score)
@@ -617,7 +643,37 @@ impl WordCopyState {
         });
         if let Some(decision) = matched {
             work.selector.commits = work.selector.commits.saturating_add(1);
-            if decision.action == WordCopyAction::Start {
+            if matches!(
+                decision.action,
+                WordCopyAction::Prepare | WordCopyAction::NoRead | WordCopyAction::Read
+            ) {
+                // The committed identity is the actually selected occurrence,
+                // not a later matching spelling or an output-derived pointer.
+                let source = (decision.word_index != super::role_read::NO_SOURCE)
+                    .then_some(decision.word_index);
+                if matches!(
+                    decision.action,
+                    WordCopyAction::Prepare | WordCopyAction::NoRead | WordCopyAction::Read
+                ) {
+                    self.read_commit = Some(super::role_read::ReadCommit {
+                        source,
+                        source_end: decision.source_end,
+                        source_byte_end: decision.source_byte_end,
+                        at_seen: decision.at_seen,
+                        token: decision.token,
+                        prepare: decision.action == WordCopyAction::Prepare,
+                    });
+                }
+                if decision.action == WordCopyAction::Prepare {
+                    self.origin = source;
+                    self.start_step = decision.step + 1;
+                    self.progress = WordCopyProgress::Emitting { cursor: 0 };
+                }
+            }
+            if matches!(
+                decision.action,
+                WordCopyAction::Start | WordCopyAction::Read
+            ) {
                 self.origin = Some(decision.word_index);
                 self.start_step = decision.step;
                 work.word_record_reads = work.word_record_reads.saturating_add(1);

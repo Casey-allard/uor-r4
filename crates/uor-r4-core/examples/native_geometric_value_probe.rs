@@ -19,6 +19,8 @@ use uor_r4_core::native_geometric::{
 };
 
 type ProbeResult<T> = Result<T, Box<dyn Error>>;
+#[path = "native_geometric_value_probe/role_read.rs"]
+mod role_read;
 #[path = "native_geometric_value_probe/wording.rs"]
 mod wording;
 const SOURCE_SCHEMA: &str = "uor-r4.native-typed-value-source/1";
@@ -74,7 +76,9 @@ impl Options {
         while let Some(flag) = arguments.next() {
             if flag == "--help" || flag == "-h" {
                 println!(
-                    "neutralize-zero-binding INPUT_MODEL NEW_OUTPUT_MODEL (no refit; scores only)\n\
+                    "prepare-role-read SOURCE_V3 NEW_DIRECTORY (construction and reserved24, checks before writing)\n\
+                     fit-role-read MODEL SOURCE NEW_MODEL NEW_REPORT (joint source/entry selection)\n\
+                     neutralize-zero-binding INPUT_MODEL NEW_OUTPUT_MODEL (no refit; scores only)\n\
                      prepare-entry-check SOURCE_V3 NEW_OUTPUT_SOURCE (sixteen raw cases)\n\
                      native_geometric_value_probe [prepare|prepare-copy|prepare-facts|prepare-wording|fit|completion|entry|copy|copy-completed|copy-composed|copy-binding|copy-binding-plain|evaluate] --output-dir NEW_DIRECTORY\n\
                      prepare-copy: --source SOURCE_V2 --lexeme-cues true\n\
@@ -732,6 +736,7 @@ fn reject_training_overlap(model: &Model, cases: &[Case]) -> ProbeResult<()> {
             .chain(model.value_completion_training())
             .chain(model.response_entry_training())
             .chain(model.word_copy_training())
+            .chain(model.role_read_training())
             .any(|known| {
                 known.id == case.id || known.text_cid == pair_cid || known.text_cid == whole_cid
             })
@@ -961,6 +966,33 @@ fn evaluate_binding(
 }
 
 fn main() -> ProbeResult<()> {
+    if std::env::args().nth(1).as_deref() == Some("prepare-role-read") {
+        return role_read::prepare();
+    }
+    if std::env::args().nth(1).as_deref() == Some("fit-role-read") {
+        let args: Vec<_> = std::env::args().skip(2).collect();
+        if args.len() != 4 {
+            return Err("fit-role-read MODEL SOURCE NEW_MODEL NEW_REPORT".into());
+        }
+        let parent = Model::from_bytes(&fs::read(&args[0])?)?;
+        let source: Source = serde_json::from_slice(&fs::read(&args[1])?)?;
+        validate_source(&source)?;
+        let documents: Vec<_> = source
+            .fit
+            .iter()
+            .map(|c| ValueExample {
+                id: c.id.clone(),
+                prompt: c.prompt.clone(),
+                response: c.response.clone(),
+            })
+            .collect();
+        let (model, report) =
+            parent.fit_role_read(&documents, ResponseEntryFitConfig::default())?;
+        write_new(Path::new(&args[2]), &model.to_bytes()?)?;
+        write_json(Path::new(&args[3]), &report)?;
+        println!("{report}");
+        return Ok(());
+    }
     if std::env::args().nth(1).as_deref() == Some("prepare-entry-check") {
         return wording::prepare_entry_check();
     }
@@ -1171,6 +1203,10 @@ fn main() -> ProbeResult<()> {
     }
     if options.controls != "all" {
         report["controls_selection"] = json!(options.controls);
+    }
+    if !model.role_read_training().is_empty() {
+        report["response_entry_scope"] = json!("Joint role-aware occurrence/NoRead and entry action. The selected occurrence/version commits only on the observed entry token and is reused for byte copying; historical pooled prefix/copy choice is bypassed at entry. Relative local lexical/equality and signed H4/zeta features learn sparse quantized scores; no supplied semantic roles or answer buffer enter serving. The inherited suffix, numeric operators and /4 memory remain fixed. Geometry-disabled is a same-artifact sensitivity control, not a matched-refit advantage.");
+        report["role_read_training_documents"] = json!(model.role_read_training().len());
     }
     if options.mode == "copy-composed" {
         report["response_entry_scope"] = json!("Composed /2 extension: first response word after at most one learned lexical prefix token; exact source/query equality plus relative H4/phase features select a retained occurrence. No numeric-source requirement. NoCopy lexical continuation learns after an actually selected first transition. Forced interior copy bytes dispatch before ordinary scoring with score1 marker; observation/memory updates remain.64new construction and16fresh cases augment the unchanged source; no template or target buffer enters inference.");

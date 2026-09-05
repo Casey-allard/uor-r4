@@ -46,28 +46,26 @@ results, remaining learned-operator work and capability limitations.
 
 The [native mechanism map](docs/native_geometric_mechanism_map_973.md) traces
 the implemented prime/zeta/R4 mechanisms from source to generated responses.
-The delivered path includes /4 occurrence memory, typed value operators, lexical
-response entry, retained-word copying, learned completion and committed-copy
-dispatch. The [current checkpoint](docs/integration/current-state.md) records
-PR #1136's zero-match entry correction: 16/16 wording diagnostic, 16/32 open
-transfer (8/24 supported), all 62 preservation responses and eight binding
-outputs. Sixteen first-use prompts yield 13/16, with the three remaining failures
-using “Which city is ... in?”; their provenance does not support a fully sealed
-or vocabulary-disjoint claim. The older city answers are repaired. The prior
-selected `d095a1ab` baseline and development correction `5f590f1c` remain distinct.
+The latest [role-aware source/entry result](docs/native_geometric_role_read_1137.md)
+learns one retained-occurrence/NoRead decision shared with entry and copying.
+Observed entry commits its exact source for later bytes. The selected artifact
+preserves **62/62 responses and eight binding outputs**, reaches **24/24 first-use
+answers** against 13/24 for its parent, and repairs the earlier sixteen-case
+wording set. Four fresh generated Rust functions compile and pass 28 semantic
+assertions. The [current checkpoint](docs/integration/current-state.md) carries
+exact artifacts, source scope and remaining failures.
 
-Committed interior copying already bypasses unnecessary ordinary scoring while
-preserving causal updates. Its complete 62-response comparison measured
-47.210/63.598 ms in one pass with equal outputs/state; this retains a generic
-conditional-execution benefit, not new geometric superiority. The
-[retained-word record](docs/native_geometric_word_copy_973.md) preserves the
-identifier, fact-composition, wording and dispatch experiments at their scopes.
+The first-use grammar families are known and the word capture remains bounded
+at sixteen. Two older transfer cases still abstain incorrectly. These results
+establish a bounded #1137 handoff, with no general-language, alpha or matched
+geometric-superiority claim. Committed-copy dispatch remains useful; complete
+work and its one-pass timing limits are recorded alongside the behavior.
 
 The [immediate build plan](docs/integration/project-track.md#immediate-build-sequence)
 is role-aware shared source selection, exact relational memory, selective
 geometric routing and typed operator composition, before broader programme
-expansion. Only its first unmet step is immediate work; these successors are
-not implemented or qualified by this planning update. General conversation,
+expansion. After #1137 protected delivery, #1138 exact relation memory is the next
+unmet step. Later successors remain unimplemented and unqualified. General conversation,
 coding/reasoning, semantic multiscale memory and alpha remain unestablished.
 
 ## Preserved project entry points

@@ -1,6 +1,17 @@
 # Research: what is measured, what is closed, what is open
 
-## Current direction and latest checkpoint — 2026-09-05
+## Latest native result — 2026-09-05
+
+[#1137 role-aware source/entry selection](native_geometric_role_read_1137.md)
+passes its bounded handoff: 62/62 preserved responses, 8/8 binding, 24/24 first-use
+answers versus 13/24 parent, and four generated Rust functions passing 28 assertions.
+Earlier OPEN sets improve to 16/16 and 30/32; two cases still abstain incorrectly.
+The first 61/62 fit is retained as a negative. Local role features and one causal
+source commitment are useful here; no standalone role codebook, general language
+or matched geometric superiority is qualified. Next is #1138 after protected
+handoff delivery. See [current-state](integration/current-state.md).
+
+## Plan-adoption and prior #1136 checkpoint — 2026-09-05
 
 The owner-adopted [immediate sequence](integration/project-track.md#immediate-build-sequence)
 now governs development. Its [research synthesis](native_geometric_direction_review_973.md)
@@ -14,7 +25,7 @@ implemented. These results do not establish alpha or a new geometric advantage.
 [current-state.md](integration/current-state.md) carries exact artifacts,
 provenance, complete work counts and remaining failures.
 
-The next implementation is #1137's learned role-aware source choice shared with
+At that checkpoint the next implementation was #1137's learned role-aware source choice shared with
 entry and copying. Historical sections below retain their original statements
 about missing prefix-to-copy transitions, byte rescoring and failed city answers;
 those describe their dated artifacts and are superseded as current status by

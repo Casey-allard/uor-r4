@@ -113,7 +113,7 @@ fn response_session(model: &Model, prompt: &str) -> Result<Session> {
 
 /// The exact existing scanner supplies dictionary words, including words that
 /// later leave the sixteen-word ring. Only construction prompts contribute.
-fn dictionary(documents: &[ValueExample]) -> Result<(Vec<WordCopyAddress>, usize, u64)> {
+pub(super) fn dictionary(documents: &[ValueExample]) -> Result<(Vec<WordCopyAddress>, usize, u64)> {
     let mut counts = BTreeMap::<Vec<u8>, u64>::new();
     for document in documents {
         let mut state = LexemeState::default();
@@ -166,6 +166,9 @@ fn dictionary(documents: &[ValueExample]) -> Result<(Vec<WordCopyAddress>, usize
 
 impl WordCopyModel {
     pub(super) fn validate(&self, model: &Model) -> Result<()> {
+        if let Some(read) = &self.role_read {
+            read.validate(model)?;
+        }
         if model
             .values
             .as_ref()
@@ -458,6 +461,7 @@ impl Model {
             .ok_or_else(|| Error("entry parent missing".into()))?;
         entry.schema = RESPONSE_COPY_SCHEMA.into();
         entry.copy = Some(WordCopyModel {
+            role_read: None,
             completed_word_suffix,
             composed_entry,
             shared_binding,

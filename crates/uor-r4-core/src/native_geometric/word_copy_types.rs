@@ -19,6 +19,8 @@ pub(super) struct WordCopyAddress {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(super) struct WordCopyModel {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub role_read: Option<super::role_read::RoleReadModel>,
     pub baseline_artifact: String,
     pub dictionary: Vec<WordCopyAddress>,
     pub rows: Vec<ValueRow>,
@@ -77,6 +79,12 @@ impl WordCopyWork {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum WordCopyAction {
+    /// Direct byte-zero entry from the joint source/entry selector.
+    Read,
+    /// Commit a source on an observed learned lexical prefix, before byte zero.
+    Prepare,
+    /// Commit a learned lexical entry without a retained source.
+    NoRead,
     Start,
     Byte,
     Emit,
@@ -112,6 +120,8 @@ pub enum WordCopyProgress {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(deny_unknown_fields)]
 pub(super) struct WordCopyState {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub read_commit: Option<super::role_read::ReadCommit>,
     /// Immutable selected first-entry occurrence until the entry ends.
     pub origin: Option<u8>,
     pub progress: WordCopyProgress,
