@@ -7,7 +7,8 @@ use std::cell::Cell;
 
 use uor_r4_core::native_geometric::{
     Config, Control, Document, MemoryReadFitConfig, MemoryReadSchedule, MemoryReadSupervision,
-    MemoryReadTokenSpan, MemoryReadTrainer, ReadoutFitConfig, Trainer, BOS, EOS,
+    MemoryReadTokenSpan, MemoryReadTrainer, ReadoutFitConfig, Trainer, ValueExample,
+    ValueFitConfig, BOS, EOS,
 };
 
 struct CountingAllocator;
@@ -95,6 +96,7 @@ fn native_kernel_source_has_no_forbidden_arithmetic_or_float_types() {
         "fn begin_response(",
         "fn end_response(",
         "fn response_decision(",
+        "fn value_decision(",
         "fn recent(",
         "fn features(",
         "fn score_candidate(",
@@ -155,11 +157,61 @@ fn native_kernel_source_has_no_forbidden_arithmetic_or_float_types() {
             "response kernel coverage includes {function}"
         );
     }
+    let value_runtime = include_str!("../src/native_geometric/value_runtime.rs");
+    for function in [
+        "fn observe(",
+        "fn begin(",
+        "fn end(",
+        "fn proposal(",
+        "fn features(",
+        "fn offer(",
+        "fn selected(",
+        "fn commit(",
+        "fn execute(",
+    ] {
+        assert_eq!(
+            value_runtime.matches(function).count(),
+            1,
+            "typed-value kernel coverage includes {function}"
+        );
+    }
+    let (_, numeral, _) = region(
+        include_str!("../src/native_geometric/numeral.rs"),
+        "// NATIVE_GEOMETRIC_INTEGER_KERNEL_BEGIN",
+        "// NATIVE_GEOMETRIC_INTEGER_KERNEL_END",
+    );
+    let (_, lexemes, _) = region(
+        include_str!("../src/native_geometric/value_lexemes.rs"),
+        "// NATIVE_GEOMETRIC_INTEGER_KERNEL_BEGIN",
+        "// NATIVE_GEOMETRIC_INTEGER_KERNEL_END",
+    );
+    for function in ["fn from_zphi(", "fn digit(", "fn feed(", "fn finish("] {
+        assert_eq!(
+            numeral.matches(function).count(),
+            1,
+            "numeral kernel coverage includes {function}"
+        );
+    }
+    // The only external project arithmetic called by typed execution is the
+    // existing exact checked coefficient addition; scan that actual method.
+    let zphi_source = include_str!("../src/prime_route_attention.rs");
+    let zphi = zphi_source.split_once("impl ZPhi {").unwrap().1;
+    let zphi_add = zphi
+        .split_once("pub fn checked_add(")
+        .unwrap()
+        .1
+        .split_once("/// Exact checked multiplication")
+        .unwrap()
+        .0;
     for (name, source) in [
         ("native runtime", kernel),
         ("native Feature helpers", features),
         ("native memory runtime", memory),
         ("native response runtime", response),
+        ("native typed-value runtime", value_runtime),
+        ("native numeral codec", numeral),
+        ("native whole-word codec", lexemes),
+        ("exact ZPhi checked addition", zphi_add),
     ] {
         assert!(
             !source.contains(ALLOW_MARKER),
@@ -176,6 +228,97 @@ fn native_kernel_source_has_no_forbidden_arithmetic_or_float_types() {
             "{name}: no kernel allowances are permitted"
         );
     }
+}
+
+#[test]
+fn native_typed_value_ingest_write_emission_and_eviction_are_allocation_free() {
+    typed_value_allocation_census(false);
+    typed_value_allocation_census(true);
+}
+
+fn typed_value_allocation_census(lexeme_cues: bool) {
+    let documents = [Document {
+        id: "typed-allocation-catalog".into(),
+        text: "left = 13; right = 4; total: 17 unknown".into(),
+    }];
+    let mut trainer = Trainer::new(
+        Config {
+            context_tokens: 32,
+            candidate_limit: 8,
+            ..Config::default()
+        },
+        &documents,
+    )
+    .unwrap();
+    trainer.train_documents(&documents).unwrap();
+    let baseline = trainer.compile().unwrap();
+    let source = [ValueExample {
+        id: "typed-allocation-fit".into(),
+        prompt: "left = 13; right = 4; total:".into(),
+        response: "17".into(),
+    }];
+    let config = ValueFitConfig {
+        epochs: 64,
+        learning_rate: 0.25,
+        max_features: 4096,
+    };
+    let (model, _) = if lexeme_cues {
+        baseline.fit_values_with_lexeme_cues(&source, config)
+    } else {
+        baseline.fit_values(&source, config)
+    }
+    .unwrap();
+    let tokens = model.encode(&source[0].prompt).unwrap();
+    let mut session = model.session(Control::Full).unwrap();
+    let before = session.state().values.unwrap().storage_bytes;
+
+    ALLOCATIONS.with(|count| count.set(0));
+    BYTES.with(|count| count.set(0));
+    MEASURING.with(|enabled| enabled.set(true));
+    let result = (|| {
+        session.observe(&model, BOS)?;
+        for &token in &tokens {
+            session.observe(&model, token)?;
+        }
+        session.begin_response(&model)?;
+        let first = session.predict(&model)?;
+        let selected = session.value_decision().is_some();
+        session.observe(&model, first.token)?;
+        // Interrupt a committed multi-byte value using a different teacher
+        // byte. It must clear the cursor without an allocating recovery path.
+        session.predict(&model)?;
+        session.observe(&model, u32::from(b'x') + 2)?;
+        session.end_response(&model)?;
+        for _ in 0..64 {
+            for &token in &tokens {
+                session.observe(&model, token)?;
+            }
+            session.begin_response(&model)?;
+            for _ in 0..2 {
+                let prediction = session.predict(&model)?;
+                session.observe(&model, prediction.token)?;
+            }
+            session.end_response(&model)?;
+        }
+        Ok::<_, uor_r4_core::native_geometric::Error>(selected)
+    })();
+    MEASURING.with(|enabled| enabled.set(false));
+    let allocations = ALLOCATIONS.with(Cell::get);
+    let bytes = BYTES.with(Cell::get);
+    assert!(result.unwrap(), "fixture must select a fitted typed result");
+    assert_eq!((allocations, bytes), (0, 0));
+    assert_eq!(session.state().values.unwrap().storage_bytes, before);
+    assert!(session.work.values.input_bytes > 0);
+    assert!(session.work.values.literal_writes > 16);
+    assert!(session.work.values.record_evictions > 0);
+    assert!(session.work.values.derived_writes > 0);
+    assert!(session.work.values.emission_commits > 0);
+    assert!(session.work.values.emission_mismatches > 0);
+    assert!(session.work.evictions > 0);
+    println!(
+        "typed-value census allocations={allocations} bytes={bytes} work={:?}",
+        session.work.values
+    );
 }
 
 #[test]

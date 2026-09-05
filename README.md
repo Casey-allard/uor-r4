@@ -46,12 +46,18 @@ results, remaining learned-operator work and capability limitations.
 
 The [native mechanism map](docs/native_geometric_mechanism_map_973.md) traces
 the implemented prime/zeta/R4 mechanisms from source to generated responses.
-The latest [response-state record](docs/native_geometric_response_state_973.md)
+The [response-state record](docs/native_geometric_response_state_973.md)
 adds explicit query persistence and model-selected source state. Both matched
 fits regress against the preceding occurrence reader: exact prose is 5/32
 versus 6/32, and Rust remains 0/32. They remain development options, with
-their controls, actual outputs and costs preserved. Useful response composition,
-coding and computed-value generation remain unresolved.
+their controls, actual outputs and costs preserved. Useful response composition
+and coding remain unresolved. The subsequent
+[typed-value record](docs/native_geometric_typed_value_973.md) adds learned
+operand/action selection, checked value creation and causal decimal emission.
+Its whole-word correction reaches 24/24 numeric targets and all four binding
+pairs on reused open development, while complete responses remain 2/16 prose
+and 0/16 Rust and all 20 generated Rust sources fail compilation. It preserves
+the earlier binding negative and establishes no new H4/zeta selection benefit.
 
 ## Preserved project entry points
 

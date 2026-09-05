@@ -11,6 +11,8 @@ pub(super) const FEATURE_COUNT: usize = 26;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StateView {
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub values: Option<super::ValueStateView>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub response: Option<super::ResponseStateView>,
     pub memory_read: Option<super::MemoryStateView>,
     pub tokens_seen: u64,
@@ -31,6 +33,7 @@ pub struct StateView {
 
 #[derive(Debug, Clone)]
 pub struct Session {
+    pub(super) values: Option<super::value_types::ValueState>,
     pub(super) memory: Option<super::memory_types::MemoryState>,
     pub(super) artifact_cid: String,
     pub(super) ring: Vec<u32>,
@@ -58,6 +61,10 @@ impl Session {
             .capacity()
             .saturating_mul(std::mem::size_of::<Candidate>());
         Self {
+            values: model
+                .values
+                .as_ref()
+                .map(|_| super::value_types::ValueState::new(model)),
             memory: model
                 .memory_read
                 .as_ref()
@@ -81,6 +88,16 @@ impl Session {
 
     pub fn state(&self) -> StateView {
         StateView {
+            values: self.values.as_ref().map(|s| super::ValueStateView {
+                active: s.active,
+                retained_values: s.records.len(),
+                captured_values: s.sources.len(),
+                committed_write: s.emission.map(|e| e.decision.write_id),
+                emission_cursor: s.emission.map(|e| e.cursor),
+                storage_bytes: std::mem::size_of::<super::value_types::ValueState>()
+                    + (s.records.capacity() + s.sources.capacity())
+                        * std::mem::size_of::<super::ValueRecord>(),
+            }),
             response: self.memory.as_ref().and_then(|state| state.response_view()),
             memory_read: self.memory.as_ref().map(|state| state.state()),
             tokens_seen: self.work.observed_tokens,
@@ -110,6 +127,10 @@ impl Session {
         self.memory.as_ref().and_then(|state| state.pending)
     }
 
+    pub fn value_decision(&self) -> Option<super::ValueDecision> {
+        self.values.as_ref().and_then(|s| s.pending)
+    }
+
     fn check_model(&self, model: &Model) -> Result<()> {
         if self.artifact_cid != model.artifact_cid {
             return Err(Error(
@@ -121,6 +142,9 @@ impl Session {
 
     pub fn begin_response(&mut self, model: &Model) -> Result<()> {
         self.check_model(model)?;
+        if let Some(state) = &mut self.values {
+            state.begin(&mut self.work.values);
+        }
         if self.control != Control::MemoryDisabled && self.control != Control::ResponseStateDisabled
         {
             if let (Some(state), Some(memory)) = (&mut self.memory, &model.memory_read) {
@@ -132,6 +156,9 @@ impl Session {
 
     pub fn end_response(&mut self, model: &Model) -> Result<()> {
         self.check_model(model)?;
+        if let Some(state) = &mut self.values {
+            state.end();
+        }
         if let Some(state) = &mut self.memory {
             state.end_response();
         }
@@ -208,6 +235,9 @@ impl Session {
         self.work.observed_tokens = self.work.observed_tokens.saturating_add(1);
         if let (Some(state), Some(memory)) = (&mut self.memory, &model.memory_read) {
             state.observe(model, memory, token, &mut self.work);
+        }
+        if let Some(state) = &mut self.values {
+            state.observe(model, token, &mut self.work.values);
         }
         Ok(())
     }
@@ -410,12 +440,24 @@ impl Session {
                 }
             }
         }
+        if let Some(baseline) = self.candidates.first().copied() {
+            let offer = self
+                .values
+                .as_mut()
+                .and_then(|s| s.offer(model, baseline, self.control, &mut self.work.values));
+            if let Some(candidate) = offer {
+                self.offer_memory(model, candidate);
+            }
+        }
         let best = *self
             .candidates
             .first()
             .ok_or_else(|| Error("artifact offers no output candidates".into()))?;
         if let Some(state) = &mut self.memory {
             state.select_response(model, best, &mut self.work);
+        }
+        if let Some(state) = &mut self.values {
+            state.selected(best);
         }
         Ok(Prediction {
             token: best.token,

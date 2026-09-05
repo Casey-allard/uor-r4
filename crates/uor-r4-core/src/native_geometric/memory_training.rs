@@ -443,6 +443,9 @@ impl Model {
                     + memory.config.candidate_limit * std::mem::size_of::<MemoryReference>();
             }
         }
+        if self.values.is_some() {
+            bytes += 2 * super::value_types::VALUES * std::mem::size_of::<super::ValueRecord>();
+        }
         bytes
     }
 

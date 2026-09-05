@@ -12,6 +12,28 @@ windows as instructions for new work. A negative binds its exact configuration;
 resource unavailability does not determine model quality. The recovered plan
 allows open development iteration under configurable cumulative machine budgets.
 
+## Native typed-value development (2026-09-05)
+
+The [typed-value record](native_geometric_typed_value_973.md) adds an optional
+bounded literal store, learned operand/action selection, exact integer-domain
+addition and causal decimal emission on the stronger `/4` model. Its first fit
+produces correct numerals on 12/12 prose and 8/12 Rust numeric development cases,
+versus zero with typed values disabled. Complete responses remain 2/16 prose
+and 0/16 Rust; all twenty inspected primary/control Rust sources fail compilation.
+All four paired source-name swaps fail. H4/zeta controls make the same primary
+typed selections, so these results establish no added typed-selection advantage
+from those features. The observed whole-word identity loss across byte fallback
+motivates the versioned `/2` lexical-cue correction recorded there. Its 192-case
+fit retains the original 128 examples and adds 64 construction name swaps.
+On reused open development it reaches 24/24 correct numeric targets and 4/4
+correct name-swap pairs; disabling whole-word scoring leaves 4/24 numerals.
+H4/zeta-disabled retain the same typed actions and operands as Full. Complete
+responses remain 2/16 prose and 0/16 Rust, with all 20 generated Rust sources
+still failing compilation. The remaining numeric failure begins after emission,
+where the scalar fitter has trained neither ordinary suffix nor EOS. These are
+bounded binding and feature-sensitivity results; final held-out qualification,
+general geometric advantage and both alpha capability groups remain unqualified.
+
 ## Native response-state development negatives (2026-09-05)
 
 The [response-state record](native_geometric_response_state_973.md) adds

@@ -5,7 +5,8 @@ evaluation, sessions and generation use Rust. Its initial learner estimates
 conditional score tables over prime lexical identities and geometric context.
 Separate readout fitting learns bounded integer gates over seven feature groups
 and sufficiently supported last-prime query keys. It does not yet learn the
-state's memory-write law.
+ordinary token memory-write law. The optional typed-value component separately
+learns operand/action selection and whether to write its result.
 An optional learned memory reader retrieves actual retained token values through
 prime-addressed postings, query/source offsets and relative H4/zeta features.
 It is versioned separately in the artifact; the original fixed/readout-only
@@ -18,6 +19,46 @@ Build the CLI with `cargo build --release --bin r4`. The examples below use
 `target/release/r4`; set a different path when using a shared Cargo target.
 
 ## Prepare open development data
+
+The optional typed-value experiment is available through the same core
+`Model::fit_values` API and a bounded Rust example:
+
+```sh
+cargo build --release -p uor-r4-wasm-router --bin r4 -p uor-r4-core --example native_geometric_value_probe
+target/release/examples/native_geometric_value_probe fit \
+  --model /absolute/path/to/occurrence.json \
+  --output-dir /absolute/path/to/new-value-run \
+  --epochs 24 --learning-rate 0.1 --max-features 65536 \
+  --generated-tokens 32 --max-seconds 120
+```
+
+Use the inherited cumulative model/resource monitor around this command.
+Its inner time check is between bounded operations, not a hard interruption.
+The example writes raw fit/development source and name-swap controls before
+fitting, reloads the exported artifact, and saves actual output from Full,
+ValuesDisabled, H4Disabled and ZetaDisabled arms. It refuses an existing output
+directory and checks development against the artifact's training receipts.
+`evaluate --model ... --source ... --output-dir ...` replays a saved artifact.
+Generated Rust is saved unchanged; compilation/execution is a separate inspected
+step. This example uses numeral-first targets with exact decoded-byte metrics,
+not canonical first-token equivalence. See the
+[typed-value record](native_geometric_typed_value_973.md) for measured limits.
+
+`--lexeme-cues true` explicitly selects `Model::fit_values_with_lexeme_cues`
+and typed schema `/2`. It adds bounded whole-word identity cues and 64 raw
+construction name swaps to the original 128 fitting pairs. The same development
+cases are reused open feedback. The additional `ValueLexemesDisabled` arm removes
+only the new learned feature rows while retaining their state and ingestion cost.
+The default remains `/1`; source schema and this flag must agree on replay.
+
+The resulting model loads through ordinary `r4 geometric` generation and the
+native service. `--control values-disabled` suppresses typed candidates;
+`--control value-lexemes-disabled` suppresses `/2` whole-word scoring alone. Session
+schema `/3` preserves committed derived values and emission cursor, including
+empty HTTP continuation after export/import. `Session::begin_response` starts
+new value selection; a continuing response must retain its active state.
+
+The general corpus preparation command remains:
 
 ```sh
 target/release/r4 geometric prepare \

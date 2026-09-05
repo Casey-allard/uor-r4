@@ -12,10 +12,15 @@ mod memory_runtime;
 mod memory_training;
 mod memory_types;
 mod mixture;
+mod numeral;
 mod response_runtime;
 mod runtime;
 mod snapshot;
 mod training;
+mod value_lexemes;
+mod value_runtime;
+mod value_training;
+mod value_types;
 
 use serde::{Deserialize, Serialize};
 
@@ -29,6 +34,10 @@ pub use memory_types::{ResponseAction, ResponseDecision, ResponseStateView};
 pub use mixture::{ReadoutFitConfig, ReadoutFitReport};
 pub use runtime::{Session, StateView};
 pub use training::Trainer;
+pub use value_training::{ValueExample, ValueFitConfig, ValueFitReport};
+pub use value_types::{
+    ValueAction, ValueDecision, ValueDerivation, ValueRecord, ValueStateView, ValueWork,
+};
 
 pub const SCHEMA: &str = "uor-r4.native-geometric-language/1";
 pub const BOS: u32 = 0;
@@ -115,6 +124,8 @@ pub enum Control {
     HeatmapDisabled,
     MemoryDisabled,
     ResponseStateDisabled,
+    ValuesDisabled,
+    ValueLexemesDisabled,
 }
 
 /// Explicit feature addresses, never content digests. Kinds 0/1 are full
@@ -150,7 +161,11 @@ impl Feature {
     }
     fn admitted(self, control: Control) -> bool {
         match control {
-            Control::Full | Control::MemoryDisabled | Control::ResponseStateDisabled => true,
+            Control::Full
+            | Control::MemoryDisabled
+            | Control::ResponseStateDisabled
+            | Control::ValuesDisabled
+            | Control::ValueLexemesDisabled => true,
             Control::GeometryDisabled => self.kind < 2,
             Control::ZetaDisabled => !(8..=15).contains(&self.kind) && self.kind != 5,
             Control::H4Disabled => self.kind < 2 || (8..=15).contains(&self.kind),
@@ -234,6 +249,8 @@ pub struct Model {
     readout_training: Vec<DocumentReceipt>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     memory_read: Option<memory_types::MemoryModel>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    values: Option<value_types::ValueModel>,
 }
 
 #[derive(Deserialize)]
@@ -254,6 +271,8 @@ struct ModelWire {
     readout_training: Vec<DocumentReceipt>,
     #[serde(default)]
     memory_read: Option<memory_types::MemoryModel>,
+    #[serde(default)]
+    values: Option<value_types::ValueModel>,
 }
 impl TryFrom<ModelWire> for Model {
     type Error = Error;
@@ -273,6 +292,7 @@ impl TryFrom<ModelWire> for Model {
             readout: wire.readout,
             readout_training: wire.readout_training,
             memory_read: wire.memory_read,
+            values: wire.values,
         };
         model.validate()?;
         Ok(model)
@@ -281,6 +301,8 @@ impl TryFrom<ModelWire> for Model {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct Work {
+    #[serde(default, skip_serializing_if = "ValueWork::is_empty")]
+    pub values: ValueWork,
     #[serde(default, skip_serializing_if = "zero_work")]
     pub response_query_captures: u64,
     #[serde(default, skip_serializing_if = "zero_work")]
@@ -358,6 +380,8 @@ pub struct Prediction {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Generation {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub value_trace: Vec<ValueDecision>,
     /// First at most 96 decisions, recorded outside the allocation-free kernel.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub response_trace: Vec<ResponseDecision>,
@@ -387,3 +411,6 @@ pub struct Evaluation {
 mod response_runtime_tests;
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod value_runtime_tests;

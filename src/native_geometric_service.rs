@@ -403,12 +403,14 @@ impl Service {
                 || session
                     .state()
                     .response
-                    .is_none_or(|response| !response.active))
+                    .is_none_or(|response| !response.active)
+                    && session.state().values.is_none_or(|values| !values.active))
         {
             session.begin_response(&self.model).map_err(internal)?;
         }
         let mut output = Vec::new();
         let mut response_trace = Vec::new();
+        let mut value_trace = Vec::new();
         let mut output_bytes = 0;
         let mut stop = "token_limit";
         for _ in 0..request.max_tokens {
@@ -422,13 +424,20 @@ impl Service {
                 stop = "output_byte_limit";
                 break;
             }
+            if let Some(decision) = session.value_decision() {
+                if value_trace.len() < 96 {
+                    value_trace.push(decision);
+                }
+            }
             if let Some(decision) = session.response_decision() {
                 if response_trace.len() < 96 {
                     response_trace.push(decision);
                 }
             }
             if prediction.token == EOS {
-                if session.response_decision().is_some() {
+                if session.response_decision().is_some()
+                    || self.model.value_operator_version().is_some()
+                {
                     session.observe(&self.model, EOS).map_err(internal)?;
                 }
                 stop = "end_of_sequence";
@@ -451,7 +460,7 @@ impl Service {
             json!({"backend":BACKEND,"artifact_cid":self.model.artifact_cid(),"session_id":request.session_id,
             "memory_read_version":self.model.memory_read_version(),
             "text":text,"utf8_valid":utf8_valid,"bytes":bytes,"tokens":output,"stop":stop,
-            "response_trace":response_trace,
+            "response_trace":response_trace,"value_trace":value_trace,
             "prompt_tokens":prompt.len(),"observed_prompt_tokens":observed_prompt,
             "state":session.state(),"session_work":session.work,
             "persisted":self.session_directory.is_some() && persist_error.is_none(),"persistence_error":persist_error}),
@@ -1057,6 +1066,96 @@ mod tests {
         let isolated = isolated.session.lock().unwrap();
         assert_eq!(isolated.work.response_query_captures, 0);
         assert!(!isolated.state().response.unwrap().active);
+    }
+
+    #[test]
+    fn http_typed_numeral_continues_across_requests_and_imported_snapshot() {
+        typed_numeral_continuation(false);
+        typed_numeral_continuation(true);
+    }
+
+    fn typed_numeral_continuation(lexeme_cues: bool) {
+        use uor_r4_core::native_geometric::{ValueExample, ValueFitConfig};
+        // A tiny construction fit supplies the public values-enabled artifact.
+        // This test concerns HTTP/state continuity, not held-out arithmetic.
+        let examples = (0..4)
+            .map(|index| ValueExample {
+                id: format!("value-service-fit-{index}"),
+                prompt: format!("left = {}; right = 4; total:", 13 + index),
+                response: (17 + index).to_string(),
+            })
+            .collect::<Vec<_>>();
+        let baseline = model();
+        let config = ValueFitConfig {
+            epochs: 32,
+            learning_rate: 0.25,
+            max_features: 4096,
+        };
+        let (fitted, report) = if lexeme_cues {
+            baseline.fit_values_with_lexeme_cues(&examples, config)
+        } else {
+            baseline.fit_values(&examples, config)
+        }
+        .unwrap();
+        assert_eq!(report.reachable_numeric_targets, 4);
+        assert!(report.continuation_positions > 0);
+        let model = Model::from_bytes(&fitted.to_bytes().unwrap()).unwrap();
+        let service = Arc::new(Service::new(model, None).unwrap());
+        let complete_id = id(&post(Arc::clone(&service), "/api/session", json!({})));
+        let split_id = id(&post(Arc::clone(&service), "/api/session", json!({})));
+        let prompt = &examples[0].prompt;
+        let complete = post(
+            Arc::clone(&service),
+            "/api/generate",
+            json!({"session_id":complete_id,"prompt":prompt,"max_tokens":2}),
+        );
+        assert_eq!(complete["tokens"], json!([51, 57]));
+        assert_eq!(complete["bytes"], json!([b'1', b'7']));
+        assert_eq!(complete["text"], "17");
+        let first = post(
+            Arc::clone(&service),
+            "/api/generate",
+            json!({"session_id":split_id,"prompt":prompt,"max_tokens":1}),
+        );
+        assert_eq!(first["stop"], "token_limit");
+        assert_eq!(first["tokens"], json!([51]));
+        assert_eq!(first["state"]["values"]["active"], true);
+        assert_eq!(first["state"]["values"]["emission_cursor"], 1);
+        let write = first["state"]["values"]["committed_write"].clone();
+        let exported = post(
+            Arc::clone(&service),
+            "/api/export",
+            json!({"session_id":split_id}),
+        );
+        assert_eq!(
+            exported["checkpoint"]["schema"],
+            "uor-r4.native-geometric-session/3"
+        );
+        let restored_id = id(&post(
+            Arc::clone(&service),
+            "/api/import",
+            json!({"checkpoint":exported["checkpoint"]}),
+        ));
+        for session_id in [split_id, restored_id] {
+            let second = post(
+                Arc::clone(&service),
+                "/api/generate",
+                json!({"session_id":session_id,"prompt":"","max_tokens":1}),
+            );
+            assert_eq!(second["observed_prompt_tokens"], 0);
+            assert_eq!(second["tokens"], json!([57]));
+            assert_eq!(second["value_trace"][0]["write_id"], write);
+            assert_eq!(second["value_trace"][0]["cursor"], 1);
+            let mut tokens = first["tokens"].as_array().unwrap().clone();
+            tokens.extend(second["tokens"].as_array().unwrap().iter().cloned());
+            let mut trace = first["value_trace"].as_array().unwrap().clone();
+            trace.extend(second["value_trace"].as_array().unwrap().iter().cloned());
+            assert_eq!(json!(tokens), complete["tokens"]);
+            assert_eq!(json!(trace), complete["value_trace"]);
+            assert_eq!(second["state"], complete["state"]);
+            assert_eq!(second["session_work"], complete["session_work"]);
+            assert_eq!(second["session_work"]["values"]["derived_writes"], 1);
+        }
     }
 
     #[test]

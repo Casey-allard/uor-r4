@@ -1,11 +1,13 @@
 //! Host-only, artifact-bound persistence of a bounded conversation context.
 
 use super::memory_types::{MemoryEntry, MemoryReference, ResponseAction, RESPONSE_MEMORY_SCHEMA};
+use super::value_types::ValueState;
 use super::*;
 use serde::{Deserialize, Serialize};
 
 const LEGACY_SESSION_SCHEMA: &str = "uor-r4.native-geometric-session/1";
 const RESPONSE_SESSION_SCHEMA: &str = "uor-r4.native-geometric-session/2";
+const VALUE_SESSION_SCHEMA: &str = "uor-r4.native-geometric-session/3";
 const LEGACY_CHECKPOINT_LIMIT: usize = 1024 * 1024;
 const RESPONSE_CHECKPOINT_LIMIT: usize = 8 * 1024 * 1024;
 // Bound allocation before collecting the sparse index. A tuple has two
@@ -61,6 +63,8 @@ struct Checkpoint {
     work: Work,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     response_memory: Option<ResponseMemorySnapshot>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    values: Option<ValueState>,
 }
 
 impl Session {
@@ -77,7 +81,9 @@ impl Session {
             self.ring[..self.length].to_vec()
         };
         let response_memory = self.response_memory_snapshot()?;
-        let schema = if response_memory.is_some() {
+        let schema = if self.values.is_some() {
+            VALUE_SESSION_SCHEMA
+        } else if response_memory.is_some() {
             RESPONSE_SESSION_SCHEMA
         } else {
             LEGACY_SESSION_SCHEMA
@@ -93,9 +99,10 @@ impl Session {
             control: self.control,
             work: self.work,
             response_memory,
+            values: self.values.clone(),
         })
         .map_err(|error| Error(error.to_string()))?;
-        let limit = if schema == RESPONSE_SESSION_SCHEMA {
+        let limit = if schema != LEGACY_SESSION_SCHEMA {
             RESPONSE_CHECKPOINT_LIMIT
         } else {
             LEGACY_CHECKPOINT_LIMIT
@@ -121,20 +128,41 @@ impl Session {
             .memory_read
             .as_ref()
             .is_some_and(|memory| memory.schema == RESPONSE_MEMORY_SCHEMA);
+        let expected_schema = if model.values.is_some() {
+            VALUE_SESSION_SCHEMA
+        } else if response_model {
+            RESPONSE_SESSION_SCHEMA
+        } else {
+            LEGACY_SESSION_SCHEMA
+        };
+        let object: serde_json::Value =
+            serde_json::from_slice(bytes).map_err(|error| Error(error.to_string()))?;
+        value_snapshot::validate_lexeme_field_presence(model, &object)?;
         // The additive /2 field must remain an unknown field for historical
         // /1 inputs, including an explicit JSON null. Keep their old loader
         // law as well as their byte serialization unchanged.
         if checkpoint.schema == LEGACY_SESSION_SCHEMA {
-            let object: serde_json::Value =
-                serde_json::from_slice(bytes).map_err(|error| Error(error.to_string()))?;
             if object.get("response_memory").is_some() {
                 return Err(Error("historical session contains response state".into()));
             }
         }
-        if (checkpoint.schema != LEGACY_SESSION_SCHEMA
-            && checkpoint.schema != RESPONSE_SESSION_SCHEMA)
-            || (checkpoint.schema == RESPONSE_SESSION_SCHEMA) != response_model
+        if checkpoint.schema != VALUE_SESSION_SCHEMA && object.get("values").is_some() {
+            return Err(Error(
+                "historical session contains typed value state".into(),
+            ));
+        }
+        if object
+            .get("values")
+            .and_then(|value| value.get("pending"))
+            .is_some()
+        {
+            return Err(Error(
+                "session checkpoint contains transient value selection".into(),
+            ));
+        }
+        if checkpoint.schema != expected_schema
             || checkpoint.response_memory.is_some() != response_model
+            || checkpoint.values.is_some() != model.values.is_some()
             || (checkpoint.schema == LEGACY_SESSION_SCHEMA && bytes.len() > LEGACY_CHECKPOINT_LIMIT)
             || checkpoint.artifact_cid != model.artifact_cid()
             || checkpoint.retained_tokens.len() > model.config().context_tokens
@@ -215,6 +243,15 @@ impl Session {
         restored.previous_evicted = checkpoint.previous_evicted;
         if let Some(memory_snapshot) = checkpoint.response_memory {
             restored.restore_response_memory(model, memory_snapshot)?;
+        }
+        if let Some(values) = checkpoint.values {
+            restored.restore_value_state(
+                model,
+                values,
+                &checkpoint.retained_tokens,
+                checkpoint.work.observed_tokens,
+                checkpoint.work.values.input_bytes,
+            )?;
         }
         restored.work = checkpoint.work;
         Ok(restored)
@@ -549,3 +586,10 @@ impl Model {
 #[cfg(test)]
 #[path = "response_snapshot_tests.rs"]
 mod response_snapshot_tests;
+
+#[path = "value_snapshot.rs"]
+mod value_snapshot;
+
+#[cfg(test)]
+#[path = "value_snapshot_tests.rs"]
+mod value_snapshot_tests;

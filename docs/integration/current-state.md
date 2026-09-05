@@ -7,6 +7,50 @@ remains owned by [#973](https://github.com/UOR-Foundation/uor-r4/issues/973).
 Refresh live GitHub before choosing a follow-up; dated snapshots and lower
 historical “next” paragraphs do not select work.
 
+## Typed value creation — 2026-09-05 development
+
+The native model now has an optional typed-value component on the stronger
+`/4` artifact. It lexes signed integer values, learns bounded operand/action
+selection, executes Copy or checked integer-domain `ZPhi::checked_add`, commits
+the result with causal provenance, and emits decimal byte tokens through the
+ordinary shortlist. It reuses the `/5` prediction/observation pattern while
+preserving both fitted `/5` negatives. Typed records survive token-ring eviction
+until their own sixteen-record store evicts them; this is deterministic retention.
+
+The first `/1` fit selects correctly on 128/128 raw training examples. On 32
+open-development cases it produces correct numerals on 12/12 prose and 8/12
+Rust numeric targets, versus 0/12 in each family with typed values disabled.
+Complete exact responses remain 2/16 prose and 0/16 Rust. All sixteen generated
+Rust sources and four Rust binding-control sources fail compilation unchanged.
+All four paired name swaps fail to select both correct results. H4/zeta-disabled
+arms make the same primary typed choices as Full, so this establishes no added
+typed-selection benefit from those features.
+
+The observed representation loss is specific: the six fit names are lexical
+tokens, while new development names split into bytes. Four-token source cues
+retain fragments and the eight-token query loses relevant words. The `/2`
+correction adds bounded exact whole-word cues across token splits and 64 varied
+raw construction bindings. It selects 192/192 fitting cases and all 24 numeric
+development targets; all four unchanged-query name-swap pairs now select both
+correct results. Whole-word scoring disabled falls to 4/24, while H4/zeta-disabled
+retain Full's typed actions and operands on all 32 cases. Complete responses
+remain 2/16 prose and 0/16 Rust, and all 20 generated Rust sources still fail
+compilation. Only the four previously failing Rust Add outputs change; the other
+28 primary outputs retain their exact bytes and tokens.
+
+The remaining numeric failures begin after completed numeral emission: every
+Rust case fails at its first suffix byte or EOS. The scalar fitter trains no
+suffix, and emitted byte-token history differs from canonical lexical encoding.
+The next concrete integration is learned response progress and continuation/stop
+selection at that value-to-completion boundary, using actual emitted histories.
+Keep the improved bounded operand/write mechanism and both prior `/5` negatives;
+do not substitute fixed response templates. The
+[typed-value record](../native_geometric_typed_value_973.md) binds outputs,
+controls, source/binary identities, preservation and focused checks. No general
+binding, geometric advantage or alpha claim follows. Final held-out qualification
+remains NOT_RUN. Cumulative model work is 894.645/1800 seconds; 905.355 seconds
+remain, with storage the tighter constraint.
+
 ## Persistent response state — 2026-09-05
 
 The native `/5` development option captures a bounded response query and its

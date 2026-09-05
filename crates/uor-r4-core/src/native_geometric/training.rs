@@ -187,6 +187,7 @@ impl Trainer {
             rows: Vec::new(),
             readout: super::mixture::Readout::default(),
             readout_training: Vec::new(),
+            values: None,
             memory_read: None,
         };
         template.refresh_identity()?;
@@ -503,6 +504,9 @@ impl Model {
     }
     pub(super) fn validate(&self) -> Result<()> {
         self.config.validate()?;
+        if let Some(values) = &self.values {
+            values.validate()?;
+        }
         self.readout.validate(self)?;
         if let Some(memory) = &self.memory_read {
             memory.validate(self)?;
@@ -637,16 +641,22 @@ impl Model {
         session.begin_response(self)?;
         let mut token_ids = Vec::new();
         let mut response_trace = Vec::new();
+        let mut value_trace = Vec::new();
         let mut stop = "token_budget".to_owned();
         for _ in 0..max_new_tokens {
             let token = session.predict(self)?.token;
+            if let Some(decision) = session.value_decision() {
+                if value_trace.len() < 96 {
+                    value_trace.push(decision);
+                }
+            }
             if let Some(decision) = session.response_decision() {
                 if response_trace.len() < 96 {
                     response_trace.push(decision);
                 }
             }
             if token == EOS {
-                if session.response_decision().is_some() {
+                if session.response_decision().is_some() || self.values.is_some() {
                     session.observe(self, token)?;
                 }
                 stop = "end_of_document".into();
@@ -663,6 +673,7 @@ impl Model {
             bytes,
             token_ids,
             response_trace,
+            value_trace,
             stop,
             work: session.work,
             state: session.state(),
@@ -685,6 +696,7 @@ impl Model {
                     .iter()
                     .chain(&self.readout_training)
                     .chain(self.memory_read_training())
+                    .chain(self.value_training())
                     .any(|known| known.id == candidate.id || known.text_cid == candidate.text_cid)
             {
                 return Err(Error(format!(

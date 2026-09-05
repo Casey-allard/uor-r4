@@ -3,7 +3,7 @@
 This source map connects the native model to reusable mathematical and runtime
 components. Its baseline is the implementation delivered through PR #1127 at
 `3abf9d7e85f70416c95161863b4413cc42a6912c`; the versioned occurrence-selection
-and response-state successors are distinguished below. The [project plan](integration/project-track.md)
+response-state and typed-value successors are distinguished below. The [project plan](integration/project-track.md)
 owns the goal, and [current-state.md](integration/current-state.md) owns results
 and active work. This is not another roadmap or a claim that every architectural
 role is already assembled.
@@ -93,6 +93,47 @@ unsupervised context within a response. The
 [response-state record](native_geometric_response_state_973.md) binds the
 executed behavior, costs and checkpoint checks; mechanical continuity alone
 does not establish useful answer composition.
+
+The optional typed-value component adds `numeral.rs`, `value_runtime.rs`,
+`value_training.rs` and `value_snapshot.rs` to this same model. It uses the
+stronger `/4` fitted reader and reuses `/5`'s prediction/observation separation
+with distinct derived-write identity. A generic signed-integer byte lexer
+records numeric payloads, up to four preceding prime cues and cumulative
+H4/phase state. These payloads are separate from token-root coefficients.
+At a response boundary, the learned integer score table chooses Copy, checked
+`ZPhi::checked_add` in the integer subdomain, or no derived write. It examines
+up to sixteen records and 256 valid operand/action proposals. Relative H4,
+fixed-phase, prime-cue equality and occurrence-rank features influence selection.
+This is bounded exhaustive operand scoring, without sparse preselection.
+
+Typed schema `/2` additionally uses `value_lexemes.rs` to preserve complete
+ASCII word identity across tokenizer pieces. Sixteen recent words and sixteen
+captured query words are bounded to 32 bytes each; each numeric record retains
+four preceding words, source endpoints and their geometry. Learned query-position
+features consume exact source/query word-match masks. Word geometry is retained
+metadata, not a new scoring law. This preserves selected local identities while
+discarding most surrounding text; it supplies no entity-role parser, assignment
+graph, learned consolidation or multiscale semantic summary. Its 16 extra features
+per proposal can add up to 32,768 word comparisons and 1,048,576 byte comparisons
+at the sixteen-value limit, in addition to the existing path. Every admitted
+addition still executes before selection; sparse compute savings remain open.
+
+Only observing the selected decimal token commits the derived value and its
+operand IDs/values. A fixed twenty-byte buffer emits the remaining digits
+through the ordinary shortlist. Positive selection emits at the response
+boundary; the current gate cannot wait through generated text before inserting
+a numeral. It supplies no response suffix or learned stop classifier. Raw
+prompt/response training labels complete numeral bytes and leaves operand and
+action identities latent. Canonical lexical tokens and emitted byte tokens can
+differ while decoding to the same text.
+
+The sixteen-record store can retain numbers beyond ordinary token-ring
+eviction, including persistent derivation, but deterministically discards old
+records when full. Most surrounding source text and general assignment/dependency
+structure are not retained. Session schema `/3` validates this explicit state;
+older source payloads are user-provided state, not authenticated history.
+The [typed-value record](native_geometric_typed_value_973.md) supplies complete
+cost bounds, direct behavior, controls and remaining binding/emission limits.
 
 ## Historical pieces and what they can contribute
 

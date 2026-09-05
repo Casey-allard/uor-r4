@@ -256,6 +256,8 @@ enum ControlArg {
     HeatmapDisabled,
     MemoryDisabled,
     ResponseStateDisabled,
+    ValuesDisabled,
+    ValueLexemesDisabled,
 }
 impl From<ControlArg> for Control {
     fn from(value: ControlArg) -> Self {
@@ -270,6 +272,8 @@ impl From<ControlArg> for Control {
             ControlArg::HeatmapDisabled => Self::HeatmapDisabled,
             ControlArg::MemoryDisabled => Self::MemoryDisabled,
             ControlArg::ResponseStateDisabled => Self::ResponseStateDisabled,
+            ControlArg::ValuesDisabled => Self::ValuesDisabled,
+            ControlArg::ValueLexemesDisabled => Self::ValueLexemesDisabled,
         }
     }
 }
@@ -1228,7 +1232,8 @@ fn chat(a: &ChatArgs) -> Result<(), String> {
         for _ in 0..a.max_tokens {
             let token = session.predict(&model).map_err(err)?.token;
             if token == uor_r4_core::native_geometric::EOS {
-                if session.response_decision().is_some() {
+                if session.response_decision().is_some() || model.value_operator_version().is_some()
+                {
                     session.observe(&model, token).map_err(err)?;
                 }
                 break;
