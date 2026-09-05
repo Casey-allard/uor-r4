@@ -445,3 +445,164 @@ fn native_memory_cue_aliases_preserve_outputs_and_validate_complete_mapping() {
         assert_eq!(work.memory_cue_reads > 0, expected_admission);
     }
 }
+
+#[test]
+fn native_query_occurrence_address_preserves_all_declared_bits() {
+    use memory_runtime::pack_query_occurrence;
+    let maximum = memory_types::QUERY_CONTEXT_PRIME_LIMIT - 1;
+    assert_eq!(
+        pack_query_occurrence(maximum, maximum, 32, 16, 7),
+        (1_u64 << 60) - 1
+    );
+    let mut addresses = std::collections::BTreeSet::new();
+    for query in 1..=32 {
+        for source in 1..=16 {
+            for rank in 0..8 {
+                let value = pack_query_occurrence(65_537, 131_071, query, source, rank);
+                assert_eq!(value >> 36, 65_537);
+                assert_eq!((value >> 12) & 0x00ff_ffff, 131_071);
+                assert_eq!((value >> 7) & 31, query as u64 - 1);
+                assert_eq!((value >> 3) & 15, source as u64 - 1);
+                assert_eq!(value & 7, rank as u64);
+                assert!(addresses.insert(value));
+            }
+        }
+    }
+    assert_ne!(
+        pack_query_occurrence(65_537, 131_071, 1, 1, 0),
+        pack_query_occurrence(131_071, 65_537, 1, 1, 0)
+    );
+}
+
+#[test]
+fn native_query_context_selector_separates_query_roles_and_occurrence_rank() {
+    let baseline = fitted(32);
+    let fit = [Document {
+        id: "query-selector-fit".into(),
+        text: "Alice saved a red gem. Alice saved a blue gem. Alice saved a red gem.".into(),
+    }];
+    let config = MemoryReadFitConfig {
+        max_positions: 128,
+        epochs: 1,
+        ..MemoryReadFitConfig::default()
+    };
+    let (model, report) = baseline
+        .fit_memory_read_with_query_context(&fit, config, false)
+        .unwrap();
+    assert_eq!(
+        model.memory_read_version(),
+        Some(memory_types::QUERY_CONTEXT_MEMORY_SCHEMA)
+    );
+    assert_eq!(
+        model.memory_read_feature_layout(),
+        Some(memory_types::QUERY_CONTEXT_FEATURE_LAYOUT)
+    );
+    assert_eq!(report.feature_names.len(), 18);
+    assert_eq!(report.feature_names[16], "ordered_query_prime_pair");
+    assert_eq!(report.cue_identity, memory_types::EXACT_CUE_SCHEMA);
+    let mut historical_report = serde_json::to_value(&report).unwrap();
+    for field in [
+        "feature_layout",
+        "feature_names",
+        "query_bias_contexts",
+        "query_bias_changed_contexts",
+        "query_bias_positions",
+        "query_bias_cross_entropy_before",
+        "query_bias_cross_entropy_after",
+    ] {
+        historical_report.as_object_mut().unwrap().remove(field);
+    }
+    let historical_report: MemoryReadFitReport = serde_json::from_value(historical_report).unwrap();
+    assert!(historical_report.feature_layout.is_empty());
+    assert!(historical_report.feature_names.is_empty());
+    assert_eq!(historical_report.query_bias_contexts, 0);
+    assert_eq!(historical_report.query_bias_changed_contexts, 0);
+    assert_eq!(historical_report.query_bias_positions, 0);
+    assert_eq!(historical_report.query_bias_cross_entropy_before, 0.0);
+    assert_eq!(historical_report.query_bias_cross_entropy_after, 0.0);
+    assert_eq!(historical_report.positions, report.positions);
+    let operator = model.memory_read.as_ref().unwrap();
+    let mut legacy_operator = operator.clone();
+    legacy_operator.schema = memory_types::LEGACY_MEMORY_SCHEMA.into();
+
+    // Same queried cue, values and route distances; only the previous query
+    // token changes. Old auxiliary features collide; the new context remains
+    // distinguishable without identifying a language or parsing any grammar.
+    let mut query_addresses = Vec::new();
+    let mut legacy_auxiliary = Vec::new();
+    for previous_query in [90, 91] {
+        let observed = [BOS, 42, 70, 42, 71, 42, 72, previous_query, 42];
+        let mut state = memory_types::MemoryState::new(&model, operator);
+        let mut legacy_state = memory_types::MemoryState::new(&model, &legacy_operator);
+        let mut work = Work::default();
+        for token in observed {
+            state.observe(&model, operator, token, &mut work);
+            legacy_state.observe(&model, &legacy_operator, token, &mut work);
+        }
+        state.collect(&model, operator, Control::Full, &mut work);
+        legacy_state.collect(&model, &legacy_operator, Control::Full, &mut work);
+        assert_eq!(state.candidates.len(), legacy_state.candidates.len());
+        let mut ranks = std::collections::BTreeSet::new();
+        for (candidate, old) in state.candidates.iter().zip(&legacy_state.candidates) {
+            assert_eq!(candidate.token, old.token);
+            assert_eq!(&candidate.features[..16], &old.features[..16]);
+            if [70, 71, 72].contains(&candidate.token)
+                && candidate.features[1].value == ((1 << 8) | 1)
+            {
+                ranks.insert(candidate.features[17].value & 7);
+            }
+        }
+        assert_eq!(ranks, [0, 1, 2].into_iter().collect());
+        let new = state
+            .candidates
+            .iter()
+            .find(|candidate| candidate.token == 72)
+            .unwrap();
+        let old = legacy_state
+            .candidates
+            .iter()
+            .find(|candidate| candidate.token == 72)
+            .unwrap();
+        query_addresses.push((new.features[16], new.features[17]));
+        legacy_auxiliary.push((old.features[16], old.features[17]));
+    }
+    assert_ne!(query_addresses[0], query_addresses[1]);
+    assert_eq!(legacy_auxiliary[0], legacy_auxiliary[1]);
+
+    let encoded = model.to_bytes().unwrap();
+    let loaded = Model::from_bytes(&encoded).unwrap();
+    assert_eq!(loaded.to_bytes().unwrap(), encoded);
+    let mut session = loaded.session(Control::Full).unwrap();
+    for token in [42, 70, 42, 71, 42, 72, 90, 42]
+        .into_iter()
+        .cycle()
+        .take(100)
+    {
+        session.observe(&loaded, token).unwrap();
+    }
+    let mut restored = loaded
+        .restore_session(&session.checkpoint().unwrap())
+        .unwrap();
+    for token in [91, 42, 70, 42] {
+        assert_eq!(
+            session.predict(&loaded).unwrap(),
+            restored.predict(&loaded).unwrap()
+        );
+        assert_eq!(session.candidates(), restored.candidates());
+        session.observe(&loaded, token).unwrap();
+        restored.observe(&loaded, token).unwrap();
+    }
+    let mut excessive_prime = model.clone();
+    excessive_prime.geometry.tokens[2].prime = memory_types::QUERY_CONTEXT_PRIME_LIMIT;
+    assert!(excessive_prime
+        .memory_read
+        .as_ref()
+        .unwrap()
+        .validate(&excessive_prime)
+        .is_err());
+    let (word, _) = baseline
+        .fit_memory_read_with_query_context(&fit, config, true)
+        .unwrap();
+    assert_eq!(word.memory_cue_identity(), Some(memory_types::CUE_SCHEMA));
+    assert!(Model::from_bytes(&word.to_bytes().unwrap()).is_ok());
+}

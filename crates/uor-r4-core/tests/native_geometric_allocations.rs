@@ -122,6 +122,7 @@ fn native_kernel_source_has_no_forbidden_arithmetic_or_float_types() {
     let memory = include_str!("../src/native_geometric/memory_runtime.rs");
     for function in [
         "fn cue_identity(",
+        "fn pack_query_occurrence(",
         "fn admitted(",
         "fn state(",
         "fn recent(",
@@ -207,6 +208,12 @@ fn native_observe_predict_stays_allocation_free_through_evictions() {
     let (with_memory, memory_fit) = learned
         .fit_memory_read_with_word_cues(&readout_documents, memory_config)
         .unwrap();
+    let (exact_memory, _) = learned
+        .fit_memory_read(&readout_documents, memory_config)
+        .unwrap();
+    let (query_context_memory, _) = learned
+        .fit_memory_read_with_query_context(&readout_documents, memory_config, true)
+        .unwrap();
     assert!(
         memory_fit.target_in_memory > 0,
         "fixture must exercise fitted memory alternatives"
@@ -216,8 +223,12 @@ fn native_observe_predict_stays_allocation_free_through_evictions() {
     for (readout, model) in [
         ("fixed_v1", model),
         ("learned_v1", learned),
+        ("learned_memory_exact", exact_memory),
         ("learned_memory_with_aliases", with_memory),
+        ("query_context_memory_with_aliases", query_context_memory),
     ] {
+        let word_cues =
+            model.memory_cue_identity() == Some("leading-unicode-whitespace-word-equivalence/1");
         for control in [
             Control::Full,
             Control::GeometryDisabled,
@@ -289,7 +300,11 @@ fn native_observe_predict_stays_allocation_free_through_evictions() {
                                 as u64
                 );
                 assert!(session.work.memory_score_lookups <= session.work.memory_candidates * 18);
-                assert!(session.work.memory_cue_reads > 0);
+                if word_cues {
+                    assert!(session.work.memory_cue_reads > 0);
+                } else {
+                    assert_eq!(session.work.memory_cue_reads, 0);
+                }
                 assert!(
                     session.work.memory_cue_reads
                         <= 1025 * memory_config.source_offsets as u64
@@ -309,7 +324,7 @@ fn native_observe_predict_stays_allocation_free_through_evictions() {
                 }
                 after.ring_storage_bytes + after.index_storage_bytes + after.candidate_storage_bytes
             } else {
-                assert_ne!(readout, "learned_memory_with_aliases");
+                assert!(model.memory_read_version().is_none());
                 assert_eq!(session.work.memory_candidates, 0);
                 assert_eq!(session.work.memory_cue_reads, 0);
                 0

@@ -7,7 +7,48 @@ remains owned by [#973](https://github.com/UOR-Foundation/uor-r4/issues/973).
 Refresh live GitHub before choosing a follow-up; dated snapshots and lower
 historical “next” paragraphs do not select work.
 
-## Native recovery checkpoint
+## Joint query-context checkpoint
+
+The explicit native memory schema `/3` now learns both controlled prose recall
+and Rust variable/update tasks on one artifact. It adds exact ordered-query-prime
+and occurrence features, shares initial learning credit among admitted correct
+routes, and calibrates the existing query-context bias before maximum-route
+refinement. It changes no memory admission rule or runtime buffer width.
+
+The 32-epoch word-cue artifact
+`blake3:b5ba144fb293358bd45b77ce848f7ad100e26524cfd08586b2a96deea85c081d`
+scores **96/96 prose and 96/96 Rust**, with both answers correct in all
+48 paired value changes per family. Memory-disabled scores remain 43/96 and
+39/96. All 96 unchanged generated Rust continuations compile; a separate
+bounded link-and-run assessment passes their 96 assertions. These are finite
+open-development tasks derived from 12 worlds, not independent final held-out
+tasks or broad coding/conversation qualification. H4-, zeta- and
+geometry-disabled controls also score 96/96 in each family, so this result
+establishes no added H4/zeta contribution on the probe. Their primary
+architectural roles remain intact.
+
+The [query-context record](../native_geometric_query_context_973.md) preserves
+the diagnosis, intermediate failures, final artifact and broader evaluation.
+The [workflow](../native_geometric_workflow.md) describes the explicit
+`--query-context --word-cues` fit and saved-model evaluation. Exact-cue `/1`
+remains the default; the new path is selected explicitly. Final-code refitting
+of `/1` and `/2` reproduces their prior model identities byte-for-byte.
+
+The larger-corpus successor still regresses: 30.5684% next-piece accuracy versus
+36.2485% with memory disabled on 146,668 targets. It learns 206,127 features
+with zero drops, using 262,144 feature capacity. Thus the finite-task success
+does not qualify this reader as a general replacement, and a feature-capacity
+shortfall does not explain this particular regression.
+
+The next work must extend this useful joint reader into broader contextual
+composition and generated-code behavior, using varied open development data,
+adequate context/exposure and actual outputs. Preserve the finite-task artifact
+as a working component; do not repeat this solved recall fixture as a new alpha
+gate. Learned write admission, retained information beyond ring eviction,
+nonlinear geometric state/operators and both broader alpha capability groups
+remain unfinished under #973.
+
+## Initial native recovery checkpoint
 
 `r4 geometric` now connects Rust data preparation, count fitting, separate
 readout fitting, learned query-relative memory reading, resumable training checkpoints, versioned artifacts,
@@ -68,7 +109,7 @@ to 32.7638%; disabling memory restores the same 36.2485% baseline. This separate
 the capacity problem from the unresolved generalization problem. Preserve these
 artifacts as development evidence; do not promote the regressing reader.
 
-The next model work is **useful joint learning on one native artifact**: retain
+The then-next model work was **useful joint learning on one native artifact**: retain
 the exact-cue reader as a measured baseline, improve Rust variable/update and
 actual code-generation behavior without sacrificing supplied-fact performance,
 and develop learned write/selection/composition where the current automatic
@@ -76,6 +117,8 @@ ring admission and finite score tables are insufficient. Use balanced open
 development examples, meaningful data/context exposure and actual generated
 code feedback. An implementation or useful controlled copy result does not
 close #973 or qualify either broader alpha group.
+The query-context checkpoint above is the subsequent result; this paragraph
+preserves the recovery checkpoint's direction rather than selecting a new task.
 
 ## Evidence carried into recovery
 

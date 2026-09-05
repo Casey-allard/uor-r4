@@ -6,6 +6,11 @@ pub(super) const MEMORY_SCHEMA: &str = "uor-r4.native-prime-relative-memory-read
 pub(super) const LEGACY_MEMORY_SCHEMA: &str = "uor-r4.native-prime-relative-memory-read/1";
 pub(super) const CUE_SCHEMA: &str = "leading-unicode-whitespace-word-equivalence/1";
 pub(super) const EXACT_CUE_SCHEMA: &str = "exact-token-prime/1";
+pub(super) const QUERY_CONTEXT_MEMORY_SCHEMA: &str = "uor-r4.native-prime-relative-memory-read/3";
+pub(super) const QUERY_CONTEXT_PRIME_LIMIT: u32 = 1 << 24;
+pub(super) const LEGACY_FEATURE_LAYOUT: &str = "relative-geometry-and-value-predecessor/1";
+pub(super) const QUERY_CONTEXT_FEATURE_LAYOUT: &str =
+    "ordered-query-primes-and-occurrence/1; prime24+prime24+query5+source4+rank3";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -100,12 +105,27 @@ pub(super) struct MemoryModel {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MemoryReadFitReport {
     pub schema: String,
+    /// Empty when reading a historical report that predates layout metadata.
+    #[serde(default)]
+    pub feature_layout: String,
+    #[serde(default)]
+    pub feature_names: Vec<String>,
     pub cue_identity: String,
     pub aliased_lexical_tokens: usize,
     pub objective: String,
     pub pointer_pretrain_epochs: usize,
     pub max_route_refinement_epochs: usize,
     pub calibrated_bias_score: i32,
+    #[serde(default)]
+    pub query_bias_contexts: usize,
+    #[serde(default)]
+    pub query_bias_changed_contexts: usize,
+    #[serde(default)]
+    pub query_bias_positions: usize,
+    #[serde(default)]
+    pub query_bias_cross_entropy_before: f64,
+    #[serde(default)]
+    pub query_bias_cross_entropy_after: f64,
     pub pointer_fit_correct_before: usize,
     pub pointer_fit_correct_after: usize,
     pub pointer_cross_entropy_before: f64,

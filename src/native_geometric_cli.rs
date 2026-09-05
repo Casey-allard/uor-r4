@@ -102,6 +102,9 @@ struct FitMemoryArgs {
     /// Experimental leading-whitespace word equivalence for memory cues.
     #[arg(long)]
     word_cues: bool,
+    /// Learn memory selection from the ordered last-two-prime query context.
+    #[arg(long)]
+    query_context: bool,
     #[arg(long)]
     report: Option<PathBuf>,
 }
@@ -422,7 +425,9 @@ fn fit_memory(a: &FitMemoryArgs) -> Result<(), String> {
         epochs: a.epochs,
         max_features: a.max_features,
     };
-    let (learned, fit) = if a.word_cues {
+    let (learned, fit) = if a.query_context {
+        model.fit_memory_read_with_query_context(&documents, config, a.word_cues)
+    } else if a.word_cues {
         model.fit_memory_read_with_word_cues(&documents, config)
     } else {
         model.fit_memory_read(&documents, config)

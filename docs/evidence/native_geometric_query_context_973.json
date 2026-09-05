@@ -1,0 +1,3119 @@
+{
+  "schema": "uor-r4.native-query-context-development-record/1",
+  "issue": 973,
+  "starting_revision": "f20f27c6433bd9a36a1e25979385380906221e27",
+  "scope": "Open development; 12 underlying worlds reused across expression families, delays and swaps. Not an independent final assessment or broad capability claim.",
+  "source_blake3": "c8bc7438effe89185d51588f8adf45074cd7d8d09699fac47f8758b5f8f270ad",
+  "local_artifact_root": "/Users/casey.allard/uor-r4/.uor-models/native-joint-learning-2026-09-04",
+  "budget": {
+    "started_at": "2026-09-05T00:09:56.067Z",
+    "model_wall_seconds": 1800,
+    "model_rss_bytes": 4294967296,
+    "additional_output_and_build_bytes": 4294967296,
+    "parallel_model_processes": 1,
+    "starting_revision": "f20f27c6433bd9a36a1e25979385380906221e27",
+    "baseline_directory": "/Users/casey.allard/uor-r4/.uor-models/native-recovery-2026-09-04",
+    "decision": "Improve joint prose/Rust read selection on the same artifact, preserving old modes and prose baseline; diagnose actual generated code with compiler feedback."
+  },
+  "model_time": {
+    "cumulative_ms": 301277,
+    "limit_ms": 1800000
+  },
+  "static_candidate_audit": {
+    "schema": "uor-r4.joint-static-candidate-coverage/1",
+    "method": "Read-only reconstruction of ASCII codec pieces and retained cue/posting addresses from preserved artifacts and prompts. No model score, generated token, training, or new model evaluation was run. Token counts, expected token position and memory candidate counts were checked against every saved case.",
+    "findings": [
+      "Target is admitted by memory in all192 cases of both artifacts. Final shortlist coverage alone was insufficient to establish that fact.",
+      "128 visits equals8 query tokens x4 source offsets x4 postings, so traversal order cannot expand current-case reachability.",
+      "Rust punctuation-source postings can be overwritten by filler, but surviving quote routes still admit the answer.",
+      "Word cues add an identifier-specific route without fixing the Rust scoring/fit problem."
+    ]
+  },
+  "stages": [
+    {
+      "tag": "query-context-exact-8-development",
+      "cid": "blake3:3f8a025ef7292910040cdbc4d01fc306b8be2a9b285f23e18c0f8160bd38b897",
+      "source_hash": "c8bc7438effe89185d51588f8adf45074cd7d8d09699fac47f8758b5f8f270ad",
+      "wall_ms": 2739,
+      "arms": [
+        {
+          "control": "full",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 43,
+              "both_correct": 9,
+              "changed": 29,
+              "clause": 43
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 39,
+              "both_correct": 8,
+              "changed": 31,
+              "clause": 39
+            }
+          ],
+          "compilation": {
+            "cases": 96,
+            "compiled": 11,
+            "not_run": 80,
+            "limited": 0,
+            "executed": false
+          }
+        },
+        {
+          "control": "memory_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 43,
+              "both_correct": 9,
+              "changed": 29,
+              "clause": 43
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 39,
+              "both_correct": 8,
+              "changed": 31,
+              "clause": 39
+            }
+          ]
+        },
+        {
+          "control": "geometry_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 24,
+              "both_correct": 0,
+              "changed": 0,
+              "clause": 24
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 24,
+              "both_correct": 0,
+              "changed": 0,
+              "clause": 24
+            }
+          ]
+        },
+        {
+          "control": "zeta_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 38,
+              "both_correct": 9,
+              "changed": 31,
+              "clause": 38
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 34,
+              "both_correct": 7,
+              "changed": 31,
+              "clause": 34
+            }
+          ]
+        },
+        {
+          "control": "h4_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 24,
+              "both_correct": 0,
+              "changed": 22,
+              "clause": 24
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 30,
+              "both_correct": 2,
+              "changed": 22,
+              "clause": 30
+            }
+          ]
+        }
+      ],
+      "fit": {
+        "baseline_artifact": "blake3:b5c1666e7f9bc61cb06baf91ec2e899b79e5c1a6c1a0f46351544f2d2033a46c",
+        "elapsed_ms": 1595,
+        "peak_rss_bytes": 180895744,
+        "aliased_lexical_tokens": 0,
+        "body_positions": 3040,
+        "calibrated_bias_score": -4096,
+        "candidate_cross_entropy_after": 0.31779509991576255,
+        "candidate_cross_entropy_before": 0.31878712739713727,
+        "candidate_positions": 282472,
+        "cue_identity": "exact-token-prime/1",
+        "documents": 128,
+        "dropped_feature_events": 0,
+        "epochs": 8,
+        "feature_layout": "ordered-query-primes-and-occurrence/1; prime24+prime24+query5+source4+rank3",
+        "fit_correct_after": 3466,
+        "fit_correct_before": 3466,
+        "learned_features": 11712,
+        "max_route_refinement_epochs": 8,
+        "objective": "pointer_only_token_marginal_then_fit_bias_grid_then_max_route_ce_v2; best_epoch_on_fit_ce; diagnostics_quantized_max_route",
+        "observed_context_positions": 15232,
+        "pointer_cross_entropy_after": 0.02705809046909885,
+        "pointer_cross_entropy_before": 1.944317170153611,
+        "pointer_fit_correct_after": 2285,
+        "pointer_fit_correct_before": 416,
+        "pointer_pretrain_epochs": 8,
+        "positions": 4064,
+        "sampling": "equal_document_quota_uniform_body_plus_final_min_8_positions_v1",
+        "schema": "uor-r4.native-prime-relative-memory-read/3",
+        "session_memory_bytes": 135936,
+        "tail_positions": 1024,
+        "tail_positions_per_document_limit": 8,
+        "target_in_candidates": 4064,
+        "target_in_memory": 2304
+      }
+    },
+    {
+      "tag": "query-context-word-8-development",
+      "cid": "blake3:849e7d4d4b4dc6f2efcad29c5ea1ed0dd0edee6c3750f87cc0cae821031238a6",
+      "source_hash": "c8bc7438effe89185d51588f8adf45074cd7d8d09699fac47f8758b5f8f270ad",
+      "wall_ms": 2698,
+      "arms": [
+        {
+          "control": "full",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 96,
+              "both_correct": 48,
+              "changed": 48,
+              "clause": 96
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 40,
+              "both_correct": 18,
+              "changed": 29,
+              "clause": 40
+            }
+          ],
+          "compilation": {
+            "cases": 96,
+            "compiled": 16,
+            "not_run": 80,
+            "limited": 0,
+            "executed": false
+          }
+        },
+        {
+          "control": "memory_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 43,
+              "both_correct": 9,
+              "changed": 29,
+              "clause": 43
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 39,
+              "both_correct": 8,
+              "changed": 31,
+              "clause": 39
+            }
+          ]
+        },
+        {
+          "control": "geometry_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 96,
+              "both_correct": 48,
+              "changed": 48,
+              "clause": 96
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 41,
+              "both_correct": 19,
+              "changed": 22,
+              "clause": 41
+            }
+          ]
+        },
+        {
+          "control": "zeta_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 96,
+              "both_correct": 48,
+              "changed": 48,
+              "clause": 96
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 34,
+              "both_correct": 13,
+              "changed": 26,
+              "clause": 34
+            }
+          ]
+        },
+        {
+          "control": "h4_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 96,
+              "both_correct": 48,
+              "changed": 48,
+              "clause": 96
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 35,
+              "both_correct": 15,
+              "changed": 24,
+              "clause": 35
+            }
+          ]
+        }
+      ],
+      "fit": {
+        "baseline_artifact": "blake3:b5c1666e7f9bc61cb06baf91ec2e899b79e5c1a6c1a0f46351544f2d2033a46c",
+        "elapsed_ms": 2389,
+        "peak_rss_bytes": 177422336,
+        "aliased_lexical_tokens": 17,
+        "body_positions": 3040,
+        "calibrated_bias_score": -2304,
+        "candidate_cross_entropy_after": 0.24659594138365334,
+        "candidate_cross_entropy_before": 0.31878767095868443,
+        "candidate_positions": 290264,
+        "cue_identity": "leading-unicode-whitespace-word-equivalence/1",
+        "documents": 128,
+        "dropped_feature_events": 0,
+        "epochs": 8,
+        "feature_layout": "ordered-query-primes-and-occurrence/1; prime24+prime24+query5+source4+rank3",
+        "fit_correct_after": 3609,
+        "fit_correct_before": 3466,
+        "learned_features": 12116,
+        "max_route_refinement_epochs": 8,
+        "objective": "pointer_only_token_marginal_then_fit_bias_grid_then_max_route_ce_v2; best_epoch_on_fit_ce; diagnostics_quantized_max_route",
+        "observed_context_positions": 15232,
+        "pointer_cross_entropy_after": 0.04856801637621699,
+        "pointer_cross_entropy_before": 2.004494995144723,
+        "pointer_fit_correct_after": 2339,
+        "pointer_fit_correct_before": 416,
+        "pointer_pretrain_epochs": 8,
+        "positions": 4064,
+        "sampling": "equal_document_quota_uniform_body_plus_final_min_8_positions_v1",
+        "schema": "uor-r4.native-prime-relative-memory-read/3",
+        "session_memory_bytes": 135936,
+        "tail_positions": 1024,
+        "tail_positions_per_document_limit": 8,
+        "target_in_candidates": 4064,
+        "target_in_memory": 2384
+      }
+    },
+    {
+      "tag": "baseline-development",
+      "cid": "blake3:b5c1666e7f9bc61cb06baf91ec2e899b79e5c1a6c1a0f46351544f2d2033a46c",
+      "source_hash": "c8bc7438effe89185d51588f8adf45074cd7d8d09699fac47f8758b5f8f270ad",
+      "wall_ms": 1352,
+      "arms": [
+        {
+          "control": "full",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 43,
+              "both_correct": 9,
+              "changed": 29,
+              "clause": 43
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 39,
+              "both_correct": 8,
+              "changed": 31,
+              "clause": 39
+            }
+          ],
+          "compilation": {
+            "cases": 96,
+            "compiled": 11,
+            "not_run": 80,
+            "limited": 0,
+            "executed": false
+          }
+        },
+        {
+          "control": "geometry_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 24,
+              "both_correct": 0,
+              "changed": 0,
+              "clause": 24
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 24,
+              "both_correct": 0,
+              "changed": 0,
+              "clause": 24
+            }
+          ]
+        }
+      ],
+      "fit": null
+    },
+    {
+      "tag": "query-context-exact-32-development",
+      "cid": "blake3:a1747cc0eed4c018f602136239d0a475f653316bc40ccfff472fa9b05008375b",
+      "source_hash": "c8bc7438effe89185d51588f8adf45074cd7d8d09699fac47f8758b5f8f270ad",
+      "wall_ms": 2037,
+      "arms": [
+        {
+          "control": "full",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 96,
+              "both_correct": 48,
+              "changed": 48,
+              "clause": 96
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 38,
+              "both_correct": 17,
+              "changed": 26,
+              "clause": 38
+            }
+          ],
+          "compilation": {
+            "cases": 96,
+            "compiled": 16,
+            "not_run": 80,
+            "limited": 0,
+            "executed": false
+          }
+        },
+        {
+          "control": "memory_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 43,
+              "both_correct": 9,
+              "changed": 29,
+              "clause": 43
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 39,
+              "both_correct": 8,
+              "changed": 31,
+              "clause": 39
+            }
+          ]
+        },
+        {
+          "control": "geometry_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 96,
+              "both_correct": 48,
+              "changed": 48,
+              "clause": 96
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 48,
+              "both_correct": 24,
+              "changed": 24,
+              "clause": 48
+            }
+          ]
+        },
+        {
+          "control": "zeta_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 96,
+              "both_correct": 48,
+              "changed": 48,
+              "clause": 96
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 37,
+              "both_correct": 15,
+              "changed": 28,
+              "clause": 37
+            }
+          ]
+        },
+        {
+          "control": "h4_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 96,
+              "both_correct": 48,
+              "changed": 48,
+              "clause": 96
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 34,
+              "both_correct": 14,
+              "changed": 26,
+              "clause": 34
+            }
+          ]
+        }
+      ],
+      "fit": {
+        "baseline_artifact": "blake3:b5c1666e7f9bc61cb06baf91ec2e899b79e5c1a6c1a0f46351544f2d2033a46c",
+        "elapsed_ms": 2265,
+        "peak_rss_bytes": 175751168,
+        "aliased_lexical_tokens": 0,
+        "body_positions": 3040,
+        "calibrated_bias_score": -2432,
+        "candidate_cross_entropy_after": 0.2540249897768656,
+        "candidate_cross_entropy_before": 0.31878712739713727,
+        "candidate_positions": 282472,
+        "cue_identity": "exact-token-prime/1",
+        "documents": 128,
+        "dropped_feature_events": 0,
+        "epochs": 32,
+        "feature_layout": "ordered-query-primes-and-occurrence/1; prime24+prime24+query5+source4+rank3",
+        "fit_correct_after": 3594,
+        "fit_correct_before": 3466,
+        "learned_features": 11712,
+        "max_route_refinement_epochs": 32,
+        "objective": "pointer_only_token_marginal_then_fit_bias_grid_then_max_route_ce_v2; best_epoch_on_fit_ce; diagnostics_quantized_max_route",
+        "observed_context_positions": 15232,
+        "pointer_cross_entropy_after": 0.024325438914643296,
+        "pointer_cross_entropy_before": 1.944317170153611,
+        "pointer_fit_correct_after": 2288,
+        "pointer_fit_correct_before": 416,
+        "pointer_pretrain_epochs": 32,
+        "positions": 4064,
+        "sampling": "equal_document_quota_uniform_body_plus_final_min_8_positions_v1",
+        "schema": "uor-r4.native-prime-relative-memory-read/3",
+        "session_memory_bytes": 135936,
+        "tail_positions": 1024,
+        "tail_positions_per_document_limit": 8,
+        "target_in_candidates": 4064,
+        "target_in_memory": 2304
+      }
+    },
+    {
+      "tag": "query-context-word-32-development",
+      "cid": "blake3:a3d93519c691f49acbdc7d04a40c0b9861ec108eaf2418354753faf8ad793285",
+      "source_hash": "c8bc7438effe89185d51588f8adf45074cd7d8d09699fac47f8758b5f8f270ad",
+      "wall_ms": 1930,
+      "arms": [
+        {
+          "control": "full",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 96,
+              "both_correct": 48,
+              "changed": 48,
+              "clause": 96
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 38,
+              "both_correct": 17,
+              "changed": 29,
+              "clause": 38
+            }
+          ],
+          "compilation": {
+            "cases": 96,
+            "compiled": 16,
+            "not_run": 80,
+            "limited": 0,
+            "executed": false
+          }
+        },
+        {
+          "control": "memory_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 43,
+              "both_correct": 9,
+              "changed": 29,
+              "clause": 43
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 39,
+              "both_correct": 8,
+              "changed": 31,
+              "clause": 39
+            }
+          ]
+        },
+        {
+          "control": "geometry_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 96,
+              "both_correct": 48,
+              "changed": 48,
+              "clause": 96
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 48,
+              "both_correct": 24,
+              "changed": 24,
+              "clause": 48
+            }
+          ]
+        },
+        {
+          "control": "zeta_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 96,
+              "both_correct": 48,
+              "changed": 48,
+              "clause": 96
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 39,
+              "both_correct": 17,
+              "changed": 30,
+              "clause": 39
+            }
+          ]
+        },
+        {
+          "control": "h4_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 96,
+              "both_correct": 48,
+              "changed": 48,
+              "clause": 96
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 37,
+              "both_correct": 15,
+              "changed": 28,
+              "clause": 37
+            }
+          ]
+        }
+      ],
+      "fit": {
+        "baseline_artifact": "blake3:b5c1666e7f9bc61cb06baf91ec2e899b79e5c1a6c1a0f46351544f2d2033a46c",
+        "elapsed_ms": 2593,
+        "peak_rss_bytes": 184352768,
+        "aliased_lexical_tokens": 17,
+        "body_positions": 3040,
+        "calibrated_bias_score": -2560,
+        "candidate_cross_entropy_after": 0.23241683158778093,
+        "candidate_cross_entropy_before": 0.31878767095868443,
+        "candidate_positions": 290264,
+        "cue_identity": "leading-unicode-whitespace-word-equivalence/1",
+        "documents": 128,
+        "dropped_feature_events": 0,
+        "epochs": 32,
+        "feature_layout": "ordered-query-primes-and-occurrence/1; prime24+prime24+query5+source4+rank3",
+        "fit_correct_after": 3618,
+        "fit_correct_before": 3466,
+        "learned_features": 12116,
+        "max_route_refinement_epochs": 32,
+        "objective": "pointer_only_token_marginal_then_fit_bias_grid_then_max_route_ce_v2; best_epoch_on_fit_ce; diagnostics_quantized_max_route",
+        "observed_context_positions": 15232,
+        "pointer_cross_entropy_after": 0.031687509250204,
+        "pointer_cross_entropy_before": 2.004494995144723,
+        "pointer_fit_correct_after": 2350,
+        "pointer_fit_correct_before": 416,
+        "pointer_pretrain_epochs": 32,
+        "positions": 4064,
+        "sampling": "equal_document_quota_uniform_body_plus_final_min_8_positions_v1",
+        "schema": "uor-r4.native-prime-relative-memory-read/3",
+        "session_memory_bytes": 135936,
+        "tail_positions": 1024,
+        "tail_positions_per_document_limit": 8,
+        "target_in_candidates": 4064,
+        "target_in_memory": 2384
+      }
+    },
+    {
+      "tag": "uniform-exact-8-development",
+      "cid": "blake3:0508a74be0e07cae979fbcdc2667d1140ebbb5f73a6e3b1c94a38ed96c4e3577",
+      "source_hash": "c8bc7438effe89185d51588f8adf45074cd7d8d09699fac47f8758b5f8f270ad",
+      "wall_ms": 1883,
+      "arms": [
+        {
+          "control": "full",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 43,
+              "both_correct": 9,
+              "changed": 29,
+              "clause": 43
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 39,
+              "both_correct": 8,
+              "changed": 31,
+              "clause": 39
+            }
+          ],
+          "compilation": {
+            "cases": 96,
+            "compiled": 11,
+            "not_run": 80,
+            "limited": 0,
+            "executed": false
+          }
+        },
+        {
+          "control": "memory_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 43,
+              "both_correct": 9,
+              "changed": 29,
+              "clause": 43
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 39,
+              "both_correct": 8,
+              "changed": 31,
+              "clause": 39
+            }
+          ]
+        },
+        {
+          "control": "geometry_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 24,
+              "both_correct": 0,
+              "changed": 0,
+              "clause": 24
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 24,
+              "both_correct": 0,
+              "changed": 0,
+              "clause": 24
+            }
+          ]
+        },
+        {
+          "control": "zeta_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 38,
+              "both_correct": 9,
+              "changed": 31,
+              "clause": 38
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 34,
+              "both_correct": 7,
+              "changed": 31,
+              "clause": 34
+            }
+          ]
+        },
+        {
+          "control": "h4_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 24,
+              "both_correct": 0,
+              "changed": 22,
+              "clause": 24
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 30,
+              "both_correct": 2,
+              "changed": 22,
+              "clause": 30
+            }
+          ]
+        }
+      ],
+      "fit": {
+        "baseline_artifact": "blake3:b5c1666e7f9bc61cb06baf91ec2e899b79e5c1a6c1a0f46351544f2d2033a46c",
+        "elapsed_ms": 1316,
+        "peak_rss_bytes": 180404224,
+        "aliased_lexical_tokens": 0,
+        "body_positions": 3040,
+        "calibrated_bias_score": -4096,
+        "candidate_cross_entropy_after": 0.3177950694971345,
+        "candidate_cross_entropy_before": 0.31878712739713727,
+        "candidate_positions": 282472,
+        "cue_identity": "exact-token-prime/1",
+        "documents": 128,
+        "dropped_feature_events": 0,
+        "epochs": 8,
+        "feature_layout": "ordered-query-primes-and-occurrence/1; prime24+prime24+query5+source4+rank3",
+        "fit_correct_after": 3466,
+        "fit_correct_before": 3466,
+        "learned_features": 11712,
+        "max_route_refinement_epochs": 8,
+        "objective": "pointer_half_target_marginal_half_uniform_target_route_nll_then_fit_bias_grid_then_max_route_ce_v3; best_epoch_on_fit_ce; diagnostics_quantized_max_route",
+        "observed_context_positions": 15232,
+        "pointer_cross_entropy_after": 0.13809942942104836,
+        "pointer_cross_entropy_before": 1.944317170153611,
+        "pointer_fit_correct_after": 2261,
+        "pointer_fit_correct_before": 416,
+        "pointer_pretrain_epochs": 8,
+        "positions": 4064,
+        "sampling": "equal_document_quota_uniform_body_plus_final_min_8_positions_v1",
+        "schema": "uor-r4.native-prime-relative-memory-read/3",
+        "session_memory_bytes": 135936,
+        "tail_positions": 1024,
+        "tail_positions_per_document_limit": 8,
+        "target_in_candidates": 4064,
+        "target_in_memory": 2304
+      }
+    },
+    {
+      "tag": "uniform-word-8-development",
+      "cid": "blake3:6f3cb45e6241c13b28e07ab70c25c4024eac209a40778fb670a9d4ae540ba334",
+      "source_hash": "c8bc7438effe89185d51588f8adf45074cd7d8d09699fac47f8758b5f8f270ad",
+      "wall_ms": 1902,
+      "arms": [
+        {
+          "control": "full",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 43,
+              "both_correct": 9,
+              "changed": 29,
+              "clause": 43
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 39,
+              "both_correct": 8,
+              "changed": 31,
+              "clause": 39
+            }
+          ],
+          "compilation": {
+            "cases": 96,
+            "compiled": 11,
+            "not_run": 80,
+            "limited": 0,
+            "executed": false
+          }
+        },
+        {
+          "control": "memory_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 43,
+              "both_correct": 9,
+              "changed": 29,
+              "clause": 43
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 39,
+              "both_correct": 8,
+              "changed": 31,
+              "clause": 39
+            }
+          ]
+        },
+        {
+          "control": "geometry_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 24,
+              "both_correct": 0,
+              "changed": 0,
+              "clause": 24
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 24,
+              "both_correct": 0,
+              "changed": 0,
+              "clause": 24
+            }
+          ]
+        },
+        {
+          "control": "zeta_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 38,
+              "both_correct": 9,
+              "changed": 31,
+              "clause": 38
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 34,
+              "both_correct": 7,
+              "changed": 31,
+              "clause": 34
+            }
+          ]
+        },
+        {
+          "control": "h4_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 24,
+              "both_correct": 0,
+              "changed": 22,
+              "clause": 24
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 30,
+              "both_correct": 2,
+              "changed": 22,
+              "clause": 30
+            }
+          ]
+        }
+      ],
+      "fit": {
+        "baseline_artifact": "blake3:b5c1666e7f9bc61cb06baf91ec2e899b79e5c1a6c1a0f46351544f2d2033a46c",
+        "elapsed_ms": 1264,
+        "peak_rss_bytes": 182026240,
+        "aliased_lexical_tokens": 17,
+        "body_positions": 3040,
+        "calibrated_bias_score": -4096,
+        "candidate_cross_entropy_after": 0.31779506842749045,
+        "candidate_cross_entropy_before": 0.31878767095868443,
+        "candidate_positions": 290264,
+        "cue_identity": "leading-unicode-whitespace-word-equivalence/1",
+        "documents": 128,
+        "dropped_feature_events": 0,
+        "epochs": 8,
+        "feature_layout": "ordered-query-primes-and-occurrence/1; prime24+prime24+query5+source4+rank3",
+        "fit_correct_after": 3466,
+        "fit_correct_before": 3466,
+        "learned_features": 12116,
+        "max_route_refinement_epochs": 8,
+        "objective": "pointer_half_target_marginal_half_uniform_target_route_nll_then_fit_bias_grid_then_max_route_ce_v3; best_epoch_on_fit_ce; diagnostics_quantized_max_route",
+        "observed_context_positions": 15232,
+        "pointer_cross_entropy_after": 0.14778816323783425,
+        "pointer_cross_entropy_before": 2.004494995144723,
+        "pointer_fit_correct_after": 2328,
+        "pointer_fit_correct_before": 416,
+        "pointer_pretrain_epochs": 8,
+        "positions": 4064,
+        "sampling": "equal_document_quota_uniform_body_plus_final_min_8_positions_v1",
+        "schema": "uor-r4.native-prime-relative-memory-read/3",
+        "session_memory_bytes": 135936,
+        "tail_positions": 1024,
+        "tail_positions_per_document_limit": 8,
+        "target_in_candidates": 4064,
+        "target_in_memory": 2384
+      }
+    },
+    {
+      "tag": "uniform-exact-32-development",
+      "cid": "blake3:68dae3867c49ebd1e170bfa9959b496c17cfed3b7f30c8a8b636cfd5c38e2511",
+      "source_hash": "c8bc7438effe89185d51588f8adf45074cd7d8d09699fac47f8758b5f8f270ad",
+      "wall_ms": 2106,
+      "arms": [
+        {
+          "control": "full",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 43,
+              "both_correct": 9,
+              "changed": 29,
+              "clause": 43
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 35,
+              "both_correct": 14,
+              "changed": 28,
+              "clause": 35
+            }
+          ],
+          "compilation": {
+            "cases": 96,
+            "compiled": 16,
+            "not_run": 80,
+            "limited": 0,
+            "executed": false
+          }
+        },
+        {
+          "control": "memory_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 43,
+              "both_correct": 9,
+              "changed": 29,
+              "clause": 43
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 39,
+              "both_correct": 8,
+              "changed": 31,
+              "clause": 39
+            }
+          ]
+        },
+        {
+          "control": "geometry_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 24,
+              "both_correct": 0,
+              "changed": 0,
+              "clause": 24
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 48,
+              "both_correct": 24,
+              "changed": 24,
+              "clause": 48
+            }
+          ]
+        },
+        {
+          "control": "zeta_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 38,
+              "both_correct": 9,
+              "changed": 31,
+              "clause": 38
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 37,
+              "both_correct": 15,
+              "changed": 28,
+              "clause": 37
+            }
+          ]
+        },
+        {
+          "control": "h4_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 24,
+              "both_correct": 0,
+              "changed": 22,
+              "clause": 24
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 36,
+              "both_correct": 15,
+              "changed": 25,
+              "clause": 36
+            }
+          ]
+        }
+      ],
+      "fit": {
+        "baseline_artifact": "blake3:b5c1666e7f9bc61cb06baf91ec2e899b79e5c1a6c1a0f46351544f2d2033a46c",
+        "elapsed_ms": 2424,
+        "peak_rss_bytes": 172933120,
+        "aliased_lexical_tokens": 0,
+        "body_positions": 3040,
+        "calibrated_bias_score": -1536,
+        "candidate_cross_entropy_after": 0.28644831496376466,
+        "candidate_cross_entropy_before": 0.31878712739713727,
+        "candidate_positions": 282472,
+        "cue_identity": "exact-token-prime/1",
+        "documents": 128,
+        "dropped_feature_events": 0,
+        "epochs": 32,
+        "feature_layout": "ordered-query-primes-and-occurrence/1; prime24+prime24+query5+source4+rank3",
+        "fit_correct_after": 3532,
+        "fit_correct_before": 3466,
+        "learned_features": 11712,
+        "max_route_refinement_epochs": 32,
+        "objective": "pointer_half_target_marginal_half_uniform_target_route_nll_then_fit_bias_grid_then_max_route_ce_v3; best_epoch_on_fit_ce; diagnostics_quantized_max_route",
+        "observed_context_positions": 15232,
+        "pointer_cross_entropy_after": 0.13809149884895852,
+        "pointer_cross_entropy_before": 1.944317170153611,
+        "pointer_fit_correct_after": 2222,
+        "pointer_fit_correct_before": 416,
+        "pointer_pretrain_epochs": 32,
+        "positions": 4064,
+        "sampling": "equal_document_quota_uniform_body_plus_final_min_8_positions_v1",
+        "schema": "uor-r4.native-prime-relative-memory-read/3",
+        "session_memory_bytes": 135936,
+        "tail_positions": 1024,
+        "tail_positions_per_document_limit": 8,
+        "target_in_candidates": 4064,
+        "target_in_memory": 2304
+      }
+    },
+    {
+      "tag": "uniform-word-32-development",
+      "cid": "blake3:b1c01736dcff12058861a8c2a5b8497d7c62d1ed623dfbdd8653ad8f0c00c1f1",
+      "source_hash": "c8bc7438effe89185d51588f8adf45074cd7d8d09699fac47f8758b5f8f270ad",
+      "wall_ms": 2153,
+      "arms": [
+        {
+          "control": "full",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 43,
+              "both_correct": 9,
+              "changed": 29,
+              "clause": 43
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 96,
+              "both_correct": 48,
+              "changed": 48,
+              "clause": 96
+            }
+          ],
+          "compilation": {
+            "cases": 96,
+            "compiled": 16,
+            "not_run": 80,
+            "limited": 0,
+            "executed": false
+          }
+        },
+        {
+          "control": "memory_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 43,
+              "both_correct": 9,
+              "changed": 29,
+              "clause": 43
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 39,
+              "both_correct": 8,
+              "changed": 31,
+              "clause": 39
+            }
+          ]
+        },
+        {
+          "control": "geometry_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 24,
+              "both_correct": 0,
+              "changed": 0,
+              "clause": 24
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 96,
+              "both_correct": 48,
+              "changed": 48,
+              "clause": 96
+            }
+          ]
+        },
+        {
+          "control": "zeta_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 38,
+              "both_correct": 9,
+              "changed": 31,
+              "clause": 38
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 96,
+              "both_correct": 48,
+              "changed": 48,
+              "clause": 96
+            }
+          ]
+        },
+        {
+          "control": "h4_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 24,
+              "both_correct": 0,
+              "changed": 22,
+              "clause": 24
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 96,
+              "both_correct": 48,
+              "changed": 48,
+              "clause": 96
+            }
+          ]
+        }
+      ],
+      "fit": {
+        "baseline_artifact": "blake3:b5c1666e7f9bc61cb06baf91ec2e899b79e5c1a6c1a0f46351544f2d2033a46c",
+        "elapsed_ms": 2435,
+        "peak_rss_bytes": 178307072,
+        "aliased_lexical_tokens": 17,
+        "body_positions": 3040,
+        "calibrated_bias_score": -1280,
+        "candidate_cross_entropy_after": 0.27274112650044097,
+        "candidate_cross_entropy_before": 0.31878767095868443,
+        "candidate_positions": 290264,
+        "cue_identity": "leading-unicode-whitespace-word-equivalence/1",
+        "documents": 128,
+        "dropped_feature_events": 0,
+        "epochs": 32,
+        "feature_layout": "ordered-query-primes-and-occurrence/1; prime24+prime24+query5+source4+rank3",
+        "fit_correct_after": 3539,
+        "fit_correct_before": 3466,
+        "learned_features": 12116,
+        "max_route_refinement_epochs": 32,
+        "objective": "pointer_half_target_marginal_half_uniform_target_route_nll_then_fit_bias_grid_then_max_route_ce_v3; best_epoch_on_fit_ce; diagnostics_quantized_max_route",
+        "observed_context_positions": 15232,
+        "pointer_cross_entropy_after": 0.09052811959359859,
+        "pointer_cross_entropy_before": 2.004494995144723,
+        "pointer_fit_correct_after": 2312,
+        "pointer_fit_correct_before": 416,
+        "pointer_pretrain_epochs": 32,
+        "positions": 4064,
+        "sampling": "equal_document_quota_uniform_body_plus_final_min_8_positions_v1",
+        "schema": "uor-r4.native-prime-relative-memory-read/3",
+        "session_memory_bytes": 135936,
+        "tail_positions": 1024,
+        "tail_positions_per_document_limit": 8,
+        "target_in_candidates": 4064,
+        "target_in_memory": 2384
+      }
+    },
+    {
+      "tag": "conditional-word-32-development",
+      "cid": "blake3:b5ba144fb293358bd45b77ce848f7ad100e26524cfd08586b2a96deea85c081d",
+      "source_hash": "c8bc7438effe89185d51588f8adf45074cd7d8d09699fac47f8758b5f8f270ad",
+      "wall_ms": 1788,
+      "arms": [
+        {
+          "control": "full",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 96,
+              "both_correct": 48,
+              "changed": 48,
+              "clause": 96
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 96,
+              "both_correct": 48,
+              "changed": 48,
+              "clause": 96
+            }
+          ],
+          "compilation": {
+            "cases": 96,
+            "compiled": 16,
+            "not_run": 80,
+            "limited": 0,
+            "executed": false
+          }
+        },
+        {
+          "control": "memory_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 43,
+              "both_correct": 9,
+              "changed": 29,
+              "clause": 43
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 39,
+              "both_correct": 8,
+              "changed": 31,
+              "clause": 39
+            }
+          ]
+        },
+        {
+          "control": "geometry_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 96,
+              "both_correct": 48,
+              "changed": 48,
+              "clause": 96
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 96,
+              "both_correct": 48,
+              "changed": 48,
+              "clause": 96
+            }
+          ]
+        },
+        {
+          "control": "zeta_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 96,
+              "both_correct": 48,
+              "changed": 48,
+              "clause": 96
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 96,
+              "both_correct": 48,
+              "changed": 48,
+              "clause": 96
+            }
+          ]
+        },
+        {
+          "control": "h4_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 96,
+              "both_correct": 48,
+              "changed": 48,
+              "clause": 96
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 96,
+              "both_correct": 48,
+              "changed": 48,
+              "clause": 96
+            }
+          ]
+        }
+      ],
+      "fit": {
+        "baseline_artifact": "blake3:b5c1666e7f9bc61cb06baf91ec2e899b79e5c1a6c1a0f46351544f2d2033a46c",
+        "elapsed_ms": 2232,
+        "peak_rss_bytes": 181633024,
+        "aliased_lexical_tokens": 17,
+        "body_positions": 3040,
+        "calibrated_bias_score": -1280,
+        "candidate_cross_entropy_after": 0.22885539017698475,
+        "candidate_cross_entropy_before": 0.31878767095868443,
+        "candidate_positions": 290264,
+        "cue_identity": "leading-unicode-whitespace-word-equivalence/1",
+        "documents": 128,
+        "dropped_feature_events": 0,
+        "epochs": 32,
+        "feature_layout": "ordered-query-primes-and-occurrence/1; prime24+prime24+query5+source4+rank3",
+        "fit_correct_after": 3614,
+        "fit_correct_before": 3466,
+        "learned_features": 12116,
+        "max_route_refinement_epochs": 32,
+        "objective": "pointer_half_target_marginal_half_uniform_target_route_nll_then_global_and_query_pair_bias_grids_then_max_route_ce_v4; best_epoch_on_fit_ce; diagnostics_quantized_max_route",
+        "observed_context_positions": 15232,
+        "pointer_cross_entropy_after": 0.06858055331315119,
+        "pointer_cross_entropy_before": 2.004494995144723,
+        "pointer_fit_correct_after": 2332,
+        "pointer_fit_correct_before": 416,
+        "pointer_pretrain_epochs": 32,
+        "positions": 4064,
+        "query_bias_changed_contexts": 105,
+        "query_bias_contexts": 108,
+        "query_bias_cross_entropy_after": 0.23450474867547574,
+        "query_bias_cross_entropy_before": 0.3018310698382851,
+        "query_bias_positions": 3936,
+        "sampling": "equal_document_quota_uniform_body_plus_final_min_8_positions_v1",
+        "schema": "uor-r4.native-prime-relative-memory-read/3",
+        "session_memory_bytes": 135936,
+        "tail_positions": 1024,
+        "tail_positions_per_document_limit": 8,
+        "target_in_candidates": 4064,
+        "target_in_memory": 2384
+      }
+    },
+    {
+      "tag": "conditional-exact-32-development",
+      "cid": "blake3:23a35f4544e68598f708a8b490189c52a1abde3e26686561ac1ed99354f54ca9",
+      "source_hash": "c8bc7438effe89185d51588f8adf45074cd7d8d09699fac47f8758b5f8f270ad",
+      "wall_ms": 1752,
+      "arms": [
+        {
+          "control": "full",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 96,
+              "both_correct": 48,
+              "changed": 48,
+              "clause": 96
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 34,
+              "both_correct": 15,
+              "changed": 26,
+              "clause": 34
+            }
+          ],
+          "compilation": {
+            "cases": 96,
+            "compiled": 16,
+            "not_run": 80,
+            "limited": 0,
+            "executed": false
+          }
+        },
+        {
+          "control": "memory_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 43,
+              "both_correct": 9,
+              "changed": 29,
+              "clause": 43
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 39,
+              "both_correct": 8,
+              "changed": 31,
+              "clause": 39
+            }
+          ]
+        },
+        {
+          "control": "geometry_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 96,
+              "both_correct": 48,
+              "changed": 48,
+              "clause": 96
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 48,
+              "both_correct": 24,
+              "changed": 24,
+              "clause": 48
+            }
+          ]
+        },
+        {
+          "control": "zeta_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 96,
+              "both_correct": 48,
+              "changed": 48,
+              "clause": 96
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 43,
+              "both_correct": 18,
+              "changed": 29,
+              "clause": 43
+            }
+          ]
+        },
+        {
+          "control": "h4_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 96,
+              "both_correct": 48,
+              "changed": 48,
+              "clause": 96
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 36,
+              "both_correct": 14,
+              "changed": 26,
+              "clause": 36
+            }
+          ]
+        }
+      ],
+      "fit": {
+        "baseline_artifact": "blake3:b5c1666e7f9bc61cb06baf91ec2e899b79e5c1a6c1a0f46351544f2d2033a46c",
+        "elapsed_ms": 2157,
+        "peak_rss_bytes": 181665792,
+        "aliased_lexical_tokens": 0,
+        "body_positions": 3040,
+        "calibrated_bias_score": -1536,
+        "candidate_cross_entropy_after": 0.24787090942153978,
+        "candidate_cross_entropy_before": 0.31878712739713727,
+        "candidate_positions": 282472,
+        "cue_identity": "exact-token-prime/1",
+        "documents": 128,
+        "dropped_feature_events": 0,
+        "epochs": 32,
+        "feature_layout": "ordered-query-primes-and-occurrence/1; prime24+prime24+query5+source4+rank3",
+        "fit_correct_after": 3598,
+        "fit_correct_before": 3466,
+        "learned_features": 11712,
+        "max_route_refinement_epochs": 32,
+        "objective": "pointer_half_target_marginal_half_uniform_target_route_nll_then_global_and_query_pair_bias_grids_then_max_route_ce_v4; best_epoch_on_fit_ce; diagnostics_quantized_max_route",
+        "observed_context_positions": 15232,
+        "pointer_cross_entropy_after": 0.1033013813532318,
+        "pointer_cross_entropy_before": 1.944317170153611,
+        "pointer_fit_correct_after": 2242,
+        "pointer_fit_correct_before": 416,
+        "pointer_pretrain_epochs": 32,
+        "positions": 4064,
+        "query_bias_changed_contexts": 105,
+        "query_bias_contexts": 108,
+        "query_bias_cross_entropy_after": 0.25082034275305093,
+        "query_bias_cross_entropy_before": 0.303821502483154,
+        "query_bias_positions": 3936,
+        "sampling": "equal_document_quota_uniform_body_plus_final_min_8_positions_v1",
+        "schema": "uor-r4.native-prime-relative-memory-read/3",
+        "session_memory_bytes": 135936,
+        "tail_positions": 1024,
+        "tail_positions_per_document_limit": 8,
+        "target_in_candidates": 4064,
+        "target_in_memory": 2304
+      }
+    },
+    {
+      "tag": "conditional-word-32-full-compilation",
+      "cid": "blake3:b5ba144fb293358bd45b77ce848f7ad100e26524cfd08586b2a96deea85c081d",
+      "source_hash": "c8bc7438effe89185d51588f8adf45074cd7d8d09699fac47f8758b5f8f270ad",
+      "wall_ms": 5994,
+      "arms": [
+        {
+          "control": "full",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 96,
+              "both_correct": 48,
+              "changed": 48,
+              "clause": 96
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 96,
+              "both_correct": 48,
+              "changed": 48,
+              "clause": 96
+            }
+          ],
+          "compilation": {
+            "cases": 96,
+            "compiled": 96,
+            "not_run": 0,
+            "limited": 0,
+            "executed": false
+          }
+        },
+        {
+          "control": "memory_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 43,
+              "both_correct": 9,
+              "changed": 29,
+              "clause": 43
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 39,
+              "both_correct": 8,
+              "changed": 31,
+              "clause": 39
+            }
+          ]
+        },
+        {
+          "control": "geometry_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 96,
+              "both_correct": 48,
+              "changed": 48,
+              "clause": 96
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 96,
+              "both_correct": 48,
+              "changed": 48,
+              "clause": 96
+            }
+          ]
+        },
+        {
+          "control": "zeta_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 96,
+              "both_correct": 48,
+              "changed": 48,
+              "clause": 96
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 96,
+              "both_correct": 48,
+              "changed": 48,
+              "clause": 96
+            }
+          ]
+        },
+        {
+          "control": "h4_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 96,
+              "both_correct": 48,
+              "changed": 48,
+              "clause": 96
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 96,
+              "both_correct": 48,
+              "changed": 48,
+              "clause": 96
+            }
+          ]
+        }
+      ],
+      "fit": null
+    }
+  ],
+  "legacy_replays": [
+    {
+      "tag": "legacy-prose-replay",
+      "cid": "blake3:af4b2e377c01df938262f3e4764e5430d1ddcd96b91e4441e22e434a1da0b802",
+      "source_hash": "010f7a09837ebdf6836cd6eb82da7864e09ace1e9a898c00e04c749ab6368e4b",
+      "wall_ms": 438,
+      "arms": [
+        {
+          "control": "full",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 86,
+              "both_correct": 41,
+              "changed": 45,
+              "clause": 86
+            },
+            {
+              "family": "rust",
+              "cases": 0,
+              "correct": 0,
+              "both_correct": 0,
+              "changed": 0,
+              "clause": 0
+            }
+          ],
+          "compilation": {
+            "cases": 0,
+            "compiled": 0,
+            "not_run": 0,
+            "limited": 0,
+            "executed": false
+          }
+        },
+        {
+          "control": "memory_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 24,
+              "both_correct": 0,
+              "changed": 0,
+              "clause": 24
+            },
+            {
+              "family": "rust",
+              "cases": 0,
+              "correct": 0,
+              "both_correct": 0,
+              "changed": 0,
+              "clause": 0
+            }
+          ]
+        },
+        {
+          "control": "geometry_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 66,
+              "both_correct": 29,
+              "changed": 37,
+              "clause": 66
+            },
+            {
+              "family": "rust",
+              "cases": 0,
+              "correct": 0,
+              "both_correct": 0,
+              "changed": 0,
+              "clause": 0
+            }
+          ]
+        },
+        {
+          "control": "zeta_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 91,
+              "both_correct": 45,
+              "changed": 46,
+              "clause": 91
+            },
+            {
+              "family": "rust",
+              "cases": 0,
+              "correct": 0,
+              "both_correct": 0,
+              "changed": 0,
+              "clause": 0
+            }
+          ]
+        },
+        {
+          "control": "h4_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 82,
+              "both_correct": 40,
+              "changed": 42,
+              "clause": 82
+            },
+            {
+              "family": "rust",
+              "cases": 0,
+              "correct": 0,
+              "both_correct": 0,
+              "changed": 0,
+              "clause": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tag": "legacy-joint-word-replay",
+      "cid": "blake3:9673db8ab87ebc167084cd7f6000c2e2d2e12a91ed29c737467003d8f1548e31",
+      "source_hash": "c8bc7438effe89185d51588f8adf45074cd7d8d09699fac47f8758b5f8f270ad",
+      "wall_ms": 1994,
+      "arms": [
+        {
+          "control": "full",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 83,
+              "both_correct": 40,
+              "changed": 43,
+              "clause": 83
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 33,
+              "both_correct": 14,
+              "changed": 24,
+              "clause": 33
+            }
+          ],
+          "compilation": {
+            "cases": 96,
+            "compiled": 16,
+            "not_run": 80,
+            "limited": 0,
+            "executed": false
+          }
+        },
+        {
+          "control": "memory_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 43,
+              "both_correct": 9,
+              "changed": 29,
+              "clause": 43
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 39,
+              "both_correct": 8,
+              "changed": 31,
+              "clause": 39
+            }
+          ]
+        },
+        {
+          "control": "geometry_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 81,
+              "both_correct": 39,
+              "changed": 42,
+              "clause": 81
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 24,
+              "both_correct": 2,
+              "changed": 16,
+              "clause": 24
+            }
+          ]
+        },
+        {
+          "control": "zeta_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 76,
+              "both_correct": 37,
+              "changed": 39,
+              "clause": 76
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 32,
+              "both_correct": 12,
+              "changed": 33,
+              "clause": 32
+            }
+          ]
+        },
+        {
+          "control": "h4_disabled",
+          "families": [
+            {
+              "family": "prose",
+              "cases": 96,
+              "correct": 85,
+              "both_correct": 40,
+              "changed": 45,
+              "clause": 85
+            },
+            {
+              "family": "rust",
+              "cases": 96,
+              "correct": 33,
+              "both_correct": 15,
+              "changed": 25,
+              "clause": 33
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "legacy_refit_identity": [
+    {
+      "mode": "exact",
+      "expected": "blake3:0ceeace32673873a01ee280885e455cd0339c4aaf31147acaf7919b4408f9c8a",
+      "actual": "blake3:0ceeace32673873a01ee280885e455cd0339c4aaf31147acaf7919b4408f9c8a",
+      "matched": true,
+      "elapsed_ms": 1467,
+      "equal_model_file_bytes": true
+    },
+    {
+      "mode": "word",
+      "expected": "blake3:9673db8ab87ebc167084cd7f6000c2e2d2e12a91ed29c737467003d8f1548e31",
+      "actual": "blake3:9673db8ab87ebc167084cd7f6000c2e2d2e12a91ed29c737467003d8f1548e31",
+      "matched": true,
+      "elapsed_ms": 1610,
+      "equal_model_file_bytes": true
+    }
+  ],
+  "assertion_execution": {
+    "schema": "native-generated-assertion-execution/1",
+    "artifact_cid": "blake3:b5ba144fb293358bd45b77ce848f7ad100e26524cfd08586b2a96deea85c081d",
+    "source_blake3": "c8bc7438effe89185d51588f8adf45074cd7d8d09699fac47f8758b5f8f270ad",
+    "scope": "Link and execute the 96 unchanged generated Rust assertion programs after inspecting their finite assignment/assertion source. No code repair, expected-value insertion, or training feedback.",
+    "status": "completed",
+    "completed": 96,
+    "passed": 96,
+    "wall_ms": 17896,
+    "cases": [
+      {
+        "id": "rust/development/world-80/filler-0/swap-false",
+        "source_sha256": "a0a2c25287793218b25e1a85e4fd728f478c3e41c870af495e6227595dcc501c",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-80/filler-0/swap-true",
+        "source_sha256": "3514951e415cf9af1a7716e5135874700f3a96ffadce07399d091adf47fbdabd",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-80/filler-4/swap-false",
+        "source_sha256": "4e0da3880653511ac691bbc6a00a525ed348143062e101f63f61722de719ed31",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-80/filler-4/swap-true",
+        "source_sha256": "9f02c7417f5ebea1098f94d104a1b6027ab9ad5e5a5541b8f8d52130838d45aa",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-80/filler-16/swap-false",
+        "source_sha256": "685fe90a6b6dbecb4bdae3862768fa209bdeadc879151707c36e72e40b4c6665",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-80/filler-16/swap-true",
+        "source_sha256": "0bc20b7398496875110d81111d561e63a7c0fffafdb39f384ce0d88ac219967c",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-80/filler-64/swap-false",
+        "source_sha256": "b141605ff584d6b71f4a792b29aba0fee5461ad579c51ee5dd84358d1914a719",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-80/filler-64/swap-true",
+        "source_sha256": "ed0f4da45cde388d49c40b9cb28c604ee1a028ec40d6c0a7c3831795e7b6cc40",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-800/filler-0/swap-false",
+        "source_sha256": "7c96579bd99ebe434bfa97f298dcf2f492d642c6117d5c46ffb0d7ec57f46790",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-800/filler-0/swap-true",
+        "source_sha256": "ac4ed2abb737bc34ede2709d7927f1b4115f940df22c465b91ce1a4d74075f25",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-800/filler-4/swap-false",
+        "source_sha256": "4b888f64ae8bacb82a74b6edceb5129493bebd0c1e63c106c68b5b88e1ab96c9",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-800/filler-4/swap-true",
+        "source_sha256": "82f657eb347a5cc0675ef16fa7927bad19c7946002da6f38852bcc34769123fd",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-800/filler-16/swap-false",
+        "source_sha256": "386147f7a00556fe6b8cf38972caeb7f32fe35c323c80204db3174d201d31fbb",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-800/filler-16/swap-true",
+        "source_sha256": "38810f042f221d95b239fdda7d6c4fedb6b912af2b3e8a81dbc6d97e52f7520c",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-800/filler-64/swap-false",
+        "source_sha256": "06145e2bcad48943a99d72994e485320cff586dc3172d35887ce20e639feadeb",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-800/filler-64/swap-true",
+        "source_sha256": "5e789619fd7d94a1bc5b7f05ef5b5fc6b6bf0ce1622956ba368d138eea6820fc",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-1520/filler-0/swap-false",
+        "source_sha256": "fab216be65e73da60c80e13b3069d03df774c3441aa6487c786539c23e97065d",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-1520/filler-0/swap-true",
+        "source_sha256": "c15156c9c982d3409a0c6e1eb659a5c76a0378afd861db3c7c612fd1c25c3597",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-1520/filler-4/swap-false",
+        "source_sha256": "9ce9baf6081c94f556943be1a721948cffbd1811c5b64d38be1afdabaf319be0",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-1520/filler-4/swap-true",
+        "source_sha256": "c666323ec99837d916c6fb8ee186cb278d90f04572466286511fd002ad9c7a10",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-1520/filler-16/swap-false",
+        "source_sha256": "24a7fc8f632880b652105d5a83a365f50e82f0a48979056fbc95daaa2c4d15da",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-1520/filler-16/swap-true",
+        "source_sha256": "c49f70207daf0155445201990d238afe23ef2ab5b586aa401a011315279d642e",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-1520/filler-64/swap-false",
+        "source_sha256": "5dae36808d4d3ef35aebcf3ebcf22b452589d5a004c700aacd5295e638fda31d",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-1520/filler-64/swap-true",
+        "source_sha256": "ac3809be92d3b4fa99a13b1ccf4fb5e4329b70c132e65e35335e7c9594ec4da9",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-2240/filler-0/swap-false",
+        "source_sha256": "d81d68ad22012ab5efddbe105ae33f3bf5b62da9468a875d6ba934483afd8e79",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-2240/filler-0/swap-true",
+        "source_sha256": "72c82df9b5bf4add278e0665b5c9263f6f88d0fbcda3aee9ec2e16a28d610fc9",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-2240/filler-4/swap-false",
+        "source_sha256": "c329a9a42cbf9ecb561cf9bd26de52707372c1491de13d4a4142b80f07c05bd1",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-2240/filler-4/swap-true",
+        "source_sha256": "e11c6ec5fb75392dfc5c6247181eb93994776d3148149cad79bae9df95154d10",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-2240/filler-16/swap-false",
+        "source_sha256": "4efc95a801b7ba4b9e4ee1ffc04a41a46839fe2fde181c33be381a77ae6fdb3f",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-2240/filler-16/swap-true",
+        "source_sha256": "fb1ca3295d200362e846fb69d0c1bfefde8c6d9c91013ecf43a4f22a62d85eb1",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-2240/filler-64/swap-false",
+        "source_sha256": "fa49dac0b6c08f6c1264618d69bfe9159e895a69b4bf413d0c6af759a6ff9ad3",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-2240/filler-64/swap-true",
+        "source_sha256": "d5e3506021c6102a2911da809d176545d75cda827979c1e5d64a3a2aff2906ca",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-154/filler-0/swap-false",
+        "source_sha256": "26d514f733e396911b21699e0e01287b90f21950a607ec6cdc0a7d0d21f917b1",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-154/filler-0/swap-true",
+        "source_sha256": "e795d4aa9898c5782370c53d0b6bc952b49699f57db5d804949c644ca5f1949d",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-154/filler-4/swap-false",
+        "source_sha256": "dd2dcd0bf3038bd768bfeaf264756e42ab09b57d76fafafad00dd17eb4be0088",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-154/filler-4/swap-true",
+        "source_sha256": "2c83c03bc35ff68061dcc65fdf4231d973703e23b8b19c43e797cad12a21fa4c",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-154/filler-16/swap-false",
+        "source_sha256": "5c7ae3dc690acc4a2b74ecdda901279f2a42343f048d25c643fb110f9dd248f4",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-154/filler-16/swap-true",
+        "source_sha256": "f4713bb788da0377716be0dd9a8bd3b158f7bf8f3790c00f20adc4f9ced0e9ca",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-154/filler-64/swap-false",
+        "source_sha256": "3ecc6a02fbbff96525604fb4dde6e192bb5c08b37682f66f518b8c5e79257cf3",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-154/filler-64/swap-true",
+        "source_sha256": "f91b0d69c7f5308643ff22bb7de1345d9a00470d16cfdd43bcf82196cbaf030d",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-874/filler-0/swap-false",
+        "source_sha256": "a00a8fc385c40965ee47f0f3a80df8b44101ddbea49d67e0bf91fb2bc4e38f56",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-874/filler-0/swap-true",
+        "source_sha256": "f875d041dd1faa3e2632ba1393e5c5686c0b0d4bb5b603d0205847dff4e7d0b7",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-874/filler-4/swap-false",
+        "source_sha256": "014ba87edc700e6072bff29dc3e9aeeab8edffa1041c294ed09b5ad89d496757",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-874/filler-4/swap-true",
+        "source_sha256": "e21a3cdc60d993d9db04cddab0ba5a77f9c78ecc7928eef86dfa2bb25eb23c7d",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-874/filler-16/swap-false",
+        "source_sha256": "86e44d0ae87624e0ecdf6537e6a8df47764f226472ec66cc732b23950a653e30",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-874/filler-16/swap-true",
+        "source_sha256": "80bbffaa61bb3801303ac132aa469fae584db378f20753da88d5e63e8587aa26",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-874/filler-64/swap-false",
+        "source_sha256": "0637d8cb4b484f8e664649a106b7407930ebcbd3f47637039be353ead25784d1",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-874/filler-64/swap-true",
+        "source_sha256": "23b3a54cdd8577fae102f94e897a318b5a0f7a6a42a9493a82852a2ac3bd36f0",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-1594/filler-0/swap-false",
+        "source_sha256": "4144ae3f5863142a00f0fcf0ae441b1c6cae741a6eb7816158958b16f2296e66",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-1594/filler-0/swap-true",
+        "source_sha256": "f5a10356687132a3598d2de120eb5f06811e922ea0009a3410d59a47e2f6a00c",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-1594/filler-4/swap-false",
+        "source_sha256": "57b5113f997a5d697c3834dc707579366f846167e1a892683a036cc48ac55e04",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-1594/filler-4/swap-true",
+        "source_sha256": "cd30f1d4221324450faa69ddcc050dd68c35ccb8255745358028c3a9d5a67000",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-1594/filler-16/swap-false",
+        "source_sha256": "12e145a0a47f49316c1f322da7e9e9c73fce9001a2fb2acb6eaa736c31348245",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-1594/filler-16/swap-true",
+        "source_sha256": "1a5c666b5d96be22e9e4ff7d09d78094e0f0d90fa134b55ffb778e441f82cebe",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-1594/filler-64/swap-false",
+        "source_sha256": "50adb945dea0c32ba33394c532a5917ae9a3bf1ae1e1bfecb8d1b9b9ea287a74",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-1594/filler-64/swap-true",
+        "source_sha256": "ceea5ffa3b4adc3b4e5f29b57536cb7a6bddfa7e97b40bf5384fb631ca049d8f",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-2314/filler-0/swap-false",
+        "source_sha256": "a10a21bcb83f69029f2f44cdcf5baf7adb45fdea35b5721f411c70b15574f6ec",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-2314/filler-0/swap-true",
+        "source_sha256": "69930d458c20f4d5dc8d417feffab6018f642afe0a84edd977a32cda6dec9c10",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-2314/filler-4/swap-false",
+        "source_sha256": "c2603a62967aaaae21e9e78228a1829cc4601ab67e5107b5478644107bec4dd9",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-2314/filler-4/swap-true",
+        "source_sha256": "b4b6740202bfacde72c38c83f44ebbcb24e63fa5f4c6543e919b7afaaff805c4",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-2314/filler-16/swap-false",
+        "source_sha256": "4f83f25e45b1e49b40eef3636685e20099c0b2311bcdc87013dcef4484edefc3",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-2314/filler-16/swap-true",
+        "source_sha256": "94221674cc44a9c6530be3a5ce0f7136edf26836d989919e59a380f5733947b9",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-2314/filler-64/swap-false",
+        "source_sha256": "98e2ce592a1644a90d4b6f95344a3deb5a31a90d8f9078ea8d6d6976d3289944",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-2314/filler-64/swap-true",
+        "source_sha256": "109c7a4613e5606c28eea5d6547acba8b3d8f162acfe946be3aa3719480b550d",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-191/filler-0/swap-false",
+        "source_sha256": "40f82263b7e8c7bbcf64d4489bf98e67b421fd411be4722c609b17332cb54d23",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-191/filler-0/swap-true",
+        "source_sha256": "4261a1457dfa7f2ab46a7ba04b4d641f4582e5a77048a4939bde9b869b48b250",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-191/filler-4/swap-false",
+        "source_sha256": "1e3f87694b7bf39cab613929a1a41fff0a78a57f34f864eef6498ac63d25055c",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-191/filler-4/swap-true",
+        "source_sha256": "2cfbe11d1ec5621346d70bde96ac356540bd378930591b2eda5e8d7a5ed9170c",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-191/filler-16/swap-false",
+        "source_sha256": "33fff81fcb7d6e45993a0fa46847068e039451cee0182f5df26c17fb7e4b2f26",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-191/filler-16/swap-true",
+        "source_sha256": "2bf9b6bd62ae5b7070a9372d01630de0e59f8cdc4ac82b47acf1d2e7950e21ce",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-191/filler-64/swap-false",
+        "source_sha256": "30be6611d30a248da05852dcc15828fd12a6dae5a62631372d03c537af0c16d2",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-191/filler-64/swap-true",
+        "source_sha256": "1c899d36d583442d37877c821c054658f95c14714b5068e6fc13ba7bf38540cd",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-911/filler-0/swap-false",
+        "source_sha256": "ea5aa52cb3c2200db299f72e2cc8a0660ec038917344e3b68624399beb115fec",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-911/filler-0/swap-true",
+        "source_sha256": "ae5337937bb549353b2a59a631065a005335b7bca62732afc3536fedf985c34c",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-911/filler-4/swap-false",
+        "source_sha256": "b2f4659ec74dbb4e19d367b41d9a0d8dea77d6cf43791ad8c007f86d2e0d643b",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-911/filler-4/swap-true",
+        "source_sha256": "80b2c77a9041cd0bd02444c710fc2d0a04d9086653079cc7447799784baaac50",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-911/filler-16/swap-false",
+        "source_sha256": "7950dbc369735f0d9339e4832cd415184a7a5334ea8274c6c819a872ee7f3743",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-911/filler-16/swap-true",
+        "source_sha256": "eebcbdfae5fdb7290e25a38fb4f86ecda20b80a88d31fc358ef2046e7f9e3444",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-911/filler-64/swap-false",
+        "source_sha256": "17e946e0a7cc1a7bbad7d96809a1edc92825f15eacc09940e0726ca761f3bc63",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-911/filler-64/swap-true",
+        "source_sha256": "cdd80c15699981459b940474c05af77b723ba3aa9f6d837a12a3aa7a144342be",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-1631/filler-0/swap-false",
+        "source_sha256": "d5adae7e74f34e95f5440ff68db63e937dbfc0f3b981d6857d952e738f9cb20d",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-1631/filler-0/swap-true",
+        "source_sha256": "46faca58ef128e00354f4cb3b615ae8d4c170038d4c81079451be73e91753025",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-1631/filler-4/swap-false",
+        "source_sha256": "d6334f74d58a9aa5e2885071357e0ab69324a4f22a9cdc2e365795ef9f33fb7f",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-1631/filler-4/swap-true",
+        "source_sha256": "ee5850407c726cc331d08acc28e869ac60a6951639046722d66500b262d6dd87",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-1631/filler-16/swap-false",
+        "source_sha256": "39154dfda053e69d1f01a6e0ebbb2dd7fc0fad5cfed4022e111a5be4a9a78bd0",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-1631/filler-16/swap-true",
+        "source_sha256": "6e85560b1a96fd34c8da10b6ff80e3efba04138a4f7a2afe30d480fe88ef0f2c",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-1631/filler-64/swap-false",
+        "source_sha256": "a6b5c9d8843121a5bce819e748243628815fe29c7cce9828221b6e2fd1838216",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-1631/filler-64/swap-true",
+        "source_sha256": "8da79f886f8bdb12ff0f894dd587f0bf3b3ff3ee9ecb80135ca7c4e4f55ac78c",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-2351/filler-0/swap-false",
+        "source_sha256": "1b4a46591386738091c3bdbb52088999e2234e4520b9010b7f4adffd4b954a30",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-2351/filler-0/swap-true",
+        "source_sha256": "d22b203c7e83c95425b4abaa4d1b59b9777d2350f5473e98c11579baa5c4a350",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-2351/filler-4/swap-false",
+        "source_sha256": "46ea5d3d5130f95569738b60b8724b34940afe5d0323c000ea92897ecb3f8f60",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-2351/filler-4/swap-true",
+        "source_sha256": "f7bcfd81a38b2ef7919dd0313d7e9a7d3401da54b943a420a75e20c16f76139f",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-2351/filler-16/swap-false",
+        "source_sha256": "9c520dd4641c523f1321c87f64811ce4a77fd0d3399b5c3b7e3ae4f0749bc17c",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-2351/filler-16/swap-true",
+        "source_sha256": "d68d79cecc733a4fa3fdca3357b9aa9ca7f5d3059aa1edfe0f56a920649037d7",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-2351/filler-64/swap-false",
+        "source_sha256": "5c5b6874f32cacce44590bab4fe49ca91fa9c66755f0394a2d058e90c52e4657",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "id": "rust/development/world-2351/filler-64/swap-true",
+        "source_sha256": "e103f044a6a0fa5cef4f424b40bddc8cddb8845079ddf3d5cb79d4d93b7d2a48",
+        "linked": true,
+        "exit_code": 0,
+        "passed": true
+      }
+    ]
+  },
+  "fresh_native_run": {
+    "source_blake3": "c8bc7438effe89185d51588f8adf45074cd7d8d09699fac47f8758b5f8f270ad",
+    "status": "completed",
+    "resources": {
+      "budget_boundary": "Soft wall checks between documents and development cases; finite readout fit, compile and reload may overrun. No automatic retries or additional runs.",
+      "evaluation_threads": 1,
+      "fitting_threads": 1,
+      "fixed_model_bytes": 4012511,
+      "learned_model_bytes": 4034457,
+      "max_seconds": 600,
+      "memory_model_bytes": 4720825,
+      "model_training_epochs": 1,
+      "peak_rss": "NOT_MEASURED; use an external process resource monitor if required",
+      "wall_ms": 18425
+    },
+    "arms": [
+      {
+        "control": "full",
+        "families": [
+          {
+            "family": "prose",
+            "cases": 96,
+            "correct": 37,
+            "both_correct_pairs": 9
+          },
+          {
+            "family": "rust",
+            "cases": 96,
+            "correct": 26,
+            "both_correct_pairs": 6
+          }
+        ],
+        "compilation": {
+          "cases": 96,
+          "compiled": 15,
+          "not_run": 0,
+          "limited": 0,
+          "executed": false
+        },
+        "readout": "fixed_readout",
+        "artifact_cid": "blake3:5ce08abac8ac520f52800a64db52e871f349e4012c98b0b1e10f10f48da9878b"
+      },
+      {
+        "control": "geometry_disabled",
+        "families": [
+          {
+            "family": "prose",
+            "cases": 96,
+            "correct": 24,
+            "both_correct_pairs": 0
+          },
+          {
+            "family": "rust",
+            "cases": 96,
+            "correct": 24,
+            "both_correct_pairs": 0
+          }
+        ],
+        "readout": "fixed_readout",
+        "artifact_cid": "blake3:5ce08abac8ac520f52800a64db52e871f349e4012c98b0b1e10f10f48da9878b"
+      },
+      {
+        "control": "full",
+        "families": [
+          {
+            "family": "prose",
+            "cases": 96,
+            "correct": 42,
+            "both_correct_pairs": 10
+          },
+          {
+            "family": "rust",
+            "cases": 96,
+            "correct": 41,
+            "both_correct_pairs": 9
+          }
+        ],
+        "compilation": {
+          "cases": 96,
+          "compiled": 76,
+          "not_run": 0,
+          "limited": 0,
+          "executed": false
+        },
+        "readout": "learned_readout",
+        "artifact_cid": "blake3:42223921fabdce73cbe0aeb36aee15898dfed1d87f6d8141b77b73022672261c"
+      },
+      {
+        "control": "geometry_disabled",
+        "families": [
+          {
+            "family": "prose",
+            "cases": 96,
+            "correct": 24,
+            "both_correct_pairs": 0
+          },
+          {
+            "family": "rust",
+            "cases": 96,
+            "correct": 24,
+            "both_correct_pairs": 0
+          }
+        ],
+        "readout": "learned_readout",
+        "artifact_cid": "blake3:42223921fabdce73cbe0aeb36aee15898dfed1d87f6d8141b77b73022672261c"
+      },
+      {
+        "control": "full",
+        "families": [
+          {
+            "family": "prose",
+            "cases": 96,
+            "correct": 96,
+            "both_correct_pairs": 48
+          },
+          {
+            "family": "rust",
+            "cases": 96,
+            "correct": 96,
+            "both_correct_pairs": 48
+          }
+        ],
+        "compilation": {
+          "cases": 96,
+          "compiled": 96,
+          "not_run": 0,
+          "limited": 0,
+          "executed": false
+        },
+        "readout": "learned_memory_read",
+        "artifact_cid": "blake3:32397e2f6ca7d2e430d7c97f388b95e931f86341e8093e5e3d3a518a9ce57613"
+      },
+      {
+        "control": "memory_disabled",
+        "families": [
+          {
+            "family": "prose",
+            "cases": 96,
+            "correct": 42,
+            "both_correct_pairs": 10
+          },
+          {
+            "family": "rust",
+            "cases": 96,
+            "correct": 41,
+            "both_correct_pairs": 9
+          }
+        ],
+        "readout": "learned_memory_read",
+        "artifact_cid": "blake3:32397e2f6ca7d2e430d7c97f388b95e931f86341e8093e5e3d3a518a9ce57613"
+      },
+      {
+        "control": "geometry_disabled",
+        "families": [
+          {
+            "family": "prose",
+            "cases": 96,
+            "correct": 96,
+            "both_correct_pairs": 48
+          },
+          {
+            "family": "rust",
+            "cases": 96,
+            "correct": 96,
+            "both_correct_pairs": 48
+          }
+        ],
+        "readout": "learned_memory_read",
+        "artifact_cid": "blake3:32397e2f6ca7d2e430d7c97f388b95e931f86341e8093e5e3d3a518a9ce57613"
+      },
+      {
+        "control": "zeta_disabled",
+        "families": [
+          {
+            "family": "prose",
+            "cases": 96,
+            "correct": 96,
+            "both_correct_pairs": 48
+          },
+          {
+            "family": "rust",
+            "cases": 96,
+            "correct": 96,
+            "both_correct_pairs": 48
+          }
+        ],
+        "readout": "learned_memory_read",
+        "artifact_cid": "blake3:32397e2f6ca7d2e430d7c97f388b95e931f86341e8093e5e3d3a518a9ce57613"
+      },
+      {
+        "control": "h4_disabled",
+        "families": [
+          {
+            "family": "prose",
+            "cases": 96,
+            "correct": 96,
+            "both_correct_pairs": 48
+          },
+          {
+            "family": "rust",
+            "cases": 96,
+            "correct": 96,
+            "both_correct_pairs": 48
+          }
+        ],
+        "readout": "learned_memory_read",
+        "artifact_cid": "blake3:32397e2f6ca7d2e430d7c97f388b95e931f86341e8093e5e3d3a518a9ce57613"
+      }
+    ]
+  },
+  "larger_corpus": {
+    "fit": {
+      "baseline_artifact": "blake3:e082f72cbffbbc509fe6c4cae9d31d8a9ca4aa4656731646fb79c081ed15effb",
+      "learned_artifact": "blake3:872c615dcda3b3c0f1f1df8cf3148153161a862736258cfd128e3893d85192d3",
+      "elapsed_ms": 13946,
+      "peak_rss_bytes": 997638144,
+      "fit": {
+        "aliased_lexical_tokens": 718,
+        "body_positions": 3272,
+        "calibrated_bias_score": -896,
+        "candidate_cross_entropy_after": 1.352044269618132,
+        "candidate_cross_entropy_before": 2.652059797047346,
+        "candidate_positions": 297729,
+        "cue_identity": "leading-unicode-whitespace-word-equivalence/1",
+        "documents": 103,
+        "dropped_feature_events": 0,
+        "epochs": 32,
+        "feature_layout": "ordered-query-primes-and-occurrence/1; prime24+prime24+query5+source4+rank3",
+        "feature_names": [
+          "pointer_bias",
+          "query_distance_and_source_offset",
+          "last_prime_and_offsets",
+          "logarithmic_age",
+          "last_prime_and_age",
+          "relative_h4_transport",
+          "relative_h4_and_offsets",
+          "relative_h4_signed_orientation",
+          "relative_fixed_zeta_phase_0",
+          "relative_fixed_zeta_phase_1",
+          "relative_fixed_zeta_phase_2",
+          "relative_fixed_zeta_phase_3",
+          "relative_fixed_zeta_phase_4",
+          "relative_fixed_zeta_phase_5",
+          "relative_fixed_zeta_phase_6",
+          "relative_fixed_zeta_phase_7",
+          "ordered_query_prime_pair",
+          "ordered_query_prime_pair_offsets_and_posting_rank"
+        ],
+        "fit_correct_after": 2328,
+        "fit_correct_before": 1335,
+        "learned_features": 206127,
+        "max_route_refinement_epochs": 32,
+        "objective": "pointer_half_target_marginal_half_uniform_target_route_nll_then_global_and_query_pair_bias_grids_then_max_route_ce_v4; best_epoch_on_fit_ce; diagnostics_quantized_max_route",
+        "observed_context_positions": 147652,
+        "pointer_cross_entropy_after": 0.4845879180894003,
+        "pointer_cross_entropy_before": 3.1365091453830236,
+        "pointer_fit_correct_after": 1851,
+        "pointer_fit_correct_before": 343,
+        "pointer_pretrain_epochs": 32,
+        "positions": 4096,
+        "query_bias_changed_contexts": 1867,
+        "query_bias_contexts": 1902,
+        "query_bias_cross_entropy_after": 1.5773779154554428,
+        "query_bias_cross_entropy_before": 1.9503672666451255,
+        "query_bias_positions": 3390,
+        "sampling": "equal_document_quota_uniform_body_plus_final_min_8_positions_v1",
+        "schema": "uor-r4.native-prime-relative-memory-read/3",
+        "session_memory_bytes": 1157632,
+        "tail_positions": 824,
+        "tail_positions_per_document_limit": 8,
+        "target_in_candidates": 3449,
+        "target_in_memory": 2072
+      }
+    },
+    "development": {
+      "artifact_cid": "blake3:872c615dcda3b3c0f1f1df8cf3148153161a862736258cfd128e3893d85192d3",
+      "source": {
+        "source_summary": "Preserved expanded-corpus/development.jsonl; exact per-document receipts remain in the full local CLI report",
+        "documents": 103,
+        "positions": 146668
+      },
+      "elapsed_ms": 178199,
+      "controls": [
+        {
+          "control": "full",
+          "positions": 146668,
+          "correct": 44834,
+          "top1": 0.3056835846946846,
+          "candidate_hits": 122226
+        },
+        {
+          "control": "geometry_disabled",
+          "positions": 146668,
+          "correct": 47428,
+          "top1": 0.32336978754738593,
+          "candidate_hits": 122099
+        },
+        {
+          "control": "zeta_disabled",
+          "positions": 146668,
+          "correct": 44996,
+          "top1": 0.306788120107999,
+          "candidate_hits": 122240
+        },
+        {
+          "control": "h4_disabled",
+          "positions": 146668,
+          "correct": 47321,
+          "top1": 0.32264024872501157,
+          "candidate_hits": 122048
+        },
+        {
+          "control": "orientation_disabled",
+          "positions": 146668,
+          "correct": 44849,
+          "top1": 0.3057858564922137,
+          "candidate_hits": 122233
+        },
+        {
+          "control": "paired_disabled",
+          "positions": 146668,
+          "correct": 44861,
+          "top1": 0.305867673930237,
+          "candidate_hits": 122160
+        },
+        {
+          "control": "radial_disabled",
+          "positions": 146668,
+          "correct": 44865,
+          "top1": 0.3058949464095781,
+          "candidate_hits": 122205
+        },
+        {
+          "control": "heatmap_disabled",
+          "positions": 146668,
+          "correct": 44853,
+          "top1": 0.3058131289715548,
+          "candidate_hits": 122231
+        },
+        {
+          "control": "memory_disabled",
+          "positions": 146668,
+          "correct": 53165,
+          "top1": 0.36248534104235414,
+          "candidate_hits": 121502
+        }
+      ]
+    }
+  },
+  "open_generation": [
+    {
+      "mode": "baseline",
+      "task": "prose-coreference",
+      "prompt": "The key was red. It is now green. What color is the key? Answer:",
+      "artifact_cid": "blake3:e082f72cbffbbc509fe6c4cae9d31d8a9ca4aa4656731646fb79c081ed15effb",
+      "text": ":Invalid(\n                \"contiontiontiontiontiontiontiontiontiontiontiontiontiontiont",
+      "stop": "token_budget",
+      "token_count": 64
+    },
+    {
+      "mode": "baseline",
+      "task": "rust-addition",
+      "prompt": "fn sum(a: i32, b: i32) -> i32 {\n",
+      "artifact_cid": "blake3:e082f72cbffbbc509fe6c4cae9d31d8a9ca4aa4656731646fb79c081ed15effb",
+      "text": "                                                                ",
+      "stop": "token_budget",
+      "token_count": 64
+    },
+    {
+      "mode": "query-context",
+      "task": "prose-coreference",
+      "prompt": "The key was red. It is now green. What color is the key? Answer:",
+      "artifact_cid": "blake3:872c615dcda3b3c0f1f1df8cf3148153161a862736258cfd128e3893d85192d3",
+      "text": ":Invalid(\n                \"eredereeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "stop": "token_budget",
+      "token_count": 64
+    },
+    {
+      "mode": "query-context",
+      "task": "rust-addition",
+      "prompt": "fn sum(a: i32, b: i32) -> i32 {\n",
+      "artifact_cid": "blake3:872c615dcda3b3c0f1f1df8cf3148153161a862736258cfd128e3893d85192d3",
+      "text": "                                                                ",
+      "stop": "token_budget",
+      "token_count": 64
+    }
+  ],
+  "checks": {
+    "native_core_tests": 18,
+    "allocation_source_tests": 2,
+    "census_decisions": 46080,
+    "census_variants": 45,
+    "allocations": 0,
+    "allocated_bytes": 0,
+    "clippy_core_probe_census_cli": "passed -D warnings",
+    "format": "passed",
+    "architecture_policy": "passed; no behavior evaluated",
+    "claim_wording": "passed",
+    "saved_model_training_text_overlap": "rejected before prediction",
+    "missing_model_source_pair": "rejected with focused error",
+    "full_workspace_wasm_fuzz_legacy_release_qa": "not run"
+  }
+}

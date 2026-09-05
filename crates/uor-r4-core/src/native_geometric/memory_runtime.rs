@@ -12,6 +12,23 @@ fn cue_identity(memory: &MemoryModel, token: u32, work: &mut Work) -> u32 {
     }
 }
 
+/// Exact schema-/3 address. Host validation bounds both complete primes to
+/// 24 bits; configured loops bound query/source distances to 1..32/1..16 and
+/// posting rank to 0..7. All 60 occupied bits are disjoint; none are hashed.
+pub(super) fn pack_query_occurrence(
+    previous_prime: u32,
+    last_prime: u32,
+    query_distance: usize,
+    source_distance: usize,
+    posting_rank: usize,
+) -> u64 {
+    (u64::from(previous_prime) << 36)
+        | (u64::from(last_prime) << 12)
+        | (((query_distance - 1) as u64) << 7)
+        | (((source_distance - 1) as u64) << 3)
+        | posting_rank as u64
+}
+
 impl MemoryFeature {
     pub(super) fn admitted(self, control: Control) -> bool {
         match control {
@@ -108,6 +125,14 @@ impl MemoryState {
             .recent(1)
             .map(|entry| model.geometry.tokens[entry.token as usize].prime)
             .unwrap_or(2);
+        let query_context = memory.schema == QUERY_CONTEXT_MEMORY_SCHEMA;
+        let previous_query = if query_context {
+            self.recent(2)
+                .map(|entry| model.geometry.tokens[entry.token as usize].prime)
+                .unwrap_or(2)
+        } else {
+            2
+        };
         let oldest = self.seen.saturating_sub(self.ring.len() as u64);
         let mut visits = 0;
         // Visit each query position before spending the budget on older
@@ -143,13 +168,6 @@ impl MemoryState {
                     if value.token == BOS {
                         continue;
                     }
-                    let previous_slot = if reference.slot == 0 {
-                        self.ring.len() - 1
-                    } else {
-                        reference.slot - 1
-                    };
-                    let previous_prime =
-                        model.geometry.tokens[self.ring[previous_slot].token as usize].prime;
                     let age = self.seen - 1 - reference.sequence;
                     let mut remaining = age;
                     let mut age_bin = 0_u64;
@@ -206,14 +224,38 @@ impl MemoryState {
                     work.memory_phase_updates = work
                         .memory_phase_updates
                         .saturating_add(PHASE_CHANNELS as u64);
-                    features[16] = MemoryFeature {
-                        kind: 16,
-                        value: (u64::from(last) << 32) | u64::from(previous_prime),
-                    };
-                    features[17] = MemoryFeature {
-                        kind: 17,
-                        value: u64::from(previous_prime),
-                    };
+                    if query_context {
+                        features[16] = MemoryFeature {
+                            kind: 16,
+                            value: (u64::from(previous_query) << 32) | u64::from(last),
+                        };
+                        features[17] = MemoryFeature {
+                            kind: 17,
+                            value: pack_query_occurrence(
+                                previous_query,
+                                last,
+                                query_distance,
+                                source_distance,
+                                offset,
+                            ),
+                        };
+                    } else {
+                        let previous_slot = if reference.slot == 0 {
+                            self.ring.len() - 1
+                        } else {
+                            reference.slot - 1
+                        };
+                        let previous_prime =
+                            model.geometry.tokens[self.ring[previous_slot].token as usize].prime;
+                        features[16] = MemoryFeature {
+                            kind: 16,
+                            value: (u64::from(last) << 32) | u64::from(previous_prime),
+                        };
+                        features[17] = MemoryFeature {
+                            kind: 17,
+                            value: u64::from(previous_prime),
+                        };
+                    }
                     let mut score = i64::from(model.prior_scores[value.token as usize]);
                     for feature in features {
                         if !feature.admitted(control) {

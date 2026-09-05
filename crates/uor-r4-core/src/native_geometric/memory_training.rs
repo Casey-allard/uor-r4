@@ -17,6 +17,78 @@ struct Example {
     groups: Vec<Vec<usize>>,
 }
 
+// Schema /3 warmup mixes two fitting objectives equally: target-token
+// marginal NLL and mean per-route NLL over all admitted target-token routes.
+// The uniform component keeps a currently low-scoring correct route from
+// losing all learning responsibility. It does not identify a source location.
+// Callers supply a nonzero target_routes count whenever target_posterior exists.
+fn pointer_coefficient(
+    probability: f64,
+    target_posterior: Option<f64>,
+    target_routes: usize,
+    uniform_half: bool,
+) -> f64 {
+    probability
+        - target_posterior
+            .map(|posterior| {
+                if uniform_half {
+                    0.5 * posterior + 0.5 / target_routes as f64
+                } else {
+                    posterior
+                }
+            })
+            .unwrap_or(0.0)
+}
+
+fn validate_query_context_primes(model: &Model) -> Result<()> {
+    if model
+        .geometry
+        .tokens
+        .iter()
+        .any(|token| token.prime >= QUERY_CONTEXT_PRIME_LIMIT)
+    {
+        return Err(Error(
+            "query-context selector requires complete prime identities below 2^24".into(),
+        ));
+    }
+    Ok(())
+}
+
+fn memory_feature_names(query_context: bool) -> Vec<String> {
+    let mut names = vec![
+        "pointer_bias",
+        "query_distance_and_source_offset",
+        "last_prime_and_offsets",
+        "logarithmic_age",
+        "last_prime_and_age",
+        "relative_h4_transport",
+        "relative_h4_and_offsets",
+        "relative_h4_signed_orientation",
+    ]
+    .into_iter()
+    .map(String::from)
+    .collect::<Vec<_>>();
+    names.extend((0..PHASE_CHANNELS).map(|channel| format!("relative_fixed_zeta_phase_{channel}")));
+    if query_context {
+        names.extend(
+            [
+                "ordered_query_prime_pair",
+                "ordered_query_prime_pair_offsets_and_posting_rank",
+            ]
+            .map(String::from),
+        );
+    } else {
+        names.extend(
+            [
+                "last_prime_and_value_predecessor_prime",
+                "value_predecessor_prime",
+            ]
+            .map(String::from),
+        );
+    }
+    names
+}
+
 pub(super) fn compile_cue_aliases(model: &Model) -> Result<CueAliases> {
     if model.lexical_pieces.len() > model.config.max_lexical_pieces
         || model.vocabulary_size() != LEXICAL_BASE as usize + model.lexical_pieces.len()
@@ -64,10 +136,15 @@ impl MemoryModel {
     pub(super) fn validate(&self, model: &Model) -> Result<()> {
         self.config.validate(model.vocabulary_size())?;
         let cue_schema_valid = match (&self.cue_aliases, self.schema.as_str()) {
-            (None, LEGACY_MEMORY_SCHEMA) => true,
-            (Some(aliases), MEMORY_SCHEMA) => *aliases == compile_cue_aliases(model)?,
+            (None, LEGACY_MEMORY_SCHEMA | QUERY_CONTEXT_MEMORY_SCHEMA) => true,
+            (Some(aliases), MEMORY_SCHEMA | QUERY_CONTEXT_MEMORY_SCHEMA) => {
+                *aliases == compile_cue_aliases(model)?
+            }
             _ => false,
         };
+        if self.schema == QUERY_CONTEXT_MEMORY_SCHEMA {
+            validate_query_context_primes(model)?;
+        }
         if !cue_schema_valid
             || self.baseline_artifact.is_empty()
             || self.source_shift
@@ -145,6 +222,15 @@ impl Model {
                 .unwrap_or(EXACT_CUE_SCHEMA)
         })
     }
+    pub fn memory_read_feature_layout(&self) -> Option<&str> {
+        self.memory_read.as_ref().map(|memory| {
+            if memory.schema == QUERY_CONTEXT_MEMORY_SCHEMA {
+                QUERY_CONTEXT_FEATURE_LAYOUT
+            } else {
+                LEGACY_FEATURE_LAYOUT
+            }
+        })
+    }
     /// Declared session backing buffers and fixed structure, before allocation.
     /// Excludes allocator bookkeeping; live buffer capacities remain in state().
     pub fn session_storage_bytes(&self) -> usize {
@@ -170,7 +256,7 @@ impl Model {
         documents: &[Document],
         config: MemoryReadFitConfig,
     ) -> Result<(Model, MemoryReadFitReport)> {
-        self.fit_memory_read_impl(documents, config, false)
+        self.fit_memory_read_impl(documents, config, false, false)
     }
 
     /// Explicit experimental cue equivalence. Exact output and geometric token
@@ -180,7 +266,23 @@ impl Model {
         documents: &[Document],
         config: MemoryReadFitConfig,
     ) -> Result<(Model, MemoryReadFitReport)> {
-        self.fit_memory_read_impl(documents, config, true)
+        self.fit_memory_read_impl(documents, config, true, false)
+    }
+
+    /// Fit an explicit successor that conditions selection on the two latest
+    /// complete query-prime identities and on the retrieved occurrence rank.
+    /// `word_cues` chooses the existing optional cue equivalence; it does not
+    /// change output identities. Pointer warmup mixes target-token marginal
+    /// and uniform target-route objectives equally. Existing ordered-query
+    /// bias rows are calibrated after the shared global bias; the final
+    /// max-route refinement is shared with /1 and /2.
+    pub fn fit_memory_read_with_query_context(
+        &self,
+        documents: &[Document],
+        config: MemoryReadFitConfig,
+        word_cues: bool,
+    ) -> Result<(Model, MemoryReadFitReport)> {
+        self.fit_memory_read_impl(documents, config, word_cues, true)
     }
 
     fn fit_memory_read_impl(
@@ -188,8 +290,12 @@ impl Model {
         documents: &[Document],
         config: MemoryReadFitConfig,
         word_cues: bool,
+        query_context: bool,
     ) -> Result<(Model, MemoryReadFitReport)> {
         config.validate(self.vocabulary_size())?;
+        if query_context {
+            validate_query_context_primes(self)?;
+        }
         if self.memory_read.is_some() || self.training.target_positions == 0 || documents.is_empty()
         {
             return Err(Error("memory-read fitting needs a fitted baseline without a memory-read head and nonempty fit documents".into()));
@@ -215,7 +321,9 @@ impl Model {
         }
         receipts.sort_by(|a, b| a.id.cmp(&b.id));
         let mut memory = MemoryModel {
-            schema: if word_cues {
+            schema: if query_context {
+                QUERY_CONTEXT_MEMORY_SCHEMA
+            } else if word_cues {
                 MEMORY_SCHEMA
             } else {
                 LEGACY_MEMORY_SCHEMA
@@ -375,9 +483,14 @@ impl Model {
                         f64::NEG_INFINITY
                     }
                 }));
-                if !example.alternatives.iter().any(|alternative| {
-                    alternative.token == example.target && alternative.features.is_some()
-                }) {
+                let target_routes = example
+                    .alternatives
+                    .iter()
+                    .filter(|alternative| {
+                        alternative.token == example.target && alternative.features.is_some()
+                    })
+                    .count();
+                if target_routes == 0 {
                     continue;
                 }
                 let maximum = route_scores
@@ -403,15 +516,24 @@ impl Model {
                     .map(|(_, score)| libm::exp(*score - target_maximum))
                     .sum();
                 touched.clear();
-                // Marginalize latent source routes to the same target token.
+                // Legacy /1 and /2 retain their pure latent-route marginal.
+                // /3 adds uniform responsibility among already admitted
+                // target-token routes during this warmup only. The following
+                // bias calibration and max-route refinement stay unchanged.
                 for (alternative, score) in example.alternatives.iter().zip(&route_scores) {
                     let mass = libm::exp(*score - maximum);
-                    let coefficient = mass / denominator
-                        - if alternative.token == example.target {
-                            libm::exp(*score - target_maximum) / target_denominator
+                    let target_posterior =
+                        if alternative.token == example.target && alternative.features.is_some() {
+                            Some(libm::exp(*score - target_maximum) / target_denominator)
                         } else {
-                            0.0
+                            None
                         };
+                    let coefficient = pointer_coefficient(
+                        mass / denominator,
+                        target_posterior,
+                        target_routes,
+                        query_context,
+                    );
                     if let Some(features) = &alternative.features {
                         for &feature in features {
                             if feature == ABSENT {
@@ -439,6 +561,11 @@ impl Model {
         // objective. No development labels enter either operation.
         calibrate_bias(&examples, &mut weights);
         let calibrated_bias = weights[0];
+        let query_calibration = if query_context {
+            calibrate_query_biases(&examples, &mut weights)
+        } else {
+            QueryBiasCalibration::default()
+        };
         let mut winners = Vec::with_capacity(config.candidate_limit + self.config.candidate_limit);
         let mut best_weights = weights.clone();
         let mut best_loss = metrics(&examples, &weights).1;
@@ -508,16 +635,26 @@ impl Model {
         memory.fit_positions = examples.len();
         let report = MemoryReadFitReport {
             schema: memory.schema.clone(),
+            feature_layout: if query_context { QUERY_CONTEXT_FEATURE_LAYOUT } else { LEGACY_FEATURE_LAYOUT }.into(),
+            feature_names: memory_feature_names(query_context),
             cue_identity: if word_cues { CUE_SCHEMA } else { EXACT_CUE_SCHEMA }.into(),
             aliased_lexical_tokens: memory.cue_aliases.as_ref().map(|aliases| {
                 aliases.representatives.iter().enumerate()
                     .filter(|(token, representative)| **representative as usize != *token).count()
             }).unwrap_or(0),
-            objective: "pointer_only_token_marginal_then_fit_bias_grid_then_max_route_ce_v2; best_epoch_on_fit_ce; diagnostics_quantized_max_route"
-                .into(),
+            objective: if query_context {
+                "pointer_half_target_marginal_half_uniform_target_route_nll_then_global_and_query_pair_bias_grids_then_max_route_ce_v4; best_epoch_on_fit_ce; diagnostics_quantized_max_route"
+            } else {
+                "pointer_only_token_marginal_then_fit_bias_grid_then_max_route_ce_v2; best_epoch_on_fit_ce; diagnostics_quantized_max_route"
+            }.into(),
             pointer_pretrain_epochs: config.epochs,
             max_route_refinement_epochs: config.epochs,
             calibrated_bias_score: libm::round(calibrated_bias * SCORE_SCALE) as i32,
+            query_bias_contexts: query_calibration.contexts,
+            query_bias_changed_contexts: query_calibration.changed_contexts,
+            query_bias_positions: query_calibration.positions,
+            query_bias_cross_entropy_before: query_calibration.before,
+            query_bias_cross_entropy_after: query_calibration.after,
             pointer_fit_correct_before: pointer_before_correct,
             pointer_fit_correct_after: pointer_after_correct,
             pointer_cross_entropy_before: pointer_before_loss,
@@ -681,6 +818,121 @@ fn calibrate_bias(examples: &[Example], weights: &mut [f64]) {
     weights[0] = best_bias;
 }
 
+#[derive(Default)]
+struct QueryBiasCalibration {
+    contexts: usize,
+    changed_contexts: usize,
+    positions: usize,
+    before: f64,
+    after: f64,
+}
+
+struct QueryBiasExample {
+    target: usize,
+    // Per-token maxima for routes without / with the selected query-bias row.
+    scores: Vec<(f64, f64)>,
+}
+
+fn query_bias_loss(cache: &[QueryBiasExample], bias: f64) -> f64 {
+    let mut total = 0.0;
+    for example in cache {
+        let target = example.scores[example.target];
+        let target_score = target.0.max(target.1 + bias);
+        let maximum = example
+            .scores
+            .iter()
+            .map(|&(fixed, selected)| fixed.max(selected + bias))
+            .fold(f64::NEG_INFINITY, f64::max);
+        let denominator: f64 = example
+            .scores
+            .iter()
+            .map(|&(fixed, selected)| libm::exp(fixed.max(selected + bias) - maximum))
+            .sum();
+        total += libm::log(denominator) + maximum - target_score;
+    }
+    total
+}
+
+fn calibrate_query_biases(examples: &[Example], weights: &mut [f64]) -> QueryBiasCalibration {
+    // A query's feature16 is common to its memory routes. Group once by that
+    // existing address, so grids touch only their own examples. Missing rows
+    // remain absent, and no fit target creates a new feature or candidate.
+    let mut grouped = BTreeMap::<usize, Vec<&Example>>::new();
+    for example in examples {
+        if let Some(address) = example.alternatives.iter().find_map(|alternative| {
+            alternative
+                .features
+                .as_ref()
+                .map(|features| features[16])
+                .filter(|&address| address != ABSENT)
+        }) {
+            grouped.entry(address).or_default().push(example);
+        }
+    }
+    let mut report = QueryBiasCalibration::default();
+    for (address, group) in grouped {
+        let cache: Vec<_> = group
+            .into_iter()
+            .filter_map(|example| {
+                let target = example
+                    .groups
+                    .iter()
+                    .position(|routes| example.alternatives[routes[0]].token == example.target)?;
+                let scores = example
+                    .groups
+                    .iter()
+                    .map(|routes| {
+                        let mut fixed = f64::NEG_INFINITY;
+                        let mut selected = f64::NEG_INFINITY;
+                        for &index in routes {
+                            let alternative = &example.alternatives[index];
+                            let value = score(alternative, weights);
+                            if alternative.features.as_ref().map(|features| features[16])
+                                == Some(address)
+                            {
+                                selected = selected.max(value - weights[address]);
+                            } else {
+                                // This includes memory routes without the
+                                // selected row, not just base-model routes.
+                                fixed = fixed.max(value);
+                            }
+                        }
+                        (fixed, selected)
+                    })
+                    .collect();
+                Some(QueryBiasExample { target, scores })
+            })
+            .collect();
+        if cache.is_empty() {
+            continue;
+        }
+        let mut best_bias = weights[address];
+        let before = query_bias_loss(&cache, best_bias);
+        let mut best_loss = before;
+        // Same bounded grid as global calibration. Strict improvement retains
+        // the existing weight on ties, including completely inactive routes.
+        for half in -32..=32 {
+            let bias = f64::from(half) * 0.5;
+            let loss = query_bias_loss(&cache, bias);
+            if loss < best_loss {
+                best_bias = bias;
+                best_loss = loss;
+            }
+        }
+        report.contexts += 1;
+        report.changed_contexts += usize::from(best_bias != weights[address]);
+        report.positions += cache.len();
+        report.before += before;
+        report.after += best_loss;
+        weights[address] = best_bias;
+    }
+    if report.positions > 0 {
+        report.before /= report.positions as f64;
+        report.after /= report.positions as f64;
+    }
+    report
+}
+
 fn metrics(examples: &[Example], weights: &[f64]) -> (usize, f64) {
     let mut winners = Vec::new();
     let mut correct = 0;
@@ -711,4 +963,100 @@ fn metrics(examples: &[Example], weights: &[f64]) -> (usize, f64) {
         }
     }
     (correct, loss / reachable as f64)
+}
+
+#[cfg(test)]
+mod pointer_warmup_tests {
+    use super::*;
+
+    #[test]
+    fn native_uniform_target_responsibility_reaches_a_starved_correct_route() {
+        // Two admitted routes return the correct token; a third returns a
+        // different token. The second correct route starts 40 nats below the
+        // first, as can happen when a frequent shared route dominates fitting.
+        let masses = [1.0, libm::exp(-40.0), libm::exp(-20.0)];
+        let total: f64 = masses.iter().sum();
+        let correct_total = masses[0] + masses[1];
+        let probabilities = masses.map(|mass| mass / total);
+        let targets = [
+            Some(masses[0] / correct_total),
+            Some(masses[1] / correct_total),
+            None,
+        ];
+        let legacy = std::array::from_fn::<_, 3, _>(|index| {
+            pointer_coefficient(probabilities[index], targets[index], 2, false)
+        });
+        let mixed = std::array::from_fn::<_, 3, _>(|index| {
+            pointer_coefficient(probabilities[index], targets[index], 2, true)
+        });
+        assert_eq!(legacy[1], probabilities[1] - targets[1].unwrap());
+        assert!(legacy[1].abs() < 1e-12);
+        // The route-logit derivative now provides a substantial positive
+        // learning signal. Shared-feature updates can couple several routes.
+        assert!(-0.1 * mixed[1] > 0.0249);
+        assert!(mixed[0] > 0.24);
+        assert_eq!(mixed[2], legacy[2]);
+        assert!(mixed[2] > 0.0);
+        assert!(mixed.iter().sum::<f64>().abs() < 1e-12);
+    }
+
+    #[test]
+    fn native_query_bias_calibration_separates_opposing_contexts_and_skips_absent_rows() {
+        let example = |target, address| {
+            let mut selected = [ABSENT; MEMORY_FEATURE_COUNT];
+            selected[0] = 0;
+            selected[16] = address;
+            let mut fixed_memory = [ABSENT; MEMORY_FEATURE_COUNT];
+            fixed_memory[0] = 0;
+            Example {
+                target,
+                alternatives: vec![
+                    Alternative {
+                        token: 0,
+                        constant: -1024,
+                        features: None,
+                    },
+                    Alternative {
+                        token: 1,
+                        constant: 0,
+                        features: None,
+                    },
+                    Alternative {
+                        token: 0,
+                        constant: 0,
+                        features: Some(selected),
+                    },
+                    Alternative {
+                        token: 1,
+                        constant: 256,
+                        features: Some(fixed_memory),
+                    },
+                ],
+                groups: vec![vec![0, 2], vec![1, 3]],
+            }
+        };
+        // Identical alternatives have opposite targets in different query
+        // contexts. A single global pointer bias cannot make both correct.
+        let mut examples = vec![example(0, 1), example(1, 2)];
+        let mut weights = vec![-4.0, 0.0, 0.0];
+        calibrate_bias(&examples, &mut weights);
+        assert_eq!(metrics(&examples, &weights).0, 1);
+        let fixed_score = score(&examples[0].alternatives[3], &weights);
+        let absent = example(1, ABSENT);
+        let absent_score = score(&absent.alternatives[2], &weights);
+        examples.push(absent);
+        let report = calibrate_query_biases(&examples, &mut weights);
+        assert_eq!(report.contexts, 2);
+        assert_eq!(report.changed_contexts, 2);
+        assert_eq!(report.positions, 2);
+        assert_eq!(weights.len(), 3);
+        assert!(weights[1] > weights[2]);
+        assert_eq!(metrics(&examples[..2], &weights).0, 2);
+        assert!(report.after < report.before);
+        // Cached loss must agree with the real max-route scorer, including
+        // memory alternatives that do not contain the calibrated row.
+        assert!((report.after - metrics(&examples[..2], &weights).1).abs() < 1e-12);
+        assert_eq!(score(&examples[0].alternatives[3], &weights), fixed_score);
+        assert_eq!(score(&examples[2].alternatives[2], &weights), absent_score);
+    }
 }
