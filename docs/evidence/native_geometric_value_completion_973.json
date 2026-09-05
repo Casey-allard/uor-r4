@@ -1,0 +1,1823 @@
+{
+  "schema": "uor-r4.native-value-completion-evidence/1",
+  "at": "2026-09-05T08:26:41.846Z",
+  "status": "OPEN_DEVELOPMENT_NUMERIC_COMPLETION_RETAINED_STORAGE_CHECKPOINT",
+  "artifact_root": "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05",
+  "artifact_cid": "blake3:a1fa0314924fb324f994e449cce6e69793d6c4df6102353a959363cb766009ff",
+  "baseline_artifact": "blake3:af5f892e7f10680266911e2f5f6fb0aa96a5f25b1894d2f191f0a6b1179843f5",
+  "operator": "uor-r4.native-value-completion/1",
+  "scope": "Same /2 raw source and unchanged OPEN development targets. Fitting follows actual upstream numeral rollouts, then supervises ordinary suffix bytes and EOS; no generated suffix or target template is appended. Completion traces describe the learned step transitions. Primary and binding controls remain reused design feedback, not final held-out evaluation.",
+  "population_scope": "Small finite synthetic open development with shared templates, different names/values and disjoint world/document IDs. Counterfactual pairs change one relevant input literal. Both families share one fitted artifact. Task and pair labels are evaluator-only. The dependency examples test response-time original-occurrence binding; they do not demonstrate eager statement execution, arbitrary Rust interpretation, retention beyond eviction or alpha. Source /2 appends context-only copy/add name swaps to the unchanged /1 fit cases, with fixed numeric source order and query bytes but changed correct operands. Whole-word cues are an explicit model variant. The unchanged primary development cases and four binding controls have already informed this design and are reused OPEN development feedback, not sealed or final held-out evaluation.",
+  "fit": {
+    "artifact_cid": "blake3:a1fa0314924fb324f994e449cce6e69793d6c4df6102353a959363cb766009ff",
+    "baseline_artifact": "blake3:af5f892e7f10680266911e2f5f6fb0aa96a5f25b1894d2f191f0a6b1179843f5",
+    "config": {
+      "epochs": 24,
+      "learning_rate": 0.1,
+      "max_positions": 4096
+    },
+    "dropped_association_events": 0,
+    "dropped_row_events": 0,
+    "eligible_positions": 720,
+    "examples": 192,
+    "fit_correct": 720,
+    "fit_loss": 0.007023032880161844,
+    "learned_associations": 289,
+    "learned_rows": 192,
+    "matched_numeric": 160,
+    "overlong_responses": 0,
+    "position_limit_skips": 0,
+    "positions": 720,
+    "schema": "uor-r4.native-value-completion/1",
+    "selected_epoch": 24,
+    "skipped_no_write": 32,
+    "target_in_candidates": 720,
+    "upstream_failures": 0
+  },
+  "arms": [
+    {
+      "control": "full",
+      "prose": {
+        "cases": 16,
+        "correct_leading_numerals": 12,
+        "exact_responses": 12,
+        "generated_tokens": 182,
+        "nonnumeric_cases": 4,
+        "nonnumeric_cases_with_leading_numerals": 0,
+        "numeric_cases": 12
+      },
+      "rust": {
+        "cases": 16,
+        "correct_leading_numerals": 12,
+        "exact_responses": 12,
+        "generated_tokens": 148,
+        "nonnumeric_cases": 4,
+        "nonnumeric_cases_with_leading_numerals": 0,
+        "numeric_cases": 12
+      },
+      "work": {
+        "anchor_table_reads": 2800,
+        "candidate_evaluations": 67079,
+        "candidate_offers": 137109,
+        "completion": {
+          "anchors": 24,
+          "base_steps": 0,
+          "candidate_comparisons": 10120,
+          "candidate_drops": 0,
+          "candidate_evaluations": 648,
+          "candidate_writes": 648,
+          "commits": 108,
+          "feature_queries": 1728,
+          "h4_reads": 216,
+          "matched_rows": 1708,
+          "metadata_reads": 372,
+          "mismatches": 0,
+          "observations": 2442,
+          "orientation_reads": 108,
+          "phase_subtractions": 864,
+          "posting_offers": 3728,
+          "row_comparisons": 15552,
+          "score_comparisons": 18480,
+          "score_lookups": 10248,
+          "state_copies": 7638,
+          "step_limits": 0,
+          "stops": 24
+        },
+        "evictions": 0,
+        "feature_queries": 9308,
+        "h4_table_reads": 2442,
+        "matched_rows": 8576,
+        "memory_candidates": 24070,
+        "memory_composed_candidates": 8650,
+        "memory_composition_comparisons": 2928048,
+        "memory_composition_duplicate_features": 169626,
+        "memory_composition_feature_moves": 1902137,
+        "memory_composition_feature_offers": 433260,
+        "memory_cue_reads": 55272,
+        "memory_h4_reads": 170932,
+        "memory_index_reads": 74168,
+        "memory_index_writes": 37792,
+        "memory_phase_updates": 597216,
+        "memory_score_lookups": 263634,
+        "memory_stale_rejections": 0,
+        "mixture_gate_reads": 358,
+        "observed_tokens": 2442,
+        "orientation_table_reads": 358,
+        "phase_additions": 19536,
+        "radial_square_reads": 29304,
+        "score_lookups": 1637751,
+        "values": {
+          "additions": 572,
+          "cue_comparisons": 66048,
+          "derived_writes": 24,
+          "emission_commits": 60,
+          "emission_mismatches": 0,
+          "feature_comparisons": 784212,
+          "feature_lookups": 60324,
+          "h4_reads": 6570,
+          "input_bytes": 3772,
+          "lexical_byte_comparisons": 64600,
+          "lexical_comparisons": 119328,
+          "lexical_writes": 560,
+          "literal_writes": 96,
+          "numeral_steps": 9120,
+          "overflow_rejections": 0,
+          "phase_updates": 36048,
+          "proposals": 1032,
+          "record_evictions": 0
+        }
+      },
+      "completion_storage_bytes": [
+        96
+      ]
+    },
+    {
+      "control": "value_completion_disabled",
+      "prose": {
+        "cases": 16,
+        "correct_leading_numerals": 12,
+        "exact_responses": 2,
+        "generated_tokens": 424,
+        "nonnumeric_cases": 4,
+        "nonnumeric_cases_with_leading_numerals": 0,
+        "numeric_cases": 12
+      },
+      "rust": {
+        "cases": 16,
+        "correct_leading_numerals": 12,
+        "exact_responses": 0,
+        "generated_tokens": 263,
+        "nonnumeric_cases": 4,
+        "nonnumeric_cases_with_leading_numerals": 0,
+        "numeric_cases": 12
+      },
+      "work": {
+        "anchor_table_reads": 3488,
+        "candidate_evaluations": 153797,
+        "candidate_offers": 266329,
+        "completion": {
+          "anchors": 24,
+          "base_steps": 452,
+          "candidate_comparisons": 0,
+          "candidate_drops": 0,
+          "candidate_evaluations": 0,
+          "candidate_writes": 0,
+          "commits": 0,
+          "feature_queries": 0,
+          "h4_reads": 0,
+          "matched_rows": 0,
+          "metadata_reads": 48,
+          "mismatches": 0,
+          "observations": 2786,
+          "orientation_reads": 0,
+          "phase_subtractions": 0,
+          "posting_offers": 0,
+          "row_comparisons": 0,
+          "score_comparisons": 0,
+          "score_lookups": 0,
+          "state_copies": 8670,
+          "step_limits": 0,
+          "stops": 11
+        },
+        "evictions": 0,
+        "feature_queries": 18252,
+        "h4_table_reads": 2786,
+        "matched_rows": 16788,
+        "memory_candidates": 51987,
+        "memory_composed_candidates": 15204,
+        "memory_composition_comparisons": 6543385,
+        "memory_composition_duplicate_features": 384376,
+        "memory_composition_feature_moves": 6267298,
+        "memory_composition_feature_offers": 935766,
+        "memory_cue_reads": 100680,
+        "memory_h4_reads": 366695,
+        "memory_index_reads": 122328,
+        "memory_index_writes": 43296,
+        "memory_phase_updates": 1269976,
+        "memory_score_lookups": 551390,
+        "memory_stale_rejections": 0,
+        "mixture_gate_reads": 702,
+        "observed_tokens": 2786,
+        "orientation_table_reads": 702,
+        "phase_additions": 22288,
+        "radial_square_reads": 33432,
+        "score_lookups": 3707783,
+        "values": {
+          "additions": 572,
+          "cue_comparisons": 66048,
+          "derived_writes": 24,
+          "emission_commits": 60,
+          "emission_mismatches": 0,
+          "feature_comparisons": 784212,
+          "feature_lookups": 60324,
+          "h4_reads": 6914,
+          "input_bytes": 3772,
+          "lexical_byte_comparisons": 64600,
+          "lexical_comparisons": 119328,
+          "lexical_writes": 560,
+          "literal_writes": 96,
+          "numeral_steps": 9120,
+          "overflow_rejections": 0,
+          "phase_updates": 38800,
+          "proposals": 1032,
+          "record_evictions": 0
+        }
+      },
+      "completion_storage_bytes": [
+        96
+      ]
+    },
+    {
+      "control": "value_completion_geometry_disabled",
+      "prose": {
+        "cases": 16,
+        "correct_leading_numerals": 12,
+        "exact_responses": 0,
+        "generated_tokens": 512,
+        "nonnumeric_cases": 4,
+        "nonnumeric_cases_with_leading_numerals": 0,
+        "numeric_cases": 12
+      },
+      "rust": {
+        "cases": 16,
+        "correct_leading_numerals": 12,
+        "exact_responses": 0,
+        "generated_tokens": 442,
+        "nonnumeric_cases": 4,
+        "nonnumeric_cases_with_leading_numerals": 0,
+        "numeric_cases": 12
+      },
+      "work": {
+        "anchor_table_reads": 4000,
+        "candidate_evaluations": 119443,
+        "candidate_offers": 338576,
+        "completion": {
+          "anchors": 24,
+          "base_steps": 0,
+          "candidate_comparisons": 29116,
+          "candidate_drops": 0,
+          "candidate_evaluations": 4248,
+          "candidate_writes": 4248,
+          "commits": 708,
+          "feature_queries": 4248,
+          "h4_reads": 0,
+          "matched_rows": 3004,
+          "metadata_reads": 1464,
+          "mismatches": 0,
+          "observations": 3042,
+          "orientation_reads": 0,
+          "phase_subtractions": 0,
+          "posting_offers": 11246,
+          "row_comparisons": 38232,
+          "score_comparisons": 41988,
+          "score_lookups": 18024,
+          "state_copies": 9438,
+          "step_limits": 0,
+          "stops": 0
+        },
+        "evictions": 0,
+        "feature_queries": 24908,
+        "h4_table_reads": 3042,
+        "matched_rows": 20943,
+        "memory_candidates": 97628,
+        "memory_composed_candidates": 11726,
+        "memory_composition_comparisons": 13657884,
+        "memory_composition_duplicate_features": 998610,
+        "memory_composition_feature_moves": 27279894,
+        "memory_composition_feature_offers": 1757304,
+        "memory_cue_reads": 134472,
+        "memory_h4_reads": 686438,
+        "memory_index_reads": 158168,
+        "memory_index_writes": 47392,
+        "memory_phase_updates": 2367408,
+        "memory_score_lookups": 758694,
+        "memory_stale_rejections": 0,
+        "mixture_gate_reads": 958,
+        "observed_tokens": 3042,
+        "orientation_table_reads": 958,
+        "phase_additions": 24336,
+        "radial_square_reads": 36504,
+        "score_lookups": 2727336,
+        "values": {
+          "additions": 572,
+          "cue_comparisons": 66048,
+          "derived_writes": 24,
+          "emission_commits": 60,
+          "emission_mismatches": 0,
+          "feature_comparisons": 784212,
+          "feature_lookups": 60324,
+          "h4_reads": 7170,
+          "input_bytes": 3772,
+          "lexical_byte_comparisons": 64600,
+          "lexical_comparisons": 119328,
+          "lexical_writes": 560,
+          "literal_writes": 96,
+          "numeral_steps": 9120,
+          "overflow_rejections": 0,
+          "phase_updates": 40848,
+          "proposals": 1032,
+          "record_evictions": 0
+        }
+      },
+      "completion_storage_bytes": [
+        96
+      ]
+    },
+    {
+      "control": "values_disabled",
+      "prose": {
+        "cases": 16,
+        "correct_leading_numerals": 0,
+        "exact_responses": 0,
+        "generated_tokens": 467,
+        "nonnumeric_cases": 4,
+        "nonnumeric_cases_with_leading_numerals": 0,
+        "numeric_cases": 12
+      },
+      "rust": {
+        "cases": 16,
+        "correct_leading_numerals": 0,
+        "exact_responses": 0,
+        "generated_tokens": 402,
+        "nonnumeric_cases": 4,
+        "nonnumeric_cases_with_leading_numerals": 0,
+        "numeric_cases": 12
+      },
+      "work": {
+        "anchor_table_reads": 3840,
+        "candidate_evaluations": 197208,
+        "candidate_offers": 333510,
+        "completion": {
+          "anchors": 0,
+          "base_steps": 0,
+          "candidate_comparisons": 0,
+          "candidate_drops": 0,
+          "candidate_evaluations": 0,
+          "candidate_writes": 0,
+          "commits": 0,
+          "feature_queries": 0,
+          "h4_reads": 0,
+          "matched_rows": 0,
+          "metadata_reads": 0,
+          "mismatches": 0,
+          "observations": 2962,
+          "orientation_reads": 0,
+          "phase_subtractions": 0,
+          "posting_offers": 0,
+          "row_comparisons": 0,
+          "score_comparisons": 0,
+          "score_lookups": 0,
+          "state_copies": 8886,
+          "step_limits": 0,
+          "stops": 0
+        },
+        "evictions": 0,
+        "feature_queries": 22828,
+        "h4_table_reads": 2962,
+        "matched_rows": 21145,
+        "memory_candidates": 71677,
+        "memory_composed_candidates": 20594,
+        "memory_composition_comparisons": 9212896,
+        "memory_composition_duplicate_features": 522236,
+        "memory_composition_feature_moves": 9361345,
+        "memory_composition_feature_offers": 1290186,
+        "memory_cue_reads": 123912,
+        "memory_h4_reads": 504701,
+        "memory_index_reads": 146968,
+        "memory_index_writes": 46112,
+        "memory_phase_updates": 1743944,
+        "memory_score_lookups": 767950,
+        "memory_stale_rejections": 0,
+        "mixture_gate_reads": 878,
+        "observed_tokens": 2962,
+        "orientation_table_reads": 878,
+        "phase_additions": 23696,
+        "radial_square_reads": 35544,
+        "score_lookups": 4782362,
+        "values": {
+          "additions": 0,
+          "cue_comparisons": 0,
+          "derived_writes": 0,
+          "emission_commits": 0,
+          "emission_mismatches": 0,
+          "feature_comparisons": 0,
+          "feature_lookups": 0,
+          "h4_reads": 2962,
+          "input_bytes": 3772,
+          "lexical_writes": 560,
+          "literal_writes": 96,
+          "numeral_steps": 0,
+          "overflow_rejections": 0,
+          "phase_updates": 23696,
+          "proposals": 0,
+          "record_evictions": 0
+        }
+      },
+      "completion_storage_bytes": [
+        96
+      ]
+    }
+  ],
+  "binding": [
+    {
+      "pair_id": "typed-value/binding/prose/copy_current",
+      "both_leading_numerals_correct": true,
+      "both_responses_exact": true,
+      "cases": [
+        {
+          "id": "typed-value/binding/prose/copy_current/original",
+          "expected": "73.\n",
+          "actual": "73.\n",
+          "exact": true
+        },
+        {
+          "id": "typed-value/binding/prose/copy_current/source_names_swapped",
+          "expected": "301.\n",
+          "actual": "301.\n",
+          "exact": true
+        }
+      ]
+    },
+    {
+      "pair_id": "typed-value/binding/prose/add",
+      "both_leading_numerals_correct": true,
+      "both_responses_exact": true,
+      "cases": [
+        {
+          "id": "typed-value/binding/prose/add/original",
+          "expected": "77.\n",
+          "actual": "77.\n",
+          "exact": true
+        },
+        {
+          "id": "typed-value/binding/prose/add/source_names_swapped",
+          "expected": "374.\n",
+          "actual": "374.\n",
+          "exact": true
+        }
+      ]
+    },
+    {
+      "pair_id": "typed-value/binding/rust/copy_current",
+      "both_leading_numerals_correct": true,
+      "both_responses_exact": true,
+      "cases": [
+        {
+          "id": "typed-value/binding/rust/copy_current/original",
+          "expected": "73);\n}\n",
+          "actual": "73);\n}\n",
+          "exact": true
+        },
+        {
+          "id": "typed-value/binding/rust/copy_current/source_names_swapped",
+          "expected": "301);\n}\n",
+          "actual": "301);\n}\n",
+          "exact": true
+        }
+      ]
+    },
+    {
+      "pair_id": "typed-value/binding/rust/add",
+      "both_leading_numerals_correct": true,
+      "both_responses_exact": true,
+      "cases": [
+        {
+          "id": "typed-value/binding/rust/add/original",
+          "expected": "77);\n}\n",
+          "actual": "77);\n}\n",
+          "exact": true
+        },
+        {
+          "id": "typed-value/binding/rust/add/source_names_swapped",
+          "expected": "374);\n}\n",
+          "actual": "374);\n}\n",
+          "exact": true
+        }
+      ]
+    }
+  ],
+  "candidate_support": {
+    "global_token_ids": [
+      12,
+      1,
+      43,
+      48,
+      61,
+      127
+    ],
+    "tokens": [
+      "newline",
+      "EOS",
+      ")",
+      ".",
+      ";",
+      "}"
+    ],
+    "all_row_postings_subset_of_global": true,
+    "capacity": 16,
+    "candidate_drops": 0,
+    "full_and_geometry_disabled_same_candidate_set": true,
+    "ties": "smaller token ID; positive scores versus zero Base",
+    "interpretation": "Combined completion geometric features affect continuation progression/termination in this fitted artifact at equal candidate support; separate term attribution, matched-refit advantage, response-form transfer and efficiency advantage NOT_RUN."
+  },
+  "generated_rust": {
+    "records": 20,
+    "compiled": 16,
+    "executed": 16,
+    "passed": 16,
+    "primary_numeric_passed": 12,
+    "binding_passed": 4,
+    "distinct_successful_sources": 14,
+    "unchanged_no_write_compile_failures": 4,
+    "source_law": "Each file equals original prompt plus saved generated bytes, inspected before compile/execute; exact file hashes, compiler diagnostics, temporary binary identities and execution outputs retained. No source repair or answer harness.",
+    "scope": "Exact reviewed generated Rust, unchanged; executable cases run directly including their generated assertions. Libraries compile only. Newly created reproducible compiler products removed one at a time after retaining identity, diagnostics and execution output. No source, model, evidence or inherited material removed."
+  },
+  "preservation": {
+    "prior_typed_artifacts": {
+      "scope": "Full control only, 32primary+8binding generations per prior typed artifact. Compare complete Generation bytes,tokens,traces,state and all work counters under current compiled source. /1 comparison uses its final prior-source replay so earlier documented layout/telemetry corrections are not relabeled as a new change.",
+      "results": [
+        {
+          "version": 1,
+          "reference": "fit-1-final",
+          "artifact_cid_equal": true,
+          "source_blake3_equal": true,
+          "primary": [
+            {
+              "id": "typed-value/development/prose/copy_current/100000",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/prose/add/100000",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/prose/dependency_before_update/100000",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/prose/no_write/100000",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/rust/copy_current/100000",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/rust/add/100000",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/rust/dependency_before_update/100000",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/rust/no_write/100000",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/prose/copy_current/100001",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/prose/add/100001",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/prose/dependency_before_update/100001",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/prose/no_write/100001",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/rust/copy_current/100001",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/rust/add/100001",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/rust/dependency_before_update/100001",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/rust/no_write/100001",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/prose/copy_current/100002",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/prose/add/100002",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/prose/dependency_before_update/100002",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/prose/no_write/100002",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/rust/copy_current/100002",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/rust/add/100002",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/rust/dependency_before_update/100002",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/rust/no_write/100002",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/prose/copy_current/100003",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/prose/add/100003",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/prose/dependency_before_update/100003",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/prose/no_write/100003",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/rust/copy_current/100003",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/rust/add/100003",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/rust/dependency_before_update/100003",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/rust/no_write/100003",
+              "generation_equal": true
+            }
+          ],
+          "pairs": [
+            {
+              "id": "typed-value/binding/prose/copy_current/original",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/binding/prose/copy_current/source_names_swapped",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/binding/prose/add/original",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/binding/prose/add/source_names_swapped",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/binding/rust/copy_current/original",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/binding/rust/copy_current/source_names_swapped",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/binding/rust/add/original",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/binding/rust/add/source_names_swapped",
+              "generation_equal": true
+            }
+          ],
+          "all_generations_equal": true
+        },
+        {
+          "version": 2,
+          "reference": "fit-2",
+          "artifact_cid_equal": true,
+          "source_blake3_equal": true,
+          "primary": [
+            {
+              "id": "typed-value/development/prose/copy_current/100000",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/prose/add/100000",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/prose/dependency_before_update/100000",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/prose/no_write/100000",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/rust/copy_current/100000",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/rust/add/100000",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/rust/dependency_before_update/100000",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/rust/no_write/100000",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/prose/copy_current/100001",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/prose/add/100001",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/prose/dependency_before_update/100001",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/prose/no_write/100001",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/rust/copy_current/100001",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/rust/add/100001",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/rust/dependency_before_update/100001",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/rust/no_write/100001",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/prose/copy_current/100002",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/prose/add/100002",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/prose/dependency_before_update/100002",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/prose/no_write/100002",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/rust/copy_current/100002",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/rust/add/100002",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/rust/dependency_before_update/100002",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/rust/no_write/100002",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/prose/copy_current/100003",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/prose/add/100003",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/prose/dependency_before_update/100003",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/prose/no_write/100003",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/rust/copy_current/100003",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/rust/add/100003",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/rust/dependency_before_update/100003",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/development/rust/no_write/100003",
+              "generation_equal": true
+            }
+          ],
+          "pairs": [
+            {
+              "id": "typed-value/binding/prose/copy_current/original",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/binding/prose/copy_current/source_names_swapped",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/binding/prose/add/original",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/binding/prose/add/source_names_swapped",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/binding/rust/copy_current/original",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/binding/rust/copy_current/source_names_swapped",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/binding/rust/add/original",
+              "generation_equal": true
+            },
+            {
+              "id": "typed-value/binding/rust/add/source_names_swapped",
+              "generation_equal": true
+            }
+          ],
+          "all_generations_equal": true
+        }
+      ]
+    },
+    "completion_disabled": {
+      "scope": "Supplement to strict first analysis. CompletionDisabled is expected to change the state.control label; every other noncompletion Generation field is compared exactly.",
+      "differences": [
+        {
+          "id": "typed-value/development/prose/copy_current/100000",
+          "path": "generation.state.control",
+          "new": "value_completion_disabled",
+          "old": "full"
+        },
+        {
+          "id": "typed-value/development/prose/add/100000",
+          "path": "generation.state.control",
+          "new": "value_completion_disabled",
+          "old": "full"
+        },
+        {
+          "id": "typed-value/development/prose/dependency_before_update/100000",
+          "path": "generation.state.control",
+          "new": "value_completion_disabled",
+          "old": "full"
+        },
+        {
+          "id": "typed-value/development/prose/no_write/100000",
+          "path": "generation.state.control",
+          "new": "value_completion_disabled",
+          "old": "full"
+        },
+        {
+          "id": "typed-value/development/rust/copy_current/100000",
+          "path": "generation.state.control",
+          "new": "value_completion_disabled",
+          "old": "full"
+        },
+        {
+          "id": "typed-value/development/rust/add/100000",
+          "path": "generation.state.control",
+          "new": "value_completion_disabled",
+          "old": "full"
+        },
+        {
+          "id": "typed-value/development/rust/dependency_before_update/100000",
+          "path": "generation.state.control",
+          "new": "value_completion_disabled",
+          "old": "full"
+        },
+        {
+          "id": "typed-value/development/rust/no_write/100000",
+          "path": "generation.state.control",
+          "new": "value_completion_disabled",
+          "old": "full"
+        },
+        {
+          "id": "typed-value/development/prose/copy_current/100001",
+          "path": "generation.state.control",
+          "new": "value_completion_disabled",
+          "old": "full"
+        },
+        {
+          "id": "typed-value/development/prose/add/100001",
+          "path": "generation.state.control",
+          "new": "value_completion_disabled",
+          "old": "full"
+        },
+        {
+          "id": "typed-value/development/prose/dependency_before_update/100001",
+          "path": "generation.state.control",
+          "new": "value_completion_disabled",
+          "old": "full"
+        },
+        {
+          "id": "typed-value/development/prose/no_write/100001",
+          "path": "generation.state.control",
+          "new": "value_completion_disabled",
+          "old": "full"
+        },
+        {
+          "id": "typed-value/development/rust/copy_current/100001",
+          "path": "generation.state.control",
+          "new": "value_completion_disabled",
+          "old": "full"
+        },
+        {
+          "id": "typed-value/development/rust/add/100001",
+          "path": "generation.state.control",
+          "new": "value_completion_disabled",
+          "old": "full"
+        },
+        {
+          "id": "typed-value/development/rust/dependency_before_update/100001",
+          "path": "generation.state.control",
+          "new": "value_completion_disabled",
+          "old": "full"
+        },
+        {
+          "id": "typed-value/development/rust/no_write/100001",
+          "path": "generation.state.control",
+          "new": "value_completion_disabled",
+          "old": "full"
+        },
+        {
+          "id": "typed-value/development/prose/copy_current/100002",
+          "path": "generation.state.control",
+          "new": "value_completion_disabled",
+          "old": "full"
+        },
+        {
+          "id": "typed-value/development/prose/add/100002",
+          "path": "generation.state.control",
+          "new": "value_completion_disabled",
+          "old": "full"
+        },
+        {
+          "id": "typed-value/development/prose/dependency_before_update/100002",
+          "path": "generation.state.control",
+          "new": "value_completion_disabled",
+          "old": "full"
+        },
+        {
+          "id": "typed-value/development/prose/no_write/100002",
+          "path": "generation.state.control",
+          "new": "value_completion_disabled",
+          "old": "full"
+        },
+        {
+          "id": "typed-value/development/rust/copy_current/100002",
+          "path": "generation.state.control",
+          "new": "value_completion_disabled",
+          "old": "full"
+        },
+        {
+          "id": "typed-value/development/rust/add/100002",
+          "path": "generation.state.control",
+          "new": "value_completion_disabled",
+          "old": "full"
+        },
+        {
+          "id": "typed-value/development/rust/dependency_before_update/100002",
+          "path": "generation.state.control",
+          "new": "value_completion_disabled",
+          "old": "full"
+        },
+        {
+          "id": "typed-value/development/rust/no_write/100002",
+          "path": "generation.state.control",
+          "new": "value_completion_disabled",
+          "old": "full"
+        },
+        {
+          "id": "typed-value/development/prose/copy_current/100003",
+          "path": "generation.state.control",
+          "new": "value_completion_disabled",
+          "old": "full"
+        },
+        {
+          "id": "typed-value/development/prose/add/100003",
+          "path": "generation.state.control",
+          "new": "value_completion_disabled",
+          "old": "full"
+        },
+        {
+          "id": "typed-value/development/prose/dependency_before_update/100003",
+          "path": "generation.state.control",
+          "new": "value_completion_disabled",
+          "old": "full"
+        },
+        {
+          "id": "typed-value/development/prose/no_write/100003",
+          "path": "generation.state.control",
+          "new": "value_completion_disabled",
+          "old": "full"
+        },
+        {
+          "id": "typed-value/development/rust/copy_current/100003",
+          "path": "generation.state.control",
+          "new": "value_completion_disabled",
+          "old": "full"
+        },
+        {
+          "id": "typed-value/development/rust/add/100003",
+          "path": "generation.state.control",
+          "new": "value_completion_disabled",
+          "old": "full"
+        },
+        {
+          "id": "typed-value/development/rust/dependency_before_update/100003",
+          "path": "generation.state.control",
+          "new": "value_completion_disabled",
+          "old": "full"
+        },
+        {
+          "id": "typed-value/development/rust/no_write/100003",
+          "path": "generation.state.control",
+          "new": "value_completion_disabled",
+          "old": "full"
+        }
+      ],
+      "only_declared_control_label_differs": true
+    },
+    "cli": {
+      "scope": "Compare every probe Generation field against CLI output. CLI also emits artifact_cid,uor_model_address,memory_read_version and readout_version metadata. The earlier whole-object comparison retained a shape difference rather than a model-output difference.",
+      "generation_keys": [
+        "bytes",
+        "completion_trace",
+        "state",
+        "stop",
+        "text",
+        "token_ids",
+        "utf8_valid",
+        "value_trace",
+        "work"
+      ],
+      "generation_equal": true,
+      "artifact_cid": "blake3:a1fa0314924fb324f994e449cce6e69793d6c4df6102353a959363cb766009ff",
+      "artifact_matches": true,
+      "text": "77);\n}\n"
+    },
+    "source_unchanged_sha256": "10b69bfbbd89161032d80905306247b8a2e72ee098ab8f487932827f45d90352",
+    "model_changes": [
+      "completion",
+      "artifact_cid",
+      "uor_model_address"
+    ],
+    "large_integers": "Independent source-aware JSON numeric audit and native baseline CID validation preserve exact integers.",
+    "unchanged_primary_value_traces": 32,
+    "unchanged_binding_value_traces": 8
+  },
+  "source_identities": {
+    "at": "2026-09-05T08:14:12.911Z",
+    "worktree": "/Users/casey.allard/.codex/worktrees/r4-typed-value/uor-r4",
+    "base_commit": "2f6c080c266d01683771b84f405c8c353cc7653b",
+    "base_tree": "9a019b7bcfcf27180bc74d17f2cfff007e3846fc",
+    "source_parent": "7aec2cf5978628134108d1b4fcb5f8c3b1b34c73",
+    "source_parent_tree": "9a019b7bcfcf27180bc74d17f2cfff007e3846fc",
+    "note": "Base and reviewed predecessor trees are identical. These source changes were uncommitted during the measured build; source bytes are bound explicitly. Documentation is not included in this Rust-source identity list.",
+    "files": [
+      {
+        "path": "crates/uor-r4-core/examples/native_geometric_value_probe.rs",
+        "bytes": 47520,
+        "sha256": "582759a286a9920a85c93bc0b6e544bb88905108a6336fcf667706721c7ba899"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/completion_runtime.rs",
+        "bytes": 11154,
+        "sha256": "7e8aafd952e0a049b95fec2e2021e2167368cfaa1778f4d58bb0b0e10d2b2cb1"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/completion_runtime_tests.rs",
+        "bytes": 11404,
+        "sha256": "00a6678f7c4f9db1cdd78598e4e63e2219ef3ccb86dcd07b716b07b2df4f3a68"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/completion_snapshot.rs",
+        "bytes": 10558,
+        "sha256": "0701775ec18cc2c2efe4d9c916cba51cbc49100f6bf07f4921812278d0729edf"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/completion_snapshot_tests.rs",
+        "bytes": 11711,
+        "sha256": "b11acf8d489c9c9fa15f428f1b3fd0d56b91180e624142e6ba6d77459695090c"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/completion_training.rs",
+        "bytes": 23844,
+        "sha256": "36c0e9358dfae45ccb1d44fd828c5fd809a387febd4d307d0c0fc9d34fad3e5c"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/completion_types.rs",
+        "bytes": 3886,
+        "sha256": "f27c88bf1d8f359ff1e40a56fd241144f7b032a55e379fc5f2e1bb06694446ca"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/mod.rs",
+        "bytes": 13838,
+        "sha256": "cdd179b007742467c5f3dfc26385e7e92f118dc4630a10dab32d3f5941ece4cb"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/runtime.rs",
+        "bytes": 22698,
+        "sha256": "184cbfaed5ff522aea4606cb6240c655caa7313e2767dc4686d3451e11177219"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/snapshot.rs",
+        "bytes": 26191,
+        "sha256": "4ec8e42dd6ed50f572335121118c481c4826de0ab3ae99b0ed4c79c3c3b64651"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/training.rs",
+        "bytes": 31602,
+        "sha256": "859fde5529babee0a7fbcbd2f7c592aa426814253ded7289c4dd70dd707970cf"
+      },
+      {
+        "path": "crates/uor-r4-core/tests/native_geometric_allocations.rs",
+        "bytes": 29428,
+        "sha256": "90e37c5d248c9acc585c8b9ae5ce03dce3b07e9506e73a35d4ef02e60c66b093"
+      },
+      {
+        "path": "src/native_geometric_cli.rs",
+        "bytes": 62806,
+        "sha256": "db6e3446ffba60d1650a0036c58a7b7a306f7cd9efb258a520d9d0f0c2eb0abb"
+      },
+      {
+        "path": "src/native_geometric_service.rs",
+        "bytes": 67352,
+        "sha256": "b1d98cb6dcce722dd86ed2c5d83d51e74d8c2bbeb1d67a1dda6a352035a9add5"
+      }
+    ]
+  },
+  "binaries": {
+    "at": "2026-09-05T08:18:55.939Z",
+    "rust_source": "completion-rust-source-identities.json",
+    "source_still_equal": true,
+    "files": [
+      {
+        "path": "/tmp/r4-native-geometric-target/release/r4",
+        "bytes": 22588832,
+        "sha256": "7e7d88bbc9daf32eb25d7b3d62fb9f963bebcb89cbe4fb4c2ce2c38b00479fd6"
+      },
+      {
+        "path": "/tmp/r4-native-geometric-target/release/examples/native_geometric_value_probe",
+        "bytes": 1975808,
+        "sha256": "239d52c4f1815f7d285e2d6f6194c3cc41854d2ee34f0ec56ca3ab36407386cd"
+      }
+    ]
+  },
+  "model_commands": [
+    {
+      "label": "completion-fit-1",
+      "started": "2026-09-05T08:18:56.115Z",
+      "command": "/tmp/r4-native-geometric-target/release/examples/native_geometric_value_probe",
+      "args": [
+        "completion",
+        "--model",
+        "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/fit-2/model.json",
+        "--source",
+        "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/fit-2/source.json",
+        "--output-dir",
+        "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/completion-fit-1",
+        "--lexeme-cues",
+        "true",
+        "--epochs",
+        "24",
+        "--learning-rate",
+        "0.1",
+        "--completion-max-positions",
+        "4096",
+        "--generated-tokens",
+        "32",
+        "--max-seconds",
+        "120"
+      ],
+      "elapsed_ms": 3485,
+      "code": 0,
+      "signal": null,
+      "stopped": null,
+      "engineering_only": false,
+      "peak_process_rss_sample_bytes": 314228736,
+      "process_rss_samples": 3,
+      "peak_sampled_known_bytes": 4132675584,
+      "initial_known_bytes": 4118081536,
+      "final_known_bytes": 4132675584,
+      "sampling_scope": "Child-process RSS only; zero samples means unavailable. Includes current known retained storage and all inherited accounting; not exact transient peaks."
+    },
+    {
+      "label": "completion-compile-execute",
+      "started": "2026-09-05T08:20:06.708Z",
+      "command": "node",
+      "args": [
+        "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/compile-execute-generated.mjs",
+        "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/completion-generated-source-review.json",
+        "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/completion-compile-execute"
+      ],
+      "elapsed_ms": 3149,
+      "code": 0,
+      "signal": null,
+      "stopped": null,
+      "engineering_only": false,
+      "peak_process_rss_sample_bytes": 56721408,
+      "process_rss_samples": 3,
+      "peak_sampled_known_bytes": 4133187584,
+      "initial_known_bytes": 4132765696,
+      "final_known_bytes": 4132876288,
+      "sampling_scope": "Child-process RSS only; zero samples means unavailable. Includes current known retained storage and all inherited accounting; not exact transient peaks."
+    },
+    {
+      "label": "completion-preserve-v1",
+      "started": "2026-09-05T08:20:56.793Z",
+      "command": "/tmp/r4-native-geometric-target/release/examples/native_geometric_value_probe",
+      "args": [
+        "evaluate",
+        "--model",
+        "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/fit-1/model.json",
+        "--source",
+        "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/fit-1/source.json",
+        "--output-dir",
+        "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/completion-preserve-v1",
+        "--lexeme-cues",
+        "false",
+        "--controls",
+        "full",
+        "--generated-tokens",
+        "32",
+        "--max-seconds",
+        "120"
+      ],
+      "elapsed_ms": 573,
+      "code": 0,
+      "signal": null,
+      "stopped": null,
+      "engineering_only": false,
+      "peak_process_rss_sample_bytes": null,
+      "process_rss_samples": 0,
+      "peak_sampled_known_bytes": 4133761024,
+      "initial_known_bytes": 4132880384,
+      "final_known_bytes": 4133761024,
+      "sampling_scope": "Child-process RSS only; zero samples means unavailable. Includes current known retained storage and all inherited accounting; not exact transient peaks."
+    },
+    {
+      "label": "completion-preserve-v2",
+      "started": "2026-09-05T08:21:07.424Z",
+      "command": "/tmp/r4-native-geometric-target/release/examples/native_geometric_value_probe",
+      "args": [
+        "evaluate",
+        "--model",
+        "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/fit-2/model.json",
+        "--source",
+        "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/fit-2/source.json",
+        "--output-dir",
+        "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/completion-preserve-v2",
+        "--lexeme-cues",
+        "true",
+        "--controls",
+        "full",
+        "--generated-tokens",
+        "32",
+        "--max-seconds",
+        "120"
+      ],
+      "elapsed_ms": 562,
+      "code": 0,
+      "signal": null,
+      "stopped": null,
+      "engineering_only": false,
+      "peak_process_rss_sample_bytes": null,
+      "process_rss_samples": 0,
+      "peak_sampled_known_bytes": 4136611840,
+      "initial_known_bytes": 4133765120,
+      "final_known_bytes": 4136611840,
+      "sampling_scope": "Child-process RSS only; zero samples means unavailable. Includes current known retained storage and all inherited accounting; not exact transient peaks."
+    },
+    {
+      "label": "completion-cli-artifact-sample",
+      "started": "2026-09-05T08:21:08.210Z",
+      "command": "/tmp/r4-native-geometric-target/release/r4",
+      "args": [
+        "geometric",
+        "generate",
+        "--model",
+        "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/completion-fit-1/model.json",
+        "--prompt",
+        "fn main() {\n    let suri = 73;\n    let orin = 4;\n    let tavi = 301;\n    assert_eq!(suri + orin,",
+        "--max-tokens",
+        "32",
+        "--json"
+      ],
+      "elapsed_ms": 1112,
+      "code": 0,
+      "signal": null,
+      "stopped": null,
+      "engineering_only": false,
+      "peak_process_rss_sample_bytes": 114655232,
+      "process_rss_samples": 1,
+      "peak_sampled_known_bytes": 4136669184,
+      "initial_known_bytes": 4136644608,
+      "final_known_bytes": 4136669184,
+      "sampling_scope": "Child-process RSS only; zero samples means unavailable. Includes current known retained storage and all inherited accounting; not exact transient peaks."
+    }
+  ],
+  "engineering_commands": [
+    {
+      "label": "completion-core-tests",
+      "started": "2026-09-05T08:01:37.538Z",
+      "command": "env",
+      "args": [
+        "CARGO_TARGET_DIR=/tmp/r4-native-geometric-target",
+        "CARGO_INCREMENTAL=0",
+        "CARGO_BUILD_JOBS=1",
+        "CARGO_PROFILE_DEV_DEBUG=0",
+        "CARGO_PROFILE_TEST_DEBUG=0",
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "-p",
+        "uor-r4-core",
+        "--lib",
+        "native_geometric",
+        "--offline"
+      ],
+      "elapsed_ms": 100755,
+      "code": 0,
+      "signal": null,
+      "stopped": null,
+      "engineering_only": true,
+      "peak_process_rss_sample_bytes": null,
+      "process_rss_samples": null,
+      "peak_sampled_known_bytes": 4125487104,
+      "initial_known_bytes": 4111122432,
+      "final_known_bytes": 4111343616,
+      "sampling_scope": "Child-process RSS only; zero samples means unavailable. Includes current known retained storage and all inherited accounting; not exact transient peaks."
+    },
+    {
+      "label": "completion-runtime-tests",
+      "started": "2026-09-05T08:04:01.407Z",
+      "command": "env",
+      "args": [
+        "CARGO_TARGET_DIR=/tmp/r4-native-geometric-target",
+        "CARGO_INCREMENTAL=0",
+        "CARGO_BUILD_JOBS=1",
+        "CARGO_PROFILE_DEV_DEBUG=0",
+        "CARGO_PROFILE_TEST_DEBUG=0",
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "-p",
+        "uor-r4-core",
+        "--lib",
+        "native_geometric::completion_runtime_tests",
+        "--offline"
+      ],
+      "elapsed_ms": 92062,
+      "code": 0,
+      "signal": null,
+      "stopped": null,
+      "engineering_only": true,
+      "peak_process_rss_sample_bytes": null,
+      "process_rss_samples": null,
+      "peak_sampled_known_bytes": 4127121408,
+      "initial_known_bytes": 4111486976,
+      "final_known_bytes": 4111609856,
+      "sampling_scope": "Child-process RSS only; zero samples means unavailable. Includes current known retained storage and all inherited accounting; not exact transient peaks."
+    },
+    {
+      "label": "completion-boundary-tests",
+      "started": "2026-09-05T08:05:40.290Z",
+      "command": "env",
+      "args": [
+        "CARGO_TARGET_DIR=/tmp/r4-native-geometric-target",
+        "CARGO_INCREMENTAL=0",
+        "CARGO_BUILD_JOBS=1",
+        "CARGO_PROFILE_DEV_DEBUG=0",
+        "CARGO_PROFILE_TEST_DEBUG=0",
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "-p",
+        "uor-r4-core",
+        "--test",
+        "native_geometric_allocations",
+        "--test",
+        "windowed_geometric_context",
+        "--example",
+        "native_geometric_value_probe",
+        "--offline"
+      ],
+      "elapsed_ms": 144514,
+      "code": 0,
+      "signal": null,
+      "stopped": null,
+      "engineering_only": true,
+      "peak_process_rss_sample_bytes": null,
+      "process_rss_samples": null,
+      "peak_sampled_known_bytes": 4113793024,
+      "initial_known_bytes": 4111609856,
+      "final_known_bytes": 4113604608,
+      "sampling_scope": "Child-process RSS only; zero samples means unavailable. Includes current known retained storage and all inherited accounting; not exact transient peaks."
+    },
+    {
+      "label": "completion-cli-tests",
+      "started": "2026-09-05T08:08:21.985Z",
+      "command": "env",
+      "args": [
+        "CARGO_TARGET_DIR=/tmp/r4-native-geometric-target",
+        "CARGO_INCREMENTAL=0",
+        "CARGO_BUILD_JOBS=1",
+        "CARGO_PROFILE_DEV_DEBUG=0",
+        "CARGO_PROFILE_TEST_DEBUG=0",
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "--bin",
+        "r4",
+        "native_geometric_",
+        "--offline"
+      ],
+      "elapsed_ms": 285846,
+      "code": 0,
+      "signal": null,
+      "stopped": null,
+      "engineering_only": true,
+      "peak_process_rss_sample_bytes": null,
+      "process_rss_samples": null,
+      "peak_sampled_known_bytes": 4144316416,
+      "initial_known_bytes": 4113608704,
+      "final_known_bytes": 4115718144,
+      "sampling_scope": "Child-process RSS only; zero samples means unavailable. Includes current known retained storage and all inherited accounting; not exact transient peaks."
+    },
+    {
+      "label": "completion-release",
+      "started": "2026-09-05T08:13:25.153Z",
+      "command": "env",
+      "args": [
+        "CARGO_TARGET_DIR=/tmp/r4-native-geometric-target",
+        "CARGO_INCREMENTAL=0",
+        "CARGO_BUILD_JOBS=1",
+        "CARGO_PROFILE_DEV_DEBUG=0",
+        "CARGO_PROFILE_TEST_DEBUG=0",
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "build",
+        "--release",
+        "--offline",
+        "-p",
+        "uor-r4-wasm-router",
+        "--bin",
+        "r4",
+        "-p",
+        "uor-r4-core",
+        "--example",
+        "native_geometric_value_probe"
+      ],
+      "elapsed_ms": 316032,
+      "code": 0,
+      "signal": null,
+      "stopped": null,
+      "engineering_only": true,
+      "peak_process_rss_sample_bytes": null,
+      "process_rss_samples": null,
+      "peak_sampled_known_bytes": 4145467392,
+      "initial_known_bytes": 4115783680,
+      "final_known_bytes": 4118081536,
+      "sampling_scope": "Child-process RSS only; zero samples means unavailable. Includes current known retained storage and all inherited accounting; not exact transient peaks."
+    },
+    {
+      "label": "completion-policy-final",
+      "started": "2026-09-05T08:26:52.182Z",
+      "command": "/tmp/r4-native-geometric-target/debug/r4-policy-check",
+      "args": [
+        "/Users/casey.allard/.codex/worktrees/r4-typed-value/uor-r4"
+      ],
+      "elapsed_ms": 163,
+      "code": 0,
+      "signal": null,
+      "stopped": null,
+      "engineering_only": true,
+      "peak_process_rss_sample_bytes": null,
+      "process_rss_samples": null,
+      "peak_sampled_known_bytes": 4136722432,
+      "initial_known_bytes": 4136718336,
+      "final_known_bytes": 4136722432,
+      "sampling_scope": "Child-process RSS only; zero samples means unavailable. Includes current known retained storage and all inherited accounting; not exact transient peaks."
+    },
+    {
+      "label": "completion-claims-final",
+      "started": "2026-09-05T08:26:56.767Z",
+      "command": "python3",
+      "args": [
+        "scripts/check_claim_wording.py"
+      ],
+      "elapsed_ms": 207,
+      "code": 0,
+      "signal": null,
+      "stopped": null,
+      "engineering_only": true,
+      "peak_process_rss_sample_bytes": null,
+      "process_rss_samples": null,
+      "peak_sampled_known_bytes": 4136726528,
+      "initial_known_bytes": 4136722432,
+      "final_known_bytes": 4136726528,
+      "sampling_scope": "Child-process RSS only; zero samples means unavailable. Includes current known retained storage and all inherited accounting; not exact transient peaks."
+    },
+    {
+      "label": "completion-fmt-final",
+      "started": "2026-09-05T08:27:15.725Z",
+      "command": "/Users/casey.allard/.cargo/bin/cargo",
+      "args": [
+        "fmt",
+        "--check"
+      ],
+      "elapsed_ms": 3461,
+      "code": 0,
+      "signal": null,
+      "stopped": null,
+      "engineering_only": true,
+      "peak_process_rss_sample_bytes": null,
+      "process_rss_samples": null,
+      "peak_sampled_known_bytes": 4136726528,
+      "initial_known_bytes": 4136726528,
+      "final_known_bytes": 4136726528,
+      "sampling_scope": "Child-process RSS only; zero samples means unavailable. Includes current known retained storage and all inherited accounting; not exact transient peaks."
+    },
+    {
+      "label": "completion-claims-docs-frozen",
+      "started": "2026-09-05T08:27:31.415Z",
+      "command": "python3",
+      "args": [
+        "scripts/check_claim_wording.py"
+      ],
+      "elapsed_ms": 325,
+      "code": 0,
+      "signal": null,
+      "stopped": null,
+      "engineering_only": true,
+      "peak_process_rss_sample_bytes": null,
+      "process_rss_samples": null,
+      "peak_sampled_known_bytes": 4136730624,
+      "initial_known_bytes": 4136726528,
+      "final_known_bytes": 4136730624,
+      "sampling_scope": "Child-process RSS only; zero samples means unavailable. Includes current known retained storage and all inherited accounting; not exact transient peaks."
+    }
+  ],
+  "local_validation": {
+    "core_tests": 83,
+    "core_scope": "79 initial tests plus four added completion runtime tests; 83 distinct tests across two runs.",
+    "allocation_source_tests": 4,
+    "context_tests": 3,
+    "probe_tests": 4,
+    "cli_service_tests": 17,
+    "release_build": "PASS",
+    "format": "PASS final",
+    "not_run": [
+      "blanket full workspace suite",
+      "Clippy",
+      "no_std",
+      "kappa reproduction",
+      "audit",
+      "fuzz",
+      "WASM",
+      "Gate C",
+      "release QA",
+      "final held-out evaluation"
+    ],
+    "architecture_policy": "PASS",
+    "claim_wording": "PASS after all prose changes"
+  },
+  "resources": {
+    "at": "2026-09-05T08:26:41.837Z",
+    "status": "CHECKPOINT_STORAGE_PROJECTION",
+    "resource": {
+      "schema": "uor-r4.native-typed-value-resource-snapshot/1",
+      "at": "2026-09-05T08:26:41.836Z",
+      "inherited_precleanup_bytes": 2747199488,
+      "obsolete_target_growth_credit": 671379456,
+      "current_target_bytes": 1827282944,
+      "predecessor_artifact_root_bytes": 145760256,
+      "current_artifact_root_bytes": 63791104,
+      "predecessor_worktree_bytes": 9875456,
+      "current_worktree_bytes": 8937472,
+      "source_metadata_reserve_bytes": 5242880,
+      "current_sampled_known_storage_bytes": 4136710144,
+      "storage_limit_bytes": 4294967296,
+      "remaining_storage_bytes": 158257152,
+      "stop_margin_bytes": 134217728,
+      "available_growth_before_stop_bytes": 24039424,
+      "model_ledger": {
+        "cumulative_ms": 903526,
+        "limit_ms": 1800000
+      },
+      "model_remaining_ms": 896474,
+      "model_process_limit": 1,
+      "model_process_rss_target_bytes": 4294967296,
+      "scope": "Same inherited conservative accounting. Only the previously audited obsolete target-growth credit is applied. Charge all current target bytes, both artifact roots, both measured new-worktree costs and a 5MiB source/metadata reserve. No broad clone/free-disk credits or reset of historical overages. Only documented current-run failed compiler outputs were removed; no inherited or user material was removed. Periodic du/RSS samples are not exact peak or unique-extent guarantees."
+    },
+    "latest_release_peak_growth_bytes": 29683712,
+    "next_checked_implementation_admitted": false,
+    "next_decision": "Same-budget geometry-free completion fit and independent response-form transfer; then cause-directed nonnumeric development. Another checked source implementation cycle is not admitted under remaining storage. Keep existing artifacts and user material; no budget increase or broad cleanup.",
+    "scope": "This is a resource checkpoint, not model-quality evidence. Metadata/protected delivery uses the existing reserve; model ledger is unchanged."
+  },
+  "limitations": [
+    "Eight nonnumeric primary cases remain incorrect and unchanged.",
+    "Only six completion token candidates; shared fit/development response templates; development informed design.",
+    "Typed proposal execution and ordinary decoding precede completion, so no sparse-expert compute saving is established.",
+    "One-second RSS samples measure direct child only. Generated compiler process descendants are unmeasured; subsecond replays have no RSS samples.",
+    "Counters enumerate named work, not a complete machine instruction census."
+  ],
+  "files": [
+    {
+      "path": "completion-fit-1/model.json",
+      "bytes": 10058579,
+      "sha256": "79e023469b1bd07dff1879c9bc3b00316a30be2ef4e5c7a44624758851851e44"
+    },
+    {
+      "path": "completion-fit-1/source.json",
+      "bytes": 90946,
+      "sha256": "10b69bfbbd89161032d80905306247b8a2e72ee098ab8f487932827f45d90352"
+    },
+    {
+      "path": "completion-fit-1/report.json",
+      "bytes": 3991857,
+      "sha256": "9b3871ff2c3ab0a315de7a3c65c128f3fb15d145e64e99c7df78cb35e783cce1"
+    },
+    {
+      "path": "completion-fit-analysis.json",
+      "bytes": 68713,
+      "sha256": "a8a1c05d7cae694028a201e0edf993ea23eade5e4033b0917e34bffe6025c7db"
+    },
+    {
+      "path": "completion-compile-execute/report.json",
+      "bytes": 21914,
+      "sha256": "33900b7cca418f330d409666fc184a2fda2d61808e2f976476fe4a0ea56aa66b"
+    },
+    {
+      "path": "completion-generated-source-review.json",
+      "bytes": 5127,
+      "sha256": "009246c8f686dead67f19eb2c6160ab1923abec1abdfe8e7dd9be6569d4a1ac9"
+    },
+    {
+      "path": "completion-prior-artifact-preservation.json",
+      "bytes": 10732,
+      "sha256": "f4b80fb088a07c593ab2b3e71d260e2a4acb664a4aff7df67fe8ef692a4401c5"
+    },
+    {
+      "path": "completion-disabled-preservation.json",
+      "bytes": 6054,
+      "sha256": "6aac06b4492d3f0a10bf58cdbe2b9eadf872cce62f1c0674f4743990c9425ad1"
+    },
+    {
+      "path": "completion-cli-generation-preservation.json",
+      "bytes": 612,
+      "sha256": "a3fc403e5074475e57e98bd9227aa9f951cbd9d302490a5b1134a626471ea455"
+    },
+    {
+      "path": "completion-independent-audit.json",
+      "bytes": 8892,
+      "sha256": "d88a7b7911c08282a5c2f2d3defb70b0fb5498c90b8d186ad37ef2b9a099683c"
+    },
+    {
+      "path": "completion-storage-checkpoint.json",
+      "bytes": 2046,
+      "sha256": "3fdcfc5cf2506cf34df5c3f0467db3d74be781c7924082c09b247781dea351a4"
+    },
+    {
+      "path": "completion-binary-identities.json",
+      "bytes": 541,
+      "sha256": "c036ff0ca7f8a66acfc19b27beaad3c365e23a4d1e9cab141ab7071f6e18ff9c"
+    },
+    {
+      "path": "completion-rust-source-identities.json",
+      "bytes": 3265,
+      "sha256": "16ce07fca110e9486074efec2eda3959b08bf7250c15cf73fe1c17dbf733aa30"
+    },
+    {
+      "path": "completion-fit-1.stdout.log",
+      "bytes": 7786,
+      "sha256": "9fa326dfa33cd88019de152611ab4fb9a12097ebe06e1cd75e45a823f267eac5"
+    },
+    {
+      "path": "completion-fit-1.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "completion-compile-execute.stdout.log",
+      "bytes": 53,
+      "sha256": "9e7ff12c73da5c84ec333fcf5a8305613020bf8aecd626c944d1de7593e9df28"
+    },
+    {
+      "path": "completion-compile-execute.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "completion-preserve-v1.stdout.log",
+      "bytes": 2117,
+      "sha256": "b3c008354f6bb30eeaba50fa57a3b5f7fb48b4b882de52bc970ab3a6b2a7ad3b"
+    },
+    {
+      "path": "completion-preserve-v1.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "completion-preserve-v2.stdout.log",
+      "bytes": 2118,
+      "sha256": "1fc42b2c79a323db972a757122240e70c4d6c8983cde30c36842c5fb7df99b2c"
+    },
+    {
+      "path": "completion-preserve-v2.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "completion-cli-artifact-sample.stdout.log",
+      "bytes": 23321,
+      "sha256": "826bf9680d29c746b25f779bd83edb9055b45b33c1680345a8a59157ed138ed7"
+    },
+    {
+      "path": "completion-cli-artifact-sample.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "completion-core-tests.log",
+      "bytes": 10182,
+      "sha256": "bba2d0519b29bdcb25bcc806138942c8ffc97fd7375ffff9213b0ce6e4fd19e0"
+    },
+    {
+      "path": "completion-runtime-tests.log",
+      "bytes": 939,
+      "sha256": "e5103447d5496aafa90c3b627b4cad75c2ccfaf20232ca7ed7347427100549e9"
+    },
+    {
+      "path": "completion-boundary-tests.log",
+      "bytes": 1838,
+      "sha256": "8aa263f606da70197c7585ba79ccce4da035e929206c815269616543ddf10d79"
+    },
+    {
+      "path": "completion-cli-tests.log",
+      "bytes": 3085,
+      "sha256": "155ad5b9366d43ca43b39b4d19b24998e74cf6532398b871632d4d3e3fa8c9e9"
+    },
+    {
+      "path": "completion-release.log",
+      "bytes": 1011,
+      "sha256": "f956f385c2d97a31de57e8f25cc3658598935146c433a3dbf3864924e02b9e72"
+    },
+    {
+      "path": "completion-policy-final.log",
+      "bytes": 73,
+      "sha256": "58dd9c24c33ba5ff6519ed3f5bea924d8fd10d93bcfaba529e2d8b0101be6ae7"
+    },
+    {
+      "path": "completion-claims-final.log",
+      "bytes": 83,
+      "sha256": "78d71cb97c00d606a9a909d89a2f4f4e3b4be6b84af390f20c9fc50ec449922f"
+    },
+    {
+      "path": "completion-fmt-final.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "completion-claims-docs-frozen.log",
+      "bytes": 83,
+      "sha256": "78d71cb97c00d606a9a909d89a2f4f4e3b4be6b84af390f20c9fc50ec449922f"
+    }
+  ]
+}

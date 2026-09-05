@@ -2,8 +2,8 @@
 
 This source map connects the native model to reusable mathematical and runtime
 components. Its baseline is the implementation delivered through PR #1127 at
-`3abf9d7e85f70416c95161863b4413cc42a6912c`; the versioned occurrence-selection
-response-state and typed-value successors are distinguished below. The [project plan](integration/project-track.md)
+`3abf9d7e85f70416c95161863b4413cc42a6912c`; the versioned occurrence-selection,
+response-state, typed-value and completion successors are distinguished below. The [project plan](integration/project-track.md)
 owns the goal, and [current-state.md](integration/current-state.md) owns results
 and active work. This is not another roadmap or a claim that every architectural
 role is already assembled.
@@ -122,7 +122,8 @@ Only observing the selected decimal token commits the derived value and its
 operand IDs/values. A fixed twenty-byte buffer emits the remaining digits
 through the ordinary shortlist. Positive selection emits at the response
 boundary; the current gate cannot wait through generated text before inserting
-a numeral. It supplies no response suffix or learned stop classifier. Raw
+a numeral. Typed schemas `/1` and `/2` alone supply no response suffix or learned
+stop classifier; the separate completion component below adds that operation. Raw
 prompt/response training labels complete numeral bytes and leaves operand and
 action identities latent. Canonical lexical tokens and emitted byte tokens can
 differ while decoding to the same text.
@@ -134,6 +135,65 @@ structure are not retained. Session schema `/3` validates this explicit state;
 older source payloads are user-provided state, not authenticated history.
 The [typed-value record](native_geometric_typed_value_973.md) supplies complete
 cost bounds, direct behavior, controls and remaining binding/emission limits.
+
+## Committed-value completion — 2026-09-05
+
+The optional `uor-r4.native-value-completion/1` component adds
+`completion_types.rs`, `completion_runtime.rs`, `completion_training.rs` and
+`completion_snapshot.rs`. It preserves the fitted `/4` reader and typed `/2`
+parameters. A completion anchor exists only after the final predicted numeral
+byte has actually been observed and the derived write committed. It retains
+the write identity/action, endpoint H4 pose and eight phases, frozen query-end
+prime, last two actual token identities and at most 32 observed suffix steps.
+It does not retain a suffix template or whole-answer key. Prediction is
+transient; observed bytes alone advance the state, including mismatches.
+
+Sixteen feature addresses combine prime/token history, action/progress,
+relative H4, signed orientation and phase-difference bins. Construction-only
+postings admit byte/EOS candidates; signed integer scores select a positive
+candidate against zero-score Base. Rust fitting learns these next-byte scores
+from actual frozen `/2` numeral rollouts and raw response suffixes plus EOS.
+It rejects upstream incorrect, noncanonical or incomplete numerals instead of
+teaching suffix repair. NoWrite cases never activate completion. Session schema
+`/4` validates the committed anchor and actual suffix history; schemas `/1`–`/3`
+and absent-component model serialization retain their earlier laws.
+
+The first fit used the existing 192 raw pairs: 160 matched numerals, 32 skipped
+NoWrite cases, no upstream failures, and 720/720 correct exported fit positions.
+On the same reused open development, Full produces 12/16 exact prose and 12/16
+exact Rust responses: all 24 numeric responses complete correctly. The eight
+NoWrite responses remain incorrect. Completion-disabled retains the earlier
+2/16 prose and 0/16 Rust exact results with 24/24 correct leading numerals.
+Suppressing only completion geometry gives 0/16 exact in each family while
+preserving the same six completion candidates. This is within-artifact feature
+sensitivity, not a separately fitted comparator or general geometric advantage.
+The typed-only negative and both `/5` negatives remain preserved evidence.
+
+The current local artifact is
+`/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/completion-fit-1/model.json`,
+CID `blake3:a1fa0314924fb324f994e449cce6e69793d6c4df6102353a959363cb766009ff`.
+Its preserved baseline is `fit-2/model.json` under the same root, CID
+`blake3:af5f892e7f10680266911e2f5f6fb0aa96a5f25b1894d2f191f0a6b1179843f5`.
+Sibling `fit-report.json` and `report.json` bind the fit and generated outputs;
+the [completion record](native_geometric_value_completion_973.md) and
+[compact evidence](evidence/native_geometric_value_completion_973.json) retain
+their measured scope and controls.
+Exact authored numeric completions do not establish general conversation,
+dependency execution or Rust coding capability; compiler/execution evidence
+is recorded separately in [current state](integration/current-state.md).
+
+Added serving work per active completion prediction is bounded by 16 row
+queries, 80 posting offers, 1,280 candidate equality comparisons, 16 candidates
+and 256 token-score lookups. At the format maxima of 4,096 rows and 257 byte/EOS
+IDs per row, binary searches use at most 13 row comparisons and 10 token
+comparisons per lookup. Features add two H4 table reads, one orientation read
+and eight phase subtractions. The fitted head has 192 rows/289 associations;
+observed completion state occupies 96 bytes on this host. Fixed feature,
+candidate and row-index buffers also occupy stack space. Observation/history
+copies, ordinary `/4` prediction, numeric scanning and `/2` selection remain
+additional work; counters name operations, not every machine instruction.
+There are no runtime floats, matrix products or steady-state allocations in
+this component. Fitting, serialization and initialization are separate host work.
 
 ## Historical pieces and what they can contribute
 
@@ -153,6 +213,21 @@ what its learned selection consumes, the operator applied, information lost and
 the complete execution cost. An operator that creates a value also needs a
 typed result and causal write/read path; a better copy selector alone cannot
 supply it.
+
+The inspected sparse-expert reference makes the ordering concrete:
+Mesh TensorFlow's [`_switch_gating`](https://github.com/tensorflow/mesh/blob/master/mesh_tensorflow/transformer/moe.py#L1200-L1323)
+learns input-to-expert scores, selects one expert and applies capacity filtering
+before [`transformer_moe_layer_v1`](https://github.com/tensorflow/mesh/blob/master/mesh_tensorflow/transformer/moe.py#L405-L534)
+dispatches inputs and executes dense experts. Overflow skips that expert branch;
+extra capacity adds padded computation, memory and communication. The router,
+dispatch, combine and padding costs remain part of total work. See the
+[Switch paper, sections 2.1–2.2](https://jmlr.org/papers/volume23/21-0998/21-0998.pdf).
+Our `/4` and completion postings restrict later candidate scoring; `/2` executes
+up to 240 checked additions before ranking, so its gate currently avoids no
+operator arithmetic. These native heads are not MoE expert networks. A future
+geometric gate could select operands/operators before expensive execution, but
+must preserve reachability and count its own cost. Sparse dispatch also does
+not by itself specify what a multiscale context summary retains or loses.
 
 The [recovery](native_geometric_recovery_973.md),
 [query-context](native_geometric_query_context_973.md) and

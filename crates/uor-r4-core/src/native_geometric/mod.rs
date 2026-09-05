@@ -8,6 +8,9 @@
 //! tokenization, serialization, fitting and diagnostic rendering are host work.
 
 mod anchors;
+mod completion_runtime;
+mod completion_training;
+mod completion_types;
 mod memory_runtime;
 mod memory_training;
 mod memory_types;
@@ -24,6 +27,10 @@ mod value_types;
 
 use serde::{Deserialize, Serialize};
 
+pub use completion_training::{ValueCompletionFitConfig, ValueCompletionFitReport};
+pub use completion_types::{
+    CompletionAction, CompletionDecision, CompletionStateView, CompletionWork,
+};
 pub use memory_training::{
     MemoryReadDiagnostic, MemoryReadDocumentExposure, MemoryReadDocumentSupervision,
     MemoryReadResponseStateReport, MemoryReadSchedule, MemoryReadStreamProgress,
@@ -126,6 +133,8 @@ pub enum Control {
     ResponseStateDisabled,
     ValuesDisabled,
     ValueLexemesDisabled,
+    ValueCompletionDisabled,
+    ValueCompletionGeometryDisabled,
 }
 
 /// Explicit feature addresses, never content digests. Kinds 0/1 are full
@@ -165,7 +174,9 @@ impl Feature {
             | Control::MemoryDisabled
             | Control::ResponseStateDisabled
             | Control::ValuesDisabled
-            | Control::ValueLexemesDisabled => true,
+            | Control::ValueLexemesDisabled
+            | Control::ValueCompletionDisabled
+            | Control::ValueCompletionGeometryDisabled => true,
             Control::GeometryDisabled => self.kind < 2,
             Control::ZetaDisabled => !(8..=15).contains(&self.kind) && self.kind != 5,
             Control::H4Disabled => self.kind < 2 || (8..=15).contains(&self.kind),
@@ -251,6 +262,8 @@ pub struct Model {
     memory_read: Option<memory_types::MemoryModel>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     values: Option<value_types::ValueModel>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    completion: Option<completion_types::CompletionModel>,
 }
 
 #[derive(Deserialize)]
@@ -273,6 +286,8 @@ struct ModelWire {
     memory_read: Option<memory_types::MemoryModel>,
     #[serde(default)]
     values: Option<value_types::ValueModel>,
+    #[serde(default)]
+    completion: Option<completion_types::CompletionModel>,
 }
 impl TryFrom<ModelWire> for Model {
     type Error = Error;
@@ -293,6 +308,7 @@ impl TryFrom<ModelWire> for Model {
             readout_training: wire.readout_training,
             memory_read: wire.memory_read,
             values: wire.values,
+            completion: wire.completion,
         };
         model.validate()?;
         Ok(model)
@@ -301,6 +317,8 @@ impl TryFrom<ModelWire> for Model {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct Work {
+    #[serde(default, skip_serializing_if = "CompletionWork::is_empty")]
+    pub completion: CompletionWork,
     #[serde(default, skip_serializing_if = "ValueWork::is_empty")]
     pub values: ValueWork,
     #[serde(default, skip_serializing_if = "zero_work")]
@@ -381,6 +399,8 @@ pub struct Prediction {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Generation {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub completion_trace: Vec<CompletionDecision>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub value_trace: Vec<ValueDecision>,
     /// First at most 96 decisions, recorded outside the allocation-free kernel.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -414,3 +434,6 @@ mod tests;
 
 #[cfg(test)]
 mod value_runtime_tests;
+
+#[cfg(test)]
+mod completion_runtime_tests;

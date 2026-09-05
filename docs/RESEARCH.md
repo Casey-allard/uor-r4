@@ -12,6 +12,29 @@ windows as instructions for new work. A negative binds its exact configuration;
 resource unavailability does not determine model quality. The recovered plan
 allows open development iteration under configurable cumulative machine budgets.
 
+## Native typed-value completion (2026-09-05)
+
+The [completion record](native_geometric_value_completion_973.md) adds a learned
+continuation/stop head after actual typed numeral emission, preserving the stronger
+occurrence reader and typed-value `/2` weights. It fits 720/720 eligible positions
+from the unchanged 192 raw construction pairs. On reused open development, Full
+completes 12/16 prose and 12/16 Rust responses, versus 2/16 and 0/16 with this
+head disabled. Both retain 24/24 correct numeric targets. All four name-binding
+pairs complete correctly on both sides. Sixteen of twenty inspected, unchanged
+Rust records compile, execute and pass their assertions; fourteen successful
+source hashes are distinct. Eight nonnumeric primary responses remain failures.
+
+Removing only the completion H4/orientation/phase features preserves all six
+candidate tokens and correct numerals, but fails subsequent progression or
+termination: 0/16 exact responses in each family. This is a within-artifact
+combined geometric scoring result at equal candidate support, not separate-term
+attribution or an equal-training comparison. Shared response templates and reused
+development remain explicit limitations; final held-out transfer, broad geometric
+advantage and compute savings are NOT_RUN. The prior typed artifacts reproduce
+all 80 complete primary/control Generation objects under the new binary. Their
+dated results below remain intact. Current work checkpoints at the remaining
+storage margin before another checked implementation cycle.
+
 ## Native typed-value development (2026-09-05)
 
 The [typed-value record](native_geometric_typed_value_973.md) adds an optional

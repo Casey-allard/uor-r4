@@ -46,18 +46,24 @@ results, remaining learned-operator work and capability limitations.
 
 The [native mechanism map](docs/native_geometric_mechanism_map_973.md) traces
 the implemented prime/zeta/R4 mechanisms from source to generated responses.
-The [response-state record](docs/native_geometric_response_state_973.md)
-adds explicit query persistence and model-selected source state. Both matched
-fits regress against the preceding occurrence reader: exact prose is 5/32
-versus 6/32, and Rust remains 0/32. They remain development options, with
-their controls, actual outputs and costs preserved. Useful response composition
-and coding remain unresolved. The subsequent
-[typed-value record](docs/native_geometric_typed_value_973.md) adds learned
-operand/action selection, checked value creation and causal decimal emission.
-Its whole-word correction reaches 24/24 numeric targets and all four binding
-pairs on reused open development, while complete responses remain 2/16 prose
-and 0/16 Rust and all 20 generated Rust sources fail compilation. It preserves
-the earlier binding negative and establishes no new H4/zeta selection benefit.
+The latest [typed-value completion record](docs/native_geometric_value_completion_973.md)
+combines bounded whole-word operand binding, checked value creation and decimal
+emission with learned geometric continuation and stopping. On the reused open
+development set it completes 12/16 prose and 12/16 Rust responses exactly;
+all 24 numeric targets and all four binding pairs are correct. Sixteen saved
+Rust records compile and pass their assertions (14 distinct successful sources);
+the eight nonnumeric cases remain incorrect. Removing this completion head's
+H4/orientation/phase features preserves the six-token candidate set and correct
+numerals but loses all complete numeric responses. This establishes combined
+geometric-score dependence in this fitted head, with no separately fitted
+comparison, new-response-form transfer or efficiency advantage yet measured.
+
+The [typed-value record](docs/native_geometric_typed_value_973.md) preserves the
+preceding binding negative and whole-word correction; the latter produced correct
+numerals but only 2/16 prose and 0/16 Rust complete responses. Both earlier
+[response-state fits](docs/native_geometric_response_state_973.md) remain scoped
+negatives against the stronger occurrence reader. General conversation, coding,
+reasoning and alpha capability remain unresolved.
 
 ## Preserved project entry points
 

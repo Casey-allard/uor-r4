@@ -7,7 +7,61 @@ remains owned by [#973](https://github.com/UOR-Foundation/uor-r4/issues/973).
 Refresh live GitHub before choosing a follow-up; dated snapshots and lower
 historical “next” paragraphs do not select work.
 
-## Typed value creation — 2026-09-05 development
+## Typed values with geometric completion — 2026-09-05
+
+The current development artifact adds optional `uor-r4.native-value-completion/1`
+to the stronger occurrence-memory `/4` reader and typed-value `/2` component.
+After an actually observed final numeral byte, it retains the derived write and
+post-numeral H4/zeta anchor, compares current relative geometry and short ordered
+context, and learns bounded byte/EOS selection. Its sparse scores, observation
+law, integer/table serving path and session schema `/4` are implemented in Rust.
+The baseline reader, tokenizer, geometry and typed weights remain unchanged.
+
+| Reused open development (32 cases) | Correct numeric targets | Exact prose | Exact Rust |
+| --- | ---: | ---: | ---: |
+| Full | 24/24 | 12/16 | 12/16 |
+| Completion disabled | 24/24 | 2/16 | 0/16 |
+| Completion geometry disabled | 24/24 | 0/16 | 0/16 |
+| Typed values disabled | 0/24 | 0/16 | 0/16 |
+
+All four name-binding pairs now complete correctly on both sides (8/8 outputs).
+Sixteen of twenty saved Rust records compile, execute and pass their assertions:
+twelve primary numeric cases and four binding cases, with fourteen distinct
+successful source hashes. The eight NoWrite primary cases remain unchanged and
+incorrect. Neither arbitrary Rust execution by the model nor general conversation
+or reasoning follows from this result.
+
+All geometric-control candidates are the same six byte/EOS tokens; capacity is
+sixteen with no drops. Suppressing only completion H4/orientation/phase features
+preserves the first suffix byte but loses progression/termination. This supports
+combined geometric-score dependence in this fitted artifact at equal support.
+Individual-term effects, a same-budget geometry-free refit, independent response
+forms and efficiency advantage remain unmeasured. Ordinary decoder work and typed
+proposal execution still precede this head; no expert-compute saving is claimed.
+
+The [completion record](../native_geometric_value_completion_973.md) and
+[compact evidence](../evidence/native_geometric_value_completion_973.json) bind
+source, binaries, all outputs, costs and preservation. The local artifact is
+`.uor-models/native-typed-value-2026-09-05/completion-fit-1/model.json`, CID
+`blake3:a1fa0314924fb324f994e449cce6e69793d6c4df6102353a959363cb766009ff`.
+Prior typed `/1` and `/2` reproduce all eighty Full primary/binding Generation
+objects under the current binary; both prior `/5` negatives remain preserved.
+
+The next decision is a matched geometry-free fit and independent response-form
+transfer for this small completion head, followed by cause-directed development
+of the remaining nonnumeric cases. It is **checkpointed for storage**: cumulative
+model work is 903.526/1800 seconds (896.474 seconds remain), but the 08:22 UTC
+snapshot leaves 24,055,808 bytes of growth before the 128 MiB stop margin within
+the 4 GiB allocation. The last release build alone added a measured peak of
+29,683,712 bytes. Another checked implementation cycle is not admitted; preserve
+all artifacts and user material, with no silent budget increase. Metadata and
+protected delivery continue within the existing reserve. Final held-out
+qualification and both alpha capability groups remain unqualified.
+
+The following sections preserve earlier checkpoints and their then-current
+next actions. They do not override the active pointer above.
+
+## Preceding typed value creation — 2026-09-05 development
 
 The native model now has an optional typed-value component on the stronger
 `/4` artifact. It lexes signed integer values, learns bounded operand/action

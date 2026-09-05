@@ -11,6 +11,8 @@ pub(super) const FEATURE_COUNT: usize = 26;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StateView {
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub completion: Option<super::CompletionStateView>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub values: Option<super::ValueStateView>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub response: Option<super::ResponseStateView>,
@@ -33,6 +35,7 @@ pub struct StateView {
 
 #[derive(Debug, Clone)]
 pub struct Session {
+    pub(super) completion: Option<super::completion_types::CompletionState>,
     pub(super) values: Option<super::value_types::ValueState>,
     pub(super) memory: Option<super::memory_types::MemoryState>,
     pub(super) artifact_cid: String,
@@ -61,6 +64,7 @@ impl Session {
             .capacity()
             .saturating_mul(std::mem::size_of::<Candidate>());
         Self {
+            completion: model.completion.as_ref().map(|_| Default::default()),
             values: model
                 .values
                 .as_ref()
@@ -88,6 +92,16 @@ impl Session {
 
     pub fn state(&self) -> StateView {
         StateView {
+            completion: self
+                .completion
+                .as_ref()
+                .map(|s| super::CompletionStateView {
+                    active: s.active,
+                    write_id: s.anchor.map(|a| a.write_id),
+                    steps: s.steps,
+                    last_action: s.last_action,
+                    storage_bytes: std::mem::size_of::<super::completion_types::CompletionState>(),
+                }),
             values: self.values.as_ref().map(|s| super::ValueStateView {
                 active: s.active,
                 retained_values: s.records.len(),
@@ -131,6 +145,10 @@ impl Session {
         self.values.as_ref().and_then(|s| s.pending)
     }
 
+    pub fn completion_decision(&self) -> Option<super::CompletionDecision> {
+        self.completion.as_ref().and_then(|s| s.pending)
+    }
+
     fn check_model(&self, model: &Model) -> Result<()> {
         if self.artifact_cid != model.artifact_cid {
             return Err(Error(
@@ -142,6 +160,9 @@ impl Session {
 
     pub fn begin_response(&mut self, model: &Model) -> Result<()> {
         self.check_model(model)?;
+        if let Some(state) = &mut self.completion {
+            state.reset();
+        }
         if let Some(state) = &mut self.values {
             state.begin(&mut self.work.values);
         }
@@ -156,6 +177,9 @@ impl Session {
 
     pub fn end_response(&mut self, model: &Model) -> Result<()> {
         self.check_model(model)?;
+        if let Some(state) = &mut self.completion {
+            state.reset();
+        }
         if let Some(state) = &mut self.values {
             state.end();
         }
@@ -237,7 +261,21 @@ impl Session {
             state.observe(model, memory, token, &mut self.work);
         }
         if let Some(state) = &mut self.values {
+            let seed = state
+                .pending
+                .as_ref()
+                .map(super::completion_types::CompletionSeed::from);
             state.observe(model, token, &mut self.work.values);
+            if let Some(completion) = &mut self.completion {
+                completion.observe(
+                    model,
+                    state,
+                    token,
+                    seed,
+                    self.control,
+                    &mut self.work.completion,
+                );
+            }
         }
         Ok(())
     }
@@ -449,6 +487,22 @@ impl Session {
                 self.offer_memory(model, candidate);
             }
         }
+        if let (Some(baseline), Some(state), Some(values)) = (
+            self.candidates.first().copied(),
+            &mut self.completion,
+            &self.values,
+        ) {
+            let offer = state.offer(
+                model,
+                values,
+                baseline,
+                self.control,
+                &mut self.work.completion,
+            );
+            if let Some(candidate) = offer {
+                self.offer_memory(model, candidate);
+            }
+        }
         let best = *self
             .candidates
             .first()
@@ -457,6 +511,9 @@ impl Session {
             state.select_response(model, best, &mut self.work);
         }
         if let Some(state) = &mut self.values {
+            state.selected(best);
+        }
+        if let Some(state) = &mut self.completion {
             state.selected(best);
         }
         Ok(Prediction {

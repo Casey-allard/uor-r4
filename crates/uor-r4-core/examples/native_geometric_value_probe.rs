@@ -9,16 +9,22 @@ use std::error::Error;
 use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Instant;
 
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use uor_r4_core::native_geometric::{Control, Model, ValueExample, ValueFitConfig};
+use uor_r4_core::native_geometric::{
+    Control, Model, ValueCompletionFitConfig, ValueExample, ValueFitConfig,
+};
 
 type ProbeResult<T> = Result<T, Box<dyn Error>>;
 const SOURCE_SCHEMA: &str = "uor-r4.native-typed-value-source/1";
 const LEXEME_SOURCE_SCHEMA: &str = "uor-r4.native-typed-value-source/2";
 const MAX_SOURCE_BYTES: u64 = 4 * 1024 * 1024;
+const COMPLETION_OUTPUT_BYTES: usize = 20 * 1024 * 1024;
+const PRESERVATION_OUTPUT_BYTES: usize = 8 * 1024 * 1024;
+static OUTPUT_BYTES_REMAINING: AtomicUsize = AtomicUsize::new(usize::MAX);
 
 #[derive(Debug, Serialize)]
 struct Options {
@@ -34,6 +40,8 @@ struct Options {
     generated_tokens: usize,
     max_seconds: u64,
     lexeme_cues: bool,
+    controls: String,
+    completion_max_positions: usize,
 }
 
 impl Options {
@@ -57,18 +65,24 @@ impl Options {
             generated_tokens: 32,
             max_seconds: 120,
             lexeme_cues: false,
+            controls: "all".into(),
+            completion_max_positions: 4096,
         };
         while let Some(flag) = arguments.next() {
             if flag == "--help" || flag == "-h" {
                 println!(
-                    "native_geometric_value_probe [prepare|fit|evaluate] --output-dir NEW_DIRECTORY\n\
+                    "native_geometric_value_probe [prepare|fit|completion|evaluate] --output-dir NEW_DIRECTORY\n\
                      fit: --model BASELINE [--source source.json]\n\
+                     completion: --model TYPED_MODEL --source SOURCE_V2 --lexeme-cues true\n\
                      evaluate: --model VALUE_MODEL --source source.json\n\
+                     evaluate --controls full: only Full, including the existing binding pairs\n\
                      --fit-worlds EVEN_NUMBER --development-worlds EVEN_NUMBER\n\
                      --epochs N --learning-rate F --max-features N\n\
+                     --completion-max-positions N (default 4096, completion fitting only)\n\
                      --generated-tokens N --max-seconds N\n\
                      --lexeme-cues true|false (default false; true appends 64 fit\n\
                      name swaps at default world count and uses source schema /2)\n\
+                     Completion output is capped at 20 MiB; Full-only preservation at 8 MiB.\n\
                      Defaults: 128 fit and 32 development cases across prose/Rust;\n\
                      paired worlds alter one numeric literal. Full byte exactness,\n\
                      leading numeral correctness and no-write behavior stay separate.\n\
@@ -92,13 +106,21 @@ impl Options {
                 "--generated-tokens" => result.generated_tokens = value.parse()?,
                 "--max-seconds" => result.max_seconds = value.parse()?,
                 "--lexeme-cues" => result.lexeme_cues = value.parse()?,
+                "--controls" => result.controls = value,
+                "--completion-max-positions" => result.completion_max_positions = value.parse()?,
                 _ => return Err(format!("unknown option {flag}").into()),
             }
         }
-        if !["prepare", "fit", "evaluate"].contains(&result.mode.as_str())
+        if !["prepare", "fit", "completion", "evaluate"].contains(&result.mode.as_str())
             || result.output_dir.as_os_str().is_empty()
             || (result.mode != "prepare" && result.model.as_os_str().is_empty())
-            || (result.mode == "evaluate" && result.source.is_none())
+            || (["completion", "evaluate"].contains(&result.mode.as_str())
+                && result.source.is_none())
+            || (result.mode == "completion" && !result.lexeme_cues)
+            || (result.mode == "completion" && result.epochs > 64)
+            || !(1..=4096).contains(&result.completion_max_positions)
+            || !["all", "full"].contains(&result.controls.as_str())
+            || (result.controls == "full" && result.mode != "evaluate")
             || !(2..=128).contains(&result.fit_worlds)
             || !(2..=32).contains(&result.development_worlds)
             || !result.fit_worlds.is_multiple_of(2)
@@ -516,6 +538,16 @@ struct Metrics {
 }
 
 fn write_new(path: &Path, bytes: &[u8]) -> ProbeResult<()> {
+    OUTPUT_BYTES_REMAINING
+        .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |remaining| {
+            remaining.checked_sub(bytes.len())
+        })
+        .map_err(|_| {
+            format!(
+                "output allowance exhausted before writing {}; retained partial files remain",
+                path.display()
+            )
+        })?;
     let mut file = OpenOptions::new().write(true).create_new(true).open(path)?;
     file.write_all(bytes)?;
     Ok(())
@@ -547,6 +579,7 @@ fn reject_training_overlap(model: &Model, cases: &[Case]) -> ProbeResult<()> {
             .chain(model.readout_training())
             .chain(model.memory_read_training())
             .chain(model.value_training())
+            .chain(model.value_completion_training())
             .any(|known| {
                 known.id == case.id || known.text_cid == pair_cid || known.text_cid == whole_cid
             })
@@ -569,13 +602,25 @@ fn evaluate(
 ) -> ProbeResult<Value> {
     reject_training_overlap(model, &source.development)?;
     let mut arms = Vec::new();
-    let mut controls = vec![
-        Control::Full,
-        Control::ValuesDisabled,
-        Control::H4Disabled,
-        Control::ZetaDisabled,
-    ];
-    if options.lexeme_cues {
+    let completion = model.value_completion_version().is_some();
+    let mut controls = if options.controls == "full" {
+        vec![Control::Full]
+    } else if completion {
+        vec![
+            Control::Full,
+            Control::ValueCompletionDisabled,
+            Control::ValueCompletionGeometryDisabled,
+            Control::ValuesDisabled,
+        ]
+    } else {
+        vec![
+            Control::Full,
+            Control::ValuesDisabled,
+            Control::H4Disabled,
+            Control::ZetaDisabled,
+        ]
+    };
+    if options.lexeme_cues && options.controls == "all" && !completion {
         // Suppress kind-16 features in this fitted artifact while retaining its
         // state. This measures feature sensitivity, not a separately fitted
         // matched baseline.
@@ -645,10 +690,21 @@ fn evaluate(
         if control == Control::ValueLexemesDisabled {
             arm["scope"] = json!("Within-artifact lexical-feature sensitivity: kind-16 query-position/source-word match features disabled while retaining the same fitted artifact and state. This is not a separately fitted matched baseline.");
         }
-        write_json(
-            &options.output_dir.join(format!("arm-{}.json", arms.len())),
-            &arm,
-        )?;
+        if control == Control::ValueCompletionDisabled {
+            arm["scope"] = json!("Within-artifact completion-feature suppression. Typed operand selection and numeral emission remain enabled. This is not a separately fitted matched baseline.");
+        }
+        if control == Control::ValueCompletionGeometryDisabled {
+            arm["scope"] = json!("Within-artifact suppression of completion H4/orientation/phase feature contributions. The underlying typed-value and ordinary model geometry remain enabled. This measures feature sensitivity, not separately fitted matched training or general geometric advantage.");
+        }
+        // Completion reports retain the complete generation objects once in
+        // report.json to keep the model, exact outputs and traces within the
+        // configured output allowance. Historical typed-only files stay intact.
+        if !completion {
+            write_json(
+                &options.output_dir.join(format!("arm-{}.json", arms.len())),
+                &arm,
+            )?;
+        }
         arms.push(arm);
     }
     Ok(json!(arms))
@@ -724,6 +780,14 @@ fn evaluate_binding(
 
 fn main() -> ProbeResult<()> {
     let options = Options::parse()?;
+    let output_limit = if options.mode == "completion" {
+        Some(COMPLETION_OUTPUT_BYTES)
+    } else if options.controls == "full" {
+        Some(PRESERVATION_OUTPUT_BYTES)
+    } else {
+        None
+    };
+    OUTPUT_BYTES_REMAINING.store(output_limit.unwrap_or(usize::MAX), Ordering::Relaxed);
     let start = Instant::now();
     let source = source(&options)?;
     if let Some(parent) = options
@@ -764,32 +828,46 @@ fn main() -> ProbeResult<()> {
     within_limit(start, &options)?;
     let baseline = Model::from_bytes(&fs::read(&options.model)?)?;
     let input_artifact = baseline.artifact_cid().to_owned();
-    let (model, fit_report) = if options.mode == "fit" {
+    let (model, fit_report) = if ["fit", "completion"].contains(&options.mode.as_str()) {
         let examples: Vec<_> = source.fit.iter().map(Case::example).collect();
-        let config = ValueFitConfig {
-            epochs: options.epochs,
-            learning_rate: options.learning_rate,
-            max_features: options.max_features,
-        };
-        let (fitted, report) = if options.lexeme_cues {
-            baseline.fit_values_with_lexeme_cues(&examples, config)?
+        let (fitted, report) = if options.mode == "completion" {
+            let (fitted, report) = baseline.fit_value_completion(
+                &examples,
+                ValueCompletionFitConfig {
+                    epochs: options.epochs,
+                    learning_rate: options.learning_rate,
+                    max_positions: options.completion_max_positions,
+                },
+            )?;
+            write_json(&options.output_dir.join("fit-report.json"), &report)?;
+            (fitted, serde_json::to_value(report)?)
         } else {
-            baseline.fit_values(&examples, config)?
+            let config = ValueFitConfig {
+                epochs: options.epochs,
+                learning_rate: options.learning_rate,
+                max_features: options.max_features,
+            };
+            let (fitted, report) = if options.lexeme_cues {
+                baseline.fit_values_with_lexeme_cues(&examples, config)?
+            } else {
+                baseline.fit_values(&examples, config)?
+            };
+            write_json(&options.output_dir.join("fit-report.json"), &report)?;
+            (fitted, serde_json::to_value(report)?)
         };
-        write_json(&options.output_dir.join("fit-report.json"), &report)?;
         write_new(&options.output_dir.join("model.json"), &fitted.to_bytes()?)?;
         // Evaluate the serialized/reloaded artifact, not only the trainer's
         // in-memory object. Parent monitoring charges this loading/serialization.
         let reloaded = Model::from_bytes(&fs::read(options.output_dir.join("model.json"))?)?;
-        (reloaded, Some(serde_json::to_value(report)?))
+        (reloaded, Some(report))
     } else {
         (baseline, None)
     };
     within_limit(start, &options)?;
     let arms = evaluate(&model, &source, &options, start)?;
     let binding_controls = evaluate_binding(&model, &binding_source, &options, start)?;
-    let report = json!({
-        "schema":if options.lexeme_cues { "uor-r4.native-typed-value-probe/2" } else { "uor-r4.native-typed-value-probe/1" },
+    let mut report = json!({
+        "schema":if model.value_completion_version().is_some() { "uor-r4.native-value-completion-probe/1" } else if options.lexeme_cues { "uor-r4.native-typed-value-probe/2" } else { "uor-r4.native-typed-value-probe/1" },
         "status":"completed",
         "scope":source.scope,
         "tokenization_law":source.tokenization_law,
@@ -809,6 +887,18 @@ fn main() -> ProbeResult<()> {
         "compilation":"NOT_RUN: exact generated Rust saved for separate inspected-source assessment",
         "execution":"NOT_RUN",
     });
+    if let Some(version) = model.value_completion_version() {
+        report["completion_operator_version"] = json!(version);
+        report["completion_scope"] = json!("Same /2 raw source and unchanged OPEN development targets. Fitting follows actual upstream numeral rollouts, then supervises ordinary suffix bytes and EOS; no generated suffix or target template is appended. Completion traces describe the learned step transitions. Primary and binding controls remain reused design feedback, not final held-out evaluation.");
+    }
+    if options.controls != "all" {
+        report["controls_selection"] = json!(options.controls);
+    }
+    if let Some(limit) = output_limit {
+        report["resources"]["output_bytes_limit"] = json!(limit);
+        report["resources"]["output_bytes_before_report"] =
+            json!(limit - OUTPUT_BYTES_REMAINING.load(Ordering::Relaxed));
+    }
     write_json(&options.output_dir.join("report.json"), &report)?;
     println!(
         "{}",

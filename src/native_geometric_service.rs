@@ -411,6 +411,7 @@ impl Service {
         let mut output = Vec::new();
         let mut response_trace = Vec::new();
         let mut value_trace = Vec::new();
+        let mut completion_trace = Vec::new();
         let mut output_bytes = 0;
         let mut stop = "token_limit";
         for _ in 0..request.max_tokens {
@@ -427,6 +428,11 @@ impl Service {
             if let Some(decision) = session.value_decision() {
                 if value_trace.len() < 96 {
                     value_trace.push(decision);
+                }
+            }
+            if let Some(decision) = session.completion_decision() {
+                if completion_trace.len() < 96 {
+                    completion_trace.push(decision);
                 }
             }
             if let Some(decision) = session.response_decision() {
@@ -456,15 +462,17 @@ impl Service {
             .persist(&request.session_id, &session)
             .err()
             .map(|error| error.to_string());
-        Ok(
-            json!({"backend":BACKEND,"artifact_cid":self.model.artifact_cid(),"session_id":request.session_id,
+        let mut response = json!({"backend":BACKEND,"artifact_cid":self.model.artifact_cid(),"session_id":request.session_id,
             "memory_read_version":self.model.memory_read_version(),
             "text":text,"utf8_valid":utf8_valid,"bytes":bytes,"tokens":output,"stop":stop,
             "response_trace":response_trace,"value_trace":value_trace,
             "prompt_tokens":prompt.len(),"observed_prompt_tokens":observed_prompt,
             "state":session.state(),"session_work":session.work,
-            "persisted":self.session_directory.is_some() && persist_error.is_none(),"persistence_error":persist_error}),
-        )
+            "persisted":self.session_directory.is_some() && persist_error.is_none(),"persistence_error":persist_error});
+        if self.model.value_completion_version().is_some() {
+            response["completion_trace"] = json!(completion_trace);
+        }
+        Ok(response)
     }
     fn info(&self) -> Value {
         json!({"backend":BACKEND,"artifact_cid":self.model.artifact_cid(),
@@ -1152,6 +1160,92 @@ mod tests {
             trace.extend(second["value_trace"].as_array().unwrap().iter().cloned());
             assert_eq!(json!(tokens), complete["tokens"]);
             assert_eq!(json!(trace), complete["value_trace"]);
+            assert_eq!(second["state"], complete["state"]);
+            assert_eq!(second["session_work"], complete["session_work"]);
+            assert_eq!(second["session_work"]["values"]["derived_writes"], 1);
+        }
+    }
+
+    #[test]
+    fn native_geometric_completion_http_resumes_actual_suffix_and_stop() {
+        use uor_r4_core::native_geometric::{
+            ValueCompletionFitConfig, ValueExample, ValueFitConfig,
+        };
+        let examples = (0..4)
+            .map(|index| ValueExample {
+                id: format!("completion-service-fit-{index}"),
+                prompt: format!("left = {}; right = 4; total:", 13 + index),
+                response: format!("{}.\n", 17 + index),
+            })
+            .collect::<Vec<_>>();
+        let (typed, _) = model()
+            .fit_values_with_lexeme_cues(
+                &examples,
+                ValueFitConfig {
+                    epochs: 32,
+                    learning_rate: 0.25,
+                    max_features: 4096,
+                },
+            )
+            .unwrap();
+        let (fitted, report) = typed
+            .fit_value_completion(&examples, ValueCompletionFitConfig::default())
+            .unwrap();
+        assert_eq!(report.matched_numeric, 4);
+        let restored_model = Model::from_bytes(&fitted.to_bytes().unwrap()).unwrap();
+        let service = Arc::new(Service::new(restored_model, None).unwrap());
+        let complete_id = id(&post(Arc::clone(&service), "/api/session", json!({})));
+        let split_id = id(&post(Arc::clone(&service), "/api/session", json!({})));
+        let complete = post(
+            Arc::clone(&service),
+            "/api/generate",
+            json!({"session_id":complete_id,"prompt":examples[0].prompt,"max_tokens":16}),
+        );
+        assert_eq!(complete["text"], "17.\n");
+        assert_eq!(complete["stop"], "end_of_sequence");
+        let first = post(
+            Arc::clone(&service),
+            "/api/generate",
+            json!({"session_id":split_id,"prompt":examples[0].prompt,"max_tokens":3}),
+        );
+        assert_eq!(first["text"], "17.");
+        assert_eq!(first["state"]["completion"]["active"], true);
+        assert_eq!(first["state"]["completion"]["steps"], 1);
+        let exported = post(
+            Arc::clone(&service),
+            "/api/export",
+            json!({"session_id":split_id}),
+        );
+        assert_eq!(
+            exported["checkpoint"]["schema"],
+            "uor-r4.native-geometric-session/4"
+        );
+        let imported_id = id(&post(
+            Arc::clone(&service),
+            "/api/import",
+            json!({"checkpoint":exported["checkpoint"]}),
+        ));
+        for session_id in [split_id, imported_id] {
+            let second = post(
+                Arc::clone(&service),
+                "/api/generate",
+                json!({"session_id":session_id,"prompt":"","max_tokens":16}),
+            );
+            assert_eq!(second["observed_prompt_tokens"], 0);
+            assert_eq!(second["text"], "\n");
+            assert_eq!(second["stop"], "end_of_sequence");
+            let mut tokens = first["tokens"].as_array().unwrap().clone();
+            tokens.extend(second["tokens"].as_array().unwrap().iter().cloned());
+            let mut trace = first["completion_trace"].as_array().unwrap().clone();
+            trace.extend(
+                second["completion_trace"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .cloned(),
+            );
+            assert_eq!(json!(tokens), complete["tokens"]);
+            assert_eq!(json!(trace), complete["completion_trace"]);
             assert_eq!(second["state"], complete["state"]);
             assert_eq!(second["session_work"], complete["session_work"]);
             assert_eq!(second["session_work"]["values"]["derived_writes"], 1);

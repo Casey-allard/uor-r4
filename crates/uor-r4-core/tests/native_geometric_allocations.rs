@@ -7,8 +7,8 @@ use std::cell::Cell;
 
 use uor_r4_core::native_geometric::{
     Config, Control, Document, MemoryReadFitConfig, MemoryReadSchedule, MemoryReadSupervision,
-    MemoryReadTokenSpan, MemoryReadTrainer, ReadoutFitConfig, Trainer, ValueExample,
-    ValueFitConfig, BOS, EOS,
+    MemoryReadTokenSpan, MemoryReadTrainer, ReadoutFitConfig, Trainer, ValueCompletionFitConfig,
+    ValueExample, ValueFitConfig, BOS, EOS,
 };
 
 struct CountingAllocator;
@@ -97,6 +97,7 @@ fn native_kernel_source_has_no_forbidden_arithmetic_or_float_types() {
         "fn end_response(",
         "fn response_decision(",
         "fn value_decision(",
+        "fn completion_decision(",
         "fn recent(",
         "fn features(",
         "fn score_candidate(",
@@ -175,6 +176,31 @@ fn native_kernel_source_has_no_forbidden_arithmetic_or_float_types() {
             "typed-value kernel coverage includes {function}"
         );
     }
+    let completion = include_str!("../src/native_geometric/completion_runtime.rs");
+    for function in [
+        "fn reset(",
+        "fn observe(",
+        "fn features(",
+        "fn offer(",
+        "fn selected(",
+        "fn candidates(",
+        "fn offer_token(",
+        "fn score_candidate(",
+    ] {
+        assert_eq!(
+            completion.matches(function).count(),
+            1,
+            "completion kernel coverage includes {function}"
+        );
+    }
+    let completion_types = include_str!("../src/native_geometric/completion_types.rs");
+    let seed = completion_types
+        .split_once("impl From<&ValueDecision> for CompletionSeed {")
+        .unwrap()
+        .1
+        .split_once("#[derive")
+        .unwrap()
+        .0;
     let (_, numeral, _) = region(
         include_str!("../src/native_geometric/numeral.rs"),
         "// NATIVE_GEOMETRIC_INTEGER_KERNEL_BEGIN",
@@ -209,6 +235,8 @@ fn native_kernel_source_has_no_forbidden_arithmetic_or_float_types() {
         ("native memory runtime", memory),
         ("native response runtime", response),
         ("native typed-value runtime", value_runtime),
+        ("native completion runtime", completion),
+        ("native completion seed", seed),
         ("native numeral codec", numeral),
         ("native whole-word codec", lexemes),
         ("exact ZPhi checked addition", zphi_add),
@@ -319,6 +347,84 @@ fn typed_value_allocation_census(lexeme_cues: bool) {
         "typed-value census allocations={allocations} bytes={bytes} work={:?}",
         session.work.values
     );
+}
+
+#[test]
+fn native_value_completion_commit_mismatch_and_limit_are_allocation_free() {
+    let documents = [Document {
+        id: "completion-allocation-catalog".into(),
+        text: "left = 13; right = 4; total: 17.\n".into(),
+    }];
+    let mut trainer = Trainer::new(
+        Config {
+            context_tokens: 32,
+            candidate_limit: 8,
+            ..Config::default()
+        },
+        &documents,
+    )
+    .unwrap();
+    trainer.train_documents(&documents).unwrap();
+    let baseline = trainer.compile().unwrap();
+    let source = [ValueExample {
+        id: "completion-allocation-fit".into(),
+        prompt: "left = 13; right = 4; total:".into(),
+        response: "17.\n".into(),
+    }];
+    let (typed, _) = baseline
+        .fit_values_with_lexeme_cues(
+            &source,
+            ValueFitConfig {
+                epochs: 64,
+                learning_rate: 0.25,
+                max_features: 4096,
+            },
+        )
+        .unwrap();
+    let (model, report) = typed
+        .fit_value_completion(&source, ValueCompletionFitConfig::default())
+        .unwrap();
+    assert_eq!(report.matched_numeric, 1);
+    let prompt = model.encode(&source[0].prompt).unwrap();
+    let mut session = model.session(Control::Full).unwrap();
+    let storage = session.state().completion.unwrap().storage_bytes;
+    ALLOCATIONS.with(|count| count.set(0));
+    BYTES.with(|count| count.set(0));
+    MEASURING.with(|enabled| enabled.set(true));
+    let result = (|| {
+        session.observe(&model, BOS)?;
+        for _ in 0..4 {
+            session.end_response(&model)?;
+            for &token in &prompt {
+                session.observe(&model, token)?;
+            }
+            session.begin_response(&model)?;
+            for _ in 0..2 {
+                let next = session.predict(&model)?.token;
+                session.observe(&model, next)?;
+            }
+            // Commit one learned suffix token, then deliberately observe a
+            // different byte and exercise the finite progress limit.
+            let next = session.predict(&model)?.token;
+            session.observe(&model, next)?;
+            session.predict(&model)?;
+            session.observe(&model, u32::from(b'x') + 2)?;
+            for _ in 0..31 {
+                session.predict(&model)?;
+                session.observe(&model, u32::from(b'x') + 2)?;
+            }
+        }
+        Ok::<_, uor_r4_core::native_geometric::Error>(())
+    })();
+    MEASURING.with(|enabled| enabled.set(false));
+    result.unwrap();
+    assert_eq!((ALLOCATIONS.with(Cell::get), BYTES.with(Cell::get)), (0, 0));
+    assert_eq!(session.state().completion.unwrap().storage_bytes, storage);
+    assert_eq!(session.work.completion.anchors, 4);
+    assert!(session.work.completion.commits > 0);
+    assert!(session.work.completion.mismatches > 0);
+    assert_eq!(session.work.completion.step_limits, 4);
+    assert!(session.work.evictions > 0);
 }
 
 #[test]

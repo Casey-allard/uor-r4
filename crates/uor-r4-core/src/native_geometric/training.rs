@@ -188,6 +188,7 @@ impl Trainer {
             readout: super::mixture::Readout::default(),
             readout_training: Vec::new(),
             values: None,
+            completion: None,
             memory_read: None,
         };
         template.refresh_identity()?;
@@ -507,6 +508,9 @@ impl Model {
         if let Some(values) = &self.values {
             values.validate()?;
         }
+        if let Some(completion) = &self.completion {
+            completion.validate(self)?;
+        }
         self.readout.validate(self)?;
         if let Some(memory) = &self.memory_read {
             memory.validate(self)?;
@@ -642,9 +646,15 @@ impl Model {
         let mut token_ids = Vec::new();
         let mut response_trace = Vec::new();
         let mut value_trace = Vec::new();
+        let mut completion_trace = Vec::new();
         let mut stop = "token_budget".to_owned();
         for _ in 0..max_new_tokens {
             let token = session.predict(self)?.token;
+            if let Some(decision) = session.completion_decision() {
+                if completion_trace.len() < 96 {
+                    completion_trace.push(decision);
+                }
+            }
             if let Some(decision) = session.value_decision() {
                 if value_trace.len() < 96 {
                     value_trace.push(decision);
@@ -674,6 +684,7 @@ impl Model {
             token_ids,
             response_trace,
             value_trace,
+            completion_trace,
             stop,
             work: session.work,
             state: session.state(),
@@ -697,6 +708,7 @@ impl Model {
                     .chain(&self.readout_training)
                     .chain(self.memory_read_training())
                     .chain(self.value_training())
+                    .chain(self.value_completion_training())
                     .any(|known| known.id == candidate.id || known.text_cid == candidate.text_cid)
             {
                 return Err(Error(format!(

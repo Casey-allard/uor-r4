@@ -292,3 +292,14 @@ Actual queue steps determine test evidence; four historical required statuses
 only acknowledge deferred work. Clippy, broad release QA, `no_std`, κ, audit,
 fuzzing, WASM, Gate C and final held-out qualification are **NOT_RUN** in this
 development step. Issue #973 remains open for the broader native model objective.
+
+## Completion follow-through — 2026-09-05
+
+The subsequent [learned completion head](native_geometric_value_completion_973.md)
+preserves both typed artifacts and the exact `/2` baseline. It learns suffix
+progression and EOS after actual numeral emission, completing all 24 numeric
+open-development cases and both sides of all four binding pairs. Sixteen of
+twenty saved Rust records compile and execute with passing assertions (fourteen
+distinct successful source hashes); the eight NoWrite primary cases remain
+incorrect. These later results do not rewrite the two preceding fits or their
+then-untrained suffix failures.

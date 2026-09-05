@@ -7,6 +7,8 @@ Separate readout fitting learns bounded integer gates over seven feature groups
 and sufficiently supported last-prime query keys. It does not yet learn the
 ordinary token memory-write law. The optional typed-value component separately
 learns operand/action selection and whether to write its result.
+An optional completion component learns byte/EOS transitions after a committed
+typed numeral, while preserving that upstream model.
 An optional learned memory reader retrieves actual retained token values through
 prime-addressed postings, query/source offsets and relative H4/zeta features.
 It is versioned separately in the artifact; the original fixed/readout-only
@@ -57,6 +59,84 @@ native service. `--control values-disabled` suppresses typed candidates;
 schema `/3` preserves committed derived values and emission cursor, including
 empty HTTP continuation after export/import. `Session::begin_response` starts
 new value selection; a continuing response must retain its active state.
+
+### Complete committed typed values — 2026-09-05
+
+`Model::fit_value_completion` adds the optional
+`uor-r4.native-value-completion/1` component to a fitted typed `/2` model. It
+uses the same raw `ValueExample` prompt/response pairs; it first follows the
+frozen upstream model's actual numeral-byte decisions, then learns individual
+suffix bytes and EOS. It accepts a training suffix only after the emitted
+number matches the complete canonical leading numeral. It cannot repair an
+incorrect number, choose target operands or append a stored answer template.
+NoWrite cases are reported and skipped because they have no committed numeral.
+
+```sh
+target/release/examples/native_geometric_value_probe completion \
+  --model /absolute/path/to/typed-fit-2/model.json \
+  --source /absolute/path/to/typed-fit-2/source.json \
+  --lexeme-cues true --output-dir /absolute/path/to/new-completion-run \
+  --epochs 24 --learning-rate 0.1 --completion-max-positions 4096 \
+  --generated-tokens 32 --max-seconds 120
+```
+
+Admit a run only when its projected work fits the remaining cumulative limits.
+Preserve the existing `/2` artifact and use the inherited resource monitor and
+a new output directory. The component bounds fitting to 4,096 positions, 4,096
+rows and 32,768 associations; rows and token postings are learned only from
+construction frames. Floating-point fitting exports integer scores and chooses
+the epoch using the quantized serving rule. The report separates skipped
+NoWrite, upstream failures, capacity drops, candidate coverage and fit accuracy.
+
+The completed first fit is at
+`/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/completion-fit-1/model.json`,
+CID `blake3:a1fa0314924fb324f994e449cce6e69793d6c4df6102353a959363cb766009ff`.
+Its baseline remains `fit-2/model.json` under that root, CID
+`blake3:af5f892e7f10680266911e2f5f6fb0aa96a5f25b1894d2f191f0a6b1179843f5`.
+The fit used 160 numeric and 32 skipped NoWrite examples from the existing 192
+pairs, reaching 720/720 exported fit positions with 192 rows/289 associations.
+Full produces 12/16 exact prose and 12/16 exact Rust responses on the reused
+open development: all 24 numeric responses now complete, while the eight
+NoWrite responses remain incorrect. This does not replace the prior typed-only
+negative or qualify general conversation, dependency execution or coding.
+
+The same artifact supports `value-completion-disabled` and
+`value-completion-geometry-disabled` in `r4 geometric --control` operations.
+The former restores the 2/16 prose and 0/16 Rust exact results; the latter gives
+0/16 in each family with the same six completion candidates. Both preserve
+24/24 correct leading numerals. These are within-artifact interventions, not
+independently fitted controls. The probe's completion mode includes Full,
+both completion controls and ValuesDisabled. `evaluate --controls full` selects
+only Full, including its separate binding pairs, for a bounded preservation
+replay; it must use the existing source and `--lexeme-cues true`.
+
+Generation exposes `completion_trace` from the actual rollout. Low-level
+callers use the existing predict/observe and response-boundary methods; the
+component anchors only after the last predicted numeral byte is observed.
+Session schema `/4` persists that anchor and actual suffix history, with pending
+predictions recomputed after restore. It supports empty HTTP continuation after
+checkpoint import. New input closes the active response. At most 32 observed
+suffix steps are retained; EOS closes the state, and mismatches advance actual
+history without selecting a hidden target transition. Models without the
+component retain their prior serialized bytes and behavior.
+
+Per active prediction, the added bound is 16 feature queries, 80 posting offers,
+1,280 candidate equality comparisons, 16 candidate scores and 256 score lookups,
+plus two H4 reads, one orientation read and eight phase differences. Binary
+search, fixed buffers, observation copies and all ordinary `/4` and typed `/2`
+work remain in the cost; this is not a replacement for their computation.
+The [mechanism map](native_geometric_mechanism_map_973.md#committed-value-completion--2026-09-05)
+gives format/search/storage bounds and the primary-source routing comparison.
+Token postings restrict scoring; `/2` still executes all valid checked Adds
+before ranking. Sparse MoE routes before costly expert execution, including
+capacity/drop and dispatch costs. The native heads contain no dense experts,
+and no speed advantage or learned multiscale abstraction follows from these
+bounded routing mechanisms alone.
+The [completion record](native_geometric_value_completion_973.md) and
+[compact evidence](evidence/native_geometric_value_completion_973.json) bind
+the artifact, direct outputs, controls and separate compiler/execution results.
+
+### General corpus preparation
 
 The general corpus preparation command remains:
 
