@@ -345,24 +345,39 @@ impl Session {
             }
         }
         if self.control != Control::MemoryDisabled {
+            let occurrence_composition = model.memory_read.as_ref().is_some_and(|memory| {
+                memory.schema == super::memory_types::OCCURRENCE_MEMORY_SCHEMA
+            });
             if let (Some(state), Some(memory)) = (&mut self.memory, &model.memory_read) {
                 state.collect(model, memory, self.control, &mut self.work);
             }
             let memory_count = self
                 .memory
                 .as_ref()
-                .map(|state| state.candidates.len())
+                .map(|state| {
+                    if occurrence_composition {
+                        state.composed.len()
+                    } else {
+                        state.candidates.len()
+                    }
+                })
                 .unwrap_or(0);
             for index in 0..memory_count {
                 if let Some(state) = &self.memory {
-                    let candidate = state.candidates[index];
-                    self.offer_memory(
-                        model,
+                    let candidate = if occurrence_composition {
+                        let candidate = state.composed[index];
                         Candidate {
                             token: candidate.token,
                             score: candidate.score,
-                        },
-                    );
+                        }
+                    } else {
+                        let candidate = state.candidates[index];
+                        Candidate {
+                            token: candidate.token,
+                            score: candidate.score,
+                        }
+                    };
+                    self.offer_memory(model, candidate);
                 }
             }
         }

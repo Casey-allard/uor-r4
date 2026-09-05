@@ -125,7 +125,8 @@ impl MemoryState {
             .recent(1)
             .map(|entry| model.geometry.tokens[entry.token as usize].prime)
             .unwrap_or(2);
-        let query_context = memory.schema == QUERY_CONTEXT_MEMORY_SCHEMA;
+        let occurrence_composition = memory.schema == OCCURRENCE_MEMORY_SCHEMA;
+        let query_context = memory.schema == QUERY_CONTEXT_MEMORY_SCHEMA || occurrence_composition;
         let previous_query = if query_context {
             self.recent(2)
                 .map(|entry| model.geometry.tokens[entry.token as usize].prime)
@@ -140,13 +141,13 @@ impl MemoryState {
         'queries: for offset in 0..memory.config.postings_per_address {
             for source_distance in 1..=memory.config.source_offsets {
                 for query_distance in 1..=memory.config.query_tokens {
-                    let Some(query) = self.recent(query_distance) else {
+                    let Some(query_entry) = self.recent(query_distance) else {
                         break;
                     };
                     if visits >= memory.config.candidate_limit {
                         break 'queries;
                     }
-                    let query = cue_identity(memory, query.token, work);
+                    let query = cue_identity(memory, query_entry.token, work);
                     let base = (((query as usize) << memory.source_shift) | (source_distance - 1))
                         << memory.posting_shift;
                     visits += 1;
@@ -175,10 +176,56 @@ impl MemoryState {
                         remaining >>= 1;
                         age_bin += 1;
                     }
-                    let inverse = model.geometry.inverses[usize::from(value.pose)];
-                    let relative = model.geometry.products
-                        [model.geometry.row_bases[usize::from(inverse)] + usize::from(self.pose)];
-                    work.memory_h4_reads = work.memory_h4_reads.saturating_add(2);
+                    let mut relative_phases = [0_u16; PHASE_CHANNELS];
+                    let relative = if occurrence_composition {
+                        // The retained source cue and query cue delimit two
+                        // causal local paths. Compare their transported states,
+                        // rather than including the unrelated text between the
+                        // source value and query in the geometric relation.
+                        let source_slot = if reference.slot >= source_distance {
+                            reference.slot - source_distance
+                        } else {
+                            self.ring.len() - (source_distance - reference.slot)
+                        };
+                        let source_cue = self.ring[source_slot];
+                        let source_inverse = model.geometry.inverses[usize::from(source_cue.pose)];
+                        let source_path = model.geometry.products[model.geometry.row_bases
+                            [usize::from(source_inverse)]
+                            + usize::from(value.pose)];
+                        let query_inverse = model.geometry.inverses[usize::from(query_entry.pose)];
+                        let query_path = model.geometry.products[model.geometry.row_bases
+                            [usize::from(query_inverse)]
+                            + usize::from(self.pose)];
+                        let path_inverse = model.geometry.inverses[usize::from(source_path)];
+                        let relative = model.geometry.products[model.geometry.row_bases
+                            [usize::from(path_inverse)]
+                            + usize::from(query_path)];
+                        work.memory_h4_reads = work.memory_h4_reads.saturating_add(6);
+                        for (channel, phase) in relative_phases.iter_mut().enumerate() {
+                            let query_phase =
+                                self.phases[channel].wrapping_sub(query_entry.phases[channel]);
+                            let source_phase =
+                                value.phases[channel].wrapping_sub(source_cue.phases[channel]);
+                            *phase = query_phase.wrapping_sub(source_phase);
+                        }
+                        work.memory_phase_updates = work.memory_phase_updates.saturating_add(
+                            (PHASE_CHANNELS + PHASE_CHANNELS + PHASE_CHANNELS) as u64,
+                        );
+                        relative
+                    } else {
+                        let inverse = model.geometry.inverses[usize::from(value.pose)];
+                        let relative = model.geometry.products[model.geometry.row_bases
+                            [usize::from(inverse)]
+                            + usize::from(self.pose)];
+                        work.memory_h4_reads = work.memory_h4_reads.saturating_add(2);
+                        for (channel, phase) in relative_phases.iter_mut().enumerate() {
+                            *phase = self.phases[channel].wrapping_sub(value.phases[channel]);
+                        }
+                        work.memory_phase_updates = work
+                            .memory_phase_updates
+                            .saturating_add(PHASE_CHANNELS as u64);
+                        relative
+                    };
                     let offsets = ((query_distance as u64) << 8) | source_distance as u64;
                     let mut features = [MemoryFeature { kind: 0, value: 0 }; MEMORY_FEATURE_COUNT];
                     features[0] = MemoryFeature { kind: 0, value: 0 };
@@ -211,19 +258,14 @@ impl MemoryState {
                         value: u64::from(model.geometry.orientation[usize::from(relative)]),
                     };
                     work.memory_h4_reads = work.memory_h4_reads.saturating_add(1);
-                    for channel in 0..PHASE_CHANNELS {
+                    for (channel, phase) in relative_phases.into_iter().enumerate() {
                         // Subtract full phases before binning, preserving common
                         // frame-offset invariance across checkpoint replay.
                         features[8 + channel] = MemoryFeature {
                             kind: 8 + channel as u8,
-                            value: u64::from(
-                                self.phases[channel].wrapping_sub(value.phases[channel]) >> 12,
-                            ),
+                            value: u64::from(phase >> 12),
                         };
                     }
-                    work.memory_phase_updates = work
-                        .memory_phase_updates
-                        .saturating_add(PHASE_CHANNELS as u64);
                     if query_context {
                         features[16] = MemoryFeature {
                             kind: 16,
@@ -257,19 +299,25 @@ impl MemoryState {
                         };
                     }
                     let mut score = i64::from(model.prior_scores[value.token as usize]);
-                    for feature in features {
-                        if !feature.admitted(control) {
-                            continue;
-                        }
-                        work.memory_score_lookups = work.memory_score_lookups.saturating_add(1);
-                        if let Ok(index) = memory
-                            .rows
-                            .binary_search_by_key(&feature, |row| row.feature)
-                        {
-                            score += i64::from(memory.rows[index].score);
+                    // /4 flat routes retain identity/features for diagnostics;
+                    // their score is a prior-only placeholder. Only the unique
+                    // occurrence union below consumes fitted weights.
+                    if !occurrence_composition {
+                        for feature in features {
+                            if !feature.admitted(control) {
+                                continue;
+                            }
+                            work.memory_score_lookups = work.memory_score_lookups.saturating_add(1);
+                            if let Ok(index) = memory
+                                .rows
+                                .binary_search_by_key(&feature, |row| row.feature)
+                            {
+                                score += i64::from(memory.rows[index].score);
+                            }
                         }
                     }
                     self.candidates.push(MemoryCandidate {
+                        sequence: reference.sequence,
                         token: value.token,
                         score,
                         features,
@@ -278,5 +326,99 @@ impl MemoryState {
                 }
             }
         }
+        self.composed.clear();
+        self.composition_features.clear();
+        if occurrence_composition {
+            self.compose_occurrences(model, memory, control, work);
+        }
+    }
+
+    /// Schema-/4 combines evidence for the same retained occurrence. Each
+    /// explicit feature address contributes once, even when several routes
+    /// expose it. Distinct occurrences of an equal token remain separate.
+    /// Capacity is at most the flat route count and 18 features per flat route;
+    /// insertion only shifts the current occurrence's already allocated tail.
+    fn compose_occurrences(
+        &mut self,
+        model: &Model,
+        memory: &MemoryModel,
+        control: Control,
+        work: &mut Work,
+    ) {
+        for candidate_index in 0..self.candidates.len() {
+            let candidate = self.candidates[candidate_index];
+            let mut already_composed = false;
+            for known in &self.composed {
+                work.memory_composition_comparisons =
+                    work.memory_composition_comparisons.saturating_add(1);
+                if known.sequence == candidate.sequence {
+                    already_composed = true;
+                    break;
+                }
+            }
+            if already_composed {
+                continue;
+            }
+            let feature_start = self.composition_features.len();
+            for route in &self.candidates {
+                work.memory_composition_comparisons =
+                    work.memory_composition_comparisons.saturating_add(1);
+                if route.sequence != candidate.sequence {
+                    continue;
+                }
+                for feature in route.features {
+                    work.memory_composition_feature_offers =
+                        work.memory_composition_feature_offers.saturating_add(1);
+                    let mut lower = feature_start;
+                    let mut upper = self.composition_features.len();
+                    while lower < upper {
+                        let middle = lower + ((upper - lower) >> 1);
+                        work.memory_composition_comparisons =
+                            work.memory_composition_comparisons.saturating_add(1);
+                        if self.composition_features[middle] < feature {
+                            lower = middle + 1;
+                        } else {
+                            upper = middle;
+                        }
+                    }
+                    if lower < self.composition_features.len() {
+                        work.memory_composition_comparisons =
+                            work.memory_composition_comparisons.saturating_add(1);
+                        if self.composition_features[lower] == feature {
+                            work.memory_composition_duplicate_features =
+                                work.memory_composition_duplicate_features.saturating_add(1);
+                            continue;
+                        }
+                    }
+                    work.memory_composition_feature_moves = work
+                        .memory_composition_feature_moves
+                        .saturating_add((self.composition_features.len() - lower) as u64);
+                    self.composition_features.insert(lower, feature);
+                }
+            }
+            let feature_count = self.composition_features.len() - feature_start;
+            let mut score = i64::from(model.prior_scores[candidate.token as usize]);
+            for feature in &self.composition_features[feature_start..] {
+                if !feature.admitted(control) {
+                    continue;
+                }
+                work.memory_score_lookups = work.memory_score_lookups.saturating_add(1);
+                if let Ok(index) = memory.rows.binary_search_by_key(feature, |row| row.feature) {
+                    score += i64::from(memory.rows[index].score);
+                }
+            }
+            self.composed.push(ComposedCandidate {
+                sequence: candidate.sequence,
+                token: candidate.token,
+                score,
+                feature_start,
+                feature_count,
+            });
+            work.memory_composed_candidates = work.memory_composed_candidates.saturating_add(1);
+        }
     }
 }
+
+#[cfg(test)]
+#[path = "memory_runtime_tests.rs"]
+mod tests;

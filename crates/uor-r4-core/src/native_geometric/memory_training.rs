@@ -44,9 +44,12 @@ impl Session {
         let (Some(state), Some(operator)) = (&self.memory, &model.memory_read) else {
             return Ok(None);
         };
-        if operator.schema != QUERY_CONTEXT_MEMORY_SCHEMA {
+        if !matches!(
+            operator.schema.as_str(),
+            QUERY_CONTEXT_MEMORY_SCHEMA | OCCURRENCE_MEMORY_SCHEMA
+        ) {
             return Err(Error(
-                "query-context coverage diagnostic requires the /3 reader".into(),
+                "query-context coverage diagnostic requires the /3 or /4 reader".into(),
             ));
         }
         let registered = state
@@ -77,7 +80,7 @@ const ABSENT: usize = usize::MAX;
 struct Alternative {
     token: u32,
     constant: i32,
-    features: Option<[usize; MEMORY_FEATURE_COUNT]>,
+    features: Option<Vec<usize>>,
 }
 struct Example {
     target: u32,
@@ -157,6 +160,17 @@ fn memory_feature_names(query_context: bool) -> Vec<String> {
     names
 }
 
+fn occurrence_feature_names() -> Vec<String> {
+    let mut names = memory_feature_names(true);
+    names[5] = "local_source_to_query_h4_path_transport".into();
+    names[6] = "local_h4_path_transport_and_offsets".into();
+    names[7] = "local_h4_path_signed_orientation".into();
+    for channel in 0..PHASE_CHANNELS {
+        names[8 + channel] = format!("local_query_minus_source_fixed_zeta_phase_{channel}");
+    }
+    names
+}
+
 pub(super) fn compile_cue_aliases(model: &Model) -> Result<CueAliases> {
     if model.lexical_pieces.len() > model.config.max_lexical_pieces
         || model.vocabulary_size() != LEXICAL_BASE as usize + model.lexical_pieces.len()
@@ -204,13 +218,20 @@ impl MemoryModel {
     pub(super) fn validate(&self, model: &Model) -> Result<()> {
         self.config.validate(model.vocabulary_size())?;
         let cue_schema_valid = match (&self.cue_aliases, self.schema.as_str()) {
-            (None, LEGACY_MEMORY_SCHEMA | QUERY_CONTEXT_MEMORY_SCHEMA) => true,
-            (Some(aliases), MEMORY_SCHEMA | QUERY_CONTEXT_MEMORY_SCHEMA) => {
-                *aliases == compile_cue_aliases(model)?
-            }
+            (
+                None,
+                LEGACY_MEMORY_SCHEMA | QUERY_CONTEXT_MEMORY_SCHEMA | OCCURRENCE_MEMORY_SCHEMA,
+            ) => true,
+            (
+                Some(aliases),
+                MEMORY_SCHEMA | QUERY_CONTEXT_MEMORY_SCHEMA | OCCURRENCE_MEMORY_SCHEMA,
+            ) => *aliases == compile_cue_aliases(model)?,
             _ => false,
         };
-        if self.schema == QUERY_CONTEXT_MEMORY_SCHEMA {
+        if matches!(
+            self.schema.as_str(),
+            QUERY_CONTEXT_MEMORY_SCHEMA | OCCURRENCE_MEMORY_SCHEMA
+        ) {
             validate_query_context_primes(model)?;
         }
         if !cue_schema_valid
@@ -249,18 +270,26 @@ impl MemoryModel {
                 "memory-read operator shape, scores or configuration invalid".into(),
             ));
         }
+        if self.schema == OCCURRENCE_MEMORY_SCHEMA && self.fit_schedule.is_none() {
+            return Err(Error(
+                "occurrence composition requires its bound stream schedule".into(),
+            ));
+        }
         if let Some(lineage) = &self.fit_schedule {
             lineage.schedule.validate(&self.config)?;
-            if self.schema != QUERY_CONTEXT_MEMORY_SCHEMA
-                || lineage.schema != resumable::REPORT_SCHEMA
+            if !matches!(
+                self.schema.as_str(),
+                QUERY_CONTEXT_MEMORY_SCHEMA | OCCURRENCE_MEMORY_SCHEMA
+            ) || lineage.schema != resumable::REPORT_SCHEMA
                 || lineage.ordered_source_cid.len() != 71
                 || !lineage.ordered_source_cid.starts_with("blake3:")
                 || lineage.configuration_cid
-                    != resumable::configuration_identity_with_supervision(
+                    != resumable::configuration_identity_for_operator(
                         self.config,
                         lineage.schedule,
                         self.cue_aliases.is_some(),
                         lineage.supervision_cid.as_deref(),
+                        self.schema == OCCURRENCE_MEMORY_SCHEMA,
                     )?
                 || lineage
                     .supervision_cid
@@ -320,7 +349,9 @@ impl Model {
     }
     pub fn memory_read_feature_layout(&self) -> Option<&str> {
         self.memory_read.as_ref().map(|memory| {
-            if memory.schema == QUERY_CONTEXT_MEMORY_SCHEMA {
+            if memory.schema == OCCURRENCE_MEMORY_SCHEMA {
+                OCCURRENCE_FEATURE_LAYOUT
+            } else if memory.schema == QUERY_CONTEXT_MEMORY_SCHEMA {
                 QUERY_CONTEXT_FEATURE_LAYOUT
             } else {
                 LEGACY_FEATURE_LAYOUT
@@ -339,6 +370,12 @@ impl Model {
                 + (self.vocabulary_size() << memory.source_shift << memory.posting_shift)
                     * std::mem::size_of::<MemoryReference>()
                 + memory.config.candidate_limit * std::mem::size_of::<MemoryCandidate>();
+            if memory.schema == OCCURRENCE_MEMORY_SCHEMA {
+                bytes += memory.config.candidate_limit * std::mem::size_of::<ComposedCandidate>()
+                    + memory.config.candidate_limit
+                        * MEMORY_FEATURE_COUNT
+                        * std::mem::size_of::<MemoryFeature>();
+            }
         }
         bytes
     }
@@ -522,7 +559,7 @@ impl Model {
                         alternatives.push(Alternative {
                             token: candidate.token,
                             constant: self.prior_scores[candidate.token as usize],
-                            features: Some(features),
+                            features: Some(features.to_vec()),
                         });
                     }
                     let mut groups = BTreeMap::<u32, Vec<usize>>::new();
@@ -1121,12 +1158,12 @@ mod pointer_warmup_tests {
                     Alternative {
                         token: 0,
                         constant: 0,
-                        features: Some(selected),
+                        features: Some(selected.to_vec()),
                     },
                     Alternative {
                         token: 1,
                         constant: 256,
-                        features: Some(fixed_memory),
+                        features: Some(fixed_memory.to_vec()),
                     },
                 ],
                 groups: vec![vec![0, 2], vec![1, 3]],

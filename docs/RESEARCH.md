@@ -12,6 +12,20 @@ windows as instructions for new work. A negative binds its exact configuration;
 resource unavailability does not determine model quality. The recovered plan
 allows open development iteration under configurable cumulative machine budgets.
 
+## Native occurrence-selection checkpoint (2026-09-05)
+
+The [source-to-response mechanism map](native_geometric_mechanism_map_973.md)
+distinguishes current native mechanisms from historical prototypes and missing
+assembly work. The [occurrence-selection record](native_geometric_occurrence_selection_973.md)
+adds explicit memory `/4`: local H4/zeta source/query paths and a unique-feature
+union at each retained occurrence. On the same corrected source and baseline,
+it improves exact prose from 5/32 to 6/32 against newly fitted `/3`, while Rust
+exact generation remains 0/32. The package does not isolate path features from
+aggregation. H4/geometry and zeta controls have mixed outcomes; no broad
+geometric or alpha claim follows. Source `/2` fixes hidden test inputs without
+rewriting historical `/1` measurements. Available-but-misselected values and
+absent computed values remain separate implementation problems.
+
 ## Historical mechanics snapshot before native recovery (2026-09-04)
 
 **Then-current measured mechanism:** `R4SparseGeometricCandidateSoftmaxKVBindingV1`

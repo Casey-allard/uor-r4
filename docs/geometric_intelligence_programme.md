@@ -2118,6 +2118,16 @@ intermediate constraints must change under the matched causal control.
 
 ### GI-6 / #962–#965 — product integration, serving purity, measured cost, and bounded release
 
+**Historical census scope (clarified 2026-09-05).** The census below preserves
+the earlier release contract. Its blanket restriction on sparse learned-router
+calls is superseded for new native development by the
+[owner-directed plan](integration/project-track.md): bounded learned geometric
+routing and operator-selection gates are permitted. A conventional dense
+transformer or dense expert stack hidden behind routing or lookup remains
+outside the target. Geometry resembling some sparse-attention or MoE functions
+requires explicit retained state, operators, information-loss and cost evidence;
+the analogy alone supplies no capability claim.
+
 #962 integrates the accepted selector/#953/#973 path into
 durable multi-turn CLI/HTTP chat, persistent conversation state, session and
 identity isolation, and load-bearing identity-scoped hive memory across turns

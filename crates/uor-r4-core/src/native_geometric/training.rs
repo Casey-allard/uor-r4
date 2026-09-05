@@ -725,6 +725,11 @@ fn add_work(total: &mut Work, work: Work) {
     total.memory_stale_rejections += work.memory_stale_rejections;
     total.memory_candidates += work.memory_candidates;
     total.memory_score_lookups += work.memory_score_lookups;
+    total.memory_composed_candidates += work.memory_composed_candidates;
+    total.memory_composition_feature_offers += work.memory_composition_feature_offers;
+    total.memory_composition_duplicate_features += work.memory_composition_duplicate_features;
+    total.memory_composition_comparisons += work.memory_composition_comparisons;
+    total.memory_composition_feature_moves += work.memory_composition_feature_moves;
     total.memory_h4_reads += work.memory_h4_reads;
     total.memory_phase_updates += work.memory_phase_updates;
     total.mixture_gate_reads += work.mixture_gate_reads;

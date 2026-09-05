@@ -10,10 +10,20 @@
   mathematical notation. Where the two overlap, this document wins for claim
   classification and the glossary wins for structural terms. The route-scope
   decision is [ADR-0004](adr/0004-geometric-intelligence-route-hierarchy.md),
-  and experiment policy is
-  [Geometric Intelligence Evaluation](geometric_intelligence_evaluation.md).
-  The latest terminal #973 empirical contract is
+  and current execution follows the
+  [native geometric AI policy](integration/agent-execution-policy.md).
+  [Geometric Intelligence Evaluation](geometric_intelligence_evaluation.md)
+  retains historical experiment protocols. A preserved #973 terminal contract is
   [`R4PredictiveBlockDeltaPromptCapacityV5`](r4_predictive_block_delta_binding_prompt_capacity_973.md).
+
+**Current authority (2026-09-05).** This document governs claim language and
+typed mathematical distinctions. The [project plan](integration/project-track.md)
+owns the goal, and [current-state.md](integration/current-state.md) owns the
+implemented model and next work. Dated results and table cells naming a
+"current" reference, a parked operation or an unimplemented boundary retain
+their original artifact scope; they do not select a new task or prohibit a
+versioned native successor. Preserve their measurements without importing a
+reference model's capability or runtime guarantees into the active model.
 
 This spec separates the statement classes that the research notes previously mixed —
 architectural definitions, compiler optimization objectives, empirical certification
@@ -183,8 +193,11 @@ by wholesale rewrite.
 
 - `scripts/check_claim_wording.py` scans `docs/**/*.md` and crate `README.md` files
   and fails on §2.1 violations. Run locally: `python3 scripts/check_claim_wording.py`.
-- Automatic CI is dormant. A named product/release decision may activate the
-  same script locally or through the manual workflow in `.github/workflows/ci.yml`.
+- Current PR and merge-group CI run the focused native checks described by the
+  [execution policy](integration/agent-execution-policy.md#verification-and-records).
+  Four historical required statuses acknowledge compatibility only. Run the
+  claim-wording script when changing claims; broader legacy release checks
+  remain separately activated. Neither status names nor unrun jobs are evidence.
 - The proof-status matrix (`proof_matrix.rs`) is the machine-readable registry for
   §2 statuses; `verify_all` fails on any `Unverified` entry.
 

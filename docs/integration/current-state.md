@@ -7,6 +7,49 @@ remains owned by [#973](https://github.com/UOR-Foundation/uor-r4/issues/973).
 Refresh live GitHub before choosing a follow-up; dated snapshots and lower
 historical “next” paragraphs do not select work.
 
+## Local-path occurrence selection — 2026-09-05
+
+The explicit native memory `/4` successor compares local source/query H4 and
+fixed-zeta paths, then combines unique learned features reaching the same
+retained occurrence. The token prior and shared bias contribute once per
+occurrence. Training and integer/table inference use that same composition;
+`--compose-occurrences` selects it in the resumable Rust fitter. It changes
+selection, without computing new values or learning memory writes.
+
+On one corrected, matched synthetic source, full `/4` improves prose first
+selection from 15/32 to 20/32, exact responses from 5/32 to 6/32 and completion
+prediction from 189/320 to 195/320 against newly fitted `/3`. Rust completion
+prediction improves from 321/504 to 328/504, while first, exact and deterministic
+function-prefix generation remain zero. Shared memory-disabled scores 4/32
+exact prose and 0/32 Rust. Two sampled `/4` Rust outputs compile but contain
+wrong assertions; they are not executed or counted as semantic passes.
+
+The `/4` package changes local paths and evidence aggregation together, so its
+gain does not isolate either component. Full `/4` has two more exact prose
+responses than H4/geometry-disabled, but one fewer correct first prediction;
+the controls disable baseline and reader terms together. Zeta-disabled improves
+exact prose to 7/32. These are scoped development outcomes, not general
+geometric advantage, a zeta benefit or alpha qualification.
+
+Source `/2` repairs historical `/1` function tasks whose full completion used
+test inputs missing from the prompt. All current test inputs are explicit;
+old source bytes and results remain preserved, without cross-source numerical
+comparisons. Both current fits use all 6,548 response-plus-EOS targets and the
+same 512-token context, bounded admission and readout baseline.
+
+The [occurrence-selection record](../native_geometric_occurrence_selection_973.md)
+contains exact identities, generated behavior, controls, costs and preservation
+evidence. The [mechanism map](../native_geometric_mechanism_map_973.md) traces
+source through artifacts, session state and response generation. The measured
+next distinction remains available-but-misselected repair/fact values versus
+computed numeric values absent from retained copy routes. Persistent query
+selection, learned writes, intermediate geometric values and useful joint
+conversation/coding remain unfinished. The cumulative model ledger is now
+784.729/1,800 seconds after final saved-artifact replay; the remaining
+1,015.271 seconds are preserved.
+
+The following sections preserve the preceding source/artifact checkpoints.
+
 ## Resumable fitting and broader joint composition
 
 The native `/3` reader now has an explicit bounded, resumable Rust fitter.

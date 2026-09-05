@@ -6,7 +6,8 @@ use std::alloc::{GlobalAlloc, Layout, System};
 use std::cell::Cell;
 
 use uor_r4_core::native_geometric::{
-    Config, Control, Document, MemoryReadFitConfig, ReadoutFitConfig, Trainer, BOS,
+    Config, Control, Document, MemoryReadFitConfig, MemoryReadSchedule, MemoryReadTrainer,
+    ReadoutFitConfig, Trainer, BOS,
 };
 
 struct CountingAllocator;
@@ -214,6 +215,24 @@ fn native_observe_predict_stays_allocation_free_through_evictions() {
     let (query_context_memory, _) = learned
         .fit_memory_read_with_query_context(&readout_documents, memory_config, true)
         .unwrap();
+    let mut composition_trainer = MemoryReadTrainer::new_with_occurrence_composition(
+        &learned,
+        &readout_documents,
+        memory_config,
+        MemoryReadSchedule {
+            total_positions: 128,
+            batch_positions: 128,
+        },
+        true,
+        None,
+    )
+    .unwrap();
+    while !composition_trainer.is_complete() {
+        composition_trainer
+            .advance(16, std::time::Duration::from_secs(10))
+            .unwrap();
+    }
+    let (occurrence_memory, _) = composition_trainer.finish().unwrap();
     assert!(
         memory_fit.target_in_memory > 0,
         "fixture must exercise fitted memory alternatives"
@@ -226,6 +245,7 @@ fn native_observe_predict_stays_allocation_free_through_evictions() {
         ("learned_memory_exact", exact_memory),
         ("learned_memory_with_aliases", with_memory),
         ("query_context_memory_with_aliases", query_context_memory),
+        ("occurrence_composition", occurrence_memory),
     ] {
         let word_cues =
             model.memory_cue_identity() == Some("leading-unicode-whitespace-word-equivalence/1");
@@ -300,6 +320,14 @@ fn native_observe_predict_stays_allocation_free_through_evictions() {
                                 as u64
                 );
                 assert!(session.work.memory_score_lookups <= session.work.memory_candidates * 18);
+                assert_eq!(
+                    before.composed_candidate_storage_bytes,
+                    after.composed_candidate_storage_bytes
+                );
+                assert_eq!(
+                    before.composition_feature_storage_bytes,
+                    after.composition_feature_storage_bytes
+                );
                 if word_cues {
                     assert!(session.work.memory_cue_reads > 0);
                 } else {

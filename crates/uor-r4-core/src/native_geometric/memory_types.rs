@@ -7,10 +7,13 @@ pub(super) const LEGACY_MEMORY_SCHEMA: &str = "uor-r4.native-prime-relative-memo
 pub(super) const CUE_SCHEMA: &str = "leading-unicode-whitespace-word-equivalence/1";
 pub(super) const EXACT_CUE_SCHEMA: &str = "exact-token-prime/1";
 pub(super) const QUERY_CONTEXT_MEMORY_SCHEMA: &str = "uor-r4.native-prime-relative-memory-read/3";
+pub(super) const OCCURRENCE_MEMORY_SCHEMA: &str = "uor-r4.native-prime-relative-memory-read/4";
 pub(super) const QUERY_CONTEXT_PRIME_LIMIT: u32 = 1 << 24;
 pub(super) const LEGACY_FEATURE_LAYOUT: &str = "relative-geometry-and-value-predecessor/1";
 pub(super) const QUERY_CONTEXT_FEATURE_LAYOUT: &str =
     "ordered-query-primes-and-occurrence/1; prime24+prime24+query5+source4+rank3";
+pub(super) const OCCURRENCE_FEATURE_LAYOUT: &str =
+    "local-source-query-paths-and-unique-occurrence-feature-union/1; prime24+prime24+query5+source4+rank3";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -174,6 +177,10 @@ pub struct MemoryStateView {
     pub ring_storage_bytes: usize,
     pub index_storage_bytes: usize,
     pub candidate_storage_bytes: usize,
+    #[serde(default)]
+    pub composed_candidate_storage_bytes: usize,
+    #[serde(default)]
+    pub composition_feature_storage_bytes: usize,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -190,15 +197,30 @@ pub(super) struct MemoryReference {
 }
 #[derive(Debug, Clone, Copy)]
 pub(super) struct MemoryCandidate {
+    /// Absolute retained occurrence identity; equal token values at different
+    /// positions must not share composition evidence.
+    pub sequence: u64,
     pub token: u32,
     pub score: i64,
     pub features: [MemoryFeature; MEMORY_FEATURE_COUNT],
+}
+#[derive(Debug, Clone, Copy)]
+pub(super) struct ComposedCandidate {
+    pub sequence: u64,
+    pub token: u32,
+    pub score: i64,
+    pub feature_start: usize,
+    pub feature_count: usize,
 }
 #[derive(Debug, Clone)]
 pub(super) struct MemoryState {
     pub ring: Vec<MemoryEntry>,
     pub index: Vec<MemoryReference>,
     pub candidates: Vec<MemoryCandidate>,
+    /// Schema-/4 occurrences and their sorted unique feature slices. All
+    /// capacity is reserved at session construction, before prediction.
+    pub composed: Vec<ComposedCandidate>,
+    pub composition_features: Vec<MemoryFeature>,
     pub cursor: usize,
     pub length: usize,
     pub seen: u64,
@@ -226,6 +248,14 @@ impl MemoryState {
             model.vocabulary_size() << memory.source_shift << memory.posting_shift
         ];
         let candidates = Vec::<MemoryCandidate>::with_capacity(memory.config.candidate_limit);
+        let composition_capacity = if memory.schema == OCCURRENCE_MEMORY_SCHEMA {
+            memory.config.candidate_limit
+        } else {
+            0
+        };
+        let composed = Vec::<ComposedCandidate>::with_capacity(composition_capacity);
+        let composition_features =
+            Vec::<MemoryFeature>::with_capacity(composition_capacity * MEMORY_FEATURE_COUNT);
         let view = MemoryStateView {
             retained_tokens: 0,
             query_tokens: memory.config.query_tokens,
@@ -235,11 +265,17 @@ impl MemoryState {
             ring_storage_bytes: std::mem::size_of_val(ring.as_slice()),
             index_storage_bytes: std::mem::size_of_val(index.as_slice()),
             candidate_storage_bytes: candidates.capacity() * std::mem::size_of::<MemoryCandidate>(),
+            composed_candidate_storage_bytes: composed.capacity()
+                * std::mem::size_of::<ComposedCandidate>(),
+            composition_feature_storage_bytes: composition_features.capacity()
+                * std::mem::size_of::<MemoryFeature>(),
         };
         Self {
             ring,
             index,
             candidates,
+            composed,
+            composition_features,
             cursor: 0,
             length: 0,
             seen: 0,

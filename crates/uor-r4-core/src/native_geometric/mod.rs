@@ -307,6 +307,16 @@ pub struct Work {
     pub memory_phase_updates: u64,
     #[serde(default)]
     pub memory_cue_reads: u64,
+    #[serde(default)]
+    pub memory_composed_candidates: u64,
+    #[serde(default)]
+    pub memory_composition_feature_offers: u64,
+    #[serde(default)]
+    pub memory_composition_duplicate_features: u64,
+    #[serde(default)]
+    pub memory_composition_comparisons: u64,
+    #[serde(default)]
+    pub memory_composition_feature_moves: u64,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

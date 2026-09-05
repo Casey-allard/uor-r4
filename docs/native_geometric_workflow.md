@@ -152,7 +152,8 @@ zero-loss calibration run.
 
 ## Replay a broader memory fitting population
 
-`fit-memory-stream` is an explicit resumable successor for the `/3` reader.
+`fit-memory-stream` is an explicit resumable successor for the `/3` reader,
+with an optional `/4` occurrence-composition mode described below.
 The original `fit-memory` command and `/1`, `/2`, `/3` entry points retain their
 one-shot behavior. A streaming run starts with a fitted baseline without a
 memory head; subsequent launches restore its training checkpoint. Loading an
@@ -172,10 +173,22 @@ target/release/r4 geometric fit-memory-stream \
 ```
 
 Repeat the command with `--resume` and the same baseline, ordered source bytes,
-fit configuration, cue mode and schedule. `--max-batches N` deliberately ends a
+fit configuration, cue/composition mode and schedule. `--max-batches N` deliberately ends a
 launch at a resumable boundary. A completed resume preserves the artifact.
 Changing total exposure or epoch count creates a different schedule, requiring
 a new run; it does not silently reinterpret a checkpoint's cursor.
+
+Add `--compose-occurrences` to select memory schema `/4`, including on resumed
+launches. It compares each source-cue-to-value H4/phase path with the local
+query-cue-to-current path and combines unique fitted feature addresses at the
+same retained sequence position. The prior and shared bias apply once per
+occurrence; different positions with the same token stay separate. The library
+entry is `MemoryReadTrainer::new_with_occurrence_composition`. Without the flag,
+stream fitting retains `/3`; existing `/1`–`/3` models retain their behavior.
+This composes selection evidence, not new values or intermediate writes. See
+the [measured occurrence-selection record](native_geometric_occurrence_selection_973.md)
+and [native mechanism map](native_geometric_mechanism_map_973.md) for current
+behavior, controls and additional bounded workspace/work costs.
 
 The total is a distinct target budget, while the batch bounds live route
 examples. Equal document quotas redistribute unused short-document capacity;
@@ -230,6 +243,14 @@ fixtures. A failed compilation can supply real diagnostics for one separate
 model repair attempt. This conservative execution rule is not a sandbox or a
 general software-engineering benchmark. Both capability groups remain open
 development, with final held-out assessment reserved for design selection.
+
+Newly prepared source schema `/2` includes test inputs explicitly in function
+prompts and rejects conflicting prompt/complete-target pairs. Historical `/1`
+sources remain accepted with their original bytes and a visible legacy-conflict
+audit. The function-prefix metric excludes the appended test program; it does
+not replace full exact scoring, compilation or execution. Compare newly fitted
+readers on the same source version, without treating `/1` and `/2` results as a
+matched numerical comparison.
 
 ## Fit declared response spans
 

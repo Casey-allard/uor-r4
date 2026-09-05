@@ -44,6 +44,13 @@ fit an artifact and use that exact artifact from the CLI or workbench. Inspect
 the [implementation record](docs/integration/current-state.md) for measured
 results, remaining learned-operator work and capability limitations.
 
+The [native mechanism map](docs/native_geometric_mechanism_map_973.md) traces
+the implemented prime/zeta/R4 mechanisms from source to generated responses.
+The latest [occurrence-selection record](docs/native_geometric_occurrence_selection_973.md)
+measures local geometric path comparisons and combined retained-occurrence
+evidence: a small matched prose gain, with coding and computed-value generation
+still unresolved. It includes the controls and costs that limit the claim.
+
 ## Preserved project entry points
 
 With Git and a current Rust toolchain installed:

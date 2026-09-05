@@ -146,6 +146,9 @@ struct FitMemoryStreamArgs {
     max_features: usize,
     #[arg(long)]
     word_cues: bool,
+    /// Compare local geometric paths and combine evidence at each source occurrence.
+    #[arg(long)]
+    compose_occurrences: bool,
     /// Cumulative elapsed limit for this checkpoint, including prior launches.
     #[arg(long, default_value_t = 600)]
     max_seconds: u64,
@@ -171,6 +174,8 @@ struct MemoryStreamHeader {
     config: uor_r4_core::native_geometric::MemoryReadFitConfig,
     schedule: uor_r4_core::native_geometric::MemoryReadSchedule,
     word_cues: bool,
+    #[serde(default)]
+    compose_occurrences: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     supervision_cid: Option<String>,
 }
@@ -592,6 +597,7 @@ fn fit_memory_stream(a: &FitMemoryStreamArgs) -> Result<(), String> {
             || h.config != config
             || h.schedule != schedule
             || h.word_cues != a.word_cues
+            || h.compose_occurrences != a.compose_occurrences
             || h.supervision_cid != supervision_cid
         {
             return Err(
@@ -601,7 +607,9 @@ fn fit_memory_stream(a: &FitMemoryStreamArgs) -> Result<(), String> {
         }
         let trainer = MemoryReadTrainer::restore(&baseline, &documents, &bytes[boundary + 1..])
             .map_err(err)?;
-        if trainer.supervision_cid() != supervision_cid.as_deref() {
+        if trainer.supervision_cid() != supervision_cid.as_deref()
+            || trainer.composes_occurrences() != a.compose_occurrences
+        {
             return Err("resume supervision differs from the saved learned state".into());
         }
         (h, trainer)
@@ -613,19 +621,31 @@ fn fit_memory_stream(a: &FitMemoryStreamArgs) -> Result<(), String> {
                 config,
                 schedule,
                 word_cues: a.word_cues,
+                compose_occurrences: a.compose_occurrences,
                 supervision_cid: supervision_cid.clone(),
             },
-            match supervision {
-                Some(mask) => MemoryReadTrainer::new_with_supervision(
+            if a.compose_occurrences {
+                MemoryReadTrainer::new_with_occurrence_composition(
                     &baseline,
                     &documents,
                     config,
                     schedule,
                     a.word_cues,
-                    mask,
-                ),
-                None => {
-                    MemoryReadTrainer::new(&baseline, &documents, config, schedule, a.word_cues)
+                    supervision,
+                )
+            } else {
+                match supervision {
+                    Some(mask) => MemoryReadTrainer::new_with_supervision(
+                        &baseline,
+                        &documents,
+                        config,
+                        schedule,
+                        a.word_cues,
+                        mask,
+                    ),
+                    None => {
+                        MemoryReadTrainer::new(&baseline, &documents, config, schedule, a.word_cues)
+                    }
                 }
             }
             .map_err(err)?,
@@ -726,7 +746,7 @@ fn fit_memory_stream(a: &FitMemoryStreamArgs) -> Result<(), String> {
             "schema":"uor-r4.native-memory-stream-run/1", "stop":stop,
             "source":source, "baseline_artifact":baseline.artifact_cid(),
             "learned_artifact":artifact, "progress":progress, "fit":final_fit,
-            "config":config,"schedule":schedule,"word_cues":a.word_cues,
+            "config":config,"schedule":schedule,"word_cues":a.word_cues,"compose_occurrences":a.compose_occurrences,
             "supervision_cid":supervision_cid,
             "checkpoint":a.checkpoint,"output":a.output,"output_bytes":output_bytes,
             "checkpoint_bytes":fs::metadata(&a.checkpoint).map_err(err)?.len(),
@@ -1259,6 +1279,7 @@ mod tests {
             epochs: 1,
             max_features: 4096,
             word_cues: true,
+            compose_occurrences: false,
             max_seconds: 60,
             max_rss_mib: 4096,
             max_output_bytes: 16_777_216,
@@ -1277,6 +1298,12 @@ mod tests {
             .contains("same memory fitting"));
         assert_eq!(saved, fs::read(&a.checkpoint).expect("preserved"));
         a.total_positions -= 1;
+        a.compose_occurrences = true;
+        assert!(fit_memory_stream(&a)
+            .expect_err("changed operator")
+            .contains("same memory fitting"));
+        assert_eq!(saved, fs::read(&a.checkpoint).expect("preserved"));
+        a.compose_occurrences = false;
         a.max_batches = None;
         fit_memory_stream(&a).expect("resume all stages");
         let final_bytes = fs::read(&a.output).expect("artifact");

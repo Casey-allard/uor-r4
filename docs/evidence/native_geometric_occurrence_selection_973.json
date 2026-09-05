@@ -1,0 +1,3075 @@
+{
+  "schema": "uor-r4.native-geometric-occurrence-selection-record/1",
+  "date": "2026-09-05",
+  "issue": 973,
+  "base_revision": "3abf9d7e85f70416c95161863b4413cc42a6912c",
+  "status": "BOUNDED_PROSE_SELECTION_GAIN_CODING_UNMET",
+  "scope": "One matched open-development /3 versus /4 package comparison on corrected source/2. The package changes both local H4/zeta paths and unique occurrence aggregation. Controls affect baseline and reader terms; neither comparison isolates only one new component. No held-out, alpha, computed-value or learned-write claim.",
+  "source_provenance": {
+    "worktree": "/Users/casey.allard/.codex/worktrees/r4-geometric-composition/uor-r4",
+    "base_revision": "3abf9d7e85f70416c95161863b4413cc42a6912c",
+    "binding_boundary": "Raw artifact/source/configuration identities and report receipts below identify measured work. Protected delivery revision is recorded separately when available."
+  },
+  "behavior": {
+    "schema": "uor-r4.native-occurrence-compact-evidence/1",
+    "scope": "Reused open-development source /2; target supervision and source/baseline/configuration matched. This compares the combined local-path/occurrence-union package to /3, not each change separately. No final held-out, broad geometric advantage or alpha claim.",
+    "paths": {
+      "root": "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05",
+      "source": "supervised-source/source.json",
+      "supervision": "supervised-source/supervision.json",
+      "occurrence_report": "occurrence-evaluation/report.json",
+      "legacy_report": "legacy-matched-evaluation/report.json",
+      "occurrence_fit": "occurrence-fit-report.json",
+      "legacy_fit": "legacy-matched-fit-report.json",
+      "exact_commands": "commands.jsonl"
+    },
+    "source": {
+      "schema": "uor-r4.native-joint-composition-source/2",
+      "blake3": "848a5f8f9c8b4d4ceb5d0d0c1583886b5ab90f41fdb9a97a9327b9d288ac16b1",
+      "same_eval_source": true,
+      "audit": {
+        "conflicting_prompts": 0,
+        "families": {
+          "construction/prose": {
+            "available_completion_positions_excluding_eos": 2176,
+            "available_supervised_positions_including_eos": 15052,
+            "documents": 256,
+            "max_prompt_context_including_bos": 58,
+            "prompts_longer_than_context": 0,
+            "sampled_fit_completion_positions": "NOT_MEASURED: requires fitter selection trace, not inferred from available positions",
+            "text_bytes": 55608
+          },
+          "construction/rust": {
+            "available_completion_positions_excluding_eos": 3840,
+            "available_supervised_positions_including_eos": 16940,
+            "documents": 256,
+            "max_prompt_context_including_bos": 67,
+            "prompts_longer_than_context": 0,
+            "sampled_fit_completion_positions": "NOT_MEASURED: requires fitter selection trace, not inferred from available positions",
+            "text_bytes": 54495
+          },
+          "development/prose": {
+            "available_completion_positions_excluding_eos": 320,
+            "available_supervised_positions_including_eos": 2376,
+            "documents": 32,
+            "max_prompt_context_including_bos": 82,
+            "prompts_longer_than_context": 0,
+            "sampled_fit_completion_positions": "NOT_MEASURED: requires fitter selection trace, not inferred from available positions",
+            "text_bytes": 7289
+          },
+          "development/rust": {
+            "available_completion_positions_excluding_eos": 504,
+            "available_supervised_positions_including_eos": 2578,
+            "documents": 32,
+            "max_prompt_context_including_bos": 83,
+            "prompts_longer_than_context": 0,
+            "sampled_fit_completion_positions": "NOT_MEASURED: requires fitter selection trace, not inferred from available positions",
+            "text_bytes": 6923
+          },
+          "fit/prose": {
+            "available_completion_positions_excluding_eos": 2176,
+            "available_supervised_positions_including_eos": 15104,
+            "documents": 256,
+            "max_prompt_context_including_bos": 58,
+            "prompts_longer_than_context": 0,
+            "sampled_fit_completion_positions": "NOT_MEASURED: requires fitter selection trace, not inferred from available positions",
+            "text_bytes": 55819
+          },
+          "fit/rust": {
+            "available_completion_positions_excluding_eos": 3860,
+            "available_supervised_positions_including_eos": 16982,
+            "documents": 256,
+            "max_prompt_context_including_bos": 67,
+            "prompts_longer_than_context": 0,
+            "sampled_fit_completion_positions": "NOT_MEASURED: requires fitter selection trace, not inferred from available positions",
+            "text_bytes": 54547
+          }
+        },
+        "id_and_exact_document_overlap": "PASS",
+        "lexical_boundaries": "PASS",
+        "operator_transfer": "Development reverses the training function order and repair direction; both are explicit transfer challenges.",
+        "prompt_completion_consistency": "PASS",
+        "source_schema": "uor-r4.native-joint-composition-source/2"
+      },
+      "supervision": {
+        "baseline_artifact": "blake3:1e6a6a9dfad5e3c4e41049c8a1cecda2d8dcb9821b5f7428e92f50879795b279",
+        "blake3": "182d27589e5d6aafe03b049c3edb21e4962d6452f34f993ecb77cdf66b76afc4",
+        "documents": 512,
+        "path": "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/supervised-source/supervision.json",
+        "scope": "Exact model-codec token spans; BOS excluded, completion start inclusive, EOS included. Whole documents still supply causal context. Generic external loss metadata only, with no expected-answer parser or runtime behavior change.",
+        "selected_completion_and_eos_positions": 6548,
+        "status": "written"
+      }
+    },
+    "fit": {
+      "occurrence": {
+        "artifact": "blake3:9bfcd5f46ced60dd70aff50637cde64ffd8312d9e10c1430bbc7f22761f78264",
+        "baseline": "blake3:1e6a6a9dfad5e3c4e41049c8a1cecda2d8dcb9821b5f7428e92f50879795b279",
+        "source": "blake3:ed88a08fef099219a6ed0182bc97fe2242b82be05ebe376034b15f1719c74c78",
+        "configuration": "blake3:998d1cee76691a45faef25f85eb49a47e4afbc17ec9b6d0a2402cbe5a045a413",
+        "supervision": "blake3:f6763d0f61825a4df758e7f15093e7ddebbad8cac35c99c85f739bdd15c7699c",
+        "config": {
+          "candidate_limit": 128,
+          "epochs": 8,
+          "max_features": 262144,
+          "max_positions": 256,
+          "postings_per_address": 4,
+          "query_tokens": 8,
+          "source_offsets": 4
+        },
+        "schedule": {
+          "batch_positions": 256,
+          "total_positions": 65536
+        },
+        "output_bytes": 9780190,
+        "checkpoint_bytes": 4040987,
+        "cumulative_elapsed_ms": 29598,
+        "peak_rss_bytes": 154664960,
+        "measured": {
+          "schema": "uor-r4.native-prime-relative-memory-read/4",
+          "feature_layout": "local-source-query-paths-and-unique-occurrence-feature-union/1; prime24+prime24+query5+source4+rank3",
+          "objective": "population_replay_unique_feature_occurrence_union; half_target_marginal_half_uniform_target_occurrence_nll_then_global_and_query_bias_grids_then_max_occurrence_ce/1; best_epoch_on_population_ce; diagnostics_quantized_max_occurrence",
+          "documents": 512,
+          "positions": 6548,
+          "observed_context_positions": 32086,
+          "candidate_positions": 419017,
+          "target_in_candidates": 6214,
+          "target_in_memory": 3172,
+          "learned_features": 60705,
+          "dropped_feature_events": 0,
+          "fit_correct_before": 4696,
+          "fit_correct_after": 5659,
+          "candidate_cross_entropy_before": 1.1169610090184887,
+          "candidate_cross_entropy_after": 0.3729393641078117,
+          "pointer_fit_correct_before": 448,
+          "pointer_fit_correct_after": 3172,
+          "pointer_cross_entropy_before": 2.7370577605628834,
+          "pointer_cross_entropy_after": 0.022408525850600842,
+          "session_memory_bytes": 254720
+        }
+      },
+      "legacy": {
+        "artifact": "blake3:7d23c8e08bf5a6d2b9f9ca164d3a1259173ea5420c2b690565acdc1f356cf624",
+        "baseline": "blake3:1e6a6a9dfad5e3c4e41049c8a1cecda2d8dcb9821b5f7428e92f50879795b279",
+        "source": "blake3:ed88a08fef099219a6ed0182bc97fe2242b82be05ebe376034b15f1719c74c78",
+        "configuration": "blake3:225badb2360e43f70eb16d78c5e964f2b8eb4c4c36218d4dcf171347db89270a",
+        "supervision": "blake3:f6763d0f61825a4df758e7f15093e7ddebbad8cac35c99c85f739bdd15c7699c",
+        "config": {
+          "candidate_limit": 128,
+          "epochs": 8,
+          "max_features": 262144,
+          "max_positions": 256,
+          "postings_per_address": 4,
+          "query_tokens": 8,
+          "source_offsets": 4
+        },
+        "schedule": {
+          "batch_positions": 256,
+          "total_positions": 65536
+        },
+        "output_bytes": 9789795,
+        "checkpoint_bytes": 3993238,
+        "cumulative_elapsed_ms": 25545,
+        "peak_rss_bytes": 153468928,
+        "measured": {
+          "schema": "uor-r4.native-prime-relative-memory-read/3",
+          "feature_layout": "ordered-query-primes-and-occurrence/1; prime24+prime24+query5+source4+rank3",
+          "objective": "population_replay_pointer_half_target_marginal_half_uniform_target_route_nll_then_population_global_and_query_bias_grids_then_max_route_ce/1; best_epoch_on_population_ce; diagnostics_quantized_max_route",
+          "documents": 512,
+          "positions": 6548,
+          "observed_context_positions": 32086,
+          "candidate_positions": 419017,
+          "target_in_candidates": 6214,
+          "target_in_memory": 3172,
+          "learned_features": 60812,
+          "dropped_feature_events": 0,
+          "fit_correct_before": 4696,
+          "fit_correct_after": 5643,
+          "candidate_cross_entropy_before": 1.1169610090184887,
+          "candidate_cross_entropy_after": 0.42286638746302696,
+          "pointer_fit_correct_before": 448,
+          "pointer_fit_correct_after": 3077,
+          "pointer_cross_entropy_before": 2.7370577605628834,
+          "pointer_cross_entropy_after": 0.1511053477602469,
+          "session_memory_bytes": 212736
+        }
+      }
+    },
+    "family_results": [
+      {
+        "operator": "/4",
+        "arms": [
+          {
+            "control": "full",
+            "families": [
+              {
+                "cases": 32,
+                "compiled": 0,
+                "completion_positions": 320,
+                "completion_teacher_forced_available": 269,
+                "completion_teacher_forced_correct": 195,
+                "executed_successfully": 0,
+                "family": "prose",
+                "first_correct": 20,
+                "first_memory_target_admitted": 16,
+                "first_memory_target_not_admitted": 16,
+                "first_target_in_shortlist": 29,
+                "function_completion_cases": 0,
+                "generated_completion_exact": 6,
+                "generated_completion_prefix_correct": 7,
+                "generated_function_prefix_correct": 0,
+                "query_context_routes_with_registered_row": 2179,
+                "query_context_routes_without_registered_row": 0
+              },
+              {
+                "cases": 32,
+                "compiled": 2,
+                "completion_positions": 504,
+                "completion_teacher_forced_available": 430,
+                "completion_teacher_forced_correct": 328,
+                "executed_successfully": 0,
+                "family": "rust",
+                "first_correct": 0,
+                "first_memory_target_admitted": 8,
+                "first_memory_target_not_admitted": 24,
+                "first_target_in_shortlist": 10,
+                "function_completion_cases": 16,
+                "generated_completion_exact": 0,
+                "generated_completion_prefix_correct": 0,
+                "generated_function_prefix_correct": 0,
+                "query_context_routes_with_registered_row": 1148,
+                "query_context_routes_without_registered_row": 794
+              }
+            ]
+          },
+          {
+            "control": "memory_disabled",
+            "families": [
+              {
+                "cases": 32,
+                "compiled": 0,
+                "completion_positions": 320,
+                "completion_teacher_forced_available": 259,
+                "completion_teacher_forced_correct": 167,
+                "executed_successfully": 0,
+                "family": "prose",
+                "first_correct": 13,
+                "first_memory_target_admitted": 0,
+                "first_memory_target_not_admitted": 0,
+                "first_target_in_shortlist": 28,
+                "function_completion_cases": 0,
+                "generated_completion_exact": 4,
+                "generated_completion_prefix_correct": 4,
+                "generated_function_prefix_correct": 0,
+                "query_context_routes_with_registered_row": 0,
+                "query_context_routes_without_registered_row": 0
+              },
+              {
+                "cases": 32,
+                "compiled": 0,
+                "completion_positions": 504,
+                "completion_teacher_forced_available": 418,
+                "completion_teacher_forced_correct": 278,
+                "executed_successfully": 0,
+                "family": "rust",
+                "first_correct": 0,
+                "first_memory_target_admitted": 0,
+                "first_memory_target_not_admitted": 0,
+                "first_target_in_shortlist": 11,
+                "function_completion_cases": 16,
+                "generated_completion_exact": 0,
+                "generated_completion_prefix_correct": 0,
+                "generated_function_prefix_correct": 0,
+                "query_context_routes_with_registered_row": 0,
+                "query_context_routes_without_registered_row": 0
+              }
+            ]
+          },
+          {
+            "control": "geometry_disabled",
+            "families": [
+              {
+                "cases": 32,
+                "compiled": 0,
+                "completion_positions": 320,
+                "completion_teacher_forced_available": 269,
+                "completion_teacher_forced_correct": 180,
+                "executed_successfully": 0,
+                "family": "prose",
+                "first_correct": 21,
+                "first_memory_target_admitted": 16,
+                "first_memory_target_not_admitted": 16,
+                "first_target_in_shortlist": 29,
+                "function_completion_cases": 0,
+                "generated_completion_exact": 4,
+                "generated_completion_prefix_correct": 8,
+                "generated_function_prefix_correct": 0,
+                "query_context_routes_with_registered_row": 2179,
+                "query_context_routes_without_registered_row": 0
+              },
+              {
+                "cases": 32,
+                "compiled": 0,
+                "completion_positions": 504,
+                "completion_teacher_forced_available": 428,
+                "completion_teacher_forced_correct": 293,
+                "executed_successfully": 0,
+                "family": "rust",
+                "first_correct": 0,
+                "first_memory_target_admitted": 8,
+                "first_memory_target_not_admitted": 24,
+                "first_target_in_shortlist": 8,
+                "function_completion_cases": 16,
+                "generated_completion_exact": 0,
+                "generated_completion_prefix_correct": 0,
+                "generated_function_prefix_correct": 0,
+                "query_context_routes_with_registered_row": 1148,
+                "query_context_routes_without_registered_row": 794
+              }
+            ]
+          },
+          {
+            "control": "h4_disabled",
+            "families": [
+              {
+                "cases": 32,
+                "compiled": 0,
+                "completion_positions": 320,
+                "completion_teacher_forced_available": 269,
+                "completion_teacher_forced_correct": 184,
+                "executed_successfully": 0,
+                "family": "prose",
+                "first_correct": 21,
+                "first_memory_target_admitted": 16,
+                "first_memory_target_not_admitted": 16,
+                "first_target_in_shortlist": 29,
+                "function_completion_cases": 0,
+                "generated_completion_exact": 4,
+                "generated_completion_prefix_correct": 9,
+                "generated_function_prefix_correct": 0,
+                "query_context_routes_with_registered_row": 2179,
+                "query_context_routes_without_registered_row": 0
+              },
+              {
+                "cases": 32,
+                "compiled": 0,
+                "completion_positions": 504,
+                "completion_teacher_forced_available": 428,
+                "completion_teacher_forced_correct": 296,
+                "executed_successfully": 0,
+                "family": "rust",
+                "first_correct": 0,
+                "first_memory_target_admitted": 8,
+                "first_memory_target_not_admitted": 24,
+                "first_target_in_shortlist": 8,
+                "function_completion_cases": 16,
+                "generated_completion_exact": 0,
+                "generated_completion_prefix_correct": 0,
+                "generated_function_prefix_correct": 0,
+                "query_context_routes_with_registered_row": 1148,
+                "query_context_routes_without_registered_row": 794
+              }
+            ]
+          },
+          {
+            "control": "zeta_disabled",
+            "families": [
+              {
+                "cases": 32,
+                "compiled": 0,
+                "completion_positions": 320,
+                "completion_teacher_forced_available": 269,
+                "completion_teacher_forced_correct": 203,
+                "executed_successfully": 0,
+                "family": "prose",
+                "first_correct": 20,
+                "first_memory_target_admitted": 16,
+                "first_memory_target_not_admitted": 16,
+                "first_target_in_shortlist": 29,
+                "function_completion_cases": 0,
+                "generated_completion_exact": 7,
+                "generated_completion_prefix_correct": 8,
+                "generated_function_prefix_correct": 0,
+                "query_context_routes_with_registered_row": 2179,
+                "query_context_routes_without_registered_row": 0
+              },
+              {
+                "cases": 32,
+                "compiled": 0,
+                "completion_positions": 504,
+                "completion_teacher_forced_available": 430,
+                "completion_teacher_forced_correct": 328,
+                "executed_successfully": 0,
+                "family": "rust",
+                "first_correct": 0,
+                "first_memory_target_admitted": 8,
+                "first_memory_target_not_admitted": 24,
+                "first_target_in_shortlist": 10,
+                "function_completion_cases": 16,
+                "generated_completion_exact": 0,
+                "generated_completion_prefix_correct": 0,
+                "generated_function_prefix_correct": 0,
+                "query_context_routes_with_registered_row": 1148,
+                "query_context_routes_without_registered_row": 794
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "operator": "/3",
+        "arms": [
+          {
+            "control": "full",
+            "families": [
+              {
+                "cases": 32,
+                "compiled": 0,
+                "completion_positions": 320,
+                "completion_teacher_forced_available": 268,
+                "completion_teacher_forced_correct": 189,
+                "executed_successfully": 0,
+                "family": "prose",
+                "first_correct": 15,
+                "first_memory_target_admitted": 16,
+                "first_memory_target_not_admitted": 16,
+                "first_target_in_shortlist": 29,
+                "function_completion_cases": 0,
+                "generated_completion_exact": 5,
+                "generated_completion_prefix_correct": 6,
+                "generated_function_prefix_correct": 0,
+                "query_context_routes_with_registered_row": 2179,
+                "query_context_routes_without_registered_row": 0
+              },
+              {
+                "cases": 32,
+                "compiled": 0,
+                "completion_positions": 504,
+                "completion_teacher_forced_available": 430,
+                "completion_teacher_forced_correct": 321,
+                "executed_successfully": 0,
+                "family": "rust",
+                "first_correct": 0,
+                "first_memory_target_admitted": 8,
+                "first_memory_target_not_admitted": 24,
+                "first_target_in_shortlist": 10,
+                "function_completion_cases": 16,
+                "generated_completion_exact": 0,
+                "generated_completion_prefix_correct": 0,
+                "generated_function_prefix_correct": 0,
+                "query_context_routes_with_registered_row": 1148,
+                "query_context_routes_without_registered_row": 794
+              }
+            ]
+          },
+          {
+            "control": "memory_disabled",
+            "families": [
+              {
+                "cases": 32,
+                "compiled": 0,
+                "completion_positions": 320,
+                "completion_teacher_forced_available": 259,
+                "completion_teacher_forced_correct": 167,
+                "executed_successfully": 0,
+                "family": "prose",
+                "first_correct": 13,
+                "first_memory_target_admitted": 0,
+                "first_memory_target_not_admitted": 0,
+                "first_target_in_shortlist": 28,
+                "function_completion_cases": 0,
+                "generated_completion_exact": 4,
+                "generated_completion_prefix_correct": 4,
+                "generated_function_prefix_correct": 0,
+                "query_context_routes_with_registered_row": 0,
+                "query_context_routes_without_registered_row": 0
+              },
+              {
+                "cases": 32,
+                "compiled": 0,
+                "completion_positions": 504,
+                "completion_teacher_forced_available": 418,
+                "completion_teacher_forced_correct": 278,
+                "executed_successfully": 0,
+                "family": "rust",
+                "first_correct": 0,
+                "first_memory_target_admitted": 0,
+                "first_memory_target_not_admitted": 0,
+                "first_target_in_shortlist": 11,
+                "function_completion_cases": 16,
+                "generated_completion_exact": 0,
+                "generated_completion_prefix_correct": 0,
+                "generated_function_prefix_correct": 0,
+                "query_context_routes_with_registered_row": 0,
+                "query_context_routes_without_registered_row": 0
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "group_columns": [
+      "control",
+      "family",
+      "task",
+      "cases",
+      "first",
+      "exact",
+      "complete_prefix",
+      "function_prefix_cases",
+      "function_prefix",
+      "memory_admitted",
+      "completion_targets",
+      "completion_correct",
+      "compiled",
+      "compilation_attempts"
+    ],
+    "groups": {
+      "occurrence": [
+        [
+          "full",
+          "prose",
+          "contradiction",
+          8,
+          6,
+          1,
+          2,
+          0,
+          0,
+          0,
+          104,
+          75,
+          0,
+          0
+        ],
+        [
+          "full",
+          "prose",
+          "two_fact_composition",
+          8,
+          4,
+          0,
+          0,
+          0,
+          0,
+          8,
+          104,
+          27,
+          0,
+          0
+        ],
+        [
+          "full",
+          "prose",
+          "unsupported_answer",
+          8,
+          6,
+          4,
+          4,
+          0,
+          0,
+          0,
+          88,
+          79,
+          0,
+          0
+        ],
+        [
+          "full",
+          "prose",
+          "updated_fact",
+          8,
+          4,
+          1,
+          1,
+          0,
+          0,
+          8,
+          24,
+          14,
+          0,
+          0
+        ],
+        [
+          "full",
+          "rust",
+          "compose_function_body",
+          8,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          174,
+          116,
+          0,
+          2
+        ],
+        [
+          "full",
+          "rust",
+          "dependency_update",
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          118,
+          68,
+          1,
+          2
+        ],
+        [
+          "full",
+          "rust",
+          "function_composition",
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          43,
+          30,
+          1,
+          2
+        ],
+        [
+          "full",
+          "rust",
+          "repair_instruction",
+          8,
+          0,
+          0,
+          0,
+          8,
+          0,
+          8,
+          169,
+          114,
+          0,
+          2
+        ],
+        [
+          "memory_disabled",
+          "prose",
+          "contradiction",
+          8,
+          6,
+          0,
+          0,
+          0,
+          0,
+          0,
+          104,
+          60,
+          0,
+          0
+        ],
+        [
+          "memory_disabled",
+          "prose",
+          "two_fact_composition",
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          104,
+          15,
+          0,
+          0
+        ],
+        [
+          "memory_disabled",
+          "prose",
+          "unsupported_answer",
+          8,
+          7,
+          4,
+          4,
+          0,
+          0,
+          0,
+          88,
+          82,
+          0,
+          0
+        ],
+        [
+          "memory_disabled",
+          "prose",
+          "updated_fact",
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          24,
+          10,
+          0,
+          0
+        ],
+        [
+          "memory_disabled",
+          "rust",
+          "compose_function_body",
+          8,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          174,
+          104,
+          0,
+          0
+        ],
+        [
+          "memory_disabled",
+          "rust",
+          "dependency_update",
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          118,
+          53,
+          0,
+          0
+        ],
+        [
+          "memory_disabled",
+          "rust",
+          "function_composition",
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          43,
+          25,
+          0,
+          0
+        ],
+        [
+          "memory_disabled",
+          "rust",
+          "repair_instruction",
+          8,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          169,
+          96,
+          0,
+          0
+        ],
+        [
+          "geometry_disabled",
+          "prose",
+          "contradiction",
+          8,
+          6,
+          0,
+          0,
+          0,
+          0,
+          0,
+          104,
+          63,
+          0,
+          0
+        ],
+        [
+          "geometry_disabled",
+          "prose",
+          "two_fact_composition",
+          8,
+          4,
+          0,
+          0,
+          0,
+          0,
+          8,
+          104,
+          25,
+          0,
+          0
+        ],
+        [
+          "geometry_disabled",
+          "prose",
+          "unsupported_answer",
+          8,
+          7,
+          4,
+          4,
+          0,
+          0,
+          0,
+          88,
+          84,
+          0,
+          0
+        ],
+        [
+          "geometry_disabled",
+          "prose",
+          "updated_fact",
+          8,
+          4,
+          0,
+          4,
+          0,
+          0,
+          8,
+          24,
+          8,
+          0,
+          0
+        ],
+        [
+          "geometry_disabled",
+          "rust",
+          "compose_function_body",
+          8,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          174,
+          110,
+          0,
+          0
+        ],
+        [
+          "geometry_disabled",
+          "rust",
+          "dependency_update",
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          118,
+          62,
+          0,
+          0
+        ],
+        [
+          "geometry_disabled",
+          "rust",
+          "function_composition",
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          43,
+          29,
+          0,
+          0
+        ],
+        [
+          "geometry_disabled",
+          "rust",
+          "repair_instruction",
+          8,
+          0,
+          0,
+          0,
+          8,
+          0,
+          8,
+          169,
+          92,
+          0,
+          0
+        ],
+        [
+          "h4_disabled",
+          "prose",
+          "contradiction",
+          8,
+          6,
+          0,
+          1,
+          0,
+          0,
+          0,
+          104,
+          66,
+          0,
+          0
+        ],
+        [
+          "h4_disabled",
+          "prose",
+          "two_fact_composition",
+          8,
+          4,
+          0,
+          0,
+          0,
+          0,
+          8,
+          104,
+          24,
+          0,
+          0
+        ],
+        [
+          "h4_disabled",
+          "prose",
+          "unsupported_answer",
+          8,
+          7,
+          4,
+          4,
+          0,
+          0,
+          0,
+          88,
+          84,
+          0,
+          0
+        ],
+        [
+          "h4_disabled",
+          "prose",
+          "updated_fact",
+          8,
+          4,
+          0,
+          4,
+          0,
+          0,
+          8,
+          24,
+          10,
+          0,
+          0
+        ],
+        [
+          "h4_disabled",
+          "rust",
+          "compose_function_body",
+          8,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          174,
+          110,
+          0,
+          0
+        ],
+        [
+          "h4_disabled",
+          "rust",
+          "dependency_update",
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          118,
+          63,
+          0,
+          0
+        ],
+        [
+          "h4_disabled",
+          "rust",
+          "function_composition",
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          43,
+          27,
+          0,
+          0
+        ],
+        [
+          "h4_disabled",
+          "rust",
+          "repair_instruction",
+          8,
+          0,
+          0,
+          0,
+          8,
+          0,
+          8,
+          169,
+          96,
+          0,
+          0
+        ],
+        [
+          "zeta_disabled",
+          "prose",
+          "contradiction",
+          8,
+          6,
+          2,
+          3,
+          0,
+          0,
+          0,
+          104,
+          77,
+          0,
+          0
+        ],
+        [
+          "zeta_disabled",
+          "prose",
+          "two_fact_composition",
+          8,
+          4,
+          0,
+          0,
+          0,
+          0,
+          8,
+          104,
+          30,
+          0,
+          0
+        ],
+        [
+          "zeta_disabled",
+          "prose",
+          "unsupported_answer",
+          8,
+          6,
+          4,
+          4,
+          0,
+          0,
+          0,
+          88,
+          81,
+          0,
+          0
+        ],
+        [
+          "zeta_disabled",
+          "prose",
+          "updated_fact",
+          8,
+          4,
+          1,
+          1,
+          0,
+          0,
+          8,
+          24,
+          15,
+          0,
+          0
+        ],
+        [
+          "zeta_disabled",
+          "rust",
+          "compose_function_body",
+          8,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          174,
+          117,
+          0,
+          0
+        ],
+        [
+          "zeta_disabled",
+          "rust",
+          "dependency_update",
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          118,
+          67,
+          0,
+          0
+        ],
+        [
+          "zeta_disabled",
+          "rust",
+          "function_composition",
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          43,
+          31,
+          0,
+          0
+        ],
+        [
+          "zeta_disabled",
+          "rust",
+          "repair_instruction",
+          8,
+          0,
+          0,
+          0,
+          8,
+          0,
+          8,
+          169,
+          113,
+          0,
+          0
+        ]
+      ],
+      "legacy": [
+        [
+          "full",
+          "prose",
+          "contradiction",
+          8,
+          6,
+          1,
+          2,
+          0,
+          0,
+          0,
+          104,
+          73,
+          0,
+          0
+        ],
+        [
+          "full",
+          "prose",
+          "two_fact_composition",
+          8,
+          4,
+          0,
+          0,
+          0,
+          0,
+          8,
+          104,
+          27,
+          0,
+          0
+        ],
+        [
+          "full",
+          "prose",
+          "unsupported_answer",
+          8,
+          4,
+          4,
+          4,
+          0,
+          0,
+          0,
+          88,
+          77,
+          0,
+          0
+        ],
+        [
+          "full",
+          "prose",
+          "updated_fact",
+          8,
+          1,
+          0,
+          0,
+          0,
+          0,
+          8,
+          24,
+          12,
+          0,
+          0
+        ],
+        [
+          "full",
+          "rust",
+          "compose_function_body",
+          8,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          174,
+          116,
+          0,
+          2
+        ],
+        [
+          "full",
+          "rust",
+          "dependency_update",
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          118,
+          65,
+          0,
+          2
+        ],
+        [
+          "full",
+          "rust",
+          "function_composition",
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          43,
+          29,
+          0,
+          2
+        ],
+        [
+          "full",
+          "rust",
+          "repair_instruction",
+          8,
+          0,
+          0,
+          0,
+          8,
+          0,
+          8,
+          169,
+          111,
+          0,
+          2
+        ],
+        [
+          "memory_disabled",
+          "prose",
+          "contradiction",
+          8,
+          6,
+          0,
+          0,
+          0,
+          0,
+          0,
+          104,
+          60,
+          0,
+          0
+        ],
+        [
+          "memory_disabled",
+          "prose",
+          "two_fact_composition",
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          104,
+          15,
+          0,
+          0
+        ],
+        [
+          "memory_disabled",
+          "prose",
+          "unsupported_answer",
+          8,
+          7,
+          4,
+          4,
+          0,
+          0,
+          0,
+          88,
+          82,
+          0,
+          0
+        ],
+        [
+          "memory_disabled",
+          "prose",
+          "updated_fact",
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          24,
+          10,
+          0,
+          0
+        ],
+        [
+          "memory_disabled",
+          "rust",
+          "compose_function_body",
+          8,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          174,
+          104,
+          0,
+          0
+        ],
+        [
+          "memory_disabled",
+          "rust",
+          "dependency_update",
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          118,
+          53,
+          0,
+          0
+        ],
+        [
+          "memory_disabled",
+          "rust",
+          "function_composition",
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          43,
+          25,
+          0,
+          0
+        ],
+        [
+          "memory_disabled",
+          "rust",
+          "repair_instruction",
+          8,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          169,
+          96,
+          0,
+          0
+        ]
+      ]
+    },
+    "matched_changes": {
+      "cases": 64,
+      "admission_identical": true,
+      "flat_route_counts_identical": true,
+      "occurrence_only_exact": [
+        "joint-v2/development/prose/100000"
+      ],
+      "legacy_only_exact": [],
+      "occurrence_only_first": [
+        "joint-v2/development/prose/100000",
+        "joint-v2/development/prose/100003",
+        "joint-v2/development/prose/100016",
+        "joint-v2/development/prose/100019",
+        "joint-v2/development/prose/100024"
+      ],
+      "legacy_only_first": []
+    },
+    "control_changes": [
+      {
+        "control": "memory_disabled",
+        "full_only_exact": [
+          "joint-v2/development/prose/100000",
+          "joint-v2/development/prose/100030"
+        ],
+        "control_only_exact": [],
+        "full_only_first": [
+          "joint-v2/development/prose/100000",
+          "joint-v2/development/prose/100005",
+          "joint-v2/development/prose/100008",
+          "joint-v2/development/prose/100013",
+          "joint-v2/development/prose/100016",
+          "joint-v2/development/prose/100021",
+          "joint-v2/development/prose/100024",
+          "joint-v2/development/prose/100029"
+        ],
+        "control_only_first": [
+          "joint-v2/development/prose/100011"
+        ],
+        "changed_generation_count": 58
+      },
+      {
+        "control": "geometry_disabled",
+        "full_only_exact": [
+          "joint-v2/development/prose/100000",
+          "joint-v2/development/prose/100030"
+        ],
+        "control_only_exact": [],
+        "full_only_first": [],
+        "control_only_first": [
+          "joint-v2/development/prose/100027"
+        ],
+        "changed_generation_count": 57
+      },
+      {
+        "control": "h4_disabled",
+        "full_only_exact": [
+          "joint-v2/development/prose/100000",
+          "joint-v2/development/prose/100030"
+        ],
+        "control_only_exact": [],
+        "full_only_first": [],
+        "control_only_first": [
+          "joint-v2/development/prose/100027"
+        ],
+        "changed_generation_count": 56
+      },
+      {
+        "control": "zeta_disabled",
+        "full_only_exact": [],
+        "control_only_exact": [
+          "joint-v2/development/prose/100006"
+        ],
+        "full_only_first": [],
+        "control_only_first": [],
+        "changed_generation_count": 44
+      }
+    ],
+    "query_form_columns": [
+      "task",
+      "fresh_names",
+      "fresh_form",
+      "cases",
+      "first",
+      "exact"
+    ],
+    "query_form_rows": [
+      [
+        "compose_function_body",
+        false,
+        true,
+        8,
+        0,
+        0
+      ],
+      [
+        "contradiction",
+        false,
+        false,
+        4,
+        3,
+        1
+      ],
+      [
+        "contradiction",
+        true,
+        false,
+        4,
+        3,
+        0
+      ],
+      [
+        "dependency_update",
+        false,
+        false,
+        4,
+        0,
+        0
+      ],
+      [
+        "dependency_update",
+        true,
+        false,
+        4,
+        0,
+        0
+      ],
+      [
+        "function_composition",
+        false,
+        true,
+        4,
+        0,
+        0
+      ],
+      [
+        "function_composition",
+        true,
+        false,
+        4,
+        0,
+        0
+      ],
+      [
+        "repair_instruction",
+        false,
+        true,
+        8,
+        0,
+        0
+      ],
+      [
+        "two_fact_composition",
+        false,
+        false,
+        4,
+        4,
+        0
+      ],
+      [
+        "two_fact_composition",
+        true,
+        false,
+        4,
+        0,
+        0
+      ],
+      [
+        "unsupported_answer",
+        false,
+        false,
+        4,
+        4,
+        4
+      ],
+      [
+        "unsupported_answer",
+        true,
+        false,
+        4,
+        2,
+        0
+      ],
+      [
+        "updated_fact",
+        false,
+        true,
+        4,
+        0,
+        0
+      ],
+      [
+        "updated_fact",
+        true,
+        false,
+        4,
+        4,
+        1
+      ]
+    ],
+    "selected_raw_cases": [
+      {
+        "id": "joint-v2/development/prose/100000",
+        "task": "updated_fact",
+        "prompt": "User: orin's badge is silver. tavi holds 13 coins. suri's badge was gold.\nUser: Correction: suri's badge is white now.\nThe wind moves outside. The wind moves outside. User: What color is suri's badge now?\nAssistant:",
+        "expected": " white.\n",
+        "occurrence": {
+          "first": " white",
+          "first_correct": true,
+          "memory_admitted": true,
+          "generated": " white.\n",
+          "stop": "end_of_document",
+          "exact": true,
+          "function_prefix": null,
+          "compiled": null,
+          "execution": null
+        },
+        "legacy": {
+          "first": " is",
+          "first_correct": false,
+          "memory_admitted": true,
+          "generated": " is white now.\n",
+          "stop": "end_of_document",
+          "exact": false,
+          "function_prefix": null,
+          "compiled": null,
+          "execution": null
+        }
+      },
+      {
+        "id": "joint-v2/development/prose/100013",
+        "task": "two_fact_composition",
+        "prompt": "User: ben has a silver badge. cyra has a green badge. eli has 56 coins.\nUser: Update: ben now has a red badge.\nUser: Give the badge colors for cyra, then ben.\nAssistant:",
+        "expected": " cyra has green; ben has red.\n",
+        "occurrence": {
+          "first": " cyra",
+          "first_correct": true,
+          "memory_admitted": true,
+          "generated": " cyra has green.\nUser: What color is ben has red.\n",
+          "stop": "end_of_document",
+          "exact": false,
+          "function_prefix": null,
+          "compiled": null,
+          "execution": null
+        },
+        "legacy": {
+          "first": " cyra",
+          "first_correct": true,
+          "memory_admitted": true,
+          "generated": " cyra has green.\nUser: What color is still green.\nUser: Correction: eli's badge is. dara. Assistant: No. eli has a blue badge.\nThe wind moves outside. User: What color is. 110 is.\n",
+          "stop": "end_of_document",
+          "exact": false,
+          "function_prefix": null,
+          "compiled": null,
+          "execution": null
+        }
+      },
+      {
+        "id": "joint-v2/development/prose/100012",
+        "task": "updated_fact",
+        "prompt": "User: ben has a silver badge. cyra has a green badge. eli has 39 coins.\nUser: Update: ben now has a red badge.\nUser: Tell me the current badge color for ben.\nAssistant:",
+        "expected": " red.\n",
+        "occurrence": {
+          "first": " badge",
+          "first_correct": false,
+          "memory_admitted": true,
+          "generated": " badge has has silver.\nUser: Update::. badge......:..\n",
+          "stop": "end_of_document",
+          "exact": false,
+          "function_prefix": null,
+          "compiled": null,
+          "execution": null
+        },
+        "legacy": {
+          "first": " badge",
+          "first_correct": false,
+          "memory_admitted": true,
+          "generated": " badge.\nUser: Update:: badge.\nUser:::: badge is:::: badge.::: badge. dara::::. 178::::.11:::.42.:::.54:::.\nUser: Correction::....\n",
+          "stop": "end_of_document",
+          "exact": false,
+          "function_prefix": null,
+          "compiled": null,
+          "execution": null
+        }
+      },
+      {
+        "id": "joint-v2/development/rust/100004",
+        "task": "dependency_update",
+        "prompt": "fn main() {\n    let mut finn = 81;\n    let ada = finn + 5;\n    finn = 92;\n    let _ = 0;\n    let _ = 0;\n    assert_eq!(ada,",
+        "expected": " 86);\n    assert_eq!(finn, 92);\n}\n",
+        "occurrence": {
+          "first": " 120",
+          "first_correct": false,
+          "memory_admitted": false,
+          "generated": " 120);\n}\n",
+          "stop": "end_of_document",
+          "exact": false,
+          "function_prefix": null,
+          "compiled": true,
+          "execution": {
+            "reason": "not_exact_authored_safe_source",
+            "status": "not_run"
+          }
+        },
+        "legacy": {
+          "first": " finn",
+          "first_correct": false,
+          "memory_admitted": false,
+          "generated": " finn's badge is\n    finn badge. dara badge.\nThe wind moves outside. User: What color is still green 25 23 101 10164 57 57 5753 57 57 57 57 57 57 12 10149 12 101 101 101212121212121212157 62 62 58212157 6236 58212157 62 62 11 62 58212157 6226 6251), 144);\n}\n",
+          "stop": "end_of_document",
+          "exact": false,
+          "function_prefix": null,
+          "compiled": false,
+          "execution": {
+            "reason": "not_exact_authored_safe_source",
+            "status": "not_run"
+          }
+        }
+      },
+      {
+        "id": "joint-v2/development/rust/100003",
+        "task": "repair_instruction",
+        "prompt": "// Test this function on input 64 and assert the expected result in main.\n// Repair the addition: the result must subtract 4 from the input.\n// Before: fn step(value: i32) -> i32 { value + 4 }\nfn step(value: i32) -> i32 {\n    value",
+        "expected": " - 4\n}\nfn main() {\n    assert_eq!(step(64), 60);\n}\n",
+        "occurrence": {
+          "first": " +",
+          "first_correct": false,
+          "memory_admitted": true,
+          "generated": " + 4 35: i32) {\n    assert_eq! i32) -> i32 {\n    value2121) -> i32 { { +) i32) -> i32 { value * 2\n}\nfn main() {\n    letvalue: i32) -> i32 { value * 2 }\nfn main() {\n    let shifted = value + 1 }\nfn twice(raise(ben) {\n    let shifted = value16 = 0;\n    assert_eq value + 1 }\nfn twice(raise(ben) {\n    let",
+          "stop": "token_budget",
+          "exact": false,
+          "function_prefix": false,
+          "compiled": false,
+          "execution": {
+            "reason": "not_exact_authored_safe_source",
+            "status": "not_run"
+          }
+        },
+        "legacy": {
+          "first": " +",
+          "first_correct": false,
+          "memory_admitted": true,
+          "generated": " + 4 35: i32) -> i32 {\n    value + {54 + 5; { {;\n}\n",
+          "stop": "end_of_document",
+          "exact": false,
+          "function_prefix": false,
+          "compiled": false,
+          "execution": {
+            "reason": "not_exact_authored_safe_source",
+            "status": "not_run"
+          }
+        }
+      }
+    ],
+    "work_scope": "Sums of actual free-generation work including prompt observation; output lengths differ, so these are not an equal-token throughput comparison. Teacher-forced diagnostics and compiler child work are separate. These are the original pre-optimization /4 counts; final replay after redundant flat-route score lookup removal is preserved separately.",
+    "work_columns": [
+      "control",
+      "cases",
+      "generated_tokens",
+      "observed_tokens",
+      "flat_memory_routes",
+      "composed_occurrences",
+      "memory_score_lookups",
+      "composition_comparisons"
+    ],
+    "work": {
+      "occurrence": [
+        [
+          "full",
+          64,
+          2290,
+          6420,
+          232097,
+          62552,
+          6642332,
+          31467694
+        ],
+        [
+          "memory_disabled",
+          64,
+          2514,
+          6644,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          "geometry_disabled",
+          64,
+          5531,
+          9661,
+          587434,
+          196828,
+          6661652,
+          81916009
+        ],
+        [
+          "h4_disabled",
+          64,
+          4740,
+          8870,
+          477169,
+          144681,
+          11189226,
+          65066235
+        ],
+        [
+          "zeta_disabled",
+          64,
+          2211,
+          6341,
+          217784,
+          65173,
+          3550229,
+          29603311
+        ]
+      ],
+      "legacy": [
+        [
+          "full",
+          64,
+          2958,
+          7088,
+          288297,
+          0,
+          5189346,
+          0
+        ],
+        [
+          "memory_disabled",
+          64,
+          2514,
+          6644,
+          0,
+          0,
+          0,
+          0
+        ]
+      ]
+    },
+    "run_columns": [
+      "label",
+      "elapsed_ms",
+      "cumulative_ms",
+      "remaining_ms",
+      "code"
+    ],
+    "charged_runs": [
+      [
+        "occurrence-fit",
+        29622,
+        749835,
+        1050165,
+        0
+      ],
+      [
+        "occurrence-evaluate",
+        4502,
+        754337,
+        1045663,
+        0
+      ],
+      [
+        "legacy-matched-fit",
+        25568,
+        779905,
+        1020095,
+        0
+      ],
+      [
+        "legacy-matched-evaluate",
+        1718,
+        781623,
+        1018377,
+        0
+      ]
+    ],
+    "interpretation": {
+      "selection": "Same admitted targets and route counts, with improved /4 selection in this fixed package; no candidate-widening explanation.",
+      "geometry": "On /4, Full has two extra exact prose responses compared with geometry/H4 disabled. First-token accuracy is lower; these exact gains concern continuation/termination. Disabled controls also affect the baseline geometric terms, so this does not isolate only the new local reader term.",
+      "zeta": "Zeta disabled improves exact prose from 6 to 7 and completion pieces from 195 to 203; no positive zeta increment in this comparison.",
+      "coding": "All first, exact and deterministic function-prefix Rust results remain zero. Two sampled outputs compile but both assert 120 instead of 86/23; execution is NOT_RUN under the preserved exact-safe-source policy.",
+      "remaining": "Unsupported query paraphrases, unseen identifier spans, coherent second-fact generation, and derived numeric values remain unresolved. /4 has no persistent selected-occurrence register or intermediate-value write."
+    }
+  },
+  "charged_commands": [
+    {
+      "label": "source-prepare",
+      "started": "2026-09-05T04:24:54.938Z",
+      "command": "/tmp/r4-native-geometric-target/release/examples/native_geometric_joint_probe",
+      "args": [
+        "prepare",
+        "--output-dir",
+        "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/source",
+        "--construction-worlds",
+        "256",
+        "--fit-worlds",
+        "256",
+        "--development-worlds",
+        "32"
+      ],
+      "elapsed_ms": 159,
+      "code": 0,
+      "signal": null,
+      "stopped": null,
+      "peak_process_rss_sample_bytes": 0,
+      "cumulative_ms": 716402,
+      "remaining_ms": 1083598
+    },
+    {
+      "label": "count-fit",
+      "started": "2026-09-05T04:25:01.543Z",
+      "command": "/tmp/r4-native-geometric-target/release/r4",
+      "args": [
+        "geometric",
+        "train",
+        "--input",
+        "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/source/construction.jsonl",
+        "--document-bytes",
+        "16384",
+        "--model",
+        "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/count.json",
+        "--checkpoint",
+        "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/count.checkpoint",
+        "--context",
+        "512",
+        "--candidates",
+        "32",
+        "--rows",
+        "131072",
+        "--associations",
+        "1000000",
+        "--epochs",
+        "1",
+        "--max-seconds",
+        "120",
+        "--max-rss-mib",
+        "4096",
+        "--max-output-bytes",
+        "33554432",
+        "--checkpoint-every",
+        "128",
+        "--report",
+        "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/count-report.json"
+      ],
+      "elapsed_ms": 1129,
+      "code": 0,
+      "signal": null,
+      "stopped": null,
+      "peak_process_rss_sample_bytes": 91996160,
+      "cumulative_ms": 717531,
+      "remaining_ms": 1082469
+    },
+    {
+      "label": "readout-fit",
+      "started": "2026-09-05T04:25:08.560Z",
+      "command": "/tmp/r4-native-geometric-target/release/r4",
+      "args": [
+        "geometric",
+        "fit-readout",
+        "--model",
+        "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/count.json",
+        "--input",
+        "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/source/fit.jsonl",
+        "--document-bytes",
+        "16384",
+        "--output",
+        "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/readout.json",
+        "--max-positions",
+        "16384",
+        "--epochs",
+        "8",
+        "--report",
+        "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/readout-report.json"
+      ],
+      "elapsed_ms": 2323,
+      "code": 0,
+      "signal": null,
+      "stopped": null,
+      "peak_process_rss_sample_bytes": 107921408,
+      "cumulative_ms": 719854,
+      "remaining_ms": 1080146
+    },
+    {
+      "label": "supervision-prepare",
+      "started": "2026-09-05T04:25:15.893Z",
+      "command": "/tmp/r4-native-geometric-target/release/examples/native_geometric_joint_probe",
+      "args": [
+        "prepare",
+        "--output-dir",
+        "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/supervised-source",
+        "--construction-worlds",
+        "256",
+        "--fit-worlds",
+        "256",
+        "--development-worlds",
+        "32",
+        "--model",
+        "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/readout.json"
+      ],
+      "elapsed_ms": 359,
+      "code": 0,
+      "signal": null,
+      "stopped": null,
+      "peak_process_rss_sample_bytes": 0,
+      "cumulative_ms": 720213,
+      "remaining_ms": 1079787
+    },
+    {
+      "label": "occurrence-fit",
+      "started": "2026-09-05T04:25:27.234Z",
+      "command": "/tmp/r4-native-geometric-target/release/r4",
+      "args": [
+        "geometric",
+        "fit-memory-stream",
+        "--model",
+        "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/readout.json",
+        "--input",
+        "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/supervised-source/fit.jsonl",
+        "--document-bytes",
+        "16384",
+        "--supervision",
+        "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/supervised-source/supervision.json",
+        "--output",
+        "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/occurrence.json",
+        "--checkpoint",
+        "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/occurrence.checkpoint",
+        "--total-positions",
+        "65536",
+        "--batch-positions",
+        "256",
+        "--epochs",
+        "8",
+        "--word-cues",
+        "--compose-occurrences",
+        "--max-features",
+        "262144",
+        "--max-seconds",
+        "360",
+        "--max-rss-mib",
+        "4096",
+        "--max-output-bytes",
+        "33554432",
+        "--checkpoint-every",
+        "128",
+        "--report",
+        "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/occurrence-fit-report.json"
+      ],
+      "elapsed_ms": 29622,
+      "code": 0,
+      "signal": null,
+      "stopped": null,
+      "peak_process_rss_sample_bytes": 68288512,
+      "cumulative_ms": 749835,
+      "remaining_ms": 1050165
+    },
+    {
+      "label": "occurrence-evaluate",
+      "started": "2026-09-05T04:26:12.539Z",
+      "command": "/tmp/r4-native-geometric-target/release/examples/native_geometric_joint_probe",
+      "args": [
+        "evaluate",
+        "--source",
+        "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/supervised-source/source.json",
+        "--model",
+        "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/occurrence.json",
+        "--output-dir",
+        "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/occurrence-evaluation",
+        "--generated-tokens",
+        "96",
+        "--max-seconds",
+        "120",
+        "--compiler-cases",
+        "8",
+        "--repair-cases",
+        "2",
+        "--controls",
+        "full,memory-disabled,geometry-disabled,h4-disabled,zeta-disabled"
+      ],
+      "elapsed_ms": 4502,
+      "code": 0,
+      "signal": null,
+      "stopped": null,
+      "peak_process_rss_sample_bytes": 79036416,
+      "cumulative_ms": 754337,
+      "remaining_ms": 1045663
+    },
+    {
+      "label": "legacy-matched-fit",
+      "started": "2026-09-05T04:26:41.949Z",
+      "command": "/tmp/r4-native-geometric-target/release/r4",
+      "args": [
+        "geometric",
+        "fit-memory-stream",
+        "--model",
+        "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/readout.json",
+        "--input",
+        "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/supervised-source/fit.jsonl",
+        "--document-bytes",
+        "16384",
+        "--supervision",
+        "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/supervised-source/supervision.json",
+        "--output",
+        "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/legacy-matched.json",
+        "--checkpoint",
+        "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/legacy-matched.checkpoint",
+        "--total-positions",
+        "65536",
+        "--batch-positions",
+        "256",
+        "--epochs",
+        "8",
+        "--word-cues",
+        "--max-features",
+        "262144",
+        "--max-seconds",
+        "360",
+        "--max-rss-mib",
+        "4096",
+        "--max-output-bytes",
+        "33554432",
+        "--checkpoint-every",
+        "128",
+        "--report",
+        "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/legacy-matched-fit-report.json"
+      ],
+      "elapsed_ms": 25568,
+      "code": 0,
+      "signal": null,
+      "stopped": null,
+      "peak_process_rss_sample_bytes": 69337088,
+      "cumulative_ms": 779905,
+      "remaining_ms": 1020095
+    },
+    {
+      "label": "legacy-matched-evaluate",
+      "started": "2026-09-05T04:27:15.042Z",
+      "command": "/tmp/r4-native-geometric-target/release/examples/native_geometric_joint_probe",
+      "args": [
+        "evaluate",
+        "--source",
+        "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/supervised-source/source.json",
+        "--model",
+        "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/legacy-matched.json",
+        "--output-dir",
+        "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/legacy-matched-evaluation",
+        "--generated-tokens",
+        "96",
+        "--max-seconds",
+        "120",
+        "--compiler-cases",
+        "8",
+        "--repair-cases",
+        "2",
+        "--controls",
+        "full,memory-disabled"
+      ],
+      "elapsed_ms": 1718,
+      "code": 0,
+      "signal": null,
+      "stopped": null,
+      "peak_process_rss_sample_bytes": 77758464,
+      "cumulative_ms": 781623,
+      "remaining_ms": 1018377
+    },
+    {
+      "label": "occurrence-final-evaluate",
+      "started": "2026-09-05T04:39:41.705Z",
+      "command": "/tmp/r4-native-geometric-target/release/examples/native_geometric_joint_probe",
+      "args": [
+        "evaluate",
+        "--source",
+        "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/supervised-source/source.json",
+        "--model",
+        "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/occurrence.json",
+        "--output-dir",
+        "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/occurrence-final-evaluation",
+        "--generated-tokens",
+        "96",
+        "--max-seconds",
+        "120",
+        "--compiler-cases",
+        "8",
+        "--repair-cases",
+        "2",
+        "--controls",
+        "full,memory-disabled,geometry-disabled,h4-disabled,zeta-disabled"
+      ],
+      "elapsed_ms": 3106,
+      "code": 0,
+      "signal": null,
+      "stopped": null,
+      "peak_process_rss_sample_bytes": 83935232,
+      "cumulative_ms": 784729,
+      "remaining_ms": 1015271
+    }
+  ],
+  "budget": {
+    "started_at": "2026-09-05T04:21:56.640Z",
+    "base": "3abf9d7e85f70416c95161863b4413cc42a6912c",
+    "inherited_ledger": "/Users/casey.allard/uor-r4/.uor-models/native-joint-learning-2026-09-04/model-time.json",
+    "inherited_model_ms": 716243,
+    "limit_ms": 1800000,
+    "model_processes": 1,
+    "process_rss_target_bytes": 4294967296,
+    "inherited_output_build_limit_bytes": 4294967296,
+    "model_work": "Preparation, fitting, evaluation and all retries/resumes share original ledger; engineering/build time is separate.",
+    "machine": {
+      "ram_bytes": 17179869184,
+      "logical_cpus": 8
+    },
+    "source_worktree": "/Users/casey.allard/.codex/worktrees/r4-geometric-composition/uor-r4",
+    "target": "/tmp/r4-native-geometric-target",
+    "charged_command_count": 9,
+    "new_elapsed_ms": 68486,
+    "cumulative_model_elapsed_ms": 784729,
+    "remaining_model_ms": 1015271,
+    "engineering_time_is_separate": true
+  },
+  "storage_preservation": {
+    "clone_audit": {
+      "schema": "uor-r4.apfs-preservation-clone-audit/1",
+      "source_worktree": "/Users/casey.allard/.codex/worktrees/r4-resumable-memory/uor-r4",
+      "destination_worktree": "/Users/casey.allard/.codex/worktrees/r4-geometric-composition/uor-r4",
+      "scope": "Only byte-identical tracked regular files in the NEW worktree; changed files and active source/integration directories excluded. No source content or historical artifact deleted; old worktree unmodified.",
+      "before": {
+        "time_ns": 1788582232924170000,
+        "df": "Filesystem   1024-blocks      Used Available Capacity iused     ifree %iused  Mounted on\n/dev/disk3s1   239362496 192038448  19267088    91% 2002484 192670880    1%   /System/Volumes/Data\n",
+        "du": "1177284\t/Users/casey.allard/.codex/worktrees/r4-resumable-memory/uor-r4\n1177348\t/Users/casey.allard/.codex/worktrees/r4-geometric-composition/uor-r4\n1177060\t/Users/casey.allard/.codex/worktrees/r4-native-joint-learning/uor-r4\n5639076\t/tmp/r4-native-geometric-target\n409696\t/Users/casey.allard/uor-r4/.uor-models/native-joint-learning-2026-09-04\n315584\t/Users/casey.allard/uor-r4/.uor-models/native-memory-stream-2026-09-05\n8\t/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05\n",
+        "free_bytes": 19729498112
+      },
+      "after": {
+        "time_ns": 1788582246913807000,
+        "df": "Filesystem   1024-blocks      Used Available Capacity iused     ifree %iused  Mounted on\n/dev/disk3s1   239362496 190901108  20404428    91% 2002512 204044280    1%   /System/Volumes/Data\n",
+        "du": "1177284\t/Users/casey.allard/.codex/worktrees/r4-resumable-memory/uor-r4\n1177348\t/Users/casey.allard/.codex/worktrees/r4-geometric-composition/uor-r4\n1177060\t/Users/casey.allard/.codex/worktrees/r4-native-joint-learning/uor-r4\n5639076\t/tmp/r4-native-geometric-target\n409696\t/Users/casey.allard/uor-r4/.uor-models/native-joint-learning-2026-09-04\n315584\t/Users/casey.allard/uor-r4/.uor-models/native-memory-stream-2026-09-05\n7228\t/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05\n",
+        "free_bytes": 20894134272
+      },
+      "cloned_file_count": 14032,
+      "logical_bytes_cloned": 1141596826,
+      "previous_allocated_bytes_cloned": 1173491712,
+      "observed_free_bytes_increase": 1164636160,
+      "conservative_shared_bytes_credit": 1164636160,
+      "diff_sha256_before": "46797d2bfc1257d56b6879ded52bc004a1aa8cd1e30c61155aa9af27fb56b25b",
+      "diff_sha256_after": "46797d2bfc1257d56b6879ded52bc004a1aa8cd1e30c61155aa9af27fb56b25b",
+      "diff_unchanged": true,
+      "status_before": " M crates/uor-r4-core/examples/native_geometric_joint_probe.rs\n M crates/uor-r4-core/src/native_geometric/memory_runtime.rs\n M crates/uor-r4-core/src/native_geometric/memory_training.rs\n M crates/uor-r4-core/src/native_geometric/memory_training/resumable.rs\n M crates/uor-r4-core/src/native_geometric/memory_types.rs\n M crates/uor-r4-core/src/native_geometric/mod.rs\n M crates/uor-r4-core/src/native_geometric/runtime.rs\n M crates/uor-r4-core/src/native_geometric/training.rs\n M crates/uor-r4-core/tests/native_geometric_allocations.rs\n M docs/formal_vocabulary.md\n M docs/geometric_intelligence_programme.md\n M src/native_geometric_cli.rs\n?? crates/uor-r4-core/src/native_geometric/memory_runtime_tests.rs\n?? docs/native_geometric_mechanism_map_973.md\n",
+      "status_after": " M crates/uor-r4-core/examples/native_geometric_joint_probe.rs\n M crates/uor-r4-core/src/native_geometric/memory_runtime.rs\n M crates/uor-r4-core/src/native_geometric/memory_training.rs\n M crates/uor-r4-core/src/native_geometric/memory_training/resumable.rs\n M crates/uor-r4-core/src/native_geometric/memory_types.rs\n M crates/uor-r4-core/src/native_geometric/mod.rs\n M crates/uor-r4-core/src/native_geometric/runtime.rs\n M crates/uor-r4-core/src/native_geometric/training.rs\n M crates/uor-r4-core/tests/native_geometric_allocations.rs\n M docs/formal_vocabulary.md\n M docs/geometric_intelligence_programme.md\n M src/native_geometric_cli.rs\n?? crates/uor-r4-core/src/native_geometric/memory_runtime_tests.rs\n?? docs/native_geometric_mechanism_map_973.md\n",
+      "status_unchanged": true,
+      "write_isolation_probe": {
+        "source": "/Users/casey.allard/.codex/worktrees/r4-resumable-memory/uor-r4/.cargo/config.toml",
+        "clone": "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/clone-write-isolation-probe.bin",
+        "original_sha256": "91a502066e179b2525929d903b188b1b6bb10e6b105a81b33a834497c50481a4",
+        "mutated_clone_sha256": "af4b6364da1bc2ab77f39cbac01be09d8a74ed256a7ee48e86e435cb36cf1d59",
+        "source_unchanged_after_clone_write": true,
+        "source_inode": 65897888,
+        "clone_inode": 65950430,
+        "source_nlink": 1,
+        "clone_nlink": 1
+      },
+      "skipped": [],
+      "errors": [],
+      "manifest": "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/storage-clone-manifest.jsonl",
+      "manifest_sha256": "63ccb431550306221f027216c36952ee06def386bb088289ce92656f6ec8c781",
+      "caveat": "du and st_blocks count APFS shared extents more than once. Physical credit is capped by both verified clone file allocation and observed volume free-space increase. Concurrent engineering builds and unrelated filesystem activity can affect free-space snapshots; this is a conservative observed estimate, not a hard unique-extent or peak-allocation guarantee."
+    },
+    "obsolete_debug_cleanup": {
+      "schema": "uor-r4.obsolete-debug-cleanup-result/1",
+      "manifest": "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/obsolete-debug-cleanup-manifest.json",
+      "manifest_sha256": "ddc8fdb759e95884fd59e12c981047b95b582e5c57ea8b822916eef84df2797c",
+      "before": {
+        "time_ns": 1788582393340869000,
+        "df": "Filesystem   1024-blocks      Used Available Capacity iused     ifree %iused  Mounted on\n/dev/disk3s1   239362496 190931656  20373880    91% 2002639 203738800    1%   /System/Volumes/Data\n",
+        "free_bytes": 20862853120,
+        "allocated_bytes": {
+          "/Users/casey.allard/.codex/worktrees/r4-native-joint-learning/uor-r4": 1205309440,
+          "/Users/casey.allard/.codex/worktrees/r4-resumable-memory/uor-r4": 1205538816,
+          "/Users/casey.allard/.codex/worktrees/r4-geometric-composition/uor-r4": 1205604352,
+          "/tmp/r4-native-geometric-target": 5774413824,
+          "/Users/casey.allard/uor-r4/.uor-models/native-joint-learning-2026-09-04": 419528704,
+          "/Users/casey.allard/uor-r4/.uor-models/native-memory-stream-2026-09-05": 323158016,
+          "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05": 47009792
+        }
+      },
+      "after": {
+        "time_ns": 1788582394648894000,
+        "df": "Filesystem   1024-blocks      Used Available Capacity iused     ifree %iused  Mounted on\n/dev/disk3s1   239362496 190190164  21115372    91% 2002592 211153720    1%   /System/Volumes/Data\n",
+        "free_bytes": 21622140928,
+        "allocated_bytes": {
+          "/Users/casey.allard/.codex/worktrees/r4-native-joint-learning/uor-r4": 1205309440,
+          "/Users/casey.allard/.codex/worktrees/r4-resumable-memory/uor-r4": 1205538816,
+          "/Users/casey.allard/.codex/worktrees/r4-geometric-composition/uor-r4": 1205604352,
+          "/tmp/r4-native-geometric-target": 5014859776,
+          "/Users/casey.allard/uor-r4/.uor-models/native-joint-learning-2026-09-04": 419528704,
+          "/Users/casey.allard/uor-r4/.uor-models/native-memory-stream-2026-09-05": 323158016,
+          "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05": 47034368
+        }
+      },
+      "removed_file_count": 46,
+      "removed_allocated_bytes": 759554048,
+      "observed_free_bytes_increase": 759287808,
+      "protected_sha256_unchanged": true,
+      "starting_target_bytes": 4807942144,
+      "apfs_worktree_credit_bytes": 1164636160,
+      "current_known_cumulative_footprint_bytes": 3448455168,
+      "remaining_bytes": 846512128,
+      "remaining_mib": 807.296875,
+      "caveat": "Sampled current physical-footprint estimate; concurrent model output writes and unrelated OS activity can affect snapshots. Headroom must continue to charge artifact and engineering growth. This does not retroactively certify historical peak compliance."
+    },
+    "snapshot_boundary": "Dated engineering and final pre-delivery snapshots are preserved. Final snapshot follows final release/replay/allocation/probe/core-Clippy/fmt/policy checks. All earlier overages remain explicit. Source content/history and full independent worktrees retained; unchanged tracked contents physically shared through APFS clones.",
+    "completed_policy_cache_cleanup": {
+      "schema": "uor-r4.completed-policy-core-cleanup-result/1",
+      "before": {
+        "time_ns": 1788582993811434000,
+        "df": "Filesystem   1024-blocks      Used Available Capacity iused     ifree %iused  Mounted on\n/dev/disk3s1   239362496 191039204  20266332    91% 2003180 202663320    1%   /System/Volumes/Data\n",
+        "free_bytes": 20752723968,
+        "allocated_bytes": {
+          "/Users/casey.allard/.codex/worktrees/r4-native-joint-learning/uor-r4": 1205309440,
+          "/Users/casey.allard/.codex/worktrees/r4-resumable-memory/uor-r4": 1205538816,
+          "/Users/casey.allard/.codex/worktrees/r4-geometric-composition/uor-r4": 1205714944,
+          "/tmp/r4-native-geometric-target": 5852180480,
+          "/Users/casey.allard/uor-r4/.uor-models/native-joint-learning-2026-09-04": 419528704,
+          "/Users/casey.allard/uor-r4/.uor-models/native-memory-stream-2026-09-05": 323158016,
+          "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05": 64335872
+        }
+      },
+      "after": {
+        "time_ns": 1788582994835870000,
+        "df": "Filesystem   1024-blocks      Used Available Capacity iused     ifree %iused  Mounted on\n/dev/disk3s1   239362496 190675072  20630464    91% 2003157 206304640    1%   /System/Volumes/Data\n",
+        "free_bytes": 21125595136,
+        "allocated_bytes": {
+          "/Users/casey.allard/.codex/worktrees/r4-native-joint-learning/uor-r4": 1205309440,
+          "/Users/casey.allard/.codex/worktrees/r4-resumable-memory/uor-r4": 1205538816,
+          "/Users/casey.allard/.codex/worktrees/r4-geometric-composition/uor-r4": 1205714944,
+          "/tmp/r4-native-geometric-target": 5479219200,
+          "/Users/casey.allard/uor-r4/.uor-models/native-joint-learning-2026-09-04": 419528704,
+          "/Users/casey.allard/uor-r4/.uor-models/native-memory-stream-2026-09-05": 323158016,
+          "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05": 64352256
+        }
+      },
+      "removed_files": 23,
+      "removed_allocated_bytes": 372961280,
+      "observed_free_bytes_increase": 372871168,
+      "protected_sha256_unchanged": true,
+      "manifest": "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/policy-core-cleanup-manifest.json",
+      "manifest_sha256": "f23f64bd08f5296843e409374d5611981918c4350d474a86cca84dcb64422fb5"
+    },
+    "historical_native_joint_clone": {
+      "schema": "uor-r4.historical-worktree-apfs-preservation/1",
+      "source": "/Users/casey.allard/.codex/worktrees/r4-resumable-memory/uor-r4",
+      "destination": "/Users/casey.allard/.codex/worktrees/r4-native-joint-learning/uor-r4",
+      "scope": "All historical source content, branches, .git reference and independent write semantics preserved. Only byte-identical tracked regular files physically shared; different/dirty/untracked paths skipped. Mode and modification time retained; inode/allocation metadata changes are explicit.",
+      "before": {
+        "time_ns": 1788582995239206000,
+        "df": "Filesystem   1024-blocks      Used Available Capacity iused     ifree %iused  Mounted on\n/dev/disk3s1   239362496 190675088  20630448    91% 2003158 206304480    1%   /System/Volumes/Data\n",
+        "free_bytes": 21125578752,
+        "allocated_bytes": {
+          "/Users/casey.allard/.codex/worktrees/r4-native-joint-learning/uor-r4": 1205309440,
+          "/Users/casey.allard/.codex/worktrees/r4-resumable-memory/uor-r4": 1205538816,
+          "/Users/casey.allard/.codex/worktrees/r4-geometric-composition/uor-r4": 1205714944,
+          "/tmp/r4-native-geometric-target": 5479219200,
+          "/Users/casey.allard/uor-r4/.uor-models/native-joint-learning-2026-09-04": 419528704,
+          "/Users/casey.allard/uor-r4/.uor-models/native-memory-stream-2026-09-05": 323158016,
+          "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05": 64356352
+        }
+      },
+      "after": {
+        "time_ns": 1788583010674394000,
+        "df": "Filesystem   1024-blocks      Used Available Capacity iused     ifree %iused  Mounted on\n/dev/disk3s1   239362496 189505444  21800092    90% 2003187 218000920    1%   /System/Volumes/Data\n",
+        "free_bytes": 22323294208,
+        "allocated_bytes": {
+          "/Users/casey.allard/.codex/worktrees/r4-native-joint-learning/uor-r4": 1205309440,
+          "/Users/casey.allard/.codex/worktrees/r4-resumable-memory/uor-r4": 1205538816,
+          "/Users/casey.allard/.codex/worktrees/r4-geometric-composition/uor-r4": 1205714944,
+          "/tmp/r4-native-geometric-target": 5479219200,
+          "/Users/casey.allard/uor-r4/.uor-models/native-joint-learning-2026-09-04": 419528704,
+          "/Users/casey.allard/uor-r4/.uor-models/native-memory-stream-2026-09-05": 323158016,
+          "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05": 70742016
+        }
+      },
+      "count": 14170,
+      "logical_bytes": 1172964138,
+      "previous_allocated_bytes": 1205145600,
+      "observed_free_bytes_increase": 1197715456,
+      "conservative_shared_bytes_credit": 1197715456,
+      "status_before": "",
+      "status_after": "",
+      "diff_sha256_before": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "diff_sha256_after": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status_and_diff_unchanged": true,
+      "different_files_preserved": [
+        "crates/uor-r4-core/src/native_geometric/memory_training.rs",
+        "crates/uor-r4-core/src/native_geometric/memory_types.rs",
+        "crates/uor-r4-core/src/native_geometric/mod.rs",
+        "docs/integration/current-state.md",
+        "docs/native_geometric_workflow.md",
+        "src/native_geometric_cli.rs"
+      ],
+      "skipped": [],
+      "write_isolation_reference": "storage-clone-audit.json: clonefile independent-write probe verified against the same unchanged source worktree",
+      "manifest": "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/native-joint-storage-clone-manifest.jsonl",
+      "manifest_sha256": "4fa88ebaa41ede1b4564e8d4349bf424ef5adffcd9ffb7ca632623b1baf12afd",
+      "caveat": "APFS shared extents remain double-counted in du; credit is capped by both verified prior allocation and observed volume free-space gain. This is a current sampled estimate, not a historical peak guarantee."
+    },
+    "pre_final_build_snapshot": {
+      "schema": "uor-r4.cumulative-storage-after-policy-and-clone/1",
+      "snapshot": {
+        "time_ns": 1788583015323070000,
+        "df": "Filesystem   1024-blocks      Used Available Capacity iused     ifree %iused  Mounted on\n/dev/disk3s1   239362496 189506216  21799320    90% 2003188 217993200    1%   /System/Volumes/Data\n",
+        "free_bytes": 22322503680,
+        "allocated_bytes": {
+          "/Users/casey.allard/.codex/worktrees/r4-native-joint-learning/uor-r4": 1205309440,
+          "/Users/casey.allard/.codex/worktrees/r4-resumable-memory/uor-r4": 1205538816,
+          "/Users/casey.allard/.codex/worktrees/r4-geometric-composition/uor-r4": 1205714944,
+          "/tmp/r4-native-geometric-target": 5479219200,
+          "/Users/casey.allard/uor-r4/.uor-models/native-joint-learning-2026-09-04": 419528704,
+          "/Users/casey.allard/uor-r4/.uor-models/native-memory-stream-2026-09-05": 323158016,
+          "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05": 70746112
+        }
+      },
+      "starting_target_bytes": 4807942144,
+      "new_worktree_clone_credit_bytes": 1164636160,
+      "native_joint_clone_credit_bytes": 1197715456,
+      "current_known_cumulative_footprint_bytes": 2738921472,
+      "remaining_bytes": 1556045824,
+      "remaining_mib": 1483.9609375,
+      "historical_overages_preserved": true,
+      "model_or_cargo_work": "NOT_RUN",
+      "protected_binaries_unchanged": true
+    },
+    "final_pre_delivery_snapshot": {
+      "schema": "uor-r4.final-native-occurrence-storage-snapshot/1",
+      "time_utc": "2026-09-05T04:42:16.744655+00:00",
+      "allocated_bytes": {
+        "/Users/casey.allard/.codex/worktrees/r4-native-joint-learning/uor-r4": 1205309440,
+        "/Users/casey.allard/.codex/worktrees/r4-resumable-memory/uor-r4": 1205538816,
+        "/Users/casey.allard/.codex/worktrees/r4-geometric-composition/uor-r4": 1205739520,
+        "/tmp/r4-native-geometric-target": 5479321600,
+        "/Users/casey.allard/uor-r4/.uor-models/native-joint-learning-2026-09-04": 419528704,
+        "/Users/casey.allard/uor-r4/.uor-models/native-memory-stream-2026-09-05": 323158016,
+        "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05": 78897152
+      },
+      "starting_target_bytes": 4807942144,
+      "initial_target_evidence": "Restore UOR-R4 project direction, turn01a06ee3-134a-7232-a43d-e4b0d904b40b, du -sk target =4,695,256KiB",
+      "sum_without_apfs_credits_bytes": 5109551104,
+      "apfs_credits_bytes": {
+        "new_worktree": 1164636160,
+        "native_joint_worktree": 1197715456
+      },
+      "current_known_cumulative_footprint_bytes": 2747199488,
+      "limit_bytes": 4294967296,
+      "remaining_bytes": 1547767808,
+      "remaining_mib": 1476.06640625,
+      "volume_free_bytes": 22312402944,
+      "df": "Filesystem   1024-blocks      Used Available Capacity iused     ifree %iused  Mounted on\n/dev/disk3s1   239362496 189516080  21789456    90% 2003261 217894560    1%   /System/Volumes/Data\n",
+      "phase": "After final release build, 320-case replay, allocation/probe tests, core Clippy, formatting and source-policy check; before protected Git delivery.",
+      "scope": "All three continuation worktrees, all three continuation artifact roots and target growth from exact original baseline. APFS credits capped at measured clone allocations/free-space changes; du alone counts shared extents repeatedly. Preserved historical overages do not become compliant retroactively. This is a known sampled physical-footprint estimate, not a hard unique-extent/peak guarantee; other unrecorded metadata/output and live OS changes are not assigned."
+    }
+  },
+  "validation": [
+    {
+      "command": "cargo test -p uor-r4-core --lib native_geometric --offline",
+      "status": "PASS_BEFORE_DUPLICATE_LOOKUP_OPTIMIZATION",
+      "passed": 32
+    },
+    {
+      "command": "cargo test -p uor-r4-core --test native_geometric_allocations --example native_geometric_joint_probe --offline",
+      "status": "PASS_BEFORE_DUPLICATE_LOOKUP_OPTIMIZATION",
+      "allocation_tests_passed": 2,
+      "example_tests_passed": 8
+    },
+    {
+      "command": "cargo test --offline --bin r4 native_geometric_",
+      "status": "PASS_BEFORE_DUPLICATE_LOOKUP_OPTIMIZATION",
+      "passed": 13,
+      "test_seconds": 5.35
+    },
+    {
+      "command": "cargo clippy --offline -p uor-r4-core --lib --tests --example native_geometric_joint_probe -- -D warnings",
+      "status": "PASS_BEFORE_DUPLICATE_LOOKUP_OPTIMIZATION",
+      "elapsed_seconds": 16.44
+    },
+    {
+      "command": "cargo clippy --offline --bin r4 -- -D warnings",
+      "status": "PASS_BEFORE_DUPLICATE_LOOKUP_OPTIMIZATION",
+      "elapsed_seconds": 30.18
+    },
+    {
+      "command": "cargo fmt --check",
+      "status": "PASS_FINAL_SOURCE"
+    },
+    {
+      "command": "python3 scripts/check_claim_wording.py",
+      "status": "PASS"
+    },
+    {
+      "command": "git diff --check",
+      "status": "PASS"
+    },
+    {
+      "command": "protected pull-request checks and merge queue",
+      "status": "NOT_RUN_AT_RECORD_ASSEMBLY"
+    },
+    {
+      "status": "PASS_BEFORE_DUPLICATE_LOOKUP_OPTIMIZATION",
+      "elapsed_seconds": 21,
+      "command": "CARGO_TARGET_DIR=/tmp/r4-native-geometric-target CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=3 ~/.cargo/bin/cargo run --offline -p uor-r4-core --bin r4-policy-check -- ."
+    },
+    {
+      "command": "cargo test --offline -p uor-r4-core --lib native_geometric",
+      "status": "PASS_AFTER_DUPLICATE_LOOKUP_OPTIMIZATION",
+      "passed": 32,
+      "build_seconds": 48.67,
+      "test_seconds": 6.78
+    },
+    {
+      "status": "PASS_AFTER_DUPLICATE_LOOKUP_OPTIMIZATION",
+      "elapsed_seconds": 131,
+      "command": "CARGO_TARGET_DIR=/tmp/r4-native-geometric-target CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=3 /Users/casey.allard/.cargo/bin/cargo build --release --offline -p uor-r4-wasm-router -p uor-r4-core --bin r4 --example native_geometric_joint_probe"
+    },
+    {
+      "command": "CARGO_TARGET_DIR=/tmp/r4-native-geometric-target CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=3 ~/.cargo/bin/cargo test --offline -p uor-r4-core --test native_geometric_allocations --example native_geometric_joint_probe",
+      "status": "PASS_AFTER_DUPLICATE_LOOKUP_OPTIMIZATION",
+      "allocation_tests_passed": 2,
+      "example_tests_passed": 8,
+      "build_seconds": 75,
+      "allocation_test_seconds": 3.01,
+      "example_test_seconds": 0.01
+    },
+    {
+      "command": "cargo clippy --offline -p uor-r4-core --lib --tests --example native_geometric_joint_probe -- -D warnings",
+      "status": "PASS_AFTER_DUPLICATE_LOOKUP_OPTIMIZATION",
+      "elapsed_seconds": 15.35
+    },
+    {
+      "command": "/tmp/r4-native-geometric-target/debug/r4-policy-check .",
+      "status": "PASS_FINAL_SOURCE_USING_PRESERVED_BINARY",
+      "scope": "Final source-policy read without another Cargo build."
+    },
+    {
+      "check": "Independent final runtime review and report comparison",
+      "status": "PASS_NO_ACTIONABLE_FINDINGS_REPORTED_BY_COORDINATING_LEAD",
+      "boundary": "Independent source/report review, not a machine-code certification."
+    }
+  ],
+  "artifact_files": [
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/count.json",
+      "bytes": 6196531,
+      "sha256": "570ee5158a70a242da8b70d261b4854da72051533bdb6cc708a66b375f4a4e5c"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/count.checkpoint",
+      "bytes": 2829007,
+      "sha256": "bb7ef3244e22c56bfe2a308c67d52d00ec25025fc8cba3c92b4ec8898e373886"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/readout.json",
+      "bytes": 6267327,
+      "sha256": "65126128e0f159031a8a2c367d22f438adf2bfef241471f31c3209b8a4ab72a0"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/occurrence.json",
+      "bytes": 9780190,
+      "sha256": "e99884443e6b2f3cd0eb4600f7a6d485ec9d476b0a092571a764cad65399f68a"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/occurrence.checkpoint",
+      "bytes": 4040987,
+      "sha256": "519c58c16571c199b7576fe134e7221fc2309982013595fba83933000d43754a"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/legacy-matched.json",
+      "bytes": 9789795,
+      "sha256": "6e6a9fe2e98204ee026c3c27d0188ef1505188ab131b81ad43b6ccc21d02a73b"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/legacy-matched.checkpoint",
+      "bytes": 3993238,
+      "sha256": "4783f66ee79376efed054d293ce35bb6576dfdc580e207de188be84b70dd14e6"
+    }
+  ],
+  "raw_report_receipts": [
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/source/source.json",
+      "bytes": 523189,
+      "sha256": "7691238954be95cabda43c61cc5dc0be2f8a1459bed8481e463bf3e64ccd4eb7"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/source/report.json",
+      "bytes": 4922,
+      "sha256": "ef338499909dc2f5a36b9a53e39b743a1dd1e7ccedd49f7166452d546e52f86c"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/supervised-source/source.json",
+      "bytes": 523189,
+      "sha256": "7691238954be95cabda43c61cc5dc0be2f8a1459bed8481e463bf3e64ccd4eb7"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/supervised-source/supervision.json",
+      "bytes": 145334,
+      "sha256": "a3a251009179b607ec3cba989fdee54b686629c4bce370a74b9a57e05a79a562"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/supervised-source/report.json",
+      "bytes": 5514,
+      "sha256": "5fb8c412c29ba7feed65b8ad3b27001515aabdcba69bdd4a39fae43692c50aae"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/count-report.json",
+      "bytes": 1485,
+      "sha256": "7642ac480ef55df0cb3d5c94f2b9cccf7b0c9ff6d20708f50f36d9c7ab39c477"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/readout-report.json",
+      "bytes": 13801,
+      "sha256": "75d7dc09d015e4de0d37763ec92978ffe315b4397b1ecc7a506152b86ddfe9ed"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/occurrence-fit-report.json",
+      "bytes": 158836,
+      "sha256": "987219c1d88f31ec7624d031b568cd17cb095a4a82dfd1b5f397a0aae5ad6b0d"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/legacy-matched-fit-report.json",
+      "bytes": 158632,
+      "sha256": "7d72865642f6b194d02b1be277224c8a5ac35daa7fd1915d70548f3c5e94af9b"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/occurrence-evaluation/report.json",
+      "bytes": 4033564,
+      "sha256": "f0519a507792cc7421229379b91d8723522fa5f0cea7dbadd87c5155da92902f"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/legacy-matched-evaluation/report.json",
+      "bytes": 1520974,
+      "sha256": "bc293773865df799db53c655e2b6c437ef5c2c36c6449a10674682df69c09370"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/compact-evidence.json",
+      "bytes": 46417,
+      "sha256": "cb3871a286f690f2f6a94426fe1ed49d17215bd3e6f2faae0d3610ce70cfa7aa"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/compact-evidence.jq",
+      "bytes": 7775,
+      "sha256": "10637a29be15c695a3f05d2005edcf0c1b790c528d77eb121c7d52588c3d21ba"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/commands.jsonl",
+      "bytes": 7878,
+      "sha256": "59fb3149c820688236146ed9cbc7e6c94743062afd74ba303338a83ebe387a89"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/budget-provenance.json",
+      "bytes": 733,
+      "sha256": "a73ac6d6fd38708afdadecfeaf24e3dbcfca223ffb7bdebab24598a4cff6d719"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/storage-clone-audit.json",
+      "bytes": 5354,
+      "sha256": "dcbd4bc3d87dba495cb4c92492f017a81113f99703247650103a227e38ac6170"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/storage-clone-manifest.jsonl",
+      "bytes": 6449673,
+      "sha256": "63ccb431550306221f027216c36952ee06def386bb088289ce92656f6ec8c781"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/cumulative-storage-audit.json",
+      "bytes": 1844,
+      "sha256": "62bbe5f9644fe6a6dc1ed654cecc5058060954ebe2e43653b1bf3973481df407"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/obsolete-debug-cleanup-manifest.json",
+      "bytes": 22914,
+      "sha256": "ddc8fdb759e95884fd59e12c981047b95b582e5c57ea8b822916eef84df2797c"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/obsolete-debug-cleanup-result.json",
+      "bytes": 2740,
+      "sha256": "01bf873a1c7785f22ce1a180a849bd95b673117421f3eaeb65ea724488daeedd"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/policy-core-cleanup-manifest.json",
+      "bytes": 12902,
+      "sha256": "f23f64bd08f5296843e409374d5611981918c4350d474a86cca84dcb64422fb5"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/policy-core-cleanup-result.json",
+      "bytes": 2266,
+      "sha256": "c29e356f3d259cce39cc2aa26ed0d7d666f0a3444037af625839cdb53f295941"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/native-joint-storage-clone-audit.json",
+      "bytes": 3770,
+      "sha256": "ef2594293720e6215c6acbd1beee07428e6fef2800442992f3efad6e0345537d"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/native-joint-storage-clone-manifest.jsonl",
+      "bytes": 6037767,
+      "sha256": "4fa88ebaa41ede1b4564e8d4349bf424ef5adffcd9ffb7ca632623b1baf12afd"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/cumulative-storage-after-policy-and-clone.json",
+      "bytes": 1368,
+      "sha256": "ee948d14259a58796fb91de4c0c0bac739ccc1f2fc26aeb17ace0e419c146167"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/occurrence-final-evaluation/report.json",
+      "bytes": 4033590,
+      "sha256": "f3a7b2ffbf5470279fb5dc371d82f311cc5490e4b9ea47c4c7253475e1b5f5b8"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/final-replay-comparison.json",
+      "bytes": 2470,
+      "sha256": "9e861706cb7920c9f537788440c4b8ce2716669a23f6411a50e160877843d3ad"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/compare-final-replay.mjs",
+      "bytes": 2329,
+      "sha256": "80e9cbaa7394da3b5747e77984b4d3e428709a9ede16f811dbedb6acee33fa25"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/final-storage-snapshot.json",
+      "bytes": 2091,
+      "sha256": "8fb324fb43c0d6041e967b57b1d5d6bb8f44c6b6a9a6350d1f13c4d0e981fe7d"
+    }
+  ],
+  "preserved_history": {
+    "source_1": "Historical source/1 bytes and measured reports remain unchanged; version2 supplies previously hidden test inputs. No cross-source numerical comparison.",
+    "prior_records": [
+      "docs/native_geometric_query_context_973.md",
+      "docs/native_geometric_resumable_memory_973.md"
+    ],
+    "models_and_worktrees": "All old source worktree contents/history and model/research artifacts retained. Verified identical tracked files in the new worktree and preserved native-joint worktree became independent APFS clones. Six differing native-joint source/doc files retained unchanged. Only enumerated obsolete/completed-policy debug build inputs were removed; linked policy, current CLI/test and release products retained."
+  },
+  "remaining_mechanisms": [
+    "query intent retained across generated spans",
+    "selection of admitted factual and repair values",
+    "computed numeric values absent from retained tokens",
+    "learned write admission and intermediate-value writes",
+    "context retention beyond ring eviction",
+    "useful joint conversation and coding alpha behavior"
+  ],
+  "final_replay": {
+    "comparison": {
+      "status": "PASS",
+      "artifact_cid": "blake3:9bfcd5f46ced60dd70aff50637cde64ffd8312d9e10c1430bbc7f22761f78264",
+      "source_blake3": "848a5f8f9c8b4d4ceb5d0d0c1583886b5ab90f41fdb9a97a9327b9d288ac16b1",
+      "exact_primary_cases": 320,
+      "controls": [
+        {
+          "control": "full",
+          "cases": 64,
+          "old_memory_score_lookups": 6642332,
+          "final_memory_score_lookups": 2464586,
+          "removed_memory_score_lookups": 4177746,
+          "reduction_percent": 62.89577214749278,
+          "memory_candidates": 232097,
+          "composed_occurrences": 62552,
+          "composition_comparisons": 31467694
+        },
+        {
+          "control": "memory_disabled",
+          "cases": 64,
+          "old_memory_score_lookups": 0,
+          "final_memory_score_lookups": 0,
+          "removed_memory_score_lookups": 0,
+          "reduction_percent": null,
+          "memory_candidates": 0,
+          "composed_occurrences": 0,
+          "composition_comparisons": 0
+        },
+        {
+          "control": "geometry_disabled",
+          "cases": 64,
+          "old_memory_score_lookups": 6661652,
+          "final_memory_score_lookups": 2549614,
+          "removed_memory_score_lookups": 4112038,
+          "reduction_percent": 61.727001050189955,
+          "memory_candidates": 587434,
+          "composed_occurrences": 196828,
+          "composition_comparisons": 81916009
+        },
+        {
+          "control": "h4_disabled",
+          "cases": 64,
+          "old_memory_score_lookups": 11189226,
+          "final_memory_score_lookups": 4031691,
+          "removed_memory_score_lookups": 7157535,
+          "reduction_percent": 63.968097525244374,
+          "memory_candidates": 477169,
+          "composed_occurrences": 144681,
+          "composition_comparisons": 65066235
+        },
+        {
+          "control": "zeta_disabled",
+          "cases": 64,
+          "old_memory_score_lookups": 3550229,
+          "final_memory_score_lookups": 1372389,
+          "removed_memory_score_lookups": 2177840,
+          "reduction_percent": 61.34364853647469,
+          "memory_candidates": 217784,
+          "composed_occurrences": 65173,
+          "composition_comparisons": 29603311
+        }
+      ],
+      "equality_scope": "All primary case fields except generation work counters and compiler/repair assessments, including first prediction score/token, generated bytes/token IDs/final state, diagnostics and grading; family summaries also exact. Compiler paths and repair inputs contain different output directories and are outside this equality assertion.",
+      "before": "occurrence-evaluation/report.json",
+      "after": "occurrence-final-evaluation/report.json"
+    },
+    "raw_report": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/occurrence-final-evaluation/report.json",
+      "bytes": 4033590,
+      "sha256": "f3a7b2ffbf5470279fb5dc371d82f311cc5490e4b9ea47c4c7253475e1b5f5b8"
+    },
+    "comparison_script": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-geometric-composition-2026-09-05/compare-final-replay.mjs",
+      "bytes": 2329,
+      "sha256": "80e9cbaa7394da3b5747e77984b4d3e428709a9ede16f811dbedb6acee33fa25"
+    },
+    "report_schema": "uor-r4.native-joint-composition-probe/2",
+    "artifact_cid": "blake3:9bfcd5f46ced60dd70aff50637cde64ffd8312d9e10c1430bbc7f22761f78264",
+    "source_blake3": "848a5f8f9c8b4d4ceb5d0d0c1583886b5ab90f41fdb9a97a9327b9d288ac16b1",
+    "elapsed_ms": 2956,
+    "families": [
+      {
+        "control": "full",
+        "families": [
+          {
+            "cases": 32,
+            "compiled": 0,
+            "completion_positions": 320,
+            "completion_teacher_forced_available": 269,
+            "completion_teacher_forced_correct": 195,
+            "executed_successfully": 0,
+            "family": "prose",
+            "first_correct": 20,
+            "first_memory_target_admitted": 16,
+            "first_memory_target_not_admitted": 16,
+            "first_target_in_shortlist": 29,
+            "function_completion_cases": 0,
+            "generated_completion_exact": 6,
+            "generated_completion_prefix_correct": 7,
+            "generated_function_prefix_correct": 0,
+            "query_context_routes_with_registered_row": 2179,
+            "query_context_routes_without_registered_row": 0
+          },
+          {
+            "cases": 32,
+            "compiled": 2,
+            "completion_positions": 504,
+            "completion_teacher_forced_available": 430,
+            "completion_teacher_forced_correct": 328,
+            "executed_successfully": 0,
+            "family": "rust",
+            "first_correct": 0,
+            "first_memory_target_admitted": 8,
+            "first_memory_target_not_admitted": 24,
+            "first_target_in_shortlist": 10,
+            "function_completion_cases": 16,
+            "generated_completion_exact": 0,
+            "generated_completion_prefix_correct": 0,
+            "generated_function_prefix_correct": 0,
+            "query_context_routes_with_registered_row": 1148,
+            "query_context_routes_without_registered_row": 794
+          }
+        ]
+      },
+      {
+        "control": "memory_disabled",
+        "families": [
+          {
+            "cases": 32,
+            "compiled": 0,
+            "completion_positions": 320,
+            "completion_teacher_forced_available": 259,
+            "completion_teacher_forced_correct": 167,
+            "executed_successfully": 0,
+            "family": "prose",
+            "first_correct": 13,
+            "first_memory_target_admitted": 0,
+            "first_memory_target_not_admitted": 0,
+            "first_target_in_shortlist": 28,
+            "function_completion_cases": 0,
+            "generated_completion_exact": 4,
+            "generated_completion_prefix_correct": 4,
+            "generated_function_prefix_correct": 0,
+            "query_context_routes_with_registered_row": 0,
+            "query_context_routes_without_registered_row": 0
+          },
+          {
+            "cases": 32,
+            "compiled": 0,
+            "completion_positions": 504,
+            "completion_teacher_forced_available": 418,
+            "completion_teacher_forced_correct": 278,
+            "executed_successfully": 0,
+            "family": "rust",
+            "first_correct": 0,
+            "first_memory_target_admitted": 0,
+            "first_memory_target_not_admitted": 0,
+            "first_target_in_shortlist": 11,
+            "function_completion_cases": 16,
+            "generated_completion_exact": 0,
+            "generated_completion_prefix_correct": 0,
+            "generated_function_prefix_correct": 0,
+            "query_context_routes_with_registered_row": 0,
+            "query_context_routes_without_registered_row": 0
+          }
+        ]
+      },
+      {
+        "control": "geometry_disabled",
+        "families": [
+          {
+            "cases": 32,
+            "compiled": 0,
+            "completion_positions": 320,
+            "completion_teacher_forced_available": 269,
+            "completion_teacher_forced_correct": 180,
+            "executed_successfully": 0,
+            "family": "prose",
+            "first_correct": 21,
+            "first_memory_target_admitted": 16,
+            "first_memory_target_not_admitted": 16,
+            "first_target_in_shortlist": 29,
+            "function_completion_cases": 0,
+            "generated_completion_exact": 4,
+            "generated_completion_prefix_correct": 8,
+            "generated_function_prefix_correct": 0,
+            "query_context_routes_with_registered_row": 2179,
+            "query_context_routes_without_registered_row": 0
+          },
+          {
+            "cases": 32,
+            "compiled": 0,
+            "completion_positions": 504,
+            "completion_teacher_forced_available": 428,
+            "completion_teacher_forced_correct": 293,
+            "executed_successfully": 0,
+            "family": "rust",
+            "first_correct": 0,
+            "first_memory_target_admitted": 8,
+            "first_memory_target_not_admitted": 24,
+            "first_target_in_shortlist": 8,
+            "function_completion_cases": 16,
+            "generated_completion_exact": 0,
+            "generated_completion_prefix_correct": 0,
+            "generated_function_prefix_correct": 0,
+            "query_context_routes_with_registered_row": 1148,
+            "query_context_routes_without_registered_row": 794
+          }
+        ]
+      },
+      {
+        "control": "h4_disabled",
+        "families": [
+          {
+            "cases": 32,
+            "compiled": 0,
+            "completion_positions": 320,
+            "completion_teacher_forced_available": 269,
+            "completion_teacher_forced_correct": 184,
+            "executed_successfully": 0,
+            "family": "prose",
+            "first_correct": 21,
+            "first_memory_target_admitted": 16,
+            "first_memory_target_not_admitted": 16,
+            "first_target_in_shortlist": 29,
+            "function_completion_cases": 0,
+            "generated_completion_exact": 4,
+            "generated_completion_prefix_correct": 9,
+            "generated_function_prefix_correct": 0,
+            "query_context_routes_with_registered_row": 2179,
+            "query_context_routes_without_registered_row": 0
+          },
+          {
+            "cases": 32,
+            "compiled": 0,
+            "completion_positions": 504,
+            "completion_teacher_forced_available": 428,
+            "completion_teacher_forced_correct": 296,
+            "executed_successfully": 0,
+            "family": "rust",
+            "first_correct": 0,
+            "first_memory_target_admitted": 8,
+            "first_memory_target_not_admitted": 24,
+            "first_target_in_shortlist": 8,
+            "function_completion_cases": 16,
+            "generated_completion_exact": 0,
+            "generated_completion_prefix_correct": 0,
+            "generated_function_prefix_correct": 0,
+            "query_context_routes_with_registered_row": 1148,
+            "query_context_routes_without_registered_row": 794
+          }
+        ]
+      },
+      {
+        "control": "zeta_disabled",
+        "families": [
+          {
+            "cases": 32,
+            "compiled": 0,
+            "completion_positions": 320,
+            "completion_teacher_forced_available": 269,
+            "completion_teacher_forced_correct": 203,
+            "executed_successfully": 0,
+            "family": "prose",
+            "first_correct": 20,
+            "first_memory_target_admitted": 16,
+            "first_memory_target_not_admitted": 16,
+            "first_target_in_shortlist": 29,
+            "function_completion_cases": 0,
+            "generated_completion_exact": 7,
+            "generated_completion_prefix_correct": 8,
+            "generated_function_prefix_correct": 0,
+            "query_context_routes_with_registered_row": 2179,
+            "query_context_routes_without_registered_row": 0
+          },
+          {
+            "cases": 32,
+            "compiled": 0,
+            "completion_positions": 504,
+            "completion_teacher_forced_available": 430,
+            "completion_teacher_forced_correct": 328,
+            "executed_successfully": 0,
+            "family": "rust",
+            "first_correct": 0,
+            "first_memory_target_admitted": 8,
+            "first_memory_target_not_admitted": 24,
+            "first_target_in_shortlist": 10,
+            "function_completion_cases": 16,
+            "generated_completion_exact": 0,
+            "generated_completion_prefix_correct": 0,
+            "generated_function_prefix_correct": 0,
+            "query_context_routes_with_registered_row": 1148,
+            "query_context_routes_without_registered_row": 794
+          }
+        ]
+      }
+    ],
+    "weighted_feature_lookup_bound_per_admitted_flat_route": 18,
+    "changes": "For /4 only, skip unused flat-route weight lookups while preserving flat diagnostic admission/features and composed scores. No retraining or model artifact changes. The original raw report/work counts remain preserved.",
+    "primary_equality_scope": "All primary case fields except generation work counters and compiler/repair assessments, including first prediction score/token, generated bytes/token IDs/final state, diagnostics and grading; family summaries also exact. Compiler paths and repair inputs contain different output directories and are outside this equality assertion."
+  }
+}

@@ -322,6 +322,8 @@ struct CheckpointState {
     config: MemoryReadFitConfig,
     schedule: MemoryReadSchedule,
     word_cues: bool,
+    #[serde(default, skip_serializing_if = "is_false")]
+    compose_occurrences: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     supervision: Option<MemoryReadSupervision>,
     quotas: Vec<usize>,
@@ -417,6 +419,26 @@ pub(super) fn configuration_identity_with_supervision(
     }
 }
 
+fn is_false(value: &bool) -> bool {
+    !*value
+}
+
+pub(super) fn configuration_identity_for_operator(
+    config: MemoryReadFitConfig,
+    schedule: MemoryReadSchedule,
+    word_cues: bool,
+    supervision_cid: Option<&str>,
+    compose_occurrences: bool,
+) -> Result<String> {
+    let legacy =
+        configuration_identity_with_supervision(config, schedule, word_cues, supervision_cid)?;
+    if compose_occurrences {
+        identity(&(OCCURRENCE_MEMORY_SCHEMA, legacy))
+    } else {
+        Ok(legacy)
+    }
+}
+
 fn select_population(
     lengths: &[usize],
     quotas: &[usize],
@@ -498,7 +520,9 @@ impl MemoryReadTrainer {
         schedule: MemoryReadSchedule,
         word_cues: bool,
     ) -> Result<Self> {
-        Self::new_impl(baseline, documents, config, schedule, word_cues, None)
+        Self::new_impl(
+            baseline, documents, config, schedule, word_cues, None, false,
+        )
     }
 
     pub fn new_with_supervision(
@@ -516,7 +540,33 @@ impl MemoryReadTrainer {
             schedule,
             word_cues,
             Some(supervision),
+            false,
         )
+    }
+
+    /// Fit local H4/zeta path comparisons and combine distinct feature evidence
+    /// reaching the same retained occurrence. No source-location labels are used.
+    pub fn new_with_occurrence_composition(
+        baseline: &Model,
+        documents: &[Document],
+        config: MemoryReadFitConfig,
+        schedule: MemoryReadSchedule,
+        word_cues: bool,
+        supervision: Option<MemoryReadSupervision>,
+    ) -> Result<Self> {
+        Self::new_impl(
+            baseline,
+            documents,
+            config,
+            schedule,
+            word_cues,
+            supervision,
+            true,
+        )
+    }
+
+    pub fn composes_occurrences(&self) -> bool {
+        self.state.compose_occurrences
     }
 
     fn new_impl(
@@ -526,6 +576,7 @@ impl MemoryReadTrainer {
         schedule: MemoryReadSchedule,
         word_cues: bool,
         supervision: Option<MemoryReadSupervision>,
+        compose_occurrences: bool,
     ) -> Result<Self> {
         config.validate(baseline.vocabulary_size())?;
         schedule.validate(&config)?;
@@ -583,11 +634,12 @@ impl MemoryReadTrainer {
             .as_ref()
             .map(MemoryReadSupervision::identity)
             .transpose()?;
-        let configuration_cid = configuration_identity_with_supervision(
+        let configuration_cid = configuration_identity_for_operator(
             config,
             schedule,
             word_cues,
             supervision_cid.as_deref(),
+            compose_occurrences,
         )?;
         let quotas = quotas(&eligible_lengths, schedule.total_positions);
         let selected = select_population(&eligible_lengths, &quotas, supervision.as_ref());
@@ -607,7 +659,12 @@ impl MemoryReadTrainer {
         let mut receipts = ordered_sources.clone();
         receipts.sort_by(|a, b| a.id.cmp(&b.id));
         let memory = MemoryModel {
-            schema: QUERY_CONTEXT_MEMORY_SCHEMA.into(),
+            schema: if compose_occurrences {
+                OCCURRENCE_MEMORY_SCHEMA
+            } else {
+                QUERY_CONTEXT_MEMORY_SCHEMA
+            }
+            .into(),
             baseline_artifact: baseline.artifact_cid.clone(),
             cue_aliases: if word_cues {
                 Some(compile_cue_aliases(baseline)?)
@@ -642,6 +699,7 @@ impl MemoryReadTrainer {
             config,
             schedule,
             word_cues,
+            compose_occurrences,
             supervision,
             quotas,
             token_lengths,
@@ -708,6 +766,7 @@ impl MemoryReadTrainer {
             state.schedule,
             state.word_cues,
             state.supervision.clone(),
+            state.compose_occurrences,
         )?;
         if state.baseline_artifact != trainer.state.baseline_artifact
             || state.configuration_cid != trainer.state.configuration_cid
@@ -908,9 +967,38 @@ impl MemoryReadTrainer {
                     .iter()
                     .any(|candidate| candidate.token == target);
                 let mut missing_query = false;
-                for candidate in &replay.memory.candidates {
-                    let mut features = [ABSENT; MEMORY_FEATURE_COUNT];
-                    for (slot, feature) in candidate.features.iter().enumerate() {
+                // /4 learns the exact same unique-feature occurrence reduction
+                // used by serving; /3 retains original route and feature order.
+                let route_features: Vec<_> = if self.state.compose_occurrences {
+                    replay
+                        .memory
+                        .composed
+                        .iter()
+                        .map(|candidate| {
+                            (
+                                candidate.token,
+                                &replay.memory.composition_features[candidate.feature_start
+                                    ..candidate.feature_start + candidate.feature_count],
+                            )
+                        })
+                        .collect()
+                } else {
+                    replay
+                        .memory
+                        .candidates
+                        .iter()
+                        .map(|candidate| (candidate.token, candidate.features.as_slice()))
+                        .collect()
+                };
+                for (token, candidate_features) in route_features {
+                    let mut features = vec![ABSENT; candidate_features.len()];
+                    let query_slot = candidate_features
+                        .iter()
+                        .position(|feature| feature.kind == 16)
+                        .ok_or_else(|| {
+                            Error("memory alternative lacks its query context".into())
+                        })?;
+                    for (slot, feature) in candidate_features.iter().enumerate() {
                         if let Some(&index) = self.addresses.get(feature) {
                             features[slot] = index;
                         } else if self.state.stage == Stage::Discover
@@ -923,15 +1011,23 @@ impl MemoryReadTrainer {
                             features[slot] = index;
                         } else if self.state.stage == Stage::Discover {
                             self.state.dropped_feature_events += 1;
-                            if slot >= 16 {
+                            if feature.kind >= 16 {
                                 self.state.unsupervised_query_feature_events += 1;
                             }
                         }
                     }
+                    // Bias calibration shares one query row per occurrence. Its
+                    // legacy slot stays explicit even for a larger feature union.
+                    if features.len() <= 16 {
+                        return Err(Error(
+                            "memory occurrence feature union is incomplete".into(),
+                        ));
+                    }
+                    features.swap(16, query_slot);
                     missing_query |= features[16] == ABSENT;
                     alternatives.push(Alternative {
-                        token: candidate.token,
-                        constant: self.baseline.prior_scores[candidate.token as usize],
+                        token,
+                        constant: self.baseline.prior_scores[token as usize],
                         features: Some(features),
                     });
                 }
@@ -1129,10 +1225,10 @@ impl MemoryReadTrainer {
         let tail_positions: usize = state.exposure.iter().map(|doc| doc.tail_positions).sum();
         let positions = memory.fit_positions;
         let fit = MemoryReadFitReport {
-            schema: memory.schema.clone(), feature_layout: QUERY_CONTEXT_FEATURE_LAYOUT.into(), feature_names: memory_feature_names(true),
+            schema: memory.schema.clone(), feature_layout: if state.compose_occurrences { OCCURRENCE_FEATURE_LAYOUT } else { QUERY_CONTEXT_FEATURE_LAYOUT }.into(), feature_names: if state.compose_occurrences { occurrence_feature_names() } else { memory_feature_names(true) },
             cue_identity: if state.word_cues { CUE_SCHEMA } else { EXACT_CUE_SCHEMA }.into(),
             aliased_lexical_tokens: memory.cue_aliases.as_ref().map(|aliases| aliases.representatives.iter().enumerate().filter(|(token, representative)| **representative as usize != *token).count()).unwrap_or(0),
-            objective: "population_replay_pointer_half_target_marginal_half_uniform_target_route_nll_then_population_global_and_query_bias_grids_then_max_route_ce/1; best_epoch_on_population_ce; diagnostics_quantized_max_route".into(),
+            objective: if state.compose_occurrences { "population_replay_unique_feature_occurrence_union; half_target_marginal_half_uniform_target_occurrence_nll_then_global_and_query_bias_grids_then_max_occurrence_ce/1; best_epoch_on_population_ce; diagnostics_quantized_max_occurrence" } else { "population_replay_pointer_half_target_marginal_half_uniform_target_route_nll_then_population_global_and_query_bias_grids_then_max_route_ce/1; best_epoch_on_population_ce; diagnostics_quantized_max_route" }.into(),
             pointer_pretrain_epochs: state.config.epochs, max_route_refinement_epochs: state.config.epochs,
             calibrated_bias_score: libm::round(state.calibrated_bias * SCORE_SCALE) as i32,
             query_bias_contexts: state.query_contexts, query_bias_changed_contexts: state.query_changed,
@@ -1154,7 +1250,7 @@ impl MemoryReadTrainer {
             fit_correct_before: state.before.correct, fit_correct_after: state.after.correct,
             candidate_cross_entropy_before: state.before.mean(), candidate_cross_entropy_after: state.after.mean(),
             learned_features: state.registry.len(), dropped_feature_events: state.dropped_feature_events, epochs: state.config.epochs,
-            session_memory_bytes: view.ring_storage_bytes + view.index_storage_bytes + view.candidate_storage_bytes,
+            session_memory_bytes: view.ring_storage_bytes + view.index_storage_bytes + view.candidate_storage_bytes + view.composed_candidate_storage_bytes + view.composition_feature_storage_bytes,
         };
         let report = MemoryReadStreamReport {
             schema: REPORT_SCHEMA.into(),
@@ -1533,6 +1629,87 @@ mod tests {
     }
 
     #[test]
+    fn native_occurrence_stream_restores_calibration_and_matches_integer_reduction() {
+        let (baseline, documents) = fixture();
+        let schedule = MemoryReadSchedule {
+            total_positions: 96,
+            batch_positions: 7,
+        };
+        let make = || {
+            MemoryReadTrainer::new_with_occurrence_composition(
+                &baseline,
+                &documents,
+                config(7),
+                schedule,
+                true,
+                None,
+            )
+            .unwrap()
+        };
+        let mut continuous = make();
+        complete(&mut continuous);
+        let mut resumed = make();
+        let mut stages = BTreeSet::new();
+        for _ in 0..10000 {
+            if resumed.is_complete() {
+                break;
+            }
+            resumed.advance(1, Duration::from_secs(10)).unwrap();
+            if resumed.state.position > 0 && stages.insert(resumed.state.stage.name()) {
+                resumed = MemoryReadTrainer::restore(
+                    &baseline,
+                    &documents,
+                    &resumed.checkpoint().unwrap(),
+                )
+                .unwrap();
+                assert!(resumed.composes_occurrences());
+            }
+        }
+        assert!(resumed.is_complete());
+        assert_eq!(stages.len(), 8);
+        let (model, report) = resumed.finish().unwrap();
+        assert_eq!(
+            model.to_bytes().unwrap(),
+            continuous.finish().unwrap().0.to_bytes().unwrap()
+        );
+        assert_eq!(model.memory_read_version(), Some(OCCURRENCE_MEMORY_SCHEMA));
+        assert_eq!(report.fit.feature_layout, OCCURRENCE_FEATURE_LAYOUT);
+        let roundtrip = Model::from_bytes(&model.to_bytes().unwrap()).unwrap();
+        let mut session = roundtrip.session(Control::Full).unwrap();
+        for token in baseline.encode(&documents[0].text).unwrap() {
+            session.observe(&roundtrip, token).unwrap();
+            session.predict(&roundtrip).unwrap();
+            let memory = session.memory.as_ref().unwrap();
+            let learned = model.memory_read.as_ref().unwrap();
+            for candidate in &memory.composed {
+                let features = &memory.composition_features
+                    [candidate.feature_start..candidate.feature_start + candidate.feature_count];
+                assert!(features.windows(2).all(|pair| pair[0] < pair[1]));
+                assert_eq!(features.iter().filter(|f| f.kind == 0).count(), 1);
+                assert_eq!(features.iter().filter(|f| f.kind == 16).count(), 1);
+                let expected = i64::from(model.prior_scores[candidate.token as usize])
+                    + features
+                        .iter()
+                        .filter_map(|f| {
+                            learned
+                                .rows
+                                .binary_search_by_key(f, |r| r.feature)
+                                .ok()
+                                .map(|i| i64::from(learned.rows[i].score))
+                        })
+                        .sum::<i64>();
+                assert_eq!(candidate.score, expected);
+            }
+        }
+        assert!(session.work.memory_composed_candidates > 0);
+        let old = MemoryReadTrainer::new(&baseline, &documents, config(7), schedule, true).unwrap();
+        assert_ne!(old.state.configuration_cid, resumed.state.configuration_cid);
+        let old_checkpoint: serde_json::Value =
+            serde_json::from_slice(&old.checkpoint().unwrap()).unwrap();
+        assert!(old_checkpoint["state"].get("compose_occurrences").is_none());
+    }
+
+    #[test]
     fn native_stream_sampling_fills_distinct_population_and_keeps_tail() {
         let lengths = [2, 100, 3, 100];
         let quotas = quotas(&lengths, 39);
@@ -1693,7 +1870,7 @@ mod tests {
                     Alternative {
                         token: 0,
                         constant: 0,
-                        features: Some(features),
+                        features: Some(features.to_vec()),
                     },
                 ],
                 groups: vec![vec![0, 2], vec![1]],
