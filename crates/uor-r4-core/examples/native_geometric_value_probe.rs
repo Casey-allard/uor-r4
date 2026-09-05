@@ -74,7 +74,9 @@ impl Options {
         while let Some(flag) = arguments.next() {
             if flag == "--help" || flag == "-h" {
                 println!(
-                    "native_geometric_value_probe [prepare|prepare-copy|prepare-facts|prepare-wording|fit|completion|entry|copy|copy-completed|copy-composed|copy-binding|copy-binding-plain|evaluate] --output-dir NEW_DIRECTORY\n\
+                    "neutralize-zero-binding INPUT_MODEL NEW_OUTPUT_MODEL (no refit; scores only)\n\
+                     prepare-entry-check SOURCE_V3 NEW_OUTPUT_SOURCE (sixteen raw cases)\n\
+                     native_geometric_value_probe [prepare|prepare-copy|prepare-facts|prepare-wording|fit|completion|entry|copy|copy-completed|copy-composed|copy-binding|copy-binding-plain|evaluate] --output-dir NEW_DIRECTORY\n\
                      prepare-copy: --source SOURCE_V2 --lexeme-cues true\n\
                      copy: --model ENTRY_MODEL --source SOURCE_V3 --lexeme-cues true --generated-tokens 64\n\
                      copy-completed: same source/parent, suffix frame starts after the observed copied word\n\
@@ -959,6 +961,23 @@ fn evaluate_binding(
 }
 
 fn main() -> ProbeResult<()> {
+    if std::env::args().nth(1).as_deref() == Some("prepare-entry-check") {
+        return wording::prepare_entry_check();
+    }
+    if std::env::args().nth(1).as_deref() == Some("neutralize-zero-binding") {
+        let args: Vec<_> = std::env::args().skip(2).collect();
+        if args.len() != 2 {
+            return Err("neutralize-zero-binding INPUT_MODEL NEW_OUTPUT_MODEL".into());
+        }
+        let parent = Model::from_bytes(&fs::read(&args[0])?)?;
+        let model = parent.neutralize_copy_zero_binding()?;
+        write_new(Path::new(&args[1]), &model.to_bytes()?)?;
+        println!(
+            "{}",
+            json!({"parent":parent.artifact_cid(),"artifact":model.artifact_cid(),"intervention":"zero scores only in prefix feature32/value0; postings unchanged; no fit"})
+        );
+        return Ok(());
+    }
     if std::env::args().nth(1).as_deref() == Some("prepare-wording") {
         return wording::prepare();
     }

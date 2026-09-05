@@ -1,6 +1,76 @@
 //! Authored raw-text interventions. This module never enters inference.
 use super::*;
 
+/// Fresh complete-answer check authored after selecting the single-row ablation.
+/// No fitting consumes these cases. A later reuse must label them development.
+pub(super) fn prepare_entry_check() -> ProbeResult<()> {
+    let args: Vec<_> = std::env::args().skip(2).collect();
+    if args.len() != 2 {
+        return Err("prepare-entry-check SOURCE_V3 NEW_OUTPUT_SOURCE".into());
+    }
+    let mut source: Source = serde_json::from_slice(&fs::read(&args[0])?)?;
+    validate_source(&source)?;
+    if source.schema != WORD_COPY_SOURCE_SCHEMA {
+        return Err("entry check requires word-copy source".into());
+    }
+    source.development.clear();
+    for task in 0..4 {
+        for style in 0..4 {
+            let names = ["elva", "brin", "sena", "kael"];
+            let cities = ["Metz", "Cork", "Graz", "Pune"];
+            let a = names[style];
+            let b = names[(style + 1) % 4];
+            let x = cities[style];
+            let y = cities[(style + 2) % 4];
+            let (facts, answer) = match task {
+                0 => (format!("{a} lives in {x}."), x),
+                1 if style % 2 == 0 => (format!("{a} in {x}. {b} in {y}."), x),
+                1 => (format!("{b} in {y}. {a} in {x}."), x),
+                2 => (format!("{a} in {x}. {a} now in {y}."), y),
+                _ => (format!("{b} lives in {x}."), "Unknown"),
+            };
+            let query = match style {
+                1 => format!("What city does {a} live in?"),
+                3 => format!("Which city is {a} in?"),
+                _ => format!("Where is {a}?"),
+            };
+            let prompt = if style == 2 {
+                format!("User: {facts}\nUser: {query}\nAssistant:")
+            } else {
+                format!("{facts} {query} Answer:")
+            };
+            let words = prompt
+                .split(|c: char| !c.is_ascii_alphanumeric())
+                .filter(|w| !w.is_empty())
+                .count();
+            if words > 16 {
+                return Err("entry check exceeds retained-word capacity".into());
+            }
+            source.development.push(Case {
+                id: format!("source-entry/final/{task}/{style}"),
+                // Evaluator bookkeeping only: these vary wording and names,
+                // so pair metrics are not a matched counterfactual claim.
+                pair_id: format!("source-entry/final/{task}/{}", style / 2),
+                family: "prose".into(),
+                task: format!("fact_{task}_style_{style}"),
+                world: 900000 + style,
+                variant: style % 2,
+                prompt,
+                response: format!(" {answer}.\n"),
+            });
+        }
+    }
+    source.scope = "Final16 after fixed zero-binding ablation selection: four each simple/distractor/update/unsupported, new entity/value combinations, four question/wrapper forms; all source words retained. Pune occurred in earlier material; this is not fully unseen vocabulary. Construction copied for evaluator compatibility only; no refit. First use follows saved preparation and design selection; later reuse is open development.".into();
+    validate_source(&source)?;
+    let bytes = serde_json::to_vec_pretty(&source)?;
+    write_new(Path::new(&args[1]), &bytes)?;
+    println!(
+        "{}",
+        json!({"source":args[1],"blake3":blake3::hash(&bytes).to_hex().to_string(),"evaluation":16})
+    );
+    Ok(())
+}
+
 fn case(split: &str, world: usize, task: usize, style: usize, variant: usize) -> Case {
     let (names, cities) = match split {
         "fit" => (

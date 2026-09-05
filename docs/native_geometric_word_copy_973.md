@@ -324,3 +324,73 @@ For missing dictionary addresses its shared zero-match row penalizes a prefix
 space more than Unknown. Making such evidence neutral is a concrete hypothesis,
 not a completed repair. Full costs, preserved artifacts, comparison source and
 checks are appended to the existing evidence JSON and current-state pointer.
+
+## Single-row response-entry correction — 2026-09-05
+
+The no-refit intervention preserves every parameter of shared-binding parent
+`blake3:f933b199c342fd715c44d938b86281493730f2b41d6d33287e7369f852c24232`
+except the scores of prefix feature32/value0. Its thirteen token coefficients
+become zero; its already-zero default, four candidate postings, global postings
+and row membership remain. `Model::neutralize_copy_zero_binding` refreshes both
+artifact identities and validates the result. It refuses absent/nonshared rows.
+The native probe exposes `neutralize-zero-binding INPUT_MODEL NEW_OUTPUT_MODEL`.
+The artifact is an intervention, not a newly trained model.
+
+The feature represents no local equality binding and an unknown/missing preceding
+word address. Its repeated contribution preferred Unknown over prefix space by
+46 per occurrence. The correction tests that specific contribution; it does not
+assert semantic irrelevance for all zero lexical matches. No persistent state,
+serving operator, candidate support or context bound changes. Existing prime
+addresses, relative H4/zeta features, exact retained payloads, learned occurrence
+selection and observed copy/completion remain. Pooled entry still loses occurrence
+identity, and source selection still competes separately with lexical output.
+
+| Complete-response population | Shared parent | Corrected |
+|---|---:|---:|
+| Matched wording diagnostic | 12/16 | 16/16 |
+| Previously opened transfer | 8/32 | 16/32 |
+| Supported subset of transfer | 0/24 | 8/24 |
+| Unsupported subset of transfer | 8/8 | 8/8 |
+| Original responses | 32/32 | 32/32 |
+| Identifier transfer | 12/12 | 12/12 |
+| Prior facts | 12/16 | 16/16 |
+| Older city prompts | 0/2 | 2/2 |
+| Binding outputs | 8/8 | 8/8 |
+| Sixteen first-use prompts after selection | 11/16 | 13/16 |
+
+The prior selected d095 artifact gets 3/16 on the last row. Improvement from that
+baseline also includes the earlier shared-binding/coverage work; only 11→13 on
+this population is the isolated row effect. All three corrected failures use
+“Which city is … in?” All four unsupported final answers succeed. Names and
+entity/value combinations are new, but Pune had earlier exposure. A supplemental
+all-vocabulary-new assertion failed and the shell still executed evaluation.
+The saved model selection and Rust source-preparation receipt precede evaluation;
+the provenance receipt was written afterward and says so. There was no fitting
+or parameter tuning after source preparation. Do not call this fully sealed or
+vocabulary-disjoint evidence. Later reuse is open development. The preparer's
+scope text was subsequently corrected; the original evaluated source is retained.
+
+The native CLI generates ` Kyoto.\n` for the previously broken zora/Kyoto prompt,
+with all Generation fields identical to the evaluator. The corrected artifact
+is `blake3:5f590f1c9798c311ddd28b7d47ab1d444331fe08bdf92839a04b2c0fa0af1919`.
+All 62 preservation responses and causal states agree with copy dispatch disabled.
+Full/disabled complete generation costs 47.210/63.598 ms, ordinary score lookups
+1,503,295/1,772,626, memory score lookups 291,498/427,481 and copy score lookups
+77,151/77,151. Full dispatch executes 120 forced bytes; both arms also perform
+8,351 equality-byte and 45,256 dictionary-byte comparisons. The complete work
+vectors include routing, geometry, typed operators and causal observation.
+This retains the existing conditional-execution saving, not a new optimization.
+After-fit geometry removal is sensitivity only; no matched geometric advantage
+is established. All 32 generated Rust sources match prior compiler/execution
+receipts by SHA256; no new generated-code compilation is claimed.
+
+The focused fitted-artifact test verifies only intended scores change, postings
+and all other parameters remain, reload/identity validation succeeds, repetition
+is idempotent, and unsupported/missing-row requests fail. Release example,
+formatting and architecture policy checks pass; broader release checks remain
+NOT_RUN. The single-row correction is retained as development progress, with the
+16/16 milestone unmet and d095 retained as the prior selected baseline. The next
+architectural work is shared occurrence/NoCopy selection carried through actual
+observation, not further pooled prefix patches. Full local receipts and cumulative
+resource accounting are in
+`.uor-models/native-typed-value-2026-09-05/source-entry-checkpoint.json`.

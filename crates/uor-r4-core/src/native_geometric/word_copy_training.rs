@@ -328,6 +328,31 @@ impl WordCopyModel {
 }
 
 impl Model {
+    /// Offline causal intervention: remove only the shared zero-match row's
+    /// score contribution. Keep candidate admission and all other parameters.
+    /// This is an ablation of a fitted artifact, not a training result.
+    pub fn neutralize_copy_zero_binding(&self) -> Result<Model> {
+        let mut model = self.clone();
+        let head = copy_mut(&mut model)?;
+        if !head.shared_binding {
+            return Err(Error(
+                "zero-binding intervention requires shared binding".into(),
+            ));
+        }
+        let row = head
+            .prefix_rows
+            .iter_mut()
+            .find(|row| row.feature == Feature { kind: 32, value: 0 })
+            .ok_or_else(|| Error("shared zero-binding row absent".into()))?;
+        row.default_score = 0;
+        for score in &mut row.scores {
+            score.score = 0;
+        }
+        model.refresh_identity()?;
+        model.validate()?;
+        Ok(model)
+    }
+
     pub fn word_copy_version(&self) -> Option<&str> {
         self.response_entry
             .as_ref()

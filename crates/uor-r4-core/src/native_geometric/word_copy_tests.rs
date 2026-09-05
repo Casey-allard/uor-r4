@@ -9,6 +9,52 @@ mod fixture {
     include!("../../tests/support/native_word_copy_fixture.rs");
 }
 
+#[test]
+fn native_word_copy_zero_binding_ablation_preserves_admission_and_other_parameters() {
+    let parent = fixture::fitted_shared_binding();
+    let changed = parent.neutralize_copy_zero_binding().unwrap();
+    let mut expected = parent.clone();
+    let row = expected
+        .response_entry
+        .as_mut()
+        .unwrap()
+        .copy
+        .as_mut()
+        .unwrap()
+        .prefix_rows
+        .iter_mut()
+        .find(|r| r.feature == Feature { kind: 32, value: 0 })
+        .unwrap();
+    assert!(row.default_score != 0 || row.scores.iter().any(|s| s.score != 0));
+    row.default_score = 0;
+    for score in &mut row.scores {
+        score.score = 0;
+    }
+    expected.refresh_identity().unwrap();
+    assert_eq!(changed, expected);
+    assert_ne!(changed.artifact_cid(), parent.artifact_cid());
+    assert_eq!(
+        Model::from_bytes(&changed.to_bytes().unwrap()).unwrap(),
+        changed
+    );
+    assert_eq!(changed.neutralize_copy_zero_binding().unwrap(), changed);
+    assert!(fixture::fitted_composed()
+        .neutralize_copy_zero_binding()
+        .is_err());
+    let mut absent = parent.clone();
+    absent
+        .response_entry
+        .as_mut()
+        .unwrap()
+        .copy
+        .as_mut()
+        .unwrap()
+        .prefix_rows
+        .retain(|r| r.feature != Feature { kind: 32, value: 0 });
+    absent.refresh_identity().unwrap();
+    assert!(absent.neutralize_copy_zero_binding().is_err());
+}
+
 fn prefix(model: &Model, prompt: &str, control: Control) -> Session {
     let mut session = model.session(control).unwrap();
     session.observe(model, BOS).unwrap();

@@ -1475,5 +1475,90 @@
     },
     "scope": "Reserved32authored before fitting and executed once per frozen artifact after design selection. Legacy evaluator names the partition development/OPEN; provenance here distinguishes its first use. No reserved outcome selected or retuned these models. Geometry comparison removes features during fitting and Full/dispatch-controlled serving of the copy extension only; baseline, memory and typed paths remain. Exact equality is 8/32 in both fits, all unsupported; outputs need not match on failures. No geometric advantage or alpha. Complete generation timing includes session construction, encoding, ingest, prediction/observation and decode; artifact load and preparation/fits/serialization/CLI are charged in cumulative parent wall. Work counters are instrumented operations, not every CPU instruction.",
     "next_hypothesis": "Nonmatching occurrences also contribute to prefix scoring. Unknown dictionary predecessors share feature32/value0, whose space score is -242 and Unknown score is -196. Repeated contributions can favor abstention, but a matched removal/refit has NOT_RUN; this is a candidate explanation, not established sole cause."
+  },
+  "zero_binding_correction_2026_09_05": {
+    "decision": "RETAIN_DEVELOPMENT_CORRECTION_MILESTONE_UNMET",
+    "artifact": "blake3:5f590f1c9798c311ddd28b7d47ab1d444331fe08bdf92839a04b2c0fa0af1919",
+    "parent": "blake3:f933b199c342fd715c44d938b86281493730f2b41d6d33287e7369f852c24232",
+    "path": ".uor-models/native-typed-value-2026-09-05/source-entry-neutral-model.json",
+    "change": "Only thirteen token scores in prefix feature32/value0 become zero; default was already zero. All postings, other parameters, serving operations and state unchanged. No refit.",
+    "diagnostic": {
+      "parent": 12,
+      "corrected": 16,
+      "total": 16
+    },
+    "open_transfer": {
+      "parent": 8,
+      "corrected": 16,
+      "total": 32,
+      "supported_parent": 0,
+      "supported_corrected": 8,
+      "supported_total": 24,
+      "unsupported_corrected": 8,
+      "unsupported_total": 8
+    },
+    "preservation": {
+      "original": 32,
+      "identifiers": 12,
+      "facts": 16,
+      "older_cities": 2,
+      "binding": 8,
+      "all_exact": true
+    },
+    "first_use_check": {
+      "prior_selected": 3,
+      "parent": 11,
+      "corrected": 13,
+      "total": 16,
+      "unsupported": 4,
+      "unsupported_total": 4,
+      "failures": "All three supported Which city is ... in? cases",
+      "provenance": "Design selection and source preparation preceded evaluation; no later tuning. Pune previously exposed. Supplemental vocabulary novelty assertion failed; shell continued into evaluation. Additional provenance receipt written afterward. Not fully sealed or vocabulary-disjoint qualification."
+    },
+    "whole_path": {
+      "cases": 62,
+      "dispatch_output_and_causal_state_equal": 62,
+      "full_us": 47210,
+      "dispatch_disabled_us": 63598,
+      "forced_bytes": 120,
+      "ordinary_score_lookups": [
+        1503295,
+        1772626
+      ],
+      "memory_score_lookups": [
+        291498,
+        427481
+      ],
+      "copy_score_lookups": [
+        77151,
+        77151
+      ],
+      "scope": "One generation pass including setup, encoding, ingest, prediction, observation, decode. Existing dispatch optimization retained; no new geometric advantage claim."
+    },
+    "generated_rust": {
+      "same_previously_executed_source_hashes": 32,
+      "new_compilation": "NOT_RUN_REUSED_IDENTICAL_SOURCES"
+    },
+    "cli_generation_equals_evaluator": true,
+    "validation": [
+      "release example build",
+      "focused fitted-artifact ablation and validation test",
+      "formatting",
+      "architecture policy"
+    ],
+    "resources": {
+      "model_cycle_ms": 22785,
+      "engineering_before_final_claim_check_ms": 288800,
+      "cumulative_model_ms": 1081641,
+      "cumulative_limit_ms": 1800000,
+      "remaining_model_ms": 718359,
+      "peak_sampled_model_rss_bytes": 423395328,
+      "storage_increase_bytes": 268435456,
+      "cumulative_storage_limit_bytes": 5922357248,
+      "stop_margin_bytes": 134217728,
+      "scope": "6.8s focused fixture execution conservatively charged to model ledger as well as engineering command wall. Categories overlap for that test. No deletions or paid external compute."
+    },
+    "local_checkpoint": ".uor-models/native-typed-value-2026-09-05/source-entry-checkpoint.json",
+    "next": "Learn a shared occurrence/NoCopy choice and carry occurrence identity through observed commitment; successor not implemented or qualified."
   }
 }

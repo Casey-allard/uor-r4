@@ -7,6 +7,47 @@ remains owned by [#973](https://github.com/UOR-Foundation/uor-r4/issues/973).
 Refresh live GitHub before choosing a follow-up; dated snapshots and lower
 historical “next” paragraphs do not select work.
 
+## Zero-match entry correction — 2026-09-05, latest checkpoint
+
+**Retain a useful development correction; the broader grounding milestone remains
+unmet.** PR #1135 merged as `647fd532`. Its rejected shared-binding artifact
+`f933b199` supplies the unchanged parameters for a single-row intervention:
+zero the default/token scores of prefix feature32/value0, preserving that row,
+its candidate postings, every other parameter and the integer/table serving path.
+No fitting, new state, larger context or new geometric feature is introduced.
+
+The corrected artifact is `5f590f1c9798c311ddd28b7d47ab1d444331fe08bdf92839a04b2c0fa0af1919`,
+at `.uor-models/native-typed-value-2026-09-05/source-entry-neutral-model.json`.
+The matched wording diagnostic improves 12/16 → 16/16; the now-open transfer set
+improves 8/32 → 16/32, including supported answers 0/24 → 8/24 while preserving
+8/8 unsupported answers. It gets all 62 preservation responses and 8/8 binding
+outputs correct, restoring four fact regressions and both older city answers.
+An actual native CLI run changes ` Unknown.\nKyoto.\n` to ` Kyoto.\n`.
+
+After selecting this exact correction, sixteen first-use prompts yield 13/16,
+against 11/16 for its unmodified shared-binding parent and 3/16 for the previously
+selected `d095a1ab` artifact. The three failures all ask “Which city is … in?”;
+all four unsupported answers remain correct. `Pune` occurred in prior material.
+A vocabulary-novelty assertion failed before a shell continued into evaluation;
+the later provenance receipt records this explicitly. Source preparation and
+model selection preceded evaluation, with no subsequent tuning, but this is
+not a fully sealed or vocabulary-disjoint qualification. The 16/16 milestone
+has not passed; `d095a1ab` remains the prior selected baseline.
+
+All 62 outputs and causal states agree with committed-copy dispatch disabled.
+Complete generation totals 47.210/63.598 ms in one pass; this retains the existing
+dispatch optimization and establishes no new geometric efficiency advantage.
+The 32 generated Rust sources match previously executed sources by hash.
+Local `source-entry-checkpoint.json` contains full work counts, artifact/source
+identities, preservation, first-use provenance and cumulative resource accounting.
+One focused fitted-artifact test, release example build, policy and formatting
+checks pass. No broader release checks or refit ran.
+
+The next implementation remains a learned occurrence/NoCopy choice shared with
+response entry and preserved through an observed commit. This correction shows
+that repeated unbound scores caused some failures, not that zero lexical matches
+are universally irrelevant. Do not broaden zeroing or force copying from a match.
+
 ## Wording transfer and shared binding — 2026-09-05, later checkpoint
 
 **Decision: reject the shared-binding candidate for promotion.** Keep the
