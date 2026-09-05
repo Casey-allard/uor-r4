@@ -7,10 +7,33 @@ use std::collections::{BTreeMap, BTreeSet};
 
 mod resumable;
 pub use resumable::{
-    MemoryReadDocumentExposure, MemoryReadDocumentSupervision, MemoryReadSchedule,
-    MemoryReadStreamProgress, MemoryReadStreamReport, MemoryReadSupervision, MemoryReadTokenSpan,
-    MemoryReadTrainer,
+    MemoryReadDocumentExposure, MemoryReadDocumentSupervision, MemoryReadResponseStateReport,
+    MemoryReadSchedule, MemoryReadStreamProgress, MemoryReadStreamReport, MemoryReadSupervision,
+    MemoryReadTokenSpan, MemoryReadTrainer,
 };
+
+fn response_feature_layout(config: &MemoryReadFitConfig) -> &'static str {
+    if config.advance_response_path {
+        RESPONSE_ADVANCING_FEATURE_LAYOUT
+    } else {
+        RESPONSE_FEATURE_LAYOUT
+    }
+}
+
+fn validate_response_fit_capacity(config: &MemoryReadFitConfig) -> Result<()> {
+    // The response reader can append one continuation to the ordinary memory
+    // routes; include it alongside the existing 256 base alternatives.
+    if config
+        .max_positions
+        .saturating_mul(config.candidate_limit.saturating_add(257))
+        > 2_097_152
+    {
+        return Err(Error(
+            "response memory configuration exceeds bounded candidate/fit capacity".into(),
+        ));
+    }
+    Ok(())
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MemoryReadDiagnostic {
@@ -46,10 +69,10 @@ impl Session {
         };
         if !matches!(
             operator.schema.as_str(),
-            QUERY_CONTEXT_MEMORY_SCHEMA | OCCURRENCE_MEMORY_SCHEMA
+            QUERY_CONTEXT_MEMORY_SCHEMA | OCCURRENCE_MEMORY_SCHEMA | RESPONSE_MEMORY_SCHEMA
         ) {
             return Err(Error(
-                "query-context coverage diagnostic requires the /3 or /4 reader".into(),
+                "query-context coverage diagnostic requires the /3, /4 or /5 reader".into(),
             ));
         }
         let registered = state
@@ -171,6 +194,15 @@ fn occurrence_feature_names() -> Vec<String> {
     names
 }
 
+fn response_feature_names() -> Vec<String> {
+    let mut names = occurrence_feature_names();
+    names[1] = "response_action_query_distance_and_source_offset".into();
+    names[5] = "response_action_local_or_selected_h4_transport".into();
+    names[6] = "response_action_h4_transport_and_offsets".into();
+    names[7] = "response_action_signed_orientation".into();
+    names
+}
+
 pub(super) fn compile_cue_aliases(model: &Model) -> Result<CueAliases> {
     if model.lexical_pieces.len() > model.config.max_lexical_pieces
         || model.vocabulary_size() != LEXICAL_BASE as usize + model.lexical_pieces.len()
@@ -217,20 +249,34 @@ pub(super) fn compile_cue_aliases(model: &Model) -> Result<CueAliases> {
 impl MemoryModel {
     pub(super) fn validate(&self, model: &Model) -> Result<()> {
         self.config.validate(model.vocabulary_size())?;
+        if self.schema == RESPONSE_MEMORY_SCHEMA {
+            validate_response_fit_capacity(&self.config)?;
+        }
+        if self.config.advance_response_path && self.schema != RESPONSE_MEMORY_SCHEMA {
+            return Err(Error(
+                "advancing response paths require the persistent response memory schema".into(),
+            ));
+        }
         let cue_schema_valid = match (&self.cue_aliases, self.schema.as_str()) {
             (
                 None,
-                LEGACY_MEMORY_SCHEMA | QUERY_CONTEXT_MEMORY_SCHEMA | OCCURRENCE_MEMORY_SCHEMA,
+                LEGACY_MEMORY_SCHEMA
+                | QUERY_CONTEXT_MEMORY_SCHEMA
+                | OCCURRENCE_MEMORY_SCHEMA
+                | RESPONSE_MEMORY_SCHEMA,
             ) => true,
             (
                 Some(aliases),
-                MEMORY_SCHEMA | QUERY_CONTEXT_MEMORY_SCHEMA | OCCURRENCE_MEMORY_SCHEMA,
+                MEMORY_SCHEMA
+                | QUERY_CONTEXT_MEMORY_SCHEMA
+                | OCCURRENCE_MEMORY_SCHEMA
+                | RESPONSE_MEMORY_SCHEMA,
             ) => *aliases == compile_cue_aliases(model)?,
             _ => false,
         };
         if matches!(
             self.schema.as_str(),
-            QUERY_CONTEXT_MEMORY_SCHEMA | OCCURRENCE_MEMORY_SCHEMA
+            QUERY_CONTEXT_MEMORY_SCHEMA | OCCURRENCE_MEMORY_SCHEMA | RESPONSE_MEMORY_SCHEMA
         ) {
             validate_query_context_primes(model)?;
         }
@@ -270,7 +316,11 @@ impl MemoryModel {
                 "memory-read operator shape, scores or configuration invalid".into(),
             ));
         }
-        if self.schema == OCCURRENCE_MEMORY_SCHEMA && self.fit_schedule.is_none() {
+        if matches!(
+            self.schema.as_str(),
+            OCCURRENCE_MEMORY_SCHEMA | RESPONSE_MEMORY_SCHEMA
+        ) && self.fit_schedule.is_none()
+        {
             return Err(Error(
                 "occurrence composition requires its bound stream schedule".into(),
             ));
@@ -279,7 +329,7 @@ impl MemoryModel {
             lineage.schedule.validate(&self.config)?;
             if !matches!(
                 self.schema.as_str(),
-                QUERY_CONTEXT_MEMORY_SCHEMA | OCCURRENCE_MEMORY_SCHEMA
+                QUERY_CONTEXT_MEMORY_SCHEMA | OCCURRENCE_MEMORY_SCHEMA | RESPONSE_MEMORY_SCHEMA
             ) || lineage.schema != resumable::REPORT_SCHEMA
                 || lineage.ordered_source_cid.len() != 71
                 || !lineage.ordered_source_cid.starts_with("blake3:")
@@ -289,12 +339,17 @@ impl MemoryModel {
                         lineage.schedule,
                         self.cue_aliases.is_some(),
                         lineage.supervision_cid.as_deref(),
-                        self.schema == OCCURRENCE_MEMORY_SCHEMA,
+                        matches!(
+                            self.schema.as_str(),
+                            OCCURRENCE_MEMORY_SCHEMA | RESPONSE_MEMORY_SCHEMA
+                        ),
+                        self.schema == RESPONSE_MEMORY_SCHEMA,
                     )?
                 || lineage
                     .supervision_cid
                     .as_ref()
                     .is_some_and(|cid| cid.len() != 71 || !cid.starts_with("blake3:"))
+                || (self.schema == RESPONSE_MEMORY_SCHEMA && lineage.supervision_cid.is_none())
             {
                 return Err(Error(
                     "resumable memory schedule requires the query-context reader".into(),
@@ -349,7 +404,9 @@ impl Model {
     }
     pub fn memory_read_feature_layout(&self) -> Option<&str> {
         self.memory_read.as_ref().map(|memory| {
-            if memory.schema == OCCURRENCE_MEMORY_SCHEMA {
+            if memory.schema == RESPONSE_MEMORY_SCHEMA {
+                response_feature_layout(&memory.config)
+            } else if memory.schema == OCCURRENCE_MEMORY_SCHEMA {
                 OCCURRENCE_FEATURE_LAYOUT
             } else if memory.schema == QUERY_CONTEXT_MEMORY_SCHEMA {
                 QUERY_CONTEXT_FEATURE_LAYOUT
@@ -369,12 +426,21 @@ impl Model {
             bytes += self.config.context_tokens * std::mem::size_of::<MemoryEntry>()
                 + (self.vocabulary_size() << memory.source_shift << memory.posting_shift)
                     * std::mem::size_of::<MemoryReference>()
-                + memory.config.candidate_limit * std::mem::size_of::<MemoryCandidate>();
-            if memory.schema == OCCURRENCE_MEMORY_SCHEMA {
-                bytes += memory.config.candidate_limit * std::mem::size_of::<ComposedCandidate>()
-                    + memory.config.candidate_limit
-                        * MEMORY_FEATURE_COUNT
-                        * std::mem::size_of::<MemoryFeature>();
+                + (memory.config.candidate_limit
+                    + usize::from(memory.schema == RESPONSE_MEMORY_SCHEMA))
+                    * std::mem::size_of::<MemoryCandidate>();
+            if matches!(
+                memory.schema.as_str(),
+                OCCURRENCE_MEMORY_SCHEMA | RESPONSE_MEMORY_SCHEMA
+            ) {
+                let capacity = memory.config.candidate_limit
+                    + usize::from(memory.schema == RESPONSE_MEMORY_SCHEMA);
+                bytes += capacity * std::mem::size_of::<ComposedCandidate>()
+                    + capacity * MEMORY_FEATURE_COUNT * std::mem::size_of::<MemoryFeature>();
+            }
+            if memory.schema == RESPONSE_MEMORY_SCHEMA {
+                bytes += memory.config.query_tokens * std::mem::size_of::<MemoryEntry>()
+                    + memory.config.candidate_limit * std::mem::size_of::<MemoryReference>();
             }
         }
         bytes
@@ -426,6 +492,11 @@ impl Model {
         query_context: bool,
     ) -> Result<(Model, MemoryReadFitReport)> {
         config.validate(self.vocabulary_size())?;
+        if config.advance_response_path {
+            return Err(Error(
+                "advancing response paths require the response-state stream trainer".into(),
+            ));
+        }
         if query_context {
             validate_query_context_primes(self)?;
         }

@@ -191,6 +191,7 @@ fn occurrence_union_counts_each_feature_and_prior_once_without_merging_equal_tok
     let mut state = MemoryState::new(&model, &memory);
     for (sequence, features) in [(10, first), (10, second), (10, first), (11, independent)] {
         state.candidates.push(MemoryCandidate {
+            action: ResponseAction::Requery,
             sequence,
             token,
             score: -999,

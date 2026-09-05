@@ -3,7 +3,7 @@
 use super::memory_types::*;
 use super::{Control, Model, Work, BOS, PHASE_CHANNELS};
 
-fn cue_identity(memory: &MemoryModel, token: u32, work: &mut Work) -> u32 {
+pub(super) fn cue_identity(memory: &MemoryModel, token: u32, work: &mut Work) -> u32 {
     if let Some(aliases) = &memory.cue_aliases {
         work.memory_cue_reads = work.memory_cue_reads.saturating_add(1);
         aliases.representatives[token as usize]
@@ -48,7 +48,7 @@ impl MemoryState {
         view
     }
 
-    fn recent(&self, distance: usize) -> Option<MemoryEntry> {
+    pub(super) fn recent(&self, distance: usize) -> Option<MemoryEntry> {
         if distance == 0 || distance > self.length {
             return None;
         }
@@ -67,6 +67,11 @@ impl MemoryState {
         token: u32,
         work: &mut Work,
     ) {
+        self.commit_response(token, work);
+        if self.length == self.ring.len() {
+            self.origin_pose = self.ring[self.cursor].pose;
+            self.origin_phases = self.ring[self.cursor].phases;
+        }
         // Index values following each recent cue. No token classes, parser or
         // answer labels participate in write admission.
         for distance in 1..=memory.config.source_offsets {
@@ -111,6 +116,13 @@ impl MemoryState {
             self.length += 1;
         }
         self.seen = self.seen.saturating_add(1);
+        if let Some(response) = &mut self.response {
+            if response.selected.is_some_and(|reference| {
+                reference.sequence < self.seen.saturating_sub(self.length as u64)
+            }) {
+                response.selected = None;
+            }
+        }
     }
 
     pub(super) fn collect(
@@ -125,7 +137,8 @@ impl MemoryState {
             .recent(1)
             .map(|entry| model.geometry.tokens[entry.token as usize].prime)
             .unwrap_or(2);
-        let occurrence_composition = memory.schema == OCCURRENCE_MEMORY_SCHEMA;
+        let occurrence_composition =
+            memory.schema == OCCURRENCE_MEMORY_SCHEMA || memory.schema == RESPONSE_MEMORY_SCHEMA;
         let query_context = memory.schema == QUERY_CONTEXT_MEMORY_SCHEMA || occurrence_composition;
         let previous_query = if query_context {
             self.recent(2)
@@ -135,24 +148,45 @@ impl MemoryState {
             2
         };
         let oldest = self.seen.saturating_sub(self.ring.len() as u64);
+        let persistent = self.response.as_ref().filter(|response| response.active);
+        let query_pose = persistent
+            .filter(|_| !memory.config.advance_response_path)
+            .map(|response| response.query_pose)
+            .unwrap_or(self.pose);
+        let query_phases = persistent
+            .filter(|_| !memory.config.advance_response_path)
+            .map(|response| response.query_phases)
+            .unwrap_or(self.phases);
         let mut visits = 0;
         // Visit each query position before spending the budget on older
         // postings, so a larger query window is not a silently dead setting.
         'queries: for offset in 0..memory.config.postings_per_address {
             for source_distance in 1..=memory.config.source_offsets {
                 for query_distance in 1..=memory.config.query_tokens {
-                    let Some(query_entry) = self.recent(query_distance) else {
+                    let query_entry = if let Some(response) = persistent {
+                        response.queries.get(query_distance - 1).copied()
+                    } else {
+                        self.recent(query_distance)
+                    };
+                    let Some(query_entry) = query_entry else {
                         break;
                     };
                     if visits >= memory.config.candidate_limit {
                         break 'queries;
                     }
-                    let query = cue_identity(memory, query_entry.token, work);
-                    let base = (((query as usize) << memory.source_shift) | (source_distance - 1))
-                        << memory.posting_shift;
+                    let reference = if let Some(response) = persistent {
+                        work.response_reference_reads =
+                            work.response_reference_reads.saturating_add(1);
+                        response.references[visits]
+                    } else {
+                        let query = cue_identity(memory, query_entry.token, work);
+                        let base = (((query as usize) << memory.source_shift)
+                            | (source_distance - 1))
+                            << memory.posting_shift;
+                        work.memory_index_reads = work.memory_index_reads.saturating_add(1);
+                        self.index[base + offset]
+                    };
                     visits += 1;
-                    work.memory_index_reads = work.memory_index_reads.saturating_add(1);
-                    let reference = self.index[base + offset];
                     if reference.sequence == u64::MAX {
                         continue;
                     }
@@ -195,7 +229,7 @@ impl MemoryState {
                         let query_inverse = model.geometry.inverses[usize::from(query_entry.pose)];
                         let query_path = model.geometry.products[model.geometry.row_bases
                             [usize::from(query_inverse)]
-                            + usize::from(self.pose)];
+                            + usize::from(query_pose)];
                         let path_inverse = model.geometry.inverses[usize::from(source_path)];
                         let relative = model.geometry.products[model.geometry.row_bases
                             [usize::from(path_inverse)]
@@ -203,7 +237,7 @@ impl MemoryState {
                         work.memory_h4_reads = work.memory_h4_reads.saturating_add(6);
                         for (channel, phase) in relative_phases.iter_mut().enumerate() {
                             let query_phase =
-                                self.phases[channel].wrapping_sub(query_entry.phases[channel]);
+                                query_phases[channel].wrapping_sub(query_entry.phases[channel]);
                             let source_phase =
                                 value.phases[channel].wrapping_sub(source_cue.phases[channel]);
                             *phase = query_phase.wrapping_sub(source_phase);
@@ -317,6 +351,7 @@ impl MemoryState {
                         }
                     }
                     self.candidates.push(MemoryCandidate {
+                        action: ResponseAction::Requery,
                         sequence: reference.sequence,
                         token: value.token,
                         score,
@@ -329,6 +364,7 @@ impl MemoryState {
         self.composed.clear();
         self.composition_features.clear();
         if occurrence_composition {
+            self.collect_continuation(model, work);
             self.compose_occurrences(model, memory, control, work);
         }
     }
@@ -351,7 +387,7 @@ impl MemoryState {
             for known in &self.composed {
                 work.memory_composition_comparisons =
                     work.memory_composition_comparisons.saturating_add(1);
-                if known.sequence == candidate.sequence {
+                if known.sequence == candidate.sequence && known.action == candidate.action {
                     already_composed = true;
                     break;
                 }
@@ -363,7 +399,7 @@ impl MemoryState {
             for route in &self.candidates {
                 work.memory_composition_comparisons =
                     work.memory_composition_comparisons.saturating_add(1);
-                if route.sequence != candidate.sequence {
+                if route.sequence != candidate.sequence || route.action != candidate.action {
                     continue;
                 }
                 for feature in route.features {
@@ -408,6 +444,7 @@ impl MemoryState {
                 }
             }
             self.composed.push(ComposedCandidate {
+                action: candidate.action,
                 sequence: candidate.sequence,
                 token: candidate.token,
                 score,

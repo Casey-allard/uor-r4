@@ -149,6 +149,12 @@ struct FitMemoryStreamArgs {
     /// Compare local geometric paths and combine evidence at each source occurrence.
     #[arg(long)]
     compose_occurrences: bool,
+    /// Retain response-query and learned occurrence state across generated tokens.
+    #[arg(long, requires_all = ["compose_occurrences", "supervision"])]
+    persist_response: bool,
+    /// Advance the captured response query's geometric endpoint after each observation.
+    #[arg(long, requires = "persist_response")]
+    advance_response_path: bool,
     /// Cumulative elapsed limit for this checkpoint, including prior launches.
     #[arg(long, default_value_t = 600)]
     max_seconds: u64,
@@ -176,8 +182,16 @@ struct MemoryStreamHeader {
     word_cues: bool,
     #[serde(default)]
     compose_occurrences: bool,
+    #[serde(default)]
+    persist_response: bool,
+    #[serde(default, skip_serializing_if = "is_false")]
+    advance_response_path: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     supervision_cid: Option<String>,
+}
+
+fn is_false(value: &bool) -> bool {
+    !value
 }
 
 #[derive(Debug, Args)]
@@ -241,6 +255,7 @@ enum ControlArg {
     RadialDisabled,
     HeatmapDisabled,
     MemoryDisabled,
+    ResponseStateDisabled,
 }
 impl From<ControlArg> for Control {
     fn from(value: ControlArg) -> Self {
@@ -254,6 +269,7 @@ impl From<ControlArg> for Control {
             ControlArg::RadialDisabled => Self::RadialDisabled,
             ControlArg::HeatmapDisabled => Self::HeatmapDisabled,
             ControlArg::MemoryDisabled => Self::MemoryDisabled,
+            ControlArg::ResponseStateDisabled => Self::ResponseStateDisabled,
         }
     }
 }
@@ -504,6 +520,7 @@ fn fit_memory(a: &FitMemoryArgs) -> Result<(), String> {
         max_positions: a.max_positions,
         epochs: a.epochs,
         max_features: a.max_features,
+        advance_response_path: false,
     };
     let (learned, fit) = if a.query_context {
         model.fit_memory_read_with_query_context(&documents, config, a.word_cues)
@@ -538,6 +555,14 @@ fn fit_memory_stream(a: &FitMemoryStreamArgs) -> Result<(), String> {
     use uor_r4_core::native_geometric::{
         MemoryReadFitConfig, MemoryReadSchedule, MemoryReadSupervision, MemoryReadTrainer,
     };
+    if a.advance_response_path && !a.persist_response {
+        return Err("advancing the response path requires persistent response fitting".into());
+    }
+    if a.persist_response && (!a.compose_occurrences || a.supervision.is_none()) {
+        return Err(
+            "persistent response fitting requires occurrence composition and supervision".into(),
+        );
+    }
     if a.max_seconds == 0
         || a.max_rss_mib == 0
         || a.checkpoint_every == 0
@@ -578,6 +603,7 @@ fn fit_memory_stream(a: &FitMemoryStreamArgs) -> Result<(), String> {
         max_positions: a.batch_positions,
         epochs: a.epochs,
         max_features: a.max_features,
+        advance_response_path: a.advance_response_path,
     };
     let schedule = MemoryReadSchedule {
         total_positions: a.total_positions,
@@ -598,6 +624,8 @@ fn fit_memory_stream(a: &FitMemoryStreamArgs) -> Result<(), String> {
             || h.schedule != schedule
             || h.word_cues != a.word_cues
             || h.compose_occurrences != a.compose_occurrences
+            || h.persist_response != a.persist_response
+            || h.advance_response_path != a.advance_response_path
             || h.supervision_cid != supervision_cid
         {
             return Err(
@@ -609,6 +637,7 @@ fn fit_memory_stream(a: &FitMemoryStreamArgs) -> Result<(), String> {
             .map_err(err)?;
         if trainer.supervision_cid() != supervision_cid.as_deref()
             || trainer.composes_occurrences() != a.compose_occurrences
+            || trainer.persists_response_state() != a.persist_response
         {
             return Err("resume supervision differs from the saved learned state".into());
         }
@@ -622,9 +651,20 @@ fn fit_memory_stream(a: &FitMemoryStreamArgs) -> Result<(), String> {
                 schedule,
                 word_cues: a.word_cues,
                 compose_occurrences: a.compose_occurrences,
+                persist_response: a.persist_response,
+                advance_response_path: a.advance_response_path,
                 supervision_cid: supervision_cid.clone(),
             },
-            if a.compose_occurrences {
+            if a.persist_response {
+                MemoryReadTrainer::new_with_response_state(
+                    &baseline,
+                    &documents,
+                    config,
+                    schedule,
+                    a.word_cues,
+                    supervision.ok_or("persistent response fitting requires supervision")?,
+                )
+            } else if a.compose_occurrences {
                 MemoryReadTrainer::new_with_occurrence_composition(
                     &baseline,
                     &documents,
@@ -747,6 +787,8 @@ fn fit_memory_stream(a: &FitMemoryStreamArgs) -> Result<(), String> {
             "source":source, "baseline_artifact":baseline.artifact_cid(),
             "learned_artifact":artifact, "progress":progress, "fit":final_fit,
             "config":config,"schedule":schedule,"word_cues":a.word_cues,"compose_occurrences":a.compose_occurrences,
+            "persist_response":a.persist_response,
+            "advance_response_path":a.advance_response_path,
             "supervision_cid":supervision_cid,
             "checkpoint":a.checkpoint,"output":a.output,"output_bytes":output_bytes,
             "checkpoint_bytes":fs::metadata(&a.checkpoint).map_err(err)?.len(),
@@ -1174,16 +1216,21 @@ fn chat(a: &ChatArgs) -> Result<(), String> {
                 .map_err(err)?;
             continue;
         }
+        session.end_response(&model).map_err(err)?;
         for token in model
             .encode(&format!("\nUser: {line}\nAssistant:"))
             .map_err(err)?
         {
             session.observe(&model, token).map_err(err)?;
         }
+        session.begin_response(&model).map_err(err)?;
         let mut output = Vec::new();
         for _ in 0..a.max_tokens {
             let token = session.predict(&model).map_err(err)?.token;
             if token == uor_r4_core::native_geometric::EOS {
+                if session.response_decision().is_some() {
+                    session.observe(&model, token).map_err(err)?;
+                }
                 break;
             }
             session.observe(&model, token).map_err(err)?;
@@ -1280,6 +1327,8 @@ mod tests {
             max_features: 4096,
             word_cues: true,
             compose_occurrences: false,
+            persist_response: false,
+            advance_response_path: false,
             max_seconds: 60,
             max_rss_mib: 4096,
             max_output_bytes: 16_777_216,
@@ -1363,6 +1412,61 @@ mod tests {
         a.supervision = Some(mask_path);
         a.max_batches = None;
         fit_memory_stream(&a).expect("masked resume");
+
+        // A response boundary is explicit source metadata, and both host and
+        // fitter checkpoints must bind the new state law on continuation.
+        a.resume = false;
+        a.advance_response_path = true;
+        assert!(fit_memory_stream(&a)
+            .expect_err("advancing the endpoint requires response state")
+            .contains("requires persistent response fitting"));
+        a.advance_response_path = false;
+        a.persist_response = true;
+        assert!(fit_memory_stream(&a)
+            .expect_err("response state requires composition")
+            .contains("requires occurrence composition and supervision"));
+        a.compose_occurrences = true;
+        let supervision = a.supervision.take();
+        assert!(fit_memory_stream(&a)
+            .expect_err("response state requires boundaries")
+            .contains("requires occurrence composition and supervision"));
+        a.supervision = supervision;
+        a.output = dir.0.join("response.json");
+        a.checkpoint = dir.0.join("response.checkpoint");
+        a.max_batches = Some(1);
+        fit_memory_stream(&a).expect("response launch");
+        let response_saved = fs::read(&a.checkpoint).expect("response checkpoint");
+        a.resume = true;
+        a.advance_response_path = true;
+        assert!(fit_memory_stream(&a)
+            .expect_err("response endpoint law changed")
+            .contains("same memory fitting"));
+        assert_eq!(
+            response_saved,
+            fs::read(&a.checkpoint).expect("preserved endpoint law")
+        );
+        a.advance_response_path = false;
+        a.persist_response = false;
+        assert!(fit_memory_stream(&a)
+            .expect_err("response mode changed")
+            .contains("same memory fitting"));
+        assert_eq!(
+            response_saved,
+            fs::read(&a.checkpoint).expect("preserved response")
+        );
+        a.persist_response = true;
+        a.max_batches = None;
+        fit_memory_stream(&a).expect("response resume");
+        let response_model = load_model(&a.output).expect("response artifact");
+        assert!(response_model
+            .memory_read_version()
+            .unwrap()
+            .ends_with("/5"));
+        let generated = response_model
+            .generate("The key is", 4, Control::Full)
+            .unwrap();
+        assert!(!generated.response_trace.is_empty());
+        assert_eq!(generated.work.response_query_captures, 1);
     }
 
     #[test]

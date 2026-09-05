@@ -6,8 +6,8 @@ use std::alloc::{GlobalAlloc, Layout, System};
 use std::cell::Cell;
 
 use uor_r4_core::native_geometric::{
-    Config, Control, Document, MemoryReadFitConfig, MemoryReadSchedule, MemoryReadTrainer,
-    ReadoutFitConfig, Trainer, BOS,
+    Config, Control, Document, MemoryReadFitConfig, MemoryReadSchedule, MemoryReadSupervision,
+    MemoryReadTokenSpan, MemoryReadTrainer, ReadoutFitConfig, Trainer, BOS, EOS,
 };
 
 struct CountingAllocator;
@@ -92,6 +92,9 @@ fn native_kernel_source_has_no_forbidden_arithmetic_or_float_types() {
         "fn check_model(",
         "fn product(",
         "fn observe(",
+        "fn begin_response(",
+        "fn end_response(",
+        "fn response_decision(",
         "fn recent(",
         "fn features(",
         "fn score_candidate(",
@@ -136,10 +139,27 @@ fn native_kernel_source_has_no_forbidden_arithmetic_or_float_types() {
             "memory kernel coverage includes {function}"
         );
     }
+    let response = include_str!("../src/native_geometric/response_runtime.rs");
+    for function in [
+        "fn response_view(",
+        "fn begin_response(",
+        "fn end_response(",
+        "fn reference_for_sequence(",
+        "fn select_response(",
+        "fn commit_response(",
+        "fn collect_continuation(",
+    ] {
+        assert_eq!(
+            response.matches(function).count(),
+            1,
+            "response kernel coverage includes {function}"
+        );
+    }
     for (name, source) in [
         ("native runtime", kernel),
         ("native Feature helpers", features),
         ("native memory runtime", memory),
+        ("native response runtime", response),
     ] {
         assert!(
             !source.contains(ALLOW_MARKER),
@@ -198,6 +218,7 @@ fn native_observe_predict_stays_allocation_free_through_evictions() {
         )
         .unwrap();
     let memory_config = MemoryReadFitConfig {
+        advance_response_path: false,
         query_tokens: 4,
         source_offsets: 2,
         postings_per_address: 2,
@@ -233,12 +254,88 @@ fn native_observe_predict_stays_allocation_free_through_evictions() {
             .unwrap();
     }
     let (occurrence_memory, _) = composition_trainer.finish().unwrap();
+    let response_prompts = [
+        "red fox finds green stone. blue bird finds amber seed. red fox keeps",
+        "blue bird finds amber seed. red fox finds green stone. blue bird keeps",
+    ];
+    let response_documents: Vec<_> = response_prompts
+        .iter()
+        .enumerate()
+        .map(|(index, prompt)| Document {
+            id: format!("response-allocation-fit-{index}"),
+            text: format!(
+                "{prompt} {}.",
+                if index == 0 {
+                    "green stone"
+                } else {
+                    "amber seed"
+                }
+            ),
+        })
+        .collect();
+    let response_spans = response_documents
+        .iter()
+        .zip(response_prompts)
+        .map(|(document, prompt)| {
+            let prefix = learned.encode(prompt).unwrap();
+            let full = learned.encode(&document.text).unwrap();
+            assert!(full.starts_with(&prefix));
+            vec![MemoryReadTokenSpan {
+                start: prefix.len(),
+                end: full.len() + 1,
+            }]
+        })
+        .collect();
+    let supervision =
+        MemoryReadSupervision::new(&learned, &response_documents, response_spans).unwrap();
+    let fit_response = |advance_response_path| {
+        let mut response_trainer = MemoryReadTrainer::new_with_response_state(
+            &learned,
+            &response_documents,
+            MemoryReadFitConfig {
+                advance_response_path,
+                ..memory_config
+            },
+            MemoryReadSchedule {
+                total_positions: 128,
+                batch_positions: 128,
+            },
+            true,
+            supervision.clone(),
+        )
+        .unwrap();
+        while !response_trainer.is_complete() {
+            response_trainer
+                .advance(16, std::time::Duration::from_secs(10))
+                .unwrap();
+        }
+        response_trainer.finish().unwrap().0
+    };
+    let response_memory = fit_response(false);
+    let advancing_response_memory = fit_response(true);
+    assert!(
+        !response_memory
+            .memory_read_config()
+            .unwrap()
+            .advance_response_path
+    );
+    assert!(
+        advancing_response_memory
+            .memory_read_config()
+            .unwrap()
+            .advance_response_path
+    );
+    assert_ne!(
+        response_memory.memory_read_feature_layout(),
+        advancing_response_memory.memory_read_feature_layout()
+    );
     assert!(
         memory_fit.target_in_memory > 0,
         "fixture must exercise fitted memory alternatives"
     );
     let tokens = model.encode(&documents[0].text).unwrap();
     assert!(!tokens.is_empty());
+    let mut measured_decisions = 0;
     for (readout, model) in [
         ("fixed_v1", model),
         ("learned_v1", learned),
@@ -246,7 +343,12 @@ fn native_observe_predict_stays_allocation_free_through_evictions() {
         ("learned_memory_with_aliases", with_memory),
         ("query_context_memory_with_aliases", query_context_memory),
         ("occurrence_composition", occurrence_memory),
+        ("persistent_response", response_memory),
+        ("persistent_advancing_response", advancing_response_memory),
     ] {
+        let persistent = model
+            .memory_read_version()
+            .is_some_and(|version| version.ends_with("/5"));
         let word_cues =
             model.memory_cue_identity() == Some("leading-unicode-whitespace-word-equivalence/1");
         for control in [
@@ -259,7 +361,11 @@ fn native_observe_predict_stays_allocation_free_through_evictions() {
             Control::RadialDisabled,
             Control::HeatmapDisabled,
             Control::MemoryDisabled,
+            Control::ResponseStateDisabled,
         ] {
+            let active_response = persistent
+                && control != Control::MemoryDisabled
+                && control != Control::ResponseStateDisabled;
             let mut session = model.session(control).unwrap();
             session.observe(&model, BOS).unwrap();
             let before = session.state();
@@ -267,9 +373,23 @@ fn native_observe_predict_stays_allocation_free_through_evictions() {
             BYTES.with(|count| count.set(0));
             MEASURING.with(|enabled| enabled.set(true));
             let result = (|| {
+                let mut stopped = false;
                 for index in 0..1024 {
-                    session.predict(&model)?;
-                    session.observe(&model, tokens[index % tokens.len()])?;
+                    let response_step = active_response && index % 32 >= 16;
+                    if persistent && index % 32 == 0 {
+                        session.end_response(&model)?;
+                    }
+                    if response_step && (index % 32 == 16 || stopped) {
+                        session.begin_response(&model)?;
+                    }
+                    let prediction = session.predict(&model)?;
+                    let token = if response_step {
+                        prediction.token
+                    } else {
+                        tokens[index % tokens.len()]
+                    };
+                    stopped = response_step && token == EOS;
+                    session.observe(&model, token)?;
                 }
                 Ok::<_, uor_r4_core::native_geometric::Error>(())
             })();
@@ -277,6 +397,7 @@ fn native_observe_predict_stays_allocation_free_through_evictions() {
             let allocations = ALLOCATIONS.with(Cell::get);
             let bytes = BYTES.with(Cell::get);
             result.unwrap();
+            measured_decisions += 1024;
             assert_eq!((allocations, bytes), (0, 0), "control {control:?}");
             let after = session.state();
             assert_eq!(after.context_capacity, 32);
@@ -291,6 +412,21 @@ fn native_observe_predict_stays_allocation_free_through_evictions() {
             assert!(session.candidates().len() <= 3);
             assert!(session.work.candidate_offers <= 1024 * (3 + 26 * 4));
             assert!(session.work.candidate_evaluations <= session.work.candidate_offers);
+            if active_response {
+                assert!(session.work.response_query_captures >= 32);
+                assert!(session.work.response_query_captures <= 512);
+                assert_eq!(
+                    session.work.response_commits + session.work.response_stops,
+                    512
+                );
+                assert!(session.work.response_reference_reads > 0);
+                assert_eq!(session.work.response_mismatches, 0);
+            } else {
+                assert_eq!(session.work.response_query_captures, 0);
+                assert_eq!(session.work.response_commits, 0);
+                assert_eq!(session.work.response_reference_reads, 0);
+            }
+            let captures = session.work.response_query_captures;
             let memory_bytes = if let (Some(before), Some(after)) =
                 (before.memory_read, after.memory_read)
             {
@@ -303,7 +439,8 @@ fn native_observe_predict_stays_allocation_free_through_evictions() {
                 );
                 assert!(session.work.memory_index_writes > 0);
                 assert!(
-                    session.work.memory_candidates <= 1024 * memory_config.candidate_limit as u64
+                    session.work.memory_candidates
+                        <= 1024 * (memory_config.candidate_limit + usize::from(persistent)) as u64
                 );
                 assert!(
                     session.work.memory_index_reads
@@ -312,6 +449,7 @@ fn native_observe_predict_stays_allocation_free_through_evictions() {
                                 * (memory_config.postings_per_address - 1))
                                 as u64
                             + 1024 * memory_config.candidate_limit as u64
+                            + captures * memory_config.candidate_limit as u64
                 );
                 assert!(
                     session.work.memory_index_writes
@@ -328,6 +466,8 @@ fn native_observe_predict_stays_allocation_free_through_evictions() {
                     before.composition_feature_storage_bytes,
                     after.composition_feature_storage_bytes
                 );
+                assert_eq!(before.response_storage_bytes, after.response_storage_bytes);
+                assert_eq!(after.response_storage_bytes > 0, persistent);
                 if word_cues {
                     assert!(session.work.memory_cue_reads > 0);
                 } else {
@@ -337,6 +477,7 @@ fn native_observe_predict_stays_allocation_free_through_evictions() {
                     session.work.memory_cue_reads
                         <= 1025 * memory_config.source_offsets as u64
                             + 1024 * memory_config.candidate_limit as u64
+                            + captures * memory_config.candidate_limit as u64
                 );
                 if control == Control::MemoryDisabled {
                     assert_eq!(session.work.memory_candidates, 0);
@@ -350,16 +491,23 @@ fn native_observe_predict_stays_allocation_free_through_evictions() {
                     assert!(session.work.memory_candidates > 0);
                     assert!(session.work.memory_score_lookups > 0);
                 }
-                after.ring_storage_bytes + after.index_storage_bytes + after.candidate_storage_bytes
+                after.ring_storage_bytes
+                    + after.index_storage_bytes
+                    + after.candidate_storage_bytes
+                    + after.composed_candidate_storage_bytes
+                    + after.composition_feature_storage_bytes
+                    + after.response_storage_bytes
             } else {
                 assert!(model.memory_read_version().is_none());
                 assert_eq!(session.work.memory_candidates, 0);
                 assert_eq!(session.work.memory_cue_reads, 0);
                 0
             };
-            println!("{readout} {control:?}: decisions=1024 evictions=993 allocations={allocations} bytes={bytes} ring_bytes={} candidate_bytes={} offers={} evaluations={} memory_bytes={memory_bytes} memory_candidates={} memory_score_lookups={} memory_cue_reads={}",
+            println!("{readout} {control:?}: decisions=1024 evictions=993 allocations={allocations} bytes={bytes} ring_bytes={} candidate_bytes={} offers={} evaluations={} memory_bytes={memory_bytes} memory_candidates={} memory_score_lookups={} memory_cue_reads={} response_captures={} response_commits={} response_requeries={} response_continuations={} response_stops={}",
             after.ring_storage_bytes, after.candidate_storage_bytes, session.work.candidate_offers, session.work.candidate_evaluations,
-            session.work.memory_candidates,session.work.memory_score_lookups,session.work.memory_cue_reads);
+            session.work.memory_candidates,session.work.memory_score_lookups,session.work.memory_cue_reads,
+            captures, session.work.response_commits, session.work.response_requeries, session.work.response_continuations, session.work.response_stops);
         }
     }
+    assert_eq!(measured_decisions, 8 * 10 * 1024);
 }

@@ -8,6 +8,11 @@ pub(super) const CUE_SCHEMA: &str = "leading-unicode-whitespace-word-equivalence
 pub(super) const EXACT_CUE_SCHEMA: &str = "exact-token-prime/1";
 pub(super) const QUERY_CONTEXT_MEMORY_SCHEMA: &str = "uor-r4.native-prime-relative-memory-read/3";
 pub(super) const OCCURRENCE_MEMORY_SCHEMA: &str = "uor-r4.native-prime-relative-memory-read/4";
+pub(super) const RESPONSE_MEMORY_SCHEMA: &str = "uor-r4.native-prime-relative-memory-read/5";
+pub(super) const RESPONSE_FEATURE_LAYOUT: &str =
+    "persistent-query-local-paths-and-model-selected-occurrence-continuation/1";
+pub(super) const RESPONSE_ADVANCING_FEATURE_LAYOUT: &str =
+    "persistent-query-advancing-local-paths-and-model-selected-occurrence-continuation/2";
 pub(super) const QUERY_CONTEXT_PRIME_LIMIT: u32 = 1 << 24;
 pub(super) const LEGACY_FEATURE_LAYOUT: &str = "relative-geometry-and-value-predecessor/1";
 pub(super) const QUERY_CONTEXT_FEATURE_LAYOUT: &str =
@@ -18,6 +23,10 @@ pub(super) const OCCURRENCE_FEATURE_LAYOUT: &str =
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct MemoryReadFitConfig {
+    /// Keep the captured query but transport its endpoint through generated
+    /// response tokens. Explicit /5 option; false preserves the first /5 law.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub advance_response_path: bool,
     pub query_tokens: usize,
     pub source_offsets: usize,
     pub postings_per_address: usize,
@@ -31,6 +40,7 @@ pub struct MemoryReadFitConfig {
 impl Default for MemoryReadFitConfig {
     fn default() -> Self {
         Self {
+            advance_response_path: false,
             query_tokens: 8,
             source_offsets: 4,
             postings_per_address: 4,
@@ -40,6 +50,9 @@ impl Default for MemoryReadFitConfig {
             max_features: 65_536,
         }
     }
+}
+fn is_false(value: &bool) -> bool {
+    !value
 }
 impl MemoryReadFitConfig {
     pub(super) fn validate(&self, vocabulary: usize) -> Result<()> {
@@ -181,22 +194,26 @@ pub struct MemoryStateView {
     pub composed_candidate_storage_bytes: usize,
     #[serde(default)]
     pub composition_feature_storage_bytes: usize,
+    #[serde(default)]
+    pub response_storage_bytes: usize,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(super) struct MemoryEntry {
     pub sequence: u64,
     pub token: u32,
     pub pose: u16,
     pub phases: [u16; PHASE_CHANNELS],
 }
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub(super) struct MemoryReference {
     pub sequence: u64,
     pub slot: usize,
 }
 #[derive(Debug, Clone, Copy)]
 pub(super) struct MemoryCandidate {
+    pub action: ResponseAction,
     /// Absolute retained occurrence identity; equal token values at different
     /// positions must not share composition evidence.
     pub sequence: u64,
@@ -206,6 +223,7 @@ pub(super) struct MemoryCandidate {
 }
 #[derive(Debug, Clone, Copy)]
 pub(super) struct ComposedCandidate {
+    pub action: ResponseAction,
     pub sequence: u64,
     pub token: u32,
     pub score: i64,
@@ -214,6 +232,9 @@ pub(super) struct ComposedCandidate {
 }
 #[derive(Debug, Clone)]
 pub(super) struct MemoryState {
+    pub response: Option<ResponseState>,
+    /// Recomputed by prediction; only observation commits it.
+    pub pending: Option<ResponseDecision>,
     pub ring: Vec<MemoryEntry>,
     pub index: Vec<MemoryReference>,
     pub candidates: Vec<MemoryCandidate>,
@@ -227,6 +248,8 @@ pub(super) struct MemoryState {
     pub pose: u16,
     pub phases: [u16; PHASE_CHANNELS],
     pub view: MemoryStateView,
+    pub origin_pose: u16,
+    pub origin_phases: [u16; PHASE_CHANNELS],
 }
 impl MemoryState {
     /// Host allocation. Prediction and updates live in memory_runtime.rs.
@@ -247,9 +270,11 @@ impl MemoryState {
             };
             model.vocabulary_size() << memory.source_shift << memory.posting_shift
         ];
-        let candidates = Vec::<MemoryCandidate>::with_capacity(memory.config.candidate_limit);
-        let composition_capacity = if memory.schema == OCCURRENCE_MEMORY_SCHEMA {
-            memory.config.candidate_limit
+        let persistent = memory.schema == RESPONSE_MEMORY_SCHEMA;
+        let route_capacity = memory.config.candidate_limit + usize::from(persistent);
+        let candidates = Vec::<MemoryCandidate>::with_capacity(route_capacity);
+        let composition_capacity = if memory.schema == OCCURRENCE_MEMORY_SCHEMA || persistent {
+            route_capacity
         } else {
             0
         };
@@ -269,8 +294,26 @@ impl MemoryState {
                 * std::mem::size_of::<ComposedCandidate>(),
             composition_feature_storage_bytes: composition_features.capacity()
                 * std::mem::size_of::<MemoryFeature>(),
+            response_storage_bytes: if persistent {
+                memory.config.query_tokens * std::mem::size_of::<MemoryEntry>()
+                    + memory.config.candidate_limit * std::mem::size_of::<MemoryReference>()
+            } else {
+                0
+            },
         };
         Self {
+            response: persistent.then(|| ResponseState {
+                active: false,
+                started_at: 0,
+                steps: 0,
+                query_pose: model.geometry.identity,
+                query_phases: [0; PHASE_CHANNELS],
+                queries: Vec::with_capacity(memory.config.query_tokens),
+                references: Vec::with_capacity(memory.config.candidate_limit),
+                selected: None,
+                last_action: ResponseAction::Base,
+            }),
+            pending: None,
             ring,
             index,
             candidates,
@@ -281,7 +324,54 @@ impl MemoryState {
             seen: 0,
             pose: model.geometry.identity,
             phases: [0; PHASE_CHANNELS],
+            origin_pose: model.geometry.identity,
+            origin_phases: [0; PHASE_CHANNELS],
             view,
         }
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ResponseAction {
+    Base,
+    Requery,
+    Continue,
+    Stop,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ResponseDecision {
+    pub token: u32,
+    pub score: i64,
+    pub sequence: Option<u64>,
+    pub slot: Option<usize>,
+    pub action: ResponseAction,
+    pub at_seen: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ResponseStateView {
+    pub active: bool,
+    pub started_at: u64,
+    pub steps: u64,
+    pub query_tokens: usize,
+    pub query_pose: u16,
+    pub query_phases: [u16; PHASE_CHANNELS],
+    pub selected_sequence: Option<u64>,
+    pub last_action: ResponseAction,
+}
+
+#[derive(Debug, Clone)]
+pub(super) struct ResponseState {
+    pub active: bool,
+    pub started_at: u64,
+    pub steps: u64,
+    pub query_pose: u16,
+    pub query_phases: [u16; PHASE_CHANNELS],
+    pub queries: Vec<MemoryEntry>,
+    /// Initial bounded posting visits in exactly the collector's loop order.
+    pub references: Vec<MemoryReference>,
+    pub selected: Option<MemoryReference>,
+    pub last_action: ResponseAction,
 }

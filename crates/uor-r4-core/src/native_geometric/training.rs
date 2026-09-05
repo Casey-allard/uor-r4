@@ -634,11 +634,21 @@ impl Model {
         for token in self.encode(prompt)? {
             session.observe(self, token)?;
         }
+        session.begin_response(self)?;
         let mut token_ids = Vec::new();
+        let mut response_trace = Vec::new();
         let mut stop = "token_budget".to_owned();
         for _ in 0..max_new_tokens {
             let token = session.predict(self)?.token;
+            if let Some(decision) = session.response_decision() {
+                if response_trace.len() < 96 {
+                    response_trace.push(decision);
+                }
+            }
             if token == EOS {
+                if session.response_decision().is_some() {
+                    session.observe(self, token)?;
+                }
                 stop = "end_of_document".into();
                 break;
             }
@@ -652,6 +662,7 @@ impl Model {
             utf8_valid,
             bytes,
             token_ids,
+            response_trace,
             stop,
             work: session.work,
             state: session.state(),
@@ -719,6 +730,14 @@ impl Model {
 }
 
 fn add_work(total: &mut Work, work: Work) {
+    total.response_query_captures += work.response_query_captures;
+    total.response_commits += work.response_commits;
+    total.response_requeries += work.response_requeries;
+    total.response_continuations += work.response_continuations;
+    total.response_base_steps += work.response_base_steps;
+    total.response_stops += work.response_stops;
+    total.response_mismatches += work.response_mismatches;
+    total.response_reference_reads += work.response_reference_reads;
     total.memory_cue_reads += work.memory_cue_reads;
     total.memory_index_reads += work.memory_index_reads;
     total.memory_index_writes += work.memory_index_writes;

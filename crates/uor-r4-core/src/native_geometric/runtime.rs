@@ -10,6 +10,8 @@ pub(super) const FEATURE_COUNT: usize = 26;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StateView {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub response: Option<super::ResponseStateView>,
     pub memory_read: Option<super::MemoryStateView>,
     pub tokens_seen: u64,
     pub retained_tokens: usize,
@@ -79,6 +81,7 @@ impl Session {
 
     pub fn state(&self) -> StateView {
         StateView {
+            response: self.memory.as_ref().and_then(|state| state.response_view()),
             memory_read: self.memory.as_ref().map(|state| state.state()),
             tokens_seen: self.work.observed_tokens,
             retained_tokens: self.length,
@@ -101,11 +104,36 @@ impl Session {
     // NATIVE_GEOMETRIC_INTEGER_KERNEL_BEGIN
     // The source guard covers this region through gate_eighths, plus the
     // Feature methods called here. Keep new kernel helpers in a scanned region.
+    /// Most recently predicted response action. This is transient; only an
+    /// observation can commit the selected occurrence to response state.
+    pub fn response_decision(&self) -> Option<super::ResponseDecision> {
+        self.memory.as_ref().and_then(|state| state.pending)
+    }
+
     fn check_model(&self, model: &Model) -> Result<()> {
         if self.artifact_cid != model.artifact_cid {
             return Err(Error(
                 "session belongs to a different native geometric artifact".into(),
             ));
+        }
+        Ok(())
+    }
+
+    pub fn begin_response(&mut self, model: &Model) -> Result<()> {
+        self.check_model(model)?;
+        if self.control != Control::MemoryDisabled && self.control != Control::ResponseStateDisabled
+        {
+            if let (Some(state), Some(memory)) = (&mut self.memory, &model.memory_read) {
+                state.begin_response(model, memory, &mut self.work);
+            }
+        }
+        Ok(())
+    }
+
+    pub fn end_response(&mut self, model: &Model) -> Result<()> {
+        self.check_model(model)?;
+        if let Some(state) = &mut self.memory {
+            state.end_response();
         }
         Ok(())
     }
@@ -347,6 +375,7 @@ impl Session {
         if self.control != Control::MemoryDisabled {
             let occurrence_composition = model.memory_read.as_ref().is_some_and(|memory| {
                 memory.schema == super::memory_types::OCCURRENCE_MEMORY_SCHEMA
+                    || memory.schema == super::memory_types::RESPONSE_MEMORY_SCHEMA
             });
             if let (Some(state), Some(memory)) = (&mut self.memory, &model.memory_read) {
                 state.collect(model, memory, self.control, &mut self.work);
@@ -381,10 +410,13 @@ impl Session {
                 }
             }
         }
-        let best = self
+        let best = *self
             .candidates
             .first()
             .ok_or_else(|| Error("artifact offers no output candidates".into()))?;
+        if let Some(state) = &mut self.memory {
+            state.select_response(model, best, &mut self.work);
+        }
         Ok(Prediction {
             token: best.token,
             score: best.score,

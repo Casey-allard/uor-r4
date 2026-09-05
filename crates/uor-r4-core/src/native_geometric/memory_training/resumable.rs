@@ -241,6 +241,23 @@ pub struct MemoryReadStreamReport {
     pub supervision_cid: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub eligible_positions: Option<usize>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub response_state: Option<MemoryReadResponseStateReport>,
+}
+
+/// Coverage of the causal, model-selected response rollout. Discovery exposure
+/// above stays historical: subsequent policies can reach different alternatives.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct MemoryReadResponseStateReport {
+    pub features_registered_after_discovery: usize,
+    pub final_target_in_candidates: usize,
+    pub final_target_in_memory: usize,
+    pub final_unregistered_feature_events: usize,
+    pub response_prediction_visits: u64,
+    pub rollout_policy: String,
+    pub epoch_selection: String,
+    pub selected_epoch_correct: usize,
+    pub selected_epoch_reachable: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
@@ -275,6 +292,26 @@ impl MetricSum {
             self.pointer_loss += loss;
         }
     }
+}
+
+// /5 changes admission through its previous model-selected state. A smaller
+// conditional loss alone can reward dropping difficult targets. Compare the
+// same complete supervised population first; CE only breaks coverage ties.
+fn response_policy_improves(
+    candidate: &MetricSum,
+    best_correct: Option<usize>,
+    best_reachable: Option<usize>,
+    best_loss: Option<f64>,
+) -> bool {
+    let (Some(correct), Some(reachable), Some(loss)) = (best_correct, best_reachable, best_loss)
+    else {
+        return true;
+    };
+    candidate.correct > correct
+        || (candidate.correct == correct && candidate.reachable > reachable)
+        || (candidate.correct == correct
+            && candidate.reachable == reachable
+            && candidate.mean() < loss)
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -324,6 +361,14 @@ struct CheckpointState {
     word_cues: bool,
     #[serde(default, skip_serializing_if = "is_false")]
     compose_occurrences: bool,
+    #[serde(default, skip_serializing_if = "is_false")]
+    persistent_response: bool,
+    // Exact integer policy for the entire current source replay. Optimizer
+    // updates must not change decisions while reconstructing a saved prefix.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    rollout_rows: Vec<MemoryWeight>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    response_report: Option<MemoryReadResponseStateReport>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     supervision: Option<MemoryReadSupervision>,
     quotas: Vec<usize>,
@@ -338,6 +383,10 @@ struct CheckpointState {
     weights: Vec<f64>,
     best_weights: Vec<f64>,
     best_loss: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    best_correct: Option<usize>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    best_reachable: Option<usize>,
     calibrated_bias: f64,
     global_grid: Option<BiasGrid>,
     query_grids: BTreeMap<usize, BiasGrid>,
@@ -372,6 +421,53 @@ struct Replay {
     session: Session,
     memory: MemoryState,
     work: Work,
+}
+
+/// Advance the serving selection law before a teacher token is exposed. This
+/// also runs on response positions excluded from loss and during reconstruction.
+fn prepare_response_rollout(
+    baseline: &Model,
+    operator: &MemoryModel,
+    replay: &mut Replay,
+    spans: &[MemoryReadTokenSpan],
+    position: usize,
+) -> Result<bool> {
+    if spans.iter().any(|span| span.end == position) {
+        replay.memory.end_response();
+    }
+    if spans.iter().any(|span| span.start == position) {
+        replay
+            .memory
+            .begin_response(baseline, operator, &mut replay.work);
+    }
+    if !spans
+        .iter()
+        .any(|span| span.start <= position && position < span.end)
+    {
+        return Ok(false);
+    }
+    let prediction = replay.session.predict(baseline)?;
+    replay
+        .memory
+        .collect(baseline, operator, Control::Full, &mut replay.work);
+    let mut best = Candidate {
+        token: prediction.token,
+        score: prediction.score,
+    };
+    for candidate in &replay.memory.composed {
+        if candidate.score > best.score
+            || (candidate.score == best.score && candidate.token < best.token)
+        {
+            best = Candidate {
+                token: candidate.token,
+                score: candidate.score,
+            };
+        }
+    }
+    replay
+        .memory
+        .select_response(baseline, best, &mut replay.work);
+    Ok(true)
 }
 
 /// Host-only resumable /3 fitting. Source token buffers are bounded separately
@@ -429,10 +525,13 @@ pub(super) fn configuration_identity_for_operator(
     word_cues: bool,
     supervision_cid: Option<&str>,
     compose_occurrences: bool,
+    persistent_response: bool,
 ) -> Result<String> {
     let legacy =
         configuration_identity_with_supervision(config, schedule, word_cues, supervision_cid)?;
-    if compose_occurrences {
+    if persistent_response {
+        identity(&(RESPONSE_MEMORY_SCHEMA, legacy))
+    } else if compose_occurrences {
         identity(&(OCCURRENCE_MEMORY_SCHEMA, legacy))
     } else {
         Ok(legacy)
@@ -521,7 +620,7 @@ impl MemoryReadTrainer {
         word_cues: bool,
     ) -> Result<Self> {
         Self::new_impl(
-            baseline, documents, config, schedule, word_cues, None, false,
+            baseline, documents, config, schedule, word_cues, None, false, false,
         )
     }
 
@@ -540,6 +639,7 @@ impl MemoryReadTrainer {
             schedule,
             word_cues,
             Some(supervision),
+            false,
             false,
         )
     }
@@ -562,6 +662,30 @@ impl MemoryReadTrainer {
             word_cues,
             supervision,
             true,
+            false,
+        )
+    }
+
+    /// Fit response-query persistence and continuation of independently chosen
+    /// retained occurrences. Explicit source-bound spans identify response
+    /// boundaries only; target tokens never identify an occurrence to follow.
+    pub fn new_with_response_state(
+        baseline: &Model,
+        documents: &[Document],
+        config: MemoryReadFitConfig,
+        schedule: MemoryReadSchedule,
+        word_cues: bool,
+        supervision: MemoryReadSupervision,
+    ) -> Result<Self> {
+        Self::new_impl(
+            baseline,
+            documents,
+            config,
+            schedule,
+            word_cues,
+            Some(supervision),
+            true,
+            true,
         )
     }
 
@@ -569,6 +693,15 @@ impl MemoryReadTrainer {
         self.state.compose_occurrences
     }
 
+    pub fn has_response_state(&self) -> bool {
+        self.state.persistent_response
+    }
+
+    pub fn persists_response_state(&self) -> bool {
+        self.state.persistent_response
+    }
+
+    #[allow(clippy::too_many_arguments)]
     fn new_impl(
         baseline: &Model,
         documents: &[Document],
@@ -577,10 +710,22 @@ impl MemoryReadTrainer {
         word_cues: bool,
         supervision: Option<MemoryReadSupervision>,
         compose_occurrences: bool,
+        persistent_response: bool,
     ) -> Result<Self> {
         config.validate(baseline.vocabulary_size())?;
+        if persistent_response {
+            validate_response_fit_capacity(&config)?;
+        }
         schedule.validate(&config)?;
         validate_query_context_primes(baseline)?;
+        if config.advance_response_path && !persistent_response {
+            return Err(Error(
+                "advancing response paths require persistent response-state fitting".into(),
+            ));
+        }
+        if persistent_response && (!compose_occurrences || supervision.is_none()) {
+            return Err(Error("response-state fitting requires occurrence composition and explicit response spans".into()));
+        }
         if baseline.memory_read.is_some()
             || baseline.training.target_positions == 0
             || documents.is_empty()
@@ -640,6 +785,7 @@ impl MemoryReadTrainer {
             word_cues,
             supervision_cid.as_deref(),
             compose_occurrences,
+            persistent_response,
         )?;
         let quotas = quotas(&eligible_lengths, schedule.total_positions);
         let selected = select_population(&eligible_lengths, &quotas, supervision.as_ref());
@@ -659,7 +805,9 @@ impl MemoryReadTrainer {
         let mut receipts = ordered_sources.clone();
         receipts.sort_by(|a, b| a.id.cmp(&b.id));
         let memory = MemoryModel {
-            schema: if compose_occurrences {
+            schema: if persistent_response {
+                RESPONSE_MEMORY_SCHEMA
+            } else if compose_occurrences {
                 OCCURRENCE_MEMORY_SCHEMA
             } else {
                 QUERY_CONTEXT_MEMORY_SCHEMA
@@ -700,6 +848,13 @@ impl MemoryReadTrainer {
             schedule,
             word_cues,
             compose_occurrences,
+            persistent_response,
+            rollout_rows: if persistent_response { memory.rows.clone() } else { Vec::new() },
+            response_report: persistent_response.then(|| MemoryReadResponseStateReport {
+                rollout_policy: "quantized_model_selected_policy_frozen_per_pass; teacher_tokens_observed_after_selection; exact_frozen_policy_prefix_reconstruction; final_metrics_use_exported_quantized_policy/1".into(),
+                epoch_selection: "lexicographic_fixed_population_correct_then_reachable_then_lower_conditional_cross_entropy/1".into(),
+                ..MemoryReadResponseStateReport::default()
+            }),
             supervision,
             quotas,
             token_lengths,
@@ -712,6 +867,8 @@ impl MemoryReadTrainer {
             weights: vec![-4.0],
             best_weights: Vec::new(),
             best_loss: None,
+            best_correct: None,
+            best_reachable: None,
             calibrated_bias: -4.0,
             global_grid: None,
             query_grids: BTreeMap::new(),
@@ -767,6 +924,7 @@ impl MemoryReadTrainer {
             state.word_cues,
             state.supervision.clone(),
             state.compose_occurrences,
+            state.persistent_response,
         )?;
         if state.baseline_artifact != trainer.state.baseline_artifact
             || state.configuration_cid != trainer.state.configuration_cid
@@ -798,6 +956,9 @@ impl MemoryReadTrainer {
             .map(|(index, feature)| (*feature, index))
             .collect();
         trainer.state = state;
+        if trainer.state.persistent_response {
+            trainer.memory.rows.clone_from(&trainer.state.rollout_rows);
+        }
         // Context reconstruction is deferred to advance(), so its observed
         // work is charged to the same bounded call and cumulative counters.
         Ok(trainer)
@@ -932,6 +1093,22 @@ impl MemoryReadTrainer {
             // session.work counts BOS plus every causal observation exactly.
             let reconstructed = (replay.session.work.observed_tokens as usize).saturating_sub(1);
             if reconstructed < self.state.position {
+                if self.state.persistent_response {
+                    let spans = &self
+                        .state
+                        .supervision
+                        .as_ref()
+                        .ok_or_else(|| Error("response supervision unavailable".into()))?
+                        .documents[document]
+                        .spans;
+                    prepare_response_rollout(
+                        &self.baseline,
+                        &self.memory,
+                        replay,
+                        spans,
+                        reconstructed,
+                    )?;
+                }
                 let token = self.tokens[document][reconstructed];
                 replay.session.observe(&self.baseline, token)?;
                 replay
@@ -942,15 +1119,41 @@ impl MemoryReadTrainer {
                 continue;
             }
             let position = self.state.position;
-            let target = self.tokens[document][position];
-            if self.selected[document].get(self.state.sampled) == Some(&position) {
-                replay.session.predict(&self.baseline)?;
-                replay.memory.collect(
+            let response_predicted = if self.state.persistent_response {
+                let spans = &self
+                    .state
+                    .supervision
+                    .as_ref()
+                    .ok_or_else(|| Error("response supervision unavailable".into()))?
+                    .documents[document]
+                    .spans;
+                let active = prepare_response_rollout(
                     &self.baseline,
                     &self.memory,
-                    Control::Full,
-                    &mut replay.work,
-                );
+                    replay,
+                    spans,
+                    position,
+                )?;
+                if active {
+                    if let Some(report) = &mut self.state.response_report {
+                        report.response_prediction_visits += 1;
+                    }
+                }
+                active
+            } else {
+                false
+            };
+            let target = self.tokens[document][position];
+            if self.selected[document].get(self.state.sampled) == Some(&position) {
+                if !response_predicted {
+                    replay.session.predict(&self.baseline)?;
+                    replay.memory.collect(
+                        &self.baseline,
+                        &self.memory,
+                        Control::Full,
+                        &mut replay.work,
+                    );
+                }
                 let mut alternatives: Vec<_> = replay
                     .session
                     .candidates()
@@ -1001,18 +1204,35 @@ impl MemoryReadTrainer {
                     for (slot, feature) in candidate_features.iter().enumerate() {
                         if let Some(&index) = self.addresses.get(feature) {
                             features[slot] = index;
-                        } else if self.state.stage == Stage::Discover
+                        } else if (self.state.stage == Stage::Discover
+                            || (self.state.persistent_response
+                                && matches!(self.state.stage, Stage::Pointer | Stage::Refine)))
                             && self.addresses.len() < self.state.config.max_features
                         {
                             let index = self.addresses.len();
                             self.addresses.insert(*feature, index);
                             self.state.registry.push(*feature);
                             self.state.weights.push(0.0);
+                            if !self.state.best_weights.is_empty() {
+                                self.state.best_weights.push(0.0);
+                            }
+                            if self.state.stage != Stage::Discover {
+                                if let Some(report) = &mut self.state.response_report {
+                                    report.features_registered_after_discovery += 1;
+                                }
+                            }
                             features[slot] = index;
-                        } else if self.state.stage == Stage::Discover {
+                        } else if self.state.stage == Stage::Discover
+                            || (self.state.persistent_response
+                                && matches!(self.state.stage, Stage::Pointer | Stage::Refine))
+                        {
                             self.state.dropped_feature_events += 1;
                             if feature.kind >= 16 {
                                 self.state.unsupervised_query_feature_events += 1;
+                            }
+                        } else if self.state.stage == Stage::FinalMetrics {
+                            if let Some(report) = &mut self.state.response_report {
+                                report.final_unregistered_feature_events += 1;
                             }
                         }
                     }
@@ -1167,6 +1387,10 @@ impl MemoryReadTrainer {
             }
             Stage::InitialSelection => {
                 state.best_loss = Some(state.selection.mean());
+                if state.persistent_response {
+                    state.best_correct = Some(state.selection.correct);
+                    state.best_reachable = Some(state.selection.reachable);
+                }
                 state.best_weights.clone_from(&state.weights);
                 state.selection = MetricSum::default();
                 Stage::Refine
@@ -1174,8 +1398,22 @@ impl MemoryReadTrainer {
             Stage::Refine => Stage::SelectEpoch,
             Stage::SelectEpoch => {
                 let loss = state.selection.mean();
-                if state.best_loss.is_none_or(|best| loss < best) {
+                let improves = if state.persistent_response {
+                    response_policy_improves(
+                        &state.selection,
+                        state.best_correct,
+                        state.best_reachable,
+                        state.best_loss,
+                    )
+                } else {
+                    state.best_loss.is_none_or(|best| loss < best)
+                };
+                if improves {
                     state.best_loss = Some(loss);
+                    if state.persistent_response {
+                        state.best_correct = Some(state.selection.correct);
+                        state.best_reachable = Some(state.selection.reachable);
+                    }
                     state.best_weights.clone_from(&state.weights);
                 }
                 state.selection = MetricSum::default();
@@ -1197,6 +1435,17 @@ impl MemoryReadTrainer {
         state.position = 0;
         state.sampled = 0;
         self.replay = None;
+        if state.persistent_response {
+            state.rollout_rows = self
+                .addresses
+                .iter()
+                .map(|(feature, &index)| MemoryWeight {
+                    feature: *feature,
+                    score: libm::round(state.weights[index] * SCORE_SCALE) as i32,
+                })
+                .collect();
+            self.memory.rows.clone_from(&state.rollout_rows);
+        }
         Ok(())
     }
 
@@ -1225,10 +1474,10 @@ impl MemoryReadTrainer {
         let tail_positions: usize = state.exposure.iter().map(|doc| doc.tail_positions).sum();
         let positions = memory.fit_positions;
         let fit = MemoryReadFitReport {
-            schema: memory.schema.clone(), feature_layout: if state.compose_occurrences { OCCURRENCE_FEATURE_LAYOUT } else { QUERY_CONTEXT_FEATURE_LAYOUT }.into(), feature_names: if state.compose_occurrences { occurrence_feature_names() } else { memory_feature_names(true) },
+            schema: memory.schema.clone(), feature_layout: if state.persistent_response { response_feature_layout(&state.config) } else if state.compose_occurrences { OCCURRENCE_FEATURE_LAYOUT } else { QUERY_CONTEXT_FEATURE_LAYOUT }.into(), feature_names: if state.persistent_response { response_feature_names() } else if state.compose_occurrences { occurrence_feature_names() } else { memory_feature_names(true) },
             cue_identity: if state.word_cues { CUE_SCHEMA } else { EXACT_CUE_SCHEMA }.into(),
             aliased_lexical_tokens: memory.cue_aliases.as_ref().map(|aliases| aliases.representatives.iter().enumerate().filter(|(token, representative)| **representative as usize != *token).count()).unwrap_or(0),
-            objective: if state.compose_occurrences { "population_replay_unique_feature_occurrence_union; half_target_marginal_half_uniform_target_occurrence_nll_then_global_and_query_bias_grids_then_max_occurrence_ce/1; best_epoch_on_population_ce; diagnostics_quantized_max_occurrence" } else { "population_replay_pointer_half_target_marginal_half_uniform_target_route_nll_then_population_global_and_query_bias_grids_then_max_route_ce/1; best_epoch_on_population_ce; diagnostics_quantized_max_route" }.into(),
+            objective: if state.persistent_response { "response_span_causal_quantized_policy_frozen_per_pass; target_token_loss_on_selected_state_occurrence_actions; half_target_marginal_half_uniform_target_action_occurrence_nll_then_bias_grids_then_max_action_occurrence_ce/1; best_epoch_fixed_population_correct_then_reachable_then_conditional_ce; final_metrics_exported_quantized_policy" } else if state.compose_occurrences { "population_replay_unique_feature_occurrence_union; half_target_marginal_half_uniform_target_occurrence_nll_then_global_and_query_bias_grids_then_max_occurrence_ce/1; best_epoch_on_population_ce; diagnostics_quantized_max_occurrence" } else { "population_replay_pointer_half_target_marginal_half_uniform_target_route_nll_then_population_global_and_query_bias_grids_then_max_route_ce/1; best_epoch_on_population_ce; diagnostics_quantized_max_route" }.into(),
             pointer_pretrain_epochs: state.config.epochs, max_route_refinement_epochs: state.config.epochs,
             calibrated_bias_score: libm::round(state.calibrated_bias * SCORE_SCALE) as i32,
             query_bias_contexts: state.query_contexts, query_bias_changed_contexts: state.query_changed,
@@ -1250,7 +1499,7 @@ impl MemoryReadTrainer {
             fit_correct_before: state.before.correct, fit_correct_after: state.after.correct,
             candidate_cross_entropy_before: state.before.mean(), candidate_cross_entropy_after: state.after.mean(),
             learned_features: state.registry.len(), dropped_feature_events: state.dropped_feature_events, epochs: state.config.epochs,
-            session_memory_bytes: view.ring_storage_bytes + view.index_storage_bytes + view.candidate_storage_bytes + view.composed_candidate_storage_bytes + view.composition_feature_storage_bytes,
+            session_memory_bytes: view.ring_storage_bytes + view.index_storage_bytes + view.candidate_storage_bytes + view.composed_candidate_storage_bytes + view.composition_feature_storage_bytes + view.response_storage_bytes,
         };
         let report = MemoryReadStreamReport {
             schema: REPORT_SCHEMA.into(),
@@ -1278,6 +1527,13 @@ impl MemoryReadTrainer {
                     .iter()
                     .filter_map(|document| document.eligible_positions)
                     .sum()
+            }),
+            response_state: state.response_report.clone().map(|mut report| {
+                report.final_target_in_candidates = state.after.reachable;
+                report.final_target_in_memory = state.after.pointer_reachable;
+                report.selected_epoch_correct = state.best_correct.unwrap_or(0);
+                report.selected_epoch_reachable = state.best_reachable.unwrap_or(0);
+                report
             }),
         };
         Ok((learned, report))
@@ -1453,6 +1709,7 @@ impl OptimizerScratch {
 
 fn validate_state(state: &CheckpointState, selected: &[Vec<usize>]) -> Result<()> {
     let size = state.registry.len();
+    let registered: BTreeSet<_> = state.registry.iter().copied().collect();
     let valid_weights = |weights: &[f64]| {
         weights
             .iter()
@@ -1476,14 +1733,28 @@ fn validate_state(state: &CheckpointState, selected: &[Vec<usize>]) -> Result<()
             .registry
             .iter()
             .any(|feature| feature.kind >= MEMORY_FEATURE_COUNT as u8)
-        || state
-            .registry
-            .iter()
-            .copied()
-            .collect::<BTreeSet<_>>()
-            .len()
-            != size
+        || registered.len() != size
         || !valid_weights(&state.weights)
+        || (state.config.advance_response_path && !state.persistent_response)
+        || (state.persistent_response
+            && (!state.compose_occurrences
+                || state.supervision.is_none()
+                || state.rollout_rows.is_empty()
+                || state.response_report.is_none()))
+        || (!state.persistent_response
+            && (!state.rollout_rows.is_empty() || state.response_report.is_some()))
+        || state.rollout_rows.len() > size
+        || state
+            .rollout_rows
+            .windows(2)
+            .any(|pair| pair[0].feature >= pair[1].feature)
+        || state
+            .rollout_rows
+            .iter()
+            .any(|row| !(-4096..=4096).contains(&row.score) || !registered.contains(&row.feature))
+        || (state.persistent_response
+            && state.rollout_rows.first().map(|row| row.feature)
+                != Some(MemoryFeature { kind: 0, value: 0 }))
         || (!state.best_weights.is_empty()
             && (state.best_weights.len() != size || !valid_weights(&state.best_weights)))
         || state
@@ -1558,6 +1829,18 @@ fn validate_state(state: &CheckpointState, selected: &[Vec<usize>]) -> Result<()
         || !exposure_valid
         || (best_required && (state.best_weights.len() != size || state.best_loss.is_none()))
         || (!best_required && (!state.best_weights.is_empty() || state.best_loss.is_some()))
+        || (state.persistent_response
+            && best_required
+            && (state.best_correct.is_none() || state.best_reachable.is_none()))
+        || ((!state.persistent_response || !best_required)
+            && (state.best_correct.is_some() || state.best_reachable.is_some()))
+        || state
+            .best_reachable
+            .is_some_and(|reachable| reachable > state.schedule.total_positions)
+        || state
+            .best_correct
+            .zip(state.best_reachable)
+            .is_some_and(|(correct, reachable)| correct > reachable)
         || (state.stage != Stage::GlobalCalibration && state.global_grid.is_some())
         || (state.stage != Stage::QueryCalibration && !state.query_grids.is_empty())
         || !valid_metrics(&state.before)
@@ -1626,6 +1909,485 @@ mod tests {
             trainer.advance(32, Duration::from_secs(10)).unwrap();
         }
         panic!("bounded fixture did not complete");
+    }
+
+    #[test]
+    fn native_response_stream_mid_response_resume_preserves_policy_and_artifact() {
+        let (baseline, documents) = fixture();
+        let lengths: Vec<_> = documents
+            .iter()
+            .map(|document| baseline.encode(&document.text).unwrap().len() + 1)
+            .collect();
+        let spans: Vec<_> = lengths
+            .iter()
+            .map(|&length| {
+                vec![MemoryReadTokenSpan {
+                    start: length - 6,
+                    end: length,
+                }]
+            })
+            .collect();
+        let supervision = MemoryReadSupervision::new(&baseline, &documents, spans).unwrap();
+        let schedule = MemoryReadSchedule {
+            total_positions: 96,
+            batch_positions: 2,
+        };
+        let make = || {
+            MemoryReadTrainer::new_with_response_state(
+                &baseline,
+                &documents,
+                config(2),
+                schedule,
+                true,
+                supervision.clone(),
+            )
+            .unwrap()
+        };
+        let mut continuous = make();
+        // The corpus contains equal-token occurrences at distinct sequence
+        // positions, which must never become an expected-answer source label.
+        let repeated = baseline.encode(" 2").unwrap()[0];
+        assert!(
+            continuous.tokens[0]
+                .iter()
+                .filter(|&&token| token == repeated)
+                .count()
+                >= 2
+        );
+        complete(&mut continuous);
+        let mut resumed = make();
+        let mut stages = BTreeSet::new();
+        for _ in 0..10_000 {
+            if resumed.is_complete() {
+                break;
+            }
+            let old_stage = (resumed.state.stage, resumed.state.epoch);
+            let old_rows = resumed.state.rollout_rows.clone();
+            resumed.advance(1, Duration::from_secs(10)).unwrap();
+            if old_stage == (resumed.state.stage, resumed.state.epoch) {
+                assert_eq!(resumed.state.rollout_rows, old_rows);
+                assert_eq!(resumed.memory.rows, old_rows);
+            }
+            let start = lengths[resumed.state.document] - 6;
+            if resumed.state.position > start
+                && resumed.state.position < lengths[resumed.state.document]
+                && stages.insert(resumed.state.stage.name())
+            {
+                let bytes = resumed.checkpoint().unwrap();
+                let restored = MemoryReadTrainer::restore(&baseline, &documents, &bytes).unwrap();
+                assert_eq!(restored.state, resumed.state);
+                assert_eq!(restored.memory.rows, resumed.memory.rows);
+                assert_eq!(restored.checkpoint().unwrap(), bytes);
+                resumed = restored;
+            }
+        }
+        assert!(resumed.is_complete());
+        assert_eq!(stages.len(), 8);
+        let (expected, expected_report) = continuous.finish().unwrap();
+        let (actual, actual_report) = resumed.finish().unwrap();
+        assert_eq!(actual.to_bytes().unwrap(), expected.to_bytes().unwrap());
+        assert_eq!(actual_report.fit, expected_report.fit);
+        assert_eq!(actual_report.response_state, expected_report.response_state);
+        assert_eq!(
+            actual_report.document_exposure,
+            expected_report.document_exposure
+        );
+        assert!(
+            actual_report.progress.replayed_context_positions
+                > expected_report.progress.replayed_context_positions
+        );
+        assert_eq!(actual.memory_read_version(), Some(RESPONSE_MEMORY_SCHEMA));
+        assert_eq!(
+            actual.memory_read_feature_layout(),
+            Some(RESPONSE_FEATURE_LAYOUT)
+        );
+        assert!(Model::from_bytes(&actual.to_bytes().unwrap()).is_ok());
+        assert_eq!(
+            resumed.memory.rows,
+            actual.memory_read.as_ref().unwrap().rows
+        );
+        assert_eq!(actual_report.fit.positions, 24);
+        // Run the exported artifact through the public session boundary. Final
+        // accuracy must use that artifact's quantized model-selected rollout.
+        let mut serving_correct = 0;
+        for (document, &length) in documents.iter().zip(&lengths) {
+            let mut session = actual.session(Control::Full).unwrap();
+            session.observe(&actual, BOS).unwrap();
+            let mut tokens = actual.encode(&document.text).unwrap();
+            tokens.push(EOS);
+            for (position, token) in tokens.into_iter().enumerate() {
+                if position == length - 6 {
+                    session.begin_response(&actual).unwrap();
+                }
+                if position >= length - 6 {
+                    serving_correct +=
+                        usize::from(session.predict(&actual).unwrap().token == token);
+                }
+                session.observe(&actual, token).unwrap();
+            }
+        }
+        assert_eq!(actual_report.fit.fit_correct_after, serving_correct);
+        let report = actual_report.response_state.unwrap();
+        assert_eq!(report.response_prediction_visits, 24 * 8);
+        assert!(report.final_target_in_memory <= report.final_target_in_candidates);
+        assert!(report.final_target_in_candidates <= 24);
+        let historical =
+            MemoryReadTrainer::new(&baseline, &documents, config(2), schedule, true).unwrap();
+        let value: serde_json::Value =
+            serde_json::from_slice(&historical.checkpoint().unwrap()).unwrap();
+        for key in [
+            "persistent_response",
+            "rollout_rows",
+            "response_report",
+            "best_correct",
+            "best_reachable",
+        ] {
+            assert!(value["state"].get(key).is_none());
+        }
+        // Reducing selected losses must still run the response policy on the
+        // excluded early response tokens before its first selected target.
+        let mut sparse = MemoryReadTrainer::new_with_response_state(
+            &baseline,
+            &documents,
+            config(2),
+            MemoryReadSchedule {
+                total_positions: 12,
+                batch_positions: 2,
+            },
+            true,
+            supervision,
+        )
+        .unwrap();
+        sparse.advance(1, Duration::from_secs(10)).unwrap();
+        assert_eq!(sparse.state.processed_example_visits, 2);
+        assert_eq!(
+            sparse
+                .state
+                .response_report
+                .as_ref()
+                .unwrap()
+                .response_prediction_visits,
+            5
+        );
+        let mut restored =
+            MemoryReadTrainer::restore(&baseline, &documents, &sparse.checkpoint().unwrap())
+                .unwrap();
+        sparse.advance(1, Duration::from_secs(10)).unwrap();
+        restored.advance(1, Duration::from_secs(10)).unwrap();
+        assert_eq!(sparse.state.weights, restored.state.weights);
+        assert_eq!(sparse.state.registry, restored.state.registry);
+        assert_eq!(sparse.state.response_report, restored.state.response_report);
+    }
+
+    #[test]
+    fn native_response_fit_capacity_counts_extra_continuation() {
+        let (baseline, documents) = fixture();
+        let spans = documents
+            .iter()
+            .map(|document| {
+                let end = baseline.encode(&document.text).unwrap().len() + 1;
+                vec![MemoryReadTokenSpan {
+                    start: end - 2,
+                    end,
+                }]
+            })
+            .collect();
+        let supervision = MemoryReadSupervision::new(&baseline, &documents, spans).unwrap();
+        let boundary = MemoryReadFitConfig {
+            candidate_limit: 256,
+            max_positions: 4096,
+            ..config(2)
+        };
+        let schedule = |batch_positions| MemoryReadSchedule {
+            total_positions: 4096,
+            batch_positions,
+        };
+        // Existing schemas retain their exact 4096 * (256 + 256) boundary.
+        assert_eq!(
+            boundary.max_positions * (boundary.candidate_limit + 256),
+            2_097_152
+        );
+        let legacy = MemoryReadTrainer::new_with_occurrence_composition(
+            &baseline,
+            &documents,
+            boundary,
+            schedule(4096),
+            true,
+            Some(supervision.clone()),
+        )
+        .unwrap();
+        let mut legacy_memory = legacy.memory.clone();
+        legacy_memory.fit_positions = 1;
+        assert!(legacy_memory.validate(&baseline).is_ok());
+        assert!(MemoryReadTrainer::new_with_response_state(
+            &baseline,
+            &documents,
+            boundary,
+            schedule(4096),
+            true,
+            supervision.clone(),
+        )
+        .is_err());
+        let response_boundary = MemoryReadFitConfig {
+            max_positions: 4088,
+            ..boundary
+        };
+        assert_eq!(response_boundary.max_positions * 513, 2_097_144);
+        let response = MemoryReadTrainer::new_with_response_state(
+            &baseline,
+            &documents,
+            response_boundary,
+            schedule(4088),
+            true,
+            supervision,
+        )
+        .unwrap();
+        let mut response_memory = response.memory.clone();
+        response_memory.fit_positions = 1;
+        assert!(response_memory.validate(&baseline).is_ok());
+        let one_over = MemoryReadFitConfig {
+            max_positions: 4089,
+            ..boundary
+        };
+        assert!(one_over.validate(baseline.vocabulary_size()).is_ok());
+        assert!(validate_response_fit_capacity(&one_over).is_err());
+        response_memory.config = one_over;
+        assert_eq!(
+            response_memory.validate(&baseline).unwrap_err().to_string(),
+            "response memory configuration exceeds bounded candidate/fit capacity"
+        );
+    }
+
+    #[test]
+    fn native_response_advancing_path_binds_config_and_mid_response_resume() {
+        let (baseline, mut documents) = fixture();
+        documents.truncate(1);
+        let length = baseline.encode(&documents[0].text).unwrap().len() + 1;
+        let supervision = MemoryReadSupervision::new(
+            &baseline,
+            &documents,
+            vec![vec![MemoryReadTokenSpan {
+                start: length - 6,
+                end: length,
+            }]],
+        )
+        .unwrap();
+        let schedule = MemoryReadSchedule {
+            total_positions: 6,
+            batch_positions: 2,
+        };
+        let advancing = MemoryReadFitConfig {
+            advance_response_path: true,
+            ..config(2)
+        };
+        let make = |config| {
+            MemoryReadTrainer::new_with_response_state(
+                &baseline,
+                &documents,
+                config,
+                schedule,
+                true,
+                supervision.clone(),
+            )
+            .unwrap()
+        };
+        let frozen = make(config(2));
+        let frozen_json = serde_json::to_value(frozen.state.config).unwrap();
+        assert!(frozen_json.get("advance_response_path").is_none());
+        assert!(
+            !serde_json::from_value::<MemoryReadFitConfig>(frozen_json)
+                .unwrap()
+                .advance_response_path
+        );
+        let mut continuous = make(advancing);
+        assert_ne!(
+            continuous.state.configuration_cid,
+            frozen.state.configuration_cid
+        );
+        assert_ne!(continuous.memory.config, frozen.memory.config);
+        // Interrupt after a pointer-training batch, when current learned
+        // weights can differ from the frozen policy used for reconstruction.
+        for _ in 0..64 {
+            if continuous.state.stage == Stage::Pointer
+                && continuous.state.position > length - 6
+                && continuous.state.position < length
+            {
+                break;
+            }
+            continuous.advance(1, Duration::from_secs(10)).unwrap();
+        }
+        assert_eq!(continuous.state.stage, Stage::Pointer);
+        assert!(continuous.state.position > length - 6 && continuous.state.position < length);
+        let checkpoint = continuous.checkpoint().unwrap();
+        let value: serde_json::Value = serde_json::from_slice(&checkpoint).unwrap();
+        assert_eq!(value["state"]["config"]["advance_response_path"], true);
+        let mut resumed = MemoryReadTrainer::restore(&baseline, &documents, &checkpoint).unwrap();
+        assert_eq!(resumed.checkpoint().unwrap(), checkpoint);
+        let mut changed_config = value;
+        changed_config["state"]["config"]["advance_response_path"] = false.into();
+        assert!(MemoryReadTrainer::restore(
+            &baseline,
+            &documents,
+            &serde_json::to_vec(&changed_config).unwrap(),
+        )
+        .is_err());
+        complete(&mut continuous);
+        complete(&mut resumed);
+        let (expected, expected_report) = continuous.finish().unwrap();
+        let (actual, actual_report) = resumed.finish().unwrap();
+        assert_eq!(actual.to_bytes().unwrap(), expected.to_bytes().unwrap());
+        assert_eq!(actual_report.fit, expected_report.fit);
+        assert_eq!(actual_report.response_state, expected_report.response_state);
+        assert_eq!(
+            actual_report.fit.feature_layout,
+            RESPONSE_ADVANCING_FEATURE_LAYOUT
+        );
+        assert_eq!(
+            actual.memory_read_feature_layout(),
+            Some(RESPONSE_ADVANCING_FEATURE_LAYOUT)
+        );
+        assert!(Model::from_bytes(&actual.to_bytes().unwrap()).is_ok());
+        let mut invalid_memory = actual.memory_read.clone().unwrap();
+        invalid_memory.schema = OCCURRENCE_MEMORY_SCHEMA.into();
+        assert!(invalid_memory.validate(&actual).is_err());
+        assert!(MemoryReadTrainer::new(&baseline, &documents, advancing, schedule, true).is_err());
+        assert!(MemoryReadTrainer::new_with_supervision(
+            &baseline,
+            &documents,
+            advancing,
+            schedule,
+            true,
+            supervision.clone(),
+        )
+        .is_err());
+        assert!(MemoryReadTrainer::new_with_occurrence_composition(
+            &baseline,
+            &documents,
+            advancing,
+            schedule,
+            true,
+            Some(supervision),
+        )
+        .is_err());
+        assert!(baseline.fit_memory_read(&documents, advancing).is_err());
+    }
+
+    #[test]
+    fn native_response_epoch_selection_does_not_reward_lost_targets() {
+        let best = MetricSum {
+            correct: 4,
+            reachable: 10,
+            loss: 100.0,
+            ..MetricSum::default()
+        };
+        let dropped = MetricSum {
+            correct: 4,
+            reachable: 9,
+            loss: 1.0,
+            ..MetricSum::default()
+        };
+        assert!(dropped.mean() < best.mean());
+        assert!(!response_policy_improves(
+            &dropped,
+            Some(best.correct),
+            Some(best.reachable),
+            Some(best.mean())
+        ));
+        let empty = MetricSum::default();
+        assert_eq!(empty.mean(), 0.0);
+        assert!(!response_policy_improves(
+            &empty,
+            Some(0),
+            Some(1),
+            Some(100.0)
+        ));
+        let same_coverage_better_loss = MetricSum {
+            loss: 99.0,
+            ..best.clone()
+        };
+        assert!(response_policy_improves(
+            &same_coverage_better_loss,
+            Some(best.correct),
+            Some(best.reachable),
+            Some(best.mean())
+        ));
+        let better_correct = MetricSum {
+            correct: 5,
+            loss: 200.0,
+            ..best.clone()
+        };
+        assert!(response_policy_improves(
+            &better_correct,
+            Some(best.correct),
+            Some(best.reachable),
+            Some(best.mean())
+        ));
+        assert!(!response_policy_improves(
+            &best,
+            Some(best.correct),
+            Some(best.reachable),
+            Some(best.mean())
+        ));
+    }
+
+    #[test]
+    fn native_response_stream_requires_spans_and_valid_frozen_policy() {
+        let (baseline, documents) = fixture();
+        let schedule = MemoryReadSchedule {
+            total_positions: 96,
+            batch_positions: 2,
+        };
+        assert!(MemoryReadTrainer::new_impl(
+            &baseline,
+            &documents,
+            config(2),
+            schedule,
+            true,
+            None,
+            true,
+            true
+        )
+        .is_err());
+        let spans = documents
+            .iter()
+            .map(|document| {
+                let end = baseline.encode(&document.text).unwrap().len() + 1;
+                vec![MemoryReadTokenSpan {
+                    start: end - 6,
+                    end,
+                }]
+            })
+            .collect();
+        let supervision = MemoryReadSupervision::new(&baseline, &documents, spans).unwrap();
+        let mut trainer = MemoryReadTrainer::new_with_response_state(
+            &baseline,
+            &documents,
+            config(2),
+            schedule,
+            true,
+            supervision,
+        )
+        .unwrap();
+        trainer.advance(1, Duration::from_secs(10)).unwrap();
+        for omission in [true, false] {
+            let mut state = trainer.state.clone();
+            if omission {
+                state.rollout_rows.clear();
+            } else {
+                state.rollout_rows[0].score = 4097;
+            }
+            let checkpoint = Checkpoint {
+                schema: CHECKPOINT_SCHEMA.into(),
+                state_cid: identity(&state).unwrap(),
+                state,
+            };
+            assert!(MemoryReadTrainer::restore(
+                &baseline,
+                &documents,
+                &serde_json::to_vec(&checkpoint).unwrap()
+            )
+            .is_err());
+        }
     }
 
     #[test]

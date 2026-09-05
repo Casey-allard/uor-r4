@@ -12,6 +12,23 @@ windows as instructions for new work. A negative binds its exact configuration;
 resource unavailability does not determine model quality. The recovered plan
 allows open development iteration under configurable cumulative machine budgets.
 
+## Native response-state development negatives (2026-09-05)
+
+The [response-state record](native_geometric_response_state_973.md) adds
+explicit `/5` query persistence, model-selected occurrence commitment and a
+bounded source-successor alternative. On the same corrected source and readout,
+capturing the endpoint yields 5/32 exact prose versus `/4`'s 6/32; advancing
+that endpoint through generated H4/phase state also yields 5/32. Rust exact
+generation remains 0/32, and completion prediction regresses in both families.
+The two packages are not promoted as quality improvements. The first emits no
+continuation actions and the revision emits one. State-disabled controls
+establish dependence on the fitted state, without an incremental advantage
+over `/4`; geometric effects remain scoped and mixed. Two separately inspected
+generated Rust programs execute and fail their assertions. The record keeps
+that execution evidence separate from the original probe's `NOT_RUN` rows.
+State/checkpoint correctness and bounded allocation are mechanism evidence;
+useful composition and computed-value writes remain unfinished.
+
 ## Native occurrence-selection checkpoint (2026-09-05)
 
 The [source-to-response mechanism map](native_geometric_mechanism_map_973.md)

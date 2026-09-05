@@ -31,6 +31,42 @@ const CANCELLED: u8 = 2;
 const CLOSED: u8 = 4;
 type Reply = Result<Value, (u16, String)>;
 
+#[derive(Debug)]
+enum PersistenceError {
+    CheckpointTooLarge { bytes: usize, limit: usize },
+    Host(String),
+}
+impl std::fmt::Display for PersistenceError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::CheckpointTooLarge { bytes, limit } => write!(
+                formatter,
+                "checkpoint has {bytes} bytes, exceeding this service's {limit} byte restore limit"
+            ),
+            Self::Host(message) => formatter.write_str(message),
+        }
+    }
+}
+impl From<String> for PersistenceError {
+    fn from(message: String) -> Self {
+        Self::Host(message)
+    }
+}
+impl From<&str> for PersistenceError {
+    fn from(message: &str) -> Self {
+        Self::Host(message.into())
+    }
+}
+fn validate_checkpoint_size(bytes: &[u8]) -> Result<(), PersistenceError> {
+    if bytes.len() > MAX_CHECKPOINT {
+        return Err(PersistenceError::CheckpointTooLarge {
+            bytes: bytes.len(),
+            limit: MAX_CHECKPOINT,
+        });
+    }
+    Ok(())
+}
+
 struct Slot {
     session: Mutex<Session>,
     activity: AtomicU8,
@@ -169,11 +205,20 @@ impl Service {
             .map_err(|_| (429, "session storage capacity reached; close an existing session and allow active requests to finish".into()))?;
         Ok(SessionReservation(Arc::clone(&self.session_reservations)))
     }
-    fn persist(&self, id: &str, session: &Session) -> Result<(), String> {
+    fn persist(&self, id: &str, session: &Session) -> Result<(), PersistenceError> {
+        if self.session_directory.is_none() {
+            return Ok(());
+        }
+        let bytes = session.checkpoint().map_err(|e| e.to_string())?;
+        self.persist_checkpoint(id, &bytes)
+    }
+    fn persist_checkpoint(&self, id: &str, bytes: &[u8]) -> Result<(), PersistenceError> {
         let Some(directory) = &self.session_directory else {
             return Ok(());
         };
-        let bytes = session.checkpoint().map_err(|e| e.to_string())?;
+        // The core /5 format permits larger snapshots. This host must not
+        // replace a restorable checkpoint with one its restore path refuses.
+        validate_checkpoint_size(bytes)?;
         let _persistence = self.persistence_lock.lock().map_err(|e| e.to_string())?;
         let temporary = directory.join(format!(".{}.tmp", self.fresh_id()));
         let destination = directory.join(format!("{id}.json"));
@@ -208,14 +253,16 @@ impl Service {
                 .write(true)
                 .create_new(true)
                 .open(&temporary)?;
-            file.write_all(&bytes)?;
+            file.write_all(bytes)?;
             file.sync_all()?;
             std::fs::rename(&temporary, destination)
         })();
         if result.is_err() {
             let _ = std::fs::remove_file(&temporary);
         }
-        result.map_err(|e: std::io::Error| format!("save native session: {e}"))
+        result.map_err(|e: std::io::Error| {
+            PersistenceError::Host(format!("save native session: {e}"))
+        })
     }
     fn route(&self, path: &str, body: &[u8]) -> Reply {
         match path {
@@ -252,6 +299,7 @@ impl Service {
             "/api/import" => {
                 let request: ImportSession = parse(body)?;
                 let bytes = serde_json::to_vec(&request.checkpoint).map_err(internal)?;
+                validate_checkpoint_size(&bytes).map_err(|e| (413, e.to_string()))?;
                 self.insert(|| {
                     self.model
                         .restore_session(&bytes)
@@ -337,6 +385,11 @@ impl Service {
         let _busy = slot.claim()?;
         let prompt = self.model.encode(&request.prompt).map_err(internal)?;
         let mut session = slot.session.lock().map_err(internal)?;
+        // Empty input continues a response stopped by the token/output limit.
+        // New external input closes its selected-read state before observation.
+        if !prompt.is_empty() {
+            session.end_response(&self.model).map_err(internal)?;
+        }
         let mut observed_prompt = 0;
         for &token in &prompt {
             if slot.cancelled() {
@@ -345,7 +398,17 @@ impl Service {
             session.observe(&self.model, token).map_err(internal)?;
             observed_prompt += 1;
         }
+        if !slot.cancelled()
+            && (!prompt.is_empty()
+                || session
+                    .state()
+                    .response
+                    .is_none_or(|response| !response.active))
+        {
+            session.begin_response(&self.model).map_err(internal)?;
+        }
         let mut output = Vec::new();
+        let mut response_trace = Vec::new();
         let mut output_bytes = 0;
         let mut stop = "token_limit";
         for _ in 0..request.max_tokens {
@@ -359,7 +422,15 @@ impl Service {
                 stop = "output_byte_limit";
                 break;
             }
+            if let Some(decision) = session.response_decision() {
+                if response_trace.len() < 96 {
+                    response_trace.push(decision);
+                }
+            }
             if prediction.token == EOS {
+                if session.response_decision().is_some() {
+                    session.observe(&self.model, EOS).map_err(internal)?;
+                }
                 stop = "end_of_sequence";
                 break;
             }
@@ -372,11 +443,15 @@ impl Service {
         let bytes = self.model.decode(&output).map_err(internal)?;
         let text = String::from_utf8_lossy(&bytes);
         let utf8_valid = std::str::from_utf8(&bytes).is_ok();
-        let persist_error = self.persist(&request.session_id, &session).err();
+        let persist_error = self
+            .persist(&request.session_id, &session)
+            .err()
+            .map(|error| error.to_string());
         Ok(
             json!({"backend":BACKEND,"artifact_cid":self.model.artifact_cid(),"session_id":request.session_id,
             "memory_read_version":self.model.memory_read_version(),
             "text":text,"utf8_valid":utf8_valid,"bytes":bytes,"tokens":output,"stop":stop,
+            "response_trace":response_trace,
             "prompt_tokens":prompt.len(),"observed_prompt_tokens":observed_prompt,
             "state":session.state(),"session_work":session.work,
             "persisted":self.session_directory.is_some() && persist_error.is_none(),"persistence_error":persist_error}),
@@ -396,6 +471,7 @@ impl Service {
             "live_session_reservations":self.session_reservations.load(Ordering::Acquire),
             "generation_limit":4096,"prompt_byte_limit":MAX_PROMPT,"output_byte_limit":MAX_OUTPUT,
             "concurrent_generation_limit":MAX_GENERATIONS,"saved_file_limit":MAX_SAVED_FILES,"saved_byte_limit":MAX_SAVED_BYTES,
+            "checkpoint_byte_limit":MAX_CHECKPOINT,
             "disk_persistence":self.session_directory.is_some()})
     }
 }
@@ -756,6 +832,69 @@ mod tests {
         Arc::new(Service::new(model(), None).unwrap())
     }
 
+    fn response_model() -> Model {
+        use uor_r4_core::native_geometric::{
+            MemoryReadFitConfig, MemoryReadSchedule, MemoryReadSupervision, MemoryReadTokenSpan,
+            MemoryReadTrainer,
+        };
+        let construction = [Document {
+            id: "response-service-count".into(),
+            text: "red fox red fox. blue bird blue bird.".into(),
+        }];
+        let mut count = Trainer::new(
+            Config {
+                context_tokens: 32,
+                candidate_limit: 8,
+                max_lexical_pieces: 64,
+                ..Config::default()
+            },
+            &construction,
+        )
+        .unwrap();
+        count.train_documents(&construction).unwrap();
+        let baseline = count.compile().unwrap();
+        let documents = [Document {
+            id: "response-service-fit".into(),
+            text: "red fox red fox red fox. blue bird blue bird blue bird.".into(),
+        }];
+        let end = baseline.encode(&documents[0].text).unwrap().len() + 1;
+        let supervision = MemoryReadSupervision::new(
+            &baseline,
+            &documents,
+            vec![vec![MemoryReadTokenSpan { start: 2, end }]],
+        )
+        .unwrap();
+        let mut trainer = MemoryReadTrainer::new_with_response_state(
+            &baseline,
+            &documents,
+            MemoryReadFitConfig {
+                advance_response_path: false,
+                query_tokens: 4,
+                source_offsets: 2,
+                postings_per_address: 2,
+                candidate_limit: 16,
+                max_positions: 32,
+                epochs: 1,
+                max_features: 4096,
+            },
+            MemoryReadSchedule {
+                total_positions: 32,
+                batch_positions: 32,
+            },
+            true,
+            supervision,
+        )
+        .unwrap();
+        for _ in 0..1000 {
+            if trainer.is_complete() {
+                break;
+            }
+            trainer.advance(8, Duration::from_secs(10)).unwrap();
+        }
+        assert!(trainer.is_complete());
+        trainer.finish().unwrap().0
+    }
+
     fn exchange(service: Arc<Service>, request: impl FnOnce(u16) -> Vec<u8>) -> String {
         let listener = TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, 0)).unwrap();
         let address = listener.local_addr().unwrap();
@@ -876,6 +1015,48 @@ mod tests {
                 .tokens_seen
                 > 1
         );
+    }
+
+    #[test]
+    fn http_response_query_survives_token_limit_and_restarts_for_external_input() {
+        let model = response_model();
+        let prompt = ["red", "red fox", "blue", "blue bird"]
+            .into_iter()
+            .find(|prompt| model.generate(prompt, 1, Control::Full).unwrap().stop == "token_budget")
+            .expect("fixture must exercise a non-EOS first step");
+        let expected = model.generate(prompt, 2, Control::Full).unwrap();
+        let service = Arc::new(Service::new(model, None).unwrap());
+        let session_id = id(&post(Arc::clone(&service), "/api/session", json!({})));
+        let isolated_id = id(&post(Arc::clone(&service), "/api/session", json!({})));
+        let first = post(
+            Arc::clone(&service),
+            "/api/generate",
+            json!({"session_id":session_id,"prompt":prompt,"max_tokens":1}),
+        );
+        assert_eq!(first["stop"], "token_limit");
+        assert_eq!(first["session_work"]["response_query_captures"], 1);
+        assert_eq!(first["state"]["response"]["active"], true);
+        let second = post(
+            Arc::clone(&service),
+            "/api/generate",
+            json!({"session_id":session_id,"prompt":"","max_tokens":1}),
+        );
+        let mut tokens = first["tokens"].as_array().unwrap().clone();
+        tokens.extend(second["tokens"].as_array().unwrap().iter().cloned());
+        assert_eq!(json!(tokens), json!(expected.token_ids));
+        assert_eq!(second["state"], json!(expected.state));
+        assert_eq!(second["session_work"], json!(expected.work));
+        assert_eq!(second["session_work"]["response_query_captures"], 1);
+        let restarted = post(
+            Arc::clone(&service),
+            "/api/generate",
+            json!({"session_id":session_id,"prompt":"red fox","max_tokens":1}),
+        );
+        assert_eq!(restarted["session_work"]["response_query_captures"], 2);
+        let isolated = service.slot(&isolated_id).unwrap();
+        let isolated = isolated.session.lock().unwrap();
+        assert_eq!(isolated.work.response_query_captures, 0);
+        assert!(!isolated.state().response.unwrap().active);
     }
 
     #[test]
@@ -1072,6 +1253,43 @@ mod tests {
         }
         assert_eq!(service.route("/api/session", b"{}").unwrap_err().0, 429);
         assert_eq!(service.route("/api/generate",br#"{"session_id":"00000000000000000000000000000000","prompt":"","max_tokens":0}"#).unwrap_err().0,400);
+    }
+
+    #[test]
+    fn checkpoint_size_limit_preserves_saved_state_and_import_capacity() {
+        let directory = std::env::temp_dir().join(format!(
+            "r4-native-service-checkpoint-limit-{}",
+            std::process::id()
+        ));
+        let service = Service::new(model(), Some(&directory)).unwrap();
+        let created = service.route("/api/session", b"{}").unwrap();
+        let first = id(&created);
+        let saved = directory.join(format!("{first}.json"));
+        let original = std::fs::read(&saved).unwrap();
+        let serial_before = service.ids.load(Ordering::Acquire);
+        let oversized = vec![b' '; MAX_CHECKPOINT + 1];
+        assert!(matches!(
+            service.persist_checkpoint(&first, &oversized),
+            Err(PersistenceError::CheckpointTooLarge { bytes, limit })
+                if bytes == MAX_CHECKPOINT + 1 && limit == MAX_CHECKPOINT
+        ));
+        assert_eq!(std::fs::read(&saved).unwrap(), original);
+        assert_eq!(std::fs::read_dir(&directory).unwrap().count(), 1);
+        assert_eq!(service.ids.load(Ordering::Acquire), serial_before);
+        // The HTTP envelope fits the request limit, but its checkpoint cannot
+        // be admitted and later persisted beyond this host's restore limit.
+        let body = serde_json::to_vec(&json!({
+            "checkpoint": {"oversized": "x".repeat(MAX_CHECKPOINT)}
+        }))
+        .unwrap();
+        assert!(body.len() < MAX_BODY);
+        assert_eq!(service.route("/api/import", &body).unwrap_err().0, 413);
+        assert_eq!(service.sessions.lock().unwrap().len(), 1);
+        assert_eq!(service.session_reservations.load(Ordering::Acquire), 1);
+        assert_eq!(std::fs::read(&saved).unwrap(), original);
+        assert_eq!(service.ids.load(Ordering::Acquire), serial_before);
+        drop(service);
+        std::fs::remove_dir_all(directory).unwrap();
     }
 
     #[test]

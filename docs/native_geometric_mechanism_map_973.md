@@ -3,7 +3,7 @@
 This source map connects the native model to reusable mathematical and runtime
 components. Its baseline is the implementation delivered through PR #1127 at
 `3abf9d7e85f70416c95161863b4413cc42a6912c`; the versioned occurrence-selection
-successor is distinguished below. The [project plan](integration/project-track.md)
+and response-state successors are distinguished below. The [project plan](integration/project-track.md)
 owns the goal, and [current-state.md](integration/current-state.md) owns results
 and active work. This is not another roadmap or a claim that every architectural
 role is already assembled.
@@ -26,9 +26,11 @@ observes each token through `Session::observe`, repeatedly calls
 same session operations for generation and cancellation; the
 [`uor-r4-api` re-export](../crates/uor-r4-api/src/lib.rs) exposes the same core.
 [`snapshot.rs`](../crates/uor-r4-core/src/native_geometric/snapshot.rs) binds
-session checkpoints to the model and restores the retained token state by
-replay. Persistence does not preserve evicted content or supply learned memory
-consolidation.
+session checkpoints to the model and restores retained state by replay. The
+`/5` reader's session schema `/2` also restores absolute memory geometry, sparse
+posting references and its bounded captured query. That query can outlive ring
+eviction; source values cannot. This is explicit response state, without learned
+memory consolidation.
 
 ## Active representation and operator roles
 
@@ -61,6 +63,36 @@ implement arithmetic value construction or learned memory writes. Its executed
 results and additional work/storage are in the
 [occurrence-selection record](native_geometric_occurrence_selection_973.md);
 the `/3` costs and outcomes above remain attached to their original artifact.
+
+The explicit `/5` successor adds `response_runtime.rs` to the integer/table
+kernel. `Session::begin_response` captures the bounded query, its H4/phase
+endpoint and initial posting visits before any response token. Model scores
+choose retained occurrence identity as well as token; only observing that same
+predicted token commits the selected position. A mismatched teacher observation
+clears the position. One optional prior, still-retained successor competes with
+query routes and baseline output, using local H4/phase and learned action
+features. EOS remains the baseline's learned token alternative. This keeps
+duplicate equal-valued occurrences distinct and prevents generated text from
+replacing the initial query. It does not compute a new arithmetic value or learn
+write admission.
+
+The first `/5` layout freezes the query endpoint. The explicit, artifact-bound
+`advance_response_path` option instead transports those same captured cues to
+the current H4/phase endpoint; admission and storage bounds remain identical.
+Its fit is a separate retained negative. Neither fitted layout improves the
+matched `/4` result, and observed continuation counts are zero and one
+respectively. Query persistence does not yet establish useful composition.
+
+The flat route bound becomes `candidate_limit + 1`, with at most 18 features
+per route before occurrence union. Captured queries and posting visits are
+allocated once, bounded respectively by `query_tokens` and `candidate_limit`.
+`ResponseStateDisabled` removes capture and continuation while retaining the
+same artifact's ordinary reader. The resumable fitter selects occurrence state
+from its own frozen quantized rollout before each observation, including
+unsupervised context within a response. The
+[response-state record](native_geometric_response_state_973.md) binds the
+executed behavior, costs and checkpoint checks; mechanical continuity alone
+does not establish useful answer composition.
 
 ## Historical pieces and what they can contribute
 

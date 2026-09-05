@@ -173,7 +173,7 @@ target/release/r4 geometric fit-memory-stream \
 ```
 
 Repeat the command with `--resume` and the same baseline, ordered source bytes,
-fit configuration, cue/composition mode and schedule. `--max-batches N` deliberately ends a
+fit configuration, cue/composition/response mode and schedule. `--max-batches N` deliberately ends a
 launch at a resumable boundary. A completed resume preserves the artifact.
 Changing total exposure or epoch count creates a different schedule, requiring
 a new run; it does not silently reinterpret a checkpoint's cursor.
@@ -274,6 +274,105 @@ new output directory. It preserves the generated task texts and adds
 prompt/full-text token boundary. Pass that file to `fit-memory-stream`; changing
 the baseline or source requires a new mask.
 
+## Fit and use persistent response state
+
+Add `--persist-response` to `fit-memory-stream` to select the optional `/5`
+reader. Both `--compose-occurrences` and `--supervision PATH` are required;
+missing either is refused before fitting. The existing prepared source and
+its exact response-plus-EOS token spans can be reused:
+
+```sh
+target/release/r4 geometric fit-memory-stream \
+  --model .uor-models/native-development/learned.json \
+  --input .uor-models/native-development/corpus/readout.jsonl \
+  --output .uor-models/native-development/response.json \
+  --checkpoint .uor-models/native-development/response.checkpoint \
+  --supervision .uor-models/native-development/supervision.json \
+  --compose-occurrences --persist-response --word-cues \
+  --total-positions 32768 --batch-positions 256 --epochs 8 \
+  --query-tokens 8 --source-offsets 4 --postings-per-address 4 \
+  --candidates 128 --max-features 262144 \
+  --max-seconds 600 --max-rss-mib 4096 --checkpoint-every 128 \
+  --report .uor-models/native-development/response-fit.json
+```
+
+The supervision file must bind this exact baseline and ordered input source;
+the path in the example is not created automatically by `fit-memory-stream`.
+Choose new output/checkpoint paths for a new run. Resume with the same flags
+and `--resume`; both the CLI envelope and learned checkpoint bind response
+mode. `--max-batches` stops at a resumable boundary without silently restarting
+learning.
+
+The optional `--advance-response-path` additionally requires
+`--persist-response`. It keeps the captured query tokens and source posting
+references while using the evolving observed H4 pose and phase state as the
+query-path endpoint. Its artifact declares feature layout
+`persistent-query-advancing-local-paths-and-model-selected-occurrence-continuation/2`.
+Without the flag, the response endpoint stays fixed at capture and the initial
+`/5` law is unchanged. This option does not enlarge the routing or state bounds.
+It is a separate fitting experiment: use new output/checkpoint/report paths,
+then retain the exact flag on resume. Both the configuration and CLI envelope
+bind it; an endpoint-mode mismatch is refused before fitting resumes. The
+first frozen-endpoint `/5` fit regressed from 6/32 to 5/32 exact prose, with
+Rust exact remaining 0/32. The evolving-endpoint fit retained 5/32 exact prose
+and 0/32 exact Rust, while teacher-forced accuracy declined further. Both
+remain explicit development options; the
+[response-state record](native_geometric_response_state_973.md) preserves
+their exact artifacts, controls and measured limitations.
+
+The library constructor is `MemoryReadTrainer::new_with_response_state`.
+It freezes a quantized model-selection policy for each source replay pass and
+saves those rows with its optimizer state. Reconstructed prefixes use the
+same policy even after optimizer weights have changed. All response positions
+advance selection before teacher observation, including positions excluded
+from sampled loss. An observed target never chooses its source occurrence.
+Because the selected state can change candidate reachability, `/5` selects
+epochs by fixed-population correct targets, then reachable targets, then lower
+conditional cross-entropy. Its final metrics use the exported quantized policy.
+
+`Model::generate`, `geometric generate`, chat and the native service begin the
+response after prompt observation. Low-level callers use
+`Session::begin_response(&model)` at that boundary, predict, then observe the
+selected token. `Session::end_response(&model)` closes the previous query
+before external input. Prediction only replaces a transient decision;
+observation commits its selected occurrence. New `/5` generation observes EOS
+to commit a stop without rendering it. Older artifacts retain their previous
+scoring and EOS behavior.
+
+The HTTP service treats an empty prompt as continuation of an active response
+after a token/output limit; nonempty input starts a new query after closing
+the prior response. Empty input after a stopped response captures a new
+boundary. Committed query and selected-occurrence state are included in `/5`
+session snapshots. Pending predictions are recomputed after loading. The core
+response snapshot limit is 8 MiB; the service retains its separate 1 MiB
+checkpoint storage/import bound and reports persistence refusal rather than
+writing a checkpoint it cannot restore.
+
+Generation JSON contains `response_trace` for active `/5` responses: at most
+96 actual decisions, including EOS if reached within the bound. Each records
+token, score, action, source sequence/slot when present and observation count.
+These host diagnostics come from the same generation, without another rollout.
+Use the joint probe to compare the same artifact with its response state
+disabled:
+
+```sh
+target/release/examples/native_geometric_joint_probe evaluate \
+  --source .uor-models/joint-composition/source/source.json \
+  --model .uor-models/native-development/response.json \
+  --output-dir .uor-models/native-development/response-development \
+  --generated-tokens 96 --compiler-cases 8 --repair-cases 2 \
+  --controls full,response-state-disabled --max-seconds 120
+```
+
+`response-state-disabled` requires a `/5` artifact in this probe. It retains
+the learned tables while suppressing captured query/selected-read state;
+it is not a separately fitted `/4` comparator. Explicit existing controls
+remain available. Independent-document `geometric evaluate` does not know
+response-span boundaries; use the joint probe or explicit session boundaries
+to assess this mechanism. See the
+[response-state record](native_geometric_response_state_973.md) for the exact
+operator, remaining value-computation boundary and measurement status.
+
 ## Preserved finite reader probe
 
 The optional `native_geometric_memory_probe` example compares physical value
@@ -362,8 +461,9 @@ release its buffers. This is an aggregate buffer bound, not a process RSS limit.
 
 ## Kernel and geometry scope
 
-The candidate integer/table kernel consists of `Session::observe` and
-`Session::predict`. Fitting, tokenization, artifact I/O, report statistics and
+The candidate integer/table kernel consists of `Session::observe`,
+`Session::predict` and the response-boundary/decision operations. Fitting,
+tokenization, artifact I/O, report statistics and
 session allocation are host activities. Focused tests measure successful
 observe/predict allocation behavior across eviction. This does not constitute
 machine-code certification or a broader portability/performance claim.

@@ -12,6 +12,7 @@ mod memory_runtime;
 mod memory_training;
 mod memory_types;
 mod mixture;
+mod response_runtime;
 mod runtime;
 mod snapshot;
 mod training;
@@ -20,10 +21,11 @@ use serde::{Deserialize, Serialize};
 
 pub use memory_training::{
     MemoryReadDiagnostic, MemoryReadDocumentExposure, MemoryReadDocumentSupervision,
-    MemoryReadSchedule, MemoryReadStreamProgress, MemoryReadStreamReport, MemoryReadSupervision,
-    MemoryReadTokenSpan, MemoryReadTrainer,
+    MemoryReadResponseStateReport, MemoryReadSchedule, MemoryReadStreamProgress,
+    MemoryReadStreamReport, MemoryReadSupervision, MemoryReadTokenSpan, MemoryReadTrainer,
 };
 pub use memory_types::{MemoryReadFitConfig, MemoryReadFitReport, MemoryStateView};
+pub use memory_types::{ResponseAction, ResponseDecision, ResponseStateView};
 pub use mixture::{ReadoutFitConfig, ReadoutFitReport};
 pub use runtime::{Session, StateView};
 pub use training::Trainer;
@@ -112,6 +114,7 @@ pub enum Control {
     RadialDisabled,
     HeatmapDisabled,
     MemoryDisabled,
+    ResponseStateDisabled,
 }
 
 /// Explicit feature addresses, never content digests. Kinds 0/1 are full
@@ -147,7 +150,7 @@ impl Feature {
     }
     fn admitted(self, control: Control) -> bool {
         match control {
-            Control::Full | Control::MemoryDisabled => true,
+            Control::Full | Control::MemoryDisabled | Control::ResponseStateDisabled => true,
             Control::GeometryDisabled => self.kind < 2,
             Control::ZetaDisabled => !(8..=15).contains(&self.kind) && self.kind != 5,
             Control::H4Disabled => self.kind < 2 || (8..=15).contains(&self.kind),
@@ -278,6 +281,22 @@ impl TryFrom<ModelWire> for Model {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct Work {
+    #[serde(default, skip_serializing_if = "zero_work")]
+    pub response_query_captures: u64,
+    #[serde(default, skip_serializing_if = "zero_work")]
+    pub response_commits: u64,
+    #[serde(default, skip_serializing_if = "zero_work")]
+    pub response_requeries: u64,
+    #[serde(default, skip_serializing_if = "zero_work")]
+    pub response_continuations: u64,
+    #[serde(default, skip_serializing_if = "zero_work")]
+    pub response_base_steps: u64,
+    #[serde(default, skip_serializing_if = "zero_work")]
+    pub response_stops: u64,
+    #[serde(default, skip_serializing_if = "zero_work")]
+    pub response_mismatches: u64,
+    #[serde(default, skip_serializing_if = "zero_work")]
+    pub response_reference_reads: u64,
     pub observed_tokens: u64,
     pub evictions: u64,
     pub h4_table_reads: u64,
@@ -319,6 +338,10 @@ pub struct Work {
     pub memory_composition_feature_moves: u64,
 }
 
+fn zero_work(value: &u64) -> bool {
+    *value == 0
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Candidate {
     pub token: u32,
@@ -335,6 +358,9 @@ pub struct Prediction {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Generation {
+    /// First at most 96 decisions, recorded outside the allocation-free kernel.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub response_trace: Vec<ResponseDecision>,
     pub text: String,
     pub utf8_valid: bool,
     /// Exact output bytes are retained if byte fallback generates invalid UTF-8.
@@ -357,5 +383,7 @@ pub struct Evaluation {
     pub work: Work,
 }
 
+#[cfg(test)]
+mod response_runtime_tests;
 #[cfg(test)]
 mod tests;

@@ -7,6 +7,53 @@ remains owned by [#973](https://github.com/UOR-Foundation/uor-r4/issues/973).
 Refresh live GitHub before choosing a follow-up; dated snapshots and lower
 historical “next” paragraphs do not select work.
 
+## Persistent response state — 2026-09-05
+
+The native `/5` development option captures a bounded response query and its
+initial posting references, commits model-selected occurrence identity only
+after matching observation, and offers one retained source successor. Rust
+fitting, generation, CLI/HTTP continuation and session checkpoints use this
+same state law. It adds no arithmetic value construction or learned write
+admission. The optional advancing-endpoint layout retains the captured query
+while transporting its H4/phase relation through response progress.
+
+Two matched fits on the same corrected source, readout, 512-token context and
+6,548 response/EOS targets **do not improve the preceding `/4` artifact**:
+
+| Full-path development result | `/4` | `/5` captured endpoint | `/5` advancing endpoint |
+| --- | ---: | ---: | ---: |
+| Prose first correct | 20/32 | 20/32 | 20/32 |
+| Prose exact response | 6/32 | 5/32 | 5/32 |
+| Prose completion prediction | 195/320 | 187/320 | 181/320 |
+| Rust exact response | 0/32 | 0/32 | 0/32 |
+| Rust completion prediction | 328/504 | 291/504 | 280/504 |
+
+The first `/5` generated zero continuation actions; the advancing version
+generated one. Response-state-disabled scores 0/32 and 1/32 exact prose in
+the respective artifacts, establishing sensitivity without an improvement
+over `/4`. Geometric controls remain mixed. Both new fits are retained
+development negatives, and `/4` remains the stronger matched artifact.
+
+The initial `/5` lost 61 formerly correct completion predictions; 60 targets
+remained shortlisted. Repeated punctuation selected the same source occurrence
+with the same score. Advancing the endpoint changed that scorer state without
+widening support but did not recover quality. This rejects the two fitted
+packages as quality upgrades; it does not establish a general geometric
+failure. Two inspected first-fit Rust programs compile and execute, but both
+fail assertions (86 versus emitted 92, and 23 versus emitted 120).
+
+The [response-state record](../native_geometric_response_state_973.md) binds
+the two artifacts, controls, actual output, focused checks, preservation and
+cumulative resource accounting. Useful response composition remains open.
+The separate absent-value cause requires typed operands, learned binding and
+an exact result write inside the same native memory path; neither copying nor
+response persistence performs that computation. Fixed checked `Z[phi]`
+addition is reusable arithmetic, while operand selection and result use must
+be learned and measured. Both alpha capability groups remain unqualified.
+
+The following sections preserve preceding source/artifact checkpoints and
+their then-current next actions.
+
 ## Local-path occurrence selection — 2026-09-05
 
 The explicit native memory `/4` successor compares local source/query H4 and
