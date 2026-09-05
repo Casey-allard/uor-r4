@@ -18,6 +18,11 @@ mod training;
 
 use serde::{Deserialize, Serialize};
 
+pub use memory_training::{
+    MemoryReadDiagnostic, MemoryReadDocumentExposure, MemoryReadDocumentSupervision,
+    MemoryReadSchedule, MemoryReadStreamProgress, MemoryReadStreamReport, MemoryReadSupervision,
+    MemoryReadTokenSpan, MemoryReadTrainer,
+};
 pub use memory_types::{MemoryReadFitConfig, MemoryReadFitReport, MemoryStateView};
 pub use mixture::{ReadoutFitConfig, ReadoutFitReport};
 pub use runtime::{Session, StateView};

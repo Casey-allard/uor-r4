@@ -7,6 +7,49 @@ remains owned by [#973](https://github.com/UOR-Foundation/uor-r4/issues/973).
 Refresh live GitHub before choosing a follow-up; dated snapshots and lower
 historical “next” paragraphs do not select work.
 
+## Resumable fitting and broader joint composition
+
+The native `/3` reader now has an explicit bounded, resumable Rust fitter.
+Distinct supervised exposure is independent of the live example buffer;
+calibration and epoch selection replay a consistent source-bound population.
+Checkpoints restore learned weights, feature registration, calibration sums and
+stage/cursors. Optional tokenizer-bound supervision intervals select response
+losses while preserving whole-document context. The inference kernel, primary
+prime/zeta/R4 state and existing reader schemas remain intact.
+
+On one learned readout baseline with context 512, the whole-population fit sees
+all 30,038 joint prose/Rust targets using 256 live examples. A real partial fit
+and resumed invocation complete. Relative to the matched 4,096-position legacy
+fit, prose teacher-forced completion prediction improves from 179/320 to 188/320
+and Rust from 302/504 to 314/504. Raw exact generation reaches 6/32 prose and
+0/32 Rust; the shared memory-disabled model reaches 7/32 and 0/32. A second fit
+selecting all 6,548 response-plus-EOS targets reaches 196/320 prose and 306/504
+Rust completion pieces, with exact generation 7/32 and 0/32. It improves neither
+both families nor exact prose over memory-disabled and is not promoted as a
+joint quality improvement. Each new stream artifact's eight sampled generated
+Rust sources fail compilation and two actual-feedback repair attempts are
+empty; none executes.
+
+The reused broad-corpus comparison expands exposure from 4,096 to 32,768
+positions and improves current eight-epoch accuracy from 32.8879% to 35.3499%,
+still below memory-disabled 36.2485%. The expanded fit hits its 262,144-feature
+cap with dropped events. Geometry-disabled scores 36.5151%; this establishes no
+added geometric benefit in that comparison and does not demote the primary
+architecture. These are open-development populations, including deliberately
+new composition forms, not final held-out or alpha qualification.
+
+The working historical artifact remains 96/96 in each finite family under a
+fresh saved-model preservation check; its prior compile/execution evidence is
+preserved. The [resumable fitting record](../native_geometric_resumable_memory_973.md)
+contains exact artifact/source identities, generated outputs, checks and the
+cumulative resource ledger. No historical results are superseded by a broader
+claim. The current next implementation is targeted learned read/selection and
+geometric value composition: distinguish admitted but misranked factual/repair
+targets from arithmetic outputs absent from retained copy routes. Learned
+writes, retention beyond ring eviction, richer geometric state/operators and
+both alpha capability groups remain unfinished; further cue-table expansion is
+not the measured next correction.
+
 ## Joint query-context checkpoint
 
 The explicit native memory schema `/3` now learns both controlled prose recall
@@ -40,7 +83,7 @@ with zero drops, using 262,144 feature capacity. Thus the finite-task success
 does not qualify this reader as a general replacement, and a feature-capacity
 shortfall does not explain this particular regression.
 
-The next work must extend this useful joint reader into broader contextual
+The then-next work was to extend this useful joint reader into broader contextual
 composition and generated-code behavior, using varied open development data,
 adequate context/exposure and actual outputs. Preserve the finite-task artifact
 as a working component; do not repeat this solved recall fixture as a new alpha

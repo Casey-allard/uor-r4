@@ -1,0 +1,1420 @@
+{
+  "schema": "uor-r4.native-resumable-memory-development-record/1",
+  "issue": 973,
+  "starting_revision": "ea71af0ec39050289337f1d2b9dd2a53d8f3ff63",
+  "status": "completed_open_development_package",
+  "scope": "Synthetic joint and reused broader open development; no final held-out, alpha or geometric advantage claim.",
+  "local_artifact_root": "/Users/casey.allard/uor-r4/.uor-models/native-memory-stream-2026-09-05",
+  "joint_source": {
+    "source_blake3": "e45e502671f16bc5443a6d18a2ffaf9c89d838d66c88501c03e59c58ea7e6b20",
+    "audit": {
+      "families": {
+        "construction/prose": {
+          "available_completion_positions_excluding_eos": 2176,
+          "available_supervised_positions_including_eos": 15052,
+          "documents": 256,
+          "max_prompt_context_including_bos": 58,
+          "prompts_longer_than_context": 0,
+          "sampled_fit_completion_positions": "NOT_MEASURED: requires fitter selection trace, not inferred from available positions",
+          "text_bytes": 55608
+        },
+        "construction/rust": {
+          "available_completion_positions_excluding_eos": 3840,
+          "available_supervised_positions_including_eos": 14892,
+          "documents": 256,
+          "max_prompt_context_including_bos": 67,
+          "prompts_longer_than_context": 0,
+          "sampled_fit_completion_positions": "NOT_MEASURED: requires fitter selection trace, not inferred from available positions",
+          "text_bytes": 45034
+        },
+        "development/prose": {
+          "available_completion_positions_excluding_eos": 320,
+          "available_supervised_positions_including_eos": 2376,
+          "documents": 32,
+          "max_prompt_context_including_bos": 82,
+          "prompts_longer_than_context": 0,
+          "sampled_fit_completion_positions": "NOT_MEASURED: requires fitter selection trace, not inferred from available positions",
+          "text_bytes": 7289
+        },
+        "development/rust": {
+          "available_completion_positions_excluding_eos": 504,
+          "available_supervised_positions_including_eos": 2322,
+          "documents": 32,
+          "max_prompt_context_including_bos": 81,
+          "prompts_longer_than_context": 0,
+          "sampled_fit_completion_positions": "NOT_MEASURED: requires fitter selection trace, not inferred from available positions",
+          "text_bytes": 5741
+        },
+        "fit/prose": {
+          "available_completion_positions_excluding_eos": 2176,
+          "available_supervised_positions_including_eos": 15104,
+          "documents": 256,
+          "max_prompt_context_including_bos": 58,
+          "prompts_longer_than_context": 0,
+          "sampled_fit_completion_positions": "NOT_MEASURED: requires fitter selection trace, not inferred from available positions",
+          "text_bytes": 55819
+        },
+        "fit/rust": {
+          "available_completion_positions_excluding_eos": 3860,
+          "available_supervised_positions_including_eos": 14934,
+          "documents": 256,
+          "max_prompt_context_including_bos": 67,
+          "prompts_longer_than_context": 0,
+          "sampled_fit_completion_positions": "NOT_MEASURED: requires fitter selection trace, not inferred from available positions",
+          "text_bytes": 45087
+        }
+      },
+      "id_and_exact_document_overlap": "PASS",
+      "lexical_boundaries": "PASS"
+    },
+    "source": "joint-source-v2/source.json",
+    "initial_refused_overlap": "joint-source/report.json",
+    "population_correction": "Development body composition reverses operation order and repair changes edit direction; no nonce-only overlap workaround.",
+    "form_transfer_limit": "Templates are shared, with fresh names, a new prose question form, reversed body composition and reverse repair direction. Actual compiler-feedback prompts are outside fit instruction templates."
+  },
+  "joint_fit": {
+    "baseline_kind": "learned readout, not count artifact",
+    "baseline_artifact": "blake3:32b37621b5c8d27c8469d6143a4be49f38311a938f149071c1fdefb4a769d871",
+    "legacy": {
+      "learned_artifact": "blake3:58e949352ebacf3638295a45557ab0d038d0f18772a3a36e143e23d0b215ca2a",
+      "baseline_artifact": "blake3:32b37621b5c8d27c8469d6143a4be49f38311a938f149071c1fdefb4a769d871",
+      "elapsed_ms": 1937,
+      "peak_rss_bytes": 249479168,
+      "fit": {
+        "aliased_lexical_tokens": 110,
+        "body_positions": 0,
+        "calibrated_bias_score": -1152,
+        "candidate_cross_entropy_after": 0.45311759853119876,
+        "candidate_cross_entropy_before": 1.1971022638734807,
+        "candidate_positions": 282349,
+        "cue_identity": "leading-unicode-whitespace-word-equivalence/1",
+        "documents": 512,
+        "dropped_feature_events": 0,
+        "epochs": 8,
+        "feature_layout": "ordered-query-primes-and-occurrence/1; prime24+prime24+query5+source4+rank3",
+        "fit_correct_after": 3608,
+        "fit_correct_before": 3023,
+        "learned_features": 55149,
+        "max_route_refinement_epochs": 8,
+        "objective": "pointer_half_target_marginal_half_uniform_target_route_nll_then_global_and_query_pair_bias_grids_then_max_route_ce_v4; best_epoch_on_fit_ce; diagnostics_quantized_max_route",
+        "observed_context_positions": 30038,
+        "pointer_cross_entropy_after": 0.23187339644795182,
+        "pointer_cross_entropy_before": 2.8560432567355956,
+        "pointer_fit_correct_after": 1690,
+        "pointer_fit_correct_before": 256,
+        "pointer_pretrain_epochs": 8,
+        "positions": 4096,
+        "query_bias_changed_contexts": 525,
+        "query_bias_contexts": 526,
+        "query_bias_cross_entropy_after": 0.5659454695088757,
+        "query_bias_cross_entropy_before": 0.9113903616476006,
+        "query_bias_positions": 3936,
+        "sampling": "equal_document_quota_uniform_body_plus_final_min_8_positions_v1",
+        "schema": "uor-r4.native-prime-relative-memory-read/3",
+        "session_memory_bytes": 209920,
+        "tail_positions": 4096,
+        "tail_positions_per_document_limit": 8,
+        "target_in_candidates": 3936,
+        "target_in_memory": 1783
+      }
+    },
+    "stream": {
+      "baseline_artifact": "blake3:32b37621b5c8d27c8469d6143a4be49f38311a938f149071c1fdefb4a769d871",
+      "learned_artifact": "blake3:e6197bfab639b00627f2c4b3289d8d8e42a504c8c55eb41bfe89ff75b978a49d",
+      "config": {
+        "candidate_limit": 128,
+        "epochs": 8,
+        "max_features": 262144,
+        "max_positions": 256,
+        "postings_per_address": 4,
+        "query_tokens": 8,
+        "source_offsets": 4
+      },
+      "schedule": {
+        "batch_positions": 256,
+        "total_positions": 65536
+      },
+      "cumulative_elapsed_ms": 117548,
+      "peak_rss_bytes": 269991936,
+      "output_bytes": 10965769,
+      "checkpoint_bytes": 6090636,
+      "progress": {
+        "batches_completed": 3422,
+        "distinct_supervised_positions": 30038,
+        "document_cursor": 0,
+        "epoch": 8,
+        "is_complete": true,
+        "learned_features": 98284,
+        "planned_supervised_positions": 30038,
+        "processed_example_visits": 871102,
+        "replayed_context_positions": 871126,
+        "sampled_cursor_in_document": 0,
+        "stage": "complete",
+        "token_cursor": 0
+      },
+      "fit": {
+        "baseline_artifact": "blake3:32b37621b5c8d27c8469d6143a4be49f38311a938f149071c1fdefb4a769d871",
+        "calibration_population_positions": 30038,
+        "configuration_cid": "blake3:e716d3ce64231641e88719c733dd16778e0bec570dcc009e824dabbf21c7c2c4",
+        "fit": {
+          "aliased_lexical_tokens": 110,
+          "body_positions": 25942,
+          "calibrated_bias_score": -1536,
+          "candidate_cross_entropy_after": 0.4392387856180347,
+          "candidate_cross_entropy_before": 0.6278166291435664,
+          "candidate_positions": 1393314,
+          "cue_identity": "leading-unicode-whitespace-word-equivalence/1",
+          "documents": 512,
+          "dropped_feature_events": 0,
+          "epochs": 8,
+          "feature_layout": "ordered-query-primes-and-occurrence/1; prime24+prime24+query5+source4+rank3",
+          "fit_correct_after": 25813,
+          "fit_correct_before": 24550,
+          "learned_features": 98284,
+          "max_route_refinement_epochs": 8,
+          "objective": "population_replay_pointer_half_target_marginal_half_uniform_target_route_nll_then_population_global_and_query_bias_grids_then_max_route_ce/1; best_epoch_on_population_ce; diagnostics_quantized_max_route",
+          "observed_context_positions": 30038,
+          "pointer_cross_entropy_after": 0.19088469718743442,
+          "pointer_cross_entropy_before": 2.3116782590069307,
+          "pointer_fit_correct_after": 11265,
+          "pointer_fit_correct_before": 2026,
+          "pointer_pretrain_epochs": 8,
+          "positions": 30038,
+          "query_bias_changed_contexts": 1301,
+          "query_bias_contexts": 1308,
+          "query_bias_cross_entropy_after": 0.47435898787670155,
+          "query_bias_cross_entropy_before": 0.5787565893093859,
+          "query_bias_positions": 28799,
+          "sampling": "equal_document_waterfill_quota_uniform_body_plus_final_min_8_positions/1; fixed_population_replayed_in_source_order",
+          "schema": "uor-r4.native-prime-relative-memory-read/3",
+          "session_memory_bytes": 209920,
+          "tail_positions": 4096,
+          "tail_positions_per_document_limit": 8,
+          "target_in_candidates": 29311,
+          "target_in_memory": 11807
+        },
+        "missing_query_context_positions": 512,
+        "ordered_source_cid": "blake3:16dac4ee567fa42cd2baa4e086be9b22bb8ebcee98533f483fedfc467c88c5d2",
+        "peak_live_alternatives": 21107,
+        "peak_live_examples": 256,
+        "progress": {
+          "batches_completed": 3422,
+          "distinct_supervised_positions": 30038,
+          "document_cursor": 0,
+          "epoch": 8,
+          "is_complete": true,
+          "learned_features": 98284,
+          "planned_supervised_positions": 30038,
+          "processed_example_visits": 871102,
+          "replayed_context_positions": 871126,
+          "sampled_cursor_in_document": 0,
+          "stage": "complete",
+          "token_cursor": 0
+        },
+        "replay_token_limit_per_batch": 8192,
+        "schedule": {
+          "batch_positions": 256,
+          "total_positions": 65536
+        },
+        "schema": "uor-r4.native-memory-stream-fit/1",
+        "unsupervised_query_feature_events": 0
+      }
+    },
+    "family_exposure": [
+      {
+        "family": "prose",
+        "documents": 256,
+        "positions": 15104,
+        "token_positions": 15104,
+        "target_in_memory": 6380,
+        "target_in_candidates": 14886,
+        "missing_query_context_positions": 256,
+        "tail_positions": 2048
+      },
+      {
+        "family": "rust",
+        "documents": 256,
+        "positions": 14934,
+        "token_positions": 14934,
+        "target_in_memory": 5427,
+        "target_in_candidates": 14425,
+        "missing_query_context_positions": 256,
+        "tail_positions": 2048
+      }
+    ],
+    "all_completion_tokens_supervised": {
+      "prose": 2176,
+      "rust": 3860,
+      "basis": "All fit document token positions selected; full available completion count from loaded-codec source audit."
+    },
+    "resume": {
+      "partial_report": "joint-stream-partial-report.json",
+      "partial_checkpoint": "joint-stream-partial.checkpoint",
+      "stop": "launch_batch_limit",
+      "batches": 300,
+      "stage": "pointer",
+      "epoch": 1,
+      "document_cursor": 279,
+      "token_cursor": 24,
+      "final_report": "joint-stream-report.json",
+      "claim": "Actual resumed learning; uninterrupted equivalence is a separate focused-test result, not inferred from completion."
+    }
+  },
+  "joint_results": {
+    "legacy": {
+      "artifact_cid": "blake3:58e949352ebacf3638295a45557ab0d038d0f18772a3a36e143e23d0b215ca2a",
+      "arms": [
+        {
+          "control": "full",
+          "families": [
+            {
+              "cases": 32,
+              "compiled": 0,
+              "completion_positions": 320,
+              "completion_teacher_forced_available": 268,
+              "completion_teacher_forced_correct": 179,
+              "executed_successfully": 0,
+              "family": "prose",
+              "first_correct": 10,
+              "first_memory_target_admitted": 16,
+              "first_memory_target_not_admitted": 16,
+              "first_target_in_shortlist": 32,
+              "generated_completion_exact": 2,
+              "generated_completion_prefix_correct": 4,
+              "query_context_routes_with_registered_row": 1755,
+              "query_context_routes_without_registered_row": 424
+            },
+            {
+              "cases": 32,
+              "compiled": 0,
+              "completion_positions": 504,
+              "completion_teacher_forced_available": 422,
+              "completion_teacher_forced_correct": 302,
+              "executed_successfully": 0,
+              "family": "rust",
+              "first_correct": 0,
+              "first_memory_target_admitted": 8,
+              "first_memory_target_not_admitted": 24,
+              "first_target_in_shortlist": 2,
+              "generated_completion_exact": 0,
+              "generated_completion_prefix_correct": 0,
+              "query_context_routes_with_registered_row": 476,
+              "query_context_routes_without_registered_row": 1466
+            }
+          ]
+        },
+        {
+          "control": "memory_disabled",
+          "families": [
+            {
+              "cases": 32,
+              "compiled": 0,
+              "completion_positions": 320,
+              "completion_teacher_forced_available": 260,
+              "completion_teacher_forced_correct": 174,
+              "executed_successfully": 0,
+              "family": "prose",
+              "first_correct": 14,
+              "first_memory_target_admitted": 0,
+              "first_memory_target_not_admitted": 0,
+              "first_target_in_shortlist": 28,
+              "generated_completion_exact": 7,
+              "generated_completion_prefix_correct": 7,
+              "query_context_routes_with_registered_row": 0,
+              "query_context_routes_without_registered_row": 0
+            },
+            {
+              "cases": 32,
+              "compiled": 0,
+              "completion_positions": 504,
+              "completion_teacher_forced_available": 409,
+              "completion_teacher_forced_correct": 272,
+              "executed_successfully": 0,
+              "family": "rust",
+              "first_correct": 0,
+              "first_memory_target_admitted": 0,
+              "first_memory_target_not_admitted": 0,
+              "first_target_in_shortlist": 2,
+              "generated_completion_exact": 0,
+              "generated_completion_prefix_correct": 0,
+              "query_context_routes_with_registered_row": 0,
+              "query_context_routes_without_registered_row": 0
+            }
+          ]
+        }
+      ]
+    },
+    "stream": {
+      "artifact_cid": "blake3:e6197bfab639b00627f2c4b3289d8d8e42a504c8c55eb41bfe89ff75b978a49d",
+      "arms": [
+        {
+          "control": "full",
+          "families": [
+            {
+              "cases": 32,
+              "compiled": 0,
+              "completion_positions": 320,
+              "completion_teacher_forced_available": 270,
+              "completion_teacher_forced_correct": 188,
+              "executed_successfully": 0,
+              "family": "prose",
+              "first_correct": 16,
+              "first_memory_target_admitted": 16,
+              "first_memory_target_not_admitted": 16,
+              "first_target_in_shortlist": 30,
+              "generated_completion_exact": 6,
+              "generated_completion_prefix_correct": 6,
+              "query_context_routes_with_registered_row": 2179,
+              "query_context_routes_without_registered_row": 0
+            },
+            {
+              "cases": 32,
+              "compiled": 0,
+              "completion_positions": 504,
+              "completion_teacher_forced_available": 420,
+              "completion_teacher_forced_correct": 314,
+              "executed_successfully": 0,
+              "family": "rust",
+              "first_correct": 0,
+              "first_memory_target_admitted": 8,
+              "first_memory_target_not_admitted": 24,
+              "first_target_in_shortlist": 2,
+              "generated_completion_exact": 0,
+              "generated_completion_prefix_correct": 0,
+              "query_context_routes_with_registered_row": 1148,
+              "query_context_routes_without_registered_row": 794
+            }
+          ]
+        },
+        {
+          "control": "memory_disabled",
+          "families": [
+            {
+              "cases": 32,
+              "compiled": 0,
+              "completion_positions": 320,
+              "completion_teacher_forced_available": 260,
+              "completion_teacher_forced_correct": 174,
+              "executed_successfully": 0,
+              "family": "prose",
+              "first_correct": 14,
+              "first_memory_target_admitted": 0,
+              "first_memory_target_not_admitted": 0,
+              "first_target_in_shortlist": 28,
+              "generated_completion_exact": 7,
+              "generated_completion_prefix_correct": 7,
+              "query_context_routes_with_registered_row": 0,
+              "query_context_routes_without_registered_row": 0
+            },
+            {
+              "cases": 32,
+              "compiled": 0,
+              "completion_positions": 504,
+              "completion_teacher_forced_available": 409,
+              "completion_teacher_forced_correct": 272,
+              "executed_successfully": 0,
+              "family": "rust",
+              "first_correct": 0,
+              "first_memory_target_admitted": 0,
+              "first_memory_target_not_admitted": 0,
+              "first_target_in_shortlist": 2,
+              "generated_completion_exact": 0,
+              "generated_completion_prefix_correct": 0,
+              "query_context_routes_with_registered_row": 0,
+              "query_context_routes_without_registered_row": 0
+            }
+          ]
+        }
+      ]
+    },
+    "per_task": [
+      {
+        "task": "compose_function_body",
+        "cases": 8,
+        "first_correct": 0,
+        "exact": 0,
+        "memory_admitted": 0
+      },
+      {
+        "task": "contradiction",
+        "cases": 8,
+        "first_correct": 6,
+        "exact": 2,
+        "memory_admitted": 0
+      },
+      {
+        "task": "dependency_update",
+        "cases": 8,
+        "first_correct": 0,
+        "exact": 0,
+        "memory_admitted": 0
+      },
+      {
+        "task": "function_composition",
+        "cases": 8,
+        "first_correct": 0,
+        "exact": 0,
+        "memory_admitted": 0
+      },
+      {
+        "task": "repair_instruction",
+        "cases": 8,
+        "first_correct": 0,
+        "exact": 0,
+        "memory_admitted": 8
+      },
+      {
+        "task": "two_fact_composition",
+        "cases": 8,
+        "first_correct": 4,
+        "exact": 0,
+        "memory_admitted": 8
+      },
+      {
+        "task": "unsupported_answer",
+        "cases": 8,
+        "first_correct": 6,
+        "exact": 4,
+        "memory_admitted": 0
+      },
+      {
+        "task": "updated_fact",
+        "cases": 8,
+        "first_correct": 0,
+        "exact": 0,
+        "memory_admitted": 8
+      }
+    ],
+    "representative_outputs": [
+      {
+        "id": "joint-v1/development/prose/100000",
+        "prompt": "User: orin's badge is silver. tavi holds 13 coins. suri's badge was gold.\nUser: Correction: suri's badge is white now.\nThe wind moves outside. The wind moves outside. User: What color is suri's badge now?\nAssistant:",
+        "expected_completion": " white.\n",
+        "generation": {
+          "text": " Unknown now.\nThe wind moves outside. Assistant: No..\nUser: Correction:.\nUser: Correction:\nUser: What color is\nUser:.\n",
+          "stop": "end_of_document",
+          "utf8_valid": true,
+          "token_count": 31
+        },
+        "memory_diagnostic": {
+          "candidate_routes": 90,
+          "predicted_token": 431,
+          "query_context_routes_with_registered_row": 90,
+          "query_context_routes_without_registered_row": 0,
+          "target_routes": 3
+        }
+      },
+      {
+        "id": "joint-v1/development/rust/100000",
+        "prompt": "fn main() {\n    let mut suri = 13;\n    let orin = suri + 4;\n    suri = 24;\n    let _ = 0;\n    let _ = 0;\n    assert_eq!(orin,",
+        "expected_completion": " 17);\n    assert_eq!(suri, 24);\n}\n",
+        "generation": {
+          "text": " then doubled. Assistant\n    let\n",
+          "stop": "end_of_document",
+          "utf8_valid": true,
+          "token_count": 6
+        },
+        "memory_diagnostic": {
+          "candidate_routes": 61,
+          "predicted_token": 485,
+          "query_context_routes_with_registered_row": 0,
+          "query_context_routes_without_registered_row": 61,
+          "target_routes": 0
+        }
+      },
+      {
+        "id": "joint-v1/development/prose/100006",
+        "prompt": "User: ada's badge is red. cyra holds 26 coins. finn's badge was white.\nUser: Correction: finn's badge is black now.\nUser: finn's badge is still white, correct?\nThe wind moves outside. The wind moves outside. Assistant:",
+        "expected_completion": " No. finn's badge is black now.\n",
+        "generation": {
+          "text": " No. finn's badge is black now.\n",
+          "stop": "end_of_document",
+          "utf8_valid": true,
+          "token_count": 11
+        },
+        "memory_diagnostic": {
+          "candidate_routes": 80,
+          "predicted_token": 427,
+          "query_context_routes_with_registered_row": 80,
+          "query_context_routes_without_registered_row": 0,
+          "target_routes": 0
+        }
+      }
+    ],
+    "compiler": {
+      "cases": 8,
+      "compiled": 0,
+      "executed": 0,
+      "toolchain": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: aarch64-apple-darwin\nrelease: 1.97.1\nLLVM version: 22.1.6\n",
+      "report": "joint-stream-development/report.json",
+      "repairs": [
+        {
+          "id": "joint-v1/development/rust/100000",
+          "generated_text": "",
+          "token_ids": [],
+          "stop": "end_of_document",
+          "compiled": false,
+          "diagnostics": "error[E0601]: `main` function not found in crate `joint_generated`\n  |\n  = note: consider adding a `main` function to `generated.rs`\n\nerror: aborting due to 1 previous error\n\nFor more information about this error, try `rustc --explain E0601`.\n"
+        },
+        {
+          "id": "joint-v1/development/rust/100001",
+          "generated_text": "",
+          "token_ids": [],
+          "stop": "end_of_document",
+          "compiled": false,
+          "diagnostics": "error[E0601]: `main` function not found in crate `joint_generated`\n  |\n  = note: consider adding a `main` function to `generated.rs`\n\nerror: aborting due to 1 previous error\n\nFor more information about this error, try `rustc --explain E0601`.\n"
+        }
+      ],
+      "boundary": "Exact generated source; no extraction or expected suffix. Execution only exact authored safe source. Monitored children, not OS/process-tree sandbox."
+    }
+  },
+  "broader_comparison": {
+    "scope": "Reused open development; generic CLI held-out wording does not establish final held-out separation.",
+    "legacy": {
+      "artifact_cid": "blake3:5208435fa37a811a265ae22f7c247f66e6963b354525492235df5982d059e537",
+      "config": {
+        "candidate_limit": 32,
+        "context_tokens": 128,
+        "max_associations": 4000000,
+        "max_lexical_pieces": 4096,
+        "max_rows": 524288,
+        "postings_per_row": 16
+      },
+      "controls": [
+        {
+          "control": "full",
+          "result": {
+            "candidate_coverage": 0.8347560476722938,
+            "candidate_hits": 122432,
+            "correct": 48236,
+            "documents": 103,
+            "geometric_row_positions": 146668,
+            "positions": 146668,
+            "top1": 0.3288788283742875
+          }
+        }
+      ]
+    },
+    "stream": {
+      "artifact_cid": "blake3:46943a363b572b11015d9aeed1eb56716c14414a609d14e8238955cbd8115330",
+      "config": {
+        "candidate_limit": 32,
+        "context_tokens": 128,
+        "max_associations": 4000000,
+        "max_lexical_pieces": 4096,
+        "max_rows": 524288,
+        "postings_per_row": 16
+      },
+      "controls": [
+        {
+          "control": "full",
+          "result": {
+            "candidate_coverage": 0.8402309979000191,
+            "candidate_hits": 123235,
+            "correct": 51847,
+            "documents": 103,
+            "geometric_row_positions": 146668,
+            "positions": 146668,
+            "top1": 0.3534990590994627
+          }
+        },
+        {
+          "control": "memory_disabled",
+          "result": {
+            "candidate_coverage": 0.8284151962254889,
+            "candidate_hits": 121502,
+            "correct": 53165,
+            "documents": 103,
+            "geometric_row_positions": 146668,
+            "positions": 146668,
+            "top1": 0.36248534104235414
+          }
+        },
+        {
+          "control": "geometry_disabled",
+          "result": {
+            "candidate_coverage": 0.838812828974282,
+            "candidate_hits": 123027,
+            "correct": 53556,
+            "documents": 103,
+            "geometric_row_positions": 0,
+            "positions": 146668,
+            "top1": 0.3651512258979464
+          }
+        }
+      ]
+    },
+    "stream_fit": {
+      "baseline_artifact": "blake3:e082f72cbffbbc509fe6c4cae9d31d8a9ca4aa4656731646fb79c081ed15effb",
+      "learned_artifact": "blake3:46943a363b572b11015d9aeed1eb56716c14414a609d14e8238955cbd8115330",
+      "config": {
+        "candidate_limit": 128,
+        "epochs": 8,
+        "max_features": 262144,
+        "max_positions": 256,
+        "postings_per_address": 4,
+        "query_tokens": 8,
+        "source_offsets": 4
+      },
+      "schedule": {
+        "batch_positions": 256,
+        "total_positions": 32768
+      },
+      "cumulative_elapsed_ms": 159394,
+      "peak_rss_bytes": 1254129664,
+      "output_bytes": 115301616,
+      "checkpoint_bytes": 16150894,
+      "progress": {
+        "batches_completed": 3712,
+        "distinct_supervised_positions": 32768,
+        "document_cursor": 0,
+        "epoch": 8,
+        "is_complete": true,
+        "learned_features": 262144,
+        "planned_supervised_positions": 32768,
+        "processed_example_visits": 950272,
+        "replayed_context_positions": 4281908,
+        "sampled_cursor_in_document": 0,
+        "stage": "complete",
+        "token_cursor": 0
+      },
+      "fit": {
+        "baseline_artifact": "blake3:e082f72cbffbbc509fe6c4cae9d31d8a9ca4aa4656731646fb79c081ed15effb",
+        "calibration_population_positions": 32768,
+        "configuration_cid": "blake3:5f48963828a5626f3f4ad3a94eba11b69674ce93a447aaa17c1fd182b6bcb23c",
+        "fit": {
+          "aliased_lexical_tokens": 718,
+          "body_positions": 31944,
+          "calibrated_bias_score": -1152,
+          "candidate_cross_entropy_after": 2.224251676553203,
+          "candidate_cross_entropy_before": 2.5535992955150024,
+          "candidate_positions": 2412372,
+          "cue_identity": "leading-unicode-whitespace-word-equivalence/1",
+          "documents": 103,
+          "dropped_feature_events": 2736196,
+          "epochs": 8,
+          "feature_layout": "ordered-query-primes-and-occurrence/1; prime24+prime24+query5+source4+rank3",
+          "fit_correct_after": 12279,
+          "fit_correct_before": 11446,
+          "learned_features": 262144,
+          "max_route_refinement_epochs": 8,
+          "objective": "population_replay_pointer_half_target_marginal_half_uniform_target_route_nll_then_population_global_and_query_bias_grids_then_max_route_ce/1; best_epoch_on_population_ce; diagnostics_quantized_max_route",
+          "observed_context_positions": 147652,
+          "pointer_cross_entropy_after": 2.0521228619118443,
+          "pointer_cross_entropy_before": 3.0835560037995733,
+          "pointer_fit_correct_after": 7934,
+          "pointer_fit_correct_before": 2923,
+          "pointer_pretrain_epochs": 8,
+          "positions": 32768,
+          "query_bias_changed_contexts": 2288,
+          "query_bias_contexts": 2337,
+          "query_bias_cross_entropy_after": 1.9877236396286624,
+          "query_bias_cross_entropy_before": 2.139131337275881,
+          "query_bias_positions": 16430,
+          "sampling": "equal_document_waterfill_quota_uniform_body_plus_final_min_8_positions/1; fixed_population_replayed_in_source_order",
+          "schema": "uor-r4.native-prime-relative-memory-read/3",
+          "session_memory_bytes": 1157632,
+          "tail_positions": 824,
+          "tail_positions_per_document_limit": 8,
+          "target_in_candidates": 27935,
+          "target_in_memory": 17132
+        },
+        "missing_query_context_positions": 14645,
+        "ordered_source_cid": "blake3:2eb7af27c6f10995ea003b8b837aa64725a27881cfe03a3be915d135121ee1f9",
+        "peak_live_alternatives": 35172,
+        "peak_live_examples": 256,
+        "progress": {
+          "batches_completed": 3712,
+          "distinct_supervised_positions": 32768,
+          "document_cursor": 0,
+          "epoch": 8,
+          "is_complete": true,
+          "learned_features": 262144,
+          "planned_supervised_positions": 32768,
+          "processed_example_visits": 950272,
+          "replayed_context_positions": 4281908,
+          "sampled_cursor_in_document": 0,
+          "stage": "complete",
+          "token_cursor": 0
+        },
+        "replay_token_limit_per_batch": 8192,
+        "schedule": {
+          "batch_positions": 256,
+          "total_positions": 32768
+        },
+        "schema": "uor-r4.native-memory-stream-fit/1",
+        "unsupervised_query_feature_events": 1910653
+      }
+    },
+    "legacy_fit": {
+      "baseline_artifact": "blake3:e082f72cbffbbc509fe6c4cae9d31d8a9ca4aa4656731646fb79c081ed15effb",
+      "learned_artifact": "blake3:5208435fa37a811a265ae22f7c247f66e6963b354525492235df5982d059e537",
+      "fit": {
+        "aliased_lexical_tokens": 718,
+        "body_positions": 3272,
+        "calibrated_bias_score": -896,
+        "candidate_cross_entropy_after": 1.7541856022974616,
+        "candidate_cross_entropy_before": 2.652059797047346,
+        "candidate_positions": 297729,
+        "cue_identity": "leading-unicode-whitespace-word-equivalence/1",
+        "documents": 103,
+        "dropped_feature_events": 0,
+        "epochs": 8,
+        "feature_layout": "ordered-query-primes-and-occurrence/1; prime24+prime24+query5+source4+rank3",
+        "fit_correct_after": 1900,
+        "fit_correct_before": 1335,
+        "learned_features": 206127,
+        "max_route_refinement_epochs": 8,
+        "objective": "pointer_half_target_marginal_half_uniform_target_route_nll_then_global_and_query_pair_bias_grids_then_max_route_ce_v4; best_epoch_on_fit_ce; diagnostics_quantized_max_route",
+        "observed_context_positions": 147652,
+        "pointer_cross_entropy_after": 1.409307095117273,
+        "pointer_cross_entropy_before": 3.1365091453830236,
+        "pointer_fit_correct_after": 1331,
+        "pointer_fit_correct_before": 343,
+        "pointer_pretrain_epochs": 8,
+        "positions": 4096,
+        "query_bias_changed_contexts": 1885,
+        "query_bias_contexts": 1902,
+        "query_bias_cross_entropy_after": 1.9258851259248626,
+        "query_bias_cross_entropy_before": 2.2849666340572465,
+        "query_bias_positions": 3390,
+        "sampling": "equal_document_quota_uniform_body_plus_final_min_8_positions_v1",
+        "schema": "uor-r4.native-prime-relative-memory-read/3",
+        "session_memory_bytes": 1157632,
+        "tail_positions": 824,
+        "tail_positions_per_document_limit": 8,
+        "target_in_candidates": 3449,
+        "target_in_memory": 2072
+      },
+      "peak_rss_bytes": 1426538496
+    },
+    "interpretation": "Expanded exposure narrows regression but trails memory disabled. Feature cap now binds. Geometry-disabled retains prime memory; no architectural demotion or added geometric benefit is established."
+  },
+  "budget": {
+    "schema": "uor-r4.native-memory-stream-continuation-budget/1",
+    "inherits": "/Users/casey.allard/uor-r4/.uor-models/native-joint-learning-2026-09-04/run-budget.json",
+    "elapsed_ledger": "/Users/casey.allard/uor-r4/.uor-models/native-joint-learning-2026-09-04/model-time.json",
+    "inherited_model_elapsed_ms": 301277,
+    "cumulative_model_limit_ms": 1800000,
+    "parallel_model_processes": 1,
+    "model_peak_rss_target_bytes": 4294967296,
+    "additional_storage_limit_bytes": 4294967296,
+    "starting_main": "ea71af0ec39050289337f1d2b9dd2a53d8f3ff63",
+    "worktree": "/Users/casey.allard/.codex/worktrees/r4-resumable-memory/uor-r4",
+    "shared_build_target": "/tmp/r4-native-geometric-target",
+    "build_jobs": 3,
+    "planned_joint_context_tokens": 512,
+    "planned_joint_total_supervised_positions": 65536,
+    "planned_live_examples": 256,
+    "planned_epochs_per_learning_stage": 8,
+    "decision": "Expand distinct Rust memory-fit exposure with exact resumable state; evaluate joint whole-task prose/Rust generation and a same-baseline broad-corpus comparison.",
+    "boundary": "Experimental preparation/fitting/evaluation/retries/resumes share the inherited elapsed ledger. Builds and focused engineering checks are reported separately. RSS is a monitored process target, not an OS process-tree guarantee. No paid compute."
+  },
+  "resource_snapshot": {
+    "status": "completed_model_work_final_engineering_checks_separate",
+    "cumulative_model_ms": 716243,
+    "inherited_model_ms": 301277,
+    "new_model_ms": 414966,
+    "remaining_model_ms": 1083757,
+    "charged_launches": [
+      {
+        "label": "joint-prepare",
+        "elapsed_ms": 160,
+        "cumulative_ms": 301437,
+        "remaining_ms": 1498563
+      },
+      {
+        "label": "joint-prepare-v2",
+        "elapsed_ms": 176,
+        "cumulative_ms": 301613,
+        "remaining_ms": 1498387
+      },
+      {
+        "label": "joint-count",
+        "elapsed_ms": 994,
+        "cumulative_ms": 302607,
+        "remaining_ms": 1497393
+      },
+      {
+        "label": "joint-readout",
+        "elapsed_ms": 2211,
+        "cumulative_ms": 304818,
+        "remaining_ms": 1495182
+      },
+      {
+        "label": "joint-legacy-fit",
+        "elapsed_ms": 1954,
+        "cumulative_ms": 306772,
+        "remaining_ms": 1493228
+      },
+      {
+        "label": "joint-stream-partial",
+        "elapsed_ms": 9237,
+        "cumulative_ms": 316009,
+        "remaining_ms": 1483991
+      },
+      {
+        "label": "joint-stream-resume",
+        "elapsed_ms": 108374,
+        "cumulative_ms": 424383,
+        "remaining_ms": 1375617
+      },
+      {
+        "label": "joint-legacy-evaluate",
+        "elapsed_ms": 1571,
+        "cumulative_ms": 425954,
+        "remaining_ms": 1374046
+      },
+      {
+        "label": "joint-stream-evaluate",
+        "elapsed_ms": 1667,
+        "cumulative_ms": 427621,
+        "remaining_ms": 1372379
+      },
+      {
+        "label": "broad-legacy-fit",
+        "elapsed_ms": 12581,
+        "cumulative_ms": 440202,
+        "remaining_ms": 1359798
+      },
+      {
+        "label": "broad-stream-fit",
+        "elapsed_ms": 159453,
+        "cumulative_ms": 599655,
+        "remaining_ms": 1200345
+      },
+      {
+        "label": "broad-stream-evaluate",
+        "elapsed_ms": 53481,
+        "cumulative_ms": 653136,
+        "remaining_ms": 1146864
+      },
+      {
+        "label": "broad-legacy-evaluate",
+        "elapsed_ms": 30952,
+        "cumulative_ms": 684088,
+        "remaining_ms": 1115912
+      },
+      {
+        "label": "reader-preservation",
+        "elapsed_ms": 1118,
+        "cumulative_ms": 685206,
+        "remaining_ms": 1114794
+      },
+      {
+        "label": "joint-prepare-spans",
+        "elapsed_ms": 378,
+        "cumulative_ms": 685584,
+        "remaining_ms": 1114416
+      },
+      {
+        "label": "joint-response-fit",
+        "elapsed_ms": 28910,
+        "cumulative_ms": 714494,
+        "remaining_ms": 1085506
+      },
+      {
+        "label": "joint-response-evaluate",
+        "elapsed_ms": 1749,
+        "cumulative_ms": 716243,
+        "remaining_ms": 1083757
+      }
+    ],
+    "storage": {
+      "units": "KiB",
+      "new_artifacts": 315324,
+      "full_worktree": 1177268,
+      "current_shared_target": 5495784,
+      "observed_shared_target_peak": 5663036,
+      "approximate_inherited_shared_target_gib": 4.7,
+      "approximate_preceding_initial_shared_target_gib": 4.5,
+      "boundary": "Sampled host values, approximate inherited baseline and worktree size subject to documentation growth; not hard process-tree/storage guarantee."
+    },
+    "peak_rss_bytes": {
+      "joint_stream": 269991936,
+      "joint_response": 137199616,
+      "broad_stream": 1254129664,
+      "broad_legacy": 1426538496
+    },
+    "probe_rss": "NOT_MEASURED internally",
+    "engineering_cost": "Build/engineering-check wall time separate from cumulative model ledger.",
+    "paid_compute": false
+  },
+  "next_mechanism_limit": "Targeted learned read/selection and geometric value composition; distinguish admitted-but-misranked factual/repair targets from arithmetic outputs absent from retained copy routes. No new cue-table expansion or unchanged fit repetition. Learned writes, nonlinear state operators and durable memory remain unfinished.",
+  "reader_preservation": {
+    "artifact_cid": "blake3:b5ba144fb293358bd45b77ce848f7ad100e26524cfd08586b2a96deea85c081d",
+    "source_blake3": "c8bc7438effe89185d51588f8adf45074cd7d8d09699fac47f8758b5f8f270ad",
+    "report": "reader-preservation/report.json",
+    "arms": [
+      {
+        "control": "full",
+        "families": [
+          {
+            "family": "prose",
+            "cases": 96,
+            "query_correct": 96,
+            "answer_clause_prefix_correct": 96,
+            "counterfactual_pairs": 48,
+            "pairs_both_correct": 48
+          },
+          {
+            "family": "rust",
+            "cases": 96,
+            "query_correct": 96,
+            "answer_clause_prefix_correct": 96,
+            "counterfactual_pairs": 48,
+            "pairs_both_correct": 48
+          }
+        ]
+      },
+      {
+        "control": "memory_disabled",
+        "families": [
+          {
+            "family": "prose",
+            "cases": 96,
+            "query_correct": 43,
+            "answer_clause_prefix_correct": 43,
+            "counterfactual_pairs": 48,
+            "pairs_both_correct": 9
+          },
+          {
+            "family": "rust",
+            "cases": 96,
+            "query_correct": 39,
+            "answer_clause_prefix_correct": 39,
+            "counterfactual_pairs": 48,
+            "pairs_both_correct": 8
+          }
+        ]
+      },
+      {
+        "control": "geometry_disabled",
+        "families": [
+          {
+            "family": "prose",
+            "cases": 96,
+            "query_correct": 96,
+            "answer_clause_prefix_correct": 96,
+            "counterfactual_pairs": 48,
+            "pairs_both_correct": 48
+          },
+          {
+            "family": "rust",
+            "cases": 96,
+            "query_correct": 96,
+            "answer_clause_prefix_correct": 96,
+            "counterfactual_pairs": 48,
+            "pairs_both_correct": 48
+          }
+        ]
+      },
+      {
+        "control": "zeta_disabled",
+        "families": [
+          {
+            "family": "prose",
+            "cases": 96,
+            "query_correct": 96,
+            "answer_clause_prefix_correct": 96,
+            "counterfactual_pairs": 48,
+            "pairs_both_correct": 48
+          },
+          {
+            "family": "rust",
+            "cases": 96,
+            "query_correct": 96,
+            "answer_clause_prefix_correct": 96,
+            "counterfactual_pairs": 48,
+            "pairs_both_correct": 48
+          }
+        ]
+      },
+      {
+        "control": "h4_disabled",
+        "families": [
+          {
+            "family": "prose",
+            "cases": 96,
+            "query_correct": 96,
+            "answer_clause_prefix_correct": 96,
+            "counterfactual_pairs": 48,
+            "pairs_both_correct": 48
+          },
+          {
+            "family": "rust",
+            "cases": 96,
+            "query_correct": 96,
+            "answer_clause_prefix_correct": 96,
+            "counterfactual_pairs": 48,
+            "pairs_both_correct": 48
+          }
+        ]
+      }
+    ],
+    "compilation": "NOT_RUN in this preservation evaluation; historical96 retained",
+    "execution": "NOT_RUN in this preservation evaluation; historical96 retained"
+  },
+  "response_supervision": {
+    "source": "joint-source-v3/source.json",
+    "source_and_fit_jsonl_byte_identity_to_v2": "PASS: cmp source.json and fit.jsonl",
+    "preparation": {
+      "baseline_artifact": "blake3:32b37621b5c8d27c8469d6143a4be49f38311a938f149071c1fdefb4a769d871",
+      "blake3": "f9abc7c2f96ab9d7164a2caea5665c551c49e98b7ab4edf9ad0f3b5ba13939fe",
+      "documents": 512,
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-memory-stream-2026-09-05/joint-source-v3/supervision.json",
+      "scope": "Exact model-codec token spans; BOS excluded, completion start inclusive, EOS included. Whole documents still supply causal context. Generic external loss metadata only, with no expected-answer parser or runtime behavior change.",
+      "selected_completion_and_eos_positions": 6548,
+      "status": "written"
+    },
+    "supervision_cid": "blake3:e04ada583e3e571086ed2d4891fb6ffbdf779d06ac93064c989a42261ef4729f",
+    "excluded_input_loss_positions": 23490,
+    "eligible_by_family": {
+      "prose": 2432,
+      "rust": 4116
+    },
+    "fit": {
+      "baseline_artifact": "blake3:32b37621b5c8d27c8469d6143a4be49f38311a938f149071c1fdefb4a769d871",
+      "budget_boundary": "Host checks between replay batches. Source loading, serialization and finalization are charged; a batch/finalization may overrun. Atomic replacement requires temporary disk space. Report/final checkpoint write tail is included in launch wall time, not recursively in its own stored elapsed header.",
+      "checkpoint": "/Users/casey.allard/uor-r4/.uor-models/native-memory-stream-2026-09-05/joint-response.checkpoint",
+      "checkpoint_bytes": 3908063,
+      "config": {
+        "candidate_limit": 128,
+        "epochs": 8,
+        "max_features": 262144,
+        "max_positions": 256,
+        "postings_per_address": 4,
+        "query_tokens": 8,
+        "source_offsets": 4
+      },
+      "cumulative_elapsed_ms": 28572,
+      "fit": {
+        "baseline_artifact": "blake3:32b37621b5c8d27c8469d6143a4be49f38311a938f149071c1fdefb4a769d871",
+        "calibration_population_positions": 6548,
+        "configuration_cid": "blake3:9dde308bec4c3f2239c46221f0ad74970a41e0451ca825a75ebd80ae51bbd8b3",
+        "eligible_positions": 6548,
+        "fit": {
+          "aliased_lexical_tokens": 110,
+          "body_positions": 2832,
+          "calibrated_bias_score": -1152,
+          "candidate_cross_entropy_after": 0.35495268740791414,
+          "candidate_cross_entropy_before": 0.9269538711972145,
+          "candidate_positions": 411017,
+          "cue_identity": "leading-unicode-whitespace-word-equivalence/1",
+          "documents": 512,
+          "dropped_feature_events": 0,
+          "epochs": 8,
+          "feature_layout": "ordered-query-primes-and-occurrence/1; prime24+prime24+query5+source4+rank3",
+          "fit_correct_after": 5768,
+          "fit_correct_before": 5029,
+          "learned_features": 59467,
+          "max_route_refinement_epochs": 8,
+          "objective": "population_replay_pointer_half_target_marginal_half_uniform_target_route_nll_then_population_global_and_query_bias_grids_then_max_route_ce/1; best_epoch_on_population_ce; diagnostics_quantized_max_route",
+          "observed_context_positions": 30038,
+          "pointer_cross_entropy_after": 0.15240732810564178,
+          "pointer_cross_entropy_before": 2.6881299143167516,
+          "pointer_fit_correct_after": 3073,
+          "pointer_fit_correct_before": 448,
+          "pointer_pretrain_epochs": 8,
+          "positions": 6548,
+          "query_bias_changed_contexts": 577,
+          "query_bias_contexts": 578,
+          "query_bias_cross_entropy_after": 0.44876389079380546,
+          "query_bias_cross_entropy_before": 0.7552861401399158,
+          "query_bias_positions": 6215,
+          "sampling": "equal_document_waterfill_quota_uniform_eligible_body_plus_final_min_8_eligible_positions/1; source_bound_token_span_population_replayed_in_source_order",
+          "schema": "uor-r4.native-prime-relative-memory-read/3",
+          "session_memory_bytes": 209920,
+          "tail_positions": 3716,
+          "tail_positions_per_document_limit": 8,
+          "target_in_candidates": 6215,
+          "target_in_memory": 3172
+        },
+        "missing_query_context_positions": 0,
+        "ordered_source_cid": "blake3:16dac4ee567fa42cd2baa4e086be9b22bb8ebcee98533f483fedfc467c88c5d2",
+        "peak_live_alternatives": 24905,
+        "peak_live_examples": 256,
+        "progress": {
+          "batches_completed": 754,
+          "distinct_supervised_positions": 6548,
+          "document_cursor": 0,
+          "epoch": 8,
+          "is_complete": true,
+          "learned_features": 59467,
+          "planned_supervised_positions": 6548,
+          "processed_example_visits": 189892,
+          "replayed_context_positions": 871102,
+          "sampled_cursor_in_document": 0,
+          "stage": "complete",
+          "token_cursor": 0
+        },
+        "replay_token_limit_per_batch": 8192,
+        "schedule": {
+          "batch_positions": 256,
+          "total_positions": 65536
+        },
+        "schema": "uor-r4.native-memory-stream-fit/1",
+        "supervision_cid": "blake3:e04ada583e3e571086ed2d4891fb6ffbdf779d06ac93064c989a42261ef4729f",
+        "unsupervised_query_feature_events": 0
+      },
+      "interpretation": "Resumable fit on one declared training population; separate generated behavior is required for quality evidence.",
+      "launch_batch_calls": 754,
+      "launch_elapsed_ms": 28580,
+      "learned_artifact": "blake3:2cf5414e4d5be70e6d8b739eb31e5aad2f005aff31a7c57ab437898a5e3e98e6",
+      "max_rss_mib": 4096,
+      "max_seconds": 600,
+      "output": "/Users/casey.allard/uor-r4/.uor-models/native-memory-stream-2026-09-05/joint-response.json",
+      "output_bytes": 8704194,
+      "peak_rss_bytes": 137199616,
+      "progress": {
+        "batches_completed": 754,
+        "distinct_supervised_positions": 6548,
+        "document_cursor": 0,
+        "epoch": 8,
+        "is_complete": true,
+        "learned_features": 59467,
+        "planned_supervised_positions": 6548,
+        "processed_example_visits": 189892,
+        "replayed_context_positions": 871102,
+        "sampled_cursor_in_document": 0,
+        "stage": "complete",
+        "token_cursor": 0
+      },
+      "schedule": {
+        "batch_positions": 256,
+        "total_positions": 65536
+      },
+      "schema": "uor-r4.native-memory-stream-run/1",
+      "source": {
+        "input_byte_budget": 16777216,
+        "inputs": [
+          {
+            "path": "/Users/casey.allard/uor-r4/.uor-models/native-memory-stream-2026-09-05/joint-source-v3/fit.jsonl",
+            "prefix_truncated": false,
+            "read_bytes": 125226,
+            "source_bytes": 125226
+          }
+        ]
+      },
+      "stop": "schedule_complete",
+      "supervision_cid": "blake3:e04ada583e3e571086ed2d4891fb6ffbdf779d06ac93064c989a42261ef4729f",
+      "word_cues": true
+    },
+    "results": {
+      "artifact_cid": "blake3:2cf5414e4d5be70e6d8b739eb31e5aad2f005aff31a7c57ab437898a5e3e98e6",
+      "arms": [
+        {
+          "control": "full",
+          "families": [
+            {
+              "cases": 32,
+              "compiled": 0,
+              "completion_positions": 320,
+              "completion_teacher_forced_available": 270,
+              "completion_teacher_forced_correct": 196,
+              "executed_successfully": 0,
+              "family": "prose",
+              "first_correct": 15,
+              "first_memory_target_admitted": 16,
+              "first_memory_target_not_admitted": 16,
+              "first_target_in_shortlist": 30,
+              "generated_completion_exact": 7,
+              "generated_completion_prefix_correct": 7,
+              "query_context_routes_with_registered_row": 2179,
+              "query_context_routes_without_registered_row": 0
+            },
+            {
+              "cases": 32,
+              "compiled": 0,
+              "completion_positions": 504,
+              "completion_teacher_forced_available": 422,
+              "completion_teacher_forced_correct": 306,
+              "executed_successfully": 0,
+              "family": "rust",
+              "first_correct": 0,
+              "first_memory_target_admitted": 8,
+              "first_memory_target_not_admitted": 24,
+              "first_target_in_shortlist": 2,
+              "generated_completion_exact": 0,
+              "generated_completion_prefix_correct": 0,
+              "query_context_routes_with_registered_row": 1148,
+              "query_context_routes_without_registered_row": 794
+            }
+          ]
+        },
+        {
+          "control": "memory_disabled",
+          "families": [
+            {
+              "cases": 32,
+              "compiled": 0,
+              "completion_positions": 320,
+              "completion_teacher_forced_available": 260,
+              "completion_teacher_forced_correct": 174,
+              "executed_successfully": 0,
+              "family": "prose",
+              "first_correct": 14,
+              "first_memory_target_admitted": 0,
+              "first_memory_target_not_admitted": 0,
+              "first_target_in_shortlist": 28,
+              "generated_completion_exact": 7,
+              "generated_completion_prefix_correct": 7,
+              "query_context_routes_with_registered_row": 0,
+              "query_context_routes_without_registered_row": 0
+            },
+            {
+              "cases": 32,
+              "compiled": 0,
+              "completion_positions": 504,
+              "completion_teacher_forced_available": 409,
+              "completion_teacher_forced_correct": 272,
+              "executed_successfully": 0,
+              "family": "rust",
+              "first_correct": 0,
+              "first_memory_target_admitted": 0,
+              "first_memory_target_not_admitted": 0,
+              "first_target_in_shortlist": 2,
+              "generated_completion_exact": 0,
+              "generated_completion_prefix_correct": 0,
+              "query_context_routes_with_registered_row": 0,
+              "query_context_routes_without_registered_row": 0
+            }
+          ]
+        }
+      ],
+      "per_task": [
+        {
+          "task": "compose_function_body",
+          "cases": 8,
+          "first_correct": 0,
+          "exact": 0,
+          "memory_admitted": 0
+        },
+        {
+          "task": "contradiction",
+          "cases": 8,
+          "first_correct": 6,
+          "exact": 2,
+          "memory_admitted": 0
+        },
+        {
+          "task": "dependency_update",
+          "cases": 8,
+          "first_correct": 0,
+          "exact": 0,
+          "memory_admitted": 0
+        },
+        {
+          "task": "function_composition",
+          "cases": 8,
+          "first_correct": 0,
+          "exact": 0,
+          "memory_admitted": 0
+        },
+        {
+          "task": "repair_instruction",
+          "cases": 8,
+          "first_correct": 0,
+          "exact": 0,
+          "memory_admitted": 8
+        },
+        {
+          "task": "two_fact_composition",
+          "cases": 8,
+          "first_correct": 4,
+          "exact": 0,
+          "memory_admitted": 8
+        },
+        {
+          "task": "unsupported_answer",
+          "cases": 8,
+          "first_correct": 5,
+          "exact": 5,
+          "memory_admitted": 0
+        },
+        {
+          "task": "updated_fact",
+          "cases": 8,
+          "first_correct": 0,
+          "exact": 0,
+          "memory_admitted": 8
+        }
+      ],
+      "compiler_cases": 8,
+      "compiled": 0,
+      "executed": 0,
+      "repairs": [
+        {
+          "id": "joint-v1/development/rust/100000",
+          "text": "",
+          "stop": "end_of_document",
+          "compiled": false
+        },
+        {
+          "id": "joint-v1/development/rust/100001",
+          "text": "",
+          "stop": "end_of_document",
+          "compiled": false
+        }
+      ]
+    },
+    "interpretation": "Response-focused objective experiment, not a demonstrated cause of prior failures. Prose completion-piece accuracy improves but Rust falls relative to whole-population fit. Exact prose7 comprises2contradictions+5unsupported vs7unsupported memory-off; updated/two-fact exact0. Not promoted as a joint quality improvement. All competing artifacts preserved.",
+    "partial_prose_outputs": [
+      {
+        "id": "joint-v1/development/prose/100000",
+        "prompt": "User: orin's badge is silver. tavi holds 13 coins. suri's badge was gold.\nUser: Correction: suri's badge is white now.\nThe wind moves outside. The wind moves outside. User: What color is suri's badge now?\nAssistant:",
+        "expected_completion": " white.\n",
+        "generated": " is white now.\nThe wind moves outside. Assistant: No. is silver now.\nUser: Update: ben:..\n",
+        "scope": "Partial fact recovery only; exact expected completion remains false."
+      },
+      {
+        "id": "joint-v1/development/prose/100013",
+        "prompt": "User: ben has a silver badge. cyra has a green badge. eli has 56 coins.\nUser: Update: ben now has a red badge.\nUser: Give the badge colors for cyra, then ben.\nAssistant:",
+        "expected_completion": " cyra has green; ben has red.\n",
+        "generated": " cyra has green.\n",
+        "scope": "Partial fact recovery only; exact expected completion remains false."
+      }
+    ]
+  },
+  "verification": {
+    "native_core": {
+      "status": "PASS",
+      "tests": 25
+    },
+    "native_cli_service": {
+      "status": "PASS",
+      "tests": 13
+    },
+    "joint_probe": {
+      "status": "PASS",
+      "tests": 4
+    },
+    "core_and_probe_clippy": "PASS",
+    "formatting": "PASS",
+    "claim_wording": "PASS",
+    "diff_whitespace": "PASS",
+    "root_clippy": "PASS",
+    "architecture_policy": "PASS",
+    "broader_workspace_release_wasm_fuzz_teacher_parity": "NOT_RUN; compatibility queue acknowledgements are not test results",
+    "environment": {
+      "cargo": "/Users/casey.allard/.cargo/bin/cargo",
+      "CARGO_TARGET_DIR": "/tmp/r4-native-geometric-target",
+      "CARGO_INCREMENTAL": "0",
+      "CARGO_BUILD_JOBS": "3"
+    },
+    "commands": [
+      "cargo test --offline -p uor-r4-core --lib native_geometric",
+      "cargo test --offline --bin r4 native_geometric_",
+      "cargo test --offline -p uor-r4-core --example native_geometric_joint_probe",
+      "cargo clippy --offline -p uor-r4-core --lib --example native_geometric_joint_probe -- -D warnings",
+      "cargo clippy --offline --bin r4 -- -D warnings",
+      "cargo run --offline -p uor-r4-core --bin r4-policy-check -- .",
+      "cargo fmt --check",
+      "python3 scripts/check_claim_wording.py",
+      "git diff --check",
+      "cargo build --release --offline --bin r4 -p uor-r4-wasm-router",
+      "cargo build --release --offline -p uor-r4-core --example native_geometric_joint_probe"
+    ],
+    "release_r4_and_probe_builds": "PASS"
+  }
+}

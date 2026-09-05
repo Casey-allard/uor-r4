@@ -150,6 +150,111 @@ Read query-bias loss metrics only when `query_bias_positions` is nonzero. Zero
 counts/defaults in historical or non-`/3` reports do not represent a measured
 zero-loss calibration run.
 
+## Replay a broader memory fitting population
+
+`fit-memory-stream` is an explicit resumable successor for the `/3` reader.
+The original `fit-memory` command and `/1`, `/2`, `/3` entry points retain their
+one-shot behavior. A streaming run starts with a fitted baseline without a
+memory head; subsequent launches restore its training checkpoint. Loading an
+already fitted head into a new one-shot fit is not continuation.
+
+```sh
+target/release/r4 geometric fit-memory-stream \
+  --model .uor-models/native-development/learned.json \
+  --input .uor-models/native-development/corpus/readout.jsonl \
+  --output .uor-models/native-development/stream-memory.json \
+  --checkpoint .uor-models/native-development/memory.checkpoint \
+  --total-positions 32768 --batch-positions 256 --epochs 8 \
+  --query-tokens 8 --source-offsets 4 --postings-per-address 4 \
+  --candidates 128 --max-features 262144 --word-cues \
+  --max-seconds 600 --max-rss-mib 4096 --checkpoint-every 128 \
+  --report .uor-models/native-development/memory-fit.json
+```
+
+Repeat the command with `--resume` and the same baseline, ordered source bytes,
+fit configuration, cue mode and schedule. `--max-batches N` deliberately ends a
+launch at a resumable boundary. A completed resume preserves the artifact.
+Changing total exposure or epoch count creates a different schedule, requiring
+a new run; it does not silently reinterpret a checkpoint's cursor.
+
+The total is a distinct target budget, while the batch bounds live route
+examples. Equal document quotas redistribute unused short-document capacity;
+each quota reserves up to eight final positions and spreads its remainder
+across the body. Every stage replays this same fixed population in source order.
+The report records actual selected targets, per-document candidate and memory
+reachability, feature drops, query coverage, live buffer peaks and replay work.
+Unselected context observations and repeated epochs are not counted as new
+supervised exposure. Source token storage has a separate bound.
+
+Checkpoints retain floating-point weights, feature registry indices, the stage
+and token cursor, best-epoch state and partial calibration sums. Source replay
+reconstructs the current document's causal state after reload. Global and query
+bias grids accumulate over the declared population with fixed stage weights;
+choices are applied after the entire corresponding pass. Final artifact
+construction quantizes the selected weights into the existing integer reader.
+The baseline's context window and the inference admission/geometry rules remain
+the ones used during fitting.
+
+Time is cumulative across these checkpoint launches. Host checks occur between
+bounded replay batches; loading, serialization and finalization can overrun a
+boundary. Model/checkpoint size checks preserve prior files on refusal, and
+atomic replacement requires temporary disk space. A separate experiment budget
+must still include preparation, other fits, evaluation and retries. These flags
+are not a hard OS process-tree memory/time sandbox.
+
+For a smaller relevant evaluation, repeat `--control` on `geometric evaluate`,
+for example `--control full --control memory-disabled`. Omitting it preserves
+the existing nine-control comparison.
+
+The `native_geometric_joint_probe` example supplies broader synthetic whole-task
+development data and evaluates any saved native model on both prose and Rust:
+
+```sh
+target/release/examples/native_geometric_joint_probe prepare \
+  --output-dir .uor-models/joint-composition/source \
+  --construction-worlds 128 --fit-worlds 128 --development-worlds 16
+target/release/examples/native_geometric_joint_probe evaluate \
+  --source .uor-models/joint-composition/source/source.json \
+  --model .uor-models/joint-composition/memory.json \
+  --output-dir .uor-models/joint-composition/development \
+  --generated-tokens 96 --compiler-cases 8 --repair-cases 2 --max-seconds 120
+```
+
+Use the emitted whole-document `construction.jsonl` and `fit.jsonl` with the
+training commands (`--document-bytes 16384`). The source declares its synthetic
+templates and distinct splits. Evaluation checks exact-text overlap and lexical
+completion boundaries, records unmodified generated text, and separates first
+tokens from complete answers. Requested compiler checks use exact generated
+source; execution is restricted to exact matches of the authored safe arithmetic
+fixtures. A failed compilation can supply real diagnostics for one separate
+model repair attempt. This conservative execution rule is not a sandbox or a
+general software-engineering benchmark. Both capability groups remain open
+development, with final held-out assessment reserved for design selection.
+
+## Fit declared response spans
+
+For authored response tasks, streaming fitting also accepts `--supervision`
+with a `MemoryReadSupervision` JSON file. Its ordered document receipts and
+full baseline identity bind the exact tokenizer and source. Each interval
+indexes the tokens from `Model::encode(full_document_text)`, with inclusive
+`start` and exclusive `end`; EOS occupies index `encode.len()`. BOS is not a
+loss-bearing target. The same mask must be supplied on resume.
+
+Every source token still updates the causal geometric memory. Only sampled
+eligible targets register features or contribute to gradients, calibration and
+epoch selection. The report records eligible and actually selected positions.
+This is a data-specified training objective, not a response parser or inference
+rule. The default remains whole-document supervision.
+
+After preparing and fitting a joint readout, rerun the joint probe's `prepare`
+with the same world counts and `--model /absolute/path/to/readout.json` into a
+new output directory. It preserves the generated task texts and adds
+`supervision.json` for each fit completion plus EOS, after checking the exact
+prompt/full-text token boundary. Pass that file to `fit-memory-stream`; changing
+the baseline or source requires a new mask.
+
+## Preserved finite reader probe
+
 The optional `native_geometric_memory_probe` example compares physical value
 retention, predicted values and paired value changes. `--memory-read` adds the
 new reader, and `--family rust` represents the same controlled relationships as

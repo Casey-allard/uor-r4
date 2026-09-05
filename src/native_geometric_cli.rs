@@ -23,6 +23,8 @@ enum Command {
     FitReadout(FitReadoutArgs),
     /// Learn a bounded read from prime-addressed retained token values.
     FitMemory(FitMemoryArgs),
+    /// Fit the query-context reader over replay batches with resumable learned state.
+    FitMemoryStream(FitMemoryStreamArgs),
     /// Generate from a fitted native artifact with no teacher or source corpus.
     Generate(GenerateArgs),
     /// Compare the full geometry and matched controls on separate documents.
@@ -107,6 +109,70 @@ struct FitMemoryArgs {
     query_context: bool,
     #[arg(long)]
     report: Option<PathBuf>,
+}
+
+#[derive(Debug, Args)]
+struct FitMemoryStreamArgs {
+    #[arg(long)]
+    model: PathBuf,
+    #[command(flatten)]
+    corpus: CorpusArgs,
+    #[arg(long)]
+    output: PathBuf,
+    #[arg(long)]
+    checkpoint: PathBuf,
+    #[arg(long)]
+    resume: bool,
+    /// Optional source-bound token spans that receive loss; all tokens remain context.
+    #[arg(long)]
+    supervision: Option<PathBuf>,
+    /// Distinct supervised targets in the fixed, replayed fitting population.
+    #[arg(long, default_value_t = 32768)]
+    total_positions: usize,
+    /// Maximum examples held at once, independent of total exposure.
+    #[arg(long, default_value_t = 256)]
+    batch_positions: usize,
+    #[arg(long, default_value_t = 8)]
+    query_tokens: usize,
+    #[arg(long, default_value_t = 4)]
+    source_offsets: usize,
+    #[arg(long, default_value_t = 4)]
+    postings_per_address: usize,
+    #[arg(long, default_value_t = 128)]
+    candidates: usize,
+    #[arg(long, default_value_t = 8)]
+    epochs: usize,
+    #[arg(long, default_value_t = 262144)]
+    max_features: usize,
+    #[arg(long)]
+    word_cues: bool,
+    /// Cumulative elapsed limit for this checkpoint, including prior launches.
+    #[arg(long, default_value_t = 600)]
+    max_seconds: u64,
+    #[arg(long, default_value_t = 4096)]
+    max_rss_mib: u64,
+    /// Combined final checkpoint and model size; atomic writes need temporary space.
+    #[arg(long, default_value_t = 536870912)]
+    max_output_bytes: usize,
+    #[arg(long, default_value_t = 128)]
+    checkpoint_every: usize,
+    /// Stop this launch after N bounded batches; resume the same schedule later.
+    #[arg(long)]
+    max_batches: Option<usize>,
+    #[arg(long)]
+    report: Option<PathBuf>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct MemoryStreamHeader {
+    schema: String,
+    elapsed_ms: u64,
+    config: uor_r4_core::native_geometric::MemoryReadFitConfig,
+    schedule: uor_r4_core::native_geometric::MemoryReadSchedule,
+    word_cues: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    supervision_cid: Option<String>,
 }
 
 #[derive(Debug, Args)]
@@ -206,6 +272,9 @@ struct EvaluateArgs {
     model: PathBuf,
     #[command(flatten)]
     corpus: CorpusArgs,
+    /// Evaluate only these controls; omission preserves the full comparison.
+    #[arg(long, value_enum)]
+    control: Vec<ControlArg>,
     #[arg(long)]
     report: Option<PathBuf>,
 }
@@ -233,6 +302,7 @@ pub fn run(args: &GeometricArgs) -> Result<(), String> {
         Command::Train(a) => train(a),
         Command::FitReadout(a) => fit_readout(a),
         Command::FitMemory(a) => fit_memory(a),
+        Command::FitMemoryStream(a) => fit_memory_stream(a),
         Command::Generate(a) => {
             let model = load_model(&a.model)?;
             let result = model
@@ -261,17 +331,22 @@ pub fn run(args: &GeometricArgs) -> Result<(), String> {
             let model = load_model(&a.model)?;
             let (documents, source) = read_corpus(&a.corpus)?;
             let mut controls = Vec::new();
-            for control in [
-                Control::Full,
-                Control::GeometryDisabled,
-                Control::ZetaDisabled,
-                Control::H4Disabled,
-                Control::OrientationDisabled,
-                Control::PairedDisabled,
-                Control::RadialDisabled,
-                Control::HeatmapDisabled,
-                Control::MemoryDisabled,
-            ] {
+            let selected: Vec<Control> = if a.control.is_empty() {
+                vec![
+                    Control::Full,
+                    Control::GeometryDisabled,
+                    Control::ZetaDisabled,
+                    Control::H4Disabled,
+                    Control::OrientationDisabled,
+                    Control::PairedDisabled,
+                    Control::RadialDisabled,
+                    Control::HeatmapDisabled,
+                    Control::MemoryDisabled,
+                ]
+            } else {
+                a.control.iter().copied().map(Into::into).collect()
+            };
+            for control in selected {
                 let result = model.evaluate(&documents, control).map_err(err)?;
                 controls.push(serde_json::json!({"control": control, "result": result}));
             }
@@ -451,6 +526,235 @@ fn err(e: impl std::fmt::Display) -> String {
 fn load_model(path: &Path) -> Result<Model, String> {
     let bytes = bounded_file_read(path, 256 * 1024 * 1024)?;
     Model::from_bytes(&bytes).map_err(err)
+}
+
+fn fit_memory_stream(a: &FitMemoryStreamArgs) -> Result<(), String> {
+    use std::time::Duration;
+    use uor_r4_core::native_geometric::{
+        MemoryReadFitConfig, MemoryReadSchedule, MemoryReadSupervision, MemoryReadTrainer,
+    };
+    if a.max_seconds == 0
+        || a.max_rss_mib == 0
+        || a.checkpoint_every == 0
+        || a.max_batches == Some(0)
+        || a.max_output_bytes == 0
+    {
+        return Err("memory fitting budgets and checkpoint interval must be positive".into());
+    }
+    let mut inputs: Vec<_> = a.corpus.input.iter().map(PathBuf::as_path).collect();
+    inputs.push(&a.model);
+    inputs.extend(a.supervision.iter().map(PathBuf::as_path));
+    let mut outputs = vec![a.output.as_path(), a.checkpoint.as_path()];
+    outputs.extend(a.report.iter().map(PathBuf::as_path));
+    distinct_outputs(&inputs, &outputs)?;
+    if !a.resume && (a.output.exists() || a.checkpoint.exists()) {
+        return Err("memory output/checkpoint exists; choose new paths or resume".into());
+    }
+    let start = Instant::now();
+    let baseline = load_model(&a.model)?;
+    let (documents, source) = read_corpus(&a.corpus)?;
+    let supervision: Option<MemoryReadSupervision> = a
+        .supervision
+        .as_ref()
+        .map(|path| {
+            serde_json::from_slice(&bounded_file_read(path, 16 * 1024 * 1024)?).map_err(err)
+        })
+        .transpose()?;
+    let supervision_cid = supervision
+        .as_ref()
+        .map(|s| s.cid())
+        .transpose()
+        .map_err(err)?;
+    let config = MemoryReadFitConfig {
+        query_tokens: a.query_tokens,
+        source_offsets: a.source_offsets,
+        postings_per_address: a.postings_per_address,
+        candidate_limit: a.candidates,
+        max_positions: a.batch_positions,
+        epochs: a.epochs,
+        max_features: a.max_features,
+    };
+    let schedule = MemoryReadSchedule {
+        total_positions: a.total_positions,
+        batch_positions: a.batch_positions,
+    };
+    let (mut header, mut trainer) = if a.resume {
+        let bytes = bounded_file_read(&a.checkpoint, 320 * 1024 * 1024)?;
+        let boundary = bytes
+            .iter()
+            .position(|b| *b == b'\n')
+            .ok_or("memory checkpoint header missing")?;
+        if boundary > 65536 {
+            return Err("memory checkpoint header exceeds envelope limit".into());
+        }
+        let h: MemoryStreamHeader = serde_json::from_slice(&bytes[..boundary]).map_err(err)?;
+        if h.schema != "uor-r4.native-memory-stream-run-checkpoint/1"
+            || h.config != config
+            || h.schedule != schedule
+            || h.word_cues != a.word_cues
+            || h.supervision_cid != supervision_cid
+        {
+            return Err(
+                "resume requires the same memory fitting configuration, schedule, cue mode and supervision"
+                    .into(),
+            );
+        }
+        let trainer = MemoryReadTrainer::restore(&baseline, &documents, &bytes[boundary + 1..])
+            .map_err(err)?;
+        if trainer.supervision_cid() != supervision_cid.as_deref() {
+            return Err("resume supervision differs from the saved learned state".into());
+        }
+        (h, trainer)
+    } else {
+        (
+            MemoryStreamHeader {
+                schema: "uor-r4.native-memory-stream-run-checkpoint/1".into(),
+                elapsed_ms: 0,
+                config,
+                schedule,
+                word_cues: a.word_cues,
+                supervision_cid: supervision_cid.clone(),
+            },
+            match supervision {
+                Some(mask) => MemoryReadTrainer::new_with_supervision(
+                    &baseline,
+                    &documents,
+                    config,
+                    schedule,
+                    a.word_cues,
+                    mask,
+                ),
+                None => {
+                    MemoryReadTrainer::new(&baseline, &documents, config, schedule, a.word_cues)
+                }
+            }
+            .map_err(err)?,
+        )
+    };
+    let previous_elapsed = header.elapsed_ms;
+    let previous_output_bytes = if a.output.exists() {
+        usize::try_from(fs::metadata(&a.output).map_err(err)?.len()).map_err(err)?
+    } else {
+        0
+    };
+    let checkpoint_limit = a
+        .max_output_bytes
+        .checked_sub(previous_output_bytes)
+        .ok_or("existing memory artifact exceeds storage budget")?;
+    let mut batches = 0usize;
+    let mut stop = "schedule_complete";
+    while !trainer.is_complete() {
+        let remaining = a
+            .max_seconds
+            .saturating_mul(1000)
+            .saturating_sub(previous_elapsed.saturating_add(elapsed_ms(start)));
+        if remaining == 0 {
+            stop = "cumulative_time_budget";
+            break;
+        }
+        if peak_rss_bytes()? > a.max_rss_mib.saturating_mul(1_048_576) {
+            stop = "process_memory_budget";
+            break;
+        }
+        if a.max_batches.is_some_and(|limit| batches >= limit) {
+            stop = "launch_batch_limit";
+            break;
+        }
+        trainer
+            .advance(1, Duration::from_millis(remaining))
+            .map_err(err)?;
+        batches += 1;
+        if batches.is_multiple_of(a.checkpoint_every) {
+            header.elapsed_ms = previous_elapsed.saturating_add(elapsed_ms(start));
+            save_memory_stream_checkpoint(
+                &a.checkpoint,
+                &header,
+                &trainer.checkpoint().map_err(err)?,
+                checkpoint_limit,
+            )?;
+            eprintln!(
+                "{}",
+                serde_json::to_string(&serde_json::json!({
+                    "event":"memory_fit_checkpoint", "cumulative_elapsed_ms":header.elapsed_ms,
+                    "progress":trainer.progress()
+                }))
+                .map_err(err)?
+            );
+        }
+    }
+    // Retain all learned state before artifact finalization or an output-size refusal.
+    let state = trainer.checkpoint().map_err(err)?;
+    header.elapsed_ms = previous_elapsed.saturating_add(elapsed_ms(start));
+    save_memory_stream_checkpoint(&a.checkpoint, &header, &state, checkpoint_limit)?;
+    let progress = trainer.progress();
+    let mut final_fit = None;
+    let mut artifact = None;
+    let mut output_bytes = previous_output_bytes;
+    let finalization = (|| -> Result<(), String> {
+        if trainer.is_complete() {
+            let (learned, report) = trainer.finish().map_err(err)?;
+            let bytes = learned.to_bytes().map_err(err)?;
+            let checkpoint_size = fs::metadata(&a.checkpoint).map_err(err)?.len();
+            if checkpoint_size.saturating_add(bytes.len() as u64) > a.max_output_bytes as u64 {
+                return Err("combined memory artifact/checkpoint storage budget exhausted; completed checkpoint retained".into());
+            }
+            if a.output.exists() && bounded_file_read(&a.output, 256 * 1024 * 1024)? != bytes {
+                return Err("existing memory output differs from completed checkpoint; choose a new output path".into());
+            }
+            if !a.output.exists() {
+                atomic_write(&a.output, &bytes)?;
+            }
+            output_bytes = bytes.len();
+            artifact = Some(learned.artifact_cid().to_owned());
+            final_fit = Some(report);
+        }
+        Ok(())
+    })();
+    header.elapsed_ms = previous_elapsed.saturating_add(elapsed_ms(start));
+    save_memory_stream_checkpoint(
+        &a.checkpoint,
+        &header,
+        &state,
+        a.max_output_bytes
+            .checked_sub(output_bytes)
+            .ok_or("memory output storage budget exhausted")?,
+    )?;
+    finalization?;
+    write_report(
+        a.report.as_deref(),
+        &serde_json::json!({
+            "schema":"uor-r4.native-memory-stream-run/1", "stop":stop,
+            "source":source, "baseline_artifact":baseline.artifact_cid(),
+            "learned_artifact":artifact, "progress":progress, "fit":final_fit,
+            "config":config,"schedule":schedule,"word_cues":a.word_cues,
+            "supervision_cid":supervision_cid,
+            "checkpoint":a.checkpoint,"output":a.output,"output_bytes":output_bytes,
+            "checkpoint_bytes":fs::metadata(&a.checkpoint).map_err(err)?.len(),
+            "launch_batch_calls":batches,"launch_elapsed_ms":elapsed_ms(start),
+            "cumulative_elapsed_ms":header.elapsed_ms,"max_seconds":a.max_seconds,
+            "peak_rss_bytes":peak_rss_bytes()?,"max_rss_mib":a.max_rss_mib,
+            "budget_boundary":"Host checks between replay batches. Source loading, serialization and finalization are charged; a batch/finalization may overrun. Atomic replacement requires temporary disk space. Report/final checkpoint write tail is included in launch wall time, not recursively in its own stored elapsed header.",
+            "interpretation":"Resumable fit on one declared training population; separate generated behavior is required for quality evidence."
+        }),
+    )
+}
+
+fn save_memory_stream_checkpoint(
+    path: &Path,
+    header: &MemoryStreamHeader,
+    state: &[u8],
+    limit: usize,
+) -> Result<(), String> {
+    let mut bytes = serde_json::to_vec(header).map_err(err)?;
+    if bytes.len() > 65536 {
+        return Err("memory checkpoint header exceeds envelope limit".into());
+    }
+    bytes.push(b'\n');
+    bytes.extend_from_slice(state);
+    if bytes.len() > limit.min(320 * 1024 * 1024) {
+        return Err("memory checkpoint storage budget exhausted; prior checkpoint retained".into());
+    }
+    atomic_write(path, &bytes)
 }
 
 fn bounded_file_read(path: &Path, maximum: usize) -> Result<Vec<u8>, String> {
@@ -881,9 +1185,12 @@ mod tests {
     struct Directory(PathBuf);
     impl Directory {
         fn new() -> Self {
+            static NEXT_DIRECTORY: std::sync::atomic::AtomicU64 =
+                std::sync::atomic::AtomicU64::new(0);
             let unique = format!(
-                "r4-native-cli-{}-{}",
+                "r4-native-cli-{}-{}-{}",
                 std::process::id(),
+                NEXT_DIRECTORY.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
                 std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
                     .expect("clock")
@@ -898,6 +1205,137 @@ mod tests {
         fn drop(&mut self) {
             let _ = fs::remove_dir_all(&self.0);
         }
+    }
+
+    #[test]
+    fn native_geometric_cli_memory_stream_resume_and_output_protection() {
+        let dir = Directory::new();
+        let construction = vec![Document {
+            id: "count".into(),
+            text: "The key is red. The key is blue. Answer: red. fn key() { red; blue; }".into(),
+        }];
+        let mut count = Trainer::new(
+            Config {
+                context_tokens: 32,
+                candidate_limit: 8,
+                max_lexical_pieces: 64,
+                max_rows: 4096,
+                max_associations: 20000,
+                postings_per_row: 8,
+            },
+            &construction,
+        )
+        .expect("trainer");
+        count.train_documents(&construction).expect("counts");
+        let model = dir.0.join("baseline.json");
+        fs::write(
+            &model,
+            count
+                .compile()
+                .expect("baseline")
+                .to_bytes()
+                .expect("bytes"),
+        )
+        .expect("save");
+        let input = dir.0.join("fit.jsonl");
+        fs::write(&input, "{\"id\":\"fit-a\",\"text\":\"The key is red. The key is red. Answer: red.\"}\n{\"id\":\"fit-b\",\"text\":\"The key is blue. The key is blue. Answer: blue.\"}\n").expect("fit source");
+        let mut a = FitMemoryStreamArgs {
+            model,
+            corpus: CorpusArgs {
+                input: vec![input],
+                max_input_bytes: 4096,
+                document_bytes: 1024,
+            },
+            output: dir.0.join("memory.json"),
+            checkpoint: dir.0.join("memory.checkpoint"),
+            resume: false,
+            supervision: None,
+            total_positions: 48,
+            batch_positions: 8,
+            query_tokens: 4,
+            source_offsets: 2,
+            postings_per_address: 2,
+            candidates: 16,
+            epochs: 1,
+            max_features: 4096,
+            word_cues: true,
+            max_seconds: 60,
+            max_rss_mib: 4096,
+            max_output_bytes: 16_777_216,
+            checkpoint_every: 4,
+            max_batches: Some(1),
+            report: Some(dir.0.join("report.json")),
+        };
+        fit_memory_stream(&a).expect("bounded first launch");
+        assert!(a.checkpoint.exists());
+        assert!(!a.output.exists());
+        let saved = fs::read(&a.checkpoint).expect("checkpoint");
+        a.resume = true;
+        a.total_positions += 1;
+        assert!(fit_memory_stream(&a)
+            .expect_err("changed schedule")
+            .contains("same memory fitting"));
+        assert_eq!(saved, fs::read(&a.checkpoint).expect("preserved"));
+        a.total_positions -= 1;
+        a.max_batches = None;
+        fit_memory_stream(&a).expect("resume all stages");
+        let final_bytes = fs::read(&a.output).expect("artifact");
+        let report: serde_json::Value = serde_json::from_slice(
+            &fs::read(a.report.as_ref().expect("report")).expect("report bytes"),
+        )
+        .expect("report json");
+        assert_eq!(report["stop"], "schedule_complete");
+        assert!(report["fit"].is_object());
+        fit_memory_stream(&a).expect("completed resume");
+        assert_eq!(final_bytes, fs::read(&a.output).expect("stable artifact"));
+        a.report = Some(a.model.clone());
+        assert!(fit_memory_stream(&a)
+            .expect_err("protect baseline")
+            .contains("distinct"));
+        a.report = None;
+        a.output = dir.0.join("different.json");
+        fs::write(&a.output, b"preserve unrelated output").expect("unrelated");
+        assert!(fit_memory_stream(&a)
+            .expect_err("different output")
+            .contains("differs"));
+        assert_eq!(
+            fs::read(&a.output).expect("unrelated unchanged"),
+            b"preserve unrelated output"
+        );
+        // The host must not silently drop caller-specified loss spans on resume.
+        use uor_r4_core::native_geometric::{MemoryReadSupervision, MemoryReadTokenSpan};
+        let baseline = load_model(&a.model).expect("baseline");
+        let (documents, _) = read_corpus(&a.corpus).expect("documents");
+        let spans = documents
+            .iter()
+            .map(|doc| {
+                let length = baseline.encode(&doc.text).expect("tokens").len();
+                vec![MemoryReadTokenSpan {
+                    start: length - 1,
+                    end: length + 1,
+                }]
+            })
+            .collect();
+        let mask = MemoryReadSupervision::new(&baseline, &documents, spans).expect("mask");
+        let mask_path = dir.0.join("supervision.json");
+        fs::write(&mask_path, serde_json::to_vec(&mask).expect("mask bytes")).expect("mask file");
+        a.output = dir.0.join("masked.json");
+        a.checkpoint = dir.0.join("masked.checkpoint");
+        a.resume = false;
+        a.max_batches = Some(1);
+        a.supervision = Some(mask_path.clone());
+        fit_memory_stream(&a).expect("masked launch");
+        let masked_saved = fs::read(&a.checkpoint).expect("masked checkpoint");
+        a.resume = true;
+        a.supervision = None;
+        assert!(fit_memory_stream(&a).is_err());
+        assert_eq!(
+            masked_saved,
+            fs::read(&a.checkpoint).expect("preserved mask")
+        );
+        a.supervision = Some(mask_path);
+        a.max_batches = None;
+        fit_memory_stream(&a).expect("masked resume");
     }
 
     #[test]

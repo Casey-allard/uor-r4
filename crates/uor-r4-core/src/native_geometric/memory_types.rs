@@ -89,6 +89,17 @@ pub(super) struct CueAliases {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
+pub(super) struct MemoryFitLineage {
+    pub schema: String,
+    pub schedule: super::memory_training::MemoryReadSchedule,
+    pub ordered_source_cid: String,
+    pub configuration_cid: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub supervision_cid: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(super) struct MemoryModel {
     pub schema: String,
     pub baseline_artifact: String,
@@ -100,6 +111,9 @@ pub(super) struct MemoryModel {
     pub training: Vec<DocumentReceipt>,
     pub rows: Vec<MemoryWeight>,
     pub fit_positions: usize,
+    /// Explicit expanded-exposure schedule. Absent from all historical bytes.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fit_schedule: Option<MemoryFitLineage>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

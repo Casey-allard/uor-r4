@@ -5,6 +5,74 @@ use super::memory_types::*;
 use super::*;
 use std::collections::{BTreeMap, BTreeSet};
 
+mod resumable;
+pub use resumable::{
+    MemoryReadDocumentExposure, MemoryReadDocumentSupervision, MemoryReadSchedule,
+    MemoryReadStreamProgress, MemoryReadStreamReport, MemoryReadSupervision, MemoryReadTokenSpan,
+    MemoryReadTrainer,
+};
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MemoryReadDiagnostic {
+    pub predicted_token: u32,
+    pub candidate_routes: usize,
+    pub target_routes: usize,
+    pub query_context_routes_with_registered_row: usize,
+    pub query_context_routes_without_registered_row: usize,
+}
+
+impl Session {
+    /// Host diagnostic that recomputes prediction for the current prefix. Query
+    /// context rows can be absent while other feature rows are present. Row
+    /// registration alone does not imply a nonzero gradient or useful fit.
+    /// This reports currently admitted routes and their registered /3 query
+    /// rows; it neither admits candidates nor changes learned scores.
+    pub fn memory_read_diagnostic(
+        &mut self,
+        model: &Model,
+        target: u32,
+    ) -> Result<Option<MemoryReadDiagnostic>> {
+        if target as usize >= model.vocabulary_size() {
+            return Err(Error(
+                "memory diagnostic target is outside the vocabulary".into(),
+            ));
+        }
+        let prediction = self.predict(model)?;
+        if self.control == Control::MemoryDisabled {
+            return Ok(None);
+        }
+        let (Some(state), Some(operator)) = (&self.memory, &model.memory_read) else {
+            return Ok(None);
+        };
+        if operator.schema != QUERY_CONTEXT_MEMORY_SCHEMA {
+            return Err(Error(
+                "query-context coverage diagnostic requires the /3 reader".into(),
+            ));
+        }
+        let registered = state
+            .candidates
+            .iter()
+            .filter(|candidate| {
+                operator
+                    .rows
+                    .binary_search_by_key(&candidate.features[16], |row| row.feature)
+                    .is_ok()
+            })
+            .count();
+        Ok(Some(MemoryReadDiagnostic {
+            predicted_token: prediction.token,
+            candidate_routes: state.candidates.len(),
+            target_routes: state
+                .candidates
+                .iter()
+                .filter(|candidate| candidate.token == target)
+                .count(),
+            query_context_routes_with_registered_row: registered,
+            query_context_routes_without_registered_row: state.candidates.len() - registered,
+        }))
+    }
+}
+
 const ABSENT: usize = usize::MAX;
 struct Alternative {
     token: u32,
@@ -161,7 +229,12 @@ impl MemoryModel {
                     .trailing_zeros() as u8
             || self.training.is_empty()
             || self.fit_positions == 0
-            || self.fit_positions > self.config.max_positions
+            || self.fit_positions
+                > self
+                    .fit_schedule
+                    .as_ref()
+                    .map(|lineage| lineage.schedule.total_positions)
+                    .unwrap_or(self.config.max_positions)
             || self.rows.len() > self.config.max_features
             || self
                 .rows
@@ -175,6 +248,29 @@ impl MemoryModel {
             return Err(Error(
                 "memory-read operator shape, scores or configuration invalid".into(),
             ));
+        }
+        if let Some(lineage) = &self.fit_schedule {
+            lineage.schedule.validate(&self.config)?;
+            if self.schema != QUERY_CONTEXT_MEMORY_SCHEMA
+                || lineage.schema != resumable::REPORT_SCHEMA
+                || lineage.ordered_source_cid.len() != 71
+                || !lineage.ordered_source_cid.starts_with("blake3:")
+                || lineage.configuration_cid
+                    != resumable::configuration_identity_with_supervision(
+                        self.config,
+                        lineage.schedule,
+                        self.cue_aliases.is_some(),
+                        lineage.supervision_cid.as_deref(),
+                    )?
+                || lineage
+                    .supervision_cid
+                    .as_ref()
+                    .is_some_and(|cid| cid.len() != 71 || !cid.starts_with("blake3:"))
+            {
+                return Err(Error(
+                    "resumable memory schedule requires the query-context reader".into(),
+                ));
+            }
         }
         let mut ids = BTreeSet::new();
         for receipt in &self.training {
@@ -347,6 +443,7 @@ impl Model {
                 score: -1024,
             }],
             fit_positions: 0,
+            fit_schedule: None,
         };
         let mut addresses = BTreeMap::from([(MemoryFeature { kind: 0, value: 0 }, 0_usize)]);
         let mut examples = Vec::new();
