@@ -260,9 +260,20 @@ pub(super) fn candidate_rows(
     [usize; COMPLETION_FEATURES],
     usize,
 ) {
+    candidate_rows_bounded::<COMPLETION_FEATURES>(score_rows, global_postings, features, work)
+}
+
+/// Fixed scratch selected by the caller's feature bound. Existing completion
+/// callers retain their sixteen-row scratch; composed binding uses thirty-two.
+pub(super) fn candidate_rows_bounded<const N: usize>(
+    score_rows: &[ScoreRow],
+    global_postings: &[u32],
+    features: &[Feature],
+    work: &mut CompletionWork,
+) -> ([u32; COMPLETION_CANDIDATES], usize, [usize; N], usize) {
     let mut tokens = [0; COMPLETION_CANDIDATES];
     let mut count = 0;
-    let mut rows = [0; COMPLETION_FEATURES];
+    let mut rows = [0; N];
     let mut row_count = 0;
     for feature in features {
         work.feature_queries = work.feature_queries.saturating_add(1);

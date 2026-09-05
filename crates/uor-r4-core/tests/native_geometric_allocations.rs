@@ -554,10 +554,12 @@ fn native_word_copy_selection_bytes_mismatch_and_cap_are_allocation_free() {
     let (_, original) = copy_fixture::fitted();
     let completed_word = copy_fixture::fitted_completed_word();
     let composed = copy_fixture::fitted_composed();
+    let binding = copy_fixture::fitted_shared_binding();
     for (variant, model) in [
         ("actual-byte suffix", original),
         ("completed-word suffix", completed_word),
         ("composed dispatch", composed),
+        ("shared binding entry", binding),
     ] {
         let prompt = model.encode(copy_fixture::COPY_PROMPT).unwrap();
         let mut session = model.session(Control::Full).unwrap();

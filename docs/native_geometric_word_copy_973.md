@@ -302,3 +302,25 @@ bound and charge prefix scoring, selection, copying, suffix and ordinary work.
 This successor is not implemented or qualified by this record. Removing numeric
 distractors exposes a separate earlier eligibility restriction; selecting one
 entity's city among multiple facts is also unproven.
+
+## Later wording-transfer result — 2026-09-05
+
+The composed-entry successor above has since been implemented and delivered in
+PR #1134; its selected artifact answers 16/16 fixed fact cases. The subsequent
+wording experiment is a negative. A same-fact factorial separates distractors
+from wording and speaker wrappers: numeric distractors do not change outcomes;
+wording/format changes do. Wider construction alone gets 12/16 diagnostic cases,
+but does not transfer to the 32 reserved cases and regresses four original answers.
+
+The optional shared-binding fit adds existing candidate mask/preceding-word
+features to lexical entry, preserving bounded integer/table inference. It gets
+12/16 diagnostic and 8/32 reserved exact answers; all eight reserved successes are
+unsupported questions. A matched fit with copy-extension geometry removed also
+gets 8/32. Both regress four prior fact cases. Keep the prior composed artifact
+selected; neither new fit establishes transfer or geometric advantage.
+
+Entry pools occurrence features, including zero-match features, with multiplicity.
+For missing dictionary addresses its shared zero-match row penalizes a prefix
+space more than Unknown. Making such evidence neutral is a concrete hypothesis,
+not a completed repair. Full costs, preserved artifacts, comparison source and
+checks are appended to the existing evidence JSON and current-state pointer.

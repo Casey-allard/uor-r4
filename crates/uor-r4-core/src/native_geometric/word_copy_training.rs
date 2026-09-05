@@ -222,7 +222,12 @@ impl WordCopyModel {
                 .prefix_rows
                 .windows(2)
                 .any(|p| p[0].feature >= p[1].feature)
-            || self.prefix_rows.iter().any(|r| r.feature.kind >= 16)
+            || (self.shared_binding && !self.composed_entry)
+            || (self.binding_geometry_disabled && !self.shared_binding)
+            || self
+                .prefix_rows
+                .iter()
+                .any(|r| r.feature.kind >= 16 && !(self.shared_binding && r.feature.kind == 32))
             || self
                 .prefix_rows
                 .iter()
@@ -233,7 +238,10 @@ impl WordCopyModel {
             || self.prefix_postings.iter().any(|&t| !valid_token(t))
             || self.prefix_postings.iter().collect::<BTreeSet<_>>().len()
                 != self.prefix_postings.len()
-            || self.continuation_rows.iter().any(|r| r.feature.kind < 16)
+            || self
+                .continuation_rows
+                .iter()
+                .any(|r| !(16..32).contains(&r.feature.kind))
             || self.continuation_rows.len() > RESPONSE_ENTRY_ROWS
             || self
                 .continuation_rows
@@ -261,7 +269,7 @@ impl WordCopyModel {
                 .iter()
                 .chain(&self.prefix_rows)
                 .any(|row| {
-                    row.feature.kind >= 32
+                    (row.feature.kind >= 32 && !(self.shared_binding && row.feature.kind == 32))
                         || row.default_score != 0
                         || row.postings.len() > RESPONSE_ENTRY_POSTINGS
                         || row.postings.iter().collect::<BTreeSet<_>>().len() != row.postings.len()
@@ -339,7 +347,7 @@ impl Model {
         documents: &[ValueExample],
         config: ResponseEntryFitConfig,
     ) -> Result<(Model, ResponseEntryCopyFitReport)> {
-        self.fit_response_entry_copy_impl(documents, config, false, false)
+        self.fit_response_entry_copy_impl(documents, config, false, false, false, false)
     }
 
     /// Fit suffix transitions relative to the observed end of a copied word.
@@ -350,7 +358,7 @@ impl Model {
         documents: &[ValueExample],
         config: ResponseEntryFitConfig,
     ) -> Result<(Model, ResponseEntryCopyFitReport)> {
-        self.fit_response_entry_copy_impl(documents, config, true, false)
+        self.fit_response_entry_copy_impl(documents, config, true, false, false, false)
     }
 
     pub fn fit_response_entry_copy_composed(
@@ -358,7 +366,18 @@ impl Model {
         documents: &[ValueExample],
         config: ResponseEntryFitConfig,
     ) -> Result<(Model, ResponseEntryCopyFitReport)> {
-        self.fit_response_entry_copy_impl(documents, config, true, true)
+        self.fit_response_entry_copy_impl(documents, config, true, true, false, false)
+    }
+
+    /// Fit entry with candidate-relative binding evidence. The optional matched
+    /// control removes copy-extension geometry throughout fitting and serving.
+    pub fn fit_response_entry_copy_binding(
+        &self,
+        documents: &[ValueExample],
+        config: ResponseEntryFitConfig,
+        geometry_disabled: bool,
+    ) -> Result<(Model, ResponseEntryCopyFitReport)> {
+        self.fit_response_entry_copy_impl(documents, config, true, true, true, geometry_disabled)
     }
 
     fn fit_response_entry_copy_impl(
@@ -367,6 +386,8 @@ impl Model {
         config: ResponseEntryFitConfig,
         completed_word_suffix: bool,
         composed_entry: bool,
+        shared_binding: bool,
+        binding_geometry_disabled: bool,
     ) -> Result<(Model, ResponseEntryCopyFitReport)> {
         let source_bytes = documents.iter().try_fold(0_usize, |sum, document| {
             sum.checked_add(document.prompt.len())?
@@ -414,6 +435,8 @@ impl Model {
         entry.copy = Some(WordCopyModel {
             completed_word_suffix,
             composed_entry,
+            shared_binding,
+            binding_geometry_disabled,
             prefix_rows: Vec::new(),
             prefix_postings: Vec::new(),
             baseline_artifact: self.artifact_cid.clone(),

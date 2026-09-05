@@ -1203,5 +1203,277 @@
       "fit3 corrects only that label slice: all96copy targets reachable and committed,176/176selector frames and288/288suffix positions fit; no data, features or hyperparameter retuning"
     ],
     "next_bottleneck": "The same retained fact does not yet transfer reliably across question wrappers; the two older city prompts still fail. Reuse this generic lexical/copy choice rather than add a task-specific head."
+  },
+  "wording_binding_successor_2026_09_05": {
+    "decision": "REJECT_SHARED_BINDING_PROMOTION_RETAIN_D095",
+    "selected_artifact": "blake3:d095a1abccefd68678a9d7da61e4d8fd094d9f7ca71e10c5e0383518889ed586",
+    "source_freeze": "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/wording-source/freeze.json",
+    "checkpoint": "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/wording-checkpoint.json",
+    "analysis": "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/wording-analysis.json",
+    "artifacts": [
+      {
+        "path": "fact-copy-fit-3/model.json",
+        "sha256": "d70413f558e0f1d3ae3fd099b378a9912609e23983d541732ab3b79e47368f3c",
+        "artifact": "blake3:d095a1abccefd68678a9d7da61e4d8fd094d9f7ca71e10c5e0383518889ed586"
+      },
+      {
+        "path": "wording-coverage-fit/model.json",
+        "sha256": "9a3f0b16ce06273d87ddd54cb51175e340f3790a23257486d6e31362ac4ab9d0",
+        "artifact": "blake3:00b96b972706b8f514d09ce95ddc24801d3c12b78d07bb018af4d5af4232312f"
+      },
+      {
+        "path": "wording-binding-fit/model.json",
+        "sha256": "30a7a3ba270e17e751033858b31ddd1f433a9b3457cde7ea4c39e665a13253ef",
+        "artifact": "blake3:f933b199c342fd715c44d938b86281493730f2b41d6d33287e7369f852c24232"
+      },
+      {
+        "path": "wording-plain-fit/model.json",
+        "sha256": "ba69c33416d8dfc5f89d4ae41cae10b91ea44ee9c71caab40ecbc186d1ae93a7",
+        "artifact": "blake3:a42264fc7599f9f1b0053a9c52880925b72deed00ef5c3595353861f7ec52c64"
+      }
+    ],
+    "comparison": {
+      "diagnostic": {
+        "parent": 4,
+        "extra_coverage": 12,
+        "shared_binding": 12,
+        "total": 16
+      },
+      "reserved": {
+        "parent": 3,
+        "extra_coverage": 0,
+        "shared_binding": 8,
+        "matched_no_copy_geometry": 8,
+        "total": 32,
+        "supported_shared_binding": 0,
+        "supported_total": 24
+      },
+      "shared_binding_preservation": {
+        "original": 32,
+        "original_total": 32,
+        "identifiers": 12,
+        "identifier_total": 12,
+        "binding": 8,
+        "binding_total": 8,
+        "facts": 12,
+        "fact_total": 16,
+        "old_cities": 0,
+        "old_city_total": 2
+      }
+    },
+    "mechanism": "Up to16candidate-relative mask/preceding-word sparse features augment existing16entry features. Exact payload/provenance stays at the occurrence; entry sums features with multiplicity and loses absolute occurrence rank. No extra persistent state or dense inference. Existing copy/observation/completion operators execute.",
+    "cost": {
+      "same_62_full_us": 50597,
+      "same_62_no_dispatch_us": 65275,
+      "full_ordinary_score_lookups": 1619990,
+      "no_dispatch_ordinary_score_lookups": 1867776,
+      "full_memory_score_lookups": 294190,
+      "no_dispatch_memory_score_lookups": 418735,
+      "copy_score_lookups_each": 90651,
+      "full_equality_byte_comparisons": 10764,
+      "full_dictionary_byte_comparisons": 54336,
+      "forced_bytes": 111,
+      "equal_responses_and_causal_states": 62,
+      "scope": "Single-pass complete generation, including failed answers; compare mode field separately from causal state. Full operation vectors and parent wall in local report."
+    },
+    "checks": {
+      "first_native_units": 109,
+      "first_other_allocation_checks": 5,
+      "initial_new_allocation_fixture": "FAILED: second legacy serialized-row validator rejected kind32; corrected without data/dose change",
+      "corrected_copy_tests": 12,
+      "corrected_allocation_fixture": 1,
+      "preparation_word_bound": 1,
+      "architecture_policy": "PASS; existing checker source unchanged",
+      "broader_release": "NOT_RUN",
+      "preparation_tests": 6,
+      "format": "PASS",
+      "claim_wording": "PASS"
+    },
+    "compiler_and_cli": {
+      "primary_rust_sources": [
+        {
+          "id": "typed-value/development/rust/copy_current/100000",
+          "sha256": "e61f90d2aa38709da5359f151c07be4736902caa26cfd0aaa67251ed59076ceb",
+          "same_previously_executed_source": true
+        },
+        {
+          "id": "typed-value/development/rust/add/100000",
+          "sha256": "c292364e9eb6266145bf036b1f8e83beb1be7ee5db1d717eff965838c02871cc",
+          "same_previously_executed_source": true
+        },
+        {
+          "id": "typed-value/development/rust/dependency_before_update/100000",
+          "sha256": "e7f616298e08196303ef15b2fb07a3680b16f3a7b8c671ac8210c36283156e6c",
+          "same_previously_executed_source": true
+        },
+        {
+          "id": "typed-value/development/rust/no_write/100000",
+          "sha256": "299881eec91f60a179921730b9682ace4f7d279adbfd27550271f7d6f01734f7",
+          "same_previously_executed_source": true
+        },
+        {
+          "id": "typed-value/development/rust/copy_current/100001",
+          "sha256": "c557d2df58880d276e54535478ec62a1813a1b4e8c8b2e5e4bf2fb0a6f0d7946",
+          "same_previously_executed_source": true
+        },
+        {
+          "id": "typed-value/development/rust/add/100001",
+          "sha256": "23ab8e2699972be781259a26196a02b279bde80fffed667a4e0b23d4bf6bc0a8",
+          "same_previously_executed_source": true
+        },
+        {
+          "id": "typed-value/development/rust/dependency_before_update/100001",
+          "sha256": "e9598a4a22328f4eaaaabd43efbccccdfc104f2856ed92ad82aee6db81ed9a28",
+          "same_previously_executed_source": true
+        },
+        {
+          "id": "typed-value/development/rust/no_write/100001",
+          "sha256": "25a17208dea97ff149e909e44f7a426f8bc5ea4f6487619aff7434946795a464",
+          "same_previously_executed_source": true
+        },
+        {
+          "id": "typed-value/development/rust/copy_current/100002",
+          "sha256": "85d7b8b3ed676b2fa0edffd6a6567551cc137d18b0cac3ca509f825b2b68ae46",
+          "same_previously_executed_source": true
+        },
+        {
+          "id": "typed-value/development/rust/add/100002",
+          "sha256": "396cae8077457f9de9017a28e29f43eaeac1ea7d7f8cad0f01f1a171fcf78f3d",
+          "same_previously_executed_source": true
+        },
+        {
+          "id": "typed-value/development/rust/dependency_before_update/100002",
+          "sha256": "602073f96b9821543ade567a4a83f1e35a4dbd7d486d775d67e6ca1d1518c1e6",
+          "same_previously_executed_source": true
+        },
+        {
+          "id": "typed-value/development/rust/no_write/100002",
+          "sha256": "39af86739650c691fd5021eda5970e0aee413991ec3f0ff6339b7d93d8cce797",
+          "same_previously_executed_source": true
+        },
+        {
+          "id": "typed-value/development/rust/copy_current/100003",
+          "sha256": "778d32ee744aa9bb9706f37cfd8ffb661c583c48ec0a20f145e939471faf7afb",
+          "same_previously_executed_source": true
+        },
+        {
+          "id": "typed-value/development/rust/add/100003",
+          "sha256": "c312ab219b6d8da0d26073e3df724f2be1dbcadea432beab315a81140494bd7e",
+          "same_previously_executed_source": true
+        },
+        {
+          "id": "typed-value/development/rust/dependency_before_update/100003",
+          "sha256": "331b8a5ee693357c72531a7b7a26e7e315ee784e6be8095082fe10eb44c11e39",
+          "same_previously_executed_source": true
+        },
+        {
+          "id": "typed-value/development/rust/no_write/100003",
+          "sha256": "ed0f77f68dfa017837f1b56e8c5dc190fcde4870e915d69d8ffbdeb482551010",
+          "same_previously_executed_source": true
+        },
+        {
+          "id": "word-copy/development/context-0/name-0",
+          "sha256": "e8e7095aafc543051954356830a4ab73a15a7cf61bb96af5c10aeebc6de6a3d4",
+          "same_previously_executed_source": true
+        },
+        {
+          "id": "word-copy/development/context-0/name-1",
+          "sha256": "d8d84907bf18113866c86166da38873855204252afc4a620db3e8584a53b4d5e",
+          "same_previously_executed_source": true
+        },
+        {
+          "id": "word-copy/development/context-0/name-2",
+          "sha256": "ccb9ee1f0dbdca9b3a554e6ed8d29ef6bb8b99047fc9a464b57355136223acd8",
+          "same_previously_executed_source": true
+        },
+        {
+          "id": "word-copy/development/context-0/name-3",
+          "sha256": "64bf5e18bd9623ffab1c44da14953de2868313355b8c757e293f6a05f658104a",
+          "same_previously_executed_source": true
+        },
+        {
+          "id": "word-copy/development/context-1/name-4",
+          "sha256": "d827d783d23a02ff8b63cbe7ada558d436d95d111efc60f2759acc56499e12f0",
+          "same_previously_executed_source": true
+        },
+        {
+          "id": "word-copy/development/context-1/name-5",
+          "sha256": "2a08631ec0229e15a718cac835dbd454991cbe4efeaee4b8a5c86c963abbcf4f",
+          "same_previously_executed_source": true
+        },
+        {
+          "id": "word-copy/development/context-2/name-6",
+          "sha256": "d217ee39f7eb66fbd91da62114993ec905e543ca659473395872c95a821098f0",
+          "same_previously_executed_source": true
+        },
+        {
+          "id": "word-copy/development/context-2/name-7",
+          "sha256": "44df0d1754a3efa57821a1eb476e79dbb92a1f33ae810dbad30083d105eeab5b",
+          "same_previously_executed_source": true
+        },
+        {
+          "id": "word-copy/development/context-3/name-8",
+          "sha256": "6a6d515a98fa92789b16aa77d407c5f0129525db0837f8a4e408546dac9a9e11",
+          "same_previously_executed_source": true
+        },
+        {
+          "id": "word-copy/development/context-3/name-9",
+          "sha256": "77206067e6b631af966880176c2cb67d01d39d24b152a2156dbf395a4c9d6d4c",
+          "same_previously_executed_source": true
+        },
+        {
+          "id": "word-copy/development/context-1/name-10",
+          "sha256": "16fb5e596e223c3618affb6b5af9a707533dba5f69ac4cbe76ddd6251d9f59b9",
+          "same_previously_executed_source": true
+        },
+        {
+          "id": "word-copy/development/context-1/name-11",
+          "sha256": "2853d71c7b5ad960f9480189d5f3525ebe9ce882c6b915af5b1a1a7190689765",
+          "same_previously_executed_source": true
+        }
+      ],
+      "prior_receipt": "fact-copy-optimized/cli-and-compiler-reuse.json and prior exact compiler receipts",
+      "scope": "Reuse previously compiled and executed generated sources only when exact full-source SHA256 agrees. No new compiler execution is claimed.",
+      "binding_exact": 8,
+      "binding_rust_sources": [
+        {
+          "id": "typed-value/binding/rust/copy_current/original",
+          "sha256": "e61f90d2aa38709da5359f151c07be4736902caa26cfd0aaa67251ed59076ceb",
+          "same_previously_executed_source": true
+        },
+        {
+          "id": "typed-value/binding/rust/copy_current/source_names_swapped",
+          "sha256": "b783ed24990162c4f5bb69a34a54c794691bc435cd0f52e711cd3b23585b00a9",
+          "same_previously_executed_source": true
+        },
+        {
+          "id": "typed-value/binding/rust/add/original",
+          "sha256": "c292364e9eb6266145bf036b1f8e83beb1be7ee5db1d717eff965838c02871cc",
+          "same_previously_executed_source": true
+        },
+        {
+          "id": "typed-value/binding/rust/add/source_names_swapped",
+          "sha256": "90c50d166f18ffaa54b009d2a509f303fee617648be94f3ece6c88afde895e2a",
+          "same_previously_executed_source": true
+        }
+      ],
+      "actual_cli": {
+        "text": " Unknown.\nKyoto.\n",
+        "generation_fields_equal": true,
+        "artifact": "blake3:f933b199c342fd715c44d938b86281493730f2b41d6d33287e7369f852c24232"
+      }
+    },
+    "resources": {
+      "model_ms": 33622,
+      "engineering_checkpoint_ms": 1101175,
+      "cumulative_model_ms": 1058856,
+      "cumulative_limit_ms": 1800000,
+      "peak_sampled_model_rss_bytes": 761085952,
+      "storage_increase_bytes": 268435456,
+      "storage_limit_bytes": 5653921792,
+      "engineering_final_ms": 1104632
+    },
+    "scope": "Reserved32authored before fitting and executed once per frozen artifact after design selection. Legacy evaluator names the partition development/OPEN; provenance here distinguishes its first use. No reserved outcome selected or retuned these models. Geometry comparison removes features during fitting and Full/dispatch-controlled serving of the copy extension only; baseline, memory and typed paths remain. Exact equality is 8/32 in both fits, all unsupported; outputs need not match on failures. No geometric advantage or alpha. Complete generation timing includes session construction, encoding, ingest, prediction/observation and decode; artifact load and preparation/fits/serialization/CLI are charged in cumulative parent wall. Work counters are instrumented operations, not every CPU instruction.",
+    "next_hypothesis": "Nonmatching occurrences also contribute to prefix scoring. Unknown dictionary predecessors share feature32/value0, whose space score is -242 and Unknown score is -196. Repeated contributions can favor abstention, but a matched removal/refit has NOT_RUN; this is a candidate explanation, not established sole cause."
   }
 }

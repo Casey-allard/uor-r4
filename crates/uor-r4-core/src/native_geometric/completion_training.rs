@@ -47,8 +47,8 @@ pub struct ValueCompletionFitReport {
     pub config: ValueCompletionFitConfig,
 }
 
-pub(super) struct Frame {
-    pub(super) features: [Feature; COMPLETION_FEATURES],
+pub(super) struct Frame<const N: usize = COMPLETION_FEATURES> {
+    pub(super) features: [Feature; N],
     pub(super) len: usize,
     pub(super) target: u32,
     pub(super) baseline: u32,
@@ -423,8 +423,8 @@ pub(super) struct SparseFit {
     pub(super) selected_epoch: usize,
 }
 
-pub(super) fn fit_sparse_frames(
-    frames: &[Frame],
+pub(super) fn fit_sparse_frames<const N: usize>(
+    frames: &[Frame<N>],
     config: ValueCompletionFitConfig,
     max_rows: usize,
     max_associations: usize,
@@ -484,7 +484,7 @@ pub(super) fn fit_sparse_frames(
     let mut examples = Vec::new();
     let mut target_in_candidates = 0;
     for frame in frames {
-        let (tokens, len, _, _) = completion_runtime::candidate_rows(
+        let (tokens, len, _, _) = completion_runtime::candidate_rows_bounded::<N>(
             &rows,
             &global_postings,
             &frame.features[..frame.len],

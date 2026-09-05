@@ -1,7 +1,7 @@
 //! Learned occurrence admission followed by one bounded, causal byte cursor.
 //! Dictionary primes are equality addresses. Exact payload bytes never become
 //! selector labels, and output observations never select a source occurrence.
-use super::completion_runtime::{candidate_rows, score_rows};
+use super::completion_runtime::{candidate_rows, candidate_rows_bounded, score_rows};
 use super::response_entry_types::*;
 use super::value_lexemes::{WordAtom, WORD_QUERY};
 use super::value_types::{ValueFeature, ValueState};
@@ -10,6 +10,20 @@ use super::*;
 
 pub(super) fn enabled(control: Control) -> bool {
     control != Control::WordCopyDisabled
+}
+
+fn geometry_control(model: &Model, control: Control) -> Control {
+    if matches!(control, Control::Full | Control::WordCopyDispatchDisabled)
+        && model
+            .response_entry
+            .as_ref()
+            .and_then(|h| h.copy.as_ref())
+            .is_some_and(|h| h.binding_geometry_disabled)
+    {
+        Control::WordCopyGeometryDisabled
+    } else {
+        control
+    }
 }
 
 pub(super) fn eligible(
@@ -54,6 +68,7 @@ pub(super) fn context(
     control: Control,
     work: &mut WordCopyWork,
 ) -> WordCopyContext {
+    let control = geometry_control(model, control);
     let mut context = WordCopyContext {
         addresses: [0; WORD_QUERY],
         query_path: None,
@@ -257,6 +272,7 @@ impl WordCopyState {
         control: Control,
         work: &mut WordCopyWork,
     ) -> ([Feature; RESPONSE_ENTRY_FEATURES], usize) {
+        let control = geometry_control(model, control);
         let suffix_control = if control == Control::WordCopyGeometryDisabled {
             Control::ResponseEntryGeometryDisabled
         } else {
@@ -682,13 +698,16 @@ pub(super) fn prefix_features(
     values: &ValueState,
     control: Control,
     work: &mut WordCopyWork,
-) -> ([Feature; RESPONSE_ENTRY_FEATURES], usize) {
+) -> ([Feature; WORD_COPY_PREFIX_FEATURES], usize) {
+    let control = geometry_control(model, control);
     let control = if control == Control::WordCopyGeometryDisabled {
         Control::ResponseEntryGeometryDisabled
     } else {
         control
     };
-    let (mut features, len) = entry.features(model, values, control, &mut work.selector);
+    let (base, mut len) = entry.features(model, values, control, &mut work.selector);
+    let mut features = [Feature { kind: 0, value: 0 }; WORD_COPY_PREFIX_FEATURES];
+    features[..len].copy_from_slice(&base[..len]);
     for feature in &mut features[..len] {
         feature.kind &= 15;
     }
@@ -724,6 +743,36 @@ pub(super) fn prefix_features(
             feature.value = (repeated << 32) | u64::from(entry.last);
         }
     }
+    if let Some(head) = model
+        .response_entry
+        .as_ref()
+        .and_then(|h| h.copy.as_ref())
+        .filter(|h| h.shared_binding)
+    {
+        if let Some(words) = &values.lexemes {
+            // Same relation as selector feature23, without candidate rank or
+            // payload identity. Keep every occurrence, including zero matches;
+            // sparse learned token coefficients decide its influence. Equal
+            // features retain multiplicity in both fitting and integer scoring.
+            for index in 0..words.query_len {
+                let mask = binding_mask(values, index, work);
+                let preceding = words
+                    .queries
+                    .get(index + 1)
+                    .filter(|_| index + 1 < words.query_len)
+                    .map_or(0, |word| {
+                        work.word_record_reads = work.word_record_reads.saturating_add(1);
+                        address(head, word, work)
+                    });
+                features[len] = Feature {
+                    kind: 32,
+                    value: (mask << 32) | u64::from(preceding),
+                };
+                len += 1;
+                work.selector.state_copies = work.selector.state_copies.saturating_add(1);
+            }
+        }
+    }
     (features, len)
 }
 
@@ -741,7 +790,7 @@ pub(super) fn prefix_offer(
     }
     let head = model.response_entry.as_ref()?.copy.as_ref()?;
     let (features, len) = prefix_features(model, entry, values, control, work);
-    let (tokens, count, rows, row_count) = candidate_rows(
+    let (tokens, count, rows, row_count) = candidate_rows_bounded::<WORD_COPY_PREFIX_FEATURES>(
         &head.prefix_rows,
         &head.prefix_postings,
         &features[..len],

@@ -578,6 +578,94 @@ fn native_word_copy_preserves_parent_and_respects_typed_precedence_and_controls(
 }
 
 #[test]
+fn native_word_copy_shared_binding_matches_selector_and_preserves_old_identity() {
+    let old = fixture::fitted_completed_word();
+    let bytes = old.to_bytes().unwrap();
+    assert!(!String::from_utf8_lossy(&bytes).contains("shared_binding"));
+    assert_eq!(
+        Model::from_bytes(&bytes).unwrap().artifact_cid(),
+        old.artifact_cid()
+    );
+    let mut model = old.clone();
+    let head = model
+        .response_entry
+        .as_mut()
+        .unwrap()
+        .copy
+        .as_mut()
+        .unwrap();
+    head.composed_entry = true;
+    head.shared_binding = true;
+    model.refresh_identity().unwrap();
+    for prompt in [
+        "orin lives in Oslo. What city does orin live in? Answer:",
+        "User: orin lives in Oslo. User: What city does orin live in? Assistant:",
+        "User: orin in Oslo. orin now in Lima. User: What city does orin live in? Assistant:",
+    ] {
+        let session = prefix(&model, prompt, Control::Full);
+        let values = session.values.as_ref().unwrap();
+        let entry = session.response_entry.as_ref().unwrap();
+        let mut work = WordCopyWork::default();
+        let (shared, len) =
+            word_copy_runtime::prefix_features(&model, entry, values, Control::Full, &mut work);
+        let words = values.lexemes.as_ref().unwrap();
+        assert_eq!(len, 16 + words.query_len);
+        assert!(len <= word_copy_types::WORD_COPY_PREFIX_FEATURES);
+        let context = word_copy_runtime::context(&model, values, Control::Full, &mut work);
+        for index in 0..words.query_len {
+            let (features, n) = word_copy_runtime::features(
+                &model,
+                values,
+                &context,
+                index,
+                Control::Full,
+                &mut work,
+            );
+            let binding = features[..n].iter().find(|f| f.kind == 23).unwrap();
+            assert_eq!(
+                shared[16 + index],
+                Feature {
+                    kind: 32,
+                    value: (binding.a << 32) | binding.b
+                }
+            );
+        }
+        assert!(work.equality_byte_comparisons > 0);
+        let mut controlled = model.clone();
+        controlled
+            .response_entry
+            .as_mut()
+            .unwrap()
+            .copy
+            .as_mut()
+            .unwrap()
+            .binding_geometry_disabled = true;
+        controlled.refresh_identity().unwrap();
+        let (plain, n) = word_copy_runtime::prefix_features(
+            &controlled,
+            entry,
+            values,
+            Control::Full,
+            &mut work,
+        );
+        assert!(plain[..n].iter().all(|f| f.kind < 6 || f.kind == 32));
+        let context = word_copy_runtime::context(&controlled, values, Control::Full, &mut work);
+        assert!(context.query_path.is_none() && context.query_phases.is_none());
+    }
+    let head = model
+        .response_entry
+        .as_mut()
+        .unwrap()
+        .copy
+        .as_mut()
+        .unwrap();
+    head.shared_binding = false;
+    head.binding_geometry_disabled = true;
+    model.refresh_identity().unwrap();
+    assert!(Model::from_bytes(&model.to_bytes().unwrap()).is_err());
+}
+
+#[test]
 fn native_word_copy_composed_prefix_dispatch_and_restore() {
     use super::value_types::{ValueFeature, ValueRow};
     let mut model = fixture::fitted_completed_word().clone();

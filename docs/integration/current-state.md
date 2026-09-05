@@ -7,6 +7,62 @@ remains owned by [#973](https://github.com/UOR-Foundation/uor-r4/issues/973).
 Refresh live GitHub before choosing a follow-up; dated snapshots and lower
 historical “next” paragraphs do not select work.
 
+## Wording transfer and shared binding — 2026-09-05, later checkpoint
+
+**Decision: reject the shared-binding candidate for promotion.** Keep the
+composed fact artifact `d095a1abccefd68678a9d7da61e4d8fd094d9f7ca71e10c5e0383518889ed586`
+selected. Its delivery, PR #1134, merged as `19f25ddb`. Useful geometric-only
+conversation/coding remains the goal; broader transfer is not established.
+
+A sixteen-case matched check separates question wording, speaker formatting and
+numeric distractors. Distractors do not change outcomes. The selected artifact
+gets 4/16 exact. Adding 96 construction cases to the existing 288, with unchanged
+operators and fitting dose, reaches 12/16 but regresses four original abstentions.
+
+The optional `shared_binding` implementation adds each retained occurrence's
+existing query/source equality mask and preceding-word prime address to lexical
+entry. It keeps the sixteen-word capture, /4 memory, typed operators, copy cursor,
+completion frame and integer/table serving. Entry has at most 32 features; no new
+persistent state or answer buffer is added. These features preserve local
+matches and their multiplicity, while pooled scoring loses occurrence rank and
+full clause/query meaning. All matching, dictionary lookup and scoring work is
+included in the existing counters.
+
+The shared-binding fit preserves 32/32 original,12/12 identifier and 8/8 binding
+responses, but gets 12/16 prior fact cases and 0/2 old cities. It also reaches 12/16
+on the matched diagnostic. A matched fit without copy-extension geometry has
+the same preservation counts. The 32 reserved cases were authored before fitting
+and opened once per frozen artifact after design selection, with no subsequent
+tuning: selected parent 3/32, extra-coverage fit 0/32, shared binding 8/32 and matched
+geometry-disabled fit 8/32. Both shared fits get only the eight unsupported cases
+right: **0/24supported complete answers**. This is a transfer negative, with no
+geometric advantage established. Existing benchmark/report OPEN labels do not
+replace the first-use provenance in the local checkpoint.
+
+The new fit's 62 responses and causal final states match with committed-copy
+dispatch enabled/disabled. Complete generation totals 50.597/65.275 ms in one pass;
+ordinary score lookups 1,619,990/1,867,776, memory 294,190/418,735, and copy 90,651
+in both. Shared entry adds work; this is not an efficiency improvement over the
+selected artifact. Failed outputs also contribute to those timings.
+
+Local evidence lives under
+`.uor-models/native-typed-value-2026-09-05/wording-checkpoint.json`, with frozen
+sources, three fitted artifacts, all outputs/cost vectors, CLI equality and 32
+unchanged generated-Rust compiler receipts. Checks passed 109 native units; after
+repairing a serialized-row validation omission, 12 affected copy tests, the new
+allocation fixture and the source word-bound test passed. Model work used
+33.622/120 seconds; cumulative 1,058.856/1,800 seconds. Engineering used 1,104.632/1,200 seconds, including final
+formatting, claim wording and all six preparation tests. Necessary storage increased 256 MiB
+to a cumulative 5,653,921,792-byte cap, preserving the 128 MiB margin. No deletions
+or external compute.
+
+A concrete remaining hypothesis is that nonmatching occurrences should not cast
+lexical votes: feature32/value0 currently penalizes the prefix space by 242 per
+occurrence and Unknown by 196. This can favor abstention for unseen dictionary
+words. Neutralizing that contribution and testing source-supported entry is
+**not implemented or evaluated**. Do not widen context or promote these fits on
+the strength of construction accuracy.
+
 ## Composed fact answers and committed-copy dispatch — 2026-09-05
 
 The optional `composed_entry` extension now learns lexical output → retained-word

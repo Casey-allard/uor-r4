@@ -4,6 +4,7 @@ use super::*;
 
 pub(super) const RESPONSE_COPY_SCHEMA: &str = "uor-r4.native-response-entry/2";
 pub(super) const WORD_COPY_FEATURES: usize = 24;
+pub(super) const WORD_COPY_PREFIX_FEATURES: usize = 32;
 pub(super) const WORD_COPY_ROWS: usize = 4096;
 pub(super) const WORD_COPY_DICTIONARY: usize = 256;
 
@@ -33,6 +34,12 @@ pub(super) struct WordCopyModel {
     /// General entry composition and committed-copy dispatch. Omission keeps /2 behavior.
     #[serde(default, skip_serializing_if = "copy_suffix_disabled")]
     pub composed_entry: bool,
+    /// Add each candidate's existing mask/preceding-address evidence at entry.
+    #[serde(default, skip_serializing_if = "copy_suffix_disabled")]
+    pub shared_binding: bool,
+    /// Matched offline fit and serving control, scoped to this copy extension.
+    #[serde(default, skip_serializing_if = "copy_suffix_disabled")]
+    pub binding_geometry_disabled: bool,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub prefix_rows: Vec<ScoreRow>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]

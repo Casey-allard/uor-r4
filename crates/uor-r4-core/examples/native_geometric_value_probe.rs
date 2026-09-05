@@ -19,6 +19,8 @@ use uor_r4_core::native_geometric::{
 };
 
 type ProbeResult<T> = Result<T, Box<dyn Error>>;
+#[path = "native_geometric_value_probe/wording.rs"]
+mod wording;
 const SOURCE_SCHEMA: &str = "uor-r4.native-typed-value-source/1";
 const LEXEME_SOURCE_SCHEMA: &str = "uor-r4.native-typed-value-source/2";
 const WORD_COPY_SOURCE_SCHEMA: &str = "uor-r4.native-typed-value-source/3";
@@ -72,7 +74,7 @@ impl Options {
         while let Some(flag) = arguments.next() {
             if flag == "--help" || flag == "-h" {
                 println!(
-                    "native_geometric_value_probe [prepare|prepare-copy|prepare-facts|fit|completion|entry|copy|copy-completed|copy-composed|evaluate] --output-dir NEW_DIRECTORY\n\
+                    "native_geometric_value_probe [prepare|prepare-copy|prepare-facts|prepare-wording|fit|completion|entry|copy|copy-completed|copy-composed|copy-binding|copy-binding-plain|evaluate] --output-dir NEW_DIRECTORY\n\
                      prepare-copy: --source SOURCE_V2 --lexeme-cues true\n\
                      copy: --model ENTRY_MODEL --source SOURCE_V3 --lexeme-cues true --generated-tokens 64\n\
                      copy-completed: same source/parent, suffix frame starts after the observed copied word\n\
@@ -128,6 +130,8 @@ impl Options {
             "copy",
             "copy-completed",
             "copy-composed",
+            "copy-binding",
+            "copy-binding-plain",
             "evaluate",
         ]
         .contains(&result.mode.as_str())
@@ -142,6 +146,8 @@ impl Options {
                 "copy",
                 "copy-completed",
                 "copy-composed",
+                "copy-binding",
+                "copy-binding-plain",
                 "evaluate",
             ]
             .contains(&result.mode.as_str())
@@ -154,6 +160,8 @@ impl Options {
                 "copy",
                 "copy-completed",
                 "copy-composed",
+                "copy-binding",
+                "copy-binding-plain",
             ]
             .contains(&result.mode.as_str())
                 && !result.lexeme_cues)
@@ -163,6 +171,8 @@ impl Options {
                 "copy",
                 "copy-completed",
                 "copy-composed",
+                "copy-binding",
+                "copy-binding-plain",
             ]
             .contains(&result.mode.as_str())
                 && result.epochs > 64)
@@ -210,7 +220,7 @@ impl Case {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Source {
     schema: String,
@@ -518,7 +528,14 @@ fn source(options: &Options) -> ProbeResult<Source> {
             "source schema must match --lexeme-cues; prepare a new /2 source with true".into(),
         );
     }
-    if ["copy", "copy-completed", "copy-composed"].contains(&options.mode.as_str())
+    if [
+        "copy",
+        "copy-completed",
+        "copy-composed",
+        "copy-binding",
+        "copy-binding-plain",
+    ]
+    .contains(&options.mode.as_str())
         && result.schema != WORD_COPY_SOURCE_SCHEMA
     {
         return Err("copy fitting requires the prepared /3 source".into());
@@ -942,6 +959,9 @@ fn evaluate_binding(
 }
 
 fn main() -> ProbeResult<()> {
+    if std::env::args().nth(1).as_deref() == Some("prepare-wording") {
+        return wording::prepare();
+    }
     let options = Options::parse()?;
     let output_limit = if [
         "completion",
@@ -949,6 +969,8 @@ fn main() -> ProbeResult<()> {
         "copy",
         "copy-completed",
         "copy-composed",
+        "copy-binding",
+        "copy-binding-plain",
     ]
     .contains(&options.mode.as_str())
     {
@@ -1006,62 +1028,78 @@ fn main() -> ProbeResult<()> {
         "copy",
         "copy-completed",
         "copy-composed",
+        "copy-binding",
+        "copy-binding-plain",
     ]
     .contains(&options.mode.as_str())
     {
         let examples: Vec<_> = source.fit.iter().map(Case::example).collect();
-        let (fitted, report) =
-            if ["copy", "copy-completed", "copy-composed"].contains(&options.mode.as_str()) {
-                let config = ResponseEntryFitConfig {
-                    epochs: options.epochs,
-                    learning_rate: options.learning_rate,
-                    max_positions: options.completion_max_positions,
-                };
-                let (fitted, report) = if options.mode == "copy-composed" {
+        let (fitted, report) = if [
+            "copy",
+            "copy-completed",
+            "copy-composed",
+            "copy-binding",
+            "copy-binding-plain",
+        ]
+        .contains(&options.mode.as_str())
+        {
+            let config = ResponseEntryFitConfig {
+                epochs: options.epochs,
+                learning_rate: options.learning_rate,
+                max_positions: options.completion_max_positions,
+            };
+            let (fitted, report) =
+                if matches!(options.mode.as_str(), "copy-binding" | "copy-binding-plain") {
+                    baseline.fit_response_entry_copy_binding(
+                        &examples,
+                        config,
+                        options.mode == "copy-binding-plain",
+                    )?
+                } else if options.mode == "copy-composed" {
                     baseline.fit_response_entry_copy_composed(&examples, config)?
                 } else if options.mode == "copy-completed" {
                     baseline.fit_response_entry_copy_completed_word(&examples, config)?
                 } else {
                     baseline.fit_response_entry_copy(&examples, config)?
                 };
-                write_json(&options.output_dir.join("fit-report.json"), &report)?;
-                (fitted, serde_json::to_value(report)?)
-            } else if options.mode == "entry" {
-                let (fitted, report) = baseline.fit_response_entry(
-                    &examples,
-                    ResponseEntryFitConfig {
-                        epochs: options.epochs,
-                        learning_rate: options.learning_rate,
-                        max_positions: options.completion_max_positions,
-                    },
-                )?;
-                write_json(&options.output_dir.join("fit-report.json"), &report)?;
-                (fitted, serde_json::to_value(report)?)
-            } else if options.mode == "completion" {
-                let (fitted, report) = baseline.fit_value_completion(
-                    &examples,
-                    ValueCompletionFitConfig {
-                        epochs: options.epochs,
-                        learning_rate: options.learning_rate,
-                        max_positions: options.completion_max_positions,
-                    },
-                )?;
-                write_json(&options.output_dir.join("fit-report.json"), &report)?;
-                (fitted, serde_json::to_value(report)?)
-            } else {
-                let config = ValueFitConfig {
+            write_json(&options.output_dir.join("fit-report.json"), &report)?;
+            (fitted, serde_json::to_value(report)?)
+        } else if options.mode == "entry" {
+            let (fitted, report) = baseline.fit_response_entry(
+                &examples,
+                ResponseEntryFitConfig {
                     epochs: options.epochs,
                     learning_rate: options.learning_rate,
-                    max_features: options.max_features,
-                };
-                let (fitted, report) = if options.lexeme_cues {
-                    baseline.fit_values_with_lexeme_cues(&examples, config)?
-                } else {
-                    baseline.fit_values(&examples, config)?
-                };
-                write_json(&options.output_dir.join("fit-report.json"), &report)?;
-                (fitted, serde_json::to_value(report)?)
+                    max_positions: options.completion_max_positions,
+                },
+            )?;
+            write_json(&options.output_dir.join("fit-report.json"), &report)?;
+            (fitted, serde_json::to_value(report)?)
+        } else if options.mode == "completion" {
+            let (fitted, report) = baseline.fit_value_completion(
+                &examples,
+                ValueCompletionFitConfig {
+                    epochs: options.epochs,
+                    learning_rate: options.learning_rate,
+                    max_positions: options.completion_max_positions,
+                },
+            )?;
+            write_json(&options.output_dir.join("fit-report.json"), &report)?;
+            (fitted, serde_json::to_value(report)?)
+        } else {
+            let config = ValueFitConfig {
+                epochs: options.epochs,
+                learning_rate: options.learning_rate,
+                max_features: options.max_features,
             };
+            let (fitted, report) = if options.lexeme_cues {
+                baseline.fit_values_with_lexeme_cues(&examples, config)?
+            } else {
+                baseline.fit_values(&examples, config)?
+            };
+            write_json(&options.output_dir.join("fit-report.json"), &report)?;
+            (fitted, serde_json::to_value(report)?)
+        };
         write_new(&options.output_dir.join("model.json"), &fitted.to_bytes()?)?;
         // Evaluate the serialized/reloaded artifact, not only the trainer's
         // in-memory object. Parent monitoring charges this loading/serialization.
@@ -1117,6 +1155,13 @@ fn main() -> ProbeResult<()> {
     }
     if options.mode == "copy-composed" {
         report["response_entry_scope"] = json!("Composed /2 extension: first response word after at most one learned lexical prefix token; exact source/query equality plus relative H4/phase features select a retained occurrence. No numeric-source requirement. NoCopy lexical continuation learns after an actually selected first transition. Forced interior copy bytes dispatch before ordinary scoring with score1 marker; observation/memory updates remain.64new construction and16fresh cases augment the unchanged source; no template or target buffer enters inference.");
+    }
+    if matches!(options.mode.as_str(), "copy-binding" | "copy-binding-plain") {
+        report["response_entry_scope"] = json!({
+            "operator": "Composed copy with the existing candidate binding-mask/preceding-word address supplied to lexical entry as one sparse feature per retained occurrence. At most32entry features,16lexical candidates and16retained words. Source payloads and copy selection remain unchanged. No candidate rank or answer bytes enter the new entry feature; repeated features retain multiplicity.",
+            "copy_geometry_disabled_during_fit_and_serving": options.mode == "copy-binding-plain",
+            "control_scope": "Matched parent, source, dose, caps and nongeometric features. This flag removes H4/orientation/zeta features from the copy extension only; inherited ordinary/memory/typed paths remain. Reserved cases are evaluated separately after design selection."
+        });
     }
     if let Some(limit) = output_limit {
         report["resources"]["output_bytes_limit"] = json!(limit);
