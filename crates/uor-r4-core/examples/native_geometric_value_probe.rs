@@ -72,7 +72,7 @@ impl Options {
         while let Some(flag) = arguments.next() {
             if flag == "--help" || flag == "-h" {
                 println!(
-                    "native_geometric_value_probe [prepare|prepare-copy|fit|completion|entry|copy|copy-completed|evaluate] --output-dir NEW_DIRECTORY\n\
+                    "native_geometric_value_probe [prepare|prepare-copy|prepare-facts|fit|completion|entry|copy|copy-completed|copy-composed|evaluate] --output-dir NEW_DIRECTORY\n\
                      prepare-copy: --source SOURCE_V2 --lexeme-cues true\n\
                      copy: --model ENTRY_MODEL --source SOURCE_V3 --lexeme-cues true --generated-tokens 64\n\
                      copy-completed: same source/parent, suffix frame starts after the observed copied word\n\
@@ -121,37 +121,50 @@ impl Options {
         if ![
             "prepare",
             "prepare-copy",
+            "prepare-facts",
             "fit",
             "completion",
             "entry",
             "copy",
             "copy-completed",
+            "copy-composed",
             "evaluate",
         ]
         .contains(&result.mode.as_str())
             || result.output_dir.as_os_str().is_empty()
-            || (!["prepare", "prepare-copy"].contains(&result.mode.as_str())
+            || (!["prepare", "prepare-copy", "prepare-facts"].contains(&result.mode.as_str())
                 && result.model.as_os_str().is_empty())
             || ([
                 "prepare-copy",
+                "prepare-facts",
                 "completion",
                 "entry",
                 "copy",
                 "copy-completed",
+                "copy-composed",
                 "evaluate",
             ]
             .contains(&result.mode.as_str())
                 && result.source.is_none())
             || ([
                 "prepare-copy",
+                "prepare-facts",
                 "completion",
                 "entry",
                 "copy",
                 "copy-completed",
+                "copy-composed",
             ]
             .contains(&result.mode.as_str())
                 && !result.lexeme_cues)
-            || (["completion", "entry", "copy", "copy-completed"].contains(&result.mode.as_str())
+            || ([
+                "completion",
+                "entry",
+                "copy",
+                "copy-completed",
+                "copy-composed",
+            ]
+            .contains(&result.mode.as_str())
                 && result.epochs > 64)
             || !(1..=4096).contains(&result.completion_max_positions)
             || !["all", "full"].contains(&result.controls.as_str())
@@ -496,13 +509,16 @@ fn source(options: &Options) -> ProbeResult<Source> {
     if options.mode == "prepare-copy" {
         append_word_copy_cases(&mut result)?;
     }
+    if options.mode == "prepare-facts" {
+        append_fact_cases(&mut result)?;
+    }
     validate_source(&result)?;
     if (result.schema != SOURCE_SCHEMA) != options.lexeme_cues {
         return Err(
             "source schema must match --lexeme-cues; prepare a new /2 source with true".into(),
         );
     }
-    if ["copy", "copy-completed"].contains(&options.mode.as_str())
+    if ["copy", "copy-completed", "copy-composed"].contains(&options.mode.as_str())
         && result.schema != WORD_COPY_SOURCE_SCHEMA
     {
         return Err("copy fitting requires the prepared /3 source".into());
@@ -729,6 +745,7 @@ fn evaluate(
             Control::Full,
             Control::WordCopyDisabled,
             Control::WordCopyGeometryDisabled,
+            Control::WordCopyDispatchDisabled,
         ]
     } else if entry {
         vec![
@@ -763,7 +780,9 @@ fn evaluate(
         let mut pairs: BTreeMap<&str, Vec<(bool, Option<Vec<u8>>)>> = BTreeMap::new();
         for (index, case) in source.development.iter().enumerate() {
             within_limit(start, options)?;
+            let generation_start = Instant::now();
             let generation = model.generate(&case.prompt, options.generated_tokens, control)?;
+            let generation_elapsed_us = generation_start.elapsed().as_micros();
             let expected = leading_numeral(case.response.as_bytes());
             let actual = leading_numeral(&generation.bytes);
             let numeral_correct = expected.map(|value| actual == Some(value));
@@ -809,6 +828,7 @@ fn evaluate(
                 "exact_response":exact,
                 "generated_source":generated_source,
                 "generation":generation,
+                "generation_elapsed_us":generation_elapsed_us,
             }));
         }
         let pair_rows: Vec<_> = pairs.into_iter().map(|(id, values)| json!({
@@ -923,14 +943,21 @@ fn evaluate_binding(
 
 fn main() -> ProbeResult<()> {
     let options = Options::parse()?;
-    let output_limit =
-        if ["completion", "entry", "copy", "copy-completed"].contains(&options.mode.as_str()) {
-            Some(COMPLETION_OUTPUT_BYTES)
-        } else if options.controls == "full" {
-            Some(PRESERVATION_OUTPUT_BYTES)
-        } else {
-            None
-        };
+    let output_limit = if [
+        "completion",
+        "entry",
+        "copy",
+        "copy-completed",
+        "copy-composed",
+    ]
+    .contains(&options.mode.as_str())
+    {
+        Some(COMPLETION_OUTPUT_BYTES)
+    } else if options.controls == "full" {
+        Some(PRESERVATION_OUTPUT_BYTES)
+    } else {
+        None
+    };
     OUTPUT_BYTES_REMAINING.store(output_limit.unwrap_or(usize::MAX), Ordering::Relaxed);
     let start = Instant::now();
     let source = source(&options)?;
@@ -962,7 +989,7 @@ fn main() -> ProbeResult<()> {
         &options.output_dir.join("binding-controls-source.json"),
         &binding_bytes,
     )?;
-    if ["prepare", "prepare-copy"].contains(&options.mode.as_str()) {
+    if ["prepare", "prepare-copy", "prepare-facts"].contains(&options.mode.as_str()) {
         println!(
             "{}",
             json!({"status":"prepared","fit_cases":source.fit.len(),"development_cases":source.development.len(),"source_blake3":blake3::hash(&source_bytes).to_hex().to_string(),"elapsed_ms":start.elapsed().as_millis()})
@@ -972,59 +999,69 @@ fn main() -> ProbeResult<()> {
     within_limit(start, &options)?;
     let baseline = Model::from_bytes(&fs::read(&options.model)?)?;
     let input_artifact = baseline.artifact_cid().to_owned();
-    let (model, fit_report) = if ["fit", "completion", "entry", "copy", "copy-completed"]
-        .contains(&options.mode.as_str())
+    let (model, fit_report) = if [
+        "fit",
+        "completion",
+        "entry",
+        "copy",
+        "copy-completed",
+        "copy-composed",
+    ]
+    .contains(&options.mode.as_str())
     {
         let examples: Vec<_> = source.fit.iter().map(Case::example).collect();
-        let (fitted, report) = if ["copy", "copy-completed"].contains(&options.mode.as_str()) {
-            let config = ResponseEntryFitConfig {
-                epochs: options.epochs,
-                learning_rate: options.learning_rate,
-                max_positions: options.completion_max_positions,
-            };
-            let (fitted, report) = if options.mode == "copy-completed" {
-                baseline.fit_response_entry_copy_completed_word(&examples, config)?
-            } else {
-                baseline.fit_response_entry_copy(&examples, config)?
-            };
-            write_json(&options.output_dir.join("fit-report.json"), &report)?;
-            (fitted, serde_json::to_value(report)?)
-        } else if options.mode == "entry" {
-            let (fitted, report) = baseline.fit_response_entry(
-                &examples,
-                ResponseEntryFitConfig {
+        let (fitted, report) =
+            if ["copy", "copy-completed", "copy-composed"].contains(&options.mode.as_str()) {
+                let config = ResponseEntryFitConfig {
                     epochs: options.epochs,
                     learning_rate: options.learning_rate,
                     max_positions: options.completion_max_positions,
-                },
-            )?;
-            write_json(&options.output_dir.join("fit-report.json"), &report)?;
-            (fitted, serde_json::to_value(report)?)
-        } else if options.mode == "completion" {
-            let (fitted, report) = baseline.fit_value_completion(
-                &examples,
-                ValueCompletionFitConfig {
+                };
+                let (fitted, report) = if options.mode == "copy-composed" {
+                    baseline.fit_response_entry_copy_composed(&examples, config)?
+                } else if options.mode == "copy-completed" {
+                    baseline.fit_response_entry_copy_completed_word(&examples, config)?
+                } else {
+                    baseline.fit_response_entry_copy(&examples, config)?
+                };
+                write_json(&options.output_dir.join("fit-report.json"), &report)?;
+                (fitted, serde_json::to_value(report)?)
+            } else if options.mode == "entry" {
+                let (fitted, report) = baseline.fit_response_entry(
+                    &examples,
+                    ResponseEntryFitConfig {
+                        epochs: options.epochs,
+                        learning_rate: options.learning_rate,
+                        max_positions: options.completion_max_positions,
+                    },
+                )?;
+                write_json(&options.output_dir.join("fit-report.json"), &report)?;
+                (fitted, serde_json::to_value(report)?)
+            } else if options.mode == "completion" {
+                let (fitted, report) = baseline.fit_value_completion(
+                    &examples,
+                    ValueCompletionFitConfig {
+                        epochs: options.epochs,
+                        learning_rate: options.learning_rate,
+                        max_positions: options.completion_max_positions,
+                    },
+                )?;
+                write_json(&options.output_dir.join("fit-report.json"), &report)?;
+                (fitted, serde_json::to_value(report)?)
+            } else {
+                let config = ValueFitConfig {
                     epochs: options.epochs,
                     learning_rate: options.learning_rate,
-                    max_positions: options.completion_max_positions,
-                },
-            )?;
-            write_json(&options.output_dir.join("fit-report.json"), &report)?;
-            (fitted, serde_json::to_value(report)?)
-        } else {
-            let config = ValueFitConfig {
-                epochs: options.epochs,
-                learning_rate: options.learning_rate,
-                max_features: options.max_features,
+                    max_features: options.max_features,
+                };
+                let (fitted, report) = if options.lexeme_cues {
+                    baseline.fit_values_with_lexeme_cues(&examples, config)?
+                } else {
+                    baseline.fit_values(&examples, config)?
+                };
+                write_json(&options.output_dir.join("fit-report.json"), &report)?;
+                (fitted, serde_json::to_value(report)?)
             };
-            let (fitted, report) = if options.lexeme_cues {
-                baseline.fit_values_with_lexeme_cues(&examples, config)?
-            } else {
-                baseline.fit_values(&examples, config)?
-            };
-            write_json(&options.output_dir.join("fit-report.json"), &report)?;
-            (fitted, serde_json::to_value(report)?)
-        };
         write_new(&options.output_dir.join("model.json"), &fitted.to_bytes()?)?;
         // Evaluate the serialized/reloaded artifact, not only the trainer's
         // in-memory object. Parent monitoring charges this loading/serialization.
@@ -1077,6 +1114,9 @@ fn main() -> ProbeResult<()> {
     }
     if options.controls != "all" {
         report["controls_selection"] = json!(options.controls);
+    }
+    if options.mode == "copy-composed" {
+        report["response_entry_scope"] = json!("Composed /2 extension: first response word after at most one learned lexical prefix token; exact source/query equality plus relative H4/phase features select a retained occurrence. No numeric-source requirement. NoCopy lexical continuation learns after an actually selected first transition. Forced interior copy bytes dispatch before ordinary scoring with score1 marker; observation/memory updates remain.64new construction and16fresh cases augment the unchanged source; no template or target buffer enters inference.");
     }
     if let Some(limit) = output_limit {
         report["resources"]["output_bytes_limit"] = json!(limit);
@@ -1246,5 +1286,97 @@ mod tests {
             assert_eq!(pair.original.prompt, original.prompt);
             assert_eq!(pair.original.response, original.response);
         }
+    }
+}
+
+/// Authored before fitting; labels remain probe-only. All prompts fit the
+/// sixteen retained-word bound, including both entities in update cases.
+fn append_fact_cases(source: &mut Source) -> ProbeResult<()> {
+    if source.schema != WORD_COPY_SOURCE_SCHEMA {
+        return Err("prepare-facts requires /3".into());
+    }
+    let names = ["ada", "bea", "cyra", "dara", "elin", "faye", "gita", "hana"];
+    let places = [
+        "Rome", "Paris", "Dover", "York", "Bath", "Perth", "Cairo", "Tokyo",
+    ];
+    for world in 0..8 {
+        for task in 0..4 {
+            for variant in 0..2 {
+                source.fit.push(fact_case(
+                    "fit",
+                    world,
+                    task,
+                    variant,
+                    names[world % 8],
+                    names[(world + 1) % 8],
+                    places[(world + variant) % 8],
+                    places[(world + variant + 2) % 8],
+                ));
+            }
+        }
+    }
+    for task in 0..4 {
+        for world in 0..2 {
+            for variant in 0..2 {
+                let names = [["mira", "theo"], ["nora", "kian"]][world];
+                let cities = [["Oslo", "Lima"], ["Bern", "Pune"]][world];
+                source.development.push(fact_case(
+                    "fresh",
+                    world,
+                    task,
+                    variant,
+                    names[0],
+                    names[1],
+                    cities[variant],
+                    cities[1 - variant],
+                ));
+            }
+        }
+    }
+    source.scope.push_str(" Fact composition:64additional construction cases,16fresh cases fixed before fit (four each simple,distractor,update,unsupported), no numeric decoys. Fresh names and values are absent from added construction. Existing46development remain open. All sixteen fresh results must be reported, without tuning on them.");
+    validate_source(source)
+}
+fn fact_case(
+    split: &str,
+    world: usize,
+    task: usize,
+    variant: usize,
+    a: &str,
+    b: &str,
+    x: &str,
+    y: &str,
+) -> Case {
+    let style = world % 2;
+    let (verb, query) = if style == 0 {
+        ("lives", format!("Where is {a}?"))
+    } else {
+        ("stays", format!("Where does {a} stay?"))
+    };
+    let (facts, answer) = match task {
+        0 => (format!("{a} {verb} in {x}."), x),
+        1 if variant == 0 => (format!("{a} {verb} in {x}. {b} {verb} in {y}."), x),
+        1 => (format!("{b} {verb} in {y}. {a} {verb} in {x}."), x),
+        2 => (format!("{a} in {x}. {b} in Bath. {a} now in {y}."), y),
+        _ => (format!("{b} {verb} in {x}."), "Unknown"),
+    };
+    Case {
+        id: format!("fact/{split}/{world}/{task}/{variant}"),
+        family: "prose".into(),
+        task: [
+            "fact_simple",
+            "fact_distractor",
+            "fact_update",
+            "fact_unsupported",
+        ][task]
+            .into(),
+        world: if split == "fit" {
+            400000 + world
+        } else {
+            500000 + world
+        },
+        pair_id: format!("fact/{split}/{world}/{task}"),
+        variant,
+        prompt: format!("{facts} {query} Answer:"),
+        response: format!(" {answer}.\n"),
     }
 }

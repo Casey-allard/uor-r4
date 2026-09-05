@@ -576,3 +576,119 @@ fn native_word_copy_preserves_parent_and_respects_typed_precedence_and_controls(
         assert!(word.len < RESPONSE_ENTRY_STEPS);
     }
 }
+
+#[test]
+fn native_word_copy_composed_prefix_dispatch_and_restore() {
+    use super::value_types::{ValueFeature, ValueRow};
+    let mut model = fixture::fitted_completed_word().clone();
+    let head = model
+        .response_entry
+        .as_mut()
+        .unwrap()
+        .copy
+        .as_mut()
+        .unwrap();
+    head.composed_entry = true;
+    model.refresh_identity().unwrap();
+    let prompt = "alpha remains. reply:";
+    let session = prefix(&model, prompt, Control::Full);
+    assert!(session.values.as_ref().unwrap().sources.is_empty());
+    assert!(session.response_entry.as_ref().unwrap().boundary.is_some());
+    let words = session.values.as_ref().unwrap().lexemes.as_ref().unwrap();
+    let index = words.queries[..words.query_len]
+        .iter()
+        .position(|w| &w.bytes[..usize::from(w.len)] == b"alpha")
+        .unwrap();
+    // Explicit weights test the operator contract, not predictive learning.
+    let head = model
+        .response_entry
+        .as_mut()
+        .unwrap()
+        .copy
+        .as_mut()
+        .unwrap();
+    head.rows = vec![
+        ValueRow {
+            feature: ValueFeature {
+                kind: 0,
+                a: 0,
+                b: 0,
+            },
+            weight: -100000,
+        },
+        ValueRow {
+            feature: ValueFeature {
+                kind: 3,
+                a: index as u64,
+                b: 0,
+            },
+            weight: 50000,
+        },
+        ValueRow {
+            feature: ValueFeature {
+                kind: 22,
+                a: u64::from(b' ') + 2,
+                b: 1,
+            },
+            weight: 200000,
+        },
+    ];
+    head.prefix_rows = vec![ScoreRow {
+        feature: Feature { kind: 5, value: 0 },
+        default_score: 0,
+        scores: vec![TokenScore {
+            token: u32::from(b' ') + 2,
+            score: 10000,
+        }],
+        postings: vec![u32::from(b' ') + 2],
+    }];
+    head.prefix_postings = vec![u32::from(b' ') + 2];
+    model.refresh_identity().unwrap();
+    let model = Model::from_bytes(&model.to_bytes().unwrap()).unwrap();
+    let mut fast = prefix(&model, prompt, Control::Full);
+    let mut ordinary = prefix(&model, prompt, Control::WordCopyDispatchDisabled);
+    for (step, byte) in b" alpha".iter().enumerate() {
+        let before = fast.work.clone();
+        let next = fast.predict(&model).unwrap();
+        assert_eq!(next.token, u32::from(*byte) + 2);
+        assert_eq!(ordinary.predict(&model).unwrap().token, next.token);
+        if step > 1 {
+            assert_eq!(next.score, 1);
+            assert_eq!(next.candidate_count, 1);
+            assert_eq!(fast.work.feature_queries, before.feature_queries);
+            assert_eq!(fast.work.score_lookups, before.score_lookups);
+            assert_eq!(fast.work.memory_score_lookups, before.memory_score_lookups);
+            assert_eq!(fast.work.memory_index_reads, before.memory_index_reads);
+        }
+        fast.observe(&model, next.token).unwrap();
+        ordinary.observe(&model, next.token).unwrap();
+        let snapshot = fast.checkpoint().unwrap();
+        let mut restored = model.restore_session(&snapshot).unwrap();
+        assert_eq!(restored.state(), fast.state());
+        assert_eq!(
+            restored.predict(&model).unwrap(),
+            fast.predict(&model).unwrap()
+        );
+        let mut a: serde_json::Value = serde_json::from_slice(&snapshot).unwrap();
+        let mut b: serde_json::Value =
+            serde_json::from_slice(&ordinary.checkpoint().unwrap()).unwrap();
+        for key in ["work", "control"] {
+            a.as_object_mut().unwrap().remove(key);
+            b.as_object_mut().unwrap().remove(key);
+        }
+        assert_eq!(a, b, "required causal state at step{step}");
+        if step > 0 {
+            a = serde_json::from_slice(&snapshot).unwrap();
+            a["word_copy"]["start_step"] = json!(0);
+            assert!(model
+                .restore_session(&serde_json::to_vec(&a).unwrap())
+                .is_err());
+        }
+    }
+    assert_eq!(
+        fast.word_copy.as_ref().unwrap().progress,
+        WordCopyProgress::Complete
+    );
+    assert_eq!(fast.word_copy.as_ref().unwrap().start_step, 1);
+    assert!(!suffix_features(&model, &fast).is_empty());
+}

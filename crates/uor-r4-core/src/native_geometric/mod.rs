@@ -154,6 +154,7 @@ pub enum Control {
     ResponseEntryGeometryDisabled,
     WordCopyDisabled,
     WordCopyGeometryDisabled,
+    WordCopyDispatchDisabled,
 }
 
 /// Explicit feature addresses, never content digests. Kinds 0/1 are full
@@ -199,7 +200,8 @@ impl Feature {
             | Control::ResponseEntryDisabled
             | Control::ResponseEntryGeometryDisabled
             | Control::WordCopyDisabled
-            | Control::WordCopyGeometryDisabled => true,
+            | Control::WordCopyGeometryDisabled
+            | Control::WordCopyDispatchDisabled => true,
             Control::GeometryDisabled => self.kind < 2,
             Control::ZetaDisabled => !(8..=15).contains(&self.kind) && self.kind != 5,
             Control::H4Disabled => self.kind < 2 || (8..=15).contains(&self.kind),

@@ -7,7 +7,7 @@ use super::response_entry_types::*;
 use super::value_types::ValueState;
 use super::*;
 
-pub(super) fn eligible(values: &ValueState, control: Control) -> bool {
+pub(super) fn eligible(model: &Model, values: &ValueState, control: Control) -> bool {
     !matches!(
         control,
         Control::ResponseEntryDisabled | Control::ValuesDisabled | Control::MemoryDisabled
@@ -15,7 +15,7 @@ pub(super) fn eligible(values: &ValueState, control: Control) -> bool {
         && !values.consumed
         && values.emission.is_none()
         && values.query_len > 0
-        && !values.sources.is_empty()
+        && (!values.sources.is_empty() || super::word_copy_runtime::composed(model))
         && values.next_id != u64::MAX
 }
 
@@ -31,12 +31,13 @@ impl ResponseEntryState {
 
     pub(super) fn begin(
         &mut self,
+        model: &Model,
         values: &ValueState,
         control: Control,
         work: &mut CompletionWork,
     ) {
         self.reset();
-        if !eligible(values, control)
+        if !eligible(model, values, control)
             || values.pending.is_some()
             || values.started_at != values.seen
             || self.seen != values.seen
@@ -56,7 +57,7 @@ impl ResponseEntryState {
 
     pub(super) fn observe(
         &mut self,
-        _model: &Model,
+        model: &Model,
         values: &ValueState,
         token: u32,
         control: Control,
@@ -97,7 +98,7 @@ impl ResponseEntryState {
             self.last_action = ResponseEntryAction::Stop;
             return;
         }
-        if !eligible(values, control) {
+        if !eligible(model, values, control) {
             self.reset();
             return;
         }
@@ -216,7 +217,7 @@ impl ResponseEntryState {
         work: &mut CompletionWork,
     ) -> Option<Candidate> {
         self.pending = None;
-        if !eligible(values, control)
+        if !eligible(model, values, control)
             || values.pending.is_some()
             || self.steps >= RESPONSE_ENTRY_STEPS
             || self.seen != values.seen

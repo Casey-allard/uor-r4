@@ -264,6 +264,7 @@ enum ControlArg {
     ResponseEntryGeometryDisabled,
     WordCopyDisabled,
     WordCopyGeometryDisabled,
+    WordCopyDispatchDisabled,
 }
 impl From<ControlArg> for Control {
     fn from(value: ControlArg) -> Self {
@@ -286,6 +287,7 @@ impl From<ControlArg> for Control {
             ControlArg::ResponseEntryGeometryDisabled => Self::ResponseEntryGeometryDisabled,
             ControlArg::WordCopyDisabled => Self::WordCopyDisabled,
             ControlArg::WordCopyGeometryDisabled => Self::WordCopyGeometryDisabled,
+            ControlArg::WordCopyDispatchDisabled => Self::WordCopyDispatchDisabled,
         }
     }
 }
@@ -1278,6 +1280,11 @@ mod tests {
                 "word-copy-geometry-disabled",
                 Control::WordCopyGeometryDisabled,
                 "word_copy_geometry_disabled",
+            ),
+            (
+                "word-copy-dispatch-disabled",
+                Control::WordCopyDispatchDisabled,
+                "word_copy_dispatch_disabled",
             ),
         ] {
             let control: Control = ControlArg::from_str(argument, false).unwrap().into();

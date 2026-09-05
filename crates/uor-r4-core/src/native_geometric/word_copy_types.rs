@@ -3,7 +3,7 @@ use super::value_types::{ValueFeature, ValueRow};
 use super::*;
 
 pub(super) const RESPONSE_COPY_SCHEMA: &str = "uor-r4.native-response-entry/2";
-pub(super) const WORD_COPY_FEATURES: usize = 20;
+pub(super) const WORD_COPY_FEATURES: usize = 24;
 pub(super) const WORD_COPY_ROWS: usize = 4096;
 pub(super) const WORD_COPY_DICTIONARY: usize = 256;
 
@@ -30,6 +30,13 @@ pub(super) struct WordCopyModel {
     /// byte. False preserves the first /2 artifact's entry-boundary frame.
     #[serde(default, skip_serializing_if = "copy_suffix_disabled")]
     pub completed_word_suffix: bool,
+    /// General entry composition and committed-copy dispatch. Omission keeps /2 behavior.
+    #[serde(default, skip_serializing_if = "copy_suffix_disabled")]
+    pub composed_entry: bool,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub prefix_rows: Vec<ScoreRow>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub prefix_postings: Vec<u32>,
 }
 
 fn copy_suffix_disabled(value: &bool) -> bool {
@@ -47,6 +54,12 @@ pub struct WordCopyWork {
     pub word_record_reads: u64,
     pub bound_rejections: u64,
     pub byte_reads: u64,
+    #[serde(default)]
+    pub equality_byte_comparisons: u64,
+    #[serde(default)]
+    pub dispatch_checks: u64,
+    #[serde(default)]
+    pub forced_dispatches: u64,
 }
 impl WordCopyWork {
     pub fn is_empty(&self) -> bool {
@@ -95,6 +108,8 @@ pub(super) struct WordCopyState {
     /// Immutable selected first-entry occurrence until the entry ends.
     pub origin: Option<u8>,
     pub progress: WordCopyProgress,
+    #[serde(default, skip_serializing_if = "copy_start_zero")]
+    pub start_step: u8,
     #[serde(skip)]
     pub pending: Option<WordCopyDecision>,
 }
@@ -113,3 +128,7 @@ pub(super) struct WordCopyContext {
 }
 
 pub(super) type CopyFeatures = ([ValueFeature; WORD_COPY_FEATURES], usize);
+
+fn copy_start_zero(value: &u8) -> bool {
+    *value == 0
+}

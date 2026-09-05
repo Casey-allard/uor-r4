@@ -102,7 +102,7 @@ impl Session {
             return Err(invalid("last tokens differ from actual observations"));
         }
         if let Some(anchor) = saved.boundary {
-            if !eligible(values, self.control)
+            if !eligible(model, values, self.control)
                 || values.pending.is_some()
                 || anchor.at_seen == 0
                 || anchor.at_seen != values.started_at
@@ -182,12 +182,21 @@ impl Session {
                     seen: anchor.at_seen,
                     ..ResponseEntryState::default()
                 };
-                let selection = origin.offer(
+                let inherited = origin.offer(
                     model,
                     &boundary_values,
                     baseline,
                     self.control,
                     &mut CompletionWork::default(),
+                );
+                let selection = super::word_copy_runtime::prefix_offer(
+                    model,
+                    &mut origin,
+                    &boundary_values,
+                    baseline,
+                    inherited,
+                    self.control,
+                    &mut WordCopyWork::default(),
                 );
                 let copy_origin = self
                     .word_copy

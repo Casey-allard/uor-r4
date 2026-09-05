@@ -3,7 +3,10 @@
 //! external model calls occur in observe/predict. Buffers are allocated once
 //! when a session is created; candidate work is bounded by artifact postings.
 
-use super::{Candidate, Control, Error, Feature, Model, Prediction, Result, Work, PHASE_CHANNELS};
+use super::{
+    Candidate, Control, Error, Feature, Model, Prediction, Result, WordCopyProgress, Work, BOS,
+    PHASE_CHANNELS,
+};
 use serde::{Deserialize, Serialize};
 
 pub(super) const FEATURE_COUNT: usize = 26;
@@ -210,7 +213,7 @@ impl Session {
             state.begin(&mut self.work.values);
         }
         if let (Some(entry), Some(values)) = (&mut self.response_entry, &self.values) {
-            entry.begin(values, self.control, &mut self.work.response_entry);
+            entry.begin(model, values, self.control, &mut self.work.response_entry);
         }
         if self.control != Control::MemoryDisabled && self.control != Control::ResponseStateDisabled
         {
@@ -467,6 +470,60 @@ impl Session {
     /// evaluation. The model never scans the vocabulary or retained prefix.
     pub fn predict(&mut self, model: &Model) -> Result<Prediction> {
         self.check_model(model)?;
+        self.work.word_copy.dispatch_checks = self
+            .work
+            .word_copy
+            .dispatch_checks
+            .saturating_add(u64::from(super::word_copy_runtime::composed(model)));
+        if super::word_copy_runtime::composed(model)
+            && self.control != Control::WordCopyDispatchDisabled
+            && self
+                .word_copy
+                .as_ref()
+                .is_some_and(|c| matches!(c.progress, WordCopyProgress::Emitting { .. }))
+        {
+            if let (Some(copy), Some(entry), Some(values)) =
+                (&mut self.word_copy, &mut self.response_entry, &self.values)
+            {
+                // /4 has no causal response writer. No ordinary collection or
+                // scoring is required for an immutable committed byte. Score1
+                // is a dispatch marker, not a comparable model likelihood.
+                entry.pending = None;
+                if let Some(best) = copy.offer(
+                    model,
+                    entry,
+                    values,
+                    Candidate {
+                        token: BOS,
+                        score: 0,
+                    },
+                    None,
+                    self.control,
+                    &mut self.work.word_copy,
+                ) {
+                    self.candidates.clear();
+                    if let Some(memory) = &mut self.memory {
+                        memory.select_response(model, best, &mut self.work);
+                    }
+                    if let Some(values) = &mut self.values {
+                        values.selected(best);
+                    }
+                    if let Some(completion) = &mut self.completion {
+                        completion.selected(best);
+                    }
+                    entry.selected(best);
+                    copy.selected(best);
+                    self.work.word_copy.forced_dispatches =
+                        self.work.word_copy.forced_dispatches.saturating_add(1);
+                    return Ok(Prediction {
+                        token: best.token,
+                        score: best.score,
+                        candidate_count: 1,
+                        geometric_rows: 0,
+                    });
+                }
+            }
+        }
         let features = self.features(model);
         let gates = match model
             .readout

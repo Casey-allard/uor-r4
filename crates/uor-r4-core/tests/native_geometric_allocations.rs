@@ -553,9 +553,11 @@ fn native_response_entry_commit_mismatch_and_limit_are_allocation_free() {
 fn native_word_copy_selection_bytes_mismatch_and_cap_are_allocation_free() {
     let (_, original) = copy_fixture::fitted();
     let completed_word = copy_fixture::fitted_completed_word();
+    let composed = copy_fixture::fitted_composed();
     for (variant, model) in [
         ("actual-byte suffix", original),
         ("completed-word suffix", completed_word),
+        ("composed dispatch", composed),
     ] {
         let prompt = model.encode(copy_fixture::COPY_PROMPT).unwrap();
         let mut session = model.session(Control::Full).unwrap();
@@ -633,6 +635,9 @@ fn native_word_copy_selection_bytes_mismatch_and_cap_are_allocation_free() {
         assert!(session.work.word_copy.word_candidates > 0);
         assert!(session.work.word_copy.dictionary_comparisons > 0);
         assert!(session.work.word_copy.byte_reads > 0);
+        if variant == "composed dispatch" {
+            assert!(session.work.word_copy.forced_dispatches > 0);
+        }
         assert!(session.work.word_copy.selector.mismatches > 0);
         assert!(session.work.response_entry.step_limits > 0);
         assert_eq!(session.work.values.derived_writes, 0);

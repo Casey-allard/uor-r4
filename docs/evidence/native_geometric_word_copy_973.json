@@ -168,8 +168,7 @@
         "expected": "argument\n}\n",
         "actual": "value\n}\n",
         "stop": "end_of_document",
-        "copy_actions": {
-        }
+        "copy_actions": {}
       }
     },
     {
@@ -1101,5 +1100,108 @@
       "bytes": 1425,
       "sha256": "2f5e867836460e4dabb542fd1db9f42e180ef0f71d6b8d56c90f398bb1eebee4"
     }
-  ]
+  ],
+  "composed_entry_successor_2026_09_05": {
+    "artifact_cid": "blake3:d095a1abccefd68678a9d7da61e4d8fd094d9f7ca71e10c5e0383518889ed586",
+    "artifact_path": "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/fact-copy-fit-3/model.json",
+    "artifact_sha256": "d70413f558e0f1d3ae3fd099b378a9912609e23983d541732ab3b79e47368f3c",
+    "artifact_bytes": 10230192,
+    "source_sha256": "467b99a574e912b39c695a936250fc790611ab54b34fc179da411a42a2e18779",
+    "raw_construction_examples": 288,
+    "added_construction_examples": 64,
+    "original_development": {
+      "exact": 32,
+      "total": 32
+    },
+    "identifier_transfer": {
+      "exact": 12,
+      "total": 12
+    },
+    "binding": {
+      "exact": 8,
+      "total": 8
+    },
+    "fact_development": {
+      "exact": 16,
+      "total": 16,
+      "baseline_exact": 0,
+      "categories": [
+        "simple",
+        "distractor",
+        "update",
+        "unsupported"
+      ],
+      "words_retained_per_case": [
+        8,
+        15
+      ]
+    },
+    "older_city_cases": {
+      "exact": 0,
+      "total": 2
+    },
+    "table_sizes": {
+      "dictionary": 75,
+      "selector_rows": 941,
+      "prefix_rows": 154,
+      "prefix_associations": 253,
+      "suffix_rows": 66,
+      "suffix_associations": 91
+    },
+    "dispatch_equal_output_and_final_state_cases": 62,
+    "forced_interior_bytes": 114,
+    "debug_optimized_equal_generation_objects": 248,
+    "whole_62_case_single_pass_us": {
+      "full": 46864,
+      "dispatch_disabled": 61984
+    },
+    "kernel_score_lookups": {
+      "full": {
+        "ordinary": 1509562,
+        "memory": 287313,
+        "copy": 60764
+      },
+      "dispatch_disabled": {
+        "ordinary": 1764910,
+        "memory": 417983,
+        "copy": 60764
+      }
+    },
+    "copy_geometry_disabled": {
+      "original_exact": 32,
+      "identifier_exact": 10,
+      "fact_exact": 3,
+      "scope": "within-artifact sensitivity only; matched-refit geometric advantage undetermined"
+    },
+    "compiler_execution_receipts_reused_by_exact_sha256": 32,
+    "cli_generation_matches": 3,
+    "runtime_checks": {
+      "native_tests": 108,
+      "allocation_and_source_checks": 6,
+      "preparation_tests": 5,
+      "prefix_checkpoint_and_per_step_causal_state": "PASS",
+      "forced_byte_ordinary_scoring": "zero"
+    },
+    "resource_checkpoint": {
+      "model_cycle_ms": 78172,
+      "model_cumulative_ms": 1025234,
+      "model_limit_ms": 1800000,
+      "engineering_build_test_ms": 1099542,
+      "engineering_cycle_limit_ms": 1200000,
+      "peak_sampled_model_rss_bytes": 767180800,
+      "additional_storage_authorized_and_recorded_mib": 896,
+      "storage_limit_bytes": 5385486336,
+      "stop_margin_bytes": 134217728,
+      "deletions": false,
+      "paid_external_compute": false
+    },
+    "complete_cost_and_preservation_record": "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/fact-copy-optimized/checkpoint.json",
+    "scope": "The sixteen cases were frozen before fit. A stopped fit and an implementation-invalid fit were preserved; the label-slice repair was based on48unreachable construction targets, with no data, hyperparameter or feature retuning. The sixteen now constitute repaired OPEN development evidence, not a new final-held-out claim. final_exact_responses and eligible_examples in fit report count selector frames, including48prefix NoCopy guards, not distinct raw examples. The composed selector differs from the old selector; its suffix-law inherited wording applies only to keeping its selected rows fixed while fitting its suffix. Complete timed generation includes session creation, encoding, ingest and decode; counters cover instrumented kernel work, not every tokenizer or CPU instruction. No matched-refit geometric advantage is claimed.",
+    "negative_history": [
+      "fit1 stopped before model creation because a later shared grammar word was wrongly selected as a target; source and binaries retained",
+      "fit2 received no positive fact copies because one offline label comparison omitted the prefix offset: 48 construction targets incorrectly unreachable, 4/16 complete fact answers; model, source, binaries and outputs retained",
+      "fit3 corrects only that label slice: all96copy targets reachable and committed,176/176selector frames and288/288suffix positions fit; no data, features or hyperparameter retuning"
+    ],
+    "next_bottleneck": "The same retained fact does not yet transfer reliably across question wrappers; the two older city prompts still fail. Reuse this generic lexical/copy choice rather than add a task-specific head."
+  }
 }

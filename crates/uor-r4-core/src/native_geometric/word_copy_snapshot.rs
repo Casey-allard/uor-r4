@@ -93,30 +93,62 @@ impl Session {
             token: BOS,
             score: 0,
         };
-        let lexical = initial.offer(
-            model,
-            &boundary_values,
-            baseline,
-            self.control,
-            &mut CompletionWork::default(),
-        );
-        let mut choice = WordCopyState::default();
-        let selected = choice.offer(
-            model,
-            &mut initial,
-            &boundary_values,
-            baseline,
-            lexical,
-            self.control,
-            &mut WordCopyWork::default(),
-        );
-        if selected.is_none_or(|candidate| {
-            !token_at(anchor.at_seen).is_ok_and(|token| token == candidate.token)
-        }) || choice.pending.map(|decision| decision.word_index) != saved.origin
+        if (!super::word_copy_runtime::composed(model) && saved.start_step != 0)
+            || saved.start_step >= entry.steps
+            || (saved.origin.is_none() && saved.start_step != 0)
         {
-            return Err(invalid(
-                "origin differs from observed combined first selection",
-            ));
+            return Err(invalid("copy start is outside the observed entry"));
+        }
+        let mut choice = WordCopyState::default();
+        for step in 0..=saved.start_step {
+            let inherited = initial.offer(
+                model,
+                &boundary_values,
+                baseline,
+                self.control,
+                &mut CompletionWork::default(),
+            );
+            let selected = choice.offer(
+                model,
+                &mut initial,
+                &boundary_values,
+                baseline,
+                inherited,
+                self.control,
+                &mut WordCopyWork::default(),
+            );
+            let actual = token_at(anchor.at_seen + u64::from(step))?;
+            if selected.is_none_or(|candidate| candidate.token != actual) {
+                return Err(invalid(
+                    "start differs from actual selected lexical/copy prefix",
+                ));
+            }
+            if step == saved.start_step {
+                if choice.pending.map(|decision| decision.word_index) != saved.origin {
+                    return Err(invalid("origin differs from observed copy selection"));
+                }
+            } else {
+                if choice.pending.is_some() {
+                    return Err(invalid("copy began before saved start"));
+                }
+                boundary_values.seen += 1;
+                let observed = values.recent[((boundary_values.seen - 1) & 31) as usize];
+                boundary_values.pose = observed.pose;
+                boundary_values.phases = observed.phases;
+                initial.observe(
+                    model,
+                    &boundary_values,
+                    actual,
+                    self.control,
+                    &mut CompletionWork::default(),
+                );
+                choice.observe(
+                    &initial,
+                    &boundary_values,
+                    actual,
+                    &mut WordCopyWork::default(),
+                );
+            }
         }
         if let Some(index) = saved.origin {
             if !super::word_copy_runtime::enabled(self.control)
@@ -130,18 +162,30 @@ impl Session {
             }
             let prefix = match saved.progress {
                 WordCopyProgress::Emitting { cursor }
-                    if cursor > 0 && cursor < word.len && cursor == entry.steps =>
+                    if cursor > 0
+                        && cursor < word.len
+                        && Some(cursor) == entry.steps.checked_sub(saved.start_step) =>
                 {
                     usize::from(cursor)
                 }
-                WordCopyProgress::Complete if entry.steps >= word.len => usize::from(word.len),
+                WordCopyProgress::Complete
+                    if entry.steps.saturating_sub(saved.start_step) >= word.len =>
+                {
+                    usize::from(word.len)
+                }
                 // Omission of predict before a byte can abort even if its
                 // value agrees; checkpoint consistency cannot prove a call.
-                WordCopyProgress::Aborted if word.len > 1 && entry.steps >= 2 => 1,
+                WordCopyProgress::Aborted
+                    if word.len > 1 && entry.steps.saturating_sub(saved.start_step) >= 2 =>
+                {
+                    1
+                }
                 _ => return Err(invalid("progress is inconsistent with actual observations")),
             };
             for offset in 0..prefix {
-                if token_at(anchor.at_seen + offset as u64)? != u32::from(word.bytes[offset]) + 2 {
+                if token_at(anchor.at_seen + u64::from(saved.start_step) + offset as u64)?
+                    != u32::from(word.bytes[offset]) + 2
+                {
                     return Err(invalid(
                         "observed byte prefix differs from selected occurrence",
                     ));

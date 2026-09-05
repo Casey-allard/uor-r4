@@ -12,15 +12,19 @@ pub(super) fn enabled(control: Control) -> bool {
     control != Control::WordCopyDisabled
 }
 
-pub(super) fn eligible(entry: &ResponseEntryState, values: &ValueState, control: Control) -> bool {
+pub(super) fn eligible(
+    model: &Model,
+    entry: &ResponseEntryState,
+    values: &ValueState,
+    control: Control,
+) -> bool {
     enabled(control)
-        && super::response_entry_runtime::eligible(values, control)
+        && super::response_entry_runtime::eligible(model, values, control)
         && values.pending.is_none()
-        && !entry.active
-        && entry.steps == 0
+        && ((!entry.active && entry.steps == 0) || (composed(model) && entry.active))
         && entry.seen == values.seen
         && entry.boundary.is_some_and(|anchor| {
-            anchor.at_seen == values.seen && anchor.at_seen == values.started_at
+            anchor.at_seen == values.started_at && (entry.active || anchor.at_seen == values.seen)
         })
         && values
             .lexemes
@@ -186,6 +190,19 @@ pub(super) fn features(
             .phase_subtractions
             .saturating_add((PHASE_CHANNELS + PHASE_CHANNELS) as u64);
     }
+    if composed(model) {
+        let mask = binding_mask(values, index, work);
+        let steps = values.seen.saturating_sub(values.started_at);
+        let last = if steps == 0 {
+            BOS
+        } else {
+            values.recent[((values.seen - 1) & 31) as usize].token
+        };
+        add(20, mask, 0);
+        add(21, mask, index as u64);
+        add(22, u64::from(last), steps);
+        add(23, mask, u64::from(preceding));
+    }
     (features, len)
 }
 
@@ -283,10 +300,17 @@ impl WordCopyState {
         if anchor.at_seen != values.started_at {
             return absent;
         }
-        let Some(steps) = entry.steps.checked_sub(word.len) else {
+        let Some(steps) = entry
+            .steps
+            .checked_sub(self.start_step)
+            .and_then(|steps| steps.checked_sub(word.len))
+        else {
             return absent;
         };
-        let Some(final_seen) = anchor.at_seen.checked_add(u64::from(word.len)) else {
+        let Some(final_seen) = anchor
+            .at_seen
+            .checked_add(u64::from(self.start_step) + u64::from(word.len))
+        else {
             return absent;
         };
         let Some(sequence) = final_seen.checked_sub(1) else {
@@ -365,7 +389,7 @@ impl WordCopyState {
     ) -> Option<Candidate> {
         self.pending = None;
         if !enabled(control)
-            || !super::response_entry_runtime::eligible(values, control)
+            || !super::response_entry_runtime::eligible(model, values, control)
             || values.pending.is_some()
             || entry.steps >= RESPONSE_ENTRY_STEPS
             || entry.seen != values.seen
@@ -386,7 +410,12 @@ impl WordCopyState {
             return lexical;
         };
         let mut chosen = None;
-        if eligible(entry, values, control) {
+        let lexical = if self.progress == WordCopyProgress::Idle {
+            prefix_offer(model, entry, values, baseline, lexical, control, work)
+        } else {
+            lexical
+        };
+        if eligible(model, entry, values, control) && self.progress == WordCopyProgress::Idle {
             let context = context(model, values, control, work);
             let mut threshold = lexical
                 .map_or(0, |candidate| candidate.score - baseline.score)
@@ -574,6 +603,7 @@ impl WordCopyState {
             work.selector.commits = work.selector.commits.saturating_add(1);
             if decision.action == WordCopyAction::Start {
                 self.origin = Some(decision.word_index);
+                self.start_step = decision.step;
                 work.word_record_reads = work.word_record_reads.saturating_add(1);
                 let len = values.lexemes.as_ref().map_or(0, |words| {
                     words.queries[usize::from(decision.word_index)].len
@@ -601,4 +631,152 @@ impl WordCopyState {
         }
         work.selector.state_copies = work.selector.state_copies.saturating_add(3);
     }
+}
+
+/// This switch is identity-bound and absent in historical artifacts.
+pub(super) fn composed(model: &Model) -> bool {
+    model
+        .response_entry
+        .as_ref()
+        .and_then(|h| h.copy.as_ref())
+        .is_some_and(|h| h.composed_entry)
+}
+
+fn equal_word(a: &WordAtom, b: &WordAtom, work: &mut WordCopyWork) -> bool {
+    if a.len == 0 || a.len != b.len {
+        return false;
+    }
+    for i in 0..usize::from(a.len) {
+        work.equality_byte_comparisons = work.equality_byte_comparisons.saturating_add(1);
+        if a.bytes[i] != b.bytes[i] {
+            return false;
+        }
+    }
+    true
+}
+
+/// Four recent query words by three predecessor offsets. Exact equality is
+/// useful for unseen names; neither bytes nor dictionary hashes become a metric.
+fn binding_mask(values: &ValueState, index: usize, work: &mut WordCopyWork) -> u64 {
+    let Some(words) = &values.lexemes else {
+        return 0;
+    };
+    let mut mask = 0;
+    for q in 0..words.query_len.min(4) {
+        for offset in 1..=3 {
+            let source = index + offset;
+            if q < index && source < words.query_len {
+                work.word_record_reads = work.word_record_reads.saturating_add(2);
+                if equal_word(&words.queries[q], &words.queries[source], work) {
+                    mask |= 1 << (q + q + q + offset - 1);
+                }
+            }
+        }
+    }
+    mask
+}
+
+pub(super) fn prefix_features(
+    model: &Model,
+    entry: &ResponseEntryState,
+    values: &ValueState,
+    control: Control,
+    work: &mut WordCopyWork,
+) -> ([Feature; RESPONSE_ENTRY_FEATURES], usize) {
+    let control = if control == Control::WordCopyGeometryDisabled {
+        Control::ResponseEntryGeometryDisabled
+    } else {
+        control
+    };
+    let (mut features, len) = entry.features(model, values, control, &mut work.selector);
+    for feature in &mut features[..len] {
+        feature.kind &= 15;
+    }
+    let mut repeated = 0;
+    if let Some(words) = &values.lexemes {
+        for q in 0..words.query_len.min(4) {
+            for older in 4..words.query_len {
+                work.word_record_reads = work.word_record_reads.saturating_add(2);
+                if equal_word(&words.queries[q], &words.queries[older], work) {
+                    repeated |= 1 << q;
+                }
+            }
+        }
+    }
+    let query_word = model
+        .response_entry
+        .as_ref()
+        .and_then(|h| h.copy.as_ref())
+        .zip(values.lexemes.as_ref())
+        .map_or(0, |(head, words)| {
+            if words.query_len == 0 {
+                0
+            } else {
+                work.word_record_reads = work.word_record_reads.saturating_add(1);
+                address(head, &words.queries[0], work)
+            }
+        });
+    for feature in &mut features[..len] {
+        if feature.kind == 3 {
+            feature.value = (repeated << 32) | u64::from(query_word);
+        }
+        if feature.kind == 4 {
+            feature.value = (repeated << 32) | u64::from(entry.last);
+        }
+    }
+    (features, len)
+}
+
+pub(super) fn prefix_offer(
+    model: &Model,
+    entry: &mut ResponseEntryState,
+    values: &ValueState,
+    baseline: Candidate,
+    inherited: Option<Candidate>,
+    control: Control,
+    work: &mut WordCopyWork,
+) -> Option<Candidate> {
+    if !composed(model) || !eligible(model, entry, values, control) {
+        return inherited;
+    }
+    let head = model.response_entry.as_ref()?.copy.as_ref()?;
+    let (features, len) = prefix_features(model, entry, values, control, work);
+    let (tokens, count, rows, row_count) = candidate_rows(
+        &head.prefix_rows,
+        &head.prefix_postings,
+        &features[..len],
+        &mut work.selector,
+    );
+    let mut best = inherited;
+    let mut threshold = 0;
+    for &token in &tokens[..count] {
+        let increment = score_rows(
+            &head.prefix_rows,
+            token,
+            &rows[..row_count],
+            &mut work.selector,
+        );
+        if increment > threshold {
+            threshold = increment;
+            best = Some(Candidate {
+                token,
+                score: baseline.score + increment,
+            });
+            entry.pending = Some(ResponseEntryDecision {
+                token,
+                score: baseline.score + increment,
+                boundary_seen: entry.boundary?.at_seen,
+                at_seen: values.seen,
+                step: entry.steps,
+                action: if token == EOS {
+                    ResponseEntryAction::Stop
+                } else if entry.active {
+                    ResponseEntryAction::Emit
+                } else {
+                    ResponseEntryAction::Enter
+                },
+            });
+        }
+    }
+    best
 }

@@ -7,6 +7,56 @@ remains owned by [#973](https://github.com/UOR-Foundation/uor-r4/issues/973).
 Refresh live GitHub before choosing a follow-up; dated snapshots and lower
 historical “next” paragraphs do not select work.
 
+## Composed fact answers and committed-copy dispatch — 2026-09-05
+
+The optional `composed_entry` extension now learns lexical output → retained-word
+selection → exact byte copying → completion. It also learns NoCopy lexical
+continuation after an actually selected first transition. No numeric fact is
+required. It reuses the existing sixteen-word capture, immutable occurrence,
+relative H4/zeta paths and completed-word frame. Exact query/source equality
+features support unseen names. Older artifacts retain their previous behavior.
+
+Artifact `blake3:d095a1abccefd68678a9d7da61e4d8fd094d9f7ca71e10c5e0383518889ed586`
+is at `.uor-models/native-typed-value-2026-09-05/fact-copy-fit-3/model.json`.
+It answers **16/16** fixed fact cases (four each simple, distractor, update and
+unsupported), against **0/16** for the preceding artifact, while preserving
+**32/32** original responses, **12/12** identifier transfers and **8/8** binding
+outputs. All 32 generated Rust source hashes match prior compiler/execution
+receipts. Three actual CLI runs match evaluator Generation fields exactly;
+248 debug/optimized Generation objects match exactly. The two older city prompts
+still fail: this is bounded grounding, not general conversation or alpha.
+
+The cases were frozen before fitting, then exposed during an implementation-invalid
+attempt. That attempt incorrectly marked 48 construction copy targets unreachable
+because a label comparison omitted the prefix offset. Correcting that single
+slice admits all 96 copy targets; no source, features or hyperparameters were
+retuned. The sixteen cases now provide repaired OPEN development evidence,
+not a fresh final-held-out claim. Both failed attempts and their material remain.
+
+Committed interior bytes dispatch before ordinary candidate scoring, with score
+`1` explicitly marking dispatch rather than a comparable ranking score. Required
+observation/memory updates continue. All 62 outputs and final states match the
+same artifact with dispatch disabled; focused tests also compare per-step
+checkpoint state. On that workload, 114 forced bytes eliminate 255,348 ordinary
+and 130,670 memory score lookups. Complete generation, including session setup,
+encoding, ingest and decode, measured **46.864 ms vs 61.984 ms** in one pass.
+All other instrumented work is retained in the local cost report. This is a
+generic conditional-execution gain. Copy-geometry suppression reaches 3/16 fact
+answers; a matched-refit geometric advantage remains undetermined.
+
+The [existing evidence record](../evidence/native_geometric_word_copy_973.json)
+and local `fact-copy-optimized/checkpoint.json` bind source, artifacts, costs,
+negative history and preservation. Model work is **1,025.234/1,800 seconds**
+(**78.172/120** this cycle); engineering builds/tests at that checkpoint are
+**1,099.542/1,200 seconds**. Necessary storage increases total **+896 MiB** this
+cycle, including the stopped task's extra worktree and a separate fitter cache;
+the cumulative cap is **5,385,486,336 bytes**, retaining the 128 MiB stop margin.
+Peak sampled model RSS is 767,180,800 bytes. No material was deleted.
+
+The next bottleneck is wording transfer for the same retained facts. Test that
+existing lexical/copy choice across question wrappers before adding another
+mechanism. The approved cycle stops after protected delivery of this result.
+
 ## Retained words with observed completion state — 2026-09-05
 
 The current optional response-entry `/2` model selects an exact retained word

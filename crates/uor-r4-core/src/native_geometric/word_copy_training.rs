@@ -70,6 +70,7 @@ struct Example {
     baseline_score: f64,
     baseline_correct: bool,
     prefix_len: Option<usize>,
+    prefix_start: usize,
 }
 
 fn identifier_byte(byte: u8) -> bool {
@@ -206,6 +207,33 @@ impl WordCopyModel {
                 row.feature.kind >= WORD_COPY_FEATURES as u8
                     || !(-1_000_000..=1_000_000).contains(&row.weight)
             })
+            || (!self.composed_entry
+                && (!self.prefix_rows.is_empty()
+                    || !self.prefix_postings.is_empty()
+                    || self.rows.iter().any(|r| r.feature.kind >= 20)))
+            || (self.composed_entry
+                && (!self.completed_word_suffix
+                    || model
+                        .memory_read
+                        .as_ref()
+                        .is_some_and(|h| h.schema == super::memory_types::RESPONSE_MEMORY_SCHEMA)))
+            || self.prefix_rows.len() > RESPONSE_ENTRY_ROWS
+            || self
+                .prefix_rows
+                .windows(2)
+                .any(|p| p[0].feature >= p[1].feature)
+            || self.prefix_rows.iter().any(|r| r.feature.kind >= 16)
+            || self
+                .prefix_rows
+                .iter()
+                .map(|r| r.scores.len())
+                .sum::<usize>()
+                > RESPONSE_ENTRY_ASSOCIATIONS
+            || self.prefix_postings.len() > RESPONSE_ENTRY_CANDIDATES
+            || self.prefix_postings.iter().any(|&t| !valid_token(t))
+            || self.prefix_postings.iter().collect::<BTreeSet<_>>().len()
+                != self.prefix_postings.len()
+            || self.continuation_rows.iter().any(|r| r.feature.kind < 16)
             || self.continuation_rows.len() > RESPONSE_ENTRY_ROWS
             || self
                 .continuation_rows
@@ -228,25 +256,29 @@ impl WordCopyModel {
                 .continuation_rows
                 .windows(2)
                 .any(|pair| pair[0].feature >= pair[1].feature)
-            || self.continuation_rows.iter().any(|row| {
-                !(16..32).contains(&row.feature.kind)
-                    || row.default_score != 0
-                    || row.postings.len() > RESPONSE_ENTRY_POSTINGS
-                    || row.postings.iter().collect::<BTreeSet<_>>().len() != row.postings.len()
-                    || row
-                        .scores
-                        .windows(2)
-                        .any(|pair| pair[0].token >= pair[1].token)
-                    || row.scores.iter().any(|entry| {
-                        !valid_token(entry.token)
-                            || !(-1_000_000..=1_000_000).contains(&entry.score)
-                    })
-                    || row.postings.iter().any(|token| {
-                        row.scores
-                            .binary_search_by_key(token, |entry| entry.token)
-                            .is_err()
-                    })
-            })
+            || self
+                .continuation_rows
+                .iter()
+                .chain(&self.prefix_rows)
+                .any(|row| {
+                    row.feature.kind >= 32
+                        || row.default_score != 0
+                        || row.postings.len() > RESPONSE_ENTRY_POSTINGS
+                        || row.postings.iter().collect::<BTreeSet<_>>().len() != row.postings.len()
+                        || row
+                            .scores
+                            .windows(2)
+                            .any(|pair| pair[0].token >= pair[1].token)
+                        || row.scores.iter().any(|entry| {
+                            !valid_token(entry.token)
+                                || !(-1_000_000..=1_000_000).contains(&entry.score)
+                        })
+                        || row.postings.iter().any(|token| {
+                            row.scores
+                                .binary_search_by_key(token, |entry| entry.token)
+                                .is_err()
+                        })
+                })
             || self.fit_positions > RESPONSE_ENTRY_POSITIONS
             || self
                 .training
@@ -307,7 +339,7 @@ impl Model {
         documents: &[ValueExample],
         config: ResponseEntryFitConfig,
     ) -> Result<(Model, ResponseEntryCopyFitReport)> {
-        self.fit_response_entry_copy_impl(documents, config, false)
+        self.fit_response_entry_copy_impl(documents, config, false, false)
     }
 
     /// Fit suffix transitions relative to the observed end of a copied word.
@@ -318,7 +350,15 @@ impl Model {
         documents: &[ValueExample],
         config: ResponseEntryFitConfig,
     ) -> Result<(Model, ResponseEntryCopyFitReport)> {
-        self.fit_response_entry_copy_impl(documents, config, true)
+        self.fit_response_entry_copy_impl(documents, config, true, false)
+    }
+
+    pub fn fit_response_entry_copy_composed(
+        &self,
+        documents: &[ValueExample],
+        config: ResponseEntryFitConfig,
+    ) -> Result<(Model, ResponseEntryCopyFitReport)> {
+        self.fit_response_entry_copy_impl(documents, config, true, true)
     }
 
     fn fit_response_entry_copy_impl(
@@ -326,6 +366,7 @@ impl Model {
         documents: &[ValueExample],
         config: ResponseEntryFitConfig,
         completed_word_suffix: bool,
+        composed_entry: bool,
     ) -> Result<(Model, ResponseEntryCopyFitReport)> {
         let source_bytes = documents.iter().try_fold(0_usize, |sum, document| {
             sum.checked_add(document.prompt.len())?
@@ -351,6 +392,17 @@ impl Model {
                 "invalid retained-word fitting source, configuration or entry parent".into(),
             ));
         }
+        if composed_entry
+            && self
+                .memory_read
+                .as_ref()
+                .is_some_and(|h| h.schema == super::memory_types::RESPONSE_MEMORY_SCHEMA)
+        {
+            return Err(Error(
+                "composed copy excludes response-writing /5; ordinary and occurrence memory remain supported"
+                    .into(),
+            ));
+        }
         let (dictionary, omitted_words, omitted_occurrences) = dictionary(documents)?;
         let dictionary_words = dictionary.len();
         let mut model = self.clone();
@@ -361,6 +413,9 @@ impl Model {
         entry.schema = RESPONSE_COPY_SCHEMA.into();
         entry.copy = Some(WordCopyModel {
             completed_word_suffix,
+            composed_entry,
+            prefix_rows: Vec::new(),
+            prefix_postings: Vec::new(),
             baseline_artifact: self.artifact_cid.clone(),
             dictionary,
             rows: Vec::new(),
@@ -371,13 +426,18 @@ impl Model {
             training: Vec::new(),
         });
         model.refresh_identity()?;
+        let prefix_positions = if composed_entry {
+            fit_prefix(&mut model, documents, &config)?
+        } else {
+            0
+        };
         let mut ids = BTreeSet::new();
         let mut prompts = BTreeMap::new();
         let mut receipts = Vec::new();
         let mut registry = BTreeMap::<ValueFeature, usize>::new();
         let mut weights = Vec::new();
         let mut examples = Vec::new();
-        let mut reserved_positions = 0_usize;
+        let mut reserved_positions = prefix_positions;
         let mut numeric_examples = 0;
         let mut matched_numeric = 0;
         let mut upstream_failures = 0;
@@ -439,10 +499,109 @@ impl Model {
                 }
                 continue;
             }
-            let prefix = target_prefix(&document.response);
+            let prefix_start = if composed_entry {
+                target_start(&model, document)?
+            } else {
+                0
+            };
+            let prefix = target_prefix(&document.response[prefix_start..]);
+            let prefix = if composed_entry && !target_reachable(&model, document, prefix_start)? {
+                None
+            } else {
+                prefix
+            };
             copy_targets += usize::from(prefix.is_some());
             no_copy_targets += usize::from(prefix.is_none());
-            let mut session = response_session(&model, &document.prompt)?;
+            if prefix_start > 0 {
+                if reserved_positions >= config.max_positions {
+                    position_limit_skips += 1;
+                    continue;
+                }
+                let mut initial = response_session(&model, &document.prompt)?;
+                let predicted = initial.predict(&model)?;
+                let values = initial
+                    .values
+                    .as_ref()
+                    .ok_or_else(|| Error("prefix values missing".into()))?;
+                let mut entry = *initial
+                    .response_entry
+                    .as_ref()
+                    .ok_or_else(|| Error("prefix entry missing".into()))?;
+                let inherited = entry.offer(
+                    &model,
+                    values,
+                    Candidate {
+                        token: BOS,
+                        score: 0,
+                    },
+                    Control::Full,
+                    &mut CompletionWork::default(),
+                );
+                let threshold = word_copy_runtime::prefix_offer(
+                    &model,
+                    &mut entry,
+                    values,
+                    Candidate {
+                        token: BOS,
+                        score: 0,
+                    },
+                    inherited,
+                    Control::Full,
+                    &mut WordCopyWork::default(),
+                )
+                .map_or(0, |c| c.score);
+                let context = word_copy_runtime::context(
+                    &model,
+                    values,
+                    Control::Full,
+                    &mut WordCopyWork::default(),
+                );
+                let mut alternatives = Vec::new();
+                let words = values
+                    .lexemes
+                    .as_ref()
+                    .ok_or_else(|| Error("prefix words missing".into()))?;
+                for index in 0..words.query_len {
+                    let (features, len) = word_copy_runtime::features(
+                        &model,
+                        values,
+                        &context,
+                        index,
+                        Control::Full,
+                        &mut WordCopyWork::default(),
+                    );
+                    let mut indices = Vec::new();
+                    for feature in &features[..len] {
+                        let next = registry.len();
+                        if next >= WORD_COPY_ROWS && !registry.contains_key(feature) {
+                            dropped_feature_events += 1;
+                            continue;
+                        }
+                        let index = *registry.entry(*feature).or_insert_with(|| {
+                            weights.push(0.0);
+                            next
+                        });
+                        indices.push(index);
+                    }
+                    alternatives.push(Alternative {
+                        features: indices,
+                        correct: false,
+                    });
+                }
+                if predicted.token != model.encode(&document.response[..prefix_start])?[0] {
+                    return Err(Error("prefix head failed before copy fit".into()));
+                }
+                examples.push(Example {
+                    document: index,
+                    alternatives,
+                    baseline_score: threshold as f64 / 256.0,
+                    baseline_correct: true,
+                    prefix_len: None,
+                    prefix_start: 0,
+                });
+                reserved_positions += 1;
+            }
+            let mut session = prefixed_session(&model, document, prefix_start)?;
             session.predict(&model)?;
             let values = session
                 .values
@@ -452,13 +611,18 @@ impl Model {
                 .response_entry
                 .as_ref()
                 .ok_or_else(|| Error("copy fit entry state missing".into()))?;
-            if !word_copy_runtime::eligible(entry, values, Control::Full) {
+            if !word_copy_runtime::eligible(&model, entry, values, Control::Full) {
                 upstream_failures += 1;
                 continue;
             }
             let positions = if let Some(prefix_len) = prefix {
                 prefix_len
-                    .saturating_add(model.encode(&document.response[prefix_len..])?.len())
+                    .saturating_add(model.encode(&document.response[..prefix_start])?.len())
+                    .saturating_add(
+                        model
+                            .encode(&document.response[prefix_start + prefix_len..])?
+                            .len(),
+                    )
                     .saturating_add(1)
             } else {
                 1
@@ -472,18 +636,29 @@ impl Model {
                 continue;
             }
             let mut lexical = *entry;
-            let threshold = lexical
-                .offer(
-                    &model,
-                    values,
-                    Candidate {
-                        token: BOS,
-                        score: 0,
-                    },
-                    Control::Full,
-                    &mut CompletionWork::default(),
-                )
-                .map_or(0, |candidate| candidate.score);
+            let inherited = lexical.offer(
+                &model,
+                values,
+                Candidate {
+                    token: BOS,
+                    score: 0,
+                },
+                Control::Full,
+                &mut CompletionWork::default(),
+            );
+            let threshold = word_copy_runtime::prefix_offer(
+                &model,
+                &mut lexical,
+                values,
+                Candidate {
+                    token: BOS,
+                    score: 0,
+                },
+                inherited,
+                Control::Full,
+                &mut WordCopyWork::default(),
+            )
+            .map_or(0, |candidate| candidate.score);
             let context = word_copy_runtime::context(
                 &model,
                 values,
@@ -501,7 +676,7 @@ impl Model {
                 if word.len == 0 || usize::from(word.len) + 1 > usize::from(RESPONSE_ENTRY_STEPS) {
                     continue;
                 }
-                let correct = matches_target(&word, &document.response);
+                let correct = matches_target(&word, &document.response[prefix_start..]);
                 reachable |= correct;
                 let (features, len) = word_copy_runtime::features(
                     &model,
@@ -545,6 +720,7 @@ impl Model {
                 baseline_score: threshold as f64 / 256.0,
                 baseline_correct: prefix.is_none(),
                 prefix_len: prefix,
+                prefix_start,
             });
         }
         if examples.is_empty() || !examples.iter().any(|example| !example.baseline_correct) {
@@ -587,7 +763,8 @@ impl Model {
         let mut false_copies = 0;
         for example in &examples {
             let document = &documents[example.document];
-            let mut session = response_session(&model, &document.prompt)?;
+            let prefix_start = example.prefix_start;
+            let mut session = prefixed_session(&model, document, prefix_start)?;
             let first = session.predict(&model)?;
             let Some(prefix_len) = example.prefix_len else {
                 false_copies += usize::from(
@@ -607,17 +784,19 @@ impl Model {
                             usize::from(decision.word_index) < words.query_len
                                 && matches_target(
                                     &words.queries[usize::from(decision.word_index)],
-                                    &document.response,
+                                    &document.response[prefix_start..],
                                 )
                         })
             });
-            if !selected || first.token != u32::from(document.response.as_bytes()[0]) + 2 {
+            if !selected || first.token != u32::from(document.response.as_bytes()[prefix_start]) + 2
+            {
                 copy_rollout_failures += 1;
                 continue;
             }
             selected_copies += 1;
             let mut complete = true;
-            for (byte_index, &byte) in document.response.as_bytes()[..prefix_len]
+            for (byte_index, &byte) in document.response.as_bytes()
+                [prefix_start..prefix_start + prefix_len]
                 .iter()
                 .enumerate()
             {
@@ -642,7 +821,7 @@ impl Model {
                 continue;
             }
             committed_complete_copies += 1;
-            let mut targets = model.encode(&document.response[prefix_len..])?;
+            let mut targets = model.encode(&document.response[prefix_start + prefix_len..])?;
             targets.push(EOS);
             for target in targets {
                 let baseline = session.predict(&model)?.token;
@@ -713,7 +892,7 @@ impl Model {
                 .as_ref()
                 .map_or(0, |fit| fit.selected_epoch as u64),
         ];
-        head.fit_positions = examples.len() + continuation_frames.len();
+        head.fit_positions = prefix_positions + examples.len() + continuation_frames.len();
         head.training = receipts;
         let learned_features = head.rows.len();
         let continuation_rows = head.continuation_rows.len();
@@ -729,7 +908,8 @@ impl Model {
         let mut final_exact_responses = 0;
         for example in &examples {
             let document = &documents[example.document];
-            let mut session = response_session(&model, &document.prompt)?;
+            let prefix_start = example.prefix_start;
+            let mut session = prefixed_session(&model, document, prefix_start)?;
             session.predict(&model)?;
             let selected = session
                 .word_copy_decision()
@@ -746,7 +926,7 @@ impl Model {
                             usize::from(decision.word_index) < words.query_len
                                 && matches_target(
                                     &words.queries[usize::from(decision.word_index)],
-                                    &document.response,
+                                    &document.response[prefix_start..],
                                 )
                         }),
                 );
@@ -764,7 +944,7 @@ impl Model {
             selected_copies, committed_complete_copies, copy_rollout_failures, false_copies, continuation_positions: continuation_frames.len(),
             continuation_target_in_candidates: continuation_fit.as_ref().map_or(0, |fit| fit.target_in_candidates), continuation_fit_correct: continuation_fit.as_ref().map_or(0, |fit| fit.correct), continuation_fit_loss: continuation_fit.as_ref().map(|fit| fit.loss), selected_continuation_epoch: continuation_fit.as_ref().map_or(0, |fit| fit.selected_epoch),
             continuation_rows, continuation_associations, dropped_row_events: continuation_fit.as_ref().map_or(0, |fit| fit.dropped_row_events), dropped_association_events: continuation_fit.as_ref().map_or(0, |fit| fit.dropped_association_events), final_copy_correct, final_no_copy_correct, final_exact_responses, config,
-            target_law: "Offline complete identifier-prefix matching marks all matching retained occurrences positive. Copy must strictly beat the actual inherited lexical/Base score. Only actual quantized first-copy selection and complete matching observations create suffix frames; suffix uses canonical encoding after byte-token copied history plus EOS. Whole trajectories above32observations or positioncap are skipped, not truncated. No target index or answer buffer is serialized.".into(),
+            target_law: if composed_entry { "Offline: one learned lexical prefix token before the first complete response word that equals a retained word; selector labels all equal-spelling retained occurrences, then actual selected copy bytes create suffix frames. Unsupported responses train the first lexical transition. The prefix head is fit at the observed query boundary; no target creates a hidden serving anchor. Numeric trajectories remain inherited. At most512raw examples,4096positions,32response observations.".into() } else { "Offline complete identifier-prefix matching marks all matching retained occurrences positive. Copy must strictly beat the actual inherited lexical/Base score. Only actual quantized first-copy selection and complete matching observations create suffix frames; suffix uses canonical encoding after byte-token copied history plus EOS. Whole trajectories above32observations or positioncap are skipped, not truncated. No target index or answer buffer is serialized.".into() },
             suffix_law: completed_word_suffix.then(|| "Observed-completed-word boundary: H4/phase origin comes from the actual final copied byte in retained history; progress and last-two-token features contain only actual suffix observations, with BOS for unavailable suffix context. Original occurrence provenance and query prime remain. Selector dictionary, feature construction and fitting law are unchanged.".into()),
         };
         Ok((model, report))
@@ -915,6 +1095,7 @@ mod tests {
             baseline_score: 2000.0,
             baseline_correct: false,
             prefix_len: Some(1),
+            prefix_start: 0,
         };
         let (correct, loss) = measure(&[copy_target], &[0.0]).unwrap();
         assert_eq!(correct, 0);
@@ -929,9 +1110,200 @@ mod tests {
             baseline_score: 0.0,
             baseline_correct: true,
             prefix_len: None,
+            prefix_start: 0,
         };
         let (correct, loss) = measure(&[no_copy_target], &[2000.0]).unwrap();
         assert_eq!(correct, 0);
         assert_eq!(loss, 2000.0);
     }
+}
+
+// Labels are used only offline to locate a whole retained word in the response.
+fn target_start(model: &Model, document: &ValueExample) -> Result<usize> {
+    let session = response_session(model, &document.prompt)?;
+    let words = session
+        .values
+        .as_ref()
+        .and_then(|v| v.lexemes.as_ref())
+        .ok_or_else(|| Error("prefix words absent".into()))?;
+    // Copy only the first response word. A later shared grammar word in an
+    // abstention is not its value target.
+    if let Some((offset, _)) = document
+        .response
+        .char_indices()
+        .find(|(_, c)| c.is_ascii_alphabetic() || *c == '_')
+    {
+        if words.queries[..words.query_len]
+            .iter()
+            .any(|w| matches_target(w, &document.response[offset..]))
+            && model.encode(&document.response[..offset])?.len() <= 1
+        {
+            return Ok(offset);
+        }
+    }
+    Ok(0)
+}
+fn target_reachable(model: &Model, document: &ValueExample, offset: usize) -> Result<bool> {
+    let session = response_session(model, &document.prompt)?;
+    Ok(session
+        .values
+        .as_ref()
+        .and_then(|v| v.lexemes.as_ref())
+        .is_some_and(|words| {
+            words.queries[..words.query_len]
+                .iter()
+                .any(|w| matches_target(w, &document.response[offset..]))
+        }))
+}
+fn prefixed_session(model: &Model, document: &ValueExample, offset: usize) -> Result<Session> {
+    let mut session = response_session(model, &document.prompt)?;
+    for token in model.encode(&document.response[..offset])? {
+        let prediction = session.predict(model)?;
+        if prediction.token != token {
+            return Err(Error(format!(
+                "learned prefix rollout failed for {}",
+                document.id
+            )));
+        }
+        session.observe(model, token)?;
+    }
+    Ok(session)
+}
+fn fit_prefix(
+    model: &mut Model,
+    documents: &[ValueExample],
+    config: &ResponseEntryFitConfig,
+) -> Result<usize> {
+    if documents.len() > 512 {
+        return Err(Error("composed copy source exceeds512examples".into()));
+    }
+    let mut frames = Vec::new();
+    for document in documents {
+        if document
+            .response
+            .as_bytes()
+            .first()
+            .is_some_and(|b| b.is_ascii_digit() || matches!(*b, b'+' | b'-'))
+        {
+            continue;
+        }
+        let offset = target_start(model, document)?;
+        let mut session = response_session(model, &document.prompt)?;
+        let baseline = session.predict(model)?.token;
+        let target = if offset == 0 && target_reachable(model, document, 0)? {
+            baseline
+        } else {
+            *model
+                .encode(&document.response)?
+                .first()
+                .ok_or_else(|| Error("empty prefix target".into()))?
+        };
+        // Encode the prefix independently: a lexical token spanning copied bytes
+        // cannot be the prefix action.
+        let target = if offset > 0 {
+            model.encode(&document.response[..offset])?[0]
+        } else {
+            target
+        };
+        let (features, len) = word_copy_runtime::prefix_features(
+            model,
+            session
+                .response_entry
+                .as_ref()
+                .ok_or_else(|| Error("entry missing".into()))?,
+            session
+                .values
+                .as_ref()
+                .ok_or_else(|| Error("values missing".into()))?,
+            Control::Full,
+            &mut WordCopyWork::default(),
+        );
+        if len == 0 {
+            continue;
+        }
+        frames.push(Frame {
+            features,
+            len,
+            target,
+            baseline,
+        });
+    }
+    if frames.len() > config.max_positions {
+        return Err(Error("prefix fit exceeds position cap".into()));
+    }
+    for phase in 0..2 {
+        let fit = fit_sparse_frames(
+            &frames,
+            ValueCompletionFitConfig {
+                epochs: config.epochs,
+                learning_rate: config.learning_rate,
+                max_positions: config.max_positions,
+            },
+            RESPONSE_ENTRY_ROWS,
+            RESPONSE_ENTRY_ASSOCIATIONS,
+            0,
+        )?;
+        let head = copy_mut(model)?;
+        head.prefix_rows = fit.rows;
+        head.prefix_postings = fit.global_postings;
+        model.refresh_identity()?;
+        if phase == 1 {
+            break;
+        }
+        for document in documents {
+            if document
+                .response
+                .as_bytes()
+                .first()
+                .is_some_and(|b| b.is_ascii_digit() || matches!(*b, b'+' | b'-'))
+            {
+                continue;
+            }
+            let offset = target_start(model, document)?;
+            if offset > 0 || target_reachable(model, document, 0)? {
+                continue;
+            }
+            let mut targets = model.encode(&document.response)?;
+            targets.push(EOS);
+            if targets.len() > usize::from(RESPONSE_ENTRY_STEPS)
+                || frames.len() + targets.len() - 1 > config.max_positions
+            {
+                continue;
+            }
+            let mut session = response_session(model, &document.prompt)?;
+            let first = session.predict(model)?;
+            if first.token != targets[0] || session.response_entry_decision().is_none() {
+                continue;
+            }
+            session.observe(model, first.token)?;
+            for &target in &targets[1..] {
+                let baseline = session.predict(model)?.token;
+                let entry = session
+                    .response_entry
+                    .as_ref()
+                    .ok_or_else(|| Error("lexical continuation entry missing".into()))?;
+                if !entry.active {
+                    break;
+                }
+                let (features, len) = word_copy_runtime::prefix_features(
+                    model,
+                    entry,
+                    session
+                        .values
+                        .as_ref()
+                        .ok_or_else(|| Error("lexical continuation values missing".into()))?,
+                    Control::Full,
+                    &mut WordCopyWork::default(),
+                );
+                frames.push(Frame {
+                    features,
+                    len,
+                    target,
+                    baseline,
+                });
+                session.observe(model, target)?;
+            }
+        }
+    }
+    Ok(frames.len())
 }
