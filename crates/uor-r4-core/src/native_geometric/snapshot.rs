@@ -4,6 +4,7 @@ use super::completion_types::CompletionState;
 use super::memory_types::{MemoryEntry, MemoryReference, ResponseAction, RESPONSE_MEMORY_SCHEMA};
 use super::response_entry_types::ResponseEntryState;
 use super::value_types::ValueState;
+use super::word_copy_types::WordCopyState;
 use super::*;
 use serde::{Deserialize, Serialize};
 
@@ -12,6 +13,7 @@ const RESPONSE_SESSION_SCHEMA: &str = "uor-r4.native-geometric-session/2";
 const VALUE_SESSION_SCHEMA: &str = "uor-r4.native-geometric-session/3";
 const COMPLETION_SESSION_SCHEMA: &str = "uor-r4.native-geometric-session/4";
 const ENTRY_SESSION_SCHEMA: &str = "uor-r4.native-geometric-session/5";
+const COPY_SESSION_SCHEMA: &str = "uor-r4.native-geometric-session/6";
 const LEGACY_CHECKPOINT_LIMIT: usize = 1024 * 1024;
 const RESPONSE_CHECKPOINT_LIMIT: usize = 8 * 1024 * 1024;
 // Bound allocation before collecting the sparse index. A tuple has two
@@ -73,6 +75,8 @@ struct Checkpoint {
     completion: Option<CompletionState>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     response_entry: Option<ResponseEntryState>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    word_copy: Option<WordCopyState>,
 }
 
 impl Session {
@@ -89,7 +93,9 @@ impl Session {
             self.ring[..self.length].to_vec()
         };
         let response_memory = self.response_memory_snapshot()?;
-        let schema = if self.response_entry.is_some() {
+        let schema = if self.word_copy.is_some() {
+            COPY_SESSION_SCHEMA
+        } else if self.response_entry.is_some() {
             ENTRY_SESSION_SCHEMA
         } else if self.completion.is_some() {
             COMPLETION_SESSION_SCHEMA
@@ -114,6 +120,7 @@ impl Session {
             values: self.values.clone(),
             completion: self.completion,
             response_entry: self.response_entry,
+            word_copy: self.word_copy,
         })
         .map_err(|error| Error(error.to_string()))?;
         let limit = if schema != LEGACY_SESSION_SCHEMA {
@@ -142,7 +149,13 @@ impl Session {
             .memory_read
             .as_ref()
             .is_some_and(|memory| memory.schema == RESPONSE_MEMORY_SCHEMA);
-        let expected_schema = if model.response_entry.is_some() {
+        let copy_model = model
+            .response_entry
+            .as_ref()
+            .is_some_and(|entry| entry.copy.is_some());
+        let expected_schema = if copy_model {
+            COPY_SESSION_SCHEMA
+        } else if model.response_entry.is_some() {
             ENTRY_SESSION_SCHEMA
         } else if model.completion.is_some() {
             COMPLETION_SESSION_SCHEMA
@@ -158,6 +171,7 @@ impl Session {
         value_snapshot::validate_lexeme_field_presence(model, &object)?;
         completion_snapshot::validate_field_presence(model, &object)?;
         response_entry_snapshot::validate_field_presence(model, &object)?;
+        word_copy_snapshot::validate_field_presence(model, &object)?;
         // The additive /2 field must remain an unknown field for historical
         // /1 inputs, including an explicit JSON null. Keep their old loader
         // law as well as their byte serialization unchanged.
@@ -168,7 +182,10 @@ impl Session {
         }
         if !matches!(
             checkpoint.schema.as_str(),
-            VALUE_SESSION_SCHEMA | COMPLETION_SESSION_SCHEMA | ENTRY_SESSION_SCHEMA
+            VALUE_SESSION_SCHEMA
+                | COMPLETION_SESSION_SCHEMA
+                | ENTRY_SESSION_SCHEMA
+                | COPY_SESSION_SCHEMA
         ) && object.get("values").is_some()
         {
             return Err(Error(
@@ -189,6 +206,10 @@ impl Session {
             || checkpoint.values.is_some() != model.values.is_some()
             || checkpoint.completion.is_some() != model.completion.is_some()
             || checkpoint.response_entry.is_some() != model.response_entry.is_some()
+            || checkpoint.word_copy.is_some() != copy_model
+            || (copy_model
+                && checkpoint.work.word_copy.selector.observations
+                    != checkpoint.work.observed_tokens)
             || (model.response_entry.is_some()
                 && checkpoint.work.response_entry.observations != checkpoint.work.observed_tokens)
             || (model.completion.is_some()
@@ -292,12 +313,18 @@ impl Session {
             )?;
         }
         if let Some(entry) = checkpoint.response_entry {
+            // The entry validator may delegate a copy origin's first-choice
+            // proof to the mandatory copy validator immediately below.
+            restored.word_copy = checkpoint.word_copy;
             restored.restore_response_entry_state(
                 model,
                 entry,
                 &checkpoint.retained_tokens,
                 checkpoint.work.observed_tokens,
             )?;
+        }
+        if let Some(copy) = checkpoint.word_copy {
+            restored.restore_word_copy_state(model, copy)?;
         }
         restored.work = checkpoint.work;
         Ok(restored)
@@ -645,6 +672,8 @@ mod completion_snapshot;
 
 #[path = "response_entry_snapshot.rs"]
 mod response_entry_snapshot;
+#[path = "word_copy_snapshot.rs"]
+mod word_copy_snapshot;
 
 #[cfg(test)]
 #[path = "completion_snapshot_tests.rs"]

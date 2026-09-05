@@ -59,6 +59,7 @@ fn mechanical(copy: bool, continuation: u32) -> Model {
     model.refresh_identity().unwrap();
     model.response_entry = Some(ResponseEntryModel {
         schema: RESPONSE_ENTRY_SCHEMA.into(),
+        copy: None,
         baseline_artifact: model.artifact_cid.clone(),
         rows: [(0, EMIT), (16, continuation)]
             .into_iter()

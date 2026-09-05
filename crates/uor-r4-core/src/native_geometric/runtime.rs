@@ -11,6 +11,8 @@ pub(super) const FEATURE_COUNT: usize = 26;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StateView {
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub word_copy: Option<super::WordCopyStateView>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub response_entry: Option<super::ResponseEntryStateView>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub completion: Option<super::CompletionStateView>,
@@ -37,6 +39,7 @@ pub struct StateView {
 
 #[derive(Debug, Clone)]
 pub struct Session {
+    pub(super) word_copy: Option<super::word_copy_types::WordCopyState>,
     pub(super) response_entry: Option<super::response_entry_types::ResponseEntryState>,
     pub(super) completion: Option<super::completion_types::CompletionState>,
     pub(super) values: Option<super::value_types::ValueState>,
@@ -67,6 +70,11 @@ impl Session {
             .capacity()
             .saturating_mul(std::mem::size_of::<Candidate>());
         Self {
+            word_copy: model
+                .response_entry
+                .as_ref()
+                .and_then(|entry| entry.copy.as_ref())
+                .map(|_| Default::default()),
             response_entry: model.response_entry.as_ref().map(|_| Default::default()),
             completion: model.completion.as_ref().map(|_| Default::default()),
             values: model
@@ -96,6 +104,14 @@ impl Session {
 
     pub fn state(&self) -> StateView {
         StateView {
+            word_copy: self
+                .word_copy
+                .as_ref()
+                .map(|state| super::WordCopyStateView {
+                    origin: state.origin,
+                    progress: state.progress,
+                    storage_bytes: std::mem::size_of::<super::word_copy_types::WordCopyState>(),
+                }),
             response_entry: self
                 .response_entry
                 .as_ref()
@@ -169,6 +185,10 @@ impl Session {
         self.response_entry.as_ref().and_then(|state| state.pending)
     }
 
+    pub fn word_copy_decision(&self) -> Option<super::WordCopyDecision> {
+        self.word_copy.as_ref().and_then(|state| state.pending)
+    }
+
     fn check_model(&self, model: &Model) -> Result<()> {
         if self.artifact_cid != model.artifact_cid {
             return Err(Error(
@@ -180,6 +200,9 @@ impl Session {
 
     pub fn begin_response(&mut self, model: &Model) -> Result<()> {
         self.check_model(model)?;
+        if let Some(copy) = &mut self.word_copy {
+            copy.reset();
+        }
         if let Some(state) = &mut self.completion {
             state.reset();
         }
@@ -200,6 +223,9 @@ impl Session {
 
     pub fn end_response(&mut self, model: &Model) -> Result<()> {
         self.check_model(model)?;
+        if let Some(copy) = &mut self.word_copy {
+            copy.reset();
+        }
         if let Some(entry) = &mut self.response_entry {
             entry.reset();
         }
@@ -300,6 +326,9 @@ impl Session {
                     self.control,
                     &mut self.work.response_entry,
                 );
+                if let Some(copy) = &mut self.word_copy {
+                    copy.observe(entry, state, token, &mut self.work.word_copy);
+                }
             }
             if let Some(completion) = &mut self.completion {
                 completion.observe(
@@ -556,13 +585,38 @@ impl Session {
             &mut self.response_entry,
             &self.values,
         ) {
-            if let Some(candidate) = entry.offer(
-                model,
-                values,
-                baseline,
-                self.control,
-                &mut self.work.response_entry,
-            ) {
+            let copying = self.word_copy.as_ref().is_some_and(|copy| {
+                matches!(
+                    copy.progress,
+                    super::WordCopyProgress::Emitting { .. } | super::WordCopyProgress::Complete
+                )
+            });
+            let lexical = if copying {
+                entry.pending = None;
+                None
+            } else {
+                entry.offer(
+                    model,
+                    values,
+                    baseline,
+                    self.control,
+                    &mut self.work.response_entry,
+                )
+            };
+            let offered = if let Some(copy) = &mut self.word_copy {
+                copy.offer(
+                    model,
+                    entry,
+                    values,
+                    baseline,
+                    lexical,
+                    self.control,
+                    &mut self.work.word_copy,
+                )
+            } else {
+                lexical
+            };
+            if let Some(candidate) = offered {
                 self.offer_memory(model, candidate);
             }
         }
@@ -580,6 +634,9 @@ impl Session {
             state.selected(best);
         }
         if let Some(state) = &mut self.response_entry {
+            state.selected(best);
+        }
+        if let Some(state) = &mut self.word_copy {
             state.selected(best);
         }
         Ok(Prediction {

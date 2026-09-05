@@ -7,7 +7,67 @@ remains owned by [#973](https://github.com/UOR-Foundation/uor-r4/issues/973).
 Refresh live GitHub before choosing a follow-up; dated snapshots and lower
 historical “next” paragraphs do not select work.
 
-## Response entry with preserved typed completion — 2026-09-05
+## Retained words with observed completion state — 2026-09-05
+
+The current optional response-entry `/2` model selects an exact retained word
+occurrence, commits its immutable origin only after observation and copies its
+bytes through a bounded cursor. The selected artifact enables
+`completed_word_suffix`: a temporary suffix frame starts at the actual final
+copied-byte observation, retaining H4/zeta state and the query prime while
+excluding copied spelling and length from suffix features. The stronger `/4`
+reader, typed `/2`, numeric completion and lexical-entry parent remain fixed.
+
+| Same OPEN development | Original responses | Identifier transfers | City transfers |
+| --- | ---: | ---: | ---: |
+| First copy fit, original suffix frame | 32/32 | 2/12 | 0/2 |
+| Completed-word Full | 32/32 | 12/12 | 0/2 |
+| Copy disabled | 32/32 | 0/12 | 0/2 |
+| Copy geometry disabled | 28/32 | 0/12 | 0/2 |
+
+Full preserves 24 numeric targets and eight binding outputs. All twelve new
+functions compile and pass seven-input identity callers (84 assertions).
+The twenty original generated Rust source hashes match their previously passed
+compiler/execution receipts. All twelve initial copy decisions, the 57-word
+dictionary and 512 selector rows match the first fit exactly. The changed suffix
+law reduces 185 rows/260 associations to 42/48. Geometry-disabled still copies
+the twelve correct declarations and fails afterward; all three suffix candidate
+IDs remain in the artifact. This is combined feature dependence within one
+fitted artifact on reused OPEN data, not a separately fitted geometric advantage.
+
+The [record](../native_geometric_word_copy_973.md) and
+[compact evidence](../evidence/native_geometric_word_copy_973.json) bind both fits,
+replays, actual CLI execution, compiler results, costs and preservation. Selected
+artifact: `.uor-models/native-typed-value-2026-09-05/word-copy-completed-fit-1/model.json`,
+CID `blake3:46ad994bfdbcd376770c0e5e6f8150e68f0821eb1c7f05320b8121be8931d229`.
+The final binary replays 104 original-entry and 146 first-copy Generation objects
+exactly. Old artifacts and the first copy negative remain intact.
+
+Ordinary scoring still executes for every copied byte. On the same original 32
+responses, byte-emitting the four familiar `value` words adds sixteen prediction
+steps: ordinary score lookups rise 918,979→949,464 and memory-score lookups
+144,747→161,315, plus the new bounded copy work. The smaller suffix table and
+better transfer are measured; a whole-model compute or latency advantage is not.
+
+The next implementation is a learned lexical-prefix-to-copy transition. Both
+city cases evaluate sixteen words but select inherited ` Unknown`; their exact
+leading-space targets also cannot be composed by first-position-only copying.
+The new transition needs positive construction and actual observed prefix state,
+then can reuse this cursor and completion frame. It remains unimplemented.
+General conversation, semantic multiscale abstraction, final held-out evaluation
+and alpha remain unqualified.
+
+The owner now authorizes necessary incremental storage increases. This cycle
+records +104 MiB beyond the inherited 4,336,910,336-byte cap (which already
+included the prior +40 MiB): the cap is 4,445,962,240 bytes with the same 128 MiB
+stop margin. At 16:37:45 UTC, conservative accounted storage is 4,285,845,504
+bytes, leaving 20,103,168 bytes below the checked-cycle ceiling. Model work is
+947.062/1,800 seconds, leaving 852.938 seconds. Engineering builds/tests used
+1,545.328/1,800 seconds for this cycle; the complete second-repair checks used
+542.041 seconds against a 550-second projection. A successor needs a fresh
+complete build/evaluation projection; these resource figures do not admit one
+automatically. No material was deleted and no external compute was used.
+
+## Preceding response entry with preserved typed completion — 2026-09-05
 
 The current artifact adds `uor-r4.native-response-entry/1` to the unchanged
 stronger occurrence reader `/4`, typed `/2` and numeric-completion `/1` model.

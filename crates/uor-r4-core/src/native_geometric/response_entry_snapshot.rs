@@ -189,11 +189,16 @@ impl Session {
                     self.control,
                     &mut CompletionWork::default(),
                 );
-                if !selection.is_some_and(|candidate| {
-                    token_at(anchor.at_seen).is_ok_and(|token| token == candidate.token)
-                }) || !origin
-                    .pending
-                    .is_some_and(|decision| decision.action == ResponseEntryAction::Enter)
+                let copy_origin = self
+                    .word_copy
+                    .as_ref()
+                    .is_some_and(|copy| copy.origin.is_some());
+                if !copy_origin
+                    && (!selection.is_some_and(|candidate| {
+                        token_at(anchor.at_seen).is_ok_and(|token| token == candidate.token)
+                    }) || !origin
+                        .pending
+                        .is_some_and(|decision| decision.action == ResponseEntryAction::Enter))
                 {
                     return Err(invalid("origin is not an observed selected entry"));
                 }

@@ -21,6 +21,7 @@ use uor_r4_core::native_geometric::{
 type ProbeResult<T> = Result<T, Box<dyn Error>>;
 const SOURCE_SCHEMA: &str = "uor-r4.native-typed-value-source/1";
 const LEXEME_SOURCE_SCHEMA: &str = "uor-r4.native-typed-value-source/2";
+const WORD_COPY_SOURCE_SCHEMA: &str = "uor-r4.native-typed-value-source/3";
 const MAX_SOURCE_BYTES: u64 = 4 * 1024 * 1024;
 const COMPLETION_OUTPUT_BYTES: usize = 20 * 1024 * 1024;
 const PRESERVATION_OUTPUT_BYTES: usize = 8 * 1024 * 1024;
@@ -71,7 +72,10 @@ impl Options {
         while let Some(flag) = arguments.next() {
             if flag == "--help" || flag == "-h" {
                 println!(
-                    "native_geometric_value_probe [prepare|fit|completion|entry|evaluate] --output-dir NEW_DIRECTORY\n\
+                    "native_geometric_value_probe [prepare|prepare-copy|fit|completion|entry|copy|copy-completed|evaluate] --output-dir NEW_DIRECTORY\n\
+                     prepare-copy: --source SOURCE_V2 --lexeme-cues true\n\
+                     copy: --model ENTRY_MODEL --source SOURCE_V3 --lexeme-cues true --generated-tokens 64\n\
+                     copy-completed: same source/parent, suffix frame starts after the observed copied word\n\
                      fit: --model BASELINE [--source source.json]\n\
                      completion: --model TYPED_MODEL --source SOURCE_V2 --lexeme-cues true\n\
                      entry: --model COMPLETION_MODEL --source SOURCE_V2 --lexeme-cues true --generated-tokens 64\n\
@@ -114,13 +118,41 @@ impl Options {
                 _ => return Err(format!("unknown option {flag}").into()),
             }
         }
-        if !["prepare", "fit", "completion", "entry", "evaluate"].contains(&result.mode.as_str())
+        if ![
+            "prepare",
+            "prepare-copy",
+            "fit",
+            "completion",
+            "entry",
+            "copy",
+            "copy-completed",
+            "evaluate",
+        ]
+        .contains(&result.mode.as_str())
             || result.output_dir.as_os_str().is_empty()
-            || (result.mode != "prepare" && result.model.as_os_str().is_empty())
-            || (["completion", "entry", "evaluate"].contains(&result.mode.as_str())
+            || (!["prepare", "prepare-copy"].contains(&result.mode.as_str())
+                && result.model.as_os_str().is_empty())
+            || ([
+                "prepare-copy",
+                "completion",
+                "entry",
+                "copy",
+                "copy-completed",
+                "evaluate",
+            ]
+            .contains(&result.mode.as_str())
                 && result.source.is_none())
-            || (["completion", "entry"].contains(&result.mode.as_str()) && !result.lexeme_cues)
-            || (["completion", "entry"].contains(&result.mode.as_str()) && result.epochs > 64)
+            || ([
+                "prepare-copy",
+                "completion",
+                "entry",
+                "copy",
+                "copy-completed",
+            ]
+            .contains(&result.mode.as_str())
+                && !result.lexeme_cues)
+            || (["completion", "entry", "copy", "copy-completed"].contains(&result.mode.as_str())
+                && result.epochs > 64)
             || !(1..=4096).contains(&result.completion_max_positions)
             || !["all", "full"].contains(&result.controls.as_str())
             || (result.controls == "full" && result.mode != "evaluate")
@@ -461,17 +493,97 @@ fn source(options: &Options) -> ProbeResult<Source> {
         result.scope.push_str(" Source /2 appends context-only copy/add name swaps to the unchanged /1 fit cases, with fixed numeric source order and query bytes but changed correct operands. Whole-word cues are an explicit model variant. The unchanged primary development cases and four binding controls have already informed this design and are reused OPEN development feedback, not sealed or final held-out evaluation.");
         result.fit.extend(make_fit_name_swaps(options.fit_worlds)?);
     }
+    if options.mode == "prepare-copy" {
+        append_word_copy_cases(&mut result)?;
+    }
     validate_source(&result)?;
-    if (result.schema == LEXEME_SOURCE_SCHEMA) != options.lexeme_cues {
+    if (result.schema != SOURCE_SCHEMA) != options.lexeme_cues {
         return Err(
             "source schema must match --lexeme-cues; prepare a new /2 source with true".into(),
         );
     }
+    if ["copy", "copy-completed"].contains(&options.mode.as_str())
+        && result.schema != WORD_COPY_SOURCE_SCHEMA
+    {
+        return Err("copy fitting requires the prepared /3 source".into());
+    }
     Ok(result)
 }
 
+// These are authored construction and OPEN development cases. Inference sees
+// their prompt bytes only; neither task labels nor expected source positions
+// enter the model. The original /2 cases remain byte-for-byte unchanged.
+fn append_word_copy_cases(source: &mut Source) -> ProbeResult<()> {
+    if source.schema != LEXEME_SOURCE_SCHEMA {
+        return Err("prepare-copy requires an unextended /2 source".into());
+    }
+    let names = [
+        "item", "datum", "entry", "token", "scalar", "number", "sample", "point",
+    ];
+    for context in 0..4 {
+        for (index, name) in names.iter().enumerate() {
+            source.fit.push(word_copy_case("fit", context, index, name));
+        }
+    }
+    for (pair, names) in [
+        ["input", "count"],
+        ["payload", "argument"],
+        ["amount", "operand"],
+        ["buffer", "element"],
+        ["left", "right"],
+        ["value_a", "value_b"],
+    ]
+    .iter()
+    .enumerate()
+    {
+        let context = [0, 0, 1, 2, 3, 1][pair];
+        for (variant, name) in names.iter().enumerate() {
+            let mut case = word_copy_case("development", context, pair * 2 + variant, name);
+            case.pair_id = format!("word-copy/development/pair-{pair}");
+            source.development.push(case);
+        }
+    }
+    for (variant, city) in ["Oslo", "Lima"].iter().enumerate() {
+        source.development.push(Case {
+            id: format!("word-copy/development/city-{variant}"),
+            family: "prose".into(), task: "city_transfer".into(), world: 300_000 + variant,
+            pair_id: "word-copy/development/city".into(), variant,
+            prompt: format!("User: suri has 73 coins. tavi has 301 coins.\nUser: orin lives in {city}.\nUser: What city does orin live in?\nAssistant:"),
+            response: format!(" {city}.\n"),
+        });
+    }
+    source.schema = WORD_COPY_SOURCE_SCHEMA.into();
+    source.scope.push_str(" Source /3 preserves every /2 fit and development case and appends 32 construction parameter-name cases, 12 OPEN parameter-transfer cases, and the two already observed city failures. Parameter variants change retained rank, add a misleading comment, or duplicate the spelling; the target alone does not identify which equal-spelling occurrence was selected. Construction names differ from transfer names. These are development feedback, not final held-out qualification. The city responses begin with a space and remain a boundary diagnostic for first-position copying.");
+    Ok(())
+}
+
+fn word_copy_case(split: &str, context: usize, index: usize, name: &str) -> Case {
+    let development = split == "development";
+    let numeric = if development {
+        "// suri has 73 coins; tavi has 301.\n"
+    } else {
+        "// ada has 11 coins; cyra has 301.\n"
+    };
+    let comment = match context {
+        1 => "// the result is unchanged\n    ".to_owned(),
+        2 => "// input is mentioned again\n    ".to_owned(),
+        3 => format!("// {name} is the supplied argument\n    "),
+        _ => String::new(),
+    };
+    Case {
+        id: format!("word-copy/{split}/context-{context}/name-{index}"),
+        family: "rust".into(), task: "parameter_transfer".into(),
+        world: if development { 200_000 + index } else { 2_000 + index },
+        pair_id: format!("word-copy/{split}/context-{context}/pair-{}", index / 2),
+        variant: index % 2,
+        prompt: format!("{numeric}// Return the input unchanged.\nfn identity({name}: i32) -> i32 {{\n    {comment}"),
+        response: format!("{name}\n}}\n"),
+    }
+}
+
 fn validate_source(source: &Source) -> ProbeResult<()> {
-    if ![SOURCE_SCHEMA, LEXEME_SOURCE_SCHEMA].contains(&source.schema.as_str())
+    if ![SOURCE_SCHEMA, LEXEME_SOURCE_SCHEMA, WORD_COPY_SOURCE_SCHEMA]
+        .contains(&source.schema.as_str())
         || source.fit.is_empty()
         || source.development.is_empty()
     {
@@ -584,6 +696,7 @@ fn reject_training_overlap(model: &Model, cases: &[Case]) -> ProbeResult<()> {
             .chain(model.value_training())
             .chain(model.value_completion_training())
             .chain(model.response_entry_training())
+            .chain(model.word_copy_training())
             .any(|known| {
                 known.id == case.id || known.text_cid == pair_cid || known.text_cid == whole_cid
             })
@@ -608,8 +721,15 @@ fn evaluate(
     let mut arms = Vec::new();
     let completion = model.value_completion_version().is_some();
     let entry = model.response_entry_version().is_some();
+    let copy = !model.word_copy_training().is_empty();
     let mut controls = if options.controls == "full" {
         vec![Control::Full]
+    } else if copy {
+        vec![
+            Control::Full,
+            Control::WordCopyDisabled,
+            Control::WordCopyGeometryDisabled,
+        ]
     } else if entry {
         vec![
             Control::Full,
@@ -713,6 +833,12 @@ fn evaluate(
         if control == Control::ResponseEntryGeometryDisabled {
             arm["scope"] = json!("Within-artifact suppression of only response-entry H4/orientation/phase score features. Other components remain enabled. Candidate support and complete work must be checked separately; this is not a refitted geometry comparator.");
         }
+        if control == Control::WordCopyDisabled {
+            arm["scope"] = json!("Suppress only the retained-word copy extension. The inherited lexical entry, numeric path and ordinary model remain enabled; this is a same-artifact intervention.");
+        }
+        if control == Control::WordCopyGeometryDisabled {
+            arm["scope"] = json!("Suppress H4/orientation/phase score features in both the copy selector and its learned suffix. Candidate support, lexical copy features and inherited entry remain enabled; this measures combined feature sensitivity, not selector-only attribution or a separately fitted geometry advantage.");
+        }
         // Completion reports retain the complete generation objects once in
         // report.json to keep the model, exact outputs and traces within the
         // configured output allowance. Historical typed-only files stay intact.
@@ -797,13 +923,14 @@ fn evaluate_binding(
 
 fn main() -> ProbeResult<()> {
     let options = Options::parse()?;
-    let output_limit = if ["completion", "entry"].contains(&options.mode.as_str()) {
-        Some(COMPLETION_OUTPUT_BYTES)
-    } else if options.controls == "full" {
-        Some(PRESERVATION_OUTPUT_BYTES)
-    } else {
-        None
-    };
+    let output_limit =
+        if ["completion", "entry", "copy", "copy-completed"].contains(&options.mode.as_str()) {
+            Some(COMPLETION_OUTPUT_BYTES)
+        } else if options.controls == "full" {
+            Some(PRESERVATION_OUTPUT_BYTES)
+        } else {
+            None
+        };
     OUTPUT_BYTES_REMAINING.store(output_limit.unwrap_or(usize::MAX), Ordering::Relaxed);
     let start = Instant::now();
     let source = source(&options)?;
@@ -835,7 +962,7 @@ fn main() -> ProbeResult<()> {
         &options.output_dir.join("binding-controls-source.json"),
         &binding_bytes,
     )?;
-    if options.mode == "prepare" {
+    if ["prepare", "prepare-copy"].contains(&options.mode.as_str()) {
         println!(
             "{}",
             json!({"status":"prepared","fit_cases":source.fit.len(),"development_cases":source.development.len(),"source_blake3":blake3::hash(&source_bytes).to_hex().to_string(),"elapsed_ms":start.elapsed().as_millis()})
@@ -845,9 +972,24 @@ fn main() -> ProbeResult<()> {
     within_limit(start, &options)?;
     let baseline = Model::from_bytes(&fs::read(&options.model)?)?;
     let input_artifact = baseline.artifact_cid().to_owned();
-    let (model, fit_report) = if ["fit", "completion", "entry"].contains(&options.mode.as_str()) {
+    let (model, fit_report) = if ["fit", "completion", "entry", "copy", "copy-completed"]
+        .contains(&options.mode.as_str())
+    {
         let examples: Vec<_> = source.fit.iter().map(Case::example).collect();
-        let (fitted, report) = if options.mode == "entry" {
+        let (fitted, report) = if ["copy", "copy-completed"].contains(&options.mode.as_str()) {
+            let config = ResponseEntryFitConfig {
+                epochs: options.epochs,
+                learning_rate: options.learning_rate,
+                max_positions: options.completion_max_positions,
+            };
+            let (fitted, report) = if options.mode == "copy-completed" {
+                baseline.fit_response_entry_copy_completed_word(&examples, config)?
+            } else {
+                baseline.fit_response_entry_copy(&examples, config)?
+            };
+            write_json(&options.output_dir.join("fit-report.json"), &report)?;
+            (fitted, serde_json::to_value(report)?)
+        } else if options.mode == "entry" {
             let (fitted, report) = baseline.fit_response_entry(
                 &examples,
                 ResponseEntryFitConfig {
@@ -895,7 +1037,7 @@ fn main() -> ProbeResult<()> {
     let arms = evaluate(&model, &source, &options, start)?;
     let binding_controls = evaluate_binding(&model, &binding_source, &options, start)?;
     let mut report = json!({
-        "schema":if model.response_entry_version().is_some() { "uor-r4.native-response-entry-probe/1" } else if model.value_completion_version().is_some() { "uor-r4.native-value-completion-probe/1" } else if options.lexeme_cues { "uor-r4.native-typed-value-probe/2" } else { "uor-r4.native-typed-value-probe/1" },
+        "schema":if !model.word_copy_training().is_empty() { "uor-r4.native-response-entry-copy-probe/1" } else if model.response_entry_version().is_some() { "uor-r4.native-response-entry-probe/1" } else if model.value_completion_version().is_some() { "uor-r4.native-value-completion-probe/1" } else if options.lexeme_cues { "uor-r4.native-typed-value-probe/2" } else { "uor-r4.native-typed-value-probe/1" },
         "status":"completed",
         "scope":source.scope,
         "tokenization_law":source.tokenization_law,
@@ -923,6 +1065,16 @@ fn main() -> ProbeResult<()> {
         report["completion_operator_version"] = json!(version);
         report["completion_scope"] = json!("Same /2 raw source and unchanged OPEN development targets. Fitting follows actual upstream numeral rollouts, then supervises ordinary suffix bytes and EOS; no generated suffix or target template is appended. Completion traces describe the learned step transitions. Primary and binding controls remain reused design feedback, not final held-out evaluation.");
     }
+    if !model.word_copy_training().is_empty() {
+        report["response_entry_scope"] = json!("Source /3 OPEN development. The /2 copy extension competes against inherited lexical entry and ordinary Base on actual model-selected NoWrite. It selects a retained occurrence through learned bounded scalar features, emits its exact bytes after matching observation, and learns a suffix only after a quantized selected complete copy. Parent entry and all upstream parameters remain fixed. Equal-spelling matches are latent alternatives; target byte equality does not establish occurrence-role binding. Numeric preservation, copy selection, suffix completion and compiled behavior are reported separately.");
+        report["resources"]["rust_layout"] = json!({
+            "session_struct_bytes": std::mem::size_of::<uor_r4_core::native_geometric::Session>(),
+            "work_struct_bytes": std::mem::size_of::<uor_r4_core::native_geometric::Work>(),
+            "word_copy_work_struct_bytes": std::mem::size_of::<uor_r4_core::native_geometric::WordCopyWork>(),
+            "word_copy_decision_struct_bytes": std::mem::size_of::<uor_r4_core::native_geometric::WordCopyDecision>(),
+            "scope": "Current compiled Rust layouts, including optional and transient slots; excludes heap buffers and immutable model tables. Generation state separately reports the copy state layout. No predecessor total Session layout measurement or exact stack high-water measurement is available."
+        });
+    }
     if options.controls != "all" {
         report["controls_selection"] = json!(options.controls);
     }
@@ -942,6 +1094,40 @@ fn main() -> ProbeResult<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn word_copy_source_preserves_prior_cases_and_separates_new_names() {
+        let mut source = Source {
+            schema: LEXEME_SOURCE_SCHEMA.into(),
+            scope: String::new(),
+            tokenization_law: String::new(),
+            fit: make_cases("fit", 16),
+            development: make_cases("development", 4),
+        };
+        source.fit.extend(make_fit_name_swaps(16).unwrap());
+        let original_fit = serde_json::to_vec(&source.fit).unwrap();
+        let original_development = serde_json::to_vec(&source.development).unwrap();
+        append_word_copy_cases(&mut source).unwrap();
+        validate_source(&source).unwrap();
+        assert_eq!(source.fit.len(), 224);
+        assert_eq!(source.development.len(), 46);
+        assert_eq!(
+            original_fit,
+            serde_json::to_vec(&source.fit[..192]).unwrap()
+        );
+        assert_eq!(
+            original_development,
+            serde_json::to_vec(&source.development[..32]).unwrap()
+        );
+        let fit_names: BTreeSet<_> = source.fit[192..]
+            .iter()
+            .map(|case| case.response.lines().next().unwrap())
+            .collect();
+        for case in &source.development[32..44] {
+            assert!(!fit_names.contains(case.response.lines().next().unwrap()));
+        }
+        assert!(append_word_copy_cases(&mut source).is_err());
+    }
 
     #[test]
     fn generated_splits_and_counterfactuals_are_distinct() {

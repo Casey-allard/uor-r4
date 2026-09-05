@@ -63,7 +63,12 @@ impl ResponseEntryModel {
         let associations = self.rows.iter().map(|row| row.scores.len()).sum::<usize>();
         let valid_token =
             |token: u32| token != BOS && (token as usize) < model.geometry.tokens.len();
-        if self.schema != RESPONSE_ENTRY_SCHEMA
+        let expected_schema = if self.copy.is_some() {
+            super::word_copy_types::RESPONSE_COPY_SCHEMA
+        } else {
+            RESPONSE_ENTRY_SCHEMA
+        };
+        if self.schema != expected_schema
             || model.completion.is_none()
             || self.rows.len() > RESPONSE_ENTRY_ROWS
             || associations > RESPONSE_ENTRY_ASSOCIATIONS
@@ -127,6 +132,9 @@ impl ResponseEntryModel {
             return Err(Error(
                 "response-entry artifact differs from its frozen completion baseline".into(),
             ));
+        }
+        if let Some(copy) = &self.copy {
+            copy.validate(model)?;
         }
         Ok(())
     }
@@ -201,6 +209,7 @@ impl Model {
         }
         let mut model = self.clone();
         model.response_entry = Some(ResponseEntryModel {
+            copy: None,
             schema: RESPONSE_ENTRY_SCHEMA.into(),
             baseline_artifact: self.artifact_cid.clone(),
             rows: Vec::new(),

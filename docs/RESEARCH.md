@@ -12,6 +12,41 @@ windows as instructions for new work. A negative binds its exact configuration;
 resource unavailability does not determine model quality. The recovered plan
 allows open development iteration under configurable cumulative machine budgets.
 
+## Native retained-word selection and completed-word suffix (2026-09-05)
+
+The [retained-word record](native_geometric_word_copy_973.md) connects learned
+bounded occurrence selection to exact causal byte copying. Its first model
+selects and copies all twelve transfer parameter names, but only two responses
+finish. Reframing suffix features at the actual observed final copied byte
+raises complete transfers to 12/12 with the same parent, 224 construction pairs,
+57-word dictionary, 512 selector rows and twelve initial decisions. Suffix rows
+fall 185→42 and associations 260→48. The selected model preserves all 32 original
+OPEN responses, 24 numeric targets and eight binding outputs. All twelve new
+Rust functions compile and pass 84 independent identity assertions; twenty old
+generated source hashes match their prior passed execution receipts.
+
+Copy-disabled completes 0/12 transfers. Copy-geometry-disabled still selects and
+copies all twelve correct identifiers but completes 0/12, and preserves 28/32
+original responses. The three suffix candidate IDs remain unchanged. The
+control removes combined H4/orientation/phase terms in both selector and suffix;
+it localizes these failures after successful copying but is not a matched refit
+or general geometric-superiority result. Ordinary Base supplies the successful
+transfer EOS choices. The first artifact's 146 and the parent artifact's 104
+saved Generation objects replay exactly under the final binary.
+
+Two city transfers still produce Unknown. These prompts pass numeric-source
+eligibility and evaluate sixteen word candidates. Their leading-space expected
+answers also expose an absent lexical-prefix-to-copy transition; the current
+fitter would classify those unchanged targets as NoCopy. Semantic role binding,
+multiscale memory and final held-out capability remain open. Exact payload
+retention plus a word-completion frame is a bounded operator abstraction.
+
+The cost record includes an adverse result: ordinary scoring still runs for
+each emitted byte. On the original set, copying four familiar lexical `value`
+tokens adds sixteen prediction steps and raises ordinary and memory-score
+lookups, alongside new copy-selection work. No whole-model speed or dense-compute
+replacement advantage is inferred from the smaller learned suffix table.
+
 ## Native response entry (2026-09-05)
 
 The [response-entry record](native_geometric_response_entry_973.md) adds optional

@@ -262,6 +262,8 @@ enum ControlArg {
     ValueCompletionGeometryDisabled,
     ResponseEntryDisabled,
     ResponseEntryGeometryDisabled,
+    WordCopyDisabled,
+    WordCopyGeometryDisabled,
 }
 impl From<ControlArg> for Control {
     fn from(value: ControlArg) -> Self {
@@ -282,6 +284,8 @@ impl From<ControlArg> for Control {
             ControlArg::ValueCompletionGeometryDisabled => Self::ValueCompletionGeometryDisabled,
             ControlArg::ResponseEntryDisabled => Self::ResponseEntryDisabled,
             ControlArg::ResponseEntryGeometryDisabled => Self::ResponseEntryGeometryDisabled,
+            ControlArg::WordCopyDisabled => Self::WordCopyDisabled,
+            ControlArg::WordCopyGeometryDisabled => Self::WordCopyGeometryDisabled,
         }
     }
 }
@@ -1261,6 +1265,26 @@ fn chat(a: &ChatArgs) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn native_geometric_word_copy_controls_parse_for_generation_and_evaluation() {
+        for (argument, expected, wire) in [
+            (
+                "word-copy-disabled",
+                Control::WordCopyDisabled,
+                "word_copy_disabled",
+            ),
+            (
+                "word-copy-geometry-disabled",
+                Control::WordCopyGeometryDisabled,
+                "word_copy_geometry_disabled",
+            ),
+        ] {
+            let control: Control = ControlArg::from_str(argument, false).unwrap().into();
+            assert_eq!(control, expected);
+            assert_eq!(serde_json::to_value(control).unwrap(), wire);
+        }
+    }
 
     struct Directory(PathBuf);
     impl Directory {

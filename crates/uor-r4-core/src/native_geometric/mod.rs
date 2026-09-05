@@ -27,6 +27,9 @@ mod value_lexemes;
 mod value_runtime;
 mod value_training;
 mod value_types;
+mod word_copy_runtime;
+mod word_copy_training;
+mod word_copy_types;
 
 use serde::{Deserialize, Serialize};
 
@@ -52,6 +55,10 @@ pub use training::Trainer;
 pub use value_training::{ValueExample, ValueFitConfig, ValueFitReport};
 pub use value_types::{
     ValueAction, ValueDecision, ValueDerivation, ValueRecord, ValueStateView, ValueWork,
+};
+pub use word_copy_training::ResponseEntryCopyFitReport;
+pub use word_copy_types::{
+    WordCopyAction, WordCopyDecision, WordCopyProgress, WordCopyStateView, WordCopyWork,
 };
 
 pub const SCHEMA: &str = "uor-r4.native-geometric-language/1";
@@ -145,6 +152,8 @@ pub enum Control {
     ValueCompletionGeometryDisabled,
     ResponseEntryDisabled,
     ResponseEntryGeometryDisabled,
+    WordCopyDisabled,
+    WordCopyGeometryDisabled,
 }
 
 /// Explicit feature addresses, never content digests. Kinds 0/1 are full
@@ -188,7 +197,9 @@ impl Feature {
             | Control::ValueCompletionDisabled
             | Control::ValueCompletionGeometryDisabled
             | Control::ResponseEntryDisabled
-            | Control::ResponseEntryGeometryDisabled => true,
+            | Control::ResponseEntryGeometryDisabled
+            | Control::WordCopyDisabled
+            | Control::WordCopyGeometryDisabled => true,
             Control::GeometryDisabled => self.kind < 2,
             Control::ZetaDisabled => !(8..=15).contains(&self.kind) && self.kind != 5,
             Control::H4Disabled => self.kind < 2 || (8..=15).contains(&self.kind),
@@ -334,6 +345,8 @@ impl TryFrom<ModelWire> for Model {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct Work {
+    #[serde(default, skip_serializing_if = "WordCopyWork::is_empty")]
+    pub word_copy: WordCopyWork,
     #[serde(default, skip_serializing_if = "CompletionWork::is_empty")]
     pub response_entry: CompletionWork,
     #[serde(default, skip_serializing_if = "CompletionWork::is_empty")]
@@ -418,6 +431,8 @@ pub struct Prediction {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Generation {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub word_copy_trace: Vec<WordCopyDecision>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub response_entry_trace: Vec<ResponseEntryDecision>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub completion_trace: Vec<CompletionDecision>,
@@ -463,3 +478,5 @@ mod completion_runtime_tests;
 mod response_entry_runtime_tests;
 #[cfg(test)]
 mod response_entry_training_tests;
+#[cfg(test)]
+mod word_copy_tests;

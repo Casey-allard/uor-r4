@@ -46,24 +46,30 @@ results, remaining learned-operator work and capability limitations.
 
 The [native mechanism map](docs/native_geometric_mechanism_map_973.md) traces
 the implemented prime/zeta/R4 mechanisms from source to generated responses.
-The latest [response-entry record](docs/native_geometric_response_entry_973.md)
-adds learned lexical entry and continuation corrections when the typed selector
-chooses NoWrite. On the same reused OPEN development set it completes **16/16
-prose and 16/16 Rust responses**, preserving all 24 numeric targets and eight
-binding outputs from the preceding [numeric completion model](docs/native_geometric_value_completion_973.md).
-All twenty saved Rust records compile and pass execution checks, including
-four identity functions tested by separate callers (eighteen distinct sources).
-Removing the new head's H4/orientation/phase scores preserves its thirteen-token
-support and correct first entry but loses all eight new complete responses.
-Ordinary decoding supplies parts of those responses, including every EOS.
+The latest [retained-word record](docs/native_geometric_word_copy_973.md) adds
+learned source-occurrence selection and causal byte copying. An observed
+word-completion boundary removes copied spelling and length from the learned
+suffix frame while retaining actual H4/zeta state and exact source provenance.
+It completes **12/12 OPEN identifier transfers**, including misleading and
+duplicate comment words, versus 2/12 before the suffix repair and 0/12 with
+copying disabled. All twelve generated functions compile and pass separate
+seven-input identity callers. The same parent, data, dictionary and learned
+selector are preserved; suffix rows shrink from 185 to 42.
 
-A separate four-case content-transfer diagnostic fails: explicit city facts
-still receive the learned Unknown sentence, and renamed parameters still produce
-`value`, which fails compilation. The current learned forms do not establish
-grounded abstention or general content binding. The record distinguishes this
-boundary, the final runtime's reuse of an invariant NoWrite decision, complete
-work costs and preserved historical results. A matched geometry-free refit,
-multiscale semantic abstraction and whole-model efficiency advantage remain open.
+The model preserves the preceding [response-entry](docs/native_geometric_response_entry_973.md)
+result: **16/16 prose, 16/16 Rust, 24/24 numeric targets and eight binding outputs**.
+The twenty original Rust source hashes still match their previously executed
+compiler receipts. Disabling the copy head's H4/orientation/phase features still
+copies all twelve correct identifiers but loses every complete transfer response.
+This is within-artifact feature dependence on reused OPEN data, not a matched
+refit or general geometric superiority. Ordinary scoring still runs per byte;
+copying the four familiar `value` outputs increases ordinary work on the original
+set. No whole-model speed advantage is claimed.
+
+The two city transfers remain failures. Their leading-space answers require a
+learned prefix-to-copy transition that the current first-position-only operator
+does not implement. General content binding, grounded abstention, semantic
+multiscale memory, final held-out qualification and alpha remain unresolved.
 
 The [typed-value record](docs/native_geometric_typed_value_973.md) preserves the
 preceding binding negative and whole-word correction; the latter produced correct
@@ -771,10 +777,11 @@ remains blocked behind #954. The exact contract is
 - `docs/` — current programme, mathematical decisions, evidence, and archive.
 
 Start with the [documentation guide](docs/README.md). The
-[R4 Intelligence Completion Plan](docs/r4_intelligence_completion_plan.md) is
-the post-v0.1 sequencing authority and readable mirror of programme root #820;
-the [Geometric Intelligence Programme](docs/geometric_intelligence_programme.md)
-defines its architecture and claim boundaries. Historical records remain
+[native project plan](docs/integration/project-track.md) owns current sequencing.
+The [R4 Intelligence Completion Plan](docs/r4_intelligence_completion_plan.md)
+preserves the earlier programme-root #820 sequence, and the
+[Geometric Intelligence Programme](docs/geometric_intelligence_programme.md)
+records architecture and claim boundaries. Historical records remain
 available through the documentation guide without dominating the front door.
 
 ## Contributing

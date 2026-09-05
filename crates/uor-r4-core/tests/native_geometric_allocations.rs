@@ -8,8 +8,13 @@ use std::cell::Cell;
 use uor_r4_core::native_geometric::{
     Config, Control, Document, MemoryReadFitConfig, MemoryReadSchedule, MemoryReadSupervision,
     MemoryReadTokenSpan, MemoryReadTrainer, ReadoutFitConfig, ResponseEntryFitConfig, Trainer,
-    ValueCompletionFitConfig, ValueExample, ValueFitConfig, BOS, EOS,
+    ValueCompletionFitConfig, ValueExample, ValueFitConfig, WordCopyAction, BOS, EOS,
 };
+
+mod copy_fixture {
+    use uor_r4_core::native_geometric as native;
+    include!("support/native_word_copy_fixture.rs");
+}
 
 struct CountingAllocator;
 thread_local! {
@@ -99,6 +104,7 @@ fn native_kernel_source_has_no_forbidden_arithmetic_or_float_types() {
         "fn value_decision(",
         "fn completion_decision(",
         "fn response_entry_decision(",
+        "fn word_copy_decision(",
         "fn recent(",
         "fn features(",
         "fn score_candidate(",
@@ -196,6 +202,7 @@ fn native_kernel_source_has_no_forbidden_arithmetic_or_float_types() {
     }
     let completion_types = include_str!("../src/native_geometric/completion_types.rs");
     let response_entry = include_str!("../src/native_geometric/response_entry_runtime.rs");
+    let word_copy = include_str!("../src/native_geometric/word_copy_runtime.rs");
     for function in [
         "fn eligible(",
         "fn reset(",
@@ -254,6 +261,7 @@ fn native_kernel_source_has_no_forbidden_arithmetic_or_float_types() {
         ("native typed-value runtime", value_runtime),
         ("native completion runtime", completion),
         ("native response-entry runtime", response_entry),
+        ("native retained-word copy runtime", word_copy),
         ("native completion seed", seed),
         ("native numeral codec", numeral),
         ("native whole-word codec", lexemes),
@@ -539,6 +547,96 @@ fn native_response_entry_commit_mismatch_and_limit_are_allocation_free() {
     assert_eq!(session.work.response_entry.step_limits, 4);
     assert_eq!(session.work.values.derived_writes, 0);
     assert!(session.work.evictions > 0);
+}
+
+#[test]
+fn native_word_copy_selection_bytes_mismatch_and_cap_are_allocation_free() {
+    let (_, original) = copy_fixture::fitted();
+    let completed_word = copy_fixture::fitted_completed_word();
+    for (variant, model) in [
+        ("actual-byte suffix", original),
+        ("completed-word suffix", completed_word),
+    ] {
+        let prompt = model.encode(copy_fixture::COPY_PROMPT).unwrap();
+        let mut session = model.session(Control::Full).unwrap();
+        let storage = session.state().word_copy.unwrap().storage_bytes;
+        let mut selected = false;
+        let mut repeat_stable = true;
+        let mut copied_bytes = 0;
+        let mut suffix_decisions = 0;
+        let mut observed_eos = false;
+        ALLOCATIONS.with(|count| count.set(0));
+        BYTES.with(|count| count.set(0));
+        MEASURING.with(|enabled| enabled.set(true));
+        let result = (|| {
+            session.observe(model, BOS)?;
+            for &token in &prompt {
+                session.observe(model, token)?;
+            }
+            session.begin_response(model)?;
+            for _ in 0..32 {
+                let next = session.predict(model)?;
+                let decision = session.word_copy_decision();
+                selected |= decision.is_some();
+                copied_bytes += usize::from(decision.is_some_and(|choice| {
+                    matches!(choice.action, WordCopyAction::Start | WordCopyAction::Byte)
+                }));
+                suffix_decisions += usize::from(decision.is_some_and(|choice| {
+                    matches!(choice.action, WordCopyAction::Emit | WordCopyAction::Stop)
+                }));
+                let repeated = session.predict(model)?;
+                repeat_stable &= repeated == next;
+                session.observe(model, next.token)?;
+                if next.token == EOS {
+                    observed_eos = true;
+                    break;
+                }
+            }
+            session.end_response(model)?;
+            for &token in &prompt {
+                session.observe(model, token)?;
+            }
+            session.begin_response(model)?;
+            let first = session.predict(model)?.token;
+            session.observe(model, first)?;
+            for _ in 0..40 {
+                session.predict(model)?;
+                session.observe(model, u32::from(b'?') + 2)?;
+            }
+            session.end_response(model)?;
+            Ok::<_, uor_r4_core::native_geometric::Error>(())
+        })();
+        MEASURING.with(|enabled| enabled.set(false));
+        result.expect(variant);
+        assert!(
+            selected,
+            "{variant}: fixture must execute learned retained-word selection"
+        );
+        assert!(
+            repeat_stable,
+            "{variant}: repeated prediction must retain the selected byte"
+        );
+        assert!(
+            copied_bytes >= 5,
+            "{variant}: fixture must execute its multi-byte cursor"
+        );
+        assert!(
+            suffix_decisions > 0 && observed_eos,
+            "{variant}: fixture must execute its suffix through EOS"
+        );
+        assert_eq!(
+            (ALLOCATIONS.with(Cell::get), BYTES.with(Cell::get)),
+            (0, 0),
+            "{variant}"
+        );
+        assert_eq!(session.state().word_copy.unwrap().storage_bytes, storage);
+        assert!(session.work.word_copy.word_candidates > 0);
+        assert!(session.work.word_copy.dictionary_comparisons > 0);
+        assert!(session.work.word_copy.byte_reads > 0);
+        assert!(session.work.word_copy.selector.mismatches > 0);
+        assert!(session.work.response_entry.step_limits > 0);
+        assert_eq!(session.work.values.derived_writes, 0);
+    }
 }
 
 #[test]

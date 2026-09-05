@@ -413,6 +413,7 @@ impl Service {
         let mut value_trace = Vec::new();
         let mut completion_trace = Vec::new();
         let mut response_entry_trace = Vec::new();
+        let mut word_copy_trace = Vec::new();
         let mut output_bytes = 0;
         let mut stop = "token_limit";
         for _ in 0..request.max_tokens {
@@ -439,6 +440,11 @@ impl Service {
             if let Some(decision) = session.response_entry_decision() {
                 if response_entry_trace.len() < 96 {
                     response_entry_trace.push(decision);
+                }
+            }
+            if let Some(decision) = session.word_copy_decision() {
+                if word_copy_trace.len() < 96 {
+                    word_copy_trace.push(decision);
                 }
             }
             if let Some(decision) = session.response_decision() {
@@ -480,6 +486,9 @@ impl Service {
         }
         if self.model.response_entry_version().is_some() {
             response["response_entry_trace"] = json!(response_entry_trace);
+        }
+        if self.model.word_copy_version().is_some() {
+            response["word_copy_trace"] = json!(word_copy_trace);
         }
         Ok(response)
     }
@@ -836,6 +845,10 @@ el('load').onclick=()=>el('file').click();el('file').onchange=async()=>{busy(tru
 
 #[cfg(test)]
 mod tests {
+    mod copy_fixture {
+        use uor_r4_core::native_geometric as native;
+        include!("../crates/uor-r4-core/tests/support/native_word_copy_fixture.rs");
+    }
     use super::*;
     use std::io::{BufRead, BufReader};
     use std::sync::OnceLock;
@@ -1391,6 +1404,89 @@ mod tests {
         );
         assert_eq!(numeric["text"], "17.\n");
         assert_eq!(numeric["response_entry_trace"], json!([]));
+        assert_eq!(numeric["session_work"]["values"]["derived_writes"], 1);
+    }
+
+    #[test]
+    fn native_geometric_word_copy_http_resumes_the_selected_occurrence() {
+        let (_, model) = copy_fixture::fitted();
+        let service = Arc::new(Service::new(model.clone(), None).unwrap());
+        let complete_id = id(&post(Arc::clone(&service), "/api/session", json!({})));
+        let split_id = id(&post(Arc::clone(&service), "/api/session", json!({})));
+        let complete = post(
+            Arc::clone(&service),
+            "/api/generate",
+            json!({"session_id":complete_id,"prompt":copy_fixture::COPY_PROMPT,"max_tokens":32}),
+        );
+        assert_eq!(complete["text"], copy_fixture::COPY_RESPONSE);
+        assert_eq!(complete["stop"], "end_of_sequence");
+        assert_eq!(complete["word_copy_trace"][0]["action"], "start");
+        assert_eq!(complete["session_work"]["values"]["derived_writes"], 0);
+        assert_eq!(complete["state"]["response_entry"]["active"], false);
+        assert!(complete["state"]["word_copy"]["origin"].is_null());
+        let first = post(
+            Arc::clone(&service),
+            "/api/generate",
+            json!({"session_id":split_id,"prompt":copy_fixture::COPY_PROMPT,"max_tokens":1}),
+        );
+        assert_eq!(first["text"], "a");
+        assert_eq!(first["tokens"], json!([u32::from(b'a') + 2]));
+        assert_eq!(
+            first["state"]["word_copy"]["progress"],
+            json!({"emitting":{"cursor":1}})
+        );
+        let exported = post(
+            Arc::clone(&service),
+            "/api/export",
+            json!({"session_id":split_id}),
+        );
+        assert_eq!(
+            exported["checkpoint"]["schema"],
+            "uor-r4.native-geometric-session/6"
+        );
+        let imported_id = id(&post(
+            Arc::clone(&service),
+            "/api/import",
+            json!({"checkpoint":exported["checkpoint"]}),
+        ));
+        for session_id in [split_id, imported_id] {
+            let second = post(
+                Arc::clone(&service),
+                "/api/generate",
+                json!({"session_id":session_id,"prompt":"","max_tokens":32}),
+            );
+            assert_eq!(second["observed_prompt_tokens"], 0);
+            assert_eq!(second["text"], "lpha\n}\n");
+            assert_eq!(second["stop"], "end_of_sequence");
+            for key in ["tokens", "word_copy_trace", "response_entry_trace"] {
+                let mut joined = first[key].as_array().unwrap().clone();
+                joined.extend(second[key].as_array().unwrap().iter().cloned());
+                assert_eq!(json!(joined), complete[key], "{key}");
+            }
+            assert_eq!(second["state"], complete["state"]);
+            assert_eq!(second["session_work"], complete["session_work"]);
+        }
+        // JSON controls use the same enum as CLI/library serving, while the
+        // disabled copy action returns the inherited entry behavior.
+        let disabled_id = id(&post(
+            Arc::clone(&service),
+            "/api/session",
+            json!({"control":"word_copy_disabled"}),
+        ));
+        let disabled = post(
+            Arc::clone(&service),
+            "/api/generate",
+            json!({"session_id":disabled_id,"prompt":copy_fixture::COPY_PROMPT,"max_tokens":32}),
+        );
+        assert_eq!(disabled["word_copy_trace"], json!([]));
+        let numeric_id = id(&post(Arc::clone(&service), "/api/session", json!({})));
+        let numeric = post(
+            Arc::clone(&service),
+            "/api/generate",
+            json!({"session_id":numeric_id,"prompt":copy_fixture::NUMERIC_PROMPT,"max_tokens":32}),
+        );
+        assert_eq!(numeric["text"], "17.\n");
+        assert_eq!(numeric["word_copy_trace"], json!([]));
         assert_eq!(numeric["session_work"]["values"]["derived_writes"], 1);
     }
 

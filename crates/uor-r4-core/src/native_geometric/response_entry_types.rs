@@ -23,6 +23,8 @@ pub(super) struct ResponseEntryModel {
     pub fit_config: [u64; 5],
     pub fit_positions: usize,
     pub training: Vec<DocumentReceipt>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub copy: Option<super::word_copy_types::WordCopyModel>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]

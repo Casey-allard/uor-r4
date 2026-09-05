@@ -3,7 +3,8 @@
 This source map connects the native model to reusable mathematical and runtime
 components. Its baseline is the implementation delivered through PR #1127 at
 `3abf9d7e85f70416c95161863b4413cc42a6912c`; the versioned occurrence-selection,
-response-state, typed-value and completion successors are distinguished below. The [project plan](integration/project-track.md)
+response-state, typed-value, completion, response-entry and retained-word
+successors are distinguished below. The [project plan](integration/project-track.md)
 owns the goal, and [current-state.md](integration/current-state.md) owns results
 and active work. This is not another roadmap or a claim that every architectural
 role is already assembled.
@@ -195,7 +196,7 @@ additional work; counters name operations, not every machine instruction.
 There are no runtime floats, matrix products or steady-state allocations in
 this component. Fitting, serialization and initialization are separate host work.
 
-## Learned response entry — 2026-09-05
+## Preceding learned response entry — 2026-09-05
 
 The optional `uor-r4.native-response-entry/1` component in
 [`response_entry_types.rs`](../crates/uor-r4-core/src/native_geometric/response_entry_types.rs),
@@ -310,6 +311,129 @@ entry or transient pending prediction in persisted data. The active span fits
 the existing 32-entry typed metadata ring before the cap clears its origin.
 Older source truth after eviction remains unauthenticated. Absence of this
 component preserves the prior model and session serialization laws.
+
+## Retained-word entry and completed-word suffix — 2026-09-05
+
+The response-entry `/2` extension in
+[`word_copy_types.rs`](../crates/uor-r4-core/src/native_geometric/word_copy_types.rs),
+[`word_copy_runtime.rs`](../crates/uor-r4-core/src/native_geometric/word_copy_runtime.rs)
+and [`word_copy_training.rs`](../crates/uor-r4-core/src/native_geometric/word_copy_training.rs)
+connects an actual retained spelling to the response. Its
+[measurement record](native_geometric_word_copy_973.md) separates the preceding
+entry-boundary suffix variant from the optional completed-word suffix repair.
+The source laws below do not establish either variant's behavioral result.
+The extension binds the exact entry `/1` parent; removing it and restoring the
+parent schema must reproduce that parent identity. Existing ordinary readout,
+memory `/4`, typed `/2`, numeric-completion and inherited entry parameters are
+preserved.
+
+The source payload is the existing sixteen frozen `WordAtom` occurrences from
+[`value_lexemes.rs`](../crates/uor-r4-core/src/native_geometric/value_lexemes.rs).
+Each carries up to 32 exact ASCII identifier bytes, length, source byte and token
+endpoints, H4 pose and eight phases. Equal spellings remain distinct occurrences.
+Fixed scanner exclusions and oldest-word eviction remain; punctuation,
+intervening text, arbitrary older words and a declaration/dependency graph are
+not retained in these atoms. This adds no second context store. A dictionary of
+at most 256 construction spellings is selected by frequency with exact-byte
+ties, sorted by bytes and assigned canonical prime addresses. An unknown
+neighbor receives address zero. These are equality addresses, not semantic
+distances; dictionary exclusion does not remove the exact copy payload.
+
+At the first eligible NoWrite boundary, learned scalar rows rank up to sixteen
+word occurrences against inherited lexical entry and the same ordinary Base.
+Copy must improve strictly on both. Candidate ties retain the first occurrence
+visited, in newest-first order. Twenty feature slots contain captured token cue
+primes and their ordered pair, occurrence rank, preceding/following word
+addresses and pairs, length/missing-context flags, local H4 relation, signed
+orientation and eight relative phase bins. The candidate's own dictionary
+address is absent; its length and geometric endpoint can still affect scores.
+Unknown words are therefore copyable, without a spelling-invariance guarantee.
+
+For preceding/candidate word poses `P,C` and the last two frozen query-word poses
+`A,B`, the fixed transport is `S = P^-1 C`, `Q = A^-1 B`, then `S^-1 Q`.
+Corresponding phase intervals are subtracted in wrapping u16 arithmetic before
+four-bit binning. Missing endpoints omit those features. Shared lexical-token
+endpoints can erase a word-level geometric distinction even when byte endpoints
+remain distinct. The finite H4 class and quantized phase bins compress history;
+they are not a parsed role or a general semantic summary. The learned operation
+is finite occurrence selection. Exact byte copying is the fixed operator it
+selects. Numeric records and a nonempty captured query remain prerequisites;
+copy is not admitted after generated prose or whitespace in this increment.
+
+Only observing the selected first byte commits the occurrence. Repeated
+prediction does not advance it. Subsequent byte offers use the ordinary winner
+plus one while inherited lexical-entry scoring is suspended. Matching
+observations advance the cursor; a mismatch marks it Aborted and resumes
+inherited actual-history continuation. Immutable first-entry provenance remains
+until EOS, a new boundary, ineligibility or the cap clears it. Complete copies
+use separate learned suffix rows, with ordinary Base still available. The
+32-observation cap rejects a whole copy if its bytes cannot leave room for EOS;
+a retained 32-byte word is consequently inadmissible here. Output observations
+update ordinary token/geometric memory but do not mutate frozen word or numeric
+source inputs. They create no second numeric derivation, preserving the existing
+NoWrite reuse invariant.
+
+With artifact-bound `completed_word_suffix: true`, the suffix origin is derived
+from the actual final copied byte in the existing 32-entry typed metadata ring.
+Its sequence is the original response boundary plus copied length minus one;
+checked bounds and the actual endpoint token must agree. A temporary entry frame
+uses that observed H4 pose and phases, retains the original query prime, and
+counts only subsequent suffix observations. The last two suffix tokens are exact;
+missing suffix history uses BOS. The original selected occurrence, boundary and
+actual history remain stored. Identifier bytes, their length and the earlier
+response path are excluded from suffix progress/history features, rather than
+deleted from state. Relative H4 and phase differences cancel the copied-prefix
+frame. This is a fixed change of origin for learned suffix scores, not learned
+multiscale consolidation. The default false law retains the preceding
+entry-boundary features and omits the flag from artifact serialization.
+
+Offline targets mark all complete matching initial-word occurrences as latent
+positives; no target-derived index is serialized. A non-identifier initial byte,
+including the existing leading-space Unknown form, supplies NoCopy supervision.
+An initial identifier absent from retained words is unreachable and skipped,
+not an abstention label. Suffix frames require actual quantized selection and a
+complete observed copy. Runtime and fitting use the same continuation-feature
+method; overlong fitting trajectories are skipped whole. These boundaries keep
+learned content selection separate from authored supervision and fixed emission.
+
+Conservative initial bounds are 320 scalar feature queries and 4,160 row-key
+comparisons at 4,096 rows; sixteen dictionary lookups add at most 144 dictionary
+comparisons and 4,608 byte comparisons. Because the oldest of sixteen words has
+no retained predecessor, full support tightens these to 310 features, 4,030
+row-key comparisons, 62 H4 reads, fifteen orientation reads and 248 phase
+subtractions. Scalar scores require integer additions and comparisons, not a
+runtime matrix product. Once copying commits, bytes require no occurrence
+rescoring. Suffix selection uses at most sixteen features/candidates in separate
+rows. The completed-word frame additionally reads one source-word record, its
+final byte and one to three actual-history metadata entries, and constructs a
+temporary entry state. It adds no persistent anchor or heap allocation.
+
+Ordinary features, postings, shortlist insertion, enabled `/4` reads, actual
+byte observation and the first typed operand search remain additional work.
+The typed path can still execute up to 240 checked additions before ranking;
+word copying does not provide sparse arithmetic dispatch. `WordCopyWork`
+distinguishes logical word-record reads, dictionary/byte comparisons, selected
+state assignments and rejected length bounds. Row-base accesses share metadata
+counters; successful bound checks and compiler-generated memory traffic are
+not a complete separate census. The reported copy-state layout includes its
+transient pending-decision reservation, not just serialized provenance. Existing
+word storage, enlarged Session/Work members, model tables, fixed local arrays,
+host traces, loading, tokenization, fitting and serialization remain separate
+storage/work scopes. Counted reductions are not latency or transformer-efficiency
+measurements.
+
+[`word_copy_snapshot.rs`](../crates/uor-r4-core/src/native_geometric/word_copy_snapshot.rs)
+uses session schema `/6` to verify captured provenance, observed byte prefixes,
+original NoWrite and the combined first selection. Transient predictions are
+rejected. The optional suffix frame is reconstructed from that existing state;
+older source truth remains unauthenticated. Copy-disabled bypasses the copy
+selector and leaves inherited entry active. Copy-geometry-disabled removes
+geometry from both the new selector and its suffix head while retaining
+inherited geometry and word admission.
+It measures combined within-artifact sensitivity, not a separately fitted
+geometry-free comparator or a selector-only advantage. Different trajectories
+can incur different complete work. No general declaration-role, multiscale
+semantic-memory or alpha claim follows from this implementation.
 
 ## Historical multiscale source inspection for response entry
 

@@ -652,9 +652,15 @@ impl Model {
         let mut value_trace = Vec::new();
         let mut completion_trace = Vec::new();
         let mut response_entry_trace = Vec::new();
+        let mut word_copy_trace = Vec::new();
         let mut stop = "token_budget".to_owned();
         for _ in 0..max_new_tokens {
             let token = session.predict(self)?.token;
+            if let Some(decision) = session.word_copy_decision() {
+                if word_copy_trace.len() < 96 {
+                    word_copy_trace.push(decision);
+                }
+            }
             if let Some(decision) = session.response_entry_decision() {
                 if response_entry_trace.len() < 96 {
                     response_entry_trace.push(decision);
@@ -696,6 +702,7 @@ impl Model {
             value_trace,
             completion_trace,
             response_entry_trace,
+            word_copy_trace,
             stop,
             work: session.work,
             state: session.state(),
@@ -721,6 +728,7 @@ impl Model {
                     .chain(self.value_training())
                     .chain(self.value_completion_training())
                     .chain(self.response_entry_training())
+                    .chain(self.word_copy_training())
                     .any(|known| known.id == candidate.id || known.text_cid == candidate.text_cid)
             {
                 return Err(Error(format!(
@@ -766,6 +774,14 @@ impl Model {
 }
 
 fn add_work(total: &mut Work, work: Work) {
+    add_completion_work(&mut total.word_copy.selector, work.word_copy.selector);
+    total.word_copy.dictionary_lookups += work.word_copy.dictionary_lookups;
+    total.word_copy.dictionary_comparisons += work.word_copy.dictionary_comparisons;
+    total.word_copy.dictionary_byte_comparisons += work.word_copy.dictionary_byte_comparisons;
+    total.word_copy.word_candidates += work.word_copy.word_candidates;
+    total.word_copy.word_record_reads += work.word_copy.word_record_reads;
+    total.word_copy.bound_rejections += work.word_copy.bound_rejections;
+    total.word_copy.byte_reads += work.word_copy.byte_reads;
     total.values.input_bytes += work.values.input_bytes;
     total.values.literal_writes += work.values.literal_writes;
     total.values.record_evictions += work.values.record_evictions;
