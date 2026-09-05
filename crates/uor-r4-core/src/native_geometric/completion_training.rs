@@ -47,11 +47,11 @@ pub struct ValueCompletionFitReport {
     pub config: ValueCompletionFitConfig,
 }
 
-struct Frame {
-    features: [Feature; COMPLETION_FEATURES],
-    len: usize,
-    target: u32,
-    baseline: u32,
+pub(super) struct Frame {
+    pub(super) features: [Feature; COMPLETION_FEATURES],
+    pub(super) len: usize,
+    pub(super) target: u32,
+    pub(super) baseline: u32,
 }
 struct Alternative {
     token: u32,
@@ -163,6 +163,7 @@ impl CompletionModel {
         }
         let mut baseline = model.clone();
         baseline.completion = None;
+        baseline.response_entry = None;
         baseline.refresh_identity()?;
         if baseline.artifact_cid != self.baseline_artifact {
             return Err(Error(
@@ -362,128 +363,14 @@ impl Model {
                 "completion source has no matched emitted numeral and suffix positions".into(),
             ));
         }
-        let mut counts = BTreeMap::<Feature, BTreeMap<u32, u64>>::new();
-        let mut global = BTreeMap::<u32, u64>::new();
-        let mut association_count = 0;
-        let mut dropped_row_events = 0;
-        let mut dropped_association_events = 0;
-        for frame in &frames {
-            *global.entry(frame.target).or_default() += 1;
-            for &feature in &frame.features[..frame.len] {
-                if !counts.contains_key(&feature) && counts.len() == COMPLETION_ROWS {
-                    dropped_row_events += 1;
-                    continue;
-                }
-                let row = counts.entry(feature).or_default();
-                if !row.contains_key(&frame.target) {
-                    if association_count == COMPLETION_ASSOCIATIONS {
-                        dropped_association_events += 1;
-                        continue;
-                    }
-                    association_count += 1;
-                }
-                *row.entry(frame.target).or_default() += 1;
-            }
-        }
-        let mut registry = BTreeMap::<(Feature, u32), usize>::new();
-        let mut weights = Vec::new();
-        let rows = counts
-            .into_iter()
-            .map(|(feature, counts)| {
-                let postings = top_counts(&counts, COMPLETION_POSTINGS);
-                let scores = counts
-                    .keys()
-                    .map(|&token| {
-                        registry.insert((feature, token), weights.len());
-                        let weight = if feature.kind == 0 { -2.0 } else { 0.0 };
-                        weights.push(weight);
-                        TokenScore {
-                            token,
-                            score: (weight * 256.0) as i32,
-                        }
-                    })
-                    .collect();
-                ScoreRow {
-                    feature,
-                    default_score: 0,
-                    scores,
-                    postings,
-                }
-            })
-            .collect();
+        let fit = fit_sparse_frames(&frames, config, COMPLETION_ROWS, COMPLETION_ASSOCIATIONS, 0)?;
         let head = model
             .completion
             .as_mut()
             .ok_or_else(|| Error("completion component unavailable".into()))?;
-        head.rows = rows;
-        head.global_postings = top_counts(&global, COMPLETION_CANDIDATES);
-        let mut examples = Vec::new();
-        let mut target_in_candidates = 0;
-        for frame in &frames {
-            let (tokens, len, _, _) = completion_runtime::candidates(
-                head,
-                &frame.features[..frame.len],
-                &mut CompletionWork::default(),
-            );
-            let target_present = tokens[..len].contains(&frame.target);
-            target_in_candidates += usize::from(target_present);
-            if !target_present && frame.baseline != frame.target {
-                continue;
-            }
-            let alternatives = tokens[..len]
-                .iter()
-                .map(|&token| Alternative {
-                    token,
-                    correct: token == frame.target,
-                    weights: frame.features[..frame.len]
-                        .iter()
-                        .filter_map(|&feature| registry.get(&(feature, token)).copied())
-                        .collect(),
-                })
-                .collect();
-            examples.push(Example {
-                alternatives,
-                baseline_correct: frame.baseline == frame.target,
-            });
-        }
-        if examples.is_empty() {
-            return Err(Error(
-                "completion postings admit no fitting target or correct Base action".into(),
-            ));
-        }
-        let mut best_weights = weights.clone();
-        let mut best_correct = 0;
-        let mut best_loss = f64::INFINITY;
-        let mut selected_epoch = 0;
-        for epoch in 0..config.epochs {
-            for example in &examples {
-                update(example, &mut weights, config.learning_rate)?;
-            }
-            let quantized: Vec<f64> = weights
-                .iter()
-                .map(|weight| (weight * 256.0).round() / 256.0)
-                .collect();
-            let (correct, loss) = measure(&examples, &quantized);
-            if !loss.is_finite() {
-                return Err(Error(
-                    "completion fitting produced a nonfinite objective".into(),
-                ));
-            }
-            if correct > best_correct || (correct == best_correct && loss < best_loss) {
-                best_correct = correct;
-                best_loss = loss;
-                selected_epoch = epoch + 1;
-                best_weights = quantized;
-            }
-        }
-        for row in &mut head.rows {
-            for entry in &mut row.scores {
-                let index = registry
-                    .get(&(row.feature, entry.token))
-                    .ok_or_else(|| Error("completion export association missing".into()))?;
-                entry.score = (best_weights[*index] * 256.0).round() as i32;
-            }
-        }
+        head.rows = fit.rows;
+        head.global_postings = fit.global_postings;
+        let selected_epoch = fit.selected_epoch;
         head.fit_positions = frames.len();
         head.fit_config = [
             config.epochs as u64,
@@ -506,14 +393,14 @@ impl Model {
             position_limit_skips,
             overlong_responses,
             positions: frames.len(),
-            target_in_candidates,
-            eligible_positions: examples.len(),
+            target_in_candidates: fit.target_in_candidates,
+            eligible_positions: fit.eligible_positions,
             learned_rows,
-            learned_associations: weights.len(),
-            dropped_row_events,
-            dropped_association_events,
-            fit_correct: best_correct,
-            fit_loss: best_loss,
+            learned_associations: fit.learned_associations,
+            dropped_row_events: fit.dropped_row_events,
+            dropped_association_events: fit.dropped_association_events,
+            fit_correct: fit.correct,
+            fit_loss: fit.loss,
             selected_epoch,
             config,
         };
@@ -521,7 +408,162 @@ impl Model {
     }
 }
 
-fn top_counts(counts: &BTreeMap<u32, u64>, cap: usize) -> Vec<u32> {
+/// Shared host sparse optimizer. A baseline ID absent from the token domain
+/// makes Base ineligible when learning a state-creating action.
+pub(super) struct SparseFit {
+    pub(super) rows: Vec<ScoreRow>,
+    pub(super) global_postings: Vec<u32>,
+    pub(super) target_in_candidates: usize,
+    pub(super) eligible_positions: usize,
+    pub(super) learned_associations: usize,
+    pub(super) dropped_row_events: usize,
+    pub(super) dropped_association_events: usize,
+    pub(super) correct: usize,
+    pub(super) loss: f64,
+    pub(super) selected_epoch: usize,
+}
+
+pub(super) fn fit_sparse_frames(
+    frames: &[Frame],
+    config: ValueCompletionFitConfig,
+    max_rows: usize,
+    max_associations: usize,
+    bias_kind: u8,
+) -> Result<SparseFit> {
+    let mut counts = BTreeMap::<Feature, BTreeMap<u32, u64>>::new();
+    let mut global = BTreeMap::<u32, u64>::new();
+    let mut association_count = 0;
+    let mut dropped_row_events = 0;
+    let mut dropped_association_events = 0;
+    for frame in frames {
+        *global.entry(frame.target).or_default() += 1;
+        for &feature in &frame.features[..frame.len] {
+            if !counts.contains_key(&feature) && counts.len() == max_rows {
+                dropped_row_events += 1;
+                continue;
+            }
+            let row = counts.entry(feature).or_default();
+            if !row.contains_key(&frame.target) {
+                if association_count == max_associations {
+                    dropped_association_events += 1;
+                    continue;
+                }
+                association_count += 1;
+            }
+            *row.entry(frame.target).or_default() += 1;
+        }
+    }
+    let mut registry = BTreeMap::<(Feature, u32), usize>::new();
+    let mut weights = Vec::new();
+    let rows = counts
+        .into_iter()
+        .map(|(feature, counts)| {
+            let postings = top_counts(&counts, COMPLETION_POSTINGS);
+            let scores = counts
+                .keys()
+                .map(|&token| {
+                    registry.insert((feature, token), weights.len());
+                    let weight = if feature.kind == bias_kind { -2.0 } else { 0.0 };
+                    weights.push(weight);
+                    TokenScore {
+                        token,
+                        score: (weight * 256.0) as i32,
+                    }
+                })
+                .collect();
+            ScoreRow {
+                feature,
+                default_score: 0,
+                scores,
+                postings,
+            }
+        })
+        .collect();
+    let mut rows: Vec<ScoreRow> = rows;
+    let global_postings = top_counts(&global, COMPLETION_CANDIDATES);
+    let mut examples = Vec::new();
+    let mut target_in_candidates = 0;
+    for frame in frames {
+        let (tokens, len, _, _) = completion_runtime::candidate_rows(
+            &rows,
+            &global_postings,
+            &frame.features[..frame.len],
+            &mut CompletionWork::default(),
+        );
+        let target_present = tokens[..len].contains(&frame.target);
+        target_in_candidates += usize::from(target_present);
+        if !target_present && frame.baseline != frame.target {
+            continue;
+        }
+        let alternatives = tokens[..len]
+            .iter()
+            .map(|&token| Alternative {
+                token,
+                correct: token == frame.target,
+                weights: frame.features[..frame.len]
+                    .iter()
+                    .filter_map(|&feature| registry.get(&(feature, token)).copied())
+                    .collect(),
+            })
+            .collect();
+        examples.push(Example {
+            alternatives,
+            baseline_correct: frame.baseline == frame.target,
+        });
+    }
+    if examples.is_empty() {
+        return Err(Error(
+            "completion postings admit no fitting target or correct Base action".into(),
+        ));
+    }
+    let mut best_weights = weights.clone();
+    let mut best_correct = 0;
+    let mut best_loss = f64::INFINITY;
+    let mut selected_epoch = 0;
+    for epoch in 0..config.epochs {
+        for example in &examples {
+            update(example, &mut weights, config.learning_rate)?;
+        }
+        let quantized: Vec<f64> = weights
+            .iter()
+            .map(|weight| (weight * 256.0).round() / 256.0)
+            .collect();
+        let (correct, loss) = measure(&examples, &quantized);
+        if !loss.is_finite() {
+            return Err(Error(
+                "completion fitting produced a nonfinite objective".into(),
+            ));
+        }
+        if correct > best_correct || (correct == best_correct && loss < best_loss) {
+            best_correct = correct;
+            best_loss = loss;
+            selected_epoch = epoch + 1;
+            best_weights = quantized;
+        }
+    }
+    for row in &mut rows {
+        for entry in &mut row.scores {
+            let index = registry
+                .get(&(row.feature, entry.token))
+                .ok_or_else(|| Error("completion export association missing".into()))?;
+            entry.score = (best_weights[*index] * 256.0).round() as i32;
+        }
+    }
+    Ok(SparseFit {
+        rows,
+        global_postings,
+        target_in_candidates,
+        eligible_positions: examples.len(),
+        learned_associations: weights.len(),
+        dropped_row_events,
+        dropped_association_events,
+        correct: best_correct,
+        loss: best_loss,
+        selected_epoch,
+    })
+}
+
+pub(super) fn top_counts(counts: &BTreeMap<u32, u64>, cap: usize) -> Vec<u32> {
     let mut ranked: Vec<_> = counts
         .iter()
         .map(|(&token, &count)| (token, count))

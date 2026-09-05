@@ -9,6 +9,8 @@ ordinary token memory-write law. The optional typed-value component separately
 learns operand/action selection and whether to write its result.
 An optional completion component learns byte/EOS transitions after a committed
 typed numeral, while preserving that upstream model.
+An optional response-entry component learns canonical lexical transitions after
+an eligible typed NoWrite decision, with observation-only entry commitment.
 An optional learned memory reader retrieves actual retained token values through
 prime-addressed postings, query/source offsets and relative H4/zeta features.
 It is versioned separately in the artifact; the original fixed/readout-only
@@ -135,6 +137,47 @@ bounded routing mechanisms alone.
 The [completion record](native_geometric_value_completion_973.md) and
 [compact evidence](evidence/native_geometric_value_completion_973.json) bind
 the artifact, direct outputs, controls and separate compiler/execution results.
+
+### Response entry after NoWrite
+
+`Model::fit_response_entry` and the same Rust example add the optional
+`uor-r4.native-response-entry/1` head over a frozen completion model:
+
+```sh
+target/release/examples/native_geometric_value_probe entry \
+  --model /absolute/path/to/completion-fit-1/model.json \
+  --source /absolute/path/to/completion-fit-1/source.json \
+  --lexeme-cues true --output-dir /absolute/path/to/new-entry-run \
+  --epochs 24 --learning-rate 0.1 --entry-max-positions 4096 \
+  --generated-tokens 64 --max-seconds 120
+```
+
+Apply the inherited cumulative resource monitor and admit the full checked
+cycle before running. Entry mode bounds saved output to 20 MiB. Its source is
+the same raw 192-pair population; numeric examples verify the unchanged upstream
+path. Whole NoWrite targets use canonical lexical tokens plus EOS, capped at
+32 positions each. First-entry rows must select Enter and observe it before
+continuation fitting; target labels cannot create a hidden serving boundary.
+
+The example reloads the exported model and records Full, ResponseEntryDisabled
+and ResponseEntryGeometryDisabled. The corresponding CLI controls are
+`response-entry-disabled` and `response-entry-geometry-disabled`. They retain
+ordinary, typed and numeral-completion components. Generation exposes optional
+`response_entry_trace`; persistent state uses session schema `/5`. Pending
+predictions remain transient, repeated prediction is idempotent, mismatching
+observations follow actual history, and empty HTTP continuation preserves an
+active response. Once Enter commits, the runtime skips repeated typed NoWrite
+search until EOS, cap or a new boundary. Captured source/query inputs justify
+that reuse; it does not alter fitted model bytes or skip the first typed search.
+
+The [response-entry record](native_geometric_response_entry_973.md) reports
+16/16 exact responses in each family on reused development, twenty generated
+Rust execution passes, preserved numeric behavior and four content-transfer
+failures. The latter prevent a grounded abstention or general coding claim.
+The successful nonnumeric responses use ordinary Base for several tokens and
+every EOS; selected head Stop is a supported mechanism, not a measured action
+in these eight outputs. Work reduction, equal head candidate support and total
+execution cost are reported separately from model quality.
 
 ### General corpus preparation
 

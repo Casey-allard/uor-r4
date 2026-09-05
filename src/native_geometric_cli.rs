@@ -260,6 +260,8 @@ enum ControlArg {
     ValueLexemesDisabled,
     ValueCompletionDisabled,
     ValueCompletionGeometryDisabled,
+    ResponseEntryDisabled,
+    ResponseEntryGeometryDisabled,
 }
 impl From<ControlArg> for Control {
     fn from(value: ControlArg) -> Self {
@@ -278,6 +280,8 @@ impl From<ControlArg> for Control {
             ControlArg::ValueLexemesDisabled => Self::ValueLexemesDisabled,
             ControlArg::ValueCompletionDisabled => Self::ValueCompletionDisabled,
             ControlArg::ValueCompletionGeometryDisabled => Self::ValueCompletionGeometryDisabled,
+            ControlArg::ResponseEntryDisabled => Self::ResponseEntryDisabled,
+            ControlArg::ResponseEntryGeometryDisabled => Self::ResponseEntryGeometryDisabled,
         }
     }
 }

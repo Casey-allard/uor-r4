@@ -246,25 +246,39 @@ pub(super) fn candidates(
     [usize; COMPLETION_FEATURES],
     usize,
 ) {
+    candidate_rows(&head.rows, &head.global_postings, features, work)
+}
+
+pub(super) fn candidate_rows(
+    score_rows: &[ScoreRow],
+    global_postings: &[u32],
+    features: &[Feature],
+    work: &mut CompletionWork,
+) -> (
+    [u32; COMPLETION_CANDIDATES],
+    usize,
+    [usize; COMPLETION_FEATURES],
+    usize,
+) {
     let mut tokens = [0; COMPLETION_CANDIDATES];
     let mut count = 0;
     let mut rows = [0; COMPLETION_FEATURES];
     let mut row_count = 0;
     for feature in features {
         work.feature_queries = work.feature_queries.saturating_add(1);
-        if let Ok(index) = head.rows.binary_search_by(|row| {
+        if let Ok(index) = score_rows.binary_search_by(|row| {
             work.row_comparisons = work.row_comparisons.saturating_add(1);
             row.feature.cmp(feature)
         }) {
             rows[row_count] = index;
             row_count += 1;
             work.matched_rows = work.matched_rows.saturating_add(1);
-            for &token in &head.rows[index].postings {
+            for &token in &score_rows[index].postings {
                 offer_token(&mut tokens, &mut count, token, work);
             }
         }
     }
-    for &token in &head.global_postings {
+    for &token in global_postings {
         offer_token(&mut tokens, &mut count, token, work);
     }
     (tokens, count, rows, row_count)
@@ -298,9 +312,18 @@ pub(super) fn score_candidate(
     rows: &[usize],
     work: &mut CompletionWork,
 ) -> i64 {
+    score_rows(&head.rows, token, rows, work)
+}
+
+pub(super) fn score_rows(
+    score_rows: &[ScoreRow],
+    token: u32,
+    rows: &[usize],
+    work: &mut CompletionWork,
+) -> i64 {
     let mut score = 0;
     for &index in rows {
-        let row = &head.rows[index];
+        let row = &score_rows[index];
         work.score_lookups = work.score_lookups.saturating_add(1);
         score += i64::from(
             row.scores

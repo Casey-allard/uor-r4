@@ -46,17 +46,24 @@ results, remaining learned-operator work and capability limitations.
 
 The [native mechanism map](docs/native_geometric_mechanism_map_973.md) traces
 the implemented prime/zeta/R4 mechanisms from source to generated responses.
-The latest [typed-value completion record](docs/native_geometric_value_completion_973.md)
-combines bounded whole-word operand binding, checked value creation and decimal
-emission with learned geometric continuation and stopping. On the reused open
-development set it completes 12/16 prose and 12/16 Rust responses exactly;
-all 24 numeric targets and all four binding pairs are correct. Sixteen saved
-Rust records compile and pass their assertions (14 distinct successful sources);
-the eight nonnumeric cases remain incorrect. Removing this completion head's
-H4/orientation/phase features preserves the six-token candidate set and correct
-numerals but loses all complete numeric responses. This establishes combined
-geometric-score dependence in this fitted head, with no separately fitted
-comparison, new-response-form transfer or efficiency advantage yet measured.
+The latest [response-entry record](docs/native_geometric_response_entry_973.md)
+adds learned lexical entry and continuation corrections when the typed selector
+chooses NoWrite. On the same reused OPEN development set it completes **16/16
+prose and 16/16 Rust responses**, preserving all 24 numeric targets and eight
+binding outputs from the preceding [numeric completion model](docs/native_geometric_value_completion_973.md).
+All twenty saved Rust records compile and pass execution checks, including
+four identity functions tested by separate callers (eighteen distinct sources).
+Removing the new head's H4/orientation/phase scores preserves its thirteen-token
+support and correct first entry but loses all eight new complete responses.
+Ordinary decoding supplies parts of those responses, including every EOS.
+
+A separate four-case content-transfer diagnostic fails: explicit city facts
+still receive the learned Unknown sentence, and renamed parameters still produce
+`value`, which fails compilation. The current learned forms do not establish
+grounded abstention or general content binding. The record distinguishes this
+boundary, the final runtime's reuse of an invariant NoWrite decision, complete
+work costs and preserved historical results. A matched geometry-free refit,
+multiscale semantic abstraction and whole-model efficiency advantage remain open.
 
 The [typed-value record](docs/native_geometric_typed_value_973.md) preserves the
 preceding binding negative and whole-word correction; the latter produced correct

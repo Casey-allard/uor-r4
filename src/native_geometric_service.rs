@@ -412,6 +412,7 @@ impl Service {
         let mut response_trace = Vec::new();
         let mut value_trace = Vec::new();
         let mut completion_trace = Vec::new();
+        let mut response_entry_trace = Vec::new();
         let mut output_bytes = 0;
         let mut stop = "token_limit";
         for _ in 0..request.max_tokens {
@@ -433,6 +434,11 @@ impl Service {
             if let Some(decision) = session.completion_decision() {
                 if completion_trace.len() < 96 {
                     completion_trace.push(decision);
+                }
+            }
+            if let Some(decision) = session.response_entry_decision() {
+                if response_entry_trace.len() < 96 {
+                    response_entry_trace.push(decision);
                 }
             }
             if let Some(decision) = session.response_decision() {
@@ -471,6 +477,9 @@ impl Service {
             "persisted":self.session_directory.is_some() && persist_error.is_none(),"persistence_error":persist_error});
         if self.model.value_completion_version().is_some() {
             response["completion_trace"] = json!(completion_trace);
+        }
+        if self.model.response_entry_version().is_some() {
+            response["response_entry_trace"] = json!(response_entry_trace);
         }
         Ok(response)
     }
@@ -1203,6 +1212,8 @@ mod tests {
         );
         assert_eq!(complete["text"], "17.\n");
         assert_eq!(complete["stop"], "end_of_sequence");
+        assert!(complete.get("response_entry_trace").is_none());
+        assert!(complete["state"].get("response_entry").is_none());
         let first = post(
             Arc::clone(&service),
             "/api/generate",
@@ -1250,6 +1261,137 @@ mod tests {
             assert_eq!(second["session_work"], complete["session_work"]);
             assert_eq!(second["session_work"]["values"]["derived_writes"], 1);
         }
+    }
+
+    #[test]
+    fn native_geometric_response_entry_http_resumes_observed_lexical_tokens() {
+        use uor_r4_core::native_geometric::{
+            ResponseEntryFitConfig, ValueCompletionFitConfig, ValueExample, ValueFitConfig,
+        };
+        let catalog = [Document {
+            id: "entry-service-catalog".into(),
+            text: "left = 13; right = 4; total: 17.\nreply: Unknown.\n Unknown.\n".into(),
+        }];
+        let mut trainer = Trainer::new(
+            Config {
+                context_tokens: 32,
+                candidate_limit: 8,
+                ..Config::default()
+            },
+            &catalog,
+        )
+        .unwrap();
+        trainer.train_documents(&catalog).unwrap();
+        let examples = (0..4)
+            .flat_map(|index| {
+                [
+                    ValueExample {
+                        id: format!("entry-service-numeric-{index}"),
+                        prompt: format!("left = {}; right = 4; total:", 13 + index),
+                        response: format!("{}.\n", 17 + index),
+                    },
+                    ValueExample {
+                        id: format!("entry-service-no-write-{index}"),
+                        prompt: format!("left = {}; right = 4; reply:", 13 + index),
+                        response: " Unknown.\n".into(),
+                    },
+                ]
+            })
+            .collect::<Vec<_>>();
+        let (typed, _) = trainer
+            .compile()
+            .unwrap()
+            .fit_values_with_lexeme_cues(
+                &examples,
+                ValueFitConfig {
+                    epochs: 64,
+                    learning_rate: 0.25,
+                    max_features: 4096,
+                },
+            )
+            .unwrap();
+        let (completion, _) = typed
+            .fit_value_completion(&examples, ValueCompletionFitConfig::default())
+            .unwrap();
+        let (fitted, _) = completion
+            .fit_response_entry(&examples, ResponseEntryFitConfig::default())
+            .unwrap();
+        let model = Model::from_bytes(&fitted.to_bytes().unwrap()).unwrap();
+        let encoded_response = model.encode(&examples[1].response).unwrap();
+        assert_eq!(encoded_response.len(), 3);
+        let service = Arc::new(Service::new(model, None).unwrap());
+        let complete_id = id(&post(Arc::clone(&service), "/api/session", json!({})));
+        let split_id = id(&post(Arc::clone(&service), "/api/session", json!({})));
+        let complete = post(
+            Arc::clone(&service),
+            "/api/generate",
+            json!({"session_id":complete_id,"prompt":examples[1].prompt,"max_tokens":16}),
+        );
+        assert_eq!(complete["text"], examples[1].response);
+        assert_eq!(complete["tokens"], json!(encoded_response));
+        assert_eq!(complete["stop"], "end_of_sequence");
+        assert_eq!(complete["session_work"]["values"]["derived_writes"], 0);
+        assert_eq!(complete["response_entry_trace"][0]["action"], "enter");
+        // The ordinary Base action may supply EOS. Its actual observation
+        // must still close the active entry and record the stop.
+        assert_eq!(complete["state"]["response_entry"]["active"], false);
+        assert_eq!(complete["state"]["response_entry"]["last_action"], "stop");
+        assert_eq!(complete["session_work"]["response_entry"]["stops"], 1);
+        let first = post(
+            Arc::clone(&service),
+            "/api/generate",
+            json!({"session_id":split_id,"prompt":examples[1].prompt,"max_tokens":1}),
+        );
+        assert_eq!(first["text"], " Unknown");
+        assert_eq!(first["state"]["response_entry"]["active"], true);
+        assert_eq!(first["session_work"]["values"]["derived_writes"], 0);
+        let exported = post(
+            Arc::clone(&service),
+            "/api/export",
+            json!({"session_id":split_id}),
+        );
+        assert_eq!(
+            exported["checkpoint"]["schema"],
+            "uor-r4.native-geometric-session/5"
+        );
+        let imported_id = id(&post(
+            Arc::clone(&service),
+            "/api/import",
+            json!({"checkpoint":exported["checkpoint"]}),
+        ));
+        for session_id in [split_id, imported_id] {
+            let second = post(
+                Arc::clone(&service),
+                "/api/generate",
+                json!({"session_id":session_id,"prompt":"","max_tokens":16}),
+            );
+            assert_eq!(second["observed_prompt_tokens"], 0);
+            assert_eq!(second["text"], ".\n");
+            assert_eq!(second["stop"], "end_of_sequence");
+            let mut tokens = first["tokens"].as_array().unwrap().clone();
+            tokens.extend(second["tokens"].as_array().unwrap().iter().cloned());
+            let mut trace = first["response_entry_trace"].as_array().unwrap().clone();
+            trace.extend(
+                second["response_entry_trace"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .cloned(),
+            );
+            assert_eq!(json!(tokens), complete["tokens"]);
+            assert_eq!(json!(trace), complete["response_entry_trace"]);
+            assert_eq!(second["state"], complete["state"]);
+            assert_eq!(second["session_work"], complete["session_work"]);
+        }
+        let numeric_id = id(&post(Arc::clone(&service), "/api/session", json!({})));
+        let numeric = post(
+            Arc::clone(&service),
+            "/api/generate",
+            json!({"session_id":numeric_id,"prompt":examples[0].prompt,"max_tokens":16}),
+        );
+        assert_eq!(numeric["text"], "17.\n");
+        assert_eq!(numeric["response_entry_trace"], json!([]));
+        assert_eq!(numeric["session_work"]["values"]["derived_writes"], 1);
     }
 
     #[test]

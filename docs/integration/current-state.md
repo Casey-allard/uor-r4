@@ -7,7 +7,68 @@ remains owned by [#973](https://github.com/UOR-Foundation/uor-r4/issues/973).
 Refresh live GitHub before choosing a follow-up; dated snapshots and lower
 historical “next” paragraphs do not select work.
 
-## Typed values with geometric completion — 2026-09-05
+## Response entry with preserved typed completion — 2026-09-05
+
+The current artifact adds `uor-r4.native-response-entry/1` to the unchanged
+stronger occurrence reader `/4`, typed `/2` and numeric-completion `/1` model.
+It learns canonical lexical entry after the typed selector chooses NoWrite,
+commits only after matching observation, and corrects subsequent tokens from
+bounded actual history and relative H4/zeta state. Numeric selection retains
+precedence; no artificial numeric write or response template is inserted.
+
+| Same 32 OPEN development cases | Correct numeric targets | Exact prose | Exact Rust |
+| --- | ---: | ---: | ---: |
+| Full | 24/24 | 16/16 | 16/16 |
+| Entry disabled | 24/24 | 12/16 | 12/16 |
+| Entry geometry disabled | 24/24 | 12/16 | 12/16 |
+
+The eight previously incorrect NoWrite forms now complete. All eight binding
+outputs remain exact. All twenty saved Rust records compile and pass execution
+checks: sixteen numeric assertion programs and four identity functions tested
+through separate seven-input callers, with eighteen distinct complete sources.
+The first entry stays correct when geometry features are disabled, but subsequent
+corrections disappear despite equal thirteen-token support. Ordinary decoding
+supplies parts of every successful nonnumeric response and all its EOS choices.
+This is combined score dependence within one fitted artifact, not a matched
+refit, learned stopping or general geometric superiority.
+
+The separate four-case transfer check is **0/4**: Oslo/Lima facts still receive
+Unknown, and changing the Rust parameter to `input`/`count` still yields `value`;
+both unchanged new Rust files fail compilation. Content-dependent response
+selection is the observed remaining limitation. The head's thirteen-token support
+cannot spell these outputs; ordinary model candidate absence was not measured.
+The next content intervention should connect bounded retained occurrence/span
+selection to response entry and observation, using actual query/source relation
+features, rather than expanding fixed response-form priors.
+
+The final runtime also reuses captured NoWrite while entry is active, avoiding
+repeat failed operand searches under a verified frozen-input invariant. The
+[response-entry record](../native_geometric_response_entry_973.md) and
+[compact evidence](../evidence/native_geometric_response_entry_973.json) bind the
+behavior, controls, costs, persistence, source and compiler receipts. Artifact:
+`.uor-models/native-typed-value-2026-09-05/entry-fit-1/model.json`, CID
+`blake3:316837f19043a4a69b481b44c234c06dc3a4c4a688069707eb1ea7137085a574`.
+
+The same-artifact runtime optimization preserves all 104 compared generations
+apart from decreased typed work. Across eight successful NoWrite responses,
+proposals fall 256→32 and checked additions 128→16 (87.5% reductions); across
+all 32 Full cases, additions fall 320→208. Ordinary scoring remains. This is
+counted work, not a measured whole-model latency advantage.
+
+The owner's approved storage cap is now 4,336,910,336 bytes (+40 MiB), with the
+same 128 MiB stop margin. Cumulative model work is 925.824/1,800 seconds;
+874.176 seconds remain. The 14:33:17 UTC accounting snapshot is 4,174,245,888
+bytes, leaving 28,262,400 bytes under the checked-cycle ceiling. The largest
+recent release-build growth was 30,887,936 bytes, before subsequent retained
+outputs. Another checked implementation cycle is not admitted. All material,
+including new generated compiler products and both historical negatives, is
+preserved; metadata and protected delivery continue within their reserve.
+
+Earlier checkpoints and their then-current next actions follow. Preserve their
+evidence; use this pointer and live GitHub for active work. Final held-out
+qualification and both alpha capability groups remain unqualified.
+
+## Preceding typed values with geometric completion — 2026-09-05
 
 The current development artifact adds optional `uor-r4.native-value-completion/1`
 to the stronger occurrence-memory `/4` reader and typed-value `/2` component.

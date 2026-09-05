@@ -11,6 +11,8 @@ pub(super) const FEATURE_COUNT: usize = 26;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StateView {
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub response_entry: Option<super::ResponseEntryStateView>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub completion: Option<super::CompletionStateView>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub values: Option<super::ValueStateView>,
@@ -35,6 +37,7 @@ pub struct StateView {
 
 #[derive(Debug, Clone)]
 pub struct Session {
+    pub(super) response_entry: Option<super::response_entry_types::ResponseEntryState>,
     pub(super) completion: Option<super::completion_types::CompletionState>,
     pub(super) values: Option<super::value_types::ValueState>,
     pub(super) memory: Option<super::memory_types::MemoryState>,
@@ -64,6 +67,7 @@ impl Session {
             .capacity()
             .saturating_mul(std::mem::size_of::<Candidate>());
         Self {
+            response_entry: model.response_entry.as_ref().map(|_| Default::default()),
             completion: model.completion.as_ref().map(|_| Default::default()),
             values: model
                 .values
@@ -92,6 +96,18 @@ impl Session {
 
     pub fn state(&self) -> StateView {
         StateView {
+            response_entry: self
+                .response_entry
+                .as_ref()
+                .map(|s| super::ResponseEntryStateView {
+                    active: s.active,
+                    boundary_seen: s.boundary.map(|anchor| anchor.at_seen),
+                    steps: s.steps,
+                    last_action: s.last_action,
+                    storage_bytes: std::mem::size_of::<
+                        super::response_entry_types::ResponseEntryState,
+                    >(),
+                }),
             completion: self
                 .completion
                 .as_ref()
@@ -149,6 +165,10 @@ impl Session {
         self.completion.as_ref().and_then(|s| s.pending)
     }
 
+    pub fn response_entry_decision(&self) -> Option<super::ResponseEntryDecision> {
+        self.response_entry.as_ref().and_then(|state| state.pending)
+    }
+
     fn check_model(&self, model: &Model) -> Result<()> {
         if self.artifact_cid != model.artifact_cid {
             return Err(Error(
@@ -166,6 +186,9 @@ impl Session {
         if let Some(state) = &mut self.values {
             state.begin(&mut self.work.values);
         }
+        if let (Some(entry), Some(values)) = (&mut self.response_entry, &self.values) {
+            entry.begin(values, self.control, &mut self.work.response_entry);
+        }
         if self.control != Control::MemoryDisabled && self.control != Control::ResponseStateDisabled
         {
             if let (Some(state), Some(memory)) = (&mut self.memory, &model.memory_read) {
@@ -177,6 +200,9 @@ impl Session {
 
     pub fn end_response(&mut self, model: &Model) -> Result<()> {
         self.check_model(model)?;
+        if let Some(entry) = &mut self.response_entry {
+            entry.reset();
+        }
         if let Some(state) = &mut self.completion {
             state.reset();
         }
@@ -266,6 +292,15 @@ impl Session {
                 .as_ref()
                 .map(super::completion_types::CompletionSeed::from);
             state.observe(model, token, &mut self.work.values);
+            if let Some(entry) = &mut self.response_entry {
+                entry.observe(
+                    model,
+                    state,
+                    token,
+                    self.control,
+                    &mut self.work.response_entry,
+                );
+            }
             if let Some(completion) = &mut self.completion {
                 completion.observe(
                     model,
@@ -478,13 +513,26 @@ impl Session {
                 }
             }
         }
-        if let Some(baseline) = self.candidates.first().copied() {
-            let offer = self
-                .values
-                .as_mut()
-                .and_then(|s| s.offer(model, baseline, self.control, &mut self.work.values));
-            if let Some(candidate) = offer {
-                self.offer_memory(model, candidate);
+        // An active entry proves that the enabled typed gate offered no value
+        // before the selected Enter token was observed. Its sources, query
+        // tokens/words and model/control stay frozen throughout that response;
+        // the changing pose/history and baseline score do not decide NoWrite.
+        // Enter observation clears typed pending state, and restored active
+        // entries independently recheck this gate. Boundaries/EOS/cap clear
+        // entry activity, so their next prediction uses the ordinary gate.
+        if !self
+            .response_entry
+            .as_ref()
+            .is_some_and(|entry| entry.active)
+        {
+            if let Some(baseline) = self.candidates.first().copied() {
+                let offer = self
+                    .values
+                    .as_mut()
+                    .and_then(|s| s.offer(model, baseline, self.control, &mut self.work.values));
+                if let Some(candidate) = offer {
+                    self.offer_memory(model, candidate);
+                }
             }
         }
         if let (Some(baseline), Some(state), Some(values)) = (
@@ -503,6 +551,21 @@ impl Session {
                 self.offer_memory(model, candidate);
             }
         }
+        if let (Some(baseline), Some(entry), Some(values)) = (
+            self.candidates.first().copied(),
+            &mut self.response_entry,
+            &self.values,
+        ) {
+            if let Some(candidate) = entry.offer(
+                model,
+                values,
+                baseline,
+                self.control,
+                &mut self.work.response_entry,
+            ) {
+                self.offer_memory(model, candidate);
+            }
+        }
         let best = *self
             .candidates
             .first()
@@ -514,6 +577,9 @@ impl Session {
             state.selected(best);
         }
         if let Some(state) = &mut self.completion {
+            state.selected(best);
+        }
+        if let Some(state) = &mut self.response_entry {
             state.selected(best);
         }
         Ok(Prediction {

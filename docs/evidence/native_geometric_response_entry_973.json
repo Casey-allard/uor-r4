@@ -1,0 +1,2210 @@
+{
+  "schema": "uor-r4.native-response-entry-evidence/1",
+  "at": "2026-09-05T14:39:03Z",
+  "issue": 973,
+  "status": "RETAIN_BOUNDED_RESPONSE_ENTRY_AND_NOWRITE_REUSE_CONTENT_TRANSFER_NEGATIVE",
+  "base_commit": "4f2dfe3eb91fb24a87f25bc57be48dad0f3cfa84",
+  "branch": "codex/native-response-entry",
+  "scope": "OPEN development with shared response forms. Same-artifact inference ablations, not separately fitted controls. No final held-out, broad conversation, general coding, multiscale abstraction or frontier claim.",
+  "artifact": {
+    "path": "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/entry-fit-1/model.json",
+    "bytes": 10107953,
+    "sha256": "9b38704b596c8fc6c30dbb01b155beaf2c7285e61cb81e6e2987ef3cb3663bc6",
+    "cid": "blake3:316837f19043a4a69b481b44c234c06dc3a4c4a688069707eb1ea7137085a574",
+    "baseline_cid": "blake3:a1fa0314924fb324f994e449cce6e69793d6c4df6102353a959363cb766009ff",
+    "added_bytes": 49374
+  },
+  "fit": {
+    "schema": "uor-r4.native-response-entry/1",
+    "baseline_artifact": "blake3:a1fa0314924fb324f994e449cce6e69793d6c4df6102353a959363cb766009ff",
+    "artifact_cid": "blake3:316837f19043a4a69b481b44c234c06dc3a4c4a688069707eb1ea7137085a574",
+    "examples": 192,
+    "numeric_examples": 160,
+    "matched_numeric": 160,
+    "upstream_failures": 0,
+    "no_write_examples": 32,
+    "unexpected_value_writes": 0,
+    "overlong_responses": 0,
+    "position_limit_skips": 0,
+    "entry_positions": 32,
+    "entry_target_in_candidates": 32,
+    "entry_fit_correct": 32,
+    "entered_rollouts": 32,
+    "entry_rollout_failures": 0,
+    "continuation_positions": 224,
+    "continuation_target_in_candidates": 224,
+    "continuation_fit_correct": 224,
+    "final_entry_correct": 32,
+    "final_exact_responses": 32,
+    "learned_rows": 170,
+    "learned_associations": 250,
+    "dropped_row_events": 0,
+    "dropped_association_events": 0,
+    "entry_fit_loss": 0.025211753664724057,
+    "continuation_fit_loss": 0.03707663207381796,
+    "selected_entry_epoch": 24,
+    "selected_continuation_epoch": 24,
+    "config": {
+      "epochs": 24,
+      "learning_rate": 0.1,
+      "max_positions": 4096
+    },
+    "tokenization_law": "Canonical frozen model.encode(response) plus EOS; an overlong response is skipped whole. Entry action is supervised separately from equal-token Base; continuation frames require actual quantized Enter selection and observation. Final shared-posting entry and free-running response checks are reported."
+  },
+  "generation_ceiling_tokens": 64,
+  "arms": [
+    {
+      "control": "full",
+      "metrics": {
+        "prose": {
+          "cases": 16,
+          "correct_leading_numerals": 12,
+          "exact_responses": 16,
+          "generated_tokens": 98,
+          "nonnumeric_cases": 4,
+          "nonnumeric_cases_with_leading_numerals": 0,
+          "numeric_cases": 12
+        },
+        "prose/add": {
+          "cases": 4,
+          "correct_leading_numerals": 4,
+          "exact_responses": 4,
+          "generated_tokens": 18,
+          "nonnumeric_cases": 0,
+          "nonnumeric_cases_with_leading_numerals": 0,
+          "numeric_cases": 4
+        },
+        "prose/copy_current": {
+          "cases": 4,
+          "correct_leading_numerals": 4,
+          "exact_responses": 4,
+          "generated_tokens": 18,
+          "nonnumeric_cases": 0,
+          "nonnumeric_cases_with_leading_numerals": 0,
+          "numeric_cases": 4
+        },
+        "prose/dependency_before_update": {
+          "cases": 4,
+          "correct_leading_numerals": 4,
+          "exact_responses": 4,
+          "generated_tokens": 18,
+          "nonnumeric_cases": 0,
+          "nonnumeric_cases_with_leading_numerals": 0,
+          "numeric_cases": 4
+        },
+        "prose/no_write": {
+          "cases": 4,
+          "correct_leading_numerals": 0,
+          "exact_responses": 4,
+          "generated_tokens": 44,
+          "nonnumeric_cases": 4,
+          "nonnumeric_cases_with_leading_numerals": 0,
+          "numeric_cases": 0
+        },
+        "rust": {
+          "cases": 16,
+          "correct_leading_numerals": 12,
+          "exact_responses": 16,
+          "generated_tokens": 102,
+          "nonnumeric_cases": 4,
+          "nonnumeric_cases_with_leading_numerals": 0,
+          "numeric_cases": 12
+        },
+        "rust/add": {
+          "cases": 4,
+          "correct_leading_numerals": 4,
+          "exact_responses": 4,
+          "generated_tokens": 30,
+          "nonnumeric_cases": 0,
+          "nonnumeric_cases_with_leading_numerals": 0,
+          "numeric_cases": 4
+        },
+        "rust/copy_current": {
+          "cases": 4,
+          "correct_leading_numerals": 4,
+          "exact_responses": 4,
+          "generated_tokens": 30,
+          "nonnumeric_cases": 0,
+          "nonnumeric_cases_with_leading_numerals": 0,
+          "numeric_cases": 4
+        },
+        "rust/dependency_before_update": {
+          "cases": 4,
+          "correct_leading_numerals": 4,
+          "exact_responses": 4,
+          "generated_tokens": 30,
+          "nonnumeric_cases": 0,
+          "nonnumeric_cases_with_leading_numerals": 0,
+          "numeric_cases": 4
+        },
+        "rust/no_write": {
+          "cases": 4,
+          "correct_leading_numerals": 0,
+          "exact_responses": 4,
+          "generated_tokens": 12,
+          "nonnumeric_cases": 4,
+          "nonnumeric_cases_with_leading_numerals": 0,
+          "numeric_cases": 0
+        }
+      },
+      "work_all_primary": {
+        "anchor_table_reads": 2548,
+        "candidate_evaluations": 38002,
+        "candidate_offers": 88456,
+        "completion": {
+          "anchors": 24,
+          "base_steps": 0,
+          "candidate_comparisons": 10120,
+          "candidate_drops": 0,
+          "candidate_evaluations": 648,
+          "candidate_writes": 648,
+          "commits": 108,
+          "feature_queries": 1728,
+          "h4_reads": 216,
+          "matched_rows": 1708,
+          "metadata_reads": 372,
+          "mismatches": 0,
+          "observations": 2316,
+          "orientation_reads": 108,
+          "phase_subtractions": 864,
+          "posting_offers": 3728,
+          "row_comparisons": 15552,
+          "score_comparisons": 18480,
+          "score_lookups": 10248,
+          "state_copies": 7260,
+          "step_limits": 0,
+          "stops": 24
+        },
+        "evictions": 0,
+        "feature_queries": 6032,
+        "h4_table_reads": 2316,
+        "matched_rows": 5472,
+        "memory_candidates": 11946,
+        "memory_composed_candidates": 6155,
+        "memory_composition_comparisons": 1358293,
+        "memory_composition_duplicate_features": 70281,
+        "memory_composition_feature_moves": 502450,
+        "memory_composition_feature_offers": 215028,
+        "memory_cue_reads": 38640,
+        "memory_h4_reads": 85938,
+        "memory_index_reads": 56528,
+        "memory_index_writes": 35776,
+        "memory_phase_updates": 305232,
+        "memory_score_lookups": 144747,
+        "memory_stale_rejections": 0,
+        "mixture_gate_reads": 232,
+        "observed_tokens": 2316,
+        "orientation_table_reads": 232,
+        "phase_additions": 18528,
+        "radial_square_reads": 27792,
+        "response_entry": {
+          "anchors": 32,
+          "base_steps": 32,
+          "candidate_comparisons": 11508,
+          "candidate_drops": 0,
+          "candidate_evaluations": 832,
+          "candidate_writes": 832,
+          "commits": 32,
+          "feature_queries": 1024,
+          "h4_reads": 128,
+          "matched_rows": 1024,
+          "metadata_reads": 224,
+          "mismatches": 0,
+          "observations": 2316,
+          "orientation_reads": 64,
+          "phase_subtractions": 512,
+          "posting_offers": 2752,
+          "row_comparisons": 9216,
+          "score_comparisons": 25844,
+          "score_lookups": 13312,
+          "state_copies": 7300,
+          "step_limits": 0,
+          "stops": 8
+        },
+        "score_lookups": 918979,
+        "values": {
+          "additions": 208,
+          "cue_comparisons": 19456,
+          "derived_writes": 24,
+          "emission_commits": 60,
+          "emission_mismatches": 0,
+          "feature_comparisons": 228852,
+          "feature_lookups": 17604,
+          "h4_reads": 3532,
+          "input_bytes": 3772,
+          "lexical_byte_comparisons": 21160,
+          "lexical_comparisons": 33824,
+          "lexical_writes": 560,
+          "literal_writes": 96,
+          "numeral_steps": 9120,
+          "overflow_rejections": 0,
+          "phase_updates": 23392,
+          "proposals": 304,
+          "record_evictions": 0
+        }
+      },
+      "work_no_write": {
+        "anchor_table_reads": 540,
+        "candidate_evaluations": 15400,
+        "candidate_offers": 24849,
+        "completion": {
+          "anchors": 0,
+          "base_steps": 0,
+          "candidate_comparisons": 0,
+          "candidate_drops": 0,
+          "candidate_evaluations": 0,
+          "candidate_writes": 0,
+          "commits": 0,
+          "feature_queries": 0,
+          "h4_reads": 0,
+          "matched_rows": 0,
+          "metadata_reads": 0,
+          "mismatches": 0,
+          "observations": 476,
+          "orientation_reads": 0,
+          "phase_subtractions": 0,
+          "posting_offers": 0,
+          "row_comparisons": 0,
+          "score_comparisons": 0,
+          "score_lookups": 0,
+          "state_copies": 1428,
+          "step_limits": 0,
+          "stops": 0
+        },
+        "evictions": 0,
+        "feature_queries": 1664,
+        "h4_table_reads": 476,
+        "matched_rows": 1626,
+        "memory_candidates": 3184,
+        "memory_composed_candidates": 1316,
+        "memory_composition_comparisons": 358486,
+        "memory_composition_duplicate_features": 19674,
+        "memory_composition_feature_moves": 272254,
+        "memory_composition_feature_offers": 57312,
+        "memory_cue_reads": 10016,
+        "memory_h4_reads": 22764,
+        "memory_index_reads": 13664,
+        "memory_index_writes": 7296,
+        "memory_phase_updates": 80224,
+        "memory_score_lookups": 37638,
+        "memory_stale_rejections": 0,
+        "mixture_gate_reads": 64,
+        "observed_tokens": 476,
+        "orientation_table_reads": 64,
+        "phase_additions": 3808,
+        "radial_square_reads": 5712,
+        "response_entry": {
+          "anchors": 8,
+          "base_steps": 32,
+          "candidate_comparisons": 11508,
+          "candidate_drops": 0,
+          "candidate_evaluations": 832,
+          "candidate_writes": 832,
+          "commits": 32,
+          "feature_queries": 1024,
+          "h4_reads": 128,
+          "matched_rows": 1024,
+          "metadata_reads": 200,
+          "mismatches": 0,
+          "observations": 476,
+          "orientation_reads": 64,
+          "phase_subtractions": 512,
+          "posting_offers": 2752,
+          "row_comparisons": 9216,
+          "score_comparisons": 25844,
+          "score_lookups": 13312,
+          "state_copies": 1516,
+          "step_limits": 0,
+          "stops": 8
+        },
+        "score_lookups": 393857,
+        "values": {
+          "additions": 16,
+          "cue_comparisons": 2048,
+          "derived_writes": 0,
+          "emission_commits": 0,
+          "emission_mismatches": 0,
+          "feature_comparisons": 24336,
+          "feature_lookups": 1872,
+          "h4_reads": 604,
+          "input_bytes": 780,
+          "lexical_byte_comparisons": 1776,
+          "lexical_comparisons": 3712,
+          "lexical_writes": 116,
+          "literal_writes": 16,
+          "numeral_steps": 0,
+          "overflow_rejections": 0,
+          "phase_updates": 4320,
+          "proposals": 32,
+          "record_evictions": 0
+        }
+      }
+    },
+    {
+      "control": "response_entry_disabled",
+      "metrics": {
+        "prose": {
+          "cases": 16,
+          "correct_leading_numerals": 12,
+          "exact_responses": 12,
+          "generated_tokens": 237,
+          "nonnumeric_cases": 4,
+          "nonnumeric_cases_with_leading_numerals": 0,
+          "numeric_cases": 12
+        },
+        "prose/add": {
+          "cases": 4,
+          "correct_leading_numerals": 4,
+          "exact_responses": 4,
+          "generated_tokens": 18,
+          "nonnumeric_cases": 0,
+          "nonnumeric_cases_with_leading_numerals": 0,
+          "numeric_cases": 4
+        },
+        "prose/copy_current": {
+          "cases": 4,
+          "correct_leading_numerals": 4,
+          "exact_responses": 4,
+          "generated_tokens": 18,
+          "nonnumeric_cases": 0,
+          "nonnumeric_cases_with_leading_numerals": 0,
+          "numeric_cases": 4
+        },
+        "prose/dependency_before_update": {
+          "cases": 4,
+          "correct_leading_numerals": 4,
+          "exact_responses": 4,
+          "generated_tokens": 18,
+          "nonnumeric_cases": 0,
+          "nonnumeric_cases_with_leading_numerals": 0,
+          "numeric_cases": 4
+        },
+        "prose/no_write": {
+          "cases": 4,
+          "correct_leading_numerals": 0,
+          "exact_responses": 0,
+          "generated_tokens": 183,
+          "nonnumeric_cases": 4,
+          "nonnumeric_cases_with_leading_numerals": 0,
+          "numeric_cases": 0
+        },
+        "rust": {
+          "cases": 16,
+          "correct_leading_numerals": 12,
+          "exact_responses": 12,
+          "generated_tokens": 148,
+          "nonnumeric_cases": 4,
+          "nonnumeric_cases_with_leading_numerals": 0,
+          "numeric_cases": 12
+        },
+        "rust/add": {
+          "cases": 4,
+          "correct_leading_numerals": 4,
+          "exact_responses": 4,
+          "generated_tokens": 30,
+          "nonnumeric_cases": 0,
+          "nonnumeric_cases_with_leading_numerals": 0,
+          "numeric_cases": 4
+        },
+        "rust/copy_current": {
+          "cases": 4,
+          "correct_leading_numerals": 4,
+          "exact_responses": 4,
+          "generated_tokens": 30,
+          "nonnumeric_cases": 0,
+          "nonnumeric_cases_with_leading_numerals": 0,
+          "numeric_cases": 4
+        },
+        "rust/dependency_before_update": {
+          "cases": 4,
+          "correct_leading_numerals": 4,
+          "exact_responses": 4,
+          "generated_tokens": 30,
+          "nonnumeric_cases": 0,
+          "nonnumeric_cases_with_leading_numerals": 0,
+          "numeric_cases": 4
+        },
+        "rust/no_write": {
+          "cases": 4,
+          "correct_leading_numerals": 0,
+          "exact_responses": 0,
+          "generated_tokens": 58,
+          "nonnumeric_cases": 4,
+          "nonnumeric_cases_with_leading_numerals": 0,
+          "numeric_cases": 0
+        }
+      },
+      "work_all_primary": {
+        "anchor_table_reads": 2916,
+        "candidate_evaluations": 78580,
+        "candidate_offers": 157395,
+        "completion": {
+          "anchors": 24,
+          "base_steps": 0,
+          "candidate_comparisons": 10120,
+          "candidate_drops": 0,
+          "candidate_evaluations": 648,
+          "candidate_writes": 648,
+          "commits": 108,
+          "feature_queries": 1728,
+          "h4_reads": 216,
+          "matched_rows": 1708,
+          "metadata_reads": 372,
+          "mismatches": 0,
+          "observations": 2500,
+          "orientation_reads": 108,
+          "phase_subtractions": 864,
+          "posting_offers": 3728,
+          "row_comparisons": 15552,
+          "score_comparisons": 18480,
+          "score_lookups": 10248,
+          "state_copies": 7812,
+          "step_limits": 0,
+          "stops": 24
+        },
+        "evictions": 0,
+        "feature_queries": 10816,
+        "h4_table_reads": 2500,
+        "matched_rows": 9893,
+        "memory_candidates": 31136,
+        "memory_composed_candidates": 9728,
+        "memory_composition_comparisons": 3892606,
+        "memory_composition_duplicate_features": 232217,
+        "memory_composition_feature_moves": 3063600,
+        "memory_composition_feature_offers": 560448,
+        "memory_cue_reads": 62928,
+        "memory_h4_reads": 220452,
+        "memory_index_reads": 82288,
+        "memory_index_writes": 38720,
+        "memory_phase_updates": 767264,
+        "memory_score_lookups": 328231,
+        "memory_stale_rejections": 0,
+        "mixture_gate_reads": 416,
+        "observed_tokens": 2500,
+        "orientation_table_reads": 416,
+        "phase_additions": 20000,
+        "radial_square_reads": 30000,
+        "response_entry": {
+          "anchors": 0,
+          "base_steps": 0,
+          "candidate_comparisons": 0,
+          "candidate_drops": 0,
+          "candidate_evaluations": 0,
+          "candidate_writes": 0,
+          "commits": 0,
+          "feature_queries": 0,
+          "h4_reads": 0,
+          "matched_rows": 0,
+          "metadata_reads": 0,
+          "mismatches": 0,
+          "observations": 2500,
+          "orientation_reads": 0,
+          "phase_subtractions": 0,
+          "posting_offers": 0,
+          "row_comparisons": 0,
+          "score_comparisons": 0,
+          "score_lookups": 0,
+          "state_copies": 7500,
+          "step_limits": 0,
+          "stops": 0
+        },
+        "score_lookups": 1902491,
+        "values": {
+          "additions": 688,
+          "cue_comparisons": 80896,
+          "derived_writes": 24,
+          "emission_commits": 60,
+          "emission_mismatches": 0,
+          "feature_comparisons": 962156,
+          "feature_lookups": 74012,
+          "h4_reads": 7556,
+          "input_bytes": 3772,
+          "lexical_byte_comparisons": 80144,
+          "lexical_comparisons": 147168,
+          "lexical_writes": 560,
+          "literal_writes": 96,
+          "numeral_steps": 9120,
+          "overflow_rejections": 0,
+          "phase_updates": 40224,
+          "proposals": 1264,
+          "record_evictions": 0
+        }
+      },
+      "work_no_write": {
+        "anchor_table_reads": 908,
+        "candidate_evaluations": 55978,
+        "candidate_offers": 93788,
+        "completion": {
+          "anchors": 0,
+          "base_steps": 0,
+          "candidate_comparisons": 0,
+          "candidate_drops": 0,
+          "candidate_evaluations": 0,
+          "candidate_writes": 0,
+          "commits": 0,
+          "feature_queries": 0,
+          "h4_reads": 0,
+          "matched_rows": 0,
+          "metadata_reads": 0,
+          "mismatches": 0,
+          "observations": 660,
+          "orientation_reads": 0,
+          "phase_subtractions": 0,
+          "posting_offers": 0,
+          "row_comparisons": 0,
+          "score_comparisons": 0,
+          "score_lookups": 0,
+          "state_copies": 1980,
+          "step_limits": 0,
+          "stops": 0
+        },
+        "evictions": 0,
+        "feature_queries": 6448,
+        "h4_table_reads": 660,
+        "matched_rows": 6047,
+        "memory_candidates": 22374,
+        "memory_composed_candidates": 4889,
+        "memory_composition_comparisons": 2892799,
+        "memory_composition_duplicate_features": 181610,
+        "memory_composition_feature_moves": 2833404,
+        "memory_composition_feature_offers": 402732,
+        "memory_cue_reads": 34304,
+        "memory_h4_reads": 157278,
+        "memory_index_reads": 39424,
+        "memory_index_writes": 10240,
+        "memory_phase_updates": 542256,
+        "memory_score_lookups": 221122,
+        "memory_stale_rejections": 0,
+        "mixture_gate_reads": 248,
+        "observed_tokens": 660,
+        "orientation_table_reads": 248,
+        "phase_additions": 5280,
+        "radial_square_reads": 7920,
+        "response_entry": {
+          "anchors": 0,
+          "base_steps": 0,
+          "candidate_comparisons": 0,
+          "candidate_drops": 0,
+          "candidate_evaluations": 0,
+          "candidate_writes": 0,
+          "commits": 0,
+          "feature_queries": 0,
+          "h4_reads": 0,
+          "matched_rows": 0,
+          "metadata_reads": 0,
+          "mismatches": 0,
+          "observations": 660,
+          "orientation_reads": 0,
+          "phase_subtractions": 0,
+          "posting_offers": 0,
+          "row_comparisons": 0,
+          "score_comparisons": 0,
+          "score_lookups": 0,
+          "state_copies": 1980,
+          "step_limits": 0,
+          "stops": 0
+        },
+        "score_lookups": 1377369,
+        "values": {
+          "additions": 496,
+          "cue_comparisons": 63488,
+          "derived_writes": 0,
+          "emission_commits": 0,
+          "emission_mismatches": 0,
+          "feature_comparisons": 757640,
+          "feature_lookups": 58280,
+          "h4_reads": 4628,
+          "input_bytes": 780,
+          "lexical_byte_comparisons": 60760,
+          "lexical_comparisons": 117056,
+          "lexical_writes": 116,
+          "literal_writes": 16,
+          "numeral_steps": 0,
+          "overflow_rejections": 0,
+          "phase_updates": 21152,
+          "proposals": 992,
+          "record_evictions": 0
+        }
+      }
+    },
+    {
+      "control": "response_entry_geometry_disabled",
+      "metrics": {
+        "prose": {
+          "cases": 16,
+          "correct_leading_numerals": 12,
+          "exact_responses": 12,
+          "generated_tokens": 237,
+          "nonnumeric_cases": 4,
+          "nonnumeric_cases_with_leading_numerals": 0,
+          "numeric_cases": 12
+        },
+        "prose/add": {
+          "cases": 4,
+          "correct_leading_numerals": 4,
+          "exact_responses": 4,
+          "generated_tokens": 18,
+          "nonnumeric_cases": 0,
+          "nonnumeric_cases_with_leading_numerals": 0,
+          "numeric_cases": 4
+        },
+        "prose/copy_current": {
+          "cases": 4,
+          "correct_leading_numerals": 4,
+          "exact_responses": 4,
+          "generated_tokens": 18,
+          "nonnumeric_cases": 0,
+          "nonnumeric_cases_with_leading_numerals": 0,
+          "numeric_cases": 4
+        },
+        "prose/dependency_before_update": {
+          "cases": 4,
+          "correct_leading_numerals": 4,
+          "exact_responses": 4,
+          "generated_tokens": 18,
+          "nonnumeric_cases": 0,
+          "nonnumeric_cases_with_leading_numerals": 0,
+          "numeric_cases": 4
+        },
+        "prose/no_write": {
+          "cases": 4,
+          "correct_leading_numerals": 0,
+          "exact_responses": 0,
+          "generated_tokens": 183,
+          "nonnumeric_cases": 4,
+          "nonnumeric_cases_with_leading_numerals": 0,
+          "numeric_cases": 0
+        },
+        "rust": {
+          "cases": 16,
+          "correct_leading_numerals": 12,
+          "exact_responses": 12,
+          "generated_tokens": 296,
+          "nonnumeric_cases": 4,
+          "nonnumeric_cases_with_leading_numerals": 0,
+          "numeric_cases": 12
+        },
+        "rust/add": {
+          "cases": 4,
+          "correct_leading_numerals": 4,
+          "exact_responses": 4,
+          "generated_tokens": 30,
+          "nonnumeric_cases": 0,
+          "nonnumeric_cases_with_leading_numerals": 0,
+          "numeric_cases": 4
+        },
+        "rust/copy_current": {
+          "cases": 4,
+          "correct_leading_numerals": 4,
+          "exact_responses": 4,
+          "generated_tokens": 30,
+          "nonnumeric_cases": 0,
+          "nonnumeric_cases_with_leading_numerals": 0,
+          "numeric_cases": 4
+        },
+        "rust/dependency_before_update": {
+          "cases": 4,
+          "correct_leading_numerals": 4,
+          "exact_responses": 4,
+          "generated_tokens": 30,
+          "nonnumeric_cases": 0,
+          "nonnumeric_cases_with_leading_numerals": 0,
+          "numeric_cases": 4
+        },
+        "rust/no_write": {
+          "cases": 4,
+          "correct_leading_numerals": 0,
+          "exact_responses": 0,
+          "generated_tokens": 206,
+          "nonnumeric_cases": 4,
+          "nonnumeric_cases_with_leading_numerals": 0,
+          "numeric_cases": 0
+        }
+      },
+      "work_all_primary": {
+        "anchor_table_reads": 3210,
+        "candidate_evaluations": 110747,
+        "candidate_offers": 212546,
+        "completion": {
+          "anchors": 24,
+          "base_steps": 0,
+          "candidate_comparisons": 10120,
+          "candidate_drops": 0,
+          "candidate_evaluations": 648,
+          "candidate_writes": 648,
+          "commits": 108,
+          "feature_queries": 1728,
+          "h4_reads": 216,
+          "matched_rows": 1708,
+          "metadata_reads": 372,
+          "mismatches": 0,
+          "observations": 2647,
+          "orientation_reads": 108,
+          "phase_subtractions": 864,
+          "posting_offers": 3728,
+          "row_comparisons": 15552,
+          "score_comparisons": 18480,
+          "score_lookups": 10248,
+          "state_copies": 8253,
+          "step_limits": 0,
+          "stops": 24
+        },
+        "evictions": 0,
+        "feature_queries": 14638,
+        "h4_table_reads": 2647,
+        "matched_rows": 13452,
+        "memory_candidates": 46393,
+        "memory_composed_candidates": 14476,
+        "memory_composition_comparisons": 5939775,
+        "memory_composition_duplicate_features": 337924,
+        "memory_composition_feature_moves": 4132225,
+        "memory_composition_feature_offers": 835074,
+        "memory_cue_reads": 82332,
+        "memory_h4_reads": 327398,
+        "memory_index_reads": 102868,
+        "memory_index_writes": 41072,
+        "memory_phase_updates": 1134608,
+        "memory_score_lookups": 497150,
+        "memory_stale_rejections": 0,
+        "mixture_gate_reads": 563,
+        "observed_tokens": 2647,
+        "orientation_table_reads": 563,
+        "phase_additions": 21176,
+        "radial_square_reads": 31764,
+        "response_entry": {
+          "anchors": 32,
+          "base_steps": 248,
+          "candidate_comparisons": 26261,
+          "candidate_drops": 0,
+          "candidate_evaluations": 3328,
+          "candidate_writes": 3328,
+          "commits": 8,
+          "feature_queries": 1536,
+          "h4_reads": 0,
+          "matched_rows": 860,
+          "metadata_reads": 544,
+          "mismatches": 0,
+          "observations": 2647,
+          "orientation_reads": 0,
+          "phase_subtractions": 0,
+          "posting_offers": 5598,
+          "row_comparisons": 13824,
+          "score_comparisons": 34346,
+          "score_lookups": 11180,
+          "state_copies": 8293,
+          "step_limits": 8,
+          "stops": 0
+        },
+        "score_lookups": 2683374,
+        "values": {
+          "additions": 486,
+          "cue_comparisons": 55040,
+          "derived_writes": 24,
+          "emission_commits": 60,
+          "emission_mismatches": 0,
+          "feature_comparisons": 651092,
+          "feature_lookups": 50084,
+          "h4_reads": 6087,
+          "input_bytes": 3772,
+          "lexical_byte_comparisons": 50960,
+          "lexical_comparisons": 97952,
+          "lexical_writes": 560,
+          "literal_writes": 96,
+          "numeral_steps": 9120,
+          "overflow_rejections": 0,
+          "phase_updates": 34936,
+          "proposals": 860,
+          "record_evictions": 0
+        }
+      },
+      "work_no_write": {
+        "anchor_table_reads": 1202,
+        "candidate_evaluations": 88145,
+        "candidate_offers": 148939,
+        "completion": {
+          "anchors": 0,
+          "base_steps": 0,
+          "candidate_comparisons": 0,
+          "candidate_drops": 0,
+          "candidate_evaluations": 0,
+          "candidate_writes": 0,
+          "commits": 0,
+          "feature_queries": 0,
+          "h4_reads": 0,
+          "matched_rows": 0,
+          "metadata_reads": 0,
+          "mismatches": 0,
+          "observations": 807,
+          "orientation_reads": 0,
+          "phase_subtractions": 0,
+          "posting_offers": 0,
+          "row_comparisons": 0,
+          "score_comparisons": 0,
+          "score_lookups": 0,
+          "state_copies": 2421,
+          "step_limits": 0,
+          "stops": 0
+        },
+        "evictions": 0,
+        "feature_queries": 10270,
+        "h4_table_reads": 807,
+        "matched_rows": 9606,
+        "memory_candidates": 37631,
+        "memory_composed_candidates": 9637,
+        "memory_composition_comparisons": 4939968,
+        "memory_composition_duplicate_features": 287317,
+        "memory_composition_feature_moves": 3902029,
+        "memory_composition_feature_offers": 677358,
+        "memory_cue_reads": 53708,
+        "memory_h4_reads": 264224,
+        "memory_index_reads": 60004,
+        "memory_index_writes": 12592,
+        "memory_phase_updates": 909600,
+        "memory_score_lookups": 390041,
+        "memory_stale_rejections": 0,
+        "mixture_gate_reads": 395,
+        "observed_tokens": 807,
+        "orientation_table_reads": 395,
+        "phase_additions": 6456,
+        "radial_square_reads": 9684,
+        "response_entry": {
+          "anchors": 8,
+          "base_steps": 248,
+          "candidate_comparisons": 26261,
+          "candidate_drops": 0,
+          "candidate_evaluations": 3328,
+          "candidate_writes": 3328,
+          "commits": 8,
+          "feature_queries": 1536,
+          "h4_reads": 0,
+          "matched_rows": 860,
+          "metadata_reads": 520,
+          "mismatches": 0,
+          "observations": 807,
+          "orientation_reads": 0,
+          "phase_subtractions": 0,
+          "posting_offers": 5598,
+          "row_comparisons": 13824,
+          "score_comparisons": 34346,
+          "score_lookups": 11180,
+          "state_copies": 2509,
+          "step_limits": 8,
+          "stops": 0
+        },
+        "score_lookups": 2158252,
+        "values": {
+          "additions": 294,
+          "cue_comparisons": 37632,
+          "derived_writes": 0,
+          "emission_commits": 0,
+          "emission_mismatches": 0,
+          "feature_comparisons": 446576,
+          "feature_lookups": 34352,
+          "h4_reads": 3159,
+          "input_bytes": 780,
+          "lexical_byte_comparisons": 31576,
+          "lexical_comparisons": 67840,
+          "lexical_writes": 116,
+          "literal_writes": 16,
+          "numeral_steps": 0,
+          "overflow_rejections": 0,
+          "phase_updates": 15864,
+          "proposals": 588,
+          "record_evictions": 0
+        }
+      }
+    }
+  ],
+  "preservation": {
+    "old_baseline": {
+      "comparisons": 40,
+      "entire_generation_exact": 40
+    },
+    "prior_numeric_and_binding_generation_exact_except_added_entry_telemetry": 32,
+    "same_artifact_replay": {
+      "comparisons": 104,
+      "entire_generation_exact": 88,
+      "entire_generation_except_only_work_values_equal": 104,
+      "all_typed_counters_nonincreasing": true,
+      "changed_generation_keys": [
+        [
+          "full",
+          "typed-value/development/prose/no_write/100000"
+        ],
+        [
+          "full",
+          "typed-value/development/rust/no_write/100000"
+        ],
+        [
+          "full",
+          "typed-value/development/prose/no_write/100001"
+        ],
+        [
+          "full",
+          "typed-value/development/rust/no_write/100001"
+        ],
+        [
+          "full",
+          "typed-value/development/prose/no_write/100002"
+        ],
+        [
+          "full",
+          "typed-value/development/rust/no_write/100002"
+        ],
+        [
+          "full",
+          "typed-value/development/prose/no_write/100003"
+        ],
+        [
+          "full",
+          "typed-value/development/rust/no_write/100003"
+        ],
+        [
+          "response_entry_geometry_disabled",
+          "typed-value/development/prose/no_write/100000"
+        ],
+        [
+          "response_entry_geometry_disabled",
+          "typed-value/development/rust/no_write/100000"
+        ],
+        [
+          "response_entry_geometry_disabled",
+          "typed-value/development/prose/no_write/100001"
+        ],
+        [
+          "response_entry_geometry_disabled",
+          "typed-value/development/rust/no_write/100001"
+        ],
+        [
+          "response_entry_geometry_disabled",
+          "typed-value/development/prose/no_write/100002"
+        ],
+        [
+          "response_entry_geometry_disabled",
+          "typed-value/development/rust/no_write/100002"
+        ],
+        [
+          "response_entry_geometry_disabled",
+          "typed-value/development/prose/no_write/100003"
+        ],
+        [
+          "response_entry_geometry_disabled",
+          "typed-value/development/rust/no_write/100003"
+        ]
+      ],
+      "equivalence_report_hashes_metrics_and_counter_totals_verified": true
+    },
+    "frozen_sources": [
+      {
+        "file": "source.json",
+        "bytes": 90946,
+        "sha256": "10b69bfbbd89161032d80905306247b8a2e72ee098ab8f487932827f45d90352",
+        "byte_identical": true
+      },
+      {
+        "file": "binding-controls-source.json",
+        "bytes": 4684,
+        "sha256": "1a858a3cde98c19ecab16be42a4315e8f15f9d85b24e36ebf5da8c9a527cef22",
+        "byte_identical": true
+      }
+    ],
+    "model_bytes_unchanged_by_reuse": true
+  },
+  "no_write_reuse": {
+    "law": {
+      "key": "response_entry.active; no additional cache table or learned parameter.",
+      "establishment": "runtime.rs:516-538 skips typed offer only when entry.active. Initial prediction still invokes typed offer; response_entry_runtime.rs:218-247 blocks entry when typed pending exists. Only matching selected Enter observation activates it. value_runtime.rs:375-398 consumes or clears pending before entry observation.",
+      "fixed_inputs": "value_runtime.rs:138-164 snapshots sources and query entries; value_lexemes.rs:141-149 snapshots word queries. value_runtime.rs:65-99 updates actual geometry/history but returns before scanning/lexeme feed while active. Without typed pending there is no derived write or source/ID change.",
+      "selection": "value_runtime.rs:190-288 uses captured source records, ranks, query/word cues and source/query geometry with fixed model/control; changing current pose/phases and response history are not selection inputs. At325-351 proposal score must exceed zero before baseline.score is used. Initial typed NoWrite therefore remains valid for the active response.",
+      "restore_reset": "response_entry_snapshot.rs:104-198 validates boundary/history and replays the initial typed gate plus selected Enter. Boundary/end, EOS, invalid eligibility and32-step cap reset activity; later prediction resumes the typed gate.",
+      "limits": "Adding response-dependent proposal features or changing captured sources/query/model/control requires revised cache validity. Counter savings measure avoided logical work, not wall-clock speedup."
+    },
+    "counted_reductions": [
+      {
+        "control": "full",
+        "metrics_unchanged": true,
+        "primary_cases": 32,
+        "nonnumeric_cases": 8,
+        "all_primary_reductions": {
+          "additions": {
+            "before": 320,
+            "after": 208,
+            "saved": 112
+          },
+          "cue_comparisons": {
+            "before": 33792,
+            "after": 19456,
+            "saved": 14336
+          },
+          "feature_comparisons": {
+            "before": 400036,
+            "after": 228852,
+            "saved": 171184
+          },
+          "feature_lookups": {
+            "before": 30772,
+            "after": 17604,
+            "saved": 13168
+          },
+          "h4_reads": {
+            "before": 4428,
+            "after": 3532,
+            "saved": 896
+          },
+          "lexical_byte_comparisons": {
+            "before": 35064,
+            "after": 21160,
+            "saved": 13904
+          },
+          "lexical_comparisons": {
+            "before": 60320,
+            "after": 33824,
+            "saved": 26496
+          },
+          "phase_updates": {
+            "before": 26976,
+            "after": 23392,
+            "saved": 3584
+          },
+          "proposals": {
+            "before": 528,
+            "after": 304,
+            "saved": 224
+          }
+        },
+        "nonnumeric_reductions": {
+          "additions": {
+            "before": 128,
+            "after": 16,
+            "saved": 112
+          },
+          "cue_comparisons": {
+            "before": 16384,
+            "after": 2048,
+            "saved": 14336
+          },
+          "feature_comparisons": {
+            "before": 195520,
+            "after": 24336,
+            "saved": 171184
+          },
+          "feature_lookups": {
+            "before": 15040,
+            "after": 1872,
+            "saved": 13168
+          },
+          "h4_reads": {
+            "before": 1500,
+            "after": 604,
+            "saved": 896
+          },
+          "lexical_byte_comparisons": {
+            "before": 15680,
+            "after": 1776,
+            "saved": 13904
+          },
+          "lexical_comparisons": {
+            "before": 30208,
+            "after": 3712,
+            "saved": 26496
+          },
+          "phase_updates": {
+            "before": 7904,
+            "after": 4320,
+            "saved": 3584
+          },
+          "proposals": {
+            "before": 256,
+            "after": 32,
+            "saved": 224
+          }
+        }
+      },
+      {
+        "control": "response_entry_disabled",
+        "metrics_unchanged": true,
+        "primary_cases": 32,
+        "nonnumeric_cases": 8,
+        "all_primary_reductions": {
+        },
+        "nonnumeric_reductions": {
+        }
+      },
+      {
+        "control": "response_entry_geometry_disabled",
+        "metrics_unchanged": true,
+        "primary_cases": 32,
+        "nonnumeric_cases": 8,
+        "all_primary_reductions": {
+          "additions": {
+            "before": 982,
+            "after": 486,
+            "saved": 496
+          },
+          "cue_comparisons": {
+            "before": 118528,
+            "after": 55040,
+            "saved": 63488
+          },
+          "feature_comparisons": {
+            "before": 1405508,
+            "after": 651092,
+            "saved": 754416
+          },
+          "feature_lookups": {
+            "before": 108116,
+            "after": 50084,
+            "saved": 58032
+          },
+          "h4_reads": {
+            "before": 10055,
+            "after": 6087,
+            "saved": 3968
+          },
+          "lexical_byte_comparisons": {
+            "before": 106016,
+            "after": 50960,
+            "saved": 55056
+          },
+          "lexical_comparisons": {
+            "before": 213024,
+            "after": 97952,
+            "saved": 115072
+          },
+          "phase_updates": {
+            "before": 50808,
+            "after": 34936,
+            "saved": 15872
+          },
+          "proposals": {
+            "before": 1852,
+            "after": 860,
+            "saved": 992
+          }
+        },
+        "nonnumeric_reductions": {
+          "additions": {
+            "before": 790,
+            "after": 294,
+            "saved": 496
+          },
+          "cue_comparisons": {
+            "before": 101120,
+            "after": 37632,
+            "saved": 63488
+          },
+          "feature_comparisons": {
+            "before": 1200992,
+            "after": 446576,
+            "saved": 754416
+          },
+          "feature_lookups": {
+            "before": 92384,
+            "after": 34352,
+            "saved": 58032
+          },
+          "h4_reads": {
+            "before": 7127,
+            "after": 3159,
+            "saved": 3968
+          },
+          "lexical_byte_comparisons": {
+            "before": 86632,
+            "after": 31576,
+            "saved": 55056
+          },
+          "lexical_comparisons": {
+            "before": 182912,
+            "after": 67840,
+            "saved": 115072
+          },
+          "phase_updates": {
+            "before": 31736,
+            "after": 15864,
+            "saved": 15872
+          },
+          "proposals": {
+            "before": 1580,
+            "after": 588,
+            "saved": 992
+          }
+        }
+      }
+    ],
+    "no_write_proposal_and_addition_reduction_percent": 87.5,
+    "all_primary_checked_addition_reduction_percent": 35,
+    "latency_speedup": "NOT_MEASURED"
+  },
+  "geometry_control": {
+    "head_global_tokens": 13,
+    "complete_equal_candidate_support": true,
+    "dropped_tokens": 0,
+    "full_eligible_head_requests": 64,
+    "geometry_disabled_eligible_head_requests": 256,
+    "correct_first_entries_both": 8,
+    "full_head_selected_eos": 0,
+    "full_prose_actions": "Enter 0; Emit 1,2,3,9,10; Base 4-8 and EOS 11",
+    "full_rust_actions": "Enter 0; Emit 1; Base newline 2 and EOS 3",
+    "first_entry_geometry_score_offset": 740,
+    "scope": "Combined fitted geometry score dependence for continuation. First-entry factual conditioning, separate-term attribution and geometry-free refit unmeasured."
+  },
+  "cost": {
+    "per_eligible_prediction": {
+      "feature_queries": 16,
+      "posting_offers": 80,
+      "duplicate_comparisons": 1280,
+      "retained_candidates": 16,
+      "score_lookups": 256,
+      "max_row_search_comparisons": 13,
+      "max_token_search_comparisons": 16,
+      "current_vocabulary_conservative_token_search_comparisons": 11,
+      "current_vocabulary_max_score_token_comparisons": 2816,
+      "h4_reads": 2,
+      "orientation_reads": 1,
+      "phase_subtractions": 8,
+      "metadata_reads": 3
+    },
+    "fixed_local_array_logical_bytes": 448,
+    "persistent_entry_state_bytes_current_host": 96,
+    "initial_typed_full_occupancy": {
+      "slot_visits": 272,
+      "valid_proposals": 256,
+      "checked_additions": 240
+    },
+    "other_work": "Ordinary decoding and memory still run. Boundary/observation/reset, token codec, loading, fitting and snapshot validation remain separate work. Host restore allocates and rechecks initial NoWrite."
+  },
+  "generated_rust": {
+    "total": 20,
+    "compiled": 20,
+    "executed": 20,
+    "passed": 20,
+    "unique_complete_source_hashes": 18,
+    "identity_caller_assertions": 28,
+    "all_compiler_products_retained": true,
+    "final_replay_source_hash_matches": 20
+  },
+  "content_transfer": {
+    "total": 4,
+    "exact": 0,
+    "city_fact_responses": " Unknown. The conversation does not give a city.\n",
+    "renamed_parameter_responses": "value\n}\n",
+    "rust_compilation_failures": 2,
+    "rust_executions": 0,
+    "unchanged_final_replay": 4,
+    "compiler_receipt_caveat": "Initial compilation NOT_RUN metadata was copied from source manifest; later compiled:false and compile_code:1 record both actual compiler failures. Final replay source hashes match these failed sources.",
+    "cause_scope": "Selected head lacks query/source-content selection; its thirteen-token support cannot spell the required outputs. Whole-model candidate absence not measured."
+  },
+  "local_verification": {
+    "core_native_final": 96,
+    "allocation_source": 5,
+    "context": 3,
+    "probe": 4,
+    "cli_service_initial": {
+      "passed": 17,
+      "failed": 1,
+      "reason": "New test incorrectly required head-selected Stop although Base EOS is valid."
+    },
+    "cli_service_corrected_focused": 1,
+    "release_cli_and_probe_builds": 2,
+    "final_guard_exercised_in_core_and_real_artifact_replay": true,
+    "broad_legacy_checks": "NOT_RUN",
+    "engineering_commands": [
+      {
+        "label": "response-entry-core-1",
+        "started": "2026-09-05T13:58:57.194Z",
+        "command": "/Users/casey.allard/.cargo/bin/cargo",
+        "args": [
+          "test",
+          "-p",
+          "uor-r4-core",
+          "--lib",
+          "native_geometric",
+          "--offline"
+        ],
+        "elapsed_ms": 100450,
+        "code": 0,
+        "signal": null,
+        "stopped": null,
+        "peak_process_rss_sample_bytes": null,
+        "process_rss_samples": null,
+        "peak_sampled_known_bytes": 4150640640
+      },
+      {
+        "label": "response-entry-core-2",
+        "started": "2026-09-05T14:02:59.611Z",
+        "command": "/Users/casey.allard/.cargo/bin/cargo",
+        "args": [
+          "test",
+          "-p",
+          "uor-r4-core",
+          "--lib",
+          "native_geometric",
+          "--offline"
+        ],
+        "elapsed_ms": 110693,
+        "code": 0,
+        "signal": null,
+        "stopped": null,
+        "peak_process_rss_sample_bytes": null,
+        "process_rss_samples": null,
+        "peak_sampled_known_bytes": 4150882304
+      },
+      {
+        "label": "response-entry-interface-tests",
+        "started": "2026-09-05T14:04:56.825Z",
+        "command": "/Users/casey.allard/.cargo/bin/cargo",
+        "args": [
+          "test",
+          "-p",
+          "uor-r4-core",
+          "--test",
+          "native_geometric_allocations",
+          "--test",
+          "windowed_geometric_context",
+          "--example",
+          "native_geometric_value_probe",
+          "--offline"
+        ],
+        "elapsed_ms": 150115,
+        "code": 0,
+        "signal": null,
+        "stopped": null,
+        "peak_process_rss_sample_bytes": null,
+        "process_rss_samples": null,
+        "peak_sampled_known_bytes": 4140875776
+      },
+      {
+        "label": "response-entry-cli-service",
+        "started": "2026-09-05T14:07:30.892Z",
+        "command": "/Users/casey.allard/.cargo/bin/cargo",
+        "args": [
+          "test",
+          "--bin",
+          "r4",
+          "native_geometric_",
+          "--offline"
+        ],
+        "elapsed_ms": 290722,
+        "code": 101,
+        "signal": null,
+        "stopped": null,
+        "peak_process_rss_sample_bytes": null,
+        "process_rss_samples": null,
+        "peak_sampled_known_bytes": 4168470528
+      },
+      {
+        "label": "response-entry-cli-service-2",
+        "started": "2026-09-05T14:13:26.713Z",
+        "command": "/Users/casey.allard/.cargo/bin/cargo",
+        "args": [
+          "test",
+          "--bin",
+          "r4",
+          "native_geometric_response_entry_http_resumes_observed_lexical_tokens",
+          "--offline"
+        ],
+        "elapsed_ms": 24817,
+        "code": 0,
+        "signal": null,
+        "stopped": null,
+        "peak_process_rss_sample_bytes": null,
+        "process_rss_samples": null,
+        "peak_sampled_known_bytes": 4144357376
+      },
+      {
+        "label": "response-entry-release",
+        "started": "2026-09-05T14:13:58.087Z",
+        "command": "/Users/casey.allard/.cargo/bin/cargo",
+        "args": [
+          "build",
+          "--release",
+          "--offline",
+          "-p",
+          "uor-r4-wasm-router",
+          "--bin",
+          "r4",
+          "-p",
+          "uor-r4-core",
+          "--example",
+          "native_geometric_value_probe"
+        ],
+        "elapsed_ms": 314117,
+        "code": 0,
+        "signal": null,
+        "stopped": null,
+        "peak_process_rss_sample_bytes": null,
+        "process_rss_samples": null,
+        "peak_sampled_known_bytes": 4171325440
+      },
+      {
+        "label": "response-entry-cache-core",
+        "started": "2026-09-05T14:24:46.427Z",
+        "command": "/Users/casey.allard/.cargo/bin/cargo",
+        "args": [
+          "test",
+          "-p",
+          "uor-r4-core",
+          "--lib",
+          "native_geometric",
+          "--offline"
+        ],
+        "elapsed_ms": 116580,
+        "code": 0,
+        "signal": null,
+        "stopped": null,
+        "run_growth_limit_bytes": null,
+        "peak_process_rss_sample_bytes": null,
+        "process_rss_samples": null,
+        "peak_sampled_known_bytes": 4183080960
+      },
+      {
+        "label": "response-entry-cache-release",
+        "started": "2026-09-05T14:26:49.571Z",
+        "command": "/Users/casey.allard/.cargo/bin/cargo",
+        "args": [
+          "build",
+          "--release",
+          "--offline",
+          "-p",
+          "uor-r4-wasm-router",
+          "--bin",
+          "r4",
+          "-p",
+          "uor-r4-core",
+          "--example",
+          "native_geometric_value_probe"
+        ],
+        "elapsed_ms": 311126,
+        "code": 0,
+        "signal": null,
+        "stopped": null,
+        "run_growth_limit_bytes": null,
+        "peak_process_rss_sample_bytes": null,
+        "process_rss_samples": null,
+        "peak_sampled_known_bytes": 4194951168
+      }
+    ]
+  },
+  "resources": {
+    "schema": "uor-r4.native-typed-value-resource-snapshot/1",
+    "at": "2026-09-05T14:33:17.376Z",
+    "inherited_precleanup_bytes": 2747199488,
+    "obsolete_target_growth_credit": 671379456,
+    "current_target_bytes": 1834057728,
+    "predecessor_artifact_root_bytes": 145760256,
+    "current_artifact_root_bytes": 94552064,
+    "predecessor_worktree_bytes": 9875456,
+    "current_worktree_bytes": 8937472,
+    "source_metadata_reserve_bytes": 5242880,
+    "current_sampled_known_storage_bytes": 4174245888,
+    "storage_limit_bytes": 4336910336,
+    "remaining_storage_bytes": 162664448,
+    "stop_margin_bytes": 134217728,
+    "available_growth_before_stop_bytes": 28262400,
+    "model_ledger": {
+      "cumulative_ms": 925824,
+      "limit_ms": 1800000
+    },
+    "model_remaining_ms": 874176,
+    "model_process_limit": 1,
+    "model_process_rss_target_bytes": 4294967296,
+    "scope": "Same inherited conservative accounting. Only the previously audited obsolete target-growth credit is applied. Charge all current target bytes, both artifact roots, both measured new-worktree costs and a 5MiB source/metadata reserve. No broad clone/free-disk credits or reset of historical overages. The earlier typed-value cycle removed only its documented failed compiler outputs. The owner-authorized response-entry cycle removes no material and preserves all newly generated compiler products. Periodic du/RSS samples are not exact peak or unique-extent guarantees.",
+    "cycle_model_ms": 22298,
+    "cycle_engineering_ms": 1418620,
+    "sampled_cycle_peak_known_storage_bytes": 4194951168,
+    "release_sampled_growth_bytes": [
+      30887936,
+      27111424
+    ],
+    "further_checked_cycle": "NOT_ADMITTED_REMAINING_STORAGE",
+    "rss_scope": "Child process samples; absent samples unavailable; generated-code wrapper excludes rustc descendants; no whole-machine peak guarantee."
+  },
+  "model_commands": [
+    {
+      "label": "response-entry-fit-1",
+      "started": "2026-09-05T14:19:18.568Z",
+      "command": "/tmp/r4-native-geometric-target/release/examples/native_geometric_value_probe",
+      "args": [
+        "entry",
+        "--model",
+        "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/completion-fit-1/model.json",
+        "--source",
+        "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/completion-fit-1/source.json",
+        "--lexeme-cues",
+        "true",
+        "--generated-tokens",
+        "64",
+        "--epochs",
+        "24",
+        "--learning-rate",
+        "0.1",
+        "--entry-max-positions",
+        "4096",
+        "--max-seconds",
+        "120",
+        "--output-dir",
+        "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/entry-fit-1"
+      ],
+      "elapsed_ms": 4622,
+      "code": 0,
+      "signal": null,
+      "stopped": null,
+      "peak_process_rss_sample_bytes": 362987520,
+      "process_rss_samples": 4,
+      "peak_sampled_known_bytes": 4158509056
+    },
+    {
+      "label": "response-entry-preserve-completion",
+      "started": "2026-09-05T14:19:45.690Z",
+      "command": "/tmp/r4-native-geometric-target/release/examples/native_geometric_value_probe",
+      "args": [
+        "evaluate",
+        "--model",
+        "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/completion-fit-1/model.json",
+        "--source",
+        "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/completion-fit-1/source.json",
+        "--lexeme-cues",
+        "true",
+        "--controls",
+        "full",
+        "--generated-tokens",
+        "32",
+        "--max-seconds",
+        "120",
+        "--output-dir",
+        "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/entry-preserve-completion"
+      ],
+      "elapsed_ms": 849,
+      "code": 0,
+      "signal": null,
+      "stopped": null,
+      "peak_process_rss_sample_bytes": null,
+      "process_rss_samples": 0,
+      "peak_sampled_known_bytes": 4160626688
+    },
+    {
+      "label": "response-entry-transfer-0",
+      "started": "2026-09-05T14:20:09.142Z",
+      "command": "/tmp/r4-native-geometric-target/release/r4",
+      "args": [
+        "geometric",
+        "generate",
+        "--model",
+        "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/entry-fit-1/model.json",
+        "--prompt",
+        "User: suri has 73 coins. tavi has 301 coins.\nUser: orin lives in Oslo.\nUser: What city does orin live in?\nAssistant:",
+        "--max-tokens",
+        "64",
+        "--json"
+      ],
+      "elapsed_ms": 1491,
+      "code": 0,
+      "signal": null,
+      "stopped": null,
+      "peak_process_rss_sample_bytes": 112705536,
+      "process_rss_samples": 1,
+      "peak_sampled_known_bytes": 4160643072
+    },
+    {
+      "label": "response-entry-transfer-1",
+      "started": "2026-09-05T14:20:10.763Z",
+      "command": "/tmp/r4-native-geometric-target/release/r4",
+      "args": [
+        "geometric",
+        "generate",
+        "--model",
+        "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/entry-fit-1/model.json",
+        "--prompt",
+        "User: suri has 73 coins. tavi has 301 coins.\nUser: orin lives in Lima.\nUser: What city does orin live in?\nAssistant:",
+        "--max-tokens",
+        "64",
+        "--json"
+      ],
+      "elapsed_ms": 1073,
+      "code": 0,
+      "signal": null,
+      "stopped": null,
+      "peak_process_rss_sample_bytes": 170524672,
+      "process_rss_samples": 1,
+      "peak_sampled_known_bytes": 4160655360
+    },
+    {
+      "label": "response-entry-transfer-2",
+      "started": "2026-09-05T14:20:11.964Z",
+      "command": "/tmp/r4-native-geometric-target/release/r4",
+      "args": [
+        "geometric",
+        "generate",
+        "--model",
+        "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/entry-fit-1/model.json",
+        "--prompt",
+        "// suri has 73 coins; tavi has 301.\n// Return the input unchanged.\nfn identity(input: i32) -> i32 {\n    ",
+        "--max-tokens",
+        "64",
+        "--json"
+      ],
+      "elapsed_ms": 1150,
+      "code": 0,
+      "signal": null,
+      "stopped": null,
+      "peak_process_rss_sample_bytes": 154992640,
+      "process_rss_samples": 1,
+      "peak_sampled_known_bytes": 4160667648
+    },
+    {
+      "label": "response-entry-transfer-3",
+      "started": "2026-09-05T14:20:13.236Z",
+      "command": "/tmp/r4-native-geometric-target/release/r4",
+      "args": [
+        "geometric",
+        "generate",
+        "--model",
+        "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/entry-fit-1/model.json",
+        "--prompt",
+        "// suri has 73 coins; tavi has 301.\n// Return the input unchanged.\nfn identity(count: i32) -> i32 {\n    ",
+        "--max-tokens",
+        "64",
+        "--json"
+      ],
+      "elapsed_ms": 1077,
+      "code": 0,
+      "signal": null,
+      "stopped": null,
+      "peak_process_rss_sample_bytes": 170459136,
+      "process_rss_samples": 1,
+      "peak_sampled_known_bytes": 4160684032
+    },
+    {
+      "label": "response-entry-generated-check",
+      "started": "2026-09-05T14:20:29.080Z",
+      "command": "node",
+      "args": [
+        "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/response-entry-compile-execute.mjs",
+        "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/response-entry-generated-source-manifest.json",
+        "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/entry-generated-check"
+      ],
+      "elapsed_ms": 4453,
+      "code": 0,
+      "signal": null,
+      "stopped": null,
+      "peak_process_rss_sample_bytes": 57180160,
+      "process_rss_samples": 4,
+      "peak_sampled_known_bytes": 4167753728
+    },
+    {
+      "label": "response-entry-transfer-compile",
+      "started": "2026-09-05T14:20:56.841Z",
+      "command": "node",
+      "args": [
+        "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/response-entry-compile-execute.mjs",
+        "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/response-entry-transfer-source-manifest.json",
+        "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/entry-transfer-check"
+      ],
+      "elapsed_ms": 520,
+      "code": 0,
+      "signal": null,
+      "stopped": null,
+      "peak_process_rss_sample_bytes": null,
+      "process_rss_samples": 0,
+      "peak_sampled_known_bytes": 4167778304
+    },
+    {
+      "label": "response-entry-cache-replay",
+      "started": "2026-09-05T14:32:13.953Z",
+      "command": "/tmp/r4-native-geometric-target/release/examples/native_geometric_value_probe",
+      "args": [
+        "evaluate",
+        "--model",
+        "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/entry-fit-1/model.json",
+        "--source",
+        "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/entry-fit-1/source.json",
+        "--lexeme-cues",
+        "true",
+        "--controls",
+        "all",
+        "--generated-tokens",
+        "64",
+        "--max-seconds",
+        "120",
+        "--output-dir",
+        "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/entry-cache-replay"
+      ],
+      "elapsed_ms": 1482,
+      "code": 0,
+      "signal": null,
+      "stopped": null,
+      "run_growth_limit_bytes": 5767168,
+      "peak_process_rss_sample_bytes": 141459456,
+      "process_rss_samples": 1,
+      "peak_sampled_known_bytes": 4172111872
+    },
+    {
+      "label": "response-entry-cache-preserve-completion",
+      "started": "2026-09-05T14:32:41.740Z",
+      "command": "/tmp/r4-native-geometric-target/release/examples/native_geometric_value_probe",
+      "args": [
+        "evaluate",
+        "--model",
+        "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/completion-fit-1/model.json",
+        "--source",
+        "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/completion-fit-1/source.json",
+        "--lexeme-cues",
+        "true",
+        "--controls",
+        "full",
+        "--generated-tokens",
+        "32",
+        "--max-seconds",
+        "120",
+        "--output-dir",
+        "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/entry-cache-preserve-completion"
+      ],
+      "elapsed_ms": 826,
+      "code": 0,
+      "signal": null,
+      "stopped": null,
+      "run_growth_limit_bytes": 2621440,
+      "peak_process_rss_sample_bytes": null,
+      "process_rss_samples": 0,
+      "peak_sampled_known_bytes": 4174131200
+    },
+    {
+      "label": "response-entry-cache-transfer-0",
+      "started": "2026-09-05T14:32:52.124Z",
+      "command": "/tmp/r4-native-geometric-target/release/r4",
+      "args": [
+        "geometric",
+        "generate",
+        "--model",
+        "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/entry-fit-1/model.json",
+        "--prompt",
+        "User: suri has 73 coins. tavi has 301 coins.\nUser: orin lives in Oslo.\nUser: What city does orin live in?\nAssistant:",
+        "--max-tokens",
+        "64",
+        "--json"
+      ],
+      "elapsed_ms": 1475,
+      "code": 0,
+      "signal": null,
+      "stopped": null,
+      "run_growth_limit_bytes": 2621440,
+      "peak_process_rss_sample_bytes": 114622464,
+      "process_rss_samples": 1,
+      "peak_sampled_known_bytes": 4174209024
+    },
+    {
+      "label": "response-entry-cache-transfer-1",
+      "started": "2026-09-05T14:32:53.725Z",
+      "command": "/tmp/r4-native-geometric-target/release/r4",
+      "args": [
+        "geometric",
+        "generate",
+        "--model",
+        "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/entry-fit-1/model.json",
+        "--prompt",
+        "User: suri has 73 coins. tavi has 301 coins.\nUser: orin lives in Lima.\nUser: What city does orin live in?\nAssistant:",
+        "--max-tokens",
+        "64",
+        "--json"
+      ],
+      "elapsed_ms": 1092,
+      "code": 0,
+      "signal": null,
+      "stopped": null,
+      "run_growth_limit_bytes": 2621440,
+      "peak_process_rss_sample_bytes": 169590784,
+      "process_rss_samples": 1,
+      "peak_sampled_known_bytes": 4174217216
+    },
+    {
+      "label": "response-entry-cache-transfer-2",
+      "started": "2026-09-05T14:32:54.944Z",
+      "command": "/tmp/r4-native-geometric-target/release/r4",
+      "args": [
+        "geometric",
+        "generate",
+        "--model",
+        "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/entry-fit-1/model.json",
+        "--prompt",
+        "// suri has 73 coins; tavi has 301.\n// Return the input unchanged.\nfn identity(input: i32) -> i32 {\n    ",
+        "--max-tokens",
+        "64",
+        "--json"
+      ],
+      "elapsed_ms": 1096,
+      "code": 0,
+      "signal": null,
+      "stopped": null,
+      "run_growth_limit_bytes": 2621440,
+      "peak_process_rss_sample_bytes": 168673280,
+      "process_rss_samples": 1,
+      "peak_sampled_known_bytes": 4174225408
+    },
+    {
+      "label": "response-entry-cache-transfer-3",
+      "started": "2026-09-05T14:32:56.170Z",
+      "command": "/tmp/r4-native-geometric-target/release/r4",
+      "args": [
+        "geometric",
+        "generate",
+        "--model",
+        "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/entry-fit-1/model.json",
+        "--prompt",
+        "// suri has 73 coins; tavi has 301.\n// Return the input unchanged.\nfn identity(count: i32) -> i32 {\n    ",
+        "--max-tokens",
+        "64",
+        "--json"
+      ],
+      "elapsed_ms": 1092,
+      "code": 0,
+      "signal": null,
+      "stopped": null,
+      "run_growth_limit_bytes": 2621440,
+      "peak_process_rss_sample_bytes": 171868160,
+      "process_rss_samples": 1,
+      "peak_sampled_known_bytes": 4174237696
+    }
+  ],
+  "preservation_policy": {
+    "worktrees": 33,
+    "new_worktrees": 0,
+    "deleted_material": false,
+    "main_material": "Two preexisting NPZ deletions, modified prompt_conditioning_v4.py, untracked .serena and recorded-corpus material retained.",
+    "python_working_blob": "e09e0c8eb6a4c97a4404d428825c87bc2dd45ce4"
+  },
+  "next_mechanism": "Bounded retained occurrence/span admission and learned query/source selection at response entry, followed by actual-content continuation. Requires new storage admission before another checked implementation cycle.",
+  "receipts": [
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/entry-fit-1/model.json",
+      "bytes": 10107953,
+      "sha256": "9b38704b596c8fc6c30dbb01b155beaf2c7285e61cb81e6e2987ef3cb3663bc6"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/entry-fit-1/source.json",
+      "bytes": 90946,
+      "sha256": "10b69bfbbd89161032d80905306247b8a2e72ee098ab8f487932827f45d90352"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/entry-fit-1/binding-controls-source.json",
+      "bytes": 4684,
+      "sha256": "1a858a3cde98c19ecab16be42a4315e8f15f9d85b24e36ebf5da8c9a527cef22"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/entry-fit-1/fit-report.json",
+      "bytes": 1458,
+      "sha256": "32ce3eb1535f759912fd8bf45abe8664307d229e7fd8a1c063da0fd74840bc85"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/entry-fit-1/report.json",
+      "bytes": 3712552,
+      "sha256": "3113de1e713b3a1c206089b9f271cce400acf2dc4b80acccaf86bacdc17596b0"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/entry-cache-replay/report.json",
+      "bytes": 3710988,
+      "sha256": "16cec47f476415e280ed64c4aaeac944ff98d153e07cc5f884769853afef3ee6"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/entry-cache-preserve-completion/report.json",
+      "bytes": 1436964,
+      "sha256": "eb90ab67cd13f0a5d6010f7942a853cf1aa7e7f01434a1e26aa3463242913a2a"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/completion-fit-1/report.json",
+      "bytes": 3991857,
+      "sha256": "9b3871ff2c3ab0a315de7a3c65c128f3fb15d145e64e99c7df78cb35e783cce1"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/response-entry-cache-equivalence.json",
+      "bytes": 46910,
+      "sha256": "4d864b3fecf1ba10c5415673b24bb19b03239f79fc95e8c7287950a396226001"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/response-entry-fit-analysis.json",
+      "bytes": 143777,
+      "sha256": "50a377a4bceb9cf7ce8ca55309df383acca5ce532b0e6999bea8d8923779cae7"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/response-entry-independent-audit.json",
+      "bytes": 15632,
+      "sha256": "810788fdaf971fa9c505d26ba27617785cf004d7c027e538b8b79b8208309607"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/response-entry-final-audit.json",
+      "bytes": 17961,
+      "sha256": "7c225c0b9e5c91598384d3b29c317830cb98a164e308f010bda977c71803669f"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/response-entry-implementation-source.json",
+      "bytes": 8155,
+      "sha256": "bf10252db4c05b28842688c1ee7e96a4609ef36033601af7d0cfa3abcac8d0da"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/response-entry-final-source.json",
+      "bytes": 7610,
+      "sha256": "9a3e07a6848db0b73785ed492217e9920f839699db720beac71a0b380c56e7ed"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/response-entry-before-cache-binaries.json",
+      "bytes": 772,
+      "sha256": "864ad1b38491bedd3c345e5e7cdd7fc474e0fa3efaada42da14132bb332eb694"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/response-entry-final-binaries.json",
+      "bytes": 813,
+      "sha256": "198574037954a6a02ff20052dbf3f5b675be2921ceedbea60d84189af615a13d"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/response-entry-storage-authorization.json",
+      "bytes": 779,
+      "sha256": "7d253ce3f8884ce89cc4a39f1b98cb8c6dd533a7077ae0fa795eaa9647389f15"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/response-entry-admission.json",
+      "bytes": 795,
+      "sha256": "68943e9768be142f949ae7c68d9a3549da2739accff9a9f309c4016c7b691a85"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/response-entry-nowrite-cache-admission.json",
+      "bytes": 2571,
+      "sha256": "2edd5e67870d19f2f19e8968e1dd4c3034d09a02cebbe1ae968b63db6c10942c"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/response-entry-pre-delivery-storage.json",
+      "bytes": 1424,
+      "sha256": "e5a50218919d594fd4768942d52fdb4a33d9bd5e24a7018edc5569b10f7d9cc0"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/response-entry-generated-source-manifest.json",
+      "bytes": 6862,
+      "sha256": "0c4ecd3f12ef46dae003e114047cd40f52e76bceda2bd40b4782c07e7efbc296"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/entry-generated-check/report.json",
+      "bytes": 28903,
+      "sha256": "8e3f3a7effd40ea7c748f58acaba4874480fd677b6a2df05349f4af46d98a6e8"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/response-entry-transfer-source.json",
+      "bytes": 3835,
+      "sha256": "b9933b09270006ce6b8a393bfc4f7a2741b890330e48dd411bbc61b43e4a1a21"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/response-entry-transfer-report.json",
+      "bytes": 3858,
+      "sha256": "fb49736ec5f2dd88eb30eecca6108271862fd1a44ae9ab3077929acc97ebc4fd"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/response-entry-cache-transfer-report.json",
+      "bytes": 3894,
+      "sha256": "e36aeef8b87451f4b7ad24c555c447eb04dd12b500b37f59e36795e3a6134048"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/entry-transfer-check/report.json",
+      "bytes": 2596,
+      "sha256": "59ac71f73d0f42109678d353838c2ea3ed65b0598bec1c4a6b5bb3e295381243"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/commands.jsonl",
+      "bytes": 87806,
+      "sha256": "b13bdb6615f9223fe23b1e0f754195bf47802ae068b9d1d9a4d92d7bf5d2d6c6"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/engineering-commands.jsonl",
+      "bytes": 113684,
+      "sha256": "47d63ccaf27c90daf55a4e31a51f78e44564af95d25a1c405f00106ab90dae0d"
+    }
+  ],
+  "final_source": [
+    {
+      "path": "crates/uor-r4-core/examples/native_geometric_value_probe.rs",
+      "sha256": "716909b1ecde51ee8426847deaa00310d14e2e76fd559bc9c721bc22f155b117",
+      "bytes": 50024
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/anchors.rs",
+      "sha256": "eb653f80cb3160ad083cc16d10952218454bbaefeb9bdd02b38e92c34a32ba8a",
+      "bytes": 11853
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/completion_runtime.rs",
+      "sha256": "2616a289e2580eb20de8500927ac083ac6d96d21d240f32fac2016ae8d9a41d7",
+      "bytes": 11652
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/completion_runtime_tests.rs",
+      "sha256": "00a6678f7c4f9db1cdd78598e4e63e2219ef3ccb86dcd07b716b07b2df4f3a68",
+      "bytes": 11404
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/completion_snapshot.rs",
+      "sha256": "0701775ec18cc2c2efe4d9c916cba51cbc49100f6bf07f4921812278d0729edf",
+      "bytes": 10558
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/completion_snapshot_tests.rs",
+      "sha256": "b11acf8d489c9c9fa15f428f1b3fd0d56b91180e624142e6ba6d77459695090c",
+      "bytes": 11711
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/completion_training.rs",
+      "sha256": "11400a35e9b68b5ba0d7f0f9b459d1a5659ced71d70b0e39d41e049c449997d0",
+      "bytes": 24935
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/completion_types.rs",
+      "sha256": "f27c88bf1d8f359ff1e40a56fd241144f7b032a55e379fc5f2e1bb06694446ca",
+      "bytes": 3886
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/memory_runtime.rs",
+      "sha256": "ba649539cf17774041cec34b4fa5b77a495293004766d36cb9ffccf1956ceb68",
+      "bytes": 21575
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/memory_runtime_tests.rs",
+      "sha256": "ccb1293f2e66ef78e7d0f047b4f512d132d0e4edbb307b9907b8b7421268e6a8",
+      "bytes": 11826
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/memory_training.rs",
+      "sha256": "304d76de48a42c3d8ee0b4c626210cd95131a600c01f82c1c4ed34609484eb7d",
+      "bytes": 52527
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/memory_types.rs",
+      "sha256": "64b235ebb196b95a7e7125f8083893a0ea7b86b78dc3a97ebc831b6fd433a998",
+      "bytes": 13972
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/mixture.rs",
+      "sha256": "cf89e5a634ea48fc027f4e08fadea2af42e2be396d6501f4f34ac4fba704a581",
+      "bytes": 16955
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/mod.rs",
+      "sha256": "674ede798beecac55b5c01b22c5bbe98b4710e3d4a89e5712ced440a344d3114",
+      "bytes": 14917
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/numeral.rs",
+      "sha256": "2c0012a595d87e653051b067d586d98e93fe1394f9651d75725144cf0ef330fb",
+      "bytes": 13768
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/response_entry_runtime.rs",
+      "sha256": "68a7f14187567a4ad59f5b2e69fde686ea34e064ce46fb0c5a20a74d460e6539",
+      "bytes": 10186
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/response_entry_runtime_tests.rs",
+      "sha256": "e46322d6e6547b972aae1dabedfc6d1f99925d26eb4c9a7de34c421a5d979885",
+      "bytes": 18128
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/response_entry_snapshot.rs",
+      "sha256": "626f24a5b41c49fd542b3aec0c0b9f09ecf6f44d92b3094956fc073c576d6d3a",
+      "bytes": 9255
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/response_entry_training.rs",
+      "sha256": "2714e3229438bd77545350587eefca60839d003c0ba67313f1e194454ad061fd",
+      "bytes": 19158
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/response_entry_training_tests.rs",
+      "sha256": "ab388e1e8ce45b34989cfd9f0182ef3e3a5faf0c7cbdee07d68cd9946e5ccc2a",
+      "bytes": 8638
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/response_entry_types.rs",
+      "sha256": "56755d2c860505273ed1083cf22ecf20834f932f0a4b2c8a1c4e58df4f053e6e",
+      "bytes": 2664
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/response_runtime.rs",
+      "sha256": "79548be47acc125a6025ae946bb07a5a12ef06ac805766a0233711f8360dabd9",
+      "bytes": 11653
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/response_runtime_tests.rs",
+      "sha256": "b9b26a58ac3026e6307ecfa49de92027b23fc48d380f53f76c1f79ddcda3bea6",
+      "bytes": 9321
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/response_snapshot_tests.rs",
+      "sha256": "b0035296cb47ed804afa2be292b8fed3d540268c8062b8a38673e37a6a36631d",
+      "bytes": 11838
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/runtime.rs",
+      "sha256": "ec3d0cea6bb40ea13f27c11d863452756cd8b7e792c8c69592630c277023b1ce",
+      "bytes": 25530
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/snapshot.rs",
+      "sha256": "ffec2068a7041582aa4f77dd1d358d4abab0e9cc7d5a98673934375bd7a18b98",
+      "bytes": 27315
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/tests.rs",
+      "sha256": "11da699221ff0982b5ea0302b4ede6b890d0e73546333fc05602f6f903c91c49",
+      "bytes": 24139
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/training.rs",
+      "sha256": "8d7a2b3519eb966deadcfbb47a5b1db9e88aab5461ca85b896e638ae1650eb2a",
+      "bytes": 36444
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/value_lexemes.rs",
+      "sha256": "dc79fa8e1c4f0fadb14af0d8153155b4e874a3178f8d33042b3515460467f5e9",
+      "bytes": 12896
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/value_runtime.rs",
+      "sha256": "0fab61b637c828bce9e11313e53419c404c427c4b7373c04c50ff822a6b122f1",
+      "bytes": 17854
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/value_runtime_tests.rs",
+      "sha256": "5334bd20f90595932ac38fb18d8aad1d08c75c03af1ac14ae838c795b64c9ce9",
+      "bytes": 13144
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/value_snapshot.rs",
+      "sha256": "1d1c0e6a849cd82f8c79943915de7c28fcabefb8c6ba43f81efd9cc1e2a4ca7d",
+      "bytes": 26189
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/value_snapshot_tests.rs",
+      "sha256": "49a0cdd1ea033e32209594e4eaf2973c8e7c4a094ead42444b34a6dd7753babe",
+      "bytes": 19506
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/value_training.rs",
+      "sha256": "0b056cc7bc210e1201f84f09eae925752954db291aa0d4a095f64a595589602d",
+      "bytes": 16601
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/value_types.rs",
+      "sha256": "27854d550c5d3a5ab9c66af51ac664da76d93cd69ba18f8ed5b0728fc0b2919b",
+      "bytes": 5749
+    },
+    {
+      "path": "crates/uor-r4-core/tests/native_geometric_allocations.rs",
+      "sha256": "e50a90b174fb77ef1d907240422ba2cb28ee2fc1e1efafa4deb7c94afe3de19e",
+      "bytes": 33647
+    },
+    {
+      "path": "src/native_geometric_cli.rs",
+      "sha256": "3650a33b69cf3db54d681b476cd315d004e28ef5f00e2fa855371cfe45269a88",
+      "bytes": 63040
+    },
+    {
+      "path": "src/native_geometric_service.rs",
+      "sha256": "027138a106d9510004d8c35afb4fa6b524b3fa817cd92ba5fe0f316af320a691",
+      "bytes": 73692
+    }
+  ]
+}

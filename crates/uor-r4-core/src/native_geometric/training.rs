@@ -189,6 +189,7 @@ impl Trainer {
             readout_training: Vec::new(),
             values: None,
             completion: None,
+            response_entry: None,
             memory_read: None,
         };
         template.refresh_identity()?;
@@ -511,6 +512,9 @@ impl Model {
         if let Some(completion) = &self.completion {
             completion.validate(self)?;
         }
+        if let Some(entry) = &self.response_entry {
+            entry.validate(self)?;
+        }
         self.readout.validate(self)?;
         if let Some(memory) = &self.memory_read {
             memory.validate(self)?;
@@ -647,9 +651,15 @@ impl Model {
         let mut response_trace = Vec::new();
         let mut value_trace = Vec::new();
         let mut completion_trace = Vec::new();
+        let mut response_entry_trace = Vec::new();
         let mut stop = "token_budget".to_owned();
         for _ in 0..max_new_tokens {
             let token = session.predict(self)?.token;
+            if let Some(decision) = session.response_entry_decision() {
+                if response_entry_trace.len() < 96 {
+                    response_entry_trace.push(decision);
+                }
+            }
             if let Some(decision) = session.completion_decision() {
                 if completion_trace.len() < 96 {
                     completion_trace.push(decision);
@@ -685,6 +695,7 @@ impl Model {
             response_trace,
             value_trace,
             completion_trace,
+            response_entry_trace,
             stop,
             work: session.work,
             state: session.state(),
@@ -709,6 +720,7 @@ impl Model {
                     .chain(self.memory_read_training())
                     .chain(self.value_training())
                     .chain(self.value_completion_training())
+                    .chain(self.response_entry_training())
                     .any(|known| known.id == candidate.id || known.text_cid == candidate.text_cid)
             {
                 return Err(Error(format!(
@@ -754,6 +766,26 @@ impl Model {
 }
 
 fn add_work(total: &mut Work, work: Work) {
+    total.values.input_bytes += work.values.input_bytes;
+    total.values.literal_writes += work.values.literal_writes;
+    total.values.record_evictions += work.values.record_evictions;
+    total.values.proposals += work.values.proposals;
+    total.values.additions += work.values.additions;
+    total.values.overflow_rejections += work.values.overflow_rejections;
+    total.values.feature_lookups += work.values.feature_lookups;
+    total.values.feature_comparisons += work.values.feature_comparisons;
+    total.values.cue_comparisons += work.values.cue_comparisons;
+    total.values.lexical_comparisons += work.values.lexical_comparisons;
+    total.values.lexical_byte_comparisons += work.values.lexical_byte_comparisons;
+    total.values.lexical_writes += work.values.lexical_writes;
+    total.values.h4_reads += work.values.h4_reads;
+    total.values.phase_updates += work.values.phase_updates;
+    total.values.numeral_steps += work.values.numeral_steps;
+    total.values.derived_writes += work.values.derived_writes;
+    total.values.emission_commits += work.values.emission_commits;
+    total.values.emission_mismatches += work.values.emission_mismatches;
+    add_completion_work(&mut total.completion, work.completion);
+    add_completion_work(&mut total.response_entry, work.response_entry);
     total.response_query_captures += work.response_query_captures;
     total.response_commits += work.response_commits;
     total.response_requeries += work.response_requeries;
@@ -788,4 +820,86 @@ fn add_work(total: &mut Work, work: Work) {
     total.candidate_offers += work.candidate_offers;
     total.candidate_evaluations += work.candidate_evaluations;
     total.score_lookups += work.score_lookups;
+}
+
+fn add_completion_work(total: &mut CompletionWork, work: CompletionWork) {
+    total.observations += work.observations;
+    total.anchors += work.anchors;
+    total.metadata_reads += work.metadata_reads;
+    total.state_copies += work.state_copies;
+    total.feature_queries += work.feature_queries;
+    total.row_comparisons += work.row_comparisons;
+    total.matched_rows += work.matched_rows;
+    total.posting_offers += work.posting_offers;
+    total.candidate_comparisons += work.candidate_comparisons;
+    total.candidate_writes += work.candidate_writes;
+    total.candidate_drops += work.candidate_drops;
+    total.candidate_evaluations += work.candidate_evaluations;
+    total.score_lookups += work.score_lookups;
+    total.score_comparisons += work.score_comparisons;
+    total.h4_reads += work.h4_reads;
+    total.orientation_reads += work.orientation_reads;
+    total.phase_subtractions += work.phase_subtractions;
+    total.commits += work.commits;
+    total.base_steps += work.base_steps;
+    total.mismatches += work.mismatches;
+    total.stops += work.stops;
+    total.step_limits += work.step_limits;
+}
+
+#[cfg(test)]
+mod work_tests {
+    use super::*;
+    use serde_json::Value;
+
+    #[test]
+    fn native_evaluation_adds_every_nested_work_counter() {
+        // Seed the individually omitted fields as well as the optional groups
+        // so the independent JSON oracle covers every current counter.
+        let seed = Work {
+            values: ValueWork {
+                lexical_comparisons: 1,
+                lexical_byte_comparisons: 1,
+                lexical_writes: 1,
+                ..ValueWork::default()
+            },
+            completion: CompletionWork {
+                observations: 1,
+                ..CompletionWork::default()
+            },
+            response_entry: CompletionWork {
+                observations: 1,
+                ..CompletionWork::default()
+            },
+            ..Work::default()
+        };
+        fn fill(value: &mut Value, next: &mut u64) {
+            if let Some(fields) = value.as_object_mut() {
+                for field in fields.values_mut() {
+                    fill(field, next);
+                }
+            } else {
+                assert!(value.is_u64());
+                *value = Value::from(*next);
+                *next += 1;
+            }
+        }
+        fn double(value: &mut Value) {
+            if let Some(fields) = value.as_object_mut() {
+                for field in fields.values_mut() {
+                    double(field);
+                }
+            } else {
+                *value = Value::from(value.as_u64().unwrap() * 2);
+            }
+        }
+        let mut expected = serde_json::to_value(seed).unwrap();
+        fill(&mut expected, &mut 1);
+        let work: Work = serde_json::from_value(expected.clone()).unwrap();
+        let mut total = Work::default();
+        add_work(&mut total, work);
+        add_work(&mut total, work);
+        double(&mut expected);
+        assert_eq!(serde_json::to_value(total).unwrap(), expected);
+    }
 }

@@ -7,8 +7,8 @@ use std::cell::Cell;
 
 use uor_r4_core::native_geometric::{
     Config, Control, Document, MemoryReadFitConfig, MemoryReadSchedule, MemoryReadSupervision,
-    MemoryReadTokenSpan, MemoryReadTrainer, ReadoutFitConfig, Trainer, ValueCompletionFitConfig,
-    ValueExample, ValueFitConfig, BOS, EOS,
+    MemoryReadTokenSpan, MemoryReadTrainer, ReadoutFitConfig, ResponseEntryFitConfig, Trainer,
+    ValueCompletionFitConfig, ValueExample, ValueFitConfig, BOS, EOS,
 };
 
 struct CountingAllocator;
@@ -98,6 +98,7 @@ fn native_kernel_source_has_no_forbidden_arithmetic_or_float_types() {
         "fn response_decision(",
         "fn value_decision(",
         "fn completion_decision(",
+        "fn response_entry_decision(",
         "fn recent(",
         "fn features(",
         "fn score_candidate(",
@@ -194,6 +195,22 @@ fn native_kernel_source_has_no_forbidden_arithmetic_or_float_types() {
         );
     }
     let completion_types = include_str!("../src/native_geometric/completion_types.rs");
+    let response_entry = include_str!("../src/native_geometric/response_entry_runtime.rs");
+    for function in [
+        "fn eligible(",
+        "fn reset(",
+        "fn begin(",
+        "fn observe(",
+        "fn features(",
+        "fn offer(",
+        "fn selected(",
+    ] {
+        assert_eq!(
+            response_entry.matches(function).count(),
+            1,
+            "response-entry kernel coverage includes {function}"
+        );
+    }
     let seed = completion_types
         .split_once("impl From<&ValueDecision> for CompletionSeed {")
         .unwrap()
@@ -236,6 +253,7 @@ fn native_kernel_source_has_no_forbidden_arithmetic_or_float_types() {
         ("native response runtime", response),
         ("native typed-value runtime", value_runtime),
         ("native completion runtime", completion),
+        ("native response-entry runtime", response_entry),
         ("native completion seed", seed),
         ("native numeral codec", numeral),
         ("native whole-word codec", lexemes),
@@ -424,6 +442,102 @@ fn native_value_completion_commit_mismatch_and_limit_are_allocation_free() {
     assert!(session.work.completion.commits > 0);
     assert!(session.work.completion.mismatches > 0);
     assert_eq!(session.work.completion.step_limits, 4);
+    assert!(session.work.evictions > 0);
+}
+
+#[test]
+fn native_response_entry_commit_mismatch_and_limit_are_allocation_free() {
+    let catalog = [Document {
+        id: "entry-allocation-catalog".into(),
+        text: "left = 13; right = 4; total: 17.\nreply: Unknown.\n Unknown.\n".into(),
+    }];
+    let mut trainer = Trainer::new(
+        Config {
+            context_tokens: 32,
+            candidate_limit: 8,
+            ..Config::default()
+        },
+        &catalog,
+    )
+    .unwrap();
+    trainer.train_documents(&catalog).unwrap();
+    let examples = (0..4)
+        .flat_map(|index| {
+            [
+                ValueExample {
+                    id: format!("entry-allocation-numeric-{index}"),
+                    prompt: format!("left = {}; right = 4; total:", 13 + index),
+                    response: format!("{}.\n", 17 + index),
+                },
+                ValueExample {
+                    id: format!("entry-allocation-no-write-{index}"),
+                    prompt: format!("left = {}; right = 4; reply:", 13 + index),
+                    response: " Unknown.\n".into(),
+                },
+            ]
+        })
+        .collect::<Vec<_>>();
+    let (typed, _) = trainer
+        .compile()
+        .unwrap()
+        .fit_values_with_lexeme_cues(
+            &examples,
+            ValueFitConfig {
+                epochs: 64,
+                learning_rate: 0.25,
+                max_features: 4096,
+            },
+        )
+        .unwrap();
+    let (completion, _) = typed
+        .fit_value_completion(&examples, ValueCompletionFitConfig::default())
+        .unwrap();
+    let (model, _) = completion
+        .fit_response_entry(&examples, ResponseEntryFitConfig::default())
+        .unwrap();
+    let prompt = model.encode(&examples[1].prompt).unwrap();
+    let mut session = model.session(Control::Full).unwrap();
+    let storage = session.state().response_entry.unwrap().storage_bytes;
+    ALLOCATIONS.with(|count| count.set(0));
+    BYTES.with(|count| count.set(0));
+    MEASURING.with(|enabled| enabled.set(true));
+    let result = (|| {
+        session.observe(&model, BOS)?;
+        let mut selected_entry = true;
+        for _ in 0..4 {
+            session.end_response(&model)?;
+            for &token in &prompt {
+                session.observe(&model, token)?;
+            }
+            session.begin_response(&model)?;
+            let first = session.predict(&model)?.token;
+            selected_entry &= session.response_entry_decision().is_some();
+            // A repeated prediction must preserve the pending first choice.
+            selected_entry &= session.predict(&model)?.token == first;
+            session.observe(&model, first)?;
+            // A mismatching observed byte follows actual history. Repeated
+            // observations then exercise the bounded entry-progress limit.
+            for _ in 0..40 {
+                session.predict(&model)?;
+                session.observe(&model, u32::from(b'x') + 2)?;
+            }
+        }
+        Ok::<_, uor_r4_core::native_geometric::Error>(selected_entry)
+    })();
+    MEASURING.with(|enabled| enabled.set(false));
+    assert!(
+        result.unwrap(),
+        "fixture must select its learned lexical entry"
+    );
+    assert_eq!((ALLOCATIONS.with(Cell::get), BYTES.with(Cell::get)), (0, 0));
+    assert_eq!(
+        session.state().response_entry.unwrap().storage_bytes,
+        storage
+    );
+    assert!(session.work.response_entry.commits > 0);
+    assert!(session.work.response_entry.mismatches > 0);
+    assert_eq!(session.work.response_entry.step_limits, 4);
+    assert_eq!(session.work.values.derived_writes, 0);
     assert!(session.work.evictions > 0);
 }
 

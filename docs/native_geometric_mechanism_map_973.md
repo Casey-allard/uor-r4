@@ -195,6 +195,157 @@ additional work; counters name operations, not every machine instruction.
 There are no runtime floats, matrix products or steady-state allocations in
 this component. Fitting, serialization and initialization are separate host work.
 
+## Learned response entry — 2026-09-05
+
+The optional `uor-r4.native-response-entry/1` component in
+[`response_entry_types.rs`](../crates/uor-r4-core/src/native_geometric/response_entry_types.rs),
+[`response_entry_runtime.rs`](../crates/uor-r4-core/src/native_geometric/response_entry_runtime.rs)
+and [`response_entry_training.rs`](../crates/uor-r4-core/src/native_geometric/response_entry_training.rs)
+addresses a different entry condition from the committed-numeral head. The
+preceding numeric artifact has eight incorrect NoWrite development responses,
+where no derived write exists and numeric completion cannot anchor. This
+implementation's [record](native_geometric_response_entry_973.md) reports all
+eight repaired responses, preserved numeric behavior and four content-transfer
+failures. Exact development response forms do not establish grounded abstention
+or arbitrary identifier binding.
+
+At an explicit response boundary, the state captures the absolute observation
+count, cumulative typed H4 pose, eight fixed-zeta phases and final query-cue
+prime. It retains the last two actual token IDs, actual observation count,
+progress count, active flag and latest action. This origin is a response
+boundary, not a numeric derivation or an invented value record. Eligibility
+requires active typed state, at least one captured numeric source and a
+nonempty query. The typed operator runs first; a positive typed proposal or
+committed numeral emission prevents response entry from offering a token.
+Consequently the new component does not yet serve arbitrary prompts without
+retained numeric sources, or decide when to insert a numeral after prose.
+
+The first selected non-EOS entry token commits `Enter` only when that exact
+prediction is observed at the captured boundary. Repeated prediction cannot
+activate or advance the response. An initial Base or mismatching observation
+closes entry until the next explicit response boundary. After entry, actual
+observations advance the retained history and progress, including mismatches;
+these do not create target-selected provenance. Later learned actions are
+`Emit` and `Stop`, with zero-score Base retained. EOS closes the state.
+Thirty-two actual response observations deactivate the component without
+forcing EOS. Empty continuation preserves an active response; new input
+establishes a new boundary through the existing session callers.
+
+Sixteen feature addresses contain bias, last-token prime, ordered last-two
+primes, captured query-end prime, query/last-prime pair and progress, plus
+`inverse(boundary.pose) * current_typed_pose`, separate signed orientation
+and eight upper-four-bit wrapped phase differences. Entry kinds 0–15 and
+continuation kinds 16–31 occupy disjoint rows. The exact token identities and
+bounded endpoint state survive; arbitrary source text, syntax/dependency
+structure, a full response transcript and individual earlier phase terms do
+not. Finite H4 state and quantized phase features compress history without
+establishing semantic abstraction. Prime and content identities remain
+addresses/integrity, never numeric semantic distances. Existing exact
+`Z[phi]`, radial and paired-H4/icosian state retains its previous roles.
+
+The new head learns **canonical lexical-token/EOS** associations. It can
+therefore preserve learned lexical pieces as single decisions, with ordinary
+byte fallback for other text. The earlier committed-value head learns
+**byte/EOS** associations after a causally emitted numeral, whose exact digits
+are fixed byte tokens. These laws share the model codec and ordinary decoding
+but have distinct boundaries and artifacts. In particular, the 49-byte NoWrite
+prose target exceeds the existing 32-byte completion horizon; response entry
+uses its canonical token length explicitly. Fitting skips a whole example
+when its token sequence plus EOS exceeds 32 or would exceed the remaining
+position budget. It neither truncates the target nor appends a template.
+
+Training reuses the sparse optimizer extracted from
+[`completion_training.rs`](../crates/uor-r4-core/src/native_geometric/completion_training.rs).
+First it collects actual eligible boundary frames and learns entry scores,
+with Base excluded as a correct state-creating action even when Base already
+predicts the target token. It exports quantized first-step rows, executes those
+rows through ordinary selection/observation, and collects continuation frames
+only after a matching selected Enter actually commits. Subsequent authored
+tokens supply declared teacher forcing through actual observation. Continuation
+rows learn separately while the entry rows remain fixed. The final merged
+global postings are followed by actual first-entry and complete free-running
+checks. Reports distinguish numeric upstream verification, NoWrite examples,
+whole-example skips, candidate coverage, entry failures, phase-specific fitting
+and final responses. The five configuration words bind epoch budget, exact
+learning-rate bits, position cap and both selected epochs. The component's
+baseline identity binds the unchanged numeric completion model and all its
+preceding typed/memory/readout state.
+
+Both heads share bounded candidate gathering and integer score reduction in
+[`completion_runtime.rs`](../crates/uor-r4-core/src/native_geometric/completion_runtime.rs).
+Per eligible prediction, response entry performs at most sixteen row queries,
+80 posting offers, 1,280 duplicate-token comparisons, sixteen retained candidate
+writes/evaluations and 256 score lookups. At 4,096 rows, row lookup uses at most
+13 comparisons; the 32,768-association artifact cap bounds each token lookup
+by sixteen comparisons, hence at most 4,096 score-token comparisons. Features
+add two H4 reads, one orientation read, eight wrapped phase subtractions and
+three token/row-base metadata reads. These are conservative source bounds,
+not latency measurements. The fixed feature/token/row-index arrays occupy
+448 logical bytes on a 64-bit host; StateView separately reports the actual
+persistent state layout. Boundary capture copies three scalar fields and eight
+phases; every observation updates the three history scalars. Pending decisions,
+control branches, resets, shortlist insertion and all model tables remain
+additional cost beyond those array sizes and named counters.
+
+The work record uses the shared `CompletionWork` shape. Its entry `anchors`
+counter measures eligible boundary captures, which can precede numeric
+preemption; actual learned entry is identified by the committed `Enter`
+action. All ordinary decoder, `/4` occurrence routing, typed ingestion,
+operand/action scoring, checked additions and numeric-completion work still
+execute at their existing scopes. The final runtime reuses captured NoWrite
+after Enter commits while the response stays active. Sources, query tokens/words
+and model/control remain fixed; current pose/history and ordinary score cannot
+turn that absent proposal positive. EOS, cap and new boundaries restore the
+search; restoration rechecks its origin. The record measures this same-artifact
+avoidance of repeated failed operand searches separately. It is not a sparse
+first-pass arithmetic router, whole-model latency advantage or transformer
+comparison. Loading, canonical tokenization, rendering, training and snapshot
+validation are allocating host work and belong in complete cost accounting.
+
+[`response_entry_snapshot.rs`](../crates/uor-r4-core/src/native_geometric/response_entry_snapshot.rs)
+validates the response-boundary origin, retained actual history, progress and
+geometry in session schema `/5`. It rechecks the original typed NoWrite and
+learned first-entry selection using captured state, and rejects a fabricated
+entry or transient pending prediction in persisted data. The active span fits
+the existing 32-entry typed metadata ring before the cap clears its origin.
+Older source truth after eviction remains unauthenticated. Absence of this
+component preserves the prior model and session serialization laws.
+
+## Historical multiscale source inspection for response entry
+
+The historical pieces below remain unchanged evidence. Source inspection found
+reusable update/admission arrangements, with different payload and serving
+contracts from the active response-entry problem:
+
+- [`fixed_recurrent_kv_binding.py::_merge_local_summaries`](../tools/r4-softmax-trainer/src/r4_softmax_trainer/fixed_recurrent_kv_binding.py)
+  transports older K/V into the newer H4 frame and takes a count-weighted mean.
+  `_fold_evicted` uses four binary-carry summary banks beside eight exact live
+  records; its final bank absorbs overflow. Means, counts, latest frames and
+  latest positions survive, while individual evicted K/V values/identities and
+  detailed within-bank order cannot be reconstructed. This fixed compression
+  does not learn semantic consolidation. Original dense Q/K/V/O, softmax and
+  continuous state remain part of the computation.
+- [`sparse_geometric_kv_binding.py::_rank_candidates`](../tools/r4-softmax-trainer/src/r4_softmax_trainer/sparse_geometric_kv_binding.py)
+  examines the twelve-slot metadata directory, orders exact signed-S3 shells,
+  applies greedy maximin separation and age/slot ties, and admits at most eight
+  persistent slots. Only afterward does `_selected_r4_attention` gather K/V
+  and execute unchanged learned Q/K softmax. The gate itself is unfitted. This
+  supplies an admission-before-expensive-gather pattern, but no learned query
+  semantics, numeric result path or response-entry/termination operator.
+- [`quaternion_cube_nonlinear.py::_post_attention_nonlinear`](../tools/r4-softmax-trainer/src/r4_softmax_trainer/quaternion_cube_nonlinear.py)
+  applies a framed quaternion-cube residual to twelve R4 cells. It retains
+  floating-point frame products, reciprocal and RMS normalization. Its
+  mechanical dense-MLP replacement and preserved block norms did not preserve
+  useful generated text; its attempted fit stopped on resources before a new
+  quality result. It does not solve missing learned response entry.
+
+These sources informed integration choices, rather than being copied into the
+new Rust serving path. Reusing the existing integer candidate scorer, actual
+query boundary and causal observation interfaces directly addresses the
+observed NoWrite entry/continuation gap. A future multiscale retention change
+still needs a stated payload, loss/retention law, learned query selector,
+operator and complete cost; no new multiscale capability is asserted here.
+
 ## Historical pieces and what they can contribute
 
 | Preserved piece | Reusable function | Established limit |

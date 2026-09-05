@@ -16,6 +16,9 @@ mod memory_training;
 mod memory_types;
 mod mixture;
 mod numeral;
+mod response_entry_runtime;
+mod response_entry_training;
+mod response_entry_types;
 mod response_runtime;
 mod runtime;
 mod snapshot;
@@ -31,6 +34,11 @@ pub use completion_training::{ValueCompletionFitConfig, ValueCompletionFitReport
 pub use completion_types::{
     CompletionAction, CompletionDecision, CompletionStateView, CompletionWork,
 };
+pub use response_entry_training::{ResponseEntryFitConfig, ResponseEntryFitReport};
+pub use response_entry_types::{
+    ResponseEntryAction, ResponseEntryDecision, ResponseEntryStateView,
+};
+pub type ResponseEntryWork = CompletionWork;
 pub use memory_training::{
     MemoryReadDiagnostic, MemoryReadDocumentExposure, MemoryReadDocumentSupervision,
     MemoryReadResponseStateReport, MemoryReadSchedule, MemoryReadStreamProgress,
@@ -135,6 +143,8 @@ pub enum Control {
     ValueLexemesDisabled,
     ValueCompletionDisabled,
     ValueCompletionGeometryDisabled,
+    ResponseEntryDisabled,
+    ResponseEntryGeometryDisabled,
 }
 
 /// Explicit feature addresses, never content digests. Kinds 0/1 are full
@@ -176,7 +186,9 @@ impl Feature {
             | Control::ValuesDisabled
             | Control::ValueLexemesDisabled
             | Control::ValueCompletionDisabled
-            | Control::ValueCompletionGeometryDisabled => true,
+            | Control::ValueCompletionGeometryDisabled
+            | Control::ResponseEntryDisabled
+            | Control::ResponseEntryGeometryDisabled => true,
             Control::GeometryDisabled => self.kind < 2,
             Control::ZetaDisabled => !(8..=15).contains(&self.kind) && self.kind != 5,
             Control::H4Disabled => self.kind < 2 || (8..=15).contains(&self.kind),
@@ -264,6 +276,8 @@ pub struct Model {
     values: Option<value_types::ValueModel>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     completion: Option<completion_types::CompletionModel>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    response_entry: Option<response_entry_types::ResponseEntryModel>,
 }
 
 #[derive(Deserialize)]
@@ -288,6 +302,8 @@ struct ModelWire {
     values: Option<value_types::ValueModel>,
     #[serde(default)]
     completion: Option<completion_types::CompletionModel>,
+    #[serde(default)]
+    response_entry: Option<response_entry_types::ResponseEntryModel>,
 }
 impl TryFrom<ModelWire> for Model {
     type Error = Error;
@@ -309,6 +325,7 @@ impl TryFrom<ModelWire> for Model {
             memory_read: wire.memory_read,
             values: wire.values,
             completion: wire.completion,
+            response_entry: wire.response_entry,
         };
         model.validate()?;
         Ok(model)
@@ -317,6 +334,8 @@ impl TryFrom<ModelWire> for Model {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct Work {
+    #[serde(default, skip_serializing_if = "CompletionWork::is_empty")]
+    pub response_entry: CompletionWork,
     #[serde(default, skip_serializing_if = "CompletionWork::is_empty")]
     pub completion: CompletionWork,
     #[serde(default, skip_serializing_if = "ValueWork::is_empty")]
@@ -399,6 +418,8 @@ pub struct Prediction {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Generation {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub response_entry_trace: Vec<ResponseEntryDecision>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub completion_trace: Vec<CompletionDecision>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub value_trace: Vec<ValueDecision>,
@@ -437,3 +458,8 @@ mod value_runtime_tests;
 
 #[cfg(test)]
 mod completion_runtime_tests;
+
+#[cfg(test)]
+mod response_entry_runtime_tests;
+#[cfg(test)]
+mod response_entry_training_tests;

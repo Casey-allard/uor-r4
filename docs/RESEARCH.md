@@ -12,6 +12,33 @@ windows as instructions for new work. A negative binds its exact configuration;
 resource unavailability does not determine model quality. The recovered plan
 allows open development iteration under configurable cumulative machine budgets.
 
+## Native response entry (2026-09-05)
+
+The [response-entry record](native_geometric_response_entry_973.md) adds optional
+learned lexical-token/EOS selection at a captured query boundary after actual
+typed NoWrite. Continuation fitting begins only after a quantized selected Enter
+is observed. The unchanged 192-pair source supplies 32 entry and 224 continuation
+positions; all fit, with 170 rows/250 associations and no drops. The preceding
+numeric artifact is unchanged underneath the additive head.
+
+Full completes 16/16 prose and 16/16 Rust OPEN development responses, preserving
+24 numeric and eight binding outputs. All twenty saved Rust records compile and
+pass their own assertions or separately recorded identity callers. Entry-disabled
+and entry-geometry-disabled return to 12/16 in each family. All thirteen head
+candidates remain available; geometry-disabled preserves correct Enter but loses
+continuation corrections. Full uses ordinary Base for portions of each response
+and all eight NoWrite EOS decisions. These are within-artifact feature effects,
+not a matched geometry-free refit or general geometric advantage.
+
+Four separate OPEN transfer cases fail: city facts are ignored and renamed Rust
+parameters still produce `value`; both new Rust sources fail compilation. The
+learned head lacks those output values in its bounded support and reads no
+content-specific source relation at first entry. Whole-model candidate absence
+was not established. The final runtime reuses the invariant captured NoWrite
+decision only during committed entry; its same-artifact work reduction is recorded
+separately. General conversation, identifier binding, semantic multiscale memory,
+final held-out qualification and alpha remain open.
+
 ## Native typed-value completion (2026-09-05)
 
 The [completion record](native_geometric_value_completion_973.md) adds a learned

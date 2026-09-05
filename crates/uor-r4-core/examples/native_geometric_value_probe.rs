@@ -15,7 +15,7 @@ use std::time::Instant;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use uor_r4_core::native_geometric::{
-    Control, Model, ValueCompletionFitConfig, ValueExample, ValueFitConfig,
+    Control, Model, ResponseEntryFitConfig, ValueCompletionFitConfig, ValueExample, ValueFitConfig,
 };
 
 type ProbeResult<T> = Result<T, Box<dyn Error>>;
@@ -71,14 +71,15 @@ impl Options {
         while let Some(flag) = arguments.next() {
             if flag == "--help" || flag == "-h" {
                 println!(
-                    "native_geometric_value_probe [prepare|fit|completion|evaluate] --output-dir NEW_DIRECTORY\n\
+                    "native_geometric_value_probe [prepare|fit|completion|entry|evaluate] --output-dir NEW_DIRECTORY\n\
                      fit: --model BASELINE [--source source.json]\n\
                      completion: --model TYPED_MODEL --source SOURCE_V2 --lexeme-cues true\n\
+                     entry: --model COMPLETION_MODEL --source SOURCE_V2 --lexeme-cues true --generated-tokens 64\n\
                      evaluate: --model VALUE_MODEL --source source.json\n\
                      evaluate --controls full: only Full, including the existing binding pairs\n\
                      --fit-worlds EVEN_NUMBER --development-worlds EVEN_NUMBER\n\
                      --epochs N --learning-rate F --max-features N\n\
-                     --completion-max-positions N (default 4096, completion fitting only)\n\
+                     --completion-max-positions N (default 4096, completion or entry fitting)\n\
                      --generated-tokens N --max-seconds N\n\
                      --lexeme-cues true|false (default false; true appends 64 fit\n\
                      name swaps at default world count and uses source schema /2)\n\
@@ -107,17 +108,19 @@ impl Options {
                 "--max-seconds" => result.max_seconds = value.parse()?,
                 "--lexeme-cues" => result.lexeme_cues = value.parse()?,
                 "--controls" => result.controls = value,
-                "--completion-max-positions" => result.completion_max_positions = value.parse()?,
+                "--completion-max-positions" | "--entry-max-positions" => {
+                    result.completion_max_positions = value.parse()?
+                }
                 _ => return Err(format!("unknown option {flag}").into()),
             }
         }
-        if !["prepare", "fit", "completion", "evaluate"].contains(&result.mode.as_str())
+        if !["prepare", "fit", "completion", "entry", "evaluate"].contains(&result.mode.as_str())
             || result.output_dir.as_os_str().is_empty()
             || (result.mode != "prepare" && result.model.as_os_str().is_empty())
-            || (["completion", "evaluate"].contains(&result.mode.as_str())
+            || (["completion", "entry", "evaluate"].contains(&result.mode.as_str())
                 && result.source.is_none())
-            || (result.mode == "completion" && !result.lexeme_cues)
-            || (result.mode == "completion" && result.epochs > 64)
+            || (["completion", "entry"].contains(&result.mode.as_str()) && !result.lexeme_cues)
+            || (["completion", "entry"].contains(&result.mode.as_str()) && result.epochs > 64)
             || !(1..=4096).contains(&result.completion_max_positions)
             || !["all", "full"].contains(&result.controls.as_str())
             || (result.controls == "full" && result.mode != "evaluate")
@@ -580,6 +583,7 @@ fn reject_training_overlap(model: &Model, cases: &[Case]) -> ProbeResult<()> {
             .chain(model.memory_read_training())
             .chain(model.value_training())
             .chain(model.value_completion_training())
+            .chain(model.response_entry_training())
             .any(|known| {
                 known.id == case.id || known.text_cid == pair_cid || known.text_cid == whole_cid
             })
@@ -603,8 +607,15 @@ fn evaluate(
     reject_training_overlap(model, &source.development)?;
     let mut arms = Vec::new();
     let completion = model.value_completion_version().is_some();
+    let entry = model.response_entry_version().is_some();
     let mut controls = if options.controls == "full" {
         vec![Control::Full]
+    } else if entry {
+        vec![
+            Control::Full,
+            Control::ResponseEntryDisabled,
+            Control::ResponseEntryGeometryDisabled,
+        ]
     } else if completion {
         vec![
             Control::Full,
@@ -696,10 +707,16 @@ fn evaluate(
         if control == Control::ValueCompletionGeometryDisabled {
             arm["scope"] = json!("Within-artifact suppression of completion H4/orientation/phase feature contributions. The underlying typed-value and ordinary model geometry remain enabled. This measures feature sensitivity, not separately fitted matched training or general geometric advantage.");
         }
+        if control == Control::ResponseEntryDisabled {
+            arm["scope"] = json!("Within-artifact suppression of response-entry offers while retaining ordinary, typed and numeral-completion components. State remains bounded; this is not a separately fitted baseline.");
+        }
+        if control == Control::ResponseEntryGeometryDisabled {
+            arm["scope"] = json!("Within-artifact suppression of only response-entry H4/orientation/phase score features. Other components remain enabled. Candidate support and complete work must be checked separately; this is not a refitted geometry comparator.");
+        }
         // Completion reports retain the complete generation objects once in
         // report.json to keep the model, exact outputs and traces within the
         // configured output allowance. Historical typed-only files stay intact.
-        if !completion {
+        if !completion && !entry {
             write_json(
                 &options.output_dir.join(format!("arm-{}.json", arms.len())),
                 &arm,
@@ -780,7 +797,7 @@ fn evaluate_binding(
 
 fn main() -> ProbeResult<()> {
     let options = Options::parse()?;
-    let output_limit = if options.mode == "completion" {
+    let output_limit = if ["completion", "entry"].contains(&options.mode.as_str()) {
         Some(COMPLETION_OUTPUT_BYTES)
     } else if options.controls == "full" {
         Some(PRESERVATION_OUTPUT_BYTES)
@@ -828,9 +845,20 @@ fn main() -> ProbeResult<()> {
     within_limit(start, &options)?;
     let baseline = Model::from_bytes(&fs::read(&options.model)?)?;
     let input_artifact = baseline.artifact_cid().to_owned();
-    let (model, fit_report) = if ["fit", "completion"].contains(&options.mode.as_str()) {
+    let (model, fit_report) = if ["fit", "completion", "entry"].contains(&options.mode.as_str()) {
         let examples: Vec<_> = source.fit.iter().map(Case::example).collect();
-        let (fitted, report) = if options.mode == "completion" {
+        let (fitted, report) = if options.mode == "entry" {
+            let (fitted, report) = baseline.fit_response_entry(
+                &examples,
+                ResponseEntryFitConfig {
+                    epochs: options.epochs,
+                    learning_rate: options.learning_rate,
+                    max_positions: options.completion_max_positions,
+                },
+            )?;
+            write_json(&options.output_dir.join("fit-report.json"), &report)?;
+            (fitted, serde_json::to_value(report)?)
+        } else if options.mode == "completion" {
             let (fitted, report) = baseline.fit_value_completion(
                 &examples,
                 ValueCompletionFitConfig {
@@ -867,7 +895,7 @@ fn main() -> ProbeResult<()> {
     let arms = evaluate(&model, &source, &options, start)?;
     let binding_controls = evaluate_binding(&model, &binding_source, &options, start)?;
     let mut report = json!({
-        "schema":if model.value_completion_version().is_some() { "uor-r4.native-value-completion-probe/1" } else if options.lexeme_cues { "uor-r4.native-typed-value-probe/2" } else { "uor-r4.native-typed-value-probe/1" },
+        "schema":if model.response_entry_version().is_some() { "uor-r4.native-response-entry-probe/1" } else if model.value_completion_version().is_some() { "uor-r4.native-value-completion-probe/1" } else if options.lexeme_cues { "uor-r4.native-typed-value-probe/2" } else { "uor-r4.native-typed-value-probe/1" },
         "status":"completed",
         "scope":source.scope,
         "tokenization_law":source.tokenization_law,
@@ -887,6 +915,10 @@ fn main() -> ProbeResult<()> {
         "compilation":"NOT_RUN: exact generated Rust saved for separate inspected-source assessment",
         "execution":"NOT_RUN",
     });
+    if let Some(version) = model.response_entry_version() {
+        report["response_entry_operator_version"] = json!(version);
+        report["response_entry_scope"] = json!("Same raw /2 source and reused OPEN development. Nonnumeric response entry learns canonical token IDs and EOS after actual model-selected NoWrite. Continuation follows only a quantized selected Enter that was observed; no target creates a hidden anchor. Whole responses over 32 canonical-token/EOS positions are skipped, not truncated. Numeric typed/completion behavior remains the upstream path. Same-artifact entry and entry-geometry controls retain all other components.");
+    }
     if let Some(version) = model.value_completion_version() {
         report["completion_operator_version"] = json!(version);
         report["completion_scope"] = json!("Same /2 raw source and unchanged OPEN development targets. Fitting follows actual upstream numeral rollouts, then supervises ordinary suffix bytes and EOS; no generated suffix or target template is appended. Completion traces describe the learned step transitions. Primary and binding controls remain reused design feedback, not final held-out evaluation.");
