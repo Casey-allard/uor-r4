@@ -1,5 +1,15 @@
 # R4 offline trainers
 
+**Preserved reference package (2026-09-05):** new model preparation, learning,
+artifacts and serving use Rust under the
+[immediate native plan](../../docs/integration/project-track.md#immediate-build-sequence).
+This Python package remains historical evidence and source material for specific
+mechanisms, including #1073/#1077's controlled binding/role objectives. Its old
+current/next instructions do not schedule new training or introduce a product
+dependency. See [current-state](../../docs/integration/current-state.md).
+
+## Historical offline experiments
+
 This package contains the bounded offline training paths authorized by issues
 [#1014](https://github.com/UOR-Foundation/uor-r4/issues/1014) and
 [#1017](https://github.com/UOR-Foundation/uor-r4/issues/1017), plus the frozen,

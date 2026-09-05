@@ -1,5 +1,12 @@
 # Roadmap
 
+**Immediate programme (owner-adopted 2026-09-05):** follow the
+[four-step native build sequence](docs/integration/project-track.md#immediate-build-sequence)
+and its GitHub dependencies before broader capability/product/release expansion.
+The [consolidated ownership map](docs/integration/project-track.md#consolidated-issue-responsibilities)
+replaces superseded issue queues. Historical evidence below remains scoped to
+its original artifact and decision.
+
 The [native geometric AI plan](docs/integration/project-track.md) is the sole
 current goal and development plan. The [current implementation](docs/integration/current-state.md)
 records active work under [#973](https://github.com/UOR-Foundation/uor-r4/issues/973).

@@ -1,5 +1,12 @@
 # NEMESIS and W33: direct relevance and the missing bridges
 
+**Historical scope (clarified 2026-09-05):** this document preserves its dated
+reference/contract/audit and then-current scheduling. Follow the
+[current native plan](project-track.md#immediate-build-sequence) and
+[current implementation](current-state.md) for new work. Existing technical
+contracts and measured outcomes remain scoped evidence; old global next-action
+instructions and superseded issue ownership do not override the adopted plan.
+
 Reviewed 2026-09-03. **Both repositories contain material directly relevant to this effort.** The earlier intake was representative source triage, not a complete reading of either corpus. This follow-up inspects the documents and executable definitions below and separates four useful transfers from the additional claims surrounding them.
 
 **Primary audit verdict: conditional on an explicit carrier/operation mapping to the R4 computation.** There is a direct specification and diagnostic connection now, plus two concrete finite-algebra/runtime candidates for subsequent work. There is no evidence here that importing either repository improves the frozen model or removes its learned attention computation.

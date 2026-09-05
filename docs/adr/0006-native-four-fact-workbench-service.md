@@ -1,5 +1,12 @@
 # ADR-0006: One Rust service for the bounded four-fact reference
 
+**Historical scope (clarified 2026-09-05):** this document preserves its dated
+reference/contract/audit and then-current scheduling. Follow the
+[current native plan](../integration/project-track.md#immediate-build-sequence) and
+[current implementation](../integration/current-state.md) for new work. Existing technical
+contracts and measured outcomes remain scoped evidence; old global next-action
+instructions and superseded issue ownership do not override the adopted plan.
+
 **Status:** Independently accepted as `SERVICE_API_CONTRACT_SPECIFIED` in #1105, a child of
 [#1084](https://github.com/UOR-Foundation/uor-r4/issues/1084).
 **Date:** 2026-09-03. **Decision owner:** Casey-allard through protected review.

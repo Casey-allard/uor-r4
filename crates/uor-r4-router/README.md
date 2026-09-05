@@ -1,5 +1,15 @@
 # uor-r4-router
 
+**Current scope (2026-09-05):** this crate supplies reusable memory/router and
+legacy dashboard components. The active learned native model is
+`uor-r4-core::native_geometric`, exposed as `r4 geometric`; see
+[current-state](../../docs/integration/current-state.md) and the
+[immediate build plan](../../docs/integration/project-track.md#immediate-build-sequence).
+The HELM/softmax, Markov and dashboard status below describes retained references,
+not the current model's serving architecture or work queue.
+
+## Historical component evidence
+
 The R⁴ geometric memory/router and manifold dashboard backend.
 
 **Research component, not a complete chat engine.** Its stored trajectories,

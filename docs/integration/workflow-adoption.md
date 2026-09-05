@@ -1,5 +1,12 @@
 # Integrated workflow adoption — #1081
 
+**Historical scope (clarified 2026-09-05):** this document preserves its dated
+reference/contract/audit and then-current scheduling. Follow the
+[current native plan](project-track.md#immediate-build-sequence) and
+[current implementation](current-state.md) for new work. Existing technical
+contracts and measured outcomes remain scoped evidence; old global next-action
+instructions and superseded issue ownership do not override the adopted plan.
+
 Date: 2026-09-03. The user authorized applying the reviewed planning/tooling
 recommendations and beginning the next scientific step. This record supersedes
 the proposal status of the earlier intake while preserving its evidence and

@@ -125,3 +125,22 @@ gain over dense routing is real and reported correctly.
 Use confirm numbers throughout. Acknowledge the eff_ratio trajectory honestly in the text.
 The screen numbers (1.65×) were at 2000 steps; the confirm numbers (1.39×) are the
 stable convergence value and should be the headline figure.
+
+
+## Source interpretation correction — 2026-09-05
+
+The native direction review inspected `_inc0171_analysis.py` without rerunning
+this experiment. The baseline gate probabilities enter only `argmax`, with no
+probability weighting of expert output or routing auxiliary loss. The shown
+training computation supplies no gradient to those gate parameters, although
+upstream hidden states still learn and can change routing. The permuted Hopf
+arm relabels the same partitions rather than destroying them. `eff_buckets` is
+exponential occupancy entropy; every arm executes one expert per token.
+
+Retain the recorded perplexities and other observations as results of these
+implemented systems. They do not establish a properly trained learned-gate
+comparison, a random-partition null, or complete-model work/latency/energy
+savings. The earlier KEEP and efficiency/null interpretation is historical.
+The full transformer/dense expert model is not the native geometric-only target.
+See the [source-grounded direction review](../../../../../../../docs/native_geometric_direction_review_973.md)
+and [current native plan](../../../../../../../docs/integration/project-track.md#immediate-build-sequence).

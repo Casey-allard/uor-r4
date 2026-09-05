@@ -1,5 +1,12 @@
 # Afflom ecosystem follow-up — bounded source audit
 
+**Historical scope (clarified 2026-09-05):** this document preserves its dated
+reference/contract/audit and then-current scheduling. Follow the
+[current native plan](project-track.md#immediate-build-sequence) and
+[current implementation](current-state.md) for new work. Existing technical
+contracts and measured outcomes remain scoped evidence; old global next-action
+instructions and superseded issue ownership do not override the adopted plan.
+
 Date: 2026-09-03. R4 baseline: `3e894820c520f3b7803a48c6a2eeeb5b7d7021c5`.
 Status: `SOURCE_REVIEW_ONLY`. Public knowledge-index queries for LexLean,
 uor-matmul, Prism, Atlas, lean4-prod and GNAF led back to the pinned original

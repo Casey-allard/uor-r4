@@ -1,5 +1,12 @@
 # UOR integration source audit — public findings
 
+**Historical scope (clarified 2026-09-05):** this document preserves its dated
+reference/contract/audit and then-current scheduling. Follow the
+[current native plan](project-track.md#immediate-build-sequence) and
+[current implementation](current-state.md) for new work. Existing technical
+contracts and measured outcomes remain scoped evidence; old global next-action
+instructions and superseded issue ownership do not override the adopted plan.
+
 Snapshot: 2026-09-03T03:10:48.234699+00:00. Current R4 reference: `e627252e525201815169ffd8364184953a46018d`. This is source review and planning evidence. No upstream code was executed, built, tested, installed or merged. Runtime/benchmark verification is **NOT_RUN**.
 
 ## Coverage and identity

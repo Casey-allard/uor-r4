@@ -1,5 +1,25 @@
 # Research: what is measured, what is closed, what is open
 
+## Current direction and latest checkpoint — 2026-09-05
+
+The owner-adopted [immediate sequence](integration/project-track.md#immediate-build-sequence)
+now governs development. Its [research synthesis](native_geometric_direction_review_973.md)
+recovers the controlled role-learning positives, exact-association losses and
+archival routing evidence limits. The latest executed change is PR #1136's
+zero-match entry correction: 16/16 wording diagnostic, 16/32 open transfer
+(8/24 supported), all 62 preservation responses and eight binding outputs;
+13/16 first-use answers with the documented non-sealed/vocabulary-overlap limits.
+The two older city answers are repaired and committed-copy dispatch is already
+implemented. These results do not establish alpha or a new geometric advantage.
+[current-state.md](integration/current-state.md) carries exact artifacts,
+provenance, complete work counts and remaining failures.
+
+The next implementation is #1137's learned role-aware source choice shared with
+entry and copying. Historical sections below retain their original statements
+about missing prefix-to-copy transitions, byte rescoring and failed city answers;
+those describe their dated artifacts and are superseded as current status by
+this checkpoint. No old result is relabeled or erased.
+
 The [native geometric AI plan](integration/project-track.md) defines current
 architecture and development; [current-state.md](integration/current-state.md)
 is the sole current implementation pointer. Primary prime/zeta/R4 mechanisms

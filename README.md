@@ -46,37 +46,29 @@ results, remaining learned-operator work and capability limitations.
 
 The [native mechanism map](docs/native_geometric_mechanism_map_973.md) traces
 the implemented prime/zeta/R4 mechanisms from source to generated responses.
-The latest [retained-word record](docs/native_geometric_word_copy_973.md) adds
-learned source-occurrence selection and causal byte copying. An observed
-word-completion boundary removes copied spelling and length from the learned
-suffix frame while retaining actual H4/zeta state and exact source provenance.
-It completes **12/12 OPEN identifier transfers**, including misleading and
-duplicate comment words, versus 2/12 before the suffix repair and 0/12 with
-copying disabled. All twelve generated functions compile and pass separate
-seven-input identity callers. The same parent, data, dictionary and learned
-selector are preserved; suffix rows shrink from 185 to 42.
+The delivered path includes /4 occurrence memory, typed value operators, lexical
+response entry, retained-word copying, learned completion and committed-copy
+dispatch. The [current checkpoint](docs/integration/current-state.md) records
+PR #1136's zero-match entry correction: 16/16 wording diagnostic, 16/32 open
+transfer (8/24 supported), all 62 preservation responses and eight binding
+outputs. Sixteen first-use prompts yield 13/16, with the three remaining failures
+using “Which city is ... in?”; their provenance does not support a fully sealed
+or vocabulary-disjoint claim. The older city answers are repaired. The prior
+selected `d095a1ab` baseline and development correction `5f590f1c` remain distinct.
 
-The model preserves the preceding [response-entry](docs/native_geometric_response_entry_973.md)
-result: **16/16 prose, 16/16 Rust, 24/24 numeric targets and eight binding outputs**.
-The twenty original Rust source hashes still match their previously executed
-compiler receipts. Disabling the copy head's H4/orientation/phase features still
-copies all twelve correct identifiers but loses every complete transfer response.
-This is within-artifact feature dependence on reused OPEN data, not a matched
-refit or general geometric superiority. Ordinary scoring still runs per byte;
-copying the four familiar `value` outputs increases ordinary work on the original
-set. No whole-model speed advantage is claimed.
+Committed interior copying already bypasses unnecessary ordinary scoring while
+preserving causal updates. Its complete 62-response comparison measured
+47.210/63.598 ms in one pass with equal outputs/state; this retains a generic
+conditional-execution benefit, not new geometric superiority. The
+[retained-word record](docs/native_geometric_word_copy_973.md) preserves the
+identifier, fact-composition, wording and dispatch experiments at their scopes.
 
-The two city transfers remain failures. Their leading-space answers require a
-learned prefix-to-copy transition that the current first-position-only operator
-does not implement. General content binding, grounded abstention, semantic
-multiscale memory, final held-out qualification and alpha remain unresolved.
-
-The [typed-value record](docs/native_geometric_typed_value_973.md) preserves the
-preceding binding negative and whole-word correction; the latter produced correct
-numerals but only 2/16 prose and 0/16 Rust complete responses. Both earlier
-[response-state fits](docs/native_geometric_response_state_973.md) remain scoped
-negatives against the stronger occurrence reader. General conversation, coding,
-reasoning and alpha capability remain unresolved.
+The [immediate build plan](docs/integration/project-track.md#immediate-build-sequence)
+is role-aware shared source selection, exact relational memory, selective
+geometric routing and typed operator composition, before broader programme
+expansion. Only its first unmet step is immediate work; these successors are
+not implemented or qualified by this planning update. General conversation,
+coding/reasoning, semantic multiscale memory and alpha remain unestablished.
 
 ## Preserved project entry points
 

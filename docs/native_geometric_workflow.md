@@ -1,5 +1,12 @@
 # Native geometric development workflow
 
+Follow the [immediate build sequence](integration/project-track.md#immediate-build-sequence)
+for new work and [current-state](integration/current-state.md) for artifact
+selection. The delivered optional path also includes retained-word copying,
+composed prefix-to-copy entry, completion and committed-copy dispatch. Examples
+below are command/API references, not permission to rerun an earlier fit or a
+claim that role-aware selection and relational memory are already implemented.
+
 The native path is `r4 geometric`. Data preparation, fitting, artifacts,
 evaluation, sessions and generation use Rust. Its initial learner estimates
 conditional score tables over prime lexical identities and geometric context.

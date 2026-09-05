@@ -1,5 +1,10 @@
 # Contributing to R⁴
 
+New development follows the
+[owner-adopted immediate sequence](docs/integration/project-track.md#immediate-build-sequence).
+Check the accepted predecessor handoff before expanding scope. Use the existing
+one-task/one-agent cadence and consolidated issue owners; preserve dated results.
+
 Follow [AGENTS.md](AGENTS.md), the [native geometric AI plan](docs/integration/project-track.md)
 and the [current implementation](docs/integration/current-state.md). The stable
 machine policy is [agent-execution-policy.json](docs/integration/agent-execution-policy.json).

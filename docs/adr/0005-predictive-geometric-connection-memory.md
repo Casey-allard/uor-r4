@@ -1,5 +1,12 @@
 # ADR-0005: HELM-D-R4 reference attention, autonomous generation, and parked intrinsic replacement
 
+**Historical scope (clarified 2026-09-05):** this document preserves its dated
+reference/contract/audit and then-current scheduling. Follow the
+[current native plan](../integration/project-track.md#immediate-build-sequence) and
+[current implementation](../integration/current-state.md) for new work. Existing technical
+contracts and measured outcomes remain scoped evidence; old global next-action
+instructions and superseded issue ownership do not override the adopted plan.
+
 - **Status:** Accepted; ordinary dot-product/stable-softmax causal attention in
   coherent R4/Spin frames is the current baseline. The localization attempt
   stopped at its two-document preflight and rejected tangent readout.

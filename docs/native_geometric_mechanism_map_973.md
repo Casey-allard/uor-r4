@@ -1,5 +1,14 @@
 # Native geometric mechanism map — #973
 
+**Direction update (2026-09-05):** the
+[owner-adopted sequence](integration/project-track.md#immediate-build-sequence)
+selects learned role-aware source choice, exact relational memory, selective
+geometric access and typed operator composition. The table and appendices below
+map implemented mechanisms and dated interventions; proposed roles remain
+unimplemented until their issue supplies evidence. See
+[current-state](integration/current-state.md) for the latest artifact and
+[research synthesis](native_geometric_direction_review_973.md) for reuse decisions.
+
 This source map connects the native model to reusable mathematical and runtime
 components. Its baseline is the implementation delivered through PR #1127 at
 `3abf9d7e85f70416c95161863b4413cc42a6912c`; the versioned occurrence-selection,

@@ -21,6 +21,15 @@ learned geometric operators through bounded routing/state/integer-table lookup,
 not a dense transformer concealed behind lookup. Preserve existing Python/dense
 references as evidence, with no new Python model dependency.
 
+Follow the immediate build sequence in project-track.md. The first unmet issue
+is #1137 until its accepted role-aware selection/commit handoff is recorded;
+#1138, #1139 and #1140 follow their native dependencies. A closed negative is
+not an accepted handoff. Do not restart superseded #1083/#1084/#1087/#1089/#1090/
+#1091/#940 as parallel queues; use the plan's responsibility map. Maintain one
+task and one agent under the current owner cadence; necessary storage increases
+are preauthorized but must be recorded. Refresh the cumulative model ledger and
+project a complete cycle before execution.
+
 Evolve the actual native model under #973, using existing correct components.
 Develop conversation/memory and coding/reasoning on that same path. Select
 meaningful configurable context/training/evaluation windows and charge work

@@ -1,5 +1,13 @@
 # ai-router — Agent Instructions (all agents)
 
+**Archived instructions — scope clarified 2026-09-05.** This imported research
+tree preserves its original experiment protocol below. The enclosing UOR-R4
+[native project plan](../../../docs/integration/project-track.md) and root
+`AGENTS.md` govern current development and owner-authorized documentation
+corrections. The old active gate, cleanup restrictions and branch/bootstrap
+commands do not start a new archive experiment or override that plan. Preserve
+the original mathematical objects, measurements and experiment-specific scope.
+
 > This file is read by OpenAI Codex, Claude, and all CLI agents on repo entry.
 > Read it completely. It is short by design — depth is in the linked docs.
 

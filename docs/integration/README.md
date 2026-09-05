@@ -1,5 +1,12 @@
 # Integration archive and optional tools
 
+The [immediate build sequence](project-track.md#immediate-build-sequence) and
+[consolidated issue ownership](project-track.md#consolidated-issue-responsibilities)
+are adopted as of 2026-09-05. The [research direction review](../native_geometric_direction_review_973.md)
+explains the decision. `roadmap-state.json`, `adopted-issues.json`,
+`roadmap-issues-raw.json`, `source-catalog.json` and `planning-docs/` are dated
+historical snapshots; they are preserved inputs, not current issue status.
+
 Current work follows the [native geometric AI plan](project-track.md),
 [current implementation](current-state.md), and [execution policy](agent-execution-policy.md).
 This directory also preserves dated research/integration inventories. Their

@@ -1,5 +1,12 @@
 # AGENTS.md — uor-r4
 
+**Immediate owner plan (2026-09-05):** follow the
+[ordered native build steps](docs/integration/project-track.md#immediate-build-sequence)
+and [consolidated issue ownership](docs/integration/project-track.md#consolidated-issue-responsibilities)
+before broader programme expansion. The current cadence is one task and one
+agent, with cumulative budgets and preauthorized necessary storage increases.
+This changes scheduling, not the geometric architecture or historical evidence.
+
 **Owner-directed recovery (2026-09-04):** Build native geometric AI in Rust.
 The [project plan](docs/integration/project-track.md) is the canonical goal and
 development plan. The [current state](docs/integration/current-state.md) names

@@ -1,5 +1,12 @@
 # uor-r4-api
 
+**Current model API (2026-09-05):** the native geometric re-export exposes the
+same core model/session used by the CLI/service. Follow the
+[current implementation](../../docs/integration/current-state.md) and
+[immediate plan](../../docs/integration/project-track.md#immediate-build-sequence).
+The compiler/engine APIs documented below remain supported scoped components;
+their teacher/reference measurements do not qualify native model behavior.
+
 **Preserved research API, not the current intelligence façade.** This crate
 wraps the earlier teacher-compiled R4G1 graph stack. It remains useful for
 reproduction and downstream experiments, but the active transformerless local

@@ -1,5 +1,34 @@
 # R⁴ documentation
 
+## Current documentation entry points — 2026-09-05
+
+UOR-R4 develops geometric-only native intelligence in Rust. Offline training may
+use matrix multiplication; the serving target uses learned bounded geometric
+routing, state and integer/table operators. Sparse learned geometric routing is permitted.
+Neither a hidden dense transformer nor a response provider supplies the model.
+
+- [Canonical goal and immediate build sequence](integration/project-track.md#immediate-build-sequence)
+- [Current implemented state and remaining failure](integration/current-state.md)
+- [Research direction and reusable mechanisms](native_geometric_direction_review_973.md)
+- [Source-level mechanism map](native_geometric_mechanism_map_973.md)
+- [Native model lifecycle and commands](native_geometric_workflow.md)
+- [Continuation instructions](integration/CONTINUE.md)
+
+**Documentation authority:** the plan owns goals/dependencies; current-state owns
+executed capability. Per-issue measurement records, ADRs, proofs, research archives
+and dated JSON snapshots retain their original scope and must not be read as the
+current global work queue. Historical “current”, “next” and “not authorized”
+wording applies to its recorded experiment. A superseded issue's open obligations
+move through the [consolidation map](integration/project-track.md#consolidated-issue-responsibilities),
+not through an assumption of completion. Source contracts and technical runtime
+invariants remain applicable to their declared component.
+
+## Historical research map
+
+The text below is retained from the earlier reference-model programme. In
+particular, its V5 terminal, ban on sparse learned routers, Python-first stage
+orders and unimplemented-native wording are not present project instructions.
+
 This is the map for understanding the repository without having to reconstruct
 its history first.
 

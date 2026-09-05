@@ -1,5 +1,12 @@
 # Roadmap coherence audit
 
+**Historical scope (clarified 2026-09-05):** this document preserves its dated
+reference/contract/audit and then-current scheduling. Follow the
+[current native plan](project-track.md#immediate-build-sequence) and
+[current implementation](current-state.md) for new work. Existing technical
+contracts and measured outcomes remain scoped evidence; old global next-action
+instructions and superseded issue ownership do not override the adopted plan.
+
 Read-only native GitHub and exact planning-document audit. Source main: `e627252e525201815169ffd8364184953a46018d` (#1080). The live graph and last two comments of every open issue plus completed #1079 are preserved in `roadmap-issues-raw.json`; compact state, native edges, body hashes and all planning-document identities are in `roadmap-state.json`. Sixteen planning documents were copied from that exact commit into `planning-docs/`. No source/planning document, issue, PR, assignment or native edge was changed.
 
 ## Verdict

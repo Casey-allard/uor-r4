@@ -1,5 +1,13 @@
 # Router Research: Hyperbolic + 4D Polar Routing (SO(8) chart + growth)
 
+
+**Historical research archive:** this is not the active native model or work
+queue. Follow the [current plan](../../../../docs/integration/project-track.md#immediate-build-sequence).
+A [2026-09-05 source audit](docs/research/increments/INC_0171_lm_integration.md#source-interpretation-correction--2026-09-05)
+qualifies INC-0171's learned-gate, permuted-control and effective-bucket
+interpretation. Preserve recorded observations; do not cite occupancy as a
+complete-model speedup or treat archived copies as independent replications.
+
 This repo is a **Codex-friendly** research harness for a discrete routing mechanism over a hyperbolic
 (Poincaré ball) latent, with:
 

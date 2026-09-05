@@ -1,5 +1,12 @@
 # Route Matrix
 
+
+**Interpretation update (2026-09-05):** this is a historical experiment matrix.
+INC-0171's recorded results remain, but its learned-gate/control/efficiency
+interpretation is qualified by the [appended source audit](../research/increments/INC_0171_lm_integration.md#source-interpretation-correction--2026-09-05).
+Effective-bucket concentration is not complete-model executed work. Native
+implementation follows the [current plan](../../../../../../docs/integration/project-track.md#immediate-build-sequence).
+
 ## Stage policy
 - Screen: 1-2 seeds
 - Confirm: 2 seeds

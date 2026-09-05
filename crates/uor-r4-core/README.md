@@ -1,5 +1,15 @@
 # uor-r4-core
 
+**Current native path (2026-09-05):** `native_geometric` implements the Rust
+training/artifact/session path used by `r4 geometric`, including occurrence
+memory, typed values, response entry, copying and completion. Follow the
+[immediate plan](../../docs/integration/project-track.md#immediate-build-sequence)
+and [current state](../../docs/integration/current-state.md). The mathematical
+substrates remain reusable; the older reference-model status below is historical
+and does not select the active implementation or qualify general intelligence.
+
+## Historical substrate and reference status
+
 The shared mathematics and route-native substrate for UOR-R4’s research toward
 a transformerless local AI engine.
 

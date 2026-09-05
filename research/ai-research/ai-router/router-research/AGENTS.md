@@ -1,5 +1,13 @@
 # Agent Rules — Full Reference
 
+**Archived instructions — scope clarified 2026-09-05.** This is the preserved
+protocol for the imported router experiments. The enclosing UOR-R4
+[native project plan](../../../../docs/integration/project-track.md) and root
+`AGENTS.md` govern current work. Old queue, cleanup, branch-name and bootstrap
+requirements below apply to those experiments, not owner-authorized updates to
+their documentation or source interpretation. No experiment is reopened here;
+retain its mathematical distinctions, technical contracts and measured results.
+
 > **Quick-read version:** see `../AGENTS.md` (repo root) or `../.github/copilot-instructions.md`.
 > This file is the complete deep reference. When the quick-read and this file
 > disagree, this file wins within the `router-research/` subtree.

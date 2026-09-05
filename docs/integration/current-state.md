@@ -1,5 +1,31 @@
 # Current native geometric AI work
 
+## Immediate plan adopted from the research review — 2026-09-05
+
+The owner has adopted the [four-step immediate build sequence](project-track.md#immediate-build-sequence):
+[#1137](https://github.com/UOR-Foundation/uor-r4/issues/1137) role-aware shared
+source selection/commit -> [#1138](https://github.com/UOR-Foundation/uor-r4/issues/1138)
+exact learned relation memory -> [#1139](https://github.com/UOR-Foundation/uor-r4/issues/1139)
+selective geometric access at complete cost -> [#1140](https://github.com/UOR-Foundation/uor-r4/issues/1140)
+typed operator composition for conversation and Rust reasoning.
+
+**Earliest unmet step: #1137.** This plan adoption implements no new model and
+qualifies none of those handoffs. Reuse current retained words, /4 memory,
+copying and completion; learn relative role features and preserve one selected
+occurrence through entry/commit. Current positional/pooled binding is the
+observed representation limitation; it is not yet proven to be the sole cause
+of the remaining wording failures. Do not start with larger context or another
+special-purpose response head. See the [research synthesis](../native_geometric_direction_review_973.md).
+
+Live verification: PR #1136 merged at `597a86a30b87558c4783590e02e8a45933188dee`.
+The correction's results and limitations remain below. `d095a1ab` remains the
+prior selected baseline; `5f590f1c` is the useful development correction.
+The model ledger remains 1,081.641/1,800 seconds; this documentation/issue work
+adds no model execution. Refresh cumulative storage and timing before the next
+complete build/fit/evaluation projection. Necessary storage increases remain
+preauthorized. Later sections are dated checkpoints; their then-next proposals
+do not override the adopted sequence.
+
 **Owner-directed recovery — 2026-09-04.** The canonical goal and development
 plan is [project-track.md](project-track.md); the stable execution policy is
 [agent-execution-policy.json](agent-execution-policy.json). Current model work
@@ -43,8 +69,8 @@ identities, preservation, first-use provenance and cumulative resource accountin
 One focused fitted-artifact test, release example build, policy and formatting
 checks pass. No broader release checks or refit ran.
 
-The next implementation remains a learned occurrence/NoCopy choice shared with
-response entry and preserved through an observed commit. This correction shows
+The next implementation is #1137: a learned role-aware occurrence/NoRead choice
+shared with response entry and preserved through an observed commit. This correction shows
 that repeated unbound scores caused some failures, not that zero lexical matches
 are universally irrelevant. Do not broaden zeroing or force copying from a match.
 
