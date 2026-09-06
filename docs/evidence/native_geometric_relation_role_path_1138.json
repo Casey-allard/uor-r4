@@ -1,0 +1,122 @@
+{
+  "schema": "uor-r4.relation-role-checkpoint/1",
+  "at": "2026-09-06T00:45:22.776372+00:00",
+  "verdict": "ACCEPT_BOUNDED_EXACT_RELATION_HANDOFF",
+  "issue": 1138,
+  "artifact": "blake3:793cb9adad8bc812a85a46cf867495faae80b16570dc01b3244bf7887846caad",
+  "previous_relation_artifact": "blake3:16f4c10f6b79807868c7774872ba58776acd68a08c0c22054f49aca5206ecbeb",
+  "upstream_parent": "blake3:61a24cfa4ce262fd974bc8e84f082a0489db3b58cfafb46c4c42a86e49c13184",
+  "summaries": {
+    "relation-role-fit-report.json": {
+      "artifact": "blake3:793cb9adad8bc812a85a46cf867495faae80b16570dc01b3244bf7887846caad",
+      "documents": 112,
+      "epochs": 64,
+      "operator_schema": "uor-r4.exact-relation/2",
+      "parent": "blake3:61a24cfa4ce262fd974bc8e84f082a0489db3b58cfafb46c4c42a86e49c13184",
+      "reader_correct": 112,
+      "reader_frames": 112,
+      "reader_rows": 51,
+      "role_context_rows": 82,
+      "schema": "uor-r4.relation-fit/1",
+      "scope": "Construction-supervised margin updates export sparse integer tables. Writer labels are exact source byte endpoints and typed actions offline only. Read fitting uses labeled construction writes; generated evaluation must test the assembled learned writer/reader. One association family; no general semantic memory claim.",
+      "writer_correct": 224,
+      "writer_frames": 224,
+      "writer_rows": 2406
+    },
+    "relation-role-open-report.json": {
+      "artifact": "blake3:793cb9adad8bc812a85a46cf867495faae80b16570dc01b3244bf7887846caad",
+      "elapsed_ms": 1401,
+      "exact": 84,
+      "schema": "uor-r4.relation-evaluation/1",
+      "scope": "Actual assembled learned write/read and ordinary native generation. A second source ingestion/checkpoint restore supplies eviction and state evidence; its cost is in total elapsed/parent monitor, outside generation subtotals. No semantic labels enter serving.",
+      "split": "development",
+      "total": 84,
+      "writes_exact": 84
+    },
+    "relation-role-parent-open-report.json": {
+      "artifact": "blake3:16f4c10f6b79807868c7774872ba58776acd68a08c0c22054f49aca5206ecbeb",
+      "elapsed_ms": 1438,
+      "exact": 82,
+      "schema": "uor-r4.relation-evaluation/1",
+      "scope": "Actual assembled learned write/read and ordinary native generation. A second source ingestion/checkpoint restore supplies eviction and state evidence; its cost is in total elapsed/parent monitor, outside generation subtotals. No semantic labels enter serving.",
+      "split": "development",
+      "total": 84,
+      "writes_exact": 77
+    },
+    "relation-role-reserved-report.json": {
+      "artifact": "blake3:793cb9adad8bc812a85a46cf867495faae80b16570dc01b3244bf7887846caad",
+      "elapsed_ms": 442,
+      "exact": 28,
+      "schema": "uor-r4.relation-evaluation/1",
+      "scope": "Actual assembled learned write/read and ordinary native generation. A second source ingestion/checkpoint restore supplies eviction and state evidence; its cost is in total elapsed/parent monitor, outside generation subtotals. No semantic labels enter serving.",
+      "split": "first_use",
+      "total": 28,
+      "writes_exact": 28
+    },
+    "relation-role-parent-reserved-report.json": {
+      "artifact": "blake3:16f4c10f6b79807868c7774872ba58776acd68a08c0c22054f49aca5206ecbeb",
+      "elapsed_ms": 476,
+      "exact": 24,
+      "schema": "uor-r4.relation-evaluation/1",
+      "scope": "Actual assembled learned write/read and ordinary native generation. A second source ingestion/checkpoint restore supplies eviction and state evidence; its cost is in total elapsed/parent monitor, outside generation subtotals. No semantic labels enter serving.",
+      "split": "first_use",
+      "total": 28,
+      "writes_exact": 14
+    }
+  },
+  "resources": {
+    "projection": "relation-role-projection.json",
+    "cycle_model_ms": 38821,
+    "cycle_model_limit_ms": 120000,
+    "cycle_engineering_ms": 412722,
+    "cycle_engineering_limit_ms": 1200000,
+    "storage": {
+      "schema": "uor-r4.native-typed-value-resource-snapshot/1",
+      "at": "2026-09-06T00:44:20.640Z",
+      "inherited_precleanup_bytes": 2747199488,
+      "obsolete_target_growth_credit": 671379456,
+      "current_target_bytes": 2402148352,
+      "predecessor_artifact_root_bytes": 145760256,
+      "current_artifact_root_bytes": 594051072,
+      "predecessor_worktree_bytes": 9875456,
+      "current_worktree_bytes": 8937472,
+      "stopped_successor_worktree_bytes": 460877824,
+      "source_metadata_reserve_bytes": 5242880,
+      "current_sampled_known_storage_bytes": 5702713344,
+      "storage_limit_bytes": 6459228160,
+      "remaining_storage_bytes": 756514816,
+      "stop_margin_bytes": 134217728,
+      "available_growth_before_stop_bytes": 401108992,
+      "model_ledger": {
+        "cumulative_ms": 1267771,
+        "limit_ms": 1800000
+      },
+      "model_remaining_ms": 532229,
+      "model_process_limit": 1,
+      "model_process_rss_target_bytes": 4294967296,
+      "scope": "Same inherited conservative accounting. Only the previously audited obsolete target-growth credit is applied. Charge all current target bytes, both artifact roots, both measured new-worktree costs and a 5MiB source/metadata reserve. No broad clone/free-disk credits or reset of historical overages. The earlier typed-value cycle removed only its documented failed compiler outputs. The owner-authorized response-entry cycle removes no material and preserves all newly generated compiler products. Periodic du/RSS samples are not exact peak or unique-extent guarantees."
+    },
+    "peak_sampled_direct_model_rss_bytes": 777273344
+  },
+  "verification": {
+    "release_cli_and_example": "PASS",
+    "relation_tests": 4,
+    "role_commit_tests": 2,
+    "format": "PASS",
+    "native_policy": "PASS",
+    "claim_wording": "PASS",
+    "full_release": "NOT_RUN",
+    "separate_geometric_attribution": "NOT_RUN"
+  },
+  "source_sha256": {
+    "crates/uor-r4-core/examples/native_geometric_value_probe.rs": "22bb7ff426a7f463493e8568419242fb8ea43d2bf10366b5a19aaee5f5185fbc",
+    "crates/uor-r4-core/examples/native_geometric_value_probe/relation_memory.rs": "76f69d15907eeaf25966f6997f462abacce52a3d1a62026ff08873017c543be5",
+    "crates/uor-r4-core/src/native_geometric/relation.rs": "75b73177334daf23d588f2ace26f58f3aa32eef2e31e56f609174d4fbc33bba8",
+    "crates/uor-r4-core/src/native_geometric/relation_tests.rs": "03e5882c0615240e183f0b2f4b29524aabd65a86e29f6f62b5fd4ba724a9b953",
+    "crates/uor-r4-core/src/native_geometric/relation_training.rs": "48e553c9ea98e022aef64faf27449729239b12f2e0f5c598b7cf6b0db122ce3f"
+  },
+  "next": "#1139 after protected delivery: learned geometric metadata admission/routing against matched plain sparse alternative; start with dominant repeated NoWrite writer scoring; preserve exact write sequences and answers, count maintenance/fallback and full model work. Not implemented here.",
+  "scope": "Known grammar families and four reserved name worlds; participant-local writer representation repair, not general memory or alpha. Source/reader/store laws unchanged; no further fitting or serving-law changes after reserved opening.",
+  "local_artifact_root": "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05",
+  "selection_sha256": "9126c016440fcfbdfb1beefe371411c39e26ca60f6f00ca343ca8495f860c53e"
+}

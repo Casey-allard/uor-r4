@@ -1,5 +1,9 @@
 # Exact learned relation memory — #1138
 
+**Subsequent result:** the [version-2 role-path correction](native_geometric_relation_role_path_1138.md)
+now passes the bounded handoff. This record preserves the version-1 implementation,
+its negative transfer verdicts and the resulting then-next proposal.
+
 ## Implementation and scope
 
 The native role-reader parent is `61a24cfa4ce262fd974bc8e84f082a0489db3b58cfafb46c4c42a86e49c13184`,

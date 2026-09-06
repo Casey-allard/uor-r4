@@ -1,5 +1,13 @@
 # Native geometric mechanism map — #973
 
+**Role-path update (2026-09-05):** optional relation schema `/2` masks candidate
+payload identities and composes ordered interior word-local H4/zeta transports.
+Its 82-row exact prime-keyed context table is compiled from the existing tokenizer
+and fixed geometry, then reconstructed at load. Stored payload witnesses and
+reader weights remain unchanged. The [bounded handoff now passes](native_geometric_relation_role_path_1138.md);
+writer scoring still dominates new cost and selective geometric admission/routing
+remains the unimplemented next step. Version-1 negatives below stay preserved.
+
 **Relation-memory implementation update (2026-09-05):**
 [`relation.rs`](../crates/uor-r4-core/src/native_geometric/relation.rs) and
 [`relation_training.rs`](../crates/uor-r4-core/src/native_geometric/relation_training.rs)

@@ -111,6 +111,7 @@ fn writer_frame(
     model: &Model,
     words: &super::value_lexemes::LexemeState,
     label: Option<&RelationLabel>,
+    context: Option<&[TokenGeometry]>,
 ) -> Result<Frame> {
     let words = &words.recent[..words.recent_len.min(8)];
     let mut work = ValueWork::default();
@@ -124,7 +125,7 @@ fn writer_frame(
             if o == v || (o != 0 && v != 0) {
                 continue;
             }
-            let (f, n) = write_features(model, words, &addr, o, v, &mut work);
+            let (f, n) = write_features_with_context(model, words, &addr, o, v, context, &mut work);
             for a in 1..=3 {
                 alternatives.push(Alternative {
                     keys: f[..n].iter().map(|f| key(*f, a)).collect(),
@@ -157,8 +158,10 @@ impl RelationModel {
                         && (1..=3).contains(&(r.feature.kind >> 5))
                 })
         };
-        if self.schema != "uor-r4.exact-relation/1"
-            || !valid(&self.writer)
+        if !matches!(
+            self.schema.as_str(),
+            "uor-r4.exact-relation/1" | "uor-r4.exact-relation/2"
+        ) || !valid(&self.writer)
             || !valid(&self.reader)
             || !(1..=64).contains(&self.epochs)
             || self.training.is_empty()
@@ -173,6 +176,14 @@ impl RelationModel {
                 != self.training.len()
         {
             return Err(Error("invalid learned relation model".into()));
+        }
+        if (self.schema == "uor-r4.exact-relation/1" && !self.role_context.is_empty())
+            || (self.schema == "uor-r4.exact-relation/2"
+                && self.role_context != compile_role_context(model)?)
+        {
+            return Err(Error(
+                "relation role transport differs from parent tokenizer/geometry".into(),
+            ));
         }
         let mut parent = model.clone();
         let role = parent
@@ -195,6 +206,32 @@ impl RelationModel {
     }
 }
 
+fn compile_role_context(model: &Model) -> Result<Vec<TokenGeometry>> {
+    let role = super::role_read::head(model)
+        .ok_or_else(|| Error("relation role parent missing".into()))?;
+    let mut rows = Vec::with_capacity(role.dictionary.len());
+    for word in &role.dictionary {
+        let text = std::str::from_utf8(&word.bytes[..usize::from(word.len)])
+            .map_err(|e| Error(e.to_string()))?;
+        let mut row = TokenGeometry {
+            prime: word.prime,
+            leaf: model.geometry.identity,
+            phases: [0; PHASE_CHANNELS],
+        };
+        for token in model.encode(text)? {
+            let g = &model.geometry.tokens[token as usize];
+            row.leaf = model.geometry.products
+                [model.geometry.row_bases[usize::from(row.leaf)] + usize::from(g.leaf)];
+            for (p, d) in row.phases.iter_mut().zip(g.phases) {
+                *p = p.wrapping_add(d);
+            }
+        }
+        rows.push(row);
+    }
+    rows.sort_by_key(|r| r.prime);
+    Ok(rows)
+}
+
 impl Model {
     pub fn relation_training(&self) -> &[DocumentReceipt] {
         head(self).map_or(&[], |h| h.training.as_slice())
@@ -203,6 +240,24 @@ impl Model {
         &self,
         documents: &[RelationExample],
         epochs: usize,
+    ) -> Result<(Model, serde_json::Value)> {
+        self.fit_relations_mode(documents, epochs, false)
+    }
+
+    /// Learn participant-independent role context while preserving exact values.
+    pub fn fit_relations_with_role_paths(
+        &self,
+        documents: &[RelationExample],
+        epochs: usize,
+    ) -> Result<(Model, serde_json::Value)> {
+        self.fit_relations_mode(documents, epochs, true)
+    }
+
+    fn fit_relations_mode(
+        &self,
+        documents: &[RelationExample],
+        epochs: usize,
+        role_paths: bool,
     ) -> Result<(Model, serde_json::Value)> {
         self.validate()?;
         if head(self).is_some()
@@ -218,6 +273,12 @@ impl Model {
         {
             return Err(Error("invalid relation fitting source/config".into()));
         }
+        let role_context = if role_paths {
+            compile_role_context(self)?
+        } else {
+            Vec::new()
+        };
+        let context = role_paths.then_some(role_context.as_slice());
         let mut frames = BTreeSet::new();
         let mut receipts = Vec::new();
         let mut ids = BTreeSet::new();
@@ -292,7 +353,7 @@ impl Model {
                         return Err(Error("multiple labels at one relation boundary".into()));
                     }
                     let label = labels.first().map(|(_, l)| *l);
-                    frames.insert(writer_frame(self, &words, label)?);
+                    frames.insert(writer_frame(self, &words, label, context)?);
                     if let Some((i, l)) = labels.first() {
                         consumed.insert(*i);
                         let o = words
@@ -395,7 +456,13 @@ impl Model {
             .and_then(|c| c.role_read.as_mut())
             .ok_or_else(|| Error("role parent absent".into()))?
             .relations = Some(RelationModel {
-            schema: "uor-r4.exact-relation/1".into(),
+            schema: if role_paths {
+                "uor-r4.exact-relation/2"
+            } else {
+                "uor-r4.exact-relation/1"
+            }
+            .into(),
+            role_context,
             parent: self.artifact_cid.clone(),
             writer,
             reader,
@@ -406,6 +473,9 @@ impl Model {
         model.validate()?;
         let h = head(&model).ok_or_else(|| Error("relation fit absent".into()))?;
         let report = serde_json::json!({"schema":"uor-r4.relation-fit/1","parent":self.artifact_cid(),"artifact":model.artifact_cid(),"documents":documents.len(),"writer_frames":frames.len(),"writer_correct":write_correct,"reader_frames":reads.len(),"reader_correct":read_correct,"writer_rows":h.writer.len(),"reader_rows":h.reader.len(),"epochs":epochs,"scope":"Construction-supervised margin updates export sparse integer tables. Writer labels are exact source byte endpoints and typed actions offline only. Read fitting uses labeled construction writes; generated evaluation must test the assembled learned writer/reader. One association family; no general semantic memory claim."});
+        let mut report = report;
+        report["operator_schema"] = serde_json::json!(h.schema);
+        report["role_context_rows"] = serde_json::json!(h.role_context.len());
         Ok((model, report))
     }
 }

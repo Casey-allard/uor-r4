@@ -87,3 +87,134 @@ fn native_relation_snapshot_rejects_dangling_or_rewritten_current_versions() {
     bad.records[1].conflict = true;
     assert!(bad.validate(&values, &model).is_err());
 }
+
+#[test]
+fn native_relation_role_features_ignore_payload_renaming_and_global_pose() {
+    let docs = vec![Document {
+        id: "role-transport".into(),
+        text: "in now not holds".into(),
+    }];
+    let mut trainer = Trainer::new(Config::default(), &docs).unwrap();
+    trainer.train_documents(&docs).unwrap();
+    let model = trainer.compile().unwrap();
+    let mut context = vec![
+        model.geometry.tokens[7].clone(),
+        model.geometry.tokens[11].clone(),
+    ];
+    context[0].prime = 13;
+    context[1].prime = 17;
+    let words = [
+        atom("oldvalue", 32),
+        atom("in", 24),
+        atom("now", 16),
+        atom("owner", 8),
+    ];
+    let addr = [3, 13, 17, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    // Every offered pair is invariant to its own participant payloads, including
+    // pairs where the neighbor feature addresses the other participant.
+    for o in 0..4 {
+        for v in 0..4 {
+            if o == v || (o != 0 && v != 0) {
+                continue;
+            }
+            let mut renamed = words;
+            let mut changed_addr = addr;
+            for (i, name) in [(o, "differentowner"), (v, "differentvalue")] {
+                renamed[i] = atom(name, 80);
+                renamed[i].pose = 37;
+                renamed[i].phases = [62000; PHASE_CHANNELS];
+                changed_addr[i] = 0;
+            }
+            let a = write_features_with_context(
+                &model,
+                &words,
+                &addr,
+                o,
+                v,
+                Some(&context),
+                &mut ValueWork::default(),
+            );
+            let b = write_features_with_context(
+                &model,
+                &renamed,
+                &changed_addr,
+                o,
+                v,
+                Some(&context),
+                &mut ValueWork::default(),
+            );
+            assert_eq!(a, b);
+        }
+    }
+}
+
+#[test]
+fn native_relation_role_path_keeps_context_order_and_direction() {
+    let docs = vec![Document {
+        id: "role-path-order".into(),
+        text: "context".into(),
+    }];
+    let mut trainer = Trainer::new(Config::default(), &docs).unwrap();
+    trainer.train_documents(&docs).unwrap();
+    let model = trainer.compile().unwrap();
+    let g = &model.geometry;
+    let (a, b) = (0..g.inverses.len())
+        .flat_map(|a| (0..g.inverses.len()).map(move |b| (a, b)))
+        .find(|&(a, b)| g.products[g.row_bases[a] + b] != g.products[g.row_bases[b] + a])
+        .unwrap();
+    let context = [
+        TokenGeometry {
+            prime: 13,
+            leaf: a as u16,
+            phases: [8192; PHASE_CHANNELS],
+        },
+        TokenGeometry {
+            prime: 17,
+            leaf: b as u16,
+            phases: [4096; PHASE_CHANNELS],
+        },
+    ];
+    let words = [
+        atom("value", 32),
+        atom("contexta", 24),
+        atom("contextb", 16),
+        atom("owner", 8),
+    ];
+    let mut addr = [0; 16];
+    addr[1] = 13;
+    addr[2] = 17;
+    let (f, n) = write_features_with_context(
+        &model,
+        &words,
+        &addr,
+        3,
+        0,
+        Some(&context),
+        &mut ValueWork::default(),
+    );
+    let mut reversed = addr;
+    reversed.swap(1, 2);
+    let (r, m) = write_features_with_context(
+        &model,
+        &words,
+        &reversed,
+        3,
+        0,
+        Some(&context),
+        &mut ValueWork::default(),
+    );
+    let root = |features: &[super::value_types::ValueFeature]| {
+        features.iter().find(|f| f.kind == 10).unwrap().a as usize
+    };
+    assert_ne!(root(&f[..n]), root(&r[..m]));
+    let (back, k) = write_features_with_context(
+        &model,
+        &words,
+        &addr,
+        0,
+        3,
+        Some(&context),
+        &mut ValueWork::default(),
+    );
+    assert_eq!(root(&back[..k]), usize::from(g.inverses[root(&f[..n])]));
+}

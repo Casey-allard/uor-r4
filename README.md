@@ -64,13 +64,15 @@ work and its one-pass timing limits are recorded alongside the behavior.
 The [immediate build plan](docs/integration/project-track.md#immediate-build-sequence)
 is role-aware shared source selection, exact relational memory, selective
 geometric routing and typed operator composition, before broader programme
-expansion. The optional [#1138 exact relation implementation](docs/native_geometric_relation_memory_1138.md)
-now learns writes/revisions and retains exact values after raw-window eviction.
-It preserves prior behavior and reaches 56/56 OPEN answers, but the reserved
-check gives 26/28 answers and only 21/28 exact write sequences. Its handoff
-remains unmet: #1138's writer transfer is still the immediate step; selective
-routing and typed composition remain unimplemented and unqualified. General conversation,
-coding/reasoning, semantic multiscale memory and alpha remain unestablished.
+expansion. The [#1138 role-path correction](docs/native_geometric_relation_role_path_1138.md)
+now learns exact relations beyond raw-window eviction: **84/84 OPEN and 28/28
+reserved answers and exact write sequences**, preserving earlier behavior and
+five restored/isolated session reads. Participant-masked role features and ordered
+interior H4/zeta transport repair the preceding writer transfer failures. These
+known grammar cases establish the bounded memory handoff; general conversation,
+coding/reasoning and alpha remain unestablished. After protected delivery, #1139
+selective admission/routing at complete cost is next, then typed composition.
+No independent geometric efficiency advantage is claimed.
 
 ## Preserved project entry points
 

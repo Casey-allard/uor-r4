@@ -12,7 +12,12 @@ struct RelationSource {
     acceptance: String,
 }
 fn example(split: &str, world: usize, task: usize, long: bool) -> RelationExample {
-    let (names, places) = if split == "fit-transfer" {
+    let (names, places) = if split == "first-use-role-path" {
+        (
+            ["marvik", "nelren", "orveth", "pyrlen"],
+            ["Selvik", "Turven", "Uldor", "Vexran"],
+        )
+    } else if split == "fit-transfer" {
         (
             ["avren", "belvik", "cendra", "dovran"],
             ["Faren", "Belor", "Cevik", "Dulen"],
@@ -114,6 +119,53 @@ fn example(split: &str, world: usize, task: usize, long: bool) -> RelationExampl
 
 pub(super) fn run(mode: &str) -> ProbeResult<()> {
     let args: Vec<_> = std::env::args().skip(2).collect();
+    if mode == "role-relations-source" {
+        if args.len() != 3 {
+            return Err("role-relations-source PARENT_MODEL SOURCE NEW_SOURCE".into());
+        }
+        let parent: Value = serde_json::from_slice(&fs::read(&args[0])?)?;
+        let mut source: RelationSource = serde_json::from_slice(&fs::read(&args[1])?)?;
+        if source.fit.len() != 112 || source.development.len() != 56 || source.first_use.len() != 28
+        {
+            return Err("expected preserved relation coverage source".into());
+        }
+        let prior = serde_json::to_string(&source)?;
+        let dictionary = parent["response_entry"]["copy"]["role_read"]["dictionary"]
+            .as_array()
+            .ok_or("no parent dictionary")?;
+        for novel in [
+            "marvik", "nelren", "orveth", "pyrlen", "Selvik", "Turven", "Uldor", "Vexran",
+        ] {
+            if prior.contains(novel)
+                || dictionary.iter().any(|row| {
+                    row["bytes"].as_array().is_some_and(|bytes| {
+                        bytes
+                            .iter()
+                            .take(row["len"].as_u64().unwrap_or(0) as usize)
+                            .filter_map(Value::as_u64)
+                            .map(|b| b as u8)
+                            .collect::<Vec<_>>()
+                            == novel.as_bytes()
+                    })
+                })
+            {
+                return Err(
+                    format!("reserved word overlaps previous source/dictionary: {novel}").into(),
+                );
+            }
+        }
+        source.development.append(&mut source.first_use);
+        source.first_use = (0..4)
+            .flat_map(|w| (0..7).map(move |t| example("first-use-role-path", w, t, true)))
+            .collect();
+        source.acceptance = "84/84 OPEN answers and exact write sequences;62+24prior+8binding preservation and5restored session reads; then28/28 reserved answers AND writes after design selection. Construction112 unchanged. New reserved vocabulary absent from supplied prior relation source and parent dictionary. Known grammar families, not final programme qualification.".into();
+        write_json(Path::new(&args[2]), &source)?;
+        println!(
+            "{}",
+            json!({"fit":112,"fit_unchanged":true,"open":84,"reserved":28,"novelty":"PASS","acceptance":source.acceptance})
+        );
+        return Ok(());
+    }
     if mode == "broaden-relations-source" {
         if args.len() != 3 {
             return Err("broaden-relations-source PARENT_MODEL SOURCE NEW_SOURCE".into());
@@ -269,8 +321,12 @@ pub(super) fn run(mode: &str) -> ProbeResult<()> {
     if source.schema != "uor-r4.relation-source/1" {
         return Err("unknown relation source".into());
     }
-    if mode == "fit-relations" {
-        let (next, report) = model.fit_relations(&source.fit, 64)?;
+    if matches!(mode, "fit-relations" | "fit-role-relations") {
+        let (next, report) = if mode == "fit-role-relations" {
+            model.fit_relations_with_role_paths(&source.fit, 64)?
+        } else {
+            model.fit_relations(&source.fit, 64)?
+        };
         write_new(Path::new(&args[2]), &next.to_bytes()?)?;
         write_json(Path::new(&args[3]), &report)?;
         println!("{report}");

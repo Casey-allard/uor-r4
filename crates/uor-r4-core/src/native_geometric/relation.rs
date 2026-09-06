@@ -13,6 +13,10 @@ pub(super) const RELATION_ROWS: usize = 16384;
 #[serde(deny_unknown_fields)]
 pub(super) struct RelationModel {
     pub schema: String,
+    /// Version 2 word-local transport, compiled from the parent tokenizer and
+    /// fixed geometry. Dictionary primes are exact keys, not semantic distances.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub role_context: Vec<TokenGeometry>,
     pub parent: String,
     pub writer: Vec<ValueRow>,
     pub reader: Vec<ValueRow>,
@@ -74,6 +78,17 @@ pub struct RelationWork {
     pub feature_writes: u64,
     pub source_presence_checks: u64,
     pub phase_subtractions: u64,
+    #[serde(default, skip_serializing_if = "relation_count_zero")]
+    pub role_path_probes: u64,
+    #[serde(default, skip_serializing_if = "relation_count_zero")]
+    pub role_path_comparisons: u64,
+    #[serde(default, skip_serializing_if = "relation_count_zero")]
+    pub role_path_steps: u64,
+    #[serde(default, skip_serializing_if = "relation_count_zero")]
+    pub role_phase_additions: u64,
+}
+fn relation_count_zero(value: &u64) -> bool {
+    *value == 0
 }
 impl RelationWork {
     pub fn is_empty(&self) -> bool {
@@ -146,6 +161,21 @@ pub(super) fn write_features(
     value: usize,
     work: &mut ValueWork,
 ) -> ([ValueFeature; RELATION_FEATURES], usize) {
+    let context = head(model)
+        .filter(|h| h.schema == "uor-r4.exact-relation/2")
+        .map(|h| h.role_context.as_slice());
+    write_features_with_context(model, words, addr, owner, value, context, work)
+}
+
+pub(super) fn write_features_with_context(
+    model: &Model,
+    words: &[WordAtom],
+    addr: &[u32; 16],
+    owner: usize,
+    value: usize,
+    context: Option<&[TokenGeometry]>,
+    work: &mut ValueWork,
+) -> ([ValueFeature; RELATION_FEATURES], usize) {
     let mut out = [ValueFeature::default(); RELATION_FEATURES];
     let mut n = 0;
     let mut add = |kind, a, b| {
@@ -153,7 +183,11 @@ pub(super) fn write_features(
         n += 1;
     };
     let at = |i: usize| {
-        if i < words.len() {
+        if context.is_some() && i == owner {
+            u64::MAX
+        } else if context.is_some() && i == value {
+            u64::MAX - 1
+        } else if i < words.len() {
             u64::from(addr[i])
         } else {
             0
@@ -168,28 +202,72 @@ pub(super) fn write_features(
     add(6, (owner + 8 - value) as u64, 0);
     add(7, at(value + 2), at(value + 1));
     add(8, at(owner + 2), at(owner + 1));
-    let a = &words[owner];
-    let b = &words[value];
-    let inv = model.geometry.inverses[usize::from(a.pose)];
-    let rel =
-        model.geometry.products[model.geometry.row_bases[usize::from(inv)] + usize::from(b.pose)];
-    work.h4_reads = work.h4_reads.saturating_add(3);
+    let (rel, phases) = if let Some(context) = context {
+        // Recent words are newest first. Compose only the ordered interior,
+        // excluding both payloads and all global prefix state. Unknown interior
+        // words contribute identity/zero; their distinctions are not retained.
+        let mut pose = model.geometry.identity;
+        let mut phases = [0_u16; PHASE_CHANNELS];
+        for i in (owner.min(value) + 1..owner.max(value)).rev() {
+            work.relations.role_path_probes = work.relations.role_path_probes.saturating_add(1);
+            if let Ok(j) = context.binary_search_by(|g| {
+                work.relations.role_path_comparisons =
+                    work.relations.role_path_comparisons.saturating_add(1);
+                g.prime.cmp(&addr[i])
+            }) {
+                let g = &context[j];
+                pose = model.geometry.products
+                    [model.geometry.row_bases[usize::from(pose)] + usize::from(g.leaf)];
+                work.h4_reads = work.h4_reads.saturating_add(2);
+                for (p, d) in phases.iter_mut().zip(g.phases) {
+                    *p = p.wrapping_add(d);
+                }
+                work.relations.role_path_steps = work.relations.role_path_steps.saturating_add(1);
+                work.relations.role_phase_additions = work
+                    .relations
+                    .role_phase_additions
+                    .saturating_add(PHASE_CHANNELS as u64);
+            }
+        }
+        if owner < value {
+            pose = model.geometry.inverses[usize::from(pose)];
+            work.h4_reads = work.h4_reads.saturating_add(1);
+            for p in &mut phases {
+                *p = 0_u16.wrapping_sub(*p);
+            }
+            work.relations.phase_subtractions = work
+                .relations
+                .phase_subtractions
+                .saturating_add(PHASE_CHANNELS as u64);
+        }
+        (pose, phases)
+    } else {
+        let a = &words[owner];
+        let b = &words[value];
+        let inv = model.geometry.inverses[usize::from(a.pose)];
+        let rel = model.geometry.products
+            [model.geometry.row_bases[usize::from(inv)] + usize::from(b.pose)];
+        work.h4_reads = work.h4_reads.saturating_add(3);
+        work.relations.phase_subtractions = work
+            .relations
+            .phase_subtractions
+            .saturating_add(PHASE_CHANNELS as u64);
+        (
+            rel,
+            std::array::from_fn(|c| b.phases[c].wrapping_sub(a.phases[c])),
+        )
+    };
     add(10, u64::from(rel), 0);
     add(
         11,
         u64::from(model.geometry.orientation[usize::from(rel)]),
         0,
     );
-    work.relations.phase_subtractions = work
-        .relations
-        .phase_subtractions
-        .saturating_add(PHASE_CHANNELS as u64);
-    for channel in 0..PHASE_CHANNELS {
-        add(
-            12,
-            channel as u64,
-            u64::from(b.phases[channel].wrapping_sub(a.phases[channel]) >> 12),
-        );
+    if context.is_some() {
+        work.h4_reads = work.h4_reads.saturating_add(1);
+    }
+    for (channel, phase) in phases.into_iter().enumerate() {
+        add(12, channel as u64, u64::from(phase >> 12));
     }
     work.relations.feature_writes = work.relations.feature_writes.saturating_add(n as u64);
     (out, n)

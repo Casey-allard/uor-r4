@@ -14,7 +14,11 @@ The optional [#1138 relation extension](native_geometric_relation_memory_1138.md
 adds Rust `prepare-relations`, `fit-relations`, `evaluate-relations` and
 `verify-relations` example modes and `Model::fit_relations`. Its versioned exact
 store/read path executes through ordinary generation and snapshots, but its
-writer-transfer handoff remains unmet. Do not rerun the frozen fits by default.
+version-1 writer-transfer negative remains preserved. The
+[version-2 role-path correction](native_geometric_relation_role_path_1138.md) uses
+`role-relations-source`, `fit-role-relations` and
+`Model::fit_relations_with_role_paths`; its bounded handoff passes. Version 1
+artifacts retain their behavior. Do not rerun frozen fits by default.
 
 The native path is `r4 geometric`. Data preparation, fitting, artifacts,
 evaluation, sessions and generation use Rust. Its initial learner estimates

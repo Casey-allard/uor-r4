@@ -85,16 +85,16 @@ skip it, import a dense serving model, or treat issue closure as model quality.
 Necessary fixes to an existing interface, invariant or resource bottleneck may
 accompany a step; they do not start a competing product/research programme.
 
-**Current handoff:** #1137 passed and was delivered through PR #1142.
-[#1138's optional exact relation mechanism](../native_geometric_relation_memory_1138.md)
-now executes, preserving prior behavior and five session reads. Its final
-first-use result is 26/28 answers but only 21/28 exact write sequences, so its
-handoff remains unmet. #1138 is immediate; #1139 and #1140 remain blocked.
-The next build changes the writer's participant-dependent local role/context
-representation, preserving the exact store, read/copy path and update laws.
-The record names the bounded R4/zeta role-path hypothesis and complete next-cycle
-projection; it is not already implemented or qualified. All three fitted
-artifacts and their negatives remain evidence.
+**Current handoff:** #1137 was delivered through PR #1142; the exact storage
+implementation through PR #1143. [#1138's role-path correction](../native_geometric_relation_role_path_1138.md)
+now passes its bounded handoff: 84/84 OPEN and 28/28 reserved answers AND exact
+write sequences, preserving 62+24 previous responses, eight binding outputs and
+five restored/isolated session reads. After protected delivery, #1139 is next.
+Begin its complete-cost admission/routing work with the measured dominant writer
+scoring; include a plain sparse comparator and all fallback/index maintenance.
+#1140 remains dependent on an accepted #1139 handoff. The earlier relation fits
+and their negative transfer results remain preserved, with known grammar and
+geometric-attribution limits explicit.
 
 ### Step 1: role-aware source choice shared with generation
 

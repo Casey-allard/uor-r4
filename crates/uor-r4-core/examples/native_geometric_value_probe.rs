@@ -977,6 +977,8 @@ fn main() -> ProbeResult<()> {
             m.as_str(),
             "prepare-relations"
                 | "repair-relations-source"
+                | "role-relations-source"
+                | "fit-role-relations"
                 | "broaden-relations-source"
                 | "fit-relations"
                 | "evaluate-relations"

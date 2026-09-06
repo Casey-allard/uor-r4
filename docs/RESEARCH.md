@@ -2,6 +2,20 @@
 
 ## Latest native result — 2026-09-05
 
+[#1138 participant-independent role paths](native_geometric_relation_role_path_1138.md)
+pass the bounded relation handoff with unchanged 112-document construction:
+84/84 OPEN answers/write sequences, then 28/28 reserved answers/writes against
+24/28 answers and 14/28 writes for the preceding relation artifact. All 62+24
+prior responses, eight binding outputs and five restored/isolated session reads
+pass. Only the writer representation and its refitted scores change; exact
+storage, reader and copying remain. The combined role-mask/ordered H4/zeta path
+is the intervention, without independent geometric attribution or a speed claim.
+After protected delivery, #1139 targets complete admission/routing work; repeated
+writer NoWrite scoring dominates the new cost. General memory and alpha remain
+unqualified. All earlier negatives below retain their artifact scope.
+
+## Prior exact-relation transfer negative — 2026-09-05
+
 [#1138 exact relation memory](native_geometric_relation_memory_1138.md) is a
 working development extension with an unmet transfer handoff. The final fit
 reaches 56/56 OPEN answers and exact write sequences, preserves 62+24 prior

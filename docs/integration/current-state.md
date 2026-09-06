@@ -1,6 +1,35 @@
 # Current native geometric AI work
 
-## Exact learned relation memory — 2026-09-05, latest checkpoint
+
+## Exact relation writer transfer — 2026-09-05, latest checkpoint
+
+**#1138's bounded behavioral handoff now passes.** Selected artifact
+`793cb9adad8bc812a85a46cf867495faae80b16570dc01b3244bf7887846caad`, at
+`.uor-models/native-typed-value-2026-09-05/relation-role-model.json`, uses version-2
+participant-masked role features and ordered interior H4/zeta transport.
+The same 112 construction documents yield 84/84 OPEN answers and exact write
+sequences, then 28/28 newly reserved answers and writes versus 24/28 answers and
+14/28 writes for unchanged relation parent `16f4c10f`. The reader, exact store,
+update laws and copy/completion path remain unchanged.
+
+Preservation passes all 62 earlier responses, 24 prior role-reader responses and
+eight binding outputs. Five actual restored/isolated session reads pass. All 84
+version-1 Generation objects and relation states reproduce exactly on the new
+executable. The [role-path record](../native_geometric_relation_role_path_1138.md)
+binds source selection, tests, costs and limitations. Known grammar/name worlds
+are the scope; no general memory, alpha or standalone geometric advantage claim.
+
+The preceding storage PR #1143 merged at `50caf04de078b2eb5f225936bbc08c1d8291e4c0`.
+After protected delivery of this correction, #1139 is immediate: geometric
+metadata admission/routing at preserved write/answer quality and complete measured
+cost, beginning with the dominant repeated NoWrite scoring. #1140 follows its
+accepted handoff. Refresh `relation-role-checkpoint.json` and shared model/storage
+ledgers before the next complete build/evaluation projection. Cumulative model
+work is 1,267.771/1,800 seconds, leaving 532.229; this cycle used 38.821 seconds
+model and 412.722 seconds engineering, with no cap increase or deletion. Older checkpoints
+below retain their original verdicts and then-next proposals.
+
+## Exact learned relation memory — 2026-09-05, prior checkpoint
 
 **#1138 is implemented at development scope; its transfer handoff remains unmet.**
 The optional `16f4c10f6b79807868c7774872ba58776acd68a08c0c22054f49aca5206ecbeb`

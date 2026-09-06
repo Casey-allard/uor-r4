@@ -21,12 +21,14 @@ learned geometric operators through bounded routing/state/integer-table lookup,
 not a dense transformer concealed behind lookup. Preserve existing Python/dense
 references as evidence, with no new Python model dependency.
 
-Follow the immediate build sequence in project-track.md. The #1137 bounded role-aware
-selection/commit handoff passed and PR #1142 merged. #1138 exact relation storage,
-updates and reads now execute, but writer transfer remains unmet (26/28 reserved
-answers, 21/28 exact write sequences). Continue #1138 with participant-independent
-local role/context representation; preserve the working store and reader.
-Do not repeat completed storage work or proceed to blocked #1139/#1140. A closed negative is
+Follow the immediate build sequence in project-track.md. #1137 passed and PR
+#1142 merged; relation storage PR #1143 also merged. #1138's version-2 role-path
+correction now passes 84/84 OPEN and 28/28 reserved answers AND exact write sequences,
+with prior response/session preservation. After its protected delivery, #1139
+is next: learned geometric admission/routing against a plain sparse comparator
+at matched quality and complete cost. Start from the dominant writer scoring;
+keep exact values and count fallback/index maintenance. #1140 remains dependent
+on an accepted #1139 handoff. A closed negative is
 not an accepted handoff. Do not restart superseded #1083/#1084/#1087/#1089/#1090/
 #1091/#940 as parallel queues; use the plan's responsibility map. Maintain one
 task and one agent under the current owner cadence; necessary storage increases
