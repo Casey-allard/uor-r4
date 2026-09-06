@@ -46,24 +46,37 @@ results, remaining learned-operator work and capability limitations.
 
 The [native mechanism map](docs/native_geometric_mechanism_map_973.md) traces
 the implemented prime/zeta/R4 mechanisms from source to generated responses.
-The latest [typed-value completion record](docs/native_geometric_value_completion_973.md)
-combines bounded whole-word operand binding, checked value creation and decimal
-emission with learned geometric continuation and stopping. On the reused open
-development set it completes 12/16 prose and 12/16 Rust responses exactly;
-all 24 numeric targets and all four binding pairs are correct. Sixteen saved
-Rust records compile and pass their assertions (14 distinct successful sources);
-the eight nonnumeric cases remain incorrect. Removing this completion head's
-H4/orientation/phase features preserves the six-token candidate set and correct
-numerals but loses all complete numeric responses. This establishes combined
-geometric-score dependence in this fitted head, with no separately fitted
-comparison, new-response-form transfer or efficiency advantage yet measured.
+The accepted [role-aware source/entry result](docs/native_geometric_role_read_1137.md)
+learns one retained-occurrence/NoRead decision shared with entry and copying.
+Observed entry commits its exact source for later bytes. The selected artifact
+preserves **62/62 responses and eight binding outputs**, reaches **24/24 first-use
+answers** against 13/24 for its parent, and repairs the earlier sixteen-case
+wording set. Four fresh generated Rust functions compile and pass 28 semantic
+assertions. The [current checkpoint](docs/integration/current-state.md) carries
+exact artifacts, source scope and remaining failures.
 
-The [typed-value record](docs/native_geometric_typed_value_973.md) preserves the
-preceding binding negative and whole-word correction; the latter produced correct
-numerals but only 2/16 prose and 0/16 Rust complete responses. Both earlier
-[response-state fits](docs/native_geometric_response_state_973.md) remain scoped
-negatives against the stronger occurrence reader. General conversation, coding,
-reasoning and alpha capability remain unresolved.
+The first-use grammar families are known and the word capture remains bounded
+at sixteen. Two older transfer cases still abstain incorrectly. These results
+establish a bounded #1137 handoff, with no general-language, alpha or matched
+geometric-superiority claim. Committed-copy dispatch remains useful; complete
+work and its one-pass timing limits are recorded alongside the behavior.
+
+The [immediate build plan](docs/integration/project-track.md#immediate-build-sequence)
+is role-aware shared source selection, exact relational memory, selective
+geometric routing and typed operator composition, before broader programme
+expansion. The [#1138 role-path correction](docs/native_geometric_relation_role_path_1138.md)
+now learns exact relations beyond raw-window eviction: **84/84 OPEN and 28/28
+reserved answers and exact write sequences**, preserving earlier behavior and
+five restored/isolated session reads. Participant-masked role features and ordered
+interior H4/zeta transport repair the preceding writer transfer failures. These
+known grammar cases establish the bounded memory handoff; general conversation,
+coding/reasoning and alpha remain unestablished. #1138 was delivered through
+protected PR #1144. The [#1139 admission result](docs/native_geometric_relation_admission_1139.md)
+now preserves 112 prior and 28 longer-context answers/writes while avoiding most
+repeated NoWrite scoring. The sparse artifact `067adbf0` is retained; geometric
+routing has not established superiority over its matched sparse comparison.
+#1139's remaining geometric-routing handoff precedes typed composition.
+No independent geometric efficiency advantage is claimed.
 
 ## Preserved project entry points
 
@@ -764,10 +777,11 @@ remains blocked behind #954. The exact contract is
 - `docs/` — current programme, mathematical decisions, evidence, and archive.
 
 Start with the [documentation guide](docs/README.md). The
-[R4 Intelligence Completion Plan](docs/r4_intelligence_completion_plan.md) is
-the post-v0.1 sequencing authority and readable mirror of programme root #820;
-the [Geometric Intelligence Programme](docs/geometric_intelligence_programme.md)
-defines its architecture and claim boundaries. Historical records remain
+[native project plan](docs/integration/project-track.md) owns current sequencing.
+The [R4 Intelligence Completion Plan](docs/r4_intelligence_completion_plan.md)
+preserves the earlier programme-root #820 sequence, and the
+[Geometric Intelligence Programme](docs/geometric_intelligence_programme.md)
+records architecture and claim boundaries. Historical records remain
 available through the documentation guide without dominating the front door.
 
 ## Contributing
