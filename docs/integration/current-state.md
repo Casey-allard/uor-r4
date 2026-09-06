@@ -1,7 +1,37 @@
 # Current native geometric AI work
 
+## Exact NoWrite admission — 2026-09-05, latest checkpoint
 
-## Exact relation writer transfer — 2026-09-05, latest checkpoint
+**Retain the sparse admission artifact `067adbf0` as an execution improvement.**
+It compiles 64 exactly guarded NoWrite decisions from the unchanged learned /2
+writer. All 112 prior relation answers/write sequences and 28 new longer-context
+answers/writes pass; both useful admission arms preserve 62+24 earlier responses,
+eight binding outputs and five restored/isolated session reads. The actual CLI
+matches. No writer refit or expansion of exact relation state is involved.
+
+The geometric shortlist and sparse index use the same exact entries. Both
+reduce the representative writer's comparisons from 2,054,052 to 91,884. Repeated
+whole-generation timing and startup costs are in the
+[admission record](../native_geometric_relation_admission_1139.md). The geometric
+arm does not establish a speed advantage over sparse; collapsing its partition
+forces correct full fallback. This is useful exact reuse, not a learned geometric
+abstraction or general capability gain. All older artifacts/results remain.
+
+#1138 merged in protected PR #1144 at `39e35c54`. **#1139 remains immediate and
+its full handoff unmet; #1140 stays dependent.** Next test a conservative bound
+on remaining writer scores from learned role/H4/zeta features, with a matched
+sparse bound and exact fallback. Do not enlarge the signature cache or optimize
+the tiny reader simply to generate more routing evidence. Refresh
+`relation-admission-checkpoint.json`, the shared cumulative model ledger and
+storage before a complete next-cycle projection. Necessary storage increases
+remain preauthorized; this cycle deletes nothing and uses no paid compute.
+Model work is 96.113/120 seconds for this cycle, cumulative 1,363.884/1,800
+seconds, leaving 436.116 seconds. The last storage sample is 5,782,073,344 bytes
+against the unchanged 6,459,228,160-byte cap; the existing tighter growth ceiling
+leaves 321,748,992 bytes before its stop. Refresh rather than reusing that sample.
+
+
+## Exact relation writer transfer — 2026-09-05, prior checkpoint
 
 **#1138's bounded behavioral handoff now passes.** Selected artifact
 `793cb9adad8bc812a85a46cf867495faae80b16570dc01b3244bf7887846caad`, at

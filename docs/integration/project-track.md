@@ -85,16 +85,17 @@ skip it, import a dense serving model, or treat issue closure as model quality.
 Necessary fixes to an existing interface, invariant or resource bottleneck may
 accompany a step; they do not start a competing product/research programme.
 
-**Current handoff:** #1137 was delivered through PR #1142; the exact storage
-implementation through PR #1143. [#1138's role-path correction](../native_geometric_relation_role_path_1138.md)
-now passes its bounded handoff: 84/84 OPEN and 28/28 reserved answers AND exact
-write sequences, preserving 62+24 previous responses, eight binding outputs and
-five restored/isolated session reads. After protected delivery, #1139 is next.
-Begin its complete-cost admission/routing work with the measured dominant writer
-scoring; include a plain sparse comparator and all fallback/index maintenance.
-#1140 remains dependent on an accepted #1139 handoff. The earlier relation fits
-and their negative transfer results remain preserved, with known grammar and
-geometric-attribution limits explicit.
+**Current handoff:** #1137 was delivered through PR #1142; exact relation
+storage through #1143 and the accepted #1138 role-path repair through #1144
+(`39e35c54`). [#1139 exact NoWrite admission](../native_geometric_relation_admission_1139.md)
+now preserves 112 prior and 28 longer-context answers/write sequences and earlier
+conversation/coding/session behavior. It removes most repeated writer scoring.
+Retain the sparse artifact `067adbf0`; the matched geometric partition has no
+established speed advantage. #1139's full handoff remains unmet, and #1140 stays
+dependent. Next examine conservative score-bound admission over the residual
+learned role/H4/zeta writer work, with a plain sparse comparison and fallback.
+This may generalize execution beyond exact cached signatures; it is a proposal,
+not implemented or qualified work. Keep all earlier negatives and scope limits.
 
 ### Step 1: role-aware source choice shared with generation
 

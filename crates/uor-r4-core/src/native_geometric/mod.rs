@@ -8,6 +8,7 @@
 //! tokenization, serialization, fitting and diagnostic rendering are host work.
 
 pub use relation::RelationWork;
+pub use relation_admission::RelationAdmissionMode;
 pub use relation_training::{RelationExample, RelationLabel};
 mod anchors;
 mod completion_runtime;
@@ -19,6 +20,7 @@ mod memory_types;
 mod mixture;
 mod numeral;
 mod relation;
+mod relation_admission;
 #[cfg(test)]
 mod relation_tests;
 mod relation_training;

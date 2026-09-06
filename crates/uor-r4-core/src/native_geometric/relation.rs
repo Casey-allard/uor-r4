@@ -17,6 +17,8 @@ pub(super) struct RelationModel {
     /// fixed geometry. Dictionary primes are exact keys, not semantic distances.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub role_context: Vec<TokenGeometry>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub admission: Option<super::relation_admission::Admission>,
     pub parent: String,
     pub writer: Vec<ValueRow>,
     pub reader: Vec<ValueRow>,
@@ -86,6 +88,22 @@ pub struct RelationWork {
     pub role_path_steps: u64,
     #[serde(default, skip_serializing_if = "relation_count_zero")]
     pub role_phase_additions: u64,
+    #[serde(default, skip_serializing_if = "relation_count_zero")]
+    pub admission_queries: u64,
+    #[serde(default, skip_serializing_if = "relation_count_zero")]
+    pub admission_route_comparisons: u64,
+    #[serde(default, skip_serializing_if = "relation_count_zero")]
+    pub admission_exact_comparisons: u64,
+    #[serde(default, skip_serializing_if = "relation_count_zero")]
+    pub admission_metadata_bytes: u64,
+    #[serde(default, skip_serializing_if = "relation_count_zero")]
+    pub admission_signature_writes: u64,
+    #[serde(default, skip_serializing_if = "relation_count_zero")]
+    pub admission_skips: u64,
+    #[serde(default, skip_serializing_if = "relation_count_zero")]
+    pub admission_fallbacks: u64,
+    #[serde(default, skip_serializing_if = "relation_count_zero")]
+    pub admission_crowded_fallbacks: u64,
 }
 fn relation_count_zero(value: &u64) -> bool {
     *value == 0
@@ -306,6 +324,22 @@ pub(super) fn write_choice(
     let h = head(model)?;
     let words = &words[..words.len().min(8)];
     let addr = addresses(model, words, work);
+    if h.admission
+        .as_ref()
+        .is_some_and(|gate| super::relation_admission::skip(model, gate, words.len(), &addr, work))
+    {
+        return None;
+    }
+    write_choice_from_addresses(model, words, &addr, work)
+}
+
+pub(super) fn write_choice_from_addresses(
+    model: &Model,
+    words: &[WordAtom],
+    addr: &[u32; 16],
+    work: &mut ValueWork,
+) -> Option<(usize, usize, u8)> {
+    let h = head(model)?;
     let mut best = None;
     let mut best_score = 0;
     for owner in 0..words.len() {
@@ -313,7 +347,7 @@ pub(super) fn write_choice(
             if owner == value || (owner != 0 && value != 0) {
                 continue;
             }
-            let (f, n) = write_features(model, words, &addr, owner, value, work);
+            let (f, n) = write_features(model, words, addr, owner, value, work);
             for action in 1..=3 {
                 let s = score(&h.writer, &f[..n], action, work);
                 work.relations.candidates = work.relations.candidates.saturating_add(1);

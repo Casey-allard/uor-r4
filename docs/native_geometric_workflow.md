@@ -663,3 +663,27 @@ actually ran and their measured effect.
 The current evidence and unresolved model work live in
 [current-state.md](integration/current-state.md). This workflow does not turn a
 successful build, a fitted count table, or a working workbench into alpha.
+
+## Exact NoWrite admission development
+
+The #1139 [admission record](native_geometric_relation_admission_1139.md) describes
+the optional exact shortcut compiler for the learned /2 relation writer. The
+current selected artifact is in
+`.uor-models/native-typed-value-2026-09-05/relation-admission-models/sparse.json`.
+It retains existing prime/H4/zeta writer and reader operators. Its additional
+admission index is sparse; geometric routing superiority is not established.
+
+The existing `native_geometric_value_probe` example accepts:
+
+```text
+prepare-admission-source SOURCE NEW_SOURCE
+compile-admission PARENT SOURCE NEW_DIRECTORY NEW_REPORT
+time-admission PARENT MODEL_DIRECTORY SOURCE NEW_REPORT
+```
+
+Compilation produces geometric, sparse and collapsed-partition artifacts with
+identical exact NoWrite entries and unchanged learned weights. Use the existing
+`evaluate-relations` command for actual answer/write checks. The timing command
+uses the prepared longer source after design selection; it is not a training
+step. Read the record and refresh cumulative resources before rerunning any
+preparation, compilation or evaluation.

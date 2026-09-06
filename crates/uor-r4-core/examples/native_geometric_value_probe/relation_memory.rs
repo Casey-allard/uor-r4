@@ -12,7 +12,12 @@ struct RelationSource {
     acceptance: String,
 }
 fn example(split: &str, world: usize, task: usize, long: bool) -> RelationExample {
-    let (names, places) = if split == "first-use-role-path" {
+    let (names, places) = if split == "first-use-admission" {
+        (
+            ["quorvik", "ravnel", "senvar", "torvek"],
+            ["Weldor", "Xarven", "Yelvik", "Zorlan"],
+        )
+    } else if split == "first-use-role-path" {
         (
             ["marvik", "nelren", "orveth", "pyrlen"],
             ["Selvik", "Turven", "Uldor", "Vexran"],
@@ -119,6 +124,116 @@ fn example(split: &str, world: usize, task: usize, long: bool) -> RelationExampl
 
 pub(super) fn run(mode: &str) -> ProbeResult<()> {
     let args: Vec<_> = std::env::args().skip(2).collect();
+    if mode == "prepare-admission-source" {
+        if args.len() != 2 {
+            return Err("prepare-admission-source SOURCE NEW_SOURCE".into());
+        }
+        let mut source: RelationSource = serde_json::from_slice(&fs::read(&args[0])?)?;
+        if source.fit.len() != 112 || source.development.len() != 84 || source.first_use.len() != 28
+        {
+            return Err("expected accepted role-path source".into());
+        }
+        let prior = serde_json::to_string(&source)?;
+        for word in [
+            "quorvik", "ravnel", "senvar", "torvek", "Weldor", "Xarven", "Yelvik", "Zorlan",
+        ] {
+            if prior.contains(word) {
+                return Err(format!("new word overlaps prior source: {word}").into());
+            }
+        }
+        source.development.append(&mut source.first_use);
+        source.first_use = (0..4)
+            .flat_map(|w| {
+                (0..7).map(move |t| {
+                    let mut c = example("first-use-admission", w, t, true);
+                    c.prompt = c
+                        .prompt
+                        .replace(&"quiet sky. ".repeat(96), &"quiet sky. ".repeat(384));
+                    c
+                })
+            })
+            .collect();
+        source.acceptance = "112/112 prior answers AND exact writes;62+24prior+8binding and5session reads. Then28 reserved with new source vocabulary and4x filler length, all answers/writes preserved. Compile only unchanged112fit prompts. Compare same64exact keys under geometric, sparse and collapsed partitions; five rotated timing rounds on first7long cases after selection. No learned geometric ranking or general sparse advantage inferred from generic NoWrite reuse.".into();
+        write_json(Path::new(&args[1]), &source)?;
+        println!(
+            "{}",
+            json!({"fit":112,"open":112,"reserved":28,"padding_words":768,"acceptance":source.acceptance})
+        );
+        return Ok(());
+    }
+    if mode == "compile-admission" {
+        use uor_r4_core::native_geometric::RelationAdmissionMode;
+        if args.len() != 4 {
+            return Err("compile-admission PARENT SOURCE NEW_DIRECTORY NEW_REPORT".into());
+        }
+        let model = Model::from_bytes(&fs::read(&args[0])?)?;
+        let source: RelationSource = serde_json::from_slice(&fs::read(&args[1])?)?;
+        fs::create_dir(&args[2])?;
+        let (geometric, report) = model.compile_relation_admission(&source.fit)?;
+        let mut artifacts = Vec::new();
+        for (name, m) in [
+            ("geometric", geometric.clone()),
+            (
+                "sparse",
+                geometric.with_relation_admission_mode(RelationAdmissionMode::Sparse)?,
+            ),
+            (
+                "collapsed",
+                geometric.with_relation_admission_mode(RelationAdmissionMode::Collapsed)?,
+            ),
+        ] {
+            let bytes = m.to_bytes()?;
+            write_new(&Path::new(&args[2]).join(format!("{name}.json")), &bytes)?;
+            artifacts.push(json!({"mode":name,"artifact":m.artifact_cid(),"bytes":bytes.len()}));
+        }
+        write_json(
+            Path::new(&args[3]),
+            &json!({"compilation":report,"artifacts":artifacts}),
+        )?;
+        println!("{}", json!({"compilation":report,"artifacts":artifacts}));
+        return Ok(());
+    }
+    if mode == "time-admission" {
+        if args.len() != 4 {
+            return Err("time-admission PARENT MODEL_DIRECTORY SOURCE NEW_REPORT".into());
+        }
+        let source: RelationSource = serde_json::from_slice(&fs::read(&args[2])?)?;
+        let mut models = Vec::new();
+        let mut loads = Vec::new();
+        for name in ["parent", "geometric", "sparse", "collapsed"] {
+            let path = if name == "parent" {
+                PathBuf::from(&args[0])
+            } else {
+                Path::new(&args[1]).join(format!("{name}.json"))
+            };
+            let started = Instant::now();
+            let bytes = fs::read(path)?;
+            let model = Model::from_bytes(&bytes)?;
+            loads.push(json!({"mode":name,"load_validate_us":started.elapsed().as_micros(),"serialized_bytes":bytes.len(),"artifact":model.artifact_cid()}));
+            models.push((name, model));
+        }
+        let mut samples = Vec::new();
+        for round in 0..5 {
+            for i in 0..4 {
+                let (name, model) = &models[(i + round) % 4];
+                for case in source.first_use.iter().take(7) {
+                    let started = Instant::now();
+                    let generation = model.generate(&case.prompt, 32, Control::Full)?;
+                    let elapsed = started.elapsed().as_micros();
+                    if generation.text != case.response {
+                        return Err("timed answer differs".into());
+                    }
+                    samples.push(json!({"round":round,"mode":name,"case":case.id,"generation_us":elapsed,"work":generation.work}));
+                }
+            }
+        }
+        write_json(
+            Path::new(&args[3]),
+            &json!({"loads":loads,"samples":samples,"scope":"One cold file read/load/validation sample per arm;35complete encode-observe-route-score-gather-operate-write-decode generations per arm in five rotated blocks; no timing-only shortcut, all expected text checked. Loading amortization must be reported separately."}),
+        )?;
+        println!("{}", json!({"samples":samples.len(),"report":args[3]}));
+        return Ok(());
+    }
     if mode == "role-relations-source" {
         if args.len() != 3 {
             return Err("role-relations-source PARENT_MODEL SOURCE NEW_SOURCE".into());

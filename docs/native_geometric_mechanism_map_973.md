@@ -556,3 +556,13 @@ passed. Broader streaming variants reached 6/32 or 7/32 prose and 0/32 Rust
 exact outputs, with failed compilation/repair examples retained. These results
 separate useful bounded retrieval, reachable-but-misselected answers and
 missing value computation; they do not qualify either alpha capability group.
+
+## Exact NoWrite execution reuse — #1139
+
+[The admission record](native_geometric_relation_admission_1139.md) adds a bounded
+shortcut before relation writer scoring. Learned writer outcomes choose the
+negative entries; construction frequency chooses the retained 64 signatures.
+The H4/zeta partition shortlists exact prime-signature guards, with capped
+fallback. The same-entry sparse comparison is retained as an execution
+optimization; learned geometric routing advantage remains unestablished. Exact
+relation contents and the inherited prime/zeta/R4 model are unchanged.

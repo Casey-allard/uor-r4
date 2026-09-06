@@ -2,6 +2,20 @@
 
 ## Latest native result — 2026-09-05
 
+[#1139 exact NoWrite admission](native_geometric_relation_admission_1139.md)
+preserves 112/112 prior and 28/28 longer-context answers and exact writes.
+Both useful arms preserve 62+24 earlier responses, eight binding outputs and
+five restored/isolated session reads. A 64-entry exact shortcut table removes
+most repeated writer scoring. The geometric and plain sparse arms share exact
+entries and capacity; collapsing the geometric partition restores full fallback.
+Repeated complete timing, startup cost and provenance are in the record. Retain
+the sparse artifact `067adbf0`; geometric superiority is not established. This
+is an execution improvement without a writer refit, a new capability claim or
+the complete #1139 handoff. Learned geometric routing remains immediate before
+#1140. All previous results retain their original artifact/population scope.
+
+## Prior native relation transfer — 2026-09-05
+
 [#1138 participant-independent role paths](native_geometric_relation_role_path_1138.md)
 pass the bounded relation handoff with unchanged 112-document construction:
 84/84 OPEN answers/write sequences, then 28/28 reserved answers/writes against

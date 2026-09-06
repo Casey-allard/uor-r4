@@ -70,8 +70,12 @@ reserved answers and exact write sequences**, preserving earlier behavior and
 five restored/isolated session reads. Participant-masked role features and ordered
 interior H4/zeta transport repair the preceding writer transfer failures. These
 known grammar cases establish the bounded memory handoff; general conversation,
-coding/reasoning and alpha remain unestablished. After protected delivery, #1139
-selective admission/routing at complete cost is next, then typed composition.
+coding/reasoning and alpha remain unestablished. #1138 was delivered through
+protected PR #1144. The [#1139 admission result](docs/native_geometric_relation_admission_1139.md)
+now preserves 112 prior and 28 longer-context answers/writes while avoiding most
+repeated NoWrite scoring. The sparse artifact `067adbf0` is retained; geometric
+routing has not established superiority over its matched sparse comparison.
+#1139's remaining geometric-routing handoff precedes typed composition.
 No independent geometric efficiency advantage is claimed.
 
 ## Preserved project entry points

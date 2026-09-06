@@ -202,6 +202,9 @@ impl RelationModel {
         if parent.artifact_cid() != self.parent {
             return Err(Error("relation parent identity differs".into()));
         }
+        if let Some(gate) = &self.admission {
+            gate.validate(model)?;
+        }
         Ok(())
     }
 }
@@ -463,6 +466,7 @@ impl Model {
             }
             .into(),
             role_context,
+            admission: None,
             parent: self.artifact_cid.clone(),
             writer,
             reader,

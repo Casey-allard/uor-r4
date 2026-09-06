@@ -21,19 +21,18 @@ learned geometric operators through bounded routing/state/integer-table lookup,
 not a dense transformer concealed behind lookup. Preserve existing Python/dense
 references as evidence, with no new Python model dependency.
 
-Follow the immediate build sequence in project-track.md. #1137 passed and PR
-#1142 merged; relation storage PR #1143 also merged. #1138's version-2 role-path
-correction now passes 84/84 OPEN and 28/28 reserved answers AND exact write sequences,
-with prior response/session preservation. After its protected delivery, #1139
-is next: learned geometric admission/routing against a plain sparse comparator
-at matched quality and complete cost. Start from the dominant writer scoring;
-keep exact values and count fallback/index maintenance. #1140 remains dependent
-on an accepted #1139 handoff. A closed negative is
-not an accepted handoff. Do not restart superseded #1083/#1084/#1087/#1089/#1090/
-#1091/#940 as parallel queues; use the plan's responsibility map. Maintain one
-task and one agent under the current owner cadence; necessary storage increases
-are preauthorized but must be recorded. Refresh the cumulative model ledger and
-project a complete cycle before execution.
+Follow the immediate build sequence in project-track.md. #1137 and #1138 have
+merged through protected PRs #1142/#1143/#1144. #1139's first admission step
+preserves 112 prior and 28 longer-context answers AND writes and earlier behavior. Its
+selected sparse artifact is 067adbf0, in relation-admission-models/sparse.json.
+Geometric admission does not establish a speed advantage; the full #1139 handoff
+remains unmet and #1140 stays dependent. The admission record and current-state
+name the exact cost, source and next conservative score-bound proposal. Do not
+repeat the completed NoWrite shortcut implementation or call that proposal
+qualified. Maintain one task and one agent. Preserve user material and negative
+results; necessary storage increases are preauthorized and must be recorded.
+Refresh relation-admission-checkpoint.json and cumulative model/storage ledgers,
+then establish a complete build/evaluation projection before new execution.
 
 Evolve the actual native model under #973, using existing correct components.
 Develop conversation/memory and coding/reasoning on that same path. Select
