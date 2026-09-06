@@ -108,7 +108,8 @@ impl Session {
                 .ok_or_else(|| invalid("read selection absent"))?;
             let source =
                 (decision.word_index != super::role_read::NO_SOURCE).then_some(decision.word_index);
-            if source != commit.source
+            if commit.relation_id != source.and_then(|i| super::relation::source_version(values, i))
+                || source != commit.source
                 || saved.origin != source
                 || decision.source_end != commit.source_end
                 || decision.source_byte_end != commit.source_byte_end
@@ -118,10 +119,7 @@ impl Session {
                 return Err(invalid("committed source differs from joint selection"));
             }
             if let Some(index) = source {
-                let word = words
-                    .queries
-                    .get(usize::from(index))
-                    .filter(|_| usize::from(index) < words.query_len)
+                let word = super::relation::source(values, index)
                     .ok_or_else(|| invalid("read source outside capture"))?;
                 if saved.start_step != u8::from(commit.prepare) {
                     return Err(invalid("read start differs"));

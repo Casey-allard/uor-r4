@@ -297,13 +297,7 @@ impl WordCopyState {
         let Some(origin) = self.origin else {
             return absent;
         };
-        let Some(words) = &values.lexemes else {
-            return absent;
-        };
-        if usize::from(origin) >= words.query_len {
-            return absent;
-        }
-        let Some(word) = words.queries.get(usize::from(origin)) else {
+        let Some(word) = super::relation::source(values, origin) else {
             return absent;
         };
         work.word_record_reads = work.word_record_reads.saturating_add(1);
@@ -437,9 +431,14 @@ impl WordCopyState {
             work.selector.metadata_reads = work.selector.metadata_reads.saturating_add(3);
             let valid = commit
                 .source
-                .and_then(|i| words.queries.get(usize::from(i)))
+                .and_then(|i| super::relation::source(values, i))
                 .is_some_and(|w| {
-                    w.end == commit.source_end && w.byte_end == commit.source_byte_end
+                    w.end == commit.source_end
+                        && w.byte_end == commit.source_byte_end
+                        && commit
+                            .source
+                            .and_then(|i| super::relation::source_version(values, i))
+                            == commit.relation_id
                 });
             if !valid {
                 self.reset();
@@ -493,11 +492,10 @@ impl WordCopyState {
                 }
             }
         } else if entry.active {
-            if let Some(index) = self
+            if let Some((index, word)) = self
                 .origin
-                .filter(|index| usize::from(*index) < words.query_len)
+                .and_then(|index| super::relation::source(values, index).map(|word| (index, word)))
             {
-                let word = &words.queries[usize::from(index)];
                 work.word_record_reads = work.word_record_reads.saturating_add(1);
                 match self.progress {
                     WordCopyProgress::Emitting { cursor } if cursor < word.len => {
@@ -561,7 +559,7 @@ impl WordCopyState {
         let Some((index, cursor, token, score, action)) = chosen else {
             return lexical;
         };
-        let word = &words.queries[usize::from(index)];
+        let word = super::relation::source(values, index)?;
         work.word_record_reads = work.word_record_reads.saturating_add(1);
         self.pending = Some(WordCopyDecision {
             token,
@@ -656,6 +654,8 @@ impl WordCopyState {
                     WordCopyAction::Prepare | WordCopyAction::NoRead | WordCopyAction::Read
                 ) {
                     self.read_commit = Some(super::role_read::ReadCommit {
+                        relation_id: source
+                            .and_then(|i| super::relation::source_version(values, i)),
                         source,
                         source_end: decision.source_end,
                         source_byte_end: decision.source_byte_end,
@@ -677,9 +677,8 @@ impl WordCopyState {
                 self.origin = Some(decision.word_index);
                 self.start_step = decision.step;
                 work.word_record_reads = work.word_record_reads.saturating_add(1);
-                let len = values.lexemes.as_ref().map_or(0, |words| {
-                    words.queries[usize::from(decision.word_index)].len
-                });
+                let len =
+                    super::relation::source(values, decision.word_index).map_or(0, |word| word.len);
                 self.progress = if len == 1 {
                     WordCopyProgress::Complete
                 } else {
@@ -688,9 +687,8 @@ impl WordCopyState {
             } else if decision.action == WordCopyAction::Byte {
                 let cursor = decision.cursor.saturating_add(1);
                 work.word_record_reads = work.word_record_reads.saturating_add(1);
-                let len = values.lexemes.as_ref().map_or(0, |words| {
-                    words.queries[usize::from(decision.word_index)].len
-                });
+                let len =
+                    super::relation::source(values, decision.word_index).map_or(0, |word| word.len);
                 self.progress = if cursor == len {
                     WordCopyProgress::Complete
                 } else {

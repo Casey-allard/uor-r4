@@ -1,6 +1,36 @@
 # Current native geometric AI work
 
-## Role-aware source/entry handoff — 2026-09-05, latest checkpoint
+## Exact learned relation memory — 2026-09-05, latest checkpoint
+
+**#1138 is implemented at development scope; its transfer handoff remains unmet.**
+The optional `16f4c10f6b79807868c7774872ba58776acd68a08c0c22054f49aca5206ecbeb`
+artifact learns association writes, revisions and persistent reads over sixteen
+exact versions. It answers 56/56 OPEN cases with 56/56 exact write sequences after
+raw-window eviction. The reserved check reaches 26/28 answers versus 12/28 parent,
+but only 21/28 exact write sequences. Missing initial writes also corrupt later
+contradiction handling. Keep #1138 immediate and #1139/#1140 blocked.
+
+All 62 earlier responses, 24 prior role-reader responses and eight binding outputs
+remain correct. Five actual session reads/revisions pass with isolated state and
+restored source/version identity. Restore preserves every checkpoint field except
+the separately reported historical stale-index work counter. A real NoRead
+restore-validation bug is fixed. The first two fits and failed checks remain.
+See the [relation record](../native_geometric_relation_memory_1138.md) for exact
+artifacts, source splits, measured work and limitations. No general relation
+model, alpha or geometric efficiency advantage is claimed.
+
+#1137 was delivered in PR #1142 at `223aed71e770b158cebb0f0dd9a3d6be4f191829`;
+`61a24cfa` remains the accepted predecessor. The next change is a participant-
+independent local role representation for the relation writer, preserving exact
+values, the store and the reader. Repeated name expansion is not the proposed
+repair. Refresh `relation-memory-checkpoint.json`, the shared model ledger and
+storage before its complete build/evaluation projection. The inherited storage
+cap is unchanged at 6,459,228,160 bytes with 128 MiB margin; this cycle deletes
+nothing and uses no paid compute. Cumulative model work is 1,228.950/1,800 seconds,
+leaving 571.050; this cycle used 90.108 seconds model and 1,090.152 seconds
+engineering. Older sections retain their dated scope.
+
+## Role-aware source/entry handoff — 2026-09-05, prior checkpoint
 
 **#1137 passes its bounded handoff.** The selected artifact is
 `blake3:61a24cfa4ce262fd974bc8e84f082a0489db3b58cfafb46c4c42a86e49c13184`,

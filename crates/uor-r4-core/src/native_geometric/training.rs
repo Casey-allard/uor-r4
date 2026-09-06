@@ -729,6 +729,8 @@ impl Model {
                     .chain(self.value_completion_training())
                     .chain(self.response_entry_training())
                     .chain(self.word_copy_training())
+                    .chain(self.role_read_training())
+                    .chain(self.relation_training())
                     .any(|known| known.id == candidate.id || known.text_cid == candidate.text_cid)
             {
                 return Err(Error(format!(

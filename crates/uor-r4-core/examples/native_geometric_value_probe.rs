@@ -19,6 +19,8 @@ use uor_r4_core::native_geometric::{
 };
 
 type ProbeResult<T> = Result<T, Box<dyn Error>>;
+#[path = "native_geometric_value_probe/relation_memory.rs"]
+mod relation_memory;
 #[path = "native_geometric_value_probe/role_read.rs"]
 mod role_read;
 #[path = "native_geometric_value_probe/wording.rs"]
@@ -737,6 +739,7 @@ fn reject_training_overlap(model: &Model, cases: &[Case]) -> ProbeResult<()> {
             .chain(model.response_entry_training())
             .chain(model.word_copy_training())
             .chain(model.role_read_training())
+            .chain(model.relation_training())
             .any(|known| {
                 known.id == case.id || known.text_cid == pair_cid || known.text_cid == whole_cid
             })
@@ -966,6 +969,21 @@ fn evaluate_binding(
 }
 
 fn main() -> ProbeResult<()> {
+    if std::env::args().nth(1).as_deref() == Some("verify-relations") {
+        return relation_memory::verify(&std::env::args().skip(2).collect::<Vec<_>>());
+    }
+    if let Some(mode) = std::env::args().nth(1).filter(|m| {
+        matches!(
+            m.as_str(),
+            "prepare-relations"
+                | "repair-relations-source"
+                | "broaden-relations-source"
+                | "fit-relations"
+                | "evaluate-relations"
+        )
+    }) {
+        return relation_memory::run(&mode);
+    }
     if std::env::args().nth(1).as_deref() == Some("prepare-role-read") {
         return role_read::prepare();
     }

@@ -46,7 +46,7 @@ results, remaining learned-operator work and capability limitations.
 
 The [native mechanism map](docs/native_geometric_mechanism_map_973.md) traces
 the implemented prime/zeta/R4 mechanisms from source to generated responses.
-The latest [role-aware source/entry result](docs/native_geometric_role_read_1137.md)
+The accepted [role-aware source/entry result](docs/native_geometric_role_read_1137.md)
 learns one retained-occurrence/NoRead decision shared with entry and copying.
 Observed entry commits its exact source for later bytes. The selected artifact
 preserves **62/62 responses and eight binding outputs**, reaches **24/24 first-use
@@ -64,8 +64,12 @@ work and its one-pass timing limits are recorded alongside the behavior.
 The [immediate build plan](docs/integration/project-track.md#immediate-build-sequence)
 is role-aware shared source selection, exact relational memory, selective
 geometric routing and typed operator composition, before broader programme
-expansion. After #1137 protected delivery, #1138 exact relation memory is the next
-unmet step. Later successors remain unimplemented and unqualified. General conversation,
+expansion. The optional [#1138 exact relation implementation](docs/native_geometric_relation_memory_1138.md)
+now learns writes/revisions and retains exact values after raw-window eviction.
+It preserves prior behavior and reaches 56/56 OPEN answers, but the reserved
+check gives 26/28 answers and only 21/28 exact write sequences. Its handoff
+remains unmet: #1138's writer transfer is still the immediate step; selective
+routing and typed composition remain unimplemented and unqualified. General conversation,
 coding/reasoning, semantic multiscale memory and alpha remain unestablished.
 
 ## Preserved project entry points

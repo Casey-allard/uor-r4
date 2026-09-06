@@ -24,6 +24,13 @@ pub(super) fn validate_lexeme_field_presence(
     let Some(values) = wire.get("values").and_then(serde_json::Value::as_object) else {
         return Ok(());
     };
+    if super::relation::head(model).is_some()
+        != values
+            .get("relations")
+            .is_some_and(serde_json::Value::is_object)
+    {
+        return Err(invalid("relation fields differ from artifact"));
+    }
     let lexical = head.schema == LEXEME_VALUE_SCHEMA;
     if if lexical {
         !values
@@ -113,6 +120,12 @@ impl Session {
             || saved.pending.is_some()
         {
             return Err(invalid("shape, scanner or counters are invalid"));
+        }
+        if saved.relations.is_some() != super::relation::head(model).is_some() {
+            return Err(invalid("relation state differs from artifact"));
+        }
+        if let Some(relations) = &saved.relations {
+            relations.validate(&saved, model)?;
         }
         let oldest = observed - saved.recent_len as u64;
         let ring_oldest = observed - retained.len() as u64;

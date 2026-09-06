@@ -2,14 +2,27 @@
 
 ## Latest native result — 2026-09-05
 
+[#1138 exact relation memory](native_geometric_relation_memory_1138.md) is a
+working development extension with an unmet transfer handoff. The final fit
+reaches 56/56 OPEN answers and exact write sequences, preserves 62+24 prior
+responses and eight binding outputs, and passes five isolated/restored session
+reads. Reserved names yield 26/28 answers versus 12/28 parent, but only 21/28
+write sequences. Missing initial writes corrupt later contradiction handling.
+The first 16/28 first-use failure and intermediate 50/56 OPEN result remain
+preserved. Correct storage/copy cannot repair a fact the writer never retained.
+Participant-independent local role representation is the next hypothesis;
+#1138 remains open and #1139 remains blocked. Full cost exposes writer scoring
+as the dominant new work; no geometric efficiency advantage is established.
+
+## Prior bounded role-selection result — 2026-09-05
+
 [#1137 role-aware source/entry selection](native_geometric_role_read_1137.md)
 passes its bounded handoff: 62/62 preserved responses, 8/8 binding, 24/24 first-use
 answers versus 13/24 parent, and four generated Rust functions passing 28 assertions.
 Earlier OPEN sets improve to 16/16 and 30/32; two cases still abstain incorrectly.
 The first 61/62 fit is retained as a negative. Local role features and one causal
 source commitment are useful here; no standalone role codebook, general language
-or matched geometric superiority is qualified. Next is #1138 after protected
-handoff delivery. See [current-state](integration/current-state.md).
+or matched geometric superiority is qualified. PR #1142 delivered this handoff; #1138 development follows above. See [current-state](integration/current-state.md).
 
 ## Plan-adoption and prior #1136 checkpoint — 2026-09-05
 

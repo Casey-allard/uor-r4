@@ -18,6 +18,11 @@ pub enum ValueAction {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct ValueWork {
+    #[serde(
+        default,
+        skip_serializing_if = "super::relation::RelationWork::is_empty"
+    )]
+    pub relations: super::relation::RelationWork,
     pub input_bytes: u64,
     pub literal_writes: u64,
     pub record_evictions: u64,
@@ -127,6 +132,8 @@ pub(super) struct ValueEmission {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(super) struct ValueState {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub relations: Option<super::relation::RelationState>,
     pub scanner: Scanner,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub lexemes: Option<LexemeState>,
@@ -151,6 +158,8 @@ pub(super) struct ValueState {
 impl ValueState {
     pub fn new(model: &Model) -> Self {
         Self {
+            relations: super::relation::head(model)
+                .map(|_| super::relation::RelationState::default()),
             scanner: Scanner::default(),
             lexemes: model
                 .values

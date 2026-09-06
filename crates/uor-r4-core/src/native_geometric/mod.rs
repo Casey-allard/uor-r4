@@ -7,6 +7,8 @@
 //! `runtime::{Session::observe, Session::predict}` is the integer/table kernel;
 //! tokenization, serialization, fitting and diagnostic rendering are host work.
 
+pub use relation::RelationWork;
+pub use relation_training::{RelationExample, RelationLabel};
 mod anchors;
 mod completion_runtime;
 mod completion_training;
@@ -16,6 +18,10 @@ mod memory_training;
 mod memory_types;
 mod mixture;
 mod numeral;
+mod relation;
+#[cfg(test)]
+mod relation_tests;
+mod relation_training;
 mod response_entry_runtime;
 mod response_entry_training;
 mod response_entry_types;

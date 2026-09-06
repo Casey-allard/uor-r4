@@ -60,6 +60,9 @@ impl RoleReadModel {
         {
             return Err(Error("role-read prime dictionary mismatch".into()));
         }
+        if let Some(relations) = &self.relations {
+            relations.validate(model)?;
+        }
         let mut parent = model.clone();
         let copy = parent
             .response_entry
@@ -222,6 +225,7 @@ impl Model {
             .and_then(|e| e.copy.as_mut())
             .ok_or_else(|| Error("role-read copy parent missing".into()))?
             .role_read = Some(RoleReadModel {
+            relations: None,
             schema: "uor-r4.role-read/1".into(),
             baseline_artifact: self.artifact_cid.clone(),
             dictionary,

@@ -1,5 +1,19 @@
 # Native geometric mechanism map — #973
 
+**Relation-memory implementation update (2026-09-05):**
+[`relation.rs`](../crates/uor-r4-core/src/native_geometric/relation.rs) and
+[`relation_training.rs`](../crates/uor-r4-core/src/native_geometric/relation_training.rs)
+add learned local prime/H4/zeta association writes and integer current-record
+reads. Sixteen exact versions and a current directory retain participant bytes,
+source endpoints and geometry after raw-window eviction; they do not retain
+full old syntax or independent predicates. NoWrite/assert/revise/contradict is
+learned; FIFO retention and conflict/version laws are fixed. The current reader
+scans sixteen directory entries and reuses committed copy. Writer scoring, not
+that small read directory, dominates the exposed new cost. This optional path
+is implemented with an unmet transfer handoff; see the
+[complete relation record](native_geometric_relation_memory_1138.md). Historical
+mechanism statements below retain their original artifact scope.
+
 **Direction update (2026-09-05):** the
 [owner-adopted sequence](integration/project-track.md#immediate-build-sequence)
 selects learned role-aware source choice, exact relational memory, selective

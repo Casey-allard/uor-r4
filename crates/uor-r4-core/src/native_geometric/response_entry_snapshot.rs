@@ -198,10 +198,13 @@ impl Session {
                     self.control,
                     &mut WordCopyWork::default(),
                 );
+                // Joint NoRead entries also belong to the mandatory copy
+                // validator below: their learned token need not match the
+                // older independent lexical entry proposal.
                 let copy_origin = self
                     .word_copy
                     .as_ref()
-                    .is_some_and(|copy| copy.origin.is_some());
+                    .is_some_and(|copy| copy.origin.is_some() || copy.read_commit.is_some());
                 if !copy_origin
                     && (!selection.is_some_and(|candidate| {
                         token_at(anchor.at_seen).is_ok_and(|token| token == candidate.token)

@@ -22,9 +22,11 @@ not a dense transformer concealed behind lookup. Preserve existing Python/dense
 references as evidence, with no new Python model dependency.
 
 Follow the immediate build sequence in project-track.md. The #1137 bounded role-aware
-selection/commit handoff now passes as recorded in current-state; after its
-protected delivery, #1138 is the next build. #1139 and #1140 follow their native
-dependencies. A closed negative is
+selection/commit handoff passed and PR #1142 merged. #1138 exact relation storage,
+updates and reads now execute, but writer transfer remains unmet (26/28 reserved
+answers, 21/28 exact write sequences). Continue #1138 with participant-independent
+local role/context representation; preserve the working store and reader.
+Do not repeat completed storage work or proceed to blocked #1139/#1140. A closed negative is
 not an accepted handoff. Do not restart superseded #1083/#1084/#1087/#1089/#1090/
 #1091/#940 as parallel queues; use the plan's responsibility map. Maintain one
 task and one agent under the current owner cadence; necessary storage increases

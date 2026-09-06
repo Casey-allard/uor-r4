@@ -54,6 +54,11 @@ fn copy_suffix_disabled(value: &bool) -> bool {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct WordCopyWork {
+    #[serde(
+        default,
+        skip_serializing_if = "super::value_types::ValueWork::is_empty"
+    )]
+    pub persistent_read: super::value_types::ValueWork,
     pub selector: CompletionWork,
     pub dictionary_lookups: u64,
     pub dictionary_comparisons: u64,

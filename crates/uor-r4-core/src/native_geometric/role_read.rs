@@ -22,6 +22,8 @@ pub(super) struct ReadAction {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(super) struct RoleReadModel {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub relations: Option<super::relation::RelationModel>,
     pub schema: String,
     pub baseline_artifact: String,
     pub dictionary: Vec<WordCopyAddress>,
@@ -42,6 +44,8 @@ fn roles_include_query_identity(value: &bool) -> bool {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(super) struct ReadCommit {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub relation_id: Option<u64>,
     pub source: Option<u8>,
     pub source_end: u64,
     pub source_byte_end: u64,
@@ -258,9 +262,16 @@ pub(super) fn offer(
     control: Control,
     work: &mut WordCopyWork,
 ) -> Option<Candidate> {
-    let (source, action_index, _) = choose(model, values, control, work)?;
+    let (source, action_index) = if let Some(choice) =
+        super::relation::read_choice(model, values, &mut work.persistent_read)
+    {
+        choice
+    } else {
+        let (source, action, _) = choose(model, values, control, work)?;
+        (source, action)
+    };
     let action = &head(model)?.actions[action_index];
-    let word = values.lexemes.as_ref()?.queries.get(usize::from(source));
+    let word = super::relation::source(values, source);
     let token = if let Some(prefix) = action.prefix {
         prefix
     } else {

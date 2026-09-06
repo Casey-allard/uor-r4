@@ -5,11 +5,16 @@ for new work and [current-state](integration/current-state.md) for artifact
 selection. The delivered optional path also includes retained-word copying,
 composed prefix-to-copy entry, completion and committed-copy dispatch. Examples
 below are command/API references, not permission to rerun an earlier fit or a
-claim that the remaining relational-memory step is already implemented.
+claim that a later capability handoff has passed.
 The optional [#1137 role reader](native_geometric_role_read_1137.md) now implements
 one learned source/NoRead and entry choice, reused through observed commitment.
 Its Rust preparation/fitting commands and bounded transfer result are in that
 record; ordinary native generation and checkpoint loading execute the artifact.
+The optional [#1138 relation extension](native_geometric_relation_memory_1138.md)
+adds Rust `prepare-relations`, `fit-relations`, `evaluate-relations` and
+`verify-relations` example modes and `Model::fit_relations`. Its versioned exact
+store/read path executes through ordinary generation and snapshots, but its
+writer-transfer handoff remains unmet. Do not rerun the frozen fits by default.
 
 The native path is `r4 geometric`. Data preparation, fitting, artifacts,
 evaluation, sessions and generation use Rust. Its initial learner estimates
