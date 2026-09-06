@@ -1,11 +1,18 @@
 # AGENTS.md — uor-r4
 
-**Immediate owner plan (2026-09-05):** follow the
+**Immediate owner plan (2026-09-05, clarified after #1145):** build a learned
+geo-transformer that replaces dense transformer computation with geometric
+routing and selected integer/table operators. Follow the
 [ordered native build steps](docs/integration/project-track.md#immediate-build-sequence)
 and [consolidated issue ownership](docs/integration/project-track.md#consolidated-issue-responsibilities)
 before broader programme expansion. The current cadence is one task and one
 agent, with cumulative budgets and preauthorized necessary storage increases.
-This changes scheduling, not the geometric architecture or historical evidence.
+The next model work is learned semantic placement and routed computation in
+#1139, with composition exercised during development. More NoWrite caching or
+score-bound optimization is secondary. Preserve the completed binding/memory
+work and inspect compatible UOR/addr, GNAF, compiler, bitwise and uor-matmul
+mechanisms at the actual source and operation boundary. Historical evidence
+and the offline-training versus serving distinction remain intact.
 
 **Owner-directed recovery (2026-09-04):** Build native geometric AI in Rust.
 The [project plan](docs/integration/project-track.md) is the canonical goal and

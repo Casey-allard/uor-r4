@@ -8,6 +8,16 @@ and fixed experiment windows are historical, not instructions for new work.
 
 ## Goal
 
+**Owner clarification after #1145:** the intended model is a learned
+**geo-transformer LLM**: geometric routing replaces the expensive dense
+implementation of contextual selection and transformation. Preserve language
+learning, context combination and compositional processing while learning
+where information belongs, which sources to access and which operators to
+execute. Frontier-model capability on normal laptops is the ambition; current
+capability and complete serving cost must be demonstrated. A small recall
+system, a router around an external LLM, or a dense transformer re-encoded into
+lookup tables does not complete this goal.
+
 Build a useful local geometric AI in **Rust throughout preparation, training,
 artifact construction, and inference**. Prime addresses, ordered prime context,
 the fixed zeta-zero spectral grid, and R4/S3/H4 geometry are primary model
@@ -60,8 +70,10 @@ every primary geometric role effective. Keep these distinctions in model claims.
 
 ## Immediate build sequence
 
-**Owner-adopted research direction, 2026-09-05.** Complete the four bounded
-native build steps below before expanding into the broader programme. #973
+**Owner-adopted direction, clarified after #1145.** Retain the first two
+completed bounded steps and focus the third on learned geometric routing and
+selected transformations, with language and composition in its direct check.
+Further NoWrite optimization is secondary. #973
 remains the model parent and #820 the programme tracker. Live GitHub owns
 readiness/blockers; [current-state.md](current-state.md) records the accepted
 artifact and the earliest unmet step. The
@@ -73,12 +85,16 @@ not a claim that these mechanisms already work.
 |---|---|---|
 | 1 | [#1137: role-aware source selection and causal response commitment](https://github.com/UOR-Foundation/uor-r4/issues/1137) | Learned source/NoRead choice transfers across wording and roles, stays attached to exact occurrence evidence, and drives complete generated answers |
 | 2 | [#1138: exact relations with learned writes and updates](https://github.com/UOR-Foundation/uor-r4/issues/1138) | Useful facts and revisions survive raw-window eviction with exact recoverable values, bounded state and isolated causal persistence |
-| 3 | [#1139: selective geometric routing at complete measured cost](https://github.com/UOR-Foundation/uor-r4/issues/1139) | Query-dependent geometric access preserves answer quality and reduces complete work against an appropriate matched sparse comparator |
+| 3 | [#1139: learned geo-transformer routing and selected computation](https://github.com/UOR-Foundation/uor-r4/issues/1139) | A jointly trained geometric block connects semantic placement, source admission and selected transformation to useful language/composition transfer, with its complete capability/work tradeoff compared to a matched sparse alternative |
 | 4 | [#1140: typed operator composition for conversation and Rust reasoning](https://github.com/UOR-Foundation/uor-r4/issues/1140) | Learned operand/operator selection produces causally used intermediate values, correct grounded outputs and semantically verified generated Rust |
 
-Native dependencies are #1137 -> #1138 -> #1139 -> #1140. Only the first
-unmet step is immediate implementation work. A predecessor must supply its
-accepted artifact and behavioral handoff; closing an experiment with a negative
+Native dependencies remain #1137 -> #1138 -> #1139 -> #1140, with #1137 and
+#1138 complete at their recorded bounded scope. #1139 is immediate. Short
+composition examples exercise its learned block during development; do not
+postpone their learning signal until a separate routing speedup has passed.
+#1140 owns broader multi-operation qualification after a useful block exists.
+A predecessor must supply its accepted artifact and behavioral handoff;
+closing an experiment with a negative
 or unavailable result does not satisfy a capability prerequisite. Record the
 specific redesign and update the dependency if a handoff fails. Do not silently
 skip it, import a dense serving model, or treat issue closure as model quality.
@@ -91,11 +107,10 @@ storage through #1143 and the accepted #1138 role-path repair through #1144
 now preserves 112 prior and 28 longer-context answers/write sequences and earlier
 conversation/coding/session behavior. It removes most repeated writer scoring.
 Retain the sparse artifact `067adbf0`; the matched geometric partition has no
-established speed advantage. #1139's full handoff remains unmet, and #1140 stays
-dependent. Next examine conservative score-bound admission over the residual
-learned role/H4/zeta writer work, with a plain sparse comparison and fallback.
-This may generalize execution beyond exact cached signatures; it is a proposal,
-not implemented or qualified work. Keep all earlier negatives and scope limits.
+established speed advantage. PR #1145 merged at `219f572f`. #1139's full handoff
+remains unmet. Its immediate successor is now the learned geometric block below;
+the previously proposed residual NoWrite score bound is secondary, unimplemented
+and unqualified. Keep all earlier negatives and scope limits.
 
 ### Step 1: role-aware source choice shared with generation
 
@@ -151,21 +166,72 @@ surviving copy of an exact fact. Learn retention priorities when actual eviction
 failures justify them; no ever-growing transcript scan disguised as bounded
 state. Broader conversation, export/forget and product integration remain #962.
 
-### Step 3: geometric admission before gathering and computation
+### Step 3: learn semantic placement and routed computation
 
-Route over demonstrated useful relation records. Reuse metadata admission before
-payload gathering, boundary alternatives, capped expansion and finer relative
-frame/facet routes. Back off only on unresolved facets so uncertainty does not
-discard known entity, role or temporal constraints. Learn access for preserved
-answers and less work, not uniform occupancy or arbitrary hash proximity.
+Implement one small jointly trained angular routing block inside the existing
+native language path. Learn token/ordered-n-let codes and contextual placement
+within fixed geometric structure, source admission and a selected state
+transformation. Prime/UOR identities remain exact; the current fixed
+`prime % 120` lexical H4 placement is not learned semantic positioning. Use
+typed independent state channels where needed, preserving orientation and
+the distinction between hyperbolic H^4, S3 and the finite H4 root group.
 
-Compare against a suitable plain sparse index at matched capacity and quality.
-A geometric control must destroy the relevant relation/partition; merely
-relabeling expert IDs does not. Count loading, encoding, observation, feature
-construction, route probes, fallback, comparisons, scoring, gathers, operators,
-state writes and output. Include index construction/update and storage in the
-lifecycle cost. Effective-bucket entropy is not latency or executed work.
-A failed route retains the exact store and prompts a specific route revision.
+The first integration connects contextual codes -> bounded angular/prime
+shortlist -> selected payload -> learned integer/table transformation -> native
+token prediction. Reuse exact occurrence/relational memory, causal commitment,
+copying and typed values. Select before gathering expensive payloads or
+executing operators. Query construction and output selection must also avoid
+dense projections. A large table enumerating whole contexts is not the proposed
+learner. Factorized local tables, signed permutations and small nonlinear
+geometric maps are candidate building blocks, not already qualified operators.
+
+Train placement and operator choices from raw-text language targets and bounded
+binding/composition tasks. The direct check includes held-out prose/Rust token
+prediction and first-use wording, role/operand changes and short dependent
+operations. Existing OPEN data stays OPEN; reserve new final assessment after
+design selection. Exercise the actual discrete serving forward during learning,
+or explicitly measure the discrepancy of an offline soft surrogate. Do not
+assume hard argmax preserves a dense soft reader.
+
+Compare with the current fixed-feature model and an appropriate sparse
+non-geometric selector at matched capacity and training budget. Report quality
+and complete work together; geometric sensitivity and matched advantage remain
+separate. A control must alter the relevant geometry/partition, not merely
+relabel expert IDs. Retain a useful capability/work result, or revise the named
+placement/operator failure. A failed attempt is not a passed handoff and does
+not send the main task back to cache growth by default.
+
+Count load/validation, encoding, contextual-code construction, route probes,
+refinement/fallback, comparisons, gathers, transformations, writes and output.
+Include index maintenance, offline compilation, artifact/state bytes, peak RAM
+and whole-response latency. Cap refinement and report misses; do not claim
+constant-time accurate retrieval for arbitrary populations. Coarse summaries
+retain routing features and exact-member links; recent occurrences and exact
+bindings retain source detail that the summaries cannot reconstruct.
+
+### Reuse existing foundations at the matching boundary
+
+| Existing source | Intended reuse | Current boundary |
+|---|---|---|
+| UOR/addr and ordered prime addresses | Stable object identity, exact references, deduplication and provenance of learned artifacts and retained values | Address equality is not semantic proximity; preserve typed identity domains |
+| [NAF/GNAF slice](../../crates/uor-r4-naf/src/lib.rs) and [integration record](../gnaf_integration_653.md) | Canonical supported values, typed operation/result boundaries and scoped cost claims when a concrete adapter needs them | State/operator/plan capabilities are incomplete; the separate WASM-GEMM proof does not establish this model's correctness or optimality |
+| [Graph compiler](../../crates/uor-r4-graph-compiler/src/lib.rs), [R4G1 format](../../crates/uor-r4-graph-format/src/lib.rs) and borrowed runtime | Compile learned routes/operators into reusable packed tables, explicit references and bounded execution; deduplicate shared data | Historical teacher observations/region covers do not compile an arbitrary frontier model into a small equivalent artifact; integrate only needed lowering seams |
+| [XOR/popcount route attention](../../crates/uor-r4-graph-runtime/src/route_attention.rs) | Bounded relation comparisons, top-M selection and integer aggregation over learned or geometrically justified codes | The existing operator scans its declared candidates; no semantic meaning follows from digest-bit distance, and it is dormant in serving |
+| [Pinned uor-matmul](https://github.com/UOR-Foundation/uor-matmul/tree/b13c98449948174f590e337c4dc25dfc394a07d0) | Offline Rust learning/reference arithmetic; inspect its Atlas lookup/add kernels for a bounded selected geometric operator when useful | The float path uses coded lookup/exact accumulation but still evaluates a mathematical matrix product. Removing multiply instructions does not by itself remove dense work or establish a speed advantage |
+
+The library is already called by Rust training/reference code in
+[`geometric_training.rs`](../../crates/uor-r4-model-source/src/geometric_training.rs).
+This is not evidence that the current native joint learner uses it, or that a
+new kernel would improve this laptop workload. Compare actual shapes, arithmetic,
+scratch, packing, projection and accumulation cost before adoption. Necessary
+training operations may use it under the existing offline allowance. A serving
+use must be an explicit bounded operator selected by the geometric model, not
+the unchanged dense transformer routed through a differently named library.
+
+The angular/prime-router archives, uploaded project material and affiliated
+repos remain available for concrete design questions. Read original algorithms
+before adopting them. Reuse implementation, not a new broad proof/adapter
+programme or inherited capability claims. No dependency pin changes here.
 
 ### Step 4: select, execute and compose typed operators
 
@@ -220,12 +286,12 @@ same native geometric path. After the four accepted handoffs:
   owns precise implemented guarantees, formal evidence and eventual research
   publication; #965 owns integrated capability acceptance, portability/security,
   governance, packaging, installation, rollback and release.
-- Broader learned nonlinear geometric transitions, larger data/context and task
-  variety remain required model development under #973 when observed failures
-  identify the need. Fixed quaternion-cube mechanics or more lookup rows do not
-  establish a general learner. External mechanisms are consulted for concrete
-  questions; broad donor surveys, publication and UI expansion are not immediate
-  prerequisites.
+- The first learned nonlinear geometric transformation belongs in #1139's
+  routed block. After useful transfer, #973 grows composable blocks, data and
+  memory with measured capability/work scaling. Fixed quaternion-cube mechanics
+  or more lookup rows do not establish a general learner. External mechanisms
+  are consulted for concrete questions; broad donor surveys, publication and UI
+  expansion are not immediate prerequisites.
 
 ### Consolidated issue responsibilities
 

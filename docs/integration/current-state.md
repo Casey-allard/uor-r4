@@ -1,6 +1,38 @@
 # Current native geometric AI work
 
-## Exact NoWrite admission — 2026-09-05, latest checkpoint
+## Geo-transformer direction — owner clarification after #1145
+
+**Next implementation: #1139's jointly learned geometric routing block.**
+The [canonical plan](project-track.md#immediate-build-sequence) now connects
+learned semantic placement, bounded source admission and selected integer/table
+transformations to raw-text language and composition. More NoWrite caching or
+residual score-bound optimization is secondary. #1140 remains the subsequent
+multi-operation qualification; short composition tasks supply a learning/check
+signal during #1139. This supersedes the then-next scheduling below, not any
+measurement. The new block is **NOT_IMPLEMENTED / NOT_RUN**.
+
+PR #1145 merged through protected delivery at `219f572fd8e9fda1e6ca3254dddbc1f2715d92f0`.
+Sparse artifact `067adbf0` remains the selected bounded execution improvement;
+the geometric partition has no established advantage over its matched sparse
+index. #1137/#1138 retain their accepted bounded binding/memory results.
+
+Source inspection confirms reusable UOR/addr identity, NAF/GNAF typed vocabulary,
+R4G1 packing/borrowed execution and dormant XOR/popcount route selection. The
+pinned `uor-matmul` float path contracts Atlas-coded operands through lookup and
+exact accumulation; existing Rust training/reference code calls it. Neither
+its implementation nor that existing use proves a new workload speedup or
+removes the mathematical dense product. The plan names eligible offline and
+bounded selected-operator uses without importing a dense transformer.
+
+The inspected native generation path has no dense attention/projection or
+provider call. Startup validation still reconstructs geometry with floating
+point; complete integer/table serving realization remains unfinished. This
+clarification runs no model, changes no dependency and adds no capability claim.
+The cumulative model ledger remains 1,363.884/1,800 seconds (436.116 remaining).
+Refresh current storage and project the entire next build/fit/evaluation before
+execution; existing storage authorization and preservation rules continue.
+
+## Exact NoWrite admission — 2026-09-05, prior checkpoint
 
 **Retain the sparse admission artifact `067adbf0` as an execution improvement.**
 It compiles 64 exactly guarded NoWrite decisions from the unchanged learned /2

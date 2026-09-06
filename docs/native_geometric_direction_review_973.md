@@ -1,5 +1,12 @@
 # Native geometric direction review and adopted plan — 2026-09-05
 
+**Scheduling update after #1145:** the owner clarified the geo-transformer goal
+and adopted learned semantic placement plus routed computation as the next
+priority. The [canonical plan](integration/project-track.md#immediate-build-sequence)
+and the appended update below supersede this review's earlier deferral of
+learned nonlinear transitions and then-next scheduling. Original results remain
+at their recorded scope.
+
 **Owner decision:** implement the [four immediate build steps](integration/project-track.md#immediate-build-sequence)
 before broader programme expansion. This synthesis records the direction from
 the project/history/source review; it does not execute a new experiment or
@@ -163,3 +170,50 @@ The four stage issues carry concrete acceptance and failure branches. If a
 representation, operator or route fails, retain that scoped result and name the
 smallest next change. Do not turn a mechanical pass into capability, a negative
 into an automatic larger campaign, or this review into a permanent research gate.
+
+## Owner clarification after #1145: recover learned geometric routing
+
+Build a geo-transformer LLM that replaces dense transformer execution, learning
+where information belongs and which context and operators to activate. Exact
+binding, memory and NoWrite reuse remain useful components; they do not fulfill
+the language-model objective by themselves. Move learned placement and selected
+transformation into #1139 now, and include raw-text prediction and short
+composition in its direct evaluation. Further NoWrite score-bound work is
+secondary. The canonical plan specifies the current implementation and resource
+projection requirements; the new block is unimplemented and unqualified.
+
+The original [angular architecture note](../research/prime-analysis/research/routing-infrastructure/ai-router/router-research/geometric_routing_architecture_summary.md)
+separates fixed routing structure, learned semantic placement, transported state
+and retrieval keys. Keep those roles distinct. Its hyperbolic H^4 notation is
+not the finite H4 root group. The archived
+[hard prime-router timing source](../research/prime-analysis/research/routing-infrastructure/ai-router/router-research/tools/prime_transport/run_router_trainsoft_inferhard_v1.py)
+does bypass the routing MLP but retains dense attention/readout; `make_batch`
+targets the first token. Its reported speedup is scoped to that implementation
+and task, not matrix-free language generation. The later prime-router server
+contains both local generation and an Ollama voice path; the latter is not a
+native model capability result.
+
+Supporting mechanisms remain available for actual integration. The existing
+NAF crate implements core/integer/tensor/address interchange and GNAF claim
+vocabulary, with state/operator/plan domains incomplete. R4G1 supplies packed
+tables, typed references and borrowed execution; its dormant route-attention
+operator uses masked XOR/popcount and bounded top-M aggregation. These are
+concrete building blocks, not a learned semantic model or universal compressor.
+Inspect the original source and use each at its matching boundary rather than
+adding a broad conformance programme before language learning.
+
+The current Cargo pin for `UOR-Foundation/uor-matmul` is
+`b13c98449948174f590e337c4dc25dfc394a07d0`. Inspection of
+[`float.rs`](https://github.com/UOR-Foundation/uor-matmul/blob/b13c98449948174f590e337c4dc25dfc394a07d0/crates/uor-matmul-gemm/src/float.rs)
+(`resolve_atlas_dot_spec`, `gemm_float_packed`) and
+[`lookup.rs`](https://github.com/UOR-Foundation/uor-matmul/blob/b13c98449948174f590e337c4dc25dfc394a07d0/crates/uor-matmul-kernels/src/lookup.rs)
+confirms coded lookup/add contraction and exact accumulation for the float
+product path. `geometric_training.rs` already calls its `gemm_float` for
+training/reference products. This is a useful arithmetic mechanism, not merely
+a renamed native multiply. It still computes the requested matrix product;
+full work, memory traffic, input projection and scratch must be measured.
+No new speed measurement or machine-code census was run for this review.
+Use it for appropriate offline learning, and consider compatible kernels for
+selected bounded geometric operators. It does not license an unchanged dense
+transformer serving backbone. The goal is useful learned computation with
+geometric selection, preserving the existing training/serving distinction.
