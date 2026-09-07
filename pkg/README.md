@@ -34,6 +34,48 @@ generation, persistent sessions and a local workbench. The initial model fits
 finite score tables over prime context and exact geometric state. Its useful
 language and coding behavior is under development.
 
+An experimental [learned H4 routing block](docs/native_geometric_learned_routing_1139.md)
+now learns token placement, source selection and table-based transport on this
+path. Its dependent-read revision lets one selected value change the next
+query and trains a shared output decision. Both revisions fail useful generation
+and preservation; angular advantage is unestablished. The accepted artifact
+remains preserved. The subsequent [retained-source revision](docs/native_geometric_source_routing_1139.md)
+uses learned angular selection and exact byte copying, preserving 62 earlier
+responses and answering 24 earlier plus 24 changed-name cases correctly. Its
+matched exact-code control gets 10/24 changed-name cases. This is bounded source
+selection, with no whole-model speedup or broad language claim. The subsequent
+[dependent-source read](docs/native_geometric_dependent_source_1139.md) learns
+which exact relation to follow and copies its final value: 40/48 authored new
+answers versus 32/48 exact-code and 20/48 parent, preserving 62/62 earlier answers
+and 24/24 transfer. The subsequent [writer repair](docs/native_geometric_writer_binding_1139.md)
+reaches 48/48 answers and exact writes, preserves those earlier results plus
+28 long-context cases and five persistent turns, and gets 28/28 reserved-name
+answers/writes after selection. Its NoWrite regression is now
+[repaired](docs/native_geometric_writer_admission_1139.md): exact skips are
+21,799/21,907 and writer row comparisons fall from 226,101,330 to 539,448 on the
+same long-context prompts, with unchanged answers, writes and learned parameters.
+Learned typed selection and [competing-intermediate use](docs/native_geometric_typed_roles_1139.md)
+now produce 12/12 complete authored operand/refresh transfers versus 2/12 for the
+matched exact-code fit, with previous failures and preservation checks recorded.
+The model selects exact derived values using learned H4 metadata, canonical Copy
+identity and an explicit query boundary. The subsequent
+[operand-provenance continuation](docs/native_geometric_operand_provenance_1139.md)
+gets 12/16 complete independent-result name/order transfers, versus 3/16 parent
+and 12/16 exact-code. Four fail before selection, at the first literal answer;
+the [literal extension](docs/native_geometric_literal_selection_1139.md) now
+improves new complete transfers8/16 to16/16 but regresses computed-result and
+identifier-copy cases. The [protected admission repair](docs/native_geometric_literal_admission_1139.md)
+now retains a separate literal table with inherited computed roles unchanged:
+all prior preservation is restored, new complete transfer is16/16, and eight
+identifier-return functions execute24 assertions. The subsequent
+[committed NoRead completion](docs/native_geometric_no_read_completion_1139.md)
+preserves that model and repairs looping literal-context abstentions: the exposed
+set improves12/16 to14/16 and a new set14/16 to15/16. Identifier returns remain8/8
+and complete three-turn computations16/16. The remaining failure selects a
+retained but unsupported word; joint source/NoRead selection is next.
+General prose/syntax/reasoning and frontier capability remain unqualified. Follow
+the current-state pointer for artifacts, costs and the next implementation.
+
 ```sh
 cargo build --release --bin r4
 target/release/r4 geometric --help
