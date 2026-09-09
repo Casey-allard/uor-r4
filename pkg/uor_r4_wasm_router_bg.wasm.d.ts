@@ -1,6 +1,16 @@
 /* tslint:disable */
 /* eslint-disable */
 export const memory: WebAssembly.Memory;
+export const native_geometric_cancel: (a: number) => [number, number];
+export const native_geometric_capabilities: () => [number, number];
+export const native_geometric_create_session: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number, number];
+export const native_geometric_export_session: (a: number) => [number, number, number, number];
+export const native_geometric_finish_generation: (a: number) => [number, number, number, number];
+export const native_geometric_generate_step: (a: number, b: number) => [number, number, number, number];
+export const native_geometric_import_session: (a: number, b: number, c: number) => [number, number];
+export const native_geometric_ingest: (a: number, b: number, c: number) => [number, number, number, number];
+export const native_geometric_init: (a: number, b: number) => [number, number, number, number];
+export const native_geometric_free_session: (a: number) => void;
 export const generate_r4g1_response: (a: number, b: number, c: number) => [number, number];
 export const set_r4g1_bundle: (a: number, b: number, c: number, d: number) => [number, number];
 export const set_r4g1_production_bundle: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number, n: number, o: number, p: number, q: number, r: number, s: number, t: number, u: number, v: number, w: number, x: number, y: number, z: number, a1: number, b1: number, c1: number, d1: number) => [number, number];

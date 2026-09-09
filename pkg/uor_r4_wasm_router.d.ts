@@ -218,6 +218,26 @@ export function generate_r4g1_response(prompt: string, max_tokens: number): stri
 
 export function init_wasm(): void;
 
+export function native_geometric_cancel(handle: number): void;
+
+export function native_geometric_capabilities(): string;
+
+export function native_geometric_create_session(session_id: string, user_id: string, project_id: string): number;
+
+export function native_geometric_export_session(handle: number): Uint8Array;
+
+export function native_geometric_finish_generation(handle: number): string;
+
+export function native_geometric_free_session(handle: number): void;
+
+export function native_geometric_generate_step(handle: number, max_tokens: number): string;
+
+export function native_geometric_import_session(handle: number, bytes: Uint8Array): void;
+
+export function native_geometric_ingest(handle: number, text: string): string;
+
+export function native_geometric_init(model_bytes: Uint8Array): string;
+
 /**
  * Legacy compatibility installer. It accepts only graphs with both SKMX and
  * PSIB absent. Lane-bearing artifacts must use the schema-2 production
@@ -251,6 +271,16 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
+    readonly native_geometric_cancel: (a: number) => [number, number];
+    readonly native_geometric_capabilities: () => [number, number];
+    readonly native_geometric_create_session: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number, number];
+    readonly native_geometric_export_session: (a: number) => [number, number, number, number];
+    readonly native_geometric_finish_generation: (a: number) => [number, number, number, number];
+    readonly native_geometric_generate_step: (a: number, b: number) => [number, number, number, number];
+    readonly native_geometric_import_session: (a: number, b: number, c: number) => [number, number];
+    readonly native_geometric_ingest: (a: number, b: number, c: number) => [number, number, number, number];
+    readonly native_geometric_init: (a: number, b: number) => [number, number, number, number];
+    readonly native_geometric_free_session: (a: number) => void;
     readonly generate_r4g1_response: (a: number, b: number, c: number) => [number, number];
     readonly set_r4g1_bundle: (a: number, b: number, c: number, d: number) => [number, number];
     readonly set_r4g1_production_bundle: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number, n: number, o: number, p: number, q: number, r: number, s: number, t: number, u: number, v: number, w: number, x: number, y: number, z: number, a1: number, b1: number, c1: number, d1: number) => [number, number];
