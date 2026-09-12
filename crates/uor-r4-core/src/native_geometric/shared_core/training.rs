@@ -27,7 +27,8 @@ pub struct FitReport {
     pub after: Metrics,
     pub proposals: usize,
     pub accepted: usize,
-    /// Embedding, transition, query, key, read, phase, emission, output mix, null.
+    pub parameter_families: [String; 9],
+    /// Counts use the schema-specific names above.
     pub proposals_by_family: [usize; 9],
     pub accepted_by_family: [usize; 9],
     pub elapsed_ms: u128,
@@ -70,7 +71,7 @@ fn next(seed: &mut u64) -> u64 {
     *seed
 }
 
-fn validate_data(documents: &[Vec<u8>]) -> Result<()> {
+pub(super) fn validate_data(documents: &[Vec<u8>]) -> Result<()> {
     if documents.is_empty()
         || documents.len() > 64
         || documents.iter().any(|d| d.is_empty() || d.len() > 512)
@@ -116,6 +117,7 @@ impl SharedCore {
                 training_digest: None,
                 fit_config: None,
                 training_parent: None,
+                calibrated: None,
             },
             cid: String::new(),
         };
@@ -174,6 +176,7 @@ impl SharedCore {
         let start = Instant::now();
         let before = self.evaluate(documents, Intervention::Full)?;
         let mut model = self.clone();
+        model.artifact.implementation = Self::implementation_digest();
         let mut best = before.clone();
         let mut rng = config.seed;
         let mut proposed = [0; 9];
@@ -188,7 +191,27 @@ impl SharedCore {
                 offsets[family] + next(&mut rng) as usize % (offsets[family + 1] - offsets[family]);
             let old = model.artifact.parameters[index];
             let replacement = (next(&mut rng) % 120) as u16;
-            model.artifact.parameters[index] = replacement;
+            let mut old_branch = None;
+            if let Some(c) = model
+                .artifact
+                .calibrated
+                .as_mut()
+                .filter(|_| family == 6 || family == 7)
+            {
+                let node = next(&mut rng) as usize % 512;
+                old_branch = Some((node, c.branches[node]));
+                if family == 6 {
+                    c.branches[node].landmarks[next(&mut rng) as usize & 1] = replacement;
+                } else {
+                    match next(&mut rng) % 3 {
+                        0 => c.branches[node].thresholds[0] = (next(&mut rng) % 11) as i16 - 5,
+                        1 => c.branches[node].thresholds[1] = (next(&mut rng) % 11) as i16 - 5,
+                        _ => c.branches[node].union = !c.branches[node].union,
+                    }
+                }
+            } else {
+                model.artifact.parameters[index] = replacement;
+            }
             let scored = model.evaluate(documents, Intervention::Full)?;
             proposals += 1;
             proposed[family] += 1;
@@ -196,7 +219,13 @@ impl SharedCore {
                 best = scored;
                 accepted[family] += 1;
             } else {
-                model.artifact.parameters[index] = old;
+                if let Some((node, branch)) = old_branch {
+                    if let Some(c) = &mut model.artifact.calibrated {
+                        c.branches[node] = branch;
+                    }
+                } else {
+                    model.artifact.parameters[index] = old;
+                }
             }
         }
         let mut hash = blake3::Hasher::new();
@@ -216,6 +245,32 @@ impl SharedCore {
             after: best,
             proposals,
             accepted: accepted.iter().sum(),
+            parameter_families: if model.artifact.calibrated.is_some() {
+                [
+                    "embedding",
+                    "transition",
+                    "query",
+                    "key",
+                    "read",
+                    "phase",
+                    "cap_landmarks",
+                    "cap_thresholds_union",
+                    "null",
+                ]
+            } else {
+                [
+                    "embedding",
+                    "transition",
+                    "query",
+                    "key",
+                    "read",
+                    "phase",
+                    "emission",
+                    "output_mix",
+                    "null",
+                ]
+            }
+            .map(str::to_owned),
             proposals_by_family: proposed,
             accepted_by_family: accepted,
             elapsed_ms: start.elapsed().as_millis(),

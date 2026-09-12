@@ -1,6 +1,8 @@
 use super::*;
 use std::sync::OnceLock;
 
+mod calibrated;
+mod calibrated_audit;
 mod diagnostic;
 
 fn model() -> &'static SharedCore {

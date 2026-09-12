@@ -1,11 +1,14 @@
 //! Experimental shared geometric byte learner. No retained-model dispatch uses it.
 //!
 //! Host construction and training live separately from the discrete kernel.
-//! Every learned parameter is a canonical H4 root. Runtime composition reads
+//! State parameters are canonical H4 roots; calibrated emission also learns
+//! bounded integer thresholds and intersection/union choices. Composition reads
 //! the exact finite group table, never a tabulated linear contraction. Four
 //! independent state slots are not four independent Galois companions.
+mod calibration;
 mod training;
 use super::Geometry;
+pub use calibration::CalibrationReport;
 use serde::{Deserialize, Serialize};
 pub use training::{FitConfig, FitReport, Metrics};
 
@@ -14,6 +17,11 @@ pub const CONTEXT: usize = 32;
 const LANES: usize = 4;
 const ROOTS: usize = 120;
 const SCHEMA: &str = "uor-r4.shared-geometric-core/1";
+const CALIBRATED_SCHEMA: &str = "uor-r4.shared-geometric-core/2";
+// The preserved v1 source/binary binding. Its runtime path remains supported;
+// this is not permission to load arbitrary implementation identities.
+const LEGACY_IMPLEMENTATION: &str =
+    "blake3:b6d1b6fb5c6af3be5fe31dc44dfdf762aad084e3100b5484e374c6a99a6b756d";
 const EMBED: usize = 0;
 const TRANSITION: usize = EMBED + LANES * 256;
 const QUERY: usize = TRANSITION + LANES * ROOTS;
@@ -40,6 +48,23 @@ impl std::fmt::Display for CoreError {
 impl std::error::Error for CoreError {}
 type Result<T> = std::result::Result<T, CoreError>;
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct CapBranch {
+    landmarks: [u16; 2],
+    thresholds: [i16; 2],
+    union: bool,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct CalibratedEmission {
+    branches: Vec<CapBranch>,
+    parent: String,
+    calibration_data: Option<String>,
+    calibration_passes: u8,
+}
+
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Artifact {
@@ -52,6 +77,8 @@ struct Artifact {
     training_digest: Option<String>,
     fit_config: Option<FitConfig>,
     training_parent: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    calibrated: Option<CalibratedEmission>,
 }
 
 /// A separately versioned experimental artifact in the native model module.
@@ -122,6 +149,7 @@ impl SharedCore {
         let mut hash = blake3::Hasher::new();
         hash.update(include_bytes!("shared_core.rs"));
         hash.update(include_bytes!("shared_core/training.rs"));
+        hash.update(include_bytes!("shared_core/calibration.rs"));
         hash.update(include_bytes!("training.rs"));
         hash.update(include_bytes!("anchors.rs"));
         format!("blake3:{}", hash.finalize())
@@ -156,8 +184,27 @@ impl SharedCore {
             serde_json::from_slice(bytes).map_err(|e| CoreError::Host(e.to_string()))?;
         let expected =
             super::training::geometry(258, CONTEXT).map_err(|e| CoreError::Host(e.to_string()))?;
-        if artifact.schema != SCHEMA
-            || artifact.implementation != Self::implementation_digest()
+        let version_valid = match &artifact.calibrated {
+            None => {
+                artifact.schema == SCHEMA
+                    && (artifact.implementation == Self::implementation_digest()
+                        || artifact.implementation == LEGACY_IMPLEMENTATION)
+            }
+            Some(c) => {
+                artifact.schema == CALIBRATED_SCHEMA
+                    && artifact.implementation == Self::implementation_digest()
+                    && c.branches.len() == 512
+                    && c.parent.starts_with("blake3:")
+                    && c.parent.len() == 71
+                    && ((c.calibration_data.is_none() && c.calibration_passes == 0)
+                        || (c.calibration_data.is_some() && c.calibration_passes == 3))
+                    && c.branches.iter().all(|b| {
+                        b.landmarks.iter().all(|&r| r < 120)
+                            && b.thresholds.iter().all(|&t| (-5..=5).contains(&t))
+                    })
+            }
+        };
+        if !version_valid
             || artifact.seed == 0
             || artifact.training_digest.is_some() != artifact.fit_config.is_some()
             || artifact.training_digest.is_some() != artifact.training_parent.is_some()
@@ -190,7 +237,7 @@ impl SharedCore {
         let snapshot: Snapshot =
             serde_json::from_slice(bytes).map_err(|e| CoreError::Host(e.to_string()))?;
         let state = &snapshot.state;
-        if snapshot.schema != SCHEMA
+        if snapshot.schema != self.artifact.schema
             || snapshot.artifact != self.cid
             || state.roots.iter().any(|&r| usize::from(r) >= ROOTS)
             || state.last_source.is_some_and(|p| {
@@ -220,6 +267,26 @@ impl SharedCore {
 
 // SHARED_CORE_INTEGER_KERNEL_BEGIN
 impl SharedCore {
+    fn cap_score(
+        &self,
+        roots: [u16; LANES],
+        branch: CapBranch,
+        depth: usize,
+        work: &mut Work,
+    ) -> i16 {
+        let lane = depth & 3;
+        work.table_reads = work.table_reads.saturating_add(5);
+        let first =
+            self.relative_score(roots[lane], branch.landmarks[0], work) - branch.thresholds[0];
+        let second = self.relative_score(roots[(lane + 1) & 3], branch.landmarks[1], work)
+            - branch.thresholds[1];
+        if branch.union {
+            first.max(second)
+        } else {
+            first.min(second)
+        }
+    }
+
     fn product(&self, a: u16, b: u16, work: &mut Work) -> u16 {
         work.products = work.products.saturating_add(1);
         work.table_reads = work.table_reads.saturating_add(2);
@@ -335,6 +402,10 @@ impl CoreSession<'_> {
 
     fn branch_score(&mut self, node: usize, depth: usize) -> i16 {
         let m = self.model;
+        if let Some(c) = &m.artifact.calibrated {
+            self.work.output_decisions = self.work.output_decisions.saturating_add(1);
+            return m.cap_score(self.state.roots, c.branches[node], depth, &mut self.work);
+        }
         let lane = depth & 3;
         let mix = m.parameter(OUTPUT_MIX + depth, &mut self.work);
         let code = m.product(self.state.roots[lane], mix, &mut self.work);
@@ -367,7 +438,7 @@ impl CoreSession<'_> {
 impl CoreSession<'_> {
     pub fn checkpoint(&self) -> Result<Vec<u8>> {
         serde_json::to_vec(&Snapshot {
-            schema: SCHEMA.into(),
+            schema: self.model.artifact.schema.clone(),
             artifact: self.model.cid.clone(),
             control: self.control,
             state: self.state.clone(),

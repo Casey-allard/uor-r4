@@ -20,6 +20,8 @@ The first implementation tests whether that complete path is trainable. It does 
 
 The implementation lives in `crates/uor-r4-core/src/native_geometric/shared_core/`. A byte-level emitter avoids requiring a pretrained vocabulary projection. That is an implementation choice, not evidence of linguistic competence or efficient scaling. Output must include actual continuation and termination behavior; teacher-forced scores do not substitute for generation.
 
+The subsequent [schema-2 calibrated emitter](../native_geometric_calibrated_emission_973.md) keeps the ordered H4 components separate through a learned union/intersection of two angular caps. It versions the original emission decision without changing recurrence or contextual access. Its fixed calibration failed admission, so no joint-fit or new-generation result is claimed; current state owns the resulting development action.
+
 This first path uses H4 finite composition as its geometric foundation. The existing geometry compiler provides exact signed `Z[phi]` anchors, group composition/inverse tables and the paired-H4/icosian witness. Exact byte identities address canonical prime-token entries; the first four fixed zeta channels advance phase counters and address learned phase-root tables. Four recurrent H4 slots are independent computational state, not independently learned Galois companions. The retained prime/ordered-n-let memory records and typed operators keep their scoped contracts. Their complete integration and the predictive contributions of these geometric mechanisms are not established by this prototype. Exact durable memory, typed arithmetic/copy operations and existing API/session/checkpoint serving are not yet connected to the experiment.
 
 ## Experiment and acceptance
