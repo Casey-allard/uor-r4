@@ -1,0 +1,1429 @@
+{
+  "schema": "uor-r4.shared-core-diagnostic/1",
+  "date": "2026-09-12",
+  "decision": "DIAGNOSTIC_COMPLETE_NO_REFIT",
+  "source_base": "3570f91445ae713ca1063d7f6d8db20193fd3323",
+  "binary_sha256": "40cd11c4ba950a195da697a9c3d95842c0f40f7f991a4cc40e302842f93f2657",
+  "source_freeze_sha256": "215ac8ca54a2210593f5079138f197e7314d9ebea6088e91ad864781d071b561",
+  "report_root": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/diagnostic-1/attempt-1",
+  "files": {
+    "attempt.json": {
+      "sha256": "94a0da75efe52b1dd7d18a1858502ca987e830a69da1f5742cf9e08b8522a31b",
+      "bytes": 496
+    },
+    "candidate-holdout-rows.json": {
+      "sha256": "d8e37a0d14ed4a8455dda1a37b2e7aeb54d316195df5e5fdff0686e7cca57058",
+      "bytes": 311209
+    },
+    "candidate-training-rows.json": {
+      "sha256": "698afea99885f0172cdaecde030a283dcb3eeae2a6077be060293a036110eacb",
+      "bytes": 840148
+    },
+    "initial-holdout-rows.json": {
+      "sha256": "14198c761ff29bd34abc80dada137c111f614ced64616f4a9cfe57fdd053f878",
+      "bytes": 311181
+    },
+    "initial-training-rows.json": {
+      "sha256": "a486c65551019d76cb0a168da74f341b35cd0a4e6e4cb1647cb279635c73ef4b",
+      "bytes": 839942
+    },
+    "manifest.json": {
+      "sha256": "a6868eabe1cb68f45d7c90946a60906453db9ec81232ced7980bb63a7cb14946",
+      "bytes": 1189
+    },
+    "result.json": {
+      "sha256": "ce1b79e29334bcb8d0396c56b74a33040746c32d43c960cd9854b4dd2437439f",
+      "bytes": 227641
+    }
+  },
+  "original_metrics_reproduced": true,
+  "artifact_bytes_unchanged": true,
+  "refit": false,
+  "promoted": false,
+  "scope": "Saved initial/candidate artifacts, Full control, 672 construction and 249 opened held-out positions each. No fresh acceptance or model change. Root-state equality concerns immediate emission, not the full recurrent/session state.",
+  "summaries": [
+    {
+      "artifact": "blake3:8946180617a152f381f87c5949582646ea1662cf2dc2dff6822242750320df45",
+      "metrics": {
+        "correct": 4,
+        "first_wrong_depth": [
+          266,
+          228,
+          108,
+          43,
+          16,
+          5,
+          1,
+          1,
+          0
+        ],
+        "greedy_non_ascii_text_predictions": 429,
+        "leaf_probability_mode_correct": 3,
+        "leaf_probability_mode_differs_from_greedy": 393,
+        "mean_nll": 5.820628304855295,
+        "mode_scope": "Host-only exhaustive decoder comparison, not a serving change or trained candidate.",
+        "nodes": [
+          {
+            "code_conflict_error_floor": 12,
+            "constant_majority_errors": 12,
+            "constant_majority_is_implemented": false,
+            "current_errors": 266,
+            "current_nll": 485.76214804578836,
+            "current_score_ties": 146,
+            "depth": 0,
+            "minimum_legal_landmark_errors_fixed_states": 233,
+            "minimum_legal_landmark_nll_fixed_states": 476.41291459375367,
+            "node": 0,
+            "positions": 672,
+            "target_left": 660,
+            "unique_codes": 120
+          },
+          {
+            "code_conflict_error_floor": 178,
+            "constant_majority_errors": 216,
+            "constant_majority_is_implemented": false,
+            "current_errors": 379,
+            "current_nll": 488.54597643927804,
+            "current_score_ties": 170,
+            "depth": 1,
+            "minimum_legal_landmark_errors_fixed_states": 323,
+            "minimum_legal_landmark_nll_fixed_states": 457.1949414556628,
+            "node": 1,
+            "positions": 660,
+            "target_left": 216,
+            "unique_codes": 120
+          }
+        ],
+        "per_byte": [
+          {
+            "byte_or_eos": 10,
+            "correct": 0,
+            "positions": 19
+          },
+          {
+            "byte_or_eos": 32,
+            "correct": 1,
+            "positions": 126
+          },
+          {
+            "byte_or_eos": 33,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 40,
+            "correct": 1,
+            "positions": 4
+          },
+          {
+            "byte_or_eos": 41,
+            "correct": 0,
+            "positions": 4
+          },
+          {
+            "byte_or_eos": 43,
+            "correct": 0,
+            "positions": 2
+          },
+          {
+            "byte_or_eos": 44,
+            "correct": 0,
+            "positions": 2
+          },
+          {
+            "byte_or_eos": 45,
+            "correct": 0,
+            "positions": 3
+          },
+          {
+            "byte_or_eos": 46,
+            "correct": 0,
+            "positions": 21
+          },
+          {
+            "byte_or_eos": 49,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 50,
+            "correct": 0,
+            "positions": 7
+          },
+          {
+            "byte_or_eos": 51,
+            "correct": 0,
+            "positions": 6
+          },
+          {
+            "byte_or_eos": 53,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 58,
+            "correct": 0,
+            "positions": 9
+          },
+          {
+            "byte_or_eos": 59,
+            "correct": 0,
+            "positions": 3
+          },
+          {
+            "byte_or_eos": 61,
+            "correct": 0,
+            "positions": 2
+          },
+          {
+            "byte_or_eos": 62,
+            "correct": 0,
+            "positions": 3
+          },
+          {
+            "byte_or_eos": 63,
+            "correct": 0,
+            "positions": 2
+          },
+          {
+            "byte_or_eos": 65,
+            "correct": 0,
+            "positions": 7
+          },
+          {
+            "byte_or_eos": 66,
+            "correct": 0,
+            "positions": 2
+          },
+          {
+            "byte_or_eos": 67,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 72,
+            "correct": 0,
+            "positions": 3
+          },
+          {
+            "byte_or_eos": 76,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 79,
+            "correct": 0,
+            "positions": 2
+          },
+          {
+            "byte_or_eos": 82,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 84,
+            "correct": 0,
+            "positions": 10
+          },
+          {
+            "byte_or_eos": 85,
+            "correct": 0,
+            "positions": 4
+          },
+          {
+            "byte_or_eos": 87,
+            "correct": 0,
+            "positions": 2
+          },
+          {
+            "byte_or_eos": 95,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 97,
+            "correct": 1,
+            "positions": 37
+          },
+          {
+            "byte_or_eos": 98,
+            "correct": 0,
+            "positions": 17
+          },
+          {
+            "byte_or_eos": 99,
+            "correct": 0,
+            "positions": 8
+          },
+          {
+            "byte_or_eos": 100,
+            "correct": 0,
+            "positions": 17
+          },
+          {
+            "byte_or_eos": 101,
+            "correct": 0,
+            "positions": 58
+          },
+          {
+            "byte_or_eos": 102,
+            "correct": 0,
+            "positions": 5
+          },
+          {
+            "byte_or_eos": 103,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 104,
+            "correct": 0,
+            "positions": 19
+          },
+          {
+            "byte_or_eos": 105,
+            "correct": 0,
+            "positions": 26
+          },
+          {
+            "byte_or_eos": 107,
+            "correct": 0,
+            "positions": 8
+          },
+          {
+            "byte_or_eos": 108,
+            "correct": 0,
+            "positions": 31
+          },
+          {
+            "byte_or_eos": 109,
+            "correct": 0,
+            "positions": 7
+          },
+          {
+            "byte_or_eos": 110,
+            "correct": 1,
+            "positions": 24
+          },
+          {
+            "byte_or_eos": 111,
+            "correct": 0,
+            "positions": 29
+          },
+          {
+            "byte_or_eos": 112,
+            "correct": 0,
+            "positions": 3
+          },
+          {
+            "byte_or_eos": 113,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 114,
+            "correct": 0,
+            "positions": 20
+          },
+          {
+            "byte_or_eos": 115,
+            "correct": 0,
+            "positions": 39
+          },
+          {
+            "byte_or_eos": 116,
+            "correct": 0,
+            "positions": 25
+          },
+          {
+            "byte_or_eos": 117,
+            "correct": 0,
+            "positions": 8
+          },
+          {
+            "byte_or_eos": 118,
+            "correct": 0,
+            "positions": 3
+          },
+          {
+            "byte_or_eos": 119,
+            "correct": 0,
+            "positions": 11
+          },
+          {
+            "byte_or_eos": 120,
+            "correct": 0,
+            "positions": 2
+          },
+          {
+            "byte_or_eos": 121,
+            "correct": 0,
+            "positions": 5
+          },
+          {
+            "byte_or_eos": 123,
+            "correct": 0,
+            "positions": 3
+          },
+          {
+            "byte_or_eos": 125,
+            "correct": 0,
+            "positions": 3
+          },
+          {
+            "byte_or_eos": 256,
+            "correct": 0,
+            "positions": 12
+          }
+        ],
+        "positions": 672,
+        "root_state_collisions": {
+          "conflicting_keys": 5,
+          "empirical_lookup_error_floor": 15,
+          "positions": 672,
+          "scope": "Observed equality conflicts only; low collision does not establish learnable semantics or transfer.",
+          "unique_keys": 637
+        },
+        "root_state_collisions_after_input": {
+          "conflicting_keys": 4,
+          "empirical_lookup_error_floor": 6,
+          "positions": 660,
+          "scope": "Observed equality conflicts only; low collision does not establish learnable semantics or transfer.",
+          "unique_keys": 636
+        }
+      },
+      "model": "initial",
+      "population": "training"
+    },
+    {
+      "artifact": "blake3:8946180617a152f381f87c5949582646ea1662cf2dc2dff6822242750320df45",
+      "metrics": {
+        "correct": 2,
+        "first_wrong_depth": [
+          102,
+          83,
+          41,
+          11,
+          7,
+          1,
+          0,
+          2,
+          0
+        ],
+        "greedy_non_ascii_text_predictions": 155,
+        "leaf_probability_mode_correct": 1,
+        "leaf_probability_mode_differs_from_greedy": 152,
+        "mean_nll": 5.7929880342312705,
+        "mode_scope": "Host-only exhaustive decoder comparison, not a serving change or trained candidate.",
+        "nodes": [
+          {
+            "code_conflict_error_floor": 4,
+            "constant_majority_errors": 4,
+            "constant_majority_is_implemented": false,
+            "current_errors": 102,
+            "current_nll": 180.8807960516675,
+            "current_score_ties": 45,
+            "depth": 0,
+            "minimum_legal_landmark_errors_fixed_states": 69,
+            "minimum_legal_landmark_nll_fixed_states": 168.52250636469353,
+            "node": 0,
+            "positions": 249,
+            "target_left": 245,
+            "unique_codes": 107
+          },
+          {
+            "code_conflict_error_floor": 48,
+            "constant_majority_errors": 77,
+            "constant_majority_is_implemented": false,
+            "current_errors": 132,
+            "current_nll": 174.68691386332458,
+            "current_score_ties": 65,
+            "depth": 1,
+            "minimum_legal_landmark_errors_fixed_states": 113,
+            "minimum_legal_landmark_nll_fixed_states": 170.0269526627518,
+            "node": 1,
+            "positions": 245,
+            "target_left": 77,
+            "unique_codes": 105
+          }
+        ],
+        "per_byte": [
+          {
+            "byte_or_eos": 10,
+            "correct": 0,
+            "positions": 6
+          },
+          {
+            "byte_or_eos": 32,
+            "correct": 1,
+            "positions": 48
+          },
+          {
+            "byte_or_eos": 40,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 41,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 43,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 45,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 46,
+            "correct": 1,
+            "positions": 6
+          },
+          {
+            "byte_or_eos": 49,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 50,
+            "correct": 0,
+            "positions": 2
+          },
+          {
+            "byte_or_eos": 51,
+            "correct": 0,
+            "positions": 3
+          },
+          {
+            "byte_or_eos": 58,
+            "correct": 0,
+            "positions": 3
+          },
+          {
+            "byte_or_eos": 59,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 61,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 62,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 63,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 65,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 67,
+            "correct": 0,
+            "positions": 2
+          },
+          {
+            "byte_or_eos": 76,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 79,
+            "correct": 0,
+            "positions": 2
+          },
+          {
+            "byte_or_eos": 84,
+            "correct": 0,
+            "positions": 4
+          },
+          {
+            "byte_or_eos": 85,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 87,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 97,
+            "correct": 0,
+            "positions": 12
+          },
+          {
+            "byte_or_eos": 98,
+            "correct": 0,
+            "positions": 5
+          },
+          {
+            "byte_or_eos": 99,
+            "correct": 0,
+            "positions": 4
+          },
+          {
+            "byte_or_eos": 100,
+            "correct": 0,
+            "positions": 6
+          },
+          {
+            "byte_or_eos": 101,
+            "correct": 0,
+            "positions": 21
+          },
+          {
+            "byte_or_eos": 102,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 103,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 104,
+            "correct": 0,
+            "positions": 11
+          },
+          {
+            "byte_or_eos": 105,
+            "correct": 0,
+            "positions": 15
+          },
+          {
+            "byte_or_eos": 107,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 108,
+            "correct": 0,
+            "positions": 9
+          },
+          {
+            "byte_or_eos": 109,
+            "correct": 0,
+            "positions": 3
+          },
+          {
+            "byte_or_eos": 110,
+            "correct": 0,
+            "positions": 11
+          },
+          {
+            "byte_or_eos": 111,
+            "correct": 0,
+            "positions": 9
+          },
+          {
+            "byte_or_eos": 112,
+            "correct": 0,
+            "positions": 2
+          },
+          {
+            "byte_or_eos": 114,
+            "correct": 0,
+            "positions": 11
+          },
+          {
+            "byte_or_eos": 115,
+            "correct": 0,
+            "positions": 14
+          },
+          {
+            "byte_or_eos": 116,
+            "correct": 0,
+            "positions": 10
+          },
+          {
+            "byte_or_eos": 117,
+            "correct": 0,
+            "positions": 3
+          },
+          {
+            "byte_or_eos": 118,
+            "correct": 0,
+            "positions": 2
+          },
+          {
+            "byte_or_eos": 119,
+            "correct": 0,
+            "positions": 2
+          },
+          {
+            "byte_or_eos": 122,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 123,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 125,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 256,
+            "correct": 0,
+            "positions": 4
+          }
+        ],
+        "positions": 249,
+        "root_state_collisions": {
+          "conflicting_keys": 1,
+          "empirical_lookup_error_floor": 3,
+          "positions": 249,
+          "scope": "Observed equality conflicts only; low collision does not establish learnable semantics or transfer.",
+          "unique_keys": 246
+        },
+        "root_state_collisions_after_input": {
+          "conflicting_keys": 0,
+          "empirical_lookup_error_floor": 0,
+          "positions": 245,
+          "scope": "Observed equality conflicts only; low collision does not establish learnable semantics or transfer.",
+          "unique_keys": 245
+        }
+      },
+      "model": "initial",
+      "population": "holdout"
+    },
+    {
+      "artifact": "blake3:5979f2e226d34f12aae17ff3a33d0fddfa253d855af4f9754460eaf428cd925d",
+      "metrics": {
+        "correct": 25,
+        "first_wrong_depth": [
+          206,
+          203,
+          113,
+          58,
+          31,
+          16,
+          10,
+          10,
+          0
+        ],
+        "greedy_non_ascii_text_predictions": 370,
+        "leaf_probability_mode_correct": 33,
+        "leaf_probability_mode_differs_from_greedy": 382,
+        "mean_nll": 5.223800196046703,
+        "mode_scope": "Host-only exhaustive decoder comparison, not a serving change or trained candidate.",
+        "nodes": [
+          {
+            "code_conflict_error_floor": 11,
+            "constant_majority_errors": 12,
+            "constant_majority_is_implemented": false,
+            "current_errors": 206,
+            "current_nll": 448.72460364780824,
+            "current_score_ties": 146,
+            "depth": 0,
+            "minimum_legal_landmark_errors_fixed_states": 189,
+            "minimum_legal_landmark_nll_fixed_states": 447.79213282432266,
+            "node": 0,
+            "positions": 672,
+            "target_left": 660,
+            "unique_codes": 117
+          },
+          {
+            "code_conflict_error_floor": 168,
+            "constant_majority_errors": 216,
+            "constant_majority_is_implemented": false,
+            "current_errors": 292,
+            "current_nll": 436.3065581397649,
+            "current_score_ties": 168,
+            "depth": 1,
+            "minimum_legal_landmark_errors_fixed_states": 292,
+            "minimum_legal_landmark_nll_fixed_states": 436.3065581397641,
+            "node": 1,
+            "positions": 660,
+            "target_left": 216,
+            "unique_codes": 120
+          }
+        ],
+        "per_byte": [
+          {
+            "byte_or_eos": 10,
+            "correct": 7,
+            "positions": 19
+          },
+          {
+            "byte_or_eos": 32,
+            "correct": 5,
+            "positions": 126
+          },
+          {
+            "byte_or_eos": 33,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 40,
+            "correct": 0,
+            "positions": 4
+          },
+          {
+            "byte_or_eos": 41,
+            "correct": 0,
+            "positions": 4
+          },
+          {
+            "byte_or_eos": 43,
+            "correct": 0,
+            "positions": 2
+          },
+          {
+            "byte_or_eos": 44,
+            "correct": 0,
+            "positions": 2
+          },
+          {
+            "byte_or_eos": 45,
+            "correct": 1,
+            "positions": 3
+          },
+          {
+            "byte_or_eos": 46,
+            "correct": 0,
+            "positions": 21
+          },
+          {
+            "byte_or_eos": 49,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 50,
+            "correct": 1,
+            "positions": 7
+          },
+          {
+            "byte_or_eos": 51,
+            "correct": 0,
+            "positions": 6
+          },
+          {
+            "byte_or_eos": 53,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 58,
+            "correct": 0,
+            "positions": 9
+          },
+          {
+            "byte_or_eos": 59,
+            "correct": 0,
+            "positions": 3
+          },
+          {
+            "byte_or_eos": 61,
+            "correct": 0,
+            "positions": 2
+          },
+          {
+            "byte_or_eos": 62,
+            "correct": 0,
+            "positions": 3
+          },
+          {
+            "byte_or_eos": 63,
+            "correct": 0,
+            "positions": 2
+          },
+          {
+            "byte_or_eos": 65,
+            "correct": 1,
+            "positions": 7
+          },
+          {
+            "byte_or_eos": 66,
+            "correct": 1,
+            "positions": 2
+          },
+          {
+            "byte_or_eos": 67,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 72,
+            "correct": 0,
+            "positions": 3
+          },
+          {
+            "byte_or_eos": 76,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 79,
+            "correct": 0,
+            "positions": 2
+          },
+          {
+            "byte_or_eos": 82,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 84,
+            "correct": 0,
+            "positions": 10
+          },
+          {
+            "byte_or_eos": 85,
+            "correct": 0,
+            "positions": 4
+          },
+          {
+            "byte_or_eos": 87,
+            "correct": 0,
+            "positions": 2
+          },
+          {
+            "byte_or_eos": 95,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 97,
+            "correct": 0,
+            "positions": 37
+          },
+          {
+            "byte_or_eos": 98,
+            "correct": 0,
+            "positions": 17
+          },
+          {
+            "byte_or_eos": 99,
+            "correct": 1,
+            "positions": 8
+          },
+          {
+            "byte_or_eos": 100,
+            "correct": 0,
+            "positions": 17
+          },
+          {
+            "byte_or_eos": 101,
+            "correct": 2,
+            "positions": 58
+          },
+          {
+            "byte_or_eos": 102,
+            "correct": 0,
+            "positions": 5
+          },
+          {
+            "byte_or_eos": 103,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 104,
+            "correct": 0,
+            "positions": 19
+          },
+          {
+            "byte_or_eos": 105,
+            "correct": 0,
+            "positions": 26
+          },
+          {
+            "byte_or_eos": 107,
+            "correct": 0,
+            "positions": 8
+          },
+          {
+            "byte_or_eos": 108,
+            "correct": 0,
+            "positions": 31
+          },
+          {
+            "byte_or_eos": 109,
+            "correct": 1,
+            "positions": 7
+          },
+          {
+            "byte_or_eos": 110,
+            "correct": 0,
+            "positions": 24
+          },
+          {
+            "byte_or_eos": 111,
+            "correct": 1,
+            "positions": 29
+          },
+          {
+            "byte_or_eos": 112,
+            "correct": 0,
+            "positions": 3
+          },
+          {
+            "byte_or_eos": 113,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 114,
+            "correct": 0,
+            "positions": 20
+          },
+          {
+            "byte_or_eos": 115,
+            "correct": 1,
+            "positions": 39
+          },
+          {
+            "byte_or_eos": 116,
+            "correct": 2,
+            "positions": 25
+          },
+          {
+            "byte_or_eos": 117,
+            "correct": 0,
+            "positions": 8
+          },
+          {
+            "byte_or_eos": 118,
+            "correct": 0,
+            "positions": 3
+          },
+          {
+            "byte_or_eos": 119,
+            "correct": 1,
+            "positions": 11
+          },
+          {
+            "byte_or_eos": 120,
+            "correct": 0,
+            "positions": 2
+          },
+          {
+            "byte_or_eos": 121,
+            "correct": 0,
+            "positions": 5
+          },
+          {
+            "byte_or_eos": 123,
+            "correct": 0,
+            "positions": 3
+          },
+          {
+            "byte_or_eos": 125,
+            "correct": 0,
+            "positions": 3
+          },
+          {
+            "byte_or_eos": 256,
+            "correct": 0,
+            "positions": 12
+          }
+        ],
+        "positions": 672,
+        "root_state_collisions": {
+          "conflicting_keys": 5,
+          "empirical_lookup_error_floor": 15,
+          "positions": 672,
+          "scope": "Observed equality conflicts only; low collision does not establish learnable semantics or transfer.",
+          "unique_keys": 637
+        },
+        "root_state_collisions_after_input": {
+          "conflicting_keys": 4,
+          "empirical_lookup_error_floor": 6,
+          "positions": 660,
+          "scope": "Observed equality conflicts only; low collision does not establish learnable semantics or transfer.",
+          "unique_keys": 636
+        }
+      },
+      "model": "candidate",
+      "population": "training"
+    },
+    {
+      "artifact": "blake3:5979f2e226d34f12aae17ff3a33d0fddfa253d855af4f9754460eaf428cd925d",
+      "metrics": {
+        "correct": 0,
+        "first_wrong_depth": [
+          95,
+          76,
+          45,
+          12,
+          10,
+          9,
+          1,
+          1,
+          0
+        ],
+        "greedy_non_ascii_text_predictions": 146,
+        "leaf_probability_mode_correct": 2,
+        "leaf_probability_mode_differs_from_greedy": 149,
+        "mean_nll": 5.710435204912251,
+        "mode_scope": "Host-only exhaustive decoder comparison, not a serving change or trained candidate.",
+        "nodes": [
+          {
+            "code_conflict_error_floor": 4,
+            "constant_majority_errors": 4,
+            "constant_majority_is_implemented": false,
+            "current_errors": 95,
+            "current_nll": 177.6331107300662,
+            "current_score_ties": 60,
+            "depth": 0,
+            "minimum_legal_landmark_errors_fixed_states": 78,
+            "minimum_legal_landmark_nll_fixed_states": 170.60323936969982,
+            "node": 0,
+            "positions": 249,
+            "target_left": 245,
+            "unique_codes": 107
+          },
+          {
+            "code_conflict_error_floor": 49,
+            "constant_majority_errors": 77,
+            "constant_majority_is_implemented": false,
+            "current_errors": 132,
+            "current_nll": 173.61540109530355,
+            "current_score_ties": 60,
+            "depth": 1,
+            "minimum_legal_landmark_errors_fixed_states": 117,
+            "minimum_legal_landmark_nll_fixed_states": 168.6632025686459,
+            "node": 1,
+            "positions": 245,
+            "target_left": 77,
+            "unique_codes": 103
+          }
+        ],
+        "per_byte": [
+          {
+            "byte_or_eos": 10,
+            "correct": 0,
+            "positions": 6
+          },
+          {
+            "byte_or_eos": 32,
+            "correct": 0,
+            "positions": 48
+          },
+          {
+            "byte_or_eos": 40,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 41,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 43,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 45,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 46,
+            "correct": 0,
+            "positions": 6
+          },
+          {
+            "byte_or_eos": 49,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 50,
+            "correct": 0,
+            "positions": 2
+          },
+          {
+            "byte_or_eos": 51,
+            "correct": 0,
+            "positions": 3
+          },
+          {
+            "byte_or_eos": 58,
+            "correct": 0,
+            "positions": 3
+          },
+          {
+            "byte_or_eos": 59,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 61,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 62,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 63,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 65,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 67,
+            "correct": 0,
+            "positions": 2
+          },
+          {
+            "byte_or_eos": 76,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 79,
+            "correct": 0,
+            "positions": 2
+          },
+          {
+            "byte_or_eos": 84,
+            "correct": 0,
+            "positions": 4
+          },
+          {
+            "byte_or_eos": 85,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 87,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 97,
+            "correct": 0,
+            "positions": 12
+          },
+          {
+            "byte_or_eos": 98,
+            "correct": 0,
+            "positions": 5
+          },
+          {
+            "byte_or_eos": 99,
+            "correct": 0,
+            "positions": 4
+          },
+          {
+            "byte_or_eos": 100,
+            "correct": 0,
+            "positions": 6
+          },
+          {
+            "byte_or_eos": 101,
+            "correct": 0,
+            "positions": 21
+          },
+          {
+            "byte_or_eos": 102,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 103,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 104,
+            "correct": 0,
+            "positions": 11
+          },
+          {
+            "byte_or_eos": 105,
+            "correct": 0,
+            "positions": 15
+          },
+          {
+            "byte_or_eos": 107,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 108,
+            "correct": 0,
+            "positions": 9
+          },
+          {
+            "byte_or_eos": 109,
+            "correct": 0,
+            "positions": 3
+          },
+          {
+            "byte_or_eos": 110,
+            "correct": 0,
+            "positions": 11
+          },
+          {
+            "byte_or_eos": 111,
+            "correct": 0,
+            "positions": 9
+          },
+          {
+            "byte_or_eos": 112,
+            "correct": 0,
+            "positions": 2
+          },
+          {
+            "byte_or_eos": 114,
+            "correct": 0,
+            "positions": 11
+          },
+          {
+            "byte_or_eos": 115,
+            "correct": 0,
+            "positions": 14
+          },
+          {
+            "byte_or_eos": 116,
+            "correct": 0,
+            "positions": 10
+          },
+          {
+            "byte_or_eos": 117,
+            "correct": 0,
+            "positions": 3
+          },
+          {
+            "byte_or_eos": 118,
+            "correct": 0,
+            "positions": 2
+          },
+          {
+            "byte_or_eos": 119,
+            "correct": 0,
+            "positions": 2
+          },
+          {
+            "byte_or_eos": 122,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 123,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 125,
+            "correct": 0,
+            "positions": 1
+          },
+          {
+            "byte_or_eos": 256,
+            "correct": 0,
+            "positions": 4
+          }
+        ],
+        "positions": 249,
+        "root_state_collisions": {
+          "conflicting_keys": 1,
+          "empirical_lookup_error_floor": 3,
+          "positions": 249,
+          "scope": "Observed equality conflicts only; low collision does not establish learnable semantics or transfer.",
+          "unique_keys": 246
+        },
+        "root_state_collisions_after_input": {
+          "conflicting_keys": 0,
+          "empirical_lookup_error_floor": 0,
+          "positions": 245,
+          "scope": "Observed equality conflicts only; low collision does not establish learnable semantics or transfer.",
+          "unique_keys": 245
+        }
+      },
+      "model": "candidate",
+      "population": "holdout"
+    }
+  ],
+  "changed_parameters_by_family": [
+    7,
+    14,
+    48,
+    39,
+    58,
+    4,
+    77,
+    8,
+    1
+  ],
+  "parameter_family_order": [
+    "embedding",
+    "transition",
+    "query",
+    "key",
+    "read",
+    "phase",
+    "output",
+    "output_mix",
+    "null"
+  ],
+  "diagnosis": "The fixed product-to-one-H4-code emitter loses distinctions and its zero-threshold angular landmark classifier cannot express the observed branch decisions adequately. Landmark optimization headroom alone is insufficient. Full-root collision census and exhaustive leaf-mode comparison do not establish recurrent semantic quality or justify extra context mechanisms.",
+  "next_action": "Replace the restricted shared byte-branch operator with a calibrated nonlinear geometric decision that retains ordered state components until the decision, can express class priors/constant decisions, and uses no serving contractions. Establish representability before one separately frozen joint-learning experiment. Preserve all current artifacts; no promotion before language and retained integration acceptance.",
+  "validation": {
+    "focused_checks": 3,
+    "diagnostic_tests": 1,
+    "original_metric_tolerance": 1e-10,
+    "source_review": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/diagnostic-1/source-review.md",
+    "path_preservation": "Resolved input/output ancestry rejected before report claim; direct/alias cases tested.",
+    "runtime_training_implementation_unchanged": true,
+    "full_suite": "NOT_RUN",
+    "fmt_check": "PASS",
+    "claim_wording": "PASS",
+    "diff_check": "PASS",
+    "review": "Source and result interpretations reviewed; no remaining blocker."
+  },
+  "resources": {
+    "at": "2026-09-12T22:10:17.804Z",
+    "diagnostic_model_ms": 175910,
+    "diagnostic_model_cap_ms": 240000,
+    "parent_cycle_model_ms": 424690,
+    "parent_model_cap_ms": 1200000,
+    "ledger": {
+      "cumulative_ms": 120175263,
+      "limit_ms": 132950000
+    },
+    "storage_growth_bytes": 1278189568,
+    "diagnostic_additional_growth_conservative_bytes": 17723392,
+    "diagnostic_storage_cap_bytes": 268435456,
+    "parent_storage_cap_bytes": 2147483648,
+    "high_water": {
+      "target": 27283456,
+      "git": 3268608,
+      "worktree": 1228324864,
+      "evidence": 19312640,
+      "at": "2026-09-12T22:07:21.117Z"
+    },
+    "refits": 0,
+    "paid_compute": 0
+  }
+}

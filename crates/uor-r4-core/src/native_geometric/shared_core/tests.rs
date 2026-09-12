@@ -1,6 +1,8 @@
 use super::*;
 use std::sync::OnceLock;
 
+mod diagnostic;
+
 fn model() -> &'static SharedCore {
     static MODEL: OnceLock<SharedCore> = OnceLock::new();
     MODEL.get_or_init(|| SharedCore::initialized(7341).expect("canonical fixture"))
