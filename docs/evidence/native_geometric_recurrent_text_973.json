@@ -1,0 +1,4109 @@
+{
+  "negative_attempt": {
+    "report_root": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/recurrent-text-1/attempt-1",
+    "files": {
+      "acceptance.json": {
+        "sha256": "ec5bc68a95a4458e1a9461b5f9a496643828d48bdc2f4e02a510eb37e2fca89f",
+        "bytes": 512
+      },
+      "attempt.json": {
+        "sha256": "43c6509edb01c8606946687ec99038dcace2adfc172a95bca1975324c130b89a",
+        "bytes": 468
+      },
+      "candidate.json": {
+        "sha256": "ca40b30552942ab327eee6580218a9ca28723031ffe3eb94280f694ea561916c",
+        "bytes": 41913
+      },
+      "data.json": {
+        "sha256": "27d623e754d59bc69258d6c918654f2daa8300da82588567d202f19b12061cdf",
+        "bytes": 12155697
+      },
+      "fit.json": {
+        "sha256": "e28ae847b84cc6b46b5131e98cb4dd1a008bb136f56d95f4e23bae5deb0b2dee",
+        "bytes": 286
+      },
+      "initial.json": {
+        "sha256": "a44bcb67d4274b7101b6c7df7cbe64134349530e19dbfd4ba805527312c556bd",
+        "bytes": 41548
+      },
+      "manifest.json": {
+        "sha256": "7ffc4ce7ef6f4c29f0bb45ab50fe0ef53c478117e86fae256377af9a8d66277e",
+        "bytes": 1742
+      },
+      "preparation.json": {
+        "sha256": "9cfe1f109cf6b075bf23fa1d8d3d221a28bd13e121d66df1df275d597e9a02c7",
+        "bytes": 402389
+      },
+      "responses.json": {
+        "sha256": "6553fa7ee9949fb16946f8461f29a0003e2085c1b5cecb6d776800f09aa932a9",
+        "bytes": 19510841
+      },
+      "retained-responses.json": {
+        "sha256": "53dd6cee0d63e43a1be59cbd2d0269f8f441d2005808ee3b23b678157f216448",
+        "bytes": 2656250
+      },
+      "summary.json": {
+        "sha256": "847e775f8d668e1e103dddf516ef29daef628cb6d45071e3c330c6b9148a44e4",
+        "bytes": 2707
+      }
+    },
+    "source": {
+      "at": "2026-09-13T21:16:06.257Z",
+      "base": "1c511da421f9895a33600346d99dd0248c3666e2",
+      "files": [
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/relational_attention/circuit.rs",
+          "sha256": "667eb3f9a900819a58e0cb02ab83573bee9c4600ce13c26fcfd29bd9de98666b"
+        },
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/relational_attention/data.rs",
+          "sha256": "81fb9b844f5ee1fe98a86583702d9094a63c2ca6c2dc3f2ac45803a3e79931cb"
+        },
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/relational_attention/learning.rs",
+          "sha256": "ce8cd0dea567f48daef49cbf83764d802163081eacc7189e86f48f153076c2d2"
+        },
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/relational_attention/mod.rs",
+          "sha256": "26304fbdd4ca916c5e39ebf30fd2092b2e5333888c039fd47e80772d9c60c9e4"
+        },
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/relational_attention/report.rs",
+          "sha256": "007b3fbd952bd8b1afb76d01a95ed6a2793977cf0eced2718b9637c0023128de"
+        },
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/relational_attention/runtime.rs",
+          "sha256": "671145c488a316eb7b03bbdcc391bdcd2bdf7c4341a30748faffebe87fe29d98"
+        },
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/addressed_attention/artifact.rs",
+          "sha256": "519e909351482f8407ded1ef34d96252bc34e268554dac1212e3620dc22686ba"
+        },
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/mod.rs",
+          "sha256": "0c2eef08d7944a533c15c098d40bda3e5941a2411bb85d10fa10daf062434949"
+        },
+        {
+          "path": "Cargo.lock",
+          "sha256": "7337e6b47e5f7a8d4589164cb6ad23637e3d1b5413b462716cfdc1ab72d2558c"
+        },
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/dependent_attention/data.rs",
+          "sha256": "279832bc9bd360e722df878039f53763ac44d480e462ede1e6bcce56e4490081"
+        },
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/dependent_attention/learning.rs",
+          "sha256": "4ebb8a1c7d7254354170957082713f93c793876ebee16aa85349354b115e7f27"
+        },
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/dependent_attention/mod.rs",
+          "sha256": "5ee5a83302e05c7dcc6390576ba5117840768e6df9418a7c92bc562c9531c336"
+        },
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/dependent_attention/report.rs",
+          "sha256": "cfb9d890155967e31d0306489e4212926aea73eb8bc06204d789b5db70c08a69"
+        },
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/dependent_attention/runtime.rs",
+          "sha256": "7df1a8fbb4854fe4b44795a600e89d64d5ebdea52e212c586ff357716b76240b"
+        },
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/adaptive_attention/data.rs",
+          "sha256": "f4a46a8c13d6718a69a7157527ad17340782eb6245a16137ccd7486f424dd13f"
+        },
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/adaptive_attention/learning.rs",
+          "sha256": "56805e3c991ec20c819f3ccfc761a64ac1108b4d1f5b8d85fcdf0565d87421a6"
+        },
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/adaptive_attention/mod.rs",
+          "sha256": "75e3f83f000125e5594d6b20250264a867cfb3ea41375e3b2fb1851a8fe9c554"
+        },
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/adaptive_attention/report.rs",
+          "sha256": "0322c42d31bc3ca692e0d7df73047427fea71a554568c1cff84988cda0680bdb"
+        },
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/adaptive_attention/runtime.rs",
+          "sha256": "be75bdd3eb1ece009156e837908110a4383f2efc07bd39d663cfe6ebc702c39e"
+        },
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/text_attention/data.rs",
+          "sha256": "8ad71cfeb7008b6b0528673f2ad984dcee01e9dfa4e8f9f73502373cd3bbf5c7"
+        },
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/text_attention/learning.rs",
+          "sha256": "6075b0e3517f5146f0722d3d01d38f17d625923122ef366ca0c87ba74b44ac34"
+        },
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/text_attention/mod.rs",
+          "sha256": "b134647c702bdb373f17d6e3d448e8bfacc616959b61a1d7b5b28033e78d0e62"
+        },
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/text_attention/report.rs",
+          "sha256": "42c29f8fedd771dee68f3928f6ab81daa97849349d0c3256ae0773e077685ccd"
+        },
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/text_attention/runtime.rs",
+          "sha256": "4b8260de6dbaeb58e73edfa003ebd15671c6e0f50ce49201c6e14db81c23edbd"
+        },
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/recurrent_text/data.rs",
+          "sha256": "38d78b2d7afacdbd4d658c4b2443f989f885461680840ff115db4a3186958a3f"
+        },
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/recurrent_text/learning.rs",
+          "sha256": "460a9f00b5cda369310ac93c95eeafc32908c2578dc91365153e9ac38f807c29"
+        },
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/recurrent_text/mod.rs",
+          "sha256": "0a9fd7f3a2b5019d18007f1b1a0034b80b9fc2d871362b2c83c9988daa7d0211"
+        },
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/recurrent_text/report.rs",
+          "sha256": "8c00984c315a54c07fec2d296ccfeca8cb11d15ca4100091cbe0640120520d4c"
+        },
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/recurrent_text/runtime.rs",
+          "sha256": "0509f809e7060f29e1d7046227e712570a416e1995515bf87853d2711aae5a71"
+        }
+      ],
+      "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/recurrent-text-1/recurrent-tests",
+      "binary_sha256": "22b95152033060c0c65dcdf955cd7e5c91b5fbb381a9c58ff2792c8faee931d5",
+      "compiler": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+      "build_label": "recurrent-focused-tests-final"
+    },
+    "summary": {
+      "candidate_sha256": "ca40b30552942ab327eee6580218a9ca28723031ffe3eb94280f694ea561916c",
+      "changed_action_rows": 254,
+      "correct_source_paths": 64,
+      "depths": {
+        "1": [
+          32,
+          32
+        ],
+        "2": [
+          12,
+          12
+        ],
+        "3": [
+          12,
+          12
+        ],
+        "4": [
+          8,
+          8
+        ]
+      },
+      "development_pairs_both_exact": 32,
+      "final_holdout": "NOT_RUN",
+      "gate": "FAIL_RECURRENT_GROUNDED_TEXT",
+      "panels": [
+        {
+          "artifact": "initial",
+          "control": "Full",
+          "exact": 0,
+          "exhausted": 64,
+          "long_exact": 0,
+          "total": 64
+        },
+        {
+          "artifact": "candidate",
+          "control": "Full",
+          "exact": 64,
+          "exhausted": 0,
+          "long_exact": 32,
+          "total": 64
+        },
+        {
+          "artifact": "candidate",
+          "control": "ReadDisabled",
+          "exact": 0,
+          "exhausted": 64,
+          "long_exact": 0,
+          "total": 64
+        },
+        {
+          "artifact": "candidate",
+          "control": "FeedbackDisabled",
+          "exact": 9,
+          "exhausted": 55,
+          "long_exact": 0,
+          "total": 64
+        },
+        {
+          "artifact": "candidate",
+          "control": "UpdateDisabled",
+          "exact": 9,
+          "exhausted": 55,
+          "long_exact": 0,
+          "total": 64
+        },
+        {
+          "artifact": "candidate",
+          "control": "CursorDisabled",
+          "exact": 0,
+          "exhausted": 64,
+          "long_exact": 0,
+          "total": 64
+        },
+        {
+          "artifact": "candidate",
+          "control": "BoundaryReadDisabled",
+          "exact": 32,
+          "exhausted": 32,
+          "long_exact": 0,
+          "total": 64
+        },
+        {
+          "artifact": "candidate",
+          "control": "QueryReversed",
+          "exact": 0,
+          "exhausted": 64,
+          "long_exact": 0,
+          "total": 64
+        },
+        {
+          "artifact": "candidate",
+          "control": "StopDisabled",
+          "exact": 0,
+          "exhausted": 64,
+          "long_exact": 0,
+          "total": 64
+        }
+      ],
+      "parent_sha256": "22b1df1c6b5721ea71d0bad40ab968434b63397c7819213aec046c7def6af63e",
+      "parent_unchanged": true,
+      "promotion": false,
+      "reload_equal_rows": 64,
+      "retained_model": "15baec48",
+      "retention": [
+        {
+          "exact": 8256,
+          "name": "one",
+          "path": "same recurrent runtime; no legacy dispatch",
+          "total": 8256
+        },
+        {
+          "exact": 2176,
+          "name": "dependent",
+          "path": "same recurrent runtime; no legacy dispatch",
+          "total": 2176
+        },
+        {
+          "exact": 2240,
+          "name": "adaptive",
+          "path": "same recurrent runtime; no legacy dispatch",
+          "total": 2240
+        },
+        {
+          "exact": 568,
+          "name": "text",
+          "path": "same recurrent runtime; no legacy dispatch",
+          "total": 576
+        }
+      ],
+      "training_policy_rows": 334,
+      "unseen_development_rows": []
+    }
+  },
+  "comparison": {
+    "training_and_development_data_unchanged": true,
+    "acceptance_unchanged": true,
+    "prior_candidate_successes_preserved": 13240,
+    "recovered_retained_rows": 8
+  },
+  "at": "2026-09-13T21:21:52.897Z",
+  "status": "PASS_RECURRENT_GROUNDED_TEXT",
+  "summary": {
+    "candidate_sha256": "acad5821d77361aba1b752789f4f5324f27719201e5ab9ba0fdf8cd3e1e0c4c5",
+    "changed_action_rows": 254,
+    "correct_source_paths": 64,
+    "depths": {
+      "1": [
+        32,
+        32
+      ],
+      "2": [
+        12,
+        12
+      ],
+      "3": [
+        12,
+        12
+      ],
+      "4": [
+        8,
+        8
+      ]
+    },
+    "development_pairs_both_exact": 32,
+    "final_holdout": "NOT_RUN",
+    "gate": "PASS_RECURRENT_GROUNDED_TEXT",
+    "panels": [
+      {
+        "artifact": "initial",
+        "control": "Full",
+        "exact": 0,
+        "exhausted": 64,
+        "long_exact": 0,
+        "total": 64
+      },
+      {
+        "artifact": "candidate",
+        "control": "Full",
+        "exact": 64,
+        "exhausted": 0,
+        "long_exact": 32,
+        "total": 64
+      },
+      {
+        "artifact": "candidate",
+        "control": "ReadDisabled",
+        "exact": 0,
+        "exhausted": 64,
+        "long_exact": 0,
+        "total": 64
+      },
+      {
+        "artifact": "candidate",
+        "control": "FeedbackDisabled",
+        "exact": 9,
+        "exhausted": 55,
+        "long_exact": 0,
+        "total": 64
+      },
+      {
+        "artifact": "candidate",
+        "control": "UpdateDisabled",
+        "exact": 9,
+        "exhausted": 55,
+        "long_exact": 0,
+        "total": 64
+      },
+      {
+        "artifact": "candidate",
+        "control": "CursorDisabled",
+        "exact": 0,
+        "exhausted": 64,
+        "long_exact": 0,
+        "total": 64
+      },
+      {
+        "artifact": "candidate",
+        "control": "BoundaryReadDisabled",
+        "exact": 32,
+        "exhausted": 32,
+        "long_exact": 0,
+        "total": 64
+      },
+      {
+        "artifact": "candidate",
+        "control": "QueryReversed",
+        "exact": 0,
+        "exhausted": 64,
+        "long_exact": 0,
+        "total": 64
+      },
+      {
+        "artifact": "candidate",
+        "control": "StopDisabled",
+        "exact": 0,
+        "exhausted": 64,
+        "long_exact": 0,
+        "total": 64
+      }
+    ],
+    "parent_sha256": "22b1df1c6b5721ea71d0bad40ab968434b63397c7819213aec046c7def6af63e",
+    "parent_unchanged": true,
+    "promotion": false,
+    "reload_equal_rows": 64,
+    "retained_model": "15baec48",
+    "retention": [
+      {
+        "exact": 8256,
+        "name": "one",
+        "path": "same recurrent runtime; no legacy dispatch",
+        "total": 8256
+      },
+      {
+        "exact": 2176,
+        "name": "dependent",
+        "path": "same recurrent runtime; no legacy dispatch",
+        "total": 2176
+      },
+      {
+        "exact": 2240,
+        "name": "adaptive",
+        "path": "same recurrent runtime; no legacy dispatch",
+        "total": 2240
+      },
+      {
+        "exact": 576,
+        "name": "text",
+        "path": "same recurrent runtime; no legacy dispatch",
+        "total": 576
+      }
+    ],
+    "training_policy_rows": 332,
+    "unseen_development_rows": []
+  },
+  "fit": {
+    "changed_rows": 254,
+    "elapsed_ms": 2554,
+    "epochs": 1,
+    "progress": [
+      {
+        "epoch": 1,
+        "exact": 13312,
+        "row_balanced_action_ce": 1.0986122886681078,
+        "training_total": 13312
+      }
+    ],
+    "rate": 0.1,
+    "selected_epoch": 1,
+    "stopped": "completed_dose"
+  },
+  "acceptance": {
+    "complete_pairs_min": 31,
+    "correct_new_source_paths_min": 61,
+    "development_total": 64,
+    "each_depth_fraction_min": 0.95,
+    "exact_min": 61,
+    "final_holdout": "NOT_RUN",
+    "fit_wall_seconds": 300,
+    "long_control_exact_max": 0,
+    "rate": 0.1,
+    "retention_all_required": true,
+    "scope": "shared action learning across supplied typed bytes and multi-span text; retained learned primitives frozen",
+    "search_states_per_example": 512,
+    "status": "FROZEN_BEFORE_MODEL_LOAD",
+    "training_dose_epochs": 1
+  },
+  "preparation": {
+    "credit": "successful bounded output-constrained trajectories through actual writer/update/geometric reads; no expected source/depth labels",
+    "development": {
+      "conflicts": [],
+      "max_search_nodes": 33,
+      "missing": [],
+      "rows": 39,
+      "search_nodes": 1683,
+      "trajectories": 64
+    },
+    "development_labels_excluded_from_fit": true,
+    "training": {
+      "conflicts": [],
+      "max_search_nodes": 32,
+      "missing": [],
+      "rows": 332,
+      "search_nodes": 61185,
+      "trajectories": 13312
+    },
+    "unseen_development_policy_rows": [],
+    "full_counts_location": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/recurrent-text-1/attempt-2/preparation.json"
+  },
+  "data_validation": {
+    "answer_context_family_disjoint": true,
+    "development": {
+      "depth_counts": {
+        "1": 32,
+        "2": 12,
+        "3": 12,
+        "4": 8
+      },
+      "initial_query_symbols": [
+        69,
+        70,
+        71,
+        72
+      ],
+      "initial_source_slot_counts": [
+        16,
+        16,
+        16,
+        16
+      ],
+      "max_answer_bytes": 29,
+      "pairs": 32,
+      "reached_query_symbols": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        8,
+        10,
+        11,
+        12,
+        13,
+        14,
+        18,
+        19,
+        20,
+        23,
+        24,
+        25,
+        26,
+        27,
+        29,
+        30,
+        32,
+        33,
+        34,
+        35,
+        44,
+        46,
+        47,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        64,
+        67,
+        69,
+        70,
+        71,
+        72,
+        73,
+        74,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        84,
+        86,
+        90,
+        92,
+        93,
+        95,
+        96,
+        98,
+        99,
+        100,
+        102,
+        103,
+        104,
+        105,
+        108,
+        110,
+        111,
+        112,
+        113,
+        114,
+        115,
+        116,
+        117,
+        118,
+        119,
+        120,
+        121,
+        123,
+        125
+      ],
+      "rows": 64
+    },
+    "development_characters_in_training": true,
+    "schema": 1,
+    "scope": "supplied exact records; grounded span composition; initial EFGH query holdout, XOR-derived later queries unrestricted; no novel prose or semantic metric claim",
+    "training": {
+      "depth_counts": {
+        "1": 256,
+        "2": 128,
+        "3": 128
+      },
+      "initial_query_symbols": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        87,
+        88,
+        89,
+        90,
+        91,
+        92,
+        93,
+        94,
+        95,
+        96,
+        97,
+        98,
+        99,
+        100,
+        101,
+        102,
+        103,
+        104,
+        105,
+        106,
+        107,
+        108,
+        109,
+        110,
+        111,
+        112,
+        113,
+        114,
+        115,
+        116,
+        117,
+        118,
+        119,
+        120,
+        121,
+        122,
+        123,
+        124,
+        125,
+        126,
+        127,
+        128,
+        129,
+        130,
+        131,
+        132,
+        133,
+        134,
+        135,
+        136,
+        137,
+        138,
+        139,
+        140,
+        141,
+        142,
+        143,
+        144,
+        145,
+        146,
+        147,
+        148,
+        149,
+        150,
+        151,
+        152,
+        153,
+        154,
+        155,
+        156,
+        157,
+        158,
+        159,
+        160,
+        161,
+        162,
+        163,
+        164,
+        165,
+        166,
+        167,
+        168,
+        169,
+        170,
+        171,
+        172,
+        173,
+        174,
+        175,
+        176,
+        177,
+        178,
+        179,
+        180,
+        181,
+        182,
+        183,
+        184,
+        185,
+        186,
+        187,
+        188,
+        189,
+        190,
+        191,
+        192,
+        193,
+        194,
+        195,
+        196,
+        197,
+        198,
+        199,
+        200,
+        201,
+        202,
+        203,
+        204,
+        205,
+        206,
+        207,
+        208,
+        209,
+        210,
+        211,
+        212,
+        213,
+        214,
+        215,
+        216,
+        217,
+        218,
+        219,
+        220,
+        221,
+        222,
+        223,
+        224,
+        225,
+        226,
+        227,
+        228,
+        229,
+        230,
+        231,
+        232,
+        233,
+        234,
+        235,
+        236,
+        237,
+        238,
+        239,
+        240,
+        241,
+        242,
+        243,
+        244,
+        245,
+        246,
+        247,
+        248,
+        249,
+        250,
+        251,
+        252,
+        253,
+        254,
+        255
+      ],
+      "initial_source_slot_counts": [
+        128,
+        128,
+        128,
+        128
+      ],
+      "max_answer_bytes": 29,
+      "pairs": 256,
+      "reached_query_symbols": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        87,
+        88,
+        89,
+        90,
+        91,
+        92,
+        93,
+        94,
+        95,
+        96,
+        97,
+        98,
+        99,
+        100,
+        101,
+        102,
+        103,
+        104,
+        105,
+        106,
+        107,
+        108,
+        109,
+        110,
+        111,
+        112,
+        113,
+        114,
+        115,
+        116,
+        117,
+        118,
+        119,
+        120,
+        121,
+        122,
+        123,
+        124,
+        125,
+        126,
+        127,
+        128,
+        129,
+        130,
+        131,
+        132,
+        133,
+        134,
+        135,
+        136,
+        137,
+        138,
+        139,
+        140,
+        141,
+        142,
+        143,
+        144,
+        145,
+        146,
+        147,
+        148,
+        149,
+        150,
+        151,
+        152,
+        153,
+        154,
+        155,
+        156,
+        157,
+        158,
+        159,
+        160,
+        161,
+        162,
+        163,
+        164,
+        165,
+        166,
+        167,
+        168,
+        169,
+        170,
+        171,
+        172,
+        173,
+        174,
+        175,
+        176,
+        177,
+        178,
+        179,
+        180,
+        181,
+        182,
+        183,
+        184,
+        185,
+        186,
+        187,
+        188,
+        189,
+        190,
+        191,
+        192,
+        193,
+        194,
+        195,
+        196,
+        197,
+        198,
+        199,
+        200,
+        201,
+        202,
+        203,
+        204,
+        205,
+        206,
+        207,
+        208,
+        209,
+        210,
+        211,
+        212,
+        213,
+        214,
+        215,
+        216,
+        217,
+        218,
+        219,
+        220,
+        221,
+        222,
+        223,
+        224,
+        225,
+        226,
+        227,
+        228,
+        229,
+        230,
+        231,
+        232,
+        233,
+        234,
+        235,
+        236,
+        237,
+        238,
+        239,
+        240,
+        241,
+        242,
+        243,
+        244,
+        245,
+        246,
+        247,
+        248,
+        249,
+        250,
+        251,
+        252,
+        253,
+        254,
+        255
+      ],
+      "rows": 512
+    }
+  },
+  "report_root": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/recurrent-text-1/attempt-2",
+  "files": {
+    "acceptance.json": {
+      "sha256": "ec5bc68a95a4458e1a9461b5f9a496643828d48bdc2f4e02a510eb37e2fca89f",
+      "bytes": 512
+    },
+    "attempt.json": {
+      "sha256": "9b3e61412e30c5454aa8409e906f1652d87d6c6ad60844817be0f436fa5a56b4",
+      "bytes": 470
+    },
+    "candidate.json": {
+      "sha256": "acad5821d77361aba1b752789f4f5324f27719201e5ab9ba0fdf8cd3e1e0c4c5",
+      "bytes": 37817
+    },
+    "data.json": {
+      "sha256": "27d623e754d59bc69258d6c918654f2daa8300da82588567d202f19b12061cdf",
+      "bytes": 12155697
+    },
+    "fit.json": {
+      "sha256": "f95be5b5507a819207fda4e64b45b8f39290d65ad5f39800f89f85d9c6abf570",
+      "bytes": 286
+    },
+    "initial.json": {
+      "sha256": "33f8e7e9b97e9dce150952432d8f53e8c1d7ab0ed22925f2a56bfbeee203136e",
+      "bytes": 37452
+    },
+    "manifest.json": {
+      "sha256": "d77038b5334e4ed7fc913bb06a25ed14602163735bc7bdee77a1fc1031933e76",
+      "bytes": 1742
+    },
+    "preparation.json": {
+      "sha256": "500bd2193ba2768b2f65843d9585dfd651f9a336358729fb7a62a20f43095586",
+      "bytes": 201685
+    },
+    "responses.json": {
+      "sha256": "6a491a246b2881537975c8483d6b8c857c9399b28c77a9b53ef2a399cc206e54",
+      "bytes": 19499322
+    },
+    "retained-responses.json": {
+      "sha256": "d76be203eb33051d88b0a9cc403d88f28828dae11aae5f844c1ec63dc943af95",
+      "bytes": 2656330
+    },
+    "summary.json": {
+      "sha256": "2c02a5a54d85fad7a2e835fe67c8bd25a349119d29894d3de1ed3ea0a09872de",
+      "bytes": 2707
+    }
+  },
+  "source": {
+    "at": "2026-09-13T21:21:23.511Z",
+    "base": "1c511da421f9895a33600346d99dd0248c3666e2",
+    "files": [
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relational_attention/circuit.rs",
+        "sha256": "667eb3f9a900819a58e0cb02ab83573bee9c4600ce13c26fcfd29bd9de98666b"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relational_attention/data.rs",
+        "sha256": "81fb9b844f5ee1fe98a86583702d9094a63c2ca6c2dc3f2ac45803a3e79931cb"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relational_attention/learning.rs",
+        "sha256": "ce8cd0dea567f48daef49cbf83764d802163081eacc7189e86f48f153076c2d2"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relational_attention/mod.rs",
+        "sha256": "26304fbdd4ca916c5e39ebf30fd2092b2e5333888c039fd47e80772d9c60c9e4"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relational_attention/report.rs",
+        "sha256": "007b3fbd952bd8b1afb76d01a95ed6a2793977cf0eced2718b9637c0023128de"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relational_attention/runtime.rs",
+        "sha256": "671145c488a316eb7b03bbdcc391bdcd2bdf7c4341a30748faffebe87fe29d98"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/addressed_attention/artifact.rs",
+        "sha256": "519e909351482f8407ded1ef34d96252bc34e268554dac1212e3620dc22686ba"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/mod.rs",
+        "sha256": "0c2eef08d7944a533c15c098d40bda3e5941a2411bb85d10fa10daf062434949"
+      },
+      {
+        "path": "Cargo.lock",
+        "sha256": "7337e6b47e5f7a8d4589164cb6ad23637e3d1b5413b462716cfdc1ab72d2558c"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_attention/data.rs",
+        "sha256": "279832bc9bd360e722df878039f53763ac44d480e462ede1e6bcce56e4490081"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_attention/learning.rs",
+        "sha256": "4ebb8a1c7d7254354170957082713f93c793876ebee16aa85349354b115e7f27"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_attention/mod.rs",
+        "sha256": "5ee5a83302e05c7dcc6390576ba5117840768e6df9418a7c92bc562c9531c336"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_attention/report.rs",
+        "sha256": "cfb9d890155967e31d0306489e4212926aea73eb8bc06204d789b5db70c08a69"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_attention/runtime.rs",
+        "sha256": "7df1a8fbb4854fe4b44795a600e89d64d5ebdea52e212c586ff357716b76240b"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/adaptive_attention/data.rs",
+        "sha256": "f4a46a8c13d6718a69a7157527ad17340782eb6245a16137ccd7486f424dd13f"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/adaptive_attention/learning.rs",
+        "sha256": "56805e3c991ec20c819f3ccfc761a64ac1108b4d1f5b8d85fcdf0565d87421a6"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/adaptive_attention/mod.rs",
+        "sha256": "75e3f83f000125e5594d6b20250264a867cfb3ea41375e3b2fb1851a8fe9c554"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/adaptive_attention/report.rs",
+        "sha256": "0322c42d31bc3ca692e0d7df73047427fea71a554568c1cff84988cda0680bdb"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/adaptive_attention/runtime.rs",
+        "sha256": "be75bdd3eb1ece009156e837908110a4383f2efc07bd39d663cfe6ebc702c39e"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/text_attention/data.rs",
+        "sha256": "8ad71cfeb7008b6b0528673f2ad984dcee01e9dfa4e8f9f73502373cd3bbf5c7"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/text_attention/learning.rs",
+        "sha256": "6075b0e3517f5146f0722d3d01d38f17d625923122ef366ca0c87ba74b44ac34"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/text_attention/mod.rs",
+        "sha256": "b134647c702bdb373f17d6e3d448e8bfacc616959b61a1d7b5b28033e78d0e62"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/text_attention/report.rs",
+        "sha256": "42c29f8fedd771dee68f3928f6ab81daa97849349d0c3256ae0773e077685ccd"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/text_attention/runtime.rs",
+        "sha256": "4b8260de6dbaeb58e73edfa003ebd15671c6e0f50ce49201c6e14db81c23edbd"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/recurrent_text/data.rs",
+        "sha256": "38d78b2d7afacdbd4d658c4b2443f989f885461680840ff115db4a3186958a3f"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/recurrent_text/learning.rs",
+        "sha256": "b89c6530450e312c2ed2001e636c8e72506f7dddc45de43c956e1904ad7f12d8"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/recurrent_text/mod.rs",
+        "sha256": "0a9fd7f3a2b5019d18007f1b1a0034b80b9fc2d871362b2c83c9988daa7d0211"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/recurrent_text/report.rs",
+        "sha256": "8c00984c315a54c07fec2d296ccfeca8cb11d15ca4100091cbe0640120520d4c"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/recurrent_text/runtime.rs",
+        "sha256": "3fa4efbab5007d5fde966f9eaea6dbcc944b1bfacc27fb7c860a570f564120ce"
+      }
+    ],
+    "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/recurrent-text-1/recurrent-tests-2",
+    "binary_sha256": "e73fd45dd0be1d445931e181fb507f31719ff57cd2ef6e5b402edcacceff0033",
+    "compiler": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "build_label": "recurrent-corrected-tests"
+  },
+  "prior_report_roots": 37,
+  "prior_report_files": 1080,
+  "prior_reports_preserved": true,
+  "prior_source_preserved": true,
+  "original_checkouts_preserved": [
+    {
+      "path": "/Users/casey.allard/uor-r4",
+      "head": "49da65c509e8b1b9f10e7891918d3618c65e9f20",
+      "status_sha256": "4634a2b54ea8525bf3c76edb5d7092986d2dda77ef76edd3a641ce2b0f075df8"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent",
+      "head": "49da65c509e8b1b9f10e7891918d3618c65e9f20",
+      "status_sha256": "7dbfdd7d981456b30357812e9dc7edd13b072c43ce45b873f35ba51d742465b2"
+    }
+  ],
+  "retained_model": {
+    "id": "15baec48",
+    "path": "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/reader-scope-repair/model.json",
+    "sha256": "1454aa69e2e295d0a9970e90326f4664d3c614f666b1a708a16c16b5350a1705"
+  },
+  "sample": [
+    {
+      "actual": {
+        "exhausted": false,
+        "steps": [
+          {
+            "action": "Emit",
+            "after": {
+              "cursor": 1,
+              "done": false,
+              "emitted": 1,
+              "exhausted": false,
+              "last": 116,
+              "pending": [
+                50,
+                49
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "before": {
+              "cursor": 0,
+              "done": false,
+              "emitted": 0,
+              "exhausted": false,
+              "last": 0,
+              "pending": [
+                70,
+                69
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "observation": {
+              "byte": 116,
+              "next_available": false,
+              "next_query": [
+                50,
+                49
+              ],
+              "present": true,
+              "row": 884,
+              "selected": 1
+            },
+            "token": 116
+          },
+          {
+            "action": "Emit",
+            "after": {
+              "cursor": 2,
+              "done": false,
+              "emitted": 2,
+              "exhausted": false,
+              "last": 104,
+              "pending": [
+                90,
+                89
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "before": {
+              "cursor": 1,
+              "done": false,
+              "emitted": 1,
+              "exhausted": false,
+              "last": 116,
+              "pending": [
+                50,
+                49
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "observation": {
+              "byte": 104,
+              "next_available": false,
+              "next_query": [
+                90,
+                89
+              ],
+              "present": true,
+              "row": 872,
+              "selected": 1
+            },
+            "token": 104
+          },
+          {
+            "action": "Emit",
+            "after": {
+              "cursor": 3,
+              "done": false,
+              "emitted": 3,
+              "exhausted": false,
+              "last": 101,
+              "pending": [
+                63,
+                60
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "before": {
+              "cursor": 2,
+              "done": false,
+              "emitted": 2,
+              "exhausted": false,
+              "last": 104,
+              "pending": [
+                90,
+                89
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "observation": {
+              "byte": 101,
+              "next_available": false,
+              "next_query": [
+                63,
+                60
+              ],
+              "present": true,
+              "row": 869,
+              "selected": 1
+            },
+            "token": 101
+          },
+          {
+            "action": "Emit",
+            "after": {
+              "cursor": 4,
+              "done": false,
+              "emitted": 4,
+              "exhausted": false,
+              "last": 32,
+              "pending": [
+                31,
+                28
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "before": {
+              "cursor": 3,
+              "done": false,
+              "emitted": 3,
+              "exhausted": false,
+              "last": 101,
+              "pending": [
+                63,
+                60
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "observation": {
+              "byte": 32,
+              "next_available": false,
+              "next_query": [
+                31,
+                28
+              ],
+              "present": true,
+              "row": 800,
+              "selected": 1
+            },
+            "token": 32
+          },
+          {
+            "action": "Emit",
+            "after": {
+              "cursor": 5,
+              "done": false,
+              "emitted": 5,
+              "exhausted": false,
+              "last": 115,
+              "pending": [
+                108,
+                111
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "before": {
+              "cursor": 4,
+              "done": false,
+              "emitted": 4,
+              "exhausted": false,
+              "last": 32,
+              "pending": [
+                31,
+                28
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "observation": {
+              "byte": 115,
+              "next_available": false,
+              "next_query": [
+                108,
+                111
+              ],
+              "present": true,
+              "row": 883,
+              "selected": 1
+            },
+            "token": 115
+          },
+          {
+            "action": "Emit",
+            "after": {
+              "cursor": 6,
+              "done": false,
+              "emitted": 6,
+              "exhausted": false,
+              "last": 109,
+              "pending": [
+                1,
+                2
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "before": {
+              "cursor": 5,
+              "done": false,
+              "emitted": 5,
+              "exhausted": false,
+              "last": 115,
+              "pending": [
+                108,
+                111
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "observation": {
+              "byte": 109,
+              "next_available": false,
+              "next_query": [
+                1,
+                2
+              ],
+              "present": true,
+              "row": 877,
+              "selected": 1
+            },
+            "token": 109
+          },
+          {
+            "action": "Emit",
+            "after": {
+              "cursor": 7,
+              "done": false,
+              "emitted": 7,
+              "exhausted": false,
+              "last": 97,
+              "pending": [
+                96,
+                99
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "before": {
+              "cursor": 6,
+              "done": false,
+              "emitted": 6,
+              "exhausted": false,
+              "last": 109,
+              "pending": [
+                1,
+                2
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "observation": {
+              "byte": 97,
+              "next_available": false,
+              "next_query": [
+                96,
+                99
+              ],
+              "present": true,
+              "row": 865,
+              "selected": 1
+            },
+            "token": 97
+          },
+          {
+            "action": "Emit",
+            "after": {
+              "cursor": 8,
+              "done": false,
+              "emitted": 8,
+              "exhausted": false,
+              "last": 108,
+              "pending": [
+                12,
+                15
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "before": {
+              "cursor": 7,
+              "done": false,
+              "emitted": 7,
+              "exhausted": false,
+              "last": 97,
+              "pending": [
+                96,
+                99
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "observation": {
+              "byte": 108,
+              "next_available": false,
+              "next_query": [
+                12,
+                15
+              ],
+              "present": true,
+              "row": 876,
+              "selected": 1
+            },
+            "token": 108
+          },
+          {
+            "action": "Emit",
+            "after": {
+              "cursor": 9,
+              "done": false,
+              "emitted": 9,
+              "exhausted": false,
+              "last": 108,
+              "pending": [
+                96,
+                99
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "before": {
+              "cursor": 8,
+              "done": false,
+              "emitted": 8,
+              "exhausted": false,
+              "last": 108,
+              "pending": [
+                12,
+                15
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "observation": {
+              "byte": 108,
+              "next_available": false,
+              "next_query": [
+                96,
+                99
+              ],
+              "present": true,
+              "row": 876,
+              "selected": 1
+            },
+            "token": 108
+          },
+          {
+            "action": "Emit",
+            "after": {
+              "cursor": 10,
+              "done": false,
+              "emitted": 10,
+              "exhausted": false,
+              "last": 32,
+              "pending": [
+                64,
+                67
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "before": {
+              "cursor": 9,
+              "done": false,
+              "emitted": 9,
+              "exhausted": false,
+              "last": 108,
+              "pending": [
+                96,
+                99
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "observation": {
+              "byte": 32,
+              "next_available": true,
+              "next_query": [
+                64,
+                67
+              ],
+              "present": true,
+              "row": 1824,
+              "selected": 1
+            },
+            "token": 32
+          },
+          {
+            "action": "Emit",
+            "after": {
+              "cursor": 11,
+              "done": false,
+              "emitted": 11,
+              "exhausted": false,
+              "last": 102,
+              "pending": [
+                38,
+                37
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "before": {
+              "cursor": 10,
+              "done": false,
+              "emitted": 10,
+              "exhausted": false,
+              "last": 32,
+              "pending": [
+                64,
+                67
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "observation": {
+              "byte": 102,
+              "next_available": false,
+              "next_query": [
+                38,
+                37
+              ],
+              "present": true,
+              "row": 870,
+              "selected": 1
+            },
+            "token": 102
+          },
+          {
+            "action": "Emit",
+            "after": {
+              "cursor": 12,
+              "done": false,
+              "emitted": 12,
+              "exhausted": false,
+              "last": 105,
+              "pending": [
+                79,
+                76
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "before": {
+              "cursor": 11,
+              "done": false,
+              "emitted": 11,
+              "exhausted": false,
+              "last": 102,
+              "pending": [
+                38,
+                37
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "observation": {
+              "byte": 105,
+              "next_available": false,
+              "next_query": [
+                79,
+                76
+              ],
+              "present": true,
+              "row": 873,
+              "selected": 1
+            },
+            "token": 105
+          },
+          {
+            "action": "Emit",
+            "after": {
+              "cursor": 13,
+              "done": false,
+              "emitted": 13,
+              "exhausted": false,
+              "last": 115,
+              "pending": [
+                60,
+                63
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "before": {
+              "cursor": 12,
+              "done": false,
+              "emitted": 12,
+              "exhausted": false,
+              "last": 105,
+              "pending": [
+                79,
+                76
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "observation": {
+              "byte": 115,
+              "next_available": false,
+              "next_query": [
+                60,
+                63
+              ],
+              "present": true,
+              "row": 883,
+              "selected": 1
+            },
+            "token": 115
+          },
+          {
+            "action": "Emit",
+            "after": {
+              "cursor": 14,
+              "done": false,
+              "emitted": 14,
+              "exhausted": false,
+              "last": 104,
+              "pending": [
+                84,
+                87
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "before": {
+              "cursor": 13,
+              "done": false,
+              "emitted": 13,
+              "exhausted": false,
+              "last": 115,
+              "pending": [
+                60,
+                63
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "observation": {
+              "byte": 104,
+              "next_available": false,
+              "next_query": [
+                84,
+                87
+              ],
+              "present": true,
+              "row": 872,
+              "selected": 1
+            },
+            "token": 104
+          },
+          {
+            "action": "Emit",
+            "after": {
+              "cursor": 15,
+              "done": false,
+              "emitted": 15,
+              "exhausted": false,
+              "last": 32,
+              "pending": [
+                116,
+                119
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "before": {
+              "cursor": 14,
+              "done": false,
+              "emitted": 14,
+              "exhausted": false,
+              "last": 104,
+              "pending": [
+                84,
+                87
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "observation": {
+              "byte": 32,
+              "next_available": true,
+              "next_query": [
+                116,
+                119
+              ],
+              "present": true,
+              "row": 1824,
+              "selected": 1
+            },
+            "token": 32
+          },
+          {
+            "action": "Emit",
+            "after": {
+              "cursor": 16,
+              "done": false,
+              "emitted": 16,
+              "exhausted": false,
+              "last": 119,
+              "pending": [
+                3,
+                0
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "before": {
+              "cursor": 15,
+              "done": false,
+              "emitted": 15,
+              "exhausted": false,
+              "last": 32,
+              "pending": [
+                116,
+                119
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "observation": {
+              "byte": 119,
+              "next_available": false,
+              "next_query": [
+                3,
+                0
+              ],
+              "present": true,
+              "row": 887,
+              "selected": 1
+            },
+            "token": 119
+          },
+          {
+            "action": "Emit",
+            "after": {
+              "cursor": 17,
+              "done": false,
+              "emitted": 17,
+              "exhausted": false,
+              "last": 97,
+              "pending": [
+                98,
+                97
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "before": {
+              "cursor": 16,
+              "done": false,
+              "emitted": 16,
+              "exhausted": false,
+              "last": 119,
+              "pending": [
+                3,
+                0
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "observation": {
+              "byte": 97,
+              "next_available": false,
+              "next_query": [
+                98,
+                97
+              ],
+              "present": true,
+              "row": 865,
+              "selected": 1
+            },
+            "token": 97
+          },
+          {
+            "action": "Emit",
+            "after": {
+              "cursor": 18,
+              "done": false,
+              "emitted": 18,
+              "exhausted": false,
+              "last": 105,
+              "pending": [
+                11,
+                8
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "before": {
+              "cursor": 17,
+              "done": false,
+              "emitted": 17,
+              "exhausted": false,
+              "last": 97,
+              "pending": [
+                98,
+                97
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "observation": {
+              "byte": 105,
+              "next_available": false,
+              "next_query": [
+                11,
+                8
+              ],
+              "present": true,
+              "row": 873,
+              "selected": 1
+            },
+            "token": 105
+          },
+          {
+            "action": "Emit",
+            "after": {
+              "cursor": 19,
+              "done": false,
+              "emitted": 19,
+              "exhausted": false,
+              "last": 116,
+              "pending": [
+                127,
+                124
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "before": {
+              "cursor": 18,
+              "done": false,
+              "emitted": 18,
+              "exhausted": false,
+              "last": 105,
+              "pending": [
+                11,
+                8
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "observation": {
+              "byte": 116,
+              "next_available": false,
+              "next_query": [
+                127,
+                124
+              ],
+              "present": true,
+              "row": 884,
+              "selected": 1
+            },
+            "token": 116
+          },
+          {
+            "action": "Emit",
+            "after": {
+              "cursor": 20,
+              "done": false,
+              "emitted": 20,
+              "exhausted": false,
+              "last": 115,
+              "pending": [
+                12,
+                15
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "before": {
+              "cursor": 19,
+              "done": false,
+              "emitted": 19,
+              "exhausted": false,
+              "last": 116,
+              "pending": [
+                127,
+                124
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "observation": {
+              "byte": 115,
+              "next_available": false,
+              "next_query": [
+                12,
+                15
+              ],
+              "present": true,
+              "row": 883,
+              "selected": 1
+            },
+            "token": 115
+          },
+          {
+            "action": "Emit",
+            "after": {
+              "cursor": 21,
+              "done": false,
+              "emitted": 21,
+              "exhausted": false,
+              "last": 46,
+              "pending": [
+                34,
+                33
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "before": {
+              "cursor": 20,
+              "done": false,
+              "emitted": 20,
+              "exhausted": false,
+              "last": 115,
+              "pending": [
+                12,
+                15
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "observation": {
+              "byte": 46,
+              "next_available": false,
+              "next_query": [
+                34,
+                33
+              ],
+              "present": true,
+              "row": 814,
+              "selected": 1
+            },
+            "token": 46
+          },
+          {
+            "action": "Stop",
+            "after": {
+              "cursor": 21,
+              "done": true,
+              "emitted": 21,
+              "exhausted": false,
+              "last": 46,
+              "pending": [
+                34,
+                33
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "before": {
+              "cursor": 21,
+              "done": false,
+              "emitted": 21,
+              "exhausted": false,
+              "last": 46,
+              "pending": [
+                34,
+                33
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "observation": {
+              "byte": 46,
+              "next_available": false,
+              "next_query": [
+                34,
+                33
+              ],
+              "present": false,
+              "row": 558,
+              "selected": 1
+            },
+            "token": 256
+          }
+        ],
+        "tokens": [
+          116,
+          104,
+          101,
+          32,
+          115,
+          109,
+          97,
+          108,
+          108,
+          32,
+          102,
+          105,
+          115,
+          104,
+          32,
+          119,
+          97,
+          105,
+          116,
+          115,
+          46,
+          256
+        ]
+      },
+      "actual_text": "the small fish waits.",
+      "answer": "the small fish waits.",
+      "artifact": "candidate",
+      "control": "Full",
+      "exact": true,
+      "expected_source_path": [
+        1
+      ],
+      "family": "dev-0021",
+      "id": "dev-0021-short",
+      "query": [
+        70,
+        69
+      ],
+      "records": [
+        {
+          "key": [
+            44,
+            47
+          ],
+          "text": [
+            115,
+            111,
+            102,
+            116,
+            108,
+            121,
+            46
+          ]
+        },
+        {
+          "key": [
+            70,
+            69
+          ],
+          "text": [
+            116,
+            104,
+            101,
+            32,
+            115,
+            109,
+            97,
+            108,
+            108,
+            32,
+            102,
+            105,
+            115,
+            104,
+            32,
+            119,
+            97,
+            105,
+            116,
+            115,
+            46
+          ]
+        },
+        {
+          "key": [
+            64,
+            67
+          ],
+          "text": [
+            102,
+            105,
+            115,
+            104,
+            32
+          ]
+        },
+        {
+          "key": [
+            116,
+            119
+          ],
+          "text": [
+            119,
+            97,
+            105,
+            116,
+            115,
+            32
+          ]
+        }
+      ]
+    },
+    {
+      "actual": {
+        "exhausted": false,
+        "steps": [
+          {
+            "action": "Emit",
+            "after": {
+              "cursor": 1,
+              "done": false,
+              "emitted": 1,
+              "exhausted": false,
+              "last": 116,
+              "pending": [
+                50,
+                49
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "before": {
+              "cursor": 0,
+              "done": false,
+              "emitted": 0,
+              "exhausted": false,
+              "last": 0,
+              "pending": [
+                70,
+                69
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "observation": {
+              "byte": 116,
+              "next_available": false,
+              "next_query": [
+                50,
+                49
+              ],
+              "present": true,
+              "row": 884,
+              "selected": 1
+            },
+            "token": 116
+          },
+          {
+            "action": "Emit",
+            "after": {
+              "cursor": 2,
+              "done": false,
+              "emitted": 2,
+              "exhausted": false,
+              "last": 104,
+              "pending": [
+                90,
+                89
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "before": {
+              "cursor": 1,
+              "done": false,
+              "emitted": 1,
+              "exhausted": false,
+              "last": 116,
+              "pending": [
+                50,
+                49
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "observation": {
+              "byte": 104,
+              "next_available": false,
+              "next_query": [
+                90,
+                89
+              ],
+              "present": true,
+              "row": 872,
+              "selected": 1
+            },
+            "token": 104
+          },
+          {
+            "action": "Emit",
+            "after": {
+              "cursor": 3,
+              "done": false,
+              "emitted": 3,
+              "exhausted": false,
+              "last": 101,
+              "pending": [
+                63,
+                60
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "before": {
+              "cursor": 2,
+              "done": false,
+              "emitted": 2,
+              "exhausted": false,
+              "last": 104,
+              "pending": [
+                90,
+                89
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "observation": {
+              "byte": 101,
+              "next_available": false,
+              "next_query": [
+                63,
+                60
+              ],
+              "present": true,
+              "row": 869,
+              "selected": 1
+            },
+            "token": 101
+          },
+          {
+            "action": "Emit",
+            "after": {
+              "cursor": 4,
+              "done": false,
+              "emitted": 4,
+              "exhausted": false,
+              "last": 32,
+              "pending": [
+                31,
+                28
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "before": {
+              "cursor": 3,
+              "done": false,
+              "emitted": 3,
+              "exhausted": false,
+              "last": 101,
+              "pending": [
+                63,
+                60
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "observation": {
+              "byte": 32,
+              "next_available": false,
+              "next_query": [
+                31,
+                28
+              ],
+              "present": true,
+              "row": 800,
+              "selected": 1
+            },
+            "token": 32
+          },
+          {
+            "action": "Emit",
+            "after": {
+              "cursor": 5,
+              "done": false,
+              "emitted": 5,
+              "exhausted": false,
+              "last": 115,
+              "pending": [
+                108,
+                111
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "before": {
+              "cursor": 4,
+              "done": false,
+              "emitted": 4,
+              "exhausted": false,
+              "last": 32,
+              "pending": [
+                31,
+                28
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "observation": {
+              "byte": 115,
+              "next_available": false,
+              "next_query": [
+                108,
+                111
+              ],
+              "present": true,
+              "row": 883,
+              "selected": 1
+            },
+            "token": 115
+          },
+          {
+            "action": "Emit",
+            "after": {
+              "cursor": 6,
+              "done": false,
+              "emitted": 6,
+              "exhausted": false,
+              "last": 109,
+              "pending": [
+                1,
+                2
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "before": {
+              "cursor": 5,
+              "done": false,
+              "emitted": 5,
+              "exhausted": false,
+              "last": 115,
+              "pending": [
+                108,
+                111
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "observation": {
+              "byte": 109,
+              "next_available": false,
+              "next_query": [
+                1,
+                2
+              ],
+              "present": true,
+              "row": 877,
+              "selected": 1
+            },
+            "token": 109
+          },
+          {
+            "action": "Emit",
+            "after": {
+              "cursor": 7,
+              "done": false,
+              "emitted": 7,
+              "exhausted": false,
+              "last": 97,
+              "pending": [
+                96,
+                99
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "before": {
+              "cursor": 6,
+              "done": false,
+              "emitted": 6,
+              "exhausted": false,
+              "last": 109,
+              "pending": [
+                1,
+                2
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "observation": {
+              "byte": 97,
+              "next_available": false,
+              "next_query": [
+                96,
+                99
+              ],
+              "present": true,
+              "row": 865,
+              "selected": 1
+            },
+            "token": 97
+          },
+          {
+            "action": "Emit",
+            "after": {
+              "cursor": 8,
+              "done": false,
+              "emitted": 8,
+              "exhausted": false,
+              "last": 108,
+              "pending": [
+                12,
+                15
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "before": {
+              "cursor": 7,
+              "done": false,
+              "emitted": 7,
+              "exhausted": false,
+              "last": 97,
+              "pending": [
+                96,
+                99
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "observation": {
+              "byte": 108,
+              "next_available": false,
+              "next_query": [
+                12,
+                15
+              ],
+              "present": true,
+              "row": 876,
+              "selected": 1
+            },
+            "token": 108
+          },
+          {
+            "action": "Emit",
+            "after": {
+              "cursor": 9,
+              "done": false,
+              "emitted": 9,
+              "exhausted": false,
+              "last": 108,
+              "pending": [
+                96,
+                99
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "before": {
+              "cursor": 8,
+              "done": false,
+              "emitted": 8,
+              "exhausted": false,
+              "last": 108,
+              "pending": [
+                12,
+                15
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "observation": {
+              "byte": 108,
+              "next_available": false,
+              "next_query": [
+                96,
+                99
+              ],
+              "present": true,
+              "row": 876,
+              "selected": 1
+            },
+            "token": 108
+          },
+          {
+            "action": "Emit",
+            "after": {
+              "cursor": 10,
+              "done": false,
+              "emitted": 10,
+              "exhausted": false,
+              "last": 32,
+              "pending": [
+                64,
+                67
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "before": {
+              "cursor": 9,
+              "done": false,
+              "emitted": 9,
+              "exhausted": false,
+              "last": 108,
+              "pending": [
+                96,
+                99
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "observation": {
+              "byte": 32,
+              "next_available": true,
+              "next_query": [
+                64,
+                67
+              ],
+              "present": true,
+              "row": 1824,
+              "selected": 1
+            },
+            "token": 32
+          },
+          {
+            "action": "Read",
+            "after": {
+              "cursor": 0,
+              "done": false,
+              "emitted": 10,
+              "exhausted": false,
+              "last": 0,
+              "pending": [
+                64,
+                67
+              ],
+              "query": [
+                64,
+                67
+              ],
+              "reads": 2
+            },
+            "before": {
+              "cursor": 10,
+              "done": false,
+              "emitted": 10,
+              "exhausted": false,
+              "last": 32,
+              "pending": [
+                64,
+                67
+              ],
+              "query": [
+                70,
+                69
+              ],
+              "reads": 1
+            },
+            "observation": {
+              "byte": 32,
+              "next_available": true,
+              "next_query": [
+                64,
+                67
+              ],
+              "present": false,
+              "row": 1568,
+              "selected": 1
+            },
+            "token": null
+          },
+          {
+            "action": "Emit",
+            "after": {
+              "cursor": 1,
+              "done": false,
+              "emitted": 11,
+              "exhausted": false,
+              "last": 102,
+              "pending": [
+                38,
+                37
+              ],
+              "query": [
+                64,
+                67
+              ],
+              "reads": 2
+            },
+            "before": {
+              "cursor": 0,
+              "done": false,
+              "emitted": 10,
+              "exhausted": false,
+              "last": 0,
+              "pending": [
+                64,
+                67
+              ],
+              "query": [
+                64,
+                67
+              ],
+              "reads": 2
+            },
+            "observation": {
+              "byte": 102,
+              "next_available": false,
+              "next_query": [
+                38,
+                37
+              ],
+              "present": true,
+              "row": 870,
+              "selected": 2
+            },
+            "token": 102
+          },
+          {
+            "action": "Emit",
+            "after": {
+              "cursor": 2,
+              "done": false,
+              "emitted": 12,
+              "exhausted": false,
+              "last": 105,
+              "pending": [
+                79,
+                76
+              ],
+              "query": [
+                64,
+                67
+              ],
+              "reads": 2
+            },
+            "before": {
+              "cursor": 1,
+              "done": false,
+              "emitted": 11,
+              "exhausted": false,
+              "last": 102,
+              "pending": [
+                38,
+                37
+              ],
+              "query": [
+                64,
+                67
+              ],
+              "reads": 2
+            },
+            "observation": {
+              "byte": 105,
+              "next_available": false,
+              "next_query": [
+                79,
+                76
+              ],
+              "present": true,
+              "row": 873,
+              "selected": 2
+            },
+            "token": 105
+          },
+          {
+            "action": "Emit",
+            "after": {
+              "cursor": 3,
+              "done": false,
+              "emitted": 13,
+              "exhausted": false,
+              "last": 115,
+              "pending": [
+                60,
+                63
+              ],
+              "query": [
+                64,
+                67
+              ],
+              "reads": 2
+            },
+            "before": {
+              "cursor": 2,
+              "done": false,
+              "emitted": 12,
+              "exhausted": false,
+              "last": 105,
+              "pending": [
+                79,
+                76
+              ],
+              "query": [
+                64,
+                67
+              ],
+              "reads": 2
+            },
+            "observation": {
+              "byte": 115,
+              "next_available": false,
+              "next_query": [
+                60,
+                63
+              ],
+              "present": true,
+              "row": 883,
+              "selected": 2
+            },
+            "token": 115
+          },
+          {
+            "action": "Emit",
+            "after": {
+              "cursor": 4,
+              "done": false,
+              "emitted": 14,
+              "exhausted": false,
+              "last": 104,
+              "pending": [
+                84,
+                87
+              ],
+              "query": [
+                64,
+                67
+              ],
+              "reads": 2
+            },
+            "before": {
+              "cursor": 3,
+              "done": false,
+              "emitted": 13,
+              "exhausted": false,
+              "last": 115,
+              "pending": [
+                60,
+                63
+              ],
+              "query": [
+                64,
+                67
+              ],
+              "reads": 2
+            },
+            "observation": {
+              "byte": 104,
+              "next_available": false,
+              "next_query": [
+                84,
+                87
+              ],
+              "present": true,
+              "row": 872,
+              "selected": 2
+            },
+            "token": 104
+          },
+          {
+            "action": "Emit",
+            "after": {
+              "cursor": 5,
+              "done": false,
+              "emitted": 15,
+              "exhausted": false,
+              "last": 32,
+              "pending": [
+                116,
+                119
+              ],
+              "query": [
+                64,
+                67
+              ],
+              "reads": 2
+            },
+            "before": {
+              "cursor": 4,
+              "done": false,
+              "emitted": 14,
+              "exhausted": false,
+              "last": 104,
+              "pending": [
+                84,
+                87
+              ],
+              "query": [
+                64,
+                67
+              ],
+              "reads": 2
+            },
+            "observation": {
+              "byte": 32,
+              "next_available": true,
+              "next_query": [
+                116,
+                119
+              ],
+              "present": true,
+              "row": 1824,
+              "selected": 2
+            },
+            "token": 32
+          },
+          {
+            "action": "Read",
+            "after": {
+              "cursor": 0,
+              "done": false,
+              "emitted": 15,
+              "exhausted": false,
+              "last": 0,
+              "pending": [
+                116,
+                119
+              ],
+              "query": [
+                116,
+                119
+              ],
+              "reads": 3
+            },
+            "before": {
+              "cursor": 5,
+              "done": false,
+              "emitted": 15,
+              "exhausted": false,
+              "last": 32,
+              "pending": [
+                116,
+                119
+              ],
+              "query": [
+                64,
+                67
+              ],
+              "reads": 2
+            },
+            "observation": {
+              "byte": 32,
+              "next_available": true,
+              "next_query": [
+                116,
+                119
+              ],
+              "present": false,
+              "row": 1568,
+              "selected": 2
+            },
+            "token": null
+          },
+          {
+            "action": "Emit",
+            "after": {
+              "cursor": 1,
+              "done": false,
+              "emitted": 16,
+              "exhausted": false,
+              "last": 119,
+              "pending": [
+                3,
+                0
+              ],
+              "query": [
+                116,
+                119
+              ],
+              "reads": 3
+            },
+            "before": {
+              "cursor": 0,
+              "done": false,
+              "emitted": 15,
+              "exhausted": false,
+              "last": 0,
+              "pending": [
+                116,
+                119
+              ],
+              "query": [
+                116,
+                119
+              ],
+              "reads": 3
+            },
+            "observation": {
+              "byte": 119,
+              "next_available": false,
+              "next_query": [
+                3,
+                0
+              ],
+              "present": true,
+              "row": 887,
+              "selected": 3
+            },
+            "token": 119
+          },
+          {
+            "action": "Emit",
+            "after": {
+              "cursor": 2,
+              "done": false,
+              "emitted": 17,
+              "exhausted": false,
+              "last": 97,
+              "pending": [
+                98,
+                97
+              ],
+              "query": [
+                116,
+                119
+              ],
+              "reads": 3
+            },
+            "before": {
+              "cursor": 1,
+              "done": false,
+              "emitted": 16,
+              "exhausted": false,
+              "last": 119,
+              "pending": [
+                3,
+                0
+              ],
+              "query": [
+                116,
+                119
+              ],
+              "reads": 3
+            },
+            "observation": {
+              "byte": 97,
+              "next_available": false,
+              "next_query": [
+                98,
+                97
+              ],
+              "present": true,
+              "row": 865,
+              "selected": 3
+            },
+            "token": 97
+          },
+          {
+            "action": "Emit",
+            "after": {
+              "cursor": 3,
+              "done": false,
+              "emitted": 18,
+              "exhausted": false,
+              "last": 105,
+              "pending": [
+                11,
+                8
+              ],
+              "query": [
+                116,
+                119
+              ],
+              "reads": 3
+            },
+            "before": {
+              "cursor": 2,
+              "done": false,
+              "emitted": 17,
+              "exhausted": false,
+              "last": 97,
+              "pending": [
+                98,
+                97
+              ],
+              "query": [
+                116,
+                119
+              ],
+              "reads": 3
+            },
+            "observation": {
+              "byte": 105,
+              "next_available": false,
+              "next_query": [
+                11,
+                8
+              ],
+              "present": true,
+              "row": 873,
+              "selected": 3
+            },
+            "token": 105
+          },
+          {
+            "action": "Emit",
+            "after": {
+              "cursor": 4,
+              "done": false,
+              "emitted": 19,
+              "exhausted": false,
+              "last": 116,
+              "pending": [
+                127,
+                124
+              ],
+              "query": [
+                116,
+                119
+              ],
+              "reads": 3
+            },
+            "before": {
+              "cursor": 3,
+              "done": false,
+              "emitted": 18,
+              "exhausted": false,
+              "last": 105,
+              "pending": [
+                11,
+                8
+              ],
+              "query": [
+                116,
+                119
+              ],
+              "reads": 3
+            },
+            "observation": {
+              "byte": 116,
+              "next_available": false,
+              "next_query": [
+                127,
+                124
+              ],
+              "present": true,
+              "row": 884,
+              "selected": 3
+            },
+            "token": 116
+          },
+          {
+            "action": "Emit",
+            "after": {
+              "cursor": 5,
+              "done": false,
+              "emitted": 20,
+              "exhausted": false,
+              "last": 115,
+              "pending": [
+                12,
+                15
+              ],
+              "query": [
+                116,
+                119
+              ],
+              "reads": 3
+            },
+            "before": {
+              "cursor": 4,
+              "done": false,
+              "emitted": 19,
+              "exhausted": false,
+              "last": 116,
+              "pending": [
+                127,
+                124
+              ],
+              "query": [
+                116,
+                119
+              ],
+              "reads": 3
+            },
+            "observation": {
+              "byte": 115,
+              "next_available": false,
+              "next_query": [
+                12,
+                15
+              ],
+              "present": true,
+              "row": 883,
+              "selected": 3
+            },
+            "token": 115
+          },
+          {
+            "action": "Emit",
+            "after": {
+              "cursor": 6,
+              "done": false,
+              "emitted": 21,
+              "exhausted": false,
+              "last": 32,
+              "pending": [
+                44,
+                47
+              ],
+              "query": [
+                116,
+                119
+              ],
+              "reads": 3
+            },
+            "before": {
+              "cursor": 5,
+              "done": false,
+              "emitted": 20,
+              "exhausted": false,
+              "last": 115,
+              "pending": [
+                12,
+                15
+              ],
+              "query": [
+                116,
+                119
+              ],
+              "reads": 3
+            },
+            "observation": {
+              "byte": 32,
+              "next_available": true,
+              "next_query": [
+                44,
+                47
+              ],
+              "present": true,
+              "row": 1824,
+              "selected": 3
+            },
+            "token": 32
+          },
+          {
+            "action": "Read",
+            "after": {
+              "cursor": 0,
+              "done": false,
+              "emitted": 21,
+              "exhausted": false,
+              "last": 0,
+              "pending": [
+                44,
+                47
+              ],
+              "query": [
+                44,
+                47
+              ],
+              "reads": 4
+            },
+            "before": {
+              "cursor": 6,
+              "done": false,
+              "emitted": 21,
+              "exhausted": false,
+              "last": 32,
+              "pending": [
+                44,
+                47
+              ],
+              "query": [
+                116,
+                119
+              ],
+              "reads": 3
+            },
+            "observation": {
+              "byte": 32,
+              "next_available": true,
+              "next_query": [
+                44,
+                47
+              ],
+              "present": false,
+              "row": 1568,
+              "selected": 3
+            },
+            "token": null
+          },
+          {
+            "action": "Emit",
+            "after": {
+              "cursor": 1,
+              "done": false,
+              "emitted": 22,
+              "exhausted": false,
+              "last": 115,
+              "pending": [
+                95,
+                92
+              ],
+              "query": [
+                44,
+                47
+              ],
+              "reads": 4
+            },
+            "before": {
+              "cursor": 0,
+              "done": false,
+              "emitted": 21,
+              "exhausted": false,
+              "last": 0,
+              "pending": [
+                44,
+                47
+              ],
+              "query": [
+                44,
+                47
+              ],
+              "reads": 4
+            },
+            "observation": {
+              "byte": 115,
+              "next_available": false,
+              "next_query": [
+                95,
+                92
+              ],
+              "present": true,
+              "row": 883,
+              "selected": 0
+            },
+            "token": 115
+          },
+          {
+            "action": "Emit",
+            "after": {
+              "cursor": 2,
+              "done": false,
+              "emitted": 23,
+              "exhausted": false,
+              "last": 111,
+              "pending": [
+                48,
+                51
+              ],
+              "query": [
+                44,
+                47
+              ],
+              "reads": 4
+            },
+            "before": {
+              "cursor": 1,
+              "done": false,
+              "emitted": 22,
+              "exhausted": false,
+              "last": 115,
+              "pending": [
+                95,
+                92
+              ],
+              "query": [
+                44,
+                47
+              ],
+              "reads": 4
+            },
+            "observation": {
+              "byte": 111,
+              "next_available": false,
+              "next_query": [
+                48,
+                51
+              ],
+              "present": true,
+              "row": 879,
+              "selected": 0
+            },
+            "token": 111
+          },
+          {
+            "action": "Emit",
+            "after": {
+              "cursor": 3,
+              "done": false,
+              "emitted": 24,
+              "exhausted": false,
+              "last": 102,
+              "pending": [
+                86,
+                85
+              ],
+              "query": [
+                44,
+                47
+              ],
+              "reads": 4
+            },
+            "before": {
+              "cursor": 2,
+              "done": false,
+              "emitted": 23,
+              "exhausted": false,
+              "last": 111,
+              "pending": [
+                48,
+                51
+              ],
+              "query": [
+                44,
+                47
+              ],
+              "reads": 4
+            },
+            "observation": {
+              "byte": 102,
+              "next_available": false,
+              "next_query": [
+                86,
+                85
+              ],
+              "present": true,
+              "row": 870,
+              "selected": 0
+            },
+            "token": 102
+          },
+          {
+            "action": "Emit",
+            "after": {
+              "cursor": 4,
+              "done": false,
+              "emitted": 25,
+              "exhausted": false,
+              "last": 116,
+              "pending": [
+                34,
+                33
+              ],
+              "query": [
+                44,
+                47
+              ],
+              "reads": 4
+            },
+            "before": {
+              "cursor": 3,
+              "done": false,
+              "emitted": 24,
+              "exhausted": false,
+              "last": 102,
+              "pending": [
+                86,
+                85
+              ],
+              "query": [
+                44,
+                47
+              ],
+              "reads": 4
+            },
+            "observation": {
+              "byte": 116,
+              "next_available": false,
+              "next_query": [
+                34,
+                33
+              ],
+              "present": true,
+              "row": 884,
+              "selected": 0
+            },
+            "token": 116
+          },
+          {
+            "action": "Emit",
+            "after": {
+              "cursor": 5,
+              "done": false,
+              "emitted": 26,
+              "exhausted": false,
+              "last": 108,
+              "pending": [
+                78,
+                77
+              ],
+              "query": [
+                44,
+                47
+              ],
+              "reads": 4
+            },
+            "before": {
+              "cursor": 4,
+              "done": false,
+              "emitted": 25,
+              "exhausted": false,
+              "last": 116,
+              "pending": [
+                34,
+                33
+              ],
+              "query": [
+                44,
+                47
+              ],
+              "reads": 4
+            },
+            "observation": {
+              "byte": 108,
+              "next_available": false,
+              "next_query": [
+                78,
+                77
+              ],
+              "present": true,
+              "row": 876,
+              "selected": 0
+            },
+            "token": 108
+          },
+          {
+            "action": "Emit",
+            "after": {
+              "cursor": 6,
+              "done": false,
+              "emitted": 27,
+              "exhausted": false,
+              "last": 121,
+              "pending": [
+                55,
+                52
+              ],
+              "query": [
+                44,
+                47
+              ],
+              "reads": 4
+            },
+            "before": {
+              "cursor": 5,
+              "done": false,
+              "emitted": 26,
+              "exhausted": false,
+              "last": 108,
+              "pending": [
+                78,
+                77
+              ],
+              "query": [
+                44,
+                47
+              ],
+              "reads": 4
+            },
+            "observation": {
+              "byte": 121,
+              "next_available": false,
+              "next_query": [
+                55,
+                52
+              ],
+              "present": true,
+              "row": 889,
+              "selected": 0
+            },
+            "token": 121
+          },
+          {
+            "action": "Emit",
+            "after": {
+              "cursor": 7,
+              "done": false,
+              "emitted": 28,
+              "exhausted": false,
+              "last": 46,
+              "pending": [
+                25,
+                26
+              ],
+              "query": [
+                44,
+                47
+              ],
+              "reads": 4
+            },
+            "before": {
+              "cursor": 6,
+              "done": false,
+              "emitted": 27,
+              "exhausted": false,
+              "last": 121,
+              "pending": [
+                55,
+                52
+              ],
+              "query": [
+                44,
+                47
+              ],
+              "reads": 4
+            },
+            "observation": {
+              "byte": 46,
+              "next_available": false,
+              "next_query": [
+                25,
+                26
+              ],
+              "present": true,
+              "row": 814,
+              "selected": 0
+            },
+            "token": 46
+          },
+          {
+            "action": "Stop",
+            "after": {
+              "cursor": 7,
+              "done": true,
+              "emitted": 28,
+              "exhausted": false,
+              "last": 46,
+              "pending": [
+                25,
+                26
+              ],
+              "query": [
+                44,
+                47
+              ],
+              "reads": 4
+            },
+            "before": {
+              "cursor": 7,
+              "done": false,
+              "emitted": 28,
+              "exhausted": false,
+              "last": 46,
+              "pending": [
+                25,
+                26
+              ],
+              "query": [
+                44,
+                47
+              ],
+              "reads": 4
+            },
+            "observation": {
+              "byte": 46,
+              "next_available": false,
+              "next_query": [
+                25,
+                26
+              ],
+              "present": false,
+              "row": 558,
+              "selected": 0
+            },
+            "token": 256
+          }
+        ],
+        "tokens": [
+          116,
+          104,
+          101,
+          32,
+          115,
+          109,
+          97,
+          108,
+          108,
+          32,
+          102,
+          105,
+          115,
+          104,
+          32,
+          119,
+          97,
+          105,
+          116,
+          115,
+          32,
+          115,
+          111,
+          102,
+          116,
+          108,
+          121,
+          46,
+          256
+        ]
+      },
+      "actual_text": "the small fish waits softly.",
+      "answer": "the small fish waits softly.",
+      "artifact": "candidate",
+      "control": "Full",
+      "exact": true,
+      "expected_source_path": [
+        1,
+        2,
+        3,
+        0
+      ],
+      "family": "dev-0021",
+      "id": "dev-0021-long",
+      "query": [
+        70,
+        69
+      ],
+      "records": [
+        {
+          "key": [
+            44,
+            47
+          ],
+          "text": [
+            115,
+            111,
+            102,
+            116,
+            108,
+            121,
+            46
+          ]
+        },
+        {
+          "key": [
+            70,
+            69
+          ],
+          "text": [
+            116,
+            104,
+            101,
+            32,
+            115,
+            109,
+            97,
+            108,
+            108,
+            32
+          ]
+        },
+        {
+          "key": [
+            64,
+            67
+          ],
+          "text": [
+            102,
+            105,
+            115,
+            104,
+            32
+          ]
+        },
+        {
+          "key": [
+            116,
+            119
+          ],
+          "text": [
+            119,
+            97,
+            105,
+            116,
+            115,
+            32
+          ]
+        }
+      ]
+    }
+  ],
+  "verification": "Rust seal/verify executed at attempt completion; postflight full sets/sizes/SHA256 identities. Prior source and all report bytes reverified.",
+  "scope": "shared recurrent read/emit/stop policy with actual emitted-byte query accumulation and retained geometric primitives; supplied spans and lexical address composition, not semantic transport or general prose"
+}

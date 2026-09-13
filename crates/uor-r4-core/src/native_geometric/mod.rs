@@ -991,3 +991,6 @@ pub mod adaptive_attention;
 
 /// Grounded variable-length text with emitted-byte feedback.
 pub mod text_attention;
+
+/// Shared recurrent action learning with emitted-content query feedback.
+pub mod recurrent_text;
