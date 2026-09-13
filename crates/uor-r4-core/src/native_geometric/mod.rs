@@ -982,3 +982,6 @@ mod word_copy_value_tests;
 
 /// Experimental relational attention learning; typed context, no prose qualification.
 pub mod relational_attention;
+
+/// Learned query update between two geometric reads.
+pub mod dependent_attention;
