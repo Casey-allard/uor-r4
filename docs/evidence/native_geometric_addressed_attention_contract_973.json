@@ -1,0 +1,439 @@
+{
+  "schema": "uor-r4.addressed-attention-spec/1",
+  "status": "SPECIFIED_IMPLEMENTATION_NOT_RUN",
+  "source_base": "9ef3739d05d78ce44d898159ba6282bcefa36a9b",
+  "retained": "15baec48",
+  "promoted": false,
+  "layout": [
+    {
+      "name": "state_root_0_signature",
+      "offset": 0,
+      "bits": 128
+    },
+    {
+      "name": "state_root_1_signature",
+      "offset": 128,
+      "bits": 128
+    },
+    {
+      "name": "state_root_2_signature",
+      "offset": 256,
+      "bits": 128
+    },
+    {
+      "name": "state_root_3_signature",
+      "offset": 384,
+      "bits": 128
+    },
+    {
+      "name": "selected_a_root_0_signature",
+      "offset": 512,
+      "bits": 128
+    },
+    {
+      "name": "selected_b_root_0_signature",
+      "offset": 640,
+      "bits": 128
+    },
+    {
+      "name": "last_observed_byte",
+      "offset": 768,
+      "bits": 8
+    },
+    {
+      "name": "selected_a_first_byte",
+      "offset": 776,
+      "bits": 8
+    },
+    {
+      "name": "selected_b_first_byte",
+      "offset": 784,
+      "bits": 8
+    },
+    {
+      "name": "active_lease_byte",
+      "offset": 792,
+      "bits": 8
+    },
+    {
+      "name": "availability_flags",
+      "offset": 800,
+      "bits": 8
+    },
+    {
+      "name": "phase",
+      "offset": 808,
+      "bits": 4
+    },
+    {
+      "name": "active_lease_kind",
+      "offset": 812,
+      "bits": 2
+    },
+    {
+      "name": "reserved_zero_0",
+      "offset": 814,
+      "bits": 2
+    },
+    {
+      "name": "active_cursor",
+      "offset": 816,
+      "bits": 6
+    },
+    {
+      "name": "active_length",
+      "offset": 822,
+      "bits": 7
+    },
+    {
+      "name": "selected_a_length",
+      "offset": 829,
+      "bits": 7
+    },
+    {
+      "name": "selected_b_length",
+      "offset": 836,
+      "bits": 7
+    },
+    {
+      "name": "current_byte_acknowledged",
+      "offset": 843,
+      "bits": 1
+    },
+    {
+      "name": "provisional_result",
+      "offset": 844,
+      "bits": 1
+    },
+    {
+      "name": "reserved_zero_1",
+      "offset": 845,
+      "bits": 3
+    },
+    {
+      "name": "turn_relative_position_saturated",
+      "offset": 848,
+      "bits": 8
+    },
+    {
+      "name": "zeta_phase_bin_0",
+      "offset": 856,
+      "bits": 4
+    },
+    {
+      "name": "zeta_phase_bin_1",
+      "offset": 860,
+      "bits": 4
+    },
+    {
+      "name": "zeta_phase_bin_2",
+      "offset": 864,
+      "bits": 4
+    },
+    {
+      "name": "zeta_phase_bin_3",
+      "offset": 868,
+      "bits": 4
+    },
+    {
+      "name": "selected_a_age_saturated",
+      "offset": 872,
+      "bits": 8
+    },
+    {
+      "name": "selected_b_age_saturated",
+      "offset": 880,
+      "bits": 8
+    },
+    {
+      "name": "last_committed_control",
+      "offset": 888,
+      "bits": 3
+    },
+    {
+      "name": "result_publications_this_response",
+      "offset": 891,
+      "bits": 2
+    },
+    {
+      "name": "reserved_zero_2",
+      "offset": 893,
+      "bits": 3
+    },
+    {
+      "name": "reserved_zero_tail",
+      "offset": 896,
+      "bits": 128
+    }
+  ],
+  "packing": "Fields little-endian by bit significance; padded root signature has120landmark bits followed by8zero bits. Unavailable value bits zero with availability bit false. Reserved fields must be zero.",
+  "availability_flags": [
+    "last_observed",
+    "selected_a",
+    "selected_b",
+    "active_lease",
+    "selected_a_numeric",
+    "selected_b_numeric",
+    "active_result",
+    "pending_offer"
+  ],
+  "phases": [
+    "QUERY_A",
+    "EXTENT_A",
+    "QUERY_B",
+    "EXTENT_B",
+    "CONTROL",
+    "EMIT",
+    "OBSERVE",
+    "KEY"
+  ],
+  "causal_selected_fields": {
+    "QUERY_A": "A/B fields absent; existing acknowledged active lease only",
+    "EXTENT_A": "A first byte/root known; A extent notyetchosen; B absent",
+    "QUERY_B": "A frozen; B absent",
+    "EXTENT_B": "A frozen; B firstbyte/root known; B extent notyetchosen",
+    "CONTROL": "Both selected operands frozen; numericvalidityknown; targetsabsent",
+    "EMIT": "Pending operator/active lease known; targetabsent",
+    "OBSERVE": "Actualbyte nowlegal; selected context from identifiedprioroffer; mismatch cancellation applied",
+    "KEY": "Newcommitted state and actualbyte; priorselectedfieldsabsent"
+  },
+  "circuit": {
+    "input_bits": 1024,
+    "widths": [
+      256,
+      64,
+      16,
+      9
+    ],
+    "arity": 4,
+    "gates": 345,
+    "rows_per_gate": 16,
+    "logits": 5520,
+    "context_rows": 512,
+    "wiring_seed": "0000000000000973",
+    "wiring_rule": "Seeded per-layer predecessor permutations then groups of4; final9groups use36positions of repeating16predecessor permutation, validatingcoverage; sameorderedwiring fortraining/export.",
+    "sample_rule": "Independent pervisitedgateinvocation Bernoulli; shared(gate,address)logits",
+    "bit_export": "lambda>0; zero chooses0",
+    "direct_parameter_input": false
+  },
+  "heads": {
+    "query": {
+      "count": 2,
+      "outcomes": 120,
+      "shared_across_reads": true,
+      "export": "mode_u16"
+    },
+    "key": {
+      "count": 2,
+      "outcomes": 120,
+      "export": "mode_u16"
+    },
+    "delta": {
+      "count": 4,
+      "outcomes": 120,
+      "export": "mode_u16"
+    },
+    "extent": {
+      "count": 1,
+      "outcomes": 64,
+      "values": "1..64",
+      "shared_across_reads": true,
+      "export": "full_preference_permutation_u8"
+    },
+    "control": {
+      "count": 1,
+      "outcomes": 7,
+      "values": [
+        "Hold",
+        "AcquireA",
+        "AcquireB",
+        "AddAB",
+        "SubAB",
+        "Advance",
+        "Clear"
+      ],
+      "export": "full_preference_permutation_u8"
+    },
+    "emission": {
+      "count": 1,
+      "outcomes": 257,
+      "values": "byte0..255;EOS256",
+      "export": "mode_u16"
+    },
+    "null": {
+      "count": 2,
+      "context_rows": 1,
+      "outcomes": 120,
+      "export": "mode_u16"
+    }
+  },
+  "scope": {
+    "ring_slots": 256,
+    "operand_leases": 2,
+    "max_span_bytes": 64,
+    "active_leases": 1,
+    "committed_results": 8,
+    "max_arithmetic_publications_per_response": 2,
+    "max_candidates_per_read": 265,
+    "max_reads_per_prediction": 2,
+    "max_circuit_calls_per_byte": 8,
+    "serialized_session_cap_bytes": 65536,
+    "compiled_artifact_cap_bytes": 262144,
+    "persistent_relation_writer": "NOT_IMPLEMENTED",
+    "paired_h4_companion_transport": "NOT_IMPLEMENTED",
+    "direct_copy_output": false,
+    "serving_matrix_products": false,
+    "result_publication": "Readyafterlastbyteacknowledgment;keys/contextassignedbythatbyteKEYphase;publishoncebeforefollowingpredict",
+    "wrong_offer_id": "Errorwithoutmutation",
+    "encoded_object_reserves": {
+      "occurrence_record": 128,
+      "each_lease": 256,
+      "result_record": 512,
+      "header_state_pending_provisional": 27904,
+      "total": 65536
+    }
+  },
+  "metric": {
+    "selected": "sum_two_signed_relative_H4_angular_ranks",
+    "alternative": "Hamming over120signed hemisphere predicates",
+    "alternative_selected": false,
+    "root_identity_bits_are_metric": false,
+    "hash_bits_are_metric": false,
+    "certificate_before_comparison": [
+      "120signaturecodes",
+      "collisions",
+      "antipodes",
+      "symmetry",
+      "all14400pairscore/orderrelations"
+    ]
+  },
+  "training": {
+    "language": "Rust",
+    "float": "f64",
+    "matrix_multiplication_offline_allowed": true,
+    "particles": 4,
+    "particles_serial": true,
+    "temperature": 1,
+    "parameter_update": "OneSGD update after allparticles; hyperparametersnotselected",
+    "cost": "Expected meanconditional byte/EOS crossentropy underhardstochastic internaltrajectory; offered symbol sampledaftercurrentcost",
+    "credit": "Every stochastic invocation score timesfulltrajectorycost withotherparticlebaseline plusdirectCE; targetsusedonlyafterpredict",
+    "late_offer_score": "Required forfuturecost affectedbyacknowledgment/publication",
+    "global_parameter_sampling": false,
+    "optimizer_moments": 0,
+    "fit_calls": 0,
+    "actual_model_calls": 0,
+    "current_unobserved_target_in_predict_input": false,
+    "observed_teacher_forced_prefix_allowed": true,
+    "normalization": "DirectCE and downstream/fulltrajectory returns bothdividebyfixedscoredpositioncountT",
+    "serial_loo": "A=sumS;B=sum(L*S);C=sumdirect;U=sumL;g=B/(P-1)-U*A/(P*(P-1))+C/P;P4",
+    "null_sampling": "Twofreshrootdrawsperreadinvocation,sharedrows,countallscores"
+  },
+  "dimensions": {
+    "head_logits": 659456,
+    "null_logits": 240,
+    "total_logits": 665216,
+    "f64_parameters_and_gradients_bytes": 10643456,
+    "hard_gate_bits_bytes": 690,
+    "wiring_u16_bytes": 2760,
+    "compiled_heads_bytes": 45572,
+    "compiled_circuit_and_heads_bytes": 49022,
+    "max_positions_per_window": 512,
+    "max_gate_events_per_position": 2760,
+    "gate_event_bytes": 8,
+    "max_single_trace_gate_bytes": 11304960,
+    "training_working_memory_reservation_bytes": 536870912,
+    "f64_parameter_and_three_accumulator_bytes": 21286912
+  },
+  "analytic_fixture": {
+    "status": "ANALYTIC_NOT_EXECUTED",
+    "roots": [
+      "I",
+      "central_minus_I"
+    ],
+    "objects": [
+      "A",
+      "B"
+    ],
+    "paths": 4,
+    "second_row": "p iffirstsourceA elseq",
+    "loss": "1(finalsource!=B)",
+    "expected_cost": "1-2*p+p*p+p*q",
+    "logit_grad_p": "(-2+2*p+q)*p*(1-p)",
+    "logit_grad_q": "p*q*(1-q)",
+    "cases": [
+      {
+        "p": 0.2,
+        "q": 0.7,
+        "cost": 0.78,
+        "logit_grad_p": -0.144,
+        "logit_grad_q": 0.042
+      },
+      {
+        "p": 0.65,
+        "q": 0.25,
+        "cost": 0.285,
+        "logit_grad_p": -0.102375,
+        "logit_grad_q": 0.121875
+      }
+    ],
+    "loo_ordered_pairs": 16,
+    "late_emission_fixture_required": true,
+    "late_emission": {
+      "symbols": 2,
+      "p": 0.2,
+      "target": 1,
+      "future_loss_match": 0.5,
+      "future_loss_mismatch": 2,
+      "normalization_positions": 2,
+      "direct_logit_gradient": -0.4,
+      "future_logit_gradient": -0.12,
+      "total_logit_gradient": -0.52,
+      "status": "ANALYTIC_NOT_EXECUTED"
+    }
+  },
+  "next_implementation_projection": {
+    "status": "PROPOSED_REFRESH_BEFORE_EXECUTION",
+    "model_build_test_ms": 240000,
+    "phase_ms": {
+      "build": 120000,
+      "credit_tests": 30000,
+      "serialization_causality": 30000,
+      "correction": 60000
+    },
+    "threads": 2,
+    "test_processes": 1,
+    "peak_process_tree_ram_bytes": 4294967296,
+    "new_storage_bytes": 100663296,
+    "stop_margin_bytes": 134217728,
+    "language_fit_calls": 0,
+    "external_cost": 0
+  },
+  "review_evidence": {
+    "projection.json": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-attention-spec-1/projection.json",
+      "sha256": "275574149de967a8fee96c30ee1139b0c2d5bcbfb148292be43ba36f286f441a"
+    },
+    "preservation-start.json": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-attention-spec-1/preservation-start.json",
+      "sha256": "165231d7d832f3621955acd7fd5c0aad1d69dd07805f04eaddaa87e37f4855d1"
+    },
+    "object-interface-review.md": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-attention-spec-1/object-interface-review.md",
+      "sha256": "80aeff5c5417abc88f3471b4f33e191767b002c328d6429eeee738fa659abac9"
+    },
+    "credit-method-review.md": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-attention-spec-1/credit-method-review.md",
+      "sha256": "c03ba2d877870dd6f8835805017df32fbdebbe366978888fb95d912ba099bf4e"
+    },
+    "spec-review.md": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-attention-spec-1/spec-review.md",
+      "sha256": "e827533486a6a579753a14ed6e2969bdc6e3bd89a6775e77e3bac31ed4557fa6"
+    },
+    "document-checks.json": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-attention-spec-1/document-checks.json",
+      "sha256": "2ed067e2aea245327370adeb1af36e8d47d6f0ed30eb143b5269b0c445615465"
+    }
+  },
+  "readiness": "READY_FOR_BOUNDED_PRIMITIVE_AND_CREDIT_IMPLEMENTATION_GATE",
+  "validation_scope": "Documentconsistency/analytictranscription/sourcepreservationonly; actualRustimplementationtestsNOT_RUN"
+}
