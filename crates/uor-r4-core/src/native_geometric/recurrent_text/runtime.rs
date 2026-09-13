@@ -83,9 +83,9 @@ pub enum Control {
     StopDisabled,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
-pub struct State {
-    pub query: [u8; 2],
-    pub pending: [u8; 2],
+pub struct State<Q = [u8; 2]> {
+    pub query: Q,
+    pub pending: Q,
     pub cursor: usize,
     pub last: u8,
     pub reads: usize,
@@ -93,10 +93,10 @@ pub struct State {
     pub done: bool,
     pub exhausted: bool,
 }
-impl State {
-    pub fn new(query: [u8; 2]) -> Self {
+impl<Q: Clone> State<Q> {
+    pub fn new(query: Q) -> Self {
         Self {
-            query,
+            query: query.clone(),
             pending: query,
             cursor: 0,
             last: 0,
@@ -108,11 +108,11 @@ impl State {
     }
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
-pub struct Observation {
+pub struct Observation<Q = [u8; 2]> {
     pub selected: Option<usize>,
     pub byte: u8,
     pub present: bool,
-    pub next_query: [u8; 2],
+    pub next_query: Q,
     pub next_available: bool,
     pub row: usize,
 }
@@ -199,8 +199,22 @@ pub fn execute(
     a: &Artifact,
     o: &Observation,
     s: &mut State,
+    action: Action,
+    control: Control,
+) -> Result<Option<u16>> {
+    execute_with_update(a, o, s, action, control, |q, byte| {
+        dependent::update_query(&a.parent.parent.parent, *q, byte)
+    })
+}
+/// Shared recurrent transition, with a typed learned state update supplied by
+/// the caller. Both the retained byte state and ordered geometric state use it.
+pub fn execute_with_update<Q: Clone>(
+    a: &Artifact,
+    o: &Observation<Q>,
+    s: &mut State<Q>,
     mut action: Action,
     control: Control,
+    update: impl Fn(&Q, u8) -> Result<Q>,
 ) -> Result<Option<u16>> {
     if control == Control::StopDisabled && action == Action::Stop {
         action = Action::Read;
@@ -219,10 +233,10 @@ pub fn execute(
             let byte = u8::try_from(token).map_err(|_| Error::State)?;
             s.last = byte;
             if control != Control::FeedbackDisabled {
-                s.pending = dependent::update_query(&a.parent.parent.parent, s.pending, byte)?;
+                s.pending = update(&s.pending, byte)?;
             }
             if control != Control::CursorDisabled && a.parent.advance[3] != 0 {
-                s.cursor += 1;
+                s.cursor = s.cursor.checked_add(1).ok_or(Error::State)?;
             }
             s.emitted += 1;
             Ok(Some(token))
@@ -232,8 +246,8 @@ pub fn execute(
                 s.exhausted = true;
                 return Ok(None);
             }
-            s.query = o.next_query;
-            s.pending = s.query;
+            s.query = o.next_query.clone();
+            s.pending = s.query.clone();
             s.cursor = 0;
             s.last = 0;
             s.reads += 1;
@@ -252,17 +266,17 @@ pub fn execute(
     }
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
-pub struct Step {
-    pub before: State,
-    pub observation: Observation,
+pub struct Step<Q = [u8; 2]> {
+    pub before: State<Q>,
+    pub observation: Observation<Q>,
     pub action: Action,
     pub token: Option<u16>,
-    pub after: State,
+    pub after: State<Q>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
-pub struct Generated {
+pub struct Generated<Q = [u8; 2]> {
     pub tokens: Vec<u16>,
-    pub steps: Vec<Step>,
+    pub steps: Vec<Step<Q>>,
     pub exhausted: bool,
 }
 pub fn generate(

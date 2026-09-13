@@ -994,3 +994,5 @@ pub mod text_attention;
 
 /// Shared recurrent action learning with emitted-content query feedback.
 pub mod recurrent_text;
+
+pub mod ordered_state;

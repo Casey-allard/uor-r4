@@ -47,3 +47,7 @@ Kanerva's original tutorial supplies item memory, noisy-code cleanup, ordered bi
 ## Consequence for the research decision
 
 These sources strengthen a relational, causally recurrent architecture with exact identity, retained orientation and a learned selector/update. They do not justify a fixed semantic metric, an untrained expert bank, a blanket RH foundation or a new broad qualification campaign. The synthesis must make the first actual learning experiment small and complete, while preserving a path to natural prose and later replacement acceptance.
+
+### Owner follow-up: SpiralCore negative route space
+
+The v68 `SC.negspace` implementation (original/preserved SHA256 still `2a45c2e5f46c8c36bf7801da1d1e12ee9e2ed8b3da488ff54c20a6ac6c2ceab0`, lines11665–11681) was statically inspected after the owner's OSPF/available-route suggestion. Its bounded `LAWFUL_ALTERNATIVE_CUSTODY` cache distinguishes route existence, selected/equal/near alternatives, hop-budget admission, capped enumeration and graph/age freshness; it grants no replay authority. [Detailed follow-up and transfer boundary](../../../research/spiralcore-v68/README.md#scoped-follow-up-negative-route-space--september-13). This gives a concrete source-backed interface lesson for H1/H2: preserve reasons and context identity for rejected or incomplete routes, rather than convert them to absence. It supplies neither semantic costs nor an exhaustive unavailable-route map.

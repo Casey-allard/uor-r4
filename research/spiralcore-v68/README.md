@@ -93,3 +93,11 @@ promote a model, or insert Bell tones, gematria projections, FBS frontier state,
 Kuramoto dynamics, or extra attention mechanisms into serving. A future use
 would require a specific learned-task encoding and a causal comparison against
 the retained model under the project's serving and resource constraints.
+
+## Scoped follow-up: negative route space — September 13
+
+The owner recalled canonical tracking of available and unavailable routes. Static source review of `SC.negspace` at HTML lines 11665–11681 confirms a **bounded read-only route-evidence cache**, typed `LAWFUL_ALTERNATIVE_CUSTODY`. It records endpoints, selected node/`via` path, equal-shortest and near-optimal alternatives, `routeExists`, separate hop-budget admission, enumeration caps, graph epoch/demarc/fingerprint, creation time and freshness. Defaults/ceilings are 24 retained records, K at most 500, delta at most 3 and 900,000 ms age. The fingerprint is explicitly FNV1a; external release SHA-256 is a separate claim. The stored evidence has `replayAuthority: false`.
+
+The source separates adjacency (`SC.graph`), enumeration (`routeSpace`), selection (`bfsPath`) and remembered evidence (`negspaceLedger`). This supports the owner's recollection at that precise scope. It does not enumerate every impossible route, authorize execution from a cached judgment, or learn linguistic relevance. No embedded script or claimed fixture was executed in this follow-up. The original Downloads file and preserved import both still hash to `2a45c2e5f46c8c36bf7801da1d1e12ee9e2ed8b3da488ff54c20a6ac6c2ceab0`.
+
+For UOR-R4, the useful architectural hypothesis is a state-bound distinction among an observed available route, a lawful unselected alternative, policy/type rejection, incomplete bounded search, stale evidence, and proved absence/eviction. A learned low score or an unfollowed link must not assert absence. When useful to the next learned compatibility task, attach the relevant reason and artifact/context/graph identity to its existing trace; do not create a separate routing-ledger project or copy these numeric cache limits without a measured need. See the [OSPF/H1/H2 discussion](../../docs/integration/geometric-attention-research-2026-09/attention-and-learning.md#owner-routing-analogy-ospf--september-13-follow-up).

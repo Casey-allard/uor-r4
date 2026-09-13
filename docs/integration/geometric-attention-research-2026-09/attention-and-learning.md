@@ -155,3 +155,11 @@ Do not turn this sequence into twenty process steps with no learning. Each stage
 - The current initialized mechanism should remain a scaffold/reference, not a presumed final architecture.
 - Source URLs on branch heads are access-date observations, not immutable source receipts. Any adoption requires a pinned commit and an implementation-level license/contract check.
 - Geometry-specific theorem scrutiny, local UOR/PRISM/N3mesis inventory, Cayley–Dickson and number-theory synthesis are assigned to companion research records; this note makes no claim to have completed those.
+
+## Owner routing analogy: OSPF — September 13 follow-up
+
+The owner suggested OSPF while the order-sensitive state experiment was being built. OSPF separates a link-state database from a shortest-path calculation over its directed graph; route cost is the sum of constituent link costs, and the calculation preserves next-hop information. [RFC 2328 §16.1](https://www.rfc-editor.org/rfc/rfc2328.html#section-16.1).
+
+**Architectural hypothesis for H1/H2:** keep canonical object/occurrence identity, typed connectivity and observed lineage as the available route map; let a shared learned contextual state determine useful relations and their compatibility/cost; use bounded native routing to access and compose them. Exact addresses must remain separate from geometric relevance. Source-content changes must propagate into later state and route decisions. A contextual score that changes with the walk does not automatically satisfy the assumptions of one static shortest-path calculation; expanded state or a learned bounded policy may be needed.
+
+This analogy motivates an interface, not an OSPF implementation or a proof of language ability. A known topology and a shortest route cannot supply an unknown linguistic destination or semantic edge. Learning those bindings and useful costs from output remains the next substantive responsibility. The current ordered-prefix experiment uses strict structural compatibility against supplied sequence keys; it neither runs Dijkstra nor establishes learned semantic costs. Avoid a separate protocol/control-plane project before demonstrating a language-learning benefit.
