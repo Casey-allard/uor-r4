@@ -156,3 +156,5 @@ fn shared_core_runtime_source_excludes_linear_predictor_and_float_work() {
 mod credit_assignment;
 
 mod tied_learning;
+
+mod full_objective;

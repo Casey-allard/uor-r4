@@ -1,6 +1,20 @@
 # Current native geometric AI work
 
-## Shared geometric core — tied categorical method fails comparator gate, September 12
+## Shared geometric core — complete-objective block exhausted, September 12
+
+**Retain `15baec48`; no model is promoted.** The [full-objective comparison](../native_geometric_full_objective_973.md) executes the prior recommended step from unchanged experimental parent `ade9a1cf`. The memory repair stays parked, original evidence is preserved, and V3–V7 are not replayed.
+
+**Actual gate: FAIL_FULL_OBJECTIVE_JOINT_METHOD_SMOKE.** Four seeds × two methods × 2,050 full-construction evaluations all retain original roots [119,119] at indices [1176,1930]. Fixed joint sampling beats coordinate search 0/4 and improves parent loss 0/4. The subsequent exhaustive 14,400-pair table finds zero improving settings; the parent is the unique minimum for this block with the remainder frozen (NLL 3.375391; next setting 3.433977). Neither sampler missed an improvement in the allowed block. This is not a global model optimum or geometric capacity limit.
+
+All eight test-only witnesses reproduce Full construction 79/672 correct, opened development 28/381, and both disabled-control panels. Across 25,272 aligned comparisons, root/source/prediction Hamming and correct-to-wrong changes are all zero. All 32 Full witness continuations equal the parent's incoherent 96-byte outputs with no EOS. No standard model artifact, fresh draw or broader fit is created. Production training, serving and artifact sources are unchanged.
+
+The focused witness/row-comparison release test and single sealed actual experiment pass execution checks; the method gate fails. [Tracked evidence](../evidence/native_geometric_full_objective_973.json) preserves source/compiler/binary, design, witnesses, complete costs, all row comparisons and generations, independent review and cumulative charges. Active worktree: `/Users/casey.allard/uor-r4-worktrees/shared-geometric-core`, branch `codex/geometric-full-objective`. Local attempt: `shared-core-first-step/full-objective-1/` under the established handoff.
+
+Resource receipt: 120,471/360,000 ms model/build/test, including the failed compile; parent cycle 1,753,135/2,100,000 ms; cumulative ledger 121,503,708/132,950,000 ms. Added storage 25,948,160 bytes within 128 MiB; parent growth 1,406,492,672 bytes within 2 GiB, retaining the 128 MiB stop margin. Peak sampled RSS 2,246,492,160 bytes. No allowance extension, paid compute or cleanup. Final engineering/delivery receipts append locally.
+
+**Next action:** one exact emission-block recalibration on final `ade9a1cf` Full construction trajectories using existing Rust `calibrate_emission_blocks`. Prior exact calibration preceded the joint changes to state/routing and emission; its conditional optimum does not establish an optimum on final trajectories. Freeze one pass, full-objective/accuracy conditions, all six parent row controls, actual generation and complete resources. Keep recurrence/routing fixed and opened development outside fitting. No same-block sampler rerun, automatic alternating-fit campaign, fresh draw or promotion.
+
+## Prior tied categorical checkpoint — historical result; next action superseded
 
 **Retain `15baec48`; no model is promoted.** The [tied categorical learner](../native_geometric_tied_learning_973.md) now scores complete hard trajectories with each shared parameter held fixed across every use. Offline probabilities and gradients do not change the integer serving kernel. The [canonical shared-core plan](project-track.md#current-implementation-sequence--owner-adopted-september-12) remains active; the memory-completion repair stays parked and V3–V7 are not replayed.
 
