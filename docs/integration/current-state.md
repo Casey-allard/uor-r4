@@ -1,5 +1,15 @@
 # Current native geometric AI work
 
+## Learned typed one-read attention — September 13, 2026
+
+**PASS_TYPED_ONE_READ_ATTENTION_LEARNING.** The [implemented learning result](../native_geometric_relational_attention_973.md) and [source-bound evidence](../evidence/native_geometric_relational_attention_973.json) establish learned compatibility and byte/EOS decoding on four supplied typed records. Final development64/64 exact answers and selections;32/32 changed-source pairs both exact. Same fitted codec with uniform routing16/64; ReadDisabled and QueryReversed0/64. Training8192/8192. Final candidate SHA2569901cc50d36d32b4c41f24db2c5f3af41b7cb1f2eaa77ff6e7dcde339e66a582. Retain15baec48; no model promotion.
+
+This completes the first compatibility/decoder boundary of H1, not its joint learned query/state recurrence. Fixed canonical query/key encoding and supplied record boundaries remain explicit. Four preserved attempts yielded14,16,42,64 development successes; hard-export learning and training feature coverage were corrected within budget. All64 development rows and gate thresholds stayed unchanged. Final holdout NOT_RUN. Full cross-lane information did not improve this simple task over DiagonalOnly; phase removal lost70 training answers but no development answers. General prose and harmonic/E8 completion remain unqualified.
+
+**Current next action:** Extend H1 to a learned dependent query/state update: first-read content must determine the second actual read, with changed-source, update-disabled and restricted-context interventions. Preserve this first-learning artifact/control, recompute downstream decisions and freeze the small task plus complete projection before fitting. Do not restart broad research, old failed fits or V3–V7.
+
+Nine focused new tests and11 retained policy tests pass; all four fit/report attempts are sealed. All30 prior sealed roots/1006 files and original dirty checkouts are preserved. Complete model charge762866/3600000ms; shared124493590/132950000ms; parent4743017/7710000ms. Local allowance expansion was recorded before use; no paid compute or cleanup. Step6GiB RAM/768MiB new storage/128MiB margin. Final storage and delivery receipts: .uor-handoff/2026-09-12-codex-v7/shared-core-first-step/relational-attention-1/. Worktree /Users/casey.allard/uor-r4-worktrees/shared-geometric-core, branch codex/relational-attention-learning, base21bd549651bea8e5c8fea78059a77990bb8c328e. #973 remains active/open; #964/#820 open. All next-action sections below are historical.
+
 ## Deep geometric-attention research — September 13, 2026
 
 **SELECTED_RELATIONAL_GEOMETRIC_LEARNING_HYPOTHESIS; model remains UNQUALIFIED_INITIALIZED_NO_FIT.** The [research synthesis](geometric-attention-research-2026-09/README.md), mathematical/learning/source companions and [coverage inventory](geometric-attention-research-2026-09/coverage.json) consolidate the owner's broad research request. No model execution, fit, runtime change or V3–V7 replay occurred. Retain15baec48 and all initialized/negative candidates. Prior Hamming trajectory conformance remains valid only at its recorded scope; no promotion follows research.

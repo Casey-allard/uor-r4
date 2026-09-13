@@ -1,0 +1,3971 @@
+{
+  "at": "2026-09-13T19:50:17.646Z",
+  "status": "PASS_TYPED_ONE_READ_ATTENTION_LEARNING",
+  "candidate_sha256": "9901cc50d36d32b4c41f24db2c5f3af41b7cb1f2eaa77ff6e7dcde339e66a582",
+  "scope": "typed compatibility learning with codec curriculum; query/key encoding and record boundaries fixed; not raw prose or complete shared recurrent learner",
+  "attempts": [
+    {
+      "attempt": 1,
+      "root": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/relational-attention-1/attempt-1",
+      "summary": {
+        "candidate_parameter_changes": {
+          "decoder_tables": 6,
+          "score_tables": 0
+        },
+        "candidate_sha256": "e774291337466c8af47fa255089debb5e8e14fddeea776b060163a906d14bfa3",
+        "development_pairs_both_exact": 6,
+        "environment": "PASS_NO_TARGET_DISTRACTOR_PACKET_COLLISION",
+        "export_replay_equal": true,
+        "final_holdout": "NOT_RUN",
+        "gate": "FAIL_TYPED_ONE_READ_ATTENTION_LEARNING",
+        "panels": [
+          {
+            "artifact": "initialized",
+            "control": "Full",
+            "exact": 0,
+            "selected_correct": 32,
+            "split": "training",
+            "total": 128
+          },
+          {
+            "artifact": "codec_only",
+            "control": "Full",
+            "exact": 28,
+            "selected_correct": 32,
+            "split": "training",
+            "total": 128
+          },
+          {
+            "artifact": "candidate",
+            "control": "Full",
+            "exact": 28,
+            "selected_correct": 32,
+            "split": "training",
+            "total": 128
+          },
+          {
+            "artifact": "candidate",
+            "control": "ReadDisabled",
+            "exact": 0,
+            "selected_correct": 0,
+            "split": "training",
+            "total": 128
+          },
+          {
+            "artifact": "candidate",
+            "control": "QueryReversed",
+            "exact": 28,
+            "selected_correct": 32,
+            "split": "training",
+            "total": 128
+          },
+          {
+            "artifact": "candidate",
+            "control": "PhasesDisabled",
+            "exact": 28,
+            "selected_correct": 32,
+            "split": "training",
+            "total": 128
+          },
+          {
+            "artifact": "candidate",
+            "control": "DiagonalOnly",
+            "exact": 28,
+            "selected_correct": 32,
+            "split": "training",
+            "total": 128
+          },
+          {
+            "artifact": "initialized",
+            "control": "Full",
+            "exact": 0,
+            "selected_correct": 16,
+            "split": "development",
+            "total": 64
+          },
+          {
+            "artifact": "codec_only",
+            "control": "Full",
+            "exact": 14,
+            "selected_correct": 16,
+            "split": "development",
+            "total": 64
+          },
+          {
+            "artifact": "candidate",
+            "control": "Full",
+            "exact": 14,
+            "selected_correct": 16,
+            "split": "development",
+            "total": 64
+          },
+          {
+            "artifact": "candidate",
+            "control": "ReadDisabled",
+            "exact": 0,
+            "selected_correct": 0,
+            "split": "development",
+            "total": 64
+          },
+          {
+            "artifact": "candidate",
+            "control": "QueryReversed",
+            "exact": 14,
+            "selected_correct": 16,
+            "split": "development",
+            "total": 64
+          },
+          {
+            "artifact": "candidate",
+            "control": "PhasesDisabled",
+            "exact": 14,
+            "selected_correct": 16,
+            "split": "development",
+            "total": 64
+          },
+          {
+            "artifact": "candidate",
+            "control": "DiagonalOnly",
+            "exact": 14,
+            "selected_correct": 16,
+            "split": "development",
+            "total": 64
+          }
+        ],
+        "promotion": false,
+        "retained_artifact": "15baec48",
+        "scope": "typed compatibility learning with codec curriculum; query/key encoding and record boundaries fixed; not raw prose or complete shared recurrent learner",
+        "source": {
+          "circuit": "8f7d2a7ca7cab12550ab9758ba1f6961d26bafb2ee4c571bd4b8f5597813aadd",
+          "data": "d6f4388dc7693cd4f76ac416a8975be484c4c39d6f678f4b110289d64bb0b557",
+          "learning": "4f201e8c0d076218740c809c8f1ddf57105e971df9dfd77cec385b933e841bd9",
+          "runtime": "8ced28322a66a587d7160c5ff43242e03d7af01d3267f63fc4777caf9845e1a9"
+        }
+      },
+      "fit": {
+        "configuration": {
+          "codec_epochs": 64,
+          "routing_epochs": 800,
+          "learning_rate": 0.01,
+          "wall_seconds": 600
+        },
+        "codec_updates": 64,
+        "routing_updates": 800,
+        "skipped_no_useful_read": 12800,
+        "stopped": "completed_dose",
+        "progress": [
+          {
+            "epoch": 1,
+            "surrogate_loss": 0.7319609787642959,
+            "train_exact": 28,
+            "changed_tables": 0
+          },
+          {
+            "epoch": 25,
+            "surrogate_loss": 0.1339884514361237,
+            "train_exact": 28,
+            "changed_tables": 0
+          },
+          {
+            "epoch": 50,
+            "surrogate_loss": 0.12996695758965177,
+            "train_exact": 28,
+            "changed_tables": 0
+          },
+          {
+            "epoch": 75,
+            "surrogate_loss": 0.12891140888020663,
+            "train_exact": 28,
+            "changed_tables": 0
+          },
+          {
+            "epoch": 100,
+            "surrogate_loss": 0.12829604103168926,
+            "train_exact": 28,
+            "changed_tables": 0
+          },
+          {
+            "epoch": 125,
+            "surrogate_loss": 0.12786785664960285,
+            "train_exact": 28,
+            "changed_tables": 0
+          },
+          {
+            "epoch": 150,
+            "surrogate_loss": 0.1275554444658692,
+            "train_exact": 28,
+            "changed_tables": 0
+          },
+          {
+            "epoch": 175,
+            "surrogate_loss": 0.1273206068165435,
+            "train_exact": 28,
+            "changed_tables": 0
+          },
+          {
+            "epoch": 200,
+            "surrogate_loss": 0.12713953903674785,
+            "train_exact": 28,
+            "changed_tables": 0
+          },
+          {
+            "epoch": 225,
+            "surrogate_loss": 0.12699680855424852,
+            "train_exact": 28,
+            "changed_tables": 0
+          },
+          {
+            "epoch": 250,
+            "surrogate_loss": 0.12688212513675032,
+            "train_exact": 28,
+            "changed_tables": 0
+          },
+          {
+            "epoch": 275,
+            "surrogate_loss": 0.12678843994199393,
+            "train_exact": 28,
+            "changed_tables": 0
+          },
+          {
+            "epoch": 300,
+            "surrogate_loss": 0.12671080068697932,
+            "train_exact": 28,
+            "changed_tables": 0
+          },
+          {
+            "epoch": 325,
+            "surrogate_loss": 0.1266456466992253,
+            "train_exact": 28,
+            "changed_tables": 0
+          },
+          {
+            "epoch": 350,
+            "surrogate_loss": 0.12659036399195944,
+            "train_exact": 28,
+            "changed_tables": 0
+          },
+          {
+            "epoch": 375,
+            "surrogate_loss": 0.12654299738072705,
+            "train_exact": 28,
+            "changed_tables": 0
+          },
+          {
+            "epoch": 400,
+            "surrogate_loss": 0.12650205973594317,
+            "train_exact": 28,
+            "changed_tables": 0
+          },
+          {
+            "epoch": 425,
+            "surrogate_loss": 0.1264664027718822,
+            "train_exact": 28,
+            "changed_tables": 0
+          },
+          {
+            "epoch": 450,
+            "surrogate_loss": 0.12643512772159968,
+            "train_exact": 28,
+            "changed_tables": 0
+          },
+          {
+            "epoch": 475,
+            "surrogate_loss": 0.12640752242426107,
+            "train_exact": 28,
+            "changed_tables": 0
+          },
+          {
+            "epoch": 500,
+            "surrogate_loss": 0.12638301625335402,
+            "train_exact": 28,
+            "changed_tables": 0
+          },
+          {
+            "epoch": 525,
+            "surrogate_loss": 0.12636114731870957,
+            "train_exact": 28,
+            "changed_tables": 0
+          },
+          {
+            "epoch": 550,
+            "surrogate_loss": 0.12634153825613548,
+            "train_exact": 28,
+            "changed_tables": 0
+          },
+          {
+            "epoch": 575,
+            "surrogate_loss": 0.12632387811973478,
+            "train_exact": 28,
+            "changed_tables": 0
+          },
+          {
+            "epoch": 600,
+            "surrogate_loss": 0.1263079086737329,
+            "train_exact": 28,
+            "changed_tables": 0
+          },
+          {
+            "epoch": 625,
+            "surrogate_loss": 0.12629341389831966,
+            "train_exact": 28,
+            "changed_tables": 0
+          },
+          {
+            "epoch": 650,
+            "surrogate_loss": 0.12628021187247945,
+            "train_exact": 28,
+            "changed_tables": 0
+          },
+          {
+            "epoch": 675,
+            "surrogate_loss": 0.12626814843492246,
+            "train_exact": 28,
+            "changed_tables": 0
+          },
+          {
+            "epoch": 700,
+            "surrogate_loss": 0.12625709218928974,
+            "train_exact": 28,
+            "changed_tables": 0
+          },
+          {
+            "epoch": 725,
+            "surrogate_loss": 0.12624693053573616,
+            "train_exact": 28,
+            "changed_tables": 0
+          },
+          {
+            "epoch": 750,
+            "surrogate_loss": 0.1262375664934311,
+            "train_exact": 28,
+            "changed_tables": 0
+          },
+          {
+            "epoch": 775,
+            "surrogate_loss": 0.1262289161378091,
+            "train_exact": 28,
+            "changed_tables": 0
+          },
+          {
+            "epoch": 800,
+            "surrogate_loss": 0.1262209065195214,
+            "train_exact": 28,
+            "changed_tables": 0
+          }
+        ],
+        "elapsed_ms": 2245
+      },
+      "source": {
+        "at": "2026-09-13T19:29:12.513Z",
+        "base": "21bd549651bea8e5c8fea78059a77990bb8c328e",
+        "files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/relational_attention/circuit.rs",
+            "sha256": "667eb3f9a900819a58e0cb02ab83573bee9c4600ce13c26fcfd29bd9de98666b"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/relational_attention/data.rs",
+            "sha256": "6dff7487201411ef2d68d276bd0595fa412adcead6c1f22e57a17e26abbe0b13"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/relational_attention/learning.rs",
+            "sha256": "ff85ddc969048948f3caba6d9bf301b3826b5d5bf504b1f9f8dfa92a6e34f876"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/relational_attention/mod.rs",
+            "sha256": "26304fbdd4ca916c5e39ebf30fd2092b2e5333888c039fd47e80772d9c60c9e4"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/relational_attention/report.rs",
+            "sha256": "8f5821c01c3e65e7f203212c2ac9c5422813a934d4e2e9d04e0184c6b3fda5d3"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/relational_attention/runtime.rs",
+            "sha256": "671145c488a316eb7b03bbdcc391bdcd2bdf7c4341a30748faffebe87fe29d98"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/addressed_attention/artifact.rs",
+            "sha256": "519e909351482f8407ded1ef34d96252bc34e268554dac1212e3620dc22686ba"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/mod.rs",
+            "sha256": "71fe407dcc95738d10f68f2a6ceea8535ca230efc8131a67a8d976439e836724"
+          },
+          {
+            "path": "Cargo.lock",
+            "sha256": "7337e6b47e5f7a8d4589164cb6ad23637e3d1b5413b462716cfdc1ab72d2558c"
+          }
+        ],
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/relational-attention-1/relational-tests",
+        "binary_sha256": "fa872c7eae9ee88954ebe975a0741cf589c2be9a160616abf2b92c2b4c67b0b4",
+        "compiler": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: aarch64-apple-darwin\nrelease: 1.97.1\nLLVM version: 22.1.6\n",
+        "fit_configuration": {
+          "codec_epochs": 64,
+          "routing_epochs": 800,
+          "learning_rate": 0.01,
+          "wall_seconds": 600
+        },
+        "acceptance": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/relational-attention-1/design-before-fit.md"
+      },
+      "development_sha256": "3606be779185a288f3f88838706fc17f78f6d97255d349cbf403dc69cca8dea1",
+      "development_rows": [
+        {
+          "id": "dev-family-012-variant-1",
+          "exact": false,
+          "tokens": [
+            96,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-021-variant-0",
+          "exact": false,
+          "tokens": [
+            98,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-010-variant-1",
+          "exact": false,
+          "tokens": [
+            97,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-017-variant-0",
+          "exact": false,
+          "tokens": [
+            103,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-000-variant-0",
+          "exact": true,
+          "tokens": [
+            97,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-022-variant-1",
+          "exact": false,
+          "tokens": [
+            100,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-024-variant-0",
+          "exact": true,
+          "tokens": [
+            103,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-007-variant-0",
+          "exact": false,
+          "tokens": [
+            102,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-013-variant-0",
+          "exact": false,
+          "tokens": [
+            98,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-015-variant-0",
+          "exact": false,
+          "tokens": [
+            99,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-008-variant-0",
+          "exact": true,
+          "tokens": [
+            99,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-020-variant-1",
+          "exact": true,
+          "tokens": [
+            98,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-029-variant-1",
+          "exact": false,
+          "tokens": [
+            102,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-010-variant-0",
+          "exact": false,
+          "tokens": [
+            97,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-001-variant-0",
+          "exact": false,
+          "tokens": [
+            101,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-014-variant-0",
+          "exact": false,
+          "tokens": [
+            97,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-028-variant-0",
+          "exact": false,
+          "tokens": [
+            96,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-022-variant-0",
+          "exact": false,
+          "tokens": [
+            100,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-000-variant-1",
+          "exact": true,
+          "tokens": [
+            101,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-018-variant-1",
+          "exact": false,
+          "tokens": [
+            96,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-023-variant-0",
+          "exact": false,
+          "tokens": [
+            101,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-028-variant-1",
+          "exact": true,
+          "tokens": [
+            100,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-030-variant-1",
+          "exact": false,
+          "tokens": [
+            96,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-008-variant-1",
+          "exact": true,
+          "tokens": [
+            103,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-003-variant-1",
+          "exact": false,
+          "tokens": [
+            99,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-024-variant-1",
+          "exact": true,
+          "tokens": [
+            99,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-027-variant-0",
+          "exact": false,
+          "tokens": [
+            99,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-019-variant-0",
+          "exact": false,
+          "tokens": [
+            97,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-009-variant-1",
+          "exact": false,
+          "tokens": [
+            102,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-006-variant-1",
+          "exact": false,
+          "tokens": [
+            98,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-005-variant-1",
+          "exact": false,
+          "tokens": [
+            98,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-005-variant-0",
+          "exact": false,
+          "tokens": [
+            102,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-011-variant-1",
+          "exact": false,
+          "tokens": [
+            99,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-002-variant-0",
+          "exact": false,
+          "tokens": [
+            103,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-004-variant-1",
+          "exact": true,
+          "tokens": [
+            102,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-001-variant-1",
+          "exact": false,
+          "tokens": [
+            97,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-030-variant-0",
+          "exact": false,
+          "tokens": [
+            100,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-006-variant-0",
+          "exact": false,
+          "tokens": [
+            102,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-025-variant-0",
+          "exact": false,
+          "tokens": [
+            96,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-016-variant-1",
+          "exact": true,
+          "tokens": [
+            97,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-026-variant-0",
+          "exact": false,
+          "tokens": [
+            99,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-029-variant-0",
+          "exact": false,
+          "tokens": [
+            102,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-002-variant-1",
+          "exact": false,
+          "tokens": [
+            103,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-003-variant-0",
+          "exact": false,
+          "tokens": [
+            99,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-015-variant-1",
+          "exact": false,
+          "tokens": [
+            99,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-013-variant-1",
+          "exact": false,
+          "tokens": [
+            98,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-004-variant-0",
+          "exact": true,
+          "tokens": [
+            98,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-018-variant-0",
+          "exact": false,
+          "tokens": [
+            96,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-011-variant-0",
+          "exact": false,
+          "tokens": [
+            103,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-023-variant-1",
+          "exact": false,
+          "tokens": [
+            101,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-027-variant-1",
+          "exact": false,
+          "tokens": [
+            103,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-016-variant-0",
+          "exact": true,
+          "tokens": [
+            101,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-021-variant-1",
+          "exact": false,
+          "tokens": [
+            102,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-026-variant-1",
+          "exact": false,
+          "tokens": [
+            103,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-031-variant-1",
+          "exact": false,
+          "tokens": [
+            101,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-025-variant-1",
+          "exact": false,
+          "tokens": [
+            96,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-031-variant-0",
+          "exact": false,
+          "tokens": [
+            101,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-020-variant-0",
+          "exact": true,
+          "tokens": [
+            102,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-007-variant-1",
+          "exact": false,
+          "tokens": [
+            98,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-017-variant-1",
+          "exact": false,
+          "tokens": [
+            103,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-019-variant-1",
+          "exact": false,
+          "tokens": [
+            101,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-012-variant-0",
+          "exact": true,
+          "tokens": [
+            100,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-014-variant-1",
+          "exact": false,
+          "tokens": [
+            97,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-009-variant-0",
+          "exact": false,
+          "tokens": [
+            102,
+            256
+          ]
+        }
+      ],
+      "files": {
+        "acceptance.json": {
+          "sha256": "f762c89b05b270a620fa7d290d28eb364a539f8794e68ff48047373bed88c36f",
+          "bytes": 686
+        },
+        "attempt.json": {
+          "sha256": "23f609f0399761515899202a102f05b6c4c77a0f2ade489cab95e9ed71467d7c",
+          "bytes": 487
+        },
+        "candidate.json": {
+          "sha256": "e774291337466c8af47fa255089debb5e8e14fddeea776b060163a906d14bfa3",
+          "bytes": 14280
+        },
+        "codec-only.json": {
+          "sha256": "ef8fb6d0a4fe6ce3c78bd73f68803b6018eaff2a106108c92a956ae317d06229",
+          "bytes": 14100
+        },
+        "data.json": {
+          "sha256": "4b9b74d37f2b0fc405709e64b22757ed3beb7e5889db3bb4a10ae9e98e635234",
+          "bytes": 124072
+        },
+        "environment.json": {
+          "sha256": "028fe8bfb796af365d0f2458c8025fb6b381d0476d738d6188211f22e085ad97",
+          "bytes": 530
+        },
+        "fit.json": {
+          "sha256": "06e9007f1d5de5fc4b37a84354072b20da7174521053275945d45696e344a340",
+          "bytes": 4529
+        },
+        "initialized.json": {
+          "sha256": "dfddefd1f70e8fd53df4b7bdfe3610af2ccec754e86d0da284544cf34feac4e3",
+          "bytes": 14100
+        },
+        "manifest.json": {
+          "sha256": "175f4aaf4d38e2205c6ca66a4dc1d81944e793b249d36830a647b7e36f8f426f",
+          "bytes": 1737
+        },
+        "responses.json": {
+          "sha256": "13dad56c1d11519278d82c687cbfd6f38d6eabbca5e107c09a37e536aa981d55",
+          "bytes": 1990535
+        },
+        "summary.json": {
+          "sha256": "e27ae49725422f1105d2ebb3318d50a8df378d4658c67268f18e73ff8323994e",
+          "bytes": 3360
+        }
+      }
+    },
+    {
+      "attempt": 2,
+      "root": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/relational-attention-1/attempt-2",
+      "summary": {
+        "candidate_parameter_changes": {
+          "decoder_tables": 7,
+          "score_tables": 160
+        },
+        "candidate_sha256": "d511a6918333df06ba08a92704984b544675b835072f7d463e6d33998c1e80fd",
+        "development_pairs_both_exact": 8,
+        "environment": "PASS_NO_TARGET_DISTRACTOR_PACKET_COLLISION",
+        "export_replay_equal": true,
+        "final_holdout": "NOT_RUN",
+        "gate": "FAIL_TYPED_ONE_READ_ATTENTION_LEARNING",
+        "panels": [
+          {
+            "artifact": "initialized",
+            "control": "Full",
+            "exact": 0,
+            "selected_correct": 32,
+            "split": "training",
+            "total": 128
+          },
+          {
+            "artifact": "codec_only",
+            "control": "Full",
+            "exact": 32,
+            "selected_correct": 32,
+            "split": "training",
+            "total": 128
+          },
+          {
+            "artifact": "candidate",
+            "control": "Full",
+            "exact": 128,
+            "selected_correct": 128,
+            "split": "training",
+            "total": 128
+          },
+          {
+            "artifact": "candidate",
+            "control": "ReadDisabled",
+            "exact": 0,
+            "selected_correct": 0,
+            "split": "training",
+            "total": 128
+          },
+          {
+            "artifact": "candidate",
+            "control": "QueryReversed",
+            "exact": 0,
+            "selected_correct": 0,
+            "split": "training",
+            "total": 128
+          },
+          {
+            "artifact": "candidate",
+            "control": "PhasesDisabled",
+            "exact": 128,
+            "selected_correct": 128,
+            "split": "training",
+            "total": 128
+          },
+          {
+            "artifact": "candidate",
+            "control": "DiagonalOnly",
+            "exact": 32,
+            "selected_correct": 32,
+            "split": "training",
+            "total": 128
+          },
+          {
+            "artifact": "initialized",
+            "control": "Full",
+            "exact": 0,
+            "selected_correct": 16,
+            "split": "development",
+            "total": 64
+          },
+          {
+            "artifact": "codec_only",
+            "control": "Full",
+            "exact": 16,
+            "selected_correct": 16,
+            "split": "development",
+            "total": 64
+          },
+          {
+            "artifact": "candidate",
+            "control": "Full",
+            "exact": 16,
+            "selected_correct": 16,
+            "split": "development",
+            "total": 64
+          },
+          {
+            "artifact": "candidate",
+            "control": "ReadDisabled",
+            "exact": 0,
+            "selected_correct": 0,
+            "split": "development",
+            "total": 64
+          },
+          {
+            "artifact": "candidate",
+            "control": "QueryReversed",
+            "exact": 16,
+            "selected_correct": 16,
+            "split": "development",
+            "total": 64
+          },
+          {
+            "artifact": "candidate",
+            "control": "PhasesDisabled",
+            "exact": 16,
+            "selected_correct": 16,
+            "split": "development",
+            "total": 64
+          },
+          {
+            "artifact": "candidate",
+            "control": "DiagonalOnly",
+            "exact": 16,
+            "selected_correct": 16,
+            "split": "development",
+            "total": 64
+          }
+        ],
+        "promotion": false,
+        "retained_artifact": "15baec48",
+        "scope": "typed compatibility learning with codec curriculum; query/key encoding and record boundaries fixed; not raw prose or complete shared recurrent learner",
+        "source": {
+          "circuit": "8f7d2a7ca7cab12550ab9758ba1f6961d26bafb2ee4c571bd4b8f5597813aadd",
+          "data": "d6f4388dc7693cd4f76ac416a8975be484c4c39d6f678f4b110289d64bb0b557",
+          "learning": "39ad556ccd85482d288dbbb85046dc9f16f816b1b9cba2aa6983cf286e04850a",
+          "runtime": "8ced28322a66a587d7160c5ff43242e03d7af01d3267f63fc4777caf9845e1a9"
+        }
+      },
+      "fit": {
+        "configuration": {
+          "codec_epochs": 256,
+          "routing_epochs": 800,
+          "learning_rate": 0.01,
+          "wall_seconds": 600
+        },
+        "codec_updates": 256,
+        "routing_updates": 800,
+        "skipped_no_useful_read": 0,
+        "selected_epoch": 100,
+        "stopped": "completed_dose",
+        "progress": [
+          {
+            "epoch": 1,
+            "surrogate_loss": 0.24999999999999856,
+            "train_exact": 32,
+            "changed_tables": 0
+          },
+          {
+            "epoch": 25,
+            "surrogate_loss": 0.24999999999999856,
+            "train_exact": 32,
+            "changed_tables": 0
+          },
+          {
+            "epoch": 50,
+            "surrogate_loss": 0.25,
+            "train_exact": 32,
+            "changed_tables": 288
+          },
+          {
+            "epoch": 75,
+            "surrogate_loss": 0.0390625,
+            "train_exact": 112,
+            "changed_tables": 162
+          },
+          {
+            "epoch": 100,
+            "surrogate_loss": 0,
+            "train_exact": 128,
+            "changed_tables": 160
+          },
+          {
+            "epoch": 125,
+            "surrogate_loss": 0,
+            "train_exact": 128,
+            "changed_tables": 160
+          },
+          {
+            "epoch": 150,
+            "surrogate_loss": 0,
+            "train_exact": 128,
+            "changed_tables": 160
+          },
+          {
+            "epoch": 175,
+            "surrogate_loss": 0,
+            "train_exact": 128,
+            "changed_tables": 160
+          },
+          {
+            "epoch": 200,
+            "surrogate_loss": 0,
+            "train_exact": 128,
+            "changed_tables": 160
+          },
+          {
+            "epoch": 225,
+            "surrogate_loss": 0,
+            "train_exact": 128,
+            "changed_tables": 160
+          },
+          {
+            "epoch": 250,
+            "surrogate_loss": 0,
+            "train_exact": 128,
+            "changed_tables": 160
+          },
+          {
+            "epoch": 275,
+            "surrogate_loss": 0,
+            "train_exact": 128,
+            "changed_tables": 160
+          },
+          {
+            "epoch": 300,
+            "surrogate_loss": 0,
+            "train_exact": 128,
+            "changed_tables": 160
+          },
+          {
+            "epoch": 325,
+            "surrogate_loss": 0,
+            "train_exact": 128,
+            "changed_tables": 160
+          },
+          {
+            "epoch": 350,
+            "surrogate_loss": 0,
+            "train_exact": 128,
+            "changed_tables": 160
+          },
+          {
+            "epoch": 375,
+            "surrogate_loss": 0,
+            "train_exact": 128,
+            "changed_tables": 160
+          },
+          {
+            "epoch": 400,
+            "surrogate_loss": 0,
+            "train_exact": 128,
+            "changed_tables": 160
+          },
+          {
+            "epoch": 425,
+            "surrogate_loss": 0,
+            "train_exact": 128,
+            "changed_tables": 160
+          },
+          {
+            "epoch": 450,
+            "surrogate_loss": 0,
+            "train_exact": 128,
+            "changed_tables": 160
+          },
+          {
+            "epoch": 475,
+            "surrogate_loss": 0,
+            "train_exact": 128,
+            "changed_tables": 160
+          },
+          {
+            "epoch": 500,
+            "surrogate_loss": 0,
+            "train_exact": 128,
+            "changed_tables": 160
+          },
+          {
+            "epoch": 525,
+            "surrogate_loss": 0,
+            "train_exact": 128,
+            "changed_tables": 160
+          },
+          {
+            "epoch": 550,
+            "surrogate_loss": 0,
+            "train_exact": 128,
+            "changed_tables": 160
+          },
+          {
+            "epoch": 575,
+            "surrogate_loss": 0,
+            "train_exact": 128,
+            "changed_tables": 160
+          },
+          {
+            "epoch": 600,
+            "surrogate_loss": 0,
+            "train_exact": 128,
+            "changed_tables": 160
+          },
+          {
+            "epoch": 625,
+            "surrogate_loss": 0,
+            "train_exact": 128,
+            "changed_tables": 160
+          },
+          {
+            "epoch": 650,
+            "surrogate_loss": 0,
+            "train_exact": 128,
+            "changed_tables": 160
+          },
+          {
+            "epoch": 675,
+            "surrogate_loss": 0,
+            "train_exact": 128,
+            "changed_tables": 160
+          },
+          {
+            "epoch": 700,
+            "surrogate_loss": 0,
+            "train_exact": 128,
+            "changed_tables": 160
+          },
+          {
+            "epoch": 725,
+            "surrogate_loss": 0,
+            "train_exact": 128,
+            "changed_tables": 160
+          },
+          {
+            "epoch": 750,
+            "surrogate_loss": 0,
+            "train_exact": 128,
+            "changed_tables": 160
+          },
+          {
+            "epoch": 775,
+            "surrogate_loss": 0,
+            "train_exact": 128,
+            "changed_tables": 160
+          },
+          {
+            "epoch": 800,
+            "surrogate_loss": 0,
+            "train_exact": 128,
+            "changed_tables": 160
+          }
+        ],
+        "elapsed_ms": 675
+      },
+      "source": {
+        "at": "2026-09-13T19:34:44.643Z",
+        "base": "21bd549651bea8e5c8fea78059a77990bb8c328e",
+        "files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/relational_attention/circuit.rs",
+            "sha256": "667eb3f9a900819a58e0cb02ab83573bee9c4600ce13c26fcfd29bd9de98666b"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/relational_attention/data.rs",
+            "sha256": "6dff7487201411ef2d68d276bd0595fa412adcead6c1f22e57a17e26abbe0b13"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/relational_attention/learning.rs",
+            "sha256": "27623000ae1d82916a97186d53b3e1b0d6c75c4b185fbd65eb0734300839c940"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/relational_attention/mod.rs",
+            "sha256": "26304fbdd4ca916c5e39ebf30fd2092b2e5333888c039fd47e80772d9c60c9e4"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/relational_attention/report.rs",
+            "sha256": "007b3fbd952bd8b1afb76d01a95ed6a2793977cf0eced2718b9637c0023128de"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/relational_attention/runtime.rs",
+            "sha256": "671145c488a316eb7b03bbdcc391bdcd2bdf7c4341a30748faffebe87fe29d98"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/addressed_attention/artifact.rs",
+            "sha256": "519e909351482f8407ded1ef34d96252bc34e268554dac1212e3620dc22686ba"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/mod.rs",
+            "sha256": "71fe407dcc95738d10f68f2a6ceea8535ca230efc8131a67a8d976439e836724"
+          },
+          {
+            "path": "Cargo.lock",
+            "sha256": "7337e6b47e5f7a8d4589164cb6ad23637e3d1b5413b462716cfdc1ab72d2558c"
+          }
+        ],
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/relational-attention-1/relational-tests-2",
+        "binary_sha256": "86f705d9222b43420cb61a0234d951124ef7ae444690232ca9bccf4d9962c5e0",
+        "compiler": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: aarch64-apple-darwin\nrelease: 1.97.1\nLLVM version: 22.1.6\n",
+        "fit_configuration": {
+          "codec_epochs": 256,
+          "routing_epochs": 800,
+          "learning_rate": 0.01,
+          "wall_seconds": 600
+        },
+        "acceptance": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/relational-attention-1/design-before-fit.md",
+        "correction": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/relational-attention-1/correction-before-attempt-2.md"
+      },
+      "development_sha256": "3606be779185a288f3f88838706fc17f78f6d97255d349cbf403dc69cca8dea1",
+      "development_rows": [
+        {
+          "id": "dev-family-012-variant-1",
+          "exact": true,
+          "tokens": [
+            104,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-021-variant-0",
+          "exact": false,
+          "tokens": [
+            98,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-010-variant-1",
+          "exact": false,
+          "tokens": [
+            97,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-017-variant-0",
+          "exact": false,
+          "tokens": [
+            103,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-000-variant-0",
+          "exact": true,
+          "tokens": [
+            97,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-022-variant-1",
+          "exact": false,
+          "tokens": [
+            100,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-024-variant-0",
+          "exact": true,
+          "tokens": [
+            103,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-007-variant-0",
+          "exact": false,
+          "tokens": [
+            102,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-013-variant-0",
+          "exact": false,
+          "tokens": [
+            98,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-015-variant-0",
+          "exact": false,
+          "tokens": [
+            99,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-008-variant-0",
+          "exact": true,
+          "tokens": [
+            99,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-020-variant-1",
+          "exact": true,
+          "tokens": [
+            98,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-029-variant-1",
+          "exact": false,
+          "tokens": [
+            102,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-010-variant-0",
+          "exact": false,
+          "tokens": [
+            97,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-001-variant-0",
+          "exact": false,
+          "tokens": [
+            101,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-014-variant-0",
+          "exact": false,
+          "tokens": [
+            97,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-028-variant-0",
+          "exact": true,
+          "tokens": [
+            104,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-022-variant-0",
+          "exact": false,
+          "tokens": [
+            100,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-000-variant-1",
+          "exact": true,
+          "tokens": [
+            101,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-018-variant-1",
+          "exact": false,
+          "tokens": [
+            104,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-023-variant-0",
+          "exact": false,
+          "tokens": [
+            101,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-028-variant-1",
+          "exact": true,
+          "tokens": [
+            100,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-030-variant-1",
+          "exact": false,
+          "tokens": [
+            104,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-008-variant-1",
+          "exact": true,
+          "tokens": [
+            103,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-003-variant-1",
+          "exact": false,
+          "tokens": [
+            99,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-024-variant-1",
+          "exact": true,
+          "tokens": [
+            99,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-027-variant-0",
+          "exact": false,
+          "tokens": [
+            99,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-019-variant-0",
+          "exact": false,
+          "tokens": [
+            97,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-009-variant-1",
+          "exact": false,
+          "tokens": [
+            102,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-006-variant-1",
+          "exact": false,
+          "tokens": [
+            98,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-005-variant-1",
+          "exact": false,
+          "tokens": [
+            98,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-005-variant-0",
+          "exact": false,
+          "tokens": [
+            102,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-011-variant-1",
+          "exact": false,
+          "tokens": [
+            99,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-002-variant-0",
+          "exact": false,
+          "tokens": [
+            103,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-004-variant-1",
+          "exact": true,
+          "tokens": [
+            102,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-001-variant-1",
+          "exact": false,
+          "tokens": [
+            97,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-030-variant-0",
+          "exact": false,
+          "tokens": [
+            100,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-006-variant-0",
+          "exact": false,
+          "tokens": [
+            102,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-025-variant-0",
+          "exact": false,
+          "tokens": [
+            104,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-016-variant-1",
+          "exact": true,
+          "tokens": [
+            97,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-026-variant-0",
+          "exact": false,
+          "tokens": [
+            99,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-029-variant-0",
+          "exact": false,
+          "tokens": [
+            102,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-002-variant-1",
+          "exact": false,
+          "tokens": [
+            103,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-003-variant-0",
+          "exact": false,
+          "tokens": [
+            99,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-015-variant-1",
+          "exact": false,
+          "tokens": [
+            99,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-013-variant-1",
+          "exact": false,
+          "tokens": [
+            98,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-004-variant-0",
+          "exact": true,
+          "tokens": [
+            98,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-018-variant-0",
+          "exact": false,
+          "tokens": [
+            104,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-011-variant-0",
+          "exact": false,
+          "tokens": [
+            103,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-023-variant-1",
+          "exact": false,
+          "tokens": [
+            101,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-027-variant-1",
+          "exact": false,
+          "tokens": [
+            103,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-016-variant-0",
+          "exact": true,
+          "tokens": [
+            101,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-021-variant-1",
+          "exact": false,
+          "tokens": [
+            102,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-026-variant-1",
+          "exact": false,
+          "tokens": [
+            103,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-031-variant-1",
+          "exact": false,
+          "tokens": [
+            101,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-025-variant-1",
+          "exact": false,
+          "tokens": [
+            104,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-031-variant-0",
+          "exact": false,
+          "tokens": [
+            101,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-020-variant-0",
+          "exact": true,
+          "tokens": [
+            102,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-007-variant-1",
+          "exact": false,
+          "tokens": [
+            98,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-017-variant-1",
+          "exact": false,
+          "tokens": [
+            103,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-019-variant-1",
+          "exact": false,
+          "tokens": [
+            101,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-012-variant-0",
+          "exact": true,
+          "tokens": [
+            100,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-014-variant-1",
+          "exact": false,
+          "tokens": [
+            97,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-009-variant-0",
+          "exact": false,
+          "tokens": [
+            102,
+            256
+          ]
+        }
+      ],
+      "files": {
+        "acceptance.json": {
+          "sha256": "eceb3c3a57f6db42a25d6811542be8a4cabe926c387cf6973b8db7358ac90f0a",
+          "bytes": 687
+        },
+        "attempt.json": {
+          "sha256": "2b9d1f1689b5f78c047b8ad6d29881996269f16df48b4fe48ec710cedf0545d8",
+          "bytes": 489
+        },
+        "candidate.json": {
+          "sha256": "d511a6918333df06ba08a92704984b544675b835072f7d463e6d33998c1e80fd",
+          "bytes": 14429
+        },
+        "codec-only.json": {
+          "sha256": "ca4e8e20506f9f60e0ab0b52559fe2dbf62ce7063c1729a87a85422cb3e27556",
+          "bytes": 14091
+        },
+        "data.json": {
+          "sha256": "4b9b74d37f2b0fc405709e64b22757ed3beb7e5889db3bb4a10ae9e98e635234",
+          "bytes": 124072
+        },
+        "environment.json": {
+          "sha256": "028fe8bfb796af365d0f2458c8025fb6b381d0476d738d6188211f22e085ad97",
+          "bytes": 530
+        },
+        "fit.json": {
+          "sha256": "de9fa70ebb3da5ae4f89874a9b1fbe1d51f7147366342c57fbbc54af242478a4",
+          "bytes": 4164
+        },
+        "initialized.json": {
+          "sha256": "b67eb7885c45692bdfc0ce02712485284ca1eb813bfda137ecac8497487adab1",
+          "bytes": 14091
+        },
+        "manifest.json": {
+          "sha256": "7c80fcb3a2f00b864f77a9aafb326861e31af5f1df7601fa9b1230cb20b1a3be",
+          "bytes": 1737
+        },
+        "responses.json": {
+          "sha256": "ee8586f9fcf54263f038ec37cafbf71a2384ca4ef11acf6a4bb98c191e487ad5",
+          "bytes": 1990310
+        },
+        "summary.json": {
+          "sha256": "2780f4f0ba985e2831f2a0b2684488c586036d88d784ebc66b990d2f2ef905eb",
+          "bytes": 3364
+        }
+      }
+    },
+    {
+      "attempt": 3,
+      "root": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/relational-attention-1/attempt-3",
+      "summary": {
+        "candidate_parameter_changes": {
+          "decoder_tables": 7,
+          "score_tables": 120
+        },
+        "candidate_sha256": "58b7d0dbf00661b8d2a2fd73c12444161bbe7694b2a9c827ae02531fc4eba7d1",
+        "development_pairs_both_exact": 21,
+        "environment": "PASS_NO_TARGET_DISTRACTOR_PACKET_COLLISION",
+        "export_replay_equal": true,
+        "final_holdout": "NOT_RUN",
+        "gate": "FAIL_TYPED_ONE_READ_ATTENTION_LEARNING",
+        "panels": [
+          {
+            "artifact": "initialized",
+            "control": "Full",
+            "exact": 0,
+            "selected_correct": 512,
+            "split": "training",
+            "total": 2048
+          },
+          {
+            "artifact": "codec_only",
+            "control": "Full",
+            "exact": 512,
+            "selected_correct": 512,
+            "split": "training",
+            "total": 2048
+          },
+          {
+            "artifact": "candidate",
+            "control": "Full",
+            "exact": 2048,
+            "selected_correct": 2048,
+            "split": "training",
+            "total": 2048
+          },
+          {
+            "artifact": "candidate",
+            "control": "ReadDisabled",
+            "exact": 0,
+            "selected_correct": 0,
+            "split": "training",
+            "total": 2048
+          },
+          {
+            "artifact": "candidate",
+            "control": "QueryReversed",
+            "exact": 0,
+            "selected_correct": 0,
+            "split": "training",
+            "total": 2048
+          },
+          {
+            "artifact": "candidate",
+            "control": "PhasesDisabled",
+            "exact": 2048,
+            "selected_correct": 2048,
+            "split": "training",
+            "total": 2048
+          },
+          {
+            "artifact": "candidate",
+            "control": "DiagonalOnly",
+            "exact": 512,
+            "selected_correct": 512,
+            "split": "training",
+            "total": 2048
+          },
+          {
+            "artifact": "initialized",
+            "control": "Full",
+            "exact": 0,
+            "selected_correct": 16,
+            "split": "development",
+            "total": 64
+          },
+          {
+            "artifact": "codec_only",
+            "control": "Full",
+            "exact": 16,
+            "selected_correct": 16,
+            "split": "development",
+            "total": 64
+          },
+          {
+            "artifact": "candidate",
+            "control": "Full",
+            "exact": 42,
+            "selected_correct": 42,
+            "split": "development",
+            "total": 64
+          },
+          {
+            "artifact": "candidate",
+            "control": "ReadDisabled",
+            "exact": 0,
+            "selected_correct": 0,
+            "split": "development",
+            "total": 64
+          },
+          {
+            "artifact": "candidate",
+            "control": "QueryReversed",
+            "exact": 10,
+            "selected_correct": 10,
+            "split": "development",
+            "total": 64
+          },
+          {
+            "artifact": "candidate",
+            "control": "PhasesDisabled",
+            "exact": 42,
+            "selected_correct": 42,
+            "split": "development",
+            "total": 64
+          },
+          {
+            "artifact": "candidate",
+            "control": "DiagonalOnly",
+            "exact": 16,
+            "selected_correct": 16,
+            "split": "development",
+            "total": 64
+          }
+        ],
+        "promotion": false,
+        "retained_artifact": "15baec48",
+        "scope": "typed compatibility learning with codec curriculum; query/key encoding and record boundaries fixed; not raw prose or complete shared recurrent learner",
+        "source": {
+          "circuit": "8f7d2a7ca7cab12550ab9758ba1f6961d26bafb2ee4c571bd4b8f5597813aadd",
+          "data": "5f2de28711354d55f08bb6fa904f0f7d95a904badaf1b9134200aa7f8f5fa458",
+          "learning": "29aa7df352348e087117b6a20cfd02080d858ed4f0353b583fa8bed77d01e36b",
+          "runtime": "8ced28322a66a587d7160c5ff43242e03d7af01d3267f63fc4777caf9845e1a9"
+        }
+      },
+      "fit": {
+        "configuration": {
+          "codec_epochs": 256,
+          "routing_epochs": 800,
+          "learning_rate": 0.01,
+          "wall_seconds": 600
+        },
+        "codec_updates": 256,
+        "routing_updates": 800,
+        "skipped_no_useful_read": 0,
+        "selected_epoch": 75,
+        "stopped": "completed_dose",
+        "progress": [
+          {
+            "epoch": 1,
+            "objective_loss": 0.24999999999997724,
+            "train_exact": 512,
+            "changed_tables": 0
+          },
+          {
+            "epoch": 25,
+            "objective_loss": 0.24999999999997724,
+            "train_exact": 512,
+            "changed_tables": 0
+          },
+          {
+            "epoch": 50,
+            "objective_loss": 0.25,
+            "train_exact": 512,
+            "changed_tables": 288
+          },
+          {
+            "epoch": 75,
+            "objective_loss": 0,
+            "train_exact": 2048,
+            "changed_tables": 120
+          },
+          {
+            "epoch": 100,
+            "objective_loss": 0,
+            "train_exact": 2048,
+            "changed_tables": 120
+          },
+          {
+            "epoch": 125,
+            "objective_loss": 0,
+            "train_exact": 2048,
+            "changed_tables": 120
+          },
+          {
+            "epoch": 150,
+            "objective_loss": 0,
+            "train_exact": 2048,
+            "changed_tables": 120
+          },
+          {
+            "epoch": 175,
+            "objective_loss": 0,
+            "train_exact": 2048,
+            "changed_tables": 120
+          },
+          {
+            "epoch": 200,
+            "objective_loss": 0,
+            "train_exact": 2048,
+            "changed_tables": 120
+          },
+          {
+            "epoch": 225,
+            "objective_loss": 0,
+            "train_exact": 2048,
+            "changed_tables": 120
+          },
+          {
+            "epoch": 250,
+            "objective_loss": 0,
+            "train_exact": 2048,
+            "changed_tables": 120
+          },
+          {
+            "epoch": 275,
+            "objective_loss": 0,
+            "train_exact": 2048,
+            "changed_tables": 120
+          },
+          {
+            "epoch": 300,
+            "objective_loss": 0,
+            "train_exact": 2048,
+            "changed_tables": 120
+          },
+          {
+            "epoch": 325,
+            "objective_loss": 0,
+            "train_exact": 2048,
+            "changed_tables": 120
+          },
+          {
+            "epoch": 350,
+            "objective_loss": 0,
+            "train_exact": 2048,
+            "changed_tables": 120
+          },
+          {
+            "epoch": 375,
+            "objective_loss": 0,
+            "train_exact": 2048,
+            "changed_tables": 120
+          },
+          {
+            "epoch": 400,
+            "objective_loss": 0,
+            "train_exact": 2048,
+            "changed_tables": 120
+          },
+          {
+            "epoch": 425,
+            "objective_loss": 0,
+            "train_exact": 2048,
+            "changed_tables": 120
+          },
+          {
+            "epoch": 450,
+            "objective_loss": 0,
+            "train_exact": 2048,
+            "changed_tables": 120
+          },
+          {
+            "epoch": 475,
+            "objective_loss": 0,
+            "train_exact": 2048,
+            "changed_tables": 120
+          },
+          {
+            "epoch": 500,
+            "objective_loss": 0,
+            "train_exact": 2048,
+            "changed_tables": 120
+          },
+          {
+            "epoch": 525,
+            "objective_loss": 0,
+            "train_exact": 2048,
+            "changed_tables": 120
+          },
+          {
+            "epoch": 550,
+            "objective_loss": 0,
+            "train_exact": 2048,
+            "changed_tables": 120
+          },
+          {
+            "epoch": 575,
+            "objective_loss": 0,
+            "train_exact": 2048,
+            "changed_tables": 120
+          },
+          {
+            "epoch": 600,
+            "objective_loss": 0,
+            "train_exact": 2048,
+            "changed_tables": 120
+          },
+          {
+            "epoch": 625,
+            "objective_loss": 0,
+            "train_exact": 2048,
+            "changed_tables": 120
+          },
+          {
+            "epoch": 650,
+            "objective_loss": 0,
+            "train_exact": 2048,
+            "changed_tables": 120
+          },
+          {
+            "epoch": 675,
+            "objective_loss": 0,
+            "train_exact": 2048,
+            "changed_tables": 120
+          },
+          {
+            "epoch": 700,
+            "objective_loss": 0,
+            "train_exact": 2048,
+            "changed_tables": 120
+          },
+          {
+            "epoch": 725,
+            "objective_loss": 0,
+            "train_exact": 2048,
+            "changed_tables": 120
+          },
+          {
+            "epoch": 750,
+            "objective_loss": 0,
+            "train_exact": 2048,
+            "changed_tables": 120
+          },
+          {
+            "epoch": 775,
+            "objective_loss": 0,
+            "train_exact": 2048,
+            "changed_tables": 120
+          },
+          {
+            "epoch": 800,
+            "objective_loss": 0,
+            "train_exact": 2048,
+            "changed_tables": 120
+          }
+        ],
+        "elapsed_ms": 10772
+      },
+      "source": {
+        "at": "2026-09-13T19:39:18.983Z",
+        "base": "21bd549651bea8e5c8fea78059a77990bb8c328e",
+        "files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/relational_attention/circuit.rs",
+            "sha256": "667eb3f9a900819a58e0cb02ab83573bee9c4600ce13c26fcfd29bd9de98666b"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/relational_attention/data.rs",
+            "sha256": "0ee3150606bdeadc07546ff2bbd9cb1c8dd4a1b28be6a6034e06873beb1fb26e"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/relational_attention/learning.rs",
+            "sha256": "ce8cd0dea567f48daef49cbf83764d802163081eacc7189e86f48f153076c2d2"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/relational_attention/mod.rs",
+            "sha256": "26304fbdd4ca916c5e39ebf30fd2092b2e5333888c039fd47e80772d9c60c9e4"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/relational_attention/report.rs",
+            "sha256": "007b3fbd952bd8b1afb76d01a95ed6a2793977cf0eced2718b9637c0023128de"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/relational_attention/runtime.rs",
+            "sha256": "671145c488a316eb7b03bbdcc391bdcd2bdf7c4341a30748faffebe87fe29d98"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/addressed_attention/artifact.rs",
+            "sha256": "519e909351482f8407ded1ef34d96252bc34e268554dac1212e3620dc22686ba"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/mod.rs",
+            "sha256": "71fe407dcc95738d10f68f2a6ceea8535ca230efc8131a67a8d976439e836724"
+          },
+          {
+            "path": "Cargo.lock",
+            "sha256": "7337e6b47e5f7a8d4589164cb6ad23637e3d1b5413b462716cfdc1ab72d2558c"
+          }
+        ],
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/relational-attention-1/relational-tests-3",
+        "binary_sha256": "a9959c3b92eeac58e4e63b50d68d2ce5c7c6fad34a351a2e31d0a952558307cc",
+        "compiler": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: aarch64-apple-darwin\nrelease: 1.97.1\nLLVM version: 22.1.6\n",
+        "fit_configuration": {
+          "codec_epochs": 256,
+          "routing_epochs": 800,
+          "learning_rate": 0.01,
+          "wall_seconds": 600
+        },
+        "acceptance": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/relational-attention-1/design-before-fit.md",
+        "correction": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/relational-attention-1/exposure-before-attempt-3.json",
+        "training_rows": 2048
+      },
+      "development_sha256": "3606be779185a288f3f88838706fc17f78f6d97255d349cbf403dc69cca8dea1",
+      "development_rows": [
+        {
+          "id": "dev-family-012-variant-1",
+          "exact": true,
+          "tokens": [
+            104,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-021-variant-0",
+          "exact": true,
+          "tokens": [
+            102,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-010-variant-1",
+          "exact": true,
+          "tokens": [
+            103,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-017-variant-0",
+          "exact": false,
+          "tokens": [
+            103,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-000-variant-0",
+          "exact": true,
+          "tokens": [
+            97,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-022-variant-1",
+          "exact": true,
+          "tokens": [
+            98,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-024-variant-0",
+          "exact": true,
+          "tokens": [
+            103,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-007-variant-0",
+          "exact": true,
+          "tokens": [
+            98,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-013-variant-0",
+          "exact": false,
+          "tokens": [
+            98,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-015-variant-0",
+          "exact": true,
+          "tokens": [
+            100,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-008-variant-0",
+          "exact": true,
+          "tokens": [
+            99,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-020-variant-1",
+          "exact": true,
+          "tokens": [
+            98,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-029-variant-1",
+          "exact": true,
+          "tokens": [
+            100,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-010-variant-0",
+          "exact": true,
+          "tokens": [
+            99,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-001-variant-0",
+          "exact": false,
+          "tokens": [
+            101,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-014-variant-0",
+          "exact": false,
+          "tokens": [
+            97,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-028-variant-0",
+          "exact": true,
+          "tokens": [
+            104,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-022-variant-0",
+          "exact": true,
+          "tokens": [
+            102,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-000-variant-1",
+          "exact": true,
+          "tokens": [
+            101,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-018-variant-1",
+          "exact": true,
+          "tokens": [
+            97,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-023-variant-0",
+          "exact": false,
+          "tokens": [
+            101,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-028-variant-1",
+          "exact": true,
+          "tokens": [
+            100,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-030-variant-1",
+          "exact": true,
+          "tokens": [
+            100,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-008-variant-1",
+          "exact": true,
+          "tokens": [
+            103,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-003-variant-1",
+          "exact": false,
+          "tokens": [
+            99,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-024-variant-1",
+          "exact": true,
+          "tokens": [
+            99,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-027-variant-0",
+          "exact": true,
+          "tokens": [
+            103,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-019-variant-0",
+          "exact": true,
+          "tokens": [
+            101,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-009-variant-1",
+          "exact": false,
+          "tokens": [
+            102,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-006-variant-1",
+          "exact": false,
+          "tokens": [
+            98,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-005-variant-1",
+          "exact": true,
+          "tokens": [
+            102,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-005-variant-0",
+          "exact": true,
+          "tokens": [
+            98,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-011-variant-1",
+          "exact": true,
+          "tokens": [
+            103,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-002-variant-0",
+          "exact": false,
+          "tokens": [
+            103,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-004-variant-1",
+          "exact": true,
+          "tokens": [
+            102,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-001-variant-1",
+          "exact": false,
+          "tokens": [
+            97,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-030-variant-0",
+          "exact": true,
+          "tokens": [
+            104,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-006-variant-0",
+          "exact": false,
+          "tokens": [
+            102,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-025-variant-0",
+          "exact": false,
+          "tokens": [
+            104,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-016-variant-1",
+          "exact": true,
+          "tokens": [
+            97,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-026-variant-0",
+          "exact": true,
+          "tokens": [
+            103,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-029-variant-0",
+          "exact": true,
+          "tokens": [
+            104,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-002-variant-1",
+          "exact": false,
+          "tokens": [
+            103,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-003-variant-0",
+          "exact": false,
+          "tokens": [
+            99,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-015-variant-1",
+          "exact": true,
+          "tokens": [
+            104,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-013-variant-1",
+          "exact": false,
+          "tokens": [
+            98,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-004-variant-0",
+          "exact": true,
+          "tokens": [
+            98,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-018-variant-0",
+          "exact": true,
+          "tokens": [
+            101,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-011-variant-0",
+          "exact": true,
+          "tokens": [
+            99,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-023-variant-1",
+          "exact": false,
+          "tokens": [
+            101,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-027-variant-1",
+          "exact": true,
+          "tokens": [
+            99,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-016-variant-0",
+          "exact": true,
+          "tokens": [
+            101,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-021-variant-1",
+          "exact": true,
+          "tokens": [
+            98,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-026-variant-1",
+          "exact": true,
+          "tokens": [
+            99,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-031-variant-1",
+          "exact": false,
+          "tokens": [
+            101,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-025-variant-1",
+          "exact": false,
+          "tokens": [
+            104,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-031-variant-0",
+          "exact": false,
+          "tokens": [
+            101,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-020-variant-0",
+          "exact": true,
+          "tokens": [
+            102,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-007-variant-1",
+          "exact": true,
+          "tokens": [
+            102,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-017-variant-1",
+          "exact": false,
+          "tokens": [
+            103,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-019-variant-1",
+          "exact": true,
+          "tokens": [
+            97,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-012-variant-0",
+          "exact": true,
+          "tokens": [
+            100,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-014-variant-1",
+          "exact": false,
+          "tokens": [
+            97,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-009-variant-0",
+          "exact": false,
+          "tokens": [
+            102,
+            256
+          ]
+        }
+      ],
+      "files": {
+        "acceptance.json": {
+          "sha256": "eceb3c3a57f6db42a25d6811542be8a4cabe926c387cf6973b8db7358ac90f0a",
+          "bytes": 687
+        },
+        "attempt.json": {
+          "sha256": "007ad930f06daa4f20425f2a5c9c8a4035f58389aace595cb7c1d3398d9bebb0",
+          "bytes": 489
+        },
+        "candidate.json": {
+          "sha256": "58b7d0dbf00661b8d2a2fd73c12444161bbe7694b2a9c827ae02531fc4eba7d1",
+          "bytes": 14457
+        },
+        "codec-only.json": {
+          "sha256": "978a99e84b5b4beab6a947a35cc85434cb5916da27bbf824b21527f1a5216716",
+          "bytes": 14095
+        },
+        "data.json": {
+          "sha256": "90c8c5feecb56d288f5a34b3f4c9cd224878cd5e8a42cd1439056d6749bd3e2f",
+          "bytes": 1345103
+        },
+        "environment.json": {
+          "sha256": "a4c416b95419eb25325b540e6b5e24adb5332da5260ff48e3335a6bb3b774b4f",
+          "bytes": 532
+        },
+        "fit.json": {
+          "sha256": "f20dae29d25c29a21d047b68675a67f23a5930574c769af38f717953daa3ee2e",
+          "bytes": 4192
+        },
+        "initialized.json": {
+          "sha256": "646b29cf02b3aea2e6de98d9fbb5c9ceebd393abc015247436ddf83bb6031238",
+          "bytes": 14095
+        },
+        "manifest.json": {
+          "sha256": "6a3c375cb6d865589c6830dd10f314fa0732fd54d9bb7ba8661bcb58ec65fe79",
+          "bytes": 1739
+        },
+        "responses.json": {
+          "sha256": "ad783e4e386a377fed81b4e3e8977a09b50584789172e05d586e46acdab04cf0",
+          "bytes": 21791875
+        },
+        "summary.json": {
+          "sha256": "460fe0ab528398a1546c1a3320e64f0c067c9ae88486ca8d12fcd7b8f96b0655",
+          "bytes": 3381
+        }
+      }
+    },
+    {
+      "attempt": 4,
+      "root": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/relational-attention-1/attempt-4",
+      "summary": {
+        "candidate_parameter_changes": {
+          "decoder_tables": 7,
+          "score_tables": 118
+        },
+        "candidate_sha256": "9901cc50d36d32b4c41f24db2c5f3af41b7cb1f2eaa77ff6e7dcde339e66a582",
+        "development_pairs_both_exact": 32,
+        "environment": "PASS_NO_TARGET_DISTRACTOR_PACKET_COLLISION",
+        "export_replay_equal": true,
+        "final_holdout": "NOT_RUN",
+        "gate": "PASS_TYPED_ONE_READ_ATTENTION_LEARNING",
+        "panels": [
+          {
+            "artifact": "initialized",
+            "control": "Full",
+            "exact": 0,
+            "selected_correct": 2048,
+            "split": "training",
+            "total": 8192
+          },
+          {
+            "artifact": "codec_only",
+            "control": "Full",
+            "exact": 2048,
+            "selected_correct": 2048,
+            "split": "training",
+            "total": 8192
+          },
+          {
+            "artifact": "candidate",
+            "control": "Full",
+            "exact": 8192,
+            "selected_correct": 8192,
+            "split": "training",
+            "total": 8192
+          },
+          {
+            "artifact": "candidate",
+            "control": "ReadDisabled",
+            "exact": 0,
+            "selected_correct": 0,
+            "split": "training",
+            "total": 8192
+          },
+          {
+            "artifact": "candidate",
+            "control": "QueryReversed",
+            "exact": 0,
+            "selected_correct": 0,
+            "split": "training",
+            "total": 8192
+          },
+          {
+            "artifact": "candidate",
+            "control": "PhasesDisabled",
+            "exact": 8122,
+            "selected_correct": 8122,
+            "split": "training",
+            "total": 8192
+          },
+          {
+            "artifact": "candidate",
+            "control": "DiagonalOnly",
+            "exact": 8192,
+            "selected_correct": 8192,
+            "split": "training",
+            "total": 8192
+          },
+          {
+            "artifact": "initialized",
+            "control": "Full",
+            "exact": 0,
+            "selected_correct": 16,
+            "split": "development",
+            "total": 64
+          },
+          {
+            "artifact": "codec_only",
+            "control": "Full",
+            "exact": 16,
+            "selected_correct": 16,
+            "split": "development",
+            "total": 64
+          },
+          {
+            "artifact": "candidate",
+            "control": "Full",
+            "exact": 64,
+            "selected_correct": 64,
+            "split": "development",
+            "total": 64
+          },
+          {
+            "artifact": "candidate",
+            "control": "ReadDisabled",
+            "exact": 0,
+            "selected_correct": 0,
+            "split": "development",
+            "total": 64
+          },
+          {
+            "artifact": "candidate",
+            "control": "QueryReversed",
+            "exact": 0,
+            "selected_correct": 0,
+            "split": "development",
+            "total": 64
+          },
+          {
+            "artifact": "candidate",
+            "control": "PhasesDisabled",
+            "exact": 64,
+            "selected_correct": 64,
+            "split": "development",
+            "total": 64
+          },
+          {
+            "artifact": "candidate",
+            "control": "DiagonalOnly",
+            "exact": 64,
+            "selected_correct": 64,
+            "split": "development",
+            "total": 64
+          }
+        ],
+        "promotion": false,
+        "retained_artifact": "15baec48",
+        "scope": "typed compatibility learning with codec curriculum; query/key encoding and record boundaries fixed; not raw prose or complete shared recurrent learner",
+        "source": {
+          "circuit": "8f7d2a7ca7cab12550ab9758ba1f6961d26bafb2ee4c571bd4b8f5597813aadd",
+          "data": "893091991fd41e5b8e2ad0529bd3691e8004e13f96221ae1abdebcc4e54c6db7",
+          "learning": "29aa7df352348e087117b6a20cfd02080d858ed4f0353b583fa8bed77d01e36b",
+          "runtime": "8ced28322a66a587d7160c5ff43242e03d7af01d3267f63fc4777caf9845e1a9"
+        }
+      },
+      "fit": {
+        "configuration": {
+          "codec_epochs": 256,
+          "routing_epochs": 800,
+          "learning_rate": 0.01,
+          "wall_seconds": 600
+        },
+        "codec_updates": 256,
+        "routing_updates": 800,
+        "skipped_no_useful_read": 0,
+        "selected_epoch": 150,
+        "stopped": "completed_dose",
+        "progress": [
+          {
+            "epoch": 1,
+            "objective_loss": 0.24999999999990904,
+            "train_exact": 2048,
+            "changed_tables": 0
+          },
+          {
+            "epoch": 25,
+            "objective_loss": 0.24999999999990904,
+            "train_exact": 2048,
+            "changed_tables": 0
+          },
+          {
+            "epoch": 50,
+            "objective_loss": 0.25,
+            "train_exact": 2048,
+            "changed_tables": 288
+          },
+          {
+            "epoch": 75,
+            "objective_loss": 0.01544189453125,
+            "train_exact": 7812,
+            "changed_tables": 120
+          },
+          {
+            "epoch": 100,
+            "objective_loss": 0.01544189453125,
+            "train_exact": 7812,
+            "changed_tables": 120
+          },
+          {
+            "epoch": 125,
+            "objective_loss": 0.01544189453125,
+            "train_exact": 7812,
+            "changed_tables": 120
+          },
+          {
+            "epoch": 150,
+            "objective_loss": 0,
+            "train_exact": 8192,
+            "changed_tables": 118
+          },
+          {
+            "epoch": 175,
+            "objective_loss": 0,
+            "train_exact": 8192,
+            "changed_tables": 118
+          },
+          {
+            "epoch": 200,
+            "objective_loss": 0,
+            "train_exact": 8192,
+            "changed_tables": 118
+          },
+          {
+            "epoch": 225,
+            "objective_loss": 0,
+            "train_exact": 8192,
+            "changed_tables": 118
+          },
+          {
+            "epoch": 250,
+            "objective_loss": 0,
+            "train_exact": 8192,
+            "changed_tables": 118
+          },
+          {
+            "epoch": 275,
+            "objective_loss": 0,
+            "train_exact": 8192,
+            "changed_tables": 118
+          },
+          {
+            "epoch": 300,
+            "objective_loss": 0,
+            "train_exact": 8192,
+            "changed_tables": 118
+          },
+          {
+            "epoch": 325,
+            "objective_loss": 0,
+            "train_exact": 8192,
+            "changed_tables": 118
+          },
+          {
+            "epoch": 350,
+            "objective_loss": 0,
+            "train_exact": 8192,
+            "changed_tables": 118
+          },
+          {
+            "epoch": 375,
+            "objective_loss": 0,
+            "train_exact": 8192,
+            "changed_tables": 118
+          },
+          {
+            "epoch": 400,
+            "objective_loss": 0,
+            "train_exact": 8192,
+            "changed_tables": 118
+          },
+          {
+            "epoch": 425,
+            "objective_loss": 0,
+            "train_exact": 8192,
+            "changed_tables": 118
+          },
+          {
+            "epoch": 450,
+            "objective_loss": 0,
+            "train_exact": 8192,
+            "changed_tables": 118
+          },
+          {
+            "epoch": 475,
+            "objective_loss": 0,
+            "train_exact": 8192,
+            "changed_tables": 118
+          },
+          {
+            "epoch": 500,
+            "objective_loss": 0,
+            "train_exact": 8192,
+            "changed_tables": 118
+          },
+          {
+            "epoch": 525,
+            "objective_loss": 0,
+            "train_exact": 8192,
+            "changed_tables": 118
+          },
+          {
+            "epoch": 550,
+            "objective_loss": 0,
+            "train_exact": 8192,
+            "changed_tables": 118
+          },
+          {
+            "epoch": 575,
+            "objective_loss": 0,
+            "train_exact": 8192,
+            "changed_tables": 118
+          },
+          {
+            "epoch": 600,
+            "objective_loss": 0,
+            "train_exact": 8192,
+            "changed_tables": 118
+          },
+          {
+            "epoch": 625,
+            "objective_loss": 0,
+            "train_exact": 8192,
+            "changed_tables": 118
+          },
+          {
+            "epoch": 650,
+            "objective_loss": 0,
+            "train_exact": 8192,
+            "changed_tables": 118
+          },
+          {
+            "epoch": 675,
+            "objective_loss": 0,
+            "train_exact": 8192,
+            "changed_tables": 118
+          },
+          {
+            "epoch": 700,
+            "objective_loss": 0,
+            "train_exact": 8192,
+            "changed_tables": 118
+          },
+          {
+            "epoch": 725,
+            "objective_loss": 0,
+            "train_exact": 8192,
+            "changed_tables": 118
+          },
+          {
+            "epoch": 750,
+            "objective_loss": 0,
+            "train_exact": 8192,
+            "changed_tables": 118
+          },
+          {
+            "epoch": 775,
+            "objective_loss": 0,
+            "train_exact": 8192,
+            "changed_tables": 118
+          },
+          {
+            "epoch": 800,
+            "objective_loss": 0,
+            "train_exact": 8192,
+            "changed_tables": 118
+          }
+        ],
+        "elapsed_ms": 43346
+      },
+      "source": {
+        "at": "2026-09-13T19:44:25.411Z",
+        "base": "21bd549651bea8e5c8fea78059a77990bb8c328e",
+        "files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/relational_attention/circuit.rs",
+            "sha256": "667eb3f9a900819a58e0cb02ab83573bee9c4600ce13c26fcfd29bd9de98666b"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/relational_attention/data.rs",
+            "sha256": "81fb9b844f5ee1fe98a86583702d9094a63c2ca6c2dc3f2ac45803a3e79931cb"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/relational_attention/learning.rs",
+            "sha256": "ce8cd0dea567f48daef49cbf83764d802163081eacc7189e86f48f153076c2d2"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/relational_attention/mod.rs",
+            "sha256": "26304fbdd4ca916c5e39ebf30fd2092b2e5333888c039fd47e80772d9c60c9e4"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/relational_attention/report.rs",
+            "sha256": "007b3fbd952bd8b1afb76d01a95ed6a2793977cf0eced2718b9637c0023128de"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/relational_attention/runtime.rs",
+            "sha256": "671145c488a316eb7b03bbdcc391bdcd2bdf7c4341a30748faffebe87fe29d98"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/addressed_attention/artifact.rs",
+            "sha256": "519e909351482f8407ded1ef34d96252bc34e268554dac1212e3620dc22686ba"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/mod.rs",
+            "sha256": "71fe407dcc95738d10f68f2a6ceea8535ca230efc8131a67a8d976439e836724"
+          },
+          {
+            "path": "Cargo.lock",
+            "sha256": "7337e6b47e5f7a8d4589164cb6ad23637e3d1b5413b462716cfdc1ab72d2558c"
+          }
+        ],
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/relational-attention-1/relational-tests-4",
+        "binary_sha256": "a7e428243d89f20aace843cd5450c5a16315b7ce569c86dc3df0a330ef35bc48",
+        "compiler": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: aarch64-apple-darwin\nrelease: 1.97.1\nLLVM version: 22.1.6\n",
+        "fit_configuration": {
+          "codec_epochs": 256,
+          "routing_epochs": 800,
+          "learning_rate": 0.01,
+          "wall_seconds": 600
+        },
+        "acceptance": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/relational-attention-1/design-before-fit.md",
+        "correction": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/relational-attention-1/exposure-before-attempt-4.json",
+        "training_rows": 8192
+      },
+      "development_sha256": "3606be779185a288f3f88838706fc17f78f6d97255d349cbf403dc69cca8dea1",
+      "development_rows": [
+        {
+          "id": "dev-family-012-variant-1",
+          "exact": true,
+          "tokens": [
+            104,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-021-variant-0",
+          "exact": true,
+          "tokens": [
+            102,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-010-variant-1",
+          "exact": true,
+          "tokens": [
+            103,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-017-variant-0",
+          "exact": true,
+          "tokens": [
+            101,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-000-variant-0",
+          "exact": true,
+          "tokens": [
+            97,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-022-variant-1",
+          "exact": true,
+          "tokens": [
+            98,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-024-variant-0",
+          "exact": true,
+          "tokens": [
+            103,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-007-variant-0",
+          "exact": true,
+          "tokens": [
+            98,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-013-variant-0",
+          "exact": true,
+          "tokens": [
+            100,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-015-variant-0",
+          "exact": true,
+          "tokens": [
+            100,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-008-variant-0",
+          "exact": true,
+          "tokens": [
+            99,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-020-variant-1",
+          "exact": true,
+          "tokens": [
+            98,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-029-variant-1",
+          "exact": true,
+          "tokens": [
+            100,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-010-variant-0",
+          "exact": true,
+          "tokens": [
+            99,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-001-variant-0",
+          "exact": true,
+          "tokens": [
+            97,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-014-variant-0",
+          "exact": true,
+          "tokens": [
+            100,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-028-variant-0",
+          "exact": true,
+          "tokens": [
+            104,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-022-variant-0",
+          "exact": true,
+          "tokens": [
+            102,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-000-variant-1",
+          "exact": true,
+          "tokens": [
+            101,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-018-variant-1",
+          "exact": true,
+          "tokens": [
+            97,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-023-variant-0",
+          "exact": true,
+          "tokens": [
+            102,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-028-variant-1",
+          "exact": true,
+          "tokens": [
+            100,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-030-variant-1",
+          "exact": true,
+          "tokens": [
+            100,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-008-variant-1",
+          "exact": true,
+          "tokens": [
+            103,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-003-variant-1",
+          "exact": true,
+          "tokens": [
+            101,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-024-variant-1",
+          "exact": true,
+          "tokens": [
+            99,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-027-variant-0",
+          "exact": true,
+          "tokens": [
+            103,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-019-variant-0",
+          "exact": true,
+          "tokens": [
+            101,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-009-variant-1",
+          "exact": true,
+          "tokens": [
+            103,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-006-variant-1",
+          "exact": true,
+          "tokens": [
+            102,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-005-variant-1",
+          "exact": true,
+          "tokens": [
+            102,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-005-variant-0",
+          "exact": true,
+          "tokens": [
+            98,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-011-variant-1",
+          "exact": true,
+          "tokens": [
+            103,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-002-variant-0",
+          "exact": true,
+          "tokens": [
+            97,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-004-variant-1",
+          "exact": true,
+          "tokens": [
+            102,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-001-variant-1",
+          "exact": true,
+          "tokens": [
+            101,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-030-variant-0",
+          "exact": true,
+          "tokens": [
+            104,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-006-variant-0",
+          "exact": true,
+          "tokens": [
+            98,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-025-variant-0",
+          "exact": true,
+          "tokens": [
+            103,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-016-variant-1",
+          "exact": true,
+          "tokens": [
+            97,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-026-variant-0",
+          "exact": true,
+          "tokens": [
+            103,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-029-variant-0",
+          "exact": true,
+          "tokens": [
+            104,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-002-variant-1",
+          "exact": true,
+          "tokens": [
+            101,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-003-variant-0",
+          "exact": true,
+          "tokens": [
+            97,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-015-variant-1",
+          "exact": true,
+          "tokens": [
+            104,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-013-variant-1",
+          "exact": true,
+          "tokens": [
+            104,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-004-variant-0",
+          "exact": true,
+          "tokens": [
+            98,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-018-variant-0",
+          "exact": true,
+          "tokens": [
+            101,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-011-variant-0",
+          "exact": true,
+          "tokens": [
+            99,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-023-variant-1",
+          "exact": true,
+          "tokens": [
+            98,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-027-variant-1",
+          "exact": true,
+          "tokens": [
+            99,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-016-variant-0",
+          "exact": true,
+          "tokens": [
+            101,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-021-variant-1",
+          "exact": true,
+          "tokens": [
+            98,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-026-variant-1",
+          "exact": true,
+          "tokens": [
+            99,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-031-variant-1",
+          "exact": true,
+          "tokens": [
+            100,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-025-variant-1",
+          "exact": true,
+          "tokens": [
+            99,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-031-variant-0",
+          "exact": true,
+          "tokens": [
+            104,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-020-variant-0",
+          "exact": true,
+          "tokens": [
+            102,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-007-variant-1",
+          "exact": true,
+          "tokens": [
+            102,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-017-variant-1",
+          "exact": true,
+          "tokens": [
+            97,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-019-variant-1",
+          "exact": true,
+          "tokens": [
+            97,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-012-variant-0",
+          "exact": true,
+          "tokens": [
+            100,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-014-variant-1",
+          "exact": true,
+          "tokens": [
+            104,
+            256
+          ]
+        },
+        {
+          "id": "dev-family-009-variant-0",
+          "exact": true,
+          "tokens": [
+            99,
+            256
+          ]
+        }
+      ],
+      "files": {
+        "acceptance.json": {
+          "sha256": "eceb3c3a57f6db42a25d6811542be8a4cabe926c387cf6973b8db7358ac90f0a",
+          "bytes": 687
+        },
+        "attempt.json": {
+          "sha256": "42289bbc04c69ed23a208f4e53427a43d16170020859a96ac1677a3df4aa65a0",
+          "bytes": 489
+        },
+        "candidate.json": {
+          "sha256": "9901cc50d36d32b4c41f24db2c5f3af41b7cb1f2eaa77ff6e7dcde339e66a582",
+          "bytes": 14461
+        },
+        "codec-only.json": {
+          "sha256": "14bf8c5af9fb09e5bce8c5d15c6c43cedfef10ab1a29b793bc461d47d981633d",
+          "bytes": 14096
+        },
+        "data.json": {
+          "sha256": "33a8e719a6e2b1583b63a4bbf4bd104e191e49f625797e6f2285b14a14958ed3",
+          "bytes": 5321879
+        },
+        "environment.json": {
+          "sha256": "27a46b02c927d27ed0bada981f94c845fd1da9fa3a383258125afb97680d9083",
+          "bytes": 532
+        },
+        "fit.json": {
+          "sha256": "aba0852c0c3f018c35e9d9dc677fdacf2286ae84a4775c0cc6d3e7add268e4ac",
+          "bytes": 4235
+        },
+        "initialized.json": {
+          "sha256": "be170f4ac9f171b8a68f34598d3c5b577d64ff85a6915a90e069aa946e5cb9e7",
+          "bytes": 14096
+        },
+        "manifest.json": {
+          "sha256": "daad5145ce2e4444cffd772d253c76b8646793349319e83782cc3c8a49443886",
+          "bytes": 1739
+        },
+        "responses.json": {
+          "sha256": "ca08fca1b7b1a7fd649cc6ed26ea3a634a3c347f56c56767c02842f3e281e042",
+          "bytes": 85749145
+        },
+        "summary.json": {
+          "sha256": "06627f3b374394e856a14e021d2ed16dc80a446f71f2444ba459ec0fcc49266e",
+          "bytes": 3384
+        }
+      }
+    }
+  ],
+  "comparisons": [
+    {
+      "prior_attempt": 1,
+      "lost": 0,
+      "gained": 50
+    },
+    {
+      "prior_attempt": 2,
+      "lost": 0,
+      "gained": 48
+    },
+    {
+      "prior_attempt": 3,
+      "lost": 0,
+      "gained": 22
+    }
+  ],
+  "unchanged_development_sha256": "3606be779185a288f3f88838706fc17f78f6d97255d349cbf403dc69cca8dea1",
+  "new_report_roots": 4,
+  "new_report_files": 44,
+  "new_report_verification": "Rust seal+verify executed at completion of every attempt; postflight full file sets/sizes and SHA256 snapshot",
+  "prior_report_roots": 30,
+  "prior_report_files": 1006,
+  "retained_artifact": {
+    "id": "15baec48",
+    "path": "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/reader-scope-repair/model.json",
+    "sha256": "1454aa69e2e295d0a9970e90326f4664d3c614f666b1a708a16c16b5350a1705"
+  },
+  "original_checkouts_preserved": true,
+  "prior_source_preserved": "unchanged live paths except two intended additions; prior bytes verified at immutable base",
+  "learned_predicate_groups": {
+    "relative": 30,
+    "hamming": 24,
+    "phase": 64
+  },
+  "validation": {
+    "focused_tests": 9,
+    "retained_hamming_tests": 11,
+    "final_report": true,
+    "final_holdout": "NOT_RUN"
+  },
+  "sample": [
+    {
+      "query": "EG",
+      "records": [
+        {
+          "key": "EG",
+          "value": "h"
+        },
+        {
+          "key": "GE",
+          "value": "e"
+        },
+        {
+          "key": "EH",
+          "value": "d"
+        },
+        {
+          "key": "HF",
+          "value": "b"
+        }
+      ],
+      "tokens": [
+        104,
+        256
+      ],
+      "exact": true
+    },
+    {
+      "query": "EG",
+      "records": [
+        {
+          "key": "EG",
+          "value": "d"
+        },
+        {
+          "key": "GE",
+          "value": "e"
+        },
+        {
+          "key": "EH",
+          "value": "h"
+        },
+        {
+          "key": "HF",
+          "value": "b"
+        }
+      ],
+      "tokens": [
+        100,
+        256
+      ],
+      "exact": true
+    }
+  ]
+}

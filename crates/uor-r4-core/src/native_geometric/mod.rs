@@ -979,3 +979,6 @@ mod role_read_tests;
 mod word_copy_tests;
 #[cfg(test)]
 mod word_copy_value_tests;
+
+/// Experimental relational attention learning; typed context, no prose qualification.
+pub mod relational_attention;

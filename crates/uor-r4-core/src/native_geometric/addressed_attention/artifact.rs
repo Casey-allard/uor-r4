@@ -128,6 +128,19 @@ impl BoundGeometry {
         result.digest = digest(b"uor-addressed-bound-geometry-v1", &result.encode_tables());
         Ok(result)
     }
+    /// Canonical byte token leaf; preserves the existing token offset.
+    pub fn byte_leaf(&self, byte: u8) -> u16 {
+        self.leaves[usize::from(byte) + 2]
+    }
+    pub fn byte_prime(&self, byte: u8) -> u32 {
+        self.primes[usize::from(byte) + 2]
+    }
+    pub fn inverse(&self, root: u16) -> Result<u16> {
+        self.inverses
+            .get(usize::from(root))
+            .copied()
+            .ok_or(ArtifactError::Domain)
+    }
     pub fn identity(&self) -> u16 {
         self.identity
     }
