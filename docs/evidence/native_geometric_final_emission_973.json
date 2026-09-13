@@ -1,0 +1,412 @@
+{
+  "schema": "uor-r4.final-emission-evidence/1",
+  "date": "2026-09-12",
+  "source_base": "95e213758ce9bb66cc5bdf6f28fbc3fbc4169a71",
+  "promoted": false,
+  "retained": "15baec48",
+  "result": {
+    "after": {
+      "correct": 81,
+      "mean_nll": 3.354319563876437,
+      "positions": 672,
+      "work": {
+        "candidates": 14784,
+        "output_decisions": 10764,
+        "products": 50440,
+        "table_reads": 248712
+      }
+    },
+    "before": {
+      "correct": 79,
+      "mean_nll": 3.375390554740109,
+      "positions": 672,
+      "work": {
+        "candidates": 14784,
+        "output_decisions": 10764,
+        "products": 50440,
+        "table_reads": 248712
+      }
+    },
+    "candidate": "blake3:0f82b7286bb1699b9ea3bf4193f152702f3b22e702cf31bcd0a0f56596bbf8b8",
+    "changed_branch_count": 52,
+    "changed_branches": [
+      0,
+      2,
+      3,
+      4,
+      6,
+      7,
+      9,
+      14,
+      15,
+      17,
+      18,
+      19,
+      20,
+      22,
+      30,
+      32,
+      38,
+      41,
+      43,
+      44,
+      46,
+      62,
+      65,
+      71,
+      73,
+      74,
+      75,
+      79,
+      84,
+      87,
+      88,
+      89,
+      90,
+      91,
+      92,
+      93,
+      94,
+      126,
+      132,
+      143,
+      150,
+      156,
+      175,
+      176,
+      177,
+      178,
+      181,
+      182,
+      186,
+      189,
+      254,
+      510
+    ],
+    "conditional_optimization_gate": true,
+    "correct_to_wrong_across_panels": 35,
+    "decision": "FAIL_FINAL_EMISSION_DEVELOPMENT_GATE",
+    "elapsed_ms": 15414,
+    "fit_calls": 1,
+    "fit_elapsed_ms": 15314,
+    "geometry_unchanged": true,
+    "nodes": 94,
+    "opened_after": {
+      "correct": 33,
+      "mean_nll": 3.6599228474324286,
+      "positions": 381,
+      "work": {
+        "candidates": 8832,
+        "output_decisions": 6102,
+        "products": 29082,
+        "table_reads": 142917
+      }
+    },
+    "opened_before": {
+      "correct": 28,
+      "mean_nll": 3.6630397557652965,
+      "positions": 381,
+      "work": {
+        "candidates": 8832,
+        "output_decisions": 6102,
+        "products": 29082,
+        "table_reads": 142917
+      }
+    },
+    "opened_development_gate": true,
+    "parameters_unchanged": true,
+    "parent": "blake3:ade9a1cfbf39f0828ec1ec2b53775c05fcbaaf53fa2189b6a37ab7a636ce5e58",
+    "preservation_gate": false,
+    "promoted": false,
+    "root_source_traces_identical": true,
+    "schema": "uor-r4.final-emission-result/1",
+    "scope": "One conditional emission optimization on the final fixed state trajectories, complete construction and already-open development controls. No fresh holdout, recurrent fit, candidate promotion, language or energy qualification.",
+    "settings": 327571200
+  },
+  "reports": {
+    "attempt-1": {
+      "report_root": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/final-emission-1/attempt-1",
+      "files": {
+        "attempt.json": {
+          "bytes": 482,
+          "sha256": "d881772b93bb1ed75bde0dfd23cb90bbeadb5d9b4c9de4a9b926ae493708432d"
+        },
+        "behavior.json": {
+          "bytes": 3630188,
+          "sha256": "10e2fcbf49e451db73e7cd3e14c99cb08513deae947ec1d7acf837a9cc280012"
+        },
+        "calibration.json": {
+          "bytes": 842,
+          "sha256": "69eaca23deb1adcbeb190522d92a0d328af346181db7da696f66fb67190a5272"
+        },
+        "candidate.json": {
+          "bytes": 167903,
+          "sha256": "d89d052f242cd8e8bfee5a87a93862c04dffc144a6d8a2a8c0e205ba41dd8f8e"
+        },
+        "design.json": {
+          "bytes": 944,
+          "sha256": "7e6bfe9e2f8110bdec93962acb72942792cd37bad1cce7ad54bf27ca052f4088"
+        },
+        "early-generation.json": {
+          "bytes": 6540,
+          "sha256": "e8d5ec3f452d59db41dbf48e3fbbc6fc4213ba420e4c27bb1d5acfdbe76176e6"
+        },
+        "manifest.json": {
+          "bytes": 1435,
+          "sha256": "397ec5a7e5d8ed7aeaebb429aea83ec339af7bdce6acfff54373ac847b7ebb40"
+        },
+        "result.json": {
+          "bytes": 2300,
+          "sha256": "eacba086f8d65739ec55c7b91e45920a4ea06453e42814257972f7505298c0d0"
+        },
+        "source.json": {
+          "bytes": 934,
+          "sha256": "0ffc92a813ae7d9453c9dc66b26fd97e0800fbdf8a72df509bc3d82b13369caa"
+        }
+      }
+    }
+  },
+  "source": {
+    "at": "2026-09-13T01:57:34.522Z",
+    "base": "95e213758ce9bb66cc5bdf6f28fbc3fbc4169a71",
+    "sources": {
+      "shared_core.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core.rs",
+        "sha256": "267109fdd9c6884488ec09e3e13d43561ead93b07a535a1262ab8823b247f5d0"
+      },
+      "shared_core/training.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core/training.rs",
+        "sha256": "ceeb0d23d00c30f1e5f26e87dad081491a79f51ecb393f8b62cb5e9cd34280ec"
+      },
+      "shared_core/calibration.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core/calibration.rs",
+        "sha256": "0d07bf0dbe225a343f16ec1b8ba9d4b0a87adf25b3ac7c1fd25d6dc6816e9a86"
+      },
+      "shared_core/block_calibration.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core/block_calibration.rs",
+        "sha256": "97ce241e67797a35e4689e0c9174c84911e9b6c06750a9ae6f6e4c08b451272c"
+      },
+      "shared_core/tied_training.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core/tied_training.rs",
+        "sha256": "c66d4c5405dfdd72b27ed873eee1042945b0cdb5a9a1124f7bba753d2d530c41"
+      },
+      "shared_core/tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core/tests.rs",
+        "sha256": "9cb1ea272a01283b358090b1170373da7f17c2c2b3379fa8d8c7fce32b24caea"
+      },
+      "shared_core/tests/tied_learning.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core/tests/tied_learning.rs",
+        "sha256": "c404e28ce6fd48eb1dfbe9a2210a36d97ab479ceea3c648836c39c028d215a15"
+      },
+      "shared_core/tests/full_objective.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core/tests/full_objective.rs",
+        "sha256": "4919b9d2a9efb36d2d5a36b13327b0437212c72e8440b6c39763a33ea50ce327"
+      },
+      "shared_core/tests/final_emission.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core/tests/final_emission.rs",
+        "sha256": "31a08e17ac1ce82e76ed5fd4d98bba86ba60172e2c2d2846beb922b10bf44a21"
+      }
+    },
+    "design_sha256": "7e6bfe9e2f8110bdec93962acb72942792cd37bad1cce7ad54bf27ca052f4088",
+    "binary": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/final-emission-1/emission-tests",
+      "sha256": "f0abf6d1acc616f1373ca4a70ff55c027d395284f85da10e70a150271fbad25c"
+    },
+    "compiler": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: aarch64-apple-darwin\nrelease: 1.97.1\nLLVM version: 22.1.6\n"
+  },
+  "bindings": {
+    "design.json": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/final-emission-1/design.json",
+      "sha256": "7e6bfe9e2f8110bdec93962acb72942792cd37bad1cce7ad54bf27ca052f4088"
+    },
+    "source-freeze.json": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/final-emission-1/source-freeze.json",
+      "sha256": "e33f02c5c84baa8487f775764591a88bb1c8e4e06b01aeea6919cf8a1ab62f0f"
+    },
+    "projection.json": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/final-emission-1/projection.json",
+      "sha256": "3daaab3243aa88405262c1cd7c60bc86f397e9200de7c03c27f20fe4f616e1b4"
+    },
+    "inputs-verified.json": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/final-emission-1/inputs-verified.json",
+      "sha256": "ccac9bbb6ff388fce2773cb5f992c04c86162e2341ba1b486a4fc162374f22ce"
+    },
+    "research.md": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/final-emission-1/research.md",
+      "sha256": "4f885cc4ff59e20a91100213a5d23bb5f22e8c76ff57af17e4091cc403b1cfd7"
+    },
+    "review.md": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/final-emission-1/review.md",
+      "sha256": "bf8ffcea0187f114261ae3578c68f131d9c85d28767f6a7e4cb585e8d41c511a"
+    },
+    "result-review.md": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/final-emission-1/result-review.md",
+      "sha256": "b41da2cb871040974c5c9b006b29fcf1e650d79140cd250b86f0f3653ab4dc76"
+    },
+    "allocation-binary.json": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/final-emission-1/allocation-binary.json",
+      "sha256": "311f2f5293954321dc8f78ea53b1b7d9069be80f0a661073b08f22ab178dfd0d"
+    },
+    "review-preservation.json": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/final-emission-1/review-preservation.json",
+      "sha256": "cfe76014447be2f295b11e289345c898f14247c0a4214ea298f262eacd82805e"
+    },
+    "saved-row-capacity-summary.json": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/final-emission-1/saved-row-capacity-summary.json",
+      "sha256": "cc0a5adeeca8a8654785bd59c831e42b5b8184e0b030ba581bcbd009e01bb7c0"
+    },
+    "preservation.json": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/final-emission-1/preservation.json",
+      "sha256": "a23324d74dea8fa662eb1cbb48d807ae19694c40a01317fbf9171728a7c0315b"
+    },
+    "execution-receipt.json": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/final-emission-1/execution-receipt.json",
+      "sha256": "7aa0cc8f5713ce1b4b8a2b572476c1fadbcdef7356086a38bd02d5233d5c4679"
+    }
+  },
+  "resources": {
+    "at": "2026-09-13T02:03:59.149Z",
+    "step_model_ms": 108848,
+    "step_model_cap_ms": 300000,
+    "parent_model_ms": 1861983,
+    "parent_model_limit_ms": 2100000,
+    "ledger": {
+      "cumulative_ms": 121612556,
+      "limit_ms": 132950000
+    },
+    "step_new_storage_bytes": 26083328,
+    "step_storage_cap_bytes": 134217728,
+    "parent_growth_bytes": 1433038848,
+    "parent_storage_cap_bytes": 2147483648,
+    "peak_sampled_rss_bytes": 2324611072,
+    "commands": [
+      {
+        "kind": "model",
+        "label": "emission-build-tests",
+        "cmd": "/Users/casey.allard/.cargo/bin/cargo",
+        "args": [
+          "test",
+          "--offline",
+          "--release",
+          "-p",
+          "uor-r4-core",
+          "--lib",
+          "native_geometric::shared_core::tests::final_emission",
+          "--",
+          "--nocapture"
+        ],
+        "cwd": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core",
+        "started": "2026-09-13T01:55:45.059Z",
+        "elapsed_ms": 93019,
+        "code": 0,
+        "signal": null,
+        "stopped": null,
+        "charged": true,
+        "peak_sampled_process_tree_rss_bytes": 2324611072,
+        "logs": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/emission-build-tests.log"
+      },
+      {
+        "kind": "model",
+        "label": "emission-actual-fit",
+        "cmd": "/usr/bin/env",
+        "args": [
+          "UOR_EMISSION_INPUT=/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/loss-frontier-1/joint-1",
+          "UOR_EMISSION_CORPUS=/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/loss-frontier-1/block-calibration-1",
+          "UOR_EMISSION_DESIGN=/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/final-emission-1/design.json",
+          "UOR_EMISSION_OUTPUT=/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/final-emission-1/attempt-1",
+          "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/final-emission-1/emission-tests",
+          "native_geometric::shared_core::tests::final_emission::final_emission_run_saved_experiment",
+          "--exact",
+          "--ignored",
+          "--nocapture"
+        ],
+        "cwd": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core",
+        "started": "2026-09-13T01:57:34.676Z",
+        "elapsed_ms": 15598,
+        "code": 0,
+        "signal": null,
+        "stopped": null,
+        "charged": true,
+        "peak_sampled_process_tree_rss_bytes": 13189120,
+        "logs": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/emission-actual-fit.log"
+      },
+      {
+        "kind": "model",
+        "label": "emission-actual-allocation",
+        "cmd": "/usr/bin/env",
+        "args": [
+          "UOR_SHARED_CORE_CANDIDATE=/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/final-emission-1/attempt-1/candidate.json",
+          "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/final-emission-1/allocation-tests",
+          "shared_core_saved_block_candidate_has_zero_allocations",
+          "--exact",
+          "--ignored",
+          "--nocapture"
+        ],
+        "cwd": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core",
+        "started": "2026-09-13T01:58:56.573Z",
+        "elapsed_ms": 231,
+        "code": 0,
+        "signal": null,
+        "stopped": null,
+        "charged": true,
+        "peak_sampled_process_tree_rss_bytes": null,
+        "logs": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/emission-actual-allocation.log"
+      }
+    ],
+    "extensions": 0,
+    "paid_compute": 0,
+    "cleanup": false
+  },
+  "preservation": {
+    "prior_sealed_roots": 11,
+    "prior_sealed_files": 93,
+    "parked_dirty_paths": 22,
+    "parked_status_sha256": "7dbfdd7d981456b30357812e9dc7edd13b072c43ce45b873f35ba51d742465b2",
+    "retained_sha256": "1454aa69e2e295d0a9970e90326f4664d3c614f666b1a708a16c16b5350a1705",
+    "source_and_binary_verified": true,
+    "production_sources_unchanged": true
+  },
+  "validation": {
+    "commands": [
+      {
+        "label": "emission-build-tests",
+        "code": 0,
+        "elapsed_ms": 93019,
+        "log": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/emission-build-tests.log"
+      },
+      {
+        "label": "emission-actual-fit",
+        "code": 0,
+        "elapsed_ms": 15598,
+        "log": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/emission-actual-fit.log"
+      },
+      {
+        "label": "emission-actual-allocation",
+        "code": 0,
+        "elapsed_ms": 231,
+        "log": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/emission-actual-allocation.log"
+      },
+      {
+        "label": "emission-format",
+        "code": 0,
+        "elapsed_ms": 4080,
+        "log": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/emission-format.log"
+      },
+      {
+        "label": "emission-claims",
+        "code": 0,
+        "elapsed_ms": 248,
+        "log": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/emission-claims.log"
+      }
+    ],
+    "focused_tests": 1,
+    "actual_fit_calls": 1,
+    "actual_candidate_allocation_steps": 512,
+    "format": true,
+    "claim_wording": true,
+    "changed_document_links": 8,
+    "source_bindings_and_report_hashes": true,
+    "model_gate": "FAIL_FINAL_EMISSION_DEVELOPMENT_GATE",
+    "production_source_unchanged": true
+  }
+}

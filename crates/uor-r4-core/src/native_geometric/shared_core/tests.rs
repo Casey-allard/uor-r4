@@ -158,3 +158,5 @@ mod credit_assignment;
 mod tied_learning;
 
 mod full_objective;
+
+mod final_emission;

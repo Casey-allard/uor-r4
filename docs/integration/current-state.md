@@ -1,6 +1,20 @@
 # Current native geometric AI work
 
-## Shared geometric core — complete-objective block exhausted, September 12
+## Shared geometric core — final emission calibration rejected, September 12
+
+**Retain `15baec48`; no model is promoted.** The [final-trajectory emission calibration](../native_geometric_final_emission_973.md) executes the prior recommended step once on `ade9a1cf`. The canonical shared-core plan remains active; memory repair stays parked and V3–V7 are not replayed.
+
+**Actual gate: FAIL_FINAL_EMISSION_DEVELOPMENT_GATE.** One exhaustive likelihood-only pass evaluates 327,571,200 settings across 94 occupied nodes in 15.314 seconds and changes 52 emission branches. Candidate `0f82b728` improves Full construction NLL 3.375391 → 3.354320 and accuracy 79 → 81/672; opened development improves NLL 3.663040 → 3.659923 and accuracy 28 → 33/381. Conditional optimization and opened-development gates pass, but preservation fails: 35 parent-correct rows become wrong across six panels (construction 10/9/7; opened 4/4/1). All four candidate Full continuations remain incoherent, with no EOS within 96 bytes. No useful prose or Rust generation is established.
+
+Recurrence/routing, geometry, non-emission parameters and all teacher-forced root/source traces remain unchanged. Prediction Hamming is recorded per panel as aligned categorical disagreement, not semantic distance. Saved-row equality groups force only 15 construction and 5 opened errors for an unrestricted mapping of complete root identities, versus actual 591 and 348 errors. These descriptive lower bounds are not capacity or generalization claims for the current cap class.
+
+The release build, focused accounting test, single actual fit/behavior experiment and actual-candidate 512-step zero-allocation census pass execution checks; the model gate fails. Production source is unchanged. [Tracked evidence](../evidence/native_geometric_final_emission_973.json) binds design, source/binaries, candidate, exact rows and outputs, research, independent review and resources. Eleven prior sealed roots / 93 files, 22 parked dirty paths and retained artifact verify. Active worktree: `/Users/casey.allard/uor-r4-worktrees/shared-geometric-core`, branch `codex/geometric-final-emission`; local notes: `shared-core-first-step/final-emission-1/` in the established handoff.
+
+Resource receipt: 108,848/300,000 ms model/build/test; parent cycle 1,861,983/2,100,000 ms; cumulative ledger 121,612,556/132,950,000 ms. Added storage 26,083,328 bytes within 128 MiB, parent growth 1,433,038,848 bytes within 2 GiB with 128 MiB stop margin. Peak sampled RSS 2,324,611,072 bytes. No allowance extension, paid compute or cleanup. Final engineering/delivery receipts append locally.
+
+**Next action:** one bounded learned angular decision-tree emission prototype over existing signed H4 state, keeping recurrence/routing fixed. Freeze depth, node count, runtime operations, storage and complete resource limits before implementation/fit; select by construction likelihood and compare with the current two-cap emitter under all six row-preservation controls, opened-development metrics and actual generation. The richer geometric partition is a hypothesis, not established improvement. Do not repeat the identical cap fit, expand the exhausted state-block sampler, use answer overrides or start an automatic fit campaign. No promotion before acceptance.
+
+## Prior full-objective checkpoint — historical result; next action superseded
 
 **Retain `15baec48`; no model is promoted.** The [full-objective comparison](../native_geometric_full_objective_973.md) executes the prior recommended step from unchanged experimental parent `ade9a1cf`. The memory repair stays parked, original evidence is preserved, and V3–V7 are not replayed.
 
