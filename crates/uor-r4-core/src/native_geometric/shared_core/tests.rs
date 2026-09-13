@@ -162,3 +162,5 @@ mod full_objective;
 mod final_emission;
 
 mod angular_tree_experiment;
+
+mod decoder_validation;

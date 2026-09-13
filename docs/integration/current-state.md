@@ -1,6 +1,18 @@
 # Current native geometric AI work
 
-## Shared geometric core — angular tree gains construction fit; transfer gate fails, September 12
+## Shared geometric core — conditional decoder selection improves opened loss; gate fails, September 12
+
+**Retain `15baec48`; no model is promoted. Actual gate: FAIL_DECODER_VALIDATION_DEVELOPMENT_GATE.** The [conditional decoder-validation experiment](../native_geometric_decoder_validation_973.md) executes four configurations × three document folds and one final refit. It selects depth three / minimum leaf 16, producing `8f8e5c34` with 36 trees / 184 nodes. The frozen parent already saw construction documents; this is incremental decoder selection, not independent end-to-end validation. All four pooled validation losses exceed the fixed cap comparator.
+
+Full construction reaches 166/672 correct, NLL 2.839534. Opened Full reaches 52/381, NLL 3.653604: likelihood improves against all three priors and accuracy beats both caps, but falls below the prior tree's 57/381. Preservation fails with 195 / 180 / 199 correct-to-wrong rows against 0f82b728 / ade9a1cf / 1198ef47 separately. All four Full generations remain incoherent and hit 96 bytes without EOS. No useful language/Rust or broader qualification is established.
+
+Production source, geometry, recurrence, routing and inherited caps remain unchanged. All root/source traces match; all 9,477 prior rows and 36 prior outputs replay exactly. Release compilation, one focused selection test, the actual experiment and a reused source-identical actual-candidate 512-step zero-allocation census pass execution checks; the model gate fails. [Tracked evidence](../evidence/native_geometric_decoder_validation_973.json) binds all source, binaries, folds, rows, outputs, reviews and costs. Thirteen prior sealed roots / 111 files, 22 parked dirty paths and retained model verify unchanged. Worktree: `/Users/casey.allard/uor-r4-worktrees/shared-geometric-core`; branch `codex/geometric-decoder-validation`; local evidence: `shared-core-first-step/decoder-validation-1/` under the established handoff.
+
+Resource receipt: 97,800/300,000 ms model/build/test; parent cycle 2,156,722/2,400,000 ms; cumulative ledger 121,907,295/132,950,000 ms. Added storage 26,787,840 bytes within 128 MiB; peak sampled RSS 2,357,968,896 bytes. No allowance extension, paid compute or cleanup. Final engineering/delivery receipts append locally. The canonical shared-core plan remains active; V3–V7 and the dirty memory repair remain parked.
+
+**Next action:** One bounded complete-construction recurrent/read-pair intervention with selected decoder `8f8e5c34` fixed. Project a single 120 × 120 enumeration of parameter indices 1176 and 1930, scoring complete causal sequences over all 672 construction positions; freeze all other parameters and exclude opened/control labels from selection. Prior exhaustion under the cap emitter does not establish exhaustion under this tree emitter. Bind a changed artifact with valid tree-aware provenance or use an explicitly source-bound test-only parameter witness. Compare against 8f8e5c34, 1198ef47, 0f82b728 and ade9a1cf separately, measure state/source drift, retain all preservation and generation gates, and record a negative result if the block has no improving setting. No decoder refit, larger corpus, automatic joint campaign or promotion follows from this recommendation.
+
+## Prior angular-tree checkpoint — historical result; next action superseded
 
 **Retain `15baec48`; no model is promoted.** The [bounded angular emission-tree experiment](../native_geometric_angular_tree_973.md) implements the prior recommendation once, with fixed recurrence/routing. The canonical shared-core plan remains active; the dirty memory repair and V3–V7 evidence stay parked and preserved.
 
