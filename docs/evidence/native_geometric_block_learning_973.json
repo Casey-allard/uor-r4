@@ -1,0 +1,645 @@
+{
+  "schema": "uor-r4.block-geometric-learning-result/1",
+  "date": "2026-09-12",
+  "decision": "FAIL_CONTEXTUAL_TRANSFER_SMOKE",
+  "calibration_decision": "PASS_BLOCK_CALIBRATION",
+  "promoted": false,
+  "retained_artifact": "blake3:15baec48bed905348d5ccf8ff0c53ff84673b0cd82976785f39ced42ef14cb78",
+  "source_base": "778edbc6c00be67adb21a6901918d159993630ed",
+  "reports": {
+    "attempt-1": {
+      "report_root": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/loss-frontier-1/attempt-1",
+      "files": {
+        "attempt.json": {
+          "sha256": "50c1a24b74be1102bc09f0fc1869d4b1ec627c9f28d899cf8a92c5c77053c82b",
+          "bytes": 509
+        },
+        "manifest.json": {
+          "sha256": "0ef4b8575b8becb29c65828deb94651961d1130eae1a6a16a834a5e87686d684",
+          "bytes": 538
+        },
+        "result.json": {
+          "sha256": "b8df6f1541d2d0fc85204dc214d319b531b1d59791911c9265327b020d598dcb",
+          "bytes": 308564
+        }
+      }
+    },
+    "block-calibration-1": {
+      "report_root": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/loss-frontier-1/block-calibration-1",
+      "files": {
+        "attempt.json": {
+          "sha256": "f4d02674fd13420b3ff193092a7761dc71ea2fd84f7024ffd4a7d8265c2a25a8",
+          "bytes": 601
+        },
+        "calibrated.json": {
+          "sha256": "1113b444644dcc2674a416758d572439b6b524b22a00c531a7eda088a1a931cf",
+          "bytes": 167935
+        },
+        "calibration.json": {
+          "sha256": "d70352fc4b6702721cdda93beef9b6c334cec8be55830fd9d8350834872bfea2",
+          "bytes": 841
+        },
+        "design-source.json": {
+          "sha256": "aafa2d167a07af6d83d59e7160675c6618c4732bc1d6523152c96f2688cb4abb",
+          "bytes": 257
+        },
+        "design.json": {
+          "sha256": "541a094ae83a56adbcabb0cd157f0a7a14aef23b6db29f82f2d794975d420adf",
+          "bytes": 2481
+        },
+        "legacy.json": {
+          "sha256": "9b33248ceb41f6183e62405486669a9f49f7ef6c0342d02c0a6f40eac8a328d4",
+          "bytes": 139595
+        },
+        "manifest.json": {
+          "sha256": "ce1c2d99ec924737fef0e417bfa58e6fce5ca00db655a7f3df583e01cff2b910",
+          "bytes": 1443
+        },
+        "previous.json": {
+          "sha256": "05501b0abe311c8f64fb6c958c23da9646fc75afa23401b0d5ce17a6d392ae40",
+          "bytes": 167923
+        },
+        "result.json": {
+          "sha256": "2e4b81293276f3481c6e67bee2e93865c955a3d10f0c70c79d027e8c8f537f4d",
+          "bytes": 821
+        }
+      }
+    },
+    "joint-1": {
+      "report_root": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/loss-frontier-1/joint-1",
+      "files": {
+        "attempt.json": {
+          "sha256": "2a4c9164c47f3bf066568f6b299eabed49f53b48509b259d39b8bc7f5f186bff",
+          "bytes": 584
+        },
+        "candidate.json": {
+          "sha256": "7f5aef58a772e9b0b20ff71452a8e46ade2a49ffa21dbb956429c124fc9aec27",
+          "bytes": 168093
+        },
+        "design-source.json": {
+          "sha256": "aafa2d167a07af6d83d59e7160675c6618c4732bc1d6523152c96f2688cb4abb",
+          "bytes": 257
+        },
+        "design.json": {
+          "sha256": "541a094ae83a56adbcabb0cd157f0a7a14aef23b6db29f82f2d794975d420adf",
+          "bytes": 2481
+        },
+        "fit.json": {
+          "sha256": "12d2b68d64c6505611a9e62e9c982011a05f58f38cae2c296e03aa273950416f",
+          "bytes": 1139
+        },
+        "generation.json": {
+          "sha256": "96f4fd44e9404a9e2245026ceb615d27ae7ab2e37d30fe37a0f730dd8abc544f",
+          "bytes": 69550
+        },
+        "manifest.json": {
+          "sha256": "8ccef23b7edaf4ad84368882064ab9e02e0cee075ed3649a0c2648f0a6aa5d22",
+          "bytes": 1277
+        },
+        "result.json": {
+          "sha256": "d2a218b1bae5794831a96246e37b340104a14c410c34db993eb6655754794cb1",
+          "bytes": 2731
+        }
+      }
+    }
+  },
+  "frontier": [
+    {
+      "current": {
+        "enumeration_nll": 150.63969644839108,
+        "errors": 12,
+        "host_nll": 150.6396964483909,
+        "landmarks": [
+          23,
+          66
+        ],
+        "replay_tolerance": 1e-8,
+        "thresholds": [
+          5,
+          5
+        ],
+        "union": false
+      },
+      "depth": 0,
+      "elapsed_ms": 216,
+      "exact_minimum_hard_errors": 10,
+      "gate_max_errors": 12,
+      "global_minimum_meets_gate": true,
+      "lower_loss_admissible_setting_exists": false,
+      "minimum_gate_compatible_loss": {
+        "enumeration_nll": 150.63969644839108,
+        "errors": 12,
+        "host_nll": 150.6396964483909,
+        "landmarks": [
+          23,
+          66
+        ],
+        "replay_tolerance": 1e-8,
+        "thresholds": [
+          5,
+          5
+        ],
+        "union": false
+      },
+      "minimum_loss": {
+        "enumeration_nll": 150.63969644839108,
+        "errors": 12,
+        "host_nll": 150.6396964483909,
+        "landmarks": [
+          23,
+          66
+        ],
+        "replay_tolerance": 1e-8,
+        "thresholds": [
+          5,
+          5
+        ],
+        "union": false
+      },
+      "node": 0,
+      "positions": 672,
+      "scope": "Complete finite parameter enumeration with f64 logistic loss; exact hard-error counts, numerically evaluated loss minima, fixed saved states. No hard-pattern deduplication, model mutation or fresh evaluation.",
+      "settings_examined": 3484800,
+      "admissible_minus_global_nll": 0
+    },
+    {
+      "current": {
+        "enumeration_nll": 414.31881224952133,
+        "errors": 220,
+        "host_nll": 414.31881224952184,
+        "landmarks": [
+          64,
+          96
+        ],
+        "replay_tolerance": 1e-8,
+        "thresholds": [
+          -4,
+          -4
+        ],
+        "union": false
+      },
+      "depth": 1,
+      "elapsed_ms": 210,
+      "exact_minimum_hard_errors": 202,
+      "gate_max_errors": 215,
+      "global_minimum_meets_gate": true,
+      "lower_loss_admissible_setting_exists": true,
+      "minimum_gate_compatible_loss": {
+        "enumeration_nll": 406.9001914093054,
+        "errors": 211,
+        "host_nll": 406.90019140930605,
+        "landmarks": [
+          113,
+          73
+        ],
+        "replay_tolerance": 1e-8,
+        "thresholds": [
+          -2,
+          -2
+        ],
+        "union": true
+      },
+      "minimum_loss": {
+        "enumeration_nll": 406.9001914093054,
+        "errors": 211,
+        "host_nll": 406.90019140930605,
+        "landmarks": [
+          113,
+          73
+        ],
+        "replay_tolerance": 1e-8,
+        "thresholds": [
+          -2,
+          -2
+        ],
+        "union": true
+      },
+      "node": 1,
+      "positions": 660,
+      "scope": "Complete finite parameter enumeration with f64 logistic loss; exact hard-error counts, numerically evaluated loss minima, fixed saved states. No hard-pattern deduplication, model mutation or fresh evaluation.",
+      "settings_examined": 3484800,
+      "admissible_minus_global_nll": 0
+    }
+  ],
+  "calibration": {
+    "parent": "blake3:968cf841c0d53720b456b49fef29183444923efadafd3eb7ce90e4c3e1b0fbfe",
+    "data_digest": "blake3:93a3e1b57b1c3426652024ac7d09f89748346c7d6eeadcf57844e49804e4f573",
+    "before": {
+      "positions": 672,
+      "correct": 65,
+      "mean_nll": 3.47315595963427,
+      "work": {
+        "products": 50500,
+        "table_reads": 248892,
+        "candidates": 14784,
+        "output_decisions": 10764
+      }
+    },
+    "after": {
+      "positions": 672,
+      "correct": 80,
+      "mean_nll": 3.422394098840171,
+      "work": {
+        "products": 50500,
+        "table_reads": 248892,
+        "candidates": 14784,
+        "output_decisions": 10764
+      }
+    },
+    "root_branch_errors": 12,
+    "ascii_branch_errors": 211,
+    "root_positions": 672,
+    "ascii_positions": 660,
+    "nodes": 94,
+    "settings": 327571200,
+    "elapsed_ms": 15198,
+    "improvement_tolerance": 1e-10
+  },
+  "joint": {
+    "block_calibrated": {
+      "correct": 29,
+      "mean_nll": 3.707224416960299,
+      "positions": 381,
+      "work": {
+        "candidates": 8832,
+        "output_decisions": 6102,
+        "products": 29070,
+        "table_reads": 142881
+      }
+    },
+    "block_parent": "blake3:4d83b1bb2948dc12c32a857e2b466a41e4967bbf365225876b49d4e30797db3b",
+    "candidate": "blake3:ade9a1cfbf39f0828ec1ec2b53775c05fcbaaf53fa2189b6a37ab7a636ce5e58",
+    "context_disabled": {
+      "correct": 26,
+      "mean_nll": 3.7036228574556915,
+      "positions": 381,
+      "work": {
+        "candidates": 0,
+        "output_decisions": 6102,
+        "products": 18954,
+        "table_reads": 103701
+      }
+    },
+    "decision": "FAIL_CONTEXTUAL_TRANSFER_SMOKE",
+    "full": {
+      "correct": 28,
+      "mean_nll": 3.6630397557652965,
+      "positions": 381,
+      "work": {
+        "candidates": 8832,
+        "output_decisions": 6102,
+        "products": 29082,
+        "table_reads": 142917
+      }
+    },
+    "generation_review": "REQUIRED_SEPARATELY",
+    "language_qualification": "NOT_ESTABLISHED",
+    "legacy": {
+      "correct": 2,
+      "mean_nll": 5.747048551745453,
+      "positions": 381,
+      "work": {
+        "candidates": 8832,
+        "output_decisions": 6102,
+        "products": 35172,
+        "table_reads": 124575
+      }
+    },
+    "legacy_artifact": "blake3:5979f2e226d34f12aae17ff3a33d0fddfa253d855af4f9754460eaf428cd925d",
+    "parent_bytes_preserved": true,
+    "previous": {
+      "correct": 29,
+      "mean_nll": 3.685167353127016,
+      "positions": 381,
+      "work": {
+        "candidates": 8832,
+        "output_decisions": 6102,
+        "products": 29070,
+        "table_reads": 142881
+      }
+    },
+    "previous_artifact": "blake3:968cf841c0d53720b456b49fef29183444923efadafd3eb7ce90e4c3e1b0fbfe",
+    "promoted": false,
+    "scope": "One new joint fit; frozen authored fresh comparison. No retained-model replacement, automatic promotion or repeat.",
+    "source_attempt": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/loss-frontier-1/block-calibration-1",
+    "state_disabled": {
+      "correct": 32,
+      "mean_nll": 3.67316075622375,
+      "positions": 381,
+      "work": {
+        "candidates": 8832,
+        "output_decisions": 6102,
+        "products": 29066,
+        "table_reads": 142869
+      }
+    },
+    "transport_disabled": {
+      "correct": 32,
+      "mean_nll": 3.67316075622375,
+      "positions": 381,
+      "work": {
+        "candidates": 8832,
+        "output_decisions": 6102,
+        "products": 27566,
+        "table_reads": 139869
+      }
+    },
+    "zeta_disabled": {
+      "correct": 27,
+      "mean_nll": 3.709158421295925,
+      "positions": 381,
+      "work": {
+        "candidates": 8832,
+        "output_decisions": 6102,
+        "products": 27582,
+        "table_reads": 138417
+      }
+    }
+  },
+  "fit": {
+    "config": {
+      "seed": 443,
+      "max_proposals": 100000,
+      "max_seconds": 120
+    },
+    "before": {
+      "positions": 672,
+      "correct": 80,
+      "mean_nll": 3.422394098840171,
+      "work": {
+        "products": 50500,
+        "table_reads": 248892,
+        "candidates": 14784,
+        "output_decisions": 10764
+      }
+    },
+    "after": {
+      "positions": 672,
+      "correct": 79,
+      "mean_nll": 3.375390554740109,
+      "work": {
+        "products": 50440,
+        "table_reads": 248712,
+        "candidates": 14784,
+        "output_decisions": 10764
+      }
+    },
+    "proposals": 100000,
+    "accepted": 149,
+    "parameter_families": [
+      "embedding",
+      "transition",
+      "query",
+      "key",
+      "read",
+      "phase",
+      "cap_landmarks",
+      "cap_thresholds_union",
+      "null"
+    ],
+    "proposals_by_family": [
+      11112,
+      11111,
+      11111,
+      11111,
+      11111,
+      11111,
+      11111,
+      11111,
+      11111
+    ],
+    "accepted_by_family": [
+      1,
+      0,
+      29,
+      28,
+      61,
+      0,
+      27,
+      3,
+      0
+    ],
+    "elapsed_ms": 31444,
+    "time_limit_reached": false,
+    "training_digest": "blake3:111878a1173bd58fa56c67468226945ad247a05dae38976fcab566c7b5d44a14"
+  },
+  "outcome_review": {
+    "nll_gain_vs_legacy_percent": 36.26224447585737,
+    "nll_gain_vs_previous_percent": 0.6004502710831638,
+    "nll_gain_vs_block_percent": 1.1918528857562727,
+    "context_loss_increase_percent": 1.1079077595737452,
+    "state_loss_increase_percent": 0.27630059003656005,
+    "generated_full": [
+      {
+        "model": "legacy",
+        "prompt": "The red boat ",
+        "output": "\u0002�Č����\"u\u000f۱\u0016�0B\nS\r�8��p\n\u0014\u0001��E;\u0005�\f\u0000\u0010ڌCp\u00104\f\"\u0015�\f��.q&'t�B60�\r\u000b@\u0004q�\u0010�\u000e$w�\u00017\u0010�j\f\tr4#�y\\\u00008Al\u00054\nߐ\u0019�",
+        "eos": false
+      },
+      {
+        "model": "legacy",
+        "prompt": "Ben now lives in Lima. Ben lives in ",
+        "output": "\u0018�\"-\\0+\t��\u0003\u0014nM�\u000e��\u0005�\u0005 �%`a�\b5)\u0005�\"�\u0014��.u\u0017\u0011�\u0000\u0010\u0013\u0012\u0014A",
+        "eos": true
+      },
+      {
+        "model": "legacy",
+        "prompt": "User: Tell me about the garden.\nAssistant:",
+        "output": "�Qt�\\%T\u0001��@%\u0000\u0010\u0017�\u0018]��Q��X���\u0014R\r�C�n\t�\u0014b\u0006a\bh$� ��U�m���\f�C!���+PPF�GG�\b\u001b\u000e\u0003\u0001�!H\u0001�ފ\u001e\u000e\u0017� ��\nw�@K\u000eB@�",
+        "eos": false
+      },
+      {
+        "model": "legacy",
+        "prompt": "fn fourth(b: i32) -> i32 { ",
+        "output": "\b��R\u001aE\u0016\u00014�D�\u0010\u0007i�\b\u0013\fLp\tG��B��B�\n0\"3t\n\u0001$�\u0000�\u0000δ\t��)\\��J ��\u0016H)\u0000L�b�\fp��B��U\u0000vࢰ\u0002�*�@\u0012\u0010JB\u0010�\b\u0000\u0014\"8i\u000f&�",
+        "eos": false
+      },
+      {
+        "model": "previous",
+        "prompt": "The red boat ",
+        "output": "alneieaeleeoeale belhaoeallnnanbooan aneoehaeabllelelaeoeleaelell alaaailelooeleeonallholeoel an",
+        "eos": false
+      },
+      {
+        "model": "previous",
+        "prompt": "Ben now lives in Lima. Ben lives in ",
+        "output": "lahobnnlellelbeeallallnbneealehleaealeineoblealaooannaoehlenlaloalelleleeaoaeeelneeoeaiooeeaolbn",
+        "eos": false
+      },
+      {
+        "model": "previous",
+        "prompt": "User: Tell me about the garden.\nAssistant:",
+        "output": "lnhlleeebanael oboleoeenelelioanelealelooaeelaienineealnbbeablaelaana lee elelelbonooellhnnbaoal",
+        "eos": false
+      },
+      {
+        "model": "previous",
+        "prompt": "fn fourth(b: i32) -> i32 { ",
+        "output": "olhoanealeolaeeelhaaeallealoalnlaaoaleneoeneableiaeolaneleoeleaoaaolao ehlhealaonoelebaan aonane",
+        "eos": false
+      },
+      {
+        "model": "block_calibrated",
+        "prompt": "The red boat ",
+        "output": "belo anaeoeleeaeaoaeaoenb eia eebeeell oaeoeaoaaeoelooaeelneba aaheanleeea lnaleelenaoanooea l l",
+        "eos": false
+      },
+      {
+        "model": "block_calibrated",
+        "prompt": "Ben now lives in Lima. Ben lives in ",
+        "output": " eoe eelelnalnaae aoae eeal aa lalneeaaeeleeoeoennaoebeeoaaabbeeeoeaeb nalaoeeaobannaobeaeaoaee ",
+        "eos": false
+      },
+      {
+        "model": "block_calibrated",
+        "prompt": "User: Tell me about the garden.\nAssistant:",
+        "output": "oeoeallheanb oeheelloobenaobneeenle aaeoeananeneanann aa loeaneee ea l aeebanblneoeaeeeelananenl",
+        "eos": false
+      },
+      {
+        "model": "block_calibrated",
+        "prompt": "fn fourth(b: i32) -> i32 { ",
+        "output": "oeaeoebeeanneenlalnbeelnnebeelnlohnbeaie ee aa aoe aoneeen ehanonlnoaaoehhn o eeaebalnaoennalnea",
+        "eos": false
+      },
+      {
+        "model": "candidate",
+        "prompt": "The red boat ",
+        "output": "aaeloeaeenea eeaaaneaeb nnneaoenee ellaeanaanoenhabelaeie aae lleoanabooanb nane ee eaabaneoeooe",
+        "eos": false
+      },
+      {
+        "model": "candidate",
+        "prompt": "Ben now lives in Lima. Ben lives in ",
+        "output": "elioeeaeeeln aaeealoeabeenaoaleeeoeeoaelalneeelean ee nnneanaeeoaenleneneeneaeaeaneeeeaaeeoeeeon",
+        "eos": false
+      },
+      {
+        "model": "candidate",
+        "prompt": "User: Tell me about the garden.\nAssistant:",
+        "output": "eaneaeeeeilooeena leeeooaoanenelenneoeaehhboln ee aa eeeeaenlaea aa lanlheeeoe ea eaee eooeeeeel",
+        "eos": false
+      },
+      {
+        "model": "candidate",
+        "prompt": "fn fourth(b: i32) -> i32 { ",
+        "output": "ooehebenlboeiea lnel loiaanan aoaaeoa la eeenleeoeabaahee eel  eaeaaneaenoale enoealneanblneeoee",
+        "eos": false
+      }
+    ],
+    "generation_judgment": "All four Full joint-candidate continuations are incoherent character sequences, with no correct fact answer, coherent prose or Rust continuation. All hit96-byte limit without EOS. No generated-program execution is warranted for non-code outputs.",
+    "language_qualification": false,
+    "promoted": false
+  },
+  "runtime_kernel_unchanged": true,
+  "runtime_kernel_sha256": "b81d6eb4a20300c0bde160a66947cd435b32057a66521e9a701a1bc55288effd",
+  "bindings": {
+    "source-freeze.json": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/loss-frontier-1/source-freeze.json",
+      "sha256": "d463bfbb797611e3fbde7295c208cad0fe523ce0de1657d5002eb8a3951337c1"
+    },
+    "binary-provenance.json": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/loss-frontier-1/binary-provenance.json",
+      "sha256": "6fa68e1eb5c27fb19acc257596ece0dd00aa100d78f86415fafa2eb994f2a72b"
+    },
+    "block-source-freeze.json": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/loss-frontier-1/block-source-freeze.json",
+      "sha256": "1f1e15e490cb1e37311493a7149d0070c9b731a26296b48f9f7d8d4aa5d5e756"
+    },
+    "final-source-freeze.json": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/loss-frontier-1/final-source-freeze.json",
+      "sha256": "0dc4bad31954a94280da4a788bbbcfa28dfe72ddcf81b7026cdd6c2e782c8724"
+    },
+    "block-binary-provenance.json": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/loss-frontier-1/block-binary-provenance.json",
+      "sha256": "802b0611bd728099d491c36ab3a9a7d928680da8ca7508592f37920662f8b5d8"
+    },
+    "successor-design.json": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/loss-frontier-1/successor-design.json",
+      "sha256": "541a094ae83a56adbcabb0cd157f0a7a14aef23b6db29f82f2d794975d420adf"
+    },
+    "execution-receipt.json": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/loss-frontier-1/execution-receipt.json",
+      "sha256": "cf44e9c61144776d593aee677d3d4342918be706053e53eb29fdde86770853d3"
+    },
+    "research-review.md": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/loss-frontier-1/research-review.md",
+      "sha256": "00313acfb7a5d9e010b62868418b63451897b36c08337b93f171a1efce62e27e"
+    },
+    "frontier-review.md": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/loss-frontier-1/frontier-review.md",
+      "sha256": "b3756e15c7f3f8ebeaaf4d5b8668de504d2cfb5ee935ef5028ce6d6216d7c508"
+    },
+    "block-review.md": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/loss-frontier-1/block-review.md",
+      "sha256": "6661ccca6fa171ffc33cabf5fd056ce43b380edbe3ef000f8ae5845ba02787c2"
+    }
+  },
+  "resources": {
+    "at": "2026-09-13T00:03:28.698Z",
+    "step_model_ms": 331322,
+    "step_model_cap_ms": 450000,
+    "step_engineering_ms": 12809,
+    "parent_cycle_model_ms": 1043479,
+    "parent_model_cap_ms": 1200000,
+    "ledger": {
+      "cumulative_ms": 120794052,
+      "limit_ms": 132950000
+    },
+    "storage_growth_bytes": 1321660416,
+    "step_additional_growth_conservative_bytes": 17362944,
+    "step_storage_cap_bytes": 268435456,
+    "parent_storage_cap_bytes": 2147483648,
+    "high_water": {
+      "target": 36708352,
+      "git": 3289088,
+      "worktree": 1228500992,
+      "evidence": 53161984,
+      "at": "2026-09-13T00:03:28.697Z"
+    },
+    "peak_sampled_process_tree_rss_bytes": 2308669440,
+    "block_calibrations": 1,
+    "joint_fits": 1,
+    "fresh_evaluations": 1,
+    "generated_cases": 48,
+    "model_extensions": 0,
+    "storage_extensions": 0,
+    "paid_compute": 0
+  },
+  "validation": {
+    "initial_frontier_arithmetic_test": "PASS",
+    "focused_shared_core_tests": 18,
+    "ignored_external_artifact_tests": 3,
+    "focused_test_scope": "Before two final deadline-return guards; final executable build and actual artifact/generation/allocation execute the corrected source.",
+    "release_build": "PASS",
+    "actual_saved_frontier": "PASS",
+    "candidate_allocation": "PASS_512_STEPS_ZERO_ALLOCATIONS",
+    "fresh_gate": "FAIL_CONTEXTUAL_TRANSFER_SMOKE",
+    "full_candidate_useful_generations": 0,
+    "full_candidate_eos": 0,
+    "full_candidate_generations": 4,
+    "full_suite": "NOT_RUN",
+    "general_language": "NOT_ESTABLISHED",
+    "format": "PASS",
+    "claim_wording": "PASS",
+    "diff_check": "PASS"
+  },
+  "preservation": {
+    "at": "2026-09-13T00:06:47.281Z",
+    "report_roots": [
+      "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/experiment-1",
+      "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/diagnostic-1/attempt-1",
+      "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/calibrated-emission-1/representation",
+      "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/calibrated-emission-1/capacity-audit",
+      "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/loss-frontier-1/attempt-1",
+      "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/loss-frontier-1/block-calibration-1",
+      "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/loss-frontier-1/joint-1"
+    ],
+    "file_sets_and_sha256_verified": 46,
+    "source_files_verified": 239,
+    "pinned_binaries_verified": 2,
+    "retained_sha256": "1454aa69e2e295d0a9970e90326f4664d3c614f666b1a708a16c16b5350a1705",
+    "original_repair_dirty_paths": 22,
+    "original_repair_status_sha256": "7dbfdd7d981456b30357812e9dc7edd13b072c43ce45b873f35ba51d742465b2"
+  }
+}

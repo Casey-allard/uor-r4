@@ -5,7 +5,10 @@
 //! bounded integer thresholds and intersection/union choices. Composition reads
 //! the exact finite group table, never a tabulated linear contraction. Four
 //! independent state slots are not four independent Galois companions.
+mod block_calibration;
 mod calibration;
+use block_calibration::BlockCalibrationConfig;
+pub use block_calibration::BlockCalibrationReport;
 mod training;
 use super::Geometry;
 pub use calibration::CalibrationReport;
@@ -22,6 +25,8 @@ const CALIBRATED_SCHEMA: &str = "uor-r4.shared-geometric-core/2";
 // this is not permission to load arbitrary implementation identities.
 const LEGACY_IMPLEMENTATION: &str =
     "blake3:b6d1b6fb5c6af3be5fe31dc44dfdf762aad084e3100b5484e374c6a99a6b756d";
+const CALIBRATION_V1_IMPLEMENTATION: &str =
+    "blake3:e719c2d0b3372e8e39495cc2990fbc8afd37787fa8c6f31a0d7f09818891cec1";
 const EMBED: usize = 0;
 const TRANSITION: usize = EMBED + LANES * 256;
 const QUERY: usize = TRANSITION + LANES * ROOTS;
@@ -63,6 +68,8 @@ struct CalibratedEmission {
     parent: String,
     calibration_data: Option<String>,
     calibration_passes: u8,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    block_config: Option<BlockCalibrationConfig>,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -150,6 +157,7 @@ impl SharedCore {
         hash.update(include_bytes!("shared_core.rs"));
         hash.update(include_bytes!("shared_core/training.rs"));
         hash.update(include_bytes!("shared_core/calibration.rs"));
+        hash.update(include_bytes!("shared_core/block_calibration.rs"));
         hash.update(include_bytes!("training.rs"));
         hash.update(include_bytes!("anchors.rs"));
         format!("blake3:{}", hash.finalize())
@@ -192,12 +200,24 @@ impl SharedCore {
             }
             Some(c) => {
                 artifact.schema == CALIBRATED_SCHEMA
-                    && artifact.implementation == Self::implementation_digest()
+                    && (artifact.implementation == Self::implementation_digest()
+                        || artifact.implementation == CALIBRATION_V1_IMPLEMENTATION)
                     && c.branches.len() == 512
                     && c.parent.starts_with("blake3:")
                     && c.parent.len() == 71
-                    && ((c.calibration_data.is_none() && c.calibration_passes == 0)
-                        || (c.calibration_data.is_some() && c.calibration_passes == 3))
+                    && match &c.block_config {
+                        None => {
+                            (c.calibration_data.is_none() && c.calibration_passes == 0)
+                                || (c.calibration_data.is_some() && c.calibration_passes == 3)
+                        }
+                        Some(config) => {
+                            artifact.implementation == Self::implementation_digest()
+                                && c.calibration_data.is_some()
+                                && c.calibration_passes == 1
+                                && config.max_seconds > 0
+                                && config.max_seconds <= 120
+                        }
+                    }
                     && c.branches.iter().all(|b| {
                         b.landmarks.iter().all(|&r| r < 120)
                             && b.thresholds.iter().all(|&t| (-5..=5).contains(&t))

@@ -34,6 +34,7 @@ impl SharedCore {
             parent: self.cid.clone(),
             calibration_data: None,
             calibration_passes: 0,
+            block_config: None,
         });
         model.artifact.training_digest = None;
         model.artifact.fit_config = None;
@@ -152,6 +153,8 @@ impl SharedCore {
         emission.parent = self.cid.clone();
         emission.calibration_data = Some(digest.clone());
         emission.calibration_passes = 3;
+        emission.block_config = None;
+        model.artifact.implementation = Self::implementation_digest();
         model.artifact.training_digest = None;
         model.artifact.fit_config = None;
         model.artifact.training_parent = None;

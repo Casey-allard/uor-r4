@@ -88,6 +88,29 @@ fn shared_core_calibrated_observe_predict_has_zero_allocations() {
     assert_eq!(BYTES.with(Cell::get), 0);
 }
 
+#[test]
+#[ignore = "Requires an actual block-calibrated or joint artifact path"]
+fn shared_core_saved_block_candidate_has_zero_allocations() {
+    use uor_r4_core::native_geometric::shared_core::{Intervention, SharedCore};
+    let path = std::env::var("UOR_SHARED_CORE_CANDIDATE").expect("actual candidate path");
+    let raw = std::fs::read(path).expect("candidate bytes");
+    let model = SharedCore::from_bytes(&raw).expect("source-bound candidate");
+    assert_eq!(model.to_bytes().unwrap(), raw);
+    let mut session = model.session(Intervention::Full);
+    ALLOCATIONS.with(|n| n.set(0));
+    BYTES.with(|n| n.set(0));
+    MEASURING.with(|v| v.set(true));
+    let mut valid = true;
+    for position in 0..512_u16 {
+        valid &= session.observe(position as u8).is_ok();
+        valid &= std::hint::black_box(session.predict()) <= 256;
+    }
+    MEASURING.with(|v| v.set(false));
+    assert!(valid);
+    assert_eq!(ALLOCATIONS.with(Cell::get), 0);
+    assert_eq!(BYTES.with(Cell::get), 0);
+}
+
 /// Source operator/type-token guard for the actual native kernel and its
 /// project-defined feature helpers. This does not inspect transitive standard
 /// library implementations or generated machine code. Runtime allocation is

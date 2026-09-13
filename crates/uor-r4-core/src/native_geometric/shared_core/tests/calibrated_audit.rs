@@ -7,6 +7,9 @@ use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
+#[path = "loss_frontier.rs"]
+mod loss_frontier;
+
 type AuditResult<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 #[derive(Deserialize)]
@@ -262,7 +265,7 @@ fn audit_node(
     }))
 }
 
-fn execute(model_path: &Path, rows_path: &Path, out: &Path) -> AuditResult<()> {
+fn execute(model_path: &Path, rows_path: &Path, out: &Path, frontier: bool) -> AuditResult<()> {
     if rows_path.file_name().and_then(|n| n.to_str()) != Some("candidate-training-rows.json") {
         return Err("Expected the sealed candidate-training trace file".into());
     }
@@ -351,7 +354,11 @@ fn execute(model_path: &Path, rows_path: &Path, out: &Path) -> AuditResult<()> {
                 .as_u64()
                 .ok_or("Calibration error count")?,
         )?;
-        reports.push(audit_node(&model, &rows, node, depth, errors)?);
+        reports.push(if frontier {
+            loss_frontier::audit_node(&model, &rows, node, depth, errors)?
+        } else {
+            audit_node(&model, &rows, node, depth, errors)?
+        });
     }
     if model.to_bytes()? != model_bytes
         || upgraded.to_bytes()? != upgraded_bytes
@@ -365,7 +372,7 @@ fn execute(model_path: &Path, rows_path: &Path, out: &Path) -> AuditResult<()> {
         out,
         "result.json",
         &json!({
-            "decision":"EXACT_FROZEN_STATE_CAPACITY_COMPLETE_NO_REFIT",
+            "decision":if frontier {"EXHAUSTIVE_LOSS_ERROR_FRONTIER_COMPLETE_NO_REFIT"} else {"EXACT_FROZEN_STATE_CAPACITY_COMPLETE_NO_REFIT"},
             "artifact":model.artifact_cid(),"upgraded":upgraded.artifact_cid(),"legacy":legacy.artifact_cid(),
             "model_source":model_path,"trace_source":rows_path,
             "model_bytes_blake3":format!("blake3:{}",blake3::hash(&model_bytes)),
@@ -373,7 +380,7 @@ fn execute(model_path: &Path, rows_path: &Path, out: &Path) -> AuditResult<()> {
             "artifact_bytes_unchanged":true,"source_seals_verified":true,
             "current_calibration_counts_reproduced":true,"summaries":reports,
             "joint_fit":"NOT_RUN","fresh_evaluation":"NOT_RUN","promoted":false,
-            "scope":"Exhaustive hard-error census on original development states. Witnesses are descriptive parameters only; no model is changed or saved and no new candidate is selected."
+            "scope":if frontier {"Exhaustive numerical logistic-loss/error frontier on original saved development states. Descriptive witnesses only; no artifact selection or mutation."} else {"Exhaustive hard-error census on original development states. Witnesses are descriptive parameters only; no model is changed or saved and no new candidate is selected."}
         }),
     )?;
     Ok(())
@@ -395,6 +402,16 @@ fn output_path(raw: &Path, model_root: &Path, rows_root: &Path) -> AuditResult<P
 #[test]
 #[ignore = "Requires preserved calibrated artifact, sealed trace and an exclusive output directory"]
 fn run_exact_calibrated_capacity() -> AuditResult<()> {
+    run_audit(false)
+}
+
+#[test]
+#[ignore = "Requires preserved calibrated artifact and sealed development states"]
+fn run_exact_loss_frontier() -> AuditResult<()> {
+    run_audit(true)
+}
+
+fn run_audit(frontier: bool) -> AuditResult<()> {
     let model_path = fs::canonicalize(std::env::var("UOR_CALIBRATED_AUDIT_MODEL")?)?;
     let rows_path = fs::canonicalize(std::env::var("UOR_CALIBRATED_AUDIT_ROWS")?)?;
     let out = output_path(
@@ -403,7 +420,7 @@ fn run_exact_calibrated_capacity() -> AuditResult<()> {
         rows_path.parent().ok_or("Trace parent")?,
     )?;
     crate::report_output::claim(&out)?;
-    let result = execute(&model_path, &rows_path, &out);
+    let result = execute(&model_path, &rows_path, &out, frontier);
     if let Err(error) = &result {
         write(&out, "failure.json", &json!({"error":error.to_string()}))?;
     }
