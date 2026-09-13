@@ -12,3 +12,7 @@ pub mod artifact;
 pub mod engine;
 pub mod offline;
 pub mod policy;
+
+pub mod learner;
+pub mod pilot;
+pub mod pilot_data;

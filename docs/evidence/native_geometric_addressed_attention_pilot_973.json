@@ -1,0 +1,617 @@
+{
+  "status": "FAIL_ADDRESSED_ATTENTION_LEARNING_PILOT",
+  "tests_passed": 37,
+  "tests_failed": 0,
+  "tests_ignored": 3,
+  "separate_report_tests_passed": 2,
+  "attempts": [
+    {
+      "report_root": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-attention-pilot-1/fit-1",
+      "files": {
+        "attempt.json": {
+          "sha256": "acce55e785242cae0372ea7a11e51783a4ae11c08ebd4f00790b610c701f9130",
+          "bytes": 496
+        },
+        "config.json": {
+          "sha256": "c3fa68d65e437b289787d04d36a73187fe75776f856a448ff02dc4af9ab3a4f5",
+          "bytes": 2032
+        },
+        "development.json": {
+          "sha256": "2d8b288b2d92e4d7397ede1f20c797267a93c34cbac626815d099d43dec6e379",
+          "bytes": 5431
+        },
+        "final-compiled.bin": {
+          "sha256": "c366b83c47d91f31377d8947708430f1c7d1a303c9ac17b712eae4427b5727a2",
+          "bytes": 49030
+        },
+        "final-parameters.bin": {
+          "sha256": "eddf5f5ccbfae1c4dc6df5362da9fcd5f0b8693990e493837f045b749f0ef5bf",
+          "bytes": 5321958
+        },
+        "fit-summary.json": {
+          "sha256": "cb22d66ef94f911b6b520ead6806f60bd8ecd71ef18d1e6b394805830cb5f4df",
+          "bytes": 878
+        },
+        "initial-compiled.bin": {
+          "sha256": "934e6896ec137b3ef730f799520f2cad15c3ab0af8b45f47ceab565979c2e184",
+          "bytes": 49030
+        },
+        "initial-parameters.bin": {
+          "sha256": "1f11624dc3af5570bccbaac4d878d7cc772fadb31a9de1434985ac3a0ee3f383",
+          "bytes": 5321958
+        },
+        "manifest.json": {
+          "sha256": "85596717e1b51db89cf68141eeb9a51e1fb8af2b153c16df9676fe51796d1266",
+          "bytes": 1932
+        },
+        "parent-initialized-model.bin": {
+          "sha256": "fdabdcfab35d1a5605e27b8913eb68313ec08f03da69fd347234fbfe3bef7291",
+          "bytes": 86417
+        },
+        "steps.json": {
+          "sha256": "4b6f377c6a71bd483942fab9c118d666e1527b9dacb94ec48eaebce6a798f087",
+          "bytes": 32679
+        },
+        "training.json": {
+          "sha256": "b54f5a8d744032e43a084051dc80bb4e547f37c2104c883dfca0e5f608a3c93d",
+          "bytes": 10846
+        }
+      }
+    },
+    {
+      "report_root": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-attention-pilot-1/evaluation-1",
+      "files": {
+        "attempt.json": {
+          "sha256": "205d83593894561a77c00e601cb6bb0fbf0887a02c0f6c48dddedbe141d4b7b6",
+          "bytes": 503
+        },
+        "controls.json": {
+          "sha256": "5874424207fe4a7033da0219e1c71c3d6e165d6d5985f88a05dbbc2e3b395ea7",
+          "bytes": 56425
+        },
+        "final-development.json": {
+          "sha256": "4fdc017a3d4bfab50563d8a65bef0e5cea331d77752f867cf634b4877278a683",
+          "bytes": 15905
+        },
+        "final-training.json": {
+          "sha256": "e879369924cba43ba3abb9f7036a492c1c4f6a9e41bed931aca978e945cc94aa",
+          "bytes": 31289
+        },
+        "generated-4.rs": {
+          "sha256": "574650d4d583c6c81c99d52c33478fecf33e78524b5031a0faa8a87f96bf3480",
+          "bytes": 54
+        },
+        "generated-5.rs": {
+          "sha256": "8abdbdc6c0805cd86fa1928a9b0777d6c52cf6115c3f199d3cffe2eafa7aeb8d",
+          "bytes": 15
+        },
+        "generated-6.rs": {
+          "sha256": "44b2212e327df1fb2dff498c1d776173bb534b235cb14160abd11cfaf4726e72",
+          "bytes": 64
+        },
+        "generated-7.rs": {
+          "sha256": "2e119355e04b1b82081bb3aec2e84025b7dc3ddb6912f1927c8b1fe73e73aedc",
+          "bytes": 64
+        },
+        "initial-development.json": {
+          "sha256": "1080a2d3a5100f732087d93a263b9fc9b976643af0c828fb058406864312e421",
+          "bytes": 16518
+        },
+        "initial-training.json": {
+          "sha256": "9bade355f0d356d3d49e949e68a709acc46713e79da3d85d2e3be29065f2516d",
+          "bytes": 32239
+        },
+        "manifest.json": {
+          "sha256": "b3172f70ebd931acf14ac2c2c51243ca35acb0099ba61609817a999540d6675b",
+          "bytes": 2222
+        },
+        "metrics.json": {
+          "sha256": "b75a0a2143d1cd6c2fae17a03f4860457a80d1ec3ba35bf7908bade1a4dbc56d",
+          "bytes": 1562
+        },
+        "program-semantics.json": {
+          "sha256": "24468903b30e3830b486b15e3c2fd509cf4d3a8b9c3fa18cc75162d19b24b932",
+          "bytes": 614
+        },
+        "summary.json": {
+          "sha256": "b2e63515f26e36c49767216fbb8ee37865dfe0b3b5340bda793c7f07b7f846a1",
+          "bytes": 2700
+        }
+      }
+    }
+  ],
+  "profile": {
+    "controls": [
+      {
+        "control": "ReadDisabled",
+        "metrics": {
+          "correct_symbols": 1,
+          "exact_responses": 0,
+          "examples": 8,
+          "generated_eos": 1,
+          "mean_response_ce": 5.575504101244067,
+          "positions": 154
+        }
+      },
+      {
+        "control": "ExactPayloadMasked",
+        "metrics": {
+          "correct_symbols": 0,
+          "exact_responses": 0,
+          "examples": 8,
+          "generated_eos": 1,
+          "mean_response_ce": 5.557476679645212,
+          "positions": 154
+        }
+      },
+      {
+        "control": "StateTransportDisabled",
+        "metrics": {
+          "correct_symbols": 1,
+          "exact_responses": 0,
+          "examples": 8,
+          "generated_eos": 0,
+          "mean_response_ce": 5.581840388889596,
+          "positions": 154
+        }
+      }
+    ],
+    "final_development": {
+      "correct_symbols": 1,
+      "exact_responses": 0,
+      "examples": 8,
+      "generated_eos": 2,
+      "mean_response_ce": 5.5516113742440805,
+      "positions": 154
+    },
+    "final_training": {
+      "correct_symbols": 1,
+      "exact_responses": 0,
+      "examples": 16,
+      "generated_eos": 4,
+      "mean_response_ce": 5.55688107238022,
+      "positions": 306
+    },
+    "initial_development": {
+      "correct_symbols": 1,
+      "exact_responses": 0,
+      "examples": 8,
+      "generated_eos": 0,
+      "mean_response_ce": 5.553025499794401,
+      "positions": 154
+    },
+    "initial_training": {
+      "correct_symbols": 1,
+      "exact_responses": 0,
+      "examples": 16,
+      "generated_eos": 3,
+      "mean_response_ce": 5.563666930364357,
+      "positions": 306
+    }
+  },
+  "fit_summary": {
+    "attempt_us": 17358802,
+    "changed_compiled_bytes": 876,
+    "checkpoint_stop_scheduling_ms": 36000,
+    "config_digest": "c3985d45ccb69781fe7465f91e30d644839d010e09ccd7ec0676354803efd81a",
+    "final_digest": "96a0faff5a6d439857e800007fa0d5a43d20c00a8c744f3649c503c605abf515",
+    "finite": true,
+    "fit_calls": 1,
+    "fit_us": 17126809,
+    "geometry_digest": "49a50365812c22bd2cce1c248f1bf9ba1a8e26b1b5b9c1baf7d03d8552b2a22a",
+    "initial_digest": "d29bb3f055f015161c782015ae5113872d47effa93744d9363f4d3f5fe72891b",
+    "loop_error": null,
+    "normal_trained_model_artifact": "NOT_EXPORTED; checkpoint plus source-bound primitive witness",
+    "parameter_count": 665216,
+    "parameter_delta_l2": 0.8948008288542642,
+    "parent_model_id": "ac5cf4addfeca7d4346d126dcd4e3b301da2f6b597ec1b349c954023952f5719",
+    "promotion": false,
+    "status": "COMPLETED_64_UPDATE_PILOT_FIT",
+    "updates": 64
+  },
+  "evaluation_summary": {
+    "decision": {
+      "both_families_exact": false,
+      "changed_source_pair_exact": false,
+      "controls_weaker": [
+        false,
+        false,
+        false
+      ],
+      "lost_initial_correct_symbols": 1,
+      "no_lost_initial_correct_symbols": false,
+      "predictive_improvement": false,
+      "promotion": false,
+      "status": "FAIL_ADDRESSED_ATTENTION_LEARNING_PILOT"
+    },
+    "evaluation_us": 1950317,
+    "final_parameter_digest": "96a0faff5a6d439857e800007fa0d5a43d20c00a8c744f3649c503c605abf515",
+    "fit_calls": 0,
+    "general_language_coding": "NOT_QUALIFIED",
+    "generated_code_semantics": false,
+    "initial_parameter_digest": "d29bb3f055f015161c782015ae5113872d47effa93744d9363f4d3f5fe72891b",
+    "loaded_checkpoint_export_parity": true,
+    "metrics": {
+      "controls": [
+        {
+          "control": "ReadDisabled",
+          "metrics": {
+            "correct_symbols": 1,
+            "exact_responses": 0,
+            "examples": 8,
+            "generated_eos": 1,
+            "mean_response_ce": 5.575504101244067,
+            "positions": 154
+          }
+        },
+        {
+          "control": "ExactPayloadMasked",
+          "metrics": {
+            "correct_symbols": 0,
+            "exact_responses": 0,
+            "examples": 8,
+            "generated_eos": 1,
+            "mean_response_ce": 5.557476679645212,
+            "positions": 154
+          }
+        },
+        {
+          "control": "StateTransportDisabled",
+          "metrics": {
+            "correct_symbols": 1,
+            "exact_responses": 0,
+            "examples": 8,
+            "generated_eos": 0,
+            "mean_response_ce": 5.581840388889596,
+            "positions": 154
+          }
+        }
+      ],
+      "final_development": {
+        "correct_symbols": 1,
+        "exact_responses": 0,
+        "examples": 8,
+        "generated_eos": 2,
+        "mean_response_ce": 5.5516113742440805,
+        "positions": 154
+      },
+      "final_training": {
+        "correct_symbols": 1,
+        "exact_responses": 0,
+        "examples": 16,
+        "generated_eos": 4,
+        "mean_response_ce": 5.55688107238022,
+        "positions": 306
+      },
+      "initial_development": {
+        "correct_symbols": 1,
+        "exact_responses": 0,
+        "examples": 8,
+        "generated_eos": 0,
+        "mean_response_ce": 5.553025499794401,
+        "positions": 154
+      },
+      "initial_training": {
+        "correct_symbols": 1,
+        "exact_responses": 0,
+        "examples": 16,
+        "generated_eos": 3,
+        "mean_response_ce": 5.563666930364357,
+        "positions": 306
+      }
+    },
+    "promotion": false,
+    "source_fit_root": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-attention-pilot-1/fit-1",
+    "status": "FAIL_ADDRESSED_ATTENTION_LEARNING_PILOT"
+  },
+  "source": {
+    "at": "2026-09-13T07:18:09.252790+00:00",
+    "base": "eefe40d2d8b819a536ce0cf5ae4c6e6bd73a0a43",
+    "files": [
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/answer_oracle.rs",
+        "sha256": "b6c3e2be264fe2ea8f49107d455aa8ca05219fb1e57e262f9f24f29afcdfd20b",
+        "bytes": 5154
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/artifact.rs",
+        "sha256": "14596e00fc007da39125e8b9ea6b4c9295891d5481123ba99753c27a12e73012",
+        "bytes": 14131
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/artifact_tests.rs",
+        "sha256": "d25a528c373824706c5f87fa9a7e8ca862ecbf339ae39b535ae6ef1c39a5b01e",
+        "bytes": 6071
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/circuit/tests.rs",
+        "sha256": "e62a2228385fa657e335723eb0170066f2d65840f7c1176fca737a485664acc0",
+        "bytes": 7923
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/circuit.rs",
+        "sha256": "8c714ab5457e36f64f5523fa1f691c6bd2852e94ab1b145698d23a57994078df",
+        "bytes": 12069
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/engine.rs",
+        "sha256": "c39d27798bfc1ff9f8e8e324da8c8f051d959bf89490bb988b0883221697f3a1",
+        "bytes": 34474
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/engine_tests.rs",
+        "sha256": "b703d952f18ea3069dd0d608c4661944e0c928a18ecdee06a354c75c248c561e",
+        "bytes": 13927
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/forward_tests.rs",
+        "sha256": "ecaae447b6f68a21f05198edc767a750c2c23aa3745c70100bc40aded9218582",
+        "bytes": 7622
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/inputs.rs",
+        "sha256": "05a2390de774d98c56cf55794bec2a5208f0a27e5387bb12330ae03546ffe6b4",
+        "bytes": 7261
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/learner.rs",
+        "sha256": "effeac93f9469bc021f102fca557bb9c9b5f076a4f9560458df9407e509e1756",
+        "bytes": 11178
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/learner_tests.rs",
+        "sha256": "91e9450603940ede8254f569fb5669ad364949d34ce0fdda3ee1d3c2db8c4ccc",
+        "bytes": 4805
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/mod.rs",
+        "sha256": "d99fa36ffa5587c606c857db4abb77c4afe70f3ddbe1d909cfc120ae7cfd55ab",
+        "bytes": 523
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/objects.rs",
+        "sha256": "b59190b36b07647aac54b6e64cba512ca790b8b99af41f28e666926c81b1aebe",
+        "bytes": 46682
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/objects_tests.rs",
+        "sha256": "f1222da89ec74cef7e8ea50c83b9b25a4fbe8c1191b779ecbc99e7f7ed838182",
+        "bytes": 13223
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/offline.rs",
+        "sha256": "9e1a54d4a7f3ee0a03c37b53f3aacad81b980b2141be36f323f2db34cc79f4ad",
+        "bytes": 9177
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/pilot.rs",
+        "sha256": "392fba36239c2d5e7ca10d2948605457c86c4b6b7041308ceab940aad6f32533",
+        "bytes": 11270
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/pilot_data.rs",
+        "sha256": "9f5dfb705f8c0dfbf410b4e506cf63e4f88190347f29cf7c20b4804fac45a749",
+        "bytes": 9905
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/pilot_data_tests.rs",
+        "sha256": "cc81f1c47f856e387d8d948c6d4e66d9d4b6917cfbafd13d20cbfd1f66bb5fd7",
+        "bytes": 2173
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/pilot_tests.rs",
+        "sha256": "a887ce67ce678506d3622565f6d18a8da0166fe7a32dbce181510b92d3085b82",
+        "bytes": 21592
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/policy.rs",
+        "sha256": "fd4a7745bc6a7983148faa65ae4281c8f64a63e60138257906e19ecd8df5f170",
+        "bytes": 12203
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/training.rs",
+        "sha256": "d539b9d49d3f56806ec3cebc7720823e2ad411b771239fa0b96dd80e99812873",
+        "bytes": 10912
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/training_tests.rs",
+        "sha256": "274c7be7da18e0dba1605fd4af3cd921dc9dd311b87c635a587c03a26484cea9",
+        "bytes": 20277
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/anchors.rs",
+        "sha256": "eb653f80cb3160ad083cc16d10952218454bbaefeb9bdd02b38e92c34a32ba8a",
+        "bytes": 11853
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/training.rs",
+        "sha256": "d77500abc522a42d8c7e2235d54f9bc828a1a2ef760d36fc1c9366d98f7e0958",
+        "bytes": 63940
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/docs/evidence/native_geometric_addressed_attention_contract_973.json",
+        "sha256": "df6fcafdd515f686509621056c61db63888ce7c1e740e814502a9d85b937243f",
+        "bytes": 12570
+      }
+    ]
+  },
+  "checks": [
+    {
+      "kind": "model",
+      "label": "addressed-pilot-tests",
+      "cmd": "/Users/casey.allard/.cargo/bin/cargo",
+      "args": [
+        "test",
+        "--offline",
+        "--release",
+        "-p",
+        "uor-r4-core",
+        "--lib",
+        "addressed_attention",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "cwd": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core",
+      "started": "2026-09-13T07:18:08.069Z",
+      "elapsed_ms": 113104,
+      "code": 0,
+      "signal": null,
+      "stopped": null,
+      "charged": true,
+      "peak_sampled_process_tree_rss_bytes": 2611314688,
+      "logs": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-pilot-tests.log"
+    },
+    {
+      "kind": "model",
+      "label": "addressed-pilot-fit",
+      "cmd": "/usr/bin/env",
+      "args": [
+        "UOR_PILOT_REPORT=/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-attention-pilot-1/fit-1",
+        "UOR_PILOT_PARENT=/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-attention-forward-1/attempt-1/initialized-model.bin",
+        "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-attention-pilot-1/pilot-tests",
+        "--ignored",
+        "--exact",
+        "native_geometric::addressed_attention::pilot::tests::pilot_fit_report",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "cwd": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core",
+      "started": "2026-09-13T07:20:58.324Z",
+      "elapsed_ms": 17740,
+      "code": 0,
+      "signal": null,
+      "stopped": null,
+      "charged": true,
+      "peak_sampled_process_tree_rss_bytes": 55148544,
+      "logs": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-pilot-fit.log"
+    },
+    {
+      "kind": "model",
+      "label": "addressed-pilot-evaluation",
+      "cmd": "/usr/bin/env",
+      "args": [
+        "UOR_PILOT_REPORT=/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-attention-pilot-1/evaluation-1",
+        "UOR_PILOT_FIT=/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-attention-pilot-1/fit-1",
+        "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-attention-pilot-1/pilot-tests",
+        "--ignored",
+        "--exact",
+        "native_geometric::addressed_attention::pilot::tests::pilot_evaluation_report",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "cwd": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core",
+      "started": "2026-09-13T07:21:28.169Z",
+      "elapsed_ms": 1962,
+      "code": 0,
+      "signal": null,
+      "stopped": null,
+      "charged": true,
+      "peak_sampled_process_tree_rss_bytes": 28655616,
+      "logs": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-pilot-evaluation.log"
+    }
+  ],
+  "execution_log": {
+    "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-pilot-tests.log",
+    "sha256": "753d74a83a78120b40ffb6b0d7a285d236f1d487bb0e4f1f67e08618e1d1530f",
+    "bytes": 6161
+  },
+  "fit_log": {
+    "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-pilot-fit.log",
+    "sha256": "9e96b45b54d5eb1e6d8d0e2d98bd0dfacdc0b6b0942a65e7d2cf1b28c3f65464",
+    "bytes": 263
+  },
+  "evaluation_log": {
+    "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-pilot-evaluation.log",
+    "sha256": "daa6c0fc711753ed6855d77da784c3f6498f4d2e208f3b0f7804783b09cd9f4a",
+    "bytes": 243
+  },
+  "binary": {
+    "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-attention-pilot-1/pilot-tests",
+    "sha256": "e343f51dd518a6eaeffa609bae1a7398ca174f39e164846185ce800c419b54bb",
+    "bytes": 17166528
+  },
+  "review": {
+    "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-attention-pilot-1/pilot-review.md",
+    "sha256": "025f6286b43610d97259fb720e2db924091452aaa6444edbe5b19ec2f3dd941a",
+    "bytes": 5760
+  },
+  "retained": "15baec48",
+  "retained_sha256": "1454aa69e2e295d0a9970e90326f4664d3c614f666b1a708a16c16b5350a1705",
+  "prior_sources_unchanged": 140,
+  "prior_source_changes": [
+    "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/mod.rs"
+  ],
+  "old_dispatch_change": false,
+  "prior_sealed_roots": 22,
+  "prior_sealed_files": 740,
+  "original_checkouts_preserved": true,
+  "model_build_test_ms": 132806,
+  "step_cap_ms": 240000,
+  "parent_model_ms": 3243906,
+  "parent_model_limit_ms": 3360000,
+  "ledger": {
+    "cumulative_ms": 122994479,
+    "limit_ms": 132950000
+  },
+  "step_storage_growth_bytes": 29974528,
+  "step_storage_cap_bytes": 134217728,
+  "parent_storage_growth_bytes": 1858953216,
+  "parent_storage_cap_bytes": 2147483648,
+  "peak_sampled_rss_bytes": 2611314688,
+  "full_eight_phase_model": "IMPLEMENTED_ONE_TRAINED_WITNESS_UNQUALIFIED",
+  "language_fit_calls": 1,
+  "parameter_updates": 64,
+  "generation_qualification": "FAIL_ADDRESSED_ATTENTION_LEARNING_PILOT",
+  "allocation_latency_energy": "NOT_RUN",
+  "normal_model_artifact": "NOT_EXPORTED_TRAINED_CHECKPOINT_AND_COMPILED_WITNESS",
+  "external_cost": 0,
+  "cleanup": false,
+  "schema": "uor-r4.addressed-attention-pilot-evidence/1",
+  "projection": {
+    "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-attention-pilot-1/projection.json",
+    "sha256": "b1aef23a3b4178399b1244e2329e1b4026fd21a723c8ea3be46253e0a6eb4ed3",
+    "bytes": 1633
+  },
+  "parent_projection_before": {
+    "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-attention-pilot-1/parent-projection-before.json",
+    "sha256": "109fc33c01016036c95052c5acb0d38dfe06926c41bc5880a693312cdb2d1a0c",
+    "bytes": 2021
+  },
+  "gate_receipt": {
+    "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-attention-pilot-1/gate-result.json",
+    "sha256": "074d4075c5932a88fc4bffbed9eddfe2f650e35a6a678cb45b1456b86c8227c7",
+    "bytes": 23241
+  },
+  "data_acceptance_design": {
+    "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-attention-pilot-1/pilot-design.md",
+    "sha256": "1436f81178aa42e26db8fa93bb7159ea81a9de380e25c46390361648f597fdde",
+    "bytes": 8082
+  },
+  "diagnostic": {
+    "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-attention-pilot-1/saved-artifact-diagnostic.json",
+    "sha256": "56c4f5604488fac0f19da1ea3986dac46c86465ee4d8575bd647f4e59959f35a",
+    "bytes": 5763
+  },
+  "preservation_start": {
+    "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-attention-pilot-1/preservation-start.json",
+    "sha256": "3bbfd4b7cad9e05e8bef7c7d534ce2fdd17e8288b3851ab1fe6719235e409964",
+    "bytes": 529
+  },
+  "specification": {
+    "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/docs/native_geometric_addressed_attention_spec_973.md",
+    "sha256": "c1860bfadb7bc7f27467486e06e00b7b5be6055de3a0d3d07545466fd7402c71",
+    "bytes": 27183
+  },
+  "specification_contract": {
+    "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/docs/evidence/native_geometric_addressed_attention_contract_973.json",
+    "sha256": "df6fcafdd515f686509621056c61db63888ce7c1e740e814502a9d85b937243f",
+    "bytes": 12570
+  },
+  "normal_trained_model_artifact": "NOT_EXPORTED; source-bound checkpoint/primitive witness only",
+  "executed_review": {
+    "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-attention-pilot-1/executed-review.md",
+    "sha256": "da2b046010a527d7c26645052fa9aff77f440a1dc689b629e84404a447c70046",
+    "bytes": 9728
+  }
+}

@@ -1,6 +1,20 @@
 # Current native geometric AI work
 
-## Addressed attention complete forward integration — September 13, 2026
+## Addressed attention first learning pilot — September 13, 2026
+
+**FAIL_ADDRESSED_ATTENTION_LEARNING_PILOT. Retain15baec48; no promotion or second fit.** The [executed pilot](../native_geometric_addressed_attention_pilot_973.md) and [source-bound evidence](../evidence/native_geometric_addressed_attention_pilot_973.json) deliver Rust four-particle joint SGD, strict parameter checkpoints and deterministic saved-export evaluation under one frozen64-update/rate0.05 recipe. All64updates complete; useful generation does not emerge at this dose.
+
+Development response CE5.5530255→5.5516114; correctness stays1/154 with one initialized-correct symbol lost and one gained. All8development and16construction outputs fail exact answer/EOS. ReadDisabled, ExactPayloadMasked and StateTransportDisabled have worse CE but no Full-exact response to lose. No generated program qualifies for execution. This is authored development, not final holdout or general language/coding qualification.
+
+Trained parameter witness96a0faff5a6d439857e800007fa0d5a43d20c00a8c744f3649c503c605abf515 is preserved as a full checkpoint and compiled primitive witness, not a normal promoted model artifact. Checkpoint/export and complete learned interpreter parity pass. Parameter L2 change0.8948;78gate truth bits,76root modes and11emission modes change;153/154development predictions change. Saved-gradient norms motivate a repeatability diagnostic but do not establish noise or a sampled-to-hard failure. Existing initialized artifact/source and retained dispatch remain unchanged except module registration.
+
+37focused release tests pass; fit and evaluation report drivers separately pass execution. Fit17.126809s, evaluation1.950317s internally; complete charged work132,806/240,000ms. Shared122,994,479/132,950,000ms; parent3,243,906/3,360,000ms after the pre-recorded necessary160,000ms local extension. Step storage29,974,528bytes before documentation/delivery within128MiB; final receipt appends locally. Both original checkouts, retained model and22prior seals/740files verify. No paid compute, cleanup or V3–V7 replay.
+
+**Next action:** One zero-update gradient/context-stability diagnostic on saved initial/final checkpoints: freeze construction records train/memory-a/0 and train/sub-9-2/0, eight independent four-particle replicates per endpoint/record with common paired RNG identities (32batches). Separate prompt/response objective, direct versus score-credit mean/dispersion by parameter family, and sampled EMIT-context support versus deterministic contexts. No optimizer, new fit, new corpus, parameter sweep or evaluation-based selection. Insufficient dose, noisy credit and stochastic/deterministic mismatch remain hypotheses until measured. Proposed complete180,000ms (140,000build/checks,20,000diagnosis,20,000correction),2buildthreads/1modelprocess,4GiBRAM,96MiBnewstorage,128MiBmargin. Refresh116,094ms parent balance and record any necessary preauthorized extension before use. Preserve negative witness96a0faff and exact scope.
+
+Worktree /Users/casey.allard/uor-r4-worktrees/shared-geometric-core; branch codex/addressed-attention-learning-pilot based on protected mergeeefe40d2d8b819a536ce0cf5ae4c6e6bd73a0a43. Notes/evidence: established handoff shared-core-first-step/addressed-attention-pilot-1/. #973 remains actively assigned/open; #964/#820 remain open. Memory repair/V3–V7 stay parked. Older next sections below are historical.
+
+## Prior addressed attention complete forward integration — learning pilot now executed
 
 **PASS_ADDRESSED_ATTENTION_FORWARD_INTEGRATION_GATE: 29 focused release tests plus the separately invoked four-particle × 64-position dry-run. Retain 15baec48; no promotion.** The [implemented result](../native_geometric_addressed_attention_forward_973.md) and [source-bound evidence](../evidence/native_geometric_addressed_attention_forward_973.json) connect all eight phases, exact H4/prime/token/zeta bindings, selected bytes/results and learned emission. Loaded deterministic export and independent parameter interpretation have matching complete traces and snapshot continuation. Existing model dispatch/loaders remain unchanged.
 
