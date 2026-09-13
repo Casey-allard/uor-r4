@@ -1,0 +1,519 @@
+{
+  "schema": "uor-r4-geometric-attention-research-coverage/1",
+  "at": "2026-09-13T18:58:24.169Z",
+  "source_base": "b267cfd2d958a76099cc8792e11c777c031895a0",
+  "status": "SOURCE_RESEARCH_NO_MODEL_EXECUTION",
+  "coverage_claim": "Bounded broad source research across requested topics. Inventories and metadata are discovery; only named sections/files were read. No claim all sources, papers, proofs or repository lines were read.",
+  "tracked_paths": {
+    "count": 14629,
+    "inventory_sha256": "0bd6f06f0464dd2bb7ee64a9c751ff519dd5256ccc2ac4db67f729eeb18df0a1",
+    "local_path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/geometric-attention-research-1/tracked-paths.txt",
+    "family_counts": {
+      "research/prime-analysis": 7704,
+      "research/ai-research": 3335,
+      "uor_standards/UOR-Framework": 787,
+      "docs": 474,
+      "crates/uor-r4-core": 379,
+      "tools/r4-softmax-trainer": 297,
+      "uor_standards/uor-addr": 252,
+      "research/riemann-lean": 248,
+      "proofs/wasm-gemm-gnaf": 141,
+      "research/archives": 128,
+      "docs/evidence": 93,
+      "uor_standards/prism": 82,
+      "crates/uor-r4-graph-certify": 76,
+      "crates/uor-r4-api": 60,
+      "docs/integration": 48,
+      "docs/r4_native_bridge_1102_evidence": 43,
+      "crates/uor-r4-graph-format": 42,
+      "crates/uor-r4-graph-compiler": 41,
+      "features/suites": 34,
+      "src": 27,
+      "crates/uor-r4-router": 26,
+      "scripts": 26,
+      "crates/uor-r4-model-source": 24,
+      "docs/r4_isolated_runtime_readiness_1096_evidence": 21,
+      "crates/uor-r4-graph-cli": 20,
+      "crates/uor-r4-workbench": 20,
+      "crates/uor-r4-graph-runtime": 19,
+      "docs/transformerless": 15,
+      "crates/uor-r4-proof-model": 14,
+      "docs/r4_retained_comparison_1094_evidence": 13,
+      "xtask/src": 10,
+      "assets/images": 9,
+      "docs/r4_text_clause_adapter_1094_evidence": 8,
+      "tests": 8,
+      "crates/repo-conformance": 7,
+      "docs/adr": 6,
+      "docs/r4_retained_assembly_1094_evidence": 6,
+      "crates/repo-model": 5,
+      "profiles/openai": 5,
+      "tools/uor-knowledge": 5,
+      ".github/workflows": 4,
+      "crates/uor-r4-naf": 4,
+      "models": 4,
+      "\"research/prime-analysis": 4,
+      "research/spiralcore-v68": 4,
+      "third_party/arrayref": 4,
+      ".devcontainer": 3,
+      "model": 3,
+      "research/msa": 3,
+      "third_party/helm-d-reference": 3,
+      ".github/ISSUE_TEMPLATE": 2,
+      "docs/explainers": 2,
+      "tools/skills": 2,
+      ".agents/skills": 1,
+      ".cargo": 1,
+      ".gitattributes": 1,
+      ".github": 1,
+      ".gitignore": 1,
+      ".uor-models/corpora": 1,
+      "AGENTS.md": 1,
+      "CONFORMANCE.md": 1,
+      "CONTRIBUTING.md": 1,
+      "Cargo.lock": 1,
+      "Cargo.toml": 1,
+      "Justfile": 1,
+      "LICENSE": 1,
+      "README.md": 1,
+      "ROADMAP.md": 1,
+      "assets/js": 1,
+      "coi-serviceworker.js": 1,
+      "deny.toml": 1,
+      "geometric_prime_router_webapp.html": 1,
+      "index.css": 1,
+      "index.html": 1,
+      "r4-app.sh": 1,
+      "r4_worker.js": 1,
+      "research": 1,
+      "rust-toolchain.toml": 1,
+      "tests/status_policy_common": 1,
+      "tests/support": 1,
+      "uor-r4-cli": 1,
+      "xtask": 1
+    }
+  },
+  "external_repository_refresh": [
+    {
+      "repo": "UOR-Foundation/uor-r4",
+      "url": "https://github.com/UOR-Foundation/uor-r4",
+      "default_branch": "main",
+      "head": "b267cfd2d958a76099cc8792e11c777c031895a0",
+      "pushed_at": "2026-09-13T18:29:31Z",
+      "license": "MIT",
+      "description": null,
+      "access": "METADATA_VERIFIED_CURRENT_SOURCE_NOT_IMPLIED"
+    },
+    {
+      "repo": "UOR-Foundation/UOR-Framework",
+      "url": "https://github.com/UOR-Foundation/UOR-Framework",
+      "default_branch": "main",
+      "head": "51c01382200b0179d6640b07e9c8119364ab69a1",
+      "pushed_at": "2026-05-23T21:14:32Z",
+      "license": "MIT",
+      "description": "Formalization of the UOR Framework as the https://uor.foundation/ model. ",
+      "access": "METADATA_VERIFIED_CURRENT_SOURCE_NOT_IMPLIED"
+    },
+    {
+      "repo": "UOR-Foundation/prism",
+      "url": "https://github.com/UOR-Foundation/prism",
+      "default_branch": "main",
+      "head": "507995bab43c0cb06ec244c96e6fc25b3f502204",
+      "pushed_at": "2026-05-24T00:29:26Z",
+      "license": "MIT",
+      "description": "Universal coordinate system for information. Unlocking semantic web, open science and frontier technologies. ",
+      "access": "METADATA_VERIFIED_CURRENT_SOURCE_NOT_IMPLIED"
+    },
+    {
+      "repo": "UOR-Foundation/uor-addr",
+      "url": "https://github.com/UOR-Foundation/uor-addr",
+      "default_branch": "main",
+      "head": "165b51e3e2113ee5d032730cde709335d4fe9b60",
+      "pushed_at": "2026-06-20T14:40:11Z",
+      "license": "Apache-2.0",
+      "description": "Reference implementation of UOR-ADDR — chain-agnostic canonical content addressing for agent-produced content.",
+      "access": "METADATA_VERIFIED_CURRENT_SOURCE_NOT_IMPLIED"
+    },
+    {
+      "repo": "UOR-Foundation/uor-matmul",
+      "url": "https://github.com/UOR-Foundation/uor-matmul",
+      "default_branch": "main",
+      "head": "3cc5882f210667f9ac00fd8c02c5b5957b493f5d",
+      "pushed_at": "2026-08-14T23:17:31Z",
+      "license": "MIT",
+      "description": null,
+      "access": "METADATA_VERIFIED_CURRENT_SOURCE_NOT_IMPLIED"
+    },
+    {
+      "repo": "UOR-Foundation/atlas-12288",
+      "url": "https://github.com/UOR-Foundation/atlas-12288",
+      "default_branch": "main",
+      "head": "aef42a6fd5c323373222b6362050b439690136a1",
+      "pushed_at": "2025-10-03T17:26:22Z",
+      "license": "MIT",
+      "description": null,
+      "access": "METADATA_VERIFIED_CURRENT_SOURCE_NOT_IMPLIED"
+    },
+    {
+      "repo": "UOR-Foundation/atlas-embeddings",
+      "url": "https://github.com/The-UOR-Foundation-Archive/atlas-embeddings",
+      "default_branch": "main",
+      "head": "578453e1b37ab832ba030fd7aec4df257f3cc18a",
+      "pushed_at": "2026-01-22T05:39:22Z",
+      "license": "MIT",
+      "description": null,
+      "access": "METADATA_VERIFIED_CURRENT_SOURCE_NOT_IMPLIED"
+    },
+    {
+      "repo": "UOR-Foundation/hologram",
+      "url": "https://github.com/Hologram-Technologies/hologram-catX",
+      "default_branch": "main",
+      "head": "24d88d0c2c9493673cd6a39f48e1e0894d7da701",
+      "pushed_at": "2026-02-05T18:12:46Z",
+      "license": "Apache-2.0",
+      "description": "Categorical x",
+      "access": "METADATA_VERIFIED_CURRENT_SOURCE_NOT_IMPLIED"
+    },
+    {
+      "repo": "UOR-Foundation/kappa-registry",
+      "url": "https://github.com/UOR-Foundation/kappa-registry",
+      "default_branch": "main",
+      "head": "2af86560a177fc9651b6c0e92e7974140ed77dd5",
+      "pushed_at": "2026-08-17T04:00:13Z",
+      "description": null,
+      "access": "METADATA_VERIFIED_CURRENT_SOURCE_NOT_IMPLIED"
+    },
+    {
+      "repo": "afflom/LexLean",
+      "url": "https://github.com/afflom/LexLean",
+      "default_branch": "main",
+      "head": "01088ef00d9d0d0227775e0346a852c2d19cb67b",
+      "pushed_at": "2026-09-09T18:05:16Z",
+      "license": "Apache-2.0",
+      "description": "Speak Truth",
+      "access": "METADATA_VERIFIED_CURRENT_SOURCE_NOT_IMPLIED"
+    },
+    {
+      "repo": "afflom/lean4-prod",
+      "url": "https://github.com/afflom/lean4-prod",
+      "default_branch": "main",
+      "head": "6ebb5657a5a00778af99d102070878fba6188544",
+      "pushed_at": "2026-09-09T17:21:00Z",
+      "description": "Lean 4 → production Rust generator: LCNF extraction, panic-free and allocation-free codegen, proof-graph analysis",
+      "access": "METADATA_VERIFIED_CURRENT_SOURCE_NOT_IMPLIED"
+    },
+    {
+      "repo": "afflom/UOR-Atlas-UTQC",
+      "url": "https://github.com/afflom/UOR-Atlas-UTQC",
+      "default_branch": "main",
+      "head": "b9717312e76c14c35ee7be88ac7ca71625448dff",
+      "pushed_at": "2026-07-19T22:24:16Z",
+      "license": "MIT",
+      "description": "A parametric, BDD-driven, V&V-gated   realization of the Holospaces Universal Topological Quantum Computer (UTQC) — the topological structure carried by the   UOR Atlas.",
+      "access": "METADATA_VERIFIED_CURRENT_SOURCE_NOT_IMPLIED"
+    },
+    {
+      "repo": "markrnd87-cmd/NEMESIS-Theory",
+      "url": "https://github.com/markrnd87-cmd/NEMESIS-Theory",
+      "default_branch": "main",
+      "head": "0d106967843c2c96477cf3e57aeff213e7db1c97",
+      "pushed_at": "2026-04-10T00:29:24Z",
+      "description": "Theoretical Physics Papers from NEMESIS 3D Studio",
+      "access": "METADATA_VERIFIED_CURRENT_SOURCE_NOT_IMPLIED"
+    },
+    {
+      "repo": "wilcompute/W33-Theory",
+      "url": "https://github.com/wilcompute/W33-Theory",
+      "default_branch": "master",
+      "head": "d06cf22d8da26518ad11a8afb7d93508eb5985fe",
+      "pushed_at": "2026-09-13T16:52:43Z",
+      "license": "MIT",
+      "description": "Deriving the Standard Model from a single finite geometry with zero free parameters",
+      "access": "METADATA_VERIFIED_CURRENT_SOURCE_NOT_IMPLIED"
+    },
+    {
+      "repo": "unicornd47-afk/GoldSnnail",
+      "error": "Command failed: gh api repos/unicornd47-afk/GoldSnnail\ngh: Not Found (HTTP 404)\n"
+    },
+    {
+      "repo": "Graph-and-Geometric-Learning/helm",
+      "url": "https://github.com/Graph-and-Geometric-Learning/helm",
+      "default_branch": "main",
+      "head": "7501deca8f413848bfef804be64ce874b72a3cd7",
+      "pushed_at": "2026-04-04T15:50:58Z",
+      "license": "MIT",
+      "description": "Official source code of HELM, a family of fully hyperbolic large language models",
+      "access": "METADATA_VERIFIED_CURRENT_SOURCE_NOT_IMPLIED"
+    }
+  ],
+  "local_pdfs": [
+    {
+      "path": "/Users/casey.allard/Downloads/UOR-R4_Geometric_Intelligence.pdf",
+      "sha256": "26f9b64585fcd9c9f78ec515a86dd7ee6f1fe90b61a3121918e79e994c13028b",
+      "pages": 14,
+      "extracted": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/geometric-attention-research-1/extracts/26f9b64585fc.txt",
+      "bytes": 17762037,
+      "read_status": "ALL_PAGE_VISUAL_OVERVIEW_ONLY"
+    },
+    {
+      "path": "/Users/casey.allard/Downloads/Topological_Riemann_Proof_(2) (1).pdf",
+      "sha256": "c34aac8c7676054ad5f20e1ed1d1a2a2fb6d03b58fc95d6ed051fd24099d4a84",
+      "pages": 18,
+      "extracted": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/geometric-attention-research-1/extracts/c34aac8c7676.txt",
+      "bytes": 9976888,
+      "read_status": "VISUAL_OVERVIEW_AND_SELECTED_FULL_RESOLUTION_MATH_AUDIT"
+    },
+    {
+      "path": "/Users/casey.allard/Downloads/uor_position_statement.pdf",
+      "sha256": "9b515d755620fa13f94af9762d11f8a81e94d37724e41da4112e4588787581d8",
+      "pages": 5,
+      "extracted": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/geometric-attention-research-1/extracts/9b515d755620.txt",
+      "bytes": 74689,
+      "read_status": "EXTRACTED_PROSE_READ_FULL_PHYSICS_CLAIMS_NOT_VALIDATED"
+    },
+    {
+      "path": "/Users/casey.allard/Downloads/UOR-R4_Geometric_Theory (2).pdf",
+      "sha256": "c26ab7d837063f0b08b59c197ef2ce5028a35f74647d5b99a3ac2983c0a0cd73",
+      "pages": 19,
+      "extracted": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/geometric-attention-research-1/extracts/c26ab7d83706.txt",
+      "bytes": 20270994,
+      "read_status": "ALL_PAGE_VISUAL_OVERVIEW_AND_FULL_RESOLUTION_PAGE_15"
+    },
+    {
+      "path": "/Users/casey.allard/Downloads/Spiralcore_v13.pdf",
+      "sha256": "d9161f0758e14376909a34a13ea8ec4990e3166be4b379300bda87eaed4ea86f",
+      "pages": 209,
+      "extracted": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/geometric-attention-research-1/extracts/d9161f0758e1.txt",
+      "bytes": 884242,
+      "read_status": "EXTRACTED_SEARCH_AND_TARGETED_PAGE_108"
+    },
+    {
+      "path": "/Users/casey.allard/Downloads/Canonical Explorations in Geometric Routing-1.pdf",
+      "sha256": "7ca9711a77a993faf21f08fff823019581a4c09a2be7da22c20ca420a569c458",
+      "pages": 18,
+      "extracted": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/geometric-attention-research-1/extracts/7ca9711a77a9.txt",
+      "bytes": 561937,
+      "read_status": "EXTRACTED_PROSE_READ_FULL_SOME_EQUATIONS_UNAVAILABLE_IN_TEXT"
+    },
+    {
+      "path": "/Users/casey.allard/Downloads/Spiralcore_v14.1.pdf",
+      "sha256": "49fa556a641985e01e3e1d3a4256d34009610962c26d2bd55ee56b2d9a30f1ca",
+      "pages": 431,
+      "extracted": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/geometric-attention-research-1/extracts/49fa556a6419.txt",
+      "bytes": 10476176,
+      "read_status": "EXTRACTED_AND_KEYWORD_SEARCH_ONLY"
+    },
+    {
+      "path": "/Users/casey.allard/Downloads/Comprehensive Analysis_ The Geometric Engine of Time.pdf",
+      "sha256": "1858f22b769ac0b2497d9c44eca724a17c1a3eb241e541a54650ca37335a0e01",
+      "pages": 4,
+      "extracted": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/geometric-attention-research-1/extracts/1858f22b769a.txt",
+      "bytes": 155686,
+      "read_status": "EXTRACTED_PROSE_READ_FULL_SOME_EQUATIONS_UNAVAILABLE_IN_TEXT"
+    },
+    {
+      "path": "/Users/casey.allard/Downloads/Unified_Atomic_Ternary_FBS_Revision_2.1_With_Binder_Coupling_Appendix.pdf",
+      "sha256": "16aba8a809516635aa1d43f3b5bad33454a5afa5160f3f4f46a31ce7b2833c49",
+      "pages": 54,
+      "extracted": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/geometric-attention-research-1/extracts/16aba8a80951.txt",
+      "bytes": 2884911,
+      "read_status": "EXTRACTED_INVENTORIED_ONLY_INTERNAL_VERSION_DIFFERS_FROM_FILENAME"
+    },
+    {
+      "path": "/Users/casey.allard/Downloads/Spiralcore_Dodecahedron_IP_Schema_v66-1.pdf",
+      "sha256": "a0081f914d1cc519d1680b2aff74b2f1131e24958468857f5b2b70dab63a1c45",
+      "pages": 285,
+      "extracted": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/geometric-attention-research-1/extracts/a0081f914d1c.txt",
+      "bytes": 3159446,
+      "read_status": "EXTRACTED_INVENTORIED_ONLY_SUPERSEDED_BY_V68"
+    },
+    {
+      "path": "/Users/casey.allard/Downloads/Topological_Riemann_Proof_(2).pdf",
+      "sha256": "c34aac8c7676054ad5f20e1ed1d1a2a2fb6d03b58fc95d6ed051fd24099d4a84",
+      "duplicate": true,
+      "read_status": "DUPLICATE_BY_SHA256_SEE_UNIQUE_RECORD"
+    },
+    {
+      "path": "/Users/casey.allard/Downloads/Riemann_Phase_Equilibrium_(2).pdf",
+      "sha256": "2117b11aab1609c64469ab819f039d5ff65e1e3caa0677bdee2b03c817ec401e",
+      "pages": 23,
+      "extracted": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/geometric-attention-research-1/extracts/2117b11aab16.txt",
+      "bytes": 14477646,
+      "read_status": "VISUAL_OVERVIEW_AND_SELECTED_FULL_RESOLUTION_MATH_AUDIT"
+    },
+    {
+      "path": "/Users/casey.allard/Downloads/UOR-R4_Geometric_Theory (1).pdf",
+      "sha256": "c26ab7d837063f0b08b59c197ef2ce5028a35f74647d5b99a3ac2983c0a0cd73",
+      "duplicate": true,
+      "read_status": "DUPLICATE_BY_SHA256_SEE_UNIQUE_RECORD"
+    },
+    {
+      "path": "/Users/casey.allard/Downloads/Atomic_Ternary_FBS_Formal_Consolidated_Reference_Revision_3.1 (1).pdf",
+      "sha256": "917cb942811971d63cbe499f3a1641d3360c4dde7ebdc6b87e298c3cf1bbd747",
+      "pages": 50,
+      "extracted": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/geometric-attention-research-1/extracts/917cb9428119.txt",
+      "bytes": 2695558,
+      "read_status": "SELECTED_PHYSICAL_PAGES_16_39_40_41_AND_PRIOR_IMPORT_REVIEW"
+    },
+    {
+      "path": "/Users/casey.allard/Downloads/UOR-R4_Geometric_Theory.pdf",
+      "sha256": "c26ab7d837063f0b08b59c197ef2ce5028a35f74647d5b99a3ac2983c0a0cd73",
+      "duplicate": true,
+      "read_status": "DUPLICATE_BY_SHA256_SEE_UNIQUE_RECORD"
+    },
+    {
+      "path": "/Users/casey.allard/Downloads/Riemann_Phase_Equilibrium_(2) (1).pdf",
+      "sha256": "2117b11aab1609c64469ab819f039d5ff65e1e3caa0677bdee2b03c817ec401e",
+      "duplicate": true,
+      "read_status": "DUPLICATE_BY_SHA256_SEE_UNIQUE_RECORD"
+    },
+    {
+      "path": "/Users/casey.allard/Downloads/Atomic_Ternary_FBS_Formal_Consolidated_Reference_Revision_3.1 (1) (1).pdf",
+      "sha256": "917cb942811971d63cbe499f3a1641d3360c4dde7ebdc6b87e298c3cf1bbd747",
+      "duplicate": true,
+      "read_status": "DUPLICATE_BY_SHA256_SEE_UNIQUE_RECORD"
+    }
+  ],
+  "nemesis_new_selected": [
+    {
+      "path": "Comprehensive Expert-Level Report_ Positional Metr....pdf",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "515b4ec67455aaa86dadc910fe0a0467986c7c2d",
+      "size": 172960,
+      "url": "https://github.com/markrnd87-cmd/NEMESIS-Theory/blob/0d106967843c2c96477cf3e57aeff213e7db1c97/Comprehensive%20Expert-Level%20Report_%20Positional%20Metr....pdf",
+      "local": ".uor-handoff/2026-09-12-codex-v7/shared-core-first-step/geometric-attention-research-1/nemesis-selected/515b4ec67455aaa86dadc910fe0a0467986c7c2d.pdf",
+      "sha256": "75497a467ee7e624dcb766f0cec6a47d83052ac6b96fe79545e0079eb51110ab",
+      "revision": "0d106967843c2c96477cf3e57aeff213e7db1c97",
+      "read_status": "FULL_EXTRACTED_PROSE_AND_VISUAL_PAGE_1",
+      "pages": 7,
+      "extracted": ".uor-handoff/2026-09-12-codex-v7/shared-core-first-step/geometric-attention-research-1/nemesis-selected/515b4ec67455aaa86dadc910fe0a0467986c7c2d.txt"
+    },
+    {
+      "path": "Ifa, Sigmatics, and UOR Foundation.pdf",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "3c1917d9c25e8c72cf3e931ae682bb39ba717a68",
+      "size": 296228,
+      "url": "https://github.com/markrnd87-cmd/NEMESIS-Theory/blob/0d106967843c2c96477cf3e57aeff213e7db1c97/Ifa%2C%20Sigmatics%2C%20and%20UOR%20Foundation.pdf",
+      "local": ".uor-handoff/2026-09-12-codex-v7/shared-core-first-step/geometric-attention-research-1/nemesis-selected/3c1917d9c25e8c72cf3e931ae682bb39ba717a68.pdf",
+      "sha256": "07a5999bec56d70e9e7e80e3d76389b1db9b27226efd5cbf23b953d917c85cae",
+      "revision": "0d106967843c2c96477cf3e57aeff213e7db1c97",
+      "read_status": "SELECTED_SECTIONS_PROSE_READ_NOT_FULL",
+      "pages": 13,
+      "extracted": ".uor-handoff/2026-09-12-codex-v7/shared-core-first-step/geometric-attention-research-1/nemesis-selected/3c1917d9c25e8c72cf3e931ae682bb39ba717a68.txt"
+    },
+    {
+      "path": "PRISM Blueprint_ Algebraic Resolution of the shr Bottleneck_.pdf",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "62440ee350952e5ebe2d4a81a31716c57de9bd2f",
+      "size": 56719,
+      "url": "https://github.com/markrnd87-cmd/NEMESIS-Theory/blob/0d106967843c2c96477cf3e57aeff213e7db1c97/PRISM%20Blueprint_%20Algebraic%20Resolution%20of%20the%20shr%20Bottleneck_.pdf",
+      "local": ".uor-handoff/2026-09-12-codex-v7/shared-core-first-step/geometric-attention-research-1/nemesis-selected/62440ee350952e5ebe2d4a81a31716c57de9bd2f.pdf",
+      "sha256": "881f77d19245727cd4aa08e272af916ed3a1225d03c5020289cd1a572e7a97fe",
+      "revision": "0d106967843c2c96477cf3e57aeff213e7db1c97",
+      "read_status": "FULL_EXTRACTED_PROSE",
+      "pages": 2,
+      "extracted": ".uor-handoff/2026-09-12-codex-v7/shared-core-first-step/geometric-attention-research-1/nemesis-selected/62440ee350952e5ebe2d4a81a31716c57de9bd2f.txt"
+    },
+    {
+      "path": "UOR Core Extension_ Inverse Locus Resolution (ILR) package._.pdf",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "12337640ee7b344766111aa94f0e7ec031d1e21f",
+      "size": 69491,
+      "url": "https://github.com/markrnd87-cmd/NEMESIS-Theory/blob/0d106967843c2c96477cf3e57aeff213e7db1c97/UOR%20Core%20Extension_%20Inverse%20Locus%20Resolution%20(ILR)%20package._.pdf",
+      "local": ".uor-handoff/2026-09-12-codex-v7/shared-core-first-step/geometric-attention-research-1/nemesis-selected/12337640ee7b344766111aa94f0e7ec031d1e21f.pdf",
+      "sha256": "14bf4dd0329fcc8a6f72c6da4a8911565f3c4f9fddd1432cb61b2f364ca84408",
+      "revision": "0d106967843c2c96477cf3e57aeff213e7db1c97",
+      "read_status": "FULL_EXTRACTED_PROSE",
+      "pages": 3,
+      "extracted": ".uor-handoff/2026-09-12-codex-v7/shared-core-first-step/geometric-attention-research-1/nemesis-selected/12337640ee7b344766111aa94f0e7ec031d1e21f.txt"
+    }
+  ],
+  "root_additional_primary_sources": [
+    {
+      "title": "Kanerva Hyperdimensional Computing",
+      "url": "https://redwood.berkeley.edu/wp-content/uploads/2018/01/kanerva2009hyperdimensional.pdf",
+      "read": "Selected sections 6.1,6.4.2–6.8,7.1 and introductory limitations",
+      "status": "PRIMARY_SECTIONS_READ"
+    },
+    {
+      "title": "Dirichlet series and divisor function",
+      "url": "https://legacy-www.math.harvard.edu/archive/math124_2012/math124_fall_2012-13/Third.lecture.Dirichletseries.Dirichlet.Product.pdf",
+      "read": "Pages2–5, especially p3 proposition1 divisor-count generating series",
+      "status": "PRIMARY_SECTIONS_READ"
+    },
+    {
+      "title": "Canonical Explorations Zenodo citation",
+      "url": "https://zenodo.org/records/19243034",
+      "read": "DOI and record access failed; no result inferred",
+      "status": "UNAVAILABLE"
+    }
+  ],
+  "companions": [
+    "math-sources.json",
+    "attention-sources.json",
+    "repo-math-sources.json"
+  ],
+  "execution": {
+    "model_runs": 0,
+    "fits": 0,
+    "builds": 0,
+    "paid_external_compute": 0,
+    "destructive_cleanup": false,
+    "runtime_changes": false
+  },
+  "limits": {
+    "at": "2026-09-13T18:32:16.892Z",
+    "scope": "Owner-requested architecture deep research across local source/math/research and primary literature; no model fits or runtime changes",
+    "worktree": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core",
+    "base": "b267cfd2d958a76099cc8792e11c777c031895a0",
+    "model_ms": 0,
+    "engineering_ms": 180000,
+    "wall_ms": 10800000,
+    "ram_bytes": 4294967296,
+    "new_storage_bytes": 67108864,
+    "stop_margin_bytes": 134217728,
+    "research_agents": 3,
+    "model_processes": 0,
+    "external_cost": 0,
+    "cleanup": false,
+    "ledger": {
+      "cumulative_ms": 123730724,
+      "limit_ms": 132950000
+    },
+    "storage_high_water": {
+      "target": 52822016,
+      "git": 12161024,
+      "worktree": 1235881984,
+      "evidence": 687005696,
+      "at": "2026-09-13T18:27:31.308Z"
+    },
+    "parent_storage_growth_bytes": 1987870720
+  },
+  "external_derived_storage": {
+    "path": "/tmp/uor-math-pdf-audit-20260913",
+    "allocated_bytes": 14417920,
+    "status": "PRESERVED_DERIVED_PDF_RENDERINGS",
+    "navigation": ".uor-handoff/2026-09-12-codex-v7/shared-core-first-step/geometric-attention-research-1/pdf-visuals",
+    "charge": "Additional step storage outside parent evidence baseline; include in final receipt",
+    "at": "2026-09-13T18:53:47.297Z"
+  },
+  "research_attempt": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/geometric-attention-research-1",
+  "original_retained_artifact": "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/reader-scope-repair/model.json",
+  "source_groups": {
+    "math_external": 36,
+    "math_local": 21,
+    "attention": 25,
+    "repo": 42,
+    "note": "Overlapping source groups at different reading depths; not unique full papers or independent replications."
+  },
+  "owner_clarifications": {
+    "L1": "One-dimensional visual projection, not L1 metric or function space",
+    "nlets": "Combinatorial groups of up to six primes, not default consecutive-prime spans",
+    "candidate": "Divisor-count structural routing, arithmetic/spectral relation, exact UOR/icosian correction",
+    "status": "HYPOTHESIS_WITH_EXACT_ARITHMETIC_ROLES_AND_MISSING_LEARNED_MAP"
+  }
+}

@@ -1,0 +1,718 @@
+{
+  "schema": "uor-repo-math-source-review/1",
+  "snapshot_date": "2026-09-13",
+  "worktree": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core",
+  "repository_commit": "b267cfd2d958a76099cc8792e11c777c031895a0",
+  "execution": {
+    "builds": 0,
+    "tests": 0,
+    "model_runs": 0,
+    "paid_calls": 0,
+    "source_mutations": 0
+  },
+  "coverage_policy": "Line ranges describe read excerpts, not whole-module verification. Test assertions were read, not executed. Historical audit findings retain secondary status. No fresh proof/certificate validation.",
+  "source_entries": [
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/docs/integration/project-track.md",
+      "repository_commit": "b267cfd2d958a76099cc8792e11c777c031895a0",
+      "sha256": "07c0b588960d50a6a3fdceecfe69c41e85bfc42be588cafff42035d4868a5943",
+      "read_line_ranges": [
+        [
+          1,
+          50
+        ]
+      ],
+      "coverage": "authority_excerpt",
+      "role_or_limitation": "Current native objective and architecture boundaries"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/docs/integration/current-state.md",
+      "repository_commit": "b267cfd2d958a76099cc8792e11c777c031895a0",
+      "sha256": "ea48139fa7e9b66feb296ec0f6c8f2d7300f418971d969047f75874f38cd85d2",
+      "read_line_ranges": [
+        [
+          1,
+          23
+        ]
+      ],
+      "coverage": "authority_excerpt",
+      "role_or_limitation": "Archived current Hamming conformance and initialized failure; not rerun"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/docs/integration/agent-execution-policy.json",
+      "repository_commit": "b267cfd2d958a76099cc8792e11c777c031895a0",
+      "sha256": "e2561cb59c9b0dfcc7fe69583a044c3bbd445b862dfedc6dfeab38ff59f33569",
+      "read_line_ranges": [],
+      "coverage": "authority_document",
+      "role_or_limitation": "Stable training versus serving contract"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/docs/integration/architecture-2026-09/mathematics.md",
+      "repository_commit": "b267cfd2d958a76099cc8792e11c777c031895a0",
+      "sha256": "9329d2c505e910636de942f8be6aa56aeae3a44719c6ac0157e96cee498cb646",
+      "read_line_ranges": [
+        [
+          35,
+          163
+        ]
+      ],
+      "coverage": "audit_secondary",
+      "role_or_limitation": "Mathematical inventory; no fresh proof audit"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/docs/integration/architecture-2026-09/imports.md",
+      "repository_commit": "b267cfd2d958a76099cc8792e11c777c031895a0",
+      "sha256": "8a4936b0266717ed6b43017bf54d32b8e3ef0a22dc0962c3f16730bcd85a421a",
+      "read_line_ranges": [
+        [
+          16,
+          117
+        ]
+      ],
+      "coverage": "audit_secondary",
+      "role_or_limitation": "Prior pinned dependency roles and limits"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/docs/integration/architecture-2026-09/engines.md",
+      "repository_commit": "b267cfd2d958a76099cc8792e11c777c031895a0",
+      "sha256": "623862d1eaddd23633b71fef6cf998d27156356d8966b0c88db6eb43663d13df",
+      "read_line_ranges": [],
+      "coverage": "audit_secondary",
+      "role_or_limitation": "Selected engine inventory sections, initial combined output truncated"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/hamming_refinement/metric.rs",
+      "repository_commit": "b267cfd2d958a76099cc8792e11c777c031895a0",
+      "sha256": "f48ab7e91612aa02d3548b7308aa117a71903935e41cd1aa34f21a32686dd2ce",
+      "read_line_ranges": [
+        [
+          1,
+          100
+        ]
+      ],
+      "coverage": "implementation_excerpt",
+      "role_or_limitation": "Geometry-derived signatures and XOR/popcount distance"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/hamming_refinement/runtime.rs",
+      "repository_commit": "b267cfd2d958a76099cc8792e11c777c031895a0",
+      "sha256": "d6a7ba45258507f0c617236dec891aca3e2d8a9942b3526bc0c0d61cd9f077b8",
+      "read_line_ranges": [
+        [
+          210,
+          344
+        ]
+      ],
+      "coverage": "implementation_excerpt",
+      "role_or_limitation": "Hard bounded scan, Null/tie and payload selection"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/hamming_policy/policy.rs",
+      "repository_commit": "b267cfd2d958a76099cc8792e11c777c031895a0",
+      "sha256": "4a439357fd84847e721daabd99c792a762652d16cb9e5c1824d7fce5dec8c8a3",
+      "read_line_ranges": [
+        [
+          1,
+          538
+        ]
+      ],
+      "coverage": "implementation_read",
+      "role_or_limitation": "Packed inputs, three-layer partition wiring, score and root output; locality deduction"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/hamming_policy/policy_tests.rs",
+      "repository_commit": "b267cfd2d958a76099cc8792e11c777c031895a0",
+      "sha256": "b3dcff660f65aa9eea04d051845bac023ee9142cfd80b73f13bbc1428f02134e",
+      "read_line_ranges": [
+        [
+          42,
+          112
+        ],
+        [
+          213,
+          245
+        ]
+      ],
+      "coverage": "test_excerpt_not_executed",
+      "role_or_limitation": "Union reachability, payload/identity inputs, unknown fields"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/hamming_policy/credit.rs",
+      "repository_commit": "b267cfd2d958a76099cc8792e11c777c031895a0",
+      "sha256": "590c5820a2aedd0f52ac394e3a1255eef7a2c9f2e52cecfef3f219ba3f165077",
+      "read_line_ranges": [
+        [
+          1,
+          158
+        ]
+      ],
+      "coverage": "implementation_read",
+      "role_or_limitation": "Finite contrasts and offline CE, teacher forcing and generation"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/hamming_policy/session.rs",
+      "repository_commit": "b267cfd2d958a76099cc8792e11c777c031895a0",
+      "sha256": "908d0c7512ed380cd808700ad4489973629055007773f2e81afd774023dd68c5",
+      "read_line_ranges": [
+        [
+          83,
+          182
+        ],
+        [
+          220,
+          304
+        ]
+      ],
+      "coverage": "implementation_excerpt",
+      "role_or_limitation": "State transport and acknowledged observation, snapshot refresh"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/prime_route_attention.rs",
+      "repository_commit": "b267cfd2d958a76099cc8792e11c777c031895a0",
+      "sha256": "f1c9f1c6aa1825288c55e3b396a26da5ca5e9d2e60e6d256d84ddc85ed422e2f",
+      "read_line_ranges": [
+        [
+          225,
+          320
+        ],
+        [
+          381,
+          452
+        ],
+        [
+          486,
+          567
+        ],
+        [
+          633,
+          672
+        ],
+        [
+          885,
+          936
+        ]
+      ],
+      "coverage": "implementation_excerpt",
+      "role_or_limitation": "Semiprime and ordered routes, Zphi, Hopf/fiber, fixed zeta identities"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/tests/prime_route_attention_958.rs",
+      "repository_commit": "b267cfd2d958a76099cc8792e11c777c031895a0",
+      "sha256": "34afda915c2b4696c09e778902cae92ab19f9e63127e3c41ae6289de8325159d",
+      "read_line_ranges": [
+        [
+          1,
+          125
+        ],
+        [
+          289,
+          321
+        ],
+        [
+          415,
+          452
+        ]
+      ],
+      "coverage": "test_excerpt_not_executed",
+      "role_or_limitation": "Fixtures plus ordered factors and fixed zeta/Hopf loss checks; other test names inventoried"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/training.rs",
+      "repository_commit": "b267cfd2d958a76099cc8792e11c777c031895a0",
+      "sha256": "d77500abc522a42d8c7e2235d54f9bc828a1a2ef760d36fc1c9366d98f7e0958",
+      "read_line_ranges": [
+        [
+          108,
+          164
+        ]
+      ],
+      "coverage": "implementation_excerpt",
+      "role_or_limitation": "Canonical token/prime/eight-phase preparation"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/zeta_zeros.rs",
+      "repository_commit": "b267cfd2d958a76099cc8792e11c777c031895a0",
+      "sha256": "abd8012d6760b07338d72bb306b92745d34af6ded44b8320b35839f8fe739920",
+      "read_line_ranges": [],
+      "coverage": "keyword_inventory_only",
+      "role_or_limitation": "512-zero constant table; individual constants not audited"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/canonical_lexical_ingestion.rs",
+      "repository_commit": "b267cfd2d958a76099cc8792e11c777c031895a0",
+      "sha256": "381d6a08db267b6280d6884aea0d2784f7ba6162a79a416b195355d5fc486e60",
+      "read_line_ranges": [
+        [
+          1330,
+          1448
+        ],
+        [
+          2075,
+          2130
+        ],
+        [
+          2533,
+          2618
+        ],
+        [
+          2650,
+          2728
+        ],
+        [
+          2770,
+          2910
+        ]
+      ],
+      "coverage": "implementation_excerpt",
+      "role_or_limitation": "Exact root/compiler/chart/paired sections; first range partly truncated"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/anchors.rs",
+      "repository_commit": "b267cfd2d958a76099cc8792e11c777c031895a0",
+      "sha256": "eb653f80cb3160ad083cc16d10952218454bbaefeb9bdd02b38e92c34a32ba8a",
+      "read_line_ranges": [
+        [
+          1,
+          105
+        ],
+        [
+          183,
+          243
+        ]
+      ],
+      "coverage": "implementation_and_test_excerpt",
+      "role_or_limitation": "Exact paired/native anchor and inversion/polarity tests"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/docs/adr/0003-fixed-zeta-prime-route-attention.md",
+      "repository_commit": "b267cfd2d958a76099cc8792e11c777c031895a0",
+      "sha256": "4440aa7f7b6be4f4d22633015a867a0d361bb836c7f73e2bfa42b5939c381f11",
+      "read_line_ranges": [
+        [
+          228,
+          260
+        ]
+      ],
+      "coverage": "design_excerpt",
+      "role_or_limitation": "Chord/geodesic typed bridge"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/docs/adr/0004-geometric-intelligence-route-hierarchy.md",
+      "repository_commit": "b267cfd2d958a76099cc8792e11c777c031895a0",
+      "sha256": "0e597e3f471e92e1070e3b916ee8d9792a9616e32f10c5003fc2a11359624b0f",
+      "read_line_ranges": [
+        [
+          142,
+          174
+        ]
+      ],
+      "coverage": "design_excerpt",
+      "role_or_limitation": "Typed anchor metadata and conversion obligations"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/cayley_dickson.rs",
+      "repository_commit": "b267cfd2d958a76099cc8792e11c777c031895a0",
+      "sha256": "b6cb6568eb8c804625361f1dadfeb3258d2fa053061199896f80f11da4b6e0d6",
+      "read_line_ranges": [
+        [
+          1,
+          83
+        ]
+      ],
+      "coverage": "implementation_read",
+      "role_or_limitation": "Cyclic surrogate formulas, not full advertised algebras"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/transformerless/cd_space.rs",
+      "repository_commit": "b267cfd2d958a76099cc8792e11c777c031895a0",
+      "sha256": "a64d692b4b1e76082011fd0e55e875746669a55acdde504580db3c19da4b9386",
+      "read_line_ranges": [
+        [
+          1,
+          220
+        ]
+      ],
+      "coverage": "implementation_excerpt",
+      "role_or_limitation": "Actual floating octonion/quaternion/complex products and direct component storage"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/transformerless/endomorphism.rs",
+      "repository_commit": "b267cfd2d958a76099cc8792e11c777c031895a0",
+      "sha256": "c68e161e1dcb99c2a0b41eb53a95d2d403a7a4b99a96b9e9606a3265d2c02e15",
+      "read_line_ranges": [
+        [
+          1,
+          170
+        ],
+        [
+          205,
+          228
+        ]
+      ],
+      "coverage": "implementation_excerpt",
+      "role_or_limitation": "Dense real actions and spectator-block Clifford relation defect deduction"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/transformerless/lie_jordan.rs",
+      "repository_commit": "b267cfd2d958a76099cc8792e11c777c031895a0",
+      "sha256": "d7dd47b5c1a2a2a650e31a0fb3ee9445bb7f8c8fb4f75f26dd8477c4ab5b2742",
+      "read_line_ranges": [
+        [
+          1,
+          100
+        ]
+      ],
+      "coverage": "implementation_read",
+      "role_or_limitation": "Matrix symmetric/skew algebra versus unsupported bitwise bridge"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/transformerless/bott_fock.rs",
+      "repository_commit": "b267cfd2d958a76099cc8792e11c777c031895a0",
+      "sha256": "b4b4dd78b1927dc36b5177130ab19f20271a5c6b9ddcaf51403a9a027bdf8223",
+      "read_line_ranges": [
+        [
+          1,
+          155
+        ]
+      ],
+      "coverage": "implementation_excerpt",
+      "role_or_limitation": "Bounded saturating recurrence; no faithful tensor/periodicity witness"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/spiralcore_operator.rs",
+      "repository_commit": "b267cfd2d958a76099cc8792e11c777c031895a0",
+      "sha256": "67c6ee8f4fb289e9d448d9cc3b3f8f079c4754d8abce77eed648b60f30f90a8d",
+      "read_line_ranges": [
+        [
+          1,
+          190
+        ],
+        [
+          379,
+          448
+        ]
+      ],
+      "coverage": "implementation_excerpt",
+      "role_or_limitation": "Finite exact signed permutations and 64-state lowering"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/tests/spiralcore_operator_958.rs",
+      "repository_commit": "b267cfd2d958a76099cc8792e11c777c031895a0",
+      "sha256": "9c06e4ac8526b3d9917f9d6361466e54c6235074319a59a2dda7cdd3eab8d0b6",
+      "read_line_ranges": [
+        [
+          38,
+          110
+        ],
+        [
+          170,
+          225
+        ]
+      ],
+      "coverage": "test_excerpt_not_executed",
+      "role_or_limitation": "Associator and full generator relations, finite group and invalid bindings"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/zeta_projection.rs",
+      "repository_commit": "b267cfd2d958a76099cc8792e11c777c031895a0",
+      "sha256": "0853e01d302b908f84e279ef6e94ffd26962c58a5d0de8d43a59cf0fcdc18bcd",
+      "read_line_ranges": [
+        [
+          104,
+          172
+        ],
+        [
+          196,
+          235
+        ],
+        [
+          329,
+          419
+        ]
+      ],
+      "coverage": "implementation_excerpt",
+      "role_or_limitation": "Offline projection contractions and magnitude observation"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/research/riemann-lean/spinning_top_r4_bridge.py",
+      "repository_commit": "b267cfd2d958a76099cc8792e11c777c031895a0",
+      "sha256": "354a51aace7fa7a2ff2f3331e17afef4bf21372d68bf57e35360a35e1fa75a47",
+      "read_line_ranges": [
+        [
+          48,
+          108
+        ]
+      ],
+      "coverage": "research_source_excerpt",
+      "role_or_limitation": "Finite F/Fprime and in-sample centroid diagnostics"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/research/riemann-lean/prime_geometry_loop.py",
+      "repository_commit": "b267cfd2d958a76099cc8792e11c777c031895a0",
+      "sha256": "6bd6323fa37c231367071ddf85b7376562fab7c498792dbf6930dd59e69102ff",
+      "read_line_ranges": [
+        [
+          110,
+          125
+        ],
+        [
+          170,
+          225
+        ]
+      ],
+      "coverage": "research_source_excerpt",
+      "role_or_limitation": "Modular spectra and centroid diagnostics"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/research/riemann-lean/lie_phase_harmonic_probe.py",
+      "repository_commit": "b267cfd2d958a76099cc8792e11c777c031895a0",
+      "sha256": "b47ba183d1e7e97df8d82011cb0e0dd879e58fd69f28a92d5ccdd9997b977aeb",
+      "read_line_ranges": [
+        [
+          58,
+          105
+        ]
+      ],
+      "coverage": "research_source_excerpt",
+      "role_or_limitation": "Low-order harmonics/SU2 floating matrix probe"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-graph-certify/tests/support/w33.rs",
+      "repository_commit": "b267cfd2d958a76099cc8792e11c777c031895a0",
+      "sha256": "5e34bbdda19c68178f40a3fb3dab8a0d3d90a26c326e8c025fd3fc1ca3bd798c",
+      "read_line_ranges": [
+        [
+          1,
+          165
+        ]
+      ],
+      "coverage": "implementation_excerpt",
+      "role_or_limitation": "Finite GF3 projective/symplectic test geometry and coarse embedding"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/docs/integration/nemesis-w33-relevance.md",
+      "repository_commit": "b267cfd2d958a76099cc8792e11c777c031895a0",
+      "sha256": "5053b33073f1b845664622beef9685be7df263f3085b2f359eb78f1a4189a4b5",
+      "read_line_ranges": [
+        [
+          1,
+          93
+        ]
+      ],
+      "coverage": "audit_secondary",
+      "role_or_limitation": "Prior negative probe and faithful carrying requirements; no fresh PDF proof check"
+    },
+    {
+      "path": "/Users/casey.allard/.cargo/git/checkouts/uor-addr-52e08702e451f8fd/165b51e/crates/uor-addr/src/composition/canonicalize.rs",
+      "revision": "165b51e3e2113ee5d032730cde709335d4fe9b60",
+      "sha256": "d9032fc9bc95a4f86ddbb8c0db3753865ee6de36a8f915fc446597243b8a6d89",
+      "read_line_ranges": [
+        [
+          85,
+          178
+        ]
+      ],
+      "coverage": "dependency_implementation_excerpt",
+      "role_or_limitation": "Identity quotients: sorted binary operands, complement, modulo partition"
+    },
+    {
+      "path": "/Users/casey.allard/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/uor-prism-numerics-0.4.0/src/ring.rs",
+      "revision": "crate:uor-prism-numerics:0.4.0",
+      "sha256": "374953b72870fb633ebeaa32c2a7ddfe6003ae2aafab88fa9740daa6978c558c",
+      "read_line_ranges": [
+        [
+          1,
+          112
+        ]
+      ],
+      "coverage": "dependency_implementation_excerpt",
+      "role_or_limitation": "Bytewise XOR/AND product ring, not GF256 or modular integer arithmetic"
+    },
+    {
+      "path": "/Users/casey.allard/.cargo/git/checkouts/uor-framework-5fc0e124af70bb49/51c0138/foundation/src/enforcement.rs",
+      "revision": "51c01382200b0179d6640b07e9c8119364ab69a1",
+      "sha256": "f9b8fa8de9c36f7dc38001070b32ddba0f6f010819673bda0bad9c48ced7f868",
+      "read_line_ranges": [
+        [
+          7836,
+          7915
+        ],
+        [
+          7932,
+          8015
+        ]
+      ],
+      "coverage": "dependency_implementation_excerpt",
+      "role_or_limitation": "Bounded support nerve skeleton and boundary ranks"
+    },
+    {
+      "repository": "wilcompute/W33-Theory",
+      "revision": "d06cf22d8da26518ad11a8afb7d93508eb5985fe",
+      "path": "analysis/w33_holovm_process_kernel.py",
+      "url": "https://github.com/wilcompute/W33-Theory/blob/d06cf22d8da26518ad11a8afb7d93508eb5985fe/analysis/w33_holovm_process_kernel.py",
+      "sha256": "424e23654e722077c5cfe95d25048a6d6c926b1ab45a6bc73083288118e96e22",
+      "content_bytes": 22128,
+      "read_line_ranges": [
+        [
+          1,
+          55
+        ],
+        [
+          62,
+          115
+        ],
+        [
+          166,
+          285
+        ],
+        [
+          333,
+          390
+        ]
+      ],
+      "coverage": "current_upstream_implementation_excerpt",
+      "role_or_limitation": "Process/value identity, authenticated transition, retained payload union, strict resume",
+      "raw_source_retained": false
+    },
+    {
+      "repository": "wilcompute/W33-Theory",
+      "revision": "d06cf22d8da26518ad11a8afb7d93508eb5985fe",
+      "path": "docs/W33_FRACTAL_MICROVM_RUNTIME.md",
+      "url": "https://github.com/wilcompute/W33-Theory/blob/d06cf22d8da26518ad11a8afb7d93508eb5985fe/docs/W33_FRACTAL_MICROVM_RUNTIME.md",
+      "sha256": "dec17a7067bfb9030e0279de1350880cf36c351a8748c74ba5fa75dcf4fd5d88",
+      "content_bytes": 5710,
+      "read_line_ranges": [
+        [
+          1,
+          112
+        ]
+      ],
+      "coverage": "current_upstream_document_read",
+      "role_or_limitation": "DAG path-copy and scope; certificates not rerun",
+      "raw_source_retained": false
+    },
+    {
+      "repository": "wilcompute/W33-Theory",
+      "revision": "d06cf22d8da26518ad11a8afb7d93508eb5985fe",
+      "path": "RH_PROOF_STATUS.json",
+      "url": "https://github.com/wilcompute/W33-Theory/blob/d06cf22d8da26518ad11a8afb7d93508eb5985fe/RH_PROOF_STATUS.json",
+      "sha256": "c339d38f14b2b7f52d8825cb066e0d64d9ef83214d75b7458129c25869f9ee09",
+      "content_bytes": 1434,
+      "read_line_ranges": [
+        [
+          1,
+          27
+        ]
+      ],
+      "coverage": "current_upstream_status_read",
+      "role_or_limitation": "Classical RH and zeta identification explicitly OPEN; self-labeled proofs not audited",
+      "raw_source_retained": false
+    },
+    {
+      "repository": "wilcompute/W33-Theory",
+      "revision": "d06cf22d8da26518ad11a8afb7d93508eb5985fe",
+      "path": "README.md",
+      "url": "https://github.com/wilcompute/W33-Theory/blob/d06cf22d8da26518ad11a8afb7d93508eb5985fe/README.md",
+      "sha256": "d99e4dde57cb22a766fc0a71b432accbf996635190eca08efd1aa7c27c58a547",
+      "content_bytes": 73353,
+      "read_line_ranges": [
+        [
+          770,
+          842
+        ]
+      ],
+      "coverage": "current_upstream_document_excerpt",
+      "role_or_limitation": "Lean status plus keyword discovery of runtime/RH paths",
+      "raw_source_retained": false
+    },
+    {
+      "repository": "UOR-Foundation/uor-matmul",
+      "revision": "3cc5882f210667f9ac00fd8c02c5b5957b493f5d",
+      "path": "crates/uor-matmul-gemm/src/coded.rs",
+      "url": "https://github.com/UOR-Foundation/uor-matmul/blob/3cc5882f210667f9ac00fd8c02c5b5957b493f5d/crates/uor-matmul-gemm/src/coded.rs",
+      "sha256": "af05a9c847b5729d9d6ed8305775f2fc6c916728331e051ced991944466d7330",
+      "content_bytes": 12135,
+      "read_line_ranges": [
+        [
+          1,
+          115
+        ]
+      ],
+      "coverage": "current_upstream_implementation_excerpt",
+      "role_or_limitation": "Coded accumulation remains mathematical matrix contraction",
+      "raw_source_retained": false
+    },
+    {
+      "repository": "UOR-Foundation/uor-matmul",
+      "revision": "3cc5882f210667f9ac00fd8c02c5b5957b493f5d",
+      "path": "crates/uor-matmul/src/slice.rs",
+      "url": "https://github.com/UOR-Foundation/uor-matmul/blob/3cc5882f210667f9ac00fd8c02c5b5957b493f5d/crates/uor-matmul/src/slice.rs",
+      "sha256": "09ac4be40355e5f38ab6c2656ef1a844e7b30734132dabe1179b79d084c3eedf",
+      "content_bytes": 16228,
+      "read_line_ranges": [
+        [
+          270,
+          332
+        ]
+      ],
+      "coverage": "current_upstream_implementation_excerpt",
+      "role_or_limitation": "Exact dyadic float facade and final rounding",
+      "raw_source_retained": false
+    }
+  ],
+  "inventory_only_families": [
+    "Duplicated research/prime-analysis trees",
+    "Unopened RH Lean providers and manuscript certificates",
+    "NEMESIS external PDF",
+    "Latest owner SpiralCore downloads delegated to parent"
+  ],
+  "upstream_refresh": [
+    {
+      "repository": "UOR-Foundation/uor-matmul",
+      "pinned_revision": "b13c98449948174f590e337c4dc25dfc394a07d0",
+      "current_revision": "3cc5882f210667f9ac00fd8c02c5b5957b493f5d",
+      "status": "ahead",
+      "total_commits": 7,
+      "returned_files": 10,
+      "file_list_complete": true,
+      "changed_files": [
+        ".github/workflows/ci.yml",
+        ".github/workflows/miri.yml",
+        ".github/workflows/release.yml",
+        "Cargo.lock",
+        "Justfile",
+        "crates/uor-matmul-conformance/tests/environment.rs",
+        "crates/uor-matmul-gemm/Cargo.toml",
+        "crates/uor-matmul-kernels/Cargo.toml",
+        "crates/uor-matmul-validate/tests/scaling_report.rs",
+        "deny.toml"
+      ],
+      "coverage": "Complete comparison file metadata and selected current source"
+    },
+    {
+      "repository": "wilcompute/W33-Theory",
+      "pinned_revision": "5674aa2e74c7de81864556b1bbc90aa9a1b1bd3d",
+      "current_revision": "d06cf22d8da26518ad11a8afb7d93508eb5985fe",
+      "status": "ahead",
+      "total_commits": 308,
+      "returned_files": 300,
+      "file_list_complete": false,
+      "changed_files": [
+        "analysis/w33_holovm_process_kernel.py",
+        "analysis/w33_shared_counter_archive.py",
+        "analysis/w33_shared_counter_archive_certificate.json",
+        "analysis/w33_snapshot_admission_scheduler.py"
+      ],
+      "coverage": "Capped comparison metadata, selected newly added process kernel and current runtime/RH documents only"
+    }
+  ],
+  "followup_storage": {
+    "limit_bytes": 5242880,
+    "raw_source_retained_bytes": 0,
+    "retained_outputs": [
+      "repo-mathematics.md",
+      "repo-math-sources.json"
+    ],
+    "note": "Only owned report and manifest were written; raw API/source payloads inspected in memory."
+  }
+}

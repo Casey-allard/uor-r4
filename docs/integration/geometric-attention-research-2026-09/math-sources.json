@@ -1,0 +1,610 @@
+{
+  "schema": "uor-r4-math-research-inventory/1",
+  "date": "2026-09-13",
+  "scope": "Primary mathematical foundations and selected actual UOR source. Read-only; no experiments, proof compilation, fits or model runs.",
+  "coverage_claim": "Sources and sections listed were inspected to the stated depth; not all literature, every repository file, every cited proof or full texts for access-limited records.",
+  "sources": [
+    {
+      "id": "M01",
+      "title": "Riemann Hypothesis",
+      "author": "Clay Mathematics Institute",
+      "url": "https://www.claymath.org/millennium/Riemann-Hypothesis/",
+      "sections_inspected": [
+        "Problem statement and resource links"
+      ],
+      "access": "Full page via web search and retrieved content",
+      "role": "Authoritative problem statement; finite verification is not all-height proof"
+    },
+    {
+      "id": "M02",
+      "title": "Unsolved Millennium Problems",
+      "author": "Clay Mathematics Institute",
+      "url": "https://www.claymath.org/problem/unsolved/",
+      "sections_inspected": [
+        "Live unsolved archive listing Riemann Hypothesis"
+      ],
+      "access": "Full page opened",
+      "role": "Current unresolved status only; not a separate theorem source"
+    },
+    {
+      "id": "M03",
+      "title": "DLMF 25.10: Zeros",
+      "author": "NIST DLMF",
+      "url": "https://dlmf.nist.gov/25.10",
+      "sections_inspected": [
+        "25.10(i) distribution",
+        "25.10.1 Hardy Z function",
+        "25.10.2 phase convention"
+      ],
+      "access": "Full mathematical page opened",
+      "role": "Critical strip, symmetry, RH formulation and real Z(t)"
+    },
+    {
+      "id": "M04",
+      "title": "The Riemann Hypothesis",
+      "author": "Enrico Bombieri",
+      "url": "https://www.claymath.org/wp-content/uploads/2022/02/MPPc.pdf",
+      "sections_inspected": [
+        "RH chapter context",
+        "Section 5 Further Evidence: The Explicit Formula, printed pages 121-123"
+      ],
+      "access": "Full collection PDF searchable; selected chapter sections read, not entire 139-page collection",
+      "role": "Explicit formula with test-function and Mellin-transform assumptions"
+    },
+    {
+      "id": "M05",
+      "title": "DLMF 25.16: Mathematical Applications",
+      "author": "NIST DLMF",
+      "url": "https://dlmf.nist.gov/25.16",
+      "sections_inspected": [
+        "Number-theory applications and prime-counting formulas"
+      ],
+      "access": "Page opened",
+      "role": "Zeta-prime relationship; does not establish semantic geometry"
+    },
+    {
+      "id": "M06",
+      "title": "Riemann 1859 manuscript",
+      "author": "Bernhard Riemann; scan hosted by Clay",
+      "url": "https://www.claymath.org/wp-content/uploads/2023/04/riemann1859.pdf",
+      "sections_inspected": [
+        "Document identified, four scanned pages"
+      ],
+      "access": "Opened but zero extractable text; handwriting not reliably transcribed",
+      "role": "Historical provenance only; no proof claim based on scan"
+    },
+    {
+      "id": "M07",
+      "title": "Similarity Estimation Techniques from Rounding Algorithms",
+      "author": "Moses Charikar",
+      "url": "https://www.cs.princeton.edu/courses/archive/spr04/cos598B/bib/CharikarEstim.pdf",
+      "sections_inspected": [
+        "Introduction and necessary conditions",
+        "Section 3 random-hyperplane construction and angular collision probability"
+      ],
+      "access": "Nine-page full paper opened and relevant sections read; an earlier alternate URL failed",
+      "role": "Random hyperplane Hamming-angle relationship, not deterministic H4 guarantee"
+    },
+    {
+      "id": "M08",
+      "title": "Dimension reduction by random hyperplane tessellations",
+      "author": "Yaniv Plan and Roman Vershynin",
+      "url": "https://arxiv.org/pdf/1111.4452",
+      "sections_inspected": [
+        "Definitions and theorem 1.2",
+        "Theorem 1.5 and finite-set corollary",
+        "Sections 1.4-1.5 and limitations of continuous-to-discrete embedding"
+      ],
+      "access": "18-page full PDF opened; stated sections and proof discussion inspected",
+      "role": "Uniform additive geodesic distortion, explicit randomness/sample-size assumptions"
+    },
+    {
+      "id": "M09",
+      "title": "Gauge Equivariant Convolutional Networks and the Icosahedral CNN",
+      "author": "Taco Cohen, Maurice Weiler, Berkay Kicanaoglu, Max Welling",
+      "url": "https://proceedings.mlr.press/v97/cohen19d/cohen19d.pdf",
+      "sections_inspected": [
+        "Section 2 gauge/frame definitions",
+        "Section 3 convolution/transport construction",
+        "Path dependence illustration and implementation description"
+      ],
+      "access": "Ten-page full PDF opened",
+      "role": "Coordinate/frame covariance and alignment; original conv implementation not serving-compatible"
+    },
+    {
+      "id": "M10",
+      "title": "Vector Diffusion Maps and the Connection Laplacian",
+      "author": "Amit Singer and Hau-tieng Wu",
+      "url": "https://arxiv.org/pdf/1102.0075",
+      "alternate_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC3886882/",
+      "sections_inspected": [
+        "Section 2 local PCA and alignment, equation 2.4",
+        "Section 3 transported averaging, equations 3.1-3.7",
+        "Connection-Laplacian overview and discussion"
+      ],
+      "access": "64-page PDF available; PMC initially available then captcha; relevant PDF sections read, not all proofs",
+      "role": "Separate scalar affinity and frame alignment; matrix/SVD reference only"
+    },
+    {
+      "id": "M11",
+      "title": "Discrete Differential Geometry: An Applied Introduction",
+      "author": "Keenan Crane",
+      "url": "https://www.cs.cmu.edu/~kmcrane/Projects/DDG/paper.pdf",
+      "alternate_url": "https://www.cs.cmu.edu/~kmcrane/Projects/DGPDEC/index.html",
+      "sections_inspected": [
+        "Table of contents and DEC/operator context",
+        "Section 8.3 connections, parallel transport, holonomy, discrete Levi-Civita, flat versus trivial connection"
+      ],
+      "access": "174-page PDF opened; focused section read, not entire textbook",
+      "role": "Typed vector/direction fields and geometric connection obligations"
+    },
+    {
+      "id": "M12",
+      "title": "DLMF 14.30: Spherical and Spheroidal Harmonics",
+      "author": "NIST DLMF",
+      "url": "https://dlmf.nist.gov/14.30",
+      "sections_inspected": [
+        "Spherical harmonics definitions",
+        "Addition theorem 14.30.9",
+        "Eigenvalue equation 14.30.11_5 and applications"
+      ],
+      "access": "Full page available and relevant equations read",
+      "role": "Angular spectral basis on S2; S3 requires hyperspherical analogue"
+    },
+    {
+      "id": "M13",
+      "title": "Exact Heat Kernel on a Hypersphere and Its Applications in Kernel SVM",
+      "author": "Chenchao Zhao and Jun S. Song",
+      "url": "https://arxiv.org/pdf/1702.01373",
+      "alternate_url": "https://www.frontiersin.org/journals/applied-mathematics-and-statistics/articles/10.3389/fams.2018.00001/full",
+      "sections_inspected": [
+        "Section 2.2 exact kernel, theorem 1 and proof",
+        "Normalization and diffusion-time discussion",
+        "Parametrix limitations"
+      ],
+      "access": "Full 28-page preprint PDF and journal full text available; relevant derivation read",
+      "role": "Principled multiscale spherical score, truncation and dimension distinctions"
+    },
+    {
+      "id": "M14",
+      "title": "The E8 geometry from a Clifford perspective",
+      "author": "Pierre-Philippe Dechant",
+      "url": "https://arxiv.org/pdf/1603.04805",
+      "sections_inspected": [
+        "H4 spinor root construction",
+        "240-pinor construction",
+        "Reduced inner product and E8 Cartan matrix",
+        "Folding relation"
+      ],
+      "access": "19-page PDF opened; sections 3-4 inspected",
+      "role": "H4/E8 connection with explicit inner product; not ordinary R8-to-R4 isometry"
+    },
+    {
+      "id": "M15",
+      "title": "The Octonions",
+      "author": "John C. Baez",
+      "url": "https://math.ucr.edu/home/baez/octonions/octonions.html",
+      "section_urls": [
+        "https://math.ucr.edu/home/baez/octonions/node2.html",
+        "https://math.ucr.edu/home/baez/octonions/node4.html",
+        "https://math.ucr.edu/home/baez/octonions/node5.html"
+      ],
+      "sections_inspected": [
+        "Preliminaries",
+        "Fano-plane multiplication",
+        "Section 2.2 Cayley-Dickson construction and algebraic properties"
+      ],
+      "access": "Author's full HTML edition, relevant sections read; grouped as one work",
+      "role": "Faithful algebra conventions, associativity/alternativity/zero-divisor boundaries"
+    },
+    {
+      "id": "M16",
+      "title": "Integral Octonions, Part 1",
+      "author": "John C. Baez",
+      "url": "https://math.ucr.edu/home/baez/octonions/integers/integers_1.html",
+      "sections_inspected": [
+        "Cayley integers and E8 lattice relationship"
+      ],
+      "access": "Author full page opened",
+      "role": "Additional arithmetic geometry context; not proof of local UOR implementation"
+    },
+    {
+      "id": "M17",
+      "title": "Standard Model Symmetries and the Nested Embeddings of R subset C subset H subset O",
+      "author": "N. Furey",
+      "url": "https://arxiv.org/html/2607.18450v1",
+      "sections_inspected": [
+        "II.1 left/right multiplication algebras and associative map composition",
+        "II.2 exact quaternion/octonion conventions",
+        "II.3 algebra distinctions",
+        "VIII.4 endomorphic models"
+      ],
+      "access": "Full HTML paper available; relevant definitions read beyond abstract",
+      "role": "Actual cited source for local cayley_dickson.rs; concrete mismatch documented"
+    },
+    {
+      "id": "M18",
+      "title": "Heuristic limitations of the circle method",
+      "author": "Terence Tao",
+      "url": "https://terrytao.wordpress.com/2012/05/20/heuristic-limitations-of-the-circle-method/",
+      "sections_inspected": [
+        "Main authored article sections 1-2",
+        "Major/minor arcs and loss of oscillation in absolute-value bounds"
+      ],
+      "access": "Full author article read in selected sections; comments not evidence",
+      "role": "Fourier/cancellation donor and limitations; historical result status not used as current status"
+    },
+    {
+      "id": "M19",
+      "title": "The zeros of Riemann's Zeta-Function on the critical line",
+      "author": "G. H. Hardy and J. E. Littlewood",
+      "url": "https://geodesic.mathdoc.fr/item/MZ_1921__10_167645/",
+      "sections_inspected": [
+        "Bibliographic record and original-article link"
+      ],
+      "access": "Record accessible; full original not successfully read",
+      "role": "Distinguish historical zero work from circle method; detailed estimates not asserted from this source"
+    },
+    {
+      "id": "M20",
+      "title": "The Approximate Functional Equation in the Theory of the Zeta-Function, with Applications to the Divisor-Problems of Dirichlet and Piltz",
+      "author": "G. H. Hardy and J. E. Littlewood",
+      "url": "https://doi.org/10.1112/plms/s2-21.1.39",
+      "sections_inspected": [
+        "Publisher bibliographic search record"
+      ],
+      "access": "DOI open returned error; no full text read",
+      "role": "Historical subject disambiguation only"
+    },
+    {
+      "id": "M21",
+      "title": "Multivariate positive definite functions on spheres",
+      "author": "Oleg R. Musin",
+      "url": "https://arxiv.org/pdf/math/0701083",
+      "sections_inspected": [
+        "Section 1 reference-conditioned positive-definite functions",
+        "Section 2 multivariate Gegenbauer definitions",
+        "Extension overview"
+      ],
+      "access": "17-page full PDF opened, definitions and construction read",
+      "role": "Precise donor for richer multireference geometry; not an attention result"
+    },
+    {
+      "id": "M22",
+      "title": "Spherical codes and designs",
+      "author": "P. Delsarte, J. M. Goethals, J. J. Seidel",
+      "url": "https://research.tue.nl/nl/publications/spherical-codes-and-designs/",
+      "attempted_full_text_url": "https://www.math.unipd.it/~alvise/PHD_2024/LEZIONI/SPHERE/PDF/DELSARTE%20Spherical%20codes%20and%20designs.pdf",
+      "sections_inspected": [
+        "Institutional bibliographic record"
+      ],
+      "access": "Original-paper full text retrieval timed out",
+      "role": "Coverage and quadrature research lead only; no specific H4 design strength asserted"
+    },
+    {
+      "id": "M23",
+      "title": "DLMF 25.4 Reflection Formulas",
+      "author": "NIST DLMF",
+      "url": "https://dlmf.nist.gov/25.4",
+      "sections_inspected": [
+        "25.4.3 xi reflection",
+        "25.4.4 completed xi definition"
+      ],
+      "access": "Full document retrieved; stated sections read, not all proofs audited",
+      "role": "Standard completion used in bounded manuscript audit"
+    },
+    {
+      "id": "M24",
+      "title": "The Klein Quartic",
+      "author": "John Baez",
+      "url": "https://math.ucr.edu/home/baez/klein.html",
+      "sections_inspected": [
+        "168-element group and Fano-plane PSL(3,2) discussion"
+      ],
+      "access": "Full document retrieved; stated sections read, not all proofs audited",
+      "role": "Authored account for finite-group distinction"
+    },
+    {
+      "id": "M25",
+      "title": "Permutation groups",
+      "author": "Queen Mary Design Theory Library",
+      "url": "https://webspace.maths.qmul.ac.uk/l.h.soicher/designtheory.org/library/extrep/extrep-1.1-html/node9.html",
+      "sections_inspected": [
+        "Fano group domain points, degree 7, order 168, generators"
+      ],
+      "access": "Full document retrieved; stated sections read, not all proofs audited",
+      "role": "Concrete action specification supporting Fano correction"
+    },
+    {
+      "id": "M26",
+      "title": "DLMF 25.2 Definition and Expansions",
+      "author": "NIST DLMF",
+      "url": "https://dlmf.nist.gov/25.2",
+      "sections_inspected": [
+        "25.2(i) unique simple pole at s=1 and residue 1",
+        "25.2.4 Laurent expansion"
+      ],
+      "access": "Full document retrieved; stated sections read, not all proofs audited",
+      "role": "Distinguish point pole from whole vertical boundary"
+    },
+    {
+      "id": "M27",
+      "title": "Pair correlation and twin primes revisited",
+      "author": "Brian Conrey and Jonathan P. Keating",
+      "url": "https://aimath.org/~kaur/publications/92.pdf",
+      "sections_inspected": [
+        "Introduction",
+        "Theorems 1.1 and 1.2 assumptions",
+        "Sections 2 and 3 ratios and arithmetic correlations"
+      ],
+      "access": "Full document retrieved; stated sections read, not all proofs audited",
+      "role": "Genuine Hardy-Littlewood prime-pair connection with conditional assumptions"
+    },
+    {
+      "id": "M28",
+      "title": "Notes on Pair Correlation of Zeros and Prime Numbers",
+      "author": "D. A. Goldston",
+      "url": "https://arxiv.org/pdf/math/0412313",
+      "sections_inspected": [
+        "Section 3 explicit formulas including 3.1-3.3 and Landau formula",
+        "Section 6 strong-error prime-pair conjecture 6.3",
+        "Section 9 Theorem 7, parameter ranges and proof opening"
+      ],
+      "access": "Full document retrieved; stated sections read, not all proofs audited",
+      "role": "Explicit formula, finite truncation, and conditional prime variance/zero correlation connection"
+    },
+    {
+      "id": "M29",
+      "title": "A Summation Formula in the Theory of Prime Numbers",
+      "author": "A. P. Guinand",
+      "url": "https://londmathsoc.onlinelibrary.wiley.com/doi/abs/10.1112/plms/s2-50.2.107",
+      "sections_inspected": [
+        "1948 publisher record and DOI"
+      ],
+      "access": "PDF request redirected to abstract; full original not read",
+      "role": "Historical provenance only"
+    },
+    {
+      "id": "M30",
+      "title": "Complements to Li's Criterion for the Riemann Hypothesis",
+      "author": "Enrico Bombieri and Jeffrey C. Lagarias",
+      "url": "https://websites.umich.edu/~lagarias/doc/bombieri.pdf",
+      "sections_inspected": [
+        "Search-indexed description and bibliographic identification"
+      ],
+      "access": "Full web PDF text was corrupt; web screenshots not rendered in visible tool content; bounded direct download failed HTTP403; no local download or render created",
+      "role": "Access-limited research lead; no additional theorem relied on"
+    },
+    {
+      "id": "M31",
+      "title": "Voronoi Regions of Lattices, Second Moments of Polytopes, and Quantization",
+      "author": "J. H. Conway and N. J. A. Sloane",
+      "url": "https://neilsloane.com/doc/Me82.pdf",
+      "sections_inspected": [
+        "Section I nearest-codeword and Voronoi definitions",
+        "E8 Voronoi section E, printed219"
+      ],
+      "access": "Full PDF retrieved; specified sections read",
+      "role": "Metric-specific decoding and quantization foundation"
+    },
+    {
+      "id": "M32",
+      "title": "The E8 Lattice and Error Correction in Multi-Level Flash Memory",
+      "author": "Brian M. Kurkoski",
+      "url": "https://arxiv.org/pdf/1009.5764",
+      "sections_inspected": [
+        "Section II additive noise channel, lattice codebook and E8 definition",
+        "Section III error-pattern and outer-code discussion"
+      ],
+      "access": "Full five-page PDF retrieved; specified sections read",
+      "role": "Bounded channel decoding, not semantic correction or legal serving implementation"
+    },
+    {
+      "id": "M33",
+      "title": "Fourier Interpolation with Zeros of Zeta and L-Functions",
+      "author": "Andriy Bondarenko, Danylo Radchenko, Kristian Seip",
+      "url": "https://arxiv.org/pdf/2005.02996",
+      "sections_inspected": [
+        "Introduction equation1.1 and test-function/Fourier convention",
+        "Theorem1.1 and Corollary1.1 assumptions and sensitivity",
+        "Section2 opening duality definitions"
+      ],
+      "access": "51-page PDF and publisher full text retrieved; stated definitions read, not all proofs",
+      "role": "Precise prime-power/zero duality and infinite interpolation limits"
+    },
+    {
+      "id": "M34",
+      "title": "DLMF27.4 Euler Products and Dirichlet Series",
+      "author": "NIST DLMF",
+      "url": "https://dlmf.nist.gov/27.4",
+      "sections_inspected": [
+        "27.4.10 divisor functions and zeta powers",
+        "27.4.12 von Mangoldt logarithmic derivative"
+      ],
+      "access": "Full resource retrieved; named sections inspected, not full proof audit",
+      "role": "Exact divisor versus prime-power observation distinction"
+    },
+    {
+      "id": "M35",
+      "title": "DLMF27.2 Functions",
+      "author": "NIST DLMF",
+      "url": "https://dlmf.nist.gov/27.2",
+      "sections_inspected": [
+        "Prime factorization27.2.1",
+        "Divisor definition27.2.9",
+        "Ordered integer factorization d_k definition"
+      ],
+      "access": "Full resource retrieved; named sections inspected, not full proof audit",
+      "role": "Divisor counts and combinatorial interpretation"
+    },
+    {
+      "id": "M36",
+      "title": "Voronoi summation formula for the generalized divisor function",
+      "author": "Atul Dixit, Bibekananda Maji, Akshaa Vatwani",
+      "url": "https://arxiv.org/pdf/2303.09937",
+      "sections_inspected": [
+        "Introduction equations1.1-1.6 classical divisor formula and test-function version",
+        "Definition1.12 and Dirichlet series1.13"
+      ],
+      "access": "Full resource retrieved; named sections inspected, not full proof audit",
+      "role": "Divisor-specific Bessel transform distinct from zero-point visualization"
+    }
+  ],
+  "local_sources": [
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/docs/integration/architecture-2026-09/mathematics.md",
+      "sections": "Full initial audit and supplements",
+      "status": "Prior source audit reused, current particular mechanisms rechecked"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/artifact.rs",
+      "lines": "39-182",
+      "status": "Read current signatures, phase exposure and group table APIs"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/hamming_refinement/metric.rs",
+      "lines": "25-86",
+      "status": "Read current actual Hamming distances"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/training.rs",
+      "lines": "108-165",
+      "status": "Read actual token prime/root/fixed-zero phase construction"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/prime_route_attention.rs",
+      "lines": "489-665, 909-919",
+      "status": "Hopf APIs and zeta formula inspected"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/helm_d_r4_attention.rs",
+      "lines": "471, 637, 678 and method inventory",
+      "status": "Transport donor/source contract inspected; dense reference, not legal serving"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/cayley_dickson.rs",
+      "lines": "1-92",
+      "status": "Entire module read; labeled products do not implement cited paper algebra"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/canonical_lexical_ingestion.rs",
+      "lines": "2095-2124, 2578-2616, 2705-2719, 2777-2825",
+      "status": "Adapter, icosian and chart definitions inspected"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/docs/adr/0003-fixed-zeta-prime-route-attention.md",
+      "lines": "220-258",
+      "status": "Golden radial transform and typed sqrt2/2i/interval landmarks read"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/docs/adr/0004-geometric-intelligence-route-hierarchy.md",
+      "lines": "145-170",
+      "status": "Least-cost adapter contract read"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/research/riemann-lean/formal/lean/PrimeRiemannBridge.lean",
+      "lines": "50-110",
+      "status": "Rational endpoint alias and supplied transfer contract read; no Lean build"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/research/riemann-lean/formal/lean/PrimeRiemannBridgeFinalTargetEquivalence.lean",
+      "lines": "1-106",
+      "status": "Full equivalence/provider file read; no Lean build"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/research/riemann-lean/spinning_top_r4_bridge.py",
+      "lines": "35-115",
+      "status": "Finite zeta derivative feature and same-sample centroid evaluation read"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/research/prime-analysis/research/topological rh.md",
+      "lines": "1-155",
+      "status": "Manuscript argument read; zero-torque premise and delta=0 counterexample documented"
+    },
+    {
+      "path": "/Users/casey.allard/Downloads/Topological_Riemann_Proof_(2) (1).pdf",
+      "sha256": "c34aac8c7676054ad5f20e1ed1d1a2a2fb6d03b58fc95d6ed051fd24099d4a84",
+      "contact_sheet_pages_surveyed": 18,
+      "full_resolution_pages_read": [
+        5,
+        12,
+        13,
+        14
+      ],
+      "status": "Bounded visual audit; originals preserved; no proof campaign"
+    },
+    {
+      "path": "/Users/casey.allard/Downloads/Riemann_Phase_Equilibrium_(2).pdf",
+      "sha256": "2117b11aab1609c64469ab819f039d5ff65e1e3caa0677bdee2b03c817ec401e",
+      "contact_sheet_pages_surveyed": 23,
+      "full_resolution_pages_read": [
+        6,
+        10,
+        14,
+        15,
+        16,
+        17,
+        18
+      ],
+      "status": "Bounded visual audit; originals preserved; no proof campaign"
+    },
+    {
+      "path": "/Users/casey.allard/.local/share/uor-r4/knowledge/audits/2026-09-03/research/snapshots/markrnd87-cmd__NEMESIS-Theory/Canonical Geometry and Gauge Structure.pdf",
+      "sha256": "87044e3b6d16c3614e46fae31211c2742ce40d8900973812e7a7d13f0ece8a42",
+      "contact_sheet_pages_surveyed": null,
+      "full_resolution_pages_read": [
+        1
+      ],
+      "status": "Bounded visual audit; originals preserved; no proof campaign"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4/research/prime-analysis/research/theoretical-mathematics/formal-math-lean/external/riemann/Primes_Recognition_Companion.tex",
+      "lines": "233-267",
+      "status": "Actual remembered primes=zeros heading inspected; schematic formula and single-frequency conflation distinguished from valid duality"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/docs/adr/0003-fixed-zeta-prime-route-attention.md",
+      "lines": "294-332",
+      "status": "Actual canonical sextet,15pair J(6,2),64state collision and direction clauses inspected"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/prime_route_attention.rs",
+      "lines": "225-340",
+      "status": "SemiprimeExpert repeated-factor allowance and OrderedPrimeRoute order/multiplicity preservation inspected"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/prime_route_geometric_attention.rs",
+      "lines": "860-922",
+      "status": "divisor_counts verified as witness transition counts indexed by prime, not divisor function tau"
+    }
+  ],
+  "not_performed": [
+    "No computational experiment",
+    "No training or inference",
+    "No build or Lean verification",
+    "No paid/external compute",
+    "No source modifications outside the two assigned research files",
+    "No exhaustive proof or filesystem review"
+  ],
+  "primary_proposals": [
+    "Typed full relative-root relation packets with bounded causal traversal",
+    "More fixed-zeta channels with cost and conditioning controls",
+    "Canonical caching keyed by state/version/model/metric, not permanent dynamic weights",
+    "Finite group transport and learned typed endomorphisms",
+    "Explicit metric and operation-preserving chart adapter contracts"
+  ],
+  "visual_review": {
+    "renderer": "pypdfium2 with bundled Python; read-only research rendering",
+    "scratch_directory": "/tmp/uor-math-pdf-audit-20260913",
+    "scratch_allocated_kib_observed": 14080,
+    "originals_modified": false,
+    "model_runs": 0,
+    "notes": "Contact sheets supplied by root; rendered pages without full-resolution reading are excluded from coverage. Metadata/document edits only.",
+    "latest_addendum": "Section16 added inside assigned directory; bounded external PDF download failed before any write; no new local render, experiment or model operation."
+  },
+  "owner_clarifications": {
+    "L1": "One-dimensional visualization of zero structure versus divisor-count integer plot, not Manhattan or L1 function space",
+    "n_let": "Combinatorics of up to six primes with geometric projection/scaling; consecutive-prime spans retained only as separate mathematical example",
+    "status": "Clarification received and section16 updated before final assembly"
+  }
+}

@@ -1,0 +1,449 @@
+{
+  "schema": "uor-geometric-attention-primary-research/1",
+  "research_date": "2026-09-13",
+  "scope": "25 source groups, 23 papers/articles plus 2 official implementation groups; targeted sections and actual code where specified",
+  "source_groups": [
+    {
+      "id": "A01",
+      "title": "Attention Is All You Need",
+      "year": "2017",
+      "url": "https://papers.neurips.cc/paper/2017/file/3f5ee243547dee91fbd053c1c4a845aa-Paper.pdf",
+      "parts_read": [
+        "3.1 decoder stack and causality",
+        "3.2 compatibility normalization and value mixing",
+        "3.3 position-wise feedforward"
+      ],
+      "finding": "Learned compatibility and value transport compose across depth; changing a metric alone does not reproduce the whole layer.",
+      "limitations": "Transformer matrix products; no direct runtime adoption.",
+      "code_urls": [],
+      "read_scope": "targeted sections; not full proof replication",
+      "access_date": "2026-09-13"
+    },
+    {
+      "id": "A02",
+      "title": "Hopfield Networks Is All You Need",
+      "year": "2020",
+      "url": "https://arxiv.org/html/2008.02217",
+      "parts_read": [
+        "2 continuous energy and update",
+        "A.4 attention equivalence",
+        "separation/convergence caveats"
+      ],
+      "finding": "Attention admits an associative energy interpretation for the stated continuous update.",
+      "limitations": "No inherited convergence guarantee for a different hard finite-group transition.",
+      "code_urls": [],
+      "read_scope": "targeted sections; not full proof replication",
+      "access_date": "2026-09-13"
+    },
+    {
+      "id": "A03",
+      "title": "Attention Approximates Sparse Distributed Memory",
+      "year": "2021",
+      "url": "https://arxiv.org/html/2111.05498",
+      "parts_read": [
+        "2-3 Hamming neighborhood overlap to exponential attention",
+        "B.3 continuous sphere extension",
+        "B.4-B.5 capacity and radius assumptions"
+      ],
+      "finding": "Strongest direct primary bridge between Hamming neighborhoods and attention.",
+      "limitations": "Approximation and random-pattern assumptions do not certify this finite codebook.",
+      "code_urls": [],
+      "read_scope": "targeted sections; not full proof replication",
+      "access_date": "2026-09-13"
+    },
+    {
+      "id": "A04",
+      "title": "Similarity Estimation Techniques from Rounding Algorithms",
+      "year": "2002",
+      "url": "https://www.cs.princeton.edu/courses/archive/spring04/cos598B/bib/CharikarEstim.pdf",
+      "parts_read": [
+        "3 random hyperplane hash family and angular disagreement"
+      ],
+      "finding": "Random sign disagreements estimate angular distance.",
+      "limitations": "Does not establish deterministic H4 sign-bank equivalence or semantics.",
+      "code_urls": [],
+      "read_scope": "targeted sections; not full proof replication",
+      "access_date": "2026-09-13"
+    },
+    {
+      "id": "A05",
+      "title": "SE(3)-Transformers: 3D Roto-Translation Equivariant Attention Networks",
+      "year": "2020",
+      "url": "https://proceedings.neurips.cc/paper_files/paper/2020/file/15231a7ce4ba789d13b722cc5c955834-Paper.pdf",
+      "parts_read": [
+        "3.1 tensor-field components",
+        "3.2 invariant attention and equivariant messages",
+        "pose limitations in experiments"
+      ],
+      "finding": "Preserve orientation-bearing values separately from invariant attention scores.",
+      "limitations": "Uses tensor contractions and is evaluated on geometric data.",
+      "code_urls": [],
+      "read_scope": "targeted sections; not full proof replication",
+      "access_date": "2026-09-13"
+    },
+    {
+      "id": "A06",
+      "title": "Geometric Algebra Transformer",
+      "year": "2023",
+      "url": "https://arxiv.org/html/2305.18415",
+      "parts_read": [
+        "2 multivectors transformations and grade",
+        "3 geometric primitives",
+        "attention implementation"
+      ],
+      "finding": "Typed geometric objects/operators can share a symmetry-respecting network.",
+      "limitations": "Dense and attention contractions remain; geometric-data results are not prose results.",
+      "code_urls": [
+        "https://github.com/Qualcomm-AI-research/geometric-algebra-transformer/blob/main/gatr/primitives/attention.py"
+      ],
+      "read_scope": "targeted sections; not full proof replication",
+      "access_date": "2026-09-13"
+    },
+    {
+      "id": "A07",
+      "title": "nGPT: Normalized Transformer with Representation Learning on the Hypersphere",
+      "year": "2024",
+      "url": "https://openreview.net/pdf?id=se4vjm7h4E",
+      "parts_read": [
+        "architecture overview",
+        "official Block.forward and GPT.forward"
+      ],
+      "finding": "Normalized state displacements connect geometry with optimization.",
+      "limitations": "Official source uses Linear layers FlashAttention and dense MLP.",
+      "code_urls": [
+        "https://github.com/NVIDIA/ngpt/blob/main/model.py"
+      ],
+      "read_scope": "targeted sections; not full proof replication",
+      "access_date": "2026-09-13"
+    },
+    {
+      "id": "A08",
+      "title": "HELM: Hyperbolic Large Language Models via Mixture-of-Curvature Experts",
+      "year": "2025",
+      "url": "https://arxiv.org/html/2505.24722v2",
+      "parts_read": [
+        "3 Lorentz metric HLT and attention",
+        "4 HoPE MiCE HMLA normalization"
+      ],
+      "finding": "Geometry requires explicit compatible maps normalization and value aggregation.",
+      "limitations": "HLT contains W transpose x; MoE not authorized by current project.",
+      "code_urls": [
+        "https://github.com/Graph-and-Geometric-Learning/helm"
+      ],
+      "read_scope": "targeted sections; not full proof replication",
+      "access_date": "2026-09-13"
+    },
+    {
+      "id": "A09",
+      "title": "Mamba: Linear-Time Sequence Modeling with Selective State Spaces",
+      "year": "2023",
+      "url": "https://arxiv.org/html/2312.00752",
+      "parts_read": [
+        "3.2 input-dependent selection",
+        "3.3 selective scan",
+        "3.5 selection properties",
+        "official single-token step"
+      ],
+      "finding": "Content-dependent retention and write/read dynamics address a weakness of static recurrence.",
+      "limitations": "Dense projections and state contractions remain.",
+      "code_urls": [
+        "https://github.com/state-spaces/mamba/blob/main/mamba_ssm/modules/mamba_simple.py"
+      ],
+      "read_scope": "targeted sections; not full proof replication",
+      "access_date": "2026-09-13"
+    },
+    {
+      "id": "A10",
+      "title": "Eagle and Finch: RWKV with Matrix-Valued States and Dynamic Recurrence",
+      "year": "2024",
+      "url": "https://arxiv.org/html/2404.05892",
+      "parts_read": [
+        "3 Eagle Finch architectural changes",
+        "Appendix matrix-state description"
+      ],
+      "finding": "State capacity and content-dependent recurrence matter in a real recurrent language model.",
+      "limitations": "Matrix-valued memory and matrix-vector projections violate the strict serving rule.",
+      "code_urls": [
+        "https://github.com/RWKV/RWKV-wiki/blob/main/docs/basic/architecture.md"
+      ],
+      "read_scope": "targeted sections; not full proof replication",
+      "access_date": "2026-09-13"
+    },
+    {
+      "id": "A11",
+      "title": "Retentive Network: A Successor to Transformer for Large Language Models",
+      "year": "2023",
+      "url": "https://arxiv.org/html/2307.08621",
+      "parts_read": [
+        "2 parallel recurrent and chunkwise recurrence",
+        "official recurrent forward"
+      ],
+      "finding": "Training and serving can share a recurrence while using different execution schedules.",
+      "limitations": "Outer products and query-state contraction remain even when spelled sum/multiply.",
+      "code_urls": [
+        "https://github.com/microsoft/torchscale/blob/main/torchscale/component/multiscale_retention.py"
+      ],
+      "read_scope": "targeted sections; not full proof replication",
+      "access_date": "2026-09-13"
+    },
+    {
+      "id": "A12",
+      "title": "Gated Linear Attention Transformers with Hardware-Efficient Training",
+      "year": "2023",
+      "url": "https://arxiv.org/html/2312.06635",
+      "parts_read": [
+        "2 linear attention formulation",
+        "3 gated recurrence and chunkwise algorithm"
+      ],
+      "finding": "Data-dependent forgetting improves compressed associative memory.",
+      "limitations": "Matrix-state linear attention is not mathematical-matmul-free.",
+      "code_urls": [],
+      "read_scope": "targeted sections; not full proof replication",
+      "access_date": "2026-09-13"
+    },
+    {
+      "id": "A13",
+      "title": "Gated Delta Networks: Improving Mamba2 with Delta Rule",
+      "year": "2024",
+      "url": "https://arxiv.org/html/2412.06464v3",
+      "parts_read": [
+        "3 gated delta rule",
+        "online regression interpretation",
+        "3.2 selective memorization and decay"
+      ],
+      "finding": "Targeted association correction and broad forgetting solve different problems.",
+      "limitations": "Uses matrix-state online regression; implementation not adopted.",
+      "code_urls": [
+        "https://github.com/NVlabs/GatedDeltaNet"
+      ],
+      "read_scope": "targeted sections; not full proof replication",
+      "access_date": "2026-09-13"
+    },
+    {
+      "id": "A14",
+      "title": "Scalable MatMul-free Language Modeling",
+      "year": "2024",
+      "url": "https://arxiv.org/html/2406.02528v3",
+      "parts_read": [
+        "3.1 BitLinear ternary accumulation",
+        "FPGA ternary matrix multiplication functional unit"
+      ],
+      "finding": "Avoiding multiplier instructions does not eliminate mathematical matrix products.",
+      "limitations": "Signed accumulation remains a dense linear contraction.",
+      "code_urls": [],
+      "read_scope": "targeted sections; not full proof replication",
+      "access_date": "2026-09-13"
+    },
+    {
+      "id": "A15",
+      "title": "Reformer: The Efficient Transformer",
+      "year": "2020",
+      "url": "https://arxiv.org/html/2001.04451",
+      "parts_read": [
+        "2 shared QK and LSH attention",
+        "selected bucket attention"
+      ],
+      "finding": "Use hashing to reduce candidate comparisons instead of materializing all pairs.",
+      "limitations": "Still a transformer with selected-bucket dot-product attention.",
+      "code_urls": [],
+      "read_scope": "targeted sections; not full proof replication",
+      "access_date": "2026-09-13"
+    },
+    {
+      "id": "A16",
+      "title": "Deep Differentiable Logic Gate Networks",
+      "year": "2022",
+      "url": "https://arxiv.org/html/2210.08277",
+      "parts_read": [
+        "logic gate relaxation",
+        "training/discretization",
+        "official training and eval branches"
+      ],
+      "finding": "Train continuous gate choices and discretize to Boolean inference.",
+      "limitations": "Evidence primarily classification; relaxation mismatch remains relevant.",
+      "code_urls": [
+        "https://github.com/Felix-Petersen/difflogic/blob/main/difflogic/difflogic.py"
+      ],
+      "read_scope": "targeted sections; not full proof replication",
+      "access_date": "2026-09-13"
+    },
+    {
+      "id": "A17",
+      "title": "Convolutional Differentiable Logic Gate Networks",
+      "year": "2024",
+      "url": "https://arxiv.org/html/2411.04732",
+      "parts_read": [
+        "2 topology and depth limitations",
+        "3 logic trees pooling residual initialization",
+        "A.4 discretization gap"
+      ],
+      "finding": "Structured connectivity and pass-through initialization improve earlier logic-network limitations.",
+      "limitations": "Not a proof of scalable recurrent prose learning or cheap laptop training.",
+      "code_urls": [],
+      "read_scope": "targeted sections; not full proof replication",
+      "access_date": "2026-09-13"
+    },
+    {
+      "id": "A18",
+      "title": "Neural Discrete Representation Learning",
+      "year": "2017",
+      "url": "https://arxiv.org/pdf/1711.00937",
+      "parts_read": [
+        "3.1 nearest code",
+        "3.2 straight-through gradient and commitment/codebook terms"
+      ],
+      "finding": "Quantized forward with approximate backward can learn useful discrete representations.",
+      "limitations": "Estimator is not an exact derivative; does not solve hard attention routing itself.",
+      "code_urls": [],
+      "read_scope": "targeted sections; not full proof replication",
+      "access_date": "2026-09-13"
+    },
+    {
+      "id": "A19",
+      "title": "Categorical Reparameterization with Gumbel-Softmax",
+      "year": "2016",
+      "url": "https://arxiv.org/pdf/1611.01144",
+      "parts_read": [
+        "2.2 straight-through variant",
+        "3 estimator comparison and bias"
+      ],
+      "finding": "Hard categorical forward with surrogate backward is a plausible training tool.",
+      "limitations": "Bias and train/runtime trajectory mismatch must be measured.",
+      "code_urls": [],
+      "read_scope": "targeted sections; not full proof replication",
+      "access_date": "2026-09-13"
+    },
+    {
+      "id": "A20",
+      "title": "VL-JEPA: Joint Embedding Predictive Architecture for Vision-language",
+      "year": "2025",
+      "url": "https://arxiv.org/html/2512.10942v2",
+      "parts_read": [
+        "2 architecture and InfoNCE",
+        "3.1 V-JEPA Llama and text encoder",
+        "decoder separation"
+      ],
+      "finding": "Latent target prediction is useful while exact text generation remains separate.",
+      "limitations": "Uses pretrained transformer components; not pure-language native decoder evidence.",
+      "code_urls": [],
+      "read_scope": "targeted sections; not full proof replication",
+      "access_date": "2026-09-13"
+    },
+    {
+      "id": "A21",
+      "title": "data2vec: A General Framework for Self-supervised Learning in Speech, Vision and Language",
+      "year": "2022",
+      "url": "https://proceedings.mlr.press/v162/baevski22a/baevski22a.pdf",
+      "parts_read": [
+        "method contextual teacher targets",
+        "text objective",
+        "official EMA teacher and target layer aggregation"
+      ],
+      "finding": "Text can learn from contextual latent target prediction.",
+      "limitations": "Language understanding results do not establish standalone autoregressive prose.",
+      "code_urls": [
+        "https://github.com/facebookresearch/fairseq/blob/main/examples/data2vec/models/data2vec_text.py"
+      ],
+      "read_scope": "targeted sections; not full proof replication",
+      "access_date": "2026-09-13"
+    },
+    {
+      "id": "A22",
+      "title": "Vector Symbolic Architectures as a Computing Framework for Emerging Hardware",
+      "year": "2023",
+      "url": "https://arxiv.org/html/2106.05268",
+      "parts_read": [
+        "III-B binding superposition permutation",
+        "IV sequences graphs and finite-state structures",
+        "VI-A limitations and flow control"
+      ],
+      "finding": "Representation and composition can use binary binding/permutation with cleanup memory.",
+      "limitations": "Capacity interference and flow control/learning remain; arithmetic operations vary by VSA family.",
+      "code_urls": [],
+      "read_scope": "targeted sections; not full proof replication",
+      "access_date": "2026-09-13"
+    },
+    {
+      "id": "A23",
+      "title": "Neural Turing Machines",
+      "year": "2014",
+      "url": "https://arxiv.org/pdf/1410.5401",
+      "parts_read": [
+        "3 read/write",
+        "3.3 content and location addressing",
+        "copy/associative experiments"
+      ],
+      "finding": "Learned contextual addressing and sequential traversal have a long precedented decomposition.",
+      "limitations": "Differentiable weighted memory and controller not a no-matmul prose runtime.",
+      "code_urls": [],
+      "read_scope": "targeted sections; not full proof replication",
+      "access_date": "2026-09-13"
+    },
+    {
+      "id": "A24",
+      "title": "RWKV in 150 lines, official inference implementation",
+      "year": "accessed 2026-09-13",
+      "url": "https://github.com/BlinkDL/ChatRWKV/blob/main/RWKV_in_150_lines.py",
+      "parts_read": [
+        "time mixing",
+        "channel mixing",
+        "recurrent model inference"
+      ],
+      "finding": "Actual recurrent inference source still projects with matrices.",
+      "limitations": "This is RWKV-4 source, not an inspection of every later implementation.",
+      "code_urls": [],
+      "read_scope": "targeted sections; not full proof replication",
+      "access_date": "2026-09-13"
+    },
+    {
+      "id": "A25",
+      "title": "Official SE3-Transformer modules source",
+      "year": "accessed 2026-09-13",
+      "url": "https://github.com/FabianFuchsML/se3-transformer-public/blob/master/equivariant_attention/modules.py",
+      "parts_read": [
+        "get_basis",
+        "attention message construction",
+        "edge_softmax and aggregation"
+      ],
+      "finding": "Spherical-harmonic basis plus equivariant values are implemented separately from normalized edge scores.",
+      "limitations": "Moving branch head observed; no pinned adoption or runtime execution.",
+      "code_urls": [],
+      "read_scope": "targeted sections; not full proof replication",
+      "access_date": "2026-09-13"
+    }
+  ],
+  "repository_read_scope": {
+    "actual_code_read": [
+      "NVIDIA/ngpt:model.py",
+      "state-spaces/mamba:mamba_ssm/modules/mamba_simple.py",
+      "BlinkDL/ChatRWKV:RWKV_in_150_lines.py",
+      "microsoft/torchscale:torchscale/component/multiscale_retention.py",
+      "FabianFuchsML/se3-transformer-public:equivariant_attention/modules.py",
+      "Qualcomm-AI-research/geometric-algebra-transformer:gatr/primitives/attention.py",
+      "Felix-Petersen/difflogic:difflogic/difflogic.py",
+      "facebookresearch/fairseq:examples/data2vec/models/data2vec_text.py"
+    ],
+    "readme_only": [
+      "Graph-and-Geometric-Learning/helm",
+      "NVlabs/GatedDeltaNet"
+    ],
+    "not_claimed": "Whole repositories were not exhaustively audited; branch-head source needs pinning before adoption."
+  },
+  "local_source_read": {
+    "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/hamming_policy/policy.rs",
+    "parts": [
+      "constants",
+      "Topology::seeded",
+      "Topology::validate",
+      "Params"
+    ],
+    "finding": "Three LUT4 layers limit each per-call output-bit cone to64 inputs;256-bit middle compression and64 repeating final input-cone groups; no complete-model64-input claim."
+  },
+  "execution": {
+    "fits": 0,
+    "model_calls": 0,
+    "builds": 0,
+    "paid_compute": 0,
+    "source_changes": 0
+  }
+}
