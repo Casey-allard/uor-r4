@@ -985,3 +985,6 @@ pub mod relational_attention;
 
 /// Learned query update between two geometric reads.
 pub mod dependent_attention;
+
+/// Learned content-controlled geometric read loop.
+pub mod adaptive_attention;

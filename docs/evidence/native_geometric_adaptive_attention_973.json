@@ -1,0 +1,2153 @@
+{
+  "at": "2026-09-13T20:26:30.580Z",
+  "status": "PASS_TYPED_ADAPTIVE_READ_EMIT",
+  "summary": {
+    "adaptive_retained_dependent_correct": 2176,
+    "adaptive_retained_one_correct": 8256,
+    "candidate_sha256": "f0e1f2c35a68e6228777c1a662a2e6b00a398957444f29fc3e4f2f9b8d473d54",
+    "changed_action_entries": 8,
+    "development_pairs_both_exact": 96,
+    "emit_bytes": [
+      97,
+      98,
+      99,
+      100,
+      101,
+      102,
+      103,
+      104
+    ],
+    "final_holdout": "NOT_RUN",
+    "gate": "PASS_TYPED_ADAPTIVE_READ_EMIT",
+    "panels": [
+      {
+        "artifact": "initial",
+        "control": "Full",
+        "correct_depth": 0,
+        "exact": 0,
+        "exhausted": 2048,
+        "long_exact": 0,
+        "per_depth": {
+          "1": [
+            0,
+            1024
+          ],
+          "2": [
+            0,
+            512
+          ],
+          "3": [
+            0,
+            512
+          ]
+        },
+        "split": "training",
+        "total": 2048
+      },
+      {
+        "artifact": "candidate",
+        "control": "Full",
+        "correct_depth": 2048,
+        "exact": 2048,
+        "exhausted": 0,
+        "long_exact": 1024,
+        "per_depth": {
+          "1": [
+            1024,
+            1024
+          ],
+          "2": [
+            512,
+            512
+          ],
+          "3": [
+            512,
+            512
+          ]
+        },
+        "split": "training",
+        "total": 2048
+      },
+      {
+        "artifact": "candidate",
+        "control": "AlwaysRead",
+        "correct_depth": 0,
+        "exact": 0,
+        "exhausted": 2048,
+        "long_exact": 0,
+        "per_depth": {
+          "1": [
+            0,
+            1024
+          ],
+          "2": [
+            0,
+            512
+          ],
+          "3": [
+            0,
+            512
+          ]
+        },
+        "split": "training",
+        "total": 2048
+      },
+      {
+        "artifact": "candidate",
+        "control": "AlwaysEmit",
+        "correct_depth": 1024,
+        "exact": 1024,
+        "exhausted": 0,
+        "long_exact": 0,
+        "per_depth": {
+          "1": [
+            1024,
+            1024
+          ],
+          "2": [
+            0,
+            512
+          ],
+          "3": [
+            0,
+            512
+          ]
+        },
+        "split": "training",
+        "total": 2048
+      },
+      {
+        "artifact": "candidate",
+        "control": "FixedTwo",
+        "correct_depth": 512,
+        "exact": 768,
+        "exhausted": 0,
+        "long_exact": 512,
+        "per_depth": {
+          "1": [
+            256,
+            1024
+          ],
+          "2": [
+            512,
+            512
+          ],
+          "3": [
+            0,
+            512
+          ]
+        },
+        "split": "training",
+        "total": 2048
+      },
+      {
+        "artifact": "candidate",
+        "control": "UpdateDisabled",
+        "correct_depth": 1024,
+        "exact": 1024,
+        "exhausted": 1024,
+        "long_exact": 0,
+        "per_depth": {
+          "1": [
+            1024,
+            1024
+          ],
+          "2": [
+            0,
+            512
+          ],
+          "3": [
+            0,
+            512
+          ]
+        },
+        "split": "training",
+        "total": 2048
+      },
+      {
+        "artifact": "candidate",
+        "control": "PayloadDisabled",
+        "correct_depth": 1024,
+        "exact": 1024,
+        "exhausted": 1024,
+        "long_exact": 0,
+        "per_depth": {
+          "1": [
+            1024,
+            1024
+          ],
+          "2": [
+            0,
+            512
+          ],
+          "3": [
+            0,
+            512
+          ]
+        },
+        "split": "training",
+        "total": 2048
+      },
+      {
+        "artifact": "candidate",
+        "control": "ReadDisabled",
+        "correct_depth": 0,
+        "exact": 0,
+        "exhausted": 2048,
+        "long_exact": 0,
+        "per_depth": {
+          "1": [
+            0,
+            1024
+          ],
+          "2": [
+            0,
+            512
+          ],
+          "3": [
+            0,
+            512
+          ]
+        },
+        "split": "training",
+        "total": 2048
+      },
+      {
+        "artifact": "initial",
+        "control": "Full",
+        "correct_depth": 0,
+        "exact": 0,
+        "exhausted": 192,
+        "long_exact": 0,
+        "per_depth": {
+          "1": [
+            0,
+            96
+          ],
+          "2": [
+            0,
+            32
+          ],
+          "3": [
+            0,
+            32
+          ],
+          "4": [
+            0,
+            32
+          ]
+        },
+        "split": "development",
+        "total": 192
+      },
+      {
+        "artifact": "candidate",
+        "control": "Full",
+        "correct_depth": 192,
+        "exact": 192,
+        "exhausted": 0,
+        "long_exact": 96,
+        "per_depth": {
+          "1": [
+            96,
+            96
+          ],
+          "2": [
+            32,
+            32
+          ],
+          "3": [
+            32,
+            32
+          ],
+          "4": [
+            32,
+            32
+          ]
+        },
+        "split": "development",
+        "total": 192
+      },
+      {
+        "artifact": "candidate",
+        "control": "AlwaysRead",
+        "correct_depth": 0,
+        "exact": 0,
+        "exhausted": 192,
+        "long_exact": 0,
+        "per_depth": {
+          "1": [
+            0,
+            96
+          ],
+          "2": [
+            0,
+            32
+          ],
+          "3": [
+            0,
+            32
+          ],
+          "4": [
+            0,
+            32
+          ]
+        },
+        "split": "development",
+        "total": 192
+      },
+      {
+        "artifact": "candidate",
+        "control": "AlwaysEmit",
+        "correct_depth": 96,
+        "exact": 96,
+        "exhausted": 0,
+        "long_exact": 0,
+        "per_depth": {
+          "1": [
+            96,
+            96
+          ],
+          "2": [
+            0,
+            32
+          ],
+          "3": [
+            0,
+            32
+          ],
+          "4": [
+            0,
+            32
+          ]
+        },
+        "split": "development",
+        "total": 192
+      },
+      {
+        "artifact": "candidate",
+        "control": "FixedTwo",
+        "correct_depth": 32,
+        "exact": 56,
+        "exhausted": 0,
+        "long_exact": 32,
+        "per_depth": {
+          "1": [
+            24,
+            96
+          ],
+          "2": [
+            32,
+            32
+          ],
+          "3": [
+            0,
+            32
+          ],
+          "4": [
+            0,
+            32
+          ]
+        },
+        "split": "development",
+        "total": 192
+      },
+      {
+        "artifact": "candidate",
+        "control": "UpdateDisabled",
+        "correct_depth": 96,
+        "exact": 96,
+        "exhausted": 96,
+        "long_exact": 0,
+        "per_depth": {
+          "1": [
+            96,
+            96
+          ],
+          "2": [
+            0,
+            32
+          ],
+          "3": [
+            0,
+            32
+          ],
+          "4": [
+            0,
+            32
+          ]
+        },
+        "split": "development",
+        "total": 192
+      },
+      {
+        "artifact": "candidate",
+        "control": "PayloadDisabled",
+        "correct_depth": 96,
+        "exact": 96,
+        "exhausted": 96,
+        "long_exact": 0,
+        "per_depth": {
+          "1": [
+            96,
+            96
+          ],
+          "2": [
+            0,
+            32
+          ],
+          "3": [
+            0,
+            32
+          ],
+          "4": [
+            0,
+            32
+          ]
+        },
+        "split": "development",
+        "total": 192
+      },
+      {
+        "artifact": "candidate",
+        "control": "ReadDisabled",
+        "correct_depth": 0,
+        "exact": 0,
+        "exhausted": 192,
+        "long_exact": 0,
+        "per_depth": {
+          "1": [
+            0,
+            96
+          ],
+          "2": [
+            0,
+            32
+          ],
+          "3": [
+            0,
+            32
+          ],
+          "4": [
+            0,
+            32
+          ]
+        },
+        "split": "development",
+        "total": 192
+      }
+    ],
+    "parent_sha256": "dcbca3d77bc7db8a30d962ac85450e821fa92f8d2bf5d8228c8c897f0d6e1d9d",
+    "parent_unchanged": true,
+    "promotion": false,
+    "reload_equal_rows": 2240,
+    "retained_dependent_correct": 2176,
+    "retained_dependent_total": 2176,
+    "retained_model": "15baec48",
+    "retained_one_correct": 8256,
+    "retained_one_total": 8256,
+    "retention_scope": "old paths plus new adaptive runner on both prior corpora"
+  },
+  "fit": {
+    "cell_counts": [
+      [
+        0,
+        0
+      ],
+      [
+        7,
+        0
+      ],
+      [
+        7,
+        0
+      ],
+      [
+        8,
+        0
+      ],
+      [
+        9,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        9,
+        0
+      ],
+      [
+        8,
+        0
+      ],
+      [
+        5,
+        0
+      ],
+      [
+        5,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        7,
+        0
+      ],
+      [
+        5,
+        0
+      ],
+      [
+        10,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        7,
+        0
+      ],
+      [
+        8,
+        0
+      ],
+      [
+        12,
+        0
+      ],
+      [
+        5,
+        0
+      ],
+      [
+        10,
+        0
+      ],
+      [
+        5,
+        0
+      ],
+      [
+        8,
+        0
+      ],
+      [
+        7,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        5,
+        0
+      ],
+      [
+        7,
+        0
+      ],
+      [
+        7,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        8,
+        0
+      ],
+      [
+        7,
+        0
+      ],
+      [
+        11,
+        0
+      ],
+      [
+        8,
+        0
+      ],
+      [
+        5,
+        0
+      ],
+      [
+        10,
+        0
+      ],
+      [
+        7,
+        0
+      ],
+      [
+        11,
+        0
+      ],
+      [
+        9,
+        0
+      ],
+      [
+        8,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        5,
+        0
+      ],
+      [
+        9,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        7,
+        0
+      ],
+      [
+        8,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        5,
+        0
+      ],
+      [
+        5,
+        0
+      ],
+      [
+        9,
+        0
+      ],
+      [
+        5,
+        0
+      ],
+      [
+        5,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        8,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        5,
+        0
+      ],
+      [
+        7,
+        0
+      ],
+      [
+        9,
+        0
+      ],
+      [
+        9,
+        0
+      ],
+      [
+        8,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        8,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        9,
+        0
+      ],
+      [
+        8,
+        0
+      ],
+      [
+        7,
+        0
+      ],
+      [
+        9,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        9,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        8,
+        0
+      ],
+      [
+        5,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        8,
+        0
+      ],
+      [
+        11,
+        0
+      ],
+      [
+        7,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        11,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        7,
+        0
+      ],
+      [
+        7,
+        0
+      ],
+      [
+        5,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        9,
+        0
+      ],
+      [
+        7,
+        0
+      ],
+      [
+        9,
+        0
+      ],
+      [
+        7,
+        0
+      ],
+      [
+        0,
+        256
+      ],
+      [
+        0,
+        256
+      ],
+      [
+        0,
+        256
+      ],
+      [
+        0,
+        256
+      ],
+      [
+        0,
+        256
+      ],
+      [
+        0,
+        256
+      ],
+      [
+        0,
+        256
+      ],
+      [
+        0,
+        256
+      ],
+      [
+        7,
+        0
+      ],
+      [
+        10,
+        0
+      ],
+      [
+        7,
+        0
+      ],
+      [
+        7,
+        0
+      ],
+      [
+        9,
+        0
+      ],
+      [
+        8,
+        0
+      ],
+      [
+        7,
+        0
+      ],
+      [
+        7,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        8,
+        0
+      ],
+      [
+        7,
+        0
+      ],
+      [
+        10,
+        0
+      ],
+      [
+        8,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        8,
+        0
+      ],
+      [
+        7,
+        0
+      ],
+      [
+        7,
+        0
+      ],
+      [
+        8,
+        0
+      ],
+      [
+        5,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        7,
+        0
+      ],
+      [
+        9,
+        0
+      ],
+      [
+        8,
+        0
+      ],
+      [
+        9,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        10,
+        0
+      ],
+      [
+        7,
+        0
+      ],
+      [
+        8,
+        0
+      ],
+      [
+        10,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        7,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        10,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        5,
+        0
+      ],
+      [
+        7,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        7,
+        0
+      ],
+      [
+        7,
+        0
+      ],
+      [
+        5,
+        0
+      ],
+      [
+        8,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        8,
+        0
+      ],
+      [
+        10,
+        0
+      ],
+      [
+        8,
+        0
+      ],
+      [
+        5,
+        0
+      ],
+      [
+        7,
+        0
+      ],
+      [
+        4,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        10,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        4,
+        0
+      ],
+      [
+        9,
+        0
+      ],
+      [
+        8,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        8,
+        0
+      ],
+      [
+        5,
+        0
+      ],
+      [
+        5,
+        0
+      ],
+      [
+        9,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        7,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        8,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        8,
+        0
+      ],
+      [
+        7,
+        0
+      ],
+      [
+        5,
+        0
+      ],
+      [
+        7,
+        0
+      ],
+      [
+        8,
+        0
+      ],
+      [
+        7,
+        0
+      ],
+      [
+        7,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        5,
+        0
+      ],
+      [
+        7,
+        0
+      ],
+      [
+        8,
+        0
+      ],
+      [
+        7,
+        0
+      ],
+      [
+        9,
+        0
+      ],
+      [
+        5,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        4,
+        0
+      ],
+      [
+        8,
+        0
+      ],
+      [
+        5,
+        0
+      ],
+      [
+        7,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        5,
+        0
+      ],
+      [
+        4,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        5,
+        0
+      ],
+      [
+        9,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        5,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        5,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        7,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        7,
+        0
+      ],
+      [
+        5,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        4,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        7,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        5,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        5,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        7,
+        0
+      ],
+      [
+        8,
+        0
+      ],
+      [
+        9,
+        0
+      ],
+      [
+        7,
+        0
+      ],
+      [
+        7,
+        0
+      ],
+      [
+        5,
+        0
+      ],
+      [
+        5,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        9,
+        0
+      ],
+      [
+        7,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        4,
+        0
+      ],
+      [
+        9,
+        0
+      ],
+      [
+        7,
+        0
+      ]
+    ],
+    "completed_epochs": 128,
+    "config": {
+      "epochs": 128,
+      "learning_rate": 0.1,
+      "wall_seconds": 300
+    },
+    "elapsed_ms": 1274,
+    "progress": [
+      {
+        "bce": 1.360917416992813,
+        "epoch": 1,
+        "exact": 0
+      },
+      {
+        "bce": 0.4545653685930682,
+        "epoch": 16,
+        "exact": 2048
+      },
+      {
+        "bce": 0.25861881706189066,
+        "epoch": 32,
+        "exact": 2048
+      },
+      {
+        "bce": 0.14278419283332527,
+        "epoch": 48,
+        "exact": 2048
+      },
+      {
+        "bce": 0.05990227408797879,
+        "epoch": 64,
+        "exact": 2048
+      },
+      {
+        "bce": 0.037443152099044766,
+        "epoch": 80,
+        "exact": 2048
+      },
+      {
+        "bce": 0.03580569071216542,
+        "epoch": 96,
+        "exact": 2048
+      },
+      {
+        "bce": 0.03418122371918087,
+        "epoch": 112,
+        "exact": 2048
+      },
+      {
+        "bce": 0.032569537559733915,
+        "epoch": 128,
+        "exact": 2048
+      }
+    ],
+    "rollout_reads": 3584,
+    "selected_epoch": 16,
+    "stopped": "completed_dose"
+  },
+  "acceptance": {
+    "always_read_max": 0,
+    "configuration": {
+      "epochs": 128,
+      "learning_rate": 0.1,
+      "wall_seconds": 300
+    },
+    "correct_depth_min": 183,
+    "development_total": 192,
+    "exact_min": 183,
+    "final_holdout": "NOT_RUN",
+    "fixed_two_max": 96,
+    "improvement_over_always_emit_min": 64,
+    "improvement_over_initial_min": 96,
+    "long_payload_disabled_max": 0,
+    "long_update_disabled_max": 0,
+    "pairs_both_min": 91,
+    "per_depth_fraction_min": 0.95,
+    "read_disabled_max": 0,
+    "retained_dependent_required": 2176,
+    "retained_one_read_required": 8256,
+    "retention_scope": "both frozen parent paths and new adaptive loop must reproduce all prior one/two-read outputs",
+    "scope": "content-action table learning under frozen reader/update/codec; typed byte-domain, not prose or joint learning",
+    "status": "FROZEN_BEFORE_FIT"
+  },
+  "environment": {
+    "correct_answer_depth": 2240,
+    "correct_sources": 3968,
+    "four_read_is_resource_cap_not_stop_rule": true,
+    "pass": true,
+    "reads": 3968,
+    "rows": 2240,
+    "training_action_bytes": 231,
+    "typed_byte_domains": true,
+    "unseen_development_action_bytes": 0
+  },
+  "data_validation": {
+    "all_eligible_link_payloads_seen": true,
+    "curriculum": "Terminal a..h versus nonzero link bytes whose retained codec value & 0x6f is outside a..h; supplied exact record boundaries and keys",
+    "dev": {
+      "answer_counts": {
+        "97": 24,
+        "98": 24,
+        "99": 24,
+        "100": 24,
+        "101": 24,
+        "102": 24,
+        "103": 24,
+        "104": 24
+      },
+      "answer_counts_by_depth": {
+        "1": [
+          12,
+          12,
+          12,
+          12,
+          12,
+          12,
+          12,
+          12
+        ],
+        "2": [
+          4,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4
+        ],
+        "3": [
+          4,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4
+        ],
+        "4": [
+          4,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4
+        ]
+      },
+      "depth_counts": {
+        "1": 96,
+        "2": 32,
+        "3": 32,
+        "4": 32
+      },
+      "exact_xor_trajectories_valid": true,
+      "examples": 192,
+      "families": 96,
+      "initial_slot_counts": [
+        48,
+        48,
+        48,
+        48
+      ],
+      "initial_slot_counts_by_depth": {
+        "1": [
+          24,
+          24,
+          24,
+          24
+        ],
+        "2": [
+          8,
+          8,
+          8,
+          8
+        ],
+        "3": [
+          8,
+          8,
+          8,
+          8
+        ],
+        "4": [
+          8,
+          8,
+          8,
+          8
+        ]
+      },
+      "no_repeated_trajectory_keys": true,
+      "paired_only_initial_payload_changes": true,
+      "terminal_slot_counts_by_depth": {
+        "1": [
+          24,
+          24,
+          24,
+          24
+        ],
+        "2": [
+          7,
+          7,
+          10,
+          8
+        ],
+        "3": [
+          7,
+          9,
+          11,
+          5
+        ],
+        "4": [
+          10,
+          10,
+          7,
+          5
+        ]
+      },
+      "unique_record_keys_and_values": true
+    },
+    "disjoint_contexts": true,
+    "disjoint_families": true,
+    "disjoint_initial_query_alphabets": true,
+    "final_independent_qualification": "NOT_RUN",
+    "four_read_depth_training_examples": 0,
+    "global_key_alphabet_disjointness_claimed": false,
+    "inference_fields": [
+      "query",
+      "records"
+    ],
+    "offline_oracle_fields": [
+      "depth",
+      "answer",
+      "id",
+      "family"
+    ],
+    "train": {
+      "answer_counts": {
+        "97": 256,
+        "98": 256,
+        "99": 256,
+        "100": 256,
+        "101": 256,
+        "102": 256,
+        "103": 256,
+        "104": 256
+      },
+      "answer_counts_by_depth": {
+        "1": [
+          128,
+          128,
+          128,
+          128,
+          128,
+          128,
+          128,
+          128
+        ],
+        "2": [
+          64,
+          64,
+          64,
+          64,
+          64,
+          64,
+          64,
+          64
+        ],
+        "3": [
+          64,
+          64,
+          64,
+          64,
+          64,
+          64,
+          64,
+          64
+        ]
+      },
+      "depth_counts": {
+        "1": 1024,
+        "2": 512,
+        "3": 512
+      },
+      "exact_xor_trajectories_valid": true,
+      "examples": 2048,
+      "families": 1024,
+      "initial_slot_counts": [
+        512,
+        512,
+        512,
+        512
+      ],
+      "initial_slot_counts_by_depth": {
+        "1": [
+          256,
+          256,
+          256,
+          256
+        ],
+        "2": [
+          128,
+          128,
+          128,
+          128
+        ],
+        "3": [
+          128,
+          128,
+          128,
+          128
+        ]
+      },
+      "no_repeated_trajectory_keys": true,
+      "paired_only_initial_payload_changes": true,
+      "terminal_slot_counts_by_depth": {
+        "1": [
+          256,
+          256,
+          256,
+          256
+        ],
+        "2": [
+          128,
+          128,
+          128,
+          128
+        ],
+        "3": [
+          128,
+          128,
+          128,
+          128
+        ]
+      },
+      "unique_record_keys_and_values": true
+    },
+    "training_eligible_link_payloads": 223
+  },
+  "report_root": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/adaptive-attention-1/attempt-1",
+  "files": {
+    "acceptance.json": {
+      "sha256": "e5ff4ea5c369081ec429cc63514498d49dcd4eef6a2d07093f047ad4c0ac3a9d",
+      "bytes": 833
+    },
+    "attempt.json": {
+      "sha256": "7061d76bd8fcf84d9d6ab7a2f97f2d04cf80c77dc7c1ee5a9bf11336def5056c",
+      "bytes": 478
+    },
+    "candidate.json": {
+      "sha256": "f0e1f2c35a68e6228777c1a662a2e6b00a398957444f29fc3e4f2f9b8d473d54",
+      "bytes": 17186
+    },
+    "data.json": {
+      "sha256": "87e4fc36868adc95da10c4a63b9f962b47985bab56cd6b9209b3ed8c53de4381",
+      "bytes": 1474138
+    },
+    "environment.json": {
+      "sha256": "8b880d03b65a9fd4597dab205eac02d8b55fe81e123dc776d8dac91fb23de7e0",
+      "bytes": 263
+    },
+    "fit.json": {
+      "sha256": "5da355f617e267948a6e169b6673f1dad658e121b515e24e6b58711df64e3be2",
+      "bytes": 8744
+    },
+    "initial.json": {
+      "sha256": "a79481dc61e6d493bebb61b2d93bc0b0cbc9bff14e10e19be563b47ceabef9a9",
+      "bytes": 16824
+    },
+    "manifest.json": {
+      "sha256": "74f735ddadcfe4a65fcc30a97f5efdc1500350d8807f606aebaeef5c8bf7b573",
+      "bytes": 1581
+    },
+    "responses.json": {
+      "sha256": "feeec66e6d7051ca0c65ec74dec0548269a2d4e3b86e74abf6dba15f2541f1f8",
+      "bytes": 8220743
+    },
+    "summary.json": {
+      "sha256": "75422f5e8e7413f9b6fc6971efac2bc560792daed74f4c02638c4fdb06fbe44f",
+      "bytes": 7735
+    }
+  },
+  "source": {
+    "at": "2026-09-13T20:26:02.734Z",
+    "base": "db6d2402a5f6bbae109b85c2edc357cd14f46cb8",
+    "files": [
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relational_attention/circuit.rs",
+        "sha256": "667eb3f9a900819a58e0cb02ab83573bee9c4600ce13c26fcfd29bd9de98666b"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relational_attention/data.rs",
+        "sha256": "81fb9b844f5ee1fe98a86583702d9094a63c2ca6c2dc3f2ac45803a3e79931cb"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relational_attention/learning.rs",
+        "sha256": "ce8cd0dea567f48daef49cbf83764d802163081eacc7189e86f48f153076c2d2"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relational_attention/mod.rs",
+        "sha256": "26304fbdd4ca916c5e39ebf30fd2092b2e5333888c039fd47e80772d9c60c9e4"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relational_attention/report.rs",
+        "sha256": "007b3fbd952bd8b1afb76d01a95ed6a2793977cf0eced2718b9637c0023128de"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relational_attention/runtime.rs",
+        "sha256": "671145c488a316eb7b03bbdcc391bdcd2bdf7c4341a30748faffebe87fe29d98"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/addressed_attention/artifact.rs",
+        "sha256": "519e909351482f8407ded1ef34d96252bc34e268554dac1212e3620dc22686ba"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/mod.rs",
+        "sha256": "7d8ad4be83e8a636b3af7d332f54758ec08417a46e863618e87f257c8f93428d"
+      },
+      {
+        "path": "Cargo.lock",
+        "sha256": "7337e6b47e5f7a8d4589164cb6ad23637e3d1b5413b462716cfdc1ab72d2558c"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_attention/data.rs",
+        "sha256": "279832bc9bd360e722df878039f53763ac44d480e462ede1e6bcce56e4490081"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_attention/learning.rs",
+        "sha256": "4ebb8a1c7d7254354170957082713f93c793876ebee16aa85349354b115e7f27"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_attention/mod.rs",
+        "sha256": "5ee5a83302e05c7dcc6390576ba5117840768e6df9418a7c92bc562c9531c336"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_attention/report.rs",
+        "sha256": "cfb9d890155967e31d0306489e4212926aea73eb8bc06204d789b5db70c08a69"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_attention/runtime.rs",
+        "sha256": "7df1a8fbb4854fe4b44795a600e89d64d5ebdea52e212c586ff357716b76240b"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/adaptive_attention/data.rs",
+        "sha256": "f4a46a8c13d6718a69a7157527ad17340782eb6245a16137ccd7486f424dd13f"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/adaptive_attention/learning.rs",
+        "sha256": "56805e3c991ec20c819f3ccfc761a64ac1108b4d1f5b8d85fcdf0565d87421a6"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/adaptive_attention/mod.rs",
+        "sha256": "75e3f83f000125e5594d6b20250264a867cfb3ea41375e3b2fb1851a8fe9c554"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/adaptive_attention/report.rs",
+        "sha256": "0322c42d31bc3ca692e0d7df73047427fea71a554568c1cff84988cda0680bdb"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/adaptive_attention/runtime.rs",
+        "sha256": "be75bdd3eb1ece009156e837908110a4383f2efc07bd39d663cfe6ebc702c39e"
+      }
+    ],
+    "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/adaptive-attention-1/adaptive-tests",
+    "binary_sha256": "e71f77918b50266e0294ba4fff9b5c85ec30d98e531e629005d0fd7a75e5bd68",
+    "compiler": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "build_label": "adaptive-focused-tests"
+  },
+  "prior_report_roots": 35,
+  "prior_report_files": 1060,
+  "prior_reports_preserved": true,
+  "prior_source_preserved": true,
+  "original_checkouts_preserved": [
+    {
+      "path": "/Users/casey.allard/uor-r4",
+      "head": "49da65c509e8b1b9f10e7891918d3618c65e9f20",
+      "status_sha256": "4634a2b54ea8525bf3c76edb5d7092986d2dda77ef76edd3a641ce2b0f075df8"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent",
+      "head": "49da65c509e8b1b9f10e7891918d3618c65e9f20",
+      "status_sha256": "7dbfdd7d981456b30357812e9dc7edd13b072c43ce45b873f35ba51d742465b2"
+    }
+  ],
+  "retained_model": {
+    "id": "15baec48",
+    "path": "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/reader-scope-repair/model.json",
+    "sha256": "1454aa69e2e295d0a9970e90326f4664d3c614f666b1a708a16c16b5350a1705"
+  },
+  "sample": [
+    {
+      "actual": {
+        "exhausted": false,
+        "steps": [
+          {
+            "emit": false,
+            "payload": 60,
+            "query": [
+              71,
+              70
+            ],
+            "scores": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "selected": 3
+          },
+          {
+            "emit": false,
+            "payload": 21,
+            "query": [
+              123,
+              122
+            ],
+            "scores": [
+              1,
+              0,
+              0,
+              0
+            ],
+            "selected": 0
+          },
+          {
+            "emit": false,
+            "payload": 153,
+            "query": [
+              110,
+              111
+            ],
+            "scores": [
+              0,
+              1,
+              0,
+              0
+            ],
+            "selected": 1
+          },
+          {
+            "emit": true,
+            "payload": 99,
+            "query": [
+              247,
+              246
+            ],
+            "scores": [
+              0,
+              0,
+              1,
+              0
+            ],
+            "selected": 2
+          }
+        ],
+        "tokens": [
+          99,
+          256
+        ]
+      },
+      "answer": 99,
+      "artifact": "candidate",
+      "control": "Full",
+      "exact": true,
+      "expected_depth": 4,
+      "family": "adaptive-dev-family-0059",
+      "id": "adaptive-dev-family-0059-variant-1",
+      "split": "development",
+      "query": [
+        71,
+        70
+      ],
+      "records": [
+        {
+          "key": [
+            123,
+            122
+          ],
+          "value": 21
+        },
+        {
+          "key": [
+            110,
+            111
+          ],
+          "value": 153
+        },
+        {
+          "key": [
+            247,
+            246
+          ],
+          "value": 99
+        },
+        {
+          "key": [
+            71,
+            70
+          ],
+          "value": 60
+        }
+      ]
+    },
+    {
+      "actual": {
+        "exhausted": false,
+        "steps": [
+          {
+            "emit": true,
+            "payload": 103,
+            "query": [
+              71,
+              70
+            ],
+            "scores": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "selected": 3
+          }
+        ],
+        "tokens": [
+          103,
+          256
+        ]
+      },
+      "answer": 103,
+      "artifact": "candidate",
+      "control": "Full",
+      "exact": true,
+      "expected_depth": 1,
+      "family": "adaptive-dev-family-0059",
+      "id": "adaptive-dev-family-0059-variant-0",
+      "split": "development",
+      "query": [
+        71,
+        70
+      ],
+      "records": [
+        {
+          "key": [
+            123,
+            122
+          ],
+          "value": 21
+        },
+        {
+          "key": [
+            110,
+            111
+          ],
+          "value": 153
+        },
+        {
+          "key": [
+            247,
+            246
+          ],
+          "value": 99
+        },
+        {
+          "key": [
+            71,
+            70
+          ],
+          "value": 103
+        }
+      ]
+    }
+  ],
+  "verification": "Rust seal/verify executed at attempt completion; postflight full sets/sizes/SHA256 identities. Prior source and all report bytes reverified.",
+  "scope": "learned byte-conditioned read/emit policy with shared frozen geometric reader/update/codec; typed mixed-depth curriculum, not unseen byte-class or prose or joint-gradient qualification"
+}
