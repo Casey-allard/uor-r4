@@ -1,6 +1,20 @@
 # Current native geometric AI work
 
-## Shared geometric core — occurrence credit fails; tied-route interaction traced, September 12
+## Shared geometric core — tied categorical method fails comparator gate, September 12
+
+**Retain `15baec48`; no model is promoted.** The [tied categorical learner](../native_geometric_tied_learning_973.md) now scores complete hard trajectories with each shared parameter held fixed across every use. Offline probabilities and gradients do not change the integer serving kernel. The [canonical shared-core plan](project-track.md#current-implementation-sequence--owner-adopted-september-12) remains active; the memory-completion repair stays parked and V3–V7 are not replayed.
+
+**Actual gate: FAIL_TIED_CATEGORICAL_METHOD_SMOKE.** Four seeds, each with 2,050 evaluations per learned/fixed-joint/coordinate arm, precede a 14,400-setting exhaustive reference. Expected distribution loss improves in 4/4 seeds; hard exports beat coordinate search 4/4 but fixed joint sampling 0/4 (three ties, one loss), failing the frozen requirement of at least three wins. Oracle-gain fraction 0.788002 meets its condition. The final distributions still have worse expected loss than the unchanged hard parent.
+
+All exports use roots [119,76], changing only read1930. Diagnostic NLL improves 3.535634 → 3.512336 on 132 targets, but complete construction worsens 3.375391 → 3.467544 and correct predictions fall 79 → 67/672. Open development NLL changes 3.663040 → 3.656606 while accuracy falls 28 → 27/381. All sixteen Full continuations remain incoherent with no EOS in 96 bytes. The four source-bound artifacts are preserved; no fresh draw or full-model fit ran. This is not a language or energy qualification.
+
+Final-source validation: 27 focused shared-core tests, the actual sealed experiment, and the saved-candidate 512-step zero-allocation census pass their execution checks. The method gate remains failed. [Tracked evidence](../evidence/native_geometric_tied_learning_973.json) binds source, compiler, binary, all outputs, independent review and cumulative charges including the initial compile failure. Local evidence is `shared-core-first-step/tied-learning-1/`; active worktree is `/Users/casey.allard/uor-r4-worktrees/shared-geometric-core`, branch `codex/geometric-tied-learning`.
+
+Resource receipt: 299,956/540,000 ms model/build/test; parent cycle 1,632,664/2,100,000 ms; shared ledger 121,383,237/132,950,000 ms. The local cycle allowance was increased by 500,000 ms before use within the unchanged ledger ceiling. Added storage 14,635,008 bytes within 256 MiB; peak sampled RSS 2,486,157,312 bytes within 4 GiB. No paid compute or cleanup.
+
+**Next action:** a bounded joint-proposal versus coordinate comparison selected on the complete 672-target construction objective from unchanged `ade9a1cf`. Freeze block selection, matched calls, seeds, gates and resources first; retain complete-objective accuracy/loss, controls and actual generation. Do not scale/tune the failed categorical sampler or install oracle roots. The 132-target subset remains diagnostic; capacity, curriculum and transfer remain unresolved.
+
+## Prior occurrence-credit checkpoint — historical result; next action superseded
 
 **Retain `15baec48`; no model is promoted.** The [canonical shared-core plan](project-track.md#current-implementation-sequence--owner-adopted-september-12) remains active. The prior `ade9a1cf` transfer failure is preserved. The accumulated repair stays parked; no V3–V7 replay.
 

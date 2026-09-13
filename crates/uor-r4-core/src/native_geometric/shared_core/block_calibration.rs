@@ -242,6 +242,7 @@ impl SharedCore {
         model.artifact.implementation = Self::implementation_digest();
         model.artifact.training_digest = None;
         model.artifact.fit_config = None;
+        model.artifact.tied_fit_config = None;
         model.artifact.training_parent = None;
         model.refresh_identity()?;
         if start.elapsed().as_secs() >= max_seconds {

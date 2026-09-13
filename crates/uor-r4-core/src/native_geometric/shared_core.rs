@@ -9,10 +9,12 @@ mod block_calibration;
 mod calibration;
 use block_calibration::BlockCalibrationConfig;
 pub use block_calibration::BlockCalibrationReport;
+mod tied_training;
 mod training;
 use super::Geometry;
 pub use calibration::CalibrationReport;
 use serde::{Deserialize, Serialize};
+pub use tied_training::{SearchReport, TiedFitConfig, TiedFitReport};
 pub use training::{FitConfig, FitReport, Metrics};
 
 pub const EOS: u16 = 256;
@@ -27,6 +29,8 @@ const LEGACY_IMPLEMENTATION: &str =
     "blake3:b6d1b6fb5c6af3be5fe31dc44dfdf762aad084e3100b5484e374c6a99a6b756d";
 const CALIBRATION_V1_IMPLEMENTATION: &str =
     "blake3:e719c2d0b3372e8e39495cc2990fbc8afd37787fa8c6f31a0d7f09818891cec1";
+const BLOCK_V1_IMPLEMENTATION: &str =
+    "blake3:def16707b1ff9dc54ecf7256e2ba3f4abcf4053bf1bd2b21873d634785ee55a8";
 const EMBED: usize = 0;
 const TRANSITION: usize = EMBED + LANES * 256;
 const QUERY: usize = TRANSITION + LANES * ROOTS;
@@ -83,6 +87,8 @@ struct Artifact {
     seed: u64,
     training_digest: Option<String>,
     fit_config: Option<FitConfig>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    tied_fit_config: Option<TiedFitConfig>,
     training_parent: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     calibrated: Option<CalibratedEmission>,
@@ -158,6 +164,7 @@ impl SharedCore {
         hash.update(include_bytes!("shared_core/training.rs"));
         hash.update(include_bytes!("shared_core/calibration.rs"));
         hash.update(include_bytes!("shared_core/block_calibration.rs"));
+        hash.update(include_bytes!("shared_core/tied_training.rs"));
         hash.update(include_bytes!("training.rs"));
         hash.update(include_bytes!("anchors.rs"));
         format!("blake3:{}", hash.finalize())
@@ -201,7 +208,8 @@ impl SharedCore {
             Some(c) => {
                 artifact.schema == CALIBRATED_SCHEMA
                     && (artifact.implementation == Self::implementation_digest()
-                        || artifact.implementation == CALIBRATION_V1_IMPLEMENTATION)
+                        || artifact.implementation == CALIBRATION_V1_IMPLEMENTATION
+                        || artifact.implementation == BLOCK_V1_IMPLEMENTATION)
                     && c.branches.len() == 512
                     && c.parent.starts_with("blake3:")
                     && c.parent.len() == 71
@@ -211,7 +219,8 @@ impl SharedCore {
                                 || (c.calibration_data.is_some() && c.calibration_passes == 3)
                         }
                         Some(config) => {
-                            artifact.implementation == Self::implementation_digest()
+                            (artifact.implementation == Self::implementation_digest()
+                                || artifact.implementation == BLOCK_V1_IMPLEMENTATION)
                                 && c.calibration_data.is_some()
                                 && c.calibration_passes == 1
                                 && config.max_seconds > 0
@@ -226,7 +235,13 @@ impl SharedCore {
         };
         if !version_valid
             || artifact.seed == 0
-            || artifact.training_digest.is_some() != artifact.fit_config.is_some()
+            || (artifact.fit_config.is_some() && artifact.tied_fit_config.is_some())
+            || artifact.tied_fit_config.is_some_and(|config| {
+                artifact.implementation != Self::implementation_digest()
+                    || config.validate().is_err()
+            })
+            || artifact.training_digest.is_some()
+                != (artifact.fit_config.is_some() || artifact.tied_fit_config.is_some())
             || artifact.training_digest.is_some() != artifact.training_parent.is_some()
             || artifact.geometry != expected
             || artifact.angular != training::angular(&expected)?

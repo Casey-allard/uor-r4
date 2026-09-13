@@ -116,6 +116,7 @@ impl SharedCore {
                 seed,
                 training_digest: None,
                 fit_config: None,
+                tied_fit_config: None,
                 training_parent: None,
                 calibrated: None,
             },
@@ -237,6 +238,7 @@ impl SharedCore {
         let digest = format!("blake3:{}", hash.finalize());
         model.artifact.training_digest = Some(digest.clone());
         model.artifact.fit_config = Some(config);
+        model.artifact.tied_fit_config = None;
         model.artifact.training_parent = Some(self.cid.clone());
         model.refresh_identity()?;
         let report = FitReport {

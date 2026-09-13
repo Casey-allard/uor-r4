@@ -38,6 +38,7 @@ impl SharedCore {
         });
         model.artifact.training_digest = None;
         model.artifact.fit_config = None;
+        model.artifact.tied_fit_config = None;
         model.artifact.training_parent = None;
         model.refresh_identity()?;
         Ok(model)
@@ -157,6 +158,7 @@ impl SharedCore {
         model.artifact.implementation = Self::implementation_digest();
         model.artifact.training_digest = None;
         model.artifact.fit_config = None;
+        model.artifact.tied_fit_config = None;
         model.artifact.training_parent = None;
         model.refresh_identity()?;
         let after = model.evaluate(documents, Intervention::Full)?;
