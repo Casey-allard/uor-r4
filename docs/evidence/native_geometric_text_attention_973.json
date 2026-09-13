@@ -1,0 +1,1524 @@
+{
+  "at": "2026-09-13T20:47:12.136Z",
+  "status": "PASS_GROUNDED_VARIABLE_TEXT",
+  "summary": {
+    "advance": [
+      0,
+      0,
+      0,
+      1
+    ],
+    "candidate_sha256": "22b1df1c6b5721ea71d0bad40ab968434b63397c7819213aec046c7def6af63e",
+    "changed_advance_entries": 1,
+    "changed_reader_tables": 0,
+    "changed_writer_tables": 8,
+    "development_pairs_both_exact": 32,
+    "final_holdout": "NOT_RUN",
+    "gate": "PASS_GROUNDED_VARIABLE_TEXT",
+    "historical_adaptive_correct": 2240,
+    "historical_adaptive_total": 2240,
+    "long_development_correct": 48,
+    "long_development_total": 48,
+    "max_training_bytes": 18,
+    "new_text_prior_one_correct": 8256,
+    "new_text_prior_one_total": 8256,
+    "panels": [
+      {
+        "aligned_symbols_correct": 0,
+        "artifact": "initial",
+        "control": "Full",
+        "exact": 0,
+        "exhausted": 512,
+        "split": "training",
+        "target_symbols": 7788,
+        "total": 512
+      },
+      {
+        "aligned_symbols_correct": 7788,
+        "artifact": "candidate",
+        "control": "Full",
+        "exact": 512,
+        "exhausted": 0,
+        "split": "training",
+        "target_symbols": 7788,
+        "total": 512
+      },
+      {
+        "aligned_symbols_correct": 0,
+        "artifact": "candidate",
+        "control": "ReadDisabled",
+        "exact": 0,
+        "exhausted": 0,
+        "split": "training",
+        "target_symbols": 7788,
+        "total": 512
+      },
+      {
+        "aligned_symbols_correct": 648,
+        "artifact": "candidate",
+        "control": "FeedbackDisabled",
+        "exact": 0,
+        "exhausted": 512,
+        "split": "training",
+        "target_symbols": 7788,
+        "total": 512
+      },
+      {
+        "aligned_symbols_correct": 512,
+        "artifact": "candidate",
+        "control": "PayloadDisabled",
+        "exact": 0,
+        "exhausted": 0,
+        "split": "training",
+        "target_symbols": 7788,
+        "total": 512
+      },
+      {
+        "aligned_symbols_correct": 2112,
+        "artifact": "candidate",
+        "control": "QueryReversed",
+        "exact": 0,
+        "exhausted": 0,
+        "split": "training",
+        "target_symbols": 7788,
+        "total": 512
+      },
+      {
+        "aligned_symbols_correct": 7276,
+        "artifact": "candidate",
+        "control": "EosDisabled",
+        "exact": 0,
+        "exhausted": 512,
+        "split": "training",
+        "target_symbols": 7788,
+        "total": 512
+      },
+      {
+        "aligned_symbols_correct": 0,
+        "artifact": "initial",
+        "control": "Full",
+        "exact": 0,
+        "exhausted": 64,
+        "split": "development",
+        "target_symbols": 1520,
+        "total": 64
+      },
+      {
+        "aligned_symbols_correct": 1520,
+        "artifact": "candidate",
+        "control": "Full",
+        "exact": 64,
+        "exhausted": 0,
+        "split": "development",
+        "target_symbols": 1520,
+        "total": 64
+      },
+      {
+        "aligned_symbols_correct": 0,
+        "artifact": "candidate",
+        "control": "ReadDisabled",
+        "exact": 0,
+        "exhausted": 0,
+        "split": "development",
+        "target_symbols": 1520,
+        "total": 64
+      },
+      {
+        "aligned_symbols_correct": 160,
+        "artifact": "candidate",
+        "control": "FeedbackDisabled",
+        "exact": 0,
+        "exhausted": 64,
+        "split": "development",
+        "target_symbols": 1520,
+        "total": 64
+      },
+      {
+        "aligned_symbols_correct": 64,
+        "artifact": "candidate",
+        "control": "PayloadDisabled",
+        "exact": 0,
+        "exhausted": 0,
+        "split": "development",
+        "target_symbols": 1520,
+        "total": 64
+      },
+      {
+        "aligned_symbols_correct": 448,
+        "artifact": "candidate",
+        "control": "QueryReversed",
+        "exact": 0,
+        "exhausted": 0,
+        "split": "development",
+        "target_symbols": 1520,
+        "total": 64
+      },
+      {
+        "aligned_symbols_correct": 1456,
+        "artifact": "candidate",
+        "control": "EosDisabled",
+        "exact": 0,
+        "exhausted": 64,
+        "split": "development",
+        "target_symbols": 1520,
+        "total": 64
+      }
+    ],
+    "parent_sha256": "f0e1f2c35a68e6228777c1a662a2e6b00a398957444f29fc3e4f2f9b8d473d54",
+    "parent_unchanged": true,
+    "promotion": false,
+    "reload_equal_rows": 576,
+    "retained_model": "15baec48",
+    "retention_scope": "new text loop adapts prior one-byte spans; historical adaptive mode retained separately, not claimed as text-loop multi-hop support"
+  },
+  "fit": {
+    "config": {
+      "epochs": 256,
+      "learning_rate": 0.1,
+      "wall_seconds": 300
+    },
+    "elapsed_ms": 4980,
+    "epochs": 256,
+    "progress": [
+      {
+        "advance": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "epoch": 1,
+        "exact": 0,
+        "teacher_position_bce_sum_per_position": 8.983177269006076,
+        "useful_routing_rows": 0
+      },
+      {
+        "advance": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "epoch": 16,
+        "exact": 0,
+        "teacher_position_bce_sum_per_position": 0.06597629617175195,
+        "useful_routing_rows": 0
+      },
+      {
+        "advance": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "epoch": 32,
+        "exact": 512,
+        "teacher_position_bce_sum_per_position": 0.03604886055966037,
+        "useful_routing_rows": 512
+      },
+      {
+        "advance": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "epoch": 48,
+        "exact": 512,
+        "teacher_position_bce_sum_per_position": 0.02292450382087438,
+        "useful_routing_rows": 512
+      },
+      {
+        "advance": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "epoch": 64,
+        "exact": 512,
+        "teacher_position_bce_sum_per_position": 0.01358513634055932,
+        "useful_routing_rows": 512
+      },
+      {
+        "advance": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "epoch": 80,
+        "exact": 512,
+        "teacher_position_bce_sum_per_position": 0.008478302518633775,
+        "useful_routing_rows": 512
+      },
+      {
+        "advance": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "epoch": 96,
+        "exact": 512,
+        "teacher_position_bce_sum_per_position": 0.008478302518633775,
+        "useful_routing_rows": 512
+      },
+      {
+        "advance": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "epoch": 112,
+        "exact": 512,
+        "teacher_position_bce_sum_per_position": 0.008478302518633775,
+        "useful_routing_rows": 512
+      },
+      {
+        "advance": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "epoch": 128,
+        "exact": 512,
+        "teacher_position_bce_sum_per_position": 0.008478302518633775,
+        "useful_routing_rows": 512
+      },
+      {
+        "advance": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "epoch": 144,
+        "exact": 512,
+        "teacher_position_bce_sum_per_position": 0.008478302518633775,
+        "useful_routing_rows": 512
+      },
+      {
+        "advance": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "epoch": 160,
+        "exact": 512,
+        "teacher_position_bce_sum_per_position": 0.008478302518633775,
+        "useful_routing_rows": 512
+      },
+      {
+        "advance": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "epoch": 176,
+        "exact": 512,
+        "teacher_position_bce_sum_per_position": 0.008478302518633775,
+        "useful_routing_rows": 512
+      },
+      {
+        "advance": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "epoch": 192,
+        "exact": 512,
+        "teacher_position_bce_sum_per_position": 0.008478302518633775,
+        "useful_routing_rows": 512
+      },
+      {
+        "advance": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "epoch": 208,
+        "exact": 512,
+        "teacher_position_bce_sum_per_position": 0.008478302518633775,
+        "useful_routing_rows": 512
+      },
+      {
+        "advance": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "epoch": 224,
+        "exact": 512,
+        "teacher_position_bce_sum_per_position": 0.008478302518633775,
+        "useful_routing_rows": 512
+      },
+      {
+        "advance": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "epoch": 240,
+        "exact": 512,
+        "teacher_position_bce_sum_per_position": 0.008478302518633775,
+        "useful_routing_rows": 512
+      },
+      {
+        "advance": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "epoch": 256,
+        "exact": 512,
+        "teacher_position_bce_sum_per_position": 0.008478302518633775,
+        "useful_routing_rows": 512
+      }
+    ],
+    "selected_epoch": 32,
+    "source_no_useful_epochs": 18,
+    "stopped": "completed_dose"
+  },
+  "acceptance": {
+    "configuration": {
+      "epochs": 256,
+      "learning_rate": 0.1,
+      "wall_seconds": 300
+    },
+    "development_total": 64,
+    "each_disabled_or_reversed_max": 0,
+    "exact_min": 61,
+    "final_holdout": "NOT_RUN",
+    "historical_adaptive_required": 2240,
+    "improvement_over_initial_min": 32,
+    "longer_than_training_fraction_min": 0.95,
+    "new_text_loop_prior_one_required": 8256,
+    "pairs_both_min": 31,
+    "scope": "grounded span text generation, supplied key/boundary, alternating teacher-position output-directed training; not novel prose or end-to-end gradients",
+    "status": "FROZEN_BEFORE_FIT"
+  },
+  "environment": {
+    "canonical_query_encoding_fixed": true,
+    "correct_available_sources": 576,
+    "exact_span_boundaries_supplied": true,
+    "not_content_conditioned_semantic_state": true,
+    "pass": true,
+    "state": "integer cursor with learned hold/advance after actual non-EOS event",
+    "total": 576
+  },
+  "data_validation": {
+    "all_spans_disjoint_across_splits": true,
+    "development_characters_seen_in_training": true,
+    "general_prose": false,
+    "statistics": [
+      {
+        "answer_lengths": {
+          "1": 56,
+          "13": 8,
+          "14": 48,
+          "15": 96,
+          "16": 180,
+          "17": 108,
+          "18": 16
+        },
+        "characters": [
+          32,
+          33,
+          46,
+          63,
+          97,
+          98,
+          99,
+          100,
+          101,
+          102,
+          103,
+          104,
+          105,
+          106,
+          107,
+          108,
+          109,
+          110,
+          111,
+          112,
+          113,
+          114,
+          115,
+          116,
+          117,
+          118,
+          119,
+          120,
+          121,
+          122
+        ],
+        "minimum_positions_per_query": 4,
+        "paired_families": 256,
+        "query_count": 64,
+        "rows": 512,
+        "source_slot_counts": [
+          128,
+          128,
+          128,
+          128
+        ],
+        "split": "train",
+        "unique_spans": 256
+      },
+      {
+        "answer_lengths": {
+          "1": 8,
+          "13": 8,
+          "25": 4,
+          "26": 4,
+          "27": 16,
+          "28": 8,
+          "29": 8,
+          "31": 4,
+          "32": 4
+        },
+        "characters": [
+          32,
+          33,
+          46,
+          63,
+          97,
+          98,
+          99,
+          100,
+          101,
+          102,
+          103,
+          104,
+          105,
+          106,
+          107,
+          108,
+          109,
+          110,
+          111,
+          112,
+          113,
+          114,
+          115,
+          116,
+          117,
+          118,
+          119,
+          120,
+          121,
+          122
+        ],
+        "minimum_positions_per_query": 2,
+        "paired_families": 32,
+        "query_count": 12,
+        "rows": 64,
+        "source_slot_counts": [
+          16,
+          16,
+          16,
+          16
+        ],
+        "split": "dev",
+        "unique_spans": 32
+      }
+    ],
+    "status": "PASS_TYPED_SPAN_ENVIRONMENT",
+    "supplied_exact_record_bindings": true
+  },
+  "report_root": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/text-attention-1/attempt-1",
+  "files": {
+    "acceptance.json": {
+      "sha256": "a25585de635469e6b5f06bd3a049d1c769f0bc1569455c08761987816df1afa1",
+      "bytes": 598
+    },
+    "attempt.json": {
+      "sha256": "4f48e371c0a5c968ddf98f3a605fa71628929f626908cbd35195200c36b4216a",
+      "bytes": 462
+    },
+    "candidate.json": {
+      "sha256": "22b1df1c6b5721ea71d0bad40ab968434b63397c7819213aec046c7def6af63e",
+      "bytes": 32831
+    },
+    "data.json": {
+      "sha256": "9798dd7abf1c9941ff29cbe877729337ec46cc50701dbc00c378bf90934b9207",
+      "bytes": 1068091
+    },
+    "environment.json": {
+      "sha256": "542ba64162d504651967d08d9cc74783ca9eacfdb3dfa240d8bd866fb2837c09",
+      "bytes": 286
+    },
+    "fit.json": {
+      "sha256": "72256575d217296b5a8af47515ae354a47778e1bfe237a9b329d40417140483b",
+      "bytes": 4056
+    },
+    "initial.json": {
+      "sha256": "e381bc31ef91be78e0cfc8f061f1bdf49ad50a0d999a410776864d5e6dd916b1",
+      "bytes": 32425
+    },
+    "manifest.json": {
+      "sha256": "eb2e4b89a4f6c4992ca1eaa3908327e9602aa08a546cc89d2d2d5108a697e82b",
+      "bytes": 1577
+    },
+    "responses.json": {
+      "sha256": "67fe4f12712dd03b66d3f90f09d2b0371d040917aff092852aced95f13534d5b",
+      "bytes": 7373041
+    },
+    "summary.json": {
+      "sha256": "9f50e34962c34375b7cc880be6da7720e090c0ccfe279a78cd55f088c717a726",
+      "bytes": 4189
+    }
+  },
+  "source": {
+    "at": "2026-09-13T20:46:28.263Z",
+    "base": "bb29d3ae302f412c99925d8bbb27d75bcf4ca01a",
+    "files": [
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relational_attention/circuit.rs",
+        "sha256": "667eb3f9a900819a58e0cb02ab83573bee9c4600ce13c26fcfd29bd9de98666b"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relational_attention/data.rs",
+        "sha256": "81fb9b844f5ee1fe98a86583702d9094a63c2ca6c2dc3f2ac45803a3e79931cb"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relational_attention/learning.rs",
+        "sha256": "ce8cd0dea567f48daef49cbf83764d802163081eacc7189e86f48f153076c2d2"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relational_attention/mod.rs",
+        "sha256": "26304fbdd4ca916c5e39ebf30fd2092b2e5333888c039fd47e80772d9c60c9e4"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relational_attention/report.rs",
+        "sha256": "007b3fbd952bd8b1afb76d01a95ed6a2793977cf0eced2718b9637c0023128de"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relational_attention/runtime.rs",
+        "sha256": "671145c488a316eb7b03bbdcc391bdcd2bdf7c4341a30748faffebe87fe29d98"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/addressed_attention/artifact.rs",
+        "sha256": "519e909351482f8407ded1ef34d96252bc34e268554dac1212e3620dc22686ba"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/mod.rs",
+        "sha256": "9475212db55ab5d59c7b1dbdd64bf3f13c22d5435e6e17dfae2dddfeaf7291e9"
+      },
+      {
+        "path": "Cargo.lock",
+        "sha256": "7337e6b47e5f7a8d4589164cb6ad23637e3d1b5413b462716cfdc1ab72d2558c"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_attention/data.rs",
+        "sha256": "279832bc9bd360e722df878039f53763ac44d480e462ede1e6bcce56e4490081"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_attention/learning.rs",
+        "sha256": "4ebb8a1c7d7254354170957082713f93c793876ebee16aa85349354b115e7f27"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_attention/mod.rs",
+        "sha256": "5ee5a83302e05c7dcc6390576ba5117840768e6df9418a7c92bc562c9531c336"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_attention/report.rs",
+        "sha256": "cfb9d890155967e31d0306489e4212926aea73eb8bc06204d789b5db70c08a69"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_attention/runtime.rs",
+        "sha256": "7df1a8fbb4854fe4b44795a600e89d64d5ebdea52e212c586ff357716b76240b"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/adaptive_attention/data.rs",
+        "sha256": "f4a46a8c13d6718a69a7157527ad17340782eb6245a16137ccd7486f424dd13f"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/adaptive_attention/learning.rs",
+        "sha256": "56805e3c991ec20c819f3ccfc761a64ac1108b4d1f5b8d85fcdf0565d87421a6"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/adaptive_attention/mod.rs",
+        "sha256": "75e3f83f000125e5594d6b20250264a867cfb3ea41375e3b2fb1851a8fe9c554"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/adaptive_attention/report.rs",
+        "sha256": "0322c42d31bc3ca692e0d7df73047427fea71a554568c1cff84988cda0680bdb"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/adaptive_attention/runtime.rs",
+        "sha256": "be75bdd3eb1ece009156e837908110a4383f2efc07bd39d663cfe6ebc702c39e"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/text_attention/data.rs",
+        "sha256": "8ad71cfeb7008b6b0528673f2ad984dcee01e9dfa4e8f9f73502373cd3bbf5c7"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/text_attention/learning.rs",
+        "sha256": "6075b0e3517f5146f0722d3d01d38f17d625923122ef366ca0c87ba74b44ac34"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/text_attention/mod.rs",
+        "sha256": "b134647c702bdb373f17d6e3d448e8bfacc616959b61a1d7b5b28033e78d0e62"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/text_attention/report.rs",
+        "sha256": "42c29f8fedd771dee68f3928f6ab81daa97849349d0c3256ae0773e077685ccd"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/text_attention/runtime.rs",
+        "sha256": "4b8260de6dbaeb58e73edfa003ebd15671c6e0f50ce49201c6e14db81c23edbd"
+      }
+    ],
+    "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/text-attention-1/text-tests",
+    "binary_sha256": "100f5d3173fac99acae84574e558bad7afbc7d3ba5d00e01e6b931169b984ec9",
+    "compiler": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "build_label": "text-focused-tests"
+  },
+  "prior_report_roots": 36,
+  "prior_report_files": 1070,
+  "prior_reports_preserved": true,
+  "prior_source_preserved": true,
+  "original_checkouts_preserved": [
+    {
+      "path": "/Users/casey.allard/uor-r4",
+      "head": "49da65c509e8b1b9f10e7891918d3618c65e9f20",
+      "status_sha256": "4634a2b54ea8525bf3c76edb5d7092986d2dda77ef76edd3a641ce2b0f075df8"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent",
+      "head": "49da65c509e8b1b9f10e7891918d3618c65e9f20",
+      "status_sha256": "7dbfdd7d981456b30357812e9dc7edd13b072c43ce45b873f35ba51d742465b2"
+    }
+  ],
+  "retained_model": {
+    "id": "15baec48",
+    "path": "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/reader-scope-repair/model.json",
+    "sha256": "1454aa69e2e295d0a9970e90326f4664d3c614f666b1a708a16c16b5350a1705"
+  },
+  "sample": [
+    {
+      "actual": {
+        "exhausted": false,
+        "steps": [
+          {
+            "advanced": true,
+            "cursor": 0,
+            "present": true,
+            "selected": 3,
+            "token": 116
+          },
+          {
+            "advanced": true,
+            "cursor": 1,
+            "present": true,
+            "selected": 3,
+            "token": 104
+          },
+          {
+            "advanced": true,
+            "cursor": 2,
+            "present": true,
+            "selected": 3,
+            "token": 101
+          },
+          {
+            "advanced": true,
+            "cursor": 3,
+            "present": true,
+            "selected": 3,
+            "token": 32
+          },
+          {
+            "advanced": true,
+            "cursor": 4,
+            "present": true,
+            "selected": 3,
+            "token": 113
+          },
+          {
+            "advanced": true,
+            "cursor": 5,
+            "present": true,
+            "selected": 3,
+            "token": 117
+          },
+          {
+            "advanced": true,
+            "cursor": 6,
+            "present": true,
+            "selected": 3,
+            "token": 105
+          },
+          {
+            "advanced": true,
+            "cursor": 7,
+            "present": true,
+            "selected": 3,
+            "token": 101
+          },
+          {
+            "advanced": true,
+            "cursor": 8,
+            "present": true,
+            "selected": 3,
+            "token": 116
+          },
+          {
+            "advanced": true,
+            "cursor": 9,
+            "present": true,
+            "selected": 3,
+            "token": 32
+          },
+          {
+            "advanced": true,
+            "cursor": 10,
+            "present": true,
+            "selected": 3,
+            "token": 121
+          },
+          {
+            "advanced": true,
+            "cursor": 11,
+            "present": true,
+            "selected": 3,
+            "token": 111
+          },
+          {
+            "advanced": true,
+            "cursor": 12,
+            "present": true,
+            "selected": 3,
+            "token": 117
+          },
+          {
+            "advanced": true,
+            "cursor": 13,
+            "present": true,
+            "selected": 3,
+            "token": 110
+          },
+          {
+            "advanced": true,
+            "cursor": 14,
+            "present": true,
+            "selected": 3,
+            "token": 103
+          },
+          {
+            "advanced": true,
+            "cursor": 15,
+            "present": true,
+            "selected": 3,
+            "token": 32
+          },
+          {
+            "advanced": true,
+            "cursor": 16,
+            "present": true,
+            "selected": 3,
+            "token": 111
+          },
+          {
+            "advanced": true,
+            "cursor": 17,
+            "present": true,
+            "selected": 3,
+            "token": 119
+          },
+          {
+            "advanced": true,
+            "cursor": 18,
+            "present": true,
+            "selected": 3,
+            "token": 108
+          },
+          {
+            "advanced": true,
+            "cursor": 19,
+            "present": true,
+            "selected": 3,
+            "token": 32
+          },
+          {
+            "advanced": true,
+            "cursor": 20,
+            "present": true,
+            "selected": 3,
+            "token": 106
+          },
+          {
+            "advanced": true,
+            "cursor": 21,
+            "present": true,
+            "selected": 3,
+            "token": 117
+          },
+          {
+            "advanced": true,
+            "cursor": 22,
+            "present": true,
+            "selected": 3,
+            "token": 109
+          },
+          {
+            "advanced": true,
+            "cursor": 23,
+            "present": true,
+            "selected": 3,
+            "token": 112
+          },
+          {
+            "advanced": true,
+            "cursor": 24,
+            "present": true,
+            "selected": 3,
+            "token": 115
+          },
+          {
+            "advanced": true,
+            "cursor": 25,
+            "present": true,
+            "selected": 3,
+            "token": 46
+          },
+          {
+            "advanced": false,
+            "cursor": 26,
+            "present": false,
+            "selected": 3,
+            "token": 256
+          }
+        ],
+        "tokens": [
+          116,
+          104,
+          101,
+          32,
+          113,
+          117,
+          105,
+          101,
+          116,
+          32,
+          121,
+          111,
+          117,
+          110,
+          103,
+          32,
+          111,
+          119,
+          108,
+          32,
+          106,
+          117,
+          109,
+          112,
+          115,
+          46,
+          256
+        ]
+      },
+      "actual_text": "the quiet young owl jumps.",
+      "answer": "the quiet young owl jumps.",
+      "artifact": "candidate",
+      "control": "Full",
+      "exact": true,
+      "family": "dev-0031",
+      "id": "dev-0031-a",
+      "query": [
+        70,
+        71
+      ],
+      "split": "development",
+      "records": [
+        {
+          "key": [
+            71,
+            70
+          ],
+          "text": [
+            116,
+            104,
+            101,
+            32,
+            98,
+            114,
+            105,
+            103,
+            104,
+            116,
+            32,
+            111,
+            116,
+            116,
+            101,
+            114,
+            32,
+            113,
+            117,
+            105,
+            101,
+            116,
+            108,
+            121,
+            32,
+            106,
+            117,
+            109,
+            112,
+            115,
+            33,
+            33
+          ]
+        },
+        {
+          "key": [
+            70,
+            72
+          ],
+          "text": [
+            116,
+            104,
+            101,
+            32,
+            98,
+            114,
+            105,
+            103,
+            104,
+            116,
+            32,
+            115,
+            109,
+            97,
+            108,
+            108,
+            32,
+            100,
+            111,
+            103,
+            32,
+            114,
+            117,
+            110,
+            115,
+            33
+          ]
+        },
+        {
+          "key": [
+            72,
+            72
+          ],
+          "text": [
+            116,
+            104,
+            101,
+            32,
+            106,
+            97,
+            122,
+            122,
+            121,
+            32,
+            104,
+            97,
+            112,
+            112,
+            121,
+            32,
+            99,
+            97,
+            116,
+            32,
+            114,
+            101,
+            115,
+            116,
+            115,
+            46
+          ]
+        },
+        {
+          "key": [
+            70,
+            71
+          ],
+          "text": [
+            116,
+            104,
+            101,
+            32,
+            113,
+            117,
+            105,
+            101,
+            116,
+            32,
+            121,
+            111,
+            117,
+            110,
+            103,
+            32,
+            111,
+            119,
+            108,
+            32,
+            106,
+            117,
+            109,
+            112,
+            115,
+            46
+          ]
+        }
+      ]
+    },
+    {
+      "actual": {
+        "exhausted": false,
+        "steps": [
+          {
+            "advanced": true,
+            "cursor": 0,
+            "present": true,
+            "selected": 3,
+            "token": 116
+          },
+          {
+            "advanced": true,
+            "cursor": 1,
+            "present": true,
+            "selected": 3,
+            "token": 104
+          },
+          {
+            "advanced": true,
+            "cursor": 2,
+            "present": true,
+            "selected": 3,
+            "token": 101
+          },
+          {
+            "advanced": true,
+            "cursor": 3,
+            "present": true,
+            "selected": 3,
+            "token": 32
+          },
+          {
+            "advanced": true,
+            "cursor": 4,
+            "present": true,
+            "selected": 3,
+            "token": 98
+          },
+          {
+            "advanced": true,
+            "cursor": 5,
+            "present": true,
+            "selected": 3,
+            "token": 114
+          },
+          {
+            "advanced": true,
+            "cursor": 6,
+            "present": true,
+            "selected": 3,
+            "token": 105
+          },
+          {
+            "advanced": true,
+            "cursor": 7,
+            "present": true,
+            "selected": 3,
+            "token": 103
+          },
+          {
+            "advanced": true,
+            "cursor": 8,
+            "present": true,
+            "selected": 3,
+            "token": 104
+          },
+          {
+            "advanced": true,
+            "cursor": 9,
+            "present": true,
+            "selected": 3,
+            "token": 116
+          },
+          {
+            "advanced": true,
+            "cursor": 10,
+            "present": true,
+            "selected": 3,
+            "token": 32
+          },
+          {
+            "advanced": true,
+            "cursor": 11,
+            "present": true,
+            "selected": 3,
+            "token": 111
+          },
+          {
+            "advanced": true,
+            "cursor": 12,
+            "present": true,
+            "selected": 3,
+            "token": 116
+          },
+          {
+            "advanced": true,
+            "cursor": 13,
+            "present": true,
+            "selected": 3,
+            "token": 116
+          },
+          {
+            "advanced": true,
+            "cursor": 14,
+            "present": true,
+            "selected": 3,
+            "token": 101
+          },
+          {
+            "advanced": true,
+            "cursor": 15,
+            "present": true,
+            "selected": 3,
+            "token": 114
+          },
+          {
+            "advanced": true,
+            "cursor": 16,
+            "present": true,
+            "selected": 3,
+            "token": 32
+          },
+          {
+            "advanced": true,
+            "cursor": 17,
+            "present": true,
+            "selected": 3,
+            "token": 113
+          },
+          {
+            "advanced": true,
+            "cursor": 18,
+            "present": true,
+            "selected": 3,
+            "token": 117
+          },
+          {
+            "advanced": true,
+            "cursor": 19,
+            "present": true,
+            "selected": 3,
+            "token": 105
+          },
+          {
+            "advanced": true,
+            "cursor": 20,
+            "present": true,
+            "selected": 3,
+            "token": 101
+          },
+          {
+            "advanced": true,
+            "cursor": 21,
+            "present": true,
+            "selected": 3,
+            "token": 116
+          },
+          {
+            "advanced": true,
+            "cursor": 22,
+            "present": true,
+            "selected": 3,
+            "token": 108
+          },
+          {
+            "advanced": true,
+            "cursor": 23,
+            "present": true,
+            "selected": 3,
+            "token": 121
+          },
+          {
+            "advanced": true,
+            "cursor": 24,
+            "present": true,
+            "selected": 3,
+            "token": 32
+          },
+          {
+            "advanced": true,
+            "cursor": 25,
+            "present": true,
+            "selected": 3,
+            "token": 106
+          },
+          {
+            "advanced": true,
+            "cursor": 26,
+            "present": true,
+            "selected": 3,
+            "token": 117
+          },
+          {
+            "advanced": true,
+            "cursor": 27,
+            "present": true,
+            "selected": 3,
+            "token": 109
+          },
+          {
+            "advanced": true,
+            "cursor": 28,
+            "present": true,
+            "selected": 3,
+            "token": 112
+          },
+          {
+            "advanced": true,
+            "cursor": 29,
+            "present": true,
+            "selected": 3,
+            "token": 115
+          },
+          {
+            "advanced": true,
+            "cursor": 30,
+            "present": true,
+            "selected": 3,
+            "token": 33
+          },
+          {
+            "advanced": true,
+            "cursor": 31,
+            "present": true,
+            "selected": 3,
+            "token": 33
+          },
+          {
+            "advanced": false,
+            "cursor": 32,
+            "present": false,
+            "selected": 3,
+            "token": 256
+          }
+        ],
+        "tokens": [
+          116,
+          104,
+          101,
+          32,
+          98,
+          114,
+          105,
+          103,
+          104,
+          116,
+          32,
+          111,
+          116,
+          116,
+          101,
+          114,
+          32,
+          113,
+          117,
+          105,
+          101,
+          116,
+          108,
+          121,
+          32,
+          106,
+          117,
+          109,
+          112,
+          115,
+          33,
+          33,
+          256
+        ]
+      },
+      "actual_text": "the bright otter quietly jumps!!",
+      "answer": "the bright otter quietly jumps!!",
+      "artifact": "candidate",
+      "control": "Full",
+      "exact": true,
+      "family": "dev-0031",
+      "id": "dev-0031-b",
+      "query": [
+        70,
+        71
+      ],
+      "split": "development",
+      "records": [
+        {
+          "key": [
+            71,
+            70
+          ],
+          "text": [
+            116,
+            104,
+            101,
+            32,
+            113,
+            117,
+            105,
+            101,
+            116,
+            32,
+            121,
+            111,
+            117,
+            110,
+            103,
+            32,
+            111,
+            119,
+            108,
+            32,
+            106,
+            117,
+            109,
+            112,
+            115,
+            46
+          ]
+        },
+        {
+          "key": [
+            70,
+            72
+          ],
+          "text": [
+            116,
+            104,
+            101,
+            32,
+            98,
+            114,
+            105,
+            103,
+            104,
+            116,
+            32,
+            115,
+            109,
+            97,
+            108,
+            108,
+            32,
+            100,
+            111,
+            103,
+            32,
+            114,
+            117,
+            110,
+            115,
+            33
+          ]
+        },
+        {
+          "key": [
+            72,
+            72
+          ],
+          "text": [
+            116,
+            104,
+            101,
+            32,
+            106,
+            97,
+            122,
+            122,
+            121,
+            32,
+            104,
+            97,
+            112,
+            112,
+            121,
+            32,
+            99,
+            97,
+            116,
+            32,
+            114,
+            101,
+            115,
+            116,
+            115,
+            46
+          ]
+        },
+        {
+          "key": [
+            70,
+            71
+          ],
+          "text": [
+            116,
+            104,
+            101,
+            32,
+            98,
+            114,
+            105,
+            103,
+            104,
+            116,
+            32,
+            111,
+            116,
+            116,
+            101,
+            114,
+            32,
+            113,
+            117,
+            105,
+            101,
+            116,
+            108,
+            121,
+            32,
+            106,
+            117,
+            109,
+            112,
+            115,
+            33,
+            33
+          ]
+        }
+      ]
+    }
+  ],
+  "verification": "Rust seal/verify executed at attempt completion; postflight full sets/sizes/SHA256 identities. Prior source and all report bytes reverified.",
+  "scope": "grounded variable-length text with fixed query/boundaries, learned byte/EOS and hold/advance; alternating teacher-position output-directed learning, not novel prose or joint end-to-end gradients"
+}

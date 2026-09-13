@@ -988,3 +988,6 @@ pub mod dependent_attention;
 
 /// Learned content-controlled geometric read loop.
 pub mod adaptive_attention;
+
+/// Grounded variable-length text with emitted-byte feedback.
+pub mod text_attention;
