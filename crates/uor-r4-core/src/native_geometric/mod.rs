@@ -152,6 +152,8 @@ use serde::{Deserialize, Serialize};
 
 /// Isolated primitive experiment; no retained dispatch change.
 pub mod addressed_attention;
+/// Experimental bounded Hamming reads and contextual refinement.
+pub mod hamming_refinement;
 /// Experimental shared state/access/emission kernel; never an implicit fallback.
 pub mod shared_core;
 
