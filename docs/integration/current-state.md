@@ -1,5 +1,17 @@
 # Current native geometric AI work
 
+## Relative language binding — September 13, 2026
+
+**PASS_RELATIVE_LANGUAGE_BINDING.** [Result](../native_geometric_relative_language_973.md) and [evidence](../evidence/native_geometric_relative_language_973.json). Corrected candidate gives768/768development answers and exact occurrences: lexical, syntactic-component and joint panels256/256each; all48families complete; training2048/2048. Four times prior training rows; sentences4–7words/questions4–8. Two learned relative match-topology rules reuse the same recurrent writer, replacing fixed absolute word positions. This is new combinations of familiar active components, not unseen grammar families or general prose. Retain15baec48; no promotion.
+
+First attempt failed at384/768 because distinct role-reversed match paths shared all16features. Training-only diagnosis exposed the erased endpoint; schema2 adds generic match endpoint correspondence and permits4literal conjunctions. Identical data and existing behavior thresholds; separate preserved fits/sources/binaries. EndpointDisabled returns384/768; other required read/coverage/order/position/writer controls0. ExactIdentity, FinalRootOnly and FeedbackDisabled each768/768: no new metric/full-prefix or feedback advantage. Final held-out NOT_RUN. Candidate4e3d4da1fb39425b30007b1e00c16a520f860c8dd8d3257a0787f99144ada9e9.
+
+All13248old outputs,512recurrent traces,640ordered controls and1408language controls remain identical. New selector restores128/128old language examples. Four new plus27retained focused tests pass;768new Full trajectories reload. All42earlier sealedroots/1137files and original dirtycheckouts preserved.
+
+**Current next action:** Integrate learned raw-language binding with the existing dependent-read/query-update path on bounded two-relation composition. The selected intermediate value must change the next actual source and final generated answer. Train from final output, with no gold intermediate answer or source path; use first-source/read/update-disabled controls and retain current transfer/old behavior. Make query formation and supplied boundaries explicit. No broad audit, isolated metric panel, V3–V7/old-fit replay or parked repair restart.
+
+Charge416147/2400000ms; shared126490980/132950000ms; parent6740407/8910000ms. Parent allowance extended1200000ms before execution under standing authorization, shared ceiling unchanged; no paid compute or cleanup. Worktree /Users/casey.allard/uor-r4-worktrees/shared-geometric-core, branch codex/relative-language-binding, base618632e455357d01b36e03a84309bd40d97f46fe. Exact artifacts/resources/delivery/restart: .uor-handoff/2026-09-12-codex-v7/shared-core-first-step/relative-language-1/. #973 assigned/open; #964/#820 open. Older next sections below are historical.
+
 ## Learned contextual language relation — September 13, 2026
 
 **PASS_CONTEXTUAL_LANGUAGE_RELATION.** [Result](../native_geometric_language_relation_973.md) and [evidence](../evidence/native_geometric_language_relation_973.json). One fit gives 128/128 development answers and exact source/word occurrences, eight complete intervention families and 512/512 training. Development names, verbs and answer strings are absent from training; grammatical forms are shared. Initialization, read/scorer/order/relation-position/candidate-position/cursor/stop interventions yield zero complete answers. Candidate SHA256 `d1883e09fade8c5337fb604bf6af74556b0f18decdf745ba68bc832a9e4a74ce`; retain `15baec48`, no promotion.

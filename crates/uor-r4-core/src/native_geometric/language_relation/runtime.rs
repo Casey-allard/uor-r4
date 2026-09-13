@@ -307,13 +307,28 @@ pub fn generate(
             return Err(Error::Shape);
         }
     }
+    generate_with_route(a, g, question, c, |q| route(a, g, m, records, q, c))
+}
+/// Shared lexical recurrence. Adapters provide contextual routing; writer, cursor,
+/// emitted-content state update, EOS and control execution remain identical.
+pub fn generate_with_route<F>(
+    a: &Artifact,
+    g: &BoundGeometry,
+    question: &[u8],
+    c: Control,
+    mut router: F,
+) -> Result<Generated>
+where
+    F: FnMut(&[u8]) -> Result<Route>,
+{
+    a.validate(g)?;
     let core = a.recurrent();
     let mut s = State::new(Query::new(g, question, a.parent.operators)?);
     let mut tokens = Vec::new();
     let mut steps = Vec::new();
     let mut routes = Vec::new();
     for _ in 0..recurrent::MAX_STEPS {
-        let r = route(a, g, m, records, &s.query.bytes, c)?;
+        let r = router(&s.query.bytes)?;
         let value = r
             .selected
             .as_ref()
@@ -336,7 +351,7 @@ pub fn generate(
         } else {
             s.pending.clone()
         };
-        let next = route(a, g, m, records, &next_query.bytes, c)?;
+        let next = router(&next_query.bytes)?;
         let row = usize::from(byte)
             + 256 * usize::from(present)
             + 512
