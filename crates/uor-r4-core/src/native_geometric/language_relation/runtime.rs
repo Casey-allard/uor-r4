@@ -316,6 +316,26 @@ pub fn generate_with_route<F>(
     g: &BoundGeometry,
     question: &[u8],
     c: Control,
+    router: F,
+) -> Result<Generated>
+where
+    F: FnMut(&[u8]) -> Result<Route>,
+{
+    a.validate(g)?;
+    generate_from_state(
+        a,
+        g,
+        State::new(Query::new(g, question, a.parent.operators)?),
+        c,
+        router,
+    )
+}
+/// Resume the same state after a typed silent Read; do not reset read history.
+pub fn generate_from_state<F>(
+    a: &Artifact,
+    g: &BoundGeometry,
+    mut s: State<Query>,
+    c: Control,
     mut router: F,
 ) -> Result<Generated>
 where
@@ -323,7 +343,6 @@ where
 {
     a.validate(g)?;
     let core = a.recurrent();
-    let mut s = State::new(Query::new(g, question, a.parent.operators)?);
     let mut tokens = Vec::new();
     let mut steps = Vec::new();
     let mut routes = Vec::new();

@@ -999,3 +999,5 @@ pub mod language_relation;
 pub mod ordered_state;
 
 pub mod relative_language;
+
+pub mod dependent_language;
