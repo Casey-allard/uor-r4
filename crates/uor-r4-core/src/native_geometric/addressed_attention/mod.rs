@@ -2,7 +2,8 @@
 //!
 //! Runtime geometry, circuits and objects use integer/table operations. `training`,
 //! `offline`, and parameter/sampled policies are offline floating-point boundaries.
-//! Corpus fitting and retained-model dispatch remain unimplemented.
+//! Bounded pilot training exists; broad language qualification and retained-model
+//! dispatch remain unfinished.
 pub mod circuit;
 pub mod inputs;
 pub mod objects;
@@ -16,3 +17,8 @@ pub mod policy;
 pub mod learner;
 pub mod pilot;
 pub mod pilot_data;
+
+pub mod stability;
+#[cfg(test)]
+mod stability_report;
+pub mod stability_stats;
