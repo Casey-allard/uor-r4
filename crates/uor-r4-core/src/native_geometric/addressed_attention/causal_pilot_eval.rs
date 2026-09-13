@@ -1,0 +1,525 @@
+//! Metered, opt-in evaluation of a saved causal-credit pilot; never fits a model.
+use super::{
+    artifact::Model,
+    causal_pilot::{claim_output, load_checkpoint, seal_result, write_json},
+    circuit::PrimitiveExport,
+    engine::RuntimeSession,
+    objects::Symbol,
+    pilot::{self, Control, EvaluationRow, CONTROLS},
+    pilot_data::{self, Example},
+    policy::{CompiledPolicy, InterpretedPolicy},
+};
+use crate::report_output;
+use serde::{Deserialize, Serialize};
+use std::{fs, path::Path, time::Instant};
+type TestResult<T = ()> = std::result::Result<T, Box<dyn std::error::Error>>;
+
+// A local reader for the retained Serialize-only schema. Production and old
+// evidence source remain unchanged; no unknown field is silently discarded.
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SavedRow {
+    id: String,
+    family: String,
+    control: Control,
+    prompt: Vec<u8>,
+    expected: Vec<u8>,
+    expected_scalar: Option<i64>,
+    predictions: Vec<u16>,
+    generated: Vec<u16>,
+    response_ce: f64,
+    correct_symbols: usize,
+    positions: usize,
+    exact_response_and_eos: bool,
+    generated_eos: bool,
+    candidate_scores: u64,
+    circuit_calls: u64,
+    selected_reads: u64,
+    trace_digest: String,
+    first_generated_state_digest: String,
+}
+impl SavedRow {
+    fn into_row(self) -> EvaluationRow {
+        EvaluationRow {
+            id: self.id,
+            family: self.family,
+            control: self.control,
+            prompt: self.prompt,
+            expected: self.expected,
+            expected_scalar: self.expected_scalar,
+            predictions: self.predictions,
+            generated: self.generated,
+            response_ce: self.response_ce,
+            correct_symbols: self.correct_symbols,
+            positions: self.positions,
+            exact_response_and_eos: self.exact_response_and_eos,
+            generated_eos: self.generated_eos,
+            candidate_scores: self.candidate_scores,
+            circuit_calls: self.circuit_calls,
+            selected_reads: self.selected_reads,
+            trace_digest: self.trace_digest,
+            first_generated_state_digest: self.first_generated_state_digest,
+        }
+    }
+}
+fn check_rows(rows: &[EvaluationRow], examples: &[Example], control: Control) -> TestResult {
+    if rows.len() != examples.len() || rows.is_empty() {
+        return Err("saved evaluation row count".into());
+    }
+    for (row, example) in rows.iter().zip(examples) {
+        let targets: Vec<u16> = example
+            .answer
+            .iter()
+            .map(|&v| u16::from(v))
+            .chain([256])
+            .collect();
+        if row.id != example.id
+            || row.family != example.family
+            || row.control != control
+            || row.prompt != example.prompt
+            || row.expected != example.answer
+            || row.expected_scalar != example.expected_scalar
+            || row.positions != targets.len()
+            || row.predictions.len() != targets.len()
+            || row.predictions.iter().any(|&v| v > 256)
+            || row.generated.is_empty()
+            || row.generated.len() > 64
+            || row.generated.iter().any(|&v| v > 256)
+            || row
+                .generated
+                .iter()
+                .take(row.generated.len() - 1)
+                .any(|&v| v == 256)
+            || row.generated_eos != (row.generated.last() == Some(&256))
+            || row.exact_response_and_eos != (row.generated == targets)
+            || row.correct_symbols
+                != row
+                    .predictions
+                    .iter()
+                    .zip(&targets)
+                    .filter(|(a, b)| a == b)
+                    .count()
+            || !row.response_ce.is_finite()
+            || row.response_ce < 0.0
+        {
+            return Err("saved evaluation identity/targets/metrics mismatch".into());
+        }
+    }
+    Ok(())
+}
+fn load_rows(root: &Path, name: &str, examples: &[Example]) -> TestResult<Vec<EvaluationRow>> {
+    let rows: Vec<SavedRow> = serde_json::from_slice(&fs::read(root.join(name))?)?;
+    let rows: Vec<_> = rows.into_iter().map(SavedRow::into_row).collect();
+    check_rows(&rows, examples, Control::Full)?;
+    Ok(rows)
+}
+const INITIAL_CE_TOLERANCE: f64 = 2e-14;
+fn initialized_parity(old: &[EvaluationRow], new: &[EvaluationRow]) -> TestResult {
+    if old.len() != new.len() {
+        return Err("initialized evaluation row count".into());
+    }
+    for (old, new) in old.iter().zip(new) {
+        if !old.response_ce.is_finite()
+            || !new.response_ce.is_finite()
+            || (old.response_ce - new.response_ce).abs() > INITIAL_CE_TOLERANCE
+        {
+            return Err("initialized evaluation CE tolerance".into());
+        }
+        let mut old_value = serde_json::to_value(old)?;
+        let mut new_value = serde_json::to_value(new)?;
+        // Only saved JSON CE may incur float round-trip noise. Every symbol,
+        // count, identity, generated byte and trace digest must remain exact.
+        old_value["response_ce"] = serde_json::json!(0);
+        new_value["response_ce"] = serde_json::json!(0);
+        if old_value != new_value {
+            return Err("initialized evaluation exact nonfloat parity".into());
+        }
+    }
+    Ok(())
+}
+#[derive(Debug, Serialize)]
+struct SymbolComparison {
+    position: usize,
+    target: u16,
+    old: u16,
+    new: u16,
+    old_correct: bool,
+    new_correct: bool,
+}
+#[derive(Debug, Serialize)]
+struct RowComparison {
+    id: String,
+    control: Control,
+    old_response_ce: f64,
+    new_response_ce: f64,
+    old_exact: bool,
+    new_exact: bool,
+    old_generated: Vec<u16>,
+    new_generated: Vec<u16>,
+    symbols: Vec<SymbolComparison>,
+    lost_correct_symbols: usize,
+    lost_exact_response: bool,
+}
+#[derive(Debug, Serialize)]
+struct Retention {
+    lost_correct_symbols: usize,
+    lost_exact_responses: usize,
+    rows: Vec<RowComparison>,
+}
+impl Retention {
+    fn preserved(&self) -> bool {
+        self.lost_correct_symbols == 0 && self.lost_exact_responses == 0
+    }
+}
+fn compare_rows(old: &[EvaluationRow], new: &[EvaluationRow]) -> TestResult<Retention> {
+    if old.len() != new.len() || old.is_empty() {
+        return Err("retention row count".into());
+    }
+    let mut result = Retention {
+        lost_correct_symbols: 0,
+        lost_exact_responses: 0,
+        rows: Vec::new(),
+    };
+    for (old, new) in old.iter().zip(new) {
+        if old.id != new.id
+            || old.family != new.family
+            || old.control != new.control
+            || old.prompt != new.prompt
+            || old.expected != new.expected
+            || old.expected_scalar != new.expected_scalar
+            || old.predictions.len() != new.predictions.len()
+            || old.predictions.len() != old.expected.len() + 1
+        {
+            return Err("retention row identity".into());
+        }
+        let symbols: Vec<_> = old
+            .predictions
+            .iter()
+            .zip(&new.predictions)
+            .zip(old.expected.iter().map(|&v| u16::from(v)).chain([256]))
+            .enumerate()
+            .map(|(position, ((&a, &b), target))| SymbolComparison {
+                position,
+                target,
+                old: a,
+                new: b,
+                old_correct: a == target,
+                new_correct: b == target,
+            })
+            .collect();
+        let lost = symbols
+            .iter()
+            .filter(|s| s.old_correct && !s.new_correct)
+            .count();
+        let lost_exact = old.exact_response_and_eos && !new.exact_response_and_eos;
+        result.lost_correct_symbols += lost;
+        result.lost_exact_responses += usize::from(lost_exact);
+        result.rows.push(RowComparison {
+            id: old.id.clone(),
+            control: old.control,
+            old_response_ce: old.response_ce,
+            new_response_ce: new.response_ce,
+            old_exact: old.exact_response_and_eos,
+            new_exact: new.exact_response_and_eos,
+            old_generated: old.generated.clone(),
+            new_generated: new.generated.clone(),
+            symbols,
+            lost_correct_symbols: lost,
+            lost_exact_response: lost_exact,
+        });
+    }
+    Ok(result)
+}
+fn symbol(target: u16) -> TestResult<Symbol> {
+    match target {
+        0..=255 => Ok(Symbol::Byte(target as u8)),
+        256 => Ok(Symbol::Eos),
+        _ => Err("evaluation symbol".into()),
+    }
+}
+
+#[test]
+#[ignore = "saved causal fit evaluation; exclusive report root and recorded allowance required"]
+fn causal_pilot_evaluation_report() -> TestResult {
+    let path = std::env::var("UOR_CAUSAL_PILOT_REPORT")?;
+    let fit_path = std::env::var("UOR_CAUSAL_PILOT_FIT")?;
+    let old_path = std::env::var("UOR_CAUSAL_PILOT_OLD_EVAL")?;
+    let root = Path::new(&path);
+    claim_output(root)?;
+    let result = (|| -> TestResult {
+        let started = Instant::now();
+        let fit = Path::new(&fit_path).canonicalize()?;
+        let old_root = Path::new(&old_path).canonicalize()?;
+        report_output::verify(&fit)?;
+        report_output::verify(&old_root)?;
+        pilot_data::validate()?;
+        let fit_summary: serde_json::Value =
+            serde_json::from_slice(&fs::read(fit.join("fit-summary.json"))?)?;
+        if fit_summary["updates"] != 64 {
+            return Err("causal pilot64updates not completed".into());
+        }
+        let old_summary: serde_json::Value =
+            serde_json::from_slice(&fs::read(old_root.join("summary.json"))?)?;
+        if old_summary["status"] != "FAIL_ADDRESSED_ATTENTION_LEARNING_PILOT" {
+            return Err("unexpected retained old pilot status".into());
+        }
+        let initial = load_checkpoint(&fit, "initial-parameters.bin", 0)?;
+        let final_cp = load_checkpoint(&fit, "final-parameters.bin", 64)?;
+        if old_summary["initial_parameter_digest"] != hex::encode(initial.parameters.digest()) {
+            return Err("retained initial parameter binding".into());
+        }
+        let base = Model::decode(&fs::read(fit.join("parent-initialized-model.bin"))?)?;
+        let train: Vec<Example> = serde_json::from_slice(&fs::read(fit.join("training.json"))?)?;
+        let dev: Vec<Example> = serde_json::from_slice(&fs::read(fit.join("development.json"))?)?;
+        if train != pilot_data::training() || dev != pilot_data::development() {
+            return Err("frozen pilot data".into());
+        }
+        let initial_export = PrimitiveExport::decode(&fs::read(fit.join("initial-compiled.bin"))?)?;
+        let final_export = PrimitiveExport::decode(&fs::read(fit.join("final-compiled.bin"))?)?;
+        if initial_export != initial.parameters.compile()?
+            || final_export != final_cp.parameters.compile()?
+            || base.compiled() != &initial_export
+            || base.provenance().parameter_digest != initial.parameters.digest()
+        {
+            return Err("causal checkpoint/export/parent binding".into());
+        }
+
+        // Check the complete predicted and observed trace for every fixed record.
+        for (index, example) in train.iter().chain(&dev).enumerate() {
+            let mut a = RuntimeSession::new(
+                final_cp.parameters.digest(),
+                base.geometry(),
+                index as u64 + 1,
+            )?;
+            let mut b = a.clone();
+            let mut cp = CompiledPolicy {
+                compiled: &final_export,
+            };
+            let mut ip = InterpretedPolicy {
+                parameters: &final_cp.parameters,
+            };
+            for target in pilot::document(example) {
+                let x = a.predict(base.geometry(), &mut cp)?;
+                let y = b.predict(base.geometry(), &mut ip)?;
+                if x != y
+                    || a.observe(symbol(target)?, x.offer.id, base.geometry(), &mut cp)?
+                        != b.observe(symbol(target)?, y.offer.id, base.geometry(), &mut ip)?
+                {
+                    return Err("causal full interpreter/export trace parity".into());
+                }
+            }
+        }
+        let old_init_train = load_rows(&old_root, "initial-training.json", &train)?;
+        let old_init_dev = load_rows(&old_root, "initial-development.json", &dev)?;
+        let old_final_train = load_rows(&old_root, "final-training.json", &train)?;
+        let old_final_dev = load_rows(&old_root, "final-development.json", &dev)?;
+        let init_train = pilot::evaluate(
+            &initial.parameters,
+            &initial_export,
+            base.geometry(),
+            &train,
+            Control::Full,
+        )?;
+        let init_dev = pilot::evaluate(
+            &initial.parameters,
+            &initial_export,
+            base.geometry(),
+            &dev,
+            Control::Full,
+        )?;
+        initialized_parity(&old_init_train, &init_train)?;
+        initialized_parity(&old_init_dev, &init_dev)?;
+        let final_train = pilot::evaluate(
+            &final_cp.parameters,
+            &final_export,
+            base.geometry(),
+            &train,
+            Control::Full,
+        )?;
+        let final_dev = pilot::evaluate(
+            &final_cp.parameters,
+            &final_export,
+            base.geometry(),
+            &dev,
+            Control::Full,
+        )?;
+        let mut arms = Vec::new();
+        for &control in &CONTROLS[1..] {
+            arms.push(pilot::evaluate(
+                &final_cp.parameters,
+                &final_export,
+                base.geometry(),
+                &dev,
+                control,
+            )?);
+        }
+        let mut decision = pilot::decision(&init_dev, &final_dev, &arms)?;
+        let init_train_retention = compare_rows(&old_init_train, &final_train)?;
+        let init_dev_retention = compare_rows(&old_init_dev, &final_dev)?;
+        let final_train_retention = compare_rows(&old_final_train, &final_train)?;
+        let final_dev_retention = compare_rows(&old_final_dev, &final_dev)?;
+        let retained = [
+            &init_train_retention,
+            &init_dev_retention,
+            &final_train_retention,
+            &final_dev_retention,
+        ]
+        .iter()
+        .all(|r| r.preserved());
+        let saved_controls: Vec<Vec<SavedRow>> =
+            serde_json::from_slice(&fs::read(old_root.join("controls.json"))?)?;
+        if saved_controls.len() != 3 {
+            return Err("retained control count".into());
+        }
+        let mut control_comparisons = Vec::new();
+        for ((saved, new), &control) in saved_controls.into_iter().zip(&arms).zip(&CONTROLS[1..]) {
+            let saved: Vec<_> = saved.into_iter().map(SavedRow::into_row).collect();
+            check_rows(&saved, &dev, control)?;
+            control_comparisons.push(compare_rows(&saved, new)?);
+        }
+        write_json(root, "initial-training.json", &init_train)?;
+        write_json(root, "initial-development.json", &init_dev)?;
+        write_json(root, "final-training.json", &final_train)?;
+        write_json(root, "final-development.json", &final_dev)?;
+        write_json(root, "controls.json", &arms)?;
+        write_json(
+            root,
+            "retention.json",
+            &serde_json::json!({
+            "old_initial_training_to_new_final":init_train_retention,"old_initial_development_to_new_final":init_dev_retention,
+            "old_final_training_to_new_final":final_train_retention,"old_final_development_to_new_final":final_dev_retention,
+            "all_full_correct_symbols_and_exact_responses_preserved":retained,
+            "matched_old_final_controls_to_new_controls":control_comparisons,
+            "control_retention_scope":"descriptive comparison; disabled arms are causal comparators, not successful-behavior retention gates"}),
+        )?;
+        let metrics = serde_json::json!({"initial_training":pilot::metrics(&init_train),"final_training":pilot::metrics(&final_train),
+            "initial_development":pilot::metrics(&init_dev),"final_development":pilot::metrics(&final_dev),
+            "old_final_training":pilot::metrics(&old_final_train),"old_final_development":pilot::metrics(&old_final_dev),
+            "controls":arms.iter().map(|r|serde_json::json!({"control":r[0].control,"metrics":pilot::metrics(r)})).collect::<Vec<_>>()});
+        write_json(root, "metrics.json", &metrics)?;
+        let mut programs = Vec::new();
+        for (index, row) in final_dev
+            .iter()
+            .enumerate()
+            .filter(|(_, r)| r.expected_scalar.is_some())
+        {
+            let actual: Vec<u8> = row
+                .generated
+                .iter()
+                .copied()
+                .take_while(|&v| v != 256)
+                .map(|v| v as u8)
+                .collect();
+            let filename = format!("generated-{index}.rs");
+            fs::write(root.join(&filename), &actual)?;
+            let mut record = serde_json::json!({"id":row.id,"source":filename,"status":"NOT_EXECUTED_OUTSIDE_FROZEN_PURE_PROGRAM_GRAMMAR","expected":row.expected_scalar});
+            if actual == row.expected && row.generated_eos {
+                let bin = root.join(format!("generated-{index}"));
+                let output = std::process::Command::new("/Users/casey.allard/.cargo/bin/rustc")
+                    .arg(root.join(&filename))
+                    .args(["--crate-name", "pilot_generated", "-o"])
+                    .arg(&bin)
+                    .output()?;
+                fs::write(
+                    root.join(format!("generated-{index}-compile.stderr")),
+                    &output.stderr,
+                )?;
+                if output.status.success() {
+                    let run = std::process::Command::new(&bin).output()?;
+                    let expected = format!("{}\n", row.expected_scalar.ok_or("scalar intent")?);
+                    record["status"] = if run.status.success() && run.stdout == expected.as_bytes()
+                    {
+                        "PASS_GENERATED_PROGRAM_SEMANTICS".into()
+                    } else {
+                        "FAIL_GENERATED_PROGRAM_SEMANTICS".into()
+                    };
+                    record["stdout"] = String::from_utf8_lossy(&run.stdout).to_string().into();
+                } else {
+                    record["status"] = "FAIL_GENERATED_PROGRAM_COMPILATION".into();
+                }
+            }
+            programs.push(record);
+        }
+        let code_semantics = programs
+            .iter()
+            .any(|p| p["status"] == "PASS_GENERATED_PROGRAM_SEMANTICS")
+            && !programs.iter().any(|p| {
+                p["status"] == "FAIL_GENERATED_PROGRAM_SEMANTICS"
+                    || p["status"] == "FAIL_GENERATED_PROGRAM_COMPILATION"
+            });
+        if !code_semantics || !retained {
+            decision.status = "FAIL_ADDRESSED_ATTENTION_LEARNING_PILOT";
+        }
+        write_json(root, "program-semantics.json", &programs)?;
+        write_json(
+            root,
+            "summary.json",
+            &serde_json::json!({"status":decision.status,"decision":decision,
+            "generated_code_semantics":code_semantics,"retained_full_rows":retained,"metrics":metrics,
+            "old_status":old_summary["status"],"old_final_parameter_digest":old_summary["final_parameter_digest"],
+            "initial_parameter_digest":hex::encode(initial.parameters.digest()),"final_parameter_digest":hex::encode(final_cp.parameters.digest()),
+            "loaded_checkpoint_export_parity":true,"parity_records":train.len()+dev.len(),
+            "initialized_evaluation_exact_nonfloat_parity":true,"initialized_response_ce_absolute_tolerance":INITIAL_CE_TOLERANCE,
+            "evaluation_us":started.elapsed().as_micros(),"fit_calls":0,"old_fit_calls":0,"promotion":false,
+            "general_language_coding":"NOT_QUALIFIED","estimator":"causal suffix same-boundary independent LOO",
+            "source_fit_root":fit,"source_old_evaluation_root":old_root,
+            "evaluation_source":blake3::hash(include_bytes!("causal_pilot_eval.rs")).to_hex().to_string()}),
+        )?;
+        report_output::verify(&fit)?;
+        report_output::verify(&old_root)?;
+        println!("{}", decision.status);
+        Ok(())
+    })();
+    seal_result(root, result)
+}
+
+#[test]
+fn causal_pilot_retention_detects_symbol_and_generation_losses_independently() -> TestResult {
+    fn row(predictions: Vec<u16>, generated: Vec<u16>) -> EvaluationRow {
+        EvaluationRow {
+            id: "dev/test".into(),
+            family: "memory".into(),
+            control: Control::Full,
+            prompt: b"Q".to_vec(),
+            expected: b"A".to_vec(),
+            expected_scalar: None,
+            correct_symbols: predictions
+                .iter()
+                .zip([65, 256])
+                .filter(|(a, b)| **a == *b)
+                .count(),
+            positions: 2,
+            predictions,
+            exact_response_and_eos: generated == [65, 256],
+            generated_eos: generated.last() == Some(&256),
+            generated,
+            response_ce: 1.0,
+            candidate_scores: 0,
+            circuit_calls: 0,
+            selected_reads: 0,
+            trace_digest: String::new(),
+            first_generated_state_digest: String::new(),
+        }
+    }
+    let old = [row(vec![65, 256], vec![65, 256])];
+    let symbol_loss = compare_rows(&old, &[row(vec![65, 64], vec![65, 256])])?;
+    assert_eq!(symbol_loss.lost_correct_symbols, 1);
+    assert_eq!(symbol_loss.lost_exact_responses, 0);
+    assert!(!symbol_loss.preserved());
+    let generation_loss = compare_rows(&old, &[row(vec![65, 256], vec![65, 64])])?;
+    assert_eq!(generation_loss.lost_correct_symbols, 0);
+    assert_eq!(generation_loss.lost_exact_responses, 1);
+    assert!(!generation_loss.preserved());
+    assert!(compare_rows(&old, &old)?.preserved());
+    let mut rounding = row(vec![65, 256], vec![65, 256]);
+    rounding.response_ce += 1e-14;
+    initialized_parity(&old, &[rounding])?;
+    let mut changed_ce = row(vec![65, 256], vec![65, 256]);
+    changed_ce.response_ce += 1e-10;
+    assert!(initialized_parity(&old, &[changed_ce]).is_err());
+    assert!(initialized_parity(&old, &[row(vec![65, 64], vec![65, 256])]).is_err());
+    let mut wrong_identity = row(vec![65, 256], vec![65, 256]);
+    wrong_identity.prompt = b"changed".to_vec();
+    assert!(compare_rows(&old, &[wrong_identity]).is_err());
+    Ok(())
+}
