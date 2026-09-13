@@ -148,6 +148,9 @@ pub struct Offer {
     active: Option<ActiveLease>,
 }
 impl Offer {
+    pub fn operands(&self) -> [Option<Lease>; 2] {
+        self.operands
+    }
     pub fn active(&self) -> Option<&ActiveLease> {
         self.active.as_ref()
     }
@@ -156,6 +159,38 @@ impl Offer {
 struct AwaitingKey {
     byte: u8,
     ready: Option<Derivation>,
+}
+
+/// Per-frontier capability: exact operands decoded once after both reads.
+#[derive(Debug, Clone, Copy)]
+pub struct PreparedOperands {
+    stamp: [u64; 4],
+    operands: [Option<Lease>; 2],
+    values: [Option<i64>; 2],
+    legal: [bool; 7],
+}
+impl PreparedOperands {
+    pub fn numeric_valid(&self) -> [bool; 2] {
+        self.values.map(|v| v.is_some())
+    }
+    pub fn legal(&self) -> [bool; 7] {
+        self.legal
+    }
+    pub fn scalar_decodes(&self) -> u8 {
+        self.operands.iter().flatten().count() as u8
+    }
+}
+#[derive(Debug, Clone, Copy)]
+pub struct PreparedAction {
+    stamp: [u64; 4],
+    action: Action,
+    operands: [Option<Lease>; 2],
+    active: Option<ActiveLease>,
+}
+impl PreparedAction {
+    pub fn active(&self) -> Option<&ActiveLease> {
+        self.active.as_ref()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -176,6 +211,151 @@ pub struct ObjectSession {
     awaiting_key: Option<AwaitingKey>,
 }
 impl ObjectSession {
+    fn preparation_stamp(&self) -> [u64; 4] {
+        [self.epoch, self.turn, self.seen, self.next_offer]
+    }
+    fn prepared_stamp(&self, stamp: [u64; 4]) -> Result<()> {
+        if self.preparation_stamp() != stamp
+            || self.pending.is_some()
+            || self.awaiting_key.is_some()
+        {
+            Err(ObjectError::OfferConflict)
+        } else {
+            Ok(())
+        }
+    }
+    pub fn prepare_operands(&self, a: Option<Lease>, b: Option<Lease>) -> Result<PreparedOperands> {
+        self.prepared_stamp(self.preparation_stamp())?;
+        for l in [a, b].iter().flatten() {
+            self.check_owned(l)?;
+        }
+        let values = [a, b].map(|l| l.and_then(|l| decode_i64(l.payload()).ok()));
+        let mut legal = [true, a.is_some(), b.is_some(), false, false, false, true];
+        if self.publications < 2 && self.next_result < u64::MAX {
+            if let [Some(a), Some(b)] = values {
+                // Overflow masks use sign-bounded comparisons; no candidate
+                // result is computed before the learned operator is selected.
+                legal[3] = if b > 0 {
+                    a <= i64::MAX - b
+                } else if b < 0 {
+                    a >= i64::MIN - b
+                } else {
+                    true
+                };
+                legal[4] = if b > 0 {
+                    a >= i64::MIN + b
+                } else if b < 0 {
+                    a <= i64::MAX + b
+                } else {
+                    true
+                };
+            }
+        }
+        legal[5] = self
+            .active
+            .is_some_and(|a| a.acknowledged && a.cursor + 1 < a.lease.len);
+        Ok(PreparedOperands {
+            stamp: self.preparation_stamp(),
+            operands: [a, b],
+            values,
+            legal,
+        })
+    }
+    pub fn prepare_action(
+        &self,
+        prepared: PreparedOperands,
+        action: Action,
+    ) -> Result<PreparedAction> {
+        self.prepared_stamp(prepared.stamp)?;
+        if !prepared.legal[usize::from(action_byte(action))] {
+            return Err(ObjectError::IllegalAction);
+        }
+        let active = match action {
+            Action::Hold => self.active,
+            Action::Clear => None,
+            Action::AcquireA | Action::AcquireB => {
+                let i = usize::from(action == Action::AcquireB);
+                Some(ActiveLease {
+                    lease: prepared.operands[i].ok_or(ObjectError::IllegalAction)?,
+                    cursor: 0,
+                    acknowledged: false,
+                    provisional: None,
+                })
+            }
+            Action::Advance => {
+                let mut a = self.active.ok_or(ObjectError::IllegalAction)?;
+                a.cursor += 1;
+                a.acknowledged = false;
+                Some(a)
+            }
+            Action::AddAB | Action::SubAB => {
+                let values = [
+                    prepared.values[0].ok_or(ObjectError::IllegalAction)?,
+                    prepared.values[1].ok_or(ObjectError::IllegalAction)?,
+                ];
+                let operands = [
+                    prepared.operands[0]
+                        .ok_or(ObjectError::IllegalAction)?
+                        .reference,
+                    prepared.operands[1]
+                        .ok_or(ObjectError::IllegalAction)?
+                        .reference,
+                ];
+                let value = execute(action, values[0], values[1])?;
+                let (bytes, len) = encode_i64(value);
+                let derivation = Derivation {
+                    id: self.next_result,
+                    action,
+                    operands,
+                    operand_values: values,
+                    value,
+                };
+                Some(ActiveLease {
+                    lease: Lease {
+                        reference: Reference::Result {
+                            epoch: self.epoch,
+                            id: self.next_result,
+                        },
+                        bytes,
+                        len,
+                        keys: [0; 2],
+                        roots: [0; 4],
+                    },
+                    cursor: 0,
+                    acknowledged: false,
+                    provisional: Some(derivation),
+                })
+            }
+        };
+        Ok(PreparedAction {
+            stamp: prepared.stamp,
+            action,
+            operands: prepared.operands,
+            active,
+        })
+    }
+    pub fn cache_prepared_offer(
+        &mut self,
+        symbol: Symbol,
+        prepared: PreparedAction,
+    ) -> Result<Offer> {
+        self.prepared_stamp(prepared.stamp)?;
+        if self.next_offer == u64::MAX {
+            return Err(ObjectError::Exhausted);
+        }
+        let offer = Offer {
+            id: self.next_offer,
+            epoch: self.epoch,
+            frontier: self.seen,
+            turn: self.turn,
+            symbol,
+            action: prepared.action,
+            operands: prepared.operands,
+            active: prepared.active,
+        };
+        self.pending = Some(offer);
+        Ok(offer)
+    }
     /// `epoch` is a host-assigned non-reused session namespace. Independent
     /// sessions that exchange leases must never share an epoch. After complete
     /// source eviction the owned bytes are authoritative, so no retained source
@@ -218,6 +398,35 @@ impl ObjectSession {
     }
     pub fn publications_this_turn(&self) -> u8 {
         self.publications
+    }
+    pub fn result_frontier(&self) -> u64 {
+        self.next_result
+    }
+    /// Check contiguous metadata once before the single selected payload copy.
+    pub fn maximum_extent(&self, epoch: u64, start: u64) -> Result<u8> {
+        let first = self.occurrence(epoch, start)?;
+        let mut length = 0;
+        while length < 64 {
+            let Some(sequence) = start.checked_add(u64::from(length)) else {
+                break;
+            };
+            let Ok(entry) = self.occurrence(epoch, sequence) else {
+                break;
+            };
+            if entry.turn != first.turn || entry.origin != first.origin {
+                break;
+            }
+            length += 1;
+        }
+        Ok(length)
+    }
+    pub fn prospective_active(
+        &self,
+        action: Action,
+        a: Option<Lease>,
+        b: Option<Lease>,
+    ) -> Result<Option<ActiveLease>> {
+        self.prospective(action, [a, b])
     }
     pub fn occurrence(&self, epoch: u64, sequence: u64) -> Result<&Occurrence> {
         if epoch != self.epoch || sequence >= self.seen {

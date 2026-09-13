@@ -31,6 +31,11 @@ pub struct Topology {
     wires: [[u16; 4]; GATES],
 }
 impl Topology {
+    /// Validated preceding-layer wiring, exposed read-only for the offline interpreter.
+    pub fn wires(&self) -> &[[u16; 4]; GATES] {
+        &self.wires
+    }
+
     /// Host-only seeded wiring. Every predecessor reaches the next layer.
     pub fn seeded(seed: u64) -> Self {
         let mut state = seed ^ 0x9e3779b97f4a7c15;
@@ -113,6 +118,10 @@ pub struct CompiledCircuit {
     tables: [u16; GATES],
 }
 impl CompiledCircuit {
+    pub fn topology(&self) -> &Topology {
+        &self.topology
+    }
+
     /// Host lowering; zero ties compile to zero. No logits remain in this value.
     pub fn compile(topology: Topology, logits: &[f64]) -> Result<Self> {
         topology.validate()?;

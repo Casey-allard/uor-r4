@@ -1,9 +1,14 @@
-//! Experimental addressed-attention primitives; not a complete model or retained dispatch.
+//! Experimental addressed attention with a complete eight-phase runtime and bound export.
 //!
-//! The circuit/export and object kernels are deterministic integer/table operations.
-//! `training` is an explicitly offline floating-point boundary. The eight-phase
-//! learned model, normal artifact envelope and corpus learner remain unimplemented.
+//! Runtime geometry, circuits and objects use integer/table operations. `training`,
+//! `offline`, and parameter/sampled policies are offline floating-point boundaries.
+//! Corpus fitting and retained-model dispatch remain unimplemented.
 pub mod circuit;
 pub mod inputs;
 pub mod objects;
 pub mod training;
+
+pub mod artifact;
+pub mod engine;
+pub mod offline;
+pub mod policy;
