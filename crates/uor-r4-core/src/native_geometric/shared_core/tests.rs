@@ -173,3 +173,7 @@ mod active_sensitivity;
 
 mod context_augmentation;
 mod context_data;
+
+mod context_decoder_refit;
+
+mod context_decoder_resume;

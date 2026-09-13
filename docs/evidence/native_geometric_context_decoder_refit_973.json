@@ -1,0 +1,3039 @@
+{
+  "schema": "uor-r4.context-decoder-refit-evidence/1",
+  "date": "2026-09-13",
+  "source": {
+    "at": "2026-09-13T05:09:49.354Z",
+    "base": "b506820d14e03b522d4b6f41ec73437f61733c2b",
+    "sources": {
+      "crates/uor-r4-core/src/native_geometric/action_binding.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/action_binding.rs",
+        "sha256": "384d85ab89c95e7a8c98216883c270b13c7341ae5f0242ced63f4b04b6e4f4d2"
+      },
+      "crates/uor-r4-core/src/native_geometric/action_emission.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/action_emission.rs",
+        "sha256": "2d82838175e99a040d09606555fbfc1f3514b4da184c7cbbb10b2992f24db4a0"
+      },
+      "crates/uor-r4-core/src/native_geometric/action_emission_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/action_emission_tests.rs",
+        "sha256": "c62e656923adb5a74eda92229673672461aa7041955f1835be5f586400a63000"
+      },
+      "crates/uor-r4-core/src/native_geometric/anchors.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/anchors.rs",
+        "sha256": "eb653f80cb3160ad083cc16d10952218454bbaefeb9bdd02b38e92c34a32ba8a"
+      },
+      "crates/uor-r4-core/src/native_geometric/completion_runtime.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/completion_runtime.rs",
+        "sha256": "8421d8b0d8020459c29d565786665f45c259783f6383465e5b20585befbd1249"
+      },
+      "crates/uor-r4-core/src/native_geometric/completion_runtime_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/completion_runtime_tests.rs",
+        "sha256": "00a6678f7c4f9db1cdd78598e4e63e2219ef3ccb86dcd07b716b07b2df4f3a68"
+      },
+      "crates/uor-r4-core/src/native_geometric/completion_snapshot.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/completion_snapshot.rs",
+        "sha256": "4a68b63016a3cdf2815adc0bf8addc0b5121706bdcb0d1e5abdc46a1296bd702"
+      },
+      "crates/uor-r4-core/src/native_geometric/completion_snapshot_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/completion_snapshot_tests.rs",
+        "sha256": "b11acf8d489c9c9fa15f428f1b3fd0d56b91180e624142e6ba6d77459695090c"
+      },
+      "crates/uor-r4-core/src/native_geometric/completion_training.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/completion_training.rs",
+        "sha256": "c674dfac58c9d135ac6f15f5b493aa0078149ec501b7655c0874dd4eac8bc27e"
+      },
+      "crates/uor-r4-core/src/native_geometric/completion_types.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/completion_types.rs",
+        "sha256": "624866e09637e6c22d5e124b5633285f384480a64d8696210eea25307209c191"
+      },
+      "crates/uor-r4-core/src/native_geometric/composed_output.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/composed_output.rs",
+        "sha256": "e1456e61b95eed37501032851f00ec5febc16b6c7c563b92877ae7813a4f2257"
+      },
+      "crates/uor-r4-core/src/native_geometric/composed_output_training.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/composed_output_training.rs",
+        "sha256": "c858cf803615257adba0852d1ce21756c870c98e253565a7a961c4c3528f4c60"
+      },
+      "crates/uor-r4-core/src/native_geometric/current_query_handoff.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/current_query_handoff.rs",
+        "sha256": "2ac0f5037337fe7d1c2e007a24b40ed65d9e14b6cfbe1965a001156482868bbe"
+      },
+      "crates/uor-r4-core/src/native_geometric/current_source.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/current_source.rs",
+        "sha256": "cd3b82886e0d90a777a596bf766395a8db2072ecb55656e81a7d99498ff16060"
+      },
+      "crates/uor-r4-core/src/native_geometric/dependent_read.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/dependent_read.rs",
+        "sha256": "1003d91138f57d735936d90593e9da05a617197dd46ea5f73a0cfd4e44df1d3d"
+      },
+      "crates/uor-r4-core/src/native_geometric/dependent_read_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/dependent_read_tests.rs",
+        "sha256": "2e7a322f52888a0064e0cbe7027e8dc40129655befd8bc3d49e49dc69bd2ca0c"
+      },
+      "crates/uor-r4-core/src/native_geometric/dependent_read_training.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/dependent_read_training.rs",
+        "sha256": "2ea2596612201b2f37f48b1e2ee4afa1946e501941c787a919e302cafc67b711"
+      },
+      "crates/uor-r4-core/src/native_geometric/durable_memory.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/durable_memory.rs",
+        "sha256": "864dabc51c661b1e02733c9aad8e059a217b6749c434d504bb5859f37430bf49"
+      },
+      "crates/uor-r4-core/src/native_geometric/durable_memory_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/durable_memory_tests.rs",
+        "sha256": "d4297766370cf655bf8850cb05eed1a08c316c9f26b9510747141911988c8ec3"
+      },
+      "crates/uor-r4-core/src/native_geometric/field_composition.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/field_composition.rs",
+        "sha256": "74a6e8c083558e4375c10edc23b0f07ea8f230d0132abc654b5d0862df54d6cd"
+      },
+      "crates/uor-r4-core/src/native_geometric/field_composition_snapshot.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/field_composition_snapshot.rs",
+        "sha256": "14b05a1b218e098ec66794020f1982447a1f813ce78804c141f09e49aec3a725"
+      },
+      "crates/uor-r4-core/src/native_geometric/general_prose_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/general_prose_tests.rs",
+        "sha256": "a781bc6f7ed2971a90d5a44829efbfd8ad7aef1459f6577fc2f0c21010d6de75"
+      },
+      "crates/uor-r4-core/src/native_geometric/groundedness.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/groundedness.rs",
+        "sha256": "d763055f729b74abf97a72165a1759dfd04f8fa8ed57c3c80b6b2896f7135536"
+      },
+      "crates/uor-r4-core/src/native_geometric/groundedness_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/groundedness_tests.rs",
+        "sha256": "45f45af0bcaf9b85eac96ec432a5354d420210febaaa7b71ed7a8479cc638721"
+      },
+      "crates/uor-r4-core/src/native_geometric/guarantees.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/guarantees.rs",
+        "sha256": "459581a31fcfd75942ee93cf19ee34ba7f791c8938a3ecb25e15ce770dd34ff0"
+      },
+      "crates/uor-r4-core/src/native_geometric/guarantees_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/guarantees_tests.rs",
+        "sha256": "a9931a00bd9579fb44a663d24ebce82be495aeaa8837b3443e6acca1f1da3227"
+      },
+      "crates/uor-r4-core/src/native_geometric/historical_field_composition.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/historical_field_composition.rs",
+        "sha256": "7754fda581b0d2211046ee2a330456cd963ea15691287f48e8c762e91a085447"
+      },
+      "crates/uor-r4-core/src/native_geometric/historical_query_context.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/historical_query_context.rs",
+        "sha256": "e633a98dca8d7c068e9c76624e5e07b0018ff7342acbe05b3e4e5a71b1e17dde"
+      },
+      "crates/uor-r4-core/src/native_geometric/historical_read.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/historical_read.rs",
+        "sha256": "34ff846be8f9b3aa5e59b0f98783e2eb42a5e4f6243fd93b69ff0d9656627a07"
+      },
+      "crates/uor-r4-core/src/native_geometric/historical_read_training.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/historical_read_training.rs",
+        "sha256": "1aa5cae2d698928d3ec5c0266515f7148cd12df67fe287e2aec22277294e53e3"
+      },
+      "crates/uor-r4-core/src/native_geometric/historical_version_intent.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/historical_version_intent.rs",
+        "sha256": "66007c605f165b131b2582bd5e566de5439a7816bcc08a7c9cc0479bd5cc0f4c"
+      },
+      "crates/uor-r4-core/src/native_geometric/instruction_binding.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/instruction_binding.rs",
+        "sha256": "d1f751d1fd06bd64d2688e7a2252d0b9b2bf44ca75038eda96e76ae0e58808ad"
+      },
+      "crates/uor-r4-core/src/native_geometric/instruction_binding_training.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/instruction_binding_training.rs",
+        "sha256": "ea667a8a40eae5463d686b6fc6cf012c86ae4076fe2e6add661b9e4be0a90c26"
+      },
+      "crates/uor-r4-core/src/native_geometric/joint_admission.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/joint_admission.rs",
+        "sha256": "4f8cc6910a1cbe9b6e6305bf4750af6fbde4653a43e52b89d4b140fa7da3c044"
+      },
+      "crates/uor-r4-core/src/native_geometric/joint_admission_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/joint_admission_tests.rs",
+        "sha256": "44e52facd553a868164b242bb6298a855d4ac95dfdcb34ee7c8613d18974b5d9"
+      },
+      "crates/uor-r4-core/src/native_geometric/joint_admission_training.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/joint_admission_training.rs",
+        "sha256": "e5aec97203e9bd100f7ded6892ec160842a2095032772ee5a21d3c95ff54382b"
+      },
+      "crates/uor-r4-core/src/native_geometric/learned_routing.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/learned_routing.rs",
+        "sha256": "e6810d1e9ec40ebebd1da8fe724f9edfcbfe44ff97c7b8543549c6f6a70ce0b8"
+      },
+      "crates/uor-r4-core/src/native_geometric/learned_routing_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/learned_routing_tests.rs",
+        "sha256": "6474ccae0aea4315a1a7e26f8707857e3003f5351163f3e69f694836ebdc6fb6"
+      },
+      "crates/uor-r4-core/src/native_geometric/learned_routing_training.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/learned_routing_training.rs",
+        "sha256": "58553ac81135950af1810786da65ae8450963e2b27bc6b84aee03f6c3fad206a"
+      },
+      "crates/uor-r4-core/src/native_geometric/lexical_emission.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/lexical_emission.rs",
+        "sha256": "ecc2e2aff9361262135f50f0e291ee0aa0c271de5c450b492ccdc6389af585bb"
+      },
+      "crates/uor-r4-core/src/native_geometric/lexical_emission_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/lexical_emission_tests.rs",
+        "sha256": "78542b00fe2df9e5e21cd9ac374c26660d24b7046a3de47c8f9d29b5660c3ccb"
+      },
+      "crates/uor-r4-core/src/native_geometric/literal_refinement.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/literal_refinement.rs",
+        "sha256": "ff57088fe7598a96c0d5ee061dce3f3e8b2c6ac9b519b2c147aa9e7ca1191776"
+      },
+      "crates/uor-r4-core/src/native_geometric/m1_profiler.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/m1_profiler.rs",
+        "sha256": "48cecfb17e848f4a97864c83fd3516e5e413a70a90653f63f7912dcde74fab82"
+      },
+      "crates/uor-r4-core/src/native_geometric/m1_profiler_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/m1_profiler_tests.rs",
+        "sha256": "e6a628f7411d94d46afbd49522c96318930bd3cc7e8eb6f7c72f0a12a06145b1"
+      },
+      "crates/uor-r4-core/src/native_geometric/memory_runtime.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/memory_runtime.rs",
+        "sha256": "ba649539cf17774041cec34b4fa5b77a495293004766d36cb9ffccf1956ceb68"
+      },
+      "crates/uor-r4-core/src/native_geometric/memory_runtime_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/memory_runtime_tests.rs",
+        "sha256": "ccb1293f2e66ef78e7d0f047b4f512d132d0e4edbb307b9907b8b7421268e6a8"
+      },
+      "crates/uor-r4-core/src/native_geometric/memory_training.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/memory_training.rs",
+        "sha256": "304d76de48a42c3d8ee0b4c626210cd95131a600c01f82c1c4ed34609484eb7d"
+      },
+      "crates/uor-r4-core/src/native_geometric/memory_training/resumable.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/memory_training/resumable.rs",
+        "sha256": "7254468bed5d3bb7601b3382edd574aee0743c1de14937b2c1a4a6e080e2e2c4"
+      },
+      "crates/uor-r4-core/src/native_geometric/memory_types.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/memory_types.rs",
+        "sha256": "64b235ebb196b95a7e7125f8083893a0ea7b86b78dc3a97ebc831b6fd433a998"
+      },
+      "crates/uor-r4-core/src/native_geometric/mixed_initial_training.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/mixed_initial_training.rs",
+        "sha256": "db7f2c9a1de7865a772d97868a27d704e39532efad8e1e76bc4ab45d66374c1e"
+      },
+      "crates/uor-r4-core/src/native_geometric/mixed_operator_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/mixed_operator_tests.rs",
+        "sha256": "4ce2adf49e652853c3a502378cbe5e620ff6676ae0bcde924c6ec20614fa6943"
+      },
+      "crates/uor-r4-core/src/native_geometric/mixed_operators.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/mixed_operators.rs",
+        "sha256": "dfeac6dd5b0c6bd18e9b2f3b758d05d2b60951a0f25c8ceb2f3be8007e03aad7"
+      },
+      "crates/uor-r4-core/src/native_geometric/mixture.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/mixture.rs",
+        "sha256": "cf89e5a634ea48fc027f4e08fadea2af42e2be396d6501f4f34ac4fba704a581"
+      },
+      "crates/uor-r4-core/src/native_geometric/mod.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/mod.rs",
+        "sha256": "1cdcf632bd08dbc0186ba813381d3c9f191dca6d79401dd6ca8f1de7254dfa64"
+      },
+      "crates/uor-r4-core/src/native_geometric/multi_step_reasoning.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/multi_step_reasoning.rs",
+        "sha256": "b240544acd0d9070a3f80c7204d13929176edd0ced14c7541b874359c8f0adbf"
+      },
+      "crates/uor-r4-core/src/native_geometric/multi_step_reasoning_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/multi_step_reasoning_tests.rs",
+        "sha256": "e0fa82810e8dbac5e3bf37367b4706c081223178a68c52fbfa24337c22133909"
+      },
+      "crates/uor-r4-core/src/native_geometric/numeral.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/numeral.rs",
+        "sha256": "2c0012a595d87e653051b067d586d98e93fe1394f9651d75725144cf0ef330fb"
+      },
+      "crates/uor-r4-core/src/native_geometric/operation_transition.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/operation_transition.rs",
+        "sha256": "a9bbaa823ccbe04c5d6e7a5ff579821355afa798f363491edfa8e5b2c087c516"
+      },
+      "crates/uor-r4-core/src/native_geometric/operation_transition_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/operation_transition_tests.rs",
+        "sha256": "eeada6e6c284388e1f2fc036268e9a55ca6f8d9f7ef2565ddb1e2aa6f7ba8381"
+      },
+      "crates/uor-r4-core/src/native_geometric/recurrent_routing.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/recurrent_routing.rs",
+        "sha256": "d663c4ebbbf828d98d52fbcbf20e1e39005f17ada6e26a6b3244c105e898681d"
+      },
+      "crates/uor-r4-core/src/native_geometric/recurrent_routing_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/recurrent_routing_tests.rs",
+        "sha256": "a4c78c5faf33be5f80d69a54203cdad810700d4c8da20a93f975bac16a693926"
+      },
+      "crates/uor-r4-core/src/native_geometric/recurrent_routing_training.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/recurrent_routing_training.rs",
+        "sha256": "8e41d7781677349ee2f33935dcdbdf7b751e8c84f10416fe6f1af112b8129b6b"
+      },
+      "crates/uor-r4-core/src/native_geometric/relation.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/relation.rs",
+        "sha256": "99b43285fc2631ad374c9e5de8e6ec89b9d6ee4c81d2d588237e49065fe41aed"
+      },
+      "crates/uor-r4-core/src/native_geometric/relation_admission.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/relation_admission.rs",
+        "sha256": "c9c3ae3a97691f6d1726081b0d08e886606538eaa4e7dd02631965450776544c"
+      },
+      "crates/uor-r4-core/src/native_geometric/relation_span.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/relation_span.rs",
+        "sha256": "1ec69b7079598d87968752d9b242e16854d18b48641ce03011387774cf1b2db5"
+      },
+      "crates/uor-r4-core/src/native_geometric/relation_start.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/relation_start.rs",
+        "sha256": "8a0b9271bb0ed0741a04486f188f1c2c94e6dd6d278f4d745efc40af295f58a7"
+      },
+      "crates/uor-r4-core/src/native_geometric/relation_start_refinement.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/relation_start_refinement.rs",
+        "sha256": "7aa4faf78394394de176f1c010b826ea58ea06e9eb8b3d6901761ed5a759cc0b"
+      },
+      "crates/uor-r4-core/src/native_geometric/relation_start_training.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/relation_start_training.rs",
+        "sha256": "2fcc1c64ff3c33a0adbdcf3e1e21f58f4adee08b3938176a025a4fff9ac20bf5"
+      },
+      "crates/uor-r4-core/src/native_geometric/relation_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/relation_tests.rs",
+        "sha256": "df9034b31af147267659db82084f496e410196db5d5f1e58f95de3af261c433d"
+      },
+      "crates/uor-r4-core/src/native_geometric/relation_training.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/relation_training.rs",
+        "sha256": "51db145984808d4494f6a749b7dbbda2fb6dbc2645d2365246ff268fb7314a09"
+      },
+      "crates/uor-r4-core/src/native_geometric/response_entry_runtime.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/response_entry_runtime.rs",
+        "sha256": "5466a9ba80ac08202e3e5ccfdf27f3e5911a1e530a7ce89bc87fe8db320619f5"
+      },
+      "crates/uor-r4-core/src/native_geometric/response_entry_runtime_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/response_entry_runtime_tests.rs",
+        "sha256": "01c624d9d2e72d6d847e1a68e5df4361acf7de89539d3fb760afc8c1a25d0a43"
+      },
+      "crates/uor-r4-core/src/native_geometric/response_entry_snapshot.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/response_entry_snapshot.rs",
+        "sha256": "3fd30e31d52ec66fe5c381db24b261542df1927b4e0530d277ee1087bb509742"
+      },
+      "crates/uor-r4-core/src/native_geometric/response_entry_training.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/response_entry_training.rs",
+        "sha256": "f391fbc8d6abc2d254455bac0f09769d3aab9d5a7d7257bf61ad371786cf9274"
+      },
+      "crates/uor-r4-core/src/native_geometric/response_entry_training_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/response_entry_training_tests.rs",
+        "sha256": "ab388e1e8ce45b34989cfd9f0182ef3e3a5faf0c7cbdee07d68cd9946e5ccc2a"
+      },
+      "crates/uor-r4-core/src/native_geometric/response_entry_types.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/response_entry_types.rs",
+        "sha256": "bf79f9c3418f773ab45b9679d9a651ea6fa2ad213d5a53445b1fe97e0749f0dd"
+      },
+      "crates/uor-r4-core/src/native_geometric/response_runtime.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/response_runtime.rs",
+        "sha256": "79548be47acc125a6025ae946bb07a5a12ef06ac805766a0233711f8360dabd9"
+      },
+      "crates/uor-r4-core/src/native_geometric/response_runtime_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/response_runtime_tests.rs",
+        "sha256": "b9b26a58ac3026e6307ecfa49de92027b23fc48d380f53f76c1f79ddcda3bea6"
+      },
+      "crates/uor-r4-core/src/native_geometric/response_snapshot_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/response_snapshot_tests.rs",
+        "sha256": "b0035296cb47ed804afa2be292b8fed3d540268c8062b8a38673e37a6a36631d"
+      },
+      "crates/uor-r4-core/src/native_geometric/role_read.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/role_read.rs",
+        "sha256": "c9742a86b9c09238b0463726324d216c3d10c73260d37a3c8997323c7adde221"
+      },
+      "crates/uor-r4-core/src/native_geometric/role_read_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/role_read_tests.rs",
+        "sha256": "017d9cd966f908736b98a555cd0a09e95d69b78900eb11c962eba657ccaa4042"
+      },
+      "crates/uor-r4-core/src/native_geometric/role_read_training.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/role_read_training.rs",
+        "sha256": "5cadf639c522d4ce2df45f62e00ef70ef5733627da64129568a8363ffcf63808"
+      },
+      "crates/uor-r4-core/src/native_geometric/runtime.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/runtime.rs",
+        "sha256": "48b0278d58faa6f775bdcf954bbed613611ca08d7ad9ef1a477fc99e343b2dfc"
+      },
+      "crates/uor-r4-core/src/native_geometric/shared_core.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core.rs",
+        "sha256": "539523ef58ea757944f3913f885226b7e2e6cff34c9f9dcff06df909b94ac7d9"
+      },
+      "crates/uor-r4-core/src/native_geometric/shared_core/angular_tree.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core/angular_tree.rs",
+        "sha256": "a490bab8f87688d451ecf62d9e7a74bb0cacbcf6a6db996b42ded542406d7737"
+      },
+      "crates/uor-r4-core/src/native_geometric/shared_core/block_calibration.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core/block_calibration.rs",
+        "sha256": "fce840fd228af0bd07c623477e4b9d1ba42cd883bb343068f5c112c05e286ee9"
+      },
+      "crates/uor-r4-core/src/native_geometric/shared_core/calibration.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core/calibration.rs",
+        "sha256": "341b2ae9e1ea5c7b8ca729a5d22c6ad940ba3cffe447f31d73de9a9ab9de5c21"
+      },
+      "crates/uor-r4-core/src/native_geometric/shared_core/tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core/tests.rs",
+        "sha256": "30ab3ff6ad15ae9296e5d00207e2213e46773ffd7c2fb9d7e1dc90b3214a2174"
+      },
+      "crates/uor-r4-core/src/native_geometric/shared_core/tests/active_sensitivity.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core/tests/active_sensitivity.rs",
+        "sha256": "2abbc7cb19d22ecdbb976d46aef3d3f83dbb0e540505568c029b8cd160937c66"
+      },
+      "crates/uor-r4-core/src/native_geometric/shared_core/tests/angular_tree_experiment.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core/tests/angular_tree_experiment.rs",
+        "sha256": "7a15a1bf71941f9664061e404cfb10e9dbe35bb4ae25d70a6127a6f060848f85"
+      },
+      "crates/uor-r4-core/src/native_geometric/shared_core/tests/calibrated.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core/tests/calibrated.rs",
+        "sha256": "6e3db34054afb928460d5af05534f421d15a9b18c24b08709808d7a972094ece"
+      },
+      "crates/uor-r4-core/src/native_geometric/shared_core/tests/calibrated_audit.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core/tests/calibrated_audit.rs",
+        "sha256": "6337eb1ca7e3507393cc3d40a7fd0b2430fa3513f9c3601cf9e1d3cc9f59cade"
+      },
+      "crates/uor-r4-core/src/native_geometric/shared_core/tests/context_augmentation.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core/tests/context_augmentation.rs",
+        "sha256": "950d3bd0d77266a46ba3cc102b168e3bcc00c4068d66603d8a011a6bdec4e81a"
+      },
+      "crates/uor-r4-core/src/native_geometric/shared_core/tests/context_data.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core/tests/context_data.rs",
+        "sha256": "d37c722c8d1954e5c6eb7779047133323377bfe10cf4d6e1148e5a8bf4619220"
+      },
+      "crates/uor-r4-core/src/native_geometric/shared_core/tests/coupled_profile.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core/tests/coupled_profile.rs",
+        "sha256": "7641490800a426d4e0f95f10a91b73ba87794c6455a385278fcb3de68f5576d3"
+      },
+      "crates/uor-r4-core/src/native_geometric/shared_core/tests/credit_assignment.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core/tests/credit_assignment.rs",
+        "sha256": "4dbe9bee5b28dc7a6e9fe78f01b3f0a168025c9bdbd47bc6fe990398781c0724"
+      },
+      "crates/uor-r4-core/src/native_geometric/shared_core/tests/decoder_validation.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core/tests/decoder_validation.rs",
+        "sha256": "e9b23f30927002c61912478ebaf0800950801b71216bfeb87ac9e66d8c1116ed"
+      },
+      "crates/uor-r4-core/src/native_geometric/shared_core/tests/diagnostic.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core/tests/diagnostic.rs",
+        "sha256": "5aadfa32c335082c5bf97abfd3f303de4933fcaccb3f37372b1036613b3f5c63"
+      },
+      "crates/uor-r4-core/src/native_geometric/shared_core/tests/final_emission.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core/tests/final_emission.rs",
+        "sha256": "31a08e17ac1ce82e76ed5fd4d98bba86ba60172e2c2d2846beb922b10bf44a21"
+      },
+      "crates/uor-r4-core/src/native_geometric/shared_core/tests/full_objective.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core/tests/full_objective.rs",
+        "sha256": "4919b9d2a9efb36d2d5a36b13327b0437212c72e8440b6c39763a33ea50ce327"
+      },
+      "crates/uor-r4-core/src/native_geometric/shared_core/tests/loss_frontier.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core/tests/loss_frontier.rs",
+        "sha256": "d12ed9d616d16fc236a9a8b8e9d6fe156fab6f934927707e5839a8c53937d883"
+      },
+      "crates/uor-r4-core/src/native_geometric/shared_core/tests/tied_learning.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core/tests/tied_learning.rs",
+        "sha256": "c404e28ce6fd48eb1dfbe9a2210a36d97ab479ceea3c648836c39c028d215a15"
+      },
+      "crates/uor-r4-core/src/native_geometric/shared_core/tests/tree_state_pair.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core/tests/tree_state_pair.rs",
+        "sha256": "cc6c7b622689b791ee940fb1a19c66b514ccebc71abc42330e617e06513c8691"
+      },
+      "crates/uor-r4-core/src/native_geometric/shared_core/tied_training.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core/tied_training.rs",
+        "sha256": "273365159564bf00c7e3ae031a36e420eaafb73ffdcc19c698bdafc5c306a4de"
+      },
+      "crates/uor-r4-core/src/native_geometric/shared_core/training.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core/training.rs",
+        "sha256": "d219d173912793f37beef1240d27badab25ea64c9a976c289e9715eb5bddeecb"
+      },
+      "crates/uor-r4-core/src/native_geometric/shared_operator_refinement.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_operator_refinement.rs",
+        "sha256": "3fcd57a14304cd00ca0b6f93a47ce4715b9c900f8a336b1a6e72e9e77fef518a"
+      },
+      "crates/uor-r4-core/src/native_geometric/snapshot.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/snapshot.rs",
+        "sha256": "a3f600b20e46e599de6d87212ac06cf324676903074f65c0946adf186d943415"
+      },
+      "crates/uor-r4-core/src/native_geometric/source_refinement_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/source_refinement_tests.rs",
+        "sha256": "07dbdf5c230517c30d184171d25b657785bba4c69680c3745120020e365c24c8"
+      },
+      "crates/uor-r4-core/src/native_geometric/source_role_refinement.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/source_role_refinement.rs",
+        "sha256": "88fd1cf1c3728b2b7a0b090edbf97f4e891cd8ec0df913642c1717ce059a9bae"
+      },
+      "crates/uor-r4-core/src/native_geometric/source_routing.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/source_routing.rs",
+        "sha256": "5e2894c2b36f944d5a299ebe1cfe19a34cc7af529b007cc921ff0549a811c5db"
+      },
+      "crates/uor-r4-core/src/native_geometric/source_routing_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/source_routing_tests.rs",
+        "sha256": "f19c78f1fd6e684ce8d8e2e758701ea54dde8bba8759d2fa49b00889fb45a526"
+      },
+      "crates/uor-r4-core/src/native_geometric/source_routing_training.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/source_routing_training.rs",
+        "sha256": "5c302d8f75d78b1aa1cb265da87a5655b0aa7925d29c3f00ed852fcc1729f474"
+      },
+      "crates/uor-r4-core/src/native_geometric/source_span.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/source_span.rs",
+        "sha256": "6cba9c1b4ceab21dc305ec4228ba774758d741a9d0857c9f4c39e83b8d356670"
+      },
+      "crates/uor-r4-core/src/native_geometric/source_span_training.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/source_span_training.rs",
+        "sha256": "ebf7b79e6122ba31f4c4e1bd953c3722f5f257e959b780947269d406889bf62f"
+      },
+      "crates/uor-r4-core/src/native_geometric/tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/tests.rs",
+        "sha256": "11da699221ff0982b5ea0302b4ede6b890d0e73546333fc05602f6f903c91c49"
+      },
+      "crates/uor-r4-core/src/native_geometric/training.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/training.rs",
+        "sha256": "d77500abc522a42d8c7e2235d54f9bc828a1a2ef760d36fc1c9366d98f7e0958"
+      },
+      "crates/uor-r4-core/src/native_geometric/typed_routing.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/typed_routing.rs",
+        "sha256": "4823c08e95b0e98ef847923b22f2d60fbeef42b2430c3e23459b301866ba2675"
+      },
+      "crates/uor-r4-core/src/native_geometric/typed_routing_training.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/typed_routing_training.rs",
+        "sha256": "4d6d4b15cb8a0264d877d0f683f99b9fe9961f05ed085018c7d113b9d63d6166"
+      },
+      "crates/uor-r4-core/src/native_geometric/value_lexemes.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/value_lexemes.rs",
+        "sha256": "b3a29df5e8764dea29e5df73d563b8600e60782f38e4ba66b7e8d69a26a1196d"
+      },
+      "crates/uor-r4-core/src/native_geometric/value_runtime.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/value_runtime.rs",
+        "sha256": "bce4923f9e6f34bcd054c62f6aa73745ac1eb988bba16bdc396da176dbabb9bf"
+      },
+      "crates/uor-r4-core/src/native_geometric/value_runtime_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/value_runtime_tests.rs",
+        "sha256": "28e2d82a2d9f0207153fc5b0da09e37391a1d8bc8905ff808984706a61cc070f"
+      },
+      "crates/uor-r4-core/src/native_geometric/value_snapshot.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/value_snapshot.rs",
+        "sha256": "8aa653cc453fae993e356fd3143286e501fb087c1d9db93b621d51f40f0e126c"
+      },
+      "crates/uor-r4-core/src/native_geometric/value_snapshot_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/value_snapshot_tests.rs",
+        "sha256": "49a0cdd1ea033e32209594e4eaf2973c8e7c4a094ead42444b34a6dd7753babe"
+      },
+      "crates/uor-r4-core/src/native_geometric/value_training.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/value_training.rs",
+        "sha256": "0b056cc7bc210e1201f84f09eae925752954db291aa0d4a095f64a595589602d"
+      },
+      "crates/uor-r4-core/src/native_geometric/value_types.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/value_types.rs",
+        "sha256": "b3e906fc7f66604121351b810c27479952e5b12a2ac394c1144696d8ba10d968"
+      },
+      "crates/uor-r4-core/src/native_geometric/word_copy_runtime.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/word_copy_runtime.rs",
+        "sha256": "ce49f99f626e5884924cf008ccad319b66a9d759307b993cc422203a6b07585b"
+      },
+      "crates/uor-r4-core/src/native_geometric/word_copy_snapshot.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/word_copy_snapshot.rs",
+        "sha256": "18ed70b80b007128f9ffa3835736d8ad74cc0a78a68b469a7f801778e1d366fa"
+      },
+      "crates/uor-r4-core/src/native_geometric/word_copy_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/word_copy_tests.rs",
+        "sha256": "2a48dc255b240f0ec3e4f339ed401b2760398c9f8ff2e842f50d73209cc76e98"
+      },
+      "crates/uor-r4-core/src/native_geometric/word_copy_training.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/word_copy_training.rs",
+        "sha256": "342a3791b00ee3decf5f3043b7252085b54f2f9b14f4d7bebc6a95193c13f25d"
+      },
+      "crates/uor-r4-core/src/native_geometric/word_copy_types.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/word_copy_types.rs",
+        "sha256": "c6333269e6a0b0a078d5294d14c61582dfaba30e57228ca209d183702e6e891b"
+      },
+      "crates/uor-r4-core/src/native_geometric/word_copy_value_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/word_copy_value_tests.rs",
+        "sha256": "357a54d135690d6998728d0f39f18acd8a2d3a6dd8d48bec4bccf567320fb6ad"
+      },
+      "crates/uor-r4-core/src/native_geometric/word_emission.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/word_emission.rs",
+        "sha256": "fe4b12cca716df365fad098c5a1f020f78d9d6f9d95642dae6a2f50c3ba23027"
+      },
+      "crates/uor-r4-core/src/native_geometric/workspace_coding.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/workspace_coding.rs",
+        "sha256": "6f04bb02e4b46838fd202e8b2f2941a37df705ad31fa0b715f569a2ccebc2968"
+      },
+      "crates/uor-r4-core/src/native_geometric/workspace_coding_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/workspace_coding_tests.rs",
+        "sha256": "85a81ccabb0e9ec294db96feec0f35f1916317d5fbfbb9c6c496e24c5f7a26e7"
+      },
+      "crates/uor-r4-core/src/native_geometric/writer_choice.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/writer_choice.rs",
+        "sha256": "9b7ff8ef6f4561170cffb934e537092c74c94eaf4ba7507a0a8af32d4528edfc"
+      },
+      "crates/uor-r4-core/src/native_geometric/writer_lexical.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/writer_lexical.rs",
+        "sha256": "45fd0c7d6d7ca84d97ca2f3ea8f51d0fd7190946a6ed4a01abc626c2b207d55c"
+      },
+      "crates/uor-r4-core/src/native_geometric/writer_refinement.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/writer_refinement.rs",
+        "sha256": "558548f00b6f21f022bb71d278aebb2617d12dfe53b515d76f65a704adcac8cd"
+      },
+      "crates/uor-r4-core/src/native_geometric/writer_role.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/writer_role.rs",
+        "sha256": "2c48e6d7272ff13d97f20c1b29cd59c473a1501d09d7fe40884c93e812463fb5"
+      },
+      "crates/uor-r4-core/src/native_geometric/shared_core/tests/context_decoder_refit.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core/tests/context_decoder_refit.rs",
+        "sha256": "562d36165dcd0be954ca37fc5aa468939906b37f26defa380b1267b6b4138cf1"
+      },
+      "crates/uor-r4-core/src/native_geometric/shared_core/tests/context_decoder_resume.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core/tests/context_decoder_resume.rs",
+        "sha256": "1271b20765168b8b1b093291ba98bc2d80219475cbe8b7d0b130468737e6bbc6"
+      },
+      "crates/uor-r4-core/tests/native_geometric_allocations.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/tests/native_geometric_allocations.rs",
+        "sha256": "10d21c33f6822ce689bd9fee69d0195c2b43363161e94d6dddf7c51c767de6a1"
+      }
+    },
+    "binary": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/context-decoder-refit-1/refit-resume-tests",
+      "sha256": "6e89d6d76d5b5e590f12abf25da7b2582ec15c0d553faaef198e7757a957dee0"
+    },
+    "compiler": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: aarch64-apple-darwin\nrelease: 1.97.1\nLLVM version: 22.1.6\n"
+  },
+  "promoted": false,
+  "retained": "15baec48",
+  "result": {
+    "baseline_branch_reproduction": true,
+    "cells": [
+      {
+        "cell": "parent_repeated",
+        "construction_retention_gate": true,
+        "correct_to_wrong_each_prior": [
+          0,
+          199,
+          195,
+          180,
+          9,
+          17,
+          28
+        ],
+        "fixed_state": "blake3:8f8e5c342c83b062274744033a96668e9c079dc47a9c4d1b138baa7ea4889b6a",
+        "full_metrics": [
+          {
+            "after": {
+              "correct": 166,
+              "mean_nll": 2.8395341889547745,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 51596,
+                "table_reads": 340696
+              }
+            },
+            "before": {
+              "correct": 166,
+              "mean_nll": 2.8395341889547745,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 51596,
+                "table_reads": 340696
+              }
+            },
+            "panel": "complete_construction",
+            "prior": "blake3:8f8e5c342c83b062274744033a96668e9c079dc47a9c4d1b138baa7ea4889b6a"
+          },
+          {
+            "after": {
+              "correct": 166,
+              "mean_nll": 2.8395341889547745,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 51596,
+                "table_reads": 340696
+              }
+            },
+            "before": {
+              "correct": 206,
+              "mean_nll": 2.444899428228557,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10768,
+                "products": 54954,
+                "table_reads": 378888
+              }
+            },
+            "panel": "complete_construction",
+            "prior": "blake3:1198ef4788397b9bf8cae20b8df4b23573bc9861eb812a51baf359f2545618b1"
+          },
+          {
+            "after": {
+              "correct": 166,
+              "mean_nll": 2.8395341889547745,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 51596,
+                "table_reads": 340696
+              }
+            },
+            "before": {
+              "correct": 81,
+              "mean_nll": 3.354319563876437,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 50440,
+                "table_reads": 248712
+              }
+            },
+            "panel": "complete_construction",
+            "prior": "blake3:0f82b7286bb1699b9ea3bf4193f152702f3b22e702cf31bcd0a0f56596bbf8b8"
+          },
+          {
+            "after": {
+              "correct": 166,
+              "mean_nll": 2.8395341889547745,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 51596,
+                "table_reads": 340696
+              }
+            },
+            "before": {
+              "correct": 79,
+              "mean_nll": 3.375390554740109,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 50440,
+                "table_reads": 248712
+              }
+            },
+            "panel": "complete_construction",
+            "prior": "blake3:ade9a1cfbf39f0828ec1ec2b53775c05fcbaaf53fa2189b6a37ab7a636ce5e58"
+          },
+          {
+            "after": {
+              "correct": 166,
+              "mean_nll": 2.8395341889547745,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 51596,
+                "table_reads": 340696
+              }
+            },
+            "before": {
+              "correct": 168,
+              "mean_nll": 2.8362761266481185,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 51588,
+                "table_reads": 340644
+              }
+            },
+            "panel": "complete_construction",
+            "prior": "blake3:aaa1abe1ce2c4b2b1af65c73f43e2b69e410622dd897395c8a4527abb5fb8337"
+          },
+          {
+            "after": {
+              "correct": 166,
+              "mean_nll": 2.8395341889547745,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 51596,
+                "table_reads": 340696
+              }
+            },
+            "before": {
+              "correct": 170,
+              "mean_nll": 2.830844565640013,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 51603,
+                "table_reads": 340854
+              }
+            },
+            "panel": "complete_construction",
+            "prior": "blake3:0c93455843f4aa6e2730ef593730a2b8c9b7afdf6ef6ff33b538d63cbbb2ab62"
+          },
+          {
+            "after": {
+              "correct": 166,
+              "mean_nll": 2.8395341889547745,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 51596,
+                "table_reads": 340696
+              }
+            },
+            "before": {
+              "correct": 149,
+              "mean_nll": 3.010463812697859,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 51662,
+                "table_reads": 341440
+              }
+            },
+            "panel": "complete_construction",
+            "prior": "blake3:0c43bf3f4fc0361ac7c0b3b05d0b361bf01667155705337e4c59907eb05ba471"
+          },
+          {
+            "after": {
+              "correct": 52,
+              "mean_nll": 3.6536035825205846,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29768,
+                "table_reads": 195929
+              }
+            },
+            "before": {
+              "correct": 52,
+              "mean_nll": 3.6536035825205846,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29768,
+                "table_reads": 195929
+              }
+            },
+            "panel": "opened_development",
+            "prior": "blake3:8f8e5c342c83b062274744033a96668e9c079dc47a9c4d1b138baa7ea4889b6a"
+          },
+          {
+            "after": {
+              "correct": 52,
+              "mean_nll": 3.6536035825205846,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29768,
+                "table_reads": 195929
+              }
+            },
+            "before": {
+              "correct": 57,
+              "mean_nll": 3.90862344367628,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6103,
+                "products": 31628,
+                "table_reads": 216714
+              }
+            },
+            "panel": "opened_development",
+            "prior": "blake3:1198ef4788397b9bf8cae20b8df4b23573bc9861eb812a51baf359f2545618b1"
+          },
+          {
+            "after": {
+              "correct": 52,
+              "mean_nll": 3.6536035825205846,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29768,
+                "table_reads": 195929
+              }
+            },
+            "before": {
+              "correct": 33,
+              "mean_nll": 3.6599228474324286,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29082,
+                "table_reads": 142917
+              }
+            },
+            "panel": "opened_development",
+            "prior": "blake3:0f82b7286bb1699b9ea3bf4193f152702f3b22e702cf31bcd0a0f56596bbf8b8"
+          },
+          {
+            "after": {
+              "correct": 52,
+              "mean_nll": 3.6536035825205846,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29768,
+                "table_reads": 195929
+              }
+            },
+            "before": {
+              "correct": 28,
+              "mean_nll": 3.6630397557652965,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29082,
+                "table_reads": 142917
+              }
+            },
+            "panel": "opened_development",
+            "prior": "blake3:ade9a1cfbf39f0828ec1ec2b53775c05fcbaaf53fa2189b6a37ab7a636ce5e58"
+          },
+          {
+            "after": {
+              "correct": 52,
+              "mean_nll": 3.6536035825205846,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29768,
+                "table_reads": 195929
+              }
+            },
+            "before": {
+              "correct": 52,
+              "mean_nll": 3.66262114775318,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29842,
+                "table_reads": 196485
+              }
+            },
+            "panel": "opened_development",
+            "prior": "blake3:aaa1abe1ce2c4b2b1af65c73f43e2b69e410622dd897395c8a4527abb5fb8337"
+          },
+          {
+            "after": {
+              "correct": 52,
+              "mean_nll": 3.6536035825205846,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29768,
+                "table_reads": 195929
+              }
+            },
+            "before": {
+              "correct": 52,
+              "mean_nll": 3.671485070699118,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29793,
+                "table_reads": 196063
+              }
+            },
+            "panel": "opened_development",
+            "prior": "blake3:0c93455843f4aa6e2730ef593730a2b8c9b7afdf6ef6ff33b538d63cbbb2ab62"
+          },
+          {
+            "after": {
+              "correct": 52,
+              "mean_nll": 3.6536035825205846,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29768,
+                "table_reads": 195929
+              }
+            },
+            "before": {
+              "correct": 48,
+              "mean_nll": 3.6702221339857317,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29837,
+                "table_reads": 196695
+              }
+            },
+            "panel": "opened_development",
+            "prior": "blake3:0c43bf3f4fc0361ac7c0b3b05d0b361bf01667155705337e4c59907eb05ba471"
+          }
+        ],
+        "general_language_qualified": false,
+        "generation_coherence": "QUALITATIVE_REVIEW_REQUIRED",
+        "generation_termination_gate": false,
+        "numeric_model_gate": false,
+        "opened_development_gate": false,
+        "original_four_termination_gate": false,
+        "prediction_hamming_each_prior": [
+          0,
+          1889,
+          2750,
+          2783,
+          73,
+          198,
+          425
+        ],
+        "preservation_gate": false,
+        "probe_four_termination_gate": false,
+        "root_identity_hamming_each_prior": [
+          0,
+          0,
+          0,
+          0,
+          317,
+          717,
+          1547
+        ],
+        "source_identity_hamming_each_prior": [
+          0,
+          0,
+          0,
+          0,
+          81,
+          231,
+          377
+        ],
+        "witness": "blake3:4389949069dd2b7c327b55786ac4b15a3448e8036a887b3caacb10e0b9bd4b96",
+        "wrong_to_correct_each_prior": [
+          0,
+          146,
+          411,
+          403,
+          7,
+          18,
+          58
+        ]
+      },
+      {
+        "cell": "learned_repeated",
+        "construction_retention_gate": false,
+        "correct_to_wrong_each_prior": [
+          203,
+          306,
+          190,
+          181,
+          210,
+          195,
+          204
+        ],
+        "fixed_state": "blake3:0c93455843f4aa6e2730ef593730a2b8c9b7afdf6ef6ff33b538d63cbbb2ab62",
+        "full_metrics": [
+          {
+            "after": {
+              "correct": 152,
+              "mean_nll": 2.8123702095417755,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 50493,
+                "table_reads": 329386
+              }
+            },
+            "before": {
+              "correct": 166,
+              "mean_nll": 2.8395341889547745,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 51596,
+                "table_reads": 340696
+              }
+            },
+            "panel": "complete_construction",
+            "prior": "blake3:8f8e5c342c83b062274744033a96668e9c079dc47a9c4d1b138baa7ea4889b6a"
+          },
+          {
+            "after": {
+              "correct": 152,
+              "mean_nll": 2.8123702095417755,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 50493,
+                "table_reads": 329386
+              }
+            },
+            "before": {
+              "correct": 206,
+              "mean_nll": 2.444899428228557,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10768,
+                "products": 54954,
+                "table_reads": 378888
+              }
+            },
+            "panel": "complete_construction",
+            "prior": "blake3:1198ef4788397b9bf8cae20b8df4b23573bc9861eb812a51baf359f2545618b1"
+          },
+          {
+            "after": {
+              "correct": 152,
+              "mean_nll": 2.8123702095417755,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 50493,
+                "table_reads": 329386
+              }
+            },
+            "before": {
+              "correct": 81,
+              "mean_nll": 3.354319563876437,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 50440,
+                "table_reads": 248712
+              }
+            },
+            "panel": "complete_construction",
+            "prior": "blake3:0f82b7286bb1699b9ea3bf4193f152702f3b22e702cf31bcd0a0f56596bbf8b8"
+          },
+          {
+            "after": {
+              "correct": 152,
+              "mean_nll": 2.8123702095417755,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 50493,
+                "table_reads": 329386
+              }
+            },
+            "before": {
+              "correct": 79,
+              "mean_nll": 3.375390554740109,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 50440,
+                "table_reads": 248712
+              }
+            },
+            "panel": "complete_construction",
+            "prior": "blake3:ade9a1cfbf39f0828ec1ec2b53775c05fcbaaf53fa2189b6a37ab7a636ce5e58"
+          },
+          {
+            "after": {
+              "correct": 152,
+              "mean_nll": 2.8123702095417755,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 50493,
+                "table_reads": 329386
+              }
+            },
+            "before": {
+              "correct": 168,
+              "mean_nll": 2.8362761266481185,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 51588,
+                "table_reads": 340644
+              }
+            },
+            "panel": "complete_construction",
+            "prior": "blake3:aaa1abe1ce2c4b2b1af65c73f43e2b69e410622dd897395c8a4527abb5fb8337"
+          },
+          {
+            "after": {
+              "correct": 152,
+              "mean_nll": 2.8123702095417755,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 50493,
+                "table_reads": 329386
+              }
+            },
+            "before": {
+              "correct": 170,
+              "mean_nll": 2.830844565640013,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 51603,
+                "table_reads": 340854
+              }
+            },
+            "panel": "complete_construction",
+            "prior": "blake3:0c93455843f4aa6e2730ef593730a2b8c9b7afdf6ef6ff33b538d63cbbb2ab62"
+          },
+          {
+            "after": {
+              "correct": 152,
+              "mean_nll": 2.8123702095417755,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 50493,
+                "table_reads": 329386
+              }
+            },
+            "before": {
+              "correct": 149,
+              "mean_nll": 3.010463812697859,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 51662,
+                "table_reads": 341440
+              }
+            },
+            "panel": "complete_construction",
+            "prior": "blake3:0c43bf3f4fc0361ac7c0b3b05d0b361bf01667155705337e4c59907eb05ba471"
+          },
+          {
+            "after": {
+              "correct": 48,
+              "mean_nll": 3.631448531543404,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29118,
+                "table_reads": 189009
+              }
+            },
+            "before": {
+              "correct": 52,
+              "mean_nll": 3.6536035825205846,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29768,
+                "table_reads": 195929
+              }
+            },
+            "panel": "opened_development",
+            "prior": "blake3:8f8e5c342c83b062274744033a96668e9c079dc47a9c4d1b138baa7ea4889b6a"
+          },
+          {
+            "after": {
+              "correct": 48,
+              "mean_nll": 3.631448531543404,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29118,
+                "table_reads": 189009
+              }
+            },
+            "before": {
+              "correct": 57,
+              "mean_nll": 3.90862344367628,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6103,
+                "products": 31628,
+                "table_reads": 216714
+              }
+            },
+            "panel": "opened_development",
+            "prior": "blake3:1198ef4788397b9bf8cae20b8df4b23573bc9861eb812a51baf359f2545618b1"
+          },
+          {
+            "after": {
+              "correct": 48,
+              "mean_nll": 3.631448531543404,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29118,
+                "table_reads": 189009
+              }
+            },
+            "before": {
+              "correct": 33,
+              "mean_nll": 3.6599228474324286,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29082,
+                "table_reads": 142917
+              }
+            },
+            "panel": "opened_development",
+            "prior": "blake3:0f82b7286bb1699b9ea3bf4193f152702f3b22e702cf31bcd0a0f56596bbf8b8"
+          },
+          {
+            "after": {
+              "correct": 48,
+              "mean_nll": 3.631448531543404,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29118,
+                "table_reads": 189009
+              }
+            },
+            "before": {
+              "correct": 28,
+              "mean_nll": 3.6630397557652965,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29082,
+                "table_reads": 142917
+              }
+            },
+            "panel": "opened_development",
+            "prior": "blake3:ade9a1cfbf39f0828ec1ec2b53775c05fcbaaf53fa2189b6a37ab7a636ce5e58"
+          },
+          {
+            "after": {
+              "correct": 48,
+              "mean_nll": 3.631448531543404,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29118,
+                "table_reads": 189009
+              }
+            },
+            "before": {
+              "correct": 52,
+              "mean_nll": 3.66262114775318,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29842,
+                "table_reads": 196485
+              }
+            },
+            "panel": "opened_development",
+            "prior": "blake3:aaa1abe1ce2c4b2b1af65c73f43e2b69e410622dd897395c8a4527abb5fb8337"
+          },
+          {
+            "after": {
+              "correct": 48,
+              "mean_nll": 3.631448531543404,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29118,
+                "table_reads": 189009
+              }
+            },
+            "before": {
+              "correct": 52,
+              "mean_nll": 3.671485070699118,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29793,
+                "table_reads": 196063
+              }
+            },
+            "panel": "opened_development",
+            "prior": "blake3:0c93455843f4aa6e2730ef593730a2b8c9b7afdf6ef6ff33b538d63cbbb2ab62"
+          },
+          {
+            "after": {
+              "correct": 48,
+              "mean_nll": 3.631448531543404,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29118,
+                "table_reads": 189009
+              }
+            },
+            "before": {
+              "correct": 48,
+              "mean_nll": 3.6702221339857317,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29837,
+                "table_reads": 196695
+              }
+            },
+            "panel": "opened_development",
+            "prior": "blake3:0c43bf3f4fc0361ac7c0b3b05d0b361bf01667155705337e4c59907eb05ba471"
+          }
+        ],
+        "general_language_qualified": false,
+        "generation_coherence": "QUALITATIVE_REVIEW_REQUIRED",
+        "generation_termination_gate": false,
+        "numeric_model_gate": false,
+        "opened_development_gate": false,
+        "original_four_termination_gate": false,
+        "prediction_hamming_each_prior": [
+          2008,
+          2320,
+          2439,
+          2515,
+          2031,
+          1970,
+          2096
+        ],
+        "preservation_gate": false,
+        "probe_four_termination_gate": false,
+        "root_identity_hamming_each_prior": [
+          717,
+          717,
+          717,
+          717,
+          924,
+          0,
+          1761
+        ],
+        "source_identity_hamming_each_prior": [
+          231,
+          231,
+          231,
+          231,
+          279,
+          0,
+          469
+        ],
+        "witness": "blake3:d2f05bf44ac407b1ffdad43d594ae1e6fc78b019f24b151e4c1d55ee3578c3a0",
+        "wrong_to_correct_each_prior": [
+          175,
+          225,
+          378,
+          376,
+          180,
+          168,
+          206
+        ]
+      },
+      {
+        "cell": "parent_varied",
+        "construction_retention_gate": false,
+        "correct_to_wrong_each_prior": [
+          420,
+          496,
+          226,
+          217,
+          422,
+          420,
+          391
+        ],
+        "fixed_state": "blake3:8f8e5c342c83b062274744033a96668e9c079dc47a9c4d1b138baa7ea4889b6a",
+        "full_metrics": [
+          {
+            "after": {
+              "correct": 85,
+              "mean_nll": 3.171069663816712,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 50875,
+                "table_reads": 334174
+              }
+            },
+            "before": {
+              "correct": 166,
+              "mean_nll": 2.8395341889547745,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 51596,
+                "table_reads": 340696
+              }
+            },
+            "panel": "complete_construction",
+            "prior": "blake3:8f8e5c342c83b062274744033a96668e9c079dc47a9c4d1b138baa7ea4889b6a"
+          },
+          {
+            "after": {
+              "correct": 85,
+              "mean_nll": 3.171069663816712,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 50875,
+                "table_reads": 334174
+              }
+            },
+            "before": {
+              "correct": 206,
+              "mean_nll": 2.444899428228557,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10768,
+                "products": 54954,
+                "table_reads": 378888
+              }
+            },
+            "panel": "complete_construction",
+            "prior": "blake3:1198ef4788397b9bf8cae20b8df4b23573bc9861eb812a51baf359f2545618b1"
+          },
+          {
+            "after": {
+              "correct": 85,
+              "mean_nll": 3.171069663816712,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 50875,
+                "table_reads": 334174
+              }
+            },
+            "before": {
+              "correct": 81,
+              "mean_nll": 3.354319563876437,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 50440,
+                "table_reads": 248712
+              }
+            },
+            "panel": "complete_construction",
+            "prior": "blake3:0f82b7286bb1699b9ea3bf4193f152702f3b22e702cf31bcd0a0f56596bbf8b8"
+          },
+          {
+            "after": {
+              "correct": 85,
+              "mean_nll": 3.171069663816712,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 50875,
+                "table_reads": 334174
+              }
+            },
+            "before": {
+              "correct": 79,
+              "mean_nll": 3.375390554740109,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 50440,
+                "table_reads": 248712
+              }
+            },
+            "panel": "complete_construction",
+            "prior": "blake3:ade9a1cfbf39f0828ec1ec2b53775c05fcbaaf53fa2189b6a37ab7a636ce5e58"
+          },
+          {
+            "after": {
+              "correct": 85,
+              "mean_nll": 3.171069663816712,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 50875,
+                "table_reads": 334174
+              }
+            },
+            "before": {
+              "correct": 168,
+              "mean_nll": 2.8362761266481185,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 51588,
+                "table_reads": 340644
+              }
+            },
+            "panel": "complete_construction",
+            "prior": "blake3:aaa1abe1ce2c4b2b1af65c73f43e2b69e410622dd897395c8a4527abb5fb8337"
+          },
+          {
+            "after": {
+              "correct": 85,
+              "mean_nll": 3.171069663816712,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 50875,
+                "table_reads": 334174
+              }
+            },
+            "before": {
+              "correct": 170,
+              "mean_nll": 2.830844565640013,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 51603,
+                "table_reads": 340854
+              }
+            },
+            "panel": "complete_construction",
+            "prior": "blake3:0c93455843f4aa6e2730ef593730a2b8c9b7afdf6ef6ff33b538d63cbbb2ab62"
+          },
+          {
+            "after": {
+              "correct": 85,
+              "mean_nll": 3.171069663816712,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 50875,
+                "table_reads": 334174
+              }
+            },
+            "before": {
+              "correct": 149,
+              "mean_nll": 3.010463812697859,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 51662,
+                "table_reads": 341440
+              }
+            },
+            "panel": "complete_construction",
+            "prior": "blake3:0c43bf3f4fc0361ac7c0b3b05d0b361bf01667155705337e4c59907eb05ba471"
+          },
+          {
+            "after": {
+              "correct": 39,
+              "mean_nll": 3.3622737704577323,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29441,
+                "table_reads": 193075
+              }
+            },
+            "before": {
+              "correct": 52,
+              "mean_nll": 3.6536035825205846,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29768,
+                "table_reads": 195929
+              }
+            },
+            "panel": "opened_development",
+            "prior": "blake3:8f8e5c342c83b062274744033a96668e9c079dc47a9c4d1b138baa7ea4889b6a"
+          },
+          {
+            "after": {
+              "correct": 39,
+              "mean_nll": 3.3622737704577323,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29441,
+                "table_reads": 193075
+              }
+            },
+            "before": {
+              "correct": 57,
+              "mean_nll": 3.90862344367628,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6103,
+                "products": 31628,
+                "table_reads": 216714
+              }
+            },
+            "panel": "opened_development",
+            "prior": "blake3:1198ef4788397b9bf8cae20b8df4b23573bc9861eb812a51baf359f2545618b1"
+          },
+          {
+            "after": {
+              "correct": 39,
+              "mean_nll": 3.3622737704577323,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29441,
+                "table_reads": 193075
+              }
+            },
+            "before": {
+              "correct": 33,
+              "mean_nll": 3.6599228474324286,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29082,
+                "table_reads": 142917
+              }
+            },
+            "panel": "opened_development",
+            "prior": "blake3:0f82b7286bb1699b9ea3bf4193f152702f3b22e702cf31bcd0a0f56596bbf8b8"
+          },
+          {
+            "after": {
+              "correct": 39,
+              "mean_nll": 3.3622737704577323,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29441,
+                "table_reads": 193075
+              }
+            },
+            "before": {
+              "correct": 28,
+              "mean_nll": 3.6630397557652965,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29082,
+                "table_reads": 142917
+              }
+            },
+            "panel": "opened_development",
+            "prior": "blake3:ade9a1cfbf39f0828ec1ec2b53775c05fcbaaf53fa2189b6a37ab7a636ce5e58"
+          },
+          {
+            "after": {
+              "correct": 39,
+              "mean_nll": 3.3622737704577323,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29441,
+                "table_reads": 193075
+              }
+            },
+            "before": {
+              "correct": 52,
+              "mean_nll": 3.66262114775318,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29842,
+                "table_reads": 196485
+              }
+            },
+            "panel": "opened_development",
+            "prior": "blake3:aaa1abe1ce2c4b2b1af65c73f43e2b69e410622dd897395c8a4527abb5fb8337"
+          },
+          {
+            "after": {
+              "correct": 39,
+              "mean_nll": 3.3622737704577323,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29441,
+                "table_reads": 193075
+              }
+            },
+            "before": {
+              "correct": 52,
+              "mean_nll": 3.671485070699118,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29793,
+                "table_reads": 196063
+              }
+            },
+            "panel": "opened_development",
+            "prior": "blake3:0c93455843f4aa6e2730ef593730a2b8c9b7afdf6ef6ff33b538d63cbbb2ab62"
+          },
+          {
+            "after": {
+              "correct": 39,
+              "mean_nll": 3.3622737704577323,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29441,
+                "table_reads": 193075
+              }
+            },
+            "before": {
+              "correct": 48,
+              "mean_nll": 3.6702221339857317,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29837,
+                "table_reads": 196695
+              }
+            },
+            "panel": "opened_development",
+            "prior": "blake3:0c43bf3f4fc0361ac7c0b3b05d0b361bf01667155705337e4c59907eb05ba471"
+          }
+        ],
+        "general_language_qualified": false,
+        "generation_coherence": "QUALITATIVE_REVIEW_REQUIRED",
+        "generation_termination_gate": false,
+        "numeric_model_gate": false,
+        "opened_development_gate": false,
+        "original_four_termination_gate": false,
+        "prediction_hamming_each_prior": [
+          2883,
+          2908,
+          2576,
+          2655,
+          2885,
+          2878,
+          2886
+        ],
+        "preservation_gate": false,
+        "probe_four_termination_gate": false,
+        "root_identity_hamming_each_prior": [
+          0,
+          0,
+          0,
+          0,
+          317,
+          717,
+          1547
+        ],
+        "source_identity_hamming_each_prior": [
+          0,
+          0,
+          0,
+          0,
+          81,
+          231,
+          377
+        ],
+        "witness": "blake3:3abe61c884355778baa47d930ba2e3c5ac3da69f0367b56b24f6ed6c401d8d0b",
+        "wrong_to_correct_each_prior": [
+          192,
+          215,
+          214,
+          212,
+          192,
+          193,
+          193
+        ]
+      },
+      {
+        "cell": "learned_varied",
+        "construction_retention_gate": false,
+        "correct_to_wrong_each_prior": [
+          377,
+          450,
+          215,
+          206,
+          380,
+          379,
+          350
+        ],
+        "fixed_state": "blake3:0c43bf3f4fc0361ac7c0b3b05d0b361bf01667155705337e4c59907eb05ba471",
+        "full_metrics": [
+          {
+            "after": {
+              "correct": 86,
+              "mean_nll": 3.192744015470222,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 50446,
+                "table_reads": 329592
+              }
+            },
+            "before": {
+              "correct": 166,
+              "mean_nll": 2.8395341889547745,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 51596,
+                "table_reads": 340696
+              }
+            },
+            "panel": "complete_construction",
+            "prior": "blake3:8f8e5c342c83b062274744033a96668e9c079dc47a9c4d1b138baa7ea4889b6a"
+          },
+          {
+            "after": {
+              "correct": 86,
+              "mean_nll": 3.192744015470222,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 50446,
+                "table_reads": 329592
+              }
+            },
+            "before": {
+              "correct": 206,
+              "mean_nll": 2.444899428228557,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10768,
+                "products": 54954,
+                "table_reads": 378888
+              }
+            },
+            "panel": "complete_construction",
+            "prior": "blake3:1198ef4788397b9bf8cae20b8df4b23573bc9861eb812a51baf359f2545618b1"
+          },
+          {
+            "after": {
+              "correct": 86,
+              "mean_nll": 3.192744015470222,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 50446,
+                "table_reads": 329592
+              }
+            },
+            "before": {
+              "correct": 81,
+              "mean_nll": 3.354319563876437,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 50440,
+                "table_reads": 248712
+              }
+            },
+            "panel": "complete_construction",
+            "prior": "blake3:0f82b7286bb1699b9ea3bf4193f152702f3b22e702cf31bcd0a0f56596bbf8b8"
+          },
+          {
+            "after": {
+              "correct": 86,
+              "mean_nll": 3.192744015470222,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 50446,
+                "table_reads": 329592
+              }
+            },
+            "before": {
+              "correct": 79,
+              "mean_nll": 3.375390554740109,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 50440,
+                "table_reads": 248712
+              }
+            },
+            "panel": "complete_construction",
+            "prior": "blake3:ade9a1cfbf39f0828ec1ec2b53775c05fcbaaf53fa2189b6a37ab7a636ce5e58"
+          },
+          {
+            "after": {
+              "correct": 86,
+              "mean_nll": 3.192744015470222,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 50446,
+                "table_reads": 329592
+              }
+            },
+            "before": {
+              "correct": 168,
+              "mean_nll": 2.8362761266481185,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 51588,
+                "table_reads": 340644
+              }
+            },
+            "panel": "complete_construction",
+            "prior": "blake3:aaa1abe1ce2c4b2b1af65c73f43e2b69e410622dd897395c8a4527abb5fb8337"
+          },
+          {
+            "after": {
+              "correct": 86,
+              "mean_nll": 3.192744015470222,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 50446,
+                "table_reads": 329592
+              }
+            },
+            "before": {
+              "correct": 170,
+              "mean_nll": 2.830844565640013,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 51603,
+                "table_reads": 340854
+              }
+            },
+            "panel": "complete_construction",
+            "prior": "blake3:0c93455843f4aa6e2730ef593730a2b8c9b7afdf6ef6ff33b538d63cbbb2ab62"
+          },
+          {
+            "after": {
+              "correct": 86,
+              "mean_nll": 3.192744015470222,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 50446,
+                "table_reads": 329592
+              }
+            },
+            "before": {
+              "correct": 149,
+              "mean_nll": 3.010463812697859,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 51662,
+                "table_reads": 341440
+              }
+            },
+            "panel": "complete_construction",
+            "prior": "blake3:0c43bf3f4fc0361ac7c0b3b05d0b361bf01667155705337e4c59907eb05ba471"
+          },
+          {
+            "after": {
+              "correct": 36,
+              "mean_nll": 3.4299989245594804,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29139,
+                "table_reads": 189923
+              }
+            },
+            "before": {
+              "correct": 52,
+              "mean_nll": 3.6536035825205846,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29768,
+                "table_reads": 195929
+              }
+            },
+            "panel": "opened_development",
+            "prior": "blake3:8f8e5c342c83b062274744033a96668e9c079dc47a9c4d1b138baa7ea4889b6a"
+          },
+          {
+            "after": {
+              "correct": 36,
+              "mean_nll": 3.4299989245594804,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29139,
+                "table_reads": 189923
+              }
+            },
+            "before": {
+              "correct": 57,
+              "mean_nll": 3.90862344367628,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6103,
+                "products": 31628,
+                "table_reads": 216714
+              }
+            },
+            "panel": "opened_development",
+            "prior": "blake3:1198ef4788397b9bf8cae20b8df4b23573bc9861eb812a51baf359f2545618b1"
+          },
+          {
+            "after": {
+              "correct": 36,
+              "mean_nll": 3.4299989245594804,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29139,
+                "table_reads": 189923
+              }
+            },
+            "before": {
+              "correct": 33,
+              "mean_nll": 3.6599228474324286,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29082,
+                "table_reads": 142917
+              }
+            },
+            "panel": "opened_development",
+            "prior": "blake3:0f82b7286bb1699b9ea3bf4193f152702f3b22e702cf31bcd0a0f56596bbf8b8"
+          },
+          {
+            "after": {
+              "correct": 36,
+              "mean_nll": 3.4299989245594804,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29139,
+                "table_reads": 189923
+              }
+            },
+            "before": {
+              "correct": 28,
+              "mean_nll": 3.6630397557652965,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29082,
+                "table_reads": 142917
+              }
+            },
+            "panel": "opened_development",
+            "prior": "blake3:ade9a1cfbf39f0828ec1ec2b53775c05fcbaaf53fa2189b6a37ab7a636ce5e58"
+          },
+          {
+            "after": {
+              "correct": 36,
+              "mean_nll": 3.4299989245594804,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29139,
+                "table_reads": 189923
+              }
+            },
+            "before": {
+              "correct": 52,
+              "mean_nll": 3.66262114775318,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29842,
+                "table_reads": 196485
+              }
+            },
+            "panel": "opened_development",
+            "prior": "blake3:aaa1abe1ce2c4b2b1af65c73f43e2b69e410622dd897395c8a4527abb5fb8337"
+          },
+          {
+            "after": {
+              "correct": 36,
+              "mean_nll": 3.4299989245594804,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29139,
+                "table_reads": 189923
+              }
+            },
+            "before": {
+              "correct": 52,
+              "mean_nll": 3.671485070699118,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29793,
+                "table_reads": 196063
+              }
+            },
+            "panel": "opened_development",
+            "prior": "blake3:0c93455843f4aa6e2730ef593730a2b8c9b7afdf6ef6ff33b538d63cbbb2ab62"
+          },
+          {
+            "after": {
+              "correct": 36,
+              "mean_nll": 3.4299989245594804,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29139,
+                "table_reads": 189923
+              }
+            },
+            "before": {
+              "correct": 48,
+              "mean_nll": 3.6702221339857317,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29837,
+                "table_reads": 196695
+              }
+            },
+            "panel": "opened_development",
+            "prior": "blake3:0c43bf3f4fc0361ac7c0b3b05d0b361bf01667155705337e4c59907eb05ba471"
+          }
+        ],
+        "general_language_qualified": false,
+        "generation_coherence": "QUALITATIVE_REVIEW_REQUIRED",
+        "generation_termination_gate": false,
+        "numeric_model_gate": false,
+        "opened_development_gate": false,
+        "original_four_termination_gate": false,
+        "prediction_hamming_each_prior": [
+          2714,
+          2815,
+          2522,
+          2537,
+          2712,
+          2725,
+          2703
+        ],
+        "preservation_gate": false,
+        "probe_four_termination_gate": false,
+        "root_identity_hamming_each_prior": [
+          1547,
+          1547,
+          1547,
+          1547,
+          1540,
+          1761,
+          0
+        ],
+        "source_identity_hamming_each_prior": [
+          377,
+          377,
+          377,
+          377,
+          377,
+          469,
+          0
+        ],
+        "witness": "blake3:1c962c53b426e6f0d3aae3af7bde4bba169a6508c56a0521db844e839cb4925e",
+        "wrong_to_correct_each_prior": [
+          208,
+          228,
+          262,
+          260,
+          209,
+          211,
+          211
+        ]
+      }
+    ],
+    "completed_old_cell_reports_replayed": 3,
+    "contrasts": [
+      {
+        "after": {
+          "correct": 81,
+          "mean_nll": 3.4182397633408006,
+          "positions": 672,
+          "work": {
+            "candidates": 14784,
+            "output_decisions": 10764,
+            "products": 51085,
+            "table_reads": 336502
+          }
+        },
+        "baseline": "parent_repeated",
+        "before": {
+          "correct": 100,
+          "mean_nll": 3.731053602426396,
+          "positions": 672,
+          "work": {
+            "candidates": 14784,
+            "output_decisions": 10764,
+            "products": 51810,
+            "table_reads": 342648
+          }
+        },
+        "candidate": "parent_varied",
+        "gate": false,
+        "name": "decoder_only",
+        "probe_full_correct_delta": -19,
+        "probe_full_nll_delta": -0.31281383908559546
+      },
+      {
+        "after": {
+          "correct": 79,
+          "mean_nll": 3.461137948272769,
+          "positions": 672,
+          "work": {
+            "candidates": 14784,
+            "output_decisions": 10764,
+            "products": 50458,
+            "table_reads": 329872
+          }
+        },
+        "baseline": "parent_varied",
+        "before": {
+          "correct": 81,
+          "mean_nll": 3.4182397633408006,
+          "positions": 672,
+          "work": {
+            "candidates": 14784,
+            "output_decisions": 10764,
+            "products": 51085,
+            "table_reads": 336502
+          }
+        },
+        "candidate": "learned_varied",
+        "gate": false,
+        "name": "varied_state_increment",
+        "probe_full_correct_delta": -2,
+        "probe_full_nll_delta": 0.04289818493196851
+      },
+      {
+        "after": {
+          "correct": 99,
+          "mean_nll": 3.694896705541945,
+          "positions": 672,
+          "work": {
+            "candidates": 14784,
+            "output_decisions": 10764,
+            "products": 50654,
+            "table_reads": 331012
+          }
+        },
+        "baseline": "parent_repeated",
+        "before": {
+          "correct": 100,
+          "mean_nll": 3.731053602426396,
+          "positions": 672,
+          "work": {
+            "candidates": 14784,
+            "output_decisions": 10764,
+            "products": 51810,
+            "table_reads": 342648
+          }
+        },
+        "candidate": "learned_repeated",
+        "gate": false,
+        "name": "repeated_state_increment",
+        "probe_full_correct_delta": -1,
+        "probe_full_nll_delta": -0.03615689688445123
+      },
+      {
+        "after": {
+          "correct": 79,
+          "mean_nll": 3.461137948272769,
+          "positions": 672,
+          "work": {
+            "candidates": 14784,
+            "output_decisions": 10764,
+            "products": 50458,
+            "table_reads": 329872
+          }
+        },
+        "baseline": "learned_repeated",
+        "before": {
+          "correct": 99,
+          "mean_nll": 3.694896705541945,
+          "positions": 672,
+          "work": {
+            "candidates": 14784,
+            "output_decisions": 10764,
+            "products": 50654,
+            "table_reads": 331012
+          }
+        },
+        "candidate": "learned_varied",
+        "gate": false,
+        "name": "total_varied_pipeline",
+        "probe_full_correct_delta": -20,
+        "probe_full_nll_delta": -0.23375875726917572
+      }
+    ],
+    "decision": "FAIL_CONTEXT_DECODER_REFIT_DEVELOPMENT_GATE",
+    "decoder_only_gate": false,
+    "elapsed_ms": 1700,
+    "fit_calls": 0,
+    "fit_reports": [
+      {
+        "cell": "parent_repeated",
+        "data_arm": "repeated",
+        "fit": {
+          "after": {
+            "correct": 664,
+            "mean_nll": 2.8395341889547723,
+            "positions": 2688,
+            "work": {
+              "candidates": 59136,
+              "output_decisions": 43056,
+              "products": 206384,
+              "table_reads": 1362784
+            }
+          },
+          "before": {
+            "correct": 324,
+            "mean_nll": 3.35431956387642,
+            "positions": 2688,
+            "work": {
+              "candidates": 59136,
+              "output_decisions": 43056,
+              "products": 201760,
+              "table_reads": 994848
+            }
+          },
+          "config": {
+            "max_depth": 3,
+            "max_seconds": 60,
+            "min_leaf": 64
+          },
+          "data_digest": "blake3:928d2c82682b37c0e34b99704cc54b798e2049b1728022c239c100624033667a",
+          "elapsed_ms": 70,
+          "occupied_branches": 94,
+          "parent": "blake3:0f82b7286bb1699b9ea3bf4193f152702f3b22e702cf31bcd0a0f56596bbf8b8",
+          "selected_trees": 36,
+          "split_candidates": 443520,
+          "total_nodes": 184
+        },
+        "head_bytes": 11087,
+        "state": "blake3:8f8e5c342c83b062274744033a96668e9c079dc47a9c4d1b138baa7ea4889b6a",
+        "witness": "blake3:4389949069dd2b7c327b55786ac4b15a3448e8036a887b3caacb10e0b9bd4b96"
+      },
+      {
+        "cell": "learned_repeated",
+        "data_arm": "repeated",
+        "fit": {
+          "after": {
+            "correct": 608,
+            "mean_nll": 2.812370209541765,
+            "positions": 2688,
+            "work": {
+              "candidates": 59136,
+              "output_decisions": 43056,
+              "products": 201972,
+              "table_reads": 1317544
+            }
+          },
+          "before": {
+            "correct": 316,
+            "mean_nll": 3.3652816854882985,
+            "positions": 2688,
+            "work": {
+              "candidates": 59136,
+              "output_decisions": 43056,
+              "products": 201760,
+              "table_reads": 994848
+            }
+          },
+          "config": {
+            "max_depth": 3,
+            "max_seconds": 60,
+            "min_leaf": 64
+          },
+          "data_digest": "blake3:928d2c82682b37c0e34b99704cc54b798e2049b1728022c239c100624033667a",
+          "elapsed_ms": 69,
+          "occupied_branches": 94,
+          "parent": "blake3:d797562dc7631296b669d35fa45f614f96190cce24cf5f396cc413980f1b9af2",
+          "selected_trees": 36,
+          "split_candidates": 448800,
+          "total_nodes": 186
+        },
+        "head_bytes": 11183,
+        "state": "blake3:0c93455843f4aa6e2730ef593730a2b8c9b7afdf6ef6ff33b538d63cbbb2ab62",
+        "witness": "blake3:d2f05bf44ac407b1ffdad43d594ae1e6fc78b019f24b151e4c1d55ee3578c3a0"
+      },
+      {
+        "cell": "parent_varied",
+        "data_arm": "varied",
+        "fit": {
+          "after": {
+            "correct": 324,
+            "mean_nll": 3.271266048283396,
+            "positions": 2688,
+            "work": {
+              "candidates": 59136,
+              "output_decisions": 43056,
+              "products": 203971,
+              "table_reads": 1341742
+            }
+          },
+          "before": {
+            "correct": 225,
+            "mean_nll": 3.6961062652010654,
+            "positions": 2688,
+            "work": {
+              "candidates": 59136,
+              "output_decisions": 43056,
+              "products": 201864,
+              "table_reads": 995160
+            }
+          },
+          "config": {
+            "max_depth": 3,
+            "max_seconds": 60,
+            "min_leaf": 64
+          },
+          "data_digest": "blake3:9f8dba43b61d0f81081994c4a6f7e314fdd69ef1dfeb0a3304678beada9cb359",
+          "elapsed_ms": 94,
+          "occupied_branches": 101,
+          "parent": "blake3:0f82b7286bb1699b9ea3bf4193f152702f3b22e702cf31bcd0a0f56596bbf8b8",
+          "selected_trees": 39,
+          "split_candidates": 422400,
+          "total_nodes": 185
+        },
+        "head_bytes": 11042,
+        "state": "blake3:8f8e5c342c83b062274744033a96668e9c079dc47a9c4d1b138baa7ea4889b6a",
+        "witness": "blake3:3abe61c884355778baa47d930ba2e3c5ac3da69f0367b56b24f6ed6c401d8d0b"
+      },
+      {
+        "cell": "learned_varied",
+        "data_arm": "varied",
+        "fit": {
+          "after": {
+            "correct": 374,
+            "mean_nll": 3.2567269745809635,
+            "positions": 2688,
+            "work": {
+              "candidates": 59136,
+              "output_decisions": 43056,
+              "products": 202006,
+              "table_reads": 1320756
+            }
+          },
+          "before": {
+            "correct": 231,
+            "mean_nll": 3.699908597372707,
+            "positions": 2688,
+            "work": {
+              "candidates": 59136,
+              "output_decisions": 43056,
+              "products": 201856,
+              "table_reads": 995136
+            }
+          },
+          "config": {
+            "max_depth": 3,
+            "max_seconds": 60,
+            "min_leaf": 64
+          },
+          "data_digest": "blake3:9f8dba43b61d0f81081994c4a6f7e314fdd69ef1dfeb0a3304678beada9cb359",
+          "elapsed_ms": 96,
+          "occupied_branches": 101,
+          "parent": "blake3:f6c29f70878ebcadc2d39aedc51fbdb66d0651b69ff64f75ff4a384d6a774ee5",
+          "selected_trees": 37,
+          "split_candidates": 443520,
+          "total_nodes": 187
+        },
+        "head_bytes": 11199,
+        "state": "blake3:0c43bf3f4fc0361ac7c0b3b05d0b361bf01667155705337e4c59907eb05ba471",
+        "witness": "blake3:1c962c53b426e6f0d3aae3af7bde4bba169a6508c56a0521db844e839cb4925e"
+      }
+    ],
+    "method_gate": false,
+    "preserved_fit_calls": 4,
+    "prior_identities": [
+      "blake3:8f8e5c342c83b062274744033a96668e9c079dc47a9c4d1b138baa7ea4889b6a",
+      "blake3:1198ef4788397b9bf8cae20b8df4b23573bc9861eb812a51baf359f2545618b1",
+      "blake3:0f82b7286bb1699b9ea3bf4193f152702f3b22e702cf31bcd0a0f56596bbf8b8",
+      "blake3:ade9a1cfbf39f0828ec1ec2b53775c05fcbaaf53fa2189b6a37ab7a636ce5e58",
+      "blake3:aaa1abe1ce2c4b2b1af65c73f43e2b69e410622dd897395c8a4527abb5fb8337",
+      "blake3:0c93455843f4aa6e2730ef593730a2b8c9b7afdf6ef6ff33b538d63cbbb2ab62",
+      "blake3:0c43bf3f4fc0361ac7c0b3b05d0b361bf01667155705337e4c59907eb05ba471"
+    ],
+    "prior_replayed_original_outputs": 84,
+    "prior_replayed_probe_outputs": 36,
+    "prior_replayed_probe_rows": 6048,
+    "prior_replayed_rows": 22113,
+    "promoted": false,
+    "recovered_failure": "INCOMPLETE_REPORT_STORAGE_LIMIT",
+    "recovered_from": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/context-decoder-refit-1/attempt-1",
+    "schema": "uor-r4.context-decoder-refit-result/1",
+    "scope": "Evaluation-only recovery of four previously fitted and sealed conditional heads; zero new fits. Original frozen state snapshots and construction data. All seven prior states/artifacts replayed, with fixed states unchanged by head refits. Previously opened recombination probes and actual outputs compared after all four fits; no new state learning, regularization, JEPA, fresh broad holdout, normal changed artifact, promotion or language/energy qualification.",
+    "state_proposals": 0,
+    "varied_state_increment_gate": false
+  },
+  "reports": {
+    "attempt-1": {
+      "report_root": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/context-decoder-refit-1/attempt-1",
+      "files": {
+        "attempt.json": {
+          "bytes": 500,
+          "sha256": "82ca93882ffb622d042dad9f5dbfcab413765e5e50e3030c958fef75126f8aaf"
+        },
+        "baseline-reproduction.json": {
+          "bytes": 583,
+          "sha256": "1c971fe4981e89a5be010885fc40d1f251964aa4c14845613c3456a9946d74cf"
+        },
+        "design.json": {
+          "bytes": 2349,
+          "sha256": "6e2bdcd71c5edfa641840a14b4fe4e9f905c7f79c7e4d319b53a0038301122fc"
+        },
+        "failure.json": {
+          "bytes": 95,
+          "sha256": "9a4b9c4c1ebf212cda3c19680eddd5a4935f7d49a9a6514ed7300daf7c800ce1"
+        },
+        "learned_repeated-behavior.json": {
+          "bytes": 16699141,
+          "sha256": "baf4b03f582f8691e0614a475b10cf1856ed68169668aaa2e2c0baf302395411"
+        },
+        "learned_repeated-early-generation.json": {
+          "bytes": 6447,
+          "sha256": "6b044c0ee6f68b57be52be6b3acf473edfe9f296502b31530a5c50183dab8035"
+        },
+        "learned_repeated-fit.json": {
+          "bytes": 848,
+          "sha256": "61226b62983f4cd8a41fc2143a382f5ea80322347150a1f107f0a254ae079a9a"
+        },
+        "learned_repeated-head.json": {
+          "bytes": 23288,
+          "sha256": "e046ae122da0abde72e0b11ea4ee11dbee85fd63d5f54ab31b8bdcbdf7ab3b92"
+        },
+        "learned_repeated-witness.json": {
+          "bytes": 27667,
+          "sha256": "a0b5c6da213c4879e2324fcb394a917ce665aef8aba2ab0bae1690b735f209ed"
+        },
+        "learned_varied-early-generation.json": {
+          "bytes": 6537,
+          "sha256": "50595ea7fbfa72d1666a13759a6f503b73526571183ca0af762fd4052c8e4cf2"
+        },
+        "learned_varied-fit.json": {
+          "bytes": 849,
+          "sha256": "5b42ac28ccef4ad316949eb5bfc5b2f7a9b49b59ff107030d3fd558b8b9d87cd"
+        },
+        "learned_varied-head.json": {
+          "bytes": 23343,
+          "sha256": "bf399f6a4164f867f833c4bd57914e7750281db038c336f28beff672e9dcc832"
+        },
+        "learned_varied-witness.json": {
+          "bytes": 27730,
+          "sha256": "b315339c4f02f88db804d65d4421fd59c615acf923169be827442d206ca5c365"
+        },
+        "manifest.json": {
+          "bytes": 4267,
+          "sha256": "3ced4f35d2dae0b9491c2c9ed5eee3f49c979f1ed46c109d6e2e9e978944fef5"
+        },
+        "parent_repeated-behavior.json": {
+          "bytes": 16454591,
+          "sha256": "86816f61d2966faaa34c9efb4f6a54649f07fc78112d6136306eae0a6c4ef782"
+        },
+        "parent_repeated-early-generation.json": {
+          "bytes": 6491,
+          "sha256": "239b4bed044c2676629c08d77c35f7ca5b1e9d64f955442dc494cb534fa2fb54"
+        },
+        "parent_repeated-fit.json": {
+          "bytes": 847,
+          "sha256": "b8417c66ef962059810ceb8ac3ce3f3e1f08a4e977ed79028f4a06fa4cf0097a"
+        },
+        "parent_repeated-head.json": {
+          "bytes": 23084,
+          "sha256": "321179234a4596695e965ef6bbd6ff1d9531f7c220e6ed6d7e17a6c3d045ba28"
+        },
+        "parent_repeated-witness.json": {
+          "bytes": 27438,
+          "sha256": "2feb7a78e5425fca4d7b56b7397412f5610d518f51718c32098ef3bd48659cd4"
+        },
+        "parent_varied-behavior.json": {
+          "bytes": 16730538,
+          "sha256": "3496cdab687ab625059bf839ef79b5e787e9f45a9beb75f1988fb7b5e38a57e2"
+        },
+        "parent_varied-early-generation.json": {
+          "bytes": 6645,
+          "sha256": "cb190daaabdd9c1950af1557605e5b09986e0681cfb16606060892966af42a1d"
+        },
+        "parent_varied-fit.json": {
+          "bytes": 849,
+          "sha256": "d4d59a8050440418d8f208064471550fad6eeb8e802e45d45be0b2a667587e03"
+        },
+        "parent_varied-head.json": {
+          "bytes": 23048,
+          "sha256": "eafc49b035dafd0773d79864763d90037a63fab975c062cab49cd8155d4c3247"
+        },
+        "parent_varied-witness.json": {
+          "bytes": 27406,
+          "sha256": "3d59522d9787967cae888c3fe9fdd43beb77e2f1a9d8895fbe10186001a08bda"
+        },
+        "prior-behavior.json": {
+          "bytes": 6435225,
+          "sha256": "d133b9e2487da3f24b80fd8ab2e2237f52b0646e1f0341b9a3ea6eeeb14b5e18"
+        },
+        "source.json": {
+          "bytes": 2253,
+          "sha256": "4c9ef39f8239a7ab9e9bcd3b03dbf4c3838c14cbdbf5d4e210774fbbae867b72"
+        }
+      }
+    },
+    "attempt-2": {
+      "report_root": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/context-decoder-refit-1/attempt-2",
+      "files": {
+        "attempt.json": {
+          "bytes": 505,
+          "sha256": "cef2e284920f724dc4a573de5997b4cae47b40eea7708e00ec5103685738fdcd"
+        },
+        "baseline-reproduction.json": {
+          "bytes": 773,
+          "sha256": "1d1d7e8968b463ad0ca446e3cde009a8c190a0246ab622df6c99c49f04cbe62f"
+        },
+        "design.json": {
+          "bytes": 2349,
+          "sha256": "6e2bdcd71c5edfa641840a14b4fe4e9f905c7f79c7e4d319b53a0038301122fc"
+        },
+        "learned_repeated-behavior.json": {
+          "bytes": 8875565,
+          "sha256": "b4d97d1529fbee628e4d11e7b1d1df9551b9d91d24469adbd17345cf11b2a24e"
+        },
+        "learned_repeated-early-generation.json": {
+          "bytes": 2527,
+          "sha256": "7f566f7e54cdb2f6046bf3021145aabf5611868447810e74baa45a601dda4da9"
+        },
+        "learned_varied-behavior.json": {
+          "bytes": 8900340,
+          "sha256": "1a4f750ac0e59641223728156e631613f1425d738da8af17c5121f4a988c69f6"
+        },
+        "learned_varied-early-generation.json": {
+          "bytes": 2617,
+          "sha256": "0b54db3e4887193700fa512944c2494215919c373b58711ec3188662a86b3781"
+        },
+        "manifest.json": {
+          "bytes": 2961,
+          "sha256": "7133ba2a571283b0385f826e04445730a272387d6936602ff97df2750b36dc0a"
+        },
+        "parent_repeated-behavior.json": {
+          "bytes": 8631015,
+          "sha256": "9cbf4ab2aef4c0fdeac70371d898a0e4ba7bd9be3e22aa16fadf23dffd0aea77"
+        },
+        "parent_repeated-early-generation.json": {
+          "bytes": 2571,
+          "sha256": "c337e30dd6a2965bd9c996351d9ea2dd4c057bf2a26140be1b809156da4a5e3a"
+        },
+        "parent_varied-behavior.json": {
+          "bytes": 8906962,
+          "sha256": "45388f6e4d56a6e60cf7846db21e61d19832e16cc8fc2ba0fbc22261bcb31181"
+        },
+        "parent_varied-early-generation.json": {
+          "bytes": 2725,
+          "sha256": "eecbffd97bda8522cdd90609c275418396b2cb2ab919d334c5f5a8a495c18629"
+        },
+        "prior-behavior.json": {
+          "bytes": 2662960,
+          "sha256": "940cc596844613e97add9307d4f596110e3a7c65d5ad40726d446a66d3876a6d"
+        },
+        "probe.json": {
+          "bytes": 24739,
+          "sha256": "3946c81f916520fa54eb72bc5e7c6490964c357d5bf60e96a5f768ba06728e80"
+        },
+        "result.json": {
+          "bytes": 34965,
+          "sha256": "706ad115cdc08bcffb552bd7f6a6af60a589a606102e9f9f4426e63b6f3647e5"
+        },
+        "runtime-census.json": {
+          "bytes": 8733,
+          "sha256": "316a09624afbf1fe4abc6372d45aed566563506faaa31c2108d4712c85a23e48"
+        },
+        "saved-witnesses.json": {
+          "bytes": 3485,
+          "sha256": "69344eaa72f7e29b14478827dbdb33d77ee4e9875b78504a7a56dfed2e4c9274"
+        },
+        "source.json": {
+          "bytes": 2645,
+          "sha256": "887b66541e0267afdb52e02a93c29113f845ec68332eaa2fe78eab14fe31d7d9"
+        }
+      }
+    }
+  },
+  "bindings": {
+    "projection.json": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/context-decoder-refit-1/projection.json",
+      "sha256": "361c8f98bdbcda4b6185657b43bbd4dbdb8224e1d4596546f0dff4e8bac875b6"
+    },
+    "checkout-preservation-start.json": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/context-decoder-refit-1/checkout-preservation-start.json",
+      "sha256": "97a51f8468458f0337ac4a4622fdab6b2bb566b088ee647e2d249d7e92a4e826"
+    },
+    "design.json": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/context-decoder-refit-1/design.json",
+      "sha256": "6e2bdcd71c5edfa641840a14b4fe4e9f905c7f79c7e4d319b53a0038301122fc"
+    },
+    "inputs.json": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/context-decoder-refit-1/inputs.json",
+      "sha256": "9e62bfef954e04430ebe5696ecaa7900f5ecdd41afff62d40ef88ebd78fae168"
+    },
+    "research.md": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/context-decoder-refit-1/research.md",
+      "sha256": "63286f90eb72dc9bc31e01e35ed7fe460d4a33715c3bc3c0e8d1b836e67c83c4"
+    },
+    "next-action.txt": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/context-decoder-refit-1/next-action.txt",
+      "sha256": "dfd2526f12034007e8b95cd684b8daa6fab65338c65ba85822d1a59d7e8be572"
+    },
+    "summary.json": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/context-decoder-refit-1/summary.json",
+      "sha256": "5d0314361fd331ea56f0096dd01a8dda1882bef69a6a9ac801e846855c6a86a8"
+    },
+    "selected-deltas.json": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/context-decoder-refit-1/selected-deltas.json",
+      "sha256": "2e9fc7ec15b7dcae04441a5283f0df8b841666dd2558519e52f802103dbfc39e"
+    },
+    "review.md": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/context-decoder-refit-1/review.md",
+      "sha256": "7211ff6e6a5cbea63571b75130bdf55efa9b4c51a44116048501118c7b7a2bd5"
+    },
+    "recovery-review.md": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/context-decoder-refit-1/recovery-review.md",
+      "sha256": "c8311c9cc5301f3c54af82725630c5e0f8410ab68a13ca833a483721745ed362"
+    },
+    "source-freeze.json": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/context-decoder-refit-1/source-freeze.json",
+      "sha256": "41af0c8e610f4e2622cc8ce3bb334b1888d771d1ead7612f2e80da0899aafba9"
+    },
+    "recovery-projection.json": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/context-decoder-refit-1/recovery-projection.json",
+      "sha256": "7a815d2464eb1bbe059ddfbb1ef6e446248ae9883bffc8163217697fcb290c3b"
+    },
+    "initial-tests-registration.rs": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/context-decoder-refit-1/initial-tests-registration.rs",
+      "sha256": "9048064cab128af8cc38dee90f768b279c0f570a0bcb85bdb1fc99829acec30f"
+    },
+    "result-review.md": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/context-decoder-refit-1/result-review.md",
+      "sha256": "736045642da49165f519827ff098aa9004b232a184abafab686525402c51f3f7"
+    },
+    "preservation.json": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/context-decoder-refit-1/preservation.json",
+      "sha256": "dfd30cfd8a5ca92ab0337ad38ac8da644475edb5188beee65b95a6eac44381d9"
+    },
+    "execution-receipt.json": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/context-decoder-refit-1/execution-receipt.json",
+      "sha256": "6f3a0c784ccf51c781a1e3fc54439f83d73060e0458782b3a63230d204371098"
+    }
+  },
+  "resources": {
+    "at": "2026-09-13T05:13:52.101Z",
+    "step_model_ms": 222406,
+    "step_model_cap_ms": 420000,
+    "parent_model_ms": 2897050,
+    "parent_model_limit_ms": 3200000,
+    "ledger": {
+      "cumulative_ms": 122647623,
+      "limit_ms": 132950000
+    },
+    "step_new_storage_bytes": 128118784,
+    "step_storage_cap_bytes": 201326592,
+    "parent_growth_bytes": 1787117568,
+    "parent_storage_cap_bytes": 2147483648,
+    "peak_sampled_rss_bytes": 2532589568,
+    "commands": [
+      {
+        "kind": "engineering",
+        "label": "refit-format",
+        "cmd": "/Users/casey.allard/.cargo/bin/cargo",
+        "args": [
+          "fmt"
+        ],
+        "cwd": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core",
+        "started": "2026-09-13T04:57:20.107Z",
+        "elapsed_ms": 4728,
+        "code": 0,
+        "signal": null,
+        "stopped": null,
+        "charged": false,
+        "peak_sampled_process_tree_rss_bytes": 170475520,
+        "logs": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/refit-format.log"
+      },
+      {
+        "kind": "model",
+        "label": "refit-build-tests",
+        "cmd": "/Users/casey.allard/.cargo/bin/cargo",
+        "args": [
+          "test",
+          "--offline",
+          "--release",
+          "-p",
+          "uor-r4-core",
+          "--lib",
+          "native_geometric::shared_core::tests::context_decoder_refit::",
+          "--",
+          "--nocapture"
+        ],
+        "cwd": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core",
+        "started": "2026-09-13T04:57:40.200Z",
+        "elapsed_ms": 106002,
+        "code": 0,
+        "signal": null,
+        "stopped": null,
+        "charged": true,
+        "peak_sampled_process_tree_rss_bytes": 2492416000,
+        "logs": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/refit-build-tests.log"
+      },
+      {
+        "kind": "model",
+        "label": "refit-actual-experiment",
+        "cmd": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/context-decoder-refit-1/refit-tests",
+        "args": [
+          "native_geometric::shared_core::tests::context_decoder_refit::context_decoder_refit_run_saved_experiment",
+          "--exact",
+          "--ignored",
+          "--nocapture"
+        ],
+        "cwd": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core",
+        "started": "2026-09-13T05:00:02.220Z",
+        "elapsed_ms": 1797,
+        "code": 101,
+        "signal": null,
+        "stopped": null,
+        "charged": true,
+        "peak_sampled_process_tree_rss_bytes": 309919744,
+        "logs": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/refit-actual-experiment.log"
+      },
+      {
+        "kind": "engineering",
+        "label": "refit-recovery-format",
+        "cmd": "/Users/casey.allard/.cargo/bin/cargo",
+        "args": [
+          "fmt"
+        ],
+        "cwd": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core",
+        "started": "2026-09-13T05:04:57.501Z",
+        "elapsed_ms": 4816,
+        "code": 0,
+        "signal": null,
+        "stopped": null,
+        "charged": false,
+        "peak_sampled_process_tree_rss_bytes": 171114496,
+        "logs": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/refit-recovery-format.log"
+      },
+      {
+        "kind": "engineering",
+        "label": "refit-recovery-format-final",
+        "cmd": "/Users/casey.allard/.cargo/bin/cargo",
+        "args": [
+          "fmt"
+        ],
+        "cwd": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core",
+        "started": "2026-09-13T05:07:09.973Z",
+        "elapsed_ms": 4865,
+        "code": 0,
+        "signal": null,
+        "stopped": null,
+        "charged": false,
+        "peak_sampled_process_tree_rss_bytes": 170901504,
+        "logs": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/refit-recovery-format-final.log"
+      },
+      {
+        "kind": "model",
+        "label": "refit-recovery-build-tests",
+        "cmd": "/Users/casey.allard/.cargo/bin/cargo",
+        "args": [
+          "test",
+          "--offline",
+          "--release",
+          "-p",
+          "uor-r4-core",
+          "--lib",
+          "native_geometric::shared_core::tests::context_decoder_resume::",
+          "--",
+          "--nocapture"
+        ],
+        "cwd": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core",
+        "started": "2026-09-13T05:07:25.011Z",
+        "elapsed_ms": 112577,
+        "code": 0,
+        "signal": null,
+        "stopped": null,
+        "charged": true,
+        "peak_sampled_process_tree_rss_bytes": 2532589568,
+        "logs": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/refit-recovery-build-tests.log"
+      },
+      {
+        "kind": "model",
+        "label": "refit-recovery-experiment",
+        "cmd": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/context-decoder-refit-1/refit-resume-tests",
+        "args": [
+          "native_geometric::shared_core::tests::context_decoder_resume::context_decoder_resume_saved_evaluation",
+          "--exact",
+          "--ignored",
+          "--nocapture"
+        ],
+        "cwd": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core",
+        "started": "2026-09-13T05:09:49.496Z",
+        "elapsed_ms": 2030,
+        "code": 0,
+        "signal": null,
+        "stopped": null,
+        "charged": true,
+        "peak_sampled_process_tree_rss_bytes": 648921088,
+        "logs": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/refit-recovery-experiment.log"
+      }
+    ],
+    "parent_extension_ms": 200000,
+    "ledger_extension_ms": 0,
+    "paid_compute": 0
+  },
+  "preservation": {
+    "prior_sealed_roots": 19,
+    "prior_sealed_files": 689,
+    "parked_dirty_paths": 22,
+    "parked_status_sha256": "7dbfdd7d981456b30357812e9dc7edd13b072c43ce45b873f35ba51d742465b2",
+    "retained_sha256": "1454aa69e2e295d0a9970e90326f4664d3c614f666b1a708a16c16b5350a1705",
+    "production_sources_unchanged": true,
+    "recurrence_source_unchanged": true,
+    "legacy_actual_rows_replayed": true
+  },
+  "final_checks": {
+    "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/context-decoder-refit-1/final-checks.json",
+    "sha256": "dda4a1e9fbbae0f68d517dd9a621d4f1a870914c5fdf0b0afb7739f85290c452"
+  }
+}

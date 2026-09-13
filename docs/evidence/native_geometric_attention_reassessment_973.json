@@ -1,0 +1,84 @@
+{
+  "schema": "uor-r4.attention-reassessment-research/1",
+  "date": "2026-09-13",
+  "reviewed_source": "b506820d14e03b522d4b6f41ec73437f61733c2b",
+  "status": "RESEARCH_DIRECTION_COMPLETE_IMPLEMENTATION_SPEC_OUTSTANDING",
+  "model_calls": 0,
+  "builds": 0,
+  "imports_executed": false,
+  "production_changes": false,
+  "promoted": false,
+  "retained": "15baec48",
+  "records": {
+    "DWN-efd_cuda_kernel.cu": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/research-reset-1/DWN-efd_cuda_kernel.cu",
+      "bytes": 5827,
+      "sha256": "81948f38feee1a2c9ec50bf5c12717d9f6e04442f3266005ee6d52b8d72ada1f"
+    },
+    "DWN-lut_layer.py": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/research-reset-1/DWN-lut_layer.py",
+      "bytes": 3354,
+      "sha256": "86e95c86a813bae9afa410fd01c4a621d579b9908e5979bfd8e487c9fee9506a"
+    },
+    "DWN-mapping.py": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/research-reset-1/DWN-mapping.py",
+      "bytes": 1548,
+      "sha256": "8e9042f6ae1e7b4e24a14b754a0b93147f881fb47d5489afbee17f1d8995dce8"
+    },
+    "DWN-provenance.json": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/research-reset-1/DWN-provenance.json",
+      "bytes": 1375,
+      "sha256": "075d1730b676232a539453ccdc52d637a43bf20bf4a122b1d696fa19e9d9ea4f"
+    },
+    "Felix-Petersen-difflogic_compiled_model.py": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/research-reset-1/Felix-Petersen-difflogic_compiled_model.py",
+      "bytes": 13737,
+      "sha256": "4a11c94f78ce8348d97ab1b42601500ae8813eb6d4bf73ecd8b9649acd20b7d7"
+    },
+    "Felix-Petersen-difflogic_difflogic.py": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/research-reset-1/Felix-Petersen-difflogic_difflogic.py",
+      "bytes": 9370,
+      "sha256": "1fb6bfc67021efed7d67514fc1d623d0a0b923e92a9719038ea57bed277cbc38"
+    },
+    "Felix-Petersen-provenance.json": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/research-reset-1/Felix-Petersen-provenance.json",
+      "bytes": 813,
+      "sha256": "4d505f0a8edabbcbaf4240b7b4e94500ca962c8792f55b480b897c423b96ec4e"
+    },
+    "TrentBrick-Implementations_Associative_Memory.py": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/research-reset-1/TrentBrick-Implementations_Associative_Memory.py",
+      "bytes": 17445,
+      "sha256": "7f42867a6ceb9a785af7bf486c8eb13f9fde667d2625a0355d3dc94158449532"
+    },
+    "TrentBrick-provenance.json": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/research-reset-1/TrentBrick-provenance.json",
+      "bytes": 883,
+      "sha256": "9412592ccc13217609307258c2a71c98a7545ad07b54cb782cdb590e6219806b"
+    },
+    "TrentBrick-utils_LearnProjections.py": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/research-reset-1/TrentBrick-utils_LearnProjections.py",
+      "bytes": 6441,
+      "sha256": "e301306dec68c769c5e7c7ac8a244aa2a45fd6b10b98d49e643185eef2ad7931"
+    },
+    "nemesis-review.md": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/research-reset-1/nemesis-review.md",
+      "bytes": 12217,
+      "sha256": "b4f61bd6d12ed00ed5180fa87b3ce9f3c22fff274f93bf1789c9640536dc50aa"
+    },
+    "owner-direction.md": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/research-reset-1/owner-direction.md",
+      "bytes": 990,
+      "sha256": "ab22045209e5e470057ada238aa0af20eb52c02bb422744f65ed96b19cd3f404"
+    },
+    "uor-prism-review.md": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/research-reset-1/uor-prism-review.md",
+      "bytes": 12975,
+      "sha256": "7f7b6ff439ee294f0473a87814c5d7b160ba42255ff7782f2558fa57f78314e8"
+    },
+    "synthesis-review.md": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/research-reset-1/synthesis-review.md",
+      "bytes": 6135,
+      "sha256": "aa0e1c55ed2e8cb4717d7439985a43e43c35206aba339bedba5b1cb185c50f5b"
+    }
+  }
+}
