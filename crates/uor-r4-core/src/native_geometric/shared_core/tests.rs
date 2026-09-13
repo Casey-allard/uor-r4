@@ -166,3 +166,5 @@ mod angular_tree_experiment;
 mod decoder_validation;
 
 mod tree_state_pair;
+
+mod coupled_profile;
