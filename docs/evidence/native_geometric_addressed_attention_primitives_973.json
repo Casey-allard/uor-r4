@@ -1,0 +1,159 @@
+{
+  "schema": "uor-r4.addressed-attention-primitives-evidence/1",
+  "at": "2026-09-13T06:24:22.278Z",
+  "status": "PASS_ADDRESSED_ATTENTION_PRIMITIVE_CREDIT_GATE",
+  "tests_passed": 18,
+  "tests_failed": 0,
+  "tests_ignored": 0,
+  "source": {
+    "at": "2026-09-13T06:21:25.798Z",
+    "base": "73828bfabe8f8a58dbcb191f38182212e2d9caae",
+    "files": [
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/inputs.rs",
+        "sha256": "05a2390de774d98c56cf55794bec2a5208f0a27e5387bb12330ae03546ffe6b4",
+        "bytes": 7261
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/objects.rs",
+        "sha256": "69150c6f22bb876268f90251986b146844a8794e30666fb3ab5ad8c9ced5f541",
+        "bytes": 39707
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/objects_tests.rs",
+        "sha256": "f1222da89ec74cef7e8ea50c83b9b25a4fbe8c1191b779ecbc99e7f7ed838182",
+        "bytes": 13223
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/mod.rs",
+        "sha256": "5f39f8f4192fbe923a2d974d494274eb03072fd8d3ee1ed3991b375cbaa59195",
+        "bytes": 416
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/training.rs",
+        "sha256": "d539b9d49d3f56806ec3cebc7720823e2ad411b771239fa0b96dd80e99812873",
+        "bytes": 10912
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/training_tests.rs",
+        "sha256": "274c7be7da18e0dba1605fd4af3cd921dc9dd311b87c635a587c03a26484cea9",
+        "bytes": 20277
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/circuit/tests.rs",
+        "sha256": "e62a2228385fa657e335723eb0170066f2d65840f7c1176fca737a485664acc0",
+        "bytes": 7923
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/circuit.rs",
+        "sha256": "76f314feb543d0a68b0b37a2fc166a89d6db93de1e958d8890d9d00c39f5b687",
+        "bytes": 11833
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/mod.rs",
+        "sha256": "e719451c9792f60d1e20ba289089c3358c3b27239788c4c2e7fdbc75a94e7d07",
+        "bytes": 38843
+      }
+    ]
+  },
+  "checks": [
+    {
+      "kind": "model",
+      "label": "primitive-release-gate",
+      "cmd": "/Users/casey.allard/.cargo/bin/cargo",
+      "args": [
+        "test",
+        "--offline",
+        "--release",
+        "-p",
+        "uor-r4-core",
+        "--lib",
+        "addressed_attention",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "cwd": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core",
+      "started": "2026-09-13T06:21:25.858Z",
+      "elapsed_ms": 101708,
+      "code": 0,
+      "signal": null,
+      "stopped": null,
+      "charged": true,
+      "peak_sampled_process_tree_rss_bytes": 2571583488,
+      "logs": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/primitive-release-gate.log"
+    }
+  ],
+  "execution_log": {
+    "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/primitive-release-gate.log",
+    "sha256": "5a1a09f0c913797b685f0b02e1f2bc7ad694167ce841032fa17fc8d849d11ff7",
+    "bytes": 3245
+  },
+  "binary": {
+    "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-attention-primitives-1/primitive-tests",
+    "sha256": "1dc3581d8f1e5eddfa442d6d2cf0c7898fe720352ad60078b2f1b3907caa17c1",
+    "bytes": 16228688,
+    "original_cache_path": "/Users/casey.allard/uor-r4/target/release/deps/uor_r4_core-ab236c9b0d8b158f"
+  },
+  "review": {
+    "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-attention-primitives-1/implementation-review.md",
+    "sha256": "db80cffb953f9f54b403e57056e868601c49b74806ab7f7ae0489914dd2d0430",
+    "bytes": 9062
+  },
+  "retained": "15baec48",
+  "retained_sha256": "1454aa69e2e295d0a9970e90326f4664d3c614f666b1a708a16c16b5350a1705",
+  "prior_sources_unchanged": 140,
+  "prior_source_changes": [
+    "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/mod.rs"
+  ],
+  "old_dispatch_change": false,
+  "prior_sealed_roots": 21,
+  "prior_sealed_files": 733,
+  "original_checkouts_preserved": true,
+  "model_build_test_ms": 101708,
+  "step_cap_ms": 240000,
+  "parent_model_ms": 2998758,
+  "parent_model_limit_ms": 3200000,
+  "ledger": {
+    "cumulative_ms": 122749331,
+    "limit_ms": 132950000
+  },
+  "step_storage_growth_bytes": 18010112,
+  "step_storage_cap_bytes": 100663296,
+  "parent_storage_growth_bytes": 1806884864,
+  "parent_storage_cap_bytes": 2147483648,
+  "peak_sampled_rss_bytes": 2571583488,
+  "full_eight_phase_model": "NOT_IMPLEMENTED",
+  "language_fit_calls": 0,
+  "generation_qualification": "NOT_RUN",
+  "allocation_latency_energy": "NOT_RUN",
+  "normal_model_artifact": "NOT_EXPORTED",
+  "external_cost": 0,
+  "cleanup": false,
+  "retained_binary_storage_included": true,
+  "projection": {
+    "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-attention-primitives-1/projection.json",
+    "sha256": "336bb1b1c24e7d3aac09d58906f5457caa603d7eb68550f560f7b680c085cd36",
+    "bytes": 1172
+  },
+  "gate_receipt": {
+    "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-attention-primitives-1/gate-result.json",
+    "sha256": "7d2297b497f821104af70b55ff518cd8e01fd1e6963d8df076f11fcb43f88dd3",
+    "bytes": 5708
+  },
+  "preservation_start": {
+    "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-attention-primitives-1/preservation-start.json",
+    "sha256": "3bbfd4b7cad9e05e8bef7c7d534ce2fdd17e8288b3851ab1fe6719235e409964",
+    "bytes": 529
+  },
+  "specification": {
+    "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/docs/native_geometric_addressed_attention_spec_973.md",
+    "sha256": "c1860bfadb7bc7f27467486e06e00b7b5be6055de3a0d3d07545466fd7402c71",
+    "bytes": 27183
+  },
+  "specification_contract": {
+    "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/docs/evidence/native_geometric_addressed_attention_contract_973.json",
+    "sha256": "df6fcafdd515f686509621056c61db63888ce7c1e740e814502a9d85b937243f",
+    "bytes": 12570
+  }
+}

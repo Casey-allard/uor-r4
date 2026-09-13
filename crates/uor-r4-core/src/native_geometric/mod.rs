@@ -150,6 +150,8 @@ mod writer_refinement;
 
 use serde::{Deserialize, Serialize};
 
+/// Isolated primitive experiment; no retained dispatch change.
+pub mod addressed_attention;
 /// Experimental shared state/access/emission kernel; never an implicit fallback.
 pub mod shared_core;
 

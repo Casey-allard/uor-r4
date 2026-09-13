@@ -1,6 +1,20 @@
 # Current native geometric AI work
 
-## Learned addressed attention specification — September 13, 2026
+## Addressed attention primitive and causal-credit gate — September 13, 2026
+
+**PASS_ADDRESSED_ATTENTION_PRIMITIVE_CREDIT_GATE: 18/18 release tests; retain 15baec48, no promotion.** The [implemented result](../native_geometric_addressed_attention_primitives_973.md) and [source-bound evidence](../evidence/native_geometric_addressed_attention_primitives_973.json) deliver the specification's finite LUT/sampler, exact object/lease/offer, causal input-packing and deterministic primitive-export gate. Existing dispatch/loaders remain unchanged. The new native module is isolated from the retained model.
+
+Actual ObjectSession A/B records supply both signed H4 key lanes for changed-source credit. Four hard paths, sixteen two-particle combinations and four-particle serial leave-one-out checks match analytic/event-score/finite-difference gradients; late offered-symbol credit exercises real acknowledgment/cancellation and KEY. At p=.2,q=.7, loss .78 and gradients −.144,+.042 pass; late emission gives −.4 direct plus −.12 future. These are finite credit checks, not a language learning result. Exact identity, eviction survival, ordered scalar computation, one-time publication and pending/ready/saturated snapshots pass. Full 1024-bit reach, legal export fallback, ties and malformed primitive payloads pass.
+
+One release build/test command charged 101,708/240,000 ms; sampled peak RSS 2,571,583,488 bytes. Shared ledger 122,749,331/132,950,000 ms; parent 2,998,758/3,200,000 ms. Retaining the tested executable brings measured step growth to 18,010,112 bytes within 96 MiB before final documentation/delivery; final receipt appends locally. No allowance extension, paid compute or cleanup. All 21 prior seals/733 files and both original checkouts verify. 140/141 prior bound sources remain byte-identical; only native_geometric/mod.rs gains the new module declaration.
+
+The complete eight-phase model, normal model artifact and corpus learner remain NOT_IMPLEMENTED. No language fit, generation qualification, allocation or serving latency/energy measurement ran. Hamming remains an unselected comparator. SerialLoo's current dense-slice API may require two caller scratch arrays beyond its three internal accumulators; the future full caller's memory is not yet measured. Namespace/checksum trust boundaries and all prior negative candidates remain explicit.
+
+**Next action:** Connect the tested primitives into the specified eight-phase forward/observe schedule with exact geometry/token/zeta bindings and a separately versioned normal artifact envelope. Check complete deterministic interpreter/export and snapshot continuation traces. Then execute one frozen-parameter four-particle forward/backward dry-run, measuring complete cost and scratch/tape memory before selecting a training dose. Proposed total 180,000 ms, two build threads/one model process, 4 GiB RAM, 128 MiB new storage and 128 MiB stop margin; refresh and record first. No SGD update, language fit, parameter sweep or fresh qualification draw is included. Freeze source-separated language/coding acceptance before any later fit.
+
+Active worktree /Users/casey.allard/uor-r4-worktrees/shared-geometric-core, branch codex/addressed-attention-primitives, based on protected merge73828bfabe8f8a58dbcb191f38182212e2d9caae. Notes/evidence: established handoff shared-core-first-step/addressed-attention-primitives-1/. #973 remains actively assigned/open; #964/#820 acceptance is unchanged. Memory repair/V3–V7 remain parked.
+
+## Prior addressed attention specification — primitive implementation now delivered
 
 **SPECIFIED; implementation and learning NOT_RUN. Retain 15baec48; no promotion.** The [implementation specification](../native_geometric_addressed_attention_spec_973.md) resolves the research checkpoint into a concrete shared LUT/geometric operator design, exact object/lease lifecycle, hard-trajectory training estimator and deterministic export. Its [machine contract](../evidence/native_geometric_addressed_attention_contract_973.json) fixes dimensions, causal feature packing, legal action sets, analytic credit fixtures and proposed next costs. The prior decoder failure is preserved below; no old model run was repeated.
 
