@@ -158,6 +158,11 @@ impl SharedCore {
         documents: &[Vec<u8>],
         max_seconds: u64,
     ) -> Result<(Self, BlockCalibrationReport)> {
+        if self.artifact.angular_tree.is_some() {
+            return Err(CoreError::InvalidInput(
+                "angular emission cannot be calibrated as a cap",
+            ));
+        }
         training::validate_data(documents)?;
         if self.artifact.calibrated.is_none() || max_seconds == 0 || max_seconds > 120 {
             return Err(CoreError::InvalidInput(

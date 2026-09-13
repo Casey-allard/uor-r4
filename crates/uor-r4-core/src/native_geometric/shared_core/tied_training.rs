@@ -268,6 +268,11 @@ impl SharedCore {
         documents: &[Vec<u8>],
         config: TiedFitConfig,
     ) -> Result<(Self, TiedFitReport)> {
+        if self.artifact.angular_tree.is_some() {
+            return Err(CoreError::InvalidInput(
+                "angular emission requires its own training provenance",
+            ));
+        }
         config.validate()?;
         training::validate_data(documents)?;
         let start = Instant::now();

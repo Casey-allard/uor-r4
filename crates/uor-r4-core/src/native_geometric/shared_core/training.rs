@@ -119,6 +119,7 @@ impl SharedCore {
                 tied_fit_config: None,
                 training_parent: None,
                 calibrated: None,
+                angular_tree: None,
             },
             cid: String::new(),
         };
@@ -165,6 +166,11 @@ impl SharedCore {
     /// The caller's parent is never mutated; every accepted move is evaluated
     /// against all supplied construction positions under the hard forward path.
     pub fn fit(&self, documents: &[Vec<u8>], config: FitConfig) -> Result<(Self, FitReport)> {
+        if self.artifact.angular_tree.is_some() {
+            return Err(CoreError::InvalidInput(
+                "angular emission requires its own training provenance",
+            ));
+        }
         validate_data(documents)?;
         if config.seed == 0
             || config.max_seconds == 0

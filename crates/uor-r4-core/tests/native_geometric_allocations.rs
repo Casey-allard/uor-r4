@@ -4483,3 +4483,28 @@ fn native_query_owner_actual_checkpoint_and_allocation() {
     times.sort_unstable();
     println!("actual query-owner artifact={}; load_ns={load_ns}; input_checkpoint_positions={input_positions}; output_checkpoint_positions={output_positions}; allocations=0 bytes=0; predict_observe median_ns={} max_ns={} (load/encode/session/BOS/checkpoint/JSON/decode/report excluded; no energy claim)",model.artifact_cid(),times[times.len()/2],times[times.len()-1]);
 }
+
+#[test]
+#[ignore = "Requires an actual block-calibrated or joint artifact path"]
+fn shared_core_saved_angular_tree_has_bounded_zero_allocation_prediction() {
+    use uor_r4_core::native_geometric::shared_core::{Intervention, SharedCore};
+    let path = std::env::var("UOR_SHARED_CORE_CANDIDATE").expect("actual candidate path");
+    let raw = std::fs::read(path).expect("candidate bytes");
+    let model = SharedCore::from_bytes(&raw).expect("source-bound candidate");
+    assert_eq!(model.to_bytes().unwrap(), raw);
+    let mut session = model.session(Intervention::Full);
+    ALLOCATIONS.with(|n| n.set(0));
+    BYTES.with(|n| n.set(0));
+    MEASURING.with(|v| v.set(true));
+    let mut valid = true;
+    for position in 0..512_u16 {
+        valid &= session.observe(position as u8).is_ok();
+        let before = session.work();
+        valid &= std::hint::black_box(session.predict()) <= 256;
+        valid &= session.work().products - before.products <= 27;
+    }
+    MEASURING.with(|v| v.set(false));
+    assert!(valid);
+    assert_eq!(ALLOCATIONS.with(Cell::get), 0);
+    assert_eq!(BYTES.with(Cell::get), 0);
+}

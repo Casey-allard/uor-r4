@@ -5,6 +5,9 @@
 //! bounded integer thresholds and intersection/union choices. Composition reads
 //! the exact finite group table, never a tabulated linear contraction. Four
 //! independent state slots are not four independent Galois companions.
+mod angular_tree;
+use angular_tree::{AngularEmission, AngularNode};
+pub use angular_tree::{AngularTreeConfig, AngularTreeReport};
 mod block_calibration;
 mod calibration;
 use block_calibration::BlockCalibrationConfig;
@@ -23,6 +26,9 @@ const LANES: usize = 4;
 const ROOTS: usize = 120;
 const SCHEMA: &str = "uor-r4.shared-geometric-core/1";
 const CALIBRATED_SCHEMA: &str = "uor-r4.shared-geometric-core/2";
+const ANGULAR_TREE_SCHEMA: &str = "uor-r4.shared-geometric-core/3";
+const TIED_V1_IMPLEMENTATION: &str =
+    "blake3:50d67c0fd098db640e48ad7f0223753f788c581bef34d45e00656d57345b1475";
 // The preserved v1 source/binary binding. Its runtime path remains supported;
 // this is not permission to load arbitrary implementation identities.
 const LEGACY_IMPLEMENTATION: &str =
@@ -92,6 +98,8 @@ struct Artifact {
     training_parent: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     calibrated: Option<CalibratedEmission>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    angular_tree: Option<AngularEmission>,
 }
 
 /// A separately versioned experimental artifact in the native model module.
@@ -165,6 +173,7 @@ impl SharedCore {
         hash.update(include_bytes!("shared_core/calibration.rs"));
         hash.update(include_bytes!("shared_core/block_calibration.rs"));
         hash.update(include_bytes!("shared_core/tied_training.rs"));
+        hash.update(include_bytes!("shared_core/angular_tree.rs"));
         hash.update(include_bytes!("training.rs"));
         hash.update(include_bytes!("anchors.rs"));
         format!("blake3:{}", hash.finalize())
@@ -202,14 +211,27 @@ impl SharedCore {
         let version_valid = match &artifact.calibrated {
             None => {
                 artifact.schema == SCHEMA
+                    && artifact.angular_tree.is_none()
                     && (artifact.implementation == Self::implementation_digest()
-                        || artifact.implementation == LEGACY_IMPLEMENTATION)
+                        || artifact.implementation == LEGACY_IMPLEMENTATION
+                        || artifact.implementation == TIED_V1_IMPLEMENTATION)
             }
             Some(c) => {
-                artifact.schema == CALIBRATED_SCHEMA
+                ((artifact.schema == CALIBRATED_SCHEMA && artifact.angular_tree.is_none())
+                    || (artifact.schema == ANGULAR_TREE_SCHEMA
+                        && artifact
+                            .angular_tree
+                            .as_ref()
+                            .is_some_and(|t| t.validate().is_ok())
+                        && artifact.implementation == Self::implementation_digest()
+                        && artifact.training_digest.is_none()
+                        && artifact.fit_config.is_none()
+                        && artifact.tied_fit_config.is_none()
+                        && artifact.training_parent.is_none()))
                     && (artifact.implementation == Self::implementation_digest()
                         || artifact.implementation == CALIBRATION_V1_IMPLEMENTATION
-                        || artifact.implementation == BLOCK_V1_IMPLEMENTATION)
+                        || artifact.implementation == BLOCK_V1_IMPLEMENTATION
+                        || artifact.implementation == TIED_V1_IMPLEMENTATION)
                     && c.branches.len() == 512
                     && c.parent.starts_with("blake3:")
                     && c.parent.len() == 71
@@ -220,7 +242,8 @@ impl SharedCore {
                         }
                         Some(config) => {
                             (artifact.implementation == Self::implementation_digest()
-                                || artifact.implementation == BLOCK_V1_IMPLEMENTATION)
+                                || artifact.implementation == BLOCK_V1_IMPLEMENTATION
+                                || artifact.implementation == TIED_V1_IMPLEMENTATION)
                                 && c.calibration_data.is_some()
                                 && c.calibration_passes == 1
                                 && config.max_seconds > 0
@@ -237,7 +260,8 @@ impl SharedCore {
             || artifact.seed == 0
             || (artifact.fit_config.is_some() && artifact.tied_fit_config.is_some())
             || artifact.tied_fit_config.is_some_and(|config| {
-                artifact.implementation != Self::implementation_digest()
+                (artifact.implementation != Self::implementation_digest()
+                    && artifact.implementation != TIED_V1_IMPLEMENTATION)
                     || config.validate().is_err()
             })
             || artifact.training_digest.is_some()
@@ -302,6 +326,42 @@ impl SharedCore {
 
 // SHARED_CORE_INTEGER_KERNEL_BEGIN
 impl SharedCore {
+    // Loaded trees are forward, complete and depth <= 3. A leaf is therefore
+    // reached within four node reads and at most three angular comparisons.
+    fn angular_tree_score(
+        &self,
+        roots: [u16; LANES],
+        nodes: &[AngularNode],
+        work: &mut Work,
+    ) -> i16 {
+        let mut node = 0;
+        for _ in 0..4 {
+            work.table_reads = work.table_reads.saturating_add(1);
+            match nodes[node] {
+                AngularNode::Leaf { score } => return score,
+                AngularNode::Split {
+                    lane,
+                    landmark,
+                    threshold,
+                    left,
+                    right,
+                } => {
+                    work.table_reads = work.table_reads.saturating_add(5);
+                    node = usize::from(
+                        if self.relative_score(roots[usize::from(lane)], landmark, work) > threshold
+                        {
+                            right
+                        } else {
+                            left
+                        },
+                    );
+                }
+            }
+        }
+        // Unreachable after artifact validation; no unbounded traversal.
+        0
+    }
+
     fn cap_score(
         &self,
         roots: [u16; LANES],
@@ -437,6 +497,15 @@ impl CoreSession<'_> {
 
     fn branch_score(&mut self, node: usize, depth: usize) -> i16 {
         let m = self.model;
+        if let Some(nodes) = m
+            .artifact
+            .angular_tree
+            .as_ref()
+            .and_then(|t| t.branches[node].as_ref())
+        {
+            self.work.output_decisions = self.work.output_decisions.saturating_add(1);
+            return m.angular_tree_score(self.state.roots, nodes, &mut self.work);
+        }
         if let Some(c) = &m.artifact.calibrated {
             self.work.output_decisions = self.work.output_decisions.saturating_add(1);
             return m.cap_score(self.state.roots, c.branches[node], depth, &mut self.work);

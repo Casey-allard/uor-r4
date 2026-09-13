@@ -1,6 +1,20 @@
 # Current native geometric AI work
 
-## Shared geometric core — final emission calibration rejected, September 12
+## Shared geometric core — angular tree gains construction fit; transfer gate fails, September 12
+
+**Retain `15baec48`; no model is promoted.** The [bounded angular emission-tree experiment](../native_geometric_angular_tree_973.md) implements the prior recommendation once, with fixed recurrence/routing. The canonical shared-core plan remains active; the dirty memory repair and V3–V7 evidence stay parked and preserved.
+
+**Actual gate: FAIL_ANGULAR_TREE_DEVELOPMENT_GATE.** The construction-only greedy fit selects 66 trees / 368 nodes, depth at most three, using signed H4 comparisons and integer leaves. Candidate `1198ef47` improves construction NLL 3.354320 → 2.444899 and accuracy 81 → 206/672. Opened accuracy also rises 33 → 57/381, but NLL worsens 3.659923 → 3.908623. Preservation fails: 188 parent-correct rows become wrong against `0f82b728` and 181 against `ade9a1cf`, compared separately across six panels. Root/source traces stay identical. All four Full generations remain incoherent; two stop at 19/65 bytes and two reach 96 bytes. No useful language or Rust result is established.
+
+Schema 3 binds the learned trees, data/configuration, parent and implementation. It uses at most 27 angular comparisons per byte/EOS prediction and adds 19,550 serialized bytes. The change combines richer partitions and access to four state lanes, so their contributions are not isolated. Greedy immediate split search is not a global tree optimum. Existing caps, recurrence, routing and geometry remain fixed; previous artifacts replay exact saved behavior under the new loader.
+
+The release build and 31 focused shared-core tests, one sealed actual experiment, and newly built actual-candidate 512-step zero-allocation/bounded-comparison census pass execution checks; the model gate fails. [Tracked evidence](../evidence/native_geometric_angular_tree_973.json) binds exact source/binaries, candidate, all rows/generations, research, independent review and costs. Twelve prior sealed roots / 102 files, 22 parked dirty paths and retained artifact verify. Worktree: `/Users/casey.allard/uor-r4-worktrees/shared-geometric-core`, branch `codex/geometric-angular-tree`; local attempt: `shared-core-first-step/angular-tree-1/` under the established handoff.
+
+Resource receipt: 196,939/480,000 ms model/build/test; parent cycle 2,058,922/2,400,000 ms; cumulative ledger 121,809,495/132,950,000 ms. The 300,000 ms local allocation increase was recorded before use inside the unchanged shared ceiling. Added storage 30,879,744 bytes within 128 MiB; parent growth 1,464,291,328 bytes within 2 GiB with 128 MiB stop margin. Peak sampled RSS 2,375,303,168 bytes. No paid compute or cleanup. Final engineering/delivery receipts append locally.
+
+**Next action:** One bounded construction-document decoder regularization-selection experiment. Freeze a small depth/support or pruning family, deterministic document folds, selection/tie rules, complete fit-call/resource caps and at most one final refit before execution. Fit each fold's tree topology, leaf scores and cap/tree selection without that fold's validation labels; do not prune the already all-document-fitted tree and call those documents held out. The frozen recurrent and cap parent already saw the construction corpus, so this is conditional decoder-selection validation, not fresh end-to-end evidence. Keep opened/control labels out of selection; retain separate comparisons to both 0f82b728 and ade9a1cf, all preservation gates and actual generation. No larger tree, corpus campaign, repeated current fit or promotion follows automatically.
+
+## Prior final-emission checkpoint — historical result; next action superseded
 
 **Retain `15baec48`; no model is promoted.** The [final-trajectory emission calibration](../native_geometric_final_emission_973.md) executes the prior recommended step once on `ade9a1cf`. The canonical shared-core plan remains active; memory repair stays parked and V3–V7 are not replayed.
 

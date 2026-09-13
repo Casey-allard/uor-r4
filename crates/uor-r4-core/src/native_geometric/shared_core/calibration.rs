@@ -17,6 +17,11 @@ pub struct CalibrationReport {
 
 impl SharedCore {
     pub fn upgrade_calibrated(&self) -> Result<Self> {
+        if self.artifact.angular_tree.is_some() {
+            return Err(CoreError::InvalidInput(
+                "angular emission cannot be upgraded as a cap",
+            ));
+        }
         if self.artifact.calibrated.is_some() {
             return Err(CoreError::InvalidInput("already calibrated schema"));
         }
@@ -47,6 +52,11 @@ impl SharedCore {
     /// Exactly three deterministic coordinate passes with recurrence fixed.
     /// A failed gate is failure at this dose, not a representation impossibility.
     pub fn calibrate_emission(&self, documents: &[Vec<u8>]) -> Result<(Self, CalibrationReport)> {
+        if self.artifact.angular_tree.is_some() {
+            return Err(CoreError::InvalidInput(
+                "angular emission cannot be calibrated as a cap",
+            ));
+        }
         training::validate_data(documents)?;
         if self.artifact.calibrated.is_none() {
             return Err(CoreError::InvalidInput("calibrated schema required"));
