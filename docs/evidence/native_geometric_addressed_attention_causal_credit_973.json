@@ -1,0 +1,2260 @@
+{
+  "at": "2026-09-13T16:20:06.723Z",
+  "status": "SELECTED_CAUSAL_CREDIT_FOR_BOUNDED_LEARNING",
+  "prior_model_gate": "FAIL_ADDRESSED_ATTENTION_LEARNING_PILOT",
+  "tests_passed": 47,
+  "tests_failed": 0,
+  "tests_ignored": 5,
+  "separate_report_tests_passed": 1,
+  "source": {
+    "at": "2026-09-13T16:17:16.281Z",
+    "base": "809922244ee5b874101763a2d9156960ee88b7c7",
+    "files": [
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/answer_oracle.rs",
+        "sha256": "b6c3e2be264fe2ea8f49107d455aa8ca05219fb1e57e262f9f24f29afcdfd20b",
+        "bytes": 5154
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/artifact.rs",
+        "sha256": "14596e00fc007da39125e8b9ea6b4c9295891d5481123ba99753c27a12e73012",
+        "bytes": 14131
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/artifact_tests.rs",
+        "sha256": "d25a528c373824706c5f87fa9a7e8ca862ecbf339ae39b535ae6ef1c39a5b01e",
+        "bytes": 6071
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/circuit/tests.rs",
+        "sha256": "e62a2228385fa657e335723eb0170066f2d65840f7c1176fca737a485664acc0",
+        "bytes": 7923
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/circuit.rs",
+        "sha256": "8c714ab5457e36f64f5523fa1f691c6bd2852e94ab1b145698d23a57994078df",
+        "bytes": 12069
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/engine.rs",
+        "sha256": "c39d27798bfc1ff9f8e8e324da8c8f051d959bf89490bb988b0883221697f3a1",
+        "bytes": 34474
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/engine_tests.rs",
+        "sha256": "b703d952f18ea3069dd0d608c4661944e0c928a18ecdee06a354c75c248c561e",
+        "bytes": 13927
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/forward_tests.rs",
+        "sha256": "ecaae447b6f68a21f05198edc767a750c2c23aa3745c70100bc40aded9218582",
+        "bytes": 7622
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/inputs.rs",
+        "sha256": "05a2390de774d98c56cf55794bec2a5208f0a27e5387bb12330ae03546ffe6b4",
+        "bytes": 7261
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/learner.rs",
+        "sha256": "effeac93f9469bc021f102fca557bb9c9b5f076a4f9560458df9407e509e1756",
+        "bytes": 11178
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/learner_tests.rs",
+        "sha256": "91e9450603940ede8254f569fb5669ad364949d34ce0fdda3ee1d3c2db8c4ccc",
+        "bytes": 4805
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/mod.rs",
+        "sha256": "40fa71896b4ba24bd3120bb71efaf2633208cd0fbc9618b88c9182239449b2ea",
+        "bytes": 705
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/objects.rs",
+        "sha256": "b59190b36b07647aac54b6e64cba512ca790b8b99af41f28e666926c81b1aebe",
+        "bytes": 46682
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/objects_tests.rs",
+        "sha256": "f1222da89ec74cef7e8ea50c83b9b25a4fbe8c1191b779ecbc99e7f7ed838182",
+        "bytes": 13223
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/offline.rs",
+        "sha256": "9e1a54d4a7f3ee0a03c37b53f3aacad81b980b2141be36f323f2db34cc79f4ad",
+        "bytes": 9177
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/pilot.rs",
+        "sha256": "392fba36239c2d5e7ca10d2948605457c86c4b6b7041308ceab940aad6f32533",
+        "bytes": 11270
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/pilot_data.rs",
+        "sha256": "9f5dfb705f8c0dfbf410b4e506cf63e4f88190347f29cf7c20b4804fac45a749",
+        "bytes": 9905
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/pilot_data_tests.rs",
+        "sha256": "cc81f1c47f856e387d8d948c6d4e66d9d4b6917cfbafd13d20cbfd1f66bb5fd7",
+        "bytes": 2173
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/pilot_tests.rs",
+        "sha256": "a887ce67ce678506d3622565f6d18a8da0166fe7a32dbce181510b92d3085b82",
+        "bytes": 21592
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/policy.rs",
+        "sha256": "fd4a7745bc6a7983148faa65ae4281c8f64a63e60138257906e19ecd8df5f170",
+        "bytes": 12203
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/stability.rs",
+        "sha256": "6135598b914e7ceec311fb6d4905fd5467dca719f74083711271cb940f2463ef",
+        "bytes": 11608
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/stability_report.rs",
+        "sha256": "364ea820ea26562cb28ae02c7605a742b2606101a41cf3e0636c44692e03361c",
+        "bytes": 17015
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/stability_stats.rs",
+        "sha256": "970680899fcf6460dc59210acf2781a895ca37245553f14fa23f6f4b72a1186f",
+        "bytes": 5812
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/stability_stats_tests.rs",
+        "sha256": "2f296dbf81855c4064cd41be9cdcac0f04ab5bf0b964fc8c484651cb92405cb1",
+        "bytes": 3007
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/stability_tests.rs",
+        "sha256": "24007e50dae643babb20f2962c56d0c464c45299b732658ede1c654cd1fbea41",
+        "bytes": 2925
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/training.rs",
+        "sha256": "d539b9d49d3f56806ec3cebc7720823e2ad411b771239fa0b96dd80e99812873",
+        "bytes": 10912
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/training_tests.rs",
+        "sha256": "274c7be7da18e0dba1605fd4af3cd921dc9dd311b87c635a587c03a26484cea9",
+        "bytes": 20277
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/anchors.rs",
+        "sha256": "eb653f80cb3160ad083cc16d10952218454bbaefeb9bdd02b38e92c34a32ba8a",
+        "bytes": 11853
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/training.rs",
+        "sha256": "d77500abc522a42d8c7e2235d54f9bc828a1a2ef760d36fc1c9366d98f7e0958",
+        "bytes": 63940
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/docs/evidence/native_geometric_addressed_attention_contract_973.json",
+        "sha256": "df6fcafdd515f686509621056c61db63888ce7c1e740e814502a9d85b937243f",
+        "bytes": 12570
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/causal_credit.rs",
+        "sha256": "dac5776a0d7b69a71533fcc7258eb32b8f2a8f3787a9ba7685cae182bb228e1c",
+        "bytes": 15908
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/causal_credit_tests.rs",
+        "sha256": "8e84987bbf88c7c1bf3f2da9f68e3d2a938a07e65f4f3825ed0c278b8ce4f276",
+        "bytes": 9440
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/addressed_attention/causal_report.rs",
+        "sha256": "c2f01c3fec939a4ac21b1ac1922f0e51de41ecf552fc77265d91aee718d44234",
+        "bytes": 15501
+      }
+    ]
+  },
+  "checks": [
+    {
+      "kind": "model",
+      "label": "addressed-causal-tests",
+      "cmd": "/Users/casey.allard/.cargo/bin/cargo",
+      "args": [
+        "test",
+        "--offline",
+        "--release",
+        "-p",
+        "uor-r4-core",
+        "--lib",
+        "addressed_attention",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "cwd": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core",
+      "started": "2026-09-13T16:17:31.836Z",
+      "elapsed_ms": 113012,
+      "code": 0,
+      "signal": null,
+      "stopped": null,
+      "charged": true,
+      "peak_sampled_process_tree_rss_bytes": 2628304896,
+      "logs": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-causal-tests.log"
+    },
+    {
+      "kind": "model",
+      "label": "addressed-causal-comparison",
+      "cmd": "/usr/bin/env",
+      "args": [
+        "UOR_CAUSAL_REPORT=/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-attention-causal-credit-1/attempt-1",
+        "UOR_CAUSAL_FIT=/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-attention-pilot-1/fit-1",
+        "UOR_CAUSAL_PRIOR=/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-attention-stability-1/attempt-1",
+        "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-attention-causal-credit-1/causal-tests",
+        "--ignored",
+        "--exact",
+        "native_geometric::addressed_attention::causal_report::frozen_causal_credit_report",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "cwd": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core",
+      "started": "2026-09-13T16:19:46.462Z",
+      "elapsed_ms": 8748,
+      "code": 0,
+      "signal": null,
+      "stopped": null,
+      "charged": true,
+      "peak_sampled_process_tree_rss_bytes": 145326080,
+      "logs": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-causal-comparison.log"
+    }
+  ],
+  "execution_log": {
+    "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-causal-tests.log",
+    "sha256": "eb65bf05cafce21c32af76baca93fde6b5b58445a99283a1f51e93efacacf2d6",
+    "bytes": 7836
+  },
+  "diagnostic_log": {
+    "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-causal-comparison.log",
+    "sha256": "a0b6623eb8c3a2facff3c2a2952bfb71e7d9cd8af78d00c2eab4dc9197447261",
+    "bytes": 282
+  },
+  "binary": {
+    "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-attention-causal-credit-1/causal-tests",
+    "sha256": "438143af284865d50ba938bbcbdfc186a3fa5a66717b8c088be4bf18c4cc97d5",
+    "bytes": 17546688
+  },
+  "review": {
+    "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-attention-causal-credit-1/causal-review.md",
+    "sha256": "ca09fa4c1e02b58cc8034a813195d482cb25ff5a4800bdcd8b549680a27c527d",
+    "bytes": 7213
+  },
+  "design": {
+    "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-attention-causal-credit-1/causal-design.md",
+    "sha256": "9db7138543a2959cae3360c318f9551a4b7100e3a89d5969877e7c7c2d9779d7",
+    "bytes": 4100
+  },
+  "attempt": {
+    "report_root": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-attention-causal-credit-1/attempt-1",
+    "files": {
+      "attempt.json": {
+        "sha256": "a5f418dbf5922a33eee63770eff96d7756f4ff23e9f904918a8b965a84535ac7",
+        "bytes": 517
+      },
+      "cell-0-0.json": {
+        "sha256": "0163ee3c0324dd63e984f6c297722d375c7eda87317c82245d108181573da195",
+        "bytes": 14635
+      },
+      "cell-0-1.json": {
+        "sha256": "14c5975aee73e79fdbe9c82345aff5033d7626462e81adf8db2500baed226cf0",
+        "bytes": 14622
+      },
+      "cell-1-0.json": {
+        "sha256": "abbd68c4091dc0b0817f1a6233a5f75cabb783f0ad326ea630944de728cb015c",
+        "bytes": 14621
+      },
+      "cell-1-1.json": {
+        "sha256": "94f9a55edab3c3b004a5cdfde28b50fd52a8b0eca429efe8bda7d93960ae9c16",
+        "bytes": 14604
+      },
+      "config.json": {
+        "sha256": "5568bbc9f644a5d29a32efe64bd9351105f51acf16b497fe2ce156d261407488",
+        "bytes": 1091
+      },
+      "manifest.json": {
+        "sha256": "59a4428138ef33d0a2235e544cd1525db611939f11fa232f21091fee6491792e",
+        "bytes": 6100
+      },
+      "rep-0-0-0.json": {
+        "sha256": "18062cebd579ce49215c5d13b5cedab961310604fc66ce7714f108974d4219df",
+        "bytes": 64958
+      },
+      "rep-0-0-1.json": {
+        "sha256": "058f861dcae1ba0c118682aa66c6ee8e24db569346e36fbc7a77de64ae225de0",
+        "bytes": 66703
+      },
+      "rep-0-0-2.json": {
+        "sha256": "70ac4cdafc7a96a54287bbe41420d5a91e11435561f7079d7c3b8f73987f1a41",
+        "bytes": 66000
+      },
+      "rep-0-0-3.json": {
+        "sha256": "a1b082309916d9de4dfd2ff80ca5fcb4f531f051266146afd5d504dbe1e568fa",
+        "bytes": 66506
+      },
+      "rep-0-0-4.json": {
+        "sha256": "679d469f93a0f7778522a4a18a4b3fabc3a91aa94831c7d65c70ca3221beb79a",
+        "bytes": 66491
+      },
+      "rep-0-0-5.json": {
+        "sha256": "070c5ce145623acaa692b09017c6cdd0d8ad8a128cb3de94c6b35eda191d84a3",
+        "bytes": 64914
+      },
+      "rep-0-0-6.json": {
+        "sha256": "310dc985f8e918adb8fe77c6cd920774f7965d6e0ad313d43c3cdfafaf13d4c1",
+        "bytes": 65631
+      },
+      "rep-0-0-7.json": {
+        "sha256": "89af3efdddd4b0bb134905e7e5ee92ed403e26b398f214f4ebe0dc92bf7d7ec5",
+        "bytes": 66464
+      },
+      "rep-0-1-0.json": {
+        "sha256": "201a3a1485a5b0df96954c4f28c0ecf2503710b20670c67936c5a62af1df66a0",
+        "bytes": 64966
+      },
+      "rep-0-1-1.json": {
+        "sha256": "1d833bd2c37d1fb3a3bf29c0c524f3832c2b5388cf8c8ba0585b24299dc85a8d",
+        "bytes": 65044
+      },
+      "rep-0-1-2.json": {
+        "sha256": "50afdc520463d10bc047c221923ae852daa4d5f3bee6b80ca49457b05d251e27",
+        "bytes": 65884
+      },
+      "rep-0-1-3.json": {
+        "sha256": "1c21c6639b407da73a2cf5cf8702e5f4cd85a5a376344761deeba275373caf5e",
+        "bytes": 66262
+      },
+      "rep-0-1-4.json": {
+        "sha256": "10639a164da906b66eaf937b466c24aff20ced9927cadd10aba88612f278ab93",
+        "bytes": 66490
+      },
+      "rep-0-1-5.json": {
+        "sha256": "ffddfb68b122a9366fe013842feeeeaaddc727f73bcb936d1be94b7286251265",
+        "bytes": 65770
+      },
+      "rep-0-1-6.json": {
+        "sha256": "1cff0c019778f5fc53ee70f5fe2fb7ce44ef5af8cf7f768275805deb9380ecce",
+        "bytes": 65034
+      },
+      "rep-0-1-7.json": {
+        "sha256": "e0baccbbb1d1823e76d936a793214e7219b4e814f1ac7d5cf012d3a2b0b54691",
+        "bytes": 66556
+      },
+      "rep-1-0-0.json": {
+        "sha256": "a198a9233e850b774ab55de48f3577421dc15484260d44ac90a6bd8d50edfe4f",
+        "bytes": 82757
+      },
+      "rep-1-0-1.json": {
+        "sha256": "5daabde794237d94f3b6fecd991082f47ab3cc1ad364b65d16a4d5315a49fd81",
+        "bytes": 82956
+      },
+      "rep-1-0-2.json": {
+        "sha256": "d1c763b0b17724fee1ac39bad34eb80ed44bf09b8d5fc860d0e02f7fd10645d0",
+        "bytes": 83112
+      },
+      "rep-1-0-3.json": {
+        "sha256": "170605855ca36a06adef76f210bc4d072fc13bc2207f4a8dbcc86f2ecc662009",
+        "bytes": 84204
+      },
+      "rep-1-0-4.json": {
+        "sha256": "d4cc6fee0a60126f24945cc1904bf57841a7fd6629e3e67242ffcacb9f41526d",
+        "bytes": 82761
+      },
+      "rep-1-0-5.json": {
+        "sha256": "44cfd3cd12c16fd41f1b4fab0803d47aa50e3a5389c235c97d57611be1699d2e",
+        "bytes": 83100
+      },
+      "rep-1-0-6.json": {
+        "sha256": "cd7d7bae645965653c05374e453266429de417ab1660d62838ff2b7943c260c0",
+        "bytes": 83838
+      },
+      "rep-1-0-7.json": {
+        "sha256": "8751660de7bb209236f9908bf3fadb3aa795cadf212b57d21031bef5c13f4570",
+        "bytes": 82478
+      },
+      "rep-1-1-0.json": {
+        "sha256": "7324fe9fc54030a69dad41328398e9e7cd48090ca6e2f1355e684eaeaa56fd7f",
+        "bytes": 82640
+      },
+      "rep-1-1-1.json": {
+        "sha256": "a9945814374c53228f65e377777d87ea92e7afa82cafe936aa0fa0e028950bed",
+        "bytes": 82822
+      },
+      "rep-1-1-2.json": {
+        "sha256": "b01b9d86440d6cb2a08b2c1b12af7b3a3d125e48a566d58d3f493a20b50a6d37",
+        "bytes": 82867
+      },
+      "rep-1-1-3.json": {
+        "sha256": "6a1c8a1fb924acbbaf064f9bc9f0b32d05a0546c9490f542e505f9009c691adf",
+        "bytes": 84174
+      },
+      "rep-1-1-4.json": {
+        "sha256": "d04d1e0d72906e33883e91f282260d67764aaa583e2d72089507dd11bd26a021",
+        "bytes": 83219
+      },
+      "rep-1-1-5.json": {
+        "sha256": "ad2b50e044e2feda78f0eeed94fe497dd819a2f2d644f8072cb6adfe1836c359",
+        "bytes": 83092
+      },
+      "rep-1-1-6.json": {
+        "sha256": "4fe07c7cb3e50345f91508c8fbd0f5e763e6e9a97b5c22228c6e4d7d72e4bd14",
+        "bytes": 82886
+      },
+      "rep-1-1-7.json": {
+        "sha256": "11975ec6ff2876ce31776914ba98374cf51893d4acd100f67f8c2de93026b6a3",
+        "bytes": 82402
+      },
+      "summary.json": {
+        "sha256": "cdb4fbf2f433ce9ee7ba26ebce8e5b32eac1307f4e6aaaacbe91294c16ac9044",
+        "bytes": 67939
+      }
+    }
+  },
+  "report": {
+    "batches": 32,
+    "cells": [
+      {
+        "endpoint": "initial",
+        "families": [
+          {
+            "causal_full": {
+              "count": 8,
+              "len": 5520,
+              "mean_l2": 0.47947663502334215,
+              "mean_pairwise_cosine": 0.0018966282691503164,
+              "mean_sample_l2": 1.2693649823174413,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.47932945077563677,
+              "trace_sample_covariance": 1.8380537790469889,
+              "unbiased_signal_norm_squared": 0.0001411211524336431
+            },
+            "causal_score": {
+              "count": 8,
+              "len": 5520,
+              "mean_l2": 0.47947663502334215,
+              "mean_pairwise_cosine": 0.0018966282691503164,
+              "mean_sample_l2": 1.2693649823174413,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.47932945077563677,
+              "trace_sample_covariance": 1.8380537790469889,
+              "unbiased_signal_norm_squared": 0.0001411211524336431
+            },
+            "family": "gates",
+            "full_covariance_ratio": 0.49355511915739914,
+            "old_full": {
+              "count": 8,
+              "len": 5520,
+              "mean_l2": 0.6670473257078313,
+              "mean_pairwise_cosine": -0.005154588976780624,
+              "mean_sample_l2": 1.7979722355814058,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.6822857222545942,
+              "trace_sample_covariance": 3.724110454339786,
+              "unbiased_signal_norm_squared": -0.020561672058503677
+            },
+            "old_score": {
+              "count": 8,
+              "len": 5520,
+              "mean_l2": 0.6670473257078313,
+              "mean_pairwise_cosine": -0.005154588976780624,
+              "mean_sample_l2": 1.7979722355814058,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.6822857222545942,
+              "trace_sample_covariance": 3.724110454339786,
+              "unbiased_signal_norm_squared": -0.020561672058503677
+            },
+            "paired_difference": {
+              "count": 8,
+              "len": 5520,
+              "mean_l2": 0.47210647643949855,
+              "mean_pairwise_cosine": -0.0040005206257465965,
+              "mean_sample_l2": 1.314703585990495,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.4803482385938901,
+              "trace_sample_covariance": 1.845875442562022,
+              "unbiased_signal_norm_squared": -0.007849905224133952
+            },
+            "score_covariance_ratio": 0.49355511915739914
+          },
+          {
+            "causal_full": {
+              "count": 8,
+              "len": 491520,
+              "mean_l2": 0.0587429727638003,
+              "mean_pairwise_cosine": 0.00026035736484976624,
+              "mean_sample_l2": 0.1556643858297268,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.058668626831280726,
+              "trace_sample_covariance": 0.02753606219414458,
+              "unbiased_signal_norm_squared": 0.000008729074860511308
+            },
+            "causal_score": {
+              "count": 8,
+              "len": 491520,
+              "mean_l2": 0.0587429727638003,
+              "mean_pairwise_cosine": 0.00026035736484976624,
+              "mean_sample_l2": 0.1556643858297268,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.058668626831280726,
+              "trace_sample_covariance": 0.02753606219414458,
+              "unbiased_signal_norm_squared": 0.000008729074860511308
+            },
+            "family": "root_heads",
+            "full_covariance_ratio": 0.5067250531468143,
+            "old_full": {
+              "count": 8,
+              "len": 491520,
+              "mean_l2": 0.08255774651757573,
+              "mean_pairwise_cosine": 0.00048807933325635745,
+              "mean_sample_l2": 0.21835947893883612,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.08241755659522959,
+              "trace_sample_covariance": 0.05434122908102298,
+              "unbiased_signal_norm_squared": 0.00002312787493241597
+            },
+            "old_score": {
+              "count": 8,
+              "len": 491520,
+              "mean_l2": 0.08255774651757573,
+              "mean_pairwise_cosine": 0.00048807933325635745,
+              "mean_sample_l2": 0.21835947893883612,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.08241755659522959,
+              "trace_sample_covariance": 0.05434122908102298,
+              "unbiased_signal_norm_squared": 0.00002312787493241597
+            },
+            "paired_difference": {
+              "count": 8,
+              "len": 491520,
+              "mean_l2": 0.0582678560374848,
+              "mean_pairwise_cosine": 0.000552054528312069,
+              "mean_sample_l2": 0.15945898740374453,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.0581395331312595,
+              "trace_sample_covariance": 0.027041642501766574,
+              "unbiased_signal_norm_squared": 0.000014937734484232138
+            },
+            "score_covariance_ratio": 0.5067250531468143
+          },
+          {
+            "causal_full": {
+              "count": 8,
+              "len": 32768,
+              "mean_l2": 0.020874911484645143,
+              "mean_pairwise_cosine": 0.0013829291684872569,
+              "mean_sample_l2": 0.05540892087001043,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.02087775184216823,
+              "trace_sample_covariance": 0.0034870441758652715,
+              "unbiased_signal_norm_squared": -1.1859249138919045e-7
+            },
+            "causal_score": {
+              "count": 8,
+              "len": 32768,
+              "mean_l2": 0.020874911484645143,
+              "mean_pairwise_cosine": 0.0013829291684872569,
+              "mean_sample_l2": 0.05540892087001043,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.02087775184216823,
+              "trace_sample_covariance": 0.0034870441758652715,
+              "unbiased_signal_norm_squared": -1.1859249138919045e-7
+            },
+            "family": "extent_head",
+            "full_covariance_ratio": 0.43084583468836624,
+            "old_full": {
+              "count": 8,
+              "len": 32768,
+              "mean_l2": 0.03166828979082096,
+              "mean_pairwise_cosine": 0.0018546791758121842,
+              "mean_sample_l2": 0.08409289229219355,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.0318070053428473,
+              "trace_sample_covariance": 0.008093484711039331,
+              "unbiased_signal_norm_squared": -0.000008805010604501185
+            },
+            "old_score": {
+              "count": 8,
+              "len": 32768,
+              "mean_l2": 0.03166828979082096,
+              "mean_pairwise_cosine": 0.0018546791758121842,
+              "mean_sample_l2": 0.08409289229219355,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.0318070053428473,
+              "trace_sample_covariance": 0.008093484711039331,
+              "unbiased_signal_norm_squared": -0.000008805010604501185
+            },
+            "paired_difference": {
+              "count": 8,
+              "len": 32768,
+              "mean_l2": 0.023986680188442785,
+              "mean_pairwise_cosine": 0.0038201275809155444,
+              "mean_sample_l2": 0.06516268055423458,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.023748106722033292,
+              "trace_sample_covariance": 0.004511780583048662,
+              "unbiased_signal_norm_squared": 0.000011388253581550811
+            },
+            "score_covariance_ratio": 0.43084583468836624
+          },
+          {
+            "causal_full": {
+              "count": 8,
+              "len": 3584,
+              "mean_l2": 0.015791942697766,
+              "mean_pairwise_cosine": 0.007138983245215843,
+              "mean_sample_l2": 0.0410718156474959,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.015409420048171349,
+              "trace_sample_covariance": 0.001899601809767881,
+              "unbiased_signal_norm_squared": 0.000011935227948539764
+            },
+            "causal_score": {
+              "count": 8,
+              "len": 3584,
+              "mean_l2": 0.015791942697766,
+              "mean_pairwise_cosine": 0.007138983245215843,
+              "mean_sample_l2": 0.0410718156474959,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.015409420048171349,
+              "trace_sample_covariance": 0.001899601809767881,
+              "unbiased_signal_norm_squared": 0.000011935227948539764
+            },
+            "family": "control_head",
+            "full_covariance_ratio": 0.49295020568376996,
+            "old_full": {
+              "count": 8,
+              "len": 3584,
+              "mean_l2": 0.02271988932559844,
+              "mean_pairwise_cosine": 0.007372961283572994,
+              "mean_sample_l2": 0.058584606202070996,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.021947485347619086,
+              "trace_sample_covariance": 0.003853536904671635,
+              "unbiased_signal_norm_squared": 0.000034501257883487555
+            },
+            "old_score": {
+              "count": 8,
+              "len": 3584,
+              "mean_l2": 0.02271988932559844,
+              "mean_pairwise_cosine": 0.007372961283572994,
+              "mean_sample_l2": 0.058584606202070996,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.021947485347619086,
+              "trace_sample_covariance": 0.003853536904671635,
+              "unbiased_signal_norm_squared": 0.000034501257883487555
+            },
+            "paired_difference": {
+              "count": 8,
+              "len": 3584,
+              "mean_l2": 0.01627929494463067,
+              "mean_pairwise_cosine": 0.008382450942436805,
+              "mean_sample_l2": 0.0431172814219693,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.015618524786415702,
+              "trace_sample_covariance": 0.0019515065320310533,
+              "unbiased_signal_norm_squared": 0.000021077127390395963
+            },
+            "score_covariance_ratio": 0.49295020568376996
+          },
+          {
+            "causal_full": {
+              "count": 8,
+              "len": 131584,
+              "mean_l2": 0.03461181816236345,
+              "mean_pairwise_cosine": 0.021751051103265313,
+              "mean_sample_l2": 0.09087290908382939,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.03199676216404535,
+              "trace_sample_covariance": 0.008190342311859873,
+              "unbiased_signal_norm_squared": 0.00017418516752202846
+            },
+            "causal_score": {
+              "count": 8,
+              "len": 131584,
+              "mean_l2": 0.01831484546262793,
+              "mean_pairwise_cosine": -0.0011679287979016184,
+              "mean_sample_l2": 0.048836956220016416,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.018436976550463856,
+              "trace_sample_covariance": 0.002719376834578833,
+              "unbiased_signal_norm_squared": -0.000004488540002411359
+            },
+            "family": "emission_head",
+            "full_covariance_ratio": 0.7435691350269626,
+            "old_full": {
+              "count": 8,
+              "len": 131584,
+              "mean_l2": 0.039410621983593,
+              "mean_pairwise_cosine": 0.017415701855445942,
+              "mean_sample_l2": 0.10431454188265227,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.037106103876450476,
+              "trace_sample_covariance": 0.011014903559119466,
+              "unbiased_signal_norm_squared": 0.00017633418024373074
+            },
+            "old_score": {
+              "count": 8,
+              "len": 131584,
+              "mean_l2": 0.026264448579785566,
+              "mean_pairwise_cosine": -0.00040554178891102514,
+              "mean_sample_l2": 0.06971600036381963,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.026324190957358384,
+              "trace_sample_covariance": 0.005543704236475752,
+              "unbiased_signal_norm_squared": -0.000003141770359268905
+            },
+            "paired_difference": {
+              "count": 8,
+              "len": 131584,
+              "mean_l2": 0.018843636600012727,
+              "mean_pairwise_cosine": -0.00019613023150490325,
+              "mean_sample_l2": 0.05171609006489624,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.018860041802940198,
+              "trace_sample_covariance": 0.0028456094144692144,
+              "unbiased_signal_norm_squared": -6.185364953125577e-7
+            },
+            "score_covariance_ratio": 0.4905342562624873
+          },
+          {
+            "causal_full": {
+              "count": 8,
+              "len": 240,
+              "mean_l2": 0.035103537163008576,
+              "mean_pairwise_cosine": -0.006292847088824065,
+              "mean_sample_l2": 0.09792416797256984,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.037231502842349155,
+              "trace_sample_covariance": 0.011089478431198825,
+              "unbiased_signal_norm_squared": -0.00015392648254512883
+            },
+            "causal_score": {
+              "count": 8,
+              "len": 240,
+              "mean_l2": 0.035103537163008576,
+              "mean_pairwise_cosine": -0.006292847088824065,
+              "mean_sample_l2": 0.09792416797256984,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.037231502842349155,
+              "trace_sample_covariance": 0.011089478431198825,
+              "unbiased_signal_norm_squared": -0.00015392648254512883
+            },
+            "family": "null_heads",
+            "full_covariance_ratio": 0.49190784792627157,
+            "old_full": {
+              "count": 8,
+              "len": 240,
+              "mean_l2": 0.05092281852047344,
+              "mean_pairwise_cosine": -0.011234626576976301,
+              "mean_sample_l2": 0.14007177778485574,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.053084617340096674,
+              "trace_sample_covariance": 0.02254381278515594,
+              "unbiased_signal_norm_squared": -0.0002248431520754197
+            },
+            "old_score": {
+              "count": 8,
+              "len": 240,
+              "mean_l2": 0.05092281852047344,
+              "mean_pairwise_cosine": -0.011234626576976301,
+              "mean_sample_l2": 0.14007177778485574,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.053084617340096674,
+              "trace_sample_covariance": 0.02254381278515594,
+              "unbiased_signal_norm_squared": -0.0002248431520754197
+            },
+            "paired_difference": {
+              "count": 8,
+              "len": 240,
+              "mean_l2": 0.03584833596186523,
+              "mean_pairwise_cosine": -0.013418859893640825,
+              "mean_sample_l2": 0.10185649191409385,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.03753217403729468,
+              "trace_sample_covariance": 0.011269312703726216,
+              "unbiased_signal_norm_squared": -0.00012356089673101734
+            },
+            "score_covariance_ratio": 0.49190784792627157
+          }
+        ],
+        "mean_ce": {
+          "count": 8,
+          "mean": 5.558794383196602,
+          "sample_sd": 0.01625399133204718,
+          "standard_error": 0.0057466537461189635,
+          "values": [
+            5.554668520443419,
+            5.544448961883296,
+            5.569241010681317,
+            5.528670738828938,
+            5.5765441759799765,
+            5.55670947958992,
+            5.5656879895973255,
+            5.574384188568626
+          ]
+        },
+        "parameter_digest": "d29bb3f055f015161c782015ae5113872d47effa93744d9363f4d3f5fe72891b",
+        "prior_path_count_loss_and_old_stats_parity": true,
+        "record": "train/memory-a/0",
+        "replicates": [
+          {
+            "elapsed_us": 234050,
+            "replicate": 0,
+            "tape_bytes": 25715840
+          },
+          {
+            "elapsed_us": 232854,
+            "replicate": 1,
+            "tape_bytes": 25715840
+          },
+          {
+            "elapsed_us": 226729,
+            "replicate": 2,
+            "tape_bytes": 25715840
+          },
+          {
+            "elapsed_us": 230070,
+            "replicate": 3,
+            "tape_bytes": 25715840
+          },
+          {
+            "elapsed_us": 226840,
+            "replicate": 4,
+            "tape_bytes": 25715840
+          },
+          {
+            "elapsed_us": 226073,
+            "replicate": 5,
+            "tape_bytes": 25715840
+          },
+          {
+            "elapsed_us": 225975,
+            "replicate": 6,
+            "tape_bytes": 25715840
+          },
+          {
+            "elapsed_us": 227009,
+            "replicate": 7,
+            "tape_bytes": 25715840
+          }
+        ]
+      },
+      {
+        "endpoint": "final64",
+        "families": [
+          {
+            "causal_full": {
+              "count": 8,
+              "len": 5520,
+              "mean_l2": 0.5083508489730946,
+              "mean_pairwise_cosine": 0.005951357618066121,
+              "mean_sample_l2": 1.3030219805904963,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.49736203295132253,
+              "trace_sample_covariance": 1.9789519345717796,
+              "unbiased_signal_norm_squared": 0.011051593830193523
+            },
+            "causal_score": {
+              "count": 8,
+              "len": 5520,
+              "mean_l2": 0.5083508489730946,
+              "mean_pairwise_cosine": 0.005951357618066121,
+              "mean_sample_l2": 1.3030219805904963,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.49736203295132253,
+              "trace_sample_covariance": 1.9789519345717796,
+              "unbiased_signal_norm_squared": 0.011051593830193523
+            },
+            "family": "gates",
+            "full_covariance_ratio": 0.463313826301508,
+            "old_full": {
+              "count": 8,
+              "len": 5520,
+              "mean_l2": 0.728192523733911,
+              "mean_pairwise_cosine": -0.003033577291675273,
+              "mean_sample_l2": 1.9122315549996858,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.7306930880489577,
+              "trace_sample_covariance": 4.271299111380174,
+              "unbiased_signal_norm_squared": -0.0036480373005592925
+            },
+            "old_score": {
+              "count": 8,
+              "len": 5520,
+              "mean_l2": 0.728192523733911,
+              "mean_pairwise_cosine": -0.003033577291675273,
+              "mean_sample_l2": 1.9122315549996858,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.7306930880489577,
+              "trace_sample_covariance": 4.271299111380174,
+              "unbiased_signal_norm_squared": -0.0036480373005592925
+            },
+            "paired_difference": {
+              "count": 8,
+              "len": 5520,
+              "mean_l2": 0.519547195772381,
+              "mean_pairwise_cosine": -0.004640070244553722,
+              "mean_sample_l2": 1.4217849003612357,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.5286782617745106,
+              "trace_sample_covariance": 2.2360056357833433,
+              "unbiased_signal_norm_squared": -0.009571415837973218
+            },
+            "score_covariance_ratio": 0.463313826301508
+          },
+          {
+            "causal_full": {
+              "count": 8,
+              "len": 491520,
+              "mean_l2": 0.061898769458916286,
+              "mean_pairwise_cosine": -0.0001615620437380727,
+              "mean_sample_l2": 0.1613240249513748,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.06188566627677461,
+              "trace_sample_covariance": 0.030638685524162546,
+              "unbiased_signal_norm_squared": 0.000001621970007749298
+            },
+            "causal_score": {
+              "count": 8,
+              "len": 491520,
+              "mean_l2": 0.061898769458916286,
+              "mean_pairwise_cosine": -0.0001615620437380727,
+              "mean_sample_l2": 0.1613240249513748,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.06188566627677461,
+              "trace_sample_covariance": 0.030638685524162546,
+              "unbiased_signal_norm_squared": 0.000001621970007749298
+            },
+            "family": "root_heads",
+            "full_covariance_ratio": 0.47677174613217055,
+            "old_full": {
+              "count": 8,
+              "len": 491520,
+              "mean_l2": 0.08962833913168373,
+              "mean_pairwise_cosine": -0.00013706623713684505,
+              "mean_sample_l2": 0.2344037024632346,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.08962616535786386,
+              "trace_sample_covariance": 0.06426279613404125,
+              "unbiased_signal_norm_squared": 3.896587489546355e-7
+            },
+            "old_score": {
+              "count": 8,
+              "len": 491520,
+              "mean_l2": 0.08962833913168373,
+              "mean_pairwise_cosine": -0.00013706623713684505,
+              "mean_sample_l2": 0.2344037024632346,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.08962616535786386,
+              "trace_sample_covariance": 0.06426279613404125,
+              "unbiased_signal_norm_squared": 3.896587489546355e-7
+            },
+            "paired_difference": {
+              "count": 8,
+              "len": 491520,
+              "mean_l2": 0.06346026687906473,
+              "mean_pairwise_cosine": 0.00018094646184791635,
+              "mean_sample_l2": 0.17141411100423867,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.06341304094005201,
+              "trace_sample_covariance": 0.0321697100901177,
+              "unbiased_signal_norm_squared": 0.000005991711097406982
+            },
+            "score_covariance_ratio": 0.47677174613217055
+          },
+          {
+            "causal_full": {
+              "count": 8,
+              "len": 32768,
+              "mean_l2": 0.021463041047390455,
+              "mean_pairwise_cosine": 0.0005633421404862877,
+              "mean_sample_l2": 0.0563166002756209,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.021583501861854575,
+              "trace_sample_covariance": 0.003726780420965439,
+              "unbiased_signal_norm_squared": -0.0000051854216187123266
+            },
+            "causal_score": {
+              "count": 8,
+              "len": 32768,
+              "mean_l2": 0.021463041047390455,
+              "mean_pairwise_cosine": 0.0005633421404862877,
+              "mean_sample_l2": 0.0563166002756209,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.021583501861854575,
+              "trace_sample_covariance": 0.003726780420965439,
+              "unbiased_signal_norm_squared": -0.0000051854216187123266
+            },
+            "family": "extent_head",
+            "full_covariance_ratio": 0.3931008070020683,
+            "old_full": {
+              "count": 8,
+              "len": 32768,
+              "mean_l2": 0.034432114698381595,
+              "mean_pairwise_cosine": 0.0011022303440931009,
+              "mean_sample_l2": 0.09004134525664313,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.03442468233984849,
+              "trace_sample_covariance": 0.009480470033595811,
+              "unbiased_signal_norm_squared": 5.117684030294875e-7
+            },
+            "old_score": {
+              "count": 8,
+              "len": 32768,
+              "mean_l2": 0.034432114698381595,
+              "mean_pairwise_cosine": 0.0011022303440931009,
+              "mean_sample_l2": 0.09004134525664313,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.03442468233984849,
+              "trace_sample_covariance": 0.009480470033595811,
+              "unbiased_signal_norm_squared": 5.117684030294875e-7
+            },
+            "paired_difference": {
+              "count": 8,
+              "len": 32768,
+              "mean_l2": 0.02634070844502204,
+              "mean_pairwise_cosine": 0.0013617897449887792,
+              "mean_sample_l2": 0.07069779106299535,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.026220893120092806,
+              "trace_sample_covariance": 0.0055002818881226415,
+              "unbiased_signal_norm_squared": 0.000006297685370325323
+            },
+            "score_covariance_ratio": 0.3931008070020683
+          },
+          {
+            "causal_full": {
+              "count": 8,
+              "len": 3584,
+              "mean_l2": 0.01638757175018852,
+              "mean_pairwise_cosine": 0.0027476770501466685,
+              "mean_sample_l2": 0.04333091139784173,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.016609625269623236,
+              "trace_sample_covariance": 0.0022070372127784544,
+              "unbiased_signal_norm_squared": -0.000007327143729730001
+            },
+            "causal_score": {
+              "count": 8,
+              "len": 3584,
+              "mean_l2": 0.01638757175018852,
+              "mean_pairwise_cosine": 0.0027476770501466685,
+              "mean_sample_l2": 0.04333091139784173,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.016609625269623236,
+              "trace_sample_covariance": 0.0022070372127784544,
+              "unbiased_signal_norm_squared": -0.000007327143729730001
+            },
+            "family": "control_head",
+            "full_covariance_ratio": 0.47105635072714935,
+            "old_full": {
+              "count": 8,
+              "len": 3584,
+              "mean_l2": 0.02333734228684109,
+              "mean_pairwise_cosine": -0.004689782461136779,
+              "mean_sample_l2": 0.06307977525727809,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.02420044783569202,
+              "trace_sample_covariance": 0.004685293403584404,
+              "unbiased_signal_norm_squared": -0.00004103013043486913
+            },
+            "old_score": {
+              "count": 8,
+              "len": 3584,
+              "mean_l2": 0.02333734228684109,
+              "mean_pairwise_cosine": -0.004689782461136779,
+              "mean_sample_l2": 0.06307977525727809,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.02420044783569202,
+              "trace_sample_covariance": 0.004685293403584404,
+              "unbiased_signal_norm_squared": -0.00004103013043486913
+            },
+            "paired_difference": {
+              "count": 8,
+              "len": 3584,
+              "mean_l2": 0.016951357471427002,
+              "mean_pairwise_cosine": -0.0004894206122965095,
+              "mean_sample_l2": 0.04648897674321235,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.0172181891535328,
+              "trace_sample_covariance": 0.0023717283018146766,
+              "unbiased_signal_norm_squared": -0.00000911751760273048
+            },
+            "score_covariance_ratio": 0.47105635072714935
+          },
+          {
+            "causal_full": {
+              "count": 8,
+              "len": 131584,
+              "mean_l2": 0.035083408784141734,
+              "mean_pairwise_cosine": 0.02091899129148159,
+              "mean_sample_l2": 0.09214266669873294,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.032558592546928014,
+              "trace_sample_covariance": 0.008480495589095012,
+              "unbiased_signal_norm_squared": 0.00017078362327831707
+            },
+            "causal_score": {
+              "count": 8,
+              "len": 131584,
+              "mean_l2": 0.0193502090191964,
+              "mean_pairwise_cosine": -0.0011862229991077872,
+              "mean_sample_l2": 0.05057248184876096,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.019420791921027924,
+              "trace_sample_covariance": 0.0030173372707189075,
+              "unbiased_signal_norm_squared": -0.000002736569753273622
+            },
+            "family": "emission_head",
+            "full_covariance_ratio": 0.7056357225491611,
+            "old_full": {
+              "count": 8,
+              "len": 131584,
+              "mean_l2": 0.0409693729389372,
+              "mean_pairwise_cosine": 0.016056400776519757,
+              "mean_sample_l2": 0.10845172465115871,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.03875924809893516,
+              "trace_sample_covariance": 0.012018234505558471,
+              "unbiased_signal_norm_squared": 0.00017621020581491133
+            },
+            "old_score": {
+              "count": 8,
+              "len": 131584,
+              "mean_l2": 0.028570004411635565,
+              "mean_pairwise_cosine": -0.00043483500972201535,
+              "mean_sample_l2": 0.07472589192265953,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.028568220169087853,
+              "trace_sample_covariance": 0.006529145629035824,
+              "unbiased_signal_norm_squared": 1.0194845139767893e-7
+            },
+            "paired_difference": {
+              "count": 8,
+              "len": 131584,
+              "mean_l2": 0.020545242896473543,
+              "mean_pairwise_cosine": -0.00001877828627044093,
+              "mean_sample_l2": 0.05558068964122799,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.020541818720172293,
+              "trace_sample_covariance": 0.003375730530659367,
+              "unbiased_signal_norm_squared": 1.406893426757509e-7
+            },
+            "score_covariance_ratio": 0.4621335534775758
+          },
+          {
+            "causal_full": {
+              "count": 8,
+              "len": 240,
+              "mean_l2": 0.03663303069610167,
+              "mean_pairwise_cosine": -0.0077038402561223785,
+              "mean_sample_l2": 0.10232492669203737,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.03932857715439492,
+              "trace_sample_covariance": 0.012373895847913551,
+              "unbiased_signal_norm_squared": -0.0002047580430076662
+            },
+            "causal_score": {
+              "count": 8,
+              "len": 240,
+              "mean_l2": 0.03663303069610167,
+              "mean_pairwise_cosine": -0.0077038402561223785,
+              "mean_sample_l2": 0.10232492669203737,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.03932857715439492,
+              "trace_sample_covariance": 0.012373895847913551,
+              "unbiased_signal_norm_squared": -0.0002047580430076662
+            },
+            "family": "null_heads",
+            "full_covariance_ratio": 0.49639176252736555,
+            "old_full": {
+              "count": 8,
+              "len": 240,
+              "mean_l2": 0.055034239293044566,
+              "mean_pairwise_cosine": 0.00003098410257546773,
+              "mean_sample_l2": 0.14600288345526033,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.05582078654739526,
+              "trace_sample_covariance": 0.024927681686158908,
+              "unbiased_signal_norm_squared": -0.0000871927162057729
+            },
+            "old_score": {
+              "count": 8,
+              "len": 240,
+              "mean_l2": 0.055034239293044566,
+              "mean_pairwise_cosine": 0.00003098410257546773,
+              "mean_sample_l2": 0.14600288345526033,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.05582078654739526,
+              "trace_sample_covariance": 0.024927681686158908,
+              "unbiased_signal_norm_squared": -0.0000871927162057729
+            },
+            "paired_difference": {
+              "count": 8,
+              "len": 240,
+              "mean_l2": 0.038761812868543154,
+              "mean_pairwise_cosine": -0.005956004855876139,
+              "mean_sample_l2": 0.10697095242203555,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.03944823778947115,
+              "trace_sample_covariance": 0.01244930771755728,
+              "unbiased_signal_norm_squared": -0.000053685327838702297
+            },
+            "score_covariance_ratio": 0.49639176252736555
+          }
+        ],
+        "mean_ce": {
+          "count": 8,
+          "mean": 5.559464123396353,
+          "sample_sd": 0.015957707945957023,
+          "standard_error": 0.005641901750390332,
+          "values": [
+            5.5505669690515465,
+            5.57271472639989,
+            5.561427602695587,
+            5.5259449841184995,
+            5.57517553797623,
+            5.555178173497911,
+            5.569670096126641,
+            5.5650348973045105
+          ]
+        },
+        "parameter_digest": "96a0faff5a6d439857e800007fa0d5a43d20c00a8c744f3649c503c605abf515",
+        "prior_path_count_loss_and_old_stats_parity": true,
+        "record": "train/memory-a/0",
+        "replicates": [
+          {
+            "elapsed_us": 226665,
+            "replicate": 0,
+            "tape_bytes": 25715840
+          },
+          {
+            "elapsed_us": 225176,
+            "replicate": 1,
+            "tape_bytes": 25715840
+          },
+          {
+            "elapsed_us": 225273,
+            "replicate": 2,
+            "tape_bytes": 25715840
+          },
+          {
+            "elapsed_us": 227942,
+            "replicate": 3,
+            "tape_bytes": 25715840
+          },
+          {
+            "elapsed_us": 228246,
+            "replicate": 4,
+            "tape_bytes": 25715840
+          },
+          {
+            "elapsed_us": 225709,
+            "replicate": 5,
+            "tape_bytes": 25715840
+          },
+          {
+            "elapsed_us": 224995,
+            "replicate": 6,
+            "tape_bytes": 25715840
+          },
+          {
+            "elapsed_us": 228397,
+            "replicate": 7,
+            "tape_bytes": 25715840
+          }
+        ]
+      },
+      {
+        "endpoint": "initial",
+        "families": [
+          {
+            "causal_full": {
+              "count": 8,
+              "len": 5520,
+              "mean_l2": 0.4636025026333481,
+              "mean_pairwise_cosine": 0.004682253389142473,
+              "mean_sample_l2": 1.2481375239874741,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.458330270457979,
+              "trace_sample_covariance": 1.6805330945446737,
+              "unbiased_signal_norm_squared": 0.004860643629819333
+            },
+            "causal_score": {
+              "count": 8,
+              "len": 5520,
+              "mean_l2": 0.4636025026333481,
+              "mean_pairwise_cosine": 0.004682253389142473,
+              "mean_sample_l2": 1.2481375239874741,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.458330270457979,
+              "trace_sample_covariance": 1.6805330945446737,
+              "unbiased_signal_norm_squared": 0.004860643629819333
+            },
+            "family": "gates",
+            "full_covariance_ratio": 0.6977712448243564,
+            "old_full": {
+              "count": 8,
+              "len": 5520,
+              "mean_l2": 0.5529588922878858,
+              "mean_pairwise_cosine": 0.0016285071525809411,
+              "mean_sample_l2": 1.476398987807747,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.5486836349453242,
+              "trace_sample_covariance": 2.4084298500545103,
+              "unbiased_signal_norm_squared": 0.004709805303431902
+            },
+            "old_score": {
+              "count": 8,
+              "len": 5520,
+              "mean_l2": 0.5529588922878858,
+              "mean_pairwise_cosine": 0.0016285071525809411,
+              "mean_sample_l2": 1.476398987807747,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.5486836349453242,
+              "trace_sample_covariance": 2.4084298500545103,
+              "unbiased_signal_norm_squared": 0.004709805303431902
+            },
+            "paired_difference": {
+              "count": 8,
+              "len": 5520,
+              "mean_l2": 0.48108053571604154,
+              "mean_pairwise_cosine": -0.00006258620524506637,
+              "mean_sample_l2": 1.325250717181919,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.4835440654397674,
+              "trace_sample_covariance": 1.8705189057761444,
+              "unbiased_signal_norm_squared": -0.0023763813771845443
+            },
+            "score_covariance_ratio": 0.6977712448243564
+          },
+          {
+            "causal_full": {
+              "count": 8,
+              "len": 491520,
+              "mean_l2": 0.056546392614736186,
+              "mean_pairwise_cosine": -0.0003406247370620896,
+              "mean_sample_l2": 0.15346518630797187,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.05662476495634194,
+              "trace_sample_covariance": 0.02565091205088776,
+              "unbiased_signal_norm_squared": -0.000008869488621078819
+            },
+            "causal_score": {
+              "count": 8,
+              "len": 491520,
+              "mean_l2": 0.056546392614736186,
+              "mean_pairwise_cosine": -0.0003406247370620896,
+              "mean_sample_l2": 0.15346518630797187,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.05662476495634194,
+              "trace_sample_covariance": 0.02565091205088776,
+              "unbiased_signal_norm_squared": -0.000008869488621078819
+            },
+            "family": "root_heads",
+            "full_covariance_ratio": 0.7075216389060403,
+            "old_full": {
+              "count": 8,
+              "len": 491520,
+              "mean_l2": 0.0673220912790549,
+              "mean_pairwise_cosine": 0.0001862314655096358,
+              "mean_sample_l2": 0.18014919468027923,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.06731882837585905,
+              "trace_sample_covariance": 0.03625459723118692,
+              "unbiased_signal_norm_squared": 4.3932028703525666e-7
+            },
+            "old_score": {
+              "count": 8,
+              "len": 491520,
+              "mean_l2": 0.0673220912790549,
+              "mean_pairwise_cosine": 0.0001862314655096358,
+              "mean_sample_l2": 0.18014919468027923,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.06731882837585905,
+              "trace_sample_covariance": 0.03625459723118692,
+              "unbiased_signal_norm_squared": 4.3932028703525666e-7
+            },
+            "paired_difference": {
+              "count": 8,
+              "len": 491520,
+              "mean_l2": 0.058797576179251375,
+              "mean_pairwise_cosine": 0.0003290179552981926,
+              "mean_sample_l2": 0.1610450687042747,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.058717232059776206,
+              "trace_sample_covariance": 0.027581706726092885,
+              "unbiased_signal_norm_squared": 0.000009441623793258157
+            },
+            "score_covariance_ratio": 0.7075216389060403
+          },
+          {
+            "causal_full": {
+              "count": 8,
+              "len": 32768,
+              "mean_l2": 0.021254675645873078,
+              "mean_pairwise_cosine": -0.0017609653976753878,
+              "mean_sample_l2": 0.05801160805637741,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.021395489618695387,
+              "trace_sample_covariance": 0.0036621358081896167,
+              "unbiased_signal_norm_squared": -0.000006005739212431942
+            },
+            "causal_score": {
+              "count": 8,
+              "len": 32768,
+              "mean_l2": 0.021254675645873078,
+              "mean_pairwise_cosine": -0.0017609653976753878,
+              "mean_sample_l2": 0.05801160805637741,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.021395489618695387,
+              "trace_sample_covariance": 0.0036621358081896167,
+              "unbiased_signal_norm_squared": -0.000006005739212431942
+            },
+            "family": "extent_head",
+            "full_covariance_ratio": 0.6501397742930959,
+            "old_full": {
+              "count": 8,
+              "len": 32768,
+              "mean_l2": 0.026863163256058465,
+              "mean_pairwise_cosine": 0.0028319648068041597,
+              "mean_sample_l2": 0.07124637095117538,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.02653498590912533,
+              "trace_sample_covariance": 0.005632843817579838,
+              "unbiased_signal_norm_squared": 0.00001752406292416977
+            },
+            "old_score": {
+              "count": 8,
+              "len": 32768,
+              "mean_l2": 0.026863163256058465,
+              "mean_pairwise_cosine": 0.0028319648068041597,
+              "mean_sample_l2": 0.07124637095117538,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.02653498590912533,
+              "trace_sample_covariance": 0.005632843817579838,
+              "unbiased_signal_norm_squared": 0.00001752406292416977
+            },
+            "paired_difference": {
+              "count": 8,
+              "len": 32768,
+              "mean_l2": 0.024411160341737344,
+              "mean_pairwise_cosine": 0.0002477126510997011,
+              "mean_sample_l2": 0.06681164078472566,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.024401033830875548,
+              "trace_sample_covariance": 0.004763283616124264,
+              "unbiased_signal_norm_squared": 4.942972144770684e-7
+            },
+            "score_covariance_ratio": 0.6501397742930959
+          },
+          {
+            "causal_full": {
+              "count": 8,
+              "len": 3584,
+              "mean_l2": 0.015160450986917944,
+              "mean_pairwise_cosine": -0.0030936583497295223,
+              "mean_sample_l2": 0.041555277190885635,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.015321562242038718,
+              "trace_sample_covariance": 0.0018780021562933322,
+              "unbiased_signal_norm_squared": -0.000004910995409925255
+            },
+            "causal_score": {
+              "count": 8,
+              "len": 3584,
+              "mean_l2": 0.015160450986917944,
+              "mean_pairwise_cosine": -0.0030936583497295223,
+              "mean_sample_l2": 0.041555277190885635,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.015321562242038718,
+              "trace_sample_covariance": 0.0018780021562933322,
+              "unbiased_signal_norm_squared": -0.000004910995409925255
+            },
+            "family": "control_head",
+            "full_covariance_ratio": 0.7108569875940547,
+            "old_full": {
+              "count": 8,
+              "len": 3584,
+              "mean_l2": 0.01802327880353915,
+              "mean_pairwise_cosine": -0.0007222396384584424,
+              "mean_sample_l2": 0.04872144752809537,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.01817238509160788,
+              "trace_sample_covariance": 0.002641884639341539,
+              "unbiased_signal_norm_squared": -0.000005397001087588816
+            },
+            "old_score": {
+              "count": 8,
+              "len": 3584,
+              "mean_l2": 0.01802327880353915,
+              "mean_pairwise_cosine": -0.0007222396384584424,
+              "mean_sample_l2": 0.04872144752809537,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.01817238509160788,
+              "trace_sample_covariance": 0.002641884639341539,
+              "unbiased_signal_norm_squared": -0.000005397001087588816
+            },
+            "paired_difference": {
+              "count": 8,
+              "len": 3584,
+              "mean_l2": 0.016130088768917545,
+              "mean_pairwise_cosine": 0.002107712894498594,
+              "mean_sample_l2": 0.04351002937703437,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.015818729150048665,
+              "trace_sample_covariance": 0.002001857535380795,
+              "unbiased_signal_norm_squared": 0.00000994757177056059
+            },
+            "score_covariance_ratio": 0.7108569875940547
+          },
+          {
+            "causal_full": {
+              "count": 8,
+              "len": 131584,
+              "mean_l2": 0.030809962881917004,
+              "mean_pairwise_cosine": 0.01083836548783536,
+              "mean_sample_l2": 0.08367005916679143,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.029557842495345474,
+              "trace_sample_covariance": 0.006989328423837205,
+              "unbiased_signal_norm_squared": 0.00007558775980545294
+            },
+            "causal_score": {
+              "count": 8,
+              "len": 131584,
+              "mean_l2": 0.01794457281298142,
+              "mean_pairwise_cosine": 0.0009434541449388727,
+              "mean_sample_l2": 0.048405236041292946,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.017846185202121046,
+              "trace_sample_covariance": 0.0025478906101472332,
+              "unbiased_signal_norm_squared": 0.000003521367171987783
+            },
+            "family": "emission_head",
+            "full_covariance_ratio": 0.8602492084801077,
+            "old_full": {
+              "count": 8,
+              "len": 131584,
+              "mean_l2": 0.03307601340580152,
+              "mean_pairwise_cosine": 0.009956774187212858,
+              "mean_sample_l2": 0.08962532914348928,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.03186842422328705,
+              "trace_sample_covariance": 0.00812477169980311,
+              "unbiased_signal_norm_squared": 0.00007842620034537282
+            },
+            "old_score": {
+              "count": 8,
+              "len": 131584,
+              "mean_l2": 0.021521032519948757,
+              "mean_pairwise_cosine": 0.0004856723826051544,
+              "mean_sample_l2": 0.05741849164085741,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.02144761749590385,
+              "trace_sample_covariance": 0.0036800023700048084,
+              "unbiased_signal_norm_squared": 0.0000031545444740908716
+            },
+            "paired_difference": {
+              "count": 8,
+              "len": 131584,
+              "mean_l2": 0.018834023942850494,
+              "mean_pairwise_cosine": -0.00017183965178240484,
+              "mean_sample_l2": 0.05169236123527153,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.0188438006050527,
+              "trace_sample_covariance": 0.0028407105699438757,
+              "unbiased_signal_norm_squared": -3.6836336311877596e-7
+            },
+            "score_covariance_ratio": 0.6923611329478312
+          },
+          {
+            "causal_full": {
+              "count": 8,
+              "len": 240,
+              "mean_l2": 0.03579463463789171,
+              "mean_pairwise_cosine": -0.005878178666350209,
+              "mean_sample_l2": 0.09709449908850155,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.035777251920729176,
+              "trace_sample_covariance": 0.010240094039994558,
+              "unbiased_signal_norm_squared": 0.0000012441138608374966
+            },
+            "causal_score": {
+              "count": 8,
+              "len": 240,
+              "mean_l2": 0.03579463463789171,
+              "mean_pairwise_cosine": -0.005878178666350209,
+              "mean_sample_l2": 0.09709449908850155,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.035777251920729176,
+              "trace_sample_covariance": 0.010240094039994558,
+              "unbiased_signal_norm_squared": 0.0000012441138608374966
+            },
+            "family": "null_heads",
+            "full_covariance_ratio": 0.7231765531443582,
+            "old_full": {
+              "count": 8,
+              "len": 240,
+              "mean_l2": 0.03893671197731204,
+              "mean_pairwise_cosine": -0.019294124323359307,
+              "mean_sample_l2": 0.11224306990508819,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.04207119136929817,
+              "trace_sample_covariance": 0.014159881145856871,
+              "unbiased_signal_norm_squared": -0.0002539176036279538
+            },
+            "old_score": {
+              "count": 8,
+              "len": 240,
+              "mean_l2": 0.03893671197731204,
+              "mean_pairwise_cosine": -0.019294124323359307,
+              "mean_sample_l2": 0.11224306990508819,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.04207119136929817,
+              "trace_sample_covariance": 0.014159881145856871,
+              "unbiased_signal_norm_squared": -0.0002539176036279538
+            },
+            "paired_difference": {
+              "count": 8,
+              "len": 240,
+              "mean_l2": 0.03660476166585883,
+              "mean_pairwise_cosine": -0.0011486719727457548,
+              "mean_sample_l2": 0.09967149234313889,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.03629783957483862,
+              "trace_sample_covariance": 0.010540265262405766,
+              "unbiased_signal_norm_squared": 0.000022375418813607752
+            },
+            "score_covariance_ratio": 0.7231765531443582
+          }
+        ],
+        "mean_ce": {
+          "count": 8,
+          "mean": 5.566387627122603,
+          "sample_sd": 0.009446138992332764,
+          "standard_error": 0.003339714468754579,
+          "values": [
+            5.570840712156769,
+            5.574594456610058,
+            5.5590636647004565,
+            5.558143839561419,
+            5.5602503374916274,
+            5.573379305888054,
+            5.580204309251781,
+            5.554624391320656
+          ]
+        },
+        "parameter_digest": "d29bb3f055f015161c782015ae5113872d47effa93744d9363f4d3f5fe72891b",
+        "prior_path_count_loss_and_old_stats_parity": true,
+        "record": "train/sub-9-2/0",
+        "replicates": [
+          {
+            "elapsed_us": 258529,
+            "replicate": 0,
+            "tape_bytes": 32001856
+          },
+          {
+            "elapsed_us": 257101,
+            "replicate": 1,
+            "tape_bytes": 32001856
+          },
+          {
+            "elapsed_us": 342373,
+            "replicate": 2,
+            "tape_bytes": 32001856
+          },
+          {
+            "elapsed_us": 263383,
+            "replicate": 3,
+            "tape_bytes": 32001856
+          },
+          {
+            "elapsed_us": 264810,
+            "replicate": 4,
+            "tape_bytes": 32001856
+          },
+          {
+            "elapsed_us": 264051,
+            "replicate": 5,
+            "tape_bytes": 32001856
+          },
+          {
+            "elapsed_us": 265400,
+            "replicate": 6,
+            "tape_bytes": 32001856
+          },
+          {
+            "elapsed_us": 266876,
+            "replicate": 7,
+            "tape_bytes": 32001856
+          }
+        ]
+      },
+      {
+        "endpoint": "final64",
+        "families": [
+          {
+            "causal_full": {
+              "count": 8,
+              "len": 5520,
+              "mean_l2": 0.532462191448145,
+              "mean_pairwise_cosine": 0.0013959246815098414,
+              "mean_sample_l2": 1.462657227065211,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.5385331940979828,
+              "trace_sample_covariance": 2.3201440091630054,
+              "unbiased_signal_norm_squared": -0.006502015823614704
+            },
+            "causal_score": {
+              "count": 8,
+              "len": 5520,
+              "mean_l2": 0.532462191448145,
+              "mean_pairwise_cosine": 0.0013959246815098414,
+              "mean_sample_l2": 1.462657227065211,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.5385331940979828,
+              "trace_sample_covariance": 2.3201440091630054,
+              "unbiased_signal_norm_squared": -0.006502015823614704
+            },
+            "family": "gates",
+            "full_covariance_ratio": 0.5199913507406078,
+            "old_full": {
+              "count": 8,
+              "len": 5520,
+              "mean_l2": 0.7254949308328258,
+              "mean_pairwise_cosine": -0.003547454173231958,
+              "mean_sample_l2": 1.9385405974359127,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.7468173821038347,
+              "trace_sample_covariance": 4.461889617699401,
+              "unbiased_signal_norm_squared": -0.0313933075482985
+            },
+            "old_score": {
+              "count": 8,
+              "len": 5520,
+              "mean_l2": 0.7254949308328258,
+              "mean_pairwise_cosine": -0.003547454173231958,
+              "mean_sample_l2": 1.9385405974359127,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.7468173821038347,
+              "trace_sample_covariance": 4.461889617699401,
+              "unbiased_signal_norm_squared": -0.0313933075482985
+            },
+            "paired_difference": {
+              "count": 8,
+              "len": 5520,
+              "mean_l2": 0.5588063660688251,
+              "mean_pairwise_cosine": 0.0017089404811951234,
+              "mean_sample_l2": 1.4964439809442611,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.5577518117046909,
+              "trace_sample_covariance": 2.4886966676789197,
+              "unbiased_signal_norm_squared": 0.0011774712991807212
+            },
+            "score_covariance_ratio": 0.5199913507406078
+          },
+          {
+            "causal_full": {
+              "count": 8,
+              "len": 491520,
+              "mean_l2": 0.06498427818030751,
+              "mean_pairwise_cosine": -0.0001635183143120817,
+              "mean_sample_l2": 0.17723803217785855,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.06502835111388267,
+              "trace_sample_covariance": 0.03382949158872323,
+              "unbiased_signal_norm_squared": -0.000005730037974814063
+            },
+            "causal_score": {
+              "count": 8,
+              "len": 491520,
+              "mean_l2": 0.06498427818030751,
+              "mean_pairwise_cosine": -0.0001635183143120817,
+              "mean_sample_l2": 0.17723803217785855,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.06502835111388267,
+              "trace_sample_covariance": 0.03382949158872323,
+              "unbiased_signal_norm_squared": -0.000005730037974814063
+            },
+            "family": "root_heads",
+            "full_covariance_ratio": 0.5369742852490322,
+            "old_full": {
+              "count": 8,
+              "len": 491520,
+              "mean_l2": 0.08870353720464375,
+              "mean_pairwise_cosine": -0.00004147985874065301,
+              "mean_sample_l2": 0.23208783500718771,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.08874134314453304,
+              "trace_sample_covariance": 0.0630002078647661,
+              "unbiased_signal_norm_squared": -0.000006708470480143794
+            },
+            "old_score": {
+              "count": 8,
+              "len": 491520,
+              "mean_l2": 0.08870353720464375,
+              "mean_pairwise_cosine": -0.00004147985874065301,
+              "mean_sample_l2": 0.23208783500718771,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.08874134314453304,
+              "trace_sample_covariance": 0.0630002078647661,
+              "unbiased_signal_norm_squared": -0.000006708470480143794
+            },
+            "paired_difference": {
+              "count": 8,
+              "len": 491520,
+              "mean_l2": 0.06637669979136335,
+              "mean_pairwise_cosine": 0.00002880558911818757,
+              "mean_sample_l2": 0.17873739560756896,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.06638333537285351,
+              "trace_sample_covariance": 0.035253977721797954,
+              "unbiased_signal_norm_squared": -8.809400319689104e-7
+            },
+            "score_covariance_ratio": 0.5369742852490322
+          },
+          {
+            "causal_full": {
+              "count": 8,
+              "len": 32768,
+              "mean_l2": 0.02406211054664904,
+              "mean_pairwise_cosine": -0.0015597731108484122,
+              "mean_sample_l2": 0.06581041577174038,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.024132820469049868,
+              "trace_sample_covariance": 0.004659144190331138,
+              "unbiased_signal_norm_squared": -0.0000034078598322332754
+            },
+            "causal_score": {
+              "count": 8,
+              "len": 32768,
+              "mean_l2": 0.02406211054664904,
+              "mean_pairwise_cosine": -0.0015597731108484122,
+              "mean_sample_l2": 0.06581041577174038,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.024132820469049868,
+              "trace_sample_covariance": 0.004659144190331138,
+              "unbiased_signal_norm_squared": -0.0000034078598322332754
+            },
+            "family": "extent_head",
+            "full_covariance_ratio": 0.4768554358978236,
+            "old_full": {
+              "count": 8,
+              "len": 32768,
+              "mean_l2": 0.035361441543499655,
+              "mean_pairwise_cosine": 0.0033545486394132495,
+              "mean_sample_l2": 0.09125424705298732,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.03494738731423043,
+              "trace_sample_covariance": 0.00977055904072667,
+              "unbiased_signal_norm_squared": 0.00002911166794350938
+            },
+            "old_score": {
+              "count": 8,
+              "len": 32768,
+              "mean_l2": 0.035361441543499655,
+              "mean_pairwise_cosine": 0.0033545486394132495,
+              "mean_sample_l2": 0.09125424705298732,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.03494738731423043,
+              "trace_sample_covariance": 0.00977055904072667,
+              "unbiased_signal_norm_squared": 0.00002911166794350938
+            },
+            "paired_difference": {
+              "count": 8,
+              "len": 32768,
+              "mean_l2": 0.027788499150532747,
+              "mean_pairwise_cosine": 0.0013892998832585324,
+              "mean_sample_l2": 0.07418335968042844,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.027562310695335747,
+              "trace_sample_covariance": 0.006077447766929754,
+              "unbiased_signal_norm_squared": 0.000012519714172940085
+            },
+            "score_covariance_ratio": 0.4768554358978236
+          },
+          {
+            "causal_full": {
+              "count": 8,
+              "len": 3584,
+              "mean_l2": 0.017621795056155416,
+              "mean_pairwise_cosine": 0.0012393574274286603,
+              "mean_sample_l2": 0.04804117056574049,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.017612328389946853,
+              "trace_sample_covariance": 0.002481552890522623,
+              "unbiased_signal_norm_squared": 3.3354968581562157e-7
+            },
+            "causal_score": {
+              "count": 8,
+              "len": 3584,
+              "mean_l2": 0.017621795056155416,
+              "mean_pairwise_cosine": 0.0012393574274286603,
+              "mean_sample_l2": 0.04804117056574049,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.017612328389946853,
+              "trace_sample_covariance": 0.002481552890522623,
+              "unbiased_signal_norm_squared": 3.3354968581562157e-7
+            },
+            "family": "control_head",
+            "full_covariance_ratio": 0.530094526730679,
+            "old_full": {
+              "count": 8,
+              "len": 3584,
+              "mean_l2": 0.024218145527978588,
+              "mean_pairwise_cosine": 0.002581520515456681,
+              "mean_sample_l2": 0.06330439996500524,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.024190236504676946,
+              "trace_sample_covariance": 0.004681340337217641,
+              "unbiased_signal_norm_squared": 0.0000013510306621441776
+            },
+            "old_score": {
+              "count": 8,
+              "len": 3584,
+              "mean_l2": 0.024218145527978588,
+              "mean_pairwise_cosine": 0.002581520515456681,
+              "mean_sample_l2": 0.06330439996500524,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.024190236504676946,
+              "trace_sample_covariance": 0.004681340337217641,
+              "unbiased_signal_norm_squared": 0.0000013510306621441776
+            },
+            "paired_difference": {
+              "count": 8,
+              "len": 3584,
+              "mean_l2": 0.018002506335382387,
+              "mean_pairwise_cosine": -0.0033933723086178986,
+              "mean_sample_l2": 0.04902294197432539,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.018241136302593997,
+              "trace_sample_covariance": 0.0026619124288785,
+              "unbiased_signal_norm_squared": -0.000008648819254329621
+            },
+            "score_covariance_ratio": 0.530094526730679
+          },
+          {
+            "causal_full": {
+              "count": 8,
+              "len": 131584,
+              "mean_l2": 0.03244440080421389,
+              "mean_pairwise_cosine": 0.01059679069537091,
+              "mean_sample_l2": 0.08804916190864327,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.03116472265042394,
+              "trace_sample_covariance": 0.0077699195030227755,
+              "unbiased_signal_norm_squared": 0.00008139920566662795
+            },
+            "causal_score": {
+              "count": 8,
+              "len": 131584,
+              "mean_l2": 0.020449137088393972,
+              "mean_pairwise_cosine": -0.00037865333167796944,
+              "mean_sample_l2": 0.05581862421226057,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.020486124912753555,
+              "trace_sample_covariance": 0.003357450511527535,
+              "unbiased_signal_norm_squared": -0.000001514106281012026
+            },
+            "family": "emission_head",
+            "full_covariance_ratio": 0.7177085996108109,
+            "old_full": {
+              "count": 8,
+              "len": 131584,
+              "mean_l2": 0.03790307039373125,
+              "mean_pairwise_cosine": 0.00862677552106155,
+              "mean_sample_l2": 0.10165882320360259,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.03678656113934439,
+              "trace_sample_covariance": 0.010826008643669784,
+              "unbiased_signal_norm_squared": 0.00008339166481342343
+            },
+            "old_score": {
+              "count": 8,
+              "len": 131584,
+              "mean_l2": 0.028280023356803574,
+              "mean_pairwise_cosine": -0.00012998337516796038,
+              "mean_sample_l2": 0.07398496908445733,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.028301131387676332,
+              "trace_sample_covariance": 0.0064076323025801475,
+              "unbiased_signal_norm_squared": -0.0000011943167611626988
+            },
+            "paired_difference": {
+              "count": 8,
+              "len": 131584,
+              "mean_l2": 0.0214386024572614,
+              "mean_pairwise_cosine": 0.0003322331735161451,
+              "mean_sample_l2": 0.057585558722706875,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.021387670872983527,
+              "trace_sample_covariance": 0.003659459722968544,
+              "unbiased_signal_norm_squared": 0.000002181209949426576
+            },
+            "score_covariance_ratio": 0.5239767753489222
+          },
+          {
+            "causal_full": {
+              "count": 8,
+              "len": 240,
+              "mean_l2": 0.03894657397215628,
+              "mean_pairwise_cosine": -0.02230433684538261,
+              "mean_sample_l2": 0.11517180282801612,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.04300400717559214,
+              "trace_sample_covariance": 0.014794757065267046,
+              "unbiased_signal_norm_squared": -0.00033250900898973987
+            },
+            "causal_score": {
+              "count": 8,
+              "len": 240,
+              "mean_l2": 0.03894657397215628,
+              "mean_pairwise_cosine": -0.02230433684538261,
+              "mean_sample_l2": 0.11517180282801612,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.04300400717559214,
+              "trace_sample_covariance": 0.014794757065267046,
+              "unbiased_signal_norm_squared": -0.00033250900898973987
+            },
+            "family": "null_heads",
+            "full_covariance_ratio": 0.565207008226785,
+            "old_full": {
+              "count": 8,
+              "len": 240,
+              "mean_l2": 0.05336110280216323,
+              "mean_pairwise_cosine": -0.01548954517235958,
+              "mean_sample_l2": 0.14865709583435008,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.05720120221044496,
+              "trace_sample_covariance": 0.026175820274561706,
+              "unbiased_signal_norm_squared": -0.0004245702420571807
+            },
+            "old_score": {
+              "count": 8,
+              "len": 240,
+              "mean_l2": 0.05336110280216323,
+              "mean_pairwise_cosine": -0.01548954517235958,
+              "mean_sample_l2": 0.14865709583435008,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.05720120221044496,
+              "trace_sample_covariance": 0.026175820274561706,
+              "unbiased_signal_norm_squared": -0.0004245702420571807
+            },
+            "paired_difference": {
+              "count": 8,
+              "len": 240,
+              "mean_l2": 0.04405453341956112,
+              "mean_pairwise_cosine": 0.008658310622744818,
+              "mean_sample_l2": 0.11375227553327,
+              "nonzero_count": 8,
+              "standard_error_l2": 0.041629794812850986,
+              "trace_sample_covariance": 0.0138643185292806,
+              "unbiased_signal_norm_squared": 0.00020776209865515285
+            },
+            "score_covariance_ratio": 0.565207008226785
+          }
+        ],
+        "mean_ce": {
+          "count": 8,
+          "mean": 5.5631305230011465,
+          "sample_sd": 0.00809887194134292,
+          "standard_error": 0.0028633836348425194,
+          "values": [
+            5.567863640506947,
+            5.569582634595288,
+            5.5626285426127335,
+            5.557855754710473,
+            5.546505566631163,
+            5.569311898423841,
+            5.570106777212961,
+            5.561189369315761
+          ]
+        },
+        "parameter_digest": "96a0faff5a6d439857e800007fa0d5a43d20c00a8c744f3649c503c605abf515",
+        "prior_path_count_loss_and_old_stats_parity": true,
+        "record": "train/sub-9-2/0",
+        "replicates": [
+          {
+            "elapsed_us": 261235,
+            "replicate": 0,
+            "tape_bytes": 32001856
+          },
+          {
+            "elapsed_us": 262383,
+            "replicate": 1,
+            "tape_bytes": 32001856
+          },
+          {
+            "elapsed_us": 261547,
+            "replicate": 2,
+            "tape_bytes": 32001856
+          },
+          {
+            "elapsed_us": 259935,
+            "replicate": 3,
+            "tape_bytes": 32001856
+          },
+          {
+            "elapsed_us": 269502,
+            "replicate": 4,
+            "tape_bytes": 32001856
+          },
+          {
+            "elapsed_us": 264866,
+            "replicate": 5,
+            "tape_bytes": 32001856
+          },
+          {
+            "elapsed_us": 264842,
+            "replicate": 6,
+            "tape_bytes": 32001856
+          },
+          {
+            "elapsed_us": 261885,
+            "replicate": 7,
+            "tape_bytes": 32001856
+          }
+        ]
+      }
+    ],
+    "elapsed_us": 8534075,
+    "execution": "COMPLETE_PAIRED_CAUSAL_CREDIT_COMPARISON",
+    "family_aggregates": [
+      {
+        "causal_sum_covariance": 7.817682817326448,
+        "family": "gates",
+        "limit": 0.8,
+        "old_sum_covariance": 14.865729033473873,
+        "passes": true,
+        "ratio": 0.5258862716872478
+      },
+      {
+        "causal_sum_covariance": 0.11765515135791813,
+        "family": "root_heads",
+        "limit": 1.1,
+        "old_sum_covariance": 0.21785883031101724,
+        "passes": true,
+        "ratio": 0.5400522493853133
+      },
+      {
+        "causal_sum_covariance": 0.015535104595351464,
+        "family": "extent_head",
+        "limit": 1.1,
+        "old_sum_covariance": 0.032977357602941654,
+        "passes": true,
+        "ratio": 0.47108397168746163
+      },
+      {
+        "causal_sum_covariance": 0.00846619406936229,
+        "family": "control_head",
+        "limit": 1.1,
+        "old_sum_covariance": 0.01586205528481522,
+        "passes": true,
+        "ratio": 0.533738782102657
+      },
+      {
+        "causal_sum_covariance": 0.03143008582781486,
+        "family": "emission_head",
+        "limit": 1.1,
+        "old_sum_covariance": 0.041983918408150835,
+        "passes": true,
+        "ratio": 0.7486220205142398
+      },
+      {
+        "causal_sum_covariance": 0.04849822538437398,
+        "family": "null_heads",
+        "limit": 1.1,
+        "old_sum_covariance": 0.08780719589173343,
+        "passes": true,
+        "ratio": 0.5523263200908096
+      }
+    ],
+    "fit_calls": 0,
+    "gate_all_cells_nonincreasing": true,
+    "max_tape_bytes": 32001856,
+    "mean_consistency": "paired differences descriptive, no statistical proof or acceptance from cosine",
+    "parameter_digests_after": [
+      "d29bb3f055f015161c782015ae5113872d47effa93744d9363f4d3f5fe72891b",
+      "96a0faff5a6d439857e800007fa0d5a43d20c00a8c744f3649c503c605abf515"
+    ],
+    "parameter_digests_before": [
+      "d29bb3f055f015161c782015ae5113872d47effa93744d9363f4d3f5fe72891b",
+      "96a0faff5a6d439857e800007fa0d5a43d20c00a8c744f3649c503c605abf515"
+    ],
+    "parameter_updates": 0,
+    "prior_diagnostic_root": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-attention-stability-1/attempt-1",
+    "prior_model_gate": "FAIL_ADDRESSED_ATTENTION_LEARNING_PILOT",
+    "promotion": false,
+    "runtime_replays": 0,
+    "source_fit_root": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-attention-pilot-1/fit-1",
+    "status": "SELECTED_CAUSAL_CREDIT_FOR_BOUNDED_LEARNING",
+    "total_batch_us": 7930721,
+    "trajectories": 128
+  },
+  "retained": "15baec48",
+  "retained_sha256": "1454aa69e2e295d0a9970e90326f4664d3c614f666b1a708a16c16b5350a1705",
+  "prior_sources_unchanged": 140,
+  "prior_source_changes": [
+    "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/mod.rs"
+  ],
+  "prior_sealed_roots": 25,
+  "prior_sealed_files": 806,
+  "original_checkouts_preserved": true,
+  "model_build_test_ms": 121760,
+  "step_cap_ms": 180000,
+  "parent_model_ms": 3487398,
+  "parent_model_limit_ms": 3550000,
+  "ledger": {
+    "cumulative_ms": 123237971,
+    "limit_ms": 132950000
+  },
+  "step_storage_growth_bytes": 20680704,
+  "step_storage_cap_bytes": 100663296,
+  "parent_storage_growth_bytes": 1899929600,
+  "parent_storage_cap_bytes": 2147483648,
+  "peak_sampled_rss_bytes": 2628304896,
+  "parameter_updates": 0,
+  "language_fit_calls": 0,
+  "generation_qualification": "NOT_RUN_EXISTING_PILOT_REMAINS_FAILED",
+  "normal_model_artifact": "NOT_EXPORTED",
+  "external_cost": 0,
+  "cleanup": false,
+  "schema": "uor-r4.addressed-attention-causal-credit-evidence/1",
+  "gate_receipt": {
+    "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-attention-causal-credit-1/gate-result.json",
+    "sha256": "45ffe07508ffdfcc24d5cddb88d3d510e00ea55503cd414df36b26fd96ff1f7c",
+    "bytes": 91942
+  },
+  "projection": {
+    "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-attention-causal-credit-1/projection.json",
+    "sha256": "1844a0e0b36a0a943a95089ec59825902d6060cb03e3d76375614d1f2484aa21",
+    "bytes": 1630
+  },
+  "preservation_start": {
+    "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-attention-causal-credit-1/preservation-start.json",
+    "sha256": "9bf82d13e69980dee8bdfe74db56cbffee844d687f5b5f9f85fcda979d734be2",
+    "bytes": 565
+  },
+  "summary_file": {
+    "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-attention-causal-credit-1/attempt-1/summary.json",
+    "sha256": "cdb4fbf2f433ce9ee7ba26ebce8e5b32eac1307f4e6aaaacbe91294c16ac9044",
+    "bytes": 67939
+  },
+  "next_action": "Run one matched64-update causal-credit learning pilot from the same saved initial parameters as the old pilot, changing only full-trajectory credit to the selected causal suffix-LOO estimator. Preserve16construction/8development records, their order, initialization7341/eventseed973, four particles, SGD rate0.05,64-position window and original independent behavior/retention/control acceptance. Bind a separate causal training/checkpoint identity without changing old loaders or relabeling the old witness. Reuse saved old initial/final outputs and compare every response and formerly correct symbol; do not rerun the old fit. Check checkpoint/export and complete deterministic interpreter parity, then evaluate generated responses with ReadDisabled, ExactPayloadMasked and StateTransportDisabled controls; compile/execute generated programs only when their output qualifies under the fixed rules. No dose increase, corpus change, parameter sweep, automatic retry fit or model promotion follows estimator selection. Proposed complete240000ms (140000build/preparation/checks,40000fit,30000evaluation,30000correction),two buildthreads/one modelprocess,4GiBRAM,128MiBnewstorage,128MiBstopmargin. Refresh62602ms parent balance and current storage; record necessary preauthorized local time/storage extensions before use. Broader retained-model qualification remains separate.",
+  "executed_review": {
+    "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/addressed-attention-causal-credit-1/executed-review.md",
+    "sha256": "5502e17d9efdcc23bf6c85d2e712e19ffa635c10ed9486a570f11036e2d610b5",
+    "bytes": 5847
+  }
+}

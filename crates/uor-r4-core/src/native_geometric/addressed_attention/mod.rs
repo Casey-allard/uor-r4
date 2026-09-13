@@ -22,3 +22,7 @@ pub mod stability;
 #[cfg(test)]
 mod stability_report;
 pub mod stability_stats;
+
+pub mod causal_credit;
+#[cfg(test)]
+mod causal_report;
