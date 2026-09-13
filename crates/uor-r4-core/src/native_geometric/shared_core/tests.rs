@@ -152,3 +152,5 @@ fn shared_core_runtime_source_excludes_linear_predictor_and_float_work() {
     assert!(scan.offenders.is_empty(), "{:?}", scan.offenders);
     assert!(scan.allowed.is_empty());
 }
+
+mod credit_assignment;

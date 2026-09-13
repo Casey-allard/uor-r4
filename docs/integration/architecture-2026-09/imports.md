@@ -149,6 +149,9 @@ Primary sources at current verified head:
 
 W/crates/uor-r4-core/src/spiralcore_operator.rs binds local v63 reference SHA256 `3f8e6a98186999cca6c55ea42cd8b496935837c2987379f39e8e659b56360215`. It implements oriented octonion basis/Fano products, left/right signed8×8 conventions, fifteen bivectors and finite64-state Cl(0,6) composition/inverse tables. Prime sextet `[5,7,11,13,17,19]` and semiprime plane correspondence are R4's explicit adapter, not something SpiralCore itself supplied. W/docs/adr/0003-fixed-zeta-prime-route-attention.md:298–337 records original static source audit and later exact Rust reproduction; W/docs/prime_route_attention_qualification_958.md and focused test file preserve finite evidence.
 
+September 12 additive update: the owner supplied [SpiralCore v68 and Atomic Ternary FBS revision 3.1](../../../research/spiralcore-v68/README.md). Exact originals, hashes and scoped attention/address/Bell/trace consultation are preserved there. This is a separate research revision; the v63 Rust adapter and its claims remain unchanged. The inspected v68 routing is deterministic, and no learned shared-state credit rule was found. Its identity/route/observable distinction informs the current [credit-assignment trace](../../native_geometric_credit_assignment_973.md).
+
+
 Current statuses are `IMPLEMENTED_CONTROL_ONLY`, `OPTIONAL_CONTROL_PENDING`, chart transport `NOT_ESTABLISHED`.64-state accumulation is useful ordered finite operator/holonomy state but necessarily collides many histories; cannot replace retained occurrence identities. It does not equate8D E8 with4D R4/H4 or Hopf base. A small signed-permutation/table transition could satisfy no-serving-matrix-products when its semantics are specified and actually lowered; dense8×8 matrix application is not necessary for a signed permutation. Chart rollover and the input/value/operator bridge remain required.
 
 ## Other ecosystem mechanisms already discovered, avoid duplicate rediscovery

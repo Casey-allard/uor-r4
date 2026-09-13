@@ -62,6 +62,8 @@ evidence, not a general-prose or general-reasoning claim for the native model.
 - [archives/](archives/README.md) — preserved development sandboxes and early router sources.
 - [riemann-lean/](riemann-lean/README.md) — imported Riemann/Lean research and its stated proof boundaries.
 - [msa/](msa/README.md) — retained MSA research at its documented scope.
+- [spiralcore-v68/](spiralcore-v68/README.md) — preserved SpiralCore v68 HTML and
+  Atomic Ternary FBS revision 3.1 PDF, with scoped source consultation and provenance.
 
 ## Provenance and handling
 

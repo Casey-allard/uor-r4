@@ -1,0 +1,51 @@
+{
+  "schema": "uor-r4.research-import/1",
+  "imported_at_utc": "2026-09-13T00:44:42.021Z",
+  "authorization": "Owner explicitly requested adding and consulting these two research files in the project.",
+  "scope": "Research source preservation and scoped consultation; no runtime import or model qualification.",
+  "sources": [
+    {
+      "original_path": "/Users/casey.allard/Downloads/Spiralcore_Dodecahedron_IP_Schema_v68.html",
+      "file": "Spiralcore_Dodecahedron_IP_Schema_v68.html",
+      "review_type": "Targeted static HTML and JavaScript source review; scripts not executed",
+      "reviewed_sections": [
+        "Prompt Trace handler",
+        "symbolic addresses and IPv6 documentation mirror",
+        "Bell MF codec and route/operator metadata",
+        "BFS and route traces",
+        "20:11 orbit trace",
+        "bounded Kuramoto simulation",
+        "v68 claim boundaries"
+      ],
+      "bytes": 1021647,
+      "sha256": "2a45c2e5f46c8c36bf7801da1d1e12ee9e2ed8b3da488ff54c20a6ac6c2ceab0",
+      "byte_for_byte_preserved": true,
+      "original_retained": true
+    },
+    {
+      "original_path": "/Users/casey.allard/Downloads/Atomic_Ternary_FBS_Formal_Consolidated_Reference_Revision_3.1 (1) (1).pdf",
+      "file": "atomic-ternary-fbs-reference-r3.1.pdf",
+      "review_type": "Selected extracted text consultation; parent task visually reviewed physical PDF pages 16, 40 and 41",
+      "reviewed_printed_pages": [
+        11,
+        34,
+        35,
+        36
+      ],
+      "reviewed_physical_pages_one_based": [
+        16,
+        39,
+        40,
+        41
+      ],
+      "bytes": 2695558,
+      "sha256": "917cb942811971d63cbe499f3a1641d3360c4dde7ebdc6b87e298c3cf1bbd747",
+      "byte_for_byte_preserved": true,
+      "original_retained": true
+    }
+  ],
+  "prior_spiralcore_v63_reference_unchanged": true,
+  "html_executed": false,
+  "external_computational_counts_independently_reproduced": false,
+  "model_artifact_exported": false
+}
