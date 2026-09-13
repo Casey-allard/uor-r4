@@ -1,0 +1,1562 @@
+{
+  "schema": "uor-r4.context-augmentation-evidence/1",
+  "date": "2026-09-13",
+  "source": {
+    "at": "2026-09-13T04:31:27.493Z",
+    "base": "c5ca91f92dfed87efe0c90d33ffdefe505ed8486",
+    "sources": {
+      "crates/uor-r4-core/src/native_geometric/action_binding.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/action_binding.rs",
+        "sha256": "384d85ab89c95e7a8c98216883c270b13c7341ae5f0242ced63f4b04b6e4f4d2"
+      },
+      "crates/uor-r4-core/src/native_geometric/action_emission.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/action_emission.rs",
+        "sha256": "2d82838175e99a040d09606555fbfc1f3514b4da184c7cbbb10b2992f24db4a0"
+      },
+      "crates/uor-r4-core/src/native_geometric/action_emission_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/action_emission_tests.rs",
+        "sha256": "c62e656923adb5a74eda92229673672461aa7041955f1835be5f586400a63000"
+      },
+      "crates/uor-r4-core/src/native_geometric/anchors.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/anchors.rs",
+        "sha256": "eb653f80cb3160ad083cc16d10952218454bbaefeb9bdd02b38e92c34a32ba8a"
+      },
+      "crates/uor-r4-core/src/native_geometric/completion_runtime.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/completion_runtime.rs",
+        "sha256": "8421d8b0d8020459c29d565786665f45c259783f6383465e5b20585befbd1249"
+      },
+      "crates/uor-r4-core/src/native_geometric/completion_runtime_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/completion_runtime_tests.rs",
+        "sha256": "00a6678f7c4f9db1cdd78598e4e63e2219ef3ccb86dcd07b716b07b2df4f3a68"
+      },
+      "crates/uor-r4-core/src/native_geometric/completion_snapshot.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/completion_snapshot.rs",
+        "sha256": "4a68b63016a3cdf2815adc0bf8addc0b5121706bdcb0d1e5abdc46a1296bd702"
+      },
+      "crates/uor-r4-core/src/native_geometric/completion_snapshot_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/completion_snapshot_tests.rs",
+        "sha256": "b11acf8d489c9c9fa15f428f1b3fd0d56b91180e624142e6ba6d77459695090c"
+      },
+      "crates/uor-r4-core/src/native_geometric/completion_training.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/completion_training.rs",
+        "sha256": "c674dfac58c9d135ac6f15f5b493aa0078149ec501b7655c0874dd4eac8bc27e"
+      },
+      "crates/uor-r4-core/src/native_geometric/completion_types.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/completion_types.rs",
+        "sha256": "624866e09637e6c22d5e124b5633285f384480a64d8696210eea25307209c191"
+      },
+      "crates/uor-r4-core/src/native_geometric/composed_output.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/composed_output.rs",
+        "sha256": "e1456e61b95eed37501032851f00ec5febc16b6c7c563b92877ae7813a4f2257"
+      },
+      "crates/uor-r4-core/src/native_geometric/composed_output_training.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/composed_output_training.rs",
+        "sha256": "c858cf803615257adba0852d1ce21756c870c98e253565a7a961c4c3528f4c60"
+      },
+      "crates/uor-r4-core/src/native_geometric/current_query_handoff.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/current_query_handoff.rs",
+        "sha256": "2ac0f5037337fe7d1c2e007a24b40ed65d9e14b6cfbe1965a001156482868bbe"
+      },
+      "crates/uor-r4-core/src/native_geometric/current_source.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/current_source.rs",
+        "sha256": "cd3b82886e0d90a777a596bf766395a8db2072ecb55656e81a7d99498ff16060"
+      },
+      "crates/uor-r4-core/src/native_geometric/dependent_read.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/dependent_read.rs",
+        "sha256": "1003d91138f57d735936d90593e9da05a617197dd46ea5f73a0cfd4e44df1d3d"
+      },
+      "crates/uor-r4-core/src/native_geometric/dependent_read_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/dependent_read_tests.rs",
+        "sha256": "2e7a322f52888a0064e0cbe7027e8dc40129655befd8bc3d49e49dc69bd2ca0c"
+      },
+      "crates/uor-r4-core/src/native_geometric/dependent_read_training.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/dependent_read_training.rs",
+        "sha256": "2ea2596612201b2f37f48b1e2ee4afa1946e501941c787a919e302cafc67b711"
+      },
+      "crates/uor-r4-core/src/native_geometric/durable_memory.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/durable_memory.rs",
+        "sha256": "864dabc51c661b1e02733c9aad8e059a217b6749c434d504bb5859f37430bf49"
+      },
+      "crates/uor-r4-core/src/native_geometric/durable_memory_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/durable_memory_tests.rs",
+        "sha256": "d4297766370cf655bf8850cb05eed1a08c316c9f26b9510747141911988c8ec3"
+      },
+      "crates/uor-r4-core/src/native_geometric/field_composition.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/field_composition.rs",
+        "sha256": "74a6e8c083558e4375c10edc23b0f07ea8f230d0132abc654b5d0862df54d6cd"
+      },
+      "crates/uor-r4-core/src/native_geometric/field_composition_snapshot.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/field_composition_snapshot.rs",
+        "sha256": "14b05a1b218e098ec66794020f1982447a1f813ce78804c141f09e49aec3a725"
+      },
+      "crates/uor-r4-core/src/native_geometric/general_prose_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/general_prose_tests.rs",
+        "sha256": "a781bc6f7ed2971a90d5a44829efbfd8ad7aef1459f6577fc2f0c21010d6de75"
+      },
+      "crates/uor-r4-core/src/native_geometric/groundedness.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/groundedness.rs",
+        "sha256": "d763055f729b74abf97a72165a1759dfd04f8fa8ed57c3c80b6b2896f7135536"
+      },
+      "crates/uor-r4-core/src/native_geometric/groundedness_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/groundedness_tests.rs",
+        "sha256": "45f45af0bcaf9b85eac96ec432a5354d420210febaaa7b71ed7a8479cc638721"
+      },
+      "crates/uor-r4-core/src/native_geometric/guarantees.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/guarantees.rs",
+        "sha256": "459581a31fcfd75942ee93cf19ee34ba7f791c8938a3ecb25e15ce770dd34ff0"
+      },
+      "crates/uor-r4-core/src/native_geometric/guarantees_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/guarantees_tests.rs",
+        "sha256": "a9931a00bd9579fb44a663d24ebce82be495aeaa8837b3443e6acca1f1da3227"
+      },
+      "crates/uor-r4-core/src/native_geometric/historical_field_composition.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/historical_field_composition.rs",
+        "sha256": "7754fda581b0d2211046ee2a330456cd963ea15691287f48e8c762e91a085447"
+      },
+      "crates/uor-r4-core/src/native_geometric/historical_query_context.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/historical_query_context.rs",
+        "sha256": "e633a98dca8d7c068e9c76624e5e07b0018ff7342acbe05b3e4e5a71b1e17dde"
+      },
+      "crates/uor-r4-core/src/native_geometric/historical_read.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/historical_read.rs",
+        "sha256": "34ff846be8f9b3aa5e59b0f98783e2eb42a5e4f6243fd93b69ff0d9656627a07"
+      },
+      "crates/uor-r4-core/src/native_geometric/historical_read_training.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/historical_read_training.rs",
+        "sha256": "1aa5cae2d698928d3ec5c0266515f7148cd12df67fe287e2aec22277294e53e3"
+      },
+      "crates/uor-r4-core/src/native_geometric/historical_version_intent.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/historical_version_intent.rs",
+        "sha256": "66007c605f165b131b2582bd5e566de5439a7816bcc08a7c9cc0479bd5cc0f4c"
+      },
+      "crates/uor-r4-core/src/native_geometric/instruction_binding.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/instruction_binding.rs",
+        "sha256": "d1f751d1fd06bd64d2688e7a2252d0b9b2bf44ca75038eda96e76ae0e58808ad"
+      },
+      "crates/uor-r4-core/src/native_geometric/instruction_binding_training.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/instruction_binding_training.rs",
+        "sha256": "ea667a8a40eae5463d686b6fc6cf012c86ae4076fe2e6add661b9e4be0a90c26"
+      },
+      "crates/uor-r4-core/src/native_geometric/joint_admission.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/joint_admission.rs",
+        "sha256": "4f8cc6910a1cbe9b6e6305bf4750af6fbde4653a43e52b89d4b140fa7da3c044"
+      },
+      "crates/uor-r4-core/src/native_geometric/joint_admission_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/joint_admission_tests.rs",
+        "sha256": "44e52facd553a868164b242bb6298a855d4ac95dfdcb34ee7c8613d18974b5d9"
+      },
+      "crates/uor-r4-core/src/native_geometric/joint_admission_training.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/joint_admission_training.rs",
+        "sha256": "e5aec97203e9bd100f7ded6892ec160842a2095032772ee5a21d3c95ff54382b"
+      },
+      "crates/uor-r4-core/src/native_geometric/learned_routing.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/learned_routing.rs",
+        "sha256": "e6810d1e9ec40ebebd1da8fe724f9edfcbfe44ff97c7b8543549c6f6a70ce0b8"
+      },
+      "crates/uor-r4-core/src/native_geometric/learned_routing_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/learned_routing_tests.rs",
+        "sha256": "6474ccae0aea4315a1a7e26f8707857e3003f5351163f3e69f694836ebdc6fb6"
+      },
+      "crates/uor-r4-core/src/native_geometric/learned_routing_training.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/learned_routing_training.rs",
+        "sha256": "58553ac81135950af1810786da65ae8450963e2b27bc6b84aee03f6c3fad206a"
+      },
+      "crates/uor-r4-core/src/native_geometric/lexical_emission.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/lexical_emission.rs",
+        "sha256": "ecc2e2aff9361262135f50f0e291ee0aa0c271de5c450b492ccdc6389af585bb"
+      },
+      "crates/uor-r4-core/src/native_geometric/lexical_emission_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/lexical_emission_tests.rs",
+        "sha256": "78542b00fe2df9e5e21cd9ac374c26660d24b7046a3de47c8f9d29b5660c3ccb"
+      },
+      "crates/uor-r4-core/src/native_geometric/literal_refinement.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/literal_refinement.rs",
+        "sha256": "ff57088fe7598a96c0d5ee061dce3f3e8b2c6ac9b519b2c147aa9e7ca1191776"
+      },
+      "crates/uor-r4-core/src/native_geometric/m1_profiler.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/m1_profiler.rs",
+        "sha256": "48cecfb17e848f4a97864c83fd3516e5e413a70a90653f63f7912dcde74fab82"
+      },
+      "crates/uor-r4-core/src/native_geometric/m1_profiler_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/m1_profiler_tests.rs",
+        "sha256": "e6a628f7411d94d46afbd49522c96318930bd3cc7e8eb6f7c72f0a12a06145b1"
+      },
+      "crates/uor-r4-core/src/native_geometric/memory_runtime.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/memory_runtime.rs",
+        "sha256": "ba649539cf17774041cec34b4fa5b77a495293004766d36cb9ffccf1956ceb68"
+      },
+      "crates/uor-r4-core/src/native_geometric/memory_runtime_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/memory_runtime_tests.rs",
+        "sha256": "ccb1293f2e66ef78e7d0f047b4f512d132d0e4edbb307b9907b8b7421268e6a8"
+      },
+      "crates/uor-r4-core/src/native_geometric/memory_training.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/memory_training.rs",
+        "sha256": "304d76de48a42c3d8ee0b4c626210cd95131a600c01f82c1c4ed34609484eb7d"
+      },
+      "crates/uor-r4-core/src/native_geometric/memory_training/resumable.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/memory_training/resumable.rs",
+        "sha256": "7254468bed5d3bb7601b3382edd574aee0743c1de14937b2c1a4a6e080e2e2c4"
+      },
+      "crates/uor-r4-core/src/native_geometric/memory_types.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/memory_types.rs",
+        "sha256": "64b235ebb196b95a7e7125f8083893a0ea7b86b78dc3a97ebc831b6fd433a998"
+      },
+      "crates/uor-r4-core/src/native_geometric/mixed_initial_training.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/mixed_initial_training.rs",
+        "sha256": "db7f2c9a1de7865a772d97868a27d704e39532efad8e1e76bc4ab45d66374c1e"
+      },
+      "crates/uor-r4-core/src/native_geometric/mixed_operator_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/mixed_operator_tests.rs",
+        "sha256": "4ce2adf49e652853c3a502378cbe5e620ff6676ae0bcde924c6ec20614fa6943"
+      },
+      "crates/uor-r4-core/src/native_geometric/mixed_operators.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/mixed_operators.rs",
+        "sha256": "dfeac6dd5b0c6bd18e9b2f3b758d05d2b60951a0f25c8ceb2f3be8007e03aad7"
+      },
+      "crates/uor-r4-core/src/native_geometric/mixture.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/mixture.rs",
+        "sha256": "cf89e5a634ea48fc027f4e08fadea2af42e2be396d6501f4f34ac4fba704a581"
+      },
+      "crates/uor-r4-core/src/native_geometric/mod.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/mod.rs",
+        "sha256": "1cdcf632bd08dbc0186ba813381d3c9f191dca6d79401dd6ca8f1de7254dfa64"
+      },
+      "crates/uor-r4-core/src/native_geometric/multi_step_reasoning.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/multi_step_reasoning.rs",
+        "sha256": "b240544acd0d9070a3f80c7204d13929176edd0ced14c7541b874359c8f0adbf"
+      },
+      "crates/uor-r4-core/src/native_geometric/multi_step_reasoning_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/multi_step_reasoning_tests.rs",
+        "sha256": "e0fa82810e8dbac5e3bf37367b4706c081223178a68c52fbfa24337c22133909"
+      },
+      "crates/uor-r4-core/src/native_geometric/numeral.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/numeral.rs",
+        "sha256": "2c0012a595d87e653051b067d586d98e93fe1394f9651d75725144cf0ef330fb"
+      },
+      "crates/uor-r4-core/src/native_geometric/operation_transition.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/operation_transition.rs",
+        "sha256": "a9bbaa823ccbe04c5d6e7a5ff579821355afa798f363491edfa8e5b2c087c516"
+      },
+      "crates/uor-r4-core/src/native_geometric/operation_transition_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/operation_transition_tests.rs",
+        "sha256": "eeada6e6c284388e1f2fc036268e9a55ca6f8d9f7ef2565ddb1e2aa6f7ba8381"
+      },
+      "crates/uor-r4-core/src/native_geometric/recurrent_routing.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/recurrent_routing.rs",
+        "sha256": "d663c4ebbbf828d98d52fbcbf20e1e39005f17ada6e26a6b3244c105e898681d"
+      },
+      "crates/uor-r4-core/src/native_geometric/recurrent_routing_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/recurrent_routing_tests.rs",
+        "sha256": "a4c78c5faf33be5f80d69a54203cdad810700d4c8da20a93f975bac16a693926"
+      },
+      "crates/uor-r4-core/src/native_geometric/recurrent_routing_training.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/recurrent_routing_training.rs",
+        "sha256": "8e41d7781677349ee2f33935dcdbdf7b751e8c84f10416fe6f1af112b8129b6b"
+      },
+      "crates/uor-r4-core/src/native_geometric/relation.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/relation.rs",
+        "sha256": "99b43285fc2631ad374c9e5de8e6ec89b9d6ee4c81d2d588237e49065fe41aed"
+      },
+      "crates/uor-r4-core/src/native_geometric/relation_admission.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/relation_admission.rs",
+        "sha256": "c9c3ae3a97691f6d1726081b0d08e886606538eaa4e7dd02631965450776544c"
+      },
+      "crates/uor-r4-core/src/native_geometric/relation_span.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/relation_span.rs",
+        "sha256": "1ec69b7079598d87968752d9b242e16854d18b48641ce03011387774cf1b2db5"
+      },
+      "crates/uor-r4-core/src/native_geometric/relation_start.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/relation_start.rs",
+        "sha256": "8a0b9271bb0ed0741a04486f188f1c2c94e6dd6d278f4d745efc40af295f58a7"
+      },
+      "crates/uor-r4-core/src/native_geometric/relation_start_refinement.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/relation_start_refinement.rs",
+        "sha256": "7aa4faf78394394de176f1c010b826ea58ea06e9eb8b3d6901761ed5a759cc0b"
+      },
+      "crates/uor-r4-core/src/native_geometric/relation_start_training.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/relation_start_training.rs",
+        "sha256": "2fcc1c64ff3c33a0adbdcf3e1e21f58f4adee08b3938176a025a4fff9ac20bf5"
+      },
+      "crates/uor-r4-core/src/native_geometric/relation_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/relation_tests.rs",
+        "sha256": "df9034b31af147267659db82084f496e410196db5d5f1e58f95de3af261c433d"
+      },
+      "crates/uor-r4-core/src/native_geometric/relation_training.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/relation_training.rs",
+        "sha256": "51db145984808d4494f6a749b7dbbda2fb6dbc2645d2365246ff268fb7314a09"
+      },
+      "crates/uor-r4-core/src/native_geometric/response_entry_runtime.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/response_entry_runtime.rs",
+        "sha256": "5466a9ba80ac08202e3e5ccfdf27f3e5911a1e530a7ce89bc87fe8db320619f5"
+      },
+      "crates/uor-r4-core/src/native_geometric/response_entry_runtime_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/response_entry_runtime_tests.rs",
+        "sha256": "01c624d9d2e72d6d847e1a68e5df4361acf7de89539d3fb760afc8c1a25d0a43"
+      },
+      "crates/uor-r4-core/src/native_geometric/response_entry_snapshot.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/response_entry_snapshot.rs",
+        "sha256": "3fd30e31d52ec66fe5c381db24b261542df1927b4e0530d277ee1087bb509742"
+      },
+      "crates/uor-r4-core/src/native_geometric/response_entry_training.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/response_entry_training.rs",
+        "sha256": "f391fbc8d6abc2d254455bac0f09769d3aab9d5a7d7257bf61ad371786cf9274"
+      },
+      "crates/uor-r4-core/src/native_geometric/response_entry_training_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/response_entry_training_tests.rs",
+        "sha256": "ab388e1e8ce45b34989cfd9f0182ef3e3a5faf0c7cbdee07d68cd9946e5ccc2a"
+      },
+      "crates/uor-r4-core/src/native_geometric/response_entry_types.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/response_entry_types.rs",
+        "sha256": "bf79f9c3418f773ab45b9679d9a651ea6fa2ad213d5a53445b1fe97e0749f0dd"
+      },
+      "crates/uor-r4-core/src/native_geometric/response_runtime.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/response_runtime.rs",
+        "sha256": "79548be47acc125a6025ae946bb07a5a12ef06ac805766a0233711f8360dabd9"
+      },
+      "crates/uor-r4-core/src/native_geometric/response_runtime_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/response_runtime_tests.rs",
+        "sha256": "b9b26a58ac3026e6307ecfa49de92027b23fc48d380f53f76c1f79ddcda3bea6"
+      },
+      "crates/uor-r4-core/src/native_geometric/response_snapshot_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/response_snapshot_tests.rs",
+        "sha256": "b0035296cb47ed804afa2be292b8fed3d540268c8062b8a38673e37a6a36631d"
+      },
+      "crates/uor-r4-core/src/native_geometric/role_read.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/role_read.rs",
+        "sha256": "c9742a86b9c09238b0463726324d216c3d10c73260d37a3c8997323c7adde221"
+      },
+      "crates/uor-r4-core/src/native_geometric/role_read_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/role_read_tests.rs",
+        "sha256": "017d9cd966f908736b98a555cd0a09e95d69b78900eb11c962eba657ccaa4042"
+      },
+      "crates/uor-r4-core/src/native_geometric/role_read_training.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/role_read_training.rs",
+        "sha256": "5cadf639c522d4ce2df45f62e00ef70ef5733627da64129568a8363ffcf63808"
+      },
+      "crates/uor-r4-core/src/native_geometric/runtime.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/runtime.rs",
+        "sha256": "48b0278d58faa6f775bdcf954bbed613611ca08d7ad9ef1a477fc99e343b2dfc"
+      },
+      "crates/uor-r4-core/src/native_geometric/shared_core.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core.rs",
+        "sha256": "539523ef58ea757944f3913f885226b7e2e6cff34c9f9dcff06df909b94ac7d9"
+      },
+      "crates/uor-r4-core/src/native_geometric/shared_core/angular_tree.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core/angular_tree.rs",
+        "sha256": "a490bab8f87688d451ecf62d9e7a74bb0cacbcf6a6db996b42ded542406d7737"
+      },
+      "crates/uor-r4-core/src/native_geometric/shared_core/block_calibration.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core/block_calibration.rs",
+        "sha256": "fce840fd228af0bd07c623477e4b9d1ba42cd883bb343068f5c112c05e286ee9"
+      },
+      "crates/uor-r4-core/src/native_geometric/shared_core/calibration.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core/calibration.rs",
+        "sha256": "341b2ae9e1ea5c7b8ca729a5d22c6ad940ba3cffe447f31d73de9a9ab9de5c21"
+      },
+      "crates/uor-r4-core/src/native_geometric/shared_core/tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core/tests.rs",
+        "sha256": "14daf4c18717fc9c48b7103d705f08e8822b849938562f11d5b23b6560d7cb55"
+      },
+      "crates/uor-r4-core/src/native_geometric/shared_core/tests/active_sensitivity.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core/tests/active_sensitivity.rs",
+        "sha256": "2abbc7cb19d22ecdbb976d46aef3d3f83dbb0e540505568c029b8cd160937c66"
+      },
+      "crates/uor-r4-core/src/native_geometric/shared_core/tests/angular_tree_experiment.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core/tests/angular_tree_experiment.rs",
+        "sha256": "7a15a1bf71941f9664061e404cfb10e9dbe35bb4ae25d70a6127a6f060848f85"
+      },
+      "crates/uor-r4-core/src/native_geometric/shared_core/tests/calibrated.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core/tests/calibrated.rs",
+        "sha256": "6e3db34054afb928460d5af05534f421d15a9b18c24b08709808d7a972094ece"
+      },
+      "crates/uor-r4-core/src/native_geometric/shared_core/tests/calibrated_audit.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core/tests/calibrated_audit.rs",
+        "sha256": "6337eb1ca7e3507393cc3d40a7fd0b2430fa3513f9c3601cf9e1d3cc9f59cade"
+      },
+      "crates/uor-r4-core/src/native_geometric/shared_core/tests/coupled_profile.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core/tests/coupled_profile.rs",
+        "sha256": "7641490800a426d4e0f95f10a91b73ba87794c6455a385278fcb3de68f5576d3"
+      },
+      "crates/uor-r4-core/src/native_geometric/shared_core/tests/credit_assignment.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core/tests/credit_assignment.rs",
+        "sha256": "4dbe9bee5b28dc7a6e9fe78f01b3f0a168025c9bdbd47bc6fe990398781c0724"
+      },
+      "crates/uor-r4-core/src/native_geometric/shared_core/tests/decoder_validation.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core/tests/decoder_validation.rs",
+        "sha256": "e9b23f30927002c61912478ebaf0800950801b71216bfeb87ac9e66d8c1116ed"
+      },
+      "crates/uor-r4-core/src/native_geometric/shared_core/tests/diagnostic.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core/tests/diagnostic.rs",
+        "sha256": "5aadfa32c335082c5bf97abfd3f303de4933fcaccb3f37372b1036613b3f5c63"
+      },
+      "crates/uor-r4-core/src/native_geometric/shared_core/tests/final_emission.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core/tests/final_emission.rs",
+        "sha256": "31a08e17ac1ce82e76ed5fd4d98bba86ba60172e2c2d2846beb922b10bf44a21"
+      },
+      "crates/uor-r4-core/src/native_geometric/shared_core/tests/full_objective.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core/tests/full_objective.rs",
+        "sha256": "4919b9d2a9efb36d2d5a36b13327b0437212c72e8440b6c39763a33ea50ce327"
+      },
+      "crates/uor-r4-core/src/native_geometric/shared_core/tests/loss_frontier.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core/tests/loss_frontier.rs",
+        "sha256": "d12ed9d616d16fc236a9a8b8e9d6fe156fab6f934927707e5839a8c53937d883"
+      },
+      "crates/uor-r4-core/src/native_geometric/shared_core/tests/tied_learning.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core/tests/tied_learning.rs",
+        "sha256": "c404e28ce6fd48eb1dfbe9a2210a36d97ab479ceea3c648836c39c028d215a15"
+      },
+      "crates/uor-r4-core/src/native_geometric/shared_core/tests/tree_state_pair.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core/tests/tree_state_pair.rs",
+        "sha256": "cc6c7b622689b791ee940fb1a19c66b514ccebc71abc42330e617e06513c8691"
+      },
+      "crates/uor-r4-core/src/native_geometric/shared_core/tied_training.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core/tied_training.rs",
+        "sha256": "273365159564bf00c7e3ae031a36e420eaafb73ffdcc19c698bdafc5c306a4de"
+      },
+      "crates/uor-r4-core/src/native_geometric/shared_core/training.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core/training.rs",
+        "sha256": "d219d173912793f37beef1240d27badab25ea64c9a976c289e9715eb5bddeecb"
+      },
+      "crates/uor-r4-core/src/native_geometric/shared_operator_refinement.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_operator_refinement.rs",
+        "sha256": "3fcd57a14304cd00ca0b6f93a47ce4715b9c900f8a336b1a6e72e9e77fef518a"
+      },
+      "crates/uor-r4-core/src/native_geometric/snapshot.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/snapshot.rs",
+        "sha256": "a3f600b20e46e599de6d87212ac06cf324676903074f65c0946adf186d943415"
+      },
+      "crates/uor-r4-core/src/native_geometric/source_refinement_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/source_refinement_tests.rs",
+        "sha256": "07dbdf5c230517c30d184171d25b657785bba4c69680c3745120020e365c24c8"
+      },
+      "crates/uor-r4-core/src/native_geometric/source_role_refinement.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/source_role_refinement.rs",
+        "sha256": "88fd1cf1c3728b2b7a0b090edbf97f4e891cd8ec0df913642c1717ce059a9bae"
+      },
+      "crates/uor-r4-core/src/native_geometric/source_routing.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/source_routing.rs",
+        "sha256": "5e2894c2b36f944d5a299ebe1cfe19a34cc7af529b007cc921ff0549a811c5db"
+      },
+      "crates/uor-r4-core/src/native_geometric/source_routing_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/source_routing_tests.rs",
+        "sha256": "f19c78f1fd6e684ce8d8e2e758701ea54dde8bba8759d2fa49b00889fb45a526"
+      },
+      "crates/uor-r4-core/src/native_geometric/source_routing_training.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/source_routing_training.rs",
+        "sha256": "5c302d8f75d78b1aa1cb265da87a5655b0aa7925d29c3f00ed852fcc1729f474"
+      },
+      "crates/uor-r4-core/src/native_geometric/source_span.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/source_span.rs",
+        "sha256": "6cba9c1b4ceab21dc305ec4228ba774758d741a9d0857c9f4c39e83b8d356670"
+      },
+      "crates/uor-r4-core/src/native_geometric/source_span_training.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/source_span_training.rs",
+        "sha256": "ebf7b79e6122ba31f4c4e1bd953c3722f5f257e959b780947269d406889bf62f"
+      },
+      "crates/uor-r4-core/src/native_geometric/tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/tests.rs",
+        "sha256": "11da699221ff0982b5ea0302b4ede6b890d0e73546333fc05602f6f903c91c49"
+      },
+      "crates/uor-r4-core/src/native_geometric/training.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/training.rs",
+        "sha256": "d77500abc522a42d8c7e2235d54f9bc828a1a2ef760d36fc1c9366d98f7e0958"
+      },
+      "crates/uor-r4-core/src/native_geometric/typed_routing.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/typed_routing.rs",
+        "sha256": "4823c08e95b0e98ef847923b22f2d60fbeef42b2430c3e23459b301866ba2675"
+      },
+      "crates/uor-r4-core/src/native_geometric/typed_routing_training.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/typed_routing_training.rs",
+        "sha256": "4d6d4b15cb8a0264d877d0f683f99b9fe9961f05ed085018c7d113b9d63d6166"
+      },
+      "crates/uor-r4-core/src/native_geometric/value_lexemes.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/value_lexemes.rs",
+        "sha256": "b3a29df5e8764dea29e5df73d563b8600e60782f38e4ba66b7e8d69a26a1196d"
+      },
+      "crates/uor-r4-core/src/native_geometric/value_runtime.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/value_runtime.rs",
+        "sha256": "bce4923f9e6f34bcd054c62f6aa73745ac1eb988bba16bdc396da176dbabb9bf"
+      },
+      "crates/uor-r4-core/src/native_geometric/value_runtime_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/value_runtime_tests.rs",
+        "sha256": "28e2d82a2d9f0207153fc5b0da09e37391a1d8bc8905ff808984706a61cc070f"
+      },
+      "crates/uor-r4-core/src/native_geometric/value_snapshot.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/value_snapshot.rs",
+        "sha256": "8aa653cc453fae993e356fd3143286e501fb087c1d9db93b621d51f40f0e126c"
+      },
+      "crates/uor-r4-core/src/native_geometric/value_snapshot_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/value_snapshot_tests.rs",
+        "sha256": "49a0cdd1ea033e32209594e4eaf2973c8e7c4a094ead42444b34a6dd7753babe"
+      },
+      "crates/uor-r4-core/src/native_geometric/value_training.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/value_training.rs",
+        "sha256": "0b056cc7bc210e1201f84f09eae925752954db291aa0d4a095f64a595589602d"
+      },
+      "crates/uor-r4-core/src/native_geometric/value_types.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/value_types.rs",
+        "sha256": "b3e906fc7f66604121351b810c27479952e5b12a2ac394c1144696d8ba10d968"
+      },
+      "crates/uor-r4-core/src/native_geometric/word_copy_runtime.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/word_copy_runtime.rs",
+        "sha256": "ce49f99f626e5884924cf008ccad319b66a9d759307b993cc422203a6b07585b"
+      },
+      "crates/uor-r4-core/src/native_geometric/word_copy_snapshot.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/word_copy_snapshot.rs",
+        "sha256": "18ed70b80b007128f9ffa3835736d8ad74cc0a78a68b469a7f801778e1d366fa"
+      },
+      "crates/uor-r4-core/src/native_geometric/word_copy_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/word_copy_tests.rs",
+        "sha256": "2a48dc255b240f0ec3e4f339ed401b2760398c9f8ff2e842f50d73209cc76e98"
+      },
+      "crates/uor-r4-core/src/native_geometric/word_copy_training.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/word_copy_training.rs",
+        "sha256": "342a3791b00ee3decf5f3043b7252085b54f2f9b14f4d7bebc6a95193c13f25d"
+      },
+      "crates/uor-r4-core/src/native_geometric/word_copy_types.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/word_copy_types.rs",
+        "sha256": "c6333269e6a0b0a078d5294d14c61582dfaba30e57228ca209d183702e6e891b"
+      },
+      "crates/uor-r4-core/src/native_geometric/word_copy_value_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/word_copy_value_tests.rs",
+        "sha256": "357a54d135690d6998728d0f39f18acd8a2d3a6dd8d48bec4bccf567320fb6ad"
+      },
+      "crates/uor-r4-core/src/native_geometric/word_emission.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/word_emission.rs",
+        "sha256": "fe4b12cca716df365fad098c5a1f020f78d9d6f9d95642dae6a2f50c3ba23027"
+      },
+      "crates/uor-r4-core/src/native_geometric/workspace_coding.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/workspace_coding.rs",
+        "sha256": "6f04bb02e4b46838fd202e8b2f2941a37df705ad31fa0b715f569a2ccebc2968"
+      },
+      "crates/uor-r4-core/src/native_geometric/workspace_coding_tests.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/workspace_coding_tests.rs",
+        "sha256": "85a81ccabb0e9ec294db96feec0f35f1916317d5fbfbb9c6c496e24c5f7a26e7"
+      },
+      "crates/uor-r4-core/src/native_geometric/writer_choice.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/writer_choice.rs",
+        "sha256": "9b7ff8ef6f4561170cffb934e537092c74c94eaf4ba7507a0a8af32d4528edfc"
+      },
+      "crates/uor-r4-core/src/native_geometric/writer_lexical.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/writer_lexical.rs",
+        "sha256": "45fd0c7d6d7ca84d97ca2f3ea8f51d0fd7190946a6ed4a01abc626c2b207d55c"
+      },
+      "crates/uor-r4-core/src/native_geometric/writer_refinement.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/writer_refinement.rs",
+        "sha256": "558548f00b6f21f022bb71d278aebb2617d12dfe53b515d76f65a704adcac8cd"
+      },
+      "crates/uor-r4-core/src/native_geometric/writer_role.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/writer_role.rs",
+        "sha256": "2c48e6d7272ff13d97f20c1b29cd59c473a1501d09d7fe40884c93e812463fb5"
+      },
+      "crates/uor-r4-core/src/native_geometric/shared_core/tests/context_augmentation.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core/tests/context_augmentation.rs",
+        "sha256": "950d3bd0d77266a46ba3cc102b168e3bcc00c4068d66603d8a011a6bdec4e81a"
+      },
+      "crates/uor-r4-core/src/native_geometric/shared_core/tests/context_data.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/src/native_geometric/shared_core/tests/context_data.rs",
+        "sha256": "d37c722c8d1954e5c6eb7779047133323377bfe10cf4d6e1148e5a8bf4619220"
+      },
+      "crates/uor-r4-core/tests/native_geometric_allocations.rs": {
+        "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/crates/uor-r4-core/tests/native_geometric_allocations.rs",
+        "sha256": "10d21c33f6822ce689bd9fee69d0195c2b43363161e94d6dddf7c51c767de6a1"
+      }
+    },
+    "binary": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/context-augmentation-1/context-tests",
+      "sha256": "514310fef4ad52c3187c0e01b55bf45314913bbdbe13b6de287f8b37d45a177c"
+    },
+    "compiler": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: aarch64-apple-darwin\nrelease: 1.97.1\nLLVM version: 22.1.6\n"
+  },
+  "promoted": false,
+  "retained": "15baec48",
+  "result": {
+    "arms": [
+      {
+        "arm": "repeated",
+        "construction_retention_gate": true,
+        "correct_to_wrong_each_prior": [
+          18,
+          207,
+          198,
+          183,
+          25
+        ],
+        "full_metrics": [
+          {
+            "after": {
+              "correct": 170,
+              "mean_nll": 2.830844565640013,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 51603,
+                "table_reads": 340854
+              }
+            },
+            "before": {
+              "correct": 166,
+              "mean_nll": 2.8395341889547745,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 51596,
+                "table_reads": 340696
+              }
+            },
+            "panel": "complete_construction",
+            "prior": "blake3:8f8e5c342c83b062274744033a96668e9c079dc47a9c4d1b138baa7ea4889b6a"
+          },
+          {
+            "after": {
+              "correct": 170,
+              "mean_nll": 2.830844565640013,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 51603,
+                "table_reads": 340854
+              }
+            },
+            "before": {
+              "correct": 206,
+              "mean_nll": 2.444899428228557,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10768,
+                "products": 54954,
+                "table_reads": 378888
+              }
+            },
+            "panel": "complete_construction",
+            "prior": "blake3:1198ef4788397b9bf8cae20b8df4b23573bc9861eb812a51baf359f2545618b1"
+          },
+          {
+            "after": {
+              "correct": 170,
+              "mean_nll": 2.830844565640013,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 51603,
+                "table_reads": 340854
+              }
+            },
+            "before": {
+              "correct": 81,
+              "mean_nll": 3.354319563876437,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 50440,
+                "table_reads": 248712
+              }
+            },
+            "panel": "complete_construction",
+            "prior": "blake3:0f82b7286bb1699b9ea3bf4193f152702f3b22e702cf31bcd0a0f56596bbf8b8"
+          },
+          {
+            "after": {
+              "correct": 170,
+              "mean_nll": 2.830844565640013,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 51603,
+                "table_reads": 340854
+              }
+            },
+            "before": {
+              "correct": 79,
+              "mean_nll": 3.375390554740109,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 50440,
+                "table_reads": 248712
+              }
+            },
+            "panel": "complete_construction",
+            "prior": "blake3:ade9a1cfbf39f0828ec1ec2b53775c05fcbaaf53fa2189b6a37ab7a636ce5e58"
+          },
+          {
+            "after": {
+              "correct": 170,
+              "mean_nll": 2.830844565640013,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 51603,
+                "table_reads": 340854
+              }
+            },
+            "before": {
+              "correct": 168,
+              "mean_nll": 2.8362761266481185,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 51588,
+                "table_reads": 340644
+              }
+            },
+            "panel": "complete_construction",
+            "prior": "blake3:aaa1abe1ce2c4b2b1af65c73f43e2b69e410622dd897395c8a4527abb5fb8337"
+          },
+          {
+            "after": {
+              "correct": 52,
+              "mean_nll": 3.671485070699118,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29793,
+                "table_reads": 196063
+              }
+            },
+            "before": {
+              "correct": 52,
+              "mean_nll": 3.6536035825205846,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29768,
+                "table_reads": 195929
+              }
+            },
+            "panel": "opened_development",
+            "prior": "blake3:8f8e5c342c83b062274744033a96668e9c079dc47a9c4d1b138baa7ea4889b6a"
+          },
+          {
+            "after": {
+              "correct": 52,
+              "mean_nll": 3.671485070699118,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29793,
+                "table_reads": 196063
+              }
+            },
+            "before": {
+              "correct": 57,
+              "mean_nll": 3.90862344367628,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6103,
+                "products": 31628,
+                "table_reads": 216714
+              }
+            },
+            "panel": "opened_development",
+            "prior": "blake3:1198ef4788397b9bf8cae20b8df4b23573bc9861eb812a51baf359f2545618b1"
+          },
+          {
+            "after": {
+              "correct": 52,
+              "mean_nll": 3.671485070699118,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29793,
+                "table_reads": 196063
+              }
+            },
+            "before": {
+              "correct": 33,
+              "mean_nll": 3.6599228474324286,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29082,
+                "table_reads": 142917
+              }
+            },
+            "panel": "opened_development",
+            "prior": "blake3:0f82b7286bb1699b9ea3bf4193f152702f3b22e702cf31bcd0a0f56596bbf8b8"
+          },
+          {
+            "after": {
+              "correct": 52,
+              "mean_nll": 3.671485070699118,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29793,
+                "table_reads": 196063
+              }
+            },
+            "before": {
+              "correct": 28,
+              "mean_nll": 3.6630397557652965,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29082,
+                "table_reads": 142917
+              }
+            },
+            "panel": "opened_development",
+            "prior": "blake3:ade9a1cfbf39f0828ec1ec2b53775c05fcbaaf53fa2189b6a37ab7a636ce5e58"
+          },
+          {
+            "after": {
+              "correct": 52,
+              "mean_nll": 3.671485070699118,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29793,
+                "table_reads": 196063
+              }
+            },
+            "before": {
+              "correct": 52,
+              "mean_nll": 3.66262114775318,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29842,
+                "table_reads": 196485
+              }
+            },
+            "panel": "opened_development",
+            "prior": "blake3:aaa1abe1ce2c4b2b1af65c73f43e2b69e410622dd897395c8a4527abb5fb8337"
+          }
+        ],
+        "general_language_qualified": false,
+        "generation_coherence": "QUALITATIVE_REVIEW_REQUIRED",
+        "generation_termination_gate": false,
+        "numeric_model_gate": false,
+        "opened_development_gate": false,
+        "prediction_hamming_each_prior": [
+          198,
+          1941,
+          2767,
+          2803,
+          247
+        ],
+        "preservation_gate": false,
+        "root_identity_hamming_each_prior": [
+          717,
+          717,
+          717,
+          717,
+          924
+        ],
+        "source_identity_hamming_each_prior": [
+          231,
+          231,
+          231,
+          231,
+          279
+        ],
+        "witness": "blake3:0c93455843f4aa6e2730ef593730a2b8c9b7afdf6ef6ff33b538d63cbbb2ab62",
+        "wrong_to_correct_each_prior": [
+          17,
+          153,
+          413,
+          405,
+          22
+        ]
+      },
+      {
+        "arm": "varied",
+        "construction_retention_gate": false,
+        "correct_to_wrong_each_prior": [
+          58,
+          240,
+          207,
+          191,
+          59
+        ],
+        "full_metrics": [
+          {
+            "after": {
+              "correct": 149,
+              "mean_nll": 3.010463812697859,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 51662,
+                "table_reads": 341440
+              }
+            },
+            "before": {
+              "correct": 166,
+              "mean_nll": 2.8395341889547745,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 51596,
+                "table_reads": 340696
+              }
+            },
+            "panel": "complete_construction",
+            "prior": "blake3:8f8e5c342c83b062274744033a96668e9c079dc47a9c4d1b138baa7ea4889b6a"
+          },
+          {
+            "after": {
+              "correct": 149,
+              "mean_nll": 3.010463812697859,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 51662,
+                "table_reads": 341440
+              }
+            },
+            "before": {
+              "correct": 206,
+              "mean_nll": 2.444899428228557,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10768,
+                "products": 54954,
+                "table_reads": 378888
+              }
+            },
+            "panel": "complete_construction",
+            "prior": "blake3:1198ef4788397b9bf8cae20b8df4b23573bc9861eb812a51baf359f2545618b1"
+          },
+          {
+            "after": {
+              "correct": 149,
+              "mean_nll": 3.010463812697859,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 51662,
+                "table_reads": 341440
+              }
+            },
+            "before": {
+              "correct": 81,
+              "mean_nll": 3.354319563876437,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 50440,
+                "table_reads": 248712
+              }
+            },
+            "panel": "complete_construction",
+            "prior": "blake3:0f82b7286bb1699b9ea3bf4193f152702f3b22e702cf31bcd0a0f56596bbf8b8"
+          },
+          {
+            "after": {
+              "correct": 149,
+              "mean_nll": 3.010463812697859,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 51662,
+                "table_reads": 341440
+              }
+            },
+            "before": {
+              "correct": 79,
+              "mean_nll": 3.375390554740109,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 50440,
+                "table_reads": 248712
+              }
+            },
+            "panel": "complete_construction",
+            "prior": "blake3:ade9a1cfbf39f0828ec1ec2b53775c05fcbaaf53fa2189b6a37ab7a636ce5e58"
+          },
+          {
+            "after": {
+              "correct": 149,
+              "mean_nll": 3.010463812697859,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 51662,
+                "table_reads": 341440
+              }
+            },
+            "before": {
+              "correct": 168,
+              "mean_nll": 2.8362761266481185,
+              "positions": 672,
+              "work": {
+                "candidates": 14784,
+                "output_decisions": 10764,
+                "products": 51588,
+                "table_reads": 340644
+              }
+            },
+            "panel": "complete_construction",
+            "prior": "blake3:aaa1abe1ce2c4b2b1af65c73f43e2b69e410622dd897395c8a4527abb5fb8337"
+          },
+          {
+            "after": {
+              "correct": 48,
+              "mean_nll": 3.6702221339857317,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29837,
+                "table_reads": 196695
+              }
+            },
+            "before": {
+              "correct": 52,
+              "mean_nll": 3.6536035825205846,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29768,
+                "table_reads": 195929
+              }
+            },
+            "panel": "opened_development",
+            "prior": "blake3:8f8e5c342c83b062274744033a96668e9c079dc47a9c4d1b138baa7ea4889b6a"
+          },
+          {
+            "after": {
+              "correct": 48,
+              "mean_nll": 3.6702221339857317,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29837,
+                "table_reads": 196695
+              }
+            },
+            "before": {
+              "correct": 57,
+              "mean_nll": 3.90862344367628,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6103,
+                "products": 31628,
+                "table_reads": 216714
+              }
+            },
+            "panel": "opened_development",
+            "prior": "blake3:1198ef4788397b9bf8cae20b8df4b23573bc9861eb812a51baf359f2545618b1"
+          },
+          {
+            "after": {
+              "correct": 48,
+              "mean_nll": 3.6702221339857317,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29837,
+                "table_reads": 196695
+              }
+            },
+            "before": {
+              "correct": 33,
+              "mean_nll": 3.6599228474324286,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29082,
+                "table_reads": 142917
+              }
+            },
+            "panel": "opened_development",
+            "prior": "blake3:0f82b7286bb1699b9ea3bf4193f152702f3b22e702cf31bcd0a0f56596bbf8b8"
+          },
+          {
+            "after": {
+              "correct": 48,
+              "mean_nll": 3.6702221339857317,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29837,
+                "table_reads": 196695
+              }
+            },
+            "before": {
+              "correct": 28,
+              "mean_nll": 3.6630397557652965,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29082,
+                "table_reads": 142917
+              }
+            },
+            "panel": "opened_development",
+            "prior": "blake3:ade9a1cfbf39f0828ec1ec2b53775c05fcbaaf53fa2189b6a37ab7a636ce5e58"
+          },
+          {
+            "after": {
+              "correct": 48,
+              "mean_nll": 3.6702221339857317,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29837,
+                "table_reads": 196695
+              }
+            },
+            "before": {
+              "correct": 52,
+              "mean_nll": 3.66262114775318,
+              "positions": 381,
+              "work": {
+                "candidates": 8832,
+                "output_decisions": 6102,
+                "products": 29842,
+                "table_reads": 196485
+              }
+            },
+            "panel": "opened_development",
+            "prior": "blake3:aaa1abe1ce2c4b2b1af65c73f43e2b69e410622dd897395c8a4527abb5fb8337"
+          }
+        ],
+        "general_language_qualified": false,
+        "generation_coherence": "QUALITATIVE_REVIEW_REQUIRED",
+        "generation_termination_gate": false,
+        "numeric_model_gate": false,
+        "opened_development_gate": false,
+        "prediction_hamming_each_prior": [
+          425,
+          2021,
+          2771,
+          2799,
+          420
+        ],
+        "preservation_gate": false,
+        "root_identity_hamming_each_prior": [
+          1547,
+          1547,
+          1547,
+          1547,
+          1540
+        ],
+        "source_identity_hamming_each_prior": [
+          377,
+          377,
+          377,
+          377,
+          377
+        ],
+        "witness": "blake3:0c43bf3f4fc0361ac7c0b3b05d0b361bf01667155705337e4c59907eb05ba471",
+        "wrong_to_correct_each_prior": [
+          28,
+          157,
+          393,
+          384,
+          27
+        ]
+      }
+    ],
+    "decision": "FAIL_CONTEXT_AUGMENTATION_DEVELOPMENT_GATE",
+    "decoder_refits": 0,
+    "decoder_unchanged": true,
+    "elapsed_ms": 33178,
+    "fit_calls": 2,
+    "fits": [
+      {
+        "accepted_updates": 11,
+        "after": {
+          "correct": 680,
+          "mean_nll": 2.8308445656400076,
+          "positions": 2688,
+          "work": {
+            "candidates": 59136,
+            "output_decisions": 43056,
+            "products": 206412,
+            "table_reads": 1363416
+          }
+        },
+        "arm": "repeated",
+        "before": {
+          "correct": 664,
+          "mean_nll": 2.8395341889547723,
+          "positions": 2688,
+          "work": {
+            "candidates": 59136,
+            "output_decisions": 43056,
+            "products": 206384,
+            "table_reads": 1362784
+          }
+        },
+        "changed_parameters": 11,
+        "no_op_proposals_fully_evaluated": 66,
+        "witness": "blake3:0c93455843f4aa6e2730ef593730a2b8c9b7afdf6ef6ff33b538d63cbbb2ab62"
+      },
+      {
+        "accepted_updates": 64,
+        "after": {
+          "correct": 439,
+          "mean_nll": 3.4913626397173245,
+          "positions": 2688,
+          "work": {
+            "candidates": 59136,
+            "output_decisions": 43056,
+            "products": 206807,
+            "table_reads": 1366822
+          }
+        },
+        "arm": "varied",
+        "before": {
+          "correct": 409,
+          "mean_nll": 3.5923533484264514,
+          "positions": 2688,
+          "work": {
+            "candidates": 59136,
+            "output_decisions": 43056,
+            "products": 206707,
+            "table_reads": 1365246
+          }
+        },
+        "changed_parameters": 55,
+        "no_op_proposals_fully_evaluated": 65,
+        "witness": "blake3:0c43bf3f4fc0361ac7c0b3b05d0b361bf01667155705337e4c59907eb05ba471"
+      }
+    ],
+    "method_gate": false,
+    "prior_replayed_outputs": 60,
+    "prior_replayed_rows": 15795,
+    "probe_full_metrics": {
+      "parent": {
+        "correct": 100,
+        "mean_nll": 3.731053602426396,
+        "positions": 672,
+        "work": {
+          "candidates": 14784,
+          "output_decisions": 10764,
+          "products": 51810,
+          "table_reads": 342648
+        }
+      },
+      "repeated": {
+        "correct": 93,
+        "mean_nll": 3.71350817353236,
+        "positions": 672,
+        "work": {
+          "candidates": 14784,
+          "output_decisions": 10764,
+          "products": 51881,
+          "table_reads": 343394
+        }
+      },
+      "varied": {
+        "correct": 93,
+        "mean_nll": 3.790710379838118,
+        "positions": 672,
+        "work": {
+          "candidates": 14784,
+          "output_decisions": 10764,
+          "products": 51717,
+          "table_reads": 342022
+        }
+      }
+    },
+    "promoted": false,
+    "proposal_evaluate_calls": 16384,
+    "proposals_per_arm": 8192,
+    "schema": "uor-r4.context-augmentation-result/1",
+    "scope": "One matched varied-context versus repeated-original construction-only state learning experiment under fixed geometry and decoder. Both final witnesses fixed before new-combination probes. All four prior artifacts and prior sensitivity witness replayed. No fresh broad holdout, JEPA objective, standard changed artifact, promotion, language or energy qualification.",
+    "total_proposal_positions": 44040192
+  },
+  "reports": {
+    "data-1": {
+      "report_root": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/context-augmentation-1/data-1",
+      "files": {
+        "attempt.json": {
+          "bytes": 417,
+          "sha256": "e525ef8c44b561d5a7cac99ebf71fe6b084cff7c0c4ab780929d72bc823f5b42"
+        },
+        "dataset.json": {
+          "bytes": 29836,
+          "sha256": "6b9f792005776b43c2a5a40e0b7c04b8462e28816359c74ae1c49c0b781aecc4"
+        },
+        "manifest.json": {
+          "bytes": 687,
+          "sha256": "0767564cb92fb5bce9d6b88726e2d3f6dea88e8e20d72188ce3ad4dbf19657ed"
+        },
+        "source.json": {
+          "bytes": 681,
+          "sha256": "22c48a95add8f1b803a84e1d9b1736f90df8e7e9b2dfc62660268e7c9c7b4fce"
+        }
+      }
+    },
+    "attempt-1": {
+      "report_root": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/context-augmentation-1/attempt-1",
+      "files": {
+        "attempt.json": {
+          "bytes": 440,
+          "sha256": "51998520912602b0b97d5c217fd8eb85d296700a9a84eb23b945dfc8a753c4ff"
+        },
+        "design.json": {
+          "bytes": 1689,
+          "sha256": "a5215fd213cfbcd982d8d26962f1ccc03eeb4b8ddef120d246fb81240b1706bb"
+        },
+        "forecast.json": {
+          "bytes": 623,
+          "sha256": "a47b03fd42b737e742d7c3b79d4cf0208535e0225a6c27cf5c7442d1f4b80759"
+        },
+        "manifest.json": {
+          "bytes": 2717,
+          "sha256": "35bba817decfd7f8b72aace4797565b3c3b197551812e116b77b77891a780ee2"
+        },
+        "probe.json": {
+          "bytes": 1785478,
+          "sha256": "e0230994de8bc3a982753d59a001628fdce3abedd01b0959302baf090ac1c04b"
+        },
+        "proposal-stream.json": {
+          "bytes": 213688,
+          "sha256": "53501f1cb96eb1c3bdb67ec78f9bfbc6b108c9d6eeb63cf639147d6c379cc95e"
+        },
+        "repeated-behavior.json": {
+          "bytes": 14826685,
+          "sha256": "8cd35d0b81bc45cd7b9b1b8c0b0a201609f7838c05dabcaeedb7098c6e0698a0"
+        },
+        "repeated-early-generation.json": {
+          "bytes": 6458,
+          "sha256": "51657bfaa142babfa1f5ce931ca1e22d4e5e3c3b57629bdbbc9dd3a81b0aca10"
+        },
+        "repeated-profile.json": {
+          "bytes": 2551329,
+          "sha256": "27b555dc11659d083d235f935d3577c4a4264ad54b43536004604fb4acad7c98"
+        },
+        "repeated-witness.json": {
+          "bytes": 1698,
+          "sha256": "c02761b8c7de11c7f96c462575a66f05e1b182c89c5e2822789b2a4679d0bca9"
+        },
+        "result.json": {
+          "bytes": 20999,
+          "sha256": "d8a77f5dec5da4418922678833293dae7236691e80ed59db937fe3a092673ef5"
+        },
+        "runtime-census.json": {
+          "bytes": 11586,
+          "sha256": "ef260f8f9e85c5cec073c48f1975f7d2a5bec32023e70ccf5ac586257583331e"
+        },
+        "source.json": {
+          "bytes": 2700,
+          "sha256": "af263f0be7bfab427d9904870b832b1f020b13343ca949963650bb96a47a86fc"
+        },
+        "varied-behavior.json": {
+          "bytes": 14835188,
+          "sha256": "740dcc80fe4445f6e7bab5491c8dc0f55bd26c7eb0fc6334f3ff186321d55733"
+        },
+        "varied-early-generation.json": {
+          "bytes": 6483,
+          "sha256": "fa1d8d835c0a6769139b9bfd5b99ca6a6b63552d2bf5e73552caee4c18e8fbf0"
+        },
+        "varied-profile.json": {
+          "bytes": 2588582,
+          "sha256": "829db51c17bb93c1a123095c79a8f4782cd5d0a11219dd2346be5bb8fdc1fde9"
+        },
+        "varied-witness.json": {
+          "bytes": 3203,
+          "sha256": "cfbbf1fbf129dfbc6537aec1ed16f939b7e2b9e4efc06c6a0cf6b315f5bbb262"
+        }
+      }
+    }
+  },
+  "bindings": {
+    "projection.json": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/context-augmentation-1/projection.json",
+      "sha256": "fe624b9a4a99e0f7270560da06ef5640e34fb85ec8fb2659bca41cfea53140f3"
+    },
+    "design.json": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/context-augmentation-1/design.json",
+      "sha256": "a5215fd213cfbcd982d8d26962f1ccc03eeb4b8ddef120d246fb81240b1706bb"
+    },
+    "inputs.json": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/context-augmentation-1/inputs.json",
+      "sha256": "7550d27f4ebf261bb6d17b3b4abb6e53dfccdd08d6e7394441485c1a84116a9a"
+    },
+    "research.md": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/context-augmentation-1/research.md",
+      "sha256": "a35f6901167a102df5c8ad82030ac659cae25bf9ca77cec9e06280fd27186c15"
+    },
+    "next-action.txt": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/context-augmentation-1/next-action.txt",
+      "sha256": "60f3efdfabc36be92535e1e35b8ea6dba508c9df2ba2d159bbbc2406107a2457"
+    },
+    "summary.json": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/context-augmentation-1/summary.json",
+      "sha256": "81f253ab99325a41ba079791d4df7dda5edb9c833328250ac31bbc96c8de7ead"
+    },
+    "selected-deltas.json": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/context-augmentation-1/selected-deltas.json",
+      "sha256": "ef9e8656d96e8a18a5e75015a2588e1228f7375a0508fbd4ad51d684a0a1f441"
+    },
+    "review.md": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/context-augmentation-1/review.md",
+      "sha256": "2ef0817663d3e7bb03aad41f03ea09b3073474230f88e809708693c3a658126c"
+    },
+    "result-review.md": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/context-augmentation-1/result-review.md",
+      "sha256": "2a120bd038e3f237a324b98ba8c0470293f0341ad706c00f35fff6d5e0e63253"
+    },
+    "preservation.json": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/context-augmentation-1/preservation.json",
+      "sha256": "92d5d7e9e3096f19b292b583482ff7353b3e95eae71323233961733ef148e438"
+    },
+    "execution-receipt.json": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/context-augmentation-1/execution-receipt.json",
+      "sha256": "6ab215f2401b5cadc00228ae02dac6621b19c76470d03b2a71be69bc6279379b"
+    }
+  },
+  "resources": {
+    "at": "2026-09-13T04:37:11.081Z",
+    "step_model_ms": 135526,
+    "step_model_cap_ms": 420000,
+    "parent_model_ms": 2674644,
+    "parent_model_limit_ms": 3000000,
+    "ledger": {
+      "cumulative_ms": 122425217,
+      "limit_ms": 132950000
+    },
+    "step_new_storage_bytes": 53252096,
+    "step_storage_cap_bytes": 134217728,
+    "parent_growth_bytes": 1658023936,
+    "parent_storage_cap_bytes": 2147483648,
+    "peak_sampled_rss_bytes": 2452766720,
+    "commands": [
+      {
+        "kind": "engineering",
+        "label": "context-format",
+        "cmd": "/Users/casey.allard/.cargo/bin/cargo",
+        "args": [
+          "fmt",
+          "--all"
+        ],
+        "cwd": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core",
+        "started": "2026-09-13T04:29:24.997Z",
+        "elapsed_ms": 4525,
+        "code": 0,
+        "signal": null,
+        "stopped": null,
+        "charged": false,
+        "peak_sampled_process_tree_rss_bytes": 169623552,
+        "logs": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/context-format.log"
+      },
+      {
+        "kind": "model",
+        "label": "context-build-tests",
+        "cmd": "/Users/casey.allard/.cargo/bin/cargo",
+        "args": [
+          "test",
+          "--offline",
+          "--release",
+          "-p",
+          "uor-r4-core",
+          "--lib",
+          "native_geometric::shared_core::tests::context_",
+          "--",
+          "--nocapture"
+        ],
+        "cwd": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core",
+        "started": "2026-09-13T04:29:29.578Z",
+        "elapsed_ms": 102083,
+        "code": 0,
+        "signal": null,
+        "stopped": null,
+        "charged": true,
+        "peak_sampled_process_tree_rss_bytes": 2452766720,
+        "logs": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/context-build-tests.log"
+      },
+      {
+        "kind": "model",
+        "label": "context-prepare-data",
+        "cmd": ".uor-handoff/2026-09-12-codex-v7/shared-core-first-step/context-augmentation-1/context-tests",
+        "args": [
+          "native_geometric::shared_core::tests::context_data::context_data_prepare_saved",
+          "--exact",
+          "--ignored",
+          "--nocapture"
+        ],
+        "cwd": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core",
+        "started": "2026-09-13T04:31:27.625Z",
+        "elapsed_ms": 187,
+        "code": 0,
+        "signal": null,
+        "stopped": null,
+        "charged": true,
+        "peak_sampled_process_tree_rss_bytes": null,
+        "logs": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/context-prepare-data.log"
+      },
+      {
+        "kind": "model",
+        "label": "context-actual-experiment",
+        "cmd": ".uor-handoff/2026-09-12-codex-v7/shared-core-first-step/context-augmentation-1/context-tests",
+        "args": [
+          "native_geometric::shared_core::tests::context_augmentation::context_augmentation_run_saved_experiment",
+          "--exact",
+          "--ignored",
+          "--nocapture"
+        ],
+        "cwd": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core",
+        "started": "2026-09-13T04:31:47.941Z",
+        "elapsed_ms": 33256,
+        "code": 0,
+        "signal": null,
+        "stopped": null,
+        "charged": true,
+        "peak_sampled_process_tree_rss_bytes": 272171008,
+        "logs": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/context-actual-experiment.log"
+      }
+    ],
+    "parent_extension_ms": 200000,
+    "ledger_extension_ms": 0,
+    "paid_compute": 0
+  },
+  "preservation": {
+    "prior_sealed_roots": 17,
+    "prior_sealed_files": 668,
+    "parked_dirty_paths": 22,
+    "parked_status_sha256": "7dbfdd7d981456b30357812e9dc7edd13b072c43ce45b873f35ba51d742465b2",
+    "retained_sha256": "1454aa69e2e295d0a9970e90326f4664d3c614f666b1a708a16c16b5350a1705",
+    "production_sources_unchanged": true,
+    "recurrence_source_unchanged": true,
+    "legacy_actual_rows_replayed": true
+  },
+  "final_checks": {
+    "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/context-augmentation-1/final-checks.json",
+    "sha256": "52ebe1f7ca0e40919de11014e09a1cea1b23b5a161513b8e7231c4093b6b69e4"
+  }
+}
