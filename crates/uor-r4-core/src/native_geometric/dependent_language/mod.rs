@@ -45,3 +45,10 @@ mod occurrence_report;
 
 #[cfg(test)]
 mod occurrence_collision;
+
+pub mod correspondence;
+#[cfg(test)]
+mod correspondence_diagnostic;
+pub mod correspondence_learning;
+#[cfg(test)]
+mod correspondence_report;

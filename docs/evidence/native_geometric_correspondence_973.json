@@ -1,0 +1,5645 @@
+{
+  "total_fits": 1,
+  "correction": "# Source-context projection correction, no new fit\n\nFirst fit selects851970 and passes2816training/384new/bothpreviousnegative-success panels, but only5344/6304 priorfulltraces. All960 failures involve trust, absent from15inherited contextroles. Query who did bruno trust? groupsbruno+trust with rawsourcegap2 across the known contextword did. This imposes lexicaladjacency on source while already ignoring contextualqueryboundaries.\n\nCorrect source adjacency to use the same inherited context-role projection: preserve positive sourceorder and count intervening non-context occurrences. Across did givesprojectedgap1; across oscar in the recorded incorrectsplit answer still givesgap2. No contextwords, nameexemptions, corpuslabels or outputoverride added. Keep rawgap and projectedgap separately. Newartifact schema2/feature name recordschangedpredicate semantics. Reuse learnedmask851970 from firstfit without rule search, rebindsource/parent/data metadata and revalidate all2816actual traininggenerations. The complete originalparent remains identical.\n\nRun source3 no-fit diagnostic3 on samefrozen training/collision, then attempt2 requalification. Add ContextProjectionDisabled, reproducing rawgap semantics. Require all6304Full retained traces and512unresolved, all384newcases andoriginalcontrols, and ContextProjectionDisabled responses matching the firstfailed candidate on all6304 priorinputs (5344retained,960lost). ExistingStructureDisabled isolatesentirerun predicate. Preservefirstfailedartifact53645 and allreports/snapshots. No secondfit, no acceptance relaxation.\n",
+  "at": "2026-09-14T07:46:14.366Z",
+  "status": "PASS_ORDERED_CORRESPONDENCE",
+  "initial_diagnostic": {
+    "report_root": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/correspondence-runs-1/diagnostic-1",
+    "summary": {
+      "enumerated_candidates": 152256,
+      "exactly_one_compatible_offer_rows": 2816,
+      "final_holdout": "NOT_RUN",
+      "first_negative": null,
+      "fits": 0,
+      "forced_candidate_generations": 2924,
+      "gate": "PASS_CORRESPONDENCE_REPRESENTATION",
+      "max_search_nodes": 303,
+      "negative_admissions": 0,
+      "parent_parameters_unchanged": true,
+      "parent_sha256": "44c0ebf482d5807354a2e2b4c3fd6ceb310dd076ce199536f801f6cad472264b",
+      "prior_conflict_rows_separated": 912,
+      "prior_sole_target_conflict_rows": 912,
+      "promotion": false,
+      "recorded_pairs": 1,
+      "recorded_pairs_separated": 1,
+      "source_sha256": "78afc2cd6463895909dcb2400c68af2add691cf17362a8037d3a638fc790146a",
+      "training_rows": 2816,
+      "unreachable_candidates_not_evaluated": 149332
+    },
+    "files": {
+      "acceptance.json": {
+        "sha256": "db52a74992058ef4c854d0aab98fcdb34eeed68a4dcd80705128dc40947904cd",
+        "bytes": 607
+      },
+      "artifact-validation.json": {
+        "sha256": "1d0b3db2d161573c178736b00b36d55b4d664584ab891c7e74436dea8f2e64c1",
+        "bytes": 152
+      },
+      "attempt.json": {
+        "sha256": "c108cc4cea24e1780fb70a22b5ef0916a99acdac5c4051caf100fde649d668f8",
+        "bytes": 511
+      },
+      "inputs.json": {
+        "sha256": "234f84ef983871c9685c538865c07a5f44ae3525a65d4504870652d021bcf531",
+        "bytes": 9339
+      },
+      "manifest.json": {
+        "sha256": "6ac5e69ce325f199a6df9ca1eabbe55a623434c40dec355ebdd1fc90ceba42ae",
+        "bytes": 1298
+      },
+      "recorded-pairs.json": {
+        "sha256": "420458f05d2f59bb340f7909da76e2996a66955ac1d72ae28decfe8920b0f693",
+        "bytes": 8541
+      },
+      "rows.json": {
+        "sha256": "14b2d5fe6e901d9cd1f6fbe6e297f4c6e7a9a2a74823d9d2cfbfdcb0a2c4c38c",
+        "bytes": 823610
+      },
+      "summary.json": {
+        "sha256": "e0654a5a66463441d214444d18fc0d8683adc5bacb1ec3b1028db4b7963b0739",
+        "bytes": 742
+      }
+    }
+  },
+  "corrected_diagnostic": {
+    "report_root": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/correspondence-runs-1/diagnostic-2",
+    "summary": {
+      "enumerated_candidates": 152256,
+      "exactly_one_compatible_offer_rows": 2816,
+      "final_holdout": "NOT_RUN",
+      "first_negative": null,
+      "fits": 0,
+      "forced_candidate_generations": 2924,
+      "gate": "PASS_CORRESPONDENCE_REPRESENTATION",
+      "max_search_nodes": 303,
+      "negative_admissions": 0,
+      "parent_parameters_unchanged": true,
+      "parent_sha256": "44c0ebf482d5807354a2e2b4c3fd6ceb310dd076ce199536f801f6cad472264b",
+      "prior_conflict_rows_separated": 912,
+      "prior_sole_target_conflict_rows": 912,
+      "promotion": false,
+      "recorded_pairs": 1,
+      "recorded_pairs_separated": 1,
+      "source_sha256": "dfb91682073f45afa3ea2f07c7f1754e95b4d111a4e4f5638f1de54b4c722186",
+      "training_rows": 2816,
+      "unreachable_candidates_not_evaluated": 149332
+    },
+    "files": {
+      "acceptance.json": {
+        "sha256": "db52a74992058ef4c854d0aab98fcdb34eeed68a4dcd80705128dc40947904cd",
+        "bytes": 607
+      },
+      "artifact-validation.json": {
+        "sha256": "1d0b3db2d161573c178736b00b36d55b4d664584ab891c7e74436dea8f2e64c1",
+        "bytes": 152
+      },
+      "attempt.json": {
+        "sha256": "abea4e20695cf55b6a94d9b529969dfd2a6482dc9af9dd4b9acc2724c420d77f",
+        "bytes": 513
+      },
+      "evaluated-candidates.json": {
+        "sha256": "c1837222a6aef4c855b3a08edbe2cf6d76bbbb5398230e0c3331421e3b8d067b",
+        "bytes": 1129114
+      },
+      "inputs.json": {
+        "sha256": "234f84ef983871c9685c538865c07a5f44ae3525a65d4504870652d021bcf531",
+        "bytes": 9339
+      },
+      "manifest.json": {
+        "sha256": "125f5ee8c69cbc0f03051c5e0523dab9a9f1c41d2e00dcb0d9fe99d4f2e002da",
+        "bytes": 1461
+      },
+      "recorded-pairs.json": {
+        "sha256": "420458f05d2f59bb340f7909da76e2996a66955ac1d72ae28decfe8920b0f693",
+        "bytes": 8541
+      },
+      "rows.json": {
+        "sha256": "14b2d5fe6e901d9cd1f6fbe6e297f4c6e7a9a2a74823d9d2cfbfdcb0a2c4c38c",
+        "bytes": 823610
+      },
+      "summary.json": {
+        "sha256": "4d872758b4e2ffe51c329405841a94954c2cd1e8b65997719a18e9bfb9928e00",
+        "bytes": 742
+      }
+    }
+  },
+  "negative": {
+    "report_root": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/correspondence-runs-1/attempt-1",
+    "summary": {
+      "candidate_sha256": "53645f7d5cad7bf1cb34cc55f2e16ed8e48ea19261edc7e5441b538823b0d188",
+      "complete_families": 32,
+      "development_rows": 384,
+      "final_holdout": "NOT_RUN",
+      "fit": {
+        "ambiguous_target_rows": 1152,
+        "conflict_scope": "A compatible and incompatible source/span share an identical admission signature across all declared proposals; another compatible candidate may remain separable. Zero signatures are included. This is not general representational impossibility.",
+        "conflicting_candidate_proposal_signatures": 1,
+        "covered": [
+          2816
+        ],
+        "forced_candidate_generations": 152256,
+        "max_preparation_search_nodes": 303,
+        "missing_target_rows": 0,
+        "preparation_candidates": 152256,
+        "proposal_masks": [
+          327682,
+          327683,
+          327686,
+          327690,
+          327698,
+          327714,
+          327746,
+          327810,
+          327938,
+          328194,
+          328706,
+          329730,
+          331778,
+          335874,
+          344066,
+          360450,
+          458754,
+          851970,
+          327687,
+          327691,
+          327694,
+          327699,
+          327702,
+          327706,
+          327715,
+          327718,
+          327722,
+          327730,
+          327747,
+          327750,
+          327754,
+          327762,
+          327778,
+          327811,
+          327814,
+          327818,
+          327826,
+          327842,
+          327874,
+          327939,
+          327942,
+          327946,
+          327954,
+          327970,
+          328002,
+          328066,
+          328195,
+          328198,
+          328202,
+          328210,
+          328226,
+          328258,
+          328322,
+          328450,
+          328707,
+          328710,
+          328714,
+          328722,
+          328738,
+          328770,
+          328834,
+          328962,
+          329218,
+          329731,
+          329734,
+          329738,
+          329746,
+          329762,
+          329794,
+          329858,
+          329986,
+          330242,
+          330754,
+          331779,
+          331782,
+          331786,
+          331794,
+          331810,
+          331842,
+          331906,
+          332034,
+          332290,
+          332802,
+          333826,
+          335875,
+          335878,
+          335882,
+          335890,
+          335906,
+          335938,
+          336002,
+          336130,
+          336386,
+          336898,
+          337922,
+          339970,
+          344067,
+          344070,
+          344074,
+          344082,
+          344098,
+          344130,
+          344194,
+          344322,
+          344578,
+          345090,
+          346114,
+          348162,
+          352258,
+          360451,
+          360454,
+          360458,
+          360466,
+          360482,
+          360514,
+          360578,
+          360706,
+          360962,
+          361474,
+          362498,
+          364546,
+          368642,
+          376834,
+          458755,
+          458758,
+          458762,
+          458770,
+          458786,
+          458818,
+          458882,
+          459010,
+          459266,
+          459778,
+          460802,
+          462850,
+          466946,
+          475138,
+          491522,
+          851971,
+          851974,
+          851978,
+          851986,
+          852002,
+          852034,
+          852098,
+          852226,
+          852482,
+          852994,
+          854018,
+          856066,
+          860162,
+          868354,
+          884738,
+          983042
+        ],
+        "proposals": 154,
+        "rows_with_conflicting_compatible_candidate": 1152,
+        "rules": [
+          851970
+        ],
+        "stopping": "complete_cover",
+        "target_rows_without_reachable_proposal": 0,
+        "training_exact": 2816,
+        "training_rows": 2816
+      },
+      "fits": 1,
+      "full_exact_identity_equal": 384,
+      "gate": "FAIL_ORDERED_CORRESPONDENCE",
+      "groups": {
+        "ExactIdentity/depth/1": {
+          "bounds": 192,
+          "correct": 192,
+          "errors": 0,
+          "one_read_correct": 192,
+          "paths": 192,
+          "payloads": 192,
+          "queries": 192,
+          "query_geometry": 192,
+          "rows": 192,
+          "spans": 192,
+          "two_read_correct": 0
+        },
+        "ExactIdentity/depth/2": {
+          "bounds": 192,
+          "correct": 192,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 192,
+          "payloads": 192,
+          "queries": 192,
+          "query_geometry": 192,
+          "rows": 192,
+          "spans": 192,
+          "two_read_correct": 192
+        },
+        "ExactIdentity/pattern/disjoint": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "ExactIdentity/pattern/disjoint_repeat_answer": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "ExactIdentity/pattern/disjoint_repeat_known": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "ExactIdentity/pattern/overlap_first_first": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "ExactIdentity/pattern/overlap_first_last": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "ExactIdentity/pattern/overlap_last_first": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "ExactIdentity/pattern/overlap_repeat_answer": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "ExactIdentity/pattern/overlap_repeat_known": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "ExactIdentity/role/0": {
+          "bounds": 192,
+          "correct": 192,
+          "errors": 0,
+          "one_read_correct": 96,
+          "paths": 192,
+          "payloads": 192,
+          "queries": 192,
+          "query_geometry": 192,
+          "rows": 192,
+          "spans": 192,
+          "two_read_correct": 96
+        },
+        "ExactIdentity/role/1": {
+          "bounds": 192,
+          "correct": 192,
+          "errors": 0,
+          "one_read_correct": 96,
+          "paths": 192,
+          "payloads": 192,
+          "queries": 192,
+          "query_geometry": 192,
+          "rows": 192,
+          "spans": 192,
+          "two_read_correct": 96
+        },
+        "ExactIdentity/variant/active": {
+          "bounds": 128,
+          "correct": 128,
+          "errors": 0,
+          "one_read_correct": 64,
+          "paths": 128,
+          "payloads": 128,
+          "queries": 128,
+          "query_geometry": 128,
+          "rows": 128,
+          "spans": 128,
+          "two_read_correct": 64
+        },
+        "ExactIdentity/variant/baseline": {
+          "bounds": 128,
+          "correct": 128,
+          "errors": 0,
+          "one_read_correct": 64,
+          "paths": 128,
+          "payloads": 128,
+          "queries": 128,
+          "query_geometry": 128,
+          "rows": 128,
+          "spans": 128,
+          "two_read_correct": 64
+        },
+        "ExactIdentity/variant/inactive": {
+          "bounds": 128,
+          "correct": 128,
+          "errors": 0,
+          "one_read_correct": 64,
+          "paths": 128,
+          "payloads": 128,
+          "queries": 128,
+          "query_geometry": 128,
+          "rows": 128,
+          "spans": 128,
+          "two_read_correct": 64
+        },
+        "Full/depth/1": {
+          "bounds": 192,
+          "correct": 192,
+          "errors": 0,
+          "one_read_correct": 192,
+          "paths": 192,
+          "payloads": 192,
+          "queries": 192,
+          "query_geometry": 192,
+          "rows": 192,
+          "spans": 192,
+          "two_read_correct": 0
+        },
+        "Full/depth/2": {
+          "bounds": 192,
+          "correct": 192,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 192,
+          "payloads": 192,
+          "queries": 192,
+          "query_geometry": 192,
+          "rows": 192,
+          "spans": 192,
+          "two_read_correct": 192
+        },
+        "Full/pattern/disjoint": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "Full/pattern/disjoint_repeat_answer": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "Full/pattern/disjoint_repeat_known": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "Full/pattern/overlap_first_first": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "Full/pattern/overlap_first_last": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "Full/pattern/overlap_last_first": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "Full/pattern/overlap_repeat_answer": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "Full/pattern/overlap_repeat_known": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "Full/role/0": {
+          "bounds": 192,
+          "correct": 192,
+          "errors": 0,
+          "one_read_correct": 96,
+          "paths": 192,
+          "payloads": 192,
+          "queries": 192,
+          "query_geometry": 192,
+          "rows": 192,
+          "spans": 192,
+          "two_read_correct": 96
+        },
+        "Full/role/1": {
+          "bounds": 192,
+          "correct": 192,
+          "errors": 0,
+          "one_read_correct": 96,
+          "paths": 192,
+          "payloads": 192,
+          "queries": 192,
+          "query_geometry": 192,
+          "rows": 192,
+          "spans": 192,
+          "two_read_correct": 96
+        },
+        "Full/variant/active": {
+          "bounds": 128,
+          "correct": 128,
+          "errors": 0,
+          "one_read_correct": 64,
+          "paths": 128,
+          "payloads": 128,
+          "queries": 128,
+          "query_geometry": 128,
+          "rows": 128,
+          "spans": 128,
+          "two_read_correct": 64
+        },
+        "Full/variant/baseline": {
+          "bounds": 128,
+          "correct": 128,
+          "errors": 0,
+          "one_read_correct": 64,
+          "paths": 128,
+          "payloads": 128,
+          "queries": 128,
+          "query_geometry": 128,
+          "rows": 128,
+          "spans": 128,
+          "two_read_correct": 64
+        },
+        "Full/variant/inactive": {
+          "bounds": 128,
+          "correct": 128,
+          "errors": 0,
+          "one_read_correct": 64,
+          "paths": 128,
+          "payloads": 128,
+          "queries": 128,
+          "query_geometry": 128,
+          "rows": 128,
+          "spans": 128,
+          "two_read_correct": 64
+        },
+        "NonInjective/depth/1": {
+          "bounds": 192,
+          "correct": 192,
+          "errors": 0,
+          "one_read_correct": 192,
+          "paths": 192,
+          "payloads": 192,
+          "queries": 192,
+          "query_geometry": 192,
+          "rows": 192,
+          "spans": 192,
+          "two_read_correct": 0
+        },
+        "NonInjective/depth/2": {
+          "bounds": 192,
+          "correct": 192,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 192,
+          "payloads": 192,
+          "queries": 192,
+          "query_geometry": 192,
+          "rows": 192,
+          "spans": 192,
+          "two_read_correct": 192
+        },
+        "NonInjective/pattern/disjoint": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "NonInjective/pattern/disjoint_repeat_answer": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "NonInjective/pattern/disjoint_repeat_known": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "NonInjective/pattern/overlap_first_first": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "NonInjective/pattern/overlap_first_last": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "NonInjective/pattern/overlap_last_first": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "NonInjective/pattern/overlap_repeat_answer": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "NonInjective/pattern/overlap_repeat_known": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "NonInjective/role/0": {
+          "bounds": 192,
+          "correct": 192,
+          "errors": 0,
+          "one_read_correct": 96,
+          "paths": 192,
+          "payloads": 192,
+          "queries": 192,
+          "query_geometry": 192,
+          "rows": 192,
+          "spans": 192,
+          "two_read_correct": 96
+        },
+        "NonInjective/role/1": {
+          "bounds": 192,
+          "correct": 192,
+          "errors": 0,
+          "one_read_correct": 96,
+          "paths": 192,
+          "payloads": 192,
+          "queries": 192,
+          "query_geometry": 192,
+          "rows": 192,
+          "spans": 192,
+          "two_read_correct": 96
+        },
+        "NonInjective/variant/active": {
+          "bounds": 128,
+          "correct": 128,
+          "errors": 0,
+          "one_read_correct": 64,
+          "paths": 128,
+          "payloads": 128,
+          "queries": 128,
+          "query_geometry": 128,
+          "rows": 128,
+          "spans": 128,
+          "two_read_correct": 64
+        },
+        "NonInjective/variant/baseline": {
+          "bounds": 128,
+          "correct": 128,
+          "errors": 0,
+          "one_read_correct": 64,
+          "paths": 128,
+          "payloads": 128,
+          "queries": 128,
+          "query_geometry": 128,
+          "rows": 128,
+          "spans": 128,
+          "two_read_correct": 64
+        },
+        "NonInjective/variant/inactive": {
+          "bounds": 128,
+          "correct": 128,
+          "errors": 0,
+          "one_read_correct": 64,
+          "paths": 128,
+          "payloads": 128,
+          "queries": 128,
+          "query_geometry": 128,
+          "rows": 128,
+          "spans": 128,
+          "two_read_correct": 64
+        },
+        "ParentUnionMatches/depth/1": {
+          "bounds": 72,
+          "correct": 72,
+          "errors": 0,
+          "one_read_correct": 72,
+          "paths": 84,
+          "payloads": 72,
+          "queries": 192,
+          "query_geometry": 192,
+          "rows": 192,
+          "spans": 72,
+          "two_read_correct": 0
+        },
+        "ParentUnionMatches/depth/2": {
+          "bounds": 72,
+          "correct": 72,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 84,
+          "payloads": 72,
+          "queries": 120,
+          "query_geometry": 120,
+          "rows": 192,
+          "spans": 72,
+          "two_read_correct": 72
+        },
+        "ParentUnionMatches/pattern/disjoint": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "ParentUnionMatches/pattern/disjoint_repeat_answer": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "ParentUnionMatches/pattern/disjoint_repeat_known": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "ParentUnionMatches/pattern/overlap_first_first": {
+          "bounds": 0,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 0,
+          "payloads": 0,
+          "queries": 36,
+          "query_geometry": 36,
+          "rows": 48,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "ParentUnionMatches/pattern/overlap_first_last": {
+          "bounds": 0,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 24,
+          "payloads": 0,
+          "queries": 36,
+          "query_geometry": 36,
+          "rows": 48,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "ParentUnionMatches/pattern/overlap_last_first": {
+          "bounds": 0,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 0,
+          "payloads": 0,
+          "queries": 36,
+          "query_geometry": 36,
+          "rows": 48,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "ParentUnionMatches/pattern/overlap_repeat_answer": {
+          "bounds": 0,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 0,
+          "payloads": 0,
+          "queries": 24,
+          "query_geometry": 24,
+          "rows": 48,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "ParentUnionMatches/pattern/overlap_repeat_known": {
+          "bounds": 0,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 0,
+          "payloads": 0,
+          "queries": 36,
+          "query_geometry": 36,
+          "rows": 48,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "ParentUnionMatches/role/0": {
+          "bounds": 72,
+          "correct": 72,
+          "errors": 0,
+          "one_read_correct": 36,
+          "paths": 72,
+          "payloads": 72,
+          "queries": 132,
+          "query_geometry": 132,
+          "rows": 192,
+          "spans": 72,
+          "two_read_correct": 36
+        },
+        "ParentUnionMatches/role/1": {
+          "bounds": 72,
+          "correct": 72,
+          "errors": 0,
+          "one_read_correct": 36,
+          "paths": 96,
+          "payloads": 72,
+          "queries": 180,
+          "query_geometry": 180,
+          "rows": 192,
+          "spans": 72,
+          "two_read_correct": 36
+        },
+        "ParentUnionMatches/variant/active": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 56,
+          "payloads": 48,
+          "queries": 104,
+          "query_geometry": 104,
+          "rows": 128,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "ParentUnionMatches/variant/baseline": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 56,
+          "payloads": 48,
+          "queries": 104,
+          "query_geometry": 104,
+          "rows": 128,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "ParentUnionMatches/variant/inactive": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 56,
+          "payloads": 48,
+          "queries": 104,
+          "query_geometry": 104,
+          "rows": 128,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "ReadDisabled/depth/1": {
+          "bounds": 0,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 0,
+          "payloads": 0,
+          "queries": 192,
+          "query_geometry": 192,
+          "rows": 192,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "ReadDisabled/depth/2": {
+          "bounds": 0,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 0,
+          "payloads": 0,
+          "queries": 0,
+          "query_geometry": 0,
+          "rows": 192,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "ReadDisabled/pattern/disjoint": {
+          "bounds": 0,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 0,
+          "payloads": 0,
+          "queries": 24,
+          "query_geometry": 24,
+          "rows": 48,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "ReadDisabled/pattern/disjoint_repeat_answer": {
+          "bounds": 0,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 0,
+          "payloads": 0,
+          "queries": 24,
+          "query_geometry": 24,
+          "rows": 48,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "ReadDisabled/pattern/disjoint_repeat_known": {
+          "bounds": 0,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 0,
+          "payloads": 0,
+          "queries": 24,
+          "query_geometry": 24,
+          "rows": 48,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "ReadDisabled/pattern/overlap_first_first": {
+          "bounds": 0,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 0,
+          "payloads": 0,
+          "queries": 24,
+          "query_geometry": 24,
+          "rows": 48,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "ReadDisabled/pattern/overlap_first_last": {
+          "bounds": 0,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 0,
+          "payloads": 0,
+          "queries": 24,
+          "query_geometry": 24,
+          "rows": 48,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "ReadDisabled/pattern/overlap_last_first": {
+          "bounds": 0,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 0,
+          "payloads": 0,
+          "queries": 24,
+          "query_geometry": 24,
+          "rows": 48,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "ReadDisabled/pattern/overlap_repeat_answer": {
+          "bounds": 0,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 0,
+          "payloads": 0,
+          "queries": 24,
+          "query_geometry": 24,
+          "rows": 48,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "ReadDisabled/pattern/overlap_repeat_known": {
+          "bounds": 0,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 0,
+          "payloads": 0,
+          "queries": 24,
+          "query_geometry": 24,
+          "rows": 48,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "ReadDisabled/role/0": {
+          "bounds": 0,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 0,
+          "payloads": 0,
+          "queries": 96,
+          "query_geometry": 96,
+          "rows": 192,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "ReadDisabled/role/1": {
+          "bounds": 0,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 0,
+          "payloads": 0,
+          "queries": 96,
+          "query_geometry": 96,
+          "rows": 192,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "ReadDisabled/variant/active": {
+          "bounds": 0,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 0,
+          "payloads": 0,
+          "queries": 64,
+          "query_geometry": 64,
+          "rows": 128,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "ReadDisabled/variant/baseline": {
+          "bounds": 0,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 0,
+          "payloads": 0,
+          "queries": 64,
+          "query_geometry": 64,
+          "rows": 128,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "ReadDisabled/variant/inactive": {
+          "bounds": 0,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 0,
+          "payloads": 0,
+          "queries": 64,
+          "query_geometry": 64,
+          "rows": 128,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "StructureDisabled/depth/1": {
+          "bounds": 148,
+          "correct": 148,
+          "errors": 0,
+          "one_read_correct": 148,
+          "paths": 148,
+          "payloads": 148,
+          "queries": 192,
+          "query_geometry": 192,
+          "rows": 192,
+          "spans": 148,
+          "two_read_correct": 0
+        },
+        "StructureDisabled/depth/2": {
+          "bounds": 148,
+          "correct": 148,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 148,
+          "payloads": 148,
+          "queries": 148,
+          "query_geometry": 148,
+          "rows": 192,
+          "spans": 148,
+          "two_read_correct": 148
+        },
+        "StructureDisabled/pattern/disjoint": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "StructureDisabled/pattern/disjoint_repeat_answer": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "StructureDisabled/pattern/disjoint_repeat_known": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "StructureDisabled/pattern/overlap_first_first": {
+          "bounds": 24,
+          "correct": 24,
+          "errors": 0,
+          "one_read_correct": 12,
+          "paths": 24,
+          "payloads": 24,
+          "queries": 36,
+          "query_geometry": 36,
+          "rows": 48,
+          "spans": 24,
+          "two_read_correct": 12
+        },
+        "StructureDisabled/pattern/overlap_first_last": {
+          "bounds": 24,
+          "correct": 24,
+          "errors": 0,
+          "one_read_correct": 12,
+          "paths": 24,
+          "payloads": 24,
+          "queries": 36,
+          "query_geometry": 36,
+          "rows": 48,
+          "spans": 24,
+          "two_read_correct": 12
+        },
+        "StructureDisabled/pattern/overlap_last_first": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "StructureDisabled/pattern/overlap_repeat_answer": {
+          "bounds": 32,
+          "correct": 32,
+          "errors": 0,
+          "one_read_correct": 16,
+          "paths": 32,
+          "payloads": 32,
+          "queries": 40,
+          "query_geometry": 40,
+          "rows": 48,
+          "spans": 32,
+          "two_read_correct": 16
+        },
+        "StructureDisabled/pattern/overlap_repeat_known": {
+          "bounds": 24,
+          "correct": 24,
+          "errors": 0,
+          "one_read_correct": 12,
+          "paths": 24,
+          "payloads": 24,
+          "queries": 36,
+          "query_geometry": 36,
+          "rows": 48,
+          "spans": 24,
+          "two_read_correct": 12
+        },
+        "StructureDisabled/role/0": {
+          "bounds": 192,
+          "correct": 192,
+          "errors": 0,
+          "one_read_correct": 96,
+          "paths": 192,
+          "payloads": 192,
+          "queries": 192,
+          "query_geometry": 192,
+          "rows": 192,
+          "spans": 192,
+          "two_read_correct": 96
+        },
+        "StructureDisabled/role/1": {
+          "bounds": 104,
+          "correct": 104,
+          "errors": 0,
+          "one_read_correct": 52,
+          "paths": 104,
+          "payloads": 104,
+          "queries": 148,
+          "query_geometry": 148,
+          "rows": 192,
+          "spans": 104,
+          "two_read_correct": 52
+        },
+        "StructureDisabled/variant/active": {
+          "bounds": 104,
+          "correct": 104,
+          "errors": 0,
+          "one_read_correct": 52,
+          "paths": 104,
+          "payloads": 104,
+          "queries": 116,
+          "query_geometry": 116,
+          "rows": 128,
+          "spans": 104,
+          "two_read_correct": 52
+        },
+        "StructureDisabled/variant/baseline": {
+          "bounds": 96,
+          "correct": 96,
+          "errors": 0,
+          "one_read_correct": 48,
+          "paths": 96,
+          "payloads": 96,
+          "queries": 112,
+          "query_geometry": 112,
+          "rows": 128,
+          "spans": 96,
+          "two_read_correct": 48
+        },
+        "StructureDisabled/variant/inactive": {
+          "bounds": 96,
+          "correct": 96,
+          "errors": 0,
+          "one_read_correct": 48,
+          "paths": 96,
+          "payloads": 96,
+          "queries": 112,
+          "query_geometry": 112,
+          "rows": 128,
+          "spans": 96,
+          "two_read_correct": 48
+        },
+        "UnionMatches/depth/1": {
+          "bounds": 72,
+          "correct": 72,
+          "errors": 0,
+          "one_read_correct": 72,
+          "paths": 84,
+          "payloads": 72,
+          "queries": 192,
+          "query_geometry": 192,
+          "rows": 192,
+          "spans": 72,
+          "two_read_correct": 0
+        },
+        "UnionMatches/depth/2": {
+          "bounds": 72,
+          "correct": 72,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 84,
+          "payloads": 72,
+          "queries": 120,
+          "query_geometry": 120,
+          "rows": 192,
+          "spans": 72,
+          "two_read_correct": 72
+        },
+        "UnionMatches/pattern/disjoint": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "UnionMatches/pattern/disjoint_repeat_answer": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "UnionMatches/pattern/disjoint_repeat_known": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "UnionMatches/pattern/overlap_first_first": {
+          "bounds": 0,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 0,
+          "payloads": 0,
+          "queries": 36,
+          "query_geometry": 36,
+          "rows": 48,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "UnionMatches/pattern/overlap_first_last": {
+          "bounds": 0,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 24,
+          "payloads": 0,
+          "queries": 36,
+          "query_geometry": 36,
+          "rows": 48,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "UnionMatches/pattern/overlap_last_first": {
+          "bounds": 0,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 0,
+          "payloads": 0,
+          "queries": 36,
+          "query_geometry": 36,
+          "rows": 48,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "UnionMatches/pattern/overlap_repeat_answer": {
+          "bounds": 0,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 0,
+          "payloads": 0,
+          "queries": 24,
+          "query_geometry": 24,
+          "rows": 48,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "UnionMatches/pattern/overlap_repeat_known": {
+          "bounds": 0,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 0,
+          "payloads": 0,
+          "queries": 36,
+          "query_geometry": 36,
+          "rows": 48,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "UnionMatches/role/0": {
+          "bounds": 72,
+          "correct": 72,
+          "errors": 0,
+          "one_read_correct": 36,
+          "paths": 72,
+          "payloads": 72,
+          "queries": 132,
+          "query_geometry": 132,
+          "rows": 192,
+          "spans": 72,
+          "two_read_correct": 36
+        },
+        "UnionMatches/role/1": {
+          "bounds": 72,
+          "correct": 72,
+          "errors": 0,
+          "one_read_correct": 36,
+          "paths": 96,
+          "payloads": 72,
+          "queries": 180,
+          "query_geometry": 180,
+          "rows": 192,
+          "spans": 72,
+          "two_read_correct": 36
+        },
+        "UnionMatches/variant/active": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 56,
+          "payloads": 48,
+          "queries": 104,
+          "query_geometry": 104,
+          "rows": 128,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "UnionMatches/variant/baseline": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 56,
+          "payloads": 48,
+          "queries": 104,
+          "query_geometry": 104,
+          "rows": 128,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "UnionMatches/variant/inactive": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 56,
+          "payloads": 48,
+          "queries": 104,
+          "query_geometry": 104,
+          "rows": 128,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "UpdateDisabled/depth/1": {
+          "bounds": 192,
+          "correct": 192,
+          "errors": 0,
+          "one_read_correct": 192,
+          "paths": 192,
+          "payloads": 192,
+          "queries": 192,
+          "query_geometry": 192,
+          "rows": 192,
+          "spans": 192,
+          "two_read_correct": 0
+        },
+        "UpdateDisabled/depth/2": {
+          "bounds": 36,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 0,
+          "payloads": 0,
+          "queries": 0,
+          "query_geometry": 0,
+          "rows": 192,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "UpdateDisabled/pattern/disjoint": {
+          "bounds": 24,
+          "correct": 24,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 24,
+          "payloads": 24,
+          "queries": 24,
+          "query_geometry": 24,
+          "rows": 48,
+          "spans": 24,
+          "two_read_correct": 0
+        },
+        "UpdateDisabled/pattern/disjoint_repeat_answer": {
+          "bounds": 24,
+          "correct": 24,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 24,
+          "payloads": 24,
+          "queries": 24,
+          "query_geometry": 24,
+          "rows": 48,
+          "spans": 24,
+          "two_read_correct": 0
+        },
+        "UpdateDisabled/pattern/disjoint_repeat_known": {
+          "bounds": 24,
+          "correct": 24,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 24,
+          "payloads": 24,
+          "queries": 24,
+          "query_geometry": 24,
+          "rows": 48,
+          "spans": 24,
+          "two_read_correct": 0
+        },
+        "UpdateDisabled/pattern/overlap_first_first": {
+          "bounds": 36,
+          "correct": 24,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 24,
+          "payloads": 24,
+          "queries": 24,
+          "query_geometry": 24,
+          "rows": 48,
+          "spans": 24,
+          "two_read_correct": 0
+        },
+        "UpdateDisabled/pattern/overlap_first_last": {
+          "bounds": 36,
+          "correct": 24,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 24,
+          "payloads": 24,
+          "queries": 24,
+          "query_geometry": 24,
+          "rows": 48,
+          "spans": 24,
+          "two_read_correct": 0
+        },
+        "UpdateDisabled/pattern/overlap_last_first": {
+          "bounds": 36,
+          "correct": 24,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 24,
+          "payloads": 24,
+          "queries": 24,
+          "query_geometry": 24,
+          "rows": 48,
+          "spans": 24,
+          "two_read_correct": 0
+        },
+        "UpdateDisabled/pattern/overlap_repeat_answer": {
+          "bounds": 24,
+          "correct": 24,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 24,
+          "payloads": 24,
+          "queries": 24,
+          "query_geometry": 24,
+          "rows": 48,
+          "spans": 24,
+          "two_read_correct": 0
+        },
+        "UpdateDisabled/pattern/overlap_repeat_known": {
+          "bounds": 24,
+          "correct": 24,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 24,
+          "payloads": 24,
+          "queries": 24,
+          "query_geometry": 24,
+          "rows": 48,
+          "spans": 24,
+          "two_read_correct": 0
+        },
+        "UpdateDisabled/role/0": {
+          "bounds": 96,
+          "correct": 96,
+          "errors": 0,
+          "one_read_correct": 96,
+          "paths": 96,
+          "payloads": 96,
+          "queries": 96,
+          "query_geometry": 96,
+          "rows": 192,
+          "spans": 96,
+          "two_read_correct": 0
+        },
+        "UpdateDisabled/role/1": {
+          "bounds": 132,
+          "correct": 96,
+          "errors": 0,
+          "one_read_correct": 96,
+          "paths": 96,
+          "payloads": 96,
+          "queries": 96,
+          "query_geometry": 96,
+          "rows": 192,
+          "spans": 96,
+          "two_read_correct": 0
+        },
+        "UpdateDisabled/variant/active": {
+          "bounds": 76,
+          "correct": 64,
+          "errors": 0,
+          "one_read_correct": 64,
+          "paths": 64,
+          "payloads": 64,
+          "queries": 64,
+          "query_geometry": 64,
+          "rows": 128,
+          "spans": 64,
+          "two_read_correct": 0
+        },
+        "UpdateDisabled/variant/baseline": {
+          "bounds": 76,
+          "correct": 64,
+          "errors": 0,
+          "one_read_correct": 64,
+          "paths": 64,
+          "payloads": 64,
+          "queries": 64,
+          "query_geometry": 64,
+          "rows": 128,
+          "spans": 64,
+          "two_read_correct": 0
+        },
+        "UpdateDisabled/variant/inactive": {
+          "bounds": 76,
+          "correct": 64,
+          "errors": 0,
+          "one_read_correct": 64,
+          "paths": 64,
+          "payloads": 64,
+          "queries": 64,
+          "query_geometry": 64,
+          "rows": 128,
+          "spans": 64,
+          "two_read_correct": 0
+        }
+      },
+      "max_observed_search_nodes": 183,
+      "multiplicity_guard": {
+        "ExactIdentity_equal": true,
+        "Full_correct": true,
+        "NonInjectiveStructureDisabled_answered": true,
+        "NonInjectiveStructureDisabled_correct": false
+      },
+      "new_full_transfer_equal": false,
+      "new_full_transfer_rows": 5344,
+      "panels": {
+        "ExactIdentity": {
+          "bounds": 384,
+          "correct": 384,
+          "errors": 0,
+          "one_read_correct": 192,
+          "paths": 384,
+          "payloads": 384,
+          "queries": 384,
+          "query_geometry": 384,
+          "rows": 384,
+          "spans": 384,
+          "two_read_correct": 192
+        },
+        "Full": {
+          "bounds": 384,
+          "correct": 384,
+          "errors": 0,
+          "one_read_correct": 192,
+          "paths": 384,
+          "payloads": 384,
+          "queries": 384,
+          "query_geometry": 384,
+          "rows": 384,
+          "spans": 384,
+          "two_read_correct": 192
+        },
+        "NonInjective": {
+          "bounds": 384,
+          "correct": 384,
+          "errors": 0,
+          "one_read_correct": 192,
+          "paths": 384,
+          "payloads": 384,
+          "queries": 384,
+          "query_geometry": 384,
+          "rows": 384,
+          "spans": 384,
+          "two_read_correct": 192
+        },
+        "ParentUnionMatches": {
+          "bounds": 144,
+          "correct": 144,
+          "errors": 0,
+          "one_read_correct": 72,
+          "paths": 168,
+          "payloads": 144,
+          "queries": 312,
+          "query_geometry": 312,
+          "rows": 384,
+          "spans": 144,
+          "two_read_correct": 72
+        },
+        "ReadDisabled": {
+          "bounds": 0,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 0,
+          "payloads": 0,
+          "queries": 192,
+          "query_geometry": 192,
+          "rows": 384,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "StructureDisabled": {
+          "bounds": 296,
+          "correct": 296,
+          "errors": 0,
+          "one_read_correct": 148,
+          "paths": 296,
+          "payloads": 296,
+          "queries": 340,
+          "query_geometry": 340,
+          "rows": 384,
+          "spans": 296,
+          "two_read_correct": 148
+        },
+        "UnionMatches": {
+          "bounds": 144,
+          "correct": 144,
+          "errors": 0,
+          "one_read_correct": 72,
+          "paths": 168,
+          "payloads": 144,
+          "queries": 312,
+          "query_geometry": 312,
+          "rows": 384,
+          "spans": 144,
+          "two_read_correct": 72
+        },
+        "UpdateDisabled": {
+          "bounds": 228,
+          "correct": 192,
+          "errors": 0,
+          "one_read_correct": 192,
+          "paths": 192,
+          "payloads": 192,
+          "queries": 192,
+          "query_geometry": 192,
+          "rows": 384,
+          "spans": 192,
+          "two_read_correct": 0
+        }
+      },
+      "parent_parameters_unchanged": true,
+      "parent_sha256": "44c0ebf482d5807354a2e2b4c3fd6ceb310dd076ce199536f801f6cad472264b",
+      "previous_success_full_trace_equal": 296,
+      "prior_guard_replay_equal": 4,
+      "prior_phrase_control_replay_equal": true,
+      "prior_phrase_control_replay_rows": 6048,
+      "promotion": false,
+      "reload_equal": 384,
+      "retained_model": "15baec48",
+      "route_search_limit": 16384,
+      "rules_after": [
+        851970
+      ],
+      "rules_before": [
+        327682
+      ],
+      "second_candidate_full_trace_equal": 384,
+      "source_sha256": "56ecc5be84859fc90b6796c6f5f606d56556e81a85c69de0cbe32a473464fe9d",
+      "structure_disabled_disjoint_correct": 144,
+      "typed_unresolved_retained": 416,
+      "union_matches_diagnostic_equal": 384
+    },
+    "files": {
+      "acceptance.json": {
+        "sha256": "7ee9e5ce7c13491748213883116812e6185d524378f22b5850e1179246e89264",
+        "bytes": 1692
+      },
+      "attempt.json": {
+        "sha256": "13da32dfc8e7abe15f0545cc345fd491c50e3fc30a4c5bd0a5c954a29a5f7d8e",
+        "bytes": 505
+      },
+      "candidate.json": {
+        "sha256": "53645f7d5cad7bf1cb34cc55f2e16ed8e48ea19261edc7e5441b538823b0d188",
+        "bytes": 48304
+      },
+      "data.json": {
+        "sha256": "e778c108b22eeb2c0698a880927c9696142c84f8501886c4642bf490db8f6c86",
+        "bytes": 1421154
+      },
+      "fit.json": {
+        "sha256": "7d7a3a0f815b31c7a59487d492c472d0b9336c5709f013484c109e55fdd82994",
+        "bytes": 2634
+      },
+      "manifest.json": {
+        "sha256": "1bcd8136b4e686c3c091dff6d5b9fc4141f7242c92fb776d9f0f6aa93193381e",
+        "bytes": 8276
+      },
+      "multiplicity-guard-responses.json": {
+        "sha256": "01880e9139d7638f9a17109b3867cdd92fae37c5ec45ff69c30bb78bcdd85984",
+        "bytes": 823199
+      },
+      "multiplicity-guard.json": {
+        "sha256": "02190b273141fd4f3bf889c5a131d88e65addfccc8267d24e3e0ca4bb09ff4e7",
+        "bytes": 2016
+      },
+      "prior-guard-replay.json": {
+        "sha256": "c403cb35b73b32c423d270ac6559f0909c1e25c2a071f999211bc9fc320c1181",
+        "bytes": 458457
+      },
+      "representation-preflight.json": {
+        "sha256": "4d872758b4e2ffe51c329405841a94954c2cd1e8b65997719a18e9bfb9928e00",
+        "bytes": 742
+      },
+      "responses.json": {
+        "sha256": "e93ff1b14351f8b5ac19ae76fc5ba1593a94d045cae97a4e2214aef71cee3f76",
+        "bytes": 3753902
+      },
+      "retained-responses.json": {
+        "sha256": "708b85e0872521ca4d938ea59506f9d6bc9dc03c1f51b24fe3b4c6c3b6cde33f",
+        "bytes": 5904588
+      },
+      "sample-disjoint-subject0-depth1.json": {
+        "sha256": "14a91acaa668ef2bfcc828e7f8cce386cca86a50a87a9d3beb8a9dcdfa534def",
+        "bytes": 406369
+      },
+      "sample-disjoint-subject0-depth2.json": {
+        "sha256": "4b09b5ca45e045a832bdcb8c5963335e49089f7677aa5604e12c5d4a6daa9f25",
+        "bytes": 492603
+      },
+      "sample-disjoint-subject1-depth1.json": {
+        "sha256": "1193ed5f05f3f11ca5586849c560b389ce8af671bd875b38da10513974f7a01e",
+        "bytes": 403964
+      },
+      "sample-disjoint-subject1-depth2.json": {
+        "sha256": "d80d0abc00ac69e225b26c9edbf23ce271fc0cc78f8635ccc381dfb9b81b55e2",
+        "bytes": 493656
+      },
+      "sample-disjoint_repeat_answer-subject0-depth1.json": {
+        "sha256": "44f175c24dd236e3bec90bd4e477d181a9483714473b89e8ae2b581c0084a8a6",
+        "bytes": 406453
+      },
+      "sample-disjoint_repeat_answer-subject0-depth2.json": {
+        "sha256": "4226b28bd16832bd3ef7ffb5d96e04db6ba005ee2a0915fbed6b54e19aeda9ec",
+        "bytes": 492693
+      },
+      "sample-disjoint_repeat_answer-subject1-depth1.json": {
+        "sha256": "c11dfc3d7fe75b6fa0f851de78e759eb4a23bdd6677473c2ff1e9e10b19c0811",
+        "bytes": 404090
+      },
+      "sample-disjoint_repeat_answer-subject1-depth2.json": {
+        "sha256": "17a31ed4b75a4c2cb6975da9933460a95649a2386579bb960c509a037efd0c59",
+        "bytes": 493792
+      },
+      "sample-disjoint_repeat_known-subject0-depth1.json": {
+        "sha256": "33346d539e4285ae1742c2770b122598af2de138fdd5ed395b8dbe0bde3c0221",
+        "bytes": 405941
+      },
+      "sample-disjoint_repeat_known-subject0-depth2.json": {
+        "sha256": "aab96e2d2a34eef2d760da0bf25c3630f7aaba6188dfc739049fbb3b6d6ca1cb",
+        "bytes": 495175
+      },
+      "sample-disjoint_repeat_known-subject1-depth1.json": {
+        "sha256": "f4a8dc1787296077fc94df33c84bf5c8e8c3d941fc88280f81b869f691deec9d",
+        "bytes": 401469
+      },
+      "sample-disjoint_repeat_known-subject1-depth2.json": {
+        "sha256": "3071dd9da3c31d2970fea770e2612fc8d0612307dd6f0be41b096200fe9d6e89",
+        "bytes": 496013
+      },
+      "sample-overlap_first_first-subject0-depth1.json": {
+        "sha256": "edb5161d4df87fcd7a267b3cdae0196c8826faa82bef88ede873388a65094a38",
+        "bytes": 377784
+      },
+      "sample-overlap_first_first-subject0-depth2.json": {
+        "sha256": "27211fe1a6eeb129b5bf6cd405342682e245b355ce35d906a7ecb6c3bae2b147",
+        "bytes": 463928
+      },
+      "sample-overlap_first_first-subject1-depth1.json": {
+        "sha256": "b9625d99183299f0f5e2a6373cc34faa30bae33a67f70b34243ef00c2c386d2f",
+        "bytes": 375579
+      },
+      "sample-overlap_first_first-subject1-depth2.json": {
+        "sha256": "695ab046dc928acb8007622f97492d814987eba2fe4516de4684d3b7497b828e",
+        "bytes": 465217
+      },
+      "sample-overlap_first_last-subject0-depth1.json": {
+        "sha256": "6beb11d5487af13445f13b0821d76e4ed4872f495eaadb49f7da2021c881f2df",
+        "bytes": 377757
+      },
+      "sample-overlap_first_last-subject0-depth2.json": {
+        "sha256": "d59fd2d474f7a8539637fff8a41b735e999825d8319fc47f946bf74451bc70b5",
+        "bytes": 463933
+      },
+      "sample-overlap_first_last-subject1-depth1.json": {
+        "sha256": "84b5730bc12479f33d17d4bb24c5aa727226bed1ff13938178c3b8df517217ec",
+        "bytes": 375564
+      },
+      "sample-overlap_first_last-subject1-depth2.json": {
+        "sha256": "f1c480084096363f1d28b06e3238f2d8ec6363a1116e4e9ce04c92dd7dc7a411",
+        "bytes": 465170
+      },
+      "sample-overlap_last_first-subject0-depth1.json": {
+        "sha256": "2dd66e94fc94b1148e3d568d792632e37b41ea236d7ce2e7538cbd0bb4daca9b",
+        "bytes": 377352
+      },
+      "sample-overlap_last_first-subject0-depth2.json": {
+        "sha256": "cd3cbbd8f4cb4314e89d195c23397e48895b5ac73c6f9b8be3bee8eac343a994",
+        "bytes": 463483
+      },
+      "sample-overlap_last_first-subject1-depth1.json": {
+        "sha256": "0c01e8e2a50762c89fb99a1e9306351b975d47a84563b0fd92cdc3a60ce30fb2",
+        "bytes": 375445
+      },
+      "sample-overlap_last_first-subject1-depth2.json": {
+        "sha256": "216a87d0e2a3dd3215f4066379b1fb65c569d19533a6f32f352f1b45d4ab1584",
+        "bytes": 465076
+      },
+      "sample-overlap_repeat_answer-subject0-depth1.json": {
+        "sha256": "7c6f5208a72287aeeda91b945395200dcf934aaedf8e4b47903fed077d8b0533",
+        "bytes": 349739
+      },
+      "sample-overlap_repeat_answer-subject0-depth2.json": {
+        "sha256": "7b1761cb8d2a094376dfcfa0ec1e98bc86220ffd072bf5f2c601814071c406b7",
+        "bytes": 435835
+      },
+      "sample-overlap_repeat_answer-subject1-depth1.json": {
+        "sha256": "bb78ed486f6d773406cb491f9d8a8be153cd2b98bca1bd7fb4510d284299112b",
+        "bytes": 347503
+      },
+      "sample-overlap_repeat_answer-subject1-depth2.json": {
+        "sha256": "7e118e2c85cd2f8e3428537713d554c5ca68f9e79c6e3adc8ae0294134be2bb0",
+        "bytes": 437059
+      },
+      "sample-overlap_repeat_known-subject0-depth1.json": {
+        "sha256": "4e9467fb199ee5e8136c07babb5f4f09368579386a90e30b83beec0da4f9c3a2",
+        "bytes": 389610
+      },
+      "sample-overlap_repeat_known-subject0-depth2.json": {
+        "sha256": "eac7d1a9375b68a0429fe8622ce5d6260b8b492ba9046f26a5bb4a4718e81c3d",
+        "bytes": 478754
+      },
+      "sample-overlap_repeat_known-subject1-depth1.json": {
+        "sha256": "186a2bc04404a1fb783cddd56a87d3fa3121fff8088368c9210328e4cdf4dee7",
+        "bytes": 385272
+      },
+      "sample-overlap_repeat_known-subject1-depth2.json": {
+        "sha256": "49e902554a95adda0c3c1f495c79a1f6b686e4bef6635061f9c9fc91350ddc16",
+        "bytes": 479762
+      },
+      "search-nodes.json": {
+        "sha256": "424764cceb55d767853d7d765de598df02d7b07f3d197eeba5e7986496418716",
+        "bytes": 275602
+      },
+      "summary.json": {
+        "sha256": "a1cd2fd9a4f09342408d83985cc3b421dfe36d51048c6846c6da517893eafc2a",
+        "bytes": 42143
+      },
+      "training-data.json": {
+        "sha256": "e5ae4def5e3200a32bd56ee976c514c8a15336f81345f897a912841e9209cf65",
+        "bytes": 7904913
+      }
+    }
+  },
+  "diagnostic": {
+    "report_root": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/correspondence-runs-1/diagnostic-3",
+    "summary": {
+      "enumerated_candidates": 152256,
+      "exactly_one_compatible_offer_rows": 2816,
+      "final_holdout": "NOT_RUN",
+      "first_negative": null,
+      "fits": 0,
+      "forced_candidate_generations": 2924,
+      "gate": "PASS_CORRESPONDENCE_REPRESENTATION",
+      "max_search_nodes": 303,
+      "negative_admissions": 0,
+      "parent_parameters_unchanged": true,
+      "parent_sha256": "44c0ebf482d5807354a2e2b4c3fd6ceb310dd076ce199536f801f6cad472264b",
+      "prior_conflict_rows_separated": 912,
+      "prior_sole_target_conflict_rows": 912,
+      "promotion": false,
+      "recorded_pairs": 1,
+      "recorded_pairs_separated": 1,
+      "source_sha256": "9fc20a65bff8e61b96823f39eeeb31cc36b73696cc183ebdffa0d2424f559e59",
+      "training_rows": 2816,
+      "unreachable_candidates_not_evaluated": 149332
+    },
+    "files": {
+      "acceptance.json": {
+        "sha256": "db52a74992058ef4c854d0aab98fcdb34eeed68a4dcd80705128dc40947904cd",
+        "bytes": 607
+      },
+      "artifact-validation.json": {
+        "sha256": "fbeaae1bf68b9eb677737d485014b80ea0f24e15058afdb470d24ed060ae01ab",
+        "bytes": 152
+      },
+      "attempt.json": {
+        "sha256": "7f683de76e8b8bb4fbd70744d4b9a3804635c67571904d4796a0c891385968ce",
+        "bytes": 513
+      },
+      "evaluated-candidates.json": {
+        "sha256": "c1837222a6aef4c855b3a08edbe2cf6d76bbbb5398230e0c3331421e3b8d067b",
+        "bytes": 1129114
+      },
+      "inputs.json": {
+        "sha256": "234f84ef983871c9685c538865c07a5f44ae3525a65d4504870652d021bcf531",
+        "bytes": 9339
+      },
+      "manifest.json": {
+        "sha256": "aa1f597a5229b7e353611875fe5d84795188edadad6d7b6d67eb90d39d658e33",
+        "bytes": 1461
+      },
+      "recorded-pairs.json": {
+        "sha256": "420458f05d2f59bb340f7909da76e2996a66955ac1d72ae28decfe8920b0f693",
+        "bytes": 8541
+      },
+      "rows.json": {
+        "sha256": "14b2d5fe6e901d9cd1f6fbe6e297f4c6e7a9a2a74823d9d2cfbfdcb0a2c4c38c",
+        "bytes": 823610
+      },
+      "summary.json": {
+        "sha256": "be3b6d583f411d379616acdb946f7ea56f4294b97abe7c734dfbfafedafdd5c6",
+        "bytes": 742
+      }
+    }
+  },
+  "qualification": {
+    "report_root": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/correspondence-runs-1/attempt-2",
+    "summary": {
+      "candidate_sha256": "1838cc12bda863c769db9239d7b225e91dd82856c7e90bf7427abffb5a9e1b23",
+      "complete_families": 32,
+      "development_rows": 384,
+      "final_holdout": "NOT_RUN",
+      "fit": {
+        "ambiguous_target_rows": 1152,
+        "conflict_scope": "A compatible and incompatible source/span share an identical admission signature across all declared proposals; another compatible candidate may remain separable. Zero signatures are included. This is not general representational impossibility.",
+        "conflicting_candidate_proposal_signatures": 1,
+        "covered": [
+          2816
+        ],
+        "forced_candidate_generations": 152256,
+        "max_preparation_search_nodes": 303,
+        "missing_target_rows": 0,
+        "preparation_candidates": 152256,
+        "proposal_masks": [
+          327682,
+          327683,
+          327686,
+          327690,
+          327698,
+          327714,
+          327746,
+          327810,
+          327938,
+          328194,
+          328706,
+          329730,
+          331778,
+          335874,
+          344066,
+          360450,
+          458754,
+          851970,
+          327687,
+          327691,
+          327694,
+          327699,
+          327702,
+          327706,
+          327715,
+          327718,
+          327722,
+          327730,
+          327747,
+          327750,
+          327754,
+          327762,
+          327778,
+          327811,
+          327814,
+          327818,
+          327826,
+          327842,
+          327874,
+          327939,
+          327942,
+          327946,
+          327954,
+          327970,
+          328002,
+          328066,
+          328195,
+          328198,
+          328202,
+          328210,
+          328226,
+          328258,
+          328322,
+          328450,
+          328707,
+          328710,
+          328714,
+          328722,
+          328738,
+          328770,
+          328834,
+          328962,
+          329218,
+          329731,
+          329734,
+          329738,
+          329746,
+          329762,
+          329794,
+          329858,
+          329986,
+          330242,
+          330754,
+          331779,
+          331782,
+          331786,
+          331794,
+          331810,
+          331842,
+          331906,
+          332034,
+          332290,
+          332802,
+          333826,
+          335875,
+          335878,
+          335882,
+          335890,
+          335906,
+          335938,
+          336002,
+          336130,
+          336386,
+          336898,
+          337922,
+          339970,
+          344067,
+          344070,
+          344074,
+          344082,
+          344098,
+          344130,
+          344194,
+          344322,
+          344578,
+          345090,
+          346114,
+          348162,
+          352258,
+          360451,
+          360454,
+          360458,
+          360466,
+          360482,
+          360514,
+          360578,
+          360706,
+          360962,
+          361474,
+          362498,
+          364546,
+          368642,
+          376834,
+          458755,
+          458758,
+          458762,
+          458770,
+          458786,
+          458818,
+          458882,
+          459010,
+          459266,
+          459778,
+          460802,
+          462850,
+          466946,
+          475138,
+          491522,
+          851971,
+          851974,
+          851978,
+          851986,
+          852002,
+          852034,
+          852098,
+          852226,
+          852482,
+          852994,
+          854018,
+          856066,
+          860162,
+          868354,
+          884738,
+          983042
+        ],
+        "proposals": 154,
+        "rows_with_conflicting_compatible_candidate": 1152,
+        "rules": [
+          851970
+        ],
+        "stopping": "complete_cover",
+        "target_rows_without_reachable_proposal": 0,
+        "training_exact": 2816,
+        "training_rows": 2816
+      },
+      "fit_origin": "correspondence-runs-1/attempt-1, original154proposal search; currentmaskreused",
+      "fits": 0,
+      "full_exact_identity_equal": 384,
+      "gate": "PASS_ORDERED_CORRESPONDENCE",
+      "groups": {
+        "ContextProjectionDisabled/depth/1": {
+          "bounds": 192,
+          "correct": 192,
+          "errors": 0,
+          "one_read_correct": 192,
+          "paths": 192,
+          "payloads": 192,
+          "queries": 192,
+          "query_geometry": 192,
+          "rows": 192,
+          "spans": 192,
+          "two_read_correct": 0
+        },
+        "ContextProjectionDisabled/depth/2": {
+          "bounds": 192,
+          "correct": 192,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 192,
+          "payloads": 192,
+          "queries": 192,
+          "query_geometry": 192,
+          "rows": 192,
+          "spans": 192,
+          "two_read_correct": 192
+        },
+        "ContextProjectionDisabled/pattern/disjoint": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "ContextProjectionDisabled/pattern/disjoint_repeat_answer": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "ContextProjectionDisabled/pattern/disjoint_repeat_known": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "ContextProjectionDisabled/pattern/overlap_first_first": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "ContextProjectionDisabled/pattern/overlap_first_last": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "ContextProjectionDisabled/pattern/overlap_last_first": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "ContextProjectionDisabled/pattern/overlap_repeat_answer": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "ContextProjectionDisabled/pattern/overlap_repeat_known": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "ContextProjectionDisabled/role/0": {
+          "bounds": 192,
+          "correct": 192,
+          "errors": 0,
+          "one_read_correct": 96,
+          "paths": 192,
+          "payloads": 192,
+          "queries": 192,
+          "query_geometry": 192,
+          "rows": 192,
+          "spans": 192,
+          "two_read_correct": 96
+        },
+        "ContextProjectionDisabled/role/1": {
+          "bounds": 192,
+          "correct": 192,
+          "errors": 0,
+          "one_read_correct": 96,
+          "paths": 192,
+          "payloads": 192,
+          "queries": 192,
+          "query_geometry": 192,
+          "rows": 192,
+          "spans": 192,
+          "two_read_correct": 96
+        },
+        "ContextProjectionDisabled/variant/active": {
+          "bounds": 128,
+          "correct": 128,
+          "errors": 0,
+          "one_read_correct": 64,
+          "paths": 128,
+          "payloads": 128,
+          "queries": 128,
+          "query_geometry": 128,
+          "rows": 128,
+          "spans": 128,
+          "two_read_correct": 64
+        },
+        "ContextProjectionDisabled/variant/baseline": {
+          "bounds": 128,
+          "correct": 128,
+          "errors": 0,
+          "one_read_correct": 64,
+          "paths": 128,
+          "payloads": 128,
+          "queries": 128,
+          "query_geometry": 128,
+          "rows": 128,
+          "spans": 128,
+          "two_read_correct": 64
+        },
+        "ContextProjectionDisabled/variant/inactive": {
+          "bounds": 128,
+          "correct": 128,
+          "errors": 0,
+          "one_read_correct": 64,
+          "paths": 128,
+          "payloads": 128,
+          "queries": 128,
+          "query_geometry": 128,
+          "rows": 128,
+          "spans": 128,
+          "two_read_correct": 64
+        },
+        "ExactIdentity/depth/1": {
+          "bounds": 192,
+          "correct": 192,
+          "errors": 0,
+          "one_read_correct": 192,
+          "paths": 192,
+          "payloads": 192,
+          "queries": 192,
+          "query_geometry": 192,
+          "rows": 192,
+          "spans": 192,
+          "two_read_correct": 0
+        },
+        "ExactIdentity/depth/2": {
+          "bounds": 192,
+          "correct": 192,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 192,
+          "payloads": 192,
+          "queries": 192,
+          "query_geometry": 192,
+          "rows": 192,
+          "spans": 192,
+          "two_read_correct": 192
+        },
+        "ExactIdentity/pattern/disjoint": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "ExactIdentity/pattern/disjoint_repeat_answer": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "ExactIdentity/pattern/disjoint_repeat_known": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "ExactIdentity/pattern/overlap_first_first": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "ExactIdentity/pattern/overlap_first_last": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "ExactIdentity/pattern/overlap_last_first": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "ExactIdentity/pattern/overlap_repeat_answer": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "ExactIdentity/pattern/overlap_repeat_known": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "ExactIdentity/role/0": {
+          "bounds": 192,
+          "correct": 192,
+          "errors": 0,
+          "one_read_correct": 96,
+          "paths": 192,
+          "payloads": 192,
+          "queries": 192,
+          "query_geometry": 192,
+          "rows": 192,
+          "spans": 192,
+          "two_read_correct": 96
+        },
+        "ExactIdentity/role/1": {
+          "bounds": 192,
+          "correct": 192,
+          "errors": 0,
+          "one_read_correct": 96,
+          "paths": 192,
+          "payloads": 192,
+          "queries": 192,
+          "query_geometry": 192,
+          "rows": 192,
+          "spans": 192,
+          "two_read_correct": 96
+        },
+        "ExactIdentity/variant/active": {
+          "bounds": 128,
+          "correct": 128,
+          "errors": 0,
+          "one_read_correct": 64,
+          "paths": 128,
+          "payloads": 128,
+          "queries": 128,
+          "query_geometry": 128,
+          "rows": 128,
+          "spans": 128,
+          "two_read_correct": 64
+        },
+        "ExactIdentity/variant/baseline": {
+          "bounds": 128,
+          "correct": 128,
+          "errors": 0,
+          "one_read_correct": 64,
+          "paths": 128,
+          "payloads": 128,
+          "queries": 128,
+          "query_geometry": 128,
+          "rows": 128,
+          "spans": 128,
+          "two_read_correct": 64
+        },
+        "ExactIdentity/variant/inactive": {
+          "bounds": 128,
+          "correct": 128,
+          "errors": 0,
+          "one_read_correct": 64,
+          "paths": 128,
+          "payloads": 128,
+          "queries": 128,
+          "query_geometry": 128,
+          "rows": 128,
+          "spans": 128,
+          "two_read_correct": 64
+        },
+        "Full/depth/1": {
+          "bounds": 192,
+          "correct": 192,
+          "errors": 0,
+          "one_read_correct": 192,
+          "paths": 192,
+          "payloads": 192,
+          "queries": 192,
+          "query_geometry": 192,
+          "rows": 192,
+          "spans": 192,
+          "two_read_correct": 0
+        },
+        "Full/depth/2": {
+          "bounds": 192,
+          "correct": 192,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 192,
+          "payloads": 192,
+          "queries": 192,
+          "query_geometry": 192,
+          "rows": 192,
+          "spans": 192,
+          "two_read_correct": 192
+        },
+        "Full/pattern/disjoint": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "Full/pattern/disjoint_repeat_answer": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "Full/pattern/disjoint_repeat_known": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "Full/pattern/overlap_first_first": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "Full/pattern/overlap_first_last": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "Full/pattern/overlap_last_first": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "Full/pattern/overlap_repeat_answer": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "Full/pattern/overlap_repeat_known": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "Full/role/0": {
+          "bounds": 192,
+          "correct": 192,
+          "errors": 0,
+          "one_read_correct": 96,
+          "paths": 192,
+          "payloads": 192,
+          "queries": 192,
+          "query_geometry": 192,
+          "rows": 192,
+          "spans": 192,
+          "two_read_correct": 96
+        },
+        "Full/role/1": {
+          "bounds": 192,
+          "correct": 192,
+          "errors": 0,
+          "one_read_correct": 96,
+          "paths": 192,
+          "payloads": 192,
+          "queries": 192,
+          "query_geometry": 192,
+          "rows": 192,
+          "spans": 192,
+          "two_read_correct": 96
+        },
+        "Full/variant/active": {
+          "bounds": 128,
+          "correct": 128,
+          "errors": 0,
+          "one_read_correct": 64,
+          "paths": 128,
+          "payloads": 128,
+          "queries": 128,
+          "query_geometry": 128,
+          "rows": 128,
+          "spans": 128,
+          "two_read_correct": 64
+        },
+        "Full/variant/baseline": {
+          "bounds": 128,
+          "correct": 128,
+          "errors": 0,
+          "one_read_correct": 64,
+          "paths": 128,
+          "payloads": 128,
+          "queries": 128,
+          "query_geometry": 128,
+          "rows": 128,
+          "spans": 128,
+          "two_read_correct": 64
+        },
+        "Full/variant/inactive": {
+          "bounds": 128,
+          "correct": 128,
+          "errors": 0,
+          "one_read_correct": 64,
+          "paths": 128,
+          "payloads": 128,
+          "queries": 128,
+          "query_geometry": 128,
+          "rows": 128,
+          "spans": 128,
+          "two_read_correct": 64
+        },
+        "NonInjective/depth/1": {
+          "bounds": 192,
+          "correct": 192,
+          "errors": 0,
+          "one_read_correct": 192,
+          "paths": 192,
+          "payloads": 192,
+          "queries": 192,
+          "query_geometry": 192,
+          "rows": 192,
+          "spans": 192,
+          "two_read_correct": 0
+        },
+        "NonInjective/depth/2": {
+          "bounds": 192,
+          "correct": 192,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 192,
+          "payloads": 192,
+          "queries": 192,
+          "query_geometry": 192,
+          "rows": 192,
+          "spans": 192,
+          "two_read_correct": 192
+        },
+        "NonInjective/pattern/disjoint": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "NonInjective/pattern/disjoint_repeat_answer": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "NonInjective/pattern/disjoint_repeat_known": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "NonInjective/pattern/overlap_first_first": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "NonInjective/pattern/overlap_first_last": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "NonInjective/pattern/overlap_last_first": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "NonInjective/pattern/overlap_repeat_answer": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "NonInjective/pattern/overlap_repeat_known": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "NonInjective/role/0": {
+          "bounds": 192,
+          "correct": 192,
+          "errors": 0,
+          "one_read_correct": 96,
+          "paths": 192,
+          "payloads": 192,
+          "queries": 192,
+          "query_geometry": 192,
+          "rows": 192,
+          "spans": 192,
+          "two_read_correct": 96
+        },
+        "NonInjective/role/1": {
+          "bounds": 192,
+          "correct": 192,
+          "errors": 0,
+          "one_read_correct": 96,
+          "paths": 192,
+          "payloads": 192,
+          "queries": 192,
+          "query_geometry": 192,
+          "rows": 192,
+          "spans": 192,
+          "two_read_correct": 96
+        },
+        "NonInjective/variant/active": {
+          "bounds": 128,
+          "correct": 128,
+          "errors": 0,
+          "one_read_correct": 64,
+          "paths": 128,
+          "payloads": 128,
+          "queries": 128,
+          "query_geometry": 128,
+          "rows": 128,
+          "spans": 128,
+          "two_read_correct": 64
+        },
+        "NonInjective/variant/baseline": {
+          "bounds": 128,
+          "correct": 128,
+          "errors": 0,
+          "one_read_correct": 64,
+          "paths": 128,
+          "payloads": 128,
+          "queries": 128,
+          "query_geometry": 128,
+          "rows": 128,
+          "spans": 128,
+          "two_read_correct": 64
+        },
+        "NonInjective/variant/inactive": {
+          "bounds": 128,
+          "correct": 128,
+          "errors": 0,
+          "one_read_correct": 64,
+          "paths": 128,
+          "payloads": 128,
+          "queries": 128,
+          "query_geometry": 128,
+          "rows": 128,
+          "spans": 128,
+          "two_read_correct": 64
+        },
+        "ParentUnionMatches/depth/1": {
+          "bounds": 72,
+          "correct": 72,
+          "errors": 0,
+          "one_read_correct": 72,
+          "paths": 84,
+          "payloads": 72,
+          "queries": 192,
+          "query_geometry": 192,
+          "rows": 192,
+          "spans": 72,
+          "two_read_correct": 0
+        },
+        "ParentUnionMatches/depth/2": {
+          "bounds": 72,
+          "correct": 72,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 84,
+          "payloads": 72,
+          "queries": 120,
+          "query_geometry": 120,
+          "rows": 192,
+          "spans": 72,
+          "two_read_correct": 72
+        },
+        "ParentUnionMatches/pattern/disjoint": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "ParentUnionMatches/pattern/disjoint_repeat_answer": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "ParentUnionMatches/pattern/disjoint_repeat_known": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "ParentUnionMatches/pattern/overlap_first_first": {
+          "bounds": 0,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 0,
+          "payloads": 0,
+          "queries": 36,
+          "query_geometry": 36,
+          "rows": 48,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "ParentUnionMatches/pattern/overlap_first_last": {
+          "bounds": 0,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 24,
+          "payloads": 0,
+          "queries": 36,
+          "query_geometry": 36,
+          "rows": 48,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "ParentUnionMatches/pattern/overlap_last_first": {
+          "bounds": 0,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 0,
+          "payloads": 0,
+          "queries": 36,
+          "query_geometry": 36,
+          "rows": 48,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "ParentUnionMatches/pattern/overlap_repeat_answer": {
+          "bounds": 0,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 0,
+          "payloads": 0,
+          "queries": 24,
+          "query_geometry": 24,
+          "rows": 48,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "ParentUnionMatches/pattern/overlap_repeat_known": {
+          "bounds": 0,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 0,
+          "payloads": 0,
+          "queries": 36,
+          "query_geometry": 36,
+          "rows": 48,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "ParentUnionMatches/role/0": {
+          "bounds": 72,
+          "correct": 72,
+          "errors": 0,
+          "one_read_correct": 36,
+          "paths": 72,
+          "payloads": 72,
+          "queries": 132,
+          "query_geometry": 132,
+          "rows": 192,
+          "spans": 72,
+          "two_read_correct": 36
+        },
+        "ParentUnionMatches/role/1": {
+          "bounds": 72,
+          "correct": 72,
+          "errors": 0,
+          "one_read_correct": 36,
+          "paths": 96,
+          "payloads": 72,
+          "queries": 180,
+          "query_geometry": 180,
+          "rows": 192,
+          "spans": 72,
+          "two_read_correct": 36
+        },
+        "ParentUnionMatches/variant/active": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 56,
+          "payloads": 48,
+          "queries": 104,
+          "query_geometry": 104,
+          "rows": 128,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "ParentUnionMatches/variant/baseline": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 56,
+          "payloads": 48,
+          "queries": 104,
+          "query_geometry": 104,
+          "rows": 128,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "ParentUnionMatches/variant/inactive": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 56,
+          "payloads": 48,
+          "queries": 104,
+          "query_geometry": 104,
+          "rows": 128,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "ReadDisabled/depth/1": {
+          "bounds": 0,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 0,
+          "payloads": 0,
+          "queries": 192,
+          "query_geometry": 192,
+          "rows": 192,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "ReadDisabled/depth/2": {
+          "bounds": 0,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 0,
+          "payloads": 0,
+          "queries": 0,
+          "query_geometry": 0,
+          "rows": 192,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "ReadDisabled/pattern/disjoint": {
+          "bounds": 0,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 0,
+          "payloads": 0,
+          "queries": 24,
+          "query_geometry": 24,
+          "rows": 48,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "ReadDisabled/pattern/disjoint_repeat_answer": {
+          "bounds": 0,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 0,
+          "payloads": 0,
+          "queries": 24,
+          "query_geometry": 24,
+          "rows": 48,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "ReadDisabled/pattern/disjoint_repeat_known": {
+          "bounds": 0,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 0,
+          "payloads": 0,
+          "queries": 24,
+          "query_geometry": 24,
+          "rows": 48,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "ReadDisabled/pattern/overlap_first_first": {
+          "bounds": 0,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 0,
+          "payloads": 0,
+          "queries": 24,
+          "query_geometry": 24,
+          "rows": 48,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "ReadDisabled/pattern/overlap_first_last": {
+          "bounds": 0,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 0,
+          "payloads": 0,
+          "queries": 24,
+          "query_geometry": 24,
+          "rows": 48,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "ReadDisabled/pattern/overlap_last_first": {
+          "bounds": 0,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 0,
+          "payloads": 0,
+          "queries": 24,
+          "query_geometry": 24,
+          "rows": 48,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "ReadDisabled/pattern/overlap_repeat_answer": {
+          "bounds": 0,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 0,
+          "payloads": 0,
+          "queries": 24,
+          "query_geometry": 24,
+          "rows": 48,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "ReadDisabled/pattern/overlap_repeat_known": {
+          "bounds": 0,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 0,
+          "payloads": 0,
+          "queries": 24,
+          "query_geometry": 24,
+          "rows": 48,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "ReadDisabled/role/0": {
+          "bounds": 0,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 0,
+          "payloads": 0,
+          "queries": 96,
+          "query_geometry": 96,
+          "rows": 192,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "ReadDisabled/role/1": {
+          "bounds": 0,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 0,
+          "payloads": 0,
+          "queries": 96,
+          "query_geometry": 96,
+          "rows": 192,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "ReadDisabled/variant/active": {
+          "bounds": 0,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 0,
+          "payloads": 0,
+          "queries": 64,
+          "query_geometry": 64,
+          "rows": 128,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "ReadDisabled/variant/baseline": {
+          "bounds": 0,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 0,
+          "payloads": 0,
+          "queries": 64,
+          "query_geometry": 64,
+          "rows": 128,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "ReadDisabled/variant/inactive": {
+          "bounds": 0,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 0,
+          "payloads": 0,
+          "queries": 64,
+          "query_geometry": 64,
+          "rows": 128,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "StructureDisabled/depth/1": {
+          "bounds": 148,
+          "correct": 148,
+          "errors": 0,
+          "one_read_correct": 148,
+          "paths": 148,
+          "payloads": 148,
+          "queries": 192,
+          "query_geometry": 192,
+          "rows": 192,
+          "spans": 148,
+          "two_read_correct": 0
+        },
+        "StructureDisabled/depth/2": {
+          "bounds": 148,
+          "correct": 148,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 148,
+          "payloads": 148,
+          "queries": 148,
+          "query_geometry": 148,
+          "rows": 192,
+          "spans": 148,
+          "two_read_correct": 148
+        },
+        "StructureDisabled/pattern/disjoint": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "StructureDisabled/pattern/disjoint_repeat_answer": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "StructureDisabled/pattern/disjoint_repeat_known": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "StructureDisabled/pattern/overlap_first_first": {
+          "bounds": 24,
+          "correct": 24,
+          "errors": 0,
+          "one_read_correct": 12,
+          "paths": 24,
+          "payloads": 24,
+          "queries": 36,
+          "query_geometry": 36,
+          "rows": 48,
+          "spans": 24,
+          "two_read_correct": 12
+        },
+        "StructureDisabled/pattern/overlap_first_last": {
+          "bounds": 24,
+          "correct": 24,
+          "errors": 0,
+          "one_read_correct": 12,
+          "paths": 24,
+          "payloads": 24,
+          "queries": 36,
+          "query_geometry": 36,
+          "rows": 48,
+          "spans": 24,
+          "two_read_correct": 12
+        },
+        "StructureDisabled/pattern/overlap_last_first": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "StructureDisabled/pattern/overlap_repeat_answer": {
+          "bounds": 32,
+          "correct": 32,
+          "errors": 0,
+          "one_read_correct": 16,
+          "paths": 32,
+          "payloads": 32,
+          "queries": 40,
+          "query_geometry": 40,
+          "rows": 48,
+          "spans": 32,
+          "two_read_correct": 16
+        },
+        "StructureDisabled/pattern/overlap_repeat_known": {
+          "bounds": 24,
+          "correct": 24,
+          "errors": 0,
+          "one_read_correct": 12,
+          "paths": 24,
+          "payloads": 24,
+          "queries": 36,
+          "query_geometry": 36,
+          "rows": 48,
+          "spans": 24,
+          "two_read_correct": 12
+        },
+        "StructureDisabled/role/0": {
+          "bounds": 192,
+          "correct": 192,
+          "errors": 0,
+          "one_read_correct": 96,
+          "paths": 192,
+          "payloads": 192,
+          "queries": 192,
+          "query_geometry": 192,
+          "rows": 192,
+          "spans": 192,
+          "two_read_correct": 96
+        },
+        "StructureDisabled/role/1": {
+          "bounds": 104,
+          "correct": 104,
+          "errors": 0,
+          "one_read_correct": 52,
+          "paths": 104,
+          "payloads": 104,
+          "queries": 148,
+          "query_geometry": 148,
+          "rows": 192,
+          "spans": 104,
+          "two_read_correct": 52
+        },
+        "StructureDisabled/variant/active": {
+          "bounds": 104,
+          "correct": 104,
+          "errors": 0,
+          "one_read_correct": 52,
+          "paths": 104,
+          "payloads": 104,
+          "queries": 116,
+          "query_geometry": 116,
+          "rows": 128,
+          "spans": 104,
+          "two_read_correct": 52
+        },
+        "StructureDisabled/variant/baseline": {
+          "bounds": 96,
+          "correct": 96,
+          "errors": 0,
+          "one_read_correct": 48,
+          "paths": 96,
+          "payloads": 96,
+          "queries": 112,
+          "query_geometry": 112,
+          "rows": 128,
+          "spans": 96,
+          "two_read_correct": 48
+        },
+        "StructureDisabled/variant/inactive": {
+          "bounds": 96,
+          "correct": 96,
+          "errors": 0,
+          "one_read_correct": 48,
+          "paths": 96,
+          "payloads": 96,
+          "queries": 112,
+          "query_geometry": 112,
+          "rows": 128,
+          "spans": 96,
+          "two_read_correct": 48
+        },
+        "UnionMatches/depth/1": {
+          "bounds": 72,
+          "correct": 72,
+          "errors": 0,
+          "one_read_correct": 72,
+          "paths": 84,
+          "payloads": 72,
+          "queries": 192,
+          "query_geometry": 192,
+          "rows": 192,
+          "spans": 72,
+          "two_read_correct": 0
+        },
+        "UnionMatches/depth/2": {
+          "bounds": 72,
+          "correct": 72,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 84,
+          "payloads": 72,
+          "queries": 120,
+          "query_geometry": 120,
+          "rows": 192,
+          "spans": 72,
+          "two_read_correct": 72
+        },
+        "UnionMatches/pattern/disjoint": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "UnionMatches/pattern/disjoint_repeat_answer": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "UnionMatches/pattern/disjoint_repeat_known": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 48,
+          "payloads": 48,
+          "queries": 48,
+          "query_geometry": 48,
+          "rows": 48,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "UnionMatches/pattern/overlap_first_first": {
+          "bounds": 0,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 0,
+          "payloads": 0,
+          "queries": 36,
+          "query_geometry": 36,
+          "rows": 48,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "UnionMatches/pattern/overlap_first_last": {
+          "bounds": 0,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 24,
+          "payloads": 0,
+          "queries": 36,
+          "query_geometry": 36,
+          "rows": 48,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "UnionMatches/pattern/overlap_last_first": {
+          "bounds": 0,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 0,
+          "payloads": 0,
+          "queries": 36,
+          "query_geometry": 36,
+          "rows": 48,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "UnionMatches/pattern/overlap_repeat_answer": {
+          "bounds": 0,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 0,
+          "payloads": 0,
+          "queries": 24,
+          "query_geometry": 24,
+          "rows": 48,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "UnionMatches/pattern/overlap_repeat_known": {
+          "bounds": 0,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 0,
+          "payloads": 0,
+          "queries": 36,
+          "query_geometry": 36,
+          "rows": 48,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "UnionMatches/role/0": {
+          "bounds": 72,
+          "correct": 72,
+          "errors": 0,
+          "one_read_correct": 36,
+          "paths": 72,
+          "payloads": 72,
+          "queries": 132,
+          "query_geometry": 132,
+          "rows": 192,
+          "spans": 72,
+          "two_read_correct": 36
+        },
+        "UnionMatches/role/1": {
+          "bounds": 72,
+          "correct": 72,
+          "errors": 0,
+          "one_read_correct": 36,
+          "paths": 96,
+          "payloads": 72,
+          "queries": 180,
+          "query_geometry": 180,
+          "rows": 192,
+          "spans": 72,
+          "two_read_correct": 36
+        },
+        "UnionMatches/variant/active": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 56,
+          "payloads": 48,
+          "queries": 104,
+          "query_geometry": 104,
+          "rows": 128,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "UnionMatches/variant/baseline": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 56,
+          "payloads": 48,
+          "queries": 104,
+          "query_geometry": 104,
+          "rows": 128,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "UnionMatches/variant/inactive": {
+          "bounds": 48,
+          "correct": 48,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 56,
+          "payloads": 48,
+          "queries": 104,
+          "query_geometry": 104,
+          "rows": 128,
+          "spans": 48,
+          "two_read_correct": 24
+        },
+        "UpdateDisabled/depth/1": {
+          "bounds": 192,
+          "correct": 192,
+          "errors": 0,
+          "one_read_correct": 192,
+          "paths": 192,
+          "payloads": 192,
+          "queries": 192,
+          "query_geometry": 192,
+          "rows": 192,
+          "spans": 192,
+          "two_read_correct": 0
+        },
+        "UpdateDisabled/depth/2": {
+          "bounds": 36,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 0,
+          "payloads": 0,
+          "queries": 0,
+          "query_geometry": 0,
+          "rows": 192,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "UpdateDisabled/pattern/disjoint": {
+          "bounds": 24,
+          "correct": 24,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 24,
+          "payloads": 24,
+          "queries": 24,
+          "query_geometry": 24,
+          "rows": 48,
+          "spans": 24,
+          "two_read_correct": 0
+        },
+        "UpdateDisabled/pattern/disjoint_repeat_answer": {
+          "bounds": 24,
+          "correct": 24,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 24,
+          "payloads": 24,
+          "queries": 24,
+          "query_geometry": 24,
+          "rows": 48,
+          "spans": 24,
+          "two_read_correct": 0
+        },
+        "UpdateDisabled/pattern/disjoint_repeat_known": {
+          "bounds": 24,
+          "correct": 24,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 24,
+          "payloads": 24,
+          "queries": 24,
+          "query_geometry": 24,
+          "rows": 48,
+          "spans": 24,
+          "two_read_correct": 0
+        },
+        "UpdateDisabled/pattern/overlap_first_first": {
+          "bounds": 36,
+          "correct": 24,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 24,
+          "payloads": 24,
+          "queries": 24,
+          "query_geometry": 24,
+          "rows": 48,
+          "spans": 24,
+          "two_read_correct": 0
+        },
+        "UpdateDisabled/pattern/overlap_first_last": {
+          "bounds": 36,
+          "correct": 24,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 24,
+          "payloads": 24,
+          "queries": 24,
+          "query_geometry": 24,
+          "rows": 48,
+          "spans": 24,
+          "two_read_correct": 0
+        },
+        "UpdateDisabled/pattern/overlap_last_first": {
+          "bounds": 36,
+          "correct": 24,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 24,
+          "payloads": 24,
+          "queries": 24,
+          "query_geometry": 24,
+          "rows": 48,
+          "spans": 24,
+          "two_read_correct": 0
+        },
+        "UpdateDisabled/pattern/overlap_repeat_answer": {
+          "bounds": 24,
+          "correct": 24,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 24,
+          "payloads": 24,
+          "queries": 24,
+          "query_geometry": 24,
+          "rows": 48,
+          "spans": 24,
+          "two_read_correct": 0
+        },
+        "UpdateDisabled/pattern/overlap_repeat_known": {
+          "bounds": 24,
+          "correct": 24,
+          "errors": 0,
+          "one_read_correct": 24,
+          "paths": 24,
+          "payloads": 24,
+          "queries": 24,
+          "query_geometry": 24,
+          "rows": 48,
+          "spans": 24,
+          "two_read_correct": 0
+        },
+        "UpdateDisabled/role/0": {
+          "bounds": 96,
+          "correct": 96,
+          "errors": 0,
+          "one_read_correct": 96,
+          "paths": 96,
+          "payloads": 96,
+          "queries": 96,
+          "query_geometry": 96,
+          "rows": 192,
+          "spans": 96,
+          "two_read_correct": 0
+        },
+        "UpdateDisabled/role/1": {
+          "bounds": 132,
+          "correct": 96,
+          "errors": 0,
+          "one_read_correct": 96,
+          "paths": 96,
+          "payloads": 96,
+          "queries": 96,
+          "query_geometry": 96,
+          "rows": 192,
+          "spans": 96,
+          "two_read_correct": 0
+        },
+        "UpdateDisabled/variant/active": {
+          "bounds": 76,
+          "correct": 64,
+          "errors": 0,
+          "one_read_correct": 64,
+          "paths": 64,
+          "payloads": 64,
+          "queries": 64,
+          "query_geometry": 64,
+          "rows": 128,
+          "spans": 64,
+          "two_read_correct": 0
+        },
+        "UpdateDisabled/variant/baseline": {
+          "bounds": 76,
+          "correct": 64,
+          "errors": 0,
+          "one_read_correct": 64,
+          "paths": 64,
+          "payloads": 64,
+          "queries": 64,
+          "query_geometry": 64,
+          "rows": 128,
+          "spans": 64,
+          "two_read_correct": 0
+        },
+        "UpdateDisabled/variant/inactive": {
+          "bounds": 76,
+          "correct": 64,
+          "errors": 0,
+          "one_read_correct": 64,
+          "paths": 64,
+          "payloads": 64,
+          "queries": 64,
+          "query_geometry": 64,
+          "rows": 128,
+          "spans": 64,
+          "two_read_correct": 0
+        }
+      },
+      "max_observed_search_nodes": 183,
+      "multiplicity_guard": {
+        "ExactIdentity_equal": true,
+        "Full_correct": true,
+        "NonInjectiveStructureDisabled_answered": true,
+        "NonInjectiveStructureDisabled_correct": false
+      },
+      "new_full_transfer_equal": true,
+      "new_full_transfer_rows": 6304,
+      "panels": {
+        "ContextProjectionDisabled": {
+          "bounds": 384,
+          "correct": 384,
+          "errors": 0,
+          "one_read_correct": 192,
+          "paths": 384,
+          "payloads": 384,
+          "queries": 384,
+          "query_geometry": 384,
+          "rows": 384,
+          "spans": 384,
+          "two_read_correct": 192
+        },
+        "ExactIdentity": {
+          "bounds": 384,
+          "correct": 384,
+          "errors": 0,
+          "one_read_correct": 192,
+          "paths": 384,
+          "payloads": 384,
+          "queries": 384,
+          "query_geometry": 384,
+          "rows": 384,
+          "spans": 384,
+          "two_read_correct": 192
+        },
+        "Full": {
+          "bounds": 384,
+          "correct": 384,
+          "errors": 0,
+          "one_read_correct": 192,
+          "paths": 384,
+          "payloads": 384,
+          "queries": 384,
+          "query_geometry": 384,
+          "rows": 384,
+          "spans": 384,
+          "two_read_correct": 192
+        },
+        "NonInjective": {
+          "bounds": 384,
+          "correct": 384,
+          "errors": 0,
+          "one_read_correct": 192,
+          "paths": 384,
+          "payloads": 384,
+          "queries": 384,
+          "query_geometry": 384,
+          "rows": 384,
+          "spans": 384,
+          "two_read_correct": 192
+        },
+        "ParentUnionMatches": {
+          "bounds": 144,
+          "correct": 144,
+          "errors": 0,
+          "one_read_correct": 72,
+          "paths": 168,
+          "payloads": 144,
+          "queries": 312,
+          "query_geometry": 312,
+          "rows": 384,
+          "spans": 144,
+          "two_read_correct": 72
+        },
+        "ReadDisabled": {
+          "bounds": 0,
+          "correct": 0,
+          "errors": 0,
+          "one_read_correct": 0,
+          "paths": 0,
+          "payloads": 0,
+          "queries": 192,
+          "query_geometry": 192,
+          "rows": 384,
+          "spans": 0,
+          "two_read_correct": 0
+        },
+        "StructureDisabled": {
+          "bounds": 296,
+          "correct": 296,
+          "errors": 0,
+          "one_read_correct": 148,
+          "paths": 296,
+          "payloads": 296,
+          "queries": 340,
+          "query_geometry": 340,
+          "rows": 384,
+          "spans": 296,
+          "two_read_correct": 148
+        },
+        "UnionMatches": {
+          "bounds": 144,
+          "correct": 144,
+          "errors": 0,
+          "one_read_correct": 72,
+          "paths": 168,
+          "payloads": 144,
+          "queries": 312,
+          "query_geometry": 312,
+          "rows": 384,
+          "spans": 144,
+          "two_read_correct": 72
+        },
+        "UpdateDisabled": {
+          "bounds": 228,
+          "correct": 192,
+          "errors": 0,
+          "one_read_correct": 192,
+          "paths": 192,
+          "payloads": 192,
+          "queries": 192,
+          "query_geometry": 192,
+          "rows": 384,
+          "spans": 192,
+          "two_read_correct": 0
+        }
+      },
+      "parent_parameters_unchanged": true,
+      "parent_sha256": "44c0ebf482d5807354a2e2b4c3fd6ceb310dd076ce199536f801f6cad472264b",
+      "previous_success_full_trace_equal": 296,
+      "prior_guard_replay_equal": 4,
+      "prior_phrase_control_replay_equal": true,
+      "prior_phrase_control_replay_rows": 6048,
+      "projection_disabled_equal_to_first_candidate": 6304,
+      "projection_disabled_parent_trace_equal": 5344,
+      "promotion": false,
+      "reload_equal": 384,
+      "retained_model": "15baec48",
+      "route_search_limit": 16384,
+      "rules_after": [
+        851970
+      ],
+      "rules_before": [
+        327682
+      ],
+      "second_candidate_full_trace_equal": 384,
+      "source_sha256": "45492504d6359f89517408b6c95c66162dd3b427f5850e3434e7d04034622c9f",
+      "structure_disabled_disjoint_correct": 144,
+      "training_revalidated": 2816,
+      "typed_unresolved_retained": 512,
+      "union_matches_diagnostic_equal": 384
+    },
+    "files": {
+      "acceptance.json": {
+        "sha256": "c6c83d13da9f95cbf34433b06cb02606060b4925175ac6fb6e157e376940d176",
+        "bytes": 1820
+      },
+      "attempt.json": {
+        "sha256": "257ea9da8058569b1be3612409124c044847eb3e28dcfcbd0097de0a831e9b3c",
+        "bytes": 505
+      },
+      "candidate.json": {
+        "sha256": "1838cc12bda863c769db9239d7b225e91dd82856c7e90bf7427abffb5a9e1b23",
+        "bytes": 47635
+      },
+      "data.json": {
+        "sha256": "e778c108b22eeb2c0698a880927c9696142c84f8501886c4642bf490db8f6c86",
+        "bytes": 1421154
+      },
+      "fit.json": {
+        "sha256": "7d7a3a0f815b31c7a59487d492c472d0b9336c5709f013484c109e55fdd82994",
+        "bytes": 2634
+      },
+      "manifest.json": {
+        "sha256": "904ec660a2d9fb4591d93cddbf14ef430c24659b3aa80fb8368e68689dc304a6",
+        "bytes": 8437
+      },
+      "multiplicity-guard-responses.json": {
+        "sha256": "dc8eb2a754c79d9127bfc47c1da76112638cf3411fa76225f92656e233a7c26a",
+        "bytes": 851903
+      },
+      "multiplicity-guard.json": {
+        "sha256": "02190b273141fd4f3bf889c5a131d88e65addfccc8267d24e3e0ca4bb09ff4e7",
+        "bytes": 2016
+      },
+      "prior-guard-replay.json": {
+        "sha256": "c403cb35b73b32c423d270ac6559f0909c1e25c2a071f999211bc9fc320c1181",
+        "bytes": 458457
+      },
+      "representation-preflight.json": {
+        "sha256": "be3b6d583f411d379616acdb946f7ea56f4294b97abe7c734dfbfafedafdd5c6",
+        "bytes": 742
+      },
+      "responses.json": {
+        "sha256": "3564f22a097d32c647f3080b9900b45191bd8fe1cf53b4e8da486c6832b9bc74",
+        "bytes": 4295430
+      },
+      "retained-responses.json": {
+        "sha256": "7457c3d5aec81fd5ebbeaabf42c7216276e8cb0eec49f8290d984ace111f0fd6",
+        "bytes": 17080606
+      },
+      "sample-disjoint-subject0-depth1.json": {
+        "sha256": "90dff817c65a424c8fbcf8c86ca21ecc692e67e1cf0fb4fa0f58362ee26e8838",
+        "bytes": 409831
+      },
+      "sample-disjoint-subject0-depth2.json": {
+        "sha256": "422f579f28e2c4311becf4684db70f966f7e36f8b5e9501d34b007036747ddf6",
+        "bytes": 500803
+      },
+      "sample-disjoint-subject1-depth1.json": {
+        "sha256": "869d401d7ae59589895ec988313963f9417f3dbc321d754796e0a2ef1cdbad8c",
+        "bytes": 407139
+      },
+      "sample-disjoint-subject1-depth2.json": {
+        "sha256": "90be64c3208c77f54ae98ff7ac52fedca4575701adfb02386dd40182a5371c1c",
+        "bytes": 502098
+      },
+      "sample-disjoint_repeat_answer-subject0-depth1.json": {
+        "sha256": "80edfc57be538aecaa01d3b42aad7f69a329ff901b6d35d818ff818a92ea03df",
+        "bytes": 409915
+      },
+      "sample-disjoint_repeat_answer-subject0-depth2.json": {
+        "sha256": "d3ad4ec1f3c10006e253f2bab860e03c53694149364b5220897494c3f5c76f92",
+        "bytes": 500893
+      },
+      "sample-disjoint_repeat_answer-subject1-depth1.json": {
+        "sha256": "568ef61e4d979920c16799fc30f373f51c61bd17ad5a5c760774fbe18089c4a1",
+        "bytes": 407265
+      },
+      "sample-disjoint_repeat_answer-subject1-depth2.json": {
+        "sha256": "7e10a1fb992ac58a736747f0b2a41691363b71cd76578e3888b3a45f2e145b14",
+        "bytes": 502234
+      },
+      "sample-disjoint_repeat_known-subject0-depth1.json": {
+        "sha256": "c5bc53d51d1f5ece2040b80a29067984aaaa49061d3986058b9486e4356e5c4a",
+        "bytes": 411137
+      },
+      "sample-disjoint_repeat_known-subject0-depth2.json": {
+        "sha256": "73773b0d6f8dd975d3552fb25e681be328f53ef6982525c41ec5ea01ede50b70",
+        "bytes": 505687
+      },
+      "sample-disjoint_repeat_known-subject1-depth1.json": {
+        "sha256": "1cc082cbb467df688f5fbcbc3288bad3fb1bd2a0718e375ce0cf68304f9eb0e6",
+        "bytes": 406089
+      },
+      "sample-disjoint_repeat_known-subject1-depth2.json": {
+        "sha256": "bb15848f825bf3cf75d2eca456d2b6595c6942623ff2edaf5969de31983a89fd",
+        "bytes": 506767
+      },
+      "sample-overlap_first_first-subject0-depth1.json": {
+        "sha256": "366242c30b42a2b52df5b10df6917b806e993283e91513b9c47b9a5d2064ffc0",
+        "bytes": 381824
+      },
+      "sample-overlap_first_first-subject0-depth2.json": {
+        "sha256": "f0ef58808aa6e3dc7eed1e131f5e2929a37ff5722ad01eaffab1b2002b55e9cb",
+        "bytes": 472706
+      },
+      "sample-overlap_first_first-subject1-depth1.json": {
+        "sha256": "262254bcb2b2f593018bf6643e278559f87e98e605902b26d98a964c2097a174",
+        "bytes": 379330
+      },
+      "sample-overlap_first_first-subject1-depth2.json": {
+        "sha256": "c0c14c365f5620e478eec0ef533caad155b4ff813193dffc513b5e4d6708faf9",
+        "bytes": 474235
+      },
+      "sample-overlap_first_last-subject0-depth1.json": {
+        "sha256": "35007b816379efad05b481ec822b06485d9ba21e9b29959988b06feed787b739",
+        "bytes": 381797
+      },
+      "sample-overlap_first_last-subject0-depth2.json": {
+        "sha256": "3d7bd061346f36911aafc013120466e0ab5cdb7351eaef9051aead4c0077b58c",
+        "bytes": 472711
+      },
+      "sample-overlap_first_last-subject1-depth1.json": {
+        "sha256": "dfa804bea07d59f70496c9a7ccdbf5580d4b9c0902176c854a9b57953c143da6",
+        "bytes": 379315
+      },
+      "sample-overlap_first_last-subject1-depth2.json": {
+        "sha256": "1614e982b51511052ebcc36b7eadbec9d93d1d2651870e707da246ced6b0bc45",
+        "bytes": 474188
+      },
+      "sample-overlap_last_first-subject0-depth1.json": {
+        "sha256": "fe9f845fa24b0cae7a65607e448b5dd2edda38860af21b45fa89586544f8610a",
+        "bytes": 381390
+      },
+      "sample-overlap_last_first-subject0-depth2.json": {
+        "sha256": "ecddf27c1b92eb3239be58a96f7791f50f5936e875128bcb63c2bb926ec7ef51",
+        "bytes": 472259
+      },
+      "sample-overlap_last_first-subject1-depth1.json": {
+        "sha256": "fd57935bb496f8e107ffbcd2706ace44211ddcc35cf2b2aa6183fd05ca27947c",
+        "bytes": 379198
+      },
+      "sample-overlap_last_first-subject1-depth2.json": {
+        "sha256": "7dfd7caf7fa9e16d928bc36e60e8b8e14feda00b00a4a570999ec588284baaaa",
+        "bytes": 474096
+      },
+      "sample-overlap_repeat_answer-subject0-depth1.json": {
+        "sha256": "37ffafcb9b8eec8b531b5adc0f94968760d7ba9b7fd2bc28b47d682c401ed99b",
+        "bytes": 354357
+      },
+      "sample-overlap_repeat_answer-subject0-depth2.json": {
+        "sha256": "f5732ef22adf825102e22e420b4bdf0e245ccf387515368f02916f410902850d",
+        "bytes": 445191
+      },
+      "sample-overlap_repeat_answer-subject1-depth1.json": {
+        "sha256": "06c4232b3f66e830b7892bd0c630920d151306e55196dfce5bd795714853893a",
+        "bytes": 351830
+      },
+      "sample-overlap_repeat_answer-subject1-depth2.json": {
+        "sha256": "3ec76f6dcbfb1bf40ebc4d1526bfd1427f1e41503b834c3d51a5beaf7231889a",
+        "bytes": 446653
+      },
+      "sample-overlap_repeat_known-subject0-depth1.json": {
+        "sha256": "2923ce2ba27e2146e2f882f302bdd9bfcf37c378ff3a9bdc9bad908289303029",
+        "bytes": 397112
+      },
+      "sample-overlap_repeat_known-subject0-depth2.json": {
+        "sha256": "b5950f3e8e72ff9ba25fc001df8e130923e1e49b3de734636f528499c61d3d2d",
+        "bytes": 491572
+      },
+      "sample-overlap_repeat_known-subject1-depth1.json": {
+        "sha256": "de6ffec9c94697538b3fc20b1d5cfa643142a6598a4e859bcc27869c9d0bb4da",
+        "bytes": 392200
+      },
+      "sample-overlap_repeat_known-subject1-depth2.json": {
+        "sha256": "3dd4d2853d922fd34e3b4ee2b7d1fbae512a97b629a39aa92fb9cacee34e7d24",
+        "bytes": 492824
+      },
+      "search-nodes.json": {
+        "sha256": "424764cceb55d767853d7d765de598df02d7b07f3d197eeba5e7986496418716",
+        "bytes": 275602
+      },
+      "summary.json": {
+        "sha256": "e5d704e12eaa40385760ec7b1fb8f4d7a58fba83cc9991e0b6d0ca4381a07a8a",
+        "bytes": 47350
+      },
+      "training-data.json": {
+        "sha256": "abb2ccfa52b285d5c022782ccf87242d9fb0a28d8305734cb5f47558cb40f5cc",
+        "bytes": 7904913
+      },
+      "training-revalidation.json": {
+        "sha256": "ba80706bde52a0f69cace46c321682b75dc8d36b091df417fbde8d39e741eff2",
+        "bytes": 382
+      }
+    }
+  },
+  "source": {
+    "at": "2026-09-14T07:41:23.892Z",
+    "base": "c7b18a747c808bec2f76f3bb588b6b2d6e85370a",
+    "files": [
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relational_attention/circuit.rs",
+        "sha256": "667eb3f9a900819a58e0cb02ab83573bee9c4600ce13c26fcfd29bd9de98666b"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relational_attention/data.rs",
+        "sha256": "81fb9b844f5ee1fe98a86583702d9094a63c2ca6c2dc3f2ac45803a3e79931cb"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relational_attention/learning.rs",
+        "sha256": "ce8cd0dea567f48daef49cbf83764d802163081eacc7189e86f48f153076c2d2"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relational_attention/mod.rs",
+        "sha256": "26304fbdd4ca916c5e39ebf30fd2092b2e5333888c039fd47e80772d9c60c9e4"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relational_attention/report.rs",
+        "sha256": "007b3fbd952bd8b1afb76d01a95ed6a2793977cf0eced2718b9637c0023128de"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relational_attention/runtime.rs",
+        "sha256": "3232302df67b0ca2807c46f9953e0169814bd226e6a775894bebc1ddb912d7ff"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/addressed_attention/artifact.rs",
+        "sha256": "519e909351482f8407ded1ef34d96252bc34e268554dac1212e3620dc22686ba"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/mod.rs",
+        "sha256": "a7f0241d9fd420d9023da04dcf1a19a38c7bcfb06abee7d57353366acc3bafcc"
+      },
+      {
+        "path": "Cargo.lock",
+        "sha256": "7337e6b47e5f7a8d4589164cb6ad23637e3d1b5413b462716cfdc1ab72d2558c"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_attention/data.rs",
+        "sha256": "279832bc9bd360e722df878039f53763ac44d480e462ede1e6bcce56e4490081"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_attention/learning.rs",
+        "sha256": "4ebb8a1c7d7254354170957082713f93c793876ebee16aa85349354b115e7f27"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_attention/mod.rs",
+        "sha256": "5ee5a83302e05c7dcc6390576ba5117840768e6df9418a7c92bc562c9531c336"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_attention/report.rs",
+        "sha256": "cfb9d890155967e31d0306489e4212926aea73eb8bc06204d789b5db70c08a69"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_attention/runtime.rs",
+        "sha256": "7df1a8fbb4854fe4b44795a600e89d64d5ebdea52e212c586ff357716b76240b"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/adaptive_attention/data.rs",
+        "sha256": "f4a46a8c13d6718a69a7157527ad17340782eb6245a16137ccd7486f424dd13f"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/adaptive_attention/learning.rs",
+        "sha256": "56805e3c991ec20c819f3ccfc761a64ac1108b4d1f5b8d85fcdf0565d87421a6"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/adaptive_attention/mod.rs",
+        "sha256": "75e3f83f000125e5594d6b20250264a867cfb3ea41375e3b2fb1851a8fe9c554"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/adaptive_attention/report.rs",
+        "sha256": "0322c42d31bc3ca692e0d7df73047427fea71a554568c1cff84988cda0680bdb"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/adaptive_attention/runtime.rs",
+        "sha256": "be75bdd3eb1ece009156e837908110a4383f2efc07bd39d663cfe6ebc702c39e"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/text_attention/data.rs",
+        "sha256": "8ad71cfeb7008b6b0528673f2ad984dcee01e9dfa4e8f9f73502373cd3bbf5c7"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/text_attention/learning.rs",
+        "sha256": "6075b0e3517f5146f0722d3d01d38f17d625923122ef366ca0c87ba74b44ac34"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/text_attention/mod.rs",
+        "sha256": "b134647c702bdb373f17d6e3d448e8bfacc616959b61a1d7b5b28033e78d0e62"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/text_attention/report.rs",
+        "sha256": "42c29f8fedd771dee68f3928f6ab81daa97849349d0c3256ae0773e077685ccd"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/text_attention/runtime.rs",
+        "sha256": "4b8260de6dbaeb58e73edfa003ebd15671c6e0f50ce49201c6e14db81c23edbd"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/recurrent_text/data.rs",
+        "sha256": "38d78b2d7afacdbd4d658c4b2443f989f885461680840ff115db4a3186958a3f"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/recurrent_text/learning.rs",
+        "sha256": "b89c6530450e312c2ed2001e636c8e72506f7dddc45de43c956e1904ad7f12d8"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/recurrent_text/mod.rs",
+        "sha256": "0a9fd7f3a2b5019d18007f1b1a0034b80b9fc2d871362b2c83c9988daa7d0211"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/recurrent_text/report.rs",
+        "sha256": "8c00984c315a54c07fec2d296ccfeca8cb11d15ca4100091cbe0640120520d4c"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/recurrent_text/runtime.rs",
+        "sha256": "ff110351143718983c67e4585e690dfa0b3ab93e550b36cfdb91bbefe1a3012d"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/ordered_state/data.rs",
+        "sha256": "8d4e62506142dba733c637223448ca8ff724221ec1c8a2d2d80047428b5fdd7b"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/ordered_state/learning.rs",
+        "sha256": "1cd839503d5d1a20fdc7982384542c5c2d578b7aab37d776a9a8c6f2e941598b"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/ordered_state/mod.rs",
+        "sha256": "1c07a8f8c33ad7d340b01654ce057d747e5dc980bdcf9dab4e299c9f32ed0fed"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/ordered_state/report.rs",
+        "sha256": "9b0625b1c5bec1d0e8e23f35225cab58ee33cdee56605a8565de61875caffb6a"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/ordered_state/runtime.rs",
+        "sha256": "935b0dedb849bb878a411adc56d587a7955e5b5850317d2e5ed5711c4a0b7492"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/language_relation/data.rs",
+        "sha256": "4b019d75ef2e748ea41b1028a4d77a674242858d223bec32ae8d124dda2f238c"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/language_relation/learning.rs",
+        "sha256": "306fd49146bf17b363a7db9027b71fff89ebb2815f2bc139c03697fe428d70be"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/language_relation/mod.rs",
+        "sha256": "7d46adec90d154801a470b3e1ef4a0333e12625aa39b2e7e09beb2849b2a6c5a"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/language_relation/report.rs",
+        "sha256": "af2c7d8c71693fc8e36f02100c0d095856bd05531a03d78191c740c94d9e846c"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/language_relation/runtime.rs",
+        "sha256": "9a6e63059f448eb7d58cb0e4b449211c688991ba4f63204c5ea83654e8d1fe88"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relative_language/data.rs",
+        "sha256": "dc0543ae1d5c0ff258ad01ed7ffcea3c132f07cd74f5375cc4760892a6176f84"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relative_language/learning.rs",
+        "sha256": "cadcf135e721a316e4f879ed39332ffdffae5c8a9ae878a62eab4243c697d618"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relative_language/mod.rs",
+        "sha256": "39a7345360badf172916787c7a59da1805dfb5bf07c5abe24009504e6e8847d9"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relative_language/report.rs",
+        "sha256": "792148a8f891e8ce8065d6eb1e9149bb1f7bf1ea6c31d485808e3501f0afdb93"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relative_language/runtime.rs",
+        "sha256": "1de60d7748d29264cfeebb1b15454a68a42b90d773ef9b89ea338e5c11d3246b"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/data.rs",
+        "sha256": "cda35c0dfbea2b3d5f85a44f9e72fcb2f9afe6f0b0dc8afd86dc8f7144e15e54"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/learning.rs",
+        "sha256": "249bbccb1b6955e7323dc1a68c8f2d881fa150457449a991d0cce83ffe99e41d"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/mod.rs",
+        "sha256": "6509d7bb2f5e914b5b4cf4320086c7c03744d80a5f5fb20f843a4bf73d4d025d"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/report.rs",
+        "sha256": "84801ee231551fa9d3a9e42831328c5ec4cd79302f2eb73870f6dacdc71f6f40"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/runtime.rs",
+        "sha256": "aca0b99c24dfa1e0958682d27ea8e4c169bdbe1e858534259d1368f6f974864a"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/schedule_data.rs",
+        "sha256": "e10afebcab69bd7c9f4675817c5c80db95c10a86510e792c22db1b9cad31944d"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/schedule_learning.rs",
+        "sha256": "2cd9f2cbb0feff4583d0809a02cbe1dc770e5916c9ef0b7218cdfafee235ca5b"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/schedule_report.rs",
+        "sha256": "d519d721371a3e76ce44c849acdd2dfad245094199c982b17e6d70a72e6b2e63"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/scheduling.rs",
+        "sha256": "717f1aac76d7a787d3228fd3522d287befd86c0987924fa1fda91a4ad89af7f6"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/joint_learning.rs",
+        "sha256": "5441ae18a17b69c75936099dce3caa4098b8e8f7681d36e05dded498b189168e"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/joint_report.rs",
+        "sha256": "da42c9bbb553d250f4ad7e0a8a69d8fa01cabd69c3ef64bc6141b14dfd721c03"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/depth_data.rs",
+        "sha256": "ba5599357fce7b0a7738021cee26aca8cca3fc593be62a1cdc839d4f6b904ec6"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/depth_report.rs",
+        "sha256": "deb3cf5b0e5869a4c05054b32b9fe738934dfdff3b3b618bddb68d88fb0cf372"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/completion.rs",
+        "sha256": "c16bcc2cb9b8e31a9688072b7f4e0e47303b65d4a1fda86ba9549321eeaa97fb"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/completion_data.rs",
+        "sha256": "c5c07feae2bc54c6ab8ccfa88024fb52b5810a55b25199a43e182710e645cceb"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/completion_diagnostic.rs",
+        "sha256": "3ac0afa42fbbf1dd03756fc7d148ecb020bc9f6e4076528380d56bf317a36865"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/completion_learning.rs",
+        "sha256": "420ce7d6f3add3e2a6d297d83323e39a66a6e547d58804588aaf0ed6c2fd3d5d"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/completion_report.rs",
+        "sha256": "de670d0802aa6251f7ee5471070a55b42b4fbb8f29c176a6601c298e2b65f816"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/span.rs",
+        "sha256": "47e90b84babeb1f673e46f17154e55c0058aa65249d46efd984c41bea355f059"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/span_boundary.rs",
+        "sha256": "f8ca16b79468ff40e2020ee87ea1255fafa536af8371a59849f0ef827b807ba2"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/span_data.rs",
+        "sha256": "c719f565df306cf523277e2d0dea98c160e181adc4fe651045786144a0904180"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/span_learning.rs",
+        "sha256": "f66c4b2abce4cbde32d49cc9f1cf4fee6394d0fda8344e676cdc5473765aaa91"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/span_report.rs",
+        "sha256": "81d4e7a6a66633ce0374cfcb3ff0473aff0ce5163c3c191702a1b25911fb13de"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/correspondence.rs",
+        "sha256": "915fde16b8fd7b295a7446140d7ba9a096710f3f22d33239d4f5700f5d4f1dd6"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/correspondence_diagnostic.rs",
+        "sha256": "52e5849aa16e3b94df9d7861bd6ac965b85c78cf55d8c32a35e9c95c0880e4bd"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/correspondence_learning.rs",
+        "sha256": "34771d35a31ab19e44ee8c668b300cb396d81ef83b20269f41d8e6462f040056"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/correspondence_report.rs",
+        "sha256": "19475fcb1c2020213c400a35b7452418c7068802cfa796f611b5588d8f6bbf59"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/occurrence.rs",
+        "sha256": "b08f352aa70ae90207736c4922bb8f430b2d29a6cc51772b2f8523e62a1ee3f2"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/occurrence_collision.rs",
+        "sha256": "1174306722e57589b302e1a26596891e20f27c67d16aaba53a851495937266cd"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/occurrence_data.rs",
+        "sha256": "b6a9f2ae69e3a5008634da91aec0ed3579da4faf8daf5c5e405910ef634bb9bc"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/occurrence_learning.rs",
+        "sha256": "99f43cc5cbc4eb1b1c9fa64fecbcddb725c9dccdb4785d649ce14810e9dce6b7"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/occurrence_qualification.rs",
+        "sha256": "80cb96366fac357ad1eb874d72692c9558cef44b1f804f7227bddf462b37c28a"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/occurrence_report.rs",
+        "sha256": "5019017c7bf03c7dddc386d05ad3237f283a9a2c2a34da2fcea04ef2ddd98884"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/phrase.rs",
+        "sha256": "9ec687ff739163bc6ab68e42030762dc433d205ecd9ddc89409b502f7c7ad7c9"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/phrase_data.rs",
+        "sha256": "7cd84cfb19e25958ce12ab093859199f9d58abcc1a9cab7f7f1ba6f70903091d"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/phrase_report.rs",
+        "sha256": "d77ae351e5696a1c93b5d2ff9d62ed3ba70fcee64b151ff8485d422a159ada9d"
+      }
+    ],
+    "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/correspondence-runs-1/correspondence-tests-3",
+    "binary_sha256": "d0ab5ffffb2a91922deaeb0dc8700728b9d548f725910ab51009ad19891863ea",
+    "compiler": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "build_label": "correspondence-build-4"
+  },
+  "fit_source": {
+    "at": "2026-09-14T07:29:12.272Z",
+    "base": "c7b18a747c808bec2f76f3bb588b6b2d6e85370a",
+    "files": [
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relational_attention/circuit.rs",
+        "sha256": "667eb3f9a900819a58e0cb02ab83573bee9c4600ce13c26fcfd29bd9de98666b"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relational_attention/data.rs",
+        "sha256": "81fb9b844f5ee1fe98a86583702d9094a63c2ca6c2dc3f2ac45803a3e79931cb"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relational_attention/learning.rs",
+        "sha256": "ce8cd0dea567f48daef49cbf83764d802163081eacc7189e86f48f153076c2d2"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relational_attention/mod.rs",
+        "sha256": "26304fbdd4ca916c5e39ebf30fd2092b2e5333888c039fd47e80772d9c60c9e4"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relational_attention/report.rs",
+        "sha256": "007b3fbd952bd8b1afb76d01a95ed6a2793977cf0eced2718b9637c0023128de"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relational_attention/runtime.rs",
+        "sha256": "3232302df67b0ca2807c46f9953e0169814bd226e6a775894bebc1ddb912d7ff"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/addressed_attention/artifact.rs",
+        "sha256": "519e909351482f8407ded1ef34d96252bc34e268554dac1212e3620dc22686ba"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/mod.rs",
+        "sha256": "a7f0241d9fd420d9023da04dcf1a19a38c7bcfb06abee7d57353366acc3bafcc"
+      },
+      {
+        "path": "Cargo.lock",
+        "sha256": "7337e6b47e5f7a8d4589164cb6ad23637e3d1b5413b462716cfdc1ab72d2558c"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_attention/data.rs",
+        "sha256": "279832bc9bd360e722df878039f53763ac44d480e462ede1e6bcce56e4490081"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_attention/learning.rs",
+        "sha256": "4ebb8a1c7d7254354170957082713f93c793876ebee16aa85349354b115e7f27"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_attention/mod.rs",
+        "sha256": "5ee5a83302e05c7dcc6390576ba5117840768e6df9418a7c92bc562c9531c336"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_attention/report.rs",
+        "sha256": "cfb9d890155967e31d0306489e4212926aea73eb8bc06204d789b5db70c08a69"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_attention/runtime.rs",
+        "sha256": "7df1a8fbb4854fe4b44795a600e89d64d5ebdea52e212c586ff357716b76240b"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/adaptive_attention/data.rs",
+        "sha256": "f4a46a8c13d6718a69a7157527ad17340782eb6245a16137ccd7486f424dd13f"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/adaptive_attention/learning.rs",
+        "sha256": "56805e3c991ec20c819f3ccfc761a64ac1108b4d1f5b8d85fcdf0565d87421a6"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/adaptive_attention/mod.rs",
+        "sha256": "75e3f83f000125e5594d6b20250264a867cfb3ea41375e3b2fb1851a8fe9c554"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/adaptive_attention/report.rs",
+        "sha256": "0322c42d31bc3ca692e0d7df73047427fea71a554568c1cff84988cda0680bdb"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/adaptive_attention/runtime.rs",
+        "sha256": "be75bdd3eb1ece009156e837908110a4383f2efc07bd39d663cfe6ebc702c39e"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/text_attention/data.rs",
+        "sha256": "8ad71cfeb7008b6b0528673f2ad984dcee01e9dfa4e8f9f73502373cd3bbf5c7"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/text_attention/learning.rs",
+        "sha256": "6075b0e3517f5146f0722d3d01d38f17d625923122ef366ca0c87ba74b44ac34"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/text_attention/mod.rs",
+        "sha256": "b134647c702bdb373f17d6e3d448e8bfacc616959b61a1d7b5b28033e78d0e62"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/text_attention/report.rs",
+        "sha256": "42c29f8fedd771dee68f3928f6ab81daa97849349d0c3256ae0773e077685ccd"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/text_attention/runtime.rs",
+        "sha256": "4b8260de6dbaeb58e73edfa003ebd15671c6e0f50ce49201c6e14db81c23edbd"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/recurrent_text/data.rs",
+        "sha256": "38d78b2d7afacdbd4d658c4b2443f989f885461680840ff115db4a3186958a3f"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/recurrent_text/learning.rs",
+        "sha256": "b89c6530450e312c2ed2001e636c8e72506f7dddc45de43c956e1904ad7f12d8"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/recurrent_text/mod.rs",
+        "sha256": "0a9fd7f3a2b5019d18007f1b1a0034b80b9fc2d871362b2c83c9988daa7d0211"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/recurrent_text/report.rs",
+        "sha256": "8c00984c315a54c07fec2d296ccfeca8cb11d15ca4100091cbe0640120520d4c"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/recurrent_text/runtime.rs",
+        "sha256": "ff110351143718983c67e4585e690dfa0b3ab93e550b36cfdb91bbefe1a3012d"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/ordered_state/data.rs",
+        "sha256": "8d4e62506142dba733c637223448ca8ff724221ec1c8a2d2d80047428b5fdd7b"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/ordered_state/learning.rs",
+        "sha256": "1cd839503d5d1a20fdc7982384542c5c2d578b7aab37d776a9a8c6f2e941598b"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/ordered_state/mod.rs",
+        "sha256": "1c07a8f8c33ad7d340b01654ce057d747e5dc980bdcf9dab4e299c9f32ed0fed"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/ordered_state/report.rs",
+        "sha256": "9b0625b1c5bec1d0e8e23f35225cab58ee33cdee56605a8565de61875caffb6a"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/ordered_state/runtime.rs",
+        "sha256": "935b0dedb849bb878a411adc56d587a7955e5b5850317d2e5ed5711c4a0b7492"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/language_relation/data.rs",
+        "sha256": "4b019d75ef2e748ea41b1028a4d77a674242858d223bec32ae8d124dda2f238c"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/language_relation/learning.rs",
+        "sha256": "306fd49146bf17b363a7db9027b71fff89ebb2815f2bc139c03697fe428d70be"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/language_relation/mod.rs",
+        "sha256": "7d46adec90d154801a470b3e1ef4a0333e12625aa39b2e7e09beb2849b2a6c5a"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/language_relation/report.rs",
+        "sha256": "af2c7d8c71693fc8e36f02100c0d095856bd05531a03d78191c740c94d9e846c"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/language_relation/runtime.rs",
+        "sha256": "9a6e63059f448eb7d58cb0e4b449211c688991ba4f63204c5ea83654e8d1fe88"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relative_language/data.rs",
+        "sha256": "dc0543ae1d5c0ff258ad01ed7ffcea3c132f07cd74f5375cc4760892a6176f84"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relative_language/learning.rs",
+        "sha256": "cadcf135e721a316e4f879ed39332ffdffae5c8a9ae878a62eab4243c697d618"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relative_language/mod.rs",
+        "sha256": "39a7345360badf172916787c7a59da1805dfb5bf07c5abe24009504e6e8847d9"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relative_language/report.rs",
+        "sha256": "792148a8f891e8ce8065d6eb1e9149bb1f7bf1ea6c31d485808e3501f0afdb93"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relative_language/runtime.rs",
+        "sha256": "1de60d7748d29264cfeebb1b15454a68a42b90d773ef9b89ea338e5c11d3246b"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/data.rs",
+        "sha256": "cda35c0dfbea2b3d5f85a44f9e72fcb2f9afe6f0b0dc8afd86dc8f7144e15e54"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/learning.rs",
+        "sha256": "249bbccb1b6955e7323dc1a68c8f2d881fa150457449a991d0cce83ffe99e41d"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/mod.rs",
+        "sha256": "6509d7bb2f5e914b5b4cf4320086c7c03744d80a5f5fb20f843a4bf73d4d025d"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/report.rs",
+        "sha256": "84801ee231551fa9d3a9e42831328c5ec4cd79302f2eb73870f6dacdc71f6f40"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/runtime.rs",
+        "sha256": "aca0b99c24dfa1e0958682d27ea8e4c169bdbe1e858534259d1368f6f974864a"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/schedule_data.rs",
+        "sha256": "e10afebcab69bd7c9f4675817c5c80db95c10a86510e792c22db1b9cad31944d"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/schedule_learning.rs",
+        "sha256": "2cd9f2cbb0feff4583d0809a02cbe1dc770e5916c9ef0b7218cdfafee235ca5b"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/schedule_report.rs",
+        "sha256": "d519d721371a3e76ce44c849acdd2dfad245094199c982b17e6d70a72e6b2e63"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/scheduling.rs",
+        "sha256": "717f1aac76d7a787d3228fd3522d287befd86c0987924fa1fda91a4ad89af7f6"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/joint_learning.rs",
+        "sha256": "5441ae18a17b69c75936099dce3caa4098b8e8f7681d36e05dded498b189168e"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/joint_report.rs",
+        "sha256": "da42c9bbb553d250f4ad7e0a8a69d8fa01cabd69c3ef64bc6141b14dfd721c03"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/depth_data.rs",
+        "sha256": "ba5599357fce7b0a7738021cee26aca8cca3fc593be62a1cdc839d4f6b904ec6"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/depth_report.rs",
+        "sha256": "deb3cf5b0e5869a4c05054b32b9fe738934dfdff3b3b618bddb68d88fb0cf372"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/completion.rs",
+        "sha256": "c16bcc2cb9b8e31a9688072b7f4e0e47303b65d4a1fda86ba9549321eeaa97fb"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/completion_data.rs",
+        "sha256": "c5c07feae2bc54c6ab8ccfa88024fb52b5810a55b25199a43e182710e645cceb"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/completion_diagnostic.rs",
+        "sha256": "3ac0afa42fbbf1dd03756fc7d148ecb020bc9f6e4076528380d56bf317a36865"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/completion_learning.rs",
+        "sha256": "420ce7d6f3add3e2a6d297d83323e39a66a6e547d58804588aaf0ed6c2fd3d5d"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/completion_report.rs",
+        "sha256": "de670d0802aa6251f7ee5471070a55b42b4fbb8f29c176a6601c298e2b65f816"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/span.rs",
+        "sha256": "47e90b84babeb1f673e46f17154e55c0058aa65249d46efd984c41bea355f059"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/span_boundary.rs",
+        "sha256": "f8ca16b79468ff40e2020ee87ea1255fafa536af8371a59849f0ef827b807ba2"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/span_data.rs",
+        "sha256": "c719f565df306cf523277e2d0dea98c160e181adc4fe651045786144a0904180"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/span_learning.rs",
+        "sha256": "f66c4b2abce4cbde32d49cc9f1cf4fee6394d0fda8344e676cdc5473765aaa91"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/span_report.rs",
+        "sha256": "81d4e7a6a66633ce0374cfcb3ff0473aff0ce5163c3c191702a1b25911fb13de"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/correspondence.rs",
+        "sha256": "f732921b3088815500c4d83e7ddc78f7e8167eb813714150ce4f4db9d3bda552"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/correspondence_diagnostic.rs",
+        "sha256": "52e5849aa16e3b94df9d7861bd6ac965b85c78cf55d8c32a35e9c95c0880e4bd"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/correspondence_learning.rs",
+        "sha256": "34771d35a31ab19e44ee8c668b300cb396d81ef83b20269f41d8e6462f040056"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/correspondence_report.rs",
+        "sha256": "e186b42158e7149fc1a2547db5ee6e53284f86dd0b6ae6e120ad4b47b7dd96d7"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/occurrence.rs",
+        "sha256": "b08f352aa70ae90207736c4922bb8f430b2d29a6cc51772b2f8523e62a1ee3f2"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/occurrence_collision.rs",
+        "sha256": "1174306722e57589b302e1a26596891e20f27c67d16aaba53a851495937266cd"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/occurrence_data.rs",
+        "sha256": "b6a9f2ae69e3a5008634da91aec0ed3579da4faf8daf5c5e405910ef634bb9bc"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/occurrence_learning.rs",
+        "sha256": "99f43cc5cbc4eb1b1c9fa64fecbcddb725c9dccdb4785d649ce14810e9dce6b7"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/occurrence_qualification.rs",
+        "sha256": "80cb96366fac357ad1eb874d72692c9558cef44b1f804f7227bddf462b37c28a"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/occurrence_report.rs",
+        "sha256": "5019017c7bf03c7dddc386d05ad3237f283a9a2c2a34da2fcea04ef2ddd98884"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/phrase.rs",
+        "sha256": "9ec687ff739163bc6ab68e42030762dc433d205ecd9ddc89409b502f7c7ad7c9"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/phrase_data.rs",
+        "sha256": "7cd84cfb19e25958ce12ab093859199f9d58abcc1a9cab7f7f1ba6f70903091d"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/phrase_report.rs",
+        "sha256": "d77ae351e5696a1c93b5d2ff9d62ed3ba70fcee64b151ff8485d422a159ada9d"
+      }
+    ],
+    "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/correspondence-runs-1/correspondence-tests-2",
+    "binary_sha256": "9abf5ed3f7f4d094695db9aa487a4763264d8bc371bb5618a797afc3309c88e8",
+    "compiler": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "build_label": "correspondence-build-2"
+  },
+  "initial_source": {
+    "at": "2026-09-14T07:24:43.174Z",
+    "base": "c7b18a747c808bec2f76f3bb588b6b2d6e85370a",
+    "files": [
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relational_attention/circuit.rs",
+        "sha256": "667eb3f9a900819a58e0cb02ab83573bee9c4600ce13c26fcfd29bd9de98666b"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relational_attention/data.rs",
+        "sha256": "81fb9b844f5ee1fe98a86583702d9094a63c2ca6c2dc3f2ac45803a3e79931cb"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relational_attention/learning.rs",
+        "sha256": "ce8cd0dea567f48daef49cbf83764d802163081eacc7189e86f48f153076c2d2"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relational_attention/mod.rs",
+        "sha256": "26304fbdd4ca916c5e39ebf30fd2092b2e5333888c039fd47e80772d9c60c9e4"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relational_attention/report.rs",
+        "sha256": "007b3fbd952bd8b1afb76d01a95ed6a2793977cf0eced2718b9637c0023128de"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relational_attention/runtime.rs",
+        "sha256": "3232302df67b0ca2807c46f9953e0169814bd226e6a775894bebc1ddb912d7ff"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/addressed_attention/artifact.rs",
+        "sha256": "519e909351482f8407ded1ef34d96252bc34e268554dac1212e3620dc22686ba"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/mod.rs",
+        "sha256": "a7f0241d9fd420d9023da04dcf1a19a38c7bcfb06abee7d57353366acc3bafcc"
+      },
+      {
+        "path": "Cargo.lock",
+        "sha256": "7337e6b47e5f7a8d4589164cb6ad23637e3d1b5413b462716cfdc1ab72d2558c"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_attention/data.rs",
+        "sha256": "279832bc9bd360e722df878039f53763ac44d480e462ede1e6bcce56e4490081"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_attention/learning.rs",
+        "sha256": "4ebb8a1c7d7254354170957082713f93c793876ebee16aa85349354b115e7f27"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_attention/mod.rs",
+        "sha256": "5ee5a83302e05c7dcc6390576ba5117840768e6df9418a7c92bc562c9531c336"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_attention/report.rs",
+        "sha256": "cfb9d890155967e31d0306489e4212926aea73eb8bc06204d789b5db70c08a69"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_attention/runtime.rs",
+        "sha256": "7df1a8fbb4854fe4b44795a600e89d64d5ebdea52e212c586ff357716b76240b"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/adaptive_attention/data.rs",
+        "sha256": "f4a46a8c13d6718a69a7157527ad17340782eb6245a16137ccd7486f424dd13f"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/adaptive_attention/learning.rs",
+        "sha256": "56805e3c991ec20c819f3ccfc761a64ac1108b4d1f5b8d85fcdf0565d87421a6"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/adaptive_attention/mod.rs",
+        "sha256": "75e3f83f000125e5594d6b20250264a867cfb3ea41375e3b2fb1851a8fe9c554"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/adaptive_attention/report.rs",
+        "sha256": "0322c42d31bc3ca692e0d7df73047427fea71a554568c1cff84988cda0680bdb"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/adaptive_attention/runtime.rs",
+        "sha256": "be75bdd3eb1ece009156e837908110a4383f2efc07bd39d663cfe6ebc702c39e"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/text_attention/data.rs",
+        "sha256": "8ad71cfeb7008b6b0528673f2ad984dcee01e9dfa4e8f9f73502373cd3bbf5c7"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/text_attention/learning.rs",
+        "sha256": "6075b0e3517f5146f0722d3d01d38f17d625923122ef366ca0c87ba74b44ac34"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/text_attention/mod.rs",
+        "sha256": "b134647c702bdb373f17d6e3d448e8bfacc616959b61a1d7b5b28033e78d0e62"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/text_attention/report.rs",
+        "sha256": "42c29f8fedd771dee68f3928f6ab81daa97849349d0c3256ae0773e077685ccd"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/text_attention/runtime.rs",
+        "sha256": "4b8260de6dbaeb58e73edfa003ebd15671c6e0f50ce49201c6e14db81c23edbd"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/recurrent_text/data.rs",
+        "sha256": "38d78b2d7afacdbd4d658c4b2443f989f885461680840ff115db4a3186958a3f"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/recurrent_text/learning.rs",
+        "sha256": "b89c6530450e312c2ed2001e636c8e72506f7dddc45de43c956e1904ad7f12d8"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/recurrent_text/mod.rs",
+        "sha256": "0a9fd7f3a2b5019d18007f1b1a0034b80b9fc2d871362b2c83c9988daa7d0211"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/recurrent_text/report.rs",
+        "sha256": "8c00984c315a54c07fec2d296ccfeca8cb11d15ca4100091cbe0640120520d4c"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/recurrent_text/runtime.rs",
+        "sha256": "ff110351143718983c67e4585e690dfa0b3ab93e550b36cfdb91bbefe1a3012d"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/ordered_state/data.rs",
+        "sha256": "8d4e62506142dba733c637223448ca8ff724221ec1c8a2d2d80047428b5fdd7b"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/ordered_state/learning.rs",
+        "sha256": "1cd839503d5d1a20fdc7982384542c5c2d578b7aab37d776a9a8c6f2e941598b"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/ordered_state/mod.rs",
+        "sha256": "1c07a8f8c33ad7d340b01654ce057d747e5dc980bdcf9dab4e299c9f32ed0fed"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/ordered_state/report.rs",
+        "sha256": "9b0625b1c5bec1d0e8e23f35225cab58ee33cdee56605a8565de61875caffb6a"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/ordered_state/runtime.rs",
+        "sha256": "935b0dedb849bb878a411adc56d587a7955e5b5850317d2e5ed5711c4a0b7492"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/language_relation/data.rs",
+        "sha256": "4b019d75ef2e748ea41b1028a4d77a674242858d223bec32ae8d124dda2f238c"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/language_relation/learning.rs",
+        "sha256": "306fd49146bf17b363a7db9027b71fff89ebb2815f2bc139c03697fe428d70be"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/language_relation/mod.rs",
+        "sha256": "7d46adec90d154801a470b3e1ef4a0333e12625aa39b2e7e09beb2849b2a6c5a"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/language_relation/report.rs",
+        "sha256": "af2c7d8c71693fc8e36f02100c0d095856bd05531a03d78191c740c94d9e846c"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/language_relation/runtime.rs",
+        "sha256": "9a6e63059f448eb7d58cb0e4b449211c688991ba4f63204c5ea83654e8d1fe88"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relative_language/data.rs",
+        "sha256": "dc0543ae1d5c0ff258ad01ed7ffcea3c132f07cd74f5375cc4760892a6176f84"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relative_language/learning.rs",
+        "sha256": "cadcf135e721a316e4f879ed39332ffdffae5c8a9ae878a62eab4243c697d618"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relative_language/mod.rs",
+        "sha256": "39a7345360badf172916787c7a59da1805dfb5bf07c5abe24009504e6e8847d9"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relative_language/report.rs",
+        "sha256": "792148a8f891e8ce8065d6eb1e9149bb1f7bf1ea6c31d485808e3501f0afdb93"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relative_language/runtime.rs",
+        "sha256": "1de60d7748d29264cfeebb1b15454a68a42b90d773ef9b89ea338e5c11d3246b"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/data.rs",
+        "sha256": "cda35c0dfbea2b3d5f85a44f9e72fcb2f9afe6f0b0dc8afd86dc8f7144e15e54"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/learning.rs",
+        "sha256": "249bbccb1b6955e7323dc1a68c8f2d881fa150457449a991d0cce83ffe99e41d"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/mod.rs",
+        "sha256": "6509d7bb2f5e914b5b4cf4320086c7c03744d80a5f5fb20f843a4bf73d4d025d"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/report.rs",
+        "sha256": "84801ee231551fa9d3a9e42831328c5ec4cd79302f2eb73870f6dacdc71f6f40"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/runtime.rs",
+        "sha256": "aca0b99c24dfa1e0958682d27ea8e4c169bdbe1e858534259d1368f6f974864a"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/schedule_data.rs",
+        "sha256": "e10afebcab69bd7c9f4675817c5c80db95c10a86510e792c22db1b9cad31944d"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/schedule_learning.rs",
+        "sha256": "2cd9f2cbb0feff4583d0809a02cbe1dc770e5916c9ef0b7218cdfafee235ca5b"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/schedule_report.rs",
+        "sha256": "d519d721371a3e76ce44c849acdd2dfad245094199c982b17e6d70a72e6b2e63"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/scheduling.rs",
+        "sha256": "717f1aac76d7a787d3228fd3522d287befd86c0987924fa1fda91a4ad89af7f6"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/joint_learning.rs",
+        "sha256": "5441ae18a17b69c75936099dce3caa4098b8e8f7681d36e05dded498b189168e"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/joint_report.rs",
+        "sha256": "da42c9bbb553d250f4ad7e0a8a69d8fa01cabd69c3ef64bc6141b14dfd721c03"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/depth_data.rs",
+        "sha256": "ba5599357fce7b0a7738021cee26aca8cca3fc593be62a1cdc839d4f6b904ec6"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/depth_report.rs",
+        "sha256": "deb3cf5b0e5869a4c05054b32b9fe738934dfdff3b3b618bddb68d88fb0cf372"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/completion.rs",
+        "sha256": "c16bcc2cb9b8e31a9688072b7f4e0e47303b65d4a1fda86ba9549321eeaa97fb"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/completion_data.rs",
+        "sha256": "c5c07feae2bc54c6ab8ccfa88024fb52b5810a55b25199a43e182710e645cceb"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/completion_diagnostic.rs",
+        "sha256": "3ac0afa42fbbf1dd03756fc7d148ecb020bc9f6e4076528380d56bf317a36865"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/completion_learning.rs",
+        "sha256": "420ce7d6f3add3e2a6d297d83323e39a66a6e547d58804588aaf0ed6c2fd3d5d"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/completion_report.rs",
+        "sha256": "de670d0802aa6251f7ee5471070a55b42b4fbb8f29c176a6601c298e2b65f816"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/span.rs",
+        "sha256": "47e90b84babeb1f673e46f17154e55c0058aa65249d46efd984c41bea355f059"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/span_boundary.rs",
+        "sha256": "f8ca16b79468ff40e2020ee87ea1255fafa536af8371a59849f0ef827b807ba2"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/span_data.rs",
+        "sha256": "c719f565df306cf523277e2d0dea98c160e181adc4fe651045786144a0904180"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/span_learning.rs",
+        "sha256": "f66c4b2abce4cbde32d49cc9f1cf4fee6394d0fda8344e676cdc5473765aaa91"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/span_report.rs",
+        "sha256": "81d4e7a6a66633ce0374cfcb3ff0473aff0ce5163c3c191702a1b25911fb13de"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/correspondence.rs",
+        "sha256": "f732921b3088815500c4d83e7ddc78f7e8167eb813714150ce4f4db9d3bda552"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/correspondence_diagnostic.rs",
+        "sha256": "178ae3c3efc2eac73502c955fac64f402dcaef455f7f44939f41def77284f11b"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/correspondence_learning.rs",
+        "sha256": "34771d35a31ab19e44ee8c668b300cb396d81ef83b20269f41d8e6462f040056"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/correspondence_report.rs",
+        "sha256": "6e0bc6d6282217f9dbc1f9fa0750b9fa9feed17dee0cd6a528ef3d1a015340a6"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/occurrence.rs",
+        "sha256": "b08f352aa70ae90207736c4922bb8f430b2d29a6cc51772b2f8523e62a1ee3f2"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/occurrence_collision.rs",
+        "sha256": "1174306722e57589b302e1a26596891e20f27c67d16aaba53a851495937266cd"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/occurrence_data.rs",
+        "sha256": "b6a9f2ae69e3a5008634da91aec0ed3579da4faf8daf5c5e405910ef634bb9bc"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/occurrence_learning.rs",
+        "sha256": "99f43cc5cbc4eb1b1c9fa64fecbcddb725c9dccdb4785d649ce14810e9dce6b7"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/occurrence_qualification.rs",
+        "sha256": "80cb96366fac357ad1eb874d72692c9558cef44b1f804f7227bddf462b37c28a"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/occurrence_report.rs",
+        "sha256": "5019017c7bf03c7dddc386d05ad3237f283a9a2c2a34da2fcea04ef2ddd98884"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/phrase.rs",
+        "sha256": "9ec687ff739163bc6ab68e42030762dc433d205ecd9ddc89409b502f7c7ad7c9"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/phrase_data.rs",
+        "sha256": "7cd84cfb19e25958ce12ab093859199f9d58abcc1a9cab7f7f1ba6f70903091d"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/phrase_report.rs",
+        "sha256": "d77ae351e5696a1c93b5d2ff9d62ed3ba70fcee64b151ff8485d422a159ada9d"
+      }
+    ],
+    "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/correspondence-runs-1/correspondence-tests",
+    "binary_sha256": "578da33fa921f692fa14aa030649340f9327b0a69d842d74c7ab1789827d2a3b",
+    "compiler": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "build_label": "correspondence-build-1"
+  },
+  "report_correction": "# Diagnostic persistence correction before fitting\n\nThe first no-fit diagnostic measured2816/2816 compatible rows and separated912/912 prior conflicts. Its acceptance promised to record every reachable candidate output, but successfulrows retained only aggregates;2924actual candidates were executed but not individually persisted. Preserve diagnostic-1 and source-freeze.json. Add evaluated-candidates.json with every actual executed output plus witnessfeatures; rerun the identical no-fit diagnostic as diagnostic-2 with source-freeze-2.json. No mechanism/data/label/acceptance change or fit has occurred. Qualification will require the corrected sealed report. Also replay allfour prior multiplicity guard outputs at their original failed-artifact/occurrence path.\n",
+  "prior_report_roots": 59,
+  "prior_report_files": 1499,
+  "total_report_roots": 64,
+  "total_report_files": 1620,
+  "preservation": {
+    "at": "2026-09-14T07:46:14.130Z",
+    "prior_report_roots": 59,
+    "prior_report_files": 1499,
+    "originals": [
+      {
+        "path": "/Users/casey.allard/uor-r4",
+        "head": "49da65c509e8b1b9f10e7891918d3618c65e9f20",
+        "status_sha256": "4634a2b54ea8525bf3c76edb5d7092986d2dda77ef76edd3a641ce2b0f075df8"
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent",
+        "head": "49da65c509e8b1b9f10e7891918d3618c65e9f20",
+        "status_sha256": "7dbfdd7d981456b30357812e9dc7edd13b072c43ce45b873f35ba51d742465b2"
+      }
+    ],
+    "lineage": [
+      {
+        "name": "language-span-1",
+        "suffix": "",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-span-1/language-span-tests",
+        "sha256": "befad45acb8cc28047ccd7ebbfcf0d47493060c358bf8b1efd8ce62397a3f15e"
+      },
+      {
+        "name": "language-span-1",
+        "suffix": "-2",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-span-1/language-span-tests-2",
+        "sha256": "c68cf90de23a7e68efe83ef0b6a70335b594b36efb4e162291c93142e1a15760"
+      },
+      {
+        "name": "language-span-1",
+        "suffix": "-3",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-span-1/language-span-tests-3",
+        "sha256": "d9810736cfbd8830d4e38c0c206052c8e860ade5cf34d189b2e4cf0521bd86e8"
+      },
+      {
+        "name": "language-phrase-update-1",
+        "suffix": "",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-phrase-update-1/phrase-update-tests",
+        "sha256": "3dbfb12931e9f03f00a212b8b7237970db095fca659acce95b61c6335befbe6b"
+      },
+      {
+        "name": "language-occurrence-1",
+        "suffix": "",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-occurrence-1/occurrence-tests",
+        "sha256": "0b2ef78f7d2f7bdb9d7c1613ac0d1f8ce5eff149bad50325b9e95dd4fb1aae08"
+      },
+      {
+        "name": "language-occurrence-1",
+        "suffix": "-2",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-occurrence-1/occurrence-tests-2",
+        "sha256": "71fbed5f58f0701628d30db8a2eae6d5dda3bae2ad7616e257e4acdeacc2c113"
+      },
+      {
+        "name": "language-occurrence-1",
+        "suffix": "-3",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-occurrence-1/occurrence-tests-3",
+        "sha256": "db84c24b02b3e2f5e30c2f4609eee168c6b019c4d2fc259fe5829ffccdb33f6b"
+      },
+      {
+        "name": "language-occurrence-1",
+        "suffix": "-4",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-occurrence-1/occurrence-tests-4",
+        "sha256": "5b5425b69616ec3b5b48b297a14273ffd25bee90e78f3468240cabe100e52625"
+      }
+    ],
+    "preserved": true
+  },
+  "retained_model": {
+    "id": "15baec48",
+    "path": "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/reader-scope-repair/model.json",
+    "sha256": "1454aa69e2e295d0a9970e90326f4664d3c614f666b1a708a16c16b5350a1705"
+  },
+  "parent": {
+    "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-span-1/attempt-3/candidate.json",
+    "sha256": "44c0ebf482d5807354a2e2b4c3fd6ceb310dd076ce199536f801f6cad472264b",
+    "parameters_unchanged": true
+  },
+  "previous_negative": {
+    "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-occurrence-1/attempt-2/candidate.json",
+    "sha256": "8e32ec603a6e40a3fc9a9a6db0a92a92eb6917f57ff93d022a561d0fddc04459",
+    "promoted": false
+  },
+  "candidate": {
+    "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/correspondence-runs-1/attempt-2/candidate.json",
+    "sha256": "1838cc12bda863c769db9239d7b225e91dd82856c7e90bf7427abffb5a9e1b23",
+    "rules": [
+      851970
+    ],
+    "promoted": false
+  },
+  "scope": "One fit learned ordered correspondence; schema 2 rebinds its fixed mask without a second fit to source adjacency projected through inherited learned context roles. Raw order and content gaps are preserved. Same geometric comparison, occurrence enumeration, completion/updater/writer. Frozen familiar grammar/training templates; independent final holdout NOT_RUN. StructureDisabled removes the new constraint; NonInjective alone can be redundant, joint control removes both constraints. No general prose, metric advantage or normal-model promotion."
+}

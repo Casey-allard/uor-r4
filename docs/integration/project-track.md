@@ -18,7 +18,9 @@ Reuse the [engine](architecture-2026-09/engines.md), [mathematics](architecture-
 
 ## Current implementation sequence — owner adopted September 12
 
-**Occurrence correspondence, September 14:** The [occurrence result](../native_geometric_occurrence_973.md) preserves injective positional witnesses but its bounded learned selector fails retention. The collision diagnostic identifies a finite feature/proposal bottleneck. Continue by exposing ordered correspondence structure to output-based learning in the same geometric loop; current state owns the exact next diagnostic and acceptance. Preserve the qualified phrase checkpoint and negative candidates.
+**Ordered correspondence, September 14:** The [correspondence result](../native_geometric_correspondence_973.md) qualifies learned ordered matches through inherited source context roles while preserving prior complete traces. Continue with unchanged-artifact testing of phrase-order identity and gapped alternatives inside the same bounded geometric read/update loop. Current state owns the exact next test and acceptance. Familiar grammar, finite roles and general-prose limits remain explicit.
+
+**Occurrence correspondence, September 14:** The [occurrence result](../native_geometric_occurrence_973.md) preserves injective positional witnesses but its bounded learned selector fails retention. The collision diagnostic identifies a finite feature/proposal bottleneck. The successor above exposes ordered correspondence structure to output-based learning in the same geometric loop; current state owns the next diagnostic and acceptance. Preserve the qualified phrase checkpoint and negative candidates.
 
 **Whole-phrase query transport, September 14:** The [phrase-update result](../native_geometric_phrase_update_973.md) carries selected phrases through the existing learned updater and completion loop with unchanged parameters, retaining previous terminal answers and unresolved outcomes. Its planned overlapping-occurrence diagnostic is now completed above. Current state owns exact evidence, resources and the next bounded task. Authored reference transport remains distinct from general prose.
 
