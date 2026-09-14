@@ -114,6 +114,8 @@ pub enum Control {
     StopDisabled,
     ExactIdentity,
     FeedbackDisabled,
+    SecondUpdateDisabled,
+    StaleSecondPayload,
 }
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Frame {
@@ -140,7 +142,7 @@ pub struct Generated {
     pub steps: Vec<Step>,
     pub exhausted: bool,
 }
-/// Fixed lexical protocol for this experiment. It accepts one or two question
+/// Fixed lexical protocol for this experiment. It accepts up to three question
 /// clauses; clause count does not select the action policy or desired output.
 pub fn clauses(prompt: &[u8]) -> Result<Vec<Vec<u8>>> {
     if prompt.len() > 256 {
@@ -161,7 +163,7 @@ pub fn clauses(prompt: &[u8]) -> Result<Vec<Vec<u8>>> {
             start = i + 1;
         }
     }
-    if out.is_empty() || out.len() > 2 || prompt[start..].iter().any(|b| !b.is_ascii_whitespace()) {
+    if out.is_empty() || out.len() > 3 || prompt[start..].iter().any(|b| !b.is_ascii_whitespace()) {
         return Err(Error::Shape);
     }
     Ok(out)
@@ -199,7 +201,7 @@ pub fn observe(
     s: &Frame,
     c: Control,
 ) -> Result<Observed> {
-    observe_probe(a, g, m, records, qs, s, c, None)
+    observe_probe(a, g, m, records, qs, s, c, None, None)
 }
 fn observe_probe(
     a: &Artifact,
@@ -210,6 +212,7 @@ fn observe_probe(
     s: &Frame,
     c: Control,
     probe: Option<&Probe>,
+    stale_payload: Option<&[u8]>,
 ) -> Result<Observed> {
     let route = route_probe(a, g, m, records, &s.core.query.bytes, s.clause, c, probe)?;
     let value = route
@@ -220,6 +223,9 @@ fn observe_probe(
     let mut update = None;
     if let (Some(next), Some(selected)) = (qs.get(s.clause + 1), route.selected.as_ref()) {
         let mut bytes = selected.bytes.clone();
+        if c == Control::StaleSecondPayload && s.clause == 1 {
+            bytes = stale_payload.ok_or(Error::State)?.to_vec();
+        }
         if c == Control::PayloadReversed {
             bytes.reverse();
         }
@@ -295,7 +301,9 @@ pub fn execute(
         s.core.exhausted = true;
         return Ok(None);
     }
-    if c == Control::UpdateDisabled && action == Action::Read {
+    if (c == Control::UpdateDisabled || (c == Control::SecondUpdateDisabled && s.clause == 1))
+        && action == Action::Read
+    {
         observation.next_query = s.core.query.clone();
     }
     let rc = match c {
@@ -344,8 +352,23 @@ pub(crate) fn generate_probe(
         steps: Vec::new(),
         exhausted: false,
     };
+    // Diagnostic history only: normal serving has no additional saved payload.
+    let mut first_payload: Option<Vec<u8>> = None;
     for _ in 0..MAX_STEPS {
-        let o = observe_probe(a, g, m, records, &qs, &state, c, probe)?;
+        let o = observe_probe(
+            a,
+            g,
+            m,
+            records,
+            &qs,
+            &state,
+            c,
+            probe,
+            first_payload.as_deref(),
+        )?;
+        if c == Control::StaleSecondPayload && state.clause == 0 && state.core.cursor == 0 {
+            first_payload = o.route.selected.as_ref().map(|v| v.bytes.clone());
+        }
         let mut action = Action::from_byte(a.actions[o.core.row])?;
         match c {
             Control::PolicyDisabled => action = Action::Stop,
@@ -383,9 +406,17 @@ mod tests {
             clauses(b"who did ruby guide? who did they trust?")?.len(),
             2
         );
-        for bad in [b"none".as_slice(), b"?", b"a?b?c?", b"a?tail"] {
+        assert_eq!(
+            clauses(b"who did ruby guide? who did they trust? who did they trust?")?.len(),
+            3
+        );
+        for bad in [b"none".as_slice(), b"?", b"a?b?c?d?", b"a?tail"] {
             assert!(clauses(bad).is_err());
         }
+        assert!(clauses(&vec![b'x'; 257]).is_err());
+        let mut oversized = vec![b'x'; 128];
+        oversized.push(b'?');
+        assert!(clauses(&oversized).is_err());
         Ok(())
     }
 }
