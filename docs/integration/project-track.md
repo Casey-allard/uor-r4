@@ -18,6 +18,8 @@ Reuse the [engine](architecture-2026-09/engines.md), [mathematics](architecture-
 
 ## Current implementation sequence — owner adopted September 12
 
+**Completion distinction, September 13:** The [completion result](../native_geometric_language_completion_973.md) separates completed answers from unresolved required continuations with a learned policy over the retained geometric transitions. Next address the one-word occurrence boundary and bounded multiword answer emission while preserving successful dependent reads and typed unresolved outcomes. Current state owns exact results, artifacts and resources. General prose remains unqualified.
+
 **Third-read transfer, September 13:** The [depth result](../native_geometric_language_depth_973.md) qualifies a third dependent read under the unchanged reader/updater/scheduler/writer, with scoped stale/disabled second-update controls. Next resolve completion versus an unusable required continuation through a matched frozen-artifact diagnostic before broadening answer length. Current state owns exact results, artifacts and resources. This is bounded sequential-reference transfer, not general prose.
 
 **Shared final-output primitive credit, September 13:** The [credit result](../native_geometric_language_credit_973.md) trains reader compatibility and query updates in four blocks using actual final answers under the existing scheduler/writer. It recovers the prior rules with no incremental mixed-credit accuracy gain. Next test bounded third-read composition under these unchanged operators before refitting, with actual intermediate-source interventions and retained one/two-read behavior. Current state owns exact qualification and resources; general language remains unestablished.

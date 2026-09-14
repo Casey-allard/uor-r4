@@ -1,4 +1,11 @@
 //! Final-output-trained query substitution between contextual language reads.
+pub mod completion;
+pub mod completion_data;
+#[cfg(test)]
+mod completion_diagnostic;
+pub mod completion_learning;
+#[cfg(test)]
+mod completion_report;
 pub mod data;
 pub mod depth_data;
 #[cfg(test)]
