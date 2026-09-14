@@ -18,6 +18,8 @@ Reuse the [engine](architecture-2026-09/engines.md), [mathematics](architecture-
 
 ## Current implementation sequence — owner adopted September 12
 
+**Contiguous terminal spans, September 14:** The [span result](../native_geometric_language_span_973.md) establishes output-trained bounded phrase selection and emission through the existing completion loop, preserving earlier answer and unresolved behavior. The next responsibility is carrying whole selected phrases into later geometric reads through the existing query-update operator. Finite learned word roles and authored grammar remain explicit; current state owns exact results, artifacts, limits and the next experiment. General prose is unqualified.
+
 **Completion distinction, September 13:** The [completion result](../native_geometric_language_completion_973.md) separates completed answers from unresolved required continuations with a learned policy over the retained geometric transitions. Next address the one-word occurrence boundary and bounded multiword answer emission while preserving successful dependent reads and typed unresolved outcomes. Current state owns exact results, artifacts and resources. General prose remains unqualified.
 
 **Third-read transfer, September 13:** The [depth result](../native_geometric_language_depth_973.md) qualifies a third dependent read under the unchanged reader/updater/scheduler/writer, with scoped stale/disabled second-update controls. Next resolve completion versus an unusable required continuation through a matched frozen-artifact diagnostic before broadening answer length. Current state owns exact results, artifacts and resources. This is bounded sequential-reference transfer, not general prose.

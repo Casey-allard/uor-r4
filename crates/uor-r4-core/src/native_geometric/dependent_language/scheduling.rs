@@ -214,7 +214,38 @@ fn observe_probe(
     probe: Option<&Probe>,
     stale_payload: Option<&[u8]>,
 ) -> Result<Observed> {
-    let route = route_probe(a, g, m, records, &s.core.query.bytes, s.clause, c, probe)?;
+    observe_routed(
+        a,
+        g,
+        m,
+        records,
+        qs,
+        s,
+        c,
+        probe,
+        stale_payload,
+        &mut |query, clause| route_probe(a, g, m, records, query, clause, c, probe),
+    )
+}
+/// Shared observation construction with an artifact-bound occurrence/span reader.
+/// Legacy probes and normal completion both use this same state transition seam.
+pub(crate) fn observe_routed<F>(
+    a: &Artifact,
+    g: &BoundGeometry,
+    m: &Metric,
+    records: &[Vec<u8>; 4],
+    qs: &[Vec<u8>],
+    s: &Frame,
+    c: Control,
+    probe: Option<&Probe>,
+    stale_payload: Option<&[u8]>,
+    route_fn: &mut F,
+) -> Result<Observed>
+where
+    F: FnMut(&[u8], usize) -> Result<lexical::Route>,
+{
+    let route = route_fn(&s.core.query.bytes, s.clause)?;
+
     let value = route
         .selected
         .as_ref()
@@ -261,7 +292,7 @@ fn observe_probe(
         s.core.query.clone()
     };
     let next_available = update.is_some()
-        && route_probe(a, g, m, records, &next_query.bytes, s.clause + 1, c, probe)?
+        && route_fn(&next_query.bytes, s.clause + 1)?
             .selected
             .is_some();
     let row = usize::from(value.is_some())

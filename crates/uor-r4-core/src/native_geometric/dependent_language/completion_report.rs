@@ -52,7 +52,7 @@ fn selected_prefix(out: &runtime::Generated) -> Vec<[usize; 2]> {
         .filter_map(|decision| decision.selected)
         .collect()
 }
-fn legacy_retention(
+pub(super) fn legacy_retention(
     parent: &scheduling::Artifact,
     g: &BoundGeometry,
     m: &Metric,

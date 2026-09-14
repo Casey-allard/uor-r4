@@ -107,7 +107,12 @@ fn prior_control(c: Control) -> prior::Control {
 }
 /// Topology of a bounded bipartite word-match relation. Equality observations
 /// come from signed-prefix Hamming distance; this function never reads word IDs.
-fn topology(matches: &[Vec<usize>], source_words: usize, candidate: usize, c: Control) -> u32 {
+pub(crate) fn topology(
+    matches: &[Vec<usize>],
+    source_words: usize,
+    candidate: usize,
+    c: Control,
+) -> u32 {
     let qmatched: Vec<_> = matches.iter().map(|v| !v.is_empty()).collect();
     let positions: Vec<_> = matches.iter().flatten().copied().collect();
     if positions.is_empty() {

@@ -100,7 +100,42 @@ pub fn observe(
     s: &scheduling::Frame,
     c: Control,
 ) -> Result<Observed> {
-    let core = scheduling::observe(&a.parent, g, m, records, qs, s, scheduling::Control::Full)?;
+    observe_routed(a, g, m, records, qs, s, c, &mut |query, _| {
+        reader::route(
+            &a.parent.parent.parent,
+            g,
+            m,
+            records,
+            query,
+            reader::Control::Full,
+        )
+    })
+}
+pub(crate) fn observe_routed<F>(
+    a: &Artifact,
+    g: &BoundGeometry,
+    m: &Metric,
+    records: &[Vec<u8>; 4],
+    qs: &[Vec<u8>],
+    s: &scheduling::Frame,
+    c: Control,
+    route_fn: &mut F,
+) -> Result<Observed>
+where
+    F: FnMut(&[u8], usize) -> Result<crate::native_geometric::language_relation::runtime::Route>,
+{
+    let core = scheduling::observe_routed(
+        &a.parent,
+        g,
+        m,
+        records,
+        qs,
+        s,
+        scheduling::Control::Full,
+        None,
+        None,
+        route_fn,
+    )?;
     let pending = qs.get(s.clause + 1).is_some();
     let mut reason = None;
     if pending && !core.core.next_available {
@@ -129,14 +164,7 @@ pub fn observe(
                 Reason::NoAdmittedUpdate
             });
         } else {
-            let next = reader::route(
-                &a.parent.parent.parent,
-                g,
-                m,
-                records,
-                &core.core.next_query.bytes,
-                reader::Control::Full,
-            )?;
+            let next = route_fn(&core.core.next_query.bytes, s.clause + 1)?;
             reason = Some(match next.status {
                 RouteStatus::NoCompatibleCandidate => Reason::NoCompatibleCandidate,
                 RouteStatus::Ambiguous => Reason::Ambiguous,
@@ -179,6 +207,41 @@ pub fn generate(
     prompt: &[u8],
     c: Control,
 ) -> Result<Generated> {
+    generate_routed(
+        a,
+        g,
+        m,
+        records,
+        prompt,
+        c,
+        scheduling::Control::Full,
+        |query, _| {
+            reader::route(
+                &a.parent.parent.parent,
+                g,
+                m,
+                records,
+                query,
+                reader::Control::Full,
+            )
+        },
+    )
+}
+/// Reuses completion actions, typed reasons and the recurrent executor. The
+/// injected reader takes only current query bytes and clause index, never a target.
+pub(crate) fn generate_routed<F>(
+    a: &Artifact,
+    g: &BoundGeometry,
+    m: &Metric,
+    records: &[Vec<u8>; 4],
+    prompt: &[u8],
+    c: Control,
+    execution_control: scheduling::Control,
+    mut route_fn: F,
+) -> Result<Generated>
+where
+    F: FnMut(&[u8], usize) -> Result<crate::native_geometric::language_relation::runtime::Route>,
+{
     a.validate(g)?;
     let qs = scheduling::clauses(prompt)?;
     let mut state = scheduling::start(&a.parent, g, &qs)?;
@@ -192,7 +255,7 @@ pub fn generate(
         decisions: Vec::new(),
     };
     for _ in 0..scheduling::MAX_STEPS {
-        let o = observe(a, g, m, records, &qs, &state, c)?;
+        let o = observe_routed(a, g, m, records, &qs, &state, c, &mut route_fn)?;
         let mut choice = a.actions[o.row];
         if c == Control::UnresolvedDisabled && choice == 3 {
             choice = 2;
@@ -215,14 +278,8 @@ pub fn generate(
         }
         let action = Action::from_byte(choice)?;
         let before = state.clone();
-        let token = scheduling::execute(
-            &a.parent,
-            g,
-            &o.core,
-            &mut state,
-            action,
-            scheduling::Control::Full,
-        )?;
+        let token =
+            scheduling::execute(&a.parent, g, &o.core, &mut state, action, execution_control)?;
         if let Some(t) = token {
             out.trace.tokens.push(t);
         }

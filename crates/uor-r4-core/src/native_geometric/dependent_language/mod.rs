@@ -22,3 +22,10 @@ pub mod schedule_learning;
 #[cfg(test)]
 mod schedule_report;
 pub mod scheduling;
+
+pub mod span;
+pub mod span_boundary;
+pub mod span_data;
+pub mod span_learning;
+#[cfg(test)]
+mod span_report;
