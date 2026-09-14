@@ -18,6 +18,8 @@ Reuse the [engine](architecture-2026-09/engines.md), [mathematics](architecture-
 
 ## Current implementation sequence — owner adopted September 12
 
+**Lexical-neighbor role transfer, September 14:** The [unchanged-artifact diagnostic](../native_geometric_neighbor_transfer_973.md) separates preserved canonical word identity from a lossy finite query-role observation. Correct the training observation interface and learn unfamiliar-name support using training-only views; preserve prior paths and evaluate the valid/missing/conflicting distinction. Current state owns measured acceptance and the bounded next action.
+
 **Learned styled occurrence roles, September 14:** The [paired-role result](../native_geometric_styled_role_973.md) adds reciprocal final-output credit, actual-output source-rule selection and constrained query-witness refinement while preserving learned participation and complete prior paths. The next responsibility is unchanged-artifact lexical-neighbor transfer before further fitting; current state owns its precise acceptance and resources.
 
 **Learned query participation, September 14:** The [participation result](../native_geometric_query_participation_973.md) separates optional query evidence from dependent replacement eligibility while preserving exact occurrence identities and source/query roles. Carry these decisions into subsequent styled-role learning and retain successful complete paths; current state owns measured acceptance and sequencing.

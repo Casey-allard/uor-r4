@@ -213,7 +213,7 @@ fn audit(
     )
 }
 
-fn retained_200(
+pub(super) fn retained_200(
     a: &model::Artifact,
     parent: &model::Artifact,
     g: &BoundGeometry,
@@ -264,7 +264,7 @@ fn retained_200(
     )
 }
 
-fn retained_6688(
+pub(super) fn retained_6688(
     a: &model::Artifact,
     parent: &model::Artifact,
     g: &BoundGeometry,

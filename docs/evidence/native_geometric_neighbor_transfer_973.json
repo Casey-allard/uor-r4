@@ -1,0 +1,509 @@
+{
+  "gate": "FAIL_UNCHANGED_NEIGHBOR_TRANSFER",
+  "summary": {
+    "artifact_sha256": "0175ad86850a77017fdc41b7b4da9c22fe41bc8bcbf348e1352967dd29e43a94",
+    "artifact_unchanged": true,
+    "correct": 468,
+    "exact_equal": 492,
+    "final_holdout": "NOT_RUN",
+    "fits": 0,
+    "gate": "FAIL_UNCHANGED_NEIGHBOR_TRANSFER",
+    "panels": {
+      "collision/ExactIdentity": 96,
+      "collision/Full": 96,
+      "collision/ReadDisabled": 0,
+      "collision/UpdateDisabled": 0,
+      "coverage/ExactIdentity": 60,
+      "coverage/Full": 60,
+      "coverage/ReadDisabled": 0,
+      "coverage/UpdateDisabled": 40,
+      "predicate/ExactIdentity": 48,
+      "predicate/Full": 48,
+      "predicate/ReadDisabled": 0,
+      "predicate/UpdateDisabled": 0,
+      "styled/ExactIdentity": 84,
+      "styled/Full": 84,
+      "styled/ReadDisabled": 0,
+      "styled/UpdateDisabled": 0,
+      "styled_conflict/ExactIdentity": 84,
+      "styled_conflict/Full": 84,
+      "styled_conflict/ReadDisabled": 0,
+      "styled_conflict/UpdateDisabled": 84,
+      "styled_missing/ExactIdentity": 96,
+      "styled_missing/Full": 96,
+      "styled_missing/ReadDisabled": 0,
+      "styled_missing/UpdateDisabled": 96
+    },
+    "promotion": false,
+    "read_or_update_disabled_correct_answer": 0,
+    "reload_equal": 492,
+    "retained_200_equal": 200,
+    "retained_300_equal": 300,
+    "retained_6688_equal": 6688,
+    "retained_typed_unresolved": 512,
+    "rows": 492,
+    "runtime_changes": 0,
+    "scope": "fixed authored two-clause grammar, four records, novel ordinary name neighbors; no general-language qualification"
+  },
+  "diagnosis": {
+    "failure_count": 24,
+    "stages": {
+      "continuation_routes": 24
+    },
+    "role_changes": {
+      "source_rows": 0,
+      "query_rows": 12,
+      "required_rows": 0
+    },
+    "collisions": [
+      {
+        "content_witnesses": [
+          {
+            "actual_context": true,
+            "expected_context_from_authored_auxiliary_position": false,
+            "id": "novel-styled-amber_will-subject0-rotation0-baseline-missing",
+            "index": 6,
+            "origin": "development",
+            "raw": "please tell me who did selka will help?"
+          }
+        ],
+        "context_witnesses": [
+          {
+            "actual_context": true,
+            "expected_context_from_authored_auxiliary_position": true,
+            "id": "paired-training-78",
+            "index": 1,
+            "origin": "training",
+            "raw": "who will help oscar?"
+          },
+          {
+            "actual_context": true,
+            "expected_context_from_authored_auxiliary_position": true,
+            "id": "paired-training-80",
+            "index": 1,
+            "origin": "training",
+            "raw": "who will help bruno?"
+          }
+        ],
+        "key": {
+          "center": 13,
+          "left": 64,
+          "right": 15
+        },
+        "query": true
+      }
+    ],
+    "examples": [
+      {
+        "id": "novel-styled-amber_will-subject0-rotation0-baseline-conflict",
+        "family": "styled-conflict-styled-amber_will-subject0-rotation0",
+        "variant": "baseline",
+        "records": [
+          "today navor will call selka will tomorrow.",
+          "today selka will did help dorva tomorrow.",
+          "today pelin will help renza tomorrow.",
+          "today selka will did help zelun tomorrow."
+        ],
+        "prompt": "please tell me who will navor call? please tell me who did they help?",
+        "expected_queries": [
+          "please tell me who will navor call?",
+          "please tell me who did selka will help?"
+        ],
+        "expected_outcome": {
+          "Unresolved": {
+            "clause": 1,
+            "reason": "Ambiguous"
+          }
+        },
+        "expected_values": [
+          "selka will"
+        ],
+        "actual_outcome": {
+          "Unresolved": {
+            "clause": 1,
+            "reason": "NoCompatibleCandidate"
+          }
+        },
+        "actual_text": "",
+        "stage": "continuation_routes",
+        "assessment": {
+          "initial": true,
+          "next_query": true,
+          "sources": false,
+          "outcome": false,
+          "path": true
+        }
+      },
+      {
+        "id": "novel-styled-amber_will-subject0-rotation0-baseline",
+        "family": "styled-amber_will-subject0-rotation0",
+        "variant": "baseline",
+        "records": [
+          "today navor will call selka will tomorrow.",
+          "today selka will did help dorva tomorrow.",
+          "today pelin will help renza tomorrow.",
+          "today orvik did visit lumet tomorrow."
+        ],
+        "prompt": "please tell me who will navor call? please tell me who did they help?",
+        "expected_queries": [
+          "please tell me who will navor call?",
+          "please tell me who did selka will help?"
+        ],
+        "expected_outcome": "Answered",
+        "expected_values": [
+          "selka will",
+          "dorva"
+        ],
+        "actual_outcome": {
+          "Unresolved": {
+            "clause": 1,
+            "reason": "NoCompatibleCandidate"
+          }
+        },
+        "actual_text": "",
+        "stage": "continuation_routes",
+        "assessment": {
+          "initial": true,
+          "next_query": true,
+          "sources": false,
+          "outcome": false,
+          "path": false
+        }
+      }
+    ],
+    "scope": "Paired300 observation comparisons; actual492 complete generation; direct role intervention NOT_RUN; novel triple-name behavior NOT_TESTED"
+  },
+  "reports": [
+    {
+      "report_root": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/neighbor-transfer-1/attempt-1",
+      "files": {
+        "acceptance.json": {
+          "sha256": "e80be8812bb287936c98459211cb7fad6d01a28cf52cd0861268b8c37b6a5b11",
+          "bytes": 1461
+        },
+        "attempt.json": {
+          "sha256": "40eff8287f63cf54768794a02174adc9c8d8c544609804d86758514db3e6dfcb",
+          "bytes": 505
+        },
+        "data.json": {
+          "sha256": "c778e351649979414ee96e8c2718512173f0aad00716072d2c8f37ca829df1c8",
+          "bytes": 2599968
+        },
+        "environment.json": {
+          "sha256": "32b84795f6dd6b15d0e081f762e42782c9aa2b6a6ad692b3aed86cbedfa768b7",
+          "bytes": 1242
+        },
+        "failure-observations.json": {
+          "sha256": "5de75dc5b35ae8d30bf4bd7ea63c1bf43a3bae1d30e3fcd7534ddf4d2b7fa8d8",
+          "bytes": 1286018
+        },
+        "manifest.json": {
+          "sha256": "b7b570d3e687b7ed1e579c92463e5259cc0bcb59cb81b364217600ee9ebd9ff4",
+          "bytes": 1930
+        },
+        "observation-transfer.json": {
+          "sha256": "26735c8918792b8a0e8acc7c900ec9a8ede5f0f20413e5a3f5933ce792f29b1b",
+          "bytes": 5981659
+        },
+        "responses.json": {
+          "sha256": "d7c255186d8815e41ad21fee1451d109c57f153dbd084560003d225685f65ed6",
+          "bytes": 73451094
+        },
+        "retained-200.json": {
+          "sha256": "5b111eab7fc7c8b58fbd9c03d3de879a324915cb59e66d2957707df6ed8a7e77",
+          "bytes": 39960
+        },
+        "retained-300.json": {
+          "sha256": "00e80bfe2153e30c89c8bc5127be75ecd6367eca3b78997ab420ec1d04a72964",
+          "bytes": 37021
+        },
+        "retained-6688.json": {
+          "sha256": "1332e0e3ec4d4047d9fe868e56aa447cbbd5205a431f760b3aab6043a2ada2a5",
+          "bytes": 1146193
+        },
+        "summary.json": {
+          "sha256": "7a333ea8681c61e9e4d9cd934789f9c9d8d8905e21e3f7f2423ecc8c2b1d2ac9",
+          "bytes": 1457
+        }
+      },
+      "summary": {
+        "artifact_sha256": "0175ad86850a77017fdc41b7b4da9c22fe41bc8bcbf348e1352967dd29e43a94",
+        "artifact_unchanged": true,
+        "correct": 468,
+        "exact_equal": 492,
+        "final_holdout": "NOT_RUN",
+        "fits": 0,
+        "gate": "FAIL_UNCHANGED_NEIGHBOR_TRANSFER",
+        "panels": {
+          "collision/ExactIdentity": 96,
+          "collision/Full": 96,
+          "collision/ReadDisabled": 0,
+          "collision/UpdateDisabled": 0,
+          "coverage/ExactIdentity": 60,
+          "coverage/Full": 60,
+          "coverage/ReadDisabled": 0,
+          "coverage/UpdateDisabled": 40,
+          "predicate/ExactIdentity": 48,
+          "predicate/Full": 48,
+          "predicate/ReadDisabled": 0,
+          "predicate/UpdateDisabled": 0,
+          "styled/ExactIdentity": 84,
+          "styled/Full": 84,
+          "styled/ReadDisabled": 0,
+          "styled/UpdateDisabled": 0,
+          "styled_conflict/ExactIdentity": 84,
+          "styled_conflict/Full": 84,
+          "styled_conflict/ReadDisabled": 0,
+          "styled_conflict/UpdateDisabled": 84,
+          "styled_missing/ExactIdentity": 96,
+          "styled_missing/Full": 96,
+          "styled_missing/ReadDisabled": 0,
+          "styled_missing/UpdateDisabled": 96
+        },
+        "promotion": false,
+        "read_or_update_disabled_correct_answer": 0,
+        "reload_equal": 492,
+        "retained_200_equal": 200,
+        "retained_300_equal": 300,
+        "retained_6688_equal": 6688,
+        "retained_typed_unresolved": 512,
+        "rows": 492,
+        "runtime_changes": 0,
+        "scope": "fixed authored two-clause grammar, four records, novel ordinary name neighbors; no general-language qualification"
+      },
+      "error": null
+    }
+  ],
+  "source_lineage": [
+    {
+      "base": "b2c94494bfeedfbd3498d732bd94ddce54516a76",
+      "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/neighbor-transfer-1/neighbor-transfer-tests",
+      "sha256": "34f91f123259092b802b10c381ca63aaf66071022b109329a1bb2a9bc5ec1240",
+      "source_files": 89,
+      "build_label": "neighbor-transfer-build-1"
+    }
+  ],
+  "retained_candidate": {
+    "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/styled-role-1/attempt-3/candidate.json",
+    "sha256": "0175ad86850a77017fdc41b7b4da9c22fe41bc8bcbf348e1352967dd29e43a94"
+  },
+  "normal": {
+    "path": "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/reader-scope-repair/model.json",
+    "sha256": "1454aa69e2e295d0a9970e90326f4664d3c614f666b1a708a16c16b5350a1705"
+  },
+  "preservation": {
+    "at": "2026-09-14T16:33:01.179Z",
+    "prior_report_roots": 75,
+    "prior_report_files": 1752,
+    "originals": [
+      {
+        "path": "/Users/casey.allard/uor-r4",
+        "head": "49da65c509e8b1b9f10e7891918d3618c65e9f20",
+        "status_sha256": "4634a2b54ea8525bf3c76edb5d7092986d2dda77ef76edd3a641ce2b0f075df8"
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent",
+        "head": "49da65c509e8b1b9f10e7891918d3618c65e9f20",
+        "status_sha256": "7dbfdd7d981456b30357812e9dc7edd13b072c43ce45b873f35ba51d742465b2"
+      }
+    ],
+    "lineage": [
+      {
+        "name": "language-span-1",
+        "suffix": "",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-span-1/language-span-tests",
+        "sha256": "befad45acb8cc28047ccd7ebbfcf0d47493060c358bf8b1efd8ce62397a3f15e"
+      },
+      {
+        "name": "language-span-1",
+        "suffix": "-2",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-span-1/language-span-tests-2",
+        "sha256": "c68cf90de23a7e68efe83ef0b6a70335b594b36efb4e162291c93142e1a15760"
+      },
+      {
+        "name": "language-span-1",
+        "suffix": "-3",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-span-1/language-span-tests-3",
+        "sha256": "d9810736cfbd8830d4e38c0c206052c8e860ade5cf34d189b2e4cf0521bd86e8"
+      },
+      {
+        "name": "language-phrase-update-1",
+        "suffix": "",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-phrase-update-1/phrase-update-tests",
+        "sha256": "3dbfb12931e9f03f00a212b8b7237970db095fca659acce95b61c6335befbe6b"
+      },
+      {
+        "name": "language-occurrence-1",
+        "suffix": "",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-occurrence-1/occurrence-tests",
+        "sha256": "0b2ef78f7d2f7bdb9d7c1613ac0d1f8ce5eff149bad50325b9e95dd4fb1aae08"
+      },
+      {
+        "name": "language-occurrence-1",
+        "suffix": "-2",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-occurrence-1/occurrence-tests-2",
+        "sha256": "71fbed5f58f0701628d30db8a2eae6d5dda3bae2ad7616e257e4acdeacc2c113"
+      },
+      {
+        "name": "language-occurrence-1",
+        "suffix": "-3",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-occurrence-1/occurrence-tests-3",
+        "sha256": "db84c24b02b3e2f5e30c2f4609eee168c6b019c4d2fc259fe5829ffccdb33f6b"
+      },
+      {
+        "name": "language-occurrence-1",
+        "suffix": "-4",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-occurrence-1/occurrence-tests-4",
+        "sha256": "5b5425b69616ec3b5b48b297a14273ffd25bee90e78f3468240cabe100e52625"
+      },
+      {
+        "name": "correspondence-runs-1",
+        "suffix": "",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/correspondence-runs-1/correspondence-tests",
+        "sha256": "578da33fa921f692fa14aa030649340f9327b0a69d842d74c7ab1789827d2a3b"
+      },
+      {
+        "name": "correspondence-runs-1",
+        "suffix": "-2",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/correspondence-runs-1/correspondence-tests-2",
+        "sha256": "9abf5ed3f7f4d094695db9aa487a4763264d8bc371bb5618a797afc3309c88e8"
+      },
+      {
+        "name": "correspondence-runs-1",
+        "suffix": "-3",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/correspondence-runs-1/correspondence-tests-3",
+        "sha256": "d0ab5ffffb2a91922deaeb0dc8700728b9d548f725910ab51009ad19891863ea"
+      },
+      {
+        "name": "phrase-order-1",
+        "suffix": "",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/phrase-order-1/phrase-order-tests",
+        "sha256": "86ced40824760e5e10f4d1b117644fdbd18ceef0671962e0113a907f37f7dea0"
+      },
+      {
+        "name": "lexical-role-1",
+        "suffix": "",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/lexical-role-1/lexical-role-tests",
+        "sha256": "adf3f0787ba96eddd07d1e9a31002f4667c4f4ad215be7bf73cbeee165c384c5"
+      },
+      {
+        "name": "occurrence-role-1",
+        "suffix": "",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/occurrence-role-1/occurrence-role-tests",
+        "sha256": "40e43d954cba3f084bfa5c5c93adfbe3798752787742d8ff49e8900a12790316"
+      },
+      {
+        "name": "occurrence-role-1",
+        "suffix": "-2",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/occurrence-role-1/occurrence-role-tests-2",
+        "sha256": "ff9e2b90819463089980305a55b76ee1c5a3e1dd573b25405bc158a7e10000bd"
+      },
+      {
+        "name": "occurrence-role-1",
+        "suffix": "-3",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/occurrence-role-1/occurrence-role-tests-3",
+        "sha256": "12b7d4b3cc63547fcb323e814b179db6b6d83204bed15afd0d3310072090f0de"
+      },
+      {
+        "name": "occurrence-role-1",
+        "suffix": "-4",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/occurrence-role-1/occurrence-role-tests-4",
+        "sha256": "85dd945ff9a54f137f4f7d0eb35fb14c61fb00046f913d6f798efe48639c1b2c"
+      },
+      {
+        "name": "role-transfer-1",
+        "suffix": "",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/role-transfer-1/role-transfer-tests",
+        "sha256": "55d8b6f3b5a7cc1b907f8a4c4fa999d3df2af0e6ae340498c40d4b80c0ae2d9b"
+      },
+      {
+        "name": "query-participation-1",
+        "suffix": "",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/query-participation-1/query-participation-tests",
+        "sha256": "33fed4b34c3e4ea5909ffefba8e84a6773147f456c56a814c106fa69f952e557"
+      },
+      {
+        "name": "query-participation-1",
+        "suffix": "-3",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/query-participation-1/query-participation-tests-3",
+        "sha256": "6ffd1c20b2b4204d1df909c4212df1ae3f78f4e509f8f44e555bb3234e42bf54"
+      },
+      {
+        "name": "styled-role-1",
+        "suffix": "",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/styled-role-1/styled-role-tests",
+        "sha256": "ab55e21ba22363bab03079ee6333580a5cc0ae8ee84a610009a3b2648d403531"
+      },
+      {
+        "name": "styled-role-1",
+        "suffix": "-2",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/styled-role-1/styled-role-tests-2",
+        "sha256": "fcd0befc760bbebe19c02f49638f572ad6eda9aa154959b12162e48da7d1556e"
+      },
+      {
+        "name": "styled-role-1",
+        "suffix": "-3",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/styled-role-1/styled-role-tests-3",
+        "sha256": "dfede872611c561917d8a7232f780be6aa71b8d961fe620a7da9d84f6ac95035"
+      }
+    ],
+    "preserved": true
+  },
+  "resources": {
+    "at": "2026-09-14T16:30:50.778Z",
+    "step_model_ms": 213440,
+    "step_model_limit_ms": 600000,
+    "step_engineering_command_ms": 5216,
+    "step_engineering_limit_ms": 120000,
+    "elapsed_wall_ms": 682925,
+    "wall_limit_ms": 7200000,
+    "parent_model_ms": 14038791,
+    "parent_model_limit_ms": 14610000,
+    "parent_engineering_command_ms": 685231,
+    "shared_ledger": {
+      "cumulative_ms": 133789364,
+      "limit_ms": 134450000
+    },
+    "peak_sampled_process_tree_rss_bytes": 3478355968,
+    "rss_limit_bytes": 6442450944,
+    "actual_storage_bytes": {
+      "target": 1851318272,
+      "git": 1031974912,
+      "worktree": 1239392256,
+      "evidence": 4443303936
+    },
+    "cumulative_storage_high_water": {
+      "target": 130338816,
+      "git": 12161024,
+      "worktree": 1239392256,
+      "evidence": 4443303936,
+      "at": "2026-09-14T16:30:50.777Z"
+    },
+    "external_carry_bytes": 15466496,
+    "closure_reserve_bytes": 262144,
+    "step_new_storage_high_water_bytes": 112975872,
+    "step_new_storage_limit_bytes": 536870912,
+    "parent_growth_including_carry_and_reserve_bytes": 5840924672,
+    "parent_growth_limit_bytes": 6174015488,
+    "storage_accounted_before_bytes": 100924878848,
+    "storage_accounted_after_bytes": 106765803520,
+    "storage_account_limit_bytes": 107072352256,
+    "stop_margin_bytes": 134217728,
+    "physical_free_bytes": 12942184448,
+    "external_cost": 0,
+    "cleanup": false,
+    "fits": 0,
+    "notes": "Cumulative high water, not only retained model size. Includes all actual builds, data preparation, evaluation and controls; unchanged lexical-neighbor diagnostic, with generation and retained controls, all prior negative attempts retained, frozen binaries/reports, prior external carry and 256KiB closure reserve covering new local helper/PR files. Shell navigation and documentation are reflected in wall time; engineering_command_ms measures wrapped commands only."
+  },
+  "local_root": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/neighbor-transfer-1",
+  "next_action": "Correct the role observation/learning interface using training data only. First include canonical words from both training records and questions in the role-anchor inventory, and verify that the measured opposite-role key becomes distinguishable. Then use predetermined training-only views that withhold eligible name anchors from the finite role observation while preserving full canonical word identity for geometric matching. Learn unknown-name behavior through existing final-output-compatible credit, preserving auxiliary negatives and withholding ambiguous credit. Keep the finite anchor bound and remap inherited table indices by exact canonical Word equality. Do not insert the exposed development names or hand-label the unseen name rule. Adding question-only anchors alone is not a demonstrated fix. Qualify actual generation on the now-open 492 cases and all retained controls; independent final evaluation remains separate.",
+  "tests": {
+    "optimized_focused": 48,
+    "new_environment_tests": 2,
+    "build": "neighbor-transfer-build-1",
+    "evaluation": "neighbor-transfer-evaluate-1",
+    "fits": 0
+  },
+  "promotion": false,
+  "final_holdout": "NOT_RUN"
+}

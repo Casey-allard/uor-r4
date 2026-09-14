@@ -22,7 +22,9 @@ does not override the current owner direction.
 
 ## Current development path
 
-The [styled-role result](native_geometric_styled_role_973.md) locates paired source-role learning and output-guided rule selection in `dependent_language/occurrence_role.rs`, plus the frozen-data Rust qualification report. Current state owns unchanged-artifact lexical-neighbor transfer and its limits.
+The [lexical-neighbor transfer result](native_geometric_neighbor_transfer_973.md) locates `dependent_language/neighbor_transfer_report.rs`: frozen-artifact new-name cases, matched continuation states, and source/query/participation observation comparisons. The role-anchor and learning correction is specified in current state.
+
+The [styled-role result](native_geometric_styled_role_973.md) locates paired source-role learning and output-guided rule selection in `dependent_language/occurrence_role.rs`, plus the frozen-data Rust qualification report. Current state owns subsequent role-learning qualification and its limits.
 
 The [query-participation result](native_geometric_query_participation_973.md) locates `dependent_language/query_participation.rs` and its Rust report: output-learned optional occurrence and replacement tables, shared reader/updater hooks, and same-identity prefix/name controls. Current state owns subsequent qualification.
 

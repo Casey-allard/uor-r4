@@ -72,3 +72,6 @@ mod query_participation_report;
 
 #[cfg(test)]
 mod styled_role_report;
+
+#[cfg(test)]
+mod neighbor_transfer_report;
