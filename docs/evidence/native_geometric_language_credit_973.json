@@ -1,0 +1,1672 @@
+{
+  "at": "2026-09-14T03:00:59.296Z",
+  "status": "PASS_SHARED_LANGUAGE_OUTPUT_CREDIT",
+  "summary": {
+    "blocks": [
+      {
+        "after_exact": 2048,
+        "before_exact": 0,
+        "covered": 2048,
+        "local_shortcut_positive": 0,
+        "name": "reader-bootstrap",
+        "nonlocal_positive": 0,
+        "preserved": true,
+        "reader_rules": [
+          1282,
+          68098
+        ],
+        "sites": 2048,
+        "update_rules": []
+      },
+      {
+        "after_exact": 4096,
+        "before_exact": 2048,
+        "covered": 2048,
+        "local_shortcut_positive": 0,
+        "name": "updater-bootstrap",
+        "nonlocal_positive": 0,
+        "preserved": true,
+        "reader_rules": [
+          1282,
+          68098
+        ],
+        "sites": 2048,
+        "update_rules": [
+          3
+        ]
+      },
+      {
+        "after_exact": 4096,
+        "before_exact": 4096,
+        "covered": 6144,
+        "local_shortcut_positive": 2560,
+        "name": "reader-mixed-credit",
+        "nonlocal_positive": 5120,
+        "preserved": true,
+        "reader_rules": [
+          1282,
+          68098
+        ],
+        "sites": 6144,
+        "update_rules": [
+          3
+        ]
+      },
+      {
+        "after_exact": 4096,
+        "before_exact": 4096,
+        "covered": 2048,
+        "local_shortcut_positive": 0,
+        "name": "updater-refresh",
+        "nonlocal_positive": 0,
+        "preserved": true,
+        "reader_rules": [
+          1282,
+          68098
+        ],
+        "sites": 2048,
+        "update_rules": [
+          3
+        ]
+      }
+    ],
+    "bootstrap_exact": 1536,
+    "bootstrap_reader_rules": [
+      1282,
+      68098
+    ],
+    "bootstrap_update_rules": [
+      3
+    ],
+    "candidate_exact": 1536,
+    "candidate_sha256": "62da0bfaddb37452a5ec7eb1aa220fbda7b33c79ef3dbcd4da1dcb11293e7a95",
+    "complete_families": 96,
+    "development_feature_rows": [
+      0,
+      1,
+      3,
+      7
+    ],
+    "final_holdout": "NOT_RUN",
+    "final_not_worse_than_bootstrap_rowwise": true,
+    "gate": "PASS_SHARED_LANGUAGE_OUTPUT_CREDIT",
+    "initial_reader_rules": [],
+    "initial_update_rules": [],
+    "learned_actions": [
+      2,
+      0,
+      2,
+      0,
+      2,
+      2,
+      2,
+      1
+    ],
+    "mixed_credit_incremental_improvement": false,
+    "mixed_credit_ok": true,
+    "original_reader_rules": [
+      1282,
+      68098
+    ],
+    "original_update_rules": [
+      3
+    ],
+    "panels": [
+      {
+        "artifact": "initial",
+        "control": "Full",
+        "exact": 0,
+        "kinds": {
+          "dependent": 0,
+          "direct": 0
+        },
+        "paths": 0,
+        "total": 1536
+      },
+      {
+        "artifact": "bootstrap",
+        "control": "Full",
+        "exact": 1536,
+        "kinds": {
+          "dependent": 768,
+          "direct": 768
+        },
+        "paths": 1536,
+        "total": 1536
+      },
+      {
+        "artifact": "candidate",
+        "control": "Full",
+        "exact": 1536,
+        "kinds": {
+          "dependent": 768,
+          "direct": 768
+        },
+        "paths": 1536,
+        "total": 1536
+      },
+      {
+        "artifact": "candidate",
+        "control": "PolicyDisabled",
+        "exact": 0,
+        "kinds": {
+          "dependent": 0,
+          "direct": 0
+        },
+        "paths": 0,
+        "total": 1536
+      },
+      {
+        "artifact": "candidate",
+        "control": "ReadDisabled",
+        "exact": 0,
+        "kinds": {
+          "dependent": 0,
+          "direct": 0
+        },
+        "paths": 0,
+        "total": 1536
+      },
+      {
+        "artifact": "candidate",
+        "control": "ContinuationDisabled",
+        "exact": 768,
+        "kinds": {
+          "dependent": 0,
+          "direct": 768
+        },
+        "paths": 768,
+        "total": 1536
+      },
+      {
+        "artifact": "candidate",
+        "control": "AlwaysRead",
+        "exact": 0,
+        "kinds": {
+          "dependent": 0,
+          "direct": 0
+        },
+        "paths": 1536,
+        "total": 1536
+      },
+      {
+        "artifact": "candidate",
+        "control": "EmitInsteadOfRead",
+        "exact": 768,
+        "kinds": {
+          "dependent": 0,
+          "direct": 768
+        },
+        "paths": 768,
+        "total": 1536
+      },
+      {
+        "artifact": "candidate",
+        "control": "UpdateDisabled",
+        "exact": 768,
+        "kinds": {
+          "dependent": 0,
+          "direct": 768
+        },
+        "paths": 768,
+        "total": 1536
+      },
+      {
+        "artifact": "candidate",
+        "control": "PayloadReversed",
+        "exact": 768,
+        "kinds": {
+          "dependent": 0,
+          "direct": 768
+        },
+        "paths": 768,
+        "total": 1536
+      },
+      {
+        "artifact": "candidate",
+        "control": "ScorerDisabled",
+        "exact": 768,
+        "kinds": {
+          "dependent": 0,
+          "direct": 768
+        },
+        "paths": 768,
+        "total": 1536
+      },
+      {
+        "artifact": "candidate",
+        "control": "CursorDisabled",
+        "exact": 0,
+        "kinds": {
+          "dependent": 0,
+          "direct": 0
+        },
+        "paths": 0,
+        "total": 1536
+      },
+      {
+        "artifact": "candidate",
+        "control": "StopDisabled",
+        "exact": 0,
+        "kinds": {
+          "dependent": 0,
+          "direct": 0
+        },
+        "paths": 0,
+        "total": 1536
+      },
+      {
+        "artifact": "candidate",
+        "control": "ExactIdentity",
+        "exact": 1536,
+        "kinds": {
+          "dependent": 768,
+          "direct": 768
+        },
+        "paths": 1536,
+        "total": 1536
+      },
+      {
+        "artifact": "candidate",
+        "control": "FeedbackDisabled",
+        "exact": 1536,
+        "kinds": {
+          "dependent": 768,
+          "direct": 768
+        },
+        "paths": 1536,
+        "total": 1536
+      },
+      {
+        "artifact": "clear-reader",
+        "control": "ClearReader",
+        "exact": 0,
+        "kinds": {
+          "dependent": 0,
+          "direct": 0
+        },
+        "paths": 0,
+        "total": 1536
+      },
+      {
+        "artifact": "clear-updater",
+        "control": "ClearUpdater",
+        "exact": 768,
+        "kinds": {
+          "dependent": 0,
+          "direct": 768
+        },
+        "paths": 768,
+        "total": 1536
+      }
+    ],
+    "parent_sha256": "65c28a3ae06148bf7defd0acdc6c1b25928f35febc1f964520309831e209ed22",
+    "promotion": false,
+    "reader_rules": [
+      1282,
+      68098
+    ],
+    "reader_rules_changed_from_original": false,
+    "reload_equal": 1536,
+    "retained_counts": {
+      "dependent": 9984,
+      "language": 1408,
+      "old_language_through_relative": 128,
+      "old_outputs": 13248,
+      "ordered": 640,
+      "recurrent": 512,
+      "relative": 9984,
+      "scheduling": 19968
+    },
+    "retained_model": "15baec48",
+    "retention_equal": true,
+    "scheduling_actions_unchanged": true,
+    "splits": {
+      "dependent:joint": [
+        256,
+        256,
+        256
+      ],
+      "dependent:lexical": [
+        256,
+        256,
+        256
+      ],
+      "dependent:syntactic": [
+        256,
+        256,
+        256
+      ],
+      "direct:joint": [
+        256,
+        256,
+        256
+      ],
+      "direct:lexical": [
+        256,
+        256,
+        256
+      ],
+      "direct:syntactic": [
+        256,
+        256,
+        256
+      ]
+    },
+    "training_exact": 4096,
+    "update_rules": [
+      3
+    ],
+    "update_rules_changed_from_original": false,
+    "writer_artifact_unchanged": true
+  },
+  "blocks": [
+    {
+      "after_exact": 2048,
+      "before_exact": 0,
+      "covered": 2048,
+      "local_shortcut_positive": 0,
+      "name": "reader-bootstrap",
+      "nonlocal_positive": 0,
+      "preserved": true,
+      "reader_rules": [
+        1282,
+        68098
+      ],
+      "sites": 2048,
+      "update_rules": []
+    },
+    {
+      "after_exact": 4096,
+      "before_exact": 2048,
+      "covered": 2048,
+      "local_shortcut_positive": 0,
+      "name": "updater-bootstrap",
+      "nonlocal_positive": 0,
+      "preserved": true,
+      "reader_rules": [
+        1282,
+        68098
+      ],
+      "sites": 2048,
+      "update_rules": [
+        3
+      ]
+    },
+    {
+      "after_exact": 4096,
+      "before_exact": 4096,
+      "covered": 6144,
+      "local_shortcut_positive": 2560,
+      "name": "reader-mixed-credit",
+      "nonlocal_positive": 5120,
+      "preserved": true,
+      "reader_rules": [
+        1282,
+        68098
+      ],
+      "sites": 6144,
+      "update_rules": [
+        3
+      ]
+    },
+    {
+      "after_exact": 4096,
+      "before_exact": 4096,
+      "covered": 2048,
+      "local_shortcut_positive": 0,
+      "name": "updater-refresh",
+      "nonlocal_positive": 0,
+      "preserved": true,
+      "reader_rules": [
+        1282,
+        68098
+      ],
+      "sites": 2048,
+      "update_rules": [
+        3
+      ]
+    }
+  ],
+  "acceptance": {
+    "bootstrap_rowwise_nonregression": true,
+    "development_rows": 1536,
+    "diagnostic_only": [
+      "ExactIdentity",
+      "FeedbackDisabled",
+      "BootstrapComparison"
+    ],
+    "features": [
+      "current_byte_present",
+      "cursor_at_boundary",
+      "usable_continuation"
+    ],
+    "final_holdout": "NOT_RUN",
+    "incremental_improvement_required": false,
+    "initial_reader_and_updater_cleared": true,
+    "max_steps": 96,
+    "mixed_reader_credit_covered": 6144,
+    "mixed_reader_credit_sites": 6144,
+    "nonlocal_positive_minimum": 1,
+    "per_kind_split_rows": 256,
+    "policy_rows": 8,
+    "required_complete_families": 96,
+    "required_direct_only": [
+      "ContinuationDisabled",
+      "EmitInsteadOfRead",
+      "UpdateDisabled",
+      "PayloadReversed",
+      "ScorerDisabled",
+      "ClearUpdater"
+    ],
+    "required_exact_paths": 1536,
+    "required_full_exact": 1536,
+    "required_preserved_blocks": 4,
+    "required_zero": [
+      "PolicyDisabled",
+      "ReadDisabled",
+      "AlwaysRead",
+      "CursorDisabled",
+      "StopDisabled",
+      "ClearReader"
+    ],
+    "scope": "discrete block-coordinate final-output reader/update credit with explicit direct bootstrap; shared scheduling and writer frozen; no joint gradient or general-language claim",
+    "status": "FROZEN_BEFORE_MODEL_LOAD",
+    "training_rows": 4096,
+    "writer_and_scheduling_frozen": true
+  },
+  "data_validation": {
+    "construction": "lossless concatenation of the existing relative-language and dependent-language corpora",
+    "development": {
+      "all_source_examples_retained": true,
+      "counts": {
+        "dependent/joint": 256,
+        "dependent/lexical": 256,
+        "dependent/syntactic": 256,
+        "direct/joint": 256,
+        "direct/lexical": 256,
+        "direct/syntactic": 256
+      },
+      "examples": 1536,
+      "families": 96,
+      "unique_ids": 1536,
+      "unique_raw_inputs": 1536
+    },
+    "final_held_out": "NOT_RUN",
+    "inference_inputs": [
+      "records",
+      "prompt"
+    ],
+    "model_output_filtering": false,
+    "new_grammar": false,
+    "reporting_only": [
+      "id",
+      "family",
+      "split",
+      "kind",
+      "expected_path"
+    ],
+    "source_validations": {
+      "dependent": {
+        "development": {
+          "examples": 768,
+          "families": 48,
+          "splits": {
+            "joint": {
+              "constructions": [
+                8,
+                9,
+                10,
+                11
+              ],
+              "examples": 256,
+              "families": 16,
+              "matched_active_final_changes": 64,
+              "matched_first_source_switches": 64,
+              "matched_inactive_final_controls": 64,
+              "question_word_lengths": [
+                5,
+                6,
+                8
+              ],
+              "record_word_lengths": [
+                6,
+                7
+              ],
+              "role_combinations": [
+                64,
+                64,
+                64,
+                64
+              ],
+              "source_slots_by_read": [
+                [
+                  64,
+                  64,
+                  64,
+                  64
+                ],
+                [
+                  64,
+                  64,
+                  64,
+                  64
+                ]
+              ],
+              "subject_object_counts_by_read": [
+                [
+                  128,
+                  128
+                ],
+                [
+                  128,
+                  128
+                ]
+              ],
+              "unique_raw_inputs": 256
+            },
+            "lexical": {
+              "constructions": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7
+              ],
+              "examples": 256,
+              "families": 16,
+              "matched_active_final_changes": 64,
+              "matched_first_source_switches": 64,
+              "matched_inactive_final_controls": 64,
+              "question_word_lengths": [
+                4,
+                5,
+                6,
+                7,
+                8
+              ],
+              "record_word_lengths": [
+                4,
+                5,
+                6,
+                7
+              ],
+              "role_combinations": [
+                64,
+                64,
+                64,
+                64
+              ],
+              "source_slots_by_read": [
+                [
+                  64,
+                  64,
+                  64,
+                  64
+                ],
+                [
+                  64,
+                  64,
+                  64,
+                  64
+                ]
+              ],
+              "subject_object_counts_by_read": [
+                [
+                  128,
+                  128
+                ],
+                [
+                  128,
+                  128
+                ]
+              ],
+              "unique_raw_inputs": 256
+            },
+            "syntactic": {
+              "constructions": [
+                8,
+                9,
+                10,
+                11
+              ],
+              "examples": 256,
+              "families": 16,
+              "matched_active_final_changes": 64,
+              "matched_first_source_switches": 64,
+              "matched_inactive_final_controls": 64,
+              "question_word_lengths": [
+                5,
+                6,
+                8
+              ],
+              "record_word_lengths": [
+                6,
+                7
+              ],
+              "role_combinations": [
+                64,
+                64,
+                64,
+                64
+              ],
+              "source_slots_by_read": [
+                [
+                  64,
+                  64,
+                  64,
+                  64
+                ],
+                [
+                  64,
+                  64,
+                  64,
+                  64
+                ]
+              ],
+              "subject_object_counts_by_read": [
+                [
+                  128,
+                  128
+                ],
+                [
+                  128,
+                  128
+                ]
+              ],
+              "unique_raw_inputs": 256
+            }
+          }
+        },
+        "evaluation_only": [
+          "expected_sources",
+          "expected_words",
+          "intermediate"
+        ],
+        "final_held_out": "NOT_RUN",
+        "geometry_or_model_filtering": false,
+        "inference_inputs": [
+          "records",
+          "prompt"
+        ],
+        "lexical_and_joint_content_and_answers_disjoint": true,
+        "references": {
+          "known_object": "them",
+          "known_subject": "they"
+        },
+        "syntactic_and_joint_constructions_disjoint": true,
+        "syntactic_content_seen_in_training": true,
+        "syntax_scope": "two-query chains over unseen combinations of familiar active auxiliary/adverb/question-prefix/source-adjunct components",
+        "train": {
+          "constructions": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "examples": 2048,
+          "families": 128,
+          "matched_active_final_changes": 512,
+          "matched_first_source_switches": 512,
+          "matched_inactive_final_controls": 512,
+          "question_word_lengths": [
+            4,
+            5,
+            6,
+            7,
+            8
+          ],
+          "record_word_lengths": [
+            4,
+            5,
+            6,
+            7
+          ],
+          "role_combinations": [
+            512,
+            512,
+            512,
+            512
+          ],
+          "source_slots_by_read": [
+            [
+              512,
+              512,
+              512,
+              512
+            ],
+            [
+              512,
+              512,
+              512,
+              512
+            ]
+          ],
+          "subject_object_counts_by_read": [
+            [
+              1024,
+              1024
+            ],
+            [
+              1024,
+              1024
+            ]
+          ],
+          "unique_raw_inputs": 2048
+        },
+        "training_supervision": [
+          "final answer"
+        ]
+      },
+      "direct": {
+        "development": {
+          "examples": 768,
+          "families": 48,
+          "splits": {
+            "joint": {
+              "answer_word_indices": {
+                "1": 128,
+                "5": 128
+              },
+              "constructions": [
+                8,
+                9,
+                10,
+                11
+              ],
+              "examples": 256,
+              "families": 16,
+              "matched_source_changes": 128,
+              "object_answers": 128,
+              "question_word_lengths": [
+                5,
+                6,
+                8
+              ],
+              "record_word_lengths": [
+                6,
+                7
+              ],
+              "source_slots": [
+                64,
+                64,
+                64,
+                64
+              ],
+              "subject_answers": 128,
+              "unique_base_contexts": 16,
+              "unique_raw_inputs": 256
+            },
+            "lexical": {
+              "answer_word_indices": {
+                "0": 80,
+                "1": 48,
+                "3": 32,
+                "4": 48,
+                "5": 48
+              },
+              "constructions": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7
+              ],
+              "examples": 256,
+              "families": 16,
+              "matched_source_changes": 128,
+              "object_answers": 128,
+              "question_word_lengths": [
+                4,
+                5,
+                6,
+                7,
+                8
+              ],
+              "record_word_lengths": [
+                4,
+                5,
+                6,
+                7
+              ],
+              "source_slots": [
+                64,
+                64,
+                64,
+                64
+              ],
+              "subject_answers": 128,
+              "unique_base_contexts": 16,
+              "unique_raw_inputs": 256
+            },
+            "syntactic": {
+              "answer_word_indices": {
+                "1": 128,
+                "5": 128
+              },
+              "constructions": [
+                8,
+                9,
+                10,
+                11
+              ],
+              "examples": 256,
+              "families": 16,
+              "matched_source_changes": 128,
+              "object_answers": 128,
+              "question_word_lengths": [
+                5,
+                6,
+                8
+              ],
+              "record_word_lengths": [
+                6,
+                7
+              ],
+              "source_slots": [
+                64,
+                64,
+                64,
+                64
+              ],
+              "subject_answers": 128,
+              "unique_base_contexts": 16,
+              "unique_raw_inputs": 256
+            }
+          }
+        },
+        "final_held_out": "NOT_RUN",
+        "geometry_or_model_filtering": false,
+        "inference_inputs": [
+          "records",
+          "question"
+        ],
+        "lexical_and_joint_entity_relation_and_answer_vocabulary_disjoint": true,
+        "syntactic_and_joint_constructions_disjoint": true,
+        "syntactic_content_vocabulary_seen_in_training": true,
+        "syntax_scope": "unseen combinations of familiar active auxiliary/adverb/question-prefix/source-adjunct components",
+        "train": {
+          "answer_word_indices": {
+            "0": 640,
+            "1": 384,
+            "3": 256,
+            "4": 384,
+            "5": 384
+          },
+          "constructions": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "examples": 2048,
+          "families": 128,
+          "matched_source_changes": 1024,
+          "object_answers": 1024,
+          "question_word_lengths": [
+            4,
+            5,
+            6,
+            7,
+            8
+          ],
+          "record_word_lengths": [
+            4,
+            5,
+            6,
+            7
+          ],
+          "source_slots": [
+            512,
+            512,
+            512,
+            512
+          ],
+          "subject_answers": 1024,
+          "unique_base_contexts": 128,
+          "unique_raw_inputs": 2048
+        }
+      }
+    },
+    "train": {
+      "all_source_examples_retained": true,
+      "counts": {
+        "dependent/train": 2048,
+        "direct/train": 2048
+      },
+      "examples": 4096,
+      "families": 256,
+      "unique_ids": 4096,
+      "unique_raw_inputs": 4096
+    },
+    "training_supervision": [
+      "answer"
+    ]
+  },
+  "lexical": {
+    "development_answer_strings_seen_in_training": 512,
+    "development_rows": 1536
+  },
+  "report_root": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-credit-1/attempt-1",
+  "files": {
+    "acceptance.json": {
+      "sha256": "a9d39c8ce9fc1cf1f9d4f0d841744951dea767d5625feff88d19c0d809dc7839",
+      "bytes": 1316
+    },
+    "attempt.json": {
+      "sha256": "28df63fbb59f5480af36b76bb5d6cd2920ab3890e98f4e28f63c2e010e668b63",
+      "bytes": 430
+    },
+    "blocks.json": {
+      "sha256": "b3ee4e3de2d24b9c042d1f30401d41c20c887eaea7a9d69e0f3d289cdf9a661a",
+      "bytes": 1219
+    },
+    "bootstrap.json": {
+      "sha256": "62da0bfaddb37452a5ec7eb1aa220fbda7b33c79ef3dbcd4da1dcb11293e7a95",
+      "bytes": 41940
+    },
+    "candidate.json": {
+      "sha256": "62da0bfaddb37452a5ec7eb1aa220fbda7b33c79ef3dbcd4da1dcb11293e7a95",
+      "bytes": 41940
+    },
+    "data.json": {
+      "sha256": "b1f66371ed3c39e660d7ed27301ac5d0571c539dcce202f97f4ca67318eeaad7",
+      "bytes": 17658570
+    },
+    "initial.json": {
+      "sha256": "ca1702e2653eccdf4c5ec6fdbd4f33a00da9a652467f6b2391da711eeb65b1a8",
+      "bytes": 41937
+    },
+    "manifest.json": {
+      "sha256": "7fb5121b9e4d8b4da28efe87ec66d9719631f424b90a8786b3fd80a11f53bb73",
+      "bytes": 4043
+    },
+    "reader-bootstrap-block.json": {
+      "sha256": "b4195b937644cac324bc56969e29a06c340d5e27bbef8f5f5e7b3a6277b44751",
+      "bytes": 258
+    },
+    "reader-bootstrap-candidate.json": {
+      "sha256": "4cda7d90a92125cb2840f473acaa83f388dc0d9ff3fb0b7697c50cdf10ccbe1a",
+      "bytes": 41943
+    },
+    "reader-bootstrap-sites.json": {
+      "sha256": "fbaed98bf5e64acc00af93ead58ca5ef77e1208f28b5676dcda9e81f4e56bc89",
+      "bytes": 20978306
+    },
+    "reader-mixed-credit-block.json": {
+      "sha256": "08acf820a4fb15b98f3015a82d79fe70949c55dbad7a71eb40b2aebf7ed2ab6c",
+      "bytes": 279
+    },
+    "reader-mixed-credit-candidate.json": {
+      "sha256": "62da0bfaddb37452a5ec7eb1aa220fbda7b33c79ef3dbcd4da1dcb11293e7a95",
+      "bytes": 41940
+    },
+    "reader-mixed-credit-sites.json": {
+      "sha256": "a1eeed0ce3eca4323abafb8d69c4f4bfd0b7880e1f65ef50307883e7a00b1740",
+      "bytes": 97857346
+    },
+    "responses.json": {
+      "sha256": "2dc4a3bda1b36029198943d1b86aa5c74e9121ce500f345453e2dd1147cf226f",
+      "bytes": 25349204
+    },
+    "retained-responses.json": {
+      "sha256": "005e5b33e93c04828de20b9fd544e355817c1e318b663b529c2e1999795c3d9b",
+      "bytes": 7051523
+    },
+    "sample-dependent.json": {
+      "sha256": "e07bce68dc465ac23b9f0cb561f4765b73fa8fd4c2f4fbc8427a9869c8c1d8cf",
+      "bytes": 224525
+    },
+    "sample-direct.json": {
+      "sha256": "404f15d9b83bac10b920fff072eaa1554c7b510b6a9f9550ceb3e45deda60097",
+      "bytes": 160251
+    },
+    "summary.json": {
+      "sha256": "e1a0029fc0b20b31351a7edf1d97911bdc38431d2fc09b80d75b6cf57a327938",
+      "bytes": 6795
+    },
+    "updater-bootstrap-block.json": {
+      "sha256": "4154f8e6c2879d12ca98969faf88aa506cb3fae0bc08eb6dba34439d4ea8bac9",
+      "bytes": 271
+    },
+    "updater-bootstrap-candidate.json": {
+      "sha256": "62da0bfaddb37452a5ec7eb1aa220fbda7b33c79ef3dbcd4da1dcb11293e7a95",
+      "bytes": 41940
+    },
+    "updater-bootstrap-sites.json": {
+      "sha256": "ae9b9a21d2b036d9b41a81969de77b9f8919457fe7ae53cc0c157cdfaf27dd07",
+      "bytes": 11714146
+    },
+    "updater-refresh-block.json": {
+      "sha256": "221f9b6eac83c01ed9915fc79139a14692221bde516a0531bfe697065fe1f5c5",
+      "bytes": 269
+    },
+    "updater-refresh-candidate.json": {
+      "sha256": "62da0bfaddb37452a5ec7eb1aa220fbda7b33c79ef3dbcd4da1dcb11293e7a95",
+      "bytes": 41940
+    },
+    "updater-refresh-sites.json": {
+      "sha256": "ae9b9a21d2b036d9b41a81969de77b9f8919457fe7ae53cc0c157cdfaf27dd07",
+      "bytes": 11714146
+    }
+  },
+  "source": {
+    "at": "2026-09-14T02:56:29.955Z",
+    "base": "6e53b430465ad3dd62a54bd5dc9ecef3b4084b81",
+    "files": [
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relational_attention/circuit.rs",
+        "sha256": "667eb3f9a900819a58e0cb02ab83573bee9c4600ce13c26fcfd29bd9de98666b"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relational_attention/data.rs",
+        "sha256": "81fb9b844f5ee1fe98a86583702d9094a63c2ca6c2dc3f2ac45803a3e79931cb"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relational_attention/learning.rs",
+        "sha256": "ce8cd0dea567f48daef49cbf83764d802163081eacc7189e86f48f153076c2d2"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relational_attention/mod.rs",
+        "sha256": "26304fbdd4ca916c5e39ebf30fd2092b2e5333888c039fd47e80772d9c60c9e4"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relational_attention/report.rs",
+        "sha256": "007b3fbd952bd8b1afb76d01a95ed6a2793977cf0eced2718b9637c0023128de"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relational_attention/runtime.rs",
+        "sha256": "671145c488a316eb7b03bbdcc391bdcd2bdf7c4341a30748faffebe87fe29d98"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/addressed_attention/artifact.rs",
+        "sha256": "519e909351482f8407ded1ef34d96252bc34e268554dac1212e3620dc22686ba"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/mod.rs",
+        "sha256": "a7f0241d9fd420d9023da04dcf1a19a38c7bcfb06abee7d57353366acc3bafcc"
+      },
+      {
+        "path": "Cargo.lock",
+        "sha256": "7337e6b47e5f7a8d4589164cb6ad23637e3d1b5413b462716cfdc1ab72d2558c"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_attention/data.rs",
+        "sha256": "279832bc9bd360e722df878039f53763ac44d480e462ede1e6bcce56e4490081"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_attention/learning.rs",
+        "sha256": "4ebb8a1c7d7254354170957082713f93c793876ebee16aa85349354b115e7f27"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_attention/mod.rs",
+        "sha256": "5ee5a83302e05c7dcc6390576ba5117840768e6df9418a7c92bc562c9531c336"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_attention/report.rs",
+        "sha256": "cfb9d890155967e31d0306489e4212926aea73eb8bc06204d789b5db70c08a69"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_attention/runtime.rs",
+        "sha256": "7df1a8fbb4854fe4b44795a600e89d64d5ebdea52e212c586ff357716b76240b"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/adaptive_attention/data.rs",
+        "sha256": "f4a46a8c13d6718a69a7157527ad17340782eb6245a16137ccd7486f424dd13f"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/adaptive_attention/learning.rs",
+        "sha256": "56805e3c991ec20c819f3ccfc761a64ac1108b4d1f5b8d85fcdf0565d87421a6"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/adaptive_attention/mod.rs",
+        "sha256": "75e3f83f000125e5594d6b20250264a867cfb3ea41375e3b2fb1851a8fe9c554"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/adaptive_attention/report.rs",
+        "sha256": "0322c42d31bc3ca692e0d7df73047427fea71a554568c1cff84988cda0680bdb"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/adaptive_attention/runtime.rs",
+        "sha256": "be75bdd3eb1ece009156e837908110a4383f2efc07bd39d663cfe6ebc702c39e"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/text_attention/data.rs",
+        "sha256": "8ad71cfeb7008b6b0528673f2ad984dcee01e9dfa4e8f9f73502373cd3bbf5c7"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/text_attention/learning.rs",
+        "sha256": "6075b0e3517f5146f0722d3d01d38f17d625923122ef366ca0c87ba74b44ac34"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/text_attention/mod.rs",
+        "sha256": "b134647c702bdb373f17d6e3d448e8bfacc616959b61a1d7b5b28033e78d0e62"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/text_attention/report.rs",
+        "sha256": "42c29f8fedd771dee68f3928f6ab81daa97849349d0c3256ae0773e077685ccd"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/text_attention/runtime.rs",
+        "sha256": "4b8260de6dbaeb58e73edfa003ebd15671c6e0f50ce49201c6e14db81c23edbd"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/recurrent_text/data.rs",
+        "sha256": "38d78b2d7afacdbd4d658c4b2443f989f885461680840ff115db4a3186958a3f"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/recurrent_text/learning.rs",
+        "sha256": "b89c6530450e312c2ed2001e636c8e72506f7dddc45de43c956e1904ad7f12d8"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/recurrent_text/mod.rs",
+        "sha256": "0a9fd7f3a2b5019d18007f1b1a0034b80b9fc2d871362b2c83c9988daa7d0211"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/recurrent_text/report.rs",
+        "sha256": "8c00984c315a54c07fec2d296ccfeca8cb11d15ca4100091cbe0640120520d4c"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/recurrent_text/runtime.rs",
+        "sha256": "ff110351143718983c67e4585e690dfa0b3ab93e550b36cfdb91bbefe1a3012d"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/ordered_state/data.rs",
+        "sha256": "8d4e62506142dba733c637223448ca8ff724221ec1c8a2d2d80047428b5fdd7b"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/ordered_state/learning.rs",
+        "sha256": "1cd839503d5d1a20fdc7982384542c5c2d578b7aab37d776a9a8c6f2e941598b"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/ordered_state/mod.rs",
+        "sha256": "1c07a8f8c33ad7d340b01654ce057d747e5dc980bdcf9dab4e299c9f32ed0fed"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/ordered_state/report.rs",
+        "sha256": "9b0625b1c5bec1d0e8e23f35225cab58ee33cdee56605a8565de61875caffb6a"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/ordered_state/runtime.rs",
+        "sha256": "935b0dedb849bb878a411adc56d587a7955e5b5850317d2e5ed5711c4a0b7492"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/language_relation/data.rs",
+        "sha256": "4b019d75ef2e748ea41b1028a4d77a674242858d223bec32ae8d124dda2f238c"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/language_relation/learning.rs",
+        "sha256": "306fd49146bf17b363a7db9027b71fff89ebb2815f2bc139c03697fe428d70be"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/language_relation/mod.rs",
+        "sha256": "7d46adec90d154801a470b3e1ef4a0333e12625aa39b2e7e09beb2849b2a6c5a"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/language_relation/report.rs",
+        "sha256": "af2c7d8c71693fc8e36f02100c0d095856bd05531a03d78191c740c94d9e846c"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/language_relation/runtime.rs",
+        "sha256": "9a6e63059f448eb7d58cb0e4b449211c688991ba4f63204c5ea83654e8d1fe88"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relative_language/data.rs",
+        "sha256": "dc0543ae1d5c0ff258ad01ed7ffcea3c132f07cd74f5375cc4760892a6176f84"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relative_language/learning.rs",
+        "sha256": "cadcf135e721a316e4f879ed39332ffdffae5c8a9ae878a62eab4243c697d618"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relative_language/mod.rs",
+        "sha256": "39a7345360badf172916787c7a59da1805dfb5bf07c5abe24009504e6e8847d9"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relative_language/report.rs",
+        "sha256": "792148a8f891e8ce8065d6eb1e9149bb1f7bf1ea6c31d485808e3501f0afdb93"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relative_language/runtime.rs",
+        "sha256": "61cabc212242ef0043f45281a1ecc15d7a11064557e5a59a88d4935c0e38553b"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/data.rs",
+        "sha256": "cda35c0dfbea2b3d5f85a44f9e72fcb2f9afe6f0b0dc8afd86dc8f7144e15e54"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/learning.rs",
+        "sha256": "249bbccb1b6955e7323dc1a68c8f2d881fa150457449a991d0cce83ffe99e41d"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/mod.rs",
+        "sha256": "a648d67be18d01d0b48dcc717d98dff22d4e7c4dfac82b6be37d9b09dc97642e"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/report.rs",
+        "sha256": "84801ee231551fa9d3a9e42831328c5ec4cd79302f2eb73870f6dacdc71f6f40"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/runtime.rs",
+        "sha256": "87683d4db8929b9a93e39e2ab15c57d28677977977753604dcc4b2d1172def49"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/schedule_data.rs",
+        "sha256": "e10afebcab69bd7c9f4675817c5c80db95c10a86510e792c22db1b9cad31944d"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/schedule_learning.rs",
+        "sha256": "2cd9f2cbb0feff4583d0809a02cbe1dc770e5916c9ef0b7218cdfafee235ca5b"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/schedule_report.rs",
+        "sha256": "d519d721371a3e76ce44c849acdd2dfad245094199c982b17e6d70a72e6b2e63"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/scheduling.rs",
+        "sha256": "b6f9c88a7c0773bb45603c3a3095dee5361ef8c31d34ad3e36bbd21bf5b4335d"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/joint_learning.rs",
+        "sha256": "5441ae18a17b69c75936099dce3caa4098b8e8f7681d36e05dded498b189168e"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/joint_report.rs",
+        "sha256": "da42c9bbb553d250f4ad7e0a8a69d8fa01cabd69c3ef64bc6141b14dfd721c03"
+      }
+    ],
+    "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-credit-1/language-credit-tests",
+    "binary_sha256": "06ddba9c3e2931deee2d966408198d0afba2d904499efd2dcec802ff45e5198d",
+    "compiler": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "build_label": "language-credit-build-1"
+  },
+  "prior_report_roots": 47,
+  "prior_report_files": 1196,
+  "prior_reports_preserved": true,
+  "prior_source_preserved": true,
+  "original_checkouts_preserved": [
+    {
+      "path": "/Users/casey.allard/uor-r4",
+      "head": "49da65c509e8b1b9f10e7891918d3618c65e9f20",
+      "status_sha256": "4634a2b54ea8525bf3c76edb5d7092986d2dda77ef76edd3a641ce2b0f075df8"
+    },
+    {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent",
+      "head": "49da65c509e8b1b9f10e7891918d3618c65e9f20",
+      "status_sha256": "7dbfdd7d981456b30357812e9dc7edd13b072c43ce45b873f35ba51d742465b2"
+    }
+  ],
+  "retained_model": {
+    "id": "15baec48",
+    "path": "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/reader-scope-repair/model.json",
+    "sha256": "1454aa69e2e295d0a9970e90326f4664d3c614f666b1a708a16c16b5350a1705"
+  },
+  "verification": "Rust seal/verify at completion; complete file sets/sizes/SHA256 postflight; all prior report bytes and predecessor frozen sources verified.",
+  "scope": "Four fixed discrete final-output credit blocks for reader and updater under frozen scheduler and writer. Explicit direct bootstrap, existing authored language corpus. No independent holdout, joint-gradient, metric advantage or general-language claim.",
+  "local_checks": {
+    "at": "2026-09-14T03:02:56.649Z",
+    "focused_total": 37,
+    "new_focused": 1,
+    "retained_focused": 36,
+    "tests": [
+      {
+        "label": "language-credit-build-1",
+        "passed": 6,
+        "failed": 0,
+        "ignored": 3,
+        "log": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-credit-build-1.log"
+      },
+      {
+        "label": "language-credit-retain-relational-attention",
+        "passed": 9,
+        "failed": 0,
+        "ignored": 1,
+        "log": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-credit-retain-relational-attention.log"
+      },
+      {
+        "label": "language-credit-retain-dependent-attention",
+        "passed": 5,
+        "failed": 0,
+        "ignored": 1,
+        "log": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-credit-retain-dependent-attention.log"
+      },
+      {
+        "label": "language-credit-retain-adaptive-attention",
+        "passed": 3,
+        "failed": 0,
+        "ignored": 1,
+        "log": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-credit-retain-adaptive-attention.log"
+      },
+      {
+        "label": "language-credit-retain-text-attention",
+        "passed": 4,
+        "failed": 0,
+        "ignored": 1,
+        "log": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-credit-retain-text-attention.log"
+      },
+      {
+        "label": "language-credit-retain-recurrent-text",
+        "passed": 4,
+        "failed": 0,
+        "ignored": 1,
+        "log": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-credit-retain-recurrent-text.log"
+      },
+      {
+        "label": "language-credit-retain-ordered-state",
+        "passed": 1,
+        "failed": 0,
+        "ignored": 1,
+        "log": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-credit-retain-ordered-state.log"
+      },
+      {
+        "label": "language-credit-retain-language-relation",
+        "passed": 1,
+        "failed": 0,
+        "ignored": 1,
+        "log": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-credit-retain-language-relation.log"
+      },
+      {
+        "label": "language-credit-retain-relative-language",
+        "passed": 4,
+        "failed": 0,
+        "ignored": 1,
+        "log": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-credit-retain-relative-language.log"
+      }
+    ],
+    "build": "release offline uor-r4-core lib",
+    "fit": "one four-block fit; report sealed and verified",
+    "commands": [
+      {
+        "kind": "engineering",
+        "label": "language-credit-format-1",
+        "cmd": "/Users/casey.allard/.cargo/bin/cargo",
+        "args": [
+          "fmt",
+          "--all"
+        ],
+        "cwd": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core",
+        "started": "2026-09-14T02:53:38.133Z",
+        "elapsed_ms": 5028,
+        "code": 0,
+        "signal": null,
+        "stopped": null,
+        "charged": false,
+        "peak_sampled_process_tree_rss_bytes": 196362240,
+        "logs": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-credit-format-1.log"
+      },
+      {
+        "kind": "model",
+        "label": "language-credit-build-1",
+        "cmd": "/Users/casey.allard/.cargo/bin/cargo",
+        "args": [
+          "test",
+          "--release",
+          "--offline",
+          "-p",
+          "uor-r4-core",
+          "--lib",
+          "dependent_language",
+          "--",
+          "--nocapture"
+        ],
+        "cwd": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core",
+        "started": "2026-09-14T02:53:54.772Z",
+        "elapsed_ms": 137622,
+        "code": 0,
+        "signal": null,
+        "stopped": null,
+        "charged": true,
+        "peak_sampled_process_tree_rss_bytes": 2976006144,
+        "logs": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-credit-build-1.log"
+      },
+      {
+        "kind": "model",
+        "label": "language-credit-fit-1",
+        "cmd": "/usr/bin/env",
+        "args": [
+          "UOR_LANGUAGE_CREDIT_REPORT=/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-credit-1/attempt-1",
+          "UOR_LANGUAGE_CREDIT_EVIDENCE=/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step",
+          ".uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-credit-1/language-credit-tests",
+          "native_geometric::dependent_language::joint_report::shared_language_output_credit_report",
+          "--exact",
+          "--ignored",
+          "--nocapture"
+        ],
+        "cwd": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core",
+        "started": "2026-09-14T02:56:30.116Z",
+        "elapsed_ms": 243858,
+        "code": 0,
+        "signal": null,
+        "stopped": null,
+        "charged": true,
+        "peak_sampled_process_tree_rss_bytes": 821428224,
+        "logs": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-credit-fit-1.log"
+      },
+      {
+        "kind": "model",
+        "label": "language-credit-retain-relational-attention",
+        "cmd": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-credit-1/language-credit-tests",
+        "args": [
+          "native_geometric::relational_attention::",
+          "--nocapture"
+        ],
+        "cwd": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core",
+        "started": "2026-09-14T03:00:42.833Z",
+        "elapsed_ms": 100,
+        "code": 0,
+        "signal": null,
+        "stopped": null,
+        "charged": true,
+        "peak_sampled_process_tree_rss_bytes": null,
+        "logs": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-credit-retain-relational-attention.log"
+      },
+      {
+        "kind": "model",
+        "label": "language-credit-retain-dependent-attention",
+        "cmd": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-credit-1/language-credit-tests",
+        "args": [
+          "native_geometric::dependent_attention::",
+          "--nocapture"
+        ],
+        "cwd": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core",
+        "started": "2026-09-14T03:00:42.978Z",
+        "elapsed_ms": 78,
+        "code": 0,
+        "signal": null,
+        "stopped": null,
+        "charged": true,
+        "peak_sampled_process_tree_rss_bytes": null,
+        "logs": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-credit-retain-dependent-attention.log"
+      },
+      {
+        "kind": "model",
+        "label": "language-credit-retain-adaptive-attention",
+        "cmd": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-credit-1/language-credit-tests",
+        "args": [
+          "native_geometric::adaptive_attention::",
+          "--nocapture"
+        ],
+        "cwd": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core",
+        "started": "2026-09-14T03:00:43.105Z",
+        "elapsed_ms": 47,
+        "code": 0,
+        "signal": null,
+        "stopped": null,
+        "charged": true,
+        "peak_sampled_process_tree_rss_bytes": null,
+        "logs": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-credit-retain-adaptive-attention.log"
+      },
+      {
+        "kind": "model",
+        "label": "language-credit-retain-text-attention",
+        "cmd": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-credit-1/language-credit-tests",
+        "args": [
+          "native_geometric::text_attention::",
+          "--nocapture"
+        ],
+        "cwd": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core",
+        "started": "2026-09-14T03:00:43.197Z",
+        "elapsed_ms": 46,
+        "code": 0,
+        "signal": null,
+        "stopped": null,
+        "charged": true,
+        "peak_sampled_process_tree_rss_bytes": null,
+        "logs": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-credit-retain-text-attention.log"
+      },
+      {
+        "kind": "model",
+        "label": "language-credit-retain-recurrent-text",
+        "cmd": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-credit-1/language-credit-tests",
+        "args": [
+          "native_geometric::recurrent_text::",
+          "--nocapture"
+        ],
+        "cwd": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core",
+        "started": "2026-09-14T03:00:43.290Z",
+        "elapsed_ms": 44,
+        "code": 0,
+        "signal": null,
+        "stopped": null,
+        "charged": true,
+        "peak_sampled_process_tree_rss_bytes": null,
+        "logs": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-credit-retain-recurrent-text.log"
+      },
+      {
+        "kind": "model",
+        "label": "language-credit-retain-ordered-state",
+        "cmd": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-credit-1/language-credit-tests",
+        "args": [
+          "native_geometric::ordered_state::",
+          "--nocapture"
+        ],
+        "cwd": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core",
+        "started": "2026-09-14T03:00:43.380Z",
+        "elapsed_ms": 44,
+        "code": 0,
+        "signal": null,
+        "stopped": null,
+        "charged": true,
+        "peak_sampled_process_tree_rss_bytes": null,
+        "logs": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-credit-retain-ordered-state.log"
+      },
+      {
+        "kind": "model",
+        "label": "language-credit-retain-language-relation",
+        "cmd": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-credit-1/language-credit-tests",
+        "args": [
+          "native_geometric::language_relation::",
+          "--nocapture"
+        ],
+        "cwd": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core",
+        "started": "2026-09-14T03:00:43.470Z",
+        "elapsed_ms": 44,
+        "code": 0,
+        "signal": null,
+        "stopped": null,
+        "charged": true,
+        "peak_sampled_process_tree_rss_bytes": null,
+        "logs": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-credit-retain-language-relation.log"
+      },
+      {
+        "kind": "model",
+        "label": "language-credit-retain-relative-language",
+        "cmd": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-credit-1/language-credit-tests",
+        "args": [
+          "native_geometric::relative_language::",
+          "--nocapture"
+        ],
+        "cwd": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core",
+        "started": "2026-09-14T03:00:43.561Z",
+        "elapsed_ms": 79,
+        "code": 0,
+        "signal": null,
+        "stopped": null,
+        "charged": true,
+        "peak_sampled_process_tree_rss_bytes": null,
+        "logs": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-credit-retain-relative-language.log"
+      },
+      {
+        "kind": "engineering",
+        "label": "language-credit-verify-1",
+        "cmd": "node",
+        "args": [
+          ".uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-credit-1/verify.mjs"
+        ],
+        "cwd": "/Users/casey.allard/uor-r4-worktrees/shared-geometric-core",
+        "started": "2026-09-14T03:00:58.048Z",
+        "elapsed_ms": 1392,
+        "code": 0,
+        "signal": null,
+        "stopped": null,
+        "charged": false,
+        "peak_sampled_process_tree_rss_bytes": 291946496,
+        "logs": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-credit-verify-1.log"
+      }
+    ],
+    "format_check": "cargo fmt --all --check passed",
+    "claim_wording": "python3 scripts/check_claim_wording.py passed",
+    "diff_check": "git diff --check passed"
+  },
+  "resources": {
+    "at": "2026-09-14T03:04:26.156Z",
+    "step_model_ms": 381962,
+    "step_model_limit_ms": 2100000,
+    "step_engineering_command_ms": 11543,
+    "step_engineering_limit_ms": 180000,
+    "elapsed_wall_ms": 1207766,
+    "wall_limit_ms": 7200000,
+    "parent_model_ms": 7626228,
+    "parent_model_limit_ms": 9810000,
+    "parent_engineering_command_ms": 474781,
+    "shared_ledger": {
+      "cumulative_ms": 127376801,
+      "limit_ms": 132950000
+    },
+    "peak_sampled_process_tree_rss_bytes": 2976006144,
+    "rss_limit_bytes": 6442450944,
+    "actual_storage_bytes": {
+      "target": 1846853632,
+      "git": 1027973120,
+      "worktree": 1237544960,
+      "evidence": 1666486272
+    },
+    "cumulative_storage_high_water": {
+      "target": 114184192,
+      "git": 12161024,
+      "worktree": 1237544960,
+      "evidence": 1666486272,
+      "at": "2026-09-14T03:04:26.155Z"
+    },
+    "external_carry_bytes": 15466496,
+    "closure_reserve_bytes": 262144,
+    "step_new_storage_high_water_bytes": 216502272,
+    "step_new_storage_limit_bytes": 402653184,
+    "parent_growth_including_carry_and_reserve_bytes": 3046105088,
+    "parent_growth_limit_bytes": 3355443200,
+    "storage_accounted_before_bytes": 100924878848,
+    "storage_accounted_after_bytes": 103970983936,
+    "storage_account_limit_bytes": 105730174976,
+    "stop_margin_bytes": 134217728,
+    "physical_free_bytes": 15887302656,
+    "external_cost": 0,
+    "cleanup": false,
+    "attempts": 1,
+    "fits": 1,
+    "notes": "Cumulative high water, not only retained model size. Includes all builds, preparation, the fit and controls, frozen binaries/reports, prior external carry and 256KiB closure reserve covering new local helper/PR files. Shell navigation and documentation are reflected in wall time; engineering_command_ms measures wrapped commands only."
+  }
+}

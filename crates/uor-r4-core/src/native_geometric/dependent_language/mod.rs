@@ -1,5 +1,8 @@
 //! Final-output-trained query substitution between contextual language reads.
 pub mod data;
+pub mod joint_learning;
+#[cfg(test)]
+mod joint_report;
 pub mod learning;
 #[cfg(test)]
 mod report;

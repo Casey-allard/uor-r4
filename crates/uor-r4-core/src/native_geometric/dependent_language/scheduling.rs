@@ -18,6 +18,53 @@ pub const FEATURES: [&str; 3] = [
     "cursor_at_boundary",
     "usable_continuation",
 ];
+/// Offline counterfactual intervention. Normal serving always passes None.
+/// A read is pinned for the entire selected span, not only its first byte.
+#[derive(Clone, Debug)]
+pub(crate) enum Probe {
+    Read {
+        clause: usize,
+        query: Vec<u8>,
+        source: usize,
+        word: usize,
+    },
+    Update {
+        clause: usize,
+        word: usize,
+    },
+}
+fn route_probe(
+    a: &Artifact,
+    g: &BoundGeometry,
+    m: &Metric,
+    records: &[Vec<u8>; 4],
+    query: &[u8],
+    clause: usize,
+    c: Control,
+    probe: Option<&Probe>,
+) -> Result<lexical::Route> {
+    if let Some(Probe::Read {
+        clause: at,
+        query: pinned,
+        source,
+        word,
+    }) = probe
+    {
+        if *at == clause && pinned == query {
+            let selected =
+                reader::candidates(&a.parent.parent, g, m, records, query, read_control(c))?
+                    .into_iter()
+                    .find(|v| v.source == *source && v.word == *word)
+                    .ok_or(Error::State)?;
+            return Ok(lexical::Route {
+                status: lexical::RouteStatus::Selected,
+                compatible: vec![[*source, *word]],
+                selected: Some(selected),
+            });
+        }
+    }
+    reader::route(&a.parent.parent, g, m, records, query, read_control(c))
+}
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct Artifact {
@@ -152,14 +199,19 @@ pub fn observe(
     s: &Frame,
     c: Control,
 ) -> Result<Observed> {
-    let route = reader::route(
-        &a.parent.parent,
-        g,
-        m,
-        records,
-        &s.core.query.bytes,
-        read_control(c),
-    )?;
+    observe_probe(a, g, m, records, qs, s, c, None)
+}
+fn observe_probe(
+    a: &Artifact,
+    g: &BoundGeometry,
+    m: &Metric,
+    records: &[Vec<u8>; 4],
+    qs: &[Vec<u8>],
+    s: &Frame,
+    c: Control,
+    probe: Option<&Probe>,
+) -> Result<Observed> {
+    let route = route_probe(a, g, m, records, &s.core.query.bytes, s.clause, c, probe)?;
     let value = route
         .selected
         .as_ref()
@@ -184,9 +236,14 @@ pub fn observe(
                 binding::Control::Full
             },
         )?;
-        let mut admitted = updates
-            .into_iter()
-            .filter(|u| c != Control::ScorerDisabled && a.parent.matches(u.features));
+        let mut admitted = updates.into_iter().filter(|u| {
+            if let Some(Probe::Update { clause, word }) = probe {
+                if *clause == s.clause {
+                    return u.word == *word;
+                }
+            }
+            c != Control::ScorerDisabled && a.parent.matches(u.features)
+        });
         let first = admitted.next();
         if admitted.next().is_none() {
             update = first;
@@ -198,16 +255,9 @@ pub fn observe(
         s.core.query.clone()
     };
     let next_available = update.is_some()
-        && reader::route(
-            &a.parent.parent,
-            g,
-            m,
-            records,
-            &next_query.bytes,
-            read_control(c),
-        )?
-        .selected
-        .is_some();
+        && route_probe(a, g, m, records, &next_query.bytes, s.clause + 1, c, probe)?
+            .selected
+            .is_some();
     let row = usize::from(value.is_some())
         | (usize::from(s.core.cursor == 0) << 1)
         | (usize::from(next_available && c != Control::ContinuationDisabled) << 2);
@@ -275,6 +325,17 @@ pub fn generate(
     prompt: &[u8],
     c: Control,
 ) -> Result<Generated> {
+    generate_probe(a, g, m, records, prompt, c, None)
+}
+pub(crate) fn generate_probe(
+    a: &Artifact,
+    g: &BoundGeometry,
+    m: &Metric,
+    records: &[Vec<u8>; 4],
+    prompt: &[u8],
+    c: Control,
+    probe: Option<&Probe>,
+) -> Result<Generated> {
     a.validate(g)?;
     let qs = clauses(prompt)?;
     let mut state = start(a, g, &qs)?;
@@ -284,7 +345,7 @@ pub fn generate(
         exhausted: false,
     };
     for _ in 0..MAX_STEPS {
-        let o = observe(a, g, m, records, &qs, &state, c)?;
+        let o = observe_probe(a, g, m, records, &qs, &state, c, probe)?;
         let mut action = Action::from_byte(a.actions[o.core.row])?;
         match c {
             Control::PolicyDisabled => action = Action::Stop,
