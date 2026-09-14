@@ -20,36 +20,36 @@ use std::{
 };
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
-struct Selected {
-    source: usize,
-    span: [usize; 2],
-    bounds: [usize; 2],
-    value: Vec<u8>,
+pub(super) struct Selected {
+    pub(super) source: usize,
+    pub(super) span: [usize; 2],
+    pub(super) bounds: [usize; 2],
+    pub(super) value: Vec<u8>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
-struct Expected {
-    queries: Vec<Vec<u8>>,
-    selected: Vec<Selected>,
-    matching_sources: Vec<Vec<usize>>,
-    outcome: completion::Outcome,
-    tokens: Vec<u16>,
+pub(super) struct Expected {
+    pub(super) queries: Vec<Vec<u8>>,
+    pub(super) selected: Vec<Selected>,
+    pub(super) matching_sources: Vec<Vec<usize>>,
+    pub(super) outcome: completion::Outcome,
+    pub(super) tokens: Vec<u16>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
-struct Example {
-    id: String,
-    family: String,
-    variant: String,
-    records: [Vec<u8>; 4],
-    prompt: Vec<u8>,
-    expected: Expected,
+pub(super) struct Example {
+    pub(super) id: String,
+    pub(super) family: String,
+    pub(super) variant: String,
+    pub(super) records: [Vec<u8>; 4],
+    pub(super) prompt: Vec<u8>,
+    pub(super) expected: Expected,
 }
-fn words(raw: &[u8]) -> Vec<&[u8]> {
+pub(super) fn words(raw: &[u8]) -> Vec<&[u8]> {
     intervals(raw).iter().map(|[a, b]| &raw[*a..*b]).collect()
 }
-fn verb(w: &[u8]) -> bool {
+pub(super) fn verb(w: &[u8]) -> bool {
     matches!(w, b"call" | b"help" | b"visit" | b"trust")
 }
-fn oracle(records: &[Vec<u8>; 4], prompt: &[u8]) -> Result<Expected> {
+pub(super) fn oracle(records: &[Vec<u8>; 4], prompt: &[u8]) -> Result<Expected> {
     let mut e = Expected {
         queries: vec![],
         selected: vec![],
@@ -166,7 +166,13 @@ fn oracle(records: &[Vec<u8>; 4], prompt: &[u8]) -> Result<Expected> {
         .collect();
     Ok(e)
 }
-fn fact(known: &str, auxiliary: &str, relation: &str, answer: &str, subject: bool) -> Vec<u8> {
+pub(super) fn fact(
+    known: &str,
+    auxiliary: &str,
+    relation: &str,
+    answer: &str,
+    subject: bool,
+) -> Vec<u8> {
     if subject {
         format!("{answer} {auxiliary} {relation} {known}.")
     } else {
@@ -174,7 +180,7 @@ fn fact(known: &str, auxiliary: &str, relation: &str, answer: &str, subject: boo
     }
     .into_bytes()
 }
-fn question(known: &str, auxiliary: &str, relation: &str, subject: bool) -> Vec<u8> {
+pub(super) fn question(known: &str, auxiliary: &str, relation: &str, subject: bool) -> Vec<u8> {
     if subject {
         format!("who {auxiliary} {relation} {known}?")
     } else {
@@ -182,14 +188,14 @@ fn question(known: &str, auxiliary: &str, relation: &str, subject: bool) -> Vec<
     }
     .into_bytes()
 }
-fn sha(bytes: &[u8]) -> String {
+pub(super) fn sha(bytes: &[u8]) -> String {
     hex::encode(sha2::Sha256::digest(bytes))
 }
-fn write(root: &Path, name: &str, value: &Value) -> Result<()> {
+pub(super) fn write(root: &Path, name: &str, value: &Value) -> Result<()> {
     std::fs::write(root.join(name), serde_json::to_vec_pretty(value)?)?;
     Ok(())
 }
-fn assess(
+pub(super) fn assess(
     a: &model::Artifact,
     g: &BoundGeometry,
     m: &Metric,
@@ -388,7 +394,7 @@ fn training() -> Result<(Vec<model::DirectExample>, Vec<ReplacementTemplate>)> {
     }
     Ok((direct, replacement))
 }
-fn prior_examples(root: &Path) -> Result<(Vec<Example>, Vec<Value>, String, String)> {
+pub(super) fn prior_examples(root: &Path) -> Result<(Vec<Example>, Vec<Value>, String, String)> {
     report_output::verify(root)?;
     let data = std::fs::read(root.join("data.json"))?;
     let responses = std::fs::read(root.join("responses.json"))?;
@@ -401,7 +407,12 @@ fn prior_examples(root: &Path) -> Result<(Vec<Example>, Vec<Value>, String, Stri
         sha(&responses),
     ))
 }
-fn earlier_200(a: &model::Artifact, g: &BoundGeometry, m: &Metric, root: &Path) -> Result<Value> {
+pub(super) fn earlier_200(
+    a: &model::Artifact,
+    g: &BoundGeometry,
+    m: &Metric,
+    root: &Path,
+) -> Result<Value> {
     report_output::verify(root)?;
     let data_bytes = std::fs::read(root.join("data.json"))?;
     let response_bytes = std::fs::read(root.join("responses.json"))?;
@@ -450,7 +461,7 @@ fn earlier_200(a: &model::Artifact, g: &BoundGeometry, m: &Metric, root: &Path) 
         json!({"root":root,"data_sha256":sha(&data_bytes),"responses_sha256":sha(&response_bytes),"rows":total,"equal":equal,"parent_equal":parent_equal,"pass":total==200&&equal==200&&parent_equal==200,"items":items}),
     )
 }
-fn earlier_6688(
+pub(super) fn earlier_6688(
     a: &model::Artifact,
     g: &BoundGeometry,
     m: &Metric,

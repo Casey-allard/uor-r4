@@ -69,3 +69,6 @@ mod role_transfer_report;
 pub mod query_participation;
 #[cfg(test)]
 mod query_participation_report;
+
+#[cfg(test)]
+mod styled_role_report;
