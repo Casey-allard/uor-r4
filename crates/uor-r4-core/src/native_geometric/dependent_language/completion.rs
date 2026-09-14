@@ -100,18 +100,29 @@ pub fn observe(
     s: &scheduling::Frame,
     c: Control,
 ) -> Result<Observed> {
-    observe_routed(a, g, m, records, qs, s, c, &mut |query, _| {
-        reader::route(
-            &a.parent.parent.parent,
-            g,
-            m,
-            records,
-            query,
-            reader::Control::Full,
-        )
-    })
+    observe_routed(
+        a,
+        g,
+        m,
+        records,
+        qs,
+        s,
+        c,
+        binding::PayloadWindow::Word,
+        &|bytes, _| Ok(bytes.to_vec()),
+        &mut |query, _| {
+            reader::route(
+                &a.parent.parent.parent,
+                g,
+                m,
+                records,
+                query,
+                reader::Control::Full,
+            )
+        },
+    )
 }
-pub(crate) fn observe_routed<F>(
+pub(crate) fn observe_routed<F, P>(
     a: &Artifact,
     g: &BoundGeometry,
     m: &Metric,
@@ -119,10 +130,13 @@ pub(crate) fn observe_routed<F>(
     qs: &[Vec<u8>],
     s: &scheduling::Frame,
     c: Control,
+    payload_window: binding::PayloadWindow,
+    payload_fn: &P,
     route_fn: &mut F,
 ) -> Result<Observed>
 where
     F: FnMut(&[u8], usize) -> Result<crate::native_geometric::language_relation::runtime::Route>,
+    P: Fn(&[u8], usize) -> Result<Vec<u8>>,
 {
     let core = scheduling::observe_routed(
         &a.parent,
@@ -135,6 +149,8 @@ where
         None,
         None,
         route_fn,
+        payload_window,
+        payload_fn,
     )?;
     let pending = qs.get(s.clause + 1).is_some();
     let mut reason = None;
@@ -143,14 +159,15 @@ where
             let admitted = if let (Some(next), Some(selected)) =
                 (qs.get(s.clause + 1), core.route.selected.as_ref())
             {
-                binding::updates(
+                binding::updates_with_window(
                     &a.parent.parent,
                     g,
                     m,
                     records,
                     next,
-                    &selected.bytes,
+                    &payload_fn(&selected.bytes, s.clause)?,
                     binding::Control::Full,
+                    payload_window,
                 )?
                 .into_iter()
                 .filter(|u| a.parent.parent.matches(u.features))
@@ -237,10 +254,42 @@ pub(crate) fn generate_routed<F>(
     prompt: &[u8],
     c: Control,
     execution_control: scheduling::Control,
+    route_fn: F,
+) -> Result<Generated>
+where
+    F: FnMut(&[u8], usize) -> Result<crate::native_geometric::language_relation::runtime::Route>,
+{
+    generate_routed_payload(
+        a,
+        g,
+        m,
+        records,
+        prompt,
+        c,
+        execution_control,
+        binding::PayloadWindow::Word,
+        |bytes, _| Ok(bytes.to_vec()),
+        route_fn,
+    )
+}
+/// Same transition loop with an explicit payload-admission window. The normal
+/// phrase callback preserves selected bytes; diagnostic callbacks intervene only
+/// on update input, leaving the exact routed occurrence and span intact.
+pub(crate) fn generate_routed_payload<F, P>(
+    a: &Artifact,
+    g: &BoundGeometry,
+    m: &Metric,
+    records: &[Vec<u8>; 4],
+    prompt: &[u8],
+    c: Control,
+    execution_control: scheduling::Control,
+    payload_window: binding::PayloadWindow,
+    payload_fn: P,
     mut route_fn: F,
 ) -> Result<Generated>
 where
     F: FnMut(&[u8], usize) -> Result<crate::native_geometric::language_relation::runtime::Route>,
+    P: Fn(&[u8], usize) -> Result<Vec<u8>>,
 {
     a.validate(g)?;
     let qs = scheduling::clauses(prompt)?;
@@ -255,7 +304,18 @@ where
         decisions: Vec::new(),
     };
     for _ in 0..scheduling::MAX_STEPS {
-        let o = observe_routed(a, g, m, records, &qs, &state, c, &mut route_fn)?;
+        let o = observe_routed(
+            a,
+            g,
+            m,
+            records,
+            &qs,
+            &state,
+            c,
+            payload_window,
+            &payload_fn,
+            &mut route_fn,
+        )?;
         let mut choice = a.actions[o.row];
         if c == Control::UnresolvedDisabled && choice == 3 {
             choice = 2;

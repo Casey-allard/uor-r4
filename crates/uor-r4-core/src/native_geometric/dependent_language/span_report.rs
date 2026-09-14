@@ -80,7 +80,7 @@ fn compact(out: &completion::Generated, records: &[Vec<u8>; 4]) -> Value {
     json!({"tokens":out.trace.tokens,"exhausted":out.trace.exhausted,"outcome":out.outcome,
         "source_path":source_path(out),"actual_word_span":span,"last_selected_bounds":bounds})
 }
-fn retention(
+pub(super) fn retention(
     candidate: &runtime::Artifact,
     g: &BoundGeometry,
     m: &Metric,

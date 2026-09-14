@@ -118,13 +118,44 @@ pub struct UpdateCandidate {
     pub features: u32,
     pub question: Vec<u8>,
 }
+/// Payload admission is separate from the learned replacement-site score.
+/// The historical entrypoint retains its one-word contract.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PayloadWindow {
+    Word,
+    Phrase,
+}
+impl PayloadWindow {
+    fn accepts(self, payload: &[u8]) -> bool {
+        if self == Self::Word {
+            return !payload.is_empty()
+                && payload.len() <= 16
+                && payload.iter().all(u8::is_ascii_lowercase);
+        }
+        if payload.is_empty() || payload.len() > 50 {
+            return false;
+        }
+        let words: Vec<_> = payload.split(|b| *b == b' ').collect();
+        words.len() <= 3
+            && words
+                .iter()
+                .all(|w| !w.is_empty() && w.len() <= 16 && w.iter().all(u8::is_ascii_lowercase))
+    }
+}
 pub fn splice(question: &[u8], start: usize, end: usize, payload: &[u8]) -> Result<Vec<u8>> {
+    splice_with_window(question, start, end, payload, PayloadWindow::Word)
+}
+pub fn splice_with_window(
+    question: &[u8],
+    start: usize,
+    end: usize,
+    payload: &[u8],
+    window: PayloadWindow,
+) -> Result<Vec<u8>> {
     if question.len() > 128
         || start >= end
         || end > question.len()
-        || payload.is_empty()
-        || payload.len() > 16
-        || !payload.iter().all(u8::is_ascii_lowercase)
+        || !window.accepts(payload)
         || !question[start..end].iter().all(u8::is_ascii_lowercase)
         || (start > 0 && question[start - 1].is_ascii_lowercase())
         || (end < question.len() && question[end].is_ascii_lowercase())
@@ -148,17 +179,33 @@ pub fn updates(
     payload: &[u8],
     control: Control,
 ) -> Result<Vec<UpdateCandidate>> {
+    updates_with_window(
+        a,
+        g,
+        m,
+        records,
+        question,
+        payload,
+        control,
+        PayloadWindow::Word,
+    )
+}
+pub fn updates_with_window(
+    a: &Artifact,
+    g: &BoundGeometry,
+    m: &Metric,
+    records: &[Vec<u8>; 4],
+    question: &[u8],
+    payload: &[u8],
+    control: Control,
+    window: PayloadWindow,
+) -> Result<Vec<UpdateCandidate>> {
     if m.geometry_digest() != g.id() {
         return Err(Error::Geometry);
     }
     let ops = a.parent.parent.parent.operators;
     let q = reader::words(g, question, ops)?;
-    if q.is_empty()
-        || q.len() > reader::MAX_WORDS
-        || payload.is_empty()
-        || payload.len() > 16
-        || !payload.iter().all(u8::is_ascii_lowercase)
-    {
+    if q.is_empty() || q.len() > reader::MAX_WORDS || !window.accepts(payload) {
         return Err(Error::Shape);
     }
     let mut context = Vec::new();
@@ -207,7 +254,12 @@ pub fn updates(
         if control == Control::ContextMatchDisabled {
             features &= !0x1f;
         }
-        let next = splice(question, x.start, x.end, payload)?;
+        let next = splice_with_window(question, x.start, x.end, payload, window)?;
+        if window == PayloadWindow::Phrase
+            && reader::words(g, &next, ops)?.len() > reader::MAX_WORDS
+        {
+            return Err(Error::Shape);
+        }
         out.push(UpdateCandidate {
             word: i,
             start: x.start,

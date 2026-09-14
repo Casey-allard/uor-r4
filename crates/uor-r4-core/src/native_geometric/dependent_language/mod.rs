@@ -29,3 +29,8 @@ pub mod span_data;
 pub mod span_learning;
 #[cfg(test)]
 mod span_report;
+
+pub mod phrase;
+pub mod phrase_data;
+#[cfg(test)]
+mod phrase_report;

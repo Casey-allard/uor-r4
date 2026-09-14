@@ -225,11 +225,13 @@ fn observe_probe(
         probe,
         stale_payload,
         &mut |query, clause| route_probe(a, g, m, records, query, clause, c, probe),
+        binding::PayloadWindow::Word,
+        &|bytes, _| Ok(bytes.to_vec()),
     )
 }
 /// Shared observation construction with an artifact-bound occurrence/span reader.
 /// Legacy probes and normal completion both use this same state transition seam.
-pub(crate) fn observe_routed<F>(
+pub(crate) fn observe_routed<F, P>(
     a: &Artifact,
     g: &BoundGeometry,
     m: &Metric,
@@ -240,9 +242,12 @@ pub(crate) fn observe_routed<F>(
     probe: Option<&Probe>,
     stale_payload: Option<&[u8]>,
     route_fn: &mut F,
+    payload_window: binding::PayloadWindow,
+    payload_fn: &P,
 ) -> Result<Observed>
 where
     F: FnMut(&[u8], usize) -> Result<lexical::Route>,
+    P: Fn(&[u8], usize) -> Result<Vec<u8>>,
 {
     let route = route_fn(&s.core.query.bytes, s.clause)?;
 
@@ -253,14 +258,14 @@ where
         .copied();
     let mut update = None;
     if let (Some(next), Some(selected)) = (qs.get(s.clause + 1), route.selected.as_ref()) {
-        let mut bytes = selected.bytes.clone();
+        let mut bytes = payload_fn(&selected.bytes, s.clause)?;
         if c == Control::StaleSecondPayload && s.clause == 1 {
             bytes = stale_payload.ok_or(Error::State)?.to_vec();
         }
         if c == Control::PayloadReversed {
             bytes.reverse();
         }
-        let updates = binding::updates(
+        let updates = binding::updates_with_window(
             &a.parent,
             g,
             m,
@@ -272,6 +277,7 @@ where
             } else {
                 binding::Control::Full
             },
+            payload_window,
         )?;
         let mut admitted = updates.into_iter().filter(|u| {
             if let Some(Probe::Update { clause, word }) = probe {
