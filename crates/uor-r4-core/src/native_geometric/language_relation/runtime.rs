@@ -278,7 +278,12 @@ impl Query {
             geometry: ordered::Query::encode(g, b, ops)?,
         })
     }
-    fn push(&self, g: &BoundGeometry, b: u8, ops: [ordered::Operator; 2]) -> Result<Self> {
+    pub(crate) fn push(
+        &self,
+        g: &BoundGeometry,
+        b: u8,
+        ops: [ordered::Operator; 2],
+    ) -> Result<Self> {
         let mut q = self.clone();
         q.geometry = q.geometry.push(g, b, ops)?;
         q.bytes.push(b);

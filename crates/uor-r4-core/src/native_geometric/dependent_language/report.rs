@@ -23,7 +23,7 @@ fn sha(b: &[u8]) -> String {
     hex::encode(sha2::Sha256::digest(b))
 }
 
-fn retained(
+pub(super) fn retained(
     candidate: &runtime::Artifact,
     g: &BoundGeometry,
     m: &Metric,
