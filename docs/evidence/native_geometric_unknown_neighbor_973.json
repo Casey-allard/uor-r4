@@ -1,0 +1,1164 @@
+{
+  "schema": "uor-r4.native-geometric-unknown-neighbor/1",
+  "at": "2026-09-14T18:01:54.940Z",
+  "summary": {
+    "anchors_only_training_correct": 2976,
+    "candidate_sha256": "60d19679347ff349c0809353e3cca48925314a880b59c277bc9977ebd816ad73",
+    "correct": 492,
+    "default_model": "15baec48 unchanged",
+    "exact_equal": 492,
+    "final_holdout": "NOT_RUN",
+    "fits": 1,
+    "gained": 24,
+    "gate": "PASS_LEARNED_UNKNOWN_NEIGHBORS",
+    "immediate_divergent": {
+      "equal": 320,
+      "pass": true,
+      "rows": 320
+    },
+    "lost": 0,
+    "original_roles_restored_equal": 492,
+    "panels": {
+      "collision/AnchorsOnly": 96,
+      "collision/ExactIdentity": 96,
+      "collision/Full": 96,
+      "collision/NoProjection": 96,
+      "collision/OriginalRolesRestored": 96,
+      "collision/Parent": 96,
+      "collision/ReadDisabled": 0,
+      "collision/UpdateDisabled": 0,
+      "coverage/AnchorsOnly": 60,
+      "coverage/ExactIdentity": 60,
+      "coverage/Full": 60,
+      "coverage/NoProjection": 60,
+      "coverage/OriginalRolesRestored": 60,
+      "coverage/Parent": 60,
+      "coverage/ReadDisabled": 0,
+      "coverage/UpdateDisabled": 40,
+      "predicate/AnchorsOnly": 48,
+      "predicate/ExactIdentity": 48,
+      "predicate/Full": 48,
+      "predicate/NoProjection": 48,
+      "predicate/OriginalRolesRestored": 48,
+      "predicate/Parent": 48,
+      "predicate/ReadDisabled": 0,
+      "predicate/UpdateDisabled": 0,
+      "styled/AnchorsOnly": 84,
+      "styled/ExactIdentity": 96,
+      "styled/Full": 96,
+      "styled/NoProjection": 84,
+      "styled/OriginalRolesRestored": 84,
+      "styled/Parent": 84,
+      "styled/ReadDisabled": 0,
+      "styled/UpdateDisabled": 0,
+      "styled_conflict/AnchorsOnly": 84,
+      "styled_conflict/ExactIdentity": 96,
+      "styled_conflict/Full": 96,
+      "styled_conflict/NoProjection": 84,
+      "styled_conflict/OriginalRolesRestored": 84,
+      "styled_conflict/Parent": 84,
+      "styled_conflict/ReadDisabled": 0,
+      "styled_conflict/UpdateDisabled": 96,
+      "styled_missing/AnchorsOnly": 96,
+      "styled_missing/ExactIdentity": 96,
+      "styled_missing/Full": 96,
+      "styled_missing/NoProjection": 96,
+      "styled_missing/OriginalRolesRestored": 96,
+      "styled_missing/Parent": 96,
+      "styled_missing/ReadDisabled": 0,
+      "styled_missing/UpdateDisabled": 96
+    },
+    "parent_artifact_unchanged": true,
+    "parent_correct": 468,
+    "parent_sealed_equal": 492,
+    "parent_sha256": "0175ad86850a77017fdc41b7b4da9c22fe41bc8bcbf348e1352967dd29e43a94",
+    "parent_training_correct": 2976,
+    "participation_fits": 0,
+    "participation_parameters_unchanged": true,
+    "previous_candidate_success_equal": 492,
+    "prior_success_full_equal": 468,
+    "promotion": false,
+    "read_or_update_disabled_correct_answer": 0,
+    "reload_equal": 492,
+    "retained_200_equal": 200,
+    "retained_300_equal": 300,
+    "retained_300_parent_equal": 300,
+    "retained_6688_equal": 6688,
+    "retained_typed_unresolved": 512,
+    "retries": 2,
+    "reused_credit_extraction_fits": 1,
+    "rows": 492,
+    "rule_induction_fits": 1,
+    "scope": "open authored lexical-neighbor training and two-clause development at four records; not general-language qualification",
+    "second_candidate_success_equal": 492,
+    "source_role_fits": 0,
+    "source_roles_preserved": true,
+    "source_table_frozen_after_remap": true,
+    "training_correct": 2976,
+    "training_prior_successes_lost": 0,
+    "training_rows": 2976,
+    "witness_fits": 0
+  },
+  "verification": {
+    "at": "2026-09-14T17:58:54.783Z",
+    "attempts": [
+      {
+        "report_root": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/unknown-neighbor-1/attempt-1",
+        "files": {
+          "attempt.json": {
+            "sha256": "88a7dc1d361c15c4904442cffaea902f861e7f73640e0a8c6bcde1ec8f2f8f5e",
+            "bytes": 500
+          },
+          "error.txt": {
+            "sha256": "ffedc039f2321192d7ea7218faaf381e7402a38f6f5b257f7382fdc02f713a61",
+            "bytes": 44
+          },
+          "manifest.json": {
+            "sha256": "f2a1aa554b7703ef28021ce3be2c90f43b3123a4d3b79a49218716d0aa02f981",
+            "bytes": 535
+          }
+        },
+        "summary": null,
+        "error": "expected thirteen held-out development names"
+      },
+      {
+        "report_root": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/unknown-neighbor-1/attempt-2",
+        "files": {
+          "acceptance.json": {
+            "sha256": "5573e69e4acffefd56a866d20b36b554a15b9377d63a24c2107ff05576e1ff1b",
+            "bytes": 1517
+          },
+          "attempt.json": {
+            "sha256": "27c97cd8a0084c0c8fc64bcf3511cdf042881bfffb2097f3e9132abc72bb560d",
+            "bytes": 502
+          },
+          "candidate.json": {
+            "sha256": "d0860ccca3c9c038e9454ac53cbb198f0f20cc57b2070aa6d320788b83ac43c2",
+            "bytes": 61915
+          },
+          "data.json": {
+            "sha256": "dd8053c06892b67281cea0db0c551be1ea1749304e3c2f34cbda1bcef10ef7bd",
+            "bytes": 10849204
+          },
+          "environment.json": {
+            "sha256": "e45410ae849aba90f8ca029b2503d97bf07f66ebdc1feee60988120c2588fbfa",
+            "bytes": 2430
+          },
+          "failure-observations.json": {
+            "sha256": "31bb34c64ae1067930dcee0a2f538738ef7c16b1b8b8c308aa0c22715d5667db",
+            "bytes": 30
+          },
+          "fit.json": {
+            "sha256": "571ddbc1b0a84add87aebf5e48f74c6900e599fb7ae3a70590590f0e2c9918af",
+            "bytes": 56372
+          },
+          "immediate-multi-turn.json": {
+            "sha256": "4f4ec6b8bb12ba86df2b28303be182c4899f7e9474de14fd3cec679774e8b042",
+            "bytes": 351561
+          },
+          "manifest.json": {
+            "sha256": "eefcb789b748e41899f3c2f5e4424a9a252152fac92da403f55a7563d37118c1",
+            "bytes": 2701
+          },
+          "representation-audit.json": {
+            "sha256": "737ae0b4304eea209ed543bc06722e92b4e336fb2b75879076fc13e68adce2c5",
+            "bytes": 1277
+          },
+          "responses.json": {
+            "sha256": "ca81725eb6f661e6a74fa75112af8fff5faa765137a73dad5c29fad262ce261c",
+            "bytes": 81274454
+          },
+          "retained-200.json": {
+            "sha256": "5b111eab7fc7c8b58fbd9c03d3de879a324915cb59e66d2957707df6ed8a7e77",
+            "bytes": 39960
+          },
+          "retained-300.json": {
+            "sha256": "1e25eb219a44f6d9417543761597c939f8e094528d834b5bbf68a2219f07f34c",
+            "bytes": 47551
+          },
+          "retained-6688.json": {
+            "sha256": "04ab48acc7b2a56d990a32a845354c1ac394ec57c9c5b45f7078c780233fdf70",
+            "bytes": 120599615
+          },
+          "source-role-invariance.json": {
+            "sha256": "f047d6856c64a2080435e63a472891278c0136f1261f447db473a17e19e19649",
+            "bytes": 64
+          },
+          "summary.json": {
+            "sha256": "d451923f74327bd6f5182987f53e46a574b0e55e3529b479e743c452019fd9a8",
+            "bytes": 2981
+          },
+          "training-responses.json": {
+            "sha256": "50635cb2ffa6768591ce38fd1a39116e05300e0d788024088e7163fd001676e0",
+            "bytes": 2583927
+          }
+        },
+        "summary": {
+          "anchors_only_training_correct": 2976,
+          "candidate_sha256": "d0860ccca3c9c038e9454ac53cbb198f0f20cc57b2070aa6d320788b83ac43c2",
+          "correct": 492,
+          "default_model": "15baec48 unchanged",
+          "exact_equal": 492,
+          "final_holdout": "NOT_RUN",
+          "fits": 1,
+          "gained": 24,
+          "gate": "FAIL_LEARNED_UNKNOWN_NEIGHBORS",
+          "lost": 0,
+          "original_roles_restored_equal": 492,
+          "panels": {
+            "collision/AnchorsOnly": 96,
+            "collision/ExactIdentity": 96,
+            "collision/Full": 96,
+            "collision/NoProjection": 96,
+            "collision/OriginalRolesRestored": 96,
+            "collision/Parent": 96,
+            "collision/ReadDisabled": 0,
+            "collision/UpdateDisabled": 0,
+            "coverage/AnchorsOnly": 60,
+            "coverage/ExactIdentity": 60,
+            "coverage/Full": 60,
+            "coverage/NoProjection": 60,
+            "coverage/OriginalRolesRestored": 60,
+            "coverage/Parent": 60,
+            "coverage/ReadDisabled": 0,
+            "coverage/UpdateDisabled": 40,
+            "predicate/AnchorsOnly": 48,
+            "predicate/ExactIdentity": 48,
+            "predicate/Full": 48,
+            "predicate/NoProjection": 48,
+            "predicate/OriginalRolesRestored": 48,
+            "predicate/Parent": 48,
+            "predicate/ReadDisabled": 0,
+            "predicate/UpdateDisabled": 0,
+            "styled/AnchorsOnly": 84,
+            "styled/ExactIdentity": 96,
+            "styled/Full": 96,
+            "styled/NoProjection": 84,
+            "styled/OriginalRolesRestored": 84,
+            "styled/Parent": 84,
+            "styled/ReadDisabled": 0,
+            "styled/UpdateDisabled": 0,
+            "styled_conflict/AnchorsOnly": 84,
+            "styled_conflict/ExactIdentity": 96,
+            "styled_conflict/Full": 96,
+            "styled_conflict/NoProjection": 84,
+            "styled_conflict/OriginalRolesRestored": 84,
+            "styled_conflict/Parent": 84,
+            "styled_conflict/ReadDisabled": 0,
+            "styled_conflict/UpdateDisabled": 96,
+            "styled_missing/AnchorsOnly": 96,
+            "styled_missing/ExactIdentity": 96,
+            "styled_missing/Full": 96,
+            "styled_missing/NoProjection": 96,
+            "styled_missing/OriginalRolesRestored": 96,
+            "styled_missing/Parent": 96,
+            "styled_missing/ReadDisabled": 0,
+            "styled_missing/UpdateDisabled": 96
+          },
+          "parent_artifact_unchanged": true,
+          "parent_correct": 468,
+          "parent_sealed_equal": 492,
+          "parent_sha256": "0175ad86850a77017fdc41b7b4da9c22fe41bc8bcbf348e1352967dd29e43a94",
+          "parent_training_correct": 2976,
+          "participation_fits": 0,
+          "participation_parameters_unchanged": true,
+          "prior_success_full_equal": 468,
+          "promotion": false,
+          "read_or_update_disabled_correct_answer": 0,
+          "reload_equal": 492,
+          "retained_200_equal": 200,
+          "retained_300_equal": 300,
+          "retained_300_parent_equal": 300,
+          "retained_6688_equal": 6368,
+          "retained_typed_unresolved": 512,
+          "retries": 0,
+          "rows": 492,
+          "scope": "open authored lexical-neighbor training and two-clause development at four records; not general-language qualification",
+          "source_role_fits": 0,
+          "source_roles_preserved": true,
+          "source_table_frozen_after_remap": true,
+          "training_correct": 2976,
+          "training_prior_successes_lost": 0,
+          "training_rows": 2976
+        },
+        "error": null
+      },
+      {
+        "report_root": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/unknown-neighbor-1/attempt-3",
+        "files": {
+          "acceptance.json": {
+            "sha256": "b0cedcb03f5699a3889af08a401d0b4fc96f27899071dac1e0ebd0025f41dc32",
+            "bytes": 1656
+          },
+          "attempt.json": {
+            "sha256": "a7d68f535613a01034438d56e4018f71c37c51c909a2fff4733df162fe8c6146",
+            "bytes": 501
+          },
+          "candidate.json": {
+            "sha256": "d2c119f90f90275f9995728dcdd5fe248b4c53278046807a0ffe912bc283786e",
+            "bytes": 62585
+          },
+          "credit-lineage.json": {
+            "sha256": "93f47de553d3b64e9d8efccef320cf076bc97afb670a36451e468a1263781519",
+            "bytes": 857
+          },
+          "data.json": {
+            "sha256": "dd8053c06892b67281cea0db0c551be1ea1749304e3c2f34cbda1bcef10ef7bd",
+            "bytes": 10849204
+          },
+          "environment.json": {
+            "sha256": "e45410ae849aba90f8ca029b2503d97bf07f66ebdc1feee60988120c2588fbfa",
+            "bytes": 2430
+          },
+          "failure-observations.json": {
+            "sha256": "31bb34c64ae1067930dcee0a2f538738ef7c16b1b8b8c308aa0c22715d5667db",
+            "bytes": 30
+          },
+          "fit.json": {
+            "sha256": "de1327e2869ca1e614965fd4d283bcb11473611b9dad114ce2b556fa7981ad2a",
+            "bytes": 56568
+          },
+          "immediate-divergent-controls.json": {
+            "sha256": "81961849280aad0ca80cd31ee6c8644da2ec2b0edccca8c21fe7e21ca47981ad",
+            "bytes": 3228940
+          },
+          "immediate-multi-turn.json": {
+            "sha256": "4f4ec6b8bb12ba86df2b28303be182c4899f7e9474de14fd3cec679774e8b042",
+            "bytes": 351561
+          },
+          "manifest.json": {
+            "sha256": "c486539f087c3b76a03196c73c8c51fde432c02965651d571df396cb7e475864",
+            "bytes": 3187
+          },
+          "previous-candidate-492.json": {
+            "sha256": "bab1f22a3c504216ef61fc24d1e02cc4ebd11cae3d27d8792f702ead54e5c240",
+            "bytes": 83414
+          },
+          "representation-audit.json": {
+            "sha256": "737ae0b4304eea209ed543bc06722e92b4e336fb2b75879076fc13e68adce2c5",
+            "bytes": 1277
+          },
+          "responses.json": {
+            "sha256": "ca81725eb6f661e6a74fa75112af8fff5faa765137a73dad5c29fad262ce261c",
+            "bytes": 81274454
+          },
+          "retained-200.json": {
+            "sha256": "5b111eab7fc7c8b58fbd9c03d3de879a324915cb59e66d2957707df6ed8a7e77",
+            "bytes": 39960
+          },
+          "retained-300.json": {
+            "sha256": "1e25eb219a44f6d9417543761597c939f8e094528d834b5bbf68a2219f07f34c",
+            "bytes": 47551
+          },
+          "retained-6688.json": {
+            "sha256": "d8bf97114874e73c547351f3f4c6967a610ff5f26db80357c4c72fab98aaf640",
+            "bytes": 27636381
+          },
+          "source-role-invariance.json": {
+            "sha256": "f047d6856c64a2080435e63a472891278c0136f1261f447db473a17e19e19649",
+            "bytes": 64
+          },
+          "summary.json": {
+            "sha256": "1da75445dee5236f438e4d920771f9704d5402868505208234af6b2fcc6fa28a",
+            "bytes": 3196
+          },
+          "training-responses.json": {
+            "sha256": "50635cb2ffa6768591ce38fd1a39116e05300e0d788024088e7163fd001676e0",
+            "bytes": 2583927
+          }
+        },
+        "summary": {
+          "anchors_only_training_correct": 2976,
+          "candidate_sha256": "d2c119f90f90275f9995728dcdd5fe248b4c53278046807a0ffe912bc283786e",
+          "correct": 492,
+          "default_model": "15baec48 unchanged",
+          "exact_equal": 492,
+          "final_holdout": "NOT_RUN",
+          "fits": 1,
+          "gained": 24,
+          "gate": "FAIL_LEARNED_UNKNOWN_NEIGHBORS",
+          "immediate_divergent": {
+            "equal": 240,
+            "pass": false,
+            "rows": 320
+          },
+          "lost": 0,
+          "original_roles_restored_equal": 492,
+          "panels": {
+            "collision/AnchorsOnly": 96,
+            "collision/ExactIdentity": 96,
+            "collision/Full": 96,
+            "collision/NoProjection": 96,
+            "collision/OriginalRolesRestored": 96,
+            "collision/Parent": 96,
+            "collision/ReadDisabled": 0,
+            "collision/UpdateDisabled": 0,
+            "coverage/AnchorsOnly": 60,
+            "coverage/ExactIdentity": 60,
+            "coverage/Full": 60,
+            "coverage/NoProjection": 60,
+            "coverage/OriginalRolesRestored": 60,
+            "coverage/Parent": 60,
+            "coverage/ReadDisabled": 0,
+            "coverage/UpdateDisabled": 40,
+            "predicate/AnchorsOnly": 48,
+            "predicate/ExactIdentity": 48,
+            "predicate/Full": 48,
+            "predicate/NoProjection": 48,
+            "predicate/OriginalRolesRestored": 48,
+            "predicate/Parent": 48,
+            "predicate/ReadDisabled": 0,
+            "predicate/UpdateDisabled": 0,
+            "styled/AnchorsOnly": 84,
+            "styled/ExactIdentity": 96,
+            "styled/Full": 96,
+            "styled/NoProjection": 84,
+            "styled/OriginalRolesRestored": 84,
+            "styled/Parent": 84,
+            "styled/ReadDisabled": 0,
+            "styled/UpdateDisabled": 0,
+            "styled_conflict/AnchorsOnly": 84,
+            "styled_conflict/ExactIdentity": 96,
+            "styled_conflict/Full": 96,
+            "styled_conflict/NoProjection": 84,
+            "styled_conflict/OriginalRolesRestored": 84,
+            "styled_conflict/Parent": 84,
+            "styled_conflict/ReadDisabled": 0,
+            "styled_conflict/UpdateDisabled": 96,
+            "styled_missing/AnchorsOnly": 96,
+            "styled_missing/ExactIdentity": 96,
+            "styled_missing/Full": 96,
+            "styled_missing/NoProjection": 96,
+            "styled_missing/OriginalRolesRestored": 96,
+            "styled_missing/Parent": 96,
+            "styled_missing/ReadDisabled": 0,
+            "styled_missing/UpdateDisabled": 96
+          },
+          "parent_artifact_unchanged": true,
+          "parent_correct": 468,
+          "parent_sealed_equal": 492,
+          "parent_sha256": "0175ad86850a77017fdc41b7b4da9c22fe41bc8bcbf348e1352967dd29e43a94",
+          "parent_training_correct": 2976,
+          "participation_fits": 0,
+          "participation_parameters_unchanged": true,
+          "previous_candidate_success_equal": 492,
+          "prior_success_full_equal": 468,
+          "promotion": false,
+          "read_or_update_disabled_correct_answer": 0,
+          "reload_equal": 492,
+          "retained_200_equal": 200,
+          "retained_300_equal": 300,
+          "retained_300_parent_equal": 300,
+          "retained_6688_equal": 6608,
+          "retained_typed_unresolved": 512,
+          "retries": 1,
+          "reused_credit_extraction_fits": 1,
+          "rows": 492,
+          "rule_induction_fits": 1,
+          "scope": "open authored lexical-neighbor training and two-clause development at four records; not general-language qualification",
+          "source_role_fits": 0,
+          "source_roles_preserved": true,
+          "source_table_frozen_after_remap": true,
+          "training_correct": 2976,
+          "training_prior_successes_lost": 0,
+          "training_rows": 2976,
+          "witness_fits": 0
+        },
+        "error": null
+      },
+      {
+        "report_root": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/unknown-neighbor-1/attempt-4",
+        "files": {
+          "acceptance.json": {
+            "sha256": "cc69b163650f75af8f31feb93b8bb1cee52cf9a07325216093b2f4a29e83a7f6",
+            "bytes": 1656
+          },
+          "attempt.json": {
+            "sha256": "ec5f39b89488404ea6dd245a6e05d0170a49ce27171889956e9cb5e24484e913",
+            "bytes": 501
+          },
+          "candidate.json": {
+            "sha256": "60d19679347ff349c0809353e3cca48925314a880b59c277bc9977ebd816ad73",
+            "bytes": 63640
+          },
+          "credit-lineage.json": {
+            "sha256": "083f08a983ff3f94886e84cf0b4be89e61e7069fd484e663b3912f5086465b67",
+            "bytes": 857
+          },
+          "credit-namespace-migration.json": {
+            "sha256": "9a58e8fc5abeb1da5bb0e8c76950cce343e572d12e30d7fff5dcf37a8f9a2f9a",
+            "bytes": 37503
+          },
+          "data.json": {
+            "sha256": "dd8053c06892b67281cea0db0c551be1ea1749304e3c2f34cbda1bcef10ef7bd",
+            "bytes": 10849204
+          },
+          "environment.json": {
+            "sha256": "e45410ae849aba90f8ca029b2503d97bf07f66ebdc1feee60988120c2588fbfa",
+            "bytes": 2430
+          },
+          "failure-observations.json": {
+            "sha256": "31bb34c64ae1067930dcee0a2f538738ef7c16b1b8b8c308aa0c22715d5667db",
+            "bytes": 30
+          },
+          "fit.json": {
+            "sha256": "93d5a7b79ec95ffae5b0cccff4b2c7a01d820a37ef184103b21dbfa43a7eeba6",
+            "bytes": 56769
+          },
+          "immediate-divergent-controls.json": {
+            "sha256": "622b191383cee41aea9d2b808f12daaecd360ffa9b173f5a3a7f6f67f014954d",
+            "bytes": 256165
+          },
+          "immediate-multi-turn.json": {
+            "sha256": "4f4ec6b8bb12ba86df2b28303be182c4899f7e9474de14fd3cec679774e8b042",
+            "bytes": 351561
+          },
+          "inherited-query-vocabulary.json": {
+            "sha256": "b1706f4061f1804c97fe9d68b1f4c3ef86adc861b9dd51d8033b342f16c8541c",
+            "bytes": 28071
+          },
+          "manifest.json": {
+            "sha256": "8584160fef8a3a9d669fec7078f2157a5dc67cf16746ea7f79e571aec14b5e09",
+            "bytes": 3841
+          },
+          "previous-candidate-492.json": {
+            "sha256": "bab1f22a3c504216ef61fc24d1e02cc4ebd11cae3d27d8792f702ead54e5c240",
+            "bytes": 83414
+          },
+          "representation-audit.json": {
+            "sha256": "87e85ce8a86c6486a9cf6e2682d317a8a58abf55370682cde764ef884a9863b8",
+            "bytes": 1277
+          },
+          "responses.json": {
+            "sha256": "ca81725eb6f661e6a74fa75112af8fff5faa765137a73dad5c29fad262ce261c",
+            "bytes": 81274454
+          },
+          "retained-200.json": {
+            "sha256": "5b111eab7fc7c8b58fbd9c03d3de879a324915cb59e66d2957707df6ed8a7e77",
+            "bytes": 39960
+          },
+          "retained-300.json": {
+            "sha256": "1e25eb219a44f6d9417543761597c939f8e094528d834b5bbf68a2219f07f34c",
+            "bytes": 47551
+          },
+          "retained-6688.json": {
+            "sha256": "1332e0e3ec4d4047d9fe868e56aa447cbbd5205a431f760b3aab6043a2ada2a5",
+            "bytes": 1146193
+          },
+          "second-negative-492.json": {
+            "sha256": "e0a2fd85443565813a8990cefba1455b6823c28ed1e9d8f7f56a279f94bb012c",
+            "bytes": 83414
+          },
+          "second-negative-lineage.json": {
+            "sha256": "5781919bc57006011daf8bdcfd894f56b74a5d95d6312349a111973468d6e5bd",
+            "bytes": 474
+          },
+          "source-role-invariance.json": {
+            "sha256": "f047d6856c64a2080435e63a472891278c0136f1261f447db473a17e19e19649",
+            "bytes": 64
+          },
+          "summary.json": {
+            "sha256": "5e9a1f3cde846c114e8a3475fb404cd1b653a380d01f59a81ac20471bbf7aca3",
+            "bytes": 3236
+          },
+          "training-responses.json": {
+            "sha256": "50635cb2ffa6768591ce38fd1a39116e05300e0d788024088e7163fd001676e0",
+            "bytes": 2583927
+          }
+        },
+        "summary": {
+          "anchors_only_training_correct": 2976,
+          "candidate_sha256": "60d19679347ff349c0809353e3cca48925314a880b59c277bc9977ebd816ad73",
+          "correct": 492,
+          "default_model": "15baec48 unchanged",
+          "exact_equal": 492,
+          "final_holdout": "NOT_RUN",
+          "fits": 1,
+          "gained": 24,
+          "gate": "PASS_LEARNED_UNKNOWN_NEIGHBORS",
+          "immediate_divergent": {
+            "equal": 320,
+            "pass": true,
+            "rows": 320
+          },
+          "lost": 0,
+          "original_roles_restored_equal": 492,
+          "panels": {
+            "collision/AnchorsOnly": 96,
+            "collision/ExactIdentity": 96,
+            "collision/Full": 96,
+            "collision/NoProjection": 96,
+            "collision/OriginalRolesRestored": 96,
+            "collision/Parent": 96,
+            "collision/ReadDisabled": 0,
+            "collision/UpdateDisabled": 0,
+            "coverage/AnchorsOnly": 60,
+            "coverage/ExactIdentity": 60,
+            "coverage/Full": 60,
+            "coverage/NoProjection": 60,
+            "coverage/OriginalRolesRestored": 60,
+            "coverage/Parent": 60,
+            "coverage/ReadDisabled": 0,
+            "coverage/UpdateDisabled": 40,
+            "predicate/AnchorsOnly": 48,
+            "predicate/ExactIdentity": 48,
+            "predicate/Full": 48,
+            "predicate/NoProjection": 48,
+            "predicate/OriginalRolesRestored": 48,
+            "predicate/Parent": 48,
+            "predicate/ReadDisabled": 0,
+            "predicate/UpdateDisabled": 0,
+            "styled/AnchorsOnly": 84,
+            "styled/ExactIdentity": 96,
+            "styled/Full": 96,
+            "styled/NoProjection": 84,
+            "styled/OriginalRolesRestored": 84,
+            "styled/Parent": 84,
+            "styled/ReadDisabled": 0,
+            "styled/UpdateDisabled": 0,
+            "styled_conflict/AnchorsOnly": 84,
+            "styled_conflict/ExactIdentity": 96,
+            "styled_conflict/Full": 96,
+            "styled_conflict/NoProjection": 84,
+            "styled_conflict/OriginalRolesRestored": 84,
+            "styled_conflict/Parent": 84,
+            "styled_conflict/ReadDisabled": 0,
+            "styled_conflict/UpdateDisabled": 96,
+            "styled_missing/AnchorsOnly": 96,
+            "styled_missing/ExactIdentity": 96,
+            "styled_missing/Full": 96,
+            "styled_missing/NoProjection": 96,
+            "styled_missing/OriginalRolesRestored": 96,
+            "styled_missing/Parent": 96,
+            "styled_missing/ReadDisabled": 0,
+            "styled_missing/UpdateDisabled": 96
+          },
+          "parent_artifact_unchanged": true,
+          "parent_correct": 468,
+          "parent_sealed_equal": 492,
+          "parent_sha256": "0175ad86850a77017fdc41b7b4da9c22fe41bc8bcbf348e1352967dd29e43a94",
+          "parent_training_correct": 2976,
+          "participation_fits": 0,
+          "participation_parameters_unchanged": true,
+          "previous_candidate_success_equal": 492,
+          "prior_success_full_equal": 468,
+          "promotion": false,
+          "read_or_update_disabled_correct_answer": 0,
+          "reload_equal": 492,
+          "retained_200_equal": 200,
+          "retained_300_equal": 300,
+          "retained_300_parent_equal": 300,
+          "retained_6688_equal": 6688,
+          "retained_typed_unresolved": 512,
+          "retries": 2,
+          "reused_credit_extraction_fits": 1,
+          "rows": 492,
+          "rule_induction_fits": 1,
+          "scope": "open authored lexical-neighbor training and two-clause development at four records; not general-language qualification",
+          "second_candidate_success_equal": 492,
+          "source_role_fits": 0,
+          "source_roles_preserved": true,
+          "source_table_frozen_after_remap": true,
+          "training_correct": 2976,
+          "training_prior_successes_lost": 0,
+          "training_rows": 2976,
+          "witness_fits": 0
+        },
+        "error": null
+      }
+    ],
+    "lineage": [
+      {
+        "base": "6ce5a5e2b441925b6dc388364b1907a04c943498",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/unknown-neighbor-1/unknown-neighbor-tests",
+        "sha256": "895f209604b2bf1baa73e1fce25ebbabf8607210753036f6b0df968364e99f81",
+        "source_files": 90,
+        "build_label": "unknown-neighbor-build-1"
+      },
+      {
+        "base": "6ce5a5e2b441925b6dc388364b1907a04c943498",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/unknown-neighbor-1/unknown-neighbor-tests-2",
+        "sha256": "9beecfd66a77dd86cf27fe190f7db34f75813a42cf7a723e23e4b0b92ec17d14",
+        "source_files": 90,
+        "build_label": "unknown-neighbor-build-2"
+      },
+      {
+        "base": "6ce5a5e2b441925b6dc388364b1907a04c943498",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/unknown-neighbor-1/unknown-neighbor-tests-3",
+        "sha256": "6888eb1ed9b2442a6418e32f482df3c871e01f5b308130d51b7d1c20cf3a556e",
+        "source_files": 90,
+        "build_label": "unknown-neighbor-build-4"
+      },
+      {
+        "base": "6ce5a5e2b441925b6dc388364b1907a04c943498",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/unknown-neighbor-1/unknown-neighbor-tests-4",
+        "sha256": "e62cdade7be070d471123111a8d05cdf33cfe8bdddda2b73915f2c9a806c6974",
+        "source_files": 90,
+        "build_label": "unknown-neighbor-build-5"
+      }
+    ],
+    "current_source_equal": true,
+    "candidate": {
+      "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/styled-role-1/attempt-3/candidate.json",
+      "sha256": "0175ad86850a77017fdc41b7b4da9c22fe41bc8bcbf348e1352967dd29e43a94"
+    },
+    "normal": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/reader-scope-repair/model.json",
+      "sha256": "1454aa69e2e295d0a9970e90326f4664d3c614f666b1a708a16c16b5350a1705"
+    },
+    "artifacts_unchanged": true,
+    "parent_runtime_parameters_unchanged": true,
+    "preservation": {
+      "at": "2026-09-14T17:58:54.107Z",
+      "prior_report_roots": 76,
+      "prior_report_files": 1764,
+      "originals": [
+        {
+          "path": "/Users/casey.allard/uor-r4",
+          "head": "49da65c509e8b1b9f10e7891918d3618c65e9f20",
+          "status_sha256": "4634a2b54ea8525bf3c76edb5d7092986d2dda77ef76edd3a641ce2b0f075df8"
+        },
+        {
+          "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent",
+          "head": "49da65c509e8b1b9f10e7891918d3618c65e9f20",
+          "status_sha256": "7dbfdd7d981456b30357812e9dc7edd13b072c43ce45b873f35ba51d742465b2"
+        }
+      ],
+      "lineage": [
+        {
+          "name": "language-span-1",
+          "suffix": "",
+          "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-span-1/language-span-tests",
+          "sha256": "befad45acb8cc28047ccd7ebbfcf0d47493060c358bf8b1efd8ce62397a3f15e"
+        },
+        {
+          "name": "language-span-1",
+          "suffix": "-2",
+          "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-span-1/language-span-tests-2",
+          "sha256": "c68cf90de23a7e68efe83ef0b6a70335b594b36efb4e162291c93142e1a15760"
+        },
+        {
+          "name": "language-span-1",
+          "suffix": "-3",
+          "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-span-1/language-span-tests-3",
+          "sha256": "d9810736cfbd8830d4e38c0c206052c8e860ade5cf34d189b2e4cf0521bd86e8"
+        },
+        {
+          "name": "language-phrase-update-1",
+          "suffix": "",
+          "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-phrase-update-1/phrase-update-tests",
+          "sha256": "3dbfb12931e9f03f00a212b8b7237970db095fca659acce95b61c6335befbe6b"
+        },
+        {
+          "name": "language-occurrence-1",
+          "suffix": "",
+          "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-occurrence-1/occurrence-tests",
+          "sha256": "0b2ef78f7d2f7bdb9d7c1613ac0d1f8ce5eff149bad50325b9e95dd4fb1aae08"
+        },
+        {
+          "name": "language-occurrence-1",
+          "suffix": "-2",
+          "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-occurrence-1/occurrence-tests-2",
+          "sha256": "71fbed5f58f0701628d30db8a2eae6d5dda3bae2ad7616e257e4acdeacc2c113"
+        },
+        {
+          "name": "language-occurrence-1",
+          "suffix": "-3",
+          "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-occurrence-1/occurrence-tests-3",
+          "sha256": "db84c24b02b3e2f5e30c2f4609eee168c6b019c4d2fc259fe5829ffccdb33f6b"
+        },
+        {
+          "name": "language-occurrence-1",
+          "suffix": "-4",
+          "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-occurrence-1/occurrence-tests-4",
+          "sha256": "5b5425b69616ec3b5b48b297a14273ffd25bee90e78f3468240cabe100e52625"
+        },
+        {
+          "name": "correspondence-runs-1",
+          "suffix": "",
+          "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/correspondence-runs-1/correspondence-tests",
+          "sha256": "578da33fa921f692fa14aa030649340f9327b0a69d842d74c7ab1789827d2a3b"
+        },
+        {
+          "name": "correspondence-runs-1",
+          "suffix": "-2",
+          "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/correspondence-runs-1/correspondence-tests-2",
+          "sha256": "9abf5ed3f7f4d094695db9aa487a4763264d8bc371bb5618a797afc3309c88e8"
+        },
+        {
+          "name": "correspondence-runs-1",
+          "suffix": "-3",
+          "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/correspondence-runs-1/correspondence-tests-3",
+          "sha256": "d0ab5ffffb2a91922deaeb0dc8700728b9d548f725910ab51009ad19891863ea"
+        },
+        {
+          "name": "phrase-order-1",
+          "suffix": "",
+          "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/phrase-order-1/phrase-order-tests",
+          "sha256": "86ced40824760e5e10f4d1b117644fdbd18ceef0671962e0113a907f37f7dea0"
+        },
+        {
+          "name": "lexical-role-1",
+          "suffix": "",
+          "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/lexical-role-1/lexical-role-tests",
+          "sha256": "adf3f0787ba96eddd07d1e9a31002f4667c4f4ad215be7bf73cbeee165c384c5"
+        },
+        {
+          "name": "occurrence-role-1",
+          "suffix": "",
+          "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/occurrence-role-1/occurrence-role-tests",
+          "sha256": "40e43d954cba3f084bfa5c5c93adfbe3798752787742d8ff49e8900a12790316"
+        },
+        {
+          "name": "occurrence-role-1",
+          "suffix": "-2",
+          "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/occurrence-role-1/occurrence-role-tests-2",
+          "sha256": "ff9e2b90819463089980305a55b76ee1c5a3e1dd573b25405bc158a7e10000bd"
+        },
+        {
+          "name": "occurrence-role-1",
+          "suffix": "-3",
+          "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/occurrence-role-1/occurrence-role-tests-3",
+          "sha256": "12b7d4b3cc63547fcb323e814b179db6b6d83204bed15afd0d3310072090f0de"
+        },
+        {
+          "name": "occurrence-role-1",
+          "suffix": "-4",
+          "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/occurrence-role-1/occurrence-role-tests-4",
+          "sha256": "85dd945ff9a54f137f4f7d0eb35fb14c61fb00046f913d6f798efe48639c1b2c"
+        },
+        {
+          "name": "role-transfer-1",
+          "suffix": "",
+          "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/role-transfer-1/role-transfer-tests",
+          "sha256": "55d8b6f3b5a7cc1b907f8a4c4fa999d3df2af0e6ae340498c40d4b80c0ae2d9b"
+        },
+        {
+          "name": "query-participation-1",
+          "suffix": "",
+          "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/query-participation-1/query-participation-tests",
+          "sha256": "33fed4b34c3e4ea5909ffefba8e84a6773147f456c56a814c106fa69f952e557"
+        },
+        {
+          "name": "query-participation-1",
+          "suffix": "-3",
+          "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/query-participation-1/query-participation-tests-3",
+          "sha256": "6ffd1c20b2b4204d1df909c4212df1ae3f78f4e509f8f44e555bb3234e42bf54"
+        },
+        {
+          "name": "styled-role-1",
+          "suffix": "",
+          "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/styled-role-1/styled-role-tests",
+          "sha256": "ab55e21ba22363bab03079ee6333580a5cc0ae8ee84a610009a3b2648d403531"
+        },
+        {
+          "name": "styled-role-1",
+          "suffix": "-2",
+          "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/styled-role-1/styled-role-tests-2",
+          "sha256": "fcd0befc760bbebe19c02f49638f572ad6eda9aa154959b12162e48da7d1556e"
+        },
+        {
+          "name": "styled-role-1",
+          "suffix": "-3",
+          "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/styled-role-1/styled-role-tests-3",
+          "sha256": "dfede872611c561917d8a7232f780be6aa71b8d961fe620a7da9d84f6ac95035"
+        },
+        {
+          "name": "neighbor-transfer-1",
+          "suffix": "",
+          "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/neighbor-transfer-1/neighbor-transfer-tests",
+          "sha256": "34f91f123259092b802b10c381ca63aaf66071022b109329a1bb2a9bc5ec1240"
+        }
+      ],
+      "preserved": true
+    }
+  },
+  "resources": {
+    "at": "2026-09-14T17:58:55.080Z",
+    "step_model_ms": 959381,
+    "step_model_limit_ms": 1200000,
+    "step_engineering_command_ms": 30557,
+    "step_engineering_limit_ms": 120000,
+    "elapsed_wall_ms": 2327308,
+    "wall_limit_ms": 7200000,
+    "parent_model_ms": 14998172,
+    "parent_model_limit_ms": 15510000,
+    "parent_engineering_command_ms": 721318,
+    "shared_ledger": {
+      "cumulative_ms": 134748745,
+      "limit_ms": 135350000
+    },
+    "peak_sampled_process_tree_rss_bytes": 3478437888,
+    "rss_limit_bytes": 6442450944,
+    "actual_storage_bytes": {
+      "target": 1851797504,
+      "git": 1032290304,
+      "worktree": 1239498752,
+      "evidence": 4997337088
+    },
+    "cumulative_storage_high_water": {
+      "target": 130338816,
+      "git": 12161024,
+      "worktree": 1239498752,
+      "evidence": 4997337088,
+      "at": "2026-09-14T17:58:55.078Z"
+    },
+    "external_carry_bytes": 15466496,
+    "closure_reserve_bytes": 262144,
+    "step_new_storage_high_water_bytes": 554057728,
+    "step_new_storage_limit_bytes": 805306368,
+    "parent_growth_including_carry_and_reserve_bytes": 6395064320,
+    "parent_growth_limit_bytes": 6710886400,
+    "storage_accounted_before_bytes": 100924878848,
+    "storage_accounted_after_bytes": 107319943168,
+    "storage_account_limit_bytes": 107609223168,
+    "stop_margin_bytes": 134217728,
+    "physical_free_bytes": 12308041728,
+    "external_cost": 0,
+    "cleanup": false,
+    "fits": 3,
+    "notes": "Cumulative high water, not only retained model size. Includes all actual builds, data preparation, evaluation and controls; training-only unknown-neighbor role learning, with generation and retained controls, all prior negative attempts retained, frozen binaries/reports, prior external carry and 256KiB closure reserve covering new local helper/PR files. Shell navigation and documentation are reflected in wall time; engineering_command_ms measures wrapped commands only."
+  },
+  "analysis": {
+    "at": "2026-09-14T17:59:19.309Z",
+    "credit_canonical_meaning_equal": true,
+    "credit_rows": 150,
+    "counts": [
+      1584,
+      10720
+    ],
+    "blocked_keys_before": 0,
+    "blocked_keys_after": 0,
+    "known_rule_count": 9,
+    "final_rule_count": 13,
+    "eligible": [
+      "alice",
+      "amber",
+      "bruno",
+      "cedar",
+      "clara",
+      "cobalt",
+      "dylan",
+      "felix",
+      "helen",
+      "oscar",
+      "ruby",
+      "violet"
+    ],
+    "source_invariance": {
+      "changed": 0,
+      "items": [],
+      "pass": true,
+      "rows": 939
+    },
+    "final_query_rules": [
+      {
+        "center": "will",
+        "left": "amber",
+        "right": "ANY"
+      },
+      {
+        "center": "will",
+        "left": "call",
+        "right": "ANY"
+      },
+      {
+        "center": "will",
+        "left": "cedar",
+        "right": "ANY"
+      },
+      {
+        "center": "will",
+        "left": "did",
+        "right": "ANY"
+      },
+      {
+        "center": "will",
+        "left": "help",
+        "right": "ANY"
+      },
+      {
+        "center": "will",
+        "left": "ruby",
+        "right": "ANY"
+      },
+      {
+        "center": "will",
+        "left": "visit",
+        "right": "ANY"
+      },
+      {
+        "center": "will",
+        "left": "will",
+        "right": "ANY"
+      },
+      {
+        "center": "will",
+        "left": "UNKNOWN",
+        "right": "call"
+      },
+      {
+        "center": "will",
+        "left": "UNKNOWN",
+        "right": "help"
+      },
+      {
+        "center": "will",
+        "left": "UNKNOWN",
+        "right": "visit"
+      },
+      {
+        "center": "will",
+        "left": "UNKNOWN",
+        "right": "UNKNOWN"
+      },
+      {
+        "center": "will",
+        "left": "ANY",
+        "right": "EDGE"
+      }
+    ]
+  },
+  "vocabulary_provenance": {
+    "at": "2026-09-14T17:55:28.750Z",
+    "scope": "Read-only reconstruction of already sealed training vocabulary; not a model-data preparation input",
+    "source": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/query-participation-1/attempt-1/data.json",
+    "source_sha256": "d7a6e3db55e9d37f53fd8ac706684a6938e93190ca4f88dc33524caf8e8ba475",
+    "direct_rows": 192,
+    "replacement_rows": 96,
+    "training_queries": 384,
+    "canonical_query_vocabulary": [
+      "alice",
+      "bruno",
+      "call",
+      "did",
+      "help",
+      "me",
+      "person",
+      "please",
+      "tell",
+      "them",
+      "they",
+      "visit",
+      "which",
+      "who",
+      "will"
+    ],
+    "stored_parent_inventory_equal": true,
+    "added_role_words": [
+      "me",
+      "person",
+      "please",
+      "them",
+      "they",
+      "which"
+    ],
+    "new_supervision": false,
+    "new_evaluation_words": false
+  },
+  "resource_extensions": [
+    {
+      "at": "2026-09-14T17:20:07.772Z",
+      "reason": "Training-only role anchor expansion and masked-name query credit, build, separability audit, fit, actual generation, all retained controls, one bounded correction if demonstrated, checkpoint and protected delivery. Preserve negative reports and compiled lineage.",
+      "authorization": "Standing owner local allowance extensions 2026-09-06",
+      "model_increment_ms": 600000,
+      "parent_before_ms": 14610000,
+      "parent_after_ms": 15210000,
+      "shared_before_ms": 134450000,
+      "shared_after_ms": 135050000,
+      "storage_increment_bytes": 536870912,
+      "parent_storage_before": 6174015488,
+      "parent_storage_after": 6710886400,
+      "shared_storage_before": 107072352256,
+      "shared_storage_after": 107609223168,
+      "external_cost": 0,
+      "destructive_cleanup": false
+    },
+    {
+      "at": "2026-09-14T17:50:17.011Z",
+      "authorization": "standing owner necessary local allowance extensions",
+      "reason": "80 remaining retained scheduling regressions share unknown/person neighbor because role inventory omits canonical query words already learned in parent participation. Inherit existing trained query vocabulary and remap frozen credits by exact Word identity, then one optimizedbuild and complete actual qualification. No new answerlabels or evaluationvocabulary.",
+      "model_increment_ms": 300000,
+      "step_before_ms": 900000,
+      "step_after_ms": 1200000,
+      "parent_before_ms": 15210000,
+      "parent_after_ms": 15510000,
+      "shared_before_ms": 135050000,
+      "shared_after_ms": 135350000,
+      "phase_projection_ms": {
+        "build_tests": 180000,
+        "remap_credit_probe_generation_controls": 110000,
+        "checkpoint": 30000
+      },
+      "storage_increment_bytes": 0,
+      "step_storage_before": 805306368,
+      "step_storage_after": 805306368,
+      "parent_storage_before": 6710886400,
+      "parent_storage_after": 6710886400,
+      "shared_storage_before": 107609223168,
+      "shared_storage_after": 107609223168,
+      "projected_extra_storage_bytes": 201326592,
+      "previous_resource": {
+        "at": "2026-09-14T17:50:16.965Z",
+        "step_model_ms": 721496,
+        "step_model_limit_ms": 900000,
+        "step_engineering_command_ms": 25395,
+        "step_engineering_limit_ms": 120000,
+        "elapsed_wall_ms": 1809193,
+        "wall_limit_ms": 7200000,
+        "parent_model_ms": 14760287,
+        "parent_model_limit_ms": 15210000,
+        "parent_engineering_command_ms": 716156,
+        "shared_ledger": {
+          "cumulative_ms": 134510860,
+          "limit_ms": 135050000
+        },
+        "peak_sampled_process_tree_rss_bytes": 3377152000,
+        "rss_limit_bytes": 6442450944,
+        "actual_storage_bytes": {
+          "target": 1851703296,
+          "git": 1032290304,
+          "worktree": 1239490560,
+          "evidence": 4871241728
+        },
+        "cumulative_storage_high_water": {
+          "target": 130338816,
+          "git": 12161024,
+          "worktree": 1239490560,
+          "evidence": 4871241728,
+          "at": "2026-09-14T17:50:16.963Z"
+        },
+        "external_carry_bytes": 15466496,
+        "closure_reserve_bytes": 262144,
+        "step_new_storage_high_water_bytes": 427954176,
+        "step_new_storage_limit_bytes": 805306368,
+        "parent_growth_including_carry_and_reserve_bytes": 6268960768,
+        "parent_growth_limit_bytes": 6710886400,
+        "storage_accounted_before_bytes": 100924878848,
+        "storage_accounted_after_bytes": 107193839616,
+        "storage_account_limit_bytes": 107609223168,
+        "stop_margin_bytes": 134217728,
+        "physical_free_bytes": 12447830016,
+        "external_cost": 0,
+        "cleanup": false,
+        "fits": 2,
+        "notes": "Cumulative high water, not only retained model size. Includes all actual builds, data preparation, evaluation and controls; training-only unknown-neighbor role learning, with generation and retained controls, all prior negative attempts retained, frozen binaries/reports, prior external carry and 256KiB closure reserve covering new local helper/PR files. Shell navigation and documentation are reflected in wall time; engineering_command_ms measures wrapped commands only."
+      },
+      "external_cost": 0,
+      "cleanup": false,
+      "storage_review": "Before any use, corrected projection: existing storage allowance already covers projected extra192MiB plus128MiB margin; no second storage extension needed."
+    }
+  ],
+  "next_action": "Freeze acceptance and evaluate the unchanged 60d19679 artifact on one independent bounded fresh panel crossing one-, two-, and three-word names with already-supported query styles and valid, missing-compatible and conflicting continuations. Keep the four-record/two-clause window and fitting disabled; require actual query/payload/source/span/byte-EOS or typed-unresolved correctness, matched active/inactive/read/update controls and preservation of existing outputs. Draw only after acceptance is frozen, record data lineage and cumulative resources, and keep exposed development cases separate. This qualifies only the stated finite transfer scope; do not call it global role separability or general prose. Diagnose any fresh failure before another learning change.",
+  "delivery": {
+    "workflow": "protected_pull_request",
+    "branch": "codex/unknown-neighbor-learning",
+    "final_receipt": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/unknown-neighbor-1/delivery.json"
+  },
+  "limits": {
+    "promotion": false,
+    "final_holdout": "NOT_RUN",
+    "general_language": "NOT_ESTABLISHED"
+  },
+  "resume": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/unknown-neighbor-1/CODEX_RESUME.md"
+}

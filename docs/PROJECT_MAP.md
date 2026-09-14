@@ -22,6 +22,8 @@ does not override the current owner direction.
 
 ## Current development path
 
+The [unknown-neighbor result](native_geometric_unknown_neighbor_973.md) locates training-query vocabulary inheritance, exact credit migration and constrained masked-neighbor induction in dependent_language/occurrence_role.rs, with actual generation and retained controls in unknown_neighbor_report.rs. Current state owns the independent transfer qualification step.
+
 The [lexical-neighbor transfer result](native_geometric_neighbor_transfer_973.md) locates `dependent_language/neighbor_transfer_report.rs`: frozen-artifact new-name cases, matched continuation states, and source/query/participation observation comparisons. The role-anchor and learning correction is specified in current state.
 
 The [styled-role result](native_geometric_styled_role_973.md) locates paired source-role learning and output-guided rule selection in `dependent_language/occurrence_role.rs`, plus the frozen-data Rust qualification report. Current state owns subsequent role-learning qualification and its limits.

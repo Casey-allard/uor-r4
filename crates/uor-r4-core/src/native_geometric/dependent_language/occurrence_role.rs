@@ -145,7 +145,7 @@ pub(crate) fn learn_anchors(
         .map(|w| w.bytes.clone())
         .collect();
     for e in train {
-        for record in &e.records {
+        for record in e.records.iter().chain(std::iter::once(&e.prompt)) {
             for w in reader::words(g, record, ordered::CANONICAL)? {
                 words.insert(w.bytes);
             }
@@ -163,6 +163,360 @@ pub(crate) fn learn_anchors(
     span_boundary::validate(g, &anchors)?;
     Ok(anchors)
 }
+/// Extend role-neighbor anchors from training records and questions. Centers
+/// keep the separate inherited context namespace; only neighbors are remapped.
+pub fn expand_training_anchors(
+    mut a: Artifact,
+    g: &BoundGeometry,
+    train: &[span_data::Example],
+) -> Result<Artifact> {
+    a.validate(g)?;
+    if train.is_empty() || train.len() > 8192 {
+        return Err(Error::Shape);
+    }
+    let anchors = learn_anchors(&a.parent, g, train)?;
+    let mapping = anchor_remap(&a.anchors, &anchors)?;
+    for table in [&mut a.table, &mut a.query_table] {
+        for row in table.iter_mut() {
+            row.key.left = remap_neighbor(row.key.left, &mapping)?;
+            row.key.right = remap_neighbor(row.key.right, &mapping)?;
+        }
+        table.sort_by(|a, b| a.key.cmp(&b.key));
+    }
+    a.anchors = anchors;
+    a.data_digest = *blake3::hash(
+        &[
+            a.data_digest.as_slice(),
+            serde_json::to_vec(train)
+                .map_err(|_| Error::Artifact)?
+                .as_slice(),
+        ]
+        .concat(),
+    )
+    .as_bytes();
+    a.source_digest = *blake3::hash(include_str!("occurrence_role.rs").as_bytes()).as_bytes();
+    a.training.push_str(" Role-neighbor anchors expanded from training records and questions. Existing neighbor indices remapped by exact canonical Word equality; centers and parent parameters unchanged. New identities retain existing rule/default behavior until fitted.");
+    a.validate(g)?;
+    Ok(a)
+}
+fn anchor_remap(old: &[span_boundary::Word], new: &[span_boundary::Word]) -> Result<Vec<u8>> {
+    if old.len() > span_boundary::MAX_CONTEXT_WORDS || new.len() > span_boundary::MAX_CONTEXT_WORDS
+    {
+        return Err(Error::Artifact);
+    }
+    old.iter()
+        .map(|word| {
+            let mut matching = new.iter().enumerate().filter(|(_, other)| *other == word);
+            let (index, _) = matching.next().ok_or(Error::Artifact)?;
+            if matching.next().is_some() {
+                return Err(Error::Artifact);
+            }
+            u8::try_from(index).map_err(|_| Error::Artifact)
+        })
+        .collect()
+}
+fn remap_neighbor(id: u8, mapping: &[u8]) -> Result<u8> {
+    match id {
+        CONTENT | EDGE | ANY => Ok(id),
+        _ => mapping.get(usize::from(id)).copied().ok_or(Error::Artifact),
+    }
+}
+fn remap_key(key: &mut Key, mapping: &[u8]) -> Result<()> {
+    key.left = remap_neighbor(key.left, mapping)?;
+    key.right = remap_neighbor(key.right, mapping)?;
+    Ok(())
+}
+fn remap_rows(rows: &mut [Row], mapping: &[u8]) -> Result<()> {
+    for row in rows.iter_mut() {
+        remap_key(&mut row.key, mapping)?;
+    }
+    rows.sort_by(|a, b| a.key.cmp(&b.key));
+    Ok(())
+}
+
+/// Retain canonical query vocabulary already learned by an enclosing artifact.
+/// The caller binds that training-derived inventory in its artifact lineage.
+/// This shares identities, not participation parameters or role labels.
+pub fn inherit_query_anchors(
+    mut a: Artifact,
+    g: &BoundGeometry,
+    trained_query_anchors: &[span_boundary::Word],
+) -> Result<Artifact> {
+    a.validate(g)?;
+    span_boundary::validate(g, trained_query_anchors)?;
+    let anchors: Vec<_> = a
+        .anchors
+        .iter()
+        .chain(trained_query_anchors)
+        .map(|word| (word.bytes.clone(), word.clone()))
+        .collect::<BTreeMap<_, _>>()
+        .into_values()
+        .collect();
+    span_boundary::validate(g, &anchors)?;
+    let mapping = anchor_remap(&a.anchors, &anchors)?;
+    remap_rows(&mut a.table, &mapping)?;
+    remap_rows(&mut a.query_table, &mapping)?;
+    a.anchors = anchors;
+    a.data_digest = *blake3::hash(
+        &[
+            a.data_digest.as_slice(),
+            serde_json::to_vec(trained_query_anchors)
+                .map_err(|_| Error::Artifact)?
+                .as_slice(),
+        ]
+        .concat(),
+    )
+    .as_bytes();
+    a.source_digest = *blake3::hash(include_str!("occurrence_role.rs").as_bytes()).as_bytes();
+    a.training.push_str(" Retain the enclosing artifact's already-trained canonical query vocabulary in role observations. Exact Word union/remap, bounded to64; no new raw examples, labels, evaluation names or participation parameters.");
+    a.validate(g)?;
+    Ok(a)
+}
+
+/// Transport the frozen credit receipt into the same expanded anchor namespace.
+/// Centers, label counts, blockers and canonical words retain their identities.
+pub fn migrate_unknown_credit(
+    mut fit: UnknownNeighborFit,
+    g: &BoundGeometry,
+    old: &[span_boundary::Word],
+    new: &[span_boundary::Word],
+) -> Result<UnknownNeighborFit> {
+    span_boundary::validate(g, old)?;
+    span_boundary::validate(g, new)?;
+    let mapping = anchor_remap(old, new)?;
+    if fit.eligible_ids.len() != fit.eligible_anchors.len()
+        || fit
+            .eligible_ids
+            .iter()
+            .zip(&fit.eligible_anchors)
+            .any(|(&id, word)| old.get(usize::from(id)) != Some(word))
+    {
+        return Err(Error::Artifact);
+    }
+    for id in &mut fit.eligible_ids {
+        *id = remap_neighbor(*id, &mapping)?;
+    }
+    for credits in [
+        &mut fit.credits,
+        &mut fit.witnessed.initial.credits,
+        &mut fit.witnessed.refinement.credits,
+    ] {
+        for credit in credits.iter_mut() {
+            remap_key(&mut credit.key, &mapping)?;
+        }
+        credits.sort_by(|a, b| a.key.cmp(&b.key));
+    }
+    for rows in [
+        &mut fit.known_query_table,
+        &mut fit.witnessed.initial_table,
+        &mut fit.witnessed.frozen_content_patterns,
+        &mut fit.witnessed.frozen_context_patterns,
+    ] {
+        remap_rows(rows, &mapping)?;
+    }
+    for keys in [
+        &mut fit.blocked_observations,
+        &mut fit.witnessed.blocked_observations,
+    ] {
+        for key in keys.iter_mut() {
+            remap_key(key, &mapping)?;
+        }
+        keys.sort();
+    }
+    fit.policy.push_str(" Frozen credit/known tables/blockers migrated by exact Word identity into the union with already-trained parent query anchors. All center identities and counts unchanged; no credit extraction repeated.");
+    Ok(fit)
+}
+fn masked_key(key: &Key, eligible: &std::collections::BTreeSet<u8>) -> Key {
+    Key {
+        center: key.center,
+        left: if eligible.contains(&key.left) {
+            CONTENT
+        } else {
+            key.left
+        },
+        right: if eligible.contains(&key.right) {
+            CONTENT
+        } else {
+            key.right
+        },
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct UnknownNeighborFit {
+    pub policy: String,
+    pub eligible_anchors: Vec<span_boundary::Word>,
+    pub eligible_ids: Vec<u8>,
+    pub view_count: usize,
+    pub witnessed: QueryWitnessFit,
+    pub known_query_table: Vec<Row>,
+    pub credits: Vec<Credit>,
+    pub blocked_observations: Vec<Key>,
+    pub conflicting_keys: usize,
+    pub learned_content_rows: usize,
+    pub source_table_unchanged: bool,
+}
+
+/// Freeze output-compatible latent query credit before observation augmentation.
+/// The two fixed views retain all neighbors or withhold all eligible training
+/// answer neighbors. Canonical words, centers and geometric matching stay intact.
+/// Project both roles and strict blockers before one induction; a masked rule
+/// never supplies its own prerequisite witness. Counts are augmented views, not
+/// independent evidence (unchanged keys occur in both views).
+pub fn fit_unknown_neighbors(
+    a: Artifact,
+    g: &BoundGeometry,
+    m: &Metric,
+    train: &[span_data::Example],
+) -> Result<(Artifact, UnknownNeighborFit)> {
+    a.validate(g)?;
+    if train.is_empty() || train.len() > 8192 {
+        return Err(Error::Shape);
+    }
+    let mut eligible = std::collections::BTreeSet::new();
+    for e in train {
+        for word in reader::words(g, &e.answer, ordered::CANONICAL)? {
+            let canonical = span_boundary::Word {
+                bytes: word.bytes,
+                geometry: word.geometry,
+            };
+            if a.parent.parent.context_words.contains(&canonical) {
+                continue;
+            }
+            let index = a
+                .anchors
+                .iter()
+                .position(|w| w == &canonical)
+                .ok_or(Error::Artifact)?;
+            eligible.insert(u8::try_from(index).map_err(|_| Error::Artifact)?);
+        }
+    }
+    if eligible.is_empty() {
+        return Err(Error::Shape);
+    }
+    let source = a.table.clone();
+    let (mut a, witnessed) = fit_queries_witnessed(a, g, m, train)?;
+    let known_query_table = a.query_table.clone();
+    let mut counts: BTreeMap<Key, [usize; 2]> = BTreeMap::new();
+    for credit in witnessed
+        .initial
+        .credits
+        .iter()
+        .chain(&witnessed.refinement.credits)
+    {
+        for key in [credit.key.clone(), masked_key(&credit.key, &eligible)] {
+            let count = counts.entry(key).or_default();
+            count[0] += credit.content;
+            count[1] += credit.context;
+        }
+    }
+    let blocked: std::collections::BTreeSet<_> = witnessed
+        .blocked_observations
+        .iter()
+        .flat_map(|key| [key.clone(), masked_key(key, &eligible)])
+        .collect();
+    if counts.len() > MAX_ROWS || blocked.len() > MAX_ROWS {
+        return Err(Error::Artifact);
+    }
+    a.query_table = induce_paired_policy(&counts, &blocked, true);
+    let eligible_ids: Vec<_> = eligible.into_iter().collect();
+    let report = UnknownNeighborFit {
+        policy: "Two predetermined views: complete training observation and all eligible training-answer neighbors withheld. Eligibility excludes inherited context identities. Freeze known-observation final-output-compatible witness credit, then project both roles and strict blockers; no masked-view self-credit, raw replacement, evaluation names or grammar labels. Counts are augmented views, not independent evidence. Explicit unknown-neighbor rules retain the opposite neighbor or edge, never an opposite wildcard.".into(),
+        eligible_anchors: eligible_ids.iter().map(|&i| a.anchors[usize::from(i)].clone()).collect(),
+        eligible_ids,
+        view_count: 2,
+        witnessed,
+        known_query_table,
+        conflicting_keys: counts.values().filter(|c| c[0] > 0 && c[1] > 0).count(),
+        credits: counts.into_iter().map(|(key, c)| Credit { key, content: c[0], context: c[1] }).collect(),
+        blocked_observations: blocked.into_iter().collect(),
+        learned_content_rows: a.query_table.len(),
+        source_table_unchanged: a.table == source,
+    };
+    if !report.source_table_unchanged {
+        return Err(Error::Artifact);
+    }
+    a.data_digest = *blake3::hash(
+        &[
+            a.data_digest.as_slice(),
+            serde_json::to_vec(&(&report.policy, &report.eligible_anchors))
+                .map_err(|_| Error::Artifact)?
+                .as_slice(),
+        ]
+        .concat(),
+    )
+    .as_bytes();
+    a.source_digest = *blake3::hash(
+        concat!(
+            include_str!("occurrence_role.rs"),
+            include_str!("occurrence.rs"),
+            include_str!("span_learning.rs")
+        )
+        .as_bytes(),
+    )
+    .as_bytes();
+    a.training.push_str(" Two fixed training-only role-observation views project frozen output-compatible query credit to withheld-neighbor keys. Eligibility is canonical training answer words excluding inherited context words. Both auxiliary negatives and strict ambiguous blockers are projected before one consistent-rule induction. Source roles, canonical matching and parent geometry stay frozen. This is a bounded latent-label invariance hypothesis, not general grammar.");
+    a.validate(g)?;
+    Ok((a, report))
+}
+
+/// Retry only rule induction from a sealed, artifact-bound credit receipt.
+/// The caller verifies its sealed data/source lineage before supplying it.
+/// No witness search, new label, or new observation is performed here.
+pub fn reinduce_unknown_neighbors(
+    mut a: Artifact,
+    g: &BoundGeometry,
+    mut fit: UnknownNeighborFit,
+) -> Result<(Artifact, UnknownNeighborFit)> {
+    a.validate(g)?;
+    if fit.view_count != 2
+        || fit.eligible_ids.len() != fit.eligible_anchors.len()
+        || fit
+            .eligible_ids
+            .iter()
+            .zip(&fit.eligible_anchors)
+            .any(|(&id, word)| a.anchors.get(usize::from(id)) != Some(word))
+        || fit.credits.len() > MAX_ROWS
+        || fit.blocked_observations.len() > MAX_ROWS
+    {
+        return Err(Error::Artifact);
+    }
+    let counts: BTreeMap<_, _> = fit
+        .credits
+        .iter()
+        .map(|c| (c.key.clone(), [c.content, c.context]))
+        .collect();
+    if counts.len() != fit.credits.len() {
+        return Err(Error::Artifact);
+    }
+    let blocked = fit.blocked_observations.iter().cloned().collect();
+    a.query_table = induce_paired_policy(&counts, &blocked, true);
+    fit.learned_content_rows = a.query_table.len();
+    fit.policy.push_str(" Rule-induction retry from identical pooled credits/blockers: an explicit unknown neighbor retains the opposite identity or exact edge; no opposite wildcard. No repeated witness-credit extraction.");
+    a.data_digest = *blake3::hash(
+        &[
+            a.data_digest.as_slice(),
+            serde_json::to_vec(&fit)
+                .map_err(|_| Error::Artifact)?
+                .as_slice(),
+        ]
+        .concat(),
+    )
+    .as_bytes();
+    a.source_digest = *blake3::hash(
+        concat!(
+            include_str!("occurrence_role.rs"),
+            include_str!("occurrence.rs"),
+            include_str!("span_learning.rs")
+        )
+        .as_bytes(),
+    )
+    .as_bytes();
+    a.training.push_str(" Conservative induction retry from the same frozen output-compatible credit. An explicit unknown neighbor cannot wildcard its opposite neighbor; exact boundaries remain usable. All negatives, blockers, canonical identities and source/parent parameters retained.");
+    a.validate(g)?;
+    Ok((a, fit))
+}
+
 fn key(ids: &[u8], i: usize) -> Key {
     Key {
         center: ids[i],
@@ -317,6 +671,14 @@ fn induce_paired(
     counts: &BTreeMap<Key, [usize; 2]>,
     blocked: &std::collections::BTreeSet<Key>,
 ) -> Vec<Row> {
+    induce_paired_policy(counts, blocked, false)
+}
+
+fn induce_paired_policy(
+    counts: &BTreeMap<Key, [usize; 2]>,
+    blocked: &std::collections::BTreeSet<Key>,
+    keep_unknown_neighbor_context: bool,
+) -> Vec<Row> {
     let mut options = std::collections::BTreeSet::new();
     for (key, count) in counts {
         if count[0] == 0 {
@@ -324,6 +686,15 @@ fn induce_paired(
         }
         for left in [key.left, ANY] {
             for right in [key.right, ANY] {
+                // Withholding an identity is one generalization. An explicit
+                // unknown neighbor cannot additionally discard the other
+                // neighbor. Apply before maximal-generalization pruning so
+                // exact supported keys survive. EDGE remains exact evidence.
+                if keep_unknown_neighbor_context
+                    && ((left == CONTENT && right == ANY) || (left == ANY && right == CONTENT))
+                {
+                    continue;
+                }
                 let rule = Key {
                     center: key.center,
                     left,
@@ -1320,6 +1691,126 @@ pub fn generate(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn neighbor_projection_preserves_center_and_negative_credit() {
+        let eligible = [1].into();
+        let name = Key {
+            center: 0,
+            left: 1,
+            right: 2,
+        };
+        let masked = masked_key(&name, &eligible);
+        assert_eq!(
+            masked,
+            Key {
+                center: 0,
+                left: CONTENT,
+                right: 2
+            }
+        );
+        let counts = BTreeMap::from([(name, [1, 0]), (masked.clone(), [1, 1])]);
+        assert!(!induce_paired(&counts, &Default::default())
+            .iter()
+            .any(|r| matches_key(&r.key, &masked)));
+        let positive = BTreeMap::from([(masked.clone(), [1, 0])]);
+        assert!(induce_paired(&positive, &[masked].into()).is_empty());
+        let edge = Key {
+            center: 1,
+            left: EDGE,
+            right: ANY,
+        };
+        assert_eq!(masked_key(&edge, &eligible), edge);
+    }
+    #[test]
+    fn unknown_neighbor_induction_keeps_specific_rules_before_pruning() {
+        let key = Key {
+            center: 0,
+            left: CONTENT,
+            right: 2,
+        };
+        let negative = Key {
+            center: 0,
+            left: 1,
+            right: 2,
+        };
+        let counts = BTreeMap::from([(key.clone(), [1, 0]), (negative, [0, 1])]);
+        let rules = induce_paired_policy(&counts, &Default::default(), true);
+        assert!(rules.iter().any(|r| r.key == key));
+        assert!(!rules
+            .iter()
+            .any(|r| r.key.left == CONTENT && r.key.right == ANY));
+        let outside = Key {
+            center: 0,
+            left: CONTENT,
+            right: 3,
+        };
+        assert!(!rules.iter().any(|r| matches_key(&r.key, &outside)));
+        let mirrored: BTreeMap<_, _> = counts
+            .iter()
+            .map(|(k, c)| {
+                (
+                    Key {
+                        center: k.center,
+                        left: k.right,
+                        right: k.left,
+                    },
+                    *c,
+                )
+            })
+            .collect();
+        let rules = induce_paired_policy(&mirrored, &Default::default(), true);
+        assert!(rules.iter().any(|r| r.key
+            == Key {
+                center: 0,
+                left: 2,
+                right: CONTENT
+            }));
+        assert!(!rules
+            .iter()
+            .any(|r| r.key.left == ANY && r.key.right == CONTENT));
+        assert!(induce_paired_policy(&counts, &[key].into(), true).is_empty());
+    }
+    #[test]
+    fn anchor_migration_uses_exact_words_and_preserves_markers() -> Result<()> {
+        let g = BoundGeometry::canonical().map_err(|_| Error::Geometry)?;
+        let word = |bytes: &[u8]| -> Result<span_boundary::Word> {
+            Ok(span_boundary::Word {
+                geometry: ordered::Query::encode(&g, bytes, ordered::CANONICAL)?,
+                bytes: bytes.to_vec(),
+            })
+        };
+        let a = word(b"amber")?;
+        let w = word(b"who")?;
+        let mapping = anchor_remap(std::slice::from_ref(&a), &[w.clone(), a.clone()])?;
+        assert_eq!(mapping, vec![1]);
+        assert_eq!(remap_neighbor(0, &mapping)?, 1);
+        let mut rows = vec![Row {
+            key: Key {
+                center: 13,
+                left: 0,
+                right: CONTENT,
+            },
+            context: false,
+        }];
+        remap_rows(&mut rows, &mapping)?;
+        assert_eq!(
+            rows[0].key,
+            Key {
+                center: 13,
+                left: 1,
+                right: CONTENT
+            }
+        );
+        assert!(!rows[0].context);
+        for marker in [CONTENT, EDGE, ANY] {
+            assert_eq!(remap_neighbor(marker, &mapping)?, marker);
+        }
+        assert!(remap_neighbor(3, &mapping).is_err());
+        assert!(anchor_remap(std::slice::from_ref(&a), &[w]).is_err());
+        assert!(anchor_remap(std::slice::from_ref(&a), &[a.clone(), a.clone()]).is_err());
+        assert!(anchor_remap(&[], &vec![a; 65]).is_err());
+        Ok(())
+    }
     #[test]
     fn source_rule_selection_counts_regressions_separately_from_net_gain() -> Result<()> {
         let before = [true, false, false];
