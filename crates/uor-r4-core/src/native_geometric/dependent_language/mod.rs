@@ -55,3 +55,6 @@ mod correspondence_report;
 
 #[cfg(test)]
 mod phrase_order_report;
+
+#[cfg(test)]
+mod lexical_role_report;

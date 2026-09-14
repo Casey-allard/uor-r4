@@ -18,6 +18,8 @@ Reuse the [engine](architecture-2026-09/engines.md), [mathematics](architecture-
 
 ## Current implementation sequence — owner adopted September 12
 
+**Contextual occurrence roles, September 14:** The [lexical-role diagnostic](../native_geometric_lexical_role_973.md) identifies a global context flag blocking valid name payloads before query update. The next responsibility is a learned local role decision using retained correspondence and output-compatible span evidence, with the same identity tested as context and content. Current state owns the exact implementation/qualification action; no word exception or promotion is implied.
+
 **Phrase-order identity, September 14:** The [unchanged-artifact result](../native_geometric_phrase_order_973.md) distinguishes reversed same-word endpoints and gapped alternatives while retaining correct missing/conflicting outcomes. The next responsibility is context-sensitive occurrence roles: a global word classification must not prevent the same identity from serving as a name or other content. Current state owns the bounded diagnostic and exact acceptance; no role-list expansion is implied.
 
 **Ordered correspondence, September 14:** The [correspondence result](../native_geometric_correspondence_973.md) qualifies learned ordered matches through inherited source context roles while preserving prior complete traces. The unchanged-artifact phrase-order test above qualifies that distinction inside the same bounded geometric read/update loop. Current state owns the exact next test and acceptance. Familiar grammar, finite roles and general-prose limits remain explicit.
