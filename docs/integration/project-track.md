@@ -18,6 +18,8 @@ Reuse the [engine](architecture-2026-09/engines.md), [mathematics](architecture-
 
 ## Current implementation sequence — owner adopted September 12
 
+**Learned query participation, September 14:** The [participation result](../native_geometric_query_participation_973.md) separates optional query evidence from dependent replacement eligibility while preserving exact occurrence identities and source/query roles. Carry these decisions into subsequent styled-role learning and retain successful complete paths; current state owns measured acceptance and sequencing.
+
 **Query participation and role transfer, September 14:** The [unchanged role-transfer diagnostic](../native_geometric_role_transfer_973.md) separates required query evidence, dependent replacement eligibility and context/content roles. Preserve exact occurrence/span identity and actual query paths; an unrelated record must not redefine the question. Current state owns measured boundaries, correction sequencing and resource projection.
 
 **Learned occurrence roles, September 14:** The [source/query role result](../native_geometric_occurrence_role_973.md) records conditional lexical-role learning inside the existing geometric read/update loop. Preserve exact occurrence identity, source/query agreement and actual-output credit; qualify broader role recombinations before general-language claims. Current state owns the exact outcome and next action.

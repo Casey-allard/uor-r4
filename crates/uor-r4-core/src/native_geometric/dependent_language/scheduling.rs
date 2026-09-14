@@ -249,6 +249,44 @@ where
     F: FnMut(&[u8], usize) -> Result<lexical::Route>,
     P: Fn(&[u8], usize) -> Result<Vec<u8>>,
 {
+    observe_routed_updates(
+        a,
+        g,
+        m,
+        records,
+        qs,
+        s,
+        c,
+        probe,
+        stale_payload,
+        route_fn,
+        payload_window,
+        payload_fn,
+        &|_, _| Ok(true),
+    )
+}
+/// Filter learned replacement eligibility independently of the inherited
+/// update proposal features. Old callers retain their exact admission path.
+pub(crate) fn observe_routed_updates<F, P, U>(
+    a: &Artifact,
+    g: &BoundGeometry,
+    m: &Metric,
+    records: &[Vec<u8>; 4],
+    qs: &[Vec<u8>],
+    s: &Frame,
+    c: Control,
+    probe: Option<&Probe>,
+    stale_payload: Option<&[u8]>,
+    route_fn: &mut F,
+    payload_window: binding::PayloadWindow,
+    payload_fn: &P,
+    update_filter: &U,
+) -> Result<Observed>
+where
+    F: FnMut(&[u8], usize) -> Result<lexical::Route>,
+    P: Fn(&[u8], usize) -> Result<Vec<u8>>,
+    U: Fn(&[u8], &binding::UpdateCandidate) -> Result<bool>,
+{
     let route = route_fn(&s.core.query.bytes, s.clause)?;
 
     let value = route
@@ -279,14 +317,22 @@ where
             },
             payload_window,
         )?;
-        let mut admitted = updates.into_iter().filter(|u| {
-            if let Some(Probe::Update { clause, word }) = probe {
+        let mut admitted_updates = Vec::new();
+        for u in updates {
+            let inherited = if let Some(Probe::Update { clause, word }) = probe {
                 if *clause == s.clause {
-                    return u.word == *word;
+                    u.word == *word
+                } else {
+                    c != Control::ScorerDisabled && a.parent.matches(u.features)
                 }
+            } else {
+                c != Control::ScorerDisabled && a.parent.matches(u.features)
+            };
+            if inherited && update_filter(next, &u)? {
+                admitted_updates.push(u);
             }
-            c != Control::ScorerDisabled && a.parent.matches(u.features)
-        });
+        }
+        let mut admitted = admitted_updates.into_iter();
         let first = admitted.next();
         if admitted.next().is_none() {
             update = first;

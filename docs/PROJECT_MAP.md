@@ -22,6 +22,8 @@ does not override the current owner direction.
 
 ## Current development path
 
+The [query-participation result](native_geometric_query_participation_973.md) locates `dependent_language/query_participation.rs` and its Rust report: output-learned optional occurrence and replacement tables, shared reader/updater hooks, and same-identity prefix/name controls. Current state owns the remaining styled-role qualification.
+
 The [role-transfer diagnostic](native_geometric_role_transfer_973.md) locates `dependent_language/role_transfer_report.rs`: unchanged-artifact optional-word interventions, styled role reuse, predicate transfer and exact prior-trace retention. It links candidate coverage and update-site global-match shortcuts to their actual failure boundaries.
 
 The [learned occurrence-role result](native_geometric_occurrence_role_973.md) locates `dependent_language/occurrence_role.rs`: output-trained local source/query roles over canonical anchors, shared with occurrence barriers and ordered correspondence. Exact outcomes, negative candidates and next work are in current state.

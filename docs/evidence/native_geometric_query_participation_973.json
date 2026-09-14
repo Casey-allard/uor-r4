@@ -1,0 +1,432 @@
+{
+  "at": "2026-09-14T14:24:51.036Z",
+  "status": "PASS_LEARNED_QUERY_PARTICIPATION",
+  "summary": {
+    "both_disabled_parent_equal": 204,
+    "candidate_sha256": "8055a53c7801f1e6e11f808a6c15ddb090a5befe8d9d587b4ca65c74b7698793",
+    "default_model": "15baec48 unchanged",
+    "direct_training_correct": 192,
+    "direct_training_rows": 192,
+    "exact_equal": 204,
+    "final_holdout": "NOT_RUN",
+    "fits": 2,
+    "gate": "PASS_LEARNED_QUERY_PARTICIPATION",
+    "invalid_schema_rejected": true,
+    "panels": {
+      "coverage/BothDisabled": 12,
+      "coverage/ExactIdentity": 60,
+      "coverage/Full": 60,
+      "coverage/ReadDisabled": 0,
+      "coverage/ReplacementDisabled": 24,
+      "coverage/RequirementsDisabled": 12,
+      "coverage/UpdateDisabled": 40,
+      "predicate/BothDisabled": 48,
+      "predicate/ExactIdentity": 48,
+      "predicate/Full": 48,
+      "predicate/ReadDisabled": 0,
+      "predicate/ReplacementDisabled": 48,
+      "predicate/RequirementsDisabled": 48,
+      "predicate/UpdateDisabled": 0,
+      "styled/BothDisabled": 60,
+      "styled/ExactIdentity": 60,
+      "styled/Full": 60,
+      "styled/ReadDisabled": 0,
+      "styled/ReplacementDisabled": 60,
+      "styled/RequirementsDisabled": 60,
+      "styled/UpdateDisabled": 0
+    },
+    "parent_200_equal": 200,
+    "parent_parameters_unchanged": true,
+    "parent_sha256": "712de3158ca14241b549043f743709911ca6bbc1bf8adc271d990d8616c8df42",
+    "prior_success_exact": 120,
+    "prior_successes": 120,
+    "promotion": false,
+    "query_role_fits": 0,
+    "read_or_update_disabled_correct_answer": 0,
+    "reload_equal": 204,
+    "replacement_fit": {
+      "ambiguity_blockers": [],
+      "ambiguous_output_rows": 0,
+      "bootstrap_recovered_rows": 0,
+      "compatible_alternatives": 96,
+      "conflicts": 0,
+      "learned_rows": 2,
+      "rows": 96,
+      "skipped_ambiguous_occurrences": 0,
+      "skipped_no_support": 0
+    },
+    "replacement_fits": 1,
+    "replacement_training_rows": 96,
+    "required_fit": {
+      "ambiguity_blockers": [],
+      "ambiguous_output_rows": 0,
+      "bootstrap_recovered_rows": 0,
+      "compatible_alternatives": 192,
+      "conflicts": 0,
+      "learned_rows": 12,
+      "rows": 192,
+      "skipped_ambiguous_occurrences": 0,
+      "skipped_no_support": 0
+    },
+    "requirements_fits": 1,
+    "retained_200_equal": 200,
+    "retained_6688_equal": 6688,
+    "retained_typed_unresolved": 512,
+    "rows": 204,
+    "source_role_fits": 0
+  },
+  "collision_probe": {
+    "artifact_unchanged": true,
+    "both_disabled_parent_equal": 96,
+    "candidate_sha256": "8055a53c7801f1e6e11f808a6c15ddb090a5befe8d9d587b4ca65c74b7698793",
+    "counts": {
+      "BothDisabled": 0,
+      "ExactIdentity": 96,
+      "Full": 96,
+      "ReadDisabled": 0,
+      "ReplacementDisabled": 24,
+      "RequirementsDisabled": 0,
+      "UpdateDisabled": 0
+    },
+    "disabled_correct_answer": 0,
+    "exact_equal": 96,
+    "final_holdout": "NOT_RUN",
+    "fits": 0,
+    "gate": "PASS_SAME_IDENTITY_PARTICIPATION",
+    "promotion": false,
+    "reload_equal": 96,
+    "rows": 96
+  },
+  "attempts": [
+    {
+      "report_root": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/query-participation-1/attempt-1",
+      "files": {
+        "acceptance.json": {
+          "sha256": "1e8a694e3134b4b13185a1bedf758e1bd449ea9c66a2973c497fbf6a0f5836b5",
+          "bytes": 1268
+        },
+        "attempt.json": {
+          "sha256": "970d0375f39256e72571fdbeab4466609677dab87266b77f8d03785591962f7a",
+          "bytes": 511
+        },
+        "candidate.json": {
+          "sha256": "8055a53c7801f1e6e11f808a6c15ddb090a5befe8d9d587b4ca65c74b7698793",
+          "bytes": 58130
+        },
+        "data.json": {
+          "sha256": "d7a6e3db55e9d37f53fd8ac706684a6938e93190ca4f88dc33524caf8e8ba475",
+          "bytes": 1545315
+        },
+        "manifest.json": {
+          "sha256": "248918e4246079b8b16eefe15065c927a29389d05c9e021ffe81f15b9a0e96dc",
+          "bytes": 2407
+        },
+        "replacement-fit.json": {
+          "sha256": "0bb00f794d920bc153a6209b4ea7425dfaeaf7d5ce852fe239dd73ed5f36a990",
+          "bytes": 2070
+        },
+        "replacement-inputs.json": {
+          "sha256": "c4fb8d42296f5f215ce13b53c6e5ba6e1fcf16c680ba45db9e2688acc52001ef",
+          "bytes": 235260
+        },
+        "representation-audit.json": {
+          "sha256": "6df77b0cfc4f8f720329490015b0ec8c329b05e3935b7ba720f80f9cc40a60ce",
+          "bytes": 4532
+        },
+        "requirements-candidate.json": {
+          "sha256": "da26b2fbff90622aa27f609a13485c78e1e83325e0d1b1bbb12d9583d7224615",
+          "bytes": 57575
+        },
+        "requirements-fit.json": {
+          "sha256": "fbfa3e22265db390110f8d82973ab93a4bc0d28858c265b34f60b3c7dd59fd53",
+          "bytes": 19915
+        },
+        "responses.json": {
+          "sha256": "f6a0c8bc3b646ef94a307fd69cca32ab4903fe58ed2a69908f92f742f231117c",
+          "bytes": 40262030
+        },
+        "retained-200.json": {
+          "sha256": "7007a23634084b7ccb156651558c9c86833047a2092bfc4eeedb6086929853a1",
+          "bytes": 39718
+        },
+        "retained-6688.json": {
+          "sha256": "821cfc836631aadb7b35523277f44e6b832da16ad6e647d50dbda6cc7f7b6ad8",
+          "bytes": 1178370
+        },
+        "summary.json": {
+          "sha256": "f158cd7021c4c6ba557361d61c0036719cc56059c4e7944a4038c5f7cc0fe09f",
+          "bytes": 26523
+        },
+        "training-responses.json": {
+          "sha256": "e195cb72173e4ef973f18336d50bfb1089ea1acc45b34dfc2346e0df0e69605f",
+          "bytes": 35669
+        }
+      }
+    },
+    {
+      "report_root": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/query-participation-1/collision-probe-1",
+      "files": {
+        "acceptance.json": {
+          "sha256": "fc22b573fcc42d776866f56f30c1c55493ef5093ef464add50b64de8d9854682",
+          "bytes": 610
+        },
+        "attempt.json": {
+          "sha256": "412e11cbf19fd7de5ec6bcb88673fa9fd2a61f091ef2b8311ca6d6157394864e",
+          "bytes": 512
+        },
+        "data.json": {
+          "sha256": "c1fcdd26906087b20b5c2de7862ae8e432c3271a521d3743c7e4037b4af4686e",
+          "bytes": 431644
+        },
+        "manifest.json": {
+          "sha256": "9833c36fbd0b72a89ee01f851708c8107aed05d1289fc1562506d54437ab9b6e",
+          "bytes": 998
+        },
+        "responses.json": {
+          "sha256": "e1014c8e8b061118b8671a1636bf5f3094367f1f35933f6587c4f5ee156f727e",
+          "bytes": 28852794
+        },
+        "summary.json": {
+          "sha256": "41b08016193e41159901848955617e3995618b2f2870adb1584413f311697e80",
+          "bytes": 550
+        }
+      }
+    }
+  ],
+  "lineage": [
+    {
+      "base": "ecee92eba3ad0b30c72005801d6702057dd4e45c",
+      "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/query-participation-1/query-participation-tests",
+      "sha256": "33fed4b34c3e4ea5909ffefba8e84a6773147f456c56a814c106fa69f952e557",
+      "source_files": 87,
+      "build_label": "query-participation-build-1"
+    },
+    {
+      "base": "ecee92eba3ad0b30c72005801d6702057dd4e45c",
+      "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/query-participation-1/query-participation-tests-3",
+      "sha256": "6ffd1c20b2b4204d1df909c4212df1ae3f78f4e509f8f44e555bb3234e42bf54",
+      "source_files": 87,
+      "build_label": "query-participation-build-3"
+    }
+  ],
+  "probe_lineage": {
+    "at": "2026-09-14T14:24:51.030Z",
+    "differences": [
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/occurrence_role.rs",
+        "before": "e3c564515513f4d11049c6ba4a027b05e4facaaf5e564a85a10f3b00d173d256",
+        "after": "9921a9680511228bf22bff2c47ae7b409f9ea55a6b5a2e04ecfcd203294f0f10",
+        "scope": "comment correction only"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/query_participation_report.rs",
+        "before": "e3f9d85739172bfba7a7c9eeff3ea4c98ed5d9772286fdb5a13a849f73aa9c50",
+        "after": "6dd337e5073a7ad04562427b5132a44526007ee1f5e0606e31bbd2b0f69db4e5",
+        "scope": "additional test-only collision probe"
+      }
+    ],
+    "unchanged_model_runtime": true,
+    "partial_freeze": {
+      "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/query-participation-1/query-participation-tests-2",
+      "sha256": "6ffd1c20b2b4204d1df909c4212df1ae3f78f4e509f8f44e555bb3234e42bf54",
+      "reason": "First freeze invoked from original checkout copied binary before failing source lookup. Exclusive retry preserved this file; complete source freeze uses suffix -3.",
+      "used_for_evaluation": false
+    },
+    "complete_probe_freeze": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/query-participation-1/source-freeze-3.json"
+  },
+  "preservation": {
+    "at": "2026-09-14T14:23:32.275Z",
+    "prior_report_roots": 70,
+    "prior_report_files": 1680,
+    "originals": [
+      {
+        "path": "/Users/casey.allard/uor-r4",
+        "head": "49da65c509e8b1b9f10e7891918d3618c65e9f20",
+        "status_sha256": "4634a2b54ea8525bf3c76edb5d7092986d2dda77ef76edd3a641ce2b0f075df8"
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent",
+        "head": "49da65c509e8b1b9f10e7891918d3618c65e9f20",
+        "status_sha256": "7dbfdd7d981456b30357812e9dc7edd13b072c43ce45b873f35ba51d742465b2"
+      }
+    ],
+    "lineage": [
+      {
+        "name": "language-span-1",
+        "suffix": "",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-span-1/language-span-tests",
+        "sha256": "befad45acb8cc28047ccd7ebbfcf0d47493060c358bf8b1efd8ce62397a3f15e"
+      },
+      {
+        "name": "language-span-1",
+        "suffix": "-2",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-span-1/language-span-tests-2",
+        "sha256": "c68cf90de23a7e68efe83ef0b6a70335b594b36efb4e162291c93142e1a15760"
+      },
+      {
+        "name": "language-span-1",
+        "suffix": "-3",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-span-1/language-span-tests-3",
+        "sha256": "d9810736cfbd8830d4e38c0c206052c8e860ade5cf34d189b2e4cf0521bd86e8"
+      },
+      {
+        "name": "language-phrase-update-1",
+        "suffix": "",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-phrase-update-1/phrase-update-tests",
+        "sha256": "3dbfb12931e9f03f00a212b8b7237970db095fca659acce95b61c6335befbe6b"
+      },
+      {
+        "name": "language-occurrence-1",
+        "suffix": "",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-occurrence-1/occurrence-tests",
+        "sha256": "0b2ef78f7d2f7bdb9d7c1613ac0d1f8ce5eff149bad50325b9e95dd4fb1aae08"
+      },
+      {
+        "name": "language-occurrence-1",
+        "suffix": "-2",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-occurrence-1/occurrence-tests-2",
+        "sha256": "71fbed5f58f0701628d30db8a2eae6d5dda3bae2ad7616e257e4acdeacc2c113"
+      },
+      {
+        "name": "language-occurrence-1",
+        "suffix": "-3",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-occurrence-1/occurrence-tests-3",
+        "sha256": "db84c24b02b3e2f5e30c2f4609eee168c6b019c4d2fc259fe5829ffccdb33f6b"
+      },
+      {
+        "name": "language-occurrence-1",
+        "suffix": "-4",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-occurrence-1/occurrence-tests-4",
+        "sha256": "5b5425b69616ec3b5b48b297a14273ffd25bee90e78f3468240cabe100e52625"
+      },
+      {
+        "name": "correspondence-runs-1",
+        "suffix": "",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/correspondence-runs-1/correspondence-tests",
+        "sha256": "578da33fa921f692fa14aa030649340f9327b0a69d842d74c7ab1789827d2a3b"
+      },
+      {
+        "name": "correspondence-runs-1",
+        "suffix": "-2",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/correspondence-runs-1/correspondence-tests-2",
+        "sha256": "9abf5ed3f7f4d094695db9aa487a4763264d8bc371bb5618a797afc3309c88e8"
+      },
+      {
+        "name": "correspondence-runs-1",
+        "suffix": "-3",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/correspondence-runs-1/correspondence-tests-3",
+        "sha256": "d0ab5ffffb2a91922deaeb0dc8700728b9d548f725910ab51009ad19891863ea"
+      },
+      {
+        "name": "phrase-order-1",
+        "suffix": "",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/phrase-order-1/phrase-order-tests",
+        "sha256": "86ced40824760e5e10f4d1b117644fdbd18ceef0671962e0113a907f37f7dea0"
+      },
+      {
+        "name": "lexical-role-1",
+        "suffix": "",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/lexical-role-1/lexical-role-tests",
+        "sha256": "adf3f0787ba96eddd07d1e9a31002f4667c4f4ad215be7bf73cbeee165c384c5"
+      },
+      {
+        "name": "occurrence-role-1",
+        "suffix": "",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/occurrence-role-1/occurrence-role-tests",
+        "sha256": "40e43d954cba3f084bfa5c5c93adfbe3798752787742d8ff49e8900a12790316"
+      },
+      {
+        "name": "occurrence-role-1",
+        "suffix": "-2",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/occurrence-role-1/occurrence-role-tests-2",
+        "sha256": "ff9e2b90819463089980305a55b76ee1c5a3e1dd573b25405bc158a7e10000bd"
+      },
+      {
+        "name": "occurrence-role-1",
+        "suffix": "-3",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/occurrence-role-1/occurrence-role-tests-3",
+        "sha256": "12b7d4b3cc63547fcb323e814b179db6b6d83204bed15afd0d3310072090f0de"
+      },
+      {
+        "name": "occurrence-role-1",
+        "suffix": "-4",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/occurrence-role-1/occurrence-role-tests-4",
+        "sha256": "85dd945ff9a54f137f4f7d0eb35fb14c61fb00046f913d6f798efe48639c1b2c"
+      },
+      {
+        "name": "role-transfer-1",
+        "suffix": "",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/role-transfer-1/role-transfer-tests",
+        "sha256": "55d8b6f3b5a7cc1b907f8a4c4fa999d3df2af0e6ae340498c40d4b80c0ae2d9b"
+      }
+    ],
+    "preserved": true
+  },
+  "resources": {
+    "at": "2026-09-14T14:25:47.939Z",
+    "step_model_ms": 347277,
+    "step_model_limit_ms": 1200000,
+    "step_engineering_command_ms": 17959,
+    "step_engineering_limit_ms": 120000,
+    "elapsed_wall_ms": 1644434,
+    "wall_limit_ms": 7200000,
+    "parent_model_ms": 12513578,
+    "parent_model_limit_ms": 13710000,
+    "parent_engineering_command_ms": 649729,
+    "shared_ledger": {
+      "cumulative_ms": 132264151,
+      "limit_ms": 133550000
+    },
+    "peak_sampled_process_tree_rss_bytes": 3421765632,
+    "rss_limit_bytes": 6442450944,
+    "actual_storage_bytes": {
+      "target": 1850417152,
+      "git": 1031290880,
+      "worktree": 1239199744,
+      "evidence": 3971969024
+    },
+    "cumulative_storage_high_water": {
+      "target": 129245184,
+      "git": 12161024,
+      "worktree": 1239199744,
+      "evidence": 3971969024,
+      "at": "2026-09-14T14:25:47.938Z"
+    },
+    "external_carry_bytes": 15466496,
+    "closure_reserve_bytes": 262144,
+    "step_new_storage_high_water_bytes": 152207360,
+    "step_new_storage_limit_bytes": 536870912,
+    "parent_growth_including_carry_and_reserve_bytes": 5368303616,
+    "parent_growth_limit_bytes": 5905580032,
+    "storage_accounted_before_bytes": 100924878848,
+    "storage_accounted_after_bytes": 106293182464,
+    "storage_account_limit_bytes": 106803916800,
+    "stop_margin_bytes": 134217728,
+    "physical_free_bytes": 13427245056,
+    "external_cost": 0,
+    "cleanup": false,
+    "fits": 2,
+    "notes": "Cumulative high water, not only retained model size. Includes all actual builds, data preparation, evaluation and controls; learned query evidence and replacement participation, with generation and retained controls, all prior negative attempts retained, frozen binaries/reports, prior external carry and 256KiB closure reserve covering new local helper/PR files. Shell navigation and documentation are reflected in wall time; engineering_command_ms measures wrapped commands only."
+  },
+  "validation": {
+    "successful_optimized_builds": 2,
+    "focused_tests_per_build": 39,
+    "failed_compile_ms": 624,
+    "compile_correction": "Missing parenthesis in added test-only probe; retained before correction; no model execution",
+    "fits": 2,
+    "fit_retries": 0,
+    "sealed_reports": 2,
+    "source_review": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/query-participation-1/source-review.md",
+    "format_check": "PASS",
+    "claim_wording": "PASS",
+    "diff_check": "PASS"
+  },
+  "limits": "Authored bounded language, inherited globally available requirement default and two learned replacement centers; final holdout NOT_RUN; no general prose, semantic metric advantage or normal-model promotion",
+  "next": "Extend the existing source/query occurrence-role learning to the 36 retained styled failures, preserving the new participation tables. Start with the exact observed keys for `today will will call ...` and `... amber will tomorrow`; verify name and auxiliary occurrences remain distinguishable before fitting. Freeze mixed styled targets and known endpoints so that failure to be the output is not mislabeled as a grammatical context role. Use the existing output-compatible span/witness credit, retain exact phrase transport and source/query role agreement, and qualify all 96 styled cases plus every current success and prior trace. If the observation keys collide, localize the erased distinction before changing their representation. No name exception, global role clearing, new depth ladder or broad research restart is warranted by this result.",
+  "normal_model": {
+    "path": "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/reader-scope-repair/model.json",
+    "sha256": "1454aa69e2e295d0a9970e90326f4664d3c614f666b1a708a16c16b5350a1705",
+    "unchanged": true,
+    "promoted": false
+  }
+}

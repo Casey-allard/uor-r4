@@ -65,3 +65,7 @@ mod occurrence_role_report;
 
 #[cfg(test)]
 mod role_transfer_report;
+
+pub mod query_participation;
+#[cfg(test)]
+mod query_participation_report;

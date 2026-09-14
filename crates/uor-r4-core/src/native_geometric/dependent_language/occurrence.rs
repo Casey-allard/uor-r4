@@ -183,6 +183,21 @@ pub fn candidates_with_context(
     c: Control,
     contexts: Option<&[Vec<bool>; 4]>,
 ) -> Result<Search> {
+    candidates_with_context_required(a, g, m, records, question, c, contexts, None)
+}
+/// Query participation is supplied by a separate learned observation, before
+/// any source/span proposal. Optional occurrences retain their raw identities
+/// and indices but do not consume a required source occurrence.
+pub(crate) fn candidates_with_context_required(
+    a: &span::Artifact,
+    g: &BoundGeometry,
+    m: &Metric,
+    records: &[Vec<u8>; 4],
+    question: &[u8],
+    c: Control,
+    contexts: Option<&[Vec<bool>; 4]>,
+    required: Option<&[bool]>,
+) -> Result<Search> {
     if m.geometry_digest() != g.id() {
         return Err(Error::Geometry);
     }
@@ -194,6 +209,9 @@ pub fn candidates_with_context(
     // Reuse exactly the retained span admission/window/byte-bound enumeration.
     let spans = span::candidates(a, g, m, records, question, old_control)?;
     let q = reader::words(g, question, a.reader().parent.parent.operators)?;
+    if required.is_some_and(|mask| mask.len() != q.len()) {
+        return Err(Error::Shape);
+    }
     let mut budget = Budget {
         nodes: 0,
         limit: MAX_SEARCH_NODES,
@@ -203,6 +221,9 @@ pub fn candidates_with_context(
         let words = reader::words(g, raw, ordered::CANONICAL)?;
         let mut matches = vec![vec![]; q.len()];
         for (i, qw) in q.iter().enumerate() {
+            if required.is_some_and(|mask| !mask[i]) {
+                continue;
+            }
             for (j, sw) in words.iter().enumerate() {
                 if if c == Control::ExactIdentity {
                     qw.geometry.occurrences == sw.geometry.occurrences

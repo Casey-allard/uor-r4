@@ -515,6 +515,19 @@ pub fn route(
     question: &[u8],
     c: Control,
 ) -> Result<lexical::Route> {
+    route_with_required(a, g, m, records, question, c, None)
+}
+/// A separate learned query-obligation mask can suppress optional evidence.
+/// It retains occurrence roles, raw query indices and source/span identities.
+pub(crate) fn route_with_required(
+    a: &Artifact,
+    g: &BoundGeometry,
+    m: &Metric,
+    records: &[Vec<u8>; 4],
+    question: &[u8],
+    c: Control,
+    required: Option<&[bool]>,
+) -> Result<lexical::Route> {
     if c == Control::RoleDisabled || c == Control::ReadDisabled {
         return correspondence::route(
             &a.parent,
@@ -548,11 +561,17 @@ pub fn route(
     let contexts: [Vec<bool>; 4] = contexts.try_into().map_err(|_| Error::Shape)?;
     let query_roles = query_context(a, g, m, question, exact)?;
     let query_words = reader::words(g, question, a.reader().parent.parent.operators)?;
+    if required.is_some_and(|mask| mask.len() != query_words.len()) {
+        return Err(Error::Shape);
+    }
     let mut available = vec![false; query_words.len()];
     if a.require_available_query_coverage && c != Control::CoverageDisabled {
         for record in records {
             for word in reader::words(g, record, ordered::CANONICAL)? {
                 for (i, q) in query_words.iter().enumerate() {
+                    if required.is_some_and(|mask| !mask[i]) {
+                        continue;
+                    }
                     available[i] |= if exact {
                         q.geometry.occurrences == word.geometry.occurrences
                     } else {
@@ -563,7 +582,7 @@ pub fn route(
         }
     }
 
-    let search = occurrence::candidates_with_context(
+    let search = occurrence::candidates_with_context_required(
         &a.parent.parent,
         g,
         m,
@@ -575,6 +594,7 @@ pub fn route(
             occurrence::Control::Full
         },
         Some(&contexts),
+        required,
     )?;
     let mut accepted = vec![];
     for candidate in search.candidates {

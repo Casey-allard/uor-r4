@@ -138,7 +138,39 @@ where
     F: FnMut(&[u8], usize) -> Result<crate::native_geometric::language_relation::runtime::Route>,
     P: Fn(&[u8], usize) -> Result<Vec<u8>>,
 {
-    let core = scheduling::observe_routed(
+    observe_routed_updates(
+        a,
+        g,
+        m,
+        records,
+        qs,
+        s,
+        c,
+        payload_window,
+        payload_fn,
+        route_fn,
+        &|_, _| Ok(true),
+    )
+}
+pub(crate) fn observe_routed_updates<F, P, U>(
+    a: &Artifact,
+    g: &BoundGeometry,
+    m: &Metric,
+    records: &[Vec<u8>; 4],
+    qs: &[Vec<u8>],
+    s: &scheduling::Frame,
+    c: Control,
+    payload_window: binding::PayloadWindow,
+    payload_fn: &P,
+    route_fn: &mut F,
+    update_filter: &U,
+) -> Result<Observed>
+where
+    F: FnMut(&[u8], usize) -> Result<crate::native_geometric::language_relation::runtime::Route>,
+    P: Fn(&[u8], usize) -> Result<Vec<u8>>,
+    U: Fn(&[u8], &binding::UpdateCandidate) -> Result<bool>,
+{
+    let core = scheduling::observe_routed_updates(
         &a.parent,
         g,
         m,
@@ -151,6 +183,7 @@ where
         route_fn,
         payload_window,
         payload_fn,
+        update_filter,
     )?;
     let pending = qs.get(s.clause + 1).is_some();
     let mut reason = None;
@@ -159,7 +192,7 @@ where
             let admitted = if let (Some(next), Some(selected)) =
                 (qs.get(s.clause + 1), core.route.selected.as_ref())
             {
-                binding::updates_with_window(
+                let updates = binding::updates_with_window(
                     &a.parent.parent,
                     g,
                     m,
@@ -168,10 +201,14 @@ where
                     &payload_fn(&selected.bytes, s.clause)?,
                     binding::Control::Full,
                     payload_window,
-                )?
-                .into_iter()
-                .filter(|u| a.parent.parent.matches(u.features))
-                .count()
+                )?;
+                let mut count = 0;
+                for u in updates {
+                    if a.parent.parent.matches(u.features) && update_filter(next, &u)? {
+                        count += 1;
+                    }
+                }
+                count
             } else {
                 0
             };
@@ -285,11 +322,43 @@ pub(crate) fn generate_routed_payload<F, P>(
     execution_control: scheduling::Control,
     payload_window: binding::PayloadWindow,
     payload_fn: P,
-    mut route_fn: F,
+    route_fn: F,
 ) -> Result<Generated>
 where
     F: FnMut(&[u8], usize) -> Result<crate::native_geometric::language_relation::runtime::Route>,
     P: Fn(&[u8], usize) -> Result<Vec<u8>>,
+{
+    generate_routed_payload_updates(
+        a,
+        g,
+        m,
+        records,
+        prompt,
+        c,
+        execution_control,
+        payload_window,
+        payload_fn,
+        route_fn,
+        |_, _| Ok(true),
+    )
+}
+pub(crate) fn generate_routed_payload_updates<F, P, U>(
+    a: &Artifact,
+    g: &BoundGeometry,
+    m: &Metric,
+    records: &[Vec<u8>; 4],
+    prompt: &[u8],
+    c: Control,
+    execution_control: scheduling::Control,
+    payload_window: binding::PayloadWindow,
+    payload_fn: P,
+    mut route_fn: F,
+    update_filter: U,
+) -> Result<Generated>
+where
+    F: FnMut(&[u8], usize) -> Result<crate::native_geometric::language_relation::runtime::Route>,
+    P: Fn(&[u8], usize) -> Result<Vec<u8>>,
+    U: Fn(&[u8], &binding::UpdateCandidate) -> Result<bool>,
 {
     a.validate(g)?;
     let qs = scheduling::clauses(prompt)?;
@@ -304,7 +373,7 @@ where
         decisions: Vec::new(),
     };
     for _ in 0..scheduling::MAX_STEPS {
-        let o = observe_routed(
+        let o = observe_routed_updates(
             a,
             g,
             m,
@@ -315,6 +384,7 @@ where
             payload_window,
             &payload_fn,
             &mut route_fn,
+            &update_filter,
         )?;
         let mut choice = a.actions[o.row];
         if c == Control::UnresolvedDisabled && choice == 3 {
