@@ -1,0 +1,530 @@
+{
+  "at": "2026-09-14T08:08:25.786Z",
+  "status": "PASS_PHRASE_ORDER_IDENTITY",
+  "report_root": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/phrase-order-1/attempt-1",
+  "files": {
+    "acceptance.json": {
+      "sha256": "eda5cc80377c71276bf1bcc2eb0b5b3e2a76ae55e7fd4fec2f3156a3ea4253d2",
+      "bytes": 662
+    },
+    "artifact.json": {
+      "sha256": "a91d879847a25619b91ed576e2182d178534335d13e628ea2dd772b7f5c9c53a",
+      "bytes": 423
+    },
+    "attempt.json": {
+      "sha256": "190d235a80fd91add6edc3f2ff96ea51f20c3289d934bc41269ee1a94969fc6f",
+      "bytes": 477
+    },
+    "data.json": {
+      "sha256": "ecdf6ddcb21746cccfe1e87b1334cbd71738d01753db5799445d646ae6eac131",
+      "bytes": 330397
+    },
+    "manifest.json": {
+      "sha256": "20b60b834660bb0798c1b045e9ccfe1f75b712534764659eae5ecf76c535decd",
+      "bytes": 1283
+    },
+    "responses.json": {
+      "sha256": "8f8b2612858ca3ec5fa8d7bbd65b0360e8e8cc1c98ace797eb72e13e08164dfd",
+      "bytes": 45673610
+    },
+    "summary.json": {
+      "sha256": "6ced1775940afae403701d70eb59de347072ceae3a46d31d99c6f027490f811c",
+      "bytes": 1649
+    },
+    "witnesses.json": {
+      "sha256": "15338d1fd93ba2e6acf124b1cd565cfcccd20c766212d49a841d60df7421ef53",
+      "bytes": 6336834
+    }
+  },
+  "summary": {
+    "artifact_unchanged": true,
+    "candidate_sha256": "1838cc12bda863c769db9239d7b225e91dd82856c7e90bf7427abffb5a9e1b23",
+    "complete_families": 16,
+    "counts": {
+      "ExactIdentity": 80,
+      "ExactIdentity/active": 16,
+      "ExactIdentity/answered_correct": 48,
+      "ExactIdentity/baseline": 16,
+      "ExactIdentity/conflicting": 16,
+      "ExactIdentity/inactive": 16,
+      "ExactIdentity/missing": 16,
+      "Full": 80,
+      "Full/active": 16,
+      "Full/answered_correct": 48,
+      "Full/baseline": 16,
+      "Full/conflicting": 16,
+      "Full/inactive": 16,
+      "Full/missing": 16,
+      "ReadDisabled": 0,
+      "ReadDisabled/active": 0,
+      "ReadDisabled/answered_correct": 0,
+      "ReadDisabled/baseline": 0,
+      "ReadDisabled/conflicting": 0,
+      "ReadDisabled/inactive": 0,
+      "ReadDisabled/missing": 0,
+      "StructureDisabled": 16,
+      "StructureDisabled/active": 8,
+      "StructureDisabled/answered_correct": 8,
+      "StructureDisabled/baseline": 0,
+      "StructureDisabled/conflicting": 8,
+      "StructureDisabled/inactive": 0,
+      "StructureDisabled/missing": 0,
+      "UpdateDisabled": 32,
+      "UpdateDisabled/active": 0,
+      "UpdateDisabled/answered_correct": 0,
+      "UpdateDisabled/baseline": 0,
+      "UpdateDisabled/conflicting": 16,
+      "UpdateDisabled/inactive": 0,
+      "UpdateDisabled/missing": 16
+    },
+    "exact_identity_equal": 80,
+    "final_holdout": "NOT_RUN",
+    "fits": 0,
+    "gate": "PASS_PHRASE_ORDER_IDENTITY",
+    "max_search_nodes": 186,
+    "prior_controls": "NOT_RERUN; unchanged runtime/artifact verified against prior tested source",
+    "promotion": false,
+    "reload_equal": 80,
+    "route_limit": 16384,
+    "rows": 80,
+    "runtime_unchanged": true
+  },
+  "source": {
+    "at": "2026-09-14T08:07:53.964Z",
+    "base": "fb8c2de9de8c4929fe6dfec93abac05673d8bf32",
+    "files": [
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relational_attention/circuit.rs",
+        "sha256": "667eb3f9a900819a58e0cb02ab83573bee9c4600ce13c26fcfd29bd9de98666b"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relational_attention/data.rs",
+        "sha256": "81fb9b844f5ee1fe98a86583702d9094a63c2ca6c2dc3f2ac45803a3e79931cb"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relational_attention/learning.rs",
+        "sha256": "ce8cd0dea567f48daef49cbf83764d802163081eacc7189e86f48f153076c2d2"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relational_attention/mod.rs",
+        "sha256": "26304fbdd4ca916c5e39ebf30fd2092b2e5333888c039fd47e80772d9c60c9e4"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relational_attention/report.rs",
+        "sha256": "007b3fbd952bd8b1afb76d01a95ed6a2793977cf0eced2718b9637c0023128de"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relational_attention/runtime.rs",
+        "sha256": "3232302df67b0ca2807c46f9953e0169814bd226e6a775894bebc1ddb912d7ff"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/addressed_attention/artifact.rs",
+        "sha256": "519e909351482f8407ded1ef34d96252bc34e268554dac1212e3620dc22686ba"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/mod.rs",
+        "sha256": "a7f0241d9fd420d9023da04dcf1a19a38c7bcfb06abee7d57353366acc3bafcc"
+      },
+      {
+        "path": "Cargo.lock",
+        "sha256": "7337e6b47e5f7a8d4589164cb6ad23637e3d1b5413b462716cfdc1ab72d2558c"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_attention/data.rs",
+        "sha256": "279832bc9bd360e722df878039f53763ac44d480e462ede1e6bcce56e4490081"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_attention/learning.rs",
+        "sha256": "4ebb8a1c7d7254354170957082713f93c793876ebee16aa85349354b115e7f27"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_attention/mod.rs",
+        "sha256": "5ee5a83302e05c7dcc6390576ba5117840768e6df9418a7c92bc562c9531c336"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_attention/report.rs",
+        "sha256": "cfb9d890155967e31d0306489e4212926aea73eb8bc06204d789b5db70c08a69"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_attention/runtime.rs",
+        "sha256": "7df1a8fbb4854fe4b44795a600e89d64d5ebdea52e212c586ff357716b76240b"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/adaptive_attention/data.rs",
+        "sha256": "f4a46a8c13d6718a69a7157527ad17340782eb6245a16137ccd7486f424dd13f"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/adaptive_attention/learning.rs",
+        "sha256": "56805e3c991ec20c819f3ccfc761a64ac1108b4d1f5b8d85fcdf0565d87421a6"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/adaptive_attention/mod.rs",
+        "sha256": "75e3f83f000125e5594d6b20250264a867cfb3ea41375e3b2fb1851a8fe9c554"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/adaptive_attention/report.rs",
+        "sha256": "0322c42d31bc3ca692e0d7df73047427fea71a554568c1cff84988cda0680bdb"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/adaptive_attention/runtime.rs",
+        "sha256": "be75bdd3eb1ece009156e837908110a4383f2efc07bd39d663cfe6ebc702c39e"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/text_attention/data.rs",
+        "sha256": "8ad71cfeb7008b6b0528673f2ad984dcee01e9dfa4e8f9f73502373cd3bbf5c7"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/text_attention/learning.rs",
+        "sha256": "6075b0e3517f5146f0722d3d01d38f17d625923122ef366ca0c87ba74b44ac34"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/text_attention/mod.rs",
+        "sha256": "b134647c702bdb373f17d6e3d448e8bfacc616959b61a1d7b5b28033e78d0e62"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/text_attention/report.rs",
+        "sha256": "42c29f8fedd771dee68f3928f6ab81daa97849349d0c3256ae0773e077685ccd"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/text_attention/runtime.rs",
+        "sha256": "4b8260de6dbaeb58e73edfa003ebd15671c6e0f50ce49201c6e14db81c23edbd"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/recurrent_text/data.rs",
+        "sha256": "38d78b2d7afacdbd4d658c4b2443f989f885461680840ff115db4a3186958a3f"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/recurrent_text/learning.rs",
+        "sha256": "b89c6530450e312c2ed2001e636c8e72506f7dddc45de43c956e1904ad7f12d8"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/recurrent_text/mod.rs",
+        "sha256": "0a9fd7f3a2b5019d18007f1b1a0034b80b9fc2d871362b2c83c9988daa7d0211"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/recurrent_text/report.rs",
+        "sha256": "8c00984c315a54c07fec2d296ccfeca8cb11d15ca4100091cbe0640120520d4c"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/recurrent_text/runtime.rs",
+        "sha256": "ff110351143718983c67e4585e690dfa0b3ab93e550b36cfdb91bbefe1a3012d"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/ordered_state/data.rs",
+        "sha256": "8d4e62506142dba733c637223448ca8ff724221ec1c8a2d2d80047428b5fdd7b"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/ordered_state/learning.rs",
+        "sha256": "1cd839503d5d1a20fdc7982384542c5c2d578b7aab37d776a9a8c6f2e941598b"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/ordered_state/mod.rs",
+        "sha256": "1c07a8f8c33ad7d340b01654ce057d747e5dc980bdcf9dab4e299c9f32ed0fed"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/ordered_state/report.rs",
+        "sha256": "9b0625b1c5bec1d0e8e23f35225cab58ee33cdee56605a8565de61875caffb6a"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/ordered_state/runtime.rs",
+        "sha256": "935b0dedb849bb878a411adc56d587a7955e5b5850317d2e5ed5711c4a0b7492"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/language_relation/data.rs",
+        "sha256": "4b019d75ef2e748ea41b1028a4d77a674242858d223bec32ae8d124dda2f238c"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/language_relation/learning.rs",
+        "sha256": "306fd49146bf17b363a7db9027b71fff89ebb2815f2bc139c03697fe428d70be"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/language_relation/mod.rs",
+        "sha256": "7d46adec90d154801a470b3e1ef4a0333e12625aa39b2e7e09beb2849b2a6c5a"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/language_relation/report.rs",
+        "sha256": "af2c7d8c71693fc8e36f02100c0d095856bd05531a03d78191c740c94d9e846c"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/language_relation/runtime.rs",
+        "sha256": "9a6e63059f448eb7d58cb0e4b449211c688991ba4f63204c5ea83654e8d1fe88"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relative_language/data.rs",
+        "sha256": "dc0543ae1d5c0ff258ad01ed7ffcea3c132f07cd74f5375cc4760892a6176f84"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relative_language/learning.rs",
+        "sha256": "cadcf135e721a316e4f879ed39332ffdffae5c8a9ae878a62eab4243c697d618"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relative_language/mod.rs",
+        "sha256": "39a7345360badf172916787c7a59da1805dfb5bf07c5abe24009504e6e8847d9"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relative_language/report.rs",
+        "sha256": "792148a8f891e8ce8065d6eb1e9149bb1f7bf1ea6c31d485808e3501f0afdb93"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/relative_language/runtime.rs",
+        "sha256": "1de60d7748d29264cfeebb1b15454a68a42b90d773ef9b89ea338e5c11d3246b"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/data.rs",
+        "sha256": "cda35c0dfbea2b3d5f85a44f9e72fcb2f9afe6f0b0dc8afd86dc8f7144e15e54"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/learning.rs",
+        "sha256": "249bbccb1b6955e7323dc1a68c8f2d881fa150457449a991d0cce83ffe99e41d"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/mod.rs",
+        "sha256": "9533787de3dc42995bc13a7da89906f9dccb1976ea63c6be71f7e8ef7aa313a9"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/report.rs",
+        "sha256": "84801ee231551fa9d3a9e42831328c5ec4cd79302f2eb73870f6dacdc71f6f40"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/runtime.rs",
+        "sha256": "aca0b99c24dfa1e0958682d27ea8e4c169bdbe1e858534259d1368f6f974864a"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/schedule_data.rs",
+        "sha256": "e10afebcab69bd7c9f4675817c5c80db95c10a86510e792c22db1b9cad31944d"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/schedule_learning.rs",
+        "sha256": "2cd9f2cbb0feff4583d0809a02cbe1dc770e5916c9ef0b7218cdfafee235ca5b"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/schedule_report.rs",
+        "sha256": "d519d721371a3e76ce44c849acdd2dfad245094199c982b17e6d70a72e6b2e63"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/scheduling.rs",
+        "sha256": "717f1aac76d7a787d3228fd3522d287befd86c0987924fa1fda91a4ad89af7f6"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/joint_learning.rs",
+        "sha256": "5441ae18a17b69c75936099dce3caa4098b8e8f7681d36e05dded498b189168e"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/joint_report.rs",
+        "sha256": "da42c9bbb553d250f4ad7e0a8a69d8fa01cabd69c3ef64bc6141b14dfd721c03"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/depth_data.rs",
+        "sha256": "ba5599357fce7b0a7738021cee26aca8cca3fc593be62a1cdc839d4f6b904ec6"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/depth_report.rs",
+        "sha256": "deb3cf5b0e5869a4c05054b32b9fe738934dfdff3b3b618bddb68d88fb0cf372"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/completion.rs",
+        "sha256": "c16bcc2cb9b8e31a9688072b7f4e0e47303b65d4a1fda86ba9549321eeaa97fb"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/completion_data.rs",
+        "sha256": "c5c07feae2bc54c6ab8ccfa88024fb52b5810a55b25199a43e182710e645cceb"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/completion_diagnostic.rs",
+        "sha256": "3ac0afa42fbbf1dd03756fc7d148ecb020bc9f6e4076528380d56bf317a36865"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/completion_learning.rs",
+        "sha256": "420ce7d6f3add3e2a6d297d83323e39a66a6e547d58804588aaf0ed6c2fd3d5d"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/completion_report.rs",
+        "sha256": "de670d0802aa6251f7ee5471070a55b42b4fbb8f29c176a6601c298e2b65f816"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/span.rs",
+        "sha256": "47e90b84babeb1f673e46f17154e55c0058aa65249d46efd984c41bea355f059"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/span_boundary.rs",
+        "sha256": "f8ca16b79468ff40e2020ee87ea1255fafa536af8371a59849f0ef827b807ba2"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/span_data.rs",
+        "sha256": "c719f565df306cf523277e2d0dea98c160e181adc4fe651045786144a0904180"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/span_learning.rs",
+        "sha256": "f66c4b2abce4cbde32d49cc9f1cf4fee6394d0fda8344e676cdc5473765aaa91"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/span_report.rs",
+        "sha256": "81d4e7a6a66633ce0374cfcb3ff0473aff0ce5163c3c191702a1b25911fb13de"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/correspondence.rs",
+        "sha256": "915fde16b8fd7b295a7446140d7ba9a096710f3f22d33239d4f5700f5d4f1dd6"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/correspondence_diagnostic.rs",
+        "sha256": "52e5849aa16e3b94df9d7861bd6ac965b85c78cf55d8c32a35e9c95c0880e4bd"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/correspondence_learning.rs",
+        "sha256": "34771d35a31ab19e44ee8c668b300cb396d81ef83b20269f41d8e6462f040056"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/correspondence_report.rs",
+        "sha256": "19475fcb1c2020213c400a35b7452418c7068802cfa796f611b5588d8f6bbf59"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/occurrence.rs",
+        "sha256": "b08f352aa70ae90207736c4922bb8f430b2d29a6cc51772b2f8523e62a1ee3f2"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/occurrence_collision.rs",
+        "sha256": "1174306722e57589b302e1a26596891e20f27c67d16aaba53a851495937266cd"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/occurrence_data.rs",
+        "sha256": "b6a9f2ae69e3a5008634da91aec0ed3579da4faf8daf5c5e405910ef634bb9bc"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/occurrence_learning.rs",
+        "sha256": "99f43cc5cbc4eb1b1c9fa64fecbcddb725c9dccdb4785d649ce14810e9dce6b7"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/occurrence_qualification.rs",
+        "sha256": "80cb96366fac357ad1eb874d72692c9558cef44b1f804f7227bddf462b37c28a"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/occurrence_report.rs",
+        "sha256": "5019017c7bf03c7dddc386d05ad3237f283a9a2c2a34da2fcea04ef2ddd98884"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/phrase.rs",
+        "sha256": "9ec687ff739163bc6ab68e42030762dc433d205ecd9ddc89409b502f7c7ad7c9"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/phrase_data.rs",
+        "sha256": "7cd84cfb19e25958ce12ab093859199f9d58abcc1a9cab7f7f1ba6f70903091d"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/phrase_order_report.rs",
+        "sha256": "6ea75781e0658bad2dea92c8e3fd8775970c1fb5680fdff40ed7ffb135afe899"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_language/phrase_report.rs",
+        "sha256": "d77ae351e5696a1c93b5d2ff9d62ed3ba70fcee64b151ff8485d422a159ada9d"
+      }
+    ],
+    "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/phrase-order-1/phrase-order-tests",
+    "binary_sha256": "86ced40824760e5e10f4d1b117644fdbd18ceef0671962e0113a907f37f7dea0",
+    "compiler": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "build_label": "phrase-order-build-2"
+  },
+  "prior_preservation": {
+    "at": "2026-09-14T08:08:25.702Z",
+    "prior_report_roots": 64,
+    "prior_report_files": 1620,
+    "originals": [
+      {
+        "path": "/Users/casey.allard/uor-r4",
+        "head": "49da65c509e8b1b9f10e7891918d3618c65e9f20",
+        "status_sha256": "4634a2b54ea8525bf3c76edb5d7092986d2dda77ef76edd3a641ce2b0f075df8"
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent",
+        "head": "49da65c509e8b1b9f10e7891918d3618c65e9f20",
+        "status_sha256": "7dbfdd7d981456b30357812e9dc7edd13b072c43ce45b873f35ba51d742465b2"
+      }
+    ],
+    "lineage": [
+      {
+        "name": "language-span-1",
+        "suffix": "",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-span-1/language-span-tests",
+        "sha256": "befad45acb8cc28047ccd7ebbfcf0d47493060c358bf8b1efd8ce62397a3f15e"
+      },
+      {
+        "name": "language-span-1",
+        "suffix": "-2",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-span-1/language-span-tests-2",
+        "sha256": "c68cf90de23a7e68efe83ef0b6a70335b594b36efb4e162291c93142e1a15760"
+      },
+      {
+        "name": "language-span-1",
+        "suffix": "-3",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-span-1/language-span-tests-3",
+        "sha256": "d9810736cfbd8830d4e38c0c206052c8e860ade5cf34d189b2e4cf0521bd86e8"
+      },
+      {
+        "name": "language-phrase-update-1",
+        "suffix": "",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-phrase-update-1/phrase-update-tests",
+        "sha256": "3dbfb12931e9f03f00a212b8b7237970db095fca659acce95b61c6335befbe6b"
+      },
+      {
+        "name": "language-occurrence-1",
+        "suffix": "",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-occurrence-1/occurrence-tests",
+        "sha256": "0b2ef78f7d2f7bdb9d7c1613ac0d1f8ce5eff149bad50325b9e95dd4fb1aae08"
+      },
+      {
+        "name": "language-occurrence-1",
+        "suffix": "-2",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-occurrence-1/occurrence-tests-2",
+        "sha256": "71fbed5f58f0701628d30db8a2eae6d5dda3bae2ad7616e257e4acdeacc2c113"
+      },
+      {
+        "name": "language-occurrence-1",
+        "suffix": "-3",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-occurrence-1/occurrence-tests-3",
+        "sha256": "db84c24b02b3e2f5e30c2f4609eee168c6b019c4d2fc259fe5829ffccdb33f6b"
+      },
+      {
+        "name": "language-occurrence-1",
+        "suffix": "-4",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-occurrence-1/occurrence-tests-4",
+        "sha256": "5b5425b69616ec3b5b48b297a14273ffd25bee90e78f3468240cabe100e52625"
+      },
+      {
+        "name": "correspondence-runs-1",
+        "suffix": "",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/correspondence-runs-1/correspondence-tests",
+        "sha256": "578da33fa921f692fa14aa030649340f9327b0a69d842d74c7ab1789827d2a3b"
+      },
+      {
+        "name": "correspondence-runs-1",
+        "suffix": "-2",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/correspondence-runs-1/correspondence-tests-2",
+        "sha256": "9abf5ed3f7f4d094695db9aa487a4763264d8bc371bb5618a797afc3309c88e8"
+      },
+      {
+        "name": "correspondence-runs-1",
+        "suffix": "-3",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/correspondence-runs-1/correspondence-tests-3",
+        "sha256": "d0ab5ffffb2a91922deaeb0dc8700728b9d548f725910ab51009ad19891863ea"
+      }
+    ],
+    "preserved": true
+  },
+  "runtime_preservation": {
+    "previous_source_freeze": ".uor-handoff/2026-09-12-codex-v7/shared-core-first-step/correspondence-runs-1/source-freeze-3.json",
+    "unchanged_files": 79,
+    "changed": [
+      "crates/uor-r4-core/src/native_geometric/dependent_language/mod.rs"
+    ],
+    "change_scope": "Adds only cfg(test) phrase_order_report module; all runtime and learned artifact bytes unchanged.",
+    "candidate_sha256": "1838cc12bda863c769db9239d7b225e91dd82856c7e90bf7427abffb5a9e1b23"
+  },
+  "total_report_roots": 65,
+  "total_report_files": 1628,
+  "candidate": {
+    "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/phrase-order-1/../correspondence-runs-1/attempt-2/candidate.json",
+    "sha256": "1838cc12bda863c769db9239d7b225e91dd82856c7e90bf7427abffb5a9e1b23",
+    "modified": false,
+    "promoted": false
+  },
+  "scope": "Unchanged model/artifact: authored two-read phrase-order permutations with reversed/gapped competitors, missing and conflicting exact endpoints. Separate raw oracle. Full actual observed lookahead includes unresolved before read commit. StructureDisabled removes both order and adjacency. No fit, independent final holdout NOT_RUN, no general prose or metric advantage."
+}

@@ -18,7 +18,9 @@ Reuse the [engine](architecture-2026-09/engines.md), [mathematics](architecture-
 
 ## Current implementation sequence — owner adopted September 12
 
-**Ordered correspondence, September 14:** The [correspondence result](../native_geometric_correspondence_973.md) qualifies learned ordered matches through inherited source context roles while preserving prior complete traces. Continue with unchanged-artifact testing of phrase-order identity and gapped alternatives inside the same bounded geometric read/update loop. Current state owns the exact next test and acceptance. Familiar grammar, finite roles and general-prose limits remain explicit.
+**Phrase-order identity, September 14:** The [unchanged-artifact result](../native_geometric_phrase_order_973.md) distinguishes reversed same-word endpoints and gapped alternatives while retaining correct missing/conflicting outcomes. The next responsibility is context-sensitive occurrence roles: a global word classification must not prevent the same identity from serving as a name or other content. Current state owns the bounded diagnostic and exact acceptance; no role-list expansion is implied.
+
+**Ordered correspondence, September 14:** The [correspondence result](../native_geometric_correspondence_973.md) qualifies learned ordered matches through inherited source context roles while preserving prior complete traces. The unchanged-artifact phrase-order test above qualifies that distinction inside the same bounded geometric read/update loop. Current state owns the exact next test and acceptance. Familiar grammar, finite roles and general-prose limits remain explicit.
 
 **Occurrence correspondence, September 14:** The [occurrence result](../native_geometric_occurrence_973.md) preserves injective positional witnesses but its bounded learned selector fails retention. The collision diagnostic identifies a finite feature/proposal bottleneck. The successor above exposes ordered correspondence structure to output-based learning in the same geometric loop; current state owns the next diagnostic and acceptance. Preserve the qualified phrase checkpoint and negative candidates.
 

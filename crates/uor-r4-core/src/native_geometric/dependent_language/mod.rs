@@ -52,3 +52,6 @@ mod correspondence_diagnostic;
 pub mod correspondence_learning;
 #[cfg(test)]
 mod correspondence_report;
+
+#[cfg(test)]
+mod phrase_order_report;
