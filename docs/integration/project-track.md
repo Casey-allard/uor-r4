@@ -18,6 +18,8 @@ Reuse the [engine](architecture-2026-09/engines.md), [mathematics](architecture-
 
 ## Current implementation sequence — owner adopted September 12
 
+**Independent neighbor qualification, September 14:** The [fixed-artifact result](../native_geometric_independent_neighbor_973.md) localizes an interior-name source-role observation alias while preserving prior outputs. Audit ordered source/query occurrence evidence on matched name/auxiliary controls before learning a correction; current state owns acceptance, resources and the exact next action.
+
 **Learned unknown-neighbor roles, September 14:** The [query-role result](../native_geometric_unknown_neighbor_973.md) retains existing trained canonical query identities and learns masked-name role observations from frozen output-compatible credit. Preserve exact prior outputs and qualify an independent bounded transfer panel before broader claims or further fitting; current state owns acceptance and resources.
 
 **Lexical-neighbor role transfer, September 14:** The [unchanged-artifact diagnostic](../native_geometric_neighbor_transfer_973.md) separates preserved canonical word identity from a lossy finite query-role observation. Correct the training observation interface and learn unfamiliar-name support using training-only views; preserve prior paths and evaluate the valid/missing/conflicting distinction. Current state owns measured acceptance and the bounded next action.

@@ -22,6 +22,8 @@ does not override the current owner direction.
 
 ## Current development path
 
+The [independent neighbor result](native_geometric_independent_neighbor_973.md) locates dependent_language/independent_neighbor_report.rs: frozen acceptance, independent lexical preparation, actual fixed-artifact evaluation and bounded evidence resume. It links the source/query role collision diagnostic and preserved counterexamples.
+
 The [unknown-neighbor result](native_geometric_unknown_neighbor_973.md) locates training-query vocabulary inheritance, exact credit migration and constrained masked-neighbor induction in dependent_language/occurrence_role.rs, with actual generation and retained controls in unknown_neighbor_report.rs. Current state owns the independent transfer qualification step.
 
 The [lexical-neighbor transfer result](native_geometric_neighbor_transfer_973.md) locates `dependent_language/neighbor_transfer_report.rs`: frozen-artifact new-name cases, matched continuation states, and source/query/participation observation comparisons. The role-anchor and learning correction is specified in current state.

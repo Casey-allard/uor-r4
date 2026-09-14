@@ -78,3 +78,6 @@ mod neighbor_transfer_report;
 
 #[cfg(test)]
 mod unknown_neighbor_report;
+
+#[cfg(test)]
+mod independent_neighbor_report;
