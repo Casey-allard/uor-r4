@@ -62,3 +62,6 @@ mod lexical_role_report;
 pub mod occurrence_role;
 #[cfg(test)]
 mod occurrence_role_report;
+
+#[cfg(test)]
+mod role_transfer_report;

@@ -1,0 +1,340 @@
+{
+  "at": "2026-09-14T13:49:06.544Z",
+  "status": "FAIL_UNCHANGED_ROLE_TRANSFER",
+  "summary": {
+    "artifact_unchanged": true,
+    "candidate_sha256": "712de3158ca14241b549043f743709911ca6bbc1bf8adc271d990d8616c8df42",
+    "default_model": "15baec48 unchanged",
+    "exact_equal": 204,
+    "families": 60,
+    "final_holdout": "NOT_RUN",
+    "fits": 0,
+    "gate": "FAIL_UNCHANGED_ROLE_TRANSFER",
+    "panels": {
+      "coverage/CoverageDisabled": 24,
+      "coverage/ExactIdentity": 12,
+      "coverage/Full": 12,
+      "coverage/QueryRolesDisabled": 12,
+      "coverage/ReadDisabled": 0,
+      "coverage/RoleDisabled": 24,
+      "coverage/UpdateDisabled": 8,
+      "predicate/CoverageDisabled": 36,
+      "predicate/ExactIdentity": 48,
+      "predicate/Full": 48,
+      "predicate/QueryRolesDisabled": 48,
+      "predicate/ReadDisabled": 0,
+      "predicate/RoleDisabled": 12,
+      "predicate/UpdateDisabled": 0,
+      "styled/CoverageDisabled": 24,
+      "styled/ExactIdentity": 60,
+      "styled/Full": 60,
+      "styled/QueryRolesDisabled": 48,
+      "styled/ReadDisabled": 0,
+      "styled/RoleDisabled": 0,
+      "styled/UpdateDisabled": 0
+    },
+    "promotion": false,
+    "read_or_update_disabled_correct_answer": 0,
+    "reload_equal": 204,
+    "retained_Full_equal": 200,
+    "rows": 204,
+    "runtime_changes": false
+  },
+  "attempts": [
+    {
+      "report_root": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/role-transfer-1/attempt-1",
+      "files": {
+        "acceptance.json": {
+          "sha256": "70393bd8163ca8cb7e5bef2af892f651556877247e6ca2149cdf448767154241",
+          "bytes": 1163
+        },
+        "artifact.json": {
+          "sha256": "9edcf73f9de6913beedd065783de86fe01ac05ca52039b678945fc70d62c1574",
+          "bytes": 17463
+        },
+        "attempt.json": {
+          "sha256": "62a4b88db6b6b8d46773ca41442eb93952d5aa78dbf09c5ee2ea9fdca571a945",
+          "bytes": 489
+        },
+        "data.json": {
+          "sha256": "f65ddee96cfd61a556857a2d5f072618e2eb5a71c3cac396de76958facab6c7b",
+          "bytes": 985234
+        },
+        "localization.json": {
+          "sha256": "cb645fc7c595cf36692ca522262f058e7c6f647127dafc031c8137b6c4e02af3",
+          "bytes": 80483
+        },
+        "manifest.json": {
+          "sha256": "a3baf4fb5229707b2ff9df7a509102d45ba5d0e3bebfb64ca5f6ea05003ca07f",
+          "bytes": 1447
+        },
+        "responses.json": {
+          "sha256": "a48943894f5b5d950aa0a4f9817c02c67d7a1b788341fad6c1db2f0b79a633b5",
+          "bytes": 36208054
+        },
+        "retained-responses.json": {
+          "sha256": "0cddd3b0fddf92d6b05edb19e88d88c060e74b1c82ff533cd38fc8b0df374e16",
+          "bytes": 31995
+        },
+        "summary.json": {
+          "sha256": "d5a1ff6ca45fe5ae1b31b2379cbab449374da408e2e755941be56be64f87beab",
+          "bytes": 1165
+        }
+      },
+      "summary": {
+        "artifact_unchanged": true,
+        "candidate_sha256": "712de3158ca14241b549043f743709911ca6bbc1bf8adc271d990d8616c8df42",
+        "default_model": "15baec48 unchanged",
+        "exact_equal": 204,
+        "families": 60,
+        "final_holdout": "NOT_RUN",
+        "fits": 0,
+        "gate": "FAIL_UNCHANGED_ROLE_TRANSFER",
+        "panels": {
+          "coverage/CoverageDisabled": 24,
+          "coverage/ExactIdentity": 12,
+          "coverage/Full": 12,
+          "coverage/QueryRolesDisabled": 12,
+          "coverage/ReadDisabled": 0,
+          "coverage/RoleDisabled": 24,
+          "coverage/UpdateDisabled": 8,
+          "predicate/CoverageDisabled": 36,
+          "predicate/ExactIdentity": 48,
+          "predicate/Full": 48,
+          "predicate/QueryRolesDisabled": 48,
+          "predicate/ReadDisabled": 0,
+          "predicate/RoleDisabled": 12,
+          "predicate/UpdateDisabled": 0,
+          "styled/CoverageDisabled": 24,
+          "styled/ExactIdentity": 60,
+          "styled/Full": 60,
+          "styled/QueryRolesDisabled": 48,
+          "styled/ReadDisabled": 0,
+          "styled/RoleDisabled": 0,
+          "styled/UpdateDisabled": 0
+        },
+        "promotion": false,
+        "read_or_update_disabled_correct_answer": 0,
+        "reload_equal": 204,
+        "retained_Full_equal": 200,
+        "rows": 204,
+        "runtime_changes": false
+      },
+      "error": null
+    }
+  ],
+  "lineage": [
+    {
+      "base": "f5c730b76863ffbfaa5d0ba18d4a908adc54173b",
+      "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/role-transfer-1/role-transfer-tests",
+      "sha256": "55d8b6f3b5a7cc1b907f8a4c4fa999d3df2af0e6ae340498c40d4b80c0ae2d9b",
+      "source_files": 85,
+      "build_label": "role-transfer-build-1"
+    }
+  ],
+  "analysis": {
+    "full": 120,
+    "rows": 204,
+    "coverage_unchanged_baselines": 12,
+    "coverage_intervention_failures": 48,
+    "coverage_disabled_restored_first_payload": 60,
+    "coverage_disabled_complete": 24,
+    "coverage_disabled_ambiguous_update": 36,
+    "styled_missing_initial_payload": 12,
+    "styled_truncated_payload": 24,
+    "styled_correct_text_wrong_path": 12,
+    "predicate_all": 48,
+    "prior_full_trace_equal": 200
+  },
+  "resources": {
+    "at": "2026-09-14T13:50:12.884Z",
+    "step_model_ms": 167797,
+    "step_model_limit_ms": 600000,
+    "step_engineering_command_ms": 5424,
+    "step_engineering_limit_ms": 120000,
+    "elapsed_wall_ms": 719546,
+    "wall_limit_ms": 7200000,
+    "parent_model_ms": 12166301,
+    "parent_model_limit_ms": 13110000,
+    "parent_engineering_command_ms": 631770,
+    "shared_ledger": {
+      "cumulative_ms": 131916874,
+      "limit_ms": 132950000
+    },
+    "peak_sampled_process_tree_rss_bytes": 3282223104,
+    "rss_limit_bytes": 6442450944,
+    "actual_storage_bytes": {
+      "target": 1850245120,
+      "git": 1031168000,
+      "worktree": 1239080960,
+      "evidence": 3819962368
+    },
+    "cumulative_storage_high_water": {
+      "target": 129245184,
+      "git": 12161024,
+      "worktree": 1239080960,
+      "evidence": 3819962368,
+      "at": "2026-09-14T13:50:12.883Z"
+    },
+    "external_carry_bytes": 15466496,
+    "closure_reserve_bytes": 262144,
+    "step_new_storage_high_water_bytes": 67948544,
+    "step_new_storage_limit_bytes": 335544320,
+    "parent_growth_including_carry_and_reserve_bytes": 5216178176,
+    "parent_growth_limit_bytes": 5502926848,
+    "storage_accounted_before_bytes": 100924878848,
+    "storage_accounted_after_bytes": 106141057024,
+    "storage_account_limit_bytes": 106401263616,
+    "stop_margin_bytes": 134217728,
+    "physical_free_bytes": 13677015040,
+    "external_cost": 0,
+    "cleanup": false,
+    "fits": 0,
+    "notes": "Cumulative high water, not only retained model size. Includes all actual builds, data preparation, evaluation and controls; unchanged-artifact role transfer and available-query stability diagnostic, all prior negative attempts retained, frozen binaries/reports, prior external carry and 256KiB closure reserve covering new local helper/PR files. Shell navigation and documentation are reflected in wall time; engineering_command_ms measures wrapped commands only."
+  },
+  "preservation": {
+    "at": "2026-09-14T13:46:59.218Z",
+    "prior_report_roots": 69,
+    "prior_report_files": 1671,
+    "originals": [
+      {
+        "path": "/Users/casey.allard/uor-r4",
+        "head": "49da65c509e8b1b9f10e7891918d3618c65e9f20",
+        "status_sha256": "4634a2b54ea8525bf3c76edb5d7092986d2dda77ef76edd3a641ce2b0f075df8"
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent",
+        "head": "49da65c509e8b1b9f10e7891918d3618c65e9f20",
+        "status_sha256": "7dbfdd7d981456b30357812e9dc7edd13b072c43ce45b873f35ba51d742465b2"
+      }
+    ],
+    "lineage": [
+      {
+        "name": "language-span-1",
+        "suffix": "",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-span-1/language-span-tests",
+        "sha256": "befad45acb8cc28047ccd7ebbfcf0d47493060c358bf8b1efd8ce62397a3f15e"
+      },
+      {
+        "name": "language-span-1",
+        "suffix": "-2",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-span-1/language-span-tests-2",
+        "sha256": "c68cf90de23a7e68efe83ef0b6a70335b594b36efb4e162291c93142e1a15760"
+      },
+      {
+        "name": "language-span-1",
+        "suffix": "-3",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-span-1/language-span-tests-3",
+        "sha256": "d9810736cfbd8830d4e38c0c206052c8e860ade5cf34d189b2e4cf0521bd86e8"
+      },
+      {
+        "name": "language-phrase-update-1",
+        "suffix": "",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-phrase-update-1/phrase-update-tests",
+        "sha256": "3dbfb12931e9f03f00a212b8b7237970db095fca659acce95b61c6335befbe6b"
+      },
+      {
+        "name": "language-occurrence-1",
+        "suffix": "",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-occurrence-1/occurrence-tests",
+        "sha256": "0b2ef78f7d2f7bdb9d7c1613ac0d1f8ce5eff149bad50325b9e95dd4fb1aae08"
+      },
+      {
+        "name": "language-occurrence-1",
+        "suffix": "-2",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-occurrence-1/occurrence-tests-2",
+        "sha256": "71fbed5f58f0701628d30db8a2eae6d5dda3bae2ad7616e257e4acdeacc2c113"
+      },
+      {
+        "name": "language-occurrence-1",
+        "suffix": "-3",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-occurrence-1/occurrence-tests-3",
+        "sha256": "db84c24b02b3e2f5e30c2f4609eee168c6b019c4d2fc259fe5829ffccdb33f6b"
+      },
+      {
+        "name": "language-occurrence-1",
+        "suffix": "-4",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-occurrence-1/occurrence-tests-4",
+        "sha256": "5b5425b69616ec3b5b48b297a14273ffd25bee90e78f3468240cabe100e52625"
+      },
+      {
+        "name": "correspondence-runs-1",
+        "suffix": "",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/correspondence-runs-1/correspondence-tests",
+        "sha256": "578da33fa921f692fa14aa030649340f9327b0a69d842d74c7ab1789827d2a3b"
+      },
+      {
+        "name": "correspondence-runs-1",
+        "suffix": "-2",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/correspondence-runs-1/correspondence-tests-2",
+        "sha256": "9abf5ed3f7f4d094695db9aa487a4763264d8bc371bb5618a797afc3309c88e8"
+      },
+      {
+        "name": "correspondence-runs-1",
+        "suffix": "-3",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/correspondence-runs-1/correspondence-tests-3",
+        "sha256": "d0ab5ffffb2a91922deaeb0dc8700728b9d548f725910ab51009ad19891863ea"
+      },
+      {
+        "name": "phrase-order-1",
+        "suffix": "",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/phrase-order-1/phrase-order-tests",
+        "sha256": "86ced40824760e5e10f4d1b117644fdbd18ceef0671962e0113a907f37f7dea0"
+      },
+      {
+        "name": "lexical-role-1",
+        "suffix": "",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/lexical-role-1/lexical-role-tests",
+        "sha256": "adf3f0787ba96eddd07d1e9a31002f4667c4f4ad215be7bf73cbeee165c384c5"
+      },
+      {
+        "name": "occurrence-role-1",
+        "suffix": "",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/occurrence-role-1/occurrence-role-tests",
+        "sha256": "40e43d954cba3f084bfa5c5c93adfbe3798752787742d8ff49e8900a12790316"
+      },
+      {
+        "name": "occurrence-role-1",
+        "suffix": "-2",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/occurrence-role-1/occurrence-role-tests-2",
+        "sha256": "ff9e2b90819463089980305a55b76ee1c5a3e1dd573b25405bc158a7e10000bd"
+      },
+      {
+        "name": "occurrence-role-1",
+        "suffix": "-3",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/occurrence-role-1/occurrence-role-tests-3",
+        "sha256": "12b7d4b3cc63547fcb323e814b179db6b6d83204bed15afd0d3310072090f0de"
+      },
+      {
+        "name": "occurrence-role-1",
+        "suffix": "-4",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/occurrence-role-1/occurrence-role-tests-4",
+        "sha256": "85dd945ff9a54f137f4f7d0eb35fb14c61fb00046f913d6f798efe48639c1b2c"
+      }
+    ],
+    "preserved": true
+  },
+  "runtime_preservation": {
+    "source_files": 83,
+    "unchanged": true,
+    "artifact": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/occurrence-role-1/attempt-3/candidate.json",
+    "artifact_sha256": "712de3158ca14241b549043f743709911ca6bbc1bf8adc271d990d8616c8df42",
+    "normal_model": "/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/reader-scope-repair/model.json",
+    "normal_sha256": "1454aa69e2e295d0a9970e90326f4664d3c614f666b1a708a16c16b5350a1705"
+  },
+  "validation": {
+    "optimized_offline_build": true,
+    "focused_tests": 34,
+    "ignored_reports": 17,
+    "model_evaluations": 1,
+    "fits": 0,
+    "retries": 0,
+    "source_review": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/role-transfer-1/review.md",
+    "format_check": "PASS",
+    "claim_wording": "PASS",
+    "diff_check": "PASS",
+    "report_process": "PASS: report completed and sealed; model gate FAIL_UNCHANGED_ROLE_TRANSFER"
+  },
+  "limits": "Authored four-record/two-clause development; final holdout NOT_RUN; no general prose, semantic metric advantage or promotion",
+  "next": "First learn query-occurrence required-evidence and dependent-update eligibility separately from context/content roles, using canonical center identity and local query context. Verify observation distinguishability before fitting; freeze source/query role tables and parent operators initially. Use output-compatible witness/update credit plus matched irrelevant-record and missing-relation contrasts. Qualify all 60 coverage cases with exact first payload, actual rewritten query/site and prior successful traces. Then address the 36 styled role failures through the existing role learner, preserving every current success. No word-specific exception, global coverage removal or general-language claim."
+}

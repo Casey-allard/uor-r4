@@ -22,6 +22,8 @@ does not override the current owner direction.
 
 ## Current development path
 
+The [role-transfer diagnostic](native_geometric_role_transfer_973.md) locates `dependent_language/role_transfer_report.rs`: unchanged-artifact optional-word interventions, styled role reuse, predicate transfer and exact prior-trace retention. It links candidate coverage and update-site global-match shortcuts to their actual failure boundaries.
+
 The [learned occurrence-role result](native_geometric_occurrence_role_973.md) locates `dependent_language/occurrence_role.rs`: output-trained local source/query roles over canonical anchors, shared with occurrence barriers and ordered correspondence. Exact outcomes, negative candidates and next work are in current state.
 
 The [canonical plan](integration/project-track.md#current-implementation-sequence--owner-adopted-september-12) prioritizes the shared trainable geometric language core. The [deep geometric-attention synthesis](integration/geometric-attention-research-2026-09/README.md) connects mathematical foundations, actual source, local research and primary literature with explicit coverage. The current experimental `native_geometric/hamming_refinement/` and `hamming_policy/` paths connect bounded reads, selected exact content, state updates and byte/EOS decisions; the policy is initialized and untrained. The research selects a structured learner with deliberate relation/phase/payload dependencies; its first compatibility boundary is implemented below. The [first-step design](integration/shared-geometric-core-2026-09.md) and `shared_core/` preserve earlier experiments. [Current state](integration/current-state.md) owns the actual outcome and retained `15baec48` identity.
