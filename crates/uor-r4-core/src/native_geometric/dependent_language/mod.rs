@@ -34,3 +34,14 @@ pub mod phrase;
 pub mod phrase_data;
 #[cfg(test)]
 mod phrase_report;
+
+pub mod occurrence;
+pub mod occurrence_data;
+pub mod occurrence_learning;
+#[cfg(test)]
+mod occurrence_qualification;
+#[cfg(test)]
+mod occurrence_report;
+
+#[cfg(test)]
+mod occurrence_collision;

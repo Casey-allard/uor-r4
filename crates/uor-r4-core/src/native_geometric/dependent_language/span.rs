@@ -92,7 +92,7 @@ pub struct Candidate {
 /// Contract only the proposed interval to one vertex for the existing topology.
 /// All intervals are enumerated. Existing coverage/order predicates observe the
 /// interval extent; no new feature, admission filter or answer boundary is supplied.
-fn span_features(matches: &[Vec<usize>], words: usize, first: usize, end: usize) -> u32 {
+pub(super) fn span_features(matches: &[Vec<usize>], words: usize, first: usize, end: usize) -> u32 {
     let covered: Vec<_> = (0..words)
         .map(|j| matches.iter().any(|p| p.contains(&j)))
         .collect();
