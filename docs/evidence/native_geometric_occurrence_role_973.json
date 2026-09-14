@@ -1,0 +1,1126 @@
+{
+  "at": "2026-09-14T13:22:04.150Z",
+  "status": "PASS_LEARNED_OCCURRENCE_ROLE",
+  "attempts": [
+    {
+      "report_root": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/occurrence-role-1/attempt-1",
+      "files": {
+        "acceptance.json": {
+          "sha256": "20d56b3c039faf90793aecedbf86fcb6024db577dab721e179c4cb7942f1ba6d",
+          "bytes": 931
+        },
+        "attempt.json": {
+          "sha256": "03140a8a000433f6bc2f8107a7b9efa63c5a17c8266864bd31584abbf6205565",
+          "bytes": 428
+        },
+        "candidate.json": {
+          "sha256": "786e46eebd28a6751a68be1583fc78fb73bf5725f8311424bedc3c3d036b5e46",
+          "bytes": 49114
+        },
+        "data.json": {
+          "sha256": "a33d51b36e73310d4d4d6de7d5674a8f141c680431e57f0d50a7b22b35359021",
+          "bytes": 1614638
+        },
+        "fit.json": {
+          "sha256": "91119668db8f070616c9793cab248c7531bac0938a25184bf86be09b7017b952",
+          "bytes": 3631
+        },
+        "manifest.json": {
+          "sha256": "de2eade2e16d7cee4f3b358e55ca89c2bc6bbaeffd135b7bee6a946c0e1bfe9f",
+          "bytes": 1765
+        },
+        "responses.json": {
+          "sha256": "44c2fc4a4d6acfa4ec0e4190bc787201eecd3fdc23212958dbdb251df17fc683",
+          "bytes": 115614354
+        },
+        "retained-responses.json": {
+          "sha256": "21afc71a3d0fa8479d5da52f1d7292767a7e2a188e9b4fce999ddac28f084294",
+          "bytes": 10640485
+        },
+        "role-observations.json": {
+          "sha256": "0e879591f5fe909e60b4d2e8bb63d6058a4f65d4c6b7f834438fbb867908ce6e",
+          "bytes": 68618
+        },
+        "summary.json": {
+          "sha256": "a18a555f79f5affba34b91d0aeebb1887c69672519368e1dfae4c53a8347c848",
+          "bytes": 2123
+        },
+        "training-responses.json": {
+          "sha256": "60664ad1188d77cec7e0ea83e95ef3af5f18e83fc7d39bc5d42ad458eeba93f1",
+          "bytes": 100109992
+        }
+      },
+      "summary": {
+        "candidate_sha256": "786e46eebd28a6751a68be1583fc78fb73bf5725f8311424bedc3c3d036b5e46",
+        "default_model": "15baec48 unchanged",
+        "exact_equal": 200,
+        "final_holdout": "NOT_RUN",
+        "fits": 1,
+        "gate": "FAIL_LEARNED_OCCURRENCE_ROLE",
+        "panels": {
+          "dual_role/ExactIdentity": 24,
+          "dual_role/Full": 24,
+          "dual_role/ReadDisabled": 0,
+          "dual_role/RoleDisabled": 0,
+          "dual_role/UpdateDisabled": 0,
+          "lexical_role/ExactIdentity": 48,
+          "lexical_role/Full": 48,
+          "lexical_role/ReadDisabled": 0,
+          "lexical_role/RoleDisabled": 24,
+          "lexical_role/UpdateDisabled": 0,
+          "phrase_order/ExactIdentity": 80,
+          "phrase_order/Full": 80,
+          "phrase_order/ReadDisabled": 0,
+          "phrase_order/RoleDisabled": 80,
+          "phrase_order/UpdateDisabled": 32
+        },
+        "parent_parameters_unchanged": true,
+        "parent_sha256": "1838cc12bda863c769db9239d7b225e91dd82856c7e90bf7427abffb5a9e1b23",
+        "phrase_order_parent_full_trace_equal": 80,
+        "promotion": false,
+        "read_or_update_disabled_correct_answer": 0,
+        "reload_equal": 200,
+        "retained_full_trace_equal": 6280,
+        "retained_typed_unresolved": 512,
+        "role_disabled_parent_full_trace_equal": 200,
+        "role_disabled_reused_name_correct": 0,
+        "table": [
+          {
+            "context": false,
+            "key": {
+              "center": 13,
+              "left": 0,
+              "right": 66
+            }
+          },
+          {
+            "context": false,
+            "key": {
+              "center": 13,
+              "left": 5,
+              "right": 66
+            }
+          },
+          {
+            "context": false,
+            "key": {
+              "center": 13,
+              "left": 12,
+              "right": 66
+            }
+          },
+          {
+            "context": false,
+            "key": {
+              "center": 13,
+              "left": 65,
+              "right": 66
+            }
+          },
+          {
+            "context": false,
+            "key": {
+              "center": 13,
+              "left": 66,
+              "right": 2
+            }
+          },
+          {
+            "context": false,
+            "key": {
+              "center": 13,
+              "left": 66,
+              "right": 64
+            }
+          },
+          {
+            "context": false,
+            "key": {
+              "center": 13,
+              "left": 66,
+              "right": 65
+            }
+          }
+        ],
+        "training_correct": 312,
+        "training_rows": 384
+      },
+      "error": null
+    },
+    {
+      "report_root": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/occurrence-role-1/attempt-2",
+      "files": {
+        "acceptance.json": {
+          "sha256": "5f49c7cef8034dfeb91999bfd9cf62cc74d834a829c42f797468d5d5d1cc08da",
+          "bytes": 1275
+        },
+        "attempt.json": {
+          "sha256": "e19619a7333a9ed28609402bffaff2d7b23c0f7c0c338e8428c95aaf8c249b38",
+          "bytes": 430
+        },
+        "candidate.json": {
+          "sha256": "5426eb364e62840883d83c9db79b8ea09c552796907efa0b7958c5a8f4368ea1",
+          "bytes": 53642
+        },
+        "data.json": {
+          "sha256": "5f257087ba6ca8420509fdb45993e02dbbd2af339adc40f2a5a5f8d837c2d48e",
+          "bytes": 2510662
+        },
+        "fit.json": {
+          "sha256": "0ff22153a6c3e201bd7103f35844661babddd0a7d443dfea6244ad0d1939fcb9",
+          "bytes": 25630
+        },
+        "manifest.json": {
+          "sha256": "3a68f17ca355528a912bd3507c1a287dcee79219273b03a15f36d384ab4f900c",
+          "bytes": 1918
+        },
+        "responses.json": {
+          "sha256": "24038f428f6c81a9c9f830e1e276ee5c135b643768cb1a90dac5c678a97bf520",
+          "bytes": 147809982
+        },
+        "retained-responses.json": {
+          "sha256": "bbc071c8c06bab23e3f0dcbed7e2846e4d7401cf217086b578d846efd7276885",
+          "bytes": 1178247
+        },
+        "role-observations.json": {
+          "sha256": "0e879591f5fe909e60b4d2e8bb63d6058a4f65d4c6b7f834438fbb867908ce6e",
+          "bytes": 68618
+        },
+        "serialization.json": {
+          "sha256": "a9965a1392309de216c7eacd6bfdc26e0a35d87c9c69fc77bf683caccb52a327",
+          "bytes": 117
+        },
+        "summary.json": {
+          "sha256": "5050ef1e7dc44c0af55197ad7fe62646d0bfd0fc3577f56dd2fd845e59ef2c5b",
+          "bytes": 3349
+        },
+        "training-responses.json": {
+          "sha256": "5413545d54f7ec5ee8b2b976a5f0dde3ec40e2bda1feab8229be2806c3ced36a",
+          "bytes": 142126274
+        }
+      },
+      "summary": {
+        "candidate_sha256": "5426eb364e62840883d83c9db79b8ea09c552796907efa0b7958c5a8f4368ea1",
+        "default_model": "15baec48 unchanged",
+        "exact_equal": 200,
+        "final_holdout": "NOT_RUN",
+        "fits": 2,
+        "gate": "FAIL_LEARNED_OCCURRENCE_ROLE",
+        "invalid_query_key_rejected": true,
+        "panels": {
+          "dual_role/ExactIdentity": 36,
+          "dual_role/Full": 36,
+          "dual_role/QueryRolesDisabled": 24,
+          "dual_role/ReadDisabled": 0,
+          "dual_role/RoleDisabled": 0,
+          "dual_role/UpdateDisabled": 0,
+          "lexical_role/ExactIdentity": 48,
+          "lexical_role/Full": 48,
+          "lexical_role/QueryRolesDisabled": 48,
+          "lexical_role/ReadDisabled": 0,
+          "lexical_role/RoleDisabled": 24,
+          "lexical_role/UpdateDisabled": 0,
+          "phrase_order/ExactIdentity": 80,
+          "phrase_order/Full": 80,
+          "phrase_order/QueryRolesDisabled": 80,
+          "phrase_order/ReadDisabled": 0,
+          "phrase_order/RoleDisabled": 80,
+          "phrase_order/UpdateDisabled": 32
+        },
+        "parent_parameters_unchanged": true,
+        "parent_sha256": "1838cc12bda863c769db9239d7b225e91dd82856c7e90bf7427abffb5a9e1b23",
+        "phrase_order_parent_full_trace_equal": 80,
+        "prior_correspondence_full_trace_equal": 384,
+        "promotion": false,
+        "query_fits": 1,
+        "query_table": [
+          {
+            "context": false,
+            "key": {
+              "center": 13,
+              "left": 4,
+              "right": 66
+            }
+          },
+          {
+            "context": false,
+            "key": {
+              "center": 13,
+              "left": 8,
+              "right": 66
+            }
+          },
+          {
+            "context": false,
+            "key": {
+              "center": 13,
+              "left": 14,
+              "right": 66
+            }
+          },
+          {
+            "context": false,
+            "key": {
+              "center": 13,
+              "left": 20,
+              "right": 66
+            }
+          },
+          {
+            "context": false,
+            "key": {
+              "center": 13,
+              "left": 24,
+              "right": 66
+            }
+          },
+          {
+            "context": false,
+            "key": {
+              "center": 13,
+              "left": 66,
+              "right": 65
+            }
+          }
+        ],
+        "query_training_correct": 188,
+        "query_training_rows": 312,
+        "read_or_update_disabled_correct_answer": 0,
+        "reload_equal": 200,
+        "retained_full_trace_equal": 6688,
+        "retained_typed_unresolved": 512,
+        "role_disabled_parent_full_trace_equal": 200,
+        "role_disabled_reused_name_correct": 0,
+        "source_fit_table_unchanged": true,
+        "source_fits": 1,
+        "table": [
+          {
+            "context": false,
+            "key": {
+              "center": 13,
+              "left": 4,
+              "right": 66
+            }
+          },
+          {
+            "context": false,
+            "key": {
+              "center": 13,
+              "left": 14,
+              "right": 66
+            }
+          },
+          {
+            "context": false,
+            "key": {
+              "center": 13,
+              "left": 24,
+              "right": 66
+            }
+          },
+          {
+            "context": false,
+            "key": {
+              "center": 13,
+              "left": 65,
+              "right": 66
+            }
+          },
+          {
+            "context": false,
+            "key": {
+              "center": 13,
+              "left": 66,
+              "right": 1
+            }
+          },
+          {
+            "context": false,
+            "key": {
+              "center": 13,
+              "left": 66,
+              "right": 6
+            }
+          },
+          {
+            "context": false,
+            "key": {
+              "center": 13,
+              "left": 66,
+              "right": 8
+            }
+          },
+          {
+            "context": false,
+            "key": {
+              "center": 13,
+              "left": 66,
+              "right": 65
+            }
+          }
+        ],
+        "training_correct": 324,
+        "training_rows": 504
+      },
+      "error": null
+    },
+    {
+      "report_root": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/occurrence-role-1/attempt-3",
+      "files": {
+        "acceptance.json": {
+          "sha256": "61539db477161dbe0c84b3991a7d4c8837c5a9e9faf68262737809aae1ea7f47",
+          "bytes": 1596
+        },
+        "attempt.json": {
+          "sha256": "a3b69b56d6af287beacdb8f7d3e24b94e9b34e0d27a2201d13012cc1c34c5b11",
+          "bytes": 430
+        },
+        "candidate.json": {
+          "sha256": "712de3158ca14241b549043f743709911ca6bbc1bf8adc271d990d8616c8df42",
+          "bytes": 54064
+        },
+        "data.json": {
+          "sha256": "5f257087ba6ca8420509fdb45993e02dbbd2af339adc40f2a5a5f8d837c2d48e",
+          "bytes": 2510662
+        },
+        "fit.json": {
+          "sha256": "0572376cf5f242247faae5aee0d475307404d40b453d8f77896d62a8ca421048",
+          "bytes": 2886
+        },
+        "manifest.json": {
+          "sha256": "8f7f04782281be27d86b9c080e4537063f755d7fc5a990fe9ad5e1d5720c520f",
+          "bytes": 1917
+        },
+        "responses.json": {
+          "sha256": "aa8106fad715da64c74dd57bb2ab9e4fb0baaa2b0ddf99a47da7e65e7f0742c4",
+          "bytes": 209208994
+        },
+        "retained-responses.json": {
+          "sha256": "bbc071c8c06bab23e3f0dcbed7e2846e4d7401cf217086b578d846efd7276885",
+          "bytes": 1178247
+        },
+        "role-observations.json": {
+          "sha256": "0e879591f5fe909e60b4d2e8bb63d6058a4f65d4c6b7f834438fbb867908ce6e",
+          "bytes": 68618
+        },
+        "serialization.json": {
+          "sha256": "a2d6005958b1e78249c1387b13b8e47166f2a4c1ed734181a76139bfcccb480b",
+          "bytes": 183
+        },
+        "summary.json": {
+          "sha256": "7899bf0b5c892b9a71db042d66c9f039494ab4b7f15aed89b6d40caf4b575ac1",
+          "bytes": 4152
+        },
+        "training-responses.json": {
+          "sha256": "d283fab0fcaf75a3468016cf6306a59b64e347ac7637360e2f8cd236b188c081",
+          "bytes": 198780542
+        }
+      },
+      "summary": {
+        "anchors_unchanged": true,
+        "candidate_sha256": "712de3158ca14241b549043f743709911ca6bbc1bf8adc271d990d8616c8df42",
+        "coverage_disabled_previous_full_equal": 200,
+        "coverage_fits": 1,
+        "default_model": "15baec48 unchanged",
+        "exact_equal": 200,
+        "final_holdout": "NOT_RUN",
+        "fits": 1,
+        "gate": "PASS_LEARNED_OCCURRENCE_ROLE",
+        "invalid_query_key_rejected": true,
+        "panels": {
+          "dual_role/CoverageDisabled": 36,
+          "dual_role/ExactIdentity": 72,
+          "dual_role/Full": 72,
+          "dual_role/QueryRolesDisabled": 48,
+          "dual_role/ReadDisabled": 0,
+          "dual_role/RoleDisabled": 0,
+          "dual_role/UpdateDisabled": 0,
+          "lexical_role/CoverageDisabled": 48,
+          "lexical_role/ExactIdentity": 48,
+          "lexical_role/Full": 48,
+          "lexical_role/QueryRolesDisabled": 48,
+          "lexical_role/ReadDisabled": 0,
+          "lexical_role/RoleDisabled": 24,
+          "lexical_role/UpdateDisabled": 0,
+          "phrase_order/CoverageDisabled": 80,
+          "phrase_order/ExactIdentity": 80,
+          "phrase_order/Full": 80,
+          "phrase_order/QueryRolesDisabled": 80,
+          "phrase_order/ReadDisabled": 0,
+          "phrase_order/RoleDisabled": 80,
+          "phrase_order/UpdateDisabled": 32
+        },
+        "parent_parameters_unchanged": true,
+        "parent_sha256": "1838cc12bda863c769db9239d7b225e91dd82856c7e90bf7427abffb5a9e1b23",
+        "phrase_order_parent_full_trace_equal": 80,
+        "prior_correspondence_full_trace_equal": 384,
+        "prior_fit_receipt": {
+          "candidate_sha256": "5426eb364e62840883d83c9db79b8ea09c552796907efa0b7958c5a8f4368ea1",
+          "data_sha256": "5f257087ba6ca8420509fdb45993e02dbbd2af339adc40f2a5a5f8d837c2d48e",
+          "fit_sha256": "0ff22153a6c3e201bd7103f35844661babddd0a7d443dfea6244ad0d1939fcb9",
+          "root": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/occurrence-role-1/attempt-2",
+          "source_and_query_training_identical": true
+        },
+        "promotion": false,
+        "query_fit_table_unchanged": true,
+        "query_fits": 0,
+        "query_table": [
+          {
+            "context": false,
+            "key": {
+              "center": 13,
+              "left": 4,
+              "right": 66
+            }
+          },
+          {
+            "context": false,
+            "key": {
+              "center": 13,
+              "left": 8,
+              "right": 66
+            }
+          },
+          {
+            "context": false,
+            "key": {
+              "center": 13,
+              "left": 14,
+              "right": 66
+            }
+          },
+          {
+            "context": false,
+            "key": {
+              "center": 13,
+              "left": 20,
+              "right": 66
+            }
+          },
+          {
+            "context": false,
+            "key": {
+              "center": 13,
+              "left": 24,
+              "right": 66
+            }
+          },
+          {
+            "context": false,
+            "key": {
+              "center": 13,
+              "left": 66,
+              "right": 65
+            }
+          }
+        ],
+        "query_training_correct": 312,
+        "query_training_rows": 312,
+        "read_or_update_disabled_correct_answer": 0,
+        "reload_equal": 200,
+        "require_available_query_coverage": true,
+        "retained_full_trace_equal": 6688,
+        "retained_typed_unresolved": 512,
+        "role_disabled_parent_full_trace_equal": 200,
+        "role_disabled_reused_name_correct": 0,
+        "source_fit_table_unchanged": true,
+        "source_fits": 0,
+        "table": [
+          {
+            "context": false,
+            "key": {
+              "center": 13,
+              "left": 4,
+              "right": 66
+            }
+          },
+          {
+            "context": false,
+            "key": {
+              "center": 13,
+              "left": 14,
+              "right": 66
+            }
+          },
+          {
+            "context": false,
+            "key": {
+              "center": 13,
+              "left": 24,
+              "right": 66
+            }
+          },
+          {
+            "context": false,
+            "key": {
+              "center": 13,
+              "left": 65,
+              "right": 66
+            }
+          },
+          {
+            "context": false,
+            "key": {
+              "center": 13,
+              "left": 66,
+              "right": 1
+            }
+          },
+          {
+            "context": false,
+            "key": {
+              "center": 13,
+              "left": 66,
+              "right": 6
+            }
+          },
+          {
+            "context": false,
+            "key": {
+              "center": 13,
+              "left": 66,
+              "right": 8
+            }
+          },
+          {
+            "context": false,
+            "key": {
+              "center": 13,
+              "left": 66,
+              "right": 65
+            }
+          }
+        ],
+        "training_correct": 504,
+        "training_rows": 504
+      },
+      "error": null
+    }
+  ],
+  "source_versions": [
+    {
+      "base": "5bcb5b17ebade7eb565dec65e0f8c737a9fc1614",
+      "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/occurrence-role-1/occurrence-role-tests",
+      "sha256": "40e43d954cba3f084bfa5c5c93adfbe3798752787742d8ff49e8900a12790316",
+      "source_files": 84,
+      "build_label": "occurrence-role-build-1"
+    },
+    {
+      "base": "5bcb5b17ebade7eb565dec65e0f8c737a9fc1614",
+      "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/occurrence-role-1/occurrence-role-tests-2",
+      "sha256": "ff9e2b90819463089980305a55b76ee1c5a3e1dd573b25405bc158a7e10000bd",
+      "source_files": 84,
+      "build_label": "occurrence-role-build-2"
+    },
+    {
+      "base": "5bcb5b17ebade7eb565dec65e0f8c737a9fc1614",
+      "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/occurrence-role-1/occurrence-role-tests-3",
+      "sha256": "12b7d4b3cc63547fcb323e814b179db6b6d83204bed15afd0d3310072090f0de",
+      "source_files": 84,
+      "build_label": "occurrence-role-build-3"
+    },
+    {
+      "base": "5bcb5b17ebade7eb565dec65e0f8c737a9fc1614",
+      "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/occurrence-role-1/occurrence-role-tests-4",
+      "sha256": "85dd945ff9a54f137f4f7d0eb35fb14c61fb00046f913d6f798efe48639c1b2c",
+      "source_files": 84,
+      "build_label": "occurrence-role-build-4"
+    }
+  ],
+  "summary": {
+    "anchors_unchanged": true,
+    "candidate_sha256": "712de3158ca14241b549043f743709911ca6bbc1bf8adc271d990d8616c8df42",
+    "coverage_disabled_previous_full_equal": 200,
+    "coverage_fits": 1,
+    "default_model": "15baec48 unchanged",
+    "exact_equal": 200,
+    "final_holdout": "NOT_RUN",
+    "fits": 1,
+    "gate": "PASS_LEARNED_OCCURRENCE_ROLE",
+    "invalid_query_key_rejected": true,
+    "panels": {
+      "dual_role/CoverageDisabled": 36,
+      "dual_role/ExactIdentity": 72,
+      "dual_role/Full": 72,
+      "dual_role/QueryRolesDisabled": 48,
+      "dual_role/ReadDisabled": 0,
+      "dual_role/RoleDisabled": 0,
+      "dual_role/UpdateDisabled": 0,
+      "lexical_role/CoverageDisabled": 48,
+      "lexical_role/ExactIdentity": 48,
+      "lexical_role/Full": 48,
+      "lexical_role/QueryRolesDisabled": 48,
+      "lexical_role/ReadDisabled": 0,
+      "lexical_role/RoleDisabled": 24,
+      "lexical_role/UpdateDisabled": 0,
+      "phrase_order/CoverageDisabled": 80,
+      "phrase_order/ExactIdentity": 80,
+      "phrase_order/Full": 80,
+      "phrase_order/QueryRolesDisabled": 80,
+      "phrase_order/ReadDisabled": 0,
+      "phrase_order/RoleDisabled": 80,
+      "phrase_order/UpdateDisabled": 32
+    },
+    "parent_parameters_unchanged": true,
+    "parent_sha256": "1838cc12bda863c769db9239d7b225e91dd82856c7e90bf7427abffb5a9e1b23",
+    "phrase_order_parent_full_trace_equal": 80,
+    "prior_correspondence_full_trace_equal": 384,
+    "prior_fit_receipt": {
+      "candidate_sha256": "5426eb364e62840883d83c9db79b8ea09c552796907efa0b7958c5a8f4368ea1",
+      "data_sha256": "5f257087ba6ca8420509fdb45993e02dbbd2af339adc40f2a5a5f8d837c2d48e",
+      "fit_sha256": "0ff22153a6c3e201bd7103f35844661babddd0a7d443dfea6244ad0d1939fcb9",
+      "root": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/occurrence-role-1/attempt-2",
+      "source_and_query_training_identical": true
+    },
+    "promotion": false,
+    "query_fit_table_unchanged": true,
+    "query_fits": 0,
+    "query_table": [
+      {
+        "context": false,
+        "key": {
+          "center": 13,
+          "left": 4,
+          "right": 66
+        }
+      },
+      {
+        "context": false,
+        "key": {
+          "center": 13,
+          "left": 8,
+          "right": 66
+        }
+      },
+      {
+        "context": false,
+        "key": {
+          "center": 13,
+          "left": 14,
+          "right": 66
+        }
+      },
+      {
+        "context": false,
+        "key": {
+          "center": 13,
+          "left": 20,
+          "right": 66
+        }
+      },
+      {
+        "context": false,
+        "key": {
+          "center": 13,
+          "left": 24,
+          "right": 66
+        }
+      },
+      {
+        "context": false,
+        "key": {
+          "center": 13,
+          "left": 66,
+          "right": 65
+        }
+      }
+    ],
+    "query_training_correct": 312,
+    "query_training_rows": 312,
+    "read_or_update_disabled_correct_answer": 0,
+    "reload_equal": 200,
+    "require_available_query_coverage": true,
+    "retained_full_trace_equal": 6688,
+    "retained_typed_unresolved": 512,
+    "role_disabled_parent_full_trace_equal": 200,
+    "role_disabled_reused_name_correct": 0,
+    "source_fit_table_unchanged": true,
+    "source_fits": 0,
+    "table": [
+      {
+        "context": false,
+        "key": {
+          "center": 13,
+          "left": 4,
+          "right": 66
+        }
+      },
+      {
+        "context": false,
+        "key": {
+          "center": 13,
+          "left": 14,
+          "right": 66
+        }
+      },
+      {
+        "context": false,
+        "key": {
+          "center": 13,
+          "left": 24,
+          "right": 66
+        }
+      },
+      {
+        "context": false,
+        "key": {
+          "center": 13,
+          "left": 65,
+          "right": 66
+        }
+      },
+      {
+        "context": false,
+        "key": {
+          "center": 13,
+          "left": 66,
+          "right": 1
+        }
+      },
+      {
+        "context": false,
+        "key": {
+          "center": 13,
+          "left": 66,
+          "right": 6
+        }
+      },
+      {
+        "context": false,
+        "key": {
+          "center": 13,
+          "left": 66,
+          "right": 8
+        }
+      },
+      {
+        "context": false,
+        "key": {
+          "center": 13,
+          "left": 66,
+          "right": 65
+        }
+      }
+    ],
+    "training_correct": 504,
+    "training_rows": 504
+  },
+  "fit": {
+    "coverage": {
+      "before_correct": 512,
+      "data_digest": [
+        59,
+        121,
+        122,
+        179,
+        163,
+        73,
+        38,
+        246,
+        73,
+        151,
+        71,
+        143,
+        210,
+        98,
+        146,
+        129,
+        6,
+        158,
+        88,
+        157,
+        192,
+        37,
+        49,
+        253,
+        39,
+        8,
+        26,
+        216,
+        2,
+        80,
+        172,
+        37
+      ],
+      "enabled_correct": 816,
+      "prior_successes_lost": 0,
+      "rows": 816,
+      "selected": true
+    },
+    "coverage_fits": 1,
+    "fits": 1,
+    "prior_source_query_fit_receipt": {
+      "candidate_sha256": "5426eb364e62840883d83c9db79b8ea09c552796907efa0b7958c5a8f4368ea1",
+      "data_sha256": "5f257087ba6ca8420509fdb45993e02dbbd2af339adc40f2a5a5f8d837c2d48e",
+      "fit_sha256": "0ff22153a6c3e201bd7103f35844661babddd0a7d443dfea6244ad0d1939fcb9",
+      "root": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/occurrence-role-1/attempt-2",
+      "source_and_query_training_identical": true
+    },
+    "query_fits": 0,
+    "query_table_before_coverage_fit": [
+      {
+        "context": false,
+        "key": {
+          "center": 13,
+          "left": 4,
+          "right": 66
+        }
+      },
+      {
+        "context": false,
+        "key": {
+          "center": 13,
+          "left": 8,
+          "right": 66
+        }
+      },
+      {
+        "context": false,
+        "key": {
+          "center": 13,
+          "left": 14,
+          "right": 66
+        }
+      },
+      {
+        "context": false,
+        "key": {
+          "center": 13,
+          "left": 20,
+          "right": 66
+        }
+      },
+      {
+        "context": false,
+        "key": {
+          "center": 13,
+          "left": 24,
+          "right": 66
+        }
+      },
+      {
+        "context": false,
+        "key": {
+          "center": 13,
+          "left": 66,
+          "right": 65
+        }
+      }
+    ],
+    "source_fits": 0,
+    "source_table_before_coverage_fit": [
+      {
+        "context": false,
+        "key": {
+          "center": 13,
+          "left": 4,
+          "right": 66
+        }
+      },
+      {
+        "context": false,
+        "key": {
+          "center": 13,
+          "left": 14,
+          "right": 66
+        }
+      },
+      {
+        "context": false,
+        "key": {
+          "center": 13,
+          "left": 24,
+          "right": 66
+        }
+      },
+      {
+        "context": false,
+        "key": {
+          "center": 13,
+          "left": 65,
+          "right": 66
+        }
+      },
+      {
+        "context": false,
+        "key": {
+          "center": 13,
+          "left": 66,
+          "right": 1
+        }
+      },
+      {
+        "context": false,
+        "key": {
+          "center": 13,
+          "left": 66,
+          "right": 6
+        }
+      },
+      {
+        "context": false,
+        "key": {
+          "center": 13,
+          "left": 66,
+          "right": 8
+        }
+      },
+      {
+        "context": false,
+        "key": {
+          "center": 13,
+          "left": 66,
+          "right": 65
+        }
+      }
+    ]
+  },
+  "resources": {
+    "at": "2026-09-14T13:21:29.914Z",
+    "step_model_ms": 729587,
+    "step_model_limit_ms": 1500000,
+    "step_engineering_command_ms": 0,
+    "step_engineering_limit_ms": 120000,
+    "elapsed_wall_ms": 1997314,
+    "wall_limit_ms": 7200000,
+    "parent_model_ms": 11998504,
+    "parent_model_limit_ms": 13110000,
+    "parent_engineering_command_ms": 620772,
+    "shared_ledger": {
+      "cumulative_ms": 131749077,
+      "limit_ms": 132950000
+    },
+    "peak_sampled_process_tree_rss_bytes": 3363340288,
+    "rss_limit_bytes": 6442450944,
+    "actual_storage_bytes": {
+      "target": 1849933824,
+      "git": 1030852608,
+      "worktree": 1238966272,
+      "evidence": 3755405312
+    },
+    "cumulative_storage_high_water": {
+      "target": 125984768,
+      "git": 12161024,
+      "worktree": 1238966272,
+      "evidence": 3755405312,
+      "at": "2026-09-14T13:21:29.913Z"
+    },
+    "external_carry_bytes": 15466496,
+    "closure_reserve_bytes": 262144,
+    "step_new_storage_high_water_bytes": 1041752064,
+    "step_new_storage_limit_bytes": 1207959552,
+    "parent_growth_including_carry_and_reserve_bytes": 5148246016,
+    "parent_growth_limit_bytes": 5368709120,
+    "storage_accounted_before_bytes": 100924878848,
+    "storage_accounted_after_bytes": 106073124864,
+    "storage_account_limit_bytes": 106267045888,
+    "stop_margin_bytes": 134217728,
+    "physical_free_bytes": 13780803584,
+    "external_cost": 0,
+    "cleanup": false,
+    "fits": 4,
+    "notes": "Cumulative high water, not only retained model size. Includes all actual builds, data preparation, evaluation and controls; learned source/query occurrence role fits and generation qualification, all prior negative attempts retained, frozen binaries/reports, prior external carry and 256KiB closure reserve covering new local helper/PR files. Shell navigation and documentation are reflected in wall time; engineering_command_ms measures wrapped commands only."
+  },
+  "preservation": {
+    "at": "2026-09-14T13:21:28.690Z",
+    "prior_report_roots": 66,
+    "prior_report_files": 1636,
+    "originals": [
+      {
+        "path": "/Users/casey.allard/uor-r4",
+        "head": "49da65c509e8b1b9f10e7891918d3618c65e9f20",
+        "status_sha256": "4634a2b54ea8525bf3c76edb5d7092986d2dda77ef76edd3a641ce2b0f075df8"
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent",
+        "head": "49da65c509e8b1b9f10e7891918d3618c65e9f20",
+        "status_sha256": "7dbfdd7d981456b30357812e9dc7edd13b072c43ce45b873f35ba51d742465b2"
+      }
+    ],
+    "lineage": [
+      {
+        "name": "language-span-1",
+        "suffix": "",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-span-1/language-span-tests",
+        "sha256": "befad45acb8cc28047ccd7ebbfcf0d47493060c358bf8b1efd8ce62397a3f15e"
+      },
+      {
+        "name": "language-span-1",
+        "suffix": "-2",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-span-1/language-span-tests-2",
+        "sha256": "c68cf90de23a7e68efe83ef0b6a70335b594b36efb4e162291c93142e1a15760"
+      },
+      {
+        "name": "language-span-1",
+        "suffix": "-3",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-span-1/language-span-tests-3",
+        "sha256": "d9810736cfbd8830d4e38c0c206052c8e860ade5cf34d189b2e4cf0521bd86e8"
+      },
+      {
+        "name": "language-phrase-update-1",
+        "suffix": "",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-phrase-update-1/phrase-update-tests",
+        "sha256": "3dbfb12931e9f03f00a212b8b7237970db095fca659acce95b61c6335befbe6b"
+      },
+      {
+        "name": "language-occurrence-1",
+        "suffix": "",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-occurrence-1/occurrence-tests",
+        "sha256": "0b2ef78f7d2f7bdb9d7c1613ac0d1f8ce5eff149bad50325b9e95dd4fb1aae08"
+      },
+      {
+        "name": "language-occurrence-1",
+        "suffix": "-2",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-occurrence-1/occurrence-tests-2",
+        "sha256": "71fbed5f58f0701628d30db8a2eae6d5dda3bae2ad7616e257e4acdeacc2c113"
+      },
+      {
+        "name": "language-occurrence-1",
+        "suffix": "-3",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-occurrence-1/occurrence-tests-3",
+        "sha256": "db84c24b02b3e2f5e30c2f4609eee168c6b019c4d2fc259fe5829ffccdb33f6b"
+      },
+      {
+        "name": "language-occurrence-1",
+        "suffix": "-4",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/language-occurrence-1/occurrence-tests-4",
+        "sha256": "5b5425b69616ec3b5b48b297a14273ffd25bee90e78f3468240cabe100e52625"
+      },
+      {
+        "name": "correspondence-runs-1",
+        "suffix": "",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/correspondence-runs-1/correspondence-tests",
+        "sha256": "578da33fa921f692fa14aa030649340f9327b0a69d842d74c7ab1789827d2a3b"
+      },
+      {
+        "name": "correspondence-runs-1",
+        "suffix": "-2",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/correspondence-runs-1/correspondence-tests-2",
+        "sha256": "9abf5ed3f7f4d094695db9aa487a4763264d8bc371bb5618a797afc3309c88e8"
+      },
+      {
+        "name": "correspondence-runs-1",
+        "suffix": "-3",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/correspondence-runs-1/correspondence-tests-3",
+        "sha256": "d0ab5ffffb2a91922deaeb0dc8700728b9d548f725910ab51009ad19891863ea"
+      },
+      {
+        "name": "phrase-order-1",
+        "suffix": "",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/phrase-order-1/phrase-order-tests",
+        "sha256": "86ced40824760e5e10f4d1b117644fdbd18ceef0671962e0113a907f37f7dea0"
+      },
+      {
+        "name": "lexical-role-1",
+        "suffix": "",
+        "binary": "/Users/casey.allard/uor-r4-worktrees/initial-previous-intent/.uor-handoff/2026-09-12-codex-v7/shared-core-first-step/lexical-role-1/lexical-role-tests",
+        "sha256": "adf3f0787ba96eddd07d1e9a31002f4667c4f4ad215be7bf73cbeee165c384c5"
+      }
+    ],
+    "preserved": true
+  },
+  "default_model_sha256": "1454aa69e2e295d0a9970e90326f4664d3c614f666b1a708a16c16b5350a1705",
+  "next": "Evaluate the unchanged learned role artifact on styled role recombination and known-endpoint reuse, before a further fit. Freeze prefix/suffix contexts, name occurrences at all phrase positions, and familiar versus unobserved predicate anchors with matched source/role controls. Include irrelevant record changes that introduce question-prefix words, to distinguish available identity from required query evidence without changing the actual relation. In particular compare `today will ...`, `... will tomorrow`, and role reuse beside a predicate absent from the anchor inventory. Preserve exact occurrence/word/span identity and the new query/source role agreement; inspect actual first payload, committed query, compatible route sets and final answer. Keep negative payload credit distinct from a grammatical role when extending training to known endpoints. This bounded mechanism has passed its authored gate; general prose and independent final qualification remain unestablished.",
+  "final_holdout": "NOT_RUN",
+  "promotion": false
+}

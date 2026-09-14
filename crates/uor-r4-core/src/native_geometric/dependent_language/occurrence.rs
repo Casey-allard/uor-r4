@@ -170,6 +170,19 @@ pub fn candidates(
     question: &[u8],
     c: Control,
 ) -> Result<Search> {
+    candidates_with_context(a, g, m, records, question, c, None)
+}
+/// Same bounded admission and witnesses, with an artifact-bound source role map.
+/// Roles are observed before proposing answer spans, never cleared by a proposal.
+pub fn candidates_with_context(
+    a: &span::Artifact,
+    g: &BoundGeometry,
+    m: &Metric,
+    records: &[Vec<u8>; 4],
+    question: &[u8],
+    c: Control,
+    contexts: Option<&[Vec<bool>; 4]>,
+) -> Result<Search> {
     if m.geometry_digest() != g.id() {
         return Err(Error::Geometry);
     }
@@ -200,17 +213,25 @@ pub fn candidates(
                 }
             }
         }
-        let context: Vec<bool> = words
-            .iter()
-            .map(|word| {
-                span_boundary::contains(
-                    m,
-                    &a.context_words,
-                    &word.geometry,
-                    c == Control::ExactIdentity,
-                )
-            })
-            .collect::<Result<_>>()?;
+        let context = if let Some(contexts) = contexts {
+            if contexts[source].len() != words.len() {
+                return Err(Error::Shape);
+            }
+            contexts[source].clone()
+        } else {
+            let context: Vec<bool> = words
+                .iter()
+                .map(|word| {
+                    span_boundary::contains(
+                        m,
+                        &a.context_words,
+                        &word.geometry,
+                        c == Control::ExactIdentity,
+                    )
+                })
+                .collect::<Result<_>>()?;
+            context
+        };
         for candidate in spans.iter().filter(|v| v.value.source == source) {
             let witnesses = correspondences(
                 &matches,
