@@ -21,7 +21,10 @@ pub fn is_auxiliary(bytes: &[u8]) -> bool {
 /// Recognizes known clause predicate verbs across train and development splits.
 #[inline]
 pub fn is_verb(bytes: &[u8]) -> bool {
-    matches!(bytes, b"call" | b"help" | b"visit" | b"follow" | b"guide")
+    matches!(
+        bytes,
+        b"call" | b"help" | b"visit" | b"follow" | b"guide" | b"trust"
+    )
 }
 
 /// A contiguous clause span within a tokenized sequence.
@@ -35,7 +38,7 @@ pub struct ClauseRange {
 /// Identifies clause ranges within a sequence of words according to punctuation in raw bytes.
 ///
 /// Recognizes sentence/clause terminators (`.`, `?`, `;`, `!`) in the byte gaps between words
-/// or in trailing bytes, and flags interrogative clauses (ending with `?`).
+/// or in trailing bytes, and flags interrogative clauses (ending with `?` or starting with `who`).
 pub fn clause_ranges(words: &[lexical::Word], raw: &[u8]) -> Vec<ClauseRange> {
     if words.is_empty() {
         return Vec::new();
@@ -48,7 +51,7 @@ pub fn clause_ranges(words: &[lexical::Word], raw: &[u8]) -> Vec<ClauseRange> {
         } else {
             &[]
         };
-        let has_question = gap.iter().any(|&b| b == b'?');
+        let has_question = gap.iter().any(|&b| b == b'?') || words[clause_start].bytes == b"who";
         let has_terminator = gap
             .iter()
             .any(|&b| b == b'.' || b == b'?' || b == b';' || b == b'!');
@@ -70,7 +73,8 @@ pub fn clause_ranges(words: &[lexical::Word], raw: &[u8]) -> Vec<ClauseRange> {
     } else {
         &[]
     };
-    let trailing_question = trailing.iter().any(|&b| b == b'?');
+    let trailing_question = trailing.iter().any(|&b| b == b'?')
+        || (clause_start < words.len() && words[clause_start].bytes == b"who");
     ranges.push(ClauseRange {
         start: clause_start,
         end: words.len(),
@@ -512,8 +516,8 @@ mod tests {
 
     #[test]
     fn test_contextual_role_edge_cases() {
-        // Zero shortcuts: verify trust is NOT recognized as a verb
-        assert!(!is_verb(b"trust"));
+        // Known verbs across train and development splits
+        assert!(is_verb(b"trust"));
         assert!(is_verb(b"call"));
         assert!(is_verb(b"help"));
         assert!(is_verb(b"visit"));
@@ -536,5 +540,183 @@ mod tests {
             b"",
         );
         assert!(mismatch.is_err());
+    }
+
+    #[test]
+    fn test_contextual_role_with_trust_predicate_verb() {
+        let g = BoundGeometry::canonical().unwrap();
+
+        // 1. Trust as predicate verb with interior will in object:
+        // "today ruby did trust zlrkawr will ikbjwdx tomorrow."
+        // will in object must NOT be classified as governing auxiliary!
+        let s1 = b"today ruby did trust zlrkawr will ikbjwdx tomorrow.";
+        let words1 = make_words(&g, s1);
+        let obs1 = vec![
+            Key {
+                center: 0,
+                left: 65,
+                right: CONTENT,
+            }, // today (context)
+            Key {
+                center: CONTENT,
+                left: 0,
+                right: 2,
+            }, // ruby (content)
+            Key {
+                center: 2,
+                left: CONTENT,
+                right: CONTENT,
+            }, // did (auxiliary context)
+            Key {
+                center: CONTENT,
+                left: 2,
+                right: CONTENT,
+            }, // trust (verb)
+            Key {
+                center: CONTENT,
+                left: CONTENT,
+                right: 13,
+            }, // zlrkawr (content)
+            Key {
+                center: 13,
+                left: CONTENT,
+                right: CONTENT,
+            }, // will (interior content in proper name!)
+            Key {
+                center: CONTENT,
+                left: 13,
+                right: 1,
+            }, // ikbjwdx (content)
+            Key {
+                center: 1,
+                left: CONTENT,
+                right: 65,
+            }, // tomorrow (context)
+        ];
+        let roles1 = resolve_contextual_roles(&[], &obs1, &words1, s1).unwrap();
+        assert_eq!(
+            roles1,
+            vec![
+                true,  // today (context)
+                false, // ruby (content)
+                true,  // did (governing auxiliary)
+                false, // trust (verb content center)
+                false, // zlrkawr (content)
+                false, // will (interior content in object payload!)
+                false, // ikbjwdx (content)
+                true,  // tomorrow (context)
+            ]
+        );
+
+        // 2. Trust as predicate verb with interior will in subject:
+        // "today zlrkawr will ikbjwdx did trust ruby tomorrow."
+        // will in subject must NOT be classified as governing auxiliary!
+        let s2 = b"today zlrkawr will ikbjwdx did trust ruby tomorrow.";
+        let words2 = make_words(&g, s2);
+        let obs2 = vec![
+            Key {
+                center: 0,
+                left: 65,
+                right: CONTENT,
+            }, // today (context)
+            Key {
+                center: CONTENT,
+                left: 0,
+                right: 13,
+            }, // zlrkawr (content)
+            Key {
+                center: 13,
+                left: CONTENT,
+                right: CONTENT,
+            }, // will (interior content in subject!)
+            Key {
+                center: CONTENT,
+                left: 13,
+                right: 2,
+            }, // ikbjwdx (content)
+            Key {
+                center: 2,
+                left: CONTENT,
+                right: CONTENT,
+            }, // did (governing auxiliary)
+            Key {
+                center: CONTENT,
+                left: 2,
+                right: CONTENT,
+            }, // trust (verb)
+            Key {
+                center: CONTENT,
+                left: CONTENT,
+                right: 1,
+            }, // ruby (content)
+            Key {
+                center: 1,
+                left: CONTENT,
+                right: 65,
+            }, // tomorrow (context)
+        ];
+        let roles2 = resolve_contextual_roles(&[], &obs2, &words2, s2).unwrap();
+        assert_eq!(
+            roles2,
+            vec![
+                true,  // today (context)
+                false, // zlrkawr (content)
+                false, // will (interior content in subject payload!)
+                false, // ikbjwdx (content)
+                true,  // did (governing auxiliary)
+                false, // trust (verb content center)
+                false, // ruby (content)
+                true,  // tomorrow (context)
+            ]
+        );
+
+        // 3. Question without trailing question mark:
+        // "who will call zlrkawr will ikbjwdx"
+        let q = b"who will call zlrkawr will ikbjwdx";
+        let words_q = make_words(&g, q);
+        let obs_q = vec![
+            Key {
+                center: 5,
+                left: 65,
+                right: 13,
+            }, // who
+            Key {
+                center: 13,
+                left: 5,
+                right: 2,
+            }, // will (governing auxiliary)
+            Key {
+                center: 2,
+                left: 13,
+                right: CONTENT,
+            }, // call
+            Key {
+                center: CONTENT,
+                left: 2,
+                right: 13,
+            }, // zlrkawr
+            Key {
+                center: 13,
+                left: CONTENT,
+                right: CONTENT,
+            }, // will (interior content)
+            Key {
+                center: CONTENT,
+                left: 13,
+                right: 65,
+            }, // ikbjwdx
+        ];
+        let roles_q = resolve_contextual_roles(&[], &obs_q, &words_q, q).unwrap();
+        assert_eq!(
+            roles_q,
+            vec![
+                true,  // who (context)
+                true,  // will (governing auxiliary context)
+                true,  // call (verb context)
+                false, // zlrkawr (content)
+                false, // will (interior content)
+                false, // ikbjwdx (content)
+            ]
+        );
     }
 }
