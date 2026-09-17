@@ -1,5 +1,23 @@
 # Current native geometric AI work
 
+## Contextual role resolution and independent neighbor transfer — September 17, 2026
+
+**PASS_INDEPENDENT_NEIGHBOR_TRANSFER: 2,304/2,304 (100%).** Frozen 60d19679 with bounded contextual role disambiguation passes all eight endpoint shapes across all 2,304 independent cases (`PASS_INDEPENDENT_NEIGHBOR_TRANSFER`). The 288 failing interior-`will` cases (`novel-will-novel`, `will-novel-novel`, etc.) are 100% recovered (288/288: 96 valid, 96 missing, 96 conflict). Zero historical regressions across all 7,680 retained cases: 492/492 unknown-neighbor, 300/300 styled, 200/200 earlier sealed, and 6,688/6,688 candidate/current Full traces remain bitwise equal, including 512/512 typed unresolved cases. ExactIdentity agrees 2,304/2,304; read/update disabled controls give 0 correct answered outputs. Invariants: 0 runtime matrix products, 0 steady-state heap allocations on hot path (verified via `native_geometric_allocations`), 0 compiler warnings, clean formatting and claim wording.
+
+The opposite-role observation alias (#973 collision) where source key `(13, 64, 64)` conflated interior name-`will` (content) with auxiliary `will` (context) is resolved via local syntactic contextual roles (`contextual_role.rs`) within the existing geometric read/update loop, without changing frozen artifact weights or hand-coding name exceptions. Additionally, zero-allocation Hopf state trajectory and serving projections (`hopf_metric.rs`) were integrated and verified.
+
+**Master plan synchronization (Two-Pillar Architecture & Cards P1–P6):** Per the comprehensive review and agent briefing (`docs/integration/review-2026-09-16/` and `docs/integration/cards/`), the project transitions from template micro-iterations to two rigorous pillars:
+1. **Pillar 1 (Exact Addressed Memory & Substrate):** Leverage the repo's verified O(1) addressed memory, versioned provenance, causal commits, replayable witnesses, and exact copy/relation memory (`memory_runtime`, `relation`, `value_runtime`) as a reliable local retrieval and provenance product layer.
+2. **Pillar 2 (Learned Generator & Empirical Baselines):** Ground-truth evaluation against real incumbent local runtimes on M1 hardware, governed by signed experiment cards with pre-registered kill criteria and matched non-geometric controls:
+   - **Card P1:** Ground truth on Apple Silicon M1 (measure `bitnet.cpp` BitNet b1.58 2B4T, `llama.cpp` SmolLM3-3B / Qwen3-4B, `15baec48`, and TLA bundle for tok/s, `powermetrics` J/token, RSS, and held-out BPB).
+   - **Card P2:** Exact memory product layer for grounded QA with abstention.
+   - **Card P3:** Differentiable/bounded geometric predictor viability gate with pre-registered kill criterion.
+   - **Card P4:** Geometry controls (matched random phase and root refits to isolate causal contribution of zeta/primes).
+   - **Card P5:** Exactly decodable codes for VSA clean-up.
+   - **Card P6:** Publication and preprint hygiene.
+
+Preserve all receipts and sealed attempt data under `/tmp/indep_eval_run_test_1/` and local artifacts. Worktree contextual-role-repair, branch codex/contextual-role-repair. References #973, #820.
+
 ## Independent lexical-neighbor transfer — September 14, 2026
 
 **FAIL_INDEPENDENT_NEIGHBOR_TRANSFER: 2,016/2,304.** Frozen 60d19679 passes seven of eight endpoint shapes, including three entirely new words, but all 288 interior-will cases exhaust before selecting the correct first payload. All 492 + 300 + 200 + 6,688 retained outputs remain exact, including 512 typed unresolved. ExactIdentity/reload agree 2,304/2,304; read/update disabled controls give zero correct answered outputs. [Result](../native_geometric_independent_neighbor_973.md), [evidence](../evidence/native_geometric_independent_neighbor_973.json).

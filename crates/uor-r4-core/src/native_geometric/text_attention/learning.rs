@@ -11,7 +11,7 @@ use crate::native_geometric::{
     addressed_attention::artifact::BoundGeometry,
     hamming_refinement::metric::Metric,
     relational_attention::{
-        circuit::{self, Circuit, Node, Parameters},
+        circuit::{self, Circuit, Node},
         runtime::{self as read, Error, Result, FEATURES},
     },
 };

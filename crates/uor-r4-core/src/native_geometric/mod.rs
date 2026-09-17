@@ -106,6 +106,7 @@ mod groundedness_tests;
 pub mod guarantees;
 #[cfg(test)]
 mod guarantees_tests;
+pub mod hopf_metric;
 pub mod m1_profiler;
 #[cfg(test)]
 mod m1_profiler_tests;

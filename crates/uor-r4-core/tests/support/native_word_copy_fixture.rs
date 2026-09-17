@@ -7,11 +7,13 @@ use native::{
 };
 use std::sync::OnceLock;
 
+#[allow(dead_code)]
 pub const COPY_PROMPT: &str =
     "left = 13; right = 4; fn identity(alpha: i32) -> i32 {\n    ";
 pub const DUPLICATE_PROMPT: &str =
     "left = 13; right = 4; alpha ignored; fn identity(alpha: i32) -> i32 {\n    ";
 pub const COPY_RESPONSE: &str = "alpha\n}\n";
+#[allow(dead_code)]
 pub const NUMERIC_PROMPT: &str = "left = 13; right = 4; total:";
 static CONSTRUCTION: OnceLock<Vec<ValueExample>> = OnceLock::new();
 

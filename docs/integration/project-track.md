@@ -18,6 +18,8 @@ Reuse the [engine](architecture-2026-09/engines.md), [mathematics](architecture-
 
 ## Current implementation sequence — owner adopted September 12
 
+**Contextual role repair and independent neighbor transfer qualification, September 17:** The contextual-role resolution passes the official crate qualification test (`native_geometric::dependent_language::independent_neighbor_report::independent_neighbor_evaluate_report`) with 2,304/2,304 (100%) (`PASS_INDEPENDENT_NEIGHBOR_TRANSFER`). Recovers 100% (288/288) of failing interior-`will` cases while preserving all 7,680 historical verification cases (492 unknown-neighbor, 300 styled, 200 sealed, 6,688 traces with 512 typed unresolved) with zero regressions. Invariants verified: 0 runtime matrix products, 0 steady-state allocations, 0 warnings. Resolves the #973 observation alias. The project synchronizes with the Two-Pillar architecture and Cards P1–P6 master plan (`docs/integration/review-2026-09-16/` and `docs/integration/cards/`).
+
 **Independent neighbor qualification, September 14:** The [fixed-artifact result](../native_geometric_independent_neighbor_973.md) localizes an interior-name source-role observation alias while preserving prior outputs. Audit ordered source/query occurrence evidence on matched name/auxiliary controls before learning a correction; current state owns acceptance, resources and the exact next action.
 
 **Learned unknown-neighbor roles, September 14:** The [query-role result](../native_geometric_unknown_neighbor_973.md) retains existing trained canonical query identities and learns masked-name role observations from frozen output-compatible credit. Preserve exact prior outputs and qualify an independent bounded transfer panel before broader claims or further fitting; current state owns acceptance and resources.
@@ -110,6 +112,22 @@ The table preserves programme responsibilities and their qualification progressi
 Scope transfers are explicit: #973 keeps the native integrated learning/artifact/serving lifecycle while owning general prose; #1140 keeps at least two causally composed operations and meaningful generated Rust, even while adding shared emission; #962 keeps semantic durable memory while #1172 owns API integration. Original #954 performance belongs to #963 and original #955 release/lowering belongs to #965. #1083 identity and #1087 serving obligations span model/API plus #963 cost and #964 guarantees; #1084 integration/workspace obligations span #962/#1088/#1172/#1173; #1089 theorem-to-code/publication belongs to #964; #1090 scorecard and #940 governance remain #965. Closed #1091 scheduling is preserved as history, not revived as a one-task stop.
 
 The [reconciliation record](issue-reconciliation-2026-09.json) preserves all 422 original issue records and the full prior 11 open bodies. Their real remaining obligations remain open, with two new interface/Studio issues. No closed capability was silently reopened and no unfinished capability was closed to shorten the list.
+
+### Go-forward master plan re-sequencing (Two-Pillar architecture & Cards P1–P6)
+
+Following the comprehensive project audit (`docs/integration/review-2026-09-16/`), the roadmap aligns with two distinct pillars:
+- **Pillar 1 (Exact Addressed Memory & Substrate):** Productionizing the verified O(1) addressed memory, versioned provenance, causal commits, and exact copy/relation memory as a reliable local retrieval and tool layer.
+- **Pillar 2 (Learned Generation & Measured Ground Truth):** Replaces synthetic template micro-iterations with pre-registered experiment cards, strict kill criteria, and empirical hardware benchmarks on Apple Silicon M1:
+
+| Card / Decision | Focus & Hypothesis | Role in Programme |
+|---|---|---|
+| **D0 (Contract)** | Define serving contract: D0-a (strict ban on linear maps) vs D0-b (bounded integer/ternary accumulate, no float, measured M1 J/tok ceiling) | Foundational constraint definition |
+| **Card P1** | Empirical M1 ground truth (`bitnet.cpp` BitNet b1.58 2B4T, `llama.cpp` SmolLM3/Qwen3, `15baec48`, TLA kernel) | Establish true empirical denominator for throughput, J/token, and memory |
+| **Card P4** | Geometry controls: matched random-phase and random-root refits vs zeta/primes | Falsifiable test of geometric contribution before further geometric complexity |
+| **Card P2** | Exact memory product layer: local assistant with grounded QA and abstention | Delivers near-term useful artifact satisfying #962/#954 |
+| **Card P3** | Differentiable native predictor viability gate with pre-registered kill criterion | Time-boxed 1M/10M/100M-bit BPB scaling test against 5-gram and transformer baselines |
+| **Card P5** | Exactly decodable error-correcting codes for VSA clean-up | Focused systems contribution |
+| **Card P6** | Publication & preprint hygiene (arXiv rebuild v4, Zenodo record correction) | Immediate external credibility |
 
 ## Alpha acceptance
 

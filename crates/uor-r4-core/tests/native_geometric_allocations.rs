@@ -4508,3 +4508,36 @@ fn shared_core_saved_angular_tree_has_bounded_zero_allocation_prediction() {
     assert_eq!(ALLOCATIONS.with(Cell::get), 0);
     assert_eq!(BYTES.with(Cell::get), 0);
 }
+
+#[test]
+fn hopf_metric_trajectory_and_serving_projection_have_zero_allocations() {
+    use uor_r4_core::native_geometric::hopf_metric::{HopfStateTrajectory, UnitS2Q30, UnitS3};
+    let initial = UnitS3::IDENTITY;
+    let mut traj = HopfStateTrajectory::new(initial);
+    let delta = UnitS3::new(0.99, 0.01, 0.05, 0.02).unwrap();
+
+    let roots = [
+        UnitS2Q30::NORTH_POLE,
+        UnitS2Q30::SOUTH_POLE,
+        UnitS2Q30::EQUATOR_X,
+        UnitS2Q30::EQUATOR_Y,
+    ];
+
+    ALLOCATIONS.with(|n| n.set(0));
+    BYTES.with(|n| n.set(0));
+    MEASURING.with(|v| v.set(true));
+
+    let mut valid = true;
+    for _ in 0..512 {
+        let step = traj.step(&delta);
+        valid &= step > 0.0;
+        let s2_q30 = traj.current_s3.to_q30().hopf_project();
+        let nearest = s2_q30.nearest_root_q30(&roots);
+        valid &= nearest.is_some_and(|idx| idx < 4);
+    }
+
+    MEASURING.with(|v| v.set(false));
+    assert!(valid);
+    assert_eq!(ALLOCATIONS.with(Cell::get), 0);
+    assert_eq!(BYTES.with(Cell::get), 0);
+}

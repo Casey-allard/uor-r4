@@ -59,6 +59,7 @@ mod phrase_order_report;
 #[cfg(test)]
 mod lexical_role_report;
 
+pub mod contextual_role;
 pub mod occurrence_role;
 #[cfg(test)]
 mod occurrence_role_report;

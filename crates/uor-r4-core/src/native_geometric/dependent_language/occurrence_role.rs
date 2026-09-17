@@ -524,7 +524,7 @@ fn key(ids: &[u8], i: usize) -> Key {
         right: if i + 1 == ids.len() { EDGE } else { ids[i + 1] },
     }
 }
-fn matches_key(rule: &Key, observation: &Key) -> bool {
+pub(crate) fn matches_key(rule: &Key, observation: &Key) -> bool {
     rule.center == observation.center
         && (rule.left == ANY || rule.left == observation.left)
         && (rule.right == ANY || rule.right == observation.right)
@@ -569,16 +569,9 @@ pub fn source_context(
     record: &[u8],
     exact: bool,
 ) -> Result<Vec<bool>> {
-    roles(
-        &a.table,
-        &observations(&a.parent, &a.anchors, g, m, record, exact)?,
-    )
-}
-fn roles(table: &[Row], observations: &[Key]) -> Result<Vec<bool>> {
-    Ok(observations
-        .iter()
-        .map(|k| k.center != CONTENT && !table.iter().any(|r| matches_key(&r.key, k)))
-        .collect())
+    let obs = observations(&a.parent, &a.anchors, g, m, record, exact)?;
+    let words = reader::words(g, record, ordered::CANONICAL)?;
+    super::contextual_role::resolve_contextual_roles(&a.table, &obs, &words, record)
 }
 pub fn query_context(
     a: &Artifact,
@@ -587,10 +580,9 @@ pub fn query_context(
     question: &[u8],
     exact: bool,
 ) -> Result<Vec<bool>> {
-    roles(
-        &a.query_table,
-        &observations(&a.parent, &a.anchors, g, m, question, exact)?,
-    )
+    let obs = observations(&a.parent, &a.anchors, g, m, question, exact)?;
+    let words = reader::words(g, question, ordered::CANONICAL)?;
+    super::contextual_role::resolve_contextual_roles(&a.query_table, &obs, &words, question)
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

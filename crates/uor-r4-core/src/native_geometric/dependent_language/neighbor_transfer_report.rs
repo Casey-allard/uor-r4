@@ -14,7 +14,7 @@ use crate::{
     report_output,
 };
 use serde_json::{json, Value};
-use std::{collections::BTreeSet, path::Path};
+use std::collections::BTreeSet;
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 const ARTIFACT_SHA: &str = "0175ad86850a77017fdc41b7b4da9c22fe41bc8bcbf348e1352967dd29e43a94";
 const OLD_SHA: &str = "8055a53c7801f1e6e11f808a6c15ddb090a5befe8d9d587b4ca65c74b7698793";

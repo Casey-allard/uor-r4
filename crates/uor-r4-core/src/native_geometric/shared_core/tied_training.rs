@@ -35,6 +35,7 @@ impl TiedFitConfig {
 }
 
 #[derive(Debug, Clone, Copy)]
+#[allow(dead_code)]
 pub(super) enum SearchMode {
     Learned,
     Fixed,
