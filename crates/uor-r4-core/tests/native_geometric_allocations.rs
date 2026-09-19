@@ -498,6 +498,14 @@ fn native_kernel_source_has_no_forbidden_arithmetic_or_float_types() {
         ("native numeral codec", numeral),
         ("native whole-word codec", lexemes),
         ("exact ZPhi checked addition", zphi_add),
+        (
+            "native vsa context engine",
+            include_str!("../src/native_geometric/vsa/context_engine.rs"),
+        ),
+        (
+            "native vsa attention",
+            include_str!("../src/native_geometric/vsa/attention.rs"),
+        ),
     ] {
         assert!(
             !source.contains(ALLOW_MARKER),
@@ -512,6 +520,56 @@ fn native_kernel_source_has_no_forbidden_arithmetic_or_float_types() {
         assert!(
             outcome.allowed.is_empty(),
             "{name}: no kernel allowances are permitted"
+        );
+    }
+    let (_, hopf_kernel, _) = region(
+        include_str!("../src/native_geometric/hopf_metric.rs"),
+        "// NATIVE_GEOMETRIC_INTEGER_KERNEL_BEGIN",
+        "// NATIVE_GEOMETRIC_INTEGER_KERNEL_END",
+    );
+    assert!(
+        !hopf_kernel.contains("f32") && !hopf_kernel.contains("f64"),
+        "hopf integer serving kernel must contain zero float types"
+    );
+    for function in [
+        "fn isqrt_u64(",
+        "fn isqrt_u128(",
+        "fn atan2_q30(",
+        "fn dot_fiber_q30(",
+        "fn to_unit_s3_q30(",
+        "fn metric_distance_q30(",
+        "fn from_hopf_fiber_q30(",
+        "fn hopf_project(",
+        "fn fiber_u1_q30(",
+        "fn fiber_phase_q30(",
+        "fn hopf_fiber_project(",
+        "fn mul_q30(",
+        "fn norm_q30(",
+        "fn dot_q30(",
+        "fn nearest_root_q30(",
+        "fn step_q30(",
+    ] {
+        assert_eq!(
+            hopf_kernel.matches(function).count(),
+            1,
+            "hopf integer serving kernel coverage includes {function}"
+        );
+    }
+    let engram_source = include_str!("../src/native_geometric/engram.rs");
+    assert!(
+        !engram_source.contains("f32") && !engram_source.contains("f64"),
+        "engram serving module must contain zero float types"
+    );
+    for function in [
+        "fn hash_bigram(",
+        "fn hash_trigram(",
+        "fn hash_skip(",
+        "fn lookup(",
+        "fn lookup_skip(",
+    ] {
+        assert!(
+            engram_source.contains(function),
+            "engram integer serving module must include {function}"
         );
     }
 }
@@ -4527,6 +4585,10 @@ fn hopf_metric_trajectory_and_serving_projection_have_zero_allocations() {
     BYTES.with(|n| n.set(0));
     MEASURING.with(|v| v.set(true));
 
+    let mut traj_q30 =
+        uor_r4_core::native_geometric::hopf_metric::HopfStateTrajectoryQ30::new(initial.to_q30());
+    let delta_q30 = delta.to_q30();
+
     let mut valid = true;
     for _ in 0..512 {
         let step = traj.step(&delta);
@@ -4534,10 +4596,466 @@ fn hopf_metric_trajectory_and_serving_projection_have_zero_allocations() {
         let s2_q30 = traj.current_s3.to_q30().hopf_project();
         let nearest = s2_q30.nearest_root_q30(&roots);
         valid &= nearest.is_some_and(|idx| idx < 4);
+
+        // Exercise Q1.30 fiber-preserving holonomy methods
+        let fiber_pt = traj.current_s3.to_q30().hopf_fiber_project();
+        valid &= fiber_pt.base.0[2].abs()
+            <= uor_r4_core::native_geometric::hopf_metric::Q30_SCALE as i32;
+        valid &= fiber_pt.fiber_phase.abs()
+            <= uor_r4_core::native_geometric::hopf_metric::Q30_SCALE as i32;
+
+        traj_q30.step_q30(&delta_q30);
+        valid &= traj_q30.step_count > 0;
     }
 
     MEASURING.with(|v| v.set(false));
     assert!(valid);
     assert_eq!(ALLOCATIONS.with(Cell::get), 0);
     assert_eq!(BYTES.with(Cell::get), 0);
+}
+
+#[test]
+fn vsa_hot_path_operations_have_zero_allocations() {
+    use uor_r4_core::native_geometric::vsa::{
+        encode_multiscale_context, encode_ngram, Codebook, Hypervector4096, RollingVsaContext,
+    };
+
+    let codebook = Codebook::<64>::new(256, 0x1234_5678);
+    let mut ctx = RollingVsaContext::<64, 64>::new();
+    let query = Hypervector4096::from_seed(0xcafe, 0xbabe);
+    let v1 = codebook.get(10);
+    let v2 = codebook.get(20);
+    let v3 = codebook.get(30);
+    let v4 = codebook.get(40);
+
+    ALLOCATIONS.with(|n| n.set(0));
+    BYTES.with(|n| n.set(0));
+    MEASURING.with(|v| v.set(true));
+
+    let mut valid = true;
+    for step in 0..512_u32 {
+        let tok = step % 256;
+        ctx.push(tok);
+
+        // 1. N-gram encoding
+        let ng = ctx.current_ngram(&codebook, 4);
+        valid &= ng.count_ones() > 0;
+
+        // 2. Rolling multi-scale context bundling (non-empty for all length >= 1)
+        let ctx_vec = ctx.current_context_hypervector(&codebook, 4);
+        if ctx.len() >= 1 {
+            valid &= ctx_vec.count_ones() > 0;
+        }
+
+        // 3. Zero-allocation top-K candidate search on stack
+        let top = codebook.top_k_candidates_q15::<8>(&query);
+        valid &= top[0].1 >= top[7].1;
+
+        // 4. Candidate continuation scoring
+        let score = ctx.score_continuation_q15(&codebook, &ctx_vec, tok);
+        valid &= score >= 0;
+
+        // 5. Primitive VSA algebraic ops
+        let bound = v1.bind(&v2);
+        let permuted = bound.permute(step as usize % 4096);
+        let sim = permuted.similarity_q15(&v3);
+        let corr = permuted.bipolar_correlation_q15(&v4);
+        valid &= sim >= 0 && corr >= -32767;
+
+        // 6. Majority bundling across active window
+        let bundle = Hypervector4096::bundle(&[v1, v2, v3, v4]);
+        valid &= bundle.count_ones() > 0;
+
+        // 7. Pure functional sequence encoding
+        let pure_ngram = encode_ngram(&[tok, tok.wrapping_add(1), tok.wrapping_add(2)], &codebook);
+        let pure_multi = encode_multiscale_context(&[tok, tok.wrapping_add(1)], &codebook, 2);
+        valid &= pure_ngram.count_ones() > 0 && pure_multi.count_ones() > 0;
+    }
+
+    MEASURING.with(|v| v.set(false));
+    assert!(valid);
+    assert_eq!(
+        ALLOCATIONS.with(Cell::get),
+        0,
+        "VSA hot path must have zero heap allocations"
+    );
+    assert_eq!(
+        BYTES.with(Cell::get),
+        0,
+        "VSA hot path must allocate zero heap bytes"
+    );
+}
+
+#[test]
+fn engram_table_lookup_has_zero_allocations() {
+    use uor_r4_core::native_geometric::engram::{hash_bigram, hash_trigram, EngramTable};
+
+    let mut table = EngramTable::with_capacity(1024);
+    let key1 = hash_bigram(10, 20);
+    let key2 = hash_trigram(5, 10, 20);
+    table.insert(key1, &[(30, 16384), (31, 8192)]);
+    table.insert(key2, &[(40, 24576), (41, 12288)]);
+
+    ALLOCATIONS.with(|n| n.set(0));
+    BYTES.with(|n| n.set(0));
+    MEASURING.with(|v| v.set(true));
+
+    let mut hits = 0;
+    for i in 0..1024 {
+        let w_curr = (i % 256) as u32;
+        let w_prev = ((i + 1) % 256) as u32;
+        let w_prev2 = ((i + 2) % 256) as u32;
+
+        if let Some(cands) = table.lookup_bigram(w_prev, w_curr) {
+            hits += cands.len();
+        }
+        if let Some(cands) = table.lookup_trigram(w_prev2, w_prev, w_curr) {
+            hits += cands.len();
+        }
+        if let Some(cands) = table.lookup(key1) {
+            hits += cands.len();
+        }
+    }
+
+    MEASURING.with(|v| v.set(false));
+    assert!(hits > 0);
+    assert_eq!(
+        ALLOCATIONS.with(Cell::get),
+        0,
+        "EngramTable lookup must have zero heap allocations"
+    );
+    assert_eq!(
+        BYTES.with(Cell::get),
+        0,
+        "EngramTable lookup must allocate zero heap bytes"
+    );
+}
+
+#[test]
+fn hierarchical_lattice_tables_lookup_has_zero_allocations() {
+    use uor_r4_core::native_geometric::lattice_table::{
+        HierarchicalLatticeTables, COARSE_TABLE_SIZE,
+    };
+
+    let vocab_size = 256;
+    let num_clusters = 16;
+    let token_to_cluster: Vec<u16> = (0..vocab_size).map(|t| (t % num_clusters) as u16).collect();
+    let coarse = vec![5i8; COARSE_TABLE_SIZE];
+    let fine = vec![12i16; num_clusters * num_clusters];
+    let tables = HierarchicalLatticeTables::new(num_clusters, token_to_cluster, coarse, fine);
+
+    // Warm up
+    let _ = tables.score(1, 2, 3, 0, 1);
+
+    ALLOCATIONS.with(|n| n.set(0));
+    BYTES.with(|n| n.set(0));
+    MEASURING.with(|v| v.set(true));
+
+    let mut accum = 0i64;
+    for i in 0..1024 {
+        let r_prev = (i * 7) % 120;
+        let r_curr = (i * 13) % 120;
+        let r_cand = (i * 23) % 120;
+        let c_curr = (i * 3) % num_clusters;
+        let c_cand = (i * 5) % num_clusters;
+        accum += tables.score(r_prev, r_curr, r_cand, c_curr, c_cand) as i64;
+    }
+    std::hint::black_box(accum);
+
+    MEASURING.with(|v| v.set(false));
+
+    assert_eq!(
+        ALLOCATIONS.with(Cell::get),
+        0,
+        "HierarchicalLatticeTables serving lookups must perform ZERO heap allocations"
+    );
+    assert_eq!(
+        BYTES.with(Cell::get),
+        0,
+        "HierarchicalLatticeTables serving lookups must allocate ZERO bytes"
+    );
+}
+
+#[test]
+fn mmap_corpus_streaming_reads_have_zero_allocations() {
+    use uor_r4_core::native_geometric::mmap_corpus::{CorpusWriter, MmapCorpusReader};
+
+    let temp_dir = std::env::temp_dir();
+    let temp_file = temp_dir.join(format!(
+        "test_zero_alloc_{}_{}.u16",
+        std::process::id(),
+        std::time::Instant::now().elapsed().as_nanos()
+    ));
+
+    let sample_tokens: Vec<u16> = (0..10_000).map(|i| (i % 4096) as u16).collect();
+    CorpusWriter::write_file(&temp_file, 4096, &sample_tokens).expect("write_file must succeed");
+
+    let reader = MmapCorpusReader::open(&temp_file).expect("MmapCorpusReader::open must succeed");
+    assert_eq!(reader.len(), 10_000);
+
+    // Warm up
+    let _ = reader.get(0);
+
+    ALLOCATIONS.with(|n| n.set(0));
+    BYTES.with(|n| n.set(0));
+    MEASURING.with(|v| v.set(true));
+
+    let mut accum: u64 = 0;
+
+    // 1. Full slice streaming
+    for &tok in reader.as_slice() {
+        accum = accum.wrapping_add(tok as u64);
+    }
+
+    // 2. Direct random indexing
+    for i in 0..1024 {
+        accum = accum.wrapping_add(reader[i] as u64);
+    }
+
+    // 3. Streaming non-overlapping chunks
+    for chunk in reader.chunks(64) {
+        for &tok in chunk {
+            accum = accum.wrapping_add(tok as u64);
+        }
+    }
+
+    // 4. Streaming sliding windows
+    let win_iter = reader.window_stride(128, 32);
+    accum = accum.wrapping_add(win_iter.len() as u64);
+    for window in win_iter {
+        for &tok in window {
+            accum = accum.wrapping_add(tok as u64);
+        }
+    }
+
+    // 5. Inclusive range slicing and subslices
+    for &tok in &reader[10..=50] {
+        accum = accum.wrapping_add(tok as u64);
+    }
+    if let Some(sub) = reader.subslice(100, 50) {
+        for &tok in sub {
+            accum = accum.wrapping_add(tok as u64);
+        }
+    }
+
+    std::hint::black_box(accum);
+
+    MEASURING.with(|v| v.set(false));
+
+    assert_eq!(
+        ALLOCATIONS.with(Cell::get),
+        0,
+        "MmapCorpusReader streaming operations must perform ZERO heap allocations"
+    );
+    assert_eq!(
+        BYTES.with(Cell::get),
+        0,
+        "MmapCorpusReader streaming operations must allocate ZERO bytes"
+    );
+
+    let _ = std::fs::remove_file(temp_file);
+}
+
+#[test]
+fn vsa_context_64_and_s3_normalization_have_zero_allocations() {
+    use uor_r4_core::native_geometric::hopf_metric::UnitS3Q30;
+    use uor_r4_core::native_geometric::learner::ExportedGeometricModel;
+    use uor_r4_core::native_geometric::vsa::{Codebook, RollingVsaContext};
+
+    let codebook = Codebook::<64>::new(256, 0x1234_5678);
+    let mut ctx = RollingVsaContext::<64, 64>::new();
+    let token_to_root: Vec<u8> = (0..256).map(|t| (t % 120) as u8).collect();
+    let model = ExportedGeometricModel {
+        vocab_size: 256,
+        token_to_root,
+        discrete_tables: Vec::new(),
+        discrete_bias: vec![0; 256],
+        discrete_s2_readout: vec![[0; 5]; 256],
+        discrete_jepa_w_state: [0; 9],
+        discrete_jepa_w_token: [0; 9],
+        discrete_jepa_bias: [0; 3],
+        discrete_jepa_fiber_w_state: [0; 4],
+        discrete_jepa_fiber_w_token: [0; 4],
+        discrete_jepa_fiber_bias: [0; 2],
+        vsa_seed: 0x1234_5678,
+        vsa_scale_q15: 500,
+        hierarchical_codebook: None,
+        engram_table: None,
+        hierarchical_lattice: None,
+    };
+
+    // Warm-up static once-locks outside measurement
+    ctx.push(42);
+    let _ = model.context_fiber_from_ring(&ctx.ring, ctx.cursor, ctx.length);
+    let _ = model.context_vsa_from_ring(&codebook, &ctx.ring, ctx.cursor, ctx.length);
+    let _ = UnitS3Q30::normalize([100, 200, 300, 400]);
+    ctx.clear();
+
+    ALLOCATIONS.with(|n| n.set(0));
+    BYTES.with(|n| n.set(0));
+    MEASURING.with(|v| v.set(true));
+
+    let mut valid = true;
+    for i in 0..1_000_u32 {
+        let tok = i % 256;
+        ctx.push(tok);
+
+        let fiber = model.context_fiber_from_ring(&ctx.ring, ctx.cursor, ctx.length);
+        valid &= fiber.base.0[2] >= -1073741824 && fiber.base.0[2] <= 1073741824;
+
+        let vsa = model.context_vsa_from_ring(&codebook, &ctx.ring, ctx.cursor, ctx.length);
+        if ctx.len() >= 1 {
+            valid &= vsa.count_ones() > 0;
+        }
+
+        let raw = [
+            (i as i64).wrapping_mul(1001),
+            ((i + 1) as i64).wrapping_mul(2003),
+            ((i + 2) as i64).wrapping_mul(3007),
+            ((i + 3) as i64).wrapping_mul(4009),
+        ];
+        let norm_s3 = UnitS3Q30::normalize(raw);
+        let n_q30 = norm_s3.norm_q30();
+        valid &= n_q30 <= 1073741824 && n_q30 >= 1073741823;
+    }
+
+    MEASURING.with(|v| v.set(false));
+    assert!(valid);
+    assert_eq!(
+        ALLOCATIONS.with(Cell::get),
+        0,
+        "64-token VSA context and S3 normalization must perform ZERO heap allocations"
+    );
+    assert_eq!(
+        BYTES.with(Cell::get),
+        0,
+        "64-token VSA context and S3 normalization must allocate ZERO heap bytes"
+    );
+}
+
+#[test]
+fn engram_32768_skip_bigram_lookup_and_syntactic_register_transitions_have_zero_allocations() {
+    use uor_r4_core::native_geometric::engram::{
+        hash_bigram, hash_skip, hash_trigram, EngramTable, DEFAULT_ENGRAM_CAPACITY,
+    };
+    use uor_r4_core::native_geometric::{Config, Control, Document, Trainer};
+
+    let mut table = EngramTable::with_capacity(DEFAULT_ENGRAM_CAPACITY);
+    let key1 = hash_bigram(10, 20);
+    let key2 = hash_trigram(5, 10, 20);
+    let key_skip1 = hash_skip(15, 20, 0);
+    let key_skip2 = hash_skip(15, 20, 1);
+    let key_skip3 = hash_skip(15, 20, 3);
+    table.insert(key1, &[(30, 16384), (31, 8192)]);
+    table.insert(key2, &[(40, 24576), (41, 12288)]);
+    table.insert_conditioned(key_skip1, 0, &[(50, 20000), (51, 10000)]);
+    table.insert_conditioned(key_skip2, 1, &[(36, 32767)]);
+    table.insert_conditioned(key_skip3, 3, &[(60, 15000)]);
+
+    let docs = [Document {
+        id: "alloc-test".into(),
+        text: "The quick brown fox jumps over the \"lazy\" dog. (Wait, what?) Yes!".into(),
+    }];
+    let mut trainer = Trainer::new(
+        Config {
+            context_tokens: 32,
+            ..Config::default()
+        },
+        &docs,
+    )
+    .unwrap();
+    trainer.train_documents(&docs).unwrap();
+    let model = trainer.compile().unwrap();
+    let mut session = model.session(Control::default()).unwrap();
+
+    ALLOCATIONS.with(|n| n.set(0));
+    BYTES.with(|n| n.set(0));
+    MEASURING.with(|v| v.set(true));
+
+    let mut hits = 0;
+    for i in 0..10_000_u32 {
+        let w_curr = (i % 256) + 2;
+        let w_prev = ((i + 1) % 256) + 2;
+        let w_prev2 = ((i + 2) % 256) + 2;
+        let cond = (i % 8) as u8;
+
+        if let Some(cands) = table.lookup_bigram(w_prev, w_curr) {
+            hits += cands.len();
+        }
+        if let Some(cands) = table.lookup_trigram(w_prev2, w_prev, w_curr) {
+            hits += cands.len();
+        }
+        if let Some(cands) = table.lookup_skip(w_prev2, w_curr, cond) {
+            hits += cands.len();
+        }
+
+        // Test syntactic register transition
+        let tok = match i % 10 {
+            0 => 36, // '"'
+            1 => 42, // '('
+            2 => 43, // ')'
+            3 => 46, // ','
+            4 => 48, // '.'
+            _ => (i % 50) + 2,
+        };
+        let _ = session.observe(&model, tok);
+        let syn = session.syntactic_state();
+        let q = session.quotation_parity();
+        let d = session.clause_depth();
+        hits += (syn as usize) + (q as usize) + (d as usize);
+    }
+
+    MEASURING.with(|v| v.set(false));
+    assert!(hits > 0);
+    assert_eq!(
+        ALLOCATIONS.with(Cell::get),
+        0,
+        "Engram 32,768 skip-bigram lookups and syntactic register updates must have zero heap allocations"
+    );
+    assert_eq!(
+        BYTES.with(Cell::get),
+        0,
+        "Engram 32,768 skip-bigram lookups and syntactic register updates must allocate zero heap bytes"
+    );
+}
+
+#[test]
+fn multi_head_vsa_attention_hot_path_has_zero_allocations() {
+    use uor_r4_core::native_geometric::vsa::{Codebook, MultiHeadVsaAttention, RollingVsaContext};
+
+    let codebook = Codebook::<64>::new(256, 0x1234_5678);
+    let attn = MultiHeadVsaAttention::<64>::new();
+    let mut ctx = RollingVsaContext::<64, 64>::new();
+
+    for i in 0..32_u32 {
+        ctx.push((i % 50) + 2);
+    }
+
+    ALLOCATIONS.with(|n| n.set(0));
+    BYTES.with(|n| n.set(0));
+    MEASURING.with(|v| v.set(true));
+
+    let mut valid = true;
+    for step in 0..256_u32 {
+        ctx.push((step % 50) + 2);
+        let res = ctx.current_multihead_attention(&codebook, &attn);
+        valid &= res.active_heads > 0;
+
+        let cand_vec = codebook.get((step % 50) + 2);
+        let score = res.score_candidate_q15(&cand_vec);
+        valid &= score != i16::MIN;
+    }
+
+    MEASURING.with(|v| v.set(false));
+    assert!(valid);
+    assert_eq!(
+        ALLOCATIONS.with(Cell::get),
+        0,
+        "Multi-head VSA attention hot path must have zero heap allocations"
+    );
+    assert_eq!(
+        BYTES.with(Cell::get),
+        0,
+        "Multi-head VSA attention hot path must allocate zero heap bytes"
+    );
 }

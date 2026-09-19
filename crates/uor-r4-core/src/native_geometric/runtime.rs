@@ -3,6 +3,8 @@
 //! external model calls occur in observe/predict. Buffers are allocated once
 //! when a session is created; candidate work is bounded by artifact postings.
 
+use super::hopf_metric::HopfFiberPointQ30;
+use super::vsa::{Codebook, Hypervector4096, Shortlist};
 use super::{
     Candidate, Control, Error, Feature, Model, Prediction, Result, WordCopyProgress, Work, BOS,
     PHASE_CHANNELS,
@@ -38,7 +40,12 @@ pub struct StateView {
     pub control: Control,
     pub ring_storage_bytes: usize,
     pub candidate_storage_bytes: usize,
+    #[serde(default)]
+    pub syntactic_state: u8,
 }
+
+/// Active runtime session for native geometric autoregressive inference.
+pub type ActiveSession = Session;
 
 #[derive(Debug, Clone)]
 pub struct Session {
@@ -63,6 +70,7 @@ pub struct Session {
     candidate_storage_bytes: usize,
     pub(super) control: Control,
     pub work: Work,
+    pub(super) syntactic_state: u8,
 }
 
 // Host boundary: allocation/session construction and diagnostic accessors.
@@ -106,6 +114,7 @@ impl Session {
             candidate_storage_bytes,
             control,
             work: Work::default(),
+            syntactic_state: 0,
         }
     }
 
@@ -164,6 +173,7 @@ impl Session {
             control: self.control,
             ring_storage_bytes: std::mem::size_of_val(self.ring.as_slice()),
             candidate_storage_bytes: self.candidate_storage_bytes,
+            syntactic_state: self.syntactic_state,
         }
     }
 
@@ -171,9 +181,74 @@ impl Session {
         &self.candidates
     }
 
+    const INDUCTION_BONUS_TABLE: [i64; 64] = [
+        0, 4096, 2048, 1365, 1024, 819, 682, 585, 512, 455, 409, 372, 341, 315, 292, 273, 256, 240,
+        227, 215, 204, 195, 186, 178, 170, 163, 157, 151, 146, 141, 136, 132, 128, 124, 120, 117,
+        113, 110, 107, 105, 102, 99, 97, 95, 93, 91, 89, 87, 85, 83, 81, 80, 78, 77, 75, 74, 73,
+        71, 70, 69, 68, 67, 66, 65,
+    ];
+
     // NATIVE_GEOMETRIC_INTEGER_KERNEL_BEGIN
     // The source guard covers this region through gate_eighths, plus the
     // Feature methods called here. Keep new kernel helpers in a scanned region.
+    #[inline]
+    pub fn syntactic_state(&self) -> u8 {
+        self.syntactic_state
+    }
+
+    #[inline]
+    pub fn quotation_parity(&self) -> u8 {
+        self.syntactic_state & 1
+    }
+
+    #[inline]
+    pub fn clause_depth(&self) -> u8 {
+        (self.syntactic_state >> 1) & 3
+    }
+
+    #[inline]
+    fn update_syntactic_state(&mut self, model: &Model, token: u32) {
+        let mut q = self.syntactic_state & 1;
+        let mut d = (self.syntactic_state >> 1) & 3;
+
+        let byte;
+        let bytes: &[u8] = if token < super::LEXICAL_BASE {
+            if (2..=257).contains(&token) {
+                byte = [(token - 2) as u8];
+                &byte[..]
+            } else {
+                &[]
+            }
+        } else {
+            let idx = (token - super::LEXICAL_BASE) as usize;
+            model.lexical_pieces.get(idx).map(|p| &p[..]).unwrap_or(&[])
+        };
+
+        for &b in bytes {
+            match b {
+                b'"' => {
+                    q ^= 1;
+                }
+                b'(' | b'[' | b'{' => {
+                    d = (d + 1).min(3);
+                }
+                b')' | b']' | b'}' => {
+                    d = d.saturating_sub(1);
+                }
+                b',' | b';' | b':' => {
+                    if d == 0 {
+                        d = 1;
+                    }
+                }
+                b'.' | b'?' | b'!' => {
+                    d = 0;
+                }
+                _ => {}
+            }
+        }
+
+        self.syntactic_state = (q & 1) | ((d & 3) << 1);
+    }
     pub fn routing_decision(&self) -> Option<super::RoutingDecision> {
         self.routing_decision
     }
@@ -428,6 +503,7 @@ impl Session {
                 );
             }
         }
+        self.update_syntactic_state(model, token);
         Ok(())
     }
 
@@ -509,8 +585,10 @@ impl Session {
         token: u32,
         rows: &[usize],
         gates: &[u8; 7],
+        prose_fiber: Option<HopfFiberPointQ30>,
+        vsa_context: Option<(&Codebook<64>, &Hypervector4096)>,
     ) -> Candidate {
-        let prior = model.prior_scores[token as usize];
+        let prior = model.prior_scores.get(token as usize).copied().unwrap_or(0);
         let mut score = i64::from(prior);
         let mut groups = [0_i64; 7];
         for &row_index in rows {
@@ -524,21 +602,184 @@ impl Session {
                 (i64::from(conditional) - i64::from(prior)) >> row.feature.shift();
         }
         for (value, &gate) in groups.into_iter().zip(gates) {
-            score += gate_eighths(value, gate);
+            score = score.saturating_add(gate_eighths(value, gate));
         }
         if let (Some(block), Some(decision)) = (&model.learned_routing, self.routing_decision) {
-            score += block.score(model, decision, token, &mut self.work.learned_routing);
+            score = score.saturating_add(block.score(
+                model,
+                decision,
+                token,
+                &mut self.work.learned_routing,
+            ));
+        }
+        if let Some(tables) = &model.geometric_prose_tables {
+            let cand_idx = token as usize;
+            let root_len = tables.token_to_root.len();
+            let cand_root = if root_len > 0 {
+                tables.token_to_root[cand_idx.min(root_len - 1)] as usize
+            } else {
+                0
+            };
+            score = score.saturating_add(i64::from(
+                tables.discrete_bias.get(cand_idx).copied().unwrap_or(0),
+            ));
+
+            for (l, table) in tables.discrete_tables.iter().enumerate() {
+                let lag = l + 1;
+                if self.length >= lag {
+                    let ctx_token = self.recent(lag) as usize;
+                    let ctx_root = if root_len > 0 {
+                        tables.token_to_root[ctx_token.min(root_len - 1)] as usize
+                    } else {
+                        0
+                    };
+                    score = score.saturating_add(i64::from(table.score(ctx_root, cand_root)));
+                }
+            }
+
+            if let Some(fiber) = prose_fiber {
+                score = score.saturating_add(i64::from(tables.score_readout(cand_idx, fiber)));
+            }
+
+            if let Some((codebook, vsa_vec)) = vsa_context {
+                score = score.saturating_add(i64::from(
+                    tables.score_vsa_candidate(codebook, vsa_vec, token),
+                ));
+            }
+
+            if let Some(engram) = &tables.engram_table {
+                if self.length >= 3 {
+                    let w_curr = self.recent(1);
+                    let w_prev = self.recent(2);
+                    let w_prev2 = self.recent(3);
+                    if let Some(cands) = engram.lookup_trigram(w_prev2, w_prev, w_curr) {
+                        for &(c, q15) in cands {
+                            if c == token {
+                                score = score.saturating_add(i64::from(q15));
+                            }
+                        }
+                    }
+                }
+                if self.length >= 2 {
+                    let w_curr = self.recent(1);
+                    let w_prev = self.recent(2);
+                    if let Some(cands) = engram.lookup_bigram(w_prev, w_curr) {
+                        for &(c, q15) in cands {
+                            if c == token {
+                                score = score.saturating_add(i64::from(q15));
+                            }
+                        }
+                    }
+                }
+                for &k in &[2, 4, 8] {
+                    if self.length >= k + 1 {
+                        let w_curr = self.recent(1);
+                        let w_skip = self.recent(k + 1);
+                        if let Some(cands) =
+                            engram.lookup_skip(w_skip, w_curr, self.syntactic_state)
+                        {
+                            for &(c, q15) in cands {
+                                if c == token {
+                                    score = score.saturating_add(i64::from(q15));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if let Some(lattice) = &tables.hierarchical_lattice {
+                if root_len > 0 {
+                    let curr_tok = if self.length >= 1 {
+                        self.recent(1) as usize
+                    } else {
+                        usize::MAX
+                    };
+                    let is_self = cand_idx == curr_tok;
+                    if self.length >= 2 {
+                        let prev_tok = self.recent(2) as usize;
+                        let r_prev = tables.token_to_root[prev_tok.min(root_len - 1)] as usize;
+                        let r_curr = tables.token_to_root[curr_tok.min(root_len - 1)] as usize;
+                        let c_curr = lattice.cluster_of(curr_tok);
+                        let c_cand = lattice.cluster_of(cand_idx);
+                        score = score.saturating_add(i64::from(
+                            lattice.score_token(r_prev, r_curr, cand_root, c_curr, c_cand, is_self),
+                        ));
+                    } else if self.length == 1 {
+                        let r_curr = tables.token_to_root[curr_tok.min(root_len - 1)] as usize;
+                        let c_curr = lattice.cluster_of(curr_tok);
+                        let c_cand = lattice.cluster_of(cand_idx);
+                        score = score.saturating_add(i64::from(
+                            lattice.score_token(r_curr, r_curr, cand_root, c_curr, c_cand, is_self),
+                        ));
+                    }
+                }
+            }
+
+            // Exact Addressed Induction Attention (2-layer Previous-Token + Induction Circuit):
+            // When current bigram [w_{t-1}, w_t] matches earlier bigram [w_{t-k-1}, w_{t-k}],
+            // continuation token w_{t-k+1} receives addressed transition bonus from table.
+            if self.length >= 8 {
+                let b_curr = self.recent(1);
+                let b_prev = self.recent(2);
+                let max_k = self.length.min(64);
+                for k in 6..max_k - 1 {
+                    if self.recent(k + 2) == b_prev
+                        && self.recent(k + 1) == b_curr
+                        && self.recent(k) == token
+                        && token != b_curr
+                    {
+                        score = score.saturating_add(Self::INDUCTION_BONUS_TABLE[k.min(63)]);
+                        break;
+                    }
+                }
+            }
+
+            // DeltaScore_memory(v) = Score_memory(v) - Score_prior(v)
+            if self.control != Control::MemoryDisabled {
+                if let Some(state) = &self.memory {
+                    let occurrence_composition = model.memory_read.as_ref().is_some_and(|memory| {
+                        memory.schema == super::memory_types::OCCURRENCE_MEMORY_SCHEMA
+                            || memory.schema == super::memory_types::RESPONSE_MEMORY_SCHEMA
+                    });
+                    let mem_score = if occurrence_composition {
+                        state
+                            .composed
+                            .iter()
+                            .find(|c| c.token == token)
+                            .map(|c| c.score)
+                    } else {
+                        state
+                            .candidates
+                            .iter()
+                            .find(|c| c.token == token)
+                            .map(|c| c.score)
+                    };
+                    if let Some(score_val) = mem_score {
+                        let mem_evidence = score_val.saturating_sub(i64::from(prior));
+                        score = score.saturating_add(mem_evidence);
+                    }
+                }
+            }
         }
         self.work.candidate_evaluations = self.work.candidate_evaluations.saturating_add(1);
         Candidate { token, score }
     }
 
-    fn offer(&mut self, model: &Model, token: u32, rows: &[usize], gates: &[u8; 7]) {
+    fn offer(
+        &mut self,
+        model: &Model,
+        token: u32,
+        rows: &[usize],
+        gates: &[u8; 7],
+        prose_fiber: Option<HopfFiberPointQ30>,
+        vsa_context: Option<(&Codebook<64>, &Hypervector4096)>,
+    ) {
         self.work.candidate_offers = self.work.candidate_offers.saturating_add(1);
         if token == super::BOS || self.candidates.iter().any(|item| item.token == token) {
             return;
         }
-        let candidate = self.score_candidate(model, token, rows, gates);
+        let candidate = self.score_candidate(model, token, rows, gates, prose_fiber, vsa_context);
         let position = self.candidates.partition_point(|item| {
             item.score > candidate.score
                 || (item.score == candidate.score && item.token < candidate.token)
@@ -664,31 +905,416 @@ impl Session {
         }
         let rows = &row_indices[..row_count];
         self.candidates.clear();
+        let prose_fiber = model.geometric_prose_tables.as_ref().map(|tables| {
+            let hist_fiber = tables.context_fiber_from_ring(&self.ring, self.cursor, self.length);
+            if self.length > 0 {
+                let w_t = self.recent(1);
+                tables.predict_next_fiber(hist_fiber, w_t)
+            } else {
+                hist_fiber
+            }
+        });
+
+        let (vsa_codebook, prose_vsa) = if let Some(tables) = &model.geometric_prose_tables {
+            if tables.vsa_scale_q15 != 0 && self.length > 0 {
+                let codebook = Codebook::<64>::on_demand(tables.vocab_size, tables.vsa_seed);
+                let vsa_vec =
+                    tables.context_vsa_from_ring(&codebook, &self.ring, self.cursor, self.length);
+                (Some(codebook), Some(vsa_vec))
+            } else {
+                (None, None)
+            }
+        } else {
+            (None, None)
+        };
+
+        let vsa_context = match (&vsa_codebook, &prose_vsa) {
+            (Some(c), Some(v)) => Some((c, v)),
+            _ => None,
+        };
+
+        // If exact addressed memory is enabled, collect active memory candidates
+        let occurrence_composition = model.memory_read.as_ref().is_some_and(|memory| {
+            memory.schema == super::memory_types::OCCURRENCE_MEMORY_SCHEMA
+                || memory.schema == super::memory_types::RESPONSE_MEMORY_SCHEMA
+        });
+        if self.control != Control::MemoryDisabled {
+            if let (Some(state), Some(memory)) = (&mut self.memory, &model.memory_read) {
+                state.collect(model, memory, self.control, &mut self.work);
+            }
+        }
+
+        // Collect active memory candidate tokens from exact memory, relation records,
+        // value completion, response entry, and copy buffers into a stack-allocated buffer (zero heap allocations).
+        let mut memory_tokens = Shortlist::<64>::empty();
+        if self.control != Control::MemoryDisabled {
+            // 1. Highest priority: active word copy in progress or starting
+            if let Some(copy) = &self.word_copy {
+                if let Some(values) = &self.values {
+                    if let Some(origin) = copy.origin {
+                        if let Some(word) = super::relation::source(values, origin) {
+                            let cur = match copy.progress {
+                                WordCopyProgress::Emitting { cursor } => usize::from(cursor),
+                                _ => 0,
+                            };
+                            let word_len =
+                                usize::from(word.len).min(super::value_lexemes::WORD_BYTES);
+                            if cur < word_len {
+                                let tok = u32::from(word.bytes[cur]) + 2;
+                                if (tok as usize) < model.geometry.tokens.len() {
+                                    memory_tokens.push(tok);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 2. Active typed decisions (pending completion, response entry, values)
+            if let Some(entry) = &self.response_entry {
+                if let Some(pending) = entry.pending {
+                    let tok = pending.token;
+                    if tok != super::BOS && tok != 0 {
+                        memory_tokens.push(tok);
+                    }
+                }
+            }
+            if let Some(completion) = &self.completion {
+                if let Some(pending) = completion.pending {
+                    let tok = pending.token;
+                    if tok != super::BOS && tok != 0 {
+                        memory_tokens.push(tok);
+                    }
+                }
+            }
+            if let Some(values) = &self.values {
+                if let Some(pending) = &values.pending {
+                    let tok = pending.token;
+                    if tok != super::BOS && tok != 0 {
+                        memory_tokens.push(tok);
+                    }
+                }
+                if let Some(emission) = &values.emission {
+                    let cur = usize::from(emission.cursor);
+                    if cur < usize::from(emission.numeral.len) {
+                        let tok = emission.numeral.tokens[cur];
+                        memory_tokens.push(tok);
+                    }
+                }
+            }
+
+            // 3. Addressed memory recall candidates (up to 8 to preserve room)
+            if let Some(state) = &self.memory {
+                let count = if occurrence_composition {
+                    state.composed.len()
+                } else {
+                    state.candidates.len()
+                };
+                for i in 0..count.min(8) {
+                    let tok = if occurrence_composition {
+                        state.composed[i].token
+                    } else {
+                        state.candidates[i].token
+                    };
+                    if tok != super::BOS && tok != 0 {
+                        memory_tokens.push(tok);
+                    }
+                }
+            }
+
+            // 4. Exact relation records from values.relations (most recent records first)
+            if let Some(relations) = self.values.as_ref().and_then(|v| v.relations.as_ref()) {
+                let mut ids = [0u64; super::relation::RELATIONS];
+                let mut id_count = 0;
+                for &id in &relations.directory {
+                    if id != 0 {
+                        ids[id_count] = id;
+                        id_count += 1;
+                    }
+                }
+                ids[..id_count].sort_unstable_by(|a, b| b.cmp(a));
+
+                for &id in &ids[..id_count] {
+                    if memory_tokens.len >= 24 {
+                        break;
+                    }
+                    if let Some(record) = relations.record(id) {
+                        let len =
+                            usize::from(record.value.len).min(super::value_lexemes::WORD_BYTES);
+                        for &b in &record.value.bytes[..len] {
+                            let tok = u32::from(b) + 2;
+                            if (tok as usize) < model.geometry.tokens.len() {
+                                memory_tokens.push(tok);
+                            }
+                        }
+                        if let Some(span) = &record.span {
+                            let span_len = usize::from(span.len).min(span.bytes.len());
+                            for &b in &span.bytes[..span_len] {
+                                let tok = u32::from(b) + 2;
+                                if (tok as usize) < model.geometry.tokens.len() {
+                                    memory_tokens.push(tok);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         for &token in &model.prior_postings {
-            self.offer(model, token, rows, &gates);
+            self.offer(model, token, rows, &gates, prose_fiber, vsa_context);
         }
         for &index in rows {
             for &token in &model.rows[index].postings {
-                self.offer(model, token, rows, &gates);
+                self.offer(model, token, rows, &gates, prose_fiber, vsa_context);
             }
         }
         if let (Some(block), Some(decision)) = (&model.learned_routing, self.routing_decision) {
             if block.joint.is_none() {
                 for (head, selected) in block.heads.iter().zip(decision.heads) {
                     for token in &head.emissions[usize::from(selected.output)].postings {
-                        self.offer(model, *token, rows, &gates);
+                        self.offer(model, *token, rows, &gates, prose_fiber, vsa_context);
+                    }
+                }
+            }
+        }
+        if let Some(tables) = &model.geometric_prose_tables {
+            // Unified multi-modal shortlist candidate formation:
+            // 1. Exact Addressed Memory (M_exact): relation records, value completion, response entry, word copy
+            let mut seed_shortlist = Shortlist::<64>::empty();
+            for &tok in memory_tokens.as_slice() {
+                seed_shortlist.push(tok);
+            }
+
+            // 2. Engram Collocation Table (E_colloc): high-frequency 5-gram, 4-gram, trigram, and bigram continuations
+            if let Some(engram) = &tables.engram_table {
+                if self.length >= 5 {
+                    let w_curr = self.recent(1);
+                    let w_prev = self.recent(2);
+                    let w_prev2 = self.recent(3);
+                    let w_prev3 = self.recent(4);
+                    let w_prev4 = self.recent(5);
+                    if let Some(cands) =
+                        engram.lookup_5gram(w_prev4, w_prev3, w_prev2, w_prev, w_curr)
+                    {
+                        for &(cand_tok, _) in cands {
+                            if seed_shortlist.len >= 40 {
+                                break;
+                            }
+                            seed_shortlist.push(cand_tok);
+                        }
+                    }
+                }
+                if self.length >= 4 {
+                    let w_curr = self.recent(1);
+                    let w_prev = self.recent(2);
+                    let w_prev2 = self.recent(3);
+                    let w_prev3 = self.recent(4);
+                    if let Some(cands) = engram.lookup_4gram(w_prev3, w_prev2, w_prev, w_curr) {
+                        for &(cand_tok, _) in cands {
+                            if seed_shortlist.len >= 40 {
+                                break;
+                            }
+                            seed_shortlist.push(cand_tok);
+                        }
+                    }
+                }
+                if self.length >= 3 {
+                    let w_curr = self.recent(1);
+                    let w_prev = self.recent(2);
+                    let w_prev2 = self.recent(3);
+                    if let Some(cands) = engram.lookup_trigram(w_prev2, w_prev, w_curr) {
+                        for &(cand_tok, _) in cands {
+                            if seed_shortlist.len >= 40 {
+                                break;
+                            }
+                            seed_shortlist.push(cand_tok);
+                        }
+                    }
+                }
+                if self.length >= 2 {
+                    let w_curr = self.recent(1);
+                    let w_prev = self.recent(2);
+                    if let Some(cands) = engram.lookup_bigram(w_prev, w_curr) {
+                        for &(cand_tok, _) in cands {
+                            if seed_shortlist.len >= 40 {
+                                break;
+                            }
+                            seed_shortlist.push(cand_tok);
+                        }
+                    }
+                }
+                for &k in &[2, 4, 8] {
+                    if self.length > k {
+                        let w_curr = self.recent(1);
+                        let w_skip = self.recent(k + 1);
+                        if let Some(cands) =
+                            engram.lookup_skip(w_skip, w_curr, self.syntactic_state)
+                        {
+                            for &(cand_tok, _) in cands {
+                                if seed_shortlist.len >= 40 {
+                                    break;
+                                }
+                                seed_shortlist.push(cand_tok);
+                            }
+                        }
+                    }
+                }
+                if self.quotation_parity() == 1 {
+                    if (36 as usize) < model.geometry.tokens.len() && seed_shortlist.len < 40 {
+                        seed_shortlist.push(36);
+                    }
+                    if let Ok(idx) = model
+                        .lexical_pieces
+                        .binary_search_by(|p| p.as_slice().cmp(b"\""))
+                    {
+                        let quote_token = super::LEXICAL_BASE + idx as u32;
+                        if (quote_token as usize) < model.geometry.tokens.len()
+                            && seed_shortlist.len < 40
+                        {
+                            seed_shortlist.push(quote_token);
+                        }
+                    }
+                }
+                if self.length >= 8 {
+                    let b_curr = self.recent(1);
+                    let b_prev = self.recent(2);
+                    let max_k = self.length.min(64);
+                    for k in 6..max_k - 1 {
+                        if self.recent(k + 2) == b_prev && self.recent(k + 1) == b_curr {
+                            let cont_tok = self.recent(k);
+                            if cont_tok != b_curr
+                                && (cont_tok as usize) < model.geometry.tokens.len()
+                                && seed_shortlist.len < 40
+                            {
+                                seed_shortlist.push(cont_tok);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 3. Hierarchical Voronoi Lattice (L_hier): coarse root trigram sectors and fine Hamming leaf clusters
+            //    evaluated via forward-predicted geometric state s_hat_{t+1}.
+            //    Seed shortlist has at most 40 items, ensuring at least 24 slots remain for Voronoi lattice clusters!
+            let shortlist = if let Some(hierarchical) = &tables.hierarchical_codebook {
+                let query_s3 = prose_fiber.map(|pf| pf.to_unit_s3_q30());
+                hierarchical.route_shortlist_q30_with_memory::<64>(
+                    query_s3,
+                    prose_vsa.as_ref(),
+                    seed_shortlist.as_slice(),
+                )
+            } else {
+                let mut sl = Shortlist::<64>::empty();
+                for &tok in seed_shortlist.as_slice() {
+                    sl.push(tok);
+                }
+                let max_token = tables.vocab_size.min(model.geometry.tokens.len());
+                for token in 0..max_token {
+                    if sl.is_full() {
+                        break;
+                    }
+                    sl.push(token as u32);
+                }
+                sl
+            };
+
+            for &token in shortlist.as_slice() {
+                self.offer(model, token, rows, &gates, prose_fiber, vsa_context);
+            }
+
+            if let Some(engram) = &tables.engram_table {
+                if self.length >= 5 {
+                    let w_curr = self.recent(1);
+                    let w_prev = self.recent(2);
+                    let w_prev2 = self.recent(3);
+                    let w_prev3 = self.recent(4);
+                    let w_prev4 = self.recent(5);
+                    if let Some(cands) =
+                        engram.lookup_5gram(w_prev4, w_prev3, w_prev2, w_prev, w_curr)
+                    {
+                        for &(cand_tok, _) in cands {
+                            self.offer(model, cand_tok, rows, &gates, prose_fiber, vsa_context);
+                        }
+                    }
+                }
+                if self.length >= 4 {
+                    let w_curr = self.recent(1);
+                    let w_prev = self.recent(2);
+                    let w_prev2 = self.recent(3);
+                    let w_prev3 = self.recent(4);
+                    if let Some(cands) = engram.lookup_4gram(w_prev3, w_prev2, w_prev, w_curr) {
+                        for &(cand_tok, _) in cands {
+                            self.offer(model, cand_tok, rows, &gates, prose_fiber, vsa_context);
+                        }
+                    }
+                }
+                if self.length >= 3 {
+                    let w_curr = self.recent(1);
+                    let w_prev = self.recent(2);
+                    let w_prev2 = self.recent(3);
+                    if let Some(cands) = engram.lookup_trigram(w_prev2, w_prev, w_curr) {
+                        for &(cand_tok, _) in cands {
+                            self.offer(model, cand_tok, rows, &gates, prose_fiber, vsa_context);
+                        }
+                    }
+                }
+                if self.length >= 2 {
+                    let w_curr = self.recent(1);
+                    let w_prev = self.recent(2);
+                    if let Some(cands) = engram.lookup_bigram(w_prev, w_curr) {
+                        for &(cand_tok, _) in cands {
+                            self.offer(model, cand_tok, rows, &gates, prose_fiber, vsa_context);
+                        }
+                    }
+                }
+                for &k in &[2, 4, 8] {
+                    if self.length > k {
+                        let w_curr = self.recent(1);
+                        let w_skip = self.recent(k + 1);
+                        if let Some(cands) =
+                            engram.lookup_skip(w_skip, w_curr, self.syntactic_state)
+                        {
+                            for &(cand_tok, _) in cands {
+                                self.offer(model, cand_tok, rows, &gates, prose_fiber, vsa_context);
+                            }
+                        }
+                    }
+                }
+                if self.quotation_parity() == 1 {
+                    if (36 as usize) < model.geometry.tokens.len() {
+                        self.offer(model, 36, rows, &gates, prose_fiber, vsa_context);
+                    }
+                    if let Ok(idx) = model
+                        .lexical_pieces
+                        .binary_search_by(|p| p.as_slice().cmp(b"\""))
+                    {
+                        let quote_token = super::LEXICAL_BASE + idx as u32;
+                        if (quote_token as usize) < model.geometry.tokens.len() {
+                            self.offer(model, quote_token, rows, &gates, prose_fiber, vsa_context);
+                        }
+                    }
+                }
+                if self.length >= 8 {
+                    let b_curr = self.recent(1);
+                    let b_prev = self.recent(2);
+                    let max_k = self.length.min(64);
+                    for k in 6..max_k - 1 {
+                        if self.recent(k + 2) == b_prev && self.recent(k + 1) == b_curr {
+                            let cont_tok = self.recent(k);
+                            if cont_tok != b_curr
+                                && (cont_tok as usize) < model.geometry.tokens.len()
+                            {
+                                self.offer(model, cont_tok, rows, &gates, prose_fiber, vsa_context);
+                                break;
+                            }
+                        }
                     }
                 }
             }
         }
         if self.control != Control::MemoryDisabled {
-            let occurrence_composition = model.memory_read.as_ref().is_some_and(|memory| {
-                memory.schema == super::memory_types::OCCURRENCE_MEMORY_SCHEMA
-                    || memory.schema == super::memory_types::RESPONSE_MEMORY_SCHEMA
-            });
-            if let (Some(state), Some(memory)) = (&mut self.memory, &model.memory_read) {
-                state.collect(model, memory, self.control, &mut self.work);
-            }
             let memory_count = self
                 .memory
                 .as_ref()
@@ -715,7 +1341,19 @@ impl Session {
                             score: candidate.score,
                         }
                     };
-                    self.offer_memory(model, candidate);
+                    if model.geometric_prose_tables.is_some() {
+                        let geom_cand = self.score_candidate(
+                            model,
+                            candidate.token,
+                            rows,
+                            &gates,
+                            prose_fiber,
+                            vsa_context,
+                        );
+                        self.offer_memory(model, geom_cand);
+                    } else {
+                        self.offer_memory(model, candidate);
+                    }
                 }
             }
         }

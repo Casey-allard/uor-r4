@@ -27,3 +27,10 @@ crates/uor-r4-graph-format/fuzz/target/
 pkg/
 trend_output/
 .uor-models/
+/tinystories_train.u16
+*.u16
+*.rgm
+native_geometric_prose_model.json
+.serena/
+Claude outputs/
+.zed/

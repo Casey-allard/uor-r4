@@ -18,6 +18,8 @@ uor-r4-graph-runtime = { version = "0.1.0", path = "../uor-r4-graph-runtime" }
 uor-addr = { version = "0.2.0", git = "https://github.com/UOR-Foundation/uor-addr.git", rev = "165b51e3e2113ee5d032730cde709335d4fe9b60", default-features = false, features = ["alloc"] }
 tracing = { version = "0.1", default-features = false, features = ["std"] }
 libm = "0.2"
+memmap2 = "0.9"
+rayon = "1.10.0"
 
 [features]
 # Explicit CPU floating-point research boundary; never enabled by default.

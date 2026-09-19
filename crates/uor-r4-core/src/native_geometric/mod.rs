@@ -98,6 +98,8 @@ mod completion_runtime;
 mod completion_training;
 mod completion_types;
 pub mod durable_memory;
+pub mod engram;
+pub use engram::{hash_bigram, hash_skip, hash_trigram, EngramEntry, EngramTable};
 #[cfg(test)]
 mod durable_memory_tests;
 pub mod groundedness;
@@ -107,9 +109,15 @@ pub mod guarantees;
 #[cfg(test)]
 mod guarantees_tests;
 pub mod hopf_metric;
+pub mod lattice_table;
+pub mod learner;
 pub mod m1_profiler;
 #[cfg(test)]
 mod m1_profiler_tests;
+pub mod mmap_corpus;
+pub use mmap_corpus::{
+    CorpusChunkIter, CorpusError, CorpusHeader, CorpusWindowIter, CorpusWriter, MmapCorpusReader,
+};
 mod memory_runtime;
 mod memory_training;
 mod memory_types;
@@ -141,6 +149,7 @@ mod value_lexemes;
 mod value_runtime;
 mod value_training;
 mod value_types;
+pub mod vsa;
 mod word_copy_runtime;
 mod word_copy_training;
 mod word_copy_types;
@@ -199,7 +208,7 @@ pub use multi_step_reasoning::{
     ConstraintPolicy, MultiStepReasoningEngine, MultiStepReasoningReport, ReasoningChain,
     ReasoningStep, ReasoningStepKind, MULTI_STEP_REASONING_SCHEMA,
 };
-pub use runtime::{Session, StateView};
+pub use runtime::{ActiveSession, Session, StateView};
 pub use training::Trainer;
 pub use value_training::{ValueExample, ValueFitConfig, ValueFitReport};
 pub use value_types::{
@@ -642,6 +651,8 @@ pub struct Model {
     source_routing_refinement: Option<source_routing::SourceRoutingRefinement>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     learned_routing: Option<learned_routing::RoutingBlock>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub geometric_prose_tables: Option<learner::ExportedGeometricModel>,
     schema: String,
     artifact_cid: String,
     uor_model_address: String,
@@ -748,6 +759,8 @@ struct ModelWire {
     source_routing_refinement: Option<source_routing::SourceRoutingRefinement>,
     #[serde(default)]
     learned_routing: Option<learned_routing::RoutingBlock>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    geometric_prose_tables: Option<learner::ExportedGeometricModel>,
     schema: String,
     artifact_cid: String,
     uor_model_address: String,
@@ -814,6 +827,7 @@ impl TryFrom<ModelWire> for Model {
             source_routing: wire.source_routing,
             source_routing_refinement: wire.source_routing_refinement,
             learned_routing: wire.learned_routing,
+            geometric_prose_tables: wire.geometric_prose_tables,
             schema: wire.schema,
             artifact_cid: wire.artifact_cid,
             uor_model_address: wire.uor_model_address,

@@ -214,6 +214,7 @@ impl Trainer {
             source_routing: None,
             source_routing_refinement: None,
             learned_routing: None,
+            geometric_prose_tables: None,
             schema: SCHEMA.into(),
             artifact_cid: String::new(),
             uor_model_address: String::new(),
@@ -1212,6 +1213,9 @@ impl Model {
             }
         }
         Ok(bytes)
+    }
+    pub fn lexical_pieces(&self) -> &[Vec<u8>] {
+        &self.lexical_pieces
     }
     pub fn session(&self, control: Control) -> Result<Session> {
         self.config.validate()?;

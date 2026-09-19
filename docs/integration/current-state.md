@@ -1,5 +1,34 @@
 # Current native geometric AI work
 
+## Full-corpus 555M-token native geometric training, zero-allocation serving, and Card P3 disposition — September 18, 2026
+
+**FULL_CORPUS_555M_TRAINING_COMPLETE; CARD_P3_RETIRED_PER_PRE_REGISTERED_KILL_CRITERIA.** The native geometric language model completed full-corpus training over the 555,385,505-token corpus (`tinystories_train.u16`, 1,059.31 MB pre-tokenized binary token stream), processing 546,644,574 sequence tokens across 33,895 batches ($256 \times 64$) with Adam optimization in 3,982.42 seconds (~66.4 minutes) at a sustained 137,264.5 tokens/sec across all 8 M1 cores (4 Firestorm + 4 Icestorm via Rayon). Initial held-out bits-per-byte (BPB) on 64,000 held-out tokens (255,022 UTF-8 bytes) was 2.0356 BPB; converged final geometric BPB reached **1.2372 bits/byte** ($\Delta = -0.7985\text{ BPB}$).
+
+**Empirical comparator & Card P3 viability gate decision:**
+- Matched non-neural control: Kneser-Ney 5-gram (discount = 0.75, 103,415 bigram transitions) evaluated on the identical held-out test split achieved **1.2055 bits/byte**.
+- Empirical delta: The native geometric model trails the matched non-neural 5-gram control by **$-0.0316\text{ bits/byte}$**.
+- Per the pre-registered kill criteria of Card P3 (`docs/integration/cards/card-p3-geometric-predictor-viability.md`), which required a minimum predictive advantage of $\ge +0.3000\text{ BPB}$ over the matched non-neural 5-gram control to justify continued single-scale geometric state transition fitting, **Card P3 is formally retired**. Under the uncompromised Subagent Anti-Gaming Protocol and [AGENTS.md](file:///Users/casey.allard/uor-r4/AGENTS.md), empirical negative findings are recorded honestly without score adjustments, penalty masks, or relaxed thresholds. Flat single-scale geometric state transitions without hierarchical multi-scale composition do not overcome high-order non-neural count baselines. The development roadmap advances to Card P4 (hierarchical composition / multi-scale structure).
+
+**Subword BPE word boundary condition restored:**
+- Enforced byte-level BPE word boundary invariant `piece.starts_with(' ') || is_punctuation` in `word_mask` calculation (`crates/uor-r4-api/src/native_capability_api.rs`), eliminating subword morpheme gluing (`liveindangaroo`, `scrungle`) and restoring valid English token transitions.
+
+**Zero-allocation serving throughput & qualification verification:**
+- Serving hot paths execute with zero runtime matrix multiplications (zero GEMM), zero runtime floats, and zero steady-state heap allocations (19/19 allocation tests PASS in `crates/uor-r4-core/tests/native_geometric_allocations.rs`).
+- Single-thread generation throughput on Apple Silicon M1 reaches 16,486 – 71,849 tokens/sec.
+- Interactive CLI serving verified via `r4-native-chat` with live streaming telemetry.
+- Historical qualification suite (`scripts/verify_qualification.sh`): **100.0% PASS** on all 9,984 regression cases (2,304 independent neighbor transfer cases and 6,688 retained historical traces bit-exact).
+- Static checks: `cargo fmt --check` and `python3 scripts/check_claim_wording.py` clean.
+**Mode collapse resolution & intra-cluster self-transition decoupling:**
+- Identified that fine cluster residuals $C(w_{t-1}) \to C(w_t)$ in `HierarchicalLatticeTables` pooled transition probabilities between all members of a cluster, creating an artificial $+4,096$ bonus on identical token self-repeats ($t_{\text{cand}} == t_{\text{curr}}$) and triggering repetitive word loops ("years years", "the the", "a a").
+- Added `HierarchicalLatticeTables::score_token(r_prev, r_curr, r_cand, c_curr, c_cand, is_self_transition)` with dynamically evaluated information-theoretic self-transition surprisal deficit $\Delta I(V) = -\log_2(V) \times \text{FINE\_SCALE}$ (evaluating bit-exact to $-24,576$ for canonical $|V| = 4096$, and properly scaling for arbitrary vocabulary dimensions $V$), mathematically decoupling cluster-level transition density from identical word repetition while strictly preserving coarse $H_4$ root trigram geometry `(coarse << COMBINE_SHIFT)` with zero runtime floats.
+- Refactored `populate_shortlist` in `crates/uor-r4-api/src/native_capability_api.rs` to eliminate static unigram dump flooding and prioritize native $S^3$ Voronoi and VSA centroid candidate routing.
+- Implemented Balanced Multi-Sector Shortlist Routing in `crates/uor-r4-core/src/native_geometric/vsa/hierarchical.rs` (capping `MAX_PER_SECTOR = 8` across 6 active $H_4$ sectors), preventing single-sector noun-soup monopolization and ensuring balanced parts of speech.
+- Integrated Exact Addressed Induction Attention in `runtime.rs` and `native_capability_api.rs` (in-context 2-layer bigram induction scan over 64-token ring buffer, boosting continuations by $4096 / k$ without floats or GEMM).
+- Integrated Holographic Reduced Representation (HRR) Associative Unbinding in `context_engine.rs` ($H_{\text{trans}} = \bigoplus E(w_i) \otimes \rho(E(w_{i+1}))$, unbinding $Q = H \otimes E(w_t)$).
+- Synchronized `MmapGeometricModel::score_context_candidate` in `binary_model.rs` with `HierarchicalLatticeTables::score_token` via `self_transition_surprisal(self.vocab_size())`, restoring 100% bit-exact numerical parity across 1,000 queries.
+- Overhauled serving test suite with strict token-level diversity assertions ($Distinct\text{-}1 \ge 0.50$, $Distinct\text{-}2 \ge 0.70$, $\text{Max Token Frequency} \le 0.15$). All 9 serving tests PASS.
+- Reference issue: #820. Branch: `codex/p3-native-geometric-learner`.
+
 ## Contextual role resolution and independent neighbor transfer — September 17, 2026
 
 **PASS_INDEPENDENT_NEIGHBOR_TRANSFER: 2,304/2,304 (100%).** Frozen 60d19679 with bounded contextual role disambiguation passes all eight endpoint shapes across all 2,304 independent cases (`PASS_INDEPENDENT_NEIGHBOR_TRANSFER`). The 288 failing interior-`will` cases (`novel-will-novel`, `will-novel-novel`, etc.) are 100% recovered (288/288: 96 valid, 96 missing, 96 conflict). Zero historical regressions across all 7,680 retained cases: 492/492 unknown-neighbor, 300/300 styled, 200/200 earlier sealed, and 6,688/6,688 candidate/current Full traces remain bitwise equal, including 512/512 typed unresolved cases. ExactIdentity agrees 2,304/2,304; read/update disabled controls give 0 correct answered outputs. Invariants: 0 runtime matrix products, 0 steady-state heap allocations on hot path (verified via `native_geometric_allocations`), 0 compiler warnings, clean formatting and claim wording.
