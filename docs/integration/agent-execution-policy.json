@@ -23,9 +23,17 @@
       "artifact_construction",
       "inference"
     ],
-    "serving_matrix_products_allowed": false,
+    "serving_matrix_products_allowed": true,
     "training_matrix_multiplication_allowed": true,
-    "model_name": "UOR-R4 Geometric Language Model"
+    "model_name": "UOR-R4 Geometric Language Model",
+    "serving_matrix_products_scope": "D0-b only: bounded <=4-bit integer/ternary linear maps executed through add_subtract_shift_table_reads; no multiplier instruction in declared numerical kernel and no floats or transcendentals in served computation",
+    "serving_contract": "docs/integration/DECISIONS.md#d0-b--what-no-matmul-at-serving-means-adopted",
+    "serving_kernel_multiplier_instructions_allowed": false,
+    "serving_kernel_floating_point_allowed": false,
+    "serving_weight_max_bits": 4,
+    "geometric_routing_priority": true,
+    "serving_floating_point_allowed": false,
+    "serving_transcendentals_allowed": false
   },
   "delivery": {
     "direct_push_to_main": false,

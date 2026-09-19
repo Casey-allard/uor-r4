@@ -203,3 +203,12 @@ better mechanism that maintains our project goal of a geometric language model."
   changes the fiber the S2 readout consumes, so single-mechanism deltas do not sum. A
   pairwise factorial or Shapley attribution over the mechanism set is the correct
   instrument once the set is stable.
+
+
+## D3 — Takeover clarification and policy synchronization
+
+Owner: Casey · Confirmed directly in the September 19, 2026 takeover conversation.
+
+The owner reconfirmed that offline training may use matrix products, all recorded decisions are owner decisions, and add/subtract implementations are allowed while geometric routing should remain the focused attempt. D0-b remains adopted; D1 is interpreted together with D2. The stable policy, AGENTS and live entry documents are synchronized through protected delivery. Frozen runtime contracts retain their scope.
+
+This ratification does not turn the historical rationale into a theorem: not every possible learned representation requires a linear map, and a small failed recurrent experiment does not prove local training or an entire mechanism family impossible. See the [source/literature corrections](takeover-review-2026-09-19.md). The arithmetic allowance is an owner engineering decision independent of those broader claims.

@@ -1,5 +1,7 @@
 # Hyperbolic geometry, hierarchy and where the compute actually goes — 2026-09-19
 
+**Superseding September 19 review:** see [takeover assessment](takeover-review-2026-09-19.md) and [current execution handoff](deepseek-next-step-2026-09-19.md). This is a preserved dated record, not the current task queue. #1284 and #1290 are merged; D0-b is owner-adopted. Static residue scores are not recurrent-model ceilings; universal ternary-recurrence/training impossibility and unqualified harmonic/compute claims are corrected in the review. Preserve original measurements at their exact scope.
+
 Owner question: we already had `artanh`/`arcosh` from earlier Poincaré-ball work; can hyperbolic
 geometry save massive compute, and can an operation act on the entire manifold at once? Owner's
 original idea: phase shifts (nulls) are avoided by a tangent operation. Owner allowance: a mechanism that

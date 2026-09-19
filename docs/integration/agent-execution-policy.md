@@ -13,9 +13,12 @@ use floating point and matrix multiplication. Final inference executes learned
 geometric operators through bounded routes, state transitions and integer/table
 lookup; a dense transformer stored behind a lookup interface does not satisfy
 that target. Keep prior Python/dense artifacts as comparison evidence and do
-not add a Python model dependency. Final serving executes no matrix products,
-including tabulated matrix contraction. Deterministic geometric address/page
-selection is permitted. The current design prioritizes shared typed operators;
+not add a Python model dependency. Owner-adopted [D0-b](DECISIONS.md) permits
+bounded <=4-bit integer/ternary linear maps implemented by add/subtract/shift/lookup.
+The declared numerical kernel must execute no multiplier instruction. Served
+computation must use no floating-point or transcendental arithmetic. This allowance does not make a linear map cease to
+be a mathematical contraction, or establish an efficiency advantage. Geometric
+routing remains the preferred direction; deterministic address/page selection is permitted. The current design prioritizes shared typed operators;
 the owner retains expert gates as a conditional future option if a concrete
 capability need and complete laptop-cost comparison justify adoption. See the
 [owner-requested architecture review](architecture-2026-09/README.md).

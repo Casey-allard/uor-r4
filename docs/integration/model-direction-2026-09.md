@@ -1,5 +1,7 @@
 # UOR-R4 Geometric Language Model: direction and capability assessment
 
+**Current synthesis:** the [September 19 takeover review](takeover-review-2026-09-19.md) supersedes dated mechanism selection and contract language below. Use the newest [current state](current-state.md) and [DeepSeek next task](deepseek-next-step-2026-09-19.md). Historical results retain their original artifact and population scope.
+
 Owner-adopted shared-core direction, 2026-09-12, extending the September 7
 source assessment. Plan adoption adds no model-quality result.
 [Current state](current-state.md) owns the retained artifact;
@@ -10,16 +12,17 @@ source assessment. Plan adoption adds no model-quality result.
 **UOR-R4 Geometric Language Model** is the product/research name. Technically it
 is an **experimental autoregressive geometric state model with exact addressed
 memory and learned typed operators**. Cargo package, binary and artifact-schema
-names remain unchanged for compatibility. Do not call the native model a
-transformer or geo-transformer. Historical R4/Spin models retaining dense
+names remain unchanged for compatibility. The owner may use “geo-transformer” as an aspiration; it does not establish a
+Transformer architecture or a measured replacement capability. Historical R4/Spin models retaining dense
 attention/feed-forward layers are still transformer references.
 
 The goal is frontier-level local language capability on a consumer M1-class
 laptop with lower energy and wasted computation. It is an objective, not a
 capacity, speed or energy claim. Offline Rust training may use floating point,
-gradients and matrix multiplication, including uor-matmul. Final serving must
-execute no mathematical matrix products, including tabulated contractions, and
-must not retain a transformer backbone. Deterministic geometric address/page
+gradients and matrix multiplication, including uor-matmul. Final serving follows owner-adopted D0-b: bounded <=4-bit additive/shift/lookup
+linear maps are permitted, with no multiplier instruction in
+the declared numerical kernel and no floating point in served computation. Geometric routing remains preferred; no transformer backbone
+is adopted. Deterministic geometric address/page
 selection is permitted. Shared typed operators are the present design; expert
 gates remain conditional future work requiring a demonstrated need and full
 laptop cost. Training duration is secondary to execution quality, latency and
@@ -58,7 +61,7 @@ Learn recurrent state, contextual access and lexical emission together through o
 
 This separates the language-learning question from the accumulated memory repair, which is parked. Training cannot recover distinctions erased by representation or select a record absent from its candidate set. Repeated downstream fitting against a frozen erroneous writer is therefore not the default route to general language. Shared learned parameters, including biases where justified, are allowed; request-specific answer rules and an expanding set of narrow correction heads do not establish a general learner.
 
-The new path must satisfy the complete serving-operation constraint without the inherited additive predictor fallback. Bounded tables may represent finite geometric operations, but a lookup/add implementation of a feature-weight contraction remains excluded. Hard geometric reads are a testable access design, not evidence that they suffice for broad language. Predictive improvement, generated continuations and matched context/state/geometry controls must support any advancement. Exact memory and typed operators are preserved but not connected to the first core experiment. Its use of H4 alone does not establish the roles or benefits of every prime/zeta/paired-H4 mechanism.
+The new path must satisfy the owner-adopted D0-b serving-operation contract. The earlier blanket exclusion of lookup/add feature-weight contractions is superseded; a learned prior must still be explicitly identified and tested rather than hidden behind a geometric label. Hard geometric reads are a testable access design, not evidence that they suffice for broad language. Predictive improvement, generated continuations and matched context/state/geometry controls must support any advancement. Exact memory and typed operators are preserved but not connected to the first core experiment. Its use of H4 alone does not establish the roles or benefits of every prime/zeta/paired-H4 mechanism.
 
 ## Historical September 7 diagnosis
 

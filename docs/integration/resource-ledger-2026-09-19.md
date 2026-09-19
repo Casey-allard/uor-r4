@@ -1,5 +1,29 @@
 # Cumulative model-time ledger reconciliation — 2026-09-19
 
+## Takeover reconciliation — recorded balance versus receipt completeness
+
+On September 19 the live JSON was read as `146438565 / 154400000 ms`, with `7961435 ms` remaining (132.69 min). This review makes **no change to either number**. It moves the complete compute/projection sections after their preceding harmonic charges and removes the still-orphaned heading fragment. All historical charge rows and receipts remain preserved.
+
+The late-day printed balance sequence is now readable in order:
+
+| Stage | Recorded cumulative ms | Recorded increment ms |
+| --- | ---: | ---: |
+| Ordered-word addressing | 143073565 | prior snapshot |
+| Difficulty sweep | 143143565 | 70000 |
+| Harmonic/filter/composition work | 145888565 | 2745000 |
+| Compute breakdown | 146178565 | 290000 |
+| Static real-text count comparison | 146438565 | 260000 |
+
+This reconciles **ordering and printed arithmetic**, not every measured duration. Several unresolved entries prevent certifying the JSON as a complete wall-time sum: the initial charge rows add to 139640275 rather than the printed 139644275; an extension uses the older 139427275 balance; the difficulty row charges 70,000 ms while listing 67.78 + 77.39 seconds; the route-abstention row charges 265,000 ms while listing 22.41 + 22.98 + 280.63 seconds. Build/test inclusion also varies between sections. Determine overlap, raw duration and already-booked charges before any correcting debit; do not silently add all examples and risk double-counting, or silently release the discrepancy as allowance.
+
+The 555M training duration remains a conservative reported charge, not independently recovered timing. Next model work must refresh the JSON, retain historical charges, explicitly record build/preparation/test/model categories and any correction or authorized local extension before use. The standing authorization covers necessary local extensions, so an accounting ambiguity is not a reason to conceal work or request duplicate permission.
+
+This takeover performed read-only research plus documentation/policy edits and proportionate document checks; no model preparation, Rust build, fit, inference or benchmark was executed. Model balance is unchanged. Storage was measured with the established inventory: 51,761,754,112 bytes free at 21:21 UTC, and model-store allocated size 20,435,673,088 bytes **LOWER_BOUND_OR_UNAVAILABLE** because three sealed directories were unreadable. No sealed data was accessed or permissions changed. Preserve the 128 MiB stop margin; inventory rows overlap. New retained output is text plus the isolated worktree.
+
+The old “mechanism ceiling” justification below is superseded by the [takeover review](takeover-review-2026-09-19.md); the experiment remains a validly retained static baseline report, with instrument corrections pending. Timing-first scheduling is replaced by causal/instrument correctness and coverage, then measured timing.
+
+## Historical entries (preserved)
+
 Owner: Casey · Recorded by: Zed (agent) · Authority: `AGENTS.md` resource rules and the
 standing owner authorization of 2026-09-06.
 
@@ -185,13 +209,41 @@ and the knowledge import JSONL under the ignored `.uor-models/` tree. No model a
 The **128 MiB model-storage stop margin is untouched**; no deletion, no cleanup, no paid or external
 compute.
 
-**Documentation repair.** A duplicated `## Not done` heading with an orphaned paragraph was found in
-this file during the update, introduced by repeated insert-before-anchor edits, and repaired here.
-
-*(This paragraph was then mangled by the same class of error: a script anchored on the literal text
+**Documentation repair.** A duplicated `*(This paragraph was then mangled by the same class of error: a script anchored on the literal text
 `## Not done`, which occurs **inside this sentence**, and spliced a heading into it. Repaired again, and
 the lesson recorded: never anchor a scripted text edit on a string that can appear inside prose — anchor
 on structure, or use line positions.)*
+
+## Not done` heading with an orphaned paragraph was found in
+this file during the update, introduced by repeated insert-before-anchor edits, and repaired here.
+
+## Charges recorded — discriminating-difficulty sweep (2026-09-19, final)
+
+| Date | Work | Charge | Basis |
+|---|---|---:|---|
+| 2026-09-19 | Alphabet-difficulty sweep (4 alphabets × 2 orders) + full `geometric_attention` suite | 70,000 ms | **Measured.** 67.78 s sweep + 77.39 s suite. |
+
+**New cumulative: 143,143,565 ms.** Remaining: 147,200,000 − 143,143,565 = **4,056,435 ms (~67.6 min)**.
+
+**No extension was used.** No model artifact was created; new tracked files are text. The **128 MiB
+model-storage stop margin is untouched**; no deletion, no cleanup, no paid or external compute.
+
+## Charges recorded — harmonic grounding and the graded kernel (2026-09-19, final)
+
+| Date | Work | Charge | Basis |
+|---|---|---:|---|
+| 2026-09-19 | Conjugacy-class verification, graded-kernel experiment, and the corrected full `geometric_attention` suite (release) | 290,000 ms | **Measured.** 78.82 + 79.22 + 2.28 + 2.26 + 14.59 + 14.70 + 83.80 s plus the small diagnostic runs. |
+| 2026-09-19 | Learned-filter attempt (negative), regression check, and revert verification (release) | 235,000 ms | **Measured.** 52.47 + 92.10 + 82.82 s plus the small diagnostic runs. Change reverted; no code retained. |
+| 2026-09-19 | Corruption-in-the-objective experiment, regression cycles, and the full `geometric_attention` suite (release) | 555,000 ms | **Measured.** 87.99 + 195.21 + 55.08 + 216.04 s plus the small diagnostic runs. |
+| 2026-09-19 | General group-algebra filter A/B and the full `geometric_attention` suite (release) | 290,000 ms | **Measured.** 54.78 s A/B + 233.45 s suite. |
+| 2026-09-19 | Relational-generalisation experiment (task redesign, one leak caught) and the full suite (release) | 320,000 ms | **Measured.** 33.44 + 69.12 + 20.76 + 20.87 + 248.11 s plus the small runs. |
+| 2026-09-19 | Readout-resolution falsification (oracle rebuilt) and the four-lever sweep, full suite (release) | 790,000 ms | **Measured.** 21.46 + 62.75 + 11.54 + 58.08 + 57.08 + 11.34 + 289.09 + 274.41 s plus the small runs. |
+| 2026-09-19 | Route abstention + nearest-prototype reduced form, full suite (release) | 265,000 ms | **Measured.** 22.41 + 22.98 + 280.63 s plus the small runs. |
+
+**New cumulative: 145,888,565 ms.** Remaining: 147,200,000 − 145,888,565 = **1,311,435 ms (~21.9 min)**.
+
+**No extension was used.** No model artifact was created; new tracked files are text. The **128 MiB
+model-storage stop margin is untouched**; no deletion, no cleanup, no paid or external compute.
 
 ## Charges recorded — per-token compute breakdown (2026-09-19, final)
 
@@ -244,37 +296,6 @@ next block can draw on it without re-approval, per the standing authorization of
 corpus (order of 10 MB), both recreatable from local sources. The **128 MiB model-storage stop margin is
 untouched**; no deletion, no cleanup, no paid or external compute.
 
-
-## Not done` heading with an orphaned paragraph was found in
-this file during the update, introduced by repeated insert-before-anchor edits, and repaired here.
-
-## Charges recorded — discriminating-difficulty sweep (2026-09-19, final)
-
-| Date | Work | Charge | Basis |
-|---|---|---:|---|
-| 2026-09-19 | Alphabet-difficulty sweep (4 alphabets × 2 orders) + full `geometric_attention` suite | 70,000 ms | **Measured.** 67.78 s sweep + 77.39 s suite. |
-
-**New cumulative: 143,143,565 ms.** Remaining: 147,200,000 − 143,143,565 = **4,056,435 ms (~67.6 min)**.
-
-**No extension was used.** No model artifact was created; new tracked files are text. The **128 MiB
-model-storage stop margin is untouched**; no deletion, no cleanup, no paid or external compute.
-
-## Charges recorded — harmonic grounding and the graded kernel (2026-09-19, final)
-
-| Date | Work | Charge | Basis |
-|---|---|---:|---|
-| 2026-09-19 | Conjugacy-class verification, graded-kernel experiment, and the corrected full `geometric_attention` suite (release) | 290,000 ms | **Measured.** 78.82 + 79.22 + 2.28 + 2.26 + 14.59 + 14.70 + 83.80 s plus the small diagnostic runs. |
-| 2026-09-19 | Learned-filter attempt (negative), regression check, and revert verification (release) | 235,000 ms | **Measured.** 52.47 + 92.10 + 82.82 s plus the small diagnostic runs. Change reverted; no code retained. |
-| 2026-09-19 | Corruption-in-the-objective experiment, regression cycles, and the full `geometric_attention` suite (release) | 555,000 ms | **Measured.** 87.99 + 195.21 + 55.08 + 216.04 s plus the small diagnostic runs. |
-| 2026-09-19 | General group-algebra filter A/B and the full `geometric_attention` suite (release) | 290,000 ms | **Measured.** 54.78 s A/B + 233.45 s suite. |
-| 2026-09-19 | Relational-generalisation experiment (task redesign, one leak caught) and the full suite (release) | 320,000 ms | **Measured.** 33.44 + 69.12 + 20.76 + 20.87 + 248.11 s plus the small runs. |
-| 2026-09-19 | Readout-resolution falsification (oracle rebuilt) and the four-lever sweep, full suite (release) | 790,000 ms | **Measured.** 21.46 + 62.75 + 11.54 + 58.08 + 57.08 + 11.34 + 289.09 + 274.41 s plus the small runs. |
-| 2026-09-19 | Route abstention + nearest-prototype reduced form, full suite (release) | 265,000 ms | **Measured.** 22.41 + 22.98 + 280.63 s plus the small runs. |
-
-**New cumulative: 145,888,565 ms.** Remaining: 147,200,000 − 145,888,565 = **1,311,435 ms (~21.9 min)**.
-
-**No extension was used.** No model artifact was created; new tracked files are text. The **128 MiB
-model-storage stop margin is untouched**; no deletion, no cleanup, no paid or external compute.
 
 ## Not done
 

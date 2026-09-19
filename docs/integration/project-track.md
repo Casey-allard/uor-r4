@@ -1,5 +1,11 @@
 # UOR-R4 Geometric Language Model — canonical project plan
 
+## Active direction — September 19 takeover
+
+The owner reconfirmed D0-b/D1/D2 and the geometric research priority. The [takeover review](takeover-review-2026-09-19.md) separates historical memory/dependent-language, TinyStories `.rgm`, and the new geometric-attention core. The latest residue count experiment is a static backoff baseline, not a capacity ceiling. The active #973 task is **causal-state/gradient/evaluation correctness and real-text route coverage, then complete-step timing and a conditional small pilot**, specified in the [DeepSeek prompt](deepseek-next-step-2026-09-19.md). #963 owns cost; #964 owns scoped contracts. General prose, reasoning, coding and alpha remain unqualified.
+
+The numbered responsibilities below remain the programme map, not an instruction to restart old phrase repairs. Historical two-pillar/card sequencing is subordinate to this active decision. The previous #1139 immediate-priority label is superseded by #973; retain #1139 open for its remaining binding obligations. D2 governs interpretation of ablations. Complete-path energy work is deferred until useful behavior or a concrete decision requires it; do not report energy advantage in its absence.
+
 ## Goal
 
 Develop a learned local language model that uses geometric addressing, state, transport and selected operators for useful prose, conversation, memory, reasoning and Rust coding. Ultimately target frontier capability on consumer M1-class laptops with lower energy and wasted compute. The current model is experimental and pre-alpha, not a frontier or general-language result.
@@ -10,7 +16,7 @@ The [direction review](model-direction-2026-09.md) codifies the source investiga
 
 ## Required mechanism roles
 
-Prepare data, train, construct artifacts and infer in Rust. Offline floating point, gradients and matrix multiplication, including uor-matmul, are permitted. Final serving executes no mathematical matrix products, even if implemented as lookup/add contractions, and no transformer backbone or runtime teacher/provider responses. Deterministic geometric address/page selection is allowed. Shared typed operators are current; expert gates remain conditional future work requiring capability need and measured complete laptop cost.
+Prepare data, train, construct artifacts and infer in Rust. Offline floating point, gradients and matrix multiplication, including uor-matmul, are permitted. Final serving follows owner-adopted [D0-b](DECISIONS.md): bounded <=4-bit integer/ternary linear maps may execute through additions/subtractions/shifts/table reads, with no multiplier instruction in the declared numerical kernel and no floating point or transcendental arithmetic in served computation. Geometric routing remains the preferred architecture; no transformer backbone or runtime teacher/provider responses are adopted. Deterministic geometric address/page selection is allowed. Shared typed operators are current; expert gates remain conditional future work requiring capability need and measured complete laptop cost.
 
 Prime identities and ordered n-lets address lexical/context records; fixed zeta phases provide explicit structured channels; R4/S3/H4 and exact Z[phi] carry typed ordered state and transport. Preserve signed orientation, chirality/polarity, Hopf observation versus retained fiber/torsion and paired-H4/icosian identity/inverse witnesses. UOR/kappa identify and serialize; they do not tokenize or supply semantic distance. Structural roles and measured predictive contributions remain distinct. Do not attach every researched coordinate to every token without a computational purpose.
 

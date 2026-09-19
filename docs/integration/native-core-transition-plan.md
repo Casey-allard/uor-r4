@@ -1,5 +1,7 @@
 # Native core transition plan — module-level design
 
+**Superseding September 19 review:** see [takeover assessment](takeover-review-2026-09-19.md) and [current execution handoff](deepseek-next-step-2026-09-19.md). This is a preserved dated record, not the current task queue. #1284 and #1290 are merged; D0-b is owner-adopted. Static residue scores are not recurrent-model ceilings; universal ternary-recurrence/training impossibility and unqualified harmonic/compute claims are corrected in the review. Preserve original measurements at their exact scope.
+
 Owner: Casey · Drafted by: Zed (agent) · Date: 2026-09-19 · Status: draft pending owner approval
 
 Authority: [`DECISIONS.md`](DECISIONS.md) (D0-a, D1) supersedes conflicting wording in

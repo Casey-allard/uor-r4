@@ -1,5 +1,23 @@
 # Current native geometric AI work
 
+## Takeover reconciliation: qualify causal learning before the real-text block — September 19, 2026
+
+**Active next action:** repair/qualify causal state, short-prefix arithmetic, declared STE gradients and count-metric semantics; measure real-text route coverage; then measure full trainer step time and admit a small pilot only if informative. Use the [complete DeepSeek execution prompt](deepseek-next-step-2026-09-19.md) and [takeover investigation](takeover-review-2026-09-19.md). This supersedes earlier same-day “ceiling,” “BUILD IT,” testbed-exhaustion and timing-first scheduling below. Existing receipts remain preserved; no model was run in this source/documentation review.
+
+**Owner authority:** D0-b/D1/D2 are owner-approved and reconfirmed. Offline Rust matmul is allowed. Bounded <=4-bit additive/shift/lookup linear maps are allowed at serving with no multiplier instruction in the declared numerical kernel and no floating point in served computation. Geometric routing remains preferred. The stable policy/AGENTS now reflect this; old blanket mathematical-contraction exclusions are historical.
+
+**Most consequential correction:** the last two residues select the order-2 bucket, but the bucket contains learned successor values accumulated from the prefix. The static fitted residue count scores (5.0019 source / 5.9546 prose bits/token) are useful development baselines, not an information-theoretic upper bound on recurrent prediction. Unwritten default buckets produce zero logits/uniform predictions, exactly 12 bits/token at V=4096. Measure their frequency under the actual 64-token reset policy before a large fit. The group-composition path is separate from this radix-pair read; its real-text geometric contribution remains unmeasured.
+
+**Source findings, execution pending:** short-prefix unsigned underflow in `tail_word`/`word_at`/`sequence_loss`; apparent second length normalization in value/kernel gradients; count-tool interpolation/top-1, refit and byte-denominator discrepancies. The current trainer clears touched buckets, not a dense state every sequence, but re-quantizes both full tables inside each sequence. Both the 1,800-second projection and the later 3–10x estimate remain unmeasured. See the review for precise source and appropriate checks.
+
+**Keep model paths separate:** historical exact-memory/dependent-language, TinyStories `.rgm`, and the new `GeometricAttention` core. The September 17 role repair is rule-assisted open-development repair; the old retention suite does not qualify either newer model. Continuous 1.2372 BPB is not the served scorer; discrete/shortlist receipts have different values and scopes. No general prose/chat, generalized reasoning/coding, new-core allocation qualification or complete-path energy advantage is established.
+
+**Recovery snapshot:** clean main/origin at `127c0eaf`; #1290 merged, #1284 already merged, no open PRs at audit start. Recorded time `146438565 / 154400000 ms`, remaining `7961435 ms` (132.69 min); no model charge or limit change for this review. The [ledger reconciliation](resource-ledger-2026-09-19.md) repairs ordering while exposing remaining receipt/arithmetic discrepancies rather than fabricating charges. Storage inventory: 51.76 GB free; model-store 20.44 GB is a lower bound due to three unreadable sealed paths, all preserved. Refresh before execution.
+
+## Preserved dated history
+
+Entries below retain original measurements and interpretations, including claims corrected above. Their “next action” text is historical; the top entry owns continuation.
+
 ## The reduced form says BUILD IT: the order-2 residue context carries most of the bigram signal — September 19, 2026
 
 **THE FUNDED REAL-TEXT BLOCK WAS ABOUT TO BE SPENT WITHOUT KNOWING WHAT IT COULD POSSIBLY MEASURE. THE REDUCED FORM WAS TESTED FIRST, IT CONTRADICTED THE STRUCTURAL PRIOR, AND IT TURNED THE BLOCK FROM DOUBTFUL INTO TARGETED.**

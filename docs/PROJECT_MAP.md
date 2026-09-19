@@ -22,6 +22,28 @@ does not override the current owner direction.
 
 ## Current development path
 
+### September 19 takeover and current experimental core
+
+The [takeover review](integration/takeover-review-2026-09-19.md) reconciles the three distinct model families: retained native memory/shared-language experiments, TinyStories prose `.rgm` training/serving, and the current geometric addressed-memory core. Their artifacts, scorers and qualification results are not interchangeable. The [DeepSeek next-step handoff](integration/deepseek-next-step-2026-09-19.md) owns the immediate experiment specification; [current state](integration/current-state.md) owns its outcome and the [canonical plan](integration/project-track.md) owns programme acceptance.
+
+The owner confirmed [D0-b](integration/DECISIONS.md#d0-b--what-no-matmul-at-serving-means-adopted): offline training may use floating point and matmul; bounded integer/ternary linear maps are permitted at serving when implemented without multiplier instructions, with geometric routing preferred. Whole-path multiplier, allocation and energy claims require measurements of the actual path. Historical stricter native-design wording below describes its dated scope; the frozen TLA/R4G1 contract remains separately scoped.
+
+| Current source/tool | Role and evidence boundary |
+| --- | --- |
+| [learner/geometric_attention.rs](../crates/uor-r4-core/src/native_geometric/learner/geometric_attention.rs) | Current experimental exact addressed-memory core and trainer: fixed element assignment, ordered-pair addresses, accumulated values, ternary readout and optional group kernels. Synthetic task results do not establish real-text language capability. |
+| [learner/group_table.rs](../crates/uor-r4-core/src/native_geometric/learner/group_table.rs) | Verified finite 2I multiplication/inverse tables and shared context composition; algebraic correctness is distinct from learned usefulness. |
+| [learner/lowbit.rs](../crates/uor-r4-core/src/native_geometric/learner/lowbit.rs), [lowbit_core.rs](../crates/uor-r4-core/src/native_geometric/learner/lowbit_core.rs), [lowbit_attention.rs](../crates/uor-r4-core/src/native_geometric/learner/lowbit_attention.rs) | D0-b ternary substrate, retained unstable dense-recurrence experiment, and content-addressed linear-memory comparator. Preserve each experiment's failures and arithmetic checks separately. |
+| [geometric-realtext-ceiling.rs](../crates/uor-r4-core/src/bin/geometric-realtext-ceiling.rs) | Real-text residue/full-token count baselines and derived BPE tokenizer. The historical binary name does not establish an information-theoretic ceiling or account for the current core's accumulated memory. |
+| [learner/jepa_trainer.rs](../crates/uor-r4-core/src/native_geometric/learner/jepa_trainer.rs), [binary_model.rs](../crates/uor-r4-core/src/native_geometric/learner/binary_model.rs), [train-native-prose.rs](../crates/uor-r4-core/src/bin/train-native-prose.rs) | Separate TinyStories prose learner and `.rgm` format. Continuous training-time BPB, exported full-vocabulary scores and routed generation scores differ. The repository discounted n-gram comparator needs validation and matched training exposure. |
+| [learner/vsa_codes.rs](../crates/uor-r4-core/src/native_geometric/learner/vsa_codes.rs), [vsa/hierarchical.rs](../crates/uor-r4-core/src/native_geometric/vsa/hierarchical.rs), [shortlist-recall.rs](../crates/uor-r4-core/src/bin/shortlist-recall.rs) | Learned-root-derived codebook and routed candidate diagnostics. Measure candidate admission separately from ranking. |
+| [ablate-prose.rs](../crates/uor-r4-core/src/bin/ablate-prose.rs), [strip-coarse.rs](../crates/uor-r4-core/src/bin/strip-coarse.rs) | Scoped full-vocabulary ablations and artifact transformation; interpretation belongs with [EVIDENCE](integration/EVIDENCE.md) and its superseding corrections. |
+| [pretokenize-corpus.rs](../crates/uor-r4-core/src/bin/pretokenize-corpus.rs), [mmap_corpus.rs](../crates/uor-r4-core/src/native_geometric/mmap_corpus.rs) | Rust token preparation and packed-corpus I/O. Corpus packing does not itself provide document-separated evaluation or tokenizer identity binding. |
+| [r4-native-chat.rs](../crates/uor-r4-api/src/bin/r4-native-chat.rs), [native_capability_api.rs](../crates/uor-r4-api/src/native_capability_api.rs) | Explicit-artifact prose CLI and serving path. These are distinct from the older `r4 geometric` model/session path below. |
+
+### Preserved shared-language development navigation
+
+The entries below locate the September 12–14 lineage and its retained assets. Their then-next actions and artifact pointers are historical; use the current pointers above before selecting work. The September 17 [contextual-role implementation](../crates/uor-r4-core/src/native_geometric/dependent_language/contextual_role.rs) adds authored auxiliary/predicate and clause rules, so its recovered development cases must not be described as fresh learned transfer. The historical qualification driver exercises this family, not the prose `.rgm` artifact.
+
 The [independent neighbor result](native_geometric_independent_neighbor_973.md) locates dependent_language/independent_neighbor_report.rs: frozen acceptance, independent lexical preparation, actual fixed-artifact evaluation and bounded evidence resume. It links the source/query role collision diagnostic and preserved counterexamples.
 
 The [unknown-neighbor result](native_geometric_unknown_neighbor_973.md) locates training-query vocabulary inheritance, exact credit migration and constrained masked-neighbor induction in dependent_language/occurrence_role.rs, with actual generation and retained controls in unknown_neighbor_report.rs. Current state owns the independent transfer qualification step.
@@ -46,16 +68,18 @@ The [language relation result](native_geometric_language_relation_973.md) and [l
 
 The accumulated memory repair is parked and preserved. Its historical records remain navigation and evidence, not active instructions. Local task notes stay in the established `.uor-handoff/2026-09-12-codex-v7/` handoff, linked from the shared-core worktree; original artifacts and sealed reports stay at their existing paths.
 
-## The active model and interfaces
+## Retained native model and interfaces
 
-The accepted native model lives in
+The retained native model family lives in
 [crates/uor-r4-core/src/native_geometric](../crates/uor-r4-core/src/native_geometric).
 It implements learned bounded attention/source selection, causal inference,
 exact retained and computed values, and selected response generation. General
 prose completion, broad reasoning and frontier capability remain unqualified.
 The objective is useful consumer-laptop language intelligence with lower
 execution energy and compute demand. Offline Rust training may use matmul;
-final serving must execute no matrix products or transformer backbone.
+current serving development follows owner-confirmed D0-b above. These retained
+components do not imply that all capabilities are integrated into the current
+prose or geometric-core experimental artifact.
 
 | Source | Implemented role and next place to read |
 | --- | --- |
@@ -91,7 +115,7 @@ They do not claim every line or theorem in the combined archives was verified.
 | Prime routes, ordered n-lets, fixed zeta phases, signed geometric transport | [prime_route_attention.rs](../crates/uor-r4-core/src/prime_route_attention.rs), [prime_route_geometric_attention.rs](../crates/uor-r4-core/src/prime_route_geometric_attention.rs), [SpiralCore operator](../crates/uor-r4-core/src/spiralcore_operator.rs), [native mechanism map](native_geometric_mechanism_map_973.md) | Reusable exact state/address/transport and bounded attention mechanisms. Preserve order, chirality, polarity, fiber and declared frames; geometry naming alone is not predictive advantage. |
 | E8/paired H4, exact `Z[phi]`, Hopf/fibers, trigonometry, vector calculus and RH work | [Mathematics audit](integration/architecture-2026-09/mathematics.md), [Prime Analysis](../research/prime-analysis/README.md), [Riemann/Lean archive](../research/riemann-lean/README.md) | Locate concrete code, proof obligations and hypotheses separately. Hopf S3→S2 observation retains an S1 fiber; projected coordinates are not a lossless replacement for full state. Fixed zeta constants do not require a proof of classical RH. |
 | Original angular/prime and train-soft/infer-hard experiments | [AI-Research](../research/ai-research/README.md), [router-research](../research/ai-research/ai-router/router-research/README.md), [archived sandboxes](../research/archives/README.md) | Preserve partition, chart, transport, locality and training lessons. Earlier transformer/MoE/dense heads remain historical experiments, not the serving target. Duplicate snapshots are not independent replications. |
-| `uor-addr`, UOR-Framework, `uor-prism`, `uor-matmul` | [Cargo.toml](../Cargo.toml), [Cargo.lock](../Cargo.lock), [dependency audit](integration/uor-source-audit.md), [import decisions](integration/architecture-2026-09/imports.md) | Active versions are the manifest/lock pins, not legacy `uor_standards/` copies. Identity and finite typed operators are reusable. A table implementation of a mathematical matrix product remains excluded from serving. |
+| `uor-addr`, UOR-Framework, `uor-prism`, `uor-matmul` | [Cargo.toml](../Cargo.toml), [Cargo.lock](../Cargo.lock), [dependency audit](integration/uor-source-audit.md), [import decisions](integration/architecture-2026-09/imports.md) | Active versions are the manifest/lock pins, not legacy `uor_standards/` copies. Identity and finite typed operators are reusable. D0-b permits bounded low-bit linear maps under its execution contract; a table implementation alone does not establish compliance. |
 | NEMESIS (`n3mesis`), W33 (`w33`), GoldSnnail (owner's “goldworm”), GNAF and contributor repositories | [Contributor decisions](integration/architecture-2026-09/imports.md), [external survey](integration/external-research-audit.md), [NEMESIS/W33](integration/nemesis-w33-relevance.md), [ecosystem follow-up](integration/afflom-ecosystem-followup.md), [source catalog](integration/afflom-ecosystem-sources.json), [GNAF import provenance](gnaf_import_provenance.md) | Cached source/pin/license and review limits are explicit. Reuse finite transition, exact state, immutable page/DAG and typed witness ideas when the current model needs them. No entire contributor repository is silently a working replacement LM. |
 | Exploratory Rust router | [uor-r4-router](../crates/uor-r4-router/README.md) | Floating-point retrieval, Markov and dashboard mechanisms; distinct from the accepted native core. |
 | Historical TLA/R4G1 compiler and runtime | [Core history](../crates/uor-r4-core/README.md), [graph compiler](../crates/uor-r4-graph-compiler/README.md), [graph format](../crates/uor-r4-graph-format/README.md), [graph runtime](../crates/uor-r4-graph-runtime/src/), [model ledger](../model/ledger.toml) | Preserve packed storage, deterministic identities, bounded operators and recorded limitations. Their no-multiply kernel and graph compilation do not establish native model language quality. |

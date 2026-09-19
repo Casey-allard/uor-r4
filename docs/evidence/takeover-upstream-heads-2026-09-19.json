@@ -1,0 +1,64 @@
+{
+  "schema": "uor-research-source-refresh/1",
+  "date": "2026-09-19",
+  "source_baseline": "127c0eafc8c33cfb8476e3b9514d67fd9b550066",
+  "notice": "Public repository head metadata refreshed through GitHub API. Existing source audits are pinned separately; metadata freshness is not an implementation, license, proof or capability review.",
+  "repositories": [
+    {
+      "repository": "markrnd87-cmd/NEMESIS-Theory",
+      "date": "2026-04-10T00:29:23Z",
+      "sha": "0d106967843c2c96477cf3e57aeff213e7db1c97",
+      "subject": "Add files via upload",
+      "scope": "LIVE_DEFAULT_BRANCH_HEAD_ONLY; SOURCE_NOT_REAUDITED_AT_THIS_PIN"
+    },
+    {
+      "repository": "wilcompute/W33-Theory",
+      "date": "2026-09-19T19:11:43Z",
+      "sha": "4f5358e23da49efd4e753e9f56a209495439f9b8",
+      "subject": "Repair literal newline escapes in E8 CZ parity manuscript insert",
+      "scope": "LIVE_DEFAULT_BRANCH_HEAD_ONLY; SOURCE_NOT_REAUDITED_AT_THIS_PIN"
+    },
+    {
+      "repository": "UOR-Foundation/prism",
+      "date": "2026-05-24T00:27:09Z",
+      "sha": "507995bab43c0cb06ec244c96e6fc25b3f502204",
+      "subject": "test: pin the seal compile_fail doctest to E0277",
+      "scope": "LIVE_DEFAULT_BRANCH_HEAD_ONLY; SOURCE_NOT_REAUDITED_AT_THIS_PIN"
+    },
+    {
+      "repository": "UOR-Foundation/UOR-Framework",
+      "date": "2026-05-23T21:14:31Z",
+      "sha": "51c01382200b0179d6640b07e9c8119364ab69a1",
+      "subject": "Relicense from Apache-2.0 to MIT",
+      "scope": "LIVE_DEFAULT_BRANCH_HEAD_ONLY; SOURCE_NOT_REAUDITED_AT_THIS_PIN"
+    },
+    {
+      "repository": "UOR-Foundation/uor-addr",
+      "date": "2026-06-20T14:40:10Z",
+      "sha": "165b51e3e2113ee5d032730cde709335d4fe9b60",
+      "subject": "Resolve follow-up PR review comments",
+      "scope": "LIVE_DEFAULT_BRANCH_HEAD_ONLY; SOURCE_NOT_REAUDITED_AT_THIS_PIN"
+    },
+    {
+      "repository": "Graph-and-Geometric-Learning/helm",
+      "date": "2026-04-04T15:50:57Z",
+      "sha": "7501deca8f413848bfef804be64ce874b72a3cd7",
+      "subject": "update",
+      "scope": "LIVE_DEFAULT_BRANCH_HEAD_ONLY; SOURCE_NOT_REAUDITED_AT_THIS_PIN"
+    },
+    {
+      "repository": "Casey-allard/prime-router",
+      "date": "2026-05-28T19:52:30Z",
+      "sha": "c99589b2ef9d22cae022a255a6093b412fff014e",
+      "subject": "Correct Layer number in 2i Sync-Handshake Protocol",
+      "scope": "LIVE_DEFAULT_BRANCH_HEAD_ONLY; SOURCE_NOT_REAUDITED_AT_THIS_PIN"
+    },
+    {
+      "repository": "Casey-allard/NavierStokesAndEuler",
+      "date": "2026-09-10T13:40:53Z",
+      "sha": "f9e8bc5b38b6e212696e8a30e3e91517af887bbd",
+      "subject": ".",
+      "scope": "LIVE_DEFAULT_BRANCH_HEAD_ONLY; SOURCE_NOT_REAUDITED_AT_THIS_PIN"
+    }
+  ]
+}

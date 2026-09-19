@@ -1,5 +1,7 @@
 # EVIDENCE
 
+**September 19 correction:** the [takeover review](takeover-review-2026-09-19.md) is the current interpretation layer. The last static residue-count result is not a recurrent-model ceiling; its raw numbers remain historical evidence. The review also scopes the three separate model paths, continuous/discrete metrics, rule-assisted role repair, gradient/instrument findings and unsupported family-wide impossibility claims. No new model measurement was made. Read later corrections before reusing an earlier row.
+
 One row per executed card or measurement. This is the index; the linked card `RESULT.md`
 and the receipt carry the full record. Append-only. A row is never rewritten to change an
 outcome; corrections are new rows.
@@ -82,3 +84,16 @@ bind the 2026-09-19 measurements to the exact bytes evaluated.
   result. Slice B was not started.
 - The historical 9,984-case regression replay (`scripts/verify_qualification.sh`) was not
   re-executed in the 2026-09-19 change.
+
+
+## September 19 takeover source review (no model execution)
+
+| Item | Finding | Status / next action |
+| --- | --- | --- |
+| Static residue “ceiling” | Address omits the prefix-dependent bucket content; finite fitted CE is not Bayes entropy | Reclassified as static backoff baseline; original receipt preserved |
+| Default empty order-2 route | Zero state implies zero logits, hence 12 bits/token at V=4096 | Source-derived; measure causal empty-route fraction and test fixture |
+| Learner and baseline instrument | Padding underflow; apparent duplicate gradient normalization; interpolation/top-1, refit and boundary accounting discrepancies | Source audit only, fixes/tests pending in DeepSeek task |
+| Geometry and training generalizations | No universal ternary-recurrence impossibility; no universal laptop training lower bound; class functions are a restricted group-kernel subspace | Mathematical counterexamples and primary sources in takeover review; no alternative model adopted |
+| Current path isolation | Historical retention, TinyStories scorer and geometric-attention prototype have different artifacts/instruments | No cross-path capability or performance promotion |
+
+[Full source and literature assessment](takeover-review-2026-09-19.md); [bounded implementation handoff](deepseek-next-step-2026-09-19.md).
