@@ -197,6 +197,46 @@ compute.
 No model artifact was created; new tracked files are text. The **128 MiB model-storage stop margin is
 untouched**; no deletion, no cleanup, no paid or external compute.
 
+## Projection recorded before use — the real-text path (2026-09-19)
+
+**Reason.** Three consecutive mechanisms now converge on the same conclusion, and it is a property of the
+*testbed*, not of the mechanisms:
+
+* the **bounded shortlist** (the compute lever: readout is 99.97% of per-token work, 480x projected)
+  cannot have its accuracy cost measured, because on synthetic tasks the address *determines* the answer
+  and a shortlist is trivially exact;
+* the **hyperbolic substrate** can only be judged on whether it represents a *hierarchy* at equal
+  fidelity with fewer dimensions, which needs real structure to have a hierarchy over;
+* **curvature typing** has nothing to predict while address collisions are zero.
+
+**The synthetic-task well is exhausted as a discriminating instrument.** Further mechanism measurement
+on it cannot change a decision. The next block is therefore the real-text path: a 4096-vocabulary
+tokenizer derived from the local `tokenizer.json` (the shipped model's resolution), an instruction
+corpus, packed `u16` sequences, a training run on the geometric core, then held-out evaluation **and the
+raw generations read aloud**.
+
+**Projection.**
+
+| Item | Estimate |
+|---|---|
+| Tokenizer derivation + corpus assembly + packing (engineering, not model time) | ~40 min wall |
+| Training run: ~2,000 steps, batch 32, ~64-token sequences (~4.1M tokens) at `V=4096`, `dv=128` | ~1,800 s |
+| Held-out evaluation + raw generation reading | ~300 s |
+| Retry/contingency (diagnose and re-run, no blind repeats) | ~1,800 s |
+| **Total projected** | **~3,900 s ≈ 65 min** |
+
+**Increment recorded: 7,200,000 ms (2 hours)**, rounding up for contingency and for a second run if the
+first exposes a wiring defect.
+
+**Updated limit: 154,400,000 ms.** Remaining after this projection:
+154,400,000 - 146,178,565 = **8,221,435 ms (~137 min)**. **Not spent in this session** — recorded so the
+next block can draw on it without re-approval, per the standing authorization of 2026-09-06.
+
+**Storage.** Projected new retained storage: one tokenizer artifact (well under 1 MB) and a packed
+corpus (order of 10 MB), both recreatable from local sources. The **128 MiB model-storage stop margin is
+untouched**; no deletion, no cleanup, no paid or external compute.
+
+
 ## Not done` heading with an orphaned paragraph was found in
 this file during the update, introduced by repeated insert-before-anchor edits, and repaired here.
 

@@ -1,5 +1,19 @@
 # Current native geometric AI work
 
+## The synthetic-task well is exhausted as an instrument; the real-text path is next — September 19, 2026
+
+**THREE CONSECUTIVE MECHANISMS CONVERGE ON THE SAME CONCLUSION, AND IT IS A PROPERTY OF THE TESTBED.**
+
+- The **bounded shortlist** (the compute lever: the readout is 99.9748% of per-token work; a fanout-8 depth-4 shortlist projects **480× fewer operations**) **cannot have its accuracy cost measured** here — on synthetic tasks the address *determines* the answer, so a shortlist keyed on the address is trivially exact and the trade-off vanishes.
+- The **hyperbolic substrate** can only be judged on whether it represents a *hierarchy* at equal fidelity with fewer dimensions, which needs real structure to have a hierarchy over.
+- **Curvature typing** has nothing to predict while address collisions are zero.
+
+**Conclusion: further mechanism measurement on the synthetic testbed cannot change a decision.** The instrument has done its work — it found the recurrence instability, the address collision, the read-activation defect, the identity-class defect, the objective-level reason the learned filter fails, and it established that composition carries capability (0.42 vs 0.00 on unseen facts) and that abstention converts hallucination into honesty (0/64/0). What it cannot do is discriminate *cost-versus-accuracy* trades, because its answers are structural rather than statistical.
+
+**Next block: the real-text path** — a 4096-vocabulary tokenizer derived from the local `tokenizer.json` (the shipped model's resolution), an instruction corpus, packed `u16` sequences, a training run on the geometric core, then held-out evaluation **and the raw generations read aloud**. Projection recorded in the ledger per the standing authorization: **2 hours (7,200,000 ms)**, updated limit 154,400,000 ms, **not spent in this session**.
+
+**Also reverted from the roadmap on this evidence:** hyperbolic arithmetic at serving (costs more per operation than an add); R8 expansion for accuracy (precision is measured as not the accuracy constraint); Hamming as a semantic similarity metric (already falsified in-project). The hierarchy survives in its useful form — **bounding the readout** — and that claim is a projection with an unmeasured accuracy cost, labelled as such in the receipt, the test, `EVIDENCE.md` and here.
+
 ## Per-token compute counted: the readout is 99.97%, and that is where the hierarchy pays — September 19, 2026
 
 **THE COMPUTE LEVER IS THE READOUT, NOT THE GEOMETRY. COUNTED, NOT PROJECTED.**
