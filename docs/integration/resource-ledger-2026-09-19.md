@@ -185,7 +185,15 @@ and the knowledge import JSONL under the ignored `.uor-models/` tree. No model a
 The **128 MiB model-storage stop margin is untouched**; no deletion, no cleanup, no paid or external
 compute.
 
-**Documentation repair.** A duplicated `## Charges recorded — per-token compute breakdown (2026-09-19, final)
+**Documentation repair.** A duplicated `## Not done` heading with an orphaned paragraph was found in
+this file during the update, introduced by repeated insert-before-anchor edits, and repaired here.
+
+*(This paragraph was then mangled by the same class of error: a script anchored on the literal text
+`## Not done`, which occurs **inside this sentence**, and spliced a heading into it. Repaired again, and
+the lesson recorded: never anchor a scripted text edit on a string that can appear inside prose — anchor
+on structure, or use line positions.)*
+
+## Charges recorded — per-token compute breakdown (2026-09-19, final)
 
 | Date | Work | Charge | Basis |
 |---|---|---:|---|
