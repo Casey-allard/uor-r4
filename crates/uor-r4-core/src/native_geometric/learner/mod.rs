@@ -6,9 +6,11 @@
 pub mod binary_model;
 pub mod chat;
 pub mod embedding;
+pub mod geometric_attention;
 pub mod group_table;
 pub mod jepa_trainer;
 pub mod lowbit;
+pub mod lowbit_attention;
 pub mod lowbit_core;
 pub mod transition_table;
 pub mod vsa_codes;
@@ -23,12 +25,14 @@ pub use embedding::{
     canonical_h4_fiber_roots_q30, canonical_h4_hopf_s2, canonical_h4_roots, canonical_h4_roots_q30,
     ContinuousEmbedding, H4_ROOT_COUNT, PHI,
 };
+pub use geometric_attention::{GeometricAttention, GeometricAttentionTrainer};
 pub use group_table::{group_table, GroupTable, GROUP_ORDER, ROW_STRIDE};
 pub use jepa_trainer::{
     ExportedGeometricModel, JepaTrainer, JepaTrainerConfig, NativeGeometricLearnerModel,
     TrainingMetrics,
 };
 pub use lowbit::TernaryLinear;
+pub use lowbit_attention::{LowBitAttention, LowBitAttentionTrainer};
 pub use lowbit_core::{LowBitCore, LowBitCoreTrainer, TrainConfig, DEFAULT_STATE_DIM};
 pub use transition_table::{
     ContinuousLaneTable, DiscreteServingTable, MultiLaneTransitionTables, ENTRIES_PER_TABLE,

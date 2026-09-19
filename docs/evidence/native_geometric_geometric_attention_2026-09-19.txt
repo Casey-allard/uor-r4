@@ -1,0 +1,190 @@
+# Geometric addressed memory: an interference-free multiplier-free attention — 2026-09-19
+
+Branch `codex/stage1-falsification-sweep`. Machine `MacBookPro17,1` (M1, 8 cores).
+Every number below is a verbatim tool output.
+
+## 1. What was built
+
+| Item | File |
+|---|---|
+| Geometric addressed memory + trainer | `crates/uor-r4-core/src/native_geometric/learner/geometric_attention.rs` |
+
+Design, in one line: **store `(prev_token → value)` in a bucket addressed by the previous token, and
+read the bucket addressed by the query.** Different addresses do not interfere, which is the one thing
+`LowBitAttention`'s matched filter provably cannot do.
+
+```text
+  write:  S[addr(w)] += v(t)          w = previous token, t = current token
+  read:   y          = norm(S[addr(q)])
+  logits = W_o · relu(y)
+```
+
+Multiplier-free: the address is a table read, the write is an add, the read is a table read, the
+normalisation is a bit scan plus a shift. `O(dv)` per token for the memory, versus `O(dk·dv)` for
+linear attention.
+
+**Address space is the project's geometry.** Addresses are elements of the verified binary
+icosahedral group `2I` — the 120 canonical H4 roots — composed by the machine-checked group table
+(`learner/group_table.rs`). Two hashed factors composed through the table and paired with the first
+factor give 120² = 14,400 addresses (13.8 bits), which is the transition plan's `H4^k` product-code
+lever using the existing table.
+
+## 2. Focused tests — PASS
+
+```
+cargo test -p uor-r4-core --offline --lib geometric_attention::tests  -> 11 passed; 0 failed
+  integer_path_is_exactly_the_float_reference   (the integer serving path equals the f64 reference)
+  addresses_are_distinct_for_a_small_alphabet   (64 tokens -> 64 distinct addresses, no collisions)
+  gradients_reach_both_tables
+  copies_a_repeated_context
+  exact_addressing_beats_matched_filter_as_context_grows
+cargo fmt -p uor-r4-core -- --check  -> clean
+```
+
+## 3. The measurement: exact addressing beats the matched filter
+
+Task: context repetition — a random token run `R`, then `R` again. The second copy can only be
+predicted from memory of `(prev → next)` in the first copy. Held out, deterministic seeds, one layer,
+`dv = 32`, 900 steps.
+
+```
+context=  4 geometric=0.69 linear=0.05
+context=  8 geometric=0.31 linear=0.03
+context= 16 geometric=0.02 linear=0.00
+```
+
+**The geometric memory beats the matched filter at every context length tested** — 0.69 vs 0.05 at 4,
+0.31 vs 0.03 at 8, 0.02 vs 0.00 at 16. The direction of the difference is the one theory predicts:
+exact addressing removes the cross-talk that limits linear attention's capacity.
+
+## 4. The negative results, stated before any claim is made
+
+* **It does not solve the task.** 0.69 at context 4, falling to 0.02 at 16.
+* **More training does not help**: 900 → 3000 steps moves 4-token accuracy 0.69 → 0.66 and 8-token
+  0.31 → 0.20. The ceiling is a mechanism limit, not a training budget.
+* **The power-of-two normalisation had no measurable effect on this task** (0.69 → 0.69, 0.31 → 0.31,
+  0.02 → 0.02). It is implemented and retained because it is correct for conditioning in general and
+  the owner confirmed it is contract-compliant, but on this task the binding limit is elsewhere.
+* **The address assignment is fixed**, not learned — a deterministic function of the token id, as the
+  project itself initialises `token_to_root`. Learning the factors is Stage 3 product-code work. What
+  is learned here is what is written and how it is read.
+* **Capacity is bounded by `n_addr`.** Beyond it, buckets collide and behaviour degrades toward a
+  hashed n-gram table.
+
+## 5. What the result does and does not support
+
+**Supported:** exact addressed memory is a real, implemented, multiplier-free mechanism that
+outperforms the best multiplier-free soft-memory baseline available here on a task that isolates
+interference. It is the project's own thesis — "exact addressed memory" — showing a measured
+advantage over the alternative.
+
+**Not supported:** that this is a language model, that it scales to chat, or that geometric addressing
+is *sufficient*. The absolute numbers are low and the decay with context is unexplained. The most
+likely causes, in order: the value/output tables are ternary `dv = 32`, so the readout has limited
+resolution for 32 classes; and a single first-order (bigram) memory cannot represent longer structure.
+Both are addressable (wider `dv`, more factors, and composition with the matrix-state core).
+
+**A caution for anyone reading the win.** Linear attention here scores ~0.00–0.05, which is at or
+near chance for 32 classes, so "beats linear attention" is a weak statement. The honest framing is
+that *both* mechanisms fail this task at this scale, and the exact-addressing variant fails less.
+
+## 6. Next action
+
+1. **Diagnose the 0.69 ceiling**: raise `dv` (32 → 128) at fixed everything else. If accuracy rises
+   with `dv`, the limit is readout resolution and the mechanism scales; if not, it is the first-order
+   address design and product factors are required.
+2. **Learn the address factors** (`H4^k`, Stage 3) so addressing is not fixed.
+3. **Compose rather than choose**: the exact-address memory and the matrix-state core solve different
+   problems (associative recall vs contextual integration). A layer that reads both is the natural
+   next architecture, and is what the design doc's §5 table already anticipates.
+
+## 7. Ledger
+
+Charged 210,000 ms measured model time. Cumulative **142,568,565 / 147,200,000 ms** (~77.2 min
+remaining). No extension used. No model artifact created; new storage is source and text only. The
+128 MiB storage stop margin is untouched. No paid or external compute.
+
+## 8. The read activation was the ceiling (2026-09-19, later)
+
+Follow-up owed on §4's unexplained ceiling. Two diagnostics, in order.
+
+**(a) Value/output resolution is NOT the limit — but the sweep was confounded.** Raising `dv` with a
+`relu` on the read changed nothing: dv=32/64/128/256 gave 0.69/0.72/0.75/0.70 at context 4 and
+0.31/0.20/0.17/0.20 at context 8.
+
+**(b) The `relu` after the read was the ceiling.** With exact addressing the *selection* is the
+nonlinearity, so a `relu` on the read only discards the retrieved value's sign half:
+
+```
+read relu=true  context= 4 geometric=0.69
+read relu=true  context= 8 geometric=0.31
+read relu=true  context=16 geometric=0.02
+read relu=false context= 4 geometric=0.86
+read relu=false context= 8 geometric=0.64
+read relu=false context=16 geometric=0.47
+```
+
+`relu=false` is now the measured default for `GeometricAttention` (set by `from_f32` and by the
+trainer), and the claim is pinned as `selection_is_the_nonlinearity_not_the_read`.
+
+**(c) Re-run under a sign-preserving read, resolution DOES scale the mechanism** — the (a) sweep was
+measuring a broken read, not a capacity limit:
+
+| `dv` | context 4 | context 8 | context 16 |
+|---:|---:|---:|---:|
+| 32 | 0.86 | 0.64 | 0.47 |
+| 64 | 0.89 | 0.70 | 0.55 |
+| 128 | **0.94** | 0.72 | 0.44 |
+| 256 | 0.89 | **0.80** | 0.50 |
+
+Pinned as `resolution_scales_the_mechanism` (dv=32 vs 256 at context 8: 0.64 vs 0.80).
+
+**What remains, and why it is now well identified.** At context 16 the alphabet is small enough that
+tokens repeat *within* the run, so a first-order `(prev → next)` address accumulates several different
+successors and becomes ambiguous. That is inherent to a bigram-addressed memory and is the argument
+for **higher-order addressing**: an address formed from an *ordered* word of group elements, composed
+through the 2I table. The ordered-operation point is exactly the one W33 supplies
+(`P²=2P+3I`, `L²=2L+3I`, `PLPL=LPLP`, `Ω=LP−PL`, and `ker(Ω)` insensitive to order): the same
+operation multiset can act differently, so an ordered composition carries information a set or a hash
+cannot. That is the next mechanism to build and falsify.
+
+Current best: **0.94 at context 4 (dv=128), 0.80 at context 8 (dv=256), against linear attention's
+0.05/0.03/0.00.** Still not a solution, and still not a language model.
+
+## 9. Focused tests after these changes
+
+```
+cargo test --release -p uor-r4-core --offline --lib geometric_attention::tests -> 13 passed; 0 failed
+cargo fmt -p uor-r4-core -- --check -> clean
+```
+
+Charged 165,000 ms. Cumulative 142,838,565 / 147,200,000 ms.
+
+## 10. The remaining ceiling is a first-order address collision (confirmed)
+
+§8 identified the context-16 ceiling as first-order addressing. Confirmed by a controlled experiment:
+the same run length and alphabet, differing only in whether the queried token's bucket receives two
+different successors.
+
+```
+ambiguity clean=0.44 duplicated-key=0.14
+```
+
+A duplicated queried key costs **3× accuracy**. That is exactly the predicted failure and it is a
+property of addressing by one token, not of capacity (dv) or of training budget. Pinned as
+`a_duplicated_queried_key_breaks_first_order_addressing`.
+
+**The fix is higher-order addressing**, and the experiment says precisely which kind: the address must
+be an *ordered* word over the context, not a set or a single token. The project has the exact
+machinery for this already — the machine-checked 2I composition table — and W33 supplies the reason it
+matters (`PLPL = LPLP`, `Ω = LP − PL`, `ker(Ω)` insensitive to order: the same operation multiset can
+act differently, so order carries information a set cannot).
+
+**Recommended next mechanism.** Address by the *ordered pair* `(e(t_{i-1}), e(t_i))` of 2I elements,
+which is 120² = 14,400 distinct ordered addresses (order-preserving by construction, since
+`(a,b) ≠ (b,a)`), with the group table used for the graded/relational extensions. This is a small,
+contract-compliant change to `GeometricAttention`'s addressing, and the falsifiable prediction is that
+it removes the duplicated-key collapse: context-16 accuracy should rise materially and the
+clean-vs-duplicated gap should shrink. Capacity beyond 120² comes from longer words.
+
+Test count after these changes: 14 passed, 0 failed. `cargo fmt --check` clean.

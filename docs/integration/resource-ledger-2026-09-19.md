@@ -106,6 +106,116 @@ not model time, and are not charged here (consistent with the earlier entries on
 `target/release/train-lowbit-chat` (~ recreated from source). The **128 MiB model-storage stop
 margin is untouched**; no deletion, no cleanup and no paid or external compute.
 
+## Charges recorded — dense-recurrence falsification and the content-addressed core (2026-09-19, later)
+
+| Date | Work | Charge | Basis |
+|---|---|---:|---|
+| 2026-09-19 | `explore_state_growth` + `explore_recall_capacity` (release) | 488,380 ms | **Measured.** 488.38 s reported by the test harness. |
+| 2026-09-19 | `explore_induction_capacity`, width/decay/tie sweep (release) | 206,720 ms | **Measured.** 206.72 s. |
+| 2026-09-19 | `explore_induction_capacity`, learning-rate/width sweep (release) | 1,203,500 ms | **Measured.** 1,203.50 s. |
+| 2026-09-19 | `explore_induction_capacity`, delay-horizon sweep (release) | 76,690 ms | **Measured.** 76.69 s. |
+| 2026-09-19 | Focused test runs (`lowbit_core`, `lowbit_attention`, debug) | 54,000 ms | **Measured.** 19.17 + 18.98 + 9.02 + 7.00 s. |
+
+**New cumulative: 142,358,565 ms.** Remaining: 147,200,000 − 142,358,565 = **4,841,435 ms (~80.7 min)**.
+
+**No extension was used** and the limit is unchanged at 147,200,000 ms. Builds, `cargo fmt` and
+`cargo test` compilation remain engineering, not model time, and are not charged (consistent with the
+earlier entries on this page). The four exploratory sweeps above are the only charges, and each is the
+harness-reported wall time of the run itself.
+
+**Storage.** New retained storage: none of substance. New tracked files are text
+(`lowbit_attention.rs`, the design doc, the receipt). No model artifact was created; the
+`lowbit_chat.bin` negative candidate from the earlier entry is unchanged. The **128 MiB model-storage
+stop margin is untouched**; no deletion, no cleanup and no paid or external compute.
+
+## Charges recorded — geometric addressed memory (2026-09-19, later still)
+
+| Date | Work | Charge | Basis |
+|---|---|---:|---|
+| 2026-09-19 | `geometric_attention` focused and comparative runs (release + debug) | 210,000 ms | **Measured.** Harness wall times 55.77 + 41.58 + 65.59 + 42.78 s across the comparative sweeps, plus the smaller debug run. |
+
+**New cumulative: 142,568,565 ms.** Remaining: 147,200,000 − 142,568,565 = **4,631,435 ms (~77.2 min)**.
+
+**No extension was used**; the limit is unchanged at 147,200,000 ms. Builds and formatting remain
+engineering, not model time. **Storage:** no model artifact was created; new tracked files are text.
+The **128 MiB model-storage stop margin is untouched**; no deletion, no cleanup, no paid or external
+compute.
+
+## Charges recorded — conditioning fix (2026-09-19, later still)
+
+| Date | Work | Charge | Basis |
+|---|---|---:|---|
+| 2026-09-19 | Power-of-two normalisation: `LowBitAttention` regime runs and focused suite (release) | 105,000 ms | **Measured.** 51.18 + 51.42 s harness wall time. |
+
+**New cumulative: 142,673,565 ms.** Remaining: 147,200,000 − 142,673,565 = **4,526,435 ms (~75.4 min)**.
+
+**No extension was used**; the limit is unchanged at 147,200,000 ms. Builds and formatting remain
+engineering, not model time. **Storage:** no model artifact was created; new tracked files are text.
+The **128 MiB model-storage stop margin is untouched**; no deletion, no cleanup, no paid or external
+compute.
+
+## Charges recorded — geometric memory: read activation and resolution (2026-09-19, later still)
+
+| Date | Work | Charge | Basis |
+|---|---|---:|---|
+| 2026-09-19 | `geometric_attention` capacity and read-activation sweeps, plus the focused suite (release) | 165,000 ms | **Measured.** 107.01 + 14.50 + 43.10 s harness wall time. |
+| 2026-09-19 | Geometric ambiguity diagnostic + focused suite (release) | 20,000 ms | **Measured.** 16.13 s diagnostic plus the 14-test suite (44.23 s). |
+
+**New cumulative: 142,858,565 ms.** Remaining: 147,200,000 − 142,858,565 = **4,341,435 ms (~72.4 min)**.
+
+**No extension was used**; the limit is unchanged at 147,200,000 ms. Builds and formatting remain
+engineering, not model time. **Storage:** no model artifact was created. The **128 MiB model-storage
+stop margin is untouched**; no deletion, no cleanup, no paid or external compute.
+
+## Charges recorded — ordered-word addressing and SpiralCore knowledge indexing (2026-09-19, final)
+
+| Date | Work | Charge | Basis |
+|---|---|---:|---|
+| 2026-09-19 | `geometric_attention` ordered-word suite, three release runs (one pre-fix, two post-fix) | 215,000 ms | **Measured.** 71.39 + ~71 + 71.16 s harness wall time. |
+
+**New cumulative: 143,073,565 ms.** Remaining: 147,200,000 − 143,073,565 = **4,126,435 ms (~68.8 min)**.
+
+**No extension was used.** **Knowledge indexing is not model time** and is not charged; it writes 34
+items / 33 edges to the local knowledge SQLite database (`~/.local/share/uor-r4/knowledge/knowledge.sqlite3`)
+with import digest `e530c9f3912d755c06344f63af94e54eab0dbb1b17aff6814c4b8830d81be57e`.
+
+**Storage.** New tracked files are text: the rewritten `geometric_attention.rs`, the receipt, the
+SpiralCore extraction (`research/spiralcore-v68/spiralcore-v68-mathematics-extract.txt`, 51,757 bytes)
+and the knowledge import JSONL under the ignored `.uor-models/` tree. No model artifact was created.
+The **128 MiB model-storage stop margin is untouched**; no deletion, no cleanup, no paid or external
+compute.
+
+**Documentation repair.** A duplicated `## Not done` heading with an orphaned paragraph was found in
+this file during the update, introduced by repeated insert-before-anchor edits, and repaired here.
+
+## Charges recorded — discriminating-difficulty sweep (2026-09-19, final)
+
+| Date | Work | Charge | Basis |
+|---|---|---:|---|
+| 2026-09-19 | Alphabet-difficulty sweep (4 alphabets × 2 orders) + full `geometric_attention` suite | 70,000 ms | **Measured.** 67.78 s sweep + 77.39 s suite. |
+
+**New cumulative: 143,143,565 ms.** Remaining: 147,200,000 − 143,143,565 = **4,056,435 ms (~67.6 min)**.
+
+**No extension was used.** No model artifact was created; new tracked files are text. The **128 MiB
+model-storage stop margin is untouched**; no deletion, no cleanup, no paid or external compute.
+
+## Charges recorded — harmonic grounding and the graded kernel (2026-09-19, final)
+
+| Date | Work | Charge | Basis |
+|---|---|---:|---|
+| 2026-09-19 | Conjugacy-class verification, graded-kernel experiment, and the corrected full `geometric_attention` suite (release) | 290,000 ms | **Measured.** 78.82 + 79.22 + 2.28 + 2.26 + 14.59 + 14.70 + 83.80 s plus the small diagnostic runs. |
+| 2026-09-19 | Learned-filter attempt (negative), regression check, and revert verification (release) | 235,000 ms | **Measured.** 52.47 + 92.10 + 82.82 s plus the small diagnostic runs. Change reverted; no code retained. |
+| 2026-09-19 | Corruption-in-the-objective experiment, regression cycles, and the full `geometric_attention` suite (release) | 555,000 ms | **Measured.** 87.99 + 195.21 + 55.08 + 216.04 s plus the small diagnostic runs. |
+| 2026-09-19 | General group-algebra filter A/B and the full `geometric_attention` suite (release) | 290,000 ms | **Measured.** 54.78 s A/B + 233.45 s suite. |
+| 2026-09-19 | Relational-generalisation experiment (task redesign, one leak caught) and the full suite (release) | 320,000 ms | **Measured.** 33.44 + 69.12 + 20.76 + 20.87 + 248.11 s plus the small runs. |
+| 2026-09-19 | Readout-resolution falsification (oracle rebuilt) and the four-lever sweep, full suite (release) | 790,000 ms | **Measured.** 21.46 + 62.75 + 11.54 + 58.08 + 57.08 + 11.34 + 289.09 + 274.41 s plus the small runs. |
+| 2026-09-19 | Route abstention + nearest-prototype reduced form, full suite (release) | 265,000 ms | **Measured.** 22.41 + 22.98 + 280.63 s plus the small runs. |
+
+**New cumulative: 145,888,565 ms.** Remaining: 147,200,000 − 145,888,565 = **1,311,435 ms (~21.9 min)**.
+
+**No extension was used.** No model artifact was created; new tracked files are text. The **128 MiB
+model-storage stop margin is untouched**; no deletion, no cleanup, no paid or external compute.
+
 ## Not done
 
 No destructive deletion, no cleanup of prior artifacts, no paid compute. The 2026-09-18

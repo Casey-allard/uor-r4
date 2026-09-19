@@ -1,0 +1,172 @@
+# Ordered-word addressing: the collapse is recovered, and context copy reaches 100% — 2026-09-19
+
+Branch `codex/stage1-falsification-sweep`. Machine `MacBookPro17,1` (M1, 8 cores).
+Verbatim tool output; every number is reproducible from the commands shown.
+
+## 1. What changed and why
+
+`GeometricAttention` previously addressed memory by **one token**. The controlled experiment in the
+[previous receipt](native_geometric_geometric_attention_2026-09-19.txt) §10 showed that costs 3×
+accuracy when a token repeats with two different successors (`clean 0.44` vs `duplicated 0.14`), and
+identified the fix: the address must be an **ordered word** over the context, not a set or a
+commutative hash.
+
+This change makes the word length `order` explicit. `order = 2` addresses by the ordered pair of the
+last two tokens over the 120 elements of `2I`, giving **120² = 14,400 ordered addresses**, with
+`(a,b) ≠ (b,a)` by construction. Address is a positional radix composition of 2I elements — tabled
+reads and index arithmetic, no multiplier.
+
+This is the project's own formalism, not an import: the ordered n-let of group elements, and the
+directed relative element `r(i,j) = inverse(g_i)·g_j` of the September-13 attention synthesis
+(`docs/integration/geometric-attention-research-2026-09/README.md`). The order principle is the one
+W33 supplies in exact finite form (`PLPL = LPLP`, `Ω = LP − PL`, `ker(Ω)` order-insensitive).
+
+## 2. The falsifiable prediction, confirmed
+
+The previous round's stated prediction: an ordered-pair address should recover the duplicated-key
+collapse. Task and alphabet held fixed; only the word length changes.
+
+```
+collision order=1 clean=0.44 dup=0.14 | order=2 clean=1.00 dup=0.98
+```
+
+**`duplicated` 0.14 → 0.98.** Pinned as `ordered_words_recover_the_duplicated_key_collapse`.
+
+## 3. Context copy now solves at the lengths the matched filter cannot touch
+
+Context repetition (a random run `R`, then `R` again; the second copy is predictable only from memory
+of the words in the first). Held out, deterministic seeds.
+
+```
+context=  4 geometric=1.00 linear=0.05
+context=  8 geometric=1.00 linear=0.03
+context= 16 geometric=1.00 linear=0.00
+```
+
+Against the same core's own `order = 1` results, and against linear attention:
+
+| context | order=1 | **order=2** | linear attention |
+|---:|---:|---:|---:|
+| 4 | 0.86 | **1.00** | 0.05 |
+| 8 | 0.64 | **1.00** | 0.03 |
+| 16 | 0.47 | **1.00** | 0.00 |
+
+Pinned as `copies_a_repeated_context` (≥ 0.9 at 4, 8 and 16) and
+`exact_addressing_beats_matched_filter_as_context_grows`.
+
+## 4. Two earlier ablations had to be moved back to `order = 1`
+
+Both are true and both are now unresolvable at `order = 2`, because the task **saturates** at 1.00 and
+leaves no headroom:
+
+* `selection_is_the_nonlinearity_not_the_read` — at `order = 2`, relu 0.95 vs no-relu 1.00 (margin
+  0.05, below the 0.1 threshold). Retained at `order = 1`, where it is 0.31 vs 0.64.
+* `resolution_scales_the_mechanism` — at `order = 2`, dv=32 vs dv=256 both give 1.00. Retained at
+  `order = 1`, where it is 0.64 vs 0.80.
+
+This is recorded rather than silently weakened: a saturated task is not evidence of absence, and the
+measured claims keep their original scope.
+
+## 5. A defect found and corrected during this change
+
+The first run of the refactor produced 0.00 everywhere, including at `order = 1` where 0.86 had been
+measured. Cause: `tail_word` was off by one, reading index `len` instead of `len − 1`, so
+`forward_i32` — and therefore the accuracy metric — read the wrong bucket. **Training was correct and
+the measurement was not.** Corrected; all results above are post-fix. Recorded because the failure
+mode (a measurement bug that looks like a mechanism failure) is exactly the class of error this
+project has already been burned by.
+
+## 6. Research synthesis performed, and the SpiralCore mathematics indexed
+
+Per owner direction. Findings that changed or confirmed the plan:
+
+* The project's **September-13 attention synthesis** already selected the H1 direction (structured
+  geometric recurrent learner with relation-preserving reads) and named the directed relative element
+  `r(i,j) = inverse(g_i)·g_j` as the descriptor to prefer over a scalar distance. This change
+  implements the ordered-word half of that; the group-composition half is the graded kernel.
+  **Note on D0-a vs D0-b:** that synthesis predates D0-b and states that a published MatMul-free
+  model's ternary signed accumulation "is a matrix product under this project's stronger rule". That
+  was the D0-a reading, **superseded by the owner-signed D0-b**, which explicitly permits bounded
+  integer/ternary linear maps executed with no multiplier in the kernel. The `LowBitAttention` core is
+  legal under D0-b and would not have been under D0-a; the conflict is recorded, not hidden.
+* **SpiralCore v68** is preserved in-repo with a scoped source review
+  (`research/spiralcore-v68/README.md`). Its mathematics had not been extracted into the knowledge
+  index. That is now done — see §7.
+* **W33 / NEMESIS** were reviewed in `docs/integration/nemesis-w33-relevance.md`; its own verdict is
+  that neither supplies a replacement attention rule, and that a channel map must be stated before
+  either is *used*. The ordered-operation **principle** is what has been transferred and it worked.
+
+## 7. SpiralCore mathematics indexed into project knowledge
+
+Mechanical extraction of the preserved HTML (tags stripped, entities unescaped), with the file's
+SHA-256 verified as `2a45c2e5f46c8c36bf7801da1d1e12ee9e2ed8b3da488ff54c20a6ac6c2ceab0` — matching the
+preserved copy. 33 sections, 49,066 characters, including: dodecahedron/icosahedron network, six H2
+decagons, 3-fold axes, addressing schema, E8 operator subnet routing, LADA ports (D4/F4), stabilizer
+and inversion angle-invariance, Bell 2-of-6 multifrequency codec, Clifford complement diagnostics, FBS
+binder tree, orbit/route traces, route directional-spread witness, core-edge effective resistance,
+scope ledger.
+
+* Extract: `research/spiralcore-v68/spiralcore-v68-mathematics-extract.txt`
+* Import: `.uor-models/knowledge-import/spiralcore-v68.jsonl` (34 items, 33 edges)
+* Ingest result: `added 34, added_edges 33, database ~/.local/share/uor-r4/knowledge/knowledge.sqlite3,
+  import_sha256 e530c9f3912d755c06344f63af94e54eab0dbb1b17aff6814c4b8830d81be57e`
+* Retrieval verified through the knowledge service (`spiralcore:v68:section:09`, "Addressing schema").
+
+This is a faithful text extraction, not an interpretation, verification or endorsement. Formulas
+carried as HTML markup may be degraded by tag stripping; the preserved HTML remains the source of
+record. Its routing mathematics is now *findable*, which is what was asked.
+
+## 8. Focused tests — PASS
+
+```
+cargo test --release -p uor-r4-core --offline --lib geometric_attention::tests -> 14 passed; 0 failed
+cargo fmt -p uor-r4-core -- --check -> clean
+```
+
+## 9. Honest limits
+
+* Still **not a language model**. This is a from-scratch synthetic task at `dv = 32`, one layer.
+* The task is now **saturated** at 1.00, so it can no longer discriminate. The next measurement needs a
+  harder task (larger alphabet, longer runs, or a real corpus) or the mechanism will look perfect while
+  hiding its real limits.
+* Addresses are still **fixed**, not learned. `order = 2` needs ~14,400 buckets and the dense state is
+  `n_addr × dv`; `order ≥ 3` (1.7M+ addresses) requires a sparse addressed store.
+* No serving-multiplier claim: the construction is multiplier-free and the integer path is verified
+  equal to an `f64` reference, but `scripts/serving_multiplier_check.py` has not been run on it.
+* Energy per token remains **UNAVAILABLE** on this machine.
+
+## 10. Next action
+
+1. **Harden the measurement before claiming more.** The task saturates; raise alphabet and run length
+   until `order = 2` stops scoring 1.00, then re-measure `order = 2` vs `order = 3` there. A mechanism
+   measured only on a task it aces is not measured.
+2. **Graded group kernel** (the other half of the project's `r(i,j)` formalism): read neighbouring
+   group elements with partial weight `w[class(q⁻¹g)]` instead of only the exact bucket, so a query can
+   match a *near* word. Falsifiable: it should raise accuracy on unseen/mis-keyed words.
+3. Then BPE-4096 wiring and a real training run on instruction data.
+
+Charged 215,000 ms. Cumulative 143,073,565 / 147,200,000 ms.
+
+## 11. Closing the saturation caveat: a discriminating curve
+
+§9 flagged that the copy task saturates at `order = 2` for a 32-token alphabet, so it can no longer
+discriminate. Difficulty is now raised by shrinking the alphabet until ordered *pairs* repeat with
+different successors. Context 16, 900 steps, deterministic seeds, `dv = 64`:
+
+```
+alphabet= 4 context=16 order1=0.34 order2=0.62
+alphabet= 8 context=16 order1=0.25 order2=0.84
+alphabet=16 context=16 order1=0.42 order2=0.97
+alphabet=32 context=16 order1=0.55 order2=1.00
+```
+
+**The ordered-pair address wins at every difficulty, and the margin grows as words become unique**
+(+0.28, +0.59, +0.55, +0.45). At alphabet 4 — only 16 possible ordered pairs for a 16-token run — both
+saturate-limit cases are gone and `order = 2` still doubles `order = 1`. The measurement now
+discriminates. Pinned as `ordered_words_win_at_every_difficulty`.
+
+(Counter-intuitive but consistent: `order = 1` also improves with a larger alphabet, 0.34 → 0.55,
+because single tokens then repeat less often. The two effects are different collisions and the
+data shows both.)
+
+Charged 70,000 ms. Cumulative 143,143,565 / 147,200,000 ms.

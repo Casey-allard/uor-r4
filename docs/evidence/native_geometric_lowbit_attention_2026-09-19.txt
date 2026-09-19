@@ -1,0 +1,183 @@
+# Geometric core: measured failure of the dense recurrence, and a content-addressed replacement — 2026-09-19
+
+Branch `codex/stage1-falsification-sweep`. Machine `MacBookPro17,1` (M1, 8 cores).
+Every number below is a verbatim tool output; commands are given so each is reproducible.
+
+## 1. What was added
+
+| Item | File |
+|---|---|
+| Recurrent decay shift (a measured, falsified variant of the dense core) | `crates/uor-r4-core/src/native_geometric/learner/lowbit_core.rs` |
+| Content-addressed linear-attention core + trainer | `crates/uor-r4-core/src/native_geometric/learner/lowbit_attention.rs` |
+| Design reasoning and scaling analysis | `docs/integration/geometric-core-architecture-2026-09-19.md` |
+
+The dense core is unchanged by default (`recurrent_shift = 0` keeps the original behaviour); the
+decay is an opt-in mechanism so both are measurable, per the D2 rule that a negative result retires a
+*configuration*, not a mechanism.
+
+## 2. The dense recurrence saturates i32 in 16–32 steps
+
+```
+cargo test --release -p uor-r4-core --offline --lib explore_state_growth -- --nocapture
+```
+
+```
+state-growth dim=32 steps=8 peak_abs_h=1958
+state-growth dim=32 steps=16 peak_abs_h=3659259
+state-growth dim=32 steps=32 peak_abs_h=2125908161
+state-growth dim=32 steps=64 peak_abs_h=2146719351
+state-growth dim=64 steps=8 peak_abs_h=52375
+state-growth dim=64 steps=16 peak_abs_h=2071458732
+state-growth dim=64 steps=32 peak_abs_h=2147201004
+state-growth dim=128 steps=8 peak_abs_h=342422
+state-growth dim=128 steps=16 peak_abs_h=2136046685
+state-growth dim=128 steps=32 peak_abs_h=2146693444
+```
+
+`i32::MAX = 2147483647`. The state is at saturation by step 16–32 at every width. This is the
+mechanism behind the previously reported ~24-token workable window and the collapse at 40 tokens
+(held-out loss 18.47, worse than the uniform `ln 259 = 5.56`).
+
+## 3. Distractors bury the signal, and capacity does not fix it
+
+Delayed recall: retrieve the first token after `D` distractor steps.
+
+```
+cargo test --release -p uor-r4-core --offline --lib explore_recall_capacity -- --nocapture
+```
+
+```
+recall dim= 64 distractors=2 steps=800  acc=1.00
+recall dim= 64 distractors=4 steps=800  acc=0.20
+recall dim= 64 distractors=8 steps=800  acc=0.00
+recall dim=128 distractors=2 steps=800  acc=1.00
+recall dim=128 distractors=4 steps=800  acc=1.00
+recall dim=128 distractors=8 steps=800  acc=0.00
+recall dim=256 distractors=2 steps=800  acc=1.00
+recall dim=256 distractors=4 steps=800  acc=1.00
+recall dim=256 distractors=8 steps=800  acc=0.00
+```
+(`steps=3000` was identical at every cell.)
+
+Capacity buys delay 4 and never delay 8. 8× the width does not buy one more remembered item.
+
+## 4. The obvious repair — decay — is falsified
+
+```
+cargo test -p uor-r4-core --offline --lib explore_horizon_vs_decay -- --nocapture
+```
+
+```
+distractors= 1 decay=0 accuracy=1.00
+distractors= 1 decay=2 accuracy=0.16
+distractors= 1 decay=3 accuracy=0.00
+distractors= 1 decay=4 accuracy=0.00
+distractors= 1 decay=5 accuracy=0.00
+distractors= 2 decay=0 accuracy=1.00
+distractors= 2 decay=2 accuracy=0.00
+distractors= 2 decay=3 accuracy=0.00
+```
+
+A right shift on the recurrent term stabilises the magnitude and destroys the memory in the same
+operation. The structural reason is recorded in the design doc §1(c): a ternary matrix cannot be
+near-orthogonal, so the only shift that stabilises the recurrence also erases what is stored.
+
+## 5. The content-addressed core
+
+`S_t[i][j] = (S_{t-1}[i][j] >> decay) + k_i·v_j`, read as `y_j = Σ_i q_i·S_t[i][j]`, then
+`W_o · relu(y)`. `k` and `q` are unscaled ternary codes, so both the outer product and the read are
+conditional adds/subtracts — no multiplier. `decay = 0` grows the state linearly (measured peak
+`|S| < 2^20` over 512 steps, versus i32 saturation for the dense core).
+
+**Falsification test — induction** (`[x, y, filler*delay, x] → y`), held out, deterministic seeds:
+
+```
+induction dk= 64 decay=0 tied=false delay=16 acc=1.00
+induction dk=128 lr=0.005 steps=2000 delay=16 acc=1.00
+induction dk=256 lr=0.005 steps=2000 delay=16 acc=1.00
+induction dk=512 lr=0.005 steps=2000 delay=16 acc=1.00
+```
+
+Against the dense core's **0.00 at delay 8 at every width** (§3). The content-addressed read
+retrieves across a distance the dense recurrence cannot represent, at 100%, and it scales in width.
+
+**The negative result that matters more — the training is fragile:**
+
+```
+induction dk=128 lr=0.05  steps=1200 delay=16 acc=0.06   (collapse to uniform, loss exactly ln 8)
+induction dk=256 lr=0.02  steps=2000 delay=16 acc=0.38
+induction horizon dk=64 delay= 32 acc=0.00
+induction horizon dk=64 delay= 64 acc=0.00
+induction horizon dk=64 delay=128 acc=0.00
+```
+
+Same architecture, same data, different learning rate: 1.00 at `dk = 128, lr = 0.005`; 0.06 at
+`dk = 128, lr = 0.05`. Delay 32 fails at `dk = 64` where delay 16 succeeds. An architecture that
+finds its solution only in part of the regime map cannot be scaled, and this is recorded as the top
+open item rather than a footnote.
+
+## 6. Focused tests — PASS
+
+```
+cargo test -p uor-r4-core --offline --lib lowbit_attention   -> 5 passed; 0 failed
+  integer_path_is_exactly_the_float_reference     (decay 0/2/4; integer path == f64 reference)
+  state_grows_linearly_not_geometrically          (peak |S| < 2^20 over 512 steps)
+  gradients_are_produced_for_every_table
+  learns_induction_at_short_delay
+  learns_induction_at_long_delay                  (delay 16, held-out accuracy >= 0.9)
+cargo test -p uor-r4-core --offline --lib lowbit_core        -> 12 passed; 0 failed
+cargo fmt -p uor-r4-core -- --check                          -> clean
+```
+
+## 7. Limitations, stated plainly
+
+* **No chat capability is claimed or observed, at any point in this work.** The instruction-corpus run
+  remains a copy-only model (response-only accuracy 0/470) and the content-addressed core has been
+  tested on synthetic induction and recall, not on language.
+* **No serving-multiplier claim is made here.** The construction is multiplier-free (ternary × ternary
+  → conditional add), and the integer path is verified equal to an `f64` reference. Making the
+  narrower D0-b claim about a *served binary* still requires
+  `scripts/serving_multiplier_check.py` on the actual symbol, which was not run for this module.
+* **Energy per token is UNAVAILABLE** on this machine (`powermetrics` reports `CPU Power: 0 mW` under
+  load); the guard in `scripts/energy_per_token.py` was not bypassed.
+* **One layer, synthetic tasks.** Induction is not language modelling. The `√(dk/N)` capacity
+  reasoning in the design doc is a prediction, not a measurement.
+* **Training-compute arithmetic (design doc §6) is a projection**, with its assumptions stated inline:
+  it concludes that a coherent chat model cannot be trained on this machine under the project's
+  compute rules, and asks the owner to choose between a narrowed target, external training compute,
+  or a sample-efficiency result.
+
+## 8. Next action
+
+Design doc §7.1–7.2: add a **power-of-two readout normalisation** (shift the read by the leading bit of
+the accumulated key mass — bit scan plus shift, no divide), then re-measure the regime map and the
+induction horizon. Only after the regime map is flat should `dk`, layer count or the tokenizer change.
+
+## 9. Conditioning fix measured (2026-09-19, later)
+
+The owner confirmed the power-of-two readout normalisation is D0-b-compliant (bit scan + shift; no
+multiply, divide or float) and asked for it to be applied before any further training. It has now been
+implemented in `LowBitAttention` (serving path, `sequence_loss`, and the trainer, with the shift
+treated as a constant under STE) and measured against the collapse recorded in §5.
+
+```
+cargo test --release -p uor-r4-core --offline --lib lowbit_attention
+```
+
+```
+norm dk=128 lr=0.05 norm_bits=0 acc=0.06 loss=2.079
+norm dk=128 lr=0.05 norm_bits=6 acc=0.38 loss=1.970
+```
+
+`2.079 = ln 8` exactly, so the unnormalised run is the uniform predictor — the collapse is real and
+reproduced. Normalisation moves it off that floor: accuracy 0.06 → 0.38 and the loss leaves `ln 8`.
+**Prediction §7.1 of the design doc is partially confirmed**: normalisation changes the regime, but
+0.38 is not a solution, so conditioning alone is not sufficient.
+
+It is pinned as a deterministic assertion in `normalisation_moves_off_the_uniform_collapse`.
+
+The same normalisation was also applied to `GeometricAttention`, where it had **no measurable effect**
+(§4 of the geometric receipt). Both results are recorded: the mechanism is correct conditioning, but
+the binding limit differs between the two cores.
+
+Charged 105,000 ms. Cumulative 142,673,565 / 147,200,000 ms.

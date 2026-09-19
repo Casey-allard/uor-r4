@@ -1,0 +1,343 @@
+# Spherical-harmonic grounding and a graded group kernel — 2026-09-19
+
+Branch `codex/stage1-falsification-sweep`. Machine `MacBookPro17,1` (M1, 8 cores).
+
+Owner note: some original ideas were based on **spherical harmonics**. This records the exact finite
+form that takes in this project, what it buys, and the two bugs the attempt exposed.
+
+## 1. The exact finite form: Peter–Weyl on 2I
+
+For a finite group, conjugation-invariant functions — functions of the *relative* element
+`r(q,g) = inverse(q)·g`, which is the descriptor the September-13 attention synthesis named — form a
+space whose dimension is the number of conjugacy classes, spanned by the irreducible characters. That
+dimension is this group's harmonic band count.
+
+Computed from the project's own verified group table, not cited:
+
+```
+2I conjugacy classes = 9, sizes (sorted) = [1, 1, 12, 12, 12, 12, 20, 20, 30]
+```
+
+with conjugation-invariance checked directly over all 14,400 `(g,h)` pairs. This matches SL(2,5)'s
+structure and means a graded read kernel `w[class(inverse(q)·g)]` is the **maximally compact
+rotation-invariant kernel this group admits: nine ternary weights rather than 120**.
+
+## 2. The graded read
+
+Added `graded_read`: `y = Σ_g w[class(q⁻¹g)] · S[g]` with **ternary** `w`, so the read is conditional
+adds/subtracts only. With `w` on the identity class this reproduces the exact read `S[q]` — asserted
+non-vacuously (`graded_exact_kernel_equals_the_bucket_read` now also requires a non-empty bucket and a
+query-dependent read, after the first version passed on two empty vectors).
+
+## 3. Measured: it does work, at a cost
+
+Corrupt the query address by a fixed group element and weight the kernel on that element's conjugacy
+class. Averaged over five corruption elements (`h ∈ {3,7,11,13,17}`), held out, deterministic seeds,
+`vocab = 120`, `dv = 64`, 900 steps:
+
+```
+graded kernel over 5 corruptions: clean exact=0.55 soft=0.15 | corrupted exact=0.13 soft=0.23
+```
+
+**The class-function kernel recovers a corrupted query — 0.13 → 0.23, about 1.8× — because the kernel
+pools over group-near stored elements where the exact read looks in exactly one wrong bucket.** It
+pays for that with clean accuracy, 0.55 → 0.15. Both numbers are reported; the kernel here is
+**hand-set, not learned**, so this is a lower bound on what a trained kernel could trade.
+
+## 4. Two defects found, both by the new checks
+
+1. **The identity of 2I is element 1, not element 0.** `exact_kernel` assumed class index 0 was the
+   identity class, so the "exact" kernel weighted an arbitrary singleton class instead. The first
+   graded measurement (clean 0.19, corrupted 0.13 → 0.23) was therefore **invalid and was
+   re-measured**; §3 is the corrected result. `exact_kernel` now takes the identity class explicitly.
+2. **A vacuous test.** `graded_exact_kernel_equals_the_bucket_read` initially compared two empty
+   vectors and passed. It now asserts the bucket is non-empty and that the read depends on the query,
+   and its token list was changed so the queried element is genuinely a predecessor.
+
+This is the second time in two sessions that a measurement defect looked like a mechanism result. The
+non-vacuity guard is the general lesson and is now in the test.
+
+## 5. Focused tests — PASS
+
+```
+cargo test --release -p uor-r4-core --offline --lib geometric_attention::tests -> 18 passed; 0 failed
+cargo fmt -p uor-r4-core -- --check -> clean
+```
+
+Includes: 9 conjugacy classes verified by direct conjugation over all pairs; ordered words distinct and
+order-sensitive; exact kernel ≡ bucket read (non-vacuously); graded kernel recovers a corrupted query;
+ordered words win at every difficulty; `relu`-after-read cost and resolution scaling at `order = 1`.
+
+## 6. Honest limits
+
+* Still **not a language model**: one layer, synthetic tasks, `dv = 64`, `vocab = 120`.
+* The graded kernel is **hand-set**, not learned; the clean-accuracy cost is large and the corruption
+  benefit modest. Whether a *learned* kernel finds a better trade is untested.
+* Corruption is by a single fixed group element per evaluation; composition of several corruptions, and
+  corruption that moves the element out of the stored set, are untested.
+* The kernel is ternary, so a class weight can only be `±1` or `0`. Larger integer weights would
+  require a small multiply and are therefore not D0-b-compliant in this form.
+* No serving-multiplier claim (`serving_multiplier_check.py` not run). Energy/token UNAVAILABLE.
+
+## 7. Next action
+
+1. **Learn the kernel.** Nine ternary weights; the gradient is available in closed form
+   (`∂L/∂w[c] = Σ_{g∈c} Σ_j dnum_j·S[g][j]`), and the write path is unchanged. Prediction: a learned
+   kernel keeps most clean accuracy while retaining the corruption benefit — if it cannot, the
+   trade-off is structural and should be reported as such.
+2. Then **BPE-4096 and a real instruction corpus**, which is where the next honest signal has to come
+   from.
+
+Charged 290,000 ms. Cumulative 143,433,565 / 147,200,000 ms.
+
+## 8. Learning the filter: attempted, negative, reverted — with the reason
+
+Owner direction was to learn the harmonic filter next (nine ternary weights; gradient
+`∂L/∂w[c] = Σ_{g∈c} Σ_j dnum_j·S[g][j]`, write path unchanged). It was implemented — a learnable
+ternary kernel with STE and Adam, the read becoming a group convolution with per-step state caching —
+and measured against the fixed exact filter under the protocol of §3:
+
+```
+fixed   kernel=[0, 1, 0, 0, 0, 0, 0, 0, 0] clean=0.42 corrupted=0.13
+learned kernel=[1, 1, 1, 0, 0, 0, 0, 0, 0] clean=0.14 corrupted=0.14
+```
+
+**Trained on clean addresses only, the filter learns to spread over neighbouring classes and loses
+clean accuracy (0.42 → 0.14) without gaining corrupted accuracy (0.13 → 0.14).** The reason is
+principled and is the useful result: **the training objective contains no address corruption, so
+robustness to it cannot be learned from that objective.** The optimiser is doing exactly what it was
+asked — it adds filter mass only while it helps the clean loss, and spreading never does. The
+corruption benefit measured in §3 (0.13 → 0.23 for a hand-set filter) is real, but a spread filter must
+be *chosen*, or trained with corrupted addresses present in the objective.
+
+The change also regressed five `geometric_attention` tests in the trainer's read path. Since the
+experiment is a clear negative, the implementation was **reverted** and the file is back at its
+verified 18/18 state (`git checkout` of the file at `17b3eaa2`). **The diagnosis is retained; the
+regressing change is not.** Recovery is one line away for the next attempt, which should change the
+*objective*, not the optimiser.
+
+## 9. Closest thing to the owner's wider concept, and what is still missing
+
+The owner's framing is harmonic compute with Lie-group packaging, storage and backpropagation carried
+in a superposition over that basis. The honest mapping of what now exists:
+
+* **Superposition storage — present.** The state is a superposition over the group: `S = Σ_g c_g · δ_g`
+  with `c_g` an integer vector, and the read is a convolution of that superposition with a filter. That
+  is a classical superposition over a Lie-group basis, not a quantum one, and should be described that
+  way.
+* **Backpropagation in the basis — present.** The suffix-sum gradient is exactly the adjoint of the
+  convolution: `∂L/∂c_g` accumulates through the filter, and the write gradient is the transpose of the
+  read. Learning in the group-algebra basis is implemented, not proposed.
+* **Lie-group packaging — partly present.** Composition is exact via the verified 2I table, and the
+  ordered word packs context into a group element. What is missing is a *learned* packaging: the
+  element assignment is still a fixed function of the token id.
+* **Harmonic compute — partly present.** The filter is a class function, i.e. a band-limited
+  (conjugation-invariant) kernel, and it is the maximally compact one. What is missing is a
+  *non-class* filter (a full group-algebra element, not merely a class function) and multiple bands.
+
+Next honest steps, in order: (1) put corrupted addresses in the training objective and re-test the
+learned filter — the diagnosis predicts this is what makes it work; (2) a general (non-class) filter;
+(3) learned packaging of the element assignment; (4) then BPE-4096 and real text.
+
+Charged 235,000 ms. Cumulative 143,668,565 / 147,200,000 ms.
+
+## 10. Corruption in the objective: the diagnosis is confirmed, and the filter is still not worth it
+
+§8's diagnosis was that robustness cannot be learned because the objective contains no corruption. That
+was tested directly: an optional `corrupt_frac` displaces the query address by a random group element
+during training, so a spread filter is what makes the answer recoverable. The filter is now trivially
+learnable (`learn_kernel`, separate clip group), and the test is the filter's *shape* and both
+accuracies.
+
+```
+corrupt 0.0: kernel=[1,1,1,0,0,0,0,0,0] clean=0.11 corrupted=0.12
+corrupt 0.5: kernel=[1,1,0,1,1,1,0,1,0] clean=0.27 corrupted=0.13
+```
+
+**The diagnosis is confirmed:** corruption in the objective changes what the filter learns — it spreads
+from 3 to 7 classes — and it raises corrupted accuracy (0.12 → 0.13). Clean accuracy also rises
+(0.11 → 0.27), which is a regularisation effect: training through displaced addresses yields values
+that are more recoverable.
+
+**But the learned filter is still not worth it on this task.** The *fixed exact* filter reaches
+clean 0.42 with the same architecture and training budget, so every learned variant — with or without
+corruption in the objective — is worse on the clean task and only marginally better under corruption.
+Honest reading: **robustness to address corruption is worth a spread filter only if such corruption is
+part of the deployment distribution; it is not a free accuracy gain.** Gains of +0.01 under corruption
+against −0.15 clean are not a trade worth making by default.
+
+### Two more defects found and fixed
+
+1. **`order = 2` addresses are pair indices, not group elements.** The inverse lookup was computed
+   unconditionally, indexing the 120-entry inverse table with a value up to 14,399 — an
+   out-of-bounds panic in six tests. It is now guarded to `order = 1`. This was the cause of the
+   previous round's five failures.
+2. **The filter's gradient was folded into the matrices' global gradient norm.** That changed the clip
+   applied to the matrices and altered every existing training result. The nine filter weights are now
+   clipped in their own group.
+
+Both are recorded because each was invisible in the aggregate numbers and only appeared as a
+regression in tests that had nothing to do with the change.
+
+### State after this round
+
+`geometric_attention` **19 passed, 0 failed**; `cargo fmt --check` clean. The learned filter is retained
+as an option (`learn_kernel`, `corrupt_frac`) with the defaults being the previously verified
+behaviour, so nothing regressed.
+
+Charged 555,000 ms. Cumulative 144,223,565 / 147,200,000 ms.
+
+## 11. The general group-algebra filter buys nothing — the bottleneck is not the filter
+
+§9 listed "a general (non-class) group-algebra filter" as the missing half of harmonic compute, and it
+was implemented: the filter is now either a class function (9 slots, conjugation-invariant) or a
+general group-algebra element (120 slots, one per group element), selectable by `class_filter`. The
+general case contains the class case as a subspace, so it is strictly more expressive.
+
+```
+class filter:   slots=9   non_zero=3  clean=0.11
+general filter: slots=120 non_zero=5  clean=0.11
+```
+
+**A 13× increase in filter capacity changes nothing.** Training uses only 5 of 120 slots and reaches
+exactly the same clean accuracy. Both remain far below the **fixed exact filter's clean 0.42** on the
+same budget.
+
+This is a clean negative that does real work: **the filter is not the bottleneck.** Filter capacity,
+filter expressiveness and conjugation-invariance are all immaterial to clean accuracy here. Whatever
+limits the learned variants is upstream of the read — in the stored representation (the value table)
+or the readout — which is exactly the "learned packaging" question, and it is now the measurement's
+own conclusion rather than a preference.
+
+State: `geometric_attention` **20 passed, 0 failed**; `cargo fmt --check` clean.
+
+Charged 290,000 ms. Cumulative 144,513,565 / 147,200,000 ms.
+
+## 12. Relational generalisation: the first task where the group is load-bearing
+
+The previous round concluded that learned packaging cannot be tested on a copy task, because relabelling
+group elements is a symmetry of the architecture: with no collisions and no meaningful proximity, every
+injective assignment behaves identically. The task has to reward group *structure*. So one was built.
+
+**Task.** Token `w < 120` has meaning = its own element of `2I`; token `120 + j` is a relation whose
+element is `j + 1`. The fact `(w, h_j) -> compose(w, h_j)` is **defined by the group**, so an unseen pair
+still has a well-defined answer. Each sequence lists several facts and then queries one pair; the answer
+is the final token, is **not adjacent** to the query, and appears nowhere else in the prompt. Held-out
+pairs (`(w·8 + j) % 5 == 0`) are never used as a fact during training.
+
+*(An earlier version of this task was a literal repeat of each fact. It scored 1.00 on "unseen" facts —
+because the answer sat directly beside the query and could simply be copied. That was a leak in the task,
+not a mechanism result, and it was caught by the test failing. Recorded because it is the second task
+design error this session, and both looked like successes.)*
+
+**Result.** Held out, deterministic seeds, `dv = 64`, 900 steps:
+
+```
+context lookup:     seen-query=0.39  unseen-query=0.00
+composed dictionary: seen-query=0.39  unseen-query=0.42
+```
+
+**A context-address lookup scores 0.00 on unseen relational facts: it cannot generalise, which is the
+falsification half.** The composed read — package the vocabulary by meaning, then address
+`compose(elem(w), elem(h))` — answers unseen facts at **0.42 against 0.00**, and has **no generalisation
+gap at all** (0.42 unseen vs 0.39 seen): the query is computed, not retrieved.
+
+**The ceiling is the readout, not the mechanism.** Both mechanisms sit at the same ~0.4 on facts they can
+reach, which is the same readout limit measured twice already (the fixed exact filter's 0.42; the learned
+filter's inability to beat it). Composition removes the *generalisation* gap entirely; what remains is a
+resolution/readout limit on mapping 120 value vectors to 120 classes.
+
+**This is the first result in the session where the group structure is load-bearing rather than
+decorative**: exact composition is what turns an unanswerable unseen pair into an answered one. It also
+gives the clearest statement yet of what to build next — the readout, since it is now the binding
+constraint on every mechanism tested.
+
+Tests: `geometric_attention` **22 passed, 0 failed**; `cargo fmt --check` clean.
+
+Charged 320,000 ms. Cumulative 144,833,565 / 147,200,000 ms.
+
+## 13. Four levers ruled out: the ceiling is not resolution, budget, width or filter capacity
+
+The recommended next step was to fix the readout, on the theory that its resolution caused the ~0.3–0.4
+ceiling. Falsify-first, that theory was tested cheaply before building anything: an **unquantised
+readout** is an oracle for "would more weight precision help?". D0-b permits up to 4 bits per weight, so
+if the oracle had shown headroom the right build would have been a 4-bit shift-and-add readout.
+
+*(The first version of that oracle was wrong: it changed only **training**, while evaluation still went
+through the core's ternary readout, so it never tested serving resolution. Rebuilt to compare
+quantised against unquantised **at evaluation, on the same trained masters**. The conclusion below is
+from the corrected instrument. That is the third diagnostic defect this session.)*
+
+```
+serving readout:    ternary=0.28  unquantised=0.28
+relational budget:  steps=900 0.28 | steps=4000 0.28
+read width:         dv=64 0.28 | dv=256 0.28
+filter capacity:    9 slots 0.11 | 120 slots 0.11   (§11)
+```
+
+**All four levers are flat.**
+
+* **Weight precision is not the constraint** (0.28 vs 0.28), so building a 4-bit kernel on this evidence
+  would be wasted work. That build is *not* recommended now, and the reason is recorded.
+* **Training budget is not the constraint** (4.4× the steps, identical).
+* **Read width is not the constraint** (4× `dv`, identical).
+* **Filter capacity is not the constraint** (§11).
+
+A second defect was found in the diagnostic itself: the dictionary was built from *all* tokens including
+the relation tokens, whose elements (1..8) deliberately collide with word elements, so eight of 120
+buckets were corrupted. Corrected; the numbers above are post-fix and it did not change the conclusions.
+
+**What this rules in.** The ceiling is structural in the readout **mechanism** — a single linear map over
+one read vector decoding 120 classes — not in its width, precision, the filter, the addressing or the
+budget. The natural next candidate is therefore a **non-linear / table decode**: the project already has
+the notion of a nearest-root decoder over the 120 canonical roots, which is exact, multiplier-free by
+construction (compare and table-read rather than a contraction), and is the mechanism the project's own
+synthesis lists under "exact finite geometric actions". That is a different *kind* of readout, which is
+what the evidence now points at.
+
+Tests: `geometric_attention` **25 passed, 0 failed**; `cargo fmt --check` clean.
+
+Charged 790,000 ms. Cumulative 145,623,565 / 147,200,000 ms.
+
+## 14. Open/closed route abstention: implemented and measured; the fifth lever is flat
+
+Two ideas from the owner's routing discussion were worth incorporating. One worked, one is another flat lever.
+
+**Open/closed route state — the good one.** The state already carried a per-bucket write count and never
+used it. Anything with count zero silently produced a uniform distribution, i.e. a *confident guess*.
+`logits_or_abstain` now returns `None` for a closed route, and the relational lookup measures:
+
+```
+route state: seen ok/abstain/wrong=25/0/39   unseen=0/64/0
+```
+
+**Every unseen query now abstains (64/64) and produces zero confident wrong answers**, while seen accuracy
+is unchanged at 0.39. That converts hallucination into honest abstention and matches the project's own
+chain-traversal rule, which requires eviction to be proved separately before an abstention is offered —
+here the proof is exact: the bucket was never written.
+
+**Nearest-prototype decode, in reduced form — flat.** A nearest-prototype/table decode is
+`argmax_r (2·num·p_r − ‖p_r‖²)`, which is *linear in `num` with a per-class constant*. So the full
+nearest-root build is a linear readout **plus a bias**, and the cheap falsification was to add the bias
+first:
+
+```
+nearest-prototype reduced form: plain=0.28  with-bias=0.28
+```
+
+Flat. The decode's *geometry* is not the missing piece, so the elaborate nearest-root version is not
+worth building on this evidence — the same reasoning that retired the 4-bit kernel.
+
+**Five levers now ruled out** on the relational ceiling: weight precision, training budget, read width,
+filter capacity, and decode geometry (bias). The ceiling is not explained by any of them.
+
+**What the next step must therefore be: diagnose the failure mode directly, not tune further.** The read
+is provably correct — an unseen pair composes to a valid element that *is* in the dictionary — so the
+failure is in decoding one read vector into 120 classes. The next experiment should inspect the *structure*
+of the errors rather than a scalar: is the read vector actually distinct for every word; are errors
+concentrated on a subset of the vocabulary; is the effective dimensionality of the read space far below
+`dv`? Those are cheap, and they localise the mechanism rather than sweeping another hyper-parameter.
+
+Tests: `geometric_attention` **27 passed, 0 failed**; `cargo fmt --check` clean.
+
+Charged 265,000 ms. Cumulative 145,888,565 / 147,200,000 ms.

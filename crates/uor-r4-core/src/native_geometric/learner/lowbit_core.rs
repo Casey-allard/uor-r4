@@ -70,6 +70,15 @@ pub struct LowBitCore {
     pub w_h: TernaryLinear,
     /// Learned readout, `vocab x dim`.
     pub w_o: TernaryLinear,
+    /// Right shift applied to the recurrent term `W_h · h` each step. `0` is the original core.
+    ///
+    /// The dense ternary `W_h` has spectral norm ≈ `2√(p·dim)` (Bai–Yin), which is ≈16 at
+    /// `dim = 96`, so with no decay the state grows geometrically and the logits saturate. A right
+    /// shift is the multiplier-free contraction: the effective recurrence is `W_h · 2^-k`.
+    ///
+    /// It is a genuine trade-off, not a free fix: the memory horizon is ≈ `1/(1 - 2^-k‖W_h‖)`, so
+    /// the same `k` that buys stability buys forgetting. §the module docs record the measurement.
+    pub recurrent_shift: u32,
 }
 
 impl LowBitCore {
@@ -114,7 +123,15 @@ impl LowBitCore {
             w_x: TernaryLinear::quantize(wx, dim, vocab),
             w_h: TernaryLinear::quantize(wh, dim, dim),
             w_o: TernaryLinear::quantize(wo, vocab, dim),
+            recurrent_shift: 0,
         })
+    }
+
+    /// Set the recurrent decay shift (see [`LowBitCore::recurrent_shift`]).
+    #[must_use]
+    pub fn with_recurrent_shift(mut self, k: u32) -> Self {
+        self.recurrent_shift = k;
+        self
     }
 
     /// The zero state: all zeros, which `relu` leaves at zero.
@@ -139,10 +156,11 @@ impl LowBitCore {
             *slot = w << self.w_x.shift(r);
         }
 
-        // W_h · h, added in. Both terms are pre-scaled, so they combine as integers directly.
+        // W_h · h, decayed by the recurrent shift, added in. Both terms are pre-scaled, so they
+        // combine as integers directly, and the contraction is a right shift (no multiplier).
         let recurrent = self.w_h.forward_i32(h);
         for (r, v) in recurrent.iter().enumerate() {
-            next[r] += *v;
+            next[r] += *v >> self.recurrent_shift;
         }
 
         // relu: a max against zero, no multiply and no float.
@@ -197,7 +215,8 @@ impl LowBitCore {
                 for c in 0..self.dim {
                     acc += self.w_h.weight(r, c) as f32 * h[c];
                 }
-                next[r] += acc * (1u64 << self.w_h.shift(r)) as f32;
+                let scaled = acc * (1u64 << self.w_h.shift(r)) as f32;
+                next[r] += (scaled / (1u64 << self.recurrent_shift) as f32).floor();
             }
             for v in next.iter_mut() {
                 if *v < 0.0 {
@@ -241,7 +260,8 @@ impl LowBitCore {
                 for c in 0..self.dim {
                     acc += self.w_h.weight(r, c) as f32 * h[c];
                 }
-                next[r] += acc * (1u64 << self.w_h.shift(r)) as f32;
+                let scaled = acc * (1u64 << self.w_h.shift(r)) as f32;
+                next[r] += (scaled / (1u64 << self.recurrent_shift) as f32).floor();
             }
             for v in next.iter_mut() {
                 if *v < 0.0 {
@@ -271,8 +291,9 @@ impl LowBitCore {
                 *slot = self.w_x.weight(r, token) as f64 * (1u64 << self.w_x.shift(r)) as f64;
             }
             let recurrent = self.w_h.forward_reference(&h);
+            let divisor = (1u64 << self.recurrent_shift) as f64;
             for (r, v) in recurrent.iter().enumerate() {
-                next[r] += *v;
+                next[r] += (*v / divisor).floor();
             }
             for v in next.iter_mut() {
                 if *v < 0.0 {
@@ -319,7 +340,7 @@ impl Default for TrainConfig {
 /// This reproduces [`TernaryLinear::quantize`] exactly, computed on the fly for every forward pass
 /// so that the trainer optimises the serving function rather than an approximation of it. The
 /// backward pass does not differentiate this function; it treats it as the identity (STE).
-fn quantize_codes(w: &[f32], rows: usize, cols: usize) -> (Vec<i8>, Vec<f32>) {
+pub(crate) fn quantize_codes(w: &[f32], rows: usize, cols: usize) -> (Vec<i8>, Vec<f32>) {
     let mut q = vec![0i8; rows * cols];
     let mut scale = vec![0f32; rows];
     for r in 0..rows {
@@ -347,7 +368,7 @@ fn quantize_codes(w: &[f32], rows: usize, cols: usize) -> (Vec<i8>, Vec<f32>) {
 }
 
 /// Numerically stable softmax over a logit vector. Offline only.
-fn softmax_f32(logits: &[f32]) -> Vec<f32> {
+pub(crate) fn softmax_f32(logits: &[f32]) -> Vec<f32> {
     let max = logits.iter().fold(f32::NEG_INFINITY, |m, &v| m.max(v));
     let mut out: Vec<f32> = logits.iter().map(|&v| (v - max).exp()).collect();
     let sum: f32 = out.iter().sum();
@@ -359,7 +380,7 @@ fn softmax_f32(logits: &[f32]) -> Vec<f32> {
     out
 }
 
-/// Pre-activation `W_x[:, token] + W_h · h_prev` in the quantised algebra.
+/// Pre-activation `W_x[:, token] + (W_h · h_prev) >> decay` in the quantised algebra.
 #[allow(clippy::too_many_arguments)]
 fn preact_f32(
     h_prev: &[f32],
@@ -368,6 +389,7 @@ fn preact_f32(
     sx: &[f32],
     qh: &[i8],
     sh: &[f32],
+    decay: u32,
     dim: usize,
     vocab: usize,
 ) -> Vec<f32> {
@@ -377,7 +399,8 @@ fn preact_f32(
         for c in 0..dim {
             acc += qh[r * dim + c] as f32 * h_prev[c];
         }
-        a[r] = sx[r] * qx[r * vocab + token] as f32 + sh[r] * acc;
+        let scaled = sh[r] * acc;
+        a[r] = sx[r] * qx[r * vocab + token] as f32 + (scaled / (1u64 << decay) as f32).floor();
     }
     a
 }
@@ -395,7 +418,7 @@ fn logits_f32(h: &[f32], qo: &[i8], so: &[f32], vocab: usize, dim: usize) -> Vec
     out
 }
 
-fn xorshift_unit(state: &mut u64) -> f32 {
+pub(crate) fn xorshift_unit(state: &mut u64) -> f32 {
     *state ^= *state << 13;
     *state ^= *state >> 7;
     *state ^= *state << 17;
@@ -405,7 +428,7 @@ fn xorshift_unit(state: &mut u64) -> f32 {
 
 /// Bias-corrected Adam on one flat parameter matrix. Mirrors the update in
 /// `learner/jepa_trainer.rs::AdamMoments::update`.
-fn adam_update(
+pub(crate) fn adam_update(
     params: &mut [f32],
     grads: &[f32],
     m: &mut [f32],
@@ -452,6 +475,8 @@ pub struct LowBitCoreTrainer {
     /// Readout masters, row-major `vocab x dim`.
     pub wo: Vec<f32>,
     pub cfg: TrainConfig,
+    /// Right shift applied to the recurrent term each step (see [`LowBitCore::recurrent_shift`]).
+    pub recurrent_shift: u32,
     gwx: Vec<f32>,
     gwh: Vec<f32>,
     gwo: Vec<f32>,
@@ -487,6 +512,7 @@ impl LowBitCoreTrainer {
             wh: fill(dim * dim),
             wo: fill(vocab * dim),
             cfg: TrainConfig::default(),
+            recurrent_shift: 0,
             gwx: vec![0f32; dim * vocab],
             gwh: vec![0f32; dim * dim],
             gwo: vec![0f32; vocab * dim],
@@ -503,7 +529,9 @@ impl LowBitCoreTrainer {
     /// Quantise the current masters into the serving core. This is the bridge from training to
     /// serving: what comes out is exactly what executes.
     pub fn to_core(&self) -> Result<LowBitCore, String> {
-        LowBitCore::from_f32(self.vocab, self.dim, &self.wx, &self.wh, &self.wo)
+        let mut core = LowBitCore::from_f32(self.vocab, self.dim, &self.wx, &self.wh, &self.wo)?;
+        core.recurrent_shift = self.recurrent_shift;
+        Ok(core)
     }
 
     /// Mean next-token cross-entropy under the current quantised masters, without updating.
@@ -519,7 +547,17 @@ impl LowBitCoreTrainer {
         let mut total = 0f64;
         for i in 0..preds {
             let token = (tokens[i] as usize).min(self.vocab - 1);
-            let pre = preact_f32(&h, token, &qx, &sx, &qh, &sh, self.dim, self.vocab);
+            let pre = preact_f32(
+                &h,
+                token,
+                &qx,
+                &sx,
+                &qh,
+                &sh,
+                self.recurrent_shift,
+                self.dim,
+                self.vocab,
+            );
             for r in 0..self.dim {
                 h[r] = pre[r].max(0.0);
             }
@@ -548,7 +586,17 @@ impl LowBitCoreTrainer {
         let total = tokens.len() - 1;
         for i in 0..total {
             let token = (tokens[i] as usize).min(self.vocab - 1);
-            let pre = preact_f32(&h, token, &qx, &sx, &qh, &sh, self.dim, self.vocab);
+            let pre = preact_f32(
+                &h,
+                token,
+                &qx,
+                &sx,
+                &qh,
+                &sh,
+                self.recurrent_shift,
+                self.dim,
+                self.vocab,
+            );
             for r in 0..self.dim {
                 h[r] = pre[r].max(0.0);
             }
@@ -601,7 +649,17 @@ impl LowBitCoreTrainer {
         let mut h = vec![0f32; self.dim];
         for &t in tokens {
             let token = (t as usize).min(self.vocab - 1);
-            let pre = preact_f32(&h, token, &qx, &sx, &qh, &sh, self.dim, self.vocab);
+            let pre = preact_f32(
+                &h,
+                token,
+                &qx,
+                &sx,
+                &qh,
+                &sh,
+                self.recurrent_shift,
+                self.dim,
+                self.vocab,
+            );
             for r in 0..self.dim {
                 h[r] = pre[r].max(0.0);
             }
@@ -611,6 +669,9 @@ impl LowBitCoreTrainer {
 
         let preds = n - 1;
         let inv = 1.0f32 / preds as f32;
+        // Derivative of the decay op `z >> k`, treated as `z · 2^-k` (the `floor` is not
+        // differentiated). It multiplies everything that flows back through the recurrence.
+        let decay_scale = 1.0f32 / (1u64 << self.recurrent_shift) as f32;
         let zero = vec![0f32; self.dim];
         let mut loss = 0f64;
         // `dh` holds dL/dh_t, seeded by the future step and augmented by this step's readout.
@@ -647,10 +708,12 @@ impl LowBitCoreTrainer {
                 if da == 0.0 {
                     continue;
                 }
+                // The embedding term is not decayed, so it takes `da` directly.
                 self.gwx[r * self.vocab + token] += da * inv;
+                let drec = da * decay_scale;
                 let base = r * self.dim;
                 for c in 0..self.dim {
-                    self.gwh[base + c] += da * hprev[c] * inv;
+                    self.gwh[base + c] += drec * hprev[c] * inv;
                 }
             }
             let mut dh_prev = vec![0f32; self.dim];
@@ -659,10 +722,11 @@ impl LowBitCoreTrainer {
                 if da == 0.0 {
                     continue;
                 }
+                let drec = da * decay_scale;
                 let base = r * self.dim;
                 let sr = sh[r];
                 for c in 0..self.dim {
-                    dh_prev[c] += da * (qh[base + c] as f32 * sr);
+                    dh_prev[c] += drec * (qh[base + c] as f32 * sr);
                 }
             }
             dh = dh_prev;
@@ -987,6 +1051,95 @@ mod tests {
         assert_eq!(a.wx, b.wx);
         assert_eq!(a.wh, b.wh);
         assert_eq!(a.wo, b.wo);
+    }
+
+    #[test]
+    fn decay_keeps_the_state_bounded_and_the_integer_path_exact() {
+        let core = tiny().with_recurrent_shift(4);
+        let mut h = core.initial_state();
+        let mut peak = 0i32;
+        for i in 0..256u32 {
+            h = core.step(&h, i % 11);
+            for &v in &h {
+                peak = peak.max(v.abs());
+            }
+        }
+        assert!(
+            peak < 1 << 22,
+            "decayed state must stay bounded, peak {peak}"
+        );
+        for tokens in [vec![0u32, 3, 7, 1, 10, 2, 2, 5], vec![9, 9, 9, 9], vec![]] {
+            let got = core.forward_i32(&tokens);
+            let want = core.float_forward_ste(&tokens);
+            for j in 0..core.vocab {
+                assert_eq!(
+                    got[j] as f64, want[j],
+                    "the decay shift must preserve integer/float exactness at {j}"
+                );
+            }
+        }
+    }
+
+    /// Train the delayed-recall task at a given delay and decay, return held-out recall accuracy.
+    fn recall_accuracy(distractors: usize, decay: u32, steps: usize, seed: u64, dim: usize) -> f32 {
+        let train = recall_batch(0xA5A5_1234, 64, distractors);
+        let held = recall_batch(0x0BAD_F00D, 64, distractors);
+        let mut t = LowBitCoreTrainer::new(6, dim, seed).expect("build");
+        t.cfg.lr = 0.05;
+        t.recurrent_shift = decay;
+        for _ in 0..steps {
+            t.train_batch(&train);
+        }
+        let hits = held.iter().filter(|s| t.final_token_correct(s)).count();
+        hits as f32 / held.len() as f32
+    }
+
+    fn random_core(vocab: usize, dim: usize, seed: u64) -> LowBitCore {
+        let mut state = seed | 1;
+        let mut next_f32 = |scale: f32| -> f32 {
+            state ^= state << 13;
+            state ^= state >> 7;
+            state ^= state << 17;
+            let u = ((state >> 11) as f64 / (1u64 << 53) as f64) as f32;
+            (u * 2.0 - 1.0) * scale
+        };
+        let wx: Vec<f32> = (0..dim * vocab).map(|_| next_f32(1.0)).collect();
+        let wh: Vec<f32> = (0..dim * dim).map(|_| next_f32(1.0)).collect();
+        let wo: Vec<f32> = (0..vocab * dim).map(|_| next_f32(1.0)).collect();
+        LowBitCore::from_f32(vocab, dim, &wx, &wh, &wo).expect("build")
+    }
+
+    /// Q1: does the state actually blow up with sequence length, as the earlier reading assumed?
+    #[test]
+    fn explore_state_growth() {
+        for dim in [32usize, 64, 128] {
+            let core = random_core(11, dim, 0x1234_5678_9ABC_DEF0);
+            for n in [8usize, 16, 32, 64, 128, 256] {
+                let mut h = core.initial_state();
+                let mut peak = 0i64;
+                for i in 0..n {
+                    h = core.step(&h, (i as u32 * 7) % 11);
+                    for &v in &h {
+                        peak = peak.max((v as i64).abs());
+                    }
+                }
+                eprintln!("state-growth dim={dim} steps={n} peak_abs_h={peak}");
+            }
+        }
+    }
+
+    /// Q2: is the recall failure at long delay an optimisation failure that more capacity fixes,
+    /// or a structural limit of the dense-ternary recurrence?
+    #[test]
+    fn explore_recall_capacity() {
+        for dim in [64usize, 128, 256] {
+            for d in [2usize, 4, 8] {
+                for steps in [800usize, 3000] {
+                    let acc = recall_accuracy(d, 0, steps, 2026_0919, dim);
+                    eprintln!("recall dim={dim:>3} distractors={d} steps={steps} acc={acc:.2}");
+                }
+            }
+        }
     }
 
     #[test]

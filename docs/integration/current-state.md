@@ -1,5 +1,200 @@
 # Current native geometric AI work
 
+## Spherical-harmonic grounding and a graded group kernel — September 19, 2026
+
+**THE OWNER'S HARMONIC INTUITION HAS AN EXACT FINITE FORM HERE: PETER–WEYL ON 2I. THE GRADED KERNEL WORKS, AND THE ATTEMPT EXPOSED TWO MORE MEASUREMENT DEFECTS.**
+
+**Exact form.** For a finite group, conjugation-invariant functions — functions of the *relative* element `r(q,g) = inverse(q)·g`, the descriptor the September-13 synthesis named — form a space whose dimension is the number of conjugacy classes, spanned by the irreducible characters. That is this group's harmonic band count. Computed from the project's own verified table: **2I has 9 conjugacy classes, sizes `[1, 1, 12, 12, 12, 12, 20, 20, 30]`**, with conjugation-invariance checked directly over all 14,400 `(g,h)` pairs. So a graded read kernel `w[class(inverse(q)·g)]` is the **maximally compact rotation-invariant kernel this group admits: nine ternary weights rather than 120.**
+
+**Mechanism.** Added a `graded_read`: `y = Σ_g w[class(q⁻¹g)]·S[g]` with **ternary** `w`, so the read is conditional adds/subtracts only. With weight on the identity class it reproduces the exact read `S[q]`.
+
+**Measured.** Corrupt the query address by a fixed group element and weight the kernel on that element's conjugacy class; averaged over five corruption elements, held out, deterministic seeds (`vocab` 120, `dv` 64, 900 steps):
+
+```
+graded kernel over 5 corruptions: clean exact=0.55 soft=0.15 | corrupted exact=0.13 soft=0.23
+```
+
+A class-function kernel **recovers a corrupted query, 0.13 → 0.23 (≈1.8×)**, because it pools over group-near stored elements where the exact read looks in exactly one wrong bucket. It pays with clean accuracy, 0.55 → 0.15. **The kernel is hand-set, not learned**, so this is a lower bound on what a trained kernel could trade.
+
+**Two defects found by the new checks.** (1) **The identity of 2I is element 1, not element 0** — `exact_kernel` weighted an arbitrary singleton class, so the first graded measurement (clean 0.19; corrupted 0.13 → 0.23) was **invalid and re-measured**; §3 of the receipt is the corrected result, and `exact_kernel` now takes the identity class explicitly. (2) A **vacuous test**: `graded_exact_kernel_equals_the_bucket_read` initially compared two empty vectors and passed; it now requires a non-empty bucket and a query-dependent read. **This is the second time in two sessions that a measurement defect looked like a mechanism result**; the non-vacuity guard is now in the test.
+
+**Focused tests pass** (18 `geometric_attention`); `cargo fmt --check` clean.
+
+**Next action.** (1) **Learn the kernel** — nine ternary weights, gradient available in closed form (`∂L/∂w[c] = Σ_{g∈c} Σ_j dnum_j·S[g][j]`), write path unchanged; prediction: a learned kernel keeps most clean accuracy while retaining the corruption benefit, and if it cannot then the trade-off is structural and should be recorded as such. (2) Then **BPE-4096 and a real instruction corpus**, where the next honest signal has to come from.
+
+**Attempted and negative: learning the filter does not work from clean data, and the reason is the objective.** Implemented the learnable ternary kernel (STE + Adam, read as a group convolution, per-step state caching) and measured it against the fixed exact filter:
+
+```
+fixed   kernel=[0,1,0,0,0,0,0,0,0] clean=0.42 corrupted=0.13
+learned kernel=[1,1,1,0,0,0,0,0,0] clean=0.14 corrupted=0.14
+```
+
+Trained on clean addresses only, the filter **spreads over neighbouring classes and loses clean accuracy without gaining corrupted accuracy** — because the training objective contains no address corruption, so robustness to it is not learnable from that objective. The spread filter's benefit is real (0.13 → 0.23 hand-set, §3) but must be *chosen* or trained with corruption in the objective. The change also regressed five tests in the trainer's read path, so it was **reverted**; the file is back at its verified 18/18 state and the diagnosis is retained rather than the regressing code.
+
+**Where the owner's wider concept already lands, and what is missing.** *Superposition storage* over the group — `S = Σ_g c_g·δ_g` with the read a convolution against a filter — is **present** (classical superposition over a Lie-group basis, not quantum). *Backpropagation in that basis* is **present**: the suffix-sum gradient is exactly the adjoint of the convolution. *Lie-group packaging* is **partly present** (exact composition via the verified table; the ordered word packs context into a group element) but the element assignment is still a fixed function of the token id. *Harmonic compute* is **partly present** (a band-limited class-function filter) but a general non-class filter and multiple bands are missing.
+
+**Next honest steps, in order:** (1) put corrupted addresses in the training objective and re-test the learned filter — the diagnosis predicts that is what makes it work; (2) a general (non-class) group-algebra filter; (3) learned packaging of the element assignment; (4) then BPE-4096 and real text.
+
+**Corruption in the objective: diagnosis confirmed, filter still not worth it.** Step (1) was done — an optional `corrupt_frac` displaces the query address by a random group element during training, the filter is now learnable (`learn_kernel`, own clip group):
+
+```
+corrupt 0.0: kernel=[1,1,1,0,0,0,0,0,0] clean=0.11 corrupted=0.12
+corrupt 0.5: kernel=[1,1,0,1,1,1,0,1,0] clean=0.27 corrupted=0.13
+```
+
+Corruption in the objective **does** change the filter (spreads 3 → 7 classes) and **does** raise corrupted accuracy (0.12 → 0.13); clean also rises (0.11 → 0.27) as a regularisation effect. **But the fixed exact filter reaches clean 0.42 on the same budget**, so every learned variant is worse on clean and only marginally better under corruption. Honest reading: **a spread filter pays only if address corruption is part of the deployment distribution**; +0.01 corrupted against −0.15 clean is not a default trade.
+
+**Two more defects found and fixed**, both invisible in aggregate numbers and visible only as regressions in unrelated tests: (a) `order = 2` addresses are pair indices, not group elements, so the inverse lookup indexed a 120-entry table with a value up to 14,399 — an out-of-bounds panic in six tests; it is now guarded to `order = 1`. (b) The filter's gradient was folded into the matrices' global clip norm, which altered every existing training result; the nine filter weights are now clipped in their own group.
+
+**State.** `geometric_attention` **19 passed, 0 failed**; `cargo fmt --check` clean. The learned filter is retained as an option with defaults preserving previously verified behaviour, so nothing regressed.
+
+**Receipt:** [`native_geometric_spherical_harmonic_kernel_2026-09-19.txt`](../evidence/native_geometric_spherical_harmonic_kernel_2026-09-19.txt).
+
+**Step (2) done: the general group-algebra filter buys nothing — the bottleneck is not the filter.** The filter can now be a class function (9 slots, conjugation-invariant) or a general group-algebra element (120 slots), selectable by `class_filter`; the general case contains the class case as a subspace.
+
+```
+class filter:   slots=9   non_zero=3  clean=0.11
+general filter: slots=120 non_zero=5  clean=0.11
+```
+
+A 13× increase in filter capacity changes nothing: training uses 5 of 120 slots and reaches the same accuracy, and both remain far below the **fixed exact filter's clean 0.42**. **Filter capacity, expressiveness and conjugation-invariance are all immaterial to clean accuracy here**, so whatever limits the learned variants is upstream of the read — in the stored representation or the readout. That is now the measurement's own conclusion, not a preference, and it makes **learned packaging** the next step on evidence rather than on taste.
+
+**State.** `geometric_attention` **20 passed, 0 failed**; `cargo fmt --check` clean.
+
+**Relational generalisation: the first task where the group is load-bearing.** Learned packaging cannot be tested on a copy task — relabelling group elements is a symmetry of the architecture, so with no collisions and no meaningful proximity every injective assignment behaves identically. The task must reward group *structure*, so one was built: token `w < 120` has meaning = its own element of 2I, token `120 + j` is a relation with element `j + 1`, and the fact `(w, h_j) → compose(w, h_j)` is **defined by the group**, so an unseen pair still has a well-defined answer. Each sequence lists several facts then queries one pair; the answer is not adjacent to the query and appears nowhere else in the prompt; held-out pairs are never used as a fact in training. Held out, `dv = 64`, 900 steps:
+
+```
+context lookup:      seen-query=0.39  unseen-query=0.00
+composed dictionary: seen-query=0.39  unseen-query=0.42
+```
+
+**A context-address lookup scores 0.00 on unseen relational facts — it cannot generalise, which is the falsification half.** The composed read — package the vocabulary by meaning, then address `compose(elem(w), elem(h))` — answers unseen facts at **0.42 against 0.00** and has **no generalisation gap** (0.42 unseen vs 0.39 seen), because the query is *computed* rather than retrieved. **This is the first result this session where the group structure is load-bearing rather than decorative.**
+
+**The remaining ceiling is the readout, not the mechanism.** Both mechanisms sit at the same ~0.4 on facts they can reach — the same readout limit measured twice already (the fixed exact filter's 0.42; the learned filter's inability to beat it). Composition removes the generalisation gap entirely; what remains is mapping 120 value vectors to 120 classes. That makes the **readout** the single binding constraint on every mechanism tested, and the clearest next target.
+
+*(An earlier version of this task was a literal repeat of each fact and scored 1.00 on "unseen" facts — the answer sat beside the query and could be copied. A leak, caught by a failing test, and the second task-design error this session; both initially looked like successes.)*
+
+**Four levers ruled out — the ceiling is not resolution, budget, width or filter capacity.** The recommended step was to fix the readout on the theory that its resolution caused the ~0.3–0.4 ceiling. Tested falsify-first with an **unquantised-readout oracle** before building anything (D0-b permits 4-bit weights, so a 4-bit shift-and-add readout would have been the build if the oracle showed headroom):
+
+```
+serving readout:    ternary=0.28  unquantised=0.28
+relational budget:  steps=900 0.28 | steps=4000 0.28
+read width:         dv=64 0.28 | dv=256 0.28
+filter capacity:    9 slots 0.11 | 120 slots 0.11
+```
+
+**All four are flat.** Weight precision, training budget, read width and filter capacity each fail to move the ceiling, so the 4-bit kernel build is **not** recommended on this evidence and the reason is recorded. *(The first oracle was wrong — it changed only training while evaluation still used the ternary readout — and was rebuilt to compare at evaluation on identical masters; that is the third diagnostic defect this session. A second defect, a dictionary polluted by relation tokens colliding with word elements, was also found and fixed.)*
+
+**What this rules in.** The ceiling is structural in the readout **mechanism** — one linear map over one read vector decoding 120 classes — not in its width, precision, the filter, the addressing or the budget. The natural next candidate is a **non-linear / table decode**: the project's own nearest-root decoder over the 120 canonical roots, which is exact, multiplier-free by construction (compare plus table read, not a contraction), and is listed in the project synthesis under exact finite geometric actions. That is a different *kind* of readout, which is what the evidence now points at.
+
+**State.** `geometric_attention` **25 passed, 0 failed**; `cargo fmt --check` clean; nothing regressed.
+
+**Receipt:** [`native_geometric_spherical_harmonic_kernel_2026-09-19.txt`](../evidence/native_geometric_spherical_harmonic_kernel_2026-09-19.txt).
+
+## Ordered-word addressing recovers the collapse; context copy reaches 100% — September 19, 2026
+
+**THE PROJECT'S ORDERED-N-LET FORMALISM WORKS: THE COLLAPSE IS RECOVERED AND THE MATCHED-FILTER BASELINE IS LEFT AT ZERO.**
+
+Owner direction was to synthesise the wider toolset before implementing. Three findings changed or confirmed the plan. (1) The project's **September-13 attention synthesis** had already selected H1 (structured geometric recurrent learner with relation-preserving reads) and named the **directed relative element `r(i,j) = inverse(g_i)·g_j`** as the descriptor to prefer over a scalar distance — precisely the ordered-word idea this session derived from measurement. (2) That synthesis predates D0-b and says a published MatMul-free model's ternary accumulation "is a matrix product under this project's stronger rule"; **that was the D0-a reading, superseded by owner-signed D0-b**, which explicitly permits bounded integer/ternary linear maps with no multiplier in the kernel. `LowBitAttention` is legal under D0-b and would not have been under D0-a; the conflict is recorded, not hidden. (3) W33/NEMESIS supply no replacement attention rule (their own dossier says so), but W33's **ordered-operation principle** (`PLPL = LPLP`, `Ω = LP − PL`, `ker(Ω)` order-insensitive) transferred and worked.
+
+**Change.** `GeometricAttention` now addresses by an **ordered word** of `order` tokens over the 120 elements of `2I` — `order = 2` gives 120² = 14,400 ordered addresses with `(a,b) ≠ (b,a)` by construction. Positional radix composition of 2I elements; table reads and index arithmetic, no multiplier.
+
+**The falsifiable prediction from the previous round is confirmed.** Task and alphabet fixed; only word length changes:
+
+| measurement | order = 1 | order = 2 |
+|---|---:|---:|
+| duplicated-key accuracy | 0.14 | **0.98** |
+| clean accuracy | 0.44 | **1.00** |
+
+**Context copy (held out, deterministic seeds):**
+
+| context | order=1 | **order=2** | linear attention |
+|---:|---:|---:|---:|
+| 4 | 0.86 | **1.00** | 0.05 |
+| 8 | 0.64 | **1.00** | 0.03 |
+| 16 | 0.47 | **1.00** | 0.00 |
+
+**Two earlier ablations moved back to `order = 1`, explicitly.** Both are true and both are now unresolvable at `order = 2` because the task saturates at 1.00: the `relu`-after-read cost (order=2: 0.95 vs 1.00, below threshold; order=1: 0.31 vs 0.64) and the resolution scaling (order=2: 1.00 vs 1.00; order=1: 0.64 vs 0.80). Recorded rather than silently weakened — a saturated task is not evidence of absence.
+
+**A defect found and corrected mid-change.** The refactor's first run gave 0.00 everywhere, including `order = 1` where 0.86 was known. Cause: `tail_word` was off by one (read index `len` instead of `len − 1`), so `forward_i32` and therefore the accuracy metric read the wrong bucket — **training was correct and the measurement was not.** All results above are post-fix. Recorded because a measurement bug that mimics a mechanism failure is the exact error class this project has been burned by.
+
+**SpiralCore mathematics indexed into project knowledge** (owner request). Mechanical extraction of the preserved HTML, SHA-256 verified against the preserved copy: **33 sections, 49,066 characters** — dodecahedral/icosahedral network, six H2 decagons, 3-fold axes, addressing schema, E8 operator subnet routing, LADA ports (D4/F4), stabilizer/inversion angle-invariance, Bell 2-of-6 codec, Clifford complement, FBS binder tree, orbit/route traces, route directional-spread witness, core-edge effective resistance, scope ledger. Extract at `research/spiralcore-v68/spiralcore-v68-mathematics-extract.txt`; ingested as **34 items / 33 edges**; retrieval verified through the knowledge service. Faithful text extraction, not endorsement; formulas carried as HTML markup may be degraded, and the preserved HTML remains the source of record.
+
+**Focused tests pass** (14 `geometric_attention`); `cargo fmt --check` clean.
+
+**Next action.** (1) **Harden the measurement before claiming more**: the task now saturates at 1.00, so raise alphabet and run length until `order = 2` stops scoring 1.00, then re-measure `order = 2` vs `order = 3` there — a mechanism measured only on a task it aces is not measured. (2) **Graded group kernel** — the other half of the project's `r(i,j)` formalism: read neighbouring group elements with partial weight `w[class(q⁻¹g)]` so a query can match a *near* word. (3) Then BPE-4096 and a real instruction-data run.
+
+**Saturation caveat closed.** Difficulty was raised by shrinking the alphabet until ordered *pairs* repeat with different successors (context 16, dv 64):
+
+| alphabet | order=1 | order=2 |
+|---:|---:|---:|
+| 4 | 0.34 | **0.62** |
+| 8 | 0.25 | **0.84** |
+| 16 | 0.42 | **0.97** |
+| 32 | 0.55 | **1.00** |
+
+The ordered-pair address wins at every difficulty and the margin grows as words become unique (+0.28, +0.59, +0.55, +0.45); at alphabet 4 both ceilings are gone and it still doubles `order = 1`. Pinned as `ordered_words_win_at_every_difficulty`. `order = 1` also improves with a larger alphabet (0.34 → 0.55) because single tokens then repeat less often — two different collisions, both visible in the data.
+
+**Receipt:** [`native_geometric_ordered_word_addressing_2026-09-19.txt`](../evidence/native_geometric_ordered_word_addressing_2026-09-19.txt).
+
+## Geometric addressed memory: an interference-free, multiplier-free attention, measured — September 19, 2026
+
+**THE PROJECT'S OWN THESIS — EXACT ADDRESSED MEMORY — SHOWS A MEASURED ADVANTAGE OVER THE SOFT-MATCHED-FILTER ALTERNATIVE; NEITHER SOLVES THE TASK YET.**
+
+New `learner/geometric_attention.rs`, built on the owner's direction to push the project's mathematics rather than fall back on linear attention. Design: `S[addr(prev)] += value(cur)` and `y = norm(S[addr(query)])`, then `W_o · relu(y)`. The address is a **table read**, the write is an **add**, the read is a **table read**, and the normalisation is a **bit scan plus a shift** — multiplier-free throughout, at `O(dv)` per token against linear attention's `O(dk·dv)`. Addresses are elements of the machine-checked 2I group (the 120 canonical H4 roots composed through `learner/group_table.rs`); two composed factors give 120² = 14,400 addresses (13.8 bits), the transition plan's `H4^k` product-code lever on the existing table.
+
+**Measured, held out, deterministic seeds, one layer.** Context repetition (a random run `R`, then `R` again; the second copy is only predictable from memory of `prev → next`):
+
+| context | geometric (exact address) | linear attention |
+|---:|---:|---:|
+| 4 | **0.69** | 0.05 |
+| 8 | **0.31** | 0.03 |
+| 16 | **0.02** | 0.00 |
+
+The direction is the one theory predicts — exact addressing removes the cross-talk that limits a matched filter. **But the honest reading is that both mechanisms fail this task at this scale, and the exact-addressing variant fails less.** A 0.05 baseline is at chance for 32 classes, so "beats linear attention" is a weak claim and is recorded as such.
+
+**Negatives, recorded before any claim.** It does not solve the task (0.69 at context 4, 0.02 at 16). More training does not help (900 → 3000 steps: 0.69 → 0.66, 0.31 → 0.20), so the ceiling is a mechanism limit, not a budget. The confirmed power-of-two readout normalisation had **no measurable effect here** (0.69 → 0.69) — it is retained as correct conditioning, but the binding limit is elsewhere. The address assignment is **fixed**, not learned (as the project itself initialises `token_to_root`); capacity is bounded by `n_addr`.
+
+**Focused tests pass** (11 `geometric_attention`): the integer serving path equals the `f64` reference exactly; 64 tokens map to 64 distinct addresses; gradients reach both tables; and exact addressing beats the matched filter at every context length. `cargo fmt --check` clean.
+
+**Likely causes of the ceiling, in order:** ternary `dv = 32` value/output tables give the readout limited resolution for 32 classes; and a first-order (bigram) memory cannot represent longer structure.
+
+**Next action.** (1) Raise `dv` 32 → 128 at fixed everything else: if accuracy rises with `dv` the limit is readout resolution and the mechanism scales, otherwise it is the first-order address design and product factors are required. (2) Learn the address factors (`H4^k`, Stage 3) instead of fixing them. (3) Compose rather than choose — the exact-address memory and the matrix-state core solve different problems (associative recall vs contextual integration), so a layer that reads both is the natural next architecture. The move to the project BPE is confirmed and is queued for the next training run, after conditioning.
+
+**The ceiling was the read activation, not capacity — and it is fixed.** The owed `dv` diagnostic first looked negative (dv 32→256 changed nothing: 0.69/0.72/0.75/0.70 at context 4). It was confounded: a `relu` after an exact-address read discards the retrieved value's **sign half**, and with exact addressing the *selection* is already the nonlinearity. Removing it: **context 4 0.69 → 0.86, context 8 0.31 → 0.64, context 16 0.02 → 0.47**. `relu=false` is now the measured default. Re-running resolution under a sign-preserving read, **`dv` does scale the mechanism**: 0.86/0.64/0.47 at dv=32 → **0.94** (context 4, dv=128) and **0.80** (context 8, dv=256). Current best against linear attention's 0.05/0.03/0.00. Pinned as `selection_is_the_nonlinearity_not_the_read` and `resolution_scales_the_mechanism`.
+
+**Remaining ceiling, now well identified and *confirmed by controlled experiment*.** A duplicated queried key costs 3× accuracy (clean 0.44 vs duplicated-key 0.14, same K and alphabet), so the context-16 ceiling is a **first-order address collision**, not capacity (`dv` ruled out) and not budget. The experiment also says what kind of fix is needed: the address must be an **ordered word** over the context, not a set or a single token. This is exactly W33's ordered-operation point (`P²=2P+3I`, `L²=2L+3I`, `PLPL=LPLP`, `Ω=LP−PL`, `ker(Ω)` insensitive to order — see [`nemesis-w33-relevance.md`](nemesis-w33-relevance.md)), and the project already has the exact machinery in the machine-checked 2I composition table.
+
+**Next mechanism, with its falsifiable prediction.** Address by the *ordered pair* `(e(t_{i-1}), e(t_i))` of 2I elements — 120² = 14,400 ordered addresses, order-preserving by construction since `(a,b) ≠ (b,a)`. Prediction: the duplicated-key collapse shrinks and context-16 accuracy rises materially. Still not a solution, and still not a language model.
+
+**Receipt:** [`native_geometric_geometric_attention_2026-09-19.txt`](../evidence/native_geometric_geometric_attention_2026-09-19.txt).
+
+## Dense recurrence structurally falsified; content-addressed multiplier-free core proposed and measured — September 19, 2026
+
+**THE DENSE LOW-BIT RECURRENCE FAILS FOR TWO STRUCTURAL REASONS, BOTH MEASURED; A CONTENT-ADDRESSED REPLACEMENT RETRIEVES WHERE IT CANNOT.**
+
+**(1) Magnitude.** `h_t = relu(W_x + W_h·h)`, `W_h` ternary, has spectral norm ≈ `2√(p·dim)` (Bai–Yin), so the state expands ≈`√dim/2` per step. Measured peak `|h|`: at `dim` 32/64/128 it reaches ~2.14e9 — **i32 saturation — between 16 and 32 steps**. That is exactly the previously observed ~24-token workable window and the collapse at 40 tokens (held-out loss 18.47, worse than the uniform `ln 259 = 5.56`).
+
+**(2) Burial.** Every past input is summed into the same channels, so a remembered item is buried under `T·|x|` of distractors. Delayed recall: `dim` 64/128/256 reach delay 2, `dim ≥ 128` reaches delay 4, and **delay 8 is 0.00 at every width** (steps 800 and 3000 identical). Eight times the width buys no extra remembered item.
+
+**(3) The obvious repair is falsified.** A right shift on the recurrent term (`recurrent_shift`) stabilises the magnitude and destroys the memory in the same operation: delay-1 recall 1.00 (k=0) → 0.16 (k=2) → 0.00 (k=3). Structural reason: a ternary matrix cannot be near-orthogonal, so the only shift that stabilises the recursion also erases what is stored. **Stability and memory are not jointly available from dense ternary mixing with a scalar decay.** The mechanism is retained as opt-in (`recurrent_shift = 0` is the original behaviour) rather than deleted.
+
+**(4) Replacement — content-addressed linear attention, multiplier-free.** New `learner/lowbit_attention.rs`: `S_t = (S_{t-1} >> decay) + k⊗v`, read as `relu(q·S)`, then the ternary output map. `k` and `q` are unscaled ternary, so the outer product and the matched-filter read are **conditional adds/subtracts with no multiplier**, and the integer path is verified exactly equal to an `f64` reference at decay 0/2/4. `decay = 0` grows the state **linearly** (peak `|S| < 2^20` over 512 steps). Grounded in linear attention / RWKV (2305.13048) / HGRN2 (2404.07904) / MatMul-free LM (2406.02528).
+
+**Measured.** Induction (`[x,y,filler*delay,x] → y`), held out: **delay 16 = 1.00** at `dk=dv` 64 (lr 0.05) and at 128/256/512 (lr 0.005) — against the dense core's **0.00 at delay 8**. The read is a matched filter, so capacity buys horizon (`SNR ≈ √(dk/N)`).
+
+**The negative that matters more: training is fragile.** `dk=128, lr=0.05` collapses to the uniform predictor (loss exactly `ln 8`); `dk=256, lr=0.02` gives 0.38; `dk=64` delay 32+ gives 0.00 where delay 16 gives 1.00. An architecture that finds its solution only in part of the regime map cannot be scaled, so this is the top open item, not a footnote.
+
+**Design and scaling.** New [`geometric-core-architecture-2026-09-19.md`](geometric-core-architecture-2026-09-19.md) records the reasoning, the mapping of prime/zeta/H4/E8/`Z[φ]` mechanisms onto concrete slots (addressed select: **used**; phi key codebook, icosian quantiser, per-channel zeta decay schedule, R4/S4 transport: **proposed, unmeasured**), and a scaling projection with its assumptions explicit. Its uncomfortable conclusion: a coherent chat model of this family needs ~`10^9` parameters and `10^10`–`10^11` tokens; at this code's measured rate on one M1 that is `10^5`–`10^6` hours of BPTT. **The serving premise survives; the implicit premise that chat-scale training also happens on this laptop does not.** Three honest options are put to the owner in §6: narrow the target to a domain-scoped local model, separate training compute from serving, or pursue a sample-efficiency result.
+
+**No capability claim.** Still no chat capability; the instruction run remains copy-only (response-only 0/470) and the new core is measured on synthetic induction, not language. No serving-multiplier claim is made for the new module: the construction is multiplier-free and the integer path is verified, but `scripts/serving_multiplier_check.py` was not run against it. Energy per token remains UNAVAILABLE.
+
+**Next action.** Design doc §7.1–7.2: add a **power-of-two readout normalisation** (shift the read by the leading bit of the accumulated key mass — bit scan plus shift, no divide), then re-measure the regime map and the induction horizon. Do not scale `dk`, add layers or change the tokenizer until the regime map is flat; adding parameters to an unstable optimiser produces larger failures, not capability.
+
+**Conditioning fix, measured.** The owner confirmed the power-of-two readout normalisation is D0-b-compliant, and it is now implemented in `LowBitAttention` (serving, loss and trainer, with the shift constant under STE). Against the recorded collapse at `dk = 128, lr = 0.05`: accuracy **0.06 → 0.38** and loss **2.079 (= ln 8, the uniform predictor) → 1.970**. Design-doc §7.1 is **partially confirmed** — normalisation changes the regime but is not sufficient on its own. The same normalisation had no measurable effect on `GeometricAttention`, so the binding limit differs between the two cores.
+
+**Receipt:** [`native_geometric_lowbit_attention_2026-09-19.txt`](../evidence/native_geometric_lowbit_attention_2026-09-19.txt).
+
 ## Low-bit core learns: backward pass, STE, Adam, and the first trained instruction run — September 19, 2026
 
 **BACKWARD PASS DELIVERED; THE CORE LEARNS ON SHORT SEQUENCES; THE RECURRENCE IS THE BLOCKER.**

@@ -1,0 +1,806 @@
+# SpiralCore v68 — mechanical mathematics/text extraction
+
+Owner-supplied preserved source, mechanically extracted (tags stripped, entities unescaped).
+Provenance: `research/spiralcore-v68/Spiralcore_Dodecahedron_IP_Schema_v68.html`,
+SHA-256 `2a45c2e5f46c8c36bf7801da1d1e12ee9e2ed8b3da488ff54c20a6ac6c2ceab0`, 33 sections, 49066 characters.
+
+This is a faithful text extraction, not an interpretation, verification or endorsement. Formulas
+embedded as HTML markup may be degraded by tag stripping; the preserved HTML remains the source
+of record. See `README.md` in this directory for the scoped source review.
+
+
+## [01] Prompt Trace
+
+SpiralCore name-to-route derivation. A human-readable prompt deterministically selects symbolic coordinates and a route. This is an application-local derivation, not DNS: it performs no DNS query, delegation, caching, record lookup, or network name resolution.
+
+ Type a name. It gets summed as Simple English gematria (A=1..Z=26, a real documented system on its own), then transliterated — via an informal single-letter phonetic substitution I built for this tool, not a scholarly transliteration standard — into Hebrew, Greek, and Arabic, and summed under each of those three real historical systems. Hebrew's sum picks the source zone, Greek's picks the destination host, Arabic's picks the demarc. Then it actually runs: same pathfinding, same spelling, same sound engine already built and tested on the other two tabs — this panel just derives their inputs from the name instead of a dropdown.
+
+
+ Prompt
+
+ Trace
+
+
+
+ Bell MF profile
+ System R1 System No. 5
+ The selected AXIS2 gematria and every routed O0 layer code are reported in this profile.
+
+
+## [02] Dodecahedron / icosahedron — full network: demarc, six H2 decagons, 3-fold axes, hexagon rings
+
+Three distinct axis families exist in this solid: 5-fold (6 axes, through face-center pairs — one is selectable as the "demarc," the generator of the five-cube compound), 3-fold (10 axes, through vertex pairs — snapping the camera down one reveals two genuine hexagonal rings of 6 vertices, confirmed by exact radius/height matching, not a visual coincidence), and 2-fold (15 axes, through antipodal edge-midpoint pairs). The 30 unit H3 roots contain exactly six origin planes with ten roots each: six regular H2 decagons, paired one-to-one with the six perpendicular 5-fold axes. All are addressable and rendered; the 2-fold family also carries the Bell/Clifford operator labels. Root — the center — is the only point invariant under every 3D rotation family.
+
+
+ Transmission context: — any address marked [demarc=N] is only meaningful to a receiver on the same demarc. Context-free addresses (ROOT, AXIS3) never need this header.
+
+ Hover any point to see its address.
+
+
+ Demarc (5-fold, generator)
+
+
+
+ Snap to 3-fold axis
+ None (free rotate)
+
+
+ Clear optional layers
+ Restore layer defaults
+
+
+
+ Visible geometry layers
+ Dodecahedron / hosts
+ Five cubes
+ 5-fold axes
+ 3-fold axes
+ 2-fold axes
+ Golden rhombus shell (verified, φ diagonals)
+ Icosidodecahedron shell (verified, 30 pts, radius φ)
+ Six intrinsic H2 decagons (unit roots; matched demarc highlighted)
+ Disdyakis faces (verified, 120 congruent triangles)
+ D4 root system (verified, binary tetrahedral group)
+ F4 root system (verified, binary octahedral group)
+ E8 roots (explicit rotating 8D→3D projection)
+ Selected Cl(0,6) action (directed B ij edges)
+ E8 operator subnets (15 real 16-root orbits)
+ Bell AXIS↔AXIS2 preserved-pair overlay (typed, not core BFS)
+ Grand Antiprism split (verified, real 20/100 subset within ICOSIAN)
+ Tetra A / Tetra B
+ Icosahedron / zones
+ True dual (reciprocation)
+ H4 / icosians (600-cell)
+ Golden nesting
+ Fibonacci shadow
+
+ Each switch owns one named render pass. The ROOT marker and an active route trace are persistent scene references; they are not optional geometry layers. Grand Antiprism split is a view mode of H4 / icosians, so enabling it also enables that required base layer.
+
+
+ H2 decagon
+
+ Show all six H2 decagons
+ Inspect exact H2 / inversion audit
+ Play ten-root Bell MF cycle
+
+ Select a decagon. Its ten oriented roots are five antipodal AXIS2 directions; each lawful Bell codeword appears twice around the cycle.
+
+
+ E8 action operator
+
+ 8D projection speed
+
+
+
+
+ Nesting depth
+
+ 2
+ Free-rotate speed
+
+
+ Invert view (project from inside outward)
+ Invert about demarc (3D, not root — the demarc zone goes to infinity, root moves off-center)
+ This is a genuine 3D conformal inversion centered on the selected demarc's face center, x' = C + K(x−C)/|x−C|² — applied before rotation, not a display trick. It has real, verified consequences, not just a visual flip: the VERT shell (originally a sphere of radius 1.732 centered at root) becomes a NEW sphere, centered 4.344 from root with radius 3.735; the ICOSIDODECA shell (originally radius 1.701) becomes a sphere centered 4.664 from root with radius 4.062; the ICO shell is the singular case — since it passes exactly through the inversion center, its image is an exact PLANE (the one point that IS the demarc itself has no finite image and is sent far off-screen deliberately, not silently wrong). All of this was checked two independent ways: the closed-form sphere-inversion formula, and an unbiased least-squares fit against what this code actually outputs — both agree to floating-point precision (~1e-15). These figures are also confirmed IDENTICAL regardless of which of the 6 demarc faces you pick (checked all 6) — a real symmetry consequence, not a coincidence of the default.
+
+ Separately, a different question about a different inversion entirely (the "shell-swap constants" used elsewhere, not this demarc checkbox): all of them (VERT↔ICO, VERT↔ICOSIDODECA, ICO↔ICOSIDODECA) are radius-only relationships — confirmed by exhaustive check, not assumed: inverting a real point in any one shell at its matching constant lands at the correct radius every time (that's guaranteed algebra) but never on a real point in the other shell — checked in both directions across all three pairs, 0 hits out of 20, 12, and 30 points respectively, every time. The only genuine point-for-point correspondence in this file is DUALFACE, which is combinatorial, not radial.
+
+ Performance mode (fewer icosian edges — try this if the page freezes on mobile)
+
+
+## [03] Orbit trace — does the 20:11 rotation really close?
+
+The automatic rotation above advances the two view angles at a fixed 0.55 = 11/20 ratio per frame, so after 20 full turns of one axis and 11 of the other, the view returns to where it started — but watching that happen live takes about 20 minutes. This computes the SAME 20:11 cycle directly (2000 samples across one full period) for a single point, applies the real demarc inversion regardless of the checkbox above (this trace is specifically about that transformation), and draws the closed curve it traces immediately. This is a VISUAL TRANSFORMATION ORBIT — a closed curve from repeatedly rotating one inverted point at a fixed ratio. It is NOT the same thing as the ALGEBRAIC STABILIZER ORBITS described in the H4/D4/F4 sections elsewhere on this page, which come from discrete group actions on root systems, not continuous rotation of a displaced point. Don't conflate the two just because both are called "orbit."
+
+
+ Trace which point
+
+ A VERT vertex (becomes a displaced sphere)
+ An ICOSIDODECA point (becomes a displaced sphere)
+ An ICO face center, not the demarc's own (becomes a rotated plane locus)
+
+ Trace one full 20:11 cycle
+
+
+ Press Trace to compute and draw one full closed cycle.
+
+
+## [04] Context translation — re-encode a symbolic address across demarcs
+
+Vertex/zone/axis identity is preserved exactly; only context-dependent fields are recomputed. This is a pure SpiralCore realm/context transformation, not IP Network Address Translation: it rewrites no packet header, maintains no flow mapping, and forwards no traffic. Cube 0 and Tetra 0/1 are invariant because they never change with demarc.
+
+
+ Address
+
+ From
+
+ To
+
+ Translate
+
+
+## [05] Route trace — shortest path between two symbolic coordinates
+
+Routes over the real graph: host-to-host dodecahedron edges, host-to-zone uplinks, and zone-to-zone backbone axes. Root connects to every zone through whichever axis geometrically passes through it. This is a SpiralCore BFS route trace with an application-local hop budget; it does not send ICMP Echo traffic or construct an IP packet.
+
+
+ From
+
+ To
+
+ Trace route
+ Hop budget
+
+
+## [06] Route space — what else was lawful?
+
+bfsPath (above) returns exactly one shortest path — the first one discovered, order depending on internal adjacency iteration, not chosen for any structural reason. This read-only inspector does not change route tracing, sonification, or the hop budget. It answers a different question: given the same endpoints, how many other lawful routes existed, how similar are they, and was the selected route distinctive or one of many equal choices?
+
+
+ Extra hops to also count as "near-optimal" (Δ)
+
+ Max paths to enumerate per class (K)
+
+ Analyze route space
+
+ Uses the same From/To selected above. Trace a route first (or just pick endpoints), then analyze route space.
+
+
+## [07] E8 operator subnets — directed MF-OP routing
+
+This is a separate, typed routing plane over the existing 240 verified E8 roots. The associative matrix group generated by the fifteen octonion-derived bivectors partitions E8 into 15 disjoint orbits of 16 roots . Each orbit is a real finite action subnet. A Bell chord selects the labelled operator B ij ; it does not select a root or an orbit. Routes across different subnets are rejected rather than smuggled through an invented edge.
+
+
+ From E8 root
+ To E8 root
+ Route in subnet
+ Analyze alternatives
+
+
+ Play MF-OP route
+ Play true operator round trip
+ Return applies each inverse as B ij 3 ; merely reversing chords would be algebraically false.
+
+ Choose two roots. Same-subnet routes are at most two operator hops in this verified action graph.
+
+
+## [08] Sonify the last ping
+
+Turns a routed state sequence into sound, with the semantic layer made explicit. MF-LAYER is the legacy v61 mapping from each core node's O0 layer prefix to a Bell pair. MF-PORT accepts only actual AXIS2 nodes and rejects every other event. MF-OP consumes the labelled edges of the E8 operator route above, so one sound means one actual matrix action. None silently drops an unencodable event.
+
+
+ Bell MF route (O0 layer → AXIS2 codeword)
+ Chromatic (12 zones = 12 semitones)
+ Golden ratio (φ per depth level)
+ Orbit-derived (pitch from position in the journey, timbre from the traced shape above)
+ Bell profile System R1 System No. 5
+ Bell semantics MF-LAYER (core O0 node events) MF-PORT (AXIS2 nodes only) MF-OP (E8 B_ij edges)
+ Play path
+
+ Round trip follows the selected mode. MF-LAYER/MF-PORT can replay a reversed acoustic sequence, which is a playback palindrome, not an algebraic state undo. MF-OP performs a genuine state round trip: reverse operator order and cube every bivector because B ij −1 =B ij 3 . Historical KP/ST/digit names remain display labels and never execute telephone or control-plane actions.
+
+ Play round trip (selected codec)
+
+
+ Send a ping above, then press Play path or Play round trip.
+
+
+## [09] Addressing schema
+
+Format: O0.O1.O2.O3 , basis_id geo.dodeca-icosa.v1 . Fields that depend on the selected demarc are prefixed [demarc=N] in the serialized SpiralCore label. A peer using a different context would interpret those fields differently because rebuildCubes() changes which physical vertices a cube slot, tetra slot, or invariance flag refers to. Context-free identifiers never need this tag.
+
+ IPv6 documentation mirror: every four-octet symbolic identifier is also displayed reversibly inside 2001:db8::/32 . Each O-field occupies one hextet before RFC 5952 text canonicalization. An E8 240.S.0.0/16 group maps to a documentation-only /64 . This is a structural one-to-one presentation—not IPv4-mapped IPv6, not a bit-preserving prefix conversion, not ULA space, and never a deployable address. The decoder accepts both v64's legacy structural spelling and equivalent RFC 4291/5952 spellings.
+
+ Four Bell semantics, no address breakage. MF-LAYER keeps v61's mapping of the fifteen core O0 layer prefixes 0,16,...,224 to codewords 0...14; H3ROOT and H2DEC remain typed members of O0= 176 , the existing H3/ICOSIDODECA family. MF-PORT uses an AXIS2 node's own axis id. MF-H2 walks the ten oriented H2 roots and uses the actual AXIS2 direction carried by each root, producing five legitimate two-of-six codewords twice each—not six invented single-frequency Bell symbols. MF-OP is edge metadata: the route action x→B ij x supplies the Bell pair directly. The E8 subnet family uses O0= 240 , outside the fifteen active Bell layer codes; its sounds come from operators, not by pretending a sixteenth 2-of-6 pair exists.
+
+ Scope boundary: [demarc=N] is a SpiralCore context/realm tag, not a CIDR prefix. E8 “operator subnet” is likewise a protocol-local name for one verified 16-root action orbit; it does not claim external IP allocation or CIDR routing behavior.
+
+
+ Layer
+ O0
+ O1
+ O2
+ O3
+ Needs [demarc=N] ?
+
+ ROOT (universal invariant)
+ 0
+ 0
+ 0
+ 0
+ No
+
+ ICO (zone, 12)
+ 16
+ zone id
+ antipodal zone id
+ 1 if on current demarc, else 0
+ Yes (O3 only)
+
+ VERT (host, 20 — never invariant)
+ 32
+ vertex id
+ (cube A << 4) | cube B
+ home face id
+ Yes (O2 only)
+
+ CUBE (overlay slot, 5; cube 0 invariant)
+ 48
+ cube id
+ 0
+ 0
+ Yes, except cube 0 (always vertices 0-7, context-free)
+
+ AXIS (5-fold backbone, 6)
+ 64
+ axis id
+ (zone A << 4) | zone B
+ 1 if this is the current demarc, else 0
+ Yes (O3 only)
+
+ AXIS3 (3-fold, 10)
+ 80
+ axis id
+ vertex A id
+ vertex B id
+ No
+
+ AXIS2 (2-fold, 15)
+ 144
+ axis id
+ edge A id
+ edge B id
+ No
+
+ RHOMB (golden rhombus face, 30)
+ 160
+ rhomb id (= edge id)
+ 0
+ (ICO corner A << 4) | ICO corner B
+ No
+
+ ICOSIDODECA (icosidodecahedron point, 30)
+ 176
+ point id (= edge id)
+ edge vertex A
+ edge vertex B
+ No
+
+ H3ROOT (unit-normalized edge-midpoint root, 30)
+ 176
+ 254 (typed H3 marker)
+ root id (= edge id)
+ AXIS2 id of its antipodal line
+ No
+
+ H2DEC (intrinsic regular decagon plane, 6)
+ 176
+ 255 (typed H2 marker)
+ perpendicular AXIS id
+ 10 (root count)
+ No; all six exist, selected demarc only chooses the matched highlight
+
+ H3ROOT family prefix
+ 176
+ 254
+ 0
+ 0, displayed as /16
+ No
+
+ H2DEC family prefix
+ 176
+ 255
+ 0
+ 0, displayed as /16
+ No
+
+ DFACE (disdyakis flag triangle, 120)
+ 192
+ face id
+ vertex corner
+ zone corner
+ No
+
+ D4 (binary tetrahedral / D4 root, 24)
+ 208
+ root id
+ 0
+ 0
+ No
+
+ F4 (binary octahedral / F4 root, 48)
+ 224
+ root id
+ 0
+ 0
+ No
+
+ TETRA (stella octangula, 10)
+ 96
+ tetra id
+ (parent cube id << 4) | type
+ 0
+ Yes, except tetra 0/1 (built from cube 0, context-free)
+
+ DUALFACE (icosahedron face, 20)
+ 112
+ dual vertex id (= VERT id)
+ lowest ICO id of the 3
+ (mid ICO << 4) | highest ICO
+ No
+
+ ICOSIAN (H4 root / 600-cell vertex, 120; all bridged)
+ 128
+ icosian index
+ rotation power (0 identity; AXIS 1–4; AXIS3 1–2; AXIS2 1)
+ (bridge type << 4) | axis id; identity=0, AXIS=1, AXIS3=2, AXIS2=3
+ No
+
+ E8 operator root (240; symbolic action subnet)
+ 240
+ operator subnet id (0...14)
+ slot within 16-root orbit (0...15)
+ global E8 root id (0...239)
+ No
+
+ E8 subnet prefix
+ 240
+ operator subnet id
+ 0
+ 0, displayed as /16
+ No
+
+ E8 operator gateway marker
+ 240
+ 255
+ 255
+ 0
+ No
+
+ Action-graph cardinality boundary: the E8 action table contains 3,600 labelled root×generator records (240 roots × 15 bivectors), but only 2,580 distinct directed endpoint pairs after labels are collapsed by (from root, target root) . The 1,020-record difference is genuine label multiplicity: different bivectors can send the same source root to the same target. There are no self-loops. Labelled out-degree is exactly 15; unique-target out-degree is 9–13 and is non-uniform inside every 16-root subnet. Here and in the manifest, 3,600 “actions” or “transitions” means labelled records, never distinct graph edges.
+
+ F4 convention boundary: this build uses the self-dual realization in which the embedded binary-tetrahedral/D4 24 remain at norm²=1 and are called short , while the complementary 24 are scaled to norm²=2 and called long . The usual coordinate presentation instead makes the 24 roots ±e i ±e j the long D4 subsystem and the remaining 24 short. Exchanging the length classes gives the dual, isomorphic F4 root system; the build is valid, but its convention is now explicit.
+
+ Addressing boundary: these are typed IPv4-shaped symbolic addresses and documentation-only IPv6 mirrors, not packets for any IP network. The H3/H2 strings beginning 176.254 and 176.255 are application-local type shapes only: those IPv4 ranges are neither reserved for nor assigned to SpiralCore, so the strings must never be emitted as network addresses. The current IANA IPv4 Special-Purpose Address Registry (rechecked 2026-08-26) lists 240.0.0.0/4 as Reserved , with Source, Destination, Forwardable, and Globally Reachable all false and Reserved-by-Protocol true. SpiralCore uses O0= 240 only as a visibly non-routable type marker; it does not claim private-use allocation and must never emit these identifiers as packets. RFC 3849 likewise reserves 2001:db8::/32 for documentation and says it is not for local use or globally routed. The 15 values in O1 are independently derived group orbits, not CIDR claims about an external network.
+
+ The disdyakis triacontahedron : 12 (ICO) + 20 (VERT) + 30 (ICOSIDODECA, the edge-midpoint shell) = 62 vertices, 120 triangular faces — one per (vertex, edge, zone) flag of the dodecahedron. Requires two exact scale factors, found by symbolic algebra rather than search: k_ico = 3√5/5 exactly, and an exact (if less clean) radical for k_edge . All 120 flag triangles verified congruent — identical side lengths to six decimals, checked on every one, not sampled. The 30 ICOSIDODECA points are independently verified as a genuine icosidodecahedron: uniform radius exactly φ, uniform 4-valent structure, exactly 60 edges.
+
+ The D4 root system : cube 0's stella-octangula tetrahedron (context-free, the same permanently-invariant cube used throughout this file) has a real order-12 rotation group; lifted to quaternions (both signs) gives 24 unit quaternions — the binary tetrahedral group. Verified as a genuine D4 root system, not just matching count: rank exactly 4, and the complete pairwise dot-product multiplicity structure (12 pairs at −1, 96 at −0.5, 72 at 0, 96 at 0.5) matches the standard D4 root system exactly. This is D4, not E6 — the McKay correspondence to E6 itself runs through representation theory (how the binary tetrahedral group's irreducible representations tensor with the 2D spin representation), a genuinely different kind of computation. UPDATE: this has since been completed and verified (see tracking notes) — the real McKay graph was computed and matches affine E6 exactly. KILLING FORM computed directly from these 24 real roots (B(H,H')=sum over roots of alpha(H)alpha(H')): exactly 6 × Identity unit-normalized ( 12 × Identity at the conventional norm²=2 raw scale), off-diagonal terms confirmed floating-point noise. Worth being precise, not overstating this: for an isotropic set of unit vectors (which we'd already verified this root system is, via the dot-product structure above), proportionality to identity is expected, and the coefficient is essentially forced by the trace (24 roots / 4 dimensions = 6) — a real, correctly-computed root trace form, but not strong independent confirmation beyond what the dot-product check already established. Unlike E8's Tier 2 (blocked for months on missing genuine 8D data, now unblocked separately with a real coordinate construction — see the E8 note below), this computation is at least complete and unblocked — D4 is genuinely, fully 4-dimensional, no dimensionality gap to stop it.
+
+ The F4 root system : cube 0's real, full 24-element proper rotation group (3 face-axes, 4 vertex-axes, 6 edge-axes, plus identity), lifted to quaternions gives 48 unit quaternions — the binary octahedral group. Same source as D4 (Dechant 2021, Table 1): B3 -> F4 via 2O, one row up the same table. Verified as a genuine F4 root system: rank exactly 4, group genuinely closes under quaternion multiplication (checked with distance tolerance, not exact rounding — exact rounding gave false failures from floating-point noise), and the complete pairwise dot-product structure (24 pairs at −1, 144 at −0.707, 192 at −0.5, 432 at 0, 192 at 0.5, 144 at 0.707) matches the normalized F4 root-direction system exactly (the genuine crystallographic root system, with correct long/short lengths, is established later in this note). This is F4, not E7 — same situation as D4/E6: E7 needs the representation-theory route. UPDATE: this has since been completed and verified (see tracking notes) — the real McKay graph was computed and matches affine E7's asymmetric branch structure exactly. KILLING FORM — corrected here (2026-08-24, external review): the naive computation on all 48 unit quaternions gives exactly 12 × Identity , off-diagonal at floating-point noise, and this WAS wrongly presented as F4's Killing form. It isn't. F4 is not simply-laced — the genuine crystallographic F4 root system has two root lengths (24 long, norm²=2; 24 short, norm²=1, ratio √2), unlike D4/E8 where every root has the same length and uniform normalization is correct. Checked directly: our D4 subgroup's 24 quaternions sit exactly inside these 48 (confirmed: every D4 element is one of the 48 F4 directions), and the complementary 24 are the other orbit. Treating all 48 as unit gives 576 pairs with non-integral Cartan coefficients 2(α,β)/(β,β) — a genuine crystallographic root system cannot have that, by definition. This file deliberately uses the self-dual assignment opposite the usual coordinate presentation: the embedded D4-matching 24 remain short at norm²=1, while the complementary 24 are rescaled by √2 and become long at norm²=2. Conventionally the 24 roots ±e i ±e j form the long D4 subsystem and the remaining 24 are short; exchanging the length classes gives the dual, isomorphic F4 system. With this file's stated assignment, the checks fix exactly: 0 non-integral Cartan pairs, full reflection closure (2,304/2,304), and the genuine Killing form comes out to exactly 18 × Identity — not 12, not 24 (24 is just every direction uniformly scaled by √2, which changes nothing structurally and is not the crystallographic normalization either). 12×I is a real, correctly-computed fact about the all-unit 48-direction set (still valid as the direction set of the binary octahedral group, still reflection-closed under that uniform scale) — it is just not F4's Killing form. 18×I is. Same precision caveat as D4/H4/E8: forced by the trace once the correct isotropic structure is established, not independent confirmation beyond the Cartan-integrality and reflection checks themselves. Same as D4: complete and unblocked. E8's Tier 2 was blocked for the same shape of reason (missing genuine 8D data) but has since been separately unblocked with a real coordinate construction — see the E8 note below — while F4 here was never blocked at all, being genuinely, fully 4-dimensional with no gap between claimed and actual rank from the start.
+
+ The E8 root system : the standard coordinate construction, not an octonionic root construction — all vectors with two nonzero entries (each ±1, rest 0: 112 roots) plus all vectors (±½,...,±½) with an even number of minus signs (128 roots), 240 total. This is genuinely different from the earlier 120-icosian + 120-sigma-scaled-copy attempt, which was checked and correctly rejected: that one only spanned rank 4 (a scalar-shadow of H4 in its own space), not the real 8 dimensions E8 needs. This construction is verified rank 8 (confirmed via direct Gaussian elimination, not assumed), all 240 roots have norm²=2, all pairwise inner products fall in {−2,−1,0,1,2} as a real root system requires, and there are no duplicates. KILLING FORM, same method confirmed to reproduce D4's 6×Identity and H4's 30×Identity from their own real root data (F4 deliberately excluded from this calibration list — F4 is not simply-laced, and its all-unit 12×I is a different, non-Killing-form fact; see the F4 note for the real 18×I crystallographic value): exactly 30 × Identity under this file's own unit-root convention. At the conventional root-system scale (norm²=2, unnormalized) the same trace form is exactly 60 × Identity . The two numbers are the same fact at two scales, not competing answers. Off-diagonal terms are floating-point noise (~1e-17). Three stronger structural guards accompany it: exact per-root dot-product multiplicity {−2:1,−1:56,0:126,1:56,2:1} for all 240 roots, full reflection closure (57,600 checks), and an 8-simple-root Cartan matrix with determinant 1. v62 action layer: octonion left-multiplication maps generate six explicit Cl(0,6) matrices; their 15 bivectors preserve this entire 240-root set, create 3,600 labelled root×generator action records (240×15), representing 2,580 distinct directed endpoint pairs after labels are collapsed, and partition the roots into 15 finite 16-root operator orbits. The UI renders an explicitly lossy rotating 8D→3D projection, selectable B ij edges, subnet colors, addresses, and directed within-subnet routes. This does not make the projection intrinsic, identify Bell's 15 codewords with the 15 subnets, implement the Baez–Coxeter H×H root construction, or derive Standard Model physics.
+
+ Exceptional continuation, kept type-clean: H3 is the 30 normalized live ICOSIDODECA directions in rank 3. Exhaustive plane enumeration finds exactly six ten-root origin planes; every one is an intrinsic regular H2 decagon with 36° spacing, edge 1/φ , Coxeter Cartan matrix [[2,−φ],[−φ,2]] , full reflection closure, and intrinsic root trace form 5×I 2 . In ambient 3D the same trace is 5(I−nn T ) . H2 is non-crystallographic, so this is deliberately not called a Killing form: there is no corresponding finite-dimensional simple Lie algebra whose Killing form could be meant. The six plane normals pair bijectively with the six 5-fold AXIS lines. When a decagon is matched to the selected demarc, all ten inversion denominators equal 2+2/√5 , so the existing conformal inversion restricts to a translated uniform similarity on that plane. Intrinsic E6 and E7 remain separate exact crystallographic E8 subsystems. None of these statements claims external physical validation; they are exact consequences of the coordinates implemented here.
+
+ The Grand Antiprism (Conway & Guy, 1965): NOT new geometry — a real classification found WITHIN our existing 120 icosians (Dechant 2021, Section 7). Discovered that D4's 24 points are literally an exact subset of our own 120 icosians, not a separate construction — every point matched to floating-point precision. That raised the natural question of what else might already be hiding in the same 120 points. Searched directly (not reconstructed from the paper's abstract notation): one real 5-fold AXIS icosian combined with one real 2-fold AXIS2 icosian, generating a genuine 20-element subgroup on the first real pair tried — H2+H2, closure verified, order distribution {1:1,2:1,4:10,5:4,10:4} summing correctly to 20. Its complement — the other 100 icosians — checked against the actual published polytope: 100 vertices, 500 edges at our own established nearest-neighbor distance, both matching exactly, not approximately. CORRECTED after a good challenge: the first version of this just recolored the icosians in place, which doesn't show the one thing that actually defines an antiprism — two rings, genuinely twisted relative to each other. Checked the real documented construction (multiple independent sources: the two removed rings of 10 "lie in mutually orthogonal planes," defined precisely by zero dot product between every cross-pair) directly against our own H2+H2: every one of the 20 points has EXACTLY 10 zero-dot-product partners among the other 19, no exceptions, and the resulting 10/10 split is fully self-consistent. Real Ring A and Ring B, not a guess. The visualization now gives both rings their own honest schematic layout reflecting this genuine orthogonality, instead of leaving everything at the original scattered coordinates.
+
+ The 120 ICOSIAN nodes are the unit quaternions of the 600-cell — H4's own real root system in its own right (see Dechant below), historically also studied via a 4D shadow connection to E8 (John Baez, "From the Icosahedron to E8," 2017) that this file does NOT claim as a faithful E8 construction — the real, separate, verified 8D E8 root system is documented above and does not depend on or derive from these icosians at all. Verified here computationally, not asserted: 120 points, all unit norm, uniform 12-nearest-neighbor structure, 240 total under the golden-ratio-scaled second copy matching E8's root count exactly. Every element of our 60-element rotation group — identity, all 4 non-trivial powers of each 5-fold axis, both non-trivial powers of each 3-fold axis, and each 2-fold axis — lifts to a real icosian at floating-point-exact distance, and each lifts to two (a quaternion and its negation, since icosians are closed under negation). 60 × 2 = 120 of 120 , complete, no leftovers. Routing through any of them uses that exact correspondence as the edge, not an invented one. Worth being precise: this 240-point set matches E8's root count and norms exactly, but spans only 4 real dimensions (checked directly) — E8's true root system needs 8. The 120 icosians themselves (as the 4D binary icosahedral group / 600-cell) are fully faithful and everything above is exact; the 240-point set is a real, verified shadow of E8 in count and norm, not a faithful full-dimensional copy. SHARPENED with an independent published source (Dechant, "Clifford Spinors and Root System Induction: H4 and the Grand Antiprism," Adv. Appl. Clifford Algebras, 2021): this isn't merely a shadow of something else — Spin(H3) = 2I is , precisely and completely, the real H4 root system (Theorem 2.16 in that paper). Our 120 icosians are a faithful, complete, independently-published root system in their own right, not an approximation of a bigger one. ROOT TRACE FORM, computed here for the first time (2026-08-24, external review correctly noted this was referenced but never actually calculated) — deliberately NOT called "Killing form" here, unlike D4/F4/E8: those three are root systems of genuine simple Lie algebras (so(8), the F4 Lie algebra, E8), where a real theorem identifies the Killing form restricted to the Cartan subalgebra with this same trace-of-roots construction. H4 is a non-crystallographic Coxeter group — its 5-fold symmetry is explicitly excluded from the Cartan-Killing classification of simple Lie algebras (crystallographic restriction theorem), so there is no corresponding Lie algebra and therefore no Killing form to compute. The bilinear form B(H,H')=∑ over roots of α(H)α(H') is still perfectly well-defined on its own terms regardless of any Lie algebra existing, computed the identical way: exactly 30 × Identity unit-normalized, 60 × Identity at the conventional norm²=2 scale — off-diagonal terms at floating-point noise, diagonal spread ~4e-14. Same precision caveat as D4/F4/E8: forced by the trace once isotropy is established (120 roots / 4 dimensions = 30), not independent confirmation beyond the dot-product/rank checks already done above.
+
+ Incidence fan-out, not IP multicast. Each AXIS (5-fold) is incident to 8 bridged icosians (4 rotation powers × 2 signs), each AXIS3 to 4, and each AXIS2 to 2. This is genuine one-to-many graph structure, but it defines no multicast group address, membership protocol, packet replication, or delivery semantics.
+
+ The rhombic triacontahedron : for each of the 30 dodecahedron edges, its two vertices plus the two zone centers of the faces sharing it form a candidate face — but only at the exact scale factor rtScale = 3 − φ (closed form, not a decimal approximation) does each one become a genuine golden rhombus: all 4 sides equal, both diagonals in an exact φ ratio. Verified on all 30, not sampled. This scale applies only to RHOMB's own rendering and address geometry — it does not change the ICO layer's position anywhere else in the file.
+
+ DUALFACE is the actual dodecahedron↔icosahedron reciprocation: each of the 20 dodecahedron vertices touches exactly 3 pentagon faces, and those 3 ICO nodes form one triangular face of the true dual icosahedron — verified exactly (20 vertices → 20 distinct triangles → 30 distinct edges, matching the icosahedron's real face and edge counts). This is different from the earlier radial "invert view": that swaps shell radii only; this reproduces the actual point-for-point duality, and needs no demarc context because it's pure combinatorics.
+
+
+## [10] Recursive port — peer LADA
+
+Verified tonight, live, not just cited: any of our 120 exact bridges (all 120, not the original 31 — expanded and confirmed later) leads into a local 60-element symmetry group of its own — a genuine peer LADA in the sense of the WADA/LADA draft, federated back to this box through the bridge, not a separate invention. That peer domain reproduces our full 7-shell incidence signature exactly (12/5, 20/3, 12/5, 30/2, 12/5, 20/3, 12/5), and one of its own interfaces, expressed the same way ours was, turns out to be a rotation we already had — not similar to it, the same one.
+
+
+ Open peer LADA through
+
+ Open peer LADA
+
+
+
+ Show peer LADA shells in the scene Open a peer LADA above to enable this layer.
+
+
+## [11] D4 peer LADA (binary tetrahedral)
+
+Same construction as H4/F4, run on D4: any D4 vertex opens a local 12-element stabilizer (this tetrahedron's own rotation group). CORRECTED after a real bug was found (see tracking notes): the original transitivity test unioned orbits of every point already in a shell, which trivially includes the whole shell via the identity element alone, regardless of real transitivity. Re-verified with a proper test across 5 different vertices, identically every time: the two 8-shells are each genuinely TWO separate orbits of 4 (stabilizer 3, matching orbit-stabilizer exactly: 12/3=4, not 8). Only the middle 6-shell is genuinely transitive (stabilizer 2, 12/2=6). Real substructure the old test was hiding, not new geometry.
+
+
+ Open D4 peer LADA through
+
+ Open D4 peer LADA
+
+
+## [12] F4 peer LADA (binary octahedral)
+
+Same construction as above, run on the F4 layer instead: any F4 vertex opens a local 24-element stabilizer (cube 0's own rotation group, not a new one). CORRECTED after a real bug was found (see tracking notes): the original transitivity test trivially reported every shell as transitive via the identity element alone. Re-verified properly across 5 vertices: the 6-shells and 8-shells ARE genuinely transitive (matching orbit-stabilizer exactly: 24/4=6, 24/3=8). The middle 18-shell genuinely is NOT one orbit — it's a real 6-orbit plus a real 12-orbit (24/4=6, 24/2=12), confirmed present simultaneously within a single vertex's own shell, not merely "varying by starting vertex" as earlier reported. That earlier "honest inconsistency" finding was this exact split, seen from a different angle, not a separate phenomenon. Whether the 6/12 split corresponds to long vs. short roots is worth checking by inspecting actual membership, not assumed from the numbers alone.
+
+
+ Open F4 peer LADA through
+
+ Open F4 peer LADA
+
+
+
+ On whether this connects to inversion: checked properly, not assumed. They are NOT the same operation — direct example: at q0=ICOSIAN:5, inverting ICOSIAN:17 lands somewhere different (distance 1.41) from where the local stabilizer sends it. But they DO commute exactly: inverting-then-transforming and transforming-then-inverting land on the same point to floating precision, verified exhaustively (every q0, every local rotation, every other point, k in {0.5,1,√2,φ,√5} — 4,284,000 checks for H4 alone, plus D4 and F4) — worst discrepancy ~1.8e-15, expected floating-point noise, not a real gap. This is the ordinary, expected consequence of T fixing q0 and being orthogonal (confirmed: zero violations of T(q0)=q0 across every rotation tested) — not new mathematics, just confirmed concretely in our own coordinates rather than assumed. Peer-LADA = angular/symmetry action; inversion = radial action; they're complementary operations that happen to commute at their shared fixed point.
+
+
+## [13] Stabilizers and the inversion angle-invariance
+
+Every point's stabilizer (the subgroup of the 60-element rotation group that fixes it) was verified by directly building the group and counting, not by trusting orbit arithmetic: ROOT = 60 (fixed by everything — the maximum possible, confirming it as the group's true center), ICO = 5 , VERT = 3 , DUALFACE = 3 (matches VERT exactly, via the equivariant bijection already established), AXIS (5-fold, as a line) = 10 , AXIS3 (3-fold, as a line) = 6 , AXIS2 (2-fold, as a line) = 4 . CUBE, TETRA, and ICOSIAN stabilizers were not computed in this build — they're set-stabilizers rather than point-stabilizers and need a different method, flagged rather than guessed.
+
+ Separately, verified numerically: the inversion transform (r,θ) → (R²/r, θ) changes only radius, never angle — tested across five angles, zero deviation at each. This is why root's stabilizer and the inversion behave the way they do together: root is fixed by every rotation (the maximal stabilizer), and inversion about that same point can only ever act on the one coordinate rotation doesn't touch. Hovering any point below shows its live radius/angle breakdown so you can watch this rather than take it on faith.
+
+ Serialized protocol example: sharing three activated points with a peer that already holds the same geometry can use demarc=0 | 32.6.2.6, 16.11.0.0, 64.0.11.0 rather than repeating geometric payload content. This is an application-level SpiralCore exchange format, not an IP packet format. Every AXIS3 line is exactly one cube's body diagonal and runs from a TETRA-A vertex to that cube's TETRA-B vertex.
+
+
+## [14] Letter values, mapped onto the shared dodecahedron
+
+Hebrew, Greek, and Arabic each have a real historical letter–number system — gematria, isopsephy, and abjad respectively, verified against primary references before being hardcoded here. Any language you add yourself gets a constructed tag instead, because there's no tradition to borrow — the numbers it gets are ones this tool assigns, not ones history assigned. Every letter, real or constructed, gets placed on the same 20-vertex dodecahedron used elsewhere in this project, so it carries a real address in the same O0.O1.O2.O3 format.
+
+
+
+ QUICK-LOAD REAL SYSTEMS
+ + Hebrew (gematria)
+ + Greek (isopsephy)
+ + Arabic (abjad)
+ + Armenian
+ + Georgian
+ + Coptic
+ + Cyrillic (Church Slavonic)
+
+
+
+ ADD YOUR OWN
+
+
+
+ Name
+ Letters (comma separated, in order)
+
+
+
+
+ Values (optional, comma separated, same count as letters)
+
+
+
+ Add language
+
+
+
+
+ No languages loaded yet.
+
+
+
+
+
+ Grayscale shows
+ Numeral value Letter frequency
+ Empty-box fill
+ Linear interpolation (neighbors) Graph-aware (harmonic diffusion, real edges) Flat mid-gray
+
+
+
+
+ Click a box to inspect it.
+
+
+
+
+
+ Look up a word
+
+ Compute
+
+
+
+
+ Use sum → set demarc
+
+
+## [15] Canonical symbol identity — separate from geometry, separate from any language mapping
+
+This table gives every supported symbol a stable canonical ID (e.g. LATIN.A , DIGIT.0 , OP.ADD , CONST.PI ) that does not depend on which vertex it might be assigned to on the Language Grid tab, which language loaded it, or how any neural model happens to interpret it in context. ID(x), the current dodecahedral route R(x), and a model's contextual interpretation E(x) are three different things — this tab is deliberately only the first one. No canonical symbol → dodecahedron projection is defined here ; that's a separate, later decision (deferred on purpose, not an oversight). Start-small scope: Latin letters, digits, common operators, two constants, one function, basic punctuation, and two control tokens — not the full Unicode space, same honest limitation as the existing gematria symbol table on the Prompt Trace tab (a genuinely different, narrower table built for a different job: turning symbols into spoken words for gematria, not preserving identity).
+
+
+
+ Look up a symbol
+
+ Look up
+
+
+ Try a letter, a digit, an operator like + or *, "pi", "sqrt", or the bare letter "e" (deliberately ambiguous — see what comes back).
+
+
+
+
+ FULL REGISTRY ( entries)
+
+ ID
+ Glyph
+ Kind
+ Arity
+ Aliases
+
+
+## [16] Bell multifrequency codec - geometry-derived 2-of-6 control alphabet
+
+Published telecom layer. Bell System MF and ITU-T System R1 use six nominal frequencies - 700, 900, 1100, 1300, 1500, and 1700 Hz - with exactly two frequencies present per register signal. ITU-T Q.320 assigns the fifteen combinations to ten digits, KP, ST, and three spares. System No. 5 uses the same 2-of-6 carrier set with different control labels for several pairs (Q.151) and different sender timing/tolerance requirements (Q.153).
+
+ Derived SpiralCore layer, now executable. Each AXIS2 half-turn preserves exactly two of the six unoriented five-fold AXIS lines, exhausting C(6,2) . The same pair selects both its two-tone chord and the implemented operator B ij =L e_i L e_j . All six left-multiplication generators satisfy the Cl(0,6) anticommutators; the fifteen bivectors close as so(6) with Killing matrix −32I 15 in this basis and act without leakage on all 240 E8 roots. This is an operator implementation, not a claim that sound, geometry, or telecom engineers secretly encoded particle physics.
+
+ H2 integration. Each of the six H2 decagons is perpendicular to one AXIS generator. Its ten oriented unit roots collapse antipodally to the five AXIS2 lines whose Bell pairs contain that generator. The H2 cycle therefore emits five existing lawful two-of-six codewords twice each. This is a derived incidence/sonification of the implemented geometry—not a historical Bell assignment and not a new one-of-six signaling mode.
+
+ Safety and scope. This is an offline/local research codec. It does not seize telephone trunks, emulate a complete R1/No. 5 exchange, accept microphone control, or expose 2600 Hz as a reset command. Q.23/Q.24 DTMF is a different 4x4 system and is intentionally not mapped here. The local checksum below detects accidental corruption; it is explicitly not authentication , and no decoded symbol performs a control-plane side effect.
+
+
+
+ Telecom profile
+ ITU-T System R1 (Q.320/Q.322) ITU-T System No. 5 (Q.151/Q.153)
+ AXIS2
+
+ Play selected chord
+
+
+## [17] Operator plane status
+
+The 64-element finite matrix group has 15 E8 orbits, each of size 16 with stabilizer size 4. Seven subnets lie entirely in the 112-root integer/D8 family; eight lie entirely in the 128-root half-integer family. Identical counts do not create a canonical Bell-codeword→subnet pairing: chords label operators, while subnets are operator orbits.
+
+ Subnet
+ IPv4-shaped prefix
+ IPv6 documentation /64
+ Family
+ Canonical root
+ 16 root ids
+
+
+## [18] Six H2 decagons → Bell MF incidence
+
+Each row is derived from the canonical H3 roots and AXIS2 preservation map. Five antipodal root lines give five existing two-of-six Bell codewords; the ten-root cycle plays each twice. The table creates no new telecom symbols.
+
+ H2 / AXIS
+ Face pair
+ Five AXIS2 ids
+ R1 signals
+ No. 5 signals
+ IPv4-shaped / IPv6-doc
+
+
+## [19] Local framed round trip
+
+Payload digits are wrapped as KP + payload + one decimal checksum + ST , synthesized into PCM, then decoded by Hann-tapered Goertzel frequency estimation over the actual waveform. Profile sender limits remain exact in the direct validator; PCM decoding explicitly reports a 0.05 Hz receiver measurement allowance for finite-window estimation. The checksum convention is SpiralCore-local, not part of Bell R1 or System No. 5. Its coprime repeating weights are fixture-proven to catch every single-digit substitution within the 24-digit UI limit; it is not authentication and does not promise detection of every multi-symbol corruption.
+
+
+ Digits
+
+ Build frame
+ Play frame
+ Synthesize + decode
+
+
+ Enter decimal payload data, then build or round-trip a local frame.
+
+
+
+
+ COMPLETE 2-OF-6 CODEBOOK
+
+ AXIS2
+ Preserved AXIS pair
+ Frequencies
+ R1
+ No. 5
+ Cl(0,6) operator
+ H4 lifts
+ Sample E8 action
+
+
+## [20] v68 · Research cockpit
+
+Inspect synchronization, lawful alternatives, retained FBS ancestry and representation loss against the same source models.
+
+
+
+ Open research cockpit
+
+ Research views
+ 30 H3 roots
+ Six H2 decagons
+ 15-cell carrier
+ 60 local role states
+ Phase wheels
+ I/Q vector
+ r and velocity history
+ Orbit telemetry
+ FBS support and marks
+
+
+ Cell
+ Local role
+ A5 rotation
+ Bare S5 action
+
+
+ Gold: H2 perimeter · cyan: quotient cells · violet: local roles · white: selection. Layouts retain canonical IDs; schematic positions do not define a new metric.
+
+
+ Carrier, metric and liftability tables Cell / AXIS2
+ H3 roots
+ H2 duad
+ Neighbors
+ Petersen edge
+
+
+## [21] Kuramoto synchronization
+
+Carrier H2 · full 30 roots H2 · 15-cell quotient Dense control · 4/29 weights FBS marked path experiment
+ Branch In phase Antipodal π lift
+ Frequency field Zero Paired heterogeneous Custom vector below
+ K
+ Seed
+ Duration
+ RK4 step 0.02 (coarse control) 0.01 0.005
+
+ Unnormalized coupling: dθᵢ/dt = ωᵢ + K Σⱼ Aᵢⱼ sin(θⱼ − θᵢ). Dimensionless simulation time. The π quotient uses signed edges and requires antipodally paired phases and frequencies.
+
+ Explicit initial phases and frequencies Initial θ vector (JSON; blank uses seed) Custom ω vector (JSON)
+ Run simulation Perturb and recover Sweep K Apply selected A5 action Swap selected representative
+
+
+## [22] FBS support, sparse marks and closure events
+
+Uses the τ, g and stream N controls in the retained FBS section below. The path experiment is a declared model. It does not create a native FBS-to-H2 coupling.
+
+ Marks Global bilateral Local centered children Experimental rule ω = 0.05 (mark − mean) Support only · ignore marks Weights = 1 + 0.75 (mᵢ + mⱼ) Inspect support and closures
+
+
+## [23] Transformation orbit
+
+Ratio control 20:11 · production default 18:9 · comparison 10:1 · comparison Point ICOSIDODECA:0 VERT:0 ICO · non-singular ROOT Demarc inversion Trace transformation Cursor t
+
+
+## [24] Lawful alternatives · bounded custody
+
+Choose endpoints in Network & Geometry, then inspect here. Records retain the selected route, legal alternatives, policy, graph epoch and cap state. They never execute a route.
+
+ Per-class K Extra hops Δ 0 1 2 3 Retain lawful alternatives Retained record No records
+
+
+## [25] C(X) · required evidence
+
+Question type X Capture typed snapshot Export snapshot JSON Observe WebAudio schedule
+
+ Record a finding Question / finding Positive control Negative control or poison Independent oracle / justified N/A Collision or loss / justified N/A Source → map → target Relevant graphics and control states reviewed Consultation evidence (JSON object: each required lane → evidence or justified NOT_APPLICABLE) {} Claim status OPEN EARNED REJECTED QUARANTINED SUPERSEDED-BUT-PRESERVED Record evidence
+ Run v68 checks Show full validation JSON
+ Typed snapshot / validation JSON Lossless machine-readable output
+
+
+## [26] Inherited exact completion witnesses
+
+Inspect the H2/H3 incidence, unit shells, complementary axes, Clifford matrices, and retained FBS binders. These diagnostic objects do not add routable nodes or Bell operators.
+
+ Witness layers
+ H2/H3
+ 42 shell
+ 62 flag shell
+ 31 axes
+ Clifford / complement
+ FBS binder / carry / cut
+
+
+ Axis / complement
+ Invert diagnostic geometry
+ Witness demarc 1 2 3 4 5 6
+ Reset view
+
+
+
+ Gold: fivefold · cyan: twofold · violet: threefold. Drag or use arrow keys to rotate. Inversion changes coordinates and retains incidence.
+
+
+## [27] Clifford complement diagnostic
+
+Seven realized 8×8 generators; 21 independent bivectors; 64 subset monomials; 31 nonempty/nonfull complement pairs; 128 signed matrices. The live Bell/E8 operator plane retains its fifteen operators. This representation does not faithfully represent the full abstract Cl(0,7) algebra.
+
+ Subset
+ Complement
+ Ω sign
+
+
+## [28] FBS · retained binder tree
+
+Mode A · 27,1 · L₀ 83 B · 29,2 · L₀ 89 C · 34,1 · L₀ 104 D · 39,2 · L₀ 119 E · 42,1 · L₀ 128 F · 44,1 · L₀ 134 G · 49,2 · L₀ 149 Small · 2,1 · L₀ 8 Custom
+ τ
+ g
+ Depth 0 1 2 3 4
+ Stream N
+ Reconstruct
+
+
+
+ Show payload labels
+ Payload label
+ Cut intervals
+ Coordinate ledger
+ Binder / ancestry
+
+
+ Each closure retains three complete child structures and appends one parent binder. Nodes below are binders; payload labels are optional. Macro level j corresponds to appendix wrapper rank j−1. Stream N uses immediate carry without reset. The explicit tree is bounded to depth 4; larger N retains an exact summary.
+
+
+
+
+
+
+
+
+ Q=2L+1 describes support completion. Sparse marked neighborhoods are a separate object. Equal lengths or cut quotients do not identify full marked FBS geometry. The supplied Rev2.1 AT-field/H2 correspondence is external and nonmetric; a formal binder-to-geometry or dynamical coupling remains unimplemented.
+
+
+
+ v67 subsystem status and validation
+ Run complete regression
+
+
+## [29] Intrinsic / projected geometry witnesses
+
+READ ONLY These measurements inspect canonical state but never write roots, routes, addresses, edges, Bell assignments, or operator transitions. A displayed coordinate is not promoted to intrinsic geometry merely because it is numeric.
+
+
+## [30] E8 projection audit
+
+The live renderer is a linear 8D→3D map after four orthogonal plane rotations. Rank, kernel, singular values, root collisions, and pairwise-distance stress quantify exactly what the display loses. Distortion is an observable, not a pass/fail quality target.
+
+
+ Projection phase
+
+ Audit projection
+
+
+ Open this tab or press Audit projection.
+
+
+## [31] Route directional-spread witness
+
+For embedded edges, Q = Σ length(u) uu T . Its trace independently recovers total geometric length; its normalized eigenspectrum reports directional rank. Exact E8, H4, D4, and F4 coordinates are used only when a route is homogeneous. Mixed semantic routes remain explicitly display-representative; face centroids, axis points, and compound anchors are representatives of objects, not the objects themselves.
+
+
+ Route source
+ Last active route Last core ping Last E8 MF-OP route
+ Measure route
+
+
+ Build a core ping or E8 operator route, then measure it.
+
+
+## [32] Core-edge effective resistance
+
+Each stored undirected core edge is a unit conductance; parallel semantic edges add conductance. Values are solved in the complete live 507-node core multigraph. The directed, labelled MF-OP plane is rejected rather than silently symmetrized.
+
+ Measure last core route
+
+ Build a core ping, then measure its edge redundancy.
+
+
+## [33] Scope ledger
+
+Implemented: coordinate provenance, E8 projection audit, quadratic-form route spread, selected-route effective resistance. Deliberately not implemented: Morse transform without a declared simplicial complex; graph pruning/community detection; Steiner-node insertion; MF-OP symmetrization; cosmological or particle-physics claims.
