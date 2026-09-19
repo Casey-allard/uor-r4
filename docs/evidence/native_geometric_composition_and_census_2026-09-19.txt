@@ -1,0 +1,78 @@
+UOR-R4 D0-a — shared composition helper, and a ratcheting multiplier census
+Date: 2026-09-19
+Executed by: Zed (agent), local M1 checkout /Users/casey.allard/uor-r4
+
+STEP 1 OF THE CONTINUATION — ONE COMPOSITION PATH, NOT FOUR
+  The previous step converted one of FOUR copies of the same 64-step composition loop, which is
+  why converting it did not remove the multiplies from serving. `learner/group_table.rs` now
+  provides the single implementation:
+    * `compose_context_roots(token_to_root, context) -> usize` — chronological slice, last 64;
+    * `compose_ring_roots(token_to_root, ring, cursor, length) -> usize` — ring, oldest first.
+  All three convertible sites now call them:
+    * `ExportedGeometricModel::context_hopf_fiber_q30` (jepa_trainer.rs);
+    * `context_fiber_from_ring` (jepa_trainer.rs) — the second copy;
+    * `MmapGeometricModel::context_hopf_fiber_q30` (binary_model.rs) — the third.
+  The fourth call site is `HopfStateTrajectoryQ30::step_q30` (`hopf_metric.rs:1048`), which
+  multiplies by an ARBITRARY delta quaternion rather than a canonical root, so the root table
+  cannot serve it. It is documented and left alone; it is a trajectory API, not the generation
+  loop.
+
+VERIFICATION
+  * `shared_composition_helpers_are_consistent` — empty context gives the identity, a one-token
+    context gives that token's root, and a ring agrees with the equivalent slice.
+  * `table_agrees_with_the_quantized_accumulation_it_replaced` — the REMOVED Q1.30 algorithm is
+    kept as a test-only oracle and the exact table must reproduce its nearest group element on
+    1,000 deterministic contexts of lengths 1, 2, 5, 17 and 64. It does, at the asserted 99 %
+    threshold. This is what justifies deleting the quantized path rather than asserting it.
+  * Behaviour on real data is unchanged: held-out BPB **1.7989** over 2,048 positions, top-1
+    **25.34 %**, and the greedy 128-token generation is **byte-identical** to before.
+  * 6 group_table tests pass in total (Latin square both ways, associativity over all 1,728,000
+    triples, identity/inverses, closure residual < 1e-6, parity, helper consistency).
+
+STEP 2 OF THE CONTINUATION — A RATCHETING MULTIPLIER CENSUS
+  New test `serving_path_multiplier_census_is_ratcheting`
+  (`tests/native_geometric_allocations.rs`). The previous invariant was enforced against a NAMED
+  SUBLIST of the kernel, so `hopf_metric.rs` was float-checked but never arithmetic-scanned and
+  its multiplies were invisible: a guard that covers a list cannot report what it does not cover.
+  The census reports every count before asserting, so one failure still shows the whole picture,
+  and it ratchets: no module may ADD a multiplying operator.
+
+  Measured 2026-09-19 (scanner offenders, which exclude derefs, comments and string content):
+
+    | module                        | multiplying operators |
+    |-------------------------------|----------------------:|
+    | lattice_table.rs              |                    98 |
+    | learner/binary_model.rs       |                    78 |
+    | hopf_metric.rs integer kernel |                    43 |
+    | engram.rs                     |                    40 |
+    | vsa/hypervector.rs            |                    18 |
+    | vsa/hierarchical.rs           |                     6 |
+    | vsa/attention.rs              |                     0 |
+
+  Ceilings are set to those values. They are an UPPER BOUND on serving multiplies, not an exact
+  serving count: a per-file scan also sees that file's `#[cfg(test)]` modules and its
+  training-side tables (`lattice_table.rs`'s continuous float lattice, `hopf_metric.rs`'s float
+  half). What the ratchet guarantees is that the number can only fall.
+
+  This is the important result of the step, and it is uncomfortable: the D0-a "no multiplies at
+  serving" claim is currently false well beyond the two sites originally named, and the true
+  count across these seven modules is ~283 operator sites. `vsa/attention.rs` at 0 is the only
+  module already clean, which is consistent with it using `square_u64`/`div_small_positive`.
+
+  Note also: `hopf_metric.rs`'s kernel region reports 43 scanner offenders, not the 82 raw `*`
+  characters a plain grep finds. The scanner excludes dereferences, comments and strings; the raw
+  grep count was an overestimate and is corrected here.
+
+TESTS RUN
+  `native_geometric_allocations` 20 passed / 0 failed / 30 ignored (includes the new census);
+  `learner::group_table` 6 passed; `cargo fmt --check` clean; `check_claim_wording.py` passed;
+  serve output byte-identical.
+
+REMAINING (explicit, not implied)
+  * ~283 multiply sites across the seven modules above, at ceilings that may only be lowered.
+  * The S2 readout dots (5 multiplies per candidate) in `score_context_candidate_with_vsa` and
+    `score_and_select_candidate`.
+  * The `f64` softmax sampler, whose 64-bit LCG also multiplies; needs an integer fixed-point
+    `exp` and an integer draw.
+  * `HopfStateTrajectoryQ30::step_q30`.
+  * `mul_q30` / `norm_q30` / `normalize` themselves remain multiply-bearing.

@@ -21,7 +21,7 @@ use std::time::Instant;
 use uor_r4_core::native_geometric::durable_memory::{
     DurableFactRecord, DurableSession, IdentityScope,
 };
-use uor_r4_core::native_geometric::hopf_metric::HopfFiberPointQ30;
+use uor_r4_core::native_geometric::hopf_metric::{mul_shift_add, HopfFiberPointQ30};
 use uor_r4_core::native_geometric::learner::binary_model::RGM_MAGIC;
 use uor_r4_core::native_geometric::learner::ExportedGeometricModel;
 use uor_r4_core::native_geometric::vsa::{
@@ -330,8 +330,13 @@ impl NativeModel {
         rgm_bytes: &[u8],
         tokenizer_bytes: Option<&[u8]>,
     ) -> Result<Self, NativeApiError> {
-        let exported = ExportedGeometricModel::from_binary(rgm_bytes)
+        let mut exported = ExportedGeometricModel::from_binary(rgm_bytes)
             .map_err(|e| NativeApiError::ModelLoad(format!("invalid RGM binary: {e}")))?;
+        // Rebuild the hierarchical codebook when the artifact declares a code space other than the
+        // fixed hash, so routing and scoring operate in one consistent space.
+        exported
+            .prepare_vsa_code_mode()
+            .map_err(NativeApiError::ModelLoad)?;
         let tokenizer = resolve_tokenizer(tokenizer_bytes)?;
         Self::from_prose_model(Arc::new(exported), tokenizer, rgm_bytes)
     }
@@ -341,8 +346,11 @@ impl NativeModel {
         json_bytes: &[u8],
         tokenizer_bytes: Option<&[u8]>,
     ) -> Result<Self, NativeApiError> {
-        let exported: ExportedGeometricModel = serde_json::from_slice(json_bytes)
+        let mut exported: ExportedGeometricModel = serde_json::from_slice(json_bytes)
             .map_err(|e| NativeApiError::ModelLoad(format!("invalid prose JSON: {e}")))?;
+        exported
+            .prepare_vsa_code_mode()
+            .map_err(NativeApiError::ModelLoad)?;
         let tokenizer = resolve_tokenizer(tokenizer_bytes)?;
         Self::from_prose_model(Arc::new(exported), tokenizer, json_bytes)
     }
@@ -469,7 +477,7 @@ impl NativeModel {
                 general_ai_disavowal: "Native geometric language model replacing transformers; not an AGI system".into(),
             },
         };
-        let codebook = Arc::new(Codebook::<64>::new(model.vocab_size, model.vsa_seed));
+        let codebook = Arc::new(model.vsa_codebook());
         Ok(Self {
             kind: NativeModelKind::GeometricProse {
                 model,
@@ -1003,11 +1011,11 @@ fn score_and_select_candidate(
         if let Some(r) = model.discrete_s2_readout.get(cand_u) {
             let s2 = fiber_pt.base.0;
             let u1 = fiber_pt.fiber_u1;
-            let s2_proj = ((s2[0] as i64 * r[0] as i64
-                + s2[1] as i64 * r[1] as i64
-                + s2[2] as i64 * r[2] as i64
-                + u1[0] as i64 * r[3] as i64
-                + u1[1] as i64 * r[4] as i64)
+            let s2_proj = ((mul_shift_add(s2[0] as i64, r[0] as i64)
+                + mul_shift_add(s2[1] as i64, r[1] as i64)
+                + mul_shift_add(s2[2] as i64, r[2] as i64)
+                + mul_shift_add(u1[0] as i64, r[3] as i64)
+                + mul_shift_add(u1[1] as i64, r[4] as i64))
                 >> 31) as i32;
             total += s2_proj;
         }
@@ -1019,7 +1027,8 @@ fn score_and_select_candidate(
                     let cand_vec = codebook.get(cand);
                     ctx_vec.bipolar_correlation_q15(&cand_vec)
                 };
-                let vsa_score = (model.vsa_scale_q15 as i32 * sim_q15 as i32) >> 16;
+                let vsa_score =
+                    (mul_shift_add(model.vsa_scale_q15 as i64, sim_q15 as i64) >> 16) as i32;
                 total += vsa_score;
             }
         }

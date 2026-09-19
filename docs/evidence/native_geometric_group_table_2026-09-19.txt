@@ -1,0 +1,73 @@
+UOR-R4 D0-a — 2I group composition by table lookup (verified group, applied)
+Date: 2026-09-19
+Executed by: Zed (agent), local M1 checkout /Users/casey.allard/uor-r4
+
+WHY A TABLE, NOT A MULTIPLIER-FREE MULTIPLY
+  `mul_q30` is a 16-multiply Hamilton product, and `context_hopf_fiber_q30` called it up to 64
+  times per generated token — on the order of 1,000 multiplies per token, ~40x the next largest
+  serving multiplier site, and outside the arithmetic scan that the multiplier-free invariant
+  actually covered.
+
+  Hiding that behind a shift-add helper would trade ~1,000 multiplies for tens of thousands of
+  additions. It is also unnecessary: the 120 canonical H4 roots ARE the 120 elements of 2I, and
+  2I is closed under quaternion multiplication, so the accumulated state is always a group
+  element and the accumulation IS exact group composition. Composing two group elements is a
+  lookup. This makes true the claim the project already makes — "exact group composition by
+  lookup" — instead of approximating it with quantized arithmetic.
+
+NEW: crates/uor-r4-core/src/native_geometric/learner/group_table.rs
+  `GroupTable` holds product[a*120 + b] = index of (root_a * root_b) in the same left-factor
+  order as `s3.mul_q30(root)`, plus the identity index and an inverse row. About 14.2 KB, built
+  once lazily (OnceLock). Classification uses the SIGNED inner product so `q` and `-q` stay
+  distinct — they are different group elements even though they are the same rotation.
+
+CORRECTNESS IS ESTABLISHED, NOT ASSUMED
+  Four tests, all passing:
+    * `table_is_a_latin_square_so_left_multiplication_is_a_bijection` — every row AND every
+      column is a permutation of the 120 elements.
+    * `composition_is_associative_for_every_triple` — associativity checked over ALL 1,728,000
+      triples, not a sample.
+    * `identity_is_two_sided_and_inverses_exist` — e* a = a * e = a and a * inv(a) = e for all a.
+    * `classification_is_unambiguous` — the worst closure residual is < 1e-6, so no product is
+      close to a classification boundary.
+  A quasigroup with those four properties IS the group, so the table is a verified exact 2I
+  composition, not a fitted approximation.
+
+APPLIED TO THE SERVING PATH
+  `ExportedGeometricModel::context_hopf_fiber_q30` now accumulates by table read and integer
+  index arithmetic: 64 array reads replace up to 64 Hamilton products, and the eight-step
+  `normalized()` drift control is gone entirely because the table holds EXACT products where the
+  old path multiplied Q1.30-quantized roots.
+
+  This is *more* exact than what it replaces, and it is behaviour-equivalent on real data:
+    * baseline held-out BPB 1.7989 over 2,048 positions — IDENTICAL before and after.
+    * top-1 accuracy 25.34 % — IDENTICAL.
+    * greedy 128-token generation from the same artifact and prompt — BYTE-IDENTICAL.
+
+  The decode time did not change measurably (24.2 s per 2,048-position scoring pass, 102.6 tok/s
+  greedy), so the multiplies were not this configuration's bottleneck. The gain is the D0-a
+  invariant and exactness, not speed, and that is stated rather than implied.
+
+FINDING: THE SAME ACCUMULATION IS DUPLICATED IN THREE MORE PLACES
+  `grep mul_q30` over the serving path after this change finds three further call sites that are
+  not the table path:
+    * `learner/jepa_trainer.rs:940` — the ring-based accumulation (`context_fiber_from_ring`),
+      a second copy of the loop just converted;
+    * `learner/binary_model.rs:1353` — the zero-copy mmap model's own copy;
+    * `hopf_metric.rs:1048` — `HopfStateTrajectoryQ30::step_q30`.
+  Three copies of one accumulation is why converting one did not convert the path, and it is why
+  the multiplier count on serving is still non-zero. The correct follow-up is a single shared
+  `compose_context_roots(context) -> usize` helper that all three call, rather than three
+  independent conversions.
+
+STILL OPEN (unchanged by this step)
+  * the three duplicated accumulation sites above;
+  * the 5-multiply S2 readout dots;
+  * the `f64` softmax sampler (needs an integer fixed-point `exp` plus an integer draw; the
+    64-bit LCG also uses `*`);
+  * a ratcheting operator census test over the whole serving path, which is the change that
+    would have caught the `hopf_metric` exemption in the first place;
+  * `mul_q30` / `norm_q30` / `normalize` in `hopf_metric.rs` remain multiply-bearing, and are
+    still not arithmetic-scanned by the invariant.
+
+TESTS: 4 new group-table tests pass. `cargo fmt --check` clean.

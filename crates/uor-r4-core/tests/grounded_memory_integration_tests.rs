@@ -78,6 +78,9 @@ fn make_test_hierarchical_tables(vocab_size: usize, seed: u64) -> ExportedGeomet
         discrete_jepa_fiber_bias: [8, -3],
         vsa_seed: seed,
         vsa_scale_q15: 500,
+        // Fixture is the fixed-hash code space, and its hierarchical codebook is built in that
+        // same space, so the two are coherent at mode 0.
+        vsa_code_mode: 0,
         hierarchical_codebook: Some(hierarchical),
         engram_table: None,
         hierarchical_lattice: None,

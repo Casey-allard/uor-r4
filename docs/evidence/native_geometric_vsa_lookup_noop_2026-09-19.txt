@@ -1,0 +1,88 @@
+UOR-R4 D0-a — VSA lookup redesign attempt: a measured NO-OP, and the static/dynamic instrument limit
+Date: 2026-09-19
+Executed by: Zed (agent), local M1 checkout /Users/casey.allard/uor-r4
+
+DISK CLEANUP (requested by the owner, before this work)
+  Freed `target/debug` (40 GB), which is cargo build output and fully recreatable. Free space went
+  28 GB -> **67 GB**.
+  PRESERVED: `target/release` (needed for the binary-level before/after), all of `.uor-models`
+  (19 GB: trained artifacts, retained parents, sealed evidence), `tinystories_train.u16` (the
+  training data that binds the artifact), `native_geometric_prose_model.{json,rgm}` (not recreatable
+  without training), `.worktrees/`, and every worktree under `~/uor-r4-worktrees`.
+  Worth recording: `~/uor-r4-worktrees` is 8.9 GB and it is **preserved evidence, not build
+  output** — `initial-previous-intent/.uor-handoff` alone is 5.3 GB and those are the receipts the
+  project rules protect. None of it has a `target/` directory. A cleanup that had assumed
+  "worktrees are caches" would have destroyed exactly the material the rules say to keep; the
+  measurement was taken before deleting for that reason.
+
+WHAT I ATTEMPTED AND WHY
+  The binary measurement identified the VSA layer as 29 % of serving multiply instructions (898 of
+  3,100). The hypothesis was that those multiplies come from the `* 32767` scale in
+  `similarity_q15` / `bipolar_correlation_q15`, a dense constant (fifteen set bits) that the
+  compiler would emit as a real `mul`. Both functions were rewritten using the exact identity
+  `x * (2^15 - 1) = (x << 15) - x`, which is a shift and a subtract.
+
+RESULT — MEASURED NO-OP AT RELEASE
+  Rebuilt `--release` and re-measured with the identical procedure:
+
+    before: 529,893 instructions, 3,100 multiply instructions
+    after:  529,893 instructions, 3,100 multiply instructions
+
+  Byte-for-byte identical counts, and the per-module distribution is unchanged
+  (`vsa/hypervector+codebook+hierarchical` 592, `vsa/attention` 306, `hopf_metric` 51,
+  `jepa_trainer` 44, `binary_model` 4, `lattice_table` 57, `engram` 34, `api` 116).
+
+  **My hypothesis about the cause was wrong.** LLVM's instcombine already performs exactly this
+  strength reduction for `x * (2^n - 1)`, so the `* 32767` was never a multiply instruction in the
+  optimised binary. The change is therefore neutral at release. It is retained, with the comment
+  corrected to say so, because it is the exact identity, it guarantees the shift at
+  `opt-level = 0` where the optimiser does not run, and it documents the intent. It is **not**
+  claimed as a reduction.
+
+  Serve output unchanged and byte-identical; release decode 617 tok/s versus 99.5 tok/s in debug,
+  which is the optimiser, not a routing or algorithmic effect.
+
+THE MORE IMPORTANT FINDING — STATIC COUNTING IS NOT THE EXECUTED COUNT
+  The identical instruction totals expose a flaw in the "authoritative" binary instrument, and it
+  is the same class of flaw as the source censuses: **a static instruction count is not an
+  executed-instruction count.** A multiply inside a branch that serving never takes is counted
+  exactly as if it executed.
+
+  This has a concrete consequence here. `MultiHeadVsaAttention::attend` obtains token vectors
+  through `Codebook::get`, whose on-demand path calls `Hypervector::from_seed`, which is SplitMix64
+  using the arbitrary 64-bit constants `0xBF58476D1CE4E5B9` and `0x94D049BB133111EB`. Those are not
+  strength-reducible, so each generates a real `mul`, and `from_seed` is inlined into `attend`.
+  That is the most likely source of much of the 306. **But with the learned-root codebook
+  (`vsa_code_mode = 1`, `Codebook::from_vectors` with a materialised table) the on-demand path is
+  not taken at run time**, so those multiplies are present in the image and quite possibly never
+  execute. Pure static counting cannot tell the difference.
+
+  So there have now been FOUR instruments for this one question, and each fell short for a
+  different reason:
+    1. raw grep of `*`          — over-counts, includes comments, derefs, types (82 vs 43)
+    2. `forbidden_arith` scan   — counts operators, not circuits; misses method forms
+    3. token-level classifier   — cannot see compiler decisions; counts float scalings as variable
+    4. static binary disassembly— counts instructions present, not instructions executed
+  Each is defensible, each disagrees, and only the fourth was described as authoritative — which
+  the identical before/after totals now falsify.
+
+THE INSTRUMENT THAT WOULD ACTUALLY ANSWER IT
+  Dynamic measurement of retired instructions by class. On Apple Silicon that means a CPU-counters
+  trace (`xctrace record --template 'CPU Counters'`, or a `kperf`-based retired-instruction count)
+  over a fixed serving workload, reporting multiplies per token. That measures exactly what D0-a
+  names, is immune to dead code and inlining, and would give a per-token number rather than a
+  per-binary one. It is not built here; it needs its own projection (the trace tooling writes
+  multi-hundred-MB traces and the workload runs are a machine charge).
+
+  Until it exists, the honest statement is: **the project does not currently know how many
+  multiplies its serving path executes**, and every number it has published for that is an
+  estimate from an instrument that has since been shown to be wrong.
+
+WHAT WAS NOT DONE
+  No further conversion. The VSA lookup redesign was premised on the 306 multiplies in `attend`
+  being hot `* 32767` scalings; the measurement says the scalings are already shifts, so the
+  premise is void and the redesign cannot be justified on this evidence. Correct order is again
+  instrument first.
+
+TESTS
+  `cargo fmt --check` clean; release build succeeds with no warnings; serve output byte-identical.

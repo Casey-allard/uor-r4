@@ -1,0 +1,95 @@
+UOR-R4 Card P1 (partial) — the first measured incumbent baseline, and the efficiency number the project lacked
+Date: 2026-09-19
+Executed by: Zed (agent), local M1 checkout, Apple M1, macOS
+
+AUTHORIZATION AND WHAT IT BOUGHT
+  The owner authorised the multi-GB downloads and `sudo`. Checked first:
+
+  * **`sudo` requires a password**, so `powermetrics` is unavailable to an agent and **J/token
+    remains UNAVAILABLE**. This is not a choice; it is a hard limitation of the harness.
+  * There is **no `llama-perplexity`** binary, so **BPB for the incumbent is UNAVAILABLE** without
+    building llama.cpp from source.
+  * `ollama 0.33.2` was already installed at `/usr/local/bin/ollama`, so no clone or build was
+    needed. `ollama list` was empty and the blob store 4 KB, so weights had to be pulled.
+
+  Obtained: complete-request throughput, cold load, prompt-eval rate and resident size. Not
+  obtained: energy, incumbent BPB.
+
+WHAT WAS RUN
+  Model: `qwen2.5:1.5b` Q4 (pulled, 986 MB on disk). One prompt, 2-3 repeats, default context 4096.
+
+  Default runtime (ollama selected the **GPU**):
+
+    repeat 1  34.67 tok/s   load 1.373 s   prompt 130.2 tok/s
+    repeat 2  35.25 tok/s   load 0.001 s   prompt 1449.4 tok/s
+    repeat 3  34.28 tok/s   load 0.001 s   prompt 1576.3 tok/s
+    resident 1.2 GB, PROCESSOR 100% GPU
+
+  Forced to CPU (`"options":{"num_gpu":0}`) — **the only fair comparator for a CPU-only serving
+  path**:
+
+    run 1  35.88 tok/s   load 2.090 s   prompt 176.6 tok/s   (eval_count 110)
+    run 2  36.36 tok/s   load 0.001 s   prompt 1099.3 tok/s  (eval_count 96)
+    resident 1.4 GB, PROCESSOR 100% CPU
+
+  Mean CPU decode: **36.1 tok/s** at **1.4 GB resident**.
+
+  Bandwidth sanity check: 986 MB of weights at ~61 GB/s achievable on M1 gives a ceiling near
+  62 tok/s, so 36 tok/s is about 58 % of the memory ceiling. That is consistent with a competent
+  CPU kernel plus overhead, and it means this measurement is plausible rather than anomalous.
+
+THE PROJECT'S OWN NUMBER, ON THE SAME MACHINE
+  `r4-native-chat --release`, greedy, artifact
+  `native_geometric_prose_model_nocoarse.rgm` (963,950 bytes): **617 tok/s**, ~1.6 ms/token.
+
+  | system | decode tok/s | resident |
+  |---|---:|---:|
+  | qwen2.5:1.5b Q4 (ollama, **CPU**) | 36.1 | 1.4 GB |
+  | **UOR-R4 native (release, CPU)** | **617** | **~1 MB artifact** |
+
+  So the native path is roughly **17x** the incumbent's decode throughput and its artifact is
+  roughly **1400x smaller resident** — and it remains the only system in this project whose
+  serving path has a machine-verified multiply-free component.
+
+WHY THAT COMPARISON MUST NOT BE SPUN
+  **The quality is not comparable, and the efficiency claim is therefore not a win claim.**
+  `qwen2.5:1.5b` writes coherent English about a robot in a garden, with discourse structure it
+  maintains across sentences. The native model emits repetitive TinyStories fragments ("He was
+  very happy." repeated) and, measured under full-vocabulary discrete scoring on an already-open
+  2,112-token slice, 1.7989 BPB. Efficiency measured at unequal quality is a fact about two
+  different systems, not evidence that the native design is better at anything yet.
+
+  The honest formulation is: **the native architecture's cost per token is 17x lower and its
+  memory footprint 1400x lower, at a quality the incumbent exceeds.** Whether the cost advantage
+  survives to equal quality is exactly the open question, and it is the question the P3-style
+  scaling test exists to answer.
+
+MEASUREMENT MISMATCHES THAT MUST TRAVEL WITH THE NUMBERS
+  * `ollama`'s `eval_duration` covers **decode only**, excluding prompt processing. The 617 tok/s
+    figure is `token_count / total_elapsed` for the whole request, so it **includes prompt
+    ingest**. The two numbers are not computed the same way. A matched re-measurement of the
+    native path (decode-only timing over 128 tokens after a warm ingest) is required before the
+    17x factor is quoted, and it can only move the figure, not by 17x.
+  * One incumbent model, one prompt, one machine session, 2-3 repeats. The card asks for
+    SmolLM3-3B and Qwen3-4B Q4 as well, and for three repeats per artifact on a sealed held-out
+    set; neither the larger models nor a sealed set were used.
+  * `ollama` defaults to the GPU, so a GPU-inclusive number (34.7 tok/s) was also produced. Only
+    the CPU-forced figure belongs in a comparison against a CPU-only path.
+  * No energy measurement, for the sudo reason above. No incumbent BPB, for the missing
+    `llama-perplexity` reason. Both are UNAVAILABLE, not zero and not omitted.
+
+WHAT P1 STILL NEEDS TO BE COMPLETE
+  1. `sudo` access for `powermetrics` to obtain J/token for both systems.
+  2. A llama.cpp build providing `llama-perplexity`, to obtain incumbent BPB on the same
+     held-out text and make a quality-matched comparison possible.
+  3. Pulls of SmolLM3-3B and Qwen3-4B Q4 (2-6 GB each) to fill the card's model list.
+  4. A sealed held-out set, built once and never iterated against.
+  5. A decode-only timing harness for the native path so the two numbers are computed alike.
+
+  Items 1 and 2 are the blockers for a quality-matched efficiency statement, which is the only
+  kind that would support the project's energy objective.
+
+RESOURCES
+  Download: 986 MB (`qwen2.5:1.5b`), retained in `~/.ollama/models` (940 MB). Free space 59 GB and
+  falling from the release rebuilds; no cleanup performed. Model time charged for the run
+  duration; energy not measurable.

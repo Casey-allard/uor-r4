@@ -5,7 +5,7 @@
 //! Cold-start initialization time < 50 microseconds.
 //! Bit-exact parity with JSON reference model.
 
-use super::embedding::{canonical_h4_roots_q30, H4_ROOT_COUNT};
+use super::embedding::canonical_h4_roots_q30;
 use super::jepa_trainer::ExportedGeometricModel;
 use super::transition_table::DiscreteServingTable;
 use crate::native_geometric::engram::{
@@ -117,6 +117,27 @@ pub struct RgmSectionHeader {
     pub offset: u32,
     pub length: u32,
     pub _reserved: u32,
+}
+
+/// Number of `i8` entries in the LATTICE section's coarse root-trigram block, derived from
+/// the section length instead of assumed.
+///
+/// LATTICE payload layout: `num_clusters u32 + reserved u32` (`8` bytes), then
+/// `token_to_cluster u16 x vocab_size` padded to 8, then the coarse i8 block, padded to 2,
+/// then the fine `i16 x num_clusters^2` block. The writer emits **either** the full coarse
+/// table **or** none, so the residual after removing the aligned prefix and the fine block
+/// is exactly the coarse length. An artifact with an absent coarse block is valid and scores
+/// as if the coarse term were zero, which is what removing the tier means.
+fn lattice_coarse_len(section_len: usize, vocab_size: usize, num_clusters: usize) -> usize {
+    let mut prefix = 8 + vocab_size * 2;
+    let rem = prefix % 8;
+    if rem != 0 {
+        prefix += 8 - rem;
+    }
+    let fine_bytes = 2 * num_clusters * num_clusters;
+    section_len
+        .saturating_sub(prefix)
+        .saturating_sub(fine_bytes)
 }
 
 /// Error type for binary serialization, deserialization, and mmap operations.
@@ -449,7 +470,9 @@ impl ExportedGeometricModel {
             flags,
             vsa_seed: self.vsa_seed,
             vsa_scale_q15: self.vsa_scale_q15,
-            _reserved: [0; 2],
+            // `_reserved[0]` carries the VSA code mode; the rest of the reserved space stays zero
+            // so the header size is unchanged and older artifacts (which read 0) remain valid.
+            _reserved: [self.vsa_code_mode, 0],
             section_count: NUM_SECTIONS as u32,
             blake3_digest: *payload_digest.as_bytes(),
         };
@@ -506,6 +529,14 @@ impl ExportedGeometricModel {
         let flags = u16::from_le_bytes(bytes[14..16].try_into().unwrap());
         let vsa_seed = u64::from_le_bytes(bytes[16..24].try_into().unwrap());
         let vsa_scale_q15 = i16::from_le_bytes(bytes[24..26].try_into().unwrap());
+        // Byte 26 of the header is `_reserved[0]` and carries the VSA code mode, so the format
+        // stays size-compatible with artifacts written before the field existed (those read 0).
+        let vsa_code_mode = bytes[26];
+        if vsa_code_mode > 1 {
+            return Err(BinaryModelError::CorruptedData(
+                "vsa_code_mode is not 0 (fixed) or 1 (learned-root codes)",
+            ));
+        }
         let section_count = u32::from_le_bytes(bytes[28..32].try_into().unwrap()) as usize;
         let blake3_digest: [u8; 32] = bytes[32..64].try_into().unwrap();
 
@@ -645,16 +676,24 @@ impl ExportedGeometricModel {
                     cur_lat += 8 - rem;
                 }
 
-                let mut coarse_trigram = vec![0i8; COARSE_TABLE_SIZE];
-                let coarse_u8: &[u8] = &bytes[cur_lat..cur_lat + COARSE_TABLE_SIZE];
-                unsafe {
-                    std::ptr::copy_nonoverlapping(
-                        coarse_u8.as_ptr(),
-                        coarse_trigram.as_mut_ptr() as *mut u8,
-                        COARSE_TABLE_SIZE,
-                    );
+                let coarse_len = lattice_coarse_len(s4.length as usize, vocab_size, num_clusters);
+                if coarse_len != 0 && coarse_len != COARSE_TABLE_SIZE {
+                    return Err(BinaryModelError::CorruptedData(
+                        "lattice coarse block is neither absent nor the full table",
+                    ));
                 }
-                cur_lat += COARSE_TABLE_SIZE;
+                let mut coarse_trigram = vec![0i8; coarse_len];
+                if coarse_len > 0 {
+                    let coarse_u8: &[u8] = &bytes[cur_lat..cur_lat + coarse_len];
+                    unsafe {
+                        std::ptr::copy_nonoverlapping(
+                            coarse_u8.as_ptr(),
+                            coarse_trigram.as_mut_ptr() as *mut u8,
+                            coarse_len,
+                        );
+                    }
+                }
+                cur_lat += coarse_len;
                 let rem2 = cur_lat % 2;
                 if rem2 != 0 {
                     cur_lat += 2 - rem2;
@@ -814,6 +853,9 @@ impl ExportedGeometricModel {
             discrete_jepa_fiber_bias,
             vsa_seed,
             vsa_scale_q15,
+            // The hierarchical codebook read from the file was built in the export-time code
+            // space; `prepare_vsa_code_mode` replaces it when the mode requires a different one.
+            vsa_code_mode,
             hierarchical_codebook,
             engram_table,
             hierarchical_lattice,
@@ -831,6 +873,9 @@ impl ExportedGeometricModel {
 pub struct MmapGeometricModel {
     mmap: memmap2::Mmap,
     header: RgmHeader,
+    /// VSA token-code mode read from the header's reserved byte (0 = fixed hash, 1 = learned-root
+    /// codes). `0` for artifacts written before the field existed.
+    vsa_code_mode: u8,
 
     // Section 1: Base
     token_to_root_offset: usize,
@@ -852,6 +897,8 @@ pub struct MmapGeometricModel {
     lattice_num_clusters: usize,
     lattice_token_to_cluster_offset: usize,
     lattice_coarse_offset: usize,
+    /// Number of `i8` coarse entries actually present; `0` means the coarse tier was removed.
+    lattice_coarse_entries: usize,
     lattice_fine_offset: usize,
 
     // Section 5: Engram
@@ -911,6 +958,13 @@ impl MmapGeometricModel {
         let flags = u16::from_le_bytes(mmap[14..16].try_into().unwrap());
         let vsa_seed = u64::from_le_bytes(mmap[16..24].try_into().unwrap());
         let vsa_scale_q15 = i16::from_le_bytes(mmap[24..26].try_into().unwrap());
+        // `_reserved[0]` carries the VSA code mode; see `ExportedGeometricModel::vsa_code_mode`.
+        let vsa_code_mode = mmap[26];
+        if vsa_code_mode > 1 {
+            return Err(BinaryModelError::CorruptedData(
+                "vsa_code_mode is not 0 (fixed) or 1 (learned-root codes)",
+            ));
+        }
         let _reserved = [mmap[26], mmap[27]];
         let section_count = u32::from_le_bytes(mmap[28..32].try_into().unwrap());
         let blake3_digest: [u8; 32] = mmap[32..64].try_into().unwrap();
@@ -1006,6 +1060,7 @@ impl MmapGeometricModel {
             lattice_num_clusters,
             lattice_token_to_cluster_offset,
             lattice_coarse_offset,
+            lattice_coarse_entries,
             lattice_fine_offset,
         ) = if s4.length > 0 && flags & FLAG_HAS_HIERARCHICAL_LATTICE != 0 {
             let mut cur_lat = s4.offset as usize;
@@ -1017,16 +1072,17 @@ impl MmapGeometricModel {
             if rem != 0 {
                 cur_lat += 8 - rem;
             }
+            let coarse_entries = lattice_coarse_len(s4.length as usize, vocab_size as usize, num_c);
             let coarse_off = cur_lat;
-            cur_lat += COARSE_TABLE_SIZE;
+            cur_lat += coarse_entries;
             let rem2 = cur_lat % 2;
             if rem2 != 0 {
                 cur_lat += 2 - rem2;
             }
             let fine_off = cur_lat;
-            (num_c, t2c_off, coarse_off, fine_off)
+            (num_c, t2c_off, coarse_off, coarse_entries, fine_off)
         } else {
-            (0, 0, 0, 0)
+            (0, 0, 0, 0, 0)
         };
 
         // Section 5: Engram Table
@@ -1068,6 +1124,7 @@ impl MmapGeometricModel {
         Ok(Self {
             mmap,
             header,
+            vsa_code_mode,
             token_to_root_offset,
             discrete_bias_offset,
             discrete_s2_readout_offset,
@@ -1081,6 +1138,7 @@ impl MmapGeometricModel {
             lattice_num_clusters,
             lattice_token_to_cluster_offset,
             lattice_coarse_offset,
+            lattice_coarse_entries,
             lattice_fine_offset,
             engram_slot_capacity,
             engram_candidate_count,
@@ -1094,6 +1152,13 @@ impl MmapGeometricModel {
     #[inline]
     pub fn header(&self) -> &RgmHeader {
         &self.header
+    }
+
+    /// VSA token-code mode declared by the artifact: `0` = fixed token-id hash,
+    /// `1` = codes derived from the learned 120-root assignment.
+    #[inline]
+    pub fn vsa_code_mode(&self) -> u8 {
+        self.vsa_code_mode
     }
 
     /// Number of discrete tokens in vocabulary.
@@ -1145,14 +1210,17 @@ impl MmapGeometricModel {
         f64::from_bits(bits)
     }
 
-    /// Zero-copy slice of coarse root trigram table in i8 format.
+    /// Zero-copy slice of the coarse root trigram table in i8 format, or `None` when the
+    /// artifact was written without the coarse tier (an absent tier scores as zero).
     #[inline]
     pub fn coarse_trigram(&self) -> Option<&[i8]> {
-        if self.header.flags & FLAG_HAS_HIERARCHICAL_LATTICE == 0 {
+        if self.header.flags & FLAG_HAS_HIERARCHICAL_LATTICE == 0
+            || self.lattice_coarse_entries == 0
+        {
             return None;
         }
         let ptr = unsafe { self.mmap.as_ptr().add(self.lattice_coarse_offset) as *const i8 };
-        Some(unsafe { std::slice::from_raw_parts(ptr, COARSE_TABLE_SIZE) })
+        Some(unsafe { std::slice::from_raw_parts(ptr, self.lattice_coarse_entries) })
     }
 
     /// Zero-copy slice of fine cluster bigram residual table in i16 format.
@@ -1274,24 +1342,11 @@ impl MmapGeometricModel {
         if token_to_root.is_empty() || context.is_empty() {
             return UnitS3Q30::IDENTITY.hopf_fiber_project();
         }
-        let roots = canonical_h4_roots_q30();
-        let mut s3 = UnitS3Q30::IDENTITY;
-        let start = context.len().saturating_sub(64);
-        let root_len = token_to_root.len();
-        let mut step = 0;
-        for &token in &context[start..] {
-            let root_idx = token_to_root[token.min(root_len - 1)] as usize;
-            let q_root_q30 = roots[root_idx % H4_ROOT_COUNT];
-            s3 = s3.mul_q30(&q_root_q30);
-            step += 1;
-            if step % 8 == 0 {
-                s3 = s3.normalized();
-            }
-        }
-        if step % 8 != 0 {
-            s3 = s3.normalized();
-        }
-        s3.hopf_fiber_project()
+        let state = crate::native_geometric::learner::group_table::compose_context_roots(
+            token_to_root,
+            context,
+        );
+        canonical_h4_roots_q30()[state].hopf_fiber_project()
     }
 
     /// O(1) query-key scoring across all lanes with zero runtime matrix multiplications.

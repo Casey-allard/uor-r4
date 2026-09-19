@@ -1,0 +1,74 @@
+UOR-R4 D0-a compliance — step 2 (partial, with a scope finding that changes the fix)
+Date: 2026-09-19
+Executed by: Zed (agent), local M1 checkout /Users/casey.allard/uor-r4
+
+WHAT STEP 2 WAS SUPPOSED TO BE
+  Repair the two serving operations I named as D0-a violators: the JEPA projection's literal
+  `i64` multiplies and the `f64` softmax sampler.
+
+WHAT THE INVESTIGATION FOUND INSTEAD — THE VIOLATION IS WIDER, AND THE GUARD IS NARROWER
+  The multiplier-free invariant is enforced by `scan_for_forbidden_arith_and_floats`
+  (`transformerless/source_scan.rs`) over `NATIVE_GEOMETRIC_INTEGER_KERNEL_BEGIN/END` regions.
+  For `hopf_metric.rs` the test at `tests/native_geometric_allocations.rs:526`:
+    * checks the whole kernel region for the STRING "f32"/"f64" (floats only), and
+    * loops over a list of function names — including `mul_q30`, `norm_q30`, `dot_q30` — and
+      asserts only that each name appears EXACTLY ONCE (`matches(function).count() == 1`).
+  It does NOT arithmetic-scan that region. Measured: the region from line 477 to 1033 contains
+  **82 raw `*` occurrences**, in `mul_q30` (a 16-multiply Hamilton product), `norm_q30` and
+  `normalize`.
+
+  That matters because `mul_q30` is on the SERVING hot path. `context_hopf_fiber_q30` accumulates
+  `s3 = s3.mul_q30(root)` over the context window — up to 64 calls per token — so the Q30
+  quaternion algebra contributes on the order of 1,000 multiplies per token, roughly 40x the
+  JEPA projection I originally named. The "zero matrix multiplications" metadata was therefore
+  accurate about GEMM but silent about a much larger folded multiplier site.
+
+WHAT I DID
+  * Added `hopf_metric::mul_shift_add(a: i64, b: i64) -> i64` inside the frozen kernel region:
+    a documented, `*`-free, `/`-free, `%`-free signed multiply using only shifts, additions and
+    bit tests. It iterates the set bits of the SMALLER magnitude operand, so the cost tracks
+    `log2(min(|a|,|b|))` rather than a fixed 64 — which is why the quantized-weight products are
+    cheap.
+  * Converted all 26 multiplies in `predict_jepa_step_q30` to go through it.
+  * Verified behaviour-preservation: the greedy 128-token generation from the same artifact and
+    prompt is byte-identical before and after (". She. She was a big, red ball. He was very
+    happy. He wanted to play with the ball. ..."). No re-export needed.
+  * Throughput 94.7 -> 101.7 tok/s, i.e. noise at this scale, and not a serving claim; it is
+    consistent with the operand-size argument above.
+
+THE CORRECT FIX FOR THE LARGER SITE IS NOT SHIFT-ADD
+  `mul_q30` multiplies by one of the 120 canonical root quaternions, and 2I is closed under
+  multiplication, so the accumulated state is always a GROUP ELEMENT and the accumulation is
+  exact group composition. That is what this project already claims as its mechanism — "exact
+  group composition by lookup". The right implementation is therefore a **120x120 product table**:
+  120 element coordinates (120 x 4 i32, ~1.9 KB) plus a 120x120 index table (14,400 u8), giving
+  O(1) table reads, ZERO multiplies, and EXACT products instead of Q30 rounding that currently
+  needs `normalize` every 8 steps to control drift.
+
+  That is strictly better than shift-add on every axis — correctness, multiplier count and
+  speed — and it does not hide the multiply behind a helper, it removes the need for one. It
+  requires the accumulated state to be carried as an index rather than a quaternion, which is a
+  real change to `context_hopf_fiber_q30` / `context_fiber_from_ring` and their consumers.
+
+REMAINING D0-a VIOLATIONS (NOT fixed here)
+  1. `mul_q30` / `norm_q30` / `normalize` in `hopf_metric.rs` — ~1,000 multiplies/token, fix
+     proposed above.
+  2. The S2 readout dot in `predict_*` consumers: 5 multiplies per candidate
+     (`jepa_trainer.rs` `score_context_candidate_with_vsa`, `native_capability_api.rs`
+     `score_and_select_candidate`).
+  3. The `f64` softmax sampler in `native_capability_api.rs`, reachable whenever
+     `temperature > 0.001`; needs an integer fixed-point `exp` (table plus interpolation) and an
+     integer draw. The existing 64-bit LCG also uses `*` and should become a shift/xor generator.
+  4. A census test that COUNTS forbidden operators across the whole serving path and asserts a
+     ratcheting budget, so the gap cannot go invisible again. This is the change that would have
+     caught the `hopf_metric` exemption in the first place.
+
+TESTS
+  8 binary_model and 11 grounded_memory integration tests pass; `cargo fmt --check` clean.
+  The multiplier-free primitive is exercised by every existing JEPA-path test.
+
+HONEST STATUS
+  Step 2 is PARTIAL. One of the three named sites is converted and verified behaviour-preserving;
+  the investigation found a larger site whose correct fix is a table, not a helper; the sampler
+  and the readout dots are open. Treating "no matmul" as satisfied because the GEMM check passes
+  was never valid, and the evidence above is the reason.

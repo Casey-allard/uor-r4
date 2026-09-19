@@ -1,0 +1,106 @@
+UOR-R4 D2 action — VSA codebook wiring repair (raw receipt)
+Date: 2026-09-19
+Executed by: Zed (agent), local M1 checkout /Users/casey.allard/uor-r4
+
+WHAT WAS DONE
+  Implemented the "correctly wired" version of the VSA codebook and measured it against the
+  current wiring, as DECISIONS.md D2 requires for an `enabler` whose delta is NEGLIGIBLE.
+
+  * `Codebook::from_vectors(seed, table)` — a codebook built from explicit per-token vectors.
+  * `learner/vsa_codes.rs` — builds those vectors by locality-sensitive hashing of the canonical
+    icosian root quaternions, so each token's code follows the model's LEARNED 120-root
+    assignment (`token_to_root`) instead of `splitmix64(vsa_seed, token_id)`.
+        for bit b:  w_b ~ Z^4, random 31-bit integers   (deterministic from the seed)
+                    code[r][b] = 1  iff  <w_b, q_r> > 0
+                    E(t) = code[ token_to_root[t] ]
+    Asserted properties (unit tests, both pass):
+        - identical roots -> d_H = 0
+        - antipodal class mean 4096, coincident class mean <= 200, span >= 3000
+        - class-mean distance monotone non-increasing in cos(theta)
+        - >= 8 conjugate-class angles; > 9 distinct distance levels (graded, not a 9-level collapse)
+        - <= 120 distinct codes for a 4096-token vocabulary (the aliasing ceiling)
+  * `ablate-prose --vsa-code-mode <fixed|root>` selects the codebook at evaluation time.
+
+WHY RANDOM INTEGERS, NOT {+1,-1} SIGNS
+  Signs make `dot == 0` ties reachable on the highly symmetric icosian roots, which broke the
+  LSH estimate (an observed antipodal spread of 2519..4096 instead of a constant complement).
+  Random magnitudes make exact cancellation measure-zero, so `code(-q)` is the exact bitwise
+  complement of `code(q)`.
+
+ARTIFACT
+  .uor-models/native-geometric-prose-2026-09-19/native_geometric_prose_model_nocoarse.rgm
+  963,950 bytes, sha256 a25a87c4c5cdd5f7e6af1479273e29cc996d3cc78a1984315af8cf9b70a10a1b
+  (the coarse-tier-removed artifact; the codebook change needs no artifact change at all)
+
+COMMAND
+  ./target/debug/ablate-prose --model <artifact> --positions 2048 \
+      --vsa-code-mode <fixed|root> --ablations none,vsa
+
+OUTPUT (verbatim, key lines)
+-------------------------------------------------------------------------------
+MODE = fixed (current: token-id hash)
+  vsa codes  : fixed (0 distinct code vectors)
+  baseline (no ablation): BPB = 1.7989 over 2048 positions in 24.2s
+  vsa   1.7980  -0.0009  [-0.0011, -0.0006]  NEGLIGIBLE   dTop1 -0.05pp  flip 0.7%
+
+MODE = root (derived from the learned 120-root assignment)
+  vsa codes  : root (120 distinct code vectors)
+  baseline (no ablation): BPB = 1.7993 over 2048 positions in 21.3s
+  vsa   1.7980  -0.0013  [-0.0020, -0.0006]  NEGLIGIBLE   dTop1 -0.15pp  flip 1.2%
+-------------------------------------------------------------------------------
+
+RESULT — THE REPAIR DOES NOT MAKE THE MECHANISM CONTRIBUTE
+  Wiring the codebook to the learned representation does not help. The ablation delta stays
+  NEGLIGIBLE and mildly negative (-0.0009 -> -0.0013), the baseline BPB is unchanged
+  (1.7989 -> 1.7993, +0.0004), and the decision-flip rate rises from 0.7 % to 1.2 %: the layer
+  moves the model about twice as often, still in the slightly wrong direction.
+
+  This is a NEGATIVE for the repair, not a retirement of the mechanism. Three distinct causes
+  are now separable, and only the first was addressed:
+
+  1. WIRING (fixed here). The codebook was a fixed random hash of the token id, disconnected
+     from the learned assignment. Now it is derived from the learned assignment. Established
+     by unit test rather than assumed.
+  2. ALIASING (binding, not fixed). 4,096 tokens collapse onto at most 120 codes, so distinct
+     tokens in the same root have d_H = 0 and are indistinguishable to every head. The heads had
+     been doing exact-identity induction correctly after the query/key inversion fix; the
+     root-derived codebook TRADES that away for coarse graded similarity, and the trade is
+     net-negative. Removing the aliasing requires codes at finer resolution than 120 buckets,
+     i.e. derived from the CONTINUOUS learned embedding, which the exported artifact does not
+     carry (it stores `token_to_root` only, not `weights_base`).
+  3. DESIGN CEILING (not addressed, and structural). All four heads reduce matching to a single
+     scalar Hamming distance over a single codebook. One scalar cannot simultaneously express
+     exact identity, graded semantic similarity, and role-specific matching. Even with a finer
+     codebook this tension remains: a finer code improves similarity while making identity
+     discrimination harder, because both are read off the same number. The required change is a
+     richer read — separate identity and similarity channels per head, or a per-head codebook —
+     not a better single codebook.
+
+  Conclusion for the plan: the VSA layer is an `enabler` whose value cannot be realised at root
+  resolution or through one scalar distance. The next step is not retirement and not a different
+  hash; it is a finer, representation-derived code PLUS a richer per-head read, which is Stage 3
+  work and requires an artifact section for the continuous embeddings plus a re-export.
+
+LIMITATION THAT MATTERS
+  `ablate-prose` scores the FULL vocabulary and therefore does not exercise the 64-candidate
+  shortlist routing. The VSA vector also feeds `route_shortlist_q30_with_memory` as a routing
+  query, so the ROUTING effect of a codebook change is NOT measured by this experiment. A
+  shortlist-level measurement (or an end-to-end serve comparison) is required before any
+  conclusion about the routing role.
+
+FOCUSED CHECKS RUN
+  cargo fmt --check                                              -> clean
+  python3 scripts/check_claim_wording.py                         -> passed
+  cargo test -p uor-r4-core --lib native_geometric::vsa           -> 23 passed, 0 failed
+  cargo test -p uor-r4-core --lib native_geometric::learner::vsa_codes -> 2 passed, 0 failed
+  cargo test -p uor-r4-core --test binary_model_tests             -> 7 passed, 0 failed
+  cargo test -p uor-r4-core --test hierarchical_lattice_tests     -> 10 passed, 0 failed
+  cargo test -p uor-r4-core --test native_geometric_allocations vsa -> 3 passed, 0 failed
+
+LIMITATIONS
+  * Single already-open 2,112-token development slice, 2,048 teacher-forced positions.
+  * Discrete scorer, full-vocabulary normalisation at temperature 1.0; not the served shortlist.
+  * Debug build.
+  * Default remains `fixed`: `root` is not wired into serving, because it did not improve and
+    the root mode is retained only as a measured alternative.
+  * The 9,984-case regression replay was not re-executed.

@@ -1,0 +1,141 @@
+# Low-bit core: backward pass, and the first trained chat/instruction run — 2026-09-19
+
+Branch `codex/stage1-falsification-sweep` (PR #1284). Machine `MacBookPro17,1` (M1, 8 cores).
+All commands below were executed; outputs are verbatim excerpts.
+
+## 1. What was added
+
+| Item | File |
+|---|---|
+| Backward pass, STE, BPTT, Adam for the low-bit core | `crates/uor-r4-core/src/native_geometric/learner/lowbit_core.rs` (`LowBitCoreTrainer`) |
+| Serving-path loss/accuracy instruments | same file (`LowBitCore::sequence_loss`, `LowBitCore::forward_reference_f32`, `LowBitCoreTrainer::loss`, `::next_token_accuracy`) |
+| Byte-level chat tokenizer + instruction pipeline | `crates/uor-r4-core/src/native_geometric/learner/chat.rs` |
+| Training/generation binary | `crates/uor-r4-core/src/bin/train-lowbit-chat.rs` |
+
+Design: `f32` masters; quantise on every forward with the **same rule** `TernaryLinear::quantize`
+applies; STE through the ternary step (identity gradient, so the per-row power-of-two scale cancels
+and the master gradient is `∂L/∂y · x`); BPTT through the recurrence and the `relu` mask; Adam with
+bias correction mirroring `learner/jepa_trainer.rs::AdamMoments`.
+
+## 2. Focused tests — PASS
+
+```
+cargo test -p uor-r4-core --offline --lib lowbit_core   -> 10 passed; 0 failed
+cargo test -p uor-r4-core --offline --lib chat          ->  7 passed; 0 failed
+cargo fmt -p uor-r4-core -- --check                     -> clean
+```
+
+The learning test (`learns_a_task_the_recurrence_is_required_for`) is a delayed-recall language
+`[item, 5, 0, item]`: the final prediction needs the first token to survive a distractor step, so a
+core with no recurrence cannot exceed chance. Result:
+
+```
+loss       4.390 -> 0.094   (held-out draw, quantised model)
+recall      100%            (no-recurrence control: loss 0.901)
+trainer.loss == core.sequence_loss   (the trainer optimises the served function)
+core.forward_i32 == core.float_forward_ste  elementwise, on trained weights
+```
+
+Seed sensitivity was measured, not assumed: of seeds 20260919/42/7/1234/99991 at 400 steps,
+four reached 100% and one reached 72%; the test pins a deterministic seed.
+
+## 3. Chat/instruction run
+
+Corpus: procedural instruction pairs (arithmetic, reversal, casing, repetition, first letter) plus
+six fixed conversational turns. **Deliberately not TinyStories.** Tokenizer: byte-level + 3 control
+tokens (vocab 259) — see §5 for why, and the tradeoff.
+
+```
+./target/release/train-lowbit-chat --procedural 4000 --max-seq 24 --dim 128 \
+    --lr 0.05 --steps 4000 --batch 16 --samples 4 \
+    --out .uor-models/native-lowbit-chat-2026-09-19/lowbit_chat.bin
+```
+
+```
+examples: procedural=4006 total=1334 train=1200 held=134 skipped=2672  tokens train=25102 held=2857
+held-out: initial_loss=20.2727  final_loss(quantised)=3.9138  top1_accuracy=0.295 (804/2723)
+response-only (teacher-forced): accuracy=0.000 (0/470)  exact-response=0/134 (0.0%)
+weights: 20672 bytes packed (1.43 bits/weight)  train_wall=95.7s
+
+PROMPT: What is 92 + 38?
+OUTPUT: 854854854854854854854854854854854854854854854854
+
+PROMPT: What is 40 + 68?
+OUTPUT: 854854854854854854854854854854854854854854854854
+
+PROMPT: Hello!
+OUTPUT:  85485485485485485485485485485485485485485485485
+
+PROMPT: What is 12 + 7?
+OUTPUT: 854854854854854854854854854854854854854854854854
+```
+
+**Reading.** The model does **not** answer. The 29.5% top-1 is instruction copying — teacher-forced
+accuracy strictly inside the assistant turn is **0/470**, and no held-out response is reproduced
+exactly (0/134). Free-running generation collapses to one repeating fragment regardless of prompt
+and never emits `<|end|>`.
+
+## 4. The blocking finding: the recurrence is not stable
+
+A held-out sweep over the usable sequence length (`--procedural 3000`, `--dim` per row, `--steps`
+per row) separates the failure from the optimiser:
+
+| max_seq | dim | lr | steps | held-out loss | top-1 |
+|---:|---:|---:|---:|---:|---:|
+| 72 | 96 | 0.02 | 1500 | 19.4996 | 0.033 |
+| 72 | 48 | 0.05 | 1500 | 5.4674 | 0.011 |
+| 40 | 128 | 0.05 | 3000 | 18.4718 | 0.043 |
+| 32 | 96 | 0.05 | 3000 | 4.5602 | 0.194 |
+| 32 | 96 | 0.10 | 3000 | 4.5326 | 0.195 |
+| 24 | 96 | 0.05 | 1500 | 4.4626 | 0.197 |
+| **24** | **128** | **0.05** | **3000** | **3.9154** | **0.295** |
+
+Uniform-reference loss is `ln 259 = 5.56`. Learning is real but confined to roughly **≤24-byte
+sequences**; at 40 tokens it collapses to ≈18.5, far worse than uniform — the logits are confidently
+wrong.
+
+Cause: `h_t = relu(W_x[:,t] + W_h · h_{t-1})` with a random ternary `W_h`. For a `dim`-vector, the
+recurrent term has standard deviation ≈ `‖h‖/2` per row, i.e. a growth factor ≈ `√dim / 2` (≈ 4.9 at
+`dim = 96`). There is no contraction and no normalisation, so `‖h‖` and hence the logits grow with
+sequence length, the softmax saturates, and the gradient signal for the response is lost. This is an
+architecture property, not a defect in the backward pass: the backward pass is verified independently
+by the recall task, which converges to 100%.
+
+A second, related observation: response prediction never starts. Whatever the horizon, the parameter
+gradient is dominated by the copy/induction term, and no held-out response byte is ever predicted.
+
+## 5. Scope, limitations and what was not measured
+
+* **Tokenizer is byte-level, not the project's BPE.** The two existing tokenizers are the legacy
+  llama2.c `Tokenizer` (vocab 4096) and `HfBpeTokenizer` (vocab ≈ 49k). Either vocabulary makes the
+  embedding and the full-vocabulary softmax far too large to train on a small corpus on this budget.
+  The core is vocabulary-agnostic (`vocab` is a constructor parameter), so switching tokenizers is a
+  vocabulary-size change and a re-export, not an architecture change. This is a deliberate, recorded
+  tradeoff.
+* **No natural chat corpus exists locally.** The `.uor-models/.../*-instruct` "sources" are
+  TinyStories-shaped (the eval report records the split as "80/20 by story id"), so they are not chat
+  data. A local `qwen2.5:1.5b` (ollama) is available and was verified working; it was **not** used,
+  because at a ≤24-byte usable horizon no conversational example would fit. Teacher-generated data
+  becomes useful only after the stability fix.
+* **Not measured:** energy per token (UNAVAILABLE on this machine — `powermetrics` reports
+  `CPU Power: 0 mW` under load; the script's guard was not bypassed), incumbent BPB UNAVAILABLE, no
+  serving-throughput claim, no claim about any serving-multiplier reduction. The quantised core was
+  built, but this receipt makes no serving claim beyond the existing exactness test.
+* **Does not reopen anything in Card P7 / D2.** The mechanism-class and equivalence-margin rules are
+  untouched; this is a new module, not a re-reading of an ablation.
+
+## 6. Next action (in order)
+
+1. **Stabilise the recurrence**, then re-run. Two D0-b-compliant candidates, both adds/shifts/compares
+   with no multiplier: (a) a right-shift on the recurrent accumulation (`relu(W_x + (W_h·h) >> k)`),
+   which makes the recurrence contractive; (b) a saturating state bound (`min(relu(·), MAX)`), which
+   preserves integer/float exactness because both paths clamp at the same integer. (a) changes the
+   float reference's arithmetic domain and needs its exactness test restated; (b) is the smaller
+   change.
+2. **Scale only after it learns.** Re-run this sweep on longer sequences once (1) lands, and confirm
+   that response-only teacher-forced accuracy leaves zero before any statement about answering.
+3. **Then** raise vocabulary to the project tokenizer and add real chat data.
+
+Artifact retained: `.uor-models/native-lowbit-chat-2026-09-19/lowbit_chat.bin` (330,764 bytes; f32
+masters for `wx`/`wh`/`wo`, header `LBCH`), plus `run.log`. This is a negative candidate and is
+retained deliberately.

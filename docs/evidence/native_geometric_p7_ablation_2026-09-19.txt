@@ -1,0 +1,119 @@
+UOR-R4 Card P7 — per-mechanism ablation BPB sweep (raw receipt)
+Date: 2026-09-19
+Executed by: Zed (agent), local M1 checkout /Users/casey.allard/uor-r4
+
+SCORER UNDER TEST
+  ExportedGeometricModel::score_context_candidate_with_vsa (discrete additive i32 scorer)
+  normalised over the FULL vocabulary (4096) with the serving sampler form
+  exp((s - max) / (temperature * 8192)) at temperature = 1.0.
+  This is NOT JepaTrainer::evaluate_bpb_with_engram (continuous trainer, root_prob*leaf_prob
+  interpolated with engram probabilities at lambda 0.85..0.30). The two are different
+  scorers and the numbers are not comparable.
+
+ARTIFACT
+  native_geometric_prose_model.rgm
+  size 2,691,950 bytes; header vocab_size 4096; num_lanes 4; flags 0x000f; section_count 6
+  sha256 7023c4507039acc01653b2dd6a41cf4329635767c66811a17d76591a4f356d96
+  json form 26,875,413 bytes; sha256 c115c064522a58df8b0816c7eda8cc5aa0f065331479b986f76376634aae2f2a
+  (both gitignored local material; digests bind these measurements to the exact bytes evaluated)
+
+CORPUS
+  tinystories_train.u16  1,110,771,074 bytes  555,385,505 tokens (4096-vocab byte-level BPE)
+  held-out slice: first 2,112 tokens of the mapped stream (train-native-prose convention),
+  chunked at seq_len 64; 2,048 teacher-forced positions scored.
+  This slice is already-open development evidence, not a fresh draw.
+
+COMMAND
+  ./target/debug/ablate-prose --positions 2048
+
+OUTPUT (verbatim)
+-------------------------------------------------------------------------------
+ablate-prose (Card P7) -- per-mechanism ablation BPB sweep
+  model      : native_geometric_prose_model.rgm (vocab 4096)
+  corpus     : tinystories_train.u16 (555385505 tokens; held-out slice 2112 tokens)
+  scorer     : discrete additive scorer, full-vocabulary softmax at temperature 1.0
+  seq_len    : 64   positions requested: 2048
+
+baseline (no ablation): BPB = 1.8055 over 2048 positions in 24.5s
+
+ablation                BPB      delta            paired 95% CI  verdict
+vsa                  1.8048    -0.0007       [-0.0010, -0.0005]  HARMFUL (ablation helps)
+engram               2.0283    +0.2228       [+0.1919, +0.2544]  CONTRIBUTES (ablation costs BPB)
+lattice              1.8982    +0.0927       [+0.0853, +0.1000]  CONTRIBUTES (ablation costs BPB)
+lattice_coarse       1.7989    -0.0066       [-0.0101, -0.0033]  HARMFUL (ablation helps)
+lattice_fine         1.9010    +0.0955       [+0.0894, +0.1017]  CONTRIBUTES (ablation costs BPB)
+jepa                 2.1798    +0.3743       [+0.3519, +0.3973]  CONTRIBUTES (ablation costs BPB)
+lanes                1.7984    -0.0071       [-0.0082, -0.0059]  HARMFUL (ablation helps)
+s2_readout           2.1433    +0.3377       [+0.3204, +0.3565]  CONTRIBUTES (ablation costs BPB)
+bias                 1.9537    +0.1482       [+0.1366, +0.1604]  CONTRIBUTES (ablation costs BPB)
+
+elapsed_total_s: 235.7
+A mechanism is RETAINED only if its ablation CI excludes 0 in the positive direction.
+-------------------------------------------------------------------------------
+
+FOCUSED CHECKS RUN AT THE SAME REVISION
+  cargo fmt --check                                  -> clean
+  python3 scripts/check_claim_wording.py             -> passed
+  cargo test -p uor-r4-core --lib native_geometric::vsa
+                                                     -> 23 passed, 0 failed
+     including the replacement tests
+       native_geometric::vsa::attention::tests::test_head_1_induction_retrieves_the_true_successor
+       native_geometric::vsa::attention::tests::test_shared_query_key_role_yields_zero_distance_for_identical_tokens
+       native_geometric::vsa::attention::tests::test_value_roles_are_quasi_orthogonal
+
+LIMITATIONS (must travel with these numbers)
+  * 2,048 positions from a single already-open development slice; not a fresh draw.
+  * Ablated terms are NOT orthogonal. Zeroing the JEPA weights also changes the fiber
+    consumed by the S2 readout, so the `jepa` and `s2_readout` deltas overlap. Deltas
+    do not sum and are marginal contributions given everything else present.
+  * Full-vocabulary normalisation, not the 64-candidate serving shortlist, so this is an
+    upper bound on what the served path can achieve.
+  * Absolute BPB 1.8055 is the DISCRETE scorer. It is not comparable to the training-time
+    continuous figure reported in current-state (1.2372) and must not be quoted as if it were.
+  * Debug build. Timings are not a performance result.
+
+------------------------------------------------------------------------------
+CORRECTION APPENDED 2026-09-19 (same day, after owner direction) -- the labels above
+are superseded. This file is append-only; the numbers stand, the verdicts do not.
+
+OWNER CORRECTION
+  "you probably need to weight falsification misses that are very small vs if the
+   mechanism truly works coherently, and not immediately rule it out because it may be a
+   better mechanism that maintains our project goal of a geometric language model"
+
+  The HARMFUL/CONTRIBUTES labels above collapse two independent questions and treat a
+  paired bootstrap CI as a verdict. A paired test has high power, so |delta| = 0.0007 can
+  exclude zero while being practically meaningless. The CI answers "is the sign stable",
+  not "does this mechanism matter".
+
+SEE: DECISIONS.md D2 for the recorded replacement methodology.
+
+REPLACEMENT INSTRUMENT (implemented in ablate-prose at the same revision)
+  * equivalence margin `--epsilon` (default 0.01 BPB, ~1/3 of the 0.0316 BPB gap to the
+    matched Kneser-Ney 5-gram) -> bands MAJOR+/MINOR+/NEGLIGIBLE/MINOR-/MAJOR-
+  * declared mechanism class per mechanism (primary-carrier / modulator / selector /
+    enabler / count-table), never inferred from the delta
+  * decision-flip rate and top-1 accuracy change alongside BPB, because a mechanism can
+    be BPB-neutral while changing many decisions
+  * action derived from (band, class), with an explicit refusal to retire an `enabler`
+    or `selector` on a small or negative delta
+
+CORRECTED READING OF THE EXISTING NUMBERS
+  vsa (-0.0007)      -> class `enabler`, wiring MIS-WIRED (fixed random codebook at
+                        vsa/codebook.rs is disconnected from the learned 120-root
+                        assignment at jepa_trainer.rs:1119). This delta measures that
+                        wiring, NOT the VSA mechanism. Action: repair the wiring and
+                        re-measure. NOT a retirement verdict.
+  lanes (-0.0071)    -> class `primary-carrier`; net-negative, so diagnose rather than
+                        assume; NOT a retirement verdict on this evidence alone.
+  lattice_coarse     -> class `count-table`; NEGLIGIBLE at 1024 positions but flips 9.5%
+                        of decisions, so it is not inert -- it reshapes the distribution
+                        slightly for the worse while costing 64.2% of artifact bytes.
+                        Removal is a resource-cost decision, not a "no effect" finding.
+  engram (+0.2228)   -> MAJOR+, 37.3% flip rate at 1024 positions; genuinely load-bearing.
+  jepa/s2_readout    -> MAJOR+; note the two interact and their deltas overlap.
+
+REPLICATION OBSERVED BEFORE THE RUN WAS INTERRUPTED (slice A, 8192 positions, offset 0)
+  baseline BPB 1.8964 over 8127 positions; vsa -0.0010 [-0.0011, -0.0009];
+  engram +0.2210 [+0.2055, +0.2354]. Same signs and magnitudes as the 2048-position run.
+  The interrupted run is recorded as partial, not as a result.

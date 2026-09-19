@@ -1,0 +1,88 @@
+UOR-R4 P7 action — coarse lattice tier removal (raw receipt)
+Date: 2026-09-19
+Executed by: Zed (agent), local M1 checkout /Users/casey.allard/uor-r4
+
+WHAT WAS DONE
+  Removed the coarse root-trigram tier (120^3 = 1,728,000 i8 entries) from the shipped
+  discrete artifact, using the new `strip-coarse` tool. No retraining: the tier is a count
+  table stored in the artifact, so it can be removed by re-serializing. Every other
+  mechanism is preserved byte-for-byte (fine cluster residuals, lanes, bias, S2 readout,
+  JEPA, engram, codebook).
+
+WHY
+  Card P7 / DECISIONS.md D2. The 2026-09-19 ablation measured the coarse tier as
+  BPB-NEGLIGIBLE (band) while it occupied 64.2 % of artifact bytes and flipped 9.5 % of
+  decisions. Removal is a bytes-per-token (I2) decision taken on resource cost, not on an
+  accuracy gain.
+
+ARTIFACT IDENTITY
+  input   native_geometric_prose_model.rgm
+          2,691,950 bytes
+          sha256 7023c4507039acc01653b2dd6a41cf4329635767c66811a17d76591a4f356d96
+  output  .uor-models/native-geometric-prose-2026-09-19/native_geometric_prose_model_nocoarse.rgm
+          963,950 bytes
+          sha256 a25a87c4c5cdd5f7e6af1479273e29cc996d3cc78a1984315af8cf9b70a10a1b
+  reduction 1,728,000 bytes removed = 64.2 % of the artifact
+
+COMMAND
+  ./target/debug/strip-coarse --model native_geometric_prose_model.rgm \
+      --out /tmp/prose_nocoarse.rgm
+
+OUTPUT (verbatim)
+-------------------------------------------------------------------------------
+before: num_clusters=240 coarse_i8=1728000 fine_i16=57600 (artifact 2691950 bytes)
+wrote /tmp/prose_nocoarse.rgm (963950 bytes); removed 1728000 bytes (64.2 % of the artifact)
+scoring self-check: 864 comparisons, 0 mismatches
+mmap verification: coarse absent, fine tier present and the expected length
+-------------------------------------------------------------------------------
+
+QUALITY VERIFICATION (same scorer, same corpus, same slice as the P7 sweep)
+  ./target/debug/ablate-prose --model <stripped> --positions 2048 \
+      --ablations none,lattice_coarse,lattice_fine,engram,vsa
+-------------------------------------------------------------------------------
+baseline (no ablation): BPB = 1.7989 over 2048 positions in 4.4s
+lattice_coarse   1.7989   +0.0000  [+0.0000, +0.0000]  NEGLIGIBLE    +0.00    0.0%
+lattice_fine     1.8977   +0.0988  [+0.0925, +0.1051]      MINOR+    -0.20    4.9%
+engram           2.0209   +0.2220  [+0.1908, +0.2540]      MAJOR+   -15.92   39.4%
+vsa              1.7980   -0.0009  [-0.0011, -0.0006]  NEGLIGIBLE    -0.05    0.7%
+baseline top-1 accuracy: 25.34%
+-------------------------------------------------------------------------------
+
+  * Baseline BPB on the stripped artifact is 1.7989, exactly the `lattice_coarse`-ablated
+    value measured on the original artifact (1.7989). The removal reproduces the ablation.
+  * `lattice_coarse` on the stripped artifact is +0.0000 with a 0.0 % flip rate: the tier is
+    genuinely gone, so there is nothing left to ablate. Self-consistency check passed.
+  * Retained mechanisms are unchanged: `lattice_fine` +0.0988, `engram` +0.2220, and `vsa`
+    still NEGLIGIBLE at -0.0009 (class=enabler, wiring MIS-WIRED, action = repair and
+    re-measure, not retire).
+
+SIDE OBSERVATION — WALL-CLOCK, NOT A SERVING CLAIM
+  The same 2,048-position evaluation took 24.5 s per pass on the original artifact and
+  4.4 s on the stripped artifact (~5.6x). The coarse table is 1.728 MB read at a random
+  index per scored candidate, i.e. a cache-cold access on the scoring hot path; the
+  remaining fine table is 115 KB and L2-resident. This is a scoring microbenchmark in a
+  DEBUG build, not an end-to-end serving measurement, and it is NOT a tok/s claim. It is
+  recorded because it is the first measurement in this project where removing a mechanism
+  improves both bytes and speed at once.
+
+FOCUSED CHECKS RUN
+  cargo fmt --check                                     -> clean
+  python3 scripts/check_claim_wording.py                -> passed
+  cargo test -p uor-r4-core --lib native_geometric::vsa -> 23 passed, 0 failed
+  cargo test -p uor-r4-core --test binary_model_tests   -> 7 passed, 0 failed
+      incl. test_bit_exact_numerical_parity_1000_queries, test_roundtrip_binary_serialization,
+      test_file_size_is_bounded_under_3mb, test_mmap_serving_zero_allocations
+  cargo test -p uor-r4-core --test hierarchical_lattice_tests -> 10 passed, 0 failed
+
+LIMITATIONS
+  * Single already-open 2,112-token development slice, 2,048 teacher-forced positions.
+  * Discrete scorer with full-vocabulary normalisation at temperature 1.0; not the
+    64-candidate served shortlist.
+  * Debug build; the wall-clock observation is not a performance result.
+  * The 9,984-case regression replay was NOT re-executed. The stripped artifact has not been
+    served through `r4-native-chat` end to end in this change.
+  * `strip-coarse` writes a new artifact; the original is preserved unmodified.
+
+STORAGE
+  New retained storage: 963,950 bytes (the stripped artifact). Cumulative storage charges are
+  recorded in docs/integration/resource-ledger-2026-09-19.md. 128 MiB margin untouched.

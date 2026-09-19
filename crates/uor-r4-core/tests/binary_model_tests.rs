@@ -73,6 +73,95 @@ impl SimpleRng {
     }
 }
 
+/// The declared VSA code mode must survive a serialize/reload round trip, remain
+/// **size-compatible**, and rebuild the hierarchical codebook in the matching space without
+/// moving a single token between buckets.
+///
+/// This is the invariant that makes mode `1` coherent: `HierarchicalCodebook` centroids are
+/// bundles of token vectors, so a code-space change without a matching rebuild would leave the
+/// router comparing a query against centroids from a different space.
+#[test]
+fn test_vsa_code_mode_round_trip_and_coherent_rebuild() {
+    use uor_r4_core::native_geometric::learner::build_root_codebook;
+
+    let mut model = create_test_model();
+    assert_eq!(
+        model.vsa_code_mode, 0,
+        "fixtures default to the fixed-hash mode"
+    );
+
+    let mode0_bytes = model.to_binary().expect("serialize mode 0");
+    let reloaded0 = ExportedGeometricModel::from_binary(&mode0_bytes).expect("reload mode 0");
+    assert_eq!(reloaded0.vsa_code_mode, 0);
+
+    // Snapshot structure and anchors before the rebuild.
+    let before = model
+        .hierarchical_codebook
+        .as_ref()
+        .expect("fixture has a hierarchical codebook")
+        .clone();
+    let buckets_before: usize = before.sectors.iter().map(|s| s.len()).sum();
+    let tokens_before: Vec<Vec<Vec<u32>>> = before
+        .sectors
+        .iter()
+        .map(|s| s.iter().map(|b| b.tokens.clone()).collect())
+        .collect();
+
+    model.vsa_code_mode = 1;
+    model.prepare_vsa_code_mode().expect("prepare mode 1");
+
+    let after = model
+        .hierarchical_codebook
+        .as_ref()
+        .expect("prepared model keeps its codebook");
+    let buckets_after: usize = after.sectors.iter().map(|s| s.len()).sum();
+    let tokens_after: Vec<Vec<Vec<u32>>> = after
+        .sectors
+        .iter()
+        .map(|s| s.iter().map(|b| b.tokens.clone()).collect())
+        .collect();
+
+    assert_eq!(
+        buckets_before, buckets_after,
+        "the rebuild must not change the bucket count"
+    );
+    assert_eq!(
+        tokens_before, tokens_after,
+        "the rebuild must not move any token between buckets: the partition depends on \
+         token_to_root and the leaf-bucket capacity, not on the code space"
+    );
+    assert_ne!(
+        before.root_anchors, after.root_anchors,
+        "the learned-root code space must differ from the fixed token-id hash"
+    );
+
+    // The model's codebook must be the root-derived one, element for element.
+    let expected = build_root_codebook(model.vocab_size, &model.token_to_root, model.vsa_seed);
+    let actual = model.vsa_codebook();
+    assert_eq!(actual.table, expected.table);
+
+    // Size compatibility: the mode lives in a reserved header byte, not a new section.
+    let mode1_bytes = model.to_binary().expect("serialize mode 1");
+    assert_eq!(
+        mode0_bytes.len(),
+        mode1_bytes.len(),
+        "declaring the code mode must not change the artifact size"
+    );
+    let reloaded1 = ExportedGeometricModel::from_binary(&mode1_bytes).expect("reload mode 1");
+    assert_eq!(reloaded1.vsa_code_mode, 1);
+
+    // An out-of-range mode must be rejected rather than silently reinterpreted. The header byte
+    // is inside the blake3-protected region, so the digest is recomputed to isolate the check.
+    let mut corrupt = mode1_bytes.clone();
+    corrupt[26] = 7;
+    let digest = blake3::hash(&corrupt[64..]);
+    corrupt[32..64].copy_from_slice(digest.as_bytes());
+    assert!(
+        ExportedGeometricModel::from_binary(&corrupt).is_err(),
+        "an undefined code mode must be rejected"
+    );
+}
+
 /// Constructs a full-featured `ExportedGeometricModel` containing all 6 canonical sections.
 fn create_test_model() -> ExportedGeometricModel {
     let mut rng = SimpleRng::new(2026_0918);
@@ -177,6 +266,9 @@ fn create_test_model() -> ExportedGeometricModel {
         discrete_jepa_fiber_bias,
         vsa_seed,
         vsa_scale_q15,
+        // Fixture is the fixed-hash code space and builds its hierarchical codebook in that same
+        // space, so the two are coherent at mode 0.
+        vsa_code_mode: 0,
         hierarchical_codebook: Some(hierarchical_codebook),
         engram_table: Some(engram_table),
         hierarchical_lattice: Some(hierarchical_lattice),

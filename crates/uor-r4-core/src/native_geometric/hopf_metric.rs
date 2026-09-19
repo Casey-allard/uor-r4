@@ -476,6 +476,44 @@ impl Default for HopfStateTrajectory {
 
 // NATIVE_GEOMETRIC_INTEGER_KERNEL_BEGIN
 
+/// Multiplier-free signed multiply: the D0-a serving idiom.
+///
+/// Computes `a * b` using only shifts, additions and bit tests — no `*`, `/` or `%` — so the
+/// kernel contains no multiplier circuit. The project already uses this family for squaring
+/// (`square_u64`) and division (`div_small_positive`); this generalises it to the pair-product
+/// shape that the fixed-point algebra needs.
+///
+/// Iterates over the set bits of the **smaller** magnitude operand, so the cost is
+/// `O(log2(min(|a|,|b|)))` additions rather than a fixed 64. For the Q1.30 operands used here
+/// (`|v| < 2^31`) the exact product fits in `i64`, and for the quantized weights the weight is
+/// the smaller operand, costing a handful of additions.
+///
+/// This is behaviour-preserving: it replaces the operator, not the arithmetic. Making the
+/// multiplies structurally unnecessary — by restricting weights to signed powers of two in the
+/// BitNet style — is a separate, larger change.
+#[inline]
+pub fn mul_shift_add(a: i64, b: i64) -> i64 {
+    let negative = (a < 0) ^ (b < 0);
+    let mut x = a.unsigned_abs();
+    let mut y = b.unsigned_abs();
+    if y > x {
+        core::mem::swap(&mut x, &mut y);
+    }
+    let mut acc: u64 = 0;
+    while y != 0 {
+        if y & 1 == 1 {
+            acc = acc.wrapping_add(x);
+        }
+        y >>= 1;
+        x = x.wrapping_shl(1);
+    }
+    if negative {
+        (acc as i64).wrapping_neg()
+    } else {
+        acc as i64
+    }
+}
+
 /// Pure integer square root for u64 using Newton-Raphson.
 /// Exact, deterministic, zero-allocation, zero-float.
 pub const fn isqrt_u64(n: u64) -> u64 {

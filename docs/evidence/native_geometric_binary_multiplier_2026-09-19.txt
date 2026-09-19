@@ -1,0 +1,99 @@
+UOR-R4 D0-a — binary-level multiplier measurement (the authoritative instrument)
+Date: 2026-09-19
+Executed by: Zed (agent), local M1 checkout /Users/casey.allard/uor-r4
+
+WHY THIS REPLACES THE SOURCE CENSUS
+  Three source-level counts of the same code disagreed: 82 (raw grep), 43 (forbidden_arith
+  scanner) and 216 (token-level classifier, gated). Source counting cannot answer "does serving
+  engage a multiplier", because (a) the compiler decides whether a constant multiply becomes
+  shifts or a `mul instruction`, and (b) file scope is not serving scope. The property D0-a names
+  is what executes, so it must be measured in the executable.
+
+METHOD
+  `~/.cargo/bin/cargo build --release --offline -p uor-r4-api --bin r4-native-chat`
+  then `otool -tV` over the Mach-O, segmented by symbol labels, counting multiply mnemonics
+  (`mul madd msub mneg smull umull smaddl umaddl smulh umulh sqdmulh sqrdmulh fmul fmadd fmsub
+  fnmul fmla imul mla mls`). Every number below is an instruction count in the optimised binary,
+  not an operator count in source.
+
+BUILD COST (as projected, recorded before execution)
+  2 min 00 s wall (`real 2m0.056s`, `user 8m42.858s`), incremental. `target/release` was 3.2 GB
+  before and 3.2 GB after, so **net new storage was under the 300 MB projection and is
+  effectively zero**. 27 GB free; the 128 MiB model-storage margin is untouched because this
+  writes only build output. Charged 125,000 ms to the shared ledger.
+
+RESULT — WHOLE BINARY
+  529,893 instructions, **3,100 multiply instructions (0.585 %)**.
+
+  Per serving-relevant module (instruction counts, not operators):
+
+    module                                  mul   instructions
+    vsa/hypervector + codebook + hierarchical  592       43,331
+    vsa/attention (MultiHeadVsaAttention)      306       15,990
+    api/native_capability_api                  116       14,241
+    lattice_table                               57        2,523
+    hopf_metric (Q30 algebra)                   51        1,545
+    jepa_trainer (learner)                      44       10,777
+    engram                                      34        4,151
+    binary_model (mmap serving)                  4        2,229
+    retained historical runtime                153        7,889
+    offline ingest/compile (not served)        267       18,464
+
+FINDING 1 — THE INERT MECHANISM IS THE LARGEST MULTIPLY CONSUMER
+  The VSA layer accounts for **898 of 3,100 multiply instructions (29 %)** — `vsa/attention` 306
+  plus `vsa/hypervector`/`codebook`/`hierarchical` 592. That is more than every other serving
+  module combined, including `lattice_table`, `engram`, `hopf_metric`, `jepa_trainer` and the mmap
+  serving path.
+
+  This is the same layer that the Card P7 ablation measured as **inert in scoring** (ΔBPB
+  −0.0007, class `enabler`, and the query/key inversion was a real defect). Two independent
+  measurements now converge: the VSA layer costs the most multiplies on the serving path and
+  delivers nothing measurable to scoring. It does contribute to ROUTING (recall 8.4–8.8 % →
+  10.7–11.2 % on two disjoint slices), so it is not worthless — but its cost/benefit is the worst
+  on the path.
+
+  Therefore the single largest available multiplier reduction is to make the VSA heads
+  table-or-lookup based rather than arithmetic — precompute the head similarity quantities, or
+  replace `MultiHeadVsaAttention::attend` with a bounded lookup — which would remove on the order
+  of 29 % of serving multiplies while preserving the routing benefit. That is a concrete,
+  high-value redesign target and it is not where any source census pointed.
+
+FINDING 2 — THE JEPA CONVERSION IS VERIFIED AT THE BINARY LEVEL
+  `context_predicted_fiber_from_ring`: **mul = 0** (41 instructions).
+  `context_fiber_from_ring`: **mul = 5** (84 instructions).
+
+  The JEPA projection carries zero multiply instructions after the `mul_shift_add` conversion —
+  direct evidence that the conversion achieved its goal, which the source census could not have
+  established. The residual 5 multiplies in `context_fiber_from_ring` are in
+  `hopf_fiber_project` (the S3→S2 Hopf map computes `2(ac+bd)` and similar directly), which is
+  genuine arithmetic that a table cannot replace without changing the map.
+
+FINDING 3 — THE SOURCE CENSUSES WERE WRONG IN BOTH DIRECTIONS
+  `hopf_metric` reports 43–70 multiplying *operators* by source but only **51 multiply
+  instructions** in the optimised binary, and `binary_model` reports 78 operators but only **4**
+  instructions. Conversely `vsa/attention` reports **zero** multiplying forms to a source scan but
+  **306 multiply instructions** in the binary, because the constants it multiplies by (such as
+  the `32767` scale in `bipolar_correlation_q15`) are dense and the compiler emits real `mul`
+  instructions rather than shifts, and because inlining pulls those into `attend`.
+
+  The octet-level lesson: **a source census of multiplying operators is not evidence about
+  multiplier circuits, in either direction.** It can report zero where 306 exist, and report 78
+  where 4 exist. All earlier multiplier numbers in this engagement are superseded by these.
+
+WHAT TO DO WITH THIS
+  1. The binary-level count is the authoritative metric and should be the basis of the ratchet. It
+     cannot be a unit test without a release build in CI, so record the numbers and the exact
+     commands as the reproducible procedure; re-run on any change to the serving path.
+  2. The highest-value reduction is the VSA layer (898 instructions). Making the heads
+     lookup-based is a design task with a clear payoff, and it is now the top item.
+  3. `binary_model` (4) and `jepa_trainer` (44) are close to clean and need no urgent work.
+  4. `hopf_metric` (51) is smaller than the source counts implied and contains genuine arithmetic
+     (`hopf_project`); converting it to shift-add is possible but low-value.
+  5. `api/native_capability_api` (116) is the second concrete target and contains the sampling and
+     scoring arithmetic already partly converted.
+
+NOT DONE
+  * No conversion work was done in this step; it is measurement only, which is what the previous
+    step concluded was required before further conversion.
+  * The `--release` binary now exists and the debug `target/debug` tree is 40 GB; neither was
+    cleaned, and no deletion is authorised.

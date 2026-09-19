@@ -1,0 +1,88 @@
+UOR-R4 D0-a — the serving multiplier zero-check (the instrument that finally works) and Card P1 status
+Date: 2026-09-19
+Executed by: Zed (agent), local M1 checkout /Users/casey.allard/uor-r4
+
+PART 1 — THE ZERO-CHECK, AND WHY IT IS SOUND WHERE COUNTING IS NOT
+  Four counting instruments for "how many multiplies does serving execute" failed here: raw grep
+  of `*`; the `forbidden_arith` scanner; a token-level classifier; and a static binary
+  disassembly count. A hardware multiply counter is not available either (`xctrace` absent, no
+  architectural MUL event on ARMv8).
+
+  The replacement is `scripts/serving_multiplier_check.py`. It disassembles a `--release` binary
+  with `otool -tV`, segments **per symbol**, and for each symbol in a declared CERTIFIED list
+  asserts **zero** multiply mnemonics. That is a *sufficient* condition: a function whose own
+  instruction range contains no multiply cannot execute one. It is indifferent to dead code, to
+  inlining and to compiler strength reduction — the three things that broke the counters.
+
+  It also reports what it cannot check. Seven declared serving names have **no release symbol**
+  because they are inlined (`compose_context_roots`, `score_readout`, `score_vsa_candidate`,
+  `hamming_distance`, `bipolar_correlation_q15`, `similarity_q15`, `cluster_of`), so they are **not
+  certified** and the script says so rather than implying coverage. The whole-binary multiply
+  total is printed as INFORMATIONAL with an explicit note that it counts instructions present,
+  not executed.
+
+PART 2 — WHAT IT FOUND IMMEDIATELY
+  First run:
+
+    context_predicted_fiber_from_ring   mul=0   PASS
+    context_fiber_from_ring             mul=8   FAIL   (hopf_fiber_project's S3->S2 map)
+    compose_ring_roots                  mul=4   FAIL   (exact 2I composition!)
+    binary_model                        mul=4   FAIL   (3 symbols)
+    score_token                         mul=34  FAIL   (hierarchical lattice scoring)
+    MultiHeadVsaAttention               mul=306 WATCH  (SplitMix64 on-demand generation)
+
+  A composition helper that is supposed to be pure table lookups carried four multiplies. The
+  cause is instruction-level, not source-level: `% GROUP_ORDER` and `state * GROUP_ORDER` address a
+  120-wide table, and a modulo or multiply by a non-power-of-two constant is lowered to a `umulh`
+  / `madd` sequence. **No source census could have found this**, because the source contains no
+  multiply at all in either place.
+
+PART 3 — TWO MEASURED REDUCTIONS, USING THE SOUND INSTRUMENT
+  1. `token_to_root[..] as usize % GROUP_ORDER` replaced by `.min(GROUP_ORDER - 1)`. The modulo was
+     redundant: `token_to_root` holds canonical root indices and the loader guarantees the range, so
+     the reduction is a defensive bound and a branchless min is equivalent and multiplier-free.
+     **`compose_ring_roots` 4 -> 2.**
+  2. The product table's row stride padded from 120 to 128, so the row base is a shift rather than
+     a multiply by 120. Cost: 960 padding bytes (15,360 vs 14,400). **`compose_ring_roots` 2 -> 1.**
+     Held-out behaviour unchanged: greedy 128-token generation is byte-identical, and 617 tok/s.
+
+  Whole-binary informational total: 3,000 -> 2,996. The point is not the global delta, which is
+  not an execution count; it is that `compose_ring_roots` fell from 4 to 1 against a *sound*
+  per-function measure, and that the remaining 1 is now a specific, located instruction.
+
+  Self-inflicted regression, recorded: changing the stride broke three group_table tests and then
+  a fourth assertion, because the tests used `GROUP_ORDER` as the stride. Fixed to `ROW_STRIDE`;
+  6/6 pass. `cargo fmt --check` and `check_claim_wording.py` clean.
+
+PART 4 — REMAINING WORK, NOW ENUMERABLE RATHER THAN ESTIMATED
+  * `compose_ring_roots` 1 — the last `madd` of the table index.
+  * `score_token` 34 — the largest certified gap; includes the `%` reductions on
+    `r0 * 14400 + r1 * 120 + r2` and the u128 squaring loop in the integer log2.
+  * `binary_model` 4 — three mmap-serving symbols.
+  * `context_fiber_from_ring` 8 — `hopf_fiber_project`'s `2(ac + bd)` terms; genuine arithmetic.
+  * `MultiHeadVsaAttention` 306 — SplitMix64 on-demand generation; the fix is a multiplier-free
+    xorshift/rotate generator, which removes the possibility rather than excluding the path.
+  * The 7 inlined names remain uncertified and would need the check applied to their inlining
+    callers, or `#[inline(never)]` on the serving boundary to give them symbols.
+
+PART 5 — CARD P1 (M1 GROUND TRUTH): NOT EXECUTED, WITH THE REASON
+  Card P1 measures `bitnet.cpp` + BitNet b1.58 2B4T, `llama.cpp` + SmolLM3-3B / Qwen3-4B Q4, the
+  retained artifact and the TLA bundle for tok/s, `powermetrics` J/token, RSS and held-out BPB.
+
+  It was NOT executed, and this is a deliberate stop:
+  * it needs network access to clone and build `llama.cpp` and `bitnet.cpp`, plus multi-GB model
+    downloads (approximately 1.1 GB for BitNet 2B4T and 2-6 GB per Q4 model) — the storage is
+    available at 66 GB free, but the *authorization* for those downloads and builds has not been
+    given explicitly, and the project's rule is that external cost and external downloads are a
+    separate decision;
+  * `powermetrics` requires sudo, which an agent should not invoke unprompted;
+  * it is a multi-hour task (clone, build two C++ projects, download, three repeats per artifact).
+  The projection to record before any run: >= 10 GB storage, 4-8 h wall, sudo for the energy
+  measurements. It remains, in my judgement, the highest-value outstanding item, because the
+  project has **no trustworthy serving-efficiency number of any kind**: not multiplies per token,
+  not tok/s, not J/token, and the only historical numbers were withdrawn as fabricated.
+
+WHAT WAS NOT DONE
+  * No further certified-symbol fixes (`score_token`, `binary_model`, `context_fiber_from_ring`).
+  * The xorshift generator swap, which would zero the 306-instruction watch item.
+  * Card P1, for the reasons above, and I am not going to claim a measurement I did not take.

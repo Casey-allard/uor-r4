@@ -86,22 +86,40 @@ fn div_small_positive(num: i32, denom: usize) -> i32 {
     }
 }
 
-/// Orthogonal role projection hypervectors for a single VSA attention head.
+/// Role hypervectors for a single VSA attention head.
+///
+/// # Why query and key share a role
+///
+/// The query/key comparison binds the **same** `r_role` into both sides. XOR is
+/// self-inverse, so `d_H(x ^ R, x_j ^ R) == d_H(x, x_j)`: two occurrences of the
+/// same token give `d_H == 0` and therefore maximal rectified-quadratic weight,
+/// while distinct tokens sit near `D/2`.
+///
+/// The previous formulation bound *independent* random roles into query and key
+/// (`r_query != r_key`). Two occurrences of the same token then gave
+/// `d_H(x ^ r_query, x ^ r_key) == d_H(r_query, r_key) ~= D/2 == THRESHOLD`, which
+/// is **not** strictly below the threshold, so exact matches received exactly
+/// zero weight while mismatching pairs — whose distance fluctuates below the
+/// threshold roughly half the time — received weight. The head attended to noise
+/// and skipped its own matches. Because the role is shared it also cancels, so
+/// the binding is algebraically a no-op and may be elided later as an
+/// optimisation without changing any result.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct HeadRole<const WORDS: usize> {
-    pub r_query: Hypervector<WORDS>,
-    pub r_key: Hypervector<WORDS>,
+    /// Shared query/key role. Bound into both the query and each key.
+    pub r_role: Hypervector<WORDS>,
+    /// Value role, bound into each value before bundling and unbound after
+    /// aggregation to recover the attended representation.
     pub r_value: Hypervector<WORDS>,
 }
 
 impl<const WORDS: usize> HeadRole<WORDS> {
-    /// Deterministically generate orthogonal role vectors for head `head_idx`.
+    /// Deterministically generate the shared role and value role for head `head_idx`.
     pub const fn from_head_index(head_idx: usize, seed: u64) -> Self {
-        let salt_base = ((head_idx as u64) << 1) + (head_idx as u64);
+        let salt_base = (head_idx as u64) << 1;
         Self {
-            r_query: Hypervector::from_seed(seed, salt_base),
-            r_key: Hypervector::from_seed(seed, salt_base + 1),
-            r_value: Hypervector::from_seed(seed, salt_base + 2),
+            r_role: Hypervector::from_seed(seed, salt_base),
+            r_value: Hypervector::from_seed(seed, salt_base + 1),
         }
     }
 }
@@ -227,7 +245,7 @@ impl<const WORDS: usize> MultiHeadVsaAttention<WORDS> {
         // --------------------------------------------------------------------
         {
             let role = &self.heads[0];
-            let q = curr_vec.bind(&role.r_query);
+            let q = curr_vec.bind(&role.r_role);
             let mut weights = [0u64; 64];
             let mut total_weight = 0u64;
 
@@ -238,7 +256,7 @@ impl<const WORDS: usize> MultiHeadVsaAttention<WORDS> {
                 } else {
                     codebook.get(tok_j)
                 };
-                let k_j = v_j.bind(&role.r_key);
+                let k_j = v_j.bind(&role.r_role);
                 let d_h = q.hamming_distance(&k_j);
                 if d_h < self.threshold {
                     let diff = (self.threshold - d_h) as u64;
@@ -291,7 +309,7 @@ impl<const WORDS: usize> MultiHeadVsaAttention<WORDS> {
         // --------------------------------------------------------------------
         if max_ctx >= 2 {
             let role = &self.heads[1];
-            let q = curr_vec.bind(&role.r_query);
+            let q = curr_vec.bind(&role.r_role);
             let mut weights = [0u64; 64];
             let mut total_weight = 0u64;
             let num_transitions = max_ctx - 1;
@@ -303,7 +321,7 @@ impl<const WORDS: usize> MultiHeadVsaAttention<WORDS> {
                 } else {
                     codebook.get(tok_j)
                 };
-                let k_j = v_j.bind(&role.r_key);
+                let k_j = v_j.bind(&role.r_role);
                 let d_h = q.hamming_distance(&k_j);
                 if d_h < self.threshold {
                     let diff = (self.threshold - d_h) as u64;
@@ -357,7 +375,7 @@ impl<const WORDS: usize> MultiHeadVsaAttention<WORDS> {
         // --------------------------------------------------------------------
         {
             let role = &self.heads[2];
-            let q = curr_vec.permute(1).bind(&role.r_query);
+            let q = curr_vec.permute(1).bind(&role.r_role);
             let mut weights = [0u64; 64];
             let mut total_weight = 0u64;
 
@@ -369,7 +387,7 @@ impl<const WORDS: usize> MultiHeadVsaAttention<WORDS> {
                 } else {
                     codebook.get(tok_j)
                 };
-                let k_j = v_j.permute(lag).bind(&role.r_key);
+                let k_j = v_j.permute(lag).bind(&role.r_role);
                 let d_h = q.hamming_distance(&k_j);
                 if d_h < self.threshold {
                     let diff = (self.threshold - d_h) as u64;
@@ -433,13 +451,13 @@ impl<const WORDS: usize> MultiHeadVsaAttention<WORDS> {
                 };
             }
             let topic_bundle = Hypervector::bundle(&buf_vecs[..max_ctx]);
-            let q = topic_bundle.bind(&role.r_query);
+            let q = topic_bundle.bind(&role.r_role);
             let mut weights = [0u64; 64];
             let mut total_weight = 0u64;
 
             for j in 0..max_ctx {
                 let v_j = buf_vecs[j];
-                let k_j = v_j.bind(&role.r_key);
+                let k_j = v_j.bind(&role.r_role);
                 let d_h = q.hamming_distance(&k_j);
                 if d_h < self.threshold {
                     let diff = (self.threshold - d_h) as u64;
@@ -519,26 +537,47 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_multi_head_roles_orthogonality() {
+    fn test_value_roles_are_quasi_orthogonal() {
         let attn = MultiHeadVsaAttention::<64>::new();
-        let mut all_roles = Vec::new();
-        for h in 0..NUM_ATTENTION_HEADS {
-            all_roles.push(attn.heads[h].r_query);
-            all_roles.push(attn.heads[h].r_key);
-            all_roles.push(attn.heads[h].r_value);
-        }
-        for i in 0..all_roles.len() {
-            for j in (i + 1)..all_roles.len() {
-                let dist = all_roles[i].hamming_distance(&all_roles[j]);
+        let roles: Vec<_> = (0..NUM_ATTENTION_HEADS)
+            .map(|h| attn.heads[h].r_value)
+            .collect();
+        for i in 0..roles.len() {
+            for j in (i + 1)..roles.len() {
+                let dist = roles[i].hamming_distance(&roles[j]);
                 assert!(
                     (1850..=2250).contains(&dist),
-                    "Role vectors {} and {} not quasi-orthogonal: dist = {}",
-                    i,
-                    j,
-                    dist
+                    "Value roles {i} and {j} not quasi-orthogonal: dist = {dist}"
                 );
             }
         }
+    }
+
+    #[test]
+    fn test_shared_query_key_role_yields_zero_distance_for_identical_tokens() {
+        // Regression guard for the query/key role inversion. With independent
+        // random query and key roles, two occurrences of the same token sit at
+        // d_H ~= D/2 == THRESHOLD and receive exactly zero rectified weight,
+        // while mismatches fluctuating below the threshold receive weight.
+        let attn = MultiHeadVsaAttention::<64>::new();
+        let codebook = Codebook::<64>::on_demand(100, 42);
+        let role = &attn.heads[0];
+
+        let same = codebook.get(7);
+        let q = same.bind(&role.r_role);
+        let k = same.bind(&role.r_role);
+        assert_eq!(
+            q.hamming_distance(&k),
+            0,
+            "identical tokens bound with the shared role must have distance 0"
+        );
+
+        let other = codebook.get(8).bind(&role.r_role);
+        assert_ne!(
+            q.hamming_distance(&other),
+            0,
+            "distinct tokens must not be treated as identical"
+        );
     }
 
     #[test]
@@ -556,32 +595,56 @@ mod tests {
     }
 
     #[test]
-    fn test_head_1_induction_circuit() {
-        let attn = MultiHeadVsaAttention::<64>::new();
-        let codebook = Codebook::<64>::on_demand(100, 42);
+    fn test_head_1_induction_retrieves_the_true_successor() {
+        // Controlled induction test, replacing a single-instance comparison
+        // against an out-of-window candidate, which was a coin flip fixed by
+        // the codebook seed and could not distinguish a working induction
+        // circuit from a broken one.
+        //
+        // Head 1 weights the *successors* of positions whose token equals the
+        // current token, over `0..max_ctx - 1`. So [A, B, C, D, A] must
+        // retrieve B exactly, and the same query token with a different
+        // predecessor order must retrieve C instead. The negative arm has no
+        // occurrence of the query token in the keyed positions.
+        for seed in [1u64, 7, 42, 1009, 20_260_919] {
+            let attn = MultiHeadVsaAttention::<64>::with_seed_and_threshold(
+                seed,
+                DEFAULT_ATTENTION_THRESHOLD,
+            );
+            let codebook = Codebook::<64>::on_demand(1_000, seed);
+            let (a, b, c, d, x) = (10u32, 25u32, 30u32, 40u32, 77u32);
+            let head1 = |res: &MultiHeadVsaResult<64>, tok: u32| -> i16 {
+                res.score_candidate_detailed_q15(&codebook.get(tok)).1[1]
+            };
 
-        // Sequence with induction pattern: [10, 25, 30, 40, 50, 10] -> should attend to 25
-        let tokens = [10, 25, 30, 40, 50, 10];
-        let res = attn.attend(&tokens, &codebook);
+            // Treatment 1: first successor is B.
+            let t1 = attn.attend(&[a, b, c, d, a], &codebook);
+            assert!(
+                head1(&t1, b) >= 32_000,
+                "seed {seed}: the repeated query token must retrieve its successor, got {}",
+                head1(&t1, b)
+            );
 
-        let cand_b = codebook.get(25);
-        let cand_random = codebook.get(99);
+            // Treatment 2: same query token, different predecessor order.
+            let t2 = attn.attend(&[a, c, b, d, a], &codebook);
+            assert!(
+                head1(&t2, c) >= 32_000,
+                "seed {seed}: successor C must be retrieved, got {}",
+                head1(&t2, c)
+            );
+            assert!(
+                head1(&t2, b) < head1(&t2, c),
+                "seed {seed}: retrieval must follow the predecessor order"
+            );
 
-        let sim_b = res.score_candidate_q15(&cand_b);
-        let sim_rand = res.score_candidate_q15(&cand_random);
-        let (_, head_scores) = res.score_candidate_detailed_q15(&cand_b);
-
-        assert!(
-            sim_b > sim_rand,
-            "Induction candidate 25 (score {}) must exceed random candidate (score {})",
-            sim_b,
-            sim_rand
-        );
-        assert!(
-            head_scores[1] > 0,
-            "Induction head 1 should have positive score for candidate 25: {}",
-            head_scores[1]
-        );
+            // Negative arm: the query token is absent from the keyed positions,
+            // so head 1 must not reproduce the true successor as strongly.
+            let neg = attn.attend(&[x, b, c, d, a], &codebook);
+            assert!(
+                head1(&neg, b) < head1(&t1, b),
+                "seed {seed}: head 1 fired without a repeated query token"
+            );
+        }
     }
 
     #[test]

@@ -17,9 +17,10 @@ use super::embedding::{
 use super::transition_table::{DiscreteServingTable, MultiLaneTransitionTables};
 use crate::native_geometric::engram::{EngramTable, MAX_ENGRAM_COLLOCATIONS};
 use crate::native_geometric::hopf_metric::{
-    HopfFiberPointQ30, UnitS2, UnitS2Q30, UnitS3, UnitS3Q30, EPSILON,
+    mul_shift_add, HopfFiberPointQ30, UnitS2, UnitS2Q30, UnitS3, UnitS3Q30, EPSILON,
 };
 use crate::native_geometric::lattice_table::{ContinuousLatticeTables, HierarchicalLatticeTables};
+use crate::native_geometric::learner::vsa_codes::build_root_codebook;
 use crate::native_geometric::vsa::{
     encode_attended_multiscale_context, encode_multiscale_context, Codebook, HierarchicalCodebook,
     Hypervector, Hypervector4096,
@@ -613,6 +614,18 @@ pub struct ExportedGeometricModel {
     /// VSA context scoring scale in Q1.15 format.
     #[serde(default)]
     pub vsa_scale_q15: i16,
+    /// VSA token-code mode.
+    ///
+    /// `0` = fixed token-id hash (`splitmix64(vsa_seed, token_id)`), the legacy wiring in which
+    /// `E[d_H] = D/2` for distinct tokens so only identity is recoverable. `1` = codes derived
+    /// from the **learned** 120-root assignment by locality-sensitive hashing of the canonical
+    /// icosian root quaternions (see `learner/vsa_codes.rs`). Mode `1` requires the hierarchical
+    /// codebook to be rebuilt in the matching space; call
+    /// [`ExportedGeometricModel::prepare_vsa_code_mode`] after deserializing.
+    ///
+    /// `serde(default)` keeps artifacts written before this field loadable.
+    #[serde(default)]
+    pub vsa_code_mode: u8,
     /// Hierarchical lattice codebook for bounded-shortlist zero-allocation routing.
     #[serde(default)]
     pub hierarchical_codebook: Option<HierarchicalCodebook<64>>,
@@ -642,28 +655,25 @@ impl ExportedGeometricModel {
     }
 
     /// Compute cumulative fixed-point S3 state and fiber-preserving Hopf projection over context tokens.
+    ///
+    /// # Multiplier-free and exact
+    ///
+    /// The accumulated state is always an element of `2I`: the 120 canonical roots *are* the
+    /// group, and the group is closed. Composing with the next root is therefore a **table read**,
+    /// not an arithmetic operation. This replaces up to 64 `mul_q30` calls per token (~1,000
+    /// multiplies) with 64 array reads and integer index arithmetic, and it is *more* exact than
+    /// what it replaces: the table stores exact products of exact elements, whereas the previous
+    /// path multiplied Q1.30-quantized roots and called `normalized()` every 8 steps to contain
+    /// the resulting drift. No renormalization is needed here at all.
+    ///
+    /// The table's group axioms are verified by tests, not assumed: Latin-square rows and columns,
+    /// associativity over every triple, two-sided identity and inverses.
     pub fn context_hopf_fiber_q30(&self, context: &[usize]) -> HopfFiberPointQ30 {
         if self.token_to_root.is_empty() || context.is_empty() {
             return UnitS3Q30::IDENTITY.hopf_fiber_project();
         }
-        let roots = super::embedding::canonical_h4_roots_q30();
-        let mut s3 = UnitS3Q30::IDENTITY;
-        let start = context.len().saturating_sub(64);
-        let root_len = self.token_to_root.len();
-        let mut step = 0;
-        for &token in &context[start..] {
-            let root_idx = self.token_to_root[token.min(root_len - 1)] as usize;
-            let q_root_q30 = roots[root_idx % H4_ROOT_COUNT];
-            s3 = s3.mul_q30(&q_root_q30);
-            step += 1;
-            if step % 8 == 0 {
-                s3 = s3.normalized();
-            }
-        }
-        if step % 8 != 0 {
-            s3 = s3.normalized();
-        }
-        s3.hopf_fiber_project()
+        let state = super::group_table::compose_context_roots(&self.token_to_root, context);
+        super::embedding::canonical_h4_roots_q30()[state].hopf_fiber_project()
     }
 
     /// Compute cumulative fixed-point S2 Hopf projection over context tokens.
@@ -712,11 +722,11 @@ impl ExportedGeometricModel {
         if let Some(r) = self.discrete_s2_readout.get(candidate) {
             let s2 = fiber_pt.base.0;
             let u1 = fiber_pt.fiber_u1;
-            let s2_proj = (s2[0] as i64 * r[0] as i64
-                + s2[1] as i64 * r[1] as i64
-                + s2[2] as i64 * r[2] as i64
-                + u1[0] as i64 * r[3] as i64
-                + u1[1] as i64 * r[4] as i64)
+            let s2_proj = (mul_shift_add(s2[0] as i64, r[0] as i64)
+                + mul_shift_add(s2[1] as i64, r[1] as i64)
+                + mul_shift_add(s2[2] as i64, r[2] as i64)
+                + mul_shift_add(u1[0] as i64, r[3] as i64)
+                + mul_shift_add(u1[1] as i64, r[4] as i64))
                 >> 31;
             total += s2_proj as i32;
         }
@@ -846,11 +856,11 @@ impl ExportedGeometricModel {
         if let Some(r) = self.discrete_s2_readout.get(candidate) {
             let s2 = fiber_pt.base.0;
             let u1 = fiber_pt.fiber_u1;
-            let proj = (s2[0] as i64 * r[0] as i64
-                + s2[1] as i64 * r[1] as i64
-                + s2[2] as i64 * r[2] as i64
-                + u1[0] as i64 * r[3] as i64
-                + u1[1] as i64 * r[4] as i64)
+            let proj = (mul_shift_add(s2[0] as i64, r[0] as i64)
+                + mul_shift_add(s2[1] as i64, r[1] as i64)
+                + mul_shift_add(s2[2] as i64, r[2] as i64)
+                + mul_shift_add(u1[0] as i64, r[3] as i64)
+                + mul_shift_add(u1[1] as i64, r[4] as i64))
                 >> 31;
             proj as i32
         } else {
@@ -863,9 +873,9 @@ impl ExportedGeometricModel {
     pub fn score_readout_s2(&self, candidate: usize, s2_state: UnitS2Q30) -> i32 {
         if let Some(r) = self.discrete_s2_readout.get(candidate) {
             let s2 = s2_state.0;
-            let proj = (s2[0] as i64 * r[0] as i64
-                + s2[1] as i64 * r[1] as i64
-                + s2[2] as i64 * r[2] as i64)
+            let proj = (mul_shift_add(s2[0] as i64, r[0] as i64)
+                + mul_shift_add(s2[1] as i64, r[1] as i64)
+                + mul_shift_add(s2[2] as i64, r[2] as i64))
                 >> 31;
             proj as i32
         } else {
@@ -886,7 +896,7 @@ impl ExportedGeometricModel {
         }
         let cand_vec = codebook.get(candidate);
         let sim_q15 = context_vec.bipolar_correlation_q15(&cand_vec);
-        (self.vsa_scale_q15 as i32 * sim_q15 as i32) >> 16
+        (mul_shift_add(self.vsa_scale_q15 as i32 as i64, sim_q15 as i64) >> 16) as i32
     }
 
     /// Compute S2 Hopf state directly from a ring buffer without heap allocations.
@@ -904,31 +914,9 @@ impl ExportedGeometricModel {
         if length == 0 || ring.is_empty() || self.token_to_root.is_empty() {
             return UnitS3Q30::IDENTITY.hopf_fiber_project();
         }
-        let roots = super::embedding::canonical_h4_roots_q30();
-        let mut s3 = UnitS3Q30::IDENTITY;
-        let window = length.min(64).min(ring.len());
-        let root_len = self.token_to_root.len();
-        let cursor = cursor % ring.len();
-        let mut step = 0;
-        for lag in (1..=window).rev() {
-            let index = if cursor >= lag {
-                cursor - lag
-            } else {
-                ring.len() - (lag - cursor)
-            };
-            let token = ring[index] as usize;
-            let root_idx = self.token_to_root[token.min(root_len - 1)] as usize;
-            let q_root_q30 = roots[root_idx % H4_ROOT_COUNT];
-            s3 = s3.mul_q30(&q_root_q30);
-            step += 1;
-            if step % 8 == 0 {
-                s3 = s3.normalized();
-            }
-        }
-        if step % 8 != 0 {
-            s3 = s3.normalized();
-        }
-        s3.hopf_fiber_project()
+        let state =
+            super::group_table::compose_ring_roots(&self.token_to_root, ring, cursor, length);
+        super::embedding::canonical_h4_roots_q30()[state].hopf_fiber_project()
     }
 
     /// Compute VSA context hypervector directly from a ring buffer without heap allocations.
@@ -973,28 +961,28 @@ impl ExportedGeometricModel {
         let s2 = s2_state.0;
         let u = token_s2.0;
 
-        let hat_vx = ((ws[0] as i64 * s2[0] as i64
-            + ws[1] as i64 * s2[1] as i64
-            + ws[2] as i64 * s2[2] as i64
-            + wt[0] as i64 * u[0] as i64
-            + wt[1] as i64 * u[1] as i64
-            + wt[2] as i64 * u[2] as i64)
+        let hat_vx = ((mul_shift_add(ws[0] as i64, s2[0] as i64)
+            + mul_shift_add(ws[1] as i64, s2[1] as i64)
+            + mul_shift_add(ws[2] as i64, s2[2] as i64)
+            + mul_shift_add(wt[0] as i64, u[0] as i64)
+            + mul_shift_add(wt[1] as i64, u[1] as i64)
+            + mul_shift_add(wt[2] as i64, u[2] as i64))
             >> 14)
             + ((b[0] as i64) << 16);
-        let hat_vy = ((ws[3] as i64 * s2[0] as i64
-            + ws[4] as i64 * s2[1] as i64
-            + ws[5] as i64 * s2[2] as i64
-            + wt[3] as i64 * u[0] as i64
-            + wt[4] as i64 * u[1] as i64
-            + wt[5] as i64 * u[2] as i64)
+        let hat_vy = ((mul_shift_add(ws[3] as i64, s2[0] as i64)
+            + mul_shift_add(ws[4] as i64, s2[1] as i64)
+            + mul_shift_add(ws[5] as i64, s2[2] as i64)
+            + mul_shift_add(wt[3] as i64, u[0] as i64)
+            + mul_shift_add(wt[4] as i64, u[1] as i64)
+            + mul_shift_add(wt[5] as i64, u[2] as i64))
             >> 14)
             + ((b[1] as i64) << 16);
-        let hat_vz = ((ws[6] as i64 * s2[0] as i64
-            + ws[7] as i64 * s2[1] as i64
-            + ws[8] as i64 * s2[2] as i64
-            + wt[6] as i64 * u[0] as i64
-            + wt[7] as i64 * u[1] as i64
-            + wt[8] as i64 * u[2] as i64)
+        let hat_vz = ((mul_shift_add(ws[6] as i64, s2[0] as i64)
+            + mul_shift_add(ws[7] as i64, s2[1] as i64)
+            + mul_shift_add(ws[8] as i64, s2[2] as i64)
+            + mul_shift_add(wt[6] as i64, u[0] as i64)
+            + mul_shift_add(wt[7] as i64, u[1] as i64)
+            + mul_shift_add(wt[8] as i64, u[2] as i64))
             >> 14)
             + ((b[2] as i64) << 16);
 
@@ -1004,16 +992,16 @@ impl ExportedGeometricModel {
         let wft = &self.discrete_jepa_fiber_w_token;
         let bf = &self.discrete_jepa_fiber_bias;
 
-        let hat_fx = ((wfs[0] as i64 * fiber_u1[0] as i64
-            + wfs[1] as i64 * fiber_u1[1] as i64
-            + wft[0] as i64 * token_u1[0] as i64
-            + wft[1] as i64 * token_u1[1] as i64)
+        let hat_fx = ((mul_shift_add(wfs[0] as i64, fiber_u1[0] as i64)
+            + mul_shift_add(wfs[1] as i64, fiber_u1[1] as i64)
+            + mul_shift_add(wft[0] as i64, token_u1[0] as i64)
+            + mul_shift_add(wft[1] as i64, token_u1[1] as i64))
             >> 14)
             + ((bf[0] as i64) << 16);
-        let hat_fy = ((wfs[2] as i64 * fiber_u1[0] as i64
-            + wfs[3] as i64 * fiber_u1[1] as i64
-            + wft[2] as i64 * token_u1[0] as i64
-            + wft[3] as i64 * token_u1[1] as i64)
+        let hat_fy = ((mul_shift_add(wfs[2] as i64, fiber_u1[0] as i64)
+            + mul_shift_add(wfs[3] as i64, fiber_u1[1] as i64)
+            + mul_shift_add(wft[2] as i64, token_u1[0] as i64)
+            + mul_shift_add(wft[3] as i64, token_u1[1] as i64))
             >> 14)
             + ((bf[1] as i64) << 16);
 
@@ -2694,7 +2682,15 @@ impl JepaTrainer {
             .clamp(-32767.0, 32767.0)
             .round() as i16;
 
-        let vsa_codebook = Codebook::<64>::new(self.config.vocab_size, self.config.vsa_seed);
+        // New artifacts declare the learned-root code mode, which the Card P7 routing measurement
+        // found better on every routing metric (recall 8.4-8.8 % -> 10.7-11.2 %, served-path
+        // shortlist BPB 2.72-2.83 -> 2.67-2.78) on two disjoint slices. The hierarchical codebook
+        // must be built in THAT space: its centroids are bundles of token vectors, so a mismatched
+        // build would leave the router comparing vectors from two different spaces. The loaders
+        // also call `prepare_vsa_code_mode`, so a mismatched artifact is corrected on load rather
+        // than silently incoherent.
+        let vsa_codebook =
+            build_root_codebook(self.config.vocab_size, &token_to_root, self.config.vsa_seed);
         let hierarchical =
             HierarchicalCodebook::new(self.config.vocab_size, &token_to_root, &vsa_codebook);
         let engram_table = self.collocations.build_engram_table();
@@ -2714,6 +2710,7 @@ impl JepaTrainer {
             discrete_jepa_fiber_bias,
             vsa_seed: self.config.vsa_seed,
             vsa_scale_q15,
+            vsa_code_mode: 1,
             hierarchical_codebook: Some(hierarchical),
             engram_table: Some(engram_table),
             hierarchical_lattice,

@@ -1,0 +1,106 @@
+UOR-R4 D2 action — VSA codebook effect on the SERVED PATH (routing + scoring)
+Date: 2026-09-19
+Executed by: Zed (agent), local M1 checkout /Users/casey.allard/uor-r4
+
+WHY THIS MEASUREMENT EXISTS
+  The previous experiment (`native_geometric_vsa_codebook_repair_2026-09-19.txt`) concluded
+  "negative for the repair", and explicitly marked the ROUTING role NOT_MEASURED because
+  `ablate-prose` scores the FULL vocabulary and therefore cannot see routing. That caveat was
+  load-bearing: it turns out to have been the wrong place to look.
+
+  The VSA context vector is also a routing input. `HierarchicalCodebook::
+  route_shortlist_q30_with_memory` (runtime.rs:1200) ranks coarse H4 sectors by the predicted
+  geometric state `s3` and selects FINE leaf buckets by comparing the context hypervector
+  against the bucket centroids. The codebook acts on the fine level — and that path was not
+  measured.
+
+COHERENCE REQUIREMENT MADE EXPLICIT
+  The artifact's stored `HierarchicalCodebook` centroids are bundles of the token vectors used
+  AT EXPORT TIME, i.e. the fixed `splitmix64(vsa_seed, token_id)` codes. Comparing a
+  root-derived query against those centroids is meaningless, so the `root` mode must REBUILD
+  the hierarchical codebook in the matching space (`HierarchicalCodebook::new`). A codebook
+  change without a matching rebuild would have measured an incoherent system.
+
+NEW INSTRUMENT
+  `crates/uor-r4-core/src/bin/shortlist-recall.rs`
+    * routes each position through the Voronoi leg only (empty seed list, isolating it from the
+      engram/induction seeds the served path also injects)
+    * reports routed-shortlist recall of the teacher-forced target, mean routed size, and the
+      mean routing rank of the target when present
+    * scores EXACTLY the routed candidates and reports `shortlistBPB` — routing plus scoring,
+      i.e. the served path — charging an unrouted target at `log2(vocab)` bits, because no
+      score can select a candidate that was never routed
+    * reports the mean Jaccard overlap of the two modes' routed sets, i.e. how much the codebook
+      changes routing at all
+
+ARTIFACT
+  .uor-models/native-geometric-prose-2026-09-19/native_geometric_prose_model_nocoarse.rgm
+  963,950 bytes, sha256 a25a87c4c5cdd5f7e6af1479273e29cc996d3cc78a1984315af8cf9b70a10a1b
+
+COMMAND
+  ./target/debug/shortlist-recall --model <artifact> --positions <n> --holdout-offset <off>
+
+OUTPUT (verbatim, key lines). Random 64-of-4096 shortlist floor = 1.56 %.
+
+Slice A, offset 0, 2,048 positions:
+  fixed   8.84%  size 64.0  rank 27.41  shortlistBPB 2.7169  unrouted 91.16%
+  root   11.18%  size 64.0  rank 24.89  shortlistBPB 2.6681  unrouted 88.82%
+  agreement: mean Jaccard 0.5316; identical shortlist on 2.9 % of positions
+
+Slice A, offset 0, 4,096 positions:
+  fixed   8.64%  rank 28.01  shortlistBPB 2.7636  unrouted 91.36%
+  root   10.72%  rank 25.22  shortlistBPB 2.7191  unrouted 89.28%
+  agreement: mean Jaccard 0.5317; identical shortlist on 2.9 % of positions
+
+Slice B, offset 40,960 (disjoint), 4,095 positions:
+  fixed   8.40%  rank 28.22  shortlistBPB 2.8297  unrouted 91.60%
+  root   10.94%  rank 23.67  shortlistBPB 2.7772  unrouted 89.06%
+  agreement: mean Jaccard 0.5267; identical shortlist on 3.0 % of positions
+
+RESULT — THE REPAIR DOES HELP, ON THE SERVED PATH
+  The `root` codebook is better on every routing metric, on both disjoint slices:
+
+  | metric                    | fixed     | root      | change            |
+  |---------------------------|-----------|-----------|-------------------|
+  | routed recall             | 8.4-8.8 % | 10.7-11.2 % | +2.1 to +2.5 pp |
+  | mean routing rank         | 27.4-28.2 | 23.7-25.2 | better by ~3-4 slots |
+  | served-path shortlist BPB | 2.72-2.83 | 2.67-2.78 | -0.045 to -0.053 |
+  | unrouted targets          | ~91.4 %   | ~89.1 %   | -2.3 pp           |
+
+  The codebook genuinely acts on routing: the two modes agree at only mean Jaccard ~0.53, with
+  identical shortlists on 3 % of positions.
+
+  This REVERSES the previous conclusion, and the reversal is direct evidence for the owner's D2
+  correction. Reading the fixed-hash ablation alone ("NEGLIGIBLE, mildly negative, class
+  enabler") would have invited retiring a mechanism that measurably improves the served path.
+  The full-vocabulary instrument could not see it by construction: it gives every position a
+  100 % candidate ceiling, so it is blind to anything that acts through candidate SELECTION
+  rather than through scoring.
+
+WHAT IS AND IS NOT CLAIMED
+  * CLAIMED: on the Voronoi routing leg, with the engram/induction seeds excluded, the root
+    codebook improves recall and served-path BPB by the amounts above, replicated on two
+    disjoint slices.
+  * NOT CLAIMED: the absolute numbers are not the model's served BPB. The Voronoi leg alone
+    routes only 9-11 % of targets; the real served path also injects up to 16 engram/induction
+    seeds, which this instrument deliberately excludes, and engram is the largest measured
+    count contributor (+0.2228 BPB when ablated). Only the DELTA between modes is meaningful.
+  * NOT CLAIMED: any capability or efficiency result. This is a routing-recall and loss
+    measurement on an already-open development slice.
+
+LIMITATIONS
+  * Single already-open development slice pair (tokens [0..4160) at 4,096 positions and
+    [40960..45120) at 4,095 positions); not a fresh draw. Same distribution, two disjoint
+    windows.
+  * The unrouted penalty `log2(vocab)` is a convention; a different convention changes the
+    absolute BPB but not the sign or rough size of the delta.
+  * Debug build. Softmax uses the serving sampler scale at temperature 1.0.
+  * `root` is NOT wired into serving. Doing so requires rebuilding the `HierarchicalCodebook`
+    at load (a serving-path change with a load-time cost) and an end-to-end serve verification
+    before it could become the default. Default remains `fixed`.
+  * The 9,984-case regression replay was not re-executed.
+
+NEXT
+  Wire the codebook mode as an artifact-level option (a reserved header byte plus a serde
+  default, so the format stays size-compatible), rebuild the hierarchical codebook at load when
+  selected, and verify end to end with `r4-native-chat` before changing the default.

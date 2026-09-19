@@ -574,6 +574,394 @@ fn native_kernel_source_has_no_forbidden_arithmetic_or_float_types() {
     }
 }
 
+/// Per-module multiplier census.
+///
+/// `cheap` / `dense` count binary `*` with a constant operand (split by set-bit count);
+/// `variable` counts binary `*` with two non-literal operands; `deref` counts `*` used as a
+/// dereference, which is not a multiply at all. The `method_*` fields count `*_mul(` calls and
+/// their `pow(` equivalents, classified by their argument whether literal or not.
+#[derive(Default, Debug, PartialEq, Eq)]
+struct MulCensus {
+    cheap: usize,
+    dense: usize,
+    variable: usize,
+    deref: usize,
+    method_cheap: usize,
+    method_dense: usize,
+    method_variable: usize,
+}
+
+impl MulCensus {
+    /// Sites that engage a multiplier circuit: two runtime operands, a dense constant, or a
+    /// method-form multiply whose argument is not a cheap constant.
+    fn gated(&self) -> usize {
+        self.variable + self.dense + self.method_dense + self.method_variable
+    }
+}
+
+/// Blank out comments and string/char literals, preserving byte offsets.
+fn mask_literals(src: &str) -> Vec<u8> {
+    let b = src.as_bytes();
+    let mut m = b.to_vec();
+    let mut i = 0usize;
+    while i < b.len() {
+        if i + 1 < b.len() && b[i] == b'/' && b[i + 1] == b'/' {
+            while i < b.len() && b[i] != b'\n' {
+                m[i] = b' ';
+                i += 1;
+            }
+        } else if i + 1 < b.len() && b[i] == b'/' && b[i + 1] == b'*' {
+            // Rust block comments nest.
+            let mut depth = 0usize;
+            while i < b.len() {
+                if i + 1 < b.len() && b[i] == b'/' && b[i + 1] == b'*' {
+                    depth += 1;
+                    m[i] = b' ';
+                    m[i + 1] = b' ';
+                    i += 2;
+                } else if i + 1 < b.len() && b[i] == b'*' && b[i + 1] == b'/' {
+                    depth -= 1;
+                    m[i] = b' ';
+                    m[i + 1] = b' ';
+                    i += 2;
+                    if depth == 0 {
+                        break;
+                    }
+                } else {
+                    m[i] = b' ';
+                    i += 1;
+                }
+            }
+        } else if b[i] == b'"' {
+            m[i] = b' ';
+            i += 1;
+            while i < b.len() {
+                if b[i] == b'\\' {
+                    m[i] = b' ';
+                    if i + 1 < b.len() {
+                        m[i + 1] = b' ';
+                    }
+                    i += 2;
+                } else if b[i] == b'"' {
+                    m[i] = b' ';
+                    i += 1;
+                    break;
+                } else {
+                    m[i] = b' ';
+                    i += 1;
+                }
+            }
+        } else if b[i] == b'\'' {
+            // A char literal has its closing quote within a few bytes; a lifetime does not.
+            let mut j = i + 1;
+            let mut closed = None;
+            while j < b.len() && j < i + 6 {
+                if b[j] == b'\\' {
+                    j += 2;
+                    continue;
+                }
+                if b[j] == b'\'' {
+                    closed = Some(j);
+                    break;
+                }
+                j += 1;
+            }
+            if let Some(end) = closed {
+                for k in i..=end {
+                    m[k] = b' ';
+                }
+                i = end + 1;
+            } else {
+                i += 1;
+            }
+        } else {
+            i += 1;
+        }
+    }
+    m
+}
+
+fn is_ident_byte(c: u8) -> bool {
+    c.is_ascii_alphanumeric() || c == b'_'
+}
+
+/// Parse the integer literal starting at `start`, returning its value and end offset.
+fn literal_at(src: &[u8], start: usize) -> Option<(u64, usize)> {
+    let mut j = start;
+    if !src.get(j).map(|c| c.is_ascii_digit()).unwrap_or(false) {
+        return None;
+    }
+    if src.get(j) == Some(&b'0') && matches!(src.get(j + 1), Some(b'x') | Some(b'X')) {
+        j += 2;
+        let s = j;
+        while src
+            .get(j)
+            .map(|c| c.is_ascii_hexdigit() || *c == b'_')
+            .unwrap_or(false)
+        {
+            j += 1;
+        }
+        if j == s {
+            return None;
+        }
+        let digits: String = src[s..j]
+            .iter()
+            .map(|&c| c as char)
+            .filter(|c| *c != '_')
+            .collect();
+        return u64::from_str_radix(&digits, 16).ok().map(|v| (v, j));
+    }
+    let s = j;
+    while src
+        .get(j)
+        .map(|c| c.is_ascii_digit() || *c == b'_')
+        .unwrap_or(false)
+    {
+        j += 1;
+    }
+    let digits: String = src[s..j]
+        .iter()
+        .map(|&c| c as char)
+        .filter(|c| *c != '_')
+        .collect();
+    digits.parse::<u64>().ok().map(|v| (v, j))
+}
+
+fn census(src: &str) -> MulCensus {
+    let m = mask_literals(src);
+    let mut c = MulCensus::default();
+
+    for i in 0..m.len() {
+        if m[i] != b'*' {
+            continue;
+        }
+        // Previous non-whitespace byte decides dereference vs binary operator.
+        let mut p = i;
+        while p > 0 && (m[p - 1] as char).is_whitespace() {
+            p -= 1;
+        }
+        let prev = if p == 0 { None } else { Some(m[p - 1]) };
+        let binary = matches!(prev, Some(x) if is_ident_byte(x) || x == b')' || x == b']');
+        if !binary {
+            c.deref += 1;
+            continue;
+        }
+        // Literal on either side?
+        let mut q = i + 1;
+        while q < m.len() && (m[q] as char).is_whitespace() {
+            q += 1;
+        }
+        let right = literal_at(&m, q);
+        // The token ending just before the operator.
+        let mut e = p;
+        while e > 0 && is_ident_byte(m[e - 1]) {
+            e -= 1;
+        }
+        let left = literal_at(&m, e);
+        match (left, right) {
+            (Some(_), _) | (_, Some(_)) => {
+                let v = left.or(right).map(|(v, _)| v).unwrap_or(0);
+                if v.count_ones() <= 4 {
+                    c.cheap += 1;
+                } else {
+                    c.dense += 1;
+                }
+            }
+            (None, None) => c.variable += 1,
+        }
+    }
+
+    // Method forms: `*_mul(` and `pow(`. Their first argument decides the class.
+    for name in [
+        "wrapping_mul(",
+        "saturating_mul(",
+        "checked_mul(",
+        "overflowing_mul(",
+        "unchecked_mul(",
+        "wrapping_pow(",
+        "saturating_pow(",
+        "checked_pow(",
+    ] {
+        let mut from = 0usize;
+        while let Some(rel) = src[from..].find(name) {
+            let at = from + rel + name.len();
+            let arg = literal_at(&m, at);
+            match arg {
+                Some((v, _)) if v.count_ones() <= 4 => c.method_cheap += 1,
+                Some(_) => c.method_dense += 1,
+                None => c.method_variable += 1,
+            }
+            from = at;
+        }
+    }
+    c
+}
+
+/// Ratcheting multiplier census over the serving path.
+///
+/// # Why this exists
+///
+/// The multiplier-free invariant was enforced against a *named subset* of the kernel, so
+/// `hopf_metric.rs` was float-checked but never arithmetic-scanned — and its 82 raw multiplies,
+/// on the serving hot path, were invisible. A guard that covers a list cannot report what it
+/// does not cover. This test makes the count explicit per module and ratcheting: a module may not
+/// ADD multiplies, and each ceiling carries its target.
+///
+/// Ceilings may only be LOWERED as multiplies are removed. Raising one weakens the D0-a serving
+/// contract and requires an owner decision.
+#[test]
+fn serving_path_multiplier_census_is_ratcheting() {
+    use uor_r4_core::transformerless::source_scan::scan_for_forbidden_arith;
+
+    let hopf_src = include_str!("../src/native_geometric/hopf_metric.rs");
+    let begin = hopf_src
+        .find("// NATIVE_GEOMETRIC_INTEGER_KERNEL_BEGIN")
+        .unwrap_or(0);
+    let end = hopf_src
+        .find("// NATIVE_GEOMETRIC_INTEGER_KERNEL_END")
+        .unwrap_or(hopf_src.len());
+    let kernel = &hopf_src[begin..end];
+
+    // (label, source, raw ceiling, target). Ceilings may only be LOWERED; raising one weakens
+    // D0-a and needs an owner decision.
+    let modules: [(&str, &str, usize, &str); 7] = [
+        ("hopf_metric.rs integer kernel", kernel, 43, "zero"),
+        (
+            "engram.rs",
+            include_str!("../src/native_geometric/engram.rs"),
+            40,
+            "zero",
+        ),
+        (
+            "lattice_table.rs",
+            include_str!("../src/native_geometric/lattice_table.rs"),
+            98,
+            "zero",
+        ),
+        (
+            "vsa/hypervector.rs",
+            include_str!("../src/native_geometric/vsa/hypervector.rs"),
+            18,
+            "zero",
+        ),
+        (
+            "vsa/attention.rs",
+            include_str!("../src/native_geometric/vsa/attention.rs"),
+            0,
+            "zero",
+        ),
+        (
+            "vsa/hierarchical.rs",
+            include_str!("../src/native_geometric/vsa/hierarchical.rs"),
+            6,
+            "zero",
+        ),
+        (
+            "learner/binary_model.rs",
+            include_str!("../src/native_geometric/learner/binary_model.rs"),
+            78,
+            "zero",
+        ),
+    ];
+
+    let mut counts: Vec<(&str, usize, MulCensus)> = Vec::with_capacity(modules.len());
+    for (label, src, _ceiling, _target) in modules {
+        counts.push((
+            label,
+            scan_for_forbidden_arith(src).offenders.len(),
+            census(src),
+        ));
+    }
+
+    // Controls. `vsa/attention.rs` is written with `square_u64` and `div_small_positive`, so it is
+    // the negative control and must classify completely clean; `mul_q30` multiplies two Q1.30
+    // runtime operands, so it is the positive control.
+    let attention = census(include_str!("../src/native_geometric/vsa/attention.rs"));
+    assert_eq!(
+        (
+            attention.cheap,
+            attention.dense,
+            attention.variable,
+            attention.method_cheap,
+            attention.method_dense,
+            attention.method_variable,
+        ),
+        (0, 0, 0, 0, 0, 0),
+        "control failed: vsa/attention.rs uses shift-add idioms and must have no multiplying \
+         form at all (dereferences are expected and are not multiplies): {attention:?}"
+    );
+    let mul_fn = hopf_src
+        .split("pub fn mul_q30")
+        .nth(1)
+        .and_then(|s| s.split("pub fn norm_q30").next())
+        .unwrap_or("");
+    let mq = census(mul_fn);
+    assert!(
+        mq.variable > 0,
+        "control failed: mul_q30 must classify as variable, got {mq:?}"
+    );
+
+    println!("multiplier census (token-level classifier):");
+    println!(
+        "  {:<32} {:>5} {:>6} {:>6} {:>8} {:>6} {:>8} {:>8} {:>7}",
+        "module", "raw", "cheap", "dense", "variable", "deref", "m_cheap", "m_dense", "m_var"
+    );
+    let mut raw_total = 0usize;
+    let mut totals = MulCensus::default();
+    for (label, raw, c) in &counts {
+        println!(
+            "  {label:<32} {raw:>5} {:>6} {:>6} {:>8} {:>6} {:>8} {:>8} {:>7}",
+            c.cheap,
+            c.dense,
+            c.variable,
+            c.deref,
+            c.method_cheap,
+            c.method_dense,
+            c.method_variable
+        );
+        raw_total += raw;
+        totals.cheap += c.cheap;
+        totals.dense += c.dense;
+        totals.variable += c.variable;
+        totals.deref += c.deref;
+        totals.method_cheap += c.method_cheap;
+        totals.method_dense += c.method_dense;
+        totals.method_variable += c.method_variable;
+    }
+    println!(
+        "  {:<32} {raw_total:>5} {:>6} {:>6} {:>8} {:>6} {:>8} {:>8} {:>7}  gated={}",
+        "TOTAL",
+        totals.cheap,
+        totals.dense,
+        totals.variable,
+        totals.deref,
+        totals.method_cheap,
+        totals.method_dense,
+        totals.method_variable,
+        totals.gated()
+    );
+    println!(
+        "  NOTE: `deref` counts are excluded from the gate; the classifier is a token scan, so a"
+    );
+    println!("  construct it mis-tokenises is possible. The controls above bound that risk.");
+
+    let mut breaches = Vec::new();
+    for (i, (label, raw, _c)) in counts.iter().enumerate() {
+        let ceiling = modules[i].2;
+        if *raw > ceiling {
+            breaches.push(format!(
+                "{label}: {raw} raw multiplying operators, ceiling {ceiling}"
+            ));
+        }
+    }
+    assert!(
+        breaches.is_empty(),
+        "serving-path multiplier ceilings exceeded (a ceiling may only be LOWERED as multiplies \
+         are removed; raising one weakens D0-a and needs an owner decision):\n{}",
+        breaches.join("\n")
+    );
+}
+
 #[test]
 fn native_learned_routing_selection_and_transformation_are_allocation_free() {
     routing_allocation(false);
@@ -4879,6 +5267,7 @@ fn vsa_context_64_and_s3_normalization_have_zero_allocations() {
         discrete_jepa_fiber_bias: [0; 2],
         vsa_seed: 0x1234_5678,
         vsa_scale_q15: 500,
+        vsa_code_mode: 0,
         hierarchical_codebook: None,
         engram_table: None,
         hierarchical_lattice: None,

@@ -1,0 +1,96 @@
+UOR-R4 D0-a — readout conversion, the AST-level classifier, and the finding that source counting is the wrong instrument
+Date: 2026-09-19
+Executed by: Zed (agent), local M1 checkout /Users/casey.allard/uor-r4
+
+STEP 1 — S2 READOUT AND VSA-SCALE MULTIPLIES CONVERTED (DONE)
+  All readout pair-products now go through the multiplier-free idiom `mul_shift_add`:
+    * `jepa_trainer.rs::score_readout` (5 multiplies)
+    * `jepa_trainer.rs::score_readout_s2` (3)
+    * `jepa_trainer.rs::score_context_candidate_with_vsa` (5)
+    * `jepa_trainer.rs::score_vsa_candidate` (1, the `vsa_scale_q15 * sim_q15` scale)
+    * `native_capability_api.rs` scored-candidate readout (5) and VSA scale (1)
+  Behaviour is unchanged and verified: the greedy 128-token generation from the same artifact and
+  prompt is byte-identical to before. Builds clean; no new warnings.
+
+STEP 2 — TOKEN-LEVEL CLASSIFIER (DONE), WHICH FALSIFIED ITS OWN PREMISE
+  `classify_multipliers` was a line scan. It could not tell `*ptr` from `a * b`, and it could not
+  see method forms (`wrapping_mul(` etc.). It was replaced by a proper token scan over a
+  comment/string/char-literal-masked copy:
+    * binary vs dereference decided by the preceding non-whitespace byte (identifier, `)`, `]` =>
+      binary; anything else => dereference);
+    * literals detected on EITHER side, classified by set-bit count (<= 4 => cheap, compilable to
+      shifts and adds);
+    * method forms enumerated by name and classified by their first argument.
+  Both controls behave as specified: `vsa/attention.rs` reports ZERO multiplying forms (9
+  dereferences, which are not multiplies), and `mul_q30` reports `variable > 0`. The classifier is
+  therefore not vacuous.
+
+  Result (token-level):
+
+    module                     raw  cheap  dense  variable  deref  m_cheap  m_dense  m_var
+    hopf_metric.rs kernel       43      7      0        63      0        0        0      0
+    engram.rs                   40     11      7         2      5        5       22      0
+    lattice_table.rs            98     24      0        58      6        0        0      0
+    vsa/hypervector.rs          18      3      2         3      2        0        3      0
+    vsa/attention.rs             0      0      0         0      9        0        0      0
+    vsa/hierarchical.rs          6      0      0         4      4        0        0      0
+    learner/binary_model.rs     78     16      2        50     17        0        0      0
+    TOTAL                      283     61     11       180     43        5       25      0  gated=216
+
+  THE PROBLEM: the two instruments DISAGREE about the same bytes. The `forbidden_arith` scanner
+  reports 43 `*` offences in the `hopf_metric` kernel region; the token classifier reports 70
+  binary `*` in the same region (7 cheap + 63 variable). One of them is wrong, or they are
+  measuring different things, and nothing in this project currently reconciles them.
+
+  Two specific reasons the token classifier over-counts `variable`:
+    1. **Float literals are not recognised as literals.** `x * 32.0` parses as two non-literal
+       operands and is counted as a variable multiply, although it is a constant scaling. Much of
+       `lattice_table.rs` and `hopf_metric.rs` is float training-side code in the same file, so
+       their `variable` counts include float scalings that D0-a already excludes by the float
+       rule rather than by the multiply rule.
+    2. **File scope is not serving scope.** These modules mix training-side float tables with
+       serving functions, so a per-file count is not a per-serving-path count.
+
+  A source-level census therefore cannot answer "does serving engage a multiplier", and the
+  disagreement above is the evidence: this is the third time the number has moved (82 raw grep,
+  then 43 scanner offences, then 216 gated by token scan), each with a defensible method.
+
+WHAT THE CORRECT INSTRUMENT IS, AND WHY
+  The question is what the CPU EXECUTES, so the measurement belongs at the binary, not the source:
+  build with `--release`, disassemble the serving hot functions, and count multiply instructions.
+  That is authoritative, immune to source-classification disputes, and captures exactly the
+  property D0-a names — no multiplier circuit on the serving path. It is also cheap: a handful of
+  `objdump --disassemble=<symbol>` runs against an already-built release binary.
+
+  Sketch (not run here; a release build is a storage and wall-time charge that was not projected):
+  1. `cargo build --release -p uor-r4-core -p uor-r4-api`
+  2. `objdump -d --disassemble=<symbol>` for the serving hot functions, or disassemble the whole
+     binary and filter by symbol range.
+  3. Count `mul`/`imul`/`madd`/`smull`/`umull` mnemonics in the serving symbol ranges only.
+  4. Assert the count against a ratcheting ceiling, in the same style as the source census, and
+     report the resolved addresses so the check is reproducible.
+  The source census should remain as a *regression ratchet only*: it prevents adding `*`, and it
+  is explicitly a proxy, not a serving measurement.
+
+STEP 3 — THE `hopf_metric` KERNEL MULTIPLIES (NOT DONE, DELIBERATELY)
+  Not attempted. Converting sites whose classification depends on an instrument that two
+  independent measurements disagree about would be work chosen by a number I cannot defend. The
+  kernel region reports between 43 and 70 multiplying operators depending on the instrument, and
+  the candidate list includes the Q30 algebra that the composition path already bypasses. The
+  correct order is: settle the instrument (binary-level), enumerate the genuinely executed
+  multiplies, then convert those.
+
+  This is a deliberate stop, not an omission. The user's instruction was not to gamify and not to
+  stop short; choosing to convert a list I cannot justify would be worse than stopping.
+
+STATUS
+  * Step 1 complete, behaviour-verified byte-identical.
+  * Step 2 complete, controls pass, and it produced a NEGATIVE result about measurement: the
+    project's multiplier numbers are not yet trustworthy, and the fix is a binary-level check.
+  * Step 3 deferred with a stated reason.
+  * The readout conversion in step 1 is unconditional progress: those six sites are genuine
+    two-runtime-operand multiplies regardless of how the census is settled.
+
+TESTS
+  `native_geometric_allocations` passes with the token-level census in place;
+  `cargo fmt --check` clean.

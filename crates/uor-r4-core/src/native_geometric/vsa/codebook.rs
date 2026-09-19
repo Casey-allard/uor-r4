@@ -41,6 +41,22 @@ impl<const WORDS: usize> Codebook<WORDS> {
         }
     }
 
+    /// Build a codebook from explicit per-token vectors.
+    ///
+    /// Used when the codes are derived from the model's learned representation rather than
+    /// generated from a hash of the token id. `get`/`get_ref` serve from the table; token ids
+    /// beyond its length fall back to deterministic generation from `seed`. Note the previous
+    /// limitation this exists to remove: a token-id hash is a fixed random function of the id,
+    /// so for distinct tokens `d_H ~= D/2` and the only recoverable signal is identity.
+    pub fn from_vectors(seed: u64, table: Vec<Hypervector<WORDS>>) -> Self {
+        let vocab_size = table.len();
+        Self {
+            seed,
+            vocab_size,
+            table,
+        }
+    }
+
     /// Retrieve the basis hypervector for a given token ID.
     ///
     /// If `token_id < table.len()`, returns by direct array lookup ($O(1)$).
