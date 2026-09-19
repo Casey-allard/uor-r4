@@ -1,0 +1,254 @@
+================================================================================
+RECEIPT — geometric addressed memory: achievable next-token ceiling on real text
+Date: 2026-09-19 (continuation session)
+Branch: codex/realtext-mechanism-ceiling   Base: main @ 52a485aa
+Tool:  crates/uor-r4-core/src/bin/geometric-realtext-ceiling.rs
+================================================================================
+
+PURPOSE
+-------
+The recorded, funded next block is "train the geometric core at V=4096, dv=128 for
+~2,000 steps" on real text (~65 min projected, 7,200,000 ms of the already-recorded
+2-hour real-text projection). Project trap #2 requires testing the REDUCED FORM of an
+idea before building it, so this measures what that training could possibly achieve
+before the budget is spent.
+
+The reduced form is information-theoretic, because the mechanism's context is fully
+determined by its addressing. From crates/uor-r4-core/src/native_geometric/learner/
+geometric_attention.rs:
+
+  * `element_table(vocab)` is `(0..vocab).map(|t| (t % RADIX) as u16)`   [L134-136]
+  * `from_f32` and `GeometricAttentionTrainer::new` both set
+    `elements: element_table(vocab)`                                     [L214, L688]
+  * `from_f32` rejects `order` outside {1, 2}                            [L200]
+  * the address is `Sum_k elements[ctx[k]] * 120^(order-1-k)`            [L316-323]
+
+So with `order = 2` the prediction at a position is a function of
+`(t-2 mod 120, t-1 mod 120)` — a 14,400-class coalescing of the two-token context.
+The best ANY predictor seeing only that context can do is the empirical conditional
+`P(next | residue pair)`. Its cross-entropy is a CEILING: a trained model with ternary
+weights, a power-of-two normalised read and dv-dimensional value vectors can only be
+worse. `elements` is fixed, not learned and not gradient-updated.
+
+ESTIMATOR, AND THE TWO DEFECTS THE CONTROLS CAUGHT
+--------------------------------------------------
+An invalid first version smoothed each context with add-1 over the 4096-token
+vocabulary. With a true order-2 context observed only ~16 times on average, the
+additive mass dominates, so the TRUE order-2 model scored 7.5891 bits/token while the
+order-1 model scored 6.2749 — impossible for a real bigram. That invalid instrument
+reported the residue context as recovering "102.28% of the true order-2 gain", i.e. a
+false positive FOR the mechanism, and its shuffle control compared a real-trained model
+against shuffled text instead of refitting. Both defects were caught by the controls
+before any headline was written — the pattern the handoff warns about (an artefact that
+initially looks like a mechanism result).
+
+The retained estimator is Jelinek-Mercer interpolation down a backoff chain
+(`true2 -> true1 -> unigram`, `res2 -> res1 -> unigram`), with the weights tuned by
+held-out perplexity on a validation split carved from the training documents (every 5th
+training document), and counts refit on the full training split. Maximum likelihood
+inside a level; the interpolated lower order supplies the floor.
+
+CONTROLS
+--------
+ 1. Monotonicity: true2 must beat true1 must beat unigram. (Holds; see below.)
+ 2. Shuffled corpus REFIT end to end: every model must collapse to the unigram floor.
+    (Exact: every control gain is 0.0000 bits/token, and tuning selects lambda = 0.)
+ 3. Vocabulary size and observations-per-context are printed, so sparsity is visible.
+ 4. The corpus is pinned by sha256 over the collected documents, in collection order.
+
+COMMANDS
+--------
+cargo build --release -p uor-r4-core --bin geometric-realtext-ceiling --offline
+./target/release/geometric-realtext-ceiling --corpus crates --held-every 10 \
+    --max-bytes 4194304 --seed 20260919
+./target/release/geometric-realtext-ceiling --corpus docs   --held-every 10 \
+    --max-bytes 4194304 --seed 20260919
+cargo test --release -p uor-r4-core --bin geometric-realtext-ceiling   (3 passed)
+
+Corpus 1: the repository's own Rust source (real text; includes this tool's own source,
+a genuine repository text file — a minor self-reference).
+Corpus 2: the repository's Markdown prose (independent of corpus 1).
+No instruction corpus exists locally (searched .uor-models); see LIMITS.
+
+================================================================================
+OUTPUT — corpus 1: crates/  (source code)
+================================================================================
+=== geometric addressed-memory: achievable next-token ceiling on real text ===
+tokenizer    : /Users/casey.allard/uor-r4/.uor-models/sources/smollm2-135m-instruct/tokenizer.json
+corpus       : crates
+vocab target : 4096
+held_every   : 10
+max_bytes    : 4194304
+tokenizer    : derived vocab = 4096 tokens
+corpus digest: sha256:8d90d51ebffe59c292206ffcfdc77b5d08fec1dd34b5e8f73da3001a327d5c43 (133 documents)
+corpus       : documents=133 tokens=1635489 (fit=1199651 val=281214 held=154624)  tokenized in 0.1s
+
+--- real text ---
+contexts: res1=120 (mean 9996.3 obs) res2=13726 (mean 87.4) true1=2939 (mean 408.2) true2=73852 (mean 16.2)
+model   context                                     lambda          bits/token   top1
+unigram none                                        -               8.7520  0.0517
+res1    t-1 mod 120                                 0.9             6.5785  0.1257
+res2    (t-2 mod 120, t-1 mod 120)  [MECHANISM]     0.8,0.7         5.0019  0.3275
+true1   t-1                                         0.9             5.1736  0.2528
+true2   (t-2, t-1)                                  0.7,0.8         4.1573  0.4254
+bits/byte (held bytes = 389618):
+  unigram 3.4727 bits/byte
+  res1    2.6103 bits/byte
+  res2    1.9847 bits/byte
+  true1   2.0528 bits/byte
+  true2   1.6496 bits/byte
+
+mechanism (res2) gain over unigram   : 3.7501 bits/token
+res1 gain over unigram               : 2.1735 bits/token
+extra gain from the 2nd residue (res2-res1): 1.5766 bits/token
+true1 gain over unigram              : 3.5784 bits/token
+true2 gain over unigram              : 4.5947 bits/token
+extra gain from true 2nd token (true1-true2): 1.0163 bits/token
+residue context recovers             : 81.62% of the true order-2 gain
+
+--- control: shuffled corpus (refit) ---
+contexts: res1=120 (mean 9734.5 obs) res2=14398 (mean 81.1) true1=2992 (mean 390.4) true2=345643 (mean 3.4)
+model   context                                     lambda          bits/token   top1
+unigram none                                        -               8.6736  0.0490
+res1    t-1 mod 120                                 0.0             8.6736  0.0490
+res2    (t-2 mod 120, t-1 mod 120)  [MECHANISM]     0.0,0.0         8.6736  0.0372
+true1   t-1                                         0.0             8.6736  0.0475
+true2   (t-2, t-1)                                  0.0,0.0         8.6736  0.0244
+bits/byte (held bytes = 441661):
+  unigram 3.3801 bits/byte
+  res1    3.3801 bits/byte
+  res2    3.3801 bits/byte
+  true1   3.3801 bits/byte
+  true2   3.3801 bits/byte
+
+control gains (expect ~0):
+  res2 0.0000 | res1 0.0000 | true1 0.0000 | true2 0.0000 bits/token
+
+elapsed: 23.9s
+scope: fixed element(token)=token%120, order<=2 — the mechanism AS CONFIGURED. Not a verdict on the geometric architecture; learned packaging is untested here.
+
+================================================================================
+OUTPUT — corpus 2: docs/  (Markdown prose)
+================================================================================
+=== geometric addressed-memory: achievable next-token ceiling on real text ===
+tokenizer    : /Users/casey.allard/uor-r4/.uor-models/sources/smollm2-135m-instruct/tokenizer.json
+corpus       : docs
+vocab target : 4096
+held_every   : 10
+max_bytes    : 4194304
+tokenizer    : derived vocab = 4096 tokens
+corpus digest: sha256:86c5ac7fefe45f176a9f461bf303530127f58d1a09f11ba0879ef1e12b47fce3 (188 documents)
+corpus       : documents=188 tokens=1660814 (fit=1205912 val=283378 held=171524)  tokenized in 0.2s
+
+--- real text ---
+contexts: res1=120 (mean 10048.1 obs) res2=14357 (mean 84.0) true1=3524 (mean 342.2) true2=150067 (mean 8.0)
+model   context                                     lambda          bits/token   top1
+unigram none                                        -               9.0957  0.0291
+res1    t-1 mod 120                                 0.9             7.3446  0.0863
+res2    (t-2 mod 120, t-1 mod 120)  [MECHANISM]     0.6,0.7         5.9546  0.2359
+true1   t-1                                         0.9             5.7979  0.2099
+true2   (t-2, t-1)                                  0.5,0.8         4.8955  0.3545
+bits/byte (held bytes = 429784):
+  unigram 3.6292 bits/byte
+  res1    2.9305 bits/byte
+  res2    2.3759 bits/byte
+  true1   2.3134 bits/byte
+  true2   1.9533 bits/byte
+
+mechanism (res2) gain over unigram   : 3.1410 bits/token
+res1 gain over unigram               : 1.7510 bits/token
+extra gain from the 2nd residue (res2-res1): 1.3900 bits/token
+true1 gain over unigram              : 3.2978 bits/token
+true2 gain over unigram              : 4.2002 bits/token
+extra gain from true 2nd token (true1-true2): 0.9024 bits/token
+residue context recovers             : 74.78% of the true order-2 gain
+
+--- control: shuffled corpus (refit) ---
+contexts: res1=120 (mean 9937.3 obs) res2=14400 (mean 82.8) true1=3532 (mean 337.6) true2=446072 (mean 2.7)
+model   context                                     lambda          bits/token   top1
+unigram none                                        -               9.1080  0.0272
+res1    t-1 mod 120                                 0.0             9.1080  0.0265
+res2    (t-2 mod 120, t-1 mod 120)  [MECHANISM]     0.0,0.0         9.1080  0.0209
+true1   t-1                                         0.0             9.1080  0.0253
+true2   (t-2, t-1)                                  0.0,0.0         9.1080  0.0147
+bits/byte (held bytes = 423337):
+  unigram 3.6104 bits/byte
+  res1    3.6104 bits/byte
+  res2    3.6104 bits/byte
+  true1   3.6104 bits/byte
+  true2   3.6104 bits/byte
+
+control gains (expect ~0):
+  res2 0.0000 | res1 0.0000 | true1 0.0000 | true2 0.0000 bits/token
+
+elapsed: 26.6s
+scope: fixed element(token)=token%120, order<=2 — the mechanism AS CONFIGURED. Not a verdict on the geometric architecture; learned packaging is untested here.
+
+================================================================================
+WHAT THIS MEASURES
+================================================================================
+The structural prediction made before running was that `token % 120` is an arbitrary
+~34:1 coalescing of the vocabulary, so the residue context should retain almost none of
+the bigram's signal. THE MEASUREMENT CONTRADICTS THAT PREDICTION.
+
+  corpus 1 (source)  res2 5.0019 bits/token (1.9847 bits/byte) vs true2 4.1573 (1.6496)
+  corpus 2 (prose)   res2 5.9546 bits/token (2.3759 bits/byte) vs true2 4.8955 (1.9533)
+
+The order-2 residue context recovers 81.6 % (source) and 74.8 % (prose) of the true
+order-2 gain over the unigram. Two residues also beat or match one real token
+(res2 5.0019 vs true1 5.1736 on source; res2 5.9546 vs true1 5.7979 on prose).
+
+The plausible cause is frequency skew, and it is a hypothesis, not a measurement: token
+ids are assigned in merge order, so they correlate with frequency; token frequency is
+heavily skewed, so each 120-residue class is dominated by one or two high-frequency
+tokens and acts as a noisy proxy for that token. Consistently, the residue levels are
+far better sampled than the true levels (res2 mean 87.4 vs true2 mean 16.2 obs) yet the
+true levels still win.
+
+CONSEQUENCE FOR THE FUNDED BLOCK
+--------------------------------
+The reduced form does NOT kill the block. It gives it a quantitative target band: a
+trained geometric core at V=4096, dv=128, order=2 should be compared against
+res2 = 5.00 bits/token (source) / 5.95 (prose), i.e. ~1.98 / ~2.38 bits/byte, and
+against true2 = 4.16 / 4.90 (1.65 / 1.95 bits/byte) as the ceiling of the context it has.
+
+COST RE-PROJECTION (arithmetic, NOT a measurement — flagged for the owner)
+-------------------------------------------------------------------------
+The recorded projection for the run is ~1,800 s for 2,000 steps x batch 32 x 64 tokens
+= 4,096,000 tokens. The project's own counted per-token readout at dv=64 is 262,144 ops
+(EVIDENCE 2026-09-19, op-count row); at dv=128 it doubles to 524,288 ops. 4.096e6 x
+5.24e5 = 2.15e12 forward-readout operations alone. The projected 1,800 s corresponds to
+~1.2e9 scalar ops/s sustained, which leaves no room for the backward pass (comparable
+magnitude again), Adam over 2 x vocab x dv = 1.05e6 weights, the write path, or the
+state zeroing (n_addr x dv = 1.84e6 ints per sequence), and scalar Rust indexed loops
+are typically below that rate. The run is therefore plausibly 3-10x the recorded
+projection, and the remaining ledger (~132 min) may not cover 2,000 steps at this
+configuration. This is arithmetic, not timing; a measured step-time probe should
+precede spending the block.
+
+LIMITS
+------
+* A CEILING, not a model result. It is the best achievable predictor from the residue
+  context. The trained core uses ternary weights, a power-of-two normalised read and
+  dv=128 value vectors over a 4096-token readout, so the trained model can only be
+  worse; the gap is unmeasured.
+* The mechanism as currently configured only (fixed `element(token) = token % 120`,
+  order <= 2). Learned packaging of the element assignment is the architecture
+  document's own named next step and is NOT tested here. This is not a verdict on the
+  geometric architecture.
+* No instruction corpus exists locally. Two real-text corpora were used instead
+  (repository source and Markdown). The direction of the result is the same on both.
+* Bits/byte is reported in the project's unit but is NOT comparable to the shipped
+  artifact's recorded 1.7989 BPB: different corpus, tokenizer, and model.
+* No trained model, no generation, no chat capability, and no language ability is
+  claimed. Nothing here is a claim about serving.
+* Energy per token remains UNAVAILABLE. No multiplier claim is made for the new module;
+  serving_multiplier_check.py was not run on it.
+* Storage: text only. No model artifact. 128 MiB stop margin untouched. No deletion,
+  no cleanup, no paid or external compute.
+
+RELATED
+-------
+docs/integration/geometric-core-architecture-2026-09-19.md  (element assignment = fixed; learned packaging proposed)
+docs/integration/current-state.md                            (testbed-exhaustion entry; the real-text path)
+docs/integration/resource-ledger-2026-09-19.md               (projection + charge)

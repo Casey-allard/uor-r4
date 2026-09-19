@@ -281,3 +281,60 @@ model-storage stop margin is untouched**; no deletion, no cleanup, no paid or ex
 No destructive deletion, no cleanup of prior artifacts, no paid compute. The 2026-09-18
 training figure remains unverified and should be replaced with the real elapsed time if a
 receipt is located; that would be a correcting entry, not a rewrite of this one.
+
+## Projection recorded before use — real-text mechanism ceiling (2026-09-19, continuation)
+
+**Reason.** The funded real-text block (`7,200,000 ms` recorded above, unspent) is specified as
+"train the geometric core at `V=4096`, `dv=128` for ~2,000 steps". Inspection of the mechanism
+before running it shows what that training would actually measure:
+
+* `GeometricAttention::from_f32` sets `elements = element_table(vocab)` and
+  `element_table` is `(0..vocab).map(|t| (t % RADIX) as u16)` — i.e. **`element(token) = token_id % 120`,
+  fixed and not learned** (`learner/geometric_attention.rs`);
+* `order` is restricted to `1` or `2` (`from_f32` returns `Err` otherwise);
+* the address is `Σ_k elements[ctx[k]] · 120^(order-1-k)` over the last `order` tokens.
+
+So at `V=4096` with `order=2` the mechanism's entire context is the **last two tokens' residues
+mod 120** — a `120² = 14,400`-class coalescing of a `4096²≈1.7e7`-class context space, i.e. ~34
+tokens share each residue. Project trap #2 requires testing the **reduced form** of an idea before
+building it, so this block measures the mechanism's *achievable ceiling* on real text
+(`H(next) − H(next | residue pair)`) before the training budget is spent. This is a bound, not a
+verdict: it scopes to the mechanism **as currently configured**, and `learned packaging` of the
+element assignment is already the architecture document's named next step.
+
+**Projection.**
+
+| Item | Estimate |
+|---|---|
+| Derive a 4096-vocabulary tokenizer from the local `tokenizer.json` (Rust) | engineering |
+| Tokenize a real (non-TinyStories) corpus and pack `u16` | engineering |
+| Build + run the ceiling measurement (release), including controls | ~300 s |
+| **Total projected** | **~900 s (15 min)** |
+
+**No new extension is used.** This draws on the already-recorded `7,200,000 ms` real-text
+projection; cumulative is unchanged at `146,178,565 ms` until the run is charged.
+
+**Storage.** Text only; no model artifact. The **128 MiB model-storage stop margin is untouched**;
+no deletion, no cleanup, no paid or external compute.
+
+## Charges recorded — real-text mechanism ceiling (2026-09-19, continuation)
+
+| Date | Work | Charge | Basis |
+|---|---|---:|---|
+| 2026-09-19 | Reduced-form ceiling measurement: new Rust bin, release build, five runs over two corpora (including the invalid add-1 version), three focused tests | 260,000 ms | **Measured.** ~221 s: `cargo check` 14 s; first release build 100 s; incremental rebuilds ~4 s; runs 0.7 + 24.1 + 26.4 + 23.9 + 26.6 s; test build/run ~1 s. Rounded up for formatting and overhead. |
+
+**New cumulative: 146,438,565 ms.** Remaining: 154,400,000 − 146,438,565 = **7,961,435 ms (~132.7 min)**.
+
+**Drawn from the already-recorded real-text projection** (`7,200,000 ms`); no new extension. No
+model artifact was created; the new tracked files are text (one Rust bin, one receipt, three document
+edits). The **128 MiB model-storage stop margin is untouched**; no deletion, no cleanup, no paid or
+external compute.
+
+**Cost re-projection recorded (arithmetic from op counts, NOT a timing measurement).** From the
+project's own counted readout — 262,144 ops/token at `dv=64`, doubling to 524,288 at `dv=128` — and
+the projected 4,096,000 tokens (`2,000 × 32 × 64`), the forward readout alone is 2.15e12 operations.
+The recorded 1,800 s corresponds to ~1.2e9 scalar ops/s sustained, leaving no room for the backward
+pass, Adam over `2 × vocab × dv` weights, the write path or the 1.84e6-int per-sequence state clear.
+The run is therefore plausibly **3–10× the recorded projection**, and the ~132.7 min remaining may
+not cover 2,000 steps at `V=4096`, `dv=128`. **A measured step-time probe should precede spending
+the block; the run length should be chosen from a timing, not from the 1,800 s projection.**

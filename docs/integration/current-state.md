@@ -1,5 +1,33 @@
 # Current native geometric AI work
 
+## The reduced form says BUILD IT: the order-2 residue context carries most of the bigram signal — September 19, 2026
+
+**THE FUNDED REAL-TEXT BLOCK WAS ABOUT TO BE SPENT WITHOUT KNOWING WHAT IT COULD POSSIBLY MEASURE. THE REDUCED FORM WAS TESTED FIRST, IT CONTRADICTED THE STRUCTURAL PRIOR, AND IT TURNED THE BLOCK FROM DOUBTFUL INTO TARGETED.**
+
+Before spending the recorded 2-hour real-text projection on "train the geometric core at `V=4096`, `dv=128` for ~2,000 steps", the mechanism's addressing was inspected. It is fixed and not learned: `element_table` is `token_id % 120` (`learner/geometric_attention.rs`), both `from_f32` and `GeometricAttentionTrainer::new` set `elements` from it, and `order` is restricted to `{1, 2}`. So at `order = 2` the entire prediction context is `(t-2 mod 120, t-1 mod 120)` — a `120² = 14,400`-class coalescing of the two-token context, ~34 tokens per residue. Trap #2 requires the reduced form before the build, and here the reduced form is information-theoretic: the best any predictor can do from that context, so a **ceiling** on what any amount of training of this mechanism can reach.
+
+**Two estimator defects caught by the controls, one of which would have been a false positive for the mechanism.** A first version smoothed each context with add-1 over 4,096 tokens. With true order-2 contexts observed ~16 times on average the additive mass dominates, so the *true* bigram scored **worse** than the unigram-plus-one-token model (`true2` 7.5891 vs `true1` 6.2749 bits/token) — impossible for a real bigram — and the invalid instrument reported the residue context as recovering **"102.28 %"** of the true order-2 gain. Its shuffle control also compared a real-trained model against shuffled text instead of refitting. Both were fixed: Jelinek–Mercer interpolation down a backoff chain with weights tuned on a validation split, and a shuffled corpus **refit end to end**.
+
+**Measured.** Two real corpora (the repository's own source, and its Markdown prose), 4 MiB each, corpus pinned by sha256, held out every 10th document:
+
+```
+corpus 1 (source)  unigram 8.7520 | res1 6.5785 | res2 5.0019 | true1 5.1736 | true2 4.1573   bits/token
+                   bits/byte: unigram 3.4727 res1 2.6103 res2 1.9847 true1 2.0528 true2 1.6496
+corpus 2 (prose)   unigram 9.0957 | res1 7.3446 | res2 5.9546 | true1 5.7979 | true2 4.8955   bits/token
+                   bits/byte: unigram 3.6292 res1 2.9305 res2 2.3759 true1 2.3134 true2 1.9533
+control (shuffled corpus, refit): every gain 0.0000 bits/token; tuning selects lambda = 0
+```
+
+**The structural prior was wrong.** It predicted a ~34:1 coalescing would destroy the context. Instead the residue pair recovers **81.6 % (source) and 74.8 % (prose)** of the true order-2 gain, and two residues match or beat one real token. The hypothesis — unmeasured — is frequency skew: ids are assigned in merge order, so they correlate with frequency, so each residue class is dominated by one or two frequent tokens and acts as a noisy proxy for that token. Consistently the residue contexts are far better sampled (res2 mean 87.4 vs true2 mean 16.2 obs) yet the true levels still win. **This is a ceiling**: ternary weights, a power-of-two normalised read and `dv = 128` value vectors over a 4,096-token readout can only be worse, and the gap is unmeasured.
+
+**What this changes.** The funded block is **not** killed; it now has a target band — compare the trained core against `res2` = 5.00 bits/token / 1.98 bits/byte (source) and 5.95 / 2.38 (prose), with `true2` = 4.16 / 1.65 and 4.90 / 1.95 as the ceiling of the context it actually has. **And it exposes a cost problem the recorded projection does not carry.** From the project's own counted readout (262,144 ops/token at `dv=64`, doubling to 524,288 at `dv=128`) and 4.096e6 tokens, the forward readout alone is 2.15e12 operations; the recorded 1,800 s corresponds to ~1.2e9 scalar ops/s sustained with no room for the backward pass, Adam over `2 × vocab × dv` weights, the write path or the 1.84e6-int state clear. The run is plausibly **3–10× the recorded projection**, and the ~132 min remaining may not cover 2,000 steps at this configuration. That figure is arithmetic from op counts, not a timing measurement.
+
+**State.** New tool `crates/uor-r4-core/src/bin/geometric-realtext-ceiling.rs`; `cargo fmt --check` clean; 3 focused tests pass (truncation keeps exactly the dense prefix and its merges; an over-large request is rejected; a non-dense prefix is rejected). Nothing regressed; no model artifact was created.
+
+**Next action.** (1) A measured step-time probe of `GeometricAttentionTrainer` at `V=4096`, `dv=128`, `order=2` before any block is spent, so the run length is chosen from a timing and not from the 1,800 s projection. (2) Then the real-text harness (`u16` packing already exists via `mmap_corpus`; the 4096 tokenizer derivation is now in the new tool) and the run, against the band above. (3) `learned packaging` of the element assignment remains the mechanism fix if the trained model falls far below the ceiling.
+
+**Receipt:** [`native_geometric_realtext_ceiling_2026-09-19.txt`](../evidence/native_geometric_realtext_ceiling_2026-09-19.txt).
+
 ## The synthetic-task well is exhausted as an instrument; the real-text path is next — September 19, 2026
 
 **THREE CONSECUTIVE MECHANISMS CONVERGE ON THE SAME CONCLUSION, AND IT IS A PROPERTY OF THE TESTBED.**
