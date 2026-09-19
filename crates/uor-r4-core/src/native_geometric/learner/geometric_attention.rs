@@ -154,6 +154,49 @@ pub fn word_address(elements: &[u16], order: usize) -> usize {
     a
 }
 
+/// Padding token for a prefix shorter than `order`.
+///
+/// The served path, `sequence_loss` and the trainer must agree on how an under-length prefix is
+/// addressed, so this is the single definition of that behaviour. It is `0`, which preserves the
+/// behaviour that wrapping release arithmetic previously produced by accident, and it is named so
+/// the choice is explicit rather than an artefact of an underflow.
+pub const PAD_TOKEN: u32 = 0;
+
+/// The `order`-token word ending at position `i` inclusive, **left-padded** with [`PAD_TOKEN`].
+///
+/// The index is computed with checked arithmetic: `i + 1 - order` underflows for `i < order - 1`,
+/// which panicked under overflow checks and silently wrapped in release. A short prefix now pads,
+/// so overflow-checked debug builds and wrapping release builds agree.
+pub fn word_ending_at(tokens: &[u32], i: usize, order: usize) -> Vec<u32> {
+    (0..order)
+        .map(|k| {
+            let back = order - k; // 1..=order
+            i.checked_add(1)
+                .and_then(|end| end.checked_sub(back))
+                .and_then(|idx| tokens.get(idx))
+                .copied()
+                .unwrap_or(PAD_TOKEN)
+        })
+        .collect()
+}
+
+/// The trailing `order`-token word of `tokens`, **left-padded** with [`PAD_TOKEN`].
+///
+/// Same contract as [`word_ending_at`] at `i = len - 1`; kept separate because the padded case is
+/// the common one at the start of a sequence.
+pub fn tail_word_of(tokens: &[u32], order: usize) -> Vec<u32> {
+    let len = tokens.len();
+    (0..order)
+        .map(|k| {
+            let back = order - k; // 1..=order
+            len.checked_sub(back)
+                .and_then(|idx| tokens.get(idx))
+                .copied()
+                .unwrap_or(PAD_TOKEN)
+        })
+        .collect()
+}
+
 /// Serving form of the geometric attention core.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GeometricAttention {
@@ -385,15 +428,10 @@ impl GeometricAttention {
         }
     }
 
-    /// The word ending at the final token (padded with zero if the prompt is shorter than `order`).
+    /// The word ending at the final token, left-padded with [`PAD_TOKEN`] when the prefix is shorter
+    /// than `order`. See [`tail_word_of`] for the padding contract.
     fn tail_word(&self, tokens: &[u32]) -> Vec<u32> {
-        let len = tokens.len();
-        let mut w = Vec::with_capacity(self.order);
-        for k in 0..self.order {
-            let idx = len + k - self.order;
-            w.push(tokens.get(idx).copied().unwrap_or(0));
-        }
-        w
+        tail_word_of(tokens, self.order)
     }
 
     /// Write the vocabulary as a dictionary keyed by **meaning**: `S[elem(t)] += value(t)`.
@@ -561,12 +599,7 @@ impl GeometricAttention {
                 }
                 s[cbase + a] += 1.0;
             }
-            let ctx: Vec<u32> = (0..order)
-                .map(|k| {
-                    let idx = i + k + 1 - order;
-                    tokens.get(idx).copied().unwrap_or(0)
-                })
-                .collect();
+            let ctx = word_ending_at(tokens, i, order);
             let a = self.address(&ctx);
             let mut num = if self.order == 1 {
                 self.graded_read_f32(&s, a)
@@ -736,15 +769,10 @@ impl GeometricAttentionTrainer {
         a
     }
 
-    /// The word ending at position `i` (padded with zero on the left).
+    /// The word ending at position `i`, left-padded with [`PAD_TOKEN`]. See [`word_ending_at`].
     #[inline]
     fn word_at(&self, tokens: &[u32], i: usize) -> Vec<u32> {
-        (0..self.order)
-            .map(|k| {
-                let idx = i + k + 1 - self.order;
-                tokens.get(idx).copied().unwrap_or(0)
-            })
-            .collect()
+        word_ending_at(tokens, i, self.order)
     }
 
     /// The ternary harmonic filter actually used in the read.
@@ -823,6 +851,9 @@ impl GeometricAttentionTrainer {
         let (qo, so) = quantize_codes(&self.wo, self.vocab, self.dv);
         let cbase = self.n_addr * self.dv;
         let need = cbase + self.n_addr;
+        // Sequence normalization, applied exactly once: at `g = p * inv` below. Every gradient term
+        // downstream of that already carries it. The batch mean is applied separately in
+        // `normalize_and_clip`, so `inv` must not appear again in the value or kernel gradients.
         let inv = 1.0f32 / (n - 1) as f32;
 
         if self.scratch.len() != need {
@@ -1022,7 +1053,10 @@ impl GeometricAttentionTrainer {
                         acc += dm[j] * st[bl + j];
                         self.dscratch[bl + j] += (kern[c] as f32) * dm[j];
                     }
-                    self.gkernel[c] += acc * inv;
+                    // `acc` is already the mean-loss gradient: `g = p * inv` above applied the
+                    // sequence normalization to every downstream term. Multiplying by `inv` again
+                    // rescales the filter gradient by 1/(n-1) relative to the readout.
+                    self.gkernel[c] += acc;
                     self.touched.push(g as u32);
                 }
             } else {
@@ -1038,7 +1072,9 @@ impl GeometricAttentionTrainer {
                 let wbase = wa * self.dv;
                 let t = (tokens[i] as usize).min(self.vocab - 1);
                 for j in 0..self.dv {
-                    self.gwv[t * self.dv + j] += self.dscratch[wbase + j] * inv;
+                    // As for the kernel: `dscratch` already carries the mean normalization from
+                    // `g = p * inv`, so no second `inv` is applied here.
+                    self.gwv[t * self.dv + j] += self.dscratch[wbase + j];
                 }
             }
         }
@@ -1360,7 +1396,7 @@ mod tests {
 
         let run = |corrupt_frac: f32| -> (Vec<i8>, f32, f32) {
             let mut t = GeometricAttentionTrainer::new(RADIX, 64, 1, 6, 2026_0919).expect("build");
-            t.cfg.lr = 0.05;
+            t.cfg.lr = 0.15;
             t.corrupt_frac = corrupt_frac;
             for _ in 0..900 {
                 t.train_batch(&train);
@@ -1414,7 +1450,7 @@ mod tests {
         let held = repeat_alphabet(0x0BAD_F00D, 64, k, 8);
         let run = |class_filter: bool| -> (usize, usize, f32) {
             let mut t = GeometricAttentionTrainer::new(RADIX, 64, 1, 6, 2026_0919).expect("build");
-            t.cfg.lr = 0.05;
+            t.cfg.lr = 0.5;
             t.set_class_filter(class_filter);
             for _ in 0..900 {
                 t.train_batch(&train);
@@ -1477,7 +1513,7 @@ mod tests {
     ) -> Vec<Vec<u32>> {
         let table = group_table();
         let mut st = seed | 1;
-        let mut drawn = |st: &mut u64, m: u64| -> usize {
+        let drawn = |st: &mut u64, m: u64| -> usize {
             *st ^= *st << 13;
             *st ^= *st >> 7;
             *st ^= *st << 17;
@@ -2135,5 +2171,486 @@ mod tests {
                 "an ordered-word address must copy a {k}-token repeated context, got {acc:.2}"
             );
         }
+    }
+
+    // -----------------------------------------------------------------------
+    // Causal-state qualification. These fixtures run under overflow checks, so
+    // wrapping arithmetic cannot be what defines short-prefix behaviour.
+    // -----------------------------------------------------------------------
+
+    use std::collections::HashMap;
+
+    fn dot(a: &[f64], b: &[f64]) -> f64 {
+        a.iter().zip(b).map(|(x, y)| x * y).sum()
+    }
+
+    /// Independent f64 softmax, so the gradient reference does not reuse the trainer's.
+    fn ref_softmax(logits: &[f64]) -> Vec<f64> {
+        let m = logits.iter().fold(f64::NEG_INFINITY, |a, &b| a.max(b));
+        let e: Vec<f64> = logits.iter().map(|v| (v - m).exp()).collect();
+        let s: f64 = e.iter().sum();
+        e.iter().map(|v| v / s).collect()
+    }
+
+    fn grads_match(actual: &[f32], reference: &[f64]) -> bool {
+        actual
+            .iter()
+            .zip(reference)
+            .all(|(a, b)| ((*a as f64) - b).abs() <= 1e-3 * (1.0 + b.abs()))
+    }
+
+    fn addr_of(elements: &[u16], vocab: usize, ctx: &[u32]) -> usize {
+        let mut a = 0usize;
+        for k in 0..2 {
+            a = a * RADIX + elements[(ctx[k] as usize).min(vocab - 1)] as usize;
+        }
+        a
+    }
+
+    fn shift_for(norm_bits: u32, m: f64) -> u32 {
+        if norm_bits > 0 && m >= 1.0 {
+            (32 - (m as u32).leading_zeros()).saturating_sub(norm_bits)
+        } else {
+            0
+        }
+    }
+
+    /// Analytic reference for the declared **mean-loss** STE at `order = 2`.
+    ///
+    /// Freezes the trainer's conventions (ternary codes with a per-row power-of-two scale, an STE
+    /// through the bit-scan normalisation, the unquantised master treated as the effective weight)
+    /// and derives `d(mean loss)/d theta` by the chain rule in closed form: the value gradient is a
+    /// suffix sum over later reads at the same address. It never calls the trainer's backward pass
+    /// and it does not finite-difference the quantised forward, which would be invalid.
+    fn reference_order2(
+        elements: &[u16],
+        wv: &[f32],
+        wo: &[f32],
+        vocab: usize,
+        dv: usize,
+        norm_bits: u32,
+        seq: &[u32],
+    ) -> (Vec<f64>, Vec<f64>) {
+        let (qv, sv) = quantize_codes(wv, vocab, dv);
+        let (qo, so) = quantize_codes(wo, vocab, dv);
+        let n = seq.len();
+        let inv = 1.0f64 / (n - 1) as f64;
+
+        let mut buckets: HashMap<usize, Vec<f64>> = HashMap::new();
+        let mut read_addr = Vec::new();
+        let mut read_dec = Vec::new();
+        let mut read_num: Vec<Vec<f64>> = Vec::new();
+        for i in 0..n - 1 {
+            if i >= 2 {
+                let ta = addr_of(elements, vocab, &seq[i - 2..i]);
+                let t = (seq[i] as usize).min(vocab - 1);
+                let e = buckets.entry(ta).or_insert_with(|| vec![0.0; dv]);
+                for j in 0..dv {
+                    e[j] += (qv[t * dv + j] as f64) * (sv[t] as f64);
+                }
+            }
+            let a = addr_of(elements, vocab, &word_ending_at(seq, i, 2));
+            let raw = buckets.get(&a).cloned().unwrap_or_else(|| vec![0.0; dv]);
+            let m = raw.iter().fold(0.0f64, |m, v| m.max(v.abs()));
+            let dec = 1.0f64 / (1u64 << shift_for(norm_bits, m)) as f64;
+            read_addr.push(a);
+            read_dec.push(dec);
+            read_num.push(raw.iter().map(|v| (v * dec).floor()).collect());
+        }
+
+        let mut gwo = vec![0.0f64; vocab * dv];
+        let mut gwv = vec![0.0f64; vocab * dv];
+        let mut d_raw: Vec<Vec<f64>> = vec![vec![0.0; dv]; n - 1];
+        for i in 0..n - 1 {
+            let num = &read_num[i];
+            let logits: Vec<f64> = (0..vocab)
+                .map(|r| (so[r] as f64) * dot(&read_num_slice(&qo, r, dv), num))
+                .collect();
+            let mut p = ref_softmax(&logits);
+            let target = (seq[i + 1] as usize).min(vocab - 1);
+            p[target] -= 1.0;
+            let g: Vec<f64> = p.iter().map(|x| x * inv).collect();
+            let mut dnum = vec![0.0f64; dv];
+            for r in 0..vocab {
+                if g[r] == 0.0 {
+                    continue;
+                }
+                for j in 0..dv {
+                    gwo[r * dv + j] += g[r] * num[j];
+                    dnum[j] += g[r] * (so[r] as f64) * (qo[r * dv + j] as f64);
+                }
+            }
+            for j in 0..dv {
+                d_raw[i][j] = dnum[j] * read_dec[i];
+            }
+        }
+
+        // A write's gradient is the suffix sum of the reads that saw it: the write at step i happens
+        // before the read at step i, so reads at `k >= i` at the same address count.
+        for i in 2..n {
+            let ta = addr_of(elements, vocab, &seq[i - 2..i]);
+            let t = (seq[i] as usize).min(vocab - 1);
+            for k in i..n - 1 {
+                if read_addr[k] == ta {
+                    for j in 0..dv {
+                        gwv[t * dv + j] += d_raw[k][j] * (sv[t] as f64);
+                    }
+                }
+            }
+        }
+        (gwo, gwv)
+    }
+
+    fn read_num_slice(q: &[i8], r: usize, dv: usize) -> Vec<f64> {
+        q[r * dv..(r + 1) * dv].iter().map(|&x| x as f64).collect()
+    }
+
+    /// Analytic reference for the **kernel** gradient at `order = 1`, where the read is a group
+    /// convolution `num[j] = sum_g kern[class(q^-1 g)] * S[g][j]`.
+    fn reference_order1_kernel(
+        elements: &[u16],
+        class_of: &[u8],
+        wv: &[f32],
+        wo: &[f32],
+        kernel: &[i8],
+        vocab: usize,
+        dv: usize,
+        norm_bits: u32,
+        seq: &[u32],
+    ) -> Vec<f64> {
+        let (qv, sv) = quantize_codes(wv, vocab, dv);
+        let (qo, so) = quantize_codes(wo, vocab, dv);
+        let gt = group_table();
+        let n = seq.len();
+        let inv = 1.0f64 / (n - 1) as f64;
+        let mut gk = vec![0.0f64; kernel.len()];
+        // Full state, one row per group element; rebuilt as a running accumulator.
+        let mut state = vec![vec![0.0f64; dv]; RADIX];
+        for i in 0..n - 1 {
+            if i >= 1 {
+                // The write at step `i` stores the value of token `i` at the address of token `i-1`.
+                let value_tok = (seq[i] as usize).min(vocab - 1);
+                let addr_tok = (seq[i - 1] as usize).min(vocab - 1);
+                let a = elements[addr_tok] as usize;
+                let mut full = state.clone();
+                for j in 0..dv {
+                    full[a][j] += (qv[value_tok * dv + j] as f64) * (sv[value_tok] as f64);
+                }
+                state = full;
+            }
+            let a = elements[(seq[i] as usize).min(vocab - 1)] as usize;
+            let inv_q = gt.inverse[a] as usize;
+            let mut num_raw = vec![0.0f64; dv];
+            for g in 0..RADIX {
+                let off = gt.product[inv_q * ROW_STRIDE + g] as usize;
+                let c = class_of[off] as usize;
+                let w = kernel[c] as f64;
+                if w == 0.0 {
+                    continue;
+                }
+                for j in 0..dv {
+                    num_raw[j] += w * state[g][j];
+                }
+            }
+            let m = num_raw.iter().fold(0.0f64, |m, v| m.max(v.abs()));
+            let dec = 1.0f64 / (1u64 << shift_for(norm_bits, m)) as f64;
+            let num: Vec<f64> = num_raw.iter().map(|v| (v * dec).floor()).collect();
+            let logits: Vec<f64> = (0..vocab)
+                .map(|r| (so[r] as f64) * dot(&read_num_slice(&qo, r, dv), &num))
+                .collect();
+            let mut p = ref_softmax(&logits);
+            let target = (seq[i + 1] as usize).min(vocab - 1);
+            p[target] -= 1.0;
+            let g: Vec<f64> = p.iter().map(|x| x * inv).collect();
+            let mut dm = vec![0.0f64; dv];
+            for r in 0..vocab {
+                if g[r] == 0.0 {
+                    continue;
+                }
+                for j in 0..dv {
+                    dm[j] += g[r] * (so[r] as f64) * (qo[r * dv + j] as f64) * dec;
+                }
+            }
+            for gidx in 0..RADIX {
+                let off = gt.product[inv_q * ROW_STRIDE + gidx] as usize;
+                let c = class_of[off] as usize;
+                let mut acc = 0.0f64;
+                for j in 0..dv {
+                    acc += dm[j] * state[gidx][j];
+                }
+                gk[c] += acc;
+            }
+        }
+        gk
+    }
+
+    #[test]
+    fn cold_routes_are_uniform_on_a_non_repeating_sequence() {
+        // At order 2 a read only finds a write when the same ordered pair occurred earlier, so a
+        // sequence with distinct pairs has *no* usable route anywhere: every read is the zero vector,
+        // the default readout has no bias, and the loss is exactly ln(V) nats at every position. This
+        // is the cold-route floor the coverage instrument has to measure on real text.
+        let vocab = 16usize;
+        let core = random_attention(vocab, 8, 2, 99);
+        let loss = core.sequence_loss(&[1, 4, 7, 2, 9, 12]);
+        let expected = (vocab as f32).ln();
+        assert!(
+            (loss - expected).abs() < 1e-4,
+            "a fully cold order-2 sequence must cost ln(V)={expected}, got {loss}"
+        );
+
+        // Directly: the route is live only where the pair repeated earlier in the sequence.
+        let live_seq = [1u32, 4, 7, 1, 4, 7];
+        let mut s = core.initial_state();
+        let mut live = 0usize;
+        for i in 0..live_seq.len() - 1 {
+            if i >= 2 {
+                core.observe(&mut s, &[live_seq[i - 2], live_seq[i - 1]], live_seq[i]);
+            }
+            if core.route_count(&s, &word_ending_at(&live_seq, i, 2)) > 0 {
+                live += 1;
+            }
+        }
+        assert!(
+            live >= 1,
+            "a repeated pair must give at least one live route, got {live}"
+        );
+
+        let cold_seq = [1u32, 4, 7, 2, 9, 12];
+        let mut s2 = core.initial_state();
+        let mut cold = 0usize;
+        for i in 0..cold_seq.len() - 1 {
+            if i >= 2 {
+                core.observe(&mut s2, &[cold_seq[i - 2], cold_seq[i - 1]], cold_seq[i]);
+            }
+            if core.route_count(&s2, &word_ending_at(&cold_seq, i, 2)) > 0 {
+                cold += 1;
+            }
+        }
+        assert_eq!(
+            cold, 0,
+            "a non-repeating order-2 sequence must have no live route at all"
+        );
+    }
+
+    #[test]
+    fn short_prefixes_pad_instead_of_wrapping() {
+        assert_eq!(word_ending_at(&[], 0, 2), vec![PAD_TOKEN, PAD_TOKEN]);
+        assert_eq!(word_ending_at(&[7], 0, 2), vec![PAD_TOKEN, 7]);
+        assert_eq!(word_ending_at(&[7, 8], 0, 2), vec![PAD_TOKEN, 7]);
+        assert_eq!(word_ending_at(&[7, 8], 1, 2), vec![7, 8]);
+        assert_eq!(word_ending_at(&[7, 8, 9], 2, 2), vec![8, 9]);
+        assert_eq!(word_ending_at(&[], 0, 1), vec![PAD_TOKEN]);
+        assert_eq!(word_ending_at(&[5], 0, 1), vec![5]);
+        assert_eq!(tail_word_of(&[], 2), vec![PAD_TOKEN, PAD_TOKEN]);
+        assert_eq!(tail_word_of(&[7], 2), vec![PAD_TOKEN, 7]);
+        assert_eq!(tail_word_of(&[7, 8], 2), vec![7, 8]);
+        assert_eq!(tail_word_of(&[7, 8, 9], 2), vec![8, 9]);
+        assert_eq!(tail_word_of(&[7], 1), vec![7]);
+    }
+
+    #[test]
+    fn short_prefix_paths_do_not_panic_under_overflow_checks() {
+        let core = random_attention(8, 4, 2, 11);
+        let core1 = random_attention(8, 4, 1, 11);
+        for len in 0..=3usize {
+            let toks: Vec<u32> = (0..len as u32).collect();
+            assert_eq!(core.forward_i32(&toks).len(), 8);
+            assert_eq!(core1.forward_i32(&toks).len(), 8);
+            let _ = core.sequence_loss(&toks);
+            let _ = core1.sequence_loss(&toks);
+            let mut t = GeometricAttentionTrainer::new(8, 4, 2, 0, 11).expect("build");
+            let _ = t.train_batch(&[toks.clone()]);
+            let _ = t.final_token_correct(&toks);
+        }
+    }
+
+    #[test]
+    fn an_empty_bucket_predicts_uniformly_and_costs_log_v() {
+        // No write has touched the query bucket: zero vector, no readout bias, zero logits, uniform
+        // prediction, so the loss is exactly ln(V) nats = log2(V) bits at any vocabulary.
+        for vocab in [64usize, 256] {
+            let core = random_attention(vocab, 8, 2, 3);
+            let loss = core.sequence_loss(&[5, 9]);
+            let expected = (vocab as f32).ln();
+            assert!(
+                (loss - expected).abs() < 1e-4,
+                "empty route at V={vocab} must cost ln(V)={expected}, got {loss}"
+            );
+        }
+    }
+
+    #[test]
+    fn same_query_tail_with_a_changed_prefix_is_distinguishable() {
+        // The takeover review's counterexample: identical query tails, different prefixes. The
+        // address is identical, so a static function of the address cannot separate them, but the
+        // accumulated bucket can.
+        let a = [0u32, 1, 2, 0, 1];
+        let b = [0u32, 1, 3, 0, 1];
+        assert_eq!(tail_word_of(&a, 2), tail_word_of(&b, 2));
+        let core = random_attention(8, 16, 2, 7);
+        assert_eq!(
+            core.address(&tail_word_of(&a, 2)),
+            core.address(&tail_word_of(&b, 2)),
+            "the query address is identical by construction"
+        );
+        assert_ne!(
+            core.forward_i32(&a),
+            core.forward_i32(&b),
+            "the accumulated bucket must separate histories that share a query tail"
+        );
+    }
+
+    #[test]
+    fn a_batched_read_matches_an_incremental_observe_predict_trace() {
+        // The batch path ingests the whole prefix and then reads; an independent incremental trace
+        // writes one transition and reads before the next. They must agree elementwise.
+        let seq: Vec<u32> = vec![3, 1, 4, 1, 5, 9];
+        for order in [1usize, 2] {
+            let core = random_attention(16, 8, order, 21);
+            let mut s = core.initial_state();
+            let mut batch = Vec::new();
+            for i in 0..seq.len() - 1 {
+                if i >= order {
+                    core.observe(&mut s, &seq[i - order..i], seq[i]);
+                }
+                batch.push(core.logits(&s, &word_ending_at(&seq, i, order)));
+            }
+            let mut trace = Vec::new();
+            for i in 0..seq.len() - 1 {
+                let mut t = core.initial_state();
+                for k in order..=i {
+                    core.observe(&mut t, &seq[k - order..k], seq[k]);
+                }
+                trace.push(core.logits(&t, &tail_word_of(&seq[..=i], order)));
+            }
+            assert_eq!(
+                batch, trace,
+                "order {order}: batch and incremental reads differ"
+            );
+        }
+    }
+
+    #[test]
+    fn a_future_token_cannot_change_an_earlier_prediction() {
+        let core = random_attention(16, 8, 2, 33);
+        let base = [2u32, 7, 1, 4, 0, 3];
+        let mut changed = base;
+        changed[5] = 9; // only the final token differs
+        for i in 0..5usize {
+            assert_eq!(
+                core.forward_i32(&base[..=i]),
+                core.forward_i32(&changed[..=i]),
+                "the prediction at {i} must not see a later token"
+            );
+        }
+    }
+
+    #[test]
+    fn sequence_state_is_reset_between_documents() {
+        let mut t = GeometricAttentionTrainer::new(16, 8, 2, 0, 5).expect("build");
+        let a: Vec<u32> = vec![1, 2, 3, 4, 5, 6];
+        let b: Vec<u32> = vec![6, 5, 4, 3, 2, 1];
+        t.zero_grads();
+        let first = t.accumulate(&a);
+        t.zero_grads();
+        let _ = t.accumulate(&b);
+        t.zero_grads();
+        let again = t.accumulate(&a);
+        assert!(
+            (first - again).abs() < 1e-6,
+            "a prior sequence must not leak into the next: {first} vs {again}"
+        );
+    }
+
+    #[test]
+    fn the_mean_loss_ste_matches_an_independent_analytic_reference() {
+        // Two lengths, both parameter groups, order 2. The first version of this backward divided
+        // the value gradient by the sequence length a second time, which this reference exposes.
+        // A *repeating* pair is required for a read to find a write: at order 2 the read context
+        // `(t_{i-1}, t_i)` matches a write from step `j = i+1`, so on a first occurrence the route is
+        // empty. This is the cold-route property, and it makes a non-repeating fixture vacuous.
+        for n in [6usize, 8] {
+            let vocab = 8usize;
+            let dv = 4usize;
+            let seq: Vec<u32> = (0..n as u32)
+                .map(|x| if x % 2 == 0 { 1 } else { 4 })
+                .collect();
+            let mut t = GeometricAttentionTrainer::new(vocab, dv, 2, 6, 2026_0919).expect("build");
+            // ±1 weights, so every row quantises to non-zero ternary codes and the reference cannot
+            // be vacuous through a dead row.
+            for r in 0..vocab {
+                for j in 0..dv {
+                    t.wv[r * dv + j] = if (r + j) % 2 == 0 { 1.0 } else { -1.0 };
+                    t.wo[r * dv + j] = if (r * 2 + j) % 3 == 0 { 1.0 } else { -1.0 };
+                }
+            }
+            let (ref_wo, ref_wv) = reference_order2(&t.elements, &t.wv, &t.wo, vocab, dv, 6, &seq);
+            assert!(
+                ref_wo.iter().any(|v| v.abs() > 1e-6) && ref_wv.iter().any(|v| v.abs() > 1e-6),
+                "the reference must be non-vacuous in both groups (n={n})"
+            );
+            t.zero_grads();
+            let _ = t.accumulate(&seq);
+            assert!(
+                grads_match(&t.gwo, &ref_wo),
+                "output gradient disagrees with the analytic reference at n={n}: {:?} vs {:?}",
+                &t.gwo[..4],
+                &ref_wo[..4]
+            );
+            assert!(
+                grads_match(&t.gwv, &ref_wv),
+                "value gradient disagrees with the analytic reference at n={n}: {:?} vs {:?}",
+                &t.gwv[..4],
+                &ref_wv[..4]
+            );
+        }
+    }
+
+    #[test]
+    fn the_kernel_gradient_matches_an_independent_reference_at_order_one() {
+        // A zero kernel gradient at order 2 is not a kernel test, so this uses order 1 with two
+        // active classes, repeated writes and non-zero read credit.
+        let vocab = 8usize;
+        let dv = 4usize;
+        let seq: Vec<u32> = vec![0, 1, 0, 1, 2, 1, 0, 3];
+        let mut t = GeometricAttentionTrainer::new(vocab, dv, 1, 6, 4242).expect("build");
+        for r in 0..vocab {
+            for j in 0..dv {
+                t.wv[r * dv + j] = if (r + j) % 2 == 0 { 1.0 } else { -1.0 };
+                t.wo[r * dv + j] = if (r * 3 + j) % 4 == 0 { 1.0 } else { -1.0 };
+            }
+        }
+        for (c, w) in t.kernel_m.iter_mut().enumerate() {
+            *w = if c < 2 { 1.0 } else { 0.0 };
+        }
+        let kernel = t.quantised_kernel();
+        assert!(
+            kernel.iter().filter(|&&w| w != 0).count() >= 2,
+            "the kernel must be active in at least two classes"
+        );
+        let reference = reference_order1_kernel(
+            &t.elements,
+            &t.class_of,
+            &t.wv,
+            &t.wo,
+            &kernel,
+            vocab,
+            dv,
+            6,
+            &seq,
+        );
+        assert!(
+            reference.iter().any(|v| v.abs() > 1e-6),
+            "the kernel reference must be non-vacuous"
+        );
+        t.zero_grads();
+        let _ = t.accumulate(&seq);
+        assert!(
+            grads_match(&t.gkernel, &reference),
+            "kernel gradient disagrees with the analytic reference: {:?} vs {:?}",
+            t.gkernel,
+            reference
+        );
     }
 }

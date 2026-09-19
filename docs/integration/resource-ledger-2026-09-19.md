@@ -359,3 +359,58 @@ pass, Adam over `2 × vocab × dv` weights, the write path or the 1.84e6-int per
 The run is therefore plausibly **3–10× the recorded projection**, and the ~132.7 min remaining may
 not cover 2,000 steps at `V=4096`, `dv=128`. **A measured step-time probe should precede spending
 the block; the run length should be chosen from a timing, not from the 1,800 s projection.**
+
+## Supplementary projection recorded before use — causal qualification tranche (2026-09-19, takeover)
+
+**Reason.** The takeover reconciliation ([review](takeover-review-2026-09-19.md), [execution prompt](deepseek-next-step-2026-09-19.md), #973) defines one bounded task: repair and qualify the core's short-prefix arithmetic and declared mean-loss STE, repair the count instrument, **measure real-text causal route coverage**, then measure complete training-step cost, and admit a small pilot only if those results make it informative. The task's own initial correctness/coverage/probe cap is **1,200,000 ms**; it is a cap, not a deduction, and the correctness repairs plus two instruments do not fit inside it.
+
+**Work already executed inside that first tranche (to be charged once, at its measured value):** local-core qualification edits (explicit padding, single mean-loss normalization), eight new fixtures, two pre-existing synthetic filter fixtures re-tuned after the gradient correction, and the associated debug and release test cycles.
+
+**Supplementary projection.**
+
+| Item | Estimate |
+|---|---:|
+| Causal route-coverage instrument (new Rust bin) + corpus snapshot + run over two corpora | ~500 s |
+| Complete-step timing probe at `V=4096`, `dv=128`, `order=2`, cold and warmed, with peak RSS | ~400 s |
+| Count-instrument repairs (argmax/CE consistency, declared fit-only protocol, byte population) + fixtures | ~300 s |
+| Receipts, documentation, protected delivery | ~300 s |
+| **Supplementary total** | **~1,500,000 ms** |
+
+**No new allowance extension is used.** This draws on the existing recorded balance; the limit stays
+`154,400,000 ms`. **No pilot is included in this projection**: #973 requires any pilot to carry its
+own complete projection and to leave evaluation and checkpoint capacity, so it is a separate,
+conditional request whose go/no-go is an output of this tranche.
+
+**Host feasibility, verified before execution.** One model worker; Cargo build job count bounded at 4;
+the host has 8 cores and 16 GiB RAM, so a peak RSS cap of 8 GiB is feasible and the trainer's state
+(`n_addr × dv = 14,400 × 128` f32 ≈ 7.4 MB per buffer) fits comfortably; new build output is kept
+inside the **existing** `target/` directory rather than a fresh one, so new build storage stays far
+below 1 GiB and the **128 MiB model-storage stop margin is untouched**. No deletion, no cleanup, no
+paid or external compute.
+
+**Isolated worktree, and its storage.** The work is done in a worktree of refreshed `origin/main`
+(`3f050b27`) at `.worktrees/realtext-qual`, excluded from `git status` via `.git/info/exclude`, so the
+**owner's checkout is not modified**. The checkout itself is ~1.2 GB because the repository tracks
+~1.0 GB of `research/` material; that is a checkout of existing tracked files, not new data or build
+output, and it is preserved rather than trimmed. This is stated explicitly rather than silently
+counted either way.
+
+## Charges recorded — causal qualification tranche (2026-09-19, takeover)
+
+| Date | Work | Charge | Basis |
+|---|---|---:|---|
+| 2026-09-19 | Core qualification (`geometric_attention` padding + single mean-loss normalization, 8 new fixtures, 2 independent analytic gradient references), count-instrument repair, coverage instrument, complete-step timing probe, receipts and delivery | 1,200,000 ms | **Measured, rounded up.** Full module test pass under overflow checks 301 s; release test passes 54 + 44 s; release builds ≈ 6–7 min across five cycles; filtered debug runs ≈ 70 s; coverage 1.1 s + 1 s; timing probes ≈ 6 s; corrected count runs 2 × ≈ 35 s; plus one hung count run (accuracy inside the tuning sweep) terminated and re-run. |
+
+**New cumulative: 147,638,565 ms.** Remaining: 154,400,000 − 147,638,565 = **6,761,435 ms (~112.7 min)**.
+
+This charge covers the first tranche cap (1,200,000 ms) and the supplementary projection recorded above
+in one entry, because the two instruments and the correctness repairs were executed as one continuous
+block; the total is the measured cost, not the sum of the estimates. **No new allowance extension was
+used**: the limit stays `154,400,000 ms` and no limit was increased. No model artifact was created; the
+new tracked files are text (two Rust binaries, one shared library module, one receipt, four document
+edits). The **128 MiB model-storage stop margin is untouched**; build output went into the existing
+`target/`. No deletion, no cleanup, no paid or external compute.
+
+**No pilot was charged and none was run.** The tranche's output is a *decision not to fit this
+configuration*; #973 requires any pilot to arrive with its own complete projection and to leave
+evaluation and checkpoint capacity, so that remains a separate conditional request.

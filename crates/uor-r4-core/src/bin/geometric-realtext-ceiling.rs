@@ -1,57 +1,39 @@
-//! The geometric addressed-memory core's **achievable next-token ceiling** on real text.
+//! A **static function-of-address backoff comparison** on real text.
 //!
-//! # Why this exists
+//! # What this is, after the takeover correction
 //!
-//! The funded next block is "train the geometric core at `V=4096`, `dv=128` for ~2,000 steps".
-//! Before spending that budget, project trap #2 requires testing the *reduced form* of the idea.
-//! The reduced form of "train this mechanism on real text" is an information-theoretic question,
-//! because the mechanism's context is fully determined by its addressing:
+//! An earlier version of this tool called its output an "achievable ceiling" for the order-2 core and
+//! concluded the mechanism's context was just the residue pair. **That framing was wrong** and is
+//! withdrawn: the two residues select the *bucket*, but the bucket holds successor values accumulated
+//! from the prefix, so `[0,1,2,0,1]` and `[0,1,3,0,1]` share a query address yet carry different
+//! values. What this tool measures is narrower and still useful — the best predictor that sees **only
+//! the address**, i.e. a static count model over residue pairs, compared against the same model over
+//! real token pairs and against the unigram.
 //!
-//! * `GeometricAttention` addresses by an ordered word over `2I`: `element(token) = token_id % 120`
-//!   (`element_table`, fixed and **not learned**), composed positionally, with `order` in `{1, 2}`
-//!   only.
-//! * So the prediction at a position is a function of `(t-2 mod 120, t-1 mod 120)` at `order=2`.
+//! Two further corrections are carried:
 //!
-//! The best any predictor that sees only that context can do is the conditional
-//! `P(next | context)`. Its cross-entropy is a **ceiling**: a trained model with ternary weights, a
-//! power-of-two normalised read and `dv`-dimensional value vectors can only be worse. Measuring it
-//! costs seconds; a 2,000-step run costs the block.
+//! * A fitted Jelinek–Mercer estimator's held-out cross-entropy is an *achieved* score, not the Bayes
+//!   conditional entropy. A higher-order finite estimator can score worse than a lower-order one
+//!   without contradicting conditional-entropy monotonicity, so these are development baselines.
+//! * Cross-entropy and top-1 are now derived from the **same** interpolated distribution, and the
+//!   argmax is the argmax of that distribution. A `lambda = 0` fixture must therefore reproduce the
+//!   unigram distribution *and* the unigram argmax exactly.
 //!
-//! # Estimator, and why it is not add-1
+//! # Protocol (explicit, because an earlier version claimed more than it did)
 //!
-//! A first version smoothed each context with add-1 over the full vocabulary and was **invalid**:
-//! with ~18 observations per `(t-2, t-1)` context and a 4096-token vocabulary, the additive mass
-//! dominates, so the *true* order-2 model scored **worse** than the order-1 model (7.59 vs 6.27
-//! bits) — impossible for a real bigram. The invalid instrument reported the residue context as
-//! recovering "102 % of the true order-2 gain", which would have been a false positive for the
-//! mechanism. This version uses **Jelinek–Mercer interpolation** down a backoff chain
-//! (`true2 -> true1 -> unigram`, `res2 -> res1 -> unigram`) with the interpolation weights tuned by
-//! held-out perplexity on a validation split carved from the training documents, and counts refit
-//! on the full training split. That is a defensible estimate of the *best* predictor available from
-//! each context.
+//! Documents are split: every `held_every`-th document is held out, and every fifth remaining document
+//! is validation. Counts are fit on the **fit split only**; the interpolation weights are tuned on the
+//! disjoint validation split by target-probability cross-entropy; the held-out figures use those fit
+//! counts and those weights. **There is no refit on the full training split**, and no tuning on the
+//! held-out split. Scored positions are the same range for every family (`i >= 2`), and the bits/byte
+//! denominator covers exactly the held-out documents that produced the scored positions, with no
+//! cross-document context.
 //!
-//! # What it reports, and the controls
+//! # What it is not
 //!
-//! | Model | Context | Role |
-//! |---|---|---|
-//! | `unigram` | none | the floor a context model must beat |
-//! | `res1` | `t-1 mod 120` | the mechanism at `order=1` |
-//! | `res2` | `(t-2 mod 120, t-1 mod 120)` | **the mechanism as configured** |
-//! | `true1` | `t-1` | what an order-1 model *could* get with real tokens |
-//! | `true2` | `(t-2, t-1)` | what an order-2 model *could* get with real tokens |
-//!
-//! Three controls make the instrument non-vacuous:
-//!
-//! 1. `true2` must beat `true1`, which must beat `unigram`. If not, the estimator is the limit.
-//! 2. a **shuffled** corpus, refit end to end, must collapse every model to the unigram floor.
-//! 3. the vocabulary size and observation counts are printed, so sparsity is visible.
-//!
-//! # What this is not
-//!
-//! Not a measurement of the geometric architecture. It is scoped exactly to the mechanism *as
-//! currently configured* (fixed `token % 120` element assignment, `order <= 2`). Learned packaging
-//! of the element assignment is the architecture document's own named next step and is untested
-//! here. No chat capability and no language ability is claimed.
+//! Not a ceiling, not a model result, and not a verdict on the geometric architecture. The mechanism
+//! as configured only (fixed `element(token) = token % 120`, `order <= 2`). Learned packaging is
+//! untested here. No chat or language capability is claimed.
 
 #![forbid(unsafe_code)]
 
@@ -144,87 +126,8 @@ fn parse_args() -> Result<Args, String> {
 /// merges. The result is handed to the project's existing verified parser rather than to a
 /// hand-written encoder.
 fn derive_tokenizer_json(original: &[u8], vocab: usize) -> Result<Vec<u8>, String> {
-    let mut root: serde_json::Value =
-        serde_json::from_slice(original).map_err(|e| format!("tokenizer.json: {e}"))?;
-
-    {
-        let model = root
-            .get_mut("model")
-            .ok_or("tokenizer.json has no `model`")?;
-        let vocab_map = model
-            .get("vocab")
-            .and_then(serde_json::Value::as_object)
-            .ok_or("model.vocab is not an object")?;
-
-        let mut kept = serde_json::Map::with_capacity(vocab);
-        for (piece, id) in vocab_map {
-            let id = id.as_u64().ok_or("model.vocab id is not an integer")?;
-            if (id as usize) < vocab {
-                kept.insert(piece.clone(), serde_json::Value::from(id));
-            }
-        }
-        if kept.len() != vocab {
-            return Err(format!(
-                "derived vocabulary is {} tokens, expected a dense prefix of {vocab}",
-                kept.len()
-            ));
-        }
-        let present: std::collections::HashSet<u64> = kept
-            .values()
-            .filter_map(serde_json::Value::as_u64)
-            .collect();
-        for id in 0..vocab as u64 {
-            if !present.contains(&id) {
-                return Err(format!("derived vocabulary is not dense: id {id} missing"));
-            }
-        }
-
-        // Keep merges in rank order, dropping any whose product did not survive the truncation.
-        let merges = model
-            .get("merges")
-            .and_then(serde_json::Value::as_array)
-            .ok_or("model.merges is not an array")?;
-        let mut kept_merges: Vec<serde_json::Value> = Vec::with_capacity(merges.len());
-        for entry in merges {
-            let (left, right) = match entry {
-                serde_json::Value::String(pair) => {
-                    let mut it = pair.split(' ');
-                    match (it.next(), it.next(), it.next()) {
-                        (Some(l), Some(r), None) => (l.to_string(), r.to_string()),
-                        _ => return Err(format!("malformed merge string: {pair:?}")),
-                    }
-                }
-                serde_json::Value::Array(pair) => match (
-                    pair.first().and_then(serde_json::Value::as_str),
-                    pair.get(1).and_then(serde_json::Value::as_str),
-                    pair.len(),
-                ) {
-                    (Some(l), Some(r), 2) => (l.to_string(), r.to_string()),
-                    _ => return Err(format!("malformed merge array: {pair:?}")),
-                },
-                _ => return Err("malformed merge entry".into()),
-            };
-            if kept.contains_key(&format!("{left}{right}")) {
-                kept_merges.push(entry.clone());
-            }
-        }
-        model["vocab"] = serde_json::Value::Object(kept.clone());
-        model["merges"] = serde_json::Value::Array(kept_merges);
-    }
-
-    // Drop added tokens outside the derived prefix so the parser sees a dense vocabulary.
-    if let Some(added) = root
-        .get_mut("added_tokens")
-        .and_then(serde_json::Value::as_array_mut)
-    {
-        added.retain(|e| {
-            e.get("id")
-                .and_then(serde_json::Value::as_u64)
-                .is_some_and(|id| (id as usize) < vocab)
-        });
-    }
-
-    serde_json::to_vec(&root).map_err(|e| format!("re-serialize tokenizer: {e}"))
+    // Single-sourced with the coverage instrument: see `transformerless::bpe_derive`.
+    uor_r4_core::transformerless::bpe_derive::derive_tokenizer_json(original, vocab)
 }
 
 /// Recursively collect files with the given extensions, bounded by a byte budget.
@@ -284,6 +187,8 @@ fn collect_documents(path: &Path, exts: &[&str], budget: &mut usize, out: &mut V
 struct Cond {
     counts: HashMap<(u64, u32), u32>,
     totals: HashMap<u64, (u64, u32, u32)>,
+    /// Distinct successors seen per context, so the interpolated argmax can scan candidates only.
+    by_ctx: HashMap<u64, Vec<u32>>,
 }
 
 impl Cond {
@@ -296,14 +201,14 @@ impl Cond {
             t.1 = next;
             t.2 = *e;
         }
+        let cands = self.by_ctx.entry(ctx).or_default();
+        if !cands.contains(&next) {
+            cands.push(next);
+        }
     }
 
     fn total(&self, ctx: u64) -> u64 {
         self.totals.get(&ctx).map(|t| t.0).unwrap_or(0)
-    }
-
-    fn argmax(&self, ctx: u64) -> Option<u32> {
-        self.totals.get(&ctx).map(|t| t.1)
     }
 
     fn count_of(&self, ctx: u64, next: u32) -> u32 {
@@ -403,13 +308,45 @@ fn family_p(f: &Fit, fam: &Family, ctxs: &[u64], next: u32, lambdas: &[f64], voc
     p
 }
 
-/// Cross-entropy and top-1 accuracy of a family on held-out sequences.
+/// The argmax of the **same interpolated distribution** whose cross-entropy is reported.
+///
+/// Candidates are the successors observed in each level's context plus the unigram argmax, so with
+/// `lambda = 0` the result is exactly the unigram argmax. This is computed once per scored position at
+/// the final weights, never inside the tuning loop.
+fn blended_argmax(f: &Fit, fam: &Family, ctxs: &[u64], lambdas: &[f64], vocab: usize) -> u32 {
+    let mut best = f.uni_argmax;
+    let mut best_p = f.unigram_p(best, vocab);
+    for k in 0..ctxs.len() {
+        let cond = (fam.level)(f, k);
+        if cond.total(ctxs[k]) == 0 {
+            continue;
+        }
+        if let Some(cands) = cond.by_ctx.get(&ctxs[k]) {
+            for &next in cands {
+                let p = family_p(f, fam, ctxs, next, lambdas, vocab);
+                if p > best_p {
+                    best_p = p;
+                    best = next;
+                }
+            }
+        }
+    }
+    best
+}
+
+/// Cross-entropy of a family on held-out sequences, and optionally top-1 accuracy.
+///
+/// Accuracy is computed **only** when `accuracy` is true: the argmax of the interpolated distribution
+/// is far more expensive than its cross-entropy at the observed target, and the tuning sweep must not
+/// pay it once per candidate weight setting. Tuning therefore sees cross-entropy alone and the final
+/// reported row computes the argmax once per scored position at the selected weights.
 fn evaluate(
     f: &Fit,
     fam: &Family,
     lambdas: &[f64],
     vocab: usize,
     held: &[&Vec<u32>],
+    accuracy: bool,
 ) -> (f64, f64, usize) {
     let mut bits = 0.0f64;
     let mut n = 0usize;
@@ -425,18 +362,7 @@ fn evaluate(
             let ctxs: Vec<u64> = fam.contexts.iter().map(|cf| cf(seq, i)).collect();
             let p = family_p(f, fam, &ctxs, next, lambdas, vocab);
             bits -= p.max(1e-12).log2();
-            // Backoff argmax: first level with observations wins.
-            let mut predicted = f.uni_argmax;
-            for k in 0..ctxs.len() {
-                let cond = (fam.level)(f, k);
-                if cond.total(ctxs[k]) > 0 {
-                    if let Some(a) = cond.argmax(ctxs[k]) {
-                        predicted = a;
-                    }
-                    break;
-                }
-            }
-            if predicted == next {
+            if accuracy && blended_argmax(f, fam, &ctxs, lambdas, vocab) == next {
                 correct += 1;
             }
             n += 1;
@@ -461,7 +387,7 @@ fn tune(f: &Fit, fam: &Family, vocab: usize, val: &[&Vec<u32>]) -> Vec<f64> {
         for (k, slot) in lambda.iter_mut().enumerate() {
             *slot = LAMBDA_GRID[stack[k]];
         }
-        let (bits, _, _) = evaluate(f, fam, &lambda, vocab, val);
+        let (bits, _, _) = evaluate(f, fam, &lambda, vocab, val, false);
         if bits < best_bits {
             best_bits = bits;
             best.clone_from(&lambda);
@@ -564,7 +490,7 @@ fn run_split(
         } else {
             tune(&f, fam, vocab, val_seqs)
         };
-        let (bits, acc, n) = evaluate(&f, fam, &lambdas, vocab, held);
+        let (bits, acc, n) = evaluate(&f, fam, &lambdas, vocab, held, true);
         let lam = if lambdas.is_empty() {
             "-".to_string()
         } else {
@@ -605,7 +531,9 @@ fn main() -> ExitCode {
         }
     };
 
-    println!("=== geometric addressed-memory: achievable next-token ceiling on real text ===");
+    println!(
+        "=== STATIC BACKOFF COMPARISON on real text (NOT an information-theoretic ceiling) ==="
+    );
     println!("tokenizer    : {}", args.tokenizer.display());
     println!("corpus       : {}", args.corpus.display());
     println!("vocab target : {}", args.vocab);
@@ -890,6 +818,43 @@ mod tests {
         assert!(
             derive_tokenizer_json(&holed, 1000).is_err(),
             "a vocabulary with a hole must not be accepted as a dense prefix"
+        );
+    }
+
+    #[test]
+    fn lambda_zero_is_exactly_the_unigram_model() {
+        // Cross-entropy and top-1 must come from the same interpolated distribution, and at
+        // lambda = 0 that distribution is the unigram one, in probability *and* in argmax.
+        let vocab = 8usize;
+        let seq: Vec<u32> = vec![1, 2, 3, 1, 2, 3, 2, 2, 1];
+        let f = fit_all(&[&seq], vocab);
+        let ctx = |s: &[u32], i: usize| -> u64 { s[i - 1] as u64 };
+        let fam = Family {
+            name: "res1",
+            contexts: vec![&ctx],
+            level: |f: &Fit, _: usize| &f.res1,
+            description: "test fixture",
+        };
+        let ctxs = vec![ctx(&seq, 4)];
+        for next in 0..vocab as u32 {
+            let p = family_p(&f, &fam, &ctxs, next, &[0.0], vocab);
+            assert!(
+                (p - f.unigram_p(next, vocab)).abs() < 1e-12,
+                "lambda=0 must reproduce the unigram probability exactly"
+            );
+        }
+        assert_eq!(
+            blended_argmax(&f, &fam, &ctxs, &[0.0], vocab),
+            f.uni_argmax,
+            "lambda=0 must reproduce the unigram argmax"
+        );
+        // And the interpolated distribution normalises over the vocabulary at any weight.
+        let sum: f64 = (0..vocab as u32)
+            .map(|n| family_p(&f, &fam, &ctxs, n, &[0.7], vocab))
+            .sum();
+        assert!(
+            (sum - 1.0).abs() < 1e-9,
+            "the interpolated distribution must normalise, got {sum}"
         );
     }
 }

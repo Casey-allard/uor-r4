@@ -1,5 +1,35 @@
 # Current native geometric AI work
 
+# Current native geometric AI work
+
+## Causal qualification done: the cold-route floor rules this configuration out before any fit — September 19, 2026 (takeover tranche)
+
+**THE BOUNDED #973 TASK IS COMPLETE AND ITS RESULT IS A NEGATIVE, REACHED BEFORE SPENDING A TRAINING BLOCK: DO NOT TRAIN THIS CONFIGURATION.** The task's own frozen failure branch was "if the cold-route loss floor already exceeds the frozen development target, or useful reads are too rare to train the intended function, stop scaling this configuration." Both conditions hold on both corpora.
+
+**Two source defects confirmed and fixed.** (1) `tail_word` / `word_at` / `sequence_loss` computed `len + k - order` and `i + k + 1 - order` on `usize`, which underflows for a prefix shorter than the word — a panic under overflow checks and a silent wrap in release. One checked padding contract now serves the served path, the loss and the trainer. (2) The value and kernel gradients divided by the sequence length **twice**: `g = p * inv` at the readout already converts the summed loss to the mean, and `gkernel += acc * inv` / `gwv += dscratch * inv` applied it again (63× at n=64). The extra factors are removed and verified against **two independent analytic references**, the order-2 exact read (value gradient as an explicit suffix sum) and the order-1 kernel convolution.
+
+**The gradient fix has a measured behavioural cost, and it is recorded rather than smoothed over.** My change; it also changed two pre-existing synthetic filter fixtures at their recorded seeds: `corruption_in_the_objective_changes_the_filter` went 0.13 → 0.10 and `a_general_filter_is_at_least_as_good_as_a_class_filter` went 0.27 → 0.09. Both pass again only after re-tuning their learning rate (0.05 → 0.15 and 0.05 → 0.5), and at the re-tuned rates the general-filter margin is 0.11 versus 0.09 against a 0.02 tolerance — a **tie, not the previously recorded "does not lose"**. The earlier filter accuracies are superseded at their recorded scope and the general-filter capacity claim is **not** validated at that budget.
+
+**The decisive measurement.** Replaying the trainer's actual write-then-read order on real text at `V=4096`, `order=2`, state reset per window:
+
+```
+docs   64-token windows: p_empty 0.9381 (first 8 positions 0.9946) → floor 11.2575 bits/token
+       128: p_empty 0.8972 → 10.7664      256: p_empty 0.8459 → 10.1510
+crates 64-token windows: p_empty 0.8549 → 10.2586 bits/token
+```
+
+An empty route is the zero vector, the default readout has no bias, and its loss is exactly `log2(4096) = 12` bits/token. So the default path's mean loss is at least `p_empty · 12` — **11.26 bits/token on prose**, above the unigram baseline (9.22) and far above the best static backoff baseline (6.33). Only 6.2 % of prose positions read a previously-written route, the first eight positions of every window are cold with probability ≈0.994, and the routes that are written are near-unique (distinct exact contexts per address ≈1.004, distinct successors ≈1.002). Vector cancellation was 0/388 under a **named, seeded** initialisation, explicitly not a trained result.
+
+**Timing measured, replacing both unmeasured figures.** One `train_batch` at `V=4096`, `dv=128`, `order=2`, batch 8 × window 64 covers both full-table quantizations, the touched-bucket reset, forward, backward and Adam: **cold 0.5602 s, warm 0.5649 s, 512 tokens/step, 906 tokens/s, peak RSS 56.3 MiB**. The recorded 1,800 s projection assumed ~2,278 tokens/s and is ~2.5× optimistic; the later "3–10× slower" arithmetic was pessimistic. Both are superseded.
+
+**The count instrument is repaired without erasing prior output.** It is relabelled a **static backoff comparison**, not a ceiling: the residues select the bucket, but the bucket holds prefix-accumulated values, so `[0,1,2,0,1]` and `[0,1,3,0,1]` share an address yet differ — the earlier "the entire context is the residue pair" claim is withdrawn. CE and top-1 now come from the **same** interpolated distribution with a `lambda = 0` unigram fixture, accuracy is computed once at the final weights rather than inside the tuning sweep, and the protocol is explicit: **counts are fit on the fit split only**, weights tuned on the disjoint validation split, **no full-training refit**. Corrected numbers (new corpus snapshot): docs `res2` 6.3310 / `true2` 5.2551; crates `res2` 5.0402 / `true2` 4.2007 bits/token.
+
+**What is missing, named.** A **learned cold-context prior**: the reset state holds no corpus statistics, so a cold route cannot fall back to anything, while the count baselines carry global priors the empty bucket does not. The proposed smallest intervention is a learned cold-context prediction trained through the same discrete path with an explicit fallback marker and matched ablations — not more `dv` or steps, because an injective map from 4,096 tokens to 120 single roots is impossible. The `order`-2 radix read still exercises no group multiplication, zeta phase or chirality, and is not evidence about the distinctive geometry.
+
+**State.** New tools `geometric-realtext-coverage.rs` and `geometric-realtext-train-probe.rs`; the 4,096-vocabulary derivation is single-sourced in `transformerless::bpe_derive`. `geometric_attention` 44 tests pass under overflow checks, including 8 new qualification fixtures and 2 independent gradient references; `cargo fmt --all --check` clean; claim-wording gate passes. No pilot was run and no model artifact was created.
+
+**Receipt:** [`native_geometric_causal_qualification_2026-09-19.txt`](../evidence/native_geometric_causal_qualification_2026-09-19.txt). References #973, #820.
+
 ## Takeover reconciliation: qualify causal learning before the real-text block — September 19, 2026
 
 **Active next action:** repair/qualify causal state, short-prefix arithmetic, declared STE gradients and count-metric semantics; measure real-text route coverage; then measure full trainer step time and admit a small pilot only if informative. Use the [complete DeepSeek execution prompt](deepseek-next-step-2026-09-19.md) and [takeover investigation](takeover-review-2026-09-19.md). This supersedes earlier same-day “ceiling,” “BUILD IT,” testbed-exhaustion and timing-first scheduling below. Existing receipts remain preserved; no model was run in this source/documentation review.
