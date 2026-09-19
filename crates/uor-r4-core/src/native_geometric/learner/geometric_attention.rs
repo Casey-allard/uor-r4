@@ -1834,6 +1834,77 @@ mod tests {
         );
     }
 
+    /// Where does the per-token compute actually go? Counted operations for the served path —
+    /// build-independent arithmetic, with a release-mode wall-clock ratio as supporting evidence.
+    ///
+    /// The hierarchy proposal is only worth building if the readout dominates: a bounded shortlist can
+    /// shrink the readout but not the read, and it pays for that in routing and in accuracy.
+    #[test]
+    fn per_token_compute_is_dominated_by_the_readout() {
+        let vocab = 4096usize;
+        let dv = 64usize;
+        let a: Vec<f32> = (0..vocab * dv)
+            .map(|i| ((i % 7) as f32 - 3.0) / 3.0)
+            .collect();
+        let b: Vec<f32> = (0..vocab * dv)
+            .map(|i| ((i % 5) as f32 - 2.0) / 2.0)
+            .collect();
+        let core = GeometricAttention::from_f32(vocab, dv, 2, 6, &a, &b).expect("build");
+
+        // Counted operations, order = 2 (the served configuration).
+        let address_ops = 2; // one product-table read + one inverse read, plus index arithmetic
+        let read_exact_ops = dv; // one bucket of `dv` entries
+        let read_graded_ops = RADIX * dv; // the class-function convolution, worst case
+        let readout_ops = vocab * dv; // the linear read over the vocabulary
+
+        let total_exact = address_ops + read_exact_ops + readout_ops;
+        let total_graded = address_ops + read_graded_ops + readout_ops;
+        let exact_share = readout_ops as f64 / total_exact as f64;
+        let graded_share = readout_ops as f64 / total_graded as f64;
+        eprintln!(
+            "per-token ops at V={vocab}, dv={dv}: address={address_ops} read_exact={read_exact_ops} \
+             read_graded={read_graded_ops} readout={readout_ops}"
+        );
+        eprintln!(
+            "readout share of per-token work: exact read {:.4}% | graded read {:.4}%",
+            100.0 * exact_share,
+            100.0 * graded_share
+        );
+
+        // A bounded shortlist of k candidates: readout becomes k*dv, plus a fanout-B depth-D route.
+        let (k, fanout, depth) = (8usize, 8usize, 4usize);
+        let shortlist_ops = k * dv + fanout * depth + address_ops;
+        eprintln!(
+            "projection with a fanout-{fanout} depth-{depth} shortlist of k={k}: \
+             {shortlist_ops} ops/token vs {total_exact} full — {:.0}x fewer operations",
+            total_exact as f64 / shortlist_ops as f64
+        );
+
+        // The claim under test is the *dominance*, which is what decides whether a hierarchy is worth
+        // building at all. Accuracy cost of the shortlist is explicitly NOT measured here.
+        assert!(
+            exact_share > 0.9 && graded_share > 0.9,
+            "the readout must dominate per-token work, or a hierarchy is the wrong lever: \
+             {exact_share:.4} / {graded_share:.4}"
+        );
+        assert_eq!(readout_ops, core.vocab * core.dv);
+
+        // Wall-clock is deliberately NOT used as evidence here. A first attempt compared the readout
+        // against a write+read loop and measured 264 us vs 33 us — but the write+read side was
+        // dominated by zeroing the state buffer (n_addr * dv = 921,600 ints, ~3.7 MB), not by the
+        // read. The op counts above are the build-independent measurement; timing a layout-dominated
+        // loop would have produced a number about allocation and called it compute.
+        let h: Vec<i32> = (0..dv as i32).collect();
+        let t0 = std::time::Instant::now();
+        let mut sink = 0i32;
+        for _ in 0..200 {
+            sink = sink.wrapping_add(core.w_o.forward_i32(&h)[0]);
+        }
+        let readout_ns = t0.elapsed().as_nanos() as f64 / 200.0;
+        assert_ne!(sink, i32::MIN);
+        eprintln!("sanity only (not evidence): one full readout ~{readout_ns:.0} ns");
+    }
+
     #[test]
     fn gradients_reach_both_tables() {
         let mut t = GeometricAttentionTrainer::new(32, 16, 2, 0, 3).expect("build");

@@ -185,7 +185,19 @@ and the knowledge import JSONL under the ignored `.uor-models/` tree. No model a
 The **128 MiB model-storage stop margin is untouched**; no deletion, no cleanup, no paid or external
 compute.
 
-**Documentation repair.** A duplicated `## Not done` heading with an orphaned paragraph was found in
+**Documentation repair.** A duplicated `## Charges recorded — per-token compute breakdown (2026-09-19, final)
+
+| Date | Work | Charge | Basis |
+|---|---|---:|---|
+| 2026-09-19 | Op-count breakdown + full `geometric_attention` suite (release) | 290,000 ms | **Measured.** 288.12 s suite plus the small op-count run. |
+
+**New cumulative: 146,178,565 ms.** Remaining: 147,200,000 - 146,178,565 = **1,021,435 ms (~17.0 min)**.
+
+**No extension was used.** Op counting is arithmetic, not execution; the only execution was the suite.
+No model artifact was created; new tracked files are text. The **128 MiB model-storage stop margin is
+untouched**; no deletion, no cleanup, no paid or external compute.
+
+## Not done` heading with an orphaned paragraph was found in
 this file during the update, introduced by repeated insert-before-anchor edits, and repaired here.
 
 ## Charges recorded — discriminating-difficulty sweep (2026-09-19, final)

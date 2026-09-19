@@ -1,5 +1,30 @@
 # Current native geometric AI work
 
+## Per-token compute counted: the readout is 99.97%, and that is where the hierarchy pays — September 19, 2026
+
+**THE COMPUTE LEVER IS THE READOUT, NOT THE GEOMETRY. COUNTED, NOT PROJECTED.**
+
+The owner's compute questions (can hyperbolic geometry or a deeper routing hierarchy save massive compute?) needed to know where the compute is, which had never been counted. Operations for the served path in its served configuration (`order = 2`, `vocab = 4096`, `dv = 64`):
+
+```
+address=2   read_exact=64   read_graded=7,680   readout=262,144
+readout share of per-token work: 99.9748% (exact read) | 97.1530% (graded read)
+```
+
+**The read — the entire point of the geometric mechanism — is 0.03% to 2.8% of the work.** The vocabulary read dominates by three to four orders of magnitude.
+
+**Projection from counted ops (not a built system):** a fanout-8 depth-4 route with a shortlist of `k = 8` costs `8·64 + 8·4 + 2 = 546` ops/token against 262,210 — **480× fewer operations**.
+
+**Why the accuracy half is not settled:** on the synthetic relational task the address *determines* the answer, so a shortlist keyed on the address is trivially exact and the trade-off vanishes. The shortlist's real cost — generalisation lost when candidates are pruned — needs data where the address is not the answer's identity, i.e. **the real-text path**.
+
+**What this changes.** The compute lever is the **readout** — consistent with the accuracy side of this session, where five readout levers were flat: the readout is simultaneously the cost bottleneck and not the accuracy bottleneck. The project's invariant **I3 (“candidates scored per token ≪ vocabulary”) is where the large factors live**; the old artifact path already has a 64-candidate shortlist and the new geometric core has none, which is the gap. The hierarchy proposal survives in its useful form — bounding the readout, ~480× in projection — not as hyperbolic arithmetic, which costs *more* per operation.
+
+**A seventh would-be defect, recorded rather than reported.** A first wall-clock comparison gave 264 µs (readout) vs 33 µs (write+read), which looks like support — but the write+read side was dominated by zeroing a 3.7 MB state buffer (14400 × 64 ints), not by the read. That comparison measured allocation and is not evidence. Op counts are build-independent; wall-clock is not, so wall-clock is not used here.
+
+**Next action.** The shortlist's accuracy cost is the open question and it needs the real-text path (BPE-4096 + instruction corpus). Until then the 480× is a projection with an unmeasured cost, and is labelled as such everywhere.
+
+**Receipt:** [`native_geometric_compute_breakdown_2026-09-19.txt`](../evidence/native_geometric_compute_breakdown_2026-09-19.txt).
+
 ## Spherical-harmonic grounding and a graded group kernel — September 19, 2026
 
 **THE OWNER'S HARMONIC INTUITION HAS AN EXACT FINITE FORM HERE: PETER–WEYL ON 2I. THE GRADED KERNEL WORKS, AND THE ATTEMPT EXPOSED TWO MORE MEASUREMENT DEFECTS.**

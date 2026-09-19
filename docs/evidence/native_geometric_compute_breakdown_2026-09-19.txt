@@ -1,0 +1,69 @@
+# Where the per-token compute actually goes — 2026-09-19
+
+Owner question that prompted this: can hyperbolic geometry, or a deeper routing hierarchy, save
+**massive** compute? The answer required knowing where the compute is. It had not been counted.
+
+Method: **count operations** for the served path of the geometric core in its served configuration
+(`order = 2`, i.e. ordered-word addressing). Op counts are build-independent; wall-clock is not, and is
+deliberately not used as evidence (see the note at the end).
+
+## Counted operations per token, at `vocab = 4096`, `dv = 64`
+
+```
+address      2        (one product-table read + one inverse read, plus index arithmetic)
+read         64       (one bucket of dv entries — the exact read)
+read (graded) 7,680   (the class-function convolution, RADIX * dv, worst case)
+readout      262,144  (the linear read over the vocabulary, vocab * dv)
+```
+
+**The readout is 99.9748 % of per-token work with the exact read, and 97.1530 % with the graded read.**
+
+So the read — the thing the whole geometric mechanism is about — is between 0.03 % and 2.8 % of the
+work at this configuration. The vocabulary read dominates everything else by three to four orders of
+magnitude.
+
+## What that implies for a bounded shortlist
+
+With a fanout-8, depth-4 route and a shortlist of `k = 8`:
+
+```
+shortlist path: k*dv + fanout*depth + address = 8*64 + 8*4 + 2 = 546 ops/token
+full path:                                                    262,210 ops/token
+ratio:                                                        480x fewer operations
+```
+
+This is a **projection from counted operations, not a measurement of a built system**: the routing tree
+does not exist in the new core and its accuracy cost is unmeasured.
+
+## Why the accuracy half cannot be settled on the current tasks
+
+On the synthetic relational task the address *determines* the answer, so a shortlist keyed on the
+address is trivially exact and the trade-off disappears. The shortlist's real cost — generalisation
+lost when candidates are pruned — only appears on data where the address is not the answer's identity.
+**That requires the real-text path.** Recorded so the projection is not mistaken for a result.
+
+## What this changes
+
+* The compute lever is **the readout**, not the geometry, not the addressing and not the filter. This is
+  consistent with the accuracy side of the same session, where five readout levers were flat: the
+  readout is simultaneously the cost bottleneck and not the accuracy bottleneck.
+* The project's invariant **I3 ("candidates scored per token ≪ vocabulary") is the right invariant** and
+  it is where the large factors live. The old artifact path already has a 64-candidate shortlist; the
+  new geometric core has none, and that is the gap.
+* The hierarchy proposal survives, in its useful form: not "hyperbolic arithmetic" (more expensive per
+  operation) but **bounding the readout**, with ~480× available in the projection.
+* Not a serving claim. No multiplier claim, no energy claim; nothing here measures wall-clock.
+
+## Honest limits
+
+Op counts are arithmetic on the configured dimensions, verified by assertion against `vocab * dv`; they
+are exact for the loops as written and do not model cache behaviour, vectorisation or the cost of the
+address lookups' memory traffic. The 480× figure is a projection with an unmeasured accuracy cost. A
+first wall-clock comparison measured 264 µs (readout) against 33 µs (write+read) — but the write+read
+side was dominated by zeroing a 3.7 MB state buffer (14400 × 64 ints), not by the read, so that
+comparison measured allocation and is **not** reported as evidence. It is recorded here because
+trusting it would have been the seventh defect of this session.
+
+Tests: `geometric_attention` **28 passed, 0 failed**; `cargo fmt --check` clean.
+
+Charged 290,000 ms. Cumulative 146,178,565 / 147,200,000 ms.
