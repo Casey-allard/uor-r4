@@ -623,3 +623,12 @@ Retained under the new sealed roots at `.uor-models/realtext-prior-2026-09-20/ev
 members, ~27 MiB), `parity-before` and `parity-after`; the original `attempt-1` sealed root is
 untouched and no artifacts were deleted. The 128 MiB model-storage stop margin is intact. No
 training update, no new corpus download, no paid/external compute.
+
+
+## Review after PR #1302 — reconcile the recorded charge once
+
+The owner JSON still read **152,238,565 / 154,400,000 ms** although the preceding merged receipt recorded a further **1,800,000 ms**. No updated shadow ledger was found in the relevant worktrees. This review applied that existing charge once to `/Users/casey.allard/uor-r4/.uor-models/native-joint-learning-2026-09-04/model-time.json`, atomically checking the previous value and reading back **154,038,565 / 154,400,000 ms**. Remaining: **361,435 ms (6.02 minutes)**. No new review charge, allowance increase, model forward, Rust build or training. The recorded charge is preserved; its full approximate elapsed-work total was not independently reconstructed. The previous +1,000,000 ms extension was released by the final receipt and is not active headroom.
+
+[The principal review](ordered-prefix-review-2026-09-20.md) preserves the valid replay while correcting derived offsets, loop labels, tune/seed/subset metadata and test-work scope. These do not reverse past charges or require a full replay. Reused the clean isolated full worktree on `codex/ordered-state-handoff`; original checkout and unique/sealed artifacts remain intact.
+
+[The next prompt](deepseek-ordered-prefix-step-2026-09-20.md) proposes **5,400,000 ms (90 minutes)**: 300 s input/metadata recovery, 1,800 s implementation/build/independent checks, 300 s timing/cache preparation, 1,800 s three matched fits/evaluation/controls/generation, 1,200 s checkpoint/evidence/delivery/reserve. The proposed necessary local extension is **+5,400,000 ms**, which would make the limit **159,800,000 ms** and available headroom **5,761,435 ms**. This review has NOT applied that extension. Refresh inventory/projection and record it in both JSON and prose before execution under standing owner authorization; revise before overruns and charge actual intervals once. One worker, at most four Cargo jobs, 8 GiB RSS, 512 MiB new data/checkpoints plus 1 GiB incremental reused build output, 128 MiB protected storage margin. No paid compute, deletion or new corpus.

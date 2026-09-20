@@ -1,6 +1,6 @@
 # EVIDENCE
 
-**Latest interpretation:** [review after #1300](frozen-prior-review-2026-09-20.md) identified the permutation and bootstrap defects; the **executed evaluation-only replay** ([receipt](../evidence/native_geometric_frozen_prior_replay_2026-09-20.txt)) now supersedes that review. The replay reconstructs the legacy population exactly (429 docs / 7,609,837 bytes; 355/38/36 split; 32-doc panel / 96 windows / 6,048 targets), reproduces the recorded micro losses to ~1e-15 bits/target, corrects the permutation to a per-`(document, PAD/non-PAD)`-stratum occurrence bijection and the aggregation to true document clusters, and passes the frozen 0.10-bit threshold on both the legacy and spread-position panels. Corrected permutation penalty **+3.0572 full / +3.0858 eligible**; the historical +2.8744 penalty, 5,805 association count, 36 documents and three distinct generation documents stay withdrawn. An order-2 interpolated count reference on the same input reaches 3.9691 bits/target against the model's 7.1425. All six trajectories cycle with period 1; the `(32,32)` loop is data-supported. Preserve every raw receipt and sealed result; the replay is evaluation-only and changed no weights.
+**Latest interpretation:** [review after PR #1302](ordered-prefix-review-2026-09-20.md) independently verifies replay/parity seals, corpus identities, all saved scorer means and six full-panel confidence intervals. The corrected local-context gains remain supported. Append-only corrections below narrow the count-gap and loop diagnoses, identify bad derived offsets and label errors, and reconcile the previously recorded resource charge. No Rust build/model/training ran in this review. The [next learned-prefix pilot](deepseek-ordered-prefix-step-2026-09-20.md) is NOT_RUN. Preserve every raw receipt and sealed original.
 
 **Previous interpretation:** [post-qualification source review](cold-context-review-2026-09-19.md) scopes #1292 and its remaining instrument corrections.
 
@@ -189,3 +189,18 @@ trained and no artifact byte changed.
 | Count references | interpolated order-2 tuned on the 38 tune docs (λ=0.8/0.7); full-fit 3.9691, consumed-only 5.1965 vs model 7.1425 | The two-token learned readout is dominated by direct counts on the *same* input: a local readout/capacity seam |
 | Loops | all six trajectories period-1 within ≤11 steps; `argmax Z(32,32)=32` a true fixed point supported by full-fit (1,947/6,099) and consumed (246/725) counts and by the reference; `(284,198)` is a model-specific divergence | Repetition is mostly data/greedy-decoding, not solely a learned defect; no decoder change was made |
 | Primitives | signed shifts replace power-of-two multiplication; constructed cores now call `PriorCore::validate`; 12-context × 2-mode integer-score parity fixture byte-identical before/after | Value-preserving corrections with exact retained-artifact score parity |
+
+
+## Review after PR #1302 — validated baseline and scoped next hypothesis
+
+| Scope | Verified finding | Interpretation/correction |
+| --- | --- | --- |
+| Core replay | 14 replay, 3 pre-parity and 2 post-parity members verified; 429 document hashes match; saved means and six full-panel intervals reproduce | Corrected legacy/spread development gates remain supported; no new model execution |
+| Local comparator | Model 7.1425 vs consumed count 5.1965 vs full count 3.9691 on the same two-token inputs | Unrecovered local performance; capacity, dose, optimization and quantization not isolated. Older-prefix benefit requires its own controlled experiment |
+| Loop inspection | Pair flag tests only next==current; `(284,198)->(198,198)->(198,504)` | Immediate repetition, not a self-loop. `(32,32)` is a true fixed point; six generated old-model pair cycles remain valid. Reference trajectories NOT_RUN; one-step agreement does not explain full collapse |
+| Provenance | 38,152 fit-index token offsets use global instead of within-document window IDs; other indexing fields/lengths valid | Correct both index writers and derive a new report. Original losses/exposure unaffected; preserve sealed original |
+| Labels and test scope | Tune sample 32 of 38 docs; actual permutation seed/effective state 0xA5A51234/0xA5A51235; old eligible means changed context; one named test executes 60 toy updates | Correct metadata/wording. Retained real-text artifact was frozen, not every test update-free |
+| Resources | Owner JSON omitted previously recorded 1,800,000 ms | Applied charge once: 154038565/154400000 ms; 361435 remaining. No new review charge or extension |
+| Next experiment | One hard learned older-prefix group-state/read channel; frozen-action and fitted local-tail controls; same-tail conditional permutation | Proposed and NOT_RUN. Fixed-action benefit, learned-action benefit, general language and noncommutative advantage are separate claims |
+
+[Full review and primary research](ordered-prefix-review-2026-09-20.md); [complete execution prompt](deepseek-ordered-prefix-step-2026-09-20.md).

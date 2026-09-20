@@ -1,5 +1,7 @@
 # DeepSeek execution prompt — recover the frozen prior's result and diagnose its loops
 
+> Historical execution prompt, completed by PR #1302. Read the [subsequent review](ordered-prefix-review-2026-09-20.md) and [current learned-prefix prompt](deepseek-ordered-prefix-step-2026-09-20.md); preserve the valid replay rather than repeating the whole evaluation.
+
 Work on **UOR-R4 Geometric Language Model**, repository `UOR-Foundation/uor-r4`. Read this whole prompt and `docs/integration/frozen-prior-review-2026-09-20.md`. Audited base is `74fef0886ca3b14ff90943c8677d6b7815064198` (PR #1300); refresh origin/main and include the protected delivery of these instructions.
 
 **Deliver and execute a corrected evaluation-only mode for the existing step-512 artifact.** Preserve the trained parameters. The reported sign fix is insufficient: observations are collapsed by the permutation map and windows are bootstrapped as documents. Repair those concrete defects, reconstruct the original population, replay the frozen artifact, add the missing count references, and diagnose the observed greedy loops. Do not retrain the model to repair an evaluator or reconstruct an unsaved intermediate checkpoint. Changing the corpus to 4 MiB would create a new experiment, not validate #1300.
