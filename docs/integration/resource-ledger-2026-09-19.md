@@ -996,6 +996,31 @@ executable `65463ebd…`, were verified present after cleanup.
 **Charge:** recorded once below, after the work, as measured nonoverlapping work. Failed builds and
 superseded runs are charged, not refunded.
 
+## Learned relational reader step — projection recorded before use (2026-09-20T22:36Z)
+
+**Refreshed before any model charge.** Live shared JSON **181238565 / 191300000 ms**, remaining
+**10061435 ms (~167.7 min)**, matching the correcting audit. Measured cycle start
+`2026-09-20T22:36:51Z`. Free space **49769764 KiB** (~49.8 GiB decimal); 33 retained roots intact.
+
+**No limit extension is required for this step.** The prompt's initial planning ceiling is 90 minutes
+(5,400,000 ms) and the measured remaining headroom is 10,061,435 ms, so the complete projection fits
+inside the already-authorized limit. **Reason recorded explicitly:** an extension would be
+unnecessary consumption of allowance, and the standing authorization does not require spending unused
+allowance. The cumulative limit therefore stays **191300000 ms**.
+
+**Complete projection for the tranche:** 1200 s mechanism module, focused tests and build; 900 s
+construction population, shared candidate pool and a step-time probe; 1800 s loss-aligned fitting of
+the relational reader and the repaired exact-recurrence comparator, with justified corrections;
+1500 s controls, generated behaviour, corrected instrument checks and direct-path cost; 1200 s
+reporting, checkpoint and delivery reserve. Caps: one training worker, at most four Cargo build jobs,
+<=8 GiB peak RSS, <=512 MiB new model/report data plus <=2 GiB incremental build growth, and the
+existing **128 MiB protected storage margin**. Reuse the surviving
+`.worktrees/geometric-query-read/target` tree. Do not clear shared build caches. No paid/external
+compute.
+
+**Charge:** recorded once below, after the work, as measured nonoverlapping work. Failed builds and
+superseded runs are charged, not refunded.
+
 ## Charges recorded — exact-occurrence reader step (2026-09-20)
 
 | Date | Work | Charge | Basis |
@@ -1049,3 +1074,13 @@ Authoritative JSON verified **178538565/180500000 ms**, remaining 1961435ms. Pre
 The [cleanup receipt](storage-cleanup-2026-09-20.md) records23.21decimalGB physical recovery and51.17GB free at completion. This is filesystem capacity, not deletion of research or a reset of model-storage/resource accounts. All release artifacts and research/model/session data remain. Main and current-worktree incremental build caches and unopened main debug dependency files were removed; the compatible current-worktree debug deps/release cache remains. Refresh actual build growth instead of assuming all caches warm.
 
 The [new prompt](deepseek-occurrence-reader-step-2026-09-20.md) proposes 10800000ms complete work and a standing-authorized increment 10800000ms to 191300000, headroom 12761435ms at this snapshot. **Not applied by this review; record before use.** Initial one worker, <=4 Cargo jobs, <=8GiB RSS, <=512MiB new model/report data plus <=2 GiB incremental build and 128 MiB protected margin. DeepSeek may revise this complete projection with reasons before consumption. Charge actual work once, not the reservation. No paid compute.
+
+## Charges recorded — learned relational reader step (2026-09-20)
+
+| Date | Work | Charge | Basis |
+|---|---|---:|---|
+| 2026-09-20 | New `learner/relational.rs` (learned descriptor, directed relation, rank table, loss-aligned action objective, bounded discrete descriptor search, matched comparison modes, resumable checkpoint; 8 focused tests), `bin/relational-reader.rs` (construction with authored role families, shared causal pool, four matched arms, audit instrument repairs, controls, generation, uncorrected-error-free cost), one harness run and the build/test cycles | 900000 ms | **Mixed.** Measured: one complete 35.2 s harness run; roughly five debug/release compile and focused-test cycles at 60-120 s each ~450 s. Estimated: a ~300 s documentation/delivery allocation. Failed builds and superseded compile cycles are charged. |
+
+**New cumulative: 182138565 ms.** Remaining: 191300000 - 182138565 = **9161435 ms (~152.7 min)**.
+
+**No limit extension was required or recorded for this step**: the projection fit the existing limit, and the standing authorization does not require spending unused allowance. Retained under the claimed, sealed and verified report root `.uor-models/realtext-prior-2026-09-20/relational-reader-1`. Whole-run peak RSS **34471936 B**; the **128 MiB model-storage stop margin is intact**; no deletion, paid/external compute or corpus download. Physical energy UNAVAILABLE.

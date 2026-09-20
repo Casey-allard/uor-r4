@@ -1,0 +1,71 @@
+UOR-R4 — RECEIPT: learned contextual geometric relational reader
+=================================================================
+
+Date            2026-09-20
+Base source     647483ab  (merge of PR #1318)
+Worktree        .worktrees/geometric-query-read, branch codex/relational-reader
+Source          crates/uor-r4-core/src/native_geometric/learner/relational.rs
+                crates/uor-r4-core/src/bin/relational-reader.rs
+Design note     docs/integration/relational-reader-design-2026-09-20.md (written before scoring)
+Result          docs/integration/relational-reader-result-2026-09-20.md
+Root            .uor-models/realtext-prior-2026-09-20/relational-reader-1 (sealed, verified, 0 unlisted)
+
+PINNED INPUTS
+  E                 565cf98a01273af38425687adb522704b09a89bd7ab976b58b20bfbdaccfa0bf
+  local S artifact  ed9affd638ee93670559c626fd6dab91dc2a3c7faa5db66ec9e5a486bcdbdfad
+  tokenizer         9ca9acddb6525a194ec8ac7a87f24fbba7232a9a15ffa1af0c1224fcd888e47c (source)
+                    a7ac75b68aa997fe7cc338d25d843157f2dc9d4265fb2f958ee779bb04828d6f (derived raw)
+
+BASELINE  z_local(v) = z_E(v) + u_S(b) for i >= 2, else z_E. No S history row; no history fold.
+
+MECHANISM
+  q = Q(x_{i-1}), k = Q(x_{j-1}) over a LEARNED 120-valued descriptor initialised from the frozen
+  S write slots; r = inverse(q)*k (common-left invariant); s = bias + rank[r] + sum_e w_e*phi_e + sb[a];
+  action set {NoRead} u {(candidate, strength)} with declared strengths 0.0625, 1, 8 nats.
+  Descriptor learned by a bounded discrete coordinate search on the actual one-step action loss.
+  rank non-zero entries 8/120; descriptor roots moved 50/4096. Shared pool: any exact context token
+  match (cur, prev2, prev), newest-first, <=24 of a 128-token ring; exact indicators to every arm.
+
+FRESH HELD-OUT SPLIT (940 positions, 233 covered, 490 geometric; frozen before scoring)
+  arm                                  covered precision  reads  no-read  E[action loss]  real CE d
+  local (always NoRead)                      -              0    1.000      0.000          0.000
+  exact-recurrence (no relation)            0.755          940    0.000     -0.807         -1.082
+  categorical control (arbitrary code)      0.709          858    0.087     -0.722         -0.995
+  relational (learned descriptor)           0.873          832    0.115     -1.024         -1.500
+  paired by sequence, 2000 draws:
+    precision  +0.0987 [+0.0418, +0.1603]
+    E[action loss]  -0.2172 [-0.2976, -0.1342] nats
+
+DECISION  The predeclared rule (precision >=0.15 AND loss >=0.01 nats) returns NOT POSITIVE because
+the precision point estimate is below its bar; the loss criterion passes decisively. Retained as a
+promising near miss with the original criterion intact and unchanged. The nongeometric categorical
+control scoring WORSE than no relation at all (0.709 vs 0.755) is the evidence that the gain tracks
+the group structure rather than a larger contextual table. No candidate promoted.
+
+INSTRUMENT REPAIRS (from the correcting audit)
+  payload-correct ranking counter; real future-token intervention (444 earlier positions compared,
+  0 changed decisions); matched-fit comparison arm instead of post-hoc weight zeroing; paired
+  intervals against the comparator; local cost arm with no reader work; SHA256 of the executable
+  bytes; complete export/reload parity 940/940 on action and emitted argmax, 0 mismatches.
+  MIS-SPECIFIED AND DIAGNOSED, NOT HIDDEN: `independent_s_query_only_reconstruction` reports 940/940
+  mismatches because QueryHard::int_logits(prev,cur,Some((b,e))) evaluates u(b)+u(e) while z_local is
+  E+u(b): the difference is exactly the identity-row constant u(e) at every position. The baseline
+  definition is unaffected; the control needs to subtract u(e).
+
+COST  uncached declared path, no token-pair cache, 32-token real window, discarded warm-up + 5 repeats:
+  local with NO reader work 1263.9 us/prediction; full reader path 1260.1 us/prediction.
+  Serialized: parent E 454,788 + local artifact 53,555 + relational artifact 8,844 = 517,187 bytes.
+  Whole-run peak RSS 34,471,936 B; wall 35.2 s. Physical energy UNAVAILABLE.
+
+FOCUSED TESTS  8 relational module tests pass: common-left invariance and non-right-invariance of the
+relation; the action-loss closed form and the derived reference optimum; shared admission by any exact
+context token with the candidate bound; NoRead available and beating a doomed read; a correct payload
+learned at a bounded strength; the descriptor search never increasing the objective and staying
+bounded; checkpoint round trip with foreign-identity rejection; and the matched comparator dropping
+only the relation term.
+
+BOUNDARIES  A synthetic binding panel is an instrument check, not prose or reasoning. The fresh split
+is held-out assignments from the same authored generator, not independent semantic domains. Natural
+text was not used as fresh evaluation. Reset/Continue maintenance, exact occurrence/version memory,
+shared composition and complete consumer-machine cost remain unrun. Prime/zeta/R4/S3/H4/icosian roles
+and D0-b are unchanged.

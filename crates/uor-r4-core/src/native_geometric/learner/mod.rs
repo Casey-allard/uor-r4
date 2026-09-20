@@ -20,6 +20,7 @@ pub mod prefix_state;
 pub mod prior_learning;
 pub mod query_read;
 pub mod realtext_support;
+pub mod relational;
 pub mod transition_table;
 pub mod vsa_codes;
 
@@ -46,6 +47,7 @@ pub use lowbit_core::{LowBitCore, LowBitCoreTrainer, TrainConfig, DEFAULT_STATE_
 pub use occurrence::{OccurrenceArtifact, OccurrenceRing, Selector, SelectorTrainer};
 pub use prior_learning::{PriorCore, PriorTrainer};
 pub use query_read::{QueryArm, QueryHard, QueryTrainer};
+pub use relational::{RelationalSelector, RelationalTrainer};
 pub use transition_table::{
     ContinuousLaneTable, DiscreteServingTable, MultiLaneTransitionTables, ENTRIES_PER_TABLE,
 };
