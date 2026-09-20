@@ -1,5 +1,7 @@
 # Result — matched geometric query read (Q/S/L) against the frozen corrected E
 
+**Post-#1310 correction:** the [principal review](query-read-review-2026-09-20.md) preserves the numerical results while correcting history attribution, tokenizer binding, continuation, source/cost and cycle claims. The [frozen S attribution prompt](deepseek-separable-attribution-step-2026-09-20.md) now owns active work. Historical instructions/results below retain their original scope; the full original contract was not completely fulfilled.
+
 Date: 2026-09-20. Source `92240a8619927d287bb90ee50aeebf0c944bc597` (merge of PR #1309).
 Executed in the isolated worktree `codex/geometric-query-read` at
 `.worktrees/geometric-query-read`. Sealed report root:

@@ -1,5 +1,7 @@
 # DeepSeek execution prompt — test a matched geometric query read
 
+**Post-#1310 correction:** the [principal review](query-read-review-2026-09-20.md) preserves the numerical results while correcting history attribution, tokenizer binding, continuation, source/cost and cycle claims. The [frozen S attribution prompt](deepseek-separable-attribution-step-2026-09-20.md) now owns active work. Historical instructions/results below retain their original scope; the full original contract was not completely fulfilled.
+
 Work on **UOR-R4 Geometric Language Model**, `UOR-Foundation/uor-r4`. Refresh origin/main beyond reviewed PR #1308, merge `d92bd072b53891e83bc5ccf09c07a7ba3e5eba2b`. Read this prompt and [the principal review](geometric-query-review-2026-09-20.md) completely, followed by the current plan/state/policy. Deliver one bounded implementation and real-text experiment: **a learned query-conditioned read of an ordered geometric history state**, compared with equally parameterized separable and local-only reads. Keep the corrected empirical head E frozen. Complete the actual experiment and protected delivery; a source module, authored fixture or proposed study alone is not the result.
 
 ## 1. Recover authority and exact inputs

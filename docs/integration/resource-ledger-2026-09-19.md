@@ -931,3 +931,11 @@ comparison. The superseded `query-read-1` root is preserved sealed and untouched
 **763002880 B** (`/usr/bin/time -l`, complete run). The **128 MiB model-storage stop margin is
 intact**; build output reuses the existing `target/`. No deletion, corpus download or paid/external
 compute. Physical energy remains UNAVAILABLE.
+
+## Post-#1310 review and frozen-attribution proposal (2026-09-20)
+
+Authoritative JSON remains **176138565 /178100000 ms**, remaining **1961435 ms**. This source/artifact/saved-data review ran no build/training/model forward and changes no balance. Preserve the 5900000-ms debit as mixed measured/estimated; do not recast its approximate build/documentation allocations as measured nonoverlapping phases or refund them. The continuation phase was reported as literal 0.0 s. Separate probe/calibration roots were not recovered in the bounded audit; that does not establish nonexecution.
+
+Both complete roots verify: query-read-1 has 38 listed members/39 files/35737312 bytes; query-read-2 has 38 listed members/39 files/35737680 bytes. Their three final artifacts are byte-identical. CPX3's 53555 bytes exclude the 454788-byte parent. Complete-run RSS is not standalone serving memory. The discarded-result microbenchmarks do not qualify the declared fold ratio, and cache peak sampled after reset can miss within-batch growth. Preserve all evidence with these limits.
+
+The [next prompt](deepseek-separable-attribution-step-2026-09-20.md) proposes **3600000 ms** total: 900 s source/build/tests,450 s metadata and prior replay,450 s fit-only means and new-position panel,900 s attribution/controls/generation/cost,900 s derived reporting/retry/checkpoint reserve/delivery. Proposed standing-authorized increment **+2400000 ms**, limit **180500000 ms**, headroom 4361435 ms at this snapshot. **Not applied by this review.** Refresh and record before use; charge actual work once. One worker, <=4 Cargo jobs, <=8 GiB RSS, <=256 MiB new data plus <=1 GiB incremental reused build output; retain 128 MiB stop margin. No optimizer updates, new corpus, paid compute or deletion.
