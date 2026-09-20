@@ -1,6 +1,6 @@
 # UOR-R4 Geometric Language Model: direction and capability assessment
 
-**Current synthesis:** the [September 19 takeover review](takeover-review-2026-09-19.md) supersedes dated mechanism selection and contract language below. Use the newest [current state](current-state.md) and [DeepSeek next task](deepseek-next-step-2026-09-19.md). Historical results retain their original artifact and population scope.
+**Current synthesis:** the [learning-contract review after #1296](learning-contract-review-2026-09-19.md) and [canonical dependency sequence](project-track.md#research-dependencies-and-exit-conditions) distinguish numerical correctness, local-context learning, predictive geometric state/memory and integrated capability. The [takeover review](takeover-review-2026-09-19.md) retains the broader history/source map. Use newest [current state](current-state.md) and the [DeepSeek execution prompt](deepseek-learning-contract-step-2026-09-19.md). Historical results retain their exact artifact/population scope; D0-b overrides older blanket serving exclusions.
 
 Owner-adopted shared-core direction, 2026-09-12, extending the September 7
 source assessment. Plan adoption adds no model-quality result.

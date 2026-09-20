@@ -1,6 +1,6 @@
 # EVIDENCE
 
-**Latest interpretation:** [prior-learning review after #1294](prior-learning-review-2026-09-19.md) corrects clipped nats mislabeled bits, training/export bias mismatch, target/exposure accounting and unsupported causal diagnoses. It selects numerical/data repairs followed by one prior-only learning curve. The #1294 row and raw receipt below are historical and must be read with the appended correction. No new model execution occurred in this review.
+**Latest interpretation:** [learning-contract review after #1296](learning-contract-review-2026-09-19.md) corrects the claim that Stage 1 and train/serve parity are complete. The new trainer omits contextual scaling, the toy task trains conflicting targets, and the shared optimizer suppresses small gradients. Its 0.375 score is preserved but does not diagnose quantization. No new model was executed in this review. Read the appended correction with the original row/receipt.
 
 **Previous interpretation:** [post-qualification source review](cold-context-review-2026-09-19.md) scopes #1292 and its remaining instrument corrections.
 
@@ -134,3 +134,17 @@ bind the 2026-09-19 measurements to the exact bytes evaluated.
 | Next bounded experiment | Frozen fit-only quantized marginal plus learned prior residual, cheap balanced learning gate, context permutation and position interventions, real checkpoint | Selected in the [complete prompt](deepseek-prior-learning-step-2026-09-19.md); implementation and new learning curve NOT_RUN. |
 
 [Full review, source findings and primary literature](prior-learning-review-2026-09-19.md). Broader geometric, conversation/memory, reasoning/coding and energy acceptance remains open.
+
+
+## Source correction after PR #1296 — no new model run
+
+| Scope | Finding | Disposition |
+| --- | --- | --- |
+| Training/serving probability | Training residual omits 2^-F while bias is scaled; backward includes the factor | Parity claim withdrawn; one shared integer forward and nonzero-context independent checks required |
+| Authored addition fixture | Repeated triples train addition twice and two subtraction targets for each non-prefix context; gate evaluates addition only | 0.375 retained as selected-position fitting score; not a clean quantization/capacity diagnosis. Replace with explicit consistent answer-position mask |
+| Optimizer | Shared Adam skips updates at v_hat<=1e-12 | Repair against scalar reference, measure small updates; contribution to old failure unmeasured |
+| Capacity | Explicit 16-feature ternary/ReLU construction represents the intended truth table | Mathematical construction in review; executable verification NOT_RUN; authored witness is not learned behavior |
+| Scheduling/checkpoint/artifact | Hash-modulo is not Fisher–Yates; checkpoint drops config/identity; tests compare only exports; malformed shift assertion is vacuous; overflow envelope incomplete | Stage 1 completion withdrawn; focused interface repairs before real-text admission |
+| Result preservation and next work | Raw receipt preserved; no new persisted artifact/manifest or real-text curve from #1296 | Corrected small learned gate, conditional floating comparator, then conditional prior-only text curve; no model promotion |
+
+[Complete findings, conditional-count derivation, literature and roadmap rationale](learning-contract-review-2026-09-19.md); [executable DeepSeek prompt](deepseek-learning-contract-step-2026-09-19.md).

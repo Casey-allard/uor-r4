@@ -512,3 +512,12 @@ an honest negative, not a silent saving. No model artifact was created by this r
 are one Rust module, one receipt and four document edits, with build output inside the existing `target/`.
 The **128 MiB model-storage stop margin is untouched**; no deletion, no cleanup, no paid or external
 compute.
+
+
+## Review after PR #1296 — interpretation correction and proposed next tranche
+
+Live recorded balance verified as **149,838,565 / 154,400,000 ms**, remaining **4,561,435 ms (76.02 minutes)**. Preserve the previous 800,000 ms charge as recorded; this review does not independently reconstruct its elapsed timing. No Rust build/model ran in the review, and no model charge or allowance change was applied. Reused the clean full worktree on `codex/learning-contract-repair`; original checkout and retained joint artifact remain preserved.
+
+The preceding “unified integer train/serve forward” and “bounded loading/exact resume” descriptions exceed the implemented guarantees. The [review](learning-contract-review-2026-09-19.md) identifies a contextual scaling defect, contradictory task, small-gradient cutoff and incomplete scheduler/checkpoint/artifact checks. These correct interpretation, not historical elapsed charges. No evidence shows that the small comparator's omission required a budget stop.
+
+The [next prompt](deepseek-learning-contract-step-2026-09-19.md) proposes a complete **3,600,000 ms** tranche: 1,200 s repairs/builds/independent checks, 300 s small fits/conditional comparator, 1,500 s conditional text fitting/evaluation/generation, 600 s evidence/delivery/reserve. This is not an executed charge or a pre-execution projection receipt; refresh and record before use. Revise before overruns under standing local-extension authorization. One worker, at most four Cargo jobs, 8 GiB RSS, 1 GiB incremental storage on reused checkout/cache and 128 MiB stop margin. No paid compute or deletion; account separately for any new full checkout.

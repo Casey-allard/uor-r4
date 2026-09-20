@@ -1,5 +1,7 @@
 # DeepSeek execution prompt — recover trustworthy prior learning
 
+**Historical specification, partially attempted in PR #1296.** Follow the [learning-contract repair prompt](deepseek-learning-contract-step-2026-09-19.md) and its [source review](learning-contract-review-2026-09-19.md). The 0.375 fitting result does not isolate a quantization problem; Stage 1 is not complete. The detailed real-text design below remains background where incorporated by the newer prompt.
+
 You are implementing the next bounded step for the **UOR-R4 Geometric Language Model** in `UOR-Foundation/uor-r4`. Read this entire prompt and `docs/integration/prior-learning-review-2026-09-19.md`. The audited source is `c0ca7482` (merged #1294); refresh origin/main and include this prompt's protected delivery. The previous cold-context prompt is historical.
 
 **Objective:** repair the numerical/data experiment and obtain a saved, interpretable prior-only learning curve on the exact exported computation. Do not run the unchanged multi-epoch command. This task includes implementation and a conditional learning run, not just a new design document.

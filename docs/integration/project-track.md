@@ -1,10 +1,23 @@
 # UOR-R4 Geometric Language Model — canonical project plan
 
-## Active direction — September 19 review after the cold-prior pilot
+## Active direction — review after PR #1296
 
-The owner reconfirmed D0-b/D1/D2 and the geometric research priority. PR #1292 measured the memory-only core's dominant cold-route population; PR #1294 implements the exact-token prior plus memory but delivers a negative, numerically unqualified paired pilot. The active #973 increment is **correct training/export probability semantics and one prior-only contextual-residual learning curve above a frozen quantized fit-unigram bias**. Fix loss units/clipping, sampling and target/reference alignment, preserve a real manifest/checkpoint and pass a tiny balanced learning fixture before real-text fitting. Diagnose the retained memory artifact without joint retraining. Do not infer the cause of failure or launch unchanged multi-epoch dose. The [principal review](prior-learning-review-2026-09-19.md) gives the evidence and alternatives; the [complete execution prompt](deepseek-prior-learning-step-2026-09-19.md) owns the bounded next task. The [takeover review](takeover-review-2026-09-19.md) remains the broader source/history map. Previous prompts are historical.
+The owner-adopted D0-b/D1/D2 and geometric research priority remain unchanged. PR #1296 adds prior-only numerical/checkpoint machinery and records a small fitting failure, but source review finds a 1,024× contextual train/serve scale mismatch at F=10, conflicting fixture supervision and a small-gradient optimizer cutoff. **Correct the common learning computation and task, then retry the bounded learned gate before interpreting quantization.** A floating comparator remains conditional. If correctness and learning pass, continue the representative real-text prior curve with verified scheduling and complete checkpoint identity. The [principal review](learning-contract-review-2026-09-19.md) and [execution prompt](deepseek-learning-contract-step-2026-09-19.md) own the precise next increment; earlier prompts/results retain historical scope.
 
-The numbered responsibilities below remain the programme map. #973 remains the immediate priority, #963 owns cost and #964 scoped contracts. Keep #1139 open for its binding obligations. A successful local-context prior will not establish H4/2I advantage or general prose/reasoning/coding; the next geometric operator must have a specific tested role. D2 governs interpretation of ablations. Complete-path energy advantage remains unqualified. No programme goal or owner decision is changed by this research scheduling choice.
+#973 remains active; #963 owns complete cost and #964 scoped numerical/artifact guarantees. No broader capability issue is completed by this review. D2 governs geometry-control interpretation. No owner goal or serving decision changes.
+
+## Research dependencies and exit conditions
+
+| Dependency | Evidence required to advance | Current scope |
+| --- | --- | --- |
+| Correct reusable learner | Nonzero-context train/export score and loss parity, independent surrogate/optimizer checks, consistent task labels, real report/checkpoint identity | Immediate #973/#964 correction; nine reported tests do not establish completion |
+| Local-context learning baseline | Exported contextual fitting gate, then representative text improvement beyond marginal controls with context permutation, raw generation and reproducible learning curve | Real-text prior curve NOT_RUN; this is a baseline component, not the final model |
+| Learned geometric predictive state and memory | Histories with identical local tails but different relevant earlier evidence; learned state/read effect beyond the local prior, exact occurrence/version provenance, matched geometric/capacity/cost controls | Integrate a specifically motivated transition/read/packaging change; do not equate modulo buckets with durable exact memory |
+| Integrated useful model and delivery | Conversation/memory, compositional reasoning and executed Rust tasks on one artifact; retained causal controls; full-path M1 latency/RAM/storage/energy and then native API/WASM/Studio acceptance | Broad responsibilities below remain the programme; no alpha or energy claim |
+
+For a two-token predictor, equal tails force equal predictions regardless of older history. On a fixed population, adding older history can reduce optimal log loss by the conditional information I(next;older history|tail). This is an architectural identity, not a measured ceiling from a finite fitted count model. The baseline must therefore lead into state/context access. Finite group structure and exact identity support explicit mechanisms; a single 120-state root or fixed invertible relabeling does not supply arbitrary-history capacity or establish semantic advantage. Retain prime/zeta/R4/S3/H4, exact orientation/icosian structure and exact memory while testing their specific learned roles.
+
+Use this dependency order to decide experiments, not as a prohibition on independent work whose prerequisites exist. Reuse a common forward and report path rather than growing another disconnected learner per iteration. A failed valid experiment may redirect the next mechanism; a failed instrument must first be repaired.
 
 ## Goal
 
