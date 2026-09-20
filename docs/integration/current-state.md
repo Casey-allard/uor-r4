@@ -1,5 +1,36 @@
 # Current native geometric AI work
 
+# Current native geometric AI work
+
+## Prior-learning recovery: the numerical contract is now correct, and the cheap contextual gate fails — September 19, 2026 execution
+
+**STAGE 1 IS IMPLEMENTED AND TESTED; THE STAGE 2 CHEAP GATE FAILS, SO THE STAGE 3 REAL-TEXT CURVE WAS NOT RUN.** That is the prompt's own stop condition ("Do not spend a full-corpus dose while this cheap gate fails"). No real-text model was trained. The deliverable is a correct instrument plus a measured gate failure with a bounded diagnosis.
+
+**The unit error is fixed.** #1294's numbers were clipped **nats** labelled bits (`-ln(max(p,1e-9))`, capped at 29.8974 bits). The new module computes `z = Z·2^-F` with one artifact-bound exponent `F` and `bits = (logsumexp(z) - z[target])/ln 2`, uncapped and unfloored. Tested: uniform V=4096 is **exactly 12.000000 bits**; a common offset is invariant; a confidently wrong prediction is finite and **above** the old ceiling. Arithmetic conversions of the old rounded values (not re-evaluations) are 9.2360 / 9.3086 / 9.6676 / 9.9461 clipped bits, and the negative point-estimate directions survive.
+
+**One target iterator.** `prior_learning::targets` is now shared by training, integer evaluation, coverage and references: position `i` over `0..n-1`, context ends at `tokens[i]`, target `tokens[i+1]`, absent-prefix row at `i == 0`. A length-64 window scores **63** targets, not 62. Tested on first/last targets and a two-token window.
+
+**Train and serve are now the same computation.** One integer forward `Z[r] = (Σ_j W[r][j]·h[j]) + B[r]` with a **frozen fit-only ≤4-bit bias** (`bias_code = round(ln p_fit + 7)`, clamped to [−7,7], declared dyadic scale). Measured **fit-unigram quantization gap 0.10 bits** (3.7823 vs 3.6809). The old train/export bias mismatch is now structurally impossible: with integer codes a master bias of `(0.49,−0.49,0)` cannot be visible, asserted as a fixture. `2^-F` is applied **once**, at credit to `Z`; greedy serving is `argmax(Z)` with no scale multiply. Step-0 exported residual is **exactly zero** (asymmetric below-threshold output masters, so the model starts *as* the constant control), the output gradient is live, and prior-table credit appears only once the output codes cross the threshold.
+
+**Loading is bounded and there is a real checkpoint.** Artifact `CPL2` v2 binds vocab/dv/norm bits/`F`/bias scale/seed/tokenizer digest and validates shapes, checked size arithmetic, shift range and the signed 4-bit bias range, rejecting truncation, a trailing byte, bad magic and an out-of-range code. `checkpoint_bytes`/`resume_from` carry masters, both Adam moments, step, optimizer config, schedule cursor/pass/rng and a data identity: **a resumed split run equals the uninterrupted run exactly**. Legacy `CPR1` stays readable under its original semantics and is not relabelled compliant.
+
+**The gate, measured.** Balanced fixture `(x,y) → (x+y) mod 4` over all 16 ordered pairs, vocab 4, dv 32, 2,000 Adam steps, prior-only with the frozen bias:
+
+```
+  exported (integer) accuracy   0.375
+  constant-marginal accuracy    0.250     <- the task is genuinely contextual
+  frozen success bar            0.900
+  GATE FAILS
+```
+
+**Diagnosis (bounded, not a proof of cause).** The model is expressible for this task, so the failure sits in the **optimization or quantization of the learning path**, not capacity: the prior tables receive no credit at all until the output codes cross the quantizer threshold (training a readout against frozen random ternary features first), and the bounded ReLU masks half the feature entries to zero. The prompt's prescribed next step for this branch is one bounded **offline floating-forward comparator** of the same small architecture; it is not run here and must never become a served path.
+
+**Not run, and stated as omissions.** Stage 3 (real-text manifest, references, learning curve, real-text checkpoints), the gates, permutation control and position knockouts, any generation, and the `report_output::claim`/`seal`/`verify` preservation path — all because the gate failed before them. Also not run: the binary/whole-path multiplier audit of the new integer path (source inspection only), a `crates` replicate, a second seed, and any learning-rate/width sweep. The retained `cold_prior_joint.cpr` was **not** rescored: its training bias was the unquantized float master while export rounded to i32, so a replay would be a new-population, new-convention diagnostic rather than a faithful continuation, and no manifest was recovered for it.
+
+**State.** New module `learner/prior_learning.rs` with **9 tests passing** (iterator, 12-bit uniform, offset invariance and uncapped error, bias gap, the threshold fixture, step-0 zero residual with live gradient, artifact round-trip plus five malformed rejections, **resume equality**, and the fixture with its gate outcome recorded). `cargo fmt --all --check` clean; claim-wording gate passes.
+
+**Receipt:** [`native_geometric_prior_recovery_2026-09-19.txt`](../evidence/native_geometric_prior_recovery_2026-09-19.txt). References #973, #820.
+
 ## Active next: correct the experiment and establish prior learning — September 19 review after PR #1294
 
 **Do not launch an unchanged multi-epoch run.** The exact-token prior is implemented, but its paired pilot has loss-unit/clipping, training/export bias and data/control defects. Repair the numerical and target contracts, then train one prior-only contextual residual above a frozen fit-only quantized unigram baseline. Require a cheap balanced contextual-learning fixture, representative shuffled exposure, same-artifact context-permutation/position controls and a real resumable checkpoint. Memory remains disabled during fitting; diagnose the retained joint artifact without retraining it. The [principal review](prior-learning-review-2026-09-19.md) and [complete DeepSeek prompt](deepseek-prior-learning-step-2026-09-19.md) supersede older next-action text below.

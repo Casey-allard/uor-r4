@@ -13,6 +13,7 @@ pub mod jepa_trainer;
 pub mod lowbit;
 pub mod lowbit_attention;
 pub mod lowbit_core;
+pub mod prior_learning;
 pub mod transition_table;
 pub mod vsa_codes;
 
@@ -36,6 +37,7 @@ pub use jepa_trainer::{
 pub use lowbit::TernaryLinear;
 pub use lowbit_attention::{LowBitAttention, LowBitAttentionTrainer};
 pub use lowbit_core::{LowBitCore, LowBitCoreTrainer, TrainConfig, DEFAULT_STATE_DIM};
+pub use prior_learning::{PriorCore, PriorTrainer};
 pub use transition_table::{
     ContinuousLaneTable, DiscreteServingTable, MultiLaneTransitionTables, ENTRIES_PER_TABLE,
 };

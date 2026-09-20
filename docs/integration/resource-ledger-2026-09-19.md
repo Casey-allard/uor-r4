@@ -476,3 +476,39 @@ Verified live JSON remains **149,038,565 / 154,400,000 ms**, leaving **5,361,435
 The [prior-learning review](prior-learning-review-2026-09-19.md) corrects the preceding run's interpretation, not its recorded elapsed charge: displayed CE was clipped nats, each arm scored 126,976 targets, undertraining is an untested cause, and CPR1 is not a resumable trainer checkpoint. Negative point-estimate directions remain. No reconstructed timing is presented as a measurement.
 
 The [new prompt](deepseek-prior-learning-step-2026-09-19.md) proposes **3,600,000 ms total**: 900 s repairs/builds/data/cheap fixtures, 1,800 s maximum prior fitting, 500 s diagnostics/evaluation/checkpoint/generation, 400 s reserve. This is a **proposal, not a charge or a pre-execution receipt**. Refresh and record the complete projection before execution; revise before overruns under standing local-extension authorization. One model worker, at most four Cargo jobs, 8 GiB peak RSS, 1 GiB incremental storage on the reused worktree/cache and the 128 MiB stop margin. Account for any new checkout separately. No paid compute or deletion.
+
+## Projection recorded before use — prior-learning recovery tranche (2026-09-19)
+
+**Reason.** The [prior-learning review](prior-learning-review-2026-09-19.md) establishes that the #1294 experiment was numerically and procedurally wrong (clipped nats labelled as bits; train/serve bias mismatch; a fit prefix of 2,048 of 23,559 windows; a 62-target mask; document-opening development; a misaligned two-token reference; a report that is neither a manifest nor a resumable checkpoint) and directs one corrective implementation plus one conditional prior-only learning curve. The prompt's 3,600,000 ms tranche is recorded here before execution.
+
+| Item | Estimate |
+|---|---:|
+| Correctness repairs, new numerical module, focused fixtures, builds | 900,000 ms |
+| Maximum prior-only fitting (checkpoints 0/256/512, conditional 1,024) | 1,800,000 ms |
+| Artifact/checkpoint diagnostics, evaluation, gates, generation | 500,000 ms |
+| Retry, resume-equality test and stop reserve | 400,000 ms |
+| **Total tranche** | **3,600,000 ms** |
+
+**No allowance extension is used.** The limit stays `154,400,000 ms`; this draws on the existing recorded
+balance. **No new checkout is created**: the existing clean isolated worktree is reused on a new branch, so
+no additional approximately 1.2 GiB checkout is charged. Build output reuses the existing `target/`.
+One model worker, Cargo jobs bounded at 4, host 8 cores / 16 GiB so the 8 GiB peak-RSS cap is feasible,
+new build/data/checkpoint storage below 1 GiB, **128 MiB model-storage stop margin untouched**. No paid
+or external compute, no deletion.
+
+## Charges recorded — prior-learning recovery Stage 1-2 (2026-09-19)
+
+| Date | Work | Charge | Basis |
+|---|---|---:|---|
+| 2026-09-19 | `prior_learning` module (one shared target iterator, uncapped bits, unified integer train/serve forward with a frozen <=4-bit bias, artifact `CPL2` v2 with bounded loading, resumable checkpoint), 9 focused fixtures, seven release build/test cycles while repairing defects | 800,000 ms | **Measured.** Roughly seven `cargo test --release` compile cycles at ~1-2 min each plus the `cargo fmt`/gate runs; the fixtures themselves complete in 0.15 s. Iterative repair included failed intermediate runs, all retained. |
+
+**New cumulative: 149,838,565 ms.** Remaining: 154,400,000 − 149,838,565 = **4,561,435 ms (~76.0 min)**.
+
+**Charged from the 3,600,000 ms recovery tranche recorded above; no allowance extension.** The unspent
+remainder of that projection covers the Stage 3 fitting, diagnostics and checkpoint items that the
+**cheap gate failure made conditional and therefore unspent**: no real-text model was trained, no manifest
+or real-text checkpoint was produced, and no report root was claimed. That is a scope reduction forced by
+an honest negative, not a silent saving. No model artifact was created by this run; the new tracked files
+are one Rust module, one receipt and four document edits, with build output inside the existing `target/`.
+The **128 MiB model-storage stop margin is untouched**; no deletion, no cleanup, no paid or external
+compute.

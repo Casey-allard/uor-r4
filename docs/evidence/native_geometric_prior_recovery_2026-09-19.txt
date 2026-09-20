@@ -1,0 +1,151 @@
+================================================================================
+RECEIPT — prior-learning recovery, Stage 1-2: one correct numerical contract
+Date: 2026-09-19/20. Branch codex/prior-recovery-r2. Base origin/main 9852b8aa (#1295).
+Reused worktree .worktrees/realtext-qual (no new checkout). M1, 8 cores, cargo 1.97.1.
+================================================================================
+
+OUTCOME IN ONE LINE
+-------------------
+**Stage 1 (numerical/data contract) is implemented and tested; the Stage 2 cheap
+balanced contextual gate FAILS at this configuration (exported accuracy 0.375 against a
+frozen bar of 0.9), so the Stage 3 real-text prior-only learning curve was NOT RUN** — which
+is the prompt's own stop condition ("Do not spend a full-corpus dose while this cheap gate
+fails"). No real-text model was trained. The deliverable is a correct instrument plus a
+measured, honest gate failure with a diagnosis.
+
+================================================================================
+1. THE UNIT ERROR, AND WHAT REPLACES IT
+================================================================================
+The #1294 numbers were clipped **nats** labelled bits: `-ln(max(p,1e-9))`, capped at about
+20.7233 nats = 29.8974 bits. The new module computes
+
+    z[r]  = Z[r] * 2^-F                     // integer score Z, one artifact-bound exponent F
+    bits  = (logsumexp(z) - z[target]) / ln 2
+
+with no floor and no cap. Verified by test:
+  * uniform integer scores at V=4096 report **exactly 12.000000 bits**;
+  * a common offset added to every score changes nothing (softmax invariance);
+  * a confidently wrong prediction reports a finite loss **above 29.8974 bits**, i.e. past the
+    old artificial ceiling.
+Cross-check of the old rounded values (arithmetic, not a re-evaluation): 6.4019 nats = 9.2360
+clipped bits; 6.4522 = 9.3086; 6.7011 = 9.6676; 6.8941 = 9.9461; the warm 4.4072 nat difference
+= 6.3582 clipped bits. The negative point-estimate directions survive the conversion.
+
+================================================================================
+2. ONE TARGET ITERATOR
+================================================================================
+`prior_learning::targets(tokens, vocab)` is the single iterator shared by training, integer
+evaluation, coverage and references: prediction position `i` ranges over `0..n-1`, the context
+ends at `tokens[i]`, the target is `tokens[i+1]`, and `i == 0` uses the absent-prefix row.
+A length-64 window therefore yields **exactly 63** scored targets, not 62. Tested for the first
+and last target with distinguishable tokens, and for a two-token window (one target).
+The old 62-target mask is **not** reintroduced anywhere.
+
+================================================================================
+3. TRAIN/SERVE UNIFICATION AND THE LOW-BIT BIAS
+================================================================================
+One integer forward is used by training, artifact evaluation and greedy serving:
+
+    Z[r] = (Σ_j W[r][j] · h[j]) + B[r]        W, h integer; one shared decoder
+    B[r] = bias_code[r] · 2^F                 frozen, signed <=4-bit code, declared dyadic scale
+
+* The bias is **frozen from the fit-only unigram** and is not trained, so any improvement must
+  pass through the learned contextual residual.
+* `bias_code[r] = round(ln p_fit[r] + c)` with declared smoothing (add-one) and common offset
+  `c = 7`, clamped to [-7, 7]. Measured **fit-unigram quantization gap: 3.7823 quantized bits
+  vs 3.6809 exact** (0.10 bits) on the fixture.
+* The old defect is caught by the required fixture: with the exported integer codes, a master
+  bias of `(0.49, -0.49, 0)` **cannot be visible at all** — codes are integers, so the
+  train/export mismatch of the previous run is structurally impossible. Tested.
+* `2^-F` is applied **exactly once**, at credit to integer score `Z`; downstream propagation
+  already carries it. Greedy serving is `argmax(Z)` with no scale multiply.
+* Train/serve parity is asserted by construction: `PriorCore::bits` and the trainer's forward
+  both consume the same `int_logits`/`Z` definition.
+
+================================================================================
+4. THE INITIALIZATION THE REVIEW ASKED FOR
+================================================================================
+Output masters start **below the quantizer threshold** (|m| < 0.5 with unit row scale), so every
+exported code is zero and the contextual residual is **exactly zero at step 0**: the model *is*
+the constant control, verified position by position. The masters are asymmetric (filled over
+[-bound, bound]) rather than uniform, because a uniform initialization gives every output row
+the same gradient. Tested: the output gradient is non-zero at step 0, and **prior-table credit
+appears once the output codes cross the threshold**.
+
+================================================================================
+5. BOUNDED LOADING, ARTIFACT v2, RESUME
+================================================================================
+`CPL2` v2 binds vocab, dv, norm bits, `F`, the bias dyadic scale, seed and a tokenizer digest, and
+carries per-table row/col/shift metadata and the bias codes. Loading validates magic, version,
+shape agreement with the declared vocabulary, shift range (<= 30), the signed 4-bit bias range,
+checked size arithmetic, and **rejects trailing bytes**. Tested: exact round-trip, truncation,
+one trailing byte, bad magic, an out-of-range bias code.
+Legacy `CPR1` is left untouched and readable under its original unit-logit semantics; it is not
+relabelled compliant.
+
+**Real resumable checkpoint.** `checkpoint_bytes`/`resume_from` store masters, both Adam moments,
+step, optimizer configuration, the schedule cursor/pass/rng and a data identity. Tested:
+**a resumed split run equals the uninterrupted run exactly** (3 steps, checkpoint, 3 more vs 6
+straight) at identical exported integer codes. This is the property CPR1 could not provide.
+
+================================================================================
+6. THE STAGE 2 GATE — MEASURED FAILURE
+================================================================================
+Balanced contextual fixture: vocab 4, dv 32, task `(x, y) -> (x + y) mod 4` over all 16 ordered
+pairs, pattern repeated `[x, y, s, x, y, s]` so that most scored targets are consistent, 2,000
+Adam steps at lr 0.05, channels = prior only, frozen flat bias.
+
+  exported (integer, quantized) accuracy  0.375
+  constant-marginal accuracy              0.250   (the task is genuinely contextual)
+  frozen success bar                      0.900
+
+**GATE FAILS.** The exported low-bit prior does not learn a 16-context deterministic mapping that
+a constant marginal cannot solve, in 2,000 steps, even though its codes demonstrably move off the
+zero initialization and beat the marginal.
+
+Diagnosis (bounded, and explicitly not a proof of cause). The model is expressible for this task:
+the feature is a bounded-ReLU sum of two ternary rows normalised by one shift, and a ternary
+readout over ~32 entries can separate 16 contexts. The failure therefore sits in **optimization or
+quantization of the learning path**, not in capacity — consistent with the review's expectation
+that a low-bit fixture can expose exactly this gap. Two structural observations support that and
+are recorded rather than resolved:
+  * the prior tables receive **no credit at all** until the output codes cross the quantizer
+    threshold, so the first phase trains a readout against frozen random ternary features; and
+  * the bounded ReLU masks half the entries to exactly zero, halving the available feature
+    directions.
+Per the prompt, the prescribed next step for this branch is **one bounded offline floating-forward
+comparator of the same small architecture** to separate a quantization gap from an optimization
+gap. That comparator is **NOT RUN** here (budget), and it must never become a served path.
+
+================================================================================
+7. NOT RUN, AND WHY
+================================================================================
+* **Stage 3 prior-only learning curve: NOT RUN.** The prompt makes it conditional on the cheap
+  gate passing.
+* **Real-text manifest, references, gates, generations, permutation control and position
+  knockouts: NOT RUN** for the same reason; no real-text artifact or checkpoint was produced.
+* **Report preservation via `report_output::claim`/`seal`/`verify`: NOT EXERCISED**, because the
+  Stage 3 runner that would claim a root was not executed. The API itself is unchanged and its own
+  tests pass. This is an omission, not a satisfied requirement.
+* **Binary/whole-path multiplier audit of the new integer path: NOT RUN.** Source inspection only:
+  the path is adds, subtracts, shifts and table reads, which is a code reading and not a binary
+  qualification.
+* **`crates` corpus replicate, second seed, learning-rate/width sweep: NOT RUN.**
+* The retained `cold_prior_joint.cpr` (614,542 B, sha256 `fb780ff6…`) was **not** rescored: its
+  training-time bias was the unquantized float master while export rounded to i32, so a replay
+  under the corrected bit metric would be a **new-population, new-convention diagnostic**, not a
+  faithful continuation. No manifest was recovered for it; it stays UNAVAILABLE as a comparable
+  baseline.
+* Energy/token UNAVAILABLE. No chat, reasoning, coding or language capability is claimed.
+
+================================================================================
+8. TESTS AND GATES
+================================================================================
+`prior_learning` — 9 tests, all pass:
+  iterator yields exactly n-1 targets · uniform V4096 is exactly 12 bits · common-offset
+  invariance and an uncapped confident error · frozen bias reproduces the fit unigram up to a
+  measured 0.10-bit quantization gap · the (0.49,-0.49,0) master-bias fixture · zero exported
+  residual at step 0 with live output gradient and later prior credit · artifact round-trip and
+  five malformed-input rejections · **resume equality** · the balanced contextual fixture with its
+  gate outcome recorded.
+`cargo fmt --all --check` clean; `python3 scripts/check_claim_wording.py` passes.
