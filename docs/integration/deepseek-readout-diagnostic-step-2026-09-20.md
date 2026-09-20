@@ -1,5 +1,7 @@
 # DeepSeek execution prompt — recover the prefix negative and isolate readout learning
 
+> Executed by PR #1306 with the corrections in [the principal review](readout-result-review-2026-09-20.md). Preserve this historical protocol; its next action is superseded by the [head-projection prompt](deepseek-head-projection-step-2026-09-20.md). In particular, the executed smoothed teacher differs from the selection prescribed here.
+
 Work on **UOR-R4 Geometric Language Model**, `UOR-Foundation/uor-r4`. Refresh origin/main beyond audited base `88e7122122717333aed7ee79049854337cf60ead` (PR #1304) and read this document plus `docs/integration/prefix-pilot-review-2026-09-20.md` completely. They supersede the prior run's demand to approach the count reference before any further geometric state research.
 
 **Deliver one bounded causal experiment: freeze the existing integer context features and compare empirical versus smoothed conditional-target training of the existing ternary output head. First recover and replay the saved negative prefix candidates without retraining them, correcting the specific artifact/generation/statistic gaps.** Execute the readout experiment and make one next decision from its outcome. Do not stop after writing a module or designing a study.

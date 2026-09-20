@@ -1,44 +1,18 @@
 # Current native geometric AI work
 
-## Active: prefix candidates recovered; paired output-head diagnostic executed
+## Active: retain the output-head gain; test its existing low-bit export
 
-The [review after PR #1304](prefix-pilot-review-2026-09-20.md) preserves the failed numerical prefix pilot and corrects artifact, generation, statistical-preservation and resource claims. The [complete prompt](deepseek-readout-diagnostic-step-2026-09-20.md) has now been **executed**. [Receipt](../evidence/native_geometric_prefix_recovery_readout_2026-09-20.txt). The frozen parent was never retrained and no sealed root was modified.
+The [principal review after PR #1306](readout-result-review-2026-09-20.md) preserves the empirical head's development improvement and withdraws the claim that feature rank/capacity is the measured dominant bottleneck. On the fixed 36-document /288-window /17342-target panel, parent/E/S/float score **7.558429 /7.170816 /7.188585 /6.874144 bits/target**. The independently reconstructed paired S-over-E gain is −0.017769 [−0.033419, −0.001768]; float-over-S is +0.314440 [0.296844, 0.331694]. These are nominal open-development comparisons, not useful-language qualification.
 
-### Recovery of the negative prefix candidates (no refit)
+The new heads use 4096 windows; the 512-window count reference is not their same-dose comparator. E's gap to the 4096 reference is about 1.232764 bits. E/S KLs concern different teachers; the float's implied KL against the actual S teacher is 2.866958. S/F used λ=(0.8,0.7), not the prescribed consumed-reference (0.7,0.5). Gate-code mistakes do not change this run's decisions. E/S exports contain a placeholder tokenizer digest and require numerical-preserving metadata correction and complete reloaded evaluation. Both hard heads still enter short pair cycles.
 
-The three pinned `CPXS` checkpoints were reconstructed offline into versioned, executable `CPX2` artifacts (51,507 bytes each) carrying packed reader/output coefficients with their shifts, nibble-packed action codes, the exact product/inverse table, an explicit root-order mapping, the palette, arm semantics, dimensions and the raw parent-file digest. The exact `2I` table was rebuilt from the exact twice-scaled `Z[phi]` construction and matched to the historical enumeration by an explicit bijection: **all 14,400 products verified twice** (independent exact multiplication and the canonical closure) with **0 mismatches** against the historical floating table, so the learned function is preserved. Recovery verified the old descriptors before evaluating: recovered packed reader/output hashes and the reconstructed RAW action array hash equal the recorded ones, and the legacy `parent_sha256` field was confirmed to be SHA256 of the hex parent-digest string.
+**One next step:** execute the [complete ternary head-projection prompt](deepseek-head-projection-step-2026-09-20.md). Reuse the saved floating weights, compare existing quantization Q0 with one fit-activation-aware dyadic ternary calibration QG, export/reload through the unchanged CPL2 runtime, and evaluate against E with retained controls and generation. No new gradient fit, feature width, precision or serving format. This is post-training calibration, not a new model architecture. The experiment is **NOT_RUN**. Return to query-conditioned geometric read/update after this bounded reuse experiment; count matching is not a stage lock.
 
-Reloaded parity is exact — **0 state and 0 logit mismatches** on all 17,342 panel records for all three arms — and the recorded losses reproduce exactly:
+**Prefix recovery is complete at its measured scope:** three executable CPX2 negatives, exact table/root-order binding, all 14400 products verified twice with no mismatch, exact reloaded numerical parity and saved control vectors. Numerical prefix losses remain parent 7.558429, learned older-prefix 7.575604, fixed-action 7.723496, local-tail 7.576439. This does not establish useful older-prefix information or geometric superiority. Arbitrary-input loader bounds and generalized continuation remain separately scoped #964 work.
 
-| Predictor, 36-doc / 288-window / 17,342-target panel | bits/target | gain vs parent |
-| --- | ---: | ---: |
-| frozen parent | 7.558429 | — |
-| learned older-prefix | 7.575604 | −0.017174 [−0.026095, −0.008483] |
-| fixed-action older-prefix | 7.723496 | −0.165066 [−0.177712, −0.152226] |
-| learned local tail | 7.576439 | −0.018010 [−0.034886, −0.001074] |
+**Retained roots:** `prefix-recovery-2` (20 sealed members) and `readout-diagnostic-2` (11 sealed members), beneath `/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/`. Original parent, all earlier candidates and the invalid but sealed first readout attempt are preserved. The [raw receipt](../evidence/native_geometric_prefix_recovery_readout_2026-09-20.txt) remains unchanged and must be read with the principal review's corrections. Full pinned file identities and execution protocol are in the new prompt.
 
-Corrections: generation now uses one **arm-aware** state selection in both library and runner (the local-tail arm previously generated with the older-prefix state); the count-reference argmax scans **all 4,096** entries with lowest-ID ties (corrected outputs no longer collapse for 5 of 6 prompts); the local-tail arm is **exactly invariant** under the older-prefix conditional permutation (penalty 0.0, the expected result) and reverse-order is NOT_APPLICABLE for it; and the probe/cache/gradient-norm/gain-sign label errors are recorded. Per-occurrence vectors for parent/own/permuted/reversed/disabled of every arm are saved, so every interval is reconstructible.
-
-### Paired output-head diagnostic (only `w_o` changes)
-
-The parent's `e_old`, `e_new`, row shifts, bounded ReLU/normalization, bias codes/scale and `F=10` are frozen. Both arms start from the **verified** legacy CPCK output masters (verified to re-quantize to the parent head) with fresh moments, age and schedule; a step-zero assertion confirms both hard arms reproduce the parent's integer logits exactly. Data: the recovered first 4,096 consumed windows / 257,113 `n−1` targets, one saved seed-13 Fisher–Yates pass, 512 batch-eight updates per arm, Adam (0.9, 0.999), eps 1e-8, weight_decay 0, lr 0.05, global gradient clip 1.0.
-
-| Arm (36-doc / 288-window / 17,342-target panel) | dev micro bits/target | gain vs parent | fit objective | fit teacher KL |
-| --- | ---: | ---: | ---: | ---: |
-| frozen parent | 7.558429 | — | — | — |
-| **empirical** conditional targets | **7.170816** | **+0.387614** [0.360308, 0.415469] | 6.802581 | 4.502363 |
-| **smoothed** count-family targets | 7.188585 | +0.369845 [0.337491, 0.400210] | 7.196477 | 3.186145 |
-| conditional floating head (offline only) | 6.874144 | +0.684285 [0.650749, 0.716343] | 6.877289 | — |
-
-**Predeclared screen: the practical threshold passes (best arm +0.3876, paired lower bound 0.3603 > 0), but smoothed-target attribution is FALSE** — the smoothed arm does not beat the empirical arm on true-label development CE; it is 0.0178 bits worse despite fitting its own teacher much better (KL 3.19 vs 4.50). Better teacher imitation is not language improvement. The conditional floating branch **ran** (teacher gap 4.5024 > 0.10) and on the same frozen features and soft targets reaches 6.877289 versus the smoothed hard arm's 7.196477 — a 0.32-bit difference attributable to the ternary/dyadic output constraint and/or its STE, and it is never a serving path.
-
-**Bottleneck.** On the same sealed panel the smoothed count references score 7.079256 (512-window), 5.938052 (4,096-consumed) and 5.061160 (full-fit), with unigram 9.185030 and quantized bias 9.250170. Refitting the head recovers 0.39 of the 0.48-bit same-dose gap; smoothed targets add nothing; and even the convex floating head on the same features stays ~1.8 bits above the full-fit reference while its teacher KL remains 3.2–4.5 bits. The dominant measured limitation is therefore the **frozen local feature map's rank/capacity**, not the output objective or the target estimator.
-
-**Limits.** Two hard arms, one seed, one dose, one feature freeze. A finite optimizer run is not a certified optimum, and the float comparison does not separate ternary representability from STE difficulty. No count-gap-matching threshold was imposed. No geometric-superiority, general-language or energy claim follows. One discarded run (`readout-diagnostic-1`) is preserved as a retained negative.
-
-**One next step.** Increase the **local feature representation's rank/capacity** — a wider hidden feature or a learned local interaction — under the same hard integer serving contract, the same dose and the same panel and references. This is chosen from the observed bottleneck, not conditioned on matching a count reference.
-
-**Resources:** projection, extension, retry and charges in [the ledger](resource-ledger-2026-09-19.md). Peak RSS 310 MB (recovery) and ~1.4 GB (readout); runs 169.5 s / 87.3 s / ~140 s / 2,028.7 s (discarded) / 2,027.0 s; new retained storage ≈64 MiB, within the 512 MiB tranche allowance and the 128 MiB margin. No paid/external compute, no deletion.
+**Resources:** live JSON **166038565 /167600000 ms**, remaining **1561435 ms (26.02 minutes)**. Preserve the latest recorded 6600000 ms charge; its complete measured-wall basis and pre-use second-extension timeline are unverified. Both recovery attempts ran, and the first invalid readout is sealed. Seven new roots total 61680258 bytes (~58.82 MiB); refreshed whole-storage accounting is required before execution. This review ran no build/model/training and changed no model-time balance. Proposed next projection 3600000 ms, standing-authorized extension +2400000 ms to limit 170000000, to record before use; no extension applied by this review. Preserve 128MiB margin; no deletion or paid compute.
 
 ## Preserved baseline: the corrected replay of the frozen step-512 prior
 

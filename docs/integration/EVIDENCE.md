@@ -251,3 +251,20 @@ The [receipt](../evidence/native_geometric_prefix_recovery_readout_2026-09-20.tx
 | Arm S (smoothed) | 7.188585, gain +0.369845 [0.337491, 0.400210]; fit objective 7.196477; teacher KL 3.186145 | Passes the practical screen but does **not** beat Arm E: no smoothed-target attribution |
 | Floating branch (RUN) | soft objective 6.877289, dev 6.874144 | 0.32 bits better than the smoothed hard arm on the same features/objective; offline only |
 | References (same sealed panel) | 512-window 7.079256; 4,096-consumed 5.938052; full-fit 5.061160; unigram 9.185030; bias 9.250170 | The head refit recovers ~0.39 of the 0.48-bit same-dose gap; the residue is feature representation |
+
+## Principal review after PR #1306 — verified gains, corrected attribution
+
+Read the [complete review](readout-result-review-2026-09-20.md) with the unchanged [raw receipt](../evidence/native_geometric_prefix_recovery_readout_2026-09-20.txt). No model/build/training ran in this review.
+
+| Finding | Verified scope / correction |
+| --- | --- |
+| Recovery and preservation | Recovery roots have 20 sealed members each; readout roots 11 each; sets/sizes/BLAKE3 verify. The invalid first readout is sealed, not unsealed. All 7 new roots total 61680258 bytes |
+| Output-head gains | Parent/E/S/F=7.558429/7.170816/7.188585/6.874144 bits on the same 17342 saved observations; all parent-gain intervals reproduce |
+| New paired saved-data arithmetic | S-over-E−0.017768891 [−0.033418628,−0.001768235]; F-over-S+0.314440353 [0.296844161,0.331694058]; nominal 2000-draw document bootstrap seed 0x12345678 |
+| Actual teacher | S/F λ=(0.8,0.7), not prescribed consumed reference (0.7,0.5). E/S KLs concern different targets. Same-S-teacher float KL derived as 2.866957790 |
+| Bottleneck claim withdrawn | Float improves on identical features; 512 updates without convergence is not a capacity lower bound. 4096-window head vs 512-window reference is not same dose |
+| Artifact/evaluator scope | E/S CPL2 has placeholder tokenizer digest [7;32]; correct metadata and complete reloaded CE next. Gate uses wrong paired bound/maxKL but corrected decisions remain false/RUN. No common-objective matrix or fixed-population curves retained |
+| Generation | E six period-1 pair cycles; S period-3 on prompts 2/4 and period-1 otherwise. Pair state is sufficient for these two-token heads |
+| Next | [Q0/QG projection of saved float head](deepseek-head-projection-step-2026-09-20.md), same ternary CPL2 format/features/bias/F; NOT_RUN. Return to query-conditioned geometric state research after this bounded reuse experiment |
+
+Historical claims in the receipt and earlier entries retain their recorded wording but are superseded by these scoped corrections. No new capability qualification or ledger charge.

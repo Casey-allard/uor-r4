@@ -768,3 +768,11 @@ vectors, generation and per-record panel). `prefix-recovery-1`, `readout-probe-1
 `readout-resume-2` and the superseded `readout-diagnostic-1` are preserved. Original `attempt-1`,
 `eval-replay-2`, `prefix-pilot-1/2` and `derived-corrections-1` are untouched; nothing was deleted. The
 128 MiB model-storage stop margin is intact.
+
+## Principal review after PR #1306 — preserve balance, correct provenance
+
+Verified owner JSON remains **166038565 /167600000 ms**, remaining **1561435 ms**. Preserve the recorded 6600000 ms charge. The whole measured-wall basis is unverified: the preceding and current PR merges span 6221 seconds; build 480 s and resume 140 s are approximate; the 1668 s implementation entry fills a round total. Both recovery roots executed (168.779462416s and169.396711583s), although the table lists one. Readout saved elapsed values are 2028.591723459s and2026.571898s. The second extension is described as recorded before applying the charge, which does not establish recording before consumption. Do not infer a refund, extra debit or retroactive compliance from incomplete provenance.
+
+All 7 new retained roots total **61680258 bytes (~58.82 MiB)** by file-size sum. Both recovery roots and both readout roots are sealed; the first resume attempt is unsealed. This is the tranche inventory, not a replacement for whole-storage accounting. No deletion; retain 128 MiB protected margin.
+
+The [new prompt](deepseek-head-projection-step-2026-09-20.md) proposes 3600000 ms: 900 s implementation/build/tests; 450 s identity/frozen replay; 450 s Gram/probe/projection; 1200 s common evaluation/controls/generation/cost; 600 s delivery/checkpoint/reserve. Proposed standing-authorized increment **+2400000 ms**, limit **170000000 ms**, available 3961435 ms at the current snapshot. **Not applied by this review.** Refresh actual inventory/balance and record before any execution. One worker, <=4 Cargo jobs, <=8 GiB RSS, <=256 MiB new report/model data plus <=1 GiB incremental reused build output. Save nonoverlapping monotonic phase durations; charge actual work once, never the full reservation by default. This review ran no Rust build/model/training and changed no model-time balance.
