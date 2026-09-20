@@ -3,7 +3,7 @@
 **Active native model:** `native_geometric` implements the Rust
 training/artifact/session path used by `r4 geometric`, including occurrence
 memory, typed values, response entry, copying and completion. Follow the
-[immediate plan](../../docs/integration/project-track.md#immediate-build-sequence)
+[immediate plan](../../docs/integration/project-track.md#research-dependencies-and-exit-conditions)
 and [current state](../../docs/integration/current-state.md). The mathematical
 substrates remain reusable; the older reference-model status below is historical
 and does not select the active implementation or qualify general intelligence.
@@ -16,6 +16,8 @@ artifact-specific evidence and remaining failures are in the [project map](../..
 [canonical plan](../../docs/integration/project-track.md),
 [current artifact and measured behavior](../../docs/integration/current-state.md),
 and [model direction](../../docs/integration/model-direction-2026-09.md).
+
+The current natural-text experiment uses separate CPL2/CPX3 artifacts under `native_geometric/learner/`; these are not interchangeable with the older Model/word-memory artifact. The [post-#1312 review](../../docs/integration/occurrence-reader-review-2026-09-20.md) selects a bounded learned exact-occurrence reader through that BPE token path, reusing the older occurrence/version contracts explicitly. [Next execution prompt](../../docs/integration/deepseek-occurrence-reader-step-2026-09-20.md).
 
 ## Historical substrate and reference status
 

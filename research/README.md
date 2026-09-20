@@ -26,6 +26,8 @@ for synthesis. Inclusion here does not promote a formula to a product guarantee;
 promotion requires a named consumer and an explicit, witnessed contract in the
 active programme.
 
+The [current occurrence-reader synthesis](../docs/integration/occurrence-reader-review-2026-09-20.md) connects retained exact-memory/geometry source with sparse-memory and induction research. Its experiment is specified, not executed; the archive does not establish success for that new integration.
+
 ## Finding sources, artifacts and results
 
 The [project map](../docs/PROJECT_MAP.md) and

@@ -1,5 +1,7 @@
 # DeepSeek execution prompt — determine what the frozen separable reader contributes
 
+> **Post-#1312 principal correction and successor:** [review](occurrence-reader-review-2026-09-20.md), [next occurrence-reader prompt](deepseek-occurrence-reader-step-2026-09-20.md). The numerical attribution supports moving on. It does not establish universal absence of older content or that length dependence causes M01's gain. M01 includes terminal positions without targets; only34 extras affect evaluated lengths. Timings use cached/precomputed logits, not direct serving. Decision-rule/provenance/API scope corrections are documented. This document's original result/instructions remain below as history; no full rerun is selected. Continuation is required for the actual next fitter, not automatically for unused CPQK.
+
 > **EXECUTED 2026-09-20** on base `8bbdb63d1c686d078292562bb879c0bf4dadde34` in the isolated
 > worktree `codex/separable-attribution`. Retained root
 > `.uor-models/realtext-prior-2026-09-20/s-attribution-3` (30 files, 4,390,694 bytes, sealed and

@@ -1,5 +1,7 @@
 # Result — frozen S attribution: what the separable reader actually contributes
 
+> **Post-#1312 principal correction and successor:** [review](occurrence-reader-review-2026-09-20.md), [next occurrence-reader prompt](deepseek-occurrence-reader-step-2026-09-20.md). The numerical attribution supports moving on. It does not establish universal absence of older content or that length dependence causes M01's gain. M01 includes terminal positions without targets; only34 extras affect evaluated lengths. Timings use cached/precomputed logits, not direct serving. Decision-rule/provenance/API scope corrections are documented. This document's original result/instructions remain below as history; no full rerun is selected. Continuation is required for the actual next fitter, not automatically for unused CPQK.
+
 Date: 2026-09-20. Base source `8bbdb63d1c686d078292562bb879c0bf4dadde34` (merge of PR #1311), executing
 [the frozen attribution prompt](deepseek-separable-attribution-step-2026-09-20.md). Isolated worktree
 `codex/separable-attribution` at `.worktrees/geometric-query-read`. Retained root

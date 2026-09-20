@@ -1,6 +1,8 @@
 # UOR-R4 Geometric Language Model — direction and integration
 
-The [immediate build sequence](project-track.md#immediate-build-sequence) and
+Current architecture work: [post-#1312 synthesis](occurrence-reader-review-2026-09-20.md) and [DeepSeek occurrence-reader execution prompt](deepseek-occurrence-reader-step-2026-09-20.md). [Storage/cache state](storage-cleanup-2026-09-20.md) records the owner-authorized cleanup.
+
+The [immediate build sequence](project-track.md#research-dependencies-and-exit-conditions) and
 [consolidated issue ownership](project-track.md#consolidated-issue-responsibilities)
 are reconciled in the September 7 owner-directed plan. See the [model assessment](model-direction-2026-09.md), [project map](../PROJECT_MAP.md) and [takeover record](handoff-2026-09-07.md). The [research direction review](../native_geometric_direction_review_973.md)
 explains the decision. `roadmap-state.json`, `adopted-issues.json`,
