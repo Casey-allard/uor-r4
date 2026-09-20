@@ -1,43 +1,26 @@
 # Current native geometric AI work
 
-# Current native geometric AI work
+## Active next: corrected real-text prior curve — review after PR #1298
 
-## Learning-contract repair done and the corrected gate PASSES — September 19, 2026 execution
+**The small contextual fitting gate passes; the corrected prior has not yet been trained on real text.** PR #1298 is merged as `a3c5403587bd27b32399622ec0bebc010447b9f2`, identical in tree to reviewed head `5083f62a`. The [principal review](realtext-prior-review-2026-09-20.md) and [complete DeepSeek prompt](deepseek-realtext-prior-step-2026-09-20.md) supersede the immediate ordering of older handoffs.
 
-**THE THREE DECISIVE DEFECTS ARE REPAIRED, AN AUTHORED CAPACITY WITNESS PROVES FINITE REPRESENTABILITY, AND THE CORRECTED SMALL LEARNING GATE PASSES ON THE FIRST RUN.** The earlier 0.375 was an artefact of the defects, not a quantization limit, and the floating comparator was correctly not needed.
+The corrected V=4, dv=32, seed=13 arm scores 4/16 and 2 bits at step 0, 15/16 and 1.35457 at 128, 16/16 and .21072 at 512, and **16/16 and .04973758 at 2,000**. The same final artifact scores .4375 accuracy and 4.78358 bits after the fixed context-target permutation, a **+4.73384-bit penalty**. Context-disabled remains .25/2; both position-knockout accuracies are .25. The authored witness is separate and gives 16/16 and .0772 bits. This is all-pairs fitting/instrument evidence, not transfer, grokking, language or geometric advantage. A floating comparator is unnecessary now.
 
-**Defect 1 — one predictive forward.** The trainer kept a parallel floating forward `z_train = R + b·2^(s−F)` against the served `z = (R + b·2^s)·2^-F`, 1,024× on the contextual term at F = 10, while the backward applied `2^-F` anyway. Training now obtains its score from `PriorCore::trace`, the same integer computation greedy serving uses; `2^-F/ln 2` is applied once at credit to the integer score. The parity test first forces nonzero contextual output, nonflat bias, nonunit shifts and active bounds, then requires the trainer's bits to equal the served bits to `1e-12`, and separately asserts that the old unscaled-context variant gives a **different** loss, so a regression cannot pass silently.
+Retained report: `/Users/casey.allard/uor-r4/.uor-models/prior-learning-gate-2026-09-20/attempt-1`. All six manifest members match their BLAKE3/size entries with zero unlisted files; recomputing losses/argmax from recorded integer scores reproduces the curve without executing a model. CPL2 (264 bytes) SHA256 **`c020b1e131a615bc3ce2b2cf857d83b7465fe3c7c50002528bd85732cc6b928b`**; checkpoint (5,196 bytes) SHA256 **`b90eff2df5898aca35712c8bbc18097fcd924a03d14e17dd43d523fd127519ef`**. Preserve the sealed root and [raw receipt](../evidence/native_geometric_learning_contract_2026-09-19.txt).
 
-**Defect 2 — valid supervision.** Scoring every position of `[x,y,(x+y)%4]` trains `(x,y) → y` (four equally likely targets for a fixed x) and the contradictory laws `b−a` and `a−b`. Supervision is now an explicit **per-position mask shared by training, loss and accuracy**; the fixture scores only the final target while real-text scoring stays all `n−1` predictions. Tested: one target per context, all four targets equally frequent, and either single input leaves the target uniform.
+**Qualification corrections:** the shared integer scores and repaired effective-weight STE are source-consistent, but “A–C complete” exceeds the tests. The checkpoint omits the active permutation, so mid-pass reload reshuffles and resets the cursor; its test only resumes at a pass boundary and does not compare full state. Seed is read then discarded, and real data/source/tokenizer identity is not bound by the toy. `int_logits` calls a trace that still computes floating auxiliary masks/normalization credit; binary elimination is unverified. Add the missing independent derivative assertion and focused envelope validation while fixing those interfaces. The clamp omission arose during the #1298 refactor and was repaired there; it is not an established cause of the old #1296 score. Concurrent repairs do not isolate individual causes of that old failure.
 
-**Defect 3 — honest Adam.** `lowbit_core::adam_update` gated on `v_hat > 1e-12`, discarding legitimate small gradients (`g = 1e-7, lr = 0.05` gave 0 instead of ≈ `−0.04545`). The update is now unconditional, checked against an independent scalar reference over small/zero gradients and carried moments. The helper is shared with `lowbit_attention`, `geometric_attention` and `cold_prior`; their recorded results were obtained under the earlier optimizer and are **not** claimed unchanged.
+**One next execution:** build the thin runner around `prior_learning.rs`, complete these bounded fixes, and execute V=4096, dv=128, length=64, batch=8 with frozen fit-only quantized unigram bias and memory disabled. Pin whole-document fit/tune/development populations, derived tokenizer and exact target/window identities. Evaluate reloaded checkpoints 0/256/512 against exact/quantized unigram, corrected interpolated counts and within-document whole-context permutation; preserve raw generation. The step 512 primary gate requires at least .10 bits/target gain over both marginal references with paired intervals excluding zero and a positive supported permutation penalty. Further dose is conditional/exploratory, not a retroactive gate change.
 
-**A real forward-path bug the old gate could not isolate.** `trace` recorded the bounded-ReLU STE mask but **never applied the clamp**, leaving negative activations in the hidden vector. The authored capacity witness exposed it immediately (all four scores equal at −20480).
+**Roadmap:** the stored modulo-120 table is unused by this predictor. The local baseline leads to one learned older-prefix-dependent geometric state/read, tested on equal-tail/different-prefix histories and matched capacity/cost controls, then exact-memory integration and common-artifact conversation/coding qualification. [Canonical dependencies](project-track.md#research-dependencies-and-exit-conditions) retain the full programme.
 
-**Also repaired.** Real seeded **Fisher–Yates** schedule with a short final batch never wrapped to fill, tested for exact once-per-pass coverage and reproducibility; **complete checkpoint identity** (masters, both moments, step, lr/beta1/beta2/weight_decay/grad_clip, seed, data identity, numerical config, frozen bias) with stage-then-commit loading, so a rejected load leaves the trainer byte-identical — tested with nondefault optimizer settings, a pass boundary, a partial batch and full-state equality; **artifact bounds** with a declared `i32` envelope (`bias_scale_bits > 27` rejected because `|code| ≤ 7` cannot be represented at `<< 30`), checked sizes before allocation, element/code/shift range checks and trailing-byte rejection, replacing an always-true `is_err() || true` test with real serialized field-offset mutations.
+**Resources:** live recorded `151038565 / 154400000 ms`, remaining **3361435 ms (56.02 minutes)**. This review executed no Rust build/model and changed no charge/limit. Proposed next complete tranche 3,000,000 ms; refresh/project before use and record necessary already-authorized local extensions before consuming them. The earlier run's reported session-budget stop is distinct from exhausting the local model ledger. #973/#820/#963/#964 remain open; no linked project items were present. No real-text manifest/artifact/checkpoint/generation or physical energy result exists for this corrected path.
 
-**Authored capacity witness** (separate from every learned arm): 16/16 correct, mean CE **0.0772 bits** against the analytic `log2(1 + 3e^-4)`, export/reload identical. Finite representability only.
+## Historical interpretations below
 
-**The corrected gate**, under a report root claimed exclusively before any model work, sealed and verified:
+These dated results retain their artifact and population scope. Their “next” instructions and resource snapshots are superseded by the active section above.
 
-```
-  step    0: acc 0.2500  CE 2.0000   context-disabled 0.2500/2.0000   knockouts 0.2500 / 0.2500
-  step  128: acc 0.9375  CE 1.3546
-  step  512: acc 1.0000  CE 0.2107
-  step 2000: acc 1.0000  CE 0.0497
-  permuted context->target: acc 0.4375, CE 4.7836, penalty +4.7338 bits, association changed
-  GATE: accuracy PASS | CE margin PASS | permutation penalty PASS
-```
-
-Step 0 is **exactly** the constant control — the zero-exported-residual initialization working as designed. The context-disabled control and **both** position knockouts sit at chance at every step, so the prediction depends on both inputs rather than on a marginal correction. This is an all-pairs fitting/instrument gate on a 16-context authored task, **not** a generalization, grokking or language result.
-
-**The conditional real-text stage was NOT executed.** Prerequisites A–C now pass; the recorded reason is remaining session budget, not a failing gate and not a new approval stop. The runner is to be built around the repaired primitive at V=4096, dv=128, length 64, batch 8, frozen fit-only quantized unigram bias, memory disabled, checkpoints 0/256/512, with the prior handoff's exact/quantized unigram and corrected tuned-backoff references and the frozen `≥ 0.10 bits/target` gate plus a positive context-permutation penalty.
-
-**State.** `prior_learning` 10 tests and `lowbit_core::adam_reference_tests` 2 tests pass; `cargo fmt --all --check` clean; claim-wording gate passes. No real-text artifact, checkpoint or generation was produced. The geometry is still absent from prediction: the element table is stored but unused, and no group multiplication, zeta phase or chirality participates.
-
-**Receipt:** [`native_geometric_learning_contract_2026-09-19.txt`](../evidence/native_geometric_learning_contract_2026-09-19.txt). References #973, #820.
-
-## Active next: repair the learning contract and coherent fitting gate — review after PR #1296
+## Historical review after PR #1296 — learning-contract correction
 
 **The #1296 instrument is partially implemented, not qualified.** Repair its common predictive forward, optimizer and synthetic target mask, verify an explicit low-bit capacity witness, then retry one small learned fitting gate. Run the authorized floating comparator only if that corrected gate fails. When the exported low-bit learning gate passes, complete schedule/checkpoint identity and continue the selected representative prior-only real-text curve within projected resources. The [principal review](learning-contract-review-2026-09-19.md), [complete DeepSeek prompt](deepseek-learning-contract-step-2026-09-19.md) and [roadmap dependencies](project-track.md#research-dependencies-and-exit-conditions) now own the next action.
 

@@ -1,5 +1,7 @@
 # DeepSeek execution prompt — repair, prove parity, learn, then advance
 
+> Historical prompt: PR #1298 now passes the corrected small fitting gate. The [review after #1298](realtext-prior-review-2026-09-20.md) scopes remaining continuation/serving checks; the [real-text execution prompt](deepseek-realtext-prior-step-2026-09-20.md) supersedes immediate ordering. Do not rerun this entire repair programme.
+
 Work on the **UOR-R4 Geometric Language Model**, repository `UOR-Foundation/uor-r4`. This prompt supersedes the immediate execution ordering of the previous prior-learning prompt. Read this entire document and `docs/integration/learning-contract-review-2026-09-19.md`. Audited base is `f4fc1c60` (PR #1296); refresh origin/main and include this prompt's protected delivery.
 
 **Deliver an implementation and an informative bounded experiment.** Correct the concrete defects below, run a valid small learning gate, and continue into the selected real-text pilot when its prerequisites pass and resources permit. Do not stop merely because one compile/test stage passes. Do not run a floating comparator against the old contradictory fixture. Preserve all original negative evidence.

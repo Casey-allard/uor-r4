@@ -539,3 +539,11 @@ checkpoint), a 264-byte `prior_only.cpl2` serving artifact and a 5,196-byte `pri
 checkpoint, at `.uor-models/prior-learning-gate-2026-09-20/attempt-1`. Build output reuses the existing
 `target/`; the **128 MiB model-storage stop margin is untouched**. No deletion, no cleanup, no paid or
 external compute.
+
+## Review after PR #1298 — preserved balance and real-text projection
+
+Verified live JSON **151,038,565 / 154,400,000 ms**, remaining **3,361,435 ms (56.02 minutes)**. Preserve the preceding 1,200,000 ms as recorded; its approximately described build-cycle timing was not independently reconstructed. This source/retained-file/documentation review ran no Rust build/model and changed no cumulative charge or limit. Reused the existing clean full worktree on `codex/realtext-prior-handoff`; owner checkout and unique/sealed artifacts are preserved. Filesystem free-space observation approximately 43.4 GiB is not a complete storage inventory.
+
+The [review](realtext-prior-review-2026-09-20.md) corrects the prior “complete checkpoint/A–C pass” scope: the active permutation is omitted, so mid-pass resume changes exposure; seed/identity, integer-only trace and focused derivative/envelope checks remain. These interpretation corrections do not reconstruct or reverse past charges. The recorded session-budget stop is distinct from depletion of the local wall-time allowance.
+
+The [next prompt](deepseek-realtext-prior-step-2026-09-20.md) proposes a **3,000,000 ms** complete tranche: 900 s repairs/build/checks, 300 s data/references/probe, 1,000 s fitting, 500 s evaluation/controls/generation/I/O, 300 s evidence/delivery/reserve. This is a proposal, not an executed charge or pre-execution receipt. Refresh storage and record before use; measure the new-path timing and revise before overruns, using standing local-extension authorization as needed. One worker, at most four Cargo jobs, 8 GiB RSS, 1 GiB incremental storage on reused checkout/cache, 128 MiB protected margin. No deletion or paid compute.

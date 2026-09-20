@@ -1,6 +1,6 @@
 # EVIDENCE
 
-**Latest interpretation:** [learning-contract review after #1296](learning-contract-review-2026-09-19.md) corrects the claim that Stage 1 and train/serve parity are complete. The new trainer omits contextual scaling, the toy task trains conflicting targets, and the shared optimizer suppresses small gradients. Its 0.375 score is preserved but does not diagnose quantization. No new model was executed in this review. Read the appended correction with the original row/receipt.
+**Latest interpretation:** [review after #1298](realtext-prior-review-2026-09-20.md) verifies the retained 16/16 corrected fitting curve and file hashes. It narrows “A–C complete”: mid-pass permutation/identity, integer-only trace and independent derivative/envelope checks remain inside the next real-text implementation. The old 0.375 never diagnosed quantization; the unclamped trace was an interim #1298 refactor defect. No model was executed in this review. Preserve original rows/receipts with the appended correction.
 
 **Previous interpretation:** [post-qualification source review](cold-context-review-2026-09-19.md) scopes #1292 and its remaining instrument corrections.
 
@@ -150,3 +150,9 @@ bind the 2026-09-19 measurements to the exact bytes evaluated.
 | Result preservation and next work | Raw receipt preserved; no new persisted artifact/manifest or real-text curve from #1296 | Corrected small learned gate, conditional floating comparator, then conditional prior-only text curve; no model promotion |
 
 [Complete findings, conditional-count derivation, literature and roadmap rationale](learning-contract-review-2026-09-19.md); [executable DeepSeek prompt](deepseek-learning-contract-step-2026-09-19.md).
+
+## Review after PR #1298 — fitting result verified, continuation scoped
+
+| Date | Scope | Retained verification | Interpretation | Sources |
+| --- | --- | --- | --- | --- |
+| 2026-09-20 UTC | Review after #1298; retained-file and source audit, no model execution | Corrected gate scores reproduced from saved logits; six manifest members verified, zero unlisted files; CPL2 SHA256 c020b1e1… | Shared numerical repair and all-pairs contextual fitting supported. Mid-pass checkpoint, integer-only trace and derivative/envelope qualifications incomplete; real text NOT_RUN. | [Review](realtext-prior-review-2026-09-20.md), [next execution](deepseek-realtext-prior-step-2026-09-20.md). This correction does not alter historical receipt bytes or fit results. |
