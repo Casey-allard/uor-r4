@@ -1,6 +1,6 @@
 # Result — one learned geometric exact-occurrence reader
 
-**Principal correction, September 20:** read the [source/receipt audit](occurrence-reader-audit-2026-09-20.md) before this historical report. Raw covered correctness is 5/10, not 10/10; the failure includes ranking and copy strength. Slot attribution, causal controls, paired support, provenance and cost claims are corrected there. The original report below is preserved; its one-abstention-signal next action is superseded by the [memory-utility prompt](deepseek-memory-utility-step-2026-09-20.md).
+**Principal correction, September 20:** read the [source/receipt audit](occurrence-reader-audit-2026-09-20.md) before this historical report. Raw covered correctness is 5/10, not 10/10; the failure includes ranking and copy strength. Slot attribution, causal controls, paired support, provenance and cost claims are corrected there. The original report below is preserved; its one-abstention-signal next action is superseded by the [memory-utility prompt](deepseek-relational-reader-step-2026-09-20.md).
 
 Date: 2026-09-20. Base source `1dae322ce7770673c0046597c10f4361564cd3a0` (merge of PR #1313),
 executing [the occurrence-reader prompt](deepseek-occurrence-reader-step-2026-09-20.md). Isolated
