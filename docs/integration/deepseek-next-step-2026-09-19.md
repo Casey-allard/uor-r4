@@ -1,5 +1,7 @@
 # DeepSeek handoff — qualify the real-text experiment before scaling
 
+> Historical execution prompt. PR #1292 completed the main qualification run. Continue with [the cold-context implementation and pilot prompt](deepseek-cold-context-step-2026-09-19.md), which also carries the remaining source-review corrections.
+
 You are implementing the next bounded research step for the **UOR-R4 Geometric Language Model** in `UOR-Foundation/uor-r4`. Read this entire prompt before acting. The parent review is `docs/integration/takeover-review-2026-09-19.md`. The source audited there was `127c0eaf`; fetch live main and incorporate the protected documentation reconciliation before editing. Do not check out an obsolete unmerged #1284 branch: #1284 and #1290 were merged.
 
 ## Goal and owner authority

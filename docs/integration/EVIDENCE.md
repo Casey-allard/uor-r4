@@ -1,6 +1,8 @@
 # EVIDENCE
 
-**September 19 correction:** the [takeover review](takeover-review-2026-09-19.md) is the current interpretation layer. The last static residue-count result is not a recurrent-model ceiling; its raw numbers remain historical evidence. The review also scopes the three separate model paths, continuous/discrete metrics, rule-assisted role repair, gradient/instrument findings and unsupported family-wide impossibility claims. No new model measurement was made. Read later corrections before reusing an earlier row.
+**Latest interpretation:** [post-qualification source review](cold-context-review-2026-09-19.md) scopes #1292 and defines remaining argmax, gradient-reference and population corrections. No new model execution occurred in that review.
+
+**Earlier September 19 correction:** the [takeover review](takeover-review-2026-09-19.md) is the current interpretation layer. The last static residue-count result is not a recurrent-model ceiling; its raw numbers remain historical evidence. The review also scopes the three separate model paths, continuous/discrete metrics, rule-assisted role repair, gradient/instrument findings and unsupported family-wide impossibility claims. No new model measurement was made. Read later corrections before reusing an earlier row.
 
 One row per executed card or measurement. This is the index; the linked card `RESULT.md`
 and the receipt carry the full record. Append-only. A row is never rewritten to change an
@@ -99,3 +101,16 @@ bind the 2026-09-19 measurements to the exact bytes evaluated.
 | Current path isolation | Historical retention, TinyStories scorer and geometric-attention prototype have different artifacts/instruments | No cross-path capability or performance promotion |
 
 [Full source and literature assessment](takeover-review-2026-09-19.md); [bounded implementation handoff](deepseek-next-step-2026-09-19.md).
+
+
+## September 19 post-qualification source review (no new model run)
+
+| Scope | Finding | Disposition |
+| --- | --- | --- |
+| #1292 delivery | Reviewed and merged trees both `2e4168255fd10e71c23369af4794ed7c2148e57e` | Content verified; original receipt preserved |
+| Default cold-route bound | Causal replay and uniform-empty prediction are sound for the measured population | Keep negative on unchanged configuration; align target populations before count comparison |
+| Count argmax and STE reference | Unmixed incumbent threshold; extra value-row scale hidden by unit scales | Source-derived corrections pending next implementation; CE and runtime mean normalization are separate |
+| Coverage/timing/provenance | Successor denominator, partial-target BPB, post-update probe, input/target distinction, missing full digest/test-count reconciliation | Narrow old interpretations; recover raw receipts where possible |
+| Next mechanism | Exact-token nonlinear local prior plus causal memory, shared low-bit decoder | Proposed bounded experiment, NOT_RUN; no geometric or language capability promotion |
+
+[Architecture and primary sources](cold-context-review-2026-09-19.md); [complete execution prompt](deepseek-cold-context-step-2026-09-19.md).

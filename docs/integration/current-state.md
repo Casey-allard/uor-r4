@@ -1,6 +1,19 @@
 # Current native geometric AI work
 
-# Current native geometric AI work
+## Active next: learned cold-context prior plus causal memory — September 19 post-qualification review
+
+**Implement one bounded learned experiment:** exact-token position-specific prior rows, a bounded integer nonlinearity, the existing causal memory residual, and one shared low-bit decoder. Keep the prior present on cold and warm reads. Compare a trained prior-only model with the joint model, plus same-artifact interventions and bias/count references on one pinned population. See the [principal review](cold-context-review-2026-09-19.md) and [complete DeepSeek execution prompt](deepseek-cold-context-step-2026-09-19.md). This supersedes older next-action text below; the mechanism is proposed, not yet implemented or measured.
+
+**PR #1292 outcome retained with narrower interpretation.** Merge `5b5bc8f5` equals reviewed head `80e076bb` by full Git tree (`2e4168255fd10e71c23369af4794ed7c2148e57e`). Prefix-underflow and double-length-gradient repairs are sound. Causal empty fractions 0.9381 docs / 0.8549 crates and the default `12*p_empty` bound apply to their measured window population. This supports stopping the unchanged zero-prior configuration. It does not establish a matched inequality against static count CE measured on different held-document positions.
+
+**Remaining source findings, fixes pending in the next task:** sparse argmax initializes its threshold from the unmixed unigram; the new analytic value-gradient reference has an extra row scale hidden by unit-scale fixtures; successor-statistic populations differ; BPB counts unscored prefix bytes. The six-step probe made updates, so its loss is post-probe rather than untrained; 512 input tokens correspond to 504 scored targets, and conversion timing excludes persisted checkpoint I/O. Raw receipts are preserved. The 40/44 test-count and abbreviated crates-digest discrepancies need raw-output recovery or explicit unavailable status. Retuned filter fixtures are development results, not independent preservation. The [review](cold-context-review-2026-09-19.md) gives exact source seams.
+
+**Research direction.** The selected prior removes forced modulo aliases from the cold path; the existing adaptive memory remains modulo-aliased. A successful pilot would establish local contextual learning and, only if controlled gains support it, useful memory contribution. It would not establish distinctive H4/2I/zeta advantage, general chat, reasoning/coding, alpha or energy savings. Recent Engram/Lngram research supports a static/dynamic-memory distinction but does not supply a compliant standalone replacement. Keep the geometric programme and older exact-memory path distinct and preserved.
+
+**Resource snapshot:** recorded JSON `147638565 / 154400000 ms`, leaving `6761435 ms` (112.69 min). This source/documentation review performed no Rust build or model run, charged no model time and changed no limit. Reused an existing isolated full worktree; original checkout/artifacts preserved. Next task has a proposed complete 3,600,000 ms tranche to project before use and refine from new-path timing. Necessary recorded local extensions remain owner-authorized; no paid compute/deletion. #973 remains active/open, #820 programme/open; neither has linked GitHub project items at inspection.
+
+## Preserved #1292 report (read the corrections above)
+
 
 ## Causal qualification done: the cold-route floor rules this configuration out before any fit — September 19, 2026 (takeover tranche)
 

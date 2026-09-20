@@ -1,10 +1,10 @@
 # UOR-R4 Geometric Language Model — canonical project plan
 
-## Active direction — September 19 takeover
+## Active direction — September 19 post-qualification review
 
-The owner reconfirmed D0-b/D1/D2 and the geometric research priority. The [takeover review](takeover-review-2026-09-19.md) separates historical memory/dependent-language, TinyStories `.rgm`, and the new geometric-attention core. The latest residue count experiment is a static backoff baseline, not a capacity ceiling. The active #973 task is **causal-state/gradient/evaluation correctness and real-text route coverage, then complete-step timing and a conditional small pilot**, specified in the [DeepSeek prompt](deepseek-next-step-2026-09-19.md). #963 owns cost; #964 owns scoped contracts. General prose, reasoning, coding and alpha remain unqualified.
+The owner reconfirmed D0-b/D1/D2 and the geometric research priority. PR #1292 repaired two runtime defects and measured the unchanged memory-only core's dominant cold-route population. The active #973 increment is now **an always-present learned exact-token local prior plus causal memory, with one shared low-bit decoder and a matched small pilot**. Repair the remaining instrument/reference defects alongside that implementation. The [follow-up review](cold-context-review-2026-09-19.md) gives the evidence and alternatives; the [complete execution prompt](deepseek-cold-context-step-2026-09-19.md) owns the bounded next task. The [takeover review](takeover-review-2026-09-19.md) remains the broader source/history map. The previous qualification handoff is historical.
 
-The numbered responsibilities below remain the programme map, not an instruction to restart old phrase repairs. Historical two-pillar/card sequencing is subordinate to this active decision. The previous #1139 immediate-priority label is superseded by #973; retain #1139 open for its remaining binding obligations. D2 governs interpretation of ablations. Complete-path energy work is deferred until useful behavior or a concrete decision requires it; do not report energy advantage in its absence.
+The numbered responsibilities below remain the programme map. #973 remains the immediate priority, #963 owns cost and #964 scoped contracts. Keep #1139 open for its binding obligations. A successful local-context prior will not establish H4/2I advantage or general prose/reasoning/coding; the next geometric operator must have a specific tested role. D2 governs interpretation of ablations. Complete-path energy advantage remains unqualified. No programme goal or owner decision is changed by this research scheduling choice.
 
 ## Goal
 

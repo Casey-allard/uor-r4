@@ -414,3 +414,12 @@ edits). The **128 MiB model-storage stop margin is untouched**; build output wen
 **No pilot was charged and none was run.** The tranche's output is a *decision not to fit this
 configuration*; #973 requires any pilot to arrive with its own complete projection and to leave
 evaluation and checkpoint capacity, so that remains a separate conditional request.
+
+
+## Post-qualification architecture review — no model execution (September 19)
+
+Read the live JSON as `147638565 / 154400000 ms`, remaining `6761435 ms` (112.69 min). No Rust build, model fit/evaluation or new artifact construction occurred in this source/documentation review; no model charge or limit change was made. Reused the existing clean full worktree at `/Users/casey.allard/.codex/worktrees/takeover-research-reconciliation/uor-r4` with a new branch. Original checkout and all unique/sealed material preserved. Host free-space observation approximately 44 GiB is not a replacement for the complete storage inventory.
+
+The [next prompt](deepseek-cold-context-step-2026-09-19.md) proposes a complete 3,600,000 ms implementation/pilot tranche, including preparation/builds, two matched fits, controls/evaluation/export, generated behavior and reserve. This is **not an executed charge**. Refresh the ledger and storage, record the complete projection before execution, and revise from actual new-path timing. Account for any new full checkout separately; do not inherit the earlier assumption that an approximately 1.2 GiB checkout fits inside 1 GiB total new storage. Existing owner authorization covers necessary recorded local increments, never paid compute or deletion.
+
+The #1292 timing supports batch-8 trainer calls only: 512 input tokens but 504 prediction targets per full step. Its `to_core()` measurement excludes persisted checkpoint I/O; its reported evaluation follows six optimizer updates. The recorded cumulative balance is preserved without pretending these reporting corrections reconstruct the earlier elapsed-time ledger.
