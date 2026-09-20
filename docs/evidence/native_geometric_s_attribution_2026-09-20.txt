@@ -1,0 +1,176 @@
+UOR-R4 GEOMETRIC LANGUAGE MODEL — EVIDENCE RECEIPT
+Frozen S attribution: what the separable reader contributes
+============================================================
+
+Date:            2026-09-20
+Base source:     8bbdb63d1c686d078292562bb879c0bf4dadde34  (merge of PR #1311)
+Worktree:        /Users/casey.allard/uor-r4/.worktrees/geometric-query-read
+                 branch codex/separable-attribution
+Executable:      crates/uor-r4-core/src/bin/query-read-attribution.rs  (evaluation only)
+Repaired source: crates/uor-r4-core/src/native_geometric/learner/query_read.rs
+Review:          docs/integration/s-attribution-result-2026-09-20.md
+Prompt executed: docs/integration/deepseek-separable-attribution-step-2026-09-20.md
+
+ANALYSIS KIND
+-------------
+evaluation_only. No optimizer update, no reset/write fit, no history-capacity expansion, no new
+corpus, no projection campaign and no decoder change. The harness constructs no trainer.
+
+SEALED REPORT ROOTS
+-------------------
+Retained:   .uor-models/realtext-prior-2026-09-20/s-attribution-3
+            30 files, 4,390,694 bytes, claimed exclusively, sealed, complete set verified
+            (claim -> seal -> verify, 0 unlisted members); result.json 994a1a15..
+Superseded: s-attribution-1   corrected cost protocol and phase accounting
+            s-attribution-2   rebuilt after cargo fmt; different binary digest
+            All three report identical losses and controls. Preserved sealed, never reused.
+
+RUNNING SOURCE IDENTITY
+-----------------------
+base revision      8bbdb63d1c686d078292562bb879c0bf4dadde34
+git dirty state    pre-commit-dirty (two modified and three untracked paths in the worktree)
+executable sha256  65463ebdb87980b05df1622f5e7ff197840278a32bcf2440a0876c01e935c4a1 (self-hashed)
+query_read.rs      b7c8fd48b75afa17e266221d8c7279cf3cb350674bc58e74cabce2174b555208
+query-read-attribution.rs
+                   a65c624aa1c65d8e253e6ffe6296c643452d5d8f703bd71ce8b1dfd1d0dfcc4c
+old binary identity   UNAVAILABLE — the superseded run bound no executable digest
+Owner checkout and every earlier sealed root untouched.
+
+PINNED INPUTS (verified before loading)
+---------------------------------------
+parent E       565cf98a01273af38425687adb522704b09a89bd7ab976b58b20bfbdaccfa0bf
+Q legacy       341f07211bb8695604c5cae50f3a529a1178def83d4d431f9031b2636a78a3fc
+S legacy       9f8cda09bfb562221b5718a8330cc4a296215b8e94d3e0c2b8abe2ce31fae851
+L legacy       b0e5088794c2dedc87adabfe988cf2530fe5605863ca33ad3ce8078924b372a4
+panel.json     b58d104083164dba30bc8251f0957ac1da9b3bec7d9c3b6ea299d6a9c7e1f79f
+result.json    4aa6ed817f1e277007101ac06a56065c7050e2a281e36346ecdb07c2e58b42fc
+checkpoint     1c3dfedb2248ec76c21f320b7ecec585c7a522a2d47e35ed5dc9eaca2454bff2
+tokenizer      9ca9acddb6525a194ec8ac7a87f24fbba7232a9a15ffa1af0c1224fcd888e47c (source)
+               a7ac75b68aa997fe7cc338d25d843157f2dc9d4265fb2f958ee779bb04828d6f (derived, raw)
+corpus         pinned inputs/docs, commit e9c04e80
+
+TOKENIZER BINDING REPAIR (producer/export API, not report-side)
+--------------------------------------------------------------
+All three legacy CPX3 artifacts carried an all-zero tokenizer field at bytes 73-104. The producer
+supplied [0;32]; the old runner bound a hash of the hexadecimal digest string instead.
+- Production export now REQUIRES the real raw 32-byte identity; ZERO_DIGEST is refused by
+  QueryHard::from_parts and by QueryTrainer::new.
+- The hash-pinned legacy files load only through QueryHard::import_legacy; the production loader is
+  verified in-run to reject the placeholder.
+- Corrected descendants, identical size, exactly 32 changed bytes all inside 73..105:
+    query_conditioned_older_read  341f0721.. -> 5adba9712ec46888..   53555 B, 32 changed, 3151 parity positions
+    separable_older_query_read    9f8cda09.. -> ed9affd638ee9367..   53555 B, 32 changed, 3151 parity positions
+    local_only_read               b0e50887.. -> 167e2ea045ed3ac1..   53555 B, 32 changed, 3151 parity positions
+  Row and integer-logit parity verified at every one of those positions, including short and
+  absent-prefix windows. Originals preserved.
+
+INFERENCE SEAM
+--------------
+read_path (training) retained; inference_rows / rows_from_older / generate now use a fold-once,
+no-chain path. Focused compose-call counts on a 64-token window at i=63:
+  S  inference 62   training path 124
+  Q  inference 63
+  L  inference  3   training path  65
+Row equality between the seam and the training path verified at every position for all three arms.
+Checked boundary rejects out-of-vocabulary tokens and empty prompts instead of clamping.
+
+Focus: 18 query_read module tests pass (13 retained + 5 new).
+
+REPRODUCTION BEFORE INTERPRETATION
+----------------------------------
+16 retained old-panel vectors recomputed from the corrected artifacts and compared with
+query-read-2/vectors/*.f64: maximum absolute delta 0.0 (exact) against a 1e-8 bit tolerance.
+Frozen E micro CE 7.170815717556 bits/target.
+Old panel and old donor map match the retained panel.json record-for-record and index-for-index.
+S11 reproduces its retained six-prompt generation exactly (token IDs and decoded bytes).
+
+FROZEN ANALYSIS POPULATIONS
+---------------------------
+Old panel:            288 windows / 17,342 targets / 36 documents / 16,766 older-present
+New-position panel:   277 windows / 17,451 targets / 35 documents / 16,897 matched
+  Frozen from document and window identities before any score. Rule: SHA256 of
+  "uor-r4-S-attribution-v1|<doc_sha256_hex>|<decimal_local_chunk_index>", lexicographic digest
+  order, index tie-break, top 8 per document, excluding every old selected chunk and every exact
+  duplicate token window. Per-document shortfalls saved.
+  Replication scope: new positions in the same open-development documents, not independent
+  documents and not final held-out qualification.
+New donor map: seed 0x5e9a11b7, 1,230 eligible of 16,692 strata, same exact
+  (prev, cur, older_len) strata, S's own A map, target and local pair fixed.
+
+DECOMPOSITION (micro CE, bits/target)
+-------------------------------------
+                         old all   old older-present   new all   new older-present
+E                        7.170816      7.151750        7.048239     7.045959
+S11 = E+u(q)+u(b)        7.032228      7.008400        6.919775     6.913283
+S01 = E+u(e)+u(b)        7.117573      7.096678        7.012454     7.009001
+S10 = E+u(q)+u(e)        7.222888      7.205611            -            -
+S00 = E+2u(e)            7.501118      7.493400        7.387922     7.396780
+Qonly = E+u(b)           7.022581      6.998422        6.912660     6.905935
+Honly = E+u(q)           7.171048      7.151990        7.045576     7.043209
+M01 fit-average history      -        6.984779            -        6.894588   (offline only)
+
+Integer identity Z11 + Z00 = Z10 + Z01 per vocabulary row, wide integers: 0 failures, both panels.
+
+COMPARISONS (CE_a - CE_b, matched older-present positions; positive means b better)
+-----------------------------------------------------------------------------------
+2000 document-bootstrap draws, seed 0x12345678, ratio of resampled loss sums/counts,
+zero-support resamples counted explicitly (0 dropped in every interval).
+
+primary M01 - S11    new -0.018695 [-0.022344,-0.015019]   old -0.023622 [-0.026746,-0.020352]
+Qonly - S11          new -0.007348 [-0.012050,-0.002327]   old -0.009978 [-0.014586,-0.005420]
+S01 - S11            new +0.095717 [+0.083671,+0.108199]   old +0.088277 [+0.074894,+0.101805]
+S10 - S11            new +0.192411 [+0.173018,+0.212720]   old +0.197210 [+0.180399,+0.214052]
+Honly - S11          new +0.129926 [+0.114523,+0.146087]   old +0.143589 [+0.131690,+0.155425]
+E - S11              new +0.132676 [+0.114919,+0.152045]   old +0.143349 [+0.130147,+0.155997]
+E - Qonly            new +0.140024 [+0.124527,+0.156375]   old +0.153327 [+0.141358,+0.165063]
+
+MATCHED INTERVENTIONS AND INSTRUMENT CHECKS
+-------------------------------------------
+                                     old          new
+strata / eligible / changed          16583/1177/564   16692/1230/648
+singleton strata                     15589        15667
+no-history excluded                  576          554
+eligible documents                   36           35
+S11 exact-donor penalty (eligible)   -0.002298 [-0.014072,+0.008581]  (reproduces the retained value)
+                                     +0.005278 [-0.006959,+0.017841]  (new panel)
+S11 older-order reversal (all)       -0.005064 [-0.009529,-0.000330]
+                                     -0.001385 [-0.005892,+0.003060]
+E / S01 / S00 / Qonly invariant to donor and to reversal: EXACTLY, both panels
+q = e / b = e / q = b positions      303 / 4501 / 290      277 / 4365 / 249
+
+GENERATION (six retained prompts, 64 greedy tokens, shared integer path)
+------------------------------------------------------------------------
+E, S11, S01, S10, S00, Qonly, Honly: every condition repeats on 6 of 6 prompts at the local-pair
+level; only the all-32 prompt reaches a repeated complete bounded ring, at offset 48 (1 of 6, every
+condition). A repeated local pair cannot certify a history-dependent condition. S11 reproduces its
+retained old output exactly. Repetition reported; no language claim follows. M01 is offline only.
+
+COST (identical protocol: retained prompt, 64 greedy tokens, one discarded warm-up repeat then five
+timed repeats, black_box on input and output, results consumed, complete numerical path)
+-------------------------------------------------------------------------------------------
+E                     min 0.000530 s  median 0.000530 s  spread 0.00001 s
+S11 inference seam    min 0.000770 s  median 0.000770 s  spread 0.00000 s
+S11 old read_path     min 0.000790 s  median 0.000800 s  spread 0.00004 s
+S01 inference seam    min 0.000770 s  median 0.000780 s  spread 0.00001 s
+Qonly inference seam  min 0.000650 s  median 0.000650 s  spread 0.00003 s
+Loaded bytes: parent 454,788; each corrected artifact 53,555; frozen-parent score cache 16,390
+entries at the end of the timed section. Whole-process peak RSS 722,681,856 B for the complete run
+(/usr/bin/time -l); wall 102.47 s. Whole-run RSS is not steady-state inference allocation.
+Physical energy UNAVAILABLE. Old discarded-result nanosecond ratios remain unqualified estimates.
+
+DECISION
+--------
+No history lead. S11's measured gain is a current-token query/emission calibration: the older row
+alone is indistinguishable from E, dropping it improves CE with the interval entirely below zero on
+both panels, and a content-free length-conditioned fit average beats the individual state. The
+conditional donor is silent because it holds the length-conditioned offset fixed, which is the only
+part of the history term with a measurable effect. Corrected classification: the prompt's second
+branch — preserve the local query result and target state maintenance directly; do not advertise the
+120-state group product as useful memory. Not model promotion; not an equivalence proof.
+
+BOUNDARIES
+----------
+One 120-state register holds at most log2(120) ~ 6.91 bits. The panel is nominal repeated open
+development on correlated repository documents. No alpha, conversation, coding, frontier or energy
+claim. The four-bit Continue/ResetTo monoid, exact occurrence/version access, shared composition and
+full M1 cost remain unrun. Prime/zeta/R4/S3/H4/icosian roles and D0-b are unchanged.

@@ -15,7 +15,7 @@ use std::process::ExitCode;
 use std::time::Instant;
 
 use serde_json::json;
-use sha2::{Digest, Sha256};
+use sha2::Digest;
 
 use uor_r4_core::native_geometric::learner::prefix_artifact::{
     parent_hash_convention, ExactGroupTable,
@@ -128,6 +128,15 @@ fn parse_args() -> Result<Args, String> {
         total_updates,
         warmup,
     })
+}
+
+fn hex_to_bytes(s: &str) -> Result<Vec<u8>, String> {
+    if s.len() % 2 != 0 {
+        return Err("odd hex length".into());
+    }
+    (0..s.len() / 2)
+        .map(|i| u8::from_str_radix(&s[2 * i..2 * i + 2], 16).map_err(|e| e.to_string()))
+        .collect()
 }
 
 fn write_checked(root: &Path, name: &str, bytes: &[u8]) -> Result<(), String> {
@@ -302,7 +311,9 @@ fn run() -> Result<ExitCode, String> {
     }
     let tokenizer: HfBpeTokenizer =
         derive_tokenizer(&tok_bytes, VOCAB).map_err(|e| format!("derive tokenizer: {e}"))?;
-    let tokenizer_digest: [u8; 32] = Sha256::digest(derived_hex.as_bytes()).into();
+    // The artifact binds the RAW derived-tokenizer digest bytes. Hashing the hexadecimal digest
+    // string instead produced a different (wrong) identity in the superseded run.
+    let tokenizer_digest: [u8; 32] = hex_to_bytes(&derived_hex)?.try_into().unwrap();
 
     let exact = ExactGroupTable::build().map_err(|e| format!("exact table: {e}"))?;
     let pal = palette().clone();
@@ -408,6 +419,7 @@ fn run() -> Result<ExitCode, String> {
             args.total_updates,
             args.warmup,
             parent_file_digest,
+            tokenizer_digest,
         )?;
         // Step 0 must reproduce E exactly on a sample before any update.
         {
@@ -415,7 +427,7 @@ fn run() -> Result<ExitCode, String> {
             let mut mismatch = 0usize;
             for r in panel.recs.iter().take(512) {
                 let w = &panel.windows[r.win];
-                let rows = core.read_path(w, r.i).map(|p| (p.first, p.second));
+                let rows = core.inference_rows(w, r.i);
                 if core.int_logits(r.prev, r.cur, rows) != parent.int_logits(r.prev, r.cur, true) {
                     mismatch += 1;
                 }
@@ -477,15 +489,16 @@ fn run() -> Result<ExitCode, String> {
             &format!("artifacts/{}.cpx3", arm.name()),
             &artifact,
         )?;
-        let reloaded = QueryHard::from_bytes(&artifact, &parent, &parent_file_digest)
-            .map_err(|e| format!("{}: reload: {e}", arm.name()))?;
+        let reloaded =
+            QueryHard::from_bytes(&artifact, &parent, &parent_file_digest, &tokenizer_digest)
+                .map_err(|e| format!("{}: reload: {e}", arm.name()))?;
 
         // Full-panel integer parity: reloaded vs in-memory, every field.
         let mut logit_mismatch = 0usize;
         for r in panel.recs.iter() {
             let w = &panel.windows[r.win];
-            let a = core.read_path(w, r.i).map(|p| (p.first, p.second));
-            let b = reloaded.read_path(w, r.i).map(|p| (p.first, p.second));
+            let a = core.inference_rows(w, r.i);
+            let b = reloaded.inference_rows(w, r.i);
             if a != b || core.int_logits(r.prev, r.cur, a) != reloaded.int_logits(r.prev, r.cur, b)
             {
                 logit_mismatch += 1;
@@ -512,9 +525,7 @@ fn run() -> Result<ExitCode, String> {
             .map(|i| {
                 if donor.eligible[i] {
                     let d = donor.donor[i];
-                    reloaded
-                        .read_path(&panel.windows[panel.recs[d].win], panel.recs[d].i)
-                        .map(|p| (p.first, p.second))
+                    reloaded.inference_rows(&panel.windows[panel.recs[d].win], panel.recs[d].i)
                 } else {
                     own_rows[i]
                 }
@@ -724,6 +735,7 @@ fn run() -> Result<ExitCode, String> {
                 8,
                 4,
                 parent_file_digest,
+                tokenizer_digest,
             )
             .expect("mini trainer")
         };

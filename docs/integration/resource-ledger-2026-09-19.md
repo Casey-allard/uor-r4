@@ -932,6 +932,57 @@ comparison. The superseded `query-read-1` root is preserved sealed and untouched
 intact**; build output reuses the existing `target/`. No deletion, corpus download or paid/external
 compute. Physical energy remains UNAVAILABLE.
 
+## Frozen S attribution step — recorded extension before use (2026-09-20T18:13Z)
+
+**Refreshed before any model charge.** Live shared JSON read as `176138565 / 178100000 ms`,
+remaining **1961435 ms**, matching the post-#1311 review. Measured cycle start
+`2026-09-20T18:13:30Z`.
+
+**Standing-authorized extension recorded before consumption:** reason = the complete frozen S
+attribution experiment cannot fit the 1961435 ms remainder; increment = **+2400000 ms**; updated
+cumulative limit = **180500000 ms**; headroom immediately after the increment, before any charge,
+= **4361435 ms**. Recorded in `.uor-models/native-joint-learning-2026-09-04/model-time.json`
+(`limit_ms` 178100000 -> 180500000, `cumulative_ms` unchanged at 176138565). A limit refresh, not a
+debit.
+
+**Complete projection for the tranche (recorded before execution):** 900 s source repair and build
+with focused tests; 450 s CPX3 metadata re-export, pinned-panel reconstruction and old-vector
+reproduction; 450 s fit-only history means and the frozen new-position panel; 900 s attribution,
+matched controls, generation and cost; 900 s derived reporting, retry/checkpoint reserve and
+delivery. Caps: one worker, at most four Cargo build jobs, <=8 GiB peak RSS, <=256 MiB new
+retained/temporary model/report data plus <=1 GiB incremental build output, and the **128 MiB
+storage stop margin**. The parent-score cache is bounded before insert; scratch is included. This is
+an **evaluation-only** task: no optimizer updates, no reset/write fit, no history-capacity
+expansion, no new corpus, no projection campaign and no decoder change.
+
+**Storage refresh (read-only tool):** `.uor-models` -> `LOWER_BOUND_OR_UNAVAILABLE` **20808720384 B**;
+owner `target/` **20769619968 B**; `.codex/worktrees` **494084096 B**; filesystem free
+**26102034432 B** against a proposed reserve of **36766079385 B** (`below_proposed_reserve: true`,
+noted, not acted on).
+
+**Charge:** recorded once below, after the work, as measured nonoverlapping work. Failed builds and
+superseded replays are charged, not refunded.
+
+## Charges recorded — frozen S attribution step (2026-09-20)
+
+| Date | Work | Charge | Basis |
+|---|---|---:|---|
+| 2026-09-20 | Tokenizer-binding repair (producer API requires the real raw digest, restricted legacy import, 5 focused tests), inference-seam split with compose-call instrumentation, checked replay boundary, provenance binding, the evaluation-only `bin/query-read-attribution.rs` harness, one failed probe, two superseded complete runs, one retained complete run and one RSS repeat | 2400000 ms | **Mixed.** Measured: six harness executions at 30.1 s (failed probe), 102.6 s, 102.9 s, 103.6 s, 102.95 s (superseded) and 102.47 s (retained) = 544.7 s; plus roughly seven debug/release compile and focused-test cycles at 80–100 s each ≈ 600 s. Estimated: a ~1200 s documentation/delivery allocation. Failed and superseded runs are charged. |
+
+**New cumulative: 178538565 ms.** Remaining: 180500000 − 178538565 = **1961435 ms (~32.7 min)**.
+
+**Charged from the 2400000 ms standing-authorized extension recorded above before use.** Retained
+under the claimed, sealed and verified report root
+`.uor-models/realtext-prior-2026-09-20/s-attribution-3`: 30 files, **4390694 bytes** — `result.json`,
+`generation.json`, `selection-manifest.json`, `fit-history-means.json`, per-panel `ids-*.json`, the
+three corrected `corrected/*.cpx3` descendants, and per-occurrence vectors for every condition on
+both panels plus the donor/reversal/identity controls. The superseded `s-attribution-1` and
+`s-attribution-2` roots are preserved sealed with identical numbers. Whole-run peak RSS
+**722681856 B** (`/usr/bin/time -l`, complete run). The
+**128 MiB model-storage stop margin is intact**; build output reuses the existing `target/`. No
+optimizer update, no new corpus, no deletion, no paid/external compute. Physical energy remains
+UNAVAILABLE.
+
 ## Post-#1310 review and frozen-attribution proposal (2026-09-20)
 
 Authoritative JSON remains **176138565 /178100000 ms**, remaining **1961435 ms**. This source/artifact/saved-data review ran no build/training/model forward and changes no balance. Preserve the 5900000-ms debit as mixed measured/estimated; do not recast its approximate build/documentation allocations as measured nonoverlapping phases or refund them. The continuation phase was reported as literal 0.0 s. Separate probe/calibration roots were not recovered in the bounded audit; that does not establish nonexecution.

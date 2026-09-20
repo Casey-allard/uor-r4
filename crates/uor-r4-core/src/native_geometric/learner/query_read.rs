@@ -28,7 +28,7 @@
 
 use super::group_table::{GROUP_ORDER, ROW_STRIDE};
 use super::lowbit::TernaryLinear;
-use super::prefix_artifact::{ExactGroupTable, PREFIX_ARTIFACT_MAGIC};
+use super::prefix_artifact::{hex_lower, ExactGroupTable, PREFIX_ARTIFACT_MAGIC};
 use super::prefix_state::{Palette, ParentCache, PALETTE_SIZE};
 use super::prior_learning::{PriorCore, BIAS_CODE_MAX, PRIOR_CLAMP};
 
@@ -66,6 +66,8 @@ pub const QUERY_ARTIFACT_MAGIC: &[u8; 4] = b"CPX3";
 pub const QUERY_ARTIFACT_VERSION: u32 = 3;
 pub const QUERY_CHECKPOINT_MAGIC: &[u8; 4] = b"CPQK";
 pub const QUERY_CHECKPOINT_VERSION: u32 = 1;
+/// The all-zero tokenizer field. It is a placeholder, never a tokenizer identity.
+pub const ZERO_DIGEST: [u8; 32] = [0u8; 32];
 
 const CODE_ZERO: u8 = 0;
 const CODE_POS: u8 = 1;
@@ -142,9 +144,30 @@ pub fn ternary_from_codes(
     TernaryLinear::from_packed(packed, vec![shift; rows], rows, cols)
 }
 
+#[cfg(test)]
+thread_local! {
+    /// Test-only compose-call counter, so a fixture can prove how many group products a path
+    /// actually performs instead of asserting on the shape of a loop.
+    pub(crate) static COMPOSE_CALLS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
+/// Reset the test-only compose counter on the current thread.
+#[cfg(test)]
+pub(crate) fn reset_compose_calls() {
+    COMPOSE_CALLS.with(|c| c.set(0));
+}
+
+/// Read the test-only compose counter on the current thread.
+#[cfg(test)]
+pub(crate) fn compose_calls() -> usize {
+    COMPOSE_CALLS.with(|c| c.get())
+}
+
 /// `h = a * b` in the bound exact table, both as historical state indices.
 #[inline]
 fn compose(t: &ExactGroupTable, a: usize, b: usize) -> usize {
+    #[cfg(test)]
+    COMPOSE_CALLS.with(|c| c.set(c.get() + 1));
     t.product[a * ROW_STRIDE + b] as usize
 }
 
@@ -182,7 +205,7 @@ pub struct QueryHard {
 }
 
 impl QueryHard {
-    /// Validate shapes, fixed shifts, codes, table laws and the combined overflow envelope.
+    /// Public construction. Requires a real (non-placeholder) tokenizer identity.
     #[allow(clippy::too_many_arguments)]
     pub fn from_parts(
         parent: PriorCore,
@@ -195,6 +218,39 @@ impl QueryHard {
         table: ExactGroupTable,
         parent_file_digest: [u8; 32],
         tokenizer_digest: [u8; 32],
+    ) -> Result<Self, String> {
+        Self::assemble(
+            parent,
+            reader,
+            wg,
+            a_codes,
+            b_codes,
+            palette,
+            arm,
+            table,
+            parent_file_digest,
+            tokenizer_digest,
+            false,
+        )
+    }
+
+    /// Validate shapes, fixed shifts, codes, table laws and the combined overflow envelope.
+    ///
+    /// `allow_zero_tokenizer` is set only by the restricted legacy import, whose bytes the caller
+    /// must already have matched against a pinned hash.
+    #[allow(clippy::too_many_arguments)]
+    fn assemble(
+        parent: PriorCore,
+        reader: TernaryLinear,
+        wg: TernaryLinear,
+        a_codes: Vec<u8>,
+        b_codes: Vec<u8>,
+        palette: Palette,
+        arm: QueryArm,
+        table: ExactGroupTable,
+        parent_file_digest: [u8; 32],
+        tokenizer_digest: [u8; 32],
+        allow_zero_tokenizer: bool,
     ) -> Result<Self, String> {
         let v = parent.cfg.vocab;
         if reader.rows != GROUP_ORDER || reader.cols != READER_WIDTH {
@@ -237,6 +293,12 @@ impl QueryHard {
         }
         if table.identity != palette.identity {
             return Err("palette identity must match the bound table identity".into());
+        }
+        if tokenizer_digest == ZERO_DIGEST && !allow_zero_tokenizer {
+            return Err(
+                "query artifact tokenizer digest is the all-zero placeholder; production export requires the real raw 32-byte tokenizer identity"
+                    .into(),
+            );
         }
         let core = Self {
             parent,
@@ -379,6 +441,85 @@ impl QueryHard {
         })
     }
 
+    /// Validation for the public replay boundary: token IDs must be real vocabulary entries and
+    /// no silent clamping substitutes another token.
+    pub fn validate_tokens(&self, tokens: &[u32]) -> Result<(), String> {
+        let v = self.parent.cfg.vocab;
+        for (k, &t) in tokens.iter().enumerate() {
+            if (t as usize) >= v {
+                return Err(format!("token {t} at position {k} is outside 0..{v}"));
+            }
+        }
+        Ok(())
+    }
+
+    /// **Inference row selection.** Folds the older prefix at most once, builds no training chain
+    /// and returns `None` exactly where the residual is defined to be zero. Q/S fold history; L
+    /// touches only its local pair.
+    pub fn inference_rows(&self, tokens: &[u32], i: usize) -> Option<(usize, usize)> {
+        if i < 2 || i >= tokens.len() {
+            return None;
+        }
+        let e = self.table.identity as usize;
+        let b = self.query_state(tokens[i]);
+        match self.arm {
+            QueryArm::L => {
+                let mut q = e;
+                q = compose(&self.table, q, self.write_state(tokens[i - 1]));
+                q = compose(&self.table, q, self.write_state(tokens[i]));
+                Some((compose(&self.table, q, b), e))
+            }
+            QueryArm::Q => {
+                let q = self.older_state(tokens, i)?;
+                Some((compose(&self.table, q, b), e))
+            }
+            QueryArm::S => {
+                let q = self.older_state(tokens, i)?;
+                Some((q, b))
+            }
+        }
+    }
+
+    /// **Inference row selection with a supplied older state** (the exact-donor path). Consumes the
+    /// validated state without folding history again and without rebuilding a recipient chain. The
+    /// local-only arm ignores the supplied state, as it must.
+    pub fn rows_from_older(
+        &self,
+        tokens: &[u32],
+        i: usize,
+        older: usize,
+    ) -> Option<(usize, usize)> {
+        if i < 2 || i >= tokens.len() {
+            return None;
+        }
+        let e = self.table.identity as usize;
+        match self.arm {
+            QueryArm::L => self.inference_rows(tokens, i),
+            QueryArm::S => Some((older, self.query_state(tokens[i]))),
+            QueryArm::Q => Some((compose(&self.table, older, self.query_state(tokens[i])), e)),
+        }
+    }
+
+    /// Checked inference rows: rejects out-of-vocabulary tokens instead of clamping them.
+    pub fn inference_rows_checked(
+        &self,
+        tokens: &[u32],
+        i: usize,
+    ) -> Result<Option<(usize, usize)>, String> {
+        self.validate_tokens(tokens)?;
+        Ok(self.inference_rows(tokens, i))
+    }
+
+    /// The single-row residual `u(s) = (sum_j Wcode[v,j] * Rcode[s,j]) << 7`: one reader row's
+    /// contribution. `residual_scores(a, b)` equals `u(a) + u(b)` elementwise.
+    pub fn row_scores(&self, s: usize) -> Vec<i32> {
+        let mut h = vec![0i32; READER_WIDTH];
+        for (j, slot) in h.iter_mut().enumerate() {
+            *slot = self.reader.weight(s, j) << self.reader.shift(s);
+        }
+        self.wg.forward_i32(&h)
+    }
+
     /// `(sum_j Wcode[v,j] * (Rcode[first,j] + Rcode[second,j])) << 7`.
     pub fn residual_scores(&self, first: usize, second: usize) -> Vec<i32> {
         let mut h = vec![0i32; READER_WIDTH];
@@ -413,7 +554,7 @@ impl QueryHard {
                 (toks[i - 1] as usize).min(v - 1)
             };
             let cur = (toks[i] as usize).min(v - 1);
-            let rows = self.read_path(&toks, i).map(|p| (p.first, p.second));
+            let rows = self.inference_rows(&toks, i);
             let z = self.int_logits(prev, cur, rows);
             let mut best = 0usize;
             for r in 1..z.len() {
@@ -424,6 +565,16 @@ impl QueryHard {
             toks.push(best as u32);
         }
         toks[prompt.len()..].to_vec()
+    }
+
+    /// As [`Self::generate`], with the public boundary validated: a non-empty prompt whose tokens are
+    /// real vocabulary entries, and no silent clamping.
+    pub fn generate_checked(&self, prompt: &[u32], n_new: usize) -> Result<Vec<u32>, String> {
+        if prompt.is_empty() {
+            return Err("prompt must not be empty".into());
+        }
+        self.validate_tokens(prompt)?;
+        Ok(self.generate(prompt, n_new))
     }
 
     pub fn weight_bytes(&self) -> usize {
@@ -479,13 +630,40 @@ impl QueryHard {
         o
     }
 
-    /// Validated load. Rejects a wrong magic/version, any per-row shift other than the declared
-    /// fixed ones, out-of-palette codes, non-bijektive table rows, a palette/table identity
-    /// mismatch, a parent mismatch, a bad envelope and trailing bytes.
+    /// Validated production load. Rejects a wrong magic/version, any per-row shift other than the
+    /// declared fixed ones, out-of-palette codes, non-bijective table rows, a palette/table identity
+    /// mismatch, a parent mismatch, a tokenizer mismatch, a placeholder tokenizer field, a bad
+    /// envelope and trailing bytes.
     pub fn from_bytes(
         bytes: &[u8],
         parent: &PriorCore,
         expected_parent_digest: &[u8; 32],
+        expected_tokenizer_digest: &[u8; 32],
+    ) -> Result<Self, String> {
+        Self::from_bytes_inner(
+            bytes,
+            parent,
+            expected_parent_digest,
+            Some(expected_tokenizer_digest),
+        )
+    }
+
+    /// Restricted import for the hash-pinned legacy artifacts whose tokenizer field is the all-zero
+    /// placeholder. The caller must have matched `bytes` against a known digest first; this path
+    /// never becomes a production loader and never relaxes any other check.
+    pub fn import_legacy(
+        bytes: &[u8],
+        parent: &PriorCore,
+        expected_parent_digest: &[u8; 32],
+    ) -> Result<Self, String> {
+        Self::from_bytes_inner(bytes, parent, expected_parent_digest, None)
+    }
+
+    fn from_bytes_inner(
+        bytes: &[u8],
+        parent: &PriorCore,
+        expected_parent_digest: &[u8; 32],
+        expected_tokenizer_digest: Option<&[u8; 32]>,
     ) -> Result<Self, String> {
         let mut c = 0usize;
         let take = |c: &mut usize, n: usize| -> Result<&[u8], String> {
@@ -641,7 +819,16 @@ impl QueryHard {
         }
         let b_codes = codes.pop().unwrap();
         let a_codes = codes.pop().unwrap();
-        Self::from_parts(
+        if let Some(exp) = expected_tokenizer_digest {
+            if tokenizer_digest != *exp {
+                return Err(format!(
+                    "query artifact tokenizer digest {} != expected {}",
+                    hex_lower(&tokenizer_digest),
+                    hex_lower(exp)
+                ));
+            }
+        }
+        Self::assemble(
             parent.clone(),
             reader,
             wg,
@@ -661,6 +848,7 @@ impl QueryHard {
             },
             parent_file_digest,
             tokenizer_digest,
+            expected_tokenizer_digest.is_none(),
         )
     }
 }
@@ -796,6 +984,8 @@ pub struct QueryTrainer {
     pub last_hard_a_changes: usize,
     pub last_hard_b_changes: usize,
     pub parent_sha256: [u8; 32],
+    /// Raw 32-byte tokenizer identity bound into every exported artifact.
+    pub tokenizer_digest: [u8; 32],
     pub data_identity: [u8; 32],
     initial_a_codes: Vec<u8>,
     initial_b_codes: Vec<u8>,
@@ -824,7 +1014,14 @@ impl QueryTrainer {
         updates: usize,
         warmup: usize,
         parent_sha256: [u8; 32],
+        tokenizer_digest: [u8; 32],
     ) -> Result<Self, String> {
+        if tokenizer_digest == ZERO_DIGEST {
+            return Err(
+                "a query trainer requires the real raw 32-byte tokenizer identity, not the all-zero placeholder"
+                    .into(),
+            );
+        }
         let v = parent.cfg.vocab;
         let identity_slot = palette
             .elements
@@ -888,6 +1085,7 @@ impl QueryTrainer {
             last_hard_a_changes: 0,
             last_hard_b_changes: 0,
             parent_sha256,
+            tokenizer_digest,
             data_identity: [0u8; 32],
             initial_a_codes,
             initial_b_codes,
@@ -942,7 +1140,7 @@ impl QueryTrainer {
             self.arm,
             self.table.clone(),
             self.parent_sha256,
-            [0u8; 32],
+            self.tokenizer_digest,
         )
     }
 
@@ -1532,6 +1730,11 @@ mod tests {
         parent_hash_convention(b"query-read-fixture").0
     }
 
+    /// A non-placeholder tokenizer identity for fixtures.
+    fn fixture_tokenizer_digest() -> [u8; 32] {
+        parent_hash_convention(b"query-read-fixture-tokenizer").0
+    }
+
     const WINDOWS: [[u32; 4]; 4] = [[0, 2, 0, 1], [0, 2, 1, 0], [1, 2, 0, 0], [1, 2, 1, 1]];
     const TARGETS: [u32; 4] = [1, 0, 0, 1];
 
@@ -1550,6 +1753,7 @@ mod tests {
             512,
             64,
             fixture_digest(),
+            fixture_tokenizer_digest(),
         )
         .expect("trainer");
         let e = table.identity as usize;
@@ -1694,6 +1898,7 @@ mod tests {
                 512,
                 64,
                 fixture_digest(),
+                fixture_tokenizer_digest(),
             )
             .unwrap();
             let core = tr.hard_core().unwrap();
@@ -1782,6 +1987,7 @@ mod tests {
             512,
             64,
             fixture_digest(),
+            fixture_tokenizer_digest(),
         )
         .unwrap();
         let mut s = q.clone();
@@ -2159,10 +2365,11 @@ mod tests {
         let (tr, _, _) = authored(QueryArm::Q);
         let parent = tr.parent.clone();
         let digest = fixture_digest();
+        let tok = fixture_tokenizer_digest();
         let hard = tr.hard_core().unwrap();
         let bytes = hard.to_bytes();
         assert_eq!(&bytes[..4], QUERY_ARTIFACT_MAGIC);
-        let reload = QueryHard::from_bytes(&bytes, &parent, &digest).expect("round trip");
+        let reload = QueryHard::from_bytes(&bytes, &parent, &digest, &tok).expect("round trip");
         assert_eq!(reload.a_codes, hard.a_codes);
         assert_eq!(reload.b_codes, hard.b_codes);
         assert_eq!(reload.arm, QueryArm::Q);
@@ -2173,17 +2380,17 @@ mod tests {
         let mut cpx2 = PREFIX_ARTIFACT_MAGIC.to_vec();
         cpx2.extend_from_slice(&2u32.to_le_bytes());
         cpx2.resize(bytes.len(), 0);
-        assert!(QueryHard::from_bytes(&cpx2, &parent, &digest).is_err());
-        assert!(QueryHard::from_bytes(&bytes, &parent, &[9u8; 32]).is_err());
-        assert!(QueryHard::from_bytes(&bytes[..bytes.len() - 1], &parent, &digest).is_err());
+        assert!(QueryHard::from_bytes(&cpx2, &parent, &digest, &tok).is_err());
+        assert!(QueryHard::from_bytes(&bytes, &parent, &[9u8; 32], &tok).is_err());
+        assert!(QueryHard::from_bytes(&bytes[..bytes.len() - 1], &parent, &digest, &tok).is_err());
         let mut trailing = bytes.clone();
         trailing.push(0);
-        assert!(QueryHard::from_bytes(&trailing, &parent, &digest).is_err());
+        assert!(QueryHard::from_bytes(&trailing, &parent, &digest, &tok).is_err());
         // A corrupted output-row shift (the old loader's per-row freedom) is rejected.
         let mut bad = bytes.clone();
         let n = bad.len();
         bad[n - 1] = 0xFF;
-        assert!(QueryHard::from_bytes(&bad, &parent, &digest).is_err());
+        assert!(QueryHard::from_bytes(&bad, &parent, &digest, &tok).is_err());
     }
 
     #[test]
@@ -2220,8 +2427,9 @@ mod tests {
         let (tr, _, _) = authored(QueryArm::Q);
         let parent = tr.parent.clone();
         let digest = fixture_digest();
+        let tok = fixture_tokenizer_digest();
         let hard = tr.hard_core().unwrap();
-        let reload = QueryHard::from_bytes(&hard.to_bytes(), &parent, &digest).unwrap();
+        let reload = QueryHard::from_bytes(&hard.to_bytes(), &parent, &digest, &tok).unwrap();
         let scored = score_fixture(&reload);
         let diffs: Vec<i32> = scored.iter().map(|(_, d)| *d).collect();
         assert_eq!(
@@ -2344,6 +2552,208 @@ mod tests {
             disabled, 2,
             "read-disabled output must be the constant parent, 2/4"
         );
+    }
+
+    // -- tokenizer binding, legacy import and the inference seam -------------
+
+    /// Production export/load requires and round-trips the real raw tokenizer identity.
+    #[test]
+    fn tokenizer_identity_round_trips_and_a_mismatch_is_rejected() {
+        let (tr, _, _) = authored(QueryArm::S);
+        let parent = tr.parent.clone();
+        let digest = fixture_digest();
+        let tok = fixture_tokenizer_digest();
+        assert_ne!(tok, ZERO_DIGEST);
+        let hard = tr.hard_core().unwrap();
+        assert_eq!(
+            hard.tokenizer_digest, tok,
+            "the trainer digest must reach the artifact"
+        );
+        let bytes = hard.to_bytes();
+        assert_eq!(&bytes[73..105], &tok, "raw digest sits at offsets 73..105");
+        let reload = QueryHard::from_bytes(&bytes, &parent, &digest, &tok).expect("round trip");
+        assert_eq!(reload.tokenizer_digest, tok);
+        // A wrong expected tokenizer identity is rejected rather than adopted.
+        let mut other = tok;
+        other[0] ^= 0xFF;
+        assert!(QueryHard::from_bytes(&bytes, &parent, &digest, &other).is_err());
+        // The public constructor refuses the placeholder.
+        let err = QueryHard::from_parts(
+            parent.clone(),
+            hard.reader.clone(),
+            hard.wg.clone(),
+            hard.a_codes.clone(),
+            hard.b_codes.clone(),
+            hard.palette.clone(),
+            hard.arm,
+            hard.table.clone(),
+            digest,
+            ZERO_DIGEST,
+        )
+        .unwrap_err();
+        assert!(err.contains("placeholder"), "unexpected error: {err}");
+    }
+
+    /// The hash-pinned legacy zero-digest files load only through the restricted import, and the
+    /// repair re-export changes exactly the 32 identity bytes.
+    #[test]
+    fn legacy_zero_digest_imports_only_through_the_restricted_path_and_repairs_cleanly() {
+        let (tr, _, _) = authored(QueryArm::S);
+        let parent = tr.parent.clone();
+        let digest = fixture_digest();
+        let tok = fixture_tokenizer_digest();
+        let hard = tr.hard_core().unwrap();
+        let good = hard.to_bytes();
+        let mut legacy = good.clone();
+        for b in legacy[73..105].iter_mut() {
+            *b = 0;
+        }
+        // Production load refuses the placeholder; the restricted import accepts it.
+        assert!(QueryHard::from_bytes(&legacy, &parent, &digest, &tok).is_err());
+        let imported = QueryHard::import_legacy(&legacy, &parent, &digest).expect("legacy import");
+        assert_eq!(imported.tokenizer_digest, ZERO_DIGEST);
+        assert_eq!(imported.a_codes, hard.a_codes);
+        assert_eq!(imported.b_codes, hard.b_codes);
+        assert_eq!(imported.table.product, hard.table.product);
+        // Re-export with the real identity: same length, differences only in 73..105.
+        let repaired = QueryHard::from_parts(
+            parent.clone(),
+            imported.reader.clone(),
+            imported.wg.clone(),
+            imported.a_codes.clone(),
+            imported.b_codes.clone(),
+            imported.palette.clone(),
+            imported.arm,
+            imported.table.clone(),
+            digest,
+            tok,
+        )
+        .expect("repair");
+        let fixed = repaired.to_bytes();
+        assert_eq!(fixed.len(), legacy.len());
+        let diff: Vec<usize> = (0..fixed.len())
+            .filter(|&k| fixed[k] != legacy[k])
+            .collect();
+        assert!(
+            diff.iter().all(|k| (73..105).contains(k)),
+            "repair changed bytes outside the tokenizer field: {diff:?}"
+        );
+        assert_eq!(
+            diff.len(),
+            32,
+            "the repair must change exactly the identity field"
+        );
+        assert_eq!(&fixed[73..105], &tok);
+        let reload = QueryHard::from_bytes(&fixed, &parent, &digest, &tok).expect("repaired load");
+        // Every numerical field is unchanged by the metadata repair.
+        for (k, (a, b)) in reload
+            .int_logits(1, 2, reload.inference_rows(&[1, 2, 3, 0, 1, 2], 3))
+            .iter()
+            .zip(
+                imported
+                    .int_logits(1, 2, imported.inference_rows(&[1, 2, 3, 0, 1, 2], 3))
+                    .iter(),
+            )
+            .enumerate()
+        {
+            assert_eq!(a, b, "logit {k} moved under the metadata repair");
+        }
+    }
+
+    /// The inference seam folds the older prefix at most once, and the local arm not at all.
+    #[test]
+    fn inference_seam_folds_history_at_most_once_and_never_for_the_local_arm() {
+        let w: Vec<u32> = (0..64u32).map(|k| k % 4).collect();
+        let i = 63usize;
+        // S: one 62-token fold, no query transport.
+        let (tr_s, _, _) = authored(QueryArm::S);
+        let s_core = tr_s.hard_core().unwrap();
+        reset_compose_calls();
+        let _ = s_core.inference_rows(&w, i);
+        let s_inference = compose_calls();
+        reset_compose_calls();
+        let _ = s_core.read_path(&w, i);
+        let s_training_path = compose_calls();
+        // Q: the same fold plus one query product.
+        let (tr_q, _, _) = authored(QueryArm::Q);
+        let q_core = tr_q.hard_core().unwrap();
+        reset_compose_calls();
+        let _ = q_core.inference_rows(&w, i);
+        let q_inference = compose_calls();
+        // L: two local products plus one query product, and no history fold at all.
+        let (tr_l, _, _) = authored(QueryArm::L);
+        let l_core = tr_l.hard_core().unwrap();
+        reset_compose_calls();
+        let _ = l_core.inference_rows(&w, i);
+        let l_inference = compose_calls();
+        reset_compose_calls();
+        let _ = l_core.read_path(&w, i);
+        let l_training_path = compose_calls();
+
+        assert_eq!(s_inference, 62, "S folds 62 older tokens once");
+        assert_eq!(
+            s_training_path, 124,
+            "the training path folded history twice"
+        );
+        assert_eq!(
+            q_inference, 63,
+            "Q folds 62 older tokens once plus its query product"
+        );
+        assert_eq!(
+            l_inference, 3,
+            "L performs only its two local products and one query product"
+        );
+        assert_eq!(
+            l_training_path, 65,
+            "the training path folded 62 useless history tokens for L"
+        );
+        assert!(
+            l_inference * 20 < l_training_path,
+            "the local seam must be far cheaper than the training chain path"
+        );
+    }
+
+    /// The inference seam reproduces the training path's rows exactly for every arm.
+    #[test]
+    fn inference_rows_equal_the_training_path_rows_on_every_position() {
+        for arm in [QueryArm::Q, QueryArm::S, QueryArm::L] {
+            let (tr, _, _) = authored(arm);
+            let core = tr.hard_core().unwrap();
+            for w in [
+                vec![0u32, 2, 0, 1],
+                vec![1u32, 2, 1, 1, 0, 2, 3, 1],
+                (0..64u32).map(|k| (k * 7) % 4).collect::<Vec<u32>>(),
+            ] {
+                for i in 0..w.len() {
+                    let a = core.inference_rows(&w, i);
+                    let b = core.read_path(&w, i).map(|p| (p.first, p.second));
+                    assert_eq!(a, b, "{arm:?} i={i} len={}", w.len());
+                }
+            }
+        }
+    }
+
+    /// The public replay boundary rejects invalid tokens and empty prompts instead of clamping.
+    #[test]
+    fn checked_input_rejects_out_of_vocabulary_tokens_and_empty_prompts() {
+        let (tr, _, _) = authored(QueryArm::Q);
+        let core = tr.hard_core().unwrap();
+        let v = core.parent.cfg.vocab;
+        assert!(core.validate_tokens(&[0, 1, 2, 3]).is_ok());
+        assert!(core.validate_tokens(&[0, v as u32]).is_err());
+        assert!(core.validate_tokens(&[u32::MAX]).is_err());
+        assert!(core.inference_rows_checked(&[0, 1, 2, 3], 3).is_ok());
+        assert!(core
+            .inference_rows_checked(&[0, 1, v as u32, 3], 3)
+            .is_err());
+        assert!(core.generate_checked(&[], 4).is_err());
+        assert!(core.generate_checked(&[0, 1, v as u32], 4).is_err());
+        let out = core
+            .generate_checked(&[0, 2, 0, 1], 4)
+            .expect("valid prompt");
+        assert_eq!(out.len(), 4);
+        // The unchecked path still clamps, for already-validated internal panels only.
+        assert!(core.validate_tokens(&out).is_ok());
     }
 
     fn argmax_full(z: &[i32]) -> usize {

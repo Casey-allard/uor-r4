@@ -1,5 +1,32 @@
 # DeepSeek execution prompt — determine what the frozen separable reader contributes
 
+> **EXECUTED 2026-09-20** on base `8bbdb63d1c686d078292562bb879c0bf4dadde34` in the isolated
+> worktree `codex/separable-attribution`. Retained root
+> `.uor-models/realtext-prior-2026-09-20/s-attribution-3` (30 files, 4,390,694 bytes, sealed and
+> verified); the superseded `s-attribution-1` and `s-attribution-2` are preserved sealed with
+> identical numbers. Result and corrections:
+> [s-attribution-result-2026-09-20.md](s-attribution-result-2026-09-20.md) and
+> [the receipt](../evidence/native_geometric_s_attribution_2026-09-20.txt).
+>
+> Sections 1–8 are executed as specified except where noted here. Section 3: the tokenizer binding
+> is repaired at the producer/export API, the legacy files load only through a restricted import,
+> corrected descendants change exactly 32 bytes inside 73..105, and the inference seam is split
+> with compose-call instrumentation; the evaluation-only entry point is
+> `bin/query-read-attribution.rs`. Section 4: the new-position panel is frozen before scoring and
+> yields 277 windows / 17,451 targets from 35 of the 36 dev documents (one offers no eligible chunk
+> after the exclusions; disclosed per document). Sections 5–7: the four identity-anchored corners,
+> E, the direct zero-row conditions, the offline M01 comparator, the exact-tail donor and
+> older-order reversal, generation and the declared cost protocol are all executed. CPQK production
+> continuation is **not** repaired here and remains required before any new fit.
+>
+> **Outcome:** no history lead. S's gain is a current-token query/emission calibration; the older
+> row alone is indistinguishable from E, dropping it improves CE on both panels with the interval
+> entirely below zero, and a content-free length-conditioned fit average beats the individual state
+> by ~0.02 bits on both panels. The sealed `result.json` carries a conservative "inconclusive"
+> label from a two-branch rule keyed on S01; the review records the corrected classification (this
+> prompt's second branch). No optimizer update, reset/write fit, capacity expansion, new corpus,
+> projection campaign or decoder change was performed.
+
 Work on **UOR-R4 Geometric Language Model**, `UOR-Foundation/uor-r4`. Refresh origin/main beyond PR #1310, merge `7ea3744ce190c6acd708275e4121a6354b301023`. Read this prompt and [the principal review](query-read-review-2026-09-20.md) completely, followed by current authority. Deliver **one evaluation-only frozen S attribution experiment** with the metadata and inference/evaluation repairs needed to make it reliable. No optimizer updates, reset/write fit, history-capacity expansion, new corpus, projection campaign or decoder change is part of this task.
 
 The finding to resolve: S scores 7.032227740 versus E 7.170815718, but its saved conditional older-prefix penalty is −0.002298261 [−0.014071554,+0.008581473]. Its positive query-neutralization penalty does not demonstrate older-history utility. Identify which frozen components contribute before choosing the next learned state-maintenance mechanism. Complete the replay, actual generation, cost and protected delivery; a module or proposed analysis alone is insufficient.
