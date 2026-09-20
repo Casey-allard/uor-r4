@@ -1,5 +1,24 @@
 # Current native geometric AI work
 
+## First corrected real-text prior curve: the exported low-bit prior learns context beyond the marginal — September 20, 2026
+
+**The runner executed end to end (609.6 s) and the step-512 gate passes on the corrected sign.** At 512 steps the exported low-bit prior-only model is **1.9174 bits/target better than the exact fit-only unigram** and **1.9892 better than its own frozen quantized constant**, both paired document-cluster intervals excluding zero, with a **+2.8744-bit permutation penalty** whose interval also excludes zero. The executed binary printed FAIL because one label carried the paired difference's sign the wrong way round; the source is corrected and the corrected arithmetic is shown in the receipt.
+
+| step | dev bits/target (micro = macro) | bias-only | exact unigram | permutation |
+|---:|---:|---:|---:|---:|
+| 0 | 9.1316 | 9.1316 | 9.0599 | 9.1364 |
+| 256 | 8.2182 | 9.1316 | 9.0599 | 9.3122 |
+| 512 | **7.1425** | 9.1316 | 9.0599 | 10.0168 |
+
+Step 0 is **exactly** the frozen quantized constant — the zero-exported-residual initialization verified on real text — and starts 0.0717 bits *worse* than the exact unigram, which is precisely the quantized-vs-exact marginal gap. Fit 355 documents / 38,987 windows / **2,446,208 scored targets**; development 36 documents / 96 windows / **6,048 scored targets**. The permutation is a real negative control: 5,805 associations changed with the context marginal and target list preserved (the PAD stratum is non-permutable and is reported, not dropped). Position knockouts cost 0.4347 and 1.3572 bits, so both inputs matter, the current token more. **Generation collapses** at every checkpoint and is reported rather than filtered.
+
+**Section-2 primitive repairs are in the same change and tested:** `Trace` stores the ReLU mask as `u8` and the shift as `u32`, so the greedy path carries no floating auxiliary value; the shifted embedding sum is checked in i64 before clamping and `norm_bits = 0` is bounded correctly; `PriorCore::validate` applies the loader's checks to constructed cores too; checkpoint v3 persists and validates the active Fisher–Yates permutation, with mid-pass, partial-batch and cross-pass continuation tested against complete state, nondefault betas and decay; and a hand-computed STE fixture covers both embedding tables and the output with active and clamped ReLU coordinates, a nonunit normalization shift, a nonflat bias and a nonzero residual. `prior_learning` 12 tests pass and the V4 gate result from #1298 is preserved unchanged.
+
+**Deviations and NOT RUN.** The prompt's 4 MiB selection bound was **not** applied: the pinned tree is ~86 MB and all eligible whole documents were used, so this is not a bounded 4 MiB pilot. Not run: the corrected interpolated backoff references, the unseen-fit-pair stratum, an on-disk mid-run continuation, peak RSS, and any binary-level instruction inspection. Development documents are correlated repository prose, so the intervals are nominal screening intervals, not final held-out qualification. The modulo-120 element table remains metadata and does not participate in prediction; no geometric, prose, coding or energy claim follows.
+
+**Receipt:** [`native_geometric_realtext_prior_curve_2026-09-20.txt`](../evidence/native_geometric_realtext_prior_curve_2026-09-20.txt). References #973, #820.
+
+
 ## Active next: corrected real-text prior curve — review after PR #1298
 
 **The small contextual fitting gate passes; the corrected prior has not yet been trained on real text.** PR #1298 is merged as `a3c5403587bd27b32399622ec0bebc010447b9f2`, identical in tree to reviewed head `5083f62a`. The [principal review](realtext-prior-review-2026-09-20.md) and [complete DeepSeek prompt](deepseek-realtext-prior-step-2026-09-20.md) supersede the immediate ordering of older handoffs.

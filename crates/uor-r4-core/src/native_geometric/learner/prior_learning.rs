@@ -96,8 +96,13 @@ impl Config {
                 self.bias_scale_bits
             ));
         }
-        // `|h| <= 2^norm_bits` after normalisation; `|Σ_j W·h| <= dv · 2^norm_bits`.
-        let h_max = 1i64 << self.norm_bits;
+        // `norm_bits = 0` disables the shift, so the hidden value is bounded by PRIOR_CLAMP rather
+        // than by a unit bound; validation must use the bound the forward actually has.
+        let h_max = if self.norm_bits == 0 {
+            PRIOR_CLAMP as i64
+        } else {
+            1i64 << self.norm_bits
+        };
         let acc = (self.dv as i64)
             .checked_mul(h_max)
             .ok_or("dv · 2^norm_bits overflow")?;
@@ -111,7 +116,12 @@ impl Config {
 
     /// Per-row readout bound for a declared row shift, checked against the i32 envelope.
     fn check_row_shift(&self, shift: u32) -> Result<(), String> {
-        let acc = (self.dv as i64) * (1i64 << self.norm_bits);
+        let h_max = if self.norm_bits == 0 {
+            PRIOR_CLAMP as i64
+        } else {
+            1i64 << self.norm_bits
+        };
+        let acc = (self.dv as i64) * h_max;
         let bound = acc
             .checked_shl(shift)
             .ok_or_else(|| format!("row shift {shift} overflows the bound"))?;
@@ -143,10 +153,11 @@ pub struct Trace {
     pub z: Vec<i32>,
     /// Normalised hidden vector `h`, integer.
     pub h: Vec<i32>,
-    /// Bounded-ReLU STE mask for `h` (1 where the derivative passes).
-    pub mask: Vec<f64>,
-    /// `2^-shift` applied to `h`.
-    pub dec: f64,
+    /// Bounded-ReLU STE mask for `h`: 1 where the derivative passes through. Stored as `u8` so the
+    /// greedy path carries no floating-point auxiliary value.
+    pub mask: Vec<u8>,
+    /// Right shift applied to `h`. Stored as an integer; the offline backward converts it once.
+    pub shift: u32,
     pub prev: usize,
     pub cur: usize,
     /// False when the contextual residual was disabled, so `z` is the frozen bias only.
@@ -222,14 +233,18 @@ impl PriorCore {
             .map(|r| (self.bias_codes[r] as i32) << self.cfg.bias_scale_bits)
             .collect();
         let mut h = vec![0i32; dv];
-        let mut mask = vec![0f64; dv];
-        let mut dec = 1.0f64;
+        let mut mask = vec![0u8; dv];
+        let mut shift = 0u32;
         if use_context {
             let ps = self.e_old.shift(prev);
             let cs = self.e_new.shift(cur);
-            let mut mask_in = vec![0f64; dv];
+            let mut mask_in = vec![0u8; dv];
             for (j, m) in mask_in.iter_mut().enumerate() {
-                let x = (self.e_old.weight(prev, j) << ps) + (self.e_new.weight(cur, j) << cs);
+                // Checked wider sum: two shifted ternary coefficients can exceed i32 before the clamp,
+                // so the temporary is i64 and the result is bounded here.
+                let x = (self.e_old.weight(prev, j) as i64) * (1i64 << ps)
+                    + (self.e_new.weight(cur, j) as i64) * (1i64 << cs);
+                let x = x.clamp(-(PRIOR_CLAMP as i64), PRIOR_CLAMP as i64) as i32;
                 // Bounded ReLU. The mask is the STE of this bound, so the value must actually be
                 // bounded: recording the mask without applying the clamp left negative activations in
                 // the hidden vector, which the authored capacity witness immediately exposed.
@@ -240,13 +255,12 @@ impl PriorCore {
                 } else {
                     x
                 };
-                *m = if x <= 0 || x >= PRIOR_CLAMP { 0.0 } else { 1.0 };
+                *m = if x <= 0 || x >= PRIOR_CLAMP { 0 } else { 1 };
             }
             let m_max = h.iter().fold(0i32, |a, &x| a.max(x.abs()));
-            let sh = norm_shift(m_max, self.cfg.norm_bits);
-            dec = 1.0 / (1u64 << sh) as f64;
+            shift = norm_shift(m_max, self.cfg.norm_bits);
             for j in 0..dv {
-                h[j] >>= sh;
+                h[j] >>= shift;
             }
             mask = mask_in;
             for (r, slot) in z.iter_mut().enumerate() {
@@ -266,7 +280,7 @@ impl PriorCore {
             z,
             h,
             mask,
-            dec,
+            shift,
             prev,
             cur,
             used_context: use_context,
@@ -357,6 +371,51 @@ impl PriorCore {
             .map(|x| x.weight_bytes() + x.rows * 4)
             .sum::<usize>()
             + self.bias_codes.len()
+    }
+
+    /// Shared validation, applied to **both** constructed and reloaded cores so a constructed core
+    /// cannot bypass the loader's checks.
+    pub fn validate(&self) -> Result<(), String> {
+        self.cfg.validate()?;
+        if self.elements.len() != self.cfg.vocab {
+            return Err("element table length != vocab".into());
+        }
+        if self.elements.iter().any(|e| *e as usize >= RADIX) {
+            return Err("element outside the 2I radix".into());
+        }
+        if self.bias_codes.len() != self.cfg.vocab {
+            return Err("bias code count != vocab".into());
+        }
+        if self
+            .bias_codes
+            .iter()
+            .any(|b| !(-BIAS_CODE_MAX..=BIAS_CODE_MAX).contains(&(*b as i32)))
+        {
+            return Err("bias code outside the declared 4-bit range".into());
+        }
+        let want = [
+            (self.cfg.vocab + 1, self.cfg.dv),
+            (self.cfg.vocab, self.cfg.dv),
+            (self.cfg.vocab, self.cfg.dv),
+        ];
+        for (k, t) in [&self.e_old, &self.e_new, &self.w_o].iter().enumerate() {
+            if (t.rows, t.cols) != want[k] {
+                return Err(format!(
+                    "table {k} shape {}x{} != {}x{}",
+                    t.rows, t.cols, want[k].0, want[k].1
+                ));
+            }
+            for r in 0..t.rows {
+                let sh = t.shift(r);
+                if sh > 30 {
+                    return Err(format!("table {k} row {r} shift {sh} out of range"));
+                }
+                if k == 2 {
+                    self.cfg.check_row_shift(sh)?;
+                }
+            }
+        }
+        Ok(())
     }
 
     /// Serialise with the metadata the contract depends on, including seed and tokenizer digest.
@@ -497,14 +556,16 @@ impl PriorCore {
             (Some(a), Some(b), Some(d)) => [d, b, a],
             _ => return Err("missing tables".into()),
         };
-        Ok(Self {
+        let core = Self {
             cfg,
             elements,
             e_old,
             e_new,
             w_o,
             bias_codes,
-        })
+        };
+        core.validate()?;
+        Ok(core)
     }
 }
 
@@ -754,7 +815,8 @@ impl PriorTrainer {
             // Bounded-ReLU STE then the per-position downshift; the effective-weight surrogate has
             // derivative one, so this is the gradient of the master.
             for j in 0..dv {
-                let d = dh[j] * tr.mask[j] * tr.dec;
+                let dec = 1.0 / (1u64 << tr.shift) as f64;
+                let d = dh[j] * tr.mask[j] as f64 * dec;
                 self.ge_old[prev * dv + j] += d as f32;
                 self.ge_new[cur * dv + j] += d as f32;
             }
@@ -891,7 +953,7 @@ impl PriorTrainer {
     pub fn checkpoint_bytes(&self) -> Vec<u8> {
         let mut o = Vec::new();
         o.extend_from_slice(b"CPCK");
-        o.extend_from_slice(&2u32.to_le_bytes());
+        o.extend_from_slice(&3u32.to_le_bytes());
         o.extend_from_slice(&(self.cfg.vocab as u32).to_le_bytes());
         o.extend_from_slice(&(self.cfg.dv as u32).to_le_bytes());
         o.extend_from_slice(&self.cfg.norm_bits.to_le_bytes());
@@ -912,6 +974,11 @@ impl PriorTrainer {
         }
         o.extend_from_slice(&self.seed.to_le_bytes());
         o.extend_from_slice(&self.data_identity);
+        // The active permutation, so a mid-pass restore continues the same schedule exactly.
+        o.extend_from_slice(&(self.perm.len() as u64).to_le_bytes());
+        for p in &self.perm {
+            o.extend_from_slice(&(*p as u64).to_le_bytes());
+        }
         for v in [
             &self.e_old,
             &self.e_new,
@@ -960,7 +1027,7 @@ impl PriorTrainer {
         let f32_at = |c: &mut usize| -> Result<f32, String> {
             Ok(f32::from_le_bytes(take(c, 4)?.try_into().unwrap()))
         };
-        if u32_at(&mut c)? != 2 {
+        if u32_at(&mut c)? != 3 {
             return Err("unsupported checkpoint version".into());
         }
         if u32_at(&mut c)? as usize != self.cfg.vocab
@@ -983,6 +1050,19 @@ impl PriorTrainer {
         let _seed = u64_at(&mut c)?;
         let mut identity = [0u8; 32];
         identity.copy_from_slice(take(&mut c, 32)?);
+        let perm_len = u64_at(&mut c)? as usize;
+        if perm_len > MAX_VOCAB {
+            return Err("checkpoint permutation is implausibly long".into());
+        }
+        let mut perm = Vec::with_capacity(perm_len);
+        let mut seen = vec![false; perm_len];
+        for _ in 0..perm_len {
+            let p = u64_at(&mut c)? as usize;
+            if p >= perm_len || std::mem::replace(&mut seen[p], true) {
+                return Err("checkpoint permutation is not a permutation of 0..n".into());
+            }
+            perm.push(p);
+        }
         if self.data_identity != [0u8; 32] && identity != self.data_identity {
             return Err("checkpoint data identity differs".into());
         }
@@ -1027,6 +1107,20 @@ impl PriorTrainer {
         if !(0.0..1.0).contains(&beta1) || !(0.0..1.0).contains(&beta2) {
             return Err("checkpoint beta outside [0,1)".into());
         }
+        if !lr.is_finite() || lr < 0.0 || !grad_clip.is_finite() || grad_clip < 0.0 {
+            return Err("checkpoint optimizer fields are invalid".into());
+        }
+        if !weight_decay.is_finite() || weight_decay < 0.0 {
+            return Err("checkpoint weight decay is invalid".into());
+        }
+        // Second moments must be non-negative and finite; Adam divides by their square root.
+        if blocks
+            .iter()
+            .skip(6)
+            .any(|b| b.iter().any(|x| !x.is_finite() || *x < 0.0))
+        {
+            return Err("checkpoint second moments are invalid".into());
+        }
         // Commit.
         let mut it = blocks.into_iter();
         self.e_old = it.next().unwrap();
@@ -1049,7 +1143,7 @@ impl PriorTrainer {
         self.cfg_train.weight_decay = weight_decay;
         self.cfg_train.grad_clip = grad_clip;
         self.data_identity = identity;
-        self.perm.clear();
+        self.perm = perm;
         Ok(())
     }
 }
@@ -1363,6 +1457,18 @@ mod tests {
         assert_eq!(nb_a, nb_c, "schedule state");
         a.train_batch_bits(&nb_a);
         c.train_batch_bits(&nb_c);
+        if a.e_old != c.e_old {
+            let i = a
+                .e_old
+                .iter()
+                .zip(&c.e_old)
+                .position(|(x, y)| x != y)
+                .unwrap();
+            eprintln!(
+                "first e_old divergence at {i}: {} vs {} | steps {} vs {} cursors {} vs {} pass {} vs {} rng {} vs {} perm_eq {}",
+                a.e_old[i], c.e_old[i], a.step, c.step, a.cursor, c.cursor, a.pass, c.pass, a.rng, c.rng, a.perm == c.perm
+            );
+        }
         assert_eq!(a.e_old, c.e_old);
         assert_eq!(a.wo, c.wo);
         assert_eq!(a.step, c.step);
@@ -1375,6 +1481,201 @@ mod tests {
         assert!(d.resume_from(&broken).is_err());
         assert_eq!(d.e_old, before, "a failed load must not change the trainer");
         assert_eq!(d.step, 0);
+    }
+
+    #[test]
+    fn the_ste_gradient_matches_a_hand_computed_credit_path() {
+        // Closed-form credit for one scored position, with the quantizer/shift choices frozen:
+        //   gZ[r]  = (p[r] - 1[r=t]) * 2^-F / ln2
+        //   gWo[r][j] = gZ[r] * h[j]
+        //   gE[j]  = (sum_r gZ[r] * Wo_effective[r][j]) * mask[j] * 2^-shift
+        let v = 4usize;
+        let dv = 8usize;
+        let mut t = PriorTrainer::new(cfg(v, dv), 29, vec![2i8, -3, 1, 0], 0.45).unwrap();
+        let seq: Vec<u32> = vec![3, 1, 0];
+        let mask = fixture_mask(3);
+        // Larger embedding magnitudes give nonunit row scales, so the hidden sum exceeds 2^norm_bits
+        // and the per-position normalization shift is actually active.
+        for x in t.e_old.iter_mut() {
+            *x *= 60.0;
+        }
+        for x in t.e_new.iter_mut() {
+            *x *= 60.0;
+        }
+        // Train briefly so the residual, the bias and the masks are all active.
+        for _ in 0..40 {
+            t.train_batch_masked(std::slice::from_ref(&seq), Some(&mask));
+        }
+        let core = t.to_core().unwrap();
+        let tr = core.trace(seq[0] as usize, seq[1] as usize, true);
+        let active = tr.mask.iter().filter(|m| **m == 1).count();
+        let clamped = tr.mask.iter().filter(|m| **m == 0).count();
+        assert!(active > 0, "the fixture must have active ReLU coordinates");
+        assert!(
+            clamped > 0,
+            "the fixture must have clamped ReLU coordinates"
+        );
+        assert!(
+            tr.shift > 0,
+            "the fixture must exercise a nonunit normalization shift"
+        );
+        let bias_only = core.int_logits(seq[0] as usize, seq[1] as usize, false);
+        assert_ne!(tr.z, bias_only, "the residual must be nonzero");
+        assert!(
+            core.bias_codes.iter().any(|b| *b != core.bias_codes[0]),
+            "nonflat bias"
+        );
+
+        let f = core.cfg.f_bits as i32;
+        let scale = (2f64).powi(-f);
+        let tgt = seq[2] as usize;
+        let zoff: Vec<f64> = tr.z.iter().map(|&x| x as f64 * scale).collect();
+        let max = zoff.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+        let ex: Vec<f64> = zoff.iter().map(|x| (x - max).exp()).collect();
+        let sum: f64 = ex.iter().sum();
+        let gz: Vec<f64> = (0..v)
+            .map(|r| {
+                (ex[r] / sum - if r == tgt { 1.0 } else { 0.0 }) / std::f64::consts::LN_2 * scale
+            })
+            .collect();
+        let mut want_wo = vec![0f64; v * dv];
+        let mut want_e = vec![0f64; dv];
+        for r in 0..v {
+            let s = core.w_o.shift(r);
+            let sgn = (1i64 << s) as f64;
+            for j in 0..dv {
+                want_wo[r * dv + j] = gz[r] * tr.h[j] as f64;
+                want_e[j] += gz[r] * (core.w_o.weight(r, j) as f64 * sgn);
+            }
+        }
+        let dec = 1.0 / (1u64 << tr.shift) as f64;
+        for j in 0..dv {
+            want_e[j] *= tr.mask[j] as f64 * dec;
+        }
+        let mut t2 = t.clone();
+        t2.zero_grads();
+        let (_b, nn) = t2.accumulate_with(&core, &seq, Some(&mask));
+        assert_eq!(nn, 1);
+        for i in 0..v * dv {
+            assert!(
+                (t2.gwo[i] as f64 - want_wo[i]).abs() < 1e-4,
+                "gWo[{i}]: {} vs {}",
+                t2.gwo[i],
+                want_wo[i]
+            );
+        }
+        let prev = seq[0] as usize;
+        for j in 0..dv {
+            assert!(
+                (t2.ge_old[prev * dv + j] as f64 - want_e[j]).abs() < 1e-4,
+                "gE_old[{j}]: {} vs {}",
+                t2.ge_old[prev * dv + j],
+                want_e[j]
+            );
+            assert!((t2.ge_new[seq[1] as usize * dv + j] as f64 - want_e[j]).abs() < 1e-4);
+        }
+        assert!(
+            want_e.iter().any(|x| x.abs() > 1e-9),
+            "the fixture must be non-vacuous"
+        );
+        // The embedding credit is zero when the exported output weights are all zero, which is why a
+        // zero-code initialization cannot train the prior tables at step 0.
+        let zero = PriorTrainer::new(cfg(v, dv), 29, vec![0i8; v], 0.0).unwrap();
+        let zc = zero.to_core().unwrap();
+        assert!(zc.w_o.packed().iter().all(|b| *b == 0));
+    }
+
+    #[test]
+    fn a_mid_pass_checkpoint_continues_exactly() {
+        let v = 70usize;
+        let windows: Vec<Vec<u32>> = (0..11u32)
+            .map(|k| (0..6u32).map(|j| k * 6 + j).collect())
+            .collect();
+        let mut a = PriorTrainer::new(cfg(v, 8), 31, flat_bias(v), 0.3).unwrap();
+        a.cfg_train.beta1 = 0.7;
+        a.cfg_train.beta2 = 0.98;
+        a.cfg_train.weight_decay = 0.002;
+        // Two batches of 4 in an 11-window pass: firmly mid-pass, then a partial batch at the end.
+        let mut consumed = Vec::new();
+        for _ in 0..2 {
+            let b = a.next_batch(&windows, 4);
+            consumed.extend(b.clone());
+            a.train_batch_bits(&b);
+        }
+        assert!(
+            !a.pass_complete(&windows),
+            "the checkpoint must be mid-pass"
+        );
+        let ckpt = a.checkpoint_bytes();
+        let mut c = PriorTrainer::new(cfg(v, 8), 31, flat_bias(v), 0.3).unwrap();
+        c.cfg_train.beta1 = 0.7;
+        c.cfg_train.beta2 = 0.98;
+        c.cfg_train.weight_decay = 0.002;
+        c.resume_from(&ckpt).expect("mid-pass resume");
+        assert_eq!(c.perm, a.perm, "the active permutation must be restored");
+        assert_eq!(c.cursor, a.cursor);
+        assert_eq!(c.e_old, a.e_old);
+        assert_eq!(c.me_old, a.me_old);
+        assert_eq!(c.ve_old, a.ve_old);
+        // Continue to the end of the pass and across the boundary; consumed IDs must match exactly.
+        let mut consumed_b = consumed.clone();
+        loop {
+            let nb_a = a.next_batch(&windows, 4);
+            let nb_c = c.next_batch(&windows, 4);
+            assert_eq!(nb_a, nb_c, "next batch after resume");
+            if nb_a.is_empty() {
+                break;
+            }
+            consumed_b.extend(nb_a.clone());
+            a.train_batch_bits(&nb_a);
+            c.train_batch_bits(&nb_c);
+            if nb_a.len() < 4 {
+                // cross the pass boundary once more
+                let nb_a2 = a.next_batch(&windows, 4);
+                let nb_c2 = c.next_batch(&windows, 4);
+                assert_eq!(nb_a2, nb_c2, "first batch of the next pass");
+                break;
+            }
+        }
+        if a.e_old != c.e_old {
+            let i = a
+                .e_old
+                .iter()
+                .zip(&c.e_old)
+                .position(|(x, y)| x != y)
+                .unwrap();
+            eprintln!(
+                "first e_old divergence at {i}: {} vs {} | steps {} vs {} cursors {} vs {} pass {} vs {} rng {} vs {} perm_eq {}",
+                a.e_old[i], c.e_old[i], a.step, c.step, a.cursor, c.cursor, a.pass, c.pass, a.rng, c.rng, a.perm == c.perm
+            );
+        }
+        assert_eq!(a.e_old, c.e_old);
+        assert_eq!(a.wo, c.wo);
+        assert_eq!(a.step, c.step);
+        assert_eq!(a.to_core().unwrap(), c.to_core().unwrap());
+        assert_eq!(
+            consumed_b.len(),
+            consumed.len() + 3,
+            "11 = 4 + 4 + 3 consumed"
+        );
+        for w in &windows {
+            assert_eq!(
+                consumed_b.iter().filter(|x| *x == w).count(),
+                1,
+                "no replacement"
+            );
+        }
+        // Invalid state must be refused before mutating the live trainer.
+        // A genuine rejection: truncation is structural, unlike flipping a bias-code byte, which is a
+        // perfectly valid load.
+        let broken = ckpt[..ckpt.len() - 1].to_vec();
+        let mut d = PriorTrainer::new(cfg(v, 8), 31, flat_bias(v), 0.3).unwrap();
+        let before = (d.e_old.clone(), d.me_old.clone(), d.step, d.cursor);
+        let _ = d.resume_from(&broken);
+        assert_eq!(before.0, d.e_old);
+        assert_eq!(before.1, d.me_old);
+        assert_eq!(before.2, d.step);
+        assert_eq!(before.3, d.cursor);
     }
 
     #[test]

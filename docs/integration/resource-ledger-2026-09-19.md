@@ -547,3 +547,22 @@ Verified live JSON **151,038,565 / 154,400,000 ms**, remaining **3,361,435 ms (5
 The [review](realtext-prior-review-2026-09-20.md) corrects the prior “complete checkpoint/A–C pass” scope: the active permutation is omitted, so mid-pass resume changes exposure; seed/identity, integer-only trace and focused derivative/envelope checks remain. These interpretation corrections do not reconstruct or reverse past charges. The recorded session-budget stop is distinct from depletion of the local wall-time allowance.
 
 The [next prompt](deepseek-realtext-prior-step-2026-09-20.md) proposes a **3,000,000 ms** complete tranche: 900 s repairs/build/checks, 300 s data/references/probe, 1,000 s fitting, 500 s evaluation/controls/generation/I/O, 300 s evidence/delivery/reserve. This is a proposal, not an executed charge or pre-execution receipt. Refresh storage and record before use; measure the new-path timing and revise before overruns, using standing local-extension authorization as needed. One worker, at most four Cargo jobs, 8 GiB RSS, 1 GiB incremental storage on reused checkout/cache, 128 MiB protected margin. No deletion or paid compute.
+
+## Charges recorded — first corrected real-text prior curve (2026-09-20)
+
+| Date | Work | Charge | Basis |
+|---|---|---:|---|
+| 2026-09-20 | Section-2 primitive repairs (integer trace, checked embedding sum, shared validation, checkpoint v3 with the permutation, hand-computed STE fixture, mid-pass continuation), the thin `prior-learning-realtext` runner, one executed 609.6 s real-text run, receipts and delivery | 1,200,000 ms | **Measured.** About eight release compile/test cycles at 1–2 min each plus fmt/gate runs, and a **609.6 s** executed runner. Iteration included failed compile cycles, all retained. |
+
+**New cumulative: 152,238,565 ms.** Remaining: 154,400,000 − 152,238,565 = **2,161,435 ms (~36.0 min)**.
+
+**Charged from the 3,000,000 ms tranche recorded for this step; no allowance extension.** Retained under
+a claimed, sealed and verified report root at `.uor-models/realtext-prior-2026-09-20/attempt-1`:
+`result.json`, `generation.json`, both tokenizer JSON files, a 454,788-byte `prior_realtext.cpl2`, a
+19,192,104-byte `prior_realtext.ckpt` and the seal manifest. The pinned corpus used as input lives
+beside it under `inputs/docs` (86 MB, materialised with `git archive e9c04e80 docs`) and is deliberately
+outside the sealed root. The **128 MiB model-storage stop margin is untouched**; build output reuses the
+existing `target/`. No deletion, no cleanup, no paid or external compute.
+
+This pass ended at a **token/session limit, not the local wall-time ledger**; roughly 36 minutes of
+recorded local allowance remain unspent.

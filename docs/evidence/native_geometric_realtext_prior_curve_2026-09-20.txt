@@ -1,0 +1,160 @@
+================================================================================
+RECEIPT — first corrected real-text prior-only learning curve
+Date: 2026-09-20. Branch codex/realtext-prior. Base origin/main e9c04e80 (#1299).
+Reused worktree .worktrees/realtext-qual (no new checkout). M1, 8 cores, cargo 1.97.1.
+================================================================================
+
+RESULT IN ONE LINE
+------------------
+The runner executed end to end (609.6 s) and produced a **clear positive**: at step 512 the exported
+low-bit prior is **1.9174 bits/target better than the exact fit-only unigram** and **1.9892 better
+than its own frozen quantized constant**, both paired document-cluster intervals excluding zero, with
+a **+2.8744-bit permutation penalty** whose interval also excludes zero. The runner's printed verdict
+said FAIL because of a **sign convention in one label**, corrected below and in the source; the model
+and its evaluation are unaffected. Generation collapses, and that is reported as measured.
+
+================================================================================
+1. EXECUTED COMMAND AND IDENTITIES
+================================================================================
+  prior-learning-realtext --root .uor-models/realtext-prior-2026-09-20/attempt-1 \
+      --docs .uor-models/realtext-prior-2026-09-20/inputs/docs --source-rev e9c04e80
+
+  source revision       e9c04e80  (corpus materialised with `git archive e9c04e80 docs`)
+  tokenizer source      sha256:9ca9acddb6525a194ec8ac7a87f24fbba7232a9a15ffa1af0c1224fcd888e47c  (matches expected)
+  tokenizer derived     sha256:a7ac75b68aa997fe7cc338d25d843157f2dc9d4265fb2f958ee779bb04828d6f  (V=4096, saved)
+  serving artifact      prior_realtext.cpl2  454,788 B  sha256:cd5a3aa1b804ccc3582a4a25090e25c862489e0bc4e5bb86c1d1f363a7338a00
+  training checkpoint   prior_realtext.ckpt  19,192,104 B  sha256:1c3dfedb2248ec76c21f320b7ecec585c7a522a2d47e35ed5dc9eaca2454bff2
+  report root           .uor-models/realtext-prior-2026-09-20/attempt-1 (claimed exclusively, sealed, verified 0 unlisted)
+
+Config: V=4096, dv=128, F=10, norm_bits=6, bias shift 10, window 64, batch 8, seed 13,
+output-master bound 0.45, memory disabled, Adam lr 0.05 / beta1 0.9 / beta2 0.999 / decay 0 / clip 1.
+
+Data: 429 documents enumerated, 0 exact duplicates; fit 355 documents / 38,987 windows /
+**2,446,208 scored targets**; development 36 documents / 96 windows / **6,048 scored targets**,
+stratified across document length. Counts start at zero over fit targets and add-one smoothing is
+applied once at read time (`sum(counts) == total == 2,446,208` asserted).
+
+================================================================================
+2. THE CURVE
+================================================================================
+  step    0: ctx micro 9.1316  macro 9.1316 | bias-only 9.1316 | unigram 9.0599 | perm 9.1364
+             knockouts prev 9.1316  cur 9.1316
+  step  256: ctx micro 8.2182  macro 8.2182 | bias-only 9.1316 | unigram 9.0599 | perm 9.3122
+             knockouts prev 8.4325  cur 8.8144
+  step  512: ctx micro 7.1425  macro 7.1425 | bias-only 9.1316 | unigram 9.0599 | perm 10.0168
+             knockouts prev 7.5772  cur 8.4997
+
+Micro and macro coincide because every development window carries the same scored-target count.
+
+Step 0 is **exactly** the frozen quantized constant (9.1316 == 9.1316), which is the zero-exported-
+residual initialization verified on the real-text path; the model starts 0.0717 bits *worse* than the
+exact unigram, which is exactly the quantized-vs-exact marginal gap.
+
+================================================================================
+3. THE GATE — corrected sign convention
+================================================================================
+`paired_interval(a, b)` returns the paired document-cluster difference `a - b`. The runner passed
+`(ctx, reference)`, so the printed "gain" carried the model's sign the wrong way round and the
+verdict logic compared the wrong quantity. The source is corrected to pass `(reference, ctx)` so a
+positive value means the reference is worse. **The retained numbers are unaffected**; the corrected
+gains are the negation of the printed ones:
+
+| Comparison | Printed (ctx − ref) | Corrected gain (ref − ctx) | Paired 95% interval | Excludes zero |
+|---|---:|---:|---|---|
+| exact fit-only unigram | −1.9174 | **+1.9174** | [+1.8073, +2.0321] | yes, improving |
+| identical quantized constant | −1.9892 | **+1.9892** | [+1.8822, +2.1030] | yes, improving |
+| permutation penalty | +2.8744 | +2.8744 | [+2.7273, +3.0290] | yes, positive |
+
+Frozen gate (declared before fitting): contextual CE at least 0.10 bits/target below **both**
+references with both paired intervals excluding zero, plus a positive permutation penalty whose
+interval excludes zero. **All three criteria are met under the corrected direction: the step-512
+gate PASSES**, at roughly nineteen times the required margin.
+
+The permutation is a genuine negative control: 5,805 of the development context-target associations
+were changed (5,805 non-PAD, 0 PAD — paragraph-initial contexts form a stratum of size one and are
+non-permutable, reported rather than dropped), the context marginal and the target list are preserved,
+and the penalty is 2.87 bits/target with an interval excluding zero. A marginal-only correction cannot
+be invariant to it.
+
+Position knockouts are diagnostics, not the control: zeroing the predecessor table costs 0.4347
+bits/target (7.1425 → 7.5772) and zeroing the current-token table costs 1.3572 (7.1425 → 8.4997), so
+the prediction depends on both inputs, more strongly on the current token.
+
+================================================================================
+4. GENERATION (greedy, integer argmax, 64 new tokens)
+================================================================================
+Three development-document prefixes, step 0/256/512, with the identical context-disabled control:
+
+  prompt#0 step   0: ",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,"
+  prompt#0 step 256: "0000000000000000000000000000000000000000000000000000000000000000"
+  prompt#0 step 512: "1,10000000000000000000000000000000000000000000000000000000000000"
+  prompt#1 step   0: ",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,"
+  prompt#1 step 256: ", and\n\n\n\n\n\n\n\n\n\n... (one word then newline collapse)"
+  prompt#1 step 512: "s, and the\n\nThe `10000000000000000000000000000000000000000000000000000000"
+  prompt#2 step 256: "\n\n\n\n... (pure newline collapse)"
+  prompt#2 step 512: "ained\n\nThe `10000000000000000000000000000000000000000000000000000000000"
+
+**Generation collapses**: a short locally plausible continuation followed by a repeated token. Full
+IDs and decoded bytes for every prefix and checkpoint are in `generation.json`. Loss improvement is
+not generation quality, and no fluent-prose claim is made. Tie policy: first maximum in integer score
+order; state resets per prompt.
+
+================================================================================
+5. COST
+================================================================================
+  cold step 0.5906 s, warm step mean 0.6113 s (3 steps, probe state discarded)
+  504 scored targets/step; 512 steps ~= 312 s projected fitting
+  whole runner wall time 609.6 s (fitting + 3 checkpoints x 4 evaluations + permutation + generation + seal)
+  artifact 454,788 B; checkpoint 19,192,104 B
+  peak RSS                                     NOT MEASURED (the runner does not report it)
+  operation scope                              the readout visits V x dv = 524,288 ternary coordinates per
+                                               prediction; no binary-level instruction inspection was
+                                               performed on this path
+  energy per token                             UNAVAILABLE (no physical measurement)
+
+================================================================================
+6. SECTION-2 PRIMITIVE REPAIRS (all executed and tested)
+================================================================================
+* **Integer-only trace.** `Trace` now stores the ReLU mask as `u8` and the normalization shift as
+  `u32`; float conversion and inverse-shift credit happen only in the offline backward. Greedy serving
+  therefore carries no floating auxiliary value, and the retained V4 artifact's integer predictions
+  are unchanged (its parity test still passes).
+* **Checked embedding sum.** The shifted ternary sum is computed in i64 and clamped, so two shifted
+  coefficients cannot overflow i32 before the clamp; `norm_bits = 0` now bounds the hidden value by
+  `PRIOR_CLAMP` in validation rather than by an assumed unit bound.
+* **Shared validation.** `PriorCore::validate` checks shapes, element range, bias-code range, row-shift
+  range and the readout envelope, and is applied to **both** constructed and reloaded cores, so a
+  constructed core cannot bypass loader checks.
+* **Exact continuation.** The active Fisher–Yates permutation is persisted in checkpoint version 3 and
+  restored (validated for cardinality, range and uniqueness) instead of being cleared. Non-finite or
+  invalid optimizer fields, weight decay and negative second moments are rejected, and a rejected load
+  leaves the live trainer unchanged.
+* **Hand-computed STE fixture.** A closed-form check of `gZ`, `gWo` and `gE` for both embedding tables
+  and the output, with active and clamped ReLU coordinates, a nonunit normalization shift, a nonflat
+  bias and a nonzero residual all asserted to occur.
+* **Mid-pass continuation.** A test at mid-pass, through the partial final batch and across a pass
+  boundary compares the permutation, cursor, masters, both moments, consumed window IDs, the next
+  batch, the next update and the exported cores, with nondefault betas and weight decay.
+
+`prior_learning` 12 tests pass; the V4 gate result from #1298 is preserved and unchanged.
+
+================================================================================
+7. DEVIATIONS, NOT-RUN ITEMS AND LIMITS
+================================================================================
+* **Corpus size.** The prompt bounds the primary population at 4 MiB of selected raw text. The pinned
+  `docs/` tree is ~86 MB and **every eligible whole document was used** (355 fit documents,
+  2.45M fit targets). The selection is therefore larger than specified and the declared population
+  differs accordingly. This is a real deviation and it is not called a bounded 4 MiB pilot.
+* **NOT RUN:** the corrected static one-/two-token interpolated backoff references (the prompt asks
+  for them; only the exact unigram and the quantized constant were computed), the unseen-fit-pair
+  stratum, a mid-run on-disk checkpoint continuation against a clone (covered by unit test, not on
+  disk), peak RSS, and any binary-level instruction inspection.
+* The gate verdict is reported from the corrected arithmetic because the executed binary printed the
+  inverted label. The model, its saved integer scores and the intervals are unaffected; the corrected
+  runner must produce the verdict itself on any re-run.
+* Development documents are correlated repository prose, so the intervals are nominal screening
+  intervals, not final held-out qualification. No instruction-following, general-language, coding or
+  geometric claim follows. The modulo-120 element table remains metadata and does not participate in
+  prediction.
+* A token/model-token session limit, not the local wall-time ledger, ended this pass; the ledger
+  balance was not exhausted.
