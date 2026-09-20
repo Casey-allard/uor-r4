@@ -467,3 +467,12 @@ required by the outcome: no second seed was run (the result was negative, not bo
 614,542-byte artifact (`sha256:fb780ff6…`), text and source changes only, build output inside the
 existing `target/`. The **128 MiB model-storage stop margin is untouched**; no deletion, no cleanup,
 no paid or external compute.
+
+
+## Review after PR #1294 — preserved balance and proposed recovery (2026-09-19)
+
+Verified live JSON remains **149,038,565 / 154,400,000 ms**, leaving **5,361,435 ms (89.36 minutes)**. This source/artifact-identity/literature and documentation review executed no Rust build/model; no model charge or allowance extension was applied. Reused the existing clean full worktree on `codex/prior-learning-recovery`. Owner checkout and retained `cold_prior_joint.cpr` (614,542 bytes, SHA256 `fb780ff6ff19eec58f861135004250ae8874107099e2a071f7bfd1b4318b5a39`) preserved.
+
+The [prior-learning review](prior-learning-review-2026-09-19.md) corrects the preceding run's interpretation, not its recorded elapsed charge: displayed CE was clipped nats, each arm scored 126,976 targets, undertraining is an untested cause, and CPR1 is not a resumable trainer checkpoint. Negative point-estimate directions remain. No reconstructed timing is presented as a measurement.
+
+The [new prompt](deepseek-prior-learning-step-2026-09-19.md) proposes **3,600,000 ms total**: 900 s repairs/builds/data/cheap fixtures, 1,800 s maximum prior fitting, 500 s diagnostics/evaluation/checkpoint/generation, 400 s reserve. This is a **proposal, not a charge or a pre-execution receipt**. Refresh and record the complete projection before execution; revise before overruns under standing local-extension authorization. One model worker, at most four Cargo jobs, 8 GiB peak RSS, 1 GiB incremental storage on the reused worktree/cache and the 128 MiB stop margin. Account for any new checkout separately. No paid compute or deletion.

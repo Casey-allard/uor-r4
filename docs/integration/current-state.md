@@ -1,40 +1,36 @@
 # Current native geometric AI work
 
-# Current native geometric AI work
+## Active next: correct the experiment and establish prior learning — September 19 review after PR #1294
 
-## Cold-context prior implemented and piloted: all three gates fail at the specified dose — September 19, 2026
+**Do not launch an unchanged multi-epoch run.** The exact-token prior is implemented, but its paired pilot has loss-unit/clipping, training/export bias and data/control defects. Repair the numerical and target contracts, then train one prior-only contextual residual above a frozen fit-only quantized unigram baseline. Require a cheap balanced contextual-learning fixture, representative shuffled exposure, same-artifact context-permutation/position controls and a real resumable checkpoint. Memory remains disabled during fitting; diagnose the retained joint artifact without retraining it. The [principal review](prior-learning-review-2026-09-19.md) and [complete DeepSeek prompt](deepseek-prior-learning-step-2026-09-19.md) supersede older next-action text below.
 
-**THE SELECTED MECHANISM IS BUILT, TESTED AND PILOTED. THE PILOT IS A NEGATIVE/INCONCLUSIVE RESULT, AND IT IS REPORTED AS ONE.** The prior-only arm is *worse* than a matched fit-only unigram and worse than a quantized constant control; the memory channel is *worse* than the same artifact with memory disabled on warm targets. No gate passes.
+### PR #1294: implementation retained; pilot interpretation corrected
 
-**What was built.** `learner/cold_prior.rs`: an always-present learned exact-token local prior (`E_old` with an explicit absent-prefix marker row at `pad_row(vocab)`, outside the real id range; `E_new`), the existing modulo-pair causal memory residual, **one shared low-bit decoder** plus an exported integer bias, per-channel power-of-two normalisation applied *before* the sum so a large memory read cannot erase a small prior, a bounded ReLU, and declared clamps (`PRIOR_CLAMP` 4096, `H_CLAMP` 8192). The prior is present on cold **and** warm routes; the memory term is exactly zero on an unwritten route and may be signed on a written one. Four interventions (`full`, `memory-disabled`, `prior-disabled`, `bias-only`) are runtime channel selections, not learned gates. Artifact format `CPR1` binds version, vocab, dv, norm bits, channel flags, clamps, seed and a tokenizer digest; reload is **byte-exact** and integer-logit parity is tested. 13 focused tests pass.
+Merge `c0ca7482782a5d5e11d25aa8c6d5b03f0ce4cd07` and reviewed head `41213a558a12562406d2dca72e30a970da6b1a02` have identical tree `f93707884f4233a30c93f757dae22f2b8b3580e3`. `learner/cold_prior.rs` implements full-ID position tables, an absent-prefix row, bounded ReLU, causal modulo-pair memory, separate downshifts and a shared ternary decoder. The pilot repaired the old count argmax and geometric-core gradient reference. It reports 13 new focused tests plus two earlier gradient-reference tests; these do not establish exact training/export probability parity or independently validate the new gradient values.
 
-**Instrument repairs from the review, all executed.** `blended_argmax` seeded its incumbent with the *unmixed* unigram probability and compared it against mixed candidates — fixed, and the review's example now selects the right class. `reference_order2` re-applied the value row scale; the runtime was right and **the reference was wrong**, now removed and swept across unit/nonunit row scales × normalization off/active over two lengths (unit-scale fixtures alone could not see it). `norm_bits = 0` is documented as **disabling** the shift, not normalising to zero bits; the earlier order-2 non-vacuity failure was caused by a non-repeating sequence.
+**Metric correction:** the receipt's displayed losses use natural logarithms and probability flooring. They are clipped **nats/target**, not bits. Rounded arithmetic conversions follow; no model was rerun in this review.
 
-**The pilot** (V=4096, dv=128, order=2, batch 8, window 64, 256 steps per arm, matched initialisation and identical optimizer settings, one fit-only 4096-vocabulary BPE derivation, one document-separated manifest, corpus `sha256:fe36c2c6…`, 19 development documents):
+| Scorer | Recorded clipped nats/target | Converted clipped bits/target, approximate |
+| --- | ---: | ---: |
+| Exact fit unigram | 6.4019 | 9.2360 |
+| Quantized constant | 6.4522 | 9.3086 |
+| Trained prior-only | 6.7011 | 9.6676 |
+| Trained joint | 6.8941 | 9.9461 |
+| Joint with memory disabled | 6.7006 | 9.6669 |
 
-```
-  matched unigram reference        6.4019 bits/target
-  quantized constant control       6.4522
-  A prior-only                     6.7011   top1 0.0697
-  B prior+memory                   6.8941   top1 0.1005
-  same-artifact: full 6.8941 | memory disabled 6.7006 | prior disabled 6.8982 | bias only 6.6709
-  memory gain on WARM targets      -4.4072 bits/target (full 10.2981 vs memory-disabled 5.8909, n=294)
-  GATE 1 -0.2993 / -0.2489  FAIL     GATE 2 -4.4072  FAIL     GATE 3 -0.1930  FAIL
-  paired document-level difference +0.2489, 90% CI [-0.0340, +0.5056] over 18 documents — SIGN UNRESOLVED
-  warm coverage 4.39% -> gate 2 reported UNRESOLVED, not as a memory verdict
-```
+The negative point-estimate directions remain: the prior does not outperform the references, and memory increases clipped loss on the 294 warm targets by 4.4072 nats (approximately 6.3582 bits). Gate constants were also applied as nats. Warm coverage is 294/6,696 = 4.39%; that fraction alone is not an uncertainty calculation. The document bootstrap labeled 90% uses approximately 95% endpoints for a macro statistic, not the token-micro gate.
 
-**Diagnosis, per the review's prescribed inspection.** Activation scale is **healthy** (mean |logit| 6.2-6.4, so the readout is not saturated). Bias calibration is **not converged** (bias-only 6.6709 vs the analytic constant 6.4522). Gradient occupancy ends ~58% zero in the prior tables with a small non-zero prior gradient norm. **Dose:** 256 × 8 × 64 = 131,072 training tokens is *less than one pass* over the 1,460,658 fit targets, against 1,048,576 new prior parameters — so **gate 1 is `undertrained/inconclusive`, not a family-wide negative**. The **memory harm is separate and measured**: −4.41 bits/target on warm targets, i.e. the modulo-aliased fast memory at this dose is confidently wrong, which is a statement about that mechanism as configured and not about exact occurrence/version memory.
+Training uses floating master bias while export rounds it to unrestricted i32. The target mask scores indices 1 through 62 in each length-64 window, so each arm sees 131,072 input tokens and 126,976 scored targets. Both consume the first 2,048 of 23,559 fit windows in document order; count references see the full fit population. Development takes document openings; 19 split documents yield 18 scored documents. The two-token count query lags its intended context by one position. A longer dose may help, but **undertraining as the cause, healthy activation scale and modulo aliasing as the cause of memory harm are unproven**. Separate downshifts do not guarantee balanced prior/memory magnitude.
 
-**Generation, complete and unselected.** From the first development window, 24 integer-greedy tokens per intervention: full `[35, 28, 198, 46, 28, 28, 28, 28, 39, 28, 28, 39, 39, 28, 28, 39, 39, 39, 39, 39, 39, 81, 32, 28]`; memory-off collapses to token 28; prior-off and bias-only alternate 28/39. Token 28 and 39 dominate everywhere: a crude local alternation, nothing resembling prose. **No chat, reasoning, coding or energy claim follows.**
+**Preserved artifact:** `/Users/casey.allard/uor-r4/.uor-models/cold-prior-2026-09-19/cold_prior_joint.cpr`, 614,542 bytes, SHA256 `fb780ff6ff19eec58f861135004250ae8874107099e2a071f7bfd1b4318b5a39`; independently verified equal to `/tmp/cp6/cold_prior_joint.cpr`. Neither directory has a saved prior-only artifact, durable manifest, raw per-target results or optimizer checkpoint; CPR1 cannot faithfully resume the prior-only arm. Valid-artifact reload parity does not qualify loader range safety or training-forward parity.
 
-**State.** New module `learner/cold_prior.rs` (13 tests), new tool `bin/cold-prior-pilot.rs`, `TernaryLinear::from_packed` for exact reload, instrument repairs, one retained 614,542-byte artifact `sha256:fb780ff6…`. `cargo fmt --all --check` clean. Not run: a `crates`-corpus replicate, a second seed, any learning-rate/width sweep, and any binary/whole-path multiplier audit of the new integer path (source-level inspection only).
+Reported integer generation collapses largely to token IDs 28/39. The original [receipt](../evidence/native_geometric_cold_prior_pilot_2026-09-19.txt) is preserved verbatim, including its incorrect labels and unsupported interpretations; read this correction with it. No prose, chat, reasoning, coding, geometric advantage or energy claim follows. The [review](prior-learning-review-2026-09-19.md) lists source findings, missing controls and the targeted research refresh.
 
-**Receipt:** [`native_geometric_cold_prior_pilot_2026-09-19.txt`](../evidence/native_geometric_cold_prior_pilot_2026-09-19.txt). References #973, #820.
+**Resources:** live JSON at review is `149038565 / 154400000 ms`, leaving `5361435 ms` (89.36 min). This source/document review ran no Rust build/model and changed no allowance or charge. The next prompt proposes a complete 3,600,000 ms tranche, not an executed charge. Refresh and record it before execution, revising under standing local-extension authorization when necessary. #973 and #820 remain open; no linked project-board items were present at inspection. Original checkout, artifact and historical results are preserved.
 
-## Active next: learned cold-context prior plus causal memory — September 19 post-qualification review
+## Historical selected step: learned cold-context prior plus causal memory — before PR #1294
 
-**Implement one bounded learned experiment:** exact-token position-specific prior rows, a bounded integer nonlinearity, the existing causal memory residual, and one shared low-bit decoder. Keep the prior present on cold and warm reads. Compare a trained prior-only model with the joint model, plus same-artifact interventions and bias/count references on one pinned population. See the [principal review](cold-context-review-2026-09-19.md) and [complete DeepSeek execution prompt](deepseek-cold-context-step-2026-09-19.md). This supersedes older next-action text below; the mechanism is proposed, not yet implemented or measured.
+**Implement one bounded learned experiment:** exact-token position-specific prior rows, a bounded integer nonlinearity, the existing causal memory residual, and one shared low-bit decoder. Keep the prior present on cold and warm reads. Compare a trained prior-only model with the joint model, plus same-artifact interventions and bias/count references on one pinned population. See the [principal review](cold-context-review-2026-09-19.md) and [complete DeepSeek execution prompt](deepseek-cold-context-step-2026-09-19.md). At that review the mechanism was proposed; PR #1294 subsequently implemented it. The active recovery above now owns the next action.
 
 **PR #1292 outcome retained with narrower interpretation.** Merge `5b5bc8f5` equals reviewed head `80e076bb` by full Git tree (`2e4168255fd10e71c23369af4794ed7c2148e57e`). Prefix-underflow and double-length-gradient repairs are sound. Causal empty fractions 0.9381 docs / 0.8549 crates and the default `12*p_empty` bound apply to their measured window population. This supports stopping the unchanged zero-prior configuration. It does not establish a matched inequality against static count CE measured on different held-document positions.
 

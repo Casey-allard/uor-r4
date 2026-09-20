@@ -1,5 +1,7 @@
 # DeepSeek execution prompt — learn a cold-context prior and test causal memory
 
+**Historical prompt, implemented in PR #1294.** Continue with the [prior-learning recovery prompt](deepseek-prior-learning-step-2026-09-19.md) and its [review](prior-learning-review-2026-09-19.md). The record below preserves the previous specification; do not rerun it as the active next step.
+
 You are implementing the next bounded step for the **UOR-R4 Geometric Language Model** in `UOR-Foundation/uor-r4`. Read this entire prompt. Deliver a small actual learned experiment, not another design-only handoff. The principal review is `docs/integration/cold-context-review-2026-09-19.md`. Its audited source is `5b5bc8f5` (merged #1292); refresh live main and incorporate this handoff's protected delivery before editing.
 
 ## Goal, authority and continuity

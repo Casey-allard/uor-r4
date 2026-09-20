@@ -1,8 +1,10 @@
 # EVIDENCE
 
-**Latest interpretation:** [post-qualification source review](cold-context-review-2026-09-19.md) scopes #1292 and defines remaining argmax, gradient-reference and population corrections. No new model execution occurred in that review.
+**Latest interpretation:** [prior-learning review after #1294](prior-learning-review-2026-09-19.md) corrects clipped nats mislabeled bits, training/export bias mismatch, target/exposure accounting and unsupported causal diagnoses. It selects numerical/data repairs followed by one prior-only learning curve. The #1294 row and raw receipt below are historical and must be read with the appended correction. No new model execution occurred in this review.
 
-**Earlier September 19 correction:** the [takeover review](takeover-review-2026-09-19.md) is the current interpretation layer. The last static residue-count result is not a recurrent-model ceiling; its raw numbers remain historical evidence. The review also scopes the three separate model paths, continuous/discrete metrics, rule-assisted role repair, gradient/instrument findings and unsupported family-wide impossibility claims. No new model measurement was made. Read later corrections before reusing an earlier row.
+**Previous interpretation:** [post-qualification source review](cold-context-review-2026-09-19.md) scopes #1292 and its remaining instrument corrections.
+
+**Earlier September 19 correction:** the [takeover review](takeover-review-2026-09-19.md) is the earlier interpretation layer. The last static residue-count result is not a recurrent-model ceiling; its raw numbers remain historical evidence. The review also scopes the three separate model paths, continuous/discrete metrics, rule-assisted role repair, gradient/instrument findings and unsupported family-wide impossibility claims. No new model measurement was made. Read later corrections before reusing an earlier row.
 
 One row per executed card or measurement. This is the index; the linked card `RESULT.md`
 and the receipt carry the full record. Append-only. A row is never rewritten to change an
@@ -116,3 +118,17 @@ bind the 2026-09-19 measurements to the exact bytes evaluated.
 | Next mechanism | Exact-token nonlinear local prior plus causal memory, shared low-bit decoder | Proposed bounded experiment, NOT_RUN; no geometric or language capability promotion |
 
 [Architecture and primary sources](cold-context-review-2026-09-19.md); [complete execution prompt](deepseek-cold-context-step-2026-09-19.md).
+
+
+## September 19 review after the cold-prior pilot (source review; no new model run)
+
+| Scope | Correction / finding | Disposition |
+| --- | --- | --- |
+| #1294 loss and gate units | Natural-log, probability-floored losses were labeled bits; gate constants also used nats | Prior 6.7011 nats is approximately 9.6676 clipped bits; unigram 6.4019 is approximately 9.2360. Rounded conversion only, not new evaluation; negative directions retained. Use stable uncapped NLL and explicit bits conversion. |
+| Training/export numerical contract | Raw floating bias in training, rounded unrestricted i32 at serving; new gradient tests establish nonzero credit rather than independent derivative values | Correct quantized fixed-point parity, bounded coefficients and scaled STE before further dose; valid reload parity alone is insufficient. |
+| Exposure and count controls | First 2,048/23,559 fit windows, 126,976 scored targets per arm; full-fit references; openings-only development and lagged two-token reference | New fixed target iterator, durable manifest, representative deterministic schedule and correctly aligned controls. No diagnosis of undertraining from parameter count alone. |
+| Memory and uncertainty | Warm clipped loss increases by 4.4072 nats, approximately 6.3582 bits; 4.39% coverage does not by itself establish uncertainty; old approximately 95% macro interval was labeled 90% | Preserve observed harm; diagnose amplitude/exact-context/alias-only strata. Do not assert aliasing as cause. Use paired document sum/count bootstrap for token-micro deltas. |
+| Retained evidence | Joint artifact SHA256 `fb780ff6ff19eec58f861135004250ae8874107099e2a071f7bfd1b4318b5a39` verified, 614,542 bytes; no prior-only artifact or optimizer checkpoint delivered at retained paths | Preserve CPR1; missing arm replay/resume UNAVAILABLE. No new evaluation or promotion. |
+| Next bounded experiment | Frozen fit-only quantized marginal plus learned prior residual, cheap balanced learning gate, context permutation and position interventions, real checkpoint | Selected in the [complete prompt](deepseek-prior-learning-step-2026-09-19.md); implementation and new learning curve NOT_RUN. |
+
+[Full review, source findings and primary literature](prior-learning-review-2026-09-19.md). Broader geometric, conversation/memory, reasoning/coding and energy acceptance remains open.
