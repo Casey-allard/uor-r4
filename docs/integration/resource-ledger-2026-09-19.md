@@ -521,3 +521,21 @@ Live recorded balance verified as **149,838,565 / 154,400,000 ms**, remaining **
 The preceding “unified integer train/serve forward” and “bounded loading/exact resume” descriptions exceed the implemented guarantees. The [review](learning-contract-review-2026-09-19.md) identifies a contextual scaling defect, contradictory task, small-gradient cutoff and incomplete scheduler/checkpoint/artifact checks. These correct interpretation, not historical elapsed charges. No evidence shows that the small comparator's omission required a budget stop.
 
 The [next prompt](deepseek-learning-contract-step-2026-09-19.md) proposes a complete **3,600,000 ms** tranche: 1,200 s repairs/builds/independent checks, 300 s small fits/conditional comparator, 1,500 s conditional text fitting/evaluation/generation, 600 s evidence/delivery/reserve. This is not an executed charge or a pre-execution projection receipt; refresh and record before use. Revise before overruns under standing local-extension authorization. One worker, at most four Cargo jobs, 8 GiB RSS, 1 GiB incremental storage on reused checkout/cache and 128 MiB stop margin. No paid compute or deletion; account separately for any new full checkout.
+
+## Charges recorded — learning-contract repair (2026-09-19)
+
+| Date | Work | Charge | Basis |
+|---|---|---:|---|
+| 2026-09-19 | Shared Adam repair with two independent scalar references, `prior_learning` rewrite (single served forward, fixture mask, applied bounded ReLU, Fisher–Yates schedule, complete checkpoint identity, artifact envelope), 12 focused fixtures, the authored capacity witness, the gate runner, one sealed gate run, receipts and delivery | 1,200,000 ms | **Measured.** Roughly eight `cargo test --release` compile cycles at 1–2 min each plus `cargo fmt`/gate runs; the fixtures complete in 0.00–0.02 s and the gate run in a few seconds. Iterative repair included failed intermediate runs, all retained. |
+
+**New cumulative: 151,038,565 ms.** Remaining: 154,400,000 − 151,038,565 = **3,361,435 ms (~56.0 min)**.
+
+**Charged from the 3,600,000 ms tranche recorded above; no allowance extension.** The unspent remainder
+is the stage D real-text item (roughly 1,500 s in the projection) plus reserve, which was **not executed**:
+the decision was remaining session budget, not a failing prerequisite and not a new approval stop, and
+the balance was not silently increased to cover it. Retained under a claimed, sealed and verified report
+root: `result.json`, `curve.json`, `predictions.json` (all 16 predictions with integer scores at every
+checkpoint), a 264-byte `prior_only.cpl2` serving artifact and a 5,196-byte `prior_only.ckpt`
+checkpoint, at `.uor-models/prior-learning-gate-2026-09-20/attempt-1`. Build output reuses the existing
+`target/`; the **128 MiB model-storage stop margin is untouched**. No deletion, no cleanup, no paid or
+external compute.

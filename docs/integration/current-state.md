@@ -1,5 +1,42 @@
 # Current native geometric AI work
 
+# Current native geometric AI work
+
+## Learning-contract repair done and the corrected gate PASSES — September 19, 2026 execution
+
+**THE THREE DECISIVE DEFECTS ARE REPAIRED, AN AUTHORED CAPACITY WITNESS PROVES FINITE REPRESENTABILITY, AND THE CORRECTED SMALL LEARNING GATE PASSES ON THE FIRST RUN.** The earlier 0.375 was an artefact of the defects, not a quantization limit, and the floating comparator was correctly not needed.
+
+**Defect 1 — one predictive forward.** The trainer kept a parallel floating forward `z_train = R + b·2^(s−F)` against the served `z = (R + b·2^s)·2^-F`, 1,024× on the contextual term at F = 10, while the backward applied `2^-F` anyway. Training now obtains its score from `PriorCore::trace`, the same integer computation greedy serving uses; `2^-F/ln 2` is applied once at credit to the integer score. The parity test first forces nonzero contextual output, nonflat bias, nonunit shifts and active bounds, then requires the trainer's bits to equal the served bits to `1e-12`, and separately asserts that the old unscaled-context variant gives a **different** loss, so a regression cannot pass silently.
+
+**Defect 2 — valid supervision.** Scoring every position of `[x,y,(x+y)%4]` trains `(x,y) → y` (four equally likely targets for a fixed x) and the contradictory laws `b−a` and `a−b`. Supervision is now an explicit **per-position mask shared by training, loss and accuracy**; the fixture scores only the final target while real-text scoring stays all `n−1` predictions. Tested: one target per context, all four targets equally frequent, and either single input leaves the target uniform.
+
+**Defect 3 — honest Adam.** `lowbit_core::adam_update` gated on `v_hat > 1e-12`, discarding legitimate small gradients (`g = 1e-7, lr = 0.05` gave 0 instead of ≈ `−0.04545`). The update is now unconditional, checked against an independent scalar reference over small/zero gradients and carried moments. The helper is shared with `lowbit_attention`, `geometric_attention` and `cold_prior`; their recorded results were obtained under the earlier optimizer and are **not** claimed unchanged.
+
+**A real forward-path bug the old gate could not isolate.** `trace` recorded the bounded-ReLU STE mask but **never applied the clamp**, leaving negative activations in the hidden vector. The authored capacity witness exposed it immediately (all four scores equal at −20480).
+
+**Also repaired.** Real seeded **Fisher–Yates** schedule with a short final batch never wrapped to fill, tested for exact once-per-pass coverage and reproducibility; **complete checkpoint identity** (masters, both moments, step, lr/beta1/beta2/weight_decay/grad_clip, seed, data identity, numerical config, frozen bias) with stage-then-commit loading, so a rejected load leaves the trainer byte-identical — tested with nondefault optimizer settings, a pass boundary, a partial batch and full-state equality; **artifact bounds** with a declared `i32` envelope (`bias_scale_bits > 27` rejected because `|code| ≤ 7` cannot be represented at `<< 30`), checked sizes before allocation, element/code/shift range checks and trailing-byte rejection, replacing an always-true `is_err() || true` test with real serialized field-offset mutations.
+
+**Authored capacity witness** (separate from every learned arm): 16/16 correct, mean CE **0.0772 bits** against the analytic `log2(1 + 3e^-4)`, export/reload identical. Finite representability only.
+
+**The corrected gate**, under a report root claimed exclusively before any model work, sealed and verified:
+
+```
+  step    0: acc 0.2500  CE 2.0000   context-disabled 0.2500/2.0000   knockouts 0.2500 / 0.2500
+  step  128: acc 0.9375  CE 1.3546
+  step  512: acc 1.0000  CE 0.2107
+  step 2000: acc 1.0000  CE 0.0497
+  permuted context->target: acc 0.4375, CE 4.7836, penalty +4.7338 bits, association changed
+  GATE: accuracy PASS | CE margin PASS | permutation penalty PASS
+```
+
+Step 0 is **exactly** the constant control — the zero-exported-residual initialization working as designed. The context-disabled control and **both** position knockouts sit at chance at every step, so the prediction depends on both inputs rather than on a marginal correction. This is an all-pairs fitting/instrument gate on a 16-context authored task, **not** a generalization, grokking or language result.
+
+**The conditional real-text stage was NOT executed.** Prerequisites A–C now pass; the recorded reason is remaining session budget, not a failing gate and not a new approval stop. The runner is to be built around the repaired primitive at V=4096, dv=128, length 64, batch 8, frozen fit-only quantized unigram bias, memory disabled, checkpoints 0/256/512, with the prior handoff's exact/quantized unigram and corrected tuned-backoff references and the frozen `≥ 0.10 bits/target` gate plus a positive context-permutation penalty.
+
+**State.** `prior_learning` 10 tests and `lowbit_core::adam_reference_tests` 2 tests pass; `cargo fmt --all --check` clean; claim-wording gate passes. No real-text artifact, checkpoint or generation was produced. The geometry is still absent from prediction: the element table is stored but unused, and no group multiplication, zeta phase or chirality participates.
+
+**Receipt:** [`native_geometric_learning_contract_2026-09-19.txt`](../evidence/native_geometric_learning_contract_2026-09-19.txt). References #973, #820.
+
 ## Active next: repair the learning contract and coherent fitting gate — review after PR #1296
 
 **The #1296 instrument is partially implemented, not qualified.** Repair its common predictive forward, optimizer and synthetic target mask, verify an explicit low-bit capacity witness, then retry one small learned fitting gate. Run the authorized floating comparator only if that corrected gate fails. When the exported low-bit learning gate passes, complete schedule/checkpoint identity and continue the selected representative prior-only real-text curve within projected resources. The [principal review](learning-contract-review-2026-09-19.md), [complete DeepSeek prompt](deepseek-learning-contract-step-2026-09-19.md) and [roadmap dependencies](project-track.md#research-dependencies-and-exit-conditions) now own the next action.

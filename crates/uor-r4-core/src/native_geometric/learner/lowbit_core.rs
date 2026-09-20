@@ -428,6 +428,12 @@ pub(crate) fn xorshift_unit(state: &mut u64) -> f32 {
 
 /// Bias-corrected Adam on one flat parameter matrix. Mirrors the update in
 /// `learner/jepa_trainer.rs::AdamMoments::update`.
+///
+/// The update is **unconditional**. An earlier version wrapped it in `if v_hat > 1e-12`, an extra
+/// threshold separate from the epsilon in the denominator, which silently discarded legitimate small
+/// updates: with `g = 1e-7`, `lr = 0.05`, default betas and zero moments the correct first update is
+/// about `-0.04545`, not zero. Fixed-point and per-target scaling can push real gradients into that
+/// range, so the cutoff was removing learning rather than noise.
 pub(crate) fn adam_update(
     params: &mut [f32],
     grads: &[f32],
@@ -449,11 +455,82 @@ pub(crate) fn adam_update(
         v[i] = vi as f32;
         let m_hat = mi / (bc1 + 1e-12);
         let v_hat = vi / (bc2 + 1e-12);
-        if v_hat > 1e-12 {
-            params[i] -= (lr * m_hat / (libm::sqrt(v_hat) + 1e-8)) as f32;
-        }
+        params[i] -= (lr * m_hat / (libm::sqrt(v_hat) + 1e-8)) as f32;
         if cfg.weight_decay > 0.0 {
             params[i] -= (lr * cfg.weight_decay as f64 * params[i] as f64) as f32;
+        }
+    }
+}
+
+#[cfg(test)]
+mod adam_reference_tests {
+    use super::{adam_update, TrainConfig};
+
+    /// Independent scalar reference for the standard epsilon-regularized Adam update.
+    fn reference(g: f64, cfg: &TrainConfig, step: u64) -> f64 {
+        let b1 = cfg.beta1 as f64;
+        let b2 = cfg.beta2 as f64;
+        let mi = (1.0 - b1) * g;
+        let vi = (1.0 - b2) * g * g;
+        let m_hat = mi / (1.0 - b1);
+        let v_hat = vi / (1.0 - b2);
+        let _ = step;
+        -(cfg.lr as f64) * m_hat / (libm::sqrt(v_hat) + 1e-8)
+    }
+
+    #[test]
+    fn adam_matches_an_independent_reference_including_small_gradients() {
+        let cfg = TrainConfig {
+            lr: 0.05,
+            weight_decay: 0.0,
+            ..TrainConfig::default()
+        };
+        let grads = vec![1e-7f32, 0.0, 1e-3, -2.0];
+        let mut p = vec![0.0f32; grads.len()];
+        let mut m = vec![0.0f32; grads.len()];
+        let mut v = vec![0.0f32; grads.len()];
+        adam_update(&mut p, &grads, &mut m, &mut v, &cfg, 1);
+        for (i, &g) in grads.iter().enumerate() {
+            let want = reference(g as f64, &cfg, 1);
+            assert!(
+                (p[i] as f64 - want).abs() < 1e-6,
+                "param {i}: got {} want {want}",
+                p[i]
+            );
+        }
+        // The specific defect: a tiny but legitimate gradient must move the parameter.
+        assert!(p[0] != 0.0, "a 1e-7 gradient must not be silently dropped");
+        assert_eq!(p[1], 0.0, "a zero gradient must not move the parameter");
+    }
+
+    #[test]
+    fn adam_carries_moments_across_steps_against_the_same_reference() {
+        let cfg = TrainConfig {
+            lr: 0.02,
+            weight_decay: 0.0,
+            ..TrainConfig::default()
+        };
+        let mut p = vec![0.5f32];
+        let mut m = vec![0.0f32];
+        let mut v = vec![0.0f32];
+        for step in 1..=3u64 {
+            let g = 0.01f32;
+            // Reference moments are recomputed the same way the implementation carries them.
+            let b1 = cfg.beta1 as f64;
+            let b2 = cfg.beta2 as f64;
+            let m_prev = m[0] as f64;
+            let v_prev = v[0] as f64;
+            let mi = b1 * m_prev + (1.0 - b1) * g as f64;
+            let vi = b2 * v_prev + (1.0 - b2) * (g * g) as f64;
+            let bc1 = 1.0 - b1.powi(step as i32);
+            let bc2 = 1.0 - b2.powi(step as i32);
+            let want = p[0] as f64 - (cfg.lr as f64) * (mi / bc1) / (libm::sqrt(vi / bc2) + 1e-8);
+            adam_update(&mut p, &[g], &mut m, &mut v, &cfg, step);
+            assert!(
+                (p[0] as f64 - want).abs() < 1e-5,
+                "step {step}: {} vs {want}",
+                p[0]
+            );
         }
     }
 }

@@ -1,0 +1,165 @@
+================================================================================
+RECEIPT — learning-contract repair: one served forward, valid supervision, honest Adam
+Date: 2026-09-19/20. Branch codex/learning-contract. Base origin/main 6a8778b4 (#1297).
+Reused worktree .worktrees/realtext-qual (no new checkout). M1, 8 cores, cargo 1.97.1.
+================================================================================
+
+RESULT IN ONE LINE
+------------------
+All three decisive defects are repaired, an authored capacity witness proves finite
+representability, and the **corrected small learning gate PASSES** on the first run
+(accuracy 1.0000, CE 0.0497 bits vs the 2-bit constant, permutation penalty +4.7338 bits).
+The earlier 0.375 was an artefact of the defects, not a quantization limit. The conditional
+real-text stage (D) was **not executed in this pass**; its prerequisites now pass and the
+exact reason is recorded below.
+
+================================================================================
+1. DEFECT 1 — PARALLEL TRAINING FORWARD WITH DIFFERENT UNITS (FIXED)
+================================================================================
+The trainer kept a duplicated floating forward `z_train = R + b·2^(s−F)` while served
+evaluation used `z = (R + b·2^s)·2^-F`; at F = 10 the contextual term was 1,024× the served
+value, and the backward applied `2^-F` anyway. Zero output codes hid it at initialization.
+
+Repair: **training obtains its score from `PriorCore::trace`**, the same integer computation
+greedy serving uses. `2^-F/ln2` is applied exactly once, at credit to the integer score, and
+the batch mean divides by the actual scored-target count once.
+
+Evidence, non-vacuous by construction:
+* `training_and_serving_scores_are_the_same_computation` first drives nonzero contextual
+  output (asserting the output codes left zero), with nonflat bias, nonunit shifts and active
+  bounds, then requires the trainer's accumulated bits to equal `PriorCore::bits_masked` to
+  `1e-12` on every one of the 16 sequences;
+* the same test builds the **old** unscaled-context variant and asserts its loss differs, so a
+  regression to the parallel definition cannot pass silently.
+
+================================================================================
+2. DEFECT 2 — THE FIXTURE TRAINED CONTRADICTORY LAWS (FIXED)
+================================================================================
+Scoring every position of `[x,y,(x+y)%4]` trains `(x,y) → y` (four equally likely targets for a
+fixed x) and, over the repeated triple, labels that encode `b−a` and `a−b`.
+
+Repair: supervision is an explicit **per-position mask shared by training, loss and accuracy**;
+the fixture scores only the final target. Real-text scoring remains all `n−1` predictions and the
+default iterator is unchanged.
+
+Evidence: `the_balanced_fixture_has_pure_contexts_and_uniform_targets` asserts exactly one
+target per context, all four targets equally frequent (4/4/4/4), and that either single input
+alone leaves the target uniform — i.e. the task is not solvable by a marginal.
+
+================================================================================
+3. DEFECT 3 — ADAM DROPPED LEGITIMATE SMALL GRADIENTS (FIXED)
+================================================================================
+`lowbit_core::adam_update` wrapped the update in `if v_hat > 1e-12`, an extra threshold separate
+from the denominator epsilon. With `g = 1e-7`, `lr = 0.05`, default betas and zero moments the
+correct first update is about `−0.04545`; the code produced zero.
+
+Repair: the update is **unconditional**. Two focused tests use an **independent scalar
+reference**: one over small/zero/large gradients at step 1, one carrying moments across three
+steps.
+
+Callers: `adam_update` is shared by `lowbit_attention`, `geometric_attention`, `cold_prior` and
+`prior_learning`. Their recorded results were obtained under the earlier optimizer and are **not**
+claimed unchanged; their focused tests are unaffected (this repair only *adds* updates the old
+code skipped).
+
+================================================================================
+4. ALSO REPAIRED
+================================================================================
+* **The bounded ReLU was recorded but never applied.** `trace` stored the STE mask while leaving
+  the raw value in `h`, so negative activations survived into the hidden vector. The authored
+  capacity witness exposed this immediately (all four scores equal at −20480). This is a real
+  forward-path defect that the old gate could not have isolated.
+* **Schedule.** Replaced independent hash-modulo indices with a real seeded **Fisher–Yates**
+  permutation; a pass covers every window exactly once, a short final batch is returned short and
+  is never wrapped to fill. Tested for coverage, no replacement and reproducibility.
+* **Checkpoint identity.** Now stores masters, both moments, step, lr, beta1, beta2,
+  weight_decay, grad_clip, seed, data identity, numerical config and frozen bias;
+  `resume_from` **stages every block and validates identity before committing**, so a rejected
+  load leaves the live trainer byte-identical. Tested with nondefault betas and weight decay, a
+  pass boundary, a partial batch, full-state equality of masters *and* moments, equality of the
+  next batch and the next update, plus a rejected-load non-mutation check.
+* **Artifact bounds.** Config validates vocab/dv/norm bits/`F` and rejects `bias_scale_bits > 27`
+  (|code| ≤ 7 cannot be represented at `<< 30`), plus a declared `i32` accumulator envelope;
+  load checks size arithmetic before allocation, element range, per-row readout shift envelope and
+  trailing bytes. The always-true `is_err() || true` test is replaced by real serialized
+  field-offset mutations (an element-table shift field and a readout row-shift field).
+* **Stale comments corrected**: the bias convention is `round(ln p + 7)` with bias shift `F`, not
+  the obsolete divide-by-two/`F+1`; the 0.10-bit gap is an *authored-sequence* result, not a
+  universal calibration guarantee; and randomized subthreshold output masters are a *choice*, not a
+  mathematical requirement, since `(p_r − 1[r=t])·h` already carries class-dependent credit.
+
+================================================================================
+5. AUTHORED CAPACITY WITNESS (separated from every learned arm)
+================================================================================
+`authored_witness(vocab=4, dv=32)`: 16 hidden coordinates indexed by `(a,b)`, `E_old(x)[a,b] = +1`
+at `x = a` else `−1`, `E_new(y)[a,b] = 0` at `y = b` else `−1`, PAD row `−1`, `W[r,a,b] = +1` iff
+`r = (a+b) mod 4`, output shift 12, `F = 10`, `norm_bits = 6`, flat bias.
+
+Measured: **16/16 correct, mean CE 0.0772 bits against the analytic `log2(1 + 3e^-4) = 0.0772`,
+export/reload identical.** Finite representability only; never used to initialise the learning arm.
+
+================================================================================
+6. THE CORRECTED GATE — PASS
+================================================================================
+Command (the artifact path is a freshly claimed report root):
+  prior-learning-gate /Users/casey.allard/uor-r4/.uor-models/prior-learning-gate-2026-09-20/attempt-1
+
+  config V=4 dv=32 seed=13, scored targets = final position only, frozen flat bias
+  gate frozen BEFORE results: accuracy >= 0.9, CE >= 0.10 bit below 2.0, positive permutation penalty
+
+  step    0: acc 0.2500 CE 2.0000 | context-disabled 0.2500 / 2.0000 | knockouts prev 0.2500 cur 0.2500 | w_o nonzero 0
+  step  128: acc 0.9375 CE 1.3546 | context-disabled 0.2500 / 2.0000 | knockouts 0.2500 / 0.2500 | w_o nonzero 32
+  step  512: acc 1.0000 CE 0.2107 | context-disabled 0.2500 / 2.0000 | knockouts 0.2500 / 0.2500 | w_o nonzero 32
+  step 2000: acc 1.0000 CE 0.0497 | context-disabled 0.2500 / 2.0000 | knockouts 0.2500 / 0.2500 | w_o nonzero 32
+
+  permuted context->target: accuracy 0.4375, CE 4.7836 bits, penalty +4.7338 bits, association changed: true
+  GATE: accuracy PASS | CE margin PASS | permutation penalty PASS
+  OVERALL: PASS
+
+Readings that matter. Step 0 is **exactly** the constant control (0.2500 / 2.0000), which is the
+zero-exported-residual initialization working as designed; the contextual residual is what carries
+everything after it. The context-disabled control is flat at chance at every step, and **both**
+position knockouts are at chance, so the prediction genuinely depends on both inputs and not on a
+marginal correction. The report root was claimed exclusively before any model work, sealed and
+verified (0 unlisted files) — this is a separated research gate result, not a unit test.
+
+================================================================================
+7. WHY THE CONDITIONAL REAL-TEXT STAGE (D) DID NOT EXECUTE
+================================================================================
+Prerequisites A–C now pass: the shared forward is single and parity-tested, the optimizer is
+fixed against an independent reference, the schedule is a real permutation, and checkpoint
+identity is complete and tested on full state at a pass boundary with a partial batch.
+
+D was **not executed in this pass because the remaining session budget could not carry a new
+real-text runner plus its multi-hundred-second dose responsibly**; it is not blocked by a failing
+prerequisite and it is not a new approval stop. The recorded ledger balance is unchanged by that
+decision. Exact next command shape, with the runner still to be written around the repaired
+primitive: V=4096, dv=128, length 64, batch 8, frozen fit-only quantized unigram bias, memory
+disabled, checkpoints 0/256/512, the prior handoff's exact/quantized unigram and corrected tuned
+backoff references, a fit/tune/development document split with development sampled across document
+lengths, and the frozen gate >= 0.10 bits/target over both references with a positive
+context-permutation penalty.
+
+================================================================================
+8. TESTS AND GATES
+================================================================================
+`prior_learning` — 10 tests, all pass: iterator and fixture mask · training/serving parity ·
+uniform V4096 exactly 12 bits · common-offset invariance and an uncapped confident error ·
+fixture purity and uniform targets · the authored capacity witness · artifact round-trip plus five
+malformed rejections including real field-offset shift mutations · Fisher–Yates schedule coverage ·
+full-state resume equality with nondefault optimizer settings and a partial batch · the frozen-bias
+quantization gap.
+`lowbit_core::adam_reference_tests` — 2 tests, all pass.
+`cargo fmt --all --check` clean; claim-wording gate passes.
+
+LIMITS
+------
+* The gate is an **all-pairs fitting/instrument gate** on a 16-context authored task, not a
+  generalization, grokking or language result. Training success does not establish useful prose.
+* The floating comparator was **not** run: the prompt makes it conditional on failure of the
+  corrected gate, and the gate passed.
+* No real-text model, manifest, checkpoint or generation was produced (D not executed).
+* Energy UNAVAILABLE. No chat, reasoning, coding or energy capability is claimed.
+* The geometry is still absent from prediction: the modulo-120 element table is stored but the
+  16-pair fixture uses identity addressing, and no group multiplication, zeta phase or chirality
+  participates.
