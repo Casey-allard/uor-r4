@@ -1,41 +1,22 @@
 # UOR-R4 Geometric Language Model — canonical project plan
 
-## Active direction — the ternary projection is executed; E stays the local baseline
+## Active direction — test a matched geometric query read
 
-D0-b/D1/D2 and geometric research priority remain unchanged. The frozen prior's corrected contextual baseline
-survives, and the empirical output-head refit is the strengthened local baseline.
+D0-b/D1/D2 and geometric research priority remain unchanged. The [principal review after PR #1308](geometric-query-review-2026-09-20.md) retains corrected empirical E as the local numerical baseline. Executed QG improves over ordinary Q0 but both lose to E; one required nearest-seed optimization was omitted, so the complete specified projection is NOT_RUN. Preserve this scope, the unmeasured Gram rank and the negative generation results. Correcting that small source/report defect does not require another calibration campaign before independent geometric work.
 
-**The fixed-feature ternary projection is executed.** [Receipt](../evidence/native_geometric_head_projection_2026-09-20.txt).
-With the parent's embeddings, integer features, bias and `F` frozen and only the output head changed, **Q0**
-(the existing quantizer applied once to the retained floating head) scores 7.416178 bits/target and **QG**
-(one activation-aware dyadic ternary calibration over the fit-feature Gram) scores 7.190872, against the
-incumbent gradient-trained ternary head **E** at 7.170816 and the floating head **F** at 6.874144 on the same
-36-document / 288-window / 17,342-target panel.
+**Selected next dependency:** execute the [matched query-read experiment](deepseek-geometric-query-step-2026-09-20.md), currently NOT_RUN. Hold E fixed and compare a query-conditioned older-state read with a separable older-state/query read and a local-only read. Equal parameter counts, two reader accesses, fixed scales/dose, exact-table artifacts, actual generated outputs and older-prefix interventions isolate the proposed interaction. The current experiment changes reading; selective writing/reset remains a subsequent hypothesis.
 
-**Both conversions FAIL the practical screen against E** (QG −0.0201 bits, interval entirely negative; Q0
-−0.2454), while the **method-attribution screen PASSES** (+0.2253 bits/target for QG over Q0 [0.200621,
-0.250299]). QG reconstructs F's scores 12.7x better than E and still predicts worse: lower squared-score
-reconstruction error does not imply lower cross-entropy. **E remains the stronger qualified numerical
-baseline**; this rejects these two bounded conversions and does not establish ternary infeasibility,
-feature-rank saturation or a need to widen. The earlier capacity-diagnosis reading stays withdrawn.
+The next artifact must combine useful history with local querying before expansion to selective writes/reset, exact occurrence/version memory and shared composition. Conversation/memory and executable Rust qualification must eventually share one accepted model and complete consumer-machine cost. A bounded read win does not establish that integration or a special advantage of 2I over other finite groups. No perfect-count-match, perfect-quantization or broad proof stage lock is introduced.
 
-**Next dependency.** Per the [review](readout-result-review-2026-09-20.md), the architectural priority returns
-to a **query-conditioned geometric read/update** on this strengthened local baseline, with a separable-prefix
-residual and a matched local-only control at the same dose and panel. A <=4-bit head change,
-quantization-aware refinement or joint feature training remains a separately justified option rather than an
-automatic new run. Exact occurrence/version memory, learned write/reset, shared composition, conversation and
-executable Rust qualification remain the larger programme.
-
-#973 owns the active learner, #963 complete cost and #964 scoped numerical/artifact guarantees. No broad
-issue is completed by this projection.
+#973 owns the active learner, #963 complete cost and #964 scoped numerical/artifact guarantees. #820 owns programme status. All remain open.
 
 ## Research dependencies and exit conditions
 
 | Dependency | Evidence required to advance | Current scope |
 | --- | --- | --- |
-| Correct reusable learner | Shared nonzero hard forward, independent gradients/optimizer checks, real artifact/reload and complete new-run continuation | Prior forward/Adam repairs and executable prefix recovery retained. Correct E/S tokenizer metadata and verify reloaded evaluation. Old CPXS and the new RDO1 fixture do not establish generalized runner continuation |
-| Local-context learning baseline | Prediction beyond marginals, true controls and a useful learned emission component | Empirical head improves; finite floating head improves further on identical features. Next one Q0/QG ternary projection comparison. Capacity/optimizer/quantization remain unresolved; no perfect-count-match stage lock |
-| Learned geometric predictive state and memory | Useful older information beyond fitted local controls; query-conditioned read/update, exact provenance and matched costs | One separable120-state prefix channel is a scoped negative. Local-conditioned geometric read and selective update remain hypotheses; finite coalescing state is not exact occurrence/version memory |
+| Correct reusable learner | Shared nonzero hard forward, independent gradients/optimizer checks, real artifact/reload and complete new-run continuation | Prior forward/Adam repairs, executable prefix recovery and corrected E/S tokenizer bytes retained. New query artifact requires explicit reloaded numerical evaluation, valid scales, separate A/B credit and complete runner continuation; old CPXS/RDO1 fixtures do not establish these |
+| Local-context learning baseline | Prediction beyond marginals, true controls and a useful learned emission component | Corrected E retained after executed Q0/reduced-QG negatives. Full prescribed QG search remains unrun; no repeat campaign selected. Capacity/optimizer/quantization remain unresolved; no perfect-count-match stage lock |
+| Learned geometric predictive state and memory | Useful older information beyond fitted local controls; query-conditioned read/update, exact provenance and matched costs | One separable 120-state prefix channel is a scoped negative. Next matched query-conditioned read Q versus separable S and local L, with older-content intervention and actual output. Selective write/reset and exact occurrence/version memory follow separately |
 | Integrated useful model and delivery | Conversation/memory, compositional reasoning and executed Rust tasks on one artifact; retained causal controls; full M1 latency/RAM/storage/energy and interface acceptance | Broad responsibilities below remain open; no alpha or energy claim |
 
 For a two-token predictor, equal tails force equal predictions regardless of older history. On a fixed population, adding older history can reduce optimal log loss by the conditional information I(next;older history|tail). This is an architectural identity, not a measured ceiling from a finite fitted count model. The baseline must therefore lead into state/context access. Finite group structure and exact identity support explicit mechanisms; a single 120-state root or fixed invertible relabeling does not supply arbitrary-history capacity or establish semantic advantage. Retain prime/zeta/R4/S3/H4, exact orientation/icosian structure and exact memory while testing their specific learned roles.

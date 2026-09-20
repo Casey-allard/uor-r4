@@ -872,3 +872,11 @@ records, per-row QG statistics, result and panel metadata. `head-projection-prob
 checkout are untouched; the experiment directory is 287 MiB and the 128 MiB storage margin is intact.
 No deletion, corpus download or paid/external compute. Family/sparsity differences do not license a
 full-path M1 energy claim, and none is made.
+
+## Post-#1308 principal reconciliation and next proposal (2026-09-20)
+
+The live JSON remains **170238565 /170900000 ms**, remaining **661435 ms**. This review ran no build, training or model forward and changes no balance. Saved-data arithmetic and artifact verification are review work, not a model experiment.
+
+Preserve the 4200000-ms debit, labeling it **mixed measured/estimated, complete wall-time provenance unverified**. Listed approximate rows sum 4094.1 s and the preceding/current merge span is 3705 s; neither substantiates4200 s of nonoverlapping measured wall time. The claimed pre-use extension timeline is not independently timestamp-verified. No refund or inferred extra debit. The probe and all three complete report roots verify sealed sets; the earlier “unsealed-to-superseded” description is corrected. Their total retained size is 37278797 bytes.
+
+The [next query-read prompt](deepseek-geometric-query-step-2026-09-20.md) proposes **7200000 ms**: 900 s implementation/build,600 s fixture/tests, 300 s data/probe,3600 s three fits, 1200 s evaluation/artifact/controls/generation,600 s checkpoint/delivery/stop reserve. Proposed standing-authorized limit increment **+7200000 ms**, yielding **178100000 ms** and 7861435 ms headroom at this snapshot. **Not applied by this review.** Refresh both balances/storage and record the complete extension before use; charge actual nonoverlapping work once. One worker, <=4 Cargo jobs, <=8 GiB RSS, <=512 MiB new data plus <=1 GiB incremental build output, retaining the 128 MiB margin. No paid/external compute or deletion.

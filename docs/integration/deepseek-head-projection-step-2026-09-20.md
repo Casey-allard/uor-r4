@@ -1,5 +1,7 @@
 # DeepSeek execution prompt — export the retained head gain through the existing ternary path
 
+**Executed in PR #1308 with a scoped deviation:** the nearest-code seed at s0 was not optimized; the full prescribed search remains NOT_RUN. Saved reduced-search results stand. Read the [subsequent review](geometric-query-review-2026-09-20.md) and use the [new query-read prompt](deepseek-geometric-query-step-2026-09-20.md) for active work. Historical instructions below retain their original scope.
+
 Work on **UOR-R4 Geometric Language Model**, `UOR-Foundation/uor-r4`. Refresh origin/main beyond audited merge `d15360527f7c69ac8b83eef0bbd5839b87c26f02` (PR #1306). Read this prompt and `docs/integration/readout-result-review-2026-09-20.md` completely, then the current plan/state/policy. They supersede the last receipt's recommendation to widen the feature map.
 
 **Deliver one bounded post-training projection experiment.** Reuse the retained floating output weights and frozen integer features. Compare Q0, the existing ternary quantizer, against QG, one activation-aware dyadic ternary calibration defined below. Export/reload through the existing CPL2 serving path and measure actual losses, controls, greedy generation and cost. Complete the experiment; do not stop after a module, proposed study or fixture. No new Adam fit, wider hidden layer, new precision, new corpus or prefix refit is part of this run.

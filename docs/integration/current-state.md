@@ -1,92 +1,18 @@
 # Current native geometric AI work
 
-## Active: fixed-feature ternary head projection — executed; E remains the baseline
+## Active: matched geometric query read — specified, NOT_RUN
 
-The [principal review after PR #1306](readout-result-review-2026-09-20.md) preserved the empirical head's
-development gain, corrected the teacher/exposure/artifact-identity/interpretation claims and withdrew the
-capacity diagnosis. The [complete projection prompt](deepseek-head-projection-step-2026-09-20.md) has now
-been **executed**. [Receipt](../evidence/native_geometric_head_projection_2026-09-20.txt). The parent, E, S
-and F were never retrained and no sealed root was modified.
+The [principal review after PR #1308](geometric-query-review-2026-09-20.md) independently verifies the saved development losses, paired intervals, permutation, corrected tokenizer bytes and all four sealed report sets. **Corrected empirical E remains the numerical incumbent**: 7.170815718 bits/target, against Q0 7.416178358 and executed QG 7.190872265 on the same 36-document /288-window /17342-target panel. QG improves over Q0 by 0.225306093 [0.200620619, 0.250299443], but loses to E by 0.020056547 [0.000182978, 0.039537544]. Both conversions fail the practical screen. All six generations remain short cycles; physical energy and general-language capability are unestablished.
 
-**Frozen boundary.** Parent `e_old`, `e_new`, their row shifts, bounded ReLU/normalization, bias
-codes/scale, `elements`, vocabulary, `F=10` and the argmax tie rule are unchanged; only the output head
-changes. No new Adam fit, wider layer, new precision, new corpus or prefix refit.
+**Scope corrections:** QG skipped coordinate optimization of the nearest-code seed at s0; untouched Q0 inclusion does not cover it. The originally prescribed complete search is NOT_RUN, while the reduced-search measurements remain valid. `singular:true` is hardcoded, not a rank measurement. Attribution belongs to the complete calibration recipe, not each ingredient separately. Raw squared-score error is not CE fidelity. Full-panel CE used in-memory heads; generation/latency exercised reloaded Q0/QG, without an explicit complete-field/full-panel reload-parity check. The next runner must evaluate reloaded artifacts. Both superseded complete runs are sealed. Preserve raw receipts and read these corrections with them.
 
-**Evidence corrections without retraining.** The retained E/S CPL2 files carried the placeholder
-tokenizer digest `[7;32]`; they are re-exported into the new sealed root with the real derived digest
-`a7ac75b6…` as the **sole** change (every packed code, shift, bias, element and embedding verified
-identical). The raw float file (exactly 4096×128 finite LE f32) is bound in the manifest to the parent,
-tokenizer, dimensions, `F`, bias, the actual teacher and source identity, and is evaluated unrounded and
-offline-only. E/S/F reproduce at 4.4e-10 / 2.5e-10 / 2.6e-10 bits (tolerance 1e-8). The screen helper is
-factored and tested (practical gain against its declared baseline, paired S-vs-E attribution, floating gate
-on S's own teacher KL, with a fixture where both heads beat the parent but smoothed does not beat empirical).
+**One next experiment:** execute the [complete geometric query-read prompt](deepseek-geometric-query-step-2026-09-20.md). Freeze corrected E (`565cf98a01273af38425687adb522704b09a89bd7ab976b58b20bfbdaccfa0bf`, `head-projection-3/corrected/empirical.cpl2`). Compare Q=`128W(R[q*b]+R[e])`, S=`128W(R[q]+R[b])`, and L=`128W(R[q_tail*b]+R[e])` added to E. All use separate learned write/query maps, the same ternary width 16, two reads and bound 4096. q contains only the older prefix; b is the current-token query. Writing remains the chronological right product. The matched separable arm has an active query channel; L controls local capacity. New scale/artifact semantics preserve CPX2.
 
-**Calibration.** Population: the recovered first 4,096 consumed windows / 257,113 targets / 62,973 distinct
-fit contexts. Uncentered Gram `G = (1/N) Σ_c n_c h(c)h(c)^T` accumulated in checked `i128` over integer
-features and occurrence multiplicities (never inverted, jittered, centered or rank-truncated; singular is
-allowed). **Q0** = `TernaryLinear::quantize(W_F, 4096, 128)` applied exactly once. **QG** = one
-activation-aware projection: candidate shifts `{s0−1, s0, s0+1, sE}` filtered to 0..=15, nearest-ternary and
-(where distinct) empirical-row seeds, exactly two coordinate sweeps per seed with strictly-negative
-acceptance of `dJ = 2δg_j + δ²G_jj` and ascending tie-break, independent recomputation of `e^T G e`, Q0 kept
-as an explicit candidate. Probe: 64 rows in 0.005 s; full 4,096 rows in 0.30 s. Selected seeds 2,098
-nearest / 1,998 empirical.
+The prompt requires an exported constructive interaction witness, a separate learned-query fixture, correct surrogate gradients and complete continuation before the fixed 64-warmup/448-joint-update fit per arm on the existing 4096 consumed windows. Primary final Q must improve over E by at least 0.10 bits with a positive paired lower bound, beat fitted S/L, show older-content sensitivity under exact local-pair/length-preserving donors, and demonstrate query-route use. Save all losses, controls, actual greedy output and full bounded-state cycle certificates. No fresh corpus, width/precision sweep or another projection campaign. The two small projection-source/report defects receive focused corrections only.
 
-**Measured outcome (36 documents / 288 windows / 17,342 targets, the existing aligned panel).**
+**Larger direction:** this is a query-conditioned read, not selective writing or exact occurrence/version memory. One120-state register holds at most log2(120) bits and fixed-query transport is bijective. A useful result leads toward selective write/reset, exact memory and shared composition, then useful conversation and executed Rust behavior on one artifact with complete laptop cost. The three historical model families are not yet one accepted model; #973/#820/#963/#964 remain open.
 
-| Head | dev micro bits/target | fit J vs F | zero fraction | 64-token latency |
-| --- | ---: | ---: | ---: | ---: |
-| frozen parent | 7.558429 | — | — | — |
-| **E empirical (incumbent)** | **7.170816** | 7.9336e9 | — | 0.0862 s |
-| S smoothed | 7.188585 | — | — | — |
-| F floating (offline only) | 6.874144 | 0 | — | — |
-| Q0 existing quantizer | 7.416178 | 3.9915e9 | 0.505 | 0.0834 s |
-| QG activation-aware | 7.190872 | **6.2484e8** | 0.399 | 0.1038 s |
-
-**Predeclared decisions.** Practical screen (QG vs E ≥ 0.10 bits with paired lower bound > 0): **FAILED**
-(CE_E − CE_QG = −0.020057 [−0.039538, −0.000183]). Practical screen for Q0 vs E: **FAILED** (−0.245363).
-Method attribution (Q0 − QG, lower bound > 0): **PASSED** (+0.225306 [0.200621, 0.250299]). Smoothing
-attribution (E − S): FALSE (−0.017769). Floating gate: RUN (S smoothed-teacher KL 3.186145 > 0.10).
-
-**Interpretation.** The projection method is decisively better than the existing quantizer, and QG
-reconstructs F's scores 12.7× better than E does — yet E predicts best. **Lower squared-score reconstruction
-error does not imply lower cross-entropy.** Both bounded conversions are rejected, so **E remains the
-stronger qualified numerical baseline**; this does not establish ternary infeasibility, feature-rank
-saturation or a need to widen, and the earlier capacity diagnosis stays withdrawn.
-
-**Common-objective matrix** on the same 257,113 fit occurrences (bits/occurrence; teacher mass error
-3.0e-14): true-label CE parent 7.281159, E 6.802581, S 6.839079, F 6.505433, Q0 7.063655, QG 6.852872;
-smoothed-target KL S 3.186145 and F 2.866958 — reproducing the recorded and review-derived values. E's
-true-label fit CE equals its empirical-target CE as the objective identity requires. Heads are compared only
-under the same teacher.
-
-**Controls.** Pair-association permutation (per `(document, PAD-status)` Fisher–Yates bijection over
-occurrence indices, recipient target fixed, donor context substituted — the `prior-frozen-evaluate`
-semantics, **not** the older-prefix conditional permutation): 72 strata, 17,342 eligible, 17,248 changed
-contexts; penalties E +4.2775, Q0 +3.7635, QG +3.7451, all intervals well above zero, so every candidate
-genuinely uses its local pair association. Frozen-bias/context-disabled logits are invariant to the
-permutation for every candidate.
-
-**Generation** (64 greedy tokens, unchanged decoding, six retained prompts). Parent and E have period-1 pair
-cycles on all six; Q0 also period-1 but with the most degenerate text (one prompt collapses to a repeated
-digit); **QG has period-3 pair cycles on all six**, i.e. it does not enter the single-token fixed point the
-others fall into — still degenerate, and diversity is not language. Raw IDs/bytes saved for every
-prompt/model.
-
-**Limits.** One seed, one dose, one feature freeze, one calibration algorithm, two bounded conversions. QG's
-slightly higher latency is consistent with fewer zero weights. Physical energy is UNAVAILABLE. No geometric
-superiority, general-language or energy claim follows; the `2I`-vs-other-algebra question stays NOT_TESTED.
-
-**One next architectural recommendation.** Return to a **query-conditioned geometric state read/update** on
-the strengthened local baseline, with a separable-prefix residual and a matched local-only control. The
-falsifiable hypothesis: conditioning the read on both the local query and the stored state changes the
-pairwise-logit effect in a way a separable residual `Z(local,q) = Z_parent(local) + r(q)` cannot, and it
-should beat that residual and the local-only control under the same dose and panel.
-
-**Resources:** projection, revisions and the charge are in [the ledger](resource-ledger-2026-09-19.md).
-Runs 80.6 s / 792.4 s / 700.2 s / 720.9 s (three complete runs were needed because runs 1 and 2 were found
-incomplete against the prompt's own requirements before any result was reported; both are preserved), peak
-RSS ≈1.3 GB, new retained storage ≈36 MiB (experiment directory 287 MiB). No paid/external compute, no
-deletion.
+**Resources:** authoritative owner JSON is 170238565 /170900000 ms, remaining 661435 ms. The last 4200000-ms debit mixes measured and estimated allocations; its full wall-time basis and pre-use extension timeline remain unverified, with no refund or new debit. Four projection roots total 37278797 bytes. This review ran no build/training/model evaluation and changed no balance. The next task proposes 7200000 ms complete work and a standing-authorized +7200000-ms limit increase to 178100000 ms, to refresh and record before use; <=8 GiB RSS, one worker, <=512 MiB new data plus <=1 GiB incremental build and the 128 MiB stop margin. See [ledger](resource-ledger-2026-09-19.md).
 
 ## Preserved baseline: the corrected replay of the frozen step-512 prior
 
