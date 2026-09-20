@@ -566,3 +566,12 @@ existing `target/`. No deletion, no cleanup, no paid or external compute.
 
 This pass ended at a **token/session limit, not the local wall-time ledger**; roughly 36 minutes of
 recorded local allowance remain unspent.
+
+
+## Review after PR #1300 — preserved balance and frozen-evaluation proposal
+
+Verified live JSON **152,238,565 / 154,400,000 ms**, remaining **2,161,435 ms (36.02 minutes)**. Preserve the preceding 1,200,000 ms charge as recorded; its approximate build-cycle timing was not independently reconstructed. This review used source, retained-file/hash verification and saved-loss arithmetic; no Rust build, model forward or training ran. No model charge or limit change. Reused the clean full worktree on `codex/frozen-prior-evaluation-review`, preserving the original checkout and unique/sealed artifacts.
+
+The [review](frozen-prior-review-2026-09-20.md) corrects the full-gate, permutation, document/population and constructed-validation claims. The archive is 88,016,240 bytes, but eligible Markdown input is 7,609,837 bytes; archive size is storage, not the model's text exposure. These interpretation corrections do not reverse historical charges. The existing final artifact supports evaluation-only recovery.
+
+The [next prompt](deepseek-frozen-prior-step-2026-09-20.md) proposes a complete **1,800,000 ms** tranche: 600 s focused implementation/build/checks, 300 s population/reference preparation, 450 s frozen scoring/controls, 150 s loop diagnostics/generation, 300 s evidence/delivery/stop reserve. This is a proposed allowance allocation, not an executed charge or a pre-execution storage receipt. Refresh inventory and record before use; measure timing and revise before overruns under standing local-extension authorization. One worker, four Cargo jobs maximum, 8 GiB RSS, 512 MiB incremental data and 1 GiB reused build output, 128 MiB protected margin. No new training, corpus download, deletion or paid compute.

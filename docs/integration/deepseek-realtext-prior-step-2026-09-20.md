@@ -1,5 +1,7 @@
 # DeepSeek execution prompt — first corrected real-text prior learning curve
 
+> Historical execution prompt. PR #1300 executed the real-text fit. Use the [subsequent review](frozen-prior-review-2026-09-20.md) and [current evaluation-only prompt](deepseek-frozen-prior-step-2026-09-20.md) to recover the retained result; do not repeat this training run merely to repair its evaluation.
+
 Work on **UOR-R4 Geometric Language Model**, repository `UOR-Foundation/uor-r4`. Read this whole prompt and `docs/integration/realtext-prior-review-2026-09-20.md`. The audited implementation is `a3c5403587bd27b32399622ec0bebc010447b9f2` (PR #1298); refresh `origin/main` and include the protected delivery of this prompt.
 
 **Deliver the thin real-text runner and execute its bounded learning curve in this run.** The corrected V4 fitting gate already passed. Integrate the specific continuation/integer-trace repairs below, run their focused tests, then proceed into real text. Do not return only another “ready to train” report if the checks pass and measured resources permit. The floating comparator was conditional on small-gate failure and is not required now. Do not build another learner module or add a memory/geometry arm to this experiment.

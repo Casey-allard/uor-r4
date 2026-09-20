@@ -1,6 +1,6 @@
 # EVIDENCE
 
-**Latest interpretation:** [review after #1298](realtext-prior-review-2026-09-20.md) verifies the retained 16/16 corrected fitting curve and file hashes. It narrows “A–C complete”: mid-pass permutation/identity, integer-only trace and independent derivative/envelope checks remain inside the next real-text implementation. The old 0.375 never diagnosed quantization; the unclamped trace was an interim #1298 refactor defect. No model was executed in this review. Preserve original rows/receipts with the appended correction.
+**Latest interpretation:** [review after #1300](frozen-prior-review-2026-09-20.md) verifies final artifact/archive integrity and preserves the real-text loss gain. The complete gate PASS is withdrawn: permutation overwrites occurrences and changes target frequencies, and the nominal document bootstrap samples windows. Saved-loss arithmetic regrouped into the actual 32 documents retains a 1.9892-bit gain over quantized bias, nominal interval [1.8439, 2.1271]. All three generation prefixes belong to one document. No model ran in this review. Read the appended correction and [evaluation-only prompt](deepseek-frozen-prior-step-2026-09-20.md); preserve every raw receipt and sealed result.
 
 **Previous interpretation:** [post-qualification source review](cold-context-review-2026-09-19.md) scopes #1292 and its remaining instrument corrections.
 
@@ -158,3 +158,17 @@ bind the 2026-09-19 measurements to the exact bytes evaluated.
 | Date | Scope | Retained verification | Interpretation | Sources |
 | --- | --- | --- | --- | --- |
 | 2026-09-20 UTC | Review after #1298; retained-file and source audit, no model execution | Corrected gate scores reproduced from saved logits; six manifest members verified, zero unlisted files; CPL2 SHA256 c020b1e1… | Shared numerical repair and all-pairs contextual fitting supported. Mid-pass checkpoint, integer-only trace and derivative/envelope qualifications incomplete; real text NOT_RUN. | [Review](realtext-prior-review-2026-09-20.md), [next execution](deepseek-realtext-prior-step-2026-09-20.md). This correction does not alter historical receipt bytes or fit results. |
+
+
+## Review after PR #1300 — positive loss result, complete gate pending corrected replay
+
+| Scope | Verified finding | Corrected interpretation |
+| --- | --- | --- |
+| Retained artifact/data | All seven report members match BLAKE3/size; no unlisted files. All 850 archive files match Git corpus e9c04e80. Final CPL2 SHA256 cd5a3aa1b804ccc3582a4a25090e25c862489e0bc4e5bb86c1d1f363a7338a00 | Final-artifact replay is available; no need to refit solely for an evaluator fix. Only the final model/checkpoint exists; earlier points were in-memory observations |
+| Loss evidence | Recorded step-512 CE 7.14247 vs quantized bias 9.13163; true 32-document regrouping gives gain 1.98915761, nominal 95% interval [1.84387043, 2.12714975] | Positive local loss observation survives saved-data arithmetic. Exact-unigram document interval and complete gate require replay |
+| Permutation | Context-keyed replacement map overwrites repeated observations; step-zero constant CE changes from 9.13163 to 9.13640 | Marginal-preserving penalty, changed-association count and complete PASS withdrawn; preserve raw numbers as invalid-control output |
+| Sampling | 32 actual dev documents × three opening windows, 6,048 targets; three generation prefixes from one doc | Correct 36 evaluated-doc and three distinct-generation-doc claims; no spread-position sample |
+| Corpus/exposure | 429 eligible Markdown docs / 7,609,837 bytes; full fit 38,987 windows / 2,446,208 targets; checkpoint consumes 4,096 distinct windows | Archive bytes are not training-text bytes; eligible input exceeds 4 MiB. Frozen-bias exposure differs from optimizer dose; exact consumed target count pending reconstruction |
+| Primitive/continuation scope | Integer trace and active permutation restore exist; construction omits shared validate, source uses power-of-two multiplication; identity limits remain | Value-preserving fixes and artifact-score parity next; no new derivative defect found. Full on-disk continuation qualification remains a future-training obligation |
+
+[Source audit, saved-loss arithmetic, mathematical loop analysis and primary research](frozen-prior-review-2026-09-20.md); [next execution](deepseek-frozen-prior-step-2026-09-20.md). This append corrects interpretation without editing the original receipt or charging a model run.
