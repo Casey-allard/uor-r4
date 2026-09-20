@@ -1,5 +1,7 @@
 # DeepSeek execution prompt — one learned older-prefix group-state channel
 
+> Historical executed specification. PR #1304 delivered a scoped numerical negative with incomplete artifact/reload and generation qualification. Read the [review after #1304](prefix-pilot-review-2026-09-20.md) and [current execution prompt](deepseek-readout-diagnostic-step-2026-09-20.md) before acting; do not repeat these fits to repair reporting.
+
 Work on **UOR-R4 Geometric Language Model**, `UOR-Foundation/uor-r4`. Read this prompt and `docs/integration/ordered-prefix-review-2026-09-20.md` completely. Refresh origin/main beyond audited base `3095c1d48e213deb234d31d21c94da7adcca7e6e` (PR #1302), including the protected delivery of these instructions.
 
 **Implement, fit and evaluate one hard learned group-state/read channel above the unchanged step-512 prior.** Compare learned older-prefix actions against fixed actions and an equally sized fitted local-tail channel. The question is predictive use of older history, not whether extra parameters can improve a weak local predictor. Do not rerun the unchanged prior's training or the complete frozen replay. Complete the few provenance/diagnostic corrections below in the same task. Execute the pilot, preserve negatives and make one evidence-supported next recommendation.

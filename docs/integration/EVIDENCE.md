@@ -1,5 +1,7 @@
 # EVIDENCE
 
+**Latest interpretation — review after PR #1304:** [source/artifact/statistical review](prefix-pilot-review-2026-09-20.md) preserves the scoped prefix negative and independently reproduced arm-versus-arm comparisons. It corrects hash-only artifact descriptors, untested reload, incomplete continuation, wrong local-tail generation, truncated count-reference argmax, missing control-loss vectors and unverified wall-time charge. Count-reference superiority does not isolate an output-head defect. The [next experiment](deepseek-readout-diagnostic-step-2026-09-20.md) is one bounded fixed-feature target-objective diagnostic after recovery; NOT_RUN. Earlier interpretations below remain historical and must be read with this correction.
+
 **Latest interpretation:** the [learned older-prefix pilot](../evidence/native_geometric_ordered_prefix_pilot_2026-09-20.txt) has been **executed** (the [review after #1302](ordered-prefix-review-2026-09-20.md) had left it NOT_RUN). One exact 120-state `2I` register with learned 8-way actions and a width-16 ternary reader, plus matched fixed-action and local-tail fitted controls, scores **7.5756** bits/target on a new 36-document / 288-window panel against the frozen parent's **7.5584** (−0.0172, interval negative); it does **not** beat the equally sized local-tail control (+0.0008, interval includes zero) and shows **no positive conditional-permutation penalty** (−0.0015, interval includes zero). Actions were genuinely learned (1,083 hard transitions). The predeclared screen **FAILED**. The same-dose order-2 count reference still beats the parent by 0.479 bits, so the seam is the **local readout**. Derived window offsets (38,152 of 38,987), pair labels and label scope were corrected in a separate sealed root; the sealed replay and every original receipt are preserved.
 
 **Previous interpretation:** [post-qualification source review](cold-context-review-2026-09-19.md) scopes #1292 and its remaining instrument corrections.
@@ -221,3 +223,17 @@ second document of the ordered-prefix pair. The frozen parent was never retraine
 | References (same occurrences) | unigram 9.18503; quantized bias 9.25017; order-2 full-fit 5.06116; 4,096-consumed 5.93805; 512-window 7.07926 | A count reference on the *same* 512-window dose beats the parent by **0.479** bits/target; the seam is local readout |
 | Generation | Parent reproduces the historical legacy outputs exactly. `pair` is a cycle certificate only for the two-token parent, `ring` for the new arms; only the all-32 prompt shows a ring cycle (entry 48, period 1) | Other arm trajectories show repeated pairs with **no** ring cycle: observed repetition without a proven cycle |
 | Derived corrections | Separate sealed root: 38,152 of 38,987 window offsets corrected with boundary verification; `(32,32)→32` preserved as a pair fixed point, `(284,198)→198` corrected to immediate repetition with successor `(198,198)→504` | Sealed `eval-replay-2` untouched |
+
+
+## Superseding interpretation after PR #1304
+
+| Scope | Correction / supported evidence |
+| --- | --- |
+| Numerical prefix pilot | Hard-forward fit/indexing/gradients supported; three arm means and arm-versus-arm CIs reproduce from saved rows. Main screen remains failed; no family-wide absence-of-history conclusion |
+| Artifact and continuation | `.cpl2.json` stores hashes/actions, not complete hard weights/table. CPXS preserves recoverable final parameters but lacks runner cursor/schedule/config identity. Recovery/export/reload remains next work |
+| Generation | Local-tail used older-prefix state; count reference searched only three candidates. Those named generation comparisons are withdrawn pending corrected replay. Original raw outputs remain preserved |
+| Control statistics | Saved donor map/support verify; parent/permuted/reversed loss vectors are absent. Their reported intervals need recovery forwards for independent reconstruction |
+| Accounting/labels | Probe2updates/16windows; action norm is pre-Jacobian palette credit; final cache348,176,384bytes. Recorded90-minute charge retained conservatively, not independently measured wall time |
+| Next mechanism | Frozen-feature output-only empirical-versus-smoothed targets, conditional offline float comparison. No count-match gate before future conditional geometric read/update |
+
+See [complete review](prefix-pilot-review-2026-09-20.md). No new model measurement in this interpretation pass.

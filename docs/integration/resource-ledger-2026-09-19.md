@@ -682,3 +682,12 @@ roots at `.uor-models/realtext-prior-2026-09-20/`: `prefix-pilot-probe-1`, `pref
 storage ≈32 MiB; the original sealed roots `attempt-1`, `eval-replay-2`, `parity-before` and
 `parity-after` are untouched and nothing was deleted. The 128 MiB model-storage stop margin is intact.
 No training of the frozen parent, no new corpus download, no paid/external compute.
+
+
+## Review after PR #1304 — charge provenance correction, no balance mutation
+
+The authoritative owner JSON and prose both record **159,438,565 / 159,800,000 ms**, remaining **361,435 ms**. The preceding 5,400,000 ms entry equals the full reservation and says “Measured.” PR #1303 merged at 05:09:39 UTC and #1304 at 05:43:27 UTC, a 33m48s span; recorded model/probe intervals do not substantiate a 90-minute elapsed charge. Preserve the existing amount as a conservative recorded charge with unverified actual-wall basis. This review does not refund, re-charge or extend it. Future runs must save measured nonoverlapping elapsed intervals, including failures, and must not charge an entire projection merely because it was allocated.
+
+Probe executed 2 batch updates over 16 windows. Final saved parent-score cache is 21,251 entries / 348,176,384 bytes; 9,891 / 162 MB describes its initial panel cache. Both complete pilots ended with byte-identical checkpoints for all arms; the repeat for generation-label repair added no new learned outcome. Recovery should load saved parameters and evaluate only the changed boundary.
+
+The [next prompt](deepseek-readout-diagnostic-step-2026-09-20.md) proposes 5,400,000 ms: 900 s recovery; 1,500 s implementation/build/checks; 300 s timing/preparation; 1,500 s paired hard fits/evaluation; 600 s conditional floating diagnostic; 600 s delivery/checkpoint/reserve. Proposed standing-authorized extension **+5,400,000 ms**, new limit **165,200,000 ms**, headroom **5,761,435 ms**. NOT applied by this review. Refresh inventory/projection and record before use. One worker, 4 Cargo jobs, 8 GiB RSS, 512 MiB new data plus 1 GiB incremental reused build output, 128 MiB margin. No model/build/training ran in this review, no new charge, no deletion or paid compute.
