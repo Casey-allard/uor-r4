@@ -1,14 +1,33 @@
 # UOR-R4 Geometric Language Model — canonical project plan
 
-## Active direction — recover the measured output gain through existing serving
+## Active direction — the ternary projection is executed; E stays the local baseline
 
-The [principal review after PR #1306](readout-result-review-2026-09-20.md) preserves the empirical head's development improvement and withdraws the claim that feature rank/capacity is the measured dominant bottleneck. On the fixed 36-document /288-window /17342-target panel, parent/E/S/float score **7.558429 /7.170816 /7.188585 /6.874144 bits/target**. The independently reconstructed paired S-over-E gain is −0.017769 [−0.033419, −0.001768]; float-over-S is +0.314440 [0.296844, 0.331694]. These are nominal open-development comparisons, not useful-language qualification.
+D0-b/D1/D2 and geometric research priority remain unchanged. The frozen prior's corrected contextual baseline
+survives, and the empirical output-head refit is the strengthened local baseline.
 
-The new heads use 4096 windows; the 512-window count reference is not their same-dose comparator. E's gap to the 4096 reference is about 1.232764 bits. E/S KLs concern different teachers; the float's implied KL against the actual S teacher is 2.866958. S/F used λ=(0.8,0.7), not the prescribed consumed-reference (0.7,0.5). Gate-code mistakes do not change this run's decisions. E/S exports contain a placeholder tokenizer digest and require numerical-preserving metadata correction and complete reloaded evaluation. Both hard heads still enter short pair cycles.
+**The fixed-feature ternary projection is executed.** [Receipt](../evidence/native_geometric_head_projection_2026-09-20.txt).
+With the parent's embeddings, integer features, bias and `F` frozen and only the output head changed, **Q0**
+(the existing quantizer applied once to the retained floating head) scores 7.416178 bits/target and **QG**
+(one activation-aware dyadic ternary calibration over the fit-feature Gram) scores 7.190872, against the
+incumbent gradient-trained ternary head **E** at 7.170816 and the floating head **F** at 6.874144 on the same
+36-document / 288-window / 17,342-target panel.
 
-**One next step:** execute the [complete ternary head-projection prompt](deepseek-head-projection-step-2026-09-20.md). Reuse the saved floating weights, compare existing quantization Q0 with one fit-activation-aware dyadic ternary calibration QG, export/reload through the unchanged CPL2 runtime, and evaluate against E with retained controls and generation. No new gradient fit, feature width, precision or serving format. This is post-training calibration, not a new model architecture. The experiment is **NOT_RUN**. Return to query-conditioned geometric read/update after this bounded reuse experiment; count matching is not a stage lock.
+**Both conversions FAIL the practical screen against E** (QG −0.0201 bits, interval entirely negative; Q0
+−0.2454), while the **method-attribution screen PASSES** (+0.2253 bits/target for QG over Q0 [0.200621,
+0.250299]). QG reconstructs F's scores 12.7x better than E and still predicts worse: lower squared-score
+reconstruction error does not imply lower cross-entropy. **E remains the stronger qualified numerical
+baseline**; this rejects these two bounded conversions and does not establish ternary infeasibility,
+feature-rank saturation or a need to widen. The earlier capacity-diagnosis reading stays withdrawn.
 
-#973 owns the active learner, #963 complete cost and #964 numerical/artifact guarantees. No broad issue is completed by this diagnostic. The [review](readout-result-review-2026-09-20.md) and [current state](current-state.md) own exact results and limitations; the responsibilities below remain the programme.
+**Next dependency.** Per the [review](readout-result-review-2026-09-20.md), the architectural priority returns
+to a **query-conditioned geometric read/update** on this strengthened local baseline, with a separable-prefix
+residual and a matched local-only control at the same dose and panel. A <=4-bit head change,
+quantization-aware refinement or joint feature training remains a separately justified option rather than an
+automatic new run. Exact occurrence/version memory, learned write/reset, shared composition, conversation and
+executable Rust qualification remain the larger programme.
+
+#973 owns the active learner, #963 complete cost and #964 scoped numerical/artifact guarantees. No broad
+issue is completed by this projection.
 
 ## Research dependencies and exit conditions
 

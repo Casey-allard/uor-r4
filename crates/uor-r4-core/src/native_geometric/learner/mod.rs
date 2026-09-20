@@ -9,6 +9,7 @@ pub mod cold_prior;
 pub mod embedding;
 pub mod geometric_attention;
 pub mod group_table;
+pub mod head_projection;
 pub mod jepa_trainer;
 pub mod lowbit;
 pub mod lowbit_attention;

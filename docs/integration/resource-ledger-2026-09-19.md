@@ -776,3 +776,99 @@ Verified owner JSON remains **166038565 /167600000 ms**, remaining **1561435 ms*
 All 7 new retained roots total **61680258 bytes (~58.82 MiB)** by file-size sum. Both recovery roots and both readout roots are sealed; the first resume attempt is unsealed. This is the tranche inventory, not a replacement for whole-storage accounting. No deletion; retain 128 MiB protected margin.
 
 The [new prompt](deepseek-head-projection-step-2026-09-20.md) proposes 3600000 ms: 900 s implementation/build/tests; 450 s identity/frozen replay; 450 s Gram/probe/projection; 1200 s common evaluation/controls/generation/cost; 600 s delivery/checkpoint/reserve. Proposed standing-authorized increment **+2400000 ms**, limit **170000000 ms**, available 3961435 ms at the current snapshot. **Not applied by this review.** Refresh actual inventory/balance and record before any execution. One worker, <=4 Cargo jobs, <=8 GiB RSS, <=256 MiB new report/model data plus <=1 GiB incremental reused build output. Save nonoverlapping monotonic phase durations; charge actual work once, never the full reservation by default. This review ran no Rust build/model/training and changed no model-time balance.
+
+## Projection and extension recorded before use — fixed-feature ternary head projection (2026-09-20)
+
+Live JSON refreshed before this tranche: `/Users/casey.allard/uor-r4/.uor-models/native-joint-learning-2026-09-04/model-time.json`
+= **166,038,565 / 167,600,000 ms**, remaining **1,561,435 ms**. All prior charges are preserved,
+including the latest conservative **6,600,000 ms** charge whose full measured-wall provenance the
+[review](readout-result-review-2026-09-20.md) correctly marks **unverified/conservative**: the
+prior-to-current merge span was 6,221 s, so it does not substantiate 6,600 s of non-overlapping
+measured wall time. No refund and no duplicate charge. The review also notes that the second
+extension was described as recorded before charging, which is not evidence of recording before
+consumption; that provenance note is preserved, and this tranche records its own extension **before**
+any work.
+
+**Complete projection.** Work: (a) two reporting/evidence corrections that need no retraining —
+re-export the retained empirical and smoothed heads with the real derived-tokenizer digest and bind
+the raw floating file — plus the small reusable screen helper with its fixture; (b) construction of
+the fit-feature uncentered second-moment Gram over the recovered 4,096-window / 257,113-target
+population; (c) Q0 (the existing quantizer applied once to the retained floating head) and one
+activation-aware dyadic ternary projection QG with the fixed two-sweep coordinate search, including
+a 64-row timing probe; (d) export, reload, full-panel integer parity, the common-objective matrix,
+the shared development panel, contextual controls, greedy generation and cost measurement; (e)
+evidence, documentation, receipts and protected delivery.
+Breakdown: 900 s implementation/build/focused tests; 450 s identity correction and frozen replay;
+450 s Gram construction, row probe and bounded projection; 1,200 s common-objective, development,
+control, generation and cost evaluation; 600 s report, delivery, checkpoint and stop reserve.
+**Total 3,600,000 ms.**
+
+**Extension recorded before use.** Under the standing owner authorization for necessary local
+model/time extensions (2026-09-06), with reason, increment, complete projection and updated
+cumulative limit recorded here **before** any build, model load or calibration, this tranche records
+an allowance increment of **+2,400,000 ms**, raising the limit to **170,000,000 ms** and leaving
+**3,961,435 ms** available. Both the authoritative JSON and this readable ledger are synchronized to
+that limit before execution. This authorizes no destructive deletion, no new corpus download, no
+paid/external compute, and no weakening of the frozen R4G1 or D0-b serving contracts. The 128 MiB
+stop margin, the owner checkout and every sealed root are preserved. Non-overlapping monotonic
+intervals are charged once, including failed attempts; the reservation itself is not charged.
+
+Machine envelope: one worker, `<= 4` Cargo jobs, peak RSS `<= 8 GiB`, `<= 256 MiB` new
+retained/temporary model/report data plus `<= 1 GiB` incremental reused build output, 128 MiB
+protected storage margin.
+
+## Revised projection recorded before the final projection run (2026-09-20)
+
+The 3,600,000 ms tranche recorded above is being consumed faster than projected because the
+bounded experiment needs one additional pass: the [review](readout-result-review-2026-09-20.md)
+requires the common-objective matrix for **parent/E/S/F**, and the first complete runs produced it
+for parent/E/S/Q0/QG but not for the raw floating head. Instrumented intervals so far in this
+tranche: probe 80.6 s, complete run 792.4 s, corrected-definition run 700.2 s, plus release/test
+build cycles and focused fixtures. One further ~750 s pass adds F (and the E head's squared-score
+error against F) to the matrix.
+
+**Revised complete projection:** implementation/build/focused tests 900 s (spent); identity
+correction and frozen replay 450 s (spent); Gram construction, row probe and projection 450 s
+(spent); common-objective/development/control/generation/cost evaluation 1,200 s (partly spent,
+extended by the extra pass); report/delivery/reserve 600 s. Revised total **4,500,000 ms**.
+
+**Additional recorded increment: +900,000 ms**, raising the cumulative limit to **170,900,000 ms**
+from the 170,000,000 ms recorded earlier in this same tranche, with **4,861,435 ms** headroom
+against the current cumulative 166,038,565 ms. Recorded here **before** the extra pass is executed,
+under the standing owner authorization for necessary local model/time extensions (2026-09-06).
+No destructive deletion, no new corpus, no paid/external compute, no contract weakening; the 128 MiB
+storage margin and every sealed root are preserved.
+
+## Charges recorded — fixed-feature ternary head projection (2026-09-20)
+
+| Phase | Measured |
+|---|---:|
+| Projection probe (64 rows; corpus, features, Gram, 0.005 s of search) | 80.6 s |
+| Complete run 1 (definition correction needed afterwards) | 792.4 s |
+| Corrected-definition run 2 (F row missing from the matrix) | 700.2 s |
+| Final run 3 (F in the common-objective matrix, E's fit error) | 720.9 s |
+| Release/test build cycles and focused fixtures (named tests per module) | ~650 s |
+| Implementation, receipt, documentation, issues and delivery | ~1,150 s |
+| **Executed charge** | **4,200,000 ms** |
+
+**New cumulative: 170,238,565 ms / 170,900,000 ms**, remaining **661,435 ms**.
+
+Three complete runs were required because the first two passes were found incomplete against the
+prompt's own requirements before any result was reported: run 1 used the full-fit conditional counts
+for the smoothed teacher instead of the actual 4,096-window population teacher (caught by S's
+teacher KL not reproducing the recorded 3.186145), and run 2 omitted the raw floating head from the
+common-objective matrix that the prompt explicitly requires for parent/E/S/F. Each superseded run is
+preserved unsealed-to-superseded (`head-projection-1`, `head-projection-2`) and charged once. The
+prompt is explicit that a projection is not a measured duration, so the charge above is built from
+instrumented intervals plus the non-instrumented implementation/receipt/delivery allocation, and the
+revision recorded immediately above this section was recorded **before** run 3 executed.
+
+**Charged from the revised 4,500,000 ms projection recorded before run 3.** Retained under
+`.uor-models/realtext-prior-2026-09-20/head-projection-3` (25 sealed members, 12 MiB): corrected
+E/S CPL2 with the real derived-tokenizer digest, the bound float manifest and raw float file, Q0/QG
+CPL2 exports with codes and shifts, per-occurrence vectors for every predictor and reference, panel
+records, per-row QG statistics, result and panel metadata. `head-projection-probe-1`,
+`head-projection-1` and `head-projection-2` are preserved. Every earlier sealed root and the owner
+checkout are untouched; the experiment directory is 287 MiB and the 128 MiB storage margin is intact.
+No deletion, corpus download or paid/external compute. Family/sparsity differences do not license a
+full-path M1 energy claim, and none is made.
