@@ -879,4 +879,55 @@ The live JSON remains **170238565 /170900000 ms**, remaining **661435 ms**. This
 
 Preserve the 4200000-ms debit, labeling it **mixed measured/estimated, complete wall-time provenance unverified**. Listed approximate rows sum 4094.1 s and the preceding/current merge span is 3705 s; neither substantiates4200 s of nonoverlapping measured wall time. The claimed pre-use extension timeline is not independently timestamp-verified. No refund or inferred extra debit. The probe and all three complete report roots verify sealed sets; the earlier “unsealed-to-superseded” description is corrected. Their total retained size is 37278797 bytes.
 
-The [next query-read prompt](deepseek-geometric-query-step-2026-09-20.md) proposes **7200000 ms**: 900 s implementation/build,600 s fixture/tests, 300 s data/probe,3600 s three fits, 1200 s evaluation/artifact/controls/generation,600 s checkpoint/delivery/stop reserve. Proposed standing-authorized limit increment **+7200000 ms**, yielding **178100000 ms** and 7861435 ms headroom at this snapshot. **Not applied by this review.** Refresh both balances/storage and record the complete extension before use; charge actual nonoverlapping work once. One worker, <=4 Cargo jobs, <=8 GiB RSS, <=512 MiB new data plus <=1 GiB incremental build output, retaining the 128 MiB margin. No paid/external compute or deletion.
+The [next query-read prompt](deepseek-geometric-query-step-2026-09-20.md) proposes **7200000 ms**: 900 s implementation/build,600 s fixture/tests, 300 s data/probe,3600 s three fits, 1200 s evaluation/artifact/controls/generation,600 s checkpoint/delivery/stop reserve. Proposed standing-authorized limit increment **+7200000 ms**, yielding **178100000 ms** and 7861435 ms headroom at that snapshot. **Not applied by that review.** Refresh both balances/storage and record the complete extension before use; charge actual nonoverlapping work once. One worker, <=4 Cargo jobs, <=8 GiB RSS, <=512 MiB new data plus <=1 GiB incremental build output, retaining the 128 MiB margin. No paid/external compute or deletion.
+
+## Matched geometric query-read step — recorded extension before use (2026-09-20T15:58Z)
+
+**Refreshed before any model charge.** Live shared JSON read as `170238565 / 170900000 ms`,
+remaining **661435 ms**, matching the post-#1308 reconciliation. Measured cycle start
+`2026-09-20T15:58:26Z`.
+
+**Standing-authorized extension recorded before consumption:** reason = the complete matched
+query-read experiment cannot fit the 661435 ms remainder; increment = **+7200000 ms**; updated
+cumulative limit = **178100000 ms**; headroom immediately after the increment, before any charge,
+= **7861435 ms**. Recorded in `.uor-models/native-joint-learning-2026-09-04/model-time.json`
+(`limit_ms` 170900000 -> 178100000, `cumulative_ms` unchanged at 170238565). This is a limit
+refresh, not a debit; the cumulative balance only moves when work is charged once, after the fact.
+
+**Complete projection for the tranche (recorded before execution):** 900 s implementation and build;
+600 s reduced-form/learned fixtures and focused tests; 300 s data/throughput probe; 3600 s three
+fixed fits (Q/S/L, 512 batch-8 updates each, 64-update reader/output warm-up included); 1200 s
+reloaded evaluation, matched controls, artifact parity checks and greedy generation; 600 s
+checkpoint/report/delivery/stop reserve. Caps: one fit worker, at most four Cargo build jobs,
+<=8 GiB peak RSS, <=512 MiB new retained/temporary model/report data plus <=1 GiB incremental build
+output, **128 MiB storage stop margin retained**. The fit-time parent-score cache is explicitly
+bounded (a few thousand `V=4096` rows of ~16 KiB, not the full 62973 fit-context Cartesian product).
+No paid or external compute, no corpus download, no deletion.
+
+**Storage refresh (read-only tool):** `.uor-models` -> `LOWER_BOUND_OR_UNAVAILABLE` **20737146880 B**;
+owner `target/` **20798869504 B** (MEASURED); `.codex/worktrees` **493875200 B**; filesystem free
+**33149157376 B** against a proposed reserve of **36766079385 B** (`below_proposed_reserve: true`).
+The worktree `target/` and any new report root are counted in this same population; the inventory is
+read-only and deletes nothing.
+
+**Charge:** recorded once below, after the work, as measured nonoverlapping work. Failed compile
+cycles, failed fixtures and superseded runs are charged, not refunded.
+
+## Charges recorded — matched geometric query-read step (2026-09-20)
+
+| Date | Work | Charge | Basis |
+|---|---|---:|---|
+| 2026-09-20 | Query-read mechanism (`student/query_read.rs`: CPX3 artifact, three matched arms, analytic gradient, bounded cache, resumable checkpoint), 13 focused tests, the two projection source/report repairs with a correlated-Gram regression, the `bin/query-read.rs` runner, one superseded probe, one calibration run, one superseded complete run, one retained complete run, receipts and delivery | 5900000 ms | **Mixed.** Measured: four runner executions at 238.8 s (superseded probe), 288.7 s (calibration, superseded), 984.0 s (superseded complete run) and 992.8 s (retained complete run) = 2504.3 s; plus compile/test cycles including one 636.5 s broad `native_geometric::learner` run and roughly fourteen debug/release build cycles at 1.3–3.9 min. Estimated: a ~1200 s documentation/delivery allocation. Failed cycles, the superseded probe and the superseded complete run are charged. |
+
+**New cumulative: 176138565 ms.** Remaining: 178100000 − 176138565 = **1961435 ms (~32.7 min)**.
+
+**Charged from the 7200000 ms standing-authorized extension recorded above before use.** Retained
+under the claimed, sealed and verified report root
+`.uor-models/realtext-prior-2026-09-20/query-read-2`: 39 files, **35737680 bytes** — `result.json`,
+`panel.json`, `manifest.json`, per-occurrence `vectors/*.f64` for E and for every arm's own, donor,
+identity-query, reversed and read-disabled conditions, three `artifacts/*.cpx3`, seventeen
+`checkpoints/*.cpqk` at 0/64/128/256/512 and the continuation checkpoint, and the continuation
+comparison. The superseded `query-read-1` root is preserved sealed and untouched. Peak RSS
+**763002880 B** (`/usr/bin/time -l`, complete run). The **128 MiB model-storage stop margin is
+intact**; build output reuses the existing `target/`. No deletion, corpus download or paid/external
+compute. Physical energy remains UNAVAILABLE.

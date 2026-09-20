@@ -160,6 +160,11 @@ pub struct RowCandidate {
 }
 
 /// Solve `J(q,s)` for one row with exactly two coordinate sweeps per seed, no convergence loop.
+///
+/// The nearest-code seed is swept at **every** admissible shift, including `s0`. The untouched Q0
+/// row is also kept as an explicit candidate, but an untouched candidate is not a sweep from that
+/// seed, so it does not substitute for one: from the same `s0` start the coordinate descent can
+/// strictly improve `J` when the Gram is correlated.
 #[allow(clippy::too_many_arguments)]
 pub fn project_row(
     w: &[f32],
@@ -190,14 +195,18 @@ pub fn project_row(
     for &s in shifts.iter() {
         let a = (1u64 << s) as f64;
         let mut seeds: Vec<(Seed, Vec<i8>)> = Vec::new();
-        if s != s0 {
-            seeds.push((
-                Seed::Nearest,
-                (0..g.dv)
-                    .map(|j| nearest_ternary(w[j] as f64 / a))
-                    .collect(),
-            ));
-        }
+        // The nearest seed is swept at every admissible shift. `s0` is included: skipping it left
+        // the prescribed search incomplete, because the untouched Q0 candidate starts from the same
+        // codes but is never optimised.
+        // The nearest seed is swept at every admissible shift. `s0` is included: skipping it left
+        // the prescribed search incomplete, because the untouched Q0 candidate starts from the same
+        // codes but is never optimised.
+        seeds.push((
+            Seed::Nearest,
+            (0..g.dv)
+                .map(|j| nearest_ternary(w[j] as f64 / a))
+                .collect(),
+        ));
         if s == s_e {
             if let Some(row) = empirical_row {
                 seeds.push((Seed::Empirical, row.to_vec()));
@@ -431,6 +440,47 @@ mod tests {
             c1.j,
             j0
         );
+    }
+
+    /// The prescribed search sweeps the nearest-code seed at **every** admissible shift, including
+    /// `s0`. Correlation makes that sweep matter: the untouched Q0 row is not the optimum even at
+    /// its own scale.
+    ///
+    /// Correlated two-coordinate Gram `G = [[1, .9], [.9, 1]]`, `w = [.6, .6]`, `s0 = 0`.
+    /// Untouched `[1, 1]` has `J = .608`; the ascending/descending sweeps from the same nearest
+    /// seed at `s0` reach `[0, 1]` with `J = .088`. With the seed skipped at `s0` the returned row
+    /// stays at `.608`.
+    #[test]
+    fn nearest_seed_is_swept_at_s0_on_a_correlated_gram() {
+        let dv = 2usize;
+        let mut g = Gram::new(dv);
+        // Set the finalized matrix directly: the Gram accumulation is covered by its own test, and
+        // the prescribed correlated matrix is not exactly realizable from integer feature rows.
+        g.g = vec![1.0, 0.9, 0.9, 1.0];
+        g.n = 1;
+        let w: Vec<f32> = vec![0.6, 0.6];
+        let s0 = 0u32;
+
+        let q0: Vec<i8> = (0..dv)
+            .map(|j| nearest_ternary(w[j] as f64 / (1u64 << s0) as f64))
+            .collect();
+        assert_eq!(q0, vec![1, 1], "untouched Q0 is the nearest ternary row");
+        let j0 = reconstruction_error(&w, &q0, s0, &g);
+        assert!((j0 - 0.608).abs() < 1e-6, "untouched Q0 J = {j0}");
+
+        let c = project_row(&w, s0, 0, None, &g, MAX_SAFE_SHIFT);
+        assert_eq!(c.seed, Seed::Nearest);
+        assert_eq!(c.shift, s0);
+        assert_eq!(c.codes, vec![0, 1], "the sweep must reach the optimum");
+        // Independently recompute the objective of the selected row rather than trusting `c.j`.
+        let direct = reconstruction_error(&w, &c.codes, c.shift, &g);
+        assert!(
+            (c.j - direct).abs() < 1e-12,
+            "c.j {} != direct {direct}",
+            c.j
+        );
+        assert!((c.j - 0.088).abs() < 1e-6, "swept J = {}", c.j);
+        assert!(c.j < j0 - 0.1, "the sweep must strictly beat untouched Q0");
     }
 
     /// Nearest-ternary tie semantics: exactly +/-0.5 rounds to magnitude one, and 0.49 rounds to 0.

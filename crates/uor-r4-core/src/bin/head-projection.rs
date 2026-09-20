@@ -1319,9 +1319,9 @@ fn run() -> Result<ExitCode, String> {
                 "not_a_standalone_served_model": true,
             },
             "population": {"windows": windows.len(), "targets": n_occ, "distinct_contexts": ctx_keys.len(), "source": "recovered first 4096 consumed windows"},
-            "gram": {"n": gram.n, "dv": DV, "uncentered": true, "singular": true, "inverted": false, "seconds": gram_s},
+            "gram": {"n": gram.n, "dv": DV, "uncentered": true, "singularity": "NOT_MEASURED", "singular_inputs_supported": true, "inverted": false, "seconds": gram_s},
             "projection": {
-                "algorithm": "two coordinate sweeps (ascending then descending) per (shift, seed) candidate; strictly-negative acceptance; ascending tie-break; Q0 included as an explicit candidate",
+                "algorithm": "two coordinate sweeps (ascending then descending) per (shift, seed) candidate; strictly-negative acceptance; ascending tie-break; Q0 included as an explicit candidate; the nearest-code seed is swept at every admissible shift including s0",
                 "shifts_tried": "sorted unique {s0-1, s0, s0+1, sE} filtered to 0..=15",
                 "max_safe_shift": MAX_SAFE_SHIFT,
                 "comparison_tolerance": 1e-9,

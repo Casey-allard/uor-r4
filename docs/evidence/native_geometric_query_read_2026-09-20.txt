@@ -1,0 +1,138 @@
+UOR-R4 GEOMETRIC LANGUAGE MODEL — EVIDENCE RECEIPT
+Matched geometric query read (Q / S / L) against the frozen corrected empirical head E
+=========================================================================================
+
+Date:            2026-09-20
+Source revision: 92240a8619927d287bb90ee50aeebf0c944bc597  (merge of PR #1309)
+Worktree:        /Users/casey.allard/uor-r4/.worktrees/geometric-query-read
+                 branch codex/geometric-query-read
+Executable:      crates/uor-r4-core/src/bin/query-read.rs  (uor-r4-core)
+Model module:    crates/uor-r4-core/src/native_geometric/learner/query_read.rs
+Review:          docs/integration/query-read-result-2026-09-20.md
+Prompt executed: docs/integration/deepseek-geometric-query-step-2026-09-20.md
+
+SEALED REPORT ROOTS
+-------------------
+Retained:    .uor-models/realtext-prior-2026-09-20/query-read-2
+             39 files, 35,737,680 bytes, claimed exclusively, sealed, complete set verified
+             (report_output::claim -> seal -> verify, 0 unlisted members)
+Superseded:  .uor-models/realtext-prior-2026-09-20/query-read-1
+             same numbers; superseded only for the local-arm reversal-control defect described
+             in the review. Preserved sealed and never reused.
+Owner checkout and every earlier sealed root untouched.
+
+PINNED INPUTS (verified before loading)
+---------------------------------------
+parent E      565cf98a01273af38425687adb522704b09a89bd7ab976b58b20bfbdaccfa0bf
+              head-projection-3/corrected/empirical.cpl2
+checkpoint    1c3dfedb2248ec76c21f320b7ecec585c7a522a2d47e35ed5dc9eaca2454bff2
+              attempt-1/prior_realtext.ckpt      (exposure witness only, not the parent)
+tokenizer     9ca9acddb6525a194ec8ac7a87f24fbba7232a9a15ffa1af0c1224fcd888e47c (source)
+              a7ac75b68aa997fe7cc338d25d843157f2dc9d4265fb2f958ee779bb04828d6f (derived V=4096)
+corpus        pinned inputs/docs checkout, commit e9c04e80
+exact table   14,400 products verified; 0 mismatches against the historical floating table;
+              identity group ID 1; palette contains the identity at slot 0
+
+POPULATION REPRODUCTION
+-----------------------
+429 eligible documents, 38,987 fit windows
+4096 consumed fit windows / 257,113 n-1 targets (recovered permutation, not re-derived)
+36-document / 288-window / 17,342-target open-dev panel
+Frozen E dev micro CE 7.170815717556 bits/target (expected 7.170815717556) — reproduced
+
+FINAL RELOADED CROSS-ENTROPY (bits/target), 2000-draw paired document bootstrap, seed 0x12345678
+------------------------------------------------------------------------------------------------
+E  corrected empirical incumbent        7.170815718
+Q  query-conditioned older read         7.141505532   gain over E +0.029310 [0.022866, 0.036005]
+S  separable older + query read         7.032227740   gain over E +0.138588 [0.125831, 0.150844]
+L  local-only matched read              7.101049449   gain over E +0.069766 [0.058944, 0.080294]
+
+S is 0.109278 bits BETTER than Q.  L is 0.040456 bits BETTER than Q.
+
+PREDECLARED SCREENS
+-------------------
+practical (E-Q >= 0.10 with positive lower bound)            FAIL  0.029310 < 0.10
+matched versus S (S-Q > 0, lower bound > 0)                   FAIL  S is better by 0.109278
+matched versus L (L-Q > 0, lower bound > 0)                   FAIL  L is better by 0.040456
+older content (Q donor penalty >= 0.10, lower bound > 0)      FAIL  -0.003830 [-0.012235, +0.004366]
+query-route use (Q identity-query penalty, lower bound > 0)   FAIL  +0.000322 [-0.002913, +0.003358]
+E reproduced                                                  PASS
+instrument checks                                             PASS
+
+DECISION: valid NEGATIVE at this fixed architecture and dose. No candidate promoted.
+
+MATCHED CONTROLS (all on the reloaded CPX3 artifact)
+----------------------------------------------------
+read disabled                  every arm equals E exactly (per-occurrence loss vectors identical)
+older-prefix donor             fixed map grouped by exact (previous, current, older_length),
+                               recomputed with the recipient arm's own learned A
+                               1,177 eligible; 576 no-history excluded; 16,583 strata
+                               changed reads  0 (L), 558 (Q), 564 (S)
+L exact invariance             byte-identical under donor map and older-order reversal
+query neutralised to b = e     S +0.190660 [0.173466, 0.207857]   (channel used)
+                               L +0.019431 [0.014554, 0.024397]   (channel used)
+                               Q +0.000322 [-0.002913, +0.003358] (not distinguishable from zero)
+reload parity                  0 mismatches over all 17,342 positions (rows and integer logits)
+continuation                   split at 4 with an intervening CPQK checkpoint and resume equals
+                               an uninterrupted 8-update run: next-batch loss, all losses and the
+                               resulting artifact bytes (35209523ac...) are equal
+
+LEARNING MOVEMENT
+-----------------
+hard write-code changes   1549 (L), 2173 (Q), 2241 (S)  of 4096
+hard query-code changes   1544 (Q), 1571 (S), 1581 (L)  of 4096
+R/W update count 512; A/B update count 448 per arm (64-update R/W-only warm-up)
+
+GENERATION (six retained prompts, 64 greedy tokens, reloaded artifacts, no decoder change)
+------------------------------------------------------------------------------------------
+Every arm degenerates: five of six prompts enter a length-1 pair cycle within <=64 steps; prompt
+index 3 repeats its complete 64-token ring at offset 48 for Q, S and L. Cycle certificates use the
+complete bounded token ring plus availability for the context arms. No language claim follows.
+
+COST (measured)
+---------------
+CPX3 artifact                53,555 bytes per arm
+learned parameters           1,595,904 bytes per arm (R/W/A/B masters and moments)
+64-token generation          0.099 s (Q) / 0.123 s (S) / 0.100 s (L), 8 repeats, one prompt
+older-prefix fold (62 toks)  88.9 ns (Q) / 108.1 ns (S) / 88.7 ns (L)
+local-pair fold              2.4 ns (Q) / 2.5 ns (S) / 2.5 ns (L)
+parent-score cache           bounded at 32,768 entries, peak 536,412,160 B, 2-3 resets per arm
+peak RSS                     763,002,880 B (/usr/bin/time -l, complete run)
+complete run wall time       992.7 s
+physical energy              UNAVAILABLE
+
+CORRECTIONS DELIVERED WITH THIS STEP
+------------------------------------
+1. learner/head_projection.rs project_row now sweeps the nearest-code seed at every admissible
+   shift including s0. Focused regression nearest_seed_is_swept_at_s0_on_a_correlated_gram:
+   G=[[1,.9],[.9,1]], w=[.6,.6], s0=0; untouched [1,1] J=.608, swept [0,1] J=.088; reverting the
+   guard makes the test fail [1,1] vs [0,1] (confirmed). The complete originally specified
+   projection remains NOT_RUN; no QG campaign was rerun and no old report byte changed.
+2. bin/head-projection.rs writes singularity "NOT_MEASURED" and singular_inputs_supported true
+   instead of the hardcoded singular:true. No rank was computed.
+3. bin/query-read.rs local-arm reversal control corrected before the retained run (see review);
+   query-read-2 replaces query-read-1 on that reporting defect only.
+
+FOCUSED TESTS EXECUTED
+----------------------
+native_geometric::learner::head_projection  8 passed (including the new s0-seed regression)
+native_geometric::learner::query_read      13 passed
+  palette/identity domain resolution; older-prefix exclusion and 62-token bound; step 0 equals E;
+  future-token causality; local-arm older-prefix invariance; Q/S exact warm-up agreement;
+  reader/output gradients versus a continuous surrogate (finite differences plus implementation);
+  categorical credit versus the state relaxation with distinct A and B credit; the declared Q-S
+  algebra and two-credit coincident rows; artifact round trip with malformed-input, CPX2 and
+  trailing-byte rejection; checkpoint round trip with arm-mismatch rejection; constructive
+  checkerboard +1024,-1024,-1024,+1024 with 4/4 argmax after export/reload; learned-query fixture
+  2/4 -> 4/4 with source-swap, query-swap 0/4 and read-disabled 2/4.
+Unrelated pre-existing failures observed in the same broad run and NOT caused by this change:
+  learner::lowbit_attention (3), learner::lowbit_core::explore_state_growth (1),
+  learner::geometric_attention (1). Those modules were not touched.
+
+CLAIM BOUNDARIES
+----------------
+No alpha, fluent conversation, coding, frontier-capability, general-prose or energy claim. This is
+a query-conditioned read, not selective write/reset and not a query-conditioned recurrent update.
+One 120-state register holds at most log2(120) ~ 6.91 bits. The panel is nominal repeated open
+development on correlated repository documents. No advantage of the 2I group over other finite
+groups is established. Prime identities, zeta phases and paired-H4 capacity are untouched.

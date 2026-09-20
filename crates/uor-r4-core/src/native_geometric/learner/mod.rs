@@ -17,6 +17,7 @@ pub mod lowbit_core;
 pub mod prefix_artifact;
 pub mod prefix_state;
 pub mod prior_learning;
+pub mod query_read;
 pub mod realtext_support;
 pub mod transition_table;
 pub mod vsa_codes;
@@ -42,6 +43,7 @@ pub use lowbit::TernaryLinear;
 pub use lowbit_attention::{LowBitAttention, LowBitAttentionTrainer};
 pub use lowbit_core::{LowBitCore, LowBitCoreTrainer, TrainConfig, DEFAULT_STATE_DIM};
 pub use prior_learning::{PriorCore, PriorTrainer};
+pub use query_read::{QueryArm, QueryHard, QueryTrainer};
 pub use transition_table::{
     ContinuousLaneTable, DiscreteServingTable, MultiLaneTransitionTables, ENTRIES_PER_TABLE,
 };
