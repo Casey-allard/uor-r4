@@ -14,6 +14,7 @@ pub mod jepa_trainer;
 pub mod lowbit;
 pub mod lowbit_attention;
 pub mod lowbit_core;
+pub mod occurrence;
 pub mod prefix_artifact;
 pub mod prefix_state;
 pub mod prior_learning;
@@ -42,6 +43,7 @@ pub use jepa_trainer::{
 pub use lowbit::TernaryLinear;
 pub use lowbit_attention::{LowBitAttention, LowBitAttentionTrainer};
 pub use lowbit_core::{LowBitCore, LowBitCoreTrainer, TrainConfig, DEFAULT_STATE_DIM};
+pub use occurrence::{OccurrenceArtifact, OccurrenceRing, Selector, SelectorTrainer};
 pub use prior_learning::{PriorCore, PriorTrainer};
 pub use query_read::{QueryArm, QueryHard, QueryTrainer};
 pub use transition_table::{

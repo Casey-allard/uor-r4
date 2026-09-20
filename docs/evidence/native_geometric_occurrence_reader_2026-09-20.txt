@@ -1,0 +1,133 @@
+UOR-R4 GEOMETRIC LANGUAGE MODEL — EVIDENCE RECEIPT
+One learned geometric exact-occurrence reader
+================================================================
+
+Date:            2026-09-20
+Base source:     1dae322ce7770673c0046597c10f4361564cd3a0  (merge of PR #1313)
+Worktree:        /Users/casey.allard/uor-r4/.worktrees/geometric-query-read
+                 branch codex/occurrence-reader
+Executable:      crates/uor-r4-core/src/bin/occurrence-reader.rs
+Module:          crates/uor-r4-core/src/native_geometric/learner/occurrence.rs
+Design note:     docs/integration/occurrence-reader-design-2026-09-20.md  (written before scoring)
+Review:          docs/integration/occurrence-reader-result-2026-09-20.md
+
+SEALED ROOTS
+------------
+Retained:   .uor-models/realtext-prior-2026-09-20/occurrence-reader-4
+            21 files, 3,385,009 bytes, claimed exclusively, sealed, verified (0 unlisted)
+Superseded: occurrence-reader-1  surrogate-only threshold (mu = 1), no class balance
+            occurrence-reader-2  corrected threshold/balance, mis-specified altered-source control
+            occurrence-reader-3  duplicate of -2 written by a stale binary after a failed build
+Continuation: occurrence-continuation-1/2/3 (cross-process resume checks)
+All preserved sealed; no root reused.
+
+PINNED INPUTS
+-------------
+E                565cf98a01273af38425687adb522704b09a89bd7ab976b58b20bfbdaccfa0bf
+S local query    ed9affd638ee93670559c626fd6dab91dc2a3c7faa5db66ec9e5a486bcdbdfad
+tokenizer        9ca9acddb6525a194ec8ac7a87f24fbba7232a9a15ffa1af0c1224fcd888e47c (source)
+                 a7ac75b68aa997fe7cc338d25d843157f2dc9d4265fb2f958ee779bb04828d6f (derived raw)
+corpus           pinned inputs/docs (e9c04e80)
+
+BASELINE DEFINITION
+-------------------
+z_local(v) = z_E(v) + u_S(b) for i >= 2, else z_E.  No S history row. No history fold is executed:
+b is read directly from the frozen artifact's query map. Verified: read-disabled equals z_local at
+all 978 checked positions.
+
+MECHANISM
+---------
+ring capacity 128 observed tokens, session sequence identity; at most 24 candidates admitted per
+position by exact token equality scanned newest-first from the causal prefix only; nine 0/1
+features; ten-scalar signed <=4-bit selector plus an explicit NoRead threshold; the selected
+occurrence's exact observed successor emitted as +2^14 (amp_shift 14).
+Quantized selector w = [4, -3, 4, 2, 0, 0, -4, 4, 3], mu = -7 (tune-calibrated; uncalibrated -1).
+Export/reload decision mismatches: 0.
+
+CONSTRUCTION POPULATION (real BPE path)
+---------------------------------------
+Every role/key/value is a genuine single-token 3-7 letter word that round-trips decode/encode.
+12 roles / 24 keys / 28 fit values / 12 held-out value ids / 14 slot-sharing role pairs.
+Format: M assignment blocks (role,key,value) then a query (role,key) whose successor is the answer;
+a decoy repeats the key with another role and another value, placed after the answer in half the
+sequences. exact_role: answer role == query role. geom_slot_only: answer role is a different token
+with the same transported write slot; the decoy's role is in another slot, so only the geometric
+feature can identify the correct source.
+Seeds: fit 0x5A17F17E (420 seq), tune 0x5A177A6E (120), fresh 0x5A17F2E5 (240, held-out values).
+Admission (positions / with candidates / covered / reader-relevant):
+  fit 6324 / 1768 / 737 / 737 ; tune 1797 / 490 / 191 / 191 ; fresh 3609 / 1094 / 443 / 443
+Counters: 0 dropped by the candidate bound; 0 matches without an observed successor.
+
+PRIMARY ENDPOINT — hard accuracy, reader-relevant positions, geom_slot_only family, fresh panel
+----------------------------------------------------------------------------------------------
+z_local baseline            0.000
+learned reader              0.825
+latest-occurrence selector  0.533
+geometry-disabled           0.550   (same weights, w2 = w3 = w7 = w8 = 0)
+exact-role-match selector   0.008
+reader - local = +0.825 [0.768, 0.880], 2000 paired-by-sequence draws  -> PASS (margin 0.20)
+reader - latest      = +0.292  ;  reader - geometry-disabled = +0.275  -> geometry contributes
+exact_role family: reader 0.138 vs latest 0.095 / exact-role 0.068 / geometry-disabled 0.134
+
+DECLARED NON-REGRESSION TOLERANCES
+----------------------------------
+fresh synthetic, all 3609 positions: z_local 11.7806 -> reader 12.4519 bits/token, delta +0.6713
+   tolerance +0.01  -> FAIL
+bounded raw text, 8 windows / 488 positions: z_local 6.8002 -> reader 9.5892, delta +2.7891
+   tolerance +0.02  -> FAIL
+   admission: 88 positions with candidates, 10 covered, read at 88, FALSE COPIES 83, covering+read 10
+The failure is precision, not recall: 10/10 covered positions were read correctly; the damage is on
+the admitted-but-uncovered stratum that a construction-only training signal cannot distinguish.
+
+CONTROLS
+--------
+read_disabled equals z_local exactly                 PASS (978 positions)
+future-token causality invariant                    PASS
+stale reference rejected after reset                PASS (resolved before, rejected after)
+altered source payload (query/prefix unchanged)     PASS (38 changed, 37 emitted the new payload, 0 abstained)
+export/reload decision parity                       0 mismatches
+cross-process continuation 3 processes, 3+3 vs 6    PASS (step, float parameters, exported selector
+                                                    and checkpoint bytes all identical)
+
+GENERATION
+----------
+Six retained prompts, 48 greedy tokens, shared integer path: all six repeat; pair-cycle periods
+13/20/4/1/1/1; no complete bounded-ring cycle. Single-token prediction boundary named; no
+multi-token continuation integration exists. Repetition reported, not read as language quality.
+
+COST (uncached declared serving path, 32-token real window, E computed per position, no token-pair
+cache, ring and selection included, one discarded warm-up then five timed repeats, black_box)
+-----------------------------------------------------------------------------------------------
+z_local only        median 0.03889 s   1215.2 us/position
+z_local + reader    median 0.03884 s   1213.8 us/position   (reader adds no measurable cost)
+Serialized bytes: parent E 454,788 + local query artifact 53,555 + occurrence artifact 130 = 508,473
+Resident: local row table 1,966,080 B; parent scratch 16,384 B; ring 512 B; selector 40 B
+Whole-run peak RSS 142,458,880 B; wall 110.4 s. Physical energy UNAVAILABLE.
+
+FOCUSED TESTS
+-------------
+11 occurrence module tests, all passing: ring reset staleness and future-index rejection; evicted
+slots reported; admission uses only the causal prefix and respects the bound; indicator features and
+a unique newest flag; geometric slot equality fires for distinct tokens in the same slot; NoRead
+leaves the local logits untouched; the threshold prevents a forced copy and ties go to the newer;
+artifact round trip with malformed-input, trailing-byte, foreign-digest and out-of-range-coefficient
+rejection; quantization preserves the ranking inside the bound; a hand-built example reduces loss and
+moves both the informative conjunction and the collision weight in the expected directions; the
+checkpoint round-trips, rejects a foreign identity and reconstructs the epoch order deterministically.
+
+DECISION
+--------
+Targeted selection works and the geometric slot feature carries accuracy the exact-identity control
+cannot, but abstention is uncalibrated and the all-position loss regresses beyond the declared
+tolerance on both the synthetic and the raw-text panel. No candidate is promoted. Recommended next
+action (see the result record): add a declared abstention signal learned from natural-text positions
+where a candidate exists but no exact successor is useful, before any further integration claim. Do
+not re-fit this selector, widen the ring/candidate bounds, or change width/precision/corpus.
+
+BOUNDARIES
+----------
+A synthetic exact-copy panel is an instrument check, not prose or reasoning. 120 fresh reader-relevant
+geometric-family positions in 240 sequences; nominal intervals over correlated constructions, not
+independent semantic domains. Raw probe is 8 open-development windows. Reset/Continue maintenance,
+exact occurrence/version memory, shared composition, useful conversation and full laptop cost remain
+unrun. Prime/zeta/R4/S3/H4/icosian roles and D0-b are unchanged.

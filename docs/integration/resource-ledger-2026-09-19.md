@@ -963,6 +963,57 @@ noted, not acted on).
 **Charge:** recorded once below, after the work, as measured nonoverlapping work. Failed builds and
 superseded replays are charged, not refunded.
 
+## Exact-occurrence reader step — recorded extension before use (2026-09-20T19:08Z)
+
+**Refreshed before any model charge.** Live shared JSON read as `178538565 / 180500000 ms`,
+remaining **1961435 ms**, matching the post-#1313 review. Measured cycle start
+`2026-09-20T19:08:34Z`.
+
+**Standing-authorized extension recorded before consumption:** reason = a new learned occurrence
+reader with a fit, controls, a raw-text probe and real serving-cost measurement cannot fit the
+1961435 ms remainder; increment = **+10800000 ms**; updated cumulative limit = **191300000 ms**;
+headroom immediately after the increment, before any charge, = **12761435 ms**. Recorded in
+`.uor-models/native-joint-learning-2026-09-04/model-time.json` (`limit_ms` 180500000 -> 191300000,
+`cumulative_ms` unchanged at 178538565). A limit refresh, not a debit.
+
+**Complete projection for the tranche (recorded before execution):** 1500 s implementation, build,
+focused checks and the trainer's own continuation check; 900 s data/admission/learning probe;
+4200 s new-reader fitting and justified corrections; 2400 s behavioural, raw-text and direct-cost
+evaluation; 1800 s reporting, checkpoint and delivery reserve. Caps: one training worker, at most
+four Cargo build jobs, <=8 GiB peak RSS, <=512 MiB new model/report data plus <=2 GiB incremental
+build growth, and the **128 MiB protected storage margin**. Reuse the surviving
+`.worktrees/geometric-query-read/target` tree. No paid compute.
+
+**Storage refresh (read-only tool), after the owner-authorized cleanup:** `.uor-models`
+`LOWER_BOUND_OR_UNAVAILABLE` **20822118400 B**; owner `target/` **4634628096 B** (the debug
+incremental and unopened debug dependency caches removed by the cleanup are regenerable build
+output, not research); `.codex/worktrees` **494252032 B**; filesystem free **50878988288 B** against
+a proposed reserve of **36766079385 B** (`below_proposed_reserve: false` — the first time in this
+ledger that the whole-machine reserve is covered). The per-experiment 128 MiB stop margin remains a
+separate requirement. The retained release binaries, including the 1,704,928-byte attribution
+executable `65463ebd…`, were verified present after cleanup.
+
+**Charge:** recorded once below, after the work, as measured nonoverlapping work. Failed builds and
+superseded runs are charged, not refunded.
+
+## Charges recorded — exact-occurrence reader step (2026-09-20)
+
+| Date | Work | Charge | Basis |
+|---|---|---:|---|
+| 2026-09-20 | New `learner/occurrence.rs` (bounded causal ring, exact admission, nine indicator features, integer selector with NoRead, versioned artifact, ten-scalar trainer with cross-process checkpoint), 11 focused tests, `bin/occurrence-reader.rs` (BPE-round-tripping word banks, construction populations, fit, tune-only threshold calibration, controls, raw-text probe, generation, uncached cost), three harness versions and three continuation checks | 2700000 ms | **Mixed.** Measured: four full harness runs at 107.5 s (superseded), 112.0 s (superseded), 107.6 s (stale-binary duplicate, superseded) and 110.4 s (retained) = 437.5 s; three continuation checks at 26.2/26.4/26.1 s = 78.7 s; roughly nine debug/release compile and focused-test cycles at 35-150 s each ≈ 700 s. Estimated: a ~1200 s documentation/delivery allocation. Failed builds, the mis-specified-control version and the stale-binary run are charged. |
+
+**New cumulative: 181238565 ms.** Remaining: 191300000 − 181238565 = **10061435 ms (~167.7 min)**.
+
+**Charged from the 10800000 ms standing-authorized extension recorded above before use.** Retained
+under the claimed, sealed and verified report root
+`.uor-models/realtext-prior-2026-09-20/occurrence-reader-4`: 21 files, **3385009 bytes** —
+`result.json`, `population.json`, `amplitude.json`, `artifacts/occurrence_reader.ocq1` (130 bytes),
+per-condition per-panel vectors and `manifest.json`. Three superseded occurrence-reader roots and
+three continuation roots are preserved sealed. Whole-run peak RSS **142458880 B**
+(`/usr/bin/time -l`, complete run). The **128 MiB model-storage stop margin is intact**; the
+owner-authorized cleanup removed only regenerable debug caches and every release binary and sealed
+root survived. No paid compute. Physical energy remains UNAVAILABLE.
+
 ## Charges recorded — frozen S attribution step (2026-09-20)
 
 | Date | Work | Charge | Basis |
