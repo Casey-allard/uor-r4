@@ -242,8 +242,11 @@ impl PriorCore {
             for (j, m) in mask_in.iter_mut().enumerate() {
                 // Checked wider sum: two shifted ternary coefficients can exceed i32 before the clamp,
                 // so the temporary is i64 and the result is bounded here.
-                let x = (self.e_old.weight(prev, j) as i64) * (1i64 << ps)
-                    + (self.e_new.weight(cur, j) as i64) * (1i64 << cs);
+                // Signed shifts rather than integer multiplication by a power of two. The declared
+                // numerical kernel is add/subtract/shift only, and for a ternary weight
+                // `w << s == w * 2^s` exactly, so this is value-preserving.
+                let x = ((self.e_old.weight(prev, j) as i64) << ps)
+                    + ((self.e_new.weight(cur, j) as i64) << cs);
                 let x = x.clamp(-(PRIOR_CLAMP as i64), PRIOR_CLAMP as i64) as i32;
                 // Bounded ReLU. The mask is the STE of this bound, so the value must actually be
                 // bounded: recording the mask without applying the clamp left negative activations in
@@ -738,14 +741,18 @@ impl PriorTrainer {
     pub fn core_view(&self) -> Result<PriorCore, String> {
         let v = self.cfg.vocab;
         let dv = self.cfg.dv;
-        Ok(PriorCore {
+        let core = PriorCore {
             cfg: self.cfg.clone(),
             elements: self.elements.clone(),
             e_old: TernaryLinear::quantize(&self.e_old, v + 1, dv),
             e_new: TernaryLinear::quantize(&self.e_new, v, dv),
             w_o: TernaryLinear::quantize(&self.wo, v, dv),
             bias_codes: self.bias_codes.clone(),
-        })
+        };
+        // Constructed cores go through the same envelope check as loaded ones, so a constructed
+        // core can no longer bypass `PriorCore::validate`.
+        core.validate()?;
+        Ok(core)
     }
 
     pub fn to_core(&self) -> Result<PriorCore, String> {

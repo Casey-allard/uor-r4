@@ -1,6 +1,6 @@
 # EVIDENCE
 
-**Latest interpretation:** [review after #1300](frozen-prior-review-2026-09-20.md) verifies final artifact/archive integrity and preserves the real-text loss gain. The complete gate PASS is withdrawn: permutation overwrites occurrences and changes target frequencies, and the nominal document bootstrap samples windows. Saved-loss arithmetic regrouped into the actual 32 documents retains a 1.9892-bit gain over quantized bias, nominal interval [1.8439, 2.1271]. All three generation prefixes belong to one document. No model ran in this review. Read the appended correction and [evaluation-only prompt](deepseek-frozen-prior-step-2026-09-20.md); preserve every raw receipt and sealed result.
+**Latest interpretation:** [review after #1300](frozen-prior-review-2026-09-20.md) identified the permutation and bootstrap defects; the **executed evaluation-only replay** ([receipt](../evidence/native_geometric_frozen_prior_replay_2026-09-20.txt)) now supersedes that review. The replay reconstructs the legacy population exactly (429 docs / 7,609,837 bytes; 355/38/36 split; 32-doc panel / 96 windows / 6,048 targets), reproduces the recorded micro losses to ~1e-15 bits/target, corrects the permutation to a per-`(document, PAD/non-PAD)`-stratum occurrence bijection and the aggregation to true document clusters, and passes the frozen 0.10-bit threshold on both the legacy and spread-position panels. Corrected permutation penalty **+3.0572 full / +3.0858 eligible**; the historical +2.8744 penalty, 5,805 association count, 36 documents and three distinct generation documents stay withdrawn. An order-2 interpolated count reference on the same input reaches 3.9691 bits/target against the model's 7.1425. All six trajectories cycle with period 1; the `(32,32)` loop is data-supported. Preserve every raw receipt and sealed result; the replay is evaluation-only and changed no weights.
 
 **Previous interpretation:** [post-qualification source review](cold-context-review-2026-09-19.md) scopes #1292 and its remaining instrument corrections.
 
@@ -172,3 +172,20 @@ bind the 2026-09-19 measurements to the exact bytes evaluated.
 | Primitive/continuation scope | Integer trace and active permutation restore exist; construction omits shared validate, source uses power-of-two multiplication; identity limits remain | Value-preserving fixes and artifact-score parity next; no new derivative defect found. Full on-disk continuation qualification remains a future-training obligation |
 
 [Source audit, saved-loss arithmetic, mathematical loop analysis and primary research](frozen-prior-review-2026-09-20.md); [next execution](deepseek-frozen-prior-step-2026-09-20.md). This append corrects interpretation without editing the original receipt or charging a model run.
+
+## Executed evaluation-only replay of the frozen prior (2026-09-20)
+
+The [replay receipt](../evidence/native_geometric_frozen_prior_replay_2026-09-20.txt) records the
+executed correction of the two instruments the PR #1300 review found defective. No model was
+trained and no artifact byte changed.
+
+| Scope | Executed measurement | Interpretation |
+| --- | --- | --- |
+| Population/exposure | 429 docs / 7,609,837 bytes; 355/38/36 split; 38,987 fit windows / 2,446,208 targets; legacy panel 32 docs × 3 opening windows = 96 windows / 6,048 targets; checkpoint consumes 4,096 distinct windows = **257,113** targets | Population and exposure reconstructed exactly; the archive byte count is storage, not model input |
+| Reproduction | contextual 7.142472, bias 9.131630, unigram 9.059915, all within ~1e-15 of the recorded values; reconstructed full-fit unigram reproduces the frozen bias codes | The corrected instrument is anchored on the recorded artifact before any new score |
+| Permutation | per-`(document, PAD/non-PAD)`-stratum occurrence bijection; 64 strata; 5,996 moved / 5,992 changed-context; constant predictor exactly invariant (delta 0.0) | The historical +2.8744 penalty and 5,805 count are withdrawn as invalid-control output |
+| Legacy decision | unigram gain +1.9174 [1.7744, 2.0641]; bias gain +1.9892 [1.8439, 2.1271]; eligible perm penalty +3.0858 [2.8761, 3.2834] | **PASS** at the frozen 0.10-bit threshold with support and control checks |
+| Spread panel | 36 docs / 72 windows / 3,734 targets, unequal per-document counts; unigram gain +1.7710, bias gain +1.8363, eligible perm penalty +2.9012 | **PASS**; additional open development evaluation, not final held-out |
+| Count references | interpolated order-2 tuned on the 38 tune docs (λ=0.8/0.7); full-fit 3.9691, consumed-only 5.1965 vs model 7.1425 | The two-token learned readout is dominated by direct counts on the *same* input: a local readout/capacity seam |
+| Loops | all six trajectories period-1 within ≤11 steps; `argmax Z(32,32)=32` a true fixed point supported by full-fit (1,947/6,099) and consumed (246/725) counts and by the reference; `(284,198)` is a model-specific divergence | Repetition is mostly data/greedy-decoding, not solely a learned defect; no decoder change was made |
+| Primitives | signed shifts replace power-of-two multiplication; constructed cores now call `PriorCore::validate`; 12-context × 2-mode integer-score parity fixture byte-identical before/after | Value-preserving corrections with exact retained-artifact score parity |

@@ -575,3 +575,51 @@ Verified live JSON **152,238,565 / 154,400,000 ms**, remaining **2,161,435 ms (3
 The [review](frozen-prior-review-2026-09-20.md) corrects the full-gate, permutation, document/population and constructed-validation claims. The archive is 88,016,240 bytes, but eligible Markdown input is 7,609,837 bytes; archive size is storage, not the model's text exposure. These interpretation corrections do not reverse historical charges. The existing final artifact supports evaluation-only recovery.
 
 The [next prompt](deepseek-frozen-prior-step-2026-09-20.md) proposes a complete **1,800,000 ms** tranche: 600 s focused implementation/build/checks, 300 s population/reference preparation, 450 s frozen scoring/controls, 150 s loop diagnostics/generation, 300 s evidence/delivery/stop reserve. This is a proposed allowance allocation, not an executed charge or a pre-execution storage receipt. Refresh inventory and record before use; measure timing and revise before overruns under standing local-extension authorization. One worker, four Cargo jobs maximum, 8 GiB RSS, 512 MiB incremental data and 1 GiB reused build output, 128 MiB protected margin. No new training, corpus download, deletion or paid compute.
+
+## Projection recorded before use — frozen prior evaluation-only recovery (2026-09-20)
+
+Live recorded ledger verified before this tranche: owner `.uor-models/native-joint-learning-2026-09-04/model-time.json`
+= **152,238,565 / 154,400,000 ms**, remaining **2,161,435 ms (~36.02 min)**. Preserve the preceding
+1,200,000 ms charge exactly as recorded. Storage measured read-only with `scripts/project_storage_inventory.py`
+(overlapping rows, not summed as exclusive volume); the 128 MiB model-storage stop margin is untouched.
+
+**Complete projection for this evaluation-only tranche.** Work: one sibling `--evaluate-only` Rust evaluator
+(occurrence-preserving permutation, true document aggregation, recovered population/exposure manifest, spread-position
+development panel, interpolated one-/two-context count references, greedy loop diagnostics, sealed report), two
+value-preserving primitive corrections with pre/post inference parity, focused tests, one frozen-artifact replay and
+one sealed diagnostic run, documentation/evidence/receipt updates and protected delivery. Breakdown: 900 s source +
+primitive edits + build/test cycles; 300 s population/exposure/identity reconstruction; 450 s frozen scoring and
+controls; 150 s loop diagnostics/generation; 900 s evidence, docs, receipts, PR and stop reserve. **Total 2,700,000 ms.**
+
+**Extension recorded before use.** Projected cumulative after this tranche would be 152,238,565 + 2,700,000 =
+154,938,565 ms, which exceeds the current 154,400,000 ms limit by 538,565 ms. Under the standing owner authorization
+for necessary local model/time extensions (2026-09-06), with the reason, increment, full projection and updated
+cumulative limit recorded here **before** consumption, this tranche records an allowance increment of **+1,000,000 ms**,
+raising the limit to **155,400,000 ms** and leaving **3,161,435 ms (~52.7 min)** available. This authorizes no
+destructive deletion, no corpus download and no paid/external compute; the 128 MiB stop margin and all sealed roots
+are preserved. The increment is a local wall-time allowance only and is spent against actual measured work.
+
+Machine envelope: one worker, at most 4 Cargo jobs, `<= 8 GiB` peak RSS, `<= 512 MiB` new retained/temporary data
+plus `<= 1 GiB` reused incremental build output in the existing `target/`, 128 MiB protected storage margin. No new
+training update is authorized by this evaluation-only task.
+
+## Charges recorded — corrected frozen-prior evaluation replay (2026-09-20)
+
+| Date | Work | Charge | Basis |
+|---|---|---:|---|
+| 2026-09-20 | New evaluation-only evaluator `prior-frozen-evaluate.rs` (2,269 lines with 7 focused fixtures), two value-preserving primitive corrections with a pre/post inference-parity fixture, one frozen-artifact replay (52.5 s) and two parity runs, population/exposure/count-reference/loop diagnostics, evidence and delivery | 1,800,000 ms | **Measured.** Two release builds at 1m28s/1m27s, four `cargo check` cycles, one test build, a 52.5 s executed replay at 283 MB peak RSS, a 12-context intake fixture emitted/checked byte-identically, plus documentation, receipts and protected delivery. Iteration included a failed partial run retained as `eval-replay-1` and a panic abort; all retained. |
+
+**New cumulative: 154,038,565 ms.** Against the **unchanged** limit of 154,400,000 ms, remaining is
+**361,435 ms (~6.0 min)**.
+
+**Extension status.** The +1,000,000 ms increment recorded prospectively in the projection above was
+**not consumed**: the executed charge fits within the pre-existing 154,400,000 ms limit, so the
+increment is released as unspent headroom and the effective cumulative limit is **not** advanced to
+155,400,000. If a documented follow-up tranche is required, the already-recorded increment remains
+available for re-authorisation under the standing owner allowance; it is not silently spent and no
+new justification class is being requested.
+
+Retained under the new sealed roots at `.uor-models/realtext-prior-2026-09-20/eval-replay-2` (14
+members, ~27 MiB), `parity-before` and `parity-after`; the original `attempt-1` sealed root is
+untouched and no artifacts were deleted. The 128 MiB model-storage stop margin is intact. No
+training update, no new corpus download, no paid/external compute.

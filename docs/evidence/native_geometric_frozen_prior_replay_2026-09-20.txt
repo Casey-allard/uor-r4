@@ -1,0 +1,173 @@
+Frozen real-text prior — corrected evaluation-only replay receipt
+================================================================
+Date: 2026-09-20 (UTC)
+Task: deepseek-frozen-prior-step-2026-09-20.md (delivered by PR #1301, merged 8765aa723b1ec5a057506508e7de0f917eff8fde)
+Worktree: /Users/casey.allard/uor-r4/.worktrees/frozen-prior-replay  (branch codex/frozen-prior-evaluation-replay)
+Base commit: 8765aa72 (origin/main at execution)
+Evaluator (new): crates/uor-r4-core/src/bin/prior-frozen-evaluate.rs
+Evaluator release binary SHA256: 7137852298b0b3d1ebee758d9bfca520cf6f235b45ae51e61434466fc99860e1
+Build: CARGO_TARGET_DIR=/Users/casey.allard/uor-r4/target (reused cache; no new checkout)
+
+NO TRAINING. No `PriorTrainer` was constructed, no optimizer step ran, no model parameter was
+written. The artifact bytes are unchanged.
+
+Retained inputs (unchanged)
+---------------------------
+prior_realtext.cpl2        454,788 bytes  sha256 cd5a3aa1b804ccc3582a4a25090e25c862489e0bc4e5bb86c1d1f363a7338a00
+prior_realtext.ckpt     19,192,104 bytes  sha256 1c3dfedb2248ec76c21f320b7ecec585c7a522a2d47e35ed5dc9eaca2454bff2
+tokenizer (source)  sha256 9ca9acddb6525a194ec8ac7a87f24fbba7232a9a15ffa1af0c1224fcd888e47c
+derived V4096       sha256 a7ac75b68aa997fe7cc338d25d843157f2dc9d4265fb2f958ee779bb04828d6f
+corpus              commit e9c04e80, inputs/docs materialised (850 files, 88,016,240 bytes archive)
+The artifact's CPL2 digest field recomputes as sha256("{source_tok_sha}:{derived_tok_sha}:e9c04e80")
+and matches the stored 32 bytes: the field is the legacy composite identity, not a tokenizer SHA.
+
+New report roots (sealed, zero unlisted files)
+----------------------------------------------
+/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/
+  eval-replay-2/    14 members, 27 MiB   result.json sha256 6db96a1c7f9cccefe13b9c07a610bbb02559ece6e3762a7c36f35ba9dcc6f661
+    attempt.json data-manifest.json exposure.json fit-windows.bin fit-windows-index.bin
+    fit-windows-index.json fixtures.json generation.json legacy-panel.json loops.json
+    manifest.json permutation.json references.json result.json spread-panel.json
+  parity-before/    attempt.json, fixture-baseline.json (sha256 9bafc440...), fixture.json, manifest.json
+  parity-after/     attempt.json, parity.json (sha256 94fa2a6b...), manifest.json
+The original attempt-1 sealed root is untouched.
+
+Population reconstruction (exact)
+---------------------------------
+429 eligible UTF-8 Markdown documents / 7,609,837 bytes; 0 exact-duplicate files, 0 duplicate groups.
+Split by hash[0]%10: 355 fit / 38 tune / 36 dev_pool   (identical to the legacy runner).
+fit windows 38,987 / fit targets 2,446,208 (used for the frozen marginal).
+Legacy panel: 36 docs selected, 32 contributing, 96 windows, 6,048 targets
+  (32 docs x three opening windows at token offsets 0/64/128; the last four selected docs are
+   discarded by the legacy global truncation at 96 — a legacy instrument property, not sampling).
+
+Reproduction of recorded values (asserted before any new score)
+---------------------------------------------------------------
+contextual micro CE   7.142472153805127  delta -8.9e-16
+frozen bias micro CE  9.131630             delta -1.2e-14
+exact unigram micro   9.05991541171514    delta +3.6e-15
+Reconstructed full-fit unigram reproduces the artifact's frozen bias codes exactly.
+(reported as PASS/FAIL via fixtures=all_required_passed and legacy_reproduction.reproduces_recorded_values)
+
+Corrected instruments
+---------------------
+Permutation: seeded Fisher-Yates bijection per (document, PAD/non-PAD) stratum over occurrence
+indices. 64 strata, 0 singleton, 5,996 records moved, 5,992 changed-context of 6,048.
+Invariants asserted: donor map is a bijection; applied context multiset equals the original;
+target vector untouched; observation identity is (content_id, window_token_offset, target_offset).
+Aggregation: every scorer is summed per true document cluster before macro/interval; the paired
+bootstrap (2,000 seeded draws) resamples documents and recomputes ratio-of-resampled-sums.
+
+Falsifying fixtures (all pass)
+------------------------------
+constant_invariance: bias-only micro original == permuted == 9.131629767090754, max per-occurrence
+  delta 0.0  (the legacy instrument failed this: its step-0 permuted CE was 9.1364)
+unigram_invariance:  true (unigram ignores context)
+unequal_document_weights: per-record macro 3.6667 != document macro 5.0
+legacy_collapse_falsifier: the legacy context-keyed map keeps 1 distinct applied target for 3
+  occurrences (reported 3 changed assignments) -> target vector not preserved
+known_sign_reference: paired interval point 1.5, lo 1.0, hi 2.0
+
+Legacy-panel result (frozen step-512 artifact, 32 docs / 6,048 targets)
+-----------------------------------------------------------------------
+contextual model                7.142472
+frozen quantized bias           9.131630
+exact full-fit add-one unigram  9.059915
+interpolated order-2 ref, full-fit counts        3.969071
+interpolated order-2 ref, consumed-window counts 5.196450
+permuted model (full panel)    10.199686
+knockout prev / cur             7.577198 / 8.499663
+gains (reference minus model, positive = improvement)
+  unigram gain  +1.917443 [1.774357, 2.064133]
+  bias gain     +1.989158 [1.843870, 2.127150]
+  perm penalty full      +3.057214 [2.855218, 3.254305]
+  perm penalty eligible  +3.085786 [2.876125, 3.283360]
+support: 32 model docs / 6,048 targets; 32 eligible docs / 5,992 eligible targets (>= 20 / 1,024).
+DECISION: PASS
+
+Spread-position development panel (all 36 dev docs, first/last window, 72 windows / 3,734 targets)
+--------------------------------------------------------------------------------------------------
+per-document target counts 71..126 (unequal, so document-macro 7.43748 != micro 7.47284).
+contextual 7.47284 | bias 9.30911 | unigram 9.24383 | ref full-fit 4.33330 | ref consumed 5.45742
+| permuted 10.30957 | knockout prev 7.85051 | cur 8.74803
+unigram gain +1.770991 [1.644475, 1.903318]; bias gain +1.836274 [1.701104, 1.971182]
+eligible perm penalty +2.901215 [2.735485, 3.080783]
+overlap: 32 of 36 documents also appear in the legacy panel (different windows).
+DECISION: PASS   (additional open development evaluation, not final held-out)
+
+Count references
+----------------
+Jelinek-Mercer interpolation, grid [0.0..0.9]; selected lambda_1 = 0.8, lambda_2 = 0.7 on the
+38 tune documents (64 bounded tune windows, 4.2255 bits/target). Fit on the fit split only.
+Unigram normalization sum 1.0000000000000155; min unseen-pair probability 2.4487e-08 (>0).
+Full-fit observed contexts: order-1 3,614 / order-2 221,035. Consumed-fit: 3,150 / 62,973.
+Unseen strata (frozen from original recipient contexts, same denominators for every scorer):
+  model on full-fit-unseen 141 targets: 9.261122; consumed-unseen 757 targets: 8.572958
+  ref(full) on full-fit-unseen 6.592767; consumed-unseen 3.999667
+  ref(consumed) on full-fit-unseen 7.150795; consumed-unseen 6.902983
+The two-token learned predictor shares the reference's exact input yet loses 1.95 bits (consumed
+counts) to 3.17 bits (full counts): a local readout/capacity gap, not exposure.
+
+Exposure recovered from the final CPCK v3
+-----------------------------------------
+step 512, cursor 4096, pass 0, permutation length 38,987 (all distinct, checked).
+Consumed 4,096 windows sum to 257,113 n-1 targets (against 2,446,208 full-fit targets).
+The four timing-probe updates belong to a discarded trainer.
+
+Generation and greedy-loop diagnostics
+--------------------------------------
+The three recorded prefixes are one document (verified). All six bounded trajectories enter a
+period-1 cycle within <= 11 steps; the context-disabled control also reaches a fixed point.
+  legacy prompt 0 entry 5  period 1   [33,28,33,32,32,...]
+  legacy prompt 1 entry 11 period 1   [99,28,284,260,198,198,504,2179,33,32,...]
+  legacy prompt 2 entry 8  period 1   [1832,198,198,504,2179,33,32,...]
+  spread short    entry 10 period 1   -> (32,32)
+  spread medium   entry 1  period 1   -> (32,32) immediately
+  spread long     entry 8  period 1   [29,98,36,79,33,34,32,...]
+Every trajectory matches PriorCore::generate exactly (served-path parity).
+Fixed point check: argmax Z(32,32) = 32, top1 4608 top2 3584 margin 1024, 0 ties -> (32,32) is a
+true fixed point. Local statistics support it: full-fit count 1,947/6,099; consumed 246/725; the
+interpolated reference also selects 32. Shared with local statistics, not model-specific.
+(198,198): argmax 504 ('The'), reference 504 -> agreement, not a fixed point.
+(284,198): model argmax 198 (self-loop, margin 384) where the reference selects 80 ('`') and the
+full-fit top successor is 80 (107/1,391): a model-specific repetition preference.
+No repetition penalty, token blacklist, output override or decoder change was added.
+
+Slice/primitive corrections with exact inference parity
+-------------------------------------------------------
+1. crates/uor-r4-core/src/native_geometric/learner/prior_learning.rs: the asserted embedding sum
+   now uses signed shifts ((w as i64) << s) instead of integer multiplication by 1i64<<s
+   (value-preserving for ternary w).
+2. PriorCore::core_view now calls PriorCore::validate on the constructed core.
+Parity: a 12-context x 2-mode integer-score fixture (SHA256 digests of the full z vectors) plus 7
+greedy prompts including the recorded loop states is byte-identical before and after the edits, on
+the unchanged artifact cd5a3aa1...; fixture sha256 9bafc440905b9fdae8643fb719f11eb88c62674c59c57e975dd855756ea1816a.
+
+Validation commands actually executed
+-------------------------------------
+~/.cargo/bin/cargo check --offline -p uor-r4-core --bin prior-frozen-evaluate          (clean)
+~/.cargo/bin/cargo build --offline --release -p uor-r4-core --bin prior-frozen-evaluate (1m28s, 1m27s)
+~/.cargo/bin/cargo fmt -p uor-r4-core -- --check                                       (clean)
+~/.cargo/bin/cargo test --offline --release -p uor-r4-core --bin prior-frozen-evaluate (7 passed)
+~/.cargo/bin/cargo test --offline --release -p uor-r4-core --lib <one name at a time>:
+    uniform_integer_scores_are_exactly_twelve_bits_at_v4096            ok
+    a_common_offset_changes_nothing_and_extreme_errors_are_uncapped    ok
+    the_frozen_bias_reproduces_the_fit_unigram_up_to_quantization      ok
+    artifact_roundtrip_is_exact_and_malformed_inputs_are_rejected      ok
+    training_and_serving_scores_are_the_same_computation               ok
+  (the broad prior_learning filter was NOT used: it includes Adam update loops)
+prior-frozen-evaluate --parity-emit  / --parity-check   identical=true
+prior-frozen-evaluate (replay)  52.5 s, peak RSS 283 MB (289,341,440 bytes max RSS reported by
+  /usr/bin/time -l), 14 sealed members, 0 unlisted.
+
+Explicit absences and limits
+----------------------------
+- No step-0/256 artifact exists; only step 512 is replayed. The historical 9.1316/8.2182 points
+  remain in-memory records.
+- Full integer logits for the whole panel are not persisted; per-document sums and the scored
+  observation records are.
+- The spread panel is open development data; its intervals are nominal on correlated documents.
+- The evaluator's own source/binary identity is recorded; the historical training binary and the
+  complete training-source binding remain unavailable. Future continuation must validate seed,
+  expected non-zero data identity, cursor, frozen bias and complete on-disk state before resuming.
+- No energy measurement; no physical power claim.
