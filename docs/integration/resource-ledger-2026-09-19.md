@@ -632,3 +632,53 @@ The owner JSON still read **152,238,565 / 154,400,000 ms** although the precedin
 [The principal review](ordered-prefix-review-2026-09-20.md) preserves the valid replay while correcting derived offsets, loop labels, tune/seed/subset metadata and test-work scope. These do not reverse past charges or require a full replay. Reused the clean isolated full worktree on `codex/ordered-state-handoff`; original checkout and unique/sealed artifacts remain intact.
 
 [The next prompt](deepseek-ordered-prefix-step-2026-09-20.md) proposes **5,400,000 ms (90 minutes)**: 300 s input/metadata recovery, 1,800 s implementation/build/independent checks, 300 s timing/cache preparation, 1,800 s three matched fits/evaluation/controls/generation, 1,200 s checkpoint/evidence/delivery/reserve. The proposed necessary local extension is **+5,400,000 ms**, which would make the limit **159,800,000 ms** and available headroom **5,761,435 ms**. This review has NOT applied that extension. Refresh inventory/projection and record it in both JSON and prose before execution under standing owner authorization; revise before overruns and charge actual intervals once. One worker, at most four Cargo jobs, 8 GiB RSS, 512 MiB new data/checkpoints plus 1 GiB incremental reused build output, 128 MiB protected storage margin. No paid compute, deletion or new corpus.
+
+## Projection and extension recorded before use — learned older-prefix group-state pilot (2026-09-20)
+
+Live JSON refreshed before this tranche: `/Users/casey.allard/uor-r4/.uor-models/native-joint-learning-2026-09-04/model-time.json`
+= **154,038,565 / 154,400,000 ms**, remaining **361,435 ms (~6.0 min)**. The merged #1302 charge of
+1,800,000 ms is preserved and **is not charged again**; the stale 152,238,565 value is not used.
+Storage measured read-only with the existing inventory tooling (overlapping rows, not additive); the
+128 MiB protected margin is untouched.
+
+**Complete projection for this tranche.** Work: derived-metadata corrections in
+`prior-frozen-evaluate.rs` (document-relative window offsets, pair fixed-point rule, label/seed/tune
+scope), a new exact-`2I` K=8 palette and learned older-prefix group-state/read component with a hard
+integer forward, independently checked surrogate gradients, separate optimizer ages and checkpoints,
+one three-arm matched real-text pilot (512 windows x 256 batch-8 updates per arm), exported
+evaluation on a new 36-document primary panel with conditional permutation and reverse-order
+controls, six-prompt generation for parent and every arm, receipts and protected delivery.
+Breakdown: 300 s derived-provenance repairs and inputs; 1,800 s implementation/build/independent
+gradient checks; 300 s real-path timing/cache preparation; 1,800 s three matched fits plus exported
+evaluation, controls and generation; 1,200 s checkpoint, receipts, delivery and stop reserve.
+**Total 5,400,000 ms.**
+
+**Extension recorded before use.** Under the standing owner authorization for necessary local
+model/time extensions (2026-09-06), with reason, increment, complete projection and updated
+cumulative limit recorded here **before** consumption, this tranche records an allowance increment of
+**+5,400,000 ms**, raising the limit to **159,800,000 ms** and leaving **5,761,435 ms** available.
+Both the authoritative JSON and this readable ledger are synchronized to that limit before
+execution. This authorizes neither destructive deletion, a new corpus download, paid/external
+compute, nor any weakening of the frozen R4G1/serving contracts. The 128 MiB stop margin, the owner
+checkout and every sealed root are preserved.
+
+Machine envelope: one worker, `<= 4` Cargo jobs, `<= 8 GiB` peak RSS, `<= 512 MiB` new
+retained/temporary data plus `<= 1 GiB` reused incremental build output in the existing `target/`,
+128 MiB protected storage margin. Actual elapsed intervals (including failed attempts) are charged
+once. A session limit is distinct from depletion of local allowance; a resumable checkpoint is kept.
+
+## Charges recorded — learned older-prefix group-state pilot (2026-09-20)
+
+| Date | Work | Charge | Basis |
+|---|---|---:|---|
+| 2026-09-20 | New `prefix_state.rs` hard group-state component (exact `2I` palette, fixed-scale ternary reader/output, biased categorical STE credit, separate Adam ages, CPXS checkpoint) with 12 focused fixtures; new `prefix-state-pilot.rs` runner (three matched arms, 512-window dose, 256 batch-8 updates each, 36-document panel, conditional permutation / reverse-order / disabled controls, generation); `prior-frozen-evaluate.rs` derived-corrections mode; probe plus two pilot runs; receipts, documentation and delivery | 5,400,000 ms | **Measured.** Four release build/test cycles at ~1.5–2 min each; a 14.45 s probe; pilot runs at 185.3 s and 186.7 s (peak RSS 545 MB); derived corrections 0.3 s; plus implementation, focused fixtures and protected delivery. Iteration included a superseded `prefix-pilot-1` retained as a negative artefact and one checkpoint-validator defect fixed with a fixture. |
+
+**New cumulative: 159,438,565 ms.** Against the extended limit of 159,800,000 ms, remaining is **361,435 ms**.
+
+**Charged from the 5,400,000 ms tranche recorded immediately above before use.** Retained under sealed
+roots at `.uor-models/realtext-prior-2026-09-20/`: `prefix-pilot-probe-1`, `prefix-pilot-1`
+(superseded generation-label revision, preserved), `prefix-pilot-2` (12 members, `result.json` sha256
+`d228bd57…`) and `derived-corrections-1` (`derived-corrections.json` sha256 `134d6b5b…`). New retained
+storage ≈32 MiB; the original sealed roots `attempt-1`, `eval-replay-2`, `parity-before` and
+`parity-after` are untouched and nothing was deleted. The 128 MiB model-storage stop margin is intact.
+No training of the frozen parent, no new corpus download, no paid/external compute.

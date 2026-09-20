@@ -1,0 +1,194 @@
+Learned older-prefix group-state/read pilot — receipt
+=====================================================
+Date: 2026-09-20 (UTC)
+Task: deepseek-ordered-prefix-step-2026-09-20.md (delivered by PR #1303, merged db2c972188fcddd7ec9e7ce261642ad0ca5b97dd)
+Worktree: /Users/casey.allard/uor-r4/.worktrees/ordered-prefix-pilot  (branch codex/ordered-prefix-state-pilot)
+Base: db2c9721 (origin/main at execution)
+New component: crates/uor-r4-core/src/native_geometric/learner/prefix_state.rs
+New runner:    crates/uor-r4-core/src/bin/prefix-state-pilot.rs
+Extended:      crates/uor-r4-core/src/bin/prior-frozen-evaluate.rs (--derived-corrections)
+Build: CARGO_TARGET_DIR=/Users/casey.allard/uor-r4/target (reused cache)
+
+The frozen parent was NEVER retrained. No parent weight, byte or sealed root changed.
+
+Retained inputs (unchanged)
+---------------------------
+prior_realtext.cpl2   454,788 bytes  sha256 cd5a3aa1b804ccc3582a4a25090e25c862489e0bc4e5bb86c1d1f363a7338a00
+prior_realtext.ckpt 19,192,104 bytes sha256 1c3dfedb2248ec76c21f320b7ecec585c7a522a2d47e35ed5dc9eaca2454bff2
+tokenizer source sha256 9ca9acddb6525a194ec8ac7a87f24fbba7232a9a15ffa1af0c1224fcd888e47c
+derived V4096    sha256 a7ac75b68aa997fe7cc338d25d843157f2dc9d4265fb2f958ee779bb04828d6f
+corpus commit e9c04e80; inputs/docs unchanged
+
+Exact group carrier
+-------------------
+2I order 120 (H4 canonical roots, existing exact product table, GROUP_ORDER=120, ROW_STRIDE=128).
+Palette (fixed, data-independent, chosen by deterministic search for the first noncommuting
+generator pair with full closure): [1, 2, 56, 3, 59, 84, 85, 0], identity 1, closure verified 120.
+Palette digest sha256 51907f073d12af9d5706b0a43e458a0cd2a16957bb499ac2897d8f6ae4a24688.
+No target data was used to choose the palette. 2I superiority over another algebra: NOT_TESTED.
+
+Served hard forward (fixed scales; multiplier-free)
+---------------------------------------------------
+q_i = chronological product over x[max(0,i-63) .. i-1)   (Rust half-open; EXCLUDES the local pair)
+Z_total[v] = Z_parent[v] + ((sum_j Wcode[v,j] * Rcode[q,j]) << 8)
+implemented as h[j] = Rcode[q,j] << 5 then ternary Wcode with output shift 3 (5+3=8).
+Reader 120x16 (shift 5), output 4096x16 (shift 3), both built with fixed-scale from_packed;
+no adaptive quantizer. Parent F=10 remains the sole score-to-logit exponent, so one residual
+code-sum unit is 2^8 * 2^-10 = 0.25 logit. Max |residual| = 16 << 8 = 4096; declared
+parent+residual envelope validated against i32::MAX/2 before execution (no wrap/saturation).
+Per-token arithmetic COUNT (not latency): +65,536 output coefficient visits (1/8 of the parent's
+524,288), at most 62 group lookups, 120x16 reader visits. No latency or energy claim.
+
+Training configuration (one fixed pilot config, no sweep)
+---------------------------------------------------------
+seed 13; Adam betas (0.9, 0.999), eps 1e-8, weight_decay 0; reader/output lr 0.03, action lr 0.003,
+temperature 1. Reader masters seeded +/-1; output masters exactly zero; action rows one seeded
+palette choice at 0.1, others 0. Ternary threshold |v| >= 0.5 (ties to magnitude 1); masters
+clamped to [-1,1] after every update. Separate Adam ages: reader/output age starts at its first
+update; action age starts at 1 on its first post-warm-up update.
+STEP 0 reproduces the parent's integer scores exactly (zero output masters).
+Action credit is exactly zero until the output masters ternarize away from zero; the schedule
+therefore gives 64 reader-only warm-up updates, then 192 joint updates (192 + 64 = 256).
+
+Dose and schedule
+-----------------
+Training windows: the FIRST 512 entries of the recovered 4,096-window consumed permutation
+(unsorted, not selected on loss). 512 windows / 32,046 scored targets. Four saved Fisher-Yates
+passes, batch 8, 256 updates per arm. The parent was trained on a larger 4,096-window pool and its
+bias on all fit data; that difference is shared identically by all arms and is NOT claimed as the
+parent's exposure.
+
+Three matched arms (identical init, parameterization, fit order and dose)
+------------------------------------------------------------------------
+arm                        mean fit  warm-up  post-warm-up  action upd  hard-action transitions
+learned_older_prefix        7.3069    7.3508   7.2923        192         1083 / 4096 tokens
+fixed_action_older_prefix   7.1988    7.3508   7.1481          0            0 (map frozen)
+learned_local_tail          7.1749    7.3488   7.1169        192          675 / 4096 tokens
+All three arms used all 8 hard palette IDs (occupancy 469-539 tokens per ID); 120/120 residual
+states are non-zero; output rows non-zero: primary 4089/4096, controls 4096/4096.
+Post-warm-up mean action-gradient norm: primary 0.596, tail 0.129, fixed 0.597.
+Learned actions genuinely changed (1083 hard transitions in the primary arm), so the negative
+result below is not a "no learning happened" artefact.
+
+Primary open-development panel (frozen before any score)
+-------------------------------------------------------
+All 36 dev-pool documents, up to 8 evenly spaced windows each: 288 windows / 17,342 targets.
+Overlap: 32 of 36 documents also appear in the legacy panel (different windows); this is new open
+development data from the same correlated repository corpus, NOT final held-out.
+Short-document policy: min(8, W) evenly spaced indices; shortest documents contribute what exists.
+
+Panel result (bits/target, micro; paired 2000-draw document bootstrap)
+---------------------------------------------------------------------
+frozen parent (state-disabled, exact parity)      7.558429
+learned_older_prefix (PRIMARY, step 256)          7.575600   gain vs parent -0.017174 [-0.026095, -0.008483]
+fixed_action_older_prefix                         7.723500   gain vs parent -0.165066 [-0.177712, -0.152226]
+learned_local_tail                                7.576440   gain vs parent -0.018010 [-0.034886, -0.001074]
+primary vs fixed-action control: +0.147892 [0.135512, 0.161202]
+primary vs local-tail control:   +0.000835 [-0.016240, +0.020440]
+Document-macro: parent 7.55617, primary 7.57275, fixed 7.72079, tail 7.57338.
+
+References on the same occurrences (bits/target, micro)
+-------------------------------------------------------
+exact full-fit add-one unigram     9.18503   (gain vs parent +1.62660)
+frozen quantized bias-only         9.25017   (gain vs parent +1.69174)
+order-2 full-fit interpolated      5.06116   (reference BETTER than parent by 2.49727)
+order-2 4,096-consumed interpolated 5.93805  (reference BETTER by 1.62038)
+order-2 512-window interpolated    7.07926   (reference BETTER by 0.47917)
+Lambdas tuned on a newly named first/last-window selection over all 38 tune documents (<=76
+windows), distinct from the old 32-document sample.
+
+Controls on the primary artifact
+--------------------------------
+state-disabled/zero residual: reproduces the parent integer logits EXACTLY (parity true); micro
+  equals the parent's 7.558429.
+conditional permutation within (exact prev, exact cur, exact older-prefix length), donors free to
+  cross documents, targets and local inputs fixed: 16,583 strata, 576 no-history records excluded,
+  1,177 eligible records (36 eligible documents), 554 changed-state recipients.
+  full-population penalty  -0.000104 [-0.001112, +0.000803]
+  eligible-population penalty -0.001532 [-0.015194, +0.012677]   -> NOT positive
+reverse older-prefix order (multiset and local tail preserved): +0.004350 [-0.002924, +0.011642]
+  (sensitivity under an altered distribution, not a usefulness or noncommutativity proof)
+Support: eligibility thresholds met (36 >= 20 documents, 1,177 >= 1,024 targets) but only ~7% of
+history-bearing records are permutable, because exact (prev, cur, length) conditioning is very fine.
+
+PREDECLARED SCREEN: **FAILED**
+------------------------------
+ - >= 0.10 bits/target over the frozen parent with interval excluding zero: FAILED
+   (point -0.017174, interval entirely negative)
+ - positive paired gain over BOTH fitted controls with intervals excluding zero: FAILED
+   (beats the fixed-action control, but not the local-tail control: +0.000835, interval includes 0)
+ - positive conditional-permutation penalty with interval excluding zero: FAILED (-0.001532,
+   interval includes 0)
+ - disabled parity and eligibility support: passed
+
+Generation (64 greedy tokens, unchanged decoding, same six retained prompts)
+---------------------------------------------------------------------------
+The frozen parent reproduces the three historical legacy outputs exactly.
+Cycle certificates on the generated stream: `pair` is the sufficient state only for the two-token
+parent; `ring` (ordered last <=64 tokens) is the sufficient state for the new arms. A repeated pair
+is NOT a cycle certificate for the new model.
+ - p0 (legacy prefix 0): parent/primary/tail pair entry 4 period 1, ring NONE; outputs begin
+   [33,28,33,32,32,...] and decoded "1,10000...".
+ - p1: parent pair entry 10 period 1; primary entry 7 period 1; tail entry 6 period 1; ring NONE.
+ - p2: parent entry 7 period 1; primary entry 8 period 1; ring NONE.
+ - p3 (all-32 prompt): parent/primary/tail pair entry 0 period 1 AND ring entry 48 period 1 —
+   the only trajectory where the complete bounded-context state provably repeats.
+ - p4: parent/primary/tail pair entry 4 period 1; ring NONE.
+ - p5: parent entry 4 period 1; primary entry 9 period 1; tail entry 3 period 1; ring NONE.
+The fixed-action arm produces visibly noisier text (up to 14 distinct tokens) as expected from a
+frozen random carrier. The count-reference diagnostic collapses to 198 repetition.
+Every output, decoded byte string and failure is retained in generation.json. No repetition
+penalty, sampling, blacklist or override was applied.
+
+Derived-metadata corrections (separate sealed root; sealed replay untouched)
+---------------------------------------------------------------------------
+derived-corrections-1: 38,987 windows rewritten with token_offset = window_index * 64.
+  38,152 previously-wrong offsets corrected; 835 were already correct (the first fit document,
+  835 windows). Document ids, within-document indices, lengths and byte offsets unchanged.
+  old index json sha256 d4f10cf6...  new d30f37af...
+  old index bin  sha256 f91ac473...  new 796657ee...
+  Boundary verification PASSED across two documents (MODEL_LIFECYCLE.md, PROJECT_MAP.md) for the
+  first and last window of each, against pinned tokenization.
+  Corrected pair labels: (32,32)->32 pair_fixed_point TRUE (preserved);
+  (284,198)->198 immediate_repetition TRUE, pair_fixed_point FALSE, next pair (198,198)->504;
+  (198,198)->504 not a fixed point; (33,32)->32 immediate repetition, not diagonal.
+  Recorded interpretation corrections: tune pool 38 vs 32 actually used by the old 64-window loop;
+  permutation seed literal 0xA5A51234 / effective 0xA5A51235; historical "eligible" means
+  changed-context records; one named parity fixture ran 60 toy optimizer updates.
+
+Measured resources
+------------------
+probe (16 updates, probe state discarded): 1.29 s compute, 14.45 s wall with corpus+tokenize;
+  peak RSS 250 MB.
+pilot run (prefix-pilot-1, superseded): 185.3 s, peak RSS 545 MB.
+pilot run (prefix-pilot-2, retained):   186.7 s, peak RSS 545 MB (544,604,160 bytes max RSS).
+parent score cache: 9,891 entries / 162 MB.
+per-arm fit: primary 64.0 s, fixed 52.4 s, tail 51.8 s.
+derived corrections: 0.3 s.
+New retained storage: prefix-pilot-1 10 MiB, prefix-pilot-2 10 MiB (12 sealed members),
+  probe 8 KiB, derived-corrections-1 12 MiB. Total experiment directory 192 MiB.
+  Within the 512 MiB tranche allowance and the 128 MiB protected margin.
+Arithmetic counts are projections; latency/RAM above are measured. No physical energy measurement.
+
+Retained roots
+--------------
+/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/
+  prefix-pilot-probe-1   (sealed)
+  prefix-pilot-1         (sealed; superseded generation-label revision, preserved)
+  prefix-pilot-2         (sealed, 12 members; result.json sha256 d228bd57eaf4d5e61202d2bdac8a95daf90cb6328cf5d2d36c8562a51f38ea0a)
+  derived-corrections-1  (sealed; derived-corrections.json sha256 134d6b5b36090c1e9a1a6f16677733a85edb8ff37c16c20c729928b9ffb11c67)
+Original sealed roots attempt-1, eval-replay-2, parity-before, parity-after: untouched.
+
+Explicit limits
+---------------
+- One register, one palette, one surrogate, one width (16), one dose (512 windows), one seed.
+  The negative is scoped to exactly this configuration.
+- A single 120-state register carries at most log2(120) = 6.91 bits; pure group transitions are
+  bijections and cannot selectively erase (the 64-token context supplies bounded forgetting).
+- The conditional permutation has only 1,177 eligible targets because exact (prev, cur, length)
+  conditioning is very fine; the intervention is near the support floor and low-powered.
+- No 2I-vs-other-algebra claim; no general-language, noncommutative-advantage or solved-repetition
+  claim.
+- Full integer logits for the whole panel are not persisted; per-document sums and the scored
+  occurrence records are.
+- No new training-continuation identity is claimed for the legacy CPCK.

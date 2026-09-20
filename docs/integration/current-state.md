@@ -1,8 +1,39 @@
 # Current native geometric AI work
 
-## Active next: learned older-prefix channel — review after PR #1302
+## Active: learned older-prefix group-state pilot — executed, screen FAILED
 
-The [principal review](ordered-prefix-review-2026-09-20.md) independently verifies the replay's artifact/data integrity, all saved scorer means and full-panel intervals. Its valid positive gates remain. The [complete next prompt](deepseek-ordered-prefix-step-2026-09-20.md) now specifies one hard learned eight-way group-action channel with a width-16 ternary reader above the frozen prior, plus fitted fixed-action and local-tail controls. The older prefix excludes the last two tokens; conditional state permutation preserves that exact tail and the older-prefix length. This new real-text pilot is **NOT_RUN**. No Rust build/model/training ran in the principal review.
+The [principal review](ordered-prefix-review-2026-09-20.md) and the [complete prompt](deepseek-ordered-prefix-step-2026-09-20.md) specified one hard learned eight-way `2I` group-action channel above the frozen step-512 prior, with matched fitted fixed-action and local-tail controls. It has now been **implemented, fitted, evaluated and delivered** — [receipt](../evidence/native_geometric_ordered_prefix_pilot_2026-09-20.txt). The parent was never retrained; every sealed root is untouched.
+
+**Configuration.** One exact 120-element register (`2I`), fixed data-independent palette `[1,2,56,3,59,84,85,0]` (identity 1, verified full closure, chosen without targets), width 16, context 64. Served forward is the hard integer form `Z_total[v] = Z_parent[v] + ((sum_j Wcode[v,j]*Rcode[q,j]) << 8)`, implemented as `Rcode<<5` then ternary `W` with output shift 3 through fixed-scale packing (no adaptive quantizer), so training, export/reload and generation share one integer forward. The older prefix is `x[max(0,i-63)..i-1)`, excluding the local pair; step 0 reproduces the parent's integer scores exactly. Trained on the first 512 entries of the recovered 4,096-window consumed permutation (32,046 targets), 256 batch-8 updates per arm with 64 reader-only warm-up updates first and separate Adam ages.
+
+**Measured panel (36 dev documents, 288 evenly spaced windows, 17,342 targets; frozen before any score).**
+
+| Arm | micro bits/target | gain vs frozen parent |
+| --- | ---: | ---: |
+| frozen parent (state-disabled parity exact) | 7.558429 | — |
+| learned older-prefix (PRIMARY, step 256) | 7.575600 | **−0.017174** [−0.026095, −0.008483] |
+| fixed-action older-prefix | 7.723500 | −0.165066 [−0.177712, −0.152226] |
+| learned local tail | 7.576440 | −0.018010 [−0.034886, −0.001074] |
+
+Primary vs fixed control **+0.147892** [0.135512, 0.161202]; primary vs local-tail control **+0.000835** [−0.016240, +0.020440]. Conditional permutation within exact `(prev, cur, older-prefix length)`: 16,583 strata, 576 no-history records excluded, 1,177 eligible records / 36 documents, 554 changed-state recipients — full-panel penalty **−0.000104** [−0.001112, +0.000803], eligible penalty **−0.001532** [−0.015194, +0.012677]. Reverse older-prefix order **+0.004350** [−0.002924, +0.011642].
+
+**The predeclared screen FAILED.** The primary is *worse* than the frozen parent (interval entirely negative), does not beat the local-tail control, and shows no positive conditional-permutation effect. **Actions were genuinely learned** (1,083 hard transitions of 4,096 tokens, all 8 palette IDs occupied, post-warm-up action-gradient norm 0.596), so this is not a no-learning artefact.
+
+**What the three-arm comparison establishes.** (1) Older-token information carried by this one 120-state register is **not measurably used**: permuting the older-prefix state while holding the exact local pair and length fixed changes the loss by an amount indistinguishable from zero. (2) There is **no selected older-prefix advantage over added local capacity**: the equally sized local-tail arm scores the same within interval. (3) Learned geometric actions help **only against a frozen carrier** (primary beats fixed-action by +0.148), a comparison against a worse control rather than evidence of useful older-context reading. (4) The dominant gap remains **local**: an order-2 count reference fitted on the same 512 windows beats the frozen parent by **0.479** bits/target, the 4,096-consumed reference by **1.620**, and the full-fit reference by **2.497**.
+
+**Generation.** The parent reproduces the three historical legacy outputs exactly. Reporting now distinguishes sufficient states: `pair` is a cycle certificate only for the two-token parent, `ring` (ordered last ≤64 tokens) for the new arms. Only the all-32 prompt witnesses a **ring cycle** (entry 48, period 1); every other arm trajectory shows repeated pairs with **no ring cycle** — observed repetition without a proven cycle. All outputs and failures retained. No penalty, sampling, blacklist or override was added.
+
+**Derived-metadata corrections (separate sealed root; sealed replay untouched).** `token_offset = window_index * 64` corrected **38,152** of 38,987 fit-window offsets (835 already correct), with boundary verification across two documents against pinned tokenization; corrected pair labels preserve `(32,32)→32` as a pair fixed point and correct `(284,198)→198` to immediate repetition with successor `(198,198)→504`; tune pool 38 vs 32 actually used, seed `0xA5A51234`/effective `0xA5A51235`, historical "eligible" = changed-context records, and one parity fixture that ran 60 toy updates are recorded.
+
+**Limits.** One register, palette, surrogate, width and dose; at most `log2(120) = 6.91` bits; pure group transitions are bijections and cannot selectively erase. The exact conditional permutation is very fine-grained, so only ~7% of history-bearing records are permutable and the intervention sits near its support floor. `2I` superiority over another algebra is **NOT_TESTED**; no general-language, noncommutative-advantage or solved-repetition claim follows.
+
+**One next step (evidence-supported).** The measured same-input gap is a **local readout learning gap**, not missing older context: a count table on the same 512-window dose beats the frozen parent by 0.479 bits while the new channel adds 65,536 output coefficients and gets worse out-of-sample. Repair the local readout before adding further state — fit the existing two-token ternary readout against the interpolated order-2 count distribution on the recovered 4,096-window dose with the same hard integer forward, and require it to approach the same-dose count reference before any further older-prefix state is tested. No new architecture, sampler or decoder is authorized by this result.
+
+**Resources:** projection, extension and charges in [the ledger](resource-ledger-2026-09-19.md). Peak RSS **545 MB**, three pilot runs 185.3/186.7/14.5 s, derived corrections 0.3 s, new retained storage ≈32 MiB (within the 512 MiB tranche allowance and the 128 MiB margin). No paid/external compute, no deletion.
+
+## Preserved baseline: the corrected replay of the frozen step-512 prior
+
+The replay's artifact/data integrity, all saved scorer means and full-panel intervals remain independently verified by the [principal review](ordered-prefix-review-2026-09-20.md). Its valid positive gates remain.
 
 **The frozen step-512 artifact's evaluation is repaired and executed.** PR #1301 delivered the [principal review](frozen-prior-review-2026-09-20.md) and the [execution prompt](deepseek-frozen-prior-step-2026-09-20.md). This run loaded the retained `prior_realtext.cpl2` **unchanged**, repaired the two evaluation instruments, replayed the frozen artifact, recovered exposure, added count references, diagnosed greedy loops, and made two value-preserving primitive corrections with exact pre/post inference parity. The real-text artifact and original sealed result were unchanged; one named unit fixture did perform 60 toy optimizer updates.
 

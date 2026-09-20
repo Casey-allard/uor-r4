@@ -1,6 +1,6 @@
 # EVIDENCE
 
-**Latest interpretation:** [review after PR #1302](ordered-prefix-review-2026-09-20.md) independently verifies replay/parity seals, corpus identities, all saved scorer means and six full-panel confidence intervals. The corrected local-context gains remain supported. Append-only corrections below narrow the count-gap and loop diagnoses, identify bad derived offsets and label errors, and reconcile the previously recorded resource charge. No Rust build/model/training ran in this review. The [next learned-prefix pilot](deepseek-ordered-prefix-step-2026-09-20.md) is NOT_RUN. Preserve every raw receipt and sealed original.
+**Latest interpretation:** the [learned older-prefix pilot](../evidence/native_geometric_ordered_prefix_pilot_2026-09-20.txt) has been **executed** (the [review after #1302](ordered-prefix-review-2026-09-20.md) had left it NOT_RUN). One exact 120-state `2I` register with learned 8-way actions and a width-16 ternary reader, plus matched fixed-action and local-tail fitted controls, scores **7.5756** bits/target on a new 36-document / 288-window panel against the frozen parent's **7.5584** (−0.0172, interval negative); it does **not** beat the equally sized local-tail control (+0.0008, interval includes zero) and shows **no positive conditional-permutation penalty** (−0.0015, interval includes zero). Actions were genuinely learned (1,083 hard transitions). The predeclared screen **FAILED**. The same-dose order-2 count reference still beats the parent by 0.479 bits, so the seam is the **local readout**. Derived window offsets (38,152 of 38,987), pair labels and label scope were corrected in a separate sealed root; the sealed replay and every original receipt are preserved.
 
 **Previous interpretation:** [post-qualification source review](cold-context-review-2026-09-19.md) scopes #1292 and its remaining instrument corrections.
 
@@ -204,3 +204,20 @@ trained and no artifact byte changed.
 | Next experiment | One hard learned older-prefix group-state/read channel; frozen-action and fitted local-tail controls; same-tail conditional permutation | Proposed and NOT_RUN. Fixed-action benefit, learned-action benefit, general language and noncommutative advantage are separate claims |
 
 [Full review and primary research](ordered-prefix-review-2026-09-20.md); [complete execution prompt](deepseek-ordered-prefix-step-2026-09-20.md).
+
+## Executed learned older-prefix group-state pilot (2026-09-20)
+
+The [pilot receipt](../evidence/native_geometric_ordered_prefix_pilot_2026-09-20.txt) records the executed
+second document of the ordered-prefix pair. The frozen parent was never retrained.
+
+| Scope | Executed measurement | Interpretation |
+| --- | --- | --- |
+| Carrier | Exact `2I`, order 120, fixed palette `[1,2,56,3,59,84,85,0]` (identity 1, full closure verified, chosen without targets); reader 120×16 shift 5, output 4096×16 shift 3, fixed-scale packing | Hard integer served forward `Z = Z_parent + ((Σ_j W_code·R_code) << 8)`; step 0 reproduces the parent exactly |
+| Dose | First 512 entries of the recovered 4,096-window consumed permutation; 32,046 targets; 256 batch-8 updates per arm; 64 reader-only warm-up updates first | Not the parent's exposure; shared identically by all arms |
+| Arms (panel micro bits/target, 36 docs / 288 windows / 17,342 targets) | frozen parent 7.558429; learned older-prefix **7.575600**; fixed-action 7.723500; learned local tail 7.576440 | Primary is worse than the parent; no advantage over the equally sized local-tail control |
+| Screen | gain vs parent **−0.0172** [−0.0261, −0.0085]; vs fixed control **+0.1479** [0.1355, 0.1612]; vs tail control **+0.0008** [−0.0162, +0.0204]; conditional perm penalty **−0.0015** [−0.0152, +0.0127] | **FAILED** on all three required criteria; disabled parity and support passed |
+| Learned actions | 1,083 hard transitions of 4,096 tokens; all 8 palette IDs occupied; post-warm-up action-gradient norm 0.596 | The negative is not a no-learning artefact |
+| Conditional permutation | 16,583 strata; 576 no-history records excluded; 1,177 eligible records / 36 documents; 554 changed-state recipients | Exact `(prev,cur,length)` conditioning leaves only ~7% of history records permutable — low-powered |
+| References (same occurrences) | unigram 9.18503; quantized bias 9.25017; order-2 full-fit 5.06116; 4,096-consumed 5.93805; 512-window 7.07926 | A count reference on the *same* 512-window dose beats the parent by **0.479** bits/target; the seam is local readout |
+| Generation | Parent reproduces the historical legacy outputs exactly. `pair` is a cycle certificate only for the two-token parent, `ring` for the new arms; only the all-32 prompt shows a ring cycle (entry 48, period 1) | Other arm trajectories show repeated pairs with **no** ring cycle: observed repetition without a proven cycle |
+| Derived corrections | Separate sealed root: 38,152 of 38,987 window offsets corrected with boundary verification; `(32,32)→32` preserved as a pair fixed point, `(284,198)→198` corrected to immediate repetition with successor `(198,198)→504` | Sealed `eval-replay-2` untouched |

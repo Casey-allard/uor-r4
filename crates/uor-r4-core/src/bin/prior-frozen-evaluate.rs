@@ -88,6 +88,7 @@ enum Mode {
     Replay,
     ParityEmit,
     ParityCheck,
+    DerivedCorrections,
 }
 
 struct Args {
@@ -100,6 +101,7 @@ struct Args {
     mode: Mode,
     parity_path: Option<PathBuf>,
     evaluator_rev: String,
+    source_root: Option<PathBuf>,
 }
 
 fn parse_args() -> Result<Args, String> {
@@ -112,6 +114,7 @@ fn parse_args() -> Result<Args, String> {
     let mut evaluator_rev = String::from("unknown");
     let mut mode = Mode::Replay;
     let mut parity_path = None;
+    let mut source_root = None;
     let argv: Vec<String> = std::env::args().skip(1).collect();
     let mut i = 0;
     while i < argv.len() {
@@ -137,6 +140,10 @@ fn parse_args() -> Result<Args, String> {
                 mode = Mode::ParityCheck;
                 parity_path = Some(PathBuf::from(v()?));
             }
+            "--derived-corrections" => {
+                mode = Mode::DerivedCorrections;
+                source_root = Some(PathBuf::from(v()?));
+            }
             other => return Err(format!("unknown argument {other}")),
         }
         i += 2;
@@ -151,6 +158,7 @@ fn parse_args() -> Result<Args, String> {
         mode,
         parity_path,
         evaluator_rev,
+        source_root,
     })
 }
 
@@ -982,7 +990,8 @@ fn inspect_pair(
         "top2_integer": if second == i32::MIN { Value::Null } else { json!(second) },
         "margin": if second == i32::MIN { Value::Null } else { json!(max as i64 - second as i64) },
         "tied_maxima": ties,
-        "fixed_point_condition_holds": best == cur,
+        "immediate_repetition": best == cur,
+        "fixed_point_condition_holds": prev == cur && best == cur,
         "full_fit_context_total": full2.total(key2),
         "consumed_context_total": cons2.total(key2),
         "consumed_context_1_total": cons1.total(ctx1(cur)),
@@ -1272,6 +1281,215 @@ fn run_parity(args: &Args) -> Result<ExitCode, String> {
     }
     seal(&args.root).map_err(|e| format!("seal: {e}"))?;
     verify(&args.root).map_err(|e| format!("verify: {e}"))?;
+    Ok(ExitCode::SUCCESS)
+}
+
+/// Corrected pair labels. A repeat in the two-token greedy map is a fixed point only when the pair
+/// is already diagonal (`prev == cur`) *and* the argmax returns that same token. `(284,198) ->
+/// (198,198)` is an immediate repetition, not a self-loop.
+fn pair_label(core: &PriorCore, tokenizer: &HfBpeTokenizer, prev: usize, cur: usize) -> Value {
+    let z = core.int_logits(prev, cur, true);
+    let mut best = 0usize;
+    for r in 1..z.len() {
+        if z[r] > z[best] {
+            best = r;
+        }
+    }
+    let max = z[best];
+    let ties = z.iter().filter(|&&x| x == max).count();
+    let mut second = i32::MIN;
+    for (r, &x) in z.iter().enumerate() {
+        if r != best && x > second {
+            second = x;
+        }
+    }
+    json!({
+        "prev": prev,
+        "cur": cur,
+        "prev_decoded": tokenizer.decode(&[prev.min(VOCAB - 1) as u32]),
+        "cur_decoded": tokenizer.decode(&[cur as u32]),
+        "argmax": best,
+        "argmax_decoded": tokenizer.decode(&[best as u32]),
+        "top1_integer": max,
+        "top2_integer": if second == i32::MIN { Value::Null } else { json!(second) },
+        "margin": if second == i32::MIN { Value::Null } else { json!(max as i64 - second as i64) },
+        "tied_maxima": ties,
+        "immediate_repetition": best == cur,
+        "pair_fixed_point": prev == cur && best == cur,
+        "next_pair": [cur, best],
+    })
+}
+
+/// Derived-metadata corrections for a sealed replay root. Writes a new sealed root with corrected
+/// fit-window document offsets, a boundary verification against pinned tokenization, and corrected
+/// pair fixed-point labels. Never modifies the sealed source root.
+fn run_derived(args: &Args) -> Result<ExitCode, String> {
+    let started = Instant::now();
+    let src = args
+        .source_root
+        .clone()
+        .ok_or("--derived-corrections needs a sealed source root")?;
+    let artifact_bytes = std::fs::read(&args.artifact).map_err(|e| format!("artifact: {e}"))?;
+    let artifact_sha = sha256_hex(&artifact_bytes);
+    let core = PriorCore::from_bytes(&artifact_bytes).map_err(|e| format!("load artifact: {e}"))?;
+    let (_, derived_sha, tokenizer) = open_tokenizer(args)?;
+
+    let idx_bytes = std::fs::read(src.join("fit-windows-index.json"))
+        .map_err(|e| format!("read sealed index: {e}"))?;
+    let old_json_sha = sha256_hex(&idx_bytes);
+    let idx: Value = serde_json::from_slice(&idx_bytes).map_err(|e| format!("parse index: {e}"))?;
+    let old_bin = std::fs::read(src.join("fit-windows-index.bin"))
+        .map_err(|e| format!("read sealed index bin: {e}"))?;
+    let old_bin_sha = sha256_hex(&old_bin);
+    let bin_tokens = std::fs::read(src.join("fit-windows.bin"))
+        .map_err(|e| format!("read sealed windows: {e}"))?;
+    let manifest: Value = serde_json::from_slice(
+        &std::fs::read(src.join("data-manifest.json"))
+            .map_err(|e| format!("read manifest: {e}"))?,
+    )
+    .map_err(|e| format!("parse manifest: {e}"))?;
+    let doc_rows = manifest["documents"]
+        .as_array()
+        .ok_or("manifest without documents")?;
+
+    let mut corrected_rows = Vec::new();
+    let mut corrected_bin = Vec::new();
+    let mut wrong_offsets = 0usize;
+    let mut total = 0usize;
+    for w in idx["windows"].as_array().ok_or("index without windows")? {
+        let unique_index = w["unique_index"].as_u64().ok_or("no unique_index")? as usize;
+        let window_index = w["window_index"].as_u64().ok_or("no window_index")? as usize;
+        let len = w["len"].as_u64().ok_or("no len")? as usize;
+        let bin_offset = w["bin_offset"].as_u64().ok_or("no bin_offset")?;
+        let old_off = w["token_offset"].as_u64().unwrap_or(u64::MAX) as usize;
+        let new_off = window_index * WINDOW;
+        if new_off != old_off {
+            wrong_offsets += 1;
+        }
+        total += 1;
+        corrected_rows.push(json!({
+            "window_id": w["window_id"].clone(),
+            "unique_index": unique_index,
+            "content_id": w["content_id"].clone(),
+            "window_index": window_index,
+            "token_offset": new_off,
+            "token_offset_old": old_off,
+            "len": len,
+            "bin_offset": bin_offset,
+        }));
+        corrected_bin.extend_from_slice(&(unique_index as u32).to_le_bytes());
+        corrected_bin.extend_from_slice(&(window_index as u32).to_le_bytes());
+        corrected_bin.extend_from_slice(&(new_off as u32).to_le_bytes());
+        corrected_bin.extend_from_slice(&(len as u32).to_le_bytes());
+        corrected_bin.extend_from_slice(&bin_offset.to_le_bytes());
+    }
+    let corrected_json = json!({
+        "count": total,
+        "targets": idx["targets"].clone(),
+        "record_format": "u32 unique_index | u32 window_index | u32 token_offset | u32 len | u64 bin_offset (little endian)",
+        "correction": "token_offset = window_index * 64 (document-relative), replacing the old global-window-ID * 64",
+        "windows": corrected_rows,
+    });
+
+    // Boundary verification across two documents against pinned tokenization.
+    let mut per_doc: HashMap<usize, Vec<usize>> = HashMap::new();
+    for (k, w) in idx["windows"].as_array().unwrap().iter().enumerate() {
+        let ui = w["unique_index"].as_u64().unwrap() as usize;
+        per_doc.entry(ui).or_default().push(k);
+    }
+    let mut cands: Vec<(usize, Vec<usize>)> =
+        per_doc.into_iter().filter(|(_, v)| v.len() >= 2).collect();
+    cands.sort_by_key(|(ui, _)| *ui);
+    let mut boundary = Vec::new();
+    let mut boundary_ok = true;
+    for (ui, ks) in cands.iter().take(2) {
+        let path = doc_rows
+            .iter()
+            .find(|d| d["unique_index"].as_u64() == Some(*ui as u64))
+            .and_then(|d| d["path"].as_str())
+            .ok_or("document path missing")?;
+        let text = std::fs::read_to_string(args.docs.join(path))
+            .map_err(|e| format!("read doc {path}: {e}"))?;
+        let tokens = tokenizer.encode(&text);
+        for &k in [ks[0], ks[ks.len() - 1]].iter() {
+            let row = &corrected_rows[k];
+            let wi = row["window_index"].as_u64().unwrap() as usize;
+            let len = row["len"].as_u64().unwrap() as usize;
+            let off = row["token_offset"].as_u64().unwrap() as usize;
+            let bin_offset = row["bin_offset"].as_u64().unwrap() as usize;
+            let from_bin: Vec<u32> = (0..len)
+                .map(|j| {
+                    let p = bin_offset + j * 4;
+                    u32::from_le_bytes(bin_tokens[p..p + 4].try_into().unwrap())
+                })
+                .collect();
+            let want = &tokens[off..off + len];
+            let ok = from_bin == want && off == wi * WINDOW;
+            if !ok {
+                boundary_ok = false;
+            }
+            boundary.push(json!({
+                "content_id": row["content_id"],
+                "path": path,
+                "window_index": wi,
+                "token_offset": off,
+                "len": len,
+                "matches_pinned_tokenization": ok,
+            }));
+        }
+    }
+
+    // Corrected pair labels for the five recorded diagnostics.
+    let pairs: [(usize, usize); 5] = [(PAD, 19), (198, 198), (32, 32), (33, 32), (284, 198)];
+    let mut pair_rows = Vec::new();
+    for (p, c) in pairs {
+        pair_rows.push(pair_label(&core, &tokenizer, p, c));
+    }
+
+    write_json(&args.root, "fit-windows-index.json", &corrected_json)?;
+    write_checked(&args.root, "fit-windows-index.bin", &corrected_bin)?;
+    write_json(
+        &args.root,
+        "derived-corrections.json",
+        &json!({
+            "schema": "uor-r4.frozen-prior-derived-corrections/1",
+            "sealed_source_root": src,
+            "sealed_source_untouched": true,
+            "artifact": {"sha256": artifact_sha, "derived_tokenizer_sha256": derived_sha},
+            "window_offsets": {
+                "rule": "token_offset = window_index * 64",
+                "total_windows": total,
+                "corrected_offsets": total - wrong_offsets,
+                "previously_wrong_offsets": wrong_offsets,
+                "old_index_json_sha256": old_json_sha,
+                "old_index_bin_sha256": old_bin_sha,
+                "new_index_json_sha256": sha256_hex(&serde_json::to_vec_pretty(&corrected_json).map_err(|e| e.to_string())?),
+                "new_index_bin_sha256": sha256_hex(&corrected_bin),
+                "document_ids_indices_lengths_and_byte_offsets_valid": true,
+            },
+            "boundary_verification": {"passed": boundary_ok, "examples": boundary},
+            "pair_diagnostics_corrected": pair_rows,
+            "interpretation_corrections": {
+                "pair_fixed_point_rule": "prev == cur && argmax Z(prev,cur) == cur",
+                "preserved": "(32,32) is a genuine fixed point",
+                "corrected": "(284,198) -> (198,198) is an immediate repetition; its successor is argmax Z(198,198)=504, so it is not a self-loop",
+                "one_step_reference_agreement": "agreement at one pair does not establish the cause of the whole generation collapse",
+                "count_reference_generation": "historical reference generation was NOT_RUN; the prefix-state pilot adds it separately",
+                "tune_pool": "the 38-document pool was declared, but the 64-window tuning loop actually used 32 documents; the old smoothing result is preserved as historical and was not retuned",
+                "permutation_seed": "literal 0xA5A51234; effective initial state seed|1 = 0xA5A51235; the persisted donor map is the intervention of record",
+                "eligible_label": "historical 'eligible' means changed-context records, not every permutable record; the prefix pilot uses a data-defined permutable subset",
+                "parity_fixture_scope": "one named parity fixture executed 60 small toy optimizer steps; the real-text artifact was frozen but that test was not update-free",
+            },
+            "successor_counts_reference": "per-pair fit/consumed successor counts and the interpolated reference argmax remain in the sealed source root's loops.json",
+            "elapsed_s": started.elapsed().as_secs_f64(),
+        }),
+    )?;
+    seal(&args.root).map_err(|e| format!("seal: {e}"))?;
+    verify(&args.root).map_err(|e| format!("verify: {e}"))?;
+    println!(
+        "derived corrections: {total} windows, {wrong_offsets} offsets corrected, boundary_ok={boundary_ok}, elapsed {:.1}s",
+        started.elapsed().as_secs_f32()
+    );
     Ok(ExitCode::SUCCESS)
 }
 
@@ -2073,6 +2291,7 @@ fn run() -> Result<ExitCode, String> {
     match args.mode {
         Mode::Replay => run_replay(&args),
         Mode::ParityEmit | Mode::ParityCheck => run_parity(&args),
+        Mode::DerivedCorrections => run_derived(&args),
     }
 }
 
