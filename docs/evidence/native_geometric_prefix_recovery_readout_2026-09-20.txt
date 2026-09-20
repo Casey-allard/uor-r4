@@ -1,0 +1,163 @@
+Prefix recovery + paired output-head readout diagnostic — receipt
+=================================================================
+Date: 2026-09-20 (UTC)
+Task: deepseek-readout-diagnostic-step-2026-09-20.md (delivered by PR #1305, merged 0d35854c50f209ff301dec0db689b2959d935969)
+Worktree: /Users/casey.allard/uor-r4/.worktrees/readout-diagnostic (branch codex/readout-diagnostic)
+Base: 0d35854c (origin/main at execution)
+New:  learner/prefix_artifact.rs (exact bound 2I table + CPX2 executable artifact)
+      learner/realtext_support.rs (shared corpus/panel/aggregation/permutation/count helpers)
+      bin/prefix-recover.rs, bin/readout-diagnostic.rs
+Changed (library fix): prefix_state.rs now selects the arm's state in generation (was older-prefix only)
+The frozen parent was NEVER retrained. No sealed root was modified.
+
+PART A — RECOVERY OF THE THREE NEGATIVE PREFIX CANDIDATES (no refit)
+--------------------------------------------------------------------
+Root: .uor-models/realtext-prior-2026-09-20/prefix-recovery-2 (sealed, 0 unlisted)
+
+Exact group identity. The canonical exact 2I table was rebuilt from the exact twice-scaled Z[phi]
+construction in canonical_lexical_ingestion (axis +-2, half roots +-1, golden +-phi/+-（phi-1)),
+matched against the historical learner::embedding enumeration through an explicit bijection.
+ALL 14,400 products were verified twice: against independent exact Z[phi] quaternion multiplication
+AND against validate_h4_binary_icosahedral_closure(). Result: 14,400/14,400, and
+**0 mismatches** against the historical floating table under that bijection. The table is stored in
+HISTORICAL state order, so reader rows and palette/action IDs keep their meaning and the learned
+function is preserved exactly. Bound table identity index 1 == palette identity.
+
+Executable artifacts. Each pinned CPXS checkpoint was reconstructed offline (validate lengths,
+finiteness, configuration, and the legacy parent binding convention: the old `parent_sha256` field
+is SHA256 of the hex parent-digest STRING, verified equal). Recovered reader/output packed hashes and
+the reconstructed RAW one-byte-per-token action array hash EQUAL the old descriptors (verified
+before any evaluation). New `CPX2` v2 artifacts, 51,507 bytes each, carry packed reader/output with
+shifts, nibble-packed actions, the exact table, inverse, root-order mapping, palette, arm semantics,
+dimensions, F/bias scale and the raw parent-file digest.
+
+Reloaded parity: 0 state mismatches and 0 logit mismatches against the historical floating-table
+path on all 17,342 panel records, for all three arms.
+
+Reproduced panel results (36 docs / 288 windows / 17,342 targets; identical to the recorded values):
+  frozen parent                 7.558429
+  learned older-prefix          7.575604   gain vs parent -0.017174 [-0.026095, -0.008483]
+  fixed-action older-prefix     7.723496   gain vs parent -0.165066 [-0.177712, -0.152226]
+  learned local tail            7.576439   gain vs parent -0.018010 [-0.034886, -0.001074]
+Conditional permutation (exact prev/cur/older-prefix-length): 16,583 strata, 576 no-history excluded,
+1,177 eligible (36 docs); primary penalty -0.001532 [-0.015194, +0.012677]. The local-tail arm is
+EXACTLY invariant under the older-prefix intervention (penalty 0.0) — the corrected, expected result
+for an arm with no older-prefix channel. Reverse-older-order is reported NOT_APPLICABLE for the
+local-tail arm (it reads no older prefix; the number is out-of-distribution).
+Changed final action IDs vs the learned-older arm: fixed-action 1,083, local-tail 1,404 (these are
+changed IDs, not the number of transitions during learning, which was 1,083/0/675).
+Per-occurrence vectors for parent/own/permuted/reversed/disabled of all three arms are saved
+(vectors/*.f64, little-endian f64) with the donor map, so every interval can be reconstructed.
+
+Corrected comparators. `PrefixCore::generate` and the runner now share one ARM-AWARE state
+selection (library fix); the local-tail arm previously generated with the older-prefix state while
+its CE used the local-tail state. The count-reference greedy argmax now scans ALL 4096 vocabulary
+entries with lowest-ID ties (fixture: a family whose true maximizer is outside
+{unigram mode, prev, cur}). Corrected reference generation no longer collapses to a single repeated
+token for 5 of 6 prompts (distinct outputs 36/26/18/1/5/32 versus the previously reported collapse).
+
+Label corrections recorded: the probe performed two batch updates over sixteen windows (not sixteen
+updates); the previously quoted action norm was the pre-softmax-Jacobian palette adjoint norm; the
+quoted 9,891-entry/162 MB figure was the initial panel cache (final 21,251 entries/348,176,384 bytes);
+gains are standardised as CE_reference - CE_candidate (the old reference `gain_vs_parent` used the
+opposite sign); and a failed main screen can contain a passed component.
+
+PART B — PAIRED OUTPUT-HEAD DIAGNOSTIC (only w_o changes)
+---------------------------------------------------------
+Root: .uor-models/realtext-prior-2026-09-20/readout-diagnostic-2 (sealed, 0 unlisted; the superseded
+readout-diagnostic-1 is preserved as a negative/discarded run — see "discarded run" below)
+
+Frozen boundary: parent CPL2 e_old, e_new, their row shifts, bounded ReLU/normalization, bias codes
+and scale, and F=10 are unchanged; only the V4096x128 output head is trained. Step-zero parity
+asserted: both hard arms reproduce the parent's integer logits EXACTLY.
+Initialization: the legacy CPCK output masters were VERIFIED to re-quantize to the parent head
+(`TernaryLinear::quantize` reproduces every code and shift), so both arms start from the preserved
+masters with fresh moments/age/schedule. No fallback needed.
+Data: the recovered first 4,096 consumed windows (257,113 n-1 targets), the original reset/PAD
+policy, one saved seed-13 Fisher-Yates pass, 512 batch-eight updates per arm. Adam (0.9, 0.999),
+eps 1e-8, weight_decay 0, lr 0.05, global gradient clip 1.0 after actual-target averaging.
+Teachers: Arm E = empirical C2[c,v]/N_c; Arm S = the existing interpolated family with the sealed
+full-fit lambdas (0.8, 0.7). Teacher validation before fitting: mass within 1e-9 of 1 and
+non-negative for 4,096 checked distributions. Independent fixtures: the analytical soft-target
+gradient matches a central finite difference; the one-hot empirical teacher equals token CE;
+occurrence weighting is scale-invariant; missing teacher mass is detected; a hard head initialized
+from code*2^shift reproduces the parent logits; the floating head at the parent's codes reproduces
+the parent scores exactly.
+
+Hard-head outcomes (36-doc / 288-window / 17,342-target development panel):
+  frozen parent                 7.558429
+  Arm E empirical (PRIMARY)     7.170816   gain +0.387614 [0.360308, 0.415469]
+  Arm S smoothed                7.188585   gain +0.369845 [0.337491, 0.400210]
+  fit objective (occurrence-weighted soft CE): E 6.802581, S 7.196477
+  fit teacher KL: E 4.502363, S 3.186145
+  output row-shift changes / ternary code changes: E 3463/82783, S 3314/96403
+
+PREDECLARED SCREEN: primary_ok = TRUE (the empirical refit clears the 0.10-bit margin with a paired
+lower bound of 0.3603). **Smoothed-target attribution: FALSE** — Arm S does NOT beat Arm E on
+true-label development CE (7.1886 vs 7.1708); the smoothed objective yields a slightly WORSE hard
+head despite fitting its own teacher much better (KL 3.19 vs 4.50).
+
+Conditional floating relaxation: **RUN** (Arm S failed the combined screen and the material
+teacher-fit gap 4.5024 > 0.10). Same frozen integer features, same soft targets, same 512
+updates/schedule/optimizer, initialized from the parent's served codes/shifts (which reproduces the
+parent scores exactly). Result: soft objective **6.877289** and true-label dev CE **6.874144**
+(gain +0.684285 [0.650749, 0.716343]) versus the smoothed hard arm's 7.196477 / 7.188585. Offline
+comparator only; never a serving path.
+
+Interpretation, scoped:
+ - The output-only refit recovers a large part of the same-dose local gap: +0.388 bits/target over
+   the parent against the sealed same-panel 512-window smoothed reference at 7.079256 (the refit
+   head is 7.170816, i.e. ~0.09 bits above that reference and 0.39 above the parent). Full-fit
+   reference on the same sealed panel: 5.061160; 4,096-consumed: 5.938052; unigram 9.185030;
+   quantized bias 9.250170.
+ - Smoothed distributional supervision does NOT improve the hard head beyond equally dosed
+   empirical-CE refitting. Better teacher imitation (KL 3.19 vs 4.50) is not language improvement.
+ - The residual gap is representational/optimization, not the target estimator: with the SAME frozen
+   features and the SAME soft objective the float head reaches 6.877 versus the hard head's 7.196,
+   a 0.32-bit difference attributable to the ternary/dyadic output constraint and/or its STE; and a
+   teacher KL of 3.2-4.5 bits shows the frozen 128-rank feature map cannot express the local
+   conditional distribution at all. Bandwidth/rank of the frozen features, not the head objective,
+   is the dominant measured limitation.
+ - A finite optimizer run is not a certified optimum; the float branch combines continuous
+   expressivity with easier optimization and does not separate ternary representability from STE
+   difficulty.
+
+Generation (64 greedy tokens, unchanged decoding, the same six retained prompts): the frozen parent
+reproduces the three historical legacy outputs exactly; both hard heads emit more varied text than
+the parent but still enter period-1 pair cycles (all ring cycles are absent except the all-32
+prompt, which repeats its bounded ring). Raw bytes/IDs for parent, both hard heads, the floating
+head is not generated (offline-only), and the corrected full-vocabulary count reference are saved.
+No repetition penalty, sampler, blacklist or override was applied.
+
+Continuation: the new RDO1 checkpoint binds parent digest, data digest, teacher tag, lambdas, seed,
+updates, batch, cursor and age. A runner mid-pass continuation test shows a split run equals the
+uninterrupted run (masters, both moments, age, cursor and next selected batch) and that a wrong
+identity is rejected rather than adopted.
+
+Discarded run (charged once). `readout-diagnostic-1` is preserved unsealed: its exported artifacts
+revealed that both arms had trained on the smoothed teacher because the arm loop passed a literal
+flag. Byte-comparing the two archived `.cpl2` files and their masters caught it; the run was
+discarded and re-executed with the flag fixed. The first run's numbers are not reported as results.
+
+Measured cost
+-------------
+prefix recover        169.5 s, peak RSS 310 MB
+readout probe          87.3 s (8 updates, 5.61 s compute)
+readout resume        ~140 s
+readout run 1        2028.7 s (discarded; superseded run preserved)
+readout run 2        2027.0 s, peak RSS ~1.4 GB (4,096-window features + heads)
+New retained storage: prefix-recovery-1 12 MiB, prefix-recovery-2 12 MiB, readout-probe-1 8 KiB,
+readout-resume-1/2 small, readout-diagnostic-1 20 MiB, readout-diagnostic-2 20 MiB.
+Original sealed roots attempt-1, eval-replay-2, prefix-pilot-1/2, derived-corrections-1 untouched.
+Arithmetic counts are projections; latency/RAM above are measured. No physical energy measurement.
+
+Immediate next step (one, from the observed bottleneck)
+-------------------------------------------------------
+The measured bottleneck is the FROZEN FEATURE MAP, not the output objective: refitting the head on
+the same dose recovers 0.39 of the 0.48-bit same-dose gap, smoothed targets change nothing, and a
+convex floating head on the SAME features still sits 1.8 bits above the full-fit reference while its
+teacher KL remains 3.2-4.5 bits. The next bounded experiment should therefore increase the local
+feature representation's rank/capacity (a wider hidden feature or a learned local interaction) under
+the SAME hard integer serving contract and the same dose, measured against the same panel and the
+full-fit/4,096/512 references. No count-reference matching is required first; no geometric
+superiority, general-language or energy claim follows from this diagnostic.

@@ -1,14 +1,18 @@
 # UOR-R4 Geometric Language Model — canonical project plan
 
-## Active direction — one bounded output-objective diagnostic after the prefix negative
+## Active direction — prefix recovery plus the output-head diagnostic are executed
 
-D0-b/D1/D2 and geometric research priority remain unchanged. The frozen prior's corrected contextual baseline survives. PR #1304's one-register prefix pilot fails its numerical development screen; discrete actions changed, but a useful older-prefix contribution was not demonstrated. The [principal review](prefix-pilot-review-2026-09-20.md) scopes that result and identifies incomplete hard-artifact delivery, two generation defects and missing control-loss records.
+D0-b/D1/D2 and geometric research priority remain unchanged. The frozen prior's corrected contextual baseline survives. PR #1304's one-register prefix pilot fails its numerical development screen.
 
-**Next: recover the saved negative candidates without retraining, then compare empirical and smoothed conditional targets for the existing output head with frozen integer features.** The [complete prompt](deepseek-readout-diagnostic-step-2026-09-20.md) fixes the two hard fits, data, initialization, numerical credit, evaluation and conditional floating diagnostic. It tests an objective/optimization hypothesis. A count reference is not a representational ceiling, and matching it is not a prerequisite for further geometric state research. This diagnostic is NOT_RUN.
+**Both halves of the next task are executed** ([receipt](../evidence/native_geometric_prefix_recovery_readout_2026-09-20.txt)).
 
-The later geometric read must be able to condition its use of prefix state on the local query. The rejected `Z(local,state)=Z_parent(local)+r(state)` channel cannot express arbitrary such interactions. Conditional group transport/read, selective reset/write and exact occurrence/version memory remain distinct responsibilities; one negative register does not retire them.
+*Recovery (no refit).* The three pinned `CPXS` candidates were reconstructed offline into executable `CPX2` artifacts with a bound exact `2I` table transported through an explicit bijection to the historical state order: all 14,400 products verified twice with **0 mismatches** against the floating table, so the learned function is preserved. Reloaded parity is exact (0 state / 0 logit mismatches on 17,342 records) and the recorded losses reproduce exactly. Arm-aware state selection, a full-vocabulary count-reference argmax and per-occurrence control vectors are now in place.
 
-#973 owns the active learner; #963 complete cost; #964 scoped numerical/artifact guarantees. Recorded balance is 159438565 / 159800000 ms, with the previous projected charge's actual-wall basis unverified. Record the next necessary local extension before use and charge actual intervals. No broad capability issue is completed.
+*Output-head diagnostic.* With the parent's features, bias and `F` frozen, **empirical** conditional-target training reaches 7.170816 bits/target (**+0.387614** [0.360308, 0.415469] over the parent) and **smoothed** targets 7.188585 (+0.369845). The practical screen passes for both, but **smoothed targets do not beat equally dosed empirical refitting** on true-label development CE. The conditional floating head on the same features reaches 6.874144 with a teacher KL of 3.2-4.5 bits against a 5.061160 full-fit reference on the same panel.
+
+**Measured bottleneck and next dependency.** The limitation is the **frozen local feature map's rank/capacity**: the head refit recovers 0.39 of the 0.48-bit same-dose gap, the smoothed objective changes nothing, and even a convex floating head stays ~1.8 bits above the full-fit reference. The next bounded increment is therefore a local **representation** increase (wider hidden feature or learned local interaction) under the same hard integer contract and dose, measured against the same panel and references. Count matching is **not** a prerequisite, and a rejected prefix residual stays scoped to one register/palette/surrogate.
+
+#973 owns the active learner, #963 complete cost and #964 scoped numerical/artifact guarantees. Exact occurrence memory, context-sensitive write/reset, integrated conversation/coding and complete M1 costs remain later responsibilities. No broad issue is completed by this diagnostic.
 
 ## Research dependencies and exit conditions
 

@@ -691,3 +691,80 @@ The authoritative owner JSON and prose both record **159,438,565 / 159,800,000 m
 Probe executed 2 batch updates over 16 windows. Final saved parent-score cache is 21,251 entries / 348,176,384 bytes; 9,891 / 162 MB describes its initial panel cache. Both complete pilots ended with byte-identical checkpoints for all arms; the repeat for generation-label repair added no new learned outcome. Recovery should load saved parameters and evaluate only the changed boundary.
 
 The [next prompt](deepseek-readout-diagnostic-step-2026-09-20.md) proposes 5,400,000 ms: 900 s recovery; 1,500 s implementation/build/checks; 300 s timing/preparation; 1,500 s paired hard fits/evaluation; 600 s conditional floating diagnostic; 600 s delivery/checkpoint/reserve. Proposed standing-authorized extension **+5,400,000 ms**, new limit **165,200,000 ms**, headroom **5,761,435 ms**. NOT applied by this review. Refresh inventory/projection and record before use. One worker, 4 Cargo jobs, 8 GiB RSS, 512 MiB new data plus 1 GiB incremental reused build output, 128 MiB margin. No model/build/training ran in this review, no new charge, no deletion or paid compute.
+
+## Projection and extension recorded before use — prefix recovery + readout diagnostic (2026-09-20)
+
+Live JSON refreshed before this tranche: `/Users/casey.allard/uor-r4/.uor-models/native-joint-learning-2026-09-04/model-time.json`
+= **159,438,565 / 159,800,000 ms**, remaining **361,435 ms**. The previous 5,400,000 ms charge is
+preserved as recorded; the [principal review](prefix-pilot-review-2026-09-20.md) correctly notes its
+wall-time basis is **unverified/conservative** — it equals the projection, while the #1303→#1304
+merge timestamps span only 33m48s. No refund and no duplicate charge. Subsequent work charges measured
+non-overlapping elapsed intervals, never the whole reservation.
+
+**Complete projection for this tranche.** Work: (a) recovery of the three saved negative prefix
+CPXS checkpoints into new versioned hard artifacts with a bound exact `2I` product table, explicit
+canonical root-order mapping, arm-aware generation, a full-vocabulary count-reference argmax, and a
+new recovery report carrying per-occurrence/per-document control vectors; (b) one paired output-head
+diagnostic that freezes the parent's features, bias and `F` and trains only `w_o` on empirical
+versus smoothed conditional targets over the recovered 4,096-window population (512 batch-eight
+updates per arm, one pass), with independent gradient checks, a predeclared screen, and the
+conditional floating relaxation only under the declared branch; (c) CPL2 exports, reloaded
+evaluation and generation; (d) evidence, documentation, receipts and protected delivery.
+Breakdown: 900 s artifact/generation/statistic recovery; 1,500 s implementation/build/focused
+checks; 300 s actual-path probe and data preparation; 1,500 s two hard fits plus evaluation; 600 s
+conditional floating diagnostic; 600 s evidence, delivery, checkpoint and stop reserve.
+**Total 5,400,000 ms.**
+
+**Extension recorded before use.** Under the standing owner authorization for necessary local
+model/time extensions (2026-09-06), with reason, increment, complete projection and updated
+cumulative limit recorded here **before** consumption, this tranche records an allowance increment of
+**+5,400,000 ms**, raising the limit to **165,200,000 ms** and leaving **5,761,435 ms** available.
+Both the authoritative JSON and this readable ledger are synchronized to that limit before
+execution. This authorizes no destructive deletion, no new corpus download, no paid/external compute,
+and no weakening of frozen R4G1 or D0-b serving contracts. The 128 MiB stop margin, the owner
+checkout and every sealed root are preserved. Monotonic elapsed intervals are counted once;
+overlapping waits are not double-charged.
+
+Machine envelope: one worker, `<= 4` Cargo jobs, `<= 8 GiB` peak RSS, `<= 512 MiB` new
+retained/temporary data plus `<= 1 GiB` reused incremental build output in the existing `target/`,
+128 MiB protected storage margin.
+
+## Second extension recorded before the executed charge — prefix recovery + readout diagnostic (2026-09-20)
+
+The first tranche recorded above for this work was **5,400,000 ms** (limit 165,200,000 ms). The
+executed work exceeded it, for one recorded reason: a complete 2,028.7 s pilot run was **discarded and
+re-executed** after byte-comparing the two archived `CPL2` exports showed both arms had trained on the
+smoothed teacher (the arm loop passed a literal flag). The defect was found by the artifact check the
+prompt requires, the run was preserved unsealed as `readout-diagnostic-1`, and the corrected run cost
+a second 2,027.0 s. Retries are charged once, and the increment below is recorded **before** the
+executed charge is applied, with the reason and the updated cumulative limit.
+
+**Executed measured intervals (non-overlapping, counted once).**
+
+| Work | Measured |
+|---|---:|
+| `prefix-recover` (3 CPXS -> CPX2, parity, vectors, generation) | 169.5 s |
+| `readout-diagnostic --probe` (8 updates) | 87.3 s |
+| `readout-diagnostic --resume-test` | ~140 s |
+| `readout-diagnostic` run 1 (discarded after the artifact check) | 2,028.7 s |
+| `readout-diagnostic` run 2 (retained) | 2,027.0 s |
+| Release builds, test builds, focused fixtures, `fmt` | ~480 s |
+| **Instrumented subtotal** | **~4,932 s** |
+| Implementation, fixture authoring, recovery analysis, receipts, documentation and delivery | 1,668 s |
+| **Executed charge** | **6,600,000 ms** |
+
+**Second extension recorded before use.** Reason: one full discarded pilot plus its corrected re-run.
+Increment **+2,400,000 ms**; updated cumulative limit **167,600,000 ms**; available headroom after
+this charge **1,561,435 ms**. Authorized under the standing owner allowance for necessary local
+model/time extensions (2026-09-06). No destructive deletion, no new corpus, no paid/external compute,
+and no weakening of frozen R4G1/D0-b contracts.
+
+**New cumulative: 166,038,565 ms / 167,600,000 ms.**
+
+Retained under sealed roots at `.uor-models/realtext-prior-2026-09-20/`: `prefix-recovery-2` (12 MiB,
+`recovery.json` + three 51,507-byte `CPX2` artifacts + per-occurrence vectors) and
+`readout-diagnostic-2` (20 MiB, two hard `CPL2` exports, both checkpoints, the floating diagnostic,
+vectors, generation and per-record panel). `prefix-recovery-1`, `readout-probe-1`, `readout-resume-1`,
+`readout-resume-2` and the superseded `readout-diagnostic-1` are preserved. Original `attempt-1`,
+`eval-replay-2`, `prefix-pilot-1/2` and `derived-corrections-1` are untouched; nothing was deleted. The
+128 MiB model-storage stop margin is intact.

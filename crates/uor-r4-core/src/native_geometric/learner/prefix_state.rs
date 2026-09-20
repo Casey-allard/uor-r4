@@ -414,8 +414,20 @@ impl PrefixCore {
         z
     }
 
-    /// Greedy continuation with an explicit ring of the generated tokens so the older prefix is
-    /// recomputed from the bounded context (no separate eviction subsystem).
+    /// **Arm-aware state selection** shared by training, evaluation and generation.
+    ///
+    /// The local-tail arm must never fall back to the older-prefix state during generation; its
+    /// teacher-forced loss uses [`Self::state_tail`], so generation must too.
+    pub fn state_for_arm(&self, tokens: &[u32], i: usize) -> Option<usize> {
+        if self.arm == Arm::LearnedTail as u8 {
+            self.state_tail(tokens, i)
+        } else {
+            self.state_older(tokens, i)
+        }
+    }
+
+    /// Greedy continuation that recomputes the arm's state from the bounded context (no separate
+    /// eviction subsystem).
     pub fn generate(&self, prompt: &[u32], n_new: usize) -> Vec<u32> {
         let mut toks = prompt.to_vec();
         let v = self.parent.cfg.vocab;
@@ -427,7 +439,7 @@ impl PrefixCore {
                 (toks[i - 1] as usize).min(v - 1)
             };
             let cur = (toks[i] as usize).min(v - 1);
-            let q = self.state_older(&toks, i);
+            let q = self.state_for_arm(&toks, i);
             let z = self.int_logits(prev, cur, q);
             let mut best = 0usize;
             for r in 1..z.len() {

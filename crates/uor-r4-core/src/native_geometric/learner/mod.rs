@@ -13,8 +13,10 @@ pub mod jepa_trainer;
 pub mod lowbit;
 pub mod lowbit_attention;
 pub mod lowbit_core;
+pub mod prefix_artifact;
 pub mod prefix_state;
 pub mod prior_learning;
+pub mod realtext_support;
 pub mod transition_table;
 pub mod vsa_codes;
 
