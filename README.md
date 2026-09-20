@@ -79,6 +79,8 @@ With no prompt it opens the interactive loop (`/reset`, `/stats`, `/exit`). Cons
 
 ## Research, verification and continuity
 
+The [structural-memory/Hopf direction](docs/integration/structural-memory-hopf-direction-2026-09-20.md) adds a planned role/scope-memory comparison after the current occurrence reader, followed by conditional reuse of finite Hopf/S7 relation state or harmonic coefficients. These are untested hypotheses; the [canonical plan](docs/integration/project-track.md#structural-memory-and-geometric-representation-follow-up) owns their sequence and advantage tests.
+
 - [Project map](docs/PROJECT_MAP.md): source families, historical engines, artifact locations and interface boundaries.
 - [Architecture audit](docs/integration/architecture-2026-09/README.md) and [import audit](docs/integration/architecture-2026-09/imports.md): reusable UOR, NEMESIS, W33, GoldSnnail, SpiralCore and other mechanisms, with source/pin/claim limits.
 - [Geometric-attention synthesis](docs/integration/geometric-attention-research-2026-09/README.md) and [mathematical foundations](docs/integration/geometric-attention-research-2026-09/mathematical-foundations.md): exact constructions, proposed bridges and missing learning evidence.

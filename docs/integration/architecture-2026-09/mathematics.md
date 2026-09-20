@@ -85,6 +85,8 @@ Historical code/math: `_inc0171_analysis.py` actual gate/expert/attention defini
 
 Owner steering after the first report explicitly invites combining useful pieces and regards expert gates as a possible later conditional option, rather than a permanent categorical prohibition. The main recommendation remains deterministic geometric memory/operator selection first; the report's earlier exclusion language records the prior clarification and is not a permanent ban on an explicitly evaluated later design.
 
+The [September 20 structural-memory follow-up](../structural-memory-hopf-direction-2026-09-20.md) adds a scoped source finding to this audit: `native_geometric/hopf_metric.rs` has base/fiber projection and lift, and the optional older prose runtime uses the lift for shortlist routing. This supports an observe/retain/update/reconstruct loop with chart conventions, not a lossless dimensional projection chain. Its Q30 arithmetic uses multiplication/division and tolerance-based reconstruction; it is not by itself evidence of D0-b compliance or an implemented S7 relationship store.
+
 ## Exact source APIs and their mathematical roles
 
 `prime_route_attention.rs:467–617` contains real normalization and Hopf APIs:

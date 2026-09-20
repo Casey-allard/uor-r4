@@ -1,5 +1,11 @@
 # Current native geometric AI work
 
+## September 20 roadmap addition: structural persistence and conditional S7
+
+The owner has requested role/scope memory and possible mutable relationship-wave mechanisms in the project direction. The [canonical follow-up sequence](project-track.md#structural-memory-and-geometric-representation-follow-up) now places a matched role/scope-bank experiment after the ongoing occurrence reader, then conditional finite Hopf/S7 or harmonic-state comparisons when a concrete need warrants them. [Source and mathematical review](structural-memory-hopf-direction-2026-09-20.md) confirms an older optional base/fiber prediction-and-lift path, separately from current CPX3; it does not establish a reversible projection chain or an implemented S7 relationship store.
+
+Documentation/source review only: no build, fit, model forward, artifact promotion or ledger mutation. The owner's reported running DeepSeek task is not redirected. At this review the live JSON reads 178538565/191300000 ms: the limit now reflects the previously proposed extension; charges from active work may still be pending. Earlier balance below is the prior principal-review snapshot. Refresh the live JSON before any subsequent execution. #820/#973 remain open; new variants are NOT_RUN.
+
 ## Active: learn geometric selection of exact BPE occurrences
 
 The [principal review after PR #1312](occurrence-reader-review-2026-09-20.md) preserves the verified frozen S attribution and selects **one learned BPE exact-occurrence reader over the frozen S-query-only local baseline**. Removing the individual-history contribution improves aggregate loss on both panels; this supports changing the mechanism, not a theorem that older content is absent. M01 is an offline comparator with a small terminal-position population defect; its gain does not identify length dependence as the useful cause. The reported submillisecond timings are warm cached evaluation-harness timings, not direct serving measurements. No broad S replay is selected.
@@ -23,7 +29,7 @@ Units are bits/target. The old panel has 36 docs/288 windows/17342 targets, 1676
 
 **Continuation:** validate actual-disk continuation for the trainer used next. Legacy CPQK remains incomplete; completing that unrelated framework is not a prerequisite if the new fitter does not use it. No whole historical regression suite is required before this experimental component; retained-model replacement would require its relevant controls.
 
-**Resources and storage:** JSON remains **178538565/180500000 ms**; preserve the 2400000-ms mixed measured/estimated charge. The next prompt proposes 10800000 ms total and a standing-authorized limit increment of10800000 to 191300000 **before use**, not applied by this review. [Owner-authorized cleanup](storage-cleanup-2026-09-20.md) recovered 23.21 decimal GB, leaving51.17 GB free at its measured endpoint; all model/research/session data, source worktrees and release binaries remain. Refresh actual balances before execution. #973/#820/#963/#964 remain open.
+**Resources and storage at the preceding principal review:** JSON was **178538565/180500000 ms**; preserve the 2400000-ms mixed measured/estimated charge. The next prompt proposes 10800000 ms total and a standing-authorized limit increment of10800000 to 191300000 **before use**, not applied by this review. [Owner-authorized cleanup](storage-cleanup-2026-09-20.md) recovered 23.21 decimal GB, leaving51.17 GB free at its measured endpoint; all model/research/session data, source worktrees and release binaries remain. Refresh actual balances before execution. #973/#820/#963/#964 remain open.
 
 ## Preserved baseline: the corrected replay of the frozen step-512 prior
 

@@ -9,6 +9,12 @@ source assessment. Plan adoption adds no model-quality result.
 [Current state](current-state.md) owns the retained artifact;
 [project-track](project-track.md) owns ordered delivery; live GitHub owns issues.
 
+## Structural persistence and conditional higher geometry
+
+The owner has added **learned role/scope memory followed by evidence-driven reuse of Hopf/fiber or S7 mechanisms** to the research direction. The current occurrence-reader experiment remains first; [the canonical sequence](project-track.md#structural-memory-and-geometric-representation-follow-up) and [source-linked design](structural-memory-hopf-direction-2026-09-20.md) define the comparisons. Local decay may coexist with event-driven structural retention. Learn roles for occurrences in context and preserve exact payload/version identity; a single subject slot cannot represent nested scopes.
+
+The older optional prose runtime contains a real S3 -> (S2 base, retained S1 fiber) -> S3 prediction/lift path. It is not a globally reversible S3 -> S2 -> S1 chain and is separate from the current CPX3 experiment. Existing Q30 Hopf helpers use multiplication/division; compile an explicitly bounded finite action or audit any reused serving kernel. The higher quaternionic construction is S3 -> S7 -> S4 (fiber -> total -> base). Its possible relation-state value is a hypothesis, not additional free memory or an already-qualified E8 mechanism. First compare against existing relative H4 lookup and explicit role banks; preserve helpful pieces without committing to a full harmonic wave implementation. All new variants remain NOT_RUN.
+
 ## Name, purpose and architecture
 
 **UOR-R4 Geometric Language Model** is the product/research name. Technically it
