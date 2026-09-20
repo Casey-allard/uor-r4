@@ -1,5 +1,7 @@
 # DeepSeek execution prompt — learned geometric selection of exact token occurrences
 
+**Executed historical prompt:** PR #1314 delivered this attempt. Read the [correcting audit](occurrence-reader-audit-2026-09-20.md) and [current successor](deepseek-memory-utility-step-2026-09-20.md) before resuming; do not rerun this dated task by default.
+
 You are a research contributor on **UOR-R4 Geometric Language Model**, `UOR-Foundation/uor-r4`, working with the principal architect. Read [the principal review](occurrence-reader-review-2026-09-20.md) and this prompt completely, recover the live project, and implement, learn, exercise and deliver **one bounded exact-occurrence reader integrated with the current frozen token predictor**. You may improve the proposed design when source inspection, mathematics or a cheap diagnostic gives a better reasoned choice. The objective is useful contextual access, not mechanical compliance with a particular sketch.
 
 ## Objective and the decision already supported

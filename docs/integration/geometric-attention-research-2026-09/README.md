@@ -1,5 +1,7 @@
 # Geometric attention: mathematics, source and learning synthesis
 
+**September 20 recovery note:** the [current/retired mechanism synthesis](../geometric-attention-mechanism-synthesis-2026-09-20.md) connects this inventory to the active geometric-attention roadmap. Dated artifact/next-task statements below are historical. Owner-adopted [D0-b](../DECISIONS.md) now permits bounded low-bit additive mathematical linear maps at serving; older blanket matrix prohibitions do not override it. Scoped negative findings retain their original operators and evidence.
+
 September 13, 2026 · UOR-R4 Geometric Language Model · References [#973](https://github.com/UOR-Foundation/uor-r4/issues/973) and [#964](https://github.com/UOR-Foundation/uor-r4/issues/964)
 
 **Research result: SELECTED_RELATIONAL_GEOMETRIC_LEARNING_HYPOTHESIS. Model status remains UNQUALIFIED_INITIALIZED_NO_FIT; retain `15baec48`.** This investigation changes the next design decision, not the retained model. It performs no fit, model evaluation, replay of V3–V7 or runtime change.

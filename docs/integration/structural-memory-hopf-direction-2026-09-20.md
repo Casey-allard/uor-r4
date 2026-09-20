@@ -1,5 +1,7 @@
 # Structural memory, retained Hopf fibers and conditional S7 research
 
+**Sequencing update:** the [cross-mechanism synthesis](geometric-attention-mechanism-synthesis-2026-09-20.md) connects this note to current and retired implementations. PR #1314 is now executed and [audited](occurrence-reader-audit-2026-09-20.md); dated references below to its running state are historical. The [canonical plan](project-track.md#structural-memory-and-geometric-representation-follow-up) owns the next sequence.
+
 Owner-directed addition, September 20, 2026. This is an adopted research direction and sequencing decision, not an implemented mechanism or measured advantage. Source baseline: `1dae322ce7770673c0046597c10f4361564cd3a0`. The ongoing [exact-occurrence reader experiment](deepseek-occurrence-reader-step-2026-09-20.md) remains first. The [canonical plan](project-track.md#structural-memory-and-geometric-representation-follow-up) owns sequencing; this note specifies the mathematical hypothesis, reuse opportunities and decisive comparisons. No model execution or resource extension is performed by this documentation change.
 
 ## Hypothesis and intended contribution

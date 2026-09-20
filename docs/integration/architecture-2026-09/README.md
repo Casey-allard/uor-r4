@@ -1,5 +1,7 @@
 # Geometric language architecture reconciliation — September 2026
 
+**September 20 recovery note:** the [current/retired mechanism synthesis](../geometric-attention-mechanism-synthesis-2026-09-20.md) connects this inventory to the active geometric-attention roadmap. Dated artifact/next-task statements below are historical. Owner-adopted [D0-b](../DECISIONS.md) now permits bounded low-bit additive mathematical linear maps at serving; older blanket matrix prohibitions do not override it. Scoped negative findings retain their original operators and evidence.
+
 **Superseding direction (2026-09-07):** use the [post-PR #1171 assessment](../model-direction-2026-09.md), [current state](../current-state.md) and [canonical plan](../project-track.md). Retained `321e990f` and unpromoted `bb6b8ba4` supersede the dated artifact pointers below. Contextual lexical/role phrase binding is next. The audit remains a source inventory, not an active queue. [Project map](../../PROJECT_MAP.md).
 
 <details>
