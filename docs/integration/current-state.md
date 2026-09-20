@@ -1,5 +1,37 @@
 # Current native geometric AI work
 
+# Current native geometric AI work
+
+## Cold-context prior implemented and piloted: all three gates fail at the specified dose — September 19, 2026
+
+**THE SELECTED MECHANISM IS BUILT, TESTED AND PILOTED. THE PILOT IS A NEGATIVE/INCONCLUSIVE RESULT, AND IT IS REPORTED AS ONE.** The prior-only arm is *worse* than a matched fit-only unigram and worse than a quantized constant control; the memory channel is *worse* than the same artifact with memory disabled on warm targets. No gate passes.
+
+**What was built.** `learner/cold_prior.rs`: an always-present learned exact-token local prior (`E_old` with an explicit absent-prefix marker row at `pad_row(vocab)`, outside the real id range; `E_new`), the existing modulo-pair causal memory residual, **one shared low-bit decoder** plus an exported integer bias, per-channel power-of-two normalisation applied *before* the sum so a large memory read cannot erase a small prior, a bounded ReLU, and declared clamps (`PRIOR_CLAMP` 4096, `H_CLAMP` 8192). The prior is present on cold **and** warm routes; the memory term is exactly zero on an unwritten route and may be signed on a written one. Four interventions (`full`, `memory-disabled`, `prior-disabled`, `bias-only`) are runtime channel selections, not learned gates. Artifact format `CPR1` binds version, vocab, dv, norm bits, channel flags, clamps, seed and a tokenizer digest; reload is **byte-exact** and integer-logit parity is tested. 13 focused tests pass.
+
+**Instrument repairs from the review, all executed.** `blended_argmax` seeded its incumbent with the *unmixed* unigram probability and compared it against mixed candidates — fixed, and the review's example now selects the right class. `reference_order2` re-applied the value row scale; the runtime was right and **the reference was wrong**, now removed and swept across unit/nonunit row scales × normalization off/active over two lengths (unit-scale fixtures alone could not see it). `norm_bits = 0` is documented as **disabling** the shift, not normalising to zero bits; the earlier order-2 non-vacuity failure was caused by a non-repeating sequence.
+
+**The pilot** (V=4096, dv=128, order=2, batch 8, window 64, 256 steps per arm, matched initialisation and identical optimizer settings, one fit-only 4096-vocabulary BPE derivation, one document-separated manifest, corpus `sha256:fe36c2c6…`, 19 development documents):
+
+```
+  matched unigram reference        6.4019 bits/target
+  quantized constant control       6.4522
+  A prior-only                     6.7011   top1 0.0697
+  B prior+memory                   6.8941   top1 0.1005
+  same-artifact: full 6.8941 | memory disabled 6.7006 | prior disabled 6.8982 | bias only 6.6709
+  memory gain on WARM targets      -4.4072 bits/target (full 10.2981 vs memory-disabled 5.8909, n=294)
+  GATE 1 -0.2993 / -0.2489  FAIL     GATE 2 -4.4072  FAIL     GATE 3 -0.1930  FAIL
+  paired document-level difference +0.2489, 90% CI [-0.0340, +0.5056] over 18 documents — SIGN UNRESOLVED
+  warm coverage 4.39% -> gate 2 reported UNRESOLVED, not as a memory verdict
+```
+
+**Diagnosis, per the review's prescribed inspection.** Activation scale is **healthy** (mean |logit| 6.2-6.4, so the readout is not saturated). Bias calibration is **not converged** (bias-only 6.6709 vs the analytic constant 6.4522). Gradient occupancy ends ~58% zero in the prior tables with a small non-zero prior gradient norm. **Dose:** 256 × 8 × 64 = 131,072 training tokens is *less than one pass* over the 1,460,658 fit targets, against 1,048,576 new prior parameters — so **gate 1 is `undertrained/inconclusive`, not a family-wide negative**. The **memory harm is separate and measured**: −4.41 bits/target on warm targets, i.e. the modulo-aliased fast memory at this dose is confidently wrong, which is a statement about that mechanism as configured and not about exact occurrence/version memory.
+
+**Generation, complete and unselected.** From the first development window, 24 integer-greedy tokens per intervention: full `[35, 28, 198, 46, 28, 28, 28, 28, 39, 28, 28, 39, 39, 28, 28, 39, 39, 39, 39, 39, 39, 81, 32, 28]`; memory-off collapses to token 28; prior-off and bias-only alternate 28/39. Token 28 and 39 dominate everywhere: a crude local alternation, nothing resembling prose. **No chat, reasoning, coding or energy claim follows.**
+
+**State.** New module `learner/cold_prior.rs` (13 tests), new tool `bin/cold-prior-pilot.rs`, `TernaryLinear::from_packed` for exact reload, instrument repairs, one retained 614,542-byte artifact `sha256:fb780ff6…`. `cargo fmt --all --check` clean. Not run: a `crates`-corpus replicate, a second seed, any learning-rate/width sweep, and any binary/whole-path multiplier audit of the new integer path (source-level inspection only).
+
+**Receipt:** [`native_geometric_cold_prior_pilot_2026-09-19.txt`](../evidence/native_geometric_cold_prior_pilot_2026-09-19.txt). References #973, #820.
+
 ## Active next: learned cold-context prior plus causal memory — September 19 post-qualification review
 
 **Implement one bounded learned experiment:** exact-token position-specific prior rows, a bounded integer nonlinearity, the existing causal memory residual, and one shared low-bit decoder. Keep the prior present on cold and warm reads. Compare a trained prior-only model with the joint model, plus same-artifact interventions and bias/count references on one pinned population. See the [principal review](cold-context-review-2026-09-19.md) and [complete DeepSeek execution prompt](deepseek-cold-context-step-2026-09-19.md). This supersedes older next-action text below; the mechanism is proposed, not yet implemented or measured.

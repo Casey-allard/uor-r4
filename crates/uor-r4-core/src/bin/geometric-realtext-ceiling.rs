@@ -315,7 +315,11 @@ fn family_p(f: &Fit, fam: &Family, ctxs: &[u64], next: u32, lambdas: &[f64], voc
 /// the final weights, never inside the tuning loop.
 fn blended_argmax(f: &Fit, fam: &Family, ctxs: &[u64], lambdas: &[f64], vocab: usize) -> u32 {
     let mut best = f.uni_argmax;
-    let mut best_p = f.unigram_p(best, vocab);
+    // The incumbent must be scored under the SAME interpolated distribution as the candidates. Seeding
+    // it with the unmixed unigram probability compares an unmixed threshold against mixed values and
+    // keeps the wrong class whenever the interpolation moves mass away from the unigram argmax
+    // (unigram (0.6,0.3,0.1), conditional (0.1,0.5,0.4), lambda 0.5 gives (0.35,0.40,0.25)).
+    let mut best_p = family_p(f, fam, ctxs, best, lambdas, vocab);
     for k in 0..ctxs.len() {
         let cond = (fam.level)(f, k);
         if cond.total(ctxs[k]) == 0 {

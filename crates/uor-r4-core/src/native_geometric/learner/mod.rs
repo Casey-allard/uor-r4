@@ -5,6 +5,7 @@
 
 pub mod binary_model;
 pub mod chat;
+pub mod cold_prior;
 pub mod embedding;
 pub mod geometric_attention;
 pub mod group_table;
@@ -21,6 +22,7 @@ pub use binary_model::{
     RGM_HEADER_SIZE, RGM_MAGIC, RGM_VERSION, SECTION_BASE, SECTION_CODEBOOK, SECTION_ENGRAM,
     SECTION_JEPA, SECTION_LANES, SECTION_LATTICE,
 };
+pub use cold_prior::{ColdPriorConfig, ColdPriorCore, ColdPriorTrainer};
 pub use embedding::{
     canonical_h4_fiber_roots_q30, canonical_h4_hopf_s2, canonical_h4_roots, canonical_h4_roots_q30,
     ContinuousEmbedding, H4_ROOT_COUNT, PHI,

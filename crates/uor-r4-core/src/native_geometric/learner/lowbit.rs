@@ -95,6 +95,35 @@ impl TernaryLinear {
         }
     }
 
+    /// Rebuild a table from its serialised form: the packed two-bit codes and the per-row shifts.
+    ///
+    /// Used by artifact reload. Because the codes *are* the weights, round-tripping `packed()` and
+    /// `shift()` through this constructor is exact: reloaded integer logits equal exported integer
+    /// logits, which is what the export/reload parity test checks.
+    pub fn from_packed(
+        packed: Vec<u8>,
+        shift: Vec<u32>,
+        rows: usize,
+        cols: usize,
+    ) -> Result<Self, String> {
+        if shift.len() != rows {
+            return Err(format!("shift length {} != rows {rows}", shift.len()));
+        }
+        if packed.len() != (rows * cols).div_ceil(4) {
+            return Err(format!(
+                "packed length {} != {} for {rows}x{cols}",
+                packed.len(),
+                (rows * cols).div_ceil(4)
+            ));
+        }
+        Ok(Self {
+            rows,
+            cols,
+            packed,
+            shift,
+        })
+    }
+
     /// Recover one ternary weight as an integer: `-1`, `0` or `+1`.
     ///
     /// Addressing uses `>>` and `&`, so no multiplier is engaged.

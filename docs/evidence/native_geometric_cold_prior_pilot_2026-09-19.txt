@@ -1,0 +1,150 @@
+================================================================================
+RECEIPT — cold-context prior + causal memory: bounded paired pilot
+Date: 2026-09-19. Branch codex/cold-context-prior. Base origin/main 4e46dff3 (#1293).
+Worktree: .worktrees/realtext-qual (reused; no new checkout).
+Host: MacBookPro17,1 (M1, 8 cores, 16 GiB), cargo 1.97.1, --offline.
+================================================================================
+
+RESULT IN ONE LINE
+------------------
+**All three predeclared gates FAIL at the specified dose.** The prior-only arm is 0.2993
+bits/target *worse* than the matched fit-only unigram and 0.2489 worse than the quantized
+constant control; the joint model's memory channel is 4.4072 bits/target *worse* than the same
+model with memory disabled on warm targets. The prior result is labelled **undertrained /
+inconclusive** (it saw ~0.13M training tokens against 1.05M new prior parameters, less than one
+epoch of the fit targets), and the memory harm is reported as a separate diagnosis.
+
+================================================================================
+1. INSTRUMENT REPAIRS (all review findings, executed and tested)
+================================================================================
+1a. `blended_argmax` seeded its incumbent with the *unmixed* unigram probability and compared it
+    against mixed candidates. Fixed to seed with `family_p`; the review's worked example (unigram
+    (0.6,0.3,0.1), conditional (0.1,0.5,0.4), lambda 0.5) now selects class 1, not class 0.
+1b. `reference_order2` multiplied the value-gradient suffix sum by `sv[t]`. The runtime was
+    correct; the reference was wrong. Removed, and the fixture now sweeps **four frozen regimes**
+    over two lengths: unit vs nonunit row scale (amp 1.0 vs 3.0) x normalization off (`norm_bits=0`)
+    vs active (`norm_bits=6`). Unit-scale fixtures alone could not see this. 2 tests pass.
+1c. `norm_bits=0` *disables* the shift; it does not "normalise to zero bits". The wording is
+    corrected in the fixture and here. The earlier order-2 non-vacuity failure was caused by a
+    **non-repeating sequence** (an order-2 read only finds a write when the pair recurred), not by
+    the shift setting.
+1d. Successor statistics: not re-reported in this receipt. The pilot uses an explicitly defined
+    warm/cold mask computed causally per target instead, which is the quantity the gates need.
+1e. Result: `cargo fmt --all --check` clean; `geometric-realtext-ceiling` 4 tests pass;
+    `geometric_attention` gradient references pass; `cold_prior` 13 tests pass.
+
+================================================================================
+2. DATA PROTOCOL (one frozen manifest)
+================================================================================
+- Source tokenizer `sha256:9ca9acddb6525a194ec8ac7a87f24fbba7232a9a15ffa1af0c1224fcd888e47c`;
+  derived vocabulary 4096 via the pinned `transformerless::bpe_derive` path.
+- Corpus: repository `docs/` Markdown. **corpus sha256:fe36c2c614272e5febb4bb66b3b61219d977109c1764d73645dceb10eab5163b**
+  - documents 182, exact duplicate documents grouped before splitting (7 removed), 1,662,525 tokens.
+- Split, document-separated and deterministic: every 10th document is development; no window crosses a
+  document; state resets at every window boundary.
+  - fit_windows 23,559, fit_targets 1,460,658
+  - dev_windows 108 from **19 development documents** (per-document quota 6, cap 128 windows), dev_targets 6,696
+- Scored targets: window offsets 1..=61 of a 64-token window (62 targets/window), identical for the
+  candidate, both arms, all interventions and every count reference. Cold/warm is computed causally
+  from the unchanged routing at the moment of each prediction.
+- These are internal repository prose documents: **open development data, not an instruction corpus
+  and not a final holdout.**
+
+================================================================================
+3. REFERENCES ON THE SAME TARGETS (fit-only counts, add-1, NOT tuned)
+================================================================================
+  unigram (matched)     6.4019 bits/target
+  token order-1         4.8632 bits/target
+  token order-2         7.8551 bits/target   <- worse than order-1: a simple add-1 trigram is
+                                                sparsely observed inside 64-token windows
+  quantized constant control (fit-only log-unigram, unit logit scale)  6.4522 bits/target
+These are labelled controls with a different information regime; they are never candidate answers.
+
+================================================================================
+4. COMMAND AND RESULT
+================================================================================
+  cold-prior-pilot --norm-bits 6 --steps 256 --out /tmp/cp6
+  config V=4096 dv=128 order=2 norm_bits=6 window=64 batch=8 steps=256 seed=20260919
+  arms: matched initialisation and identical optimizer settings (lr 0.05, Adam, clip 1.0)
+
+  A prior-only     146.2 s (0.571 s/step)  first_batch_loss 18.2906  final prior grad norm 0.1465
+      aggregate 6.7011  top1 0.0697 | cold 6.7548 (n=6402) | warm 5.5331 (n=294) | mean|logit| 6.2
+  B prior+memory   147.1 s (0.575 s/step)  first_batch_loss 18.4315  final prior grad norm 0.1176
+      aggregate 6.8941  top1 0.1005 | cold 6.7378 (n=6402) | warm 10.2981 (n=294) | mean|logit| 6.4
+
+  weights 606,244 bytes   quantization occupancy: e_old 0.426/0.421  e_new 0.410/0.403
+                                                 w_v 0.500/0.483    w_o 0.502/0.460
+
+SAME-ARTIFACT INTERVENTIONS (identical targets and scales, on arm B)
+  full                      6.8941 bits/target  top1 0.1005  mean|logit| 6.4
+  memory disabled           6.7006 bits/target  top1 0.0965  mean|logit| 5.7
+  prior disabled            6.8982 bits/target  top1 0.0221
+  both disabled (bias only) 6.6709 bits/target  top1 0.0167
+  memory gain on WARM targets: full 10.2981 vs memory-disabled 5.8909 = **-4.4072 bits/target**
+  (n warm = 294; warm coverage 0.0439 of dev targets)
+  quantized constant control 6.4522 bits/target  top1 0.0167
+
+PREDECLARED GATES (recorded before the pilot was seen)
+  1 prior gain >= 0.10 bits/target over matched unigram:  -0.2993  FAIL
+    prior gain >= 0.10 over quantized constant control:   -0.2489  FAIL
+  2 joint memory gain >= 0.02 on warm targets vs memory-disabled: -4.4072  FAIL
+    ...and vs the separately trained prior-only model (aggregate): -0.1930  FAIL
+  3 joint aggregate not worse than prior-only by > 0.01:   -0.1930  FAIL
+  paired document-level difference (prior-only minus constant):
+       +0.2489 bits/target, 90% CI [-0.0340, +0.5056] over 18 documents  -> SIGN UNRESOLVED
+  warm coverage 4.39% -> TOO SMALL to resolve gate 2; reported unresolved, not as a memory verdict.
+
+================================================================================
+5. EXPORT, RELOAD AND GENERATION
+================================================================================
+  artifact .uor-models/cold-prior-2026-09-19/cold_prior_joint.cpr
+    614,542 bytes  sha256:fb780ff6ff19eec58f861135004250ae8874107099e2a071f7bfd1b4318b5a39
+    save 0.0002 s, load 0.0007 s (real file I/O; the earlier `to_core()` figure was conversion only)
+  export/reload byte-exact core equality: PASS
+  export/reload integer-logit parity on dev windows: PASS
+
+Complete deterministic continuations (integer greedy, 24 new tokens) from the first dev window of
+CONFIGURATION.md, shown for all four interventions without selection:
+
+  full        ids[16..] = [35, 28, 198, 46, 28, 28, 28, 28, 39, 28, 28, 39, 39, 28, 28, 39, 39, 39, 39, 39, 39, 81, 32, 28]
+  memory off  ids[16..] = [35, 28, 198, 46, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28]
+  prior off   ids[16..] = [28, 28, 28, 28, 39, 28, 28, 39, 28, 28, 39, 39, 28, 39, 39, 28, 39, 39, 39, 39, 39, 39, 39, 39]
+  bias only   ids[16..] = [28 x24]
+
+Two further prompts (same construction) repeat the same pattern. Token 28 and 39 dominate every
+intervention: the model has learned a crude local alternation and nothing resembling prose. **No
+chat, reasoning, coding or language capability is claimed or implied.**
+
+================================================================================
+6. DIAGNOSIS (the review's prescribed inspection)
+================================================================================
+* **Activation / scale: healthy at this configuration.** mean|logit| is 6.2-6.4, not hundreds, so the
+  readout is not saturated and the softmax is not a disguised argmax. The first smoke run did show
+  16-bit losses, but that was before the constant control was repaired and before training moved the
+  tables; the declared configuration is not scale-pathological.
+* **Bias calibration: not converged.** Bias-only scores 6.6709 versus the analytically-fitted constant
+  control at 6.4522, so 256 steps did not even drive the bias to the corpus marginal.
+* **Gradient occupancy:** the prior tables end ~58% zero (occupancy 0.41-0.43), i.e. quantization
+  collapsed a large part of them; the prior gradient norm is small but non-zero (0.1176-0.1465).
+* **Dose.** 256 steps x batch 8 x window 64 = 131,072 training tokens, i.e. **less than one pass over
+  the 1,460,658 fit targets**, against 2 x 4096 x 128 = 1,048,576 new prior parameters. The prior gate
+  is therefore **undertrained/inconclusive**, not a family-wide negative.
+* **Memory harm is separate and real at this dose.** On warm targets the memory channel costs
+  **-4.4072 bits/target** relative to the same artifact with memory disabled. With only 294 warm dev
+  targets across ~14,400 buckets the bucket contents are near-random and the readout is confidently
+  wrong. This is a measurement of the modulo-aliased fast memory as configured, not of
+  exact occurrence/version memory.
+
+================================================================================
+7. WHAT IS NOT ESTABLISHED / NOT RUN
+================================================================================
+* No `crates`-corpus replicate was run; the pilot is single-corpus and single-seed.
+* No geometry claim: the order-2 radix pair read exercises no group multiplication, zeta phase or
+  chirality, and a fixed invertible relabeling of the 120 labels is absorbable by the learned tables.
+* No binary/whole-path multiplier audit of the new integer path was performed;
+  `scripts/serving_multiplier_check.py` was NOT run on it. Source-level inspection only: the new
+  integer path uses shifts, adds and table reads, but that is not a binary qualification.
+* Energy/token UNAVAILABLE. No shortlist routing, no widened context, no recurrence, no imported
+  Engram/DeltaNet/transformer.
+* Storage: one 614,542-byte artifact, text and source changes only, build output in the existing
+  `target/`; 128 MiB stop margin untouched; no deletion, no paid or external compute.

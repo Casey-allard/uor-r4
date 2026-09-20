@@ -2286,14 +2286,16 @@ mod tests {
         }
 
         // A write's gradient is the suffix sum of the reads that saw it: the write at step i happens
-        // before the read at step i, so reads at `k >= i` at the same address count.
+        // before the read at step i, so reads at `k >= i` at the same address count. No row scale is
+        // applied: the declared effective-weight surrogate is `w -> s*Q(w/s)` with the scale frozen,
+        // whose derivative is one, so the master's gradient is the effective weight's gradient.
         for i in 2..n {
             let ta = addr_of(elements, vocab, &seq[i - 2..i]);
             let t = (seq[i] as usize).min(vocab - 1);
             for k in i..n - 1 {
                 if read_addr[k] == ta {
                     for j in 0..dv {
-                        gwv[t * dv + j] += d_raw[k][j] * (sv[t] as f64);
+                        gwv[t * dv + j] += d_raw[k][j];
                     }
                 }
             }
@@ -2565,45 +2567,51 @@ mod tests {
 
     #[test]
     fn the_mean_loss_ste_matches_an_independent_analytic_reference() {
-        // Two lengths, both parameter groups, order 2. The first version of this backward divided
-        // the value gradient by the sequence length a second time, which this reference exposes.
-        // A *repeating* pair is required for a read to find a write: at order 2 the read context
-        // `(t_{i-1}, t_i)` matches a write from step `j = i+1`, so on a first occurrence the route is
-        // empty. This is the cold-route property, and it makes a non-repeating fixture vacuous.
+        // Two lengths and four frozen (normalization, row-scale) regimes. `norm_bits = 0` *disables*
+        // the shift (it does not "normalise to zero bits"); `amp = 3.0` gives every row a nonunit
+        // power-of-two scale, so a reference that wrongly re-applies the row scale is caught here but
+        // is invisible to unit-scale fixtures.
         for n in [6usize, 8] {
-            let vocab = 8usize;
-            let dv = 4usize;
-            let seq: Vec<u32> = (0..n as u32)
-                .map(|x| if x % 2 == 0 { 1 } else { 4 })
-                .collect();
-            let mut t = GeometricAttentionTrainer::new(vocab, dv, 2, 6, 2026_0919).expect("build");
-            // ±1 weights, so every row quantises to non-zero ternary codes and the reference cannot
-            // be vacuous through a dead row.
-            for r in 0..vocab {
-                for j in 0..dv {
-                    t.wv[r * dv + j] = if (r + j) % 2 == 0 { 1.0 } else { -1.0 };
-                    t.wo[r * dv + j] = if (r * 2 + j) % 3 == 0 { 1.0 } else { -1.0 };
+            for (label, norm_bits, amp) in [
+                ("unit, shift off", 0u32, 1.0f32),
+                ("unit, shift active", 6, 1.0),
+                ("nonunit, shift off", 0, 3.0),
+                ("nonunit, shift active", 6, 3.0),
+            ] {
+                let vocab = 8usize;
+                let dv = 4usize;
+                let seq: Vec<u32> = (0..n as u32)
+                    .map(|x| if x % 2 == 0 { 1 } else { 4 })
+                    .collect();
+                let mut t = GeometricAttentionTrainer::new(vocab, dv, 2, norm_bits, 2026_0919)
+                    .expect("build");
+                for r in 0..vocab {
+                    for j in 0..dv {
+                        t.wv[r * dv + j] = if (r + j) % 2 == 0 { amp } else { -amp };
+                        t.wo[r * dv + j] = if (r * 2 + j) % 3 == 0 { amp } else { -amp };
+                    }
                 }
+                let (ref_wo, ref_wv) =
+                    reference_order2(&t.elements, &t.wv, &t.wo, vocab, dv, norm_bits, &seq);
+                assert!(
+                    ref_wo.iter().any(|v| v.abs() > 1e-6) && ref_wv.iter().any(|v| v.abs() > 1e-6),
+                    "the reference must be non-vacuous in both groups (n={n}, {label})"
+                );
+                t.zero_grads();
+                let _ = t.accumulate(&seq);
+                assert!(
+                    grads_match(&t.gwo, &ref_wo),
+                    "output gradient disagrees with the analytic reference at n={n}, {label}: {:?} vs {:?}",
+                    &t.gwo[..4],
+                    &ref_wo[..4]
+                );
+                assert!(
+                    grads_match(&t.gwv, &ref_wv),
+                    "value gradient disagrees with the analytic reference at n={n}, {label}: {:?} vs {:?}",
+                    &t.gwv[..4],
+                    &ref_wv[..4]
+                );
             }
-            let (ref_wo, ref_wv) = reference_order2(&t.elements, &t.wv, &t.wo, vocab, dv, 6, &seq);
-            assert!(
-                ref_wo.iter().any(|v| v.abs() > 1e-6) && ref_wv.iter().any(|v| v.abs() > 1e-6),
-                "the reference must be non-vacuous in both groups (n={n})"
-            );
-            t.zero_grads();
-            let _ = t.accumulate(&seq);
-            assert!(
-                grads_match(&t.gwo, &ref_wo),
-                "output gradient disagrees with the analytic reference at n={n}: {:?} vs {:?}",
-                &t.gwo[..4],
-                &ref_wo[..4]
-            );
-            assert!(
-                grads_match(&t.gwv, &ref_wv),
-                "value gradient disagrees with the analytic reference at n={n}: {:?} vs {:?}",
-                &t.gwv[..4],
-                &ref_wv[..4]
-            );
         }
     }
 

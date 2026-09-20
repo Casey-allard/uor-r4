@@ -423,3 +423,47 @@ Read the live JSON as `147638565 / 154400000 ms`, remaining `6761435 ms` (112.69
 The [next prompt](deepseek-cold-context-step-2026-09-19.md) proposes a complete 3,600,000 ms implementation/pilot tranche, including preparation/builds, two matched fits, controls/evaluation/export, generated behavior and reserve. This is **not an executed charge**. Refresh the ledger and storage, record the complete projection before execution, and revise from actual new-path timing. Account for any new full checkout separately; do not inherit the earlier assumption that an approximately 1.2 GiB checkout fits inside 1 GiB total new storage. Existing owner authorization covers necessary recorded local increments, never paid compute or deletion.
 
 The #1292 timing supports batch-8 trainer calls only: 512 input tokens but 504 prediction targets per full step. Its `to_core()` measurement excludes persisted checkpoint I/O; its reported evaluation follows six optimizer updates. The recorded cumulative balance is preserved without pretending these reporting corrections reconstruct the earlier elapsed-time ledger.
+
+## Projection recorded before use — cold-context prior and controlled memory pilot (2026-09-19)
+
+**Reason.** The [cold-context review](cold-context-review-2026-09-19.md) and the [execution prompt](deepseek-cold-context-step-2026-09-19.md) select one bounded experiment: an always-present learned exact-token local prior plus the existing causal memory residual through one shared low-bit decoder, with a trained prior-only arm and a trained joint arm on one pinned population.
+
+**Projection (complete, before execution).**
+
+| Item | Estimate |
+|---|---:|
+| Preparation: worktree/branch, refresh, storage check, small instrument repairs, focused builds | 900,000 ms |
+| Matched training: two arms at 256 steps, V=4096, dv=128, batch 8, window 64 (optional second seed conditional) | 1,200,000 ms |
+| Controls, evaluation, export/reload, generation | 900,000 ms |
+| Retry, checkpoint and stop reserve | 600,000 ms |
+| **Total tranche** | **3,600,000 ms** |
+
+**No allowance extension is used.** The limit stays `154,400,000 ms`; this draws on the existing recorded
+balance. **No new full checkout is created**: the existing clean isolated worktree is reused on a new
+branch, so no additional ~1.2 GiB checkout is charged.
+
+**Host feasibility, verified before execution.** One model worker; Cargo jobs bounded at 4; host has 8
+cores and 16 GiB RAM, so the 8 GiB peak-RSS cap is feasible; new build output reuses the existing
+`target/`, keeping incremental build/data/artifact storage below 1 GiB; the **128 MiB model-storage stop
+margin is untouched**. No paid or external compute, no deletion.
+
+**Instrument repairs folded into the preparation item (source findings from the review, unexecuted):**
+`blended_argmax` incumbent initialisation, the extra `sv[t]` in the `reference_order2` value derivative,
+the `norm_bits = 0` wording, and successor-statistic populations.
+
+## Charges recorded — cold-context prior and bounded paired pilot (2026-09-19)
+
+| Date | Work | Charge | Basis |
+|---|---|---:|---|
+| 2026-09-19 | Instrument repairs, `cold_prior` module + 13 fixtures, `TernaryLinear::from_packed`, pilot tool, two pilot runs (2-step smoke and the declared 256-step paired run), receipts and delivery | 1,400,000 ms | **Measured.** Two pilot runs at 362.6 s and 421.3 s; roughly seven release build cycles (≈7 min total); `cold_prior`/gradient/ceiling test passes; iteration and debug cycles across the module and the tool. |
+
+**New cumulative: 149,038,565 ms.** Remaining: 154,400,000 − 149,038,565 = **5,361,435 ms (~89.4 min)**.
+
+**Charged from the 3,600,000 ms tranche projection recorded above; no new allowance extension.** The
+unspent remainder of that projection covers the controls/evaluation/reserve items that were **not**
+required by the outcome: no second seed was run (the result was negative, not borderline), and no
+`crates`-corpus replicate or dose extension was run, because the predeclared gates place the prior at
+`undertrained/inconclusive` and the prompt forbids a dose sweep to chase a pass. Retained: one
+614,542-byte artifact (`sha256:fb780ff6…`), text and source changes only, build output inside the
+existing `target/`. The **128 MiB model-storage stop margin is untouched**; no deletion, no cleanup,
+no paid or external compute.
