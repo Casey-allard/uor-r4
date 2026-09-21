@@ -1,5 +1,7 @@
 # Reader utility transfer — prospective design (frozen before implementation and scoring)
 
+> **Principal correction after PR #1328:** [review](reader-utility-review-2026-09-21.md) and [saved-data audit](../evidence/reader-utility-principal-review-2026-09-21.json). The small text CE gain verifies, but fit events use zero gap thresholds and serving uses negative thresholds. The intended gap-conditioned learner was not tested; the representation-limit diagnosis is withdrawn. Actual-action regret, emitted/absence decision criteria, admission denominators, source/binding and resolved-cost claims require the review's qualifications. Only four reader parents were bound, not five. Original prospective design/result below is preserved; the [corrective constructive task](deepseek-reader-policy-contract-step-2026-09-21.md) now owns execution.
+
 September 21, 2026, recorded before any code change, fit or held-out result. Execution prompt:
 [deepseek-reader-utility-transfer-step-2026-09-21.md](deepseek-reader-utility-transfer-step-2026-09-21.md).
 Principal review: [relational-learning-review-2026-09-21.md](relational-learning-review-2026-09-21.md). Reuse map:

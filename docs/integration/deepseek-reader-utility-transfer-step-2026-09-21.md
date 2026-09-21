@@ -1,5 +1,7 @@
 # DeepSeek next task: make learned geometric reads useful on language
 
+**Executed by PR #1328; intended fit/serve contract incomplete.** Read the [principal review](reader-utility-review-2026-09-21.md) and [corrective execution prompt](deepseek-reader-policy-contract-step-2026-09-21.md). This document remains the historical task specification.
+
 You are a research contributor to the UOR-R4 Geometric Language Model. Read this prompt, the [principal PR #1325/#1326 review](relational-learning-review-2026-09-21.md), and the [mechanism synthesis](geometric-attention-mechanism-synthesis-2026-09-20.md) completely. Recover any additional source, project history, knowledge-store records and primary research needed. You have discretion to improve the bounded design; explain material deviations and their evidence before final evaluation. Deliver one constructive utility-transfer result, integrating the necessary instrument repairs, rather than another audit-only run.
 
 ## Recover authority and preserve the useful result

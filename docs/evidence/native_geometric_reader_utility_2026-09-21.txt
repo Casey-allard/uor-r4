@@ -1,3 +1,6 @@
+PRINCIPAL CORRECTION AFTER PR #1328 (original receipt retained below)
+See docs/integration/reader-utility-review-2026-09-21.md and reader-utility-principal-review-2026-09-21.json. Text CE intervals reproduce, but the fit/serve gap thresholds differ. Representation diagnosis, policy regret, absence criterion, admission denominators, source/binding and resolved-cost claims are qualified/corrected there. This is a correction to the repository receipt, not to any sealed report.
+
 UOR-R4 Geometric Language Model - evidence receipt
 Experiment: direct read-influence policy over the frozen improved source maps (utility transfer)
 Date: 2026-09-21

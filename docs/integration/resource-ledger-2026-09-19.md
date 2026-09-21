@@ -1210,3 +1210,10 @@ retained roots, including known historical unlisted helpers. Free space **38 GiB
 model-storage stop margin is intact. Serve-side compliance is claimed only for the served selector
 arithmetic (integer compare and table lookup over a 32-byte opcode table); whole-path D0-b compliance is not
 claimed and physical energy is UNAVAILABLE. No paid/external compute and no deletion of unique material.
+
+
+## Principal PR #1328 reconciliation — September 21, 2026
+
+Live snapshot **191016749/194900000 ms**, remaining **3883251 ms (~64.72 min)**. All prior charges remain; this principal source/literature/saved-data/document review adds no model build, fit or inference debit. No extension or external spend.
+
+Read-only storage inventory at 2026-09-21T05:51:52Z: **40567021568 bytes free**, reserve **36766079385 bytes**, reserve not breached. Shared target 8779911168 allocated bytes, knowledge 1957822464, models at least 20975050752 with three protected-path errors; no permissions changed. APFS/overlapping rows must not be summed as exclusive physical usage. **Zero deletions.** The [review](reader-utility-review-2026-09-21.md) scopes cost estimates and the [next constructive run](deepseek-reader-policy-contract-step-2026-09-21.md) must project complete costs before execution.

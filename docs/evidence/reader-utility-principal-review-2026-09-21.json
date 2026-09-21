@@ -1,0 +1,854 @@
+{
+  "schema": "uor-r4.pr1328-principal-evidence-review/1",
+  "review_source_revision": "a57524767390f0491e7fa2af65fa335d715a9b30",
+  "no_new_model_execution": true,
+  "method": "Read-only source and retained result aggregation. No model forward/build/fit. Document cluster ratios independently recomputed from saved per-document sums, 2000 xorshift64(13,7,17) bootstrap draws. Construction per-position outcomes and per-sequence loss sums are not retained, so their CIs cannot be independently replayed.",
+  "input_sha256": {
+    "binding.json": "dcf2815cf23cba0bd0510afca20a43937e55bece1015e13ff471eba123266c9d",
+    "result.json": "9095ec74381268691735b7ef9266f8eb9f9c216e8b997c7d59c28bc632085477",
+    "manifest.json": "8dc0b17388e91400dec5581878f8ce07ea305193333aea55476095f7ce766124",
+    "attempt.json": "4ed638f361999447e4850b0b8408f3f2ad7dac782efccc9312515d0c69c72ed4",
+    "schema.json": "07ea34985840429b74b36056e328d6fcfaaea179ebbbc86802f24ee13a566265"
+  },
+  "integrity": {
+    "manifest_listed_files": 6,
+    "verification_failures": [],
+    "unlisted_files": [],
+    "source_file_checks": [
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/learner/relational.rs",
+        "receipt_sha256": "ef1c944631c55361712e1850848e5803be3d2b85491237ca3799650ff1e01581",
+        "merged_sha256": "ef1c944631c55361712e1850848e5803be3d2b85491237ca3799650ff1e01581",
+        "match": true
+      },
+      {
+        "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+        "receipt_sha256": "5635b273aaf111e08a88185ebf949da4353e62e898a1ef682cd1455e174d1ca5",
+        "merged_sha256": "7707b819a67a61fa25aee1ff5e9cd8f931f85b4ffbea99f6d70ceee5dfb02603",
+        "match": false
+      }
+    ],
+    "parent_artifacts": [
+      {
+        "arm": "exact",
+        "sha256_matches": true
+      },
+      {
+        "arm": "relational",
+        "sha256_matches": true
+      },
+      {
+        "arm": "relational_ctx",
+        "sha256_matches": true
+      },
+      {
+        "arm": "categorical",
+        "sha256_matches": true
+      }
+    ]
+  },
+  "text_comparisons": {
+    "text_final:h4_policy-minus-local": {
+      "point": -0.01947741503544946,
+      "lo": -0.03286118355955451,
+      "hi": -0.005506568517204974,
+      "groups": 8,
+      "positions": 1952,
+      "draws": 2000,
+      "seed": 45057,
+      "unit": "bits_per_token",
+      "resampling_unit": "document"
+    },
+    "text_final:categorical_policy-minus-local": {
+      "point": -0.024303883131314007,
+      "lo": -0.03694164601809198,
+      "hi": -0.012636580252165628,
+      "groups": 8,
+      "positions": 1952,
+      "draws": 2000,
+      "seed": 45058,
+      "unit": "bits_per_token",
+      "resampling_unit": "document"
+    },
+    "text_final:relational_ctx_parent-minus-local": {
+      "point": 0.5452874338756959,
+      "lo": 0.4037641616960063,
+      "hi": 0.6846598679190093,
+      "groups": 8,
+      "positions": 1952,
+      "draws": 2000,
+      "seed": 45059,
+      "unit": "bits_per_token",
+      "resampling_unit": "document"
+    },
+    "text_final:h4_policy-minus-relational_ctx_parent": {
+      "point": -0.5647648489111454,
+      "lo": -0.7019674778111492,
+      "hi": -0.4269107301871587,
+      "groups": 8,
+      "positions": 1952,
+      "draws": 2000,
+      "seed": 45060,
+      "unit": "bits_per_token",
+      "resampling_unit": "document"
+    },
+    "text_fit:h4_policy-minus-local": {
+      "point": -0.023098910411084275,
+      "lo": -0.04161280268935054,
+      "hi": -0.005208148841375166,
+      "groups": 8,
+      "positions": 1952,
+      "draws": 2000,
+      "seed": 45061,
+      "unit": "bits_per_token",
+      "resampling_unit": "document"
+    },
+    "text_final:categorical_policy-minus-h4_policy": {
+      "point": -0.004826468095864544,
+      "lo": -0.019334344029715334,
+      "hi": 0.006167123512548499,
+      "groups": 8,
+      "positions": 1952,
+      "draws": 2000,
+      "seed": 45062,
+      "unit": "bits_per_token",
+      "resampling_unit": "document"
+    }
+  },
+  "text_document_deltas": {
+    "h4_policy": [
+      {
+        "document": 0,
+        "positions": 244,
+        "delta_bits": -0.037231186850960295
+      },
+      {
+        "document": 298,
+        "positions": 244,
+        "delta_bits": 0.005850350750972479
+      },
+      {
+        "document": 302,
+        "positions": 244,
+        "delta_bits": -0.006956085392827107
+      },
+      {
+        "document": 374,
+        "positions": 244,
+        "delta_bits": -0.011608822429730586
+      },
+      {
+        "document": 375,
+        "positions": 244,
+        "delta_bits": -0.05428874762211945
+      },
+      {
+        "document": 395,
+        "positions": 244,
+        "delta_bits": 0.007576314766828225
+      },
+      {
+        "document": 417,
+        "positions": 244,
+        "delta_bits": -0.027861033525698718
+      },
+      {
+        "document": 419,
+        "positions": 244,
+        "delta_bits": -0.031300109980060234
+      }
+    ],
+    "categorical_policy": [
+      {
+        "document": 0,
+        "positions": 244,
+        "delta_bits": -0.03285046104815965
+      },
+      {
+        "document": 298,
+        "positions": 244,
+        "delta_bits": -0.015603244443239375
+      },
+      {
+        "document": 302,
+        "positions": 244,
+        "delta_bits": -0.0026451184049101654
+      },
+      {
+        "document": 374,
+        "positions": 244,
+        "delta_bits": -0.0026067604338134544
+      },
+      {
+        "document": 375,
+        "positions": 244,
+        "delta_bits": -0.05967523297118667
+      },
+      {
+        "document": 395,
+        "positions": 244,
+        "delta_bits": -0.038915068900723965
+      },
+      {
+        "document": 417,
+        "positions": 244,
+        "delta_bits": -0.012171149104356342
+      },
+      {
+        "document": 419,
+        "positions": 244,
+        "delta_bits": -0.029964029744122423
+      }
+    ],
+    "relational_ctx_parent": [
+      {
+        "document": 0,
+        "positions": 244,
+        "delta_bits": 0.36647230474851
+      },
+      {
+        "document": 298,
+        "positions": 244,
+        "delta_bits": 0.7569970772838608
+      },
+      {
+        "document": 302,
+        "positions": 244,
+        "delta_bits": 0.7906466319718535
+      },
+      {
+        "document": 374,
+        "positions": 244,
+        "delta_bits": 0.5912105764973287
+      },
+      {
+        "document": 375,
+        "positions": 244,
+        "delta_bits": 0.7865170357384925
+      },
+      {
+        "document": 395,
+        "positions": 244,
+        "delta_bits": 0.44050219114018974
+      },
+      {
+        "document": 417,
+        "positions": 244,
+        "delta_bits": 0.40807718052563874
+      },
+      {
+        "document": 419,
+        "positions": 244,
+        "delta_bits": 0.22187647309969363
+      }
+    ]
+  },
+  "text_emission_counts": {
+    "h4_policy": {
+      "positions": 1952,
+      "candidate_bearing_positions": 849,
+      "reads": 849,
+      "correct_payload_reads": 74,
+      "emitted_correct_reader": 406,
+      "emitted_correct_local": 406
+    },
+    "categorical_policy": {
+      "positions": 1952,
+      "candidate_bearing_positions": 849,
+      "reads": 849,
+      "correct_payload_reads": 74,
+      "emitted_correct_reader": 405,
+      "emitted_correct_local": 406
+    },
+    "relational_ctx_parent": {
+      "positions": 1952,
+      "candidate_bearing_positions": 849,
+      "reads": 370,
+      "correct_payload_reads": 18,
+      "emitted_correct_reader": 376,
+      "emitted_correct_local": 406
+    }
+  },
+  "freshness": {
+    "split_pairwise_hash_and_path_disjoint": true,
+    "all24_document_hashes_match": true,
+    "fit_same_as_parent_fit": true,
+    "tune_same_as_parent_heldout": true,
+    "final_overlap_parent_fit_or_heldout": [],
+    "construction_seeds": {
+      "final": 1544548769,
+      "fit": 1544494705,
+      "regression": 1544519470,
+      "tune": 1544518161
+    },
+    "construction_population_saved": false,
+    "construction_scope": "New final seed differs from regression; raw sequences/outcomes absent. Paired points match aggregate sums, intervals independently UNAVAILABLE."
+  },
+  "fit_audit": [
+    {
+      "arm": "h4_policy",
+      "raw_events": 3913,
+      "total_weight_from_support": 5937.999999999977,
+      "text_weight": 3.145127118644068,
+      "text_weight_matches_equal_mass": true,
+      "nonzero_support_buckets": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        7
+      ],
+      "gap_bins_with_fit_support": [
+        0
+      ],
+      "min_support_buckets": [
+        0,
+        1,
+        4,
+        5
+      ],
+      "global_mean_cost": [
+        0.0,
+        -0.011205927721129995,
+        -0.17257806490175684,
+        0.1666327546525401
+      ],
+      "recomputed_policy_matches": true,
+      "all_bucket_actions_read": true,
+      "exported_gap_thresholds": [
+        -6784,
+        -4992,
+        -2944
+      ],
+      "source_mismatch": "policy_event called on base selector with [0,0,0] gap thresholds before learned thresholds assigned. Serving uses [-6784,-4992,-2944]. Training <=0 logit gaps all map to bin0. Representation impossibility not established."
+    },
+    {
+      "arm": "categorical_policy",
+      "raw_events": 3913,
+      "total_weight_from_support": 5937.99999999998,
+      "text_weight": 3.145127118644068,
+      "text_weight_matches_equal_mass": true,
+      "nonzero_support_buckets": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        7
+      ],
+      "gap_bins_with_fit_support": [
+        0
+      ],
+      "min_support_buckets": [
+        0,
+        1,
+        4,
+        5
+      ],
+      "global_mean_cost": [
+        0.0,
+        -0.011427112245432617,
+        -0.17639745605765617,
+        0.103334033422778
+      ],
+      "recomputed_policy_matches": true,
+      "all_bucket_actions_read": true,
+      "exported_gap_thresholds": [
+        -6784,
+        -4992,
+        -2944
+      ],
+      "source_mismatch": "policy_event called on base selector with [0,0,0] gap thresholds before learned thresholds assigned. Serving uses [-6784,-4992,-2944]. Training <=0 logit gaps all map to bin0. Representation impossibility not established."
+    }
+  ],
+  "construction": {
+    "final_aggregates": {
+      "local": {
+        "candidate_bearing_positions": 1822,
+        "correct_payload_reads": 0,
+        "covered_positions": 654,
+        "delta_bits_per_position": 0.0,
+        "documents": [],
+        "emitted_correct_local": 0,
+        "emitted_correct_reader": 0,
+        "empty_pool_positions": 620,
+        "hard_bits": 30606.584803359554,
+        "hard_bits_per_position": 12.533409010384748,
+        "local_bits": 30606.584803359554,
+        "mean_admission_regret_nats": 0.0,
+        "mean_dose_regret_nats": 0.0,
+        "mean_gate_regret_nats": 0.0,
+        "mean_lpool_nats": 0.0,
+        "mean_ranking_regret_nats": 0.0,
+        "positions": 2442,
+        "read_actions_where_served_source_differs_from_ungated_top": 0,
+        "reads": 0,
+        "strata": [
+          {
+            "correct_payload_reads": 0,
+            "covered_positions": 0,
+            "delta_bits_per_position": 0.0,
+            "hard_bits_per_position": 13.775162855698067,
+            "positions": 22,
+            "stratum": "final_absent"
+          },
+          {
+            "correct_payload_reads": 0,
+            "covered_positions": 118,
+            "delta_bits_per_position": 0.0,
+            "hard_bits_per_position": 13.315717469576903,
+            "positions": 118,
+            "stratum": "final_present"
+          },
+          {
+            "correct_payload_reads": 0,
+            "covered_positions": 318,
+            "delta_bits_per_position": 0.0,
+            "hard_bits_per_position": 13.346011636678377,
+            "positions": 674,
+            "stratum": "intermediate_key"
+          },
+          {
+            "correct_payload_reads": 0,
+            "covered_positions": 11,
+            "delta_bits_per_position": 0.0,
+            "hard_bits_per_position": 10.888433827101776,
+            "positions": 814,
+            "stratum": "intermediate_role"
+          },
+          {
+            "correct_payload_reads": 0,
+            "covered_positions": 85,
+            "delta_bits_per_position": 0.0,
+            "hard_bits_per_position": 13.395594222316259,
+            "positions": 674,
+            "stratum": "intermediate_value"
+          },
+          {
+            "correct_payload_reads": 0,
+            "covered_positions": 122,
+            "delta_bits_per_position": 0.0,
+            "hard_bits_per_position": 13.180350535006474,
+            "positions": 140,
+            "stratum": "query_key"
+          }
+        ],
+        "strength_counts": [
+          0,
+          0,
+          0
+        ]
+      },
+      "relational_ctx_parent": {
+        "candidate_bearing_positions": 1822,
+        "correct_payload_reads": 465,
+        "covered_positions": 654,
+        "delta_bits_per_position": -1.93532639227826,
+        "documents": [],
+        "emitted_correct_local": 0,
+        "emitted_correct_reader": 362,
+        "empty_pool_positions": 620,
+        "hard_bits": 25880.517753416043,
+        "hard_bits_per_position": 10.598082618106488,
+        "local_bits": 30606.584803359554,
+        "mean_admission_regret_nats": 0.1496964972228855,
+        "mean_dose_regret_nats": 0.07731892561388404,
+        "mean_gate_regret_nats": 0.15809407522115032,
+        "mean_lpool_nats": -1.990192837651009,
+        "mean_ranking_regret_nats": 0.4133138045450394,
+        "positions": 2442,
+        "read_actions_where_served_source_differs_from_ungated_top": 0,
+        "reads": 819,
+        "strata": [
+          {
+            "correct_payload_reads": 0,
+            "covered_positions": 0,
+            "delta_bits_per_position": 0.21325480058104063,
+            "hard_bits_per_position": 13.988417656279108,
+            "positions": 22,
+            "stratum": "final_absent"
+          },
+          {
+            "correct_payload_reads": 99,
+            "covered_positions": 118,
+            "delta_bits_per_position": -8.970592118197679,
+            "hard_bits_per_position": 4.345125351379223,
+            "positions": 118,
+            "stratum": "final_present"
+          },
+          {
+            "correct_payload_reads": 261,
+            "covered_positions": 318,
+            "delta_bits_per_position": -4.0045078005463,
+            "hard_bits_per_position": 9.341503836132077,
+            "positions": 674,
+            "stratum": "intermediate_key"
+          },
+          {
+            "correct_payload_reads": 0,
+            "covered_positions": 11,
+            "delta_bits_per_position": 0.04608044733230615,
+            "hard_bits_per_position": 10.934514274434083,
+            "positions": 814,
+            "stratum": "intermediate_role"
+          },
+          {
+            "correct_payload_reads": 15,
+            "covered_positions": 85,
+            "delta_bits_per_position": -0.09791530408949004,
+            "hard_bits_per_position": 13.297678918226769,
+            "positions": 674,
+            "stratum": "intermediate_value"
+          },
+          {
+            "correct_payload_reads": 90,
+            "covered_positions": 122,
+            "delta_bits_per_position": -6.747893551521189,
+            "hard_bits_per_position": 6.432456983485284,
+            "positions": 140,
+            "stratum": "query_key"
+          }
+        ],
+        "strength_counts": [
+          0,
+          0,
+          819
+        ]
+      },
+      "h4_policy": {
+        "candidate_bearing_positions": 1822,
+        "correct_payload_reads": 517,
+        "covered_positions": 654,
+        "delta_bits_per_position": -0.6389080204495678,
+        "documents": [],
+        "emitted_correct_local": 0,
+        "emitted_correct_reader": 29,
+        "empty_pool_positions": 620,
+        "hard_bits": 29046.37141742171,
+        "hard_bits_per_position": 11.89450098993518,
+        "local_bits": 30606.584803359554,
+        "mean_admission_regret_nats": 0.1496964972228855,
+        "mean_dose_regret_nats": 0.0,
+        "mean_gate_regret_nats": 1.5768790331059703,
+        "mean_lpool_nats": -1.990192837651009,
+        "mean_ranking_regret_nats": 0.4133138045450394,
+        "positions": 2442,
+        "read_actions_where_served_source_differs_from_ungated_top": 0,
+        "reads": 1822,
+        "strata": [
+          {
+            "correct_payload_reads": 0,
+            "covered_positions": 0,
+            "delta_bits_per_position": 0.0012557108008841376,
+            "hard_bits_per_position": 13.77641856649895,
+            "positions": 22,
+            "stratum": "final_absent"
+          },
+          {
+            "correct_payload_reads": 99,
+            "covered_positions": 118,
+            "delta_bits_per_position": -1.3780254759713624,
+            "hard_bits_per_position": 11.93769199360554,
+            "positions": 118,
+            "stratum": "final_present"
+          },
+          {
+            "correct_payload_reads": 281,
+            "covered_positions": 318,
+            "delta_bits_per_position": -1.4371929989428205,
+            "hard_bits_per_position": 11.908818637735555,
+            "positions": 674,
+            "stratum": "intermediate_key"
+          },
+          {
+            "correct_payload_reads": 4,
+            "covered_positions": 11,
+            "delta_bits_per_position": -0.0017318166097266153,
+            "hard_bits_per_position": 10.88670201049205,
+            "positions": 814,
+            "stratum": "intermediate_role"
+          },
+          {
+            "correct_payload_reads": 41,
+            "covered_positions": 85,
+            "delta_bits_per_position": -0.08361284948506595,
+            "hard_bits_per_position": 13.311981372831193,
+            "positions": 674,
+            "stratum": "intermediate_value"
+          },
+          {
+            "correct_payload_reads": 92,
+            "covered_positions": 122,
+            "delta_bits_per_position": -2.65143689178642,
+            "hard_bits_per_position": 10.528913643220053,
+            "positions": 140,
+            "stratum": "query_key"
+          }
+        ],
+        "strength_counts": [
+          0,
+          1665,
+          157
+        ]
+      },
+      "categorical_policy": {
+        "candidate_bearing_positions": 1822,
+        "correct_payload_reads": 547,
+        "covered_positions": 654,
+        "delta_bits_per_position": -0.7969643843751701,
+        "documents": [],
+        "emitted_correct_local": 0,
+        "emitted_correct_reader": 46,
+        "empty_pool_positions": 620,
+        "hard_bits": 28660.39777671539,
+        "hard_bits_per_position": 11.736444626009577,
+        "local_bits": 30606.584803359554,
+        "mean_admission_regret_nats": 0.1496964972228855,
+        "mean_dose_regret_nats": 0.0,
+        "mean_gate_regret_nats": 1.6644389921228875,
+        "mean_lpool_nats": -1.990192837651009,
+        "mean_ranking_regret_nats": 0.3257538455281227,
+        "positions": 2442,
+        "read_actions_where_served_source_differs_from_ungated_top": 0,
+        "reads": 1822,
+        "strata": [
+          {
+            "correct_payload_reads": 0,
+            "covered_positions": 0,
+            "delta_bits_per_position": 0.038826875400267434,
+            "hard_bits_per_position": 13.813989731098333,
+            "positions": 22,
+            "stratum": "final_absent"
+          },
+          {
+            "correct_payload_reads": 114,
+            "covered_positions": 118,
+            "delta_bits_per_position": -4.68443267120579,
+            "hard_bits_per_position": 8.631284798371112,
+            "positions": 118,
+            "stratum": "final_present"
+          },
+          {
+            "correct_payload_reads": 289,
+            "covered_positions": 318,
+            "delta_bits_per_position": -1.382244163757849,
+            "hard_bits_per_position": 11.963767472920527,
+            "positions": 674,
+            "stratum": "intermediate_key"
+          },
+          {
+            "correct_payload_reads": 4,
+            "covered_positions": 11,
+            "delta_bits_per_position": 1.7816708647643577e-05,
+            "hard_bits_per_position": 10.888451643810425,
+            "positions": 814,
+            "stratum": "intermediate_role"
+          },
+          {
+            "correct_payload_reads": 39,
+            "covered_positions": 85,
+            "delta_bits_per_position": -0.10198253731377054,
+            "hard_bits_per_position": 13.293611685002487,
+            "positions": 674,
+            "stratum": "intermediate_value"
+          },
+          {
+            "correct_payload_reads": 101,
+            "covered_positions": 122,
+            "delta_bits_per_position": -2.8137419212800685,
+            "hard_bits_per_position": 10.366608613726404,
+            "positions": 140,
+            "stratum": "query_key"
+          }
+        ],
+        "strength_counts": [
+          0,
+          1522,
+          300
+        ]
+      }
+    },
+    "present_final_correct_emitted_counts": "UNAVAILABLE: stratum aggregates omit emissions and per-position outcomes are not retained. Whole-stream 362\u219229 is not a final-query count.",
+    "absent_parent_read_count": "UNAVAILABLE: stratum aggregates omit reads. New policy has no NoRead opcodes and every final query is admitted, so new policy reads22/22 absent queries; old absence read comparison not measured by implementation flag.",
+    "decision_source_defects": [
+      "present_ok tests correct_payload_reads rather than correct emitted count",
+      "absent_ok tests correct payload count0 vs0 rather than read counts, with extra0.05 loss tolerance not declared <=parent condition"
+    ]
+  },
+  "admission_corrections": {
+    "construction_final": {
+      "all_positions": 2442,
+      "candidate_positions": 1822,
+      "reported_candidate_only_sum_divided_all": 0.1496964972228855,
+      "correct_mean_on_candidate_positions": 0.20063602975756661,
+      "correct_full_stream_mean": 0.831656977058846,
+      "note": "Lpool=0 on empty pools; saved mean_lring label is wrong but numerator/denominator source is full stream. Original admission numerator skipped empty pools."
+    },
+    "text_final": {
+      "all_positions": 1952,
+      "candidate_positions": 849,
+      "reported_candidate_only_sum_divided_all": 0.28257080003189966,
+      "correct_mean_on_candidate_positions": 0.6496798606151568,
+      "correct_full_stream_mean": 0.5291289181695374,
+      "note": "Lpool=0 on empty pools; saved mean_lring label is wrong but numerator/denominator source is full stream. Original admission numerator skipped empty pools."
+    },
+    "construction_regression": {
+      "all_positions": 2421,
+      "candidate_positions": 1813,
+      "reported_candidate_only_sum_divided_all": 0.20318831578154398,
+      "correct_mean_on_candidate_positions": 0.2713286886415433,
+      "correct_full_stream_mean": 0.8673962191605376,
+      "note": "Lpool=0 on empty pools; saved mean_lring label is wrong but numerator/denominator source is full stream. Original admission numerator skipped empty pools."
+    }
+  },
+  "regret_identity_failures": {
+    "construction_final": {
+      "reported_sum": 1.9901928376510098,
+      "actual_minus_lpool_from_scored_loss": 1.5473355446392552,
+      "discrepancy": 0.4428572930117547,
+      "note": "Diagnostic chooser has no local logits and interprets direct-policy selector as NoRead. Not valid new-policy regret attribution."
+    },
+    "text_final": {
+      "reported_sum": 0.20702349279153673,
+      "actual_minus_lpool_from_scored_loss": 0.19352277747512472,
+      "discrepancy": 0.013500715316412004,
+      "note": "Diagnostic chooser has no local logits and interprets direct-policy selector as NoRead. Not valid new-policy regret attribution."
+    }
+  },
+  "cost": {
+    "rows": [
+      {
+        "candidates_admitted_per_prediction": 1.4666666666666666,
+        "candidates_admitted_total": 22,
+        "median_local_s": 0.020283375,
+        "median_local_us_per_prediction": 1352.225,
+        "median_paired_reader_minus_local_s": 1.0416999999998677e-05,
+        "median_reader_s": 0.020284749999999997,
+        "median_reader_us_per_prediction": 1352.3166666666664,
+        "predictions": 15,
+        "protocol": "paired interleaved repeats on the same stream, alternating no-reader-work local and full reader passes; medians reported; no token-pair cache",
+        "read_actions": 10,
+        "stream": "construction_stream",
+        "tokens": 18
+      },
+      {
+        "candidates_admitted_per_prediction": 0.0,
+        "candidates_admitted_total": 0,
+        "median_local_s": 0.028211542,
+        "median_local_us_per_prediction": 1343.4067619047619,
+        "median_paired_reader_minus_local_s": -1.299899999999965e-05,
+        "median_reader_s": 0.028251125000000002,
+        "median_reader_us_per_prediction": 1345.2916666666667,
+        "predictions": 21,
+        "protocol": "paired interleaved repeats on the same stream, alternating no-reader-work local and full reader passes; medians reported; no token-pair cache",
+        "read_actions": 0,
+        "stream": "text_window",
+        "tokens": 24
+      }
+    ],
+    "raw_repeats_saved": false,
+    "limitation": "Seven fixed-order local-then-reader repetitions, only medians saved; no dispersion/CI and no active candidates in text probe. Cannot claim incremental cost resolved as real negligible at0.7us precision."
+  },
+  "sample_generation": [
+    {
+      "index": 0,
+      "absent": false,
+      "answer": 560,
+      "first_generated_correct": {
+        "local": false,
+        "relational_ctx_parent": true,
+        "h4_policy": false,
+        "categorical_policy": false,
+        "categorical_parent": true
+      }
+    },
+    {
+      "index": 1,
+      "absent": false,
+      "answer": 548,
+      "first_generated_correct": {
+        "local": false,
+        "relational_ctx_parent": false,
+        "h4_policy": false,
+        "categorical_policy": false,
+        "categorical_parent": false
+      }
+    },
+    {
+      "index": 2,
+      "absent": true,
+      "answer": 556,
+      "first_generated_correct": {
+        "local": false,
+        "relational_ctx_parent": false,
+        "h4_policy": false,
+        "categorical_policy": false,
+        "categorical_parent": false
+      }
+    },
+    {
+      "index": 3,
+      "absent": false,
+      "answer": 552,
+      "first_generated_correct": {
+        "local": false,
+        "relational_ctx_parent": true,
+        "h4_policy": false,
+        "categorical_policy": false,
+        "categorical_parent": true
+      }
+    },
+    {
+      "index": 4,
+      "absent": false,
+      "answer": 571,
+      "first_generated_correct": {
+        "local": false,
+        "relational_ctx_parent": true,
+        "h4_policy": false,
+        "categorical_policy": true,
+        "categorical_parent": true
+      }
+    },
+    {
+      "index": 5,
+      "absent": false,
+      "answer": 561,
+      "first_generated_correct": {
+        "local": false,
+        "relational_ctx_parent": true,
+        "h4_policy": false,
+        "categorical_policy": false,
+        "categorical_parent": true
+      }
+    }
+  ],
+  "controls": [
+    {
+      "arm": "h4_policy (reloaded)",
+      "attempted": 140,
+      "control": "selected_source_intervention_four_conditions",
+      "enabled_emission_changed_by_the_intervention": 9,
+      "enabled_emitted_the_new_payload": 8,
+      "enabled_selected_the_new_payload": 138,
+      "invariant_disabled_before_equals_disabled_after": 140,
+      "lost_support_after_intervention": 0,
+      "no_read_after_intervention": 0,
+      "note": "four matched conditions on the same prefix: enabled-original, enabled-changed, disabled-original, disabled-changed; the replacement payload is absent from the whole sequence and the query is fixed; support loss and NoRead are counted rather than dropped",
+      "original_source_reference_still_served": 138
+    },
+    {
+      "arms": [
+        "h4_policy",
+        "categorical_policy"
+      ],
+      "control": "artifact_reload_parity",
+      "note": "every exported arm is reloaded through the independent loader and compared to the fitted selector; the reloaded selectors drive every panel, the intervention, generation and timing",
+      "reload_failures": 0
+    }
+  ],
+  "recommended_next": "Repair train/serve feature-index agreement and direct-policy controls/diagnostics, then one bounded corrected direct-policy fit/execution with current frozen rankers and prospectively selected final data. Do not infer contextual representation deficiency until intended local-score observation actually participates in fitting."
+}

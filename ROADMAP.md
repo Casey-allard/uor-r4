@@ -1,6 +1,6 @@
 # UOR-R4 Geometric Language Model — roadmap
 
-**September 21, after PR #1325/#1326:** the [principal review](docs/integration/relational-learning-review-2026-09-21.md) retains stronger geometric source learning and corrects the admission-dominance/freshness claims. The [next task](docs/integration/deepseek-reader-utility-transfer-step-2026-09-21.md) learns direct finite read utility for language and true absence, with matched categorical controls and full-stream denominators. Structural persistence, dependent composition, broader language/executed Rust and qualified scale remain the [canonical sequence](docs/integration/project-track.md#structural-memory-and-geometric-representation-follow-up).
+**September 21, after PR #1328:** the [principal review](docs/integration/reader-utility-review-2026-09-21.md) retains a small text-loss gain but finds a training/serving feature-index mismatch, so the contextual-state diagnosis is withdrawn. [Next](docs/integration/deepseek-reader-policy-contract-step-2026-09-21.md): complete the correctly indexed finite-policy experiment with actual-action and emitted/absence metrics. Structural persistence, dependent composition, broader language/executed Rust and qualified scale remain the [canonical sequence](docs/integration/project-track.md#structural-memory-and-geometric-representation-follow-up); no architecture pivot follows from an implementation defect.
 
 ## Capability direction
 

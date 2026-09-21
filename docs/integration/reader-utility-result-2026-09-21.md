@@ -1,5 +1,7 @@
 # Direct read-influence policy: useful transfer on held-out prose, relational behaviour traded away
 
+> **Principal correction after PR #1328:** [review](reader-utility-review-2026-09-21.md) and [saved-data audit](../evidence/reader-utility-principal-review-2026-09-21.json). The small text CE gain verifies, but fit events use zero gap thresholds and serving uses negative thresholds. The intended gap-conditioned learner was not tested; the representation-limit diagnosis is withdrawn. Actual-action regret, emitted/absence decision criteria, admission denominators, source/binding and resolved-cost claims require the review's qualifications. Only four reader parents were bound, not five. Original prospective design/result below is preserved; the [corrective constructive task](deepseek-reader-policy-contract-step-2026-09-21.md) now owns execution.
+
 Executed September 21, 2026 from base revision `31972e34` (PR #1327 merged). Prospective design and frozen
 criteria: [reader-utility-design-2026-09-21.md](reader-utility-design-2026-09-21.md), recorded before
 implementation. Receipt: [../evidence/native_geometric_reader_utility_2026-09-21.txt](../evidence/native_geometric_reader_utility_2026-09-21.txt).
