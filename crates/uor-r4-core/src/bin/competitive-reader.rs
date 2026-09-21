@@ -52,10 +52,16 @@ const SEED_FIT: u64 = 0x5C0F_1E71;
 const SEED_FRESH: u64 = 0x5C0F_7F2E;
 /// Prospectively declared primary margin: paired hard-action CE improvement over the exact reader.
 const MARGIN_HARD_BITS: f64 = 0.05;
+/// Prospectively declared central margin: contextual minus global-strength hard-action CE.
+const MARGIN_CTX_BITS: f64 = 0.05;
 /// Tolerated all-position regression on the natural-text development regression.
 const MARGIN_TEXT_BITS: f64 = 0.05;
 const GEN_TOKENS: usize = 48;
 const TEXT_WINDOWS: usize = 8;
+/// Bounded coordinate-descent rounds for the contextual interaction table.
+const CTX_ROUNDS: usize = 2;
+/// Fixed causal bucket count, matching `relational::CTX_BUCKETS`.
+const N_CTX_BUCKETS: usize = 16;
 const LEGACY_PROMPTS: [[u32; 16]; 6] = [
     [
         19, 1071, 2615, 3927, 930, 2095, 198, 198, 828, 67, 85, 437, 1548, 216, 39, 287,
@@ -556,6 +562,32 @@ fn cand_list(cands: &[Cand]) -> Vec<Cand> {
     cands.to_vec()
 }
 
+/// Reporting-only stratum label for the construction, whose triples are `(role, key, value)`.
+/// Never a serving feature and never a filter: harmful NoRead and uncovered positions stay in the
+/// all-position totals.
+fn stratum_of(o: &Obs, seq: &Seq) -> &'static str {
+    let len = seq.tokens.len();
+    let t = o.ring.written() as usize + 1;
+    if t + 1 == len {
+        return if seq.absent {
+            "final_absent"
+        } else {
+            "final_present"
+        };
+    }
+    if t + 2 == len {
+        return "query_key";
+    }
+    if t + 2 < len {
+        return match t % 3 {
+            0 => "intermediate_role",
+            1 => "intermediate_key",
+            _ => "intermediate_value",
+        };
+    }
+    "other"
+}
+
 /// Relation indices for a whole pool under one selector.
 fn rels_for(
     sel: &RelationalSelector,
@@ -734,6 +766,33 @@ fn run() -> Result<ExitCode, String> {
     )?;
     mark("construction", &mut marks);
 
+    // ---- natural-text fit positions (declared development scope, not fresh) ------
+    // The pinned docs corpus is the corpus the frozen local predictor was trained on, so this is a
+    // mixture/fit/regression source, never fresh external validation. One 64-token window per dev
+    // document keeps the text share proportionate to the constructed population.
+    let (uniq, _, _) = reconstruct_corpus(Path::new(DEFAULT_DOCS));
+    let dev: Vec<usize> = (0..uniq.len())
+        .filter(|i| uniq[*i].split == Split::Dev)
+        .collect();
+    let text_seqs: Vec<Seq> = dev
+        .iter()
+        .take(TEXT_WINDOWS)
+        .filter_map(|i| {
+            windows_of(&tokenizer.encode(&uniq[*i].text))
+                .into_iter()
+                .next()
+                .map(|w| Seq {
+                    tokens: w,
+                    group: 0xF000,
+                    answer: 0,
+                    absent: false,
+                    answer_source_abs: None,
+                })
+        })
+        .collect();
+    let text_obs: Vec<Vec<Obs>> = text_seqs.iter().map(observe).collect();
+    let text_fit_n: usize = text_obs.iter().map(|v| v.len()).sum();
+
     // ---- training positions, computed outside the inference function -------------
     let init_roots: Vec<u8> = local
         .a_codes
@@ -745,9 +804,9 @@ fn run() -> Result<ExitCode, String> {
         format!("{RING_CAP}|{MAX_CAND}|{STEPS}|{BATCH}|{LR}|{ROUNDS}|{SEED_FIT}").as_bytes(),
     );
 
-    let build_positions = |mode: RelMode, code_of: &[u8], roots: &[u8]| -> Vec<TrainPos> {
+    let build_positions = |obs: &[Vec<Obs>]| -> Vec<TrainPos> {
         let mut v = Vec::new();
-        for o in fit_obs.iter().flatten() {
+        for o in obs.iter().flatten() {
             let z = local_logits(
                 &parent,
                 &local,
@@ -783,9 +842,12 @@ fn run() -> Result<ExitCode, String> {
                 group: o.group,
             });
         }
-        let _ = (mode, code_of, roots);
         v
     };
+    // One mixture, identical for every arm: constructed fit split + natural-text development.
+    let mut positions = build_positions(&fit_obs);
+    let constructed_fit_positions = positions.len();
+    positions.extend(build_positions(&text_obs));
     let mut data_bytes = Vec::new();
     for (gi, o) in fit_obs.iter().enumerate() {
         for x in o.iter() {
@@ -828,7 +890,6 @@ fn run() -> Result<ExitCode, String> {
                 Vec::new()
             },
         );
-        let positions = build_positions(mode, &init_codes, &init_roots);
         let t0 = Instant::now();
         for _ in 0..STEPS {
             let b = tr.next_batch(positions.len(), BATCH);
@@ -864,6 +925,70 @@ fn run() -> Result<ExitCode, String> {
     let exact = arms["exact"].clone();
     let categorical = arms["categorical"].clone();
     mark("fit", &mut marks);
+
+    // ---- contextual utility controller: frozen ranker, bounded causal interaction --
+    // The frozen integer selector already reproduces the factorised global-strength baseline. The
+    // buckets are computed once from that frozen selector, then only `ctx` moves, so the change is
+    // exactly attributable. `ctx = 0` recovers the baseline byte-for-byte.
+    let mut ctx_sel = relational.clone();
+    let ctx_buckets = ctx_sel.buckets_of(&table, &positions);
+    let ctx_used: usize = (0..N_CTX_BUCKETS)
+        .filter(|b| ctx_buckets.contains(b))
+        .count();
+    let ctx_fit = ctx_sel.ctx_fit(&table, &positions, &ctx_buckets, CTX_ROUNDS);
+    ctx_sel.validate_for_vocab(parent.cfg.vocab)?;
+    let ctx_bytes = RelationalArtifact {
+        selector: ctx_sel.clone(),
+        local_artifact_digest: sha256_bytes(&sb),
+        tokenizer_digest: raw_tok,
+        data_digest: data_id,
+    }
+    .to_bytes();
+    write_checked(&root, "artifacts/contextual_reader.rlr2", &ctx_bytes)?;
+    let ctx_reloaded =
+        RelationalArtifact::from_bytes(&ctx_bytes, &sha256_bytes(&sb), &raw_tok)?.selector;
+    ctx_reloaded.validate_for_vocab(parent.cfg.vocab)?;
+    let ctx_reload_exact = ctx_reloaded == ctx_sel && ctx_reloaded.ctx.len() == N_CTX_BUCKETS;
+    // The interaction fit must touch nothing but `ctx`, and an all-zero table must be
+    // **behaviourally** identical to the factorised baseline on the real pools. Struct equality is
+    // not the right check: the empty and all-zero encodings differ as vectors while acting the same.
+    let ctx_only_changed_ctx = {
+        let mut frozen = ctx_sel.clone();
+        frozen.ctx = Vec::new();
+        frozen == relational
+    };
+    let ctx_baseline_identical = {
+        let mut zero = relational.clone();
+        zero.ctx = vec![[0i32; ACTS + 1]; N_CTX_BUCKETS];
+        let mut same = ctx_only_changed_ctx;
+        for os in fresh_obs.iter().chain(fit_obs.iter()) {
+            for o in os.iter() {
+                let rel = rels_for(&relational, o, &table, false);
+                if zero.choose(&o.cands, &rel) != relational.choose(&o.cands, &rel) {
+                    same = false;
+                }
+            }
+        }
+        same
+    };
+    let ctx_report = json!({
+        "buckets": N_CTX_BUCKETS,
+        "buckets_used": ctx_used,
+        "rounds": CTX_ROUNDS,
+        "entries_moved": ctx_fit.entries_moved,
+        "evaluations": ctx_fit.evaluations,
+        "fit_objective_before": ctx_fit.objective_before,
+        "fit_objective_after": ctx_fit.objective_after,
+        "fit_objective_change": ctx_fit.objective_after - ctx_fit.objective_before,
+        "constructed_fit_positions": constructed_fit_positions,
+        "text_fit_positions": text_fit_n,
+        "table": ctx_sel.ctx.clone(),
+        "reload_exact": ctx_reload_exact,
+        "zero_ctx_recovers_global_baseline": ctx_baseline_identical,
+        "ctx_fit_changed_only_the_interaction": ctx_only_changed_ctx,
+    });
+    let relational_ctx = ctx_sel.clone();
+    mark("ctx fit", &mut marks);
 
     // ---- artifact export / independent reload ----------------------------------
     let art = RelationalArtifact {
@@ -918,6 +1043,7 @@ fn run() -> Result<ExitCode, String> {
             ("exact", Some(&exact), false),
             ("categorical", Some(&categorical), false),
             ("relational", Some(&relational), false),
+            ("relational_ctx", Some(&relational_ctx), false),
             ("relational_query_blind", Some(&relational), true),
         ];
         for (name, sel, blind) in arm_specs {
@@ -926,6 +1052,8 @@ fn run() -> Result<ExitCode, String> {
             let mut correct_reads = 0usize;
             let mut covered = 0usize;
             let mut correct_covered = 0usize;
+            let mut multi_candidates = 0usize;
+            let mut multi_correct = 0usize;
             let mut hard_ce = 0.0f64;
             let mut emitted_ok = 0usize;
             let mut per_group: Vec<(f64, f64)> = Vec::new();
@@ -1020,16 +1148,14 @@ fn run() -> Result<ExitCode, String> {
                     if emitted == o.target {
                         emitted_ok += 1;
                     }
-                    let stratum = if o.ring.written() as usize + 2 == pop[gi].tokens.len() {
-                        if pop[gi].absent {
-                            "final_absent"
-                        } else {
-                            "final_present"
-                        }
-                    } else {
-                        "intermediate"
-                    };
+                    let stratum = stratum_of(o, &pop[gi]);
                     let entry = strata.entry(stratum).or_default();
+                    if o.cands.len() >= 2 {
+                        multi_candidates += 1;
+                        if covered_here && r.payload == Some(o.target) {
+                            multi_correct += 1;
+                        }
+                    }
                     entry.0 += 1;
                     entry.1 += usize::from(covered_here);
                     entry.2 += usize::from(r.payload == Some(o.target));
@@ -1059,6 +1185,9 @@ fn run() -> Result<ExitCode, String> {
                 "correct_reads": correct_reads,
                 "read_precision_all": if reads == 0 { f64::NAN } else { correct_reads as f64 / reads as f64 },
                 "read_precision_covered": if covered == 0 { f64::NAN } else { correct_covered as f64 / covered as f64 },
+                "covered_decision_success": if covered == 0 { f64::NAN } else { correct_covered as f64 / covered as f64 },
+                "multi_candidate_positions": multi_candidates,
+                "multi_candidate_correct_reads": multi_correct,
                 "no_read_rate": 1.0 - reads as f64 / n.max(1) as f64,
                 "strata": strata.iter().map(|(label, (n, covered, correct, emitted, ce))| json!({
                     "stratum": label, "positions": n, "covered_positions": covered,
@@ -1153,6 +1282,169 @@ fn run() -> Result<ExitCode, String> {
         pairs.push((a, b, os.len()));
     }
     let hard_diff = boot_diff(&pairs, 0x1234_5678);
+
+    // Paired interval of the CENTRAL comparison: contextual minus frozen global-strength baseline.
+    let mut ctx_pairs: Vec<(f64, f64, usize)> = Vec::new();
+    for os in fresh_obs.iter() {
+        let mut a = 0.0;
+        let mut b = 0.0;
+        for o in os.iter() {
+            let (zc, _) = predict_next(
+                &o.ring,
+                o.cur,
+                o.prev as usize,
+                o.prev2,
+                &relational_ctx,
+                &table,
+                &parent,
+                &local,
+                &u,
+                true,
+            );
+            let (zg, _) = predict_next(
+                &o.ring,
+                o.cur,
+                o.prev as usize,
+                o.prev2,
+                &relational,
+                &table,
+                &parent,
+                &local,
+                &u,
+                true,
+            );
+            a += bits(&zc, o.target, parent.cfg.f_bits);
+            b += bits(&zg, o.target, parent.cfg.f_bits);
+        }
+        ctx_pairs.push((a, b, os.len()));
+    }
+    let ctx_diff = boot_diff(&ctx_pairs, 0x0C7A_1E17);
+
+    // ---- offline finite-action opportunity diagnostic (target-using; diagnostic only) ----
+    // Separates strength error from ranking/admission error. Never a serving feature and never a
+    // model-quality claim: it is an upper bound computed with the target in hand.
+    let mut diag_n = 0usize;
+    let mut diag_actual = 0.0f64;
+    let mut diag_best_selected = 0.0f64;
+    let mut diag_best_all = 0.0f64;
+    let mut diag_rank_wins = 0usize;
+    let mut diag_ctx_wins = 0usize;
+    let mut diag_covered = 0usize;
+    let mut diag_correct_top_ranked = 0usize;
+    let mut diag_selected_correct = 0usize;
+    let mut diag_best_all_is_correct = 0usize;
+    let mut diag_strata: BTreeMap<&str, (usize, f64, f64, f64)> = BTreeMap::new();
+    for os in fresh_obs.iter() {
+        for o in os.iter() {
+            let z = local_logits(
+                &parent,
+                &local,
+                &u,
+                o.cur,
+                o.prev as usize,
+                o.prev2,
+                o.ring.written(),
+            );
+            let delta: Vec<[f64; ACTS]> = o
+                .cands
+                .iter()
+                .map(|c| {
+                    let p = prob_of(&z, c.payload, parent.cfg.f_bits);
+                    std::array::from_fn(|a| {
+                        let boost =
+                            (1i64 << AMP_SHIFTS[a]) as f64 / (1i64 << parent.cfg.f_bits) as f64;
+                        action_loss(p, boost, c.payload == o.target)
+                    })
+                })
+                .collect();
+            let rel = rels_for(&relational, o, &table, false);
+            let act = relational.choose(&o.cands, &rel);
+            let actual = match act {
+                Some((k, a)) => delta[k][a],
+                None => 0.0,
+            };
+            let best_selected = match act {
+                Some((k, _)) => delta[k].iter().cloned().fold(0.0f64, f64::min),
+                None => 0.0,
+            };
+            let best_all = delta.iter().flatten().cloned().fold(0.0f64, f64::min);
+            // Which causal variant attains the best finite action for the selected payload?
+            let relc = rels_for(&relational_ctx, o, &table, false);
+            let actc = relational_ctx.choose(&o.cands, &relc);
+            let actual_ctx = match actc {
+                Some((k, a)) => delta[k][a],
+                None => 0.0,
+            };
+            if actual_ctx < actual - 1e-12 {
+                diag_ctx_wins += 1;
+            }
+            if best_all < best_selected - 1e-12 {
+                diag_rank_wins += 1;
+            }
+            // Attribution, not just a bound: at positions where the correct payload IS admitted,
+            // is the relation channel already ranking it top, and is the shortfall a *ranking*
+            // failure rather than a strength one? Still target-using, still diagnostic only.
+            if let Some(ci) = o.cands.iter().position(|c| c.payload == o.target) {
+                diag_covered += 1;
+                let top = (0..o.cands.len())
+                    .map(|k| relational.source_score(&o.cands[k], rel[k]))
+                    .fold(i32::MIN, i32::max);
+                if relational.source_score(&o.cands[ci], rel[ci]) == top {
+                    diag_correct_top_ranked += 1;
+                }
+                if matches!(act, Some((k, _)) if k == ci) {
+                    diag_selected_correct += 1;
+                }
+                let best_k = (0..o.cands.len()).min_by(|x, y| {
+                    delta[*x]
+                        .iter()
+                        .cloned()
+                        .fold(0.0f64, f64::min)
+                        .partial_cmp(&delta[*y].iter().cloned().fold(0.0f64, f64::min))
+                        .unwrap()
+                });
+                if best_k == Some(ci) {
+                    diag_best_all_is_correct += 1;
+                }
+            }
+            diag_n += 1;
+            diag_actual += actual;
+            diag_best_selected += best_selected;
+            diag_best_all += best_all;
+            let e = diag_strata
+                .entry(stratum_of(o, &fresh[o.group as usize]))
+                .or_insert((0, 0.0, 0.0, 0.0));
+            e.0 += 1;
+            e.1 += actual;
+            e.2 += best_selected;
+            e.3 += best_all;
+        }
+    }
+    let opportunity = json!({
+        "positions": diag_n,
+        "mean_actual_delta_bits": diag_actual / diag_n.max(1) as f64,
+        "mean_best_selected_action_bits": diag_best_selected / diag_n.max(1) as f64,
+        "mean_best_action_over_all_candidates_bits": diag_best_all / diag_n.max(1) as f64,
+        "mean_strength_loss_bits": (diag_actual - diag_best_selected) / diag_n.max(1) as f64,
+        "mean_ranking_admission_loss_bits": (diag_best_selected - diag_best_all) / diag_n.max(1) as f64,
+        "mean_total_opportunity_bits": (diag_actual - diag_best_all) / diag_n.max(1) as f64,
+        "positions_where_a_better_admitted_source_exists": diag_rank_wins,
+        "positions_where_the_contextual_choice_is_better": diag_ctx_wins,
+        "covered_positions": diag_covered,
+        "covered_where_correct_payload_is_top_source_score": diag_correct_top_ranked,
+        "covered_where_the_selected_source_is_correct": diag_selected_correct,
+        "covered_where_the_best_finite_action_belongs_to_the_correct_source": diag_best_all_is_correct,
+        "covered_relation_channel_top_rank_rate": if diag_covered == 0 { f64::NAN } else { diag_correct_top_ranked as f64 / diag_covered as f64 },
+        "covered_selection_success_rate": if diag_covered == 0 { f64::NAN } else { diag_selected_correct as f64 / diag_covered as f64 },
+        "strata": diag_strata.iter().map(|(k, (n, act, sel, all))| json!({
+            "stratum": k, "positions": n,
+            "mean_actual_bits": act / (*n).max(1) as f64,
+            "mean_strength_loss_bits": (act - sel) / (*n).max(1) as f64,
+            "mean_ranking_loss_bits": (sel - all) / (*n).max(1) as f64,
+        })).collect::<Vec<_>>(),
+        "unit": "nats_per_candidate_bearing_position",
+        "scope": "TARGET-USING diagnostic; a bound, never a serving feature or a model-quality claim",
+    });
 
     // ---- controls ---------------------------------------------------------------
     let mut controls = Vec::new();
@@ -1363,46 +1655,40 @@ fn run() -> Result<ExitCode, String> {
     }));
 
     // ---- natural-text development regression ------------------------------------
-    let (uniq, _, _) = reconstruct_corpus(Path::new(DEFAULT_DOCS));
-    let dev: Vec<usize> = (0..uniq.len())
-        .filter(|i| uniq[*i].split == Split::Dev)
-        .collect();
     let mut text_positions = 0usize;
     let mut text_local = 0.0f64;
-    let mut text_reader = 0.0f64;
-    let mut text_reads = 0usize;
+    let text_arms: Vec<(&'static str, &RelationalSelector)> = vec![
+        ("relational", &relational),
+        ("relational_ctx", &relational_ctx),
+    ];
+    let mut text_reader = vec![0.0f64; text_arms.len()];
+    let mut text_reads = vec![0usize; text_arms.len()];
+    let mut text_emitted = vec![0usize; text_arms.len()];
     for i in dev.iter().take(TEXT_WINDOWS) {
         let ws = windows_of(&tokenizer.encode(&uniq[*i].text));
         if ws.is_empty() {
             continue;
         }
-        let mut ring = OccurrenceRing::new(RING_CAP);
-        for k in 0..ws[0].len() {
-            let cur = ws[0][k];
-            let prev = if k >= 1 {
-                ws[0][k - 1] as usize
-            } else {
-                parent.cfg.pad_row()
-            };
-            let prev2 = if k >= 2 { ws[0][k - 2] } else { NO_TOKEN };
-            if k >= 2 {
-                let _z = local_logits(&parent, &local, &u, cur, prev, prev2, ring.written());
-                let zr = predict_next(
-                    &ring,
-                    cur,
-                    prev,
-                    prev2,
-                    &relational,
-                    &table,
-                    &parent,
-                    &local,
-                    &u,
-                    true,
-                )
-                .1;
-                let _ = zr;
+        // Warm both arms over the window before measuring, so no arm pays a cold first pass.
+        {
+            let mut ring = OccurrenceRing::new(RING_CAP);
+            for k in 0..ws[0].len() {
+                let cur = ws[0][k];
+                let prev = if k >= 1 {
+                    ws[0][k - 1] as usize
+                } else {
+                    parent.cfg.pad_row()
+                };
+                let prev2 = if k >= 2 { ws[0][k - 2] } else { NO_TOKEN };
+                if k >= 2 {
+                    for (_n, s) in text_arms.iter() {
+                        let _ = predict_next(
+                            &ring, cur, prev, prev2, s, &table, &parent, &local, &u, true,
+                        );
+                    }
+                }
+                ring.observe(cur);
             }
-            ring.observe(cur);
         }
         // Score every next-token position on the window through the shared path.
         let mut ring = OccurrenceRing::new(RING_CAP);
@@ -1416,18 +1702,6 @@ fn run() -> Result<ExitCode, String> {
             let prev2 = if k >= 2 { ws[0][k - 2] } else { NO_TOKEN };
             if k >= 2 && k + 1 < ws[0].len() {
                 let target = ws[0][k + 1];
-                let (zr, r) = predict_next(
-                    &ring,
-                    cur,
-                    prev,
-                    prev2,
-                    &relational,
-                    &table,
-                    &parent,
-                    &local,
-                    &u,
-                    true,
-                );
                 let (zl, _) = predict_next(
                     &ring,
                     cur,
@@ -1441,33 +1715,49 @@ fn run() -> Result<ExitCode, String> {
                     false,
                 );
                 text_local += bits(&zl, target, parent.cfg.f_bits);
-                text_reader += bits(&zr, target, parent.cfg.f_bits);
                 text_positions += 1;
-                if r.action.is_some() {
-                    text_reads += 1;
+                for (ai, (_n, s)) in text_arms.iter().enumerate() {
+                    let (zr, r) = predict_next(
+                        &ring, cur, prev, prev2, s, &table, &parent, &local, &u, true,
+                    );
+                    text_reader[ai] += bits(&zr, target, parent.cfg.f_bits);
+                    if r.action.is_some() {
+                        text_reads[ai] += 1;
+                    }
+                    if argmax_low(&zr) as u32 == target {
+                        text_emitted[ai] += 1;
+                    }
                 }
             }
             ring.observe(cur);
         }
     }
-    text_rows.push(json!({
-        "panel": "natural_text_development_regression",
-        "documents": dev.iter().take(TEXT_WINDOWS).count(),
-        "positions": text_positions,
-        "local_bits_per_token": text_local / text_positions.max(1) as f64,
-        "reader_bits_per_token": text_reader / text_positions.max(1) as f64,
-        "delta_bits": (text_reader - text_local) / text_positions.max(1) as f64,
-        "reader_reads": text_reads,
-        "scope": "pinned repository documentation, open development; already inspected, not a fresh external benchmark",
-    }));
+    for (ai, (name, _s)) in text_arms.iter().enumerate() {
+        text_rows.push(json!({
+            "panel": "natural_text_development_regression",
+            "arm": name,
+            "documents": dev.iter().take(TEXT_WINDOWS).count(),
+            "positions": text_positions,
+            "local_bits_per_token": text_local / text_positions.max(1) as f64,
+            "reader_bits_per_token": text_reader[ai] / text_positions.max(1) as f64,
+            "delta_bits": (text_reader[ai] - text_local) / text_positions.max(1) as f64,
+            "reader_reads": text_reads[ai],
+            "reader_emitted_correct": text_emitted[ai],
+            "scope": "pinned repository documentation, open development. The frozen local predictor was trained on this corpus, so this is an inspected development regression, NOT fresh external validation, and harmful NoRead/uncovered positions are not filtered out.",
+        }));
+    }
     mark("controls + text", &mut marks);
 
     // ---- generation through the shared path -------------------------------------
     let mut gen_rows = Vec::new();
+    let gen_arms: Vec<(&'static str, &RelationalSelector, bool)> = vec![
+        ("local", &relational, false),
+        ("relational", &relational, true),
+        ("relational_ctx", &relational_ctx, true),
+    ];
     for (k, pr) in LEGACY_PROMPTS.iter().enumerate() {
         let mut out = Vec::new();
-        for name in ["local", "relational"] {
-            let use_reader = name == "relational";
+        for (name, sel, use_reader) in gen_arms.iter() {
             // The query token is supplied separately, exactly as in teacher-forced evaluation.
             let mut ring = ring_before_current(pr);
             let mut toks: Vec<u32> = pr.to_vec();
@@ -1476,18 +1766,28 @@ fn run() -> Result<ExitCode, String> {
                 let _ = generate_step(
                     &mut ring,
                     &mut toks,
-                    &relational,
+                    sel,
                     &table,
                     &parent,
                     &local,
                     &u,
-                    use_reader,
+                    *use_reader,
                 )?;
             }
+            let tail = &toks[start..];
+            let mut seen: Vec<u32> = Vec::new();
+            let mut repeats = 0usize;
+            for t in tail.iter() {
+                if seen.last() == Some(t) {
+                    repeats += 1;
+                }
+                seen.push(*t);
+            }
             out.push(json!({
-                "arm": name, "tokens": toks[start..].to_vec(),
-                "decoded": tokenizer.decode(&toks[start..]),
+                "arm": name, "tokens": tail.to_vec(),
+                "decoded": tokenizer.decode(tail),
                 "prompt_index": k,
+                "adjacent_repeat_tokens": repeats,
             }));
         }
         gen_rows.push(json!({"prompt_index": k, "arms": out}));
@@ -1497,19 +1797,23 @@ fn run() -> Result<ExitCode, String> {
     let probe_ws = windows_of(&tokenizer.encode(&uniq[dev[0]].text));
     let probe: Vec<u32> = probe_ws[0][..32].to_vec();
     let mut timings = Vec::new();
-    for (label, use_reader) in [("local_no_reader_work", false), ("reader_full_path", true)] {
-        let _ = run_probe(&parent, &local, &u, &relational, &table, &probe, use_reader);
+    for (label, sel, use_reader) in [
+        ("local_no_reader_work", &relational, false),
+        ("reader_global_strength", &relational, true),
+        ("reader_contextual", &relational_ctx, true),
+    ] {
+        let _ = run_probe(&parent, &local, &u, sel, &table, &probe, use_reader);
         let mut s = Vec::new();
         for _ in 0..5 {
             let t0 = Instant::now();
-            let out = run_probe(&parent, &local, &u, &relational, &table, &probe, use_reader);
+            let out = run_probe(&parent, &local, &u, sel, &table, &probe, use_reader);
             black_box(&out);
             s.push(t0.elapsed().as_secs_f64());
         }
         s.sort_by(|a, b| a.partial_cmp(b).unwrap());
         let predictions = prediction_count(probe.len());
         let (scanned, admitted) =
-            run_probe_counts(&parent, &local, &u, &relational, &table, &probe, use_reader);
+            run_probe_counts(&parent, &local, &u, sel, &table, &probe, use_reader);
         timings.push(json!({
             "label": label,
             "predictions": predictions,
@@ -1547,12 +1851,44 @@ fn run() -> Result<ExitCode, String> {
         && hard_hi < 0.0
         && instrument_ok
         && text_delta <= MARGIN_TEXT_BITS;
+
+    // ---- prospective central comparison: contextual vs global strength -----------
+    let ctx_point = ctx_diff["point"].as_f64().unwrap_or(f64::NAN);
+    let ctx_hi = ctx_diff["hi"].as_f64().unwrap_or(f64::NAN);
+    let global_text_delta = text_rows
+        .iter()
+        .find(|r| r["arm"] == "relational")
+        .and_then(|r| r["delta_bits"].as_f64())
+        .unwrap_or(f64::NAN);
+    let ctx_text_delta = text_rows
+        .iter()
+        .find(|r| r["arm"] == "relational_ctx")
+        .and_then(|r| r["delta_bits"].as_f64())
+        .unwrap_or(f64::NAN);
+    let read_rate = |n: &str| -> f64 { 1.0 - get(n)["no_read_rate"].as_f64().unwrap_or(f64::NAN) };
+    let ctx_keeps_reading = read_rate("relational_ctx") >= 0.5 * read_rate("relational");
+    let emitted_ok_margin = get("relational_ctx")["emitted_accuracy"]
+        .as_f64()
+        .unwrap_or(f64::NAN)
+        >= get("relational")["emitted_accuracy"]
+            .as_f64()
+            .unwrap_or(f64::NAN)
+            - 0.02;
+    let lang_ok = ctx_text_delta <= global_text_delta + MARGIN_TEXT_BITS;
+    let ctx_instrument_ok = instrument_ok && ctx_reload_exact && ctx_baseline_identical;
+    let ctx_positive = ctx_point <= -MARGIN_CTX_BITS
+        && ctx_hi < 0.0
+        && ctx_instrument_ok
+        && ctx_keeps_reading
+        && lang_ok
+        && emitted_ok_margin;
+
     write_json(
         &root,
         "result.json",
         &json!({
-            "schema": "uor-r4.competitive-reader/2",
-            "base_revision": "a1fadd1f",
+            "schema": "uor-r4.competitive-reader/3",
+            "base_revision": "89ee803b",
             "running_source": {
                 "git_rev": std::env::var("UOR_GIT_REV").unwrap_or_else(|_| "unset".into()),
                 "git_dirty": std::env::var("UOR_GIT_DIRTY").unwrap_or_else(|_| "unknown".into()),
@@ -1565,35 +1901,48 @@ fn run() -> Result<ExitCode, String> {
                 "shared_path": "read_step + predict_next; no target, sentinel or supervised record enters them",
                 "descriptor_initialisation": "palette.elements[a_codes[t]]: the actual S write element, named explicitly (the old run copied slot labels as group IDs)",
                 "relation": "inverse(q)*k through the single relation_index function used by fit, inference, export and reload",
-                "artifact": "RLR2 carries the mode and the code map; an independent loader is exercised for every arm",
+                "artifact": "RLR2 v3 carries the mode, the code map and the bounded causal contextual interaction; an independent loader is exercised for every arm",
                 "strengths": {"amp_shifts": AMP_SHIFTS.to_vec()},
                 "ring_cap": RING_CAP, "max_candidates": MAX_CAND,
                 "arm_reload_parity_failures": arm_parity_failures,
+                "contextual_interaction": "ctx[bucket][slot], slot 0 = NoRead offset, slots 1..=ACTS = strength offsets; each entry a signed 4-bit integer added by the same integer kernel as sb[a]; bucket is frozen from the ctx-free source scores and the candidate exact-context class",
             },
             "fit": arm_report,
+            "contextual_fit": ctx_report,
             "panels": panel,
             "hard_action_ce_relational_minus_exact_fresh": hard_diff,
+            "hard_action_ce_contextual_minus_global_fresh": ctx_diff,
+            "opportunity_diagnostic": opportunity,
             "natural_text": text_rows,
             "controls": controls,
             "generation": gen_rows,
             "cost": {
                 "timings": timings,
-                "serialized_bytes": {"parent_E": pb.len(), "local_query_artifact": sb.len(), "relational_artifact": bytes.len()},
-                "resident_bytes": {"local_row_table": 120 * parent.cfg.vocab * 4, "parent_scratch": parent.cfg.vocab * 4, "descriptor_roots": relational.q_roots.len(), "rank_table": RANKS * 4},
+                "serialized_bytes": {"parent_E": pb.len(), "local_query_artifact": sb.len(), "relational_artifact": bytes.len(), "contextual_artifact": ctx_bytes.len()},
+                "resident_bytes": {"local_row_table": 120 * parent.cfg.vocab * 4, "parent_scratch": parent.cfg.vocab * 4, "descriptor_roots": relational.q_roots.len(), "rank_table": RANKS * 4, "contextual_table": ctx_sel.ctx.len() * (ACTS + 1)},
                 "energy": "UNAVAILABLE",
             },
             "decision": {
-                "primary": "paired-by-sequence hard-action CE difference, relational minus exact-recurrence, fresh construction",
-                "margin_bits": MARGIN_HARD_BITS,
+                "primary": "paired-by-sequence hard-action CE difference, contextual minus frozen global-strength baseline, fresh construction",
+                "secondary": "paired-by-sequence hard-action CE difference, relational minus exact-recurrence, fresh construction",
+                "margin_bits": MARGIN_CTX_BITS,
                 "text_margin_bits": MARGIN_TEXT_BITS,
+                "contextual_vs_global": ctx_diff,
                 "relational_vs_exact": hard_diff,
+                "contextual_hard_ce": get("relational_ctx")["hard_action_ce_bits"].clone(),
                 "relational_hard_ce": get("relational")["hard_action_ce_bits"].clone(),
                 "exact_hard_ce": get("exact")["hard_action_ce_bits"].clone(),
                 "local_hard_ce": get("local")["hard_action_ce_bits"].clone(),
                 "query_blind_hard_ce": get("relational_query_blind")["hard_action_ce_bits"].clone(),
                 "instrument_checks_pass": instrument_ok,
-                "positive": positive,
-                "historical": "the old 0.15 precision margin and positive=false remain historical and are not re-applied here",
+                "contextual_instrument_checks_pass": ctx_instrument_ok,
+                "contextual_keeps_reading": ctx_keeps_reading,
+                "contextual_language_tradeoff_ok": lang_ok,
+                "contextual_emitted_margin_ok": emitted_ok_margin,
+                "ctx_zero_recovers_global_baseline": ctx_baseline_identical,
+                "positive": ctx_positive,
+                "historical_relational_vs_exact_positive": positive,
+                "historical": "the old 0.15 precision margin, the old -2.4956 bits/sequence figure and the old positive=false remain historical and are not re-applied",
             },
             "phases": marks.iter().fold((0.0f64, Vec::new()), |(prev, mut out), (n, t)| {
                 out.push(json!({"phase": n, "seconds": t - prev, "cumulative_s": t}));
@@ -1605,13 +1954,16 @@ fn run() -> Result<ExitCode, String> {
     seal(&root).map_err(|e| format!("seal: {e}"))?;
     let unlisted = verify(&root).map_err(|e| format!("verify: {e}"))?;
     println!(
-        "fresh: relational {:.6} vs exact {:.6} vs local {:.6} bits; paired diff {:?} [{:?},{:?}]; text delta {text_delta:.6}; instrument_ok {instrument_ok}; positive {positive}; sealed {} unlisted; elapsed {:.1}s",
+        "fresh: ctx {:.6} vs global {:.6} vs exact {:.6} vs local {:.6} bits; ctx-global {:?} [{:?},{:?}]; text global {:.4} ctx {:.4}; ctx_ok {ctx_positive}; instrument {ctx_instrument_ok}; sealed {} unlisted; elapsed {:.1}s",
+        get("relational_ctx")["hard_action_ce_bits"].as_f64().unwrap_or(f64::NAN),
         get("relational")["hard_action_ce_bits"].as_f64().unwrap_or(f64::NAN),
         get("exact")["hard_action_ce_bits"].as_f64().unwrap_or(f64::NAN),
         get("local")["hard_action_ce_bits"].as_f64().unwrap_or(f64::NAN),
-        hard_point,
-        hard_diff["lo"].as_f64().unwrap_or(f64::NAN),
-        hard_hi,
+        ctx_point,
+        ctx_diff["lo"].as_f64().unwrap_or(f64::NAN),
+        ctx_hi,
+        global_text_delta,
+        ctx_text_delta,
         unlisted.len(),
         started.elapsed().as_secs_f32()
     );
@@ -1870,6 +2222,69 @@ mod tests {
             ring.observe(tokens[i]);
             tokens.push(next);
         }
+    }
+
+    #[test]
+    fn the_contextual_interaction_moves_the_served_strength_and_can_suppress_a_read() {
+        let b = banks();
+        let mut seed = 99u64;
+        let seq = make_seq(&b, &mut seed, &b.values_held, false);
+        let obs = observe(&seq);
+        let o = obs.last().expect("final query has competing sources");
+        let rel: Vec<usize> = vec![0; o.cands.len()];
+        let base = RelationalSelector {
+            q_roots: vec![0u8; 8],
+            mode: RelMode::Geometric,
+            code_of: Vec::new(),
+            w: [0; EXACT_FEATS],
+            rank: [0; RANKS],
+            bias: 0,
+            sb: [-7, 3, 6],
+            noread: -7,
+            ctx: Vec::new(),
+        };
+        let baseline = base.choose(&o.cands, &rel).expect("a read is affordable");
+        assert_eq!(
+            baseline,
+            (0, 2),
+            "the factorised arm takes the strongest action"
+        );
+        // Move every bucket away from the strongest action: same source, a cheaper strength. This
+        // is exactly the interaction the controller exists to express.
+        let mut softened = base.clone();
+        let mut ctx = vec![[0i32; ACTS + 1]; N_CTX_BUCKETS];
+        for row in ctx.iter_mut() {
+            row[ACTS] = -7;
+        }
+        softened.ctx = ctx;
+        let after = softened
+            .choose(&o.cands, &rel)
+            .expect("a weaker read is still affordable");
+        assert_eq!(
+            after.0, baseline.0,
+            "the selected source does not change here"
+        );
+        assert!(after.1 < baseline.1, "the interaction lowers the strength");
+        // Rewarding NoRead suppresses the read without touching the ranking.
+        let mut quiet = base.clone();
+        let mut ctx = vec![[0i32; ACTS + 1]; N_CTX_BUCKETS];
+        for row in ctx.iter_mut() {
+            row[0] = 7;
+            for slot in row.iter_mut().skip(1) {
+                *slot = -7;
+            }
+        }
+        quiet.ctx = ctx;
+        assert_eq!(
+            quiet.choose(&o.cands, &rel),
+            None,
+            "NoRead is inside the action set"
+        );
+        assert_eq!(
+            quiet.bucket_of(&o.cands, &rel),
+            base.bucket_of(&o.cands, &rel),
+            "the bucket key is unchanged by the interaction it keys"
+        );
     }
 
     #[test]

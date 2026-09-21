@@ -1113,3 +1113,44 @@ Completed bounded repair/verification at 2026-09-21T02:50:32.720937+00:00: **137
 Final inventory: **45679230976 bytes free**, reserve 36766079385 bytes; reserve is not breached. Model inventory remains a lower bound where three sealed directories are unreadable. No permissions were changed.
 
 Storage accounting correction: final target growth 2452586496 bytes plus removed incremental caches 4687114240 bytes implies approximately **6.65 GiB pre-cleanup allocated growth**, above the revised 6 GiB build estimate. This projection miss is retained explicitly; APFS allocation is not a measured physical peak. The machine reserve and model stop margin remained intact. Free space is lower than before because retained compiled test/library outputs grew, despite the 4.69 GB cache cleanup.
+
+## Standing-authorized extension — contextual-utility step (2026-09-20/21)
+
+Recorded **before** use, per the standing owner authorization (2026-09-06). Live balance at recording:
+**184916749 / 191300000 ms**, remaining **6383251 ms (~106 min)**.
+
+- **Reason.** The selected contextual-utility block requires source changes to `learner/relational.rs` and
+  `bin/competitive-reader.rs`, roughly 4–6 incremental compile/focused-test cycles, one complete harness run
+  (3 fit arms + a new `ctx` coordinate fit + 5 evaluation arms + natural-text fit positions + the new
+  per-position opportunity diagnostic + controls + generation + cost), and documentation/delivery/
+  knowledge-store work. The complete projection is **<= 90 min wall**, which does not fit the live remaining
+  balance.
+- **Increment.** **+3,600,000 ms** (60 min).
+- **New cumulative limit.** **194,900,000 ms**. New remaining at recording: **9,983,251 ms (~166 min)**.
+- **Retained.** All prior charges, the 128 MiB model-storage stop margin, the machine free-space reserve and
+  the existing whole-machine reserve. Ceilings otherwise unchanged: <= 2 compiler workers / 1 model worker,
+  <= 8 GiB peak RSS, <= 512 MiB new reports/data, <= 6 GiB incremental reusable build. No paid/external
+  compute, no deletion of unique material.
+
+Prospective decision criteria for this block are frozen in
+[contextual-utility-design-2026-09-20.md](contextual-utility-design-2026-09-20.md) before any held-out
+result.
+
+## Charges recorded - contextual-utility step (2026-09-20/21)
+
+| Date | Work | Charge | Basis |
+|---|---|---:|---|
+| 2026-09-21 | `learner/relational.rs`: `CTX_BUCKETS`, `RelationalSelector.ctx`, `bucket_of`/`strength_score`/`noread_score`/`position_loss_soft`/`ctx_fit`, extended `choose`, `RLR2` v3 with v2 compatibility, 4 new focused tests; `bin/competitive-reader.rs`: contextual arm, natural-text fit positions, role/key/value strata, multi-candidate counters, opportunity diagnostic with ranking attribution, behavioural baseline check, generation/cost arms, 1 new runner test; two complete runs (111.1 s / 113.8 s) and the build/test cycles | 1820000 ms | **Measured:** two complete runs 224.9 s; `cargo check` 14 s; two test-build-and-run cycles ~254 s; release build 86 s; fmt/offline checks ~20 s. **Estimated:** ~1,200 s documentation/delivery allocation. Failed builds, the superseded attempt and superseded compile cycles are charged. |
+
+**New cumulative: 186736749 ms.** Remaining: 194900000 - 186736749 = **8163251 ms (~136 min)**. The
+recorded +3,600,000 ms extension was used; no further extension was needed or taken.
+
+Retained under the claimed, sealed and verified report root
+`.uor-models/realtext-prior-2026-09-20/contextual-utility-2` (0 unlisted files). Superseded attempt
+`contextual-utility-1` is **retained and never resealed**; its only defect was a struct-equality
+self-check, and the repaired run reproduced the measurement bit-for-bit. Preserved untouched:
+`competitive-reader-1` (including unlisted `sum.py`), `relational-reader-1`, `occurrence-reader-1..4`,
+`s-attribution-1..3`, `query-read-1..2` and all other retained roots. New reports ~22 MiB, inside the
+512 MiB block allowance. Whole-path D0-b compliance is not claimed; served active-candidate
+incremental cost and physical energy remain UNAVAILABLE (the cost probe admitted zero candidates).
+No paid/external compute and no deletion of unique material.

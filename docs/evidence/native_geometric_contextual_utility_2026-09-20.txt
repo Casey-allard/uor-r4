@@ -1,0 +1,166 @@
+UOR-R4 Geometric Language Model — evidence receipt
+Experiment: contextual utility controller for the learned geometric reader
+Date: 2026-09-20/21
+Base revision: 89ee803b (PR #1322 merged). Worktree: .worktrees/geometric-query-read
+Owning issues: #973, #820, #963, #964 (all remain open)
+
+PURPOSE
+Learn a small causal action-dependent interaction (including NoRead) over the existing finite
+strength set, replacing the factorising global score(c,a) = candidate_score(c) + sb[a], and compare
+it with a fitted global-strength baseline under the same loss, actions and data. Target-using
+opportunity bounds are reported separately and never used as serving features or quality claims.
+
+PINNED INPUTS
+E  (frozen local prior) .uor-models/realtext-prior-2026-09-20/head-projection-3/corrected/empirical.cpl2
+   sha256 565cf98a01273af38425687adb522704b09a89bd7ab976b58b20bfbdaccfa0bf
+S  (query-only artifact) .uor-models/realtext-prior-2026-09-20/s-attribution-3/corrected/separable_older_query_read.cpx3
+   sha256 ed9affd638ee93670559c626fd6dab91dc2a3c7faa5db66ec9e5a486bcdbdfad
+tokenizer source sha256 9ca9acddb6525a194ec8ac7a87f24fbba7232a9a15ffa1af0c1224fcd888e47c
+derived tokenizer sha256 a7ac75b68aa997fe7cc338d25d843157f2dc9d4265fb2f958ee779bb04828d6f
+text corpus .uor-models/realtext-prior-2026-09-20/inputs/docs (Dev split, repository documentation)
+
+SOURCE CHANGED
+crates/uor-r4-core/src/native_geometric/learner/relational.rs
+  + CTX_BUCKETS = 16; RelationalSelector.ctx: Vec<[i32; ACTS+1]>
+  + source_score / bucket_of / strength_score / noread_score / buckets_of
+  + position_loss_soft / ctx_fit (bounded discrete coordinate search, integer domain)
+  + choose() extended to the bucket-conditioned interaction; factorised path unchanged
+  + RLR2 v3 artifact carries ctx; v2 remains readable (verified with the real retained artifact)
+  + mod.rs re-exports ACTS, CTX_BUCKETS
+crates/uor-r4-core/src/bin/competitive-reader.rs
+  + CTX_ROUNDS = 2, N_CTX_BUCKETS = 16, MARGIN_CTX_BITS = 0.05
+  + natural-text fit positions added to the declared mixture
+  + contextual arm (`relational_ctx`) in evaluation, generation and cost
+  + stratum_of() with intermediate role/key/value strata; multi-candidate counters
+  + offline finite-action opportunity diagnostic with ranking attribution
+  + behavioural (not struct) zero-interaction baseline check
+
+TEST RESULTS (executed)
+cargo test -p uor-r4-core --lib native_geometric::learner::relational
+  20 passed; 0 failed  (16 pre-existing + 4 new: zero-interaction equivalence, bucket key
+  invariance under sb/ctx, interaction fit lowers the served objective and moves entries,
+  versioned artifact round-trip incl. v2 backward compatibility and truncation rejection)
+cargo test -p uor-r4-core --bin competitive-reader
+  4 passed; 1 ignored (retained-artifact smoke, requires pinned inputs)
+  new: the_contextual_interaction_moves_the_served_strength_and_can_suppress_a_read
+cargo test -p uor-r4-core --bin competitive-reader -- --ignored --nocapture
+  1 passed: the retained v2 competitive-reader-1 artifact still loads and the real generation
+  caller agrees with the teacher-forced caller over 8 generated steps (both arms repeat token 32;
+  this is a real-generation parity check, not useful prose)
+cargo check / cargo build --release -p uor-r4-core --bin competitive-reader --offline: clean
+
+EXECUTED RUN
+Report root .uor-models/realtext-prior-2026-09-20/contextual-utility-2 (claimed, sealed,
+verified: 0 unlisted files; 23 sealed outputs + result.json)
+Superseded attempt: .uor-models/realtext-prior-2026-09-20/contextual-utility-1 (retained,
+never resealed; its only defect was a struct-equality self-check, see the design note Addendum A)
+Elapsed 113.8 s. Fit 4.95 s. ctx fit 0.042 s. Controls + text 106.68 s. Generation + cost 2.0 s.
+
+CONSTRUCTION (repaired version from PR #1322, its quality was previously NOT_RUN)
+fit  2969 candidate-bearing positions (1005 covered, 2230 multi-candidate)
+fresh 1813 candidate-bearing positions (646 covered, 1328 multi-candidate)
+21 absent queries; held-out payload bank and fresh draw; fixture truth validated before fitting
+
+FRESH HARD-ACTION CE (bits per candidate-bearing position)
+local                     12.684456721632683
+exact (recurrence)        10.728624851609666
+categorical (learned map) 10.393556770137767
+relational (global sb)    10.718473818883137
+relational_query_blind    10.700256280826242
+relational_ctx (proposed) 10.460829892033539
+
+PRIMARY PROSPECTIVE COMPARISON (contextual minus frozen global strength)
+point -0.257643926849597 bits/candidate position
+sequence-cluster 95% interval [-0.3270884384163267, -0.18296787106494927]  (2000 draws, 140 sequences)
+Whole interval below zero; |point| >= MARGIN_CTX_BITS = 0.05. POSITIVE = true.
+  contextual keeps reading: read rate 0.532 vs global 0.365  (0.532 >= 0.5 * 0.365)
+  natural-text tradeoff: contextual +0.21887535429080524 vs global +0.24431907812705134 bits/token
+  emitted-accuracy margin: contextual 0.17650 vs global 0.15609 (not worse)
+  instrument checks pass: shared path, independent S reconstruction (0 mismatches / 1813),
+    future-token invariance (876 compared incl. 131 changed-token predecessors), stale reference,
+    per-arm reload parity, behavioural zero-interaction baseline recovery
+
+SECONDARY (relational minus exact, same fresh panel)
+point -0.01015103272653457 bits  interval [-0.10447044348228865, +0.08367526220197209]
+SPANS ZERO: on the repaired construction the H4 relation term is NOT significantly better than the
+exact-recurrence comparator. The old aggregate -0.179540 was measured on the defective construction.
+
+CATEGORICAL COMPARATOR NOW LEARNS (the old map never moved)
+descriptor assignments moved 149 (geometric 133); 44268 evaluations each
+objective -4485.84 -> -4973.43 (change -487.59) categorical; -4162.98 -> -4506.42 (-343.44) geometric
+categorical fresh CE 10.3936 is BETTER than the geometric arm 10.7185 and than the contextual arm
+10.4608. On this construction the nongeometric learned code map outperforms the H4 relative element,
+and zeroing the relation channel (lesion 10.7003) does not hurt. Unique-H4 benefit is NOT established.
+
+CONTEXTUAL FIT RECEIPT
+buckets 16, used 9, rounds 2, entries moved 35, evaluations 1008
+served objective -4432.02 -> -4656.98 (change -224.96)
+artifact bytes 4408 (relational 4344; +64 bytes); resident table 64 bytes (16 x 4 x i8)
+ctx fit changed nothing except ctx; an all-zero table chooses identically to the baseline on all
+2969 fit + 1813 fresh positions
+
+TARGET-USING OPPORTUNITY DIAGNOSTIC (nats per candidate-bearing position; NOT a quality claim)
+mean realised delta            -1.3627155060699006
+mean best action, selected src -1.4560538344092557
+mean best action, all admitted -2.649989367648062
+mean strength loss              0.09333832833935536
+mean ranking/admission loss     1.1939355332388062
+mean total opportunity          1.2872738615781616
+covered positions 646
+  correct payload admitted and top-ranked by source_score 299 / 646 = 0.4628
+  selected source correct                                163 / 646 = 0.2523
+  best finite action belongs to the admitted correct source 646 / 646 = 1.0
+positions where a better admitted source exists 291; where the contextual choice is better 55
+strata (mean actual / strength loss / ranking loss, positions):
+  final_present    -0.6118 / 0.0819 / 6.8639  (119)
+  final_absent      0.0843 / 0.0843 / 0.0000  ( 21)
+  query_key        -4.9994 / 0.1688 / 2.2480  (126)
+  intermediate_key -4.0891 / 0.1724 / 0.9863  (431)
+  intermediate_value -0.0657 / 0.0595 / 0.9828 (554)
+  intermediate_role  0.0519 / 0.0519 / 0.1690 (562)
+CONCLUSION: residual headroom is dominated by source ranking/admission (~12.8x the strength
+residual). Strength is largely repaired; ranking is not solved.
+
+NATURAL-TEXT DEVELOPMENT REGRESSION (8 docs, 488 positions, inspected; NOT fresh validation)
+local 6.800188034513332 bits/token
+global strength +0.24431907812705134 bits/token (78 read positions, 81 emitted correct)
+contextual      +0.21887535429080524 bits/token (93 read positions, 82 emitted correct)
+Both remain harmful relative to local and above the old 0.05 tolerance. The old +1.2908 was measured
+with a construction-only fit on the old construction, so the reduction is NOT a like-for-like
+comparison; it is consistent with adding text to the declared fit mixture. This panel is the fit
+corpus, hence development evidence only.
+
+GENERATION (48 tokens, 6 legacy prompts, reloaded artifact, real caller)
+Repetition (adjacent equal tokens) is lower for the contextual arm on several prompts:
+prompt 0: local 35, global 12, contextual 4; prompt 1: 38 / 14 / 0; prompt 4: 38 / 38 / 0;
+prompt 5: 36 / 0 / 0. No arm emits fluent prose; all three are repetitive or degenerate. A
+teacher-forced CE gain is not general language capability.
+
+COST (32-token real window, 5 repeats, one discarded warm-up; release build)
+local_no_reader_work  29 predictions  1408.16 us/prediction  scanned 0      admitted 0
+reader_global_strength 29 predictions 1373.23 us/prediction  scanned 464    admitted 0
+reader_contextual     29 predictions  1363.40 us/prediction  scanned 464    admitted 0
+LIMITATION: zero candidates were admitted on this probe window, so the active-candidate reader path
+was not exercised and the reader's incremental cost remains UNAVAILABLE. Debug timing is not
+serving performance. Physical energy UNAVAILABLE. Whole-path D0-b compliance is not claimed: only
+the served selector arithmetic (integer add/compare/table read over signed 4-bit entries) is bounded.
+
+CONTROLS (all passed)
+one_shared_inference_path        true   (203 positions, scores and actions identical)
+independent_s_query_only_check   true   (0 mismatches / 1813)
+future_token_intervention        true   (876 compared, 131 changed-token predecessors)
+altered_source_payload           646 changed, 405 also changed recent query context,
+                                 58 emitted the new payload (recorded as attempts vs reads)
+stale_reference_after_reset      resolved_after_reset = false
+
+ARTIFACTS (bound to inputs, data and source)
+contextual-utility-2/artifacts/relational_reader.rlr2   (RLR2 v3, global-strength arm)
+contextual-utility-2/artifacts/contextual_reader.rlr2   (RLR2 v3, contextual arm)
+Preserved untouched: competitive-reader-1, relational-reader-1, occurrence-reader-1..4,
+s-attribution-1..3, query-read-1..2, and all other retained roots.
+
+NOT RUN / UNAVAILABLE
+optimizer updates beyond the bounded context fit: NONE performed (fresh fit + ctx fit only)
+ring/memory/candidate-bound widening, width or precision sweeps, S attribution re-run, schedulers,
+reset/write or capacity or projection or corpus campaigns: NOT STARTED
+physical energy, served active-candidate incremental cost, general prose/chat/reasoning: UNAVAILABLE

@@ -25,6 +25,8 @@ pub const RANKS: usize = GROUP_ORDER;
 pub const EXACT_FEATS: usize = 6;
 /// Number of nonzero copy strengths. Strength zero is NoRead.
 pub const ACTS: usize = 3;
+/// Number of causal utility buckets for the action-dependent contextual interaction.
+pub const CTX_BUCKETS: usize = 16;
 /// Declared strength shifts (bits); the boost in nats is `2^(shift - f_bits)`.
 pub const AMP_SHIFTS: [u32; 3] = [6, 10, 13];
 /// Largest magnitude of a served coefficient (signed 4-bit).
@@ -193,6 +195,15 @@ pub enum RelMode {
     ExactOnly,
 }
 
+/// Receipt for one bounded contextual-interaction fit.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct CtxFit {
+    pub objective_before: f64,
+    pub objective_after: f64,
+    pub evaluations: u64,
+    pub entries_moved: usize,
+}
+
 /// The served integer selector.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RelationalSelector {
@@ -207,6 +218,9 @@ pub struct RelationalSelector {
     pub bias: i32,
     pub sb: [i32; ACTS],
     pub noread: i32,
+    /// The small causal action-dependent interaction. Empty disables it (the factorised baseline).
+    /// Otherwise `CTX_BUCKETS` rows of `[noread_offset, strength_0, strength_1, ...]`.
+    pub ctx: Vec<[i32; ACTS + 1]>,
 }
 
 impl RelationalSelector {
@@ -268,6 +282,20 @@ impl RelationalSelector {
         if self.q_roots.is_empty() {
             return Err("empty descriptor".into());
         }
+        if !self.ctx.is_empty() {
+            if self.ctx.len() != CTX_BUCKETS {
+                return Err("contextual interaction table has the wrong bucket count".into());
+            }
+            for (b, row) in self.ctx.iter().enumerate() {
+                for (j, v) in row.iter().enumerate() {
+                    if !(-WEIGHT_MAX..=WEIGHT_MAX).contains(v) {
+                        return Err(format!(
+                            "contextual entry ({b},{j}) = {v} outside +/-{WEIGHT_MAX}"
+                        ));
+                    }
+                }
+            }
+        }
         if self.q_roots.iter().any(|&r| r as usize >= RANKS) {
             return Err("descriptor root outside the group domain".into());
         }
@@ -307,19 +335,183 @@ impl RelationalSelector {
         s
     }
 
+    /// The **ctx-free** source score: only the frozen scalars that define source ranking. `sb` and
+    /// `ctx` are excluded so the bucket key cannot drift while `ctx` is fitted.
+    #[inline]
+    pub fn source_score(&self, c: &Cand, rel: usize) -> i32 {
+        let mut s = self.bias + self.rank[rel];
+        for k in 0..EXACT_FEATS {
+            if c.feats[k] != 0 {
+                s += self.w[k];
+            }
+        }
+        s
+    }
+
+    /// The frozen causal position bucket: the exact-context class of the top-ranked admitted
+    /// candidate plus one strict source-margin bit. Uses no target, coverage, label or future token.
+    pub fn bucket_of(&self, cands: &[Cand], rel: &[usize]) -> usize {
+        if cands.is_empty() {
+            return 0;
+        }
+        let mut best = i32::MIN;
+        let mut second = i32::MIN;
+        let mut top = 0usize;
+        for (k, c) in cands.iter().enumerate() {
+            let s = self.source_score(c, rel.get(k).copied().unwrap_or(0));
+            if s > best {
+                second = best;
+                best = s;
+                top = k;
+            } else if s > second {
+                second = s;
+            }
+        }
+        let c = &cands[top];
+        (c.feats[3] as usize)
+            | (((c.feats[1] | c.feats[2]) as usize) << 1)
+            | ((c.feats[5] as usize) << 2)
+            | (((best > second) as usize) << 3)
+    }
+
+    #[inline]
+    fn ctx_at(&self, bucket: usize, slot: usize) -> i32 {
+        if self.ctx.len() != CTX_BUCKETS {
+            return 0;
+        }
+        self.ctx[bucket.min(CTX_BUCKETS - 1)][slot]
+    }
+
+    /// Score of the read action `a > 0` in the declared bucket, including the interaction.
+    #[inline]
+    pub fn strength_score(&self, c: &Cand, rel: usize, a: usize, bucket: usize) -> i32 {
+        self.source_score(c, rel) + self.sb[a] + self.ctx_at(bucket, a + 1)
+    }
+
+    /// Score of the NoRead alternative in the declared bucket, including the interaction.
+    #[inline]
+    pub fn noread_score(&self, bucket: usize) -> i32 {
+        self.noread + self.ctx_at(bucket, 0)
+    }
+
+    /// Causal buckets for a whole position list, computed once from this (frozen) selector.
+    pub fn buckets_of(&self, t: &ExactGroupTable, positions: &[TrainPos]) -> Vec<usize> {
+        positions
+            .iter()
+            .map(|p| self.bucket_of(&p.cands, &self.rels_of(t, p)))
+            .collect()
+    }
+
+    /// Expected served one-step action loss at one position under the integer scores, given a bucket.
+    /// This is the same softmax objective the trainer uses, evaluated on the served integers.
+    pub fn position_loss_soft(&self, t: &ExactGroupTable, p: &TrainPos, bucket: usize) -> f64 {
+        if p.cands.is_empty() {
+            return 0.0;
+        }
+        let n = p.cands.len() * ACTS;
+        let mut s = vec![0.0f64; n + 1];
+        let mut d = vec![0.0f64; n + 1];
+        for (k, c) in p.cands.iter().enumerate() {
+            let rel = self.rel_of_tokens(t, p, k);
+            for a in 0..ACTS {
+                s[k * ACTS + a] = self.strength_score(c, rel, a, bucket) as f64;
+                d[k * ACTS + a] = p.delta[k][a];
+            }
+        }
+        s[n] = self.noread_score(bucket) as f64;
+        d[n] = 0.0;
+        let max = s.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+        let pi: Vec<f64> = s.iter().map(|x| (x - max).exp()).collect();
+        let z: f64 = pi.iter().sum();
+        pi.iter().zip(d.iter()).map(|(a, b)| a * b).sum::<f64>() / z
+    }
+
+    /// **Bounded discrete coordinate search over the contextual interaction only.**
+    ///
+    /// Everything else in the selector is frozen; the search starts from `ctx = 0`, which reproduces
+    /// the factorised baseline exactly. Each entry is swept over the whole declared 4-bit range in
+    /// place, so the result is an optimum for the served integer scores on the supplied positions.
+    /// Returns the total objective change and the search receipt.
+    pub fn ctx_fit(
+        &mut self,
+        t: &ExactGroupTable,
+        positions: &[TrainPos],
+        buckets: &[usize],
+        rounds: usize,
+    ) -> CtxFit {
+        self.ctx = vec![[0i32; ACTS + 1]; CTX_BUCKETS];
+        let mut by_bucket: Vec<Vec<usize>> = vec![Vec::new(); CTX_BUCKETS];
+        for (i, b) in buckets.iter().enumerate() {
+            if !positions[i].cands.is_empty() {
+                by_bucket[(*b).min(CTX_BUCKETS - 1)].push(i);
+            }
+        }
+        let total_of = |sel: &Self, idx: &[usize]| -> f64 {
+            idx.iter()
+                .map(|i| sel.position_loss_soft(t, &positions[*i], buckets[*i]))
+                .sum()
+        };
+        let objective = |sel: &Self| -> f64 {
+            positions
+                .iter()
+                .zip(buckets)
+                .map(|(p, b)| sel.position_loss_soft(t, p, *b))
+                .sum()
+        };
+        let before = objective(self);
+        let mut evaluations = 0u64;
+        let mut entries_moved = 0usize;
+        for _ in 0..rounds {
+            for b in 0..CTX_BUCKETS {
+                if by_bucket[b].is_empty() {
+                    continue;
+                }
+                for slot in 0..=ACTS {
+                    let start = self.ctx[b][slot];
+                    let mut best_val = start;
+                    let mut best_loss = total_of(self, &by_bucket[b]);
+                    for v in -WEIGHT_MAX..=WEIGHT_MAX {
+                        if v == start {
+                            continue;
+                        }
+                        self.ctx[b][slot] = v;
+                        evaluations += 1;
+                        let l = total_of(self, &by_bucket[b]);
+                        if l < best_loss - 1e-12 {
+                            best_loss = l;
+                            best_val = v;
+                        }
+                    }
+                    self.ctx[b][slot] = best_val;
+                    if best_val != start {
+                        entries_moved += 1;
+                    }
+                }
+            }
+        }
+        CtxFit {
+            objective_before: before,
+            objective_after: objective(self),
+            evaluations,
+            entries_moved,
+        }
+    }
+
     /// `None` is NoRead; otherwise `(candidate index, strength index)`.
     pub fn choose(&self, cands: &[Cand], rel: &[usize]) -> Option<(usize, usize)> {
+        let b = self.bucket_of(cands, rel);
+        let nr = self.noread_score(b);
         let mut best: Option<(usize, usize, i32)> = None;
         for (k, c) in cands.iter().enumerate() {
             for a in 0..ACTS {
-                let s = self.score(c, rel[k], a);
+                let s = self.strength_score(c, rel.get(k).copied().unwrap_or(0), a, b);
                 if best.is_none_or(|(_, _, pr)| s > pr) {
                     best = Some((k, a, s));
                 }
             }
         }
         match best {
-            Some((k, a, s)) if s > self.noread => Some((k, a)),
+            Some((k, a, s)) if s > nr => Some((k, a)),
             _ => None,
         }
     }
@@ -705,6 +897,7 @@ impl RelationalTrainer {
             bias: q(self.bias),
             sb: std::array::from_fn(|k| q(self.sb[k])),
             noread: q(self.noread),
+            ctx: Vec::new(),
         }
     }
 
@@ -950,7 +1143,7 @@ impl RelationalArtifact {
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut o = Vec::new();
         o.extend_from_slice(b"RLR2");
-        o.extend_from_slice(&2u32.to_le_bytes());
+        o.extend_from_slice(&3u32.to_le_bytes());
         o.push(match self.selector.mode {
             RelMode::Geometric => 0,
             RelMode::Categorical => 1,
@@ -971,6 +1164,13 @@ impl RelationalArtifact {
         }
         o.push(self.selector.bias as i8 as u8);
         o.push(self.selector.noread as i8 as u8);
+        // Version 3 adds the bounded causal contextual interaction (possibly empty).
+        o.extend_from_slice(&(self.selector.ctx.len() as u32).to_le_bytes());
+        for row in self.selector.ctx.iter() {
+            for v in row.iter() {
+                o.push(*v as i8 as u8);
+            }
+        }
         o.extend_from_slice(&self.local_artifact_digest);
         o.extend_from_slice(&self.tokenizer_digest);
         o.extend_from_slice(&self.data_digest);
@@ -1000,7 +1200,8 @@ impl RelationalArtifact {
         let u32_at = |c: &mut usize| -> Result<u32, String> {
             Ok(u32::from_le_bytes(take(c, 4)?.try_into().unwrap()))
         };
-        if u32_at(&mut c)? != 2 {
+        let art_version = u32_at(&mut c)?;
+        if art_version != 2 && art_version != 3 {
             return Err("unsupported relational artifact version".into());
         }
         let mode = match take(&mut c, 1)?[0] {
@@ -1053,6 +1254,27 @@ impl RelationalArtifact {
         {
             return Err("selector bias outside the declared bound".into());
         }
+        // Version 2 has no contextual interaction; version 3 carries it explicitly.
+        let mut ctx: Vec<[i32; ACTS + 1]> = Vec::new();
+        if art_version >= 3 {
+            let n_rows = u32_at(&mut c)? as usize;
+            if n_rows != 0 && n_rows != CTX_BUCKETS {
+                return Err("contextual interaction table has the wrong bucket count".into());
+            }
+            let mut rows = Vec::with_capacity(n_rows);
+            for _ in 0..n_rows {
+                let mut row = [0i32; ACTS + 1];
+                for slot in row.iter_mut() {
+                    let v = take(&mut c, 1)?[0] as i8 as i32;
+                    if !(-WEIGHT_MAX..=WEIGHT_MAX).contains(&v) {
+                        return Err("contextual entry outside the declared bound".into());
+                    }
+                    *slot = v;
+                }
+                rows.push(row);
+            }
+            ctx = rows;
+        }
         let mut local_artifact_digest = [0u8; 32];
         local_artifact_digest.copy_from_slice(take(&mut c, 32)?);
         let mut tokenizer_digest = [0u8; 32];
@@ -1078,6 +1300,7 @@ impl RelationalArtifact {
                 bias,
                 sb,
                 noread,
+                ctx,
             },
             local_artifact_digest,
             tokenizer_digest,
@@ -1531,6 +1754,7 @@ mod tests {
             bias: 0,
             sb: [0; ACTS],
             noread: 0,
+            ctx: Vec::new(),
         };
         for field in 0..5 {
             let mut invalid = valid.clone();
@@ -1672,5 +1896,240 @@ mod tests {
         assert!(exact.rank.iter().all(|v| *v == 0));
         let c = cand([1, 0, 0, 0, 0, 0], 1);
         assert_ne!(full.score(&c, 3, 0), exact.score(&c, 3, 0));
+    }
+
+    // ---- contextual utility interaction ---------------------------------------
+
+    /// A candidate whose exact features select a specific causal bucket.
+    fn bucketed(f3: u8, prev_match: u8, newest: u8, payload: u32) -> Cand {
+        let mut f = [0u8; EXACT_FEATS];
+        f[3] = f3;
+        f[1] = prev_match;
+        f[5] = newest;
+        cand(f, payload)
+    }
+
+    #[test]
+    fn an_all_zero_interaction_reproduces_the_factorised_selector_exactly() {
+        let c = vec![bucketed(1, 1, 1, 5), bucketed(0, 1, 0, 7)];
+        let rel = vec![3usize, 9usize];
+        let base = RelationalSelector {
+            q_roots: vec![0, 1, 2, 3],
+            mode: RelMode::Geometric,
+            code_of: Vec::new(),
+            w: [1, -2, 3, 0, 2, -1],
+            rank: std::array::from_fn(|k| (k as i32 % 5) - 2),
+            bias: 1,
+            sb: [2, 4, -1],
+            noread: 0,
+            ctx: Vec::new(),
+        };
+        let mut zeroed = base.clone();
+        zeroed.ctx = vec![[0i32; ACTS + 1]; CTX_BUCKETS];
+        for k in 0..c.len() {
+            for a in 0..ACTS {
+                assert_eq!(base.score(&c[k], rel[k], a), zeroed.score(&c[k], rel[k], a));
+                assert_eq!(
+                    base.strength_score(&c[k], rel[k], a, 0),
+                    zeroed.strength_score(&c[k], rel[k], a, 0)
+                );
+            }
+        }
+        assert_eq!(base.choose(&c, &rel), zeroed.choose(&c, &rel));
+        assert_eq!(base.noread_score(0), zeroed.noread_score(0));
+    }
+
+    #[test]
+    fn the_bucket_key_ignores_the_interaction_and_the_strength_bias() {
+        let c = vec![bucketed(1, 0, 1, 5), bucketed(0, 1, 0, 7)];
+        let rel = vec![3usize, 9usize];
+        let mut rank = [0i32; RANKS];
+        rank[3] = 5;
+        rank[9] = -5;
+        let mut s = RelationalSelector {
+            q_roots: vec![0; 4],
+            mode: RelMode::Geometric,
+            code_of: Vec::new(),
+            w: [0; EXACT_FEATS],
+            rank,
+            bias: 0,
+            sb: [0; ACTS],
+            noread: 0,
+            ctx: Vec::new(),
+        };
+        let b0 = s.bucket_of(&c, &rel);
+        s.sb = [7, 7, 7];
+        s.noread = -7;
+        s.ctx = vec![[1i32; ACTS + 1]; CTX_BUCKETS];
+        assert_eq!(
+            s.bucket_of(&c, &rel),
+            b0,
+            "bucket must be a frozen causal key"
+        );
+        // The top-ranked candidate drives the exact-context bits: rel 9 is empty, so cand 0 wins.
+        assert_eq!(b0 & 0b1, 1, "payload equals the current token");
+        assert_eq!(b0 & 0b1000, 1 << 3, "a strict source margin exists");
+        assert_eq!(b0 & 0b10, 0, "cand 0 has no two-neighbour agreement");
+    }
+
+    #[test]
+    fn the_interaction_fit_moves_entries_and_lowers_the_served_objective() {
+        // Two buckets with opposite truth: bucket A wants a read, bucket B must abstain. A single
+        // global strength cannot express both; the interaction can.
+        let t = table();
+        let mut tr = RelationalTrainer::new(
+            4,
+            t.clone(),
+            0.05,
+            11,
+            [8u8; 32],
+            [9u8; 32],
+            &(0..4u8).collect::<Vec<u8>>(),
+        );
+        for _ in 0..40 {
+            tr.step(
+                &[
+                    TrainPos {
+                        cands: vec![bucketed(1, 0, 0, 5)],
+                        q_role: 1,
+                        k_role: vec![2],
+                        delta: vec![[
+                            action_loss(0.001, boost(0), true),
+                            action_loss(0.001, boost(1), true),
+                            action_loss(0.001, boost(2), true),
+                        ]],
+                        group: 0,
+                    },
+                    TrainPos {
+                        cands: vec![bucketed(0, 0, 0, 6)],
+                        q_role: 1,
+                        k_role: vec![2],
+                        delta: vec![[
+                            action_loss(0.001, boost(0), false),
+                            action_loss(0.001, boost(1), false),
+                            action_loss(0.001, boost(2), false),
+                        ]],
+                        group: 0,
+                    },
+                ],
+                &[0, 1],
+            );
+        }
+        let mut sel = tr.quantize();
+        let positions = vec![
+            TrainPos {
+                cands: vec![bucketed(1, 0, 0, 5)],
+                q_role: 1,
+                k_role: vec![2],
+                delta: vec![[
+                    action_loss(0.001, boost(0), true),
+                    action_loss(0.001, boost(1), true),
+                    action_loss(0.001, boost(2), true),
+                ]],
+                group: 0,
+            },
+            TrainPos {
+                cands: vec![bucketed(0, 0, 0, 6)],
+                q_role: 1,
+                k_role: vec![2],
+                delta: vec![[
+                    action_loss(0.001, boost(0), false),
+                    action_loss(0.001, boost(1), false),
+                    action_loss(0.001, boost(2), false),
+                ]],
+                group: 0,
+            },
+        ];
+        let before: f64 = sel
+            .buckets_of(&t, &positions)
+            .iter()
+            .zip(positions.iter())
+            .map(|(b, p)| sel.position_loss_soft(&t, p, *b))
+            .sum();
+        let buckets = sel.buckets_of(&t, &positions);
+        let receipt = sel.ctx_fit(&t, &positions, &buckets, 2);
+        let after: f64 = buckets
+            .iter()
+            .zip(positions.iter())
+            .map(|(b, p)| sel.position_loss_soft(&t, p, *b))
+            .sum();
+        assert!(receipt.evaluations > 0);
+        assert!(
+            receipt.entries_moved > 0,
+            "an optimum-finding search must move"
+        );
+        assert!(after < before, "{after} !< {before}");
+        sel.validate().unwrap();
+        // The two constructed buckets genuinely differ, so the interaction must treat them apart.
+        assert_ne!(buckets[0], buckets[1]);
+        assert_ne!(
+            sel.ctx[buckets[0]], sel.ctx[buckets[1]],
+            "the controller must distinguish the two contexts"
+        );
+    }
+
+    #[test]
+    fn the_contextual_interaction_survives_the_versioned_artifact_round_trip() {
+        let mut sel = RelationalSelector {
+            q_roots: vec![0, 1, 2, 3],
+            mode: RelMode::Geometric,
+            code_of: Vec::new(),
+            w: [1, 0, -1, 2, 0, 1],
+            rank: [0; RANKS],
+            bias: 3,
+            sb: [1, 2, 3],
+            noread: -1,
+            ctx: Vec::new(),
+        };
+        let art = |s: RelationalSelector| RelationalArtifact {
+            selector: s,
+            local_artifact_digest: [1u8; 32],
+            tokenizer_digest: [2u8; 32],
+            data_digest: [3u8; 32],
+        };
+        // A factorised selector still round-trips on the new version.
+        let back =
+            RelationalArtifact::from_bytes(&art(sel.clone()).to_bytes(), &[1u8; 32], &[2u8; 32])
+                .unwrap();
+        assert!(back.selector.ctx.is_empty());
+        assert_eq!(back.selector, sel);
+        // A fitted interaction round-trips with every entry intact.
+        sel.ctx = vec![[0i32; ACTS + 1]; CTX_BUCKETS];
+        sel.ctx[5] = [2, -3, 4, 7];
+        let bytes = art(sel.clone()).to_bytes();
+        let back = RelationalArtifact::from_bytes(&bytes, &[1u8; 32], &[2u8; 32]).unwrap();
+        assert_eq!(back.selector, sel);
+        assert_eq!(back.selector.ctx[5], [2, -3, 4, 7]);
+        // A malformed table is rejected rather than silently loaded.
+        let mut bad = sel.clone();
+        bad.ctx = vec![[0i32; ACTS + 1]; CTX_BUCKETS - 1];
+        assert!(bad.validate().is_err());
+        let mut bad = sel.clone();
+        bad.ctx[0][0] = WEIGHT_MAX + 1;
+        assert!(bad.validate().is_err());
+        // Version 2 payloads (no interaction) remain readable.
+        let head = 4
+            + 4
+            + 1
+            + 4
+            + sel.q_roots.len()
+            + 4
+            + sel.code_of.len()
+            + EXACT_FEATS
+            + RANKS
+            + ACTS
+            + 1
+            + 1;
+        let v3 = art(sel.clone()).to_bytes();
+        assert_eq!(v3[head], (CTX_BUCKETS as u8), "ctx length prefix");
+        let mut legacy = v3.clone();
+        legacy[4] = 2; // version word, little-endian u32
+        legacy.drain(head..head + 4 + CTX_BUCKETS * (ACTS + 1));
+        let back = RelationalArtifact::from_bytes(&legacy, &[1u8; 32], &[2u8; 32]).unwrap();
+        assert!(back.selector.ctx.is_empty());
+        // A truncated interaction table is rejected rather than silently loaded.
+        let mut trunc = v3.clone();
+        trunc.truncate(head + 4 + CTX_BUCKETS * (ACTS + 1) - 1);
+        assert!(RelationalArtifact::from_bytes(&trunc, &[1u8; 32], &[2u8; 32]).is_err());
     }
 }

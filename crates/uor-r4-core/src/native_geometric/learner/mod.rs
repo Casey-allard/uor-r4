@@ -47,7 +47,7 @@ pub use lowbit_core::{LowBitCore, LowBitCoreTrainer, TrainConfig, DEFAULT_STATE_
 pub use occurrence::{OccurrenceArtifact, OccurrenceRing, Selector, SelectorTrainer};
 pub use prior_learning::{PriorCore, PriorTrainer};
 pub use query_read::{QueryArm, QueryHard, QueryTrainer};
-pub use relational::{RelationalSelector, RelationalTrainer};
+pub use relational::{RelationalSelector, RelationalTrainer, ACTS, CTX_BUCKETS};
 pub use transition_table::{
     ContinuousLaneTable, DiscreteServingTable, MultiLaneTransitionTables, ENTRIES_PER_TABLE,
 };
