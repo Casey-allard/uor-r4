@@ -39,8 +39,8 @@ crates/uor-r4-core/src/bin/competitive-reader.rs
 TEST RESULTS (executed)
 cargo test -p uor-r4-core --lib native_geometric::learner::relational -> 23 passed (3 new)
 cargo test -p uor-r4-core --bin competitive-reader -> 5 passed, 1 ignored
-cargo test -p uor-r4-core --bin competitive-reader -- --ignored  (skipped this run; the retained-artifact smoke
-  path is unchanged by this PR and the reloaded artifacts are exercised directly in the run)
+cargo test -p uor-r4-core --bin competitive-reader -- --ignored -> 1 passed (the retained v2 competitive-reader-1
+  artifact still loads and the real generation caller matches teacher forcing over 8 generated steps)
 cargo fmt --check clean; cargo check --offline clean; python3 scripts/check_claim_wording.py passed
 
 EXECUTED RUN
