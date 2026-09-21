@@ -1,5 +1,7 @@
 # Result — competing-source geometric read with one shared causal inference path
 
+> **Superseding principal correction:** [Read the PR #1321 review](competitive-reader-review-2026-09-20.md) before using this preserved report. The categorical map did not learn; -2.4956 is bits/sequence (correct per-position gain -0.179540); the intended partner/absence fixture and generation state differed from their claims. Natural-text harm remains valid. Current root inventory includes unlisted `sum.py`, and the artifact is 4,340 bytes. Source repairs and focused checks do not retroactively validate this old experiment. Original `positive=false` remains.
+
 Date: 2026-09-20. Base source `37bf2bd1` (merge of PR #1320), executing
 [the competitive-reader prompt](deepseek-competitive-reader-step-2026-09-20.md). Isolated worktree
 `codex/competitive-reader`. Retained root

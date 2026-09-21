@@ -1,0 +1,325 @@
+{
+  "schema": "uor-r4.competitive-reader-principal-repair/1",
+  "base_revision": "a1fadd1f494733144c96f8419106a95ac77d8f61",
+  "collected_at": "2026-09-21T02:50:32.719410+00:00",
+  "source_sha256": {
+    "crates/uor-r4-core/src/native_geometric/learner/relational.rs": "b8e4b7fe6aa7733b3f3c70f2e605282836eb9cc5695d86e784c30979229dd3e0",
+    "crates/uor-r4-core/src/bin/competitive-reader.rs": "756399572082973fe846382faae4d4c03009991b8ecf1f9bda63d278c0be3757"
+  },
+  "checks": [
+    {
+      "command": "cargo test --offline -j 2 --target-dir /Users/casey.allard/uor-r4/target -p uor-r4-core --lib native_geometric::learner::relational::tests -- --nocapture",
+      "result": "PASS",
+      "passed": 16,
+      "filtered_out": 941
+    },
+    {
+      "command": "cargo test --offline -j 2 --target-dir /Users/casey.allard/uor-r4/target -p uor-r4-core --bin competitive-reader -- --include-ignored --nocapture",
+      "result": "PASS",
+      "passed": 4,
+      "includes_explicit_ignored_retained_artifact_smoke": true
+    },
+    {
+      "command": "cargo fmt --check",
+      "result": "PASS"
+    },
+    {
+      "command": "python3 scripts/check_claim_wording.py",
+      "result": "PASS"
+    },
+    {
+      "command": "git diff --check",
+      "result": "PASS"
+    }
+  ],
+  "final_logs_sha256": {
+    "module": "3948cb5991aeb4d862fc3d4aa27f25c238605578bef7a2caf6c0e0ee33f81df2",
+    "runner": "346eee4f33d5cc614b016374a14ab5e04e6446cd0a06e363eaaf78298c3a8a4f",
+    "fmt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "claims": "78d71cb97c00d606a9a909d89a2f4f4e3b4be6b84af390f20c9fc50ec449922f"
+  },
+  "retained_reader": {
+    "path": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/competitive-reader-1/artifacts/relational_reader.rlr2",
+    "bytes": 4340,
+    "sha256": "fd8a0317c76381280b77ecab054808b88342828423686ebb27bef4b0e93d1c86"
+  },
+  "generated_smoke_steps": [
+    {
+      "emitted": 32,
+      "payload": null,
+      "query_abs": 15,
+      "reader_enabled": false,
+      "source": null
+    },
+    {
+      "emitted": 32,
+      "payload": null,
+      "query_abs": 16,
+      "reader_enabled": false,
+      "source": null
+    },
+    {
+      "emitted": 32,
+      "payload": null,
+      "query_abs": 17,
+      "reader_enabled": false,
+      "source": null
+    },
+    {
+      "emitted": 32,
+      "payload": null,
+      "query_abs": 18,
+      "reader_enabled": false,
+      "source": null
+    },
+    {
+      "emitted": 32,
+      "payload": 32,
+      "query_abs": 15,
+      "reader_enabled": true,
+      "source": {
+        "abs": 13,
+        "seq": 1
+      }
+    },
+    {
+      "emitted": 32,
+      "payload": 32,
+      "query_abs": 16,
+      "reader_enabled": true,
+      "source": {
+        "abs": 14,
+        "seq": 1
+      }
+    },
+    {
+      "emitted": 32,
+      "payload": 32,
+      "query_abs": 17,
+      "reader_enabled": true,
+      "source": {
+        "abs": 15,
+        "seq": 1
+      }
+    },
+    {
+      "emitted": 32,
+      "payload": 32,
+      "query_abs": 18,
+      "reader_enabled": true,
+      "source": {
+        "abs": 16,
+        "seq": 1
+      }
+    }
+  ],
+  "scope": "16 module tests include tiny optimization/continuation fixtures; four runner checks include eight retained-artifact generation steps, all repeating token32. No full fit/corpus replay/new quality result. Unoptimized builds, no serving benchmark. Existing unused_mut warning retained.",
+  "full_experiment_replay": "NOT_RUN",
+  "new_model_quality": "NOT_RUN",
+  "physical_energy": "UNAVAILABLE",
+  "measured_peak_rss": "UNAVAILABLE; periodic process samples remained below the projected 8 GiB, not a peak measurement",
+  "cleanup": {
+    "collected_at": "2026-09-21T02:49:43.089246+00:00",
+    "deleted": [
+      {
+        "path": "/Users/casey.allard/uor-r4/target/debug/incremental/uor_r4_core-2oa8kyvjvcirt",
+        "allocated_bytes_before": 2148311040,
+        "category": "disposable Rust incremental compiler cache; compiled binaries preserved"
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4/target/debug/incremental/uor_r4_core-2tvnjij4jvkjb",
+        "allocated_bytes_before": 2538803200,
+        "category": "disposable Rust incremental compiler cache; compiled binaries preserved"
+      }
+    ],
+    "allocated_bytes_removed": 4687114240,
+    "unique_research_or_artifact_deletions": 0,
+    "downloads_touched": false
+  },
+  "storage_before": {
+    "schema": "uor-storage-inventory-v1",
+    "collected_at": "2026-09-21T02:27:37.816529+00:00",
+    "disk": {
+      "total_bytes": 245107195904,
+      "used_bytes": 196933414912,
+      "free_bytes": 48173780992
+    },
+    "proposed_reserve_bytes": 36766079385,
+    "below_proposed_reserve": false,
+    "paths": [
+      {
+        "label": "model_assets",
+        "path": "/Users/casey.allard/uor-r4/.uor-models",
+        "status": "LOWER_BOUND_OR_UNAVAILABLE",
+        "allocated_bytes": 20836294656,
+        "diagnostic_lines": 3
+      },
+      {
+        "label": "local_target",
+        "path": "/Users/casey.allard/uor-r4/target",
+        "status": "MEASURED",
+        "allocated_bytes": 6359437312,
+        "diagnostic_lines": 0
+      },
+      {
+        "label": "codex_worktrees",
+        "path": "/Users/casey.allard/.codex/worktrees",
+        "status": "MEASURED",
+        "allocated_bytes": 494764032,
+        "diagnostic_lines": 0
+      },
+      {
+        "label": "knowledge",
+        "path": "/Users/casey.allard/.local/share/uor-r4/knowledge",
+        "status": "MEASURED",
+        "allocated_bytes": 1948778496,
+        "diagnostic_lines": 0
+      },
+      {
+        "label": "tooling",
+        "path": "/Users/casey.allard/.local/share/uor-r4/tooling",
+        "status": "MEASURED",
+        "allocated_bytes": 1207754752,
+        "diagnostic_lines": 0
+      },
+      {
+        "label": "uv_tools",
+        "path": "/Users/casey.allard/.local/share/uv/tools",
+        "status": "MEASURED",
+        "allocated_bytes": 288870400,
+        "diagnostic_lines": 0
+      },
+      {
+        "label": "uv_cache",
+        "path": "/Users/casey.allard/.cache/uv",
+        "status": "MEASURED",
+        "allocated_bytes": 64475136,
+        "diagnostic_lines": 0
+      },
+      {
+        "label": "cargo_registry",
+        "path": "/Users/casey.allard/.cargo/registry",
+        "status": "MEASURED",
+        "allocated_bytes": 511242240,
+        "diagnostic_lines": 0
+      },
+      {
+        "label": "cargo_git",
+        "path": "/Users/casey.allard/.cargo/git",
+        "status": "MEASURED",
+        "allocated_bytes": 839540736,
+        "diagnostic_lines": 0
+      }
+    ],
+    "deletions": 0,
+    "notes": [
+      "Rows can overlap; do not sum them as exclusive volume usage.",
+      "du allocated-byte estimates may share APFS clone data.",
+      "Permission errors remain errors; no sealed paths are opened or unlocked.",
+      "Size alone does not make a path disposable. Review changes, evidence and references first."
+    ]
+  },
+  "storage_after": {
+    "schema": "uor-storage-inventory-v1",
+    "collected_at": "2026-09-21T02:49:44.409033+00:00",
+    "disk": {
+      "total_bytes": 245107195904,
+      "used_bytes": 199427964928,
+      "free_bytes": 45679230976
+    },
+    "proposed_reserve_bytes": 36766079385,
+    "below_proposed_reserve": false,
+    "paths": [
+      {
+        "label": "model_assets",
+        "path": "/Users/casey.allard/uor-r4/.uor-models",
+        "status": "LOWER_BOUND_OR_UNAVAILABLE",
+        "allocated_bytes": 20836294656,
+        "diagnostic_lines": 3
+      },
+      {
+        "label": "local_target",
+        "path": "/Users/casey.allard/uor-r4/target",
+        "status": "MEASURED",
+        "allocated_bytes": 8812023808,
+        "diagnostic_lines": 0
+      },
+      {
+        "label": "codex_worktrees",
+        "path": "/Users/casey.allard/.codex/worktrees",
+        "status": "MEASURED",
+        "allocated_bytes": 494833664,
+        "diagnostic_lines": 0
+      },
+      {
+        "label": "knowledge",
+        "path": "/Users/casey.allard/.local/share/uor-r4/knowledge",
+        "status": "MEASURED",
+        "allocated_bytes": 1948778496,
+        "diagnostic_lines": 0
+      },
+      {
+        "label": "tooling",
+        "path": "/Users/casey.allard/.local/share/uor-r4/tooling",
+        "status": "MEASURED",
+        "allocated_bytes": 1207754752,
+        "diagnostic_lines": 0
+      },
+      {
+        "label": "uv_tools",
+        "path": "/Users/casey.allard/.local/share/uv/tools",
+        "status": "MEASURED",
+        "allocated_bytes": 288870400,
+        "diagnostic_lines": 0
+      },
+      {
+        "label": "uv_cache",
+        "path": "/Users/casey.allard/.cache/uv",
+        "status": "MEASURED",
+        "allocated_bytes": 64475136,
+        "diagnostic_lines": 0
+      },
+      {
+        "label": "cargo_registry",
+        "path": "/Users/casey.allard/.cargo/registry",
+        "status": "MEASURED",
+        "allocated_bytes": 511242240,
+        "diagnostic_lines": 0
+      },
+      {
+        "label": "cargo_git",
+        "path": "/Users/casey.allard/.cargo/git",
+        "status": "MEASURED",
+        "allocated_bytes": 839540736,
+        "diagnostic_lines": 0
+      }
+    ],
+    "deletions": 0,
+    "notes": [
+      "Rows can overlap; do not sum them as exclusive volume usage.",
+      "du allocated-byte estimates may share APFS clone data.",
+      "Permission errors remain errors; no sealed paths are opened or unlocked.",
+      "Size alone does not make a path disposable. Review changes, evidence and references first."
+    ]
+  },
+  "resource_charge": {
+    "charged_at": "2026-09-21T02:50:32.720937+00:00",
+    "started_at": "2026-09-21T02:27:34.536737+00:00",
+    "charge_ms": 1378184,
+    "before_ms": 183538565,
+    "cumulative_ms": 184916749,
+    "limit_ms": 191300000,
+    "remaining_ms": 6383251,
+    "basis": "complete elapsed repair preparation/source corrections/builds/focused tests/generated smoke/storage cleanup; charged once; no full fit"
+  },
+  "build_storage_accounting": {
+    "initial_target_bytes": 6359437312,
+    "final_target_bytes": 8812023808,
+    "incremental_caches_removed_bytes": 4687114240,
+    "net_target_growth_bytes": 2452586496,
+    "pre_cleanup_growth_estimate_bytes": 7139700736,
+    "projected_peak_growth_bytes": 6442450944,
+    "projection_underestimated": true,
+    "note": "6 GiB was a build projection, not the machine reserve. Summing retained target growth and removed allocated caches gives about 6.65 GiB pre-cleanup growth; APFS shared extents mean this is not a physical volume peak measurement. No unique data deleted; free-space reserve retained."
+  }
+}

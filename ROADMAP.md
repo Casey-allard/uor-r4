@@ -1,6 +1,6 @@
 # UOR-R4 Geometric Language Model — roadmap
 
-**September 20, after completed PR #1319:** the [principal review](docs/integration/relational-reader-review-2026-09-20.md) preserves a useful synthetic reader and corrects categorical attribution, task shortcuts and runtime claims. The [next constructive task](docs/integration/deepseek-competitive-reader-step-2026-09-20.md) is competitive query-dependent single reading through a shared causal path. The [five-stage plan](docs/integration/project-track.md#structural-memory-and-geometric-representation-follow-up) then develops structural persistence, dependent reads/composition, broader language/executed Rust and qualified scale. Hopf/spin/S7/E8/harmonic options remain tied to the function and limitation they address. No alpha promotion is implied.
+**September 20–21, after PR #1321:** the [principal review](docs/integration/competitive-reader-review-2026-09-20.md) retains constructed H4 gain, corrects attribution/fixture/runtime claims and preserves the severe natural-text harm. The [next task](docs/integration/deepseek-contextual-utility-step-2026-09-20.md) learns contextual read utility on source-separated text using the repaired implementation. The [five-stage plan](docs/integration/project-track.md#structural-memory-and-geometric-representation-follow-up) retains structural persistence, dependent composition, language/executed Rust and qualified scale; all mathematical bridges remain tied to an implemented function and advantage test.
 
 ## Capability direction
 

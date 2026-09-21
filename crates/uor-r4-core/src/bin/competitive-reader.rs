@@ -14,7 +14,7 @@ use std::time::Instant;
 
 use serde_json::json;
 
-use uor_r4_core::native_geometric::learner::occurrence::OccurrenceRing;
+use uor_r4_core::native_geometric::learner::occurrence::{OccurrenceRef, OccurrenceRing};
 use uor_r4_core::native_geometric::learner::prefix_artifact::{
     parent_hash_convention, ExactGroupTable,
 };
@@ -76,9 +76,11 @@ const LEGACY_PROMPTS: [[u32; 16]; 6] = [
 // ---------------------------------------------------------------------------
 
 /// Outcome of one target-free read decision.
+#[derive(Debug, PartialEq, Eq)]
 struct Read {
     /// `None` means NoRead; otherwise `(candidate index, strength)`.
     action: Option<(usize, usize)>,
+    source: Option<OccurrenceRef>,
     /// The exact observed payload token of the selected occurrence.
     payload: Option<u32>,
     /// Absolute position of that payload inside the ring, for interventions.
@@ -104,6 +106,7 @@ fn read_step(
     if !use_reader {
         return Read {
             action: None,
+            source: None,
             payload: None,
             payload_abs: None,
             rel: 0,
@@ -115,6 +118,7 @@ fn read_step(
     let (cands, stats) = admit_mixed(ring, i, cur, prev, prev2, MAX_CAND);
     let mut out = Read {
         action: None,
+        source: None,
         payload: None,
         payload_abs: None,
         rel: 0,
@@ -146,6 +150,7 @@ fn read_step(
         .collect();
     if let Some((k, st)) = sel.choose(&cands, &rel) {
         out.action = Some((k, st));
+        out.source = Some(cands[k].slot_ref);
         out.payload = Some(cands[k].payload);
         out.payload_abs = Some(cands[k].abs + 1);
         out.rel = rel[k];
@@ -333,6 +338,9 @@ struct Seq {
     group: u16,
     /// The correct answer for the final query, for scoring only.
     answer: u32,
+    /// Construction metadata used only by fixture checks and reporting.
+    absent: bool,
+    answer_source_abs: Option<usize>,
 }
 
 /// A discriminating construction: several **competing plausible sources** share the query key and
@@ -350,7 +358,7 @@ fn make_seq(banks: &Banks, st: &mut u64, values: &[u32], absent: bool) -> Seq {
     }
     let qkey = pick(&banks.keys, st);
     let target_fam = fams[0];
-    let (_qa, qb) = if xorshift(st) & 1 == 0 {
+    let (qa, qb) = if xorshift(st) & 1 == 0 {
         (target_fam.0, target_fam.1)
     } else {
         (target_fam.1, target_fam.0)
@@ -361,8 +369,11 @@ fn make_seq(banks: &Banks, st: &mut u64, values: &[u32], absent: bool) -> Seq {
     // answer; every competitor is a plausible paired-role source with a different value.
     let mut blocks: Vec<(u32, u32, u32, bool)> = Vec::new();
     for (i, (a, b)) in fams.iter().enumerate() {
+        if i == 0 && absent {
+            continue;
+        }
         let role = if i == 0 {
-            *a
+            qa
         } else if xorshift(st) & 1 == 0 {
             *a
         } else {
@@ -377,41 +388,90 @@ fn make_seq(banks: &Banks, st: &mut u64, values: &[u32], absent: bool) -> Seq {
         blocks.push((role, qkey, v, i == 0));
     }
     // A filler block with a different key, so candidates are not only same-key.
-    blocks.push((
-        pick(&banks.pairs, st).0,
-        pick(&banks.keys, st),
-        pick(values, st),
-        false,
-    ));
-    // Balance: shuffle, then move the correct block to a deterministic non-final slot half the time.
+    let mut filler_key = pick(&banks.keys, st);
+    if filler_key == qkey {
+        filler_key = banks.keys
+            [(banks.keys.iter().position(|x| *x == qkey).unwrap_or(0) + 1) % banks.keys.len()];
+    }
+    let mut filler_value = pick(values, st);
+    if filler_value == aval {
+        filler_value =
+            values[(values.iter().position(|x| *x == aval).unwrap_or(0) + 1) % values.len()];
+    }
+    blocks.push((pick(&banks.pairs, st).0, filler_key, filler_value, false));
+    // Randomize the target's position among plausible competitors.
     for i in (1..blocks.len()).rev() {
         let j = (xorshift(st) as usize) % (i + 1);
         blocks.swap(i, j);
     }
     let mut tokens = Vec::new();
-    for (r, k, v, _) in blocks.iter() {
+    let mut answer_source_abs = None;
+    for (r, k, v, is_answer) in blocks.iter() {
+        if *is_answer {
+            answer_source_abs = Some(tokens.len() + 2);
+        }
         tokens.push(*r);
         tokens.push(*k);
         tokens.push(*v);
     }
-    let answer = if absent {
-        // No block carries the target family's partner role: the query has no correct source.
-        let alt = pick(values, st);
-        tokens.push(qrole);
-        tokens.push(qkey);
-        tokens.push(alt);
-        alt
-    } else {
-        tokens.push(qrole);
-        tokens.push(qkey);
-        tokens.push(aval);
-        aval
-    };
+    // For absence the observed next token is deliberately absent from all source payloads.
+    tokens.extend_from_slice(&[qrole, qkey, aval]);
     Seq {
         tokens,
         group: 0,
-        answer,
+        answer: aval,
+        absent,
+        answer_source_abs,
     }
+}
+
+fn validate_fixture(seq: &Seq, banks: &Banks) -> Result<(), String> {
+    if seq.tokens.len() < 6 || seq.tokens.len() % 3 != 0 {
+        return Err("fixture must contain source triples and one query triple".into());
+    }
+    let end = seq.tokens.len() - 3;
+    let q = seq.tokens[end];
+    let key = seq.tokens[end + 1];
+    let partner = banks
+        .pairs
+        .iter()
+        .find_map(|&(a, b)| {
+            if a == q {
+                Some(b)
+            } else if b == q {
+                Some(a)
+            } else {
+                None
+            }
+        })
+        .ok_or("query role has no declared partner")?;
+    let matching: Vec<usize> = seq.tokens[..end]
+        .chunks_exact(3)
+        .enumerate()
+        .filter(|(_, b)| b[0] == partner && b[1] == key)
+        .map(|(i, _)| i * 3 + 2)
+        .collect();
+    if seq.tokens[end + 2] != seq.answer {
+        return Err("fixture target disagrees with answer metadata".into());
+    }
+    if seq.absent {
+        if !matching.is_empty()
+            || seq.answer_source_abs.is_some()
+            || seq.tokens[..end]
+                .chunks_exact(3)
+                .any(|b| b[2] == seq.answer)
+        {
+            return Err("absent fixture contains a relevant source or answer payload".into());
+        }
+    } else if matching.len() != 1
+        || seq.answer_source_abs != matching.first().copied()
+        || seq.tokens[matching[0]] != seq.answer
+    {
+        return Err(
+            "present fixture must have exactly one partner source carrying the answer".into(),
+        );
+    }
+    Ok(())
 }
 
 fn make_pop(banks: &Banks, n: usize, seed: u64, values: &[u32]) -> Vec<Seq> {
@@ -535,21 +595,23 @@ fn main() -> ExitCode {
     }
 }
 
-fn boot_diff(pairs: &[(f64, f64)], groups: usize, seed: u64) -> serde_json::Value {
+fn boot_diff(pairs: &[(f64, f64, usize)], seed: u64) -> serde_json::Value {
     if pairs.len() < 8 {
         return json!({"point": null, "lo": null, "hi": null, "note": "too few groups"});
     }
-    let n = pairs.len() as f64;
-    let point = pairs.iter().map(|(a, b)| a - b).sum::<f64>() / n;
+    let positions: usize = pairs.iter().map(|(_, _, n)| n).sum();
+    let point = pairs.iter().map(|(a, b, _)| a - b).sum::<f64>() / positions.max(1) as f64;
     let mut st = seed | 1;
     let mut boots = Vec::new();
     for _ in 0..2000 {
         let mut s = 0.0;
+        let mut n = 0usize;
         for _ in 0..pairs.len() {
             let k = (xorshift(&mut st) as usize) % pairs.len();
             s += pairs[k].0 - pairs[k].1;
+            n += pairs[k].2;
         }
-        boots.push(s / n);
+        boots.push(s / n.max(1) as f64);
     }
     boots.sort_by(|a, b| a.partial_cmp(b).unwrap());
     json!({
@@ -557,8 +619,10 @@ fn boot_diff(pairs: &[(f64, f64)], groups: usize, seed: u64) -> serde_json::Valu
         "lo": boots[(boots.len() as f64 * 0.025) as usize],
         "hi": boots[((boots.len() as f64 * 0.975) as usize).min(boots.len() - 1)],
         "draws": boots.len(),
-        "groups": groups,
-        "unit": "sequence",
+        "groups": pairs.len(),
+        "positions": positions,
+        "unit": "bits_per_candidate_bearing_position",
+        "resampling_unit": "sequence",
     })
 }
 
@@ -633,6 +697,9 @@ fn run() -> Result<ExitCode, String> {
     let banks = build_banks(&tokenizer, parent.cfg.vocab)?;
     let fit = make_pop(&banks, N_FIT, SEED_FIT, &banks.values_fit);
     let fresh = make_pop(&banks, N_FRESH, SEED_FRESH, &banks.values_held);
+    for seq in fit.iter().chain(fresh.iter()) {
+        validate_fixture(seq, &banks)?;
+    }
     let fit_obs: Vec<Vec<Obs>> = fit.iter().map(observe).collect();
     let fresh_obs: Vec<Vec<Obs>> = fresh.iter().map(observe).collect();
     let total = |v: &[Vec<Obs>]| -> (usize, usize, usize) {
@@ -651,18 +718,18 @@ fn run() -> Result<ExitCode, String> {
         "banks {} pairs / {} keys; fit {fit_n} positions ({fit_cov} covered, {fit_multi} competing); fresh {fresh_n} ({fresh_cov} covered, {fresh_multi} competing); absent queries {}",
         banks.pairs.len(),
         banks.keys.len(),
-        fresh.iter().filter(|s| s.tokens[s.tokens.len() - 1] != s.answer).count()
+        fresh.iter().filter(|s| s.absent).count()
     );
     write_json(
         &root,
         "population.json",
         &json!({
-            "format": "several blocks (role,key,value) sharing the query key with roles drawn from the SAME paired-role class, then a query (role,key) whose successor is the answer. The correct block uses the query role's partner; competitors use partners from other families, so no source-class shortcut separates them. 15% of sequences have no correct source (absent answer).",
+            "format": "v2: several blocks (role,key,value) sharing the query key with roles drawn from the SAME paired-role class, then a query (role,key). A present query has exactly one partner-role source carrying its answer. An absent query has no partner-role source and its target is absent from all source payloads. Fixture truth is checked before fitting; metadata is never a serving feature.",
             "held_out": "fresh uses a disjoint payload bank and fresh draws; role/context combinations differ from fit",
             "seeds": {"fit": SEED_FIT, "fresh": SEED_FRESH},
             "banks": {"role_pairs": banks.pairs, "keys": banks.keys, "values_fit": banks.values_fit, "values_held_out": banks.values_held},
-            "fit_sequences": fit.iter().map(|s| json!({"group": s.group, "tokens": s.tokens, "answer": s.answer})).collect::<Vec<_>>(),
-            "fresh_sequences": fresh.iter().map(|s| json!({"group": s.group, "tokens": s.tokens, "answer": s.answer})).collect::<Vec<_>>(),
+            "fit_sequences": fit.iter().map(|s| json!({"group": s.group, "tokens": s.tokens, "answer": s.answer, "absent": s.absent, "answer_source_abs": s.answer_source_abs})).collect::<Vec<_>>(),
+            "fresh_sequences": fresh.iter().map(|s| json!({"group": s.group, "tokens": s.tokens, "answer": s.answer, "absent": s.absent, "answer_source_abs": s.answer_source_abs})).collect::<Vec<_>>(),
         }),
     )?;
     mark("construction", &mut marks);
@@ -761,54 +828,33 @@ fn run() -> Result<ExitCode, String> {
                 Vec::new()
             },
         );
-        let mut positions = build_positions(mode, &init_codes, &init_roots);
+        let positions = build_positions(mode, &init_codes, &init_roots);
         let t0 = Instant::now();
         for _ in 0..STEPS {
             let b = tr.next_batch(positions.len(), BATCH);
             tr.step(&positions, &b);
         }
-        // The categorical arm learns its code map by the same bounded coordinate search.
-        let mut code_change = 0.0f64;
-        if mode == RelMode::Categorical {
-            let before: f64 = positions.iter().map(|p| tr.position_loss(p)).sum();
-            for c in 0..RANKS as u8 {
-                for t in 0..parent.cfg.vocab {
-                    let cur_code = tr.code_of[t];
-                    if cur_code == c {
-                        continue;
-                    }
-                    tr.code_of[t] = c;
-                    let l: f64 = positions.iter().map(|p| tr.position_loss(p)).sum();
-                    if l < before - 1e-9 {
-                        // keep only if it beats the current full objective (recomputed below)
-                    }
-                    tr.code_of[t] = cur_code;
-                }
-                let _ = c;
-            }
-            code_change = positions.iter().map(|p| tr.position_loss(p)).sum::<f64>() - before;
-        }
+        // Both learned arms get the same mode-aware bounded coordinate-search opportunity.
         let before_geom: f64 = positions.iter().map(|p| tr.position_loss(p)).sum();
-        let geom_change = if mode == RelMode::Geometric {
+        let search_change = if mode != RelMode::ExactOnly {
             tr.refine_descriptor(&positions, ROUNDS)
         } else {
             0.0
         };
         let after: f64 = positions.iter().map(|p| tr.position_loss(p)).sum();
-        let _ = &mut positions;
         let sel = tr.quantize();
-        sel.validate()?;
+        sel.validate_for_vocab(parent.cfg.vocab)?;
         arm_report.push(json!({
             "arm": name,
             "mode": format!("{mode:?}"),
             "steps": tr.step,
             "seconds": t0.elapsed().as_secs_f64(),
-            "descriptor_roots_moved": tr.descriptor_moved(),
+            "descriptor_assignments_moved": tr.descriptor_moved(),
             "descriptor_evaluations": tr.descriptor_evaluations,
             "fit_objective_before_search": before_geom,
             "fit_objective_after_search": after,
-            "search_change": geom_change,
-            "code_search_change": code_change,
+            "search_change": search_change,
+            "code_search_change": if mode == RelMode::Categorical { search_change } else { 0.0 },
             "quantized": {"w": sel.w.to_vec(), "bias": sel.bias, "sb": sel.sb.to_vec(), "noread": sel.noread,
                           "rank_nonzero": sel.rank.iter().filter(|v| **v != 0).count()},
         }));
@@ -829,6 +875,7 @@ fn run() -> Result<ExitCode, String> {
     let bytes = art.to_bytes();
     write_checked(&root, "artifacts/relational_reader.rlr2", &bytes)?;
     let reloaded = RelationalArtifact::from_bytes(&bytes, &sha256_bytes(&sb), &raw_tok)?;
+    reloaded.selector.validate_for_vocab(parent.cfg.vocab)?;
     if reloaded.selector != relational {
         return Err("reloaded artifact differs from the fitted selector".into());
     }
@@ -843,7 +890,7 @@ fn run() -> Result<ExitCode, String> {
         };
         match RelationalArtifact::from_bytes(&a.to_bytes(), &sha256_bytes(&sb), &raw_tok) {
             Ok(b) => {
-                if b.selector != *sel {
+                if b.selector != *sel || b.selector.validate_for_vocab(parent.cfg.vocab).is_err() {
                     arm_parity_failures += 1;
                 }
             }
@@ -882,7 +929,9 @@ fn run() -> Result<ExitCode, String> {
             let mut hard_ce = 0.0f64;
             let mut emitted_ok = 0usize;
             let mut per_group: Vec<(f64, f64)> = Vec::new();
-            for (_gi, os) in obs.iter().enumerate() {
+            let mut outcomes = Vec::new();
+            let mut strata: BTreeMap<&str, (usize, usize, usize, usize, f64)> = BTreeMap::new();
+            for (gi, os) in obs.iter().enumerate() {
                 let mut g_hard = 0.0f64;
                 let mut g_local = 0.0f64;
                 for o in os.iter() {
@@ -901,12 +950,25 @@ fn run() -> Result<ExitCode, String> {
                             local_z.clone(),
                             Read {
                                 action: None,
+                                source: None,
                                 payload: None,
                                 payload_abs: None,
                                 rel: 0,
                                 admitted: 0,
                                 scanned: 0,
                             },
+                        ),
+                        Some(s) if !blind => predict_next(
+                            &o.ring,
+                            o.cur,
+                            o.prev as usize,
+                            o.prev2,
+                            s,
+                            &table,
+                            &parent,
+                            &local,
+                            &u,
+                            true,
                         ),
                         Some(s) => {
                             let mut z = local_z.clone();
@@ -917,6 +979,7 @@ fn run() -> Result<ExitCode, String> {
                                 let act = s.choose(&o.cands, &rel);
                                 Read {
                                     action: act,
+                                    source: act.map(|(k, _)| o.cands[k].slot_ref),
                                     payload: act.map(|(k, _)| o.cands[k].payload),
                                     payload_abs: act.map(|(k, _)| o.cands[k].abs + 1),
                                     rel: act.map(|(k, _)| rel[k]).unwrap_or(0),
@@ -944,7 +1007,7 @@ fn run() -> Result<ExitCode, String> {
                         if o.cands[k].payload == o.target {
                             correct_reads += 1;
                         }
-                        if covered_here {
+                        if covered_here && o.cands[k].payload == o.target {
                             correct_covered += 1;
                         }
                     }
@@ -953,9 +1016,33 @@ fn run() -> Result<ExitCode, String> {
                     hard_ce += hb;
                     g_hard += hb;
                     g_local += lb;
-                    if argmax_low(&z) as u32 == o.target {
+                    let emitted = argmax_low(&z) as u32;
+                    if emitted == o.target {
                         emitted_ok += 1;
                     }
+                    let stratum = if o.ring.written() as usize + 2 == pop[gi].tokens.len() {
+                        if pop[gi].absent {
+                            "final_absent"
+                        } else {
+                            "final_present"
+                        }
+                    } else {
+                        "intermediate"
+                    };
+                    let entry = strata.entry(stratum).or_default();
+                    entry.0 += 1;
+                    entry.1 += usize::from(covered_here);
+                    entry.2 += usize::from(r.payload == Some(o.target));
+                    entry.3 += usize::from(emitted == o.target);
+                    entry.4 += hb;
+                    outcomes.push(json!({
+                        "group": o.group, "query_abs": o.ring.written(), "stratum": stratum,
+                        "target": o.target, "covered": covered_here, "candidates": o.cands.len(),
+                        "selected_source": r.source.map(|s| json!({"seq": s.seq, "abs": s.abs})),
+                        "payload_abs": r.payload_abs, "payload": r.payload,
+                        "strength": r.action.map(|(_, a)| a), "emitted": emitted,
+                        "hard_bits": hb, "local_bits": lb,
+                    }));
                 }
                 per_group.push((g_hard, g_local));
             }
@@ -973,7 +1060,17 @@ fn run() -> Result<ExitCode, String> {
                 "read_precision_all": if reads == 0 { f64::NAN } else { correct_reads as f64 / reads as f64 },
                 "read_precision_covered": if covered == 0 { f64::NAN } else { correct_covered as f64 / covered as f64 },
                 "no_read_rate": 1.0 - reads as f64 / n.max(1) as f64,
+                "strata": strata.iter().map(|(label, (n, covered, correct, emitted, ce))| json!({
+                    "stratum": label, "positions": n, "covered_positions": covered,
+                    "correct_reads": correct, "emitted_correct": emitted,
+                    "hard_action_ce_bits": ce / (*n).max(1) as f64,
+                })).collect::<Vec<_>>(),
             }));
+            write_json(
+                &root,
+                &format!("outcomes-{panel_name}-{name}.json"),
+                &json!({"positions": outcomes}),
+            )?;
             if panel_name == "fresh" {
                 let mut sums: BTreeMap<u16, (f64, f64, usize)> = BTreeMap::new();
                 for (gi, os) in obs.iter().enumerate() {
@@ -1024,7 +1121,7 @@ fn run() -> Result<ExitCode, String> {
     }
 
     // Paired interval of the hard-loss difference against the exact arm, fresh panel.
-    let mut pairs: Vec<(f64, f64)> = Vec::new();
+    let mut pairs: Vec<(f64, f64, usize)> = Vec::new();
     for (_gi, os) in fresh_obs.iter().enumerate() {
         let mut a = 0.0;
         let mut b = 0.0;
@@ -1053,9 +1150,9 @@ fn run() -> Result<ExitCode, String> {
             a += bits(&zr, o.target, parent.cfg.f_bits);
             b += bits(&ze, o.target, parent.cfg.f_bits);
         }
-        pairs.push((a, b));
+        pairs.push((a, b, os.len()));
     }
-    let hard_diff = boot_diff(&pairs, pairs.len(), 0x1234_5678);
+    let hard_diff = boot_diff(&pairs, 0x1234_5678);
 
     // ---- controls ---------------------------------------------------------------
     let mut controls = Vec::new();
@@ -1097,8 +1194,8 @@ fn run() -> Result<ExitCode, String> {
     controls.push(json!({
         "control": "one_shared_inference_path",
         "positions": fresh_obs.iter().take(16).map(|v| v.len()).sum::<usize>(),
-        "generation_and_evaluation_scores_identical": same_path,
-        "note": "the shared predict_next/read_step path is compared against a direct call at every position; generation, evaluation, interventions and timing all use it",
+        "observed_prefix_scores_and_actions_identical": same_path,
+        "note": "predict_next/read_step is compared against the independent score construction on identical stored prefix states; generation prefix advancement is separately covered by a runner unit test",
     }));
     let mut scheck_fail = 0usize;
     let mut scheck_n = 0usize;
@@ -1126,10 +1223,10 @@ fn run() -> Result<ExitCode, String> {
         "matches": scheck_fail == 0,
         "note": "rebuilt through the retained scorer's own int_logits((b, identity)) with the declared absence behaviour and the identity row removed",
     }));
-    // Real future intervention, including the position at the changed token's predecessor.
+    // Change x_cut and compare only queries x_i with i < cut: their observed prefixes agree.
     let mut causal = true;
-    let mut changed_at_cut = 0usize;
     let mut compared = 0usize;
+    let mut predecessors_compared = 0usize;
     for (gi, os) in fresh_obs.iter().enumerate() {
         if os.is_empty() {
             continue;
@@ -1140,14 +1237,12 @@ fn run() -> Result<ExitCode, String> {
             continue;
         }
         t2[cut] = banks.values_held[(cut + 3) % banks.values_held.len()];
-        let alt = observe(&Seq {
-            tokens: t2,
-            group: fresh[gi].group,
-            answer: fresh[gi].answer,
-        });
+        let mut changed = fresh[gi].clone();
+        changed.tokens = t2;
+        let alt = observe(&changed);
         for o in os.iter() {
             let i = o.ring.written() as usize;
-            if i > cut {
+            if i >= cut {
                 continue;
             }
             let Some(a1) = alt.iter().find(|x| x.ring.written() == o.ring.written()) else {
@@ -1155,33 +1250,47 @@ fn run() -> Result<ExitCode, String> {
                 continue;
             };
             compared += 1;
-            let ra = read_step(&o.ring, o.cur, o.prev, o.prev2, &relational, &table, true);
-            let rb = read_step(
+            predecessors_compared += usize::from(i + 1 == cut);
+            let (za, ra) = predict_next(
+                &o.ring,
+                o.cur,
+                o.prev as usize,
+                o.prev2,
+                &relational,
+                &table,
+                &parent,
+                &local,
+                &u,
+                true,
+            );
+            let (zb, rb) = predict_next(
                 &a1.ring,
                 a1.cur,
-                a1.prev,
+                a1.prev as usize,
                 a1.prev2,
                 &relational,
                 &table,
+                &parent,
+                &local,
+                &u,
                 true,
             );
-            if ra.action != rb.action || ra.payload != rb.payload {
+            if za != zb || ra != rb {
                 causal = false;
-                if i == cut {
-                    changed_at_cut += 1;
-                }
             }
         }
     }
     controls.push(json!({
         "control": "future_token_intervention",
         "positions_compared": compared,
-        "includes_the_changed_predecessor": true,
-        "unchanged_action_or_payload": causal,
-        "changes_at_the_mutated_position": changed_at_cut,
+        "changed_token_predecessor_positions_compared": predecessors_compared,
+        "unchanged_scores_action_reference_payload": causal,
+        "scope": "candidate-bearing positions i < cut, including cut-1 when candidate-bearing; x_cut itself is excluded because it is changed input",
     }));
     // Altered source payload: record selected payload AND actually emitted output.
     let mut altered_n = 0usize;
+    let mut altered_attempted = 0usize;
+    let mut altered_query_context = 0usize;
     let mut altered_selected = 0usize;
     let mut altered_emitted = 0usize;
     for (gi, os) in fresh_obs.iter().enumerate() {
@@ -1198,11 +1307,11 @@ fn run() -> Result<ExitCode, String> {
             }
             let mut t2 = fresh[gi].tokens.clone();
             t2[src] = *alt;
-            let alt_obs = observe(&Seq {
-                tokens: t2,
-                group: fresh[gi].group,
-                answer: fresh[gi].answer,
-            });
+            altered_attempted += 1;
+            altered_query_context += usize::from(src + 2 >= o.ring.written() as usize);
+            let mut changed = fresh[gi].clone();
+            changed.tokens = t2;
+            let alt_obs = observe(&changed);
             let Some(o2) = alt_obs
                 .iter()
                 .find(|x| x.ring.written() == o.ring.written())
@@ -1234,10 +1343,12 @@ fn run() -> Result<ExitCode, String> {
     }
     controls.push(json!({
         "control": "altered_source_payload",
-        "changed_source_positions": altered_n,
+        "changed_source_positions": altered_attempted,
+        "positions_with_post_intervention_read": altered_n,
+        "interventions_also_changing_recent_query_context": altered_query_context,
         "selected_the_new_payload": altered_selected,
         "emitted_the_new_payload": altered_emitted,
-        "note": "records the selected payload AND the actually emitted argmax",
+        "note": "mutates the first admitted occurrence carrying the target payload, which need not be the previously selected source; records all attempts separately from post-intervention reads and query-context changes; not a paired correct-source attribution test",
     }));
     let mut ring = OccurrenceRing::new(RING_CAP);
     for t in [1u32, 2, 3] {
@@ -1357,31 +1468,21 @@ fn run() -> Result<ExitCode, String> {
         let mut out = Vec::new();
         for name in ["local", "relational"] {
             let use_reader = name == "relational";
-            let mut ring = OccurrenceRing::new(RING_CAP);
-            for t in pr.iter() {
-                ring.observe(*t);
-            }
+            // The query token is supplied separately, exactly as in teacher-forced evaluation.
+            let mut ring = ring_before_current(pr);
             let mut toks: Vec<u32> = pr.to_vec();
             let start = toks.len();
             for _ in 0..GEN_TOKENS {
-                let cur = *toks.last().ok_or("empty")?;
-                let prev = toks[toks.len() - 2] as usize;
-                let prev2 = toks[toks.len() - 3];
-                let (z, _) = predict_next(
-                    &ring,
-                    cur,
-                    prev,
-                    prev2,
+                let _ = generate_step(
+                    &mut ring,
+                    &mut toks,
                     &relational,
                     &table,
                     &parent,
                     &local,
                     &u,
                     use_reader,
-                );
-                let nt = argmax_low(&z) as u32;
-                ring.observe(nt);
-                toks.push(nt);
+                )?;
             }
             out.push(json!({
                 "arm": name, "tokens": toks[start..].to_vec(),
@@ -1406,7 +1507,7 @@ fn run() -> Result<ExitCode, String> {
             s.push(t0.elapsed().as_secs_f64());
         }
         s.sort_by(|a, b| a.partial_cmp(b).unwrap());
-        let predictions = probe.len() - 2;
+        let predictions = prediction_count(probe.len());
         let (scanned, admitted) =
             run_probe_counts(&parent, &local, &u, &relational, &table, &probe, use_reader);
         timings.push(json!({
@@ -1450,8 +1551,8 @@ fn run() -> Result<ExitCode, String> {
         &root,
         "result.json",
         &json!({
-            "schema": "uor-r4.competitive-reader/1",
-            "base_revision": "37bf2bd1",
+            "schema": "uor-r4.competitive-reader/2",
+            "base_revision": "a1fadd1f",
             "running_source": {
                 "git_rev": std::env::var("UOR_GIT_REV").unwrap_or_else(|_| "unset".into()),
                 "git_dirty": std::env::var("UOR_GIT_DIRTY").unwrap_or_else(|_| "unknown".into()),
@@ -1571,6 +1672,59 @@ fn dummy_pos_for(o: &Obs) -> TrainPos {
     }
 }
 
+/// The separately supplied current token is not duplicated inside the memory prefix.
+fn ring_before_current(prefix: &[u32]) -> OccurrenceRing {
+    let mut ring = OccurrenceRing::new(RING_CAP);
+    for &token in prefix.iter().take(prefix.len().saturating_sub(1)) {
+        ring.observe(token);
+    }
+    ring
+}
+
+fn prediction_count(tokens: usize) -> usize {
+    // Query positions 2..tokens-1 each have the two-token context and a next-token target.
+    tokens.saturating_sub(3)
+}
+
+/// Autoregressive caller: predict from the observed prefix, then advance that prefix exactly once.
+#[allow(clippy::too_many_arguments)]
+fn generate_step(
+    ring: &mut OccurrenceRing,
+    tokens: &mut Vec<u32>,
+    sel: &RelationalSelector,
+    table: &ExactGroupTable,
+    parent: &PriorCore,
+    local: &QueryHard,
+    u: &[Vec<i32>],
+    use_reader: bool,
+) -> Result<(Vec<i32>, Read), String> {
+    let i = tokens
+        .len()
+        .checked_sub(1)
+        .ok_or("empty generation prefix")?;
+    if i < 2 || ring.written() as usize != i {
+        return Err(
+            "generation requires two predecessors and a ring excluding the current token".into(),
+        );
+    }
+    let result = predict_next(
+        ring,
+        tokens[i],
+        tokens[i - 1] as usize,
+        tokens[i - 2],
+        sel,
+        table,
+        parent,
+        local,
+        u,
+        use_reader,
+    );
+    let next = argmax_low(&result.0) as u32;
+    ring.observe(tokens[i]);
+    tokens.push(next);
+    Ok(result)
+}
+
 fn run_probe(
     parent: &PriorCore,
     local: &QueryHard,
@@ -1580,8 +1734,24 @@ fn run_probe(
     probe: &[u32],
     use_reader: bool,
 ) -> u32 {
-    let mut ring = OccurrenceRing::new(RING_CAP);
     let mut last = 0u32;
+    if !use_reader {
+        // The matched local baseline does no memory allocation, update, admission or feature work.
+        for k in 2..probe.len().saturating_sub(1) {
+            let z = local_logits(
+                parent,
+                local,
+                u,
+                probe[k],
+                probe[k - 1] as usize,
+                probe[k - 2],
+                k as u32,
+            );
+            last = black_box(argmax_low(&z)) as u32;
+        }
+        return last;
+    }
+    let mut ring = OccurrenceRing::new(RING_CAP);
     for k in 0..probe.len() {
         let cur = probe[k];
         let prev = if k >= 1 {
@@ -1632,4 +1802,169 @@ fn run_probe_counts(
         ring.observe(cur);
     }
     (scanned, admitted)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn banks() -> Banks {
+        Banks {
+            pairs: (0..14).map(|i| (10 + i, 30 + i)).collect(),
+            keys: (60..84).collect(),
+            values_fit: (100..124).collect(),
+            values_held: (130..142).collect(),
+        }
+    }
+
+    #[test]
+    fn constructed_sources_are_partners_and_absence_is_real() {
+        let b = banks();
+        let mut seed = 271u64;
+        for absent in [false, true] {
+            for _ in 0..80 {
+                let seq = make_seq(&b, &mut seed, &b.values_held, absent);
+                assert_eq!(validate_fixture(&seq, &b), Ok(()));
+                let final_obs = observe(&seq)
+                    .pop()
+                    .expect("final query has competing sources");
+                assert_eq!(final_obs.ring.written() as usize, seq.tokens.len() - 2);
+                assert_eq!(
+                    final_obs.cands.iter().any(|c| c.payload == seq.answer),
+                    !absent
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn generation_advance_and_observation_share_the_same_prefix_boundary() {
+        let mut tokens = vec![11, 61, 131, 31, 61];
+        let mut ring = ring_before_current(&tokens);
+        for next in [132, 11, 61, 131] {
+            let i = tokens.len() - 1;
+            let expected = ring_before_current(&tokens);
+            assert_eq!(ring.written(), i as u32);
+            let got = admit_mixed(
+                &ring,
+                ring.written(),
+                tokens[i],
+                tokens[i - 1],
+                tokens[i - 2],
+                MAX_CAND,
+            );
+            let want = admit_mixed(
+                &expected,
+                expected.written(),
+                tokens[i],
+                tokens[i - 1],
+                tokens[i - 2],
+                MAX_CAND,
+            );
+            assert_eq!(got.0, want.0);
+            assert_eq!(
+                ring.get(i as u32),
+                None,
+                "current token is supplied separately"
+            );
+            ring.observe(tokens[i]);
+            tokens.push(next);
+        }
+    }
+
+    #[test]
+    fn bootstrap_uses_token_ratio_with_sequence_resampling() {
+        let mut groups = Vec::new();
+        for _ in 0..4 {
+            groups.push((1.0, 0.0, 1));
+            groups.push((0.0, 0.0, 9));
+        }
+        let estimate = boot_diff(&groups, 177);
+        assert_eq!(estimate["positions"], 40);
+        assert_eq!(estimate["groups"], 8);
+        assert!((estimate["point"].as_f64().unwrap() - 0.1).abs() < 1e-12);
+        assert_eq!(estimate["resampling_unit"], "sequence");
+        assert_eq!(prediction_count(32), 29);
+        assert_eq!(prediction_count(2), 0);
+    }
+
+    #[test]
+    #[ignore = "requires the pinned local E/S and PR1321 reader artifacts; explicitly run as a bounded smoke check"]
+    fn retained_artifact_generation_matches_teacher_forced_prefixes() -> Result<(), String> {
+        let pb = std::fs::read(E_PATH).map_err(|e| e.to_string())?;
+        let sb = std::fs::read(S_PATH).map_err(|e| e.to_string())?;
+        if sha256_hex(&pb) != E_SHA || sha256_hex(&sb) != S_SHA {
+            return Err("pinned smoke-check parent hash mismatch".into());
+        }
+        let parent = PriorCore::from_bytes(&pb)?;
+        let (digest, _) = parent_hash_convention(&pb);
+        let tokenizer: [u8; 32] = hex_to_bytes(DERIVED_SHA)?
+            .try_into()
+            .map_err(|_| "tokenizer digest length")?;
+        let local = QueryHard::from_bytes(&sb, &parent, &digest, &tokenizer)?;
+        let bytes = std::fs::read(Path::new(DEFAULT_ROOT).join("artifacts/relational_reader.rlr2"))
+            .map_err(|e| e.to_string())?;
+        let reader =
+            RelationalArtifact::from_bytes(&bytes, &sha256_bytes(&sb), &tokenizer)?.selector;
+        reader.validate_for_vocab(parent.cfg.vocab)?;
+        let table = ExactGroupTable::build()?;
+        let u: Vec<Vec<i32>> = (0..120).map(|state| local.row_scores(state)).collect();
+        for use_reader in [false, true] {
+            let mut tokens = LEGACY_PROMPTS[3].to_vec();
+            let mut ring = ring_before_current(&tokens);
+            for _ in 0..4 {
+                let query_abs = tokens.len() - 1;
+                let mut supervised = tokens.clone();
+                supervised.push(0); // target for observe only; never passed into inference.
+                let seq = Seq {
+                    tokens: supervised,
+                    group: 0,
+                    answer: 0,
+                    absent: false,
+                    answer_source_abs: None,
+                };
+                let observations = observe(&seq);
+                let o = observations
+                    .iter()
+                    .find(|o| o.ring.written() as usize == query_abs)
+                    .ok_or("smoke prefix unexpectedly has no admitted candidates")?;
+                let teacher = predict_next(
+                    &o.ring,
+                    o.cur,
+                    o.prev as usize,
+                    o.prev2,
+                    &reader,
+                    &table,
+                    &parent,
+                    &local,
+                    &u,
+                    use_reader,
+                );
+                let generated = generate_step(
+                    &mut ring,
+                    &mut tokens,
+                    &reader,
+                    &table,
+                    &parent,
+                    &local,
+                    &u,
+                    use_reader,
+                )?;
+                assert_eq!(
+                    generated, teacher,
+                    "real generation and teacher-forced callers disagree"
+                );
+                assert_eq!(tokens.last().copied(), Some(argmax_low(&teacher.0) as u32));
+                println!(
+                    "retained-prefix-smoke {}",
+                    json!({
+                        "reader_enabled": use_reader, "query_abs": query_abs,
+                        "emitted": tokens.last(), "source": generated.1.source.map(|r| json!({"seq": r.seq, "abs": r.abs})),
+                        "payload": generated.1.payload,
+                    })
+                );
+            }
+        }
+        Ok(())
+    }
 }

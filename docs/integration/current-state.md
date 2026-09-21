@@ -1,30 +1,14 @@
 # Current native geometric AI work
 
-## Active: competing-source geometric read — working query-dependent read, severe text harm
+## Active: useful constructed reader, contextual utility and natural-text integration next
 
-The [result record](competitive-reader-result-2026-09-20.md) and [receipt](../evidence/native_geometric_competitive_reader_2026-09-20.txt) report one complete constructive task from base `37bf2bd1`, sealed and verified at `.uor-models/realtext-prior-2026-09-20/competitive-reader-1`. The [principal review](relational-reader-review-2026-09-20.md) remains the interpretation layer for PR #1319.
+**PR #1321, corrected:** H4 retains a constructed hard-loss gain of **-0.179540 bits/candidate position [-0.270206,-0.093226]** against exact recurrence; the old -2.4956 figure is bits/sequence. Natural text still regresses **+1.2908 bits/token** and `positive=false` remains. The categorical code map did not learn, the query-blind arm is a partial relation-channel lesion, generation used a different ring boundary, and the partner/absence fixture was defective. Unique-H4 advantage and solved ranking are not established. The [principal review](competitive-reader-review-2026-09-20.md) and [saved-data receipt](../evidence/competitive-reader-principal-review-2026-09-20.json) preserve the useful result with its limits.
 
-**Structural change.** `read_step` + `predict_next` are one **shared causal inference path** operating on the actual observed prefix — no target, sentinel or supervised record — used by evaluation, generation, interventions and timing (220 positions verified identical). `relation_index` is the **single** relation encoding used by training, inference, export and reload; the `RLR2` artifact carries the mode and code map and an **independent** loader is exercised for every arm with 0 parity failures. Initialization is the actual S write element `palette.elements[a_codes[t]]`, named explicitly.
+**Next constructive task:** [learn contextual read utility with source-separated natural-text fitting](deepseek-contextual-utility-step-2026-09-20.md). Keep the geometric ranker/pool frozen for the first strength comparison, include NoRead and a fitted global-strength baseline, then permit a small justified joint correction if the evidence identifies ranking/observation error. Bounded source repairs are delivered with this review; no new full fit or quality promotion is claimed. Re-evaluate corrected construction and old regressions honestly, reserving any fresh evaluation prospectively. Do not widen the ring or start a two-hop scheduler yet.
 
-**Competing-source construction** (blocks share the query key and all use roles from the *same* paired class, so no source-class or recency shortcut separates them; fresh uses held-out payloads): 1,946 positions, 761 covered, 1,453 with competitors.
+The repair aligns generation/evaluation prefix state, uses shared mode-aware categorical/H4 refinement, validates RLR2 maps and vocabulary, preserves categorical continuation in RLRK v2, and corrects fixture truth, metric denominators, cutoff semantics and timing counts. [Validation](../evidence/competitive-reader-repair-validation-2026-09-20.json) distinguishes focused source/artifact checks from a full experiment, which remains NOT_RUN. Preserve `.uor-models/realtext-prior-2026-09-20/competitive-reader-1`, including its unlisted `sum.py`; the actual RLR2 is 4,340 bytes. Physical energy remains UNAVAILABLE.
 
-| arm | hard-action CE | covered reads | covered precision | emitted acc |
-| --- | ---: | ---: | ---: | ---: |
-| local (NoRead) | 12.6347 | 0/761 | 0.000 | 0.000 |
-| exact-recurrence | 10.1377 | 592/761 | 0.778 | 0.251 |
-| categorical (**learned** code map) | 10.1513 | 591/761 | 0.777 | 0.250 |
-| **relational (H4)** | **9.9582** | **623/761** | **0.819** | **0.261** |
-| relational, query blind | 10.2716 | 571/761 | 0.750 | 0.243 |
-
-Paired: **relational − exact = −2.4956 bits [−3.7642, −1.3010]**, whole interval below zero. The **query-blind** arm is worse than the exact reader, and the **learned categorical** arm is indistinguishable from it — so the gain is query-dependent and, on this panel, carried by the group structure rather than by a larger learned table.
-
-**The failure.** Natural text regresses **+1.2908 bits/token** (6.8002 → 8.0910) against a declared +0.05 tolerance, with 178 reads on 488 positions. This is the PR #1314 failure mode, un-repaired. Named causes: strength is still **global** (`score = v(c) + sb[a]` factorises; `sb` again picks 8 nats in every arm) and the descriptor is a static single-token code with no natural-text fitting.
-
-**Decision: `positive = false`.** The primary hard-loss criterion passes decisively and both design controls confirm query- and geometry-dependent behaviour, but the declared natural-text tradeoff fails badly. Retained as a **partial** result with the language harm explicit. One control is mis-specified and diagnosed rather than hidden: the future-token intervention also compared `i == cut`, where the mutated token is the current input and a change is expected.
-
-**Next action:** add **one contextual strength interaction** (an action-specific finite table or low-bit term over causal candidate/query/local-score observations, never over coverage or correctness) and a **source-separated natural-text fit**, then re-measure the same construction and text panels. Do not widen the ring or candidate bound, sweep widths, or reopen the frozen S attribution. `#973`/`#820`/`#963`/`#964` stay open; physical energy UNAVAILABLE.
-
-**Resources:** no extension was required. This step charges 1400000 ms once. See [ledger](resource-ledger-2026-09-19.md).
+The [canonical five-stage plan](project-track.md#structural-memory-and-geometric-representation-follow-up) retains all mathematical bridges. The [resource ledger](resource-ledger-2026-09-19.md) records the complete review repair charge; refresh the live JSON before work. Broad owning issues remain open. Historical entries below retain their dated outcomes, not current instructions.
 
 ## Preserved baseline: the corrected replay of the frozen step-512 prior
 

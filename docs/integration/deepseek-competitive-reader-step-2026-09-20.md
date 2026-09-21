@@ -1,5 +1,7 @@
 # DeepSeek next task: make geometric attention discriminate competing sources
 
+> **Completed as PR #1321; historical instructions.** Read the [principal correction](competitive-reader-review-2026-09-20.md) and execute the [contextual-utility successor](deepseek-contextual-utility-step-2026-09-20.md). Do not rerun this prompt as the active task.
+
 This is the single successor to completed PR #1319. You are a research contributor: choose the smallest justified representation, optimizer and fitting dose, explain deviations, and retain useful mechanisms even when a larger hypothesis is negative. The primary outcome is an implemented and exercised **query-dependent single read on competing plausible sources**, through one causal inference function shared by evaluation and generation. Incorporate the named corrections into that constructive task; do not finish with a parity-only replay or another audit.
 
 ## Recover the actual project

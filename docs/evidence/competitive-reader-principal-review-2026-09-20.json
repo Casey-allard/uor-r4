@@ -1,0 +1,44 @@
+{
+  "schema": "uor-r4.competitive-principal-saved-data-review/1",
+  "source_revision": "a1fadd1f494733144c96f8419106a95ac77d8f61",
+  "no_model_inference": true,
+  "method": "2000 sequence-cluster draws with replacement; ratio of resampled loss-difference sums to resampled position counts; xorshift64 (13,7,17), seed 0x12345678|1; sorted percentiles at indices50 and1950",
+  "inputs": {
+    "result.json": "7226cc93e16525809dc110cb45a0679b743c9e174b6259ed0c28da5689f7a2e2",
+    "population.json": "3cb489212684bf28f1050b7eea4b3c6ab87706e46281435f5e660b7d31d201a9",
+    "per-group-relational.json": "b85670f67b426aebf3878b72b76bac74af17c6c345e3b4fa6d2b827cd88ee19e",
+    "per-group-exact.json": "cec05b495c96f4c035ae22cc04c76f9ad398dbc8471201b490e2cce86d57cb68",
+    "per-group-categorical.json": "e0405916cc3ff9e785675b708c1f129dfad042525cf3314f6ef9b39bebd5f2d9",
+    "per-group-relational_query_blind.json": "7a76fb42d4485ff646fc88dd764cf7ae3d1f047b17acaa1d2be0a1c5e9590031",
+    "per-group-local.json": "d720f4541f3eb509e4472330982be4b18a815dbbf9d47160e505f4c4044400ad"
+  },
+  "paired_bits_per_candidate_position": {
+    "relational_minus_exact": {
+      "point": -0.17954020855594902,
+      "lo": -0.27020555062472124,
+      "hi": -0.09322637983014885,
+      "positions": 1946,
+      "groups": 140
+    },
+    "relational_minus_categorical": {
+      "point": -0.19317370809270795,
+      "lo": -0.29338687851247225,
+      "hi": -0.09705525174020257,
+      "positions": 1946,
+      "groups": 140
+    },
+    "relational_minus_relational_query_blind": {
+      "point": -0.3134582629568163,
+      "lo": -0.4245528837108832,
+      "hi": -0.20207187701840043,
+      "positions": 1946,
+      "groups": 140
+    }
+  },
+  "original_interval_unit": "bits per sequence, not bits per prediction",
+  "unlisted_files": [
+    "sum.py"
+  ],
+  "listed_sizes_match": true,
+  "blake3_revalidation": "NOT_RUN"
+}

@@ -246,25 +246,52 @@ impl RelationalSelector {
 
     pub fn validate(&self) -> Result<(), String> {
         for (k, v) in self.w.iter().enumerate() {
-            if v.abs() > WEIGHT_MAX {
+            if !(-WEIGHT_MAX..=WEIGHT_MAX).contains(v) {
                 return Err(format!("exact weight {k} = {v} outside +/-{WEIGHT_MAX}"));
             }
         }
         for (k, v) in self.rank.iter().enumerate() {
-            if v.abs() > WEIGHT_MAX {
+            if !(-WEIGHT_MAX..=WEIGHT_MAX).contains(v) {
                 return Err(format!("rank {k} = {v} outside +/-{WEIGHT_MAX}"));
             }
         }
         for (k, v) in self.sb.iter().enumerate() {
-            if v.abs() > WEIGHT_MAX {
+            if !(-WEIGHT_MAX..=WEIGHT_MAX).contains(v) {
                 return Err(format!("strength bias {k} = {v} outside +/-{WEIGHT_MAX}"));
             }
         }
-        if self.bias.abs() > WEIGHT_MAX || self.noread.abs() > WEIGHT_MAX {
+        if !(-WEIGHT_MAX..=WEIGHT_MAX).contains(&self.bias)
+            || !(-WEIGHT_MAX..=WEIGHT_MAX).contains(&self.noread)
+        {
             return Err("selector bias outside the declared bound".into());
         }
         if self.q_roots.is_empty() {
             return Err("empty descriptor".into());
+        }
+        if self.q_roots.iter().any(|&r| r as usize >= RANKS) {
+            return Err("descriptor root outside the group domain".into());
+        }
+        match self.mode {
+            RelMode::Categorical if self.code_of.len() != self.q_roots.len() => {
+                return Err("categorical code map must match the descriptor vocabulary".into());
+            }
+            RelMode::Categorical if self.code_of.iter().any(|&c| c as usize >= RANKS) => {
+                return Err("categorical code outside the declared domain".into());
+            }
+            RelMode::Categorical => {}
+            _ if !self.code_of.is_empty() => {
+                return Err("a non-categorical selector must not carry a code map".into());
+            }
+            _ => {}
+        }
+        Ok(())
+    }
+
+    /// Validate the descriptor against the vocabulary of the pinned local model.
+    pub fn validate_for_vocab(&self, vocab: usize) -> Result<(), String> {
+        self.validate()?;
+        if self.q_roots.len() != vocab {
+            return Err("selector vocabulary differs from the local model".into());
         }
         Ok(())
     }
@@ -357,6 +384,8 @@ pub struct RelationalTrainer {
     pub descriptor_moves: u64,
     pub descriptor_evaluations: u64,
     pub initial_roots: Vec<u8>,
+    /// Initial categorical code map, for an active-map movement count.
+    pub initial_codes: Vec<u8>,
     /// Comparison arm.
     pub mode: RelMode,
     /// Arbitrary per-token code for the categorical control.
@@ -403,6 +432,7 @@ impl RelationalTrainer {
             descriptor_moves: 0,
             descriptor_evaluations: 0,
             initial_roots: init_roots.to_vec(),
+            initial_codes: Vec::new(),
             mode: RelMode::Geometric,
             code_of: Vec::new(),
         }
@@ -411,6 +441,7 @@ impl RelationalTrainer {
     /// Switch the comparison arm. `code_of` is required for `Categorical`.
     pub fn with_mode(mut self, mode: RelMode, code_of: Vec<u8>) -> Self {
         self.mode = mode;
+        self.initial_codes = code_of.clone();
         self.code_of = code_of;
         self
     }
@@ -576,19 +607,15 @@ impl RelationalTrainer {
         total / count as f64
     }
 
-    /// Bounded discrete coordinate search on the descriptor map, against the same objective.
-    ///
-    /// For each token in a deterministic order every one of the 120 roots is evaluated on the
-    /// positions that reference that token as a role; the best strictly-improving root is kept.
-    /// Positions are indexed by role token, so only affected positions are rescored.
-    /// Bounded discrete coordinate search on the descriptor map, against the same objective.
+    /// Bounded discrete coordinate search on the active map (geometric roots or categorical
+    /// codes), against the same objective and with the same search dose for both modes.
     ///
     /// Affected positions are **deduplicated** (a query-role and source-role occurrence of the same
     /// token otherwise counts the position twice), the search starts from the current assignment as
     /// its incumbent, ties are preserved, and only strictly improving moves beyond `tol` are
     /// accepted. The returned value is the change in the exact full position objective.
     pub fn refine_descriptor(&mut self, positions: &[TrainPos], rounds: usize) -> f64 {
-        if self.mode != RelMode::Geometric {
+        if self.mode == RelMode::ExactOnly {
             return 0.0;
         }
         let mut by_role: Vec<Vec<usize>> = vec![Vec::new(); self.vocab];
@@ -614,7 +641,10 @@ impl RelationalTrainer {
                 if by_role[t].is_empty() {
                     continue;
                 }
-                let cur = self.roots[t];
+                let cur = match self.mode {
+                    RelMode::Categorical => self.code_of[t],
+                    _ => self.roots[t],
+                };
                 let mut best_loss: f64 = by_role[t]
                     .iter()
                     .map(|i| self.position_loss(&positions[*i]))
@@ -624,7 +654,10 @@ impl RelationalTrainer {
                     if r == cur as usize {
                         continue;
                     }
-                    self.roots[t] = r as u8;
+                    match self.mode {
+                        RelMode::Categorical => self.code_of[t] = r as u8,
+                        _ => self.roots[t] = r as u8,
+                    }
                     self.descriptor_evaluations += 1;
                     let l: f64 = by_role[t]
                         .iter()
@@ -635,7 +668,10 @@ impl RelationalTrainer {
                         best_root = r as u8;
                     }
                 }
-                self.roots[t] = best_root;
+                match self.mode {
+                    RelMode::Categorical => self.code_of[t] = best_root,
+                    _ => self.roots[t] = best_root,
+                }
                 if best_root != cur {
                     self.descriptor_moves += 1;
                 }
@@ -672,11 +708,16 @@ impl RelationalTrainer {
         }
     }
 
-    /// How many descriptor roots moved from the declared initialisation.
+    /// How many entries of the active map moved from the declared initialization.
     pub fn descriptor_moved(&self) -> usize {
-        self.roots
+        let (current, initial) = match self.mode {
+            RelMode::Geometric => (&self.roots, &self.initial_roots),
+            RelMode::Categorical => (&self.code_of, &self.initial_codes),
+            RelMode::ExactOnly => return 0,
+        };
+        current
             .iter()
-            .zip(self.initial_roots.iter())
+            .zip(initial.iter())
             .filter(|(a, b)| a != b)
             .count()
     }
@@ -684,8 +725,18 @@ impl RelationalTrainer {
     pub fn checkpoint_bytes(&self) -> Vec<u8> {
         let mut o = Vec::new();
         o.extend_from_slice(b"RLRK");
-        o.extend_from_slice(&1u32.to_le_bytes());
+        o.extend_from_slice(&2u32.to_le_bytes());
         o.extend_from_slice(&(self.vocab as u32).to_le_bytes());
+        o.push(match self.mode {
+            RelMode::Geometric => 0,
+            RelMode::Categorical => 1,
+            RelMode::ExactOnly => 2,
+        });
+        o.extend_from_slice(&(self.code_of.len() as u32).to_le_bytes());
+        o.extend_from_slice(&self.code_of);
+        o.extend_from_slice(&self.initial_roots);
+        o.extend_from_slice(&(self.initial_codes.len() as u32).to_le_bytes());
+        o.extend_from_slice(&self.initial_codes);
         o.extend_from_slice(&self.roots);
         for x in self.w.iter() {
             o.extend_from_slice(&x.to_le_bytes());
@@ -724,6 +775,14 @@ impl RelationalTrainer {
     }
 
     pub fn resume_from(&mut self, bytes: &[u8]) -> Result<(), String> {
+        // Rejection must leave the existing trainer usable and unchanged.
+        let mut restored = self.clone();
+        restored.restore_checkpoint(bytes)?;
+        *self = restored;
+        Ok(())
+    }
+
+    fn restore_checkpoint(&mut self, bytes: &[u8]) -> Result<(), String> {
         let mut c = 0usize;
         let take = |c: &mut usize, n: usize| -> Result<&[u8], String> {
             let end = c.checked_add(n).ok_or("size overflow")?;
@@ -746,13 +805,60 @@ impl RelationalTrainer {
         let f64_at = |c: &mut usize| -> Result<f64, String> {
             Ok(f64::from_le_bytes(take(c, 8)?.try_into().unwrap()))
         };
-        if u32_at(&mut c)? != 1 {
+        let version = u32_at(&mut c)?;
+        if version != 1 && version != 2 {
             return Err("unsupported relational checkpoint version".into());
         }
         if u32_at(&mut c)? as usize != self.vocab {
             return Err("relational checkpoint vocabulary differs".into());
         }
+        if version == 1 {
+            // Version 1 did not carry a mode or categorical map. Historical geometric
+            // checkpoints remain readable; other modes cannot be recovered faithfully.
+            if self.mode != RelMode::Geometric || !self.code_of.is_empty() {
+                return Err("legacy relational checkpoints support geometric mode only".into());
+            }
+        } else {
+            let mode = match take(&mut c, 1)?[0] {
+                0 => RelMode::Geometric,
+                1 => RelMode::Categorical,
+                2 => RelMode::ExactOnly,
+                _ => return Err("unknown relational checkpoint mode".into()),
+            };
+            if mode != self.mode {
+                return Err("relational checkpoint mode differs".into());
+            }
+            let n_codes = u32_at(&mut c)? as usize;
+            if n_codes
+                != if mode == RelMode::Categorical {
+                    self.vocab
+                } else {
+                    0
+                }
+            {
+                return Err("relational checkpoint code vocabulary differs".into());
+            }
+            self.code_of = take(&mut c, n_codes)?.to_vec();
+            self.initial_roots = take(&mut c, self.vocab)?.to_vec();
+            let n_initial = u32_at(&mut c)? as usize;
+            if n_initial != n_codes {
+                return Err("relational checkpoint initial code vocabulary differs".into());
+            }
+            self.initial_codes = take(&mut c, n_initial)?.to_vec();
+            if self
+                .code_of
+                .iter()
+                .chain(self.initial_roots.iter())
+                .chain(self.initial_codes.iter())
+                .any(|&r| r as usize >= RANKS)
+            {
+                return Err("relational checkpoint map value outside the declared domain".into());
+            }
+        }
         self.roots.copy_from_slice(take(&mut c, self.vocab)?);
+        if self.roots.iter().any(|&r| r as usize >= RANKS) {
+            return Err("relational checkpoint root outside the group domain".into());
+        }
         for e in 0..EXACT_FEATS {
             self.w[e] = f64_at(&mut c)?;
         }
@@ -919,7 +1025,7 @@ impl RelationalArtifact {
         let mut w = [0i32; EXACT_FEATS];
         for slot in w.iter_mut() {
             let b = take(&mut c, 1)?[0] as i8 as i32;
-            if b.abs() > WEIGHT_MAX {
+            if !(-WEIGHT_MAX..=WEIGHT_MAX).contains(&b) {
                 return Err("exact weight outside the declared bound".into());
             }
             *slot = b;
@@ -927,7 +1033,7 @@ impl RelationalArtifact {
         let mut rank = [0i32; RANKS];
         for slot in rank.iter_mut() {
             let b = take(&mut c, 1)?[0] as i8 as i32;
-            if b.abs() > WEIGHT_MAX {
+            if !(-WEIGHT_MAX..=WEIGHT_MAX).contains(&b) {
                 return Err("rank outside the declared bound".into());
             }
             *slot = b;
@@ -935,14 +1041,16 @@ impl RelationalArtifact {
         let mut sb = [0i32; ACTS];
         for slot in sb.iter_mut() {
             let b = take(&mut c, 1)?[0] as i8 as i32;
-            if b.abs() > WEIGHT_MAX {
+            if !(-WEIGHT_MAX..=WEIGHT_MAX).contains(&b) {
                 return Err("strength bias outside the declared bound".into());
             }
             *slot = b;
         }
         let bias = take(&mut c, 1)?[0] as i8 as i32;
         let noread = take(&mut c, 1)?[0] as i8 as i32;
-        if bias.abs() > WEIGHT_MAX || noread.abs() > WEIGHT_MAX {
+        if !(-WEIGHT_MAX..=WEIGHT_MAX).contains(&bias)
+            || !(-WEIGHT_MAX..=WEIGHT_MAX).contains(&noread)
+        {
             return Err("selector bias outside the declared bound".into());
         }
         let mut local_artifact_digest = [0u8; 32];
@@ -960,7 +1068,7 @@ impl RelationalArtifact {
         if &tokenizer_digest != expect_tokenizer {
             return Err("relational artifact tokenizer digest differs".into());
         }
-        Ok(Self {
+        let artifact = Self {
             selector: RelationalSelector {
                 q_roots,
                 mode,
@@ -974,7 +1082,9 @@ impl RelationalArtifact {
             local_artifact_digest,
             tokenizer_digest,
             data_digest,
-        })
+        };
+        artifact.selector.validate()?;
+        Ok(artifact)
     }
 }
 
@@ -1331,6 +1441,163 @@ mod tests {
             "the returned change must be the exact objective change"
         );
         assert!(tr.descriptor_evaluations <= (vocab * RANKS * 2) as u64);
+    }
+
+    #[test]
+    fn categorical_search_changes_the_map_and_preserves_ties_and_unrelated_tokens() {
+        let mut tr =
+            RelationalTrainer::new(4, table(), 0.05, 5, [5u8; 32], [6u8; 32], &[0, 1, 2, 3])
+                .with_mode(RelMode::Categorical, vec![0; 4]);
+        // A correct source benefits from a relation index whose learned weight is
+        // positive. Initially the (0, 0) code pair addresses rank[0], not rank[1].
+        tr.rank[1] = 2.0;
+        let positions = vec![TrainPos {
+            cands: vec![cand([0; EXACT_FEATS], 3)],
+            q_role: 0,
+            k_role: vec![1],
+            delta: vec![[-0.1, -1.0, -2.0]],
+            group: 0,
+        }];
+        let initial = tr.code_of.clone();
+        let before = tr.position_loss(&positions[0]);
+        let change = tr.refine_descriptor(&positions, 2);
+        let after = tr.position_loss(&positions[0]);
+        assert!(
+            change < -1e-6,
+            "a genuinely beneficial code move must be kept"
+        );
+        assert!(after < before);
+        assert!((after - before - change).abs() < 1e-12);
+        assert_ne!(tr.code_of, initial);
+        assert_eq!(&tr.code_of[2..], &initial[2..]);
+        assert!(tr.descriptor_moved() > 0);
+        assert!(tr.descriptor_evaluations <= (2 * (RANKS - 1) * 2) as u64);
+
+        // With a constant relation table every code is tied. Keep all incumbents.
+        tr.rank = [0.0; RANKS];
+        let incumbent = tr.code_of.clone();
+        let moves = tr.descriptor_moves;
+        assert_eq!(tr.refine_descriptor(&positions, 2), 0.0);
+        assert_eq!(tr.code_of, incumbent);
+        assert_eq!(tr.descriptor_moves, moves);
+    }
+
+    #[test]
+    fn artifact_rejects_invalid_map_values_and_vocabulary_alignment() {
+        let tr = RelationalTrainer::new(4, table(), 0.05, 5, [5u8; 32], [6u8; 32], &[0, 1, 2, 3])
+            .with_mode(RelMode::Categorical, vec![0; 4]);
+        let art = RelationalArtifact {
+            selector: tr.quantize(),
+            local_artifact_digest: [7u8; 32],
+            tokenizer_digest: [9u8; 32],
+            data_digest: [3u8; 32],
+        };
+        assert!(art.selector.validate_for_vocab(4).is_ok());
+        assert!(art.selector.validate_for_vocab(3).is_err());
+        let mut bad_root = art.clone();
+        bad_root.selector.q_roots[0] = RANKS as u8;
+        assert!(
+            RelationalArtifact::from_bytes(&bad_root.to_bytes(), &[7u8; 32], &[9u8; 32]).is_err()
+        );
+        let mut bad_code = art.clone();
+        bad_code.selector.code_of[0] = RANKS as u8;
+        assert!(
+            RelationalArtifact::from_bytes(&bad_code.to_bytes(), &[7u8; 32], &[9u8; 32]).is_err()
+        );
+        for coefficient in [WEIGHT_MAX + 1, -128] {
+            let mut bad_weight = art.clone();
+            bad_weight.selector.w[0] = coefficient;
+            assert!(
+                RelationalArtifact::from_bytes(&bad_weight.to_bytes(), &[7u8; 32], &[9u8; 32])
+                    .is_err()
+            );
+        }
+        let mut short_map = art;
+        short_map.selector.code_of.pop();
+        assert!(short_map.selector.validate().is_err());
+        assert!(
+            RelationalArtifact::from_bytes(&short_map.to_bytes(), &[7u8; 32], &[9u8; 32]).is_err()
+        );
+    }
+
+    #[test]
+    fn selector_rejects_extreme_coefficients_without_overflow() {
+        let valid = RelationalSelector {
+            q_roots: vec![0],
+            mode: RelMode::Geometric,
+            code_of: Vec::new(),
+            w: [0; EXACT_FEATS],
+            rank: [0; RANKS],
+            bias: 0,
+            sb: [0; ACTS],
+            noread: 0,
+        };
+        for field in 0..5 {
+            let mut invalid = valid.clone();
+            match field {
+                0 => invalid.w[0] = i32::MIN,
+                1 => invalid.rank[0] = i32::MIN,
+                2 => invalid.sb[0] = i32::MIN,
+                3 => invalid.bias = i32::MIN,
+                _ => invalid.noread = i32::MIN,
+            }
+            assert!(invalid.validate().is_err());
+        }
+    }
+
+    #[test]
+    fn categorical_checkpoint_preserves_learned_codes_and_continuation() {
+        let make = || {
+            RelationalTrainer::new(4, table(), 0.05, 5, [5u8; 32], [6u8; 32], &[0, 1, 2, 3])
+                .with_mode(RelMode::Categorical, vec![0; 4])
+        };
+        let mut tr = make();
+        tr.rank[1] = 2.0;
+        let positions = vec![TrainPos {
+            cands: vec![cand([0; EXACT_FEATS], 3)],
+            q_role: 0,
+            k_role: vec![1],
+            delta: vec![[-0.1, -1.0, -2.0]],
+            group: 0,
+        }];
+        tr.refine_descriptor(&positions, 1);
+        assert!(tr.descriptor_moved() > 0);
+        tr.step(&positions, &[0]);
+        let bytes = tr.checkpoint_bytes();
+        let mut restored = make();
+        restored.resume_from(&bytes).expect("categorical resume");
+        assert_eq!(restored.checkpoint_bytes(), bytes);
+        assert_eq!(restored.descriptor_moved(), tr.descriptor_moved());
+        tr.step(&positions, &[0]);
+        restored.step(&positions, &[0]);
+        assert_eq!(restored.checkpoint_bytes(), tr.checkpoint_bytes());
+
+        let mut wrong_mode = make();
+        wrong_mode.mode = RelMode::ExactOnly;
+        wrong_mode.code_of.clear();
+        wrong_mode.initial_codes.clear();
+        let before = wrong_mode.checkpoint_bytes();
+        assert!(wrong_mode.resume_from(&bytes).is_err());
+        assert_eq!(wrong_mode.checkpoint_bytes(), before);
+    }
+
+    #[test]
+    fn legacy_checkpoint_is_explicitly_geometric_only() {
+        let make =
+            || RelationalTrainer::new(4, table(), 0.05, 5, [5u8; 32], [6u8; 32], &[0, 1, 2, 3]);
+        let tr = make();
+        let v2 = tr.checkpoint_bytes();
+        // V1 had no mode, current codes, or initial-map provenance before roots.
+        let mut legacy = v2[..12].to_vec();
+        legacy[4..8].copy_from_slice(&1u32.to_le_bytes());
+        legacy.extend_from_slice(&v2[12 + 1 + 4 + tr.vocab + 4..]);
+        let mut geometric = make();
+        geometric
+            .resume_from(&legacy)
+            .expect("legacy geometric resume");
+        assert_eq!(geometric.checkpoint_bytes(), v2);
+        let mut categorical = make().with_mode(RelMode::Categorical, vec![0; 4]);
+        assert!(categorical.resume_from(&legacy).is_err());
     }
 
     #[test]
