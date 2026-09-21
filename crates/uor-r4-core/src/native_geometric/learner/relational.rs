@@ -27,6 +27,13 @@ pub const EXACT_FEATS: usize = 6;
 pub const ACTS: usize = 3;
 /// Number of causal utility buckets for the action-dependent contextual interaction.
 pub const CTX_BUCKETS: usize = 16;
+/// Buckets for the direct hard-action utility policy: `gap_bin * 8 + ctx_class * 2 + margin_bit`.
+pub const UTIL_BUCKETS: usize = 32;
+/// Number of quantized selected-payload/top-logit gap bins (3 declared integer thresholds).
+pub const UTIL_GAP_BINS: usize = 4;
+/// Declared minimum total fit weight for a bucket to carry its own action; below it the global action
+/// is used, which is also the explicit unseen-bucket fallback.
+pub const UTIL_MIN_SUPPORT: f64 = 20.0;
 /// Declared strength shifts (bits); the boost in nats is `2^(shift - f_bits)`.
 pub const AMP_SHIFTS: [u32; 3] = [6, 10, 13];
 /// Largest magnitude of a served coefficient (signed 4-bit).
@@ -221,6 +228,11 @@ pub struct RelationalSelector {
     /// The small causal action-dependent interaction. Empty disables it (the factorised baseline).
     /// Otherwise `CTX_BUCKETS` rows of `[noread_offset, strength_0, strength_1, ...]`.
     pub ctx: Vec<[i32; ACTS + 1]>,
+    /// Direct hard-action utility opcodes: `UTIL_BUCKETS` entries, `0` = NoRead and `a > 0` = strength
+    /// `a - 1`. Empty keeps the scored `choose` path. This is an integer opcode table, not a score.
+    pub policy: Vec<u8>,
+    /// The three declared integer gap thresholds (in `f_bits` logit units) for `gap_bin`.
+    pub gap_thresholds: [i32; UTIL_GAP_BINS - 1],
 }
 
 impl RelationalSelector {
@@ -294,6 +306,17 @@ impl RelationalSelector {
                         ));
                     }
                 }
+            }
+        }
+        if !self.policy.is_empty() {
+            if self.policy.len() != UTIL_BUCKETS {
+                return Err("direct-action policy has the wrong bucket count".into());
+            }
+            if self.policy.iter().any(|c| *c as usize > ACTS) {
+                return Err("direct-action opcode outside the declared action set".into());
+            }
+            if self.gap_thresholds.windows(2).any(|w| w[1] <= w[0]) {
+                return Err("gap thresholds must be strictly increasing".into());
             }
         }
         if self.q_roots.iter().any(|&r| r as usize >= RANKS) {
@@ -498,7 +521,36 @@ impl RelationalSelector {
     }
 
     /// `None` is NoRead; otherwise `(candidate index, strength index)`.
+    ///
+    /// With a non-empty `policy` the decision is the learned hard opcode for the **ungated top
+    /// source**; `local_z` (the pre-boost local logits) is then required because the selected
+    /// payload's local gap is a declared causal observation.
     pub fn choose(&self, cands: &[Cand], rel: &[usize]) -> Option<(usize, usize)> {
+        if !self.policy.is_empty() {
+            return None;
+        }
+        self.choose_scored(cands, rel)
+    }
+
+    /// The single entry point of the shared read path: the direct hard-action policy when one is
+    /// carried, otherwise the scored path. `local_z` is required only by the policy.
+    pub fn choose_with(
+        &self,
+        cands: &[Cand],
+        rel: &[usize],
+        local_z: Option<&[i32]>,
+    ) -> Option<(usize, usize)> {
+        if self.policy.is_empty() {
+            return self.choose_scored(cands, rel);
+        }
+        match local_z {
+            Some(z) => self.choose_policy(cands, rel, z),
+            None => None,
+        }
+    }
+
+    /// The scored (ctx / global) decision path, unchanged.
+    pub fn choose_scored(&self, cands: &[Cand], rel: &[usize]) -> Option<(usize, usize)> {
         let b = self.bucket_of(cands, rel);
         let nr = self.noread_score(b);
         let mut best: Option<(usize, usize, i32)> = None;
@@ -514,6 +566,68 @@ impl RelationalSelector {
             Some((k, a, s)) if s > nr => Some((k, a)),
             _ => None,
         }
+    }
+
+    /// The direct hard-action policy decision. The source is always the ungated top source; only the
+    /// action is learned. `local_z` supplies the causal payload-gap observation.
+    pub fn choose_policy(
+        &self,
+        cands: &[Cand],
+        rel: &[usize],
+        local_z: &[i32],
+    ) -> Option<(usize, usize)> {
+        let (top, b) = self.policy_bucket(cands, rel, local_z)?;
+        match *self.policy.get(b).unwrap_or(&0) {
+            0 => None,
+            code => Some((top, (code - 1) as usize)),
+        }
+    }
+
+    /// The integer local logit gap of the ungated top source's payload from the local argmax, in
+    /// `f_bits` units. This is a causal **observation**, never a probability estimate.
+    pub fn top_payload_gap(&self, cands: &[Cand], rel: &[usize], local_z: &[i32]) -> Option<i32> {
+        let top = self.ungated_top_source(cands, rel)?;
+        let payload = cands[top].payload as usize;
+        let top_logit = local_z.iter().copied().max().unwrap_or(0);
+        let payload_logit = local_z.get(payload).copied().unwrap_or(top_logit);
+        Some(payload_logit - top_logit)
+    }
+
+    /// The declared causal utility bucket of this position: quantized selected-payload local gap, the
+    /// exact-context class of the ungated top source, and a strict source-margin bit. Target-free,
+    /// label-free and future-free. Returns `(ungated top source, bucket)`.
+    pub fn policy_bucket(
+        &self,
+        cands: &[Cand],
+        rel: &[usize],
+        local_z: &[i32],
+    ) -> Option<(usize, usize)> {
+        let top = self.ungated_top_source(cands, rel)?;
+        let c = &cands[top];
+        let gap = self.top_payload_gap(cands, rel, local_z)?;
+        let gap_bin = self
+            .gap_thresholds
+            .iter()
+            .filter(|t| gap > **t)
+            .count()
+            .min(UTIL_GAP_BINS - 1);
+        let ctx_class = (c.feats[3] as usize) | (((c.feats[1] | c.feats[2]) as usize) << 1);
+        let mut margin = 0usize;
+        if cands.len() > 1 {
+            let mut best = i32::MIN;
+            let mut second = i32::MIN;
+            for (k, cd) in cands.iter().enumerate() {
+                let s = self.source_score(cd, rel.get(k).copied().unwrap_or(0));
+                if s > best {
+                    second = best;
+                    best = s;
+                } else if s > second {
+                    second = s;
+                }
+            }
+            margin = usize::from(best > second);
+        }
+        Some((top, (gap_bin << 3) | (ctx_class << 1) | margin))
     }
 
     /// The **ungated top source**: the argmax of the ctx-free source score, i.e. the source ordering
@@ -623,6 +737,109 @@ pub fn regret_decomposition(sel: &RelationalSelector, t: &ExactGroupTable, p: &T
             None => true,
         },
     }
+}
+
+/// One weighted fit event for the direct hard-action policy: the ungated top source at one position.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct PolicyEvent {
+    pub bucket: usize,
+    pub weight: f64,
+    /// Individual action costs, index 0 = NoRead (exactly 0), 1.. = strength `a - 1`.
+    pub cost: [f64; ACTS + 1],
+}
+
+/// Receipt for the direct hard-action policy fit.
+#[derive(Clone, Debug, PartialEq)]
+pub struct PolicyFit {
+    pub support: Vec<f64>,
+    pub mean_cost: Vec<[f64; ACTS + 1]>,
+    pub global_action: usize,
+    pub buckets_with_own_action: usize,
+    pub fallback_buckets: usize,
+    pub total_weight: f64,
+}
+
+/// Direct empirical finite-policy solution: per bucket, the action with the lowest **mean individual
+/// cost** under the declared weights, with a declared minimum support, an explicit global fallback for
+/// sparse and unseen buckets, and a safe-abstention tie rule (a read is chosen only if strictly better
+/// than NoRead). This is an empirical finite policy, not a Bayes-optimal or globally optimal one.
+pub fn fit_policy(events: &[PolicyEvent]) -> (Vec<u8>, PolicyFit) {
+    let mut support = vec![0.0f64; UTIL_BUCKETS];
+    let mut sum = vec![[0.0f64; ACTS + 1]; UTIL_BUCKETS];
+    let mut g_support = 0.0f64;
+    let mut g_sum = [0.0f64; ACTS + 1];
+    for e in events {
+        let b = e.bucket.min(UTIL_BUCKETS - 1);
+        support[b] += e.weight;
+        for a in 0..=ACTS {
+            sum[b][a] += e.weight * e.cost[a];
+        }
+        g_support += e.weight;
+        for a in 0..=ACTS {
+            g_sum[a] += e.weight * e.cost[a];
+        }
+    }
+    let mean = |s: &[f64; ACTS + 1], sup: f64| -> [f64; ACTS + 1] {
+        if sup <= 0.0 {
+            [0.0; ACTS + 1]
+        } else {
+            std::array::from_fn(|a| s[a] / sup)
+        }
+    };
+    let pick = |m: &[f64; ACTS + 1]| -> usize {
+        let (mut bi, mut bv) = (0usize, m[0]);
+        for a in 1..=ACTS {
+            if m[a] < bv - 1e-12 {
+                bv = m[a];
+                bi = a;
+            }
+        }
+        bi
+    };
+    let g_mean = mean(&g_sum, g_support);
+    let global_action = pick(&g_mean);
+    let mut policy = vec![0u8; UTIL_BUCKETS];
+    let mut means = vec![[0.0f64; ACTS + 1]; UTIL_BUCKETS];
+    let (mut with_own, mut fallback) = (0usize, 0usize);
+    for b in 0..UTIL_BUCKETS {
+        means[b] = mean(&sum[b], support[b]);
+        if support[b] >= UTIL_MIN_SUPPORT {
+            policy[b] = pick(&means[b]) as u8;
+            with_own += 1;
+        } else {
+            policy[b] = global_action as u8;
+            fallback += 1;
+        }
+    }
+    (
+        policy,
+        PolicyFit {
+            support,
+            mean_cost: means,
+            global_action,
+            buckets_with_own_action: with_own,
+            fallback_buckets: fallback,
+            total_weight: g_support,
+        },
+    )
+}
+
+/// Declared gap-bin thresholds: the tune-set quartiles of the observed integer gap, rounded up to
+/// distinct integers. Part of the exported artifact so serving needs no distribution.
+pub fn choose_gap_thresholds(gaps: &mut [i32]) -> [i32; UTIL_GAP_BINS - 1] {
+    if gaps.is_empty() {
+        return [-24, -8, -2];
+    }
+    gaps.sort_unstable();
+    let q = |p: f64| -> i32 { gaps[(((gaps.len() - 1) as f64) * p) as usize] };
+    let mut t = [q(0.25), q(0.5), q(0.75)];
+    if t[1] <= t[0] {
+        t[1] = t[0] + 1;
+    }
+    if t[2] <= t[1] {
+        t[2] = t[1] + 1;
+    }
+    t
 }
 
 /// One training position: constants only, independent of the parameters being fitted.
@@ -1006,6 +1223,8 @@ impl RelationalTrainer {
             sb: std::array::from_fn(|k| q(self.sb[k])),
             noread: q(self.noread),
             ctx: Vec::new(),
+            policy: Vec::new(),
+            gap_thresholds: [0; UTIL_GAP_BINS - 1],
         }
     }
 
@@ -1251,7 +1470,7 @@ impl RelationalArtifact {
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut o = Vec::new();
         o.extend_from_slice(b"RLR2");
-        o.extend_from_slice(&3u32.to_le_bytes());
+        o.extend_from_slice(&4u32.to_le_bytes());
         o.push(match self.selector.mode {
             RelMode::Geometric => 0,
             RelMode::Categorical => 1,
@@ -1278,6 +1497,12 @@ impl RelationalArtifact {
             for v in row.iter() {
                 o.push(*v as i8 as u8);
             }
+        }
+        // Version 4 adds the direct hard-action utility policy and its gap thresholds.
+        o.extend_from_slice(&(self.selector.policy.len() as u32).to_le_bytes());
+        o.extend_from_slice(&self.selector.policy);
+        for t in self.selector.gap_thresholds.iter() {
+            o.extend_from_slice(&t.to_le_bytes());
         }
         o.extend_from_slice(&self.local_artifact_digest);
         o.extend_from_slice(&self.tokenizer_digest);
@@ -1309,7 +1534,7 @@ impl RelationalArtifact {
             Ok(u32::from_le_bytes(take(c, 4)?.try_into().unwrap()))
         };
         let art_version = u32_at(&mut c)?;
-        if art_version != 2 && art_version != 3 {
+        if art_version < 2 || art_version > 4 {
             return Err("unsupported relational artifact version".into());
         }
         let mode = match take(&mut c, 1)?[0] {
@@ -1383,6 +1608,25 @@ impl RelationalArtifact {
             }
             ctx = rows;
         }
+        // Version 4 adds the direct hard-action policy and its gap thresholds.
+        let mut policy: Vec<u8> = Vec::new();
+        let mut gap_thresholds = [0i32; UTIL_GAP_BINS - 1];
+        if art_version >= 4 {
+            let n_policy = u32_at(&mut c)? as usize;
+            if n_policy != 0 && n_policy != UTIL_BUCKETS {
+                return Err("direct-action policy has the wrong bucket count".into());
+            }
+            policy = take(&mut c, n_policy)?.to_vec();
+            if policy.iter().any(|v| *v as usize > ACTS) {
+                return Err("direct-action opcode outside the declared action set".into());
+            }
+            for t in gap_thresholds.iter_mut() {
+                *t = i32::from_le_bytes(take(&mut c, 4)?.try_into().unwrap());
+            }
+            if !policy.is_empty() && gap_thresholds.windows(2).any(|w| w[1] <= w[0]) {
+                return Err("gap thresholds must be strictly increasing".into());
+            }
+        }
         let mut local_artifact_digest = [0u8; 32];
         local_artifact_digest.copy_from_slice(take(&mut c, 32)?);
         let mut tokenizer_digest = [0u8; 32];
@@ -1409,6 +1653,8 @@ impl RelationalArtifact {
                 sb,
                 noread,
                 ctx,
+                policy,
+                gap_thresholds,
             },
             local_artifact_digest,
             tokenizer_digest,
@@ -1863,6 +2109,8 @@ mod tests {
             sb: [0; ACTS],
             noread: 0,
             ctx: Vec::new(),
+            policy: Vec::new(),
+            gap_thresholds: [0; UTIL_GAP_BINS - 1],
         };
         for field in 0..5 {
             let mut invalid = valid.clone();
@@ -2031,6 +2279,8 @@ mod tests {
             sb: [2, 4, -1],
             noread: 0,
             ctx: Vec::new(),
+            policy: Vec::new(),
+            gap_thresholds: [0; UTIL_GAP_BINS - 1],
         };
         let mut zeroed = base.clone();
         zeroed.ctx = vec![[0i32; ACTS + 1]; CTX_BUCKETS];
@@ -2064,6 +2314,8 @@ mod tests {
             sb: [0; ACTS],
             noread: 0,
             ctx: Vec::new(),
+            policy: Vec::new(),
+            gap_thresholds: [0; UTIL_GAP_BINS - 1],
         };
         let b0 = s.bucket_of(&c, &rel);
         s.sb = [7, 7, 7];
@@ -2188,6 +2440,8 @@ mod tests {
             sb: [1, 2, 3],
             noread: -1,
             ctx: Vec::new(),
+            policy: Vec::new(),
+            gap_thresholds: [0; UTIL_GAP_BINS - 1],
         };
         let art = |s: RelationalSelector| RelationalArtifact {
             selector: s,
@@ -2228,17 +2482,174 @@ mod tests {
             + ACTS
             + 1
             + 1;
-        let v3 = art(sel.clone()).to_bytes();
-        assert_eq!(v3[head], (CTX_BUCKETS as u8), "ctx length prefix");
-        let mut legacy = v3.clone();
+        let v4 = art(sel.clone()).to_bytes();
+        assert_eq!(v4[head], (CTX_BUCKETS as u8), "ctx length prefix");
+        // Version 2 payloads (no interaction, no policy) remain readable: drop both later blocks.
+        let policy_block = 4 + 0 + 4 * (UTIL_GAP_BINS - 1);
+        let mut legacy = v4.clone();
         legacy[4] = 2; // version word, little-endian u32
-        legacy.drain(head..head + 4 + CTX_BUCKETS * (ACTS + 1));
+        legacy.drain(head..head + 4 + CTX_BUCKETS * (ACTS + 1) + policy_block);
         let back = RelationalArtifact::from_bytes(&legacy, &[1u8; 32], &[2u8; 32]).unwrap();
         assert!(back.selector.ctx.is_empty());
+        assert!(back.selector.policy.is_empty());
+        // Version 3 payloads (interaction, no policy) remain readable.
+        let mut v3 = v4.clone();
+        v3[4] = 3;
+        v3.drain(
+            head + 4 + CTX_BUCKETS * (ACTS + 1)..head + 4 + CTX_BUCKETS * (ACTS + 1) + policy_block,
+        );
+        let back = RelationalArtifact::from_bytes(&v3, &[1u8; 32], &[2u8; 32]).unwrap();
+        assert_eq!(back.selector.ctx.len(), CTX_BUCKETS);
+        assert!(back.selector.policy.is_empty());
         // A truncated interaction table is rejected rather than silently loaded.
-        let mut trunc = v3.clone();
+        let mut trunc = v4.clone();
         trunc.truncate(head + 4 + CTX_BUCKETS * (ACTS + 1) - 1);
         assert!(RelationalArtifact::from_bytes(&trunc, &[1u8; 32], &[2u8; 32]).is_err());
+        // A truncated policy block is rejected too.
+        let mut trunc = v4.clone();
+        trunc.truncate(head + 4 + CTX_BUCKETS * (ACTS + 1) + policy_block - 1);
+        assert!(RelationalArtifact::from_bytes(&trunc, &[1u8; 32], &[2u8; 32]).is_err());
+    }
+
+    #[test]
+    fn the_direct_action_policy_round_trips_and_rejects_bad_opcodes() {
+        let mut sel = RelationalSelector {
+            q_roots: vec![0, 1, 2, 3],
+            mode: RelMode::Geometric,
+            code_of: Vec::new(),
+            w: [0; EXACT_FEATS],
+            rank: [0; RANKS],
+            bias: 0,
+            sb: [0; ACTS],
+            noread: 0,
+            ctx: Vec::new(),
+            policy: vec![0u8; UTIL_BUCKETS],
+            gap_thresholds: [-24, -8, -2],
+        };
+        sel.policy[0] = 3;
+        sel.policy[1] = 1;
+        sel.validate().unwrap();
+        let art = |s: RelationalSelector| RelationalArtifact {
+            selector: s,
+            local_artifact_digest: [5u8; 32],
+            tokenizer_digest: [6u8; 32],
+            data_digest: [7u8; 32],
+        };
+        let back =
+            RelationalArtifact::from_bytes(&art(sel.clone()).to_bytes(), &[5u8; 32], &[6u8; 32])
+                .unwrap();
+        assert_eq!(back.selector, sel);
+        assert_eq!(back.selector.policy[0], 3);
+        assert_eq!(back.selector.gap_thresholds, [-24, -8, -2]);
+        // An opcode outside the declared action set is rejected, not silently clamped.
+        let mut bad = sel.clone();
+        bad.policy[2] = (ACTS + 1) as u8;
+        assert!(bad.validate().is_err());
+        // An unsorted threshold triple is rejected.
+        let mut bad = sel.clone();
+        bad.gap_thresholds = [-8, -24, -2];
+        assert!(bad.validate().is_err());
+    }
+
+    #[test]
+    fn the_direct_policy_fitter_respects_support_fallback_and_the_abstention_tie() {
+        let mut events = Vec::new();
+        for _ in 0..40 {
+            events.push(PolicyEvent {
+                bucket: 0,
+                weight: 1.0,
+                cost: [0.0, -0.02, -0.1, -0.5],
+            });
+            events.push(PolicyEvent {
+                bucket: 8,
+                weight: 1.0,
+                cost: [0.0, 0.01, 0.02, 0.03],
+            });
+        }
+        for _ in 0..3 {
+            events.push(PolicyEvent {
+                bucket: 16,
+                weight: 1.0,
+                cost: [0.0, -1.0, -1.0, -1.0],
+            });
+        }
+        let (policy, fit) = fit_policy(&events);
+        assert_eq!(
+            policy[0], 3,
+            "the beneficial bucket reads at the strongest action"
+        );
+        assert_eq!(policy[8], 0, "the harmful bucket abstains");
+        assert_eq!(fit.buckets_with_own_action, 2);
+        assert_eq!(fit.fallback_buckets, UTIL_BUCKETS - 2);
+        assert_eq!(fit.global_action, 3, "the pooled mass favours a read");
+        assert!(fit.support[16] < UTIL_MIN_SUPPORT);
+        assert_eq!(
+            policy[16], 3,
+            "a below-support bucket takes the global fallback"
+        );
+        assert_eq!(policy[31], 3, "an unseen bucket takes the same fallback");
+
+        // Exact ties abstain: a read must be strictly better than NoRead.
+        let tie = vec![PolicyEvent {
+            bucket: 4,
+            weight: 40.0,
+            cost: [0.0, 0.0, 0.0, 0.0],
+        }];
+        let (policy, _) = fit_policy(&tie);
+        assert_eq!(policy[4], 0);
+        // With no events at all every bucket abstains and the fit is explicit about the fallback.
+        let (policy, fit) = fit_policy(&[]);
+        assert!(policy.iter().all(|c| *c == 0));
+        assert_eq!(fit.total_weight, 0.0);
+        assert_eq!(fit.fallback_buckets, UTIL_BUCKETS);
+    }
+
+    #[test]
+    fn the_policy_decision_reads_the_causal_payload_gap_and_the_ungated_top_source() {
+        let cands = vec![cand([1, 0, 0, 0, 0, 1], 40), cand([1, 0, 0, 0, 0, 0], 41)];
+        let rel = vec![3usize, 9usize];
+        let mut rank = [0i32; RANKS];
+        rank[3] = 5;
+        rank[9] = -5;
+        let mut sel = RelationalSelector {
+            q_roots: vec![0, 1, 2, 3],
+            mode: RelMode::Geometric,
+            code_of: Vec::new(),
+            w: [0; EXACT_FEATS],
+            rank,
+            bias: 0,
+            sb: [0; ACTS],
+            noread: 0,
+            ctx: Vec::new(),
+            policy: vec![0u8; UTIL_BUCKETS],
+            gap_thresholds: [-20, -10, -4],
+        };
+        sel.validate().unwrap();
+        // The top source is candidate 0 (rank 5 beats -5); its features give ctx_class 0 and the
+        // strict source margin gives bit 1, so the bucket is gap_bin*8 + 1.
+        let z_argmax = vec![0i32; 64];
+        sel.policy[25] = 2;
+        assert_eq!(sel.policy_bucket(&cands, &rel, &z_argmax), Some((0, 25)));
+        assert_eq!(sel.choose_policy(&cands, &rel, &z_argmax), Some((0, 1)));
+        // The same candidate with a far-below-top local payload lands in gap_bin 0.
+        let mut z_far = vec![0i32; 64];
+        z_far[40] = -50;
+        assert_eq!(sel.policy_bucket(&cands, &rel, &z_far), Some((0, 1)));
+        sel.policy[1] = 3;
+        assert_eq!(sel.choose_policy(&cands, &rel, &z_far), Some((0, 2)));
+        // Opcode 0 abstains without changing which source would have been used.
+        sel.policy[1] = 0;
+        assert_eq!(sel.choose_policy(&cands, &rel, &z_far), None);
+        assert_eq!(sel.ungated_top_source(&cands, &rel), Some(0));
+        // An empty pool has no ungated top source at all.
+        assert_eq!(sel.policy_bucket(&[], &[], &z_far), None);
+        assert_eq!(sel.choose_policy(&[], &[], &z_far), None);
+        // With a policy present the scored path is never silently used instead.
+        assert_eq!(sel.choose(&cands, &rel), None);
+        // Quantized thresholds are well defined and strictly increasing.
+        let mut gaps = vec![-30, -12, -3, -1, 0, -40, -8, -2];
+        let t = choose_gap_thresholds(&mut gaps);
+        assert!(t[0] < t[1] && t[1] < t[2]);
     }
 
     // ---- signed-geometry expressivity witness and regret identity -----------------
@@ -2326,6 +2737,8 @@ mod tests {
             sb: [0; ACTS],
             noread: WEIGHT_MAX,
             ctx: Vec::new(),
+            policy: Vec::new(),
+            gap_thresholds: [0; UTIL_GAP_BINS - 1],
         };
         witness.validate().unwrap();
 
@@ -2440,6 +2853,8 @@ mod tests {
                 sb: [1, -1, 0],
                 noread: 0,
                 ctx: Vec::new(),
+                policy: Vec::new(),
+                gap_thresholds: [0; UTIL_GAP_BINS - 1],
             };
             // Alternate read and NoRead regimes so both branches are exercised.
             sel.noread = if xorshift(&mut st) % 2 == 0 {
@@ -2485,6 +2900,8 @@ mod tests {
             sb: [0; ACTS],
             noread: 0,
             ctx: Vec::new(),
+            policy: Vec::new(),
+            gap_thresholds: [0; UTIL_GAP_BINS - 1],
         };
         assert_eq!(regret_decomposition(&sel, &t, &empty), Regret::default());
     }

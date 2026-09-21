@@ -1,6 +1,6 @@
 # UOR-R4 Geometric Language Model — project map
 
-**Current execution pointer after PR #1325/#1326:** the [review](integration/relational-learning-review-2026-09-21.md) retains 103/119 correct H4 source reads and 83/119 emitted final answers on the replayed construction, with reader-held-out text harm. [Next](integration/deepseek-reader-utility-transfer-step-2026-09-21.md): direct finite read utility with causal local-score observations and a fixed full stream; admission broadening is conditional on measured opportunity. No model promotion.
+**Current execution pointer after PR #1327:** the [direct read-influence policy result](integration/reader-utility-result-2026-09-21.md) is executed and unpromoted. On document-held-out reader text the new policy is −0.0195 bits/token [−0.0329,−0.0055] where the frozen parent was +0.5453 — the first net benefit on held-out prose — while `relational_behaviour_preserved = false` because the policy reads every candidate at ≈1 nat and gives up emitted-argmax accuracy on the constructed queries. Diagnosed as a contextual-representation limitation. **Next:** a learned contextual observation separating reliable from unreliable reads. No model promotion.
 
 This map connects the current Rust model, product interfaces, research history
 and retained evidence. It is navigation, not a new capability assessment or an

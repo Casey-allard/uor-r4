@@ -62,8 +62,30 @@ const MARGIN_CTX_BITS: f64 = 0.05;
 /// Tolerated all-position regression on the natural-text development regression.
 const MARGIN_TEXT_BITS: f64 = 0.05;
 const GEN_TOKENS: usize = 48;
-/// Documents per side of the document-separated reader text split (fit vs held out).
+/// Documents per side of the document-separated reader text split (fit / tune / final).
 const TEXT_DOCS: usize = 8;
+/// Frozen parent artifacts: the improved relation learners this run only reads.
+const PARENT_ROOT: &str =
+    "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/relational-learning-4";
+const DEFAULT_UTIL_ROOT: &str =
+    "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/reader-utility-1";
+const PARENT_SHA_EXACT: &str = "4795042636d57a360d7396c2f2939b79b1a28173c7228896a620cf53285a860d";
+const PARENT_SHA_RELATIONAL: &str =
+    "8d33a48888af8d224533b3634a52a868313df41364ec2dde6e6f8da7bd3043d7";
+const PARENT_SHA_RELATIONAL_CTX: &str =
+    "d4ab183d3975be563139ba42f3a5fb9ec61fa1691603bfcc3d603787d7ab5b55";
+const PARENT_SHA_CATEGORICAL: &str =
+    "2a60d9376702126060d3f6c86a0358bde723b45dd419b4bb50dd8d6ee04296a3";
+/// New frozen construction seed for final assessment (declared in the design note).
+const SEED_FINAL: u64 = 0x5C0F_F1A1;
+/// Declared window count per reader document before the preparation probe may extend it.
+const WINDOWS_PER_DOC: usize = 4;
+/// Declared minimum information target for natural-text fit positions.
+const MIN_TEXT_FIT_POSITIONS: usize = 600;
+/// Declared admission-regret trigger for naming admission as a future candidate (nats/position).
+const ADMISSION_TRIGGER_NATS: f64 = 0.25;
+/// Prospectively declared component margin in bits per position.
+const MARGIN_PRESENT_BITS: f64 = 0.05;
 /// Bounded coordinate-descent rounds for the contextual interaction table.
 const CTX_ROUNDS: usize = 2;
 /// Fixed causal bucket count, matching `relational::CTX_BUCKETS`.
@@ -114,6 +136,7 @@ fn read_step(
     sel: &RelationalSelector,
     table: &ExactGroupTable,
     use_reader: bool,
+    local_z: &[i32],
 ) -> Read {
     if !use_reader {
         return Read {
@@ -160,7 +183,7 @@ fn read_step(
             )
         })
         .collect();
-    if let Some((k, st)) = sel.choose(&cands, &rel) {
+    if let Some((k, st)) = sel.choose_with(&cands, &rel, Some(local_z)) {
         out.action = Some((k, st));
         out.source = Some(cands[k].slot_ref);
         out.payload = Some(cands[k].payload);
@@ -185,7 +208,7 @@ fn predict_next(
     use_reader: bool,
 ) -> (Vec<i32>, Read) {
     let mut z = local_logits(parent, local, u, cur, prev, prev2, ring.written());
-    let r = read_step(ring, cur, prev as u32, prev2, sel, table, use_reader);
+    let r = read_step(ring, cur, prev as u32, prev2, sel, table, use_reader, &z);
     if let Some((_, st)) = r.action {
         if let Some(p) = r.payload {
             let p = p as usize;
@@ -621,16 +644,6 @@ fn rels_for(
             )
         })
         .collect()
-}
-
-fn main() -> ExitCode {
-    match run() {
-        Ok(c) => c,
-        Err(e) => {
-            eprintln!("error: {e}");
-            ExitCode::from(1)
-        }
-    }
 }
 
 /// A complete binding digest over every observation the reader was fitted or scored on: the
@@ -2805,6 +2818,8 @@ mod tests {
             sb: [-7, 3, 6],
             noread: -7,
             ctx: Vec::new(),
+            policy: Vec::new(),
+            gap_thresholds: [0; 3],
         };
         let baseline = base.choose(&o.cands, &rel).expect("a read is affordable");
         assert_eq!(
@@ -2865,6 +2880,8 @@ mod tests {
             sb: [2, -1, 3],
             noread: 0,
             ctx: Vec::new(),
+            policy: Vec::new(),
+            gap_thresholds: [0; 3],
         };
         let mut checked = 0usize;
         let mut checked_absent = 0usize;
@@ -2920,6 +2937,94 @@ mod tests {
             }
         }
         assert!(checked > 0 && checked_absent > 0);
+    }
+
+    #[test]
+    fn the_shared_read_step_uses_the_direct_policy_and_its_gap_observation() {
+        let b = banks();
+        let table = ExactGroupTable::build().expect("exact table");
+        let mut seed = 7u64;
+        let seq = make_seq(&b, &mut seed, &b.values_held, false);
+        let obs = observe_full(&seq);
+        let o = obs
+            .iter()
+            .rev()
+            .find(|o| !o.cands.is_empty())
+            .expect("a candidate-bearing position");
+        let sel = RelationalSelector {
+            q_roots: vec![0u8; 256],
+            mode: RelMode::Geometric,
+            code_of: Vec::new(),
+            w: [0; EXACT_FEATS],
+            rank: [0; RANKS],
+            bias: 0,
+            sb: [0; ACTS],
+            noread: 0,
+            ctx: Vec::new(),
+            policy: vec![1u8; UTIL_BUCKETS],
+            gap_thresholds: [-24, -8, -2],
+        };
+        sel.validate().unwrap();
+        let z = vec![0i32; 256];
+        let r = read_step(&o.ring, o.cur, o.prev, o.prev2, &sel, &table, true, &z);
+        let (k, a) = r.action.expect("the policy reads");
+        assert_eq!(a, 0, "opcode 1 is the weakest strength");
+        assert_eq!(r.payload, Some(o.cands[k].payload));
+        // The disabled reader is not affected by the policy at all.
+        assert!(
+            read_step(&o.ring, o.cur, o.prev, o.prev2, &sel, &table, false, &z)
+                .action
+                .is_none()
+        );
+        // An all-NoRead policy abstains through the same shared path.
+        let mut quiet = sel.clone();
+        quiet.policy = vec![0u8; UTIL_BUCKETS];
+        assert!(
+            read_step(&o.ring, o.cur, o.prev, o.prev2, &quiet, &table, true, &z)
+                .action
+                .is_none()
+        );
+        // Indexing: changing only the declared local-gap observation moves the bucket, and the
+        // shared path follows the new bucket's opcode.
+        let rel: Vec<usize> = o
+            .cands
+            .iter()
+            .map(|c| {
+                relation_index(
+                    &table,
+                    sel.mode,
+                    &sel.code_of,
+                    *sel.q_roots.get(o.prev as usize).unwrap_or(&0),
+                    *sel.q_roots.get(c.x_prev as usize).unwrap_or(&0),
+                    o.prev as usize,
+                    c.x_prev as usize,
+                )
+            })
+            .collect();
+        let mut sel2 = sel.clone();
+        sel2.policy = vec![0u8; UTIL_BUCKETS];
+        let (top, b0) = sel2.policy_bucket(&o.cands, &rel, &z).expect("bucket");
+        let mut z2 = z.clone();
+        let p = o.cands[top].payload as usize;
+        z2[p] = z2.iter().copied().max().unwrap_or(0) - 100;
+        let (_, b1) = sel2.policy_bucket(&o.cands, &rel, &z2).expect("bucket");
+        assert_ne!(b0, b1, "the declared gap observation must move the bucket");
+        sel2.policy[b0] = 2;
+        sel2.policy[b1] = 3;
+        assert_eq!(
+            read_step(&o.ring, o.cur, o.prev, o.prev2, &sel2, &table, true, &z)
+                .action
+                .expect("read")
+                .1,
+            1
+        );
+        assert_eq!(
+            read_step(&o.ring, o.cur, o.prev, o.prev2, &sel2, &table, true, &z2)
+                .action
+                .expect("read")
+                .1,
+            2
+        );
     }
 
     #[test]
@@ -3016,5 +3121,1564 @@ mod tests {
             }
         }
         Ok(())
+    }
+}
+// ---------------------------------------------------------------------------
+// Utility-transfer mode: learn read influence for the frozen improved source maps
+// ---------------------------------------------------------------------------
+
+/// Every position of the full prediction stream, **including empty candidate pools**, which take the
+/// local prediction. This is the one fixed population every pool/policy comparison uses.
+fn observe_full(seq: &Seq) -> Vec<Obs> {
+    let mut ring = OccurrenceRing::new(RING_CAP);
+    let mut out = Vec::new();
+    for i in 0..seq.tokens.len() {
+        let cur = seq.tokens[i];
+        let prev = if i >= 1 { seq.tokens[i - 1] } else { 0 };
+        let prev2 = if i >= 2 { seq.tokens[i - 2] } else { NO_TOKEN };
+        if i >= 2 && i + 1 < seq.tokens.len() {
+            let (cands, _) = admit_mixed(&ring, ring.written(), cur, prev, prev2, MAX_CAND);
+            out.push(Obs {
+                ring: ring.clone(),
+                cur,
+                prev,
+                prev2,
+                target: seq.tokens[i + 1],
+                cands,
+                group: seq.group,
+            });
+        }
+        ring.observe(cur);
+    }
+    out
+}
+
+fn observe_full_all(seqs: &[Seq]) -> Vec<Vec<Obs>> {
+    seqs.iter().map(observe_full).collect()
+}
+
+/// A real digest of the exact group table bytes, replacing the builder-name string.
+fn group_table_digest(t: &ExactGroupTable) -> String {
+    let mut b = Vec::new();
+    b.extend_from_slice(b"r4g1");
+    b.push(t.identity);
+    b.extend_from_slice(&t.product);
+    b.extend_from_slice(&t.inverse);
+    sha256_hex(&b)
+}
+
+/// Target-using ring diagnostic: is the target an observable successor somewhere in the **whole**
+/// causal ring, and what is the best finite action over that whole ring (`Lring <= 0`)? Never a
+/// serving feature.
+fn ring_utility(ring: &OccurrenceRing, z: &[i32], target: u32, f_bits: u32) -> (bool, f64, usize) {
+    let written = ring.written();
+    let low = ring.valid_from();
+    let (mut eligible, mut lring, mut occ) = (false, 0.0f64, 0usize);
+    for abs in low..written {
+        if let Some(payload) = ring.get(abs + 1) {
+            occ += 1;
+            if payload == target {
+                eligible = true;
+            }
+            let p = prob_of(z, payload, f_bits);
+            for a in 0..ACTS {
+                let boost = (1i64 << AMP_SHIFTS[a]) as f64 / (1i64 << f_bits) as f64;
+                let d = action_loss(p, boost, payload == target);
+                if d < lring {
+                    lring = d;
+                }
+            }
+        }
+    }
+    (eligible, lring, occ)
+}
+
+/// One prepared position: the local baseline logits, coverage, the supervised position constants and
+/// the ring bound. Computed **once** per full stream and reused by every arm.
+struct PrepPos {
+    z0: Vec<i32>,
+    covered: bool,
+    pos: Option<TrainPos>,
+    ring: (bool, f64),
+}
+
+fn prep_stream(
+    parent: &PriorCore,
+    local: &QueryHard,
+    u: &[Vec<i32>],
+    obs: &[Vec<Obs>],
+) -> Vec<PrepPos> {
+    let mut out = Vec::new();
+    for os in obs.iter() {
+        for o in os.iter() {
+            let z0 = local_logits(
+                parent,
+                local,
+                u,
+                o.cur,
+                o.prev as usize,
+                o.prev2,
+                o.ring.written(),
+            );
+            let covered = o.cands.iter().any(|c| c.payload == o.target);
+            let rng = ring_utility(&o.ring, &z0, o.target, parent.cfg.f_bits);
+            let pos = if o.cands.is_empty() {
+                None
+            } else {
+                Some(pos_of_obs_with(parent, u, o, &z0))
+            };
+            out.push(PrepPos {
+                z0,
+                covered,
+                pos,
+                ring: (rng.0, rng.1),
+            });
+        }
+    }
+    out
+}
+
+fn pos_of_obs_with(parent: &PriorCore, u: &[Vec<i32>], o: &Obs, z: &[i32]) -> TrainPos {
+    let _ = u;
+    let delta: Vec<[f64; ACTS]> = o
+        .cands
+        .iter()
+        .map(|c| {
+            let p = prob_of(z, c.payload, parent.cfg.f_bits);
+            std::array::from_fn(|a| {
+                let boost = (1i64 << AMP_SHIFTS[a]) as f64 / (1i64 << parent.cfg.f_bits) as f64;
+                action_loss(p, boost, c.payload == o.target)
+            })
+        })
+        .collect();
+    TrainPos {
+        cands: cand_list(&o.cands),
+        q_role: o.prev as usize,
+        k_role: o
+            .cands
+            .iter()
+            .map(|c| {
+                if c.x_prev == NO_TOKEN {
+                    usize::MAX
+                } else {
+                    c.x_prev as usize
+                }
+            })
+            .collect(),
+        delta,
+        group: o.group,
+    }
+}
+
+/// The expected result field set, validated **before** the expensive pass.
+fn result_schema() -> serde_json::Value {
+    json!({
+        "schema": "uor-r4.reader-utility/1",
+        "required": [
+            "schema", "base_revision", "running_source", "inputs", "parents", "group_digest",
+            "text_split", "preparation_probe", "fit", "panels", "ring_diagnostics", "controls",
+            "generation", "cost", "manifest_digest", "decision", "phases", "elapsed_s"
+        ],
+    })
+}
+
+fn validate_result_fields(schema: &serde_json::Value) -> Result<(), String> {
+    let required = schema["required"].as_array().ok_or("schema.required")?;
+    let skeleton = json!({
+        "schema": 0, "base_revision": 0, "running_source": 0, "inputs": 0, "parents": 0,
+        "group_digest": 0, "text_split": 0, "preparation_probe": 0, "fit": 0, "panels": 0,
+        "ring_diagnostics": 0, "controls": 0, "generation": 0, "cost": 0, "manifest_digest": 0,
+        "decision": 0, "phases": 0, "elapsed_s": 0,
+    });
+    for k in required {
+        let name = k.as_str().ok_or("schema key")?;
+        if skeleton.get(name).is_none() {
+            return Err(format!(
+                "result schema is missing the required field {name}"
+            ));
+        }
+    }
+    Ok(())
+}
+
+/// Aggregate of one arm over one fixed full stream.
+#[derive(Default)]
+struct ArmAgg {
+    positions: usize,
+    empty_pool: usize,
+    cand_bearing: usize,
+    reads: usize,
+    strengths: [usize; ACTS],
+    correct_payload: usize,
+    emitted_correct_local: usize,
+    emitted_correct_reader: usize,
+    covered: usize,
+    served_ne_ungated: usize,
+    hard_bits: f64,
+    local_bits: f64,
+    rank_regret: f64,
+    gate_regret: f64,
+    dose_regret: f64,
+    lpool_sum: f64,
+    admission_regret: f64,
+    per_doc: BTreeMap<usize, (f64, f64, usize)>,
+    strata: BTreeMap<String, (usize, usize, usize, f64, f64)>,
+}
+
+fn agg_json(a: &ArmAgg) -> serde_json::Value {
+    json!({
+        "positions": a.positions,
+        "empty_pool_positions": a.empty_pool,
+        "candidate_bearing_positions": a.cand_bearing,
+        "reads": a.reads,
+        "strength_counts": a.strengths.to_vec(),
+        "covered_positions": a.covered,
+        "correct_payload_reads": a.correct_payload,
+        "emitted_correct_local": a.emitted_correct_local,
+        "emitted_correct_reader": a.emitted_correct_reader,
+        "hard_bits": a.hard_bits,
+        "local_bits": a.local_bits,
+        "hard_bits_per_position": a.hard_bits / a.positions.max(1) as f64,
+        "delta_bits_per_position": (a.hard_bits - a.local_bits) / a.positions.max(1) as f64,
+        "mean_ranking_regret_nats": a.rank_regret / a.positions.max(1) as f64,
+        "mean_gate_regret_nats": a.gate_regret / a.positions.max(1) as f64,
+        "mean_dose_regret_nats": a.dose_regret / a.positions.max(1) as f64,
+        "mean_lpool_nats": a.lpool_sum / a.positions.max(1) as f64,
+        "mean_admission_regret_nats": a.admission_regret / a.positions.max(1) as f64,
+        "read_actions_where_served_source_differs_from_ungated_top": a.served_ne_ungated,
+        "strata": a.strata.iter().map(|(k, (n, cov, corr, hb, lb))| json!({
+            "stratum": k, "positions": n, "covered_positions": cov, "correct_payload_reads": corr,
+            "hard_bits_per_position": hb / (*n).max(1) as f64,
+            "delta_bits_per_position": (hb - lb) / (*n).max(1) as f64,
+        })).collect::<Vec<_>>(),
+        "documents": a.per_doc.iter().map(|(d, (l, r, n))| json!({
+            "document": d, "positions": n, "local_bits": l, "reader_bits": r,
+        })).collect::<Vec<_>>(),
+    })
+}
+
+/// Evaluate one arm (or the local baseline when `sel` is `None`) over one prepared full stream.
+#[allow(clippy::too_many_arguments)]
+fn eval_stream(
+    parent: &PriorCore,
+    local: &QueryHard,
+    u: &[Vec<i32>],
+    table: &ExactGroupTable,
+    seqs: &[Seq],
+    obs: &[Vec<Obs>],
+    kind: &str,
+    doc_of: Option<&[usize]>,
+    sel: Option<&RelationalSelector>,
+    prep: &[PrepPos],
+) -> ArmAgg {
+    let mut a = ArmAgg::default();
+    let mut idx = 0usize;
+    for (gi, os) in obs.iter().enumerate() {
+        let seq = &seqs[gi];
+        for o in os.iter() {
+            let pp = &prep[idx];
+            a.positions += 1;
+            let (z, r) = match sel {
+                None => (
+                    pp.z0.clone(),
+                    Read {
+                        action: None,
+                        source: None,
+                        payload: None,
+                        payload_abs: None,
+                        rel: 0,
+                        admitted: 0,
+                        scanned: 0,
+                    },
+                ),
+                Some(s) => predict_next(
+                    &o.ring,
+                    o.cur,
+                    o.prev as usize,
+                    o.prev2,
+                    s,
+                    table,
+                    parent,
+                    local,
+                    u,
+                    true,
+                ),
+            };
+            let lb = bits(&pp.z0, o.target, parent.cfg.f_bits);
+            let hb = bits(&z, o.target, parent.cfg.f_bits);
+            a.local_bits += lb;
+            a.hard_bits += hb;
+            let emitted_local = argmax_low(&pp.z0) as u32;
+            let emitted = argmax_low(&z) as u32;
+            if emitted_local == o.target {
+                a.emitted_correct_local += 1;
+            }
+            if emitted == o.target {
+                a.emitted_correct_reader += 1;
+            }
+            if o.cands.is_empty() {
+                a.empty_pool += 1;
+            } else {
+                a.cand_bearing += 1;
+            }
+            if pp.covered {
+                a.covered += 1;
+            }
+            if let Some((_k, st)) = r.action {
+                a.reads += 1;
+                a.strengths[st.min(ACTS - 1)] += 1;
+            }
+            if r.payload == Some(o.target) {
+                a.correct_payload += 1;
+            }
+            if let (Some(s), Some(p)) = (sel, pp.pos.as_ref()) {
+                let reg = regret_decomposition(s, table, p);
+                a.rank_regret += reg.ranking;
+                a.gate_regret += reg.gate;
+                a.dose_regret += reg.dose;
+                a.lpool_sum += reg.lpool;
+                a.admission_regret += reg.lpool - pp.ring.1;
+                if r.action.is_some() && !reg.served_matches_ungated {
+                    a.served_ne_ungated += 1;
+                }
+            }
+            let label: String = if kind == "construction" {
+                stratum_of(o, seq).to_string()
+            } else if pp.covered {
+                "text_copy_available".into()
+            } else {
+                "text_copy_unavailable".into()
+            };
+            let e = a.strata.entry(label).or_default();
+            e.0 += 1;
+            e.1 += usize::from(pp.covered);
+            e.2 += usize::from(r.payload == Some(o.target));
+            e.3 += hb;
+            e.4 += lb;
+            if let Some(d) = doc_of {
+                if let Some(&doc) = d.get(idx) {
+                    let de = a.per_doc.entry(doc).or_insert((0.0, 0.0, 0));
+                    de.0 += lb;
+                    de.1 += hb;
+                    de.2 += 1;
+                }
+            }
+            idx += 1;
+        }
+    }
+    a
+}
+
+/// One direct-action fit event from one observation under one frozen source arm.
+fn policy_event(
+    parent: &PriorCore,
+    local: &QueryHard,
+    u: &[Vec<i32>],
+    table: &ExactGroupTable,
+    sel: &RelationalSelector,
+    o: &Obs,
+    weight: f64,
+) -> Option<PolicyEvent> {
+    if o.cands.is_empty() {
+        return None;
+    }
+    let z = local_logits(
+        parent,
+        local,
+        u,
+        o.cur,
+        o.prev as usize,
+        o.prev2,
+        o.ring.written(),
+    );
+    let rel = rels_for(sel, o, table, false);
+    let (top, bucket) = sel.policy_bucket(&o.cands, &rel, &z)?;
+    let payload = o.cands[top].payload;
+    let p = prob_of(&z, payload, parent.cfg.f_bits);
+    let mut cost = [0.0f64; ACTS + 1];
+    for a in 0..ACTS {
+        let boost = (1i64 << AMP_SHIFTS[a]) as f64 / (1i64 << parent.cfg.f_bits) as f64;
+        cost[a + 1] = action_loss(p, boost, payload == o.target);
+    }
+    Some(PolicyEvent {
+        bucket,
+        weight,
+        cost,
+    })
+}
+
+/// Greedy continuation from an observed prefix through the shared path.
+#[allow(clippy::too_many_arguments)]
+fn greedy_continue(
+    prefix: &[u32],
+    sel: &RelationalSelector,
+    table: &ExactGroupTable,
+    parent: &PriorCore,
+    local: &QueryHard,
+    u: &[Vec<i32>],
+    use_reader: bool,
+    n: usize,
+) -> Vec<u32> {
+    let mut ring = ring_before_current(prefix);
+    let mut toks: Vec<u32> = prefix.to_vec();
+    let start = toks.len();
+    for _ in 0..n {
+        if generate_step(
+            &mut ring, &mut toks, sel, table, parent, local, u, use_reader,
+        )
+        .is_err()
+        {
+            break;
+        }
+    }
+    toks[start..].to_vec()
+}
+
+/// Document-cluster interval of `a - b` from serialized per-document sums.
+fn doc_cluster(pairs: &[(f64, f64, usize)], seed: u64) -> serde_json::Value {
+    let mut v = boot_diff(pairs, seed);
+    v["resampling_unit"] = json!("document");
+    v["unit"] = json!("bits_per_token");
+    v
+}
+
+/// Recompute and verify the manifest digest a loader would check.
+fn verify_manifest(root: &Path) -> Result<String, String> {
+    let p = root.join("binding.json");
+    let text = std::fs::read_to_string(&p).map_err(|e| format!("{}: {e}", p.display()))?;
+    let mut v: serde_json::Value = serde_json::from_str(&text).map_err(|e| e.to_string())?;
+    let claimed = v
+        .get("manifest_digest")
+        .and_then(|x| x.as_str())
+        .unwrap_or_default()
+        .to_string();
+    v["manifest_digest"] = json!("");
+    let canonical = serde_json::to_string(&v).map_err(|e| e.to_string())?;
+    let got = sha256_hex(canonical.as_bytes());
+    if got != claimed {
+        return Err(format!("manifest digest {claimed} != recomputed {got}"));
+    }
+    Ok(got)
+}
+
+fn utility_transfer_run() -> Result<ExitCode, String> {
+    // ---- arguments -------------------------------------------------------------
+    let mut root = PathBuf::from(DEFAULT_UTIL_ROOT);
+    let mut parent_root = PathBuf::from(PARENT_ROOT);
+    let mut source_root: Option<PathBuf> = None;
+    {
+        let mut a = std::env::args().skip(1);
+        while let Some(k) = a.next() {
+            match k.as_str() {
+                "--root" => root = PathBuf::from(a.next().ok_or("--root value")?),
+                "--parent-root" => parent_root = PathBuf::from(a.next().ok_or("value")?),
+                "--source-root" => source_root = Some(PathBuf::from(a.next().ok_or("value")?)),
+                other if other.starts_with("--mode") => {}
+                other => return Err(format!("unknown argument {other}")),
+            }
+        }
+    }
+    // Claim every output root immediately after argument validation, before any model load.
+    claim(&root).map_err(|e| format!("claim {}: {e}", root.display()))?;
+    let started = Instant::now();
+    let mut marks: Vec<(&'static str, f64)> = Vec::new();
+    let mark = |n: &'static str, m: &mut Vec<(&'static str, f64)>| {
+        m.push((n, started.elapsed().as_secs_f64()));
+    };
+    let schema = result_schema();
+    validate_result_fields(&schema)?;
+    write_json(&root, "schema.json", &schema)?;
+    let mut controls: Vec<serde_json::Value> = Vec::new();
+    mark("schema", &mut marks);
+
+    // ---- pinned inputs ---------------------------------------------------------
+    let pb = std::fs::read(E_PATH).map_err(|e| format!("E: {e}"))?;
+    if sha256_hex(&pb) != E_SHA {
+        return Err("E sha mismatch".into());
+    }
+    let parent = PriorCore::from_bytes(&pb).map_err(|e| format!("load E: {e}"))?;
+    parent.validate()?;
+    let (parent_digest, _) = parent_hash_convention(&pb);
+    let sb = std::fs::read(S_PATH).map_err(|e| format!("S: {e}"))?;
+    if sha256_hex(&sb) != S_SHA {
+        return Err("S sha mismatch".into());
+    }
+    let tb = std::fs::read(DEFAULT_TOKENIZER).map_err(|e| format!("tokenizer: {e}"))?;
+    if sha256_hex(&tb) != TOKENIZER_SHA {
+        return Err("tokenizer sha mismatch".into());
+    }
+    let derived = sha256_hex(&derive_tokenizer_json(&tb, VOCAB).map_err(|e| format!("{e}"))?);
+    if derived != DERIVED_SHA {
+        return Err(format!("derived tokenizer sha {derived} != pinned"));
+    }
+    let tokenizer = derive_tokenizer(&tb, VOCAB).map_err(|e| format!("derive: {e}"))?;
+    let raw_tok: [u8; 32] = hex_to_bytes(&derived)?.try_into().unwrap();
+    let local = QueryHard::from_bytes(&sb, &parent, &parent_digest, &raw_tok)
+        .map_err(|e| format!("load S: {e}"))?;
+    let u: Vec<Vec<i32>> = (0..120).map(|s| local.row_scores(s)).collect();
+    let table = ExactGroupTable::build().map_err(|e| format!("table: {e}"))?;
+    let group_digest = group_table_digest(&table);
+    let executable_sha256 = hex_of(&sha256_bytes(
+        &std::env::current_exe()
+            .ok()
+            .and_then(|p| std::fs::read(p).ok())
+            .unwrap_or_default(),
+    ));
+    let sources: Vec<serde_json::Value> = match &source_root {
+        Some(sr) => [
+            "crates/uor-r4-core/src/native_geometric/learner/relational.rs",
+            "crates/uor-r4-core/src/bin/competitive-reader.rs",
+        ]
+        .iter()
+        .map(|rel| match std::fs::read(sr.join(rel)) {
+            Ok(b) => json!({"path": rel, "sha256": sha256_hex(&b)}),
+            Err(_) => json!({"path": rel, "sha256": "UNAVAILABLE"}),
+        })
+        .collect(),
+        None => vec![json!({"path": "unspecified", "sha256": "UNAVAILABLE"})],
+    };
+    mark("pinned inputs", &mut marks);
+
+    // ---- frozen parent artifacts, digest-pinned ---------------------------------
+    let e_digest = sha256_bytes(&sb);
+    let load_parent = |name: &str, pin: &str| -> Result<RelationalSelector, String> {
+        let path = parent_root.join("artifacts").join(format!("{name}.rlr2"));
+        let b = std::fs::read(&path).map_err(|e| format!("{}: {e}", path.display()))?;
+        let got = sha256_hex(&b);
+        if got != pin {
+            return Err(format!(
+                "parent artifact {name} digest {got} != pinned {pin}"
+            ));
+        }
+        let sel = RelationalArtifact::from_bytes(&b, &e_digest, &raw_tok)?.selector;
+        sel.validate_for_vocab(parent.cfg.vocab)?;
+        if !sel.policy.is_empty() {
+            return Err(format!(
+                "parent artifact {name} unexpectedly carries a policy"
+            ));
+        }
+        Ok(sel)
+    };
+    let mut parents_meta: Vec<serde_json::Value> = Vec::new();
+    let mut base_arms: BTreeMap<&'static str, RelationalSelector> = BTreeMap::new();
+    for (name, pin) in [
+        ("exact", PARENT_SHA_EXACT),
+        ("relational", PARENT_SHA_RELATIONAL),
+        ("relational_ctx", PARENT_SHA_RELATIONAL_CTX),
+        ("categorical", PARENT_SHA_CATEGORICAL),
+    ] {
+        let sel = load_parent(name, pin)?;
+        parents_meta.push(json!({"arm": name, "sha256": pin, "policy_present": false}));
+        base_arms.insert(name, sel);
+    }
+    let exact_base = base_arms["exact"].clone();
+    let relational_base = base_arms["relational"].clone();
+    let relational_ctx_base = base_arms["relational_ctx"].clone();
+    let categorical_base = base_arms["categorical"].clone();
+    mark("parent artifacts", &mut marks);
+
+    // ---- populations -----------------------------------------------------------
+    let banks = build_banks(&tokenizer, parent.cfg.vocab)?;
+    let fit = make_pop(&banks, N_FIT, SEED_FIT, &banks.values_fit);
+    let tune = make_pop(&banks, N_TUNE, SEED_TUNE, &banks.values_fit);
+    let regression = make_pop(&banks, N_FRESH, SEED_FRESH, &banks.values_held);
+    let final_pop = make_pop(&banks, N_FRESH, SEED_FINAL, &banks.values_held);
+    for s in fit
+        .iter()
+        .chain(tune.iter())
+        .chain(regression.iter())
+        .chain(final_pop.iter())
+    {
+        validate_fixture(s, &banks)?;
+    }
+    let fit_obs = observe_full_all(&fit);
+    let tune_obs = observe_full_all(&tune);
+    let regression_obs = observe_full_all(&regression);
+    let final_obs = observe_full_all(&final_pop);
+    let pop_counts = |obs: &[Vec<Obs>]| -> (usize, usize) {
+        let n: usize = obs.iter().map(|v| v.len()).sum();
+        let cand: usize = obs.iter().flatten().filter(|o| !o.cands.is_empty()).count();
+        (n, cand)
+    };
+    let (fit_n, fit_cand) = pop_counts(&fit_obs);
+    let (tune_n, tune_cand) = pop_counts(&tune_obs);
+    let _ = tune_cand;
+    let (reg_n, reg_cand) = pop_counts(&regression_obs);
+    let _ = reg_cand;
+    let (fin_n, fin_cand) = pop_counts(&final_obs);
+    mark("construction", &mut marks);
+
+    // ---- reader text: document-disjoint fit / tune / final ----------------------
+    let (uniq, _, _) = reconstruct_corpus(Path::new(DEFAULT_DOCS));
+    let mut dev: Vec<usize> = (0..uniq.len())
+        .filter(|i| uniq[*i].split == Split::Dev)
+        .collect();
+    dev.sort_by_key(|i| uniq[*i].sha256);
+    if dev.len() < 3 * TEXT_DOCS {
+        return Err("not enough Dev documents for fit/tune/final reader splits".into());
+    }
+    let fit_docs: Vec<usize> = dev[0..TEXT_DOCS].to_vec();
+    let tune_docs: Vec<usize> = dev[TEXT_DOCS..2 * TEXT_DOCS].to_vec();
+    let final_docs: Vec<usize> = dev[2 * TEXT_DOCS..3 * TEXT_DOCS].to_vec();
+    for (a, b) in [
+        (&fit_docs, &tune_docs),
+        (&fit_docs, &final_docs),
+        (&tune_docs, &final_docs),
+    ] {
+        for x in a.iter() {
+            for y in b.iter() {
+                if uniq[*x].path == uniq[*y].path || uniq[*x].sha256 == uniq[*y].sha256 {
+                    return Err("reader text document splits overlap".into());
+                }
+            }
+        }
+    }
+    let doc_id = |i: usize| json!({"path": uniq[i].path, "sha256": hex_of(&uniq[i].sha256), "bytes": uniq[i].bytes});
+
+    // Preparation probe, then a window count that clears the declared minimum information target.
+    let probe_encode_start = Instant::now();
+    let probe_tokens = tokenizer.encode(&uniq[fit_docs[0]].text);
+    let probe_encode_s = probe_encode_start.elapsed().as_secs_f64().max(1e-9);
+    let probe_windows = windows_of(&probe_tokens);
+    let probe_observe_start = Instant::now();
+    let probe_cand: usize = probe_windows
+        .iter()
+        .take(WINDOWS_PER_DOC)
+        .map(|w| {
+            let seq = Seq {
+                tokens: w.clone(),
+                group: 0xF000,
+                answer: 0,
+                absent: false,
+                answer_source_abs: None,
+            };
+            observe_full(&seq)
+                .iter()
+                .filter(|o| !o.cands.is_empty())
+                .count()
+        })
+        .sum();
+    let probe_observe_s = probe_observe_start.elapsed().as_secs_f64().max(1e-9);
+    let per_window_cand = probe_cand as f64 / WINDOWS_PER_DOC.max(1) as f64;
+    let mut per_doc = WINDOWS_PER_DOC;
+    while (per_doc as f64 * per_window_cand * TEXT_DOCS as f64) < MIN_TEXT_FIT_POSITIONS as f64
+        && per_doc < probe_windows.len().max(WINDOWS_PER_DOC)
+    {
+        per_doc += 1;
+    }
+    let preparation_probe = json!({
+        "fit_document": uniq[fit_docs[0]].path,
+        "encode_seconds": probe_encode_s,
+        "tokens": probe_tokens.len(),
+        "windows_available": probe_windows.len(),
+        "observe_seconds": probe_observe_s,
+        "candidate_positions_per_window": per_window_cand,
+        "declared_minimum_text_fit_positions": MIN_TEXT_FIT_POSITIONS,
+        "chosen_windows_per_document": per_doc,
+        "rationale": "declared minimum information target plus measured observe rate; no large corpus download",
+    });
+
+    let encode_doc = |i: usize| -> Vec<u32> { tokenizer.encode(&uniq[i].text) };
+    let build_streams = |docs: &[usize], per: usize| -> Vec<(usize, Vec<u32>)> {
+        let mut v = Vec::new();
+        for i in docs.iter() {
+            for w in windows_of(&encode_doc(*i)).into_iter().take(per) {
+                v.push((*i, w));
+            }
+        }
+        v
+    };
+    let fit_streams = build_streams(&fit_docs, per_doc);
+    let tune_streams = build_streams(&tune_docs, per_doc);
+    let final_streams = build_streams(&final_docs, per_doc);
+    let to_seqs = |s: &[(usize, Vec<u32>)], group: u16| -> Vec<Seq> {
+        s.iter()
+            .map(|(_, t)| Seq {
+                tokens: t.clone(),
+                group,
+                answer: 0,
+                absent: false,
+                answer_source_abs: None,
+            })
+            .collect()
+    };
+    let fit_text_seqs = to_seqs(&fit_streams, 0xF000);
+    let tune_text_seqs = to_seqs(&tune_streams, 0xF100);
+    let final_text_seqs = to_seqs(&final_streams, 0xF200);
+    let fit_text_obs = observe_full_all(&fit_text_seqs);
+    let tune_text_obs = observe_full_all(&tune_text_seqs);
+    let final_text_obs = observe_full_all(&final_text_seqs);
+    // Per-*position* document index for document-cluster intervals (one document per window).
+    let per_position_docs = |streams: &[(usize, Vec<u32>)], obs: &[Vec<Obs>]| -> Vec<usize> {
+        streams
+            .iter()
+            .zip(obs.iter())
+            .flat_map(|((d, _), os)| std::iter::repeat(*d).take(os.len()))
+            .collect()
+    };
+    let fit_text_doc_pos = per_position_docs(&fit_streams, &fit_text_obs);
+    let final_text_doc_pos = per_position_docs(&final_streams, &final_text_obs);
+    let doc_of = |s: &[(usize, Vec<u32>)]| -> Vec<usize> { s.iter().map(|(d, _)| *d).collect() };
+    let _fit_text_docs = doc_of(&fit_streams);
+    let tune_text_docs = doc_of(&tune_streams);
+    let _ = &tune_text_docs;
+    let final_text_docs = doc_of(&final_streams);
+    let text_counts = |obs: &[Vec<Obs>]| -> (usize, usize) {
+        let n: usize = obs.iter().map(|v| v.len()).sum();
+        let cand: usize = obs.iter().flatten().filter(|o| !o.cands.is_empty()).count();
+        (n, cand)
+    };
+    let (fit_text_n, fit_text_cand) = text_counts(&fit_text_obs);
+    let (tune_text_n, tune_text_cand) = text_counts(&tune_text_obs);
+    let (final_text_n, final_text_cand) = text_counts(&final_text_obs);
+    let text_split = json!({
+        "fit_documents": fit_docs.iter().map(|i| doc_id(*i)).collect::<Vec<_>>(),
+        "tune_documents": tune_docs.iter().map(|i| doc_id(*i)).collect::<Vec<_>>(),
+        "final_documents": final_docs.iter().map(|i| doc_id(*i)).collect::<Vec<_>>(),
+        "windows_per_document": per_doc,
+        "disjoint_by_path_and_content_hash": true,
+        "fit_windows": fit_streams.len(),
+        "fit_positions": fit_text_n,
+        "fit_candidate_positions": fit_text_cand,
+        "tune_positions": tune_text_n,
+        "tune_candidate_positions": tune_text_cand,
+        "final_positions": final_text_n,
+        "final_candidate_positions": final_text_cand,
+        "minimum_information_target_met": fit_text_cand >= MIN_TEXT_FIT_POSITIONS,
+        "scope": "The frozen local prior was trained on this pinned corpus; that exposure is separate and is not removed. Reader-held-out transfer, not necessarily externally unseen language.",
+    });
+    mark("text split + prep probe", &mut marks);
+
+    // ---- declared gap thresholds from the TUNE mixture --------------------------
+    let mut tune_gaps: Vec<i32> = Vec::new();
+    for (obs, sel) in [
+        (&tune_obs, &relational_base),
+        (&tune_text_obs, &relational_base),
+    ] {
+        for os in obs.iter() {
+            for o in os.iter() {
+                if o.cands.is_empty() {
+                    continue;
+                }
+                let z = local_logits(
+                    &parent,
+                    &local,
+                    &u,
+                    o.cur,
+                    o.prev as usize,
+                    o.prev2,
+                    o.ring.written(),
+                );
+                let rel = rels_for(sel, o, &table, false);
+                if let Some(g) = sel.top_payload_gap(&o.cands, &rel, &z) {
+                    tune_gaps.push(g);
+                }
+            }
+        }
+    }
+    let gap_thresholds = choose_gap_thresholds(&mut tune_gaps);
+    mark("gap thresholds", &mut marks);
+
+    // ---- direct hard-action policy for each frozen source arm -------------------
+    let mut fit_report: Vec<serde_json::Value> = Vec::new();
+    let mut policies: BTreeMap<&'static str, RelationalSelector> = BTreeMap::new();
+    for (name, base) in [
+        ("h4_policy", &relational_base),
+        ("categorical_policy", &categorical_base),
+    ] {
+        let t0 = Instant::now();
+        let const_ev: Vec<PolicyEvent> = fit_obs
+            .iter()
+            .flatten()
+            .filter_map(|o| policy_event(&parent, &local, &u, &table, base, o, 1.0))
+            .collect();
+        let text_raw: Vec<PolicyEvent> = fit_text_obs
+            .iter()
+            .flatten()
+            .filter_map(|o| policy_event(&parent, &local, &u, &table, base, o, 1.0))
+            .collect();
+        // Declared weight: construction and natural text carry equal total weight.
+        let w_text = if text_raw.is_empty() {
+            0.0
+        } else {
+            const_ev.len() as f64 / text_raw.len() as f64
+        };
+        let mut events = const_ev.clone();
+        for mut e in text_raw {
+            e.weight = w_text;
+            events.push(e);
+        }
+        let (policy, fit) = fit_policy(&events);
+        let mut sel = base.clone();
+        sel.policy = policy.clone();
+        sel.gap_thresholds = gap_thresholds;
+        sel.validate_for_vocab(parent.cfg.vocab)?;
+        let mut action_hist = [0usize; ACTS + 1];
+        for code in policy.iter() {
+            action_hist[*code as usize] += 1;
+        }
+        fit_report.push(json!({
+            "arm": name,
+            "base_arm": if name == "h4_policy" { "relational" } else { "categorical" },
+            "seconds": t0.elapsed().as_secs_f64(),
+            "construction_events": const_ev.len(),
+            "text_events": events.len() - const_ev.len(),
+            "declared_text_weight": w_text,
+            "total_declared_weight": fit.total_weight,
+            "gap_thresholds": gap_thresholds,
+            "global_action": fit.global_action,
+            "buckets_with_own_action": fit.buckets_with_own_action,
+            "fallback_buckets": fit.fallback_buckets,
+            "bucket_action_histogram": action_hist,
+            "bucket_support": fit.support,
+            "bucket_mean_cost": fit.mean_cost,
+            "policy_actions": policy,
+        }));
+        policies.insert(name, sel);
+    }
+    let h4_policy = policies["h4_policy"].clone();
+    let categorical_policy = policies["categorical_policy"].clone();
+    mark("direct policy fit", &mut marks);
+
+    // ---- export, independent reload; the RELOADED arms are what get exercised ----
+    let mut export_bytes: BTreeMap<&'static str, Vec<u8>> = BTreeMap::new();
+    let mut reloaded: BTreeMap<&'static str, RelationalSelector> = BTreeMap::new();
+    let mut reload_failures = 0usize;
+    for (name, sel) in [
+        ("h4_policy", &h4_policy),
+        ("categorical_policy", &categorical_policy),
+    ] {
+        let a = RelationalArtifact {
+            selector: sel.clone(),
+            local_artifact_digest: e_digest,
+            tokenizer_digest: raw_tok,
+            data_digest: [0u8; 32],
+        };
+        let bytes = a.to_bytes();
+        write_checked(&root, &format!("artifacts/{name}.rlr2"), &bytes)?;
+        match RelationalArtifact::from_bytes(&bytes, &e_digest, &raw_tok) {
+            Ok(b) => {
+                if b.selector != *sel || b.selector.validate_for_vocab(parent.cfg.vocab).is_err() {
+                    reload_failures += 1;
+                }
+                reloaded.insert(name, b.selector);
+            }
+            Err(_) => reload_failures += 1,
+        }
+        export_bytes.insert(name, bytes);
+    }
+    let h4_load = reloaded["h4_policy"].clone();
+    let cat_load = reloaded["categorical_policy"].clone();
+    mark("export + reload", &mut marks);
+
+    // ---- prepared streams, ring diagnostics, panels -----------------------------
+    let prep_fit = prep_stream(&parent, &local, &u, &fit_obs);
+    let prep_reg = prep_stream(&parent, &local, &u, &regression_obs);
+    let prep_final = prep_stream(&parent, &local, &u, &final_obs);
+    let prep_fit_text = prep_stream(&parent, &local, &u, &fit_text_obs);
+    let prep_final_text = prep_stream(&parent, &local, &u, &final_text_obs);
+    mark("prepared streams", &mut marks);
+
+    let arms: Vec<(&'static str, Option<&RelationalSelector>)> = vec![
+        ("local", None),
+        ("exact_parent", Some(&exact_base)),
+        ("relational_parent", Some(&relational_base)),
+        ("relational_ctx_parent", Some(&relational_ctx_base)),
+        ("categorical_parent", Some(&categorical_base)),
+        ("h4_policy", Some(&h4_load)),
+        ("categorical_policy", Some(&cat_load)),
+    ];
+    let mut panels: Vec<serde_json::Value> = Vec::new();
+    let mut agg_store: BTreeMap<(String, String), ArmAgg> = BTreeMap::new();
+    for (label, kind, seqs, obs, prep, docs) in [
+        (
+            "construction_fit",
+            "construction",
+            &fit,
+            &fit_obs,
+            &prep_fit,
+            None,
+        ),
+        (
+            "construction_regression",
+            "construction",
+            &regression,
+            &regression_obs,
+            &prep_reg,
+            None,
+        ),
+        (
+            "construction_final",
+            "construction",
+            &final_pop,
+            &final_obs,
+            &prep_final,
+            None,
+        ),
+        (
+            "text_fit",
+            "text",
+            &fit_text_seqs,
+            &fit_text_obs,
+            &prep_fit_text,
+            Some(&fit_text_doc_pos),
+        ),
+        (
+            "text_final",
+            "text",
+            &final_text_seqs,
+            &final_text_obs,
+            &prep_final_text,
+            Some(&final_text_doc_pos),
+        ),
+    ] {
+        let mut rows = Vec::new();
+        for (name, sel) in arms.iter() {
+            let a = eval_stream(
+                &parent,
+                &local,
+                &u,
+                &table,
+                seqs,
+                obs,
+                kind,
+                docs.map(|d| d.as_slice()),
+                *sel,
+                prep,
+            );
+            rows.push(json!({"arm": name, "aggregate": agg_json(&a)}));
+            agg_store.insert((label.to_string(), name.to_string()), a);
+        }
+        panels.push(json!({"panel": label, "kind": kind, "arms": rows}));
+    }
+    mark("panels", &mut marks);
+
+    // ---- ring diagnostics ------------------------------------------------------
+    let ring_row = |label: &str, obs: &[Vec<Obs>], prep: &[PrepPos]| -> serde_json::Value {
+        let n = prep.len();
+        let eligible = prep.iter().filter(|p| p.ring.0).count();
+        let cand = obs.iter().flatten().filter(|o| !o.cands.is_empty()).count();
+        json!({
+            "stream": label, "positions": n, "ring_eligible_targets": eligible,
+            "candidate_bearing_positions": cand,
+            "mean_lring_nats_on_candidate_bearing": prep.iter()
+                .map(|p| p.ring.1).sum::<f64>() / n.max(1) as f64,
+        })
+    };
+    let mut ring_means: Vec<serde_json::Value> = Vec::new();
+    for (label, obs, prep) in [
+        ("construction_fit", &fit_obs, &prep_fit),
+        ("construction_regression", &regression_obs, &prep_reg),
+        ("construction_final", &final_obs, &prep_final),
+        ("text_fit", &fit_text_obs, &prep_fit_text),
+        ("text_final", &final_text_obs, &prep_final_text),
+    ] {
+        ring_means.push(ring_row(label, obs, prep));
+    }
+    let admission_regret = |panel: &str, arm: &str| -> f64 {
+        agg_store
+            .get(&(panel.to_string(), arm.to_string()))
+            .map(|a| a.admission_regret / a.positions.max(1) as f64)
+            .unwrap_or(f64::NAN)
+    };
+    let ring_diagnostics = json!({
+        "unit": "nats_per_position; target-using bound, never a serving feature",
+        "streams": ring_means,
+        "admission_regret_definition": "Lpool - Lring >= 0 per position on the same stream",
+        "mean_admission_regret_by_arm": {
+            "construction_final_h4_policy": admission_regret("construction_final", "h4_policy"),
+            "construction_final_categorical_policy": admission_regret("construction_final", "categorical_policy"),
+            "text_final_h4_policy": admission_regret("text_final", "h4_policy"),
+            "text_final_categorical_policy": admission_regret("text_final", "categorical_policy"),
+        },
+        "declared_trigger_nats": ADMISSION_TRIGGER_NATS,
+        "declared_trigger_note": "if the mean admission regret on candidate-bearing positions reaches the trigger, admission becomes the named successor candidate; no admission change is made in this run",
+    });
+    mark("ring diagnostics", &mut marks);
+
+    // ---- paired construction comparisons on the same full stream ----------------
+    let mut paired: Vec<serde_json::Value> = Vec::new();
+    for (label, obs, seqs, a, b, stratum, seed) in [
+        (
+            "final: h4_policy minus relational_ctx_parent (all positions)",
+            &final_obs,
+            &final_pop,
+            &h4_load,
+            &relational_ctx_base,
+            None,
+            0xA001u64,
+        ),
+        (
+            "final: h4_policy minus relational_ctx_parent (final present)",
+            &final_obs,
+            &final_pop,
+            &h4_load,
+            &relational_ctx_base,
+            Some("final_present"),
+            0xA002,
+        ),
+        (
+            "final: h4_policy minus relational_ctx_parent (final absent)",
+            &final_obs,
+            &final_pop,
+            &h4_load,
+            &relational_ctx_base,
+            Some("final_absent"),
+            0xA003,
+        ),
+        (
+            "regression: h4_policy minus relational_ctx_parent (final present)",
+            &regression_obs,
+            &regression,
+            &h4_load,
+            &relational_ctx_base,
+            Some("final_present"),
+            0xA004,
+        ),
+        (
+            "final: h4_policy minus relational_parent (all positions)",
+            &final_obs,
+            &final_pop,
+            &h4_load,
+            &relational_base,
+            None,
+            0xA005,
+        ),
+        (
+            "final: categorical_policy minus h4_policy (all positions)",
+            &final_obs,
+            &final_pop,
+            &cat_load,
+            &h4_load,
+            None,
+            0xA006,
+        ),
+    ] {
+        let mut d = paired_fresh_diff(&parent, &local, &u, &table, obs, seqs, a, b, stratum, seed);
+        d["comparison"] = json!(label);
+        d["unit"] = json!("bits_per_position");
+        d["resampling_unit"] = json!("sequence");
+        paired.push(d);
+    }
+
+    // ---- document-cluster intervals from serialized per-document sums -----------
+    let doc_pairs = |panel: &str, arm: &str| -> Vec<(f64, f64, usize)> {
+        agg_store
+            .get(&(panel.to_string(), arm.to_string()))
+            .map(|a| {
+                a.per_doc
+                    .values()
+                    .map(|(l, r, n)| (*r, *l, *n))
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default()
+    };
+    let text_intervals = json!({
+        "text_final": {
+            "h4_policy_vs_local": doc_cluster(&doc_pairs("text_final", "h4_policy"), 0xB001),
+            "categorical_policy_vs_local": doc_cluster(&doc_pairs("text_final", "categorical_policy"), 0xB002),
+            "relational_ctx_parent_vs_local": doc_cluster(&doc_pairs("text_final", "relational_ctx_parent"), 0xB003),
+            "h4_policy_vs_relational_ctx_parent": doc_cluster(
+                &{
+                    let a = doc_pairs("text_final", "h4_policy");
+                    let b = doc_pairs("text_final", "relational_ctx_parent");
+                    a.iter()
+                        .zip(b.iter())
+                        .map(|(x, y)| (x.0, y.0, x.2))
+                        .collect::<Vec<_>>()
+                },
+                0xB004,
+            ),
+        },
+        "text_fit": {
+            "h4_policy_vs_local": doc_cluster(&doc_pairs("text_fit", "h4_policy"), 0xB005),
+        },
+    });
+
+    // ---- four-condition selected-source intervention ---------------------------
+    let mut iv_attempted = 0usize;
+    let mut iv_invariant = 0usize;
+    let mut iv_support_lost = 0usize;
+    let mut iv_no_read_after = 0usize;
+    let mut iv_payload_follows = 0usize;
+    let mut iv_emitted_follows = 0usize;
+    let mut iv_ref_identical = 0usize;
+    let mut iv_enabled_changes_emission = 0usize;
+    for (gi, seq) in final_pop.iter().enumerate() {
+        let os = &final_obs[gi];
+        let mut chosen: Option<(usize, usize)> = None;
+        for (j, o) in os.iter().enumerate() {
+            if o.cands.is_empty() {
+                continue;
+            }
+            let z = local_logits(
+                &parent,
+                &local,
+                &u,
+                o.cur,
+                o.prev as usize,
+                o.prev2,
+                o.ring.written(),
+            );
+            let rel = rels_for(&h4_load, o, &table, false);
+            if let Some((k, _)) = h4_load.choose_with(&o.cands, &rel, Some(&z)) {
+                // Outside the fixed recent query context.
+                if o.cands[k].abs + 4 < o.ring.written() {
+                    chosen = Some((j, k));
+                }
+            }
+        }
+        let Some((j, k)) = chosen else { continue };
+        let o = &os[j];
+        let payload = o.cands[k].payload;
+        let Some(alt) = banks
+            .values_held
+            .iter()
+            .find(|v| **v != payload && !seq.tokens.contains(v))
+        else {
+            continue;
+        };
+        let idx = (o.cands[k].abs + 1) as usize;
+        if idx >= seq.tokens.len() {
+            continue;
+        }
+        iv_attempted += 1;
+        let (z_eo, _r_eo) = predict_next(
+            &o.ring,
+            o.cur,
+            o.prev as usize,
+            o.prev2,
+            &h4_load,
+            &table,
+            &parent,
+            &local,
+            &u,
+            true,
+        );
+        let (z_do, _) = predict_next(
+            &o.ring,
+            o.cur,
+            o.prev as usize,
+            o.prev2,
+            &h4_load,
+            &table,
+            &parent,
+            &local,
+            &u,
+            false,
+        );
+        let mut t2 = seq.tokens.clone();
+        t2[idx] = *alt;
+        let mut changed = seq.clone();
+        changed.tokens = t2;
+        let alt_obs = observe_full(&changed);
+        let Some(o2) = alt_obs
+            .iter()
+            .find(|x| x.ring.written() == o.ring.written())
+        else {
+            iv_support_lost += 1;
+            continue;
+        };
+        let (z_ec, r_ec) = predict_next(
+            &o2.ring,
+            o2.cur,
+            o2.prev as usize,
+            o2.prev2,
+            &h4_load,
+            &table,
+            &parent,
+            &local,
+            &u,
+            true,
+        );
+        let (z_dc, _) = predict_next(
+            &o2.ring,
+            o2.cur,
+            o2.prev as usize,
+            o2.prev2,
+            &h4_load,
+            &table,
+            &parent,
+            &local,
+            &u,
+            false,
+        );
+        // Disabled-before and disabled-after must be invariant: only an older payload changed.
+        if z_do == z_dc {
+            iv_invariant += 1;
+        }
+        if r_ec.action.is_none() {
+            iv_no_read_after += 1;
+        }
+        if r_ec.payload == Some(*alt) {
+            iv_payload_follows += 1;
+        }
+        // The original occurrence is still the served source when it is still selected.
+        if r_ec.source == Some(o.cands[k].slot_ref) {
+            iv_ref_identical += 1;
+        }
+        if argmax_low(&z_ec) as u32 == *alt {
+            iv_emitted_follows += 1;
+        }
+        if argmax_low(&z_eo) != argmax_low(&z_ec) {
+            iv_enabled_changes_emission += 1;
+        }
+    }
+    controls.push(json!({
+        "control": "selected_source_intervention_four_conditions",
+        "arm": "h4_policy (reloaded)",
+        "attempted": iv_attempted,
+        "invariant_disabled_before_equals_disabled_after": iv_invariant,
+        "lost_support_after_intervention": iv_support_lost,
+        "no_read_after_intervention": iv_no_read_after,
+        "enabled_selected_the_new_payload": iv_payload_follows,
+        "enabled_emitted_the_new_payload": iv_emitted_follows,
+        "original_source_reference_still_served": iv_ref_identical,
+        "enabled_emission_changed_by_the_intervention": iv_enabled_changes_emission,
+        "note": "four matched conditions on the same prefix: enabled-original, enabled-changed, disabled-original, disabled-changed; the replacement payload is absent from the whole sequence and the query is fixed; support loss and NoRead are counted rather than dropped",
+    }));
+
+    // ---- generation from the reloaded artifacts --------------------------------
+    let gen_arms: [(&str, &RelationalSelector); 4] = [
+        ("relational_ctx_parent", &relational_ctx_base),
+        ("h4_policy", &h4_load),
+        ("categorical_policy", &cat_load),
+        ("categorical_parent", &categorical_base),
+    ];
+    let mut generation: Vec<serde_json::Value> = Vec::new();
+    for (gi, seq) in final_pop.iter().enumerate().take(6) {
+        let prefix = &seq.tokens[..seq.tokens.len() - 1];
+        let mut rows = Vec::new();
+        rows.push(json!({
+            "arm": "local",
+            "tokens": greedy_continue(prefix, &h4_load, &table, &parent, &local, &u, false, 8),
+        }));
+        for (name, sel) in gen_arms.iter() {
+            rows.push(json!({
+                "arm": name,
+                "tokens": greedy_continue(prefix, sel, &table, &parent, &local, &u, true, 8),
+            }));
+        }
+        let mut seen: Vec<Vec<u32>> = Vec::new();
+        for r in rows.iter_mut() {
+            let toks: Vec<u32> = r["tokens"]
+                .as_array()
+                .map(|v| {
+                    v.iter()
+                        .filter_map(|x| x.as_u64().map(|y| y as u32))
+                        .collect()
+                })
+                .unwrap_or_default();
+            let repeats = toks.windows(2).filter(|w| w[0] == w[1]).count();
+            r["decoded"] = json!(tokenizer.decode(&toks));
+            r["adjacent_repeats"] = json!(repeats);
+            r["loop_period_1"] = json!(toks.len() >= 2 && toks.iter().all(|t| *t == toks[0]));
+            seen.push(toks);
+        }
+        generation.push(json!({
+            "prompt": "construction_final",
+            "index": gi,
+            "answer": seq.answer,
+            "absent": seq.absent,
+            "arms": rows,
+        }));
+    }
+    for (ti, seq) in final_text_seqs.iter().enumerate().take(2) {
+        let prefix = &seq.tokens[..seq.tokens.len().min(24)];
+        let mut rows = Vec::new();
+        rows.push(json!({
+            "arm": "local",
+            "tokens": greedy_continue(prefix, &h4_load, &table, &parent, &local, &u, false, 16),
+        }));
+        for (name, sel) in gen_arms.iter() {
+            rows.push(json!({
+                "arm": name,
+                "tokens": greedy_continue(prefix, sel, &table, &parent, &local, &u, true, 16),
+            }));
+        }
+        for r in rows.iter_mut() {
+            let toks: Vec<u32> = r["tokens"]
+                .as_array()
+                .map(|v| {
+                    v.iter()
+                        .filter_map(|x| x.as_u64().map(|y| y as u32))
+                        .collect()
+                })
+                .unwrap_or_default();
+            r["decoded"] = json!(tokenizer.decode(&toks));
+            r["adjacent_repeats"] = json!(toks.windows(2).filter(|w| w[0] == w[1]).count());
+            r["loop_period_1"] = json!(toks.len() >= 2 && toks.iter().all(|t| *t == toks[0]));
+        }
+        generation.push(json!({
+            "prompt": "natural_text_final",
+            "index": ti,
+            "document": uniq[final_text_docs[ti]].path,
+            "arms": rows,
+        }));
+    }
+    mark("controls + generation", &mut marks);
+
+    // ---- paired interleaved cost measurement -----------------------------------
+    let active_stream: Vec<u32> = final_pop[0].tokens.clone();
+    let text_stream: Vec<u32> =
+        final_text_seqs[0].tokens[..24.min(final_text_seqs[0].tokens.len())].to_vec();
+    let mut cost_rows: Vec<serde_json::Value> = Vec::new();
+    for (label, stream) in [
+        ("construction_stream", &active_stream),
+        ("text_window", &text_stream),
+    ] {
+        let mut local_s = Vec::new();
+        let mut reader_s = Vec::new();
+        let mut paired_d = Vec::new();
+        let _ = active_probe(&parent, &local, &u, &h4_load, &table, stream, true);
+        for _ in 0..7 {
+            let t0 = Instant::now();
+            let lo = active_probe(&parent, &local, &u, &h4_load, &table, stream, false);
+            black_box(&lo);
+            let t1 = t0.elapsed().as_secs_f64();
+            let rd = active_probe(&parent, &local, &u, &h4_load, &table, stream, true);
+            black_box(&rd);
+            let t2 = t0.elapsed().as_secs_f64();
+            local_s.push(t1);
+            reader_s.push(t2 - t1);
+            paired_d.push((t2 - t1) - t1);
+        }
+        local_s.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        reader_s.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        paired_d.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        let (_, preds, admitted, reads) =
+            active_probe(&parent, &local, &u, &h4_load, &table, stream, true);
+        cost_rows.push(json!({
+            "stream": label,
+            "tokens": stream.len(),
+            "predictions": preds,
+            "candidates_admitted_total": admitted,
+            "candidates_admitted_per_prediction": admitted as f64 / preds.max(1) as f64,
+            "read_actions": reads,
+            "median_local_s": local_s[local_s.len() / 2],
+            "median_reader_s": reader_s[reader_s.len() / 2],
+            "median_paired_reader_minus_local_s": paired_d[paired_d.len() / 2],
+            "median_local_us_per_prediction": local_s[local_s.len() / 2] / preds.max(1) as f64 * 1e6,
+            "median_reader_us_per_prediction": reader_s[reader_s.len() / 2] / preds.max(1) as f64 * 1e6,
+            "protocol": "paired interleaved repeats on the same stream, alternating no-reader-work local and full reader passes; medians reported; no token-pair cache",
+        }));
+    }
+    let mut serialized = serde_json::Map::new();
+    serialized.insert("parent_E".into(), json!(pb.len()));
+    serialized.insert("local_query_artifact".into(), json!(sb.len()));
+    for (k, v) in export_bytes.iter() {
+        serialized.insert((*k).to_string(), json!(v.len()));
+    }
+    let cost = json!({
+        "measurements": cost_rows,
+        "serialized_bytes": serde_json::Value::Object(serialized),
+        "resident_bytes": {
+            "local_row_table": 120 * parent.cfg.vocab * 4,
+            "parent_scratch": parent.cfg.vocab * 4,
+            "policy_opcodes_per_arm": UTIL_BUCKETS,
+            "gap_thresholds_per_arm": 4 * (UTIL_GAP_BINS - 1),
+        },
+        "energy": "UNAVAILABLE",
+    });
+    mark("cost", &mut marks);
+
+    // ---- manifest with a digest the loader verifies -----------------------------
+    let full_binding = binding_digest(&fit_obs, &fit_text_obs, &tune_obs, &final_obs);
+    let mut manifest = json!({
+        "schema": "uor-r4.reader-utility-binding/1",
+        "base_revision": "31972e34",
+        "parent_root": parent_root.display().to_string(),
+        "parents": parents_meta,
+        "inputs": {
+            "E_sha256": E_SHA, "local_query_artifact_sha256": S_SHA,
+            "tokenizer_source_sha256": TOKENIZER_SHA, "tokenizer_derived_sha256": DERIVED_SHA,
+            "parent_digest": hex_of(&parent_digest),
+        },
+        "group_digest": group_digest,
+        "observations": {
+            "full_binding_digest": hex_of(&full_binding),
+            "construction_fit_positions": fit_n, "construction_fit_candidate_positions": fit_cand,
+            "construction_tune_positions": tune_n, "construction_regression_positions": reg_n,
+            "construction_final_positions": fin_n, "construction_final_candidate_positions": fin_cand,
+            "text_fit_positions": fit_text_n, "text_fit_candidate_positions": fit_text_cand,
+            "text_final_positions": final_text_n, "text_final_candidate_positions": final_text_cand,
+        },
+        "text_split": text_split.clone(),
+        "features": {
+            "buckets": UTIL_BUCKETS,
+            "bucket_formula": "gap_bin*8 + ctx_class*2 + margin_bit",
+            "gap_bin": "count of declared integer thresholds below the selected payload's local logit gap",
+            "ctx_class": "bit0 = payload equals the current input token, bit1 = ordered two-neighbour agreement",
+            "margin_bit": "1 iff the ungated top source score strictly exceeds the runner-up's",
+            "gap_thresholds": gap_thresholds,
+            "actions": {"0": "NoRead", "1": "0.0625 nats", "2": "1 nat", "3": "8 nats"},
+        },
+        "configuration": {
+            "ring_cap": RING_CAP, "max_candidates": MAX_CAND,
+            "seeds": {"fit": SEED_FIT, "tune": SEED_TUNE, "regression": SEED_FRESH, "final": SEED_FINAL},
+            "min_support": UTIL_MIN_SUPPORT,
+            "abstention": "a read is chosen only if its mean cost is strictly below NoRead's",
+            "text_weight": "construction and natural text carry equal declared total weight",
+        },
+        "export": {"format": "RLR2 v4", "artifacts": export_bytes.keys().collect::<Vec<_>>()},
+        "source_files": sources.clone(),
+        "manifest_digest": "",
+        "limitations": [
+            "The frozen local prior was trained on this pinned corpus; reader-held-out is not externally unseen.",
+            "Offline probabilities are used only for fitting; serving uses integer comparisons and table lookups.",
+            "Physical energy is UNAVAILABLE without measurement.",
+        ],
+    });
+    let canonical = serde_json::to_string(&manifest).map_err(|e| e.to_string())?;
+    let manifest_digest = sha256_hex(canonical.as_bytes());
+    manifest["manifest_digest"] = json!(manifest_digest.clone());
+    write_json(&root, "binding.json", &manifest)?;
+    let verified_digest = verify_manifest(&root)?;
+    controls.push(json!({
+        "control": "artifact_reload_parity",
+        "arms": ["h4_policy", "categorical_policy"],
+        "reload_failures": reload_failures,
+        "note": "every exported arm is reloaded through the independent loader and compared to the fitted selector; the reloaded selectors drive every panel, the intervention, generation and timing",
+    }));
+
+    // ---- decision --------------------------------------------------------------
+    let agg = |panel: &str, arm: &str| -> serde_json::Value {
+        agg_store
+            .get(&(panel.to_string(), arm.to_string()))
+            .map(agg_json)
+            .unwrap_or(json!(null))
+    };
+    let corpus = |v: &serde_json::Value, f: &str| -> f64 { v[f].as_f64().unwrap_or(f64::NAN) };
+    let txt_final_h4 = agg("text_final", "h4_policy");
+    let txt_final_cat = agg("text_final", "categorical_policy");
+    let txt_final_parent = agg("text_final", "relational_ctx_parent");
+    let fin_h4 = agg("construction_final", "h4_policy");
+    let fin_parent = agg("construction_final", "relational_ctx_parent");
+    let reg_h4 = agg("construction_regression", "h4_policy");
+    let reg_parent = agg("construction_regression", "relational_ctx_parent");
+    let stratum_of_arm = |v: &serde_json::Value, label: &str| -> serde_json::Value {
+        v["strata"]
+            .as_array()
+            .and_then(|a| a.iter().find(|s| s["stratum"] == label))
+            .cloned()
+            .unwrap_or(json!(null))
+    };
+    let present_h4 = stratum_of_arm(&fin_h4, "final_present");
+    let present_parent = stratum_of_arm(&fin_parent, "final_present");
+    let absent_h4 = stratum_of_arm(&fin_h4, "final_absent");
+    let absent_parent = stratum_of_arm(&fin_parent, "final_absent");
+    let d_text_h4 = corpus(&txt_final_h4, "delta_bits_per_position");
+    let d_text_cat = corpus(&txt_final_cat, "delta_bits_per_position");
+    let d_text_parent = corpus(&txt_final_parent, "delta_bits_per_position");
+    let h4_text_interval = text_intervals["text_final"]["h4_policy_vs_local"].clone();
+    let harm_containment = d_text_h4 <= MARGIN_TEXT_BITS;
+    let useful_transfer =
+        d_text_h4 < 0.0 && h4_text_interval["hi"].as_f64().unwrap_or(f64::NAN) < 0.0;
+    let present_ok = corpus(&present_h4, "hard_bits_per_position")
+        <= corpus(&present_parent, "hard_bits_per_position") + MARGIN_PRESENT_BITS
+        && present_h4["correct_payload_reads"].as_u64().unwrap_or(0) + 2
+            >= present_parent["correct_payload_reads"]
+                .as_u64()
+                .unwrap_or(0);
+    let absent_ok = absent_h4["positions"].as_u64().unwrap_or(0) > 0
+        && absent_h4["correct_payload_reads"].as_u64().unwrap_or(0)
+            >= absent_parent["correct_payload_reads"].as_u64().unwrap_or(0)
+        && corpus(&absent_h4, "delta_bits_per_position")
+            <= corpus(&absent_parent, "delta_bits_per_position") + MARGIN_PRESENT_BITS;
+    let read_rate_h4 =
+        corpus(&fin_h4, "reads") / corpus(&fin_h4, "candidate_bearing_positions").max(1.0);
+    let all_noread_collapse =
+        corpus(&fin_h4, "reads") / corpus(&fin_h4, "positions").max(1.0) <= 0.02;
+
+    write_json(
+        &root,
+        "result.json",
+        &json!({
+            "schema": "uor-r4.reader-utility/1",
+            "base_revision": "31972e34",
+            "running_source": {
+                "git_rev": std::env::var("UOR_GIT_REV").unwrap_or_else(|_| "unset".into()),
+                "git_dirty": std::env::var("UOR_GIT_DIRTY").unwrap_or_else(|_| "unknown".into()),
+                "executable_sha256": executable_sha256,
+                "source_file_sha256": sources,
+            },
+            "inputs": {"E": E_SHA, "local_query_artifact": S_SHA, "tokenizer": {"source": TOKENIZER_SHA, "derived": derived}},
+            "parents": parents_meta,
+            "group_digest": group_digest,
+            "text_split": text_split,
+            "preparation_probe": preparation_probe,
+            "fit": fit_report,
+            "panels": panels,
+            "paired": paired,
+            "text_intervals": text_intervals,
+            "ring_diagnostics": ring_diagnostics,
+            "controls": controls,
+            "generation": generation,
+            "cost": cost,
+            "manifest_digest": verified_digest,
+            "reload_failures": reload_failures,
+            "decision": {
+                "unit": "bits_per_position on the full fixed stream; text in bits_per_token",
+                "endpoints": {
+                    "text_final_h4_policy": txt_final_h4,
+                    "text_final_categorical_policy": txt_final_cat,
+                    "text_final_relational_ctx_parent": txt_final_parent,
+                    "construction_final_h4_policy": fin_h4,
+                    "construction_final_relational_ctx_parent": fin_parent,
+                    "construction_regression_h4_policy": reg_h4,
+                    "construction_regression_relational_ctx_parent": reg_parent,
+                    "final_present_h4_policy": present_h4,
+                    "final_present_relational_ctx_parent": present_parent,
+                    "final_absent_h4_policy": absent_h4,
+                    "final_absent_relational_ctx_parent": absent_parent,
+                },
+                "text_delta_bits_per_token": {
+                    "h4_policy": d_text_h4,
+                    "categorical_policy": d_text_cat,
+                    "relational_ctx_parent": d_text_parent,
+                },
+                "margins": {"text_bits_per_token": MARGIN_TEXT_BITS, "component_bits_per_position": MARGIN_PRESENT_BITS},
+                "read_rate_among_candidate_bearing_final_construction_h4_policy": read_rate_h4,
+                "categories": {
+                    "harm_containment": harm_containment,
+                    "useful_transfer": useful_transfer,
+                    "relational_behaviour_preserved": present_ok,
+                    "absence_improved": absent_ok,
+                    "all_noread_collapse": all_noread_collapse,
+                    "matched_categorical_reported": true,
+                },
+                "historical": "PR #1323's narrow controller positive, PR #1325's retained_component_positive=false and unique_geometric_benefit=false all stand at their own scope and are not re-applied",
+            },
+            "phases": marks.iter().fold((0.0f64, Vec::new()), |(prev, mut out), (n, t)| {
+                out.push(json!({"phase": n, "seconds": t - prev, "cumulative_s": t}));
+                (*t, out)
+            }).1,
+            "elapsed_s": started.elapsed().as_secs_f64(),
+        }),
+    )?;
+    seal(&root).map_err(|e| format!("seal: {e}"))?;
+    let unlisted = verify(&root).map_err(|e| format!("verify: {e}"))?;
+    println!(
+        "utility-transfer: text_final h4 {:.4} cat {:.4} parent {:.4} bits/token | final present reads h4 {} parent {} | absent reads h4 {} parent {} | rel_preserved {} absence_ok {} harm {} transfer {} | manifest {} | sealed {} unlisted | {:.1}s",
+        d_text_h4, d_text_cat, d_text_parent,
+        present_h4["correct_payload_reads"].as_u64().unwrap_or(0),
+        present_parent["correct_payload_reads"].as_u64().unwrap_or(0),
+        absent_h4["correct_payload_reads"].as_u64().unwrap_or(0),
+        absent_parent["correct_payload_reads"].as_u64().unwrap_or(0),
+        present_ok, absent_ok, harm_containment, useful_transfer,
+        verified_digest, unlisted.len(), started.elapsed().as_secs_f32()
+    );
+    Ok(ExitCode::SUCCESS)
+}
+
+fn main() -> ExitCode {
+    let mode = std::env::args().any(|a| a == "--mode=utility-transfer");
+    let result = if mode { utility_transfer_run() } else { run() };
+    match result {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("error: {e}");
+            ExitCode::from(1)
+        }
     }
 }

@@ -1,0 +1,130 @@
+UOR-R4 Geometric Language Model - evidence receipt
+Experiment: direct read-influence policy over the frozen improved source maps (utility transfer)
+Date: 2026-09-21
+Base revision: 31972e34 (PR #1327 merged). Worktree: .worktrees/geometric-query-read, branch codex/reader-utility-transfer
+Owning issues: #973, #820, #963, #964 (all remain open)
+
+PURPOSE
+Learn whether, and how strongly, an already selected source should influence the local predictor, using a
+direct hard finite-action objective and compact causal integer observations, on a language-weighted mixture
+with document-disjoint reader text and a fixed full prediction stream.
+
+FROZEN PARENT INPUTS (read-only, digest-pinned)
+relational-learning-4/artifacts/exact.rlr2            4795042636d57a360d7396c2f2939b79b1a28173c7228896a620cf53285a860d
+relational-learning-4/artifacts/relational.rlr2       8d33a48888af8d224533b3634a52a868313df41364ec2dde6e6f8da7bd3043d7
+relational-learning-4/artifacts/relational_ctx.rlr2   d4ab183d3975be563139ba42f3a5fb9ec61fa1691603bfcc3d603787d7ab5b55
+relational-learning-4/artifacts/categorical.rlr2      2a60d9376702126060d3f6c86a0358bde723b45dd419b4bb50dd8d6ee04296a3
+E  565cf98a01273af38425687adb522704b09a89bd7ab976b58b20bfbdaccfa0bf
+S  ed9affd638ee93670559c626fd6dab91dc2a3c7faa5db66ec9e5a486bcdbdfad
+tokenizer source 9ca9acddb6525a194ec8ac7a87f24fbba7232a9a15ffa1af0c1224fcd888e47c
+derived tokenizer a7ac75b68aa997fe7cc338d25d843157f2dc9d4265fb2f958ee779bb04828d6f
+group digest sha256("r4g1"||identity||product||inverse)
+
+SOURCE CHANGED
+learner/relational.rs: UTIL_BUCKETS/UTIL_GAP_BINS/UTIL_MIN_SUPPORT; RelationalSelector gains policy and
+  gap_thresholds; choose_with / choose_scored / choose_policy / policy_bucket / top_payload_gap; PolicyEvent,
+  PolicyFit, fit_policy (direct empirical finite policy), choose_gap_thresholds; RLR2 v4 with v2/v3 loading;
+  3 new tests (policy round-trip and opcode/threshold rejection; the fitter's support fallback, global
+  fallback and abstention tie; gap-observation bucket indexing)
+bin/competitive-reader.rs: --mode=utility-transfer; observe_full (empty pools included); ring_utility and
+  admission regret; prep_stream; eval_stream; four-condition selected-source intervention; paired
+  interleaved cost; binding.json with a verified manifest digest; schema validation before the expensive
+  pass; 1 new runner test (shared read_step uses the policy and its gap observation)
+
+PROSPECTIVE DECLARATIONS (frozen before execution)
+new construction seed SEED_FINAL=0x5C0F_F1A1 over the held-out payload bank; reader text documents disjoint
+by path and content hash into fit[0,8)/tune[8,16)/final[16,24); actions {NoRead,0.0625,1,8} nats;
+32 buckets = gap_bin*8 + ctx_class*2 + margin_bit; minimum support 20 weighted events; global fallback;
+safe-abstention tie rule; construction and text equal total declared weight; margins 0.05 bits/token and
+0.05 bits/position; admission trigger 0.25 nats.
+
+TEST RESULTS (executed)
+cargo test -p uor-r4-core --lib native_geometric::learner::relational -> 26 passed (3 new)
+cargo test -p uor-r4-core --bin competitive-reader -> 6 passed, 1 ignored (1 new)
+cargo fmt --check clean; cargo check --offline clean; python3 scripts/check_claim_wording.py passed
+
+EXECUTED RUN
+Root .uor-models/realtext-prior-2026-09-20/reader-utility-2 (claimed, sealed, verified; 0 unlisted files).
+Superseded attempt reader-utility-1 is retained and never resealed: all measurements completed; it failed
+only because the binding manifest was named manifest.json, which collides with seal's manifest file.
+Elapsed 163.8 s. Prepared streams 19.9 s; panels 106.0 s; controls + generation 24.2 s.
+
+POPULATIONS (full prediction stream, empty pools included)
+construction fit        3963 positions / 2969 candidate-bearing
+construction regression 2421 positions / 1813 candidate-bearing (the parent's replay)
+construction final      2442 positions / 1822 candidate-bearing (NEW seed)
+text fit                1952 positions /  944 candidate-bearing (8 documents)
+text tune               1952 positions /  752 candidate-bearing (8 disjoint documents)
+text final              1952 positions /  849 candidate-bearing (8 disjoint documents)
+Preparation probe: 25.5 candidate positions per 64-token window, 49 windows available; 4 windows per
+document chosen; minimum information target 600 met (944 > 600); encode 2.2 ms/doc.
+
+FIT
+2,969 construction events + 944 text events; declared text weight 3.145 (equal total weight)
+gap thresholds [-6784, -4992, -2944] (f_bits units) from the tune mixture
+global action 1 nat; 4 buckets with their own action; 28 fallback; opcode histogram [0, 0, 31, 1]
+
+HEADLINE - HELD-OUT READER TEXT (8 disjoint documents, 1952 positions, 849 candidate-bearing)
+local 6.4111 bits/token
+relational_ctx_parent  +0.5453 [ +0.4038, +0.6847]
+h4_policy              -0.0195 [ -0.0329, -0.0055]   interval entirely below zero
+categorical_policy     -0.0243 [ -0.0369, -0.0126]
+h4_policy - relational_ctx_parent  -0.5648 [ -0.7020, -0.4269]
+strata: copy-available -0.5649; copy-unavailable +0.0204 bits/token
+First net benefit on held-out prose; the parent's +0.2743 on previously inspected documents is retained.
+
+HONEST NEGATIVE - RELATIONAL BEHAVIOUR NOT PRESERVED (construction final, 2442 positions)
+local                 12.5334 hard bits/position
+relational_ctx_parent 10.5981  reads 819   strengths 0/819    correct payload 465  emitted_ok 362
+h4_policy             11.8945  reads 1822  strengths 1665/157 correct payload 517  emitted_ok  29
+categorical_policy    11.7364  reads 1822  strengths 1522/300 correct payload 547  emitted_ok  46
+present-query hard CE +7.59 bits/query worse than the parent; correct emitted 362 -> 29 while correct
+payload reads improve 465 -> 517. Same pattern on the parent regression stream.
+Diagnosed cause: the expected-cost minimiser reads every candidate at ~1 nat; the compact observations
+(gap, ctx_class, margin_bit) cannot separate high-copy-reliability construction buckets from
+low-reliability text buckets. Representation limitation, not support, quantization or the local predictor.
+Expected action cost (fitted) and emitted argmax correctness (measured) are different functionals.
+
+CATEGORIES (all declared prospectively)
+harm_containment true | useful_transfer true | absence_improved true | relational_behaviour_preserved false
+| all_noread_collapse false (read rate 1.00 of candidate-bearing) | matched_categorical_reported true
+
+ATTRIBUTION AND CONTROLS (all passed)
+exact decomposition ranking + gate + dose == actual - Lpool verified per position; 0 reads where the served
+source differed from the ungated top source
+selected_source_intervention_four_conditions (reloaded h4_policy): 140 attempted; disabled-before ==
+  disabled-after 140/140; 138 selected the new payload; 138 kept the original source reference; 9 emissions
+  changed; 8 emitted the new payload; 0 lost support; 0 NoRead
+artifact reload parity: 0 failures for both new arms; the reloaded selectors drive every panel, the
+  intervention, generation and timing
+binding.json manifest digest recomputed and verified on load
+
+RING DIAGNOSTICS (target-using; never a serving feature)
+ring-eligible targets: 929/2421 on the parent regression stream (matches the principal review)
+mean Lring on candidate-bearing: -2.85 nats (regression), -2.82 (final)
+mean ADMISSION REGRET (Lpool - Lring): 0.150 construction final, 0.283 text final
+declared 0.25 trigger FIRES on text and NOT on construction: admission is the named successor candidate at
+its declared scope; no admission change was made in this run
+
+COST (paired interleaved same stream, 7 repeats, medians, no token-pair cache)
+construction stream 15 predictions, 1.47 admitted/prediction, 10 reads, local 1352.2 us/prediction,
+  reader 1352.3 us/prediction, paired reader - local +1.04e-5 s
+text window         21 predictions, 0.00 admitted/prediction,  0 reads, local 1343.4 us/prediction,
+  reader 1345.3 us/prediction, paired reader - local -1.30e-5 s
+Reader increment +0.7 us/prediction against a ~1352 us/prediction uncached local path (~0.05%).
+Resident per arm: 32 policy opcode bytes + 12 gap-threshold bytes. Serialized: h4_policy 4392,
+categorical_policy 8488, parent_E 454788, local_query_artifact 53555. Physical energy UNAVAILABLE.
+
+GENERATION
+Finite greedy continuations from reloaded artifacts on final construction queries and final documents;
+all arms degenerate; no fluent prose; h4_policy output indistinguishable from local on the sampled prompts.
+
+REPORTING FIXES IN ATTEMPT 2 (recording corrections only, no measurement change)
+1. per-position document attribution for document-cluster intervals (attempt 1 attributed only the first
+   positions of each stream, giving intervals with the wrong denominators)
+2. read-rate denominator (attempt 1 subtracted reads instead of dividing by candidate-bearing positions)
+
+NOT RUN / UNAVAILABLE
+admission change; ring/memory/candidate widening; width or precision sweeps; S attribution replay;
+schedulers; reset/write, capacity, projection or corpus campaigns: NOT STARTED
+optimized serving latency, physical energy, general prose/chat/reasoning: UNAVAILABLE

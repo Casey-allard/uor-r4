@@ -1145,8 +1145,10 @@ result.
 **New cumulative: 186736749 ms.** Remaining: 194900000 - 186736749 = **8163251 ms (~136 min)**. The
 recorded +3,600,000 ms extension was used; no further extension was needed or taken.
 
+No paid/external compute and no deletion of unique material.
+
 Retained under the claimed, sealed and verified report root
-`.uor-models/realtext-prior-2026-09-20/contextual-utility-2` (0 unlisted files). Superseded attempt
+`.uor-models/realtext-prior-2026-09-20/contextual-utility-2` (0 unlisted files, ~22 MiB).
 `contextual-utility-1` is **retained and never resealed**; its only defect was a struct-equality
 self-check, and the repaired run reproduced the measurement bit-for-bit. Preserved untouched:
 `competitive-reader-1` (including unlisted `sum.py`), `relational-reader-1`, `occurrence-reader-1..4`,
@@ -1187,3 +1189,24 @@ Read-only storage inventory `uor-storage-inventory-v1`, collected 2026-09-21T03:
 Authoritative live snapshot **189266749/194900000 ms**, remaining **5633251 ms (~93.89 min)**. The earlier principal PR #1323 snapshot above is historical; all charges remain. This review adds no build/model debit: source/literature/document review and saved-data reconstruction only, no model fit/inference. No extension or paid compute.
 
 Read-only inventory at 2026-09-21T04:44:31Z: **42465247232 bytes free**, reserve **36766079385 bytes**, reserve not breached. Target 8780763136 allocated bytes, knowledge 1955487744, models at least 20970913792 (three sealed-path diagnostics, permissions unchanged). Overlapping/APFS allocations must not be summed as exclusive physical usage. **Zero deletions**. [Review](relational-learning-review-2026-09-21.md) and [saved-data evidence](../evidence/relational-learning-principal-review-2026-09-21.json).
+
+## Charges recorded - reader utility transfer step (2026-09-21)
+
+| Date | Work | Charge | Basis |
+|---|---|---:|---|
+| 2026-09-21 | `learner/relational.rs`: `UTIL_BUCKETS`/`UTIL_GAP_BINS`/`UTIL_MIN_SUPPORT`, `policy` + `gap_thresholds` on the selector, `choose_with`/`choose_scored`/`choose_policy`/`policy_bucket`/`top_payload_gap`, `PolicyEvent`/`PolicyFit`/`fit_policy`/`choose_gap_thresholds`, `RLR2` v4 with v2/v3 loading, 3 new tests; `bin/competitive-reader.rs`: `--mode=utility-transfer`, `observe_full`, ring diagnostic and admission regret, `prep_stream`/`eval_stream`, four-condition intervention, paired interleaved cost, `binding.json` with a verified manifest digest, pre-pass schema validation, 1 new runner test; two complete runs (attempt 1 unsealed ~120 s, attempt 2 163.8 s) and the build/test cycles | 1750000 ms | **Measured:** two complete runs ~284 s; release builds 89 s; test/check/fmt cycles ~170 s. **Estimated:** ~1,200 s documentation/delivery allocation. The superseded unsealed attempt, failed builds and superseded compile cycles are charged. |
+
+**New cumulative: 191016749 ms.** Remaining: 194900000 - 191016749 = **3883251 ms (~65 min)**. The projection
+fitted the live balance, so **no new extension was taken** and all prior charges and the recorded limit stand.
+
+Delivered under the claimed, sealed and verified report root
+`.uor-models/realtext-prior-2026-09-20/reader-utility-2` (0 unlisted files, ~1 MiB). Attempt
+`reader-utility-1` is retained and never resealed (all measurements completed; it failed only because the
+binding manifest was named `manifest.json`, which collides with the seal filename), and attempt 2 also fixes
+per-position document attribution and the read-rate denominator. Preserved untouched: `relational-learning-1..4`
+(all 30 manifest-listed files of attempt 4), `contextual-utility-1/2`, `competitive-reader-1`,
+`relational-reader-1`, `occurrence-reader-1..4`, `s-attribution-1..3`, `query-read-1..2` and all other
+retained roots, including known historical unlisted helpers. Free space **38 GiB**; the 128 MiB
+model-storage stop margin is intact. Serve-side compliance is claimed only for the served selector
+arithmetic (integer compare and table lookup over a 32-byte opcode table); whole-path D0-b compliance is not
+claimed and physical energy is UNAVAILABLE. No paid/external compute and no deletion of unique material.
