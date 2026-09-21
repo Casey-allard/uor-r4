@@ -1,5 +1,7 @@
 # Reader policy contract — prospective design (frozen before the corrected fit and its final evaluation)
 
+> **Principal correction after PR #1330:** [review](policy-objective-review-2026-09-21.md) and [independent audit](../evidence/policy-objective-principal-review-2026-09-21.json). The fit/serve repair and all four negative criteria verify. The old artifact's text gain remains valid; the changed successor does not refute it. Attempt 4 repeats attempt 3's final data/outputs. Objective-only and sufficient-support diagnoses are unestablished; alternative-action emission/stratum statistics needed for joint feasibility were not saved. Loader rejection and neighbor-intervention claims require correction; different-seed admission is not rounding, and construction's paired timing median is positive. The original dated design/report below is preserved as history, not active authority. The [new constructive prompt](deepseek-policy-feasibility-step-2026-09-21.md) owns execution.
+
 September 21, 2026, recorded before the corrected fit and before any held-out result. Execution prompt:
 [deepseek-reader-policy-contract-step-2026-09-21.md](deepseek-reader-policy-contract-step-2026-09-21.md).
 Principal review: [reader-utility-review-2026-09-21.md](reader-utility-review-2026-09-21.md). Reuse map:

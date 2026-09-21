@@ -1,3 +1,6 @@
+PRINCIPAL CORRECTION AFTER PR #1330 (original receipt retained below)
+See docs/integration/policy-objective-review-2026-09-21.md and policy-objective-principal-review-2026-09-21.json. Corrected fit and negative criteria verify. Preserve the old artifact gain. Complete joint feasibility needs new development counterfactual statistics; support and objective-only causes are unestablished. Loader rejection, neighbor control, freshness, admission-rounding and paired-median wording are qualified there. This changes the repository receipt, never a sealed report.
+
 UOR-R4 Geometric Language Model - evidence receipt
 Experiment: corrected reader-policy feature contract (train/serve indexing repaired; metrics repaired)
 Date: 2026-09-21

@@ -1,0 +1,2193 @@
+{
+  "scope": "Read-only recomputation of serialized evidence; no model passes, builds, fits, repository edits or ledger charges. Bootstrap is descriptive saved-document recomputation, not new evaluation.",
+  "source_root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/reader-utility-4",
+  "review_head": "4be53d88e7346d32d9a6e0a4584bb3cbc6f813a9",
+  "integrity": {
+    "2": {
+      "manifest_listed_file_count": 6,
+      "unlisted": [],
+      "missing": [],
+      "size_or_blake3_mismatch": [],
+      "result_sha256": "9095ec74381268691735b7ef9266f8eb9f9c216e8b997c7d59c28bc632085477",
+      "binding_sha256": "dcf2815cf23cba0bd0510afca20a43937e55bece1015e13ff471eba123266c9d"
+    },
+    "3": {
+      "manifest_listed_file_count": 8,
+      "unlisted": [],
+      "missing": [],
+      "size_or_blake3_mismatch": [],
+      "result_sha256": "96f537ed0a8988b3e8de2fb4cfb41439c36b7d58e3b5739cb3984a9d73a35ad4",
+      "binding_sha256": "0b6034dd0e4c27775208bc54d04b11f4924035b7aa3ab2bdea6455ce42503502"
+    },
+    "4": {
+      "manifest_listed_file_count": 8,
+      "unlisted": [],
+      "missing": [],
+      "size_or_blake3_mismatch": [],
+      "result_sha256": "97535bda382ef4532abdc267729ae66d670acaed8c97cdc8c0105cb8e03999fd",
+      "binding_sha256": "3029624b5760adb5c2da52af19058bdc726b57ad428a7f8711d8e7dafef143b4"
+    },
+    "new_artifact_sha256_matches": {
+      "categorical_policy": true,
+      "h4_one_nat": true,
+      "h4_policy": true
+    },
+    "parent_artifact_sha256_matches": {
+      "exact": true,
+      "relational": true,
+      "relational_ctx": true,
+      "categorical": true
+    },
+    "source_sha256_matches_merged_head": {
+      "crates/uor-r4-core/src/native_geometric/learner/relational.rs": true,
+      "crates/uor-r4-core/src/bin/competitive-reader.rs": true
+    },
+    "recorded_running_source": {
+      "executable_sha256": "04970ada35804c5a4c2b91b466551b5c28f1ac0421cc7d4362c8d6f8040493a9",
+      "git_dirty": "true",
+      "git_rev": "0492926d",
+      "source_file_sha256": [
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/learner/relational.rs",
+          "sha256": "2a63c7eb6d844afe70bad2c37fc69135688c7057129e4264be9f7f95e8941959"
+        },
+        {
+          "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+          "sha256": "613bf858551cc9a1de2292a84b0f849e42e6d0f8ab85c84c0de15673befd8a8b"
+        }
+      ]
+    }
+  },
+  "text_split": {
+    "documents_per_split": {
+      "fit_documents": 8,
+      "tune_documents": 8,
+      "final_documents": 8,
+      "previous_final_documents": 8
+    },
+    "unique_paths": 32,
+    "unique_hashes": 32,
+    "snapshot_hash_mismatches": [],
+    "fit_equal_to_parent2": true,
+    "tune_equal_to_parent2": true,
+    "final_overlap_parent2_final": 0,
+    "scope": "Reader-separated documents from the corpus used by the frozen local prior, not globally unseen language. Attempt4 repeats attempt3 final data; fresh only relative to parent2."
+  },
+  "attempt3_replay": {
+    "text_split_identical": true,
+    "all_panel_aggregates_identical": true,
+    "generation_identical": true,
+    "paired_intervals_identical": true,
+    "policy_actions_identical": true,
+    "artifact_bytes_identical": {
+      "categorical_policy": true,
+      "h4_one_nat": true,
+      "h4_policy": true
+    }
+  },
+  "document_intervals": {
+    "text_final:h4_policy_vs_local": {
+      "point": 0.11931856033694055,
+      "lo": 0.07021134862167809,
+      "hi": 0.16786160254976276,
+      "groups": 8,
+      "positions": 1952,
+      "draws": 2000,
+      "seed": "0xb001",
+      "unit": "bits/token",
+      "resampling_unit": "document",
+      "declared_ci_reproduced": true
+    },
+    "text_final:categorical_policy_vs_local": {
+      "point": 0.153274790852983,
+      "lo": 0.09419920157570622,
+      "hi": 0.2071936692980871,
+      "groups": 8,
+      "positions": 1952,
+      "draws": 2000,
+      "seed": "0xb002",
+      "unit": "bits/token",
+      "resampling_unit": "document",
+      "declared_ci_reproduced": true
+    },
+    "text_final:relational_ctx_parent_vs_local": {
+      "point": 0.45319713113573695,
+      "lo": 0.32610352046740027,
+      "hi": 0.5997739599668435,
+      "groups": 8,
+      "positions": 1952,
+      "draws": 2000,
+      "seed": "0xb003",
+      "unit": "bits/token",
+      "resampling_unit": "document",
+      "declared_ci_reproduced": true
+    },
+    "text_final:h4_policy_vs_relational_ctx_parent": {
+      "point": -0.3338785707987964,
+      "lo": -0.487227844404914,
+      "hi": -0.20046356274582527,
+      "groups": 8,
+      "positions": 1952,
+      "draws": 2000,
+      "seed": "0xb004",
+      "unit": "bits/token",
+      "resampling_unit": "document",
+      "declared_ci_reproduced": true
+    },
+    "text_fit:h4_policy_vs_local": {
+      "point": 0.13100030373877186,
+      "lo": 0.09348952988019243,
+      "hi": 0.16652388743231264,
+      "groups": 8,
+      "positions": 1952,
+      "draws": 2000,
+      "seed": "0xb005",
+      "unit": "bits/token",
+      "resampling_unit": "document",
+      "declared_ci_reproduced": true
+    },
+    "text_final:h4_one_nat_fixed_vs_local": {
+      "point": -0.01476851069225054,
+      "lo": -0.02477774314259866,
+      "hi": -0.005057191210658991,
+      "groups": 8,
+      "positions": 1952,
+      "draws": 2000,
+      "seed": "0xd001",
+      "unit": "bits/token",
+      "resampling_unit": "document",
+      "status": "posthoc saved-document descriptive interval; not preregistered"
+    },
+    "text_final:h4_policy_vs_h4_one_nat_fixed": {
+      "point": 0.1340870710291911,
+      "lo": 0.08926799840348634,
+      "hi": 0.1763358215223391,
+      "groups": 8,
+      "positions": 1952,
+      "draws": 2000,
+      "seed": "0xd002",
+      "unit": "bits/token",
+      "resampling_unit": "document",
+      "status": "posthoc saved-document descriptive interval; not preregistered"
+    },
+    "text_previous_documents:h4_one_nat_fixed_vs_local": {
+      "point": -0.02548252150880428,
+      "lo": -0.038175669631146956,
+      "hi": -0.013513639418607518,
+      "groups": 8,
+      "positions": 1952,
+      "draws": 2000,
+      "seed": "0xd003",
+      "unit": "bits/token",
+      "resampling_unit": "document",
+      "status": "posthoc saved-document descriptive interval; not preregistered"
+    }
+  },
+  "text_panels": {
+    "text_fit": {
+      "local": {
+        "positions": 1952,
+        "candidate_bearing_positions": 944,
+        "reads": 0,
+        "correct_payload_reads": 0,
+        "emitted_correct_reader": 349,
+        "hard_bits_per_position": 6.473605984742845,
+        "delta_bits_per_position": 0.0,
+        "strength_counts": [
+          0,
+          0,
+          0
+        ]
+      },
+      "exact_parent": {
+        "positions": 1952,
+        "candidate_bearing_positions": 944,
+        "reads": 406,
+        "correct_payload_reads": 11,
+        "emitted_correct_reader": 318,
+        "hard_bits_per_position": 7.00493979467491,
+        "delta_bits_per_position": 0.5313338099320652,
+        "strength_counts": [
+          0,
+          0,
+          406
+        ]
+      },
+      "relational_parent": {
+        "positions": 1952,
+        "candidate_bearing_positions": 944,
+        "reads": 440,
+        "correct_payload_reads": 22,
+        "emitted_correct_reader": 320,
+        "hard_bits_per_position": 7.082610695784251,
+        "delta_bits_per_position": 0.6090047110414065,
+        "strength_counts": [
+          0,
+          0,
+          440
+        ]
+      },
+      "relational_ctx_parent": {
+        "positions": 1952,
+        "candidate_bearing_positions": 944,
+        "reads": 414,
+        "correct_payload_reads": 18,
+        "emitted_correct_reader": 318,
+        "hard_bits_per_position": 7.045985978525327,
+        "delta_bits_per_position": 0.572379993782483,
+        "strength_counts": [
+          0,
+          0,
+          414
+        ]
+      },
+      "categorical_parent": {
+        "positions": 1952,
+        "candidate_bearing_positions": 944,
+        "reads": 373,
+        "correct_payload_reads": 17,
+        "emitted_correct_reader": 325,
+        "hard_bits_per_position": 6.945162497267368,
+        "delta_bits_per_position": 0.4715565125245231,
+        "strength_counts": [
+          0,
+          0,
+          373
+        ]
+      },
+      "h4_policy": {
+        "positions": 1952,
+        "candidate_bearing_positions": 944,
+        "reads": 944,
+        "correct_payload_reads": 78,
+        "emitted_correct_reader": 322,
+        "hard_bits_per_position": 6.604606288481617,
+        "delta_bits_per_position": 0.13100030373877256,
+        "strength_counts": [
+          0,
+          608,
+          336
+        ]
+      },
+      "categorical_policy": {
+        "positions": 1952,
+        "candidate_bearing_positions": 944,
+        "reads": 944,
+        "correct_payload_reads": 76,
+        "emitted_correct_reader": 320,
+        "hard_bits_per_position": 6.6412850282358615,
+        "delta_bits_per_position": 0.16767904349301652,
+        "strength_counts": [
+          0,
+          563,
+          381
+        ]
+      },
+      "h4_one_nat_fixed": {
+        "positions": 1952,
+        "candidate_bearing_positions": 944,
+        "reads": 944,
+        "correct_payload_reads": 78,
+        "emitted_correct_reader": 358,
+        "hard_bits_per_position": 6.442626538218152,
+        "delta_bits_per_position": -0.03097944652469338,
+        "strength_counts": [
+          0,
+          944,
+          0
+        ]
+      }
+    },
+    "text_previous_documents": {
+      "local": {
+        "positions": 1952,
+        "candidate_bearing_positions": 849,
+        "reads": 0,
+        "correct_payload_reads": 0,
+        "emitted_correct_reader": 406,
+        "hard_bits_per_position": 6.411074723370872,
+        "delta_bits_per_position": 0.0,
+        "strength_counts": [
+          0,
+          0,
+          0
+        ]
+      },
+      "exact_parent": {
+        "positions": 1952,
+        "candidate_bearing_positions": 849,
+        "reads": 369,
+        "correct_payload_reads": 15,
+        "emitted_correct_reader": 368,
+        "hard_bits_per_position": 6.956284986564233,
+        "delta_bits_per_position": 0.5452102631933612,
+        "strength_counts": [
+          0,
+          0,
+          369
+        ]
+      },
+      "relational_parent": {
+        "positions": 1952,
+        "candidate_bearing_positions": 849,
+        "reads": 405,
+        "correct_payload_reads": 25,
+        "emitted_correct_reader": 372,
+        "hard_bits_per_position": 7.007502616959623,
+        "delta_bits_per_position": 0.5964278935887511,
+        "strength_counts": [
+          0,
+          0,
+          405
+        ]
+      },
+      "relational_ctx_parent": {
+        "positions": 1952,
+        "candidate_bearing_positions": 849,
+        "reads": 370,
+        "correct_payload_reads": 18,
+        "emitted_correct_reader": 376,
+        "hard_bits_per_position": 6.956362157246573,
+        "delta_bits_per_position": 0.5452874338757013,
+        "strength_counts": [
+          0,
+          0,
+          370
+        ]
+      },
+      "categorical_parent": {
+        "positions": 1952,
+        "candidate_bearing_positions": 849,
+        "reads": 371,
+        "correct_payload_reads": 19,
+        "emitted_correct_reader": 373,
+        "hard_bits_per_position": 6.954440528292001,
+        "delta_bits_per_position": 0.5433658049211295,
+        "strength_counts": [
+          0,
+          0,
+          371
+        ]
+      },
+      "h4_policy": {
+        "positions": 1952,
+        "candidate_bearing_positions": 849,
+        "reads": 849,
+        "correct_payload_reads": 74,
+        "emitted_correct_reader": 361,
+        "hard_bits_per_position": 6.557983648573472,
+        "delta_bits_per_position": 0.1469089252026006,
+        "strength_counts": [
+          0,
+          549,
+          300
+        ]
+      },
+      "categorical_policy": {
+        "positions": 1952,
+        "candidate_bearing_positions": 849,
+        "reads": 849,
+        "correct_payload_reads": 74,
+        "emitted_correct_reader": 352,
+        "hard_bits_per_position": 6.61471164721424,
+        "delta_bits_per_position": 0.2036369238433687,
+        "strength_counts": [
+          0,
+          497,
+          352
+        ]
+      },
+      "h4_one_nat_fixed": {
+        "positions": 1952,
+        "candidate_bearing_positions": 849,
+        "reads": 849,
+        "correct_payload_reads": 74,
+        "emitted_correct_reader": 409,
+        "hard_bits_per_position": 6.385592201862075,
+        "delta_bits_per_position": -0.025482521508796128,
+        "strength_counts": [
+          0,
+          849,
+          0
+        ]
+      }
+    },
+    "text_final": {
+      "local": {
+        "positions": 1952,
+        "candidate_bearing_positions": 782,
+        "reads": 0,
+        "correct_payload_reads": 0,
+        "emitted_correct_reader": 343,
+        "hard_bits_per_position": 6.912284901944203,
+        "delta_bits_per_position": 0.0,
+        "strength_counts": [
+          0,
+          0,
+          0
+        ]
+      },
+      "exact_parent": {
+        "positions": 1952,
+        "candidate_bearing_positions": 782,
+        "reads": 340,
+        "correct_payload_reads": 12,
+        "emitted_correct_reader": 307,
+        "hard_bits_per_position": 7.330759992035075,
+        "delta_bits_per_position": 0.41847509009087164,
+        "strength_counts": [
+          0,
+          0,
+          340
+        ]
+      },
+      "relational_parent": {
+        "positions": 1952,
+        "candidate_bearing_positions": 782,
+        "reads": 392,
+        "correct_payload_reads": 17,
+        "emitted_correct_reader": 312,
+        "hard_bits_per_position": 7.400018107099085,
+        "delta_bits_per_position": 0.48773320515488194,
+        "strength_counts": [
+          0,
+          0,
+          392
+        ]
+      },
+      "relational_ctx_parent": {
+        "positions": 1952,
+        "candidate_bearing_positions": 782,
+        "reads": 366,
+        "correct_payload_reads": 15,
+        "emitted_correct_reader": 314,
+        "hard_bits_per_position": 7.365482033079931,
+        "delta_bits_per_position": 0.4531971311357274,
+        "strength_counts": [
+          0,
+          0,
+          366
+        ]
+      },
+      "categorical_parent": {
+        "positions": 1952,
+        "candidate_bearing_positions": 782,
+        "reads": 355,
+        "correct_payload_reads": 13,
+        "emitted_correct_reader": 316,
+        "hard_bits_per_position": 7.313066998128055,
+        "delta_bits_per_position": 0.4007820961838516,
+        "strength_counts": [
+          0,
+          0,
+          355
+        ]
+      },
+      "h4_policy": {
+        "positions": 1952,
+        "candidate_bearing_positions": 782,
+        "reads": 782,
+        "correct_payload_reads": 46,
+        "emitted_correct_reader": 310,
+        "hard_bits_per_position": 7.031603462281146,
+        "delta_bits_per_position": 0.11931856033694299,
+        "strength_counts": [
+          0,
+          479,
+          303
+        ]
+      },
+      "categorical_policy": {
+        "positions": 1952,
+        "candidate_bearing_positions": 782,
+        "reads": 782,
+        "correct_payload_reads": 43,
+        "emitted_correct_reader": 308,
+        "hard_bits_per_position": 7.065559692797187,
+        "delta_bits_per_position": 0.1532747908529836,
+        "strength_counts": [
+          0,
+          442,
+          340
+        ]
+      },
+      "h4_one_nat_fixed": {
+        "positions": 1952,
+        "candidate_bearing_positions": 782,
+        "reads": 782,
+        "correct_payload_reads": 46,
+        "emitted_correct_reader": 342,
+        "hard_bits_per_position": 6.897516391251957,
+        "delta_bits_per_position": -0.014768510692246696,
+        "strength_counts": [
+          0,
+          782,
+          0
+        ]
+      }
+    }
+  },
+  "previous_docs_constant_vs_old_policy": {
+    "old_h4": {
+      "positions": 1952,
+      "candidate_bearing_positions": 849,
+      "reads": 849,
+      "correct_payload_reads": 74,
+      "emitted_correct_reader": 406,
+      "hard_bits_per_position": 6.39159730833543,
+      "delta_bits_per_position": -0.01947741503544119,
+      "strength_counts": [
+        0,
+        787,
+        62
+      ]
+    },
+    "new_fixed_one_nat": {
+      "positions": 1952,
+      "candidate_bearing_positions": 849,
+      "reads": 849,
+      "correct_payload_reads": 74,
+      "emitted_correct_reader": 409,
+      "hard_bits_per_position": 6.385592201862075,
+      "delta_bits_per_position": -0.025482521508796128,
+      "strength_counts": [
+        0,
+        849,
+        0
+      ]
+    },
+    "local_document_sums_equal": true,
+    "qualification": "Fixed one nat matches/exceeds old aggregate text loss benefit on same documents; does not establish full behavioral equality or erase measured old artifact result."
+  },
+  "construction_final": {
+    "local": {
+      "positions": 2418,
+      "candidate_bearing_positions": 1810,
+      "reads": 0,
+      "correct_payload_reads": 0,
+      "emitted_correct_reader": 0,
+      "hard_bits_per_position": 12.482143265647329,
+      "delta_bits_per_position": 0.0,
+      "strength_counts": [
+        0,
+        0,
+        0
+      ],
+      "strata": [
+        {
+          "correct_payload": 0,
+          "correct_payload_reads": 0,
+          "covered_positions": 0,
+          "delta_bits_per_position": 0.0,
+          "emitted_correct": 0,
+          "emitted_correct_local": 0,
+          "hard_bits_per_position": 13.449490131420738,
+          "no_read": 19,
+          "positions": 19,
+          "reads": 0,
+          "stratum": "final_absent",
+          "strength_counts": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "correct_payload": 0,
+          "correct_payload_reads": 0,
+          "covered_positions": 121,
+          "delta_bits_per_position": 0.0,
+          "emitted_correct": 0,
+          "emitted_correct_local": 0,
+          "hard_bits_per_position": 13.510436041312555,
+          "no_read": 121,
+          "positions": 121,
+          "reads": 0,
+          "stratum": "final_present",
+          "strength_counts": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "correct_payload": 0,
+          "correct_payload_reads": 0,
+          "covered_positions": 317,
+          "delta_bits_per_position": 0.0,
+          "emitted_correct": 0,
+          "emitted_correct_local": 0,
+          "hard_bits_per_position": 13.097207825268761,
+          "no_read": 666,
+          "positions": 666,
+          "reads": 0,
+          "stratum": "intermediate_key",
+          "strength_counts": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "correct_payload": 0,
+          "correct_payload_reads": 0,
+          "covered_positions": 16,
+          "delta_bits_per_position": 0.0,
+          "emitted_correct": 0,
+          "emitted_correct_local": 0,
+          "hard_bits_per_position": 10.942028676694473,
+          "no_read": 806,
+          "positions": 806,
+          "reads": 0,
+          "stratum": "intermediate_role",
+          "strength_counts": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "correct_payload": 0,
+          "correct_payload_reads": 0,
+          "covered_positions": 84,
+          "delta_bits_per_position": 0.0,
+          "emitted_correct": 0,
+          "emitted_correct_local": 0,
+          "hard_bits_per_position": 13.39144004929043,
+          "no_read": 666,
+          "positions": 666,
+          "reads": 0,
+          "stratum": "intermediate_value",
+          "strength_counts": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "correct_payload": 0,
+          "correct_payload_reads": 0,
+          "covered_positions": 122,
+          "delta_bits_per_position": 0.0,
+          "emitted_correct": 0,
+          "emitted_correct_local": 0,
+          "hard_bits_per_position": 13.077176749765943,
+          "no_read": 140,
+          "positions": 140,
+          "reads": 0,
+          "stratum": "query_key",
+          "strength_counts": [
+            0,
+            0,
+            0
+          ]
+        }
+      ]
+    },
+    "exact_parent": {
+      "positions": 2418,
+      "candidate_bearing_positions": 1810,
+      "reads": 662,
+      "correct_payload_reads": 356,
+      "emitted_correct_reader": 282,
+      "hard_bits_per_position": 11.018154360244429,
+      "delta_bits_per_position": -1.4639889054028996,
+      "strength_counts": [
+        0,
+        0,
+        662
+      ],
+      "strata": [
+        {
+          "correct_payload": 0,
+          "correct_payload_reads": 0,
+          "covered_positions": 0,
+          "delta_bits_per_position": 0.1830573370602906,
+          "emitted_correct": 0,
+          "emitted_correct_local": 0,
+          "hard_bits_per_position": 13.632547468481029,
+          "no_read": 13,
+          "positions": 19,
+          "reads": 6,
+          "stratum": "final_absent",
+          "strength_counts": [
+            0,
+            0,
+            6
+          ]
+        },
+        {
+          "correct_payload": 7,
+          "correct_payload_reads": 7,
+          "covered_positions": 121,
+          "delta_bits_per_position": -0.4316767703696393,
+          "emitted_correct": 6,
+          "emitted_correct_local": 0,
+          "hard_bits_per_position": 13.078759270942916,
+          "no_read": 87,
+          "positions": 121,
+          "reads": 34,
+          "stratum": "final_present",
+          "strength_counts": [
+            0,
+            0,
+            34
+          ]
+        },
+        {
+          "correct_payload": 250,
+          "correct_payload_reads": 250,
+          "covered_positions": 317,
+          "delta_bits_per_position": -3.8411113731664774,
+          "emitted_correct": 195,
+          "emitted_correct_local": 0,
+          "hard_bits_per_position": 9.256096452102282,
+          "no_read": 268,
+          "positions": 666,
+          "reads": 398,
+          "stratum": "intermediate_key",
+          "strength_counts": [
+            0,
+            0,
+            398
+          ]
+        },
+        {
+          "correct_payload": 0,
+          "correct_payload_reads": 0,
+          "covered_positions": 16,
+          "delta_bits_per_position": 0.046330114054013105,
+          "emitted_correct": 0,
+          "emitted_correct_local": 0,
+          "hard_bits_per_position": 10.988358790748487,
+          "no_read": 784,
+          "positions": 806,
+          "reads": 22,
+          "stratum": "intermediate_role",
+          "strength_counts": [
+            0,
+            0,
+            22
+          ]
+        },
+        {
+          "correct_payload": 7,
+          "correct_payload_reads": 7,
+          "covered_positions": 84,
+          "delta_bits_per_position": -0.025173865055308282,
+          "emitted_correct": 6,
+          "emitted_correct_local": 0,
+          "hard_bits_per_position": 13.366266184235123,
+          "no_read": 580,
+          "positions": 666,
+          "reads": 86,
+          "stratum": "intermediate_value",
+          "strength_counts": [
+            0,
+            0,
+            86
+          ]
+        },
+        {
+          "correct_payload": 92,
+          "correct_payload_reads": 92,
+          "covered_positions": 122,
+          "delta_bits_per_position": -6.811189119467394,
+          "emitted_correct": 75,
+          "emitted_correct_local": 0,
+          "hard_bits_per_position": 6.265987630298549,
+          "no_read": 24,
+          "positions": 140,
+          "reads": 116,
+          "stratum": "query_key",
+          "strength_counts": [
+            0,
+            0,
+            116
+          ]
+        }
+      ]
+    },
+    "relational_parent": {
+      "positions": 2418,
+      "candidate_bearing_positions": 1810,
+      "reads": 855,
+      "correct_payload_reads": 448,
+      "emitted_correct_reader": 357,
+      "hard_bits_per_position": 10.629864378768175,
+      "delta_bits_per_position": -1.8522788868791542,
+      "strength_counts": [
+        0,
+        0,
+        855
+      ],
+      "strata": [
+        {
+          "correct_payload": 0,
+          "correct_payload_reads": 0,
+          "covered_positions": 0,
+          "delta_bits_per_position": 0.2663157359094277,
+          "emitted_correct": 0,
+          "emitted_correct_local": 0,
+          "hard_bits_per_position": 13.715805867330166,
+          "no_read": 9,
+          "positions": 19,
+          "reads": 10,
+          "stratum": "final_absent",
+          "strength_counts": [
+            0,
+            0,
+            10
+          ]
+        },
+        {
+          "correct_payload": 98,
+          "correct_payload_reads": 98,
+          "covered_positions": 121,
+          "delta_bits_per_position": -8.675927148779842,
+          "emitted_correct": 77,
+          "emitted_correct_local": 0,
+          "hard_bits_per_position": 4.834508892532715,
+          "no_read": 0,
+          "positions": 121,
+          "reads": 121,
+          "stratum": "final_present",
+          "strength_counts": [
+            0,
+            0,
+            121
+          ]
+        },
+        {
+          "correct_payload": 252,
+          "correct_payload_reads": 252,
+          "covered_positions": 317,
+          "delta_bits_per_position": -3.860724833962876,
+          "emitted_correct": 199,
+          "emitted_correct_local": 0,
+          "hard_bits_per_position": 9.236482991305884,
+          "no_read": 270,
+          "positions": 666,
+          "reads": 396,
+          "stratum": "intermediate_key",
+          "strength_counts": [
+            0,
+            0,
+            396
+          ]
+        },
+        {
+          "correct_payload": 0,
+          "correct_payload_reads": 0,
+          "covered_positions": 16,
+          "delta_bits_per_position": 0.046330114054013105,
+          "emitted_correct": 0,
+          "emitted_correct_local": 0,
+          "hard_bits_per_position": 10.988358790748487,
+          "no_read": 784,
+          "positions": 806,
+          "reads": 22,
+          "stratum": "intermediate_role",
+          "strength_counts": [
+            0,
+            0,
+            22
+          ]
+        },
+        {
+          "correct_payload": 11,
+          "correct_payload_reads": 11,
+          "covered_positions": 84,
+          "delta_bits_per_position": -0.009241775780494165,
+          "emitted_correct": 10,
+          "emitted_correct_local": 0,
+          "hard_bits_per_position": 13.382198273509937,
+          "no_read": 476,
+          "positions": 666,
+          "reads": 190,
+          "stratum": "intermediate_value",
+          "strength_counts": [
+            0,
+            0,
+            190
+          ]
+        },
+        {
+          "correct_payload": 87,
+          "correct_payload_reads": 87,
+          "covered_positions": 122,
+          "delta_bits_per_position": -6.385910516372344,
+          "emitted_correct": 71,
+          "emitted_correct_local": 0,
+          "hard_bits_per_position": 6.691266233393598,
+          "no_read": 24,
+          "positions": 140,
+          "reads": 116,
+          "stratum": "query_key",
+          "strength_counts": [
+            0,
+            0,
+            116
+          ]
+        }
+      ]
+    },
+    "relational_ctx_parent": {
+      "positions": 2418,
+      "candidate_bearing_positions": 1810,
+      "reads": 806,
+      "correct_payload_reads": 446,
+      "emitted_correct_reader": 355,
+      "hard_bits_per_position": 10.626837218527687,
+      "delta_bits_per_position": -1.8553060471196428,
+      "strength_counts": [
+        0,
+        0,
+        806
+      ],
+      "strata": [
+        {
+          "correct_payload": 0,
+          "correct_payload_reads": 0,
+          "covered_positions": 0,
+          "delta_bits_per_position": 0.13785360313719247,
+          "emitted_correct": 0,
+          "emitted_correct_local": 0,
+          "hard_bits_per_position": 13.587343734557932,
+          "no_read": 14,
+          "positions": 19,
+          "reads": 5,
+          "stratum": "final_absent",
+          "strength_counts": [
+            0,
+            0,
+            5
+          ]
+        },
+        {
+          "correct_payload": 98,
+          "correct_payload_reads": 98,
+          "covered_positions": 121,
+          "delta_bits_per_position": -8.675927148779842,
+          "emitted_correct": 77,
+          "emitted_correct_local": 0,
+          "hard_bits_per_position": 4.834508892532715,
+          "no_read": 0,
+          "positions": 121,
+          "reads": 121,
+          "stratum": "final_present",
+          "strength_counts": [
+            0,
+            0,
+            121
+          ]
+        },
+        {
+          "correct_payload": 252,
+          "correct_payload_reads": 252,
+          "covered_positions": 317,
+          "delta_bits_per_position": -3.863491688002994,
+          "emitted_correct": 199,
+          "emitted_correct_local": 0,
+          "hard_bits_per_position": 9.233716137265766,
+          "no_read": 271,
+          "positions": 666,
+          "reads": 395,
+          "stratum": "intermediate_key",
+          "strength_counts": [
+            0,
+            0,
+            395
+          ]
+        },
+        {
+          "correct_payload": 0,
+          "correct_payload_reads": 0,
+          "covered_positions": 16,
+          "delta_bits_per_position": 0.046330114054013105,
+          "emitted_correct": 0,
+          "emitted_correct_local": 0,
+          "hard_bits_per_position": 10.988358790748487,
+          "no_read": 784,
+          "positions": 806,
+          "reads": 22,
+          "stratum": "intermediate_role",
+          "strength_counts": [
+            0,
+            0,
+            22
+          ]
+        },
+        {
+          "correct_payload": 9,
+          "correct_payload_reads": 9,
+          "covered_positions": 84,
+          "delta_bits_per_position": -0.013800586813722312,
+          "emitted_correct": 8,
+          "emitted_correct_local": 0,
+          "hard_bits_per_position": 13.377639462476708,
+          "no_read": 519,
+          "positions": 666,
+          "reads": 147,
+          "stratum": "intermediate_value",
+          "strength_counts": [
+            0,
+            0,
+            147
+          ]
+        },
+        {
+          "correct_payload": 87,
+          "correct_payload_reads": 87,
+          "covered_positions": 122,
+          "delta_bits_per_position": -6.385910516372344,
+          "emitted_correct": 71,
+          "emitted_correct_local": 0,
+          "hard_bits_per_position": 6.691266233393598,
+          "no_read": 24,
+          "positions": 140,
+          "reads": 116,
+          "stratum": "query_key",
+          "strength_counts": [
+            0,
+            0,
+            116
+          ]
+        }
+      ]
+    },
+    "categorical_parent": {
+      "positions": 2418,
+      "candidate_bearing_positions": 1810,
+      "reads": 727,
+      "correct_payload_reads": 448,
+      "emitted_correct_reader": 356,
+      "hard_bits_per_position": 10.591187048995005,
+      "delta_bits_per_position": -1.8909562166523248,
+      "strength_counts": [
+        0,
+        0,
+        727
+      ],
+      "strata": [
+        {
+          "correct_payload": 0,
+          "correct_payload_reads": 0,
+          "covered_positions": 0,
+          "delta_bits_per_position": 0.04591689560208136,
+          "emitted_correct": 0,
+          "emitted_correct_local": 0,
+          "hard_bits_per_position": 13.49540702702282,
+          "no_read": 18,
+          "positions": 19,
+          "reads": 1,
+          "stratum": "final_absent",
+          "strength_counts": [
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "correct_payload": 111,
+          "correct_payload_reads": 111,
+          "covered_positions": 121,
+          "delta_bits_per_position": -9.908631126454859,
+          "emitted_correct": 88,
+          "emitted_correct_local": 0,
+          "hard_bits_per_position": 3.6018049148576963,
+          "no_read": 0,
+          "positions": 121,
+          "reads": 121,
+          "stratum": "final_present",
+          "strength_counts": [
+            0,
+            0,
+            121
+          ]
+        },
+        {
+          "correct_payload": 241,
+          "correct_payload_reads": 241,
+          "covered_positions": 317,
+          "delta_bits_per_position": -3.6836253220331043,
+          "emitted_correct": 190,
+          "emitted_correct_local": 0,
+          "hard_bits_per_position": 9.413582503235656,
+          "no_read": 274,
+          "positions": 666,
+          "reads": 392,
+          "stratum": "intermediate_key",
+          "strength_counts": [
+            0,
+            0,
+            392
+          ]
+        },
+        {
+          "correct_payload": 0,
+          "correct_payload_reads": 0,
+          "covered_positions": 16,
+          "delta_bits_per_position": 0.03620360872111416,
+          "emitted_correct": 0,
+          "emitted_correct_local": 0,
+          "hard_bits_per_position": 10.978232285415588,
+          "no_read": 789,
+          "positions": 806,
+          "reads": 17,
+          "stratum": "intermediate_role",
+          "strength_counts": [
+            0,
+            0,
+            17
+          ]
+        },
+        {
+          "correct_payload": 5,
+          "correct_payload_reads": 5,
+          "covered_positions": 84,
+          "delta_bits_per_position": -0.00606299606703202,
+          "emitted_correct": 4,
+          "emitted_correct_local": 0,
+          "hard_bits_per_position": 13.385377053223399,
+          "no_read": 586,
+          "positions": 666,
+          "reads": 80,
+          "stratum": "intermediate_value",
+          "strength_counts": [
+            0,
+            0,
+            80
+          ]
+        },
+        {
+          "correct_payload": 91,
+          "correct_payload_reads": 91,
+          "covered_positions": 122,
+          "delta_bits_per_position": -6.7579133953943415,
+          "emitted_correct": 74,
+          "emitted_correct_local": 0,
+          "hard_bits_per_position": 6.319263354371601,
+          "no_read": 24,
+          "positions": 140,
+          "reads": 116,
+          "stratum": "query_key",
+          "strength_counts": [
+            0,
+            0,
+            116
+          ]
+        }
+      ]
+    },
+    "h4_policy": {
+      "positions": 2418,
+      "candidate_bearing_positions": 1810,
+      "reads": 1810,
+      "correct_payload_reads": 516,
+      "emitted_correct_reader": 319,
+      "hard_bits_per_position": 10.75664286754232,
+      "delta_bits_per_position": -1.72550039810501,
+      "strength_counts": [
+        0,
+        629,
+        1181
+      ],
+      "strata": [
+        {
+          "correct_payload": 0,
+          "correct_payload_reads": 0,
+          "covered_positions": 0,
+          "delta_bits_per_position": 0.29693354629681545,
+          "emitted_correct": 0,
+          "emitted_correct_local": 0,
+          "hard_bits_per_position": 13.746423677717553,
+          "no_read": 0,
+          "positions": 19,
+          "reads": 19,
+          "stratum": "final_absent",
+          "strength_counts": [
+            0,
+            4,
+            15
+          ]
+        },
+        {
+          "correct_payload": 98,
+          "correct_payload_reads": 98,
+          "covered_positions": 121,
+          "delta_bits_per_position": -7.218002821904017,
+          "emitted_correct": 56,
+          "emitted_correct_local": 0,
+          "hard_bits_per_position": 6.292433219408538,
+          "no_read": 0,
+          "positions": 121,
+          "reads": 121,
+          "stratum": "final_present",
+          "strength_counts": [
+            0,
+            31,
+            90
+          ]
+        },
+        {
+          "correct_payload": 279,
+          "correct_payload_reads": 279,
+          "covered_positions": 317,
+          "delta_bits_per_position": -3.793157253179927,
+          "emitted_correct": 174,
+          "emitted_correct_local": 0,
+          "hard_bits_per_position": 9.304050572088833,
+          "no_read": 230,
+          "positions": 666,
+          "reads": 436,
+          "stratum": "intermediate_key",
+          "strength_counts": [
+            0,
+            68,
+            368
+          ]
+        },
+        {
+          "correct_payload": 6,
+          "correct_payload_reads": 6,
+          "covered_positions": 16,
+          "delta_bits_per_position": 0.3018605908869571,
+          "emitted_correct": 3,
+          "emitted_correct_local": 0,
+          "hard_bits_per_position": 11.243889267581432,
+          "no_read": 243,
+          "positions": 806,
+          "reads": 563,
+          "stratum": "intermediate_role",
+          "strength_counts": [
+            0,
+            273,
+            290
+          ]
+        },
+        {
+          "correct_payload": 40,
+          "correct_payload_reads": 40,
+          "covered_positions": 84,
+          "delta_bits_per_position": -0.13345068882287567,
+          "emitted_correct": 15,
+          "emitted_correct_local": 0,
+          "hard_bits_per_position": 13.257989360467555,
+          "no_read": 117,
+          "positions": 666,
+          "reads": 549,
+          "stratum": "intermediate_value",
+          "strength_counts": [
+            0,
+            248,
+            301
+          ]
+        },
+        {
+          "correct_payload": 93,
+          "correct_payload_reads": 93,
+          "covered_positions": 122,
+          "delta_bits_per_position": -6.662157895915348,
+          "emitted_correct": 71,
+          "emitted_correct_local": 0,
+          "hard_bits_per_position": 6.415018853850595,
+          "no_read": 18,
+          "positions": 140,
+          "reads": 122,
+          "stratum": "query_key",
+          "strength_counts": [
+            0,
+            5,
+            117
+          ]
+        }
+      ]
+    },
+    "categorical_policy": {
+      "positions": 2418,
+      "candidate_bearing_positions": 1810,
+      "reads": 1810,
+      "correct_payload_reads": 530,
+      "emitted_correct_reader": 352,
+      "hard_bits_per_position": 10.635767245383127,
+      "delta_bits_per_position": -1.8463760202642034,
+      "strength_counts": [
+        0,
+        479,
+        1331
+      ],
+      "strata": [
+        {
+          "correct_payload": 0,
+          "correct_payload_reads": 0,
+          "covered_positions": 0,
+          "delta_bits_per_position": 0.5161386109588701,
+          "emitted_correct": 0,
+          "emitted_correct_local": 0,
+          "hard_bits_per_position": 13.965628742379609,
+          "no_read": 0,
+          "positions": 19,
+          "reads": 19,
+          "stratum": "final_absent",
+          "strength_counts": [
+            0,
+            2,
+            17
+          ]
+        },
+        {
+          "correct_payload": 111,
+          "correct_payload_reads": 111,
+          "covered_positions": 121,
+          "delta_bits_per_position": -9.769721877884912,
+          "emitted_correct": 86,
+          "emitted_correct_local": 0,
+          "hard_bits_per_position": 3.7407141634276435,
+          "no_read": 0,
+          "positions": 121,
+          "reads": 121,
+          "stratum": "final_present",
+          "strength_counts": [
+            0,
+            3,
+            118
+          ]
+        },
+        {
+          "correct_payload": 273,
+          "correct_payload_reads": 273,
+          "covered_positions": 317,
+          "delta_bits_per_position": -3.7465629628004113,
+          "emitted_correct": 170,
+          "emitted_correct_local": 0,
+          "hard_bits_per_position": 9.35064486246835,
+          "no_read": 230,
+          "positions": 666,
+          "reads": 436,
+          "stratum": "intermediate_key",
+          "strength_counts": [
+            0,
+            66,
+            370
+          ]
+        },
+        {
+          "correct_payload": 6,
+          "correct_payload_reads": 6,
+          "covered_positions": 16,
+          "delta_bits_per_position": 0.3259493367975972,
+          "emitted_correct": 3,
+          "emitted_correct_local": 0,
+          "hard_bits_per_position": 11.26797801349207,
+          "no_read": 243,
+          "positions": 806,
+          "reads": 563,
+          "stratum": "intermediate_role",
+          "strength_counts": [
+            0,
+            261,
+            302
+          ]
+        },
+        {
+          "correct_payload": 43,
+          "correct_payload_reads": 43,
+          "covered_positions": 84,
+          "delta_bits_per_position": -0.1707829818739125,
+          "emitted_correct": 24,
+          "emitted_correct_local": 0,
+          "hard_bits_per_position": 13.220657067416518,
+          "no_read": 117,
+          "positions": 666,
+          "reads": 549,
+          "stratum": "intermediate_value",
+          "strength_counts": [
+            0,
+            134,
+            415
+          ]
+        },
+        {
+          "correct_payload": 97,
+          "correct_payload_reads": 97,
+          "covered_positions": 122,
+          "delta_bits_per_position": -6.756930497776433,
+          "emitted_correct": 69,
+          "emitted_correct_local": 0,
+          "hard_bits_per_position": 6.320246251989509,
+          "no_read": 18,
+          "positions": 140,
+          "reads": 122,
+          "stratum": "query_key",
+          "strength_counts": [
+            0,
+            13,
+            109
+          ]
+        }
+      ]
+    },
+    "h4_one_nat_fixed": {
+      "positions": 2418,
+      "candidate_bearing_positions": 1810,
+      "reads": 1810,
+      "correct_payload_reads": 516,
+      "emitted_correct_reader": 1,
+      "hard_bits_per_position": 12.175532002468772,
+      "delta_bits_per_position": -0.3066112631785569,
+      "strength_counts": [
+        0,
+        1810,
+        0
+      ],
+      "strata": [
+        {
+          "correct_payload": 0,
+          "correct_payload_reads": 0,
+          "covered_positions": 0,
+          "delta_bits_per_position": 0.0004830186512139646,
+          "emitted_correct": 0,
+          "emitted_correct_local": 0,
+          "hard_bits_per_position": 13.449973150071953,
+          "no_read": 0,
+          "positions": 19,
+          "reads": 19,
+          "stratum": "final_absent",
+          "strength_counts": [
+            0,
+            19,
+            0
+          ]
+        },
+        {
+          "correct_payload": 98,
+          "correct_payload_reads": 98,
+          "covered_positions": 121,
+          "delta_bits_per_position": -1.1678230158010015,
+          "emitted_correct": 0,
+          "emitted_correct_local": 0,
+          "hard_bits_per_position": 12.342613025511554,
+          "no_read": 0,
+          "positions": 121,
+          "reads": 121,
+          "stratum": "final_present",
+          "strength_counts": [
+            0,
+            121,
+            0
+          ]
+        },
+        {
+          "correct_payload": 279,
+          "correct_payload_reads": 279,
+          "covered_positions": 317,
+          "delta_bits_per_position": -0.6036922416735563,
+          "emitted_correct": 0,
+          "emitted_correct_local": 0,
+          "hard_bits_per_position": 12.493515583595205,
+          "no_read": 230,
+          "positions": 666,
+          "reads": 436,
+          "stratum": "intermediate_key",
+          "strength_counts": [
+            0,
+            436,
+            0
+          ]
+        },
+        {
+          "correct_payload": 6,
+          "correct_payload_reads": 6,
+          "covered_positions": 16,
+          "delta_bits_per_position": -0.0082497256666684,
+          "emitted_correct": 0,
+          "emitted_correct_local": 0,
+          "hard_bits_per_position": 10.933778951027806,
+          "no_read": 243,
+          "positions": 806,
+          "reads": 563,
+          "stratum": "intermediate_role",
+          "strength_counts": [
+            0,
+            563,
+            0
+          ]
+        },
+        {
+          "correct_payload": 40,
+          "correct_payload_reads": 40,
+          "covered_positions": 84,
+          "delta_bits_per_position": -0.08614054386536364,
+          "emitted_correct": 0,
+          "emitted_correct_local": 0,
+          "hard_bits_per_position": 13.305299505425067,
+          "no_read": 117,
+          "positions": 666,
+          "reads": 549,
+          "stratum": "intermediate_value",
+          "strength_counts": [
+            0,
+            549,
+            0
+          ]
+        },
+        {
+          "correct_payload": 93,
+          "correct_payload_reads": 93,
+          "covered_positions": 122,
+          "delta_bits_per_position": -0.9572193767997906,
+          "emitted_correct": 1,
+          "emitted_correct_local": 0,
+          "hard_bits_per_position": 12.119957372966152,
+          "no_read": 18,
+          "positions": 140,
+          "reads": 122,
+          "stratum": "query_key",
+          "strength_counts": [
+            0,
+            122,
+            0
+          ]
+        }
+      ]
+    }
+  },
+  "declared_categories": {
+    "absence_improved": false,
+    "all_noread_collapse": false,
+    "harm_containment": false,
+    "matched_categorical_reported": true,
+    "relational_behaviour_preserved": false,
+    "useful_transfer": false
+  },
+  "reported_construction_intervals": [
+    {
+      "comparison": "final: h4_policy minus relational_ctx_parent (all positions)",
+      "draws": 2000,
+      "groups": 140,
+      "hi": 0.20432319470130716,
+      "lo": 0.05794222749374349,
+      "point": 0.12980564901463995,
+      "positions": 2418,
+      "resampling_unit": "sequence",
+      "unit": "bits_per_position"
+    },
+    {
+      "comparison": "final: h4_policy minus relational_ctx_parent (final present)",
+      "draws": 2000,
+      "groups": 121,
+      "hi": 2.0587758360081594,
+      "lo": 0.8543562512864535,
+      "point": 1.4579243268758255,
+      "positions": 121,
+      "resampling_unit": "sequence",
+      "stratum": "final_present",
+      "unit": "bits_per_position"
+    },
+    {
+      "comparison": "final: h4_policy minus relational_ctx_parent (final absent)",
+      "draws": 2000,
+      "groups": 19,
+      "hi": 0.34209233988797116,
+      "lo": -0.03908124667287603,
+      "point": 0.15907994315961993,
+      "positions": 19,
+      "resampling_unit": "sequence",
+      "stratum": "final_absent",
+      "unit": "bits_per_position"
+    },
+    {
+      "comparison": "regression: h4_policy minus relational_ctx_parent (final present)",
+      "draws": 2000,
+      "groups": 119,
+      "hi": 2.201352827653446,
+      "lo": 0.9525006797145551,
+      "point": 1.541532292919169,
+      "positions": 119,
+      "resampling_unit": "sequence",
+      "stratum": "final_present",
+      "unit": "bits_per_position"
+    },
+    {
+      "comparison": "final: h4_policy minus relational_parent (all positions)",
+      "draws": 2000,
+      "groups": 140,
+      "hi": 0.19995217989385095,
+      "lo": 0.05617998705536705,
+      "point": 0.12677848877414438,
+      "positions": 2418,
+      "resampling_unit": "sequence",
+      "unit": "bits_per_position"
+    },
+    {
+      "comparison": "final: categorical_policy minus h4_policy (all positions)",
+      "draws": 2000,
+      "groups": 140,
+      "hi": -0.013245478151671673,
+      "lo": -0.22910549649219702,
+      "point": -0.12087562215918589,
+      "positions": 2418,
+      "resampling_unit": "sequence",
+      "unit": "bits_per_position"
+    }
+  ],
+  "construction_interval_recomputability": "UNAVAILABLE: only aggregate strata and final intervals retained, no per-sequence loss differences.",
+  "regret_identity_aggregate_max_abs_residual_nats": 3.9745984281580604e-14,
+  "admission": {
+    "construction_regression": {
+      "positions": 2421,
+      "candidate_bearing_positions": 1813,
+      "empty_pool_positions": 608,
+      "mean_admission_regret_candidate_only_nats": 0.2713286886415433,
+      "mean_admission_regret_complete_stream_nats": 0.8673962191605377
+    },
+    "construction_previous_seed": {
+      "positions": 2442,
+      "candidate_bearing_positions": 1822,
+      "empty_pool_positions": 620,
+      "mean_admission_regret_candidate_only_nats": 0.20063602975756661,
+      "mean_admission_regret_complete_stream_nats": 0.8316569770588457
+    },
+    "construction_final": {
+      "positions": 2418,
+      "candidate_bearing_positions": 1810,
+      "empty_pool_positions": 608,
+      "mean_admission_regret_candidate_only_nats": 0.1945948513472199,
+      "mean_admission_regret_complete_stream_nats": 0.8316367256782506
+    },
+    "text_final": {
+      "positions": 1952,
+      "candidate_bearing_positions": 782,
+      "empty_pool_positions": 1170,
+      "mean_admission_regret_candidate_only_nats": 0.641601779808258,
+      "mean_admission_regret_complete_stream_nats": 0.509507132921557
+    }
+  },
+  "fit_statistics": {
+    "h4_policy": {
+      "cost_unit": "nats per unit declared weighted candidate-bearing fit-event support; not bits/token on complete streams",
+      "occupancy": {
+        "buckets_below_min_support": 3,
+        "buckets_supported": 16,
+        "buckets_unobserved": 13,
+        "buckets_with_examples": 19,
+        "raw_examples_per_bucket": [
+          126,
+          265,
+          0,
+          0,
+          323,
+          358,
+          0,
+          1,
+          137,
+          287,
+          0,
+          0,
+          358,
+          321,
+          0,
+          0,
+          134,
+          216,
+          0,
+          0,
+          438,
+          341,
+          0,
+          0,
+          116,
+          106,
+          2,
+          6,
+          221,
+          157,
+          0,
+          0
+        ],
+        "weighted_support_per_bucket": [
+          138.87076271186442,
+          273.58050847457616,
+          0.0,
+          0.0,
+          509.6260593220317,
+          516.739406779659,
+          0.0,
+          3.145127118644068,
+          173.46716101694918,
+          310.59639830508445,
+          0.0,
+          0.0,
+          463.111228813558,
+          421.8209745762699,
+          0.0,
+          0.0,
+          217.6599576271187,
+          276.06355932203377,
+          0.0,
+          0.0,
+          603.1747881355911,
+          478.2881355932186,
+          0.0,
+          0.0,
+          332.6578389830503,
+          303.3516949152539,
+          6.290254237288136,
+          18.87076271186441,
+          502.0116525423708,
+          388.6737288135583,
+          0.0,
+          0.0
+        ]
+      },
+      "actions": [
+        2,
+        3,
+        2,
+        2,
+        3,
+        3,
+        2,
+        2,
+        2,
+        3,
+        2,
+        2,
+        3,
+        3,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        3,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "reported_histogram": [
+        0,
+        0,
+        25,
+        7
+      ],
+      "total_weight_recomputed": 5937.999999999985,
+      "total_weight_reported": 5938.000000000189,
+      "mixture_mean_cost_fitted": -0.7898512161152643,
+      "mixture_mean_cost_constant_one_nat": -0.1725780649017565,
+      "mixture_mean_cost_NoRead": 0.0,
+      "global_action_reported": 2,
+      "constant_action_means": [
+        0.0,
+        -0.011205927721129967,
+        -0.1725780649017565,
+        0.16663275465253943
+      ]
+    },
+    "categorical_policy": {
+      "cost_unit": "nats per unit declared weighted candidate-bearing fit-event support; not bits/token on complete streams",
+      "occupancy": {
+        "buckets_below_min_support": 4,
+        "buckets_supported": 16,
+        "buckets_unobserved": 12,
+        "buckets_with_examples": 20,
+        "raw_examples_per_bucket": [
+          130,
+          262,
+          0,
+          0,
+          314,
+          367,
+          0,
+          1,
+          145,
+          272,
+          0,
+          0,
+          373,
+          315,
+          0,
+          2,
+          133,
+          216,
+          0,
+          0,
+          449,
+          347,
+          0,
+          0,
+          115,
+          84,
+          2,
+          5,
+          228,
+          153,
+          0,
+          0
+        ],
+        "weighted_support_per_bucket": [
+          142.87076271186442,
+          281.30614406779637,
+          0.0,
+          0.0,
+          492.0455508474556,
+          534.3199152542352,
+          0.0,
+          3.145127118644068,
+          179.3220338983051,
+          299.88665254237253,
+          0.0,
+          0.0,
+          490.98199152542225,
+          422.25635593220204,
+          0.0,
+          6.290254237288136,
+          218.80508474576277,
+          265.3379237288135,
+          0.0,
+          0.0,
+          622.7552966101673,
+          484.2881355932186,
+          0.0,
+          0.0,
+          344.5286016949146,
+          225.57838983050857,
+          6.290254237288136,
+          15.725635593220339,
+          521.8824152542351,
+          380.3834745762702,
+          0.0,
+          0.0
+        ]
+      },
+      "actions": [
+        3,
+        3,
+        2,
+        2,
+        3,
+        3,
+        2,
+        2,
+        2,
+        3,
+        2,
+        2,
+        3,
+        3,
+        2,
+        2,
+        2,
+        3,
+        2,
+        2,
+        2,
+        3,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "reported_histogram": [
+        0,
+        0,
+        23,
+        9
+      ],
+      "total_weight_recomputed": 5937.999999999986,
+      "total_weight_reported": 5938.000000000189,
+      "mixture_mean_cost_fitted": -0.8065508358983741,
+      "mixture_mean_cost_constant_one_nat": -0.17639745605765594,
+      "mixture_mean_cost_NoRead": 0.0,
+      "global_action_reported": 2,
+      "constant_action_means": [
+        0.0,
+        -0.01142711224543259,
+        -0.17639745605765594,
+        0.10333403342277775
+      ]
+    }
+  },
+  "constrained_feasibility": {
+    "mixed_ce_cost_reconstructible": true,
+    "per_bucket_raw_and_weighted_support_saved": true,
+    "per_bucket_action_emitted_correct_counts_saved": false,
+    "per_bucket_action_stratum_conditioned_loss_and_read_counts_saved": false,
+    "fit_tune_event_rows_saved": false,
+    "alternative_policy_preservation_feasibility": "NOT_MEASURED; cannot derive from current serialized sufficient statistics",
+    "reason": "Per-stratum aggregate strength/emission counts describe only executed policy, not all four action outcomes within each bucket. Need fit/tune per-bucket/action/stratum sufficient statistics before constrained CE/emission/absence search."
+  },
+  "generation": {
+    "construction_samples": [
+      {
+        "index": 0,
+        "absent": false,
+        "answer": 561,
+        "first_correct": {
+          "local": false,
+          "relational_ctx_parent": false,
+          "h4_policy": false,
+          "categorical_policy": false,
+          "categorical_parent": false
+        }
+      },
+      {
+        "index": 1,
+        "absent": false,
+        "answer": 552,
+        "first_correct": {
+          "local": false,
+          "relational_ctx_parent": true,
+          "h4_policy": true,
+          "categorical_policy": true,
+          "categorical_parent": true
+        }
+      },
+      {
+        "index": 2,
+        "absent": false,
+        "answer": 548,
+        "first_correct": {
+          "local": false,
+          "relational_ctx_parent": false,
+          "h4_policy": false,
+          "categorical_policy": false,
+          "categorical_parent": false
+        }
+      },
+      {
+        "index": 3,
+        "absent": false,
+        "answer": 556,
+        "first_correct": {
+          "local": false,
+          "relational_ctx_parent": true,
+          "h4_policy": false,
+          "categorical_policy": true,
+          "categorical_parent": true
+        }
+      },
+      {
+        "index": 4,
+        "absent": false,
+        "answer": 558,
+        "first_correct": {
+          "local": false,
+          "relational_ctx_parent": true,
+          "h4_policy": true,
+          "categorical_policy": true,
+          "categorical_parent": true
+        }
+      },
+      {
+        "index": 5,
+        "absent": false,
+        "answer": 552,
+        "first_correct": {
+          "local": false,
+          "relational_ctx_parent": true,
+          "h4_policy": true,
+          "categorical_policy": true,
+          "categorical_parent": true
+        }
+      }
+    ],
+    "first_token_correct_counts": {
+      "local": 0,
+      "relational_ctx_parent": 4,
+      "h4_policy": 3,
+      "categorical_policy": 4,
+      "categorical_parent": 4
+    },
+    "scope": "Six all-present construction prompts, descriptive and too small for language claims. No absent autoregressive generation examples."
+  },
+  "controls": [
+    {
+      "arm": "h4_policy (reloaded)",
+      "attempted": 140,
+      "candidate_pool_size_changed": 16,
+      "control": "selected_source_intervention_four_conditions",
+      "enabled_emission_changed_by_the_intervention": 116,
+      "enabled_emitted_the_new_payload": 93,
+      "enabled_selected_the_new_payload": 138,
+      "invariant_disabled_before_equals_disabled_after": 140,
+      "lost_support_after_intervention": 0,
+      "neighbor_payload_or_feature_changed": 140,
+      "no_read_after_intervention": 0,
+      "note": "four matched conditions on the same prefix: enabled-original, enabled-changed, disabled-original, disabled-changed; the replacement payload is absent from the whole sequence and the query is fixed; support loss and NoRead are counted rather than dropped",
+      "original_occurrence_still_admitted": 140,
+      "original_source_reference_still_served": 138
+    },
+    {
+      "arms": [
+        "h4_policy",
+        "categorical_policy"
+      ],
+      "control": "artifact_reload_parity",
+      "note": "every exported arm is reloaded through the independent loader and compared to the fitted selector; the reloaded selectors drive every panel, the intervention, generation and timing",
+      "reload_failures": 0
+    }
+  ],
+  "reload_failures_reported": 0,
+  "cost": {
+    "energy": "UNAVAILABLE",
+    "measurements": [
+      {
+        "candidates_admitted_per_prediction": 1.9444444444444444,
+        "candidates_admitted_total": 35,
+        "median_local_s": 0.02391325,
+        "median_local_us_per_prediction": 1328.513888888889,
+        "median_paired_reader_minus_local_s": 6.583999999996981e-06,
+        "median_reader_s": 0.023879958,
+        "median_reader_us_per_prediction": 1326.6643333333334,
+        "predictions": 18,
+        "protocol": "paired interleaved repeats on the same stream, alternating no-reader-work local and full reader passes; medians reported; no token-pair cache",
+        "read_actions": 13,
+        "stream": "construction_stream",
+        "tokens": 21
+      },
+      {
+        "candidates_admitted_per_prediction": 0.0,
+        "candidates_admitted_total": 0,
+        "median_local_s": 0.027875958,
+        "median_local_us_per_prediction": 1327.4265714285714,
+        "median_paired_reader_minus_local_s": -1.7291999999995145e-05,
+        "median_reader_s": 0.027729374999999997,
+        "median_reader_us_per_prediction": 1320.4464285714284,
+        "predictions": 21,
+        "protocol": "paired interleaved repeats on the same stream, alternating no-reader-work local and full reader passes; medians reported; no token-pair cache",
+        "read_actions": 0,
+        "stream": "text_window",
+        "tokens": 24
+      }
+    ],
+    "resident_bytes": {
+      "gap_thresholds_per_arm": 12,
+      "local_row_table": 1966080,
+      "parent_scratch": 16384,
+      "policy_opcodes_per_arm": 32
+    },
+    "serialized_bytes": {
+      "categorical_policy": 8488,
+      "h4_one_nat": 4392,
+      "h4_policy": 4392,
+      "local_query_artifact": 53555,
+      "parent_E": 454788
+    }
+  },
+  "claim_corrections": [
+    "Preserve PR1328 narrow old-artifact loss reduction; corrected model is different, not a failure to reproduce the same artifact. A constant boost exceeds its text aggregate gain on the same old documents.",
+    "Constrained preservation feasibility not evaluable from saved mean costs/support alone: alternative-action emitted and stratum outcomes missing.",
+    "Different-seed admission means are not rounding; same-seed previous replay is available and matches prior audit means.",
+    "Construction paired median reader-minus-local is positive +6.584 microseconds total, while text paired median negative. Incremental cost remains unresolved.",
+    "Attempt4 final data repeats completed sealed attempt3; identical panels can establish faithful serialization repair, not an independent new final draw."
+  ],
+  "supported_successor": "One bounded prospective collection of fit/tune per-bucket/action sufficient statistics for actual CE, emitted correctness, absence reads/loss and support; solve same-feature constrained utility or establish infeasibility, then at most one fresh final evaluation under preregistered criteria. No evidence here proves contextual representation inadequacy or guarantees a feasible frontier.",
+  "script_sha256": "59f20b9791238adbf9167af1e5bca1aff1beaf961b4d948f7bb53d91f8ab700c",
+  "principal_review_scope": "Verified source contract repair and negative outcomes; finite constrained policy feasibility remains NOT_MEASURED.",
+  "storage_snapshot": {
+    "schema": "uor-storage-inventory-v1",
+    "collected_at": "2026-09-21T13:22:37.972027+00:00",
+    "disk": {
+      "total_bytes": 245107195904,
+      "used_bytes": 206570143744,
+      "free_bytes": 38537052160
+    },
+    "proposed_reserve_bytes": 36766079385,
+    "below_proposed_reserve": false,
+    "paths": [
+      {
+        "label": "model_assets",
+        "path": "/Users/casey.allard/uor-r4/.uor-models",
+        "status": "LOWER_BOUND_OR_UNAVAILABLE",
+        "allocated_bytes": 20979634176,
+        "diagnostic_lines": 3
+      },
+      {
+        "label": "local_target",
+        "path": "/Users/casey.allard/uor-r4/target",
+        "status": "MEASURED",
+        "allocated_bytes": 8780767232,
+        "diagnostic_lines": 0
+      },
+      {
+        "label": "codex_worktrees",
+        "path": "/Users/casey.allard/.codex/worktrees",
+        "status": "MEASURED",
+        "allocated_bytes": 495415296,
+        "diagnostic_lines": 0
+      },
+      {
+        "label": "knowledge",
+        "path": "/Users/casey.allard/.local/share/uor-r4/knowledge",
+        "status": "MEASURED",
+        "allocated_bytes": 1961205760,
+        "diagnostic_lines": 0
+      },
+      {
+        "label": "tooling",
+        "path": "/Users/casey.allard/.local/share/uor-r4/tooling",
+        "status": "MEASURED",
+        "allocated_bytes": 1207754752,
+        "diagnostic_lines": 0
+      },
+      {
+        "label": "uv_tools",
+        "path": "/Users/casey.allard/.local/share/uv/tools",
+        "status": "MEASURED",
+        "allocated_bytes": 288870400,
+        "diagnostic_lines": 0
+      },
+      {
+        "label": "uv_cache",
+        "path": "/Users/casey.allard/.cache/uv",
+        "status": "MEASURED",
+        "allocated_bytes": 64475136,
+        "diagnostic_lines": 0
+      },
+      {
+        "label": "cargo_registry",
+        "path": "/Users/casey.allard/.cargo/registry",
+        "status": "MEASURED",
+        "allocated_bytes": 511242240,
+        "diagnostic_lines": 0
+      },
+      {
+        "label": "cargo_git",
+        "path": "/Users/casey.allard/.cargo/git",
+        "status": "MEASURED",
+        "allocated_bytes": 824213504,
+        "diagnostic_lines": 0
+      }
+    ],
+    "deletions": 0,
+    "notes": [
+      "Rows can overlap; do not sum them as exclusive volume usage.",
+      "du allocated-byte estimates may share APFS clone data.",
+      "Permission errors remain errors; no sealed paths are opened or unlocked.",
+      "Size alone does not make a path disposable. Review changes, evidence and references first."
+    ]
+  },
+  "pinned_corpus_inventory": {
+    "unique_documents": 429,
+    "dev_documents": 36,
+    "reader_used_documents": 32,
+    "remaining_old_dev_documents": 4
+  }
+}

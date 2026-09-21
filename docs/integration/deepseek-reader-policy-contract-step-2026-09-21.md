@@ -1,5 +1,7 @@
 # DeepSeek next task: complete the correctly indexed reader-policy experiment
 
+**Executed by PR #1330.** The feature repair and negative outcomes are retained. Read the [principal review](policy-objective-review-2026-09-21.md) and [next finite-policy feasibility prompt](deepseek-policy-feasibility-step-2026-09-21.md); this document is the historical task specification.
+
 You are a research contributor to the UOR-R4 Geometric Language Model. Read this document, the [PR #1328 principal review](reader-utility-review-2026-09-21.md), and the [current/retired mechanism synthesis](geometric-attention-mechanism-synthesis-2026-09-20.md) completely. Recover additional source, project history, knowledge-store records and primary mathematics/research as needed. Use your judgment to improve implementation and select a bounded scientific follow-up; explain material deviations before final evaluation. The immediate objective is to **execute the intended learned finite-influence experiment correctly**, retaining useful source learning and testing actual language/relational behavior. This is not an audit-only assignment.
 
 ## Recover live authority and the correct result
