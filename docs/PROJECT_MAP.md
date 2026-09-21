@@ -1,6 +1,9 @@
 # UOR-R4 Geometric Language Model — project map
 
-**Current direction after PR #1334:** [principal review](integration/read-conditioned-review-2026-09-21.md) retains verified short confidence generation and corrects the seeded/misindexed update diagnosis. [Next](integration/deepseek-contextual-emission-step-2026-09-21.md): a genuinely context-required transformation plus learned shared low-bit emission, then dependent composition, needed structural persistence, broader language/executed Rust and qualified efficiency.
+**PR #1335, independently reviewed:** the new older-payload pairs support a **reported noncopy signal**, H4 35/180 development and 13/120 exposed regression, with only 1/60 regression pairs both correct. Retain that signal; withdraw the readout-capacity-only diagnosis. The submitted coordinate optimizer loses accepted incumbents, raw-score loss omits fixed-point scaling, and fit/serve residual shifts differ. Any-read counts are not source correctness; final data were exposed before selection; the learned value map aliases required distinctions and loaded-artifact behavior is unqualified. [Principal review](integration/contextual-emission-review-2026-09-21.md); [audit](evidence/contextual-emission-principal-review-2026-09-21.json).
+
+**Next:** [one consistent hard-forward contextual-emission fit](integration/deepseek-consistent-emission-step-2026-09-21.md) at the existing width/state count, using the corrected numerical/causal/export contract and an explicit output/maps/output learning stage. Inspect actual source correctness, feature aliases and margins before any expansion. A relative-transition readout is a conditional geometric alternative if an actual nuisance-frame or cycle obstruction is witnessed. Dependent reads follow a useful one-read primitive; structural persistence and S7/E8/Hopf/harmonic tools remain available for demonstrated needs. No new model fit or broader language qualification is claimed by the principal repair.
+
 
 This map connects the current Rust model, product interfaces, research history
 and retained evidence. It is navigation, not a new capability assessment or an

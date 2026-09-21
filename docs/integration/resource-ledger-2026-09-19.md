@@ -1399,3 +1399,92 @@ Read-only inventory found **37750153216 bytes** free. Removed only 266 inactive 
 **Prospective principal execution:** at most 600000 ms total for focused full-prefix/first-token/loader tests, formatting and touched-runner compilation, including diagnosed retry; no model fit or harness replay. Two compiler workers, `CARGO_INCREMENTAL=0`, shared target, peak RAM 8 GiB, at most 768 MiB reusable build growth plus 4 MiB documentation/audit. Check actual free space against reserve 36766079385+128MiB before each command and during execution; stop/checkpoint before limits. Charge measured time to the absolute owner-checkout JSON. Current reconciled allowance covers this projection; no additional time extension or paid compute.
 
 **Completed principal checks:** formatting, two retained confidence-boundary tests, three new full-prefix/first-token/reload boundary tests, two read-conditioned module tests and offline touched-runner compilation all pass. Total **444175 ms** charged once across six commands. Live JSON **203481875/204900000 ms**, remaining **1418125 ms (23.64 minutes)**. No model fit/harness replay, further allowance increase or paid compute. Free space **38592483328 bytes (38.59 GB)** after checks. Cleanup immediate gain **871112704 bytes**; removed only inactive compiler intermediates.
+
+## Contextual-emission step — September 21, 2026
+
+**Projection recorded before implementation and execution.** One targeted pass (no legacy panel/harness
+rerun): a context-required paired-prefix instrument, full-prefix extraction, a frozen-row diagnostic, a
+**learned shared low-bit emission residual** trained under NLL, a matched cyclic-C120 comparator, real
+changed-source/disabled interventions and short generated continuations.
+
+| Item | Projected | Reason |
+| --- | --- | --- |
+| Wall time | **≤ 6,000,000 ms (~100 min)** | implementation of the residual + optimizer, compile cycles, one targeted run, controls, evidence and delivery |
+| Compiler workers | ≤ 2, `CARGO_INCREMENTAL=0` | offline Rust build, shared target |
+| Model workers | 1 | single targeted process |
+| Peak RSS | ≤ 8 GiB | existing loaders plus a 4096x16 float output map |
+| New/temporary/retained storage | ≤ 512 MiB build, ≤ 16 MiB reports | shared target reuse, bounded scratch |
+| Free space at projection | `37328789504` bytes | above the 36,766,079,385-byte reserve and the 128 MiB stop margin |
+
+**Extension taken.** Time increment **+6,000,000 ms**; **new cumulative limit 210,900,000 ms**
+(previous 204,900,000 ms; live **203,481,875 ms** from the reconciled principal checks). Reason: a new
+trained operator with a shared emission residual, a matched comparator and full controls cannot be
+implemented, trained, evaluated and delivered within the remaining 1,418,125 ms. Recorded **before**
+the work. No reserve reduction and no paid/external compute.
+
+**Completed charges — contextual-emission step.** Measured: four targeted passes (10.7 s, 22.1 s,
+23.2 s, 23.2 s = **79.2 s**); release builds **~220 s** (1 m 31 s + 1 m 24 s + incremental);
+compile/test/check/fmt cycles **~900 s** including one mis-anchored edit that required a file revert
+and full re-application. Estimated: context/source/literature recovery ~**900 s**; documentation,
+evidence, delivery and knowledge ~**1200 s**. **Charge 3,400,000 ms** (measured + estimated). Live
+allowance after the prospective increment: limit **210,900,000 ms**; **new cumulative 206,881,875 ms**;
+remaining **4,018,125 ms (~67 min)**. `CARGO_INCREMENTAL=0`; inactive incremental caches removed and
+this author's own superseded `read-conditioned-state` worktree retired, restoring free space to
+**37,535,379,456 bytes**, above the 36,766,079,385-byte reserve plus the 128 MiB stop margin. No unique
+source, model, sealed evidence, research or other agents' work deleted; no paid/external compute.
+
+**Delivered** under the claimed, sealed and verified root
+`.uor-models/realtext-prior-2026-09-20/contextual-emission-4` (0 unlisted, 6 files plus four
+artifacts). Diagnostics `contextual-emission-1` (invalid first optimizer), `-2` and `-3` are retained
+unchanged and never reused as the delivered root.
+
+
+## PR #1335 principal review: reconciliation and prospective checks (2026-09-21T17:16Z)
+
+Before any build or new model execution, the absolute owner-checkout JSON was
+`203481875 / 210900000 ms`: the prior six-million-ms allowance was applied, but
+the reported `3400000 ms` contextual-emission debit was missing. Reconciled once
+to **206881875 / 210900000 ms** (4018125 ms remaining). Retain the full reported
+charge: its approximate listed components sum to 3299200 ms, leaving 100800 ms
+conservative overhead. Do not apply the allowance a second time.
+
+The prior 528 MiB storage projection did not fit its own recorded free-space
+headroom above 36766079385 bytes plus the 128 MiB stop margin. Later cleanup
+does not retroactively make that projection valid. DeepSeek reports removing
+its merged read-conditioned worktree and intermediate caches; that is separate
+from this review's measured cache-only cleanup.
+
+Principal review projection: at most 2400000 ms including preparation, source
+repair, focused compilation/tests, evidence checks and documentation; 600000 ms
+is a conservative preparation estimate before the timestamp above, with the
+remaining elapsed work measured from that timestamp. Two compiler workers,
+CARGO_INCREMENTAL=0, reused owner target, 8 GiB RAM ceiling; no model fit or
+corpus evaluation. Up to 448 MiB temporary build output and 16 MiB reports/docs.
+No new allowance is required for this projection. Stop/reproject before limits.
+
+Four inactive Rust incremental-cache directories under the owner's
+`target/debug/incremental` were removed after verifying no active Rust build or
+model runner. Allocated bytes removed: **32792576**. Observed free bytes changed
+**37498191872 -> 37530959872**, a **32768000-byte** increase. Sources, executables,
+models, negative artifacts, sealed roots, research, worktrees and Downloads
+were preserved. The new projection fits the refreshed physical headroom.
+
+
+### Principal checks and debit
+
+Five emitter tests and two read-conditioned tests pass; the offline
+`competitive-reader` check, formatting, claim-wording check, JSON parsing,
+904 local Markdown links and diff whitespace pass. Pre-existing warnings
+remain; no whole-suite or new model fit/evaluation is claimed. The three
+recorded Cargo commands consumed 262530 ms, already
+included in the elapsed total, not charged twice.
+
+Principal debit **1575379 ms** = conservative preparation 600000 ms +
+measured elapsed review/check/documentation 675379 ms + conservative final
+delivery reserve 300000 ms. Actual principal fit time is zero. New cumulative
+**208457254 / 210900000 ms**; remaining
+**2442746 ms**. No additional allowance.
+Free after checks **37507620864 bytes**; physical reserve plus
+128 MiB remains intact. Exact command/resource/source receipts:
+[principal checks](../evidence/contextual-emission-principal-checks-2026-09-21.json).
+The owner checkout remains clean at `74fef0886ca3b14ff90943c8677d6b7815064198`.

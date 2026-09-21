@@ -1,0 +1,1018 @@
+{
+  "schema": "uor-r4.contextual-emission-principal-evidence-audit/1",
+  "scope": "Read-only sealed report integrity, binary parameter inspection, saved aggregate/sample crosschecks and source-derived fixture reconstruction. No builds, model inference, training or sealed-root mutation. Full per-position hit/loss/source-correctness aggregates are not independently numerically reproducible from the retained sufficient statistics because none were saved.",
+  "review_revision": "51b275bf828ee7555425648fa7dd8d4464e5fa29",
+  "integrity": {
+    "1": {
+      "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/contextual-emission-1",
+      "listed_files": 6,
+      "missing": [],
+      "unlisted": [],
+      "seal_errors": [],
+      "result_sha256": "b2bb81be543b1048049d2eda739296d8ae78d817175efc79b9a243bb5a4bdb31",
+      "artifact_hashes_match": {
+        "h4_emission": {
+          "params": true,
+          "residual": true
+        },
+        "cyclic_c120_emission": {
+          "params": true,
+          "residual": true
+        }
+      },
+      "submitted_source_matches": {
+        "crates/uor-r4-core/src/native_geometric/learner/relational.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/contextual_emission.rs": false,
+        "crates/uor-r4-core/src/bin/competitive-reader.rs": false
+      },
+      "declared_executable_sha256": "81de591e1cefefb5e12460243ca81ef9cfdf11e5786cb4b887f79ffab9e081b6",
+      "retained_current_executable_sha256": "ed134001be858440268094de561a5fe4e681d2ada6a7f7116d030bc6e9c6b63d",
+      "current_executable_matches": false
+    },
+    "2": {
+      "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/contextual-emission-2",
+      "listed_files": 6,
+      "missing": [],
+      "unlisted": [],
+      "seal_errors": [],
+      "result_sha256": "3408b21fb1efa7d5ac6f695cf6834bdde7a98117087910fffb456aec3295634f",
+      "artifact_hashes_match": {
+        "h4_emission": {
+          "params": true,
+          "residual": true
+        },
+        "cyclic_c120_emission": {
+          "params": true,
+          "residual": true
+        }
+      },
+      "submitted_source_matches": {
+        "crates/uor-r4-core/src/native_geometric/learner/relational.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/contextual_emission.rs": true,
+        "crates/uor-r4-core/src/bin/competitive-reader.rs": false
+      },
+      "declared_executable_sha256": "8d7c1f0de28245e42620cc0dca30f4478627f8a1be8b5f3caa2da23b59da3640",
+      "retained_current_executable_sha256": "ed134001be858440268094de561a5fe4e681d2ada6a7f7116d030bc6e9c6b63d",
+      "current_executable_matches": false
+    },
+    "3": {
+      "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/contextual-emission-3",
+      "listed_files": 6,
+      "missing": [],
+      "unlisted": [],
+      "seal_errors": [],
+      "result_sha256": "45b033d466f945046e2cb98b4a7237683a9b517ad0a516d0be5caced1a57f739",
+      "artifact_hashes_match": {
+        "h4_emission": {
+          "params": true,
+          "residual": true
+        },
+        "cyclic_c120_emission": {
+          "params": true,
+          "residual": true
+        }
+      },
+      "submitted_source_matches": {
+        "crates/uor-r4-core/src/native_geometric/learner/relational.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/contextual_emission.rs": true,
+        "crates/uor-r4-core/src/bin/competitive-reader.rs": false
+      },
+      "declared_executable_sha256": "3b94398080ffa5a860a40cf98f451150f7896baede9f8a26b4150a609ff3b7ab",
+      "retained_current_executable_sha256": "ed134001be858440268094de561a5fe4e681d2ada6a7f7116d030bc6e9c6b63d",
+      "current_executable_matches": false
+    },
+    "4": {
+      "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/contextual-emission-4",
+      "listed_files": 6,
+      "missing": [],
+      "unlisted": [],
+      "seal_errors": [],
+      "result_sha256": "4198a6c6933be3531b3b452516e031174630e3c34d168f0a312a231347f66bf7",
+      "artifact_hashes_match": {
+        "h4_emission": {
+          "params": true,
+          "residual": true
+        },
+        "cyclic_c120_emission": {
+          "params": true,
+          "residual": true
+        }
+      },
+      "submitted_source_matches": {
+        "crates/uor-r4-core/src/native_geometric/learner/relational.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/contextual_emission.rs": true,
+        "crates/uor-r4-core/src/bin/competitive-reader.rs": true
+      },
+      "declared_executable_sha256": "ed134001be858440268094de561a5fe4e681d2ada6a7f7116d030bc6e9c6b63d",
+      "retained_current_executable_sha256": "ed134001be858440268094de561a5fe4e681d2ada6a7f7116d030bc6e9c6b63d",
+      "current_executable_matches": true
+    }
+  },
+  "attempt_comparison": {
+    "1": {
+      "same_as_attempt4": {
+        "instrument": true,
+        "validity": true,
+        "learning": false,
+        "comparisons": false,
+        "changed_source_pairs_fresh": false,
+        "generated": false,
+        "artifacts": false
+      },
+      "elapsed_s": 10.679661,
+      "claimed_at": "1790009779",
+      "sealed_at": "1790009789",
+      "fresh_h4_hits": 6
+    },
+    "2": {
+      "same_as_attempt4": {
+        "instrument": true,
+        "validity": true,
+        "learning": true,
+        "comparisons": true,
+        "changed_source_pairs_fresh": true,
+        "generated": true,
+        "artifacts": true
+      },
+      "elapsed_s": 22.05033,
+      "claimed_at": "1790009937",
+      "sealed_at": "1790009959",
+      "fresh_h4_hits": 13
+    },
+    "3": {
+      "same_as_attempt4": {
+        "instrument": true,
+        "validity": true,
+        "learning": true,
+        "comparisons": true,
+        "changed_source_pairs_fresh": true,
+        "generated": true,
+        "artifacts": true
+      },
+      "elapsed_s": 23.207572583,
+      "claimed_at": "1790009988",
+      "sealed_at": "1790010011",
+      "fresh_h4_hits": 13
+    },
+    "4": {
+      "same_as_attempt4": {
+        "instrument": true,
+        "validity": true,
+        "learning": true,
+        "comparisons": true,
+        "changed_source_pairs_fresh": true,
+        "generated": true,
+        "artifacts": true
+      },
+      "elapsed_s": 23.247447,
+      "claimed_at": "1790010065",
+      "sealed_at": "1790010088",
+      "fresh_h4_hits": 13
+    }
+  },
+  "inputs": {
+    "E": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/head-projection-3/corrected/empirical.cpl2",
+      "sha256": "565cf98a01273af38425687adb522704b09a89bd7ab976b58b20bfbdaccfa0bf",
+      "matches_source_or_report_declared": true
+    },
+    "S": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/s-attribution-3/corrected/separable_older_query_read.cpx3",
+      "sha256": "ed9affd638ee93670559c626fd6dab91dc2a3c7faa5db66ec9e5a486bcdbdfad",
+      "matches_source_or_report_declared": true
+    },
+    "raw_tokenizer": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/sources/smollm2-135m-instruct/tokenizer.json",
+      "sha256": "9ca9acddb6525a194ec8ac7a87f24fbba7232a9a15ffa1af0c1224fcd888e47c",
+      "matches_source_or_report_declared": true
+    },
+    "reader_parent": {
+      "path": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/relational-learning-4/artifacts/relational_ctx.rlr2",
+      "sha256": "d4ab183d3975be563139ba42f3a5fb9ec61fa1691603bfcc3d603787d7ab5b55",
+      "matches_source_or_report_declared": true
+    },
+    "reader_binding_scope": "Reader-parent hash is source constant and audited here, but the contextual-emission runner does not check or record that constant at load; it checks S/tokenizer linkage inside the reader artifact. Derived-tokenizer and group-table hashes are retained reports, not re-derived in this no-model audit."
+  },
+  "artifact_parameters": {
+    "h4_emission": {
+      "params": {
+        "sha256": "6abe186140e09a3487ae04f0573e1362a638fb9dc0d87d31fee2fc829708d430",
+        "bytes": 180,
+        "consumed": 180,
+        "version": 1,
+        "transport_changes_from_index_initialization": [
+          {
+            "relation": 67,
+            "initial": 67,
+            "final": 46
+          },
+          {
+            "relation": 85,
+            "initial": 85,
+            "final": 80
+          }
+        ],
+        "value_domain": [
+          485,
+          486,
+          487,
+          488,
+          489,
+          491,
+          500,
+          507
+        ],
+        "value_codes": [
+          22,
+          22,
+          11,
+          22,
+          4,
+          89,
+          89,
+          27
+        ],
+        "value_changes_from_index_initialization": [
+          {
+            "value": 485,
+            "initial": 0,
+            "final": 22
+          },
+          {
+            "value": 486,
+            "initial": 1,
+            "final": 22
+          },
+          {
+            "value": 487,
+            "initial": 2,
+            "final": 11
+          },
+          {
+            "value": 488,
+            "initial": 3,
+            "final": 22
+          },
+          {
+            "value": 491,
+            "initial": 5,
+            "final": 89
+          },
+          {
+            "value": 500,
+            "initial": 6,
+            "final": 89
+          },
+          {
+            "value": 507,
+            "initial": 7,
+            "final": 27
+          }
+        ],
+        "alias_groups": {
+          "22": [
+            485,
+            486,
+            488
+          ],
+          "89": [
+            491,
+            500
+          ]
+        },
+        "same_code_changed_source_pairs_assuming_correct_payload_selection": {
+          "dev": 14,
+          "tune": 11,
+          "fresh": 10
+        },
+        "alias_scope": "For any pair with both correct source payloads selected and unchanged query/relation, equal value codes imply equal q1 and identical logits, so both distinct targets cannot be emitted. A wider readout alone cannot recover those distinctions. Counts here are reconstructed task pairs, not measured selected-source rows."
+      },
+      "residual": {
+        "sha256": "ce3b42851f17e8f8fa939549603b2e7606f7b173edde61732daf6206b2046a97",
+        "bytes": 67480,
+        "consumed": 67480,
+        "version": 1,
+        "width": 16,
+        "shift": 10,
+        "r_rows": 120,
+        "output_rows_stored": 4096,
+        "active_output_rows": [
+          28,
+          29,
+          30,
+          31,
+          93,
+          99,
+          198,
+          216,
+          260,
+          277,
+          286,
+          342,
+          368,
+          747,
+          4088,
+          4089,
+          4090,
+          4091,
+          4092,
+          4093,
+          4094,
+          4095
+        ],
+        "nonzero_coefficients": 321,
+        "embedding_sha256": "5b97d7bcedf176dc01f8177763590ace28462fae568fba7e96efd500d156ddf0",
+        "embedding_zero_columns": [],
+        "max_abs_w": 1,
+        "all_coefficients_ternary": true,
+        "initial_output_was_zero": true
+      }
+    },
+    "cyclic_c120_emission": {
+      "params": {
+        "sha256": "13439c7cb1951361d1f212f1d518d4eb790113c9e9287702623f9285a7d04fd1",
+        "bytes": 180,
+        "consumed": 180,
+        "version": 1,
+        "transport_changes_from_index_initialization": [
+          {
+            "relation": 67,
+            "initial": 67,
+            "final": 47
+          },
+          {
+            "relation": 80,
+            "initial": 80,
+            "final": 85
+          }
+        ],
+        "value_domain": [
+          485,
+          486,
+          487,
+          488,
+          489,
+          491,
+          500,
+          507
+        ],
+        "value_codes": [
+          23,
+          1,
+          23,
+          98,
+          45,
+          41,
+          2,
+          2
+        ],
+        "value_changes_from_index_initialization": [
+          {
+            "value": 485,
+            "initial": 0,
+            "final": 23
+          },
+          {
+            "value": 487,
+            "initial": 2,
+            "final": 23
+          },
+          {
+            "value": 488,
+            "initial": 3,
+            "final": 98
+          },
+          {
+            "value": 489,
+            "initial": 4,
+            "final": 45
+          },
+          {
+            "value": 491,
+            "initial": 5,
+            "final": 41
+          },
+          {
+            "value": 500,
+            "initial": 6,
+            "final": 2
+          },
+          {
+            "value": 507,
+            "initial": 7,
+            "final": 2
+          }
+        ],
+        "alias_groups": {
+          "23": [
+            485,
+            487
+          ],
+          "2": [
+            500,
+            507
+          ]
+        },
+        "same_code_changed_source_pairs_assuming_correct_payload_selection": {
+          "dev": 5,
+          "tune": 4,
+          "fresh": 7
+        },
+        "alias_scope": "For any pair with both correct source payloads selected and unchanged query/relation, equal value codes imply equal q1 and identical logits, so both distinct targets cannot be emitted. A wider readout alone cannot recover those distinctions. Counts here are reconstructed task pairs, not measured selected-source rows."
+      },
+      "residual": {
+        "sha256": "5ac9df2b9dd91b1a2f6b0c31fdd290a04c341b71ca91ce82aeb761237d8146fe",
+        "bytes": 67480,
+        "consumed": 67480,
+        "version": 1,
+        "width": 16,
+        "shift": 10,
+        "r_rows": 120,
+        "output_rows_stored": 4096,
+        "active_output_rows": [
+          28,
+          29,
+          30,
+          31,
+          93,
+          99,
+          198,
+          216,
+          260,
+          277,
+          286,
+          342,
+          368,
+          747,
+          4088,
+          4089,
+          4090,
+          4091,
+          4092,
+          4093,
+          4094,
+          4095
+        ],
+        "nonzero_coefficients": 325,
+        "embedding_sha256": "5b97d7bcedf176dc01f8177763590ace28462fae568fba7e96efd500d156ddf0",
+        "embedding_zero_columns": [],
+        "max_abs_w": 1,
+        "all_coefficients_ternary": true,
+        "initial_output_was_zero": true
+      }
+    },
+    "scope": "Parameters differ from index-map/zero-output initializations. Same state count/capacity and byte-identical embeddings: seeded() ORs the nominal seeds with1, collapsing their apparent difference. RLRC does not serialize algebra; RLCE does not bind reader, tokenizer, base, seed, data or algebra. Artifacts are not numerically evaluated by this script."
+  },
+  "fixture_reconstruction": {
+    "scope": "Source-derived fixture reconstruction, not saved original per-position model evidence. Same-tokenizer role/key/value banks recovered from separately sealed competitive-reader-1/population.json. No new BPE, source selection, logits or predictions executed.",
+    "bank_path": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/competitive-reader-1/population.json",
+    "bank_sha256": "3cb489212684bf28f1050b7eea4b3c6ab87706e46281435f5e660b7d31d201a9",
+    "panels": {
+      "dev": {
+        "positions": 180,
+        "pairs": 90,
+        "all_pairs_change_only_relevant_payload_and_keep_last5": true,
+        "all_targets_absent_from_prefix": true,
+        "target_counts": {
+          "4088": 21,
+          "4089": 27,
+          "4090": 23,
+          "4091": 22,
+          "4092": 25,
+          "4093": 21,
+          "4094": 24,
+          "4095": 17
+        },
+        "majority_answer_hits": 27,
+        "majority_answer_pair_both": 0,
+        "uniform_eight_class_expected_hits": 22.5,
+        "uniform_independent_expected_pair_both": 1.40625,
+        "exact_prefix_duplicates": 0,
+        "canonical_items_sha256": "db77ddae69f2f5dc15146c90df75eb461e44af4ddeb007a962476b1add2369b7"
+      },
+      "tune": {
+        "positions": 120,
+        "pairs": 60,
+        "all_pairs_change_only_relevant_payload_and_keep_last5": true,
+        "all_targets_absent_from_prefix": true,
+        "target_counts": {
+          "4088": 18,
+          "4089": 16,
+          "4090": 17,
+          "4091": 13,
+          "4092": 14,
+          "4093": 14,
+          "4094": 15,
+          "4095": 13
+        },
+        "majority_answer_hits": 18,
+        "majority_answer_pair_both": 0,
+        "uniform_eight_class_expected_hits": 15.0,
+        "uniform_independent_expected_pair_both": 0.9375,
+        "exact_prefix_duplicates": 0,
+        "canonical_items_sha256": "09b4146507f7d33232640f37ad7c8f8db623be1eeeca6289024d93ae23563a7e"
+      },
+      "fresh": {
+        "positions": 120,
+        "pairs": 60,
+        "all_pairs_change_only_relevant_payload_and_keep_last5": true,
+        "all_targets_absent_from_prefix": true,
+        "target_counts": {
+          "4088": 13,
+          "4089": 20,
+          "4090": 18,
+          "4091": 17,
+          "4092": 19,
+          "4093": 12,
+          "4094": 11,
+          "4095": 10
+        },
+        "majority_answer_hits": 20,
+        "majority_answer_pair_both": 0,
+        "uniform_eight_class_expected_hits": 15.0,
+        "uniform_independent_expected_pair_both": 0.9375,
+        "exact_prefix_duplicates": 0,
+        "canonical_items_sha256": "6b8fd38a31ffdaee9eee7d4c5462211225c695ff84f8631d1e61a80dfec4f043"
+      }
+    },
+    "split_overlap": {
+      "dev_vs_tune": {
+        "complete_prefix": {
+          "left_unique": 180,
+          "right_unique": 120,
+          "intersection": 0
+        },
+        "query_role_key": {
+          "left_unique": 85,
+          "right_unique": 56,
+          "intersection": 9
+        },
+        "query_role_relevant_value": {
+          "left_unique": 127,
+          "right_unique": 91,
+          "intersection": 49
+        },
+        "role_key_value": {
+          "left_unique": 177,
+          "right_unique": 118,
+          "intersection": 7
+        },
+        "relevant_value_target": {
+          "left_unique": 8,
+          "right_unique": 8,
+          "intersection": 8
+        }
+      },
+      "dev_vs_fresh": {
+        "complete_prefix": {
+          "left_unique": 180,
+          "right_unique": 120,
+          "intersection": 0
+        },
+        "query_role_key": {
+          "left_unique": 85,
+          "right_unique": 58,
+          "intersection": 7
+        },
+        "query_role_relevant_value": {
+          "left_unique": 127,
+          "right_unique": 98,
+          "intersection": 59
+        },
+        "role_key_value": {
+          "left_unique": 177,
+          "right_unique": 120,
+          "intersection": 3
+        },
+        "relevant_value_target": {
+          "left_unique": 8,
+          "right_unique": 8,
+          "intersection": 8
+        }
+      },
+      "tune_vs_fresh": {
+        "complete_prefix": {
+          "left_unique": 120,
+          "right_unique": 120,
+          "intersection": 0
+        },
+        "query_role_key": {
+          "left_unique": 56,
+          "right_unique": 58,
+          "intersection": 5
+        },
+        "query_role_relevant_value": {
+          "left_unique": 91,
+          "right_unique": 98,
+          "intersection": 42
+        },
+        "role_key_value": {
+          "left_unique": 118,
+          "right_unique": 120,
+          "intersection": 4
+        },
+        "relevant_value_target": {
+          "left_unique": 8,
+          "right_unique": 8,
+          "intersection": 8
+        }
+      }
+    }
+  },
+  "retained_samples": {
+    "paired_sample_rows": [
+      {
+        "pair": 0,
+        "reconstructed_values_answers_match_saved": true,
+        "only_relevant_payload_changes": true,
+        "correct_a_recomputed": true,
+        "correct_b_recomputed": false,
+        "both_correct_recomputed": false,
+        "emission_changes": true,
+        "reported": {
+          "answer_a": 4092,
+          "answer_b": 4091,
+          "both_correct": false,
+          "correct_a": true,
+          "correct_b": false,
+          "different_answers": true,
+          "emitted_a": 4092,
+          "emitted_b": 284,
+          "identical_local_logits": true,
+          "pair": 0,
+          "read_a": true,
+          "read_b": true,
+          "updated_a": true,
+          "updated_b": true,
+          "value_a": 488,
+          "value_b": 489
+        }
+      },
+      {
+        "pair": 1,
+        "reconstructed_values_answers_match_saved": true,
+        "only_relevant_payload_changes": true,
+        "correct_a_recomputed": false,
+        "correct_b_recomputed": false,
+        "both_correct_recomputed": false,
+        "emission_changes": true,
+        "reported": {
+          "answer_a": 4089,
+          "answer_b": 4088,
+          "both_correct": false,
+          "correct_a": false,
+          "correct_b": false,
+          "different_answers": true,
+          "emitted_a": 4090,
+          "emitted_b": 4092,
+          "identical_local_logits": true,
+          "pair": 1,
+          "read_a": true,
+          "read_b": true,
+          "updated_a": true,
+          "updated_b": true,
+          "value_a": 500,
+          "value_b": 507
+        }
+      },
+      {
+        "pair": 2,
+        "reconstructed_values_answers_match_saved": true,
+        "only_relevant_payload_changes": true,
+        "correct_a_recomputed": false,
+        "correct_b_recomputed": true,
+        "both_correct_recomputed": false,
+        "emission_changes": true,
+        "reported": {
+          "answer_a": 4088,
+          "answer_b": 4091,
+          "both_correct": false,
+          "correct_a": false,
+          "correct_b": true,
+          "different_answers": true,
+          "emitted_a": 368,
+          "emitted_b": 4091,
+          "identical_local_logits": true,
+          "pair": 2,
+          "read_a": true,
+          "read_b": true,
+          "updated_a": true,
+          "updated_b": true,
+          "value_a": 507,
+          "value_b": 489
+        }
+      },
+      {
+        "pair": 3,
+        "reconstructed_values_answers_match_saved": true,
+        "only_relevant_payload_changes": true,
+        "correct_a_recomputed": false,
+        "correct_b_recomputed": false,
+        "both_correct_recomputed": false,
+        "emission_changes": true,
+        "reported": {
+          "answer_a": 4091,
+          "answer_b": 4088,
+          "both_correct": false,
+          "correct_a": false,
+          "correct_b": false,
+          "different_answers": true,
+          "emitted_a": 284,
+          "emitted_b": 4091,
+          "identical_local_logits": true,
+          "pair": 3,
+          "read_a": true,
+          "read_b": true,
+          "updated_a": true,
+          "updated_b": true,
+          "value_a": 489,
+          "value_b": 507
+        }
+      }
+    ],
+    "paired_first_four_correct_count": 2,
+    "paired_first_four_both_correct": 0,
+    "generation": [
+      {
+        "sample": 0,
+        "first_correct": true,
+        "emissions_match_steps": true,
+        "answer_matches_reconstructed_fixture": true,
+        "reported": {
+          "answer": 4092,
+          "decoded": "info-f",
+          "emitted": [
+            4092,
+            29,
+            86
+          ],
+          "steps": [
+            {
+              "emitted": 4092,
+              "read": true,
+              "updated": true
+            },
+            {
+              "emitted": 29,
+              "read": false,
+              "updated": false
+            },
+            {
+              "emitted": 86,
+              "read": true,
+              "updated": true
+            }
+          ]
+        }
+      },
+      {
+        "sample": 1,
+        "first_correct": false,
+        "emissions_match_steps": true,
+        "answer_matches_reconstructed_fixture": true,
+        "reported": {
+          "answer": 4091,
+          "decoded": " and\nm",
+          "emitted": [
+            284,
+            198,
+            93
+          ],
+          "steps": [
+            {
+              "emitted": 284,
+              "read": true,
+              "updated": true
+            },
+            {
+              "emitted": 198,
+              "read": false,
+              "updated": false
+            },
+            {
+              "emitted": 93,
+              "read": true,
+              "updated": true
+            }
+          ]
+        }
+      },
+      {
+        "sample": 2,
+        "first_correct": false,
+        "emissions_match_steps": true,
+        "answer_matches_reconstructed_fixture": true,
+        "reported": {
+          "answer": 4089,
+          "decoded": " fully-re",
+          "emitted": [
+            4090,
+            29,
+            257
+          ],
+          "steps": [
+            {
+              "emitted": 4090,
+              "read": true,
+              "updated": true
+            },
+            {
+              "emitted": 29,
+              "read": false,
+              "updated": false
+            },
+            {
+              "emitted": 257,
+              "read": true,
+              "updated": true
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "reported_counts_not_independently_recomputed": [
+    {
+      "arm": "local_noread",
+      "dev_hits": 0,
+      "dev_pairs_both_correct": 0,
+      "dev_positions": 180,
+      "dev_reads": 0,
+      "fresh_hits": 0,
+      "fresh_pairs_both_correct": 0,
+      "fresh_positions": 120,
+      "fresh_reads": 0,
+      "tune_hits": 0,
+      "tune_positions": 120
+    },
+    {
+      "arm": "h4_read_conditioned",
+      "dev_hits": 35,
+      "dev_pairs_both_correct": 6,
+      "dev_positions": 180,
+      "dev_reads": 180,
+      "fresh_hits": 13,
+      "fresh_pairs_both_correct": 1,
+      "fresh_positions": 120,
+      "fresh_reads": 120,
+      "tune_hits": 22,
+      "tune_positions": 120
+    },
+    {
+      "arm": "h4_update_disabled",
+      "dev_hits": 0,
+      "dev_pairs_both_correct": 0,
+      "dev_positions": 180,
+      "dev_reads": 180,
+      "fresh_hits": 0,
+      "fresh_pairs_both_correct": 0,
+      "fresh_positions": 120,
+      "fresh_reads": 120,
+      "tune_hits": 0,
+      "tune_positions": 120
+    },
+    {
+      "arm": "h4_read_disabled",
+      "dev_hits": 0,
+      "dev_pairs_both_correct": 0,
+      "dev_positions": 180,
+      "dev_reads": 0,
+      "fresh_hits": 0,
+      "fresh_pairs_both_correct": 0,
+      "fresh_positions": 120,
+      "fresh_reads": 0,
+      "tune_hits": 0,
+      "tune_positions": 120
+    },
+    {
+      "arm": "cyclic_c120_read_conditioned",
+      "dev_hits": 27,
+      "dev_pairs_both_correct": 0,
+      "dev_positions": 180,
+      "dev_reads": 180,
+      "fresh_hits": 12,
+      "fresh_pairs_both_correct": 1,
+      "fresh_positions": 120,
+      "fresh_reads": 120,
+      "tune_hits": 16,
+      "tune_positions": 120
+    },
+    {
+      "arm": "scalar_copy_parent",
+      "dev_hits": 0,
+      "dev_pairs_both_correct": 0,
+      "dev_positions": 180,
+      "fresh_hits": 0,
+      "fresh_pairs_both_correct": 0,
+      "fresh_positions": 120
+    }
+  ],
+  "reported_learning_not_calibrated_CE": {
+    "cyclic_c120": {
+      "accepted_map_changes": 10,
+      "accepted_ternary_flips": 29,
+      "algebra": "cyclic_c120",
+      "dev_hits": 27,
+      "nll_bits": {
+        "float_after_gradient_fit": 15473.69536634602,
+        "initial": 15561.435327263316,
+        "served_after_discrete_refinement": 11524.387337291342,
+        "served_after_quantization": 12549.04919299826,
+        "served_final": 8772.656209523766
+      },
+      "nonzero_coefficients": 325,
+      "output_rows": 22,
+      "residual_range_bound": 32768,
+      "shift": 10,
+      "tune_hits": 16
+    },
+    "h4": {
+      "accepted_map_changes": 9,
+      "accepted_ternary_flips": 21,
+      "algebra": "signed_h4",
+      "dev_hits": 35,
+      "nll_bits": {
+        "float_after_gradient_fit": 15486.23444320843,
+        "initial": 15561.435327263316,
+        "served_after_discrete_refinement": 10986.057584269509,
+        "served_after_quantization": 11438.600627749602,
+        "served_final": 7987.459749504482
+      },
+      "nonzero_coefficients": 321,
+      "output_rows": 22,
+      "residual_range_bound": 32768,
+      "shift": 10,
+      "tune_hits": 22
+    }
+  },
+  "source_corrections": [
+    {
+      "finding": "Learned value codes erase required output distinctions",
+      "evidence": "H4 value codes [22,22,11,22,4,89,89,27] collapse 8 values into 5 codes; C120 [23,1,23,98,45,41,2,2] collapses into 6.",
+      "consequence": "Conditional on correct reads and fixed query/relation, aliased values give identical q1/local/residual and cannot both produce correct different answers. An arbitrary wider head cannot repair these input aliases."
+    },
+    {
+      "finding": "No correct-source measurement",
+      "evidence": "validity.source_selected counts CePos.read, which is true whenever choose_scored returns any action; CeItem.seq.answer_source_abs is None and selected source references are not retained.",
+      "consequence": "180/180 reads does not clear selection as a bottleneck. Since targets are a one-to-one function of relevant value, ambiguous selected-payload signatures imply at least one wrong selected payload in each ambiguous signature; they are not clean evidence of insufficient emission capacity."
+    },
+    {
+      "finding": "Raw fixed-point logits treated as nats",
+      "evidence": "train_output_map and served_nll_bits exponentiate z_local directly; normal runner bits multiplies logits by 2^-f_bits first.",
+      "consequence": "Reported 15561 -> 7987 values measure unit-temperature-on-integer-logits objectives, not calibrated model CE. They cannot be divided by a constant afterward without full logits."
+    },
+    {
+      "finding": "Fresh population exposed before repairs",
+      "evidence": "All attempts use seeds C0F00001/2/3; attempt1 already saves fresh hits before optimizer and output-row-budget repairs in2. Attempts2-4 metrics and artifacts repeat exactly.",
+      "consequence": "One reused development/regression draw; no untouched post-selection acceptance panel. Same output classes/values appear in all splits, and overlapping relation/content combinations are not explicitly held out."
+    },
+    {
+      "finding": "Missing row evidence",
+      "evidence": "Seals contain only attempt.json, result.json and four artifacts. No complete prefixes, selected occurrence/payload, per-position logits/margins, full pair predictions or oracle margins.",
+      "consequence": "Saved8pair-member samples and3generated trajectories can be checked, but120fresh hits,60pair hits, selection correctness and180row ceiling cannot independently be rederived without new model evaluation."
+    },
+    {
+      "finding": "No independently loaded behavioral replay",
+      "evidence": "eval_arm and generation run before export/reload; from_bytes equality is checked only after prediction.",
+      "consequence": "Parameter serialization round-trip is established, not actual independently loaded predictor parity."
+    },
+    {
+      "finding": "Convergence/capacity diagnosis unestablished",
+      "evidence": "One-coordinate ternary flip code can revert an accepted first candidate to its original saved coefficient on a later rejected candidate, while leaving cached best score stale. W refinement also precedes map changes, with no W refit under final features. Repeated extra passes cannot distinguish local search behavior from global attainable capacity.",
+      "consequence": "Do not widen only because 2 -> 5 passes left metrics unchanged. Correct/refit the learner and report source-conditional ceilings first."
+    },
+    {
+      "finding": "Upper range bound is not reachability",
+      "evidence": "32768 is max absolute residual bound; target/winner movement is state-,row- andsign-dependent.",
+      "consequence": "Bound exceeding 16640 does not prove adequacy of attainable margins."
+    },
+    {
+      "finding": "Matched embeddings confirmed; geometric advantage unestablished",
+      "evidence": "Nominal H4/C120 seeds 0x51E50000/1 both become 0x51E50001 after OR 1. Artifact embedding hashes equal. Algebra differs while capacity/common features match.",
+      "consequence": "13 versus 12 positions and 1 versus 1 pairs on a repeated population do not establish H4 advantage; preserve both operators."
+    },
+    {
+      "finding": "Limited positive scope",
+      "evidence": "Actual parameters differ from initialization; first 4 saved changed-source pairs change emissions, 2/8 members correct; all 3 saved generation traces step-match and 1/3 first token is correct. Aggregates report 13/120 and 1/60 H4.",
+      "consequence": "Learned residual can influence uncopied emission under source changes, but reliability, geometric advantage, general prose, natural-text preservation and whole-path efficiency remain unqualified."
+    }
+  ],
+  "cost_scope": {
+    "retained_model_attempt_elapsed_s": 79.18501058300001,
+    "per_attempt_elapsed_s": {
+      "1": 10.679661,
+      "2": 22.05033,
+      "3": 23.207572583,
+      "4": 23.247447
+    },
+    "inference_timing": "NOT_RUN",
+    "energy": "UNAVAILABLE",
+    "ordinary_text_preservation": "NOT_RUN for these operators",
+    "exact_disabled_logits_parity": "Source follows identical local path, but saved reports contain only zero-hit counts, not measured logit equality."
+  },
+  "script_sha256": "b76ce9fb6a54be71e424ad30af2fcb11a213dfd784cccf5ebffdc5865eaae5ed"
+}

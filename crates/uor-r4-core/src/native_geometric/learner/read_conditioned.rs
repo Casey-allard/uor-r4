@@ -65,6 +65,16 @@ impl ReadConditionedParams {
         t.product[mid * ROW_STRIDE + v.min(GROUP_ORDER - 1)] as usize
     }
 
+    /// The **matched cyclic C120 update**: `q1 = (q0 + T[r] + V[payload]) mod 120`. Same state
+    /// count, maps, information and readout as the H4 composition; abelian, so it is not an H4
+    /// relabeling. This is the declared non-geometric update-algebra comparator.
+    #[inline]
+    pub fn update_cyclic(&self, q0: usize, r: usize, payload: u32) -> usize {
+        let a = self.transport.get(r % GROUP_ORDER).copied().unwrap_or(0) as usize;
+        let v = self.value_state(payload);
+        (q0 + a + v) % GROUP_ORDER
+    }
+
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut o = Vec::new();
         o.extend_from_slice(b"RLRC");

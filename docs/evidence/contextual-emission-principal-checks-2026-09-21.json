@@ -1,0 +1,131 @@
+{
+  "schema": "uor-r4.contextual-emission-principal-checks/1",
+  "at": "2026-09-21T17:27:31.558541+00:00",
+  "submitted_head": "51b275bf828ee7555425648fa7dd8d4464e5fa29",
+  "checks": {
+    "module-tests": {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "--offline",
+        "-p",
+        "uor-r4-core",
+        "--lib",
+        "native_geometric::learner::contextual_emission::tests",
+        "--",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 242893,
+      "free_bytes": 37497622528,
+      "log": "/tmp/uor-pr1335-module-tests.log"
+    },
+    "read-conditioned-tests": {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "--offline",
+        "-p",
+        "uor-r4-core",
+        "--lib",
+        "native_geometric::learner::read_conditioned::tests"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 276,
+      "free_bytes": 37494710272,
+      "log": "/tmp/uor-pr1335-read-conditioned-tests.log"
+    },
+    "runner-check": {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "check",
+        "--offline",
+        "-p",
+        "uor-r4-core",
+        "--bin",
+        "competitive-reader"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 19361,
+      "free_bytes": 37494677504,
+      "log": "/tmp/uor-pr1335-runner-check.log"
+    }
+  },
+  "formatting": "PASS",
+  "claim_wording": "PASS scoped wording check, not scientific validation",
+  "diff_check": "PASS",
+  "local_links": {
+    "checked_local_links": 904,
+    "missing": []
+  },
+  "changed_source_sha256": {
+    "crates/uor-r4-core/src/native_geometric/learner/contextual_emission.rs": "50c0826038a295385e73dae1cf62e68e9860dbf623304e53d232b80c54acca23",
+    "crates/uor-r4-core/src/bin/competitive-reader.rs": "9faa38fab8142c427039c38b81a18443a7bccf0386b48d832236c094b410e194"
+  },
+  "model_refit": "NOT_RUN; synthetic unit training is a focused test only",
+  "fresh_evaluation": "NOT_RUN",
+  "projection": {
+    "at": "2026-09-21T17:16:16.179619+00:00",
+    "before": {
+      "cumulative_ms": 203481875,
+      "limit_ms": 210900000
+    },
+    "after": {
+      "cumulative_ms": 206881875,
+      "limit_ms": 210900000
+    },
+    "reason": "Reconcile missing DeepSeek contextual-emission charge reported as 3400000ms; six-million-ms allowance already applied; do not double-add allowance. Reported charge exceeds listed approximate components by100800ms; preserve conservative full charge.",
+    "principal_projection_ms": 2400000,
+    "preprojection_preparation_estimate_ms": 600000,
+    "max_compiler_workers": 2,
+    "model_fits": 0,
+    "ram_limit_gib": 8,
+    "build_bytes": 469762048,
+    "report_bytes": 16777216,
+    "reserve_bytes": 36766079385,
+    "stop_margin_bytes": 134217728,
+    "free_before_cleanup_bytes": 37498191872,
+    "cleanup": {
+      "removed": [
+        {
+          "path": "/Users/casey.allard/uor-r4/target/debug/incremental/uor_r4_workbench-2dfhe3aao49ix",
+          "allocated_bytes": 14098432
+        },
+        {
+          "path": "/Users/casey.allard/uor-r4/target/debug/incremental/conditioned_skip_engram_syntactic_tests-2xr5chu4my8ip",
+          "allocated_bytes": 1904640
+        },
+        {
+          "path": "/Users/casey.allard/uor-r4/target/debug/incremental/hierarchical_routing_tests-0cvujxpspbk2n",
+          "allocated_bytes": 1581056
+        },
+        {
+          "path": "/Users/casey.allard/uor-r4/target/debug/incremental/uor_r4_workbench-0jbf8fmxy6c9k",
+          "allocated_bytes": 15208448
+        }
+      ],
+      "allocated_bytes": 32792576,
+      "free_after_bytes": 37530959872
+    }
+  },
+  "principal_charge": {
+    "preprojection_preparation_estimate_ms": 600000,
+    "measured_elapsed_since_projection_ms": 675379,
+    "conservative_final_delivery_reserve_ms": 300000,
+    "total_ms": 1575379,
+    "command_elapsed_subset_ms": 262530,
+    "command_subset_not_added_twice": true
+  },
+  "ledger_before": {
+    "cumulative_ms": 206881875,
+    "limit_ms": 210900000
+  },
+  "ledger_after": {
+    "cumulative_ms": 208457254,
+    "limit_ms": 210900000
+  },
+  "remaining_ms": 2442746,
+  "free_bytes_after_checks": 37507620864,
+  "owner_checkout_head": "74fef0886ca3b14ff90943c8677d6b7815064198",
+  "owner_checkout_clean": true
+}

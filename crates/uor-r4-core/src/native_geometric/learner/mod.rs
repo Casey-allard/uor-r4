@@ -6,6 +6,7 @@
 pub mod binary_model;
 pub mod chat;
 pub mod cold_prior;
+pub mod contextual_emission;
 pub mod embedding;
 pub mod geometric_attention;
 pub mod group_table;

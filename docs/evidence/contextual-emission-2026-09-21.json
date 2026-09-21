@@ -1,0 +1,388 @@
+{
+  "scope": "one read -> geometric update -> shared low-bit emission residual on a paired-prefix, context-required instrument; bounded authored capability test, not general language",
+  "run_root": ".uor-models/realtext-prior-2026-09-20/contextual-emission-4",
+  "base_revision": "cfc5f7b6",
+  "running_git_rev": "cfc5f7b6",
+  "git_dirty": "true",
+  "source_files": [
+    "crates/uor-r4-core/src/native_geometric/learner/relational.rs",
+    "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs",
+    "crates/uor-r4-core/src/native_geometric/learner/contextual_emission.rs",
+    "crates/uor-r4-core/src/bin/competitive-reader.rs"
+  ],
+  "integrity": {
+    "result_sha256": "4198a6c6933be3531b3b452516e031174630e3c34d168f0a312a231347f66bf7",
+    "manifest_listed_file_count": 6
+  },
+  "instrument": {
+    "design": "paired prefixes identical in query role/key, recent suffix, relevant-block position, distractor roles/values/order; only the relevant source block's value changes",
+    "answer": "learned output class of the selected value, from a bank disjoint from every prefix token and every admitted payload",
+    "values": [
+      485,
+      486,
+      487,
+      488,
+      489,
+      491,
+      500,
+      507
+    ],
+    "output_bank": [
+      4095,
+      4094,
+      4093,
+      4092,
+      4091,
+      4090,
+      4089,
+      4088
+    ],
+    "populations": {
+      "dev_pairs": 90,
+      "fresh_pairs": 60,
+      "tune_pairs": 60
+    }
+  },
+  "validity": {
+    "absent_targets_held": true,
+    "decisive_local_positions": 180,
+    "declared_shift": 10,
+    "dev_positions": 180,
+    "max_target_deficit_units": 16640,
+    "pairs_with_identical_local_logits": 90,
+    "source_selected": 180
+  },
+  "frozen_row_ceiling": {
+    "positions": 180,
+    "some_row_emits_target": 0
+  },
+  "diagnostics": {
+    "distinct_update_signatures_dev": {
+      "ambiguous_signatures": 6,
+      "distinct_signatures": 88,
+      "positions": 180,
+      "targets_on_ambiguous_signatures": 14
+    },
+    "distinct_update_signatures_fresh": {
+      "ambiguous_signatures": 6,
+      "distinct_signatures": 78,
+      "positions": 120,
+      "targets_on_ambiguous_signatures": 18
+    },
+    "note": "signature = (q0, relation, selected payload). Ambiguous signatures demand different targets from an identical update input; the update cannot separate them without help from the unchanged local logits."
+  },
+  "learning": {
+    "cyclic_c120": {
+      "accepted_map_changes": 10,
+      "accepted_ternary_flips": 29,
+      "algebra": "cyclic_c120",
+      "dev_hits": 27,
+      "nll_bits": {
+        "float_after_gradient_fit": 15473.69536634602,
+        "initial": 15561.435327263316,
+        "served_after_discrete_refinement": 11524.387337291342,
+        "served_after_quantization": 12549.04919299826,
+        "served_final": 8772.656209523766
+      },
+      "nonzero_coefficients": 325,
+      "output_rows": 22,
+      "residual_range_bound": 32768,
+      "shift": 10,
+      "tune_hits": 16
+    },
+    "h4": {
+      "accepted_map_changes": 9,
+      "accepted_ternary_flips": 21,
+      "algebra": "signed_h4",
+      "dev_hits": 35,
+      "nll_bits": {
+        "float_after_gradient_fit": 15486.23444320843,
+        "initial": 15561.435327263316,
+        "served_after_discrete_refinement": 10986.057584269509,
+        "served_after_quantization": 11438.600627749602,
+        "served_final": 7987.459749504482
+      },
+      "nonzero_coefficients": 321,
+      "output_rows": 22,
+      "residual_range_bound": 32768,
+      "shift": 10,
+      "tune_hits": 22
+    }
+  },
+  "comparisons": [
+    {
+      "arm": "local_noread",
+      "dev_hits": 0,
+      "dev_pairs_both_correct": 0,
+      "dev_positions": 180,
+      "dev_reads": 0,
+      "fresh_hits": 0,
+      "fresh_pairs_both_correct": 0,
+      "fresh_positions": 120,
+      "fresh_reads": 0,
+      "tune_hits": 0,
+      "tune_positions": 120
+    },
+    {
+      "arm": "h4_read_conditioned",
+      "dev_hits": 35,
+      "dev_pairs_both_correct": 6,
+      "dev_positions": 180,
+      "dev_reads": 180,
+      "fresh_hits": 13,
+      "fresh_pairs_both_correct": 1,
+      "fresh_positions": 120,
+      "fresh_reads": 120,
+      "tune_hits": 22,
+      "tune_positions": 120
+    },
+    {
+      "arm": "h4_update_disabled",
+      "dev_hits": 0,
+      "dev_pairs_both_correct": 0,
+      "dev_positions": 180,
+      "dev_reads": 180,
+      "fresh_hits": 0,
+      "fresh_pairs_both_correct": 0,
+      "fresh_positions": 120,
+      "fresh_reads": 120,
+      "tune_hits": 0,
+      "tune_positions": 120
+    },
+    {
+      "arm": "h4_read_disabled",
+      "dev_hits": 0,
+      "dev_pairs_both_correct": 0,
+      "dev_positions": 180,
+      "dev_reads": 0,
+      "fresh_hits": 0,
+      "fresh_pairs_both_correct": 0,
+      "fresh_positions": 120,
+      "fresh_reads": 0,
+      "tune_hits": 0,
+      "tune_positions": 120
+    },
+    {
+      "arm": "cyclic_c120_read_conditioned",
+      "dev_hits": 27,
+      "dev_pairs_both_correct": 0,
+      "dev_positions": 180,
+      "dev_reads": 180,
+      "fresh_hits": 12,
+      "fresh_pairs_both_correct": 1,
+      "fresh_positions": 120,
+      "fresh_reads": 120,
+      "tune_hits": 16,
+      "tune_positions": 120
+    },
+    {
+      "arm": "scalar_copy_parent",
+      "dev_hits": 0,
+      "dev_pairs_both_correct": 0,
+      "dev_positions": 180,
+      "fresh_hits": 0,
+      "fresh_pairs_both_correct": 0,
+      "fresh_positions": 120
+    }
+  ],
+  "changed_source_pairs_fresh": [
+    {
+      "answer_a": 4092,
+      "answer_b": 4091,
+      "both_correct": false,
+      "correct_a": true,
+      "correct_b": false,
+      "different_answers": true,
+      "emitted_a": 4092,
+      "emitted_b": 284,
+      "identical_local_logits": true,
+      "pair": 0,
+      "read_a": true,
+      "read_b": true,
+      "updated_a": true,
+      "updated_b": true,
+      "value_a": 488,
+      "value_b": 489
+    },
+    {
+      "answer_a": 4089,
+      "answer_b": 4088,
+      "both_correct": false,
+      "correct_a": false,
+      "correct_b": false,
+      "different_answers": true,
+      "emitted_a": 4090,
+      "emitted_b": 4092,
+      "identical_local_logits": true,
+      "pair": 1,
+      "read_a": true,
+      "read_b": true,
+      "updated_a": true,
+      "updated_b": true,
+      "value_a": 500,
+      "value_b": 507
+    },
+    {
+      "answer_a": 4088,
+      "answer_b": 4091,
+      "both_correct": false,
+      "correct_a": false,
+      "correct_b": true,
+      "different_answers": true,
+      "emitted_a": 368,
+      "emitted_b": 4091,
+      "identical_local_logits": true,
+      "pair": 2,
+      "read_a": true,
+      "read_b": true,
+      "updated_a": true,
+      "updated_b": true,
+      "value_a": 507,
+      "value_b": 489
+    },
+    {
+      "answer_a": 4091,
+      "answer_b": 4088,
+      "both_correct": false,
+      "correct_a": false,
+      "correct_b": false,
+      "different_answers": true,
+      "emitted_a": 284,
+      "emitted_b": 4091,
+      "identical_local_logits": true,
+      "pair": 3,
+      "read_a": true,
+      "read_b": true,
+      "updated_a": true,
+      "updated_b": true,
+      "value_a": 489,
+      "value_b": 507
+    }
+  ],
+  "generated": [
+    {
+      "answer": 4092,
+      "decoded": "info-f",
+      "emitted": [
+        4092,
+        29,
+        86
+      ],
+      "steps": [
+        {
+          "emitted": 4092,
+          "read": true,
+          "updated": true
+        },
+        {
+          "emitted": 29,
+          "read": false,
+          "updated": false
+        },
+        {
+          "emitted": 86,
+          "read": true,
+          "updated": true
+        }
+      ]
+    },
+    {
+      "answer": 4091,
+      "decoded": " and\nm",
+      "emitted": [
+        284,
+        198,
+        93
+      ],
+      "steps": [
+        {
+          "emitted": 284,
+          "read": true,
+          "updated": true
+        },
+        {
+          "emitted": 198,
+          "read": false,
+          "updated": false
+        },
+        {
+          "emitted": 93,
+          "read": true,
+          "updated": true
+        }
+      ]
+    },
+    {
+      "answer": 4089,
+      "decoded": " fully-re",
+      "emitted": [
+        4090,
+        29,
+        257
+      ],
+      "steps": [
+        {
+          "emitted": 4090,
+          "read": true,
+          "updated": true
+        },
+        {
+          "emitted": 29,
+          "read": false,
+          "updated": false
+        },
+        {
+          "emitted": 257,
+          "read": true,
+          "updated": true
+        }
+      ]
+    }
+  ],
+  "artifacts": [
+    {
+      "arm": "h4_emission",
+      "params_reload_identical": true,
+      "params_sha256": "6abe186140e09a3487ae04f0573e1362a638fb9dc0d87d31fee2fc829708d430",
+      "residual_reload_identical": true,
+      "residual_sha256": "ce3b42851f17e8f8fa939549603b2e7606f7b173edde61732daf6206b2046a97"
+    },
+    {
+      "arm": "cyclic_c120_emission",
+      "params_reload_identical": true,
+      "params_sha256": "13439c7cb1951361d1f212f1d518d4eb790113c9e9287702623f9285a7d04fd1",
+      "residual_reload_identical": true,
+      "residual_sha256": "5ac9df2b9dd91b1a2f6b0c31fdd290a04c341b71ca91ce82aeb761237d8146fe"
+    }
+  ],
+  "artifact_reload_all_ok": true,
+  "criteria": {
+    "same_query_different_older_evidence_different_uncopied_answer": {
+      "controls_zero": true,
+      "h4_dev_hits": 35,
+      "h4_dev_positions": 180,
+      "h4_dev_pairs_both_correct": 6,
+      "h4_dev_pairs": 90,
+      "h4_fresh_hits": 13,
+      "h4_fresh_positions": 120,
+      "h4_fresh_pairs_both_correct": 1,
+      "h4_fresh_pairs": 60,
+      "verdict": "partial positive signal with a diagnosed capacity limit; not a reliable learned contextual value transformation"
+    }
+  },
+  "retained": [
+    "the verified paired-prefix instrument",
+    "the learned residual operator and both artifacts",
+    "the matched cyclic-C120 comparator",
+    "all controls at zero",
+    "the diagnostic roots contextual-emission-1/2/3"
+  ],
+  "limitations": [
+    "bounded authored instrument",
+    "short continuations only",
+    "physical energy UNAVAILABLE",
+    "whole-path D0-b not claimed",
+    "no text-generalization claim (old Dev documents are reader-exposed)"
+  ],
+  "successor": "a bounded capacity increase in the shared readout (wider learned derived feature or a small learned projection) with an equal-capacity cyclic-C120 control, since extra discrete optimizer passes change nothing"
+}

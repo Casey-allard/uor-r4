@@ -1,6 +1,23 @@
 # Current native geometric AI work
 
-## Active: learn contextual transformation and shared emission at the correct boundary
+## Active: consistent contextual emission before expansion
+
+**PR #1335, independently reviewed:** the new older-payload pairs support a **reported noncopy signal**, H4 35/180 development and 13/120 exposed regression, with only 1/60 regression pairs both correct. Retain that signal; withdraw the readout-capacity-only diagnosis. The submitted coordinate optimizer loses accepted incumbents, raw-score loss omits fixed-point scaling, and fit/serve residual shifts differ. Any-read counts are not source correctness; final data were exposed before selection; the learned value map aliases required distinctions and loaded-artifact behavior is unqualified. [Principal review](contextual-emission-review-2026-09-21.md); [audit](../evidence/contextual-emission-principal-review-2026-09-21.json).
+
+**Next:** [one consistent hard-forward contextual-emission fit](deepseek-consistent-emission-step-2026-09-21.md) at the existing width/state count, using the corrected numerical/causal/export contract and an explicit output/maps/output learning stage. Inspect actual source correctness, feature aliases and margins before any expansion. A relative-transition readout is a conditional geometric alternative if an actual nuisance-frame or cycle obstruction is witnessed. Dependent reads follow a useful one-read primitive; structural persistence and S7/E8/Hopf/harmonic tools remain available for demonstrated needs. No new model fit or broader language qualification is claimed by the principal repair.
+
+Original aggregate receipts remain in `contextual-emission-{1,2,3,4}`; old “fresh” means exposed regression. Source and evidence corrections supersede their diagnoses. The actual absolute ledger is authoritative; the missing prior charge is reconciled and the principal check debit is separate.
+
+Principal validation: seven focused tests plus offline touched-runner check,
+formatting/wording/JSON/links/diff pass; no new model fit. Ledger after the
+conservative final-delivery reserve: **208457254 / 210900000 ms**.
+Four inactive incremental caches removed (32792576 allocated bytes; 32768000
+observed free-byte gain); **37507620864 bytes** free after checks.
+[Complete check/resource receipt](../evidence/contextual-emission-principal-checks-2026-09-21.json).
+
+### Previous active (superseded by the section above)
+
+## Former active: learn contextual transformation and shared emission at the correct boundary
 
 **PR #1334, independently reviewed and corrected:** short frozen-confidence generation is verified: H4 23/42 reads, categorical 22/42, valid exact references and disabled/local token parity 7/7. The new update result is a **seeded frozen-row diagnostic with an invalid contextual instrument**: target depends on the query suffix, extraction omits its last key, accuracy-only search makes no parameter changes, and the alleged categorical arm is the same H4 algebra. The reported 0/60 ceiling is limited to those extracted positions, not a sole-readout diagnosis. Original confidence preservation failures remain exposed replays. [Principal review](read-conditioned-review-2026-09-21.md); [audit](../evidence/read-conditioned-principal-review-2026-09-21.json).
 

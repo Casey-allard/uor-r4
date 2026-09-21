@@ -14,6 +14,7 @@ use std::time::Instant;
 
 use serde_json::json;
 
+use uor_r4_core::native_geometric::learner::contextual_emission::*;
 use uor_r4_core::native_geometric::learner::group_table::{group_table, GROUP_ORDER};
 use uor_r4_core::native_geometric::learner::occurrence::{OccurrenceRef, OccurrenceRing};
 use uor_r4_core::native_geometric::learner::policy_feasibility::*;
@@ -6977,9 +6978,1089 @@ fn utility_transfer_run() -> Result<ExitCode, String> {
     Ok(ExitCode::SUCCESS)
 }
 
+// ---------------------------------------------------------------------------
+// Contextual emission: a context-required Read -> Update -> Emit pass
+// ---------------------------------------------------------------------------
+
+const CE_N_DEV: usize = 90;
+const CE_N_TUNE: usize = 60;
+const CE_N_FRESH: usize = 60;
+const CE_DISTRACTORS: usize = 3;
+const CE_SEED_DEV: u64 = 0xC0F0_0001;
+const CE_SEED_TUNE: u64 = 0xC0F0_0002;
+const CE_SEED_FRESH: u64 = 0xC0F0_0003;
+const CE_MAX_W_ROWS: usize = 64;
+const CE_EPOCHS: usize = 600;
+const CE_LR: f64 = 1.0;
+
+struct CeItem {
+    seq: Seq,
+    value: u32,
+    out: u32,
+    pair_id: usize,
+    #[allow(dead_code)]
+    member: usize,
+    expected_payload_abs: u32,
+}
+
+struct CePairSpec {
+    blocks: Vec<(u32, u32, u32)>,
+    qrole: u32,
+    key: u32,
+    pos: usize,
+    source_role: u32,
+    value_idx: [usize; 2],
+}
+
+/// Identical structure for both members of a pair: same key, same distractor roles/values/order,
+/// same relevant block position. Only the relevant block's value differs.
+fn make_ce_specs(banks: &Banks, n_pairs: usize, seed: u64, values: &[u32]) -> Vec<CePairSpec> {
+    let mut st = seed;
+    let mut out = Vec::new();
+    for _ in 0..n_pairs {
+        let key = pick(&banks.keys, &mut st);
+        let (fa, fb) = pick(&banks.pairs, &mut st);
+        let (qrole, source_role) = if xorshift(&mut st) & 1 == 0 {
+            (fa, fb)
+        } else {
+            (fb, fa)
+        };
+        let i0 = (xorshift(&mut st) as usize) % values.len();
+        let mut i1 = (xorshift(&mut st) as usize) % values.len();
+        if i1 == i0 {
+            i1 = (i0 + 1) % values.len();
+        }
+        let pool: Vec<(u32, u32)> = banks
+            .pairs
+            .iter()
+            .copied()
+            .filter(|q| *q != (fa, fb) && *q != (fb, fa))
+            .collect();
+        let mut blocks: Vec<(u32, u32, u32)> = Vec::new();
+        for _ in 0..CE_DISTRACTORS {
+            let (a, b) = pick(&pool, &mut st);
+            let role = if xorshift(&mut st) & 1 == 0 { a } else { b };
+            let v = pick(values, &mut st);
+            blocks.push((role, key, v));
+        }
+        // Keep the relevant block off the final position so both members share identical local input.
+        let pos = (xorshift(&mut st) as usize) % blocks.len().max(1);
+        out.push(CePairSpec {
+            blocks,
+            qrole,
+            key,
+            pos,
+            source_role,
+            value_idx: [i0, i1],
+        });
+    }
+    out
+}
+
+fn ce_item_tokens(spec: &CePairSpec, value: u32, out: u32) -> Vec<u32> {
+    let mut blocks = spec.blocks.clone();
+    blocks.insert(
+        spec.pos.min(blocks.len()),
+        (spec.source_role, spec.key, value),
+    );
+    let mut tokens = Vec::new();
+    for (r, k, v) in blocks.iter() {
+        tokens.push(*r);
+        tokens.push(*k);
+        tokens.push(*v);
+    }
+    tokens.push(spec.qrole);
+    tokens.push(spec.key);
+    tokens.push(out);
+    tokens
+}
+
+struct CePos {
+    z_local: Vec<i32>,
+    q0: usize,
+    r: usize,
+    payload: u32,
+    read: bool,
+    target: u32,
+    decisive: bool,
+    absent: bool,
+    target_margin: i32,
+    correct_source: bool,
+    correct_value: bool,
+}
+
+#[allow(clippy::too_many_arguments)]
+fn ce_extract(
+    parent: &PriorCore,
+    local: &QueryHard,
+    u: &[Vec<i32>],
+    table: &ExactGroupTable,
+    sel: &RelationalSelector,
+    items: &[CeItem],
+) -> Result<(Vec<CePos>, Vec<CeExample>, Vec<usize>), String> {
+    let mut positions = Vec::new();
+    let mut examples = Vec::new();
+    let mut pair_ids = Vec::new();
+    for item in items.iter() {
+        if item.seq.tokens.len() < 4 {
+            return Err("contextual item lacks a complete query".into());
+        }
+        let obs = observe_full(&item.seq);
+        let want = item.seq.tokens.len() - 2;
+        let o = obs
+            .iter()
+            .find(|o| o.ring.written() as usize == want)
+            .ok_or("contextual decision point is missing")?;
+        let z = local_logits(
+            parent,
+            local,
+            u,
+            o.cur,
+            o.prev as usize,
+            o.prev2,
+            o.ring.written(),
+        );
+        let selected = read_step(&o.ring, o.cur, o.prev, o.prev2, sel, table, true, &z);
+        let r = selected.rel;
+        let payload = selected.payload.unwrap_or(0);
+        let read = selected.action.is_some();
+        let q0 = local.query_state(o.cur).min(u.len() - 1);
+        let absent = !o.cands.iter().any(|c| c.payload == item.seq.answer);
+        let t = (item.seq.answer as usize).min(z.len() - 1);
+        let best_other = z
+            .iter()
+            .enumerate()
+            .filter(|(i, _)| *i != t)
+            .map(|(_, v)| *v)
+            .max()
+            .unwrap_or(i32::MIN);
+        positions.push(CePos {
+            z_local: z.clone(),
+            q0,
+            r,
+            payload,
+            read,
+            target: item.seq.answer,
+            decisive: argmax_low(&z) as u32 != item.seq.answer,
+            absent,
+            target_margin: z[t] - best_other,
+            correct_source: selected.payload_abs == Some(item.expected_payload_abs),
+            correct_value: selected.payload == Some(item.value),
+        });
+        examples.push(CeExample {
+            z_local: z,
+            q0,
+            r,
+            payload,
+            read,
+            target: item.seq.answer,
+        });
+        pair_ids.push(item.pair_id);
+    }
+    Ok((positions, examples, pair_ids))
+}
+
+fn ce_logits(
+    ex: &CeExample,
+    params: &ReadConditionedParams,
+    res: &EmissionResidual,
+    cyclic: bool,
+    rows: &[usize],
+) -> Vec<i32> {
+    let q1 = ex.q1(params, cyclic);
+    let mut z = ex.z_local.clone();
+    res.add_to_logits(ex.q0, q1, rows, &mut z);
+    z
+}
+
+fn ce_margin(
+    ex: &CeExample,
+    params: &ReadConditionedParams,
+    res: &EmissionResidual,
+    cyclic: bool,
+    rows: &[usize],
+) -> f64 {
+    let z = ce_logits(ex, params, res, cyclic, rows);
+    let t = (ex.target as usize).min(z.len() - 1);
+    let best_other = z
+        .iter()
+        .enumerate()
+        .filter(|(i, _)| *i != t)
+        .map(|(_, v)| *v)
+        .max()
+        .unwrap_or(i32::MIN);
+    (z[t] - best_other) as f64
+}
+
+fn ce_mean_margin(
+    examples: &[CeExample],
+    params: &ReadConditionedParams,
+    res: &EmissionResidual,
+    cyclic: bool,
+    rows: &[usize],
+) -> f64 {
+    if examples.is_empty() {
+        return f64::NAN;
+    }
+    examples
+        .iter()
+        .map(|ex| ce_margin(ex, params, res, cyclic, rows))
+        .sum::<f64>()
+        / examples.len() as f64
+}
+
+fn ce_hits(
+    examples: &[CeExample],
+    params: &ReadConditionedParams,
+    res: &EmissionResidual,
+    cyclic: bool,
+    rows: &[usize],
+) -> usize {
+    examples
+        .iter()
+        .filter(|ex| argmax_low(&ce_logits(ex, params, res, cyclic, rows)) as u32 == ex.target)
+        .count()
+}
+
+/// Discrete search over the transport and value maps on the mean-margin objective (strict gains).
+fn ce_search_maps(
+    examples: &[CeExample],
+    params: &ReadConditionedParams,
+    res: &EmissionResidual,
+    cyclic: bool,
+    rows: &[usize],
+    passes: usize,
+) -> (ReadConditionedParams, usize) {
+    let mut p = params.clone();
+    let mut best = ce_mean_margin(examples, &p, res, cyclic, rows);
+    let mut accepted = 0usize;
+    let relations: Vec<usize> = {
+        let mut v: Vec<usize> = examples
+            .iter()
+            .filter(|e| e.read)
+            .map(|e| e.r % GROUP_ORDER)
+            .collect();
+        v.sort_unstable();
+        v.dedup();
+        v
+    };
+    for _ in 0..passes {
+        let mut improved = false;
+        for r in relations.iter() {
+            let saved = p.transport[*r];
+            let mut local_best = best;
+            let mut local_val = saved;
+            for cand in 0..GROUP_ORDER {
+                p.transport[*r] = cand as u8;
+                let m = ce_mean_margin(examples, &p, res, cyclic, rows);
+                if m > local_best + 1e-9 {
+                    local_best = m;
+                    local_val = cand as u8;
+                }
+            }
+            p.transport[*r] = local_val;
+            if local_best > best + 1e-9 {
+                best = local_best;
+                accepted += 1;
+                improved = true;
+            }
+        }
+        for i in 0..p.value_code.len() {
+            let saved = p.value_code[i];
+            let mut local_best = best;
+            let mut local_val = saved;
+            for cand in 0..GROUP_ORDER {
+                p.value_code[i] = cand as u8;
+                let m = ce_mean_margin(examples, &p, res, cyclic, rows);
+                if m > local_best + 1e-9 {
+                    local_best = m;
+                    local_val = cand as u8;
+                }
+            }
+            p.value_code[i] = local_val;
+            if local_best > best + 1e-9 {
+                best = local_best;
+                accepted += 1;
+                improved = true;
+            }
+        }
+        if !improved {
+            break;
+        }
+    }
+    (p, accepted)
+}
+
+/// Keep the `max_rows` largest-norm output rows as ternary coefficients; zero the rest.
+fn ce_quantize_sparse(
+    w_f: &[[f32; CE_WIDTH]],
+    max_rows: usize,
+) -> (Vec<[i8; CE_WIDTH]>, Vec<usize>) {
+    let mut norms: Vec<(f64, usize)> = w_f
+        .iter()
+        .enumerate()
+        .map(|(o, row)| (row.iter().map(|v| f64::from(*v).abs()).sum::<f64>(), o))
+        .collect();
+    norms.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
+    let keep: Vec<usize> = norms
+        .iter()
+        .take(max_rows)
+        .filter(|(n, _)| *n > 0.0)
+        .map(|(_, o)| *o)
+        .collect();
+    let mut w = vec![[0i8; CE_WIDTH]; w_f.len()];
+    for o in keep.iter() {
+        for j in 0..CE_WIDTH {
+            w[*o][j] = if w_f[*o][j] > 0.0 {
+                1
+            } else if w_f[*o][j] < 0.0 {
+                -1
+            } else {
+                0
+            };
+        }
+    }
+    (w, keep)
+}
+
+/// The one shared read -> update -> emit step used by evaluation, interventions and generation.
+#[allow(clippy::too_many_arguments)]
+fn ce_predict(
+    ring: &OccurrenceRing,
+    cur: u32,
+    prev: usize,
+    prev2: u32,
+    sel: &RelationalSelector,
+    table: &ExactGroupTable,
+    parent: &PriorCore,
+    local: &QueryHard,
+    u: &[Vec<i32>],
+    params: &ReadConditionedParams,
+    res: &EmissionResidual,
+    rows: &[usize],
+    cyclic: bool,
+    use_update: bool,
+    allowed: bool,
+) -> (Vec<i32>, Read, usize, usize) {
+    let mut z = local_logits(parent, local, u, cur, prev, prev2, ring.written());
+    let r = read_step(ring, cur, prev as u32, prev2, sel, table, allowed, &z);
+    let q0 = local.query_state(cur).min(u.len() - 1);
+    let mut q1 = q0;
+    if use_update && allowed {
+        if let (Some(_), Some(payload)) = (r.action, r.payload) {
+            q1 = if cyclic {
+                params.update_cyclic(q0, r.rel, payload)
+            } else {
+                params.update(q0, r.rel, payload)
+            };
+        }
+    }
+    res.add_to_logits(q0, q1, rows, &mut z);
+    (z, r, q0, q1)
+}
+
+/// Input-signature collision report for the update: how many `(q0, relation, payload)` signatures
+/// demand more than one distinct target.
+fn ce_signature_report(examples: &[CeExample]) -> serde_json::Value {
+    let mut m: std::collections::BTreeMap<(usize, usize, u32), std::collections::BTreeSet<u32>> =
+        std::collections::BTreeMap::new();
+    for ex in examples.iter().filter(|e| e.read) {
+        m.entry((ex.q0, ex.r % GROUP_ORDER, ex.payload))
+            .or_default()
+            .insert(ex.target);
+    }
+    let ambiguous = m.values().filter(|t| t.len() > 1).count();
+    let ambiguous_examples = m
+        .values()
+        .filter(|t| t.len() > 1)
+        .map(|t| t.len())
+        .sum::<usize>();
+    json!({
+        "positions": examples.iter().filter(|e| e.read).count(),
+        "distinct_signatures": m.len(),
+        "ambiguous_signatures": ambiguous,
+        "targets_on_ambiguous_signatures": ambiguous_examples,
+    })
+}
+
+fn contextual_emission_run() -> Result<ExitCode, String> {
+    let mut root = PathBuf::from(
+        "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/contextual-emission-1",
+    );
+    let mut source_root: Option<PathBuf> = None;
+    {
+        let mut a = std::env::args().skip(1);
+        while let Some(k) = a.next() {
+            match k.as_str() {
+                "--root" => root = PathBuf::from(a.next().ok_or("--root value")?),
+                "--source-root" => source_root = Some(PathBuf::from(a.next().ok_or("value")?)),
+                other if other.starts_with("--mode") => {}
+                other => return Err(format!("unknown argument {other}")),
+            }
+        }
+    }
+    claim(&root).map_err(|e| format!("claim {}: {e}", root.display()))?;
+    let started = Instant::now();
+
+    let pb = std::fs::read(E_PATH).map_err(|e| format!("E: {e}"))?;
+    if sha256_hex(&pb) != E_SHA {
+        return Err("E sha mismatch".into());
+    }
+    let parent = PriorCore::from_bytes(&pb).map_err(|e| format!("load E: {e}"))?;
+    parent.validate()?;
+    let (parent_digest, _) = parent_hash_convention(&pb);
+    let sb = std::fs::read(S_PATH).map_err(|e| format!("S: {e}"))?;
+    if sha256_hex(&sb) != S_SHA {
+        return Err("S sha mismatch".into());
+    }
+    let tb = std::fs::read(DEFAULT_TOKENIZER).map_err(|e| format!("tokenizer: {e}"))?;
+    if sha256_hex(&tb) != TOKENIZER_SHA {
+        return Err("tokenizer sha mismatch".into());
+    }
+    let derived = sha256_hex(&derive_tokenizer_json(&tb, VOCAB).map_err(|e| format!("{e}"))?);
+    if derived != DERIVED_SHA {
+        return Err("derived tokenizer sha mismatch".into());
+    }
+    let tokenizer = derive_tokenizer(&tb, VOCAB).map_err(|e| format!("derive: {e}"))?;
+    let raw_tok: [u8; 32] = hex_to_bytes(&derived)?.try_into().unwrap();
+    let local = QueryHard::from_bytes(&sb, &parent, &parent_digest, &raw_tok)
+        .map_err(|e| format!("load S: {e}"))?;
+    let u: Vec<Vec<i32>> = (0..120).map(|s| local.row_scores(s)).collect();
+    let table = ExactGroupTable::build().map_err(|e| format!("table: {e}"))?;
+    let group_digest = group_table_digest(&table);
+    let banks = build_banks(&tokenizer, parent.cfg.vocab)?;
+    let source_files: Vec<serde_json::Value> = match &source_root {
+        Some(sr) => [
+            "crates/uor-r4-core/src/native_geometric/learner/relational.rs",
+            "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs",
+            "crates/uor-r4-core/src/native_geometric/learner/contextual_emission.rs",
+            "crates/uor-r4-core/src/bin/competitive-reader.rs",
+        ]
+        .iter()
+        .map(|rel| match std::fs::read(sr.join(rel)) {
+            Ok(b) => json!({"path": rel, "sha256": sha256_hex(&b)}),
+            Err(_) => json!({"path": rel, "sha256": "UNAVAILABLE"}),
+        })
+        .collect(),
+        None => vec![json!({"path": "unspecified", "sha256": "UNAVAILABLE"})],
+    };
+    let executable_sha256 = hex_of(&sha256_bytes(
+        &std::env::current_exe()
+            .ok()
+            .and_then(|p| std::fs::read(p).ok())
+            .unwrap_or_default(),
+    ));
+
+    let values: Vec<u32> = banks.values_fit.iter().copied().take(8).collect();
+    let specs_dev = make_ce_specs(&banks, CE_N_DEV, CE_SEED_DEV, &values);
+    let specs_tune = make_ce_specs(&banks, CE_N_TUNE, CE_SEED_TUNE, &values);
+    let specs_fresh = make_ce_specs(&banks, CE_N_FRESH, CE_SEED_FRESH, &values);
+    let mut used: std::collections::BTreeSet<u32> = std::collections::BTreeSet::new();
+    for spec in specs_dev
+        .iter()
+        .chain(specs_tune.iter())
+        .chain(specs_fresh.iter())
+    {
+        used.insert(spec.key);
+        used.insert(spec.qrole);
+        used.insert(spec.source_role);
+        for (r, k, v) in spec.blocks.iter() {
+            used.insert(*r);
+            used.insert(*k);
+            used.insert(*v);
+        }
+    }
+    for v in values.iter() {
+        used.insert(*v);
+    }
+    let out_bank: Vec<u32> = (0..parent.cfg.vocab as u32)
+        .rev()
+        .filter(|t| !used.contains(t))
+        .take(values.len())
+        .collect();
+    if out_bank.len() < values.len() {
+        return Err("no disjoint output bank".into());
+    }
+    let materialize = |specs: &[CePairSpec]| -> Vec<CeItem> {
+        let mut items = Vec::new();
+        for (pid, spec) in specs.iter().enumerate() {
+            for (member, &vi) in spec.value_idx.iter().enumerate() {
+                let tokens = ce_item_tokens(spec, values[vi], out_bank[vi]);
+                items.push(CeItem {
+                    seq: Seq {
+                        tokens,
+                        group: 0,
+                        answer: out_bank[vi],
+                        absent: false,
+                        answer_source_abs: None,
+                    },
+                    value: values[vi],
+                    out: out_bank[vi],
+                    pair_id: pid,
+                    member,
+                    expected_payload_abs: (3 * spec.pos + 2) as u32,
+                });
+            }
+        }
+        items
+    };
+    let items_dev = materialize(&specs_dev);
+    let items_tune = materialize(&specs_tune);
+    let items_fresh = materialize(&specs_fresh);
+
+    let parent_root = PathBuf::from(PARENT_ROOT);
+    let selector_bytes = std::fs::read(parent_root.join("artifacts/relational_ctx.rlr2"))
+        .map_err(|e| format!("parent artifact: {e}"))?;
+    let selector_sha256 = sha256_hex(&selector_bytes);
+    if selector_sha256 != PARENT_SHA_RELATIONAL_CTX {
+        return Err("contextual selector hash mismatch".into());
+    }
+    let sel =
+        RelationalArtifact::from_bytes(&selector_bytes, &sha256_bytes(&sb), &raw_tok)?.selector;
+
+    let (dev_pos, dev_ex, dev_pairs) = ce_extract(&parent, &local, &u, &table, &sel, &items_dev)?;
+    let (tune_pos, tune_ex, _) = ce_extract(&parent, &local, &u, &table, &sel, &items_tune)?;
+    let (fresh_pos, fresh_ex, fresh_pairs) =
+        ce_extract(&parent, &local, &u, &table, &sel, &items_fresh)?;
+
+    let absent_ok = dev_pos
+        .iter()
+        .chain(tune_pos.iter())
+        .chain(fresh_pos.iter())
+        .all(|p| p.absent);
+    let decisive = dev_pos.iter().filter(|p| p.decisive).count();
+    let reads = dev_pos.iter().filter(|p| p.read).count();
+    let dev_by_pair: std::collections::BTreeMap<usize, Vec<usize>> = {
+        let mut m: std::collections::BTreeMap<usize, Vec<usize>> =
+            std::collections::BTreeMap::new();
+        for (i, pid) in dev_pairs.iter().enumerate() {
+            m.entry(*pid).or_default().push(i);
+        }
+        m
+    };
+    let identical_local = dev_by_pair
+        .values()
+        .filter(|v| v.len() == 2 && dev_pos[v[0]].z_local == dev_pos[v[1]].z_local)
+        .count();
+    if dev_pos.len() != items_dev.len()
+        || tune_pos.len() != items_tune.len()
+        || fresh_pos.len() != items_fresh.len()
+    {
+        return Err("contextual extraction lost a declared position".into());
+    }
+    for (items, positions) in [
+        (&items_dev, &dev_pos),
+        (&items_tune, &tune_pos),
+        (&items_fresh, &fresh_pos),
+    ] {
+        for (pair, p) in items.chunks_exact(2).zip(positions.chunks_exact(2)) {
+            let end = pair[0].seq.tokens.len() - 1;
+            let differences: Vec<usize> = pair[0].seq.tokens[..end]
+                .iter()
+                .zip(&pair[1].seq.tokens[..end])
+                .enumerate()
+                .filter_map(|(i, (x, y))| (x != y).then_some(i))
+                .collect();
+            if differences != vec![pair[0].expected_payload_abs as usize]
+                || pair[0].out == pair[1].out
+                || p[0].z_local != p[1].z_local
+                || !p.iter().all(|x| x.absent && x.decisive)
+                || pair.iter().any(|it| it.seq.tokens[..end].contains(&it.out))
+            {
+                return Err("contextual paired instrument is invalid".into());
+            }
+        }
+    }
+    let row_hits = dev_pos
+        .iter()
+        .filter(|p| {
+            let b: Vec<i32> = p
+                .z_local
+                .iter()
+                .zip(u[p.q0].iter())
+                .map(|(a, c)| a - c)
+                .collect();
+            (0..u.len()).any(|q| {
+                let z: Vec<i32> = b
+                    .iter()
+                    .zip(u[q].iter())
+                    .map(|(a, c)| a.saturating_add(*c))
+                    .collect();
+                argmax_low(&z) as u32 == p.target
+            })
+        })
+        .count();
+
+    let deficit = dev_pos
+        .iter()
+        .map(|p| (-p.target_margin).max(0) as i64)
+        .max()
+        .unwrap_or(0);
+    let mut shift = 0u32;
+    while shift < 12 && (CE_WIDTH as i64) * 2 * (1i64 << shift) < deficit {
+        shift += 1;
+    }
+    let base_params = {
+        let mut p = ReadConditionedParams::identity();
+        p.value_domain = values.clone();
+        p.value_code = (0..values.len()).map(|i| (i % GROUP_ORDER) as u8).collect();
+        for r in 0..GROUP_ORDER {
+            p.transport[r] = (r % GROUP_ORDER) as u8;
+        }
+        p
+    };
+    let mut learn = |cyclic: bool| -> Result<
+        (
+            serde_json::Value,
+            ReadConditionedParams,
+            EmissionResidual,
+            Vec<usize>,
+        ),
+        String,
+    > {
+        let params0 = base_params.clone();
+        let mut res0 = EmissionResidual::seeded(parent.cfg.vocab, 0x51E5_0000);
+        res0.shift = shift;
+        let (w_f, nll_initial, nll_float) = train_output_map(
+            &dev_ex,
+            &params0,
+            &res0,
+            cyclic,
+            CE_EPOCHS,
+            CE_LR,
+            parent.cfg.f_bits,
+        );
+        let (w_q, rows) = ce_quantize_sparse(&w_f, CE_MAX_W_ROWS);
+        let mut res = res0.clone();
+        res.w = w_q;
+        res.shift = shift;
+        let nll_quantized =
+            served_nll_bits(&dev_ex, &params0, &res, cyclic, &rows, parent.cfg.f_bits);
+        let flips = refine_ternary_map(&dev_ex, &params0, &mut res, cyclic, &rows, 5);
+        let nll_refined =
+            served_nll_bits(&dev_ex, &params0, &res, cyclic, &rows, parent.cfg.f_bits);
+        let (params, accepted) = ce_search_maps(&dev_ex, &params0, &res, cyclic, &rows, 4);
+        let nll_final = served_nll_bits(&dev_ex, &params, &res, cyclic, &rows, parent.cfg.f_bits);
+        let report = json!({
+            "algebra": if cyclic { "cyclic_c120" } else { "signed_h4" },
+            "shift": shift,
+            "f_bits": parent.cfg.f_bits,
+            "loss_units": "bits after fixed-point normalization",
+            "output_rows": rows.len(),
+            "embedding_seed": 0x51E5_0000u64,
+            "coefficient_storage": "one byte per ternary coefficient in RLCE; not bit-packed",
+            "nonzero_coefficients": rows.iter().map(|o| res.w[*o].iter().filter(|v| **v != 0).count()).sum::<usize>(),
+            "residual_range_bound": res.range_bound(),
+            "nll_bits": {
+                "initial": nll_initial, "float_after_gradient_fit": nll_float,
+                "served_after_quantization": nll_quantized,
+                "served_after_discrete_refinement": nll_refined,
+                "served_final": nll_final,
+            },
+            "accepted_ternary_flips": flips,
+            "accepted_map_changes": accepted,
+            "dev_hits": ce_hits(&dev_ex, &params, &res, cyclic, &rows),
+            "tune_hits": ce_hits(&tune_ex, &params, &res, cyclic, &rows),
+        });
+        Ok((report, params, res, rows))
+    };
+    let (h4_rep, h4_params, h4_res, h4_rows) = learn(false)?;
+    let (c120_rep, c120_params, c120_res, c120_rows) = learn(true)?;
+
+    // Serialize and independently load before any reported prediction. The sparse row set is
+    // recovered from the loaded artifact. A full predictor comparison fails closed on mismatch.
+    let reload = |name: &str,
+                  params: ReadConditionedParams,
+                  res: EmissionResidual,
+                  rows: Vec<usize>,
+                  cyclic: bool|
+     -> Result<
+        (
+            ReadConditionedParams,
+            EmissionResidual,
+            Vec<usize>,
+            serde_json::Value,
+        ),
+        String,
+    > {
+        let pbytes = params.to_bytes();
+        let rbytes = res.to_bytes();
+        let pp = format!("artifacts/{name}.rlrc");
+        let rp = format!("artifacts/{name}.rlce");
+        write_checked(&root, &pp, &pbytes)?;
+        write_checked(&root, &rp, &rbytes)?;
+        let loaded_p = ReadConditionedParams::from_bytes(
+            &std::fs::read(root.join(&pp)).map_err(|e| e.to_string())?,
+        )?;
+        let loaded_r = EmissionResidual::from_bytes(
+            &std::fs::read(root.join(&rp)).map_err(|e| e.to_string())?,
+            parent.cfg.vocab,
+        )?;
+        if params != loaded_p || res != loaded_r || loaded_r.w.len() != parent.cfg.vocab {
+            return Err("contextual independent artifact load mismatch".into());
+        }
+        let loaded_rows = loaded_r.active_rows();
+        let mut parity_positions = 0usize;
+        for it in items_dev.iter().chain(&items_tune).chain(&items_fresh) {
+            let prefix = &it.seq.tokens[..it.seq.tokens.len() - 1];
+            let ring = ring_before_current(prefix);
+            let i = prefix.len() - 1;
+            let before = ce_predict(
+                &ring,
+                prefix[i],
+                prefix[i - 1] as usize,
+                prefix[i - 2],
+                &sel,
+                &table,
+                &parent,
+                &local,
+                &u,
+                &params,
+                &res,
+                &rows,
+                cyclic,
+                true,
+                true,
+            );
+            let after = ce_predict(
+                &ring,
+                prefix[i],
+                prefix[i - 1] as usize,
+                prefix[i - 2],
+                &sel,
+                &table,
+                &parent,
+                &local,
+                &u,
+                &loaded_p,
+                &loaded_r,
+                &loaded_rows,
+                cyclic,
+                true,
+                true,
+            );
+            if before != after {
+                return Err("contextual loaded predictor parity failure".into());
+            }
+            parity_positions += 1;
+        }
+        let receipt = json!({"arm": name, "params_sha256": sha256_hex(&pbytes), "residual_sha256": sha256_hex(&rbytes),
+            "params_reload_identical": true, "residual_reload_identical": true,
+            "loaded_full_predictor_parity_positions": parity_positions, "loaded_objects_used_for_evaluation_and_generation": true,
+            "algebra": if cyclic {"cyclic_c120"} else {"signed_h4"}, "f_bits": parent.cfg.f_bits,
+            "selector_sha256": selector_sha256, "group_digest": group_digest});
+        Ok((loaded_p, loaded_r, loaded_rows, receipt))
+    };
+    let (h4_params, h4_res, h4_rows, h4_artifact) =
+        reload("h4_emission", h4_params, h4_res, h4_rows, false)?;
+    let (c120_params, c120_res, c120_rows, c120_artifact) = reload(
+        "cyclic_c120_emission",
+        c120_params,
+        c120_res,
+        c120_rows,
+        true,
+    )?;
+    let artifacts = vec![h4_artifact, c120_artifact];
+    let artifact_ok = true;
+
+    let eval_arm = |params: &ReadConditionedParams,
+                    res: &EmissionResidual,
+                    rows: &[usize],
+                    cyclic: bool,
+                    use_update: bool,
+                    allowed: bool,
+                    items: &[CeItem]|
+     -> Result<(usize, usize, Vec<(usize, bool)>), String> {
+        let mut hits = 0usize;
+        let mut reads = 0usize;
+        let mut per_pair = Vec::new();
+        for it in items.iter() {
+            let prefix = &it.seq.tokens[..it.seq.tokens.len() - 1];
+            let ring = ring_before_current(prefix);
+            let i = prefix.len() - 1;
+            let (z, r, _q0, _q1) = ce_predict(
+                &ring,
+                prefix[i],
+                prefix[i - 1] as usize,
+                prefix[i - 2],
+                &sel,
+                &table,
+                &parent,
+                &local,
+                &u,
+                params,
+                res,
+                rows,
+                cyclic,
+                use_update,
+                allowed,
+            );
+            if r.action.is_some() {
+                reads += 1;
+            }
+            let ok = argmax_low(&z) as u32 == it.seq.answer;
+            if ok {
+                hits += 1;
+            }
+            per_pair.push((it.pair_id, ok));
+        }
+        Ok((hits, reads, per_pair))
+    };
+    let both = |per_pair: &[(usize, bool)]| -> usize {
+        let mut m: std::collections::BTreeMap<usize, Vec<bool>> = std::collections::BTreeMap::new();
+        for (pid, ok) in per_pair.iter() {
+            m.entry(*pid).or_default().push(*ok);
+        }
+        m.values()
+            .filter(|v| v.len() == 2 && v.iter().all(|x| *x))
+            .count()
+    };
+    let copy_arm = |items: &[CeItem]| -> Result<(usize, Vec<(usize, bool)>), String> {
+        let mut hits = 0usize;
+        let mut per_pair = Vec::new();
+        for it in items.iter() {
+            let prefix = &it.seq.tokens[..it.seq.tokens.len() - 1];
+            let ring = ring_before_current(prefix);
+            let i = prefix.len() - 1;
+            let (z, _r) = predict_next(
+                &ring,
+                prefix[i],
+                prefix[i - 1] as usize,
+                prefix[i - 2],
+                &sel,
+                &table,
+                &parent,
+                &local,
+                &u,
+                true,
+            );
+            let ok = argmax_low(&z) as u32 == it.seq.answer;
+            if ok {
+                hits += 1;
+            }
+            per_pair.push((it.pair_id, ok));
+        }
+        Ok((hits, per_pair))
+    };
+
+    let mut comparisons: Vec<serde_json::Value> = Vec::new();
+    for (label, params, res, rows, cyclic, use_update, allowed) in [
+        (
+            "local_noread",
+            &h4_params,
+            &h4_res,
+            &h4_rows,
+            false,
+            false,
+            false,
+        ),
+        (
+            "h4_read_conditioned",
+            &h4_params,
+            &h4_res,
+            &h4_rows,
+            false,
+            true,
+            true,
+        ),
+        (
+            "h4_update_disabled",
+            &h4_params,
+            &h4_res,
+            &h4_rows,
+            false,
+            false,
+            true,
+        ),
+        (
+            "h4_read_disabled",
+            &h4_params,
+            &h4_res,
+            &h4_rows,
+            false,
+            true,
+            false,
+        ),
+        (
+            "cyclic_c120_read_conditioned",
+            &c120_params,
+            &c120_res,
+            &c120_rows,
+            true,
+            true,
+            true,
+        ),
+    ] {
+        let (dh, dr, dp) = eval_arm(params, res, rows, cyclic, use_update, allowed, &items_dev)?;
+        let (th, _, _) = eval_arm(params, res, rows, cyclic, use_update, allowed, &items_tune)?;
+        let (fh, fr, fp) = eval_arm(params, res, rows, cyclic, use_update, allowed, &items_fresh)?;
+        comparisons.push(json!({
+            "arm": label,
+            "dev_hits": dh, "dev_positions": dev_pos.len(), "dev_reads": dr,
+            "dev_pairs_both_correct": both(&dp),
+            "tune_hits": th, "tune_positions": tune_pos.len(),
+            "fresh_hits": fh, "fresh_positions": fresh_pos.len(), "fresh_reads": fr,
+            "fresh_pairs_both_correct": both(&fp),
+        }));
+    }
+    let (copy_dev, copy_dp) = copy_arm(&items_dev)?;
+    let (copy_fresh, copy_fp) = copy_arm(&items_fresh)?;
+    comparisons.push(json!({
+        "arm": "scalar_copy_parent",
+        "dev_hits": copy_dev, "dev_positions": dev_pos.len(),
+        "dev_pairs_both_correct": both(&copy_dp),
+        "fresh_hits": copy_fresh, "fresh_positions": fresh_pos.len(),
+        "fresh_pairs_both_correct": both(&copy_fp),
+    }));
+
+    // Real changed-source causal pairs: identical prefixes but one older payload.
+    let mut pair_rows: Vec<serde_json::Value> = Vec::new();
+    for spec_idx in 0..specs_fresh.len().min(4) {
+        let a = &items_fresh[spec_idx * 2];
+        let b = &items_fresh[spec_idx * 2 + 1];
+        let first = |it: &CeItem| -> Result<(u32, bool, bool), String> {
+            let prefix = &it.seq.tokens[..it.seq.tokens.len() - 1];
+            let ring = ring_before_current(prefix);
+            let i = prefix.len() - 1;
+            let (z, r, q0, q1) = ce_predict(
+                &ring,
+                prefix[i],
+                prefix[i - 1] as usize,
+                prefix[i - 2],
+                &sel,
+                &table,
+                &parent,
+                &local,
+                &u,
+                &h4_params,
+                &h4_res,
+                &h4_rows,
+                false,
+                true,
+                true,
+            );
+            Ok((argmax_low(&z) as u32, r.action.is_some(), q1 != q0))
+        };
+        let (fa, ra, ua) = first(a)?;
+        let (fb, rb, ub) = first(b)?;
+        let za = ce_extract(&parent, &local, &u, &table, &sel, std::slice::from_ref(a))?.0;
+        let zb = ce_extract(&parent, &local, &u, &table, &sel, std::slice::from_ref(b))?.0;
+        pair_rows.push(json!({
+            "pair": spec_idx,
+            "value_a": a.value, "answer_a": a.out, "emitted_a": fa, "correct_a": fa == a.out, "read_a": ra, "updated_a": ua,
+            "value_b": b.value, "answer_b": b.out, "emitted_b": fb, "correct_b": fb == b.out, "read_b": rb, "updated_b": ub,
+            "both_correct": fa == a.out && fb == b.out,
+            "identical_local_logits": za.first().map(|p| p.z_local.clone()) == zb.first().map(|p| p.z_local.clone()),
+            "different_answers": a.out != b.out,
+        }));
+    }
+
+    // Short generated continuations on the same shared boundary.
+    let mut gen_rows: Vec<serde_json::Value> = Vec::new();
+    for it in items_fresh.iter().take(3) {
+        let prefix = &it.seq.tokens[..it.seq.tokens.len() - 1];
+        let mut ring = ring_before_current(prefix);
+        let mut toks = prefix.to_vec();
+        let mut steps = Vec::new();
+        for _ in 0..3 {
+            let i = toks.len() - 1;
+            let (z, r, q0, q1) = ce_predict(
+                &ring,
+                toks[i],
+                toks[i - 1] as usize,
+                toks[i - 2],
+                &sel,
+                &table,
+                &parent,
+                &local,
+                &u,
+                &h4_params,
+                &h4_res,
+                &h4_rows,
+                false,
+                true,
+                true,
+            );
+            let next = argmax_low(&z) as u32;
+            steps.push(json!({"read": r.action.is_some(), "updated": q1 != q0, "emitted": next}));
+            ring.observe(toks[i]);
+            toks.push(next);
+        }
+        gen_rows.push(json!({
+            "answer": it.seq.answer, "emitted": toks[prefix.len()..].to_vec(),
+            "decoded": tokenizer.decode(&toks[prefix.len()..]), "steps": steps,
+        }));
+    }
+
+    let result = json!({
+        "schema": "uor-r4.contextual-emission/2",
+        "base_revision": std::env::var("UOR_GIT_REV").unwrap_or_else(|_| "unset".into()),
+        "running_source": {
+            "git_rev": std::env::var("UOR_GIT_REV").unwrap_or_else(|_| "unset".into()),
+            "git_dirty": std::env::var("UOR_GIT_DIRTY").unwrap_or_else(|_| "unknown".into()),
+            "executable_sha256": executable_sha256,
+            "source_files": source_files,
+        },
+        "inputs": {"E_sha256": E_SHA, "S_sha256": S_SHA, "tokenizer_derived": DERIVED_SHA, "group_digest": group_digest, "selector_sha256": selector_sha256, "f_bits": parent.cfg.f_bits},
+        "instrument": {
+            "design": "paired prefixes identical in query role/key, recent suffix, relevant-block position, distractor roles/values/order; only the relevant source block's value changes",
+            "answer": "learned output class of the selected value, from a bank disjoint from every prefix token and every admitted payload",
+            "values": values, "output_bank": out_bank,
+            "populations": {"dev_pairs": specs_dev.len(), "tune_pairs": specs_tune.len(), "fresh_pairs": specs_fresh.len()},
+        },
+        "validity": {
+            "dev_positions": dev_pos.len(), "absent_targets_held": absent_ok,
+            "decisive_local_positions": decisive, "any_read": reads,
+            "source_selection_by_split": [
+                {"split": "dev", "positions": dev_pos.len(), "correct_occurrence": dev_pos.iter().filter(|p| p.correct_source).count(), "correct_value": dev_pos.iter().filter(|p| p.correct_value).count()},
+                {"split": "tune", "positions": tune_pos.len(), "correct_occurrence": tune_pos.iter().filter(|p| p.correct_source).count(), "correct_value": tune_pos.iter().filter(|p| p.correct_value).count()},
+                {"split": "reused_acceptance", "positions": fresh_pos.len(), "correct_occurrence": fresh_pos.iter().filter(|p| p.correct_source).count(), "correct_value": fresh_pos.iter().filter(|p| p.correct_value).count()},
+            ],
+            "pairs_with_identical_local_logits": identical_local,
+            "max_target_deficit_units": deficit, "declared_shift": shift,
+        },
+        "frozen_row_ceiling": {"positions": dev_pos.len(), "some_row_emits_target": row_hits},
+        "diagnostics": {
+            "distinct_update_signatures_dev": ce_signature_report(&dev_ex),
+            "distinct_update_signatures_fresh": ce_signature_report(&fresh_ex),
+            "note": "signature = (q0, relation, selected payload). Ambiguous signatures demand different targets from an identical update input; the update cannot separate them without help from the unchanged local logits.",
+        },
+        "learning": {"h4": h4_rep, "cyclic_c120": c120_rep},
+        "comparisons": comparisons,
+        "changed_source_pairs_fresh": pair_rows,
+        "generated": gen_rows,
+        "artifacts": artifacts,
+        "artifact_reload_all_ok": artifact_ok,
+        "scope": "bounded authored context-required instrument; not general language or reasoning. Fixed seeds are now reused development populations; a new held-out result requires separately frozen new data. Schema1 loss/optimizer receipts remain historical, not normalized CE or convergence evidence. Energy UNAVAILABLE; whole-path D0-b not claimed.",
+        "elapsed_s": started.elapsed().as_secs_f64(),
+    });
+    write_json(&root, "result.json", &result)?;
+    seal(&root).map_err(|e| format!("seal: {e}"))?;
+    let unlisted = verify(&root).map_err(|e| format!("verify: {e}"))?;
+    let h4 = comparisons
+        .iter()
+        .find(|c| c["arm"] == json!("h4_read_conditioned"))
+        .cloned()
+        .unwrap_or(json!(null));
+    println!(
+        "contextual-emission: dev {} pos | absent {} | decisive {} | reads {} | identical-local pairs {} | frozen-row ceiling {}/{} | shift {} | H4 dev {}/{} fresh {}/{} both {} | sealed {} unlisted | {:.1}s",
+        dev_pos.len(), absent_ok, decisive, reads, identical_local, row_hits, dev_pos.len(), shift,
+        h4["dev_hits"], h4["dev_positions"], h4["fresh_hits"], h4["fresh_positions"],
+        h4["fresh_pairs_both_correct"], unlisted.len(), started.elapsed().as_secs_f32()
+    );
+    Ok(ExitCode::SUCCESS)
+}
+
 fn main() -> ExitCode {
     let mode = std::env::args().any(|a| a == "--mode=utility-transfer");
-    let result = if mode { utility_transfer_run() } else { run() };
+    let ce = std::env::args().any(|a| a == "--mode=contextual-emission");
+    let result = if ce {
+        contextual_emission_run()
+    } else if mode {
+        utility_transfer_run()
+    } else {
+        run()
+    };
     match result {
         Ok(c) => c,
         Err(e) => {
