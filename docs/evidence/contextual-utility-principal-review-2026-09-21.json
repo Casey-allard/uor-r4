@@ -1,0 +1,374 @@
+{
+  "method": "Saved-outcome analysis; no model inference. Sequence-cluster ratio bootstrap all 140 groups with replacement, xorshift64(13,7,17), seed 0x0C7A1E17|1, 2000 draws, percentile indices 50/1950; stratum groups retain zero-count groups.",
+  "paired": {
+    "relational_ctx-minus-relational": {
+      "point": -0.257643926849597,
+      "lo": -0.3270884384163267,
+      "hi": -0.18296787106494927,
+      "groups": 140,
+      "positions": 1813,
+      "draws": 2000
+    },
+    "relational-minus-exact": {
+      "point": -0.01015103272653457,
+      "lo": -0.10517465605179212,
+      "hi": 0.0821876118066373,
+      "groups": 140,
+      "positions": 1813,
+      "draws": 2000
+    },
+    "relational_ctx-minus-relational-final_present": {
+      "point": -3.456769758910921,
+      "lo": -4.392755821474777,
+      "hi": -2.4996726692179063,
+      "groups": 140,
+      "positions": 119,
+      "draws": 2000
+    },
+    "relational_ctx-minus-relational-final_absent": {
+      "point": 0.15381778192372528,
+      "lo": 0.012884152434600194,
+      "hi": 0.3292607973208453,
+      "groups": 140,
+      "positions": 21,
+      "draws": 2000
+    },
+    "relational_ctx-minus-categorical": {
+      "point": 0.06727312189577082,
+      "lo": -0.03264952588393793,
+      "hi": 0.1638319073596596,
+      "groups": 140,
+      "positions": 1813,
+      "draws": 2000
+    },
+    "relational_ctx-minus-categorical-final_present": {
+      "point": 0.8335545812263607,
+      "lo": -0.006754444312594815,
+      "hi": 1.6857703976049963,
+      "groups": 140,
+      "positions": 119,
+      "draws": 2000
+    }
+  },
+  "diagnostic_reconstruction": {
+    "relational_ctx": {
+      "actual_nats": -1.5413006675540921,
+      "best_selected_nats": -1.6867018230917132,
+      "strength_residual_nats": 0.14540115553762115,
+      "remaining_including_noread_gate_nats": 0.9632875445563487,
+      "note": "p(payload) inverted from saved hard-local loss and known applied boost; best_selected=0 on NoRead follows original flawed attribution convention; best_all reuses saved common-pool diagnostic, independently unverified."
+    },
+    "relational": {
+      "actual_nats": -1.362715506069901,
+      "best_selected_nats": -1.4560538344092557,
+      "strength_residual_nats": 0.09333832833935486,
+      "remaining_including_noread_gate_nats": 1.1939355332388062,
+      "note": "p(payload) inverted from saved hard-local loss and known applied boost; best_selected=0 on NoRead follows original flawed attribution convention; best_all reuses saved common-pool diagnostic, independently unverified."
+    },
+    "exact": {
+      "actual_nats": -1.3556793463557315,
+      "best_selected_nats": -1.450285092807478,
+      "strength_residual_nats": 0.09460574645174645,
+      "remaining_including_noread_gate_nats": 1.199704274840584,
+      "note": "p(payload) inverted from saved hard-local loss and known applied boost; best_selected=0 on NoRead follows original flawed attribution convention; best_all reuses saved common-pool diagnostic, independently unverified."
+    },
+    "categorical": {
+      "actual_nats": -1.5879308423236098,
+      "best_selected_nats": -1.6837910012180255,
+      "strength_residual_nats": 0.09586015889441557,
+      "remaining_including_noread_gate_nats": 0.9661983664300364,
+      "note": "p(payload) inverted from saved hard-local loss and known applied boost; best_selected=0 on NoRead follows original flawed attribution convention; best_all reuses saved common-pool diagnostic, independently unverified."
+    }
+  },
+  "strata": {
+    "relational_ctx": {
+      "intermediate_value": {
+        "n": 554,
+        "reads": 297,
+        "correct_reads": 21,
+        "emitted_correct": 11,
+        "hard_sum": 7482.073441335207,
+        "local_sum": 7541.334590775883
+      },
+      "intermediate_role": {
+        "n": 562,
+        "reads": 35,
+        "correct_reads": 0,
+        "emitted_correct": 1,
+        "hard_sum": 6144.602532568594,
+        "local_sum": 6100.995814945424
+      },
+      "intermediate_key": {
+        "n": 431,
+        "reads": 413,
+        "correct_reads": 253,
+        "emitted_correct": 202,
+        "hard_sum": 3213.993250671366,
+        "local_sum": 5810.364217554176
+      },
+      "query_key": {
+        "n": 126,
+        "reads": 120,
+        "correct_reads": 87,
+        "emitted_correct": 71,
+        "hard_sum": 745.2191567444828,
+        "local_sum": 1654.0167204923453
+      },
+      "final_present": {
+        "n": 119,
+        "reads": 90,
+        "correct_reads": 49,
+        "emitted_correct": 35,
+        "hard_sum": 1081.5397242011645,
+        "local_sum": 1597.9362343202067
+      },
+      "final_absent": {
+        "n": 21,
+        "reads": 10,
+        "correct_reads": 0,
+        "emitted_correct": 0,
+        "hard_sum": 298.05648873601416,
+        "local_sum": 292.2724582320266
+      }
+    },
+    "relational": {
+      "intermediate_value": {
+        "n": 554,
+        "reads": 77,
+        "correct_reads": 9,
+        "emitted_correct": 5,
+        "hard_sum": 7488.800967558564,
+        "local_sum": 7541.334590775883
+      },
+      "intermediate_role": {
+        "n": 562,
+        "reads": 26,
+        "correct_reads": 0,
+        "emitted_correct": 1,
+        "hard_sum": 6143.102912336117,
+        "local_sum": 6100.995814945424
+      },
+      "intermediate_key": {
+        "n": 431,
+        "reads": 400,
+        "correct_reads": 248,
+        "emitted_correct": 198,
+        "hard_sum": 3267.7483561688086,
+        "local_sum": 5810.364217554176
+      },
+      "query_key": {
+        "n": 126,
+        "reads": 120,
+        "correct_reads": 87,
+        "emitted_correct": 71,
+        "hard_sum": 745.2191567444828,
+        "local_sum": 1654.0167204923453
+      },
+      "final_present": {
+        "n": 119,
+        "reads": 33,
+        "correct_reads": 11,
+        "emitted_correct": 8,
+        "hard_sum": 1492.895325511564,
+        "local_sum": 1597.9362343202067
+      },
+      "final_absent": {
+        "n": 21,
+        "reads": 5,
+        "correct_reads": 0,
+        "emitted_correct": 0,
+        "hard_sum": 294.8263153156159,
+        "local_sum": 292.2724582320266
+      }
+    },
+    "exact": {
+      "intermediate_value": {
+        "n": 554,
+        "reads": 86,
+        "correct_reads": 9,
+        "emitted_correct": 5,
+        "hard_sum": 7496.374072638383,
+        "local_sum": 7541.334590775883
+      },
+      "intermediate_role": {
+        "n": 562,
+        "reads": 26,
+        "correct_reads": 0,
+        "emitted_correct": 1,
+        "hard_sum": 6143.102912336117,
+        "local_sum": 6100.995814945424
+      },
+      "intermediate_key": {
+        "n": 431,
+        "reads": 400,
+        "correct_reads": 238,
+        "emitted_correct": 187,
+        "hard_sum": 3368.2725473893793,
+        "local_sum": 5810.364217554176
+      },
+      "query_key": {
+        "n": 126,
+        "reads": 120,
+        "correct_reads": 96,
+        "emitted_correct": 79,
+        "hard_sum": 642.1327459422984,
+        "local_sum": 1654.0167204923453
+      },
+      "final_present": {
+        "n": 119,
+        "reads": 35,
+        "correct_reads": 10,
+        "emitted_correct": 8,
+        "hard_sum": 1506.2882623465664,
+        "local_sum": 1597.9362343202067
+      },
+      "final_absent": {
+        "n": 21,
+        "reads": 5,
+        "correct_reads": 0,
+        "emitted_correct": 0,
+        "hard_sum": 294.8263153156159,
+        "local_sum": 292.2724582320266
+      }
+    },
+    "categorical": {
+      "intermediate_value": {
+        "n": 554,
+        "reads": 96,
+        "correct_reads": 11,
+        "emitted_correct": 6,
+        "hard_sum": 7479.684536060725,
+        "local_sum": 7541.334590775883
+      },
+      "intermediate_role": {
+        "n": 562,
+        "reads": 26,
+        "correct_reads": 0,
+        "emitted_correct": 1,
+        "hard_sum": 6143.102912336117,
+        "local_sum": 6100.995814945424
+      },
+      "intermediate_key": {
+        "n": 431,
+        "reads": 402,
+        "correct_reads": 242,
+        "emitted_correct": 192,
+        "hard_sum": 3328.293778334367,
+        "local_sum": 5810.364217554176
+      },
+      "query_key": {
+        "n": 126,
+        "reads": 120,
+        "correct_reads": 98,
+        "emitted_correct": 81,
+        "hard_sum": 615.0985907264634,
+        "local_sum": 1654.0167204923453
+      },
+      "final_present": {
+        "n": 119,
+        "reads": 84,
+        "correct_reads": 58,
+        "emitted_correct": 47,
+        "hard_sum": 982.3467290352279,
+        "local_sum": 1597.9362343202067
+      },
+      "final_absent": {
+        "n": 21,
+        "reads": 6,
+        "correct_reads": 0,
+        "emitted_correct": 0,
+        "hard_sum": 294.9918777669033,
+        "local_sum": 292.2724582320266
+      }
+    },
+    "local": {
+      "intermediate_value": {
+        "n": 554,
+        "reads": 0,
+        "correct_reads": 0,
+        "emitted_correct": 0,
+        "hard_sum": 7541.334590775883,
+        "local_sum": 7541.334590775883
+      },
+      "intermediate_role": {
+        "n": 562,
+        "reads": 0,
+        "correct_reads": 0,
+        "emitted_correct": 1,
+        "hard_sum": 6100.995814945424,
+        "local_sum": 6100.995814945424
+      },
+      "intermediate_key": {
+        "n": 431,
+        "reads": 0,
+        "correct_reads": 0,
+        "emitted_correct": 0,
+        "hard_sum": 5810.364217554176,
+        "local_sum": 5810.364217554176
+      },
+      "query_key": {
+        "n": 126,
+        "reads": 0,
+        "correct_reads": 0,
+        "emitted_correct": 0,
+        "hard_sum": 1654.0167204923453,
+        "local_sum": 1654.0167204923453
+      },
+      "final_present": {
+        "n": 119,
+        "reads": 0,
+        "correct_reads": 0,
+        "emitted_correct": 0,
+        "hard_sum": 1597.9362343202067,
+        "local_sum": 1597.9362343202067
+      },
+      "final_absent": {
+        "n": 21,
+        "reads": 0,
+        "correct_reads": 0,
+        "emitted_correct": 0,
+        "hard_sum": 292.2724582320266,
+        "local_sum": 292.2724582320266
+      }
+    }
+  },
+  "input_sha256": {
+    "outcomes-fresh-relational_ctx.json": "3fa503d2a8a6d80c72f66f238699e883bd6b18d283417db920fbeeacc88fbf9e",
+    "outcomes-fresh-relational.json": "853c521f30ff943de8c8f8c3f02de94abad128f5eb58e8bdf33218b6d0ba331a",
+    "outcomes-fresh-exact.json": "067163e1afc3da463646516fe77572a88d982f8b88fd4811a52541736b1461b6",
+    "outcomes-fresh-categorical.json": "dae58ba4334c9282f1d3683847fd1916187b407bf7d99654c41a9954c8098fc6",
+    "outcomes-fresh-local.json": "953d0bfc3415e26d1a0d1be2e794d3b49e109d72a9dfa2df003bbc51bf17d7e3",
+    "result.json": "bc94d770ef761eecafe7737df742fd36db45ef523d15cbb91e40693fd0c723b9"
+  },
+  "manifest_verification": {
+    "listed_files": 23,
+    "blake3_and_size_failures": 0,
+    "unlisted_files": 0,
+    "result_json_listed": true,
+    "source_receipt_files_match_checkout": true
+  },
+  "review_source_revision": "29f680fb5c80d9d00af9f9f2fb1e4c3e6205303d",
+  "all_new_stratum_intervals": "POST_HOC_DIAGNOSTIC_NOT_PREREGISTERED",
+  "no_model_inference": true,
+  "main_independent_manifest_check": {
+    "listed_files": 23,
+    "all_blake3_and_bytes_match": true,
+    "unlisted": []
+  },
+  "diagnostic_reconstruction_scope": "Algebra from saved outcomes using recorded boost and unsaturated single-logit loss; excludes hidden chosen-source scores on NoRead and must not be called a ranking/admission decomposition. Corrected causal decomposition is NOT_RUN.",
+  "fresh_action_index_counts": {
+    "relational": {
+      "NoRead": 1152,
+      "2": 661
+    },
+    "relational_ctx": {
+      "1": 138,
+      "NoRead": 848,
+      "2": 827
+    },
+    "categorical": {
+      "NoRead": 1079,
+      "2": 734
+    }
+  }
+}

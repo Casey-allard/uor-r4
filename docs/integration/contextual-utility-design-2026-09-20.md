@@ -1,5 +1,7 @@
 # Contextual utility controller — prospective design (recorded before fitting)
 
+> **September 21 principal correction:** read the [review](contextual-utility-review-2026-09-21.md) with this preserved historical record. The primary contextual gain survives, but the 12.8× global-arm/NoRead diagnostic and first-occurrence counters do not establish contextual ranking dominance; text fit/evaluation overlap, control scope, action counts, resident bytes and budget rationale need the corrections listed there. The next task is [matched learning of the existing signed relation](deepseek-relational-learning-step-2026-09-21.md), not an automatic larger pair table. Original design criteria and raw measurements below remain unchanged.
+
 Prepared September 20–21, 2026, **before** any fit or fresh evaluation. Execution prompt:
 [deepseek-contextual-utility-step-2026-09-20.md](deepseek-contextual-utility-step-2026-09-20.md). Principal review:
 [competitive-reader-review-2026-09-20.md](competitive-reader-review-2026-09-20.md). Reuse map:

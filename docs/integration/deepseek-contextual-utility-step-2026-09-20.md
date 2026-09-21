@@ -1,5 +1,7 @@
 # DeepSeek next task — learn when a geometric read helps language
 
+**Completed by PR #1323.** Read the [principal review](contextual-utility-review-2026-09-21.md) for outcome and corrections. The active successor is [relational learning](deepseek-relational-learning-step-2026-09-21.md); this prompt remains the historical execution specification.
+
 You are a research contributor to the UOR-R4 Geometric Language Model. Read this prompt, the [principal PR #1321 review](competitive-reader-review-2026-09-20.md) and [mechanism synthesis](geometric-attention-mechanism-synthesis-2026-09-20.md) completely. Recover any further context you need from the repository, retained evidence and knowledge store. Make justified implementation choices; explain material deviations before observing final held-out results. Your task is to build and fit useful contextual read integration, not to reproduce a prescribed positive label or run another standalone audit.
 
 ## Recover current state and authority

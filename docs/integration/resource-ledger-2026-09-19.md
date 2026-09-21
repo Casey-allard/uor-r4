@@ -1154,3 +1154,10 @@ self-check, and the repaired run reproduced the measurement bit-for-bit. Preserv
 512 MiB block allowance. Whole-path D0-b compliance is not claimed; served active-candidate
 incremental cost and physical energy remain UNAVAILABLE (the cost probe admitted zero candidates).
 No paid/external compute and no deletion of unique material.
+
+
+## Principal PR #1323 reconciliation — September 21, 2026
+
+Accounting correction: **90 minutes fits 106 minutes**. The stated necessity for the prior +3,600,000 ms extension was arithmetically incorrect. Preserve its standing-authorized recorded limit **194900000 ms** and cumulative charges **186736749 ms**; this correction does not silently undo either. Remaining **8163251 ms (~136.05 min)**. No new allowance extension or model debit in this review: documentation, source inspection and saved-outcome analysis only; no build, fit, inference or model replay. Future work must project its own complete cost before use.
+
+Read-only storage inventory `uor-storage-inventory-v1`, collected 2026-09-21T03:36:27Z: **43057942528 bytes free**, reserve **36766079385 bytes**, reserve not breached. Target 8780234752 allocated bytes; knowledge 1954230272; models at least 20862111744 (three sealed-path diagnostics; no permissions changed). Rows can overlap and APFS allocations are not exclusive physical usage. **Zero deletions**; preserve research/artifacts and Downloads. [Review](contextual-utility-review-2026-09-21.md) and [saved-data evidence](../evidence/contextual-utility-principal-review-2026-09-21.json).

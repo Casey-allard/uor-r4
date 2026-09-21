@@ -1,5 +1,7 @@
 # Learned contextual utility controller: global strength repaired, ranking still open
 
+> **September 21 principal correction:** read the [review](contextual-utility-review-2026-09-21.md) with this preserved historical record. The primary contextual gain survives, but the 12.8× global-arm/NoRead diagnostic and first-occurrence counters do not establish contextual ranking dominance; text fit/evaluation overlap, control scope, action counts, resident bytes and budget rationale need the corrections listed there. The next task is [matched learning of the existing signed relation](deepseek-relational-learning-step-2026-09-21.md), not an automatic larger pair table. Original design criteria and raw measurements below remain unchanged.
+
 Executed September 20–21, 2026 from base revision `89ee803b` (PR #1322 merged). Prospective design and
 frozen decision criteria: [contextual-utility-design-2026-09-20.md](contextual-utility-design-2026-09-20.md),
 recorded before any held-out result. Machine-readable receipt:
