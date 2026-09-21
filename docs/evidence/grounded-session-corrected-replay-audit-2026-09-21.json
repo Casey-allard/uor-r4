@@ -1,0 +1,1478 @@
+{
+  "schema": "uor-r4.pr1340-corrected-exposed-replay-independent-audit/1",
+  "scope": "Saved output recount, artifact/snapshot byte and identity verification, exact integer Q8 checks on recorded states. No new predictor execution, fit, build or sealed-root mutation. Corrected exposed regression, not fresh qualification.",
+  "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/grounded-session-principal-1",
+  "integrity": {
+    "listed_files": 13,
+    "missing": [],
+    "unlisted": [],
+    "seal_errors": [],
+    "source_hash_matches": {
+      "crates/uor-r4-core/src/native_geometric/learner/relational.rs": true,
+      "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs": true,
+      "crates/uor-r4-core/src/native_geometric/learner/result_decoder.rs": true,
+      "crates/uor-r4-core/src/native_geometric/learner/shared_transition.rs": true,
+      "crates/uor-r4-core/src/native_geometric/learner/grounded_session.rs": true,
+      "crates/uor-r4-core/src/bin/competitive-reader.rs": true
+    },
+    "executable": "/Users/casey.allard/uor-r4/target/debug/competitive-reader",
+    "executable_sha256": "17236088a3d413e3f7f094aac0456f63d2fbee7921eaa5ff5bbbcbb071f47904",
+    "executable_matches": true,
+    "result_sha256": "568985a68b141ba7bc2c1eb5ed8077109815a87fecbfd7ed6570814ee976cb25"
+  },
+  "counts": {
+    "grounded_factorization/dev": {
+      "items": 288,
+      "complete": 288,
+      "token_hits": 672,
+      "token_total": 672,
+      "stopped_correctly": 288,
+      "correct_sources": 288,
+      "correct_source_complete": 288,
+      "terminal_counts": {
+        "Stop": 288
+      },
+      "complete_flags_match": true,
+      "token_step_events_match": true,
+      "instruction_span_matches": true,
+      "tokens_identical_original_all_items": true,
+      "expected_identical_original_all_items": true
+    },
+    "finite_transition_control/dev": {
+      "items": 288,
+      "complete": 288,
+      "token_hits": 672,
+      "token_total": 672,
+      "stopped_correctly": 288,
+      "correct_sources": 288,
+      "correct_source_complete": 288,
+      "terminal_counts": {
+        "Stop": 288
+      },
+      "complete_flags_match": true,
+      "token_step_events_match": true,
+      "instruction_span_matches": true,
+      "tokens_identical_original_all_items": true,
+      "expected_identical_original_all_items": true
+    },
+    "fitted_shared_recurrence/dev": {
+      "items": 288,
+      "complete": 248,
+      "token_hits": 632,
+      "token_total": 672,
+      "stopped_correctly": 276,
+      "correct_sources": 288,
+      "correct_source_complete": 248,
+      "terminal_counts": {
+        "Stop": 276,
+        "NoGrounding": 12
+      },
+      "complete_flags_match": true,
+      "token_step_events_match": true,
+      "instruction_span_matches": true,
+      "tokens_identical_original_all_items": true,
+      "expected_identical_original_all_items": true
+    },
+    "grounded_factorization/held_out_length4": {
+      "items": 128,
+      "complete": 124,
+      "token_hits": 496,
+      "token_total": 512,
+      "stopped_correctly": 124,
+      "correct_sources": 124,
+      "correct_source_complete": 124,
+      "terminal_counts": {
+        "Stop": 124,
+        "UnknownValue": 4
+      },
+      "complete_flags_match": true,
+      "token_step_events_match": true,
+      "instruction_span_matches": true,
+      "tokens_identical_original_all_items": true,
+      "expected_identical_original_all_items": true
+    },
+    "finite_transition_control/held_out_length4": {
+      "items": 128,
+      "complete": 124,
+      "token_hits": 496,
+      "token_total": 512,
+      "stopped_correctly": 124,
+      "correct_sources": 124,
+      "correct_source_complete": 124,
+      "terminal_counts": {
+        "Stop": 124,
+        "UnknownValue": 4
+      },
+      "complete_flags_match": true,
+      "token_step_events_match": true,
+      "instruction_span_matches": true,
+      "tokens_identical_original_all_items": true,
+      "expected_identical_original_all_items": true
+    },
+    "fitted_shared_recurrence/held_out_length4": {
+      "items": 128,
+      "complete": 76,
+      "token_hits": 440,
+      "token_total": 512,
+      "stopped_correctly": 90,
+      "correct_sources": 124,
+      "correct_source_complete": 76,
+      "terminal_counts": {
+        "Stop": 90,
+        "NoGrounding": 34,
+        "UnknownValue": 4
+      },
+      "complete_flags_match": true,
+      "token_step_events_match": true,
+      "instruction_span_matches": true,
+      "tokens_identical_original_all_items": true,
+      "expected_identical_original_all_items": true
+    },
+    "grounded_factorization/held_out_reversal": {
+      "items": 64,
+      "complete": 64,
+      "token_hits": 128,
+      "token_total": 128,
+      "stopped_correctly": 64,
+      "correct_sources": 64,
+      "correct_source_complete": 64,
+      "terminal_counts": {
+        "Stop": 64
+      },
+      "complete_flags_match": true,
+      "token_step_events_match": true,
+      "instruction_span_matches": true,
+      "tokens_identical_original_all_items": true,
+      "expected_identical_original_all_items": true
+    },
+    "finite_transition_control/held_out_reversal": {
+      "items": 64,
+      "complete": 64,
+      "token_hits": 128,
+      "token_total": 128,
+      "stopped_correctly": 64,
+      "correct_sources": 64,
+      "correct_source_complete": 64,
+      "terminal_counts": {
+        "Stop": 64
+      },
+      "complete_flags_match": true,
+      "token_step_events_match": true,
+      "instruction_span_matches": true,
+      "tokens_identical_original_all_items": true,
+      "expected_identical_original_all_items": true
+    },
+    "fitted_shared_recurrence/held_out_reversal": {
+      "items": 64,
+      "complete": 24,
+      "token_hits": 79,
+      "token_total": 128,
+      "stopped_correctly": 60,
+      "correct_sources": 64,
+      "correct_source_complete": 24,
+      "terminal_counts": {
+        "Stop": 60,
+        "NoGrounding": 4
+      },
+      "complete_flags_match": true,
+      "token_step_events_match": true,
+      "instruction_span_matches": true,
+      "tokens_identical_original_all_items": true,
+      "expected_identical_original_all_items": true
+    }
+  },
+  "report_checks": {
+    "grounded_factorization/dev": {
+      "items": true,
+      "complete": true,
+      "token_hits": true,
+      "token_total": true,
+      "stopped_correctly": true
+    },
+    "finite_transition_control/dev": {
+      "items": true,
+      "complete": true,
+      "token_hits": true,
+      "token_total": true,
+      "stopped_correctly": true
+    },
+    "fitted_shared_recurrence/dev": {
+      "items": true,
+      "complete": true,
+      "token_hits": true,
+      "token_total": true,
+      "stopped_correctly": true
+    },
+    "grounded_factorization/held_out_length4": {
+      "items": true,
+      "complete": true,
+      "token_hits": true,
+      "token_total": true,
+      "stopped_correctly": true
+    },
+    "finite_transition_control/held_out_length4": {
+      "items": true,
+      "complete": true,
+      "token_hits": true,
+      "token_total": true,
+      "stopped_correctly": true
+    },
+    "fitted_shared_recurrence/held_out_length4": {
+      "items": true,
+      "complete": true,
+      "token_hits": true,
+      "token_total": true,
+      "stopped_correctly": true
+    },
+    "grounded_factorization/held_out_reversal": {
+      "items": true,
+      "complete": true,
+      "token_hits": true,
+      "token_total": true,
+      "stopped_correctly": true
+    },
+    "finite_transition_control/held_out_reversal": {
+      "items": true,
+      "complete": true,
+      "token_hits": true,
+      "token_total": true,
+      "stopped_correctly": true
+    },
+    "fitted_shared_recurrence/held_out_reversal": {
+      "items": true,
+      "complete": true,
+      "token_hits": true,
+      "token_total": true,
+      "stopped_correctly": true
+    }
+  },
+  "artifacts": {
+    "grounded_factorization": {
+      "bytes": 137,
+      "sha256": "f86d29c55923dbc78dd8f4845a36dc506d6e251febbf1fff2c0b4dbff31861ec",
+      "version": 1,
+      "cyclic": false,
+      "reference_outcome": 4088,
+      "action_domain": [
+        489,
+        491,
+        500,
+        507,
+        513,
+        515,
+        516,
+        517
+      ],
+      "outcome_domain": [
+        4088,
+        4089,
+        4090,
+        4091,
+        4092,
+        4093,
+        4094,
+        4095
+      ],
+      "payload_domain": [
+        485,
+        486,
+        487,
+        488
+      ],
+      "action_codes": [
+        1,
+        2,
+        4,
+        0,
+        6,
+        5,
+        3,
+        7
+      ],
+      "outcome_states": [
+        1,
+        0,
+        5,
+        4,
+        6,
+        7,
+        2,
+        3
+      ],
+      "payload_states": [
+        3,
+        6,
+        0,
+        2
+      ],
+      "recorded_hash_matches": true,
+      "recorded_size_matches": true,
+      "actual_loaded_object_used_reported": true
+    },
+    "finite_transition_control": {
+      "bytes": 1668,
+      "sha256": "199344da506a795c57eadde1d0202555726b45029432ea43e0211eca9a076393",
+      "initial_entries": 32,
+      "recurrent_entries": 64,
+      "recorded_hash_matches": true,
+      "recorded_size_matches": true,
+      "actual_loaded_object_used_reported": true
+    },
+    "fitted_shared_recurrence": {
+      "bytes": 370,
+      "sha256": "78b245d7a8608bbabf71708b4225dad9ee0fa97170ef7311c4fcdd33e518ae0c",
+      "recorded_hash_matches": true,
+      "recorded_size_matches": true,
+      "actual_loaded_object_used_reported": true
+    }
+  },
+  "checkpoints": {
+    "chain-0-after-first.json": {
+      "json_sha256": "4a3a65314fdad995f3120b1769340888b49e1f0bb6f32b4a341cd4df8b4d613b",
+      "frame": {
+        "version": 1,
+        "bytes": 37,
+        "lease": [
+          1,
+          2,
+          485
+        ],
+        "state": 3,
+        "outcome": 4095,
+        "phase": 1,
+        "emitted": [],
+        "terminal_tag": 0
+      },
+      "frame_hash_matches": true,
+      "model_hash_matches": true,
+      "group_hash_matches": true,
+      "tokenizer_hash_matches": true,
+      "stage_matches": true,
+      "snapshot_matches_exact_selected_evidence": true,
+      "state_matches_uninterrupted": true,
+      "outcome_matches_uninterrupted": true,
+      "outcome_matches_model_state": true,
+      "before_emit_and_unterminated": true,
+      "phase_after_one_computation": true
+    },
+    "chain-0-after-second.json": {
+      "json_sha256": "af3b8051e8b9c9c9949086e1035969d0912b6c79c5405a0ff22a1b059dc72be1",
+      "frame": {
+        "version": 1,
+        "bytes": 37,
+        "lease": [
+          1,
+          35,
+          488
+        ],
+        "state": 0,
+        "outcome": 4089,
+        "phase": 1,
+        "emitted": [],
+        "terminal_tag": 0
+      },
+      "frame_hash_matches": true,
+      "model_hash_matches": true,
+      "group_hash_matches": true,
+      "tokenizer_hash_matches": true,
+      "stage_matches": true,
+      "snapshot_matches_exact_selected_evidence": true,
+      "state_matches_uninterrupted": true,
+      "outcome_matches_uninterrupted": true,
+      "outcome_matches_model_state": true,
+      "before_emit_and_unterminated": true,
+      "phase_after_one_computation": true
+    },
+    "chain-1-after-first.json": {
+      "json_sha256": "671a06e2d6802c8386b461515537574cffb5ba9a2838dcc358f442e5aaa46dc0",
+      "frame": {
+        "version": 1,
+        "bytes": 37,
+        "lease": [
+          1,
+          5,
+          486
+        ],
+        "state": 6,
+        "outcome": 4092,
+        "phase": 1,
+        "emitted": [],
+        "terminal_tag": 0
+      },
+      "frame_hash_matches": true,
+      "model_hash_matches": true,
+      "group_hash_matches": true,
+      "tokenizer_hash_matches": true,
+      "stage_matches": true,
+      "snapshot_matches_exact_selected_evidence": true,
+      "state_matches_uninterrupted": true,
+      "outcome_matches_uninterrupted": true,
+      "outcome_matches_model_state": true,
+      "before_emit_and_unterminated": true,
+      "phase_after_one_computation": true
+    },
+    "chain-1-after-second.json": {
+      "json_sha256": "4360f12721d64ff8e7ddf2bf7500b006a57da2eb9a5a2232543ec7bfed9ff134",
+      "frame": {
+        "version": 1,
+        "bytes": 37,
+        "lease": [
+          1,
+          26,
+          485
+        ],
+        "state": 1,
+        "outcome": 4088,
+        "phase": 1,
+        "emitted": [],
+        "terminal_tag": 0
+      },
+      "frame_hash_matches": true,
+      "model_hash_matches": true,
+      "group_hash_matches": true,
+      "tokenizer_hash_matches": true,
+      "stage_matches": true,
+      "snapshot_matches_exact_selected_evidence": true,
+      "state_matches_uninterrupted": true,
+      "outcome_matches_uninterrupted": true,
+      "outcome_matches_model_state": true,
+      "before_emit_and_unterminated": true,
+      "phase_after_one_computation": true
+    },
+    "chain-2-after-first.json": {
+      "json_sha256": "925428434065fe982f757a71b4bb50842a2dd0c128234b2c24eb44c817b4be72",
+      "frame": {
+        "version": 1,
+        "bytes": 37,
+        "lease": [
+          1,
+          8,
+          487
+        ],
+        "state": 0,
+        "outcome": 4089,
+        "phase": 1,
+        "emitted": [],
+        "terminal_tag": 0
+      },
+      "frame_hash_matches": true,
+      "model_hash_matches": true,
+      "group_hash_matches": true,
+      "tokenizer_hash_matches": true,
+      "stage_matches": true,
+      "snapshot_matches_exact_selected_evidence": true,
+      "state_matches_uninterrupted": true,
+      "outcome_matches_uninterrupted": true,
+      "outcome_matches_model_state": true,
+      "before_emit_and_unterminated": true,
+      "phase_after_one_computation": true
+    },
+    "chain-2-after-second.json": {
+      "json_sha256": "179c661ed66d54569dea6e29077af68dfed2e0ae13d8e355dccc29c2f4591499",
+      "frame": {
+        "version": 1,
+        "bytes": 37,
+        "lease": [
+          1,
+          17,
+          486
+        ],
+        "state": 4,
+        "outcome": 4091,
+        "phase": 1,
+        "emitted": [],
+        "terminal_tag": 0
+      },
+      "frame_hash_matches": true,
+      "model_hash_matches": true,
+      "group_hash_matches": true,
+      "tokenizer_hash_matches": true,
+      "stage_matches": true,
+      "snapshot_matches_exact_selected_evidence": true,
+      "state_matches_uninterrupted": true,
+      "outcome_matches_uninterrupted": true,
+      "outcome_matches_model_state": true,
+      "before_emit_and_unterminated": true,
+      "phase_after_one_computation": true
+    },
+    "chain-3-after-first.json": {
+      "json_sha256": "9af90013d22163019cc8b8af254f5561523d87f5fa7997b645e172b40fb9ee4f",
+      "frame": {
+        "version": 1,
+        "bytes": 37,
+        "lease": [
+          1,
+          11,
+          488
+        ],
+        "state": 2,
+        "outcome": 4094,
+        "phase": 1,
+        "emitted": [],
+        "terminal_tag": 0
+      },
+      "frame_hash_matches": true,
+      "model_hash_matches": true,
+      "group_hash_matches": true,
+      "tokenizer_hash_matches": true,
+      "stage_matches": true,
+      "snapshot_matches_exact_selected_evidence": true,
+      "state_matches_uninterrupted": true,
+      "outcome_matches_uninterrupted": true,
+      "outcome_matches_model_state": true,
+      "before_emit_and_unterminated": true,
+      "phase_after_one_computation": true
+    },
+    "chain-3-after-second.json": {
+      "json_sha256": "20caa244eda99bd70848efbdb0db75d68ad8f1b9cb3c93b314ca73e34489a9c5",
+      "frame": {
+        "version": 1,
+        "bytes": 37,
+        "lease": [
+          1,
+          32,
+          487
+        ],
+        "state": 3,
+        "outcome": 4095,
+        "phase": 1,
+        "emitted": [],
+        "terminal_tag": 0
+      },
+      "frame_hash_matches": true,
+      "model_hash_matches": true,
+      "group_hash_matches": true,
+      "tokenizer_hash_matches": true,
+      "stage_matches": true,
+      "snapshot_matches_exact_selected_evidence": true,
+      "state_matches_uninterrupted": true,
+      "outcome_matches_uninterrupted": true,
+      "outcome_matches_model_state": true,
+      "before_emit_and_unterminated": true,
+      "phase_after_one_computation": true
+    }
+  },
+  "all_report_counts_match": true,
+  "factorization_checks": {
+    "recorded_emit_steps": 1296,
+    "all_recorded_q8_products_match": true,
+    "all_labels_match_recorded_state": true,
+    "all_672_dev_steps_correct": true,
+    "unique_initial_transitions": 32,
+    "unique_recurrent_transitions": 64
+  },
+  "chain_rows": [
+    {
+      "expected_independent": {
+        "first": 4095,
+        "first_payload_abs": 2,
+        "second_payload_abs": 35,
+        "second_payload": 488,
+        "answer": 4089
+      },
+      "first_correct": true,
+      "first_occurrence_correct": true,
+      "second_occurrence_correct": true,
+      "second_payload_correct": true,
+      "answer_correct": true,
+      "answer": 4089,
+      "first_snapshot": [
+        1,
+        2,
+        485
+      ],
+      "second_snapshot": [
+        1,
+        35,
+        488
+      ],
+      "terminal": "Some(Exhausted)",
+      "resume_reported": true,
+      "key1": 424,
+      "expected_report_matches": true
+    },
+    {
+      "expected_independent": {
+        "first": 4092,
+        "first_payload_abs": 5,
+        "second_payload_abs": 26,
+        "second_payload": 485,
+        "answer": 4088
+      },
+      "first_correct": true,
+      "first_occurrence_correct": true,
+      "second_occurrence_correct": true,
+      "second_payload_correct": true,
+      "answer_correct": true,
+      "answer": 4088,
+      "first_snapshot": [
+        1,
+        5,
+        486
+      ],
+      "second_snapshot": [
+        1,
+        26,
+        485
+      ],
+      "terminal": "Some(Exhausted)",
+      "resume_reported": true,
+      "key1": 433,
+      "expected_report_matches": true
+    },
+    {
+      "expected_independent": {
+        "first": 4089,
+        "first_payload_abs": 8,
+        "second_payload_abs": 17,
+        "second_payload": 486,
+        "answer": 4091
+      },
+      "first_correct": true,
+      "first_occurrence_correct": true,
+      "second_occurrence_correct": true,
+      "second_payload_correct": true,
+      "answer_correct": true,
+      "answer": 4091,
+      "first_snapshot": [
+        1,
+        8,
+        487
+      ],
+      "second_snapshot": [
+        1,
+        17,
+        486
+      ],
+      "terminal": "Some(Exhausted)",
+      "resume_reported": true,
+      "key1": 434,
+      "expected_report_matches": true
+    },
+    {
+      "expected_independent": {
+        "first": 4094,
+        "first_payload_abs": 11,
+        "second_payload_abs": 32,
+        "second_payload": 487,
+        "answer": 4095
+      },
+      "first_correct": true,
+      "first_occurrence_correct": true,
+      "second_occurrence_correct": true,
+      "second_payload_correct": true,
+      "answer_correct": true,
+      "answer": 4095,
+      "first_snapshot": [
+        1,
+        11,
+        488
+      ],
+      "second_snapshot": [
+        1,
+        32,
+        487
+      ],
+      "terminal": "Some(Exhausted)",
+      "resume_reported": true,
+      "key1": 438,
+      "expected_report_matches": true
+    }
+  ],
+  "chain_counts": {
+    "chains": 4,
+    "first_correct": 4,
+    "second_correct": 4,
+    "answer_correct": 4,
+    "reported_resume_identical": 4
+  },
+  "all_checkpoint_checks_pass": true,
+  "controls": {
+    "single_first_payload_change": {
+      "changed_positions": [
+        2
+      ],
+      "exactly_one_first_payload": true,
+      "all_hop2_records_preserved": true,
+      "a": {
+        "expected_independent": {
+          "first": 4095,
+          "first_payload_abs": 2,
+          "second_payload_abs": 35,
+          "second_payload": 488,
+          "answer": 4089
+        },
+        "first_correct": true,
+        "first_occurrence_correct": true,
+        "second_occurrence_correct": true,
+        "second_payload_correct": true,
+        "answer_correct": true,
+        "answer": 4089,
+        "first_snapshot": [
+          1,
+          2,
+          485
+        ],
+        "second_snapshot": [
+          1,
+          35,
+          488
+        ],
+        "terminal": "Some(Exhausted)",
+        "resume_reported": null
+      },
+      "b": {
+        "expected_independent": {
+          "first": 4092,
+          "first_payload_abs": 2,
+          "second_payload_abs": 26,
+          "second_payload": 485,
+          "answer": 4088
+        },
+        "first_correct": true,
+        "first_occurrence_correct": true,
+        "second_occurrence_correct": true,
+        "second_payload_correct": true,
+        "answer_correct": true,
+        "answer": 4088,
+        "first_snapshot": [
+          1,
+          2,
+          486
+        ],
+        "second_snapshot": [
+          1,
+          26,
+          485
+        ],
+        "terminal": "Some(Exhausted)",
+        "resume_reported": null
+      },
+      "reported_changed_positions_match": true
+    },
+    "distractor": {
+      "base": {
+        "expected_independent": {
+          "first": 4095,
+          "first_payload_abs": 2,
+          "second_payload_abs": 35,
+          "second_payload": 488,
+          "answer": 4089
+        },
+        "first_correct": true,
+        "first_occurrence_correct": true,
+        "second_occurrence_correct": true,
+        "second_payload_correct": true,
+        "answer_correct": true,
+        "answer": 4089,
+        "first_snapshot": [
+          1,
+          2,
+          485
+        ],
+        "second_snapshot": [
+          1,
+          35,
+          488
+        ],
+        "terminal": "Some(Exhausted)",
+        "resume_reported": null
+      },
+      "changed": {
+        "expected_independent": {
+          "first": 4095,
+          "first_payload_abs": 2,
+          "second_payload_abs": 35,
+          "second_payload": 488,
+          "answer": 4089
+        },
+        "first_correct": true,
+        "first_occurrence_correct": true,
+        "second_occurrence_correct": true,
+        "second_payload_correct": true,
+        "answer_correct": true,
+        "answer": 4089,
+        "first_snapshot": [
+          1,
+          2,
+          485
+        ],
+        "second_snapshot": [
+          1,
+          35,
+          488
+        ],
+        "terminal": "Some(Exhausted)",
+        "resume_reported": null
+      },
+      "observed_original_evidence_preserved": true
+    },
+    "required_first_source_removed": {
+      "recount": {
+        "expected_independent": {
+          "first": null,
+          "first_payload_abs": null,
+          "second_payload_abs": null,
+          "second_payload": null,
+          "answer": null
+        },
+        "first_correct": true,
+        "first_occurrence_correct": true,
+        "second_occurrence_correct": true,
+        "second_payload_correct": true,
+        "answer_correct": true,
+        "answer": null,
+        "first_snapshot": null,
+        "second_snapshot": null,
+        "terminal": "Some(NoRead)",
+        "resume_reported": null
+      },
+      "observed": {
+        "answer": null,
+        "first": null,
+        "first_admitted": 0,
+        "first_key_seq_abs": null,
+        "first_read": false,
+        "first_scanned": 33,
+        "first_snapshot": null,
+        "first_source_abs": null,
+        "second_payload": null,
+        "second_query": null,
+        "second_read": false,
+        "second_snapshot": null,
+        "second_source_abs": null,
+        "terminal": "Some(NoRead)"
+      },
+      "request": {
+        "key": 424,
+        "primitives": [
+          489,
+          491
+        ]
+      },
+      "evidence": [
+        403,
+        433,
+        486,
+        403,
+        434,
+        487,
+        403,
+        438,
+        488,
+        403,
+        4088,
+        485,
+        403,
+        4089,
+        486,
+        403,
+        4090,
+        487,
+        403,
+        4091,
+        488,
+        403,
+        4092,
+        485,
+        403,
+        4093,
+        486,
+        403,
+        4094,
+        487,
+        403,
+        4095,
+        488
+      ]
+    },
+    "required_second_source_removed": {
+      "recount": {
+        "expected_independent": {
+          "first": 4095,
+          "first_payload_abs": 2,
+          "second_payload_abs": null,
+          "second_payload": null,
+          "answer": null
+        },
+        "first_correct": true,
+        "first_occurrence_correct": true,
+        "second_occurrence_correct": true,
+        "second_payload_correct": true,
+        "answer_correct": true,
+        "answer": null,
+        "first_snapshot": [
+          1,
+          2,
+          485
+        ],
+        "second_snapshot": null,
+        "terminal": "Some(NoRead)",
+        "resume_reported": null
+      },
+      "observed": {
+        "active_snapshot": [
+          1,
+          2,
+          485
+        ],
+        "answer": null,
+        "emitted": [],
+        "final_state": 3,
+        "first": 4095,
+        "first_admitted": 1,
+        "first_key_seq_abs": [
+          1,
+          1
+        ],
+        "first_read": true,
+        "first_scanned": 33,
+        "first_snapshot": [
+          1,
+          2,
+          485
+        ],
+        "first_source_abs": 2,
+        "first_state": 3,
+        "phase": 1,
+        "second_admitted": 0,
+        "second_key_seq_abs": null,
+        "second_payload": null,
+        "second_query": 4095,
+        "second_read": false,
+        "second_scanned": 33,
+        "second_snapshot": null,
+        "second_source_abs": null,
+        "second_update_enabled": true,
+        "terminal": "Some(NoRead)"
+      },
+      "request": {
+        "key": 424,
+        "primitives": [
+          489,
+          491
+        ]
+      },
+      "evidence": [
+        403,
+        424,
+        485,
+        403,
+        433,
+        486,
+        403,
+        434,
+        487,
+        403,
+        438,
+        488,
+        403,
+        4088,
+        485,
+        403,
+        4089,
+        486,
+        403,
+        4090,
+        487,
+        403,
+        4091,
+        488,
+        403,
+        4092,
+        485,
+        403,
+        4093,
+        486,
+        403,
+        4094,
+        487
+      ]
+    },
+    "read_disabled": {
+      "recount": {
+        "expected_independent": {
+          "first": 4095,
+          "first_payload_abs": 2,
+          "second_payload_abs": 35,
+          "second_payload": 488,
+          "answer": 4089
+        },
+        "first_correct": false,
+        "first_occurrence_correct": false,
+        "second_occurrence_correct": false,
+        "second_payload_correct": false,
+        "answer_correct": false,
+        "answer": null,
+        "first_snapshot": null,
+        "second_snapshot": null,
+        "terminal": "Some(NoRead)",
+        "resume_reported": null
+      },
+      "observed": {
+        "answer": null,
+        "first": null,
+        "first_admitted": 0,
+        "first_key_seq_abs": null,
+        "first_read": false,
+        "first_scanned": 0,
+        "first_snapshot": null,
+        "first_source_abs": null,
+        "second_payload": null,
+        "second_query": null,
+        "second_read": false,
+        "second_snapshot": null,
+        "second_source_abs": null,
+        "terminal": "Some(NoRead)"
+      },
+      "request": {
+        "key": 424,
+        "primitives": [
+          489,
+          491
+        ]
+      },
+      "evidence": [
+        403,
+        424,
+        485,
+        403,
+        433,
+        486,
+        403,
+        434,
+        487,
+        403,
+        438,
+        488,
+        403,
+        4088,
+        485,
+        403,
+        4089,
+        486,
+        403,
+        4090,
+        487,
+        403,
+        4091,
+        488,
+        403,
+        4092,
+        485,
+        403,
+        4093,
+        486,
+        403,
+        4094,
+        487,
+        403,
+        4095,
+        488
+      ]
+    },
+    "second_read_disabled": {
+      "recount": {
+        "expected_independent": {
+          "first": 4095,
+          "first_payload_abs": 2,
+          "second_payload_abs": 35,
+          "second_payload": 488,
+          "answer": 4089
+        },
+        "first_correct": true,
+        "first_occurrence_correct": true,
+        "second_occurrence_correct": false,
+        "second_payload_correct": false,
+        "answer_correct": false,
+        "answer": null,
+        "first_snapshot": [
+          1,
+          2,
+          485
+        ],
+        "second_snapshot": null,
+        "terminal": "Some(NoRead)",
+        "resume_reported": null
+      },
+      "observed": {
+        "active_snapshot": [
+          1,
+          2,
+          485
+        ],
+        "answer": null,
+        "emitted": [],
+        "final_state": 3,
+        "first": 4095,
+        "first_admitted": 1,
+        "first_key_seq_abs": [
+          1,
+          1
+        ],
+        "first_read": true,
+        "first_scanned": 36,
+        "first_snapshot": [
+          1,
+          2,
+          485
+        ],
+        "first_source_abs": 2,
+        "first_state": 3,
+        "phase": 1,
+        "second_admitted": 0,
+        "second_key_seq_abs": null,
+        "second_payload": null,
+        "second_query": 4095,
+        "second_read": false,
+        "second_scanned": 0,
+        "second_snapshot": null,
+        "second_source_abs": null,
+        "second_update_enabled": true,
+        "terminal": "Some(NoRead)"
+      },
+      "request": {
+        "key": 424,
+        "primitives": [
+          489,
+          491
+        ]
+      },
+      "evidence": [
+        403,
+        424,
+        485,
+        403,
+        433,
+        486,
+        403,
+        434,
+        487,
+        403,
+        438,
+        488,
+        403,
+        4088,
+        485,
+        403,
+        4089,
+        486,
+        403,
+        4090,
+        487,
+        403,
+        4091,
+        488,
+        403,
+        4092,
+        485,
+        403,
+        4093,
+        486,
+        403,
+        4094,
+        487,
+        403,
+        4095,
+        488
+      ]
+    },
+    "first_computation_disabled": {
+      "recount": {
+        "expected_independent": {
+          "first": 4095,
+          "first_payload_abs": 2,
+          "second_payload_abs": 35,
+          "second_payload": 488,
+          "answer": 4089
+        },
+        "first_correct": true,
+        "first_occurrence_correct": true,
+        "second_occurrence_correct": true,
+        "second_payload_correct": true,
+        "answer_correct": true,
+        "answer": 4089,
+        "first_snapshot": [
+          1,
+          2,
+          485
+        ],
+        "second_snapshot": [
+          1,
+          35,
+          488
+        ],
+        "terminal": "Some(Exhausted)",
+        "resume_reported": null
+      },
+      "observed": {
+        "active_snapshot": [
+          1,
+          35,
+          488
+        ],
+        "answer": 4089,
+        "emitted": [
+          4089
+        ],
+        "final_state": 0,
+        "first": 4095,
+        "first_admitted": 1,
+        "first_key_seq_abs": [
+          1,
+          1
+        ],
+        "first_read": true,
+        "first_scanned": 36,
+        "first_snapshot": [
+          1,
+          2,
+          485
+        ],
+        "first_source_abs": 2,
+        "first_state": 3,
+        "phase": 1,
+        "second_admitted": 1,
+        "second_key_seq_abs": [
+          1,
+          34
+        ],
+        "second_payload": 488,
+        "second_query": 4095,
+        "second_read": true,
+        "second_scanned": 36,
+        "second_snapshot": [
+          1,
+          35,
+          488
+        ],
+        "second_source_abs": 35,
+        "second_update_enabled": true,
+        "terminal": "Some(Exhausted)"
+      },
+      "request": {
+        "key": 424,
+        "primitives": [
+          489,
+          491
+        ]
+      },
+      "evidence": [
+        403,
+        424,
+        485,
+        403,
+        433,
+        486,
+        403,
+        434,
+        487,
+        403,
+        438,
+        488,
+        403,
+        4088,
+        485,
+        403,
+        4089,
+        486,
+        403,
+        4090,
+        487,
+        403,
+        4091,
+        488,
+        403,
+        4092,
+        485,
+        403,
+        4093,
+        486,
+        403,
+        4094,
+        487,
+        403,
+        4095,
+        488
+      ]
+    },
+    "second_payload_update_disabled": {
+      "recount": {
+        "expected_independent": {
+          "first": 4095,
+          "first_payload_abs": 2,
+          "second_payload_abs": 35,
+          "second_payload": 488,
+          "answer": 4089
+        },
+        "first_correct": true,
+        "first_occurrence_correct": true,
+        "second_occurrence_correct": true,
+        "second_payload_correct": true,
+        "answer_correct": false,
+        "answer": 4088,
+        "first_snapshot": [
+          1,
+          2,
+          485
+        ],
+        "second_snapshot": [
+          1,
+          35,
+          488
+        ],
+        "terminal": "Some(Exhausted)",
+        "resume_reported": null
+      },
+      "observed": {
+        "active_snapshot": [
+          1,
+          2,
+          485
+        ],
+        "answer": 4088,
+        "emitted": [
+          4088
+        ],
+        "final_state": 1,
+        "first": 4095,
+        "first_admitted": 1,
+        "first_key_seq_abs": [
+          1,
+          1
+        ],
+        "first_read": true,
+        "first_scanned": 36,
+        "first_snapshot": [
+          1,
+          2,
+          485
+        ],
+        "first_source_abs": 2,
+        "first_state": 3,
+        "phase": 2,
+        "second_admitted": 1,
+        "second_key_seq_abs": [
+          1,
+          34
+        ],
+        "second_payload": 488,
+        "second_query": 4095,
+        "second_read": true,
+        "second_scanned": 36,
+        "second_snapshot": [
+          1,
+          35,
+          488
+        ],
+        "second_source_abs": 35,
+        "second_update_enabled": false,
+        "terminal": "Some(Exhausted)"
+      },
+      "request": {
+        "key": 424,
+        "primitives": [
+          489,
+          491
+        ]
+      },
+      "evidence": [
+        403,
+        424,
+        485,
+        403,
+        433,
+        486,
+        403,
+        434,
+        487,
+        403,
+        438,
+        488,
+        403,
+        4088,
+        485,
+        403,
+        4089,
+        486,
+        403,
+        4090,
+        487,
+        403,
+        4091,
+        488,
+        403,
+        4092,
+        485,
+        403,
+        4093,
+        486,
+        403,
+        4094,
+        487,
+        403,
+        4095,
+        488
+      ]
+    }
+  },
+  "control_limit": "The first primitive is the observed identity action. Disabling its update is an identity negative control and can preserve all outputs; this fixture does not establish necessity of a nonidentity first computation. Other controls retain supplied two-hop schedule.",
+  "resume_scope": {
+    "saved_frames": 8,
+    "first_compute_before_second_read": 4,
+    "second_compute_before_emit": 4,
+    "actual_resume_equality_scope": "Source confirms checkpoint disk reload then continuation helper with no first source/key/primitive argument; saved bytes independently match uninterrupted first/final states. Full resumed continuation equality is asserted by runner; separate resumed event trace not retained.",
+    "snapshot_semantics": "Copied content snapshot acquired from exact live owning-ring occurrence; content intentionally survives later origin eviction. Origin liveness is separate diagnostic, not required after copying. Ring-local references are not globally durable identities."
+  },
+  "source_receipt": {
+    "executable_sha256": "17236088a3d413e3f7f094aac0456f63d2fbee7921eaa5ff5bbbcbb071f47904",
+    "source_checkout_observed_before_fit": {
+      "caller_claimed_git_dirty": null,
+      "caller_claimed_git_rev": null,
+      "observed_dirty": true,
+      "observed_head": "17d5072c651a0574ff441309b05611fd399cbbec",
+      "path": "/Users/casey.allard/.codex/worktrees/takeover-research-reconciliation/uor-r4",
+      "scope": "source checkout observed before fitting; binary-to-source build binding is not established by this observation"
+    },
+    "source_files": [
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/learner/relational.rs",
+        "sha256": "fbbe4a039f0482b1d490e489f8b3ae558eca666b7790b58454480d5f40669b33"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs",
+        "sha256": "4815c57fb4d4c9d9b82d3454dce5ee767ce9ca9fd318b79c60cb521d8e8e8e98"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/learner/result_decoder.rs",
+        "sha256": "d9e5d4f64fd510f7c13c0a15e99a6e526431f1b045a0bcd3c8d735cfabb4c98c"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/learner/shared_transition.rs",
+        "sha256": "1d514e6a033cf45bd0a7f9ee80d79c3b5d16b897ca3a2518d31c6e0f83b787ca"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/learner/grounded_session.rs",
+        "sha256": "cd0cb162b57c51b915fe5f4ed7b7967a6325f02e7d892e3ed23d0da9d0141f2f"
+      },
+      {
+        "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+        "sha256": "eaf0981019b778d0fc4b899bad1287c77df5dc5e47ab7264fcfe18c695f9be9e"
+      }
+    ]
+  },
+  "resource_scope": {
+    "model_elapsed_s": 19.910023833,
+    "auditor_new_model_runs": 0,
+    "energy": "UNAVAILABLE",
+    "debug_performance_not_serving_benchmark": true
+  },
+  "limits": [
+    "Exposed authored circuit, supplied record layout and two-hop program; no independent heldout session population.",
+    "All model artifacts now retained and source confirms actual loaded objects used; current data remain same original exposed panels.",
+    "Checkpoint wrapper binds model/group/tokenizer and phase; no learned scheduler, semantic parser, general reasoning, ordinary prose or coding qualification.",
+    "Component137 bytes is not full serving path, and1668-byte JSON table is not encoding-normalized comparator.",
+    "No whole-path energy or optimized useful-token latency measurement."
+  ],
+  "script_sha256": "bc16b0338fb948e2d5f8b493b47148c438de7dff342b10bdf3987f42a0cb57dd"
+}

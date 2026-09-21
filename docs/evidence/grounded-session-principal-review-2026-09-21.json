@@ -1,0 +1,1131 @@
+{
+  "schema": "uor-r4.pr1340-independent-evidence-audit/1",
+  "scope": "Read-only saved event and artifact audit with exact integer Q8 equality checks on recorded pre/post states. No fitting, model inference, executable invocation, build or sealed-root mutation.",
+  "submitted_head": "17d5072c651a0574ff441309b05611fd399cbbec",
+  "roots": {
+    "grounded-session-1": {
+      "listed_files": 4,
+      "missing": [],
+      "unlisted": [],
+      "seal_errors": [],
+      "source_receipt": {
+        "executable_sha256": "638eb8129a1a995d37291590e9cc05c159608ff0d9cf8dcc79b0bbca275da289",
+        "git_dirty": "false",
+        "git_rev": "85df17394d3326cb30deae1d3b1ac5b895464ced",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/relational.rs",
+            "sha256": "fbbe4a039f0482b1d490e489f8b3ae558eca666b7790b58454480d5f40669b33"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs",
+            "sha256": "4815c57fb4d4c9d9b82d3454dce5ee767ce9ca9fd318b79c60cb521d8e8e8e98"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/result_decoder.rs",
+            "sha256": "d9e5d4f64fd510f7c13c0a15e99a6e526431f1b045a0bcd3c8d735cfabb4c98c"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/shared_transition.rs",
+            "sha256": "1d514e6a033cf45bd0a7f9ee80d79c3b5d16b897ca3a2518d31c6e0f83b787ca"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/grounded_session.rs",
+            "sha256": "88a5b25eb5d7e6a24d7a0610c0adaec6c9ed3142fe64077fa88762d6eec3668a"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "7f09a2ca06696a1b0d54e23910db0ff5592a96161b4f0011c4cdef568e6bb4d8"
+          }
+        ]
+      },
+      "source_hash_matches_submitted": {
+        "crates/uor-r4-core/src/native_geometric/learner/relational.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/result_decoder.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/shared_transition.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/grounded_session.rs": false,
+        "crates/uor-r4-core/src/bin/competitive-reader.rs": false
+      },
+      "result_sha256": "f0867d26d0d87b70fb7198d3d0f282cea5c15f1993591216b4bd1d496f0440c2",
+      "elapsed_s": 2.925534167,
+      "artifact_bytes": {
+        "grounded_factorization.rlgf": 137,
+        "finite_transition.json": 1668
+      },
+      "reported_panel1": [
+        {
+          "arm": "grounded_factorization",
+          "artifact_bytes": 102,
+          "complete": 288,
+          "items": 288,
+          "split": "dev",
+          "stopped_correctly": 288,
+          "token_hits": 672,
+          "token_total": 672
+        },
+        {
+          "arm": "finite_transition_control",
+          "artifact_bytes": 1668,
+          "complete": 288,
+          "items": 288,
+          "split": "dev",
+          "stopped_correctly": 288,
+          "token_hits": 672,
+          "token_total": 672
+        },
+        {
+          "arm": "fitted_shared_recurrence",
+          "artifact_bytes": 370,
+          "complete": 248,
+          "items": 288,
+          "split": "dev",
+          "stopped_correctly": 276,
+          "token_hits": 632,
+          "token_total": 672
+        },
+        {
+          "arm": "grounded_factorization",
+          "artifact_bytes": 102,
+          "complete": 124,
+          "items": 128,
+          "split": "held_out_length4",
+          "stopped_correctly": 124,
+          "token_hits": 496,
+          "token_total": 512
+        },
+        {
+          "arm": "finite_transition_control",
+          "artifact_bytes": 1668,
+          "complete": 124,
+          "items": 128,
+          "split": "held_out_length4",
+          "stopped_correctly": 124,
+          "token_hits": 496,
+          "token_total": 512
+        },
+        {
+          "arm": "fitted_shared_recurrence",
+          "artifact_bytes": 370,
+          "complete": 76,
+          "items": 128,
+          "split": "held_out_length4",
+          "stopped_correctly": 90,
+          "token_hits": 440,
+          "token_total": 512
+        },
+        {
+          "arm": "grounded_factorization",
+          "artifact_bytes": 102,
+          "complete": 64,
+          "items": 64,
+          "split": "held_out_reversal",
+          "stopped_correctly": 64,
+          "token_hits": 128,
+          "token_total": 128
+        },
+        {
+          "arm": "finite_transition_control",
+          "artifact_bytes": 1668,
+          "complete": 64,
+          "items": 64,
+          "split": "held_out_reversal",
+          "stopped_correctly": 64,
+          "token_hits": 128,
+          "token_total": 128
+        },
+        {
+          "arm": "fitted_shared_recurrence",
+          "artifact_bytes": 370,
+          "complete": 24,
+          "items": 64,
+          "split": "held_out_reversal",
+          "stopped_correctly": 60,
+          "token_hits": 79,
+          "token_total": 128
+        }
+      ],
+      "reported_chain_counts": {
+        "chains": null,
+        "first_correct": null,
+        "second_selection_correct": null,
+        "answer_correct": null,
+        "resumed_identical": null
+      },
+      "retained_bytes": 2300490
+    },
+    "grounded-session-2": {
+      "listed_files": 4,
+      "missing": [],
+      "unlisted": [],
+      "seal_errors": [],
+      "source_receipt": {
+        "executable_sha256": "b6267a3c8607b247644e820a905d2ab4a8c50b52f5dab4b6be2676578eeb1958",
+        "git_dirty": "false",
+        "git_rev": "85df17394d3326cb30deae1d3b1ac5b895464ced",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/relational.rs",
+            "sha256": "fbbe4a039f0482b1d490e489f8b3ae558eca666b7790b58454480d5f40669b33"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs",
+            "sha256": "4815c57fb4d4c9d9b82d3454dce5ee767ce9ca9fd318b79c60cb521d8e8e8e98"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/result_decoder.rs",
+            "sha256": "d9e5d4f64fd510f7c13c0a15e99a6e526431f1b045a0bcd3c8d735cfabb4c98c"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/shared_transition.rs",
+            "sha256": "1d514e6a033cf45bd0a7f9ee80d79c3b5d16b897ca3a2518d31c6e0f83b787ca"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/grounded_session.rs",
+            "sha256": "88a5b25eb5d7e6a24d7a0610c0adaec6c9ed3142fe64077fa88762d6eec3668a"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "92d1f9e18dca43e04e55c7fb4af9262a74808a0d40c90ff90504e54881dd7ef4"
+          }
+        ]
+      },
+      "source_hash_matches_submitted": {
+        "crates/uor-r4-core/src/native_geometric/learner/relational.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/result_decoder.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/shared_transition.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/grounded_session.rs": false,
+        "crates/uor-r4-core/src/bin/competitive-reader.rs": false
+      },
+      "result_sha256": "6af2a3f4fcb740b5876d8f991f1a412c2ec05528058a657b984340a92a763f99",
+      "elapsed_s": 2.873850375,
+      "artifact_bytes": {
+        "grounded_factorization.rlgf": 137,
+        "finite_transition.json": 1668
+      },
+      "reported_panel1": [
+        {
+          "arm": "grounded_factorization",
+          "artifact_bytes": 102,
+          "complete": 288,
+          "items": 288,
+          "split": "dev",
+          "stopped_correctly": 288,
+          "token_hits": 672,
+          "token_total": 672
+        },
+        {
+          "arm": "finite_transition_control",
+          "artifact_bytes": 1668,
+          "complete": 288,
+          "items": 288,
+          "split": "dev",
+          "stopped_correctly": 288,
+          "token_hits": 672,
+          "token_total": 672
+        },
+        {
+          "arm": "fitted_shared_recurrence",
+          "artifact_bytes": 370,
+          "complete": 248,
+          "items": 288,
+          "split": "dev",
+          "stopped_correctly": 276,
+          "token_hits": 632,
+          "token_total": 672
+        },
+        {
+          "arm": "grounded_factorization",
+          "artifact_bytes": 102,
+          "complete": 124,
+          "items": 128,
+          "split": "held_out_length4",
+          "stopped_correctly": 124,
+          "token_hits": 496,
+          "token_total": 512
+        },
+        {
+          "arm": "finite_transition_control",
+          "artifact_bytes": 1668,
+          "complete": 124,
+          "items": 128,
+          "split": "held_out_length4",
+          "stopped_correctly": 124,
+          "token_hits": 496,
+          "token_total": 512
+        },
+        {
+          "arm": "fitted_shared_recurrence",
+          "artifact_bytes": 370,
+          "complete": 76,
+          "items": 128,
+          "split": "held_out_length4",
+          "stopped_correctly": 90,
+          "token_hits": 440,
+          "token_total": 512
+        },
+        {
+          "arm": "grounded_factorization",
+          "artifact_bytes": 102,
+          "complete": 64,
+          "items": 64,
+          "split": "held_out_reversal",
+          "stopped_correctly": 64,
+          "token_hits": 128,
+          "token_total": 128
+        },
+        {
+          "arm": "finite_transition_control",
+          "artifact_bytes": 1668,
+          "complete": 64,
+          "items": 64,
+          "split": "held_out_reversal",
+          "stopped_correctly": 64,
+          "token_hits": 128,
+          "token_total": 128
+        },
+        {
+          "arm": "fitted_shared_recurrence",
+          "artifact_bytes": 370,
+          "complete": 24,
+          "items": 64,
+          "split": "held_out_reversal",
+          "stopped_correctly": 60,
+          "token_hits": 79,
+          "token_total": 128
+        }
+      ],
+      "reported_chain_counts": {
+        "chains": 4,
+        "first_correct": 1,
+        "second_selection_correct": 1,
+        "answer_correct": 1,
+        "resumed_identical": 4
+      },
+      "retained_bytes": 2305090
+    },
+    "grounded-session-3": {
+      "listed_files": 4,
+      "missing": [],
+      "unlisted": [],
+      "seal_errors": [],
+      "source_receipt": {
+        "executable_sha256": "f3579fb2b128fedb5ff5dd17ffdfede77c95f487169e71de57cc1b9638757242",
+        "git_dirty": "false",
+        "git_rev": "85df17394d3326cb30deae1d3b1ac5b895464ced",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/relational.rs",
+            "sha256": "fbbe4a039f0482b1d490e489f8b3ae558eca666b7790b58454480d5f40669b33"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs",
+            "sha256": "4815c57fb4d4c9d9b82d3454dce5ee767ce9ca9fd318b79c60cb521d8e8e8e98"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/result_decoder.rs",
+            "sha256": "d9e5d4f64fd510f7c13c0a15e99a6e526431f1b045a0bcd3c8d735cfabb4c98c"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/shared_transition.rs",
+            "sha256": "1d514e6a033cf45bd0a7f9ee80d79c3b5d16b897ca3a2518d31c6e0f83b787ca"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/grounded_session.rs",
+            "sha256": "88a5b25eb5d7e6a24d7a0610c0adaec6c9ed3142fe64077fa88762d6eec3668a"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "b68ebae36c84011282627ed92b95ba644e638df82dbc187f13d41868f0c37d56"
+          }
+        ]
+      },
+      "source_hash_matches_submitted": {
+        "crates/uor-r4-core/src/native_geometric/learner/relational.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/result_decoder.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/shared_transition.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/grounded_session.rs": false,
+        "crates/uor-r4-core/src/bin/competitive-reader.rs": false
+      },
+      "result_sha256": "80de27797aa2063b08ad1789ac9aae9b1c806d5a5846a2cb8384de9861ce9f73",
+      "elapsed_s": 2.88050175,
+      "artifact_bytes": {
+        "grounded_factorization.rlgf": 137,
+        "finite_transition.json": 1668
+      },
+      "reported_panel1": [
+        {
+          "arm": "grounded_factorization",
+          "artifact_bytes": 102,
+          "complete": 288,
+          "items": 288,
+          "split": "dev",
+          "stopped_correctly": 288,
+          "token_hits": 672,
+          "token_total": 672
+        },
+        {
+          "arm": "finite_transition_control",
+          "artifact_bytes": 1668,
+          "complete": 288,
+          "items": 288,
+          "split": "dev",
+          "stopped_correctly": 288,
+          "token_hits": 672,
+          "token_total": 672
+        },
+        {
+          "arm": "fitted_shared_recurrence",
+          "artifact_bytes": 370,
+          "complete": 248,
+          "items": 288,
+          "split": "dev",
+          "stopped_correctly": 276,
+          "token_hits": 632,
+          "token_total": 672
+        },
+        {
+          "arm": "grounded_factorization",
+          "artifact_bytes": 102,
+          "complete": 124,
+          "items": 128,
+          "split": "held_out_length4",
+          "stopped_correctly": 124,
+          "token_hits": 496,
+          "token_total": 512
+        },
+        {
+          "arm": "finite_transition_control",
+          "artifact_bytes": 1668,
+          "complete": 124,
+          "items": 128,
+          "split": "held_out_length4",
+          "stopped_correctly": 124,
+          "token_hits": 496,
+          "token_total": 512
+        },
+        {
+          "arm": "fitted_shared_recurrence",
+          "artifact_bytes": 370,
+          "complete": 76,
+          "items": 128,
+          "split": "held_out_length4",
+          "stopped_correctly": 90,
+          "token_hits": 440,
+          "token_total": 512
+        },
+        {
+          "arm": "grounded_factorization",
+          "artifact_bytes": 102,
+          "complete": 64,
+          "items": 64,
+          "split": "held_out_reversal",
+          "stopped_correctly": 64,
+          "token_hits": 128,
+          "token_total": 128
+        },
+        {
+          "arm": "finite_transition_control",
+          "artifact_bytes": 1668,
+          "complete": 64,
+          "items": 64,
+          "split": "held_out_reversal",
+          "stopped_correctly": 64,
+          "token_hits": 128,
+          "token_total": 128
+        },
+        {
+          "arm": "fitted_shared_recurrence",
+          "artifact_bytes": 370,
+          "complete": 24,
+          "items": 64,
+          "split": "held_out_reversal",
+          "stopped_correctly": 60,
+          "token_hits": 79,
+          "token_total": 128
+        }
+      ],
+      "reported_chain_counts": {
+        "chains": 4,
+        "first_correct": 4,
+        "second_selection_correct": 4,
+        "answer_correct": 4,
+        "resumed_identical": 4
+      },
+      "retained_bytes": 2305084
+    },
+    "grounded-session-4": {
+      "listed_files": 4,
+      "missing": [],
+      "unlisted": [],
+      "seal_errors": [],
+      "source_receipt": {
+        "executable_sha256": "6ccafb5769ad1ad773e286bc105a4035e792eea3e12b5db3ab0f36c0aa91aec7",
+        "git_dirty": "false",
+        "git_rev": "85df17394d3326cb30deae1d3b1ac5b895464ced",
+        "source_files": [
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/relational.rs",
+            "sha256": "fbbe4a039f0482b1d490e489f8b3ae558eca666b7790b58454480d5f40669b33"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs",
+            "sha256": "4815c57fb4d4c9d9b82d3454dce5ee767ce9ca9fd318b79c60cb521d8e8e8e98"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/result_decoder.rs",
+            "sha256": "d9e5d4f64fd510f7c13c0a15e99a6e526431f1b045a0bcd3c8d735cfabb4c98c"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/shared_transition.rs",
+            "sha256": "1d514e6a033cf45bd0a7f9ee80d79c3b5d16b897ca3a2518d31c6e0f83b787ca"
+          },
+          {
+            "path": "crates/uor-r4-core/src/native_geometric/learner/grounded_session.rs",
+            "sha256": "d7d6d5cde9b55f57207b4d663ad53bc067a00c9191ee281a29d7538dfa6c7ff8"
+          },
+          {
+            "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+            "sha256": "65f6f71212f801971c82da9f49d708d966f6b789fb046a7658402fd67206c106"
+          }
+        ]
+      },
+      "source_hash_matches_submitted": {
+        "crates/uor-r4-core/src/native_geometric/learner/relational.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/read_conditioned.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/result_decoder.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/shared_transition.rs": true,
+        "crates/uor-r4-core/src/native_geometric/learner/grounded_session.rs": true,
+        "crates/uor-r4-core/src/bin/competitive-reader.rs": true
+      },
+      "result_sha256": "71a8af52e52261683774bd200b381a36fe91b67f28e496bf238c537b1910ee23",
+      "elapsed_s": 2.869241292,
+      "artifact_bytes": {
+        "grounded_factorization.rlgf": 137,
+        "finite_transition.json": 1668
+      },
+      "reported_panel1": [
+        {
+          "arm": "grounded_factorization",
+          "artifact_bytes": 102,
+          "complete": 288,
+          "items": 288,
+          "split": "dev",
+          "stopped_correctly": 288,
+          "token_hits": 672,
+          "token_total": 672
+        },
+        {
+          "arm": "finite_transition_control",
+          "artifact_bytes": 1668,
+          "complete": 288,
+          "items": 288,
+          "split": "dev",
+          "stopped_correctly": 288,
+          "token_hits": 672,
+          "token_total": 672
+        },
+        {
+          "arm": "fitted_shared_recurrence",
+          "artifact_bytes": 370,
+          "complete": 248,
+          "items": 288,
+          "split": "dev",
+          "stopped_correctly": 276,
+          "token_hits": 632,
+          "token_total": 672
+        },
+        {
+          "arm": "grounded_factorization",
+          "artifact_bytes": 102,
+          "complete": 124,
+          "items": 128,
+          "split": "held_out_length4",
+          "stopped_correctly": 124,
+          "token_hits": 496,
+          "token_total": 512
+        },
+        {
+          "arm": "finite_transition_control",
+          "artifact_bytes": 1668,
+          "complete": 124,
+          "items": 128,
+          "split": "held_out_length4",
+          "stopped_correctly": 124,
+          "token_hits": 496,
+          "token_total": 512
+        },
+        {
+          "arm": "fitted_shared_recurrence",
+          "artifact_bytes": 370,
+          "complete": 76,
+          "items": 128,
+          "split": "held_out_length4",
+          "stopped_correctly": 90,
+          "token_hits": 440,
+          "token_total": 512
+        },
+        {
+          "arm": "grounded_factorization",
+          "artifact_bytes": 102,
+          "complete": 64,
+          "items": 64,
+          "split": "held_out_reversal",
+          "stopped_correctly": 64,
+          "token_hits": 128,
+          "token_total": 128
+        },
+        {
+          "arm": "finite_transition_control",
+          "artifact_bytes": 1668,
+          "complete": 64,
+          "items": 64,
+          "split": "held_out_reversal",
+          "stopped_correctly": 64,
+          "token_hits": 128,
+          "token_total": 128
+        },
+        {
+          "arm": "fitted_shared_recurrence",
+          "artifact_bytes": 370,
+          "complete": 24,
+          "items": 64,
+          "split": "held_out_reversal",
+          "stopped_correctly": 60,
+          "token_hits": 79,
+          "token_total": 128
+        }
+      ],
+      "reported_chain_counts": {
+        "chains": 4,
+        "first_correct": 4,
+        "second_selection_correct": 4,
+        "answer_correct": 4,
+        "resumed_identical": 4
+      },
+      "retained_bytes": 2305085
+    }
+  },
+  "counts": {
+    "grounded_factorization/dev": {
+      "items": 288,
+      "complete": 288,
+      "token_hits": 672,
+      "token_total": 672,
+      "stopped_correctly": 288,
+      "correct_sources": 288,
+      "correct_source_complete": 288,
+      "wrong_source_complete": 0,
+      "terminal_counts": {
+        "Stop": 288
+      },
+      "sequence_count": 72,
+      "sequences_all_values_complete": 72,
+      "complete_flags_match": true,
+      "actual_token_events_match": true,
+      "observed_instruction_span_matches": true,
+      "source_ref_matches_prefix": true
+    },
+    "finite_transition_control/dev": {
+      "items": 288,
+      "complete": 288,
+      "token_hits": 672,
+      "token_total": 672,
+      "stopped_correctly": 288,
+      "correct_sources": 288,
+      "correct_source_complete": 288,
+      "wrong_source_complete": 0,
+      "terminal_counts": {
+        "Stop": 288
+      },
+      "sequence_count": 72,
+      "sequences_all_values_complete": 72,
+      "complete_flags_match": true,
+      "actual_token_events_match": true,
+      "observed_instruction_span_matches": true,
+      "source_ref_matches_prefix": true
+    },
+    "fitted_shared_recurrence/dev": {
+      "items": 288,
+      "complete": 248,
+      "token_hits": 632,
+      "token_total": 672,
+      "stopped_correctly": 276,
+      "correct_sources": 288,
+      "correct_source_complete": 248,
+      "wrong_source_complete": 0,
+      "terminal_counts": {
+        "Stop": 276,
+        "NoGrounding": 12
+      },
+      "sequence_count": 72,
+      "sequences_all_values_complete": 43,
+      "complete_flags_match": true,
+      "actual_token_events_match": true,
+      "observed_instruction_span_matches": true,
+      "source_ref_matches_prefix": true
+    },
+    "grounded_factorization/held_out_length4": {
+      "items": 128,
+      "complete": 124,
+      "token_hits": 496,
+      "token_total": 512,
+      "stopped_correctly": 124,
+      "correct_sources": 124,
+      "correct_source_complete": 124,
+      "wrong_source_complete": 0,
+      "terminal_counts": {
+        "Stop": 124,
+        "UnknownValue": 4
+      },
+      "sequence_count": 32,
+      "sequences_all_values_complete": 31,
+      "complete_flags_match": true,
+      "actual_token_events_match": true,
+      "observed_instruction_span_matches": true,
+      "source_ref_matches_prefix": true
+    },
+    "finite_transition_control/held_out_length4": {
+      "items": 128,
+      "complete": 124,
+      "token_hits": 496,
+      "token_total": 512,
+      "stopped_correctly": 124,
+      "correct_sources": 124,
+      "correct_source_complete": 124,
+      "wrong_source_complete": 0,
+      "terminal_counts": {
+        "Stop": 124,
+        "UnknownValue": 4
+      },
+      "sequence_count": 32,
+      "sequences_all_values_complete": 31,
+      "complete_flags_match": true,
+      "actual_token_events_match": true,
+      "observed_instruction_span_matches": true,
+      "source_ref_matches_prefix": true
+    },
+    "fitted_shared_recurrence/held_out_length4": {
+      "items": 128,
+      "complete": 76,
+      "token_hits": 440,
+      "token_total": 512,
+      "stopped_correctly": 90,
+      "correct_sources": 124,
+      "correct_source_complete": 76,
+      "wrong_source_complete": 0,
+      "terminal_counts": {
+        "Stop": 90,
+        "NoGrounding": 34,
+        "UnknownValue": 4
+      },
+      "sequence_count": 32,
+      "sequences_all_values_complete": 8,
+      "complete_flags_match": true,
+      "actual_token_events_match": true,
+      "observed_instruction_span_matches": true,
+      "source_ref_matches_prefix": true
+    },
+    "grounded_factorization/held_out_reversal": {
+      "items": 64,
+      "complete": 64,
+      "token_hits": 128,
+      "token_total": 128,
+      "stopped_correctly": 64,
+      "correct_sources": 64,
+      "correct_source_complete": 64,
+      "wrong_source_complete": 0,
+      "terminal_counts": {
+        "Stop": 64
+      },
+      "sequence_count": 16,
+      "sequences_all_values_complete": 16,
+      "complete_flags_match": true,
+      "actual_token_events_match": true,
+      "observed_instruction_span_matches": true,
+      "source_ref_matches_prefix": true
+    },
+    "finite_transition_control/held_out_reversal": {
+      "items": 64,
+      "complete": 64,
+      "token_hits": 128,
+      "token_total": 128,
+      "stopped_correctly": 64,
+      "correct_sources": 64,
+      "correct_source_complete": 64,
+      "wrong_source_complete": 0,
+      "terminal_counts": {
+        "Stop": 64
+      },
+      "sequence_count": 16,
+      "sequences_all_values_complete": 16,
+      "complete_flags_match": true,
+      "actual_token_events_match": true,
+      "observed_instruction_span_matches": true,
+      "source_ref_matches_prefix": true
+    },
+    "fitted_shared_recurrence/held_out_reversal": {
+      "items": 64,
+      "complete": 24,
+      "token_hits": 79,
+      "token_total": 128,
+      "stopped_correctly": 60,
+      "correct_sources": 64,
+      "correct_source_complete": 24,
+      "wrong_source_complete": 0,
+      "terminal_counts": {
+        "Stop": 60,
+        "NoGrounding": 4
+      },
+      "sequence_count": 16,
+      "sequences_all_values_complete": 0,
+      "complete_flags_match": true,
+      "actual_token_events_match": true,
+      "observed_instruction_span_matches": true,
+      "source_ref_matches_prefix": true
+    }
+  },
+  "report_checks": {
+    "grounded_factorization/dev": {
+      "items": true,
+      "complete": true,
+      "token_hits": true,
+      "token_total": true,
+      "stopped_correctly": true
+    },
+    "finite_transition_control/dev": {
+      "items": true,
+      "complete": true,
+      "token_hits": true,
+      "token_total": true,
+      "stopped_correctly": true
+    },
+    "fitted_shared_recurrence/dev": {
+      "items": true,
+      "complete": true,
+      "token_hits": true,
+      "token_total": true,
+      "stopped_correctly": true
+    },
+    "grounded_factorization/held_out_length4": {
+      "items": true,
+      "complete": true,
+      "token_hits": true,
+      "token_total": true,
+      "stopped_correctly": true
+    },
+    "finite_transition_control/held_out_length4": {
+      "items": true,
+      "complete": true,
+      "token_hits": true,
+      "token_total": true,
+      "stopped_correctly": true
+    },
+    "fitted_shared_recurrence/held_out_length4": {
+      "items": true,
+      "complete": true,
+      "token_hits": true,
+      "token_total": true,
+      "stopped_correctly": true
+    },
+    "grounded_factorization/held_out_reversal": {
+      "items": true,
+      "complete": true,
+      "token_hits": true,
+      "token_total": true,
+      "stopped_correctly": true
+    },
+    "finite_transition_control/held_out_reversal": {
+      "items": true,
+      "complete": true,
+      "token_hits": true,
+      "token_total": true,
+      "stopped_correctly": true
+    },
+    "fitted_shared_recurrence/held_out_reversal": {
+      "items": true,
+      "complete": true,
+      "token_hits": true,
+      "token_total": true,
+      "stopped_correctly": true
+    }
+  },
+  "primary_provenance": {
+    "executable": "/Users/casey.allard/uor-r4/target/release/competitive-reader",
+    "sha256": "6ccafb5769ad1ad773e286bc105a4035e792eea3e12b5db3ab0f36c0aa91aec7",
+    "matches_recorded": true,
+    "all_source_hashes_match": true,
+    "note": "Recorded clean85df1739 Git stamp is the parent, not the new source. Individual source-file hashes are the usable submitted-source identity."
+  },
+  "artifacts": {
+    "grounded_factorization": {
+      "version": 1,
+      "cyclic": false,
+      "reference_outcome": 4088,
+      "action_domain": [
+        489,
+        491,
+        500,
+        507,
+        513,
+        515,
+        516,
+        517
+      ],
+      "outcome_domain": [
+        4088,
+        4089,
+        4090,
+        4091,
+        4092,
+        4093,
+        4094,
+        4095
+      ],
+      "payload_domain": [
+        485,
+        486,
+        487,
+        488
+      ],
+      "action_codes": [
+        1,
+        2,
+        4,
+        0,
+        6,
+        5,
+        3,
+        7
+      ],
+      "outcome_states": [
+        1,
+        0,
+        5,
+        4,
+        6,
+        7,
+        2,
+        3
+      ],
+      "payload_states": [
+        3,
+        6,
+        0,
+        2
+      ],
+      "serialized_bytes": 137,
+      "sha256": "f86d29c55923dbc78dd8f4845a36dc506d6e251febbf1fff2c0b4dbff31861ec",
+      "reported_parameter_bytes": 102,
+      "actual_plain_parameter_token_and_code_bytes": 100
+    },
+    "finite_transition": {
+      "bytes": 1668,
+      "sha256": "199344da506a795c57eadde1d0202555726b45029432ea43e0211eca9a076393",
+      "initial_entries": 32,
+      "recurrent_entries": 64
+    },
+    "fitted_shared_recurrence": {
+      "retained": false,
+      "reported_bytes": 370
+    },
+    "session_snapshot": {
+      "retained": false
+    }
+  },
+  "all_reported_counts_match": true,
+  "factorization_audit": {
+    "all_codes_in_canonical_q8": true,
+    "action_codes_injective": true,
+    "outcome_states_injective": true,
+    "gauge_reference_is_identity": true,
+    "recorded_emit_steps": 1296,
+    "all_recorded_products_match": true,
+    "all_recorded_labels_match_artifact": true,
+    "dev_steps": 672,
+    "dev_steps_correct": 672,
+    "unique_initial_pairs": 32,
+    "unique_recurrent_pairs": 64,
+    "initial_observation_conflicts": 0,
+    "recurrent_observation_conflicts": 0,
+    "all_unique_initial_products_match": true,
+    "all_unique_recurrent_products_match": true,
+    "finite_initial_exactly_dev": true,
+    "finite_recurrent_exactly_dev": true,
+    "initial_agreement_note": "32 checks consist of4 first assignments and28 agreement checks; reported28 agreements are not4 failures.",
+    "method_scope": "Observed complete regular order8 action explicitly factored into a supplied witnessed Q8 subgroup; no hidden fixture codes read by fitter. This is exact structured compression of supplied transition supervision, not general statistical language learning."
+  },
+  "loaded_object_audit": {
+    "gf_exported_reloaded_equal": true,
+    "gf_loaded_used_for_panel1": false,
+    "gf_loaded_used_for_chain": false,
+    "finite_exported_reloaded": true,
+    "finite_loaded_used_for_panel1": false,
+    "fitted_exported_reloaded": false,
+    "source_detail": "Scoring closures use gf and finite; gf_loaded/finite_loaded are unused; fitted serves in memory and is not retained. GF equality check gives parameter-parity support but not actual loaded-candidate serving."
+  },
+  "comparison_settings": {
+    "current_fitted_recurrence": {
+      "fit_items": 288,
+      "outer_probe_items": 0,
+      "passes": 3,
+      "restarts": 2,
+      "seed": 3237216257,
+      "dev_complete": 248
+    },
+    "previous_pr1339_recurrence": {
+      "fit_items": 144,
+      "outer_probe_items": 144,
+      "passes": 3,
+      "restarts": 6,
+      "seed": 3237150721,
+      "dev_complete": 186
+    },
+    "interpretation": "248/288 is a newly refitted comparator with different calibration/probe/restart/seed settings, not a replay of the previous artifact. Both use the same total supervised development population."
+  },
+  "chain_recount": {
+    "chains": 4,
+    "first_correct": 4,
+    "first_exact_occurrences_correct": 4,
+    "second_exact_occurrences_correct": 4,
+    "answers_correct": 4,
+    "rows": [
+      {
+        "key1": 424,
+        "first_matches_declared_dev_transition": true,
+        "second_query_uses_first": true,
+        "second_payload_correct": true,
+        "second_exact_payload_occurrence_correct": true,
+        "first_exact_payload_occurrence_correct": true,
+        "answer_correct": true,
+        "expected_fields_match_independent_dev_table": true,
+        "emitted_answer_matches": true,
+        "terminal": "Some(Stop)",
+        "reported_first_lease_is_actual_second": true,
+        "resume_identical_reported": true
+      },
+      {
+        "key1": 433,
+        "first_matches_declared_dev_transition": true,
+        "second_query_uses_first": true,
+        "second_payload_correct": true,
+        "second_exact_payload_occurrence_correct": true,
+        "first_exact_payload_occurrence_correct": true,
+        "answer_correct": true,
+        "expected_fields_match_independent_dev_table": true,
+        "emitted_answer_matches": true,
+        "terminal": "Some(Stop)",
+        "reported_first_lease_is_actual_second": true,
+        "resume_identical_reported": true
+      },
+      {
+        "key1": 434,
+        "first_matches_declared_dev_transition": true,
+        "second_query_uses_first": true,
+        "second_payload_correct": true,
+        "second_exact_payload_occurrence_correct": true,
+        "first_exact_payload_occurrence_correct": true,
+        "answer_correct": true,
+        "expected_fields_match_independent_dev_table": true,
+        "emitted_answer_matches": true,
+        "terminal": "Some(Stop)",
+        "reported_first_lease_is_actual_second": true,
+        "resume_identical_reported": true
+      },
+      {
+        "key1": 438,
+        "first_matches_declared_dev_transition": true,
+        "second_query_uses_first": true,
+        "second_payload_correct": true,
+        "second_exact_payload_occurrence_correct": true,
+        "first_exact_payload_occurrence_correct": true,
+        "answer_correct": true,
+        "expected_fields_match_independent_dev_table": true,
+        "emitted_answer_matches": true,
+        "terminal": "Some(Stop)",
+        "reported_first_lease_is_actual_second": true,
+        "resume_identical_reported": true
+      }
+    ],
+    "label_and_source_payload_domains_disjoint": true,
+    "answer_tokens_present_as_other_evidence_keys": true,
+    "scope": "All4 chains use one authored36-token evidence bank, fixed2-step program, supplied query role/key, and outcomes already grounded in development. No independent heldout dependency population."
+  },
+  "controls_audit": {
+    "changed_first_source_actual_changed_payload_positions": [
+      2,
+      14,
+      26
+    ],
+    "changed_first_source_also_changes_new_second_selected_record": true,
+    "new_second_query_is_new_first": true,
+    "second_occurrence_changed": true,
+    "reported_answer_changed": true,
+    "unchanged_second_record_value_would_be": 485,
+    "declared_dev_label_for_unchanged_second_value": 4088,
+    "reported_alt_second_value": 486,
+    "reported_alt_answer": 4091,
+    "interpretation": "Final answer intervention confounded: abs2,14,26 changed, including selected second record26. First/query/occurrence changes are real; isolated first-source causal answer test NOT_RUN.",
+    "source_removed": {
+      "answer": null,
+      "read": false,
+      "terminal": "Some(NoRead)"
+    },
+    "read_disabled": {
+      "read": false,
+      "terminal": "Some(NoRead)"
+    },
+    "distractor_preservation_reported": {
+      "answer_preserved": true,
+      "first_preserved": true,
+      "second_preserved": true
+    },
+    "distractor_full_trace_retained": false,
+    "resume_snapshot_bytes_retained": false,
+    "resume_scope": "Runner roundtrips immediately after each read and after final stop; saved result retains equality booleans but not serialized snapshots or separate resumed trajectories. Interleaving is unit-test scope only.",
+    "lease_scope": "lease_is_live helper exists but is never invoked by actual chain read/apply/emit/resume; first_lease field is overwritten second lease. No observed stale-lease enforcement, same-value overwrite, reset, alternate-model restoration or interleaved ring intervention in saved run."
+  },
+  "serving_footprint_scope": {
+    "retained_factorization_bytes": 137,
+    "retained_finite_bytes": 1668,
+    "serialized_ratio_finite_to_factorization": 12.175182481751825,
+    "shared_loaded_input_artifacts": {
+      "E": {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/head-projection-3/corrected/empirical.cpl2",
+        "bytes": 454788,
+        "sha256": "565cf98a01273af38425687adb522704b09a89bd7ab976b58b20bfbdaccfa0bf"
+      },
+      "S": {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/s-attribution-3/corrected/separable_older_query_read.cpx3",
+        "bytes": 53555,
+        "sha256": "ed9affd638ee93670559c626fd6dab91dc2a3c7faa5db66ec9e5a486bcdbdfad"
+      },
+      "selector": {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/relational-learning-4/artifacts/relational_ctx.rlr2",
+        "bytes": 4408,
+        "sha256": "d4ab183d3975be563139ba42f3a5fb9ec61fa1691603bfcc3d603787d7ab5b55"
+      }
+    },
+    "group_product_table_payload_bytes": 15360,
+    "group_inverse_table_payload_bytes": 120,
+    "whole_path_memory_or_energy_measured": false,
+    "note": "The component compresses the JSON control; total serving includes shared E/S/selector artifacts, geometric tables, local logits, ring, session allocations and tokenizer.102 is not serialized or complete-path bytes; binary-vs-JSON serialization is an unequal encoding comparison."
+  },
+  "resources": {
+    "four_saved_run_elapsed_s": 11.549127584,
+    "primary_elapsed_s": 2.869241292,
+    "retained_report_bytes": 9215749,
+    "model_runs_by_auditor": 0,
+    "energy": "UNAVAILABLE"
+  },
+  "limits": [
+    "Exposed authored fixture, complete transition supervision, supplied primitive/record grammar, exact-key dependent retrieval; no learned semantic control or general language.",
+    "New gs_serve_with reads detached item.primitives rather than st_instructions prefix slice; currently identical fixture copies, but the previously repaired causal boundary regressed.",
+    "No retained fitted comparator or session snapshot; loaded model variables unused downstream.",
+    "Source lease helper is not enforced at transitions; serialized session lacks model identity and permits unbounded/out-of-domain state without validation.",
+    "No complete pipeline performance/energy or equal-byte comparator measurement."
+  ],
+  "script_sha256": "80d59bf20fac2c0b4085c6af5c1ff3c1b510a5c915499d597973da09f1302f48"
+}

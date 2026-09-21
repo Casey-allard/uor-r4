@@ -1,0 +1,368 @@
+{
+  "schema": "uor-r4.grounded-session/1",
+  "at": "2026-09-21",
+  "scope": "bounded authored fixtures; a finite circuit result, not language capability; energy UNAVAILABLE; whole-path D0-b not claimed",
+  "source": {
+    "reviewed_head": "85df17394d3326cb30deae1d3b1ac5b895464ced",
+    "pr": 1339,
+    "verified_merged_head_equal": true,
+    "worktree": ".worktrees/grounded-dependent-session",
+    "owner_checkout_untouched": true
+  },
+  "part_a_factorization": {
+    "method": "the declared development labels give one permutation of the typed outcomes per observed primitive; the permutations are bijective, distinct and closed; an exhaustive search finds an isomorphism into a witnessed quaternion subgroup of the served table; outcome coordinates come from a reference-state orbit and initial coordinates from inverse(A[p])*Z[first outcome], checked across every primitive; the reference outcome fixes the gauge",
+    "report": {
+      "gauge_fixed": true,
+      "group_order": 8,
+      "identity_primitive": 489,
+      "initial_agreements": 28,
+      "initial_checks": 32,
+      "isomorphic_candidates_checked": 975,
+      "noncommuting_witness": [
+        491,
+        500
+      ],
+      "order_spectrum": [
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          4,
+          6
+        ]
+      ],
+      "outcomes": 8,
+      "primitives": 8,
+      "transitions_checked": 672,
+      "transitions_consistent": 672
+    },
+    "artifact_bytes": 102,
+    "reads_hidden_codes": false
+  },
+  "panel1_program_completion": [
+    {
+      "arm": "grounded_factorization",
+      "artifact_bytes": 102,
+      "complete": 288,
+      "items": 288,
+      "split": "dev",
+      "stopped_correctly": 288,
+      "token_hits": 672,
+      "token_total": 672
+    },
+    {
+      "arm": "finite_transition_control",
+      "artifact_bytes": 1668,
+      "complete": 288,
+      "items": 288,
+      "split": "dev",
+      "stopped_correctly": 288,
+      "token_hits": 672,
+      "token_total": 672
+    },
+    {
+      "arm": "fitted_shared_recurrence",
+      "artifact_bytes": 370,
+      "complete": 248,
+      "items": 288,
+      "split": "dev",
+      "stopped_correctly": 276,
+      "token_hits": 632,
+      "token_total": 672
+    },
+    {
+      "arm": "grounded_factorization",
+      "artifact_bytes": 102,
+      "complete": 124,
+      "items": 128,
+      "split": "held_out_length4",
+      "stopped_correctly": 124,
+      "token_hits": 496,
+      "token_total": 512
+    },
+    {
+      "arm": "finite_transition_control",
+      "artifact_bytes": 1668,
+      "complete": 124,
+      "items": 128,
+      "split": "held_out_length4",
+      "stopped_correctly": 124,
+      "token_hits": 496,
+      "token_total": 512
+    },
+    {
+      "arm": "fitted_shared_recurrence",
+      "artifact_bytes": 370,
+      "complete": 76,
+      "items": 128,
+      "split": "held_out_length4",
+      "stopped_correctly": 90,
+      "token_hits": 440,
+      "token_total": 512
+    },
+    {
+      "arm": "grounded_factorization",
+      "artifact_bytes": 102,
+      "complete": 64,
+      "items": 64,
+      "split": "held_out_reversal",
+      "stopped_correctly": 64,
+      "token_hits": 128,
+      "token_total": 128
+    },
+    {
+      "arm": "finite_transition_control",
+      "artifact_bytes": 1668,
+      "complete": 64,
+      "items": 64,
+      "split": "held_out_reversal",
+      "stopped_correctly": 64,
+      "token_hits": 128,
+      "token_total": 128
+    },
+    {
+      "arm": "fitted_shared_recurrence",
+      "artifact_bytes": 370,
+      "complete": 24,
+      "items": 64,
+      "split": "held_out_reversal",
+      "stopped_correctly": 60,
+      "token_hits": 79,
+      "token_total": 128
+    }
+  ],
+  "panel2_dependent_chain": {
+    "records": {
+      "evidence_tokens": 36,
+      "hop1": 4,
+      "hop2": 8
+    },
+    "first_correct": 4,
+    "second_selection_correct": 4,
+    "answer_correct": 4,
+    "resumed_identical": 4,
+    "chains": 4,
+    "rows": [
+      {
+        "expected_answer": 4089,
+        "expected_first": 4095,
+        "expected_second_value": 488,
+        "key1": 424,
+        "observed": {
+          "answer": 4089,
+          "emitted": [
+            4089
+          ],
+          "first": 4095,
+          "first_lease": [
+            1,
+            35,
+            488
+          ],
+          "first_read": true,
+          "first_source_abs": 2,
+          "phase": 1,
+          "second_payload": 488,
+          "second_query": 4095,
+          "second_read": true,
+          "second_source_abs": 35,
+          "terminal": "Some(Stop)"
+        },
+        "resumed_identical": true
+      },
+      {
+        "expected_answer": 4088,
+        "expected_first": 4092,
+        "expected_second_value": 485,
+        "key1": 433,
+        "observed": {
+          "answer": 4088,
+          "emitted": [
+            4088
+          ],
+          "first": 4092,
+          "first_lease": [
+            1,
+            26,
+            485
+          ],
+          "first_read": true,
+          "first_source_abs": 5,
+          "phase": 1,
+          "second_payload": 485,
+          "second_query": 4092,
+          "second_read": true,
+          "second_source_abs": 26,
+          "terminal": "Some(Stop)"
+        },
+        "resumed_identical": true
+      },
+      {
+        "expected_answer": 4091,
+        "expected_first": 4089,
+        "expected_second_value": 486,
+        "key1": 434,
+        "observed": {
+          "answer": 4091,
+          "emitted": [
+            4091
+          ],
+          "first": 4089,
+          "first_lease": [
+            1,
+            17,
+            486
+          ],
+          "first_read": true,
+          "first_source_abs": 8,
+          "phase": 1,
+          "second_payload": 486,
+          "second_query": 4089,
+          "second_read": true,
+          "second_source_abs": 17,
+          "terminal": "Some(Stop)"
+        },
+        "resumed_identical": true
+      },
+      {
+        "expected_answer": 4095,
+        "expected_first": 4094,
+        "expected_second_value": 487,
+        "key1": 438,
+        "observed": {
+          "answer": 4095,
+          "emitted": [
+            4095
+          ],
+          "first": 4094,
+          "first_lease": [
+            1,
+            32,
+            487
+          ],
+          "first_read": true,
+          "first_source_abs": 11,
+          "phase": 1,
+          "second_payload": 487,
+          "second_query": 4094,
+          "second_read": true,
+          "second_source_abs": 32,
+          "terminal": "Some(Stop)"
+        },
+        "resumed_identical": true
+      }
+    ],
+    "controls": {
+      "changed_first_source": {
+        "answer_changed": true,
+        "first_changed": true,
+        "observed_a": {
+          "answer": 4089,
+          "emitted": [
+            4089
+          ],
+          "first": 4095,
+          "first_lease": [
+            1,
+            35,
+            488
+          ],
+          "first_read": true,
+          "first_source_abs": 2,
+          "phase": 1,
+          "second_payload": 488,
+          "second_query": 4095,
+          "second_read": true,
+          "second_source_abs": 35,
+          "terminal": "Some(Stop)"
+        },
+        "observed_b": {
+          "answer": 4091,
+          "emitted": [
+            4091
+          ],
+          "first": 4092,
+          "first_lease": [
+            1,
+            26,
+            486
+          ],
+          "first_read": true,
+          "first_source_abs": 2,
+          "phase": 1,
+          "second_payload": 486,
+          "second_query": 4092,
+          "second_read": true,
+          "second_source_abs": 26,
+          "terminal": "Some(Stop)"
+        },
+        "second_query_changed": true,
+        "second_selection_changed": true,
+        "value_a": 485,
+        "value_b": 486
+      },
+      "irrelevant_distractor_added": {
+        "answer_preserved": true,
+        "first_preserved": true,
+        "second_preserved": true
+      },
+      "read_disabled": {
+        "read": false,
+        "terminal": "Some(NoRead)"
+      },
+      "required_source_removed": {
+        "answer": null,
+        "read": false,
+        "terminal": "Some(NoRead)"
+      }
+    }
+  },
+  "panel1_events": 1440,
+  "focused_tests": {
+    "grounded_session": [
+      "the_factorization_reproduces_every_observed_transition",
+      "outcome_state_is_injective_and_the_reference_fixes_the_gauge",
+      "a_session_resumes_and_interleaves_without_sharing_state",
+      "unknown_operands_stay_typed_and_the_reader_absence_is_not_identity"
+    ],
+    "touched_runner_tests_passed": 19,
+    "all_pass": true
+  },
+  "checks": {
+    "cargo_fmt_check": "pass",
+    "claim_wording": "pass"
+  },
+  "readings": [
+    "the constructive factorization reproduces every one of the 672 declared development transitions exactly and matches the competent shared finite-state comparator on all three panels (288/288 development, 124/128 unseen length four, 64/64 unseen reversal) while carrying 102 serialized bytes against the comparator's 1668",
+    "the fitted shared recurrence reaches 248/288 development on the same supervision, so the review's diagnosis is confirmed: the earlier learner had not recovered structure already present in its supervision",
+    "the dependent chain runs 4/4 first-hop correct, 4/4 second selection correct and 4/4 answers correct; changing the first source changes the first outcome, the second query key, the selected second occurrence and the final answer together",
+    "an added irrelevant record preserves the first outcome, the second selection and the answer; removing the required record returns NoRead with no answer; disabling the reader returns NoRead; a paused frame resumes to an identical result in 4/4 chains",
+    "the final answer is a typed outcome label, a disjoint alphabet from every record payload, so it is absent from all source payloads"
+  ],
+  "limitations": [
+    "authored finite fixtures with supplied record layout and supplied primitive program; the instruction span is declared structure, not a learned parser",
+    "completion is explicit program exhaustion, not learned semantic continuation",
+    "the second-hop keys are the typed outcome labels, so the dependent read is exact-match key retrieval rather than semantic query formation",
+    "no prose, no executed Rust task, and no whole-path energy measurement"
+  ],
+  "principal_review": {
+    "status": "ORIGINAL_SUBMISSION_WITH_CORRECTIONS",
+    "review": "docs/integration/grounded-session-review-2026-09-21.md",
+    "independent_original_audit": "docs/evidence/grounded-session-principal-review-2026-09-21.json",
+    "corrected_replay_audit": "docs/evidence/grounded-session-corrected-replay-audit-2026-09-21.json",
+    "corrections": [
+      "Original102 is parameter estimate; serialized grounded artifact137 bytes. JSON finite comparator1668 is not encoding-normalized.",
+      "Fitted recurrence is new calibration/restart recipe, not prior artifact.",
+      "Original loaded objects were not used; corrected replay uses all independently loaded artifacts.",
+      "Original first-source intervention edited positions2,14,26; corrected version edits only2 and holds second bank fixed.",
+      "Original first_lease recorded second snapshot; copied payload is owned immutable content, not borrowed-current proof.",
+      "Original resume booleans lack retained snapshots; corrected exposed replay saves bound frames and resumes only remaining work.",
+      "Supplied fixed two-hop protocol with identity first primitive is not learned query/control or general language evidence."
+    ]
+  }
+}

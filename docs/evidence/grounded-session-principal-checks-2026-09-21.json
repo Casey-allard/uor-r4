@@ -1,0 +1,206 @@
+{
+  "schema": "uor-r4.grounded-session-principal-checks/1",
+  "reviewed_submission": "17d5072c651a0574ff441309b05611fd399cbbec",
+  "final_source_sha256": {
+    "crates/uor-r4-core/src/bin/competitive-reader.rs": "eaf0981019b778d0fc4b899bad1287c77df5dc5e47ab7264fcfe18c695f9be9e",
+    "crates/uor-r4-core/src/native_geometric/learner/grounded_session.rs": "cd0cb162b57c51b915fe5f4ed7b7967a6325f02e7d892e3ed23d0da9d0141f2f"
+  },
+  "checks": [
+    {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "--offline",
+        "-p",
+        "uor-r4-core",
+        "--lib",
+        "native_geometric::learner::grounded_session::tests"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 267122,
+      "log": "/tmp/uor-pr1340-check-0.log"
+    },
+    {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "--offline",
+        "-p",
+        "uor-r4-core",
+        "--bin",
+        "competitive-reader",
+        "shared_transition_tests"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 209566,
+      "log": "/tmp/uor-pr1340-check-1.log"
+    },
+    {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "build",
+        "--offline",
+        "-p",
+        "uor-r4-core",
+        "--bin",
+        "competitive-reader"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 57813,
+      "log": "/tmp/uor-pr1340-check-2.log"
+    },
+    {
+      "command": [
+        "/Users/casey.allard/uor-r4/target/debug/competitive-reader",
+        "--mode=grounded-session",
+        "--root",
+        "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/grounded-session-principal-1",
+        "--source-root",
+        "/Users/casey.allard/.codex/worktrees/takeover-research-reconciliation/uor-r4"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 20385,
+      "log": "/tmp/uor-pr1340-check-3.log"
+    }
+  ],
+  "library_tests": {
+    "passed": 8,
+    "failed": 0
+  },
+  "runner_tests": {
+    "passed": 2,
+    "failed": 0,
+    "scope": "shared_transition_tests covers reused observed-prefix instruction boundary; unchanged runner tests filtered, not counted as pass"
+  },
+  "document_checks": {
+    "cargo_fmt_check": "PASS",
+    "claim_wording": "PASS",
+    "json_parsed": [
+      "docs/evidence/grounded-session-2026-09-21.json",
+      "docs/evidence/grounded-session-corrected-replay-audit-2026-09-21.json",
+      "docs/evidence/grounded-session-principal-checks-2026-09-21.json",
+      "docs/evidence/grounded-session-principal-review-2026-09-21.json"
+    ],
+    "relative_document_targets_checked": 996,
+    "missing_targets": []
+  },
+  "warnings": "Existing library/runner unused variables, mutability and dead-code warnings; no unrelated warning cleanup.",
+  "source_review": "Independent original source/evidence and mathematical reviews; original fitting recipe preserved. Exact Q8 witness IDs and consistency checks, actual loaded all-arm serving, immutable captured payloads, exact references, isolated source intervention, saved bound frames and remaining-work restoration. Supplied fixed two-hop schedule, local-ring provenance, identity first-action control.",
+  "replay": {
+    "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/grounded-session-principal-1",
+    "scope": "Corrected exposed regression only; debug experiment runtime is not optimized inference performance",
+    "elapsed_s": 19.910023833,
+    "executable_sha256": "17236088a3d413e3f7f094aac0456f63d2fbee7921eaa5ff5bbbcbb071f47904",
+    "independent_audit": "docs/evidence/grounded-session-corrected-replay-audit-2026-09-21.json",
+    "projection": {
+      "at": "2026-09-21T22:13:43.685335+00:00",
+      "scope": "One corrected exposed diagnostic, unchanged optimization and dataset; no fresh qualification",
+      "commands": [
+        [
+          "/Users/casey.allard/.cargo/bin/cargo",
+          "test",
+          "--offline",
+          "-p",
+          "uor-r4-core",
+          "--lib",
+          "native_geometric::learner::grounded_session::tests"
+        ],
+        [
+          "/Users/casey.allard/.cargo/bin/cargo",
+          "test",
+          "--offline",
+          "-p",
+          "uor-r4-core",
+          "--bin",
+          "competitive-reader",
+          "shared_transition_tests"
+        ],
+        [
+          "/Users/casey.allard/.cargo/bin/cargo",
+          "build",
+          "--offline",
+          "-p",
+          "uor-r4-core",
+          "--bin",
+          "competitive-reader"
+        ],
+        [
+          "/Users/casey.allard/uor-r4/target/debug/competitive-reader",
+          "--mode=grounded-session",
+          "--root",
+          "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/grounded-session-principal-1",
+          "--source-root",
+          "/Users/casey.allard/.codex/worktrees/takeover-research-reconciliation/uor-r4"
+        ]
+      ],
+      "build_test_projection_ms": 660000,
+      "replay_projection_ms": 300000,
+      "threads": 2,
+      "model_workers": 1,
+      "ram_gib": 8,
+      "new_build_storage_bytes": 3221225472,
+      "new_report_storage_bytes": 67108864,
+      "root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/grounded-session-principal-1",
+      "source_sha256": {
+        "crates/uor-r4-core/src/bin/competitive-reader.rs": "eaf0981019b778d0fc4b899bad1287c77df5dc5e47ab7264fcfe18c695f9be9e",
+        "crates/uor-r4-core/src/native_geometric/learner/grounded_session.rs": "cd0cb162b57c51b915fe5f4ed7b7967a6325f02e7d892e3ed23d0da9d0141f2f"
+      }
+    }
+  },
+  "resource": {
+    "at": "2026-09-21T22:25:05.854483+00:00",
+    "projection": {
+      "at": "2026-09-21T22:05:25.833613+00:00",
+      "before": {
+        "cumulative_ms": 255357806,
+        "limit_ms": 258900000
+      },
+      "principal_projection_ms": 3300000,
+      "preprojection_preparation_estimate_ms": 480000,
+      "compiler_workers": 2,
+      "model_workers": 1,
+      "ram_limit_gib": 8,
+      "temporary_build_bytes": 3221225472,
+      "report_bytes": 67108864,
+      "reserve_bytes": 36766079385,
+      "stop_margin_bytes": 134217728,
+      "free_bytes_before_cleanup": 37561561088,
+      "cleanup_plan": "Only generated target/debug/deps/*.rcgu.o compiler object intermediates; preserve rlibs/rmeta/executables/source/research/models/reports. Existing owner cleanup authorization.",
+      "model_run_plan": "Source/artifact/math audits and surgical correctness repairs; one corrected exposed grounded-session replay if needed, exact command projected before execution; no fresh qualification or broad model campaign",
+      "paid_compute": false,
+      "free_bytes_after_cleanup": 40899280896
+    },
+    "elapsed_ms": 1180021,
+    "preprojection_preparation_estimate_ms": 480000,
+    "final_delivery_reserve_ms": 300000,
+    "principal_charge_ms": 1960021,
+    "before": {
+      "cumulative_ms": 255357806,
+      "limit_ms": 258900000
+    },
+    "after": {
+      "cumulative_ms": 257317827,
+      "limit_ms": 258900000
+    },
+    "remaining_ms": 1582173,
+    "allowance_extension_ms": 0,
+    "free_after_checks_bytes": 38696255488,
+    "cleanup": {
+      "at": "2026-09-21T22:05:25.833613+00:00",
+      "kind": "regenerable Rust compiler object intermediates only",
+      "root": "/Users/casey.allard/uor-r4/target/debug/deps",
+      "pattern": "*.rcgu.o",
+      "count": 2468,
+      "allocated_bytes_removed": 3601883136,
+      "logical_bytes_removed": 3596704840,
+      "free_before_bytes": 37561561088,
+      "free_after_bytes": 40899280896,
+      "manifest_path": "/tmp/uor-pr1340-removed-compiler-objects.json",
+      "manifest_sha256": "ed7568727e412fc51187670db4f95b58e7313e135e8ee31cb50aefde0a2fafbb",
+      "preserved": "rlib/rmeta/executables, all model/source/research/report artifacts and all user folders including Downloads"
+    },
+    "principal_deleted_allocated_bytes": 3601883136,
+    "paid_compute": false,
+    "idle_external_merge_queue_time": "not a new local model run"
+  }
+}

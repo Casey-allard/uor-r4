@@ -9,6 +9,7 @@ pub mod cold_prior;
 pub mod contextual_emission;
 pub mod embedding;
 pub mod geometric_attention;
+pub mod grounded_session;
 pub mod group_table;
 pub mod head_projection;
 pub mod jepa_trainer;
