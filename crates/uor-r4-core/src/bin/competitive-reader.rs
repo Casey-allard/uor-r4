@@ -15,6 +15,7 @@ use std::time::Instant;
 use serde_json::json;
 
 use uor_r4_core::native_geometric::learner::occurrence::{OccurrenceRef, OccurrenceRing};
+use uor_r4_core::native_geometric::learner::policy_feasibility::*;
 use uor_r4_core::native_geometric::learner::prefix_artifact::{
     parent_hash_convention, ExactGroupTable,
 };
@@ -3620,6 +3621,227 @@ fn verify_manifest(root: &Path) -> Result<String, String> {
     Ok(got)
 }
 
+/// Bool -> {0.0, 1.0}.
+fn b2f(b: bool) -> f64 {
+    if b {
+        1.0
+    } else {
+        0.0
+    }
+}
+
+/// Apply a chosen action table to a `(bucket, action)` contribution matrix.
+fn pick_mat(m: &[[f64; ACTS + 1]], actions: &[usize]) -> f64 {
+    let mut s = 0.0f64;
+    for b in 0..m.len().min(actions.len()) {
+        s += m[b][actions[b].min(ACTS)];
+    }
+    s
+}
+
+/// Per-position counterfactual sufficient statistics for one arm over one population. Filled by
+/// `accumulate_feas` from the actual integer logits, so no model pass is needed per optimizer step.
+#[derive(Clone, Debug)]
+struct FeasStats {
+    /// Text CE change in bits per `(bucket, action)`, summed over the fit/tune reader documents.
+    text_bits: Vec<[f64; ACTS + 1]>,
+    /// Present-query emitted-correct counts per `(bucket, action)`.
+    present_correct: Vec<[f64; ACTS + 1]>,
+    /// Present-query CE change in bits per `(bucket, action)`.
+    present_delta: Vec<[f64; ACTS + 1]>,
+    /// Absent-query read counts per `(bucket, action)`.
+    absent_read: Vec<[f64; ACTS + 1]>,
+    /// Absent-query CE change in bits per `(bucket, action)`.
+    absent_delta: Vec<[f64; ACTS + 1]>,
+    /// Per-document text CE change in bits, for independently reconstructible intervals.
+    text_docs: BTreeMap<usize, Vec<[f64; ACTS + 1]>>,
+    text_candidate_positions: usize,
+    present_positions: usize,
+    absent_positions: usize,
+    counterfactual_positions: usize,
+    max_resid: f64,
+}
+
+impl FeasStats {
+    fn new() -> Self {
+        FeasStats {
+            text_bits: vec![[0.0f64; ACTS + 1]; UTIL_BUCKETS],
+            present_correct: vec![[0.0f64; ACTS + 1]; UTIL_BUCKETS],
+            present_delta: vec![[0.0f64; ACTS + 1]; UTIL_BUCKETS],
+            absent_read: vec![[0.0f64; ACTS + 1]; UTIL_BUCKETS],
+            absent_delta: vec![[0.0f64; ACTS + 1]; UTIL_BUCKETS],
+            text_docs: BTreeMap::new(),
+            text_candidate_positions: 0,
+            present_positions: 0,
+            absent_positions: 0,
+            counterfactual_positions: 0,
+            max_resid: 0.0,
+        }
+    }
+    fn doc_pick(&self, actions: &[usize]) -> Vec<(usize, f64)> {
+        let mut v: Vec<(usize, f64)> = Vec::new();
+        for (d, row) in self.text_docs.iter() {
+            let mut s = 0.0f64;
+            for b in 0..UTIL_BUCKETS {
+                s += row[b][actions[b].min(ACTS)];
+            }
+            v.push((*d, s));
+        }
+        v
+    }
+}
+
+/// Realized aggregates of the frozen parent on the same populations.
+#[derive(Clone, Copy, Debug, Default)]
+struct ParentAgg {
+    present_correct: f64,
+    present_delta: f64,
+    absent_read: f64,
+    absent_delta: f64,
+    present_positions: usize,
+    absent_positions: usize,
+}
+
+/// Accumulate the four counterfactual action outcomes at every candidate-bearing position under one
+/// configured selector. Construction positions are split into the `final_present` / `final_absent`
+/// strata; text positions are split by document.
+#[allow(clippy::too_many_arguments)]
+fn accumulate_feas(
+    parent: &PriorCore,
+    local: &QueryHard,
+    u: &[Vec<i32>],
+    table: &ExactGroupTable,
+    cfg: &PolicyConfig,
+    sel: &RelationalSelector,
+    obs: &[Vec<Obs>],
+    seqs: &[Seq],
+    kind: &str,
+    doc_of: Option<&[usize]>,
+    st: &mut FeasStats,
+) -> Result<(), String> {
+    let f_bits = parent.cfg.f_bits;
+    let mut idx = 0usize;
+    for (gi, os) in obs.iter().enumerate() {
+        let seq = &seqs[gi];
+        for o in os.iter() {
+            let doc = doc_of.map(|d| d[idx]);
+            idx += 1;
+            if o.cands.is_empty() {
+                continue;
+            }
+            let z = local_logits(
+                parent,
+                local,
+                u,
+                o.cur,
+                o.prev as usize,
+                o.prev2,
+                o.ring.written(),
+            );
+            let rel = rels_for(sel, o, table, false);
+            let Some((top, bucket)) = sel.policy_bucket_with(cfg, &o.cands, &rel, &z) else {
+                continue;
+            };
+            let payload = o.cands[top].payload;
+            let (out, resid) = position_action_outcomes(&z, payload, o.target, f_bits);
+            if resid > 1e-6 {
+                return Err(format!(
+                    "policy identity residual {resid} on a {kind} position"
+                ));
+            }
+            st.max_resid = st.max_resid.max(resid);
+            st.counterfactual_positions += 1;
+            let b = bucket.min(UTIL_BUCKETS - 1);
+            if kind == "text" {
+                st.text_candidate_positions += 1;
+                for a in 0..=ACTS {
+                    st.text_bits[b][a] += out[a].delta_bits;
+                }
+                if let Some(d) = doc {
+                    let row = st
+                        .text_docs
+                        .entry(d)
+                        .or_insert_with(|| vec![[0.0f64; ACTS + 1]; UTIL_BUCKETS]);
+                    for a in 0..=ACTS {
+                        row[b][a] += out[a].delta_bits;
+                    }
+                }
+            } else {
+                match stratum_of(o, seq) {
+                    "final_present" => {
+                        st.present_positions += 1;
+                        for a in 0..=ACTS {
+                            st.present_correct[b][a] += b2f(out[a].correct);
+                            st.present_delta[b][a] += out[a].delta_bits;
+                        }
+                    }
+                    "final_absent" => {
+                        st.absent_positions += 1;
+                        for a in 0..=ACTS {
+                            st.absent_read[b][a] += b2f(out[a].read);
+                            st.absent_delta[b][a] += out[a].delta_bits;
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Realized parent aggregates on the `final_present` / `final_absent` construction strata.
+#[allow(clippy::too_many_arguments)]
+fn accumulate_parent(
+    parent: &PriorCore,
+    local: &QueryHard,
+    u: &[Vec<i32>],
+    table: &ExactGroupTable,
+    sel: &RelationalSelector,
+    obs: &[Vec<Obs>],
+    seqs: &[Seq],
+    agg: &mut ParentAgg,
+) {
+    let f_bits = parent.cfg.f_bits;
+    for (gi, os) in obs.iter().enumerate() {
+        let seq = &seqs[gi];
+        for o in os.iter() {
+            if o.cands.is_empty() {
+                continue;
+            }
+            let stratum = stratum_of(o, seq);
+            if stratum != "final_present" && stratum != "final_absent" {
+                continue;
+            }
+            let z = local_logits(
+                parent,
+                local,
+                u,
+                o.cur,
+                o.prev as usize,
+                o.prev2,
+                o.ring.written(),
+            );
+            let rel = rels_for(sel, o, table, false);
+            let chosen = sel.choose_scored(&o.cands, &rel);
+            let (payload, strength) = match chosen {
+                Some((k, st)) => (Some(o.cands[k].payload), Some(st)),
+                None => (None, None),
+            };
+            let oc = realized_outcome(&z, payload, strength, o.target, f_bits);
+            if stratum == "final_present" {
+                agg.present_positions += 1;
+                agg.present_correct += b2f(oc.correct);
+                agg.present_delta += oc.delta_bits;
+            } else {
+                agg.absent_positions += 1;
+                agg.absent_read += b2f(oc.read);
+                agg.absent_delta += oc.delta_bits;
+            }
+        }
+    }
+}
+
 fn utility_transfer_run() -> Result<ExitCode, String> {
     // ---- arguments -------------------------------------------------------------
     let mut root = PathBuf::from(DEFAULT_UTIL_ROOT);
@@ -3962,6 +4184,7 @@ fn utility_transfer_run() -> Result<ExitCode, String> {
 
     // ---- direct hard-action policy for each frozen source arm -------------------
     let mut fit_report: Vec<serde_json::Value> = Vec::new();
+    let mut arm_fit_meta: BTreeMap<&'static str, (Vec<f64>, usize)> = BTreeMap::new();
     let mut policies: BTreeMap<&'static str, RelationalSelector> = BTreeMap::new();
     let mut contract_buckets: BTreeMap<&'static str, serde_json::Value> = BTreeMap::new();
     for (name, base) in [
@@ -4015,6 +4238,7 @@ fn utility_transfer_run() -> Result<ExitCode, String> {
             events.push(e);
         }
         let (policy, fit) = fit_policy(&events);
+        arm_fit_meta.insert(name, (fit.support.clone(), fit.global_action));
         let mut sel = configured.clone();
         sel.policy = policy.clone();
         sel.validate_for_vocab(parent.cfg.vocab)?;
@@ -4077,6 +4301,297 @@ fn utility_transfer_run() -> Result<ExitCode, String> {
     h4_one_nat.validate_for_vocab(parent.cfg.vocab)?;
     h4_one_nat.verify_policy_contract(&policy_cfg)?;
     mark("direct policy fit", &mut marks);
+    // ---- joint finite-policy feasibility ----------------------------------------
+    // One development extraction of the counterfactual statistics the executed-policy aggregates
+    // cannot supply, then a bounded constrained solve. The declared operational class uses the same
+    // support mask and global fallback opcode as the fitted table; a wider-class diagnostic frees
+    // every bucket and is labelled separately.
+    let feas_t0 = Instant::now();
+    let configured_h4 = policy_cfg.apply(&relational_base);
+    let configured_cat = policy_cfg.apply(&categorical_base);
+    let mut parent_fit = ParentAgg::default();
+    accumulate_parent(
+        &parent,
+        &local,
+        &u,
+        &table,
+        &relational_ctx_base,
+        &fit_obs,
+        &fit,
+        &mut parent_fit,
+    );
+    let mut parent_tune = ParentAgg::default();
+    accumulate_parent(
+        &parent,
+        &local,
+        &u,
+        &table,
+        &relational_ctx_base,
+        &tune_obs,
+        &tune,
+        &mut parent_tune,
+    );
+    let tune_text_doc_pos = per_position_docs(&tune_streams, &tune_text_obs);
+    let mut feas_arms: Vec<serde_json::Value> = Vec::new();
+    let mut feasibility_selection = json!(null);
+    for (name, configured) in [
+        ("h4_policy", &configured_h4),
+        ("categorical_policy", &configured_cat),
+    ] {
+        let (support, fallback) = arm_fit_meta
+            .get(name)
+            .cloned()
+            .unwrap_or((vec![0.0f64; UTIL_BUCKETS], 0usize));
+        let mut fit_stats = FeasStats::new();
+        accumulate_feas(
+            &parent,
+            &local,
+            &u,
+            &table,
+            &policy_cfg,
+            configured,
+            &fit_obs,
+            &fit,
+            "construction",
+            None,
+            &mut fit_stats,
+        )?;
+        accumulate_feas(
+            &parent,
+            &local,
+            &u,
+            &table,
+            &policy_cfg,
+            configured,
+            &fit_text_obs,
+            &fit_text_seqs,
+            "text",
+            Some(&fit_text_doc_pos),
+            &mut fit_stats,
+        )?;
+        let mut tune_stats = FeasStats::new();
+        accumulate_feas(
+            &parent,
+            &local,
+            &u,
+            &table,
+            &policy_cfg,
+            configured,
+            &tune_obs,
+            &tune,
+            "construction",
+            None,
+            &mut tune_stats,
+        )?;
+        accumulate_feas(
+            &parent,
+            &local,
+            &u,
+            &table,
+            &policy_cfg,
+            configured,
+            &tune_text_obs,
+            &tune_text_seqs,
+            "text",
+            Some(&tune_text_doc_pos),
+            &mut tune_stats,
+        )?;
+
+        let p_count = fit_stats.present_positions;
+        let margin_count = (2.0 * p_count as f64 / 121.0).ceil();
+        let present_loss_margin = MARGIN_PRESENT_BITS * p_count as f64;
+        let obj: Vec<[f64; ACTS + 1]> = (0..UTIL_BUCKETS).map(|b| fit_stats.text_bits[b]).collect();
+        let cons = vec![
+            ConSpec {
+                name: "present_emitted_correct",
+                coeff: fit_stats.present_correct.clone(),
+                sense: ConSense::AtLeast,
+                rhs: parent_fit.present_correct - margin_count,
+                tol: 1e-6,
+            },
+            ConSpec {
+                name: "present_delta_bits",
+                coeff: fit_stats.present_delta.clone(),
+                sense: ConSense::AtMost,
+                rhs: parent_fit.present_delta + present_loss_margin,
+                tol: 1e-6,
+            },
+            ConSpec {
+                name: "absent_reads",
+                coeff: fit_stats.absent_read.clone(),
+                sense: ConSense::AtMost,
+                rhs: parent_fit.absent_read,
+                tol: 1e-6,
+            },
+            ConSpec {
+                name: "absent_delta_bits",
+                coeff: fit_stats.absent_delta.clone(),
+                sense: ConSense::AtMost,
+                rhs: parent_fit.absent_delta,
+                tol: 1e-6,
+            },
+        ];
+        let fixed: Vec<Option<usize>> = (0..UTIL_BUCKETS)
+            .map(|b| {
+                if support[b] >= UTIL_MIN_SUPPORT {
+                    None
+                } else {
+                    Some(fallback)
+                }
+            })
+            .collect();
+        let problem = FeasProblem {
+            obj: obj.clone(),
+            cons: cons.clone(),
+            fixed: fixed.clone(),
+            support: support.clone(),
+        };
+        let sol = solve_feasible(&problem, 45.0, 4_000_000);
+        let mut wide = problem.clone();
+        for f in wide.fixed.iter_mut() {
+            *f = None;
+        }
+        let wide_sol = solve_feasible(&wide, 45.0, 4_000_000);
+
+        let fit_tokens: usize = fit_text_obs.iter().map(|v| v.len()).sum();
+        let tune_tokens: usize = tune_text_obs.iter().map(|v| v.len()).sum();
+        let one_nat = vec![2usize; UTIL_BUCKETS];
+        let text_per_token = sol.obj / fit_tokens.max(1) as f64;
+        let tune_text_per_token =
+            pick_mat(&tune_stats.text_bits, &sol.actions) / tune_tokens.max(1) as f64;
+        let doc_sums = fit_stats.doc_pick(&sol.actions);
+        let report_actions: Vec<usize> = if sol.feasible {
+            sol.actions.clone()
+        } else {
+            Vec::new()
+        };
+        let realized_fit_json = if sol.feasible {
+            json!({
+                "text_delta_bits": pick_mat(&fit_stats.text_bits, &sol.actions),
+                "present_emitted_correct": pick_mat(&fit_stats.present_correct, &sol.actions),
+                "present_delta_bits": pick_mat(&fit_stats.present_delta, &sol.actions),
+                "absent_reads": pick_mat(&fit_stats.absent_read, &sol.actions),
+                "absent_delta_bits": pick_mat(&fit_stats.absent_delta, &sol.actions),
+            })
+        } else {
+            json!(null)
+        };
+        let realized_tune_json = if sol.feasible {
+            json!({
+                "text_bits_per_token": tune_text_per_token,
+                "present_emitted_correct": pick_mat(&tune_stats.present_correct, &sol.actions),
+                "present_delta_bits": pick_mat(&tune_stats.present_delta, &sol.actions),
+                "absent_reads": pick_mat(&tune_stats.absent_read, &sol.actions),
+                "absent_delta_bits": pick_mat(&tune_stats.absent_delta, &sol.actions),
+            })
+        } else {
+            json!(null)
+        };
+        let doc_sums_json: Vec<serde_json::Value> = if sol.feasible {
+            doc_sums
+                .iter()
+                .map(|(d, v)| json!({"document": d, "delta_bits": v}))
+                .collect()
+        } else {
+            Vec::new()
+        };
+        feas_arms.push(json!({
+            "arm": name,
+            "declared_class": {
+                "supported_buckets": (0..UTIL_BUCKETS).filter(|b| support[*b] >= UTIL_MIN_SUPPORT).count(),
+                "fallback_opcode": fallback,
+                "free_buckets": fixed.iter().filter(|f| f.is_none()).count(),
+            },
+            "development_populations": {
+                "text_tokens": fit_tokens,
+                "text_candidate_positions": fit_stats.text_candidate_positions,
+                "present_positions": fit_stats.present_positions,
+                "absent_positions": fit_stats.absent_positions,
+                "tune_text_tokens": tune_tokens,
+                "tune_present_positions": tune_stats.present_positions,
+                "tune_absent_positions": tune_stats.absent_positions,
+            },
+            "parent_reference": {
+                "present_emitted_correct": parent_fit.present_correct,
+                "present_delta_bits": parent_fit.present_delta,
+                "absent_reads": parent_fit.absent_read,
+                "absent_delta_bits": parent_fit.absent_delta,
+                "tune_present_emitted_correct": parent_tune.present_correct,
+                "tune_absent_reads": parent_tune.absent_read,
+            },
+            "margins": {"present_count_margin": margin_count, "present_loss_margin_bits": present_loss_margin},
+            "solve": {
+                "status": sol.status,
+                "feasible": sol.feasible,
+                "objective_bits": sol.obj,
+                "lower_bound_bits": sol.lower_bound,
+                "text_bits_per_token": text_per_token,
+                "screen_bits_per_token": MARGIN_TEXT_BITS,
+                "meets_text_screen": text_per_token <= MARGIN_TEXT_BITS,
+                "improves_over_local": sol.obj < 0.0,
+                "nodes": sol.nodes,
+                "exhaustive": sol.exhaustive,
+                "seconds": sol.seconds,
+                "actions": report_actions,
+                "realized_fit": realized_fit_json,
+                "realized_tune": realized_tune_json,
+                "document_text_bits": doc_sums_json,
+                "obstruction_proved_by_bound": sol.lower_bound / fit_tokens.max(1) as f64 > MARGIN_TEXT_BITS,
+            },
+            "wider_class_relaxed_fallback": {
+                "status": wide_sol.status,
+                "feasible": wide_sol.feasible,
+                "objective_bits": wide_sol.obj,
+                "lower_bound_bits": wide_sol.lower_bound,
+                "text_bits_per_token": wide_sol.obj / fit_tokens.max(1) as f64,
+            },
+            "constant_one_nat_reference": {
+                "text_bits_per_token": pick_mat(&fit_stats.text_bits, &one_nat) / fit_tokens.max(1) as f64,
+                "present_emitted_correct": pick_mat(&fit_stats.present_correct, &one_nat),
+                "absent_reads": pick_mat(&fit_stats.absent_read, &one_nat),
+            },
+            "identity_max_residual_bits": fit_stats.max_resid.max(tune_stats.max_resid),
+            "counterfactual_positions": fit_stats.counterfactual_positions + tune_stats.counterfactual_positions,
+            "statistics": {
+                "unit": "bits per (bucket, action); present/absent over the fit construction population; text over the fit reader documents",
+                "buckets": UTIL_BUCKETS,
+                "actions": {"0": "NoRead", "1": "0.0625 nats", "2": "1 nat", "3": "8 nats"},
+                "text_delta_bits": fit_stats.text_bits,
+                "present_emitted_correct": fit_stats.present_correct,
+                "present_delta_bits": fit_stats.present_delta,
+                "absent_reads": fit_stats.absent_read,
+                "absent_delta_bits": fit_stats.absent_delta,
+            },
+        }));
+        if name == "h4_policy" {
+            feasibility_selection = json!({
+                "arm": name,
+                "status": sol.status,
+                "feasible": sol.feasible,
+                "actions": report_actions,
+                "text_bits_per_token": text_per_token,
+                "lower_bound_bits": sol.lower_bound,
+                "meets_text_screen": text_per_token <= MARGIN_TEXT_BITS,
+                "obstruction_proved_by_bound": sol.lower_bound / fit_tokens.max(1) as f64 > MARGIN_TEXT_BITS,
+                "tune_text_bits_per_token": sol.feasible.then_some(tune_text_per_token),
+                "wider_class_feasible": wide_sol.feasible,
+                "wider_class_text_bits_per_token": wide_sol.obj / fit_tokens.max(1) as f64,
+            });
+        }
+    }
+    let feasibility_report = json!({
+        "design": "minimize complete-stream development natural-text loss (bits/token on the complete fit text stream) subject to present emitted-correct >= parent - translated margin, present CE <= parent + 0.05 bits/position, absent reads <= parent, absent CE <= parent; supported buckets free, sparse/unseen buckets fixed to the declared global fallback opcode",
+        "development": "fit construction (SEED_FIT) + fit reader documents; the tune pools are held-out development checks",
+        "solver": "Lagrangian lower bound (coordinate ascent) + bounded branch-and-bound with node and wall-time caps",
+        "screen_bits_per_token": MARGIN_TEXT_BITS,
+        "identity": "delta_loss(a) = log(1 + p*(exp(a)-1)) - a*1[payload==target], asserted against the actual integer logits at every position",
+        "seconds": feas_t0.elapsed().as_secs_f64(),
+        "arms": feas_arms,
+        "selection": feasibility_selection,
+        "scope": "Development feasibility of the declared class only; not generalization. Teacher-forced additivity does not extend to rollout. A solver timeout is UNRESOLVED, not INFEASIBLE.",
+    });
+    eprintln!("feasibility: {} s", feas_t0.elapsed().as_secs_f32());
+    mark("joint feasibility", &mut marks);
 
     // ---- export, independent reload; the RELOADED arms are what get exercised ----
     // Acyclic binding: the artifact carries the digest of the **fit inputs** it was produced from; the
@@ -4165,8 +4680,8 @@ fn utility_transfer_run() -> Result<ExitCode, String> {
         }
         export_bytes.insert(name, bytes);
     }
-    let h4_load = reloaded["h4_policy"].clone();
-    let cat_load = reloaded["categorical_policy"].clone();
+    let _h4_load = reloaded["h4_policy"].clone();
+    let _cat_load = reloaded["categorical_policy"].clone();
     // Exercise the one-nat comparator through the same configured contract.
     let one_nat_bytes = RelationalArtifact {
         selector: h4_one_nat.clone(),
@@ -4178,6 +4693,144 @@ fn utility_transfer_run() -> Result<ExitCode, String> {
     write_checked(&root, "artifacts/h4_one_nat.rlr2", &one_nat_bytes)?;
     let one_nat_load =
         RelationalArtifact::from_bytes(&one_nat_bytes, &e_digest, &raw_tok)?.selector;
+    // ---- expected-manifest verification of the served artifacts ------------------
+    // The consumer verifies actual bytes, fit-input identity and the configured feature contract
+    // *before* it returns a predictor. Every rejection is exercised through that consumer, not by a
+    // byte comparison or a dummy digest.
+    let mut verify_failures = 0usize;
+    let mut verified_arms: BTreeMap<&'static str, RelationalSelector> = BTreeMap::new();
+    for (name, bytes) in export_bytes.iter() {
+        let exp = ExpectedArtifact {
+            name: (*name).to_string(),
+            bytes_sha256: artifact_sha256(bytes),
+            data_digest: fit_input_digest,
+        };
+        match load_expected_artifact(
+            &root,
+            &exp,
+            &e_digest,
+            &raw_tok,
+            &policy_cfg,
+            parent.cfg.vocab,
+        ) {
+            Ok(sel) => {
+                let fitted = if *name == "h4_policy" {
+                    &h4_policy
+                } else {
+                    &categorical_policy
+                };
+                if sel != *fitted {
+                    verify_failures += 1;
+                }
+                verified_arms.insert(*name, sel);
+            }
+            Err(e) => {
+                eprintln!("verified load failed for {name}: {e}");
+                verify_failures += 1;
+            }
+        }
+    }
+    let one_nat_exp = ExpectedArtifact {
+        name: "h4_one_nat".to_string(),
+        bytes_sha256: artifact_sha256(&one_nat_bytes),
+        data_digest: fit_input_digest,
+    };
+    if load_expected_artifact(
+        &root,
+        &one_nat_exp,
+        &e_digest,
+        &raw_tok,
+        &policy_cfg,
+        parent.cfg.vocab,
+    )
+    .is_err()
+    {
+        verify_failures += 1;
+    }
+    // Rejection probes the consumer must actually perform.
+    let base_exp = ExpectedArtifact {
+        name: "h4_policy".to_string(),
+        bytes_sha256: artifact_sha256(&export_bytes["h4_policy"]),
+        data_digest: fit_input_digest,
+    };
+    let drifted_cfg =
+        PolicyConfig::new([gap_thresholds[0] - 64, gap_thresholds[1], gap_thresholds[2]]);
+    if load_expected_artifact(
+        &root,
+        &base_exp,
+        &e_digest,
+        &raw_tok,
+        &drifted_cfg,
+        parent.cfg.vocab,
+    )
+    .is_ok()
+    {
+        verify_failures += 1;
+    }
+    let mut wrong_hash = base_exp.clone();
+    wrong_hash.bytes_sha256 = "0".repeat(64);
+    if load_expected_artifact(
+        &root,
+        &wrong_hash,
+        &e_digest,
+        &raw_tok,
+        &policy_cfg,
+        parent.cfg.vocab,
+    )
+    .is_ok()
+    {
+        verify_failures += 1;
+    }
+    let mut wrong_digest = base_exp.clone();
+    wrong_digest.data_digest = [0xABu8; 32];
+    if load_expected_artifact(
+        &root,
+        &wrong_digest,
+        &e_digest,
+        &raw_tok,
+        &policy_cfg,
+        parent.cfg.vocab,
+    )
+    .is_ok()
+    {
+        verify_failures += 1;
+    }
+    // A truncated artifact must fail structural load even when its own hash is the expected one.
+    let tmp_root = std::env::temp_dir().join(format!("uor-feas-verify-{}", std::process::id()));
+    let _ = std::fs::create_dir_all(tmp_root.join("artifacts"));
+    let mut tampered = export_bytes["h4_policy"].clone();
+    tampered.truncate(tampered.len().saturating_sub(4));
+    if std::fs::write(tmp_root.join("artifacts/h4_policy.rlr2"), &tampered).is_ok() {
+        let tamper_exp = ExpectedArtifact {
+            name: "h4_policy".to_string(),
+            bytes_sha256: artifact_sha256(&tampered),
+            data_digest: fit_input_digest,
+        };
+        if load_expected_artifact(
+            &tmp_root,
+            &tamper_exp,
+            &e_digest,
+            &raw_tok,
+            &policy_cfg,
+            parent.cfg.vocab,
+        )
+        .is_ok()
+        {
+            verify_failures += 1;
+        }
+    }
+    let _ = std::fs::remove_dir_all(&tmp_root);
+    controls.push(json!({
+        "control": "expected_manifest_loader",
+        "arms": ["h4_policy", "categorical_policy", "h4_one_nat"],
+        "failures": verify_failures,
+        "checks": ["artifact byte hash", "fit-input identity", "configured feature contract", "vocabulary"],
+        "rejection_probes": ["drifted gap thresholds", "wrong expected byte hash", "wrong expected fit-input identity", "truncated artifact bytes"],
+        "note": "the consumer verifies bytes, fit-input identity and the feature contract before returning a predictor; all four rejections are exercised through that consumer",
+    }));
+    reload_failures += verify_failures;
+    let h4_load = verified_arms["h4_policy"].clone();
+    let cat_load = verified_arms["categorical_policy"].clone();
     one_nat_load.verify_policy_contract(&policy_cfg)?;
     if one_nat_load != h4_one_nat {
         reload_failures += 1;
@@ -4907,6 +5560,7 @@ fn utility_transfer_run() -> Result<ExitCode, String> {
             "text_split": text_split,
             "preparation_probe": preparation_probe,
             "fit": fit_report,
+            "feasibility": feasibility_report,
             "panels": panels,
             "paired": paired,
             "text_intervals": text_intervals,
@@ -5000,6 +5654,7 @@ fn utility_transfer_run() -> Result<ExitCode, String> {
         "cost",
         "manifest_digest",
         "decision",
+        "feasibility",
     ];
     let mut missing: Vec<&str> = Vec::new();
     for p in declared_paths {

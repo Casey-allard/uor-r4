@@ -1,6 +1,6 @@
 # UOR-R4 Geometric Language Model — project map
 
-**Current execution pointer after PR #1330:** the [principal review](integration/policy-objective-review-2026-09-21.md) verifies the feature repair and negative text/answer/absence result. The [next experiment](integration/deepseek-policy-feasibility-step-2026-09-21.md) collects counterfactual development action statistics and settles constrained finite-policy feasibility. Existing aggregate costs cannot reconstruct all constraints. Distinguish objective, support and missing observations; stop this scalar-policy campaign after the bounded result. No model promotion.
+**Current execution pointer after PR #1332:** [principal review](integration/policy-obstruction-review-2026-09-21.md) certifies the retained coarse-policy obstruction and corrects solver/reporting defects. [Next](integration/deepseek-reader-confidence-step-2026-09-21.md): preserve the existing scored reader’s integer Read–NoRead advantage, establish actual parent parity, and test one compact influence operator with matched controls. Exact occurrence identity and the parent bucket/ties are part of that interface. No new model promotion; unchanged 32-address policy tuning is finished.
 
 This map connects the current Rust model, product interfaces, research history
 and retained evidence. It is navigation, not a new capability assessment or an

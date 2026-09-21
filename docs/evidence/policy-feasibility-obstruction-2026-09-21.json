@@ -1,0 +1,139 @@
+{
+  "scope": "development joint finite-policy feasibility (obstruction); not generalization",
+  "run_root": ".uor-models/realtext-prior-2026-09-20/policy-feasibility-2",
+  "base_revision": "31972e34",
+  "manifest_digest": "a28803c4e8c1e86049293eb74ad1fe35f5117e690db95e67461a7a548ed31fac",
+  "artifact_bytes": [
+    "categorical_policy.rlr2",
+    "h4_one_nat.rlr2",
+    "h4_policy.rlr2"
+  ],
+  "integrity": {
+    "result_sha256": "aaf2517bb676461b670f9d410bd7a6bd71880f0cb06bc8e5da9201db422b3f59",
+    "binding_sha256": "0ccc7d9efadf888ac5c68b19f971a908eeae14c942062b360026df90ec7a274e",
+    "preflight_sha256": "b5fc7942c692bcbfe0e724a1e2ce72942995554e31be1654775e04a4a5504d9c",
+    "manifest_listed_file_count": 8
+  },
+  "sealed_unlisted_count": 0,
+  "reload_failures": 0,
+  "parent_reference_development": {
+    "absent_delta_bits": 3.4970738323129975,
+    "absent_reads": 7.0,
+    "present_delta_bits": -1931.3205900883734,
+    "present_emitted_correct": 149.0,
+    "tune_absent_reads": 4.0,
+    "tune_present_emitted_correct": 36.0,
+    "note": "relational_ctx scored path on the same development populations"
+  },
+  "development_populations": {
+    "absent_positions": 23,
+    "present_positions": 197,
+    "text_candidate_positions": 944,
+    "text_tokens": 1952,
+    "tune_absent_positions": 11,
+    "tune_present_positions": 49,
+    "tune_text_tokens": 1952
+  },
+  "margins": {
+    "present_count_margin": 4.0,
+    "present_loss_margin_bits": 9.850000000000001
+  },
+  "solve": {
+    "h4_policy": {
+      "status": "INFEASIBLE",
+      "feasible": false,
+      "exhaustive": true,
+      "nodes": 57,
+      "seconds": 0.00063375,
+      "lower_bound_bits": 5107.839840421375,
+      "wider_class_status": "INFEASIBLE",
+      "wider_class_feasible": false,
+      "identity_max_residual_bits": 1.4210854715202004e-13,
+      "counterfactual_positions": 5442,
+      "text_bits_per_token_unconstrained_per_bucket": -0.036565,
+      "constant_one_nat_text_bits_per_token": -0.030979446524697384
+    },
+    "categorical_policy": {
+      "status": "INFEASIBLE",
+      "feasible": false,
+      "exhaustive": true,
+      "nodes": 421,
+      "seconds": 0.000619166,
+      "lower_bound_bits": 211.28111387518243,
+      "wider_class_status": "INFEASIBLE",
+      "wider_class_feasible": false,
+      "identity_max_residual_bits": 1.4477308241112041e-13,
+      "counterfactual_positions": 5442,
+      "text_bits_per_token_unconstrained_per_bucket": -0.03493,
+      "constant_one_nat_text_bits_per_token": -0.030670668710205552
+    }
+  },
+  "independent_knapsack": {
+    "absent_budget": 7,
+    "required_present_correct": 145,
+    "h4_policy_max_present_correct": 74,
+    "categorical_policy_max_present_correct": 71
+  },
+  "absent_positions_per_bucket_h4": {
+    "0": 3,
+    "1": 6,
+    "5": 1,
+    "8": 1,
+    "9": 5,
+    "13": 1,
+    "17": 3,
+    "20": 1,
+    "24": 2
+  },
+  "fitted_table_development_realized": {
+    "h4_policy": {
+      "present_emitted_correct": 103.0,
+      "present_delta_bits": -1541.361,
+      "absent_reads": 23.0,
+      "absent_delta_bits": 4.496,
+      "fallback_opcode": 2,
+      "supported_buckets": 16
+    },
+    "categorical_policy": {
+      "present_emitted_correct": 159.0,
+      "present_delta_bits": -2038.392,
+      "absent_reads": 23.0,
+      "absent_delta_bits": 15.512,
+      "fallback_opcode": 2,
+      "supported_buckets": 16
+    }
+  },
+  "declared_categories_unchanged": {
+    "absence_improved": false,
+    "all_noread_collapse": false,
+    "harm_containment": false,
+    "matched_categorical_reported": true,
+    "relational_behaviour_preserved": false,
+    "useful_transfer": false
+  },
+  "text_final_comparators": {
+    "categorical_policy": 0.1532747908529836,
+    "h4_policy": 0.11931856033694299,
+    "relational_ctx_parent": 0.4531971311357274
+  },
+  "successor": "inspect omitted existing causal information (absolute source/NoRead confidence, directed relation, local normalization) before assuming persistent state",
+  "limitations": [
+    "development feasibility only",
+    "teacher-forced additivity does not extend to rollout",
+    "physical energy UNAVAILABLE",
+    "whole-path D0-b not claimed",
+    "no fresh final draw taken"
+  ],
+  "principal_correction": {
+    "review": "docs/integration/policy-obstruction-review-2026-09-21.md",
+    "independent_audit": "docs/evidence/policy-obstruction-principal-review-2026-09-21.json",
+    "count_certificate": "VERIFIED_FROM_SAVED_FIT_COUNTS",
+    "recorded_base_revision": "STALE_NOT_EXECUTED_SOURCE_IDENTITY",
+    "recorded_checkout": "e0f99fcc91b5063c5ad15c1799d47ab4525d65e7",
+    "exact_executed_runner_correspondence": "UNRESOLVED",
+    "solver_repairs": "Fixed objective offset, consistent tolerance and effective saturated boost; focused tests pass; original sealed model run not repeated",
+    "statistics_scope": "Fit bucket/action aggregates only; individual/tune/document arrays unavailable",
+    "interpretation": "Coarse five-bit influence representation collision; not H4 capacity limit",
+    "next": "Restore exact retained parent Read-NoRead advantage, verify causal parity, then test useful compact influence; no new outcome claimed"
+  }
+}

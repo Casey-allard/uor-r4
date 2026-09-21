@@ -15,6 +15,7 @@ pub mod lowbit;
 pub mod lowbit_attention;
 pub mod lowbit_core;
 pub mod occurrence;
+pub mod policy_feasibility;
 pub mod prefix_artifact;
 pub mod prefix_state;
 pub mod prior_learning;

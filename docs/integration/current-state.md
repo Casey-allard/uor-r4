@@ -1,6 +1,20 @@
 # Current native geometric AI work
 
-## Active: settle joint finite-policy feasibility, then advance the missing operation
+## Active: restore existing learned read confidence at the influence interface
+
+**PR #1332, independently reviewed and corrected:** exact integer reconstruction confirms the unchanged 32-address influence class cannot preserve the development parent's answers and absence behavior. At absent reads <=7, H4 can emit at most **74** correct answers and categorical **71**, against **145** required, even with every bucket free. This is an information collision in the coarse five-bit influence observation, not an H4 capacity limit. Generic solver objective/tolerance and saturated-loss checks are repaired; the retained count certificate is independent of those optimizer defects. [Principal review](policy-obstruction-review-2026-09-21.md); [audit](../evidence/policy-obstruction-principal-review-2026-09-21.json).
+
+**Next:** [restore the retained reader's learned Read–NoRead advantage](deepseek-reader-confidence-step-2026-09-21.md) at the influence interface. Artifact inspection establishes a parent-preserving construction: the same selected source, `D>0` -> eight nats, `D<=0`/empty pool -> NoRead. Verify actual causal-prefix parity first, then test one compact dose policy under joint text, present-answer and absence requirements. The existing five-bit observation plus this sign admits the parent within 64 entries. Parent text harm remains; useful influence and matched geometry advantage must be measured. No fresh final result or model promotion is claimed. End the unchanged-policy search; structural persistence, derived composition, generative language and efficiency remain the broader responsibilities.
+
+The independent development certificate uses 197 present/23 absent queries, parent 149 correct/seven absent reads. Reaching 145 correct requires at least 16 H4/15 categorical absent reads. Both attempt seals, three exported artifacts and four parent hashes verify. Both attempts replay exposed panels; no fresh final. Exact executed-runner/source correspondence is unresolved, the fit digest omits some causal dependencies, and saved statistics omit per-position/tune arrays. Preserve the results with these limits; the next substantive run completes the relevant boundaries.
+
+The confidence witness is artifact/source-derived, not a newly executed rollout. The same ordered candidate pool and parent bucket are required; Read/NoRead score ties abstain and source-score ties retain the first candidate. Matched categorical confidence fitting is required for geometry attribution. Signed H4/Spin, exact identity, retained Hopf fiber, structural lifetimes and shared typed operators remain reusable; S7/E8/harmonics are conditional tools, not replacements justified by this result.
+
+Resources were reconciled from the stale live JSON, including the prior component estimate correction. Inactive incremental compiler cache cleanup recovered 4.32 GB of observed free space (5.159GB allocated files); no model/research/source/download deletion. See the latest measured checks and balance in the [ledger](resource-ledger-2026-09-19.md), and refresh before execution. The 36.766 GB reserve plus 128 MiB margin remains; bookkeeping extensions do not create disk space.
+
+### Previous active (superseded by the section above)
+
+## Former active: settle joint finite-policy feasibility, then advance the missing operation
 
 **PR #1330, independently reviewed:** the fit/serve feature repair and four negative outcome criteria verify. Corrected H4 harms reader-held-out text by **+0.119319 bits/token [+0.070211,+0.167862]**, versus parent +0.453197 and fixed one nat −0.014769. Present-query correct emissions fall **77→56/121**; absent reads rise **5→19/19**. Preserve PR #1328's old artifact gain: the changed successor does not refute that measurement. Both modified source hashes and all five reported document intervals verify. Attempt 4 faithfully replays attempt 3 after a report repair; it is not a second independent final draw. [Principal review](policy-objective-review-2026-09-21.md); [saved-data audit](../evidence/policy-objective-principal-review-2026-09-21.json).
 

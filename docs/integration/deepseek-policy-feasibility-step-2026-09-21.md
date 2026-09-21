@@ -1,5 +1,7 @@
 # DeepSeek execution: settle finite-policy feasibility and advance the missing operation
 
+**Executed by PR #1332.** The unchanged coarse class is infeasible on retained development counts. Read the [principal review](policy-obstruction-review-2026-09-21.md) and [next confidence-interface prompt](deepseek-reader-confidence-step-2026-09-21.md); this document is the historical task specification.
+
 You are a research contributor to the UOR-R4 Geometric Language Model. Execute the next constructive experiment, deliver it through a protected PR and update the project state. Use your mathematical and engineering judgment; challenge this formulation if a cheaper, sounder test answers the same question. Explain substantive choices before inspecting new final outcomes. Do not reduce this task to writing a plan or repairing diagnostics without answering the learning question.
 
 ## Recover context and authority

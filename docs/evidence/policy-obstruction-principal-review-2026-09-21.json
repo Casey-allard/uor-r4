@@ -1,0 +1,1439 @@
+{
+  "scope": "Independent exact integer recomputation of retained development-count certificates, aggregate reconstruction and receipt verification. No model passes, builds, fits or repository mutations. Counts are accepted from sealed statistics rather than re-extracted from source/prefixes.",
+  "review_head": "24c874ac4e600478f0a78b632c9c2c779eaa765c",
+  "run_root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/policy-feasibility-2",
+  "integrity": {
+    "1": {
+      "listed_files": 8,
+      "size_or_blake3_mismatches": [],
+      "unlisted": [],
+      "missing": [],
+      "result_sha256": "61d000b925b3cb88ee996549e824dab3b7a1b7bd6e072b6fb397616b991c0f87",
+      "binding_sha256": "2af9a3a8ff59cb5fd15cf37df264bb137f7d58fa872cf5f24c8e44042c13a89d",
+      "sealed_at": "1789999384"
+    },
+    "2": {
+      "listed_files": 8,
+      "size_or_blake3_mismatches": [],
+      "unlisted": [],
+      "missing": [],
+      "result_sha256": "aaf2517bb676461b670f9d410bd7a6bd71880f0cb06bc8e5da9201db422b3f59",
+      "binding_sha256": "0ccc7d9efadf888ac5c68b19f971a908eeae14c942062b360026df90ec7a274e",
+      "sealed_at": "1789999726"
+    },
+    "new_artifacts_match_sha256": {
+      "categorical_policy": true,
+      "h4_one_nat": true,
+      "h4_policy": true
+    },
+    "parent_artifacts_match_sha256": {
+      "exact": true,
+      "relational": true,
+      "relational_ctx": true,
+      "categorical": true
+    }
+  },
+  "source_correspondence": {
+    "recorded": {
+      "executable_sha256": "ad9e4dcb1f08cb27955d3b4404c2c2447b42c1bf2902f929b39cf0afa98143fc",
+      "git_dirty": "true",
+      "git_rev": "e0f99fcc",
+      "source_file_sha256": [
+        {
+          "path": "crates/uor-r4-core/src/native_geometric/learner/relational.rs",
+          "sha256": "2a63c7eb6d844afe70bad2c37fc69135688c7057129e4264be9f7f95e8941959"
+        },
+        {
+          "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+          "sha256": "7f370f1872a1563345c6244877e7183eb268370b8bbae7f0f8888210c1fab0fb"
+        }
+      ]
+    },
+    "current_files": {
+      "crates/uor-r4-core/src/native_geometric/learner/relational.rs": {
+        "sha256": "2a63c7eb6d844afe70bad2c37fc69135688c7057129e4264be9f7f95e8941959",
+        "matches_recorded": true
+      },
+      "crates/uor-r4-core/src/bin/competitive-reader.rs": {
+        "sha256": "b22fb4acba6b8e3b367d1d08154c8d7c1d52fa30057bea2319af04d6509dde1b",
+        "matches_recorded": false
+      }
+    },
+    "result_base_revision": "31972e34",
+    "binding_base_revision": "0492926d",
+    "binding_source_files": [
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/learner/relational.rs",
+        "sha256": "2a63c7eb6d844afe70bad2c37fc69135688c7057129e4264be9f7f95e8941959"
+      },
+      {
+        "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
+        "sha256": "7f370f1872a1563345c6244877e7183eb268370b8bbae7f0f8888210c1fab0fb"
+      }
+    ],
+    "executed_source_snapshot_retained": false,
+    "qualification": "Runner recorded hash differs from submitted source; new policy_feasibility.rs module not in recorded source-file list. Binary/source execution correspondence is not independently established by these two source hashes.",
+    "solver_module_sha256": "5a5a8d4949f0f53344dce1cd05ba96982c920a573e2ee2623255f4b4e4450ba2"
+  },
+  "data": {
+    "text_split_identical_reader_utility4": true,
+    "unique_document_paths": 24,
+    "unique_document_hashes": 24,
+    "snapshot_hash_mismatches": [],
+    "panels_identical_reader_utility4": true,
+    "generation_identical_reader_utility4": true,
+    "paired_identical_reader_utility4": true,
+    "fresh_final_evaluation": false,
+    "scope": "Fit development constraints; tune used for reported checks. Historical final panels replayed, not newly fresh. Local prior already saw this document corpus."
+  },
+  "attempt1_vs2": {
+    "all_panel_aggregates_identical": true,
+    "generation_identical": true,
+    "counterfactual_statistics_identical": true,
+    "reporting_repair": "Attempt2 suppresses nonselected actions/realized_fit/realized_tune/document_text_bits when infeasible, but selection.tune_text_bits_per_token remains from a nonselected search path."
+  },
+  "parent_reference_from_saved_panel": {
+    "final_present": {
+      "correct_payload": 179,
+      "correct_payload_reads": 179,
+      "covered_positions": 197,
+      "delta_bits_per_position": -9.803657817707476,
+      "emitted_correct": 149,
+      "emitted_correct_local": 0,
+      "hard_bits_per_position": 3.360477784330881,
+      "no_read": 0,
+      "positions": 197,
+      "reads": 197,
+      "stratum": "final_present",
+      "strength_counts": [
+        0,
+        0,
+        197
+      ]
+    },
+    "final_absent": {
+      "correct_payload": 0,
+      "correct_payload_reads": 0,
+      "covered_positions": 0,
+      "delta_bits_per_position": 0.15204668836143692,
+      "emitted_correct": 0,
+      "emitted_correct_local": 0,
+      "hard_bits_per_position": 12.904360601242168,
+      "no_read": 16,
+      "positions": 23,
+      "reads": 7,
+      "stratum": "final_absent",
+      "strength_counts": [
+        0,
+        0,
+        7
+      ]
+    }
+  },
+  "arms": {
+    "h4_policy": {
+      "development_populations": {
+        "absent_positions": 23,
+        "present_positions": 197,
+        "text_candidate_positions": 944,
+        "text_tokens": 1952,
+        "tune_absent_positions": 11,
+        "tune_present_positions": 49,
+        "tune_text_tokens": 1952
+      },
+      "parent_reference": {
+        "absent_delta_bits": 3.4970738323129975,
+        "absent_reads": 7.0,
+        "present_delta_bits": -1931.3205900883734,
+        "present_emitted_correct": 149.0,
+        "tune_absent_reads": 4.0,
+        "tune_present_emitted_correct": 36.0
+      },
+      "required_present_correct": 145,
+      "absent_read_budget": 7,
+      "integer_certificate": {
+        "max_present_under_absent_budget_wider": 74,
+        "max_present_under_absent_budget_operational": 74,
+        "witness_actions": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          3,
+          3,
+          0,
+          0,
+          0,
+          3,
+          0,
+          0,
+          3,
+          0,
+          0,
+          0,
+          0,
+          3,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "witness_absent_reads": 7,
+        "minimum_absent_reads_to_reach_required_present": 16,
+        "best_present_by_absent_budget": {
+          "0": 3,
+          "1": 6,
+          "2": 9,
+          "3": 43,
+          "4": 46,
+          "5": 68,
+          "6": 71,
+          "7": 74,
+          "8": 108,
+          "9": 111,
+          "10": 114,
+          "11": 116,
+          "12": 116,
+          "13": 116,
+          "14": 140,
+          "15": 143,
+          "16": 146,
+          "17": 148,
+          "18": 148,
+          "19": 148,
+          "20": 149,
+          "21": 149,
+          "22": 149,
+          "23": 149
+        },
+        "infeasible_using_only_two_integer_constraints": true,
+        "proof_scope": "Exact integer upper bound from saved nonnegative counts for every deterministic four-action table, freeing all buckets; valid without relying on floating solver tolerances or CE constraints."
+      },
+      "isolated_optima": {
+        "max_present_emitted_correct": 149.0,
+        "min_present_delta_bits": -1937.5480043884465,
+        "min_text_delta_bits_per_token": -0.03656459033787834,
+        "min_absent_reads": 0.0,
+        "min_absent_delta_bits": 0.0
+      },
+      "present_correct_by_uniform_action": [
+        0.0,
+        0.0,
+        0.0,
+        149.0
+      ],
+      "NoRead_sums": {
+        "text_delta_bits": 0.0,
+        "present_emitted_correct": 0.0,
+        "present_delta_bits": 0.0,
+        "absent_reads": 0.0,
+        "absent_delta_bits": 0.0
+      },
+      "one_nat_sums": {
+        "text_delta_bits": -60.47187961620929,
+        "present_emitted_correct": 0.0,
+        "present_delta_bits": -258.1094580063564,
+        "absent_reads": 23.0,
+        "absent_delta_bits": 0.026459598339371837
+      },
+      "fitted_policy_sums": {
+        "text_delta_bits": 255.71259289807807,
+        "present_emitted_correct": 103.0,
+        "present_delta_bits": -1541.361008964422,
+        "absent_reads": 23.0,
+        "absent_delta_bits": 4.496370412568423
+      },
+      "fitted_sums_match_saved_panels": {
+        "present_correct": true,
+        "present_delta": true,
+        "absent_reads": true,
+        "absent_delta": true,
+        "text_delta": true
+      },
+      "bucket_count_witnesses": [
+        {
+          "bucket": 0,
+          "absent_reads_if_read": 3.0,
+          "present_correct_by_action": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "bucket": 1,
+          "absent_reads_if_read": 6.0,
+          "present_correct_by_action": [
+            0.0,
+            0.0,
+            0.0,
+            32.0
+          ]
+        },
+        {
+          "bucket": 5,
+          "absent_reads_if_read": 1.0,
+          "present_correct_by_action": [
+            0.0,
+            0.0,
+            0.0,
+            2.0
+          ]
+        },
+        {
+          "bucket": 8,
+          "absent_reads_if_read": 1.0,
+          "present_correct_by_action": [
+            0.0,
+            0.0,
+            0.0,
+            3.0
+          ]
+        },
+        {
+          "bucket": 9,
+          "absent_reads_if_read": 5.0,
+          "present_correct_by_action": [
+            0.0,
+            0.0,
+            0.0,
+            65.0
+          ]
+        },
+        {
+          "bucket": 13,
+          "absent_reads_if_read": 1.0,
+          "present_correct_by_action": [
+            0.0,
+            0.0,
+            0.0,
+            3.0
+          ]
+        },
+        {
+          "bucket": 16,
+          "absent_reads_if_read": 0.0,
+          "present_correct_by_action": [
+            0.0,
+            0.0,
+            0.0,
+            2.0
+          ]
+        },
+        {
+          "bucket": 17,
+          "absent_reads_if_read": 3.0,
+          "present_correct_by_action": [
+            0.0,
+            0.0,
+            0.0,
+            40.0
+          ]
+        },
+        {
+          "bucket": 20,
+          "absent_reads_if_read": 1.0,
+          "present_correct_by_action": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "bucket": 21,
+          "absent_reads_if_read": 0.0,
+          "present_correct_by_action": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "bucket": 24,
+          "absent_reads_if_read": 2.0,
+          "present_correct_by_action": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      ],
+      "reported_solver": {
+        "actions": [],
+        "document_text_bits": [],
+        "exhaustive": true,
+        "feasible": false,
+        "improves_over_local": false,
+        "lower_bound_bits": 5107.839840421375,
+        "meets_text_screen": false,
+        "nodes": 57,
+        "objective_bits": null,
+        "obstruction_proved_by_bound": true,
+        "realized_fit": null,
+        "realized_tune": null,
+        "screen_bits_per_token": 0.05,
+        "seconds": 0.00063375,
+        "status": "INFEASIBLE",
+        "text_bits_per_token": null
+      },
+      "reported_wider_solver": {
+        "feasible": false,
+        "lower_bound_bits": 5106.458254898265,
+        "objective_bits": null,
+        "status": "INFEASIBLE",
+        "text_bits_per_token": null
+      },
+      "reported_identity_max_residual_bits": 1.4210854715202004e-13,
+      "reported_counterfactual_positions": 5442
+    },
+    "categorical_policy": {
+      "development_populations": {
+        "absent_positions": 23,
+        "present_positions": 197,
+        "text_candidate_positions": 944,
+        "text_tokens": 1952,
+        "tune_absent_positions": 11,
+        "tune_present_positions": 49,
+        "tune_text_tokens": 1952
+      },
+      "parent_reference": {
+        "absent_delta_bits": 3.4970738323129975,
+        "absent_reads": 7.0,
+        "present_delta_bits": -1931.3205900883734,
+        "present_emitted_correct": 149.0,
+        "tune_absent_reads": 4.0,
+        "tune_present_emitted_correct": 36.0
+      },
+      "required_present_correct": 145,
+      "absent_read_budget": 7,
+      "integer_certificate": {
+        "max_present_under_absent_budget_wider": 71,
+        "max_present_under_absent_budget_operational": 71,
+        "witness_actions": [
+          3,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          3,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "witness_absent_reads": 7,
+        "minimum_absent_reads_to_reach_required_present": 15,
+        "best_present_by_absent_budget": {
+          "0": 1,
+          "1": 4,
+          "2": 4,
+          "3": 49,
+          "4": 52,
+          "5": 52,
+          "6": 53,
+          "7": 71,
+          "8": 83,
+          "9": 86,
+          "10": 119,
+          "11": 122,
+          "12": 122,
+          "13": 123,
+          "14": 124,
+          "15": 153,
+          "16": 156,
+          "17": 156,
+          "18": 157,
+          "19": 158,
+          "20": 158,
+          "21": 159,
+          "22": 159,
+          "23": 159
+        },
+        "infeasible_using_only_two_integer_constraints": true,
+        "proof_scope": "Exact integer upper bound from saved nonnegative counts for every deterministic four-action table, freeing all buckets; valid without relying on floating solver tolerances or CE constraints."
+      },
+      "isolated_optima": {
+        "max_present_emitted_correct": 159.0,
+        "min_present_delta_bits": -2038.9512230550888,
+        "min_text_delta_bits_per_token": -0.03492950908540679,
+        "min_absent_reads": 0.0,
+        "min_absent_delta_bits": 0.0
+      },
+      "present_correct_by_uniform_action": [
+        0.0,
+        0.0,
+        0.0,
+        159.0
+      ],
+      "NoRead_sums": {
+        "text_delta_bits": 0.0,
+        "present_emitted_correct": 0.0,
+        "present_delta_bits": 0.0,
+        "absent_reads": 0.0,
+        "absent_delta_bits": 0.0
+      },
+      "one_nat_sums": {
+        "text_delta_bits": -59.86914532232124,
+        "present_emitted_correct": 0.0,
+        "present_delta_bits": -272.5252642925706,
+        "absent_reads": 23.0,
+        "absent_delta_bits": 0.024759688386490453
+      },
+      "fitted_policy_sums": {
+        "text_delta_bits": 327.30949289835394,
+        "present_emitted_correct": 159.0,
+        "present_delta_bits": -2038.3921615408833,
+        "absent_reads": 23.0,
+        "absent_delta_bits": 15.512325411862653
+      },
+      "fitted_sums_match_saved_panels": {
+        "present_correct": true,
+        "present_delta": true,
+        "absent_reads": true,
+        "absent_delta": true,
+        "text_delta": true
+      },
+      "bucket_count_witnesses": [
+        {
+          "bucket": 0,
+          "absent_reads_if_read": 0.0,
+          "present_correct_by_action": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "bucket": 1,
+          "absent_reads_if_read": 5.0,
+          "present_correct_by_action": [
+            0.0,
+            0.0,
+            0.0,
+            34.0
+          ]
+        },
+        {
+          "bucket": 5,
+          "absent_reads_if_read": 3.0,
+          "present_correct_by_action": [
+            0.0,
+            0.0,
+            0.0,
+            2.0
+          ]
+        },
+        {
+          "bucket": 8,
+          "absent_reads_if_read": 1.0,
+          "present_correct_by_action": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "bucket": 9,
+          "absent_reads_if_read": 7.0,
+          "present_correct_by_action": [
+            0.0,
+            0.0,
+            0.0,
+            70.0
+          ]
+        },
+        {
+          "bucket": 13,
+          "absent_reads_if_read": 1.0,
+          "present_correct_by_action": [
+            0.0,
+            0.0,
+            0.0,
+            3.0
+          ]
+        },
+        {
+          "bucket": 17,
+          "absent_reads_if_read": 3.0,
+          "present_correct_by_action": [
+            0.0,
+            0.0,
+            0.0,
+            48.0
+          ]
+        },
+        {
+          "bucket": 21,
+          "absent_reads_if_read": 2.0,
+          "present_correct_by_action": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "bucket": 25,
+          "absent_reads_if_read": 1.0,
+          "present_correct_by_action": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      ],
+      "reported_solver": {
+        "actions": [],
+        "document_text_bits": [],
+        "exhaustive": true,
+        "feasible": false,
+        "improves_over_local": false,
+        "lower_bound_bits": 211.28111387518243,
+        "meets_text_screen": false,
+        "nodes": 421,
+        "objective_bits": null,
+        "obstruction_proved_by_bound": true,
+        "realized_fit": null,
+        "realized_tune": null,
+        "screen_bits_per_token": 0.05,
+        "seconds": 0.000619166,
+        "status": "INFEASIBLE",
+        "text_bits_per_token": null
+      },
+      "reported_wider_solver": {
+        "feasible": false,
+        "lower_bound_bits": 209.80491756943627,
+        "objective_bits": null,
+        "status": "INFEASIBLE",
+        "text_bits_per_token": null
+      },
+      "reported_identity_max_residual_bits": 1.4477308241112041e-13,
+      "reported_counterfactual_positions": 5442
+    }
+  },
+  "retained_statistics_limits": {
+    "fit_bucket_action_aggregate_arrays": true,
+    "per_position_observation_source_reference_outcome_rows": false,
+    "tune_counterfactual_arrays": false,
+    "per_document_counterfactual_arrays": false,
+    "can_independently_reconstruct_two_constraint_bound": true,
+    "can_reconstruct_omitted_feature_witness_or_predictive_advantage": false,
+    "can_independently_recompute_reported_per_position_identity_residuals": false,
+    "new_feature_extraction_needed": "A new bounded development observation pass is needed to identify and evaluate omitted causal distinctions; existing 32x4 totals cannot identify such per-position witnesses."
+  },
+  "corrections": [
+    "Both roots have seal manifests; attempt1 is a sealed superseded reporting-defect artifact, not unsealed-in-effect.",
+    "149 maximum present and -1937.548 isolated CE minimum are H4-specific; categorical maximum is159 and minimum -2038.951. Categorical fitted159 in the receipt is consistent with saved arrays, not corruption.",
+    "32 buckets encode five bits (four gap bins, four ctx classes, two margin states), not four.",
+    "Proof is a coarse observation-class separability obstruction on saved development data. It does not prove which omitted feature will generalize or that adding an objective resolves it.",
+    "No fresh acceptance run occurred; old final panels replay exactly.",
+    "selection.tune_text_bits_per_token is a nonselected path metric despite INFEASIBLE/actions empty and should be null or explicitly diagnostic.",
+    "Only aggregate fit counterfactual arrays retained; per-position outcomes and per-doc/tune arrays are not serialized even though generated/accumulated in memory.",
+    "Do not claim executed-source correspondence to24c874ac: runner SHA differs and new solver module omitted from source receipt."
+  ],
+  "supported_successor": "Stop current bucket-only class. Inspect existing omitted causal query/source confidence or directed relation on a bounded development observation extraction; exploit a matched-confidence baseline and per-position witnesses before selecting one representational extension. Retain geometric and categorical comparisons, absence, generated behavior and new final separation.",
+  "script_sha256": "6114b1800fd1613c996e741e9d76e68c8169c52357a4e7aefeb3f89e321ac2f0",
+  "storage_before": {
+    "schema": "uor-storage-inventory-v1",
+    "collected_at": "2026-09-21T14:23:51.014888+00:00",
+    "disk": {
+      "total_bytes": 245107195904,
+      "used_bytes": 211287715840,
+      "free_bytes": 33819480064
+    },
+    "proposed_reserve_bytes": 36766079385,
+    "below_proposed_reserve": true,
+    "paths": [
+      {
+        "label": "model_assets",
+        "path": "/Users/casey.allard/uor-r4/.uor-models",
+        "status": "LOWER_BOUND_OR_UNAVAILABLE",
+        "allocated_bytes": 20980539392,
+        "diagnostic_lines": 3
+      },
+      {
+        "label": "local_target",
+        "path": "/Users/casey.allard/uor-r4/target",
+        "status": "MEASURED",
+        "allocated_bytes": 11915608064,
+        "diagnostic_lines": 0
+      },
+      {
+        "label": "codex_worktrees",
+        "path": "/Users/casey.allard/.codex/worktrees",
+        "status": "MEASURED",
+        "allocated_bytes": 495611904,
+        "diagnostic_lines": 0
+      },
+      {
+        "label": "knowledge",
+        "path": "/Users/casey.allard/.local/share/uor-r4/knowledge",
+        "status": "MEASURED",
+        "allocated_bytes": 1961484288,
+        "diagnostic_lines": 0
+      },
+      {
+        "label": "tooling",
+        "path": "/Users/casey.allard/.local/share/uor-r4/tooling",
+        "status": "MEASURED",
+        "allocated_bytes": 1207754752,
+        "diagnostic_lines": 0
+      },
+      {
+        "label": "uv_tools",
+        "path": "/Users/casey.allard/.local/share/uv/tools",
+        "status": "MEASURED",
+        "allocated_bytes": 288870400,
+        "diagnostic_lines": 0
+      },
+      {
+        "label": "uv_cache",
+        "path": "/Users/casey.allard/.cache/uv",
+        "status": "MEASURED",
+        "allocated_bytes": 64475136,
+        "diagnostic_lines": 0
+      },
+      {
+        "label": "cargo_registry",
+        "path": "/Users/casey.allard/.cargo/registry",
+        "status": "MEASURED",
+        "allocated_bytes": 511242240,
+        "diagnostic_lines": 0
+      },
+      {
+        "label": "cargo_git",
+        "path": "/Users/casey.allard/.cargo/git",
+        "status": "MEASURED",
+        "allocated_bytes": 824213504,
+        "diagnostic_lines": 0
+      }
+    ],
+    "deletions": 0,
+    "notes": [
+      "Rows can overlap; do not sum them as exclusive volume usage.",
+      "du allocated-byte estimates may share APFS clone data.",
+      "Permission errors remain errors; no sealed paths are opened or unlocked.",
+      "Size alone does not make a path disposable. Review changes, evidence and references first."
+    ]
+  },
+  "cleanup": {
+    "at": "2026-09-21T14:25:40.469196+00:00",
+    "scope": "Inactive Rust debug incremental compiler intermediates only; release/debug executables, dependencies, models, sources and research retained",
+    "before_free_bytes": 33934102528,
+    "selected_allocated_bytes": 5159280640,
+    "active_cargo_or_rustc": false,
+    "after_free_bytes": 38257643520,
+    "observed_free_delta_bytes": 4323540992,
+    "deleted_directories": 340
+  },
+  "parent_witness": {
+    "scope": "Read-only artifact byte inspection and source algebra; no model execution or causal-prefix replay.",
+    "artifacts": {
+      "relational": {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/relational-learning-4/artifacts/relational.rlr2",
+        "sha256": "8d33a48888af8d224533b3634a52a868313df41364ec2dde6e6f8da7bd3043d7",
+        "version": 3
+      },
+      "relational_ctx": {
+        "path": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/relational-learning-4/artifacts/relational_ctx.rlr2",
+        "sha256": "d4ab183d3975be563139ba42f3a5fb9ec61fa1691603bfcc3d603787d7ab5b55",
+        "version": 3
+      }
+    },
+    "compared_fields": {
+      "mode": {
+        "equal": true,
+        "relational": 0,
+        "relational_ctx": 0
+      },
+      "q_roots": {
+        "equal": true,
+        "count": 4096,
+        "relational_sha256": "658d0e7265880f7123c5dca278694e741bdefc1b1aebcf29b332eae6a0c9a091",
+        "relational_ctx_sha256": "658d0e7265880f7123c5dca278694e741bdefc1b1aebcf29b332eae6a0c9a091"
+      },
+      "code_of": {
+        "equal": true,
+        "count": 0,
+        "relational_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "relational_ctx_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "w": {
+        "equal": true,
+        "relational": [
+          -4,
+          -6,
+          5,
+          -3,
+          -3,
+          -1
+        ],
+        "relational_ctx": [
+          -4,
+          -6,
+          5,
+          -3,
+          -3,
+          -1
+        ]
+      },
+      "rank": {
+        "equal": true,
+        "relational": [
+          0,
+          -5,
+          1,
+          -2,
+          0,
+          0,
+          0,
+          0,
+          -5,
+          -5,
+          2,
+          -3,
+          1,
+          1,
+          1,
+          -2,
+          -2,
+          -3,
+          -1,
+          0,
+          -1,
+          -3,
+          -4,
+          -4,
+          -1,
+          -3,
+          1,
+          0,
+          0,
+          0,
+          -3,
+          -5,
+          -1,
+          -2,
+          0,
+          4,
+          -1,
+          -1,
+          -4,
+          -4,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          -1,
+          -4,
+          0,
+          0,
+          -3,
+          -1,
+          2,
+          -1,
+          -1,
+          2,
+          1,
+          -1,
+          3,
+          -2,
+          2,
+          -2,
+          -1,
+          -1,
+          -2,
+          -1,
+          1,
+          -1,
+          0,
+          0,
+          -2,
+          -2,
+          -3,
+          -2,
+          -4,
+          -3,
+          -3,
+          -3,
+          -2,
+          7,
+          0,
+          -2,
+          0,
+          0,
+          6,
+          -1,
+          -2,
+          -1,
+          2,
+          -1,
+          -3,
+          -1,
+          -2,
+          -1,
+          0,
+          0,
+          -2,
+          0,
+          0,
+          0,
+          0,
+          0,
+          -2,
+          3,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          -1,
+          -4,
+          0,
+          1,
+          0,
+          1,
+          -4,
+          -5
+        ],
+        "relational_ctx": [
+          0,
+          -5,
+          1,
+          -2,
+          0,
+          0,
+          0,
+          0,
+          -5,
+          -5,
+          2,
+          -3,
+          1,
+          1,
+          1,
+          -2,
+          -2,
+          -3,
+          -1,
+          0,
+          -1,
+          -3,
+          -4,
+          -4,
+          -1,
+          -3,
+          1,
+          0,
+          0,
+          0,
+          -3,
+          -5,
+          -1,
+          -2,
+          0,
+          4,
+          -1,
+          -1,
+          -4,
+          -4,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          -1,
+          -4,
+          0,
+          0,
+          -3,
+          -1,
+          2,
+          -1,
+          -1,
+          2,
+          1,
+          -1,
+          3,
+          -2,
+          2,
+          -2,
+          -1,
+          -1,
+          -2,
+          -1,
+          1,
+          -1,
+          0,
+          0,
+          -2,
+          -2,
+          -3,
+          -2,
+          -4,
+          -3,
+          -3,
+          -3,
+          -2,
+          7,
+          0,
+          -2,
+          0,
+          0,
+          6,
+          -1,
+          -2,
+          -1,
+          2,
+          -1,
+          -3,
+          -1,
+          -2,
+          -1,
+          0,
+          0,
+          -2,
+          0,
+          0,
+          0,
+          0,
+          0,
+          -2,
+          3,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          -1,
+          -4,
+          0,
+          1,
+          0,
+          1,
+          -4,
+          -5
+        ]
+      },
+      "sb": {
+        "equal": true,
+        "relational": [
+          -4,
+          -4,
+          4
+        ],
+        "relational_ctx": [
+          -4,
+          -4,
+          4
+        ]
+      },
+      "bias": {
+        "equal": true,
+        "relational": 0,
+        "relational_ctx": 0
+      },
+      "noread": {
+        "equal": true,
+        "relational": 0,
+        "relational_ctx": 0
+      }
+    },
+    "all_compared_fields_equal": true,
+    "ctx_rows": [
+      {
+        "bucket": 0,
+        "ctx_row": [
+          3,
+          -7,
+          -7,
+          0
+        ],
+        "action_offsets": [
+          -11,
+          -11,
+          4
+        ],
+        "unique_max_strength_index": 2,
+        "noread_score": 3
+      },
+      {
+        "bucket": 1,
+        "ctx_row": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "action_offsets": [
+          -4,
+          -4,
+          4
+        ],
+        "unique_max_strength_index": 2,
+        "noread_score": 0
+      },
+      {
+        "bucket": 2,
+        "ctx_row": [
+          2,
+          -7,
+          -7,
+          0
+        ],
+        "action_offsets": [
+          -11,
+          -11,
+          4
+        ],
+        "unique_max_strength_index": 2,
+        "noread_score": 2
+      },
+      {
+        "bucket": 3,
+        "ctx_row": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "action_offsets": [
+          -4,
+          -4,
+          4
+        ],
+        "unique_max_strength_index": 2,
+        "noread_score": 0
+      },
+      {
+        "bucket": 4,
+        "ctx_row": [
+          3,
+          -7,
+          -7,
+          0
+        ],
+        "action_offsets": [
+          -11,
+          -11,
+          4
+        ],
+        "unique_max_strength_index": 2,
+        "noread_score": 3
+      },
+      {
+        "bucket": 5,
+        "ctx_row": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "action_offsets": [
+          -4,
+          -4,
+          4
+        ],
+        "unique_max_strength_index": 2,
+        "noread_score": 0
+      },
+      {
+        "bucket": 6,
+        "ctx_row": [
+          1,
+          -7,
+          -7,
+          0
+        ],
+        "action_offsets": [
+          -11,
+          -11,
+          4
+        ],
+        "unique_max_strength_index": 2,
+        "noread_score": 1
+      },
+      {
+        "bucket": 7,
+        "ctx_row": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "action_offsets": [
+          -4,
+          -4,
+          4
+        ],
+        "unique_max_strength_index": 2,
+        "noread_score": 0
+      },
+      {
+        "bucket": 8,
+        "ctx_row": [
+          2,
+          -7,
+          -7,
+          0
+        ],
+        "action_offsets": [
+          -11,
+          -11,
+          4
+        ],
+        "unique_max_strength_index": 2,
+        "noread_score": 2
+      },
+      {
+        "bucket": 9,
+        "ctx_row": [
+          7,
+          -7,
+          -7,
+          -7
+        ],
+        "action_offsets": [
+          -11,
+          -11,
+          -3
+        ],
+        "unique_max_strength_index": 2,
+        "noread_score": 7
+      },
+      {
+        "bucket": 10,
+        "ctx_row": [
+          3,
+          -7,
+          -7,
+          0
+        ],
+        "action_offsets": [
+          -11,
+          -11,
+          4
+        ],
+        "unique_max_strength_index": 2,
+        "noread_score": 3
+      },
+      {
+        "bucket": 11,
+        "ctx_row": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "action_offsets": [
+          -4,
+          -4,
+          4
+        ],
+        "unique_max_strength_index": 2,
+        "noread_score": 0
+      },
+      {
+        "bucket": 12,
+        "ctx_row": [
+          1,
+          -7,
+          -7,
+          0
+        ],
+        "action_offsets": [
+          -11,
+          -11,
+          4
+        ],
+        "unique_max_strength_index": 2,
+        "noread_score": 1
+      },
+      {
+        "bucket": 13,
+        "ctx_row": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "action_offsets": [
+          -4,
+          -4,
+          4
+        ],
+        "unique_max_strength_index": 2,
+        "noread_score": 0
+      },
+      {
+        "bucket": 14,
+        "ctx_row": [
+          2,
+          -7,
+          -7,
+          0
+        ],
+        "action_offsets": [
+          -11,
+          -11,
+          4
+        ],
+        "unique_max_strength_index": 2,
+        "noread_score": 2
+      },
+      {
+        "bucket": 15,
+        "ctx_row": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "action_offsets": [
+          -4,
+          -4,
+          4
+        ],
+        "unique_max_strength_index": 2,
+        "noread_score": 0
+      }
+    ],
+    "all_16_rows_uniquely_select_strength_2": true,
+    "source_parity_reason": "Each action offset is position-dependent but candidate-independent. choose_scored and ungated_top_source both retain the first candidate on score ties. Equal maps and source-score fields imply equal selected source on every identical causal candidate pool.",
+    "witness": "Use parent bucket_of (including newest-source bit), k=ungated_top_source; D=strength_score(cands[k],rels[k],2,b)-noread_score(b). Read the same occurrence at strength index2 iff D>0, otherwise NoRead. Empty pools return NoRead.",
+    "witness_scope": "Exactly restores the frozen H4 contextual parent given the same candidate ordering and relation encoding. Does not establish learned improvement, natural-text benefit, or unexecuted prefix parity."
+  },
+  "principal_validation": {
+    "checks": [
+      {
+        "command": [
+          "/Users/casey.allard/.cargo/bin/cargo",
+          "fmt",
+          "-p",
+          "uor-r4-core",
+          "--",
+          "--check"
+        ],
+        "elapsed_ms": 3322,
+        "exit_code": 1,
+        "log": "/tmp/uor-pr1332-validation-0.log",
+        "free_bytes_after": 38253764608
+      },
+      {
+        "command": [
+          "/Users/casey.allard/.cargo/bin/cargo",
+          "fmt",
+          "-p",
+          "uor-r4-core"
+        ],
+        "elapsed_ms": 3125,
+        "exit_code": 0,
+        "log": "/tmp/uor-pr1332-validation-1.log",
+        "free_bytes_after": 38228729856
+      },
+      {
+        "command": [
+          "/Users/casey.allard/.cargo/bin/cargo",
+          "fmt",
+          "-p",
+          "uor-r4-core",
+          "--",
+          "--check"
+        ],
+        "elapsed_ms": 2957,
+        "exit_code": 0,
+        "log": "/tmp/uor-pr1332-validation-2.log",
+        "free_bytes_after": 38228688896
+      },
+      {
+        "command": [
+          "/Users/casey.allard/.cargo/bin/cargo",
+          "test",
+          "-p",
+          "uor-r4-core",
+          "--lib",
+          "policy_feasibility",
+          "--offline"
+        ],
+        "elapsed_ms": 244505,
+        "exit_code": 0,
+        "log": "/tmp/uor-pr1332-validation-3.log",
+        "free_bytes_after": 37703491584
+      },
+      {
+        "command": [
+          "/Users/casey.allard/.cargo/bin/cargo",
+          "check",
+          "-p",
+          "uor-r4-core",
+          "--bin",
+          "competitive-reader",
+          "--offline"
+        ],
+        "elapsed_ms": 18947,
+        "exit_code": 0,
+        "log": "/tmp/uor-pr1332-validation-4.log",
+        "free_bytes_after": 37671890944
+      }
+    ],
+    "claim_wording": "PASS",
+    "model_replay": "NOT_RUN",
+    "source_correspondence_of_original_run": "UNRESOLVED",
+    "storage_after_checks": {
+      "free_bytes": 37667663872,
+      "observed_at": "2026-09-21T14:42:07.278068+00:00"
+    },
+    "ledger_after_checks": {
+      "cumulative_ms": 195884105,
+      "limit_ms": 198900000
+    }
+  }
+}

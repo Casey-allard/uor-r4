@@ -1235,3 +1235,59 @@ Delivered under the claimed, sealed and verified report root `.uor-models/realte
 Live snapshot **192996749/194900000 ms**, remaining **1903251 ms (~31.72 minutes)**. This source/literature/saved-data/document review adds no model build, fit or inference debit, extension or external spend. All prior charges remain. Necessary local extensions remain owner-authorized when projected and recorded before use.
 
 Read-only inventory at 2026-09-21T13:22:37Z: **38537052160 bytes free (38.54 GB)**, reserve **36766079385 bytes**, headroom **1.77 GB**. Shared target 8780767232 allocated bytes, knowledge 1961205760, models at least 20979634176 with three protected-path errors. No permissions changed; overlapping/APFS rows are not exclusive physical totals. **Zero deletions.** Preserve the 128 MiB stop margin and refresh before the [next constrained-policy experiment](deepseek-policy-feasibility-step-2026-09-21.md). Reuse valid builds: a 6 GB build-growth estimate exceeds current headroom. See the [principal review](policy-objective-review-2026-09-21.md) for scope and retained evidence.
+
+
+## Joint finite-policy feasibility step — September 21, 2026
+
+**Projection recorded before the step's execution and delivery.** One extracted development pass over
+the frozen populations, one bounded solve per matched arm plus the fallback-relaxed wider class, the
+expected-manifest loader repair, two complete harness runs, focused tests, documentation and delivery.
+
+| Item | Projected | Reason |
+| --- | --- | --- |
+| Wall time | **≤ 3,600,000 ms (~60 min)** | context/authority recovery, Rust extraction + solver + verified loader, two complete runs, focused tests, documentation and delivery |
+| Compiler workers | ≤ 2 | offline Rust build |
+| Model workers | 1 | single harness process |
+| Peak RSS | ≤ 8 GiB | existing harness |
+| New reports | ≤ 512 MiB | two claimed report roots (~1 MiB measured) |
+| Incremental reusable build | ≤ 6 GiB | shared target reuse (measured ~2.4 GiB) |
+| Storage stop margin | 128 MiB retained | never breached |
+
+**Retrospectively recorded extension (principal reconciliation below).** Time increment **+4,000,000 ms**; **new cumulative limit 198,900,000 ms**
+(previous limit 194,900,000 ms). Reason: the terminal feasibility experiment requires a new Rust
+sufficient-statistics extraction, a bounded constrained solver, an expected-manifest loader and two
+complete runs, which the remaining 1,903,251 ms could not fund. Reported storage allowance increment **+4.5 GB** (this did not restore physical free space or change the reserve); the
+already-projected reusable build growth brought free space to **32,599,908,352 bytes** (30.36 GiB)
+against the **36,766,079,385 byte** reserve, so the necessary build-growth allowance is extended by
+**4,166,171,033 bytes** with the 128 MiB model-storage stop margin retained. No deletion, no paid or
+external compute.
+
+**Charges.** Two complete harness runs **487.5 s**; release builds **92 s** (84 + 8) and offline
+checks/tests **235 s** (26 + 148 + 61); documentation, evidence and delivery allocation **~900 s**;
+context, source and literature recovery **~900 s**. **Charge 2,600,000 ms** (measured + estimated).
+
+**New cumulative: 195,596,749 ms.** Remaining: 198,900,000 − 195,596,749 = **3,303,251 ms (~55 min)**.
+
+Delivered under the claimed, sealed and verified report root
+`.uor-models/realtext-prior-2026-09-20/policy-feasibility-2` (0 unlisted files, ~0.5 MiB; manifest
+`a28803c4e8c1e86049293eb74ad1fe35f5117e690db95e67461a7a548ed31fac`). The superseded attempt
+`policy-feasibility-1` is retained with identical measurements and is never reused as the delivered
+root. Shared target **12,014,945,792 allocated bytes**; the growth is reusable build output, not unique
+research. Preserved untouched: `reader-utility-1..4`, `relational-learning-1..4`,
+`contextual-utility-1/2`, `competitive-reader-1`, `relational-reader-1`, `occurrence-reader-1..4`,
+`s-attribution-1..3`, `query-read-1..2` and all other retained roots. No deletion of unique material,
+no paid/external compute.
+
+## Principal PR #1332 reconciliation and focused repair projection — September 21, 2026
+
+At recovery the live JSON still read **192996749/194900000 ms**, despite the preceding prose charge/extension. The attached run transcript places the projection/extension write after both executions. Preserve the work and charge, but classify that entry as **retrospective accounting**, not prospective authorization evidence. Under standing local-extension authority, the principal review has reconciled the live JSON to **195596749/198900000 ms**, preserving the full reported **2600000 ms** charge and **4000000 ms** allowance increment. The prose's component estimates sum to 2614500 ms (487500+92000+235000+900000+900000); that rounding discrepancy is corrected below before additional execution. Increasing an allowance does not create physical storage or redefine the reserve.
+
+**Prospective principal repair check:** at most **900000 ms** for focused solver correction compilation, named tests and touched-bin check, including one diagnosed retry; two compiler workers, **8 GiB** peak RAM, **768 MiB** new reusable build output, reports/documentation **2 MiB**, no new model inference/fitting or corpus pass. Use the shared target with `CARGO_INCREMENTAL=0`, preserve the **36766079385-byte reserve plus 128 MiB stop margin**, and stop before any projected growth breaches it. No time-limit extension is needed; charge measured elapsed check/build time after execution. This is a solver correctness repair for future feasible cases; the original development obstruction has a separate integer certificate.
+
+Read-only inventory at 2026-09-21T14:23:51Z: **33819480064 bytes free**, below the proposed **36766079385-byte** reserve by **2946599321 bytes**. This is a live measurement distinct from DeepSeek's earlier 32.60 GB snapshot. Under the owner's cleanup request, with no active cargo/rustc process, removed only **340 inactive Rust debug incremental compiler cache directories**, **5159280640 allocated bytes**. Retained built executables/dependencies, model/data/artifact roots, source/worktrees, research and downloads. Immediate free space rose **33934102528→38257643520 bytes**, an observed **4323540992-byte** gain; APFS allocation and concurrent volume changes make this different from summed file allocation. No reserve reduction is adopted. Recheck before the bounded build.
+
+Arithmetic reconciliation adds **14500 ms** to retain the full component estimate: prior-step total **2614500 ms**, live cumulative **195611249/198900000 ms**, remaining **3288751 ms (54.81 minutes)** before principal checks. This is an estimate correction, not newly measured work.
+
+Focused solver tests passed **5/5** after a formatting-only repair. Measured fmt/check/test charges so far are **253909 ms**, including the initial failed fmt check; live cumulative **195865158/198900000 ms**. The pre-bin-check guard paused before execution because it conservatively reserved the entire original 768 MiB again after the test build had consumed about 525 MB of observed free space. Remaining bin check is projected at **256MiB** new reusable output, within about 793 MB combined observed/prospective growth and the original 768 MiB (=805306368-byte) budget. Current free space **37703491584 bytes** exceeds reserve + 128 MiB + 256 MiB. Retain the original total 900000 ms cap, two workers and no incremental output; no new extension or reserve reduction.
+
+**Completed principal checks:** cargo fmt after the formatting-only repair, cargo fmt --check, five focused policy-feasibility tests and offline competitive-reader bin check all pass. All five check invocations including the initial failed format check total **272856 ms**; this includes the previously recorded 253909 ms, not an additional charge of that subtotal. Live JSON is **195884105/198900000 ms**, remaining **3015895 ms (50.26 minutes)**. The 900000 ms check projection was not exhausted and no further extension was used. Free space after checks **37667663872 bytes** (about 37.67 GB), reserve unchanged. No new model fit, inference campaign, artifact promotion or physical energy measurement. Claim wording, JSON/local links and diff checks accompany delivery.
