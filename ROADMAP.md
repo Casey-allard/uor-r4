@@ -1,6 +1,6 @@
 # UOR-R4 Geometric Language Model — roadmap
 
-**September 20:** the [corrected occurrence-reader audit](docs/integration/occurrence-reader-audit-2026-09-20.md) selects [learned contextual geometric access](docs/integration/deepseek-relational-reader-step-2026-09-20.md). The [current/retired mechanism synthesis](docs/integration/geometric-attention-mechanism-synthesis-2026-09-20.md) supports structural retention, learned dependent reads and conditional representation comparisons in the [canonical sequence](docs/integration/project-track.md#structural-memory-and-geometric-representation-follow-up). No alpha promotion is implied.
+**September 20, after completed PR #1319:** the [principal review](docs/integration/relational-reader-review-2026-09-20.md) preserves a useful synthetic reader and corrects categorical attribution, task shortcuts and runtime claims. The [next constructive task](docs/integration/deepseek-competitive-reader-step-2026-09-20.md) is competitive query-dependent single reading through a shared causal path. The [five-stage plan](docs/integration/project-track.md#structural-memory-and-geometric-representation-follow-up) then develops structural persistence, dependent reads/composition, broader language/executed Rust and qualified scale. Hopf/spin/S7/E8/harmonic options remain tied to the function and limitation they address. No alpha promotion is implied.
 
 ## Capability direction
 

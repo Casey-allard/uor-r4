@@ -1,5 +1,7 @@
 # DeepSeek execution prompt: learn a contextual geometric reader
 
+**Completed historical prompt:** PR #1319 attempted this task. Read its [principal review](relational-reader-review-2026-09-20.md); the single current successor is [competitive query-dependent reading](deepseek-competitive-reader-step-2026-09-20.md). Do not rerun this older prompt as the active task.
+
 **Owner-steered architectural priority, after the completed PR #1314 handoff.** This is the single next implementation task. The owner reconfirmed the full geometric-attention synthesis: the next experiment must test a meaningful geometric bridge, not become an abstention-only repair. Learn a bounded contextual relational reader over exact memory. A repaired and loss-calibrated version of PR #1314 is its comparator and integration reference. No successor fit has run.
 
 You are a research contributor. Select the smallest causal context encoder and directed finite geometric comparison that can improve useful memory access; explain the mathematical and source-based choice. You may change the contextual representation, shared ranker, NoRead and bounded copy-strength policy within the complete projection. Preserve useful current components and original evidence. Do not merely relabel the existing eight-class equality as geometry, and do not build all proposed geometry variants at once.

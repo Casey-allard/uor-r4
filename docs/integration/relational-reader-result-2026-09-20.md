@@ -1,5 +1,7 @@
 # Result — learned contextual geometric relational reader
 
+**Principal correction — required interpretation:** the [source/evidence review](relational-reader-review-2026-09-20.md) retains synthetic improvement but invalidates the categorical attribution and narrows metric, generation, timing and generalization claims. The original outcome remains `positive=false`; its instrument failures are broader than the identity-row parity defect. Natural-text CE/fit was not executed. The text below preserves the original report as historical evidence, not current claims. [Selected successor](deepseek-competitive-reader-step-2026-09-20.md).
+
 Date: 2026-09-20. Base source `647483ab` (merge of PR #1318), executing
 [the relational-reader prompt](deepseek-relational-reader-step-2026-09-20.md). Isolated worktree
 `codex/relational-reader`. Retained root

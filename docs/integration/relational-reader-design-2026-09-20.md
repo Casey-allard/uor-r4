@@ -1,5 +1,7 @@
 # Design note — learned contextual geometric relational reader
 
+**Execution qualification:** this prospective note planned soft/straight-through descriptors and natural-text fit/regression; the delivered run used discrete coordinate search and no natural-text fit/CE panel. The [principal review](relational-reader-review-2026-09-20.md) identifies further train/evaluation and task-design defects. Preserve this original plan; use the [current successor](deepseek-competitive-reader-step-2026-09-20.md) for execution.
+
 Written **before** any fitting or scoring, per the execution prompt. Records the mechanism choice,
 the shared pool, the loss-aligned objective, the comparators and the falsifier.
 
